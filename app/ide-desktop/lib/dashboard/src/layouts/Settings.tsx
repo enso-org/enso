@@ -96,7 +96,7 @@ export default function Settings(props: SettingsProps) {
   }, [noContent, setSettingsTab])
 
   return (
-    <div className="mt-4 flex flex-1 flex-col gap-settings-header overflow-hidden px-page-x">
+    <div className="mt-4 flex flex-1 flex-col gap-6 overflow-hidden px-page-x">
       <aria.Heading level={1} className="flex items-center px-heading-x">
         <aria.MenuTrigger isOpen={isSidebarPopoverOpen} onOpenChange={setIsSidebarPopoverOpen}>
           <Button image={BurgerMenuIcon} buttonClassName="mr-3 sm:hidden" onPress={() => {}} />
@@ -113,14 +113,14 @@ export default function Settings(props: SettingsProps) {
             />
           </aria.Popover>
         </aria.MenuTrigger>
-        <ariaComponents.Text.Heading>
+        <ariaComponents.Text.Heading className="font-bold">
           <span>{getText('settingsFor')}</span>
         </ariaComponents.Text.Heading>
 
         <ariaComponents.Text
           variant="h1"
           truncate="1"
-          className="ml-2.5 max-w-lg rounded-full bg-frame px-2.5"
+          className="ml-2.5 max-w-lg rounded-full bg-frame px-2.5 font-bold"
           aria-hidden
         >
           {settingsTab !== SettingsTab.organization &&
@@ -130,7 +130,7 @@ export default function Settings(props: SettingsProps) {
             : organization?.name ?? 'your organization'}
         </ariaComponents.Text>
       </aria.Heading>
-      <div className="mt-8 flex flex-1 gap-6 overflow-hidden pr-0.5">
+      <div className="flex flex-1 gap-6 overflow-hidden pr-0.5">
         <aside className="flex h-full flex-col overflow-y-auto overflow-x-hidden pb-12">
           <SettingsSidebar
             hasBackend={backend != null}

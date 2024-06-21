@@ -82,13 +82,6 @@ export function locateAssetRowName(locator: test.Locator) {
 
 // === Button locators ===
 
-/** Find a toast close button (if any) on the current locator. */
-export function locateToastCloseButton(page: test.Locator | test.Page) {
-  // There is no other simple way to uniquely identify this element.
-  // eslint-disable-next-line no-restricted-properties
-  return page.locator('.Toastify__close-button')
-}
-
 /** Find a "login" button (if any) on the current locator. */
 export function locateLoginButton(page: test.Locator | test.Page) {
   return page.getByRole('button', { name: 'Login', exact: true }).getByText('Login')
@@ -224,17 +217,17 @@ export function locateNotEnabledStub(page: test.Locator | test.Page) {
 
 /** Find a "new folder" icon (if any) on the current page. */
 export function locateNewFolderIcon(page: test.Locator | test.Page) {
-  return page.getByRole('button').filter({ has: page.getByAltText('New Folder') })
+  return page.getByRole('button', { name: 'New Folder' })
 }
 
 /** Find a "new secret" icon (if any) on the current page. */
 export function locateNewSecretIcon(page: test.Locator | test.Page) {
-  return page.getByRole('button').filter({ has: page.getByAltText('New Secret') })
+  return page.getByRole('button', { name: 'New Secret' })
 }
 
 /** Find a "download files" icon (if any) on the current page. */
 export function locateDownloadFilesIcon(page: test.Locator | test.Page) {
-  return page.getByRole('button').filter({ has: page.getByAltText('Export') })
+  return page.getByRole('button', { name: 'Export' })
 }
 
 /** Find a list of tags in the search bar (if any) on the current page. */
@@ -250,11 +243,6 @@ export function locateSearchBarLabels(page: test.Page) {
 /** Find a list of labels in the search bar (if any) on the current page. */
 export function locateSearchBarSuggestions(page: test.Page) {
   return locateSearchBar(page).getByTestId('asset-search-suggestion')
-}
-
-/** Find a "home page" icon (if any) on the current page. */
-export function locateHomePageIcon(page: test.Locator | test.Page) {
-  return page.getByRole('button').filter({ has: page.getByAltText('Home') })
 }
 
 // === Icon locators ===
@@ -738,8 +726,8 @@ export async function login(
     await locateEmailInput(page).fill(email)
     await locatePasswordInput(page).fill(password)
     await locateLoginButton(page).click()
-    await locateToastCloseButton(page).click()
     await passTermsAndConditionsDialog({ page })
+    await test.expect(page.getByText('Logging in to Enso...')).not.toBeVisible()
   })
 }
 

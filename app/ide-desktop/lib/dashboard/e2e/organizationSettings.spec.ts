@@ -9,7 +9,7 @@ test.test('organization settings', async ({ page }) => {
 
   // Setup
   api.setCurrentOrganization(api.defaultOrganization)
-  await test.test.step('initial state', () => {
+  await test.test.step('Initial state', () => {
     test.expect(api.currentOrganization()?.name).toBe(api.defaultOrganizationName)
     test.expect(api.currentOrganization()?.email).toBe(null)
     test.expect(api.currentOrganization()?.picture).toBe(null)
@@ -20,14 +20,14 @@ test.test('organization settings', async ({ page }) => {
   await localActions.go(page)
   const nameInput = localActions.locateNameInput(page)
   const newName = 'another organization-name'
-  await test.test.step('set name', async () => {
+  await test.test.step('Set name', async () => {
     await nameInput.fill(newName)
     await nameInput.press('Enter')
     test.expect(api.currentOrganization()?.name).toBe(newName)
     test.expect(api.currentUser()?.name).not.toBe(newName)
   })
 
-  await test.test.step('unset name (should fail)', async () => {
+  await test.test.step('Unset name (should fail)', async () => {
     await nameInput.fill('')
     await nameInput.press('Enter')
     test.expect(api.currentOrganization()?.name).toBe(newName)
@@ -37,7 +37,7 @@ test.test('organization settings', async ({ page }) => {
   const invalidEmail = 'invalid@email'
   const emailInput = localActions.locateEmailInput(page)
 
-  await test.test.step('set invalid email', async () => {
+  await test.test.step('Set invalid email', async () => {
     await emailInput.fill(invalidEmail)
     await emailInput.press('Enter')
     test.expect(api.currentOrganization()?.email).toBe(null)
@@ -45,7 +45,7 @@ test.test('organization settings', async ({ page }) => {
 
   const newEmail = 'organization@email.com'
 
-  await test.test.step('set email', async () => {
+  await test.test.step('Set email', async () => {
     await emailInput.fill(newEmail)
     await emailInput.press('Enter')
     test.expect(api.currentOrganization()?.email).toBe(newEmail)
@@ -56,7 +56,7 @@ test.test('organization settings', async ({ page }) => {
   const newWebsite = 'organization.org'
 
   // NOTE: It's not yet possible to unset the website or the location.
-  await test.test.step('set website', async () => {
+  await test.test.step('Set website', async () => {
     await websiteInput.fill(newWebsite)
     await websiteInput.press('Enter')
     test.expect(api.currentOrganization()?.website).toBe(newWebsite)
@@ -66,7 +66,7 @@ test.test('organization settings', async ({ page }) => {
   const locationInput = localActions.locateLocationInput(page)
   const newLocation = 'Somewhere, CA'
 
-  await test.test.step('set location', async () => {
+  await test.test.step('Set location', async () => {
     await locationInput.fill(newLocation)
     await locationInput.press('Enter')
     test.expect(api.currentOrganization()?.address).toBe(newLocation)

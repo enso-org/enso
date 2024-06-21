@@ -407,7 +407,7 @@ export interface UserSession {
   readonly refreshUrl: string
   /** Time when the access token will expire, date and time in ISO 8601 format (UTC timezone). */
   readonly expireAt: dateTime.Rfc3339DateTime
-  /** Cognito app integration client id.. */
+  /** Cognito app integration client ID. */
   readonly clientId: string
 }
 

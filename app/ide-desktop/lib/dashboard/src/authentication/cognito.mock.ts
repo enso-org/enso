@@ -301,6 +301,8 @@ export interface UserSession {
   readonly email: string
   /** User's access token, used to authenticate the user (e.g., when making API calls). */
   readonly accessToken: string
+  /** Cognito app integration client ID. */
+  readonly clientId?: string
 }
 
 /** Parse a {@link cognito.CognitoUserSession} into a {@link UserSession}.
@@ -313,7 +315,7 @@ function parseUserSession(session: cognito.CognitoUserSession): UserSession {
     throw new Error('Payload does not have an email field.')
   } else {
     const accessToken = `.${window.btoa(JSON.stringify({ username: email }))}.`
-    return { email, accessToken }
+    return { email, accessToken, clientId: '' }
   }
 }
 
