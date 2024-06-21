@@ -9,7 +9,6 @@ import java.util.HashSet;
 import java.util.Set;
 import org.apache.commons.io.FileUtils;
 import org.enso.desktopenvironment.Platform;
-import org.enso.desktopenvironment.directories.DirectoriesException;
 import org.enso.projectmanager.boot.configuration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,13 +26,13 @@ public final class ProjectsMigration {
       try {
         File newProjectsPath = storageConfig.userProjectsPath();
         migrateProjectsDirectory(oldProjectsPath, newProjectsPath);
-      } catch (DirectoriesException e) {
+      } catch (IOException e) {
         logger.error("Migration aborted. Failed to get user documents directory.", e);
       }
     }
   }
 
-  public static void migrateProjectsDirectory(File oldProjectsPath, File newProjectsPath) {
+  static void migrateProjectsDirectory(File oldProjectsPath, File newProjectsPath) {
     if (oldProjectsPath.isDirectory()) {
       logger.info(
           "Running projects migration from '{}' to '{}'.", oldProjectsPath, newProjectsPath);
@@ -82,7 +81,7 @@ public final class ProjectsMigration {
   /**
    * Moves the source directory to the destination directory by renaming the source directory. If
    * renaming is not supported by the file system or the destination directory is located on a
-   * different file system, tries to copy the source directory and then delete it.
+   * different file system, tries to copy the source directory and then delete the source.
    *
    * @param source the source path
    * @param destination the destination path

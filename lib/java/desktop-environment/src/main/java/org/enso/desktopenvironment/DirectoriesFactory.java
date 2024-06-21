@@ -1,8 +1,6 @@
-package org.enso.desktopenvironment.directories;
+package org.enso.desktopenvironment;
 
-import org.enso.desktopenvironment.Platform;
-
-public final class DirectoriesFactory {
+final class DirectoriesFactory {
 
   private static final Directories INSTANCE = initDirectories();
 

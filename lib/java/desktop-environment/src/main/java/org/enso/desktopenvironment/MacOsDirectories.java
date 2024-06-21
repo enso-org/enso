@@ -1,9 +1,9 @@
-package org.enso.desktopenvironment.directories;
+package org.enso.desktopenvironment;
 
 import java.io.IOException;
 import java.nio.file.Path;
 
-class MacOsDirectories implements Directories {
+final class MacOsDirectories implements Directories {
 
   private static final String DOCUMENTS = "Documents";
 
@@ -14,14 +14,14 @@ class MacOsDirectories implements Directories {
    * locale-dependent user documents folder.
    *
    * @return the path to the user documents directory.
-   * @throws DirectoriesException when unable to resolve the real documents path.
+   * @throws IOException when unable to resolve the real documents path.
    */
   @Override
-  public Path getDocuments() throws DirectoriesException {
+  public Path getDocuments() throws IOException {
     try {
       return getUserHome().resolve(DOCUMENTS).toRealPath();
     } catch (IOException e) {
-      throw new DirectoriesException("Failed to resolve real MacOs documents path", e);
+      throw new IOException("Failed to resolve real MacOs documents path", e);
     }
   }
 }

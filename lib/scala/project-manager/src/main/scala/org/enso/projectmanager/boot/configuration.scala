@@ -1,10 +1,9 @@
 package org.enso.projectmanager.boot
 
 import org.enso.desktopenvironment.Platform
-import org.enso.desktopenvironment.directories.DirectoriesException
 import org.slf4j.event.Level
 
-import java.io.File
+import java.io.{File, IOException}
 import java.nio.file.Path
 
 import scala.concurrent.duration.FiniteDuration
@@ -67,7 +66,7 @@ object configuration {
   ) {
 
     /** @return a path to the user projects directory. */
-    @throws[DirectoriesException]
+    @throws[IOException]
     def userProjectsPath: File = {
       val projectsRootDirectory =
         projectsRoot.getOrElse(Platform.getDirectories.getDocuments.toFile)

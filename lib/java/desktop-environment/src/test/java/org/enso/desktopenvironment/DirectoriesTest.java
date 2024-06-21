@@ -1,5 +1,6 @@
-package org.enso.desktopenvironment.directories;
+package org.enso.desktopenvironment;
 
+import java.io.IOException;
 import java.nio.file.Files;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -11,7 +12,7 @@ public class DirectoriesTest {
 
   @BeforeClass
   public static void setup() {
-    directories = DirectoriesFactory.getInstance();
+    directories = Platform.getDirectories();
   }
 
   @Test
@@ -21,7 +22,7 @@ public class DirectoriesTest {
   }
 
   @Test
-  public void getDocuments() throws DirectoriesException {
+  public void getDocuments() throws IOException {
     var documents = directories.getDocuments();
     Assert.assertTrue(
         "User documents is not a directory" + documents, Files.isDirectory(documents));

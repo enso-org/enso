@@ -1,11 +1,11 @@
-package org.enso.desktopenvironment.directories;
+package org.enso.desktopenvironment;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.concurrent.TimeUnit;
 
-class LinuxDirectories implements Directories {
+final class LinuxDirectories implements Directories {
 
   private static final String[] PROCESS_XDG_DOCUMENTS = new String[] {"xdg-user-dir", "DOCUMENTS"};
 

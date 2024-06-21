@@ -94,7 +94,7 @@ public class ProjectsMigrationTest {
     Assert.assertTrue(project1.isDirectory());
     Assert.assertTrue(project2.isDirectory());
 
-    ProjectsMigration.moveDirectory(oldProjectsDir, newProjectsDir);
+    ProjectsMigration.migrateProjectsDirectory(oldProjectsDir, newProjectsDir);
 
     Assert.assertFalse(oldProjectsDir.isDirectory());
     Assert.assertTrue(newProjectsDir.isDirectory());
