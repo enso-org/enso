@@ -51,6 +51,8 @@ test.test('sort', async ({ page }) => {
   // d file
   await page.goto('/')
   await actions.login({ page })
+  await actions.passTermsAndConditionsDialog({ page })
+  await test.expect(page.getByText('Logging in to Enso...')).not.toBeVisible()
 
   // By default, assets should be grouped by type.
   // Assets in each group are ordered by insertion order.

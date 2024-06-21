@@ -17,7 +17,7 @@ test.test('members settings', async ({ page }) => {
 
   const otherUserName = 'second.user_'
   const otherUser = api.addUser(otherUserName)
-  await page.reload()
+  await actions.reload({ page })
   await test.expect(page.getByText('Logging in to Enso...')).not.toBeVisible()
   await localActions.go(page)
   await test
@@ -25,7 +25,7 @@ test.test('members settings', async ({ page }) => {
     .toHaveText([api.currentUser()?.name ?? '', otherUserName])
 
   api.deleteUser(otherUser.userId)
-  await page.reload()
+  await actions.reload({ page })
   await test.expect(page.getByText('Logging in to Enso...')).not.toBeVisible()
   await localActions.go(page)
   await test

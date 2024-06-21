@@ -732,6 +732,20 @@ export async function login(
   })
 }
 
+// =============
+// === login ===
+// =============
+
+/** Reload. */
+// This syntax is required for Playwright to work properly.
+// eslint-disable-next-line no-restricted-syntax
+export async function reload({ page }: MockParams) {
+  await test.test.step('Reload', async () => {
+    await page.reload()
+    await test.expect(page.getByText('Logging in to Enso...')).not.toBeVisible()
+  })
+}
+
 // ================
 // === mockDate ===
 // ================
