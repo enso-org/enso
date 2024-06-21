@@ -7,13 +7,13 @@ import * as process from 'node:process'
  * Detects path of the user documents directory depending on the operating system.
  */
 export function getDocumentsPath(): string | undefined {
-    if (process.platform === 'linux') {
+    if (process.platform === 'linux' || process.platform === 'freebsd') {
         return getLinuxDocumentsPath()
     }
     if (process.platform === 'darwin') {
         return getMacOsDocumentsPath()
     }
-    if (process.platform === 'win32') {
+    if (process.platform === 'win32' || process.platform === 'cygwin') {
         return getWindowsDocumentsPath()
     }
 }
