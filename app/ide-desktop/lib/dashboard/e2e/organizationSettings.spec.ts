@@ -16,6 +16,7 @@ test.test('organization settings', async ({ page }) => {
     test.expect(api.currentOrganization()?.website).toBe(null)
     test.expect(api.currentOrganization()?.address).toBe(null)
   })
+  await test.expect(page.getByText('Logging in to Enso...')).not.toBeVisible()
 
   await localActions.go(page)
   const nameInput = localActions.locateNameInput(page)

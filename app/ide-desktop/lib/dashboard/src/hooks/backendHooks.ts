@@ -89,7 +89,7 @@ export function useObserveBackend(backend: Backend | null) {
       Parameters<Extract<Backend[Method], (...args: never) => unknown>>
     >({
       // Errored mutations can be safely ignored as they should not change the state.
-      filters: { mutationKey: [backend, method], status: 'success' },
+      filters: { mutationKey: [backend?.type, method], status: 'success' },
       // eslint-disable-next-line no-restricted-syntax
       select: mutation => mutation.state as never,
     })
@@ -110,7 +110,7 @@ export function useObserveBackend(backend: Backend | null) {
   ) => {
     queryClient.setQueryData<
       Awaited<ReturnType<Extract<Backend[Method], (...args: never) => unknown>>>
-    >([backend, method], data => (data == null ? data : updater(data)))
+    >([backend?.type, method], data => (data == null ? data : updater(data)))
   }
   useObserveMutations('uploadUserPicture', state => {
     revokeUserPictureUrl(backend)
@@ -249,7 +249,7 @@ export function useBackendMutation<Method extends keyof Backend>(
     unknown
   >({
     ...options,
-    mutationKey: [backend, method, ...(options?.mutationKey ?? [])],
+    mutationKey: [backend.type, method, ...(options?.mutationKey ?? [])],
     // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-return
     mutationFn: args => (backend[method] as any)(...args),
     networkMode: backend.type === backendModule.BackendType.local ? 'always' : 'online',
@@ -270,7 +270,7 @@ export function useBackendMutationVariables<Method extends keyof Backend>(
     Parameters<Extract<Backend[Method], (...args: never) => unknown>>
   >({
     filters: {
-      mutationKey: [backend, method, ...(mutationKey ?? [])],
+      mutationKey: [backend?.type, method, ...(mutationKey ?? [])],
       status: 'pending',
     },
     // eslint-disable-next-line no-restricted-syntax

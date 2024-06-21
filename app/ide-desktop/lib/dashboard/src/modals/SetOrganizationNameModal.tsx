@@ -33,8 +33,9 @@ export function SetOrganizationNameModal() {
   const backend = backendProvider.useRemoteBackendStrict()
   const { session } = authProvider.useAuth()
 
-  const userId = session?.type === authProvider.UserSessionType.full ? session.user.userId : null
-  const userPlan = session?.type === authProvider.UserSessionType.full ? session.user.plan : null
+  const user = session != null && 'user' in session ? session.user : null
+  const userId = user?.userId ?? null
+  const userPlan = user?.plan ?? null
 
   const { data: organizationName } = reactQuery.useSuspenseQuery({
     queryKey: ['organization', userId],
