@@ -108,7 +108,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
         return object.merge(oldItem, { projectState: newProjectState })
       })
     },
-    [/* should never change */ user, /* should never change */ setItem]
+    [user, setItem]
   )
   const [spinnerState, setSpinnerState] = React.useState(spinner.SpinnerState.initial)
   const [shouldOpenWhenReady, setShouldOpenWhenReady] = React.useState(false)
@@ -116,6 +116,8 @@ export default function ProjectIcon(props: ProjectIconProps) {
     item.projectState.executeAsync ?? false
   )
   const [shouldSwitchPage, setShouldSwitchPage] = React.useState(false)
+  const doOpenEditorRef = React.useRef(doOpenEditor)
+  doOpenEditorRef.current = doOpenEditor
   const toastId: toast.Id = React.useId()
   const isOpening =
     backendModule.IS_OPENING[item.projectState.type] &&
@@ -163,10 +165,10 @@ export default function ProjectIcon(props: ProjectIconProps) {
       item,
       session,
       toastAndLog,
-      /* should never change */ openProjectMutate,
-      /* should never change */ getProjectDetailsMutate,
-      /* should never change */ setState,
-      /* should never change */ setItem,
+      openProjectMutate,
+      getProjectDetailsMutate,
+      setState,
+      setItem,
     ]
   )
 
@@ -232,10 +234,16 @@ export default function ProjectIcon(props: ProjectIconProps) {
             }
           }
         } else {
-          setShouldOpenWhenReady(!event.runInBackground)
-          setShouldSwitchPage(event.shouldAutomaticallySwitchPage)
-          setIsRunningInBackground(event.runInBackground)
-          void openProject(event.runInBackground)
+          if (backendModule.IS_OPENING_OR_OPENED[state]) {
+            if (!isRunningInBackground) {
+              doOpenEditor(true)
+            }
+          } else {
+            setShouldOpenWhenReady(!event.runInBackground)
+            setShouldSwitchPage(event.shouldAutomaticallySwitchPage)
+            setIsRunningInBackground(event.runInBackground)
+            void openProject(event.runInBackground)
+          }
         }
         break
       }
@@ -258,12 +266,10 @@ export default function ProjectIcon(props: ProjectIconProps) {
   React.useEffect(() => {
     if (state === backendModule.ProjectState.opened) {
       if (shouldOpenWhenReady) {
-        doOpenEditor(shouldSwitchPage)
+        doOpenEditorRef.current(shouldSwitchPage)
         setShouldOpenWhenReady(false)
       }
     }
-    // `doOpenEditor` is a callback, not a dependency.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shouldOpenWhenReady, shouldSwitchPage, state])
 
   const closeProject = async () => {
@@ -285,11 +291,11 @@ export default function ProjectIcon(props: ProjectIconProps) {
       return (
         <ariaComponents.Button
           size="custom"
-          variant="custom"
+          variant="icon"
           icon={PlayIcon}
           aria-label={getText('openInEditor')}
           tooltipPlacement="left"
-          className="size-project-icon border-0"
+          className="h-6 border-0"
           onPress={() => {
             dispatchAssetEvent({
               type: AssetEventType.openProject,
@@ -308,17 +314,14 @@ export default function ProjectIcon(props: ProjectIconProps) {
         <div className="relative flex">
           <ariaComponents.Button
             size="custom"
-            variant="custom"
+            variant="icon"
             isDisabled={isOtherUserUsingProject}
             isActive={!isOtherUserUsingProject}
             icon={StopIcon}
             aria-label={getText('stopExecution')}
             tooltipPlacement="left"
             {...(isOtherUserUsingProject ? { title: getText('otherUserIsUsingProjectError') } : {})}
-            className={tailwindMerge.twMerge(
-              'size-project-icon border-0',
-              isRunningInBackground && 'text-green'
-            )}
+            className={tailwindMerge.twMerge('h-6 border-0', isRunningInBackground && 'text-green')}
             onPress={closeProject}
           />
           <Spinner
@@ -336,7 +339,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
           <div className="relative flex">
             <ariaComponents.Button
               size="custom"
-              variant="custom"
+              variant="icon"
               isDisabled={isOtherUserUsingProject}
               isActive={!isOtherUserUsingProject}
               icon={StopIcon}
@@ -346,7 +349,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
                 ? { title: getText('otherUserIsUsingProjectError') }
                 : {})}
               className={tailwindMerge.twMerge(
-                'size-project-icon border-0',
+                'h-6 border-0',
                 isRunningInBackground && 'text-green'
               )}
               onPress={closeProject}
@@ -362,11 +365,11 @@ export default function ProjectIcon(props: ProjectIconProps) {
           {!isOtherUserUsingProject && !isRunningInBackground && (
             <ariaComponents.Button
               size="custom"
-              variant="custom"
-              className="size-project-icon border-0"
+              variant="icon"
               icon={ArrowUpIcon}
               aria-label={getText('openInEditor')}
               tooltipPlacement="right"
+              className="h-6 border-0"
               onPress={() => {
                 doOpenEditor(true)
               }}

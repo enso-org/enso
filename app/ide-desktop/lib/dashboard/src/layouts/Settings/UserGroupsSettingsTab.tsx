@@ -20,7 +20,6 @@ import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 import * as paywallComponents from '#/components/Paywall'
 import StatelessSpinner, * as statelessSpinner from '#/components/StatelessSpinner'
-import HorizontalMenuBar from '#/components/styled/HorizontalMenuBar'
 import SettingsSection from '#/components/styled/settings/SettingsSection'
 
 import NewUserGroupModal from '#/modals/NewUserGroupModal'
@@ -67,7 +66,7 @@ function UserGroupsSettingsTab(props: UserGroupsSettingsTabProps) {
   const shouldDisplayPaywall = isUnderPaywall ? userGroupsLeft <= 0 : false
 
   const { onScroll: onUserGroupsTableScroll, shadowClassName } =
-    scrollHooks.useStickyTableHeaderOnScroll(rootRef, bodyRef, true)
+    scrollHooks.useStickyTableHeaderOnScroll(rootRef, bodyRef, { trackShadowClass: true })
 
   const { dragAndDropHooks } = aria.useDragAndDrop({
     getDropOperation: (target, types, allowedOperations) =>
@@ -137,43 +136,40 @@ function UserGroupsSettingsTab(props: UserGroupsSettingsTabProps) {
     <div className="flex h min-h-full flex-1 flex-col gap-settings-section overflow-hidden lg:h-auto lg:flex-row">
       <div className="flex h-3/5 w-settings-main-section max-w-full flex-col gap-settings-subsection lg:h-[unset] lg:min-w">
         <SettingsSection noFocusArea title={getText('userGroups')} className="overflow-hidden">
-          <HorizontalMenuBar>
-            <div className="flex items-center gap-2">
-              {shouldDisplayPaywall && (
-                <paywallComponents.PaywallDialogButton
-                  feature="userGroupsFull"
-                  variant="bar"
-                  size="medium"
-                  rounded="full"
-                  iconPosition="end"
-                  tooltip={getText('userGroupsPaywallMessage')}
-                >
-                  {getText('newUserGroup')}
-                </paywallComponents.PaywallDialogButton>
-              )}
-              {!shouldDisplayPaywall && (
-                <ariaComponents.Button
-                  size="medium"
-                  variant="bar"
-                  onPress={event => {
-                    const rect = event.target.getBoundingClientRect()
-                    const position = { pageX: rect.left, pageY: rect.top }
-                    setModal(<NewUserGroupModal backend={backend} event={position} />)
-                  }}
-                >
-                  {getText('newUserGroup')}
-                </ariaComponents.Button>
-              )}
+          <div className="flex items-center gap-2">
+            {shouldDisplayPaywall ? (
+              <paywallComponents.PaywallDialogButton
+                feature="userGroupsFull"
+                variant="bar"
+                size="medium"
+                rounded="full"
+                iconPosition="end"
+                tooltip={getText('userGroupsPaywallMessage')}
+              >
+                {getText('newUserGroup')}
+              </paywallComponents.PaywallDialogButton>
+            ) : (
+              <ariaComponents.Button
+                size="medium"
+                variant="bar"
+                onPress={event => {
+                  const rect = event.target.getBoundingClientRect()
+                  const position = { pageX: rect.left, pageY: rect.top }
+                  setModal(<NewUserGroupModal backend={backend} event={position} />)
+                }}
+              >
+                {getText('newUserGroup')}
+              </ariaComponents.Button>
+            )}
 
-              {isUnderPaywall && (
-                <span className="text-xs">
-                  {userGroupsLeft <= 0
-                    ? getText('userGroupsPaywallMessage')
-                    : getText('userGroupsLimitMessage', userGroupsLeft)}
-                </span>
-              )}
-            </div>
-          </HorizontalMenuBar>
+            {isUnderPaywall && (
+              <span className="text-xs">
+                {userGroupsLeft <= 0
+                  ? getText('userGroupsPaywallMessage')
+                  : getText('userGroupsLimitMessage', userGroupsLeft)}
+              </span>
+            )}
+          </div>
           <div
             ref={rootRef}
             className={tailwindMerge.twMerge(

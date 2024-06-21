@@ -421,14 +421,12 @@
 :where(body:not(.vibrancy)) {
   &::before {
     content: "";
-    position: fixed;
     inset: 0 -16vw -16vh 0;
     z-index: -1;
 
     background: url("enso-assets/background.jpg");
-    background-size: cover;
 
-    pointer-events: none;
+    @apply fixed bg-cover pointer-events-none;
   }
 
   & > * {
@@ -441,11 +439,7 @@
 }
 
 :where(.enso-dashboard) {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-
-  @apply flex flex-col;
+  @apply absolute inset-0 overflow-hidden flex flex-col;
 }
 
 /* These styles MUST still be copied
@@ -456,8 +450,9 @@
   -moz-tab-size: 4;
   tab-size: 4;
   font-family: "Enso Prose", "Enso", "M PLUS 1", "Roboto Light", sans-serif;
-  font-weight: 500;
   font-feature-settings: normal;
+
+  @apply font-medium;
 
   kbd {
     font-family: "Enso Prose", "Enso", "M PLUS 1", "Roboto Light", sans-serif;

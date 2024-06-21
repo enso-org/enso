@@ -49,25 +49,28 @@ export function useDebugState<T>(
 // === useMonitorDependencies ===
 
 /** A helper function to log the old and new values of changed dependencies. */
-function useMonitorDependencies(
+export function useMonitorDependencies(
   dependencies: React.DependencyList,
   description?: string,
-  dependencyDescriptions?: readonly string[]
+  dependencyDescriptions?: readonly string[],
+  active = true
 ) {
   const oldDependenciesRef = React.useRef(dependencies)
-  const indicesOfChangedDependencies = dependencies.flatMap((dep, i) =>
-    Object.is(dep, oldDependenciesRef.current[i]) ? [] : [i]
-  )
-  if (indicesOfChangedDependencies.length !== 0) {
-    const descriptionText = description == null ? '' : `for '${description}'`
-    console.group(`dependencies changed${descriptionText}`)
-    for (const i of indicesOfChangedDependencies) {
-      console.group(dependencyDescriptions?.[i] ?? `dependency #${i + 1}`)
-      console.log('old value:', oldDependenciesRef.current[i])
-      console.log('new value:', dependencies[i])
+  if (active) {
+    const indicesOfChangedDependencies = dependencies.flatMap((dep, i) =>
+      Object.is(dep, oldDependenciesRef.current[i]) ? [] : [i]
+    )
+    if (indicesOfChangedDependencies.length !== 0) {
+      const descriptionText = description == null ? '' : ` for '${description}'`
+      console.group(`dependencies changed${descriptionText}`)
+      for (const i of indicesOfChangedDependencies) {
+        console.group(dependencyDescriptions?.[i] ?? `dependency #${i + 1}`)
+        console.log('old value:', oldDependenciesRef.current[i])
+        console.log('new value:', dependencies[i])
+        console.groupEnd()
+      }
       console.groupEnd()
     }
-    console.groupEnd()
   }
   oldDependenciesRef.current = dependencies
 }

@@ -92,7 +92,7 @@ export default function DriveBar(props: DriveBarProps) {
         uploadFilesRef.current?.click()
       },
     })
-  }, [isCloud, doCreateDirectory, doCreateProject, /* should never change */ inputBindings])
+  }, [isCloud, doCreateDirectory, doCreateProject, inputBindings])
 
   const searchBar = (
     <AssetSearchBar

@@ -142,12 +142,12 @@ export function locateLabelsPanelLabels(page: test.Page) {
 
 /** Find a tick button (if any) on the current page. */
 export function locateEditingTick(page: test.Locator | test.Page) {
-  return page.getByAltText('Confirm Edit')
+  return page.getByLabel('Confirm Edit')
 }
 
 /** Find a cross button (if any) on the current page. */
 export function locateEditingCross(page: test.Locator | test.Page) {
-  return page.getByAltText('Cancel Edit')
+  return page.getByLabel('Cancel Edit')
 }
 
 /** Find labels in the "Labels" column of the assets table (if any) on the current page. */

@@ -56,7 +56,7 @@ export default function ResetPassword() {
       toastAndLog('missingVerificationCodeError')
       navigate(appUtils.LOGIN_PATH)
     }
-  }, [email, navigate, verificationCode, getText, /* should never change */ toastAndLog])
+  }, [email, navigate, verificationCode, getText, toastAndLog])
 
   const doSubmit = () => {
     if (newPassword !== newPasswordConfirm) {

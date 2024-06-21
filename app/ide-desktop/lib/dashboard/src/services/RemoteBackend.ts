@@ -118,6 +118,7 @@ interface RemoteBackendPostOptions {
 export default class RemoteBackend extends Backend {
   readonly type = backend.BackendType.remote
   private defaultVersions: Partial<Record<backend.VersionType, DefaultVersionInfo>> = {}
+  private user: object.Mutable<backend.User> | null = null
 
   /** Create a new instance of the {@link RemoteBackend} API client.
    * @throws An error if the `Authorization` header is not set on the given `client`. */
@@ -167,7 +168,7 @@ export default class RemoteBackend extends Backend {
   }
 
   /** Return a list of all users in the same organization. */
-  override async listUsers(): Promise<backend.User[]> {
+  override async listUsers(): Promise<readonly backend.User[]> {
     const path = remoteBackendPaths.LIST_USERS_PATH
     const response = await this.get<ListUsersResponseBody>(path)
     if (!responseIsSuccessful(response)) {
@@ -197,6 +198,9 @@ export default class RemoteBackend extends Backend {
         ? await this.throw(response, 'updateUsernameBackendError')
         : await this.throw(response, 'updateUserBackendError')
     } else {
+      if (this.user != null && body.username != null) {
+        this.user.name = body.username
+      }
       return
     }
   }
@@ -380,7 +384,9 @@ export default class RemoteBackend extends Backend {
     if (!responseIsSuccessful(response)) {
       return null
     } else {
-      return await response.json()
+      const user = await response.json()
+      this.user = { ...user }
+      return user
     }
   }
 
@@ -431,6 +437,7 @@ export default class RemoteBackend extends Backend {
             permissions: [...(asset.permissions ?? [])].sort(backend.compareAssetPermissions),
           })
         )
+        .map(asset => this.dynamicAssetUser(asset))
     }
   }
 
@@ -1073,7 +1080,7 @@ export default class RemoteBackend extends Backend {
   }
 
   /** Get the default version given the type of version (IDE or backend). */
-  protected async getDefaultVersion(versionType: backend.VersionType) {
+  private async getDefaultVersion(versionType: backend.VersionType) {
     const cached = this.defaultVersions[versionType]
     const nowEpochMs = Number(new Date())
     if (cached != null && nowEpochMs - cached.lastUpdatedEpochMs < ONE_DAY_MS) {
@@ -1088,6 +1095,29 @@ export default class RemoteBackend extends Backend {
         return info.version
       }
     }
+  }
+
+  /** Replaces the `user` of all permissions for the current user on an asset, so that they always
+   * return the up-to-date user. */
+  private dynamicAssetUser<Asset extends backend.AnyAsset>(asset: Asset) {
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
+    const self = this
+    let foundSelfPermission = (() => false)()
+    const permissions = asset.permissions?.map(permission => {
+      if (!('user' in permission) || permission.user.userId !== this.user?.userId) {
+        return permission
+      } else {
+        foundSelfPermission = true
+        return {
+          ...permission,
+          /** Return a dynamic reference to the current user. */
+          get user() {
+            return self.user
+          },
+        }
+      }
+    })
+    return !foundSelfPermission ? asset : { ...asset, permissions }
   }
 
   /** Send an HTTP GET request to the given path. */

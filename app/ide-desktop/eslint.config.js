@@ -20,6 +20,7 @@ import tsEslintParser from '@typescript-eslint/parser'
 // === Constants ===
 // =================
 
+const DEBUG_STATEMENTS_MESSAGE = 'Avoid leaving debugging statements when committing code'
 const DIR_NAME = path.dirname(url.fileURLToPath(import.meta.url))
 const NAME = 'enso'
 /** An explicit whitelist of CommonJS modules, which do not support namespace imports.
@@ -204,7 +205,7 @@ const RESTRICTED_SYNTAXES = [
     {
         selector: `JSXAttribute[name.name=/^(?:className)$/] TemplateLiteral`,
         message:
-            'Use `tv` from `tailwind-variants` or `twMerge` from `tailwind-merge` instead of template strings for classes',
+            'Use `tv` from `#/utilities/tailwindVariants` or `twMerge` from `tailwind-merge` instead of template strings for classes',
     },
     {
         selector: 'JSXOpeningElement[name.name=button] > JSXIdentifier',
@@ -283,11 +284,18 @@ export default [
             'no-constant-condition': ['error', { checkLoops: false }],
             'no-restricted-syntax': ['error', ...RESTRICTED_SYNTAXES],
             'prefer-const': 'error',
+            'react/forbid-elements': [
+                'error',
+                { forbid: [{ element: 'Debug', message: DEBUG_STATEMENTS_MESSAGE }] },
+            ],
             // Not relevant because TypeScript checks types.
             'react/prop-types': 'off',
             'react/self-closing-comp': 'error',
             'react-hooks/rules-of-hooks': 'error',
-            'react-hooks/exhaustive-deps': 'error',
+            'react-hooks/exhaustive-deps': [
+                'error',
+                { additionalHooks: 'useOnScroll|useStickyTableHeaderOnScroll' },
+            ],
             'react/jsx-pascal-case': ['error', { allowNamespace: true }],
             // Prefer `interface` over `type`.
             '@typescript-eslint/consistent-type-definitions': 'error',
@@ -468,26 +476,11 @@ export default [
         rules: {
             'no-restricted-properties': [
                 'error',
-                {
-                    object: 'console',
-                    message: 'Avoid leaving debugging statements when committing code',
-                },
-                {
-                    property: 'useDebugState',
-                    message: 'Avoid leaving debugging statements when committing code',
-                },
-                {
-                    property: 'useDebugEffect',
-                    message: 'Avoid leaving debugging statements when committing code',
-                },
-                {
-                    property: 'useDebugMemo',
-                    message: 'Avoid leaving debugging statements when committing code',
-                },
-                {
-                    property: 'useDebugCallback',
-                    message: 'Avoid leaving debugging statements when committing code',
-                },
+                { object: 'console', message: DEBUG_STATEMENTS_MESSAGE },
+                { property: 'useDebugState', message: DEBUG_STATEMENTS_MESSAGE },
+                { property: 'useDebugEffect', message: DEBUG_STATEMENTS_MESSAGE },
+                { property: 'useDebugMemo', message: DEBUG_STATEMENTS_MESSAGE },
+                { property: 'useDebugCallback', message: DEBUG_STATEMENTS_MESSAGE },
             ],
         },
     },

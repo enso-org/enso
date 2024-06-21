@@ -270,22 +270,6 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
   )
 
   const handleClick = inputBindings.handler({
-    open: () => {
-      dispatchAssetEvent({
-        type: AssetEventType.openProject,
-        id: asset.id,
-        shouldAutomaticallySwitchPage: true,
-        runInBackground: false,
-      })
-    },
-    run: () => {
-      dispatchAssetEvent({
-        type: AssetEventType.openProject,
-        id: asset.id,
-        shouldAutomaticallySwitchPage: false,
-        runInBackground: true,
-      })
-    },
     editName: () => {
       setIsEditing(true)
     },
@@ -314,6 +298,13 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
           selectedKeys.current.size === 1
         ) {
           setIsEditing(true)
+        } else if (eventModule.isDoubleClick(event)) {
+          dispatchAssetEvent({
+            type: AssetEventType.openProject,
+            id: asset.id,
+            shouldAutomaticallySwitchPage: true,
+            runInBackground: false,
+          })
         }
       }}
     >
@@ -346,16 +337,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
           rowState.isEditingName && 'cursor-text'
         )}
         checkSubmittable={newTitle =>
-          newTitle !== item.item.title &&
-          (nodeMap.current.get(item.directoryKey)?.children ?? []).every(
-            child =>
-              // All siblings,
-              child.key === item.key ||
-              // that are not directories,
-              backendModule.assetIsDirectory(child.item) ||
-              // must have a different name.
-              child.item.title !== newTitle
-          )
+          item.isNewTitleValid(newTitle, nodeMap.current.get(item.directoryKey)?.children)
         }
         onSubmit={doRename}
         onCancel={() => {
