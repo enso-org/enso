@@ -115,9 +115,6 @@ export default function ProjectIcon(props: ProjectIconProps) {
   const [shouldSwitchPage, setShouldSwitchPage] = React.useState(false)
   const doOpenEditorRef = React.useRef(doOpenEditor)
   doOpenEditorRef.current = doOpenEditor
-  const isOpening =
-    backendModule.IS_OPENING[item.projectState.type] &&
-    item.projectState.type !== backendModule.ProjectState.placeholder
   const isCloud = backend.type === backendModule.BackendType.remote
   const isOtherUserUsingProject =
     isCloud && item.projectState.openedBy != null && item.projectState.openedBy !== user.email
@@ -131,6 +128,30 @@ export default function ProjectIcon(props: ProjectIconProps) {
   )
   const openProjectMutate = openProjectMutation.mutateAsync
   const getProjectDetailsMutate = getProjectDetailsMutation.mutateAsync
+
+  const openEditorMutation = reactQuery.useMutation({
+    mutationKey: ['openEditor', item.id],
+    networkMode: 'always',
+    mutationFn: async () => {
+      const projectPromise = waitUntilProjectIsReadyMutation.mutateAsync([
+        item.id,
+        item.parentId,
+        item.title,
+      ])
+      if (shouldOpenWhenReady) {
+        doOpenEditor()
+      }
+      setProjectStartupInfo({
+        project: projectPromise,
+        projectAsset: item,
+        setProjectAsset: setItem,
+        backendType: backend.type,
+        accessToken: session?.accessToken ?? null,
+      })
+      await projectPromise
+    },
+  })
+  const openEditorMutate = openEditorMutation.mutate
 
   const openProject = React.useCallback(
     async (shouldRunInBackground: boolean) => {
@@ -146,6 +167,9 @@ export default function ProjectIcon(props: ProjectIconProps) {
             },
             item.title,
           ])
+          if (!shouldRunInBackground) {
+            openEditorMutate()
+          }
         } catch (error) {
           const project = await getProjectDetailsMutate([item.id, item.parentId, item.title])
           // `setState` is not used here as `project` contains the full state information,
@@ -162,48 +186,12 @@ export default function ProjectIcon(props: ProjectIconProps) {
       session,
       toastAndLog,
       openProjectMutate,
+      openEditorMutate,
       getProjectDetailsMutate,
       setState,
       setItem,
     ]
   )
-
-  const openEditorMutation = reactQuery.useMutation({
-    mutationKey: ['openEditor', item.id],
-    networkMode: 'always',
-    mutationFn: async (abortController: AbortController) => {
-      const projectPromise = waitUntilProjectIsReadyMutation.mutateAsync([
-        item.id,
-        item.parentId,
-        item.title,
-        abortController,
-      ])
-      setProjectStartupInfo({
-        project: projectPromise,
-        projectAsset: item,
-        setProjectAsset: setItem,
-        backendType: backend.type,
-        accessToken: session?.accessToken ?? null,
-      })
-      await projectPromise
-      if (!abortController.signal.aborted) {
-        setState(backendModule.ProjectState.opened)
-      }
-    },
-  })
-  const openEditorMutate = openEditorMutation.mutate
-
-  React.useEffect(() => {
-    if (isOpening) {
-      const abortController = new AbortController()
-      openEditorMutate(abortController)
-      return () => {
-        abortController.abort()
-      }
-    } else {
-      return
-    }
-  }, [isOpening, openEditorMutate])
 
   React.useEffect(() => {
     // Ensure that the previous spinner state is visible for at least one frame.

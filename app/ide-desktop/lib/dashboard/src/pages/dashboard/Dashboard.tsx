@@ -192,7 +192,7 @@ export default function Dashboard(props: DashboardProps) {
                 savedProjectStartupInfo.projectAsset.title
               )
               if (backendModule.IS_OPENING_OR_OPENED[oldProject.state.type]) {
-                const projectPromise = remoteBackend.waitUntilProjectIsReady(
+                const project = remoteBackend.waitUntilProjectIsReady(
                   savedProjectStartupInfo.projectAsset.id,
                   savedProjectStartupInfo.projectAsset.parentId,
                   savedProjectStartupInfo.projectAsset.title,
@@ -200,14 +200,11 @@ export default function Dashboard(props: DashboardProps) {
                 )
                 setProjectStartupInfo(
                   object.merge<backendModule.ProjectStartupInfo>(savedProjectStartupInfo, {
-                    project: projectPromise,
+                    project,
                   })
                 )
-                await projectPromise
-                if (!abortController.signal.aborted) {
-                  if (page === TabType.editor) {
-                    setPage(page)
-                  }
+                if (page === TabType.editor) {
+                  setPage(page)
                 }
               }
             } catch {
@@ -227,17 +224,14 @@ export default function Dashboard(props: DashboardProps) {
               },
               savedProjectStartupInfo.projectAsset.title
             )
-            const projectPromise = localBackend.getProjectDetails(
+            const project = localBackend.getProjectDetails(
               savedProjectStartupInfo.projectAsset.id,
               savedProjectStartupInfo.projectAsset.parentId,
               savedProjectStartupInfo.projectAsset.title
             )
             setProjectStartupInfo(
-              object.merge<backendModule.ProjectStartupInfo>(savedProjectStartupInfo, {
-                project: projectPromise,
-              })
+              object.merge<backendModule.ProjectStartupInfo>(savedProjectStartupInfo, { project })
             )
-            await projectPromise
             if (page === TabType.editor) {
               setPage(page)
             }

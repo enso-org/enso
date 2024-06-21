@@ -6,10 +6,11 @@ import * as reactQuery from '@tanstack/react-query'
 import * as appUtils from '#/appUtils'
 
 import * as gtagHooks from '#/hooks/gtagHooks'
-import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as backendProvider from '#/providers/BackendProvider'
+import * as textProvider from '#/providers/TextProvider'
 
+import * as errorBoundary from '#/components/ErrorBoundary'
 import * as suspense from '#/components/Suspense'
 
 import type * as backendModule from '#/services/Backend'
@@ -30,11 +31,21 @@ export interface EditorProps {
 
 /** The container that launches the IDE. */
 export default function Editor(props: EditorProps) {
-  const { projectStartupInfo } = props
+  const { hidden, projectStartupInfo } = props
 
-  return (
-    <suspense.Suspense>
-      {projectStartupInfo && <EditorInternal {...props} projectStartupInfo={projectStartupInfo} />}
+  const editor = projectStartupInfo && (
+    <EditorInternal {...props} projectStartupInfo={projectStartupInfo} />
+  )
+
+  return hidden ? (
+    <React.Suspense>
+      <errorBoundary.ErrorBoundary FallbackComponent={() => null}>
+        {editor}
+      </errorBoundary.ErrorBoundary>
+    </React.Suspense>
+  ) : (
+    <suspense.Suspense loaderProps={{ minHeight: 'full' }}>
+      <errorBoundary.ErrorBoundary>{editor}</errorBoundary.ErrorBoundary>
     </suspense.Suspense>
   )
 }
@@ -51,7 +62,7 @@ interface EditorInternalProps extends EditorProps {
 /** An internal editor. */
 function EditorInternal(props: EditorInternalProps) {
   const { hidden, ydocUrl, projectStartupInfo, appRunner: AppRunner } = props
-  const toastAndLog = toastAndLogHooks.useToastAndLog()
+  const { getText } = textProvider.useText()
   const gtagEvent = gtagHooks.useGtagEvent()
   const gtagEventRef = React.useRef(gtagEvent)
   gtagEventRef.current = gtagEvent
@@ -61,6 +72,7 @@ function EditorInternal(props: EditorInternalProps) {
     queryKey: ['editorProject'],
     queryFn: () => projectStartupInfo.project,
     staleTime: 0,
+    meta: { persist: false },
   })
   const project = projectQuery.data
 
@@ -87,11 +99,9 @@ function EditorInternal(props: EditorInternalProps) {
     const binaryAddress = project.binaryAddress
     const ydocAddress = ydocUrl ?? ''
     if (jsonAddress == null) {
-      toastAndLog('noJSONEndpointError')
-      return null
+      throw new Error(getText('noJSONEndpointError'))
     } else if (binaryAddress == null) {
-      toastAndLog('noBinaryEndpointError')
-      return null
+      throw new Error(getText('noBinaryEndpointError'))
     } else {
       return {
         config: {
@@ -114,9 +124,19 @@ function EditorInternal(props: EditorInternalProps) {
         logEvent,
       }
     }
-  }, [project, projectStartupInfo, toastAndLog, hidden, logEvent, ydocUrl])
+  }, [
+    projectStartupInfo.projectAsset.id,
+    project.jsonAddress,
+    project.binaryAddress,
+    project.packageName,
+    project.name,
+    ydocUrl,
+    getText,
+    hidden,
+    logEvent,
+  ])
 
-  if (AppRunner == null || appProps == null) {
+  if (AppRunner == null) {
     return <></>
   } else {
     // Currently the GUI component needs to be fully rerendered whenever the project is changed. Once
