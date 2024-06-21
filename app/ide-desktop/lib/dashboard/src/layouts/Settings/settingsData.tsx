@@ -161,6 +161,8 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
                 await context.updateOrganization([{ email: newEmail }]).catch(reset)
               }
             },
+            validate: (email, context) =>
+              isEmail(email) ? true : context.getText('invalidEmailValidationError'),
             getEditable: () => true,
           },
           {

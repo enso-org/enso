@@ -22,7 +22,6 @@ export interface SettingsInputEntryProps {
 export default function SettingsInputEntry(props: SettingsInputEntryProps) {
   const { context, data } = props
   const { nameId, getValue, setValue, validate, getEditable } = data
-  const id = React.useId()
   const { getText } = textProvider.useText()
   const ref = React.useRef<HTMLInputElement | null>(null)
   const value = getValue(context)
@@ -46,7 +45,7 @@ export default function SettingsInputEntry(props: SettingsInputEntryProps) {
 
   return (
     <aria.TextField
-      key={id}
+      key={value}
       defaultValue={value}
       {...(validate == null ? {} : { validate: newValue => validate(newValue, context) })}
       className="flex h-row gap-settings-entry"
