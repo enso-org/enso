@@ -6,6 +6,7 @@ import * as focusHooks from '#/hooks/focusHooks'
 import * as focusDirectionProvider from '#/providers/FocusDirectionProvider'
 
 import type * as aria from '#/components/aria'
+import * as ariaComponents from '#/components/AriaComponents'
 import FocusRing from '#/components/styled/FocusRing'
 
 import * as backend from '#/services/Backend'
@@ -38,7 +39,8 @@ interface InternalLabelProps extends Readonly<React.PropsWithChildren> {
 /** An label that can be applied to an asset. */
 export default function Label(props: InternalLabelProps) {
   const { active = false, isDisabled = false, color, negated = false, draggable, title } = props
-  const { className = 'text-tag-text', children, onPress, onDragStart, onContextMenu } = props
+  const { className = 'text-tag-text', onPress, onDragStart, onContextMenu } = props
+  const { children: childrenRaw } = props
   const focusDirection = focusDirectionProvider.useFocusDirection()
   const handleFocusMove = focusHooks.useHandleFocusMove(focusDirection)
   const textClass = /\btext-/.test(className)
@@ -46,6 +48,15 @@ export default function Label(props: InternalLabelProps) {
     : color.lightness <= 50
       ? 'text-tag-text'
       : 'text-primary'
+
+  const children =
+    typeof childrenRaw !== 'string' ? (
+      childrenRaw
+    ) : (
+      <ariaComponents.Text truncate="1" className="max-w-24 text-inherit">
+        {childrenRaw}
+      </ariaComponents.Text>
+    )
 
   return (
     <FocusRing within placement="after">

@@ -16,6 +16,7 @@ import project.Network.URI.URI
 import project.Nothing.Nothing
 import project.Runtime.Context
 import project.Runtime.Managed_Resource.Managed_Resource
+import project.System.Advanced.Restartable_Input_Stream.Restartable_Input_Stream
 import project.System.File.Advanced.Temporary_File.Temporary_File
 import project.System.File.Existing_File_Behavior.Existing_File_Behavior
 import project.System.File.File
@@ -29,7 +30,6 @@ import project.System.File_Format.Infer
 import project.System.File_Format.Plain_Text_Format
 import project.System.File_Format_Metadata.File_Format_Metadata
 import project.System.Input_Stream.Input_Stream
-import project.System.Advanced.Restartable_Input_Stream.Restartable_Input_Stream
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Text.Extensions import all
 from project.Metadata.Choice import Option

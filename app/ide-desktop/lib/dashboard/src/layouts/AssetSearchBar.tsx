@@ -260,7 +260,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
       root?.removeEventListener('keydown', onSearchKeyDown)
       document.removeEventListener('keydown', onKeyDown)
     }
-  }, [setQuery, /* should never change */ modalRef])
+  }, [setQuery, modalRef])
 
   // Reset `querySource` after all other effects have run.
   React.useEffect(() => {
@@ -271,7 +271,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
       baseQuery.current = query
       querySource.current = QuerySource.external
     }
-  }, [query, /* should never change */ setQuery])
+  }, [query, setQuery])
 
   return (
     <FocusArea direction="horizontal">

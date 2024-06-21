@@ -3,6 +3,7 @@ package org.enso.runtimeversionmanager.components
 import java.io.FileReader
 import java.nio.file.Path
 import cats.Show
+import io.circe.yaml.Parser
 import io.circe.{yaml, Decoder}
 import org.enso.semver.SemVer
 import org.enso.cli.OS
@@ -134,7 +135,7 @@ object Manifest {
     */
   def load(path: Path): Try[Manifest] =
     Using(new FileReader(path.toFile)) { reader =>
-      yaml.parser
+      Parser.default
         .parse(reader)
         .flatMap(_.as[Manifest])
         .toTry

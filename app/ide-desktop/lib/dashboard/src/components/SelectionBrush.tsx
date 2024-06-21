@@ -11,6 +11,14 @@ import * as eventModule from '#/utilities/event'
 import type * as geometry from '#/utilities/geometry'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 
+// =================
+// === Constants ===
+// =================
+
+/** Controls the speed of animation of the {@link SelectionBrush} when the
+ * mouse is released and the selection brush collapses back to zero size. */
+const ANIMATION_TIME_HORIZON = 60
+
 // ======================
 // === SelectionBrush ===
 // ======================
@@ -18,6 +26,7 @@ import * as tailwindMerge from '#/utilities/tailwindMerge'
 /** Props for a {@link SelectionBrush}. */
 export interface SelectionBrushProps {
   readonly targetRef: React.RefObject<HTMLElement>
+  readonly margin?: number
   readonly onDrag: (rectangle: geometry.DetailedRectangle, event: MouseEvent) => void
   readonly onDragEnd: (event: MouseEvent) => void
   readonly onDragCancel: () => void
@@ -25,36 +34,29 @@ export interface SelectionBrushProps {
 
 /** A selection brush to indicate the area being selected by the mouse drag action. */
 export default function SelectionBrush(props: SelectionBrushProps) {
-  const { onDrag, onDragEnd, onDragCancel, targetRef } = props
+  const { targetRef, margin = 0, onDrag, onDragEnd, onDragCancel } = props
   const { modalRef } = modalProvider.useModalRef()
   const isMouseDownRef = React.useRef(false)
   const didMoveWhileDraggingRef = React.useRef(false)
   const onDragRef = React.useRef(onDrag)
+  onDragRef.current = onDrag
   const onDragEndRef = React.useRef(onDragEnd)
+  onDragEndRef.current = onDragEnd
   const onDragCancelRef = React.useRef(onDragCancel)
+  onDragCancelRef.current = onDragCancel
   const lastMouseEvent = React.useRef<MouseEvent | null>(null)
+  const parentBounds = React.useRef<DOMRect | null>(null)
   const [anchor, setAnchor] = React.useState<geometry.Coordinate2D | null>(null)
-  // This will be `null` if `anchor` is `null`.
   const [position, setPosition] = React.useState<geometry.Coordinate2D | null>(null)
   const [lastSetAnchor, setLastSetAnchor] = React.useState<geometry.Coordinate2D | null>(null)
-  // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-  const anchorAnimFactor = animationHooks.useApproach(anchor != null ? 1 : 0, 60)
+  const anchorAnimFactor = animationHooks.useApproach(
+    anchor != null ? 1 : 0,
+    ANIMATION_TIME_HORIZON
+  )
   const hidden =
     anchor == null ||
     position == null ||
     (anchor.left === position.left && anchor.top === position.top)
-
-  React.useEffect(() => {
-    onDragRef.current = onDrag
-  }, [onDrag])
-
-  React.useEffect(() => {
-    onDragEndRef.current = onDragEnd
-  }, [onDragEnd])
-
-  React.useEffect(() => {
-    onDragCancelRef.current = onDragCancel
-  }, [onDragCancel])
 
   React.useEffect(() => {
     if (anchor != null) {
@@ -63,77 +65,95 @@ export default function SelectionBrush(props: SelectionBrushProps) {
   }, [anchorAnimFactor, anchor])
 
   React.useEffect(() => {
-    if (targetRef.current != null) {
-      const target = targetRef.current
-      const onMouseDown = (event: MouseEvent) => {
-        if (
-          modalRef.current == null &&
-          !eventModule.isElementTextInput(event.target) &&
-          !(event.target instanceof HTMLButtonElement) &&
-          !(event.target instanceof HTMLAnchorElement)
-        ) {
-          isMouseDownRef.current = true
-          didMoveWhileDraggingRef.current = false
-          lastMouseEvent.current = event
-          const newAnchor = { left: event.pageX, top: event.pageY }
-          setAnchor(newAnchor)
-          setLastSetAnchor(newAnchor)
-          setPosition(newAnchor)
-        }
+    const target = targetRef.current ?? document.body
+    const isEventInBounds = (event: MouseEvent, parent?: HTMLElement | null) => {
+      if (parent == null) {
+        return true
+      } else {
+        parentBounds.current = parent.getBoundingClientRect()
+        return eventModule.isElementInBounds(event, parentBounds.current, margin)
       }
-      const onMouseUp = (event: MouseEvent) => {
-        if (didMoveWhileDraggingRef.current) {
-          onDragEndRef.current(event)
-        }
-        // The `setTimeout` is required, otherwise the values are changed before the `onClick` handler
-        // is executed.
-        window.setTimeout(() => {
-          isMouseDownRef.current = false
-          didMoveWhileDraggingRef.current = false
-        })
+    }
+    const onMouseDown = (event: MouseEvent) => {
+      if (
+        modalRef.current == null &&
+        !eventModule.isElementTextInput(event.target) &&
+        !(event.target instanceof HTMLButtonElement) &&
+        !(event.target instanceof HTMLAnchorElement) &&
+        isEventInBounds(event, targetRef.current)
+      ) {
+        isMouseDownRef.current = true
+        didMoveWhileDraggingRef.current = false
+        lastMouseEvent.current = event
+        const newAnchor = { left: event.pageX, top: event.pageY }
+        setAnchor(newAnchor)
+        setLastSetAnchor(newAnchor)
+        setPosition(newAnchor)
+      }
+    }
+    const onMouseUp = (event: MouseEvent) => {
+      if (didMoveWhileDraggingRef.current) {
+        onDragEndRef.current(event)
+      }
+      // The `setTimeout` is required, otherwise the values are changed before the `onClick` handler
+      // is executed.
+      window.setTimeout(() => {
+        isMouseDownRef.current = false
+        didMoveWhileDraggingRef.current = false
+      })
+      setAnchor(null)
+    }
+    const onMouseMove = (event: MouseEvent) => {
+      if (!(event.buttons & 1)) {
+        isMouseDownRef.current = false
+      }
+      if (isMouseDownRef.current) {
+        // Left click is being held.
+        didMoveWhileDraggingRef.current = true
+        lastMouseEvent.current = event
+        const positionLeft =
+          parentBounds.current == null
+            ? event.pageX
+            : Math.max(
+                parentBounds.current.left - margin,
+                Math.min(parentBounds.current.right + margin, event.pageX)
+              )
+        const positionTop =
+          parentBounds.current == null
+            ? event.pageY
+            : Math.max(
+                parentBounds.current.top - margin,
+                Math.min(parentBounds.current.bottom + margin, event.pageY)
+              )
+        setPosition({ left: positionLeft, top: positionTop })
+      }
+    }
+    const onClick = (event: MouseEvent) => {
+      if (isMouseDownRef.current && didMoveWhileDraggingRef.current) {
+        event.stopImmediatePropagation()
+      }
+    }
+    const onDragStart = () => {
+      if (isMouseDownRef.current) {
+        isMouseDownRef.current = false
+        onDragCancelRef.current()
         setAnchor(null)
       }
-      const onMouseMove = (event: MouseEvent) => {
-        if (!(event.buttons & 1)) {
-          isMouseDownRef.current = false
-        }
-        if (isMouseDownRef.current) {
-          // Left click is being held.
-          didMoveWhileDraggingRef.current = true
-          lastMouseEvent.current = event
-          setPosition({ left: event.pageX, top: event.pageY })
-        }
-      }
-      const onClick = (event: MouseEvent) => {
-        if (isMouseDownRef.current && didMoveWhileDraggingRef.current) {
-          event.stopImmediatePropagation()
-        }
-      }
-      const onDragStart = () => {
-        if (isMouseDownRef.current) {
-          isMouseDownRef.current = false
-          onDragCancelRef.current()
-          setAnchor(null)
-        }
-      }
-
-      target.addEventListener('mousedown', onMouseDown)
-      document.addEventListener('mouseup', onMouseUp)
-      document.addEventListener('dragstart', onDragStart, { capture: true })
-      document.addEventListener('mousemove', onMouseMove)
-      document.addEventListener('click', onClick, { capture: true })
-
-      return () => {
-        target.removeEventListener('mousedown', onMouseDown)
-        document.removeEventListener('mouseup', onMouseUp)
-        document.removeEventListener('dragstart', onDragStart, { capture: true })
-        document.removeEventListener('mousemove', onMouseMove)
-        document.removeEventListener('click', onClick, { capture: true })
-      }
-    } else {
-      return () => {}
     }
-  }, [/* should never change */ modalRef, targetRef])
+
+    target.addEventListener('mousedown', onMouseDown)
+    document.addEventListener('mouseup', onMouseUp)
+    document.addEventListener('dragstart', onDragStart, { capture: true })
+    document.addEventListener('mousemove', onMouseMove)
+    document.addEventListener('click', onClick, { capture: true })
+    return () => {
+      target.removeEventListener('mousedown', onMouseDown)
+      document.removeEventListener('mouseup', onMouseUp)
+      document.removeEventListener('dragstart', onDragStart, { capture: true })
+      document.removeEventListener('mousemove', onMouseMove)
+      document.removeEventListener('click', onClick, { capture: true })
+    }
+  }, [margin, targetRef, modalRef])
 
   const rectangle = React.useMemo(() => {
     if (position != null && lastSetAnchor != null) {
@@ -163,10 +183,8 @@ export default function SelectionBrush(props: SelectionBrushProps) {
 
   React.useEffect(() => {
     if (selectionRectangle != null && lastMouseEvent.current != null) {
-      onDrag(selectionRectangle, lastMouseEvent.current)
+      onDragRef.current(selectionRectangle, lastMouseEvent.current)
     }
-    // `onChange` is a callback, not a dependency.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectionRectangle])
 
   const brushStyle =

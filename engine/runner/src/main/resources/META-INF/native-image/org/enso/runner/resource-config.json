@@ -1,6 +1,8 @@
 {
   "resources":{
   "includes":[{
+    "pattern":"\\QMETA-INF/native-image/com.oracle.truffle.espresso/native-image.properties\\E"
+  }, {
     "pattern":"\\QMETA-INF/org/enso/interpreter/node/expression/builtin/BuiltinMethods.metadata\\E"
   }, {
     "pattern":"\\QMETA-INF/org/enso/interpreter/node/expression/builtin/BuiltinTypes.metadata\\E"
@@ -52,6 +54,8 @@
     "pattern":"\\QMETA-INF/services/java.time.zone.ZoneRulesProvider\\E"
   }, {
     "pattern":"\\QMETA-INF/services/javax.xml.parsers.DocumentBuilderFactory\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/javax.xml.parsers.SAXParserFactory\\E"
   }, {
     "pattern":"\\QMETA-INF/services/javax.xml.xpath.XPathFactory\\E"
   }, {
@@ -166,6 +170,8 @@
     "pattern":"\\Qversion.json\\E"
   }, {
     "pattern":"\\Qversion.properties\\E"
+  }, {
+    "pattern":"java.base:\\Qjdk/internal/icu/impl/data/icudt72b/nfkc.nrm\\E"
   }, {
     "pattern":"java.base:\\Qjdk/internal/icu/impl/data/icudt72b/uprops.icu\\E"
   }, {
@@ -597,13 +603,13 @@
   }]},
   "bundles":[{
     "name":"com.oracle.js.parser.resources.Messages",
-    "locales":[""]
+    "locales":["", "und"]
   }, {
     "name":"com.sun.org.apache.xerces.internal.impl.msg.XMLMessages",
-    "locales":[""]
+    "locales":["", "und"]
   }, {
     "name":"com.sun.org.apache.xml.internal.serializer.XMLEntities",
-    "locales":[""]
+    "locales":["", "und"]
   }, {
     "name":"com.sun.org.apache.xml.internal.serializer.utils.SerializerMessages",
     "classNames":["com.sun.org.apache.xml.internal.serializer.utils.SerializerMessages", "com.sun.org.apache.xml.internal.serializer.utils.SerializerMessages_en"]

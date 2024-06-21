@@ -50,6 +50,6 @@ export function useToastAndLog() {
       logger.error(message)
       return id
     },
-    [getText, /* should never change */ logger]
+    [getText, logger]
   )
 }

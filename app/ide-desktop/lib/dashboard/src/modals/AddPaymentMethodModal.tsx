@@ -117,7 +117,7 @@ export function AddPaymentMethodForm(props: AddPaymentMethodFormProps) {
       form={form}
       onSubmit={() => subscribeMutation.mutateAsync()}
     >
-      <ariaComponents.Form.Field name="card" fullWidth label={getText('BankCardLabel')}>
+      <ariaComponents.Form.Field name="card" fullWidth label={getText('bankCardLabel')}>
         <stripeReact.CardElement
           options={{
             classes: {

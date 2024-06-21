@@ -3,6 +3,47 @@ import * as test from '@playwright/test'
 
 import * as actions from './actions'
 
+// =====================
+// === Local actions ===
+// =====================
+
+// These actions have been migrated to the new API, and are included here as a temporary measure
+// until this file is also migrated to the new API.
+
+/** Find a "duplicate" button (if any) on the current page. */
+export function locateDuplicateButton(page: test.Locator | test.Page) {
+  return page.getByRole('button', { name: 'Duplicate' }).getByText('Duplicate')
+}
+
+/** Find a "copy" button (if any) on the current page. */
+function locateCopyButton(page: test.Locator | test.Page) {
+  return page.getByRole('button', { name: 'Copy' }).getByText('Copy')
+}
+
+/** Find a "cut" button (if any) on the current page. */
+function locateCutButton(page: test.Locator | test.Page) {
+  return page.getByRole('button', { name: 'Cut' }).getByText('Cut')
+}
+
+/** Find a "paste" button (if any) on the current page. */
+function locatePasteButton(page: test.Locator | test.Page) {
+  return page.getByRole('button', { name: 'Paste' }).getByText('Paste')
+}
+
+/** A test assertion to confirm that there is only one row visible, and that row is the
+ * placeholder row displayed when there are no assets to show. */
+export async function expectPlaceholderRow(page: test.Page) {
+  const assetRows = actions.locateAssetRows(page)
+  await test.test.step('Expect placeholder row', async () => {
+    await test.expect(assetRows).toHaveCount(1)
+    await test.expect(assetRows).toHaveText(/You have no files/)
+  })
+}
+
+// =============
+// === Tests ===
+// =============
+
 test.test.beforeEach(actions.mockAllAndLogin)
 
 test.test('copy', async ({ page }) => {
@@ -14,12 +55,12 @@ test.test('copy', async ({ page }) => {
   // Assets: [0: Folder 2, 1: Folder 1]
   await assetRows.nth(0).click({ button: 'right' })
   await test.expect(actions.locateContextMenus(page)).toBeVisible()
-  await actions.locateCopyButton(page).click()
+  await locateCopyButton(page).click()
   // Assets: [0: Folder 2 <copied>, 1: Folder 1]
   await test.expect(actions.locateContextMenus(page)).not.toBeVisible()
   await assetRows.nth(1).click({ button: 'right' })
   await test.expect(actions.locateContextMenus(page)).toBeVisible()
-  await actions.locatePasteButton(page).click()
+  await locatePasteButton(page).click()
   // Assets: [0: Folder 2, 1: Folder 1, 2: Folder 2 (copy) <child { depth=1 }>]
   await test.expect(assetRows).toHaveCount(3)
   await test.expect(assetRows.nth(2)).toBeVisible()
@@ -59,12 +100,12 @@ test.test('move', async ({ page }) => {
   // Assets: [0: Folder 2, 1: Folder 1]
   await assetRows.nth(0).click({ button: 'right' })
   await test.expect(actions.locateContextMenus(page)).toBeVisible()
-  await actions.locateCutButton(page).click()
+  await locateCutButton(page).click()
   // Assets: [0: Folder 2 <cut>, 1: Folder 1]
   await test.expect(actions.locateContextMenus(page)).not.toBeVisible()
   await assetRows.nth(1).click({ button: 'right' })
   await test.expect(actions.locateContextMenus(page)).toBeVisible()
-  await actions.locatePasteButton(page).click()
+  await locatePasteButton(page).click()
   // Assets: [0: Folder 1, 1: Folder 2 <child { depth=1 }>]
   await test.expect(assetRows).toHaveCount(2)
   await test.expect(assetRows.nth(1)).toBeVisible()
@@ -103,7 +144,7 @@ test.test('move to trash', async ({ page }) => {
   // held.
   await page.keyboard.up(await actions.modModifier(page))
   await actions.dragAssetRow(assetRows.nth(0), actions.locateTrashCategory(page))
-  await actions.expectPlaceholderRow(page)
+  await expectPlaceholderRow(page)
   await actions.locateTrashCategory(page).click()
   await test.expect(assetRows).toHaveCount(2)
   await test.expect(assetRows.nth(0)).toBeVisible()
@@ -156,7 +197,7 @@ test.test('duplicate', async ({ page }) => {
   // Assets: [0: Folder 1]
   await assetRows.nth(0).click({ button: 'right' })
   await test.expect(actions.locateContextMenus(page)).toBeVisible()
-  await actions.locateDuplicateButton(page).click()
+  await locateDuplicateButton(page).click()
   // Assets: [0: Folder 1 (copy), 1: Folder 1]
   await test.expect(assetRows).toHaveCount(2)
   await test.expect(actions.locateContextMenus(page)).not.toBeVisible()

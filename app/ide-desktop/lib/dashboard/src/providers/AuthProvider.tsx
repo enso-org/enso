@@ -148,7 +148,7 @@ const AuthContext = React.createContext<AuthContextType | null>(null)
 /** Props for an {@link AuthProvider}. */
 export interface AuthProviderProps {
   readonly shouldStartInOfflineMode: boolean
-  readonly setRemoteBackend: (backend: Backend | null) => void
+  readonly setRemoteBackend: (backend: RemoteBackend | null) => void
   readonly authService: authServiceModule.AuthService | null
   /** Callback to execute once the user has authenticated successfully. */
   readonly onAuthenticated: (accessToken: string | null) => void
@@ -171,7 +171,11 @@ export default function AuthProvider(props: AuthProviderProps) {
   const navigate = router.useNavigate()
   const [forceOfflineMode, setForceOfflineMode] = React.useState(shouldStartInOfflineMode)
   const [initialized, setInitialized] = React.useState(false)
+  const initializedRef = React.useRef(initialized)
+  initializedRef.current = initialized
   const [userSession, setUserSession] = React.useState<UserSession | null>(null)
+  const userSessionRef = React.useRef(userSession)
+  userSessionRef.current = userSession
   const toastId = React.useId()
 
   const setUser = React.useCallback((valueOrUpdater: React.SetStateAction<backendModule.User>) => {
@@ -205,7 +209,7 @@ export default function AuthProvider(props: AuthProviderProps) {
       navigate(appUtils.DASHBOARD_PATH)
       return Promise.resolve(true)
     },
-    [goOfflineInternal, /* should never change */ navigate]
+    [goOfflineInternal, navigate]
   )
 
   // This component cannot use `useGtagEvent` because `useGtagEvent` depends on the React Context
@@ -236,7 +240,7 @@ export default function AuthProvider(props: AuthProviderProps) {
     if (!navigator.onLine) {
       void goOffline()
     }
-  }, [/* should never change */ goOffline])
+  }, [goOffline])
 
   React.useEffect(() => {
     if (authService == null) {
@@ -244,7 +248,7 @@ export default function AuthProvider(props: AuthProviderProps) {
       goOfflineInternal()
       navigate(appUtils.DASHBOARD_PATH)
     }
-  }, [authService, navigate, /* should never change */ goOfflineInternal])
+  }, [authService, navigate, goOfflineInternal])
 
   React.useEffect(
     () =>
@@ -253,7 +257,7 @@ export default function AuthProvider(props: AuthProviderProps) {
           void goOffline()
         }
       }),
-    [onSessionError, /* should never change */ goOffline]
+    [onSessionError, goOffline]
   )
 
   /** Fetch the JWT access token from the session via the AWS Amplify library.
@@ -268,7 +272,7 @@ export default function AuthProvider(props: AuthProviderProps) {
         setForceOfflineMode(false)
       } else if (session == null) {
         setInitialized(true)
-        if (!initialized) {
+        if (!initializedRef.current) {
           sentry.setUser(null)
           setUserSession(null)
         }
@@ -277,7 +281,11 @@ export default function AuthProvider(props: AuthProviderProps) {
         const backend = new RemoteBackend(client, logger, getText)
         // The backend MUST be the remote backend before login is finished.
         // This is because the "set username" flow requires the remote backend.
-        if (!initialized || userSession == null || userSession.type === UserSessionType.offline) {
+        if (
+          !initializedRef.current ||
+          userSessionRef.current == null ||
+          userSessionRef.current.type === UserSessionType.offline
+        ) {
           setRemoteBackend(backend)
         }
         gtagEvent('cloud_open')
@@ -360,18 +368,17 @@ export default function AuthProvider(props: AuthProviderProps) {
         logger.error(error)
       }
     })
-    // `userSession` MUST NOT be a dependency as `setUserSession` is called every time
-    // by this effect. Because it is an object literal, it will never be equal to the previous
-    // value.
-    // `initialized` MUST NOT be a dependency as it breaks offline mode.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     cognito,
     logger,
     onAuthenticated,
     session,
-    /* should never change */ setRemoteBackend,
-    /* should never change */ goOfflineInternal,
+    goOfflineInternal,
+    forceOfflineMode,
+    getText,
+    gtagEvent,
+    setRemoteBackend,
+    goOffline,
   ])
 
   /** Wrap a function returning a {@link Promise} to display a loading toast notification
@@ -701,16 +708,6 @@ export function useAuth() {
   }
 }
 
-// ===============================
-// === shouldPreventNavigation ===
-// ===============================
-
-/** True if navigation should be prevented, for debugging purposes. */
-function getShouldPreventNavigation() {
-  const location = router.useLocation()
-  return new URLSearchParams(location.search).get('prevent-navigation') === 'true'
-}
-
 // =======================
 // === ProtectedLayout ===
 // =======================
@@ -718,11 +715,10 @@ function getShouldPreventNavigation() {
 /** A React Router layout route containing routes only accessible by users that are logged in. */
 export function ProtectedLayout() {
   const { session } = useAuth()
-  const shouldPreventNavigation = getShouldPreventNavigation()
 
-  if (!shouldPreventNavigation && session == null) {
+  if (session == null) {
     return <router.Navigate to={appUtils.LOGIN_PATH} />
-  } else if (!shouldPreventNavigation && session?.type === UserSessionType.partial) {
+  } else if (session.type === UserSessionType.partial) {
     return <router.Navigate to={appUtils.SET_USERNAME_PATH} />
   } else {
     return <router.Outlet context={session} />
@@ -738,9 +734,8 @@ export function ProtectedLayout() {
 export function SemiProtectedLayout() {
   const { session } = useAuth()
   const { localStorage } = localStorageProvider.useLocalStorage()
-  const shouldPreventNavigation = getShouldPreventNavigation()
 
-  if (!shouldPreventNavigation && session?.type === UserSessionType.full) {
+  if (session?.type === UserSessionType.full) {
     const redirectTo = localStorage.get('loginRedirect')
     if (redirectTo != null) {
       localStorage.delete('loginRedirect')
@@ -763,11 +758,10 @@ export function SemiProtectedLayout() {
 export function GuestLayout() {
   const { session } = useAuth()
   const { localStorage } = localStorageProvider.useLocalStorage()
-  const shouldPreventNavigation = getShouldPreventNavigation()
 
-  if (!shouldPreventNavigation && session?.type === UserSessionType.partial) {
+  if (session?.type === UserSessionType.partial) {
     return <router.Navigate to={appUtils.SET_USERNAME_PATH} />
-  } else if (!shouldPreventNavigation && session?.type === UserSessionType.full) {
+  } else if (session?.type === UserSessionType.full) {
     const redirectTo = localStorage.get('loginRedirect')
     if (redirectTo != null) {
       localStorage.delete('loginRedirect')
@@ -784,27 +778,19 @@ export function GuestLayout() {
 /** A React Router layout route containing routes only accessible by users that are not deleted. */
 export function NotDeletedUserLayout() {
   const { session, isUserMarkedForDeletion } = useAuth()
-  const shouldPreventNavigation = getShouldPreventNavigation()
 
-  if (shouldPreventNavigation) {
-    return <router.Outlet context={session} />
+  if (isUserMarkedForDeletion()) {
+    return <router.Navigate to={appUtils.RESTORE_USER_PATH} />
   } else {
-    if (isUserMarkedForDeletion()) {
-      return <router.Navigate to={appUtils.RESTORE_USER_PATH} />
-    } else {
-      return <router.Outlet context={session} />
-    }
+    return <router.Outlet context={session} />
   }
 }
 
 /** A React Router layout route containing routes only accessible by users that are deleted softly. */
 export function SoftDeletedUserLayout() {
   const { session, isUserMarkedForDeletion, isUserDeleted, isUserSoftDeleted } = useAuth()
-  const shouldPreventNavigation = getShouldPreventNavigation()
 
-  if (shouldPreventNavigation) {
-    return <router.Outlet context={session} />
-  } else if (isUserMarkedForDeletion()) {
+  if (isUserMarkedForDeletion()) {
     const isSoftDeleted = isUserSoftDeleted()
     const isDeleted = isUserDeleted()
     if (isSoftDeleted) {
@@ -842,7 +828,6 @@ export function useNonPartialUserSession() {
 
 /** A React context hook returning the user session for a user that may or may not be logged in. */
 export function useUserSession() {
-  // eslint-disable-next-line no-restricted-syntax
   return router.useOutletContext<UserSession | undefined>()
 }
 

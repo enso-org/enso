@@ -3,6 +3,8 @@ import * as React from 'react'
 
 import Plus2Icon from 'enso-assets/plus2.svg'
 
+import * as billingHooks from '#/hooks/billing'
+
 import * as authProvider from '#/providers/AuthProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 
@@ -13,6 +15,7 @@ import Category from '#/layouts/CategorySwitcher/Category'
 import * as ariaComponents from '#/components/AriaComponents'
 import type * as column from '#/components/dashboard/column'
 import PermissionDisplay from '#/components/dashboard/PermissionDisplay'
+import * as paywall from '#/components/Paywall'
 
 import ManagePermissionsModal from '#/modals/ManagePermissionsModal'
 
@@ -43,6 +46,11 @@ export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
   const { backend, category, dispatchAssetEvent, setQuery } = state
   const asset = item.item
   const { user } = authProvider.useNonPartialUserSession()
+
+  const { isFeatureUnderPaywall } = billingHooks.usePaywall({ plan: user?.plan })
+
+  const isUnderPaywall = isFeatureUnderPaywall('share')
+
   const { setModal } = modalProvider.useSetModal()
   const self = asset.permissions?.find(
     backendModule.isUserPermissionAnd(permission => permission.user.userId === user?.userId)
@@ -62,7 +70,7 @@ export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
         })
       )
     },
-    [/* should never change */ setItem]
+    [setItem]
   )
 
   return (
@@ -89,12 +97,22 @@ export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
           {backendModule.getAssetPermissionName(other)}
         </PermissionDisplay>
       ))}
-      {managesThisAsset && (
+      {isUnderPaywall && (
+        <paywall.PaywallDialogButton
+          feature="share"
+          variant="icon"
+          size="xxsmall"
+          className="opacity-0 group-hover:opacity-100"
+          children={false}
+        />
+      )}
+      {managesThisAsset && !isUnderPaywall && (
         <ariaComponents.Button
-          size="custom"
-          variant="custom"
           ref={plusButtonRef}
-          className="shrink-0 rounded-full opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
+          size="icon"
+          variant="ghost"
+          icon={Plus2Icon}
+          showIconOnHover
           onPress={() => {
             setModal(
               <ManagePermissionsModal
@@ -105,17 +123,12 @@ export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
                 self={self}
                 eventTarget={plusButtonRef.current}
                 doRemoveSelf={() => {
-                  dispatchAssetEvent({
-                    type: AssetEventType.removeSelf,
-                    id: asset.id,
-                  })
+                  dispatchAssetEvent({ type: AssetEventType.removeSelf, id: asset.id })
                 }}
               />
             )
           }}
-        >
-          <img className="size-plus-icon" src={Plus2Icon} />
-        </ariaComponents.Button>
+        />
       )}
     </div>
   )
