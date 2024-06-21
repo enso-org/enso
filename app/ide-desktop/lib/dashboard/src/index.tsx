@@ -95,24 +95,26 @@ function run(props: Omit<app.AppProps, 'httpClient' | 'portalRoot'>) {
   const httpClient = new HttpClient()
   const queryClient = reactQueryClientModule.createReactQueryClient()
 
-  reactDOM.createRoot(root).render(
-    <React.StrictMode>
-      <reactQuery.QueryClientProvider client={queryClient}>
-        <errorBoundary.ErrorBoundary>
-          <suspense.Suspense fallback={<LoadingScreen />}>
-            <App
-              {...props}
-              supportsDeepLinks={actuallySupportsDeepLinks}
-              portalRoot={portalRoot}
-              httpClient={httpClient}
-            />
-          </suspense.Suspense>
-        </errorBoundary.ErrorBoundary>
+  React.startTransition(() => {
+    reactDOM.createRoot(root).render(
+      <React.StrictMode>
+        <reactQuery.QueryClientProvider client={queryClient}>
+          <errorBoundary.ErrorBoundary>
+            <suspense.Suspense fallback={<LoadingScreen />}>
+              <App
+                {...props}
+                supportsDeepLinks={actuallySupportsDeepLinks}
+                portalRoot={portalRoot}
+                httpClient={httpClient}
+              />
+            </suspense.Suspense>
+          </errorBoundary.ErrorBoundary>
 
-        <reactQueryDevtools.ReactQueryDevtools />
-      </reactQuery.QueryClientProvider>
-    </React.StrictMode>
-  )
+          <reactQueryDevtools.ReactQueryDevtools />
+        </reactQuery.QueryClientProvider>
+      </React.StrictMode>
+    )
+  })
 }
 
 /** Global configuration for the {@link App} component. */

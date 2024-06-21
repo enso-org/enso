@@ -6,6 +6,7 @@ import * as reactQuery from '@tanstack/react-query'
 import * as appUtils from '#/appUtils'
 
 import * as gtagHooks from '#/hooks/gtagHooks'
+import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as backendProvider from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
@@ -13,7 +14,10 @@ import * as textProvider from '#/providers/TextProvider'
 import * as errorBoundary from '#/components/ErrorBoundary'
 import * as suspense from '#/components/Suspense'
 
-import type * as backendModule from '#/services/Backend'
+import type Backend from '#/services/Backend'
+import * as backendModule from '#/services/Backend'
+
+import * as object from '#/utilities/object'
 
 import type * as types from '../../../types/types'
 
@@ -62,11 +66,13 @@ interface EditorInternalProps extends EditorProps {
 /** An internal editor. */
 function EditorInternal(props: EditorInternalProps) {
   const { hidden, ydocUrl, projectStartupInfo, appRunner: AppRunner } = props
+  const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { getText } = textProvider.useText()
   const gtagEvent = gtagHooks.useGtagEvent()
   const gtagEventRef = React.useRef(gtagEvent)
   gtagEventRef.current = gtagEvent
   const remoteBackend = backendProvider.useRemoteBackend()
+  const localBackend = backendProvider.useLocalBackend()
 
   const projectQuery = reactQuery.useSuspenseQuery({
     queryKey: ['editorProject'],
@@ -83,6 +89,34 @@ function EditorInternal(props: EditorInternalProps) {
       }
     },
     [remoteBackend]
+  )
+
+  const renameProject = React.useCallback(
+    (newName: string) => {
+      let backend: Backend | null
+      switch (projectStartupInfo.backendType) {
+        case backendModule.BackendType.local:
+          backend = localBackend
+          break
+        case backendModule.BackendType.remote:
+          backend = remoteBackend
+          break
+      }
+      const { id: projectId, parentId, title } = projectStartupInfo.projectAsset
+      backend
+        ?.updateProject(
+          projectId,
+          { projectName: newName, ami: null, ideVersion: null, parentId },
+          title
+        )
+        .then(
+          () => {
+            projectStartupInfo.setProjectAsset?.(object.merger({ title: newName }))
+          },
+          e => toastAndLog('renameProjectError', e)
+        )
+    },
+    [remoteBackend, localBackend, projectStartupInfo, toastAndLog]
   )
 
   React.useEffect(() => {
@@ -122,6 +156,7 @@ function EditorInternal(props: EditorInternalProps) {
         hidden,
         ignoreParamsRegex: new RegExp(`^${appUtils.SEARCH_PARAMS_PREFIX}(.+)$`),
         logEvent,
+        renameProject,
       }
     }
   }, [
@@ -134,6 +169,7 @@ function EditorInternal(props: EditorInternalProps) {
     getText,
     hidden,
     logEvent,
+    renameProject,
   ])
 
   if (AppRunner == null) {

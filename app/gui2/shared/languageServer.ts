@@ -479,6 +479,11 @@ export class LanguageServer extends ObservableV2<Notifications & TransportEvents
     return this.request('refactoring/renameSymbol', { module, expressionId, newName })
   }
 
+  /** [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#refactoringrenameproject) */
+  renameProject(namespace: string, oldName: string, newName: string): Promise<LsRpcResult<void>> {
+    return this.request('refactoring/renameProject', { namespace, oldName, newName })
+  }
+
   /** [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#profilingstart) */
   profilingStart(memorySnapshot?: boolean): Promise<LsRpcResult<void>> {
     return this.request('profiling/start', { memorySnapshot })
