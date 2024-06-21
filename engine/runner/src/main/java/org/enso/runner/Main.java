@@ -11,6 +11,8 @@ import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
@@ -40,6 +42,8 @@ import org.enso.polyglot.PolyglotContext;
 import org.enso.profiling.sampler.NoopSampler;
 import org.enso.profiling.sampler.OutputStreamSampler;
 import org.enso.version.VersionDescription;
+import org.graalvm.options.OptionCategory;
+import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.PolyglotException.StackFrame;
 import org.graalvm.polyglot.SourceSection;
@@ -52,7 +56,7 @@ import scala.concurrent.duration.FiniteDuration;
 import scala.runtime.BoxedUnit;
 
 /** The main CLI entry point class. */
-public final class Main {
+public final class Main extends org.graalvm.launcher.AbstractLanguageLauncher {
   private static final String RUN_OPTION = "run";
   private static final String INSPECT_OPTION = "inspect";
   private static final String DUMP_GRAPHS_OPTION = "dump-graphs";
@@ -1290,20 +1294,10 @@ public final class Main {
     return scala.collection.immutable.$colon$colon$.MODULE$.apply(head, tail);
   }
 
-  private void println(String msg) {
-    System.out.println(msg);
-  }
-
-  private void launch(String[] args) {
-    var options = buildOptions();
-    var line = preprocessArguments(options, args);
-    launch(options, line);
-  }
-
-  protected CommandLine preprocessArguments(Options options, String[] args) {
+  private CommandLine preprocessCommandLine(Options options, String[] args) {
     var parser = new DefaultParser();
     try {
-      var line = parser.parse(options, args);
+      line = parser.parse(options, args);
       return line;
     } catch (Exception e) {
       printHelp(options);
@@ -1311,7 +1305,7 @@ public final class Main {
     }
   }
 
-  protected void launch(Options options, CommandLine line) {
+  private void launch(Options options, CommandLine line) {
     var logLevel =
         scala.Option.apply(line.getOptionValue(LOG_LEVEL))
             .map(this::parseLogLevel)
@@ -1344,8 +1338,33 @@ public final class Main {
     }
   }
 
+  @Override
   protected String getLanguageId() {
     return LanguageInfo.ID;
+  }
+
+  private final Options options = buildOptions();
+  private CommandLine line;
+
+  @Override
+  protected List<String> preprocessArguments(
+      List<String> arguments, Map<String, String> polyglotOptions) {
+    if (arguments.stream().filter(a -> a.startsWith("--help")).findFirst().isPresent()) {
+      return arguments;
+    }
+    var args = arguments.toArray(new String[0]);
+    line = preprocessCommandLine(options, args);
+    return Collections.emptyList();
+  }
+
+  @Override
+  protected void launch(Context.Builder contextBuilder) {
+    launch(options, line);
+  }
+
+  @Override
+  protected void printHelp(OptionCategory maxCategory) {
+    printHelp(options);
   }
 
   private static final class WrongOption extends Exception {

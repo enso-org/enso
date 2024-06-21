@@ -9,6 +9,7 @@ open module org.enso.runtime {
   // works.
   requires org.enso.profiling;
   requires org.enso.ydoc;
+  requires org.graalvm.launcher;
   requires org.graalvm.polyglot;
   requires org.graalvm.truffle;
   requires static org.slf4j;
