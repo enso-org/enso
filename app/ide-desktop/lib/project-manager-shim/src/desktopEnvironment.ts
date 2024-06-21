@@ -38,7 +38,7 @@ function getXdgDocumentsPath(): string | undefined {
         return
     }
 
-    return out.stdout.toString('utf8').trim()
+    return out.stdout.toString().trim()
 }
 
 /**
@@ -68,7 +68,7 @@ function getWindowsDocumentsPath(): string | undefined {
         return
     }
 
-    const stdoutString = out.stdout.toString('utf8')
+    const stdoutString = out.stdout.toString()
 
     return stdoutString.split('\\s\\s+')[4]
 }
