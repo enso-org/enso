@@ -123,10 +123,11 @@ export function locateStopProjectButton(page: test.Locator | test.Page) {
 }
 
 /** Find all labels in the labels panel (if any) on the current page. */
-export function locateLabelsPanelLabels(page: test.Page) {
+export function locateLabelsPanelLabels(page: test.Page, name?: string) {
   return (
     locateLabelsPanel(page)
       .getByRole('button')
+      .filter(name != null ? { has: page.getByText(name) } : {})
       // The delete button is also a `button`.
       // eslint-disable-next-line no-restricted-properties
       .and(page.locator(':nth-child(1)'))
@@ -719,7 +720,8 @@ export async function press(page: test.Page, keyOrShortcut: string) {
 export async function login(
   { page }: MockParams,
   email = 'email@example.com',
-  password = VALID_PASSWORD
+  password = VALID_PASSWORD,
+  first = true
 ) {
   await test.test.step('Login', async () => {
     await page.goto('/')
@@ -727,14 +729,16 @@ export async function login(
     await locatePasswordInput(page).fill(password)
     await locateLoginButton(page).click()
     await test.expect(page.getByText('Logging in to Enso...')).not.toBeVisible()
-    await passTermsAndConditionsDialog({ page })
-    await test.expect(page.getByText('Logging in to Enso...')).not.toBeVisible()
+    if (first) {
+      await passTermsAndConditionsDialog({ page })
+      await test.expect(page.getByText('Logging in to Enso...')).not.toBeVisible()
+    }
   })
 }
 
-// =============
-// === login ===
-// =============
+// ==============
+// === reload ===
+// ==============
 
 /** Reload. */
 // This syntax is required for Playwright to work properly.
@@ -743,6 +747,25 @@ export async function reload({ page }: MockParams) {
   await test.test.step('Reload', async () => {
     await page.reload()
     await test.expect(page.getByText('Logging in to Enso...')).not.toBeVisible()
+  })
+}
+
+// =============
+// === relog ===
+// =============
+
+/** Logout and then login again. */
+// This syntax is required for Playwright to work properly.
+// eslint-disable-next-line no-restricted-syntax
+export async function relog(
+  { page }: MockParams,
+  email = 'email@example.com',
+  password = VALID_PASSWORD
+) {
+  await test.test.step('Relog', async () => {
+    await page.getByAltText('User Settings').locator('visible=true').click()
+    await page.getByRole('button', { name: 'Logout' }).getByText('Logout').click()
+    await login({ page }, email, password, false)
   })
 }
 
@@ -783,19 +806,11 @@ async function mockDate({ page }: MockParams) {
 
 /** Pass the Terms and conditions dialog. */
 export async function passTermsAndConditionsDialog({ page }: MockParams) {
-  // wait for terms and conditions dialog to appear
-  // but don't fail if it doesn't appear
-  try {
-    await test.test.step('Accept Terms and Conditions', async () => {
-      // wait for terms and conditions dialog to appear
-      // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-      await page.waitForSelector('#terms-of-service-modal', { timeout: 500 })
-      await page.getByRole('checkbox').click()
-      await page.getByRole('button', { name: 'Accept' }).click()
-    })
-  } catch (error) {
-    // do nothing
-  }
+  await test.test.step('Accept Terms and Conditions', async () => {
+    await page.waitForSelector('#terms-of-service-modal')
+    await page.getByRole('checkbox').click()
+    await page.getByRole('button', { name: 'Accept' }).click()
+  })
 }
 
 // ===============
