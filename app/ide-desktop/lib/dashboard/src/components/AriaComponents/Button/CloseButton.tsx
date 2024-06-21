@@ -2,13 +2,13 @@
 
 import * as React from 'react'
 
-import * as tailwindMerge from 'tailwind-merge'
-
 import Dismiss from 'enso-assets/dismiss.svg'
 
 import * as textProvider from '#/providers/TextProvider'
 
 import * as button from '#/components/AriaComponents/Button'
+
+import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 // ===================
 // === CloseButton ===

@@ -128,8 +128,7 @@ pub fn sbt_command(command: impl AsRef<str>) -> String {
 /// Expose variables for cloud configuration, needed during the dashboard build.
 pub fn expose_cloud_vars(step: Step) -> Step {
     use crate::ide::web::env::*;
-    step.with_variable_exposed(ENSO_CLOUD_REDIRECT)
-        .with_variable_exposed(ENSO_CLOUD_ENVIRONMENT)
+    step.with_variable_exposed(ENSO_CLOUD_ENVIRONMENT)
         .with_variable_exposed(ENSO_CLOUD_API_URL)
         .with_variable_exposed(ENSO_CLOUD_CHAT_URL)
         .with_variable_exposed(ENSO_CLOUD_SENTRY_DSN)

@@ -3,8 +3,6 @@
  * Each exported function in the {@link LocalBackend} in this module corresponds to an API endpoint.
  * The functions are asynchronous and return a {@link Promise} that resolves to the response from
  * the API. */
-import * as detect from 'enso-common/src/detect'
-
 import Backend, * as backend from '#/services/Backend'
 import * as projectManager from '#/services/ProjectManager'
 import ProjectManager from '#/services/ProjectManager'
@@ -101,11 +99,6 @@ export default class LocalBackend extends Backend {
   constructor(projectManagerUrl: string, rootDirectory: projectManager.Path) {
     super()
     this.projectManager = new ProjectManager(projectManagerUrl, rootDirectory)
-    if (detect.IS_DEV_MODE) {
-      // @ts-expect-error This exists only for debugging purposes. It does not have types
-      // because it MUST NOT be used in this codebase.
-      window.localBackend = this
-    }
   }
 
   /** Return the ID of the root directory. */
@@ -525,7 +518,7 @@ export default class LocalBackend extends Backend {
 
   /** Return `null`. This function should never need to be called. */
   override usersMe() {
-    return Promise.resolve(null)
+    return this.invalidOperation()
   }
 
   /** Create a directory. */

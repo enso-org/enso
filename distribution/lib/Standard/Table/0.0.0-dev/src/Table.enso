@@ -300,7 +300,7 @@ type Table
     @selector Widget_Helpers.make_column_name_selector
     @index (t-> Widget.Numeric_Input minimum=0 maximum=t.row_count-1)
     get_value : Text | Integer -> Integer -> Any -> Any
-    get_value self selector:Integer=0 index:Integer=0 ~if_missing=Nothing =
+    get_value self selector:(Text | Integer)=0 index:Integer=0 ~if_missing=Nothing =
         col = self.get selector if_missing=Nothing
         if Nothing == col then if_missing else col.get index if_missing
 
@@ -1412,6 +1412,7 @@ type Table
        - prefix: Prefix to add to the column names. If `Nothing` then the column
          name is used.
     @column Widget_Helpers.make_column_name_selector
+    @fields (Widget.Vector_Editor item_editor=Widget.Text_Input item_default='""')
     expand_column : Text | Integer -> (Vector Text) | Nothing -> Prefix_Name -> Table ! Type_Error | No_Such_Column | Index_Out_Of_Bounds
     expand_column self (column : Text | Integer) (fields : (Vector Text) | Nothing = Nothing) (prefix : Prefix_Name = Prefix_Name.Column_Name) =
         Expand_Objects_Helpers.expand_column self column fields prefix
@@ -2720,13 +2721,13 @@ type Table
        - root_name: The name of the root tag in the XML.
        - row_name: The name of the row tag in the XML.
        - on_problems: Specifies how to handle warnings if they occur, reporting
-         them as warnings by default.     
+         them as warnings by default.
 
        ! Error Conditions
 
-         - If a column in `element_columns`, `attribute_columns` or `value_column` is not in 
+         - If a column in `element_columns`, `attribute_columns` or `value_column` is not in
            the input table, a `Missing_Input_Columns` is raised as an error.
-         - If any incomming columns aree not specified in one of `element_columns`, 
+         - If any incomming columns aree not specified in one of `element_columns`,
            `attribute_columns` or `value_column`, a `Unexpected_Extra_Columns`
            is reported according to the `on_problems` setting.
 
@@ -2735,10 +2736,10 @@ type Table
 
          Input Table `table`:
 
-            Title                  | Author              | Price | Year 
+            Title                  | Author              | Price | Year
            ------------------------+---------------------+-------+------
-            A Tale Of Two Cities   | Charles Dickens     | 9.99  | 1859 
-            The Great Gatsby       | F. Scott Fitzgerald | 5.99  | 1925 
+            A Tale Of Two Cities   | Charles Dickens     | 9.99  | 1859
+            The Great Gatsby       | F. Scott Fitzgerald | 5.99  | 1925
 
          Result `r = t.to_xml ["Year"] ["Author", "Price"] "Title" "Books" "Book"`:
 
@@ -2769,9 +2770,9 @@ type Table
 
         unused_columns = columns_helper.internal_columns.filter (Filter_Condition.Is_In resolved_element_columns+resolved_attribute_columns+[resolved_value_column] Filter_Action.Remove) . map .name
         if unused_columns.length > 0 then problem_builder.report_other_warning (Unexpected_Extra_Columns.Warning unused_columns)
-        
+
         problem_builder.attach_problems_before on_problems <|
-            XML_Document.Value (Java_TableToXml.to_xml self.row_count java_element_columns java_attribute_column java_value_column root_name row_name)
+            XML_Document.new (Java_TableToXml.to_xml self.row_count java_element_columns java_attribute_column java_value_column root_name row_name)
 
     ## PRIVATE
     columns_helper : Table_Column_Helper
@@ -2871,7 +2872,7 @@ type Table
     @term (Widget_Helpers.make_column_ref_by_name_selector add_regex=True add_text=True add_named_pattern=True)
     @new_text (Widget_Helpers.make_column_ref_by_name_selector add_text=True)
     text_replace : Vector (Integer | Text | Regex | By_Type) | Text | Integer | Regex | By_Type -> Text | Column | Column_Ref | Expression | Regex -> Text | Column | Column_Ref | Expression -> Case_Sensitivity -> Boolean -> Column
-    text_replace self columns (term : Text | Column | Column_Ref | Expression | Regex | By_Type = "") (new_text : Text | Column | Column_Ref | Expression = "") case_sensitivity:Case_Sensitivity=..Sensitive only_first:Boolean=False =
+    text_replace self columns (term : Text | Column | Column_Ref | Expression | Regex = "") (new_text : Text | Column | Column_Ref | Expression = "") case_sensitivity:Case_Sensitivity=..Sensitive only_first:Boolean=False =
         table_ref = Table_Ref.from self
         resolved_term = table_ref.resolve term
         resolved_new_text = table_ref.resolve new_text
@@ -3124,10 +3125,12 @@ Text.from (that : Table) (format:Delimited_Format = Delimited_Format.Delimited '
 
 ## PRIVATE
    Conversion method to a Table from a Vector.
+@fields (Widget.Vector_Editor item_editor=Widget.Text_Input item_default='""')
 Table.from (that:Vector) (fields : (Vector | Nothing) = Nothing) = that.to_table fields
 
 ## PRIVATE
    Conversion method to a Table from a JS_Object.
+@fields (Widget.Vector_Editor item_editor=Widget.Text_Input item_default='""')
 Table.from (that:JS_Object) (fields : (Vector | Nothing) = Nothing) =
     Table.from_objects that fields
 

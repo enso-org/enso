@@ -1,8 +1,6 @@
 /** @file A search bar containing a text input, and a list of suggestions. */
 import * as React from 'react'
 
-import * as tailwindMerge from 'tailwind-merge'
-
 import FindIcon from 'enso-assets/find.svg'
 import * as detect from 'enso-common/src/detect'
 
@@ -15,6 +13,7 @@ import * as aria from '#/components/aria'
 import Label from '#/components/dashboard/Label'
 import FocusArea from '#/components/styled/FocusArea'
 import FocusRing from '#/components/styled/FocusRing'
+import SvgMask from '#/components/SvgMask'
 
 import type Backend from '#/services/Backend'
 
@@ -22,6 +21,7 @@ import * as array from '#/utilities/array'
 import AssetQuery from '#/utilities/AssetQuery'
 import * as eventModule from '#/utilities/event'
 import * as string from '#/utilities/string'
+import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 // =============
 // === Types ===
@@ -116,7 +116,7 @@ export interface AssetSearchBarProps {
   readonly isCloud: boolean
   readonly query: AssetQuery
   readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
-  readonly suggestions: Suggestion[]
+  readonly suggestions: readonly Suggestion[]
 }
 
 /** A search bar containing a text input, and a list of suggestions. */
@@ -260,7 +260,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
       root?.removeEventListener('keydown', onSearchKeyDown)
       document.removeEventListener('keydown', onKeyDown)
     }
-  }, [setQuery, /* should never change */ modalRef])
+  }, [setQuery, modalRef])
 
   // Reset `querySource` after all other effects have run.
   React.useEffect(() => {
@@ -271,7 +271,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
       baseQuery.current = query
       querySource.current = QuerySource.external
     }
-  }, [query, /* should never change */ setQuery])
+  }, [query, setQuery])
 
   return (
     <FocusArea direction="horizontal">
@@ -280,7 +280,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
           data-testid="asset-search-bar"
           {...aria.mergeProps<aria.LabelProps>()(innerProps, {
             className:
-              'search-bar group relative flex h-row max-w-asset-search-bar grow items-center gap-asset-search-bar rounded-full px-input-x text-primary xl:max-w-asset-search-bar-wide',
+              'search-bar group relative flex h-row grow max-w-[60em] items-center gap-asset-search-bar rounded-full px-3 text-primary',
             ref: rootRef,
             onFocus: () => {
               setAreSuggestionsVisible(true)
@@ -295,9 +295,14 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
             },
           })}
         >
-          <img src={FindIcon} className="relative z-1 placeholder" />
-          <div className="pointer-events-none absolute left top flex w-full flex-col overflow-hidden rounded-default before:absolute before:inset before:bg-frame before:backdrop-blur-default">
-            <div className="padding relative h-row" />
+          <div className="relative size-4 placeholder" />
+          <div
+            className={tailwindMerge.twMerge(
+              'pointer-events-none absolute left top z-1 flex w-full flex-col overflow-hidden rounded-default border-0.5 border-primary/20 transition-colors before:absolute before:inset before:backdrop-blur-default hover:before:bg-frame',
+              areSuggestionsVisible && 'before:bg-frame'
+            )}
+          >
+            <div className="padding relative h-[30px]" />
             {areSuggestionsVisible && (
               <div className="relative flex flex-col gap-search-suggestions">
                 {/* Tags (`name:`, `modified:`, etc.) */}
@@ -393,6 +398,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
               </div>
             )}
           </div>
+          <SvgMask src={FindIcon} className="absolute left-3 z-1 text-primary/30" />
           <FocusRing placement="before">
             <aria.SearchField
               aria-label={getText('assetSearchFieldLabel')}
@@ -408,10 +414,12 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
                 size={1}
                 placeholder={
                   isCloud
-                    ? getText('remoteBackendSearchPlaceholder')
+                    ? detect.isOnMacOS()
+                      ? getText('remoteBackendSearchPlaceholderMacOs')
+                      : getText('remoteBackendSearchPlaceholder')
                     : getText('localBackendSearchPlaceholder')
                 }
-                className="focus-child peer text relative z-1 w-full bg-transparent placeholder:text-center"
+                className="focus-child peer text relative z-1 w-full bg-transparent placeholder-primary/20"
                 onChange={event => {
                   if (querySource.current !== QuerySource.internal) {
                     querySource.current = QuerySource.typing

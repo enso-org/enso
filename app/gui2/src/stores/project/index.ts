@@ -32,6 +32,7 @@ import {
   markRaw,
   onScopeDispose,
   proxyRefs,
+  readonly,
   ref,
   shallowRef,
   watch,
@@ -99,7 +100,7 @@ export type ProjectStore = ReturnType<typeof useProjectStore>
  */
 export const { provideFn: provideProjectStore, injectFn: useProjectStore } = createContextStore(
   'project',
-  () => {
+  (renameProjectBackend: (newName: string) => void) => {
     const abort = useAbortScope()
 
     const observedFileName = ref<string>()
@@ -108,9 +109,10 @@ export const { provideFn: provideProjectStore, injectFn: useProjectStore } = cre
     const awareness = new Awareness(doc)
 
     const config = injectGuiConfig()
-    const projectName = config.value.startup?.project
-    if (projectName == null) throw new Error('Missing project name.')
-    const projectDisplayName = config.value.startup?.displayedProjectName ?? projectName
+    const projectNameFromCfg = config.value.startup?.project
+    if (projectNameFromCfg == null) throw new Error('Missing project name.')
+    const projectName = ref(projectNameFromCfg)
+    const projectDisplayName = ref(config.value.startup?.displayedProjectName ?? projectName)
 
     const clientId = random.uuidv4() as Uuid
     const lsUrls = resolveLsUrl(config.value)
@@ -126,7 +128,6 @@ export const { provideFn: provideProjectStore, injectFn: useProjectStore } = cre
       rpcUrl.hostname === '[::1]' ||
       rpcUrl.hostname === '0:0:0:0:0:0:0:1'
 
-    const name = computed(() => config.value.startup?.project)
     const namespace = computed(() => config.value.engine?.namespace)
     const fullName = computed(() => {
       const ns = namespace.value
@@ -135,14 +136,7 @@ export const { provideFn: provideProjectStore, injectFn: useProjectStore } = cre
           'Unknown project\'s namespace. Assuming "local", however it likely won\'t work in cloud',
         )
       }
-      const projectName = name.value
-      if (projectName == null) {
-        console.error(
-          "Unknown project's name. Cannot specify opened module's qualified path; many things may not work",
-        )
-        return null
-      }
-      return `${ns ?? 'local'}.${projectName}`
+      return `${ns ?? 'local'}.${projectName.value}`
     })
     const modulePath = computed(() => {
       const filePath = observedFileName.value
@@ -347,6 +341,24 @@ export const { provideFn: provideProjectStore, injectFn: useProjectStore } = cre
       },
     })
 
+    function renameProject(newDisplayedName: string) {
+      try {
+        renameProjectBackend(newDisplayedName)
+        return Ok()
+      } catch (err) {
+        return Err(err)
+      }
+    }
+    lsRpcConnection.on(
+      'refactoring/projectRenamed',
+      ({ oldNormalizedName, newNormalizedName, newName }) => {
+        if (oldNormalizedName === projectName.value) {
+          projectName.value = newNormalizedName
+          projectDisplayName.value = newName
+        }
+      },
+    )
+
     const projectRootId = contentRoots.then(
       (roots) => roots.find((root) => root.type === 'Project')?.id,
     )
@@ -370,8 +382,8 @@ export const { provideFn: provideProjectStore, injectFn: useProjectStore } = cre
       get observedFileName() {
         return observedFileName.value
       },
-      name: projectName,
-      displayName: projectDisplayName,
+      name: readonly(projectName),
+      displayName: readonly(projectDisplayName),
       isOnLocalBackend,
       executionContext,
       firstExecution,
@@ -394,6 +406,7 @@ export const { provideFn: provideProjectStore, injectFn: useProjectStore } = cre
       dataflowErrors,
       executeExpression,
       disposeYDocsProvider,
+      renameProject,
     })
   },
 )

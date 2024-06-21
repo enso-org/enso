@@ -78,6 +78,8 @@ interface BaseFormProps<
    */
   // eslint-disable-next-line @typescript-eslint/ban-types,no-restricted-syntax
   readonly method?: 'dialog' | (string & {})
+
+  readonly canSubmitOffline?: boolean
 }
 
 /**

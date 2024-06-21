@@ -2,7 +2,6 @@
 import * as React from 'react'
 
 import * as reactDom from 'react-dom'
-import * as tailwindMerge from 'tailwind-merge'
 
 import CloseLargeIcon from 'enso-assets/close_large.svg'
 import DefaultUserIcon from 'enso-assets/default_user.svg'
@@ -24,6 +23,7 @@ import Twemoji from '#/components/Twemoji'
 import * as dateTime from '#/utilities/dateTime'
 import * as newtype from '#/utilities/newtype'
 import * as object from '#/utilities/object'
+import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 // ================
 // === Newtypes ===
@@ -122,6 +122,11 @@ function ReactionBar(props: ReactionBarProps) {
           size="custom"
           variant="custom"
           key={emoji}
+          isActive={selectedReactions.has(emoji)}
+          className={tailwindMerge.twMerge(
+            'm-chat-reaction rounded-full p-chat-reaction hover:bg-hover-bg hover:grayscale-0',
+            !selectedReactions.has(emoji) && 'grayscale'
+          )}
           onPress={() => {
             if (selectedReactions.has(emoji)) {
               doRemoveReaction(emoji)
@@ -129,10 +134,6 @@ function ReactionBar(props: ReactionBarProps) {
               doReact(emoji)
             }
           }}
-          className={tailwindMerge.twMerge(
-            'm-chat-reaction rounded-full p-chat-reaction selectable hover:bg-hover-bg hover:grayscale-0',
-            selectedReactions.has(emoji) ? 'active' : 'grayscale'
-          )}
         >
           <Twemoji key={emoji} emoji={emoji} size={REACTION_BUTTON_SIZE} />
         </ariaComponents.Button>
@@ -425,7 +426,7 @@ export default function Chat(props: ChatProps) {
   /** This is SAFE, because this component is only rendered when `accessToken` is present.
    * See `dashboard.tsx` for its sole usage. */
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-  const accessToken = rawAccessToken!
+  const accessToken = rawAccessToken
 
   const [isPaidUser, setIsPaidUser] = React.useState(true)
   const [isReplyEnabled, setIsReplyEnabled] = React.useState(false)
@@ -464,7 +465,7 @@ export default function Chat(props: ChatProps) {
     } else {
       return
     }
-  }, [isOpen, /* should never change */ endpoint])
+  }, [isOpen, endpoint])
 
   React.useLayoutEffect(() => {
     const element = messagesRef.current
@@ -629,7 +630,7 @@ export default function Chat(props: ChatProps) {
         })
       }
     },
-    [threads, toastAndLog, /* should never change */ sendMessage]
+    [threads, toastAndLog, sendMessage]
   )
 
   const sendCurrentMessage = React.useCallback(
@@ -679,14 +680,7 @@ export default function Chat(props: ChatProps) {
         }
       }
     },
-    [
-      threads,
-      threadId,
-      threadTitle,
-      shouldIgnoreMessageLimit,
-      getText,
-      /* should never change */ sendMessage,
-    ]
+    [threads, threadId, threadTitle, shouldIgnoreMessageLimit, getText, sendMessage]
   )
 
   const upgradeToPro = () => {

@@ -1,14 +1,14 @@
 /** @file A styled button. */
 import * as React from 'react'
 
-import * as twv from 'tailwind-variants'
-
 import * as focusHooks from '#/hooks/focusHooks'
 
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 import Spinner, * as spinnerModule from '#/components/Spinner'
 import SvgMask from '#/components/SvgMask'
+
+import * as twv from '#/utilities/tailwindVariants'
 
 import * as text from '../Text'
 
@@ -57,6 +57,7 @@ export interface BaseButtonProps extends Omit<twv.VariantProps<typeof BUTTON_STY
    * If the handler returns a promise, the button will be in a loading state until the promise resolves.
    */
   readonly onPress?: (event: aria.PressEvent) => Promise<void> | void
+  readonly contentClassName?: string
   readonly children?: React.ReactNode
   readonly testId?: string
 
@@ -83,29 +84,38 @@ export const BUTTON_STYLES = twv.tv({
     isFocused: {
       true: 'focus:outline-none focus-visible:outline focus-visible:outline-primary focus-visible:outline-offset-2',
     },
+    isActive: {
+      none: '',
+      false:
+        'disabled:opacity-30 [&.disabled]:opacity-30 disabled:cursor-not-allowed [&.disabled]:cursor-not-allowed opacity-50 hover:opacity-75',
+      true: 'opacity-100 disabled:opacity-100 [&.disabled]:opacity-100 hover:opacity-100 disabled:cursor-default [&.disabled]:cursor-default',
+    },
     loading: { true: { base: 'cursor-wait' } },
     fullWidth: { true: 'w-full' },
     fullWidthText: { true: { text: 'w-full' } },
     size: {
       custom: { base: '', extraClickZone: '', icon: 'h-full' },
+      icon: { icon: 'h-4' },
       hero: { base: 'px-8 py-4 text-lg font-bold', content: 'gap-[0.75em]' },
       large: {
         base: text.TEXT_STYLE({
           variant: 'body',
           color: 'custom',
-          weight: 'bold',
+          weight: 'semibold',
           className: 'flex px-[11px] py-[5px]',
         }),
         content: 'gap-2',
+        icon: 'mb-[-0.3cap]',
         extraClickZone: 'after:inset-[-6px]',
       },
       medium: {
         base: text.TEXT_STYLE({
           variant: 'body',
           color: 'custom',
-          weight: 'bold',
+          weight: 'semibold',
           className: 'flex px-[9px] py-[3px]',
         }),
+        icon: 'mb-[-0.3cap]',
         content: 'gap-2',
         extraClickZone: 'after:inset-[-8px]',
       },
@@ -113,8 +123,10 @@ export const BUTTON_STYLES = twv.tv({
         base: text.TEXT_STYLE({
           variant: 'body',
           color: 'custom',
+          weight: 'medium',
           className: 'flex px-[7px] py-[1px]',
         }),
+        icon: 'mb-[-0.3cap]',
         content: 'gap-1',
         extraClickZone: 'after:inset-[-10px]',
       },
@@ -122,8 +134,10 @@ export const BUTTON_STYLES = twv.tv({
         base: text.TEXT_STYLE({
           variant: 'body',
           color: 'custom',
+          weight: 'medium',
           className: 'flex px-[5px] py-[1px]',
         }),
+        icon: 'mb-[-0.3cap]',
         content: 'gap-1',
         extraClickZone: 'after:inset-[-12px]',
       },
@@ -140,7 +154,9 @@ export const BUTTON_STYLES = twv.tv({
         extraClickZone: 'after:inset-[-12px]',
       },
     },
-    iconOnly: { true: { base: text.TEXT_STYLE({ disableLineHeightCompensation: true }) } },
+    iconOnly: {
+      true: { base: text.TEXT_STYLE({ disableLineHeightCompensation: true }), icon: 'mb-[unset]' },
+    },
     rounded: {
       full: 'rounded-full',
       large: 'rounded-lg',
@@ -154,16 +170,16 @@ export const BUTTON_STYLES = twv.tv({
     variant: {
       custom: 'focus-visible:outline-offset-2',
       link: {
-        base: 'inline-flex px-0 py-0 rounded-sm text-primary/50 underline hover:text-primary border-none',
+        base: 'inline-block px-0 py-0 rounded-sm text-primary/50 underline hover:text-primary border-none',
         icon: 'h-[1.25cap] mt-[0.25cap]',
       },
       primary: 'bg-primary text-white hover:bg-primary/70',
-      tertiary: 'relative text-white bg-accent hover:bg-accent-dark',
+      tertiary: 'bg-accent text-white hover:bg-accent-dark',
       cancel: 'bg-white/50 hover:bg-white',
       delete:
         'bg-danger/80 hover:bg-danger text-white focus-visible:outline-danger focus-visible:bg-danger',
       icon: {
-        base: 'opacity-80 hover:opacity-100 focus-visible:opacity-100 text-primary',
+        base: 'border-0 opacity-80 hover:opacity-100 focus-visible:opacity-100 text-primary',
         wrapper: 'w-full h-full',
         content: 'w-full h-full',
         extraClickZone: 'w-full h-full',
@@ -171,8 +187,9 @@ export const BUTTON_STYLES = twv.tv({
       ghost:
         'text-primary hover:text-primary/80 hover:bg-white focus-visible:text-primary/80 focus-visible:bg-white',
       submit: 'bg-invite text-white opacity-80 hover:opacity-100 focus-visible:outline-offset-2',
-      outline: 'border-primary/40 text-primary hover:border-primary focus-visible:outline-offset-2',
-      bar: 'rounded-full border-0.5 border-primary/20 px-new-project-button-x transition-colors hover:bg-primary/10',
+      outline:
+        'border-primary/40 text-primary hover:border-primary focus-visible:outline-offset-2 hover:bg-primary/10',
+      bar: 'rounded-full border-0.5 border-primary/20 transition-colors hover:bg-primary/10',
     },
     iconPosition: {
       start: { content: '' },
@@ -191,6 +208,7 @@ export const BUTTON_STYLES = twv.tv({
     icon: 'h-[2cap] flex-none aspect-square',
   },
   defaultVariants: {
+    isActive: 'none',
     loading: false,
     fullWidth: false,
     size: 'xsmall',
@@ -252,11 +270,13 @@ export const Button = React.forwardRef(function Button(
 ) {
   const {
     className,
+    contentClassName,
     children,
     variant,
     icon,
     loading = false,
     isDisabled,
+    isActive,
     showIconOnHover,
     iconPosition,
     size,
@@ -345,6 +365,7 @@ export const Button = React.forwardRef(function Button(
     text: textClasses,
   } = BUTTON_STYLES({
     isDisabled,
+    isActive,
     loading: isLoading,
     fullWidth,
     fullWidthText,
@@ -400,7 +421,7 @@ export const Button = React.forwardRef(function Button(
       )}
     >
       <span className={wrapper()}>
-        <span ref={contentRef} className={content()}>
+        <span ref={contentRef} className={content({ className: contentClassName })}>
           {childrenFactory()}
         </span>
 

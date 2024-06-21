@@ -103,6 +103,7 @@ const contentStyle = computed(() => {
       :style="{
         '--color-visualization-bg': config.background,
         '--node-height': `${config.nodeSize.y}px`,
+        ...(config.isPreview ? { pointerEvents: 'none' } : {}),
       }"
     >
       <div
@@ -115,6 +116,7 @@ const contentStyle = computed(() => {
         <slot></slot>
       </div>
       <ResizeHandles
+        v-if="!config.isPreview"
         v-model="clientBounds"
         left
         right
@@ -128,6 +130,7 @@ const contentStyle = computed(() => {
       />
       <div class="toolbars">
         <div
+          v-if="!config.isPreview"
           :class="{
             toolbar: true,
             invisible: config.isCircularMenuVisible,
@@ -136,7 +139,7 @@ const contentStyle = computed(() => {
         >
           <SvgButton name="eye" alt="Hide visualization" @click.stop="config.hide()" />
         </div>
-        <div class="toolbar">
+        <div v-if="!config.isPreview" class="toolbar">
           <SvgButton
             :name="config.fullscreen ? 'exit_fullscreen' : 'fullscreen'"
             :title="config.fullscreen ? 'Exit Fullscreen' : 'Fullscreen'"
@@ -162,7 +165,7 @@ const contentStyle = computed(() => {
             </Suspense>
           </div>
         </div>
-        <div v-if="$slots.toolbar" class="visualization-defined-toolbars">
+        <div v-if="$slots.toolbar && !config.isPreview" class="visualization-defined-toolbars">
           <div class="toolbar"><slot name="toolbar"></slot></div>
         </div>
         <div

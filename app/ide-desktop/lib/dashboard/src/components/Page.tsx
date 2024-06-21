@@ -42,13 +42,13 @@ export default function Page(props: PageProps) {
     return () => {
       document.removeEventListener('click', onClick)
     }
-  }, [/* should never change */ unsetModal])
+  }, [unsetModal])
 
   return (
     <>
       {children}
       {!hideInfoBar && (
-        <div className="fixed right top z-1 m-top-bar text-xs text-primary transition-all duration-side-panel">
+        <div className="fixed right top z-1 m-2.5 text-primary">
           <InfoBar isHelpChatOpen={isHelpChatOpen} setIsHelpChatOpen={setIsHelpChatOpen} />
         </div>
       )}

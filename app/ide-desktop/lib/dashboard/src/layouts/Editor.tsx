@@ -8,16 +8,12 @@ import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as backendProvider from '#/providers/BackendProvider'
 
-import type * as backendModule from '#/services/Backend'
+import type Backend from '#/services/Backend'
+import * as backendModule from '#/services/Backend'
+
+import * as object from '#/utilities/object'
 
 import type * as types from '../../../types/types'
-
-// =================
-// === Constants ===
-// =================
-
-/** The horizontal offset of the editor's top bar from the left edge of the window. */
-const TOP_BAR_X_OFFSET_PX = 96
 
 // =================
 // === Component ===
@@ -39,6 +35,7 @@ export default function Editor(props: EditorProps) {
   const gtagEventRef = React.useRef(gtagEvent)
   gtagEventRef.current = gtagEvent
   const remoteBackend = backendProvider.useRemoteBackend()
+  const localBackend = backendProvider.useLocalBackend()
 
   const logEvent = React.useCallback(
     (message: string, projectId?: string | null, metadata?: object | null) => {
@@ -47,6 +44,36 @@ export default function Editor(props: EditorProps) {
       }
     },
     [remoteBackend]
+  )
+
+  const renameProject = React.useCallback(
+    (newName: string) => {
+      if (projectStartupInfo != null) {
+        let backend: Backend | null
+        switch (projectStartupInfo.backendType) {
+          case backendModule.BackendType.local:
+            backend = localBackend
+            break
+          case backendModule.BackendType.remote:
+            backend = remoteBackend
+            break
+        }
+        const { id: projectId, parentId, title } = projectStartupInfo.projectAsset
+        backend
+          ?.updateProject(
+            projectId,
+            { projectName: newName, ami: null, ideVersion: null, parentId },
+            title
+          )
+          .then(
+            () => {
+              projectStartupInfo.setProjectAsset?.(object.merger({ title: newName }))
+            },
+            e => toastAndLog('renameProjectError', e)
+          )
+      }
+    },
+    [remoteBackend, localBackend, projectStartupInfo, toastAndLog]
   )
 
   React.useEffect(() => {
@@ -84,16 +111,17 @@ export default function Editor(props: EditorProps) {
             displayedProjectName: project.name,
           },
           window: {
-            topBarOffset: `${TOP_BAR_X_OFFSET_PX}`,
+            topBarOffset: '0',
           },
         },
         projectId,
         hidden,
         ignoreParamsRegex: new RegExp(`^${appUtils.SEARCH_PARAMS_PREFIX}(.+)$`),
         logEvent,
+        renameProject,
       }
     }
-  }, [projectStartupInfo, toastAndLog, hidden, logEvent, ydocUrl])
+  }, [projectStartupInfo, toastAndLog, hidden, logEvent, ydocUrl, renameProject])
 
   if (projectStartupInfo == null || AppRunner == null || appProps == null) {
     return <></>

@@ -1,21 +1,22 @@
 /** @file Switcher to choose the currently visible full-screen page. */
 import * as React from 'react'
 
-import * as tailwindMerge from 'tailwind-merge'
-
 import DriveIcon from 'enso-assets/drive.svg'
-import NetworkIcon from 'enso-assets/network.svg'
+import WorkspaceIcon from 'enso-assets/workspace.svg'
 
 import type * as text from '#/text'
 
 import * as textProvider from '#/providers/TextProvider'
 
-import Button from '#/components/styled/Button'
+import * as aria from '#/components/aria'
+import * as ariaComponents from '#/components/AriaComponents'
 import FocusArea from '#/components/styled/FocusArea'
 
-// ====================
-// === PageSwitcher ===
-// ====================
+import * as tailwindMerge from '#/utilities/tailwindMerge'
+
+// ============
+// === Page ===
+// ============
 
 /** Main content of the screen. Only one should be visible at a time. */
 export enum Page {
@@ -24,28 +25,32 @@ export enum Page {
   settings = 'settings',
 }
 
-/** Error text for each page. */
-const ERRORS = {
-  [Page.drive]: null,
-  [Page.editor]: 'noProjectIsCurrentlyOpen',
-  [Page.settings]: null,
-} as const satisfies Record<Page, text.TextId | null>
+// =================
+// === Constants ===
+// =================
+
+/** The corner radius of the tabs. */
+const TAB_RADIUS_PX = 24
+
+const PAGE_DATA: PageUIData[] = [
+  { page: Page.drive, icon: DriveIcon, nameId: 'drivePageName' },
+  { page: Page.editor, icon: WorkspaceIcon, nameId: 'editorPageName' },
+]
+
+// ==================
+// === PageUIData ===
+// ==================
 
 /** Data describing how to display a button for a page. */
 interface PageUIData {
   readonly page: Page
   readonly icon: string
-  readonly altId: Extract<text.TextId, `${Page}PageAltText`>
+  readonly nameId: Extract<text.TextId, `${Page}PageName`>
 }
 
-const PAGE_DATA: PageUIData[] = [
-  { page: Page.drive, icon: DriveIcon, altId: 'drivePageAltText' },
-  {
-    page: Page.editor,
-    icon: NetworkIcon,
-    altId: 'editorPageAltText',
-  },
-]
+// ====================
+// === PageSwitcher ===
+// ====================
 
 /** Props for a {@link PageSwitcher}. */
 export interface PageSwitcherProps {
@@ -57,51 +62,162 @@ export interface PageSwitcherProps {
 /** Switcher to choose the currently visible full-screen page. */
 export default function PageSwitcher(props: PageSwitcherProps) {
   const { page, setPage, isEditorDisabled } = props
-  const { getText } = textProvider.useText()
-  const selectedChildIndexRef = React.useRef(0)
-  const lastChildIndexRef = React.useRef(0)
-
-  React.useEffect(() => {
-    selectedChildIndexRef.current = PAGE_DATA.findIndex(data => data.page === page)
-  }, [page])
-
-  React.useEffect(() => {
-    if (isEditorDisabled) {
-      lastChildIndexRef.current = PAGE_DATA.length - 2
-    } else {
-      lastChildIndexRef.current = PAGE_DATA.length - 1
+  const visiblePageData = React.useMemo(
+    () => PAGE_DATA.filter(pageData => (pageData.page !== Page.editor ? true : !isEditorDisabled)),
+    [isEditorDisabled]
+  )
+  const cleanupResizeObserverRef = React.useRef(() => {})
+  const backgroundRef = React.useRef<HTMLDivElement | null>(null)
+  const selectedTabRef = React.useRef<HTMLDivElement | null>(null)
+  const [resizeObserver] = React.useState(
+    () =>
+      new ResizeObserver(() => {
+        updateClipPath(selectedTabRef.current)
+      })
+  )
+  const [updateClipPath] = React.useState(() => {
+    return (element: HTMLDivElement | null) => {
+      const backgroundElement = backgroundRef.current
+      if (backgroundElement != null) {
+        selectedTabRef.current = element
+        if (element == null) {
+          backgroundElement.style.clipPath = ''
+        } else {
+          const bounds = element.getBoundingClientRect()
+          const rootBounds = backgroundElement.getBoundingClientRect()
+          const tabLeft = bounds.left - rootBounds.left
+          const tabRight = bounds.right - rootBounds.left
+          const segments = [
+            'M 0 0',
+            `L ${rootBounds.width} 0`,
+            `L ${rootBounds.width} ${rootBounds.height}`,
+            `L ${tabRight + TAB_RADIUS_PX} ${rootBounds.height}`,
+            `A ${TAB_RADIUS_PX} ${TAB_RADIUS_PX} 0 0 1 ${tabRight} ${rootBounds.height - TAB_RADIUS_PX}`,
+            `L ${tabRight} ${TAB_RADIUS_PX}`,
+            `A ${TAB_RADIUS_PX} ${TAB_RADIUS_PX} 0 0 0 ${tabRight - TAB_RADIUS_PX} 0`,
+            `L ${tabLeft + TAB_RADIUS_PX} 0`,
+            `A ${TAB_RADIUS_PX} ${TAB_RADIUS_PX} 0 0 0 ${tabLeft} ${TAB_RADIUS_PX}`,
+            `L ${tabLeft} ${rootBounds.height - TAB_RADIUS_PX}`,
+            `A ${TAB_RADIUS_PX} ${TAB_RADIUS_PX} 0 0 1 ${tabLeft - TAB_RADIUS_PX} ${rootBounds.height}`,
+            `L 0 ${rootBounds.height}`,
+            'Z',
+          ]
+          backgroundElement.style.clipPath = `path("${segments.join(' ')}")`
+        }
+      }
     }
-  }, [isEditorDisabled])
+  })
 
+  const updateResizeObserver = (element: HTMLElement | null) => {
+    cleanupResizeObserverRef.current()
+    if (element == null) {
+      cleanupResizeObserverRef.current = () => {}
+    } else {
+      resizeObserver.observe(element)
+      cleanupResizeObserverRef.current = () => {
+        resizeObserver.unobserve(element)
+      }
+    }
+  }
+
+  React.useEffect(() => {
+    if (visiblePageData.every(pageData => page !== pageData.page)) {
+      updateClipPath(null)
+    }
+  }, [page, updateClipPath, visiblePageData])
+
+  return (
+    <div className="relative flex grow">
+      <div
+        ref={element => {
+          backgroundRef.current = element
+          updateResizeObserver(element)
+        }}
+        className="pointer-events-none absolute inset-0 bg-primary/5"
+      />
+      <Tabs>
+        {visiblePageData.map(pageData => {
+          const isActive = page === pageData.page
+          return (
+            <Tab
+              key={pageData.page}
+              ref={isActive ? updateClipPath : null}
+              isActive={isActive}
+              onPress={() => {
+                setPage(pageData.page)
+              }}
+              {...pageData}
+            />
+          )
+        })}
+      </Tabs>
+    </div>
+  )
+}
+
+// ============
+// === Tabs ===
+// ============
+
+/** Props for a {@link TabsInternal}. */
+export interface InternalTabsProps extends Readonly<React.PropsWithChildren> {}
+
+/** A tab list in a {@link PageSwitcher}. */
+function TabsInternal(props: InternalTabsProps, ref: React.ForwardedRef<HTMLDivElement>) {
+  const { children } = props
   return (
     <FocusArea direction="horizontal">
       {innerProps => (
         <div
-          className={tailwindMerge.twMerge(
-            'pointer-events-auto flex shrink-0 cursor-default items-center gap-pages rounded-full px-page-switcher-x',
-            page === Page.editor && 'bg-frame backdrop-blur-default'
-          )}
-          {...innerProps}
+          className="flex h-12 shrink-0 grow cursor-default items-center rounded-full"
+          {...aria.mergeProps<React.JSX.IntrinsicElements['div']>()(innerProps, { ref })}
         >
-          {PAGE_DATA.map(pageData => {
-            const error = ERRORS[pageData.page]
-            return (
-              <Button
-                key={pageData.page}
-                alt={getText(pageData.altId)}
-                image={pageData.icon}
-                active={page === pageData.page}
-                softDisabled={page === pageData.page}
-                isDisabled={pageData.page === Page.editor && isEditorDisabled}
-                error={error == null ? null : getText(error)}
-                onPress={() => {
-                  setPage(pageData.page)
-                }}
-              />
-            )
-          })}
+          {children}
         </div>
       )}
     </FocusArea>
   )
 }
+
+const Tabs = React.forwardRef(TabsInternal)
+
+// ===========
+// === Tab ===
+// ===========
+
+/** Props for a {@link Tab}. */
+interface InternalTabProps extends PageUIData {
+  readonly isActive: boolean
+  readonly onPress: () => void
+}
+
+/** A tab in a {@link PageSwitcher}. */
+function TabInternal(props: InternalTabProps, ref: React.ForwardedRef<HTMLDivElement>) {
+  const { isActive, page, nameId, icon, onPress } = props
+  const { getText } = textProvider.useText()
+
+  return (
+    <div
+      key={page}
+      ref={ref}
+      className={tailwindMerge.twMerge(
+        'h-full transition-[padding-left]',
+        page !== page && 'hover:enabled:bg-frame'
+      )}
+    >
+      <ariaComponents.Button
+        size="custom"
+        variant="custom"
+        icon={icon}
+        isDisabled={isActive}
+        isActive={isActive}
+        className="flex h-full items-center gap-3 px-4"
+        onPress={onPress}
+      >
+        {getText(nameId)}
+      </ariaComponents.Button>
+    </div>
+  )
+}
+
+const Tab = React.forwardRef(TabInternal)

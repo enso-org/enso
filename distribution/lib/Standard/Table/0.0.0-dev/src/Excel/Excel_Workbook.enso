@@ -72,7 +72,11 @@ type Excel_Workbook
 
     ## PRIVATE
        Creates an Excel_Workbook connection.
-    Value (excel_connection_resource_ref : Ref (Managed_Resource ReadOnlyExcelConnection)) (file:(File|Temporary_File|Nothing)) xls_format:Boolean
+    private Value (excel_connection_resource_ref : Ref (Managed_Resource ReadOnlyExcelConnection)) (file:(File|Temporary_File|Nothing)) internal_xls_format:Boolean
+
+    ## Is the Workbook in the old XLS format?
+    xls_format : Boolean
+    xls_format self = self.internal_xls_format
 
     ## PRIVATE
        ICON metadata

@@ -337,8 +337,13 @@ export class Server {
         } else if (this.devServer) {
             this.devServer.middlewares(request, response)
         } else {
-            const url = requestUrl.split('?')[0]
-            const resource = url === '/' ? '/index.html' : requestUrl
+            const url = requestUrl.split('?')[0] ?? ''
+
+            // if it's a path inside the IDE, we need to serve index.html
+            const hasExtension = path.extname(url) !== ''
+
+            const resource = hasExtension ? requestUrl : '/index.html'
+
             // `preload.cjs` must be specialcased here as it is loaded by electron from the root,
             // in contrast to all assets loaded by the window, which are loaded from `assets/` via
             // this server.

@@ -2,15 +2,14 @@
  * Can be used to display alerts, confirmations, or other content. */
 import * as React from 'react'
 
-import * as twv from 'tailwind-variants'
-
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 import * as errorBoundary from '#/components/ErrorBoundary'
-import * as loader from '#/components/Loader'
 import * as portal from '#/components/Portal'
+import * as suspense from '#/components/Suspense'
 
 import * as mergeRefs from '#/utilities/mergeRefs'
+import * as twv from '#/utilities/tailwindVariants'
 
 import * as dialogProvider from './DialogProvider'
 import * as dialogStackProvider from './DialogStackProvider'
@@ -51,11 +50,11 @@ const DIALOG_STYLES = twv.tv({
     type: {
       modal: {
         base: 'w-full max-w-md min-h-[100px] max-h-[90vh]',
-        header: 'px-3.5 pt-[3px] pb-0.5',
+        header: 'px-3.5 pt-[3px] pb-0.5 min-h-[42px]',
       },
       fullscreen: {
         base: 'w-full h-full max-w-full max-h-full bg-clip-border',
-        header: 'px-4 pt-[5px] pb-1.5',
+        header: 'px-4 pt-[5px] pb-1.5 min-h-12',
       },
     },
     hideCloseButton: { true: { closeButton: 'hidden' } },
@@ -201,13 +200,16 @@ export function Dialog(props: DialogProps) {
                           onPress={opts.close}
                         />
 
-                        <ariaComponents.Text.Heading
-                          slot="title"
-                          level={2}
-                          className={dialogSlots.heading()}
-                        >
-                          {title}
-                        </ariaComponents.Text.Heading>
+                        {title != null && (
+                          <ariaComponents.Text.Heading
+                            slot="title"
+                            level={2}
+                            className={dialogSlots.heading()}
+                            weight="semibold"
+                          >
+                            {title}
+                          </ariaComponents.Text.Heading>
+                        )}
                       </aria.Header>
 
                       <div
@@ -222,9 +224,9 @@ export function Dialog(props: DialogProps) {
                         }}
                       >
                         <errorBoundary.ErrorBoundary>
-                          <React.Suspense fallback={<loader.Loader minHeight="h32" />}>
+                          <suspense.Suspense loaderProps={{ minHeight: 'h32' }}>
                             {typeof children === 'function' ? children(opts) : children}
-                          </React.Suspense>
+                          </suspense.Suspense>
                         </errorBoundary.ErrorBoundary>
                       </div>
                     </dialogProvider.DialogProvider>

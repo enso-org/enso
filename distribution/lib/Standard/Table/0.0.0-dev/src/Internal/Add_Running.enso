@@ -1,6 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Errors.Common.Unsupported_Argument_Types
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+from Standard.Base.Data.Statistics import check_running_support
 
 import project.Column.Column
 import project.Internal.Add_Row_Number

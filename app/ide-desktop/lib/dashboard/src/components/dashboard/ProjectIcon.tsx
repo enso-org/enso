@@ -3,7 +3,6 @@ import * as React from 'react'
 
 import * as reactQuery from '@tanstack/react-query'
 import * as toast from 'react-toastify'
-import * as tailwindMerge from 'tailwind-merge'
 
 import ArrowUpIcon from 'enso-assets/arrow_up.svg'
 import PlayIcon from 'enso-assets/play.svg'
@@ -27,6 +26,7 @@ import * as backendModule from '#/services/Backend'
 import type Backend from '#/services/Backend'
 
 import * as object from '#/utilities/object'
+import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 // =================
 // === Constants ===
@@ -100,7 +100,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
         })
         if (!backendModule.IS_OPENING_OR_OPENED[newState]) {
           newProjectState = object.omit(newProjectState, 'openedBy')
-        } else if (user != null) {
+        } else {
           newProjectState = object.merge(newProjectState, {
             openedBy: user.email,
           })
@@ -108,7 +108,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
         return object.merge(oldItem, { projectState: newProjectState })
       })
     },
-    [/* should never change */ user, /* should never change */ setItem]
+    [user, setItem]
   )
   const [spinnerState, setSpinnerState] = React.useState(spinner.SpinnerState.initial)
   const [shouldOpenWhenReady, setShouldOpenWhenReady] = React.useState(false)
@@ -116,13 +116,15 @@ export default function ProjectIcon(props: ProjectIconProps) {
     item.projectState.executeAsync ?? false
   )
   const [shouldSwitchPage, setShouldSwitchPage] = React.useState(false)
+  const doOpenEditorRef = React.useRef(doOpenEditor)
+  doOpenEditorRef.current = doOpenEditor
   const toastId: toast.Id = React.useId()
   const isOpening =
     backendModule.IS_OPENING[item.projectState.type] &&
     item.projectState.type !== backendModule.ProjectState.placeholder
   const isCloud = backend.type === backendModule.BackendType.remote
   const isOtherUserUsingProject =
-    isCloud && item.projectState.openedBy != null && item.projectState.openedBy !== user?.email
+    isCloud && item.projectState.openedBy != null && item.projectState.openedBy !== user.email
 
   const openProjectMutation = backendHooks.useBackendMutation(backend, 'openProject')
   const closeProjectMutation = backendHooks.useBackendMutation(backend, 'closeProject')
@@ -163,15 +165,16 @@ export default function ProjectIcon(props: ProjectIconProps) {
       item,
       session,
       toastAndLog,
-      /* should never change */ openProjectMutate,
-      /* should never change */ getProjectDetailsMutate,
-      /* should never change */ setState,
-      /* should never change */ setItem,
+      openProjectMutate,
+      getProjectDetailsMutate,
+      setState,
+      setItem,
     ]
   )
 
   const openEditorMutation = reactQuery.useMutation({
     mutationKey: ['openEditor', item.id],
+    networkMode: 'always',
     mutationFn: async (abortController: AbortController) => {
       if (!isRunningInBackground && isCloud) {
         toast.toast.loading(LOADING_MESSAGE, { toastId })
@@ -231,10 +234,16 @@ export default function ProjectIcon(props: ProjectIconProps) {
             }
           }
         } else {
-          setShouldOpenWhenReady(!event.runInBackground)
-          setShouldSwitchPage(event.shouldAutomaticallySwitchPage)
-          setIsRunningInBackground(event.runInBackground)
-          void openProject(event.runInBackground)
+          if (backendModule.IS_OPENING_OR_OPENED[state]) {
+            if (!isRunningInBackground) {
+              doOpenEditor(true)
+            }
+          } else {
+            setShouldOpenWhenReady(!event.runInBackground)
+            setShouldSwitchPage(event.shouldAutomaticallySwitchPage)
+            setIsRunningInBackground(event.runInBackground)
+            void openProject(event.runInBackground)
+          }
         }
         break
       }
@@ -257,12 +266,10 @@ export default function ProjectIcon(props: ProjectIconProps) {
   React.useEffect(() => {
     if (state === backendModule.ProjectState.opened) {
       if (shouldOpenWhenReady) {
-        doOpenEditor(shouldSwitchPage)
+        doOpenEditorRef.current(shouldSwitchPage)
         setShouldOpenWhenReady(false)
       }
     }
-    // `doOpenEditor` is a callback, not a dependency.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shouldOpenWhenReady, shouldSwitchPage, state])
 
   const closeProject = async () => {
@@ -284,11 +291,11 @@ export default function ProjectIcon(props: ProjectIconProps) {
       return (
         <ariaComponents.Button
           size="custom"
-          variant="custom"
+          variant="icon"
           icon={PlayIcon}
           aria-label={getText('openInEditor')}
           tooltipPlacement="left"
-          className="size-project-icon border-0"
+          className="h-6 border-0"
           onPress={() => {
             dispatchAssetEvent({
               type: AssetEventType.openProject,
@@ -304,19 +311,17 @@ export default function ProjectIcon(props: ProjectIconProps) {
     case backendModule.ProjectState.provisioned:
     case backendModule.ProjectState.placeholder:
       return (
-        <div className="relative">
+        <div className="relative flex">
           <ariaComponents.Button
             size="custom"
-            variant="custom"
+            variant="icon"
             isDisabled={isOtherUserUsingProject}
+            isActive={!isOtherUserUsingProject}
             icon={StopIcon}
             aria-label={getText('stopExecution')}
             tooltipPlacement="left"
             {...(isOtherUserUsingProject ? { title: getText('otherUserIsUsingProjectError') } : {})}
-            className={tailwindMerge.twMerge(
-              'size-project-icon border-0 selectable enabled:active',
-              isRunningInBackground && 'text-green'
-            )}
+            className={tailwindMerge.twMerge('h-6 border-0', isRunningInBackground && 'text-green')}
             onPress={closeProject}
           />
           <Spinner
@@ -331,11 +336,12 @@ export default function ProjectIcon(props: ProjectIconProps) {
     case backendModule.ProjectState.opened:
       return (
         <div className="flex flex-row gap-0.5">
-          <div className="relative">
+          <div className="relative flex">
             <ariaComponents.Button
               size="custom"
-              variant="custom"
+              variant="icon"
               isDisabled={isOtherUserUsingProject}
+              isActive={!isOtherUserUsingProject}
               icon={StopIcon}
               aria-label={getText('stopExecution')}
               tooltipPlacement="left"
@@ -343,7 +349,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
                 ? { title: getText('otherUserIsUsingProjectError') }
                 : {})}
               className={tailwindMerge.twMerge(
-                'size-project-icon border-0 selectable enabled:active',
+                'h-6 border-0',
                 isRunningInBackground && 'text-green'
               )}
               onPress={closeProject}
@@ -359,11 +365,11 @@ export default function ProjectIcon(props: ProjectIconProps) {
           {!isOtherUserUsingProject && !isRunningInBackground && (
             <ariaComponents.Button
               size="custom"
-              variant="custom"
-              className="size-project-icon border-0"
+              variant="icon"
               icon={ArrowUpIcon}
               aria-label={getText('openInEditor')}
               tooltipPlacement="right"
+              className="h-6 border-0"
               onPress={() => {
                 doOpenEditor(true)
               }}

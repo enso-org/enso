@@ -1009,105 +1009,13 @@ null;
 - [`ComponentUninstallationError`](#componentuninstallationerror) to signal that
   the component could not have been uninstalled.
 
-## Configuration Management
-
-### `global-config/get`
-
-Gets a value from the global config.
-
-- **Type:** Request
-- **Direction:** Client -> Server
-- **Connection:** Protocol
-- **Visibility:** Public
-
-#### Parameters
-
-```typescript
-interface GlobalConfigGetRequest {
-  key: String;
-}
-```
-
-#### Result
-
-```typescript
-interface GlobalConfigGetResponse {
-  /**
-   * The value set in the config.
-   *
-   * The field may be missing if the requested value is not set in the config.
-   */
-  value?: String;
-}
-```
-
-#### Errors
-
-- [`GlobalConfigurationAccessError`](#globalconfigurationaccesserror) to signal
-  that the configuration file could not be accessed.
-
-### `global-config/set`
-
-Sets a value in the global config.
-
-- **Type:** Request
-- **Direction:** Client -> Server
-- **Connection:** Protocol
-- **Visibility:** Public
-
-#### Parameters
-
-```typescript
-interface GlobalConfigSetRequest {
-  key: String;
-  value: String;
-}
-```
-
-#### Result
-
-```typescript
-null;
-```
-
-#### Errors
-
-- [`GlobalConfigurationAccessError`](#globalconfigurationaccesserror) to signal
-  that the configuration file could not be accessed.
-
-### `global-config/delete`
-
-Deletes a value from the global config, or does nothing if it did not exist.
-
-- **Type:** Request
-- **Direction:** Client -> Server
-- **Connection:** Protocol
-- **Visibility:** Public
-
-#### Parameters
-
-```typescript
-interface GlobalConfigDeleteRequest {
-  key: String;
-}
-```
-
-#### Result
-
-```typescript
-null;
-```
-
-#### Errors
-
-- [`GlobalConfigurationAccessError`](#globalconfigurationaccesserror) to signal
-  that the configuration file could not be accessed.
-
 ## Logging Service
 
 ### `logging-service/get-endpoint`
 
 Requests the endpoint for connecting to the logging service.
+
+---
 
 - **Type:** Request
 - **Direction:** Client -> Server

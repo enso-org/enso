@@ -17,7 +17,6 @@ import ContextMenu from '#/components/ContextMenu'
 import ContextMenus from '#/components/ContextMenus'
 import type * as column from '#/components/dashboard/column'
 import Label from '#/components/dashboard/Label'
-import * as labelUtils from '#/components/dashboard/Label/labelUtils'
 import MenuEntry from '#/components/MenuEntry'
 
 import ManageLabelsModal from '#/modals/ManageLabelsModal'
@@ -48,7 +47,7 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
   }, [labels])
   const plusButtonRef = React.useRef<HTMLButtonElement>(null)
   const self = asset.permissions?.find(
-    backendModule.isUserPermissionAnd(permission => permission.user.userId === user?.userId)
+    backendModule.isUserPermissionAnd(permission => permission.user.userId === user.userId)
   )
   const managesThisAsset =
     category !== Category.trash &&
@@ -63,7 +62,7 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
         })
       )
     },
-    [/* should never change */ setItem]
+    [setItem]
   )
 
   return (
@@ -75,7 +74,7 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
             key={label}
             data-testid="asset-label"
             title={getText('rightClickToRemoveLabel')}
-            color={labelsByName.get(label)?.color ?? labelUtils.DEFAULT_LABEL_COLOR}
+            color={labelsByName.get(label)?.color ?? backendModule.COLORS[0]}
             active={!temporarilyRemovedLabels.has(label)}
             isDisabled={temporarilyRemovedLabels.has(label)}
             negated={temporarilyRemovedLabels.has(label)}
@@ -133,7 +132,7 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
           <Label
             isDisabled
             key={label}
-            color={labelsByName.get(label)?.color ?? labelUtils.DEFAULT_LABEL_COLOR}
+            color={labelsByName.get(label)?.color ?? backendModule.COLORS[0]}
             className="pointer-events-none"
             onPress={() => {}}
           >
@@ -142,10 +141,11 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
         ))}
       {managesThisAsset && (
         <ariaComponents.Button
-          size="custom"
-          variant="custom"
           ref={plusButtonRef}
-          className="shrink-0 rounded-full opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
+          size="icon"
+          variant="ghost"
+          showIconOnHover
+          icon={Plus2Icon}
           onPress={() => {
             setModal(
               <ManageLabelsModal
@@ -157,9 +157,7 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
               />
             )
           }}
-        >
-          <img className="size-plus-icon" src={Plus2Icon} />
-        </ariaComponents.Button>
+        />
       )}
     </div>
   )
