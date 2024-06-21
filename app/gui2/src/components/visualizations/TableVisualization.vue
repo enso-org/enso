@@ -279,12 +279,11 @@ const getTablePattern = (index: number) =>
       ),
       '.',
       Ast.App.positional(
-        Ast.PropertyAccess.new(ast.module, ast, Ast.identifier('get')!),
+        Ast.Ident.new(ast.module, Ast.identifier('get')!),
         Ast.tryNumberToEnso(index, ast.module)!,
       ),
     ),
   )
-
 function createNode(params: any) {
   if (config.nodeType === VECTOR_NODE_TYPE || config.nodeType === COLUMN_NODE_TYPE) {
     config.createNodes({
