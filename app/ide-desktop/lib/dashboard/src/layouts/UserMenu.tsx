@@ -10,8 +10,8 @@ import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
-import type * as pageSwitcher from '#/layouts/PageSwitcher'
 import Settings from '#/layouts/Settings'
+import type * as pageSwitcher from '#/layouts/TabBar'
 
 import * as aria from '#/components/aria'
 import MenuEntry from '#/components/MenuEntry'

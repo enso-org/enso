@@ -2,6 +2,8 @@
  * interactive components. */
 import * as React from 'react'
 
+import DriveIcon from 'enso-assets/drive.svg'
+import WorkspaceIcon from 'enso-assets/workspace.svg'
 import * as detect from 'enso-common/src/detect'
 
 import * as eventHooks from '#/hooks/eventHooks'
@@ -12,6 +14,7 @@ import * as backendProvider from '#/providers/BackendProvider'
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as modalProvider from '#/providers/ModalProvider'
+import * as textProvider from '#/providers/TextProvider'
 
 import type * as assetEvent from '#/events/assetEvent'
 import AssetEventType from '#/events/AssetEventType'
@@ -23,7 +26,8 @@ import Chat from '#/layouts/Chat'
 import ChatPlaceholder from '#/layouts/ChatPlaceholder'
 import Drive from '#/layouts/Drive'
 import Editor from '#/layouts/Editor'
-import PageSwitcher, * as pageSwitcher from '#/layouts/PageSwitcher'
+import * as tabBar from '#/layouts/TabBar'
+import TabBar from '#/layouts/TabBar'
 import UserBar from '#/layouts/UserBar'
 
 import Page from '#/components/Page'
@@ -43,11 +47,17 @@ import type * as types from '../../../../types/types'
 // === Global configuration ===
 // ============================
 
+/** Main content of the screen. Only one should be visible at a time. */
+enum TabType {
+  drive = 'drive',
+  editor = 'editor',
+}
+
 declare module '#/utilities/LocalStorage' {
   /** */
   interface LocalStorageData {
     readonly isAssetPanelVisible: boolean
-    readonly page: pageSwitcher.Page
+    readonly page: TabType
     readonly projectStartupInfo: backendModule.ProjectStartupInfo
   }
 }
@@ -56,7 +66,7 @@ LocalStorage.registerKey('isAssetPanelVisible', {
   tryParse: value => (value === true ? value : null),
 })
 
-const PAGES = Object.values(pageSwitcher.Page)
+const PAGES = Object.values(TabType)
 LocalStorage.registerKey('page', {
   tryParse: value => (array.includes(PAGES, value) ? value : null),
 })
@@ -113,6 +123,7 @@ export default function Dashboard(props: DashboardProps) {
   const session = authProvider.useNonPartialUserSession()
   const remoteBackend = backendProvider.useRemoteBackend()
   const localBackend = backendProvider.useLocalBackend()
+  const { getText } = textProvider.useText()
   const { modalRef } = modalProvider.useModalRef()
   const { updateModal, unsetModal } = modalProvider.useSetModal()
   const { localStorage } = localStorageProvider.useLocalStorage()
@@ -125,9 +136,8 @@ export default function Dashboard(props: DashboardProps) {
   // These pages MUST be ROUTER PAGES.
   const [page, setPage] = searchParamsState.useSearchParamsState(
     'page',
-    () => localStorage.get('page') ?? pageSwitcher.Page.drive,
-    (value: unknown): value is pageSwitcher.Page =>
-      array.includes(Object.values(pageSwitcher.Page), value)
+    () => localStorage.get('page') ?? TabType.drive,
+    (value: unknown): value is TabType => array.includes(Object.values(TabType), value)
   )
   const [projectStartupInfo, setProjectStartupInfo] =
     React.useState<backendModule.ProjectStartupInfo | null>(null)
@@ -166,13 +176,13 @@ export default function Dashboard(props: DashboardProps) {
   React.useEffect(() => {
     const savedProjectStartupInfo = localStorage.get('projectStartupInfo')
     if (initialProjectName != null) {
-      if (page === pageSwitcher.Page.editor) {
-        setPage(pageSwitcher.Page.drive)
+      if (page === TabType.editor) {
+        setPage(TabType.drive)
       }
     } else if (savedProjectStartupInfo != null) {
       if (savedProjectStartupInfo.backendType === backendModule.BackendType.remote) {
         if (remoteBackend != null) {
-          setPage(pageSwitcher.Page.drive)
+          setPage(TabType.drive)
           void (async () => {
             const abortController = new AbortController()
             setOpenProjectAbortController(abortController)
@@ -191,7 +201,7 @@ export default function Dashboard(props: DashboardProps) {
                 )
                 if (!abortController.signal.aborted) {
                   setProjectStartupInfo(object.merge(savedProjectStartupInfo, { project }))
-                  if (page === pageSwitcher.Page.editor) {
+                  if (page === TabType.editor) {
                     setPage(page)
                   }
                 }
@@ -219,7 +229,7 @@ export default function Dashboard(props: DashboardProps) {
               savedProjectStartupInfo.projectAsset.title
             )
             setProjectStartupInfo(object.merge(savedProjectStartupInfo, { project }))
-            if (page === pageSwitcher.Page.editor) {
+            if (page === TabType.editor) {
               setPage(page)
             }
           })()
@@ -265,7 +275,7 @@ export default function Dashboard(props: DashboardProps) {
           updateModal(oldModal => {
             if (oldModal == null) {
               queueMicrotask(() => {
-                setPage(localStorage.get('page') ?? pageSwitcher.Page.drive)
+                setPage(localStorage.get('page') ?? TabType.drive)
               })
               return oldModal
             } else {
@@ -304,7 +314,7 @@ export default function Dashboard(props: DashboardProps) {
       switchPage: boolean
     ) => {
       if (switchPage) {
-        setPage(pageSwitcher.Page.editor)
+        setPage(TabType.editor)
       }
       if (projectStartupInfo?.project.projectId !== newProject.id) {
         setProjectStartupInfo({
@@ -338,8 +348,8 @@ export default function Dashboard(props: DashboardProps) {
   }, [projectStartupInfo?.projectAsset, dispatchAssetListEvent])
 
   const onSignOut = React.useCallback(() => {
-    if (page === pageSwitcher.Page.editor) {
-      setPage(pageSwitcher.Page.drive)
+    if (page === TabType.editor) {
+      setPage(TabType.drive)
     }
     setProjectStartupInfo(null)
   }, [page, setPage])
@@ -355,14 +365,34 @@ export default function Dashboard(props: DashboardProps) {
           }}
         >
           <div className="flex">
-            <PageSwitcher
-              page={page}
-              setPage={setPage}
-              isEditorDisabled={projectStartupInfo == null}
-            />
+            <TabBar>
+              <tabBar.Tab
+                isActive={page === TabType.drive}
+                icon={DriveIcon}
+                onPress={() => {
+                  setPage(TabType.editor)
+                }}
+              >
+                {getText('drivePageName')}
+              </tabBar.Tab>
+              {projectStartupInfo != null && (
+                <tabBar.Tab
+                  isActive={page === TabType.editor}
+                  icon={WorkspaceIcon}
+                  onPress={() => {
+                    setPage(TabType.editor)
+                  }}
+                  onClose={() => {
+                    setProjectStartupInfo(null)
+                  }}
+                >
+                  {projectStartupInfo.projectAsset.title}
+                </tabBar.Tab>
+              )}
+            </TabBar>
             <UserBar
               backend={remoteBackend}
-              page={page}
+              isOnEditorPage={page === TabType.editor}
               setIsHelpChatOpen={setIsHelpChatOpen}
               projectAsset={projectStartupInfo?.projectAsset ?? null}
               setProjectAsset={projectStartupInfo?.setProjectAsset ?? null}
@@ -373,7 +403,7 @@ export default function Dashboard(props: DashboardProps) {
           <Drive
             category={category}
             setCategory={setCategory}
-            hidden={page !== pageSwitcher.Page.drive}
+            hidden={page !== TabType.drive}
             initialProjectName={initialProjectName}
             projectStartupInfo={projectStartupInfo}
             setProjectStartupInfo={setProjectStartupInfo}
@@ -385,7 +415,7 @@ export default function Dashboard(props: DashboardProps) {
             doCloseEditor={doCloseEditor}
           />
           <Editor
-            hidden={page !== pageSwitcher.Page.editor}
+            hidden={page !== TabType.editor}
             ydocUrl={ydocUrl}
             projectStartupInfo={projectStartupInfo}
             appRunner={appRunner}

@@ -12,7 +12,6 @@ import * as authProvider from '#/providers/AuthProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
-import * as pageSwitcher from '#/layouts/PageSwitcher'
 import UserMenu from '#/layouts/UserMenu'
 
 import * as aria from '#/components/aria'
@@ -37,7 +36,7 @@ export interface UserBarProps {
   /** When `true`, the element occupies space in the layout but is not visible.
    * Defaults to `false`. */
   readonly invisible?: boolean
-  readonly page: pageSwitcher.Page
+  readonly isOnEditorPage: boolean
   readonly setIsHelpChatOpen: (isHelpChatOpen: boolean) => void
   readonly projectAsset: backendModule.ProjectAsset | null
   readonly setProjectAsset: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>> | null
@@ -47,28 +46,23 @@ export interface UserBarProps {
 
 /** A toolbar containing chat and the user menu. */
 export default function UserBar(props: UserBarProps) {
-  const { backend, invisible = false, page, setIsHelpChatOpen } = props
+  const { backend, invisible = false, isOnEditorPage, setIsHelpChatOpen } = props
   const { projectAsset, setProjectAsset, doRemoveSelf, onSignOut } = props
   const { user } = authProvider.useNonPartialUserSession()
   const { setModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
-
   const { isFeatureUnderPaywall } = billing.usePaywall({ plan: user.plan })
-
   const self =
     projectAsset?.permissions?.find(
       backendModule.isUserPermissionAnd(permissions => permissions.user.userId === user.userId)
     ) ?? null
-
   const shouldShowShareButton =
-    backend != null &&
-    page === pageSwitcher.Page.editor &&
+    backend?.type === backendModule.BackendType.remote &&
+    isOnEditorPage &&
     projectAsset != null &&
     setProjectAsset != null &&
     self != null
-
   const shouldShowUpgradeButton = isFeatureUnderPaywall('inviteUser')
-
   const shouldShowInviteButton =
     backend != null && !shouldShowShareButton && !shouldShowUpgradeButton
 

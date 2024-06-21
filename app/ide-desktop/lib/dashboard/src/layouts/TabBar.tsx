@@ -1,28 +1,11 @@
 /** @file Switcher to choose the currently visible full-screen page. */
 import * as React from 'react'
 
-import DriveIcon from 'enso-assets/drive.svg'
-import WorkspaceIcon from 'enso-assets/workspace.svg'
-
-import type * as text from '#/text'
-
-import * as textProvider from '#/providers/TextProvider'
-
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 import FocusArea from '#/components/styled/FocusArea'
 
 import * as tailwindMerge from '#/utilities/tailwindMerge'
-
-// ============
-// === Page ===
-// ============
-
-/** Main content of the screen. Only one should be visible at a time. */
-export enum Page {
-  drive = 'drive',
-  editor = 'editor',
-}
 
 // =================
 // === Constants ===
@@ -31,41 +14,16 @@ export enum Page {
 /** The corner radius of the tabs. */
 const TAB_RADIUS_PX = 24
 
-const PAGE_DATA: PageUIData[] = [
-  { page: Page.drive, icon: DriveIcon, nameId: 'drivePageName', canClose: false },
-  { page: Page.editor, icon: WorkspaceIcon, nameId: 'editorPageName', canClose: true },
-]
+// ==============
+// === TabBar ===
+// ==============
 
-// ==================
-// === PageUIData ===
-// ==================
-
-/** Data describing how to display a button for a page. */
-interface PageUIData {
-  readonly page: Page
-  readonly icon: string
-  readonly nameId: Extract<text.TextId, `${Page}PageName`>
-  readonly canClose: boolean
-}
-
-// ====================
-// === PageSwitcher ===
-// ====================
-
-/** Props for a {@link PageSwitcher}. */
-export interface PageSwitcherProps {
-  readonly page: Page
-  readonly setPage: (page: Page) => void
-  readonly isEditorDisabled: boolean
-}
+/** Props for a {@link TabBar}. */
+export interface TabBarProps extends Readonly<React.PropsWithChildren> {}
 
 /** Switcher to choose the currently visible full-screen page. */
-export default function PageSwitcher(props: PageSwitcherProps) {
-  const { page, setPage, isEditorDisabled } = props
-  const visiblePageData = React.useMemo(
-    () => PAGE_DATA.filter(pageData => (pageData.page !== Page.editor ? true : !isEditorDisabled)),
-    [isEditorDisabled]
-  )
+export default function TabBar(props: TabBarProps) {
+  const { children } = props
   const cleanupResizeObserverRef = React.useRef(() => {})
   const backgroundRef = React.useRef<HTMLDivElement | null>(null)
   const selectedTabRef = React.useRef<HTMLDivElement | null>(null)
@@ -120,12 +78,6 @@ export default function PageSwitcher(props: PageSwitcherProps) {
     }
   }
 
-  React.useEffect(() => {
-    if (visiblePageData.every(pageData => page !== pageData.page)) {
-      updateClipPath(null)
-    }
-  }, [page, updateClipPath, visiblePageData])
-
   return (
     <div className="relative flex grow">
       <div
@@ -135,22 +87,7 @@ export default function PageSwitcher(props: PageSwitcherProps) {
         }}
         className="pointer-events-none absolute inset-0 bg-primary/5"
       />
-      <Tabs>
-        {visiblePageData.map(pageData => {
-          const isActive = page === pageData.page
-          return (
-            <Tab
-              key={pageData.page}
-              ref={isActive ? updateClipPath : null}
-              isActive={isActive}
-              onPress={() => {
-                setPage(pageData.page)
-              }}
-              {...pageData}
-            />
-          )
-        })}
-      </Tabs>
+      <Tabs>{children}</Tabs>
     </div>
   )
 }
@@ -162,7 +99,7 @@ export default function PageSwitcher(props: PageSwitcherProps) {
 /** Props for a {@link TabsInternal}. */
 export interface InternalTabsProps extends Readonly<React.PropsWithChildren> {}
 
-/** A tab list in a {@link PageSwitcher}. */
+/** A tab list in a {@link TabBar}. */
 function TabsInternal(props: InternalTabsProps, ref: React.ForwardedRef<HTMLDivElement>) {
   const { children } = props
   return (
@@ -186,24 +123,21 @@ const Tabs = React.forwardRef(TabsInternal)
 // ===========
 
 /** Props for a {@link Tab}. */
-interface InternalTabProps extends PageUIData {
+interface InternalTabProps extends Readonly<React.PropsWithChildren> {
   readonly isActive: boolean
+  readonly icon: string
   readonly onPress: () => void
+  readonly onClose?: () => void
 }
 
-/** A tab in a {@link PageSwitcher}. */
+/** A tab in a {@link TabBar}. */
 function TabInternal(props: InternalTabProps, ref: React.ForwardedRef<HTMLDivElement>) {
-  const { isActive, page, nameId, icon, canClose, onPress } = props
-  const { getText } = textProvider.useText()
+  const { isActive, icon, children, onPress, onClose } = props
 
   return (
     <div
-      key={page}
       ref={ref}
-      className={tailwindMerge.twMerge(
-        'relative h-full',
-        page !== page && 'hover:enabled:bg-frame'
-      )}
+      className={tailwindMerge.twMerge('relative h-full', !isActive && 'hover:enabled:bg-frame')}
     >
       <ariaComponents.Button
         size="custom"
@@ -214,16 +148,16 @@ function TabInternal(props: InternalTabProps, ref: React.ForwardedRef<HTMLDivEle
         className="relative flex h-full items-center gap-3 pl-4 pr-8"
         onPress={onPress}
       >
-        {getText(nameId)}
+        {children}
       </ariaComponents.Button>
-      {canClose && (
+      {onClose && (
         <ariaComponents.CloseButton
           className="absolute right-4 h-1/2 -translate-y-1/2"
-          onPress={() => {}}
+          onPress={onClose}
         />
       )}
     </div>
   )
 }
 
-const Tab = React.forwardRef(TabInternal)
+export const Tab = React.forwardRef(TabInternal)
