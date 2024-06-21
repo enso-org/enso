@@ -1,13 +1,8 @@
 /** @file The UserMenu component provides a dropdown menu of user actions and settings. */
 import * as React from 'react'
 
-import * as tailwindMerge from 'tailwind-merge'
-
 import DefaultUserIcon from 'enso-assets/default_user.svg'
 
-import * as appUtils from '#/appUtils'
-
-import * as navigateHooks from '#/hooks/navigateHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
@@ -26,6 +21,7 @@ import AboutModal from '#/modals/AboutModal'
 
 import * as download from '#/utilities/download'
 import * as github from '#/utilities/github'
+import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 // ================
 // === UserMenu ===
@@ -43,7 +39,6 @@ export interface UserMenuProps {
 export default function UserMenu(props: UserMenuProps) {
   const { hidden = false, setPage, onSignOut } = props
   const [initialized, setInitialized] = React.useState(false)
-  const navigate = navigateHooks.useNavigate()
   const localBackend = backendProvider.useLocalBackend()
   const { signOut } = authProvider.useAuth()
   const { user } = authProvider.useNonPartialUserSession()
@@ -69,102 +64,76 @@ export default function UserMenu(props: UserMenuProps) {
       <div
         {...(!hidden ? { 'data-testid': 'user-menu' } : {})}
         className={tailwindMerge.twMerge(
-          'absolute right-top-bar-margin top-top-bar-margin flex flex-col gap-user-menu rounded-default bg-selected-frame backdrop-blur-default transition-all duration-user-menu',
-          initialized ? 'w-user-menu p-user-menu' : 'size-row-h p-profile-picture'
+          'absolute right-2 top-2 flex flex-col gap-user-menu rounded-default bg-selected-frame backdrop-blur-default transition-all duration-user-menu',
+          initialized ? 'w-user-menu p-user-menu' : 'size-row-h'
         )}
         onClick={event => {
           event.stopPropagation()
         }}
       >
-        {user != null ? (
-          <>
-            <div
-              className={tailwindMerge.twMerge(
-                'flex items-center gap-icons overflow-hidden transition-all duration-user-menu',
-                initialized && 'px-menu-entry'
-              )}
-            >
-              <div className="flex size-profile-picture shrink-0 items-center overflow-clip rounded-full">
-                <img
-                  src={user.profilePicture ?? DefaultUserIcon}
-                  className="pointer-events-none size-profile-picture"
+        <div
+          className={tailwindMerge.twMerge(
+            'flex items-center gap-icons overflow-hidden transition-all duration-user-menu',
+            initialized && 'px-menu-entry'
+          )}
+        >
+          <div className="flex size-row-h shrink-0 items-center overflow-clip rounded-full">
+            <img
+              src={user.profilePicture ?? DefaultUserIcon}
+              className="pointer-events-none size-row-h"
+            />
+          </div>
+          <aria.Text className="text">{user.name}</aria.Text>
+        </div>
+        <div
+          className={tailwindMerge.twMerge(
+            'grid transition-all duration-user-menu',
+            initialized ? 'grid-rows-1fr' : 'grid-rows-0fr'
+          )}
+        >
+          <FocusArea direction="vertical">
+            {innerProps => (
+              <div
+                aria-label={getText('userMenuLabel')}
+                className="flex flex-col overflow-hidden"
+                {...innerProps}
+              >
+                {localBackend == null && (
+                  <MenuEntry
+                    action="downloadApp"
+                    doAction={async () => {
+                      unsetModal()
+                      const downloadUrl = await github.getDownloadUrl()
+                      if (downloadUrl == null) {
+                        toastAndLog('noAppDownloadError')
+                      } else {
+                        download.download(downloadUrl)
+                      }
+                    }}
+                  />
+                )}
+                <MenuEntry
+                  action="settings"
+                  doAction={() => {
+                    unsetModal()
+                    setPage(pageSwitcher.Page.settings)
+                  }}
+                />
+                {aboutThisAppMenuEntry}
+                <MenuEntry
+                  action="signOut"
+                  doAction={() => {
+                    onSignOut()
+                    // Wait until React has switched back to drive view, before signing out.
+                    window.setTimeout(() => {
+                      void signOut()
+                    }, 0)
+                  }}
                 />
               </div>
-              <aria.Text className="text">{user.name}</aria.Text>
-            </div>
-            <div
-              className={tailwindMerge.twMerge(
-                'grid transition-all duration-user-menu',
-                initialized ? 'grid-rows-1fr' : 'grid-rows-0fr'
-              )}
-            >
-              <FocusArea direction="vertical">
-                {innerProps => (
-                  <div
-                    aria-label={getText('userMenuLabel')}
-                    className="flex flex-col overflow-hidden"
-                    {...innerProps}
-                  >
-                    {localBackend == null && (
-                      <MenuEntry
-                        action="downloadApp"
-                        doAction={async () => {
-                          unsetModal()
-                          const downloadUrl = await github.getDownloadUrl()
-                          if (downloadUrl == null) {
-                            toastAndLog('noAppDownloadError')
-                          } else {
-                            download.download(downloadUrl)
-                          }
-                        }}
-                      />
-                    )}
-                    <MenuEntry
-                      action="settings"
-                      doAction={() => {
-                        unsetModal()
-                        setPage(pageSwitcher.Page.settings)
-                      }}
-                    />
-                    {aboutThisAppMenuEntry}
-                    <MenuEntry
-                      action="signOut"
-                      doAction={() => {
-                        onSignOut()
-                        // Wait until React has switched back to drive view, before signing out.
-                        window.setTimeout(() => {
-                          void signOut()
-                        }, 0)
-                      }}
-                    />
-                  </div>
-                )}
-              </FocusArea>
-            </div>
-          </>
-        ) : (
-          <>
-            <div className="flex h-profile-picture items-center">
-              <aria.Text className="text">{getText('youAreNotLoggedIn')}</aria.Text>
-            </div>
-            <div className="flex flex-col">
-              {aboutThisAppMenuEntry}
-              <MenuEntry
-                action="settings"
-                doAction={() => {
-                  unsetModal()
-                  setPage(pageSwitcher.Page.settings)
-                }}
-              />
-              <MenuEntry
-                action="signIn"
-                doAction={() => {
-                  navigate(appUtils.LOGIN_PATH)
-                }}
-              />
-            </div>
-          </>
-        )}
+            )}
+          </FocusArea>
+        </div>
       </div>
     </Modal>
   )

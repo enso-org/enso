@@ -1,8 +1,6 @@
 /** @file A panel containing the description and settings for an asset. */
 import * as React from 'react'
 
-import * as tailwindMerge from 'tailwind-merge'
-
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as textProvider from '#/providers/TextProvider'
 
@@ -14,14 +12,15 @@ import AssetVersions from '#/layouts/AssetVersions/AssetVersions'
 import type Category from '#/layouts/CategorySwitcher/Category'
 
 import * as ariaComponents from '#/components/AriaComponents'
+import HorizontalMenuBar from '#/components/styled/HorizontalMenuBar'
 
 import * as backendModule from '#/services/Backend'
 import type Backend from '#/services/Backend'
 
 import * as array from '#/utilities/array'
-import type AssetQuery from '#/utilities/AssetQuery'
 import type * as assetTreeNode from '#/utilities/AssetTreeNode'
 import LocalStorage from '#/utilities/LocalStorage'
+import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 // =====================
 // === AssetPanelTab ===
@@ -63,7 +62,6 @@ export interface AssetPanelRequiredProps {
 /** Props for an {@link AssetPanel}. */
 export interface AssetPanelProps extends AssetPanelRequiredProps {
   readonly isReadonly?: boolean
-  readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
   readonly category: Category
   readonly dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
   readonly dispatchAssetListEvent: (event: assetListEvent.AssetListEvent) => void
@@ -71,12 +69,14 @@ export interface AssetPanelProps extends AssetPanelRequiredProps {
 
 /** A panel containing the description and settings for an asset. */
 export default function AssetPanel(props: AssetPanelProps) {
-  const { backend, item, isReadonly = false, setItem, setQuery, category } = props
+  const { backend, item, isReadonly = false, setItem, category } = props
   const { dispatchAssetEvent, dispatchAssetListEvent } = props
 
   const { getText } = textProvider.useText()
   const { localStorage } = localStorageProvider.useLocalStorage()
   const [initialized, setInitialized] = React.useState(false)
+  const initializedRef = React.useRef(initialized)
+  initializedRef.current = initialized
   const [tab, setTab] = React.useState(() => {
     const savedTab = localStorage.get('assetPanelTab') ?? AssetPanelTab.properties
     if (
@@ -93,12 +93,10 @@ export default function AssetPanel(props: AssetPanelProps) {
   React.useEffect(() => {
     // This prevents secrets and directories always setting the tab to `properties`
     // (because they do not support the `versions` tab).
-    if (initialized) {
+    if (initializedRef.current) {
       localStorage.set('assetPanelTab', tab)
     }
-    // `initialized` is NOT a dependency.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tab, /* should never change */ localStorage])
+  }, [tab, localStorage])
 
   React.useEffect(() => {
     setInitialized(true)
@@ -107,12 +105,12 @@ export default function AssetPanel(props: AssetPanelProps) {
   return (
     <div
       data-testid="asset-panel"
-      className="pointer-events-none absolute flex h-full w-asset-panel flex-col gap-asset-panel border-l-2 border-black/[0.12] p-top-bar-margin pl-asset-panel-l"
+      className="p-top-bar-margin pointer-events-none absolute flex h-full w-asset-panel flex-col gap-asset-panel bg-frame pl-asset-panel-l"
       onClick={event => {
         event.stopPropagation()
       }}
     >
-      <div className="flex">
+      <HorizontalMenuBar className="mt-4">
         {item != null &&
           item.item.type !== backendModule.AssetType.secret &&
           item.item.type !== backendModule.AssetType.directory && (
@@ -120,8 +118,8 @@ export default function AssetPanel(props: AssetPanelProps) {
               size="custom"
               variant="custom"
               className={tailwindMerge.twMerge(
-                'button pointer-events-auto select-none bg-frame px-button-x leading-cozy transition-colors hover:bg-selected-frame',
-                tab === AssetPanelTab.versions && 'bg-selected-frame active'
+                'button pointer-events-auto h-8 select-none bg-frame px-button-x leading-cozy transition-colors hover:bg-primary/[8%]',
+                tab === AssetPanelTab.versions && 'bg-primary/[8%] active'
               )}
               onPress={() => {
                 setTab(oldTab =>
@@ -134,9 +132,7 @@ export default function AssetPanel(props: AssetPanelProps) {
               {getText('versions')}
             </ariaComponents.Button>
           )}
-        {/* Spacing. The top right asset and user bars overlap this area. */}
-        <div className="grow" />
-      </div>
+      </HorizontalMenuBar>
       {item == null || setItem == null || backend == null ? (
         <div className="grid grow place-items-center text-lg">
           {getText('selectExactlyOneAssetToViewItsDetails')}
@@ -150,7 +146,6 @@ export default function AssetPanel(props: AssetPanelProps) {
               item={item}
               setItem={setItem}
               category={category}
-              setQuery={setQuery}
               dispatchAssetEvent={dispatchAssetEvent}
             />
           )}

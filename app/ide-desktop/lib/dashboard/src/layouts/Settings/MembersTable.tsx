@@ -1,8 +1,6 @@
 /** @file A list of members in the organization. */
 import * as React from 'react'
 
-import * as tailwindMerge from 'tailwind-merge'
-
 import * as mimeTypes from '#/data/mimeTypes'
 
 import * as backendHooks from '#/hooks/backendHooks'
@@ -18,6 +16,8 @@ import * as aria from '#/components/aria'
 
 import * as backendModule from '#/services/Backend'
 import type Backend from '#/services/Backend'
+
+import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 // ====================
 // === MembersTable ===
@@ -42,15 +42,13 @@ export default function MembersTable(props: MembersTableProps) {
   const rootRef = React.useRef<HTMLTableElement>(null)
   const scrollContainerRef = React.useRef<HTMLDivElement>(null)
   const bodyRef = React.useRef<HTMLTableSectionElement>(null)
-  const userWithPlaceholder = React.useMemo(
-    () => (user == null ? null : { isPlaceholder: false, ...user }),
-    [user]
-  )
+  const userWithPlaceholder = React.useMemo(() => ({ isPlaceholder: false, ...user }), [user])
+
+  const backendListUsers = backendHooks.useBackendListUsers(backend)
+
   const users = React.useMemo(
-    () =>
-      backendHooks.useBackendListUsers(backend) ??
-      (populateWithSelf && userWithPlaceholder != null ? [userWithPlaceholder] : null),
-    [backend, populateWithSelf, userWithPlaceholder]
+    () => backendListUsers ?? (populateWithSelf ? [userWithPlaceholder] : null),
+    [backendListUsers, populateWithSelf, userWithPlaceholder]
   )
   const usersMap = React.useMemo(
     () => new Map((users ?? []).map(member => [member.userId, member])),
@@ -60,7 +58,7 @@ export default function MembersTable(props: MembersTableProps) {
   const { onScroll, shadowClassName } = scrollHooks.useStickyTableHeaderOnScroll(
     scrollContainerRef,
     bodyRef,
-    true
+    { trackShadowClass: true }
   )
 
   const { dragAndDropHooks } = aria.useDragAndDrop({

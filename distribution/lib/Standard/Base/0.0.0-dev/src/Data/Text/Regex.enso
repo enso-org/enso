@@ -247,7 +247,7 @@ type Regex
            $0: the entire match string
            $&: the entire match string
            $n: the nth group
-           $<foo>: Named group `foo`
+           $&lt;foo&gt;: Named group `foo`
 
        > Example
          Replace letters in the text "aa".

@@ -13,8 +13,8 @@ import project.Join_Kind.Join_Kind
 import project.Sort_Column.Sort_Column
 import project.Table.Table
 import project.Value_Type.Auto
-import project.Value_Type.Value_Type
 import project.Value_Type.By_Type
+import project.Value_Type.Value_Type
 from project.Extensions.Table_Conversions import all
 
 ## PRIVATE
@@ -94,7 +94,7 @@ make_column_name_multi_selector table display:Display=Display.Always add_regex:B
 
 ## PRIVATE
    Make a column reference by name selector.
-make_column_ref_by_name_selector : Table -> Display -> Boolean -> Boolean -> Boolean -> Boolean -> Boolean -> Boolean -> Widget
+make_column_ref_by_name_selector : Table -> Display -> Boolean -> Boolean -> Boolean -> Boolean -> Boolean -> Widget
 make_column_ref_by_name_selector table display:Display=..Always add_text:Boolean=False add_regex:Boolean=False add_number:Boolean=False add_boolean:Boolean=False add_named_pattern:Boolean=False =
     text = if add_text then [Option "<Text Value>" "''"] else []
     regex = if add_regex then [Option "<Regular Expression>" "(regex '')"] else []

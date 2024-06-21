@@ -17,6 +17,10 @@ const config = useVisualizationConfig()
 
 type ConstructivePattern = (placeholder: Ast.Owned) => Ast.Owned
 
+const JSON_OBJECT_TYPE = 'Standard.Base.Data.Json.JS_Object'
+
+const isClickThroughEnabled = config.nodeType === JSON_OBJECT_TYPE
+
 function projector(parentPattern: ConstructivePattern | undefined) {
   const style = {
     spaced: parentPattern !== undefined,
@@ -53,7 +57,11 @@ function createProjection(path: (string | number)[][]) {
 <template>
   <VisualizationContainer :belowToolbar="true">
     <div class="JSONVisualization">
-      <JsonValueWidget :data="props.data" @createProjection="createProjection" />
+      <JsonValueWidget
+        :data="props.data"
+        :class="{ viewonly: !isClickThroughEnabled }"
+        @createProjection="createProjection"
+      />
     </div>
   </VisualizationContainer>
 </template>
@@ -62,5 +70,8 @@ function createProjection(path: (string | number)[][]) {
 .JSONVisualization {
   font-family: var(--font-mono);
   padding: 8px;
+}
+.viewonly {
+  pointer-events: none;
 }
 </style>

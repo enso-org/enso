@@ -3,6 +3,7 @@ package org.enso.editions
 import cats.Show
 import io.circe._
 import io.circe.syntax.EncoderOps
+import io.circe.yaml.Parser
 import org.enso.editions.Editions.{Raw, Repository}
 import org.enso.semver.SemVerJson._
 import org.enso.yaml.YamlHelper
@@ -10,7 +11,6 @@ import org.enso.yaml.YamlHelper
 import java.io.FileReader
 import java.nio.file.Path
 import scala.util.{Failure, Try, Using}
-
 import org.enso.semver.SemVer
 
 /** Gathers methods for decoding and encoding of Raw editions. */
@@ -27,7 +27,7 @@ object EditionSerialization {
   /** Tries to load an edition definition from a YAML file. */
   def loadEdition(path: Path): Try[Raw.Edition] =
     Using(new FileReader(path.toFile)) { reader =>
-      yaml.parser
+      Parser.default
         .parse(reader)
         .flatMap(_.as[Raw.Edition])
         .toTry

@@ -5,12 +5,12 @@
  */
 import * as React from 'react'
 
-import * as twv from 'tailwind-variants'
-
 import * as aria from '#/components/aria'
 import * as errorBoundary from '#/components/ErrorBoundary'
-import * as loader from '#/components/Loader'
 import * as portal from '#/components/Portal'
+import * as suspense from '#/components/Suspense'
+
+import * as twv from '#/utilities/tailwindVariants'
 
 import * as dialogProvider from './DialogProvider'
 import * as dialogStackProvider from './DialogStackProvider'
@@ -117,9 +117,9 @@ export function Popover(props: PopoverProps) {
               return (
                 <dialogProvider.DialogProvider value={{ close, dialogId }}>
                   <errorBoundary.ErrorBoundary>
-                    <React.Suspense fallback={<loader.Loader minHeight="h16" />}>
+                    <suspense.Suspense loaderProps={{ minHeight: 'h32' }}>
                       {typeof children === 'function' ? children({ ...opts, close }) : children}
-                    </React.Suspense>
+                    </suspense.Suspense>
                   </errorBoundary.ErrorBoundary>
                 </dialogProvider.DialogProvider>
               )

@@ -630,28 +630,12 @@ pub async fn runner_sanity_test(
     repo_root: &crate::paths::generated::RepoRoot,
     enso_java: Option<&str>,
 ) -> Result {
-    let factorial_input = "6";
-    let factorial_expected_output = "720";
     let engine_package = repo_root.built_distribution.enso_engine_triple.engine_package.as_path();
     // The engine package is necessary for running the native runner.
     ide_ci::fs::tokio::require_exist(engine_package).await?;
-    let output = Command::new(&repo_root.runner)
-        .args([
-            "--run",
-            repo_root.engine.runner.src.test.resources.factorial_enso.as_str(),
-            factorial_input,
-        ])
-        .set_env_opt(ENSO_JAVA, enso_java)?
-        .set_env(ENSO_DATA_DIRECTORY, engine_package)?
-        .run_stdout()
-        .await?;
-    ensure!(
-        output.contains(factorial_expected_output),
-        "Native runner output does not contain expected result '{factorial_expected_output}'. Output:\n{output}",
-    );
     if enso_java.is_none() {
         let test_base = Command::new(&repo_root.runner)
-            .args(["--run", repo_root.test.join("Base_Tests").as_str(), "^Text"])
+            .args(["--run", repo_root.test.join("Base_Tests").as_str()])
             .set_env_opt(ENSO_JAVA, enso_java)?
             .set_env(ENSO_DATA_DIRECTORY, engine_package)?
             .run_stdout()

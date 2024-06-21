@@ -38,6 +38,7 @@ import { provideInteractionHandler } from '@/providers/interactionHandler'
 import { provideKeyboard } from '@/providers/keyboard'
 import { provideWidgetRegistry } from '@/providers/widgetRegistry'
 import { provideGraphStore, type NodeId } from '@/stores/graph'
+import { asNodeId } from '@/stores/graph/graphDatabase'
 import type { RequiredImport } from '@/stores/graph/imports'
 import { useProjectStore } from '@/stores/project'
 import { provideSuggestionDbStore } from '@/stores/suggestionDatabase'
@@ -206,11 +207,11 @@ const nodeSelection = provideGraphSelection(
   graphNavigator,
   graphStore.nodeRects,
   graphStore.isPortEnabled,
-  (id) => graphStore.db.nodeIdToNode.has(id),
   {
-    onSelected(id) {
-      graphStore.db.moveNodeToTop(id)
-    },
+    isValid: (id) => graphStore.db.nodeIdToNode.has(id),
+    pack: (id) => graphStore.db.nodeIdToNode.get(id)?.rootExpr.externalId,
+    unpack: (eid) => asNodeId(graphStore.db.idFromExternal(eid)),
+    onSelected: (id) => graphStore.db.moveNodeToTop(id),
   },
 )
 
@@ -662,6 +663,8 @@ const groupColors = computed(() => {
     @click="handleClick"
     @dragover.prevent
     @drop.prevent="handleFileDrop($event)"
+    @pointermove.capture="graphNavigator.pointerEventsCapture.pointermove"
+    @wheel.capture="graphNavigator.pointerEventsCapture.wheel"
   >
     <div class="layer" :style="{ transform: graphNavigator.transform }">
       <GraphNodes
