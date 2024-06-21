@@ -43,7 +43,6 @@ export default function SettingsInputEntry(props: SettingsInputEntryProps) {
       isDisabled={!isEditable}
       key={value}
       type="text"
-      {...(onChange ? { onChange } : {})}
       onSubmit={newValue => {
         if (ref.current?.validity.valid === true) {
           void setValue(context, newValue, () => {
@@ -57,7 +56,12 @@ export default function SettingsInputEntry(props: SettingsInputEntryProps) {
   )
 
   return (
-    <aria.TextField key={value} defaultValue={value} className="flex h-row gap-settings-entry">
+    <aria.TextField
+      key={value}
+      defaultValue={value}
+      className="flex h-row gap-settings-entry"
+      {...(onChange ? { onChange } : {})}
+    >
       <aria.Label className="text my-auto w-organization-settings-label">
         {getText(nameId)}
       </aria.Label>
