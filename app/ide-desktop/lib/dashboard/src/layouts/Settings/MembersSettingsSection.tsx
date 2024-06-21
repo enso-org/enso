@@ -27,12 +27,12 @@ import * as paywallSettingsLayout from './withPaywall'
 
 const LIST_USERS_STALE_TIME_MS = 60_000
 
-// ==========================
-// === MembersSettingsTab ===
-// ==========================
+// ==============================
+// === MembersSettingsSection ===
+// ==============================
 
 /** Settings tab for viewing and editing organization members. */
-export function MembersSettingsTab() {
+export function MembersSettingsSection() {
   const { getText } = textProvider.useText()
   const backend = backendProvider.useRemoteBackendStrict()
   const { user } = authProvider.useFullUserSession()
@@ -244,6 +244,6 @@ function RemoveInvitationButton(props: RemoveInvitationButtonProps) {
   )
 }
 
-export default paywallSettingsLayout.withPaywall(MembersSettingsTab, {
+export default paywallSettingsLayout.withPaywall(MembersSettingsSection, {
   feature: 'inviteUser',
 })
