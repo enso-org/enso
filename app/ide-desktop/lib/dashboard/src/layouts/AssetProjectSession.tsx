@@ -30,6 +30,7 @@ export interface AssetProjectSessionProps {
 export default function AssetProjectSession(props: AssetProjectSessionProps) {
   const { backend, project, projectSession } = props
   const { getText } = textProvider.useText()
+  const [isOpen, setIsOpen] = React.useState(false)
 
   return (
     <div className="flex w-full flex-1 shrink-0 select-none flex-row gap-4 rounded-2xl p-2">
@@ -39,9 +40,10 @@ export default function AssetProjectSession(props: AssetProjectSessionProps) {
         </time>
       </div>
       <div className="flex items-center gap-1">
-        <ariaComponents.DialogTrigger>
+        <ariaComponents.DialogTrigger isOpen={isOpen} onOpenChange={setIsOpen}>
           <Button active image={LogsIcon} alt={getText('showLogs')} onPress={() => {}} />
           <ProjectLogsModal
+            isOpen={isOpen}
             backend={backend}
             projectSessionId={projectSession.projectSessionId}
             projectTitle={project.title}

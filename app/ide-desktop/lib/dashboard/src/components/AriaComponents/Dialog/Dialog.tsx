@@ -94,7 +94,6 @@ export function Dialog(props: DialogProps) {
     isKeyboardDismissDisabled = false,
     hideCloseButton = false,
     className,
-    isOpen,
     onOpenChange = () => {},
     modalProps = {},
     testId = 'dialog',
@@ -151,7 +150,6 @@ export function Dialog(props: DialogProps) {
       isDismissable={isDismissable}
       isKeyboardDismissDisabled={isKeyboardDismissDisabled}
       UNSTABLE_portalContainer={root}
-      {...(isOpen != null ? { isOpen } : {})}
       onOpenChange={onOpenChange}
       shouldCloseOnInteractOutside={() => false}
       {...modalProps}
@@ -165,7 +163,6 @@ export function Dialog(props: DialogProps) {
             isDismissable={isDismissable}
             isKeyboardDismissDisabled={isKeyboardDismissDisabled}
             UNSTABLE_portalContainer={root}
-            {...(isOpen != null ? { isOpen } : {})}
             onOpenChange={onOpenChange}
             shouldCloseOnInteractOutside={() => false}
             {...modalProps}
@@ -225,7 +222,11 @@ export function Dialog(props: DialogProps) {
                         }}
                       >
                         <errorBoundary.ErrorBoundary>
-                          <React.Suspense fallback={<loader.Loader minHeight="h32" />}>
+                          <React.Suspense
+                            fallback={
+                              <loader.Loader minHeight={type === 'fullscreen' ? 'full' : 'h32'} />
+                            }
+                          >
                             {typeof children === 'function' ? children(opts) : children}
                           </React.Suspense>
                         </errorBoundary.ErrorBoundary>
