@@ -13,7 +13,10 @@ interface SelectionArrowInfo {
    * Do not request the arrow twice, it will be stolen from other elements! */
   handled: boolean
   /**
+   * Child widget may set this flag to suppress arrow displaying.
    *
+   * A usage example is a child suppressing arrow on hover, because interactions with this child
+   * will not open the drop-down (because the child is drop-down itself, for examle).
    */
   suppressArrow: boolean
 }

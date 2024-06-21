@@ -222,7 +222,8 @@ const innerWidgetInput = computed<WidgetInput>(() => {
 })
 
 const parentSelectionArrow = injectSelectionArrow(true)
-const suppressArrow = ref(false)
+const arrowSuppressed = ref(false)
+const showArrow = computed(() => isHovered.value && !arrowSuppressed.value)
 provideSelectionArrow(
   proxyRefs({
     id: computed(() => {
@@ -246,22 +247,19 @@ provideSelectionArrow(
     },
     handled: false,
     get suppressArrow() {
-      return suppressArrow.value
+      return arrowSuppressed.value
     },
     set suppressArrow(value) {
-      suppressArrow.value = value
+      arrowSuppressed.value = value
     },
   }),
 )
 
-watch(
-  () => isHovered.value && !suppressArrow.value,
-  (suppressParentsArrow) => {
-    if (parentSelectionArrow) {
-      parentSelectionArrow.suppressArrow = suppressParentsArrow
-    }
-  },
-)
+watch(showArrow, (arrowShown) => {
+  if (parentSelectionArrow) {
+    parentSelectionArrow.suppressArrow = arrowShown
+  }
+})
 
 const isMulti = computed(() => props.input.dynamicConfig?.kind === 'Multiple_Choice')
 const dropDownInteraction = WidgetEditHandler.New('WidgetSelection', props.input, {
@@ -339,7 +337,6 @@ function toggleVectorValue(vector: Ast.MutableVector, value: string, previousSta
 function expressionTagClicked(tag: ExpressionTag, previousState: boolean) {
   const edit = graph.startEdit()
   const tagValue = resolveTagExpression(edit, tag)
-  console.log('expressionTagClicked', tagValue)
   if (isMulti.value) {
     const inputValue = props.input.value
     if (inputValue instanceof Ast.Vector) {
@@ -354,7 +351,6 @@ function expressionTagClicked(tag: ExpressionTag, previousState: boolean) {
       props.onUpdate({ edit, portUpdate: { value: vector, origin: props.input.portId } })
     }
   } else {
-    console.log('Updating widget', tagValue)
     props.onUpdate({ edit, portUpdate: { value: tagValue, origin: props.input.portId } })
   }
 }
@@ -422,9 +418,9 @@ declare module '@/providers/widgetRegistry' {
       must be already in the DOM when the <Teleport> component is mounted.
       So the Teleport itself can be instantiated only when `arrowLocation` is already available. -->
     <Teleport v-if="arrowLocation" :to="arrowLocation">
-      <SvgIcon v-if="isHovered && !suppressArrow" name="arrow_right_head_only" class="arrow" />
+      <SvgIcon v-if="showArrow" name="arrow_right_head_only" class="arrow" />
     </Teleport>
-    <SvgIcon v-else-if="isHovered && !suppressArrow" name="arrow_right_head_only" class="arrow" />
+    <SvgIcon v-else-if="showArrow" name="arrow_right_head_only" class="arrow" />
     <Teleport v-if="tree.nodeElement" :to="tree.nodeElement">
       <SizeTransition height :duration="100">
         <DropdownWidget
