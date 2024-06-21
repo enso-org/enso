@@ -14,6 +14,10 @@
   For example, `locale` parameter of `Equal_Ignore_Case` kind in join component.
 - [Node previews][10310]: Node may be previewed by hovering output port while
   pressing <kbd>Ctrl</kbd> key (<kbd>Cmd</kbd> on macOS).
+- [Fixed issue with two arrows being visible at once in drop-down
+  widget.][10337]
+- [Fixed issue where picking "<Numeric literal>" variant in some ports
+  disallowed changing it again.][10337]
 
 [10064]: https://github.com/enso-org/enso/pull/10064
 [10179]: https://github.com/enso-org/enso/pull/10179
@@ -23,6 +27,7 @@
 [10243]: https://github.com/enso-org/enso/pull/10243
 [10297]: https://github.com/enso-org/enso/pull/10297
 [10310]: https://github.com/enso-org/enso/pull/10310
+[10337]: https://github.com/enso-org/enso/pull/10337
 
 #### Enso Standard Library
 
