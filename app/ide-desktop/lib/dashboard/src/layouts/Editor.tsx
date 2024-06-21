@@ -8,7 +8,8 @@ import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as backendProvider from '#/providers/BackendProvider'
 
-import Backend, * as backendModule from '#/services/Backend'
+import type Backend from '#/services/Backend'
+import * as backendModule from '#/services/Backend'
 
 import * as object from '#/utilities/object'
 
@@ -47,31 +48,32 @@ export default function Editor(props: EditorProps) {
 
   const renameProject = React.useCallback(
     (newName: string) => {
-      if (projectStartupInfo == null) return
-      let backend: Backend | null
-      switch (projectStartupInfo.backendType) {
-        case backendModule.BackendType.local:
-          backend = localBackend
-          break
-        case backendModule.BackendType.remote:
-          backend = remoteBackend
-          break
+      if (projectStartupInfo != null) {
+        let backend: Backend | null
+        switch (projectStartupInfo.backendType) {
+          case backendModule.BackendType.local:
+            backend = localBackend
+            break
+          case backendModule.BackendType.remote:
+            backend = remoteBackend
+            break
+        }
+        const { id: projectId, parentId, title } = projectStartupInfo.projectAsset
+        backend
+          ?.updateProject(
+            projectId,
+            { projectName: newName, ami: null, ideVersion: null, parentId },
+            title
+          )
+          .then(
+            () => {
+              projectStartupInfo.setProjectAsset?.(object.merger({ title: newName }))
+            },
+            e => toastAndLog('renameProjectError', e)
+          )
       }
-      const { id: projectId, parentId, title } = projectStartupInfo.projectAsset
-      backend
-        ?.updateProject(
-          projectId,
-          { projectName: newName, ami: null, ideVersion: null, parentId },
-          title
-        )
-        .then(
-          () => {
-            projectStartupInfo.setProjectAsset?.(object.merger({ title: newName }))
-          },
-          e => toastAndLog('renameProjectError', e)
-        )
     },
-    [remoteBackend, localBackend, projectStartupInfo]
+    [remoteBackend, localBackend, projectStartupInfo, toastAndLog]
   )
 
   React.useEffect(() => {
