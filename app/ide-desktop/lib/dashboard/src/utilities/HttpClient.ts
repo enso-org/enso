@@ -143,7 +143,7 @@ export default class HttpClient {
 
     // `Blob` request payloads are NOT VISIBLE in Playwright due to a Chromium bug.
     // https://github.com/microsoft/playwright/issues/6479#issuecomment-1574627457
-    if (window.isInPlaywrightTest === true && payload instanceof Blob) {
+    if (process.env.IS_IN_PLAYWRIGHT_TEST === 'true' && payload instanceof Blob) {
       payload = await payload.arrayBuffer()
     }
 

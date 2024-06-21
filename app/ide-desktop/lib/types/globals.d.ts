@@ -108,7 +108,6 @@ declare global {
         readonly backendApi?: BackendApi
         readonly authenticationApi: AuthenticationApi
         readonly navigationApi: NavigationApi
-        readonly isInPlaywrightTest?: boolean
         readonly menuApi: MenuApi
         readonly versionInfo?: VersionInfo
         toggleDevtools: () => void
@@ -203,6 +202,11 @@ declare global {
             readonly ENSO_SUPPORTS_VIBRANCY?: string
             // @ts-expect-error The index signature is intentional to disallow unknown env vars.
             readonly ENSO_CLOUD_ENSO_HOST?: string
+
+            // === E2E test variables ===
+
+            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
+            readonly IS_IN_PLAYWRIGHT_TEST?: `${boolean}`
 
             // === Electron watch script variables ===
 

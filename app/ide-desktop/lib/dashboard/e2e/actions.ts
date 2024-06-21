@@ -726,25 +726,9 @@ export async function login(
     await locateEmailInput(page).fill(email)
     await locatePasswordInput(page).fill(password)
     await locateLoginButton(page).click()
+    await test.expect(page.getByText('Logging in to Enso...')).not.toBeVisible()
     await passTermsAndConditionsDialog({ page })
     await test.expect(page.getByText('Logging in to Enso...')).not.toBeVisible()
-  })
-}
-
-// ==============================
-// === mockIsInPlaywrightTest ===
-// ==============================
-
-/** Inject `isInPlaywrightTest` into the page. */
-// This syntax is required for Playwright to work properly.
-// eslint-disable-next-line no-restricted-syntax
-export async function mockIsInPlaywrightTest({ page }: MockParams) {
-  await test.test.step('Mock `isInPlaywrightTest`', async () => {
-    await page.evaluate(() => {
-      // @ts-expect-error This is SAFE - it is a mistake for this variable to be written to
-      // from anywhere else.
-      window.isInPlaywrightTest = true
-    })
   })
 }
 
@@ -818,7 +802,6 @@ export const mockApi = apiModule.mockApi
 export async function mockAll({ page }: MockParams) {
   return await test.test.step('Execute all mocks', async () => {
     const api = await mockApi({ page })
-    await mockIsInPlaywrightTest({ page })
     await mockDate({ page })
     return { api, pageActions: new LoginPageActions(page) }
   })
@@ -835,10 +818,6 @@ export async function mockAllAndLogin({ page }: MockParams) {
   return await test.test.step('Execute all mocks and login', async () => {
     const mocks = await mockAll({ page })
     await login({ page })
-    await passTermsAndConditionsDialog({ page })
-    // This MUST run after login because globals are reset when the browser
-    // is navigated to another page.
-    await mockIsInPlaywrightTest({ page })
     return { ...mocks, pageActions: new DrivePageActions(page) }
   })
 }
