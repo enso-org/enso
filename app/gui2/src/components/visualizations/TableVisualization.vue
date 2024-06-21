@@ -6,7 +6,12 @@ import { useAutoBlur } from '@/util/autoBlur'
 import { VisualizationContainer, useVisualizationConfig } from '@/util/visualizationBuiltins'
 import '@ag-grid-community/styles/ag-grid.css'
 import '@ag-grid-community/styles/ag-theme-alpine.css'
-import type { CellClassParams, ColumnResizedEvent, ICellRendererParams } from 'ag-grid-community'
+import type {
+  CellClassParams,
+  CellClickedEvent,
+  ColumnResizedEvent,
+  ICellRendererParams,
+} from 'ag-grid-community'
 import type { ColDef, GridOptions, HeaderValueGetterParams } from 'ag-grid-enterprise'
 import {
   computed,
@@ -284,7 +289,7 @@ const getTablePattern = (index: number) =>
       ),
     ),
   )
-function createNode(params: any) {
+function createNode(params: CellClickedEvent) {
   if (config.nodeType === VECTOR_NODE_TYPE || config.nodeType === COLUMN_NODE_TYPE) {
     config.createNodes({
       content: getPattern(params.data[INDEX_FIELD_NAME]),
