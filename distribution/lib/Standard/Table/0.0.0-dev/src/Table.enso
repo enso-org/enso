@@ -2259,7 +2259,7 @@ type Table
                 self.java_table.zip right.java_table keep_unmatched_bool right_prefix java_aggregator
             Table.Value new_java_table
 
-    ## ALIAS append, concat
+    ## ALIAS append, concat, join
        GROUP Standard.Base.Calculations
        ICON union
        Appends records from other table(s) to this table.

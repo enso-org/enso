@@ -1725,7 +1725,7 @@ type DB_Table
         _ = [right, keep_unmatched, right_prefix, on_problems]
         Error.throw (Unsupported_Database_Operation.Error "DB_Table.zip is not implemented yet for the Database backends.")
 
-    ## ALIAS append, concat
+    ## ALIAS append, concat, join
        GROUP Standard.Base.Calculations
        ICON union
        Appends records from other table(s) to this table.

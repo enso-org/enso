@@ -14,6 +14,12 @@ type SQLite_Format
     For_File
 
     ## PRIVATE
+       Resolve an unresolved constructor to the actual type.
+    resolve : Function -> SQLite_Format | Nothing
+    resolve constructor =
+        Panic.catch Any (constructor:SQLite_Format) _->Nothing
+
+    ## PRIVATE
        If the File_Format supports reading from the file, return a configured instance.
     for_read : File_Format_Metadata -> SQLite_Format | Nothing
     for_read file:File_Format_Metadata =
@@ -40,7 +46,7 @@ type SQLite_Format
 
     ## PRIVATE
     get_dropdown_options : Vector Option
-    get_dropdown_options = [Option "SQLite" (Meta.get_qualified_type_name SQLite_Format)+".For_File"]
+    get_dropdown_options = [Option "SQLite" "..For_File"]
 
     ## PRIVATE
        Implements the `File.read` for this `File_Format`
