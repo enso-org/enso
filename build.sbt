@@ -2350,7 +2350,7 @@ lazy val `runtime-fat-jar` =
     .settings(
       libraryDependencies ++= {
         val graalMods =
-          GraalVM.modules.map(_.withConfigurations(Some(Runtime.name)))
+          GraalVM.modules.map(_.withConfigurations(Some(Compile.name)))
         val langMods =
           GraalVM.langsPkgs.map(_.withConfigurations(Some(Runtime.name)))
         val logbackMods =
