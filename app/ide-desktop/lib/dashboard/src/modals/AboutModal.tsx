@@ -46,7 +46,7 @@ export default function AboutModal() {
 
   return (
     <ariaComponents.DialogTrigger defaultOpen>
-      <ariaComponents.Button aria-hidden className="cr-only" />
+      <ariaComponents.Button aria-hidden className="sr-only" />
 
       <ariaComponents.Dialog title={getText('aboutThisAppShortcut')}>
         <div className="relative flex items-center gap-4">
