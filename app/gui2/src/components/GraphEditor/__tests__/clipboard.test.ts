@@ -54,10 +54,10 @@ class MockClipboardItem {
     this.types = Object.keys(data)
   }
 
-  async getType(type: string): Promise<Blob> {
+  getType(type: string): Promise<Blob> {
     const blob = this.data[type]
     assertDefined(blob)
-    return blob
+    return Promise.resolve(blob)
   }
 }
 
