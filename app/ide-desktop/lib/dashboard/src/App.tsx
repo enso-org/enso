@@ -77,9 +77,9 @@ import AboutModal from '#/modals/AboutModal'
 import * as setOrganizationNameModal from '#/modals/SetOrganizationNameModal'
 import * as termsOfServiceModal from '#/modals/TermsOfServiceModal'
 
-import type Backend from '#/services/Backend'
 import LocalBackend from '#/services/LocalBackend'
 import * as projectManager from '#/services/ProjectManager'
+import type RemoteBackend from '#/services/RemoteBackend'
 
 import * as appBaseUrl from '#/utilities/appBaseUrl'
 import * as eventModule from '#/utilities/event'
@@ -223,7 +223,7 @@ function AppRouter(props: AppRouterProps) {
   const { localStorage } = localStorageProvider.useLocalStorage()
   const { setModal } = modalProvider.useSetModal()
   const navigator2D = navigator2DProvider.useNavigator2D()
-  const [remoteBackend, setRemoteBackend] = React.useState<Backend | null>(null)
+  const [remoteBackend, setRemoteBackend] = React.useState<RemoteBackend | null>(null)
   const [localBackend] = React.useState(() =>
     projectManagerUrl != null && projectManagerRootDirectory != null
       ? new LocalBackend(projectManagerUrl, projectManagerRootDirectory)
@@ -253,7 +253,7 @@ function AppRouter(props: AppRouterProps) {
         }
       }
     }
-  }, [/* should never change */ localStorage, /* should never change */ inputBindingsRaw])
+  }, [localStorage, inputBindingsRaw])
 
   React.useEffect(() => {
     if (remoteBackend) {
@@ -315,14 +315,14 @@ function AppRouter(props: AppRouterProps) {
         return inputBindingsRaw.unregister.bind(inputBindingsRaw)
       },
     }
-  }, [/* should never change */ localStorage, /* should never change */ inputBindingsRaw])
+  }, [localStorage, inputBindingsRaw])
 
   const mainPageUrl = getMainPageUrl()
 
   const authService = React.useMemo(() => {
     const authConfig = { navigate, ...props }
     return authServiceModule.initAuthService(authConfig)
-  }, [props, /* should never change */ navigate])
+  }, [props, navigate])
 
   const userSession = authService?.cognito.userSession.bind(authService.cognito) ?? null
   const refreshUserSession =
@@ -335,7 +335,7 @@ function AppRouter(props: AppRouterProps) {
         setModal(<AboutModal />)
       })
     }
-  }, [/* should never change */ setModal])
+  }, [setModal])
 
   React.useEffect(() => {
     const onKeyDown = navigator2D.onKeyDown.bind(navigator2D)
@@ -366,15 +366,15 @@ function AppRouter(props: AppRouterProps) {
           app.contains(selection.anchorNode) &&
           selection.focusNode != null &&
           app.contains(selection.focusNode)
-        if (selection != null && !appContainsSelection) {
-          selection.removeAllRanges()
+        if (!appContainsSelection) {
+          selection?.removeAllRanges()
         }
       }
     }
-
     const onSelectStart = () => {
       isClick = false
     }
+
     document.addEventListener('mousedown', onMouseDown)
     document.addEventListener('mouseup', onMouseUp)
     document.addEventListener('selectstart', onSelectStart)
@@ -456,6 +456,11 @@ function AppRouter(props: AppRouterProps) {
   )
 
   let result = routes
+
+  if (detect.IS_DEV_MODE) {
+    result = <paywall.PaywallDevtools>{result}</paywall.PaywallDevtools>
+  }
+
   result = <InputBindingsProvider inputBindings={inputBindings}>{result}</InputBindingsProvider>
   result = (
     <BackendProvider remoteBackend={remoteBackend} localBackend={localBackend}>
@@ -489,9 +494,6 @@ function AppRouter(props: AppRouterProps) {
     </SessionProvider>
   )
   result = <LoggerProvider logger={logger}>{result}</LoggerProvider>
-  if (detect.IS_DEV_MODE) {
-    result = <paywall.PaywallDevtools>{result}</paywall.PaywallDevtools>
-  }
   result = (
     <rootComponent.Root navigate={navigate} portalRoot={portalRoot}>
       {result}

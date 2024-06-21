@@ -20,8 +20,17 @@ export interface PermissionDisplayProps extends Readonly<React.PropsWithChildren
 
 /** Colored border around icons and text indicating permissions. */
 export default function PermissionDisplay(props: PermissionDisplayProps) {
-  const { action, className, onPress, children } = props
+  const { action, className, onPress, children: childrenRaw } = props
   const permission = permissionsModule.FROM_PERMISSION_ACTION[action]
+
+  const children =
+    typeof childrenRaw !== 'string' ? (
+      childrenRaw
+    ) : (
+      <ariaComponents.Text truncate="1" className="max-w-24 text-inherit">
+        {childrenRaw}
+      </ariaComponents.Text>
+    )
 
   switch (permission.type) {
     case permissionsModule.Permission.owner:

@@ -36,7 +36,6 @@ export interface FieldChildrenRenderProps {
   readonly isDirty: boolean
   readonly isTouched: boolean
   readonly isValidating: boolean
-  // eslint-disable-next-line no-restricted-syntax
   readonly error?: string | undefined
 }
 

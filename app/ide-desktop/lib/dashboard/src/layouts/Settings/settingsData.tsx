@@ -2,6 +2,7 @@
 import * as React from 'react'
 
 import type * as reactQuery from '@tanstack/react-query'
+import isEmail from 'validator/lib/isEmail'
 
 import KeyboardShortcutsIcon from 'enso-assets/keyboard_shortcuts.svg'
 import LogIcon from 'enso-assets/log.svg'
@@ -28,6 +29,7 @@ import ProfilePictureInput from '#/layouts/Settings/ProfilePictureInput'
 import SettingsTabType from '#/layouts/Settings/SettingsTabType'
 import UserGroupsSettingsSection from '#/layouts/Settings/UserGroupsSettingsSection'
 
+import type * as aria from '#/components/aria'
 import * as menuEntry from '#/components/MenuEntry'
 
 import * as backend from '#/services/Backend'
@@ -78,6 +80,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
                 return
               }
             },
+            validate: name => (/\S/.test(name) ? true : ''),
             getEditable: () => true,
           },
           {
@@ -86,6 +89,8 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
             getValue: context => context.user?.email ?? '',
             // A user's email currently cannot be changed.
             setValue: async () => {},
+            validate: (email, context) =>
+              isEmail(email) ? true : context.getText('invalidEmailValidationError'),
             getEditable: () => false,
           },
         ],
@@ -155,6 +160,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
               }
               return Promise.resolve()
             },
+            validate: name => (/\S/.test(name) ? true : ''),
             getEditable: () => true,
           },
           {
@@ -222,8 +228,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
         entries: [
           {
             type: SettingsEntryType.custom,
-            render: context =>
-              context.backend && <MembersSettingsSection backend={context.backend} />,
+            render: () => <MembersSettingsSection />,
           },
         ],
       },
@@ -377,6 +382,7 @@ export interface SettingsInputEntryData {
   readonly nameId: text.TextId & `${string}SettingsInput`
   readonly getValue: (context: SettingsContext) => string
   readonly setValue: (context: SettingsContext, value: string, reset: () => void) => Promise<void>
+  readonly validate?: (value: string, context: SettingsContext) => aria.ValidationError | true
   readonly getEditable: (context: SettingsContext) => boolean
 }
 

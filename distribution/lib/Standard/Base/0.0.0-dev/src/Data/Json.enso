@@ -30,6 +30,7 @@ from project.Data.Text.Extensions import all
 from project.Metadata.Choice import Option
 from project.Metadata.Widget import Single_Choice
 
+polyglot java import com.fasterxml.jackson.core.JsonLocation
 polyglot java import com.fasterxml.jackson.core.JsonProcessingException
 polyglot java import com.fasterxml.jackson.databind.JsonNode
 polyglot java import com.fasterxml.jackson.databind.node.ArrayNode

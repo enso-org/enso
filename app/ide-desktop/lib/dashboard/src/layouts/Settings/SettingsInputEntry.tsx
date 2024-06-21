@@ -21,30 +21,47 @@ export interface SettingsInputEntryProps {
 /** Rendering for an {@link settingsData.SettingsInputEntryData}. */
 export default function SettingsInputEntry(props: SettingsInputEntryProps) {
   const { context, data } = props
-  const { nameId, getValue, setValue, getEditable } = data
+  const { nameId, getValue, setValue, validate, getEditable } = data
+  const id = React.useId()
   const { getText } = textProvider.useText()
   const ref = React.useRef<HTMLInputElement | null>(null)
   const value = getValue(context)
   const isEditable = getEditable(context)
 
+  const input = (
+    <SettingsInput
+      ref={ref}
+      isDisabled={!isEditable}
+      key={value}
+      type="text"
+      onSubmit={newValue => {
+        void setValue(context, newValue, () => {
+          if (ref.current) {
+            ref.current.value = value
+          }
+        })
+      }}
+    />
+  )
+
   return (
-    <aria.TextField key={value} defaultValue={value} className="flex h-row gap-settings-entry">
+    <aria.TextField
+      key={id}
+      defaultValue={value}
+      {...(validate == null ? {} : { validate: newValue => validate(newValue, context) })}
+      className="flex h-row gap-settings-entry"
+    >
       <aria.Label className="text my-auto w-organization-settings-label">
         {getText(nameId)}
       </aria.Label>
-      <SettingsInput
-        ref={ref}
-        isDisabled={!isEditable}
-        key={value}
-        type="text"
-        onSubmit={newValue => {
-          void setValue(context, newValue, () => {
-            if (ref.current) {
-              ref.current.value = value
-            }
-          })
-        }}
-      />
+      {validate ? (
+        <div className="flex grow flex-col">
+          {input}
+          <aria.FieldError className="text-red-700" />
+        </div>
+      ) : (
+        input
+      )}
     </aria.TextField>
   )
 }

@@ -209,7 +209,7 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
 
   React.useEffect(() => {
     localStorage.set('driveCategory', category)
-  }, [category, /* should never change */ localStorage])
+  }, [category, localStorage])
 
   return (
     <FocusArea direction="vertical">

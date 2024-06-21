@@ -207,17 +207,16 @@ state. To generate the Native Image for runner simply execute
 sbt> engine-runner/buildNativeImage
 ```
 
-and execute the binary on a sample factorial test program
+and execute any program with that binary - for example `test/Base_Tests`
 
 ```bash
-> runner --run engine/runner/src/test/resources/Factorial.enso 6
+$ runner --run test/Base_Tests
 ```
 
 The task that generates the Native Image, along with all the necessary
-configuration, reside in a separate project due to a bug in the currently used
-GraalVM version. As September 2023 it can execute all Enso code, but cannot
-invoke `IO.println` or other library functions that require
-[polyglot java import](../../docs/polyglot/java.md), but read on...
+configuration, makes sure that `Standard.Base` library calls into Java via
+[polyglot java import](../../docs/polyglot/java.md) are compiled into the binary
+and ready to be used.
 
 ### Engine with Espresso
 

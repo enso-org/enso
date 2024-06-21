@@ -133,5 +133,9 @@ export function PaywallDevtools(props: PaywallDevtoolsProps) {
  * A hook that provides access to the paywall devtools.
  */
 export function usePaywallDevtools() {
-  return React.useContext(PaywallDevtoolsContext)
+  const context = React.useContext(PaywallDevtoolsContext)
+
+  React.useDebugValue(context)
+
+  return context
 }

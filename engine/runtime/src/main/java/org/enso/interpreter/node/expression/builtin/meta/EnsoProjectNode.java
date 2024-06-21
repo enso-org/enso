@@ -98,10 +98,11 @@ public abstract class EnsoProjectNode extends Node {
 
   private static Atom createProjectDescriptionAtom(EnsoContext ctx, Package<TruffleFile> pkg) {
     var rootPath = new EnsoFile(pkg.root().normalize());
-    var cfg = ctx.asGuestValue(pkg.getConfig());
+    var namespace = pkg.getConfig().namespace();
+    var name = pkg.getConfig().name();
     var cons = ctx.getBuiltins().getProjectDescription().getUniqueConstructor();
 
-    return AtomNewInstanceNode.getUncached().newInstance(cons, rootPath, cfg);
+    return AtomNewInstanceNode.getUncached().newInstance(cons, rootPath, namespace, name);
   }
 
   private DataflowError unsupportedArgsError(Object moduleActual) {

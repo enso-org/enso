@@ -62,7 +62,7 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
         })
       )
     },
-    [/* should never change */ setItem]
+    [setItem]
   )
 
   return (
@@ -141,10 +141,11 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
         ))}
       {managesThisAsset && (
         <ariaComponents.Button
-          size="custom"
-          variant="custom"
           ref={plusButtonRef}
-          className="shrink-0 rounded-full opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
+          size="icon"
+          variant="ghost"
+          showIconOnHover
+          icon={Plus2Icon}
           onPress={() => {
             setModal(
               <ManageLabelsModal
@@ -156,9 +157,7 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
               />
             )
           }}
-        >
-          <img className="size-plus-icon" src={Plus2Icon} />
-        </ariaComponents.Button>
+        />
       )}
     </div>
   )

@@ -6,6 +6,8 @@ import DefaultUserIcon from 'enso-assets/default_user.svg'
 
 import * as appUtils from '#/appUtils'
 
+import * as billing from '#/hooks/billing'
+
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
@@ -16,6 +18,7 @@ import UserMenu from '#/layouts/UserMenu'
 
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
+import * as paywall from '#/components/Paywall'
 import Button from '#/components/styled/Button'
 import FocusArea from '#/components/styled/FocusArea'
 
@@ -50,20 +53,29 @@ export default function UserBar(props: UserBarProps) {
   const { setModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
   const backend = backendProvider.useRemoteBackend()
+  const { isFeatureUnderPaywall } = billing.usePaywall({ plan: user?.plan })
+
   const self =
     user != null
       ? projectAsset?.permissions?.find(
           backendModule.isUserPermissionAnd(permissions => permissions.user.userId === user.userId)
         ) ?? null
       : null
+
   const shouldShowShareButton =
     backend != null &&
     page === pageSwitcher.Page.editor &&
     projectAsset != null &&
     setProjectAsset != null &&
     self != null
+
+  const shouldShowUpgradeButton = isFeatureUnderPaywall('inviteUser')
+
   const shouldShowInviteButton =
-    backend != null && sessionType === authProvider.UserSessionType.full && !shouldShowShareButton
+    backend != null &&
+    sessionType === authProvider.UserSessionType.full &&
+    !shouldShowShareButton &&
+    !shouldShowUpgradeButton
 
   return (
     <FocusArea active={!invisible} direction="horizontal">
@@ -84,6 +96,12 @@ export default function UserBar(props: UserBarProps) {
               }}
             />
 
+            {shouldShowUpgradeButton && (
+              <paywall.PaywallDialogButton feature={'inviteUser'} size="medium" variant="tertiary">
+                {getText('invite')}
+              </paywall.PaywallDialogButton>
+            )}
+
             {shouldShowInviteButton && (
               <ariaComponents.DialogTrigger>
                 <ariaComponents.Button size="medium" variant="tertiary">
@@ -97,6 +115,7 @@ export default function UserBar(props: UserBarProps) {
             <ariaComponents.Button variant="primary" size="medium" href={appUtils.SUBSCRIBE_PATH}>
               {getText('upgrade')}
             </ariaComponents.Button>
+
             {shouldShowShareButton && (
               <ariaComponents.Button
                 size="medium"

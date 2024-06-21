@@ -3,6 +3,13 @@
 The dashboard is the entrypoint into the application. It includes project
 management, project sharing, and user accounts and authentication.
 
+## Further documentation
+
+Further documentation is provided in the `docs/` folder:
+
+- [Browser-specific behavior](./docs/browser_specific_behavior.md) details
+  behavior that is inconsistent between browsers and needs to be worked around.
+
 ## Folder structure
 
 - `mock/`: Overrides for specific files in `src/` when running Playwright tests.

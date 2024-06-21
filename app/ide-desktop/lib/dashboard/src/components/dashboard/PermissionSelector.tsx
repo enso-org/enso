@@ -202,14 +202,14 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
     default: {
       permissionDisplay = (
         <ariaComponents.Button
-          size="xxsmall"
+          size="xsmall"
           variant="custom"
           ref={permissionSelectorButtonRef}
           isDisabled={isDisabled}
           isActive={!isDisabled || !isInput}
           {...(isDisabled && error != null ? { title: error } : {})}
           className={tailwindMerge.twMerge(
-            'h-6 w-[121px] rounded-full',
+            'w-[121px] rounded-full border-0 py-0',
             permissions.PERMISSION_CLASS_NAME[permission.type]
           )}
           onPress={doShowPermissionTypeSelector}

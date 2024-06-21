@@ -4,16 +4,22 @@ import * as React from 'react'
 import * as reactQuery from '@tanstack/react-query'
 
 import * as backendHooks from '#/hooks/backendHooks'
+import * as billingHooks from '#/hooks/billing'
 
+import * as authProvider from '#/providers/AuthProvider'
+import * as backendProvider from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import * as ariaComponents from '#/components/AriaComponents'
+import * as paywall from '#/components/Paywall'
 import HorizontalMenuBar from '#/components/styled/HorizontalMenuBar'
 
 import InviteUsersModal from '#/modals/InviteUsersModal'
 
 import type * as backendModule from '#/services/Backend'
-import type Backend from '#/services/Backend'
+import type RemoteBackend from '#/services/RemoteBackend'
+
+import * as paywallSettingsLayout from './withPaywall'
 
 // =================
 // === Constants ===
@@ -25,15 +31,13 @@ const LIST_USERS_STALE_TIME_MS = 60_000
 // === MembersSettingsTab ===
 // ==========================
 
-/** Props for a {@link MembersSettingsTab}. */
-export interface MembersSettingsTabProps {
-  readonly backend: Backend
-}
-
 /** Settings tab for viewing and editing organization members. */
-export default function MembersSettingsTab(props: MembersSettingsTabProps) {
-  const { backend } = props
+export function MembersSettingsTab() {
   const { getText } = textProvider.useText()
+  const backend = backendProvider.useRemoteBackendStrict()
+  const { user } = authProvider.useFullUserSession()
+
+  const { isFeatureUnderPaywall, getFeature } = billingHooks.usePaywall({ plan: user.plan })
 
   const [{ data: members }, { data: invitations }] = reactQuery.useSuspenseQueries({
     queries: [
@@ -50,16 +54,36 @@ export default function MembersSettingsTab(props: MembersSettingsTabProps) {
     ],
   })
 
+  const isUnderPaywall = isFeatureUnderPaywall('inviteUserFull')
+  const feature = getFeature('inviteUser')
+
+  const seatsLeft = isUnderPaywall
+    ? feature.meta.maxSeats - (members.length + invitations.length)
+    : null
+  const seatsTotal = feature.meta.maxSeats
+
   return (
     <>
       <HorizontalMenuBar>
         <ariaComponents.DialogTrigger>
-          <ariaComponents.Button variant="bar" rounded="full" size="small">
+          <ariaComponents.Button variant="bar" rounded="full" size="medium">
             {getText('inviteMembers')}
           </ariaComponents.Button>
 
           <InviteUsersModal />
         </ariaComponents.DialogTrigger>
+
+        {seatsLeft != null && (
+          <div className="flex gap-1">
+            <ariaComponents.Text>
+              {seatsLeft <= 0
+                ? getText('noSeatsLeft')
+                : getText('seatsLeft', seatsLeft, seatsTotal)}
+            </ariaComponents.Text>
+
+            <paywall.PaywallDialogButton feature="inviteUserFull" variant="link" showIcon={false} />
+          </div>
+        )}
       </HorizontalMenuBar>
 
       <table className="table-fixed self-start rounded-rows">
@@ -90,7 +114,6 @@ export default function MembersSettingsTab(props: MembersSettingsTabProps) {
               </td>
             </tr>
           ))}
-
           {invitations.map(invitation => (
             <tr key={invitation.userEmail} className="group h-row rounded-rows-child">
               <td className="border-x-2 border-transparent bg-clip-padding px-4 py-1 first:rounded-l-full last:rounded-r-full last:border-r-0">
@@ -130,7 +153,7 @@ export default function MembersSettingsTab(props: MembersSettingsTabProps) {
 /** Props for the ResendInvitationButton component. */
 interface ResendInvitationButtonProps {
   readonly invitation: backendModule.Invitation
-  readonly backend: Backend
+  readonly backend: RemoteBackend
 }
 
 /** Button for resending an invitation. */
@@ -163,7 +186,7 @@ function ResendInvitationButton(props: ResendInvitationButtonProps) {
 
 /** Props for a {@link RemoveMemberButton}. */
 interface RemoveMemberButtonProps {
-  readonly backend: Backend
+  readonly backend: RemoteBackend
   readonly userId: backendModule.UserId
 }
 
@@ -172,11 +195,9 @@ function RemoveMemberButton(props: RemoveMemberButtonProps) {
   const { backend, userId } = props
   const { getText } = textProvider.useText()
 
-  const queryClient = reactQuery.useQueryClient()
-
   const removeMutation = backendHooks.useBackendMutation(backend, 'removeUser', {
     mutationKey: [userId],
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['listUsers'] }),
+    meta: { invalidates: [['listUsers']], awaitInvalidates: true },
   })
 
   return (
@@ -196,7 +217,7 @@ function RemoveMemberButton(props: RemoveMemberButtonProps) {
 
 /** Props for a {@link RemoveInvitationButton}. */
 interface RemoveInvitationButtonProps {
-  readonly backend: Backend
+  readonly backend: RemoteBackend
   readonly email: backendModule.EmailAddress
 }
 
@@ -205,11 +226,10 @@ function RemoveInvitationButton(props: RemoveInvitationButtonProps) {
   const { backend, email } = props
 
   const { getText } = textProvider.useText()
-  const queryClient = reactQuery.useQueryClient()
 
   const removeMutation = backendHooks.useBackendMutation(backend, 'resendInvitation', {
     mutationKey: [email],
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['listInvitations'] }),
+    meta: { invalidates: [['listInvitations']], awaitInvalidates: true },
   })
 
   return (
@@ -223,3 +243,7 @@ function RemoveInvitationButton(props: RemoveInvitationButtonProps) {
     </ariaComponents.Button>
   )
 }
+
+export default paywallSettingsLayout.withPaywall(MembersSettingsTab, {
+  feature: 'inviteUser',
+})

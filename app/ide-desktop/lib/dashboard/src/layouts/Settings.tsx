@@ -18,6 +18,7 @@ import SettingsTabType from '#/layouts/Settings/SettingsTabType'
 import SettingsSidebar from '#/layouts/SettingsSidebar'
 
 import * as aria from '#/components/aria'
+import * as ariaComponents from '#/components/AriaComponents'
 import * as portal from '#/components/Portal'
 import Button from '#/components/styled/Button'
 
@@ -158,7 +159,7 @@ export default function Settings() {
 
   return (
     <div className="flex flex-1 flex-col gap-4 overflow-hidden px-page-x">
-      <aria.Heading level={1} className="flex h-heading px-heading-x text-xl font-bold">
+      <aria.Heading level={1} className="flex items-center px-heading-x">
         <aria.MenuTrigger isOpen={isSidebarPopoverOpen} onOpenChange={setIsSidebarPopoverOpen}>
           <Button image={BurgerMenuIcon} buttonClassName="mr-3 sm:hidden" onPress={() => {}} />
           <aria.Popover UNSTABLE_portalContainer={root}>
@@ -174,14 +175,22 @@ export default function Settings() {
             />
           </aria.Popover>
         </aria.MenuTrigger>
-        <aria.Text className="py-heading-y">{getText('settingsFor')}</aria.Text>
-        {/* This UI element does not appear anywhere else. */}
-        {/* eslint-disable-next-line no-restricted-syntax */}
-        <div className="ml-[0.625rem] h-[2.25rem] rounded-full bg-frame px-[0.5625rem] pb-[0.3125rem] pt-[0.125rem] leading-snug">
-          {data.organizationOnly === true
-            ? organization?.name ?? 'your organization'
-            : user?.name ?? 'your account'}
-        </div>
+        <ariaComponents.Text.Heading>
+          <span>{getText('settingsFor')}</span>
+        </ariaComponents.Text.Heading>
+
+        <ariaComponents.Text
+          variant="h1"
+          truncate="1"
+          className="ml-2.5 max-w-lg rounded-full bg-frame px-2.5"
+          aria-hidden
+        >
+          {effectiveTab !== SettingsTabType.organization &&
+          effectiveTab !== SettingsTabType.members &&
+          effectiveTab !== SettingsTabType.userGroups
+            ? user?.name ?? 'your account'
+            : organization?.name ?? 'your organization'}
+        </ariaComponents.Text>
       </aria.Heading>
       <SearchBar
         data-testid="settings-search-bar"
@@ -190,13 +199,15 @@ export default function Settings() {
         label={getText('settingsSearchBarLabel')}
         placeholder={getText('settingsSearchBarPlaceholder')}
       />
-      <div className="flex flex-1 gap-settings overflow-hidden">
-        <SettingsSidebar
-          tabsToShow={tabsToShow}
-          isUserInOrganization={isUserInOrganization}
-          tab={effectiveTab}
-          setTab={setTab}
-        />
+      <div className="flex flex-1 gap-6 overflow-hidden pr-0.5">
+        <aside className="flex h-full flex-col overflow-y-auto overflow-x-hidden pb-12">
+          <SettingsSidebar
+            tabsToShow={tabsToShow}
+            isUserInOrganization={isUserInOrganization}
+            tab={tab}
+            setTab={setTab}
+          />
+        </aside>
         <SettingsTab context={context} data={data} />
       </div>
     </div>

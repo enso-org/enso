@@ -47,9 +47,9 @@ export default function DeleteUserAccountSettingsSection(
           </aria.Heading>
           <div className="flex gap-buttons">
             <ariaComponents.Button
-              size="custom"
-              variant="custom"
-              className="button bg-danger px-delete-user-account-button-x text-inversed opacity-full hover:opacity-full"
+              variant="delete"
+              size="medium"
+              rounded="full"
               onPress={() => {
                 setModal(
                   <ConfirmDeleteUserModal
@@ -65,7 +65,7 @@ export default function DeleteUserAccountSettingsSection(
                 {getText('deleteUserAccountButtonLabel')}
               </aria.Text>
             </ariaComponents.Button>
-            <aria.Text className="text my-auto">{getText('deleteUserAccountWarning')}</aria.Text>
+            <aria.Text className="text-md my-auto">{getText('deleteUserAccountWarning')}</aria.Text>
           </div>
         </div>
       )}
