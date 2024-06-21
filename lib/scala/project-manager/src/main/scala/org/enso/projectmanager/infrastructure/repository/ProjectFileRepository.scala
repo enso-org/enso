@@ -4,9 +4,8 @@ import java.io.File
 import java.nio.file.Path
 import java.nio.file.attribute.FileTime
 import java.util.UUID
-
 import org.enso.pkg.{Package, PackageManager}
-import org.enso.projectmanager.boot.configuration.StorageConfig
+import org.enso.projectmanager.boot.configuration.MetadataStorageConfig
 import org.enso.projectmanager.control.core.{
   Applicative,
   CovariantFlatMap,
@@ -31,7 +30,7 @@ import org.enso.projectmanager.model.{Project, ProjectMetadata}
 
 /** File based implementation of the project repository.
   *
-  * @param storageConfig a storage config
+  * @param metadataStorageConfig a metadata storage config
   * @param clock a clock
   * @param fileSystem a file system abstraction
   * @param gen a random generator
@@ -40,7 +39,7 @@ class ProjectFileRepository[
   F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap: Applicative
 ](
   projectsPath: File,
-  storageConfig: StorageConfig,
+  metadataStorageConfig: MetadataStorageConfig,
   clock: Clock[F],
   fileSystem: FileSystem[F],
   gen: Generator[F]
@@ -308,7 +307,7 @@ class ProjectFileRepository[
   private def metadataStorage(projectPath: File): MetadataFileStorage[F] =
     new MetadataFileStorage[F](
       projectPath,
-      storageConfig,
+      metadataStorageConfig,
       clock,
       fileSystem,
       gen

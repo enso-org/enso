@@ -44,18 +44,26 @@ object configuration {
     */
   case class ServerConfig(host: String, port: Int)
 
+  /** A configuration object for metadata storage.
+    *
+    * @param projectMetadataDirectory a directory name containing project metadata
+    * @param projectMetadataFileName a name of project metadata file
+    */
+  case class MetadataStorageConfig(
+    projectMetadataDirectory: String,
+    projectMetadataFileName: String
+  )
+
   /** A configuration object for properties of project storage.
     *
     * @param projectsRoot overrides user projects root directory
     * @param projectsDirectory a user projects directory
-    * @param projectMetadataDirectory a directory name containing project metadata
-    * @param projectMetadataFileName a name of project metadata file
+    * @param metadata a metadata storage config
     */
   case class StorageConfig(
     projectsRoot: Option[File],
     projectsDirectory: String,
-    projectMetadataDirectory: String,
-    projectMetadataFileName: String
+    metadata: MetadataStorageConfig
   ) {
 
     /** @return a path to the user projects directory. */

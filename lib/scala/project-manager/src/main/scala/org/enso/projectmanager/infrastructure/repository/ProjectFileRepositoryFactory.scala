@@ -25,7 +25,7 @@ class ProjectFileRepositoryFactory[
       projectsDirectory.getOrElse(storageConfig.userProjectsPath)
     new ProjectFileRepository[F](
       projectsPath,
-      storageConfig,
+      storageConfig.metadata,
       clock,
       fileSystem,
       gen

@@ -8,7 +8,7 @@ import org.enso.projectmanager.control.effect.{ErrorChannel, Sync}
 import org.enso.projectmanager.infrastructure.file.BlockingFileSystem
 import org.enso.projectmanager.infrastructure.random.SystemGenerator
 import org.enso.projectmanager.infrastructure.repository.{
-  ProjectFileRepository,
+  ProjectFileRepositoryFactory,
   ProjectRepository
 }
 import org.enso.projectmanager.infrastructure.time.RealClock
@@ -48,14 +48,14 @@ object ProjectListCommand {
     val fileSystem = new BlockingFileSystem[F](config.timeout.ioTimeout)
     val gen        = new SystemGenerator[F]
 
+    val projectRepositoryFactory = new ProjectFileRepositoryFactory[F](
+      config.storage,
+      clock,
+      fileSystem,
+      gen
+    )
     val projectRepository =
-      new ProjectFileRepository[F](
-        projectsPath.getOrElse(config.storage.userProjectsPath),
-        config.storage,
-        clock,
-        fileSystem,
-        gen
-      )
+      projectRepositoryFactory.getProjectRepository(projectsPath)
 
     new ProjectListCommand[F](projectRepository, limitOpt)
   }
