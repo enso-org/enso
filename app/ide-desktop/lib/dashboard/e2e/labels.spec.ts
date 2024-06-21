@@ -21,7 +21,7 @@ test.test('drag labels onto single row', async ({ page }) => {
   api.addSecret('bar')
   api.addFile('baz')
   api.addSecret('quux')
-  await actions.reload({ page })
+  await actions.relog({ page })
 
   await test.expect(labelEl).toBeVisible()
   await labelEl.dragTo(assetRows.nth(1))
@@ -47,7 +47,7 @@ test.test('drag labels onto multiple rows', async ({ page }) => {
   api.addSecret('bar')
   api.addFile('baz')
   api.addSecret('quux')
-  await actions.reload({ page })
+  await actions.relog({ page })
 
   await page.keyboard.down(await actions.modModifier(page))
   await actions.clickAssetRow(assetRows.nth(0))

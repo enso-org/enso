@@ -32,12 +32,11 @@ test.test('sign up with organization id', async ({ page }) => {
   await actions.locateConfirmPasswordInput(page).fill(actions.VALID_PASSWORD)
   await actions.locateRegisterButton(page).click()
 
-  await actions.passTermsAndConditionsDialog({ page })
-
   // Log in
   await actions.locateEmailInput(page).fill(actions.VALID_EMAIL)
   await actions.locatePasswordInput(page).fill(actions.VALID_PASSWORD)
   await actions.locateLoginButton(page).click()
+  await actions.passTermsAndConditionsDialog({ page })
 
   // Set username
   await actions.locateUsernameInput(page).fill('arbitrary username')
@@ -61,12 +60,11 @@ test.test('sign up without organization id', async ({ page }) => {
   await actions.locateConfirmPasswordInput(page).fill(actions.VALID_PASSWORD)
   await actions.locateRegisterButton(page).click()
 
-  await actions.passTermsAndConditionsDialog({ page })
-
   // Log in
   await actions.locateEmailInput(page).fill(actions.VALID_EMAIL)
   await actions.locatePasswordInput(page).fill(actions.VALID_PASSWORD)
   await actions.locateLoginButton(page).click()
+  await actions.passTermsAndConditionsDialog({ page })
 
   // Set username
   await actions.locateUsernameInput(page).fill('arbitrary username')
