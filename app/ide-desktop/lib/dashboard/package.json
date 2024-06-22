@@ -8,6 +8,7 @@
     "#/*": "./src/*"
   },
   "exports": {
+    "./Toast": "./src/components/Toast/index.ts",
     ".": "./src/index.tsx",
     "./tailwind.config": "./tailwind.config.js",
     "./src/platform": "./src/platform.ts",

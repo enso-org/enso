@@ -1,5 +1,5 @@
 import type { ResultError } from '@/util/data/result'
-import { toast, type ToastKind, type ToastOptions } from 'enso-dashboard'
+import { toast, type ToastKind, type ToastOptions } from 'enso-dashboard/Toast'
 import { uuidv4 } from 'lib0/random'
 import { onScopeDispose } from 'vue'
 
