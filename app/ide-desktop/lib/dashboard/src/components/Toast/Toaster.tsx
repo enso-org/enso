@@ -52,7 +52,7 @@ export const Toaster = React.memo(function Toaster() {
           title: ariaComponents.TEXT_STYLE({
             color: 'primary',
             variant: 'subtitle',
-            truncate: '1',
+            truncate: '2',
           }),
           description: ariaComponents.TEXT_STYLE({
             color: 'primary',
