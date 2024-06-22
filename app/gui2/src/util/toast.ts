@@ -23,7 +23,7 @@ export function useToast(options: UseToastOptions = {}) {
 
   return {
     show(content: string) {
-      return toast.message(content, { ...options, id })
+      return toast.message(content, { ...options, toastId: id })
     },
     reportError<E>(result: ResultError<E>, preamble?: string) {
       const msg = result.message(preamble)

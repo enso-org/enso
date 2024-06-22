@@ -11,6 +11,7 @@ import type * as types from './types'
 
 const ID_LENGTH = 6
 const BASE_36 = 36
+const DEFAULT_DURATION = 5000
 
 /**
  * Wrap the toast method to add the id to the data object
@@ -28,6 +29,7 @@ function wrap(kind: types.ToastKind) {
  */
 function mapData<Data extends types.TPromiseToast>(data: Data): sonner.ExternalToast {
   const toastId = data.toastId ?? Math.random().toString(BASE_36).slice(2, ID_LENGTH)
+  const duration = data.autoClose === false ? Infinity : data.duration ?? DEFAULT_DURATION
 
   const dataActionIsObject =
     data.action != null && typeof data.action === 'object' && 'onPress' in data.action
@@ -39,6 +41,7 @@ function mapData<Data extends types.TPromiseToast>(data: Data): sonner.ExternalT
 
   return {
     ...data,
+    duration,
     id: toastId,
     action: dataActionIsObject
       ? { ...data.action, onClick: event => dataActionOnPress?.(toastId, event) }

@@ -89,7 +89,6 @@ export const Toaster = React.memo(function Toaster() {
       }}
       visibleToasts={6}
       offset={32}
-      duration={5000}
     />
   )
 })

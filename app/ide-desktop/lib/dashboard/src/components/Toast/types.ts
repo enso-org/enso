@@ -29,6 +29,7 @@ interface Action {
  * A toast to display.
  */
 type TToast = Omit<sonner.ToastT, 'action' | 'cancel' | 'id' | 'type'> & {
+  readonly autoClose?: boolean
   readonly toastId: Id
   readonly type?: ToastKind
   readonly action?: Action | React.ReactNode
