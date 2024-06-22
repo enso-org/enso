@@ -17,6 +17,7 @@ import * as tar from 'tar'
 
 import * as common from 'enso-common'
 import * as buildUtils from 'enso-common/src/buildUtils'
+import * as desktopEnvironment from './desktopEnvironment'
 
 const logger = console
 
@@ -369,7 +370,12 @@ export function getProjectRoot(subtreePath: string): string | null {
 
 /** Get the directory that stores Enso projects. */
 export function getProjectsDirectory(): string {
-    return pathModule.join(os.homedir(), 'enso', 'projects')
+    const documentsPath = desktopEnvironment.DOCUMENTS
+    if (documentsPath === undefined) {
+        return pathModule.join(os.homedir(), 'enso', 'projects')
+    } else {
+        return pathModule.join(documentsPath, 'enso-projects')
+    }
 }
 
 /** Check if the given project is installed, i.e. can be opened with the Project Manager. */

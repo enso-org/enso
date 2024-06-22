@@ -21,10 +21,7 @@ import org.enso.projectmanager.infrastructure.languageserver.{
 }
 import org.enso.projectmanager.infrastructure.log.Slf4jLogging
 import org.enso.projectmanager.infrastructure.random.SystemGenerator
-import org.enso.projectmanager.infrastructure.repository.{
-  ProjectFileRepository,
-  ProjectFileRepositoryFactory
-}
+import org.enso.projectmanager.infrastructure.repository.ProjectFileRepositoryFactory
 import org.enso.projectmanager.infrastructure.time.RealClock
 import org.enso.projectmanager.protocol.{
   JsonRpcProtocolFactory,
@@ -73,14 +70,6 @@ class MainModule[
 
   lazy val projectRepositoryFactory =
     new ProjectFileRepositoryFactory[F](config.storage, clock, fileSystem, gen)
-
-  lazy val projectRepository =
-    new ProjectFileRepository[F](
-      config.storage,
-      clock,
-      fileSystem,
-      gen
-    )
 
   val distributionConfiguration = DefaultDistributionConfiguration
   val loggingService            = Logging.GlobalLoggingService
@@ -149,7 +138,7 @@ class MainModule[
       timeoutConfig                   = config.timeout
     )
 
-  lazy val projectsEndpoint = new ProjectsEndpoint(projectRepository)
+  lazy val projectsEndpoint = new ProjectsEndpoint(projectRepositoryFactory)
   lazy val server =
     new JsonRpcServer(
       new JsonRpcProtocolFactory,
