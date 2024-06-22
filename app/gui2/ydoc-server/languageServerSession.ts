@@ -34,7 +34,7 @@ import {
   translateVisualizationFromFile,
 } from './edits'
 import * as fileFormat from './fileFormat'
-import { deserializeIdMap, serializeIdMap } from './serialization'
+import { deserializeIdMap, idMapToArray, serializeIdMap } from './serialization'
 import { WSSharedDoc } from './ydoc'
 
 const SOURCE_DIR = 'src'
@@ -457,6 +457,11 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
     }
   }
 
+  static getIdMapToPersist(idMap: IdMap, metadata: fileFormat.IdeMetadata['node']): IdMap {
+    const entriesIntersection = idMap.entries().filter(([, id]) => id in metadata)
+    return new IdMap(entriesIntersection)
+  }
+
   private sendLsUpdate(
     synced: EnsoFileParts,
     newCode: string | undefined,
@@ -466,10 +471,14 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
     if (this.syncedContent == null || this.syncedVersion == null) return
 
     const code = newCode ?? synced.code
-    const newMetadataJson =
-      newMetadata &&
-      json.stringify({ ...this.syncedMeta, ide: { ...this.syncedMeta.ide, node: newMetadata } })
-    const newIdMapJson = newIdMap && serializeIdMap(newIdMap)
+    const metadataToPersist = {
+      ...this.syncedMeta,
+      ide: { ...this.syncedMeta.ide, node: newMetadata },
+    }
+    const newMetadataJson = newMetadata && json.stringify(metadataToPersist)
+    const idMapToPersist =
+      newIdMap && ModulePersistence.getIdMapToPersist(newIdMap, metadataToPersist.ide.node ?? {})
+    const newIdMapJson = idMapToPersist && serializeIdMap(idMapToPersist)
     const newContent = combineFileParts({
       code,
       idMapJson: newIdMapJson ?? synced.idMapJson ?? '[]',
@@ -502,7 +511,7 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
 
     const execute = newCode != null || newIdMap != null
     const edit: FileEdit = { path: this.path, edits, oldVersion: this.syncedVersion, newVersion }
-    const apply = this.ls.applyEdit(edit, execute)
+    const apply = this.ls.applyEdit(edit, execute, newIdMap && idMapToArray(newIdMap))
     const handleError = (error: unknown) => {
       console.error('Could not apply edit:', error)
       // Try to recover by reloading the file.
