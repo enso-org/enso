@@ -958,9 +958,38 @@ type Table
                 self.java_table.distinct java_columns text_folding_strategy java_aggregator
         Table.Value java_table
 
-    ## ALIAS deduplicate, unique
-       GROUP Standard.Base.Selections
+    ## GROUP Standard.Base.Selections
        ICON preparation
+       Returns the set of rows which are duplicated within the specified columns from the
+       input table.
+
+       When multiple rows have the same values within the specified columns all of those rows are 
+       returned. Rows which are unique within the specified columns are removed.
+
+       Arguments:
+       - columns: The columns of the table to use for distinguishing the rows.
+       - case_sensitivity: Specifies if the text values should be compared case
+         sensitively.
+       - error_on_missing_columns: Specifies if a missing input column should
+         result in an error regardless of the `on_problems` settings. Defaults
+         to `True`.
+       - on_problems: Specifies how to handle if a problem occurs, raising as a
+         warning by default.
+
+       ! Error Conditions
+
+         - If there are no columns in the output table, a `No_Output_Columns` is
+           raised as an error regardless of the problem behavior, because it is
+           not possible to create a table without any columns.
+         - If a column in `columns` is not in the input table, a
+           `Missing_Input_Columns` is raised as an error, unless
+           `error_on_missing_columns` is set to `False`, in which case the
+           problem is reported according to the `on_problems` setting.
+         - If no valid columns are selected, a `No_Input_Columns_Selected`, is
+           reported as a dataflow error regardless of setting.
+         - If floating points values are present in the distinct columns, a
+           `Floating_Point_Equality` is reported according to the `on_problems`
+           setting.
     @columns Widget_Helpers.make_column_name_multi_selector
     duplicates : Vector (Integer | Text | Regex) | Text | Integer | Regex -> Case_Sensitivity -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Missing_Input_Columns | No_Input_Columns_Selected | Floating_Point_Equality
     duplicates self (columns = self.column_names) case_sensitivity:Case_Sensitivity=Case_Sensitivity.Default error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=..Report_Warning =
