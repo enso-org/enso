@@ -2907,13 +2907,14 @@ type DB_Table
        Applies the specified cleansings to the text in each row of the specified columns
 
        Arguments:
+       - from: The column(s) to cleanse.
        - remove: A vector of the text cleanings to remove from the text. The text cleansings are
            applied in the order they are provided. The same text cleansing can be used multiple
            times. The text cleansings are:
-             - ..Leading_Whitespace: Removes all whitspace from the start of the string.
-             - ..Trailing_Whitespace: Removes all whitspace from the end of the string.
-             - ..Duplicate_Whitespace: Removes all duplicate whitspace from the string replacing it with the first whitespace character of the duplicated block.
-             - ..All_Whitespace: Removes all whitspace from the string.
+             - ..Leading_Whitespace: Removes all whitespace from the start of the string.
+             - ..Trailing_Whitespace: Removes all whitespace from the end of the string.
+             - ..Duplicate_Whitespace: Removes all duplicate whitespace from the string replacing it with the first whitespace character of the duplicated block.
+             - ..All_Whitespace: Removes all whitespace from the string.
              - ..Leading_Numbers: Removes all numbers from the start of the string.
              - ..Trailing_Numbers: Removes all numbers from the end of the string.
              - ..Non_ASCII: Removes all non-ascii characters from the string.
@@ -2922,16 +2923,15 @@ type DB_Table
              - ..Numbers: Removes all numbers characters from the string.
              - ..Punctuation: Removes all characters in the set ,.!?():;'" from the string.
              - ..Symbols: Removes anything that isn't letters, numbers or whitespace from the string.
-       - from: The column(s) to cleanse.
 
        > Example
          Remove leading and trailing spaces from cells.
 
-             table.text_cleanse [..Leading_Whitespace, ..Trailing_Whitespace]
-    @remove make_data_cleanse_vector_selector
+             table.text_cleanse ["Input"] [..Leading_Whitespace, ..Trailing_Whitespace]
     @from (Widget_Helpers.make_column_name_multi_selector add_regex=True add_by_type=True)
-    text_cleanse : Vector Named_Pattern -> Vector (Integer | Text | Regex | By_Type) -> DB_Table
-    text_cleanse self remove from:(Vector (Integer | Text | Regex | By_Type)) =
+    @remove make_data_cleanse_vector_selector
+    text_cleanse : Vector (Integer | Text | Regex | By_Type) -> Vector Named_Pattern -> DB_Table
+    text_cleanse self from:(Vector (Integer | Text | Regex | By_Type)) remove =
         transformer col = col.text_cleanse remove
         Table_Helpers.replace_columns_with_transformed_columns self from transformer
 
