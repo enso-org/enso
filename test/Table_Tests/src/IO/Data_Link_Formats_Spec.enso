@@ -33,7 +33,7 @@ add_specs suite_builder = suite_builder.group "parsing Table formats in DataLink
 
     group_builder.specify "overriding the custom format in Delimited datalink" <|
         data_link_file = replace_url_in_data_link (data_link_root / "example-http-format-delimited-ignore-quote.datalink")
-        r = data_link_file.read Plain_Text
+        r = data_link_file.read ..Plain_Text
         r.should_be_a Text
         r.trim.should_equal '{"hello": "world"}'
 

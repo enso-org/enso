@@ -41,7 +41,7 @@ add_specs suite_builder =
 
     suite_builder.group "Plain_Text" group_builder->
         group_builder.specify "should be able to read a file as Text" <|
-            text = sample_xxx.read Plain_Text
+            text = sample_xxx.read ..Plain_Text
             text.should_equal "Hello World!"
 
         group_builder.specify "should be able to read a file as Text with Encoding" <|
