@@ -27,14 +27,14 @@ spec_fmt suite_builder header file read_method sheet_count=5 =
             wb.sheet_count . should_equal sheet_count
 
         group_builder.specify "should read the specified sheet by index and use correct headers" <|
-            t = read_method file (Excel_Format.Sheet 1)
+            t = read_method file (..Sheet 1)
             t.columns.map .name . should_equal ['Name', 'Quantity', 'Price']
             t.at 'Name' . to_vector . should_equal ['blouse', 't-shirt', 'trousers', 'shoes', 'skirt', 'dress']
             t.at 'Quantity' . to_vector . should_equal [10, 20, Nothing, 30, Nothing, 5]
             t.at 'Price' . to_vector . should_equal [22.3, 32, 43.2, 54, 31, Nothing]
 
         group_builder.specify "should read the specified sheet by index and properly format a table" <|
-            t = read_method file (Excel_Format.Sheet 2 headers=False)
+            t = read_method file (..Sheet 2 headers=False)
             t.columns.map .name . should_equal ['A', 'B', 'C', 'D', 'E']
             t.at 'A' . to_vector . should_equal [Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing]
             t.at 'B' . to_vector . should_equal [Nothing, Nothing, 10, Nothing, Nothing, Nothing, Nothing]
@@ -43,16 +43,16 @@ spec_fmt suite_builder header file read_method sheet_count=5 =
             t.at 'E' . to_vector . should_equal [Nothing, Nothing, Nothing, Nothing, Nothing, 'foo', Nothing]
 
         group_builder.specify "should read the specified sheet by name and properly handle dates" <|
-            t = read_method file (Excel_Format.Sheet 'Dates')
+            t = read_method file (..Sheet 'Dates')
             t.columns.map .name . should_equal ['Student Name', 'Enrolment Date']
             t.at 'Enrolment Date' . map .day . to_vector . should_equal [2, 26, 4, 24, 31, 7]
 
         group_builder.specify "should give an informative error when reading an empty table" <|
-            t = read_method file (Excel_Format.Sheet "Empty")
+            t = read_method file (..Sheet "Empty")
             t.should_fail_with Empty_Sheet
 
         group_builder.specify "should gracefully handle duplicate column names and formulas" <|
-            t = read_method file (Excel_Format.Sheet "Duplicate Columns")
+            t = read_method file (..Sheet "Duplicate Columns")
             t.columns.map .name . should_equal ['Item', 'Price', 'Quantity', 'Price 1']
             t.at 'Price 1' . to_vector . should_equal [20, 40, 0, 60, 0, 10]
 
@@ -161,8 +161,8 @@ spec_write suite_builder suffix test_sheet_name =
             alltypes = enso_project.data / "transient" / "alltypes."+suffix
             alltypes.delete_if_exists . should_succeed
             t1 = enso_project.data/'all_data_types.csv' . read
-            t1.write alltypes (Excel_Format.Sheet "AllTypes") . should_succeed
-            t2 = alltypes.read (Excel_Format.Sheet "AllTypes")
+            t1.write alltypes (..Sheet "AllTypes") . should_succeed
+            t2 = alltypes.read (..Sheet "AllTypes")
             t2.should_equal t1
 
 
@@ -188,24 +188,24 @@ spec_write suite_builder suffix test_sheet_name =
         group_builder.specify 'should write a table to existing file in overwrite mode as a new sheet with headers' <|
             out = data.create_out
             (enso_project.data / test_sheet_name) . copy_to out
-            data.table.write out (Excel_Format.Sheet "Another") on_existing_file=Existing_File_Behavior.Overwrite on_problems=Report_Error . should_succeed
-            written = out.read (Excel_Format.Sheet "Another")
+            data.table.write out (..Sheet "Another") on_existing_file=Existing_File_Behavior.Overwrite on_problems=Report_Error . should_succeed
+            written = out.read (..Sheet "Another")
             written.should_equal data.table
 
         group_builder.specify 'should write a table to existing file in overwrite mode as a new sheet without headers' <|
             out = data.create_out
             (enso_project.data / test_sheet_name) . copy_to out
-            data.table.write out (Excel_Format.Sheet "NoHeaders") on_existing_file=Existing_File_Behavior.Overwrite on_problems=Report_Error . should_succeed
-            written = out.read (Excel_Format.Sheet "NoHeaders")
+            data.table.write out (..Sheet "NoHeaders") on_existing_file=Existing_File_Behavior.Overwrite on_problems=Report_Error . should_succeed
+            written = out.read (..Sheet "NoHeaders")
             written.should_equal (data.table.rename_columns ['A', 'B', 'C', 'D', 'E', 'F'])
 
         group_builder.specify 'should create new sheets at the start if index is 0' <|
             out = data.create_out
-            data.table.write out (Excel_Format.Sheet 0) on_problems=Report_Error . should_succeed
-            data.clothes.write out (Excel_Format.Sheet 0) on_problems=Report_Error . should_succeed
-            read_1 = out.read (Excel_Format.Sheet "Sheet1")
+            data.table.write out (..Sheet 0) on_problems=Report_Error . should_succeed
+            data.clothes.write out (..Sheet 0) on_problems=Report_Error . should_succeed
+            read_1 = out.read (..Sheet "Sheet1")
             read_1 . should_equal data.table
-            read_2 = out.read (Excel_Format.Sheet "Sheet2")
+            read_2 = out.read (..Sheet "Sheet2")
             read_2 . should_equal data.clothes
             written = out.read
             read_3 = written.sheet_names
@@ -249,11 +249,11 @@ spec_write suite_builder suffix test_sheet_name =
             out = data.create_out
             (enso_project.data / test_sheet_name) . copy_to out
             lmd = out.last_modified_time
-            r1 = data.sub_clothes.write out (Excel_Format.Sheet 1) on_existing_file=Existing_File_Behavior.Error
+            r1 = data.sub_clothes.write out (..Sheet 1) on_existing_file=Existing_File_Behavior.Error
             r1.should_fail_with File_Error
             r1.catch.should_be_a File_Error.Already_Exists
 
-            data.sub_clothes.write out (Excel_Format.Sheet "Another") on_existing_file=Existing_File_Behavior.Error . should_fail_with File_Error
+            data.sub_clothes.write out (..Sheet "Another") on_existing_file=Existing_File_Behavior.Error . should_fail_with File_Error
             data.sub_clothes.write out (..Range "Another!A1") on_existing_file=Existing_File_Behavior.Error . should_fail_with File_Error
             data.sub_clothes.write out (..Range "Sheet1!A9") on_existing_file=Existing_File_Behavior.Error . should_fail_with File_Error
 
@@ -264,7 +264,7 @@ spec_write suite_builder suffix test_sheet_name =
             out = data.create_out
             (enso_project.data / test_sheet_name) . copy_to out
             lmd = out.last_modified_time
-            result = data.sub_clothes.write out (Excel_Format.Sheet "Testing") on_existing_file=Existing_File_Behavior.Error
+            result = data.sub_clothes.write out (..Sheet "Testing") on_existing_file=Existing_File_Behavior.Error
             result.should_fail_with File_Error
             result.catch.should_be_a File_Error.Already_Exists
             Test.with_clue "the original file should remain unmodified: " <|
@@ -272,7 +272,7 @@ spec_write suite_builder suffix test_sheet_name =
 
         group_builder.specify 'should write a table to non-existent file as a new sheet without headers' <|
             out = data.create_out
-            data.table.write out (Excel_Format.Sheet "Sheet1" headers=False) on_problems=Report_Error . should_succeed
+            data.table.write out (..Sheet "Sheet1" headers=False) on_problems=Report_Error . should_succeed
             written = out.read
             written.sheet_count . should_equal 1
             written.sheet_names . should_equal ['Sheet1']
@@ -286,8 +286,8 @@ spec_write suite_builder suffix test_sheet_name =
             (enso_project.data / test_sheet_name) . copy_to out
             extra_another = Table.new [['AA', ['d', 'e']], ['BB',[4, 5]], ['CC',[True, False]], ['DD', ['2022-01-20', '2022-01-21']]]
             expected = Table.new [['AA', ['a','b','c','d', 'e']], ['BB',[1,2,3,4,5]], ['CC',[True, False, False, True, False]]]
-            extra_another.write out (Excel_Format.Sheet "Another") on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error . should_succeed
-            written = out.read (Excel_Format.Sheet "Another") . select_columns [0, 1, 2]
+            extra_another.write out (..Sheet "Another") on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error . should_succeed
+            written = out.read (..Sheet "Another") . select_columns [0, 1, 2]
             written.should_equal expected
 
         group_builder.specify 'should be able to append to a sheet by position' <|
@@ -295,8 +295,8 @@ spec_write suite_builder suffix test_sheet_name =
             (enso_project.data / test_sheet_name) . copy_to out
             extra_another = Table.new [['A', ['d', 'e']], ['B',[4, 5]], ['C',[True, False]], ['D', ['2022-01-20', '2022-01-21']]]
             expected = Table.new [['AA', ['a','b','c','d', 'e']], ['BB',[1,2,3,4,5]], ['CC',[True, False, False, True, False]]]
-            extra_another.write out (Excel_Format.Sheet "Another") on_existing_file=Existing_File_Behavior.Append match_columns=Match_Columns.By_Position on_problems=Report_Error . should_succeed
-            written = out.read (Excel_Format.Sheet "Another") . select_columns [0, 1, 2]
+            extra_another.write out (..Sheet "Another") on_existing_file=Existing_File_Behavior.Append match_columns=Match_Columns.By_Position on_problems=Report_Error . should_succeed
+            written = out.read (..Sheet "Another") . select_columns [0, 1, 2]
             written.should_equal expected
 
         group_builder.specify 'should be able to append to a sheet by name out of order' <|
@@ -304,8 +304,8 @@ spec_write suite_builder suffix test_sheet_name =
             (enso_project.data / test_sheet_name) . copy_to out
             extra_another = Table.new [['CC',[True, False]], ['BB',[4, 5]], ['AA', ['d', 'e']], ['DD', ['2022-01-20', '2022-01-21']]]
             expected = Table.new [['AA', ['a','b','c','d', 'e']], ['BB',[1,2,3,4,5]], ['CC',[True, False, False, True, False]]]
-            extra_another.write out (Excel_Format.Sheet "Another") on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error . should_succeed
-            written = out.read (Excel_Format.Sheet "Another") . select_columns [0, 1, 2]
+            extra_another.write out (..Sheet "Another") on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error . should_succeed
+            written = out.read (..Sheet "Another") . select_columns [0, 1, 2]
             written.should_equal expected
 
         group_builder.specify 'should be able to append to a single cell by name' <|
@@ -314,7 +314,7 @@ spec_write suite_builder suffix test_sheet_name =
             extra_another = Table.new [['AA', ['d', 'e']], ['BB',[4, 5]], ['CC',[True, False]], ['DD', ['2022-01-20', '2022-01-21']]]
             expected = Table.new [['AA', ['a','b','c','d', 'e']], ['BB',[1,2,3,4,5]], ['CC',[True, False, False, True, False]]]
             extra_another.write out (..Range "Another!A1") on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error . should_succeed
-            written = out.read (Excel_Format.Sheet "Another") . select_columns [0, 1, 2]
+            written = out.read (..Sheet "Another") . select_columns [0, 1, 2]
             written.should_equal expected
 
         group_builder.specify 'should be able to append to a single cell by position' <|
@@ -323,7 +323,7 @@ spec_write suite_builder suffix test_sheet_name =
             extra_another = Table.new [['A', ['d', 'e']], ['B',[4, 5]], ['C',[True, False]], ['D', ['2022-01-20', '2022-01-21']]]
             expected = Table.new [['AA', ['a','b','c','d', 'e']], ['BB',[1,2,3,4,5]], ['CC',[True, False, False, True, False]]]
             extra_another.write out (..Range "Another!A1") on_existing_file=Existing_File_Behavior.Append match_columns=Match_Columns.By_Position on_problems=Report_Error . should_succeed
-            written = out.read (Excel_Format.Sheet "Another") . select_columns [0, 1, 2]
+            written = out.read (..Sheet "Another") . select_columns [0, 1, 2]
             written.should_equal expected
 
         group_builder.specify 'should be able to append to a single cell by name out of order' <|
@@ -332,7 +332,7 @@ spec_write suite_builder suffix test_sheet_name =
             extra_another = Table.new [['CC',[True, False]], ['BB',[4, 5]], ['AA', ['d', 'e']], ['DD', ['2022-01-20', '2022-01-21']]]
             expected = Table.new [['AA', ['a','b','c','d', 'e']], ['BB',[1,2,3,4,5]], ['CC',[True, False, False, True, False]]]
             extra_another.write out (..Range "Another!A1") on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error . should_succeed
-            written = out.read (Excel_Format.Sheet "Another") . select_columns [0, 1, 2]
+            written = out.read (..Sheet "Another") . select_columns [0, 1, 2]
             written.should_equal expected
 
         group_builder.specify 'should be able to append to a range by name' <|
@@ -341,7 +341,7 @@ spec_write suite_builder suffix test_sheet_name =
             extra_another = Table.new [['AA', ['d', 'e']], ['BB', [4, 5]], ['CC', [True, False]], ['DD', ['2022-01-20', '2022-01-21']]]
             expected = Table.new [['AA', ['a', 'b', 'c', 'd', 'e']], ['BB', [1, 2, 3, 4, 5]], ['CC', [True, False, False, True, False]]]
             extra_another.write out (..Range "Another!A1:D6") on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error . should_succeed
-            written = out.read (Excel_Format.Sheet "Another") . select_columns [0, 1, 2]
+            written = out.read (..Sheet "Another") . select_columns [0, 1, 2]
             written.should_equal expected
 
         group_builder.specify 'should be able to append to a range by position' <|
@@ -350,7 +350,7 @@ spec_write suite_builder suffix test_sheet_name =
             extra_another = Table.new [['A', ['d', 'e']], ['B',[4, 5]], ['C',[True, False]], ['D', ['2022-01-20', '2022-01-21']]]
             expected = Table.new [['AA', ['a','b','c','d', 'e']], ['BB',[1,2,3,4,5]], ['CC',[True, False, False, True, False]]]
             extra_another.write out (..Range "Another!A1:D6") on_existing_file=Existing_File_Behavior.Append match_columns=Match_Columns.By_Position on_problems=Report_Error . should_succeed
-            written = out.read (Excel_Format.Sheet "Another") . select_columns [0, 1, 2]
+            written = out.read (..Sheet "Another") . select_columns [0, 1, 2]
             written.should_equal expected
 
         group_builder.specify 'should be able to append to a range by name not in top left' <|
@@ -386,13 +386,13 @@ spec_write suite_builder suffix test_sheet_name =
             extra_another = Table.new [['CC',[True, False]], ['BB',[4, 5]], ['AA', ['d', 'e']], ['DD', ['2022-01-20', '2022-01-21']]]
             expected = Table.new [['AA', ['a','b','c','d', 'e']], ['BB',[1,2,3,4,5]], ['CC',[True, False, False, True, False]]]
             extra_another.write out (..Range "Another!A1:D6") on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error . should_succeed
-            written = out.read (Excel_Format.Sheet "Another") . select_columns [0, 1, 2]
+            written = out.read (..Sheet "Another") . select_columns [0, 1, 2]
             written.should_equal expected
 
         group_builder.specify 'should error gracefully if an unknown extension' <|
             out = data.create_out suffix="notxls"
             data.table.write out format=Excel_Format.Workbook on_problems=Report_Error . should_fail_with Illegal_Argument
-            data.table.write out format=Excel_Format.Sheet on_problems=Report_Error . should_fail_with Illegal_Argument
+            data.table.write out format=..Sheet on_problems=Report_Error . should_fail_with Illegal_Argument
 
         group_builder.specify 'should be able to write to a new dry run file' <|
             out = data.create_out
@@ -426,7 +426,7 @@ spec_write suite_builder suffix test_sheet_name =
             opened_temp.sheet_names . should_equal ['EnsoSheet']
 
             temp2 = Context.Output.with_disabled <|
-                result = data.table.write out (Excel_Format.Sheet "Another") on_problems=Report_Error . should_succeed
+                result = data.table.write out (..Sheet "Another") on_problems=Report_Error . should_succeed
                 Problems.expect_only_warning Dry_Run_Operation result
                 result.exists.should_be_true
                 result
@@ -456,7 +456,7 @@ spec_write suite_builder suffix test_sheet_name =
             opened_temp.sheet_names . should_equal ['EnsoSheet']
 
             temp2 = Context.Output.with_disabled <|
-                result = data.table.write temp1 (Excel_Format.Sheet "Another") on_problems=Report_Error . should_succeed
+                result = data.table.write temp1 (..Sheet "Another") on_problems=Report_Error . should_succeed
                 Problems.expect_only_warning Dry_Run_Operation result
                 result.exists.should_be_true
                 result
@@ -524,14 +524,14 @@ spec_write suite_builder suffix test_sheet_name =
             out = data.create_out
             (enso_project.data / test_sheet_name) . copy_to out
             extra_another = Table.new [['CC',[True, False]], ['BB',[4, 5]], ['AA', ['d', 'e']]]
-            extra_another.write out (Excel_Format.Sheet "Another") on_existing_file=Existing_File_Behavior.Append . should_fail_with Column_Name_Mismatch
+            extra_another.write out (..Sheet "Another") on_existing_file=Existing_File_Behavior.Append . should_fail_with Column_Name_Mismatch
 
         group_builder.specify 'should fail to append to a sheet by name if extra columns' <|
             out = data.create_out
             (enso_project.data / test_sheet_name) . copy_to out
             lmd = out.last_modified_time
             extra_another = Table.new [['CC',[True, False]], ['BB',[4, 5]], ['AA', ['d', 'e']], ['DD', ['2022-01-20', '2022-01-21']], ['EE', ['2022-01-20', '2022-01-21']]]
-            extra_another.write out (Excel_Format.Sheet "Another") on_existing_file=Existing_File_Behavior.Append . should_fail_with Column_Name_Mismatch
+            extra_another.write out (..Sheet "Another") on_existing_file=Existing_File_Behavior.Append . should_fail_with Column_Name_Mismatch
             out.last_modified_time.should_equal lmd
 
         group_builder.specify 'should fail to append to a sheet by name if no headers' <|
@@ -539,8 +539,8 @@ spec_write suite_builder suffix test_sheet_name =
             (enso_project.data / test_sheet_name) . copy_to out
             lmd = out.last_modified_time
             extra_another = Table.new [['CC',[True, False]], ['BB',[4, 5]], ['AA', ['d', 'e']], ['DD', ['2022-01-20', '2022-01-21']], ['EE', ['2022-01-20', '2022-01-21']]]
-            extra_another.write out (Excel_Format.Sheet "NoHeaders") on_existing_file=Existing_File_Behavior.Append . should_fail_with Illegal_Argument
-            extra_another.write out (Excel_Format.Sheet "Another" headers=False) on_existing_file=Existing_File_Behavior.Append . should_fail_with Illegal_Argument
+            extra_another.write out (..Sheet "NoHeaders") on_existing_file=Existing_File_Behavior.Append . should_fail_with Illegal_Argument
+            extra_another.write out (..Sheet "Another" headers=False) on_existing_file=Existing_File_Behavior.Append . should_fail_with Illegal_Argument
             out.last_modified_time.should_equal lmd
 
         group_builder.specify 'should fail to append to a sheet by position if too few columns' <|
@@ -548,7 +548,7 @@ spec_write suite_builder suffix test_sheet_name =
             (enso_project.data / test_sheet_name) . copy_to out
             lmd = out.last_modified_time
             extra_another = Table.new [['CC',[True, False]], ['BB',[4, 5]], ['AA', ['d', 'e']]]
-            extra_another.write out (Excel_Format.Sheet "Another") on_existing_file=Existing_File_Behavior.Append match_columns=Match_Columns.By_Position . should_fail_with Column_Count_Mismatch
+            extra_another.write out (..Sheet "Another") on_existing_file=Existing_File_Behavior.Append match_columns=Match_Columns.By_Position . should_fail_with Column_Count_Mismatch
             out.last_modified_time.should_equal lmd
 
         group_builder.specify 'should fail to append to a sheet by position if too many columns' <|
@@ -556,7 +556,7 @@ spec_write suite_builder suffix test_sheet_name =
             (enso_project.data / test_sheet_name) . copy_to out
             lmd = out.last_modified_time
             extra_another = Table.new [['CC',[True, False]], ['BB',[4, 5]], ['AA', ['d', 'e']], ['DD', ['2022-01-20', '2022-01-21']], ['EE', ['2022-01-20', '2022-01-21']]]
-            extra_another.write out (Excel_Format.Sheet "Another") on_existing_file=Existing_File_Behavior.Append match_columns=Match_Columns.By_Position . should_fail_with Column_Count_Mismatch
+            extra_another.write out (..Sheet "Another") on_existing_file=Existing_File_Behavior.Append match_columns=Match_Columns.By_Position . should_fail_with Column_Count_Mismatch
             out.last_modified_time.should_equal lmd
 
         group_builder.specify 'should fail to append to a range by name if not large enough' <|
@@ -588,7 +588,7 @@ spec_write suite_builder suffix test_sheet_name =
             [Existing_File_Behavior.Backup, Existing_File_Behavior.Overwrite, Existing_File_Behavior.Append].each behavior-> Test.with_clue behavior.to_text+": " <|
                 f.exists . should_be_true
 
-                r1 = t1.write f (Excel_Format.Sheet "Another") on_existing_file=behavior
+                r1 = t1.write f (..Sheet "Another") on_existing_file=behavior
                 Test.with_clue "("+r1.catch.to_display_text+") " <|
                     r1.should_fail_with File_Error
                     r1.catch.should_be_a File_Error.Access_Denied
@@ -641,7 +641,7 @@ spec_write suite_builder suffix test_sheet_name =
 
             f = parent / "foo."+suffix
             t1 = Table.new [["X", [1, 2, 3]]]
-            r1 = t1.write f (Excel_Format.Sheet "Another")
+            r1 = t1.write f (..Sheet "Another")
             Test.with_clue "("+r1.catch.to_display_text+") " <|
                 r1.should_fail_with File_Error
                 r1.catch.should_be_a File_Error.Not_Found
@@ -651,8 +651,8 @@ spec_write suite_builder suffix test_sheet_name =
             encodings.delete_if_exists . should_succeed
 
             t1 = Table.new [["A", ["A", "B", "😊", "D"]], ["B", [1, 2, 3, 4]]]
-            t1.write encodings (Excel_Format.Sheet "Another") . should_succeed
-            t2 = encodings.read (Excel_Format.Sheet "Another")
+            t1.write encodings (..Sheet "Another") . should_succeed
+            t2 = encodings.read (..Sheet "Another")
             t2.at "A" . to_vector . should_equal ["A", "B", "😊", "D"]
             encodings.delete
 
@@ -661,8 +661,8 @@ spec_write suite_builder suffix test_sheet_name =
             custom_types.delete_if_exists . should_succeed
 
             t1 = Table.new [["A", [Complex.Value 19 89, Complex.Value -1 -42]], ["B", [1, 2]]]
-            t1.write custom_types (Excel_Format.Sheet "Another") . should_succeed
-            t2 = custom_types.read (Excel_Format.Sheet "Another")
+            t1.write custom_types (..Sheet "Another") . should_succeed
+            t2 = custom_types.read (..Sheet "Another")
             t2.at "A" . to_vector . should_equal ["(Complex.Value 19.0 89.0)", "(Complex.Value -1.0 -42.0)"]
             custom_types.delete
 
@@ -671,8 +671,8 @@ spec_write suite_builder suffix test_sheet_name =
             custom_types2.delete_if_exists . should_succeed
 
             t1 = Table.new [["A", [Complex_With_To_String.Value 19 89, Complex_With_To_String.Value -1 -42]], ["B", [1, 2]]]
-            t1.write custom_types2 (Excel_Format.Sheet "Another") . should_succeed
-            t2 = custom_types2.read (Excel_Format.Sheet "Another")
+            t1.write custom_types2 (..Sheet "Another") . should_succeed
+            t2 = custom_types2.read (..Sheet "Another")
             t2.at "A" . to_vector . should_equal ["19.0 + 89.0i", "-1.0 + -42.0i"]
             custom_types2.delete
 
@@ -688,7 +688,7 @@ spec_write suite_builder suffix test_sheet_name =
                 t1.write empty on_existing_file=behavior . should_succeed
                 empty.exists.should_be_true
 
-                t2 = empty.read (Excel_Format.Sheet "EnsoSheet")
+                t2 = empty.read (..Sheet "EnsoSheet")
                 t2.should_equal t1
                 empty.delete
 
@@ -864,18 +864,18 @@ add_specs suite_builder =
             xls_sheet.read . named_ranges . should_equal range_names
 
         group_builder.specify "should let you read by sheet index" <|
-            table = xlsx_sheet.read (Excel_Format.Sheet 1)
+            table = xlsx_sheet.read (..Sheet 1)
             check_table table
 
-            table_2 = xlsx_sheet.read (Excel_Format.Sheet 1 skip_rows=(table.row_count - col_a.length))
+            table_2 = xlsx_sheet.read (..Sheet 1 skip_rows=(table.row_count - col_a.length))
             table_2.row_count . should_equal col_a.length
             check_table table_2
 
         group_builder.specify "should let you read by sheet name" <|
-            table = xlsx_sheet.read (Excel_Format.Sheet "Sheet1")
+            table = xlsx_sheet.read (..Sheet "Sheet1")
             check_table table
 
-            table_2 = xlsx_sheet.read (Excel_Format.Sheet "Sheet1" skip_rows=(table.row_count - col_a.length))
+            table_2 = xlsx_sheet.read (..Sheet "Sheet1" skip_rows=(table.row_count - col_a.length))
             table_2.row_count . should_equal col_a.length
             check_table table_2
 
@@ -886,14 +886,14 @@ add_specs suite_builder =
             check_table table_4
 
         group_builder.specify "should error if you read by an invalid sheet name" <|
-            xlsx_sheet.read (Excel_Format.Sheet "NoSuchSheet") . should_fail_with Invalid_Location
+            xlsx_sheet.read (..Sheet "NoSuchSheet") . should_fail_with Invalid_Location
             xlsx_sheet.read . read "NoSuchSheet" . should_fail_with Invalid_Location
 
         group_builder.specify "should let you read XLS by sheet index" <|
-            table = xls_sheet.read (Excel_Format.Sheet 1)
+            table = xls_sheet.read (..Sheet 1)
             check_table table
 
-            table_2 = xls_sheet.read (Excel_Format.Sheet 1 skip_rows=(table.row_count - col_a.length))
+            table_2 = xls_sheet.read (..Sheet 1 skip_rows=(table.row_count - col_a.length))
             table_2.row_count . should_equal col_a.length
             check_table table_2
 
@@ -901,7 +901,7 @@ add_specs suite_builder =
             check_table table_4
 
         group_builder.specify "should let you read XLS by sheet name" <|
-            table = xls_sheet.read (Excel_Format.Sheet "Sheet1")
+            table = xls_sheet.read (..Sheet "Sheet1")
             check_table table
 
             table_2 = xls_sheet.read . read "Sheet1"
@@ -931,17 +931,17 @@ add_specs suite_builder =
             check_table table_2 3
 
         group_builder.specify "should let you restrict number of rows read and skip rows" <|
-            table = xlsx_sheet.read (Excel_Format.Sheet "Sheet1")
+            table = xlsx_sheet.read (..Sheet "Sheet1")
             check_table table
 
-            table_2 = xlsx_sheet.read (Excel_Format.Sheet "Sheet1" skip_rows=(table.row_count - col_a.length))
+            table_2 = xlsx_sheet.read (..Sheet "Sheet1" skip_rows=(table.row_count - col_a.length))
             table_2.row_count . should_equal col_a.length
             check_table table_2
 
-            table_3 = xlsx_sheet.read (Excel_Format.Sheet "Sheet1" skip_rows=(table.row_count - col_a.length) row_limit=2)
+            table_3 = xlsx_sheet.read (..Sheet "Sheet1" skip_rows=(table.row_count - col_a.length) row_limit=2)
             table_3.row_count . should_equal 2
 
-            table_4 = xlsx_sheet.read (Excel_Format.Sheet "Sheet1" row_limit=6)
+            table_4 = xlsx_sheet.read (..Sheet "Sheet1" row_limit=6)
             table_4.row_count . should_equal 6
 
     suite_builder.group "Problems" group_builder->
