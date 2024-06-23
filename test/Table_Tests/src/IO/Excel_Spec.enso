@@ -391,7 +391,7 @@ spec_write suite_builder suffix test_sheet_name =
 
         group_builder.specify 'should error gracefully if an unknown extension' <|
             out = data.create_out suffix="notxls"
-            data.table.write out format=Excel_Format.Workbook on_problems=Report_Error . should_fail_with Illegal_Argument
+            data.table.write out format=..Workbook on_problems=Report_Error . should_fail_with Illegal_Argument
             data.table.write out format=..Sheet on_problems=Report_Error . should_fail_with Illegal_Argument
 
         group_builder.specify 'should be able to write to a new dry run file' <|
@@ -484,7 +484,7 @@ spec_write suite_builder suffix test_sheet_name =
 
             opened_out = out.read
             # We need to specify explicit format for the backup, because the extension is changed:
-            opened_backup = bak.read (Excel_Format.Workbook xls_format=(suffix=="xls"))
+            opened_backup = bak.read (..Workbook xls_format=(suffix=="xls"))
 
             opened_out.read 'EnsoSheet' . should_equal t2
             opened_backup.read 'EnsoSheet' . should_equal t1
@@ -829,13 +829,13 @@ add_specs suite_builder =
             check_workbook <| Data.read xls_path
 
         group_builder.specify "should let you read the workbook with Excel" <|
-            check_workbook <| xlsx_sheet.read Excel_Format.Workbook
-            check_workbook <| Data.read xlsx_sheet Excel_Format.Workbook
-            check_workbook <| Data.read xlsx_path Excel_Format.Workbook
+            check_workbook <| xlsx_sheet.read ..Workbook
+            check_workbook <| Data.read xlsx_sheet ..Workbook
+            check_workbook <| Data.read xlsx_path ..Workbook
 
-            check_workbook <| xls_sheet.read Excel_Format.Workbook
-            check_workbook <| Data.read xls_sheet Excel_Format.Workbook
-            check_workbook <| Data.read xls_path Excel_Format.Workbook
+            check_workbook <| xls_sheet.read ..Workbook
+            check_workbook <| Data.read xls_sheet ..Workbook
+            check_workbook <| Data.read xls_path ..Workbook
 
         group_builder.specify "workbook should look like a database connection" <|
             workbook = xlsx_sheet.read
@@ -990,7 +990,7 @@ add_specs suite_builder =
             r1.catch.should_be_a File_Error.Corrupted_Format
             r1.catch.to_display_text.should_contain "is corrupted"
 
-            r1a = bad_file.read Excel_Format.Workbook
+            r1a = bad_file.read ..Workbook
             r1a.should_fail_with File_Error
             r1a.catch.should_be_a File_Error.Corrupted_Format
 
