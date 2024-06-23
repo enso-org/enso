@@ -105,10 +105,6 @@ add_specs suite_builder setup =
             column_4.name . should_equal "foo"
             column_4.to_vector . should_equal [1, 2, 3]
 
-            column_5 = data.table.second_column
-            column_5.name . should_equal "bar"
-            column_5.to_vector . should_equal [4, 5, 6]
-
             column_6 = data.table.last_column
             column_6.name . should_equal "abcd123"
             column_6.to_vector . should_equal [19, 20, 21]

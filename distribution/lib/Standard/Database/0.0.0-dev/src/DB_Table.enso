@@ -179,13 +179,6 @@ type DB_Table
     first_column : DB_Column ! Index_Out_Of_Bounds
     first_column self = self.at 0
 
-    ## ALIAS second field
-       GROUP Standard.Base.Selections
-       ICON select_column
-       Gets the second column
-    second_column : DB_Column ! Index_Out_Of_Bounds
-    second_column self = self.at 1
-
     ## ALIAS last field
        GROUP Standard.Base.Selections
        ICON select_column
