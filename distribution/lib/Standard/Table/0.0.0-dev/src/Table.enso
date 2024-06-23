@@ -2678,9 +2678,8 @@ type Table
          Write a table to a CSV file, without writing the header.
 
              import Standard.Examples
-             from Standard.Table import Delimited
 
-             example_to_csv = Examples.inventory_table.write (Enso_Project.data / "example_csv_output.csv") (Delimited_Format.Delimited delimiter="," headers=False)
+             example_to_csv = Examples.inventory_table.write (Enso_Project.data / "example_csv_output.csv") (..Delimited delimiter="," headers=False)
 
        > Example
          Write a table to an XLSX file.
@@ -2711,7 +2710,7 @@ type Table
     ## ICON convert
        Creates a text representation of the table using the CSV format.
     to_csv : Text
-    to_csv self = Text.from self (Delimited_Format.Delimited delimiter=",")
+    to_csv self = Text.from self (..Delimited delimiter=",")
 
     ## GROUP Standard.Base.Conversions
        ICON convert
@@ -3123,7 +3122,7 @@ Table.from (that : Text) (format = Delimited_Format.Delimited '\t') (on_problems
    Arguments:
    - that: The table to convert.
    - format: The format of the text.
-Text.from (that : Table) (format:Delimited_Format = Delimited_Format.Delimited '\t') =
+Text.from (that : Table) (format:Delimited_Format = ..Delimited '\t') =
     Delimited_Writer.write_text that format
 
 ## PRIVATE
