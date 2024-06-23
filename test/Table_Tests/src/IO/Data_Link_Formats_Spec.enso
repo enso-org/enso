@@ -60,7 +60,7 @@ add_specs suite_builder = suite_builder.group "parsing Table formats in DataLink
     group_builder.specify "overriding Excel format" <|
         data_link_file = replace_url_in_data_link (data_link_root / "example-http-format-excel-workbook.datalink")
 
-        table = data_link_file.read (Excel_Format.Range "MyTestSheet!A1:B1")
+        table = data_link_file.read (..Range "MyTestSheet!A1:B1")
         table . should_equal (Table.from_rows ["A", "B"] [[1, 'x']])
 
         bytes = data_link_file.read_bytes

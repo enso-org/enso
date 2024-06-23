@@ -258,7 +258,6 @@ type Enso_File
             Enso_Asset_Type.Data_Link ->
                 json = Utils.http_request_as_json HTTP_Method.Get asset.internal_uri
                 datalink = Data_Link_Helpers.interpret_json_as_data_link json
-                ## TODO - check this.
                 datalink.read format on_problems
             Enso_Asset_Type.Directory -> if format == Auto_Detect then self.list else Error.throw (Illegal_Argument.Error "Directories can only be read using the Auto_Detect format.")
             Enso_Asset_Type.File ->
