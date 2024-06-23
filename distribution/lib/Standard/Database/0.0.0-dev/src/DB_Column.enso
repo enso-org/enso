@@ -156,7 +156,8 @@ type DB_Column
              example_at = Examples.integer_column.get 0 -1
     get : Integer -> Any -> Any | Nothing
     get self index:Integer=0 (~default=Nothing) =
-        self.read (..First index+1) . get index default
+        if index < 0 then Error.throw (Unsupported_Database_Operation.Error "Reading backwards from end is not supported in-database. Use `read` to materialize the column.") else
+            self.read (..First index+1) . get index default
 
     ## GROUP Standard.Base.Metadata
        ICON metadata
