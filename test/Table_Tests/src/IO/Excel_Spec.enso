@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Errors.Common.Dry_Run_Operation
+import Standard.Base.Errors.Common.Missing_Argument
 import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
@@ -947,8 +948,8 @@ add_specs suite_builder =
     suite_builder.group "Problems" group_builder->
         group_builder.specify "should report a user-friendly error message when format is missing a required argument" <|
             r = xlsx_sheet.read (..Range)
-            r.should_fail_with Illegal_Argument
-            r.catch.to_display_text . should_contain "Perhaps the format is missing some required arguments?"
+            r.should_fail_with Missing_Argument
+            r.catch.to_display_text . should_contain "Provide a value for the argument `address`."
 
         group_builder.specify "should handle non-existing file gracefully" <|
             bad_file = enso_project.data / "DoesNotExists.xlsx"

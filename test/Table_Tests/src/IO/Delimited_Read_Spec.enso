@@ -210,10 +210,10 @@ add_specs suite_builder =
             t1.at 'a' . to_vector . should_equal ['a, x', '"a']
             t1.at 'c' . to_vector . should_equal ['3', '"']
 
-            t2 = Data.read (enso_project.data / "escape_quoted.csv") (..Delimited "," headers=True value_formatter=Nothing . with_quotes quote_escape="\")
+            t2 = Data.read (enso_project.data / "escape_quoted.csv") (Delimited_Format.Delimited "," headers=True value_formatter=Nothing . with_quotes quote_escape="\")
             t2.at 'a' . to_vector . should_equal ['a"b', 'a\\\"z']
 
-            t3 = Data.read (enso_project.data / "no_quoting.csv") (..Delimited "," headers=True value_formatter=Nothing . without_quotes)
+            t3 = Data.read (enso_project.data / "no_quoting.csv") (Delimited_Format.Delimited "," headers=True value_formatter=Nothing . without_quotes)
             t3.at 'a' . to_vector . should_equal ['"y']
             t3.at 'b' . to_vector . should_equal ['z"']
             t3.at 'c' . to_vector . should_equal ['a']
@@ -366,9 +366,9 @@ add_specs suite_builder =
         group_builder.specify "should check arguments" <|
             path = (enso_project.data / "simple_empty.csv")
             pb = Problem_Behavior.Report_Error
-            path.read (..Delimited "," headers=False . with_quotes quote='abc') pb . should_fail_with Illegal_Argument
-            path.read (..Delimited "," headers=False . with_quotes quote='🚧') pb . should_fail_with Illegal_Argument
-            path.read (..Delimited "," headers=False . with_quotes quote_escape='//') pb . should_fail_with Illegal_Argument
+            path.read (Delimited_Format.Delimited "," headers=False . with_quotes quote='abc') pb . should_fail_with Illegal_Argument
+            path.read (Delimited_Format.Delimited "," headers=False . with_quotes quote='🚧') pb . should_fail_with Illegal_Argument
+            path.read (Delimited_Format.Delimited "," headers=False . with_quotes quote_escape='//') pb . should_fail_with Illegal_Argument
             path.read (..Delimited 'a\u{301}' headers=False) pb . should_fail_with Illegal_Argument
 
         group_builder.specify "should correctly guess column types" <|
@@ -433,8 +433,8 @@ add_specs suite_builder =
             table_hash = Table.new [["a", [";1", "5"]], ["42", [2, 6]], ["c # comment??", ["3", "7;comment?"]]]
             table_semicolon = Table.new [["#", ["a", "5"]], ["x", [42, 6]], ["y", ["c # comment??", "7;comment?"]]]
 
-            Data.read (enso_project.data / "comments.csv") (..Delimited ',' . with_comments . with_headers) . should_equal table_hash
-            Data.read (enso_project.data / "comments.csv") (..Delimited ',' . with_comments ';' . with_headers) . should_equal table_semicolon
+            Data.read (enso_project.data / "comments.csv") (Delimited_Format.Delimited ',' . with_comments . with_headers) . should_equal table_hash
+            Data.read (enso_project.data / "comments.csv") (Delimited_Format.Delimited ',' . with_comments ';' . with_headers) . should_equal table_semicolon
 
         group_builder.specify "should manage to parse a file containing null characters" pending="Parsing NULL character in CSV currently does not handle some edge cases. It may need to be revised. See issue https://github.com/enso-org/enso/issues/5655" <|
             f = enso_project.data / "transient" / "slash_zero.csv"

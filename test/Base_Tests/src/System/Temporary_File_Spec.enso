@@ -34,7 +34,7 @@ add_specs suite_builder =
 
             tmp.dispose
 
-            Test.expect_panic Illegal_State <| tmp.with_file (f->f.read ..Plain_Text)
+            Test.expect_panic Illegal_State <| tmp.with_file (f->f.read Plain_Text_Format.Plain_Text)
             raw_file.exists . should_be_false
 
         group_builder.specify "should allow to create a new file and allow to dispose it once the reference is dropped" <|

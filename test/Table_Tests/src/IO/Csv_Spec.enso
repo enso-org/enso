@@ -95,7 +95,7 @@ add_specs suite_builder =
                 "This;Name;;Is""""Strange",20
                 "Marcin,,","hello;world"
 
-            res = Text.from t format=(..Delimited "," . with_quotes always_quote=True)
+            res = Text.from t format=(Delimited_Format.Delimited "," . with_quotes always_quote=True)
             res.should_equal expected
 
 
@@ -130,7 +130,7 @@ add_specs suite_builder =
             t2 = out.read
             t2.should_equal t
 
-            t3 = out.read (..Delimited ',' . with_comments)
+            t3 = out.read (Delimited_Format.Delimited ',' . with_comments)
             t3.should_equal t
 
             out.delete_if_exists

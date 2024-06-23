@@ -73,7 +73,7 @@ add_specs suite_builder =
             table = Table.new [['"A"', ["foo",'!"baz" ', 'one, two, three', "a;b; c ", "a\b", 'n\nm']], ["B", [1000000.5, 1000.0, 0.0, -1.2, Nothing, 33]]]
             file = (enso_project.data / "transient" / "quotes2.csv")
             file.delete_if_exists
-            table.write file (..Delimited ";" value_formatter=data_formatter . with_quotes quote='"' quote_escape='\\') on_problems=Report_Error . should_succeed
+            table.write file (Delimited_Format.Delimited ";" value_formatter=data_formatter . with_quotes quote='"' quote_escape='\\') on_problems=Report_Error . should_succeed
             expected_text = normalize_lines <| """
                 "\"A\"";B
                 foo;1'000'000.5
@@ -92,7 +92,7 @@ add_specs suite_builder =
             table = Table.new [['"A"', [Nothing,"The 'thing'.", 'one, "two", three', 'a\tb', 'x\ny', 'w\vz']], ["B\C", [1000000.5, 1000.0, Nothing, -1.2, 2.0, 42.0]]]
             file = (enso_project.data / "transient" / "quotes3.csv")
             file.delete_if_exists
-            table.write file (..Delimited '\t' value_formatter=data_formatter . with_quotes quote='\'' quote_escape='\'') on_problems=Report_Error . should_succeed
+            table.write file (Delimited_Format.Delimited '\t' value_formatter=data_formatter . with_quotes quote='\'' quote_escape='\'') on_problems=Report_Error . should_succeed
             expected_text = normalize_lines <| '''
                 "A"\tB\\C
                 \t'1''000''000.5'
