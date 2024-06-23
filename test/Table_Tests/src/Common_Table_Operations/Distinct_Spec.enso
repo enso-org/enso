@@ -23,7 +23,7 @@ type Data
 add_specs suite_builder setup =
     materialize = setup.materialize
     create_connection_fn = setup.create_connection_func
-    suite_builder.group setup.prefix+"Table.distinct" pending=db_todo group_builder->
+    suite_builder.group setup.prefix+"Table.distinct" group_builder->
         data = Data.setup create_connection_fn
 
         group_builder.teardown <|
@@ -148,7 +148,7 @@ add_specs suite_builder setup =
             Problems.test_problem_handling action3 problems3 tester3
 
     db_todo = if setup.is_database.not then Nothing else "Table.duplicates is not implemented yet in Database."
-    suite_builder.group setup.prefix+"Table.duplicates" group_builder->
+    suite_builder.group setup.prefix+"Table.duplicates" pending=db_todo group_builder->
         data = Data.setup create_connection_fn
 
         group_builder.teardown <|
