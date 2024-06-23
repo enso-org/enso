@@ -166,73 +166,46 @@ add_specs suite_builder setup =
 
         group_builder.specify "should allow to select duplicates rows based on a subset of columns, returning any row from each group" <|
             a = ["A", ["a", "a", "a", "a", "a", "a"]]
-            b = ["B", [1, 1, 2, 2, 1, 2]]
+            b = ["B", [1, 1, 2, 2, 1, 3]]
             c = ["C", [0.1, 0.2, 0.3, 0.4, 0.5, 0.6]]
             t = table_builder [a, b, c]
 
             r1 = t.duplicates ["A"] on_problems=Report_Error |> materialize
-            r1.at "A" . to_vector . should_equal ["a"]
-            r1.at "B" . to_vector . should_equal [1]
-            r1.at "C" . to_vector . should_equal [0.1]
+            r1.at "A" . to_vector . should_equal ["a", "a", "a", "a", "a", "a"]
+            r1.at "B" . to_vector . should_equal [1, 1, 2, 2, 1, 3]
+            r1.at "C" . to_vector . should_equal [0.1, 0.2, 0.3, 0.4, 0.5, 0.6]
 
-            r2 = t.duplicates ["A", "B"] on_problems=Report_Error |> materialize |> _.order_by "B"
-            r2.at "A" . to_vector . should_equal ["a", "a"]
-            r2.at "B" . to_vector . should_equal [1, 2]
-            cv = r2.at "C" . to_vector
-            [0.1, 0.2, 0.5].contains (cv.at 0) . should_be_true
-            [0.3, 0.4, 0.6].contains (cv.at 1) . should_be_true
-
-        if setup.test_selection.distinct_returns_first_row_from_group_if_ordered then
-            group_builder.specify "should allow to select duplicates rows based on a subset of columns, returning any first from each group if the table was ordered" <|
-                a = ["A", ["a", "a", "a", "a", "a", "a"]]
-                b = ["B", [1, 1, 2, 2, 1, 2]]
-                c = ["C", [0.1, 0.2, 0.3, 0.4, 0.5, 0.6]]
-                t = table_builder [a, b, c] . order_by ([(Sort_Column.Name "C" Sort_Direction.Descending)])
-
-                r2 = t.duplicates ["A", "B"] on_problems=Report_Error |> materialize |> _.order_by "B"
-                r2.at "A" . to_vector . should_equal ["a", "a"]
-                r2.at "B" . to_vector . should_equal [1, 2]
-                r2.at "C" . to_vector . should_equal [0.5, 0.6]
+            r2 = t.duplicates ["A", "B"] on_problems=Report_Error |> materialize
+            r2.at "A" . to_vector . should_equal ["a", "a", "a", "a", "a"]
+            r2.at "B" . to_vector . should_equal [1, 1, 2, 2, 1]
+            r2.at "C" . to_vector . should_equal [0.1, 0.2, 0.3, 0.4, 0.5]
 
         group_builder.specify "should allow to control case-sensitivity of keys" <|
             x = ["X", ['A', 'a', 'enso', 'Enso', 'A']]
             t1 = table_builder [x]
             d1 = t1.duplicates ["X"] on_problems=Report_Error |> materialize |> _.order_by ["X"]
-            d1.at "X" . to_vector . should_equal ['A', 'Enso', 'a', 'enso']
+            d1.at "X" . to_vector . should_equal ['A', 'A']
 
             d2 = t1.duplicates ["X"] case_sensitivity=Case_Sensitivity.Insensitive on_problems=Report_Error |> materialize |> _.order_by ["X"]
-            v = d2.at "X" . to_vector
-            v.length . should_equal 2
-            v.filter (_.equals_ignore_case "enso") . length . should_equal 1
-            v.filter (_.equals_ignore_case "a") . length . should_equal 1
+            d2.at "X" . to_vector . should_equal ['A', 'A', 'Enso', 'a', 'enso']
 
         group_builder.specify "should report a warning if the key contains floating point values" <|
             t1 = table_builder [["X", [3.0, 1.0, 2.0, 2.0, 1.0]]]
             action1 = t1.duplicates on_problems=_
             tester1 table =
                 v = table.at "X" . to_vector
-                v.length . should_equal 3
+                v.length . should_equal 4
                 v.fold 0 (+) . should_equal 6.0
             problems1 = [Floating_Point_Equality.Error "X"]
             Problems.test_problem_handling action1 problems1 tester1
 
         group_builder.specify "should handle nulls correctly" <|
-            a = ["A", ["a", Nothing, "b", "a", "b", Nothing, "a", "b"]]
-            b = ["B", [1, 2, 3, 4, 5, 6, 7, 8]]
+            a = ["A", ["a", Nothing, "b", Nothing]]
+            b = ["B", [1, 2, 3, 4]]
             t = table_builder [a, b]
-            r = t.duplicates ["A"] on_problems=Report_Error |> materialize |> _.order_by "A"
-            va = r.at "A" . to_vector
-            vb = r.at "B" . to_vector
-            va . should_equal [Nothing, "a", "b"]
-
-            va.at 0 . should_equal Nothing
-            [2, 6].contains (vb.at 0) . should_be_true
-
-            va.at 1 . should_equal "a"
-            [1, 4, 7].contains (vb.at 1) . should_be_true
-
-            va.at 2 . should_equal "b"
-            [3, 5, 8].contains (vb.at 2) . should_be_true
+            r = t.duplicates ["A"] on_problems=Report_Error |> materialize |> _.order_by "B"
+            r.at "A" . to_vector . should_equal [Nothing, Nothing]
+            r.at "B" . to_vector . should_equal [2, 4]
 
         group_builder.specify "should report missing input columns" <|
             t1 = table_builder [["X", [1, 2, 3, 2, 2]]]
@@ -261,12 +234,12 @@ add_specs suite_builder setup =
 
             action2 = t1.duplicates ["X", "Y"] error_on_missing_columns=False on_problems=_
             tester2 table =
-                table.at "X" . to_vector . should_equal [1, 2, 3]
+                table.at "X" . to_vector . should_equal [2, 2, 2]
             problems2 = [Missing_Input_Columns.Error ["Y"]]
             Problems.test_problem_handling action2 problems2 tester2
 
             action3 = t1.duplicates [0, 42] error_on_missing_columns=False on_problems=_
             tester3 table =
-                table.at "X" . to_vector . should_equal [1, 2, 3]
+                table.at "X" . to_vector . should_equal  [2, 2, 2]
             problems3 = [Missing_Input_Columns.Error [42]]
             Problems.test_problem_handling action3 problems3 tester3
