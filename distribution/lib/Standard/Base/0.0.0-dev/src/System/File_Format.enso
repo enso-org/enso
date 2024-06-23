@@ -123,16 +123,6 @@ type File_Format
         options = ([Auto_Detect]+format_types).flat_map .get_dropdown_options
         Single_Choice display=Display.Always values=options
 
-    ## PRIVATE
-       Checks if the `format` argument is valid and raises a more user-friendly
-       error if it is a `Function` (meaning that some arguments were missing).
-    handle_format_missing_arguments : Any -> Any -> Any
-    handle_format_missing_arguments format ~action =
-        case format of
-            _ : Function ->
-                Error.throw (Illegal_Argument.Error "Expected a file format, but got a function.")
-            _ -> action
-
 ## A file format for plain text files.
 type Plain_Text_Format
     ## A file format for plain text files with the specified encoding.

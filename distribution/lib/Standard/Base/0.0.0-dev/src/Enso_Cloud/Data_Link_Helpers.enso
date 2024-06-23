@@ -62,7 +62,8 @@ interpret_json_as_data_link json =
 read_data_link (file : File_Like) format (on_problems : Problem_Behavior) =
     json = Data_Link.read_config file
     data_link_instance = interpret_json_as_data_link json
-    data_link_instance.read format on_problems
+    resolved_format = File_Format.resolve format
+    data_link_instance.read resolved_format on_problems
 
 ## PRIVATE
 read_data_link_as_stream (file : File_Like) (open_options : Vector) (f : Input_Stream -> Any) =
