@@ -2191,11 +2191,12 @@ type Column
     @index (self-> Numeric_Input minimum=0 maximum=self.length-1)
     get : Integer -> Any -> Any | Nothing
     get self index:Integer=0 (~default=Nothing) =
-        valid_index = (index >= 0) && (index < self.length)
-        if valid_index.not then default else
-            storage = self.java_column.getStorage
-            if storage.isNothing index then Nothing else
-                java_to_enso <| storage.getItem index
+        if index < 0 && index >= -self.length then self.get (self.length + index) default else
+            valid_index = (index >= 0) && (index < self.length)
+            if valid_index.not then default else
+                storage = self.java_column.getStorage
+                if storage.isNothing index then Nothing else
+                    java_to_enso <| storage.getItem index
 
     ## ICON data_input
        Returns a column containing rows of this column.

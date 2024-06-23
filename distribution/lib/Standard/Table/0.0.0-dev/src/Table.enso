@@ -304,6 +304,20 @@ type Table
         col = self.get selector if_missing=Nothing
         if Nothing == col then if_missing else col.get index if_missing
 
+    ## ALIAS first cell
+       GROUP Standard.Base.Selections
+       ICON local_scope4
+       Gets the top left value from the table.
+    first_value : Any ! Index_Out_Of_Bounds
+    first_value self = self.at 0 . at 0
+
+    ## ALIAS last cell
+       GROUP Standard.Base.Selections
+       ICON local_scope4
+       Gets the bottom right value from the table.
+    last_value : Any ! Index_Out_Of_Bounds
+    last_value self = self.at -1 . at -1
+
     ## ALIAS first field
        GROUP Standard.Base.Selections
        ICON select_column
