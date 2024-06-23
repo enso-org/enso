@@ -970,7 +970,7 @@ type Table
         text_folding_strategy = Case_Sensitivity.folding_strategy case_sensitivity
         java_table = Illegal_Argument.handle_java_exception <|
             Java_Problems.with_problem_aggregator on_problems java_aggregator->
-                self.java_table.distinct java_columns text_folding_strategy java_aggregator
+                self.java_table.duplicates java_columns text_folding_strategy java_aggregator
         Table.Value java_table
 
     ## GROUP Standard.Base.Conversions
