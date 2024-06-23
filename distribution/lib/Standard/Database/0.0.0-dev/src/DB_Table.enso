@@ -1166,13 +1166,6 @@ type DB_Table
 
     ## GROUP Standard.Base.Selections
        ICON select_row
-       Returns the second row of the table.
-    second_row : Row ! Index_Out_Of_Bounds
-    second_row self =
-        self.read (..First 2) . rows . second
-
-    ## GROUP Standard.Base.Selections
-       ICON select_row
        Returns the last row of the table.
 
        In the database backend, this function has to scan through all the

@@ -312,13 +312,6 @@ add_specs suite_builder setup =
             first_row.at "Y" . should_equal 5
             first_row.at "Z" . should_equal "A"
 
-        group_builder.specify "should let you get the second row" <|
-            second_row = data.table.second_row
-            second_row . length . should_equal 3
-            second_row.at "X" . should_equal 2
-            second_row.at "Y" . should_equal 6
-            second_row.at "Z" . should_equal "B"
-
         group_builder.specify "should let you get the last row" <|
             last_row = data.table.last_row
             last_row . length . should_equal 3

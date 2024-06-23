@@ -1878,16 +1878,6 @@ type Table
 
     ## GROUP Standard.Base.Selections
        ICON select_row
-       Returns the second row of the table.
-
-       In the database backend, it first materializes the table to in-memory.
-    second_row : Row ! Index_Out_Of_Bounds
-    second_row self =
-        if self.row_count < 2 then Error.throw (Index_Out_Of_Bounds.Error 1 self.row_count) else
-            Row.Value self 1
-
-    ## GROUP Standard.Base.Selections
-       ICON select_row
        Returns the last row of the table.
 
        In the database backend, it first materializes the table to in-memory.
