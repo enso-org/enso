@@ -40,7 +40,7 @@ import { WSSharedDoc } from './ydoc'
 const SOURCE_DIR = 'src'
 const EXTENSION = '.enso'
 
-const DEBUG_LOG_SYNC = false
+const DEBUG_LOG_SYNC = true
 
 export class LanguageServerSession {
   clientId: Uuid
@@ -469,6 +469,7 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
     newMetadata: fileFormat.IdeMetadata['node'] | undefined,
   ) {
     if (this.syncedContent == null || this.syncedVersion == null) return
+    console.log('sendLsUpdate', typeof newCode, typeof newIdMap, typeof newMetadata)
 
     const code = newCode ?? synced.code
     const metadataToPersist = {
@@ -476,12 +477,17 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
       ide: { ...this.syncedMeta.ide, node: newMetadata },
     }
     const newMetadataJson = newMetadata && json.stringify(metadataToPersist)
+
     const idMapToPersist =
-      newIdMap && ModulePersistence.getIdMapToPersist(newIdMap, metadataToPersist.ide.node ?? {})
-    const newIdMapJson = idMapToPersist && serializeIdMap(idMapToPersist)
+      newIdMap &&
+      ModulePersistence.getIdMapToPersist(
+        newIdMap,
+        metadataToPersist.ide.node ?? this.syncedMeta.ide.node,
+      )
+    const newIdMapToPersistJson = idMapToPersist && serializeIdMap(idMapToPersist)
     const newContent = combineFileParts({
       code,
-      idMapJson: newIdMapJson ?? synced.idMapJson ?? '[]',
+      idMapJson: newIdMapToPersistJson ?? synced.idMapJson ?? '[]',
       metadataJson: newMetadataJson ?? synced.metadataJson ?? '{}',
     })
 
@@ -530,7 +536,7 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
       this.syncedVersion = newVersion
       if (newMetadata) this.syncedMeta.ide.node = newMetadata
       if (newCode) this.syncedCode = newCode
-      if (newIdMapJson) this.syncedIdMap = newIdMapJson
+      if (newIdMapToPersistJson) this.syncedIdMap = newIdMapToPersistJson
       if (newMetadataJson) this.syncedMetaJson = newMetadataJson
       this.setState(LsSyncState.Synchronized)
     }, handleError)
