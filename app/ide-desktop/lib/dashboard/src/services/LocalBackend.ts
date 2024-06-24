@@ -603,9 +603,20 @@ export default class LocalBackend extends Backend {
     return projectManager.joinPath(extractTypeAndId(parentId).id, fileName)
   }
 
-  /** Invalid operation. */
-  override updateDirectory() {
-    return this.invalidOperation()
+  /** Change the name of a directory. */
+  override async updateDirectory(
+    directoryId: backend.DirectoryId,
+    body: backend.UpdateDirectoryRequestBody
+  ): Promise<backend.UpdatedDirectory> {
+    const from = extractTypeAndId(directoryId).id
+    const folderPath = projectManager.Path(fileInfo.folderPath(from))
+    const to = projectManager.joinPath(folderPath, body.title)
+    await this.projectManager.moveFile(from, to)
+    return {
+      id: newDirectoryId(to),
+      parentId: newDirectoryId(folderPath),
+      title: body.title,
+    }
   }
 
   /** Invalid operation. */
