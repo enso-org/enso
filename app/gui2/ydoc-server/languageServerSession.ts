@@ -40,7 +40,7 @@ import { WSSharedDoc } from './ydoc'
 const SOURCE_DIR = 'src'
 const EXTENSION = '.enso'
 
-const DEBUG_LOG_SYNC = true
+const DEBUG_LOG_SYNC = false
 
 export class LanguageServerSession {
   clientId: Uuid
@@ -457,7 +457,7 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
     }
   }
 
-  static getIdMapToPersist(idMap: IdMap, metadata: fileFormat.IdeMetadata['node']): IdMap {
+  private static getIdMapToPersist(idMap: IdMap, metadata: fileFormat.IdeMetadata['node']): IdMap {
     const entriesIntersection = idMap.entries().filter(([, id]) => id in metadata)
     return new IdMap(entriesIntersection)
   }
@@ -469,7 +469,6 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
     newMetadata: fileFormat.IdeMetadata['node'] | undefined,
   ) {
     if (this.syncedContent == null || this.syncedVersion == null) return
-    console.log('sendLsUpdate', typeof newCode, typeof newIdMap, typeof newMetadata)
 
     const code = newCode ?? synced.code
     const metadataToPersist = {
@@ -477,7 +476,6 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
       ide: { ...this.syncedMeta.ide, node: newMetadata },
     }
     const newMetadataJson = newMetadata && json.stringify(metadataToPersist)
-
     const idMapToPersist =
       newIdMap &&
       ModulePersistence.getIdMapToPersist(
