@@ -7,6 +7,7 @@ import * as detect from 'enso-common/src/detect'
 import * as eventHooks from '#/hooks/eventHooks'
 import * as searchParamsState from '#/hooks/searchParamsStateHooks'
 
+import * as appContext from '#/providers/AppProvider'
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
@@ -31,14 +32,11 @@ import Page from '#/components/Page'
 
 import * as backendModule from '#/services/Backend'
 import type Backend from '#/services/Backend'
-import type * as projectManager from '#/services/ProjectManager'
 
 import * as array from '#/utilities/array'
 import LocalStorage from '#/utilities/LocalStorage'
 import * as object from '#/utilities/object'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
-
-import type * as types from '../../../../types/types'
 
 // ============================
 // === Global configuration ===
@@ -96,21 +94,11 @@ LocalStorage.registerKey('projectStartupInfo', {
 // === Dashboard ===
 // =================
 
-/** Props for {@link Dashboard}s that are common to all platforms. */
-export interface DashboardProps {
-  /** Whether the application may have the local backend running. */
-  readonly supportsLocalBackend: boolean
-  readonly appRunner: types.EditorRunner | null
-  readonly initialProjectName: string | null
-  readonly projectManagerUrl: string | null
-  readonly ydocUrl: string | null
-  readonly projectManagerRootDirectory: projectManager.Path | null
-}
-
 /** The component that contains the entire UI. */
-export default function Dashboard(props: DashboardProps) {
-  const { appRunner, initialProjectName } = props
-  const { ydocUrl, projectManagerUrl, projectManagerRootDirectory } = props
+export function Dashboard() {
+  const { initialProjectName, projectManagerUrl, projectManagerRootDirectory, ydocUrl, appRunner } =
+    appContext.useAppContext()
+
   const session = authProvider.useNonPartialUserSession()
   const remoteBackend = backendProvider.useRemoteBackend()
   const localBackend = backendProvider.useLocalBackend()
