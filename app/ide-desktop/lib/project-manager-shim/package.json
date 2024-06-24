@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "type": "module",
   "exports": {
-    ".": "./src/projectManagerShimMiddleware.ts"
+    ".": "./src/projectManagerShimMiddleware.ts",
+    "./src/projectManagement": "./src/projectManagement.ts"
   },
   "dependencies": {
     "yaml": "^2.4.1"

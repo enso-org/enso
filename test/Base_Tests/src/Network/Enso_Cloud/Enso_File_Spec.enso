@@ -118,7 +118,7 @@ add_specs suite_builder setup:Cloud_Tests_Setup = suite_builder.group "Enso Clou
             output_stream.write_bytes "Hello".utf_8
             42
         r.should_equal 42
-        f.read Plain_Text . should_equal "Hello"
+        f.read ..Plain_Text . should_equal "Hello"
 
     group_builder.specify "will respect Create_New in with_output_stream" <|
         test_file = test_root.get / "test_file.json"
@@ -129,12 +129,12 @@ add_specs suite_builder setup:Cloud_Tests_Setup = suite_builder.group "Enso Clou
             42
         r.should_fail_with File_Error
         r.catch.should_be_a File_Error.Already_Exists
-        test_file.read Plain_Text . should_equal test_file_text
+        test_file.read ..Plain_Text . should_equal test_file_text
 
     group_builder.specify "should be able to write a file using write_bytes" <|
         f = test_root.get / "written_file2.txt"
         "hi!".utf_8.write_bytes f . should_succeed
-        f.read Plain_Text . should_equal "hi!"
+        f.read ..Plain_Text . should_equal "hi!"
 
     group_builder.specify "does not currently support append" <|
         f = test_root.get / "written_file3.txt"
@@ -151,7 +151,7 @@ add_specs suite_builder setup:Cloud_Tests_Setup = suite_builder.group "Enso Clou
         f.exists.should_be_false
         "ABC".write f on_existing_file=Existing_File_Behavior.Overwrite . should_equal f
         "DEF".write f on_existing_file=Existing_File_Behavior.Backup . should_equal f
-        f.read Plain_Text . should_equal "DEF"
+        f.read ..Plain_Text . should_equal "DEF"
 
         # But there should not be any other files in the directory
         dir.list.should_equal [f]
@@ -189,7 +189,7 @@ add_specs suite_builder setup:Cloud_Tests_Setup = suite_builder.group "Enso Clou
         test_file = test_root.get / "test_file.json"
         test_file.exists . should_be_true
 
-        test_file.read Plain_Text . should_equal test_file_text
+        test_file.read ..Plain_Text . should_equal test_file_text
 
         # auto-detection of JSON format:
         json = test_file.read
