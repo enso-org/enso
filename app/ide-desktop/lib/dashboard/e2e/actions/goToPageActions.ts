@@ -1,8 +1,9 @@
 /** @file Actions for going to a different page. */
 import type * as baseActions from './BaseActions'
-import type BaseActions from './BaseActions'
+import BaseActions from './BaseActions'
 import DrivePageActions from './DrivePageActions'
 import EditorPageActions from './EditorPageActions'
+import SettingsPageActions from './SettingsPageActions'
 
 // =======================
 // === GoToPageActions ===
@@ -12,6 +13,7 @@ import EditorPageActions from './EditorPageActions'
 export interface GoToPageActions {
   readonly drive: () => DrivePageActions
   readonly editor: () => EditorPageActions
+  readonly settings: () => SettingsPageActions
 }
 
 // =======================
@@ -34,5 +36,9 @@ export function goToPageActions(
       step('Go to "Spatial Analysis" page', page =>
         page.getByRole('button').and(page.getByLabel('Spatial Analysis')).click()
       ).into(EditorPageActions),
+    settings: () =>
+      step('Go to "settings" page', page => BaseActions.press(page, 'Mod+,')).into(
+        SettingsPageActions
+      ),
   }
 }

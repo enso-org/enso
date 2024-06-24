@@ -15,7 +15,7 @@ export default class SettingsModalActions<
     promise?: Promise<void>
   ) => InstanceType<PreviousStateClass>,
 > extends BaseActions {
-  /** Create a {@link BaseActions}. */
+  /** Create a {@link SettingsModalActions}. */
   constructor(
     page: test.Page,
     promise: Promise<void>,

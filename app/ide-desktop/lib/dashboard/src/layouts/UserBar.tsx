@@ -41,13 +41,14 @@ export interface UserBarProps {
   readonly projectAsset: backendModule.ProjectAsset | null
   readonly setProjectAsset: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>> | null
   readonly doRemoveSelf: () => void
+  readonly goToSettingsPage: () => void
   readonly onSignOut: () => void
 }
 
 /** A toolbar containing chat and the user menu. */
 export default function UserBar(props: UserBarProps) {
   const { backend, invisible = false, isOnEditorPage, setIsHelpChatOpen } = props
-  const { projectAsset, setProjectAsset, doRemoveSelf, onSignOut } = props
+  const { projectAsset, setProjectAsset, doRemoveSelf, goToSettingsPage, onSignOut } = props
   const { user } = authProvider.useNonPartialUserSession()
   const { setModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
@@ -134,12 +135,12 @@ export default function UserBar(props: UserBarProps) {
               buttonClassName="rounded-full after:rounded-full"
               className="h-row-h w-row-h rounded-full"
               onPress={() => {
-                setModal(<UserMenu onSignOut={onSignOut} />)
+                setModal(<UserMenu goToSettingsPage={goToSettingsPage} onSignOut={onSignOut} />)
               }}
             />
             {/* Required for shortcuts to work. */}
             <div className="hidden">
-              <UserMenu hidden onSignOut={onSignOut} />
+              <UserMenu hidden goToSettingsPage={goToSettingsPage} onSignOut={onSignOut} />
             </div>
           </div>
         </div>

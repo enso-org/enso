@@ -17,7 +17,7 @@ test.test('members settings', async ({ page }) => {
 
   const otherUserName = 'second.user_'
   const otherUser = api.addUser(otherUserName)
-  await actions.closeModal(page)
+  // await actions.closeModal(page)
   await actions.relog({ page })
   await localActions.go(page)
   await test
@@ -25,7 +25,7 @@ test.test('members settings', async ({ page }) => {
     .toHaveText([api.currentUser()?.name ?? '', otherUserName])
 
   api.deleteUser(otherUser.userId)
-  await actions.closeModal(page)
+  // await actions.closeModal(page)
   await actions.relog({ page })
   await localActions.go(page)
   await test

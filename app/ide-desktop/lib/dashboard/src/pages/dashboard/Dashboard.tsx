@@ -3,6 +3,7 @@
 import * as React from 'react'
 
 import DriveIcon from 'enso-assets/drive.svg'
+import SettingsIcon from 'enso-assets/settings.svg'
 import WorkspaceIcon from 'enso-assets/workspace.svg'
 import * as detect from 'enso-common/src/detect'
 
@@ -26,6 +27,7 @@ import Chat from '#/layouts/Chat'
 import ChatPlaceholder from '#/layouts/ChatPlaceholder'
 import Drive from '#/layouts/Drive'
 import Editor from '#/layouts/Editor'
+import Settings from '#/layouts/Settings'
 import * as tabBar from '#/layouts/TabBar'
 import TabBar from '#/layouts/TabBar'
 import UserBar from '#/layouts/UserBar'
@@ -50,6 +52,7 @@ import type * as types from '../../../../types/types'
 enum TabType {
   drive = 'drive',
   editor = 'editor',
+  settings = 'settings',
 }
 
 declare module '#/utilities/LocalStorage' {
@@ -387,6 +390,21 @@ export default function Dashboard(props: DashboardProps) {
                   {projectStartupInfo.projectAsset.title}
                 </tabBar.Tab>
               )}
+              {page === TabType.settings && (
+                <tabBar.Tab
+                  isActive
+                  icon={SettingsIcon}
+                  labelId="settingsPageName"
+                  onPress={() => {
+                    setPage(TabType.settings)
+                  }}
+                  onClose={() => {
+                    setPage(TabType.drive)
+                  }}
+                >
+                  {getText('settingsPageName')}
+                </tabBar.Tab>
+              )}
             </TabBar>
             <UserBar
               backend={remoteBackend}
@@ -395,6 +413,9 @@ export default function Dashboard(props: DashboardProps) {
               projectAsset={projectStartupInfo?.projectAsset ?? null}
               setProjectAsset={projectStartupInfo?.setProjectAsset ?? null}
               doRemoveSelf={doRemoveSelf}
+              goToSettingsPage={() => {
+                setPage(TabType.settings)
+              }}
               onSignOut={onSignOut}
             />
           </div>
@@ -417,6 +438,7 @@ export default function Dashboard(props: DashboardProps) {
             projectStartupInfo={projectStartupInfo}
             appRunner={appRunner}
           />
+          {page === TabType.settings && <Settings backend={remoteBackend} />}
           {process.env.ENSO_CLOUD_CHAT_URL != null ? (
             <Chat
               isOpen={isHelpChatOpen}

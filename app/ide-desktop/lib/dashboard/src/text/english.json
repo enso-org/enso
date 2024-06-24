@@ -202,7 +202,7 @@
   "keyboardShortcuts": "Keyboard Shortcuts",
   "dangerZone": "Danger Zone",
   "profilePicture": "Profile picture",
-  "settingsFor": "Settings for $0",
+  "settingsFor": "Settings for",
   "inviteMembers": "Invite Members",
   "seatsLeft": "You have $0 / $1 seats left on your plan. Upgrade to invite more users.",
   "noSeatsLeft": "You have reached the limit of users for your plan. Upgrade to invite more users.",
@@ -464,6 +464,7 @@
 
   "drivePageName": "Data Catalog",
   "editorPageName": "Spatial Analysis",
+  "settingsPageName": "Settings",
   "chatButtonAltText": "Chat",
   "inviteButtonAltText": "Invite others to try Enso",
   "shareButtonAltText": "Share",
