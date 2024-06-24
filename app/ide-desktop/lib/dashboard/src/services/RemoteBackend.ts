@@ -1070,7 +1070,12 @@ export default class RemoteBackend extends Backend {
     abortController: AbortController = new AbortController()
   ) {
     let project = await this.getProjectDetails(projectId, directory, title)
-    while (!abortController.signal.aborted && project.state.type !== backend.ProjectState.opened) {
+    while (project.state.type !== backend.ProjectState.opened) {
+      if (abortController.signal.aborted) {
+        // The operation was cancelled, do not return.
+        // eslint-disable-next-line no-restricted-syntax
+        throw new Error()
+      }
       await new Promise<void>(resolve => {
         setTimeout(resolve, CHECK_STATUS_INTERVAL_MS)
       })
