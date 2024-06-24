@@ -573,7 +573,8 @@ type DB_Table
             Warning.with_suspended new_names names->
                 self.updated_columns (self.internal_columns.map c-> c.rename (names.at c.name))
 
-    ## GROUP Standard.Base.Metadata
+    ## ALIAS rename
+       GROUP Standard.Base.Metadata
        ICON table_edit
        Returns a new table with the columns renamed based on entries in the
        first row.
@@ -1724,7 +1725,7 @@ type DB_Table
         _ = [right, keep_unmatched, right_prefix, on_problems]
         Error.throw (Unsupported_Database_Operation.Error "DB_Table.zip is not implemented yet for the Database backends.")
 
-    ## ALIAS append, concat
+    ## ALIAS append, concat, join
        GROUP Standard.Base.Calculations
        ICON union
        Appends records from other table(s) to this table.

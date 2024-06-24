@@ -106,4 +106,3 @@ from project.Function export all
 from project.Meta.Enso_Project export enso_project
 from project.Network.Extensions export all
 from project.System.File_Format export Auto_Detect, Bytes, File_Format, Infer, JSON_Format, Plain_Text_Format
-from project.System.File_Format.Plain_Text_Format export Plain_Text

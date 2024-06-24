@@ -257,7 +257,7 @@ add_specs suite_builder make_new_connection prefix persistent_connector=True =
                     t1 = data.connection.create_table original_table_name structure=[Column_Description.Value "X" Value_Type.Integer] temporary=True
                     t1.column_names . should_equal ["X"]
 
-            logs = log_file.read Plain_Text . lines
+            logs = log_file.read ..Plain_Text . lines
             deletes = logs.filter (_.contains "DROP")
             wrapped_name = data.connection.dialect.wrap_identifier original_table_name
             deletes.each line->

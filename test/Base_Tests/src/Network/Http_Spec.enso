@@ -212,7 +212,7 @@ add_specs suite_builder =
             auto_response = Data.read url_get
             auto_response.should_be_a JS_Object
 
-            plain_response = Data.read url_get format=Plain_Text
+            plain_response = Data.read url_get format=..Plain_Text
             plain_response.should_be_a Text
 
     suite_builder.group "post" pending=pending_has_url group_builder->
