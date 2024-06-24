@@ -10,7 +10,7 @@ import * as config from 'config'
 import * as contentConfig from 'content-config'
 import * as fileAssociations from 'file-associations'
 import * as naming from 'naming'
-import BUILD_INFO from '../../../../../build.json' assert { type: 'json' }
+import BUILD_INFO from '../../build-info'
 
 const logger = contentConfig.logger
 

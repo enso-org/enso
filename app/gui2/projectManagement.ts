@@ -1,5 +1,6 @@
 /** @file Functions for importing projects. This module is only used in dev mode,
  * by `projectManagerShimMiddleware.ts`. */
+import * as childProcess from 'node:child_process'
 import * as crypto from 'node:crypto'
 import * as fs from 'node:fs'
 import * as os from 'node:os'
@@ -20,7 +21,54 @@ const logger = console
 export const PACKAGE_METADATA_RELATIVE_PATH = 'package.yaml'
 export const PROJECT_METADATA_RELATIVE_PATH = '.enso/project.json'
 /** The filename suffix for the project bundle, including the leading period character. */
-const BUNDLED_PROJECT_SUFFIX = `.enso-project`
+const BUNDLED_PROJECT_SUFFIX = '.enso-project'
+
+const CHILD_PROCESS_TIMEOUT = 3000
+
+/** Detects path of the user documents directory depending on the operating system. */
+export const DOCUMENTS_PATH = (() => {
+  switch (process.platform) {
+    case 'linux': {
+      // First try to get the documents directory from the XDG directory management system.
+      const out = childProcess.spawnSync('xdg-user-dir', ['DOCUMENTS'], {
+        timeout: CHILD_PROCESS_TIMEOUT,
+      })
+      if (out.error !== undefined) {
+        // Fall back to `~/enso`.
+        return pathModule.join(os.homedir(), 'enso')
+      } else {
+        return out.stdout.toString().trim()
+      }
+    }
+    case 'darwin': {
+      // On macOS, `Documents` acts as a symlink pointing to the
+      // real locale-specific user documents directory.
+      return pathModule.join(os.homedir(), 'Documents')
+    }
+    case 'win32': {
+      const out = childProcess.spawnSync(
+        'reg',
+        [
+          'query',
+          '"HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ShellFolders"',
+          '/v',
+          'personal',
+        ],
+        { timeout: CHILD_PROCESS_TIMEOUT },
+      )
+
+      if (out.error !== undefined) {
+        return
+      } else {
+        const stdoutString = out.stdout.toString()
+        return stdoutString.split(/\s\s+/)[4]
+      }
+    }
+    default: {
+      return
+    }
+  }
+})()
 
 // ======================
 // === Project Import ===
@@ -357,7 +405,12 @@ export function getProjectRoot(subtreePath: string): string | null {
 
 /** Get the directory that stores Enso projects. */
 export function getProjectsDirectory(): string {
-  return pathModule.join(os.homedir(), 'enso', 'projects')
+  const documentsPath = DOCUMENTS_PATH
+  if (documentsPath === undefined) {
+    return pathModule.join(os.homedir(), 'enso', 'projects')
+  } else {
+    return pathModule.join(documentsPath, 'enso-projects')
+  }
 }
 
 /** Check if the given project is installed, i.e. can be opened with the Project Manager. */

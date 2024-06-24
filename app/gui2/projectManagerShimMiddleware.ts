@@ -18,58 +18,11 @@ import * as projectManagement from './projectManagement'
 // === Constants ===
 // =================
 
-const CHILD_PROCESS_TIMEOUT = 3000
-
-/** Detects path of the user documents directory depending on the operating system. */
-const DOCUMENTS_PATH = (() => {
-  switch (process.platform) {
-    case 'linux': {
-      // First try to get the documents directory from the XDG directory management system.
-      const out = childProcess.spawnSync('xdg-user-dir', ['DOCUMENTS'], {
-        timeout: CHILD_PROCESS_TIMEOUT,
-      })
-      if (out.error !== undefined) {
-        // Fall back to `~/enso`.
-        return path.join(os.homedir(), 'enso')
-      } else {
-        return out.stdout.toString().trim()
-      }
-    }
-    case 'darwin': {
-      // On macOS, `Documents` acts as a symlink pointing to the
-      // real locale-specific user documents directory.
-      return path.join(os.homedir(), 'Documents')
-    }
-    case 'win32': {
-      const out = childProcess.spawnSync(
-        'reg',
-        [
-          'query',
-          '"HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ShellFolders"',
-          '/v',
-          'personal',
-        ],
-        { timeout: CHILD_PROCESS_TIMEOUT },
-      )
-
-      if (out.error !== undefined) {
-        return
-      } else {
-        const stdoutString = out.stdout.toString()
-        return stdoutString.split(/\s\s+/)[4]
-      }
-    }
-    default: {
-      return
-    }
-  }
-})()
-
 /** Get the directory that stores Enso projects. */
 const PROJECTS_ROOT_DIRECTORY =
-  DOCUMENTS_PATH === undefined ?
+  projectManagement.DOCUMENTS_PATH === undefined ?
     path.join(os.homedir(), 'enso', 'projects')
-  : path.join(DOCUMENTS_PATH, 'enso-projects')
+  : path.join(projectManagement.DOCUMENTS_PATH, 'enso-projects')
 
 const HTTP_STATUS_OK = 200
 const HTTP_STATUS_BAD_REQUEST = 400
