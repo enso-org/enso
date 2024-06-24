@@ -173,7 +173,7 @@ export type MimeData = Partial<Record<MimeType, string>>
 
 export function writeClipboard(data: MimeData) {
   const dataBlobs = Object.fromEntries(
-    Object.entries(data).map(([type, typeData]) => new Blob([typeData], { type })),
+    Object.entries(data).map(([type, typeData]) => [type, new Blob([typeData], { type })]),
   )
   return getClipboard()
     .write([new ClipboardItem(dataBlobs)])
