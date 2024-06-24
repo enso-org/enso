@@ -913,7 +913,6 @@ export function applyTextEditsToAst(
     textEdits,
     code,
   )
-  console.log('toSync', toSync)
   syncTree(ast, parsed.root, toSync, ast.module, metadataSource)
 }
 

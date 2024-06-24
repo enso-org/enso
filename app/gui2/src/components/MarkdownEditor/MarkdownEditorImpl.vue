@@ -55,6 +55,8 @@ const { urlUnderCursor } = useLinkNode(editor)
 
 <style scoped>
 .fullHeight {
+  display: flex;
+  flex-direction: column;
   height: 100%;
 }
 
