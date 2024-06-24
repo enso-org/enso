@@ -11,9 +11,15 @@ import SettingsModalActions from './SettingsModalActions'
 // =======================
 
 /** Actions for the user menu. */
-export interface UserMenuActions<T extends BaseActions> {
+export interface UserMenuActions<
+  T extends BaseActions,
+  PreviousStateClass extends new (
+    page: test.Page,
+    promise?: Promise<void>
+  ) => InstanceType<PreviousStateClass>,
+> {
   readonly downloadApp: (callback: (download: test.Download) => Promise<void> | void) => T
-  readonly goToSettingsPage: () => SettingsModalActions
+  readonly openSettingsModal: () => SettingsModalActions<PreviousStateClass>
   readonly logout: () => LoginPageActions
   readonly goToLoginPage: () => LoginPageActions
 }
@@ -23,9 +29,16 @@ export interface UserMenuActions<T extends BaseActions> {
 // =======================
 
 /** Generate actions for the user menu. */
-export function userMenuActions<T extends BaseActions>(
-  step: (name: string, callback: baseActions.PageCallback) => T
-): UserMenuActions<T> {
+export function userMenuActions<
+  T extends BaseActions,
+  PreviousStateClass extends new (
+    page: test.Page,
+    promise?: Promise<void>
+  ) => InstanceType<PreviousStateClass>,
+>(
+  step: (name: string, callback: baseActions.PageCallback) => T,
+  previousStateClass: PreviousStateClass
+): UserMenuActions<T, PreviousStateClass> {
   return {
     downloadApp: (callback: (download: test.Download) => Promise<void> | void) => {
       return step('Download app (user menu)', async page => {
@@ -34,10 +47,10 @@ export function userMenuActions<T extends BaseActions>(
         await callback(await downloadPromise)
       })
     },
-    goToSettingsPage: () =>
+    openSettingsModal: () =>
       step('Go to Settings (user menu)', page =>
         page.getByRole('button', { name: 'Settings' }).getByText('Settings').click()
-      ).into(SettingsModalActions),
+      ).into(SettingsModalActions<PreviousStateClass>, previousStateClass),
     logout: () =>
       step('Logout (user menu)', page =>
         page.getByRole('button', { name: 'Logout' }).getByText('Logout').click()

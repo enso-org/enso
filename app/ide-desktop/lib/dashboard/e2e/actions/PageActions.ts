@@ -21,7 +21,11 @@ export default class PageActions<
 
   /** Actions related to the User Menu. */
   get userMenu() {
-    return userMenuActions.userMenuActions(this.step.bind(this))
+    return userMenuActions.userMenuActions(
+      this.step.bind(this),
+      // eslint-disable-next-line no-restricted-syntax
+      this.constructor as new () => this
+    )
   }
 
   /** Open the User Menu. */
@@ -31,7 +35,9 @@ export default class PageActions<
 
   /** Open the settings modal. */
   openSettingsModal() {
-    return this.step('Open "settings" modal', page => BaseActions.press(page, 'Mod+,')).into(
+    return this.step('Open "settings" modal using shortcut', page =>
+      BaseActions.press(page, 'Mod+,')
+    ).into(
       SettingsModalActions<new () => this>,
       // eslint-disable-next-line no-restricted-syntax
       this.constructor as new () => this
