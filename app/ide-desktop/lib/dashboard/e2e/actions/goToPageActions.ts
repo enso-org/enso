@@ -32,10 +32,7 @@ export function goToPageActions(
       ).into(DrivePageActions),
     editor: () =>
       step('Go to "Spatial Analysis" page', page =>
-        page
-          .getByRole('button')
-          .filter({ has: page.getByText('Spatial Analysis') })
-          .click()
+        page.getByRole('button').and(page.getByLabel('Spatial Analysis')).click()
       ).into(EditorPageActions),
   }
 }

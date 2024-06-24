@@ -361,6 +361,7 @@ export default function Dashboard(props: DashboardProps) {
               <tabBar.Tab
                 isActive={page === TabType.drive}
                 icon={DriveIcon}
+                labelId="drivePageName"
                 onPress={() => {
                   setPage(TabType.drive)
                 }}
@@ -371,6 +372,7 @@ export default function Dashboard(props: DashboardProps) {
                 <tabBar.Tab
                   isActive={page === TabType.editor}
                   icon={WorkspaceIcon}
+                  labelId="editorPageName"
                   onPress={() => {
                     setPage(TabType.editor)
                   }}

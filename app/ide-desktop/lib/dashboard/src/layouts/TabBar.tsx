@@ -3,6 +3,10 @@ import * as React from 'react'
 
 import invariant from 'tiny-invariant'
 
+import type * as text from '#/text'
+
+import * as textProvider from '#/providers/TextProvider'
+
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 import FocusArea from '#/components/styled/FocusArea'
@@ -148,14 +152,16 @@ const Tabs = React.forwardRef(TabsInternal)
 interface InternalTabProps extends Readonly<React.PropsWithChildren> {
   readonly isActive: boolean
   readonly icon: string
+  readonly labelId: text.TextId
   readonly onPress: () => void
   readonly onClose?: () => void
 }
 
 /** A tab in a {@link TabBar}. */
 export function Tab(props: InternalTabProps) {
-  const { isActive, icon, children, onPress, onClose } = props
+  const { isActive, icon, labelId, children, onPress, onClose } = props
   const { updateClipPath } = useTabBarContext()
+  const { getText } = textProvider.useText()
 
   return (
     <div
@@ -171,6 +177,8 @@ export function Tab(props: InternalTabProps) {
         icon={icon}
         isDisabled={isActive}
         isActive={isActive}
+        aria-label={getText(labelId)}
+        tooltip={false}
         className={tailwindMerge.twMerge(
           'relative flex h-full items-center gap-3 px-4',
           onClose && 'pr-10'
