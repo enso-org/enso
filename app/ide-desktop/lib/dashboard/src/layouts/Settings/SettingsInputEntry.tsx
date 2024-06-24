@@ -26,16 +26,8 @@ export default function SettingsInputEntry(props: SettingsInputEntryProps) {
   const ref = React.useRef<HTMLInputElement | null>(null)
   const value = getValue(context)
   const isEditable = getEditable(context)
-
-  const onChange =
-    validate == null
-      ? null
-      : () => {
-          if (ref.current) {
-            const errorMessage = validate(ref.current.value, context)
-            ref.current.setCustomValidity(errorMessage === true ? '' : errorMessage)
-          }
-        }
+  const [currentValue, setCurrentValue] = React.useState(value)
+  const errorMessage = validate?.(currentValue, context) ?? true
 
   const input = (
     <SettingsInput
@@ -60,7 +52,8 @@ export default function SettingsInputEntry(props: SettingsInputEntryProps) {
       key={value}
       defaultValue={value}
       className="flex h-row gap-settings-entry"
-      {...(onChange ? { onChange } : {})}
+      onChange={setCurrentValue}
+      isInvalid={errorMessage !== true}
     >
       <aria.Label className="text my-auto w-organization-settings-label">
         {getText(nameId)}
@@ -68,7 +61,9 @@ export default function SettingsInputEntry(props: SettingsInputEntryProps) {
       {validate ? (
         <div className="flex grow flex-col">
           {input}
-          <aria.FieldError className="text-red-700" />
+          <aria.FieldError className="text-red-700">
+            {errorMessage === true || errorMessage !== '' ? null : errorMessage}
+          </aria.FieldError>
         </div>
       ) : (
         input

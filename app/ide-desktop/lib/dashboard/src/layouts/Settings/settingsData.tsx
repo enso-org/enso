@@ -80,7 +80,11 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
             // A user's email currently cannot be changed.
             setValue: async () => {},
             validate: (email, context) =>
-              isEmail(email) ? true : context.getText('invalidEmailValidationError'),
+              isEmail(email)
+                ? true
+                : email === ''
+                  ? ''
+                  : context.getText('invalidEmailValidationError'),
             getEditable: () => false,
           },
         ],
@@ -161,7 +165,11 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
               }
             },
             validate: (email, context) =>
-              isEmail(email) ? true : context.getText('invalidEmailValidationError'),
+              isEmail(email)
+                ? true
+                : email === ''
+                  ? ''
+                  : context.getText('invalidEmailValidationError'),
             getEditable: () => true,
           },
           {
