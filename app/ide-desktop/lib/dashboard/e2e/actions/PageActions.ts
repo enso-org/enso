@@ -3,7 +3,6 @@
 import BaseActions from './BaseActions'
 import * as goToPageActions from './goToPageActions'
 import * as openUserMenuAction from './openUserMenuAction'
-import SettingsModalActions from './SettingsModalActions'
 import * as userMenuActions from './userMenuActions'
 
 // ===================
@@ -21,26 +20,11 @@ export default class PageActions<
 
   /** Actions related to the User Menu. */
   get userMenu() {
-    return userMenuActions.userMenuActions(
-      this.step.bind(this),
-      // eslint-disable-next-line no-restricted-syntax
-      this.constructor as new () => this
-    )
+    return userMenuActions.userMenuActions(this.step.bind(this))
   }
 
   /** Open the User Menu. */
   openUserMenu() {
     return openUserMenuAction.openUserMenuAction(this.step.bind(this))
-  }
-
-  /** Open the settings modal. */
-  openSettingsModal() {
-    return this.step('Open "settings" modal using shortcut', page =>
-      BaseActions.press(page, 'Mod+,')
-    ).into(
-      SettingsModalActions<new () => this>,
-      // eslint-disable-next-line no-restricted-syntax
-      this.constructor as new () => this
-    )
   }
 }
