@@ -1807,14 +1807,15 @@ type DB_Column
 
     ## GROUP Standard.Base.Conversions
        ICON convert
+       ALIAS auto_value_type
        Change the value type of the column to a more specific one, based on its
        contents.
 
        This operation is currently not available in the Database backend.
-    auto_value_type : Boolean -> DB_Column
-    auto_value_type self shrink_types=False =
+    auto_cast : Boolean -> DB_Column
+    auto_cast self shrink_types=False =
         _ = shrink_types
-        Error.throw <| Unsupported_Database_Operation.Error "`DB_Column.auto_value_type` is not supported in the Database backends."
+        Error.throw <| Unsupported_Database_Operation.Error "`DB_Column.auto_cast` is not supported in the Database backends."
 
     ## PRIVATE
        Shares the core CAST logic between `cast` and `parse`.
