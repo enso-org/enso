@@ -304,19 +304,26 @@ type Table
         col = self.get selector if_missing=Nothing
         if Nothing == col then if_missing else col.get index if_missing
 
+    ## ALIAS first cell
+       GROUP Standard.Base.Selections
+       ICON local_scope4
+       Gets the top left value from the table.
+    first_value : Any ! Index_Out_Of_Bounds
+    first_value self = self.at 0 . at 0
+
+    ## ALIAS last cell
+       GROUP Standard.Base.Selections
+       ICON local_scope4
+       Gets the bottom right value from the table.
+    last_value : Any ! Index_Out_Of_Bounds
+    last_value self = self.at -1 . at -1
+
     ## ALIAS first field
        GROUP Standard.Base.Selections
        ICON select_column
        Gets the first column.
     first_column : Column ! Index_Out_Of_Bounds
     first_column self = self.at 0
-
-    ## ALIAS second field
-       GROUP Standard.Base.Selections
-       ICON select_column
-       Gets the second column
-    second_column : Column ! Index_Out_Of_Bounds
-    second_column self = self.at 1
 
     ## ALIAS last field
        GROUP Standard.Base.Selections
@@ -1277,6 +1284,57 @@ type Table
 
     ## GROUP Standard.Base.Conversions
        ICON convert
+       ALIAS auto_value_types
+       Change the value type of table columns to a more specific one, based on
+       their contents.
+
+       This is most useful for `Mixed` type columns and will allow to narrow
+       down the type if all values in the column fit a more specific type.
+
+       Arguments:
+       - columns: The selection of columns to convert.
+       - shrink_types: If set `True`, smaller types will be chosen if possible,
+         according to the rules below. Defaults to `False`.
+       - error_on_missing_columns: Specifies if a missing input column should
+         result in an error regardless of the `on_problems` settings. Defaults
+         to `True`.
+       - on_problems: Specifies how to handle problems if they occur, reporting
+         them as warnings by default.
+
+       ? Auto Type Selection Rules
+
+         - If a `Mixed` column can be assigned a single type, like `Char` or
+           `Integer`, that will be used.
+         - Text columns are not parsed. To do that, use the `parse` method.
+         - If a `Float` column contains only integers, it will be converted to
+           an Integer column.
+         - If a `Decimal` column contains only integers that could fit in a
+           64-bit integer storage, it will be converted to an Integer column.
+         - If `shrink_types` is `False` (default), no other transformations are
+           applied.
+         - However, if `shrink_types` is set to `True`, then:
+           - Integer columns will be assigned the smallest size that can fit all
+             values (down to 16-bit integers; converting to the `Byte` type has
+             to be done manually through `cast`).
+           - If all elements in a text column have the same length, the type
+             will become fixed length.
+           - Otherwise, if a text column is variable length, but all text
+             elements are no longer than 255 characters, the column will get a
+             max length of 255. Otherwise, the column size limit will stay
+             unchanged.
+    @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True add_by_type=True)
+    auto_cast : Vector (Text | Integer | Regex | By_Type) | Text | Integer | Regex | By_Type -> Boolean -> Boolean -> Problem_Behavior -> Table
+    auto_cast self columns:(Vector (Text | Integer | Regex | By_Type) | Text | Integer | Regex | By_Type)=self.column_names shrink_types:Boolean=False error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=..Report_Warning =
+        selected = self.columns_helper.select_columns columns Case_Sensitivity.Default reorder=False error_on_missing_columns=error_on_missing_columns on_problems=on_problems error_on_empty=False
+        selected.fold self table-> column_to_cast->
+            new_column = column_to_cast.auto_cast shrink_types
+            table.set new_column as=column_to_cast.name set_mode=Set_Mode.Update
+
+    ## GROUP Standard.Base.Conversions
+       ICON convert
+
+       Deprecated: Use `auto_cast` instead.
+
        Change the value type of table columns to a more specific one, based on
        their contents.
 
@@ -1317,10 +1375,8 @@ type Table
     @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True add_by_type=True)
     auto_value_types : Vector (Text | Integer | Regex | By_Type) | Text | Integer | Regex | By_Type -> Boolean -> Boolean -> Problem_Behavior -> Table
     auto_value_types self columns:(Vector (Text | Integer | Regex | By_Type) | Text | Integer | Regex | By_Type)=self.column_names shrink_types:Boolean=False error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=..Report_Warning =
-        selected = self.columns_helper.select_columns columns Case_Sensitivity.Default reorder=False error_on_missing_columns=error_on_missing_columns on_problems=on_problems error_on_empty=False
-        selected.fold self table-> column_to_cast->
-            new_column = column_to_cast.auto_value_type shrink_types
-            table.set new_column as=column_to_cast.name set_mode=Set_Mode.Update
+        Warning.attach (Deprecated.Warning "Standard.Table.Table.Table" "auto_value_types" "Deprecated: `auto_value_types` has been replaced by `auto_cast`.") <|
+            self.auto_cast columns shrink_types error_on_missing_columns on_problems
 
     ## GROUP Standard.Base.Conversions
        ICON split
@@ -1912,16 +1968,6 @@ type Table
     first_row self =
         if self.row_count == 0 then Error.throw (Index_Out_Of_Bounds.Error 0 0) else
             Row.Value self 0
-
-    ## GROUP Standard.Base.Selections
-       ICON select_row
-       Returns the second row of the table.
-
-       In the database backend, it first materializes the table to in-memory.
-    second_row : Row ! Index_Out_Of_Bounds
-    second_row self =
-        if self.row_count < 2 then Error.throw (Index_Out_Of_Bounds.Error 1 self.row_count) else
-            Row.Value self 1
 
     ## GROUP Standard.Base.Selections
        ICON select_row
@@ -2919,16 +2965,17 @@ type Table
 
     ## GROUP Standard.Base.Text
        ICON column_add
-       Applies the specified cleansings to the text in each row of the specified columns.
+       Applies the specified cleansings to the text in each row of the specified columns
 
        Arguments:
+       - from: The column(s) to cleanse.
        - remove: A vector of the text cleanings to remove from the text. The text cleansings are
            applied in the order they are provided. The same text cleansing can be used multiple
            times. The text cleansings are:
-             - ..Leading_Whitespace: Removes all whitspace from the start of the string.
-             - ..Trailing_Whitespace: Removes all whitspace from the end of the string.
-             - ..Duplicate_Whitespace: Removes all duplicate whitspace from the string replacing it with the first whitespace character of the duplicated block.
-             - ..All_Whitespace: Removes all whitspace from the string.
+             - ..Leading_Whitespace: Removes all whitespace from the start of the string.
+             - ..Trailing_Whitespace: Removes all whitespace from the end of the string.
+             - ..Duplicate_Whitespace: Removes all duplicate whitespace from the string replacing it with the first whitespace character of the duplicated block.
+             - ..All_Whitespace: Removes all whitespace from the string.
              - ..Leading_Numbers: Removes all numbers from the start of the string.
              - ..Trailing_Numbers: Removes all numbers from the end of the string.
              - ..Non_ASCII: Removes all non-ascii characters from the string.
@@ -2937,16 +2984,15 @@ type Table
              - ..Numbers: Removes all numbers characters from the string.
              - ..Punctuation: Removes all characters in the set ,.!?():;'" from the string.
              - ..Symbols: Removes anything that isn't letters, numbers or whitespace from the string.
-       - from: The column(s) to cleanse.
 
        > Example
          Remove leading and trailing spaces from cells.
 
-             table.text_cleanse [..Leading_Whitespace, ..Trailing_Whitespace]
-    @remove make_data_cleanse_vector_selector
+             table.text_cleanse ["Input"] [..Leading_Whitespace, ..Trailing_Whitespace]
     @from (Widget_Helpers.make_column_name_multi_selector add_regex=True add_by_type=True)
-    text_cleanse : Vector Named_Pattern -> Vector (Integer | Text | Regex | By_Type) -> Table
-    text_cleanse self remove from:(Vector (Integer | Text | Regex | By_Type)) =
+    @remove make_data_cleanse_vector_selector
+    text_cleanse : Vector (Integer | Text | Regex | By_Type) -> Vector Named_Pattern -> Table
+    text_cleanse self from:(Vector (Integer | Text | Regex | By_Type)) remove =
         transformer col = col.text_cleanse remove
         Table_Helpers.replace_columns_with_transformed_columns self from transformer
 
