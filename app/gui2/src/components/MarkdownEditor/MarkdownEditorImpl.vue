@@ -2,12 +2,15 @@
 import FloatingSelectionMenu from '@/components/MarkdownEditor/FloatingSelectionMenu.vue'
 import FormattingToolbar from '@/components/MarkdownEditor/FormattingToolbar.vue'
 import { imagePlugin } from '@/components/MarkdownEditor/ImagePlugin'
+import { linkPlugin } from '@/components/MarkdownEditor/LinkPlugin'
+import LinkToolbar from '@/components/MarkdownEditor/LinkToolbar.vue'
 import SelectionFormattingToolbar from '@/components/MarkdownEditor/SelectionFormattingToolbar.vue'
 import { lexicalRichTextTheme, useFormatting } from '@/components/MarkdownEditor/formatting'
 import {
   provideLexicalImageUrlTransformer,
   type UrlTransformer,
 } from '@/components/MarkdownEditor/imageUrlTransformer'
+import { useLinkNode } from '@/components/MarkdownEditor/link'
 import { listPlugin } from '@/components/MarkdownEditor/listPlugin'
 import { markdownPlugin } from '@/components/MarkdownEditor/markdown'
 import { useLexical } from '@/components/lexical'
@@ -29,17 +32,22 @@ const { editor } = useLexical(
   contentElement,
   'MarkdownEditor',
   theme,
-  markdownPlugin(markdown, [listPlugin, imagePlugin]),
+  markdownPlugin(markdown, [listPlugin, imagePlugin, linkPlugin]),
 )
 const formatting = useFormatting(editor)
+
+const { urlUnderCursor } = useLinkNode(editor)
 </script>
 
 <template>
   <div class="MarkdownEditor fullHeight">
     <FormattingToolbar :formatting="formatting" @pointerdown.prevent />
-    <LexicalContent ref="contentElement" class="fullHeight" @wheel.stop @contextmenu.stop />
+    <LexicalContent ref="contentElement" @wheel.stop @contextmenu.stop @pointerdown.stop />
     <FloatingSelectionMenu :selectionElement="contentElement">
-      <SelectionFormattingToolbar :formatting="formatting" />
+      <template #default="{ collapsed }">
+        <SelectionFormattingToolbar v-if="!collapsed" :formatting="formatting" />
+        <LinkToolbar v-else-if="urlUnderCursor" :url="urlUnderCursor" />
+      </template>
     </FloatingSelectionMenu>
     <LexicalDecorators :editor="editor" />
   </div>
