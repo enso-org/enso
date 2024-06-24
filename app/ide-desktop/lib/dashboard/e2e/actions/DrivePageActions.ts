@@ -5,6 +5,7 @@ import * as actions from '../actions'
 import type * as baseActions from './BaseActions'
 import * as contextMenuActions from './contextMenuActions'
 import EditorPageActions from './EditorPageActions'
+import * as goToPageActions from './goToPageActions'
 import NewDataLinkModalActions from './NewDataLinkModalActions'
 import PageActions from './PageActions'
 import StartModalActions from './StartModalActions'
@@ -14,7 +15,12 @@ import StartModalActions from './StartModalActions'
 // ========================
 
 /** Actions for the "drive" page. */
-export default class DrivePageActions extends PageActions<'drive'> {
+export default class DrivePageActions extends PageActions {
+  /** Actions for navigating to another page. */
+  get goToPage(): Omit<goToPageActions.GoToPageActions, 'drive'> {
+    return goToPageActions.goToPageActions(this.step.bind(this))
+  }
+
   /** Actions related to context menus. */
   get contextMenu() {
     return contextMenuActions.contextMenuActions(this.step.bind(this))

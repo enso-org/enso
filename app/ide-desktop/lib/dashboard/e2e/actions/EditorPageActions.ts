@@ -1,4 +1,5 @@
 /** @file Actions for the "editor" page. */
+import * as goToPageActions from './goToPageActions'
 import PageActions from './PageActions'
 
 // =========================
@@ -6,4 +7,9 @@ import PageActions from './PageActions'
 // =========================
 
 /** Actions for the "editor" page. */
-export default class EditorPageActions extends PageActions<'editor'> {}
+export default class EditorPageActions extends PageActions {
+  /** Actions for navigating to another page. */
+  get goToPage(): Omit<goToPageActions.GoToPageActions, 'editor'> {
+    return goToPageActions.goToPageActions(this.step.bind(this))
+  }
+}

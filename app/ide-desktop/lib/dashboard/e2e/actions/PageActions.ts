@@ -1,7 +1,5 @@
 /** @file Actions common to all pages. */
-
 import BaseActions from './BaseActions'
-import * as goToPageActions from './goToPageActions'
 import * as openUserMenuAction from './openUserMenuAction'
 import * as userMenuActions from './userMenuActions'
 
@@ -10,14 +8,7 @@ import * as userMenuActions from './userMenuActions'
 // ===================
 
 /** Actions common to all pages. */
-export default class PageActions<
-  Page extends keyof goToPageActions.GoToPageActions,
-> extends BaseActions {
-  /** Actions for navigating to another page. */
-  get goToPage(): Omit<goToPageActions.GoToPageActions, Page> {
-    return goToPageActions.goToPageActions(this.step.bind(this))
-  }
-
+export default class PageActions extends BaseActions {
   /** Actions related to the User Menu. */
   get userMenu() {
     return userMenuActions.userMenuActions(this.step.bind(this))
