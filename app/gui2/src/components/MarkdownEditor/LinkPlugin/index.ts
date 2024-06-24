@@ -1,12 +1,5 @@
 import type { LexicalMarkdownPlugin } from '@/components/MarkdownEditor/markdown'
-import {
-  $createAutoLinkNode,
-  $createLinkNode,
-  $isAutoLinkNode,
-  $isLinkNode,
-  AutoLinkNode,
-  LinkNode,
-} from '@lexical/link'
+import { $createLinkNode, $isLinkNode, AutoLinkNode, LinkNode } from '@lexical/link'
 import { type Transformer } from '@lexical/markdown'
 import { $getNearestNodeOfType } from '@lexical/utils'
 import {
@@ -17,42 +10,13 @@ import {
   COMMAND_PRIORITY_CRITICAL,
   type LexicalEditor,
 } from 'lexical'
+import { createLinkMatcherWithRegExp, useAutoLink } from './autoMatcher'
 
-const _AUTO_LINK: Transformer = {
-  dependencies: [AutoLinkNode],
-  export: (node, exportChildren, exportFormat) => {
-    if (!$isAutoLinkNode(node)) {
-      return null
-    }
-    const title = node.getTitle()
-    const linkContent =
-      title ?
-        `[${node.getTextContent()}](${node.getURL()} "${title}")`
-      : `[${node.getTextContent()}](${node.getURL()})`
-    const firstChild = node.getFirstChild()
-    // Add text styles only if link has single text node inside. If it's more
-    // then one we ignore it as markdown does not support nested styles for links
-    if (node.getChildrenSize() === 1 && $isTextNode(firstChild)) {
-      return exportFormat(firstChild, linkContent)
-    } else {
-      return linkContent
-    }
-  },
-  importRegExp: /(?:\[([^[]+)\])(?:\((?:([^()\s]+)(?:\s"((?:[^"]*\\")*[^"]*)"\s*)?)\))/,
-  regExp: /(?:\[([^[]+)\])(?:\((?:([^()\s]+)(?:\s"((?:[^"]*\\")*[^"]*)"\s*)?)\))$/,
-  replace: (textNode, match) => {
-    const [, linkText, linkUrl] = match
-    if (linkUrl) {
-      const linkNode = $createAutoLinkNode(linkUrl)
-      const linkTextNode = $createTextNode(linkText)
-      linkTextNode.setFormat(textNode.getFormat())
-      linkNode.append(linkTextNode)
-      textNode.replace(linkNode)
-    }
-  },
-  trigger: ')',
-  type: 'text-match',
-}
+const URL_REGEX =
+  /((https?:\/\/(www\.)?)|(www\.))[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_+.~#?&//=]*)/
+
+const EMAIL_REGEX =
+  /(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))/
 
 const LINK: Transformer = {
   dependencies: [LinkNode],
@@ -126,5 +90,10 @@ export const linkPlugin: LexicalMarkdownPlugin = {
       },
       COMMAND_PRIORITY_CRITICAL,
     )
+
+    useAutoLink(editor, [
+      createLinkMatcherWithRegExp(URL_REGEX, (t) => (t.startsWith('http') ? t : `https://${t}`)),
+      createLinkMatcherWithRegExp(EMAIL_REGEX, (text) => `mailto:${text}`),
+    ])
   },
 }
