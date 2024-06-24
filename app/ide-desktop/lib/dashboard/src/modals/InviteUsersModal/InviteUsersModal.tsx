@@ -5,7 +5,6 @@ import * as authProvider from '#/providers/AuthProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import * as ariaComponents from '#/components/AriaComponents'
-import * as loader from '#/components/Loader'
 
 import * as inviteUsersForm from '#/modals/InviteUsersModal/InviteUsersForm'
 import * as inviteUsersSuccess from '#/modals/InviteUsersModal/InviteUsersSuccess'
@@ -27,24 +26,20 @@ export default function InviteUsersModal(props: InviteUsersModalProps) {
   const { getText } = textProvider.useText()
   const { user } = authProvider.useNonPartialUserSession()
 
-  if (!user?.organizationId) {
-    return null
+  if (relativeToTrigger) {
+    return (
+      <ariaComponents.Popover>
+        <InviteUsersModalContent organizationId={user.organizationId} />
+      </ariaComponents.Popover>
+    )
   } else {
-    if (relativeToTrigger) {
-      return (
-        <ariaComponents.Popover>
-          <InviteUsersModalContent organizationId={user.organizationId} />
-        </ariaComponents.Popover>
-      )
-    } else {
-      return (
-        <ariaComponents.Dialog title={getText('invite')} isDismissable>
-          {({ close }) => (
-            <InviteUsersModalContent organizationId={user.organizationId} onClose={close} />
-          )}
-        </ariaComponents.Dialog>
-      )
-    }
+    return (
+      <ariaComponents.Dialog title={getText('invite')}>
+        {({ close }) => (
+          <InviteUsersModalContent organizationId={user.organizationId} onClose={close} />
+        )}
+      </ariaComponents.Dialog>
+    )
   }
 }
 
@@ -75,13 +70,14 @@ function InviteUsersModalContent(props: InviteUsersModalContentProps) {
   const invitationLink = `enso://auth/registration?organization_id=${organizationId}`
 
   return (
-    <React.Suspense fallback={<loader.Loader size="medium" minHeight="h32" />}>
+    <>
       {step === 'invite' && (
         <inviteUsersForm.InviteUsersForm
           onSubmitted={onInviteUsersFormInviteUsersFormSubmitted}
           organizationId={organizationId}
         />
       )}
+
       {step === 'success' && (
         <inviteUsersSuccess.InviteUsersSuccess
           {...props}
@@ -89,6 +85,6 @@ function InviteUsersModalContent(props: InviteUsersModalContentProps) {
           emails={submittedEmails}
         />
       )}
-    </React.Suspense>
+    </>
   )
 }

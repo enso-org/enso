@@ -476,11 +476,6 @@ export default [
         rules: {
             'no-restricted-properties': [
                 'error',
-                {
-                    object: 'router',
-                    property: 'useNavigate',
-                    message: 'Use `hooks.useNavigate` instead.',
-                },
                 { object: 'console', message: DEBUG_STATEMENTS_MESSAGE },
                 { property: 'useDebugState', message: DEBUG_STATEMENTS_MESSAGE },
                 { property: 'useDebugEffect', message: DEBUG_STATEMENTS_MESSAGE },

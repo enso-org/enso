@@ -29,7 +29,7 @@ test.test('change password form', async ({ page }) => {
     .expect(localActions.locateChangeButton(page), 'incomplete form should be rejected')
     .toBeDisabled()
 
-  await test.test.step('invalid new password', async () => {
+  await test.test.step('Invalid new password', async () => {
     await localActions.locateCurrentPasswordInput(page).fill(actions.VALID_PASSWORD)
     await localActions.locateNewPasswordInput(page).fill(actions.INVALID_PASSWORD)
     await localActions.locateConfirmNewPasswordInput(page).fill(actions.INVALID_PASSWORD)
@@ -46,7 +46,7 @@ test.test('change password form', async ({ page }) => {
       .toBeDisabled()
   })
 
-  await test.test.step('invalid new password confirmation', async () => {
+  await test.test.step('Invalid new password confirmation', async () => {
     await localActions.locateCurrentPasswordInput(page).fill(actions.VALID_PASSWORD)
     await localActions.locateNewPasswordInput(page).fill(actions.VALID_PASSWORD)
     await localActions.locateConfirmNewPasswordInput(page).fill(actions.VALID_PASSWORD + 'a')
@@ -66,7 +66,7 @@ test.test('change password form', async ({ page }) => {
       .toBeDisabled()
   })
 
-  await test.test.step('successful password change', async () => {
+  await test.test.step('Successful password change', async () => {
     const newPassword = '1234!' + actions.VALID_PASSWORD
     await localActions.locateNewPasswordInput(page).fill(newPassword)
     await localActions.locateConfirmNewPasswordInput(page).fill(newPassword)

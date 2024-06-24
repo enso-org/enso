@@ -28,7 +28,7 @@ export default function AccountSettingsTab(props: AccountSettingsTabProps) {
   // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
   const username: string | null =
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-non-null-assertion
-    accessToken != null ? JSON.parse(atob(accessToken.split('.')[1]!)).username : null
+    JSON.parse(atob(accessToken.split('.')[1]!)).username
   const canChangePassword = username != null ? !/^Github_|^Google_/.test(username) : false
 
   return (
@@ -36,7 +36,7 @@ export default function AccountSettingsTab(props: AccountSettingsTabProps) {
       <div className="flex w-settings-main-section flex-col gap-settings-subsection">
         <UserAccountSettingsSection backend={backend} />
         {canChangePassword && <ChangePasswordSettingsSection />}
-        <DeleteUserAccountSettingsSection backend={backend} />
+        <DeleteUserAccountSettingsSection />
       </div>
       <ProfilePictureSettingsSection backend={backend} />
     </div>

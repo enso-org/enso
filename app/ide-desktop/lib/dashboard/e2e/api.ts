@@ -504,12 +504,12 @@ export async function mockApi({ page }: MockParams) {
         if (assetId == null) {
           await route.fulfill({
             status: HTTP_STATUS_BAD_REQUEST,
-            json: { error: 'Invalid Asset ID' },
+            json: { message: 'Invalid Asset ID' },
           })
         } else {
           await route.fulfill({
             status: HTTP_STATUS_NOT_FOUND,
-            json: { error: 'Asset does not exist' },
+            json: { message: 'Asset does not exist' },
           })
         }
       } else {
@@ -722,7 +722,7 @@ export async function mockApi({ page }: MockParams) {
       if (body.name === '') {
         await route.fulfill({
           status: HTTP_STATUS_BAD_REQUEST,
-          json: { error: 'Organization name must not be empty' },
+          json: { message: 'Organization name must not be empty' },
         })
         return
       } else if (currentOrganization) {

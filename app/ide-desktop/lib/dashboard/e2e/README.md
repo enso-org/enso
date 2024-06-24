@@ -32,7 +32,7 @@ test.test("test name here", ({ page }) =>
     // If it is absolutely necessary though, please remember to `await` the method chain.
     // Note that the `async`/`await` pair is REQUIRED, as `Actions` subclasses are `PromiseLike`s,
     // not `Promise`s, which causes Playwright to output a type error.
-    async ({ pageActions }) => await pageActions.goToHomePage(),
+    async ({ pageActions }) => await pageActions.goTo.drive(),
   ),
 );
 ```

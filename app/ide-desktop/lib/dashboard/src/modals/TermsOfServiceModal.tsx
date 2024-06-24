@@ -76,7 +76,6 @@ export function TermsOfServiceModal() {
     // and refetch in the background to check for updates.
     ...(localVersionHash != null && {
       initialData: { hash: localVersionHash },
-      initialDataUpdatedAt: 0,
     }),
     select: data => data.hash,
   })

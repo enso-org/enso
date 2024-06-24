@@ -567,7 +567,7 @@ export default function AssetRow(props: AssetRowProps) {
         }
         case AssetEventType.removeSelf: {
           // This is not triggered from the asset list, so it uses `item.id` instead of `key`.
-          if (event.id === asset.id && user != null && user.isEnabled) {
+          if (event.id === asset.id && user.isEnabled) {
             setInsertionVisibility(Visibility.hidden)
             try {
               await createPermissionMutation.mutateAsync([
