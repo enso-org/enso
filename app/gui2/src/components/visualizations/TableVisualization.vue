@@ -1,10 +1,17 @@
 <script lang="ts">
 import icons from '@/assets/icons.svg'
+import { Ast } from '@/util/ast'
+import { Pattern } from '@/util/ast/match'
 import { useAutoBlur } from '@/util/autoBlur'
-import { VisualizationContainer } from '@/util/visualizationBuiltins'
+import { VisualizationContainer, useVisualizationConfig } from '@/util/visualizationBuiltins'
 import '@ag-grid-community/styles/ag-grid.css'
 import '@ag-grid-community/styles/ag-theme-alpine.css'
-import type { CellClassParams, ColumnResizedEvent, ICellRendererParams } from 'ag-grid-community'
+import type {
+  CellClassParams,
+  CellClickedEvent,
+  ColumnResizedEvent,
+  ICellRendererParams,
+} from 'ag-grid-community'
 import type { ColDef, GridOptions, HeaderValueGetterParams } from 'ag-grid-enterprise'
 import {
   computed,
@@ -89,8 +96,12 @@ const props = defineProps<{ data: Data }>()
 const emit = defineEmits<{
   'update:preprocessor': [module: string, method: string, ...args: string[]]
 }>()
+const config = useVisualizationConfig()
 
 const INDEX_FIELD_NAME = '#'
+const TABLE_NODE_TYPE = 'Standard.Table.Table.Table'
+const VECTOR_NODE_TYPE = 'Standard.Base.Data.Vector.Vector'
+const COLUMN_NODE_TYPE = 'Standard.Table.Column.Column'
 
 const rowLimit = ref(0)
 const page = ref(0)
@@ -244,7 +255,7 @@ function toField(name: string, valueType?: ValueType | null | undefined): ColDef
   const svgTemplate = `<svg viewBox="0 0 16 16" width="16" height="16"> <use xlink:href="${icons}#${icon}"/> </svg>`
   const template =
     icon ?
-      `<div style='display:flex; flex-direction:row; justify-content:space-between; width:inherit;'> ${name} ${svgTemplate}</div>`
+      `<div style='display:flex; flex-direction:row; justify-content:space-between; width:inherit;'> ${name} <span ref="eMenu" class="ag-header-icon ag-header-cell-menu-button"> </span> ${svgTemplate}</div>`
     : `<div>${name}</div>`
   return {
     field: name,
@@ -255,8 +266,46 @@ function toField(name: string, valueType?: ValueType | null | undefined): ColDef
   }
 }
 
+const getPattern = (index: number) =>
+  Pattern.new((ast) =>
+    Ast.App.positional(
+      Ast.PropertyAccess.new(ast.module, ast, Ast.identifier('at')!),
+      Ast.tryNumberToEnso(index, ast.module)!,
+    ),
+  )
+
+const getTablePattern = (index: number) =>
+  Pattern.new((ast) =>
+    Ast.OprApp.new(
+      ast.module,
+      Ast.App.positional(
+        Ast.PropertyAccess.new(ast.module, ast, Ast.identifier('rows')!),
+        Ast.parse('(..All_Rows)'),
+      ),
+      '.',
+      Ast.App.positional(
+        Ast.Ident.new(ast.module, Ast.identifier('get')!),
+        Ast.tryNumberToEnso(index, ast.module)!,
+      ),
+    ),
+  )
+function createNode(params: CellClickedEvent) {
+  if (config.nodeType === VECTOR_NODE_TYPE || config.nodeType === COLUMN_NODE_TYPE) {
+    config.createNodes({
+      content: getPattern(params.data[INDEX_FIELD_NAME]),
+      commit: true,
+    })
+  }
+  if (config.nodeType === TABLE_NODE_TYPE) {
+    config.createNodes({
+      content: getTablePattern(params.data[INDEX_FIELD_NAME]),
+      commit: true,
+    })
+  }
+}
+
 function indexField(): ColDef {
-  return { field: INDEX_FIELD_NAME }
+  return { field: INDEX_FIELD_NAME, onCellClicked: (params) => createNode(params) }
 }
 
 /** Return a human-readable representation of an object. */

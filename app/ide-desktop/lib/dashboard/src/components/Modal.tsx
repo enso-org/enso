@@ -1,11 +1,11 @@
 /** @file Base modal component that provides the full-screen element that blocks mouse events. */
 import * as React from 'react'
 
-import * as tailwindVariants from 'tailwind-variants'
-
 import * as modalProvider from '#/providers/ModalProvider'
 
 import FocusRoot from '#/components/styled/FocusRoot'
+
+import * as tailwindVariants from '#/utilities/tailwindVariants'
 
 // =================
 // === Constants ===
@@ -28,8 +28,6 @@ export interface ModalProps
     Readonly<tailwindVariants.VariantProps<typeof MODAL_VARIANTS>> {
   /** If `true`, disables `data-testid` because it will not be visible. */
   readonly hidden?: boolean
-  // This can intentionally be `undefined`, in order to simplify consumers of this component.
-  // eslint-disable-next-line no-restricted-syntax
   readonly centered?: boolean | undefined
   readonly style?: React.CSSProperties
   readonly className?: string

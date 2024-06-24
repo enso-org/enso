@@ -2,8 +2,9 @@
  * interactive components. */
 import * as React from 'react'
 
-import * as tailwindMerge from 'tailwind-merge'
-
+import DriveIcon from 'enso-assets/drive.svg'
+import SettingsIcon from 'enso-assets/settings.svg'
+import WorkspaceIcon from 'enso-assets/workspace.svg'
 import * as detect from 'enso-common/src/detect'
 
 import * as eventHooks from '#/hooks/eventHooks'
@@ -14,32 +15,29 @@ import * as backendProvider from '#/providers/BackendProvider'
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as modalProvider from '#/providers/ModalProvider'
+import * as textProvider from '#/providers/TextProvider'
 
 import type * as assetEvent from '#/events/assetEvent'
 import AssetEventType from '#/events/AssetEventType'
 import type * as assetListEvent from '#/events/assetListEvent'
 import AssetListEventType from '#/events/AssetListEventType'
 
-import type * as assetPanel from '#/layouts/AssetPanel'
-import AssetPanel from '#/layouts/AssetPanel'
-import type * as assetSearchBar from '#/layouts/AssetSearchBar'
 import Category, * as categoryModule from '#/layouts/CategorySwitcher/Category'
 import Chat from '#/layouts/Chat'
 import ChatPlaceholder from '#/layouts/ChatPlaceholder'
 import Drive from '#/layouts/Drive'
 import Editor from '#/layouts/Editor'
-import * as pageSwitcher from '#/layouts/PageSwitcher'
 import Settings from '#/layouts/Settings'
-import TopBar from '#/layouts/TopBar'
+import * as tabBar from '#/layouts/TabBar'
+import TabBar from '#/layouts/TabBar'
+import UserBar from '#/layouts/UserBar'
 
 import Page from '#/components/Page'
 
 import * as backendModule from '#/services/Backend'
-import type Backend from '#/services/Backend'
 import type * as projectManager from '#/services/ProjectManager'
 
 import * as array from '#/utilities/array'
-import AssetQuery from '#/utilities/AssetQuery'
 import LocalStorage from '#/utilities/LocalStorage'
 import * as object from '#/utilities/object'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
@@ -50,13 +48,19 @@ import type * as types from '../../../../types/types'
 // === Global configuration ===
 // ============================
 
+/** Main content of the screen. Only one should be visible at a time. */
+enum TabType {
+  drive = 'drive',
+  editor = 'editor',
+  settings = 'settings',
+}
+
 declare module '#/utilities/LocalStorage' {
   /** */
   interface LocalStorageData {
-    readonly driveCategory: Category
     readonly isAssetPanelVisible: boolean
-    readonly page: pageSwitcher.Page
-    readonly projectStartupInfo: backendModule.ProjectStartupInfo
+    readonly page: TabType
+    readonly projectStartupInfo: backendModule.ProjectStartupInfo<backendModule.Project>
   }
 }
 
@@ -64,14 +68,9 @@ LocalStorage.registerKey('isAssetPanelVisible', {
   tryParse: value => (value === true ? value : null),
 })
 
-const PAGES = Object.values(pageSwitcher.Page)
+const PAGES = Object.values(TabType)
 LocalStorage.registerKey('page', {
   tryParse: value => (array.includes(PAGES, value) ? value : null),
-})
-
-const CATEGORIES = Object.values(Category)
-LocalStorage.registerKey('driveCategory', {
-  tryParse: value => (array.includes(CATEGORIES, value) ? value : null),
 })
 
 const BACKEND_TYPES = Object.values(backendModule.BackendType)
@@ -126,22 +125,22 @@ export default function Dashboard(props: DashboardProps) {
   const session = authProvider.useNonPartialUserSession()
   const remoteBackend = backendProvider.useRemoteBackend()
   const localBackend = backendProvider.useLocalBackend()
+  const { getText } = textProvider.useText()
   const { modalRef } = modalProvider.useModalRef()
   const { updateModal, unsetModal } = modalProvider.useSetModal()
   const { localStorage } = localStorageProvider.useLocalStorage()
   const inputBindings = inputBindingsProvider.useInputBindings()
   const [initialized, setInitialized] = React.useState(false)
+  const initializedRef = React.useRef(initialized)
+  initializedRef.current = initialized
   const [isHelpChatOpen, setIsHelpChatOpen] = React.useState(false)
 
   // These pages MUST be ROUTER PAGES.
   const [page, setPage] = searchParamsState.useSearchParamsState(
     'page',
-    () => localStorage.get('page') ?? pageSwitcher.Page.drive,
-    (value: unknown): value is pageSwitcher.Page =>
-      array.includes(Object.values(pageSwitcher.Page), value)
+    () => localStorage.get('page') ?? TabType.drive,
+    (value: unknown): value is TabType => array.includes(Object.values(TabType), value)
   )
-  const [query, setQuery] = React.useState(() => AssetQuery.fromString(''))
-  const [suggestions, setSuggestions] = React.useState<assetSearchBar.Suggestion[]>([])
   const [projectStartupInfo, setProjectStartupInfo] =
     React.useState<backendModule.ProjectStartupInfo | null>(null)
   const [openProjectAbortController, setOpenProjectAbortController] =
@@ -149,27 +148,27 @@ export default function Dashboard(props: DashboardProps) {
   const [assetListEvents, dispatchAssetListEvent] =
     eventHooks.useEvent<assetListEvent.AssetListEvent>()
   const [assetEvents, dispatchAssetEvent] = eventHooks.useEvent<assetEvent.AssetEvent>()
-  const [assetPanelProps, setAssetPanelProps] =
-    React.useState<assetPanel.AssetPanelRequiredProps | null>(null)
-  const [isAssetPanelEnabled, setIsAssetPanelEnabled] = React.useState(
-    () => localStorage.get('isAssetPanelVisible') ?? false
-  )
-  const [isAssetPanelTemporarilyVisible, setIsAssetPanelTemporarilyVisible] = React.useState(false)
   const defaultCategory = remoteBackend != null ? Category.cloud : Category.local
   const [category, setCategory] = searchParamsState.useSearchParamsState(
     'driveCategory',
-    () =>
-      remoteBackend == null ? Category.local : localStorage.get('driveCategory') ?? defaultCategory,
-    (value): value is Category => array.includes(Object.values(Category), value)
+    () => defaultCategory,
+    (value): value is Category => {
+      if (array.includes(Object.values(Category), value)) {
+        return categoryModule.isLocal(value) ? localBackend != null : true
+      } else {
+        return false
+      }
+    }
   )
 
   const isCloud = categoryModule.isCloud(category)
-  const isUserEnabled = session.user?.isEnabled === true
-  const isAssetPanelVisible =
-    page === pageSwitcher.Page.drive && (isAssetPanelEnabled || isAssetPanelTemporarilyVisible)
+  const isUserEnabled = session.user.isEnabled
 
   if (isCloud && !isUserEnabled && localBackend != null) {
-    setCategory(Category.local)
+    setTimeout(() => {
+      // This sets `BrowserRouter`, so it must not be set synchronously.
+      setCategory(Category.local)
+    })
   }
 
   React.useEffect(() => {
@@ -177,21 +176,15 @@ export default function Dashboard(props: DashboardProps) {
   }, [])
 
   React.useEffect(() => {
-    if (query.query !== '') {
-      setPage(pageSwitcher.Page.drive)
-    }
-  }, [query, setPage])
-
-  React.useEffect(() => {
     const savedProjectStartupInfo = localStorage.get('projectStartupInfo')
     if (initialProjectName != null) {
-      if (page === pageSwitcher.Page.editor) {
-        setPage(pageSwitcher.Page.drive)
+      if (page === TabType.editor) {
+        setPage(TabType.drive)
       }
     } else if (savedProjectStartupInfo != null) {
       if (savedProjectStartupInfo.backendType === backendModule.BackendType.remote) {
         if (remoteBackend != null) {
-          setPage(pageSwitcher.Page.drive)
+          setPage(TabType.drive)
           void (async () => {
             const abortController = new AbortController()
             setOpenProjectAbortController(abortController)
@@ -202,17 +195,19 @@ export default function Dashboard(props: DashboardProps) {
                 savedProjectStartupInfo.projectAsset.title
               )
               if (backendModule.IS_OPENING_OR_OPENED[oldProject.state.type]) {
-                const project = await remoteBackend.waitUntilProjectIsReady(
+                const project = remoteBackend.waitUntilProjectIsReady(
                   savedProjectStartupInfo.projectAsset.id,
                   savedProjectStartupInfo.projectAsset.parentId,
                   savedProjectStartupInfo.projectAsset.title,
                   abortController
                 )
-                if (!abortController.signal.aborted) {
-                  setProjectStartupInfo(object.merge(savedProjectStartupInfo, { project }))
-                  if (page === pageSwitcher.Page.editor) {
-                    setPage(page)
-                  }
+                setProjectStartupInfo(
+                  object.merge<backendModule.ProjectStartupInfo>(savedProjectStartupInfo, {
+                    project,
+                  })
+                )
+                if (page === TabType.editor) {
+                  setPage(page)
                 }
               }
             } catch {
@@ -232,13 +227,15 @@ export default function Dashboard(props: DashboardProps) {
               },
               savedProjectStartupInfo.projectAsset.title
             )
-            const project = await localBackend.getProjectDetails(
+            const project = localBackend.getProjectDetails(
               savedProjectStartupInfo.projectAsset.id,
               savedProjectStartupInfo.projectAsset.parentId,
               savedProjectStartupInfo.projectAsset.title
             )
-            setProjectStartupInfo(object.merge(savedProjectStartupInfo, { project }))
-            if (page === pageSwitcher.Page.editor) {
+            setProjectStartupInfo(
+              object.merge<backendModule.ProjectStartupInfo>(savedProjectStartupInfo, { project })
+            )
+            if (page === TabType.editor) {
               setPage(page)
             }
           })()
@@ -264,26 +261,20 @@ export default function Dashboard(props: DashboardProps) {
   })
 
   React.useEffect(() => {
-    if (initialized) {
+    if (initializedRef.current) {
       if (projectStartupInfo != null) {
-        localStorage.set('projectStartupInfo', projectStartupInfo)
+        void Promise.resolve(projectStartupInfo.project).then(project => {
+          localStorage.set('projectStartupInfo', { ...projectStartupInfo, project })
+        })
       } else {
         localStorage.delete('projectStartupInfo')
       }
     }
-    // `initialized` is NOT a dependency.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projectStartupInfo, /* should never change */ localStorage])
+  }, [projectStartupInfo, localStorage])
 
   React.useEffect(() => {
-    localStorage.set('isAssetPanelVisible', isAssetPanelEnabled)
-  }, [isAssetPanelEnabled, /* should never change */ localStorage])
-
-  React.useEffect(() => {
-    if (page !== pageSwitcher.Page.settings) {
-      localStorage.set('page', page)
-    }
-  }, [page, /* should never change */ localStorage])
+    localStorage.set('page', page)
+  }, [page, localStorage])
 
   React.useEffect(
     () =>
@@ -292,13 +283,7 @@ export default function Dashboard(props: DashboardProps) {
           updateModal(oldModal => {
             if (oldModal == null) {
               queueMicrotask(() => {
-                setPage(oldPage => {
-                  if (oldPage !== pageSwitcher.Page.settings) {
-                    return oldPage
-                  } else {
-                    return localStorage.get('page') ?? pageSwitcher.Page.drive
-                  }
-                })
+                setPage(localStorage.get('page') ?? TabType.drive)
               })
               return oldModal
             } else {
@@ -329,38 +314,25 @@ export default function Dashboard(props: DashboardProps) {
     }
   }, [inputBindings])
 
-  const doOpenEditor = React.useCallback(
-    async (
-      backend: Backend,
-      newProject: backendModule.ProjectAsset,
-      setProjectAsset: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>>,
-      switchPage: boolean
-    ) => {
-      if (switchPage) {
-        setPage(pageSwitcher.Page.editor)
-      }
-      if (projectStartupInfo?.project.projectId !== newProject.id) {
-        setProjectStartupInfo({
-          project: await backend.getProjectDetails(
-            newProject.id,
-            newProject.parentId,
-            newProject.title
-          ),
-          projectAsset: newProject,
-          setProjectAsset: setProjectAsset,
-          backendType: backend.type,
-          accessToken: session.accessToken,
+  const doOpenEditor = React.useCallback(() => {
+    setPage(TabType.editor)
+  }, [setPage])
+
+  const doCloseEditor = React.useCallback(
+    (id: backendModule.ProjectId) => {
+      if (id === projectStartupInfo?.projectAsset.id) {
+        setProjectStartupInfo(currentInfo => {
+          if (id === currentInfo?.projectAsset.id) {
+            setPage(TabType.drive)
+            return null
+          } else {
+            return currentInfo
+          }
         })
       }
     },
-    [projectStartupInfo?.project.projectId, session.accessToken, setPage]
+    [projectStartupInfo?.projectAsset.id, setPage]
   )
-
-  const doCloseEditor = React.useCallback((closingProject: backendModule.ProjectAsset) => {
-    setProjectStartupInfo(oldInfo =>
-      oldInfo?.projectAsset.id === closingProject.id ? null : oldInfo
-    )
-  }, [])
 
   const doRemoveSelf = React.useCallback(() => {
     if (projectStartupInfo?.projectAsset != null) {
@@ -368,76 +340,106 @@ export default function Dashboard(props: DashboardProps) {
       dispatchAssetListEvent({ type: AssetListEventType.removeSelf, id })
       setProjectStartupInfo(null)
     }
-  }, [projectStartupInfo?.projectAsset, /* should never change */ dispatchAssetListEvent])
+  }, [projectStartupInfo?.projectAsset, dispatchAssetListEvent])
 
   const onSignOut = React.useCallback(() => {
-    if (page === pageSwitcher.Page.editor) {
-      setPage(pageSwitcher.Page.drive)
+    if (page === TabType.editor) {
+      setPage(TabType.drive)
     }
     setProjectStartupInfo(null)
   }, [page, setPage])
 
   return (
     <Page hideInfoBar hideChat>
-      <div
-        className={tailwindMerge.twMerge(
-          'flex text-xs text-primary',
-          page === pageSwitcher.Page.editor && 'pointer-events-none cursor-none'
-        )}
-      >
+      <div className="flex text-xs text-primary">
         <div
-          className="relative flex h-screen grow select-none flex-col gap-top-level container-size"
+          className="relative flex h-screen grow select-none flex-col container-size"
           onContextMenu={event => {
             event.preventDefault()
             unsetModal()
           }}
         >
-          <TopBar
-            backend={remoteBackend}
-            isCloud={isCloud}
-            projectAsset={projectStartupInfo?.projectAsset ?? null}
-            setProjectAsset={projectStartupInfo?.setProjectAsset ?? null}
-            page={page}
-            setPage={setPage}
-            isEditorDisabled={projectStartupInfo == null}
-            setIsHelpChatOpen={setIsHelpChatOpen}
-            query={query}
-            setQuery={setQuery}
-            suggestions={suggestions}
-            isAssetPanelVisible={isAssetPanelVisible}
-            isAssetPanelEnabled={isAssetPanelEnabled}
-            setIsAssetPanelEnabled={setIsAssetPanelEnabled}
-            doRemoveSelf={doRemoveSelf}
-            onSignOut={onSignOut}
-          />
+          <div className="flex">
+            <TabBar>
+              <tabBar.Tab
+                isActive={page === TabType.drive}
+                icon={DriveIcon}
+                labelId="drivePageName"
+                onPress={() => {
+                  setPage(TabType.drive)
+                }}
+              >
+                {getText('drivePageName')}
+              </tabBar.Tab>
+              {projectStartupInfo != null && (
+                <tabBar.Tab
+                  isActive={page === TabType.editor}
+                  icon={WorkspaceIcon}
+                  labelId="editorPageName"
+                  onPress={() => {
+                    setPage(TabType.editor)
+                  }}
+                  onClose={() => {
+                    dispatchAssetEvent({
+                      type: AssetEventType.closeProject,
+                      id: projectStartupInfo.projectAsset.id,
+                    })
+                    setPage(TabType.drive)
+                  }}
+                >
+                  {projectStartupInfo.projectAsset.title}
+                </tabBar.Tab>
+              )}
+              {page === TabType.settings && (
+                <tabBar.Tab
+                  isActive
+                  icon={SettingsIcon}
+                  labelId="settingsPageName"
+                  onPress={() => {
+                    setPage(TabType.settings)
+                  }}
+                  onClose={() => {
+                    setPage(TabType.drive)
+                  }}
+                >
+                  {getText('settingsPageName')}
+                </tabBar.Tab>
+              )}
+            </TabBar>
+            <UserBar
+              backend={remoteBackend}
+              isOnEditorPage={page === TabType.editor}
+              setIsHelpChatOpen={setIsHelpChatOpen}
+              projectAsset={projectStartupInfo?.projectAsset ?? null}
+              setProjectAsset={projectStartupInfo?.setProjectAsset ?? null}
+              doRemoveSelf={doRemoveSelf}
+              goToSettingsPage={() => {
+                setPage(TabType.settings)
+              }}
+              onSignOut={onSignOut}
+            />
+          </div>
           <Drive
             category={category}
             setCategory={setCategory}
-            hidden={page !== pageSwitcher.Page.drive}
+            hidden={page !== TabType.drive}
             initialProjectName={initialProjectName}
-            query={query}
-            setQuery={setQuery}
-            setSuggestions={setSuggestions}
-            projectStartupInfo={projectStartupInfo}
             setProjectStartupInfo={setProjectStartupInfo}
             assetListEvents={assetListEvents}
             dispatchAssetListEvent={dispatchAssetListEvent}
             assetEvents={assetEvents}
             dispatchAssetEvent={dispatchAssetEvent}
-            setAssetPanelProps={setAssetPanelProps}
-            setIsAssetPanelTemporarilyVisible={setIsAssetPanelTemporarilyVisible}
             doOpenEditor={doOpenEditor}
             doCloseEditor={doCloseEditor}
           />
           <Editor
-            hidden={page !== pageSwitcher.Page.editor}
+            hidden={page !== TabType.editor}
             ydocUrl={ydocUrl}
             projectStartupInfo={projectStartupInfo}
             appRunner={appRunner}
           />
-          {page === pageSwitcher.Page.settings && <Settings backend={remoteBackend} />}
-          {/* `session.accessToken` MUST be present in order for the `Chat` component to work. */}
-          {session.accessToken != null && process.env.ENSO_CLOUD_CHAT_URL != null ? (
+          {page === TabType.settings && <Settings backend={remoteBackend} />}
+          {process.env.ENSO_CLOUD_CHAT_URL != null ? (
             <Chat
               isOpen={isHelpChatOpen}
               doClose={() => {
@@ -451,26 +453,6 @@ export default function Dashboard(props: DashboardProps) {
               doClose={() => {
                 setIsHelpChatOpen(false)
               }}
-            />
-          )}
-        </div>
-        <div
-          className={tailwindMerge.twMerge(
-            'flex flex-col overflow-hidden transition-min-width duration-side-panel ease-in-out',
-            isAssetPanelVisible ? 'min-w-side-panel' : 'invisible min-w'
-          )}
-        >
-          {isAssetPanelVisible && (
-            <AssetPanel
-              key={assetPanelProps?.item?.item.id}
-              backend={assetPanelProps?.backend ?? null}
-              item={assetPanelProps?.item ?? null}
-              setItem={assetPanelProps?.setItem ?? null}
-              setQuery={setQuery}
-              category={defaultCategory}
-              dispatchAssetEvent={dispatchAssetEvent}
-              dispatchAssetListEvent={dispatchAssetListEvent}
-              isReadonly={category === Category.trash}
             />
           )}
         </div>

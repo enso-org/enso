@@ -1,9 +1,11 @@
 package org.enso.projectmanager.boot
 
+import org.enso.desktopenvironment.Platform
 import org.slf4j.event.Level
 
-import java.io.File
+import java.io.{File, IOException}
 import java.nio.file.Path
+
 import scala.concurrent.duration.FiniteDuration
 
 object configuration {
@@ -41,20 +43,36 @@ object configuration {
     */
   case class ServerConfig(host: String, port: Int)
 
-  /** A configuration object for properties of project storage.
+  /** A configuration object for metadata storage.
     *
-    * @param projectsRoot a project root
-    * @param userProjectsPath a user project root
-    * @param projectMetadataDirectory a directory name containing project
-    *                                 metadata
+    * @param projectMetadataDirectory a directory name containing project metadata
     * @param projectMetadataFileName a name of project metadata file
     */
-  case class StorageConfig(
-    projectsRoot: File,
-    userProjectsPath: File,
+  case class MetadataStorageConfig(
     projectMetadataDirectory: String,
     projectMetadataFileName: String
   )
+
+  /** A configuration object for properties of project storage.
+    *
+    * @param projectsRoot overrides user projects root directory
+    * @param projectsDirectory a user projects directory
+    * @param metadata a metadata storage config
+    */
+  case class StorageConfig(
+    projectsRoot: Option[File],
+    projectsDirectory: String,
+    metadata: MetadataStorageConfig
+  ) {
+
+    /** @return a path to the user projects directory. */
+    @throws[IOException]
+    def userProjectsPath: File = {
+      val projectsRootDirectory =
+        projectsRoot.getOrElse(Platform.getDirectories.getDocuments.toFile)
+      new File(projectsRootDirectory, projectsDirectory)
+    }
+  }
 
   /** A configuration object for timeout properties.
     *

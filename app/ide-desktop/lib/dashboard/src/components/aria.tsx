@@ -9,6 +9,10 @@ export * from 'react-aria-components'
 export * from '@react-stately/overlays'
 export * from '@react-stately/tooltip'
 
+// ==================
+// === mergeProps ===
+// ==================
+
 /** Merges multiple props objects together.
  * Event handlers are chained, classNames are combined, and ids are deduplicated -
  * different ids will trigger a side-effect and re-render components hooked up with `useId`.
@@ -16,7 +20,6 @@ export * from '@react-stately/tooltip'
  *
  * The constraint is defaulted to `never` to make an explicit constraint mandatory. */
 export function mergeProps<Constraint extends object = never>() {
-  // eslint-disable-next-line no-restricted-syntax
   return <T extends (Partial<Constraint> | null | undefined)[]>(...args: T) =>
     aria.mergeProps(...args)
 }

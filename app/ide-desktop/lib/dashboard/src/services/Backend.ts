@@ -168,7 +168,7 @@ export interface User extends UserInfo {
   readonly isEnabled: boolean
   readonly rootDirectoryId: DirectoryId
   readonly profilePicture?: HttpsUrl
-  readonly userGroups: UserGroupId[] | null
+  readonly userGroups: readonly UserGroupId[] | null
   readonly removeAt?: dateTime.Rfc3339DateTime | null
   readonly plan?: Plan
 }
@@ -292,8 +292,10 @@ export interface BackendProject extends Project {
 }
 
 /** Information required to open a project. */
-export interface ProjectStartupInfo {
-  readonly project: Project
+export interface ProjectStartupInfo<
+  ProjectType extends Project | Promise<Project> = Project | Promise<Project>,
+> {
+  readonly project: ProjectType
   readonly projectAsset: ProjectAsset
   // This MUST BE optional because it is lost when `JSON.stringify`ing to put in `localStorage`.
   readonly setProjectAsset?: React.Dispatch<React.SetStateAction<ProjectAsset>>
@@ -1012,16 +1014,12 @@ export interface InviteUserRequestBody {
   readonly userEmail: EmailAddress
 }
 
-/**
- * HTTP request body for the "list invitations" endpoint.
- */
-export interface InvitationListRequestBody {
-  readonly invitations: Invitation[]
+/** HTTP response body for the "list invitations" endpoint. */
+export interface ListInvitationsResponseBody {
+  readonly invitations: readonly Invitation[]
 }
 
-/**
- * Invitation to join an organization.
- */
+/** Invitation to join an organization. */
 export interface Invitation {
   readonly organizationId: OrganizationId
   readonly userEmail: EmailAddress
@@ -1030,7 +1028,7 @@ export interface Invitation {
 
 /** HTTP request body for the "create permission" endpoint. */
 export interface CreatePermissionRequestBody {
-  readonly actorsIds: UserPermissionIdentifier[]
+  readonly actorsIds: readonly UserPermissionIdentifier[]
   readonly resourceId: AssetId
   readonly action: permissions.PermissionAction | null
 }
@@ -1264,7 +1262,7 @@ export default abstract class Backend {
   /** Return the ID of the root directory, if known. */
   abstract rootDirectoryId(user: User | null): DirectoryId | null
   /** Return a list of all users in the same organization. */
-  abstract listUsers(): Promise<User[]>
+  abstract listUsers(): Promise<readonly User[]>
   /** Set the username of the current user. */
   abstract createUser(body: CreateUserRequestBody): Promise<User>
   /** Change the username of the current user. */
@@ -1286,7 +1284,7 @@ export default abstract class Backend {
   /** Invite a new user to the organization by email. */
   abstract inviteUser(body: InviteUserRequestBody): Promise<void>
   /** Return a list of invitations to the organization. */
-  abstract listInvitations(): Promise<Invitation[]>
+  abstract listInvitations(): Promise<readonly Invitation[]>
   /** Delete an invitation. */
   abstract deleteInvitation(userEmail: EmailAddress): Promise<void>
   /** Resend an invitation. */

@@ -89,11 +89,6 @@ function stringify(value) {
 export function getDefines() {
     return {
         /* eslint-disable @typescript-eslint/naming-convention */
-        'process.env.ENSO_CLOUD_REDIRECT': stringify(
-            // The actual environment variable does not necessarily exist.
-            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-            process.env.ENSO_CLOUD_REDIRECT
-        ),
         'process.env.ENSO_CLOUD_ENVIRONMENT': stringify(
             // The actual environment variable does not necessarily exist.
             // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition

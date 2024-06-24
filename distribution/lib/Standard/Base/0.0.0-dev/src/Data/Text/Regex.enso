@@ -130,7 +130,8 @@ type Regex
                     Match_Iterator_Value.Last _ -> Nothing
                 go it
 
-    ## GROUP Selections
+    ## ALIAS match
+       GROUP Selections
        ICON find
        Tries to match the provided `input` against the pattern `self`.
 
@@ -143,7 +144,8 @@ type Regex
     find self (input : Text) =
        match_to_group_maybe <| self.match input
 
-    ## GROUP Selections
+    ## ALIAS matches
+       GROUP Selections
        ICON find
        Tries to match the provided `input` against the pattern `self`.
 
@@ -247,7 +249,7 @@ type Regex
            $0: the entire match string
            $&: the entire match string
            $n: the nth group
-           $<foo>: Named group `foo`
+           $&lt;foo&gt;: Named group `foo`
 
        > Example
          Replace letters in the text "aa".

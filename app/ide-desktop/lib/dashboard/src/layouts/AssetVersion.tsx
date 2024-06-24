@@ -1,8 +1,6 @@
 /** @file Displays information describing a specific version of an asset. */
 import * as React from 'react'
 
-import * as tailwindMerge from 'tailwind-merge'
-
 import CompareIcon from 'enso-assets/compare.svg'
 import DuplicateIcon from 'enso-assets/duplicate.svg'
 import RestoreIcon from 'enso-assets/restore.svg'
@@ -22,6 +20,7 @@ import * as backendService from '#/services/Backend'
 
 import type AssetTreeNode from '#/utilities/AssetTreeNode'
 import * as dateTime from '#/utilities/dateTime'
+import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 // ====================
 // === AssetVersion ===
@@ -62,7 +61,7 @@ export default function AssetVersion(props: AssetVersionProps) {
   return (
     <div
       className={tailwindMerge.twMerge(
-        'flex w-full flex-shrink-0 basis-0 select-none flex-row gap-4 rounded-2xl p-2',
+        'flex w-full shrink-0 basis-0 select-none flex-row gap-4 rounded-2xl p-2',
         placeholder && 'opacity-50'
       )}
     >

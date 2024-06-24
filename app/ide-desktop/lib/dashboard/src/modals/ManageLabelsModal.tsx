@@ -1,8 +1,6 @@
 /** @file A modal to select labels for an asset. */
 import * as React from 'react'
 
-import * as tailwindMerge from 'tailwind-merge'
-
 import * as backendHooks from '#/hooks/backendHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
@@ -24,6 +22,7 @@ import type Backend from '#/services/Backend'
 import * as eventModule from '#/utilities/event'
 import * as object from '#/utilities/object'
 import * as string from '#/utilities/string'
+import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 // =================
 // === Constants ===
@@ -91,7 +90,7 @@ export default function ManageLabelsModal<
         } as Partial<Asset>)
       )
     },
-    [/* should never change */ setItem]
+    [setItem]
   )
 
   const doToggleLabel = async (name: backendModule.LabelName) => {

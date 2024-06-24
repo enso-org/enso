@@ -1,11 +1,11 @@
 /** @file A context menu. */
 import * as React from 'react'
 
-import * as tailwindMerge from 'tailwind-merge'
-
 import * as detect from 'enso-common/src/detect'
 
 import Modal from '#/components/Modal'
+
+import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 // ===================
 // === ContextMenu ===

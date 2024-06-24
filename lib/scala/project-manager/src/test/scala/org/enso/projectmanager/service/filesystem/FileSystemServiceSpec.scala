@@ -46,7 +46,7 @@ class FileSystemServiceSpec
   def metadataFileStorage(directory: File) =
     new MetadataFileStorage[ZIO[ZAny, +*, +*]](
       directory,
-      config.storage,
+      config.storage.metadata,
       testClock,
       fileSystem,
       gen

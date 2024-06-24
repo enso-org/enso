@@ -4,9 +4,8 @@ import java.io.File
 import java.nio.file.Path
 import java.nio.file.attribute.FileTime
 import java.util.UUID
-
 import org.enso.pkg.{Package, PackageManager}
-import org.enso.projectmanager.boot.configuration.StorageConfig
+import org.enso.projectmanager.boot.configuration.MetadataStorageConfig
 import org.enso.projectmanager.control.core.{
   Applicative,
   CovariantFlatMap,
@@ -31,7 +30,7 @@ import org.enso.projectmanager.model.{Project, ProjectMetadata}
 
 /** File based implementation of the project repository.
   *
-  * @param storageConfig a storage config
+  * @param metadataStorageConfig a metadata storage config
   * @param clock a clock
   * @param fileSystem a file system abstraction
   * @param gen a random generator
@@ -39,7 +38,8 @@ import org.enso.projectmanager.model.{Project, ProjectMetadata}
 class ProjectFileRepository[
   F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap: Applicative
 ](
-  storageConfig: StorageConfig,
+  projectsPath: File,
+  metadataStorageConfig: MetadataStorageConfig,
   clock: Clock[F],
   fileSystem: FileSystem[F],
   gen: Generator[F]
@@ -60,7 +60,7 @@ class ProjectFileRepository[
   /** @inheritdoc */
   override def getAll(): F[ProjectRepositoryFailure, List[Project]] = {
     fileSystem
-      .list(storageConfig.userProjectsPath)
+      .list(projectsPath)
       .map(_.filter(_.isDirectory))
       .recover { case FileNotFound | NotDirectory =>
         Nil
@@ -243,7 +243,7 @@ class ProjectFileRepository[
 
     for {
       project <- getProject(projectId)
-      primaryPath = new File(storageConfig.userProjectsPath, newName)
+      primaryPath = new File(projectsPath, newName)
       finalPath <-
         if (isLocationOk(project.path, primaryPath)) {
           CovariantFlatMap[F].pure(primaryPath)
@@ -283,7 +283,7 @@ class ProjectFileRepository[
       .tailRecM[ProjectRepositoryFailure, Int, File](0) { number =>
         val path =
           new File(
-            storageConfig.userProjectsPath,
+            projectsPath,
             moduleName + genSuffix(number)
           )
         fileSystem
@@ -307,7 +307,7 @@ class ProjectFileRepository[
   private def metadataStorage(projectPath: File): MetadataFileStorage[F] =
     new MetadataFileStorage[F](
       projectPath,
-      storageConfig,
+      metadataStorageConfig,
       clock,
       fileSystem,
       gen

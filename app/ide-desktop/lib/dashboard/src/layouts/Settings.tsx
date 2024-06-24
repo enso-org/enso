@@ -6,6 +6,7 @@ import BurgerMenuIcon from 'enso-assets/burger_menu.svg'
 import * as backendHooks from '#/hooks/backendHooks'
 import * as searchParamsState from '#/hooks/searchParamsStateHooks'
 
+import * as authProvider from '#/providers/AuthProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import AccountSettingsTab from '#/layouts/Settings/AccountSettingsTab'
@@ -18,10 +19,11 @@ import UserGroupsSettingsTab from '#/layouts/Settings/UserGroupsSettingsTab'
 import SettingsSidebar from '#/layouts/SettingsSidebar'
 
 import * as aria from '#/components/aria'
+import * as ariaComponents from '#/components/AriaComponents'
 import * as errorBoundary from '#/components/ErrorBoundary'
-import * as loader from '#/components/Loader'
 import * as portal from '#/components/Portal'
 import Button from '#/components/styled/Button'
+import * as suspense from '#/components/Suspense'
 
 import type Backend from '#/services/Backend'
 
@@ -44,14 +46,15 @@ export default function Settings(props: SettingsProps) {
     SettingsTab.account,
     array.includesPredicate(Object.values(SettingsTab))
   )
+  const { user } = authProvider.useFullUserSession()
   const { getText } = textProvider.useText()
   const root = portal.useStrictPortalContext()
   const [isSidebarPopoverOpen, setIsSidebarPopoverOpen] = React.useState(false)
-  const user = backendHooks.useBackendUsersMe(backend)
   const organization = backendHooks.useBackendGetOrganization(backend)
   const isUserInOrganization = organization != null
 
   let content: React.JSX.Element | null
+
   switch (settingsTab) {
     case SettingsTab.account: {
       content = backend == null ? null : <AccountSettingsTab backend={backend} />
@@ -62,7 +65,7 @@ export default function Settings(props: SettingsProps) {
       break
     }
     case SettingsTab.members: {
-      content = backend == null ? null : <MembersSettingsTab backend={backend} />
+      content = <MembersSettingsTab />
       break
     }
     case SettingsTab.userGroups: {
@@ -93,8 +96,8 @@ export default function Settings(props: SettingsProps) {
   }, [noContent, setSettingsTab])
 
   return (
-    <div className="flex flex-1 flex-col gap-settings-header overflow-hidden px-page-x">
-      <aria.Heading level={1} className="flex h-heading px-heading-x text-xl font-bold">
+    <div className="mt-4 flex flex-1 flex-col gap-6 overflow-hidden px-page-x">
+      <aria.Heading level={1} className="flex items-center px-heading-x">
         <aria.MenuTrigger isOpen={isSidebarPopoverOpen} onOpenChange={setIsSidebarPopoverOpen}>
           <Button image={BurgerMenuIcon} buttonClassName="mr-3 sm:hidden" onPress={() => {}} />
           <aria.Popover UNSTABLE_portalContainer={root}>
@@ -110,28 +113,38 @@ export default function Settings(props: SettingsProps) {
             />
           </aria.Popover>
         </aria.MenuTrigger>
-        <aria.Text className="py-heading-y">{getText('settingsFor')}</aria.Text>
-        {/* This UI element does not appear anywhere else. */}
-        {/* eslint-disable-next-line no-restricted-syntax */}
-        <div className="ml-[0.625rem] h-[2.25rem] rounded-full bg-frame px-[0.5625rem] pb-[0.3125rem] pt-[0.125rem] leading-snug">
+        <ariaComponents.Text.Heading className="font-bold">
+          <span>{getText('settingsFor')}</span>
+        </ariaComponents.Text.Heading>
+
+        <ariaComponents.Text
+          variant="h1"
+          truncate="1"
+          className="ml-2.5 max-w-lg rounded-full bg-frame px-2.5 font-bold"
+          aria-hidden
+        >
           {settingsTab !== SettingsTab.organization &&
           settingsTab !== SettingsTab.members &&
           settingsTab !== SettingsTab.userGroups
-            ? user?.name ?? 'your account'
+            ? user.name
             : organization?.name ?? 'your organization'}
-        </div>
+        </ariaComponents.Text>
       </aria.Heading>
-      <div className="flex flex-1 gap-settings overflow-hidden">
-        <SettingsSidebar
-          hasBackend={backend != null}
-          isUserInOrganization={isUserInOrganization}
-          settingsTab={settingsTab}
-          setSettingsTab={setSettingsTab}
-        />
+      <div className="flex flex-1 gap-6 overflow-hidden pr-0.5">
+        <aside className="flex h-full flex-col overflow-y-auto overflow-x-hidden pb-12">
+          <SettingsSidebar
+            hasBackend={backend != null}
+            isUserInOrganization={isUserInOrganization}
+            settingsTab={settingsTab}
+            setSettingsTab={setSettingsTab}
+          />
+        </aside>
         <errorBoundary.ErrorBoundary>
-          <React.Suspense fallback={<loader.Loader size="medium" minHeight="h64" />}>
-            {content}
-          </React.Suspense>
+          <suspense.Suspense loaderProps={{ minHeight: 'h64' }}>
+            <main className="h-full w-full flex-shrink-0 flex-grow basis-0 overflow-y-auto overflow-x-hidden pb-12 pl-1.5 pr-3">
+              <div className="w-full max-w-[840px]">{content}</div>
+            </main>
+          </suspense.Suspense>
         </errorBoundary.ErrorBoundary>
       </div>
     </div>

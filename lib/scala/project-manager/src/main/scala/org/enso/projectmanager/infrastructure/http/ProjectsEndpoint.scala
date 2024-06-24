@@ -15,7 +15,7 @@ import org.enso.projectmanager.control.core.CovariantFlatMap
 import org.enso.projectmanager.control.core.syntax._
 import org.enso.projectmanager.control.effect.Exec
 import org.enso.projectmanager.infrastructure.repository.{
-  ProjectRepository,
+  ProjectRepositoryFactory,
   ProjectRepositoryFailure
 }
 
@@ -26,9 +26,12 @@ import scala.util.{Failure, Success}
 
 final class ProjectsEndpoint[
   F[+_, +_]: Exec: CovariantFlatMap
-](repo: ProjectRepository[F])
+](projectRepositoryFactory: ProjectRepositoryFactory[F])
     extends Endpoint
     with LazyLogging {
+
+  private val projectRepository =
+    projectRepositoryFactory.getProjectRepository(None)
 
   /** @inheritdoc */
   override def route: Route =
@@ -74,7 +77,7 @@ final class ProjectsEndpoint[
     projectId: UUID
   ): Future[Either[ProjectRepositoryFailure, Option[EnsoProjectArchive]]] =
     Exec[F].exec {
-      repo
+      projectRepository
         .findById(projectId)
         .map(projectOpt =>
           projectOpt.map(project =>

@@ -100,12 +100,6 @@ class ClientController[F[+_, +_]: Exec: CovariantFlatMap: ErrorChannel: Sync](
       EngineUninstall -> EngineUninstallHandler.props(
         runtimeVersionManagementService
       ),
-      ConfigGet -> ConfigGetHandler
-        .props(globalConfigService, timeoutConfig.requestTimeout),
-      ConfigSet -> ConfigSetHandler
-        .props(globalConfigService, timeoutConfig.requestTimeout),
-      ConfigDelete -> ConfigDeleteHandler
-        .props(globalConfigService, timeoutConfig.requestTimeout),
       LoggingServiceGetEndpoint -> LoggingServiceEndpointRequestHandler.props(
         loggingServiceDescriptor,
         timeoutConfig.requestTimeout

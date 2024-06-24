@@ -1,6 +1,6 @@
 package org.enso.yaml
 
-import io.circe.yaml.Printer
+import io.circe.yaml.{Parser, Printer}
 import io.circe.{yaml, Decoder, Encoder}
 
 import java.io.FileReader
@@ -23,7 +23,7 @@ object YamlHelper {
   /** Tries to load and parse a YAML file at the provided path. */
   def load[R](path: Path)(implicit decoder: Decoder[R]): Try[R] =
     Using(new FileReader(path.toFile)) { reader =>
-      yaml.parser
+      Parser.default
         .parse(reader)
         .flatMap(_.as[R])
         .toTry

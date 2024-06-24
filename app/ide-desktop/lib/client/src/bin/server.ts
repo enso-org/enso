@@ -3,7 +3,6 @@
 import * as fs from 'node:fs/promises'
 import * as fsSync from 'node:fs'
 import * as http from 'node:http'
-import * as os from 'node:os'
 import * as path from 'node:path'
 import * as stream from 'node:stream'
 import * as mkcert from 'mkcert'
@@ -17,6 +16,7 @@ import * as common from 'enso-common'
 import GLOBAL_CONFIG from 'enso-common/src/config.json' assert { type: 'json' }
 import * as contentConfig from 'enso-content-config'
 import * as ydocServer from 'enso-gui2/ydoc-server'
+import * as projectManagement from 'enso-project-manager-shim/src/projectManagement'
 
 import * as paths from '../paths'
 
@@ -92,7 +92,7 @@ export class Server {
 
     /** Create a simple HTTP server. */
     constructor(public config: Config) {
-        this.projectsRootDirectory = path.join(os.homedir(), 'enso/projects')
+        this.projectsRootDirectory = projectManagement.getProjectsDirectory()
     }
 
     /** Server constructor. */
@@ -337,8 +337,13 @@ export class Server {
         } else if (this.devServer) {
             this.devServer.middlewares(request, response)
         } else {
-            const url = requestUrl.split('?')[0]
-            const resource = url === '/' ? '/index.html' : requestUrl
+            const url = requestUrl.split('?')[0] ?? ''
+
+            // if it's a path inside the IDE, we need to serve index.html
+            const hasExtension = path.extname(url) !== ''
+
+            const resource = hasExtension ? requestUrl : '/index.html'
+
             // `preload.cjs` must be specialcased here as it is loaded by electron from the root,
             // in contrast to all assets loaded by the window, which are loaded from `assets/` via
             // this server.

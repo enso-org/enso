@@ -1,8 +1,8 @@
 /** @file Displays the description of an element on hover or focus. */
-import * as twv from 'tailwind-variants'
-
 import * as aria from '#/components/aria'
 import * as portal from '#/components/Portal'
+
+import * as twv from '#/utilities/tailwindVariants'
 
 import * as text from '../Text'
 
@@ -11,7 +11,7 @@ import * as text from '../Text'
 // =================
 
 export const TOOLTIP_STYLES = twv.tv({
-  base: 'group flex justify-center items-center text-center text-balance',
+  base: 'group flex justify-center items-center text-center text-balance break-words',
   variants: {
     variant: {
       custom: '',
