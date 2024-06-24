@@ -70,7 +70,7 @@ export interface ProjectIconProps {
   readonly assetEvents: assetEvent.AssetEvent[]
   readonly dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
   readonly setProjectStartupInfo: (projectStartupInfo: backendModule.ProjectStartupInfo) => void
-  readonly doCloseEditor: () => void
+  readonly doCloseEditor: (id: backendModule.ProjectId) => void
   readonly doOpenEditor: () => void
 }
 
@@ -216,6 +216,18 @@ export default function ProjectIcon(props: ProjectIconProps) {
           }
         } else {
           if (backendModule.IS_OPENING_OR_OPENED[state]) {
+            const projectPromise = waitUntilProjectIsReadyMutation.mutateAsync([
+              item.id,
+              item.parentId,
+              item.title,
+            ])
+            setProjectStartupInfo({
+              project: projectPromise,
+              projectAsset: item,
+              setProjectAsset: setItem,
+              backendType: backend.type,
+              accessToken: session?.accessToken ?? null,
+            })
             if (!isRunningInBackground && event.shouldAutomaticallySwitchPage) {
               doOpenEditor()
             }
@@ -255,7 +267,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
 
   const closeProject = async () => {
     if (!isRunningInBackground) {
-      doCloseEditor()
+      doCloseEditor(item.id)
     }
     setShouldOpenWhenReady(false)
     setState(backendModule.ProjectState.closing)

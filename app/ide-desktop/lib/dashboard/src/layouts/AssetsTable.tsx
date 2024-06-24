@@ -330,7 +330,7 @@ export interface AssetsTableState {
     override?: boolean
   ) => void
   readonly doOpenEditor: () => void
-  readonly doCloseEditor: () => void
+  readonly doCloseEditor: (projectId: backendModule.ProjectId) => void
   readonly doCopy: () => void
   readonly doCut: () => void
   readonly doPaste: (
@@ -365,7 +365,7 @@ export interface AssetsTableProps {
   readonly setIsAssetPanelTemporarilyVisible: (visible: boolean) => void
   readonly targetDirectoryNodeRef: React.MutableRefObject<assetTreeNode.AnyAssetTreeNode<backendModule.DirectoryAsset> | null>
   readonly doOpenEditor: () => void
-  readonly doCloseEditor: () => void
+  readonly doCloseEditor: (projectId: backendModule.ProjectId) => void
 }
 
 /** The table of project assets. */

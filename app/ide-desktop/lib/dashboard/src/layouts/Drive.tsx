@@ -70,7 +70,7 @@ export interface DriveProps {
   readonly dispatchAssetEvent: (directoryEvent: assetEvent.AssetEvent) => void
   readonly setProjectStartupInfo: (projectStartupInfo: backendModule.ProjectStartupInfo) => void
   readonly doOpenEditor: () => void
-  readonly doCloseEditor: () => void
+  readonly doCloseEditor: (projectId: backendModule.ProjectId) => void
 }
 
 /** Contains directory path and directory contents (projects, folders, secrets and files). */

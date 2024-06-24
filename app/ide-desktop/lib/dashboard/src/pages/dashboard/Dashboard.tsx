@@ -315,10 +315,21 @@ export default function Dashboard(props: DashboardProps) {
     setPage(TabType.editor)
   }, [setPage])
 
-  const doCloseEditor = React.useCallback(() => {
-    setProjectStartupInfo(null)
-    setPage(TabType.drive)
-  }, [setPage])
+  const doCloseEditor = React.useCallback(
+    (id: backendModule.ProjectId) => {
+      if (id === projectStartupInfo?.projectAsset.id) {
+        setProjectStartupInfo(currentInfo => {
+          if (id === currentInfo?.projectAsset.id) {
+            setPage(TabType.drive)
+            return null
+          } else {
+            return currentInfo
+          }
+        })
+      }
+    },
+    [projectStartupInfo?.projectAsset.id, setPage]
+  )
 
   const doRemoveSelf = React.useCallback(() => {
     if (projectStartupInfo?.projectAsset != null) {
