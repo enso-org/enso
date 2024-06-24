@@ -8,6 +8,15 @@ import type * as settingsData from '#/layouts/Settings/settingsData'
 import * as aria from '#/components/aria'
 import SettingsInput from '#/components/styled/SettingsInput'
 
+import * as errorModule from '#/utilities/error'
+
+// =================
+// === Constants ===
+// =================
+
+/** The name of the single field in this form. */
+const FIELD_NAME = 'value'
+
 // ==========================
 // === SettingsInputEntry ===
 // ==========================
@@ -23,13 +32,12 @@ export default function SettingsInputEntry(props: SettingsInputEntryProps) {
   const { context, data } = props
   const { nameId, getValue, setValue, validate, getEditable } = data
   const { getText } = textProvider.useText()
-  const ref = React.useRef<HTMLInputElement | null>(null)
+  const [errorMessage, setErrorMessage] = React.useState('')
   const value = getValue(context)
   const isEditable = getEditable(context)
 
   const input = (
     <SettingsInput
-      ref={ref}
       isDisabled={!isEditable}
       key={value}
       type="text"
@@ -41,20 +49,23 @@ export default function SettingsInputEntry(props: SettingsInputEntryProps) {
 
   return (
     <aria.Form
-      onSubmit={event => {
+      validationErrors={{ [FIELD_NAME]: errorMessage }}
+      onSubmit={async event => {
         event.preventDefault()
         const [[, newValue] = []] = new FormData(event.currentTarget)
         if (typeof newValue === 'string') {
-          void setValue(context, newValue, () => {
-            if (ref.current) {
-              ref.current.value = value
-            }
-          })
+          setErrorMessage('')
+          try {
+            await setValue(context, newValue)
+          } catch (error) {
+            setErrorMessage(errorModule.getMessageOrToString(error))
+          }
         }
       }}
     >
       <aria.TextField
         key={value}
+        name={FIELD_NAME}
         defaultValue={value}
         className="flex h-row gap-settings-entry"
         {...(validate ? { validate: newValue => validate(newValue, context) } : {})}

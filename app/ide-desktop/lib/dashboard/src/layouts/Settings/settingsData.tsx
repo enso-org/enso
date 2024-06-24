@@ -64,10 +64,10 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
             type: SettingsEntryType.input,
             nameId: 'userNameSettingsInput',
             getValue: context => context.user.name,
-            setValue: async (context, newName, reset) => {
+            setValue: async (context, newName) => {
               const oldName = context.user.name
               if (newName !== oldName) {
-                await context.updateUser([{ username: newName }]).catch(reset)
+                await context.updateUser([{ username: newName }])
               }
             },
             validate: name => (/\S/.test(name) ? true : ''),
@@ -144,10 +144,10 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
             type: SettingsEntryType.input,
             nameId: 'organizationNameSettingsInput',
             getValue: context => context.organization?.name ?? '',
-            setValue: async (context, newName, reset) => {
+            setValue: async (context, newName) => {
               const oldName = context.organization?.name ?? null
               if (oldName !== newName) {
-                await context.updateOrganization([{ name: newName }]).catch(reset)
+                await context.updateOrganization([{ name: newName }])
               }
             },
             validate: name => (/\S/.test(name) ? true : ''),
@@ -157,11 +157,11 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
             type: SettingsEntryType.input,
             nameId: 'organizationEmailSettingsInput',
             getValue: context => context.organization?.email ?? '',
-            setValue: async (context, newValue, reset) => {
+            setValue: async (context, newValue) => {
               const newEmail = backend.EmailAddress(newValue)
               const oldEmail = context.organization?.email ?? null
               if (oldEmail !== newEmail) {
-                await context.updateOrganization([{ email: newEmail }]).catch(reset)
+                await context.updateOrganization([{ email: newEmail }])
               }
             },
             validate: (email, context) =>
@@ -176,11 +176,11 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
             type: SettingsEntryType.input,
             nameId: 'organizationWebsiteSettingsInput',
             getValue: context => context.organization?.website ?? '',
-            setValue: async (context, newValue, reset) => {
+            setValue: async (context, newValue) => {
               const newWebsite = backend.HttpsUrl(newValue)
               const oldWebsite = context.organization?.website ?? null
               if (oldWebsite !== newWebsite) {
-                await context.updateOrganization([{ website: newWebsite }]).catch(reset)
+                await context.updateOrganization([{ website: newWebsite }])
               }
             },
             getEditable: () => true,
@@ -189,10 +189,10 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
             type: SettingsEntryType.input,
             nameId: 'organizationLocationSettingsInput',
             getValue: context => context.organization?.address ?? '',
-            setValue: async (context, newLocation, reset) => {
+            setValue: async (context, newLocation) => {
               const oldLocation = context.organization?.address ?? null
               if (oldLocation !== newLocation) {
-                await context.updateOrganization([{ address: newLocation }]).catch(reset)
+                await context.updateOrganization([{ address: newLocation }])
               }
             },
             getEditable: () => true,
@@ -379,7 +379,7 @@ export interface SettingsInputEntryData {
   readonly type: SettingsEntryType.input
   readonly nameId: text.TextId & `${string}SettingsInput`
   readonly getValue: (context: SettingsContext) => string
-  readonly setValue: (context: SettingsContext, value: string, reset: () => void) => Promise<void>
+  readonly setValue: (context: SettingsContext, value: string) => Promise<void>
   readonly validate?: (value: string, context: SettingsContext) => string | true
   readonly getEditable: (context: SettingsContext) => boolean
 }
