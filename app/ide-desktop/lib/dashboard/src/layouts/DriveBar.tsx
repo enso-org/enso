@@ -218,8 +218,6 @@ export default function DriveBar(props: DriveBarProps) {
               ref={uploadFilesRef}
               type="file"
               multiple
-              id="upload_files_input"
-              name="upload_files_input"
               className="hidden"
               onInput={event => {
                 if (event.currentTarget.files != null) {
@@ -237,7 +235,8 @@ export default function DriveBar(props: DriveBarProps) {
               isDisabled={shouldBeDisabled}
               aria-label={getText('uploadFiles')}
               onPress={() => {
-                setModal(<UpsertDatalinkModal doCreate={doCreateDatalink} />)
+                unsetModal()
+                uploadFilesRef.current?.click()
               }}
             />
             <ariaComponents.Button
