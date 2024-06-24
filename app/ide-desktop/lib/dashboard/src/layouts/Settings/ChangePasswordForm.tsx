@@ -62,9 +62,11 @@ export default function ChangePasswordForm() {
         className="flex h-row gap-settings-entry"
         onChange={setNewPassword}
         validate={value =>
-          value === '' || validation.PASSWORD_REGEX.test(value)
-            ? ''
-            : getText('passwordValidationError')
+          validation.PASSWORD_REGEX.test(value)
+            ? true
+            : value === ''
+              ? ''
+              : getText('passwordValidationError')
         }
       >
         <aria.Label className="text my-auto w-change-password-settings-label">
@@ -79,8 +81,8 @@ export default function ChangePasswordForm() {
       <aria.TextField
         className="flex h-row gap-settings-entry"
         onChange={setConfirmNewPassword}
-        validate={newValue =>
-          newValue === '' || newValue === newPassword ? '' : getText('passwordMismatchError')
+        validate={value =>
+          value === newPassword ? true : value === '' ? '' : getText('passwordMismatchError')
         }
       >
         <aria.Label className="text my-auto w-change-password-settings-label">

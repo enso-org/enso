@@ -26,8 +26,6 @@ export default function SettingsInputEntry(props: SettingsInputEntryProps) {
   const ref = React.useRef<HTMLInputElement | null>(null)
   const value = getValue(context)
   const isEditable = getEditable(context)
-  const [currentValue, setCurrentValue] = React.useState(value)
-  const errorMessage = validate?.(currentValue, context) ?? true
 
   const input = (
     <SettingsInput
@@ -35,8 +33,18 @@ export default function SettingsInputEntry(props: SettingsInputEntryProps) {
       isDisabled={!isEditable}
       key={value}
       type="text"
-      onSubmit={newValue => {
-        if (ref.current?.validity.valid === true) {
+      onSubmit={event => {
+        event.currentTarget.form?.requestSubmit()
+      }}
+    />
+  )
+
+  return (
+    <aria.Form
+      onSubmit={event => {
+        event.preventDefault()
+        const [[, newValue] = []] = new FormData(event.currentTarget)
+        if (typeof newValue === 'string') {
           void setValue(context, newValue, () => {
             if (ref.current) {
               ref.current.value = value
@@ -44,30 +52,26 @@ export default function SettingsInputEntry(props: SettingsInputEntryProps) {
           })
         }
       }}
-    />
-  )
-
-  return (
-    <aria.TextField
-      key={value}
-      defaultValue={value}
-      className="flex h-row gap-settings-entry"
-      onChange={setCurrentValue}
-      isInvalid={errorMessage !== true}
     >
-      <aria.Label className="text my-auto w-organization-settings-label">
-        {getText(nameId)}
-      </aria.Label>
-      {validate ? (
-        <div className="flex grow flex-col">
-          {input}
-          <aria.FieldError className="text-red-700">
-            {errorMessage === true || errorMessage !== '' ? null : errorMessage}
-          </aria.FieldError>
-        </div>
-      ) : (
-        input
-      )}
-    </aria.TextField>
+      <aria.TextField
+        key={value}
+        defaultValue={value}
+        className="flex h-row gap-settings-entry"
+        {...(validate ? { validate: newValue => validate(newValue, context) } : {})}
+      >
+        <aria.Label className="text my-auto w-organization-settings-label">
+          {getText(nameId)}
+        </aria.Label>
+        {validate ? (
+          <div className="flex grow flex-col">
+            {input}
+            <aria.FieldError className="text-red-700" />
+          </div>
+        ) : (
+          input
+        )}
+        <aria.Button type="submit" className="sr-only" />
+      </aria.TextField>
+    </aria.Form>
   )
 }

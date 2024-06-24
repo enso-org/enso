@@ -23,7 +23,7 @@ export interface SettingsInputProps {
   readonly placeholder?: string
   readonly autoComplete?: React.HTMLInputAutoCompleteAttribute
   readonly onChange?: React.ChangeEventHandler<HTMLInputElement>
-  readonly onSubmit?: (value: string) => void
+  readonly onSubmit?: (event: React.SyntheticEvent<HTMLInputElement>) => void
 }
 
 /** A styled input specific to settings pages. */
@@ -43,17 +43,6 @@ function SettingsInput(props: SettingsInputProps, ref: React.ForwardedRef<HTMLIn
         cancelled.current = true
         event.stopPropagation()
         event.currentTarget.value = String(inputProps?.defaultValue ?? '')
-        event.currentTarget.blur()
-        break
-      }
-      case 'Enter': {
-        cancelled.current = false
-        event.stopPropagation()
-        event.currentTarget.blur()
-        break
-      }
-      case 'Tab': {
-        cancelled.current = false
         event.currentTarget.blur()
         break
       }
@@ -83,7 +72,7 @@ function SettingsInput(props: SettingsInputProps, ref: React.ForwardedRef<HTMLIn
                 onChange,
                 onBlur: event => {
                   if (!cancelled.current) {
-                    onSubmit?.(event.currentTarget.value)
+                    onSubmit?.(event)
                   }
                 },
               },
