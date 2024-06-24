@@ -95,6 +95,6 @@ export function useSetModal() {
   const updateModal: (updater: (modal: Modal | null) => Modal | null) => void = setModalRaw
   const unsetModal = React.useCallback(() => {
     setModalRaw(null)
-  }, [/* should never change */ setModalRaw])
+  }, [setModalRaw])
   return { setModal, updateModal, unsetModal } as const
 }

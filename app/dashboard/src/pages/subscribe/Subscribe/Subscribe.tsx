@@ -8,8 +8,6 @@ import Back from '#/assets/arrow_left.svg'
 
 import * as appUtils from '#/appUtils'
 
-import * as navigateHooks from '#/hooks/navigateHooks'
-
 import * as backendProvider from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
 
@@ -42,7 +40,7 @@ interface CreateCheckoutSessionMutation {
  * paymentStatus: 'no_payment_required' || 'paid' || 'unpaid' }`).
  */
 export function Subscribe() {
-  const navigate = navigateHooks.useNavigate()
+  const navigate = router.useNavigate()
   const { getText } = textProvider.useText()
 
   const [searchParams] = router.useSearchParams()

@@ -8,13 +8,13 @@
 
 import * as React from 'react'
 
-import * as twv from 'tailwind-variants'
-
 import * as billingHooks from '#/hooks/billing'
 
 import * as authProvider from '#/providers/AuthProvider'
 
 import * as paywallComponents from '#/components/Paywall'
+
+import * as twv from '#/utilities/tailwindVariants'
 
 /**
  * Props for the `withPaywall` HOC.
@@ -24,9 +24,7 @@ export interface PaywallSettingsLayoutProps {
   readonly className?: string | undefined
 }
 
-const PAYWALL_LAYOUT_STYLES = twv.tv({
-  base: 'mt-1',
-})
+const PAYWALL_LAYOUT_STYLES = twv.tv({ base: 'mt-1' })
 
 /**
  * A layout that shows a paywall for a feature.
@@ -46,14 +44,14 @@ export function PaywallSettingsLayout(props: PaywallSettingsLayoutProps) {
  * The paywall is shown if the user's plan does not include the feature.
  * The feature is determined by the `isFeatureUnderPaywall` hook.
  */
-export function withPaywall<P extends Record<string, unknown>>(
+export function withPaywall<P>(
   // eslint-disable-next-line @typescript-eslint/naming-convention
   Component: React.ComponentType<P>,
   props: PaywallSettingsLayoutProps
 ) {
   const { feature, className } = props
 
-  return function WithPaywall(componentProps: P) {
+  return function WithPaywall(componentProps: P & React.JSX.IntrinsicAttributes) {
     const { user } = authProvider.useFullUserSession()
 
     const { isFeatureUnderPaywall } = billingHooks.usePaywall({ plan: user.plan })

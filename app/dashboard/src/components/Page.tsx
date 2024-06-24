@@ -42,7 +42,7 @@ export default function Page(props: PageProps) {
     return () => {
       document.removeEventListener('click', onClick)
     }
-  }, [/* should never change */ unsetModal])
+  }, [unsetModal])
 
   return (
     <>

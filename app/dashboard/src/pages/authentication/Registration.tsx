@@ -11,6 +11,7 @@ import LockIcon from '#/assets/lock.svg'
 import * as appUtils from '#/appUtils'
 
 import * as authProvider from '#/providers/AuthProvider'
+import * as backendProvider from '#/providers/BackendProvider'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as textProvider from '#/providers/TextProvider'
 
@@ -51,6 +52,8 @@ export default function Registration() {
   const location = router.useLocation()
   const { localStorage } = localStorageProvider.useLocalStorage()
   const { getText } = textProvider.useText()
+  const localBackend = backendProvider.useLocalBackend()
+  const supportsOffline = localBackend != null
 
   const query = new URLSearchParams(location.search)
   const initialEmail = query.get('email')
@@ -73,6 +76,7 @@ export default function Registration() {
   return (
     <AuthenticationPage
       title={getText('createANewAccount')}
+      supportsOffline={supportsOffline}
       footer={
         <Link to={appUtils.LOGIN_PATH} icon={GoBackIcon} text={getText('alreadyHaveAnAccount')} />
       }

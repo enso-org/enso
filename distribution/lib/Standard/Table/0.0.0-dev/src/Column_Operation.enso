@@ -79,24 +79,24 @@ type Column_Operation
 ## PRIVATE
 Simple_Expression.from (that:Column_Operation) =
     derived = case that of
-        Column_Operation.Add input rhs -> Simple_Expression.From input (Simple_Calculation.Add rhs)
-        Column_Operation.Subtract input rhs -> Simple_Expression.From input (Simple_Calculation.Subtract rhs)
-        Column_Operation.Multiply input rhs -> Simple_Expression.From input (Simple_Calculation.Multiply rhs)
-        Column_Operation.Divide input rhs -> Simple_Expression.From input (Simple_Calculation.Divide rhs)
-        Column_Operation.Mod input rhs -> Simple_Expression.From input (Simple_Calculation.Mod rhs)
-        Column_Operation.Power input rhs -> Simple_Expression.From input (Simple_Calculation.Power rhs)
-        Column_Operation.Round input precision use_bankers -> Simple_Expression.From input (Simple_Calculation.Round precision use_bankers)
-        Column_Operation.Ceil input -> Simple_Expression.From input Simple_Calculation.Ceil
-        Column_Operation.Floor input -> Simple_Expression.From input Simple_Calculation.Floor
-        Column_Operation.Truncate input -> Simple_Expression.From input Simple_Calculation.Truncate
-        Column_Operation.Min input rhs -> Simple_Expression.From input (Simple_Calculation.Min rhs)
-        Column_Operation.Max input rhs -> Simple_Expression.From input (Simple_Calculation.Max rhs)
-        Column_Operation.Date_Add input length period -> Simple_Expression.From input (Simple_Calculation.Date_Add length period)
-        Column_Operation.Date_Part input period -> Simple_Expression.From input (Simple_Calculation.Date_Part period)
-        Column_Operation.Date_Diff input end period -> Simple_Expression.From input (Simple_Calculation.Date_Diff end period)
-        Column_Operation.Not input -> Simple_Expression.From input Simple_Calculation.Not
-        Column_Operation.And input rhs -> Simple_Expression.From input (Simple_Calculation.And rhs)
-        Column_Operation.Or input rhs -> Simple_Expression.From input (Simple_Calculation.Or rhs)
-        Column_Operation.If input condition true_value false_value -> Simple_Expression.From input (Simple_Calculation.If condition true_value false_value)
-        Column_Operation.Trim input where what -> Simple_Expression.From input (Simple_Calculation.Trim where what)
+        Column_Operation.Add input rhs -> Simple_Expression.Simple_Expr input (Simple_Calculation.Add rhs)
+        Column_Operation.Subtract input rhs -> Simple_Expression.Simple_Expr input (Simple_Calculation.Subtract rhs)
+        Column_Operation.Multiply input rhs -> Simple_Expression.Simple_Expr input (Simple_Calculation.Multiply rhs)
+        Column_Operation.Divide input rhs -> Simple_Expression.Simple_Expr input (Simple_Calculation.Divide rhs)
+        Column_Operation.Mod input rhs -> Simple_Expression.Simple_Expr input (Simple_Calculation.Mod rhs)
+        Column_Operation.Power input rhs -> Simple_Expression.Simple_Expr input (Simple_Calculation.Power rhs)
+        Column_Operation.Round input precision use_bankers -> Simple_Expression.Simple_Expr input (Simple_Calculation.Round precision use_bankers)
+        Column_Operation.Ceil input -> Simple_Expression.Simple_Expr input Simple_Calculation.Ceil
+        Column_Operation.Floor input -> Simple_Expression.Simple_Expr input Simple_Calculation.Floor
+        Column_Operation.Truncate input -> Simple_Expression.Simple_Expr input Simple_Calculation.Truncate
+        Column_Operation.Min input rhs -> Simple_Expression.Simple_Expr input (Simple_Calculation.Min rhs)
+        Column_Operation.Max input rhs -> Simple_Expression.Simple_Expr input (Simple_Calculation.Max rhs)
+        Column_Operation.Date_Add input length period -> Simple_Expression.Simple_Expr input (Simple_Calculation.Date_Add length period)
+        Column_Operation.Date_Part input period -> Simple_Expression.Simple_Expr input (Simple_Calculation.Date_Part period)
+        Column_Operation.Date_Diff input end period -> Simple_Expression.Simple_Expr input (Simple_Calculation.Date_Diff end period)
+        Column_Operation.Not input -> Simple_Expression.Simple_Expr input Simple_Calculation.Not
+        Column_Operation.And input rhs -> Simple_Expression.Simple_Expr input (Simple_Calculation.And rhs)
+        Column_Operation.Or input rhs -> Simple_Expression.Simple_Expr input (Simple_Calculation.Or rhs)
+        Column_Operation.If input condition true_value false_value -> Simple_Expression.Simple_Expr input (Simple_Calculation.If condition true_value false_value)
+        Column_Operation.Trim input where what -> Simple_Expression.Simple_Expr input (Simple_Calculation.Trim where what)
     Warning.attach (Deprecated.Warning "Standard.Table.Column_Operation.Column_Operation" "" "Deprecated: `Column_Operation` has been replaced by `Simple_Expression`.") derived

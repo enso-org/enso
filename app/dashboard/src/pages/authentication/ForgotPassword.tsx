@@ -9,6 +9,7 @@ import GoBackIcon from '#/assets/go_back.svg'
 import * as appUtils from '#/appUtils'
 
 import * as authProvider from '#/providers/AuthProvider'
+import * as backendProvider from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import AuthenticationPage from '#/pages/authentication/AuthenticationPage'
@@ -28,11 +29,14 @@ export default function ForgotPassword() {
   const { forgotPassword } = authProvider.useAuth()
   const { getText } = textProvider.useText()
   const [email, setEmail] = React.useState('')
+  const localBackend = backendProvider.useLocalBackend()
+  const supportsOffline = localBackend != null
 
   return (
     <AuthenticationPage
       title={getText('forgotYourPassword')}
       footer={<Link to={appUtils.LOGIN_PATH} icon={GoBackIcon} text={getText('goBackToLogin')} />}
+      supportsOffline={supportsOffline}
       onSubmit={async event => {
         event.preventDefault()
         await forgotPassword(email)

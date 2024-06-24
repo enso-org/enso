@@ -4,8 +4,6 @@ import * as routerDom from 'react-router-dom'
 
 import * as appUtils from '#/appUtils'
 
-import * as navigation from '#/hooks/navigateHooks'
-
 import * as textProvider from '#/providers/TextProvider'
 
 import * as constants from '#/pages/subscribe/constants'
@@ -23,7 +21,7 @@ import * as backend from '#/services/Backend'
 export function SubscribeSuccess() {
   const { getText } = textProvider.useText()
   const [searchParams] = routerDom.useSearchParams()
-  const navigate = navigation.useNavigate()
+  const navigate = routerDom.useNavigate()
   const plan = searchParams.get('plan') ?? backend.Plan.solo
 
   if (!backend.isPlan(plan)) {

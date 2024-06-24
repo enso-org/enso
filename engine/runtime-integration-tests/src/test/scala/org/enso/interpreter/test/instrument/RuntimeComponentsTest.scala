@@ -104,7 +104,7 @@ class RuntimeComponentsTest
         name            = packageName,
         namespace       = "Enso_Test",
         edition         = Some(edition),
-        componentGroups = componentGroups
+        componentGroups = Some(componentGroups)
       )
     }
 

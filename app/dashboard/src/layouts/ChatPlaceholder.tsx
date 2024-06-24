@@ -2,12 +2,11 @@
 import * as React from 'react'
 
 import * as reactDom from 'react-dom'
+import * as router from 'react-router-dom'
 
 import CloseLargeIcon from '#/assets/close_large.svg'
 
 import * as appUtils from '#/appUtils'
-
-import * as navigateHooks from '#/hooks/navigateHooks'
 
 import * as loggerProvider from '#/providers/LoggerProvider'
 import * as textProvider from '#/providers/TextProvider'
@@ -32,7 +31,7 @@ export default function ChatPlaceholder(props: ChatPlaceholderProps) {
   const { hideLoginButtons = false, isOpen, doClose } = props
   const { getText } = textProvider.useText()
   const logger = loggerProvider.useLogger()
-  const navigate = navigateHooks.useNavigate()
+  const navigate = router.useNavigate()
 
   const container = document.getElementById(chat.HELP_CHAT_ID)
 

@@ -27,6 +27,7 @@ import * as indent from '#/utilities/indent'
 import * as object from '#/utilities/object'
 import * as string from '#/utilities/string'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
+import * as validation from '#/utilities/validation'
 import Visibility from '#/utilities/Visibility'
 
 // =====================
@@ -52,6 +53,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
   }
   const asset = item.item
   const setAsset = setAssetHooks.useSetAsset(asset, setItem)
+  const isExpanded = item.children != null && item.isExpanded
 
   const createDirectoryMutation = backendHooks.useBackendMutation(backend, 'createDirectory')
   const updateDirectoryMutation = backendHooks.useBackendMutation(backend, 'updateDirectory')
@@ -169,11 +171,11 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
         icon={FolderArrowIcon}
         size="icon"
         variant="custom"
-        aria-label={item.children == null ? getText('expand') : getText('collapse')}
+        aria-label={isExpanded ? getText('collapse') : getText('expand')}
         tooltipPlacement="left"
         className={tailwindMerge.twMerge(
           'm-0 hidden cursor-pointer border-0 transition-transform duration-arrow group-hover:m-name-column-icon group-hover:inline-block',
-          item.children != null && 'rotate-90'
+          isExpanded && 'rotate-90'
         )}
         onPress={() => {
           doToggleDirectoryExpansion(asset.id, item.key, asset.title)
@@ -188,16 +190,8 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
           rowState.isEditingName ? 'cursor-text' : 'cursor-pointer'
         )}
         checkSubmittable={newTitle =>
-          newTitle !== item.item.title &&
-          (nodeMap.current.get(item.directoryKey)?.children ?? []).every(
-            child =>
-              // All siblings,
-              child.key === item.key ||
-              // that are directories,
-              !backendModule.assetIsDirectory(child.item) ||
-              // must have a different name.
-              child.item.title !== newTitle
-          )
+          validation.DIRECTORY_NAME_REGEX.test(newTitle) &&
+          item.isNewTitleValid(newTitle, nodeMap.current.get(item.directoryKey)?.children)
         }
         onSubmit={doRename}
         onCancel={() => {

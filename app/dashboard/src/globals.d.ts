@@ -191,6 +191,9 @@ declare global {
       // @ts-expect-error The index signature is intentional to disallow unknown env vars.
       readonly ENSO_CLOUD_ENSO_HOST?: string
 
+      // === E2E test variables ===
+      readonly IS_IN_PLAYWRIGHT_TEST?: `${boolean}`
+
       // === Electron watch script variables ===
 
       // @ts-expect-error The index signature is intentional to disallow unknown env vars.

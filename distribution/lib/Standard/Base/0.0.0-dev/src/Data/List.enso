@@ -120,7 +120,7 @@ type List
        - f: The binary function used to combine elements of the list.
 
        In general, the result of
-           (Cons l0 <| Cons l1 <| ... <| Cons ln) . fold init f
+           (Cons l0 &lt;| Cons l1 &lt;| ... &lt;| Cons ln) . fold init f
        is the same as
            f (...(f (f init l0) l1)...) ln
 

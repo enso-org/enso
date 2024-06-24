@@ -26,6 +26,8 @@ export default function SetUsername() {
   const { email } = authProvider.usePartialUserSession()
   const backend = backendProvider.useRemoteBackendStrict()
   const { getText } = textProvider.useText()
+  const localBackend = backendProvider.useLocalBackend()
+  const supportsOffline = localBackend != null
 
   const [username, setUsername] = React.useState('')
 
@@ -33,6 +35,7 @@ export default function SetUsername() {
     <AuthenticationPage
       data-testid="set-username-panel"
       title={getText('setYourUsername')}
+      supportsOffline={supportsOffline}
       onSubmit={async event => {
         event.preventDefault()
         await authSetUsername(backend, username, email)
@@ -49,6 +52,7 @@ export default function SetUsername() {
         value={username}
         setValue={setUsername}
       />
+
       <SubmitButton
         text={getText('setUsername')}
         icon={ArrowRightIcon}

@@ -10,17 +10,19 @@
 
 import * as crypto from 'node:crypto'
 import * as fs from 'node:fs'
+import * as os from 'node:os'
 import * as pathModule from 'node:path'
 import type * as stream from 'node:stream'
 
-import * as electron from 'electron'
 import * as tar from 'tar'
 
 import * as common from 'enso-common'
 import * as buildUtils from 'enso-common/src/buildUtils'
 
 import * as config from 'content-config'
+import * as desktopEnvironment from 'desktop-environment'
 import * as paths from 'paths'
+
 import * as fileAssociations from '../file-associations'
 
 const logger = config.logger
@@ -365,7 +367,12 @@ export function getProjectRoot(subtreePath: string): string | null {
 
 /** Get the directory that stores Enso projects. */
 export function getProjectsDirectory(): string {
-    return pathModule.join(electron.app.getPath('home'), 'enso', 'projects')
+    const documentsPath = desktopEnvironment.DOCUMENTS
+    if (documentsPath === undefined) {
+        return pathModule.join(os.homedir(), 'enso', 'projects')
+    } else {
+        return pathModule.join(documentsPath, 'enso-projects')
+    }
 }
 
 /** Check if the given project is installed, i.e. can be opened with the Project Manager. */

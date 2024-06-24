@@ -1,5 +1,6 @@
 /** @file A HTTP server middleware which handles routes normally proxied through to
  * the Project Manager. */
+import * as childProcess from 'node:child_process'
 import * as fsSync from 'node:fs'
 import * as fs from 'node:fs/promises'
 import * as http from 'node:http'
@@ -17,10 +18,62 @@ import * as projectManagement from './projectManagement'
 // === Constants ===
 // =================
 
+const CHILD_PROCESS_TIMEOUT = 3000
+
+/** Detects path of the user documents directory depending on the operating system. */
+const DOCUMENTS_PATH = (() => {
+  switch (process.platform) {
+    case 'linux': {
+      // First try to get the documents directory from the XDG directory management system.
+      const out = childProcess.spawnSync('xdg-user-dir', ['DOCUMENTS'], {
+        timeout: CHILD_PROCESS_TIMEOUT,
+      })
+      if (out.error !== undefined) {
+        // Fall back to `~/enso`.
+        return path.join(os.homedir(), 'enso')
+      } else {
+        return out.stdout.toString().trim()
+      }
+    }
+    case 'darwin': {
+      // On macOS, `Documents` acts as a symlink pointing to the
+      // real locale-specific user documents directory.
+      return path.join(os.homedir(), 'Documents')
+    }
+    case 'win32': {
+      const out = childProcess.spawnSync(
+        'reg',
+        [
+          'query',
+          '"HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ShellFolders"',
+          '/v',
+          'personal',
+        ],
+        { timeout: CHILD_PROCESS_TIMEOUT },
+      )
+
+      if (out.error !== undefined) {
+        return
+      } else {
+        const stdoutString = out.stdout.toString()
+        return stdoutString.split(/\s\s+/)[4]
+      }
+    }
+    default: {
+      return
+    }
+  }
+})()
+
+/** Get the directory that stores Enso projects. */
+const PROJECTS_ROOT_DIRECTORY =
+  DOCUMENTS_PATH === undefined ?
+    path.join(os.homedir(), 'enso', 'projects')
+  : path.join(DOCUMENTS_PATH, 'enso-projects')
+
 const HTTP_STATUS_OK = 200
 const HTTP_STATUS_BAD_REQUEST = 400
 const HTTP_STATUS_NOT_FOUND = 404
-const PROJECTS_ROOT_DIRECTORY = path.join(os.homedir(), 'enso/projects')
 // Should be the following:
 // import GLOBAL_CONFIG from 'enso-common/src/config.json' assert { type: 'json' }
 // except that Vite's config file is processed using a target that does not understand import

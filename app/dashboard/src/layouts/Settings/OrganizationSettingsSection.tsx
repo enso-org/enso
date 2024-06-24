@@ -4,7 +4,6 @@ import * as React from 'react'
 import isEmail from 'validator/lib/isEmail'
 
 import * as backendHooks from '#/hooks/backendHooks'
-import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as textProvider from '#/providers/TextProvider'
 
@@ -27,7 +26,6 @@ export interface OrganizationSettingsSectionProps {
 /** Settings tab for viewing and editing organization information. */
 export default function OrganizationSettingsSection(props: OrganizationSettingsSectionProps) {
   const { backend } = props
-  const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { getText } = textProvider.useText()
   const nameRef = React.useRef<HTMLInputElement | null>(null)
   const emailRef = React.useRef<HTMLInputElement | null>(null)
@@ -37,67 +35,35 @@ export default function OrganizationSettingsSection(props: OrganizationSettingsS
 
   const updateOrganizationMutation = backendHooks.useBackendMutation(backend, 'updateOrganization')
 
-  const doUpdateName = async () => {
+  const doUpdateName = () => {
     const oldName = organization?.name ?? null
     const name = nameRef.current?.value ?? ''
     if (oldName !== name) {
-      try {
-        await updateOrganizationMutation.mutateAsync([{ name }])
-      } catch (error) {
-        toastAndLog(null, error)
-        const ref = nameRef.current
-        if (ref) {
-          ref.value = oldName ?? ''
-        }
-      }
+      updateOrganizationMutation.mutate([{ name }])
     }
   }
 
-  const doUpdateEmail = async () => {
+  const doUpdateEmail = () => {
     const oldEmail = organization?.email ?? null
     const email = backendModule.EmailAddress(emailRef.current?.value ?? '')
     if (oldEmail !== email) {
-      try {
-        await updateOrganizationMutation.mutateAsync([{ email }])
-      } catch (error) {
-        toastAndLog(null, error)
-        const ref = emailRef.current
-        if (ref) {
-          ref.value = oldEmail ?? ''
-        }
-      }
+      updateOrganizationMutation.mutate([{ email }])
     }
   }
 
-  const doUpdateWebsite = async () => {
+  const doUpdateWebsite = () => {
     const oldWebsite = organization?.website ?? null
     const website = backendModule.HttpsUrl(websiteRef.current?.value ?? '')
     if (oldWebsite !== website) {
-      try {
-        await updateOrganizationMutation.mutateAsync([{ website }])
-      } catch (error) {
-        toastAndLog(null, error)
-        const ref = websiteRef.current
-        if (ref) {
-          ref.value = oldWebsite ?? ''
-        }
-      }
+      updateOrganizationMutation.mutate([{ website }])
     }
   }
 
-  const doUpdateLocation = async () => {
+  const doUpdateLocation = () => {
     const oldLocation = organization?.address ?? null
     const location = locationRef.current?.value ?? ''
     if (oldLocation !== location) {
-      try {
-        await updateOrganizationMutation.mutateAsync([{ address: location }])
-      } catch (error) {
-        toastAndLog(null, error)
-        const ref = locationRef.current
-        if (ref) {
-          ref.value = oldLocation ?? ''
-        }
-      }
+      updateOrganizationMutation.mutate([{ address: location }])
     }
   }
 
@@ -105,8 +71,9 @@ export default function OrganizationSettingsSection(props: OrganizationSettingsS
     <SettingsSection title={getText('organization')}>
       <div key={JSON.stringify(organization)} className="flex flex-col">
         <aria.TextField
-          key={organization?.name ?? 0}
+          key={`0${organization?.name ?? ''}`}
           defaultValue={organization?.name ?? ''}
+          validate={name => (/\S/.test(name) ? true : '')}
           className="flex h-row gap-settings-entry"
         >
           <aria.Label className="text my-auto w-organization-settings-label">
@@ -120,33 +87,37 @@ export default function OrganizationSettingsSection(props: OrganizationSettingsS
           />
         </aria.TextField>
         <aria.TextField
-          key={organization?.email ?? 1}
+          key={`1${organization?.email ?? ''}`}
           defaultValue={organization?.email ?? ''}
-          className="flex h-row gap-settings-entry"
+          validate={email => (isEmail(email) ? true : getText('invalidEmailValidationError'))}
+          className="flex h-row items-start gap-settings-entry"
         >
           <aria.Label className="text my-auto w-organization-settings-label">
             {getText('email')}
           </aria.Label>
-          <SettingsInput
-            key={organization?.email}
-            ref={emailRef}
-            type="text"
-            onSubmit={value => {
-              if (isEmail(value)) {
-                void doUpdateEmail()
-              } else {
-                emailRef.current?.focus()
-              }
-            }}
-            onChange={() => {
-              emailRef.current?.setCustomValidity(
-                isEmail(emailRef.current.value) ? '' : 'Invalid email.'
-              )
-            }}
-          />
+          <div className="flex grow flex-col">
+            <SettingsInput
+              key={organization?.email}
+              ref={emailRef}
+              type="text"
+              onSubmit={value => {
+                if (isEmail(value)) {
+                  doUpdateEmail()
+                } else {
+                  emailRef.current?.focus()
+                }
+              }}
+              onChange={() => {
+                emailRef.current?.setCustomValidity(
+                  isEmail(emailRef.current.value) ? '' : 'Invalid email.'
+                )
+              }}
+            />
+            <aria.FieldError className="text-red-700" />
+          </div>
         </aria.TextField>
         <aria.TextField
-          key={organization?.website ?? 2}
+          key={`2${organization?.website ?? ''}`}
           defaultValue={organization?.website ?? ''}
           className="flex h-row gap-settings-entry"
         >
@@ -161,7 +132,7 @@ export default function OrganizationSettingsSection(props: OrganizationSettingsS
           />
         </aria.TextField>
         <aria.TextField
-          key={organization?.address ?? 3}
+          key={`3${organization?.address ?? ''}`}
           defaultValue={organization?.address ?? ''}
           className="flex h-row gap-settings-entry"
         >

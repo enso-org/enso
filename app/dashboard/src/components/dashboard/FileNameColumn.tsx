@@ -175,16 +175,7 @@ export default function FileNameColumn(props: FileNameColumnProps) {
         editable={rowState.isEditingName}
         className="text grow bg-transparent font-naming"
         checkSubmittable={newTitle =>
-          newTitle !== item.item.title &&
-          (nodeMap.current.get(item.directoryKey)?.children ?? []).every(
-            child =>
-              // All siblings,
-              child.key === item.key ||
-              // that are not directories,
-              backendModule.assetIsDirectory(child.item) ||
-              // must have a different name.
-              child.item.title !== newTitle
-          )
+          item.isNewTitleValid(newTitle, nodeMap.current.get(item.directoryKey)?.children)
         }
         onSubmit={doRename}
         onCancel={() => {
