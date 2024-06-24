@@ -174,19 +174,23 @@ function $createAutoLinkNode_(
 ): TextNode | undefined {
   const linkNode = $createAutoLinkNode(match.url, match.attributes)
   if (nodes.length === 1) {
-    let remainingTextNode: TextNode = nodes[0]!
-    const split =
-      startIndex === 0 ?
-        remainingTextNode.splitText(endIndex)
-      : remainingTextNode.splitText(startIndex, endIndex)
+    let remainingTextNode: TextNode | undefined = nodes[0]!
+    let linkTextNode: TextNode | undefined
+    console.log('startIndex', startIndex)
+    if (startIndex === 0) {
+      ;[linkTextNode, remainingTextNode] = remainingTextNode.splitText(endIndex)
+    } else {
+      ;[, linkTextNode, remainingTextNode] = remainingTextNode.splitText(startIndex, endIndex)
+    }
 
-    const linkTextNode = split[0]!
-    remainingTextNode = split[1]!
+    assert(linkTextNode != null)
+
     const textNode = $createTextNode(match.text)
     textNode.setFormat(linkTextNode.getFormat())
     textNode.setDetail(linkTextNode.getDetail())
     textNode.setStyle(linkTextNode.getStyle())
     linkNode.append(textNode)
+
     linkTextNode.replace(linkNode)
     return remainingTextNode
   } else if (nodes.length > 1) {

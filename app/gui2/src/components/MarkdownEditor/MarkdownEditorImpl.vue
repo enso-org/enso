@@ -2,7 +2,7 @@
 import FloatingSelectionMenu from '@/components/MarkdownEditor/FloatingSelectionMenu.vue'
 import FormattingToolbar from '@/components/MarkdownEditor/FormattingToolbar.vue'
 import { imagePlugin } from '@/components/MarkdownEditor/ImagePlugin'
-import { linkPlugin } from '@/components/MarkdownEditor/LinkPlugin'
+import { autoLinkPlugin, linkPlugin } from '@/components/MarkdownEditor/LinkPlugin'
 import LinkToolbar from '@/components/MarkdownEditor/LinkToolbar.vue'
 import SelectionFormattingToolbar from '@/components/MarkdownEditor/SelectionFormattingToolbar.vue'
 import { lexicalRichTextTheme, useFormatting } from '@/components/MarkdownEditor/formatting'
@@ -28,12 +28,10 @@ const contentElement = shallowRef<ComponentInstance<typeof LexicalContent>>()
 provideLexicalImageUrlTransformer(toRef(props, 'transformImageUrl'))
 
 const theme = lexicalRichTextTheme(useCssModule('lexicalTheme'))
-const { editor } = useLexical(
-  contentElement,
-  'MarkdownEditor',
-  theme,
-  markdownPlugin(markdown, [listPlugin, imagePlugin, linkPlugin]),
-)
+const { editor } = useLexical(contentElement, 'MarkdownEditor', theme, [
+  ...markdownPlugin(markdown, [listPlugin, imagePlugin, linkPlugin]),
+  autoLinkPlugin,
+])
 const formatting = useFormatting(editor)
 
 const { urlUnderCursor } = useLinkNode(editor)

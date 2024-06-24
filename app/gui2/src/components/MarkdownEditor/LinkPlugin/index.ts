@@ -1,4 +1,5 @@
 import type { LexicalMarkdownPlugin } from '@/components/MarkdownEditor/markdown'
+import type { LexicalPlugin } from '@/components/lexical'
 import { $createLinkNode, $isLinkNode, AutoLinkNode, LinkNode } from '@lexical/link'
 import { type Transformer } from '@lexical/markdown'
 import { $getNearestNodeOfType } from '@lexical/utils'
@@ -73,7 +74,7 @@ export function $getSelectedLinkNode() {
 }
 
 export const linkPlugin: LexicalMarkdownPlugin = {
-  nodes: [LinkNode, AutoLinkNode],
+  nodes: [LinkNode],
   transformers: [LINK],
   register(editor: LexicalEditor): void {
     editor.registerCommand(
@@ -81,7 +82,27 @@ export const linkPlugin: LexicalMarkdownPlugin = {
       (event) => {
         if (event.ctrlKey || event.metaKey) {
           const link = $getSelectedLinkNode()
-          if (link) {
+          if (link instanceof LinkNode) {
+            window.open(link.getURL(), '_blank')?.focus()
+            return true
+          }
+        }
+        return false
+      },
+      COMMAND_PRIORITY_CRITICAL,
+    )
+  },
+}
+
+export const autoLinkPlugin: LexicalPlugin = {
+  nodes: [AutoLinkNode],
+  register(editor: LexicalEditor): void {
+    editor.registerCommand(
+      CLICK_COMMAND,
+      (event) => {
+        if (event.ctrlKey || event.metaKey) {
+          const link = $getSelectedLinkNode()
+          if (link instanceof AutoLinkNode) {
             window.open(link.getURL(), '_blank')?.focus()
             return true
           }
