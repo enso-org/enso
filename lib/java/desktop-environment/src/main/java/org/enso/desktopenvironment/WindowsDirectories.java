@@ -11,7 +11,7 @@ final class WindowsDirectories implements Directories {
       new String[] {
         "reg",
         "query",
-        "\"HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ShellFolders\"",
+        "\"HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders\"",
         "/v",
         "personal"
       };

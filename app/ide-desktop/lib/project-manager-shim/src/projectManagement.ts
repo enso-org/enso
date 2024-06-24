@@ -371,10 +371,16 @@ export function getProjectRoot(subtreePath: string): string | null {
 /** Get the directory that stores Enso projects. */
 export function getProjectsDirectory(): string {
     const documentsPath = desktopEnvironment.DOCUMENTS
+    const userHomeProjects = pathModule.join(os.homedir(), 'enso', 'projects')
     if (documentsPath === undefined) {
-        return pathModule.join(os.homedir(), 'enso', 'projects')
+        return userHomeProjects
     } else {
-        return pathModule.join(documentsPath, 'enso-projects')
+        const documentsProjects = pathModule.join(documentsPath, 'enso-projects')
+        if (fs.lstatSync(documentsProjects).isDirectory()) {
+            return documentsProjects
+        } else {
+            return userHomeProjects
+        }
     }
 }
 
