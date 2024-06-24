@@ -8,11 +8,11 @@
 
 import * as React from 'react'
 
-import * as toast from 'react-toastify'
-
 import * as offlineHooks from '#/hooks/offlineHooks'
 
 import * as textProvider from '#/providers/TextProvider'
+
+import * as toast from '#/components/Toast'
 
 /**
  * Props for {@link OfflineNotificationManager}
@@ -44,13 +44,10 @@ export function OfflineNotificationManager(props: OfflineNotificationManagerProp
     if (isOffline) {
       toast.toast.info(getText('offlineToastMessage'), {
         toastId,
-        hideProgressBar: true,
+        description: getText('offlineToastMessageDescription'),
       })
     } else {
-      toast.toast.info(getText('onlineToastMessage'), {
-        toastId,
-        hideProgressBar: true,
-      })
+      toast.toast.info(getText('onlineToastMessage'), { description: '' })
     }
   })
 

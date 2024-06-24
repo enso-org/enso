@@ -1,12 +1,12 @@
 /** @file */
 import * as React from 'react'
 
-import * as toastify from 'react-toastify'
-
 import type * as text from '#/text'
 
 import * as loggerProvider from '#/providers/LoggerProvider'
 import * as textProvider from '#/providers/TextProvider'
+
+import * as sonner from '#/components/Toast'
 
 import * as errorModule from '#/utilities/error'
 
@@ -46,7 +46,7 @@ export function useToastAndLog() {
             `${
               messagePrefix != null ? messagePrefix + ': ' : ''
             }${errorModule.getMessageOrToString<unknown>(error)}`
-      const id = toastify.toast.error(message)
+      const id = sonner.toast.error(getText('arbitraryErrorTitle'), { description: message })
       logger.error(message)
       return id
     },

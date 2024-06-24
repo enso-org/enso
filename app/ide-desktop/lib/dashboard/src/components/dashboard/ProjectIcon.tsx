@@ -2,7 +2,6 @@
 import * as React from 'react'
 
 import * as reactQuery from '@tanstack/react-query'
-import * as toast from 'react-toastify'
 
 import ArrowUpIcon from 'enso-assets/arrow_up.svg'
 import PlayIcon from 'enso-assets/play.svg'
@@ -21,6 +20,7 @@ import AssetEventType from '#/events/AssetEventType'
 
 import * as ariaComponents from '#/components/AriaComponents'
 import Spinner, * as spinner from '#/components/Spinner'
+import * as toast from '#/components/Toast'
 
 import * as backendModule from '#/services/Backend'
 import type Backend from '#/services/Backend'
@@ -32,8 +32,7 @@ import * as tailwindMerge from '#/utilities/tailwindMerge'
 // === Constants ===
 // =================
 
-const LOADING_MESSAGE =
-  'Your environment is being created. It will take some time, please be patient.'
+const LOADING_MESSAGE = 'Your environment is being created.'
 /** The corresponding {@link spinner.SpinnerState} for each {@link backendModule.ProjectState},
  * when using the remote backend. */
 const REMOTE_SPINNER_STATE: Readonly<Record<backendModule.ProjectState, spinner.SpinnerState>> = {

@@ -1,8 +1,6 @@
 /** @file Table displaying a list of projects. */
 import * as React from 'react'
 
-import * as toast from 'react-toastify'
-
 import DropFilesImage from 'enso-assets/drop_files.svg'
 
 import * as mimeTypes from '#/data/mimeTypes'
@@ -46,6 +44,7 @@ import Button from '#/components/styled/Button'
 import FocusArea from '#/components/styled/FocusArea'
 import FocusRing from '#/components/styled/FocusRing'
 import SvgMask from '#/components/SvgMask'
+import * as toast from '#/components/Toast'
 
 import DragModal from '#/modals/DragModal'
 import DuplicateAssetsModal from '#/modals/DuplicateAssetsModal'

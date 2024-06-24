@@ -6,8 +6,6 @@
 
 import * as React from 'react'
 
-import clsx from 'clsx'
-
 import LockIcon from 'enso-assets/lock.svg'
 
 import type * as billingHooks from '#/hooks/billing'
@@ -15,6 +13,8 @@ import type * as billingHooks from '#/hooks/billing'
 import * as ariaComponents from '#/components/AriaComponents'
 import * as paywall from '#/components/Paywall'
 import SvgMask from '#/components/SvgMask'
+
+import * as twMerge from '#/utilities/tailwindMerge'
 
 /**
  * Props for {@link PaywallAlert}.
@@ -44,7 +44,7 @@ export function PaywallAlert(props: PaywallAlertProps) {
       variant="outline"
       size="small"
       rounded="large"
-      className={clsx('border border-primary/20', className)}
+      className={twMerge.twJoin('border border-primary/20', className)}
       {...alertProps}
     >
       <div className="flex items-center gap-2">

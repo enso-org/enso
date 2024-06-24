@@ -2,7 +2,6 @@
 import * as React from 'react'
 
 import * as router from 'react-router-dom'
-import * as toastify from 'react-toastify'
 
 import * as focusHooks from '#/hooks/focusHooks'
 
@@ -11,6 +10,7 @@ import * as textProvider from '#/providers/TextProvider'
 import * as aria from '#/components/aria'
 import FocusRing from '#/components/styled/FocusRing'
 import SvgMask from '#/components/SvgMask'
+import * as toast from '#/components/Toast'
 
 // ============
 // === Link ===
@@ -48,7 +48,7 @@ export default function Link(props: LinkProps) {
             className,
             target: '_blank',
             onClick: () => {
-              toastify.toast.success(getText('openedLinkInBrowser'))
+              toast.toast.success(getText('openedLinkInBrowser'))
             },
           })}
         >

@@ -8,10 +8,12 @@ import * as twv from '#/utilities/tailwindVariants'
 // =================
 
 const STYLES = twv.tv({
-  base: 'animate-appear-delayed flex h-full w-full items-center justify-center duration-200',
+  base: 'flex flex-none h-full w-full items-center justify-center',
   variants: {
     minHeight: {
       full: 'h-full',
+      h4: 'h-4',
+      h5: 'h-5',
       h6: 'h-6',
       h8: 'h-8',
       h10: 'h-10',
@@ -28,8 +30,15 @@ const STYLES = twv.tv({
       custom: '',
     },
     color: {
-      primary: 'text-primary/50',
+      primary: 'text-primary',
+      inverted: 'text-white',
     },
+    appearDelayed: { true: 'animate-appear-delayed duration-200' },
+  },
+  defaultVariants: {
+    appearDelayed: true,
+    color: 'primary',
+    minHeight: 'full',
   },
 })
 
@@ -63,17 +72,18 @@ export interface LoaderProps extends twv.VariantProps<typeof STYLES> {
 /** A full-screen loading spinner. */
 export function Loader(props: LoaderProps) {
   const {
-    className,
     size: sizeRaw = 'medium',
     state = spinnerModule.SpinnerState.loadingFast,
-    minHeight = 'full',
-    color = 'primary',
+    className,
+    minHeight,
+    color,
+    appearDelayed,
   } = props
 
   const size = typeof sizeRaw === 'number' ? sizeRaw : SIZE_MAP[sizeRaw]
 
   return (
-    <div className={STYLES({ minHeight, className, color })}>
+    <div className={STYLES({ minHeight, className, color, appearDelayed })}>
       <Spinner size={size} state={state} className="text-current" />
     </div>
   )

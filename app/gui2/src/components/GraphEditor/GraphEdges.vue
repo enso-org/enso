@@ -8,7 +8,7 @@ import { useGraphStore, type NodeId } from '@/stores/graph'
 import { Ast } from '@/util/ast'
 import { isAstId, type AstId } from '@/util/ast/abstract.ts'
 import { Vec2 } from '@/util/data/vec2'
-import { toast } from 'react-toastify'
+import { toast } from 'enso-dashboard/Toast'
 
 const graph = useGraphStore()
 const selection = injectGraphSelection(true)

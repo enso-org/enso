@@ -4,8 +4,7 @@
  * # Providers
  *
  * The {@link App} component is responsible for defining the global context used by child
- * components. For example, it defines a {@link toastify.ToastContainer}, which is used to display temporary
- * notifications to the user. These global components are defined at the top of the {@link App} so
+ * components. These global components are defined at the top of the {@link App} so
  * that they are available to all of the child components.
  *
  * The {@link App} also defines various providers (e.g., {@link authProvider.AuthProvider}).
@@ -37,7 +36,6 @@ import * as React from 'react'
 
 import * as reactQuery from '@tanstack/react-query'
 import * as router from 'react-router-dom'
-import * as toastify from 'react-toastify'
 
 import * as detect from 'enso-common/src/detect'
 
@@ -77,6 +75,7 @@ import * as offlineNotificationManager from '#/components/OfflineNotificationMan
 import * as paywall from '#/components/Paywall'
 import * as rootComponent from '#/components/Root'
 import * as suspense from '#/components/Suspense'
+import * as toaster from '#/components/Toast'
 
 import AboutModal from '#/modals/AboutModal'
 import * as setOrganizationNameModal from '#/modals/SetOrganizationNameModal'
@@ -186,24 +185,15 @@ export default function App(props: AppProps) {
   // Note that the `Router` must be the parent of the `AuthProvider`, because the `AuthProvider`
   // will redirect the user between the login/register pages and the dashboard.
   return (
-    <>
-      <toastify.ToastContainer
-        position="top-center"
-        theme="light"
-        closeOnClick={false}
-        draggable={false}
-        toastClassName="text-sm leading-cozy bg-selected-frame rounded-lg backdrop-blur-default"
-        transition={toastify.Zoom}
-        limit={3}
-      />
-      <router.BrowserRouter basename={getMainPageUrl().pathname}>
-        <LocalStorageProvider>
-          <ModalProvider>
-            <AppRouter {...props} projectManagerRootDirectory={rootDirectoryPath} />
-          </ModalProvider>
-        </LocalStorageProvider>
-      </router.BrowserRouter>
-    </>
+    <router.BrowserRouter basename={getMainPageUrl().pathname}>
+      <LocalStorageProvider>
+        <ModalProvider>
+          <AppRouter {...props} projectManagerRootDirectory={rootDirectoryPath} />
+        </ModalProvider>
+
+        <toaster.Toaster />
+      </LocalStorageProvider>
+    </router.BrowserRouter>
   )
 }
 
