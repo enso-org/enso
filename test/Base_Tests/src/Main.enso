@@ -85,6 +85,7 @@ import project.Runtime.Stack_Traces_Spec
 import project.System.Environment_Spec
 import project.System.File_Spec
 import project.System.File_Read_Spec
+import project.System.Input_Stream_Spec
 import project.System.Process_Spec
 import project.System.Reporting_Stream_Decoder_Spec
 import project.System.Reporting_Stream_Encoder_Spec
@@ -112,6 +113,7 @@ main filter=Nothing =
         File_Spec.add_specs suite_builder
         Temporary_File_Spec.add_specs suite_builder
         File_Read_Spec.add_specs suite_builder
+        Input_Stream_Spec.add_specs suite_builder
         Reporting_Stream_Decoder_Spec.add_specs suite_builder
         Reporting_Stream_Encoder_Spec.add_specs suite_builder
         Http_Header_Spec.add_specs suite_builder

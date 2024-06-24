@@ -3,8 +3,7 @@ import * as React from 'react'
 
 import * as appUtils from '#/appUtils'
 
-import * as eventCallback from '#/hooks/eventCallbackHooks'
-import * as navigateHooks from '#/hooks/navigateHooks'
+import * as offlineHooks from '#/hooks/offlineHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
@@ -87,12 +86,12 @@ export default function Drive(props: DriveProps) {
   const { assetListEvents, dispatchAssetListEvent, assetEvents, dispatchAssetEvent } = props
   const { setProjectStartupInfo, doOpenEditor, doCloseEditor, category, setCategory } = props
 
-  const navigate = navigateHooks.useNavigate()
+  const { isOffline } = offlineHooks.useOffline()
+  const { localStorage } = localStorageProvider.useLocalStorage()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
-  const { type: sessionType, user } = authProvider.useNonPartialUserSession()
+  const { user } = authProvider.useNonPartialUserSession()
   const localBackend = backendProvider.useLocalBackend()
   const backend = backendProvider.useBackend(category)
-  const { localStorage } = localStorageProvider.useLocalStorage()
   const { getText } = textProvider.useText()
   const [query, setQuery] = React.useState(() => AssetQuery.fromString(''))
   const [suggestions, setSuggestions] = React.useState<assetSearchBar.Suggestion[]>([])
@@ -112,20 +111,18 @@ export default function Drive(props: DriveProps) {
     null
   )
   const isCloud = categoryModule.isCloud(category)
+  const supportLocalBackend = localBackend != null
+
   const status =
     !isCloud && didLoadingProjectManagerFail
       ? DriveStatus.noProjectManager
-      : isCloud && sessionType === authProvider.UserSessionType.offline
+      : isCloud && isOffline
         ? DriveStatus.offline
-        : isCloud && user?.isEnabled !== true
+        : isCloud && !user.isEnabled
           ? DriveStatus.notEnabled
           : DriveStatus.ok
-  const isAssetPanelVisible = isAssetPanelEnabled || isAssetPanelTemporarilyVisible
 
-  const onSetCategory = eventCallback.useEventCallback((value: Category) => {
-    setCategory(value)
-    localStorage.set('driveCategory', value)
-  })
+  const isAssetPanelVisible = isAssetPanelEnabled || isAssetPanelTemporarilyVisible
 
   React.useEffect(() => {
     localStorage.set('isAssetPanelVisible', isAssetPanelEnabled)
@@ -149,7 +146,7 @@ export default function Drive(props: DriveProps) {
 
   const doUploadFiles = React.useCallback(
     (files: File[]) => {
-      if (isCloud && sessionType === authProvider.UserSessionType.offline) {
+      if (isCloud && isOffline) {
         // This should never happen, however display a nice error message in case it does.
         toastAndLog('offlineUploadFilesError')
       } else {
@@ -161,18 +158,12 @@ export default function Drive(props: DriveProps) {
         })
       }
     },
-    [
-      isCloud,
-      rootDirectoryId,
-      sessionType,
-      toastAndLog,
-      /* should never change */ dispatchAssetListEvent,
-    ]
+    [isCloud, rootDirectoryId, toastAndLog, isOffline, dispatchAssetListEvent]
   )
 
   const doEmptyTrash = React.useCallback(() => {
     dispatchAssetListEvent({ type: AssetListEventType.emptyTrash })
-  }, [/* should never change */ dispatchAssetListEvent])
+  }, [dispatchAssetListEvent])
 
   const doCreateProject = React.useCallback(
     (templateId: string | null = null, templateName: string | null = null) => {
@@ -185,7 +176,7 @@ export default function Drive(props: DriveProps) {
         preferredName: templateName,
       })
     },
-    [rootDirectoryId, /* should never change */ dispatchAssetListEvent]
+    [rootDirectoryId, dispatchAssetListEvent]
   )
 
   const doCreateDirectory = React.useCallback(() => {
@@ -194,7 +185,7 @@ export default function Drive(props: DriveProps) {
       parentKey: targetDirectoryNodeRef.current?.key ?? rootDirectoryId,
       parentId: targetDirectoryNodeRef.current?.item.id ?? rootDirectoryId,
     })
-  }, [rootDirectoryId, /* should never change */ dispatchAssetListEvent])
+  }, [rootDirectoryId, dispatchAssetListEvent])
 
   const doCreateSecret = React.useCallback(
     (name: string, value: string) => {
@@ -206,7 +197,7 @@ export default function Drive(props: DriveProps) {
         value,
       })
     },
-    [rootDirectoryId, /* should never change */ dispatchAssetListEvent]
+    [rootDirectoryId, dispatchAssetListEvent]
   )
 
   const doCreateDatalink = React.useCallback(
@@ -219,26 +210,10 @@ export default function Drive(props: DriveProps) {
         value,
       })
     },
-    [rootDirectoryId, /* should never change */ dispatchAssetListEvent]
+    [rootDirectoryId, dispatchAssetListEvent]
   )
 
   switch (status) {
-    case DriveStatus.offline: {
-      return (
-        <div className={tailwindMerge.twMerge('grid grow place-items-center', hidden && 'hidden')}>
-          <div className="flex flex-col gap-status-page text-center text-base">
-            <div>{getText('youAreNotLoggedIn')}</div>
-            <ariaComponents.Button
-              onPress={() => {
-                navigate(appUtils.LOGIN_PATH)
-              }}
-            >
-              {getText('login')}
-            </ariaComponents.Button>
-          </div>
-        </div>
-      )
-    }
     case DriveStatus.noProjectManager: {
       return (
         <div className={tailwindMerge.twMerge('grid grow place-items-center', hidden && 'hidden')}>
@@ -260,7 +235,8 @@ export default function Drive(props: DriveProps) {
             <ariaComponents.Button variant="tertiary" size="medium" href={appUtils.SUBSCRIBE_PATH}>
               {getText('upgrade')}
             </ariaComponents.Button>
-            {localBackend == null && (
+
+            {!supportLocalBackend && (
               <ariaComponents.Button
                 data-testid="download-free-edition"
                 size="medium"
@@ -280,6 +256,7 @@ export default function Drive(props: DriveProps) {
         </result.Result>
       )
     }
+    case DriveStatus.offline:
     case DriveStatus.ok: {
       return (
         <div className={tailwindMerge.twMerge('relative flex grow', hidden && 'hidden')}>
@@ -311,11 +288,12 @@ export default function Drive(props: DriveProps) {
               doCreateDatalink={doCreateDatalink}
               dispatchAssetEvent={dispatchAssetEvent}
             />
+
             <div className="flex flex-1 gap-drive overflow-hidden">
               <div className="flex w-drive-sidebar flex-col gap-drive-sidebar py-drive-sidebar-y">
                 <CategorySwitcher
                   category={category}
-                  setCategory={onSetCategory}
+                  setCategory={setCategory}
                   dispatchAssetEvent={dispatchAssetEvent}
                 />
                 {isCloud && (
@@ -327,26 +305,49 @@ export default function Drive(props: DriveProps) {
                   />
                 )}
               </div>
-              <AssetsTable
-                hidden={hidden}
-                query={query}
-                setQuery={setQuery}
-                setCanDownload={setCanDownload}
-                setProjectStartupInfo={setProjectStartupInfo}
-                category={category}
-                setSuggestions={setSuggestions}
-                initialProjectName={initialProjectName}
-                projectStartupInfo={projectStartupInfo}
-                assetEvents={assetEvents}
-                dispatchAssetEvent={dispatchAssetEvent}
-                assetListEvents={assetListEvents}
-                dispatchAssetListEvent={dispatchAssetListEvent}
-                setAssetPanelProps={setAssetPanelProps}
-                setIsAssetPanelTemporarilyVisible={setIsAssetPanelTemporarilyVisible}
-                targetDirectoryNodeRef={targetDirectoryNodeRef}
-                doOpenEditor={doOpenEditor}
-                doCloseEditor={doCloseEditor}
-              />
+              {status === DriveStatus.offline ? (
+                <result.Result
+                  status="info"
+                  className="my-12"
+                  centered="horizontal"
+                  title={getText('cloudUnavailableOffline')}
+                  subtitle={`${getText('cloudUnavailableOfflineDescription')} ${supportLocalBackend ? getText('cloudUnavailableOfflineDescriptionOfferLocal') : ''}`}
+                >
+                  {supportLocalBackend && (
+                    <ariaComponents.Button
+                      variant="primary"
+                      size="small"
+                      className="mx-auto"
+                      onPress={() => {
+                        setCategory(Category.local)
+                      }}
+                    >
+                      {getText('switchToLocal')}
+                    </ariaComponents.Button>
+                  )}
+                </result.Result>
+              ) : (
+                <AssetsTable
+                  hidden={hidden}
+                  query={query}
+                  setQuery={setQuery}
+                  setCanDownload={setCanDownload}
+                  setProjectStartupInfo={setProjectStartupInfo}
+                  category={category}
+                  setSuggestions={setSuggestions}
+                  initialProjectName={initialProjectName}
+                  projectStartupInfo={projectStartupInfo}
+                  assetEvents={assetEvents}
+                  dispatchAssetEvent={dispatchAssetEvent}
+                  assetListEvents={assetListEvents}
+                  dispatchAssetListEvent={dispatchAssetListEvent}
+                  setAssetPanelProps={setAssetPanelProps}
+                  setIsAssetPanelTemporarilyVisible={setIsAssetPanelTemporarilyVisible}
+                  targetDirectoryNodeRef={targetDirectoryNodeRef}
+                  doOpenEditor={doOpenEditor}
+                  doCloseEditor={doCloseEditor}
+                />
+              )}
             </div>
           </div>
           <div

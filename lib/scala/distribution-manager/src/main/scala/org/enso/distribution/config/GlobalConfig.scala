@@ -1,7 +1,7 @@
 package org.enso.distribution.config
 
 import io.circe.syntax._
-import io.circe.{Decoder, Encoder, Json, JsonObject}
+import io.circe.{Decoder, Encoder, Json}
 import org.enso.distribution.config
 
 /** Global user configuration.
@@ -17,15 +17,30 @@ import org.enso.distribution.config
   *                    projects
   * @param editionProviders a sequence of edition provider URLs that are used
   *                         for downloading editions
-  * @param original original mapping that may contain unknown keys
   */
 case class GlobalConfig(
   defaultVersion: DefaultVersion,
   authorName: Option[String],
   authorEmail: Option[String],
-  editionProviders: Seq[String],
-  original: JsonObject
-)
+  editionProviders: Seq[String]
+) {
+  def findByKey(key: String): Option[String] = {
+    val jsonValue: Option[Json] = key match {
+      case GlobalConfig.Fields.DefaultVersion =>
+        Option(defaultVersion).map(_.asJson)
+      case GlobalConfig.Fields.AuthorName =>
+        authorName.map(_.asJson)
+      case GlobalConfig.Fields.AuthorEmail =>
+        authorEmail.map(_.asJson)
+      case GlobalConfig.Fields.EditionProviders =>
+        Option(editionProviders).map(_.asJson)
+      case _ =>
+        None
+    }
+
+    jsonValue.map(j => j.asString.getOrElse(j.toString()))
+  }
+}
 
 object GlobalConfig {
   private val defaultEditionProviders: Seq[String] = Seq(
@@ -39,8 +54,7 @@ object GlobalConfig {
       defaultVersion   = DefaultVersion.LatestInstalled,
       authorName       = None,
       authorEmail      = None,
-      editionProviders = defaultEditionProviders,
-      original         = JsonObject()
+      editionProviders = defaultEditionProviders
     )
 
   /** Field names used when serializing the configuration.
@@ -64,21 +78,17 @@ object GlobalConfig {
       editionProviders <- json.getOrElse[Seq[String]](Fields.EditionProviders)(
         defaultEditionProviders
       )
-      original <- json.as[JsonObject]
     } yield config.GlobalConfig(
       defaultVersion   = defaultVersion,
       authorName       = authorName,
       authorEmail      = authorEmail,
-      editionProviders = editionProviders,
-      original         = original
+      editionProviders = editionProviders
     )
   }
 
   /** [[Encoder]] instance for [[GlobalConfig]].
     */
   implicit val encoder: Encoder[GlobalConfig] = { config =>
-    val base = config.original.asJson
-
     val overrides =
       Json.obj(
         Fields.DefaultVersion   -> config.defaultVersion.asJson,
@@ -86,6 +96,6 @@ object GlobalConfig {
         Fields.AuthorEmail      -> config.authorEmail.asJson,
         Fields.EditionProviders -> config.editionProviders.asJson
       )
-    base.deepMerge(overrides).dropNullValues.asJson
+    overrides.dropNullValues.asJson
   }
 }

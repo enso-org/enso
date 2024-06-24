@@ -21,6 +21,7 @@ interface EditorProps {
         projectId?: string | null,
         metadata?: object | null
     ) => void
+    readonly renameProject: (newName: string) => void
 }
 
 /** The value passed from the entrypoint to the dashboard, which enables the dashboard to

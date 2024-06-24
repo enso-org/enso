@@ -19,9 +19,11 @@ import * as validation from '#/utilities/validation'
 
 /** Settings section for changing password. */
 export default function ChangePasswordSettingsSection() {
-  const { user } = authProvider.useNonPartialUserSession()
+  const { user } = authProvider.useFullUserSession()
   const { changePassword } = authProvider.useAuth()
+
   const { getText } = textProvider.useText()
+
   const [key, setKey] = React.useState('')
   const [currentPassword, setCurrentPassword] = React.useState('')
   const [newPassword, setNewPassword] = React.useState('')
@@ -48,7 +50,7 @@ export default function ChangePasswordSettingsSection() {
           void changePassword(currentPassword, newPassword)
         }}
       >
-        <aria.Input hidden autoComplete="username" value={user?.email} readOnly />
+        <aria.Input hidden autoComplete="username" value={user.email} readOnly />
         <aria.TextField className="flex h-row gap-settings-entry" onChange={setCurrentPassword}>
           <aria.Label className="text my-auto w-change-password-settings-label">
             {getText('currentPasswordLabel')}

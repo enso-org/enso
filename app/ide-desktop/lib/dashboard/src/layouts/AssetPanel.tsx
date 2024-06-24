@@ -74,6 +74,8 @@ export default function AssetPanel(props: AssetPanelProps) {
   const { getText } = textProvider.useText()
   const { localStorage } = localStorageProvider.useLocalStorage()
   const [initialized, setInitialized] = React.useState(false)
+  const initializedRef = React.useRef(initialized)
+  initializedRef.current = initialized
   const [tab, setTab] = React.useState(() => {
     const savedTab = localStorage.get('assetPanelTab') ?? AssetPanelTab.properties
     if (
@@ -90,12 +92,10 @@ export default function AssetPanel(props: AssetPanelProps) {
   React.useEffect(() => {
     // This prevents secrets and directories always setting the tab to `properties`
     // (because they do not support the `versions` tab).
-    if (initialized) {
+    if (initializedRef.current) {
       localStorage.set('assetPanelTab', tab)
     }
-    // `initialized` is NOT a dependency.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tab, /* should never change */ localStorage])
+  }, [tab, localStorage])
 
   React.useEffect(() => {
     setInitialized(true)

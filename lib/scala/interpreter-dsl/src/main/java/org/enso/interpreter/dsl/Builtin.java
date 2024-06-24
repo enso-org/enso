@@ -290,48 +290,6 @@ public @interface Builtin {
   }
 
   /**
-   * Annotation approving implicit {@link
-   * com.oracle.truffle.api.TruffleLanguage#asGuestValue(Object)} translation done on the return
-   * object. The conversion is generated automatically, depending on the type of the value.
-   *
-   * <p>Note that while explicit translations to interop value are discouraged, we still want to
-   * occasionally support it to easy builtins-writing process. The presence of the {@link
-   * ReturningGuestObject} only ensures that it is intentional.
-   *
-   * <p>Consider a method returning an {@link java.io.OutputStream} which is not an interop value,
-   * for the sake of the example:
-   *
-   * <pre>
-   * class Foo {
-   *     {@link Builtin.Method @Builtin.Method}
-   *     {@link Builtin.ReturningGuestObject @Builtin.ReturningGuestObject}
-   *     java.lang.OutputStream foo(Object item) {
-   *         return // ...
-   *     }
-   * }
-   * </pre>
-   *
-   * The processor will detect the return type of method {@code foo} and perform an automatic
-   * conversion:
-   *
-   * <pre>
-   * {@link BuiltinMethod @BuiltinMethod}(type = "Foo", name = "create")
-   * public class CreateFooNode extends Node {
-   *   java.lang.Object execute(Foo self, Object item) {
-   *     return context
-   *           .asGuestValue(self.foo(item));
-   *   }
-   * }
-   * </pre>
-   *
-   * Without converting the object to the guest language value, it would crash during runtime.
-   * Without the presence of the annotation, the processor would detect the potential value
-   * requiring {@link com.oracle.truffle.api.TruffleLanguage#asGuestValue(Object)} translation but
-   * stop and report the error since it didn't seem to be intended by the user.
-   */
-  @interface ReturningGuestObject {}
-
-  /**
    * A Method marked with {@link Builtin.Specialize} annotation will generate specializations for
    * overloaded and non-overloaded methods. The annotation requires presence of {@link
    * Builtin.Method} as well.

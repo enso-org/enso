@@ -17,7 +17,6 @@ export const INPUT_STYLES = twv.tv({
       variant: 'body',
     }),
     description: 'block select-none pointer-events-none opacity-80',
-    error: 'block',
     textArea: 'block h-auto w-full max-h-full resize-none bg-transparent',
     resizableSpan: text.TEXT_STYLE({
       className:

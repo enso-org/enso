@@ -101,19 +101,21 @@ export const BUTTON_STYLES = twv.tv({
         base: text.TEXT_STYLE({
           variant: 'body',
           color: 'custom',
-          weight: 'bold',
+          weight: 'semibold',
           className: 'flex px-[11px] py-[5px]',
         }),
         content: 'gap-2',
+        icon: 'mb-[-0.3cap]',
         extraClickZone: 'after:inset-[-6px]',
       },
       medium: {
         base: text.TEXT_STYLE({
           variant: 'body',
           color: 'custom',
-          weight: 'bold',
+          weight: 'semibold',
           className: 'flex px-[9px] py-[3px]',
         }),
+        icon: 'mb-[-0.3cap]',
         content: 'gap-2',
         extraClickZone: 'after:inset-[-8px]',
       },
@@ -121,8 +123,10 @@ export const BUTTON_STYLES = twv.tv({
         base: text.TEXT_STYLE({
           variant: 'body',
           color: 'custom',
+          weight: 'medium',
           className: 'flex px-[7px] py-[1px]',
         }),
+        icon: 'mb-[-0.3cap]',
         content: 'gap-1',
         extraClickZone: 'after:inset-[-10px]',
       },
@@ -130,8 +134,10 @@ export const BUTTON_STYLES = twv.tv({
         base: text.TEXT_STYLE({
           variant: 'body',
           color: 'custom',
+          weight: 'medium',
           className: 'flex px-[5px] py-[1px]',
         }),
+        icon: 'mb-[-0.3cap]',
         content: 'gap-1',
         extraClickZone: 'after:inset-[-12px]',
       },
@@ -148,7 +154,9 @@ export const BUTTON_STYLES = twv.tv({
         extraClickZone: 'after:inset-[-12px]',
       },
     },
-    iconOnly: { true: { base: text.TEXT_STYLE({ disableLineHeightCompensation: true }) } },
+    iconOnly: {
+      true: { base: text.TEXT_STYLE({ disableLineHeightCompensation: true }), icon: 'mb-[unset]' },
+    },
     rounded: {
       full: 'rounded-full',
       large: 'rounded-lg',
@@ -162,7 +170,7 @@ export const BUTTON_STYLES = twv.tv({
     variant: {
       custom: 'focus-visible:outline-offset-2',
       link: {
-        base: 'inline-flex px-0 py-0 rounded-sm text-primary/50 underline hover:text-primary border-none',
+        base: 'inline-block px-0 py-0 rounded-sm text-primary/50 underline hover:text-primary border-none',
         icon: 'h-[1.25cap] mt-[0.25cap]',
       },
       primary: 'bg-primary text-white hover:bg-primary/70',
@@ -171,7 +179,7 @@ export const BUTTON_STYLES = twv.tv({
       delete:
         'bg-danger/80 hover:bg-danger text-white focus-visible:outline-danger focus-visible:bg-danger',
       icon: {
-        base: 'opacity-80 hover:opacity-100 focus-visible:opacity-100 text-primary',
+        base: 'border-0 opacity-80 hover:opacity-100 focus-visible:opacity-100 text-primary',
         wrapper: 'w-full h-full',
         content: 'w-full h-full',
         extraClickZone: 'w-full h-full',
@@ -179,7 +187,8 @@ export const BUTTON_STYLES = twv.tv({
       ghost:
         'text-primary hover:text-primary/80 hover:bg-white focus-visible:text-primary/80 focus-visible:bg-white',
       submit: 'bg-invite text-white opacity-80 hover:opacity-100 focus-visible:outline-offset-2',
-      outline: 'border-primary/40 text-primary hover:border-primary focus-visible:outline-offset-2',
+      outline:
+        'border-primary/40 text-primary hover:border-primary focus-visible:outline-offset-2 hover:bg-primary/10',
       bar: 'rounded-full border-0.5 border-primary/20 transition-colors hover:bg-primary/10',
     },
     iconPosition: {

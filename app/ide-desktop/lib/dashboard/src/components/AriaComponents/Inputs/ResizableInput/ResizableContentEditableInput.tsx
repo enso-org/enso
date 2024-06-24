@@ -5,7 +5,6 @@ import * as React from 'react'
 
 import * as eventCallbackHooks from '#/hooks/eventCallbackHooks'
 
-import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 
 import * as mergeRefs from '#/utilities/mergeRefs'
@@ -22,7 +21,23 @@ const CONTENT_EDITABLE_STYLES = twv.tv({
 /**
  * Props for a {@link ResizableContentEditableInput}.
  */
-export interface ResizableContentEditableInputProps extends aria.TextFieldProps {
+export interface ResizableContentEditableInputProps<
+  Schema extends ariaComponents.TSchema,
+  TFieldValues extends ariaComponents.FieldValues<Schema>,
+  TFieldName extends ariaComponents.FieldPath<Schema, TFieldValues>,
+  // eslint-disable-next-line no-restricted-syntax
+  TTransformedValues extends ariaComponents.FieldValues<Schema> | undefined = undefined,
+> extends ariaComponents.FieldStateProps<
+      Omit<
+        React.HTMLAttributes<HTMLDivElement> & { value: string },
+        'aria-describedby' | 'aria-details' | 'aria-label' | 'aria-labelledby'
+      >,
+      Schema,
+      TFieldValues,
+      TFieldName,
+      TTransformedValues
+    >,
+    ariaComponents.FieldProps {
   /**
    * onChange is called when the content of the input changes.
    * There is no way to prevent the change, so the value is always the new value.
@@ -30,28 +45,32 @@ export interface ResizableContentEditableInputProps extends aria.TextFieldProps 
    * So the component is not a ***fully*** controlled component.
    */
   // eslint-disable-next-line @typescript-eslint/no-invalid-void-type
-  readonly onChange?: (value: string) => void
   readonly placeholder?: string
-  readonly description?: React.ReactNode
-  readonly errorMessage?: string | null
 }
 
 /**
  * A resizable input that uses a content-editable div.
  * This component might be useful for a text input that needs to have highlighted content inside of it.
  */
+// eslint-disable-next-line no-restricted-syntax
 export const ResizableContentEditableInput = React.forwardRef(
-  function ResizableContentEditableInput(
-    props: ResizableContentEditableInputProps,
+  function ResizableContentEditableInput<
+    Schema extends ariaComponents.TSchema,
+    TFieldName extends ariaComponents.FieldPath<Schema, TFieldValues>,
+    TFieldValues extends ariaComponents.FieldValues<Schema> = ariaComponents.FieldValues<Schema>,
+    // eslint-disable-next-line no-restricted-syntax
+    TTransformedValues extends ariaComponents.FieldValues<Schema> | undefined = undefined,
+  >(
+    props: ResizableContentEditableInputProps<Schema, TFieldValues, TFieldName, TTransformedValues>,
     ref: React.ForwardedRef<HTMLDivElement>
   ) {
     const {
-      value = '',
       placeholder = '',
-      onChange,
       description = null,
-      errorMessage,
-      onBlur,
+      name,
+      isDisabled = false,
+      form,
+      defaultValue,
       ...textFieldProps
     } = props
 
@@ -71,17 +90,23 @@ export const ResizableContentEditableInput = React.forwardRef(
       }
     )
 
+    const { field, fieldState, formInstance } = ariaComponents.Form.useField({
+      name,
+      isDisabled,
+      form,
+      defaultValue,
+    })
+
     const {
       base,
       description: descriptionClass,
       inputContainer,
-      error,
       textArea,
       placeholder: placeholderClass,
-    } = CONTENT_EDITABLE_STYLES({ isInvalid: textFieldProps.isInvalid })
+    } = CONTENT_EDITABLE_STYLES({ isInvalid: fieldState.invalid })
 
     return (
-      <aria.TextField {...textFieldProps}>
+      <ariaComponents.Form.Field form={formInstance} name={name} fullWidth {...textFieldProps}>
         <div
           className={base()}
           onClick={() => {
@@ -91,7 +116,7 @@ export const ResizableContentEditableInput = React.forwardRef(
           <div className={inputContainer()}>
             <div
               className={textArea()}
-              ref={mergeRefs.mergeRefs(inputRef, ref)}
+              ref={mergeRefs.mergeRefs(inputRef, ref, field.ref)}
               contentEditable
               suppressContentEditableWarning
               role="textbox"
@@ -100,13 +125,15 @@ export const ResizableContentEditableInput = React.forwardRef(
               spellCheck="false"
               aria-autocomplete="none"
               onPaste={onPaste}
-              onBlur={onBlur}
+              onBlur={field.onBlur}
               onInput={event => {
-                onChange?.(event.currentTarget.textContent ?? '')
+                field.onChange(event.currentTarget.textContent ?? '')
               }}
             />
 
-            <ariaComponents.Text className={placeholderClass({ class: value ? 'hidden' : '' })}>
+            <ariaComponents.Text
+              className={placeholderClass({ class: field.value.length > 0 ? 'hidden' : '' })}
+            >
               {placeholder}
             </ariaComponents.Text>
           </div>
@@ -117,13 +144,16 @@ export const ResizableContentEditableInput = React.forwardRef(
             </ariaComponents.Text>
           )}
         </div>
-
-        {errorMessage != null && (
-          <ariaComponents.Text slot="errorMessage" color="danger" className={error()}>
-            {errorMessage}
-          </ariaComponents.Text>
-        )}
-      </aria.TextField>
+      </ariaComponents.Form.Field>
     )
   }
-)
+) as <
+  Schema extends ariaComponents.TSchema,
+  TFieldName extends ariaComponents.FieldPath<Schema, TFieldValues>,
+  TFieldValues extends ariaComponents.FieldValues<Schema> = ariaComponents.FieldValues<Schema>,
+  // eslint-disable-next-line no-restricted-syntax
+  TTransformedValues extends ariaComponents.FieldValues<Schema> | undefined = undefined,
+>(
+  props: React.RefAttributes<HTMLDivElement> &
+    ResizableContentEditableInputProps<Schema, TFieldValues, TFieldName, TTransformedValues>
+) => React.JSX.Element

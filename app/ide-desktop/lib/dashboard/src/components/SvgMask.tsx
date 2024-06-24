@@ -15,12 +15,7 @@ export interface SvgMaskProps {
   readonly src: string
   readonly title?: string
   readonly style?: React.CSSProperties
-  // Allowing `undefined` is fine here as this prop has a fallback.
-  // eslint-disable-next-line no-restricted-syntax
   readonly color?: string | undefined
-  // Allowing `undefined` is fine here as this prop is being transparently passed through to the
-  // underlying `div`.
-  // eslint-disable-next-line no-restricted-syntax
   readonly className?: string | undefined
 }
 
@@ -49,7 +44,7 @@ export default function SvgMask(props: SvgMaskProps) {
         ...(invert ? { WebkitMaskComposite: 'exclude, exclude' } : {}),
         /* eslint-enable @typescript-eslint/naming-convention */
       }}
-      className={tailwindMerge.twMerge('inline-block h-max w-max', className)}
+      className={tailwindMerge.twMerge('inline-block size-max', className)}
     >
       {/* This is required for this component to have the right size. */}
       <img alt={alt} src={src} className="pointer-events-none opacity-0" draggable={false} />

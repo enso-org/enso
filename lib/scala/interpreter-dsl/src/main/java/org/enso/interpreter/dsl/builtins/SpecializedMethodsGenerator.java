@@ -38,14 +38,12 @@ public final class SpecializedMethodsGenerator extends MethodGenerator {
         elements,
         first.getModifiers().contains(Modifier.STATIC),
         first.getKind() == ElementKind.CONSTRUCTOR,
-        first.getAnnotation(Builtin.ReturningGuestObject.class) != null,
+        false,
         TypeWithKind.createFromTpe(first.getReturnType().toString()));
 
     // Make sure all methods were defined the same way, except for paramters' types
     assert (allEqual(elements.stream().map(e -> e.getModifiers().contains(Modifier.STATIC))));
     assert (allEqual(elements.stream().map(e -> e.getKind() == ElementKind.CONSTRUCTOR)));
-    assert (allEqual(
-        elements.stream().map(e -> e.getAnnotation(Builtin.ReturningGuestObject.class) != null)));
     assert (allEqual(
         elements.stream().map(e -> TypeWithKind.createFromTpe(e.getReturnType().toString()))));
   }

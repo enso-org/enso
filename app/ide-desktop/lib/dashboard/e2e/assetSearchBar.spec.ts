@@ -42,7 +42,7 @@ test.test('labels', async ({ page }) => {
   api.addLabel('cccc', backend.COLORS[2]!)
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   api.addLabel('dddd', backend.COLORS[3]!)
-  await actions.login({ page })
+  await actions.reload({ page })
 
   await searchBarInput.click()
   for (const label of await labels.all()) {
@@ -65,7 +65,7 @@ test.test('suggestions', async ({ page }) => {
   api.addProject('bar')
   api.addSecret('baz')
   api.addSecret('quux')
-  await actions.login({ page })
+  await actions.reload({ page })
 
   await searchBarInput.click()
   for (const suggestion of await suggestions.all()) {
@@ -86,7 +86,7 @@ test.test('suggestions (keyboard)', async ({ page }) => {
   api.addProject('bar')
   api.addSecret('baz')
   api.addSecret('quux')
-  await actions.login({ page })
+  await actions.reload({ page })
 
   await searchBarInput.click()
   for (const suggestion of await suggestions.all()) {
@@ -105,7 +105,7 @@ test.test('complex flows', async ({ page }) => {
   api.addProject('bar')
   api.addSecret('baz')
   api.addSecret('quux')
-  await actions.login({ page })
+  await actions.reload({ page })
 
   await searchBarInput.click()
   await page.press('body', 'ArrowDown')

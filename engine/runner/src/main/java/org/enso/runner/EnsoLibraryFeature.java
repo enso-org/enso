@@ -9,6 +9,7 @@ import java.util.TreeSet;
 import org.enso.compiler.core.ir.module.scope.imports.Polyglot;
 import org.enso.pkg.PackageManager$;
 import org.graalvm.nativeimage.hosted.Feature;
+import org.graalvm.nativeimage.hosted.RuntimeProxyCreation;
 import org.graalvm.nativeimage.hosted.RuntimeReflection;
 
 public final class EnsoLibraryFeature implements Feature {
@@ -75,6 +76,9 @@ public final class EnsoLibraryFeature implements Feature {
                 RuntimeReflection.registerAllConstructors(clazz);
                 RuntimeReflection.registerAllFields(clazz);
                 RuntimeReflection.registerAllMethods(clazz);
+                if (clazz.isInterface()) {
+                  RuntimeProxyCreation.register(clazz);
+                }
               }
             }
           }

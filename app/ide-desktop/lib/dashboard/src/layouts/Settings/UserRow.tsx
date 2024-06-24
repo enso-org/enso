@@ -37,7 +37,7 @@ export default function UserRow(props: UserRowProps) {
   const { user: self } = authProvider.useNonPartialUserSession()
   const { setModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
-  const isSelf = user.userId === self?.userId
+  const isSelf = user.userId === self.userId
   const doDeleteUser = isSelf ? null : doDeleteUserRaw
 
   const contextMenuRef = contextMenuHooks.useContextMenuRef(

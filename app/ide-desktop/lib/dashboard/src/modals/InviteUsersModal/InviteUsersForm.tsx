@@ -5,13 +5,15 @@ import * as reactQuery from '@tanstack/react-query'
 import isEmail from 'validator/es/lib/isEmail'
 
 import * as backendHooks from '#/hooks/backendHooks'
+import * as billingHooks from '#/hooks/billing'
 import * as eventCallbackHooks from '#/hooks/eventCallbackHooks'
 
+import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
 
-import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
+import * as paywallComponents from '#/components/Paywall'
 
 import type * as backendModule from '#/services/Backend'
 
@@ -31,20 +33,41 @@ export interface InviteUsersFormProps {
 export function InviteUsersForm(props: InviteUsersFormProps) {
   const { onSubmitted, organizationId } = props
   const { getText } = textProvider.useText()
-  const [inputValue, setInputValue] = React.useState('')
   const backend = backendProvider.useRemoteBackendStrict()
   const inputRef = React.useRef<HTMLDivElement>(null)
-  const formRef = React.useRef<HTMLFormElement>(null)
-  const queryClient = reactQuery.useQueryClient()
+
+  const { user } = authProvider.useFullUserSession()
+  const { isFeatureUnderPaywall, getFeature } = billingHooks.usePaywall({ plan: user.plan })
+
   const inviteUserMutation = backendHooks.useBackendMutation(backend, 'inviteUser', {
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['listInvitations'] })
-    },
+    meta: { invalidates: [['listInvitations']], awaitInvalidates: true },
   })
 
-  const getEmailsFromInput = eventCallbackHooks.useEventCallback((value: string) => {
-    return parserUserEmails.parseUserEmails(value)
+  const [{ data: usersCount }, { data: invitationsCount }] = reactQuery.useSuspenseQueries({
+    queries: [
+      {
+        queryKey: ['listInvitations'],
+        queryFn: async () => backend.listInvitations(),
+        select: (invitations: readonly backendModule.Invitation[]) => invitations.length,
+      },
+      {
+        queryKey: ['listUsers'],
+        queryFn: async () => backend.listUsers(),
+        select: (users: readonly backendModule.User[]) => users.length,
+      },
+    ],
   })
+
+  const isUnderPaywall = isFeatureUnderPaywall('inviteUserFull')
+  const feature = getFeature('inviteUser')
+
+  const seatsLeft = isUnderPaywall
+    ? Math.max(feature.meta.maxSeats - (usersCount + invitationsCount), 0)
+    : Infinity
+
+  const getEmailsFromInput = eventCallbackHooks.useEventCallback((value: string) =>
+    parserUserEmails.parseUserEmails(value)
+  )
 
   const highlightEmails = eventCallbackHooks.useEventCallback((value: string): void => {
     if (inputRef.current?.firstChild != null) {
@@ -83,11 +106,10 @@ export function InviteUsersForm(props: InviteUsersFormProps) {
   })
 
   const validateEmailField = eventCallbackHooks.useEventCallback((value: string): string | null => {
-    const trimmedValue = value.trim()
     const { entries } = getEmailsFromInput(value)
 
-    if (trimmedValue === '' || entries.length === 0) {
-      return getText('emailIsRequired')
+    if (entries.length > seatsLeft) {
+      return getText('inviteFormSeatsLeftError', entries.length - seatsLeft)
     } else {
       for (const entry of entries) {
         if (!isEmail(entry.email)) {
@@ -100,88 +122,66 @@ export function InviteUsersForm(props: InviteUsersFormProps) {
     }
   })
 
-  const clearForm = eventCallbackHooks.useEventCallback(() => {
-    setInputValue('')
-  })
-
-  const focusInput = eventCallbackHooks.useEventCallback(() => {
-    if (inputRef.current) {
-      inputRef.current.focus()
-    }
-  })
-
-  React.useLayoutEffect(() => {
-    highlightEmails(inputValue)
-  }, [inputValue, highlightEmails])
-
-  const emailsFieldError = validateEmailField(inputValue)
-  const isEmailsFieldInvalid = emailsFieldError != null
-
   return (
-    <aria.Form
-      className="flex grow flex-col"
-      ref={formRef}
-      onSubmit={event => {
-        event.preventDefault()
+    <ariaComponents.Form
+      formOptions={{ mode: 'onSubmit' }}
+      schema={ariaComponents.Form.schema.object({
+        emails: ariaComponents.Form.schema
+          .string()
+          .min(1, { message: getText('emailIsRequired') })
+          .refine(
+            value => {
+              const result = validateEmailField(value)
 
-        if (isEmailsFieldInvalid) {
-          highlightEmails(inputValue)
-          focusInput()
-        } else {
-          // Add the email from the input field to the list of emails.
-          const emails = Array.from(new Set(getEmailsFromInput(inputValue).entries))
-            .map(({ email }) => email)
-            .filter((value): value is backendModule.EmailAddress => isEmail(value))
+              if (result != null) {
+                highlightEmails(value)
+              }
 
-          void Promise.all(
-            emails.map(userEmail => inviteUserMutation.mutateAsync([{ userEmail, organizationId }]))
-          ).then(() => {
-            onSubmitted(emails)
-            clearForm()
-          })
-        }
+              return result == null
+            },
+            { message: getText('emailIsInvalid') }
+          ),
+      })}
+      defaultValues={{ emails: '' }}
+      onSubmit={async ({ emails }) => {
+        // Add the email from the input field to the list of emails.
+        const emailsToSubmit = Array.from(new Set(getEmailsFromInput(emails).entries))
+          .map(({ email }) => email)
+          .filter((value): value is backendModule.EmailAddress => isEmail(value))
+
+        await Promise.all(
+          emailsToSubmit.map(userEmail =>
+            inviteUserMutation.mutateAsync([{ userEmail, organizationId }])
+          )
+        ).then(() => {
+          onSubmitted(emailsToSubmit)
+        })
       }}
     >
-      <aria.Text className="mb-2 text-sm text-primary">
+      <ariaComponents.Text disableLineHeightCompensation>
         {getText('inviteFormDescription')}
-      </aria.Text>
+      </ariaComponents.Text>
 
       <ariaComponents.ResizableContentEditableInput
         ref={inputRef}
-        className="mb-4"
-        name="email"
+        name="emails"
         aria-label={getText('inviteEmailFieldLabel')}
         placeholder={getText('inviteEmailFieldPlaceholder')}
-        isInvalid={isEmailsFieldInvalid}
-        autoComplete="off"
-        value={inputValue}
-        onChange={setInputValue}
-        onBlur={() => {
-          highlightEmails(inputValue)
-          validateEmailField(inputValue)
-        }}
-        isRequired
         description={getText('inviteEmailFieldDescription')}
-        errorMessage={emailsFieldError}
       />
 
-      {inviteUserMutation.isError && (
-        <ariaComponents.Alert variant="error" className="mb-4">
-          {/* eslint-disable-next-line no-restricted-syntax */}
-          {getText('arbitraryErrorTitle')}. {getText('arbitraryErrorSubtitle')}
-        </ariaComponents.Alert>
+      {isUnderPaywall && (
+        <paywallComponents.PaywallAlert
+          feature="inviteUserFull"
+          label={getText('inviteFormSeatsLeft', seatsLeft)}
+        />
       )}
 
-      <ariaComponents.Button
-        type="submit"
-        variant="tertiary"
-        rounded="medium"
-        size="medium"
-        loading={inviteUserMutation.isPending}
-        fullWidth
-      >
+      <ariaComponents.Form.Submit variant="tertiary" rounded="medium" size="medium" fullWidth>
         {getText('inviteSubmit')}
-      </ariaComponents.Button>
-    </aria.Form>
+      </ariaComponents.Form.Submit>
+
+      <ariaComponents.Form.FormError />
+    </ariaComponents.Form>
   )
 }

@@ -180,10 +180,6 @@ public class BuiltinsProcessor extends AbstractProcessor {
 
       OK:
       if (!TypeWithKind.isValidGuestType(processingEnv, method.getReturnType())) {
-        if (method.getAnnotation(Builtin.ReturningGuestObject.class) != null) {
-          // guest objects can be of any type
-          break OK;
-        }
         if (method.getAnnotation(SuppressWarnings.class) instanceof SuppressWarnings sw
             && Arrays.asList(sw.value()).contains("generic-enso-builtin-type")) {
           // assume the case was review
