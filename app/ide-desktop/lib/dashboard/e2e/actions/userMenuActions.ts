@@ -4,7 +4,7 @@ import type * as test from 'playwright/test'
 import type * as baseActions from './BaseActions'
 import type BaseActions from './BaseActions'
 import LoginPageActions from './LoginPageActions'
-import SettingsPageActions from './SettingsPageActions'
+import SettingsModalActions from './SettingsModalActions'
 
 // =======================
 // === UserMenuActions ===
@@ -13,7 +13,7 @@ import SettingsPageActions from './SettingsPageActions'
 /** Actions for the user menu. */
 export interface UserMenuActions<T extends BaseActions> {
   readonly downloadApp: (callback: (download: test.Download) => Promise<void> | void) => T
-  readonly goToSettingsPage: () => SettingsPageActions
+  readonly goToSettingsPage: () => SettingsModalActions
   readonly logout: () => LoginPageActions
   readonly goToLoginPage: () => LoginPageActions
 }
@@ -37,7 +37,7 @@ export function userMenuActions<T extends BaseActions>(
     goToSettingsPage: () =>
       step('Go to Settings (user menu)', page =>
         page.getByRole('button', { name: 'Settings' }).getByText('Settings').click()
-      ).into(SettingsPageActions),
+      ).into(SettingsModalActions),
     logout: () =>
       step('Logout (user menu)', page =>
         page.getByRole('button', { name: 'Logout' }).getByText('Logout').click()

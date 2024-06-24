@@ -3,31 +3,18 @@ import * as test from 'playwright/test'
 
 import * as actions from '../actions'
 import type * as baseActions from './BaseActions'
-import BaseActions from './BaseActions'
 import * as contextMenuActions from './contextMenuActions'
 import EditorPageActions from './EditorPageActions'
-import * as goToPageActions from './goToPageActions'
 import NewDataLinkModalActions from './NewDataLinkModalActions'
-import * as openUserMenuAction from './openUserMenuAction'
+import PageActions from './PageActions'
 import StartModalActions from './StartModalActions'
-import * as userMenuActions from './userMenuActions'
 
 // ========================
 // === DrivePageActions ===
 // ========================
 
 /** Actions for the "drive" page. */
-export default class DrivePageActions extends BaseActions {
-  /** Actions for navigating to another page. */
-  get goToPage(): Omit<goToPageActions.GoToPageActions, 'drive'> {
-    return goToPageActions.goToPageActions(this.step.bind(this))
-  }
-
-  /** Actions related to the User Menu. */
-  get userMenu() {
-    return userMenuActions.userMenuActions(this.step.bind(this))
-  }
-
+export default class DrivePageActions extends PageActions<'drive'> {
   /** Actions related to context menus. */
   get contextMenu() {
     return contextMenuActions.contextMenuActions(this.step.bind(this))
@@ -143,11 +130,6 @@ export default class DrivePageActions extends BaseActions {
     return this.step('Create empty project', page =>
       page.getByText('New Empty Project').click()
     ).into(EditorPageActions)
-  }
-
-  /** Open the User Menu. */
-  openUserMenu() {
-    return openUserMenuAction.openUserMenuAction(this.step.bind(this))
   }
 
   /** Interact with the drive view (the main container of this page). */

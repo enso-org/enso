@@ -1,5 +1,4 @@
 /** @file The base class from which all `Actions` classes are derived. */
-
 import * as test from '@playwright/test'
 
 // ====================
@@ -78,10 +77,11 @@ export default class BaseActions implements PromiseLike<void> {
   }
 
   /** Return a {@link BaseActions} with the same {@link Promise} but a different type. */
-  into<T extends new (page: test.Page, promise: Promise<void>) => InstanceType<T>>(
-    clazz: T
-  ): InstanceType<T> {
-    return new clazz(this.page, this.promise)
+  into<
+    T extends new (page: test.Page, promise: Promise<void>, ...args: Args) => InstanceType<T>,
+    Args extends readonly unknown[],
+  >(clazz: T, ...args: Args): InstanceType<T> {
+    return new clazz(this.page, this.promise, ...args)
   }
 
   /** Perform an action on the current page. This should generally be avoided in favor of using
