@@ -42,6 +42,7 @@
 - [Implemented `.cast` to and from `Decimal` columns for the in-memory
   database.][10206]
 - [Implemented fallback to Windows-1252 encoding for `Encoding.Default`.][10190]
+- [Added Table.duplicates component][10323]
 
 [debug-shortcuts]:
 
@@ -50,6 +51,7 @@
 [10130]: https://github.com/enso-org/enso/pull/10130
 [10206]: https://github.com/enso-org/enso/pull/10206
 [10190]: https://github.com/enso-org/enso/pull/10190
+[10323]: https://github.com/enso-org/enso/pull/10323
 
 <br/>![Release Notes](/docs/assets/tags/release_notes.svg)
 
