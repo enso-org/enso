@@ -7,6 +7,7 @@ import org.enso.editions.LibraryName
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.{Inside, OptionValues}
+import org.yaml.snakeyaml.error.YAMLException
 
 import scala.util.Failure
 
@@ -198,6 +199,10 @@ class ConfigSpec
           Show[DecodingFailure].show(f) should include(
             "Failed to decode 'Group 1' as a module reference"
           )
+        case Failure(failure: YAMLException) =>
+          failure.getMessage should include(
+            "Failed to decode 'Group 1' as a module reference"
+          )
         case unexpected =>
           fail(s"Unexpected result: $unexpected")
       }
@@ -258,6 +263,10 @@ class ConfigSpec
           Show[DecodingFailure].show(f) should include(
             "Failed to decode shortcut"
           )
+        case Failure(failure: YAMLException) =>
+          failure.getMessage should equal(
+            "Failed to decode shortcut. Expected a string value, got a sequence"
+          )
         case unexpected =>
           fail(s"Unexpected result: $unexpected")
       }
@@ -276,6 +285,10 @@ class ConfigSpec
         case Failure(f: DecodingFailure) =>
           Show[DecodingFailure].show(f) should include(
             "Failed to decode component group"
+          )
+        case Failure(failure: YAMLException) =>
+          failure.getMessage should equal(
+            "Failed to decode component group. Expected a mapping, got a sequence"
           )
         case unexpected =>
           fail(s"Unexpected result: $unexpected")
@@ -296,6 +309,10 @@ class ConfigSpec
         case Failure(f: DecodingFailure) =>
           Show[DecodingFailure].show(f) should include(
             "Failed to decode exported component"
+          )
+        case Failure(failure: YAMLException) =>
+          failure.getMessage should equal(
+            "Failed to decode exported component 'one'"
           )
         case unexpected =>
           fail(s"Unexpected result: $unexpected")

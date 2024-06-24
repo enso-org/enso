@@ -141,16 +141,28 @@ object ComponentGroup {
                       .map(exportDecoder.decode)
                       .getOrElse(Right(Seq.empty))
                   } yield ComponentGroup(group, color, icon, exports)
+                case (_: ScalarNode, value: ScalarNode) =>
+                  Left(
+                    new YAMLException(
+                      "Failed to decode component group. Expected a mapping, got " + value.getValue
+                    )
+                  )
+                case (_: ScalarNode, _: SequenceNode) =>
+                  Left(
+                    new YAMLException(
+                      "Failed to decode component group. Expected a mapping, got a sequence"
+                    )
+                  )
                 case _ =>
                   Left(
                     new YAMLException(
-                      "Failed to decode Component Group's name"
+                      "Failed to decode component"
                     )
                   )
               }
             } else {
               Left(
-                new YAMLException("Failed to decode Component Group's name")
+                new YAMLException("Failed to decode component group")
               )
             }
         }
@@ -375,13 +387,21 @@ object Component {
                   val shortcutDecoder =
                     implicitly[SnakeYamlDecoder[Option[Shortcut]]]
                   for {
-                    name     <- stringDecoder.decode(scalarNode)
-                    shortcut <- shortcutDecoder.decode(mappingNode)
+                    name <- stringDecoder.decode(scalarNode)
+                    shortcut <- shortcutDecoder
+                      .decode(mappingNode)
+                      .map(_.filter(_.key.nonEmpty))
                   } yield Component(name, shortcut)
+                case (keyNode: ScalarNode, _: ScalarNode) =>
+                  Left(
+                    new YAMLException(
+                      "Failed to decode exported component '" + keyNode.getValue + "'"
+                    )
+                  )
                 case _ =>
                   Left(
                     new YAMLException(
-                      "Failed to decode Component" + componentNode
+                      "Failed to decode component"
                     )
                   )
               }
@@ -463,11 +483,22 @@ object Shortcut {
             else {
               val shortcutNode = mappingNode.getValue.get(0)
               (shortcutNode.getKeyNode, shortcutNode.getValueNode) match {
-                case (key: ScalarNode, value: ScalarNode)
+                case (key: ScalarNode, valueNode)
                     if key.getValue == "shortcut" =>
-                  stringDecoder.decode(value).map(Shortcut(_))
+                  valueNode match {
+                    case valueNode: ScalarNode =>
+                      stringDecoder.decode(valueNode).map(Shortcut(_))
+                    case _: SequenceNode =>
+                      Left(
+                        new YAMLException(
+                          "Failed to decode shortcut. Expected a string value, got a sequence"
+                        )
+                      )
+                    case _ =>
+                      Left(new YAMLException("Failed to decode shortcut"))
+                  }
                 case _ =>
-                  Left(new YAMLException("Failed to decode Shortcut"))
+                  Left(new YAMLException("Failed to decode shortcut"))
               }
             }
         }
@@ -561,7 +592,9 @@ object GroupReference {
             }
           case scalarNode: ScalarNode =>
             fromModuleName(scalarNode.getValue).toRight(
-              new YAMLException("Failed to decode GroupReference")
+              new YAMLException(
+                s"Failed to decode '${scalarNode.getValue}' as a module reference"
+              )
             )
         }
     }
