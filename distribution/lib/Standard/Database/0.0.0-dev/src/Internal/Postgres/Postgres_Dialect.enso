@@ -195,6 +195,13 @@ type Postgres_Dialect
                         Illegal_State.Error "The type computed by our logic is Char, but the Database computed a non-text type ("+db_type.to_display_text+"). This should never happen and should be reported as a bug in the Database library."
             False -> column
 
+    cast_op_type self (op_kind:Text) (args:(Vector Internal_Column)) (expression:SQL_Expression) =
+        is_integer_sql_type ic =
+            sql_type = ic.sql_type_reference.get
+            sql_type.typeid == -5
+        all_args_integer = args.all is_integer_sql_type
+        if op_kind == "SUM" && all_args_integer then SQL_Expression.Operation "CAST" [expression, SQL_Expression.Literal "numeric(1000,0)"] else expression
+
     ## PRIVATE
     prepare_fetch_types_query : SQL_Expression -> Context -> SQL_Statement
     prepare_fetch_types_query self expression context =
