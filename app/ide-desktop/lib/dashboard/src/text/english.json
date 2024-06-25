@@ -520,7 +520,7 @@
 
   "settingsShortcut": "Settings",
   "openShortcut": "Open",
-  "runShortcut": "Run",
+  "runShortcut": "Execute as Task",
   "closeShortcut": "Close",
   "uploadToCloudShortcut": "Upload To Cloud",
   "renameShortcut": "Rename",

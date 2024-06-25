@@ -51,7 +51,7 @@ export function createBindings() {
 export const BINDINGS = inputBindings.defineBindings({
   settings: { name: 'Settings', bindings: ['Mod+,'], icon: SettingsIcon },
   open: { name: 'Open', bindings: ['Enter'], icon: OpenIcon },
-  run: { name: 'Run', bindings: ['Shift+Enter'], icon: Play2Icon },
+  run: { name: 'Execute as Task', bindings: ['Shift+Enter'], icon: Play2Icon },
   close: { name: 'Close', bindings: [], icon: CloseIcon },
   uploadToCloud: { name: 'Upload To Cloud', bindings: [], icon: CloudToIcon },
   rename: { name: 'Rename', bindings: ['Mod+R'], icon: PenIcon },
