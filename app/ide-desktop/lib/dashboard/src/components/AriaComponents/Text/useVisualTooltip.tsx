@@ -12,8 +12,6 @@ import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 import Portal from '#/components/Portal'
 
-import * as mergeRefs from '#/utilities/mergeRefs'
-
 /**
  * Props for {@link useVisualTooltip}.
  */
@@ -123,7 +121,7 @@ export function useVisualTooltip(props: VisualTooltipProps) {
   const createTooltipElement = () => (
     <Portal onMount={updatePosition}>
       <span
-        ref={mergeRefs.mergeRefs(popoverRef, ref => ref?.showPopover())}
+        ref={popoverRef}
         {...aria.mergeProps<React.HTMLAttributes<HTMLDivElement>>()(
           overlayProps,
           tooltipProps,
