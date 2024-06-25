@@ -347,6 +347,14 @@ export default class ProjectManager {
     this.socketPromise = createSocket()
   }
 
+  /**
+   * Dispose of the {@link ProjectManager}.
+   */
+  async dispose() {
+    const socket = await this.socketPromise
+    socket.close()
+  }
+
   /** Open an existing project. */
   async openProject(params: OpenProjectParams): Promise<OpenProject> {
     const cached = this.internalProjects.get(params.projectId)

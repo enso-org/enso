@@ -5,7 +5,7 @@
  * the API. */
 import Backend, * as backend from '#/services/Backend'
 import * as projectManager from '#/services/ProjectManager'
-import ProjectManager from '#/services/ProjectManager'
+import type ProjectManager from '#/services/ProjectManager'
 
 import * as appBaseUrl from '#/utilities/appBaseUrl'
 import * as dateTime from '#/utilities/dateTime'
@@ -96,9 +96,10 @@ export default class LocalBackend extends Backend {
   private readonly projectManager: ProjectManager
 
   /** Create a {@link LocalBackend}. */
-  constructor(projectManagerUrl: string, rootDirectory: projectManager.Path) {
+  constructor(projectManagerInstance: ProjectManager) {
     super()
-    this.projectManager = new ProjectManager(projectManagerUrl, rootDirectory)
+
+    this.projectManager = projectManagerInstance
   }
 
   /** Return the ID of the root directory. */
