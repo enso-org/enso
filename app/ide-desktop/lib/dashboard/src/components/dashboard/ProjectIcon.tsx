@@ -138,17 +138,18 @@ export default function ProjectIcon(props: ProjectIconProps) {
       doAbortOpeningRef.current = () => {
         abortController.abort()
       }
-      await openProjectMutate([
+      const projectPromise = openProjectMutate([
         item.id,
         { executeAsync: false, parentId: item.parentId, cognitoCredentials: session },
         item.title,
-      ])
-      const projectPromise = waitUntilProjectIsReadyMutation.mutateAsync([
-        item.id,
-        item.parentId,
-        item.title,
-        abortController.signal,
-      ])
+      ]).then(() =>
+        waitUntilProjectIsReadyMutation.mutateAsync([
+          item.id,
+          item.parentId,
+          item.title,
+          abortController.signal,
+        ])
+      )
       setProjectStartupInfo({
         project: projectPromise,
         projectAsset: item,
@@ -157,8 +158,11 @@ export default function ProjectIcon(props: ProjectIconProps) {
         accessToken: session?.accessToken ?? null,
       })
       await projectPromise
-      if (shouldOpenWhenReady) {
-        doOpenEditor()
+      if (!abortController.signal.aborted) {
+        setState(backendModule.ProjectState.opened)
+        if (shouldOpenWhenReady) {
+          doOpenEditor()
+        }
       }
     },
   })
@@ -167,11 +171,12 @@ export default function ProjectIcon(props: ProjectIconProps) {
   const openProject = React.useCallback(
     async (shouldRunInBackground: boolean) => {
       if (state !== backendModule.ProjectState.opened) {
-        setState(backendModule.ProjectState.openInProgress)
         try {
           if (!shouldRunInBackground) {
+            setState(backendModule.ProjectState.openInProgress)
             openEditorMutate()
           } else {
+            setState(backendModule.ProjectState.opened)
             await openProjectMutate([
               item.id,
               {
@@ -188,7 +193,6 @@ export default function ProjectIcon(props: ProjectIconProps) {
           // not just the state type.
           setItem(object.merger({ projectState: project.state }))
           toastAndLog('openProjectError', error, item.title)
-          setState(backendModule.ProjectState.closed)
         }
       }
     },
@@ -285,6 +289,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
     setShouldOpenWhenReady(false)
     setState(backendModule.ProjectState.closing)
     await closeProjectMutation.mutateAsync([item.id, item.title])
+    setState(backendModule.ProjectState.closed)
   }
 
   switch (state) {
