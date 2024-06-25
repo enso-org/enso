@@ -133,14 +133,16 @@ export default function ProjectIcon(props: ProjectIconProps) {
     mutationKey: ['openEditor', item.id],
     networkMode: 'always',
     mutationFn: async () => {
+      await openProjectMutate([
+        item.id,
+        { executeAsync: false, parentId: item.parentId, cognitoCredentials: session },
+        item.title,
+      ])
       const projectPromise = waitUntilProjectIsReadyMutation.mutateAsync([
         item.id,
         item.parentId,
         item.title,
       ])
-      if (shouldOpenWhenReady) {
-        doOpenEditor()
-      }
       setProjectStartupInfo({
         project: projectPromise,
         projectAsset: item,
@@ -149,6 +151,9 @@ export default function ProjectIcon(props: ProjectIconProps) {
         accessToken: session?.accessToken ?? null,
       })
       await projectPromise
+      if (shouldOpenWhenReady) {
+        doOpenEditor()
+      }
     },
   })
   const openEditorMutate = openEditorMutation.mutate
@@ -158,17 +163,18 @@ export default function ProjectIcon(props: ProjectIconProps) {
       if (state !== backendModule.ProjectState.opened) {
         setState(backendModule.ProjectState.openInProgress)
         try {
-          await openProjectMutate([
-            item.id,
-            {
-              executeAsync: shouldRunInBackground,
-              parentId: item.parentId,
-              cognitoCredentials: session,
-            },
-            item.title,
-          ])
           if (!shouldRunInBackground) {
             openEditorMutate()
+          } else {
+            await openProjectMutate([
+              item.id,
+              {
+                executeAsync: shouldRunInBackground,
+                parentId: item.parentId,
+                cognitoCredentials: session,
+              },
+              item.title,
+            ])
           }
         } catch (error) {
           const project = await getProjectDetailsMutate([item.id, item.parentId, item.title])
