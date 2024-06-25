@@ -367,6 +367,7 @@ export default function Dashboard(props: DashboardProps) {
                   isActive={page === TabType.editor}
                   icon={WorkspaceIcon}
                   labelId="editorPageName"
+                  loadingPromise={projectStartupInfo.project}
                   onPress={() => {
                     setPage(TabType.editor)
                   }}

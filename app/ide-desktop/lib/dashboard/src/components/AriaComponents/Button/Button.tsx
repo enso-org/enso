@@ -5,7 +5,7 @@ import * as focusHooks from '#/hooks/focusHooks'
 
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
-import Spinner, * as spinnerModule from '#/components/Spinner'
+import StatelessSpinner, * as spinnerModule from '#/components/StatelessSpinner'
 import SvgMask from '#/components/SvgMask'
 
 import * as twv from '#/utilities/tailwindVariants'
@@ -62,6 +62,9 @@ export interface BaseButtonProps extends Omit<twv.VariantProps<typeof BUTTON_STY
   readonly testId?: string
 
   readonly formnovalidate?: boolean
+  /** Defaults to `full`. When `full`, the entire button will be replaced with the loader.
+   * When `icon`, only the icon will be replaced with the loader. */
+  readonly loaderPosition?: 'full' | 'icon'
 }
 
 export const BUTTON_STYLES = twv.tv({
@@ -286,6 +289,7 @@ export const Button = React.forwardRef(function Button(
     tooltip,
     tooltipPlacement,
     testId,
+    loaderPosition = 'full',
     onPress = () => {},
     ...ariaProps
   } = props
@@ -326,12 +330,15 @@ export const Button = React.forwardRef(function Button(
         [{ opacity: 0 }, { opacity: 0, offset: 1 }, { opacity: 1 }],
         { duration: delay, easing: 'linear', delay: 0, fill: 'forwards' }
       )
-      const contentAnimation = contentRef.current?.animate([{ opacity: 1 }, { opacity: 0 }], {
-        duration: 0,
-        easing: 'linear',
-        delay,
-        fill: 'forwards',
-      })
+      const contentAnimation =
+        loaderPosition !== 'full'
+          ? null
+          : contentRef.current?.animate([{ opacity: 1 }, { opacity: 0 }], {
+              duration: 0,
+              easing: 'linear',
+              delay,
+              fill: 'forwards',
+            })
 
       return () => {
         loaderAnimation?.cancel()
@@ -381,6 +388,12 @@ export const Button = React.forwardRef(function Button(
     const iconComponent = (() => {
       if (icon == null) {
         return null
+      } else if (isLoading && loaderPosition === 'icon') {
+        return (
+          <span className={iconClasses()}>
+            <StatelessSpinner state={spinnerModule.SpinnerState.loadingMedium} size={16} />
+          </span>
+        )
       } else if (typeof icon === 'string') {
         return <SvgMask src={icon} className={iconClasses()} />
       } else {
@@ -425,9 +438,9 @@ export const Button = React.forwardRef(function Button(
           {childrenFactory()}
         </span>
 
-        {isLoading && (
+        {isLoading && loaderPosition === 'full' && (
           <span ref={loaderRef} className={loader()}>
-            <Spinner state={spinnerModule.SpinnerState.loadingMedium} size={16} />
+            <StatelessSpinner state={spinnerModule.SpinnerState.loadingMedium} size={16} />
           </span>
         )}
       </span>

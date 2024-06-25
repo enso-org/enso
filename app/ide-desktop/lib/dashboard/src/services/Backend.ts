@@ -293,7 +293,7 @@ export interface BackendProject extends Project {
 
 /** Information required to open a project. */
 export interface ProjectStartupInfo {
-  readonly project: Project | Promise<Project>
+  readonly project: Promise<Project>
   readonly projectAsset: ProjectAsset
   // This MUST BE optional because it is lost when `JSON.stringify`ing to put in `localStorage`.
   readonly setProjectAsset?: React.Dispatch<React.SetStateAction<ProjectAsset>>
