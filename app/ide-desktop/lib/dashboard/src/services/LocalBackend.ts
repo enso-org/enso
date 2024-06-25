@@ -101,6 +101,16 @@ export default class LocalBackend extends Backend {
     this.projectManager = new ProjectManager(projectManagerUrl, rootDirectory)
   }
 
+  /** Get the root directory of this Backend as a path. */
+  get rootDirectory() {
+    return this.projectManager.rootDirectory
+  }
+
+  /** Set the root directory of this Backend as a path. */
+  set rootDirectory(value) {
+    this.projectManager.rootDirectory = value
+  }
+
   /** Return the ID of the root directory. */
   override rootDirectoryId(): backend.DirectoryId {
     return newDirectoryId(this.projectManager.rootDirectory)

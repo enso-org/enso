@@ -28,6 +28,7 @@ import * as suspense from '#/components/Suspense'
 import type Backend from '#/services/Backend'
 
 import * as array from '#/utilities/array'
+import LocalSettingsTab from '#/layouts/Settings/LocalSettingsTab'
 
 // ================
 // === Settings ===
@@ -62,6 +63,10 @@ export default function Settings(props: SettingsProps) {
     }
     case SettingsTab.organization: {
       content = backend == null ? null : <OrganizationSettingsTab backend={backend} />
+      break
+    }
+    case SettingsTab.local: {
+      content = <LocalSettingsTab />
       break
     }
     case SettingsTab.members: {

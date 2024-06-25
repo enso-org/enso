@@ -292,7 +292,7 @@ export default class ProjectManager {
   /** Create a {@link ProjectManager} */
   constructor(
     private readonly connectionUrl: string,
-    readonly rootDirectory: Path
+    public rootDirectory: Path
   ) {
     const firstConnectionStartMs = Number(new Date())
     let lastConnectionStartMs = 0

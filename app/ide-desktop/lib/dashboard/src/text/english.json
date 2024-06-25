@@ -220,6 +220,7 @@
   "organizationDisplayName": "Organization display name",
   "website": "Website",
   "location": "Location",
+  "rootDirectory": "Root Folder",
 
   "enterSecretPath": "Enter secret path",
   "enterText": "Enter text",
