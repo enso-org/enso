@@ -259,6 +259,7 @@ function insertArbitraryAssetTreeNodeChildren(
           directoryKey,
           directoryId,
           depth,
+          `${item.path}/${asset.title}`,
           getKey?.(asset) ?? asset.id
         )
       )

@@ -17,7 +17,7 @@ export function locateDuplicateButton(page: test.Locator | test.Page) {
 
 /** Find a "copy" button (if any) on the current page. */
 function locateCopyButton(page: test.Locator | test.Page) {
-  return page.getByRole('button', { name: 'Copy' }).getByText('Copy')
+  return page.getByRole('button', { name: 'Copy' }).getByText('Copy', { exact: true })
 }
 
 /** Find a "cut" button (if any) on the current page. */
