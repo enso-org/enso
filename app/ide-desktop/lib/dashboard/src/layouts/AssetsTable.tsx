@@ -7,7 +7,6 @@ import DropFilesImage from 'enso-assets/drop_files.svg'
 
 import * as mimeTypes from '#/data/mimeTypes'
 
-import * as asyncEffectHooks from '#/hooks/asyncEffectHooks'
 import * as backendHooks from '#/hooks/backendHooks'
 import * as eventHooks from '#/hooks/eventHooks'
 import * as intersectionHooks from '#/hooks/intersectionHooks'
@@ -996,40 +995,24 @@ export default function AssetsTable(props: AssetsTableProps) {
     }
   }, [backend, category])
 
-  asyncEffectHooks.useAsyncEffect(
-    null,
-    async signal => {
-      setSelectedKeys(new Set())
-      try {
-        const newAssets = await backend
-          .listDirectory(
-            {
-              parentId: null,
-              filterBy: CATEGORY_TO_FILTER_BY[category],
-              recentProjects: category === Category.recent,
-              labels: null,
-            },
-            // The root directory has no name. This is also SAFE, as there is a different error
-            // message when the directory is the root directory (when `parentId == null`).
-            '(root)'
-          )
-          .catch(error => {
-            toastAndLog('listRootFolderBackendError', error)
-            throw error
-          })
-        if (!signal.aborted) {
-          setIsLoading(false)
-          overwriteNodes(newAssets)
-        }
-      } catch (error) {
-        if (!signal.aborted) {
-          setIsLoading(false)
-          toastAndLog(null, error)
-        }
-      }
+  const rootDirectoryQuery = backendHooks.useBackendQuery(backend, 'listDirectory', [
+    {
+      parentId: null,
+      filterBy: CATEGORY_TO_FILTER_BY[category],
+      recentProjects: category === Category.recent,
+      labels: null,
     },
-    [category, backend, setSelectedKeys]
-  )
+    // The root directory has no name. This is also SAFE, as there is a different error
+    // message when the directory is the root directory (when `parentId == null`).
+    '(root)',
+  ])
+
+  React.useEffect(() => {
+    if (rootDirectoryQuery.data) {
+      setIsLoading(false)
+      overwriteNodes(rootDirectoryQuery.data)
+    }
+  }, [rootDirectoryQuery.data, overwriteNodes])
 
   React.useEffect(() => {
     const savedEnabledColumns = localStorage.get('enabledColumns')
