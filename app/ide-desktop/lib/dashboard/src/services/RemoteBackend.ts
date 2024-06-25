@@ -1071,7 +1071,7 @@ export default class RemoteBackend extends Backend {
   ) {
     let project = await this.getProjectDetails(projectId, directory, title)
     while (project.state.type !== backend.ProjectState.opened) {
-      if (abortSignal?.aborted) {
+      if (abortSignal?.aborted === true) {
         // The operation was cancelled, do not return.
         // eslint-disable-next-line no-restricted-syntax
         throw new Error()

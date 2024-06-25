@@ -347,7 +347,7 @@ export const Button = React.forwardRef(function Button(
     } else {
       return () => {}
     }
-  }, [isLoading])
+  }, [isLoading, loaderPosition])
 
   const handlePress = (event: aria.PressEvent): void => {
     if (!isLoading) {
