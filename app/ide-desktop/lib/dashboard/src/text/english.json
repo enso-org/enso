@@ -76,6 +76,7 @@
   "changePasswordSuccess": "Successfully changed password!",
   "resetPasswordSuccess": "Successfully reset password!",
   "signOutSuccess": "Successfully logged out!",
+  "userNotAuthorizedError": "Your session has expired. Please log in again.",
 
   "listUsersBackendError": "Could not list users in the organization",
   "createUserBackendError": "Could not create user",

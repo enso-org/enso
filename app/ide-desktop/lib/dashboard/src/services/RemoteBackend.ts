@@ -144,26 +144,27 @@ export default class RemoteBackend extends Backend {
    * @throws {Error} Always. */
   async throw<K extends Extract<text.TextId, `${string}BackendError`>>(
     response: Response | null,
-    textId: K,
+    textId: backend.NetworkError | K,
     ...replacements: text.Replacements[K]
   ): Promise<never> {
-    const error =
-      response == null
-        ? { message: 'unknown error' }
-        : // This is SAFE only when the response has been confirmed to have an erroring status code.
-          // eslint-disable-next-line no-restricted-syntax
-          ((await response.json()) as RemoteBackendError)
-    const message = `${this.getText(textId, ...replacements)}: ${error.message}.`
-    this.logger.error(message)
-    const status = response?.status
-    const errorObject = new Error(message)
+    if (textId instanceof backend.NetworkError) {
+      this.logger.error(textId.message)
 
-    if (status != null) {
-      // @ts-expect-error This is a custom property.
-      errorObject.status = status
+      throw textId
+    } else {
+      const error =
+        response == null
+          ? { message: 'unknown error' }
+          : // This is SAFE only when the response has been confirmed to have an erroring status code.
+            // eslint-disable-next-line no-restricted-syntax
+            ((await response.json()) as RemoteBackendError)
+      const message = `${this.getText(textId, ...replacements)}: ${error.message}.`
+      this.logger.error(message)
+
+      const status = response?.status
+
+      throw new backend.NetworkError(message, status)
     }
-
-    throw error
   }
 
   /** Return the ID of the root directory. */
@@ -390,7 +391,10 @@ export default class RemoteBackend extends Backend {
       return null
     } else if (response.status === STATUS_NOT_AUTHORIZED) {
       // User is not authorized, we should redirect to the login page.
-      return this.throw(response, 'notAuthorizedBackendError')
+      return await this.throw(
+        response,
+        new backend.NotAuthorizedError(this.getText('notAuthorizedBackendError'))
+      )
     } else if (!responseIsSuccessful(response)) {
       // Arbitrary error, might be a server error or a network error.
       return this.throw(response, 'usersMeBackendError')

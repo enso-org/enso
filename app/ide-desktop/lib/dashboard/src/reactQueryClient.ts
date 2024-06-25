@@ -19,6 +19,10 @@ declare module '@tanstack/react-query' {
      * Usually you should use `queryClient.invalidateQueries` instead.
      */
     readonly clearWithPersister: () => Promise<void>
+    /**
+     * Clear the cache stored in the persister storage.
+     */
+    readonly nukePersister: () => Promise<void>
   }
   /**
    * Specifies the invalidation behavior of a mutation.
@@ -146,10 +150,17 @@ export function createReactQueryClient() {
     },
   })
 
+  Object.defineProperty(queryClient, 'nukePersister', {
+    value: () => idbKeyval.clear(store),
+    enumerable: false,
+    configurable: false,
+    writable: false,
+  })
+
   Object.defineProperty(queryClient, 'clearWithPersister', {
     value: () => {
       queryClient.clear()
-      return idbKeyval.clear(store)
+      return queryClient.nukePersister()
     },
     enumerable: false,
     configurable: false,
