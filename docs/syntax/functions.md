@@ -108,9 +108,9 @@ Methods can be defined in Enso in two ways:
 
 1. **In the Body of a Type:** A function defined in the body of a `type`
    definition is automatically converted to a method on all the atoms defined in
-   the body of that type definition. It is call an _instance method_. If the
-   function defined in the body of a type does not have `self` parameter, it is
-   a _static method_.
+   the body of that type definition. If the function has `self` parameter, it is
+   called an _instance method_. If the function does not have `self` parameter,
+   it is called a _static method_.
 
 ```ruby
 type Maybe a
@@ -122,10 +122,9 @@ type Maybe a
         Maybe.Just _ -> True
 ```
 
-2. **As an Extension Method:** A function defined _explicitly_ on an atom counts
-   as an extension method on that atom. It can be defined on a typeset to apply
-   to all the atoms within that typeset. An _extension_ method can be _static_
-   or _instance_, depending on whether the `self` argument is present or not.
+2. **As an Extension Method:** A function defined _explicitly_ on a type counts
+   as an extension method on that type. An _extension_ method can be _static_ or
+   _instance_, depending on whether the `self` argument is present or not.
 
 ```ruby
 Number.floor self = case self of
