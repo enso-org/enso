@@ -1,5 +1,9 @@
 package org.enso.compiler.passes;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
+
 import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.core.ir.Name;
 import org.enso.compiler.core.ir.expression.Application;
@@ -8,15 +12,11 @@ import org.enso.compiler.pass.resolve.MethodCalls$;
 import org.enso.test.utils.ContextUtils;
 import org.junit.Test;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
-
-
 public class MethodCallsTest {
   @Test
   public void resolveSimpleModuleMethod() {
-    var code = """
+    var code =
+        """
         module_method x = x
         main =
             Test.module_method 42
@@ -31,15 +31,17 @@ public class MethodCallsTest {
   }
 
   private Application.Prefix findMethodCall(Module ir, String methodName) {
-    var res = ir.preorder().find(childIr -> {
-      if (childIr instanceof Application.Prefix app &&
-          app.function() instanceof Name.Literal lit) {
-        return lit.name().equals(methodName);
-      }
-      return false;
-    });
+    var res =
+        ir.preorder()
+            .find(
+                childIr -> {
+                  if (childIr instanceof Application.Prefix app
+                      && app.function() instanceof Name.Literal lit) {
+                    return lit.name().equals(methodName);
+                  }
+                  return false;
+                });
     assertThat(res.isDefined(), is(true));
     return (Application.Prefix) res.get();
   }
-
 }

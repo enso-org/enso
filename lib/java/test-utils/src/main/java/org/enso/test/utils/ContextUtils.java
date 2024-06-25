@@ -151,7 +151,8 @@ public final class ContextUtils {
     return compileModule(ctx, src, "Test");
   }
 
-  public static org.enso.compiler.core.ir.Module compileModule(Context ctx, String src, String moduleName) {
+  public static org.enso.compiler.core.ir.Module compileModule(
+      Context ctx, String src, String moduleName) {
     var source = Source.newBuilder(LanguageInfo.ID, src, moduleName + ".enso").buildLiteral();
     var module = ctx.eval(source);
     var runtimeMod = (org.enso.interpreter.runtime.Module) unwrapValue(ctx, module);
