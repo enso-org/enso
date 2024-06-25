@@ -114,6 +114,7 @@ const INDEX_FIELD_NAME = '#'
 const TABLE_NODE_TYPE = 'Standard.Table.Table.Table'
 const VECTOR_NODE_TYPE = 'Standard.Base.Data.Vector.Vector'
 const COLUMN_NODE_TYPE = 'Standard.Table.Column.Column'
+const EXCEL_WORKBOOK_NODE_TYPE = 'Standard.Table.Excel.Excel_Workbook.Excel_Workbook'
 
 const rowLimit = ref(0)
 const page = ref(0)
@@ -288,6 +289,14 @@ const getPattern = (index: number) =>
     ),
   )
 
+const getExcelWorkbookPattern = (sheetName: string) =>
+  Pattern.new((ast) =>
+    Ast.App.positional(
+      Ast.PropertyAccess.new(ast.module, ast, Ast.identifier('read')!),
+      Ast.TextLiteral.new(sheetName, ast.module)!,
+    ),
+  )
+
 const getTablePattern = (index: number) =>
   Pattern.new((ast) =>
     Ast.OprApp.new(
@@ -303,6 +312,7 @@ const getTablePattern = (index: number) =>
       ),
     ),
   )
+
 function createNode(params: CellClickedEvent) {
   if (config.nodeType === VECTOR_NODE_TYPE || config.nodeType === COLUMN_NODE_TYPE) {
     config.createNodes({
@@ -316,10 +326,16 @@ function createNode(params: CellClickedEvent) {
       commit: true,
     })
   }
+  if (config.nodeType === EXCEL_WORKBOOK_NODE_TYPE) {
+    config.createNodes({
+      content: getExcelWorkbookPattern(params.data['Value']),
+      commit: true,
+    })
+  }
 }
 
-function indexField(): ColDef {
-  return { field: INDEX_FIELD_NAME, onCellClicked: (params) => createNode(params) }
+function toLinkField(fieldName: string): ColDef {
+  return { field: fieldName, onCellClicked: (params) => createNode(params) }
 }
 
 /** Return a human-readable representation of an object. */
@@ -360,14 +376,14 @@ watchEffect(() => {
     ]
     rowData = [{ Error: data_.error }]
   } else if (data_.type === 'Matrix') {
-    columnDefs.push(indexField())
+    columnDefs.push(toLinkField(INDEX_FIELD_NAME))
     for (let i = 0; i < data_.column_count; i++) {
       columnDefs.push(toField(i.toString()))
     }
     rowData = addRowIndex(data_.json)
     isTruncated.value = data_.all_rows_count !== data_.json.length
   } else if (data_.type === 'Object_Matrix') {
-    columnDefs.push(indexField())
+    columnDefs.push(toLinkField(INDEX_FIELD_NAME))
     let keys = new Set<string>()
     for (const val of data_.json) {
       if (val != null) {
@@ -382,10 +398,10 @@ watchEffect(() => {
     rowData = addRowIndex(data_.json)
     isTruncated.value = data_.all_rows_count !== data_.json.length
   } else if (data_.type === 'Excel_Workbook') {
-    columnDefs = [{ field: 'Value' }]
+    columnDefs = [toLinkField('Value')]
     rowData = data_.sheet_names.map((name) => ({ Value: name }))
   } else if (Array.isArray(data_.json)) {
-    columnDefs = [indexField(), toField('Value')]
+    columnDefs = [toLinkField(INDEX_FIELD_NAME), toField('Value')]
     rowData = data_.json.map((row, i) => ({ [INDEX_FIELD_NAME]: i, Value: toRender(row) }))
     isTruncated.value = data_.all_rows_count ? data_.all_rows_count !== data_.json.length : false
   } else if (data_.json !== undefined) {
@@ -398,7 +414,7 @@ watchEffect(() => {
         return toField(v, valueType)
       }) ?? []
 
-    columnDefs = data_.has_index_col ? [indexField(), ...dataHeader] : dataHeader
+    columnDefs = data_.has_index_col ? [toLinkField(INDEX_FIELD_NAME), ...dataHeader] : dataHeader
     const rows = data_.data && data_.data.length > 0 ? data_.data[0]?.length ?? 0 : 0
     rowData = Array.from({ length: rows }, (_, i) => {
       const shift = data_.has_index_col ? 1 : 0
