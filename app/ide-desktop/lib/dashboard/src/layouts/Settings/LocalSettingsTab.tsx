@@ -21,14 +21,14 @@ import * as projectManager from '#/services/ProjectManager'
 export default function LocalSettingsTab() {
   const localBackend = backendProvider.useLocalBackend()
   const { getText } = textProvider.useText()
-  const rootDirectoryRef = React.useRef<HTMLInputElement | null>(null)
+  const rootPathRef = React.useRef<HTMLInputElement | null>(null)
 
   invariant(localBackend, '`LocalSettingsTab` requires a `localBackend` to function.')
 
-  const doUpdateRootDirectoryMutation = reactQuery.useMutation({
-    mutationKey: [localBackend.type, 'updateRootDirectory'],
+  const doUpdaterootPathMutation = reactQuery.useMutation({
+    mutationKey: [localBackend.type, 'updateRootPath'],
     mutationFn: (value: string) => {
-      localBackend.rootDirectory = projectManager.Path(value)
+      localBackend.rootPath = projectManager.Path(value)
       return Promise.resolve()
     },
     meta: { invalidates: [[localBackend.type, 'listDirectory']], awaitInvalidates: true },
@@ -37,18 +37,18 @@ export default function LocalSettingsTab() {
   return (
     <SettingsSection title={getText('local')}>
       <aria.TextField
-        key={localBackend.rootDirectory}
-        defaultValue={localBackend.rootDirectory}
+        key={localBackend.rootPath}
+        defaultValue={localBackend.rootPath}
         className="flex h-row gap-settings-entry"
       >
         <aria.Label className="text my-auto w-organization-settings-label">
           {getText('rootDirectory')}
         </aria.Label>
         <SettingsInput
-          key={localBackend.rootDirectory}
-          ref={rootDirectoryRef}
+          key={localBackend.rootPath}
+          ref={rootPathRef}
           type="text"
-          onSubmit={doUpdateRootDirectoryMutation.mutate}
+          onSubmit={doUpdaterootPathMutation.mutate}
         />
       </aria.TextField>
     </SettingsSection>

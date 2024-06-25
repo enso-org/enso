@@ -213,7 +213,7 @@ function insertAssetTreeNodeChildren(
     node => node.item.type !== backendModule.AssetType.specialEmpty
   )
   const nodesToInsert = children.map(asset =>
-    AssetTreeNode.fromAsset(asset, directoryKey, directoryId, depth)
+    AssetTreeNode.fromAsset(asset, directoryKey, directoryId, depth, `${item.path}/${asset.title}`)
   )
   const newNodes = array.splicedBefore(
     nodes,
@@ -410,7 +410,8 @@ export default function AssetsTable(props: AssetsTableProps) {
       backendModule.createRootDirectoryAsset(rootDirectoryId),
       rootParentDirectoryId,
       rootParentDirectoryId,
-      -1
+      -1,
+      backend.rootPath
     )
   })
   const [isDraggingFiles, setIsDraggingFiles] = React.useState(false)
@@ -942,9 +943,16 @@ export default function AssetsTable(props: AssetsTableProps) {
           rootParentDirectoryId,
           rootParentDirectoryId,
           newAssets.map(asset =>
-            AssetTreeNode.fromAsset(asset, rootDirectory.id, rootDirectory.id, 0)
+            AssetTreeNode.fromAsset(
+              asset,
+              rootDirectory.id,
+              rootDirectory.id,
+              0,
+              `${backend.rootPath}/${asset.title}`
+            )
           ),
           -1,
+          backend.rootPath,
           rootDirectory.id,
           true
         )
@@ -1075,7 +1083,8 @@ export default function AssetsTable(props: AssetsTableProps) {
                         backendModule.createSpecialLoadingAsset(directoryId),
                         key,
                         directoryId,
-                        item.depth + 1
+                        item.depth + 1,
+                        ''
                       ),
                     ],
                   })
@@ -1117,7 +1126,13 @@ export default function AssetsTable(props: AssetsTableProps) {
                     }
                   }
                   const childAssetNodes = Array.from(childAssetsMap.values(), child =>
-                    AssetTreeNode.fromAsset(child, key, directoryId, item.depth + 1)
+                    AssetTreeNode.fromAsset(
+                      child,
+                      key,
+                      directoryId,
+                      item.depth + 1,
+                      `${item.path}/${child.title}`
+                    )
                   )
                   const specialEmptyAsset: backendModule.SpecialEmptyAsset | null =
                     (initialChildren != null && initialChildren.length !== 0) ||
@@ -1131,7 +1146,8 @@ export default function AssetsTable(props: AssetsTableProps) {
                             specialEmptyAsset,
                             key,
                             directoryId,
-                            item.depth + 1
+                            item.depth + 1,
+                            ''
                           ),
                         ]
                       : initialChildren == null || initialChildren.length === 0

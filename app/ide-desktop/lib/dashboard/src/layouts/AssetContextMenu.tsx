@@ -75,11 +75,14 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
     backendModule.isUserPermissionAnd(permission => permission.user.userId === user.userId)
   )
   const isCloud = categoryModule.isCloud(category)
-  const path = isCloud
-    ? null
-    : asset.type === backendModule.AssetType.project
-      ? asset.projectState.path ?? null
-      : localBackend.extractTypeAndId(asset.id).id
+  const path =
+    category !== Category.cloud && category !== Category.local
+      ? null
+      : isCloud
+        ? item.path
+        : asset.type === backendModule.AssetType.project
+          ? asset.projectState.path ?? null
+          : localBackend.extractTypeAndId(asset.id).id
   const copyMutation = copyHooks.useCopy({ copyText: path ?? '' })
 
   const { isFeatureUnderPaywall } = billingHooks.usePaywall({ plan: user.plan })

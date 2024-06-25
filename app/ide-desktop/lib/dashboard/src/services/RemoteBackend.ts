@@ -162,6 +162,8 @@ export default class RemoteBackend extends Backend {
     throw error
   }
 
+  readonly rootPath = 'enso://'
+
   /** Return the ID of the root directory. */
   override rootDirectoryId(user: backend.User | null): backend.DirectoryId | null {
     return user?.rootDirectoryId ?? null
