@@ -25,7 +25,7 @@ export project.Table.Table
 export project.Value_Type.Auto
 export project.Value_Type.Bits
 export project.Value_Type.Value_Type
-from project.Constants export all
+from project.Constants export Previous_Value, Report_Unmatched
 from project.Expression export expr
-from project.Extensions.Column_Vector_Extensions export all
-from project.Extensions.Table_Conversions export all
+from project.Extensions.Column_Vector_Extensions export to_column, compute, compute_bulk, running
+from project.Extensions.Table_Conversions export to_table, from_objects, parse_to_table, write_table

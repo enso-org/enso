@@ -1,4 +1,4 @@
-from project.Data.Boolean.Boolean export all
+from project.Data.Boolean.Boolean export True, False
 
 @Builtin_Type
 type Boolean

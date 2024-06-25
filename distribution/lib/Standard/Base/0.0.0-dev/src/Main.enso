@@ -95,14 +95,22 @@ export project.System.Process.Exit_Code.Exit_Code
 export project.Warning.Warning
 from project.Data.Boolean export Boolean, False, True
 from project.Data.Index_Sub_Range.Index_Sub_Range export First, Last
-from project.Data.Json.Extensions export all
+from project.Data.Json.Extensions export to_json, to_js_object
 from project.Data.Numbers export Float, Integer, Number
-from project.Data.Range.Extensions export all
-from project.Data.Statistics.Extensions export all
-from project.Data.Text.Extensions export all
+from project.Data.Range.Extensions export up_to, down_to
+from project.Data.Statistics.Extensions export compute, compute_bulk, running, running_bulk, rank_data
+from project.Data.Text.Extensions export reverse, each, at, get, first, second, last, characters, find
+from project.Data.Text.Extensions export find_all, match, to_regex, split, tokenize, replace, cleanse
+from project.Data.Text.Extensions export words, lines, insert, from, is_digit, is_whitespace, bytes, from_bytes
+from project.Data.Text.Extensions export utf_8, from_utf_8, char_vector, from_char_vector, codepoints, from_codepoints
+from project.Data.Text.Extensions export starts_with, ends_with, contains, repeat, take
+from project.Data.Text.Extensions export drop, to_case, pad, trim, locate, locate_all, index_of
+from project.Data.Text.Extensions export last_index_of, parse_float, parse_integer, parse_json
+from project.Data.Text.Extensions export parse_date, parse_date_time, parse_time_of_day, parse_time_zone
+from project.Data.Text.Extensions export substring
 from project.Data.Text.Regex export regex
-from project.Errors.Problem_Behavior.Problem_Behavior export all
-from project.Function export all
+from project.Errors.Problem_Behavior.Problem_Behavior export Ignore, Report_Warning, Report_Error
+from project.Function export Function, identity, flip, const, curry, uncurry
 from project.Meta.Enso_Project export enso_project
-from project.Network.Extensions export all
+from project.Network.Extensions export to_uri, fetch, post
 from project.System.File_Format export Auto_Detect, Bytes, File_Format, Infer, JSON_Format, Plain_Text_Format

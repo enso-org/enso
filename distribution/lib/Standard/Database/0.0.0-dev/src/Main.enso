@@ -10,5 +10,5 @@ export project.Connection.SSL_Mode.SSL_Mode
 export project.SQL_Query.SQL_Query
 export project.Update_Action.Update_Action
 from project.Connection.Postgres_Details.Postgres_Details export Postgres
-from project.Extensions.Upload_Database_Table export all
-from project.Extensions.Upload_In_Memory_Table export all
+from project.Extensions.Upload_Database_Table export update_rows, select_into_database_table, delete_rows
+from project.Extensions.Upload_In_Memory_Table export update_rows, select_into_database_table, delete_rows

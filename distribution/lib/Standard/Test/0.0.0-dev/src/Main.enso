@@ -12,5 +12,9 @@ export project.Faker.Faker
 export project.Problems
 export project.Suite.Suite
 export project.Test.Test
-from project.Extensions export all
+from project.Extensions export should_fail_with, should_equal, should_equal_type, should_not_equal
+from project.Extensions export should_not_equal_type, should_start_with, should_end_with
+from project.Extensions export should_succeed, should_be_a, should_be_true, should_be_false
+from project.Extensions export should_contain_the_same_elements_as, should_only_contain_elements_in
+from project.Extensions export should_contain, should_not_contain
 
