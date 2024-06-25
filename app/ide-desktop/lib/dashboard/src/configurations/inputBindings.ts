@@ -10,6 +10,7 @@ import ArrowRightIcon from 'enso-assets/arrow_right.svg'
 import CameraIcon from 'enso-assets/camera.svg'
 import CloseIcon from 'enso-assets/close.svg'
 import CloudToIcon from 'enso-assets/cloud_to.svg'
+import CopyAsPathIcon from 'enso-assets/copy_as_path.svg'
 import CopyIcon from 'enso-assets/copy.svg'
 import DataDownloadIcon from 'enso-assets/data_download.svg'
 import DataUploadIcon from 'enso-assets/data_upload.svg'
@@ -53,7 +54,7 @@ export const BINDINGS = inputBindings.defineBindings({
   open: { name: 'Open', bindings: ['Enter'], icon: OpenIcon },
   run: { name: 'Execute as Task', bindings: ['Shift+Enter'], icon: Play2Icon },
   close: { name: 'Close', bindings: [], icon: CloseIcon },
-  uploadToCloud: { name: 'Upload To Cloud', bindings: [], icon: CloudToIcon },
+  uploadToCloud: { name: 'Upload to Cloud', bindings: [], icon: CloudToIcon },
   rename: { name: 'Rename', bindings: ['Mod+R'], icon: PenIcon },
   edit: { name: 'Edit', bindings: ['Mod+E'], icon: PenIcon },
   snapshot: { name: 'Snapshot', bindings: ['Mod+S'], icon: CameraIcon },
@@ -69,6 +70,7 @@ export const BINDINGS = inputBindings.defineBindings({
   label: { name: 'Label', bindings: ['Mod+L'], icon: TagIcon },
   duplicate: { name: 'Duplicate', bindings: ['Mod+D'], icon: DuplicateIcon },
   copy: { name: 'Copy', bindings: ['Mod+C'], icon: CopyIcon },
+  copyAsPath: { name: 'Copy as Path', bindings: ['Mod+Shift+C'], icon: CopyAsPathIcon },
   cut: { name: 'Cut', bindings: ['Mod+X'], icon: ScissorsIcon },
   paste: { name: 'Paste', bindings: ['Mod+V'], icon: PasteIcon },
   download: { name: 'Download', bindings: ['Mod+Shift+S'], icon: DataDownloadIcon },
@@ -87,7 +89,7 @@ export const BINDINGS = inputBindings.defineBindings({
     icon: AddDatalinkIcon,
   },
   useInNewProject: {
-    name: 'Use In New Project',
+    name: 'Use in New Project',
     bindings: ['Mod+P'],
     icon: AddNetworkIcon,
   },

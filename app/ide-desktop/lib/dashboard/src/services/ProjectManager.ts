@@ -281,7 +281,7 @@ export enum ProjectManagerEvents {
  * `app/gui/controller/engine-protocol/src/project_manager.rs`. */
 export default class ProjectManager {
   private readonly internalProjects = new Map<UUID, ProjectState>()
-  // This MUST be declared after `internalProjects` because it depends on `internalProjects.
+  // This MUST be declared after `internalProjects` because it depends on `internalProjects`.
   // eslint-disable-next-line @typescript-eslint/member-ordering
   readonly projects: ReadonlyMap<UUID, ProjectState> = this.internalProjects
   private id = 0

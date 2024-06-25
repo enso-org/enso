@@ -4,6 +4,7 @@ import * as React from 'react'
 import * as toast from 'react-toastify'
 
 import * as billingHooks from '#/hooks/billing'
+import * as copyHooks from '#/hooks/copyHooks'
 import * as setAssetHooks from '#/hooks/setAssetHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
@@ -74,6 +75,13 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
     backendModule.isUserPermissionAnd(permission => permission.user.userId === user.userId)
   )
   const isCloud = categoryModule.isCloud(category)
+  const copyMutation = copyHooks.useCopy({
+    copyText: isCloud
+      ? ''
+      : asset.type === backendModule.AssetType.project
+        ? asset.projectState.path ?? ''
+        : localBackend.extractTypeAndId(asset.id).id,
+  })
 
   const { isFeatureUnderPaywall } = billingHooks.usePaywall({ plan: user.plan })
   const isUnderPaywall = isFeatureUnderPaywall('share')
@@ -375,6 +383,16 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
           }}
         />
         {isCloud && <ContextMenuEntry hidden={hidden} action="copy" doAction={doCopy} />}
+        {!isCloud && (
+          <ContextMenuEntry
+            hidden={hidden}
+            action="copyAsPath"
+            doAction={() => {
+              unsetModal()
+              copyMutation.mutate()
+            }}
+          />
+        )}
         {!isOtherUserUsingProject && (
           <ContextMenuEntry hidden={hidden} action="cut" doAction={doCut} />
         )}

@@ -50,6 +50,7 @@ const ACTION_TO_TEXT_ID: Readonly<Record<inputBindings.DashboardBindingKey, text
   label: 'labelShortcut',
   duplicate: 'duplicateShortcut',
   copy: 'copyShortcut',
+  copyAsPath: 'copyAsPathShortcut',
   cut: 'cutShortcut',
   paste: 'pasteShortcut',
   download: 'downloadShortcut',
