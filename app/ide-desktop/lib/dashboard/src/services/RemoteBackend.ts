@@ -28,6 +28,10 @@ const STATUS_SUCCESS_LAST = 299
 const STATUS_NOT_FOUND = 404
 /** HTTP status indicating that the server encountered a fatal exception. */
 const STATUS_SERVER_ERROR = 500
+/**
+ * HTTP status indicating that the request was successful, but the user is not authorized to access
+ */
+const STATUS_NOT_AUTHORIZED = 401
 
 /** The number of milliseconds in one day. */
 const ONE_DAY_MS = 86_400_000
@@ -379,13 +383,21 @@ export default class RemoteBackend extends Backend {
   /** Return details for the current user.
    * @returns `null` if a non-successful status code (not 200-299) was received. */
   override async usersMe(): Promise<backend.User | null> {
-    const path = remoteBackendPaths.USERS_ME_PATH
-    const response = await this.get<backend.User>(path)
-    if (!responseIsSuccessful(response)) {
+    const response = await this.get<backend.User>(remoteBackendPaths.USERS_ME_PATH)
+
+    if (response.status === STATUS_NOT_FOUND) {
+      // User info has not yet been created, we should redirect to the onboarding page.
       return null
+    } else if (response.status === STATUS_NOT_AUTHORIZED) {
+      // User is not authorized, we should redirect to the login page.
+      return this.throw(response, 'notAuthorizedError')
+    } else if (!responseIsSuccessful(response)) {
+      // Arbitrary error, might be a server error or a network error.
+      return this.throw(response, 'usersMeBackendError')
     } else {
       const user = await response.json()
       this.user = { ...user }
+
       return user
     }
   }
