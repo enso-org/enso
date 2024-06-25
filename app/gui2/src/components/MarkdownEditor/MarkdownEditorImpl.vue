@@ -1,21 +1,20 @@
 <script setup lang="ts">
-import FloatingSelectionMenu from '@/components/MarkdownEditor/FloatingSelectionMenu.vue'
+import FloatingSelectionMenu from '@/components/FloatingSelectionMenu.vue'
 import FormattingToolbar from '@/components/MarkdownEditor/FormattingToolbar.vue'
 import { imagePlugin } from '@/components/MarkdownEditor/ImagePlugin'
-import { autoLinkPlugin, linkPlugin } from '@/components/MarkdownEditor/LinkPlugin'
-import LinkToolbar from '@/components/MarkdownEditor/LinkToolbar.vue'
 import SelectionFormattingToolbar from '@/components/MarkdownEditor/SelectionFormattingToolbar.vue'
 import { lexicalRichTextTheme, useFormatting } from '@/components/MarkdownEditor/formatting'
 import {
   provideLexicalImageUrlTransformer,
   type UrlTransformer,
 } from '@/components/MarkdownEditor/imageUrlTransformer'
-import { useLinkNode } from '@/components/MarkdownEditor/link'
 import { listPlugin } from '@/components/MarkdownEditor/listPlugin'
 import { markdownPlugin } from '@/components/MarkdownEditor/markdown'
 import { useLexical } from '@/components/lexical'
 import LexicalContent from '@/components/lexical/LexicalContent.vue'
 import LexicalDecorators from '@/components/lexical/LexicalDecorators.vue'
+import { autoLinkPlugin, linkPlugin, useLinkNode } from '@/components/lexical/LinkPlugin'
+import LinkToolbar from '@/components/lexical/LinkToolbar.vue'
 import { shallowRef, toRef, useCssModule, type ComponentInstance } from 'vue'
 
 const markdown = defineModel<string>({ required: true })
@@ -40,7 +39,7 @@ const { urlUnderCursor } = useLinkNode(editor)
 <template>
   <div class="MarkdownEditor fullHeight">
     <FormattingToolbar :formatting="formatting" @pointerdown.prevent />
-    <LexicalContent ref="contentElement" @wheel.stop @contextmenu.stop @pointerdown.stop />
+    <LexicalContent ref="contentElement" @wheel.stop.passive @contextmenu.stop @pointerdown.stop />
     <FloatingSelectionMenu :selectionElement="contentElement">
       <template #default="{ collapsed }">
         <SelectionFormattingToolbar v-if="!collapsed" :formatting="formatting" />

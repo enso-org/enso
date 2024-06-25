@@ -2,7 +2,7 @@ import { documentationEditorBindings } from '@/bindings'
 import type { LexicalMarkdownPlugin } from '@/components/MarkdownEditor/markdown'
 import type { LexicalPlugin } from '@/components/lexical'
 import { $createLinkNode, $isLinkNode, AutoLinkNode, LinkNode } from '@lexical/link'
-import { type Transformer } from '@lexical/markdown'
+import type { Transformer } from '@lexical/markdown'
 import { $getNearestNodeOfType } from '@lexical/utils'
 import {
   $createTextNode,
@@ -10,8 +10,11 @@ import {
   $isTextNode,
   CLICK_COMMAND,
   COMMAND_PRIORITY_CRITICAL,
+  COMMAND_PRIORITY_LOW,
+  SELECTION_CHANGE_COMMAND,
   type LexicalEditor,
 } from 'lexical'
+import { shallowRef } from 'vue'
 import { createLinkMatcherWithRegExp, useAutoLink } from './autoMatcher'
 
 const URL_REGEX =
@@ -124,4 +127,17 @@ export const autoLinkPlugin: LexicalPlugin = {
       createLinkMatcherWithRegExp(EMAIL_REGEX, (text) => `mailto:${text}`),
     ])
   },
+}
+
+export function useLinkNode(editor: LexicalEditor) {
+  const urlUnderCursor = shallowRef<string>()
+  editor.registerCommand(
+    SELECTION_CHANGE_COMMAND,
+    () => {
+      urlUnderCursor.value = $getSelectedLinkNode()?.getURL()
+      return false
+    },
+    COMMAND_PRIORITY_LOW,
+  )
+  return { urlUnderCursor }
 }

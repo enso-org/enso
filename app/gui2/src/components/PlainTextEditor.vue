@@ -1,11 +1,9 @@
 <script setup lang="ts">
-import FloatingSelectionMenu from '@/components/MarkdownEditor/FloatingSelectionMenu.vue'
-import { autoLinkPlugin } from '@/components/MarkdownEditor/LinkPlugin'
-import LinkToolbar from '@/components/MarkdownEditor/LinkToolbar.vue'
-import { lexicalRichTextTheme } from '@/components/MarkdownEditor/formatting'
-import { useLinkNode } from '@/components/MarkdownEditor/link'
-import { useLexical, type LexicalPlugin } from '@/components/lexical'
+import FloatingSelectionMenu from '@/components/FloatingSelectionMenu.vue'
+import { lexicalTheme, useLexical, type LexicalPlugin } from '@/components/lexical'
 import LexicalContent from '@/components/lexical/LexicalContent.vue'
+import { autoLinkPlugin, useLinkNode } from '@/components/lexical/LinkPlugin'
+import LinkToolbar from '@/components/lexical/LinkToolbar.vue'
 import { useLexicalStringSync } from '@/components/lexical/sync'
 import { registerPlainText } from '@lexical/plain-text'
 import { ref, useCssModule, watch, type ComponentInstance } from 'vue'
@@ -26,7 +24,7 @@ const textSync: LexicalPlugin = {
   },
 }
 
-const theme = lexicalRichTextTheme(useCssModule('lexicalTheme'))
+const theme = lexicalTheme(useCssModule('lexicalTheme'))
 const { editor } = useLexical(contentElement, 'PlainTextEditor', theme, [
   autoLinkPlugin,
   plainText,
@@ -36,7 +34,7 @@ const { urlUnderCursor } = useLinkNode(editor)
 </script>
 
 <template>
-  <LexicalContent ref="contentElement" />
+  <LexicalContent ref="contentElement" v-bind="$attrs" />
   <FloatingSelectionMenu :selectionElement="contentElement">
     <LinkToolbar v-if="urlUnderCursor" :url="urlUnderCursor" />
   </FloatingSelectionMenu>
