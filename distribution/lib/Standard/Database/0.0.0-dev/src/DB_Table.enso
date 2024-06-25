@@ -877,7 +877,7 @@ type DB_Table
             updated_table.as_subquery
 
 
-    ## UNSTABLE
+    ## ALIAS order_by
        GROUP Standard.Base.Selections
        ICON select_row
 
@@ -906,8 +906,9 @@ type DB_Table
          In the call below, assuming that the table of `t1` contains rows for
          numbers 1, 2, ..., 10, will return rows starting from 6 and not an empty
          result as one could expect if the limit was applied before the filters.
-             t1 = table.order_by [Sort_Column.Name "A"] . limit 5
-             t2 = t1.filter 'A' (Greater than=5)
+
+             t1 = table.sort [..Name "A"] . limit 5
+             t2 = t1.filter 'A' (..Greater than=5)
              t2.read
     limit : Integer -> DB_Table
     limit self max_rows:Integer=1000 =
@@ -1218,40 +1219,40 @@ type DB_Table
        > Example
          Sorting `table` in ascending order by the value in column `'Quantity'`.
 
-             table.order_by ['Quantity']
+             table.sort ['Quantity']
 
        > Example
          Sorting `table` in descending order by the value in column `'Quantity'`.
 
-             table.order_by [Sort_Column.Name 'Quantity' Sort_Direction.Descending]
+             table.sort [..Name 'Quantity' ..Descending]
 
        > Example
          Sorting `table` in ascending order by the value in column `'Quantity'`,
          using the value in column `'Rating'` for breaking ties.
 
-             table.order_by ['Quantity', 'Rating']
+             table.sort ['Quantity', 'Rating']
 
        > Example
          Sorting `table` in ascending order by the value in column `'Quantity'`,
          using the value in column `'Rating'` in descending order for breaking
          ties.
 
-             table.order_by [Sort_Column.Name 'Quantity', Sort_Column.Name 'Rating' Sort_Direction.Descending]
+             table.sort [..Name 'Quantity', ..Name 'Rating' ..Descending]
 
        > Example
          Order the table by the second column in ascending order. In case of any
          ties, break them based on the 7th column from the end of the table in
          descending order.
 
-             table.order_by [1, Sort_Column.Index -7 Sort_Direction.Descending]
+             table.sort [1, ..Index -7 ..Descending]
 
        > Example
          Sort the table by columns whose names start with letter `a`.
 
-              table.order_by [(Sort_Column.Select_By_Name "a.*".to_regex case_sensitivity=Case_Sensitivity.Insensitive)]
+              table.sort [(..Select_By_Name "a.*".to_regex case_sensitivity=..Insensitive)]
     @columns Widget_Helpers.make_order_by_selector
-    order_by : Vector (Text | Sort_Column) | Text -> Text_Ordering -> Boolean -> Problem_Behavior -> DB_Table  ! Incomparable_Values | No_Input_Columns_Selected | Missing_Input_Columns
-    order_by self (columns = ([(Sort_Column.Name (self.columns.at 0 . name))])) text_ordering:Text_Ordering=..Default error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=..Report_Warning =
+    sort : Vector (Text | Sort_Column) | Text -> Text_Ordering -> Boolean -> Problem_Behavior -> DB_Table  ! Incomparable_Values | No_Input_Columns_Selected | Missing_Input_Columns
+    sort self (columns = ([(Sort_Column.Name (self.columns.at 0 . name))])) text_ordering:Text_Ordering=..Default error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=..Report_Warning =
         problem_builder = Problem_Builder.new error_on_missing_columns=error_on_missing_columns types_to_always_throw=[No_Input_Columns_Selected]
         columns_for_ordering = Table_Helpers.prepare_order_by self.columns columns problem_builder
         problem_builder.attach_problems_before on_problems <|
@@ -1262,6 +1263,14 @@ type DB_Table
                 self.connection.dialect.prepare_order_descriptor column associated_selector.direction effective_text_ordering
             new_ctx = self.context.add_orders new_order_descriptors
             self.updated_context new_ctx
+
+    ## PRIVATE
+       Deprecated - use `Table.sort` instead.
+    @columns Widget_Helpers.make_order_by_selector
+    order_by : Vector (Text | Sort_Column) | Text -> Text_Ordering -> Boolean -> Problem_Behavior -> DB_Table  ! Incomparable_Values | No_Input_Columns_Selected | Missing_Input_Columns
+    order_by self (columns = ([(Sort_Column.Name (self.columns.at 0 . name))])) text_ordering:Text_Ordering=..Default error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=..Report_Warning =
+        result = self.sort columns text_ordering error_on_missing_columns on_problems
+        Warning.attach (Deprecated.Warning "Standard.Database.Table.Table" "order_by" "Deprecated: use `sort` instead.") result
 
     ## PRIVATE
        Returns the default ordering used for operations like `add_row_number` or

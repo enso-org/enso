@@ -1196,7 +1196,7 @@ type DB_Column
              column.sort Sort_Direction.Descending
     sort : Sort_Direction -> DB_Column
     sort self order=Sort_Direction.Ascending =
-        self.to_table.order_by [Sort_Column.Index 0 order] . at 0
+        self.to_table.sort [..Index 0 order] . at 0
 
     ## ALIAS first, head, last, limit, sample, slice, tail, top, keep
        GROUP Standard.Base.Selections
