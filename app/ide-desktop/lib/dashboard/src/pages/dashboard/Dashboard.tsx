@@ -39,7 +39,6 @@ import type * as projectManager from '#/services/ProjectManager'
 
 import * as array from '#/utilities/array'
 import LocalStorage from '#/utilities/LocalStorage'
-import * as object from '#/utilities/object'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 
 import type * as types from '../../../../types/types'
@@ -60,7 +59,7 @@ declare module '#/utilities/LocalStorage' {
   interface LocalStorageData {
     readonly isAssetPanelVisible: boolean
     readonly page: TabType
-    readonly projectStartupInfo: backendModule.ProjectStartupInfo<backendModule.Project>
+    readonly projectStartupInfo: Omit<backendModule.ProjectStartupInfo, 'project'>
   }
 }
 
@@ -86,14 +85,12 @@ LocalStorage.registerKey('projectStartupInfo', {
       return null
     } else if (!('backendType' in value) || !array.includes(BACKEND_TYPES, value.backendType)) {
       return null
-    } else if (!('project' in value) || !('projectAsset' in value)) {
+    } else if (!('projectAsset' in value)) {
       return null
     } else {
       return {
         // These type assertions are UNSAFE, however correctly type-checking these
         // would be very complicated.
-        // eslint-disable-next-line no-restricted-syntax
-        project: value.project as backendModule.Project,
         // eslint-disable-next-line no-restricted-syntax
         projectAsset: value.projectAsset as backendModule.ProjectAsset,
         backendType: value.backendType,
@@ -201,11 +198,7 @@ export default function Dashboard(props: DashboardProps) {
                   savedProjectStartupInfo.projectAsset.title,
                   abortController
                 )
-                setProjectStartupInfo(
-                  object.merge<backendModule.ProjectStartupInfo>(savedProjectStartupInfo, {
-                    project,
-                  })
-                )
+                setProjectStartupInfo({ ...savedProjectStartupInfo, project })
                 if (page === TabType.editor) {
                   setPage(page)
                 }
@@ -232,9 +225,7 @@ export default function Dashboard(props: DashboardProps) {
               savedProjectStartupInfo.projectAsset.parentId,
               savedProjectStartupInfo.projectAsset.title
             )
-            setProjectStartupInfo(
-              object.merge<backendModule.ProjectStartupInfo>(savedProjectStartupInfo, { project })
-            )
+            setProjectStartupInfo({ ...savedProjectStartupInfo, project })
             if (page === TabType.editor) {
               setPage(page)
             }
@@ -263,9 +254,10 @@ export default function Dashboard(props: DashboardProps) {
   React.useEffect(() => {
     if (initializedRef.current) {
       if (projectStartupInfo != null) {
-        void Promise.resolve(projectStartupInfo.project).then(project => {
-          localStorage.set('projectStartupInfo', { ...projectStartupInfo, project })
-        })
+        // This is INTENTIONAL - `project` is intentionally omitted from this object.
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { project, ...rest } = projectStartupInfo
+        localStorage.set('projectStartupInfo', rest)
       } else {
         localStorage.delete('projectStartupInfo')
       }
