@@ -347,7 +347,8 @@ lazy val enso = (project in file("."))
     `benchmark-java-helpers`,
     `benchmarks-common`,
     `bench-processor`,
-    `ydoc-server`
+    `ydoc-server`,
+    `desktop-environment`
   )
   .settings(Global / concurrentRestrictions += Tags.exclusive(Exclusive))
   .settings(
