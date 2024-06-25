@@ -5773,6 +5773,58 @@ class RuntimeServerTest
     )
   }
 
+  it should "XX return error when invoking System.exit" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Enso_Test.Test.Main"
+    val metadata   = new Metadata
+    val code =
+      """import Standard.Base.System
+        |
+        |main =
+        |    System.exit 42
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Set sources for the module
+    context.send(
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
+    )
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, moduleName, "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    val recved = context.receiveNIgnoreStdLib(2)
+    recved should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      Api.Response(requestId, Api.ExecutionFailed(
+        contextId,
+        Api.ExecutionResult.Failure("Exit was called with exit code 42.", None)
+      ))
+    )
+  }
+
   it should "return compiler warning unused variable" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
