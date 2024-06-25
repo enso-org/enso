@@ -376,6 +376,7 @@ export default function Dashboard(props: DashboardProps) {
                       type: AssetEventType.closeProject,
                       id: projectStartupInfo.projectAsset.id,
                     })
+                    setProjectStartupInfo(null)
                     setPage(TabType.drive)
                   }}
                 >
