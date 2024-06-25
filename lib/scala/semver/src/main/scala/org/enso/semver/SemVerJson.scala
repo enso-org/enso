@@ -42,8 +42,8 @@ object SemVerJson {
   implicit val yamlDecoder: SnakeYamlDecoder[SemVer] =
     new SnakeYamlDecoder[SemVer] {
       override def decode(node: Node): Either[Throwable, SemVer] = node match {
-        case scalar: ScalarNode =>
-          scalarValue(scalar.getValue)
+        case node: ScalarNode =>
+          safeParse(node.getValue, null).left.map(_.getCause)
         case _ =>
           Left(
             new YAMLException(
@@ -51,9 +51,6 @@ object SemVerJson {
             )
           )
       }
-
-      override def scalarValue(v: String): Either[Throwable, SemVer] =
-        safeParse(v, null).left.map(_.getCause)
     }
 
 }

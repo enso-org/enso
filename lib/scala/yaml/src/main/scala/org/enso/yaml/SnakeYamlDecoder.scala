@@ -13,16 +13,16 @@ import scala.collection.BuildFrom
 abstract class SnakeYamlDecoder[T] {
   def decode(node: Node): Either[Throwable, T]
 
-  def scalarValue(v: String): Either[Throwable, T] = Left(new YAMLException(s"Can't parse value `$v`"))
-
   protected def mappingKV(mappingNode: MappingNode): Map[String, Node] = {
     mappingNode.getValue.asScala.map { node =>
       node.getKeyNode match {
         case n: ScalarNode =>
           (n.getValue, node.getValueNode)
-        case _ =>
-          // FIXME
-          throw new YAMLException("unexpected")
+        case _: SequenceNode =>
+          throw new YAMLException("expected a plain value as a map's key, got a sequence instead")
+        case _: MappingNode =>
+          throw new YAMLException("expected a plain value as a map's key, got a map instead")
+
       }
     }.toMap
   }
@@ -31,28 +31,28 @@ abstract class SnakeYamlDecoder[T] {
 object SnakeYamlDecoder {
   implicit def optionDecoderYaml[T](implicit valueDecoder: SnakeYamlDecoder[T]): SnakeYamlDecoder[Option[T]] = new SnakeYamlDecoder[Option[T]] {
     override def decode(node: Node): Either[Throwable, Option[T]] = node match {
-      case scalar: ScalarNode =>
-        scalar.getTag match {
+      case node: ScalarNode =>
+        node.getTag match {
           case Tag.NULL => Right(None)
           case _ =>
-            val v = scalar.getValue
+            val v = node.getValue
             if (v == null || v.isEmpty) Right(None)
-            else valueDecoder.scalarValue(v).map(Some(_))
+            else valueDecoder.decode(node).map(Some(_))
         }
       case mappingNode: MappingNode =>
         valueDecoder.decode(mappingNode).map(v => if (v == null) None else Some(v))
     }
-
-    override def scalarValue(v: String): Either[Throwable, Option[T]] =
-      if (v == null || v.isEmpty) Right(None)
-      else valueDecoder.scalarValue(v).map(Some(_))
   }
 
   trait MapKeyField {
     def key: String
   }
 
-  case class PlainMapKeyField(key: String) extends MapKeyField
+  object MapKeyField {
+    private case class PlainMapKeyField(key: String) extends MapKeyField
+
+    def plainField(key: String): MapKeyField = PlainMapKeyField(key)
+  }
 
   implicit def mapDecoderYaml[K, V](implicit keyDecoder: SnakeYamlDecoder[K], valueDecoder: SnakeYamlDecoder[V], keyMapper: MapKeyField): SnakeYamlDecoder[Map[K, V]] = new SnakeYamlDecoder[Map[K, V]] {
     override def decode(node: Node): Either[Throwable, Map[K, V]] = node match {
@@ -96,31 +96,26 @@ object SnakeYamlDecoder {
   implicit def stringDecoderYaml: SnakeYamlDecoder[String] = new SnakeYamlDecoder[String] {
     override def decode(node: Node): Either[Throwable, String] = {
       node match {
-        case scalar: ScalarNode =>
-          // TODO: Check tags
-          scalarValue(scalar.getValue)
+        case node: ScalarNode =>
+          Right(node.getValue)
         case _ =>
           Left(new YAMLException("Expected `ScalarNode` for a string value"))
       }
     }
-
-    override def scalarValue(v: String): Either[Throwable, String] = Right(v)
   }
 
   implicit def booleanDecoderYaml: SnakeYamlDecoder[Boolean] = new SnakeYamlDecoder[Boolean] {
     override def decode(node: Node): Either[Throwable, Boolean] = {
       node match {
-        case scalar: ScalarNode =>
-          scalarValue(scalar.getValue)
+        case node: ScalarNode =>
+          node.getValue match {
+            case "true" => Right(true)
+            case "false" => Right(false)
+            case v => Left(new YAMLException("unknown boolean value: " + v))
+          }
         case _ =>
-          ???
+          Left(new YAMLException("failed to decode a boolean field"))
       }
-    }
-
-    override def scalarValue(v: String): Either[Throwable, Boolean] = {
-      if (v == "true") Right(true)
-      else if (v == "false") Right(false)
-      else Left(new YAMLException("unknown boolean value: " + v))
     }
   }
 
@@ -130,8 +125,10 @@ object SnakeYamlDecoder {
       case seqNode: SequenceNode =>
         val elements = seqNode.getValue.asScala.map(valueDecoder.decode).toList
         liftEither(elements)(cbf)
-      case _ =>
-        ???
+      case _: ScalarNode =>
+        Left(new YAMLException("expected a sequence, got a plain value instead"))
+      case _: MappingNode =>
+        Left(new YAMLException("expected a sequence, got a map instead"))
     }
 
     def liftEither[A, B](xs: List[Either[A, B]])(implicit cbf: BuildFrom[List[Either[A, B]], B, CC[B]]): Either[A, CC[B]] = {

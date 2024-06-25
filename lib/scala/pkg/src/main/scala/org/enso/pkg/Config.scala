@@ -272,7 +272,7 @@ object Config {
       }
     }
 
-  val decoder: Decoder[Config] = { json =>
+  implicit val decoder: Decoder[Config] = { json =>
     for {
       name           <- json.get[String](JsonFields.name)
       normalizedName <- json.get[Option[String]](JsonFields.normalizedName)

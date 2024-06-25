@@ -3,7 +3,7 @@ package org.enso.editions
 import org.enso.semver.{SemVer, SemVerJson}
 import org.yaml.snakeyaml.nodes.{MappingNode, Node, ScalarNode}
 import org.enso.yaml.SnakeYamlDecoder
-import org.enso.yaml.SnakeYamlDecoder.PlainMapKeyField
+import org.enso.yaml.SnakeYamlDecoder.MapKeyField
 import org.yaml.snakeyaml.error.YAMLException
 
 /** Defines the general edition structure.
@@ -229,7 +229,7 @@ trait Editions {
             val parentDecoder =
               implicitly[SnakeYamlDecoder[Option[NestedEditionType]]]
             val semverDecoder   = implicitly[SnakeYamlDecoder[Option[SemVer]]]
-            implicit val mapKey = PlainMapKeyField("name")
+            implicit val mapKey = MapKeyField.plainField("name")
             val repositoriesDecoder =
               implicitly[SnakeYamlDecoder[Map[String, Editions.Repository]]]
             val librariesDecoder =
