@@ -88,14 +88,10 @@ export const BINDINGS = inputBindings.defineBindings({
     bindings: !detect.isOnMacOS() ? ['Mod+Alt+Shift+N'] : ['Mod+Alt+Shift+N', 'Mod+Alt+Shift+~'],
     icon: AddDatalinkIcon,
   },
-  useInNewProject: {
-    name: 'Use in New Project',
-    bindings: ['Mod+P'],
-    icon: AddNetworkIcon,
-  },
+  useInNewProject: { name: 'Use in New Project', bindings: ['Mod+P'], icon: AddNetworkIcon },
   openInFileBrowser: {
     name: 'Open in File Browser',
-    bindings: ['Mod+O'],
+    bindings: ['Mod+Shift+O'],
     icon: AddNetworkIcon,
   },
   signIn: { name: 'Login', bindings: [], icon: SignInIcon },

@@ -191,11 +191,12 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             }}
           />
         )}
-        {path != null && systemApi && (
+        {!isCloud && path != null && systemApi && (
           <ContextMenuEntry
             hidden={hidden}
             action="openInFileBrowser"
             doAction={() => {
+              unsetModal()
               systemApi.showItemInFolder(path)
             }}
           />

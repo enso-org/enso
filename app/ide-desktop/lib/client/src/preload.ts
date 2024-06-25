@@ -203,7 +203,9 @@ electron.contextBridge.exposeInMainWorld(MENU_API_KEY, MENU_API)
 // ==================
 
 const SYSTEM_API = {
-    showItemInFolder: electron.shell.showItemInFolder.bind(electron.shell),
+    showItemInFolder: (fullPath: string) => {
+        electron.ipcRenderer.send(ipc.Channel.showItemInFolder, fullPath)
+    },
 }
 
 electron.contextBridge.exposeInMainWorld(SYSTEM_API_KEY, SYSTEM_API)
