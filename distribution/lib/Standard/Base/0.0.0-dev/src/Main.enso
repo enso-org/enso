@@ -107,7 +107,7 @@ from project.Data.Text.Extensions export starts_with, ends_with, contains, repea
 from project.Data.Text.Extensions export drop, to_case, pad, trim, locate, locate_all, index_of
 from project.Data.Text.Extensions export last_index_of, parse_float, parse_integer, parse_json
 from project.Data.Text.Extensions export parse_date, parse_date_time, parse_time_of_day, parse_time_zone
-from project.Data.Text.Extensions export substring
+from project.Data.Text.Extensions export substring, slice_text, split_find_delimiters
 from project.Data.Text.Regex export regex
 from project.Errors.Problem_Behavior.Problem_Behavior export Ignore, Report_Warning, Report_Error
 from project.Function export Function, identity, flip, const, curry, uncurry
