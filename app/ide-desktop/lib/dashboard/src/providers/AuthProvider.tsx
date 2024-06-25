@@ -622,6 +622,8 @@ export function SemiProtectedLayout() {
     } else {
       return <router.Navigate to={appUtils.DASHBOARD_PATH} />
     }
+  } else if (session?.type !== UserSessionType.partial) {
+    return <router.Navigate to={appUtils.LOGIN_PATH} />
   } else {
     return <router.Outlet context={session} />
   }
