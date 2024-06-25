@@ -76,9 +76,12 @@
   "changePasswordSuccess": "Successfully changed password!",
   "resetPasswordSuccess": "Successfully reset password!",
   "signOutSuccess": "Successfully logged out!",
+  "userNotAuthorizedError": "Your session has expired. Please log in again.",
 
   "listUsersBackendError": "Could not list users in the organization",
   "createUserBackendError": "Could not create user",
+  "notAuthorizedBackendError": "Please log in first",
+  "usersMeBackendError": "Failed to get user details",
   "updateUsernameBackendError": "Could not change username",
   "restoreUserBackendError": "Could not restore user",
   "updateUserBackendError": "Could not update user",

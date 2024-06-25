@@ -1249,6 +1249,27 @@ export function extractProjectExtension(name: string) {
   return { basename: basename ?? name, extension: extension ?? '' }
 }
 
+/**
+ * Network error class.
+ */
+export class NetworkError extends Error {
+  /**
+   * Create a new instance of the {@link NetworkError} class.
+   * @param message - The error message.
+   * @param status - The HTTP status code.
+   */
+  constructor(
+    message: string,
+    readonly status?: number
+  ) {
+    super(message)
+  }
+}
+/**
+ * Error class for when the user is not authorized to access a resource.
+ */
+export class NotAuthorizedError extends NetworkError {}
+
 // ===============
 // === Backend ===
 // ===============

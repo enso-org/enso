@@ -44,7 +44,9 @@ export async function expectPlaceholderRow(page: test.Page) {
 // === Tests ===
 // =============
 
-test.test.beforeEach(actions.mockAllAndLogin)
+test.test.beforeEach(({ page }) => {
+  return actions.mockAllAndLogin({ page })
+})
 
 test.test('copy', async ({ page }) => {
   const assetRows = actions.locateAssetRows(page)
