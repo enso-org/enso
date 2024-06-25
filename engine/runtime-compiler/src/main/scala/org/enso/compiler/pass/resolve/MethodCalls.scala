@@ -7,7 +7,7 @@ import org.enso.compiler.core.ir.Name
 import org.enso.compiler.core.ir.MetadataStorage.MetadataPair
 import org.enso.compiler.core.ir.expression.Application
 import org.enso.compiler.data.BindingsMap
-import org.enso.compiler.data.BindingsMap.{Resolution, ResolvedModule}
+import org.enso.compiler.data.BindingsMap.{Resolution, ResolvedModule, ResolvedModuleMethod}
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.BindingAnalysis
 
@@ -63,9 +63,9 @@ object MethodCalls extends IRPass {
       app.function match {
         case name: Name if name.isMethod =>
           app.arguments match {
-            case first :: _ =>
+            case selfArgument :: _ =>
               val targetBindings =
-                first.value.getMetadata(GlobalNames) match {
+                selfArgument.value.getMetadata(GlobalNames) match {
                   case Some(Resolution(ResolvedModule(module))) =>
                     val moduleIr = module.unsafeAsModule().getIr
                     Option
@@ -77,13 +77,18 @@ object MethodCalls extends IRPass {
                 }
               targetBindings match {
                 case Some(bindings) =>
-                  val resolution =
+                  val resolutionsOpt =
                     bindings.exportedSymbols.get(name.name)
-                  resolution match {
-                    case Some(List(resolution)) =>
+                  val resolvedModuleMethodOpt = resolutionsOpt match {
+                    case Some(resolutions) =>
+                      resolutions.collectFirst { case x: ResolvedModuleMethod => x}
+                    case None => None
+                  }
+                  resolvedModuleMethodOpt match {
+                    case Some(resolvedModuleMethod) =>
                       val newName =
                         name.updateMetadata(
-                          new MetadataPair(this, Resolution(resolution))
+                          new MetadataPair(this, Resolution(resolvedModuleMethod))
                         )
                       val newArgs =
                         app.arguments.map(
