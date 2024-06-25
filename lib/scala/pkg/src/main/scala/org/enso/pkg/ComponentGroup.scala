@@ -257,9 +257,13 @@ object ExtendedComponentGroup {
                   exports <- exportsDecoder.decode(seqNode)
                 } yield ExtendedComponentGroup(group, exports)
               case (groupNode: ScalarNode, componentExportsNode: MappingNode) =>
-                val values = componentExportsNode.getValue
-
-                if (values.size() == 1) {
+                val values      = componentExportsNode.getValue
+                val valuesCount = values.size()
+                if (valuesCount == 0) {
+                  groupDecoder
+                    .decode(groupNode)
+                    .map(ExtendedComponentGroup(_, Seq.empty))
+                } else if (valuesCount == 1) {
                   val exportsNode = values.get(0)
                   (exportsNode.getKeyNode, exportsNode.getValueNode) match {
                     case (exportsKeyNode: ScalarNode, seqNode: SequenceNode)
@@ -271,7 +275,7 @@ object ExtendedComponentGroup {
                     case _ =>
                       Left(
                         new YAMLException(
-                          "Failed to decode ExtendedC ComponentGroup"
+                          "Failed to decode Extended ComponentGroup"
                         )
                       )
                   }
