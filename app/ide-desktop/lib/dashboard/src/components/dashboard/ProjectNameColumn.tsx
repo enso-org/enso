@@ -320,12 +320,8 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
           assetEvents={assetEvents}
           dispatchAssetEvent={dispatchAssetEvent}
           setProjectStartupInfo={setProjectStartupInfo}
-          doOpenEditor={switchPage => {
-            doOpenEditor(asset, setAsset, switchPage)
-          }}
-          doCloseEditor={() => {
-            doCloseEditor(asset)
-          }}
+          doOpenEditor={doOpenEditor}
+          doCloseEditor={doCloseEditor}
         />
       )}
       <EditableSpan

@@ -122,6 +122,13 @@ export function locateStopProjectButton(page: test.Locator | test.Page) {
   return page.getByLabel('Stop execution')
 }
 
+/** Close a modal. */
+export function closeModal(page: test.Page) {
+  return test.test.step('Close modal', async () => {
+    await page.getByLabel('Close').click()
+  })
+}
+
 /** Find all labels in the labels panel (if any) on the current page. */
 export function locateLabelsPanelLabels(page: test.Page, name?: string) {
   return (
