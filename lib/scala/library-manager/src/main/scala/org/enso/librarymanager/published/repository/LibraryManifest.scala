@@ -4,6 +4,9 @@ import io.circe.{Decoder, Encoder, Json}
 import io.circe.syntax.EncoderOps
 import io.circe.yaml
 import org.enso.editions.LibraryName
+import org.enso.yaml.SnakeYamlDecoder
+import org.yaml.snakeyaml.error.YAMLException
+import org.yaml.snakeyaml.nodes.{MappingNode, Node}
 
 import scala.util.Try
 
@@ -40,6 +43,44 @@ object LibraryManifest {
     val tagLine      = "tag-line"
     val description  = "description"
   }
+
+  implicit val decoderSnake: SnakeYamlDecoder[LibraryManifest] =
+    new SnakeYamlDecoder[LibraryManifest] {
+      override def decode(node: Node): Either[Throwable, LibraryManifest] =
+        node match {
+          case mappingNode: MappingNode =>
+            val archivesDecoder = implicitly[SnakeYamlDecoder[Seq[String]]]
+            val dependenciesDecoder =
+              implicitly[SnakeYamlDecoder[Seq[LibraryName]]]
+            val optStringDecoder = implicitly[SnakeYamlDecoder[Option[String]]]
+            val kv               = mappingKV(mappingNode)
+            for {
+              archives <- kv
+                .get(Fields.archives)
+                .map(archivesDecoder.decode(_))
+                .getOrElse(Right(Seq.empty))
+              dependencies <- kv
+                .get(Fields.dependencies)
+                .map(dependenciesDecoder.decode(_))
+                .getOrElse(Right(Seq.empty))
+              tagLine <- kv
+                .get(Fields.tagLine)
+                .map(optStringDecoder.decode(_))
+                .getOrElse(Right(None))
+              description <- kv
+                .get(Fields.description)
+                .map(optStringDecoder.decode(_))
+                .getOrElse(Right(None))
+            } yield LibraryManifest(
+              archives,
+              dependencies,
+              tagLine,
+              description
+            )
+          case _ =>
+            Left(new YAMLException("Unexpected edition name"))
+        }
+    }
 
   /** A [[Decoder]] instance for parsing [[LibraryManifest]]. */
   implicit val decoder: Decoder[LibraryManifest] = { json =>

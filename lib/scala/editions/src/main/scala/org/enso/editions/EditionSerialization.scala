@@ -167,7 +167,7 @@ object EditionSerialization {
         if (version.isDefined)
           Left(
             DecodingFailure(
-              "Version field must not be set for libraries associated with the local repository.",
+              "'version' field must not be set for libraries associated with the local repository.",
               json.history
             )
           )
@@ -179,7 +179,7 @@ object EditionSerialization {
           case None =>
             Left(
               DecodingFailure(
-                "Version field is mandatory for non-local libraries.",
+                "'version' field is mandatory for non-local libraries.",
                 json.history
               )
             )

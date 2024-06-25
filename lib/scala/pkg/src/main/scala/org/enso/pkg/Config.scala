@@ -2,7 +2,7 @@ package org.enso.pkg
 
 import io.circe._
 import io.circe.syntax._
-import io.circe.yaml.{Parser, Printer}
+import io.circe.yaml.Printer
 import org.enso.semver.SemVer
 import org.enso.editions.EditionSerialization._
 import org.enso.editions.{
@@ -272,7 +272,7 @@ object Config {
       }
     }
 
-  implicit val decoder: Decoder[Config] = { json =>
+  val decoder: Decoder[Config] = { json =>
     for {
       name           <- json.get[String](JsonFields.name)
       normalizedName <- json.get[Option[String]](JsonFields.normalizedName)
@@ -324,7 +324,7 @@ object Config {
     }
   }
 
-  implicit val encoder: Encoder[Config] = { config =>
+  val encoder: Encoder[Config] = { config =>
     val edition = config.edition
       .map { edition =>
         if (edition.isDerivingWithoutOverrides) edition.parent.get.asJson
@@ -372,7 +372,10 @@ object Config {
 
   /** Tries to parse the [[Config]] directly from the Reader */
   def fromYaml(reader: Reader): Try[Config] = {
-    Parser.default.parse(reader).flatMap(_.as[Config]).toTry
+    val snakeYaml = new org.yaml.snakeyaml.Yaml()
+    Try(snakeYaml.compose(reader)).toEither
+      .flatMap(implicitly[SnakeYamlDecoder[Config]].decode(_))
+      .toTry
   }
 
   def fromYaml(yamlString: String): Try[Config] = {

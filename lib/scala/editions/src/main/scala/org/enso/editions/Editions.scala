@@ -1,8 +1,9 @@
 package org.enso.editions
 
 import org.enso.semver.{SemVer, SemVerJson}
-import org.yaml.snakeyaml.nodes.{MappingNode, Node}
+import org.yaml.snakeyaml.nodes.{MappingNode, Node, ScalarNode}
 import org.enso.yaml.SnakeYamlDecoder
+import org.enso.yaml.SnakeYamlDecoder.PlainMapKeyField
 import org.yaml.snakeyaml.error.YAMLException
 
 /** Defines the general edition structure.
@@ -71,15 +72,28 @@ trait Editions {
 
               bindings.get(LocalLibraryFields.name) match {
                 case Some(node) =>
-                  if (bindings.size == 1) {
-                    implicitly[SnakeYamlDecoder[LibraryName]]
-                      .decode(node)
-                      .map(LocalLibrary(_))
-                  } else if (
-                    bindings.size == 3 && bindings.contains(
-                      PublishedLibraryFields.version
-                    ) && bindings.contains(PublishedLibraryFields.repository)
+                  val repoField =
+                    bindings.get(PublishedLibraryFields.repository)
+                  if (
+                    repoField
+                      .map(node =>
+                        node.isInstanceOf[ScalarNode] && node
+                          .asInstanceOf[ScalarNode]
+                          .getValue == "local"
+                      )
+                      .getOrElse(false)
                   ) {
+                    if (bindings.contains(PublishedLibraryFields.version))
+                      Left(
+                        new YAMLException(
+                          "'version' field must not be set for libraries associated with the local repository"
+                        )
+                      )
+                    else
+                      implicitly[SnakeYamlDecoder[LibraryName]]
+                        .decode(node)
+                        .map(LocalLibrary(_))
+                  } else {
                     val libraryNameDecoder =
                       implicitly[SnakeYamlDecoder[LibraryName]]
                     val versionDecoder = SemVerJson.yamlDecoder
@@ -98,7 +112,7 @@ trait Editions {
                         .get(PublishedLibraryFields.version)
                         .toRight(
                           new YAMLException(
-                            s"Missing '${PublishedLibraryFields.version}' field"
+                            s"'${PublishedLibraryFields.version}' field is mandatory for non-local libraries"
                           )
                         )
                         .flatMap(versionDecoder.decode)
@@ -111,12 +125,6 @@ trait Editions {
                         )
                         .flatMap(repositoryDecoder.decode)
                     } yield PublishedLibrary(name, version, repository)
-                  } else {
-                    Left(
-                      new YAMLException(
-                        "Unrecognized Library fields: " + bindings.keySet
-                      )
-                    )
                   }
                 case None =>
                   Left(
@@ -220,20 +228,30 @@ trait Editions {
             val clazzMap = mappingKV(mappingNode)
             val parentDecoder =
               implicitly[SnakeYamlDecoder[Option[NestedEditionType]]]
-            val semverDecoder = implicitly[SnakeYamlDecoder[Option[SemVer]]]
+            val semverDecoder   = implicitly[SnakeYamlDecoder[Option[SemVer]]]
+            implicit val mapKey = PlainMapKeyField("name")
             val repositoriesDecoder =
               implicitly[SnakeYamlDecoder[Map[String, Editions.Repository]]]
             val librariesDecoder =
               implicitly[SnakeYamlDecoder[Map[LibraryName, Library]]]
             for {
               parent <- clazzMap
-                .get(Fields.parent)
+                .get("extends")
                 .map(parentDecoder.decode)
                 .getOrElse(Right(None))
               engineVersion <- clazzMap
                 .get(Fields.engineVersion)
                 .map(semverDecoder.decode)
                 .getOrElse(Right(None))
+              _ <-
+                if (parent.isEmpty && engineVersion.isEmpty)
+                  Left(
+                    new YAMLException(
+                      s"The edition must specify at least one of " +
+                      s"${Fields.engineVersion} or ${Fields.parent}"
+                    )
+                  )
+                else Right(())
               repositories <- clazzMap
                 .get(Fields.repositories)
                 .map(repositoriesDecoder.decode)

@@ -48,7 +48,13 @@ object SnakeYamlDecoder {
       else valueDecoder.scalarValue(v).map(Some(_))
   }
 
-  implicit def mapDecoderYaml[K, V](implicit keyDecoder: SnakeYamlDecoder[K], valueDecoder: SnakeYamlDecoder[V]): SnakeYamlDecoder[Map[K, V]] = new SnakeYamlDecoder[Map[K, V]] {
+  trait MapKeyField {
+    def key: String
+  }
+
+  case class PlainMapKeyField(key: String) extends MapKeyField
+
+  implicit def mapDecoderYaml[K, V](implicit keyDecoder: SnakeYamlDecoder[K], valueDecoder: SnakeYamlDecoder[V], keyMapper: MapKeyField): SnakeYamlDecoder[Map[K, V]] = new SnakeYamlDecoder[Map[K, V]] {
     override def decode(node: Node): Either[Throwable, Map[K, V]] = node match {
       case mapping: MappingNode =>
         val kv = mapping.getValue.asScala.map { node =>
@@ -58,6 +64,22 @@ object SnakeYamlDecoder {
           } yield (k, v)
         }
         liftEither(kv.toSeq).map(_.toMap)
+      case sequence: SequenceNode =>
+        val result = sequence.getValue().asScala.toList.map ( node =>
+          node match {
+            case mappingNode: MappingNode =>
+              val kv = mappingKV(mappingNode)
+              if (kv.contains(keyMapper.key)) {
+                for {
+                  k <- keyDecoder.decode(kv(keyMapper.key).asInstanceOf[ScalarNode])
+                  v <- valueDecoder.decode(mappingNode)
+                } yield (k, v)
+              } else {
+                Left(new YAMLException(s"Cannot find '${keyMapper.key}' in the list of fields "))
+              }
+          }
+        )
+        liftEither(result).map(_.toMap)
       case _ =>
         Left(new YAMLException("Expected `MappingNode` for a map value"))
     }

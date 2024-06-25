@@ -1,9 +1,9 @@
 package org.enso.yaml
 
-import io.circe.yaml.{Parser, Printer}
-import io.circe.{yaml, Decoder, Encoder}
+import io.circe.yaml.Printer
+import io.circe.Encoder
 
-import java.io.FileReader
+import java.io.{FileReader, StringReader}
 import java.nio.file.Path
 import scala.util.{Try, Using}
 
@@ -13,20 +13,20 @@ object YamlHelper {
   /** Parses a string representation of a YAML configuration of type `R`. */
   def parseString[R](
     yamlString: String
-  )(implicit decoder: Decoder[R]): Either[ParseError, R] =
-    yaml.parser
-      .parse(yamlString)
-      .flatMap(_.as[R])
+  )(implicit decoder: SnakeYamlDecoder[R]): Either[ParseError, R] = {
+    val snakeYaml = new org.yaml.snakeyaml.Yaml()
+    Try(snakeYaml.compose(new StringReader(yamlString))).toEither
+      .flatMap(decoder.decode(_))
       .left
       .map(ParseError(_))
+  }
 
   /** Tries to load and parse a YAML file at the provided path. */
-  def load[R](path: Path)(implicit decoder: Decoder[R]): Try[R] =
+  def load[R](path: Path)(implicit decoder: SnakeYamlDecoder[R]): Try[R] =
     Using(new FileReader(path.toFile)) { reader =>
-      Parser.default
-        .parse(reader)
-        .flatMap(_.as[R])
-        .toTry
+      val snakeYaml = new org.yaml.snakeyaml.Yaml()
+      Try(snakeYaml.compose(reader))
+        .flatMap(decoder.decode(_).toTry)
     }.flatten
 
   /** Saves a YAML representation of an object into a string. */

@@ -4,7 +4,7 @@ import io.circe.syntax.EncoderOps
 import io.circe.{Decoder, DecodingFailure, Encoder}
 import org.enso.yaml.SnakeYamlDecoder
 import org.yaml.snakeyaml.error.YAMLException
-import org.yaml.snakeyaml.nodes.{MappingNode, Node}
+import org.yaml.snakeyaml.nodes.{MappingNode, Node, ScalarNode}
 
 /** Represents a library name that should uniquely identify the library.
   *
@@ -57,6 +57,11 @@ object LibraryName {
               } yield LibraryName(namesapce, email)
               result
             }
+          case scalarNode: ScalarNode =>
+            val v = scalarNode.getValue
+            fromModuleName(v).toRight(
+              new YAMLException(s"'$v' is not a valid library name")
+            )
         }
     }
 
