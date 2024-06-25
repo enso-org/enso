@@ -26,7 +26,7 @@ import { assert } from 'shared/util/assert'
 
 type ChangeHandler = (url: string | null, prevUrl: string | null) => void
 
-type LinkMatcherResult = {
+type MatchedLink = {
   attributes?: AutoLinkAttributes
   index: number
   length: number
@@ -34,7 +34,7 @@ type LinkMatcherResult = {
   url: string
 }
 
-export type LinkMatcher = (text: string) => LinkMatcherResult | null
+export type LinkMatcher = (text: string) => MatchedLink | null
 
 export function createLinkMatcherWithRegExp(
   regExp: RegExp,
@@ -54,7 +54,7 @@ export function createLinkMatcherWithRegExp(
   }
 }
 
-function findFirstMatch(text: string, matchers: Array<LinkMatcher>): LinkMatcherResult | null {
+function findFirstMatch(text: string, matchers: Array<LinkMatcher>): MatchedLink | null {
   for (let i = 0; i < matchers.length; i++) {
     const match = matchers[i]!(text)
 
@@ -170,7 +170,7 @@ function $createAutoLinkNode_(
   nodes: TextNode[],
   startIndex: number,
   endIndex: number,
-  match: LinkMatcherResult,
+  match: MatchedLink,
 ): TextNode | undefined {
   const linkNode = $createAutoLinkNode(match.url, match.attributes)
   if (nodes.length === 1) {
@@ -357,6 +357,7 @@ function handleBadNeighbors(
   const nextSibling = textNode.getNextSibling()
   const text = textNode.getTextContent()
 
+  // FIXME: Uncommend usages of `IsUnlinked` once released lexical supports it.
   if (
     $isAutoLinkNode(previousSibling) &&
     /*!previousSibling.getIsUnlinked() &&*/
