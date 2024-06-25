@@ -147,6 +147,17 @@ public final class ContextUtils {
     return mainMethod.execute();
   }
 
+  public static org.enso.compiler.core.ir.Module compileModule(Context ctx, String src) {
+    return compileModule(ctx, src, "Test");
+  }
+
+  public static org.enso.compiler.core.ir.Module compileModule(Context ctx, String src, String moduleName) {
+    var source = Source.newBuilder(LanguageInfo.ID, src, moduleName + ".enso").buildLiteral();
+    var module = ctx.eval(source);
+    var runtimeMod = (org.enso.interpreter.runtime.Module) unwrapValue(ctx, module);
+    return runtimeMod.getIr();
+  }
+
   /**
    * Parses the given module and returns a method by the given name from the module.
    *
