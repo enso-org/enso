@@ -14,6 +14,7 @@ import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
+import * as ariaComponents from '#/components/AriaComponents'
 import KeyboardShortcut from '#/components/dashboard/KeyboardShortcut'
 import FocusRing from '#/components/styled/FocusRing'
 import SvgMask from '#/components/SvgMask'
@@ -146,7 +147,7 @@ export default function MenuEntry(props: MenuEntryProps) {
         <div className={MENU_ENTRY_VARIANTS(variantProps)}>
           <div title={title} className="flex items-center gap-menu-entry whitespace-nowrap">
             <SvgMask src={icon ?? info.icon ?? BlankIcon} color={info.color} className="size-4" />
-            <aria.Text slot="label">{label ?? getText(labelTextId)}</aria.Text>
+            <ariaComponents.Text slot="label">{label ?? getText(labelTextId)}</ariaComponents.Text>
           </div>
           <KeyboardShortcut action={action} />
         </div>

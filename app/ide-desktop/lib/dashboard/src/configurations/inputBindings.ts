@@ -1,5 +1,4 @@
 /** @file Shortcuts for the dashboard application. */
-
 import AddDatalinkIcon from 'enso-assets/add_datalink.svg'
 import AddFolderIcon from 'enso-assets/add_folder.svg'
 import AddKeyIcon from 'enso-assets/add_key.svg'
@@ -16,6 +15,7 @@ import DataDownloadIcon from 'enso-assets/data_download.svg'
 import DataUploadIcon from 'enso-assets/data_upload.svg'
 import DuplicateIcon from 'enso-assets/duplicate.svg'
 import LogoIcon from 'enso-assets/enso_logo.svg'
+import OpenInFileBrowserIcon from 'enso-assets/open_in_file_browser.svg'
 import OpenIcon from 'enso-assets/open.svg'
 import PasteIcon from 'enso-assets/paste.svg'
 import PenIcon from 'enso-assets/pen.svg'
@@ -92,7 +92,7 @@ export const BINDINGS = inputBindings.defineBindings({
   openInFileBrowser: {
     name: 'Open in File Browser',
     bindings: ['Mod+Shift+O'],
-    icon: AddNetworkIcon,
+    icon: OpenInFileBrowserIcon,
   },
   signIn: { name: 'Login', bindings: [], icon: SignInIcon },
   signOut: { name: 'Logout', bindings: [], icon: SignOutIcon, color: 'rgb(243 24 10 / 0.87)' },

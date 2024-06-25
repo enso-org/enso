@@ -81,7 +81,7 @@
   /* The horizontal gap between adjacent context menus. */
   --context-menus-gap: 0.125rem;
   --context-menu-padding: 0.5rem;
-  --context-menu-width: 15.5rem;
+  --context-menu-width: 16rem;
   --context-menu-half-width: calc(var(--context-menu-width) / 2);
   --context-menu-macos-half-width: calc(var(--context-menu-macos-width) / 2);
   --context-menu-macos-width: 14.375rem;
