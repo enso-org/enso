@@ -436,7 +436,7 @@ export default class ProjectManager {
     await this.runStandaloneCommand(null, 'filesystem-move-from', from, '--filesystem-move-to', to)
   }
 
-  /** Create a file or directory. */
+  /** Delete a file or directory. */
   async deleteFile(path: Path) {
     await this.runStandaloneCommand(null, 'filesystem-delete', path)
   }
