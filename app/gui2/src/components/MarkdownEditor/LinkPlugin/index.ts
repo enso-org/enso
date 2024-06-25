@@ -1,3 +1,4 @@
+import { documentationEditorBindings } from '@/bindings'
 import type { LexicalMarkdownPlugin } from '@/components/MarkdownEditor/markdown'
 import type { LexicalPlugin } from '@/components/lexical'
 import { $createLinkNode, $isLinkNode, AutoLinkNode, LinkNode } from '@lexical/link'
@@ -75,22 +76,35 @@ export function $getSelectedLinkNode() {
   }
 }
 
+const linkClickHandler = documentationEditorBindings.handler({
+  openLink() {
+    const link = $getSelectedLinkNode()
+    if (link instanceof LinkNode) {
+      window.open(link.getURL(), '_blank')?.focus()
+      return true
+    }
+    return false
+  },
+})
+
+const autoLinkClickHandler = documentationEditorBindings.handler({
+  openLink() {
+    const link = $getSelectedLinkNode()
+    if (link instanceof AutoLinkNode) {
+      window.open(link.getURL(), '_blank')?.focus()
+      return true
+    }
+    return false
+  },
+})
+
 export const linkPlugin: LexicalMarkdownPlugin = {
   nodes: [LinkNode],
   transformers: [LINK],
   register(editor: LexicalEditor): void {
     editor.registerCommand(
       CLICK_COMMAND,
-      (event) => {
-        if (event.ctrlKey || event.metaKey) {
-          const link = $getSelectedLinkNode()
-          if (link instanceof LinkNode) {
-            window.open(link.getURL(), '_blank')?.focus()
-            return true
-          }
-        }
-        return false
-      },
+      (event) => linkClickHandler(event),
       COMMAND_PRIORITY_CRITICAL,
     )
   },
@@ -101,16 +115,7 @@ export const autoLinkPlugin: LexicalPlugin = {
   register(editor: LexicalEditor): void {
     editor.registerCommand(
       CLICK_COMMAND,
-      (event) => {
-        if (event.ctrlKey || event.metaKey) {
-          const link = $getSelectedLinkNode()
-          if (link instanceof AutoLinkNode) {
-            window.open(link.getURL(), '_blank')?.focus()
-            return true
-          }
-        }
-        return false
-      },
+      (event) => autoLinkClickHandler(event),
       COMMAND_PRIORITY_CRITICAL,
     )
 

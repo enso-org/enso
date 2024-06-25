@@ -1,11 +1,15 @@
 <script setup lang="ts">
+import { documentationEditorBindings } from '@/bindings'
+
 const props = defineProps<{ url: string }>()
 </script>
 
 <template>
   <div class="LinkToolbar">
     <a :href="props.url" target="_blank" rel="nofollow">Follow link</a>
-    <span class="shortcut">(ctrl + click)</span>
+    <span class="shortcut"
+      >({{ documentationEditorBindings.bindings.openLink.humanReadable }})</span
+    >
   </div>
 </template>
 
