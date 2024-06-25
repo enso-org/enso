@@ -113,6 +113,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
     item.projectState.executeAsync ?? false
   )
   const [shouldSwitchPage, setShouldSwitchPage] = React.useState(false)
+  const doAbortOpeningRef = React.useRef(() => {})
   const doOpenEditorRef = React.useRef(doOpenEditor)
   doOpenEditorRef.current = doOpenEditor
   const isCloud = backend.type === backendModule.BackendType.remote
@@ -133,14 +134,22 @@ export default function ProjectIcon(props: ProjectIconProps) {
     mutationKey: ['openEditor', item.id],
     networkMode: 'always',
     mutationFn: async () => {
-      const projectPromise = waitUntilProjectIsReadyMutation.mutateAsync([
-        item.id,
-        item.parentId,
-        item.title,
-      ])
-      if (shouldOpenWhenReady) {
-        doOpenEditor()
+      const abortController = new AbortController()
+      doAbortOpeningRef.current = () => {
+        abortController.abort()
       }
+      const projectPromise = openProjectMutate([
+        item.id,
+        { executeAsync: false, parentId: item.parentId, cognitoCredentials: session },
+        item.title,
+      ]).then(() =>
+        waitUntilProjectIsReadyMutation.mutateAsync([
+          item.id,
+          item.parentId,
+          item.title,
+          abortController.signal,
+        ])
+      )
       setProjectStartupInfo({
         project: projectPromise,
         projectAsset: item,
@@ -149,6 +158,12 @@ export default function ProjectIcon(props: ProjectIconProps) {
         accessToken: session?.accessToken ?? null,
       })
       await projectPromise
+      if (!abortController.signal.aborted) {
+        setState(backendModule.ProjectState.opened)
+        if (shouldOpenWhenReady) {
+          doOpenEditor()
+        }
+      }
     },
   })
   const openEditorMutate = openEditorMutation.mutate
@@ -156,19 +171,21 @@ export default function ProjectIcon(props: ProjectIconProps) {
   const openProject = React.useCallback(
     async (shouldRunInBackground: boolean) => {
       if (state !== backendModule.ProjectState.opened) {
-        setState(backendModule.ProjectState.openInProgress)
         try {
-          await openProjectMutate([
-            item.id,
-            {
-              executeAsync: shouldRunInBackground,
-              parentId: item.parentId,
-              cognitoCredentials: session,
-            },
-            item.title,
-          ])
           if (!shouldRunInBackground) {
+            setState(backendModule.ProjectState.openInProgress)
             openEditorMutate()
+          } else {
+            setState(backendModule.ProjectState.opened)
+            await openProjectMutate([
+              item.id,
+              {
+                executeAsync: shouldRunInBackground,
+                parentId: item.parentId,
+                cognitoCredentials: session,
+              },
+              item.title,
+            ])
           }
         } catch (error) {
           const project = await getProjectDetailsMutate([item.id, item.parentId, item.title])
@@ -176,7 +193,6 @@ export default function ProjectIcon(props: ProjectIconProps) {
           // not just the state type.
           setItem(object.merger({ projectState: project.state }))
           toastAndLog('openProjectError', error, item.title)
-          setState(backendModule.ProjectState.closed)
         }
       }
     },
@@ -211,6 +227,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
           if (!event.runInBackground && !isRunningInBackground) {
             setShouldOpenWhenReady(false)
             if (!isOtherUserUsingProject && backendModule.IS_OPENING_OR_OPENED[state]) {
+              doAbortOpeningRef.current()
               void closeProject()
             }
           }
@@ -272,6 +289,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
     setShouldOpenWhenReady(false)
     setState(backendModule.ProjectState.closing)
     await closeProjectMutation.mutateAsync([item.id, item.title])
+    setState(backendModule.ProjectState.closed)
   }
 
   switch (state) {

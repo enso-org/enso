@@ -153,15 +153,34 @@ interface InternalTabProps extends Readonly<React.PropsWithChildren> {
   readonly isActive: boolean
   readonly icon: string
   readonly labelId: text.TextId
+  /** When the promise is in flight, the tab icon will instead be a loading spinner. */
+  readonly loadingPromise?: Promise<unknown>
   readonly onPress: () => void
   readonly onClose?: () => void
 }
 
 /** A tab in a {@link TabBar}. */
 export function Tab(props: InternalTabProps) {
-  const { isActive, icon, labelId, children, onPress, onClose } = props
+  const { isActive, icon, labelId, loadingPromise, children, onPress, onClose } = props
   const { updateClipPath } = useTabBarContext()
   const { getText } = textProvider.useText()
+  const [isLoading, setIsLoading] = React.useState(loadingPromise != null)
+
+  React.useEffect(() => {
+    if (loadingPromise) {
+      setIsLoading(true)
+      loadingPromise.then(
+        () => {
+          setIsLoading(false)
+        },
+        () => {
+          setIsLoading(false)
+        }
+      )
+    } else {
+      setIsLoading(false)
+    }
+  }, [loadingPromise])
 
   return (
     <div
@@ -174,9 +193,11 @@ export function Tab(props: InternalTabProps) {
       <ariaComponents.Button
         size="custom"
         variant="custom"
+        loaderPosition="icon"
         icon={icon}
         isDisabled={isActive}
         isActive={isActive}
+        loading={isLoading}
         aria-label={getText(labelId)}
         tooltip={false}
         className={tailwindMerge.twMerge(
