@@ -93,6 +93,11 @@ export const BINDINGS = inputBindings.defineBindings({
     bindings: ['Mod+P'],
     icon: AddNetworkIcon,
   },
+  openInFileBrowser: {
+    name: 'Open in File Browser',
+    bindings: ['Mod+O'],
+    icon: AddNetworkIcon,
+  },
   signIn: { name: 'Login', bindings: [], icon: SignInIcon },
   signOut: { name: 'Logout', bindings: [], icon: SignOutIcon, color: 'rgb(243 24 10 / 0.87)' },
   // These should not appear in any menus.

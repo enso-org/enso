@@ -571,6 +571,9 @@
   "cutAllShortcut": "Cut All",
   "pasteAllShortcut": "Paste All",
   "deleteLabelShortcut": "Delete Label",
+  "openInFileBrowserShortcut": "Open in File Browser",
+  "openInFileBrowserShortcutWindows": "Open in Explorer",
+  "openInFileBrowserShortcutMacOs": "Open in Finder",
 
   "nameColumnShow": "Name",
   "nameColumnHide": "Name",

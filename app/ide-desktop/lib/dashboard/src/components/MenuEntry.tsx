@@ -2,6 +2,7 @@
 import * as React from 'react'
 
 import BlankIcon from 'enso-assets/blank.svg'
+import * as detect from 'enso-common/src/detect'
 
 import type * as text from '#/text'
 
@@ -73,6 +74,7 @@ const ACTION_TO_TEXT_ID: Readonly<Record<inputBindings.DashboardBindingKey, text
   goBack: 'goBackShortcut',
   goForward: 'goForwardShortcut',
   aboutThisApp: 'aboutThisAppShortcut',
+  openInFileBrowser: 'openInFileBrowserShortcut',
 } satisfies { [Key in inputBindings.DashboardBindingKey]: `${Key}Shortcut` }
 
 // =================
@@ -108,6 +110,17 @@ export default function MenuEntry(props: MenuEntryProps) {
   const inputBindings = inputBindingsProvider.useInputBindings()
   const focusChildProps = focusHooks.useFocusChild()
   const info = inputBindings.metadata[action]
+  const labelTextId: text.TextId = (() => {
+    if (action === 'openInFileBrowser') {
+      return detect.isOnMacOS()
+        ? 'openInFileBrowserShortcutMacOs'
+        : detect.isOnWindows()
+          ? 'openInFileBrowserShortcutWindows'
+          : 'openInFileBrowserShortcut'
+    } else {
+      return ACTION_TO_TEXT_ID[action]
+    }
+  })()
 
   React.useEffect(() => {
     // This is slower (but more convenient) than registering every shortcut in the context menu
@@ -133,7 +146,7 @@ export default function MenuEntry(props: MenuEntryProps) {
         <div className={MENU_ENTRY_VARIANTS(variantProps)}>
           <div title={title} className="flex items-center gap-menu-entry whitespace-nowrap">
             <SvgMask src={icon ?? info.icon ?? BlankIcon} color={info.color} className="size-4" />
-            <aria.Text slot="label">{label ?? getText(ACTION_TO_TEXT_ID[action])}</aria.Text>
+            <aria.Text slot="label">{label ?? getText(labelTextId)}</aria.Text>
           </div>
           <KeyboardShortcut action={action} />
         </div>
