@@ -113,6 +113,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
     item.projectState.executeAsync ?? false
   )
   const [shouldSwitchPage, setShouldSwitchPage] = React.useState(false)
+  const doAbortOpeningRef = React.useRef(() => {})
   const doOpenEditorRef = React.useRef(doOpenEditor)
   doOpenEditorRef.current = doOpenEditor
   const isCloud = backend.type === backendModule.BackendType.remote
@@ -133,6 +134,10 @@ export default function ProjectIcon(props: ProjectIconProps) {
     mutationKey: ['openEditor', item.id],
     networkMode: 'always',
     mutationFn: async () => {
+      const abortController = new AbortController()
+      doAbortOpeningRef.current = () => {
+        abortController.abort()
+      }
       await openProjectMutate([
         item.id,
         { executeAsync: false, parentId: item.parentId, cognitoCredentials: session },
@@ -142,6 +147,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
         item.id,
         item.parentId,
         item.title,
+        abortController.signal,
       ])
       setProjectStartupInfo({
         project: projectPromise,
@@ -217,6 +223,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
           if (!event.runInBackground && !isRunningInBackground) {
             setShouldOpenWhenReady(false)
             if (!isOtherUserUsingProject && backendModule.IS_OPENING_OR_OPENED[state]) {
+              doAbortOpeningRef.current()
               void closeProject()
             }
           }

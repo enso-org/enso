@@ -140,8 +140,7 @@ export default function Dashboard(props: DashboardProps) {
   )
   const [projectStartupInfo, setProjectStartupInfo] =
     React.useState<backendModule.ProjectStartupInfo | null>(null)
-  const [openProjectAbortController, setOpenProjectAbortController] =
-    React.useState<AbortController | null>(null)
+  const openProjectAbortControllerRef = React.useRef<AbortController | null>(null)
   const [assetListEvents, dispatchAssetListEvent] =
     eventHooks.useEvent<assetListEvent.AssetListEvent>()
   const [assetEvents, dispatchAssetEvent] = eventHooks.useEvent<assetEvent.AssetEvent>()
@@ -184,7 +183,7 @@ export default function Dashboard(props: DashboardProps) {
           setPage(TabType.drive)
           void (async () => {
             const abortController = new AbortController()
-            setOpenProjectAbortController(abortController)
+            openProjectAbortControllerRef.current = abortController
             try {
               const oldProject = await remoteBackend.getProjectDetails(
                 savedProjectStartupInfo.projectAsset.id,
@@ -196,7 +195,7 @@ export default function Dashboard(props: DashboardProps) {
                   savedProjectStartupInfo.projectAsset.id,
                   savedProjectStartupInfo.projectAsset.parentId,
                   savedProjectStartupInfo.projectAsset.title,
-                  abortController
+                  abortController.signal
                 )
                 setProjectStartupInfo({ ...savedProjectStartupInfo, project })
                 if (page === TabType.editor) {
@@ -240,8 +239,8 @@ export default function Dashboard(props: DashboardProps) {
   eventHooks.useEventHandler(assetEvents, event => {
     switch (event.type) {
       case AssetEventType.openProject: {
-        openProjectAbortController?.abort()
-        setOpenProjectAbortController(null)
+        openProjectAbortControllerRef.current?.abort()
+        openProjectAbortControllerRef.current = null
         break
       }
       default: {

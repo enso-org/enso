@@ -1426,6 +1426,6 @@ export default abstract class Backend {
     projectId: ProjectId,
     directory: DirectoryId | null,
     title: string,
-    abortController?: AbortController
+    abortSignal?: AbortSignal
   ): Promise<Project>
 }
