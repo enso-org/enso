@@ -10,7 +10,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import org.apache.commons.lang3.SystemUtils;
-import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.dsl.Builtin;
 import org.enso.interpreter.node.expression.builtin.text.util.ExpectStringNode;
 import org.enso.interpreter.runtime.EnsoContext;
@@ -52,8 +51,7 @@ public class System {
   @CompilerDirectives.TruffleBoundary
   public static void exit(long code) {
     var ctx = EnsoContext.get(null);
-    EnsoLanguage.get(null).disposeContext(ctx);
-    java.lang.System.exit((int) code);
+    ctx.exit((int) code);
   }
 
   @Builtin.Specialize

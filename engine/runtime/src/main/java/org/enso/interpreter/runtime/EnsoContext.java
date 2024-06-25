@@ -263,6 +263,15 @@ public final class EnsoContext {
     compiler.shutdown(shouldWaitForPendingSerializationJobs);
   }
 
+  /**
+   * Perform <a
+   * href="https://github.com/oracle/graal/blob/master/truffle/docs/Exit.md#context-exit">hard
+   * exit</a>.
+   */
+  public void exit(int exitCode) {
+    environment.getContext().closeExited(null, exitCode);
+  }
+
   private boolean shouldAssertionsBeEnabled() {
     var envVar = environment.getEnvironment().get("ENSO_ENABLE_ASSERTIONS");
     if (envVar != null) {
