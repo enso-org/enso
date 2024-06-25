@@ -159,7 +159,6 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                 dispatchAssetEvent({
                   type: AssetEventType.openProject,
                   id: asset.id,
-                  shouldAutomaticallySwitchPage: true,
                   runInBackground: false,
                 })
               }}
@@ -174,7 +173,6 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
               dispatchAssetEvent({
                 type: AssetEventType.openProject,
                 id: asset.id,
-                shouldAutomaticallySwitchPage: false,
                 runInBackground: true,
               })
             }}
