@@ -108,11 +108,10 @@ export default function ProjectIcon(props: ProjectIconProps) {
     [user, setItem]
   )
   const [spinnerState, setSpinnerState] = React.useState(spinner.SpinnerState.initial)
-  const [shouldOpenWhenReady, setShouldOpenWhenReady] = React.useState(false)
+  const shouldOpenWhenReadyRef = React.useRef(false)
   const [isRunningInBackground, setIsRunningInBackground] = React.useState(
     item.projectState.executeAsync ?? false
   )
-  const [shouldSwitchPage, setShouldSwitchPage] = React.useState(false)
   const doAbortOpeningRef = React.useRef(() => {})
   const doOpenEditorRef = React.useRef(doOpenEditor)
   doOpenEditorRef.current = doOpenEditor
@@ -131,28 +130,30 @@ export default function ProjectIcon(props: ProjectIconProps) {
   const getProjectDetailsMutate = getProjectDetailsMutation.mutateAsync
 
   const openEditorMutation = reactQuery.useMutation({
-    mutationKey: ['openEditor', item.id],
+    mutationKey: ['openEditor'],
     networkMode: 'always',
-    mutationFn: async () => {
+    mutationFn: async (item2: backendModule.ProjectAsset) => {
       const abortController = new AbortController()
       doAbortOpeningRef.current = () => {
         abortController.abort()
       }
-      const projectPromise = openProjectMutate([
-        item.id,
-        { executeAsync: false, parentId: item.parentId, cognitoCredentials: session },
-        item.title,
-      ]).then(() =>
-        waitUntilProjectIsReadyMutation.mutateAsync([
-          item.id,
-          item.parentId,
-          item.title,
-          abortController.signal,
+      const projectPromise = openProjectMutation
+        .mutateAsync([
+          item2.id,
+          { executeAsync: false, parentId: item2.parentId, cognitoCredentials: session },
+          item2.title,
         ])
-      )
+        .then(() =>
+          waitUntilProjectIsReadyMutation.mutateAsync([
+            item2.id,
+            item2.parentId,
+            item2.title,
+            abortController.signal,
+          ])
+        )
       setProjectStartupInfo({
         project: projectPromise,
-        projectAsset: item,
+        projectAsset: item2,
         setProjectAsset: setItem,
         backendType: backend.type,
         accessToken: session?.accessToken ?? null,
@@ -160,7 +161,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
       await projectPromise
       if (!abortController.signal.aborted) {
         setState(backendModule.ProjectState.opened)
-        if (shouldOpenWhenReady) {
+        if (shouldOpenWhenReadyRef.current) {
           doOpenEditor()
         }
       }
@@ -174,7 +175,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
         try {
           if (!shouldRunInBackground) {
             setState(backendModule.ProjectState.openInProgress)
-            openEditorMutate()
+            openEditorMutate(item)
           } else {
             setState(backendModule.ProjectState.opened)
             await openProjectMutate([
@@ -225,14 +226,17 @@ export default function ProjectIcon(props: ProjectIconProps) {
       case AssetEventType.openProject: {
         if (event.id !== item.id) {
           if (!event.runInBackground && !isRunningInBackground) {
-            setShouldOpenWhenReady(false)
+            shouldOpenWhenReadyRef.current = false
             if (!isOtherUserUsingProject && backendModule.IS_OPENING_OR_OPENED[state]) {
               doAbortOpeningRef.current()
               void closeProject()
             }
           }
         } else {
-          if (backendModule.IS_OPENING_OR_OPENED[state]) {
+          if (
+            backendModule.IS_OPENING_OR_OPENED[state] &&
+            state !== backendModule.ProjectState.placeholder
+          ) {
             const projectPromise = waitUntilProjectIsReadyMutation.mutateAsync([
               item.id,
               item.parentId,
@@ -245,12 +249,11 @@ export default function ProjectIcon(props: ProjectIconProps) {
               backendType: backend.type,
               accessToken: session?.accessToken ?? null,
             })
-            if (!isRunningInBackground && event.shouldAutomaticallySwitchPage) {
+            if (!isRunningInBackground) {
               doOpenEditor()
             }
           } else {
-            setShouldOpenWhenReady(!event.runInBackground)
-            setShouldSwitchPage(event.shouldAutomaticallySwitchPage)
+            shouldOpenWhenReadyRef.current = !event.runInBackground
             setIsRunningInBackground(event.runInBackground)
             void openProject(event.runInBackground)
           }
@@ -259,7 +262,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
       }
       case AssetEventType.closeProject: {
         if (event.id === item.id) {
-          setShouldOpenWhenReady(false)
+          shouldOpenWhenReadyRef.current = false
           void closeProject()
         }
         break
@@ -273,20 +276,11 @@ export default function ProjectIcon(props: ProjectIconProps) {
     }
   })
 
-  React.useEffect(() => {
-    if (state === backendModule.ProjectState.opened) {
-      if (shouldOpenWhenReady) {
-        doOpenEditorRef.current()
-        setShouldOpenWhenReady(false)
-      }
-    }
-  }, [shouldOpenWhenReady, shouldSwitchPage, state])
-
   const closeProject = async () => {
     if (!isRunningInBackground) {
       doCloseEditor(item.id)
     }
-    setShouldOpenWhenReady(false)
+    shouldOpenWhenReadyRef.current = false
     setState(backendModule.ProjectState.closing)
     await closeProjectMutation.mutateAsync([item.id, item.title])
     setState(backendModule.ProjectState.closed)
@@ -310,7 +304,6 @@ export default function ProjectIcon(props: ProjectIconProps) {
             dispatchAssetEvent({
               type: AssetEventType.openProject,
               id: item.id,
-              shouldAutomaticallySwitchPage: true,
               runInBackground: false,
             })
           }}

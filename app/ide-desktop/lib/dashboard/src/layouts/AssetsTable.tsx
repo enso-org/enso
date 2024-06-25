@@ -883,7 +883,6 @@ export default function AssetsTable(props: AssetsTableProps) {
           dispatchAssetEvent({
             type: AssetEventType.openProject,
             id: projectToLoad.id,
-            shouldAutomaticallySwitchPage: true,
             runInBackground: false,
           })
         })
@@ -964,7 +963,6 @@ export default function AssetsTable(props: AssetsTableProps) {
               dispatchAssetEvent({
                 type: AssetEventType.openProject,
                 id: projectToLoad.id,
-                shouldAutomaticallySwitchPage: true,
                 runInBackground: false,
               })
             })
@@ -1219,7 +1217,6 @@ export default function AssetsTable(props: AssetsTableProps) {
                   type: AssetEventType.openProject,
                   id: item.item.id,
                   runInBackground: false,
-                  shouldAutomaticallySwitchPage: true,
                 })
                 break
               }
