@@ -136,7 +136,7 @@ Number.floor self = case self of
    the type of the `self` argument specified to be a type.
 
 ```ruby
-floor (self : Number) = case this of
+floor (self : Number) = case self of
     Integer -> ...
 ```
 
