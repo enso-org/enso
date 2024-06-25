@@ -70,6 +70,7 @@ interface Excel_Workbook {
 
 interface ObjectMatrix {
   type: 'Object_Matrix'
+  column_count: number
   all_rows_count: number
   json: object[]
   value_type: ValueType[]
