@@ -252,7 +252,7 @@ class IRUtilsTest extends AnyWordSpecLike with Matchers with OptionValues {
 
       val module    = code.preprocessModule(moduleName)
       val operator1 = IRUtils.findByExternalId(module, uuid1).get
-      val usages    = findUsagesOfStaticMethod(moduleName, module, operator1)
+      val usages    = findUsagesOfModuleMethod(moduleName, module, operator1)
 
       usages.value.size shouldEqual 1
       usages.value.foreach {
