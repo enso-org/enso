@@ -39,7 +39,7 @@ export const defaultPreprocessor = [
   '1000',
 ] as const
 
-type Data = Error | Matrix | ObjectMatrix | UnknownTable
+type Data = Error | Matrix | ObjectMatrix | UnknownTable | Excel_Workbook
 
 interface Error {
   type: undefined
@@ -60,9 +60,16 @@ interface Matrix {
   value_type: ValueType[]
 }
 
+interface Excel_Workbook {
+  type: 'Excel_Workbook'
+  column_count: number
+  all_rows_count: number
+  sheet_names: string[]
+  json: unknown[][]
+}
+
 interface ObjectMatrix {
   type: 'Object_Matrix'
-  column_count: number
   all_rows_count: number
   json: object[]
   value_type: ValueType[]
@@ -374,6 +381,9 @@ watchEffect(() => {
     }
     rowData = addRowIndex(data_.json)
     isTruncated.value = data_.all_rows_count !== data_.json.length
+  } else if (data_.type === 'Excel_Workbook') {
+    columnDefs = [{ field: 'Value' }]
+    rowData = data_.sheet_names.map((name) => ({ Value: name }))
   } else if (Array.isArray(data_.json)) {
     columnDefs = [indexField(), toField('Value')]
     rowData = data_.json.map((row, i) => ({ [INDEX_FIELD_NAME]: i, Value: toRender(row) }))

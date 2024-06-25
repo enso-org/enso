@@ -2,7 +2,7 @@ from Standard.Base import all
 import Standard.Base.Data.Vector.Builder
 
 import Standard.Table.Row.Row
-from Standard.Table import Column, Table
+from Standard.Table import Column, Table, Excel_Workbook
 
 import Standard.Database.DB_Column.DB_Column
 import Standard.Database.DB_Table.DB_Table
@@ -46,6 +46,9 @@ prepare_visualization y max_rows=1000 =
             JS_Object.from_pairs [["json", value]]
         _ : Number ->
             JS_Object.from_pairs [["json", make_json_for_value x]]
+        _ : Excel_Workbook ->
+            js_value = x.to_js_object
+            JS_Object.from_pairs [["json", js_value], ["sheet_names", x . sheet_names], ["type", "Excel_Workbook"]]
         _ ->
             js_value = x.to_js_object
             value = if js_value.is_a JS_Object . not then js_value else
