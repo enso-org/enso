@@ -390,7 +390,7 @@ export default class RemoteBackend extends Backend {
       return null
     } else if (response.status === STATUS_NOT_AUTHORIZED) {
       // User is not authorized, we should redirect to the login page.
-      return this.throw(response, 'notAuthorizedError')
+      return this.throw(response, 'notAuthorizedBackendError')
     } else if (!responseIsSuccessful(response)) {
       // Arbitrary error, might be a server error or a network error.
       return this.throw(response, 'usersMeBackendError')
