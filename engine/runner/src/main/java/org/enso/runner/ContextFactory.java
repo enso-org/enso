@@ -35,6 +35,7 @@ import org.slf4j.event.Level;
  * @param warningsLimit maximal number of warnings reported to the user
  */
 final class ContextFactory {
+  private final Context.Builder initialBuilder;
   private String projectRoot;
   private InputStream in;
   private OutputStream out;
@@ -51,10 +52,12 @@ final class ContextFactory {
   private int warningsLimit = 100;
   private java.util.Map<String, String> options = java.util.Collections.emptyMap();
 
-  private ContextFactory() {}
+  private ContextFactory(Context.Builder b) {
+    this.initialBuilder = b;
+  }
 
-  public static ContextFactory create() {
-    return new ContextFactory();
+  public static ContextFactory create(Context.Builder b) {
+    return new ContextFactory(b);
   }
 
   public ContextFactory projectRoot(String projectRoot) {
@@ -139,7 +142,7 @@ final class ContextFactory {
     var julLogLevel = Converter.toJavaLevel(logLevel);
     var logLevelName = julLogLevel.getName();
     var builder =
-        Context.newBuilder()
+        initialBuilder
             .allowExperimentalOptions(true)
             .allowAllAccess(true)
             .allowHostAccess(new HostAccessFactory().allWithTypeMapping())

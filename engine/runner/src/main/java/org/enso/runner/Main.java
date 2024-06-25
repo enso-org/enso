@@ -616,7 +616,7 @@ public final class Main extends org.graalvm.launcher.AbstractLanguageLauncher {
     }
 
     var context =
-        ContextFactory.create()
+        ContextFactory.create(Context.newBuilder())
             .projectRoot(packagePath)
             .in(System.in)
             .out(System.out)
@@ -661,6 +661,7 @@ public final class Main extends org.graalvm.launcher.AbstractLanguageLauncher {
    *     null}
    */
   private void run(
+      Context.Builder initialBuilder,
       String path,
       java.util.List<String> additionalArgs,
       String projectPath,
@@ -691,7 +692,7 @@ public final class Main extends org.graalvm.launcher.AbstractLanguageLauncher {
       options.put("inspect", "");
     }
     var context =
-        ContextFactory.create()
+        ContextFactory.create(initialBuilder)
             .projectRoot(projectRoot)
             .in(System.in)
             .out(System.out)
@@ -760,7 +761,7 @@ public final class Main extends org.graalvm.launcher.AbstractLanguageLauncher {
   private void generateDocsFrom(
       String path, Level logLevel, boolean logMasking, boolean enableIrCaches) {
     var executionContext =
-        ContextFactory.create()
+        ContextFactory.create(Context.newBuilder())
             .projectRoot(path)
             .in(System.in)
             .out(System.out)
@@ -887,6 +888,7 @@ public final class Main extends org.graalvm.launcher.AbstractLanguageLauncher {
    * @param enableStaticAnalysis whether or not static type checking should be enabled
    */
   private void runRepl(
+      Context.Builder initialBuilder,
       String projectPath,
       Level logLevel,
       boolean logMasking,
@@ -904,7 +906,7 @@ public final class Main extends org.graalvm.launcher.AbstractLanguageLauncher {
     var replModuleName = "Internal_Repl_Module___";
     var projectRoot = projectPath != null ? projectPath : "";
     var context =
-        ContextFactory.create()
+        ContextFactory.create(initialBuilder)
             .projectRoot(projectRoot)
             .in(System.in)
             .out(System.out)
@@ -970,7 +972,8 @@ public final class Main extends org.graalvm.launcher.AbstractLanguageLauncher {
    *
    * @param args the command line arguments
    */
-  public static void main(String[] args) throws IOException {
+  public static void main(String[] args) throws Exception {
+    Thread.sleep(1000);
     new Main().launch(args);
   }
 
@@ -982,7 +985,12 @@ public final class Main extends org.graalvm.launcher.AbstractLanguageLauncher {
    * @param logLevel the provided log level
    * @param logMasking the flag indicating if the log masking is enabled
    */
-  private void runMain(Options options, CommandLine line, Level logLevel, boolean logMasking)
+  private void runMain(
+      Context.Builder initialBuilder,
+      Options options,
+      CommandLine line,
+      Level logLevel,
+      boolean logMasking)
       throws IOException {
     if (line.hasOption(HELP_OPTION)) {
       printHelp(options);
@@ -1066,6 +1074,7 @@ public final class Main extends org.graalvm.launcher.AbstractLanguageLauncher {
 
     if (line.hasOption(RUN_OPTION)) {
       run(
+          initialBuilder,
           line.getOptionValue(RUN_OPTION),
           Arrays.asList(line.getArgs()),
           line.getOptionValue(IN_PROJECT_OPTION),
@@ -1084,6 +1093,7 @@ public final class Main extends org.graalvm.launcher.AbstractLanguageLauncher {
     }
     if (line.hasOption(REPL_OPTION)) {
       runRepl(
+          initialBuilder,
           line.getOptionValue(IN_PROJECT_OPTION),
           logLevel,
           logMasking,
@@ -1297,15 +1307,15 @@ public final class Main extends org.graalvm.launcher.AbstractLanguageLauncher {
   private CommandLine preprocessCommandLine(Options options, String[] args) {
     var parser = new DefaultParser();
     try {
-      line = parser.parse(options, args);
-      return line;
+      return parser.parse(options, args, true);
     } catch (Exception e) {
       printHelp(options);
       throw exitFail();
     }
   }
 
-  private void launch(Options options, CommandLine line) {
+  @Override
+  protected void launch(Context.Builder contextBuilder) {
     var logLevel =
         scala.Option.apply(line.getOptionValue(LOG_LEVEL))
             .map(this::parseLogLevel)
@@ -1324,7 +1334,7 @@ public final class Main extends org.graalvm.launcher.AbstractLanguageLauncher {
               conf,
               ExecutionContext.global(),
               () -> {
-                runMain(options, line, logLevel, logMasking);
+                runMain(contextBuilder, options, line, logLevel, logMasking);
                 return BoxedUnit.UNIT;
               });
         } catch (IOException ex) {
@@ -1349,17 +1359,12 @@ public final class Main extends org.graalvm.launcher.AbstractLanguageLauncher {
   @Override
   protected List<String> preprocessArguments(
       List<String> arguments, Map<String, String> polyglotOptions) {
-    if (arguments.stream().filter(a -> a.startsWith("--help")).findFirst().isPresent()) {
-      return arguments;
-    }
+    // if (arguments.stream().filter(a -> a.startsWith("--help")).findFirst().isPresent()) {
+    //  return arguments;
+    // }
     var args = arguments.toArray(new String[0]);
     line = preprocessCommandLine(options, args);
-    return Collections.emptyList();
-  }
-
-  @Override
-  protected void launch(Context.Builder contextBuilder) {
-    launch(options, line);
+    return line.getArgList();
   }
 
   @Override
