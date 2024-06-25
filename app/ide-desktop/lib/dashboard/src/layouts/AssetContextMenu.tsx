@@ -75,17 +75,17 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
     backendModule.isUserPermissionAnd(permission => permission.user.userId === user.userId)
   )
   const isCloud = categoryModule.isCloud(category)
-  const copyMutation = copyHooks.useCopy({
-    copyText: isCloud
-      ? ''
-      : asset.type === backendModule.AssetType.project
-        ? asset.projectState.path ?? ''
-        : localBackend.extractTypeAndId(asset.id).id,
-  })
+  const path = isCloud
+    ? null
+    : asset.type === backendModule.AssetType.project
+      ? asset.projectState.path ?? null
+      : localBackend.extractTypeAndId(asset.id).id
+  const copyMutation = copyHooks.useCopy({ copyText: path ?? '' })
 
   const { isFeatureUnderPaywall } = billingHooks.usePaywall({ plan: user.plan })
   const isUnderPaywall = isFeatureUnderPaywall('share')
 
+  const systemApi = window.systemApi
   const ownsThisAsset = !isCloud || self?.permission === permissions.PermissionAction.own
   const managesThisAsset = ownsThisAsset || self?.permission === permissions.PermissionAction.admin
   const canEditThisAsset =
@@ -185,6 +185,15 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                 shouldAutomaticallySwitchPage: false,
                 runInBackground: true,
               })
+            }}
+          />
+        )}
+        {path != null && systemApi && (
+          <ContextMenuEntry
+            hidden={hidden}
+            action="openInFileBrowser"
+            doAction={() => {
+              systemApi.showItemInFolder(path)
             }}
           />
         )}
@@ -383,7 +392,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
           }}
         />
         {isCloud && <ContextMenuEntry hidden={hidden} action="copy" doAction={doCopy} />}
-        {!isCloud && (
+        {path != null && (
           <ContextMenuEntry
             hidden={hidden}
             action="copyAsPath"

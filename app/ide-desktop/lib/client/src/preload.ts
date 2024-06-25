@@ -26,6 +26,8 @@ const NAVIGATION_API_KEY = 'navigationApi'
 
 const MENU_API_KEY = 'menuApi'
 
+const SYSTEM_API_KEY = 'systemApi'
+
 const VERSION_INFO_KEY = 'versionInfo'
 
 // =============================
@@ -178,12 +180,6 @@ const FILE_BROWSER_API = {
 }
 electron.contextBridge.exposeInMainWorld(FILE_BROWSER_API_KEY, FILE_BROWSER_API)
 
-// ====================
-// === Version info ===
-// ====================
-
-electron.contextBridge.exposeInMainWorld(VERSION_INFO_KEY, debug.VERSION_INFO)
-
 // ================
 // === Menu API ===
 // ================
@@ -201,3 +197,19 @@ const MENU_API = {
 }
 
 electron.contextBridge.exposeInMainWorld(MENU_API_KEY, MENU_API)
+
+// ==================
+// === System API ===
+// ==================
+
+const SYSTEM_API = {
+    showItemInFolder: electron.shell.showItemInFolder.bind(electron.shell),
+}
+
+electron.contextBridge.exposeInMainWorld(SYSTEM_API_KEY, SYSTEM_API)
+
+// ====================
+// === Version info ===
+// ====================
+
+electron.contextBridge.exposeInMainWorld(VERSION_INFO_KEY, debug.VERSION_INFO)
