@@ -1004,17 +1004,22 @@ export default function AssetsTable(props: AssetsTableProps) {
     }
   }, [backend, category])
 
-  const rootDirectoryQuery = backendHooks.useBackendQuery(backend, 'listDirectory', [
-    {
-      parentId: null,
-      filterBy: CATEGORY_TO_FILTER_BY[category],
-      recentProjects: category === Category.recent,
-      labels: null,
-    },
-    // The root directory has no name. This is also SAFE, as there is a different error
-    // message when the directory is the root directory (when `parentId == null`).
-    '(root)',
-  ])
+  const rootDirectoryQuery = backendHooks.useBackendQuery(
+    backend,
+    'listDirectory',
+    [
+      {
+        parentId: null,
+        filterBy: CATEGORY_TO_FILTER_BY[category],
+        recentProjects: category === Category.recent,
+        labels: null,
+      },
+      // The root directory has no name. This is also SAFE, as there is a different error
+      // message when the directory is the root directory (when `parentId == null`).
+      '(root)',
+    ],
+    { queryKey: [], staleTime: 0, meta: { persist: false } }
+  )
 
   React.useEffect(() => {
     if (rootDirectoryQuery.data) {
