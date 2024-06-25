@@ -917,6 +917,8 @@ type Table
             Table.Value java_table
 
     ## PRIVATE
+       GROUP Standard.Base.Selections
+       ICON order
        Deprecated - use `Table.sort` instead.
     @columns Widget_Helpers.make_order_by_selector
     order_by : Vector (Text | Sort_Column) | Text -> Text_Ordering -> Boolean -> Problem_Behavior -> Table ! Incomparable_Values | No_Input_Columns_Selected | Missing_Input_Columns
@@ -1290,9 +1292,9 @@ type Table
             new_column = column_to_cast.cast value_type on_problems
             table.set new_column as=column_to_cast.name set_mode=Set_Mode.Update
 
-    ## GROUP Standard.Base.Conversions
+    ## ALIAS auto_value_types
+       GROUP Standard.Base.Conversions
        ICON convert
-       ALIAS auto_value_types
        Change the value type of table columns to a more specific one, based on
        their contents.
 
@@ -1664,7 +1666,7 @@ type Table
         result = self.filter column Filter_Condition.Is_True
         Warning.attach (Deprecated.Warning "Standard.Table.Table.Table" "filter_by_expression" "Deprecated: use `filter` with an `Expression` instead.") result
 
-    ## ALIAS first, head, last, limit, sample, slice, tail, top, keep
+    ## ALIAS first, head, keep, last, limit, sample, slice, tail, top
        GROUP Standard.Base.Selections
        ICON select_row
        Creates a new Table with the specified range of rows from the input
@@ -1696,7 +1698,7 @@ type Table
     take self range:(Index_Sub_Range | Range | Integer)=(..First 1) =
         Index_Sub_Range_Module.take_helper self.row_count (self.rows.at _) self.slice (slice_ranges self) range
 
-    ## ALIAS skip, remove
+    ## ALIAS remove, skip
        GROUP Standard.Base.Selections
        ICON select_row
        Creates a new Table from the input with the specified range of rows

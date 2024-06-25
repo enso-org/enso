@@ -735,7 +735,7 @@ type DB_Table
         result = self.filter column Filter_Condition.Is_True
         Warning.attach (Deprecated.Warning "Standard.Database.DB_Table.DB_Table" "filter_by_expression" "Deprecated: use `filter` with an `Expression` instead.") result
 
-    ## ALIAS first, head, last, limit, sample, slice, tail, top, keep
+    ## ALIAS first, head, keep, last, limit, sample, slice, tail, top
        GROUP Standard.Base.Selections
        ICON select_row
        Creates a new Table with the specified range of rows from the input
@@ -767,7 +767,7 @@ type DB_Table
     take self range:(Index_Sub_Range | Range | Integer)=(..First 1) =
         Take_Drop_Helpers.take_drop_helper Take_Drop.Take self range
 
-    ## ALIAS skip, remove
+    ## ALIAS remove, skip
        GROUP Standard.Base.Selections
        ICON select_row
        Creates a new Table from the input with the specified range of rows
@@ -1265,6 +1265,8 @@ type DB_Table
             self.updated_context new_ctx
 
     ## PRIVATE
+       GROUP Standard.Base.Selections
+       ICON order
        Deprecated - use `Table.sort` instead.
     @columns Widget_Helpers.make_order_by_selector
     order_by : Vector (Text | Sort_Column) | Text -> Text_Ordering -> Boolean -> Problem_Behavior -> DB_Table  ! Incomparable_Values | No_Input_Columns_Selected | Missing_Input_Columns
