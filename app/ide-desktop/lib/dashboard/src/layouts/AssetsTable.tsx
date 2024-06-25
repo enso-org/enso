@@ -992,7 +992,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         return null
       })
     },
-    [rootDirectoryId, toastAndLog, setNameOfProjectToImmediatelyOpen, dispatchAssetEvent]
+    [rootDirectoryId, backend.rootPath, dispatchAssetEvent, toastAndLog]
   )
   const overwriteNodesRef = React.useRef(overwriteNodes)
   overwriteNodesRef.current = overwriteNodes

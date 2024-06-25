@@ -12,6 +12,7 @@ import * as textProvider from '#/providers/TextProvider'
 import AccountSettingsTab from '#/layouts/Settings/AccountSettingsTab'
 import ActivityLogSettingsTab from '#/layouts/Settings/ActivityLogSettingsTab'
 import KeyboardShortcutsSettingsTab from '#/layouts/Settings/KeyboardShortcutsSettingsTab'
+import LocalSettingsTab from '#/layouts/Settings/LocalSettingsTab'
 import MembersSettingsTab from '#/layouts/Settings/MembersSettingsTab'
 import OrganizationSettingsTab from '#/layouts/Settings/OrganizationSettingsTab'
 import SettingsTab from '#/layouts/Settings/SettingsTab'
@@ -28,7 +29,6 @@ import * as suspense from '#/components/Suspense'
 import type Backend from '#/services/Backend'
 
 import * as array from '#/utilities/array'
-import LocalSettingsTab from '#/layouts/Settings/LocalSettingsTab'
 
 // ================
 // === Settings ===

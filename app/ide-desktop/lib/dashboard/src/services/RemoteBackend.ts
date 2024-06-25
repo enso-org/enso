@@ -117,6 +117,7 @@ interface RemoteBackendPostOptions {
 /** Class for sending requests to the Cloud backend API endpoints. */
 export default class RemoteBackend extends Backend {
   readonly type = backend.BackendType.remote
+  readonly rootPath = 'enso://'
   private defaultVersions: Partial<Record<backend.VersionType, DefaultVersionInfo>> = {}
   private user: object.Mutable<backend.User> | null = null
 
@@ -161,8 +162,6 @@ export default class RemoteBackend extends Backend {
 
     throw error
   }
-
-  readonly rootPath = 'enso://'
 
   /** Return the ID of the root directory. */
   override rootDirectoryId(user: backend.User | null): backend.DirectoryId | null {
