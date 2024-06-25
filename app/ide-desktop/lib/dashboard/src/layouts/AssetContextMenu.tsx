@@ -409,26 +409,23 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
           />
         )}
       </ContextMenu>
-      {(category === Category.cloud || category === Category.local) && (
-        <GlobalContextMenu
-          hidden={hidden}
-          backend={backend}
-          hasPasteData={hasPasteData}
-          rootDirectoryId={rootDirectoryId}
-          directoryKey={
-            // This is SAFE, as both branches are guaranteed to be `DirectoryId`s
-            // eslint-disable-next-line no-restricted-syntax
-            (asset.type === backendModule.AssetType.directory
-              ? item.key
-              : item.directoryKey) as backendModule.DirectoryId
-          }
-          directoryId={
-            asset.type === backendModule.AssetType.directory ? asset.id : item.directoryId
-          }
-          dispatchAssetListEvent={dispatchAssetListEvent}
-          doPaste={doPaste}
-        />
-      )}
+      {(category === Category.cloud || category === Category.local) &&
+        asset.type === backendModule.AssetType.directory && (
+          <GlobalContextMenu
+            hidden={hidden}
+            backend={backend}
+            hasPasteData={hasPasteData}
+            rootDirectoryId={rootDirectoryId}
+            directoryKey={
+              // This is SAFE, as both branches are guaranteed to be `DirectoryId`s
+              // eslint-disable-next-line no-restricted-syntax
+              item.key as backendModule.DirectoryId
+            }
+            directoryId={asset.id}
+            dispatchAssetListEvent={dispatchAssetListEvent}
+            doPaste={doPaste}
+          />
+        )}
     </ContextMenus>
   )
 }
