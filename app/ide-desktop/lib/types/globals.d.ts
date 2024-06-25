@@ -207,6 +207,8 @@ declare global {
 
             // @ts-expect-error The index signature is intentional to disallow unknown env vars.
             readonly IS_IN_PLAYWRIGHT_TEST?: `${boolean}`
+            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
+            readonly PWDEBUG?: '1'
 
             // === Electron watch script variables ===
 

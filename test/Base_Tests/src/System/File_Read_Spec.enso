@@ -41,22 +41,22 @@ add_specs suite_builder =
 
     suite_builder.group "Plain_Text" group_builder->
         group_builder.specify "should be able to read a file as Text" <|
-            text = sample_xxx.read Plain_Text
+            text = sample_xxx.read ..Plain_Text
             text.should_equal "Hello World!"
 
         group_builder.specify "should be able to read a file as Text with Encoding" <|
-            text = windows_log.read (Plain_Text Encoding.windows_1252)
+            text = windows_log.read (..Plain_Text Encoding.windows_1252)
             text.should_equal "Hello World! $¢¤¥"
 
         group_builder.specify "should raise a warning when invalid encoding in a Text file" <|
-            action = windows_log.read (Plain_Text Encoding.ascii) on_problems=_
+            action = windows_log.read (..Plain_Text Encoding.ascii) on_problems=_
             tester result = result . should_equal 'Hello World! $\uFFFD\uFFFD\uFFFD'
             problems = [Encoding_Error.Error "Failed to decode 3 code units (at positions: 14, 15, 16)."]
             Problems.test_problem_handling action problems tester
 
             # Check that it defaults to warning.
             Problems.expect_only_warning Encoding_Error <|
-                windows_log.read (Plain_Text Encoding.ascii)
+                windows_log.read (..Plain_Text Encoding.ascii)
 
     suite_builder.group "JSON_Format" group_builder->
         group_builder.specify "should be able to read a file as Json" <|
