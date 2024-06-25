@@ -8,7 +8,7 @@ export function useLinkNode(editor: LexicalEditor) {
     SELECTION_CHANGE_COMMAND,
     () => {
       urlUnderCursor.value = $getSelectedLinkNode()?.getURL()
-      return true
+      return false
     },
     COMMAND_PRIORITY_LOW,
   )
