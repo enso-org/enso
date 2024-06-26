@@ -180,9 +180,7 @@ final class ImportResolver(compiler: Compiler) extends ImportResolverForIR {
       case Export.Module(
             expName,
             rename,
-            isAll,
             onlyNames,
-            hiddenNames,
             _,
             isSynthetic,
             _,
@@ -194,9 +192,9 @@ final class ImportResolver(compiler: Compiler) extends ImportResolverForIR {
           val syntheticImport = Import.Module(
             expName,
             rename,
-            isAll,
+            false,
             onlyNames,
-            hiddenNames,
+            None,
             location    = None,
             isSynthetic = true,
             passData    = new MetadataStorage(),

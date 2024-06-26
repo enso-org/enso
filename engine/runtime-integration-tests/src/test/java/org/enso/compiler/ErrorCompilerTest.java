@@ -593,6 +593,15 @@ public class ErrorCompilerTest extends CompilerTest {
     assertTrue(method.body() instanceof Empty);
   }
 
+  @Test
+  public void exportAllIsNotAllowed() {
+    var ir = parse("""
+        from project.Module export all
+        """);
+    assertSingleSyntaxError(
+        ir, Syntax.UnexpectedExpression$.MODULE$, "Unexpected expression", 0, 6);
+  }
+
   private void assertSingleSyntaxError(
       Module ir, Syntax.Reason type, String msg, int start, int end) {
     var errors = assertIR(ir, Syntax.class, 1);

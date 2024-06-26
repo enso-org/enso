@@ -484,7 +484,6 @@ public class IRDumper {
             GraphVizNode.Builder.fromIr(exportIr)
                 .addLabelLine("isSynthetic: " + exportModIr.isSynthetic())
                 .addLabelLine("name: " + exportModIr.name().name())
-                .addLabelLine("isAll: " + exportModIr.isAll())
                 .build();
         addNode(node);
       }

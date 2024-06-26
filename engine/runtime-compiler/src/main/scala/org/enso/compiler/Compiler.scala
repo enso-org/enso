@@ -749,9 +749,7 @@ class Compiler(
         Export.Module(
           m,
           rename      = None,
-          isAll       = false,
           onlyNames   = None,
-          hiddenNames = None,
           location    = None,
           isSynthetic = true
         )

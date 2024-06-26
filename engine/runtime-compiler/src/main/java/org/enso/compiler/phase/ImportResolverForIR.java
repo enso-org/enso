@@ -60,25 +60,11 @@ abstract class ImportResolverForIR extends ImportResolverAlgorithm<
   }
 
   @Override
-  protected final boolean isAll(Export.Module ex) {
-    return ex.isAll();
-  }
-
-  @Override
   protected final java.util.List<String> onlyNames(Export.Module ex) {
     if (ex.onlyNames().isEmpty()) {
       return null;
     }
     var list = CollectionConverters.SeqHasAsJava(ex.onlyNames().get().map(n -> n.name())).asJava();
-    return list;
-  }
-
-  @Override
-  protected final java.util.List<String> hiddenNames(Export.Module ex) {
-    if (ex.hiddenNames().isEmpty()) {
-      return null;
-    }
-    var list = CollectionConverters.SeqHasAsJava(ex.hiddenNames().get().map(n -> n.name())).asJava();
     return list;
   }
 

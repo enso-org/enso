@@ -313,38 +313,15 @@ case class BindingsMap(
   def getDirectlyExportedModules: List[ExportedModule] =
     resolvedImports.collect { case ResolvedImport(_, exports, mod) =>
       exports.map { exp =>
-        val restriction = if (exp.isAll) {
-          if (exp.onlyNames.isDefined) {
-            SymbolRestriction.Only(
-              exp.onlyNames.get
-                .map(name =>
-                  SymbolRestriction
-                    .AllowedResolution(name.name.toLowerCase, None)
-                )
-                .toSet
-            )
-          } else if (exp.hiddenNames.isDefined) {
-            SymbolRestriction.Hiding(
-              exp.hiddenNames.get.map(_.name.toLowerCase).toSet
-            )
-          } else {
-            SymbolRestriction.All
-          }
-        } else {
-          SymbolRestriction.Only(
-            Set(
-              SymbolRestriction.AllowedResolution(
-                exp.getSimpleName.name.toLowerCase,
-                Some(mod)
-              )
+        val restriction = SymbolRestriction.Only(
+          Set(
+            SymbolRestriction.AllowedResolution(
+              exp.getSimpleName.name.toLowerCase,
+              Some(mod)
             )
           )
-        }
-        val rename = if (!exp.isAll) {
-          Some(exp.getSimpleName.name)
-        } else {
-          None
-        }
+        )
+        val rename = Some(exp.getSimpleName.name)
         ExportedModule(mod, rename, restriction)
       }
     }.flatten

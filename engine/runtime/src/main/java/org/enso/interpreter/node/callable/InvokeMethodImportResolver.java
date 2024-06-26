@@ -58,17 +58,7 @@ final class InvokeMethodImportResolver
   }
 
   @Override
-  protected boolean isAll(Object ex) {
-    return false;
-  }
-
-  @Override
   protected List<String> onlyNames(Object ex) {
-    return null;
-  }
-
-  @Override
-  protected List<String> hiddenNames(Object ex) {
     return null;
   }
 
