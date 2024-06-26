@@ -1,6 +1,5 @@
 /** @file A HTTP server middleware which handles routes normally proxied through to
  * the Project Manager. */
-import * as childProcess from 'node:child_process'
 import * as fsSync from 'node:fs'
 import * as fs from 'node:fs/promises'
 import * as http from 'node:http'
