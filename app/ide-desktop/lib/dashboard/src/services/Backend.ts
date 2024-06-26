@@ -293,7 +293,7 @@ export interface BackendProject extends Project {
 
 /** Information required to open a project. */
 export interface ProjectStartupInfo {
-  readonly project: Project
+  readonly project: Promise<Project>
   readonly projectAsset: ProjectAsset
   // This MUST BE optional because it is lost when `JSON.stringify`ing to put in `localStorage`.
   readonly setProjectAsset?: React.Dispatch<React.SetStateAction<ProjectAsset>>
@@ -1249,6 +1249,27 @@ export function extractProjectExtension(name: string) {
   return { basename: basename ?? name, extension: extension ?? '' }
 }
 
+/**
+ * Network error class.
+ */
+export class NetworkError extends Error {
+  /**
+   * Create a new instance of the {@link NetworkError} class.
+   * @param message - The error message.
+   * @param status - The HTTP status code.
+   */
+  constructor(
+    message: string,
+    readonly status?: number
+  ) {
+    super(message)
+  }
+}
+/**
+ * Error class for when the user is not authorized to access a resource.
+ */
+export class NotAuthorizedError extends NetworkError {}
+
 // ===============
 // === Backend ===
 // ===============
@@ -1426,6 +1447,6 @@ export default abstract class Backend {
     projectId: ProjectId,
     directory: DirectoryId | null,
     title: string,
-    abortController?: AbortController
+    abortSignal?: AbortSignal
   ): Promise<Project>
 }

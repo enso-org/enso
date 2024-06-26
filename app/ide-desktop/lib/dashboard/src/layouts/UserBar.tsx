@@ -9,11 +9,9 @@ import * as appUtils from '#/appUtils'
 import * as billing from '#/hooks/billing'
 
 import * as authProvider from '#/providers/AuthProvider'
-import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
-import * as pageSwitcher from '#/layouts/PageSwitcher'
 import UserMenu from '#/layouts/UserMenu'
 
 import * as aria from '#/components/aria'
@@ -26,6 +24,7 @@ import InviteUsersModal from '#/modals/InviteUsersModal'
 import ManagePermissionsModal from '#/modals/ManagePermissionsModal'
 
 import * as backendModule from '#/services/Backend'
+import type Backend from '#/services/Backend'
 
 // ===============
 // === UserBar ===
@@ -33,42 +32,38 @@ import * as backendModule from '#/services/Backend'
 
 /** Props for a {@link UserBar}. */
 export interface UserBarProps {
+  readonly backend: Backend | null
   /** When `true`, the element occupies space in the layout but is not visible.
    * Defaults to `false`. */
   readonly invisible?: boolean
-  readonly page: pageSwitcher.Page
-  readonly setPage: (page: pageSwitcher.Page) => void
+  readonly isOnEditorPage: boolean
   readonly setIsHelpChatOpen: (isHelpChatOpen: boolean) => void
   readonly projectAsset: backendModule.ProjectAsset | null
   readonly setProjectAsset: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>> | null
   readonly doRemoveSelf: () => void
+  readonly goToSettingsPage: () => void
   readonly onSignOut: () => void
 }
 
 /** A toolbar containing chat and the user menu. */
 export default function UserBar(props: UserBarProps) {
-  const { invisible = false, page, setPage, setIsHelpChatOpen } = props
-  const { projectAsset, setProjectAsset, doRemoveSelf, onSignOut } = props
+  const { backend, invisible = false, isOnEditorPage, setIsHelpChatOpen } = props
+  const { projectAsset, setProjectAsset, doRemoveSelf, goToSettingsPage, onSignOut } = props
   const { user } = authProvider.useNonPartialUserSession()
   const { setModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
-  const backend = backendProvider.useRemoteBackend()
   const { isFeatureUnderPaywall } = billing.usePaywall({ plan: user.plan })
-
   const self =
     projectAsset?.permissions?.find(
       backendModule.isUserPermissionAnd(permissions => permissions.user.userId === user.userId)
     ) ?? null
-
   const shouldShowShareButton =
-    backend != null &&
-    page === pageSwitcher.Page.editor &&
+    backend?.type === backendModule.BackendType.remote &&
+    isOnEditorPage &&
     projectAsset != null &&
     setProjectAsset != null &&
     self != null
-
   const shouldShowUpgradeButton = isFeatureUnderPaywall('inviteUser')
-
   const shouldShowInviteButton =
     backend != null && !shouldShowShareButton && !shouldShowUpgradeButton
 
@@ -140,12 +135,12 @@ export default function UserBar(props: UserBarProps) {
               buttonClassName="rounded-full after:rounded-full"
               className="h-row-h w-row-h rounded-full"
               onPress={() => {
-                setModal(<UserMenu setPage={setPage} onSignOut={onSignOut} />)
+                setModal(<UserMenu goToSettingsPage={goToSettingsPage} onSignOut={onSignOut} />)
               }}
             />
             {/* Required for shortcuts to work. */}
             <div className="hidden">
-              <UserMenu hidden setPage={setPage} onSignOut={onSignOut} />
+              <UserMenu hidden goToSettingsPage={goToSettingsPage} onSignOut={onSignOut} />
             </div>
           </div>
         </div>

@@ -50,11 +50,11 @@ const DIALOG_STYLES = twv.tv({
     type: {
       modal: {
         base: 'w-full max-w-md min-h-[100px] max-h-[90vh]',
-        header: 'px-3.5 pt-[3px] pb-0.5',
+        header: 'px-3.5 pt-[3px] pb-0.5 min-h-[42px]',
       },
       fullscreen: {
         base: 'w-full h-full max-w-full max-h-full bg-clip-border',
-        header: 'px-4 pt-[5px] pb-1.5',
+        header: 'px-4 pt-[5px] pb-1.5 min-h-12',
       },
     },
     hideCloseButton: { true: { closeButton: 'hidden' } },
@@ -73,7 +73,7 @@ const DIALOG_STYLES = twv.tv({
     header:
       'sticky grid grid-cols-[1fr_auto_1fr] items-center border-b border-primary/10 transition-[border-color] duration-150',
     closeButton: 'col-start-1 col-end-1 mr-auto',
-    heading: 'col-start-2 col-end-2 my-0',
+    heading: 'col-start-2 col-end-2 my-0 text-center',
     content: 'relative flex-auto overflow-y-auto p-3.5',
   },
 })
@@ -200,14 +200,16 @@ export function Dialog(props: DialogProps) {
                           onPress={opts.close}
                         />
 
-                        <ariaComponents.Text.Heading
-                          slot="title"
-                          level={2}
-                          className={dialogSlots.heading()}
-                          weight="semibold"
-                        >
-                          {title}
-                        </ariaComponents.Text.Heading>
+                        {title != null && (
+                          <ariaComponents.Text.Heading
+                            slot="title"
+                            level={2}
+                            className={dialogSlots.heading()}
+                            weight="semibold"
+                          >
+                            {title}
+                          </ariaComponents.Text.Heading>
+                        )}
                       </aria.Header>
 
                       <div

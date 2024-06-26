@@ -3,6 +3,8 @@ import NumericInputWidget from '@/components/widgets/NumericInputWidget.vue'
 import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { WidgetEditHandler } from '@/providers/widgetRegistry/editHandler'
 import { Ast } from '@/util/ast'
+import { targetIsOutside } from '@/util/autoBlur'
+import { unrefElement } from '@vueuse/core'
 import { computed, ref, type ComponentInstance } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
@@ -38,6 +40,10 @@ const limits = computed(() => {
 const editHandler = WidgetEditHandler.New('WidgetNumber', props.input, {
   cancel: () => inputComponent.value?.cancel(),
   start: () => inputComponent.value?.focus(),
+  pointerdown(event) {
+    if (targetIsOutside(event, unrefElement(inputComponent))) editHandler.end()
+    return false
+  },
   end: () => inputComponent.value?.blur(),
 })
 </script>
@@ -78,7 +84,6 @@ export const widgetDefinition = defineWidget(
     @update:modelValue="setValue"
     @click.stop
     @focus="editHandler.start()"
-    @blur="editHandler.end()"
     @input="editHandler.edit($event)"
   />
 </template>

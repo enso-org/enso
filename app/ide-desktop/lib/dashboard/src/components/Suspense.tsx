@@ -7,6 +7,9 @@
 
 import * as React from 'react'
 
+import * as reactQuery from '@tanstack/react-query'
+
+import * as debounceValue from '#/hooks/debounceValueHooks'
 import * as offlineHooks from '#/hooks/offlineHooks'
 
 import * as textProvider from '#/providers/TextProvider'
@@ -24,6 +27,8 @@ export interface SuspenseProps extends React.SuspenseProps {
   readonly offlineFallbackProps?: result.ResultProps
 }
 
+const OFFLINE_FETCHING_TOGGLE_DELAY_MS = 250
+
 /**
  * Suspense is a component that allows you to wrap a part of your application that might suspend,
  * showing a fallback to the user while waiting for the data to load.
@@ -32,22 +37,52 @@ export interface SuspenseProps extends React.SuspenseProps {
  * And handles offline scenarios.
  */
 export function Suspense(props: SuspenseProps) {
-  const { children, loaderProps, fallback, offlineFallbackProps, offlineFallback } = props
+  const { children } = props
+
+  return <React.Suspense fallback={<FallbackElement {...props} />}>{children}</React.Suspense>
+}
+
+/**
+ * Fallback Element
+ * Checks if ongoing network requests are happening
+ * And shows either fallback(loader) or offline message
+ *
+ * Some request do not require active internet connection, e.g. requests to the local backend
+ * So we don't want to show misleading information
+ *
+ * We check the fetching status in fallback component because
+ * we want to know if there are ongoing requests once React renders the fallback in suspense
+ */
+function FallbackElement(props: SuspenseProps) {
+  const { loaderProps, fallback, offlineFallbackProps, offlineFallback } = props
 
   const { getText } = textProvider.useText()
+
   const { isOffline } = offlineHooks.useOffline()
 
-  const getFallbackElement = () => {
-    if (isOffline) {
-      return (
-        offlineFallback ?? (
-          <result.Result status="info" title={getText('offlineTitle')} {...offlineFallbackProps} />
-        )
-      )
-    } else {
-      return fallback ?? <loader.Loader minHeight="h24" size="medium" {...loaderProps} />
-    }
-  }
+  const paused = reactQuery.useIsFetching({ fetchStatus: 'paused' })
 
-  return <React.Suspense fallback={getFallbackElement()}>{children}</React.Suspense>
+  const fetching = reactQuery.useIsFetching({
+    predicate: query =>
+      query.state.fetchStatus === 'fetching' ||
+      query.state.status === 'pending' ||
+      query.state.status === 'success',
+  })
+
+  // we use small debounce to avoid flickering when query is resolved,
+  // but fallback is still showing
+  const shouldDisplayOfflineMessage = debounceValue.useDebounceValue(
+    isOffline && paused >= 0 && fetching === 0,
+    OFFLINE_FETCHING_TOGGLE_DELAY_MS
+  )
+
+  if (shouldDisplayOfflineMessage) {
+    return (
+      offlineFallback ?? (
+        <result.Result status="info" title={getText('offlineTitle')} {...offlineFallbackProps} />
+      )
+    )
+  } else {
+    return fallback ?? <loader.Loader minHeight="h24" size="medium" {...loaderProps} />
+  }
 }

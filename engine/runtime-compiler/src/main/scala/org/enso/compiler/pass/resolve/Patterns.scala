@@ -78,6 +78,51 @@ object Patterns extends IRPass {
     }
   }
 
+  /** Just delegates to the same-named method from [[BindingsMap]]
+    * and expects a single resolution.
+    */
+  private def resolveSingleQualifiedName(
+    bindingsMap: BindingsMap,
+    parts: List[String]
+  ): Either[BindingsMap.ResolutionError, BindingsMap.ResolvedName] = {
+    bindingsMap.resolveQualifiedName(parts) match {
+      case Left(err) => Left(err)
+      case Right(resolvedNames) =>
+        assert(resolvedNames.size == 1, "Expected a single resolution")
+        Right(resolvedNames.head)
+    }
+  }
+
+  /** @inheritdoc [[resolveSingleQualifiedName]]
+    */
+  private def resolveSingleQualifiedNameIn(
+    bindingsMap: BindingsMap,
+    scope: BindingsMap.ResolvedName,
+    submoduleNames: List[String],
+    finalItem: String
+  ): Either[BindingsMap.ResolutionError, BindingsMap.ResolvedName] = {
+    bindingsMap.resolveQualifiedNameIn(scope, submoduleNames, finalItem) match {
+      case Left(err) => Left(err)
+      case Right(resolvedNames) =>
+        assert(resolvedNames.size == 1, "Expected a single resolution")
+        Right(resolvedNames.head)
+    }
+  }
+
+  /** @inheritdoc [[resolveSingleQualifiedName]]
+    */
+  private def resolveSingleName(
+    bindingsMap: BindingsMap,
+    name: String
+  ): Either[BindingsMap.ResolutionError, BindingsMap.ResolvedName] = {
+    bindingsMap.resolveName(name) match {
+      case Left(err) => Left(err)
+      case Right(resolvedNames) =>
+        assert(resolvedNames.size == 1, "Expected a single resolution")
+        Right(resolvedNames.head)
+    }
+  }
+
   private def doExpression(
     expr: Expression,
     bindings: BindingsMap,
@@ -93,7 +138,8 @@ object Patterns extends IRPass {
                 qual.parts match {
                   case (_: Name.SelfType) :: (others :+ item) =>
                     selfTypeResolution.map(
-                      bindings.resolveQualifiedNameIn(
+                      resolveSingleQualifiedNameIn(
+                        bindings,
                         _,
                         others.map(_.name),
                         item.name
@@ -102,11 +148,11 @@ object Patterns extends IRPass {
                   case _ =>
                     val parts = qual.parts.map(_.name)
                     Some(
-                      bindings.resolveQualifiedName(parts)
+                      resolveSingleQualifiedName(bindings, parts)
                     )
                 }
               case lit: Name.Literal =>
-                Some(bindings.resolveName(lit.name))
+                Some(resolveSingleName(bindings, lit.name))
               case _: Name.SelfType =>
                 selfTypeResolution.map(Right(_))
               case _ => None
@@ -140,14 +186,34 @@ object Patterns extends IRPass {
                     new MetadataPair(this, BindingsMap.Resolution(value))
                   )
 
-                case Right(_: BindingsMap.ResolvedMethod) =>
+                case Right(_: BindingsMap.ResolvedModuleMethod) =>
                   val r = errors.Resolution(
                     consName,
                     errors.Resolution.UnexpectedMethod(
-                      "a pattern match"
+                      "method inside pattern match"
                     )
                   )
                   r.setLocation(consName.location)
+                case Right(_: BindingsMap.ResolvedStaticMethod) =>
+                  val r = errors.Resolution(
+                    consName,
+                    errors.Resolution.UnexpectedMethod(
+                      "static method inside pattern match"
+                    )
+                  )
+                  r.setLocation(consName.location)
+                case Right(_: BindingsMap.ResolvedConversionMethod) =>
+                  val r = errors.Resolution(
+                    consName,
+                    errors.Resolution.UnexpectedMethod(
+                      "conversion method inside pattern match"
+                    )
+                  )
+                  r.setLocation(consName.location)
+                case Right(_) =>
+                  throw new CompilerError(
+                    "Impossible, should be transformed into an error before."
+                  )
               }
               .getOrElse(consName)
 
@@ -158,7 +224,15 @@ object Patterns extends IRPass {
                 case BindingsMap.ResolvedModule(_)            => 0
                 case BindingsMap.ResolvedPolyglotSymbol(_, _) => 0
                 case BindingsMap.ResolvedPolyglotField(_, _)  => 0
-                case BindingsMap.ResolvedMethod(_, _) =>
+                case BindingsMap.ResolvedModuleMethod(_, _) =>
+                  throw new CompilerError(
+                    "Impossible, should be transformed into an error before."
+                  )
+                case BindingsMap.ResolvedStaticMethod(_, _) =>
+                  throw new CompilerError(
+                    "Impossible, should be transformed into an error before."
+                  )
+                case BindingsMap.ResolvedConversionMethod(_, _) =>
                   throw new CompilerError(
                     "Impossible, should be transformed into an error before."
                   )
@@ -186,10 +260,10 @@ object Patterns extends IRPass {
               case qual: Name.Qualified =>
                 val parts = qual.parts.map(_.name)
                 Some(
-                  bindings.resolveQualifiedName(parts)
+                  resolveSingleQualifiedName(bindings, parts)
                 )
               case lit: Name.Literal =>
-                Some(bindings.resolveName(lit.name))
+                Some(resolveSingleName(bindings, lit.name))
               case _: Name.SelfType =>
                 selfTypeResolution.map(Right(_))
               case _ => None
@@ -223,15 +297,31 @@ object Patterns extends IRPass {
                     tpeName,
                     errors.Resolution.UnexpectedPolyglot(s"type pattern case")
                   )*/
-                case Right(_: BindingsMap.ResolvedMethod) =>
+                case Right(_: BindingsMap.ResolvedModuleMethod) =>
                   errors.Resolution(
                     tpeName,
-                    errors.Resolution.UnexpectedMethod(s"type pattern case")
+                    errors.Resolution
+                      .UnexpectedMethod(s"method type pattern case")
+                  )
+                case Right(_: BindingsMap.ResolvedStaticMethod) =>
+                  errors.Resolution(
+                    tpeName,
+                    errors.Resolution.UnexpectedMethod(
+                      s"static method inside type pattern case"
+                    )
+                  )
+                case Right(_: BindingsMap.ResolvedConversionMethod) =>
+                  errors.Resolution(
+                    tpeName,
+                    errors.Resolution.UnexpectedMethod(
+                      s"conversion method inside type pattern case"
+                    )
                   )
                 case Right(_: BindingsMap.ResolvedModule) =>
                   errors.Resolution(
                     tpeName,
-                    errors.Resolution.UnexpectedModule(s"type pattern case")
+                    errors.Resolution
+                      .UnexpectedModule(s"module inside type pattern case")
                   )
               }
               .getOrElse(tpeName)

@@ -315,23 +315,21 @@ export default class LocalBackend extends Backend {
     title: string | null
   ): Promise<void> {
     const { id } = extractTypeAndId(projectId)
-    if (!this.projectManager.projects.has(id)) {
-      try {
-        await this.projectManager.openProject({
-          projectId: id,
-          missingComponentAction: projectManager.MissingComponentAction.install,
-          ...(body?.parentId != null
-            ? { projectsDirectory: extractTypeAndId(body.parentId).id }
-            : {}),
-        })
-        return
-      } catch (error) {
-        throw new Error(
-          `Could not open project ${title != null ? `'${title}'` : `with ID '${projectId}'`}: ${
-            errorModule.tryGetMessage(error) ?? 'unknown error'
-          }.`
-        )
-      }
+    try {
+      await this.projectManager.openProject({
+        projectId: id,
+        missingComponentAction: projectManager.MissingComponentAction.install,
+        ...(body?.parentId != null
+          ? { projectsDirectory: extractTypeAndId(body.parentId).id }
+          : {}),
+      })
+      return
+    } catch (error) {
+      throw new Error(
+        `Could not open project ${title != null ? `'${title}'` : `with ID '${projectId}'`}: ${
+          errorModule.tryGetMessage(error) ?? 'unknown error'
+        }.`
+      )
     }
   }
 

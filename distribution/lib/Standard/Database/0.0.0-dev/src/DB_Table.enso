@@ -172,19 +172,26 @@ type DB_Table
         col = self.get selector if_missing=Nothing
         if Nothing == col then if_missing else col.get index if_missing
 
+    ## ALIAS first cell
+       GROUP Standard.Base.Selections
+       ICON local_scope4
+       Gets the top left value from the table.
+    first_value : Any ! Index_Out_Of_Bounds
+    first_value self = self.at 0 . at 0
+
+    ## ALIAS last cell
+       GROUP Standard.Base.Selections
+       ICON local_scope4
+       Gets the bottom right value from the table.
+    last_value : Any ! Index_Out_Of_Bounds
+    last_value self = self.last_row . at -1
+
     ## ALIAS first field
        GROUP Standard.Base.Selections
        ICON select_column
        Gets the first column.
     first_column : DB_Column ! Index_Out_Of_Bounds
     first_column self = self.at 0
-
-    ## ALIAS second field
-       GROUP Standard.Base.Selections
-       ICON select_column
-       Gets the second column
-    second_column : DB_Column ! Index_Out_Of_Bounds
-    second_column self = self.at 1
 
     ## ALIAS last field
        GROUP Standard.Base.Selections
@@ -573,7 +580,8 @@ type DB_Table
             Warning.with_suspended new_names names->
                 self.updated_columns (self.internal_columns.map c-> c.rename (names.at c.name))
 
-    ## GROUP Standard.Base.Metadata
+    ## ALIAS rename
+       GROUP Standard.Base.Metadata
        ICON table_edit
        Returns a new table with the columns renamed based on entries in the
        first row.
@@ -1165,13 +1173,6 @@ type DB_Table
 
     ## GROUP Standard.Base.Selections
        ICON select_row
-       Returns the second row of the table.
-    second_row : Row ! Index_Out_Of_Bounds
-    second_row self =
-        self.read (..First 2) . rows . second
-
-    ## GROUP Standard.Base.Selections
-       ICON select_row
        Returns the last row of the table.
 
        In the database backend, this function has to scan through all the
@@ -1322,22 +1323,53 @@ type DB_Table
            raised as an error regardless of the problem behavior, because it is
            not possible to create a table without any columns.
          - If a column in `columns` is not in the input table, a
-           `Missing_Input_Columns` is raised as an error, unless
-           `error_on_missing_columns` is set to `False`, in which case the
-           problem is reported according to the `on_problems` setting.
+           `Missing_Input_Columns` is raised as an error.
          - If no valid columns are selected, a `No_Input_Columns_Selected`, is
            reported as a dataflow error regardless of setting.
          - If floating points values are present in the distinct columns, a
            `Floating_Point_Equality` is reported according to the `on_problems`
            setting.
     @columns Widget_Helpers.make_column_name_multi_selector
-    distinct : Vector (Integer | Text | Regex) | Text | Integer | Regex -> Case_Sensitivity -> Boolean -> Problem_Behavior -> DB_Table ! No_Output_Columns | Missing_Input_Columns | No_Input_Columns_Selected | Floating_Point_Equality
-    distinct self columns=self.column_names case_sensitivity:Case_Sensitivity=..Default error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=Report_Warning =
-        key_columns = self.columns_helper.select_columns columns Case_Sensitivity.Default reorder=True error_on_missing_columns=error_on_missing_columns on_problems=on_problems . catch No_Output_Columns _->
+    distinct : Vector (Integer | Text | Regex) | Text | Integer | Regex -> Case_Sensitivity -> Problem_Behavior -> DB_Table ! No_Output_Columns | Missing_Input_Columns | No_Input_Columns_Selected | Floating_Point_Equality
+    distinct self columns=self.column_names case_sensitivity:Case_Sensitivity=..Default on_problems:Problem_Behavior=Report_Warning =
+        key_columns = self.columns_helper.select_columns columns Case_Sensitivity.Default reorder=True error_on_missing_columns=True on_problems=on_problems . catch No_Output_Columns _->
             Error.throw No_Input_Columns_Selected
         problem_builder = Problem_Builder.new
         new_table = self.connection.dialect.prepare_distinct self key_columns case_sensitivity problem_builder
         problem_builder.attach_problems_before on_problems new_table
+
+    ## GROUP Standard.Base.Selections
+       ICON preparation
+       Returns the set of rows which are duplicated within the specified columns from the
+       input table.
+
+       When multiple rows have the same values within the specified columns all of those rows are 
+       returned. Rows which are unique within the specified columns are removed.
+
+       Arguments:
+       - columns: The columns of the table to use for distinguishing the rows.
+       - case_sensitivity: Specifies if the text values should be compared case
+         sensitively.
+       - on_problems: Specifies how to handle if a problem occurs, raising as a
+         warning by default.
+
+       ! Error Conditions
+
+         - If there are no columns in the output table, a `No_Output_Columns` is
+           raised as an error regardless of the problem behavior, because it is
+           not possible to create a table without any columns.
+         - If a column in `columns` is not in the input table, a
+           `Missing_Input_Columns` is raised as an error.
+         - If no valid columns are selected, a `No_Input_Columns_Selected`, is
+           reported as a dataflow error regardless of setting.
+         - If floating points values are present in the distinct columns, a
+           `Floating_Point_Equality` is reported according to the `on_problems`
+           setting.
+    @columns Widget_Helpers.make_column_name_multi_selector
+    duplicates : Vector (Integer | Text | Regex) | Text | Integer | Regex -> Case_Sensitivity -> Problem_Behavior -> DB_Table ! No_Output_Columns | Missing_Input_Columns | No_Input_Columns_Selected | Floating_Point_Equality
+    duplicates self columns=self.column_names case_sensitivity:Case_Sensitivity=..Default on_problems:Problem_Behavior=..Report_Warning =
+        _ = [columns, case_sensitivity, on_problems]
+        Error.throw (Unsupported_Database_Operation.Error "DB_Table.duplicates is not implemented yet for the Database backends.")
 
     ## GROUP Standard.Base.Calculations
        ICON join
@@ -1724,7 +1756,7 @@ type DB_Table
         _ = [right, keep_unmatched, right_prefix, on_problems]
         Error.throw (Unsupported_Database_Operation.Error "DB_Table.zip is not implemented yet for the Database backends.")
 
-    ## ALIAS append, concat
+    ## ALIAS append, concat, join
        GROUP Standard.Base.Calculations
        ICON union
        Appends records from other table(s) to this table.
@@ -2524,8 +2556,8 @@ type DB_Table
 
        This operation is currently not available in the Database backend.
     @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True add_by_type=True)
-    auto_value_types : Vector (Text | Integer | Regex | By_Type) | Text | Integer | Regex | By_Type -> Boolean -> Boolean -> Problem_Behavior -> DB_Table
-    auto_value_types self columns:(Vector (Text | Integer | Regex | By_Type) | Text | Integer | Regex | By_Type)=self.column_names shrink_types:Boolean=False error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=..Report_Warning =
+    auto_cast : Vector (Text | Integer | Regex | By_Type) | Text | Integer | Regex | By_Type -> Boolean -> Boolean -> Problem_Behavior -> DB_Table
+    auto_cast self columns:(Vector (Text | Integer | Regex | By_Type) | Text | Integer | Regex | By_Type)=self.column_names shrink_types:Boolean=False error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=..Report_Warning =
         _ = [columns, shrink_types, error_on_missing_columns, on_problems]
         Error.throw (Unsupported_Database_Operation.Error "DB_Table.auto_value_types is not supported in the Database backends.")
 
@@ -2906,13 +2938,14 @@ type DB_Table
        Applies the specified cleansings to the text in each row of the specified columns
 
        Arguments:
+       - from: The column(s) to cleanse.
        - remove: A vector of the text cleanings to remove from the text. The text cleansings are
            applied in the order they are provided. The same text cleansing can be used multiple
            times. The text cleansings are:
-             - ..Leading_Whitespace: Removes all whitspace from the start of the string.
-             - ..Trailing_Whitespace: Removes all whitspace from the end of the string.
-             - ..Duplicate_Whitespace: Removes all duplicate whitspace from the string replacing it with the first whitespace character of the duplicated block.
-             - ..All_Whitespace: Removes all whitspace from the string.
+             - ..Leading_Whitespace: Removes all whitespace from the start of the string.
+             - ..Trailing_Whitespace: Removes all whitespace from the end of the string.
+             - ..Duplicate_Whitespace: Removes all duplicate whitespace from the string replacing it with the first whitespace character of the duplicated block.
+             - ..All_Whitespace: Removes all whitespace from the string.
              - ..Leading_Numbers: Removes all numbers from the start of the string.
              - ..Trailing_Numbers: Removes all numbers from the end of the string.
              - ..Non_ASCII: Removes all non-ascii characters from the string.
@@ -2921,16 +2954,15 @@ type DB_Table
              - ..Numbers: Removes all numbers characters from the string.
              - ..Punctuation: Removes all characters in the set ,.!?():;'" from the string.
              - ..Symbols: Removes anything that isn't letters, numbers or whitespace from the string.
-       - from: The column(s) to cleanse.
 
        > Example
          Remove leading and trailing spaces from cells.
 
-             table.text_cleanse [..Leading_Whitespace, ..Trailing_Whitespace]
-    @remove make_data_cleanse_vector_selector
+             table.text_cleanse ["Input"] [..Leading_Whitespace, ..Trailing_Whitespace]
     @from (Widget_Helpers.make_column_name_multi_selector add_regex=True add_by_type=True)
-    text_cleanse : Vector Named_Pattern -> Vector (Integer | Text | Regex | By_Type) -> DB_Table
-    text_cleanse self remove from:(Vector (Integer | Text | Regex | By_Type)) =
+    @remove make_data_cleanse_vector_selector
+    text_cleanse : Vector (Integer | Text | Regex | By_Type) -> Vector Named_Pattern -> DB_Table
+    text_cleanse self from:(Vector (Integer | Text | Regex | By_Type)) remove =
         transformer col = col.text_cleanse remove
         Table_Helpers.replace_columns_with_transformed_columns self from transformer
 

@@ -1227,9 +1227,9 @@ type Vector a
        first duplicate appeared in the input.
 
        > Example
-         Removing repeating entries.
+         Removing unique entries.
 
-             [1, 3, 1, 2, 2, 1] . duplicates == [1, 2]
+             [1, 3, 1, 2, 2, 1] . duplicates == [1, 1, 2, 2, 1]
     duplicates : (Any -> Any) -> Vector Any
     duplicates self (on = x->x) =
         Array_Like_Helpers.duplicates self on

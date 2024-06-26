@@ -329,12 +329,8 @@ export interface AssetsTableState {
     title?: string | null,
     override?: boolean
   ) => void
-  readonly doOpenEditor: (
-    project: backendModule.ProjectAsset,
-    setProject: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>>,
-    switchPage: boolean
-  ) => void
-  readonly doCloseEditor: (project: backendModule.ProjectAsset) => void
+  readonly doOpenEditor: () => void
+  readonly doCloseEditor: (projectId: backendModule.ProjectId) => void
   readonly doCopy: () => void
   readonly doCut: () => void
   readonly doPaste: (
@@ -363,7 +359,6 @@ export interface AssetsTableProps {
   readonly setCanDownload: (canDownload: boolean) => void
   readonly category: Category
   readonly initialProjectName: string | null
-  readonly projectStartupInfo: backendModule.ProjectStartupInfo | null
   readonly assetListEvents: assetListEvent.AssetListEvent[]
   readonly dispatchAssetListEvent: (event: assetListEvent.AssetListEvent) => void
   readonly assetEvents: assetEvent.AssetEvent[]
@@ -371,21 +366,16 @@ export interface AssetsTableProps {
   readonly setAssetPanelProps: (props: assetPanel.AssetPanelRequiredProps | null) => void
   readonly setIsAssetPanelTemporarilyVisible: (visible: boolean) => void
   readonly targetDirectoryNodeRef: React.MutableRefObject<assetTreeNode.AnyAssetTreeNode<backendModule.DirectoryAsset> | null>
-  readonly doOpenEditor: (
-    backend: Backend,
-    project: backendModule.ProjectAsset,
-    setProject: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>>,
-    switchPage: boolean
-  ) => void
-  readonly doCloseEditor: (project: backendModule.ProjectAsset) => void
+  readonly doOpenEditor: () => void
+  readonly doCloseEditor: (projectId: backendModule.ProjectId) => void
 }
 
 /** The table of project assets. */
 export default function AssetsTable(props: AssetsTableProps) {
   const { hidden, query, setQuery, setProjectStartupInfo, setCanDownload, category } = props
-  const { setSuggestions, initialProjectName, projectStartupInfo } = props
+  const { setSuggestions, initialProjectName } = props
   const { assetListEvents, dispatchAssetListEvent, assetEvents, dispatchAssetEvent } = props
-  const { doOpenEditor: doOpenEditorRaw, doCloseEditor: doCloseEditorRaw } = props
+  const { doOpenEditor, doCloseEditor } = props
   const { setAssetPanelProps, targetDirectoryNodeRef, setIsAssetPanelTemporarilyVisible } = props
 
   const { user } = authProvider.useNonPartialUserSession()
@@ -895,7 +885,6 @@ export default function AssetsTable(props: AssetsTableProps) {
           dispatchAssetEvent({
             type: AssetEventType.openProject,
             id: projectToLoad.id,
-            shouldAutomaticallySwitchPage: true,
             runInBackground: false,
           })
         })
@@ -976,7 +965,6 @@ export default function AssetsTable(props: AssetsTableProps) {
               dispatchAssetEvent({
                 type: AssetEventType.openProject,
                 id: projectToLoad.id,
-                shouldAutomaticallySwitchPage: true,
                 runInBackground: false,
               })
             })
@@ -1231,7 +1219,6 @@ export default function AssetsTable(props: AssetsTableProps) {
                   type: AssetEventType.openProject,
                   id: item.item.id,
                   runInBackground: false,
-                  shouldAutomaticallySwitchPage: true,
                 })
                 break
               }
@@ -1807,26 +1794,6 @@ export default function AssetsTable(props: AssetsTableProps) {
       queuedAssetListEventsRef.current.push(event)
     }
   })
-
-  const doOpenEditor = React.useCallback(
-    (
-      project: backendModule.ProjectAsset,
-      setProject: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>>,
-      switchPage: boolean
-    ) => {
-      doOpenEditorRaw(backend, project, setProject, switchPage)
-    },
-    [backend, doOpenEditorRaw]
-  )
-
-  const doCloseEditor = React.useCallback(
-    (project: backendModule.ProjectAsset) => {
-      if (project.id === projectStartupInfo?.projectAsset.id) {
-        doCloseEditorRaw(project)
-      }
-    },
-    [projectStartupInfo, doCloseEditorRaw]
-  )
 
   const doCopy = React.useCallback(() => {
     unsetModal()

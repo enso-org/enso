@@ -21,6 +21,7 @@ import org.enso.projectmanager.boot.configuration.{
   MainProcessConfig,
   ProjectManagerConfig
 }
+import org.enso.projectmanager.infrastructure.migration.ProjectsMigration
 import org.enso.projectmanager.protocol.JsonRpcProtocolFactory
 import org.enso.version.VersionDescription
 import org.slf4j.event.Level
@@ -53,11 +54,11 @@ object ProjectManager extends ZIOAppDefault with LazyLogging {
     new JsonRpcProtocolFactory().getProtocol()
   )
 
-  val computeThreadPool = new ScheduledThreadPoolExecutor(
+  private val computeThreadPool = new ScheduledThreadPoolExecutor(
     java.lang.Runtime.getRuntime.availableProcessors()
   )
 
-  val computeExecutionContext: ExecutionContextExecutor =
+  private val computeExecutionContext: ExecutionContextExecutor =
     ExecutionContext.fromExecutor(
       computeThreadPool,
       th => logger.error("An expected error occurred.", th)
@@ -77,6 +78,7 @@ object ProjectManager extends ZIOAppDefault with LazyLogging {
   private def mainProcess(
     processConfig: MainProcessConfig
   ): ZIO[ZAny, IOException, Unit] = {
+    ProjectsMigration.migrate(config.storage)
     val mainModule =
       new MainModule[ZIO[ZAny, +*, +*]](
         config,
