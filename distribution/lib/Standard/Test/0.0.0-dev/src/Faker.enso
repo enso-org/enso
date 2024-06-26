@@ -51,11 +51,11 @@ type Faker
     string_value self template =
         case template of
             _ : Text ->
-                 char_vector = template.char_vector.map c-> case c of
+                 char_vector = template.characters.map c-> case c of
                     "A" -> Faker.upper_case_letters
                     "a" -> Faker.lower_case_letters
                     "0" -> Faker.numbers
-                    _ -> c
+                    _ -> [c]
                  self.string_value char_vector
             _ ->
                 characters = template.map possible_chars->
