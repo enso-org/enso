@@ -147,7 +147,7 @@ export default function Settings() {
   }, [isQueryBlank, doesEntryMatchQuery, getText, isMatch, effectiveTab])
 
   return (
-    <div className="flex flex-1 flex-col gap-4 overflow-hidden px-page-x">
+    <div className="flex flex-1 flex-col gap-4 overflow-hidden px-page-x pt-4">
       <aria.Heading level={1} className="flex items-center px-heading-x">
         <aria.MenuTrigger isOpen={isSidebarPopoverOpen} onOpenChange={setIsSidebarPopoverOpen}>
           <Button image={BurgerMenuIcon} buttonClassName="mr-3 sm:hidden" onPress={() => {}} />
