@@ -2618,9 +2618,9 @@ lazy val `engine-runner` = project
       .taskDyn {
         NativeImage
           .buildNativeImage(
-            "runner",
-            engineDistributionRoot = engineDistributionRoot.value,
-            staticOnLinux          = false,
+            "enso",
+            targetDir     = engineDistributionRoot.value / "bin",
+            staticOnLinux = false,
             additionalOptions = Seq(
               "-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.NoOpLog",
               "-H:IncludeResources=.*Main.enso$",
@@ -2660,12 +2660,14 @@ lazy val `engine-runner` = project
         buildEngineDistribution
       )
       .value,
-    buildNativeImage := NativeImage
-      .incrementalNativeImageBuild(
-        rebuildNativeImage,
-        "runner"
-      )
-      .value
+    buildNativeImage := Def.taskDyn {
+      NativeImage
+        .incrementalNativeImageBuild(
+          rebuildNativeImage,
+          "enso",
+          targetDir = engineDistributionRoot.value / "bin"
+        )
+    }.value
   )
   .dependsOn(`version-output`)
   .dependsOn(yaml)

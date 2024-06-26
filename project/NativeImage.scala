@@ -83,9 +83,9 @@ object NativeImage {
     * @param verbose whether to print verbose output from the native image.
     */
   def buildNativeImage(
-    artifactName: String,
+    name: String,
     staticOnLinux: Boolean,
-    engineDistributionRoot: File             = null,
+    targetDir: File                          = null,
     additionalOptions: Seq[String]           = Seq.empty,
     buildMemoryLimitMegabytes: Option[Int]   = Some(15608),
     runtimeThreadStackMegabytes: Option[Int] = Some(2),
@@ -96,7 +96,8 @@ object NativeImage {
     includeRuntime: Boolean                  = true
   ): Def.Initialize[Task[Unit]] = Def
     .task {
-      val log = state.value.log
+      val log        = state.value.log
+      val targetFile = artifactFile(targetDir, name)
 
       def nativeImagePath(prefix: Path)(path: Path): Path = {
         val base = path.resolve(prefix)
@@ -139,7 +140,7 @@ object NativeImage {
       }
       if (additionalOptions.contains("--language:java")) {
         log.warn(
-          s"Building ${artifactName} image with experimental Espresso support!"
+          s"Building ${targetFile} image with experimental Espresso support!"
         )
 
       }
@@ -230,7 +231,7 @@ object NativeImage {
         buildMemoryLimitOptions ++
         runtimeMemoryOptions ++
         additionalOptions ++
-        Seq("-o", artifactName)
+        Seq("-o", targetFile.toString())
 
       args = mainClass match {
         case Some(main) =>
@@ -241,8 +242,8 @@ object NativeImage {
           Seq("-jar", pathToJAR.toString)
       }
 
-      val targetDir = (Compile / target).value
-      val argFile   = targetDir.toPath.resolve(NATIVE_IMAGE_ARG_FILE)
+      val td      = (Compile / target).value
+      val argFile = td.toPath.resolve(NATIVE_IMAGE_ARG_FILE)
       IO.writeLines(argFile.toFile, args, append = false)
 
       val pathParts = pathExts ++ Option(System.getenv("PATH")).toSeq
@@ -267,7 +268,7 @@ object NativeImage {
         sb.append(str + System.lineSeparator())
       })
       log.info(
-        s"Started building $artifactName native image. The output is captured."
+        s"Started building $targetFile native image. The output is captured."
       )
       val retCode = process.!(processLogger)
       if (retCode != 0) {
@@ -275,7 +276,7 @@ object NativeImage {
         println(sb.toString())
         throw new RuntimeException("Native Image build failed")
       }
-      log.info(s"$artifactName native image build successful.")
+      log.info(s"$targetFile native image build successful.")
     }
     .dependsOn(Compile / compile)
 
@@ -290,14 +291,15 @@ object NativeImage {
     */
   def incrementalNativeImageBuild(
     actualBuild: TaskKey[Unit],
-    artifactName: String
+    name: String,
+    targetDir: File = null
   ): Def.Initialize[Task[Unit]] =
     Def.taskDyn {
       def rebuild(reason: String) = {
         streams.value.log.info(
           s"$reason, forcing a rebuild."
         )
-        val artifact = artifactFile(artifactName)
+        val artifact = artifactFile(targetDir, name)
         if (artifact.exists()) {
           artifact.delete()
         }
@@ -315,7 +317,7 @@ object NativeImage {
         sourcesDiff: ChangeReport[File] =>
           if (sourcesDiff.modified.nonEmpty)
             rebuild(s"Native Image is not up to date")
-          else if (!artifactFile(artifactName).exists())
+          else if (!artifactFile(targetDir, name).exists())
             rebuild("Native Image does not exist")
           else
             Def.task {
@@ -329,9 +331,16 @@ object NativeImage {
   /** [[File]] representing the artifact called `name` built with the Native
     * Image.
     */
-  def artifactFile(name: String): File =
-    if (Platform.isWindows) file(name + ".exe")
-    else file(name)
+  def artifactFile(targetDir: File, name: String): File = {
+    val artifactName =
+      if (Platform.isWindows) name + ".exe"
+      else name
+    if (targetDir == null) {
+      new File(artifactName).getAbsoluteFile()
+    } else {
+      new File(targetDir, artifactName)
+    }
+  }
 
   private val muslBundleUrl =
     "https://github.com/gradinac/musl-bundle-example/releases/download/" +
