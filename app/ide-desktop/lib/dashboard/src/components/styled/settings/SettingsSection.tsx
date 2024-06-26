@@ -1,7 +1,7 @@
 /** @file A styled settings section. */
 import * as React from 'react'
 
-import * as aria from '#/components/aria'
+import * as ariaComponents from '#/components/AriaComponents'
 import FocusArea from '#/components/styled/FocusArea'
 
 import * as tailwindMerge from '#/utilities/tailwindMerge'
@@ -21,11 +21,8 @@ export interface SettingsSectionProps extends Readonly<React.PropsWithChildren> 
 /** A styled settings section. */
 export default function SettingsSection(props: SettingsSectionProps) {
   const { title, noFocusArea = false, className, children } = props
-  const heading = (
-    <aria.Heading level={2} className="h-[2.375rem] py-0.5 text-xl font-bold">
-      {title}
-    </aria.Heading>
-  )
+
+  const heading = <ariaComponents.Text.Heading level={2}>{title}</ariaComponents.Text.Heading>
 
   return noFocusArea ? (
     <div className={tailwindMerge.twMerge('flex flex-col gap-settings-section-header', className)}>

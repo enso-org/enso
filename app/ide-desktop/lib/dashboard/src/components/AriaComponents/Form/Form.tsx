@@ -207,6 +207,9 @@ export const Form = React.forwardRef(function Form<
       ref={ref}
       onSubmit={event => {
         event.preventDefault()
+        // since events in react bubble over the VDOM tree
+        // we need to stop the event propagation to prevent the event to bubble up
+        // to parent forms and trigger their submit handlers
         event.stopPropagation()
 
         if (isOffline && !canSubmitOffline) {

@@ -60,9 +60,9 @@ export const TEXT_STYLE = twv.tv({
     },
     transform: {
       none: '',
-      capitalize: 'text-capitalize',
-      lowercase: 'text-lowercase',
-      uppercase: 'text-uppercase',
+      capitalize: 'capitalize',
+      lowercase: 'lowercase',
+      uppercase: 'uppercase',
     },
     truncate: {
       /* eslint-disable @typescript-eslint/naming-convention */
@@ -199,6 +199,7 @@ export const Text = React.forwardRef(function Text(
 }) as unknown as React.FC<React.RefAttributes<HTMLSpanElement> & TextProps> & {
   // eslint-disable-next-line @typescript-eslint/naming-convention
   Heading: React.FC<HeadingProps>
+  InsideTextProvider: React.FC<React.PropsWithChildren>
 }
 
 /**
@@ -219,3 +220,14 @@ Text.Heading = React.forwardRef(function Heading(
   const { level = 1, ...textProps } = props
   return <Text ref={ref} elementType={`h${level}`} variant="h1" balance {...textProps} />
 })
+
+/**
+ * Component that passes down over the children the information that they are inside a Text component
+ */
+Text.InsideTextProvider = function InsideTextProvider({ children }: React.PropsWithChildren) {
+  return (
+    <textProvider.TextProvider value={{ isInsideTextComponent: true }}>
+      {children}
+    </textProvider.TextProvider>
+  )
+}

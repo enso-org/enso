@@ -416,6 +416,10 @@ export enum Plan {
   enterprise = 'enterprise',
 }
 
+/**
+ * A type representing a plan.
+ */
+export type PlanType = 'enterprise' | 'solo' | 'team'
 export const PLANS = Object.values(Plan)
 
 // This is a function, even though it does not look like one.

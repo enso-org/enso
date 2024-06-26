@@ -118,6 +118,10 @@ interface PlaceholderOverrides {
   readonly inviteFormSeatsLeftError: [exceedBy: number]
   readonly inviteFormSeatsLeft: [seatsLeft: number]
   readonly seatsLeft: [seatsLeft: number, seatsTotal: number]
+
+  readonly billingPageExpires: [number | string, number | string]
+  readonly billingPagePaymentMethod: [string, string]
+  readonly featuresYouWillGet: [string]
 }
 
 /** An tuple of `string` for placeholders for each {@link TextId}. */

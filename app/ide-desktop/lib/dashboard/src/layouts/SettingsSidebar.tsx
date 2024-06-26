@@ -1,6 +1,7 @@
 /** @file A panel to switch between settings tabs. */
 import * as React from 'react'
 
+import CreditCard from 'enso-assets/credit_card.svg'
 import KeyboardShortcutsIcon from 'enso-assets/keyboard_shortcuts.svg'
 import LogIcon from 'enso-assets/log.svg'
 import PeopleSettingsIcon from 'enso-assets/people_settings.svg'
@@ -43,6 +44,12 @@ const SECTIONS: SettingsSectionData[] = [
   {
     name: 'Access',
     tabs: [
+      {
+        name: 'Billing and plans',
+        settingsTab: SettingsTab.billingAndPlans,
+        icon: CreditCard,
+        organizationOnly: true,
+      },
       {
         name: 'Members',
         settingsTab: SettingsTab.members,
