@@ -29,6 +29,7 @@ enum AssetEventType {
   addLabels = 'add-labels',
   removeLabels = 'remove-labels',
   deleteLabel = 'delete-label',
+  setItem = 'set-item',
 }
 
 // This is REQUIRED, as `export default enum` is invalid syntax.

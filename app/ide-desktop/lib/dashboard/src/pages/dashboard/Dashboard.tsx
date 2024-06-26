@@ -59,7 +59,10 @@ declare module '#/utilities/LocalStorage' {
   interface LocalStorageData {
     readonly isAssetPanelVisible: boolean
     readonly page: TabType
-    readonly projectStartupInfo: Omit<backendModule.ProjectStartupInfo, 'project'>
+    readonly projectStartupInfo: Omit<
+      backendModule.ProjectStartupInfo,
+      'project' | 'setProjectAsset'
+    >
   }
 }
 
@@ -178,6 +181,7 @@ export default function Dashboard(props: DashboardProps) {
         setPage(TabType.drive)
       }
     } else if (savedProjectStartupInfo != null) {
+      const { id, parentId, title } = savedProjectStartupInfo.projectAsset
       if (savedProjectStartupInfo.backendType === backendModule.BackendType.remote) {
         if (remoteBackend != null) {
           setPage(TabType.drive)
@@ -185,19 +189,31 @@ export default function Dashboard(props: DashboardProps) {
             const abortController = new AbortController()
             openProjectAbortControllerRef.current = abortController
             try {
-              const oldProject = await remoteBackend.getProjectDetails(
-                savedProjectStartupInfo.projectAsset.id,
-                savedProjectStartupInfo.projectAsset.parentId,
-                savedProjectStartupInfo.projectAsset.title
-              )
+              const oldProject = await remoteBackend.getProjectDetails(id, parentId, title)
               if (backendModule.IS_OPENING_OR_OPENED[oldProject.state.type]) {
                 const project = remoteBackend.waitUntilProjectIsReady(
-                  savedProjectStartupInfo.projectAsset.id,
-                  savedProjectStartupInfo.projectAsset.parentId,
-                  savedProjectStartupInfo.projectAsset.title,
+                  id,
+                  parentId,
+                  title,
                   abortController.signal
                 )
-                setProjectStartupInfo({ ...savedProjectStartupInfo, project })
+                setProjectStartupInfo({
+                  ...savedProjectStartupInfo,
+                  project,
+                  setProjectAsset: valueOrUpdater => {
+                    dispatchAssetEvent({
+                      type: AssetEventType.setItem,
+                      id,
+                      valueOrUpdater:
+                        typeof valueOrUpdater !== 'function'
+                          ? valueOrUpdater
+                          : currentValue =>
+                              currentValue.type === backendModule.AssetType.project
+                                ? valueOrUpdater(currentValue)
+                                : currentValue,
+                    })
+                  },
+                })
                 if (page === TabType.editor) {
                   setPage(page)
                 }
@@ -211,20 +227,32 @@ export default function Dashboard(props: DashboardProps) {
         if (localBackend != null) {
           void (async () => {
             await localBackend.openProject(
-              savedProjectStartupInfo.projectAsset.id,
+              id,
               {
                 executeAsync: false,
                 cognitoCredentials: null,
-                parentId: savedProjectStartupInfo.projectAsset.parentId,
+                parentId: parentId,
               },
-              savedProjectStartupInfo.projectAsset.title
+              title
             )
-            const project = localBackend.getProjectDetails(
-              savedProjectStartupInfo.projectAsset.id,
-              savedProjectStartupInfo.projectAsset.parentId,
-              savedProjectStartupInfo.projectAsset.title
-            )
-            setProjectStartupInfo({ ...savedProjectStartupInfo, project })
+            const project = localBackend.getProjectDetails(id, parentId, title)
+            setProjectStartupInfo({
+              ...savedProjectStartupInfo,
+              project,
+              setProjectAsset: valueOrUpdater => {
+                dispatchAssetEvent({
+                  type: AssetEventType.setItem,
+                  id,
+                  valueOrUpdater:
+                    typeof valueOrUpdater !== 'function'
+                      ? valueOrUpdater
+                      : currentValue =>
+                          currentValue.type === backendModule.AssetType.project
+                            ? valueOrUpdater(currentValue)
+                            : currentValue,
+                })
+              },
+            })
             if (page === TabType.editor) {
               setPage(page)
             }

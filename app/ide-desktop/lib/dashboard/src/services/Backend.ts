@@ -296,7 +296,7 @@ export interface ProjectStartupInfo {
   readonly project: Promise<Project>
   readonly projectAsset: ProjectAsset
   // This MUST BE optional because it is lost when `JSON.stringify`ing to put in `localStorage`.
-  readonly setProjectAsset?: React.Dispatch<React.SetStateAction<ProjectAsset>>
+  readonly setProjectAsset: React.Dispatch<React.SetStateAction<ProjectAsset>>
   readonly backendType: BackendType
   readonly accessToken: string | null
 }

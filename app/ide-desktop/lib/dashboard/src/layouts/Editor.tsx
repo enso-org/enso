@@ -111,7 +111,7 @@ function EditorInternal(props: EditorInternalProps) {
         )
         .then(
           () => {
-            projectStartupInfo.setProjectAsset?.(object.merger({ title: newName }))
+            projectStartupInfo.setProjectAsset(object.merger({ title: newName }))
           },
           e => toastAndLog('renameProjectError', e)
         )
