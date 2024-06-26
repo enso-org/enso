@@ -19,6 +19,10 @@ declare module '@tanstack/react-query' {
      * Usually you should use `queryClient.invalidateQueries` instead.
      */
     readonly clearWithPersister: () => Promise<void>
+    /**
+     * Clear the cache stored in the persister storage.
+     */
+    readonly nukePersister: () => Promise<void>
   }
   /**
    * Specifies the invalidation behavior of a mutation.
@@ -45,6 +49,12 @@ declare module '@tanstack/react-query' {
     }
 
     readonly queryMeta: {
+      /**
+       * Whether to persist the query cache in the storage. Defaults to `true`.
+       * Use `false` to disable persistence for a specific query, for example for
+       * a sensitive data or data that can't be persisted, e.g. class instances.
+       * @default true
+       */
       readonly persist?: boolean
     }
   }
@@ -55,24 +65,29 @@ const DEFAULT_QUERY_STALE_TIME_MS = 2 * 60 * 1000
 // eslint-disable-next-line @typescript-eslint/no-magic-numbers
 const DEFAULT_QUERY_PERSIST_TIME_MS = 30 * 24 * 60 * 60 * 1000 // 30 days
 
-const DEFAULT_BUSTER = 'v1'
+const DEFAULT_BUSTER = 'v1.1'
 
 /**
  * Create a new React Query client.
  */
 export function createReactQueryClient() {
   const store = idbKeyval.createStore('enso', 'query-persist-cache')
+  reactQuery.onlineManager.setOnline(navigator.onLine)
 
   const persister = persistClientCore.experimental_createPersister({
     storage: {
-      getItem: key => idbKeyval.get(key, store),
+      getItem: key => idbKeyval.get<persistClientCore.PersistedQuery>(key, store),
       setItem: (key, value) => idbKeyval.set(key, value, store),
       removeItem: key => idbKeyval.del(key, store),
     },
-    maxAge: DEFAULT_QUERY_PERSIST_TIME_MS,
+    // Prefer online first and don't rely on the local cache if user is online
+    // fallback to the local cache only if the user is offline
+    maxAge: reactQuery.onlineManager.isOnline() ? -1 : DEFAULT_QUERY_PERSIST_TIME_MS,
     buster: DEFAULT_BUSTER,
     filters: { predicate: query => query.meta?.persist !== false },
     prefix: 'enso:query-persist:',
+    serialize: persistedQuery => persistedQuery,
+    deserialize: persistedQuery => persistedQuery,
   })
 
   const queryClient: reactQuery.QueryClient = new reactQuery.QueryClient({
@@ -135,12 +150,17 @@ export function createReactQueryClient() {
     },
   })
 
-  reactQuery.onlineManager.setOnline(navigator.onLine)
+  Object.defineProperty(queryClient, 'nukePersister', {
+    value: () => idbKeyval.clear(store),
+    enumerable: false,
+    configurable: false,
+    writable: false,
+  })
 
   Object.defineProperty(queryClient, 'clearWithPersister', {
     value: () => {
       queryClient.clear()
-      return idbKeyval.clear(store)
+      return queryClient.nukePersister()
     },
     enumerable: false,
     configurable: false,

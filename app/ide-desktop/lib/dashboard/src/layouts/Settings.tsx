@@ -113,9 +113,9 @@ export default function Settings(props: SettingsProps) {
             />
           </aria.Popover>
         </aria.MenuTrigger>
-        <ariaComponents.Text.Heading className="font-bold">
+        <ariaComponents.Text variant="h1" className="font-bold">
           <span>{getText('settingsFor')}</span>
-        </ariaComponents.Text.Heading>
+        </ariaComponents.Text>
 
         <ariaComponents.Text
           variant="h1"
