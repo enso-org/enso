@@ -28,7 +28,7 @@ const logger = console
 export const PACKAGE_METADATA_RELATIVE_PATH = 'package.yaml'
 export const PROJECT_METADATA_RELATIVE_PATH = '.enso/project.json'
 /** The filename suffix for the project bundle, including the leading period character. */
-const BUNDLED_PROJECT_SUFFIX = `.enso-project`
+const BUNDLED_PROJECT_SUFFIX = '.enso-project'
 
 // ======================
 // === Project Import ===
