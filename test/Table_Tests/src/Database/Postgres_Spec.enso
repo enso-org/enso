@@ -107,6 +107,7 @@ type Postgres_Aggregate_Data
         connection = create_connection_fn Nothing
         name = Name_Generator.random_name "Ttypes"
         connection.execute_update 'CREATE TEMPORARY TABLE "'+name+'" ("txt" VARCHAR, "i1" SMALLINT, "i2" INT, "i3" BIGINT, "i4" NUMERIC, "r1" REAL, "r2" DOUBLE PRECISION, "bools" BOOLEAN)'
+        connection.execute_update 'INSERT INTO "'+name+'" VALUES (\'a\', 1, 2, 3, 4, 5.5, 6.6, true)'
         t = connection.query (SQL_Query.Table_Name name)
         [connection, name, t]
 
@@ -274,7 +275,7 @@ postgres_specific_spec suite_builder create_connection_fn db_name setup =
             expected_code = code_template.replace "{Tinfo}" data.tinfo
             t.distinct ["strs"] . to_sql . prepare . should_equal [expected_code, []]
 
-    suite_builder.group "[PostgreSQL] Table.aggregate should correctly infer result types" group_builder->
+    suite_builder.group "[PostgreSQL] Table.aggregate should correctly infer result types, and the resulting values should be of the correct type" group_builder->
         data = Postgres_Aggregate_Data.setup create_connection_fn
 
         group_builder.teardown <|
@@ -300,15 +301,27 @@ postgres_specific_spec suite_builder create_connection_fn db_name setup =
             r.columns.at 3 . value_type . should_equal Value_Type.Decimal
             r.columns.at 4 . value_type . should_equal (Value_Type.Float Bits.Bits_32)
             r.columns.at 5 . value_type . should_equal (Value_Type.Float Bits.Bits_64)
+            r.columns.at 0 . at 0 . should_be_a Integer
+            r.columns.at 1 . at 0 . should_be_a Integer
+            r.columns.at 2 . at 0 . should_be_a Integer
+            r.columns.at 3 . at 0 . should_be_a Decimal
+            r.columns.at 4 . at 0 . should_be_a Float
+            r.columns.at 5 . at 0 . should_be_a Float
 
         group_builder.specify "Average" <|
             r = data.t.aggregate columns=[Aggregate_Column.Average "i1", Aggregate_Column.Average "i2", Aggregate_Column.Average "i3", Aggregate_Column.Average "i4", Aggregate_Column.Average "r1", Aggregate_Column.Average "r2"]
-            r.columns.at 0 . value_type . should_equal Value_Type.Decimal
-            r.columns.at 1 . value_type . should_equal Value_Type.Decimal
-            r.columns.at 2 . value_type . should_equal Value_Type.Decimal
+            r.columns.at 0 . value_type . should_equal Value_Type.Float
+            r.columns.at 1 . value_type . should_equal Value_Type.Float
+            r.columns.at 2 . value_type . should_equal Value_Type.Float
             r.columns.at 3 . value_type . should_equal Value_Type.Decimal
             r.columns.at 4 . value_type . should_equal Value_Type.Float
             r.columns.at 5 . value_type . should_equal Value_Type.Float
+            r.columns.at 0 . at 0 . should_be_a Float
+            r.columns.at 1 . at 0 . should_be_a Float
+            r.columns.at 2 . at 0 . should_be_a Float
+            r.columns.at 3 . at 0 . should_be_a Decimal
+            r.columns.at 4 . at 0 . should_be_a Float
+            r.columns.at 5 . at 0 . should_be_a Float
 
 
     suite_builder.group "[PostgreSQL] Warning/Error handling" group_builder->
@@ -441,28 +454,6 @@ postgres_specific_spec suite_builder create_connection_fn db_name setup =
             t1 = m1.select_into_database_table data.connection "BigDecimal" primary_key=[] temporary=True
             t1.at "X" . value_type . should_equal (Value_Type.Decimal Nothing Nothing)
             t1.at "X" . to_vector . should_equal [x, x+1]
-
-        group_builder.specify "special-case casts for avg and sum should produce the correct output types" <|
-            data = []
-                + [["byte", Value_Type.Byte, [10, 1, 43]]]
-                + [["int16", Value_Type.Integer Bits.Bits_16, [10, 10000, 32767]]]
-                + [["int32", Value_Type.Integer Bits.Bits_32, [10, 10000, 2147483647]]]
-                + [["int64", Value_Type.Integer Bits.Bits_64, [10, 10000, 9223372036854775807]]]
-                + [["float32", Value_Type.Float Bits.Bits_32, [10.1, 10000.1, 2147483647.1]]]
-                + [["float64", Value_Type.Float Bits.Bits_64, [10.1, 10000.1, 9223372036854775807.1]]]
-                + [["decimal", Value_Type.Decimal, [10.1, 10000.1, 9223372036854775807.1]]]
-            names = data.map (x-> x.at 0)
-            uncast_table = table_builder (data.map s-> [s.at 0, s.at 2])
-            table = data.fold uncast_table (t-> s-> t.cast (s.at 0) (s.at 1))
-            table.columns.map .value_type . should_equal [Value_Type.Integer Bits.Bits_16, Value_Type.Integer Bits.Bits_16, Value_Type.Integer Bits.Bits_32, Value_Type.Integer Bits.Bits_64, Value_Type.Float Bits.Bits_32, Value_Type.Float Bits.Bits_64, Value_Type.Decimal]
-
-            summed = table.aggregate [] (names.map (n-> Aggregate_Column.Sum n))
-            summed.columns.map .value_type . should_equal [Value_Type.Integer Bits.Bits_64, Value_Type.Integer Bits.Bits_64, Value_Type.Integer Bits.Bits_64, Value_Type.Decimal 1000 0, Value_Type.Float Bits.Bits_32, Value_Type.Float Bits.Bits_64, Value_Type.Decimal]
-            summed.columns.map (x-> x.at 0) . map Meta.get_simple_type_name . should_equal ["Integer", "Integer", "Integer", "Integer", "Float", "Float", "Decimal"]
-
-            averaged = table.aggregate [] (names.map (n-> Aggregate_Column.Average n))
-            averaged.columns.map .value_type . should_equal [Value_Type.Float Bits.Bits_64, Value_Type.Float Bits.Bits_64, Value_Type.Float Bits.Bits_64, Value_Type.Float Bits.Bits_64, Value_Type.Float Bits.Bits_64, Value_Type.Float Bits.Bits_64, Value_Type.Decimal]
-            averaged.columns.map (x-> x.at 0) . map Meta.get_simple_type_name . should_equal ["Float", "Float", "Float", "Float", "Float", "Float", "Decimal"]
 
         group_builder.specify "should round-trip timestamptz column, preserving instant but converting to UTC" <|
             table_name = Name_Generator.random_name "TimestampTZ"
