@@ -13,7 +13,7 @@ import * as backendProvider from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import * as errorBoundary from '#/components/ErrorBoundary'
-import * as suspense from '#/components/Suspense'
+import * as loader from '#/components/Loader'
 
 import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
@@ -45,16 +45,13 @@ export default function Editor(props: EditorProps) {
     <EditorInternal {...props} projectStartupInfo={projectStartupInfo} />
   )
 
-  return hidden ? (
-    <React.Suspense>
-      <errorBoundary.ErrorBoundary FallbackComponent={() => null}>
+  return (
+    <React.Suspense fallback={hidden ? undefined : <loader.Loader minHeight="full" />}>
+      {/* eslint-disable-next-line @typescript-eslint/naming-convention */}
+      <errorBoundary.ErrorBoundary {...(hidden ? { FallbackComponent: () => null } : {})}>
         {editor}
       </errorBoundary.ErrorBoundary>
     </React.Suspense>
-  ) : (
-    <suspense.Suspense loaderProps={{ minHeight: 'full' }}>
-      <errorBoundary.ErrorBoundary>{editor}</errorBoundary.ErrorBoundary>
-    </suspense.Suspense>
   )
 }
 
