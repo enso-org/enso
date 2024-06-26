@@ -1314,12 +1314,23 @@ public final class Main {
       var jvm = line.getOptionValue(JVM_OPTION);
       var current = System.getProperty("java.home");
       if (current == null || !current.equals(jvm)) {
-        println("Running with JVM: " + current);
-        println("Requested JVM: " + jvm);
         var loc = Main.class.getProtectionDomain().getCodeSource().getLocation();
-        println("Location: " + loc);
         var commandAndArgs = new ArrayList<String>();
+        JVM_FOUND:
         if (jvm == null) {
+          var env = new Environment() {};
+          var dm = new DistributionManager(env);
+          var paths = dm.paths();
+          var files = paths.runtimes().toFile().listFiles();
+          if (files != null) {
+            for (var d : files) {
+              var java = new File(new File(d, "bin"), "java").getAbsoluteFile();
+              if (java.exists()) {
+                commandAndArgs.add(java.getPath());
+                break JVM_FOUND;
+              }
+            }
+          }
           commandAndArgs.add("java");
         } else {
           commandAndArgs.add(new File(new File(new File(jvm), "bin"), "java").getAbsolutePath());
