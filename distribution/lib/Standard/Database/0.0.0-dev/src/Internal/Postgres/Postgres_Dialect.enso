@@ -39,6 +39,8 @@ import project.SQL_Type.SQL_Type
 from project.Errors import SQL_Error, Unsupported_Database_Operation
 from project.Internal.IR.Operation_Metadata import Date_Period_Metadata
 
+polyglot java import java.sql.Types
+
 ## PRIVATE
 
    The dialect of PostgreSQL databases.
@@ -198,11 +200,12 @@ type Postgres_Dialect
     ## PRIVATE
        Add an extra cast to the output of certain operations with certain arguments
     cast_op_type self (op_kind:Text) (args:(Vector Internal_Column)) (expression:SQL_Expression) =
-        is_integer_sql_type ic =
-            sql_type = ic.sql_type_reference.get
-            sql_type.typeid == -5
-        all_args_integer = args.all is_integer_sql_type
-        if op_kind == "SUM" && all_args_integer then SQL_Expression.Operation "CAST" [expression, SQL_Expression.Literal "numeric(1000,0)"] else expression
+        is_bigint ic = ic.sql_type_reference.get.typeid == Types.BIGINT
+
+        # "bi" means arbitrary-precision integer, not SQL BIGINT
+        cast_to_bi = (op_kind == "SUM" && is_bigint (args.at 0))
+
+        if cast_to_bi then SQL_Expression.Operation "CAST" [expression, SQL_Expression.Literal "numeric(1000,0)"] else expression
 
     ## PRIVATE
     prepare_fetch_types_query : SQL_Expression -> Context -> SQL_Statement
