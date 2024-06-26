@@ -18,12 +18,8 @@ import * as text from '../Text'
 
 /** Props for a {@link Button}. */
 export type ButtonProps =
-  | (BaseButtonProps<aria.ButtonRenderProps> &
-      Omit<aria.ButtonProps, 'onPress' | 'type'> &
-      PropsWithoutHref)
-  | (BaseButtonProps<aria.LinkRenderProps> &
-      Omit<aria.LinkProps, 'onPress' | 'type'> &
-      PropsWithHref)
+  | (BaseButtonProps<aria.ButtonRenderProps> & Omit<aria.ButtonProps, 'onPress'> & PropsWithoutHref)
+  | (BaseButtonProps<aria.LinkRenderProps> & Omit<aria.LinkProps, 'onPress'> & PropsWithHref)
 
 /**
  * Props for a button with an href.
@@ -304,7 +300,6 @@ export const Button = React.forwardRef(function Button(
     variant,
     icon,
     loading = false,
-    isDisabled,
     isActive,
     showIconOnHover,
     iconPosition,
@@ -349,7 +344,7 @@ export const Button = React.forwardRef(function Button(
   const tooltipElement = shouldShowTooltip ? tooltip ?? ariaProps['aria-label'] : null
 
   const isLoading = loading || implicitlyLoading
-  const disabled = isDisabled ?? isLoading
+  const isDisabled = props.isDisabled == null ? isLoading : props.isDisabled
 
   React.useLayoutEffect(() => {
     const delay = 350
@@ -379,7 +374,7 @@ export const Button = React.forwardRef(function Button(
   }, [isLoading, loaderPosition])
 
   const handlePress = (event: aria.PressEvent): void => {
-    if (!disabled) {
+    if (!isDisabled) {
       const result = onPress(event)
 
       if (result instanceof Promise) {
@@ -400,7 +395,7 @@ export const Button = React.forwardRef(function Button(
     icon: iconClasses,
     text: textClasses,
   } = BUTTON_STYLES({
-    isDisabled: disabled,
+    isDisabled: isDisabled,
     isActive,
     loading: isLoading,
     fullWidth,
@@ -458,7 +453,7 @@ export const Button = React.forwardRef(function Button(
     <Tag
       // @ts-expect-error ts errors are expected here because we are merging props with different types
       {...aria.mergeProps<aria.ButtonProps>()(goodDefaults, ariaProps, focusChildProps, {
-        isDisabled: disabled,
+        isDisabled: isDisabled,
         // we use onPressEnd instead of onPress because for some reason react-aria doesn't trigger
         // onPress on EXTRA_CLICK_ZONE, but onPress{start,end} are triggered
         onPressEnd: handlePress,

@@ -183,13 +183,15 @@ export function Tab(props: InternalTabProps) {
     if (isActive) {
       updateClipPath(ref.current)
     }
-  }, [isActive])
+  }, [isActive, updateClipPath])
 
   React.useEffect(() => {
     if (ref.current) {
       return observeElement(ref.current)
+    } else {
+      return () => {}
     }
-  }, [])
+  }, [observeElement])
 
   React.useEffect(() => {
     if (loadingPromise) {
