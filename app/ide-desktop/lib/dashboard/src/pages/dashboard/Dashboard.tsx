@@ -457,6 +457,7 @@ export default function Dashboard(props: DashboardProps) {
             hidden={page !== TabType.editor}
             ydocUrl={ydocUrl}
             projectStartupInfo={projectStartupInfo}
+            setProjectStartupInfo={setProjectStartupInfo}
             appRunner={appRunner}
           />
           {page === TabType.settings && <Settings backend={remoteBackend} />}
