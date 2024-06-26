@@ -30,7 +30,8 @@
    * current plan. */
   --missing-functionality-text-padding-x: 1rem;
   /* The horizontal gap between each icon in a list of buttons. */
-  --buttons-gap: 0.5rem; /* The horizontal gap between each icon in a list of icons. */
+  --buttons-gap: 0.5rem;
+  /* The horizontal gap between each icon in a list of icons. */
   --icons-gap: 0.75rem;
   /* The gap between an icon and its associated text. */
   --samples-icon-with-text-gap: 0.375rem;

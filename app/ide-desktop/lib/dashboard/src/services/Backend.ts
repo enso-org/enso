@@ -51,6 +51,10 @@ export const FileId = newtype.newtypeConstructor<FileId>()
 export type SecretId = newtype.Newtype<string, 'SecretId'>
 export const SecretId = newtype.newtypeConstructor<SecretId>()
 
+/** Unique identifier for a project session. */
+export type ProjectSessionId = newtype.Newtype<string, 'ProjectSessionId'>
+export const ProjectSessionId = newtype.newtypeConstructor<ProjectSessionId>()
+
 /** Unique identifier for a Datalink. */
 export type DatalinkId = newtype.Newtype<string, 'DatalinkId'>
 export const DatalinkId = newtype.newtypeConstructor<DatalinkId>()
@@ -299,6 +303,15 @@ export interface ProjectStartupInfo {
   readonly setProjectAsset?: React.Dispatch<React.SetStateAction<ProjectAsset>>
   readonly backendType: BackendType
   readonly accessToken: string | null
+}
+
+/** A specific session of a project being opened and used. */
+export interface ProjectSession {
+  readonly projectId: ProjectId
+  readonly projectSessionId: ProjectSessionId
+  readonly createdAt: dateTime.Rfc3339DateTime
+  readonly closedAt?: dateTime.Rfc3339DateTime
+  readonly userEmail: EmailAddress
 }
 
 /** Metadata describing the location of an uploaded file. */
@@ -1352,6 +1365,8 @@ export default abstract class Backend {
   abstract createProject(body: CreateProjectRequestBody): Promise<CreatedProject>
   /** Close a project. */
   abstract closeProject(projectId: ProjectId, title: string): Promise<void>
+  /** Return a list of sessions for the current project. */
+  abstract listProjectSessions(projectId: ProjectId, title: string): Promise<ProjectSession[]>
   /** Restore a project from a different version. */
   abstract restoreProject(
     projectId: ProjectId,
@@ -1370,6 +1385,11 @@ export default abstract class Backend {
     directoryId: DirectoryId | null,
     title: string
   ): Promise<Project>
+  /** Return Language Server logs for a project session. */
+  abstract getProjectSessionLogs(
+    projectSessionId: ProjectSessionId,
+    title: string
+  ): Promise<string[]>
   /** Set a project to an open state. */
   abstract openProject(
     projectId: ProjectId,
