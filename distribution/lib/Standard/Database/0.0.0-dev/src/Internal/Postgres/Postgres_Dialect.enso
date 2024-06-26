@@ -195,6 +195,8 @@ type Postgres_Dialect
                         Illegal_State.Error "The type computed by our logic is Char, but the Database computed a non-text type ("+db_type.to_display_text+"). This should never happen and should be reported as a bug in the Database library."
             False -> column
 
+    ## PRIVATE
+       Add an extra cast to the output of certain operations with certain arguments
     cast_op_type self (op_kind:Text) (args:(Vector Internal_Column)) (expression:SQL_Expression) =
         is_integer_sql_type ic =
             sql_type = ic.sql_type_reference.get

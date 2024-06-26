@@ -185,6 +185,12 @@ type SQLite_Dialect
                 Internal_Column.Value column.name new_sql_type_reference new_expression
 
     ## PRIVATE
+       Add an extra cast to the output of certain operations with certain arguments
+    cast_op_type self (op_kind:Text) (args:(Vector Internal_Column)) (expression:SQL_Expression) =
+        _ = [op_kind, args]
+        expression
+
+    ## PRIVATE
     prepare_fetch_types_query : SQL_Expression -> Context -> SQL_Statement
     prepare_fetch_types_query self expression context =
         _ = [expression, context]
