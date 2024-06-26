@@ -8,6 +8,7 @@ import java.net.URISyntaxException;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -53,6 +54,7 @@ import scala.runtime.BoxedUnit;
 
 /** The main CLI entry point class. */
 public final class Main {
+  private static final String JVM_OPTION = "jvm";
   private static final String RUN_OPTION = "run";
   private static final String INSPECT_OPTION = "inspect";
   private static final String DUMP_GRAPHS_OPTION = "dump-graphs";
@@ -126,6 +128,15 @@ public final class Main {
             .argName("file")
             .longOpt(RUN_OPTION)
             .desc("Runs a specified Enso file.")
+            .build();
+    var jvm =
+        cliOptionBuilder()
+            .hasArg(true)
+            .numberOfArgs(1)
+            .optionalArg(true)
+            .argName("jvm")
+            .longOpt(JVM_OPTION)
+            .desc("Specifies whether to run JVM mode and optionally selects a JVM to run with.")
             .build();
     var inspect =
         cliOptionBuilder()
@@ -451,6 +462,7 @@ public final class Main {
     options
         .addOption(help)
         .addOption(repl)
+        .addOption(jvm)
         .addOption(run)
         .addOption(inspect)
         .addOption(dumpGraphs)
@@ -966,7 +978,7 @@ public final class Main {
    *
    * @param args the command line arguments
    */
-  public static void main(String[] args) throws IOException {
+  public static void main(String[] args) throws Exception {
     new Main().launch(args);
   }
 
@@ -1294,9 +1306,67 @@ public final class Main {
     System.out.println(msg);
   }
 
-  private void launch(String[] args) {
+  private void launch(String[] args) throws IOException, InterruptedException, URISyntaxException {
     var options = buildOptions();
     var line = preprocessArguments(options, args);
+
+    if (line.hasOption(JVM_OPTION)) {
+      var jvm = line.getOptionValue(JVM_OPTION);
+      var current = System.getProperty("java.home");
+      if (current == null || !current.equals(jvm)) {
+        println("Running with JVM: " + current);
+        println("Requested JVM: " + jvm);
+        var loc = Main.class.getProtectionDomain().getCodeSource().getLocation();
+        println("Location: " + loc);
+        var commandAndArgs = new ArrayList<String>();
+        if (jvm == null) {
+          commandAndArgs.add("java");
+        } else {
+          commandAndArgs.add(new File(new File(new File(jvm), "bin"), "java").getAbsolutePath());
+        }
+        commandAndArgs.add("--add-opens=java.base/java.nio=ALL-UNNAMED");
+        commandAndArgs.add("--module-path");
+        var component = new File(loc.toURI().resolve("..")).getAbsoluteFile();
+        if (!component.getName().equals("component")) {
+          component = new File(component, "component");
+        }
+        if (!component.isDirectory()) {
+          throw new IOException("Cannot find " + component + " directory");
+        }
+        commandAndArgs.add(component.getPath());
+        commandAndArgs.add("-m");
+        commandAndArgs.add("org.enso.runtime/org.enso.EngineRunnerBootLoader");
+        var it = line.iterator();
+        while (it.hasNext()) {
+          var op = it.next();
+          if (JVM_OPTION.equals(op.getLongOpt())) {
+            continue;
+          }
+          var longName = op.getLongOpt();
+          if (longName != null) {
+            commandAndArgs.add("--" + longName);
+          } else {
+            commandAndArgs.add("-" + op.getOpt());
+          }
+          var values = op.getValuesList();
+          if (values != null) {
+            commandAndArgs.addAll(values);
+          }
+        }
+        commandAndArgs.addAll(line.getArgList());
+        var pb = new ProcessBuilder();
+        pb.inheritIO();
+        pb.command(commandAndArgs);
+        var p = pb.start();
+        var exitCode = p.waitFor();
+        if (exitCode == 0) {
+          throw exitSuccess();
+        } else {
+          throw doExit(exitCode);
+        }
+      }
+    }
+
     launch(options, line);
   }
 
