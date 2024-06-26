@@ -27,6 +27,7 @@ const TAB_RADIUS_PX = 24
 /** Context for a {@link TabBarContext}. */
 interface TabBarContextValue {
   readonly updateClipPath: (element: HTMLDivElement | null) => void
+  readonly observeElement: (element: HTMLElement) => () => void
 }
 
 const TabBarContext = React.createContext<TabBarContextValue | null>(null)
@@ -103,7 +104,18 @@ export default function TabBar(props: TabBarProps) {
   }
 
   return (
-    <TabBarContext.Provider value={{ updateClipPath }}>
+    <TabBarContext.Provider
+      value={{
+        updateClipPath,
+        observeElement: element => {
+          resizeObserver.observe(element)
+
+          return () => {
+            resizeObserver.unobserve(element)
+          }
+        },
+      }}
+    >
       <div className="relative flex grow">
         <div
           ref={element => {
@@ -162,9 +174,22 @@ interface InternalTabProps extends Readonly<React.PropsWithChildren> {
 /** A tab in a {@link TabBar}. */
 export function Tab(props: InternalTabProps) {
   const { isActive, icon, labelId, loadingPromise, children, onPress, onClose } = props
-  const { updateClipPath } = useTabBarContext()
+  const { updateClipPath, observeElement } = useTabBarContext()
+  const ref = React.useRef<HTMLDivElement | null>(null)
   const { getText } = textProvider.useText()
   const [isLoading, setIsLoading] = React.useState(loadingPromise != null)
+
+  React.useLayoutEffect(() => {
+    if (isActive) {
+      updateClipPath(ref.current)
+    }
+  }, [isActive])
+
+  React.useEffect(() => {
+    if (ref.current) {
+      return observeElement(ref.current)
+    }
+  }, [])
 
   React.useEffect(() => {
     if (loadingPromise) {
@@ -184,7 +209,7 @@ export function Tab(props: InternalTabProps) {
 
   return (
     <div
-      ref={isActive ? updateClipPath : null}
+      ref={ref}
       className={tailwindMerge.twMerge(
         'group relative h-full',
         !isActive && 'hover:enabled:bg-frame'

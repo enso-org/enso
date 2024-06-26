@@ -321,6 +321,7 @@ export const Button = React.forwardRef(function Button(
   const tooltipElement = shouldShowTooltip ? tooltip ?? ariaProps['aria-label'] : null
 
   const isLoading = loading || implicitlyLoading
+  const disabled = isDisabled ?? isLoading
 
   React.useLayoutEffect(() => {
     const delay = 350
@@ -350,7 +351,7 @@ export const Button = React.forwardRef(function Button(
   }, [isLoading, loaderPosition])
 
   const handlePress = (event: aria.PressEvent): void => {
-    if (!isLoading) {
+    if (!disabled) {
       const result = onPress(event)
 
       if (result instanceof Promise) {
@@ -371,7 +372,7 @@ export const Button = React.forwardRef(function Button(
     icon: iconClasses,
     text: textClasses,
   } = BUTTON_STYLES({
-    isDisabled,
+    isDisabled: disabled,
     isActive,
     loading: isLoading,
     fullWidth,
@@ -423,7 +424,7 @@ export const Button = React.forwardRef(function Button(
         {
           // eslint-disable-next-line no-restricted-syntax
           ...{ ref: ref as never },
-          isDisabled,
+          isDisabled: disabled,
           // we use onPressEnd instead of onPress because for some reason react-aria doesn't trigger
           // onPress on EXTRA_CLICK_ZONE, but onPress{start,end} are triggered
           onPressEnd: handlePress,
