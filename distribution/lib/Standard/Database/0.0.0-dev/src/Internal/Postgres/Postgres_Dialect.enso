@@ -201,11 +201,23 @@ type Postgres_Dialect
        Add an extra cast to the output of certain operations with certain arguments
     cast_op_type self (op_kind:Text) (args:(Vector Internal_Column)) (expression:SQL_Expression) =
         is_bigint ic = ic.sql_type_reference.get.typeid == Types.BIGINT
+        is_int ic =
+            typeid = ic.sql_type_reference.get.typeid
+            typeid == Types.SMALLINT || typeid == Types.INTEGER || typeid == Types.BIGINT
+        ##
+            is_float ic =
+            typeid = ic.sql_type_reference.get.typeid
+            typeid == Types.REAL || typeid == Types.DOUBLE
 
-        # "bi" means arbitrary-precision integer, not SQL BIGINT
-        cast_to_bi = (op_kind == "SUM" && is_bigint (args.at 0))
+        cast_to = case op_kind of
+            "SUM" ->
+                if is_bigint (args.at 0) then "numeric(1000,0)" else Nothing
+            "AVG" ->
+                if is_int (args.at 0) then "float8" else Nothing
+            _ -> Nothing
 
-        if cast_to_bi then SQL_Expression.Operation "CAST" [expression, SQL_Expression.Literal "numeric(1000,0)"] else expression
+        if cast_to.is_nothing then expression else
+            SQL_Expression.Operation "CAST" [expression, SQL_Expression.Literal cast_to]
 
     ## PRIVATE
     prepare_fetch_types_query : SQL_Expression -> Context -> SQL_Statement
