@@ -3,7 +3,7 @@ package org.enso.editions.repository
 import io.circe._
 import io.circe.syntax.EncoderOps
 import org.enso.editions.EditionName
-import org.enso.yaml.SnakeYamlDecoder
+import org.enso.yaml.{SnakeYamlDecoder, SnakeYamlEncoder}
 import org.yaml.snakeyaml.error.YAMLException
 import org.yaml.snakeyaml.nodes.{MappingNode, Node, ScalarNode, SequenceNode}
 
@@ -49,6 +49,14 @@ object Manifest {
           case _ =>
             Left(new YAMLException("Failed to decode editions"))
         }
+    }
+
+  implicit val encoderSnake: SnakeYamlEncoder[Manifest] =
+    new SnakeYamlEncoder[Manifest] {
+      override def encode(value: Manifest) = {
+        val editionsEncoder = implicitly[SnakeYamlEncoder[Seq[EditionName]]]
+        toMap("editions", editionsEncoder.encode(value.editions))
+      }
     }
 
   /** The name of the manifest file that should be present at the root of

@@ -2,7 +2,7 @@ package org.enso.editions
 
 import io.circe.syntax.EncoderOps
 import io.circe.{Decoder, DecodingFailure, Encoder}
-import org.enso.yaml.SnakeYamlDecoder
+import org.enso.yaml.{SnakeYamlDecoder, SnakeYamlEncoder}
 import org.yaml.snakeyaml.error.YAMLException
 import org.yaml.snakeyaml.nodes.{MappingNode, Node, ScalarNode}
 
@@ -63,6 +63,13 @@ object LibraryName {
               new YAMLException(s"'$v' is not a valid library name")
             )
         }
+    }
+
+  implicit val encoderSnake: SnakeYamlEncoder[LibraryName] =
+    new SnakeYamlEncoder[LibraryName] {
+      override def encode(value: LibraryName) = {
+        value.toString
+      }
     }
 
   /** A [[Decoder]] instance allowing to parse a [[LibraryName]]. */

@@ -1,7 +1,7 @@
 package org.enso.yaml
 
-import io.circe.yaml.Printer
-import io.circe.Encoder
+import org.yaml.snakeyaml.nodes.Tag
+import org.yaml.snakeyaml.{DumperOptions, Yaml}
 
 import java.io.{FileReader, StringReader}
 import java.nio.file.Path
@@ -30,6 +30,12 @@ object YamlHelper {
     }.flatten
 
   /** Saves a YAML representation of an object into a string. */
-  def toYaml[A](obj: A)(implicit encoder: Encoder[A]): String =
-    Printer.spaces2.copy(preserveOrder = true).pretty(encoder(obj))
+  def toYaml[A](obj: A)(implicit encoder: SnakeYamlEncoder[A]): String = {
+    val node          = encoder.encode(obj)
+    val dumperOptions = new DumperOptions()
+    dumperOptions.setIndent(2)
+    dumperOptions.setPrettyFlow(true)
+    val yaml = new Yaml(dumperOptions)
+    yaml.dumpAs(node, Tag.MAP, DumperOptions.FlowStyle.BLOCK)
+  }
 }

@@ -2,7 +2,7 @@ package org.enso.pkg
 
 import io.circe._
 import io.circe.syntax._
-import io.circe.yaml.Printer
+import org.yaml.snakeyaml.nodes.Tag
 import org.enso.semver.SemVer
 import org.enso.editions.EditionSerialization._
 import org.enso.editions.{
@@ -13,12 +13,13 @@ import org.enso.editions.{
   SemVerEnsoVersion
 }
 import org.enso.pkg.validation.NameValidation
-import org.enso.yaml.SnakeYamlDecoder
+import org.enso.yaml.{SnakeYamlDecoder, SnakeYamlEncoder}
+import org.yaml.snakeyaml.{DumperOptions, Yaml}
 import org.yaml.snakeyaml.error.YAMLException
-import org.yaml.snakeyaml.nodes.{MappingNode, Node, ScalarNode}
+import org.yaml.snakeyaml.nodes.{MappingNode, Node}
 
 import java.io.{Reader, StringReader}
-import scala.jdk.CollectionConverters.IterableHasAsScala
+import java.util
 import scala.util.Try
 
 /** Contact information to a user.
@@ -89,26 +90,33 @@ object Contact {
           if (mappingNode.getValue.size() > 2)
             Left(new YAMLException("invalid number of fields for Contact"))
           else {
-            val clazzMap = mappingNode.getValue.asScala.map { node =>
-              node.getKeyNode match {
-                case n: ScalarNode =>
-                  (n.getValue, node.getValueNode)
-                case _ =>
-                  ???
-              }
-            }.toMap
+            val bindings = mappingKV(mappingNode)
             val result = for {
-              name <- clazzMap
+              name <- bindings
                 .get("name")
                 .map(optString.decode)
                 .getOrElse(Right(None))
-              email <- clazzMap
+              email <- bindings
                 .get("email")
                 .map(optString.decode)
                 .getOrElse(Right(None))
             } yield Contact(name, email)
             result
           }
+      }
+    }
+
+  implicit val encoderSnake: SnakeYamlEncoder[Contact] =
+    new SnakeYamlEncoder[Contact] {
+      override def encode(value: Contact) = {
+        val elements = new util.ArrayList[(String, Object)]()
+        value.name
+          .map((Fields.Name, _))
+          .foreach(elements.add)
+        value.email
+          .map((Fields.Email, _))
+          .foreach(elements.add)
+        toMap(elements)
       }
     }
 }
@@ -150,8 +158,14 @@ case class Config(
 ) {
 
   /** Converts the configuration into a YAML representation. */
-  def toYaml: String =
-    Printer.spaces2.copy(preserveOrder = true).pretty(Config.encoder(this))
+  def toYaml: String = {
+    val node          = implicitly[SnakeYamlEncoder[Config]].encode(this)
+    val dumperOptions = new DumperOptions()
+    dumperOptions.setIndent(2)
+    dumperOptions.setPrettyFlow(true)
+    val yaml = new Yaml(dumperOptions)
+    yaml.dumpAs(node, Tag.MAP, DumperOptions.FlowStyle.BLOCK)
+  }
 
   /** @return the module of name. */
   def moduleName: String =
@@ -272,6 +286,64 @@ object Config {
       }
     }
 
+  implicit val encoderSnake: SnakeYamlEncoder[Config] =
+    new SnakeYamlEncoder[Config] {
+      override def encode(value: Config) = {
+        val contactsEncoder = implicitly[SnakeYamlEncoder[List[Contact]]]
+        val editionEncoder  = implicitly[SnakeYamlEncoder[Editions.RawEdition]]
+        val booleanEncoder  = implicitly[SnakeYamlEncoder[Boolean]]
+        val componentGroupsEncoder =
+          implicitly[SnakeYamlEncoder[ComponentGroups]]
+
+        val elements = new util.ArrayList[(String, Object)]()
+        elements.add((JsonFields.name, value.name))
+        value.normalizedName.foreach(v =>
+          elements.add((JsonFields.normalizedName, v))
+        )
+        if (value.namespace != defaultNamespace)
+          elements.add((JsonFields.namespace, value.namespace))
+        if (value.version != defaultVersion)
+          elements.add(
+            (JsonFields.version, value.version)
+          )
+        if (value.license != defaultLicense)
+          elements.add(
+            (JsonFields.license, value.license)
+          )
+        if (value.authors.nonEmpty) {
+          elements.add(
+            (JsonFields.author, contactsEncoder.encode(value.authors))
+          )
+        }
+        if (value.maintainers.nonEmpty) {
+          elements.add(
+            (JsonFields.maintainer, contactsEncoder.encode(value.maintainers))
+          )
+        }
+
+        value.edition.foreach { edition =>
+          if (edition.isDerivingWithoutOverrides)
+            elements.add((JsonFields.edition, edition.parent.get))
+          else
+            elements.add((JsonFields.edition, editionEncoder.encode(edition)))
+        }
+        if (value.preferLocalLibraries != defaultPreferLocalLibraries)
+          elements.add(
+            (
+              JsonFields.preferLocalLibraries,
+              booleanEncoder.encode(value.preferLocalLibraries)
+            )
+          )
+        value.componentGroups.foreach(v =>
+          elements.add(
+            (JsonFields.componentGroups, componentGroupsEncoder.encode(v))
+          )
+        )
+
+        toMap(elements)
+      }
+    }
+
   implicit val decoder: Decoder[Config] = { json =>
     for {
       name           <- json.get[String](JsonFields.name)
@@ -364,11 +436,6 @@ object Config {
 
     overridesObject.asJson
   }
-
-  /** Tries to parse the [[Config]] from a YAML string. */
-  /*def fromYaml(yamlString: String): Try[Config] = {
-    yaml.parser.parse(yamlString).flatMap(_.as[Config]).toTry
-  }*/
 
   /** Tries to parse the [[Config]] directly from the Reader */
   def fromYaml(reader: Reader): Try[Config] = {

@@ -10,7 +10,6 @@ object ParseError {
 
   /** Wraps a parser exception into a more user-friendly [[ParseError]]. */
   def apply(error: Throwable): ParseError = {
-    error.printStackTrace()
     ParseError(error.getMessage, error)
   }
 }

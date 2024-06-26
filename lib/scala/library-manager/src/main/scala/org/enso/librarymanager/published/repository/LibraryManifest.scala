@@ -2,12 +2,13 @@ package org.enso.librarymanager.published.repository
 
 import io.circe.{Decoder, Encoder, Json}
 import io.circe.syntax.EncoderOps
-import io.circe.yaml
 import org.enso.editions.LibraryName
-import org.enso.yaml.SnakeYamlDecoder
+import org.enso.yaml.{SnakeYamlDecoder, SnakeYamlEncoder}
 import org.yaml.snakeyaml.error.YAMLException
 import org.yaml.snakeyaml.nodes.{MappingNode, Node}
 
+import java.io.StringReader
+import java.util
 import scala.util.Try
 
 /** The manifest file containing metadata related to a published library.
@@ -82,6 +83,29 @@ object LibraryManifest {
         }
     }
 
+  implicit val encoderSnake: SnakeYamlEncoder[LibraryManifest] =
+    new SnakeYamlEncoder[LibraryManifest] {
+      override def encode(value: LibraryManifest): AnyRef = {
+        val archivesEncoder     = implicitly[SnakeYamlEncoder[Seq[String]]]
+        val dependenciesEncoder = implicitly[SnakeYamlEncoder[Seq[LibraryName]]]
+        val elements            = new util.ArrayList[(String, Object)]()
+        if (value.archives.nonEmpty)
+          elements.add(
+            (Fields.archives, archivesEncoder.encode(value.archives))
+          )
+        if (value.dependencies.nonEmpty)
+          elements.add(
+            (
+              Fields.dependencies,
+              dependenciesEncoder.encode(value.dependencies)
+            )
+          )
+        value.tagLine.foreach(v => elements.add((Fields.tagLine, v)))
+        value.description.foreach(v => elements.add((Fields.description, v)))
+        toMap(elements)
+      }
+    }
+
   /** A [[Decoder]] instance for parsing [[LibraryManifest]]. */
   implicit val decoder: Decoder[LibraryManifest] = { json =>
     for {
@@ -115,7 +139,10 @@ object LibraryManifest {
 
   /** Parser the provided string and returns a LibraryManifest, if valid */
   def fromYaml(yamlString: String): Try[LibraryManifest] = {
-    yaml.parser.parse(yamlString).flatMap(_.as[LibraryManifest]).toTry
+    val snakeYaml = new org.yaml.snakeyaml.Yaml()
+    Try(snakeYaml.compose(new StringReader(yamlString))).toEither
+      .flatMap(implicitly[SnakeYamlDecoder[LibraryManifest]].decode(_))
+      .toTry
   }
 
   /** The name of the manifest file as included in the directory associated with

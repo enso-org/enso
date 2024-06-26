@@ -4,7 +4,7 @@ import io.circe.syntax.EncoderOps
 import io.circe.{Decoder, DecodingFailure, Encoder, Json}
 import org.yaml.snakeyaml.error.YAMLException
 import org.yaml.snakeyaml.nodes.{Node, ScalarNode, Tag}
-import org.enso.yaml.SnakeYamlDecoder
+import org.enso.yaml.{SnakeYamlDecoder, SnakeYamlEncoder}
 
 /** A helper type to handle special parsing logic of edition names.
   *
@@ -40,6 +40,13 @@ object EditionName {
           case _ =>
             Left(new YAMLException("Unexpected edition name"))
         }
+    }
+
+  implicit val encoderSnake: SnakeYamlEncoder[EditionName] =
+    new SnakeYamlEncoder[EditionName] {
+      override def encode(value: EditionName): Object = {
+        value.name
+      }
     }
 
   /** A [[Decoder]] instance for [[EditionName]] that accepts not only strings
