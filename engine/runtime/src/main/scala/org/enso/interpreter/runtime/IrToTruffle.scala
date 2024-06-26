@@ -94,8 +94,6 @@ import org.enso.interpreter.node.{
   MethodRootNode,
   ExpressionNode => RuntimeExpression
 }
-import org.enso.interpreter.runtime.EnsoContext
-import org.enso.interpreter.runtime.callable
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition
 import org.enso.interpreter.runtime.data.atom.{Atom, AtomConstructor}
 import org.enso.interpreter.runtime.callable.function.{
@@ -404,9 +402,17 @@ class IrToTruffle(
                     throw new CompilerError(
                       "Impossible polyglot field, should be caught by MethodDefinitions pass."
                     )
-                  case _: BindingsMap.ResolvedMethod =>
+                  case _: BindingsMap.ResolvedModuleMethod =>
                     throw new CompilerError(
-                      "Impossible here, should be caught by MethodDefinitions pass."
+                      "Impossible module method here, should be caught by MethodDefinitions pass."
+                    )
+                  case _: BindingsMap.ResolvedStaticMethod =>
+                    throw new CompilerError(
+                      "Impossible static method here, should be caught by MethodDefinitions pass."
+                    )
+                  case _: BindingsMap.ResolvedConversionMethod =>
+                    throw new CompilerError(
+                      "Impossible conversion method here, should be caught by MethodDefinitions pass."
                     )
                 }
               }
@@ -871,9 +877,17 @@ class IrToTruffle(
           throw new CompilerError(
             "Impossible polyglot field, should be caught by MethodDefinitions pass."
           )
-        case _: BindingsMap.ResolvedMethod =>
+        case _: BindingsMap.ResolvedModuleMethod =>
           throw new CompilerError(
-            "Impossible here, should be caught by MethodDefinitions pass."
+            "Impossible module method here, should be caught by MethodDefinitions pass."
+          )
+        case _: BindingsMap.ResolvedStaticMethod =>
+          throw new CompilerError(
+            "Impossible static method here, should be caught by MethodDefinitions pass."
+          )
+        case _: BindingsMap.ResolvedConversionMethod =>
+          throw new CompilerError(
+            "Impossible conversion method here, should be caught by MethodDefinitions pass."
           )
       }
     }
@@ -979,7 +993,7 @@ class IrToTruffle(
                 name,
                 fun
               )
-            case BindingsMap.ResolvedMethod(module, method) =>
+            case BindingsMap.ResolvedModuleMethod(module, method) =>
               val actualModule = module.unsafeAsModule()
               val fun = asScope(actualModule)
                 .getMethodForType(
@@ -995,6 +1009,100 @@ class IrToTruffle(
                 name,
                 fun
               )
+            case BindingsMap.ResolvedStaticMethod(module, staticMethod) =>
+              val actualModule = module.unsafeAsModule()
+              val currentScope = asScope(actualModule)
+              actualModule.getBindingsMap.resolveName(
+                staticMethod.tpName
+              ) match {
+                case Right(List(BindingsMap.ResolvedType(modWithTp, _))) =>
+                  val tpScope = asScope(modWithTp.unsafeAsModule())
+                  val tp      = tpScope.getType(staticMethod.tpName, true)
+                  assert(
+                    tp != null,
+                    s"Type should be defined in module ${modWithTp.getName}"
+                  )
+                  // We have to search for the method on eigen type, because it is a static method.
+                  // Static methods are always defined on eigen types
+                  val eigenTp = tp.getEigentype
+                  val fun =
+                    currentScope.getMethodForType(
+                      eigenTp,
+                      staticMethod.methodName
+                    )
+                  assert(
+                    fun != null,
+                    s"exported symbol (static method) `${staticMethod.name}` needs to be registered first in the module "
+                  )
+                  scopeBuilder.registerMethod(
+                    scopeAssociatedType,
+                    name,
+                    fun
+                  )
+                case _ =>
+                  throw new CompilerError(
+                    s"Type ${staticMethod.tpName} should be resolvable in module ${module.getName}"
+                  )
+              }
+            case BindingsMap.ResolvedConversionMethod(
+                  module,
+                  conversionMethod
+                ) =>
+              val actualModule = module.unsafeAsModule()
+              val actualScope  = asScope(actualModule)
+              actualModule.getBindingsMap.resolveName(
+                conversionMethod.targetTpName
+              ) match {
+                case Right(
+                      List(BindingsMap.ResolvedType(modWithTargetTp, _))
+                    ) =>
+                  val targetTpScope = asScope(modWithTargetTp.unsafeAsModule())
+                  val targetTp =
+                    targetTpScope.getType(conversionMethod.targetTpName, true)
+                  assert(
+                    targetTp != null,
+                    s"Target type should be defined in module ${module.getName}"
+                  )
+                  actualModule.getBindingsMap.resolveName(
+                    conversionMethod.sourceTpName
+                  ) match {
+                    case Right(
+                          List(BindingsMap.ResolvedType(modWithSourceTp, _))
+                        ) =>
+                      val sourceTpScope =
+                        asScope(modWithSourceTp.unsafeAsModule())
+                      val sourceTp = sourceTpScope.getType(
+                        conversionMethod.sourceTpName,
+                        true
+                      )
+                      assert(
+                        sourceTp != null,
+                        s"Source type should be defined in module ${module.getName}"
+                      )
+                      val conversionFun =
+                        actualScope.lookupConversionDefinition(
+                          sourceTp,
+                          targetTp
+                        )
+                      assert(
+                        conversionFun != null,
+                        s"Conversion method `$conversionMethod` should be defined in module ${module.getName}"
+                      )
+                      scopeBuilder.registerConversionMethod(
+                        targetTp,
+                        sourceTp,
+                        conversionFun
+                      )
+                    case _ =>
+                      throw new CompilerError(
+                        s"Source type ${conversionMethod.sourceTpName} should be resolvable in module ${module.getName}"
+                      )
+                  }
+                case _ =>
+                  throw new CompilerError(
+                    s"Target type ${conversionMethod.targetTpName} should be resolvable in module ${module.getName}"
+                  )
+              }
             case BindingsMap.ResolvedPolyglotSymbol(_, _) =>
             case BindingsMap.ResolvedPolyglotField(_, _)  =>
           }
@@ -1428,11 +1536,27 @@ class IrToTruffle(
                   })
                 case Some(
                       BindingsMap.Resolution(
-                        BindingsMap.ResolvedMethod(_, _)
+                        BindingsMap.ResolvedModuleMethod(_, _)
                       )
                     ) =>
                   throw new CompilerError(
-                    "Impossible method here, should be caught by Patterns resolution pass."
+                    "Impossible module method here, should be caught by Patterns resolution pass."
+                  )
+                case Some(
+                      BindingsMap.Resolution(
+                        BindingsMap.ResolvedStaticMethod(_, _)
+                      )
+                    ) =>
+                  throw new CompilerError(
+                    "Impossible static method here, should be caught by Patterns resolution pass."
+                  )
+                case Some(
+                      BindingsMap.Resolution(
+                        BindingsMap.ResolvedConversionMethod(_, _)
+                      )
+                    ) =>
+                  throw new CompilerError(
+                    "Impossible conversion method here, should be caught by Patterns resolution pass."
                   )
               }
           }
@@ -1800,9 +1924,17 @@ class IrToTruffle(
           }
 
           ConstantObjectNode.build(s)
-        case BindingsMap.ResolvedMethod(_, method) =>
+        case BindingsMap.ResolvedModuleMethod(_, method) =>
           throw new CompilerError(
-            s"Impossible here, ${method.name} should be caught when translating application"
+            s"Impossible here, module method ${method.name} should be caught when translating application"
+          )
+        case BindingsMap.ResolvedStaticMethod(_, staticMethod) =>
+          throw new CompilerError(
+            s"Impossible here, static method ${staticMethod.name} should be caught when translating application"
+          )
+        case BindingsMap.ResolvedConversionMethod(_, conversionMethod) =>
+          throw new CompilerError(
+            s"Impossible here, conversion method ${conversionMethod.targetTpName}.${conversionMethod.methodName} should be caught when translating application"
           )
       }
     }

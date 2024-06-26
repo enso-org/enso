@@ -237,7 +237,8 @@ Text.characters self =
     Vector.build builder->
         self.each builder.append
 
-## GROUP Selections
+## ALIAS match
+   GROUP Selections
    ICON find
    Find the regular expression `pattern` in `self`, returning the first match
    if present or `Nothing` if not found.
@@ -266,7 +267,8 @@ Text.find self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
     compiled_pattern = Regex.compile pattern case_insensitive=case_insensitive
     compiled_pattern.match self
 
-## GROUP Selections
+## ALIAS matches
+   GROUP Selections
    ICON find
    Finds all the matches of the regular expression `pattern` in `self`,
    returning a Vector. If not found, will be an empty Vector.

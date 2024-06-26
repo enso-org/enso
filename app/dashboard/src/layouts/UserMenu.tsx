@@ -10,8 +10,6 @@ import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
-import * as pageSwitcher from '#/layouts/PageSwitcher'
-
 import * as aria from '#/components/aria'
 import MenuEntry from '#/components/MenuEntry'
 import Modal from '#/components/Modal'
@@ -31,13 +29,13 @@ import * as tailwindMerge from '#/utilities/tailwindMerge'
 export interface UserMenuProps {
   /** If `true`, disables `data-testid` because it will not be visible. */
   readonly hidden?: boolean
-  readonly setPage: (page: pageSwitcher.Page) => void
+  readonly goToSettingsPage: () => void
   readonly onSignOut: () => void
 }
 
 /** Handling the UserMenuItem click event logic and displaying its content. */
 export default function UserMenu(props: UserMenuProps) {
-  const { hidden = false, setPage, onSignOut } = props
+  const { hidden = false, goToSettingsPage, onSignOut } = props
   const [initialized, setInitialized] = React.useState(false)
   const localBackend = backendProvider.useLocalBackend()
   const { signOut } = authProvider.useAuth()
@@ -112,13 +110,7 @@ export default function UserMenu(props: UserMenuProps) {
                     }}
                   />
                 )}
-                <MenuEntry
-                  action="settings"
-                  doAction={() => {
-                    unsetModal()
-                    setPage(pageSwitcher.Page.settings)
-                  }}
-                />
+                <MenuEntry action="settings" doAction={goToSettingsPage} />
                 {aboutThisAppMenuEntry}
                 <MenuEntry
                   action="signOut"

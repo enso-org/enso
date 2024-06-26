@@ -192,6 +192,7 @@ declare global {
       readonly ENSO_CLOUD_ENSO_HOST?: string
 
       // === E2E test variables ===
+      readonly PWDEBUG?: '1'
       readonly IS_IN_PLAYWRIGHT_TEST?: `${boolean}`
 
       // === Electron watch script variables ===
