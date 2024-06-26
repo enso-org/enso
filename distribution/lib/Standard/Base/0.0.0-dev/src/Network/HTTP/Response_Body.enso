@@ -98,16 +98,17 @@ type Response_Body
     @format decode_format_selector
     decode : File_Format -> Any -> Any
     decode self format=Auto_Detect ~if_unsupported=(Error.throw (File_Error.Unsupported_Type self.metadata)) =
-        File_Format.handle_format_missing_arguments format <| case format of
+        case format of
             Auto_Detect ->
                 detected_format = Auto_Detect.get_reading_format self.metadata
                 if detected_format.is_nothing then if_unsupported else
                     self.decode detected_format
             _ ->
-                type_obj = Meta.type_of format
-                if can_decode type_obj . not then Error.throw (Illegal_Argument.Error type_obj.to_text+" cannot be used to decode from a stream. It must be saved to a file first.") else
+                resolved_format = File_Format.resolve format
+                type_obj = Meta.type_of resolved_format
+                if can_decode type_obj . not then Error.throw (Illegal_Argument.Error type_obj.to_text+" cannot read from a stream, save to a file first.") else
                     self.with_stream stream->
-                        format.read_stream stream self.metadata
+                        resolved_format.read_stream stream self.metadata
 
     ## ALIAS bytes
        GROUP Input
@@ -127,7 +128,7 @@ type Response_Body
          fallback.
     @encoding Encoding.default_widget
     decode_as_text : Encoding | Infer -> Text
-    decode_as_text self (encoding : Encoding | Infer = Infer) = self.decode (Plain_Text_Format.Plain_Text encoding)
+    decode_as_text self (encoding : Encoding | Infer = Infer) = self.decode (..Plain_Text encoding)
 
     ## ALIAS parse as json, parse json
        GROUP Conversions

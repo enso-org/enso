@@ -165,11 +165,14 @@ distinct vector on =
                     existing.insert key True
 
 duplicates vector on = Vector.build builder->
-    vector.fold Map.empty current-> item->
+    counts = vector.fold Map.empty current-> item->
         key = on item
         count = current.get key 0
-        if count == 1 then builder.append item
         current.insert key count+1
+    vector.map item->
+        key = on item
+        count = counts.get key 0
+        if count != 1 then builder.append item
 
 take vector range = case range of
     ## We are using a specialized implementation for `take Sample`, because

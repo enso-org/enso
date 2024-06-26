@@ -28,7 +28,6 @@ import * as ariaComponents from '#/components/AriaComponents'
 import * as result from '#/components/Result'
 
 import * as backendModule from '#/services/Backend'
-import type Backend from '#/services/Backend'
 import * as projectManager from '#/services/ProjectManager'
 
 import AssetQuery from '#/utilities/AssetQuery'
@@ -69,20 +68,14 @@ export interface DriveProps {
   readonly dispatchAssetListEvent: (directoryEvent: assetListEvent.AssetListEvent) => void
   readonly assetEvents: assetEvent.AssetEvent[]
   readonly dispatchAssetEvent: (directoryEvent: assetEvent.AssetEvent) => void
-  readonly projectStartupInfo: backendModule.ProjectStartupInfo | null
   readonly setProjectStartupInfo: (projectStartupInfo: backendModule.ProjectStartupInfo) => void
-  readonly doOpenEditor: (
-    backend: Backend,
-    project: backendModule.ProjectAsset,
-    setProject: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>>,
-    switchPage: boolean
-  ) => void
-  readonly doCloseEditor: (project: backendModule.ProjectAsset) => void
+  readonly doOpenEditor: () => void
+  readonly doCloseEditor: (projectId: backendModule.ProjectId) => void
 }
 
 /** Contains directory path and directory contents (projects, folders, secrets and files). */
 export default function Drive(props: DriveProps) {
-  const { hidden, initialProjectName, projectStartupInfo } = props
+  const { hidden, initialProjectName } = props
   const { assetListEvents, dispatchAssetListEvent, assetEvents, dispatchAssetEvent } = props
   const { setProjectStartupInfo, doOpenEditor, doCloseEditor, category, setCategory } = props
 
@@ -337,7 +330,6 @@ export default function Drive(props: DriveProps) {
                   category={category}
                   setSuggestions={setSuggestions}
                   initialProjectName={initialProjectName}
-                  projectStartupInfo={projectStartupInfo}
                   assetEvents={assetEvents}
                   dispatchAssetEvent={dispatchAssetEvent}
                   assetListEvents={assetListEvents}

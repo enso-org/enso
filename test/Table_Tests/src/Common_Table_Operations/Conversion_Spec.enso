@@ -677,8 +677,8 @@ add_specs suite_builder setup =
 
         group_builder.specify "should report unsupported" <|
             t = table_builder [["X", [1, 2, 3]]]
-            t.auto_value_types . should_fail_with Unsupported_Database_Operation
-            t.at "X" . auto_value_type . should_fail_with Unsupported_Database_Operation
+            t.auto_cast . should_fail_with Unsupported_Database_Operation
+            t.at "X" . auto_cast . should_fail_with Unsupported_Database_Operation
 
     # The in-memory functionality of `expand_column` is tested in test/Table_Tests/src/In_Memory/Table_Conversion_Spec.enso
     if setup.is_database then suite_builder.group prefix+"Table.expand_column" group_builder->
@@ -733,7 +733,7 @@ add_specs suite_builder setup =
                 t1.at "mixed_time" . value_type . should_equal Value_Type.Mixed
                 t1.at "bools" . value_type . should_equal Value_Type.Mixed
 
-                t2 = t1.auto_value_types shrink_types=shrink_types
+                t2 = t1.auto_cast shrink_types=shrink_types
                 # Depending on shrink_types value the size of the Char/Integer types may vary - exact details tested elsewhere.
                 t2.at "strs" . value_type . should_be_a (Value_Type.Char ...)
                 t2.at "ints" . value_type . should_be_a (Value_Type.Integer ...)
@@ -750,18 +750,18 @@ add_specs suite_builder setup =
             t0 = table_builder [["strs", [mixer, "a", "b"]], ["ints", [mixer, 2, 3]], ["floats", [mixer, 1.5, 2.5]]]
             t1 = t0.drop 1
 
-            t2 = t1.auto_value_types []
+            t2 = t1.auto_cast []
             t2.at "strs" . value_type . should_equal Value_Type.Mixed
             t2.at "ints" . value_type . should_equal Value_Type.Mixed
             t2.at "floats" . value_type . should_equal Value_Type.Mixed
 
-            t3 = t1.auto_value_types ["strs"]
+            t3 = t1.auto_cast ["strs"]
             t3.at "strs" . value_type . should_equal Value_Type.Char
             t3.at "ints" . value_type . should_equal Value_Type.Mixed
             t3.at "floats" . value_type . should_equal Value_Type.Mixed
 
             # should match ints and floats but not strs
-            t4 = t1.auto_value_types "[if].*".to_regex
+            t4 = t1.auto_cast "[if].*".to_regex
             t4.at "strs" . value_type . should_equal Value_Type.Mixed
             t4.at "ints" . value_type . should_equal Value_Type.Integer
             t4.at "floats" . value_type . should_equal Value_Type.Float
@@ -771,7 +771,7 @@ add_specs suite_builder setup =
             t0 = table_builder [["X", [1.0, 2.0, 3.0]], ["Y", [mixer, 2.5, 3.0]]]
             t1 = t0.drop 1
 
-            t2 = t1.auto_value_types [..By_Type ..Float]
+            t2 = t1.auto_cast [..By_Type ..Float]
             t2.at "X" . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
             t2.at "Y" . value_type . should_equal Value_Type.Mixed
 
@@ -781,7 +781,7 @@ add_specs suite_builder setup =
             t1.at "Y" . value_type . should_equal Value_Type.Float
             t1.at "Z" . value_type . should_equal Value_Type.Float
 
-            t2 = t1.auto_value_types shrink_types=False
+            t2 = t1.auto_cast shrink_types=False
             t2.at "X" . to_vector . should_equal [1, 2, 3]
             t2.at "X" . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
             t2.at "Y" . value_type . should_equal Value_Type.Float
@@ -795,7 +795,7 @@ add_specs suite_builder setup =
 
         group_builder.specify "will not parse text columns" <|
             t1 = table_builder [["X", ["1", "2", "3"]]]
-            c2 = t1.at "X" . auto_value_type
+            c2 = t1.at "X" . auto_cast
             c2.value_type . should_equal Value_Type.Char
 
         group_builder.specify "will 'undo' a cast to Mixed" <|
@@ -804,7 +804,7 @@ add_specs suite_builder setup =
             t2.at "X" . value_type . should_equal Value_Type.Mixed
             t2.at "Y" . value_type . should_equal Value_Type.Mixed
 
-            t3 = t2.auto_value_types
+            t3 = t2.auto_cast
             t3.at "X" . value_type . should_equal Value_Type.Integer
             t3.at "Y" . value_type . should_equal Value_Type.Char
 
@@ -813,7 +813,7 @@ add_specs suite_builder setup =
             c1 = c0.drop 1
 
             c1.value_type . should_equal Value_Type.Mixed
-            c2 = c1.auto_value_type
+            c2 = c1.auto_cast
             c2.value_type . should_be_a (Value_Type.Decimal ...)
             c2.to_vector . should_equal [1, 2, (2^100)+1]
 
@@ -831,13 +831,13 @@ add_specs suite_builder setup =
                     True  -> t1.at "F" . value_type . should_equal Value_Type.Mixed
                     False -> t1.at "F" . value_type . should_equal Value_Type.Float
 
-                t2 = t1.auto_value_types shrink_types=False
+                t2 = t1.auto_cast shrink_types=False
                 t2.at "X" . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
                 t2.at "Y" . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
                 t2.at "Z" . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
                 t2.at "F" . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
 
-                t3 = t1.auto_value_types shrink_types=True
+                t3 = t1.auto_cast shrink_types=True
                 # Even though X's values are small enough to fit in a Byte, we stick to 16-bit Integers.
                 t3.at "X" . value_type . should_equal (Value_Type.Integer Bits.Bits_16)
                 t3.at "Y" . value_type . should_equal (Value_Type.Integer Bits.Bits_32)
@@ -850,7 +850,7 @@ add_specs suite_builder setup =
             c1.value_type . should_equal Value_Type.Byte
 
             [True, False].each shrink_types->
-                c2 = c1.auto_value_type shrink_types=shrink_types
+                c2 = c1.auto_cast shrink_types=shrink_types
                 c2.value_type . should_equal Value_Type.Byte
 
         group_builder.specify "Decimal (scale=0, i.e. integer) columns should also be shrinked if possible and shrink_types=True" <|
@@ -861,7 +861,7 @@ add_specs suite_builder setup =
             t1.at "Y" . value_type . should_equal (Value_Type.Decimal scale=0)
             t1.at "Z" . value_type . should_equal (Value_Type.Decimal scale=0)
 
-            t2 = t1.auto_value_types shrink_types=False
+            t2 = t1.auto_cast shrink_types=False
 
             # Without shrinking we get an integer type, but not the smallest one - just the default 64-bit.
             t2.at "X" . to_vector . should_equal [1, 2, 3]
@@ -869,7 +869,7 @@ add_specs suite_builder setup =
             t2.at "Y" . value_type . should_equal (Value_Type.Decimal scale=0)
             t2.at "Z" . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
 
-            t3 = t1.auto_value_types shrink_types=True
+            t3 = t1.auto_cast shrink_types=True
             t3.at "X" . value_type . should_equal (Value_Type.Integer Bits.Bits_16)
             t3.at "Y" . value_type . should_equal (Value_Type.Decimal scale=0)
             t3.at "Z" . value_type . should_equal (Value_Type.Integer Bits.Bits_16)
@@ -885,20 +885,20 @@ add_specs suite_builder setup =
                     True  -> c1.value_type . should_equal Value_Type.Mixed
                     False -> c1.value_type . should_equal (Value_Type.Char size=Nothing variable_length=True)
 
-                c2 = c1.auto_value_type shrink_types=False
+                c2 = c1.auto_cast shrink_types=False
                 c2.value_type . should_equal (Value_Type.Char size=Nothing variable_length=True)
 
-                c3 = c1.auto_value_type shrink_types=True
+                c3 = c1.auto_cast shrink_types=True
                 c3.value_type . should_equal (Value_Type.Char size=2 variable_length=False)
 
             c4 = table_builder [["X", ["a", "x", "y"]]] . at "X" . cast (Value_Type.Char size=100 variable_length=True)
             c4.to_vector . should_equal ["a", "x", "y"]
             c4.value_type . should_equal (Value_Type.Char size=100 variable_length=True)
 
-            c5 = c4.auto_value_type shrink_types=False
+            c5 = c4.auto_cast shrink_types=False
             c5.value_type . should_equal (Value_Type.Char size=100 variable_length=True)
 
-            c6 = c4.auto_value_type shrink_types=True
+            c6 = c4.auto_cast shrink_types=True
             c6.value_type . should_equal (Value_Type.Char size=1 variable_length=False)
 
         group_builder.specify "if all text values are empty string, the type will remain unchanged" <|
@@ -909,10 +909,10 @@ add_specs suite_builder setup =
             c2.value_type . should_equal (Value_Type.Char size=100 variable_length=True)
 
             [True, False].each shrink_types->
-                c1_b = c1.auto_value_type shrink_types=shrink_types
+                c1_b = c1.auto_cast shrink_types=shrink_types
                 c1_b.value_type . should_equal (Value_Type.Char size=Nothing variable_length=True)
 
-                c2_b = c2.auto_value_type shrink_types=shrink_types
+                c2_b = c2.auto_cast shrink_types=shrink_types
                 c2_b.value_type . should_equal (Value_Type.Char size=100 variable_length=True)
 
         group_builder.specify "if all text values fit under 255 characters, will add a 255 length limit (if shrink_types=True)" <|
@@ -921,7 +921,7 @@ add_specs suite_builder setup =
             t2 = t1 . set (t1.at "short_unbounded" . cast (Value_Type.Char size=1000)) "short_1000" . set (t1.at "short_unbounded" . cast (Value_Type.Char size=10)) "short_10" . set (t1.at "long_unbounded" . cast (Value_Type.Char size=400)) "long_400" . set (t1.at "short_unbounded" . cast Value_Type.Mixed) "short_mixed"
             t2.at "short_mixed" . value_type . should_equal Value_Type.Mixed
 
-            t3 = t2.auto_value_types shrink_types=False
+            t3 = t2.auto_cast shrink_types=False
             t3.at "short_unbounded" . value_type . should_equal (Value_Type.Char size=Nothing variable_length=True)
             t3.at "short_1000" . value_type . should_equal (Value_Type.Char size=1000 variable_length=True)
             t3.at "short_10" . value_type . should_equal (Value_Type.Char size=10 variable_length=True)
@@ -930,7 +930,7 @@ add_specs suite_builder setup =
             t3.at "long_unbounded" . value_type . should_equal (Value_Type.Char size=Nothing variable_length=True)
             t3.at "long_400" . value_type . should_equal (Value_Type.Char size=400 variable_length=True)
 
-            t4 = t2.auto_value_types shrink_types=True
+            t4 = t2.auto_cast shrink_types=True
             # Short ones get shortened to 255 unless they were shorter already.
             t4.at "short_unbounded" . value_type . should_equal (Value_Type.Char size=255 variable_length=True)
             t4.at "short_1000" . value_type . should_equal (Value_Type.Char size=255 variable_length=True)
@@ -950,7 +950,7 @@ add_specs suite_builder setup =
             t1.at "str" . value_type . should_equal Value_Type.Char
             t1.at "decimal" . value_type . should_equal (Value_Type.Decimal scale=0)
 
-            t2 = t1.auto_value_types shrink_types=False
+            t2 = t1.auto_cast shrink_types=False
             t2.at "mix" . value_type . should_equal Value_Type.Mixed
             t2.at "int" . value_type . should_equal Value_Type.Integer
             ## Technically, if there are no elements, "all of elements" are
@@ -961,7 +961,7 @@ add_specs suite_builder setup =
             t1.at "decimal" . value_type . should_equal (Value_Type.Decimal scale=0)
             t2.at "str" . value_type . should_equal Value_Type.Char
 
-            t3 = t1.auto_value_types shrink_types=True
+            t3 = t1.auto_cast shrink_types=True
             t3.at "mix" . value_type . should_equal Value_Type.Mixed
             # Technically, if there are no elements, then they can be fit inside of the smallest types available:
             t3.at "int" . value_type . should_equal (Value_Type.Integer Bits.Bits_16)

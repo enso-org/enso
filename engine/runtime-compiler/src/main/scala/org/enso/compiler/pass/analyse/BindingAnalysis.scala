@@ -8,6 +8,11 @@ import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.core.ir.module.scope.imports
 import org.enso.compiler.core.ir.MetadataStorage.MetadataPair
 import org.enso.compiler.data.BindingsMap
+import org.enso.compiler.data.BindingsMap.{
+  ConversionMethod,
+  ModuleMethod,
+  StaticMethod
+}
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.desugar.{
   ComplexType,
@@ -60,33 +65,61 @@ case object BindingAnalysis extends IRPass {
     val importedPolyglot = ir.imports.collect { case poly: imports.Polyglot =>
       BindingsMap.PolyglotSymbol(poly.getVisibleName)
     }
-    val moduleMethods = ir.bindings
-      .collect { case method: definition.Method.Explicit =>
+    val staticMethods: List[BindingsMap.Method] = ir.bindings.collect {
+      case method: definition.Method.Explicit =>
         val ref = method.methodReference
         ref.typePointer match {
           case Some(Name.Qualified(List(), _, _, _)) =>
-            Some(ref.methodName.name)
+            Some(ModuleMethod(ref.methodName.name))
           case Some(Name.Qualified(List(n), _, _, _)) =>
             val shadowed = definedSumTypes.exists(_.name == n.name)
             if (!shadowed && n.name == moduleContext.getName().item)
-              Some(ref.methodName.name)
-            else None
+              Some(ModuleMethod(ref.methodName.name))
+            else {
+              Some(
+                StaticMethod(ref.methodName.name, n.name)
+              )
+            }
           case Some(literal: Name.Literal) =>
             val shadowed = definedSumTypes.exists(_.name == literal.name)
             if (!shadowed && literal.name == moduleContext.getName().item)
-              Some(ref.methodName.name)
-            else None
-          case None => Some(ref.methodName.name)
+              Some(ModuleMethod(ref.methodName.name))
+            else {
+              Some(
+                StaticMethod(ref.methodName.name, literal.name)
+              )
+            }
+          case None => Some(ModuleMethod(ref.methodName.name))
           case _    => None
         }
-      }
-      .flatten
-      .map(BindingsMap.ModuleMethod)
+      case conversion: definition.Method.Conversion =>
+        val targetTpNameOpt = conversion.typeName match {
+          case Some(targetTpName) =>
+            Some(targetTpName.name)
+          case None => None
+        }
+        val sourceTpNameOpt = conversion.sourceTypeName match {
+          case name: Name =>
+            Some(name.name)
+          case _ => None
+        }
+        (sourceTpNameOpt, targetTpNameOpt) match {
+          case (Some(sourceTpName), Some(targetTpName)) =>
+            Some(
+              ConversionMethod(
+                conversion.methodName.name,
+                sourceTpName,
+                targetTpName
+              )
+            )
+          case _ => None
+        }
+    }.flatten
     ir.updateMetadata(
       new MetadataPair(
         this,
         BindingsMap(
-          definedSumTypes ++ importedPolyglot ++ moduleMethods,
+          definedSumTypes ++ importedPolyglot ++ staticMethods,
           moduleContext.moduleReference()
         )
       )

@@ -182,8 +182,10 @@ case object TypeNames extends IRPass {
           bindingsMap.resolveQualifiedName(n.parts.map(_.name))
         )
       case selfRef: Name.SelfType =>
-        val resolvedSelfType = selfTypeInfo.selfType.toRight {
-          BindingsMap.SelfTypeOutsideOfTypeDefinition
+        val resolvedSelfType = selfTypeInfo.selfType match {
+          case None => Left(BindingsMap.SelfTypeOutsideOfTypeDefinition)
+          case Some(selfType) =>
+            Right(List(selfType))
         }
         processResolvedName(selfRef, resolvedSelfType)
       case s: `type`.Set =>
@@ -192,10 +194,17 @@ case object TypeNames extends IRPass {
 
   private def processResolvedName(
     name: Name,
-    resolvedName: Either[BindingsMap.ResolutionError, BindingsMap.ResolvedName]
+    resolvedNamesOpt: Either[BindingsMap.ResolutionError, List[
+      BindingsMap.ResolvedName
+    ]]
   ): Name =
-    resolvedName
-      .map(res => name.updateMetadata(new MetadataPair(this, Resolution(res))))
+    resolvedNamesOpt
+      .map(resolvedNames => {
+        resolvedNames.foreach { resolvedName =>
+          name.updateMetadata(new MetadataPair(this, Resolution(resolvedName)))
+        }
+        name
+      })
       .fold(
         error =>
           errors.Resolution(name, errors.Resolution.ResolverError(error)),

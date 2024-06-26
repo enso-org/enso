@@ -484,13 +484,15 @@ impl RunContext {
             debug!("Building and testing native engine runners");
             runner_sanity_test(&self.repo_root, None).await?;
             ide_ci::fs::remove_file_if_exists(&self.repo_root.runner)?;
-            let enso_java = "espresso";
-            sbt.command()?
-                .env(ENSO_JAVA, enso_java)
-                .arg("engine-runner/buildNativeImage")
-                .run_ok()
-                .await?;
-            runner_sanity_test(&self.repo_root, Some(enso_java)).await?;
+            if self.config.build_espresso_runner {
+                let enso_java = "espresso";
+                sbt.command()?
+                    .env(ENSO_JAVA, enso_java)
+                    .arg("engine-runner/buildNativeImage")
+                    .run_ok()
+                    .await?;
+                runner_sanity_test(&self.repo_root, Some(enso_java)).await?;
+            }
         }
 
         // Verify Integrity of Generated License Packages in Distributions

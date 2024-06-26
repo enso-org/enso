@@ -156,7 +156,8 @@ type DB_Column
              example_at = Examples.integer_column.get 0 -1
     get : Integer -> Any -> Any | Nothing
     get self index:Integer=0 (~default=Nothing) =
-        self.read (..First index+1) . get index default
+        if index < 0 then Error.throw (Unsupported_Database_Operation.Error "Reading backwards from end is not supported in-database. Use `read` to materialize the column.") else
+            self.read (..First index+1) . get index default
 
     ## GROUP Standard.Base.Metadata
        ICON metadata
@@ -1806,14 +1807,15 @@ type DB_Column
 
     ## GROUP Standard.Base.Conversions
        ICON convert
+       ALIAS auto_value_type
        Change the value type of the column to a more specific one, based on its
        contents.
 
        This operation is currently not available in the Database backend.
-    auto_value_type : Boolean -> DB_Column
-    auto_value_type self shrink_types=False =
+    auto_cast : Boolean -> DB_Column
+    auto_cast self shrink_types=False =
         _ = shrink_types
-        Error.throw <| Unsupported_Database_Operation.Error "`DB_Column.auto_value_type` is not supported in the Database backends."
+        Error.throw <| Unsupported_Database_Operation.Error "`DB_Column.auto_cast` is not supported in the Database backends."
 
     ## PRIVATE
        Shares the core CAST logic between `cast` and `parse`.
