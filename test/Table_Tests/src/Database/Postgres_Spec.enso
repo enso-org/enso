@@ -442,6 +442,28 @@ postgres_specific_spec suite_builder create_connection_fn db_name setup =
             t1.at "X" . value_type . should_equal (Value_Type.Decimal Nothing Nothing)
             t1.at "X" . to_vector . should_equal [x, x+1]
 
+        group_builder.specify "special-case casts for avg and sum should produce the correct output types" <|
+            data = []
+                + [["byte", Value_Type.Byte, [10, 1, 43]]]
+                + [["int16", Value_Type.Integer Bits.Bits_16, [10, 10000, 32767]]]
+                + [["int32", Value_Type.Integer Bits.Bits_32, [10, 10000, 2147483647]]]
+                + [["int64", Value_Type.Integer Bits.Bits_64, [10, 10000, 9223372036854775807]]]
+                + [["float32", Value_Type.Float Bits.Bits_32, [10.1, 10000.1, 2147483647.1]]]
+                + [["float64", Value_Type.Float Bits.Bits_64, [10.1, 10000.1, 9223372036854775807.1]]]
+                + [["decimal", Value_Type.Decimal, [10.1, 10000.1, 9223372036854775807.1]]]
+            names = data.map (x-> x.at 0)
+            uncast_table = table_builder (data.map s-> [s.at 0, s.at 2])
+            table = data.fold uncast_table (t-> s-> t.cast (s.at 0) (s.at 1))
+            table.columns.map .value_type . should_equal [Value_Type.Integer Bits.Bits_16, Value_Type.Integer Bits.Bits_16, Value_Type.Integer Bits.Bits_32, Value_Type.Integer Bits.Bits_64, Value_Type.Float Bits.Bits_32, Value_Type.Float Bits.Bits_64, Value_Type.Decimal]
+
+            summed = table.aggregate [] (names.map (n-> Aggregate_Column.Sum n))
+            summed.columns.map .value_type . should_equal [Value_Type.Integer Bits.Bits_64, Value_Type.Integer Bits.Bits_64, Value_Type.Integer Bits.Bits_64, Value_Type.Decimal 1000 0, Value_Type.Float Bits.Bits_32, Value_Type.Float Bits.Bits_64, Value_Type.Decimal]
+            summed.columns.map (x-> x.at 0) . map Meta.get_simple_type_name . should_equal ["Integer", "Integer", "Integer", "Integer", "Float", "Float", "Decimal"]
+
+            averaged = table.aggregate [] (names.map (n-> Aggregate_Column.Average n))
+            averaged.columns.map .value_type . should_equal [Value_Type.Float Bits.Bits_64, Value_Type.Float Bits.Bits_64, Value_Type.Float Bits.Bits_64, Value_Type.Float Bits.Bits_64, Value_Type.Float Bits.Bits_64, Value_Type.Float Bits.Bits_64, Value_Type.Decimal]
+            averaged.columns.map (x-> x.at 0) . map Meta.get_simple_type_name . should_equal ["Float", "Float", "Float", "Float", "Float", "Float", "Decimal"]
+
         group_builder.specify "should round-trip timestamptz column, preserving instant but converting to UTC" <|
             table_name = Name_Generator.random_name "TimestampTZ"
             table = data.connection.create_table table_name [Column_Description.Value "A" (Value_Type.Date_Time with_timezone=True)] primary_key=[]
