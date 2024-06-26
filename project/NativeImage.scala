@@ -85,6 +85,7 @@ object NativeImage {
   def buildNativeImage(
     artifactName: String,
     staticOnLinux: Boolean,
+    engineDistributionRoot: File             = null,
     additionalOptions: Seq[String]           = Seq.empty,
     buildMemoryLimitMegabytes: Option[Int]   = Some(15608),
     runtimeThreadStackMegabytes: Option[Int] = Some(2),
