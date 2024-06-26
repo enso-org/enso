@@ -49,11 +49,10 @@ export function DialogStackProvider(props: React.PropsWithChildren) {
       } else {
         // eslint-disable-next-line no-restricted-properties
         console.warn(`
-        DialogStackProvider: sliceFromStack: currentId ${currentId} does not match the last item in the stack \n 
-        This is no-op but it might be a sign of a bug in the application \n
-        Usually, this means that the underlaying component was closed manually or 
-        the stack was not updated properly. \n
-        `)
+DialogStackProvider: sliceFromStack: currentId ${currentId} does not match the last item in the stack. \
+This is no-op but it might be a sign of a bug in the application. \
+Usually, this means that the underlaying component was closed manually or the stack was not \
+updated properly.`)
 
         return currentStack
       }
@@ -77,23 +76,22 @@ export function DialogStackProvider(props: React.PropsWithChildren) {
  * DialogStackRegistrar is a React component that registers a dialog in the dialog stack.
  */
 export function DialogStackRegistrar(props: React.PropsWithChildren<DialogStackItem>) {
-  const { children, id, type } = props
+  const { children, id: idRaw, type: typeRaw } = props
+  const idRef = React.useRef(idRaw)
+  const typeRef = React.useRef(typeRaw)
 
   const ctx = React.useContext(DialogStackContext)
 
   invariant(ctx, 'DialogStackRegistrar must be used within a DialogStackProvider')
 
   React.useEffect(() => {
+    const id = idRef.current
+    const type = typeRef.current
     ctx.add({ id, type })
-
     return () => {
       ctx.slice(id)
     }
-    // We don't want to re-run this effect on every render
-    // As well as we don't want to re-run it when the id or type changes
-    // This effect should run only once when the component mounts
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [ctx])
 
   return children
 }

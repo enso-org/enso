@@ -725,7 +725,7 @@ export async function press(page: test.Page, keyOrShortcut: string) {
 // This syntax is required for Playwright to work properly.
 // eslint-disable-next-line no-restricted-syntax
 export async function login(
-  { page }: MockParams,
+  { page, setupAPI }: MockParams,
   email = 'email@example.com',
   password = VALID_PASSWORD,
   first = true
@@ -737,7 +737,7 @@ export async function login(
     await locateLoginButton(page).click()
     await test.expect(page.getByText('Logging in to Enso...')).not.toBeVisible()
     if (first) {
-      await passTermsAndConditionsDialog({ page })
+      await passTermsAndConditionsDialog({ page, setupAPI })
       await test.expect(page.getByText('Logging in to Enso...')).not.toBeVisible()
     }
   })
@@ -765,14 +765,14 @@ export async function reload({ page }: MockParams) {
 // This syntax is required for Playwright to work properly.
 // eslint-disable-next-line no-restricted-syntax
 export async function relog(
-  { page }: MockParams,
+  { page, setupAPI }: MockParams,
   email = 'email@example.com',
   password = VALID_PASSWORD
 ) {
   await test.test.step('Relog', async () => {
     await page.getByAltText('User Settings').locator('visible=true').click()
     await page.getByRole('button', { name: 'Logout' }).getByText('Logout').click()
-    await login({ page }, email, password, false)
+    await login({ page, setupAPI }, email, password, false)
   })
 }
 
@@ -786,6 +786,7 @@ const MOCK_DATE = Number(new Date('01/23/45 01:23:45'))
 /** Parameters for {@link mockDate}. */
 interface MockParams {
   readonly page: test.Page
+  readonly setupAPI?: apiModule.SetupAPI | undefined
 }
 
 /** Replace `Date` with a version that returns a fixed time. */
@@ -835,10 +836,10 @@ export const mockApi = apiModule.mockApi
 /** Set up all mocks, without logging in. */
 // This syntax is required for Playwright to work properly.
 // eslint-disable-next-line no-restricted-syntax
-export async function mockAll({ page }: MockParams) {
+export async function mockAll({ page, setupAPI }: MockParams) {
   return await test.test.step('Execute all mocks', async () => {
-    const api = await mockApi({ page })
-    await mockDate({ page })
+    const api = await mockApi({ page, setupAPI })
+    await mockDate({ page, setupAPI })
     return { api, pageActions: new LoginPageActions(page) }
   })
 }
@@ -850,10 +851,10 @@ export async function mockAll({ page }: MockParams) {
 /** Set up all mocks, and log in with dummy credentials. */
 // This syntax is required for Playwright to work properly.
 // eslint-disable-next-line no-restricted-syntax
-export async function mockAllAndLogin({ page }: MockParams) {
+export async function mockAllAndLogin({ page, setupAPI }: MockParams) {
   return await test.test.step('Execute all mocks and login', async () => {
-    const mocks = await mockAll({ page })
-    await login({ page })
+    const mocks = await mockAll({ page, setupAPI })
+    await login({ page, setupAPI })
     return { ...mocks, pageActions: new DrivePageActions(page) }
   })
 }

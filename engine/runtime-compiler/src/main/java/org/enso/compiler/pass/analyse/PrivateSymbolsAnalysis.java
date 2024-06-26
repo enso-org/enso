@@ -125,16 +125,18 @@ public class PrivateSymbolsAnalysis implements IRPass {
   private Pattern processCasePattern(Pattern pattern, BindingsMap bindingsMap) {
     if (pattern instanceof Pattern.Constructor cons) {
       var consName = cons.constructor();
-      var resolvedCons = tryResolveName(consName, bindingsMap);
-      if (resolvedCons != null && isProjectPrivate(resolvedCons)) {
-        var curProjName = getProjName(bindingsMap.currentModule().getName());
-        var resolvedProjName = getProjName(resolvedCons.module().getName());
-        if (!curProjName.equals(resolvedProjName)) {
-          var reason =
-              new org.enso.compiler.core.ir.expression.errors.Pattern.PrivateConstructor(
-                  consName.name(), curProjName, resolvedProjName);
-          return new org.enso.compiler.core.ir.expression.errors.Pattern(
-              cons, reason, cons.passData(), cons.diagnostics());
+      var resolvedNames = tryResolveName(consName, bindingsMap);
+      for (var resolvedName : resolvedNames) {
+        if (isProjectPrivate(resolvedName)) {
+          var curProjName = getProjName(bindingsMap.currentModule().getName());
+          var resolvedProjName = getProjName(resolvedName.module().getName());
+          if (!curProjName.equals(resolvedProjName)) {
+            var reason =
+                new org.enso.compiler.core.ir.expression.errors.Pattern.PrivateConstructor(
+                    consName.name(), curProjName, resolvedProjName);
+            return new org.enso.compiler.core.ir.expression.errors.Pattern(
+                cons, reason, cons.passData(), cons.diagnostics());
+          }
         }
       }
     }
@@ -142,16 +144,18 @@ public class PrivateSymbolsAnalysis implements IRPass {
   }
 
   private Expression processName(Name name, BindingsMap bindingsMap) {
-    var resolvedName = tryResolveName(name, bindingsMap);
-    if (resolvedName != null && isProjectPrivate(resolvedName)) {
-      var curProjName = getProjName(bindingsMap.currentModule().getName());
-      var resolvedProjName = getProjName(resolvedName.module().getName());
-      if (!curProjName.equals(resolvedProjName)) {
-        var reason =
-            new org.enso.compiler.core.ir.expression.errors.Resolution.PrivateEntity(
-                curProjName, resolvedProjName);
-        return new org.enso.compiler.core.ir.expression.errors.Resolution(
-            name, reason, name.passData(), name.diagnostics());
+    var resolvedNames = tryResolveName(name, bindingsMap);
+    for (var resolvedName : resolvedNames) {
+      if (isProjectPrivate(resolvedName)) {
+        var curProjName = getProjName(bindingsMap.currentModule().getName());
+        var resolvedProjName = getProjName(resolvedName.module().getName());
+        if (!curProjName.equals(resolvedProjName)) {
+          var reason =
+              new org.enso.compiler.core.ir.expression.errors.Resolution.PrivateEntity(
+                  curProjName, resolvedProjName);
+          return new org.enso.compiler.core.ir.expression.errors.Resolution(
+              name, reason, name.passData(), name.diagnostics());
+        }
       }
     }
     return name.mapExpressions(e -> processExpression(e, bindingsMap));
@@ -180,26 +184,28 @@ public class PrivateSymbolsAnalysis implements IRPass {
     }
   }
 
-  private ResolvedName tryResolveName(Name name, BindingsMap bindingsMap) {
+  private List<ResolvedName> tryResolveName(Name name, BindingsMap bindingsMap) {
     return switch (name) {
       case Name.Literal lit -> {
         var resolved = bindingsMap.resolveName(lit.name());
         if (resolved.isRight()) {
-          yield (ResolvedName) resolved.getOrElse(() -> null);
+          var resolvedNames = resolved.toOption().get();
+          yield CollectionConverters.asJava(resolvedNames);
         } else {
-          yield null;
+          yield List.of();
         }
       }
       case Name.Qualified qual -> {
         var nameParts = qual.parts().map(Name::name);
         var resolved = bindingsMap.resolveQualifiedName(nameParts);
         if (resolved.isRight()) {
-          yield (ResolvedName) resolved.getOrElse(() -> null);
+          var resolvedNames = resolved.toOption().get();
+          yield CollectionConverters.asJava(resolvedNames);
         } else {
-          yield null;
+          yield List.of();
         }
       }
-      default -> null;
+      default -> List.of();
     };
   }
 

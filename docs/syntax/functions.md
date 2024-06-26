@@ -100,15 +100,17 @@ binds the function name. This means that:
 ## Methods
 
 Enso makes a distinction between functions and methods. In Enso, a method is a
-function where the first argument (known as the `this` argument) is associated
+function where the first argument (known as the `self` argument) is associated
 with a given atom. Methods are dispatched dynamically based on the type of the
-`this` argument, while functions are not.
+`self` argument, while functions are not.
 
 Methods can be defined in Enso in two ways:
 
 1. **In the Body of a Type:** A function defined in the body of a `type`
    definition is automatically converted to a method on all the atoms defined in
-   the body of that type definition.
+   the body of that type definition. If the function has `self` parameter, it is
+   called an _instance method_. If the function does not have `self` parameter,
+   it is called a _static method_.
 
 ```ruby
 type Maybe a
@@ -120,9 +122,9 @@ type Maybe a
         Maybe.Just _ -> True
 ```
 
-2. **As an Extension Method:** A function defined _explicitly_ on an atom counts
-   as an extension method on that atom. It can be defined on a typeset to apply
-   to all the atoms within that typeset.
+2. **As an Extension Method:** A function defined _explicitly_ on a type counts
+   as an extension method on that type. An _extension_ method can be _static_ or
+   _instance_, depending on whether the `self` argument is present or not.
 
 ```ruby
 Number.floor self = case self of
@@ -130,11 +132,11 @@ Number.floor self = case self of
     ...
 ```
 
-3. **As a Function with an Explicit `this` Argument:** A function defined with
-   the type of the `this` argument specified to be a type.
+3. **As a Function with an Explicit `self` Argument:** A function defined with
+   the type of the `self` argument specified to be a type.
 
 ```ruby
-floor (this : Number) = case this of
+floor (self : Number) = case self of
     Integer -> ...
 ```
 
@@ -151,7 +153,8 @@ diagnostics, we distinguish between how functions and methods are called.
 
 - To call a function `f` on arguments `a` and `b`, we write `f a b`.
 - To call a method `f` defined on a type `A` (value `a`, here) on argument `b`,
-  we write `a.f b`.
+  we write `a.f b`. This instance method can also be called via a _static_
+  method with `A.f a b`, which is equivalent to `a.f b`.
 
 ## Code Blocks
 

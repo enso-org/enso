@@ -39,7 +39,6 @@ import type * as projectManager from '#/services/ProjectManager'
 
 import * as array from '#/utilities/array'
 import LocalStorage from '#/utilities/LocalStorage'
-import * as object from '#/utilities/object'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 
 import type * as types from '../../../../types/types'
@@ -60,7 +59,7 @@ declare module '#/utilities/LocalStorage' {
   interface LocalStorageData {
     readonly isAssetPanelVisible: boolean
     readonly page: TabType
-    readonly projectStartupInfo: backendModule.ProjectStartupInfo<backendModule.Project>
+    readonly projectStartupInfo: Omit<backendModule.ProjectStartupInfo, 'project'>
   }
 }
 
@@ -86,14 +85,12 @@ LocalStorage.registerKey('projectStartupInfo', {
       return null
     } else if (!('backendType' in value) || !array.includes(BACKEND_TYPES, value.backendType)) {
       return null
-    } else if (!('project' in value) || !('projectAsset' in value)) {
+    } else if (!('projectAsset' in value)) {
       return null
     } else {
       return {
         // These type assertions are UNSAFE, however correctly type-checking these
         // would be very complicated.
-        // eslint-disable-next-line no-restricted-syntax
-        project: value.project as backendModule.Project,
         // eslint-disable-next-line no-restricted-syntax
         projectAsset: value.projectAsset as backendModule.ProjectAsset,
         backendType: value.backendType,
@@ -143,8 +140,7 @@ export default function Dashboard(props: DashboardProps) {
   )
   const [projectStartupInfo, setProjectStartupInfo] =
     React.useState<backendModule.ProjectStartupInfo | null>(null)
-  const [openProjectAbortController, setOpenProjectAbortController] =
-    React.useState<AbortController | null>(null)
+  const openProjectAbortControllerRef = React.useRef<AbortController | null>(null)
   const [assetListEvents, dispatchAssetListEvent] =
     eventHooks.useEvent<assetListEvent.AssetListEvent>()
   const [assetEvents, dispatchAssetEvent] = eventHooks.useEvent<assetEvent.AssetEvent>()
@@ -187,7 +183,7 @@ export default function Dashboard(props: DashboardProps) {
           setPage(TabType.drive)
           void (async () => {
             const abortController = new AbortController()
-            setOpenProjectAbortController(abortController)
+            openProjectAbortControllerRef.current = abortController
             try {
               const oldProject = await remoteBackend.getProjectDetails(
                 savedProjectStartupInfo.projectAsset.id,
@@ -199,13 +195,9 @@ export default function Dashboard(props: DashboardProps) {
                   savedProjectStartupInfo.projectAsset.id,
                   savedProjectStartupInfo.projectAsset.parentId,
                   savedProjectStartupInfo.projectAsset.title,
-                  abortController
+                  abortController.signal
                 )
-                setProjectStartupInfo(
-                  object.merge<backendModule.ProjectStartupInfo>(savedProjectStartupInfo, {
-                    project,
-                  })
-                )
+                setProjectStartupInfo({ ...savedProjectStartupInfo, project })
                 if (page === TabType.editor) {
                   setPage(page)
                 }
@@ -232,9 +224,7 @@ export default function Dashboard(props: DashboardProps) {
               savedProjectStartupInfo.projectAsset.parentId,
               savedProjectStartupInfo.projectAsset.title
             )
-            setProjectStartupInfo(
-              object.merge<backendModule.ProjectStartupInfo>(savedProjectStartupInfo, { project })
-            )
+            setProjectStartupInfo({ ...savedProjectStartupInfo, project })
             if (page === TabType.editor) {
               setPage(page)
             }
@@ -249,8 +239,8 @@ export default function Dashboard(props: DashboardProps) {
   eventHooks.useEventHandler(assetEvents, event => {
     switch (event.type) {
       case AssetEventType.openProject: {
-        openProjectAbortController?.abort()
-        setOpenProjectAbortController(null)
+        openProjectAbortControllerRef.current?.abort()
+        openProjectAbortControllerRef.current = null
         break
       }
       default: {
@@ -263,9 +253,10 @@ export default function Dashboard(props: DashboardProps) {
   React.useEffect(() => {
     if (initializedRef.current) {
       if (projectStartupInfo != null) {
-        void Promise.resolve(projectStartupInfo.project).then(project => {
-          localStorage.set('projectStartupInfo', { ...projectStartupInfo, project })
-        })
+        // This is INTENTIONAL - `project` is intentionally omitted from this object.
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { project, ...rest } = projectStartupInfo
+        localStorage.set('projectStartupInfo', rest)
       } else {
         localStorage.delete('projectStartupInfo')
       }
@@ -376,6 +367,7 @@ export default function Dashboard(props: DashboardProps) {
                   isActive={page === TabType.editor}
                   icon={WorkspaceIcon}
                   labelId="editorPageName"
+                  loadingPromise={projectStartupInfo.project}
                   onPress={() => {
                     setPage(TabType.editor)
                   }}
@@ -384,6 +376,7 @@ export default function Dashboard(props: DashboardProps) {
                       type: AssetEventType.closeProject,
                       id: projectStartupInfo.projectAsset.id,
                     })
+                    setProjectStartupInfo(null)
                     setPage(TabType.drive)
                   }}
                 >

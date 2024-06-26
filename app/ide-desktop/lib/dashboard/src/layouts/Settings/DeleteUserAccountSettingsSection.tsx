@@ -28,7 +28,7 @@ export default function DeleteUserAccountSettingsSection() {
       // eslint-disable-next-line no-restricted-syntax
       className="flex flex-col items-start gap-settings-section-header rounded-2.5xl border-2 border-danger px-[1rem] pb-[0.9375rem] pt-[0.5625rem]"
     >
-      <div className="flex gap-buttons">
+      <div className="flex gap-2">
         <ariaComponents.Button
           size="medium"
           variant="delete"

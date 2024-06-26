@@ -178,7 +178,6 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
               dispatchAssetEvent({
                 type: AssetEventType.openProject,
                 id: createdProject.projectId,
-                shouldAutomaticallySwitchPage: true,
                 runInBackground: false,
               })
             } catch (error) {
@@ -302,7 +301,6 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
           dispatchAssetEvent({
             type: AssetEventType.openProject,
             id: asset.id,
-            shouldAutomaticallySwitchPage: true,
             runInBackground: false,
           })
         }
