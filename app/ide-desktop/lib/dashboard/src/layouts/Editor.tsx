@@ -78,7 +78,7 @@ function EditorInternal(props: EditorInternalProps) {
   const setProjectAsset = projectStartupInfo.setProjectAsset
 
   const projectQuery = reactQuery.useSuspenseQuery({
-    queryKey: ['editorProject', projectStartupInfo.projectAsset.id],
+    queryKey: ['editorProject', projectStartupInfo.projectAsset],
     queryFn: () => projectStartupInfo.project,
     staleTime: 0,
     gcTime: 0,
@@ -200,6 +200,7 @@ function EditorInternal(props: EditorInternalProps) {
   if (AppRunner == null) {
     return <></>
   } else {
+    console.log('WHAT', appProps.projectId, appProps.config?.startup, appProps)
     // Currently the GUI component needs to be fully rerendered whenever the project is changed. Once
     // this is no longer necessary, the `key` could be removed.
     return <AppRunner key={appProps.projectId} {...appProps} />
