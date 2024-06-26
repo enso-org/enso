@@ -22,11 +22,12 @@ import * as loader from '#/components/Loader'
 export interface SettingsTabProps {
   readonly context: settingsData.SettingsContext
   readonly data: settingsData.SettingsTabData
+  readonly onInteracted: () => void
 }
 
 /** Styled content of a settings tab. */
 export default function SettingsTab(props: SettingsTabProps) {
-  const { context, data } = props
+  const { context, data, onInteracted } = props
   const { sections } = data
   const { user } = authProvider.useFullUserSession()
   const { isFeatureUnderPaywall } = billing.usePaywall({ plan: user.plan })
@@ -55,18 +56,27 @@ export default function SettingsTab(props: SettingsTabProps) {
     return [resultColumns, resultClasses]
   }, [sections])
 
+  const contentProps = {
+    onMouseDown: onInteracted,
+    onPointerDown: onInteracted,
+    onFocus: onInteracted,
+  }
+
   if (paywallFeature) {
     return <SettingsPaywall feature={paywallFeature} />
   } else {
     const content =
       columns.length === 1 ? (
-        <div className="flex grow flex-col gap-settings-subsection overflow-auto">
+        <div className="flex grow flex-col gap-settings-subsection overflow-auto" {...contentProps}>
           {sections.map(section => (
             <SettingsSection key={section.nameId} context={context} data={section} />
           ))}
         </div>
       ) : (
-        <div className="flex min-h-full grow flex-col gap-settings-section overflow-auto lg:h-auto lg:flex-row">
+        <div
+          className="flex min-h-full grow flex-col gap-settings-section overflow-auto lg:h-auto lg:flex-row"
+          {...contentProps}
+        >
           {columns.map((sectionsInColumn, i) => (
             <div
               key={i}

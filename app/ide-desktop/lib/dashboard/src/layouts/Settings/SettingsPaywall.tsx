@@ -20,6 +20,7 @@ import * as twv from '#/utilities/tailwindVariants'
 export interface SettingsPaywallProps {
   readonly feature: billingHooks.PaywallFeatureName
   readonly className?: string | undefined
+  readonly onInteracted?: () => void
 }
 
 const PAYWALL_LAYOUT_STYLES = twv.tv({ base: 'mt-1' })
@@ -28,10 +29,15 @@ const PAYWALL_LAYOUT_STYLES = twv.tv({ base: 'mt-1' })
  * A layout that shows a paywall for a feature.
  */
 export default function SettingsPaywall(props: SettingsPaywallProps) {
-  const { feature, className } = props
+  const { feature, className, onInteracted } = props
 
   return (
-    <div className={PAYWALL_LAYOUT_STYLES({ className })}>
+    <div
+      className={PAYWALL_LAYOUT_STYLES({ className })}
+      onMouseDown={onInteracted}
+      onPointerDown={onInteracted}
+      onFocus={onInteracted}
+    >
       <paywallComponents.PaywallScreen feature={feature} />
     </div>
   )
