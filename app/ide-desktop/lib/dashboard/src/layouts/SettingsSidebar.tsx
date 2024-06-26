@@ -3,10 +3,12 @@ import * as React from 'react'
 
 import KeyboardShortcutsIcon from 'enso-assets/keyboard_shortcuts.svg'
 import LogIcon from 'enso-assets/log.svg'
+import NotCloudIcon from 'enso-assets/not_cloud.svg'
 import PeopleSettingsIcon from 'enso-assets/people_settings.svg'
 import PeopleIcon from 'enso-assets/people.svg'
 import SettingsIcon from 'enso-assets/settings.svg'
 
+import * as backendProvider from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import SettingsTab from '#/layouts/Settings/SettingsTab'
@@ -37,6 +39,13 @@ const SECTIONS: SettingsSectionData[] = [
         settingsTab: SettingsTab.organization,
         icon: PeopleSettingsIcon,
         requiresBackend: true,
+      },
+      {
+        name: 'Local data',
+        settingsTab: SettingsTab.local,
+        icon: NotCloudIcon,
+        requiresBackend: false,
+        requiresLocalBackend: true,
       },
     ],
   },
@@ -84,11 +93,6 @@ const SECTIONS: SettingsSectionData[] = [
   },
 ]
 
-const SECTIONS_NO_BACKEND = SECTIONS.flatMap(section => {
-  const tabs = section.tabs.filter(tab => !tab.requiresBackend)
-  return tabs.length === 0 ? [] : [{ ...section, tabs }]
-})
-
 // =============
 // === Types ===
 // =============
@@ -99,6 +103,7 @@ interface SettingsTabLabelData {
   readonly settingsTab: SettingsTab
   readonly icon: string
   readonly requiresBackend: boolean
+  readonly requiresLocalBackend?: boolean
   readonly organizationOnly?: true
 }
 
@@ -127,6 +132,8 @@ export default function SettingsSidebar(props: SettingsSidebarProps) {
   const { isMenu = false, hasBackend, isUserInOrganization, settingsTab, setSettingsTab } = props
   const { onClickCapture } = props
   const { getText } = textProvider.useText()
+  const localBackend = backendProvider.useLocalBackend()
+  const hasLocalBackend = localBackend != null
 
   return (
     <FocusArea direction="vertical">
@@ -142,32 +149,39 @@ export default function SettingsSidebar(props: SettingsSidebarProps) {
           onClickCapture={onClickCapture}
           {...innerProps}
         >
-          {(hasBackend ? SECTIONS : SECTIONS_NO_BACKEND).map(section => (
-            <div key={section.name} className="flex flex-col items-start">
-              <aria.Header
-                id={`${section.name}_header`}
-                className="relative mb-sidebar-section-heading-b h-text px-sidebar-section-heading-x py-sidebar-section-heading-y text-[13.5px] font-bold leading-cozy"
-              >
-                {section.name}
-              </aria.Header>
+          {SECTIONS.map(section => {
+            const visibleTabs = section.tabs.filter(
+              tab =>
+                (!tab.requiresBackend || hasBackend) &&
+                (tab.requiresLocalBackend !== true || hasLocalBackend)
+            )
+            return visibleTabs.length === 0 ? null : (
+              <div key={section.name} className="flex flex-col items-start">
+                <aria.Header
+                  id={`${section.name}_header`}
+                  className="relative mb-sidebar-section-heading-b h-text px-sidebar-section-heading-x py-sidebar-section-heading-y text-[13.5px] font-bold leading-cozy"
+                >
+                  {section.name}
+                </aria.Header>
 
-              <ariaComponents.ButtonGroup gap="xxsmall" direction="column" align="start">
-                {section.tabs.map(tab => (
-                  <SidebarTabButton
-                    key={tab.settingsTab}
-                    isDisabled={(tab.organizationOnly ?? false) && !isUserInOrganization}
-                    id={tab.settingsTab}
-                    icon={tab.icon}
-                    label={tab.name}
-                    active={tab.settingsTab === settingsTab}
-                    onPress={() => {
-                      setSettingsTab(tab.settingsTab)
-                    }}
-                  />
-                ))}
-              </ariaComponents.ButtonGroup>
-            </div>
-          ))}
+                <ariaComponents.ButtonGroup gap="xxsmall" direction="column" align="start">
+                  {visibleTabs.map(tab => (
+                    <SidebarTabButton
+                      key={tab.settingsTab}
+                      isDisabled={(tab.organizationOnly ?? false) && !isUserInOrganization}
+                      id={tab.settingsTab}
+                      icon={tab.icon}
+                      label={tab.name}
+                      active={tab.settingsTab === settingsTab}
+                      onPress={() => {
+                        setSettingsTab(tab.settingsTab)
+                      }}
+                    />
+                  ))}
+                </ariaComponents.ButtonGroup>
+              </div>
+            )
+          })}
         </div>
       )}
     </FocusArea>

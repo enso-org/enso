@@ -121,6 +121,7 @@ interface RemoteBackendPostOptions {
 /** Class for sending requests to the Cloud backend API endpoints. */
 export default class RemoteBackend extends Backend {
   readonly type = backend.BackendType.remote
+  readonly rootPath = 'enso://'
   private defaultVersions: Partial<Record<backend.VersionType, DefaultVersionInfo>> = {}
   private user: object.Mutable<backend.User> | null = null
 

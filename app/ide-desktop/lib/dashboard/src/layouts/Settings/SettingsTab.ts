@@ -9,6 +9,7 @@ enum SettingsTab {
   account = 'account',
   organization = 'organization',
   features = 'features',
+  local = 'local',
   notifications = 'notifications',
   billingAndPlans = 'billing-and-plans',
   members = 'members',

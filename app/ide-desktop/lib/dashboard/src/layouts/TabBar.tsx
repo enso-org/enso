@@ -202,7 +202,7 @@ export function Tab(props: InternalTabProps) {
         tooltip={false}
         className={tailwindMerge.twMerge(
           'relative flex h-full items-center gap-3 px-4',
-          onClose && 'pr-10'
+          onClose && 'pl-10'
         )}
         onPress={onPress}
       >
@@ -210,7 +210,7 @@ export function Tab(props: InternalTabProps) {
       </ariaComponents.Button>
       {onClose && (
         <ariaComponents.CloseButton
-          className="absolute right-4 top-1/2 -translate-y-1/2 opacity-0 transition-opacity group-hover:opacity-100"
+          className="absolute left-4 top-1/2 -translate-y-1/2 opacity-0 transition-opacity group-hover:opacity-100"
           onPress={onClose}
         />
       )}
