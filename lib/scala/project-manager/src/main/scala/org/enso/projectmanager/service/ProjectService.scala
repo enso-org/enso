@@ -97,7 +97,7 @@ class ProjectService[
       projectsDirectory
     )
     repo = projectRepositoryFactory.getProjectRepository(projectsDirectory)
-    name         <- getNameForNewProject(projectName, projectTemplate, repo)
+    name         <- getNameForNewProject(projectName, repo)
     _            <- log.info("Created project with actual name [{}].", name)
     _            <- validateProjectName(name)
     _            <- checkIfNameExists(name, repo)
@@ -383,8 +383,9 @@ class ProjectService[
       _ <- log.debug("Duplicating project [{}].", projectId)
       repo = projectRepositoryFactory.getProjectRepository(projectsDirectory)
       project <- getUserProject(projectId, repo)
-      newName <- getNameForNewProject(project.name, None, repo)
+      newName <- getNameForNewProject(project.name, repo)
       _       <- validateProjectName(newName)
+      _       <- log.debug("Validated new project name [{}]", newName)
       repo = projectRepositoryFactory.getProjectRepository(projectsDirectory)
       _           <- checkIfNameExists(newName, repo)
       updatedTime <- clock.nowInUtc()
@@ -501,7 +502,6 @@ class ProjectService[
 
   private def getNameForNewProject(
     projectName: String,
-    projectTemplate: Option[String],
     projectRepository: ProjectRepository[F]
   ): F[ProjectServiceFailure, String] = {
     def mkName(name: String, suffix: Int): String =
@@ -517,18 +517,12 @@ class ProjectService[
       )
     }
 
-    projectTemplate match {
-      case Some(_) =>
-        CovariantFlatMap[F]
-          .ifM(projectRepository.exists(projectName))(
-            ifTrue  = findAvailableName(projectName, 1),
-            ifFalse = CovariantFlatMap[F].pure(projectName)
-          )
-          .mapError(toServiceFailure)
-      case None =>
-        CovariantFlatMap[F].pure(projectName)
-    }
-
+    CovariantFlatMap[F]
+      .ifM(projectRepository.exists(projectName))(
+        ifTrue  = findAvailableName(projectName, 1),
+        ifFalse = CovariantFlatMap[F].pure(projectName)
+      )
+      .mapError(toServiceFailure)
   }
 
   /** Retrieve project info.

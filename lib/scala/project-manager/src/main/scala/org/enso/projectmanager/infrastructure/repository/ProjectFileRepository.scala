@@ -5,6 +5,7 @@ import java.nio.file.Path
 import java.nio.file.attribute.FileTime
 import java.util.UUID
 import org.enso.pkg.{Package, PackageManager}
+import org.enso.pkg.validation.NameValidation
 import org.enso.projectmanager.boot.configuration.MetadataStorageConfig
 import org.enso.projectmanager.control.core.{
   Applicative,
@@ -230,7 +231,7 @@ class ProjectFileRepository[
   ): F[ProjectRepositoryFailure, File] = {
     def move(project: Project) =
       for {
-        targetPath <- findTargetPath(newName)
+        targetPath <- findTargetPath(NameValidation.normalizeName(newName))
         _          <- moveProjectDir(project.path, targetPath)
       } yield targetPath
 
@@ -248,7 +249,7 @@ class ProjectFileRepository[
   ): F[ProjectRepositoryFailure, Project] = {
     def copy(project: Project) =
       for {
-        targetPath <- findTargetPath(newName)
+        targetPath <- findTargetPath(NameValidation.normalizeName(newName))
         _          <- copyProjectDir(project.path, targetPath)
       } yield targetPath
 
