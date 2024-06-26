@@ -39,7 +39,7 @@ export const defaultPreprocessor = [
   '1000',
 ] as const
 
-type Data = Error | Matrix | ObjectMatrix | UnknownTable | Excel_Workbook
+type Data = Error | Matrix | ObjectMatrix | UnknownTable | Excel_Workbook | SQLite_Connection
 
 interface Error {
   type: undefined
@@ -65,6 +65,14 @@ interface Excel_Workbook {
   column_count: number
   all_rows_count: number
   sheet_names: string[]
+  json: unknown[][]
+}
+
+interface SQLite_Connection {
+  type: 'SQLite_Connection'
+  column_count: number
+  all_rows_count: number
+  schemas: string[]
   json: unknown[][]
 }
 
@@ -401,6 +409,9 @@ watchEffect(() => {
   } else if (data_.type === 'Excel_Workbook') {
     columnDefs = [toLinkField('Value')]
     rowData = data_.sheet_names.map((name) => ({ Value: name }))
+  } else if (data_.type === 'SQLite_Connection') {
+    columnDefs = [toLinkField('Value')]
+    rowData = data_.schemas.map((name) => ({ Value: name }))
   } else if (Array.isArray(data_.json)) {
     columnDefs = [toLinkField(INDEX_FIELD_NAME), toField('Value')]
     rowData = data_.json.map((row, i) => ({ [INDEX_FIELD_NAME]: i, Value: toRender(row) }))

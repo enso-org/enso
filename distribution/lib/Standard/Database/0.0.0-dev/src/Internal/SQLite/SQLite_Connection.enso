@@ -266,3 +266,9 @@ type SQLite_Connection
        on the 'subclasses'.
     base_connection : Connection
     base_connection self = self.connection
+
+    ## PRIVATE
+       Converts this value to a JSON serializable object.
+    to_js_object : JS_Object
+    to_js_object self =
+        JS_Object.from_pairs [["type", "SQLite_Connection"], ["schemas", self.connection.tables.at "Name" . to_vector]]
