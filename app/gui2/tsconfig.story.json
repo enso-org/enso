@@ -33,9 +33,5 @@
       "@/*": ["./src/*"]
     }
   },
-  "references": [
-    {
-      "path": "../dashboard/tsconfig.json"
-    }
-  ]
+  "references": [{ "path": "../dashboard" }]
 }

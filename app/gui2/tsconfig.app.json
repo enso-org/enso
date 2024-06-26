@@ -25,13 +25,7 @@
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true,
     "types": ["vitest/importMeta"],
-    "paths": {
-      "@/*": ["./src/*"]
-    }
+    "paths": { "@/*": ["./src/*"] }
   },
-  "references": [
-    {
-      "path": "../dashboard/tsconfig.json"
-    }
-  ]
+  "references": [{ "path": "../dashboard" }]
 }
