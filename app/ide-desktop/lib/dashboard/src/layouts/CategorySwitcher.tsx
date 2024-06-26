@@ -58,6 +58,14 @@ const CATEGORY_DATA: readonly CategoryMetadata[] = [
     dropZoneTextId: 'cloudCategoryDropZoneLabel',
   },
   {
+    category: Category.recent,
+    icon: RecentIcon,
+    textId: 'recentCategory',
+    buttonTextId: 'recentCategoryButtonLabel',
+    dropZoneTextId: 'recentCategoryDropZoneLabel',
+    className: 'ml-4',
+  },
+  {
     category: Category.trash,
     icon: Trash2Icon,
     textId: 'trashCategory',
@@ -71,13 +79,6 @@ const CATEGORY_DATA: readonly CategoryMetadata[] = [
     textId: 'localCategory',
     buttonTextId: 'localCategoryButtonLabel',
     dropZoneTextId: 'localCategoryDropZoneLabel',
-  },
-  {
-    category: Category.recent,
-    icon: RecentIcon,
-    textId: 'recentCategory',
-    buttonTextId: 'recentCategoryButtonLabel',
-    dropZoneTextId: 'recentCategoryDropZoneLabel',
   },
 ]
 

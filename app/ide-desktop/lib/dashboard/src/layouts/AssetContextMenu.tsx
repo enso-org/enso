@@ -79,7 +79,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
     category !== Category.cloud && category !== Category.local
       ? null
       : isCloud
-        ? item.path
+        ? `${item.path}${item.type === backendModule.AssetType.datalink ? '.datalink' : ''}`
         : asset.type === backendModule.AssetType.project
           ? asset.projectState.path ?? null
           : localBackend.extractTypeAndId(asset.id).id
@@ -409,23 +409,22 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
         {!isOtherUserUsingProject && (
           <ContextMenuEntry hidden={hidden} action="cut" doAction={doCut} />
         )}
-        <ContextMenuEntry
-          hidden={hidden}
-          isDisabled={
-            isCloud &&
-            asset.type !== backendModule.AssetType.file &&
-            asset.type !== backendModule.AssetType.datalink &&
-            asset.type !== backendModule.AssetType.project
-          }
-          action="download"
-          doAction={() => {
-            unsetModal()
-            dispatchAssetEvent({
-              type: AssetEventType.download,
-              ids: new Set([asset.id]),
-            })
-          }}
-        />
+        {(isCloud
+          ? asset.type !== backendModule.AssetType.directory
+          : asset.type === backendModule.AssetType.project) && (
+          <ContextMenuEntry
+            hidden={hidden}
+            isDisabled={asset.type === backendModule.AssetType.secret}
+            action="download"
+            doAction={() => {
+              unsetModal()
+              dispatchAssetEvent({
+                type: AssetEventType.download,
+                ids: new Set([asset.id]),
+              })
+            }}
+          />
+        )}
         {hasPasteData && (
           <ContextMenuEntry
             hidden={hidden}
