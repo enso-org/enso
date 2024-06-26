@@ -280,7 +280,7 @@ add_specs (suite_builder : Suite_Builder) (prefix : Text) (create_connection_fn 
                 (Table.new [["a", [1, 2, 3]], ["b", [4, 5, 6]]]).select_into_database_table data.connection name temporary=True
 
             t1 = data.connection.query name
-            m1 = t1.read.order_by "a"
+            m1 = t1.read.sort "a"
             Problems.assume_no_problems m1
             m1.at "a" . to_vector . should_equal [1, 2, 3]
             m1.at "b" . to_vector . should_equal [4, 5, 6]
@@ -302,7 +302,7 @@ add_specs (suite_builder : Suite_Builder) (prefix : Text) (create_connection_fn 
                 (Table.new [["a", [1, 2, 3]], ["b", [4, 5, 6]]]).select_into_database_table data.connection name temporary=True
 
             t1 = data.connection.query name
-            m1 = t1.read.order_by "a"
+            m1 = t1.read.sort "a"
             Problems.assume_no_problems m1
             m1.at "a" . to_vector . should_equal [1, 2, 3]
             m1.at "b" . to_vector . should_equal [4, 5, 6]
@@ -346,7 +346,7 @@ add_specs (suite_builder : Suite_Builder) (prefix : Text) (create_connection_fn 
             data.teardown
 
         group_builder.specify "fill_nothing should replace nulls" <|
-            t4_ordered = data.t4.order_by "rowid"
+            t4_ordered = data.t4.sort "rowid"
             t4_ordered.at "a" . fill_nothing 10 . to_vector . should_equal [0, 1, 10, 42, 10]
             t4_ordered.at "b" . fill_nothing False . to_vector . should_equal [True, False, True, False, False]
             t4_ordered.at "c" . fill_nothing "NA" . to_vector . should_equal ["", "foo", "bar", "NA", "NA"]
@@ -366,27 +366,27 @@ add_specs (suite_builder : Suite_Builder) (prefix : Text) (create_connection_fn 
             data.teardown
 
         group_builder.specify "should allow sorting by a single column name" <|
-            r_1 = data.df.order_by ([Sort_Column.Name 'quantity'])
+            r_1 = data.df.sort ([..Name 'quantity'])
             r_1.at 'id' . to_vector . should_have_relative_ordering [[2,4],[1,3],[5,6]]
 
-            r_3 = data.df.order_by ([Sort_Column.Name 'rating' Sort_Direction.Descending])
+            r_3 = data.df.sort ([..Name 'rating' ..Descending])
             r_3.at 'id' . to_vector . should_have_relative_ordering [[3],[1,4],[5],[2,6]]
 
         group_builder.specify 'should allow sorting by multiple column names' <|
-            r_1 = data.df.order_by ([Sort_Column.Name 'quantity', Sort_Column.Name 'rating'])
+            r_1 = data.df.sort ([..Name 'quantity', ..Name 'rating'])
             r_1.at 'id' . to_vector . should_equal [2,4,1,3,6,5]
 
-            r_2 = data.df.order_by ([Sort_Column.Name 'rating' Sort_Direction.Descending, Sort_Column.Name 'quantity' Sort_Direction.Descending])
+            r_2 = data.df.sort ([..Name 'rating' ..Descending, ..Name 'quantity' ..Descending])
             r_2.at 'id' . to_vector . should_equal [3,1,4,5,6,2]
 
 
         group_builder.specify 'should allow sorting with specific by-column rules' <|
-            r_1 = data.df.order_by ([Sort_Column.Name "quantity", Sort_Column.Name "price" Sort_Direction.Descending])
+            r_1 = data.df.sort ([..Name "quantity", ..Name "price" ..Descending])
             r_1.at 'id' . to_vector . should_equal [4,2,3,1,6,5]
 
         group_builder.specify 'should correctly reorder all kinds of columns and leave the original columns untouched' <|
-            initial = data.t8.order_by 'ints'
-            r = initial.order_by ([Sort_Column.Name 'ord'])
+            initial = data.t8.sort 'ints'
+            r = initial.sort ([Sort_Column.Name 'ord'])
 
             r.at 'ints' . to_vector . should_equal [1, 5, 3, 2, 4]
             initial.at 'ints' . to_vector . should_equal data.ints
@@ -420,7 +420,7 @@ add_specs (suite_builder : Suite_Builder) (prefix : Text) (create_connection_fn 
            (InMemory) table are ordered according to a specified column or list
            of columns.
         determinize_by order_column table =
-            table.order_by ([Sort_Column.Name order_column])
+            table.sort ([..Name order_column])
 
         group_builder.specify "should allow counting group sizes and elements" <|
             ## Names set to lower case to avoid issue with Redshift where columns are
