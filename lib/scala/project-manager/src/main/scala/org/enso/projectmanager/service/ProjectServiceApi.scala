@@ -97,6 +97,17 @@ trait ProjectServiceApi[F[+_, +_]] {
     projectId: UUID
   ): F[ProjectServiceFailure, Unit]
 
+  /** Duplicates a project.
+    *
+    * @param projectId the project id
+    * @param projectsDirectory the path to the projects directory
+    * @return the new project
+    */
+  def duplicateUserProject(
+    projectId: UUID,
+    projectsDirectory: Option[File]
+  ): F[ProjectServiceFailure, Project]
+
   /** Lists the user's most recently opened projects..
     *
     * @param maybeSize the size of result set

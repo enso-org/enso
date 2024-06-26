@@ -3,8 +3,7 @@ package org.enso.projectmanager.infrastructure.repository
 import java.io.File
 import java.nio.file.Path
 import java.util.UUID
-
-import org.enso.projectmanager.model.Project
+import org.enso.projectmanager.model.{Project, ProjectMetadata}
 
 /** An abstraction for accessing project domain objects from durable storage.
   *
@@ -82,10 +81,22 @@ trait ProjectRepository[F[+_, +_]] {
     * @param projectId the project id
     * @param newName the new project name
     */
-  def moveProjectToTargetDir(
+  def moveProject(
     projectId: UUID,
     newName: String
   ): F[ProjectRepositoryFailure, File]
+
+  /** Creates the copy of the project.
+    *
+    * @param project the project to copy
+    * @param newName the new project name
+    * @param newMetadata the new project metadata
+    */
+  def copyProject(
+    project: Project,
+    newName: String,
+    newMetadata: ProjectMetadata
+  ): F[ProjectRepositoryFailure, Project]
 
   /** Gets a package name for the specified project.
     *

@@ -33,6 +33,7 @@ import org.enso.projectmanager.infrastructure.repository.{
   ProjectRepositoryFailure
 }
 import org.enso.projectmanager.infrastructure.time.Clock
+import org.enso.projectmanager.model
 import org.enso.projectmanager.model.Project
 import org.enso.projectmanager.model.ProjectKinds.UserProject
 import org.enso.projectmanager.service.ProjectServiceFailure._
@@ -374,6 +375,32 @@ class ProjectService[
   }
 
   /** @inheritdoc */
+  override def duplicateUserProject(
+    projectId: UUID,
+    projectsDirectory: Option[File]
+  ): F[ProjectServiceFailure, Project] =
+    for {
+      _ <- log.debug("Duplicating project [{}].", projectId)
+      repo = projectRepositoryFactory.getProjectRepository(projectsDirectory)
+      project <- getUserProject(projectId, repo)
+      newName <- getNameForNewProject(project.name, None, repo)
+      _       <- validateProjectName(newName)
+      repo = projectRepositoryFactory.getProjectRepository(projectsDirectory)
+      _           <- checkIfNameExists(newName, repo)
+      updatedTime <- clock.nowInUtc()
+      newMetadata = model.ProjectMetadata(
+        id         = UUID.randomUUID(),
+        kind       = project.kind,
+        created    = updatedTime,
+        lastOpened = None
+      )
+      newProject <- repo
+        .copyProject(project, newName, newMetadata)
+        .mapError(toServiceFailure)
+      _ <- log.info("Project copied [{}].", newProject)
+    } yield newProject
+
+  /** @inheritdoc */
   override def listProjects(
     maybeSize: Option[Int]
   ): F[ProjectServiceFailure, List[ProjectMetadata]] =
@@ -535,7 +562,7 @@ object ProjectService {
       DataStoreFailure(s"Project repository inconsistency detected [$msg].")
   }
 
-  def toProjectMetadata(project: Project): ProjectMetadata =
+  def toProjectMetadata(project: Project): ProjectMetadata = {
     ProjectMetadata(
       name       = project.name,
       namespace  = project.namespace,
@@ -543,4 +570,5 @@ object ProjectService {
       created    = project.created,
       lastOpened = project.lastOpened
     )
+  }
 }
