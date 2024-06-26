@@ -185,7 +185,7 @@ export default function Settings() {
       />
       <div className="flex flex-1 gap-6 overflow-hidden pr-0.5">
         <aside className="hidden h-full shrink-0 basis-[206px] flex-col overflow-y-auto overflow-x-hidden pb-12 sm:flex">
-          <SettingsSidebar tabsToShow={tabsToShow} tab={tab} setTab={setTab} />
+          <SettingsSidebar tabsToShow={tabsToShow} tab={effectiveTab} setTab={setTab} />
         </aside>
         <SettingsTab context={context} data={data} />
       </div>
