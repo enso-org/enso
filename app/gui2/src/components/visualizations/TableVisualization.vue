@@ -124,6 +124,8 @@ const TABLE_NODE_TYPE = 'Standard.Table.Table.Table'
 const VECTOR_NODE_TYPE = 'Standard.Base.Data.Vector.Vector'
 const COLUMN_NODE_TYPE = 'Standard.Table.Column.Column'
 const EXCEL_WORKBOOK_NODE_TYPE = 'Standard.Table.Excel.Excel_Workbook.Excel_Workbook'
+const SQLITE_CONNECTIONS_NODE_TYPE =
+  'Standard.Database.Internal.SQLite.SQLite_Connection.SQLite_Connection'
 
 const rowLimit = ref(0)
 const page = ref(0)
@@ -306,6 +308,14 @@ const getExcelWorkbookPattern = (sheetName: string) =>
     ),
   )
 
+const getSqliteConnectionsWorkbookPattern = (sheetName: string) =>
+  Pattern.new((ast) =>
+    Ast.App.positional(
+      Ast.PropertyAccess.new(ast.module, ast, Ast.identifier('query')!),
+      Ast.TextLiteral.new(sheetName, ast.module)!,
+    ),
+  )
+
 const getTablePattern = (index: number) =>
   Pattern.new((ast) =>
     Ast.OprApp.new(
@@ -338,6 +348,12 @@ function createNode(params: CellClickedEvent) {
   if (config.nodeType === EXCEL_WORKBOOK_NODE_TYPE) {
     config.createNodes({
       content: getExcelWorkbookPattern(params.data['Value']),
+      commit: true,
+    })
+  }
+  if (config.nodeType === SQLITE_CONNECTIONS_NODE_TYPE) {
+    config.createNodes({
+      content: getSqliteConnectionsWorkbookPattern(params.data['Value']),
       commit: true,
     })
   }
