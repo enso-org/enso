@@ -87,7 +87,8 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
         case AssetEventType.addLabels:
         case AssetEventType.removeLabels:
         case AssetEventType.deleteLabel:
-        case AssetEventType.setItem: {
+        case AssetEventType.setItem:
+        case AssetEventType.projectClosed: {
           // Ignored. These events should all be unrelated to secrets.
           // `delete`, `deleteForever`, `restore`, `download`, and `downloadSelected`
           // are handled by`AssetRow`.

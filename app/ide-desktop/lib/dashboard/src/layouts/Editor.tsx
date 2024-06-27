@@ -30,6 +30,7 @@ import type * as types from '../../../types/types'
 export interface EditorProps {
   readonly hidden: boolean
   readonly ydocUrl: string | null
+  readonly setProjectAsset: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>>
   readonly projectStartupInfo: backendModule.ProjectStartupInfo | null
   readonly setProjectStartupInfo: React.Dispatch<
     React.SetStateAction<backendModule.ProjectStartupInfo | null>
@@ -67,6 +68,7 @@ interface EditorInternalProps extends EditorProps {
 /** An internal editor. */
 function EditorInternal(props: EditorInternalProps) {
   const { hidden, ydocUrl, projectStartupInfo, setProjectStartupInfo, appRunner: AppRunner } = props
+  const { setProjectAsset } = props
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { getText } = textProvider.useText()
   const gtagEvent = gtagHooks.useGtagEvent()
@@ -75,12 +77,11 @@ function EditorInternal(props: EditorInternalProps) {
   const remoteBackend = backendProvider.useRemoteBackend()
   const localBackend = backendProvider.useLocalBackend()
   const projectTitleRef = syncRefHooks.useSyncRef(projectStartupInfo.projectAsset.title)
-  const setProjectAsset = projectStartupInfo.setProjectAsset
 
   const projectQuery = reactQuery.useSuspenseQuery({
     queryKey: ['editorProject', projectStartupInfo.projectAsset],
     queryFn: () =>
-      // Wrap in promise, otherwise React Suspense forgets to unsuspend.
+      // Wrap in a new Promise, otherwise React Suspense forgets to unsuspend.
       new Promise<backendModule.Project>(resolve => {
         setTimeout(() => {
           resolve(projectStartupInfo.project)

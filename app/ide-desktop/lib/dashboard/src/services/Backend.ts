@@ -1,6 +1,4 @@
 /** @file Type definitions common between all backends. */
-import type * as React from 'react'
-
 import * as array from '#/utilities/array'
 import * as dateTime from '#/utilities/dateTime'
 import * as newtype from '#/utilities/newtype'
@@ -299,10 +297,7 @@ export interface BackendProject extends Project {
 export interface ProjectStartupInfo {
   readonly project: Promise<Project>
   readonly projectAsset: ProjectAsset
-  // This MUST BE optional because it is lost when `JSON.stringify`ing to put in `localStorage`.
-  readonly setProjectAsset: React.Dispatch<React.SetStateAction<ProjectAsset>>
   readonly backendType: BackendType
-  readonly accessToken: string | null
 }
 
 /** A specific session of a project being opened and used. */

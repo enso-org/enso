@@ -39,7 +39,7 @@ export interface UserBarProps {
   readonly isOnEditorPage: boolean
   readonly setIsHelpChatOpen: (isHelpChatOpen: boolean) => void
   readonly projectAsset: backendModule.ProjectAsset | null
-  readonly setProjectAsset: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>> | null
+  readonly setProjectAsset: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>>
   readonly doRemoveSelf: () => void
   readonly goToSettingsPage: () => void
   readonly onSignOut: () => void
@@ -61,7 +61,6 @@ export default function UserBar(props: UserBarProps) {
     backend?.type === backendModule.BackendType.remote &&
     isOnEditorPage &&
     projectAsset != null &&
-    setProjectAsset != null &&
     self != null
   const shouldShowUpgradeButton = isFeatureUnderPaywall('inviteUser')
   const shouldShowInviteButton =

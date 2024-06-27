@@ -47,6 +47,7 @@ interface AssetEvents {
   readonly removeLabels: AssetRemoveLabelsEvent
   readonly deleteLabel: AssetDeleteLabelEvent
   readonly setItem: AssetSetItemEvent
+  readonly projectClosed: AssetProjectClosedEvent
 }
 
 /** A type to ensure that {@link AssetEvents} contains every {@link AssetEventType}. */
@@ -194,6 +195,12 @@ export interface AssetDeleteLabelEvent extends AssetBaseEvent<AssetEventType.del
 export interface AssetSetItemEvent extends AssetBaseEvent<AssetEventType.setItem> {
   readonly id: backend.AssetId
   readonly valueOrUpdater: React.SetStateAction<backend.AnyAsset>
+}
+
+/** A signal that a project was closed. In this case, the consumer should not fire a
+ * "close project" request to the backend. */
+export interface AssetProjectClosedEvent extends AssetBaseEvent<AssetEventType.projectClosed> {
+  readonly id: backend.AssetId
 }
 
 /** Every possible type of asset event. */

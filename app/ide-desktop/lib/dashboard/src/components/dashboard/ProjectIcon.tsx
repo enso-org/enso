@@ -127,7 +127,19 @@ export default function ProjectIcon(props: ProjectIconProps) {
     'waitUntilProjectIsReady'
   )
   const openProjectMutate = openProjectMutation.mutateAsync
+  const closeProjectMutate = closeProjectMutation.mutateAsync
   const getProjectDetailsMutate = getProjectDetailsMutation.mutateAsync
+
+  const closeProject = React.useCallback(() => {
+    if (!isRunningInBackground) {
+      doCloseEditor(item.id)
+    }
+    shouldOpenWhenReadyRef.current = false
+    setState(backendModule.ProjectState.closing)
+    void closeProjectMutate([item.id, item.title]).then(() => {
+      setState(backendModule.ProjectState.closed)
+    })
+  }, [closeProjectMutate, doCloseEditor, isRunningInBackground, item.id, item.title, setState])
 
   const openEditorMutation = reactQuery.useMutation({
     mutationKey: ['openEditor'],
@@ -137,7 +149,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
       doAbortOpeningRef.current = () => {
         abortController.abort()
       }
-      const projectPromise = openProjectMutation
+      const project = openProjectMutation
         .mutateAsync([
           item2.id,
           { executeAsync: false, parentId: item2.parentId, cognitoCredentials: session },
@@ -151,14 +163,8 @@ export default function ProjectIcon(props: ProjectIconProps) {
             abortController.signal,
           ])
         )
-      setProjectStartupInfo({
-        project: projectPromise,
-        projectAsset: item2,
-        setProjectAsset: setItem,
-        backendType: backend.type,
-        accessToken: session?.accessToken ?? null,
-      })
-      await projectPromise
+      setProjectStartupInfo({ project, projectAsset: item2, backendType: backend.type })
+      await project
       if (!abortController.signal.aborted) {
         setState(backendModule.ProjectState.opened)
         if (shouldOpenWhenReadyRef.current) {
@@ -229,7 +235,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
             shouldOpenWhenReadyRef.current = false
             if (!isOtherUserUsingProject && backendModule.IS_OPENING_OR_OPENED[state]) {
               doAbortOpeningRef.current()
-              void closeProject()
+              closeProject()
             }
           }
         } else {
@@ -237,18 +243,12 @@ export default function ProjectIcon(props: ProjectIconProps) {
             backendModule.IS_OPENING_OR_OPENED[state] &&
             state !== backendModule.ProjectState.placeholder
           ) {
-            const projectPromise = waitUntilProjectIsReadyMutation.mutateAsync([
+            const project = waitUntilProjectIsReadyMutation.mutateAsync([
               item.id,
               item.parentId,
               item.title,
             ])
-            setProjectStartupInfo({
-              project: projectPromise,
-              projectAsset: item,
-              setProjectAsset: setItem,
-              backendType: backend.type,
-              accessToken: session?.accessToken ?? null,
-            })
+            setProjectStartupInfo({ project, projectAsset: item, backendType: backend.type })
             if (!isRunningInBackground) {
               doOpenEditor()
             }
@@ -263,7 +263,13 @@ export default function ProjectIcon(props: ProjectIconProps) {
       case AssetEventType.closeProject: {
         if (event.id === item.id) {
           shouldOpenWhenReadyRef.current = false
-          void closeProject()
+          closeProject()
+        }
+        break
+      }
+      case AssetEventType.projectClosed: {
+        if (event.id === item.id) {
+          setState(backendModule.ProjectState.closed)
         }
         break
       }
@@ -275,16 +281,6 @@ export default function ProjectIcon(props: ProjectIconProps) {
       }
     }
   })
-
-  const closeProject = async () => {
-    if (!isRunningInBackground) {
-      doCloseEditor(item.id)
-    }
-    shouldOpenWhenReadyRef.current = false
-    setState(backendModule.ProjectState.closing)
-    await closeProjectMutation.mutateAsync([item.id, item.title])
-    setState(backendModule.ProjectState.closed)
-  }
 
   switch (state) {
     case null:

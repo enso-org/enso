@@ -134,7 +134,8 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
         case AssetEventType.addLabels:
         case AssetEventType.removeLabels:
         case AssetEventType.deleteLabel:
-        case AssetEventType.setItem: {
+        case AssetEventType.setItem:
+        case AssetEventType.projectClosed: {
           // Ignored. Any missing project-related events should be handled by `ProjectIcon`.
           // `delete`, `deleteForever`, `restore`, `download`, and `downloadSelected`
           // are handled by`AssetRow`.

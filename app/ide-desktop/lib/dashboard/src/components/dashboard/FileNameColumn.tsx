@@ -103,7 +103,8 @@ export default function FileNameColumn(props: FileNameColumnProps) {
         case AssetEventType.addLabels:
         case AssetEventType.removeLabels:
         case AssetEventType.deleteLabel:
-        case AssetEventType.setItem: {
+        case AssetEventType.setItem:
+        case AssetEventType.projectClosed: {
           // Ignored. These events should all be unrelated to projects.
           // `delete`, `deleteForever`, `restoreMultiple`, `download`, and `downloadSelected`
           // are handled by `AssetRow`.

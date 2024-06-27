@@ -59,10 +59,7 @@ declare module '#/utilities/LocalStorage' {
   interface LocalStorageData {
     readonly isAssetPanelVisible: boolean
     readonly page: TabType
-    readonly projectStartupInfo: Omit<
-      backendModule.ProjectStartupInfo,
-      'project' | 'setProjectAsset'
-    >
+    readonly projectStartupInfo: Omit<backendModule.ProjectStartupInfo, 'project'>
   }
 }
 
@@ -81,11 +78,6 @@ LocalStorage.registerKey('projectStartupInfo', {
   tryParse: value => {
     if (typeof value !== 'object' || value == null) {
       return null
-    } else if (
-      !('accessToken' in value) ||
-      (typeof value.accessToken !== 'string' && value.accessToken != null)
-    ) {
-      return null
     } else if (!('backendType' in value) || !array.includes(BACKEND_TYPES, value.backendType)) {
       return null
     } else if (!('projectAsset' in value)) {
@@ -97,7 +89,6 @@ LocalStorage.registerKey('projectStartupInfo', {
         // eslint-disable-next-line no-restricted-syntax
         projectAsset: value.projectAsset as backendModule.ProjectAsset,
         backendType: value.backendType,
-        accessToken: value.accessToken ?? null,
       }
     }
   },
@@ -197,23 +188,7 @@ export default function Dashboard(props: DashboardProps) {
                   title,
                   abortController.signal
                 )
-                setProjectStartupInfo({
-                  ...savedProjectStartupInfo,
-                  project,
-                  setProjectAsset: valueOrUpdater => {
-                    dispatchAssetEvent({
-                      type: AssetEventType.setItem,
-                      id,
-                      valueOrUpdater:
-                        typeof valueOrUpdater !== 'function'
-                          ? valueOrUpdater
-                          : currentValue =>
-                              currentValue.type === backendModule.AssetType.project
-                                ? valueOrUpdater(currentValue)
-                                : currentValue,
-                    })
-                  },
-                })
+                setProjectStartupInfo({ ...savedProjectStartupInfo, project })
                 if (page === TabType.editor) {
                   setPage(page)
                 }
@@ -228,31 +203,11 @@ export default function Dashboard(props: DashboardProps) {
           void (async () => {
             await localBackend.openProject(
               id,
-              {
-                executeAsync: false,
-                cognitoCredentials: null,
-                parentId: parentId,
-              },
+              { executeAsync: false, cognitoCredentials: null, parentId: parentId },
               title
             )
             const project = localBackend.getProjectDetails(id, parentId, title)
-            setProjectStartupInfo({
-              ...savedProjectStartupInfo,
-              project,
-              setProjectAsset: valueOrUpdater => {
-                dispatchAssetEvent({
-                  type: AssetEventType.setItem,
-                  id,
-                  valueOrUpdater:
-                    typeof valueOrUpdater !== 'function'
-                      ? valueOrUpdater
-                      : currentValue =>
-                          currentValue.type === backendModule.AssetType.project
-                            ? valueOrUpdater(currentValue)
-                            : currentValue,
-                })
-              },
-            })
+            setProjectStartupInfo({ ...savedProjectStartupInfo, project })
             if (page === TabType.editor) {
               setPage(page)
             }
@@ -368,6 +323,25 @@ export default function Dashboard(props: DashboardProps) {
     setProjectStartupInfo(null)
   }, [page, setPage])
 
+  const setProjectAsset = React.useCallback(
+    (valueOrUpdater: React.SetStateAction<backendModule.ProjectAsset>) => {
+      if (projectStartupInfo?.projectAsset.id != null) {
+        dispatchAssetEvent({
+          type: AssetEventType.setItem,
+          id: projectStartupInfo.projectAsset.id,
+          valueOrUpdater:
+            typeof valueOrUpdater !== 'function'
+              ? valueOrUpdater
+              : currentValue =>
+                  currentValue.type === backendModule.AssetType.project
+                    ? valueOrUpdater(currentValue)
+                    : currentValue,
+        })
+      }
+    },
+    [dispatchAssetEvent, projectStartupInfo?.projectAsset.id]
+  )
+
   return (
     <Page hideInfoBar hideChat>
       <div className="flex text-xs text-primary">
@@ -400,8 +374,16 @@ export default function Dashboard(props: DashboardProps) {
                     setPage(TabType.editor)
                   }}
                   onClose={() => {
+                    const backend =
+                      projectStartupInfo.backendType === backendModule.BackendType.remote
+                        ? remoteBackend
+                        : localBackend
+                    void backend?.closeProject(
+                      projectStartupInfo.projectAsset.id,
+                      projectStartupInfo.projectAsset.title
+                    )
                     dispatchAssetEvent({
-                      type: AssetEventType.closeProject,
+                      type: AssetEventType.projectClosed,
                       id: projectStartupInfo.projectAsset.id,
                     })
                     setProjectStartupInfo(null)
@@ -436,7 +418,7 @@ export default function Dashboard(props: DashboardProps) {
               isOnEditorPage={page === TabType.editor}
               setIsHelpChatOpen={setIsHelpChatOpen}
               projectAsset={projectStartupInfo?.projectAsset ?? null}
-              setProjectAsset={projectStartupInfo?.setProjectAsset ?? null}
+              setProjectAsset={setProjectAsset}
               doRemoveSelf={doRemoveSelf}
               goToSettingsPage={() => {
                 setPage(TabType.settings)
@@ -460,6 +442,7 @@ export default function Dashboard(props: DashboardProps) {
           <Editor
             hidden={page !== TabType.editor}
             ydocUrl={ydocUrl}
+            setProjectAsset={setProjectAsset}
             projectStartupInfo={projectStartupInfo}
             setProjectStartupInfo={setProjectStartupInfo}
             appRunner={appRunner}

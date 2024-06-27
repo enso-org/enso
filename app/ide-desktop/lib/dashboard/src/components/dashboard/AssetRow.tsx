@@ -459,7 +459,8 @@ export default function AssetRow(props: AssetRowProps) {
         case AssetEventType.newSecret:
         case AssetEventType.updateFiles:
         case AssetEventType.openProject:
-        case AssetEventType.closeProject: {
+        case AssetEventType.closeProject:
+        case AssetEventType.projectClosed: {
           break
         }
         case AssetEventType.copy: {
