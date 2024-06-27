@@ -12,10 +12,13 @@ type Group_Builder
     ## PRIVATE
 
        Arguments:
-       - name: The name of the group.
+       - internal_name: The name of the group.
        - builder: Vector builder used for storing specs.
        - teardown_ref: A reference to a teardown method.
-    private Impl (name : Text) (builder = Builder.new) (teardown_ref = Ref.new (_ -> Nothing))
+    private Impl (internal_name : Text) (builder = Builder.new) (teardown_ref = Ref.new (_ -> Nothing))
+
+    ## Name of the group.
+    name self -> Text = self.internal_name
 
     ## Specifies a single test.
 
