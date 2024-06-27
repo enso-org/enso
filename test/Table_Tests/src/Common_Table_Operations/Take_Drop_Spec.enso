@@ -27,7 +27,7 @@ type Table_Take_Drop_Data
         table =
             col1 = ["alpha", [1,2,3,4,5,6,7,8]]
             col2 = ["beta", ["A","B","C","D","E","F","G","H"]]
-            (table_builder [col1, col2] connection=connection) . order_by "alpha"
+            (table_builder [col1, col2] connection=connection) . sort "alpha"
         empty = table.remove_all_rows
         [connection, table, empty]
 
@@ -50,7 +50,7 @@ type Column_Take_Drop_Data
         table =
             col1 = ["alpha", [1,2,3,4,5,6,7,8]]
             col2 = ["beta", ["A","B","C","D","E","F","G","H"]]
-            (table_builder [col1, col2] connection=connection) . order_by "alpha"
+            (table_builder [col1, col2] connection=connection) . sort "alpha"
         alpha = table.at "alpha"
         beta = table.at "beta"
 
@@ -113,12 +113,12 @@ add_specs suite_builder setup =
             data.table.drop (Last 100) . should_equal data.empty
 
         group_builder.specify "should handle consecutive take/drops" <|
-            data.table.take 5 . order_by "alpha" . take 3 . at "alpha" . to_vector . should_equal [1, 2, 3]
-            data.table.take 3 . order_by "alpha" . take 5 . at "alpha" . to_vector . should_equal [1, 2, 3]
-            data.table.take 5 . order_by "alpha" . drop 3 . at "alpha" . to_vector . should_equal [4, 5]
-            data.table.drop 3 . order_by "alpha" . drop 2 . at "alpha" . to_vector . should_equal [6, 7, 8]
-            data.table.drop 2 . order_by "alpha" . drop 3 . at "alpha" . to_vector . should_equal [6, 7, 8]
-            data.table.drop 3 . order_by "alpha" . take 2 . at "alpha" . to_vector . should_equal [4, 5]
+            data.table.take 5 . sort "alpha" . take 3 . at "alpha" . to_vector . should_equal [1, 2, 3]
+            data.table.take 3 . sort "alpha" . take 5 . at "alpha" . to_vector . should_equal [1, 2, 3]
+            data.table.take 5 . sort "alpha" . drop 3 . at "alpha" . to_vector . should_equal [4, 5]
+            data.table.drop 3 . sort "alpha" . drop 2 . at "alpha" . to_vector . should_equal [6, 7, 8]
+            data.table.drop 2 . sort "alpha" . drop 3 . at "alpha" . to_vector . should_equal [6, 7, 8]
+            data.table.drop 3 . sort "alpha" . take 2 . at "alpha" . to_vector . should_equal [4, 5]
 
         group_builder.specify "should allow selecting rows by ranges or indices" <|
             data.table.take (2.up_to 4) . at "beta" . to_vector . should_equal ["C", "D"]
@@ -187,9 +187,9 @@ add_specs suite_builder setup =
 
         if setup.is_database.not then
             group_builder.specify "should allow sampling rows" <|
-                one = table_builder [["X", ["a"]]] . order_by "X"
-                two = table_builder [["X", ["a", "a"]]] . order_by "X"
-                three = table_builder [["X", ["a", "a", "a"]]] . order_by "X"
+                one = table_builder [["X", ["a"]]] . sort "X"
+                two = table_builder [["X", ["a", "a"]]] . sort "X"
+                three = table_builder [["X", ["a", "a", "a"]]] . sort "X"
                 empty = one.remove_all_rows
                 three.take (Sample 0) . should_equal empty
                 empty.take (Sample 0) . should_equal empty
@@ -249,11 +249,11 @@ add_specs suite_builder setup =
             t0 = table_builder [["X", ["a", "b", "a", "c"]], ["Y", [1, 2, 4, 8]]]
             t1 = t0.aggregate ["X"] [Aggregate_Column.Sum "Y"]
 
-            t2 = t1.order_by "X" . take 2
+            t2 = t1.sort "X" . take 2
             t2.at "X" . to_vector . should_equal ['a', 'b']
             t2.at "Sum Y" . to_vector . should_equal [5.0, 2.0]
 
-            t3 = t1.order_by "X" . drop 1
+            t3 = t1.sort "X" . drop 1
             t3.at "X" . to_vector . should_equal ['b', 'c']
             t3.at "Sum Y" . to_vector . should_equal [2.0, 8.0]
 

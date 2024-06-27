@@ -202,7 +202,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
                   return jsonSchema.constantValue(defs, childSchema).length === 1 ? null : (
                     <div
                       key={key}
-                      className="flex flex-wrap items-center gap-buttons"
+                      className="flex flex-wrap items-center gap-2"
                       {...('description' in childSchema
                         ? { title: String(childSchema.description) }
                         : {})}
