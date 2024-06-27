@@ -198,16 +198,12 @@ type Postgres_Dialect
             False -> column
 
     ## PRIVATE
-       Add an extra cast to the output of certain operations with certain arguments
+       Add an extra cast to adjust the output type of certain operations with certain arguments.
     cast_op_type self (op_kind:Text) (args:(Vector Internal_Column)) (expression:SQL_Expression) =
         is_bigint ic = ic.sql_type_reference.get.typeid == Types.BIGINT
         is_int ic =
             typeid = ic.sql_type_reference.get.typeid
             typeid == Types.SMALLINT || typeid == Types.INTEGER || typeid == Types.BIGINT
-        ##
-            is_float ic =
-            typeid = ic.sql_type_reference.get.typeid
-            typeid == Types.REAL || typeid == Types.DOUBLE
 
         cast_to = case op_kind of
             "SUM" ->

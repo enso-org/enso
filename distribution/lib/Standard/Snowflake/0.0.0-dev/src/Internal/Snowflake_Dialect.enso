@@ -185,7 +185,7 @@ type Snowflake_Dialect
         column
 
     ## PRIVATE
-       Add an extra cast to the output of certain operations with certain arguments
+       Add an extra cast to adjust the output type of certain operations with certain arguments.
     cast_op_type self (op_kind:Text) (args:(Vector Internal_Column)) (expression:SQL_Expression) =
         _ = [op_kind, args]
         expression

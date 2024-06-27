@@ -83,7 +83,7 @@ type DB_Table
        - connection: The connection with which the table is associated.
        - internal_columns: The internal representation of the table columns.
        - context: The context associated with this table.
-    Value internal_name:Text connection:(Connection | Any) (internal_columns:(Vector Internal_Column)) context:Context
+    private Value internal_name:Text connection:(Connection | Any) (internal_columns:(Vector Internal_Column)) context:Context
 
     ## GROUP Standard.Base.Metadata
        ICON metadata
