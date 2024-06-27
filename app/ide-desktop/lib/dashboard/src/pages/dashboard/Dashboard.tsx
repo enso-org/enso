@@ -2,6 +2,8 @@
  * interactive components. */
 import * as React from 'react'
 
+import * as validator from 'validator'
+
 import DriveIcon from 'enso-assets/drive.svg'
 import EditorIcon from 'enso-assets/network.svg'
 import SettingsIcon from 'enso-assets/settings.svg'
@@ -35,7 +37,8 @@ import UserBar from '#/layouts/UserBar'
 import Page from '#/components/Page'
 
 import * as backendModule from '#/services/Backend'
-import type * as projectManager from '#/services/ProjectManager'
+import * as localBackendModule from '#/services/LocalBackend'
+import * as projectManager from '#/services/ProjectManager'
 
 import * as array from '#/utilities/array'
 import LocalStorage from '#/utilities/LocalStorage'
@@ -110,15 +113,13 @@ export interface DashboardProps {
   readonly supportsLocalBackend: boolean
   readonly appRunner: types.EditorRunner | null
   readonly initialProjectName: string | null
-  readonly projectManagerUrl: string | null
   readonly ydocUrl: string | null
-  readonly projectManagerRootDirectory: projectManager.Path | null
 }
 
 /** The component that contains the entire UI. */
 export default function Dashboard(props: DashboardProps) {
   const { appRunner, initialProjectName } = props
-  const { ydocUrl, projectManagerUrl, projectManagerRootDirectory } = props
+  const { ydocUrl } = props
   const session = authProvider.useNonPartialUserSession()
   const remoteBackend = backendProvider.useRemoteBackend()
   const localBackend = backendProvider.useLocalBackend()
@@ -174,61 +175,110 @@ export default function Dashboard(props: DashboardProps) {
   React.useEffect(() => {
     const savedProjectStartupInfo = localStorage.get('projectStartupInfo')
     if (initialProjectName != null) {
-      if (page === TabType.editor) {
-        setPage(TabType.drive)
+      if (validator.isUUID(initialProjectName)) {
+        if (localBackend != null) {
+          const projectId = localBackendModule.newProjectId(projectManager.UUID(initialProjectName))
+          const parentId = localBackend.rootDirectoryId()
+          const title = 'imported project'
+          // Assume it is a project to be opened on the Local Backend.
+          const project = localBackend
+            .openProject(
+              projectId,
+              { executeAsync: false, cognitoCredentials: null, parentId },
+              title
+            )
+            .then(() => localBackend.getProjectDetails(projectId, parentId, title))
+            .catch(error => {
+              setProjectStartupInfo(null)
+              throw error
+            })
+          void localBackend
+            .listDirectory({
+              labels: [],
+              filterBy: backendModule.FilterBy.active,
+              parentId: null,
+              recentProjects: false,
+            })
+            .then(siblings => {
+              const projectAsset = siblings
+                .filter(backendModule.assetIsProject)
+                .find(sibling => sibling.id === projectId)
+              if (projectAsset) {
+                setProjectStartupInfo({
+                  project,
+                  accessToken: null,
+                  backendType: backendModule.BackendType.local,
+                  projectAsset,
+                })
+              }
+            })
+        }
+      } else {
+        if (page === TabType.editor) {
+          setPage(TabType.drive)
+        }
       }
     } else if (savedProjectStartupInfo != null) {
-      if (savedProjectStartupInfo.backendType === backendModule.BackendType.remote) {
-        if (remoteBackend != null) {
-          setPage(TabType.drive)
-          void (async () => {
-            const abortController = new AbortController()
-            openProjectAbortControllerRef.current = abortController
-            try {
-              const oldProject = await remoteBackend.getProjectDetails(
-                savedProjectStartupInfo.projectAsset.id,
-                savedProjectStartupInfo.projectAsset.parentId,
-                savedProjectStartupInfo.projectAsset.title
-              )
-              if (backendModule.IS_OPENING_OR_OPENED[oldProject.state.type]) {
-                const project = remoteBackend.waitUntilProjectIsReady(
+      switch (savedProjectStartupInfo.backendType) {
+        case backendModule.BackendType.remote: {
+          if (remoteBackend != null) {
+            setPage(TabType.drive)
+            void (async () => {
+              const abortController = new AbortController()
+              openProjectAbortControllerRef.current = abortController
+              try {
+                const oldProject = await remoteBackend.getProjectDetails(
                   savedProjectStartupInfo.projectAsset.id,
                   savedProjectStartupInfo.projectAsset.parentId,
-                  savedProjectStartupInfo.projectAsset.title,
-                  abortController.signal
+                  savedProjectStartupInfo.projectAsset.title
                 )
-                setProjectStartupInfo({ ...savedProjectStartupInfo, project })
-                if (page === TabType.editor) {
-                  setPage(page)
+                if (backendModule.IS_OPENING_OR_OPENED[oldProject.state.type]) {
+                  const project = remoteBackend.waitUntilProjectIsReady(
+                    savedProjectStartupInfo.projectAsset.id,
+                    savedProjectStartupInfo.projectAsset.parentId,
+                    savedProjectStartupInfo.projectAsset.title,
+                    abortController.signal
+                  )
+                  setProjectStartupInfo({ ...savedProjectStartupInfo, project })
+                  if (page === TabType.editor) {
+                    setPage(page)
+                  }
                 }
+              } catch {
+                setProjectStartupInfo(null)
               }
-            } catch {
-              setProjectStartupInfo(null)
-            }
-          })()
+            })()
+          }
+          break
         }
-      } else if (projectManagerUrl != null && projectManagerRootDirectory != null) {
-        if (localBackend != null) {
-          void (async () => {
-            await localBackend.openProject(
-              savedProjectStartupInfo.projectAsset.id,
-              {
-                executeAsync: false,
-                cognitoCredentials: null,
-                parentId: savedProjectStartupInfo.projectAsset.parentId,
-              },
-              savedProjectStartupInfo.projectAsset.title
-            )
-            const project = localBackend.getProjectDetails(
-              savedProjectStartupInfo.projectAsset.id,
-              savedProjectStartupInfo.projectAsset.parentId,
-              savedProjectStartupInfo.projectAsset.title
-            )
+        case backendModule.BackendType.local: {
+          if (localBackend != null) {
+            const project = localBackend
+              .openProject(
+                savedProjectStartupInfo.projectAsset.id,
+                {
+                  executeAsync: false,
+                  cognitoCredentials: null,
+                  parentId: savedProjectStartupInfo.projectAsset.parentId,
+                },
+                savedProjectStartupInfo.projectAsset.title
+              )
+              .then(() =>
+                localBackend.getProjectDetails(
+                  savedProjectStartupInfo.projectAsset.id,
+                  savedProjectStartupInfo.projectAsset.parentId,
+                  savedProjectStartupInfo.projectAsset.title
+                )
+              )
+              .catch(error => {
+                setProjectStartupInfo(null)
+                throw error
+              })
             setProjectStartupInfo({ ...savedProjectStartupInfo, project })
             if (page === TabType.editor) {
               setPage(page)
             }
-          })()
+          }
         }
       }
     }
