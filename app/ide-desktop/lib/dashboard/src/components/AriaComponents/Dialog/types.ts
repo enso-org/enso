@@ -8,7 +8,6 @@ export interface DialogProps extends aria.DialogProps {
   readonly onOpenChange?: (isOpen: boolean) => void
   readonly isKeyboardDismissDisabled?: boolean
   readonly modalProps?: Pick<aria.ModalOverlayProps, 'className' | 'defaultOpen' | 'isOpen'>
-
   readonly testId?: string
 }
 

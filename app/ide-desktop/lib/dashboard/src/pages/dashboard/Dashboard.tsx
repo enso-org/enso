@@ -3,8 +3,8 @@
 import * as React from 'react'
 
 import DriveIcon from 'enso-assets/drive.svg'
+import EditorIcon from 'enso-assets/network.svg'
 import SettingsIcon from 'enso-assets/settings.svg'
-import WorkspaceIcon from 'enso-assets/workspace.svg'
 import * as detect from 'enso-common/src/detect'
 
 import * as eventHooks from '#/hooks/eventHooks'
@@ -365,7 +365,7 @@ export default function Dashboard(props: DashboardProps) {
               {projectStartupInfo != null && (
                 <tabBar.Tab
                   isActive={page === TabType.editor}
-                  icon={WorkspaceIcon}
+                  icon={EditorIcon}
                   labelId="editorPageName"
                   loadingPromise={projectStartupInfo.project}
                   onPress={() => {
@@ -400,7 +400,11 @@ export default function Dashboard(props: DashboardProps) {
               )}
             </TabBar>
             <UserBar
-              backend={remoteBackend}
+              backend={
+                projectStartupInfo?.backendType === backendModule.BackendType.remote
+                  ? remoteBackend
+                  : localBackend
+              }
               isOnEditorPage={page === TabType.editor}
               setIsHelpChatOpen={setIsHelpChatOpen}
               projectAsset={projectStartupInfo?.projectAsset ?? null}
@@ -431,7 +435,7 @@ export default function Dashboard(props: DashboardProps) {
             projectStartupInfo={projectStartupInfo}
             appRunner={appRunner}
           />
-          {page === TabType.settings && <Settings backend={remoteBackend} />}
+          {page === TabType.settings && <Settings />}
           {process.env.ENSO_CLOUD_CHAT_URL != null ? (
             <Chat
               isOpen={isHelpChatOpen}

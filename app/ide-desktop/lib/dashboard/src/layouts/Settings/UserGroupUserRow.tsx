@@ -69,8 +69,8 @@ export default function UserGroupUserRow(props: UserGroupUserRowProps) {
       )}
       ref={contextMenuRef}
     >
-      <aria.Cell className="border-x-2 border-transparent bg-clip-padding rounded-rows-skip-level last:border-r-0">
-        <div className="flex justify-center">
+      <aria.Cell className="border-x-2 border-transparent bg-clip-padding py-0 rounded-rows-skip-level last:border-r-0">
+        <div className="ml-6 flex h-row items-center justify-center rounded-full px-cell-x">
           <ariaComponents.Text nowrap truncate="1" weight="semibold">
             {user.name}
           </ariaComponents.Text>

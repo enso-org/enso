@@ -18,36 +18,39 @@ import * as text from '../Text'
 
 /** Props for a {@link Button}. */
 export type ButtonProps =
-  | (BaseButtonProps & Omit<aria.ButtonProps, 'children' | 'onPress' | 'type'> & PropsWithoutHref)
-  | (BaseButtonProps & Omit<aria.LinkProps, 'children' | 'onPress' | 'type'> & PropsWithHref)
+  | (BaseButtonProps<aria.ButtonRenderProps> & Omit<aria.ButtonProps, 'onPress'> & PropsWithoutHref)
+  | (BaseButtonProps<aria.LinkRenderProps> & Omit<aria.LinkProps, 'onPress'> & PropsWithHref)
 
 /**
  * Props for a button with an href.
  */
 interface PropsWithHref {
-  readonly href?: string
-  readonly type?: never
+  readonly href: string
 }
 
 /**
  * Props for a button without an href.
  */
 interface PropsWithoutHref {
-  readonly type?: 'button' | 'reset' | 'submit'
   readonly href?: never
 }
 
 /**
  * Base props for a button.
  */
-export interface BaseButtonProps extends Omit<twv.VariantProps<typeof BUTTON_STYLES>, 'iconOnly'> {
+export interface BaseButtonProps<Render>
+  extends Omit<twv.VariantProps<typeof BUTTON_STYLES>, 'iconOnly'> {
   /** Falls back to `aria-label`. Pass `false` to explicitly disable the tooltip. */
   readonly tooltip?: React.ReactElement | string | false
   readonly tooltipPlacement?: aria.Placement
   /**
    * The icon to display in the button
    */
-  readonly icon?: React.ReactElement | string | null
+  readonly icon?:
+    | React.ReactElement
+    | string
+    | ((render: Render) => React.ReactElement | string | null)
+    | null
   /**
    * When `true`, icon will be shown only when hovered.
    */
@@ -58,9 +61,8 @@ export interface BaseButtonProps extends Omit<twv.VariantProps<typeof BUTTON_STY
    */
   readonly onPress?: (event: aria.PressEvent) => Promise<void> | void
   readonly contentClassName?: string
-  readonly children?: React.ReactNode
   readonly testId?: string
-
+  readonly isDisabled?: boolean
   readonly formnovalidate?: boolean
   /** Defaults to `full`. When `full`, the entire button will be replaced with the loader.
    * When `icon`, only the icon will be replaced with the loader. */
@@ -201,6 +203,26 @@ export const BUTTON_STYLES = twv.tv({
     showIconOnHover: {
       true: { icon: 'opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100' },
     },
+    extraClickZone: {
+      true: {
+        extraClickZone: 'flex relative after:absolute after:cursor-pointer',
+      },
+      false: {
+        extraClickZone: '',
+      },
+      small: {
+        extraClickZone: 'after:inset-[-6px]',
+      },
+      medium: {
+        extraClickZone: 'after:inset-[-8px]',
+      },
+      large: {
+        extraClickZone: 'after:inset-[-10px]',
+      },
+      custom: {
+        extraClickZone: 'after:inset-[calc(var(--extra-click-zone-offset, 0) * -1)]',
+      },
+    },
   },
   slots: {
     extraClickZone: 'flex relative after:absolute after:cursor-pointer',
@@ -278,7 +300,6 @@ export const Button = React.forwardRef(function Button(
     variant,
     icon,
     loading = false,
-    isDisabled,
     isActive,
     showIconOnHover,
     iconPosition,
@@ -290,6 +311,7 @@ export const Button = React.forwardRef(function Button(
     tooltipPlacement,
     testId,
     loaderPosition = 'full',
+    extraClickZone: extraClickZoneProp,
     onPress = () => {},
     ...ariaProps
   } = props
@@ -304,10 +326,11 @@ export const Button = React.forwardRef(function Button(
   const Tag = isLink ? aria.Link : aria.Button
 
   const goodDefaults = {
-    ...(isLink ? { rel: 'noopener noreferrer' } : {}),
+    ...(isLink ? { rel: 'noopener noreferrer', ref } : {}),
     ...(isLink ? {} : { type: 'button' as const }),
     'data-testid': testId ?? (isLink ? 'link' : 'button'),
   }
+
   const isIconOnly = (children == null || children === '' || children === false) && icon != null
   const shouldShowTooltip = (() => {
     if (tooltip === false) {
@@ -321,6 +344,7 @@ export const Button = React.forwardRef(function Button(
   const tooltipElement = shouldShowTooltip ? tooltip ?? ariaProps['aria-label'] : null
 
   const isLoading = loading || implicitlyLoading
+  const isDisabled = props.isDisabled == null ? isLoading : props.isDisabled
 
   React.useLayoutEffect(() => {
     const delay = 350
@@ -350,7 +374,7 @@ export const Button = React.forwardRef(function Button(
   }, [isLoading, loaderPosition])
 
   const handlePress = (event: aria.PressEvent): void => {
-    if (!isLoading) {
+    if (!isDisabled) {
       const result = onPress(event)
 
       if (result instanceof Promise) {
@@ -371,7 +395,7 @@ export const Button = React.forwardRef(function Button(
     icon: iconClasses,
     text: textClasses,
   } = BUTTON_STYLES({
-    isDisabled,
+    isDisabled: isDisabled,
     isActive,
     loading: isLoading,
     fullWidth,
@@ -381,10 +405,13 @@ export const Button = React.forwardRef(function Button(
     variant,
     iconPosition,
     showIconOnHover,
+    extraClickZone: extraClickZoneProp,
     iconOnly: isIconOnly,
   })
 
-  const childrenFactory = (): React.ReactNode => {
+  const childrenFactory = (
+    render: aria.ButtonRenderProps | aria.LinkRenderProps
+  ): React.ReactNode => {
     const iconComponent = (() => {
       if (icon == null) {
         return null
@@ -394,10 +421,15 @@ export const Button = React.forwardRef(function Button(
             <StatelessSpinner state={spinnerModule.SpinnerState.loadingMedium} size={16} />
           </span>
         )
-      } else if (typeof icon === 'string') {
-        return <SvgMask src={icon} className={iconClasses()} />
       } else {
-        return <span className={iconClasses()}>{icon}</span>
+        /* @ts-expect-error any here is safe because we transparently pass it to the children, and ts infer the type outside correctly */
+        const actualIcon = typeof icon === 'function' ? icon(render) : icon
+
+        if (typeof actualIcon === 'string') {
+          return <SvgMask src={actualIcon} className={iconClasses()} />
+        } else {
+          return <span className={iconClasses()}>{actualIcon}</span>
+        }
       }
     })()
     // Icon only button
@@ -408,7 +440,10 @@ export const Button = React.forwardRef(function Button(
       return (
         <>
           {iconComponent}
-          <span className={textClasses()}>{children}</span>
+          <span className={textClasses()}>
+            {/* @ts-expect-error any here is safe because we transparently pass it to the children, and ts infer the type outside correctly */}
+            {typeof children === 'function' ? children(render) : children}
+          </span>
         </>
       )
     }
@@ -416,34 +451,34 @@ export const Button = React.forwardRef(function Button(
 
   const button = (
     <Tag
-      {...aria.mergeProps<aria.ButtonProps | aria.LinkProps>()(
-        goodDefaults,
-        ariaProps,
-        focusChildProps,
-        {
-          // eslint-disable-next-line no-restricted-syntax
-          ...{ ref: ref as never },
-          isDisabled,
-          // we use onPressEnd instead of onPress because for some reason react-aria doesn't trigger
-          // onPress on EXTRA_CLICK_ZONE, but onPress{start,end} are triggered
-          onPressEnd: handlePress,
-          className: aria.composeRenderProps(className, (classNames, states) =>
-            base({ className: classNames, ...states })
-          ),
-        }
-      )}
+      // @ts-expect-error ts errors are expected here because we are merging props with different types
+      {...aria.mergeProps<aria.ButtonProps>()(goodDefaults, ariaProps, focusChildProps, {
+        isDisabled: isDisabled,
+        // we use onPressEnd instead of onPress because for some reason react-aria doesn't trigger
+        // onPress on EXTRA_CLICK_ZONE, but onPress{start,end} are triggered
+        onPressEnd: handlePress,
+        className: aria.composeRenderProps(className, (classNames, states) =>
+          base({ className: classNames, ...states })
+        ),
+      })}
     >
-      <span className={wrapper()}>
-        <span ref={contentRef} className={content({ className: contentClassName })}>
-          {childrenFactory()}
-        </span>
+      {/* @ts-expect-error any here is safe because we transparently pass it to the children, and ts infer the type outside correctly */}
+      {render => (
+        <>
+          <span className={wrapper()}>
+            <span ref={contentRef} className={content({ className: contentClassName })}>
+              {/* eslint-disable-next-line @typescript-eslint/no-unsafe-argument */}
+              {childrenFactory(render)}
+            </span>
 
-        {isLoading && loaderPosition === 'full' && (
-          <span ref={loaderRef} className={loader()}>
-            <StatelessSpinner state={spinnerModule.SpinnerState.loadingMedium} size={16} />
+            {isLoading && loaderPosition === 'full' && (
+              <span ref={loaderRef} className={loader()}>
+                <StatelessSpinner state={spinnerModule.SpinnerState.loadingMedium} size={16} />
+              </span>
+            )}
           </span>
-        )}
-      </span>
+        </>
+      )}
     </Tag>
   )
 

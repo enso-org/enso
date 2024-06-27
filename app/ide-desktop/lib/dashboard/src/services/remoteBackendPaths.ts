@@ -51,6 +51,8 @@ export const UPLOAD_FILE_PATH = 'files'
 export const CREATE_SECRET_PATH = 'secrets'
 /** Relative HTTP path to the "list secrets" endpoint of the Cloud backend API. */
 export const LIST_SECRETS_PATH = 'secrets'
+/** Relative HTTP path to the "list project sessions" endpoint of the Cloud backend API. */
+export const LIST_PROJECT_SESSIONS_PATH = 'project-sessions'
 /** Relative HTTP path to the "create datalink" endpoint of the Cloud backend API. */
 export const CREATE_DATALINK_PATH = 'datalinks'
 /** Relative HTTP path to the "create tag" endpoint of the Cloud backend API. */
@@ -107,6 +109,10 @@ export function closeProjectPath(projectId: backend.ProjectId) {
 /** Relative HTTP path to the "get project details" endpoint of the Cloud backend API. */
 export function getProjectDetailsPath(projectId: backend.ProjectId) {
   return `projects/${projectId}`
+}
+/** Relative HTTP path to the "get project logs" endpoint of the Cloud backend API. */
+export function getProjectSessionLogsPath(projectSessionId: backend.ProjectSessionId) {
+  return `project-sessions/${projectSessionId}/logs`
 }
 /** Relative HTTP path to the "duplicate project" endpoint of the Cloud backend API. */
 export function duplicateProjectPath(projectId: backend.ProjectId) {

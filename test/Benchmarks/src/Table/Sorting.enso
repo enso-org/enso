@@ -50,14 +50,14 @@ collect_benches = Bench.build builder->
     data = Data.create
 
     builder.group "Table_Sorting" table_sort_opts group_builder->
-        group_builder.specify "table_order_by_ints" <|
-            data.ints_table.order_by [Sort_Column.Index 0]
+        group_builder.specify "table_sort_ints" <|
+            data.ints_table.sort [..Index 0]
 
-        group_builder.specify "table_order_by_dates" <|
-            data.dates_table.order_by [Sort_Column.Index 0]
+        group_builder.specify "table_sort_dates" <|
+            data.dates_table.sort [..Index 0]
 
-        group_builder.specify "table_order_by_objects" <|
-            data.objects_table.order_by [Sort_Column.Index 0]
+        group_builder.specify "table_sort_objects" <|
+            data.objects_table.sort [..Index 0]
 
     builder.group "Vector_Sorting" vec_sort_opts group_builder->
         group_builder.specify "vector_sort_ints" <|
