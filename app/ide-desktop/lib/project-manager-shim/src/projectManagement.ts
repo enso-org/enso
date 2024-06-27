@@ -418,12 +418,15 @@ export function bumpMetadata(
         for (const sibling of fs.readdirSync(parentDirectory, { withFileTypes: true })) {
             if (sibling.isDirectory()) {
                 try {
-                    const siblingName = getPackageName(sibling.path)
-                    if (siblingName != null && siblingName.startsWith(prefix)) {
+                    const siblingPath = pathModule.join(parentDirectory, sibling.name)
+                    const siblingName = getPackageName(siblingPath)
+                    if (siblingName === currentName) {
+                        index = index ?? 2
+                    } else if (siblingName != null && siblingName.startsWith(prefix)) {
                         const suffix = siblingName.replace(prefix, '')
                         const [, numberString] = suffix.match(/^\((\d+)\)/) ?? []
                         if (numberString != null) {
-                            index = Math.max(index ?? 0, Number(numberString))
+                            index = Math.max(index ?? 2, Number(numberString) + 1)
                         }
                     }
                 } catch {
