@@ -38,13 +38,8 @@ export function useWidgetFunctionCallInfo(
     useVisualizationData(config: Ref<Opt<NodeVisualizationConfiguration>>): Ref<Result<any> | null>
   },
 ) {
-  const methodCallInfo = computed(() => {
-    return getMethodCallInfoRecursively(toValue(input).value, graphDb)
-  })
-
-  const interpreted = computed(() => {
-    return interpretCall(toValue(input).value, methodCallInfo.value == null)
-  })
+  const methodCallInfo = computed(() => getMethodCallInfoRecursively(toValue(input).value, graphDb))
+  const interpreted = computed(() => interpretCall(toValue(input).value))
 
   const subjectInfo = computed(() => {
     const analyzed = interpreted.value
@@ -61,7 +56,7 @@ export function useWidgetFunctionCallInfo(
   })
 
   const selfArgumentExternalId = computed<Opt<ExternalId>>(() => {
-    const analyzed = interpretCall(toValue(input).value, true)
+    const analyzed = interpreted.value
     if (analyzed.kind === 'infix') {
       return analyzed.lhs?.externalId
     } else {
