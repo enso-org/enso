@@ -118,8 +118,7 @@ export interface DashboardProps {
 
 /** The component that contains the entire UI. */
 export default function Dashboard(props: DashboardProps) {
-  const { appRunner, initialProjectName: initialProjectNameRaw } = props
-  const { ydocUrl } = props
+  const { appRunner, ydocUrl, initialProjectName: initialProjectNameRaw } = props
   const session = authProvider.useNonPartialUserSession()
   const remoteBackend = backendProvider.useRemoteBackend()
   const localBackend = backendProvider.useLocalBackend()
@@ -145,7 +144,13 @@ export default function Dashboard(props: DashboardProps) {
   const [assetListEvents, dispatchAssetListEvent] =
     eventHooks.useEvent<assetListEvent.AssetListEvent>()
   const [assetEvents, dispatchAssetEvent] = eventHooks.useEvent<assetEvent.AssetEvent>()
-  const defaultCategory = remoteBackend != null ? Category.cloud : Category.local
+  const initialLocalProjectId =
+    initialProjectNameRaw != null && validator.isUUID(initialProjectNameRaw)
+      ? localBackendModule.newProjectId(projectManager.UUID(initialProjectNameRaw))
+      : null
+  const initialProjectName = initialLocalProjectId ?? initialProjectNameRaw
+  const defaultCategory =
+    remoteBackend != null && initialLocalProjectId == null ? Category.cloud : Category.local
   const [category, setCategory] = searchParamsState.useSearchParamsState(
     'driveCategory',
     () => defaultCategory,
@@ -157,16 +162,6 @@ export default function Dashboard(props: DashboardProps) {
       }
     }
   )
-  const backendType = categoryModule.isLocal(category)
-    ? backendModule.BackendType.local
-    : backendModule.BackendType.remote
-  const initialLocalProjectId =
-    initialProjectNameRaw != null &&
-    validator.isUUID(initialProjectNameRaw) &&
-    backendType !== backendModule.BackendType.local
-      ? localBackendModule.newProjectId(projectManager.UUID(initialProjectNameRaw))
-      : null
-  const initialProjectName = initialLocalProjectId != null ? null : initialProjectNameRaw
 
   const isCloud = categoryModule.isCloud(category)
   const isUserEnabled = session.user.isEnabled
@@ -184,45 +179,7 @@ export default function Dashboard(props: DashboardProps) {
 
   React.useEffect(() => {
     const savedProjectStartupInfo = localStorage.get('projectStartupInfo')
-    if (initialLocalProjectId != null) {
-      if (localBackend != null) {
-        const projectId = initialLocalProjectId
-        const parentId = localBackend.rootDirectoryId()
-        const title = 'imported project'
-        // Assume it is a project to be opened on the Local Backend.
-        const project = localBackend
-          .openProject(
-            projectId,
-            { executeAsync: false, cognitoCredentials: null, parentId },
-            title
-          )
-          .then(() => localBackend.getProjectDetails(projectId, parentId, title))
-          .catch(error => {
-            setProjectStartupInfo(null)
-            throw error
-          })
-        void localBackend
-          .listDirectory({
-            labels: [],
-            filterBy: backendModule.FilterBy.active,
-            parentId: null,
-            recentProjects: false,
-          })
-          .then(siblings => {
-            const projectAsset = siblings
-              .filter(backendModule.assetIsProject)
-              .find(sibling => sibling.id === projectId)
-            if (projectAsset) {
-              setProjectStartupInfo({
-                project,
-                accessToken: null,
-                backendType: backendModule.BackendType.local,
-                projectAsset,
-              })
-            }
-          })
-      }
-    } else if (initialProjectName != null) {
+    if (initialProjectName != null) {
       if (page === TabType.editor) {
         setPage(TabType.drive)
       }
