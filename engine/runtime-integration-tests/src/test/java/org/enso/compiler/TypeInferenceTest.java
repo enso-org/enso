@@ -118,10 +118,10 @@ public class TypeInferenceTest extends StaticAnalysisTest {
     assertAtomType(myType, findAssignment(f1, "y1"));
     assertNoInferredType(findAssignment(f2, "y2"));
 
-    assertEquals("(My_Type -> My_Type)", getInferredType(f1).toString());
+    assertEquals("My_Type -> My_Type", getInferredType(f1).toString());
     // f2 gets argument as Any, because the doc-signature is not checked
-    assertEquals("(Any -> My_Type)", getInferredType(f2).toString());
-    assertEquals("(My_Type -> My_Type)", getInferredType(f3).toString());
+    assertEquals("Any -> My_Type", getInferredType(f2).toString());
+    assertEquals("My_Type -> My_Type", getInferredType(f3).toString());
   }
 
   @Test
@@ -334,7 +334,7 @@ public class TypeInferenceTest extends StaticAnalysisTest {
     var foo = findStaticMethod(module, "foo");
 
     var f1Type = getInferredType(findAssignment(foo, "f1"));
-    assertEquals("(My_Type -> (My_Type -> My_Type))", f1Type.toString());
+    assertEquals("My_Type -> (My_Type -> My_Type)", f1Type.toString());
 
     // and result of application is typed as the return type:
     assertAtomType("innerFunctionType.My_Type", findAssignment(foo, "y"));
@@ -887,7 +887,7 @@ public class TypeInferenceTest extends StaticAnalysisTest {
 
     var z = findAssignment(foo, "z");
     var typeError2 =
-        new Warning.TypeMismatch(z.expression().location(), "My_Type", "(My_Type -> My_Type)");
+        new Warning.TypeMismatch(z.expression().location(), "My_Type", "My_Type -> My_Type");
     assertEquals(List.of(typeError2), getDescendantsDiagnostics(z.expression()));
   }
 
@@ -1020,7 +1020,7 @@ public class TypeInferenceTest extends StaticAnalysisTest {
     var myType = "globalMethodTypes.My_Type";
 
     assertAtomType(myType, findAssignment(foo, "x1"));
-    assertEquals("(My_Type -> My_Type)", getInferredType(findAssignment(foo, "x2")).toString());
+    assertEquals("My_Type -> My_Type", getInferredType(findAssignment(foo, "x2")).toString());
     assertAtomType(myType, findAssignment(foo, "x3"));
   }
 

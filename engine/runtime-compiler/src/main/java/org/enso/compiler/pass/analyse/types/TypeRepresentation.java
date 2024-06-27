@@ -70,7 +70,18 @@ public sealed interface TypeRepresentation
       implements TypeRepresentation {
     @Override
     public String toString() {
-      return "(" + argType + " -> " + resultType + ")";
+      String arg = argType.toString();
+      String res = resultType.toString();
+
+      // If the inner type is complex (e.g. nested function), wrap it in parentheses.
+      if (arg.contains(" ")) {
+        arg = "(" + arg + ")";
+      }
+      if (res.contains(" ")) {
+        res = "(" + res + ")";
+      }
+
+      return arg + " -> " + res;
     }
   }
 
