@@ -206,13 +206,15 @@ export default function Settings() {
           {data.organizationOnly === true ? organization?.name ?? 'your organization' : user.name}
         </ariaComponents.Text>
       </aria.Heading>
-      <SearchBar
-        data-testid="settings-search-bar"
-        query={query}
-        setQuery={setQuery}
-        label={getText('settingsSearchBarLabel')}
-        placeholder={getText('settingsSearchBarPlaceholder')}
-      />
+      <div className="flex sm:ml-[222px]">
+        <SearchBar
+          data-testid="settings-search-bar"
+          query={query}
+          setQuery={setQuery}
+          label={getText('settingsSearchBarLabel')}
+          placeholder={getText('settingsSearchBarPlaceholder')}
+        />
+      </div>
       <div className="flex flex-1 gap-6 overflow-hidden pr-0.5">
         <aside className="hidden h-full shrink-0 basis-[206px] flex-col overflow-y-auto overflow-x-hidden pb-12 sm:flex">
           <SettingsSidebar
