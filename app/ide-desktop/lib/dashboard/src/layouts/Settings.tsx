@@ -12,6 +12,7 @@ import * as textProvider from '#/providers/TextProvider'
 import AccountSettingsTab from '#/layouts/Settings/AccountSettingsTab'
 import ActivityLogSettingsTab from '#/layouts/Settings/ActivityLogSettingsTab'
 import KeyboardShortcutsSettingsTab from '#/layouts/Settings/KeyboardShortcutsSettingsTab'
+import LocalSettingsTab from '#/layouts/Settings/LocalSettingsTab'
 import MembersSettingsTab from '#/layouts/Settings/MembersSettingsTab'
 import OrganizationSettingsTab from '#/layouts/Settings/OrganizationSettingsTab'
 import SettingsTab from '#/layouts/Settings/SettingsTab'
@@ -64,6 +65,10 @@ export default function Settings(props: SettingsProps) {
       content = backend == null ? null : <OrganizationSettingsTab backend={backend} />
       break
     }
+    case SettingsTab.local: {
+      content = <LocalSettingsTab />
+      break
+    }
     case SettingsTab.members: {
       content = <MembersSettingsTab />
       break
@@ -113,9 +118,9 @@ export default function Settings(props: SettingsProps) {
             />
           </aria.Popover>
         </aria.MenuTrigger>
-        <ariaComponents.Text.Heading className="font-bold">
+        <ariaComponents.Text variant="h1" className="font-bold">
           <span>{getText('settingsFor')}</span>
-        </ariaComponents.Text.Heading>
+        </ariaComponents.Text>
 
         <ariaComponents.Text
           variant="h1"

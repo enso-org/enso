@@ -101,6 +101,16 @@ export default class LocalBackend extends Backend {
     this.projectManager = new ProjectManager(projectManagerUrl, rootDirectory)
   }
 
+  /** Get the root directory of this Backend as a path. */
+  get rootPath() {
+    return this.projectManager.rootDirectory
+  }
+
+  /** Set the root directory of this Backend as a path. */
+  set rootPath(value) {
+    this.projectManager.rootDirectory = value
+  }
+
   /** Return the ID of the root directory. */
   override rootDirectoryId(): backend.DirectoryId {
     return newDirectoryId(this.projectManager.rootDirectory)
@@ -315,23 +325,21 @@ export default class LocalBackend extends Backend {
     title: string | null
   ): Promise<void> {
     const { id } = extractTypeAndId(projectId)
-    if (!this.projectManager.projects.has(id)) {
-      try {
-        await this.projectManager.openProject({
-          projectId: id,
-          missingComponentAction: projectManager.MissingComponentAction.install,
-          ...(body?.parentId != null
-            ? { projectsDirectory: extractTypeAndId(body.parentId).id }
-            : {}),
-        })
-        return
-      } catch (error) {
-        throw new Error(
-          `Could not open project ${title != null ? `'${title}'` : `with ID '${projectId}'`}: ${
-            errorModule.tryGetMessage(error) ?? 'unknown error'
-          }.`
-        )
-      }
+    try {
+      await this.projectManager.openProject({
+        projectId: id,
+        missingComponentAction: projectManager.MissingComponentAction.install,
+        ...(body?.parentId != null
+          ? { projectsDirectory: extractTypeAndId(body.parentId).id }
+          : {}),
+      })
+      return
+    } catch (error) {
+      throw new Error(
+        `Could not open project ${title != null ? `'${title}'` : `with ID '${projectId}'`}: ${
+          errorModule.tryGetMessage(error) ?? 'unknown error'
+        }.`
+      )
     }
   }
 
@@ -603,9 +611,20 @@ export default class LocalBackend extends Backend {
     return projectManager.joinPath(extractTypeAndId(parentId).id, fileName)
   }
 
-  /** Invalid operation. */
-  override updateDirectory() {
-    return this.invalidOperation()
+  /** Change the name of a directory. */
+  override async updateDirectory(
+    directoryId: backend.DirectoryId,
+    body: backend.UpdateDirectoryRequestBody
+  ): Promise<backend.UpdatedDirectory> {
+    const from = extractTypeAndId(directoryId).id
+    const folderPath = projectManager.Path(fileInfo.folderPath(from))
+    const to = projectManager.joinPath(folderPath, body.title)
+    await this.projectManager.moveFile(from, to)
+    return {
+      id: newDirectoryId(to),
+      parentId: newDirectoryId(folderPath),
+      title: body.title,
+    }
   }
 
   /** Invalid operation. */
@@ -635,6 +654,16 @@ export default class LocalBackend extends Backend {
 
   /** Invalid operation. */
   override getFileDetails() {
+    return this.invalidOperation()
+  }
+
+  /** Invalid operation. */
+  override listProjectSessions() {
+    return this.invalidOperation()
+  }
+
+  /** Invalid operation. */
+  override getProjectSessionLogs() {
     return this.invalidOperation()
   }
 

@@ -178,7 +178,6 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
               dispatchAssetEvent({
                 type: AssetEventType.openProject,
                 id: createdProject.projectId,
-                shouldAutomaticallySwitchPage: true,
                 runInBackground: false,
               })
             } catch (error) {
@@ -302,7 +301,6 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
           dispatchAssetEvent({
             type: AssetEventType.openProject,
             id: asset.id,
-            shouldAutomaticallySwitchPage: true,
             runInBackground: false,
           })
         }
@@ -320,12 +318,8 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
           assetEvents={assetEvents}
           dispatchAssetEvent={dispatchAssetEvent}
           setProjectStartupInfo={setProjectStartupInfo}
-          doOpenEditor={switchPage => {
-            doOpenEditor(asset, setAsset, switchPage)
-          }}
-          doCloseEditor={() => {
-            doCloseEditor(asset)
-          }}
+          doOpenEditor={doOpenEditor}
+          doCloseEditor={doCloseEditor}
         />
       )}
       <EditableSpan

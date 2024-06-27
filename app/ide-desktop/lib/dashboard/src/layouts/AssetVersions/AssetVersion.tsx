@@ -60,7 +60,7 @@ export default function AssetVersion(props: AssetVersionProps) {
   return (
     <div
       className={tailwindMerge.twMerge(
-        'flex w-full flex-shrink-0 basis-0 select-none flex-row gap-4 rounded-2xl p-2',
+        'flex w-full shrink-0 basis-0 select-none flex-row gap-4 rounded-2xl p-2',
         placeholder && 'opacity-50'
       )}
     >

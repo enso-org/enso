@@ -3,7 +3,7 @@ import * as test from '@playwright/test'
 
 import * as actions from './actions'
 
-test.test.beforeEach(actions.mockAll)
+test.test.beforeEach(({ page }) => actions.mockAll({ page }))
 
 // =============
 // === Tests ===

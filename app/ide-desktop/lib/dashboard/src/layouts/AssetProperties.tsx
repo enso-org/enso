@@ -184,11 +184,16 @@ export default function AssetProperties(props: AssetPropertiesProps) {
                 }}
                 className="-m-multiline-input-p w-full resize-none rounded-input bg-frame p-multiline-input"
               />
-              <div className="flex gap-buttons">
-                <ariaComponents.Button variant="cancel" onPress={doEditDescription}>
+              <ariaComponents.ButtonGroup>
+                <ariaComponents.Button
+                  size="custom"
+                  variant="custom"
+                  className="button self-start bg-selected-frame"
+                  onPress={doEditDescription}
+                >
                   {getText('update')}
                 </ariaComponents.Button>
-              </div>
+              </ariaComponents.ButtonGroup>
             </form>
           )}
         </div>

@@ -36,7 +36,8 @@ type Faker
 
        Arguments:
        - template: Vector of vectors that represent the possible characters for each
-         letter, as UTF-16 code units.
+         letter, as UTF-16 code units or a Text value made up of `A` for upper case,
+         `a` for lower case, `0` for numbers, and any other character for itself.
 
        > Example
          Creates a fake UK National Insurance number:
@@ -46,12 +47,21 @@ type Faker
                 s = "ABCDFMP ".char_vector
                 template = [l, l, n, n, n, n, n, s]
                 ni_number = Faker.new . string_value template
-    string_value : Vector -> Text
+    string_value : Vector | Text -> Text
     string_value self template =
-        characters = template.map possible_chars->
-            selected_char_ix = self.generator.nextInt possible_chars.length
-            possible_chars.at selected_char_ix
-        Text.from_char_vector characters
+        case template of
+            _ : Text ->
+                 char_vector = template.characters.map c-> case c of
+                    "A" -> Faker.upper_case_letters
+                    "a" -> Faker.lower_case_letters
+                    "0" -> Faker.numbers
+                    _ -> [c]
+                 self.string_value char_vector
+            _ ->
+                characters = template.map possible_chars->
+                    selected_char_ix = self.generator.nextInt possible_chars.length
+                    possible_chars.at selected_char_ix
+                Text.from_char_vector characters
 
     ## GROUP Standard.Base.Random
        ICON random
