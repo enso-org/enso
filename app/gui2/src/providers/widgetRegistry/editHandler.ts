@@ -227,7 +227,7 @@ export class WidgetEditHandler extends WidgetEditHandlerParent {
     const wid = widgetId as WidgetId
     const editHandler = new WidgetEditHandler(input.portId, myInteraction, input.editHandler)
     const argumentId = input[ArgumentInfoKey]?.argId
-    if (argumentId && /columns/.test(argumentId)) {
+    if (argumentId) {
       editHandler.tryResume(argumentId, wid, editHandler.portId)
       onBeforeUnmount(() => editHandler.suspend(argumentId, wid))
     }

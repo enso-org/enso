@@ -66,12 +66,13 @@ function useChildEditForwarding(input: WatchSource<Ast.Ast | unknown>) {
   })
 
   return {
-    childEnded: () => (childEdit.value = undefined),
+    childEnded: (origin: PortId) => {
+      if (childEdit.value?.astId === origin) childEdit.value = undefined
+    },
     edit: (origin: PortId, value: Ast.Owned | string) => {
       // The ID is used to locate a subtree; if the port isn't identified by an AstId, the lookup will simply fail.
       const astId = origin as Ast.AstId
       childEdit.value = { astId, editedValue: value }
-      return false
     },
   }
 }
