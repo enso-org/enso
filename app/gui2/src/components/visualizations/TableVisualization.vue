@@ -397,6 +397,7 @@ function toLinkField(fieldName: string): ColDef {
     tooltipValueGetter: () => {
       return `Double click to view this ${onClickTooltipValue.value} in seperate node`
     },
+    cellStyle: { cursor: 'pointer' },
   }
 }
 
