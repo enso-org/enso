@@ -2,7 +2,6 @@
  * guide: https://www.electronjs.org/docs/latest/tutorial/security. */
 
 import * as electron from 'electron'
-import * as common from 'enso-common'
 
 // =================
 // === Constants ===
