@@ -15,7 +15,7 @@ type Group_Builder
        - name: The name of the group.
        - builder: Vector builder used for storing specs.
        - teardown_ref: A reference to a teardown method.
-    Impl (name : Text) (builder = Builder.new) (teardown_ref = Ref.new (_ -> Nothing))
+    private Impl (name : Text) (builder = Builder.new) (teardown_ref = Ref.new (_ -> Nothing))
 
     ## Specifies a single test.
 
@@ -43,7 +43,7 @@ type Group_Builder
 
 
 type Group
-    Impl (name : Text) (teardown : (Any -> Any)) (specs : Vector Spec) (pending : (Text | Nothing) = Nothing)
+    private Impl (name : Text) (teardown : (Any -> Any)) (specs : Vector Spec) (pending : (Text | Nothing) = Nothing)
 
     to_text self =
         sb = StringBuilder.new

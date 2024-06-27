@@ -18,7 +18,7 @@ type Suite_Builder
 
        Arguments:
        - builder: Vector builder that holds all the groups.
-    Impl builder
+    private Impl builder
 
     ## Add a group to the suite builder.
 
@@ -47,7 +47,7 @@ type Suite_Builder
    Users are expected to build the suite via `Suite_Builder`. That is, via `Test.build` method.
 type Suite
     ## PRIVATE
-    Impl (groups : Vector Group)
+    private Impl (groups : Vector Group)
 
     ## Run only tests that match the provided filter.
 
