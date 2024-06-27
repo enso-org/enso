@@ -70,7 +70,7 @@ export interface AssetPanelProps extends AssetPanelRequiredProps {
 
 /** A panel containing the description and settings for an asset. */
 export default function AssetPanel(props: AssetPanelProps) {
-  const { backend, item, isReadonly = false, setItem, category } = props
+  const { backend, isReadonly = false, item, setItem, category } = props
   const { dispatchAssetEvent, dispatchAssetListEvent } = props
 
   const { getText } = textProvider.useText()

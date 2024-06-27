@@ -18,16 +18,17 @@ import FocusRing from '#/components/styled/FocusRing'
 
 /** Props for an {@link SettingsInput}. */
 export interface SettingsInputProps {
+  readonly isDisabled?: boolean
   readonly type?: string
   readonly placeholder?: string
   readonly autoComplete?: React.HTMLInputAutoCompleteAttribute
   readonly onChange?: React.ChangeEventHandler<HTMLInputElement>
-  readonly onSubmit?: (value: string) => void
+  readonly onSubmit?: (event: React.SyntheticEvent<HTMLInputElement>) => void
 }
 
 /** A styled input specific to settings pages. */
 function SettingsInput(props: SettingsInputProps, ref: React.ForwardedRef<HTMLInputElement>) {
-  const { type, placeholder, autoComplete, onChange, onSubmit } = props
+  const { isDisabled = false, type, placeholder, autoComplete, onChange, onSubmit } = props
   const focusChildProps = focusHooks.useFocusChild()
   const { getText } = textProvider.useText()
   // This is SAFE. The value of this context is never a `SlottedContext`.
@@ -42,17 +43,6 @@ function SettingsInput(props: SettingsInputProps, ref: React.ForwardedRef<HTMLIn
         cancelled.current = true
         event.stopPropagation()
         event.currentTarget.value = String(inputProps?.defaultValue ?? '')
-        event.currentTarget.blur()
-        break
-      }
-      case 'Enter': {
-        cancelled.current = false
-        event.stopPropagation()
-        event.currentTarget.blur()
-        break
-      }
-      case 'Tab': {
-        cancelled.current = false
         event.currentTarget.blur()
         break
       }
@@ -74,6 +64,7 @@ function SettingsInput(props: SettingsInputProps, ref: React.ForwardedRef<HTMLIn
                 className:
                   'settings-value w-full rounded-full bg-transparent font-bold placeholder-black/30 transition-colors invalid:border invalid:border-red-700 hover:bg-selected-frame focus:bg-selected-frame',
                 ...(type == null ? {} : { type: isShowingPassword ? 'text' : type }),
+                disabled: isDisabled,
                 size: 1,
                 autoComplete,
                 placeholder,
@@ -81,7 +72,7 @@ function SettingsInput(props: SettingsInputProps, ref: React.ForwardedRef<HTMLIn
                 onChange,
                 onBlur: event => {
                   if (!cancelled.current) {
-                    onSubmit?.(event.currentTarget.value)
+                    onSubmit?.(event)
                   }
                 },
               },

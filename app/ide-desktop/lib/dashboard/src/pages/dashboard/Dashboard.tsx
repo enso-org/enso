@@ -400,7 +400,11 @@ export default function Dashboard(props: DashboardProps) {
               )}
             </TabBar>
             <UserBar
-              backend={remoteBackend}
+              backend={
+                projectStartupInfo?.backendType === backendModule.BackendType.remote
+                  ? remoteBackend
+                  : localBackend
+              }
               isOnEditorPage={page === TabType.editor}
               setIsHelpChatOpen={setIsHelpChatOpen}
               projectAsset={projectStartupInfo?.projectAsset ?? null}
@@ -431,7 +435,7 @@ export default function Dashboard(props: DashboardProps) {
             projectStartupInfo={projectStartupInfo}
             appRunner={appRunner}
           />
-          {page === TabType.settings && <Settings backend={remoteBackend} />}
+          {page === TabType.settings && <Settings />}
           {process.env.ENSO_CLOUD_CHAT_URL != null ? (
             <Chat
               isOpen={isHelpChatOpen}

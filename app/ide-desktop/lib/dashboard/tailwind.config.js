@@ -157,10 +157,8 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         'members-email-column': 'var(--members-email-column-width)',
         'keyboard-shortcuts-icon-column': 'var(--keyboard-shortcuts-icon-column-width)',
         'keyboard-shortcuts-name-column': 'var(--keyboard-shortcuts-name-column-width)',
-        'activity-log-icon-column': 'var(--activity-log-icon-column-width)',
-        'activity-log-type-column': 'var(--activity-log-type-column-width)',
-        'activity-log-email-column': 'var(--activity-log-email-column-width)',
-        'activity-log-timestamp-column': 'var(--activity-log-timestamp-column-width)',
+        'keyboard-shortcuts-description-column':
+          'var(--keyboard-shortcuts-description-column-width)',
         'drive-name-column': 'var(--drive-name-column-width)',
         'drive-modified-column': 'var(--drive-modified-column-width)',
         'drive-shared-with-column': 'var(--drive-shared-with-column-width)',
@@ -246,8 +244,6 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         'asset-panel': 'var(--asset-panel-gap)',
         'search-suggestions': 'var(--search-suggestions-gap)',
         'keyboard-shortcuts-button': 'var(--keyboard-shortcuts-button-gap)',
-        'activity-log-filters': 'var(--activity-log-filters-gap)',
-        'activity-log-filter': 'var(--activity-log-filter-gap)',
         'chat-buttons': 'var(--chat-buttons-gap)',
       },
       padding: {
