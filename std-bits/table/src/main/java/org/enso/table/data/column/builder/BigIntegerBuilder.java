@@ -1,9 +1,7 @@
 package org.enso.table.data.column.builder;
 
-import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Arrays;
-
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
@@ -40,7 +38,9 @@ public class BigIntegerBuilder extends TypedBuilderImpl<BigInteger> {
 
   @Override
   public boolean canRetypeTo(StorageType type) {
-    return type instanceof FloatType || type instanceof BigDecimalType || type instanceof AnyObjectType;
+    return type instanceof FloatType
+        || type instanceof BigDecimalType
+        || type instanceof AnyObjectType;
   }
 
   @Override
