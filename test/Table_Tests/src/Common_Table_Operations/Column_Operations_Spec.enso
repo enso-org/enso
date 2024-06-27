@@ -444,6 +444,10 @@ add_specs suite_builder setup =
             t = table_builder [["col0", ["0", Nothing, "4", "5", Nothing, Nothing]]] . cast "col0" (Value_Type.Char size=1 variable_length=False)
             actual = t.fill_nothing ["col0"] "ABCDE"
             actual.at "col0" . to_vector . should_equal ["0", "ABCDE", "4", "5", "ABCDE", "ABCDE"]
+            # Snowflake worksheet returns:
+            # SELECT SYSTEM$TYPEOF(COALESCE(CAST("literal_table"."x" AS CHAR(1)), 'N/A')) FROM (VALUES ('1'), (NULL), ('a')) AS "literal_table"("x");
+            # VARCHAR(3) - so it is correct
+            # TODO - investigate JDBC / our mapping bug
             case setup.test_selection.length_restricted_text_columns of
                 True -> actual.at "col0" . value_type . should_equal (Value_Type.Char size=5 variable_length=True)
                 False -> actual.at "col0" . value_type . should_equal (Value_Type.Char variable_length=True)
