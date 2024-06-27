@@ -39,7 +39,7 @@ export const defaultPreprocessor = [
   '1000',
 ] as const
 
-type Data = Error | Matrix | ObjectMatrix | UnknownTable | Excel_Workbook | SQLite_Connection
+type Data = Error | Matrix | ObjectMatrix | UnknownTable | Excel_Workbook
 
 interface Error {
   type: undefined
@@ -68,14 +68,6 @@ interface Excel_Workbook {
   json: unknown[][]
 }
 
-interface SQLite_Connection {
-  type: 'SQLite_Connection'
-  column_count: number
-  all_rows_count: number
-  schemas: string[]
-  json: unknown[][]
-}
-
 interface ObjectMatrix {
   type: 'Object_Matrix'
   column_count: number
@@ -95,6 +87,7 @@ interface UnknownTable {
   data: unknown[][] | undefined
   value_type: ValueType[]
   has_index_col: boolean | undefined
+  links: string[] | undefined
 }
 
 declare module 'ag-grid-enterprise' {
@@ -383,6 +376,7 @@ watchEffect(() => {
         value_type: undefined,
         // eslint-disable-next-line camelcase
         has_index_col: false,
+        links: undefined,
       }
   const options = agGridOptions.value
   if (options.api == null) {
@@ -425,16 +419,18 @@ watchEffect(() => {
   } else if (data_.type === 'Excel_Workbook') {
     columnDefs = [toLinkField('Value')]
     rowData = data_.sheet_names.map((name) => ({ Value: name }))
-  } else if (data_.type === 'SQLite_Connection') {
-    columnDefs = [toLinkField('Value')]
-    rowData = data_.schemas.map((name) => ({ Value: name }))
   } else if (Array.isArray(data_.json)) {
     columnDefs = [toLinkField(INDEX_FIELD_NAME), toField('Value')]
     rowData = data_.json.map((row, i) => ({ [INDEX_FIELD_NAME]: i, Value: toRender(row) }))
     isTruncated.value = data_.all_rows_count ? data_.all_rows_count !== data_.json.length : false
   } else if (data_.json !== undefined) {
-    columnDefs = [toField('Value')]
-    rowData = [{ Value: toRender(data_.json) }]
+    columnDefs = data_.links ? [toLinkField('Value')] : [toField('Value')]
+    rowData =
+      data_.links ?
+        data_.links.map((link) => ({
+          Value: link,
+        }))
+      : [{ Value: toRender(data_.json) }]
   } else {
     const dataHeader =
       ('header' in data_ ? data_.header : [])?.map((v, i) => {
