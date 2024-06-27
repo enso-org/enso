@@ -7,7 +7,7 @@ import Play2Icon from 'enso-assets/play2.svg'
 import SortAscendingIcon from 'enso-assets/sort_ascending.svg'
 import TrashIcon from 'enso-assets/trash.svg'
 
-import * as asyncEffectHooks from '#/hooks/asyncEffectHooks'
+import * as backendHooks from '#/hooks/backendHooks'
 
 import * as textProvider from '#/providers/TextProvider'
 
@@ -78,9 +78,10 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
   const [emailIndices, setEmailIndices] = React.useState<readonly number[]>(() => [])
   const [sortInfo, setSortInfo] =
     React.useState<sorting.SortInfo<ActivityLogSortableColumn> | null>(null)
-  const users = asyncEffectHooks.useAsyncEffect([], () => backend.listUsers(), [backend])
-  const allEmails = React.useMemo(() => users.map(user => user.email), [users])
-  const logs = asyncEffectHooks.useAsyncEffect(null, () => backend.getLogEvents(), [backend])
+  const users = backendHooks.useBackendListUsers(backend)
+  const allEmails = React.useMemo(() => (users ?? []).map(user => user.email), [users])
+  const logsQuery = backendHooks.useBackendQuery(backend, 'getLogEvents', [])
+  const logs = logsQuery.data
   const filteredLogs = React.useMemo(() => {
     const typesSet = new Set(types.length > 0 ? types : backendModule.EVENT_TYPES)
     const emailsSet = new Set(emails.length > 0 ? emails : allEmails)
