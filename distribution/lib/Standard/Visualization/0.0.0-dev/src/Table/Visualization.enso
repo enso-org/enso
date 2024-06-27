@@ -164,7 +164,7 @@ make_json_for_other x =
         pairs = [['_display_text_', x.to_display_text]] + js_value.field_names.map f-> [f, make_json_for_value (js_value.get f)]
         JS_Object.from_pairs pairs
     links = if js_value.is_a JS_Object . not then Nothing else
-        if js_value.contains_key 'links' then ['links', js_value.get 'links'] else Nothing
+        if js_value.contains_key 'links' then js_value.get 'links' else Nothing
     JS_Object.from_pairs [["json", value], ["links", links]]
 
 ## PRIVATE
