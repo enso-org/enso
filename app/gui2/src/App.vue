@@ -47,29 +47,20 @@ useEventListener(window, 'beforeunload', () => logger.send('ide_project_closed')
 
 const config = toRef(props, 'config')
 
-watch(props, (p) => {
-  console.log('p', p)
+const appConfig = computed(() => {
+  const unrecognizedOptions: string[] = []
+  const intermediateConfig = mergeConfig(
+    baseConfig,
+    urlParams({ ignoreKeysRegExp: props.ignoreParamsRegex }),
+    {
+      onUnrecognizedOption: (p) => unrecognizedOptions.push(p.join('.')),
+    },
+  )
+  return {
+    unrecognizedOptions,
+    config: mergeConfig(intermediateConfig, config.value ?? {}),
+  }
 })
-
-const appConfig = computed(
-  () => {
-    const unrecognizedOptions: string[] = []
-    const intermediateConfig = mergeConfig(
-      baseConfig,
-      urlParams({ ignoreKeysRegExp: props.ignoreParamsRegex }),
-      {
-        onUnrecognizedOption: (p) => unrecognizedOptions.push(p.join('.')),
-      },
-    )
-    return {
-      unrecognizedOptions,
-      config: mergeConfig(intermediateConfig, config.value ?? {}),
-    }
-  },
-  {
-    onTrigger: console.log,
-  },
-)
 
 provideGuiConfig(computed((): ApplicationConfigValue => configValue(appConfig.value.config)))
 
