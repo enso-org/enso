@@ -313,16 +313,8 @@ case class BindingsMap(
   def getDirectlyExportedModules: List[ExportedModule] =
     resolvedImports.collect { case ResolvedImport(_, exports, mod) =>
       exports.map { exp =>
-        val restriction = SymbolRestriction.Only(
-          Set(
-            SymbolRestriction.AllowedResolution(
-              exp.getSimpleName.name.toLowerCase,
-              Some(mod)
-            )
-          )
-        )
         val rename = Some(exp.getSimpleName.name)
-        ExportedModule(mod, rename, restriction)
+        ExportedModule(mod, rename)
       }
     }.flatten
 }
@@ -353,328 +345,19 @@ object BindingsMap {
     }
   }
 
-  /** Represents a symbol restriction on symbols exported from a module. */
-  sealed trait SymbolRestriction {
-
-    /** Whether the export statement allows accessing the given name.
-      *
-      * @param symbol the name to check
-      * @param resolution the particular resolution of `symbol`
-      * @return whether access to the symbol is permitted by this restriction.
-      */
-    def canAccess(symbol: String, resolution: ResolvedName): Boolean
-
-    /** Performs static optimizations on the restriction, simplifying
-      * common patterns.
-      *
-      * @return a possibly simpler version of the restriction, describing
-      *         the same set of names.
-      */
-    def optimize: SymbolRestriction
-
-    /** Convert any internal [[ModuleReference]]s to abstract references.
-      *
-      * @return `this` with any module references made abstract
-      */
-    def toAbstract: SymbolRestriction
-
-    /** Convert any internal [[ModuleReference]]s to concrete references.
-      *
-      * @param moduleMap the mapping from qualified names to modules
-      * @return `this` with its module reference made concrete
-      */
-    def toConcrete(moduleMap: ModuleMap): Option[SymbolRestriction]
-  }
-
-  object SymbolRestriction {
-
-    /** A representation of allowed symbol. An allowed symbol consists of
-      * a name and an optional resolution refinement.
-      *
-      * @param symbol the symbol name
-      * @param resolution the only allowed resolution of `symbol`
-      */
-    case class AllowedResolution(
-      symbol: String,
-      resolution: Option[ResolvedName]
-    ) {
-
-      /** Checks if the `symbol` is visible under this restriction, with
-        * a given resolution.
-        *
-        * @param symbol the symbol
-        * @param resolution `symbol`'s resolution
-        * @return `true` if the symbol is visible, `false` otherwise
-        */
-      def allows(symbol: String, resolution: ResolvedName): Boolean = {
-        val symbolMatch = this.symbol == symbol.toLowerCase
-        val resolutionMatch =
-          this.resolution.isEmpty || this.resolution.get == resolution
-        symbolMatch && resolutionMatch
-      }
-
-      /** Convert the internal resolution to abstract form.
-        *
-        * @return `this` with its resolution converted to abstract form
-        */
-      def toAbstract: AllowedResolution = {
-        this.copy(resolution = resolution.map(_.toAbstract))
-      }
-
-      /** Convert the internal resolution to concrete form.
-        *
-        * @param moduleMap the mapping from qualified names to modules
-        * @return `this` with its resolution made concrete
-        */
-      def toConcrete(moduleMap: ModuleMap): Option[AllowedResolution] = {
-        resolution match {
-          case None => Some(this)
-          case Some(res) =>
-            res.toConcrete(moduleMap).map(r => this.copy(resolution = Some(r)))
-        }
-      }
-    }
-
-    /** A restriction representing a set of allowed symbols.
-      *
-      * @param symbols the allowed symbols.
-      */
-    case class Only(symbols: Set[AllowedResolution]) extends SymbolRestriction {
-
-      /** @inheritdoc */
-      override def canAccess(
-        symbol: String,
-        resolution: ResolvedName
-      ): Boolean = symbols.exists(_.allows(symbol, resolution))
-
-      /** @inheritdoc */
-      override def optimize: SymbolRestriction = this
-
-      /** @inheritdoc */
-      override def toAbstract: Only = {
-        this.copy(symbols = symbols.map(_.toAbstract))
-      }
-
-      /** @inheritdoc */
-      //noinspection DuplicatedCode
-      override def toConcrete(moduleMap: ModuleMap): Option[Only] = {
-        val newSymbols = symbols.map(_.toConcrete(moduleMap))
-        if (!newSymbols.exists(_.isEmpty)) {
-          Some(this.copy(symbols = newSymbols.map(_.get)))
-        } else None
-      }
-    }
-
-    /** A restriction representing a set of excluded symbols.
-      *
-      * @param symbols the excluded symbols.
-      */
-    case class Hiding(symbols: Set[String]) extends SymbolRestriction {
-
-      /** @inheritdoc */
-      override def canAccess(
-        symbol: String,
-        resolution: ResolvedName
-      ): Boolean = !symbols.contains(symbol.toLowerCase)
-
-      /** @inheritdoc */
-      override def optimize: Hiding = this
-
-      /** @inheritdoc */
-      override def toAbstract: Hiding = this
-
-      /** @inheritdoc */
-      override def toConcrete(moduleMap: ModuleMap): Option[Hiding] = Some(this)
-    }
-
-    /** A restriction meaning there's no restriction at all.
-      */
-    case object All extends SymbolRestriction {
-
-      /** @inheritdoc */
-      override def canAccess(
-        symbol: String,
-        resolution: ResolvedName
-      ): Boolean = true
-
-      /** @inheritdoc */
-      override def optimize: SymbolRestriction = this
-
-      /** @inheritdoc */
-      override def toAbstract: All.type = this
-
-      /** @inheritdoc */
-      override def toConcrete(moduleMap: ModuleMap): Option[All.type] = Some(
-        this
-      )
-    }
-
-    /** A complete restriction – no symbols are permitted
-      */
-    case object Empty extends SymbolRestriction {
-
-      /** @inheritdoc */
-      override def canAccess(
-        symbol: String,
-        resolution: ResolvedName
-      ): Boolean = false
-
-      /** @inheritdoc */
-      override def optimize: SymbolRestriction = this
-
-      /** @inheritdoc */
-      override def toAbstract: Empty.type = this
-
-      /** @inheritdoc */
-      override def toConcrete(moduleMap: ModuleMap): Option[Empty.type] = Some(
-        this
-      )
-    }
-
-    /** An intersection of restrictions – a symbol is allowed if all components
-      * allow it.
-      *
-      * @param restrictions the intersected restrictions.
-      */
-    case class Intersect(restrictions: List[SymbolRestriction])
-        extends SymbolRestriction {
-
-      /** @inheritdoc */
-      override def canAccess(
-        symbol: String,
-        resolution: ResolvedName
-      ): Boolean = restrictions.forall(_.canAccess(symbol, resolution))
-
-      /** @inheritdoc */
-      //noinspection DuplicatedCode
-      override def optimize: SymbolRestriction = {
-        val optimizedTerms = restrictions.map(_.optimize)
-        val (intersects, otherTerms) =
-          optimizedTerms.partition(_.isInstanceOf[Intersect])
-        val allTerms = intersects.flatMap(
-          _.asInstanceOf[Intersect].restrictions
-        ) ++ otherTerms
-        if (allTerms.contains(Empty)) {
-          return Empty
-        }
-        val unions = allTerms.filter(_.isInstanceOf[Union])
-        val onlys  = allTerms.collect { case only: Only => only }
-        val hides  = allTerms.collect { case hiding: Hiding => hiding }
-        val combinedOnlys = onlys match {
-          case List() => None
-          case items =>
-            Some(Only(items.map(_.symbols).reduce(_.intersect(_))))
-        }
-        val combinedHiding = hides match {
-          case List() => None
-          case items =>
-            Some(Hiding(items.map(_.symbols).reduce(_.union(_))))
-        }
-        val newTerms = combinedHiding.toList ++ combinedOnlys.toList ++ unions
-        newTerms match {
-          case List()   => All
-          case List(it) => it
-          case items    => Intersect(items)
-        }
-      }
-
-      /** @inheritdoc */
-      override def toAbstract: Intersect = {
-        this.copy(restrictions = restrictions.map(_.toAbstract))
-      }
-
-      /** @inheritdoc */
-      //noinspection DuplicatedCode
-      override def toConcrete(moduleMap: ModuleMap): Option[Intersect] = {
-        val newRestrictions = restrictions.map(_.toConcrete(moduleMap))
-        if (!newRestrictions.exists(_.isEmpty)) {
-          Some(this.copy(restrictions = newRestrictions.map(_.get)))
-        } else None
-      }
-    }
-
-    /** A union of restrictions – a symbol is allowed if any component allows
-      * it.
-      *
-      * @param restrictions the component restricitons.
-      */
-    case class Union(restrictions: List[SymbolRestriction])
-        extends SymbolRestriction {
-
-      /** @inheritdoc */
-      override def canAccess(
-        symbol: String,
-        resolution: ResolvedName
-      ): Boolean = restrictions.exists(_.canAccess(symbol, resolution))
-
-      /** @inheritdoc */
-      //noinspection DuplicatedCode
-      override def optimize: SymbolRestriction = {
-        val optimizedTerms = restrictions.map(_.optimize)
-        val (unions, otherTerms) =
-          optimizedTerms.partition(_.isInstanceOf[Union])
-        val allTerms = unions.flatMap(
-          _.asInstanceOf[Union].restrictions
-        ) ++ otherTerms
-        if (allTerms.contains(All)) {
-          return All
-        }
-        val intersects = allTerms.filter(_.isInstanceOf[Intersect])
-        val onlys      = allTerms.collect { case only: Only => only }
-        val hides      = allTerms.collect { case hiding: Hiding => hiding }
-        val combinedOnlys = onlys match {
-          case List() => None
-          case items =>
-            Some(Only(items.map(_.symbols).reduce(_.union(_))))
-        }
-        val combinedHiding = hides match {
-          case List() => None
-          case items =>
-            Some(Hiding(items.map(_.symbols).reduce(_.intersect(_))))
-        }
-        val newTerms =
-          combinedHiding.toList ++ combinedOnlys.toList ++ intersects
-        newTerms match {
-          case List()   => Empty
-          case List(it) => it
-          case items    => Union(items)
-        }
-      }
-
-      /** @inheritdoc */
-      override def toAbstract: Union = {
-        this.copy(restrictions = restrictions.map(_.toAbstract))
-      }
-
-      /** @inheritdoc */
-      //noinspection DuplicatedCode
-      override def toConcrete(moduleMap: ModuleMap): Option[Union] = {
-        val newRestrictions = restrictions.map(_.toConcrete(moduleMap))
-        if (!newRestrictions.exists(_.isEmpty)) {
-          Some(this.copy(restrictions = newRestrictions.map(_.get)))
-        } else None
-      }
-    }
-  }
-
   /** A representation of a resolved export statement.
     *
     * @param target the module being exported.
     * @param exportedAs the name it is exported as.
-    * @param symbols any symbol restrictions connected to the export.
     */
-  case class ExportedModule(
-    target: ImportTarget,
-    exportedAs: Option[String],
-    symbols: SymbolRestriction
-  ) {
+  case class ExportedModule(target: ImportTarget, exportedAs: Option[String]) {
 
     /** Convert the internal [[ModuleReference]] to an abstract reference.
       *
       * @return `this` with its module reference made abstract
       */
     def toAbstract: ExportedModule = {
-      this.copy(target = target.toAbstract, symbols = symbols.toAbstract)
+      this.copy(target = target.toAbstract)
     }
 
     /** Convert the internal [[ModuleReference]] to a concrete reference.
@@ -683,10 +366,8 @@ object BindingsMap {
       * @return `this` with its module reference made concrete
       */
     def toConcrete(moduleMap: ModuleMap): Option[ExportedModule] = {
-      target.toConcrete(moduleMap).flatMap { x =>
-        symbols
-          .toConcrete(moduleMap)
-          .map(y => this.copy(target = x, symbols = y))
+      target.toConcrete(moduleMap).map { target =>
+        this.copy(target = target)
       }
     }
   }

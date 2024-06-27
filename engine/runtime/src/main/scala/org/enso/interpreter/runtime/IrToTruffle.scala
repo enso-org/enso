@@ -198,7 +198,7 @@ class IrToTruffle(
         )
 
     bindingsMap.resolvedExports
-      .collect { case ExportedModule(ResolvedModule(module), _, _) => module }
+      .collect { case ExportedModule(ResolvedModule(module), _) => module }
       .foreach(exp =>
         scopeBuilder.addExport(new ImportExportScope(exp.unsafeAsModule()))
       )

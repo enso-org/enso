@@ -2,12 +2,7 @@ package org.enso.compiler.phase
 
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.data.BindingsMap.ModuleReference.Concrete
-import org.enso.compiler.data.BindingsMap.{
-  ExportedModule,
-  ImportTarget,
-  ResolvedModule,
-  SymbolRestriction
-}
+import org.enso.compiler.data.BindingsMap.{ExportedModule, ImportTarget, ResolvedConstructor, ResolvedModule}
 import org.enso.compiler.context.CompilerContext
 import org.enso.compiler.context.CompilerContext.Module
 
@@ -25,7 +20,6 @@ class ExportsResolution(private val context: CompilerContext) {
 
   private case class Edge(
     exporter: Node,
-    symbols: SymbolRestriction,
     exportsAs: Option[String],
     exportee: Node
   )
@@ -62,8 +56,8 @@ class ExportsResolution(private val context: CompilerContext) {
       }
       val node = nodes(module)
       node.exports = exports.map {
-        case ExportedModule(mod, rename, restriction) =>
-          Edge(node, restriction, rename, nodes.getOrElseUpdate(mod, Node(mod)))
+        case ExportedModule(mod, rename) =>
+          Edge(node, rename, nodes.getOrElseUpdate(mod, Node(mod)))
       }
       node.exports.foreach { edge => edge.exportee.exportedBy ::= edge }
     }
@@ -132,45 +126,25 @@ class ExportsResolution(private val context: CompilerContext) {
     nodes.foreach { node =>
       val explicitlyExported =
         node.exports.map(edge =>
-          ExportedModule(
-            edge.exportee.module,
-            edge.exportsAs,
-            edge.symbols
-          )
+          ExportedModule(edge.exportee.module, edge.exportsAs)
         )
       val transitivelyExported: List[ExportedModule] =
         explicitlyExported.flatMap {
-          case ExportedModule(module, _, restriction) =>
+          case ExportedModule(module, _) =>
             exports(module).map {
-              case ExportedModule(export, _, parentRestriction) =>
-                ExportedModule(
-                  export,
-                  None,
-                  SymbolRestriction.Intersect(
-                    List(restriction, parentRestriction)
-                  )
-                )
+              case ExportedModule(export, _) =>
+                ExportedModule(export, None)
             }
         }
       val allExported = explicitlyExported ++ transitivelyExported
-      val unified = allExported
-        .groupBy(_.target)
-        .map { case (mod, items) =>
-          val name = items.collectFirst { case ExportedModule(_, Some(n), _) =>
-            n
-          }
-          val itemsUnion = SymbolRestriction.Union(items.map(_.symbols))
-          ExportedModule(mod, name, itemsUnion)
-        }
-        .toList
-      exports(node.module) = unified
+      exports(node.module) = allExported
     }
     exports.foreach { case (module, exports) =>
       module match {
         case _: BindingsMap.ResolvedType =>
         case ResolvedModule(module) =>
           getBindings(module.unsafeAsModule()).resolvedExports =
-            exports.map(ex => ex.copy(symbols = ex.symbols.optimize))
+            exports.map(ex => ex.copy())
       }
     }
   }
@@ -183,17 +157,14 @@ class ExportsResolution(private val context: CompilerContext) {
           .filter(_.canExport)
           .map(e => (e.name, List(e.resolvedIn(module))))
       val exportedModules = bindings.resolvedExports.collect {
-        case ExportedModule(mod, Some(name), _)
+        case ExportedModule(mod, Some(exportedAs))
             if mod.module.unsafeAsModule() != module =>
-          (name, List(mod))
+          (exportedAs, List(mod))
       }
       val reExportedSymbols = bindings.resolvedExports.flatMap { export =>
         export.target.exportedSymbols
           .flatMap { case (sym, resolutions) =>
-            val allowedResolutions =
-              resolutions.filter(res => export.symbols.canAccess(sym, res))
-            if (allowedResolutions.isEmpty) None
-            else Some((sym, allowedResolutions))
+            Some((sym, resolutions))
           }
       }
       bindings.exportedSymbols = List(
