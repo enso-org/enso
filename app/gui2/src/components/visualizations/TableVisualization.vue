@@ -119,6 +119,7 @@ const DB_TABLE_NODE_TYPE = 'Standard.Database.DB_Table.DB_Table'
 const VECTOR_NODE_TYPE = 'Standard.Base.Data.Vector.Vector'
 const COLUMN_NODE_TYPE = 'Standard.Table.Column.Column'
 const EXCEL_WORKBOOK_NODE_TYPE = 'Standard.Table.Excel.Excel_Workbook.Excel_Workbook'
+const ROW_NODE_TYPE = 'Standard.Table.Row.Row'
 const SQLITE_CONNECTIONS_NODE_TYPE =
   'Standard.Database.Internal.SQLite.SQLite_Connection.SQLite_Connection'
 
@@ -315,7 +316,6 @@ const getTablePattern = (index: number) =>
   )
 
 function createNode(params: CellClickedEvent) {
-  console.log(config.nodeType)
   if (config.nodeType === TABLE_NODE_TYPE || config.nodeType === DB_TABLE_NODE_TYPE) {
     config.createNodes({
       content: getTablePattern(params.data[INDEX_FIELD_NAME]),
@@ -328,6 +328,10 @@ function createNode(params: CellClickedEvent) {
     case COLUMN_NODE_TYPE:
     case VECTOR_NODE_TYPE:
       selector = params.data[INDEX_FIELD_NAME]
+      identifierAction = 'at'
+      break
+    case ROW_NODE_TYPE:
+      selector = params.data['column']
       identifierAction = 'at'
       break
     case EXCEL_WORKBOOK_NODE_TYPE:
@@ -351,8 +355,9 @@ function toLinkField(fieldName: string): ColDef {
   return {
     field: fieldName,
     onCellDoubleClicked: (params) => createNode(params),
-    tooltipValueGetter: (p: ITooltipParams) =>
-      'Double click to view this value/row in seperate node',
+    tooltipValueGetter: (p: ITooltipParams) => {
+      return 'Double click to view this value/row in seperate node'
+    },
   }
 }
 
@@ -435,6 +440,9 @@ watchEffect(() => {
     const dataHeader =
       ('header' in data_ ? data_.header : [])?.map((v, i) => {
         const valueType = data_.value_type ? data_.value_type[i] : null
+        if (config.nodeType === ROW_NODE_TYPE) {
+          return toLinkField(v)
+        }
         return toField(v, valueType)
       }) ?? []
 
