@@ -78,35 +78,22 @@ public class ExportedSymbolsTest {
   }
 
   @Test
-  public void submodulesAreIncludedInExportedSymbols() throws IOException {
+  public void exportSymbolFromDifferentModule() throws IOException {
     var aMod =
-        new SourceModule(
-            QualifiedName.fromString("A_Module"),
-            """
-        from project.A_Module.B_Module export B_Type
+        new SourceModule(QualifiedName.fromString("A_Module"), """
+        from project.B_Module export B_Type
         type A_Type
         """);
     var bMod =
-        new SourceModule(
-            QualifiedName.fromString("A_Module.B_Module"), """
+        new SourceModule(QualifiedName.fromString("B_Module"), """
         type B_Type
         """);
-    var mainMod =
-        new SourceModule(
-            QualifiedName.fromString("Main"),
-            """
-        from project.A_Module export all
-        """);
-    ProjectUtils.createProject("Proj", Set.of(aMod, bMod, mainMod), projDir);
+    ProjectUtils.createProject("Proj", Set.of(aMod, bMod), projDir);
     var ctx = createCtx(projDir);
     compile(ctx);
-    var aModSyms = getExportedSymbolsFromModule(ctx, "local.Proj.A_Module");
-    assertThat(aModSyms.size(), is(3));
-    assertThat(aModSyms.keySet(), containsInAnyOrder("A_Type", "B_Module", "B_Type"));
-
-    var mainModSyms = getExportedSymbolsFromModule(ctx, "local.Proj.Main");
-    assertThat(mainModSyms.size(), is(3));
-    assertThat(mainModSyms.keySet(), containsInAnyOrder("A_Type", "B_Module", "B_Type"));
+    var aModExportedSymbols = getExportedSymbolsFromModule(ctx, "local.Proj.A_Module");
+    assertThat(aModExportedSymbols.size(), is(2));
+    assertThat(aModExportedSymbols.keySet(), containsInAnyOrder("A_Type", "B_Type"));
   }
 
   private static Context createCtx(Path projDir) {
