@@ -17,6 +17,7 @@ export interface AssetTreeNodeData
     | 'isExpanded'
     | 'item'
     | 'key'
+    | 'path'
   > {}
 
 /** All possible variants of {@link AssetTreeNode}s. */
@@ -42,6 +43,7 @@ export default class AssetTreeNode<Item extends backendModule.AnyAsset = backend
      * have not yet been fetched. */
     public readonly children: AnyAssetTreeNode[] | null,
     public readonly depth: number,
+    public readonly path: string,
     /** The internal (to the frontend) id of the asset (or the placeholder id for new assets).
      * This must never change, otherwise the component's state is lost when receiving the real id
      * from the backend. */
@@ -71,9 +73,10 @@ export default class AssetTreeNode<Item extends backendModule.AnyAsset = backend
     directoryKey: backendModule.DirectoryId,
     directoryId: backendModule.DirectoryId,
     depth: number,
+    path: string,
     key: Asset['id'] = asset.id
   ): AnyAssetTreeNode {
-    return new AssetTreeNode(asset, directoryKey, directoryId, null, depth, key).asUnion()
+    return new AssetTreeNode(asset, directoryKey, directoryId, null, depth, path, key).asUnion()
   }
 
   /** Return `this`, coerced into an {@link AnyAssetTreeNode}. */
@@ -101,6 +104,7 @@ export default class AssetTreeNode<Item extends backendModule.AnyAsset = backend
       // eslint-disable-next-line eqeqeq
       update.children === null ? update.children : update.children ?? this.children,
       update.depth ?? this.depth,
+      update.path ?? this.path,
       update.key ?? this.key,
       update.isExpanded ?? this.isExpanded,
       update.createdAt ?? this.createdAt

@@ -309,7 +309,7 @@ add_specs suite_builder setup =
             v = t1.at "x" . to_vector
             v . should_equal [Nothing]
 
-    suite_builder.group prefix+"order_by" group_builder->
+    suite_builder.group prefix+"sort" group_builder->
         data = Data.setup create_connection_fn
 
         group_builder.teardown <|
@@ -330,10 +330,10 @@ add_specs suite_builder setup =
             if is_comparable then
                 table = table_builder_typed [["x", [value, Nothing, other_value, other_value, Nothing, value, Nothing]]] value_type
 
-                group_builder.specify "Correctly handle Nothing in .order_by (asc) for "+value_type.to_text <|
-                    t1 = table . order_by [Sort_Column.Name "x" Sort_Direction.Ascending]
+                group_builder.specify "Correctly handle Nothing in .sort (asc) for "+value_type.to_text <|
+                    t1 = table . sort [..Name "x" ..Ascending]
                     t1.at "x" . to_vector . should_equal [Nothing, Nothing, Nothing, value, value, other_value, other_value]
 
-                group_builder.specify "Correctly handle Nothing in .order_by (desc) for "+value_type.to_text <|
-                    t1 = table . order_by [Sort_Column.Name "x" Sort_Direction.Descending]
+                group_builder.specify "Correctly handle Nothing in .sort (desc) for "+value_type.to_text <|
+                    t1 = table . sort [..Name "x" ..Descending]
                     t1.at "x" . to_vector . should_equal [other_value, other_value, value, value, Nothing, Nothing, Nothing]

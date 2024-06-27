@@ -224,7 +224,9 @@ export function Dialog(props: DialogProps) {
                         }}
                       >
                         <errorBoundary.ErrorBoundary>
-                          <suspense.Suspense loaderProps={{ minHeight: 'h32' }}>
+                          <suspense.Suspense
+                            loaderProps={{ minHeight: type === 'fullscreen' ? 'full' : 'h32' }}
+                          >
                             {typeof children === 'function' ? children(opts) : children}
                           </suspense.Suspense>
                         </errorBoundary.ErrorBoundary>

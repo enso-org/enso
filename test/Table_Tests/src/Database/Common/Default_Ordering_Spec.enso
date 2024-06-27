@@ -70,15 +70,15 @@ add_specs (suite_builder : Suite_Builder) (prefix : Text) (create_connection_fn 
             data.db_table_with_key.join data.db_table_with_key . default_ordering . should_equal Nothing
             data.db_table_with_key.aggregate ["X"] . default_ordering . should_equal Nothing
 
-        group_builder.specify "will return the ordering determined by order_by" <|
-            v1 = data.db_table_with_key.order_by ["Y", Sort_Column.Name "X" Sort_Direction.Descending] . default_ordering
+        group_builder.specify "will return the ordering determined by sort" <|
+            v1 = data.db_table_with_key.sort ["Y", ..Name "X" ..Descending] . default_ordering
             v1.length . should_equal 2
             v1.first.expression.name . should_equal "Y"
             v1.first.direction . should_equal Sort_Direction.Ascending
             v1.second.expression.name . should_equal "X"
             v1.second.direction . should_equal Sort_Direction.Descending
 
-            v2 = data.db_table_without_key.order_by ["Y"] . default_ordering
+            v2 = data.db_table_without_key.sort ["Y"] . default_ordering
             v2.length . should_equal 1
             v2.first.expression.name . should_equal "Y"
             v2.first.direction . should_equal Sort_Direction.Ascending

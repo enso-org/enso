@@ -9,7 +9,7 @@ import * as textProvider from '#/providers/TextProvider'
 
 import type * as assetListEvent from '#/events/assetListEvent'
 
-import AssetVersion from '#/layouts/AssetVersion'
+import AssetVersion from '#/layouts/AssetVersions/AssetVersion'
 import * as useAssetVersions from '#/layouts/AssetVersions/useAssetVersions'
 
 import Spinner from '#/components/Spinner'
