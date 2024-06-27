@@ -81,7 +81,7 @@ export default function SettingsTab(props: SettingsTabProps) {
             <div
               key={i}
               className={tailwindMerge.twMerge(
-                'flex min-w-settings-main-section flex-col gap-settings-subsection',
+                'flex flex-1 flex-col gap-settings-subsection',
                 classes[i]
               )}
             >
