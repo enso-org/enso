@@ -8,7 +8,14 @@ import java.util.Set;
 import org.enso.pkg.QualifiedName;
 
 public sealed interface TypeRepresentation
-    permits TypeRepresentation.ArrowType, TypeRepresentation.AtomType, TypeRepresentation.IntersectionType, TypeRepresentation.ModuleReference, TypeRepresentation.SumType, TypeRepresentation.TopType, TypeRepresentation.TypeObject, TypeRepresentation.UnresolvedSymbol {
+    permits TypeRepresentation.ArrowType,
+        TypeRepresentation.AtomType,
+        TypeRepresentation.IntersectionType,
+        TypeRepresentation.ModuleReference,
+        TypeRepresentation.SumType,
+        TypeRepresentation.TopType,
+        TypeRepresentation.TypeObject,
+        TypeRepresentation.UnresolvedSymbol {
   TypeRepresentation ANY = new TopType();
 
   // In the future we may want to split this unknown type to be a separate entity.
@@ -186,12 +193,12 @@ public sealed interface TypeRepresentation
     }
   }
 
-  /** A type describing a module.
-   * <p>
-   * This is similar to TypeObject, but one cannot create instances of a module.
+  /**
+   * A type describing a module.
+   *
+   * <p>This is similar to TypeObject, but one cannot create instances of a module.
    */
-  record ModuleReference(QualifiedName name) implements TypeRepresentation {
-  }
+  record ModuleReference(QualifiedName name) implements TypeRepresentation {}
 
   /** Represents a type of an unresolved symbol, like `.Foo` or `.bar`. */
   record UnresolvedSymbol(String name) implements TypeRepresentation {

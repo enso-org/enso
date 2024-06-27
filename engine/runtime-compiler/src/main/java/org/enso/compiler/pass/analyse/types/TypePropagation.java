@@ -314,7 +314,8 @@ abstract class TypePropagation {
       TypeRepresentation.UnresolvedSymbol function,
       Expression argument,
       LocalBindingsTyping localBindingsTyping) {
-    System.out.println("processUnresolvedSymbolApplication: " + function + " " + argument.showCode());
+    System.out.println(
+        "processUnresolvedSymbolApplication: " + function + " " + argument.showCode());
 
     var argumentType = tryInferringType(argument, localBindingsTyping);
     if (argumentType == null) {
@@ -360,11 +361,13 @@ abstract class TypePropagation {
     }
   }
 
-  /** Adapts a member method of a type for calling it using the static call syntax.
-   * <p>
-   * It adds the self type as an additional first argument.
+  /**
+   * Adapts a member method of a type for calling it using the static call syntax.
+   *
+   * <p>It adds the self type as an additional first argument.
    */
-  private TypeRepresentation adaptMemberMethodForStaticCall(TypeRepresentation.TypeObject type, TypeRepresentation memberMethodSignature) {
+  private TypeRepresentation adaptMemberMethodForStaticCall(
+      TypeRepresentation.TypeObject type, TypeRepresentation memberMethodSignature) {
     // TODO possibly move this into MethodTypeResolver
     return new TypeRepresentation.ArrowType(type.instanceType(), memberMethodSignature);
   }
@@ -401,14 +404,16 @@ abstract class TypePropagation {
               typeResolver.resolvedTypeAsTypeObject(ctor.tpe()), constructorInterface);
         }
 
-        case BindingsMap.ResolvedType tpe ->
-            typeResolver.resolvedTypeAsTypeObject(tpe);
+        case BindingsMap.ResolvedType tpe -> typeResolver.resolvedTypeAsTypeObject(tpe);
 
-        case BindingsMap.ResolvedModule mod ->
-          new TypeRepresentation.ModuleReference(mod.qualifiedName());
+        case BindingsMap.ResolvedModule mod -> new TypeRepresentation.ModuleReference(
+            mod.qualifiedName());
 
         default -> {
-          logger.trace("resolveGlobalName: reference to {} - is currently not being resolved in static analysis", resolvedName);
+          logger.trace(
+              "resolveGlobalName: reference to {} - is currently not being resolved in static"
+                  + " analysis",
+              resolvedName);
           yield null;
         }
       };

@@ -37,7 +37,14 @@ public final class MetadataInteropHelpers {
       if (textRepresentation.length() > 100) {
         textRepresentation = textRepresentation.substring(0, 100) + "...";
       }
-      throw new IllegalStateException("Missing expected " + pass + " metadata for " + textRepresentation + " (" + ir.getClass().getCanonicalName() + ").");
+      throw new IllegalStateException(
+          "Missing expected "
+              + pass
+              + " metadata for "
+              + textRepresentation
+              + " ("
+              + ir.getClass().getCanonicalName()
+              + ").");
     }
 
     return metadataOrNull;
