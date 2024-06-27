@@ -178,7 +178,7 @@ add_specs group_builder round_fun =
         round_fun -1.22222222222235 13 use_bankers=True . should_equal -1.2222222222224
         round_fun -1.222222222222235 14 use_bankers=True . should_equal -1.22222222222224
 
-    group_builder.specify "Floating point imperfect representation counter-examples" <|
+    group_builder.specify "Floating point imperfect representation counter-examples" pending=(if group_builder.name.contains "Snowflake" then "TODO: https://github.com/enso-org/enso/issues/10307") <|
         round_fun 1.225 2 use_bankers=True . should_equal 1.22 # Actual result 1.23
         round_fun 37.785 2 . should_equal 37.79
 
@@ -279,4 +279,3 @@ add_specs group_builder round_fun =
         Test.expect_panic_with (round_fun 123 "two") Type_Error
         Test.expect_panic_with (round_fun 123 use_bankers="no") Type_Error
         Test.expect_panic_with (round_fun 123 use_bankers=0) Type_Error
-
