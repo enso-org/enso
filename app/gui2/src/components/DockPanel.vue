@@ -1,75 +1,74 @@
 <script setup lang="ts">
+import { documentationEditorBindings } from '@/bindings'
 import ResizeHandles from '@/components/ResizeHandles.vue'
-import SvgButton from '@/components/SvgButton.vue'
+import SlideIn from '@/components/SlideIn.vue'
+import ToggleIcon from '@/components/ToggleIcon.vue'
 import { useResizeObserver } from '@/composables/events'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
-import { computed, ref } from 'vue'
+import { computed, ref, type ComponentInstance } from 'vue'
 
-const rootElement = ref<HTMLElement>()
+const MIN_DOCK_SIZE_PX = 200
+
+const toolbarElement = ref<HTMLElement>()
+const slideInPanel = ref<ComponentInstance<typeof SlideIn>>()
+const slideInPanelRoot = computed(() => slideInPanel.value?.rootElement)
 
 const show = defineModel<boolean>('show', { required: true })
 const size = defineModel<number | undefined>('size')
 
-const computedSize = useResizeObserver(rootElement)
+const computedSize = useResizeObserver(slideInPanelRoot)
 const computedBounds = computed(() => new Rect(Vec2.Zero, computedSize.value))
 
-const style = computed(() => {
-  return {
-    width: size.value != null ? `${size.value}px` : undefined,
-  }
-})
+function clampSize(size: number) {
+  return Math.max(size, MIN_DOCK_SIZE_PX)
+}
+
+const style = computed(() => ({
+  '--slide-in-panel-size': size.value != null ? `${clampSize(size.value)}px` : undefined,
+}))
 </script>
 
 <template>
-  <Transition name="rightDock">
-    <div v-if="show" ref="rootElement" class="DockPanel rightDock" :style="style">
-      <div class="scrollArea">
-        <slot />
-      </div>
-      <SvgButton name="close" class="closeButton button" @click.stop="show = false" />
-      <ResizeHandles left :modelValue="computedBounds" @update:modelValue="size = $event.width" />
+  <ToggleIcon
+    v-model="show"
+    :title="`Documentation Panel (${documentationEditorBindings.bindings.toggle.humanReadable})`"
+    icon="right_panel"
+    class="toggleDock"
+  />
+  <SlideIn ref="slideInPanel" :show="show" :style="style" class="DockPanel" data-testid="rightDock">
+    <div ref="toolbarElement" class="toolbar"></div>
+    <div class="scrollArea">
+      <slot :toolbar="toolbarElement" />
     </div>
-  </Transition>
+    <ResizeHandles left :modelValue="computedBounds" @update:modelValue="size = $event.width" />
+  </SlideIn>
 </template>
 
 <style scoped>
 .DockPanel {
-  position: absolute;
-  top: 46px;
-  bottom: 0;
-  width: var(--right-dock-default-width);
-  right: 0;
-  border-radius: 7px 0 0;
+  --slide-in-panel-size: var(--right-dock-default-width);
   background-color: rgb(255, 255, 255);
-  padding: 4px 12px 0 0;
 }
-.rightDock-enter-active,
-.rightDock-leave-active {
-  transition: left 0.25s ease;
-  /* Prevent absolutely-positioned children (such as the close button) from bypassing the show/hide animation. */
-  overflow-x: clip;
-}
-.rightDock-enter-from,
-.rightDock-leave-to {
-  width: 0;
-}
-.rightDock .scrollArea {
+
+.scrollArea {
   width: 100%;
   height: 100%;
   overflow-y: auto;
-  padding-left: 6px;
+  padding-left: 10px;
+  /* Prevent touchpad back gesture, which can be triggered while panning. */
+  overscroll-behavior-x: none;
 }
 
-.rightDock .closeButton {
-  position: absolute;
-  top: 4px;
-  right: 28px;
-  color: red;
-  opacity: 0.3;
+.toolbar {
+  height: 48px;
+  padding-left: 4px;
+}
 
-  &:hover {
-    opacity: 0.6;
-  }
+.toggleDock {
+  z-index: 1;
+  position: absolute;
+  right: 16px;
+  top: 16px;
 }
 </style>

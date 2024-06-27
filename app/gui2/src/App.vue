@@ -101,6 +101,6 @@ registerAutoBlurHandler()
 
 .enso-dashboard .App {
   /* Compensate for top bar, render the app below it. */
-  margin-top: calc(0px - var(--row-height) - var(--top-level-gap) - var(--top-bar-margin));
+  top: calc(var(--row-height) + var(--top-level-gap, 0px) + var(--top-bar-margin, 0px) + 16px);
 }
 </style>
