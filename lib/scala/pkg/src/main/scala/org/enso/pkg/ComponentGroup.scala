@@ -13,6 +13,7 @@ case class ComponentGroups(
   newGroups: List[ComponentGroup],
   extendedGroups: List[ExtendedComponentGroup]
 )
+
 object ComponentGroups {
 
   /** Empty component groups. */

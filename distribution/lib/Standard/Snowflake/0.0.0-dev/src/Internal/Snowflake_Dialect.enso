@@ -29,6 +29,8 @@ import Standard.Database.Internal.IR.Order_Descriptor.Order_Descriptor
 import Standard.Database.Internal.IR.Query.Query
 import Standard.Database.Internal.IR.SQL_Expression.SQL_Expression
 import Standard.Database.Internal.IR.SQL_Join_Kind.SQL_Join_Kind
+## TODO replace with custom one
+import Standard.Database.Internal.Postgres.Postgres_Error_Mapper.Postgres_Error_Mapper
 import Standard.Database.Internal.Replace_Params.Replace_Params
 import Standard.Database.Internal.SQL_Type_Mapping.SQL_Type_Mapping
 import Standard.Database.Internal.SQL_Type_Reference.SQL_Type_Reference
@@ -40,9 +42,6 @@ import Standard.Database.SQL_Type.SQL_Type
 from Standard.Database.Errors import SQL_Error, Unsupported_Database_Operation
 from Standard.Database.Internal.IR.Operation_Metadata import Date_Period_Metadata
 from Standard.Database.Internal.Statement_Setter import fill_hole_default
-
-# TODO replace with custom one
-import Standard.Database.Internal.Postgres.Postgres_Error_Mapper.Postgres_Error_Mapper
 
 import project.Internal.Snowflake_Type_Mapping.Snowflake_Type_Mapping
 

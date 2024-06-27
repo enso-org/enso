@@ -433,9 +433,9 @@ impl Processor {
             arg::backend::Command::CiCheck {} => {
                 let config = enso_build::engine::BuildConfigurationFlags {
                     build_benchmarks: true,
-                    // Windows is not yet supported for the native runner.
-                    build_native_runner: enso_build::ci::big_memory_machine()
-                        && TARGET_OS != OS::Windows,
+                    build_native_runner: true,
+                    // Espresso+NI needs to be checked only on a single platform.
+                    build_espresso_runner: TARGET_OS == OS::Linux,
                     execute_benchmarks: {
                         // Run benchmarks only on Linux.
                         let mut ret = BTreeSet::new();

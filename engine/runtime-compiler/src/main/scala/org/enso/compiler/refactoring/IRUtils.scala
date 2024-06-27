@@ -65,7 +65,7 @@ trait IRUtils {
         .flatMap { symbol =>
           symbol.getMetadata(MethodCalls).flatMap { resolution =>
             resolution.target match {
-              case BindingsMap.ResolvedMethod(module, _)
+              case BindingsMap.ResolvedModuleMethod(module, _)
                   if module.getName == moduleName =>
                 Some(symbol)
               case _ =>

@@ -10,8 +10,8 @@ import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
+import * as ariaComponents from '#/components/AriaComponents'
 import Label from '#/components/dashboard/Label'
-import * as labelUtils from '#/components/dashboard/Label/labelUtils'
 import Button from '#/components/styled/Button'
 import FocusArea from '#/components/styled/FocusArea'
 import FocusRing from '#/components/styled/FocusRing'
@@ -54,12 +54,12 @@ export default function Labels(props: LabelsProps) {
       {innerProps => (
         <div
           data-testid="labels"
-          className="gap-sidebar-section-heading flex w-full flex-col items-start"
+          className="flex w-full flex-col items-start gap-4"
           {...innerProps}
         >
-          <div className="text-header px-sidebar-section-heading-x text-sm font-bold">
+          <ariaComponents.Text variant="subtitle" className="px-2 font-bold">
             {getText('labels')}
-          </div>
+          </ariaComponents.Text>
           <div
             data-testid="labels-list"
             aria-label={getText('labelsListLabel')}
@@ -95,7 +95,7 @@ export default function Labels(props: LabelsProps) {
                       setModal(
                         <DragModal
                           event={event}
-                          doCleanup={() => {
+                          onDragEnd={() => {
                             drag.LABELS.unbind(payload)
                           }}
                         >
@@ -114,7 +114,7 @@ export default function Labels(props: LabelsProps) {
                         active
                         image={Trash2Icon}
                         alt={getText('delete')}
-                        className="relative flex size-icon text-delete opacity-0 transition-all after:absolute after:-inset-1 after:rounded-button-focus-ring group-has-[[data-focus-visible]]:active group-hover:active"
+                        className="relative flex size-4 text-delete opacity-0 transition-all after:absolute after:-inset-1 after:rounded-button-focus-ring group-has-[[data-focus-visible]]:active group-hover:active"
                         onPress={() => {
                           setModal(
                             <ConfirmDeleteModal
@@ -131,9 +131,11 @@ export default function Labels(props: LabelsProps) {
                 </div>
               )
             })}
-            <Label
-              color={labelUtils.DEFAULT_LABEL_COLOR}
-              className="bg-selected-frame"
+            <ariaComponents.Button
+              size="custom"
+              variant="bar"
+              className="px-2"
+              isActive={false}
               onPress={event => {
                 if (event.target instanceof HTMLElement) {
                   setModal(<NewLabelModal backend={backend} eventTarget={event.target} />)
@@ -144,7 +146,7 @@ export default function Labels(props: LabelsProps) {
               {/* eslint-disable-next-line no-restricted-syntax */}
               <img src={PlusIcon} className="mr-[6px] size-[6px]" />
               <aria.Text className="text-header">{getText('newLabelButtonLabel')}</aria.Text>
-            </Label>
+            </ariaComponents.Button>
           </div>
         </div>
       )}

@@ -7,6 +7,7 @@ import {
   useEvent,
   usePointer,
   useResizeObserver,
+  useWheelActions,
 } from '@/composables/events'
 import type { KeyboardComposable } from '@/composables/keyboard'
 import { Rect } from '@/util/data/rect'
@@ -24,6 +25,7 @@ const ZOOM_LEVELS_REVERSED = [...ZOOM_LEVELS].reverse()
  * If we are that close to next zoom level, we should choose the next one instead
  * to avoid small unnoticeable changes to zoom. */
 const ZOOM_SKIP_THRESHOLD = 0.05
+const WHEEL_CAPTURE_DURATION_MS = 250
 
 function elemRect(target: Element | undefined): Rect {
   if (target != null && target instanceof Element)
@@ -275,6 +277,24 @@ export function useNavigator(
     scale.skip()
   }
 
+  const { events: wheelEvents, captureEvents: wheelEventsCapture } = useWheelActions(
+    keyboard,
+    WHEEL_CAPTURE_DURATION_MS,
+    (e, inputType) => {
+      if (inputType === 'trackpad') {
+        // OS X trackpad events provide usable rate-of-change information.
+        updateScale((oldValue: number) => oldValue * Math.exp(-e.deltaY / 100))
+      } else {
+        // Mouse wheel rate information is unreliable. We just step in the direction of the sign.
+        stepZoom(-Math.sign(e.deltaY))
+      }
+    },
+    (e) => {
+      const delta = new Vec2(e.deltaX, e.deltaY)
+      scrollTo(center.value.addScaled(delta, 1 / scale.value))
+    },
+  )
+
   return proxyRefs({
     pointerEvents: {
       dragover(e: DragEvent) {
@@ -301,28 +321,12 @@ export function useNavigator(
         panPointer.events.pointerdown(e)
         zoomPointer.events.pointerdown(e)
       },
-      wheel(e: WheelEvent) {
-        e.preventDefault()
-        if (e.ctrlKey) {
-          // A pinch gesture is represented by setting `e.ctrlKey`. It can be distinguished from an actual Ctrl+wheel
-          // combination because the real Ctrl key emits keyup/keydown events.
-          const isGesture = !keyboard.ctrl
-          if (isGesture) {
-            // OS X trackpad events provide usable rate-of-change information.
-            updateScale((oldValue: number) => oldValue * Math.exp(-e.deltaY / 100))
-          } else {
-            // Mouse wheel rate information is unreliable. We just step in the direction of the sign.
-            stepZoom(-Math.sign(e.deltaY))
-          }
-        } else {
-          const delta = new Vec2(e.deltaX, e.deltaY)
-          scrollTo(center.value.addScaled(delta, 1 / scale.value))
-        }
-      },
       contextmenu(e: Event) {
         e.preventDefault()
       },
+      wheel: wheelEvents.wheel,
     },
+    pointerEventsCapture: wheelEventsCapture,
     keyboardEvents: panArrows.events,
     translate,
     targetCenter: readonly(targetCenter),

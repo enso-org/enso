@@ -427,7 +427,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     * warning.
     */
   def printConfig(key: String): Int = {
-    configurationManager.getConfig.original.apply(key) match {
+    configurationManager.getConfig.findByKey(key) match {
       case Some(value) =>
         println(value)
         0

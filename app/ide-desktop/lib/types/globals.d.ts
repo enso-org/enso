@@ -83,6 +83,15 @@ interface MenuApi {
     readonly setShowAboutModalHandler: (callback: () => void) => void
 }
 
+// ==================
+// === System API ===
+// ==================
+
+/** `window.systemApi` exposes functionality related to the operating system. */
+interface SystemApi {
+    readonly showItemInFolder: (fullPath: string) => void
+}
+
 // ====================
 // === Version Info ===
 // ====================
@@ -109,6 +118,7 @@ declare global {
         readonly authenticationApi: AuthenticationApi
         readonly navigationApi: NavigationApi
         readonly menuApi: MenuApi
+        readonly systemApi?: SystemApi
         readonly versionInfo?: VersionInfo
         toggleDevtools: () => void
     }
@@ -202,6 +212,13 @@ declare global {
             readonly ENSO_SUPPORTS_VIBRANCY?: string
             // @ts-expect-error The index signature is intentional to disallow unknown env vars.
             readonly ENSO_CLOUD_ENSO_HOST?: string
+
+            // === E2E test variables ===
+
+            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
+            readonly IS_IN_PLAYWRIGHT_TEST?: `${boolean}`
+            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
+            readonly PWDEBUG?: '1'
 
             // === Electron watch script variables ===
 

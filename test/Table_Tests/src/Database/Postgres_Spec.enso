@@ -916,9 +916,9 @@ add_data_link_specs suite_builder =
                     data_link_table.at "Y" . to_vector . should_equal ["o"]
 
         group_builder.specify "will reject any format overrides or stream operations on the data link" <|
-            r1 = Data.read data_link_file.get Plain_Text
+            r1 = Data.read data_link_file.get ..Plain_Text
             r1.should_fail_with Illegal_Argument
-            r1.catch.to_display_text . should_contain "Only the default Auto_Detect format should be used"
+            r1.catch.to_display_text . should_contain "Only Auto_Detect can be used"
 
             r2 = data_link_file.get.with_input_stream [File_Access.Read] .read_all_bytes
             r2.should_fail_with Illegal_Argument

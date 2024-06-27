@@ -26,7 +26,6 @@ import Button from '#/components/styled/Button'
 import * as backendModule from '#/services/Backend'
 import type Backend from '#/services/Backend'
 
-import type AssetQuery from '#/utilities/AssetQuery'
 import type * as assetTreeNode from '#/utilities/AssetTreeNode'
 import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
@@ -41,14 +40,13 @@ export interface AssetPropertiesProps {
   readonly item: assetTreeNode.AnyAssetTreeNode
   readonly setItem: React.Dispatch<React.SetStateAction<assetTreeNode.AnyAssetTreeNode>>
   readonly category: Category
-  readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
   readonly dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
   readonly isReadonly?: boolean
 }
 
 /** Display and modify the properties of an asset. */
 export default function AssetProperties(props: AssetPropertiesProps) {
-  const { backend, item: itemRaw, setItem: setItemRaw, category, setQuery } = props
+  const { backend, item: itemRaw, setItem: setItemRaw, category } = props
   const { isReadonly = false, dispatchAssetEvent } = props
 
   const { user } = authProvider.useNonPartialUserSession()
@@ -72,11 +70,11 @@ export default function AssetProperties(props: AssetPropertiesProps) {
       setItemInner(valueOrUpdater)
       setItemRaw(valueOrUpdater)
     },
-    [/* should never change */ setItemRaw]
+    [setItemRaw]
   )
   const labels = backendHooks.useBackendListTags(backend) ?? []
   const self = item.item.permissions?.find(
-    backendModule.isUserPermissionAnd(permission => permission.user.userId === user?.userId)
+    backendModule.isUserPermissionAnd(permission => permission.user.userId === user.userId)
   )
   const ownsThisAsset = self?.permission === permissions.PermissionAction.own
   const canEditThisAsset =
@@ -89,6 +87,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
   const createDatalinkMutation = backendHooks.useBackendMutation(backend, 'createDatalink')
   const getDatalinkMutation = backendHooks.useBackendMutation(backend, 'getDatalink')
   const updateAssetMutation = backendHooks.useBackendMutation(backend, 'updateAsset')
+  const getDatalinkMutate = getDatalinkMutation.mutateAsync
 
   React.useEffect(() => {
     setDescription(item.item.description ?? '')
@@ -97,13 +96,13 @@ export default function AssetProperties(props: AssetPropertiesProps) {
   React.useEffect(() => {
     void (async () => {
       if (item.item.type === backendModule.AssetType.datalink) {
-        const value = await getDatalinkMutation.mutateAsync([item.item.id, item.item.title])
+        const value = await getDatalinkMutate([item.item.id, item.item.title])
         setDatalinkValue(value)
         setEditedDatalinkValue(value)
         setIsDatalinkFetched(true)
       }
     })()
-  }, [backend, item.item, getDatalinkMutation])
+  }, [backend, item.item, getDatalinkMutate])
 
   const doEditDescription = async () => {
     setIsEditingDescription(false)
@@ -185,7 +184,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
                 }}
                 className="-m-multiline-input-p w-full resize-none rounded-input bg-frame p-multiline-input"
               />
-              <div className="flex gap-buttons">
+              <div className="flex gap-2">
                 <ariaComponents.Button
                   size="custom"
                   variant="custom"
@@ -217,7 +216,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
                   isReadonly={isReadonly}
                   item={item}
                   setItem={setItem}
-                  state={{ backend, category, dispatchAssetEvent, setQuery }}
+                  state={{ backend, category, dispatchAssetEvent, setQuery: () => {} }}
                 />
               </td>
             </tr>
@@ -260,7 +259,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
                 setValue={setEditedDatalinkValue}
               />
               {canEditThisAsset && (
-                <div className="flex gap-buttons">
+                <div className="flex gap-2">
                   <ariaComponents.Button
                     size="custom"
                     variant="custom"

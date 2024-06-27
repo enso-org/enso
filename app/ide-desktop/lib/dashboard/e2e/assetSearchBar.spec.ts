@@ -42,7 +42,7 @@ test.test('labels', async ({ page }) => {
   api.addLabel('cccc', backend.COLORS[2]!)
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   api.addLabel('dddd', backend.COLORS[3]!)
-  await actions.login({ page })
+  await actions.reload({ page })
 
   await searchBarInput.click()
   for (const label of await labels.all()) {
@@ -58,16 +58,21 @@ test.test('labels', async ({ page }) => {
 })
 
 test.test('suggestions', async ({ page }) => {
-  const { api } = await actions.mockAllAndLogin({ page })
+  await actions.mockAllAndLogin({
+    page,
+    setupAPI: api => {
+      api.addDirectory('foo')
+      api.addProject('bar')
+      api.addSecret('baz')
+      api.addSecret('quux')
+    },
+  })
+
   const searchBarInput = actions.locateSearchBarInput(page)
   const suggestions = actions.locateSearchBarSuggestions(page)
-  api.addDirectory('foo')
-  api.addProject('bar')
-  api.addSecret('baz')
-  api.addSecret('quux')
-  await actions.login({ page })
 
   await searchBarInput.click()
+
   for (const suggestion of await suggestions.all()) {
     const name = (await suggestion.textContent()) ?? ''
     test.expect(name.length).toBeGreaterThan(0)
@@ -79,14 +84,18 @@ test.test('suggestions', async ({ page }) => {
 })
 
 test.test('suggestions (keyboard)', async ({ page }) => {
-  const { api } = await actions.mockAllAndLogin({ page })
+  await actions.mockAllAndLogin({
+    page,
+    setupAPI: api => {
+      api.addDirectory('foo')
+      api.addProject('bar')
+      api.addSecret('baz')
+      api.addSecret('quux')
+    },
+  })
+
   const searchBarInput = actions.locateSearchBarInput(page)
   const suggestions = actions.locateSearchBarSuggestions(page)
-  api.addDirectory('foo')
-  api.addProject('bar')
-  api.addSecret('baz')
-  api.addSecret('quux')
-  await actions.login({ page })
 
   await searchBarInput.click()
   for (const suggestion of await suggestions.all()) {
@@ -98,14 +107,18 @@ test.test('suggestions (keyboard)', async ({ page }) => {
 })
 
 test.test('complex flows', async ({ page }) => {
-  const { api } = await actions.mockAllAndLogin({ page })
-  const searchBarInput = actions.locateSearchBarInput(page)
   const firstName = 'foo'
-  api.addDirectory(firstName)
-  api.addProject('bar')
-  api.addSecret('baz')
-  api.addSecret('quux')
-  await actions.login({ page })
+
+  await actions.mockAllAndLogin({
+    page,
+    setupAPI: api => {
+      api.addDirectory(firstName)
+      api.addProject('bar')
+      api.addSecret('baz')
+      api.addSecret('quux')
+    },
+  })
+  const searchBarInput = actions.locateSearchBarInput(page)
 
   await searchBarInput.click()
   await page.press('body', 'ArrowDown')

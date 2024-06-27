@@ -55,7 +55,7 @@ object DefaultVersion {
   implicit val argument: Argument[DefaultVersion] = { string =>
     if (string == LatestInstalled.toString) Right(LatestInstalled)
     else {
-      implicitly[Argument[SemVer]].read(string).map(Exact)
+      semverArgument.read(string).map(Exact)
     }
   }
 

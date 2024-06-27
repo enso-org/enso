@@ -247,7 +247,7 @@ type SQLite_Dialect
         ## The `pk` field is non-zero if the columns is part of the primary key.
            The column value indicates the position in the key.
            See: https://www.sqlite.org/pragma.html#pragma_table_info
-        v = info_table.filter "pk" (>0) . order_by "pk" . at "name" . to_vector
+        v = info_table.filter "pk" (>0) . sort "pk" . at "name" . to_vector
         if v.is_empty then Nothing else v
 
     ## PRIVATE

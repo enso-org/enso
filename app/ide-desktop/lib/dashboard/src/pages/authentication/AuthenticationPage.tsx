@@ -3,9 +3,12 @@
  * and nothing else. */
 import * as React from 'react'
 
-import * as aria from '#/components/aria'
+import * as offlineHooks from '#/hooks/offlineHooks'
+
+import * as textProvider from '#/providers/TextProvider'
+
+import * as ariaComponents from '#/components/AriaComponents'
 import Page from '#/components/Page'
-import FocusArea from '#/components/styled/FocusArea'
 
 // ==========================
 // === AuthenticationPage ===
@@ -13,6 +16,7 @@ import FocusArea from '#/components/styled/FocusArea'
 
 /** Props for an {@link AuthenticationPage}. */
 export interface AuthenticationPageProps extends Readonly<React.PropsWithChildren> {
+  readonly supportsOffline?: boolean
   readonly 'data-testid'?: string
   readonly isNotForm?: boolean
   readonly title: string
@@ -22,24 +26,42 @@ export interface AuthenticationPageProps extends Readonly<React.PropsWithChildre
 
 /** A styled authentication page. */
 export default function AuthenticationPage(props: AuthenticationPageProps) {
-  const { isNotForm = false, title, onSubmit, children, footer } = props
+  const { isNotForm = false, title, onSubmit, children, footer, supportsOffline = false } = props
+
+  const { getText } = textProvider.useText()
+  const { isOffline } = offlineHooks.useOffline()
+
   const heading = (
-    <aria.Heading level={1} className="self-center text-xl font-medium">
+    <ariaComponents.Text.Heading level={1} className="self-center" weight="medium">
       {title}
-    </aria.Heading>
+    </ariaComponents.Text.Heading>
   )
-  const containerClasses =
-    'flex w-full max-w-md flex-col gap-auth rounded-auth bg-selected-frame p-auth shadow-md'
+
+  const containerClasses = ariaComponents.DIALOG_BACKGROUND({
+    className: 'flex w-full flex-col gap-auth rounded-4xl p-12',
+  })
+
+  const offlineAlertClasses = ariaComponents.DIALOG_BACKGROUND({
+    className: 'flex mt-auto rounded-sm items-center justify-center p-4 px-12 rounded-4xl',
+  })
 
   return (
     <Page>
-      <FocusArea direction="vertical">
-        {innerProps => (
-          <div
-            data-testid={props['data-testid']}
-            className="flex min-h-screen flex-col items-center justify-center gap-auth text-sm text-primary"
-            {...innerProps}
-          >
+      <div className="flex h-full w-full flex-col overflow-y-auto p-12">
+        <div
+          className="relative m-auto grid h-full w-full max-w-md grid-cols-1 grid-rows-[1fr_auto_1fr] flex-col items-center justify-center gap-auth text-sm text-primary"
+          data-testid={props['data-testid']}
+        >
+          {isOffline && (
+            <div className={offlineAlertClasses}>
+              <ariaComponents.Text className="text-center" balance elementType="p">
+                {getText('loginUnavailableOffline')}{' '}
+                {supportsOffline && getText('loginUnavailableOfflineLocal')}
+              </ariaComponents.Text>
+            </div>
+          )}
+
+          <div className="row-start-2 row-end-3 flex w-full flex-col items-center gap-auth">
             {isNotForm ? (
               <div className={containerClasses}>
                 {heading}
@@ -53,8 +75,8 @@ export default function AuthenticationPage(props: AuthenticationPageProps) {
             )}
             {footer}
           </div>
-        )}
-      </FocusArea>
+        </div>
+      </div>
     </Page>
   )
 }

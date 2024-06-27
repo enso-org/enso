@@ -954,7 +954,7 @@ add_specs suite_builder setup =
             table = build_sorted_table [["A", ["foo", "bar", "foo", "foo"]], ["B", ["a", "b", "c", "d"]]]
             result = table.aggregate ["A"] [Concatenate "B" prefix="[[" suffix="]]" separator="; "]
             result.row_count . should_equal 2
-            materialized = materialize result . order_by ([Sort_Column.Name "A"])
+            materialized = materialize result . sort ([..Name "A"])
             Problems.assume_no_problems materialized
             materialized.column_count . should_equal 2
             materialized.columns.at 0 . name . should_equal "A"
@@ -1065,14 +1065,14 @@ add_specs suite_builder setup =
 
             r1 = t5.aggregate ["G"] [Count_Distinct "A" (ignore_nothing=True)]
             r1.row_count . should_equal 2
-            m1 = materialize r1 . order_by ([Sort_Column.Name "G"])
+            m1 = materialize r1 . sort ([..Name "G"])
             m1.column_count . should_equal 2
             m1.columns.first.to_vector . should_equal ["bar", "foo"]
             m1.columns.second.to_vector . should_equal [0, 1]
 
             r2 = t5.aggregate ["G"] [Count_Distinct "A" (ignore_nothing=False)]
             r2.row_count . should_equal 2
-            m2 = materialize r2 . order_by ([Sort_Column.Name "G"])
+            m2 = materialize r2 . sort ([..Name "G"])
             m2.column_count . should_equal 2
             m2.columns.first.to_vector . should_equal ["bar", "foo"]
             m2.columns.second.to_vector . should_equal [1, 2]
@@ -1130,7 +1130,7 @@ add_specs suite_builder setup =
 
             r2 = table.aggregate ["G"] [Average "X"]
             r2.row_count.should_equal 2
-            m2 = materialize r2 . order_by ([Sort_Column.Name "G"])
+            m2 = materialize r2 . sort ([..Name "G"])
             m2.column_count . should_equal 2
             m2.columns.first.to_vector . should_equal ["a", "b"]
             m2.columns.second.to_vector . should_equal [0.5, 1]
@@ -1357,7 +1357,7 @@ add_specs suite_builder setup =
             table = table_builder [["A", [1, 1, 2, 1]], ["B", [3, 2, 2, 3]], ["C", [11, 12, 13, 14]]]
             grouped = table.aggregate ["B", "A"]
             grouped.row_count . should_equal 3
-            materialized = materialize grouped . order_by ([Sort_Column.Name "A", Sort_Column.Name "B"])
+            materialized = materialize grouped . sort ([..Name "A", ..Name "B"])
             Problems.assume_no_problems materialized
             materialized.column_count . should_equal 2
             materialized.columns.at 1 . name . should_equal "A"
@@ -1370,7 +1370,7 @@ add_specs suite_builder setup =
                 table = table_builder [["A", ['s', 's\u0301', 'ś', 's\u0301']], ["B", [1, 2, 4, 8]]]
                 grouped = table.aggregate ["A"] [Sum "B"]
                 grouped.row_count . should_equal 2
-                materialized = materialize grouped . order_by ["A"]
+                materialized = materialize grouped . sort ["A"]
                 Problems.assume_no_problems materialized
                 materialized.column_count . should_equal 2
                 materialized.columns.at 0 . name . should_equal "A"
@@ -1387,17 +1387,17 @@ add_specs suite_builder setup =
                 table = table_builder [dates, times, datetimes, ints]
 
                 g1 = table.aggregate ["Date"] [Sum "Int"]
-                m1 = materialize g1 . order_by (["Date"])
+                m1 = materialize g1 . sort (["Date"])
                 m1.at "Date" . to_vector . should_equal [Date.new 1997, Date.new 2000 2 2, Date.new 2022 12 31]
                 m1.at "Sum Int" . to_vector . should_equal [17, 10, 4]
 
                 g2 = table.aggregate ["Time"] [Sum "Int"]
-                m2 = materialize g2 . order_by (["Time"])
+                m2 = materialize g2 . sort (["Time"])
                 m2.at "Time" . to_vector . should_equal [Time_Of_Day.new, Time_Of_Day.new 0 0 0 500, Time_Of_Day.new 1 2 3, Time_Of_Day.new 11 25 40]
                 m2.at "Sum Int" . to_vector . should_equal [9, 2, 4, 16]
 
                 g3 = table.aggregate ["DateTime"] [Sum "Int"]
-                m3 = materialize g3 . order_by (["DateTime"])
+                m3 = materialize g3 . sort (["DateTime"])
                 ## The DB may change the timezone of the values, so we need to convert them back to be able to check for equality.
                    All that we require is that the instant in time represented by the values is preserved.
                 at_system_tz dt =
@@ -1441,7 +1441,7 @@ add_specs suite_builder setup =
             table = table_builder [["Index", [1, 1, 2, 2]], ["Value", [1, 2, 3, 4]]]
             t1 = table.aggregate ["Index"] [Sum "Value", Sum (expr "[Value]*[Value]")]
             t1.column_count . should_equal 3
-            r1 =  t1 |> materialize |> _.order_by "Index"
+            r1 =  t1 |> materialize |> _.sort "Index"
             r1.at "Index" . to_vector . should_equal [1, 2]
             r1.at "Sum Value" . to_vector . should_equal [3, 7]
             # Not using by name, as naming is not yet consistent between backends.

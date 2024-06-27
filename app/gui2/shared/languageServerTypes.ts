@@ -343,7 +343,11 @@ export type Notifications = {
   'file/event': (param: { path: Path; kind: FileEventKind }) => void
   'file/rootAdded': (param: {}) => void
   'file/rootRemoved': (param: {}) => void
-  'refactoring/projectRenamed': (param: {}) => void
+  'refactoring/projectRenamed': (param: {
+    oldNormalizedName: string
+    newNormalizedName: string
+    newName: string
+  }) => void
 }
 
 export type Event<T extends keyof Notifications> = Parameters<Notifications[T]>[0]

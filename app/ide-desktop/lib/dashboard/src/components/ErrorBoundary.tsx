@@ -59,7 +59,7 @@ export interface ErrorDisplayProps extends errorBoundary.FallbackProps {
 }
 
 /** Default fallback component to show when there is an error. */
-function ErrorDisplay(props: ErrorDisplayProps): React.JSX.Element {
+export function ErrorDisplay(props: ErrorDisplayProps): React.JSX.Element {
   const { resetErrorBoundary, error } = props
 
   const { getText } = textProvider.useText()
@@ -73,23 +73,10 @@ function ErrorDisplay(props: ErrorDisplayProps): React.JSX.Element {
       title={getText('arbitraryErrorTitle')}
       subtitle={getText('arbitraryErrorSubtitle')}
     >
-      {detect.IS_DEV_MODE && stack != null && (
-        <ariaComponents.Alert className="mx-auto mb-4 max-w-screen-lg" variant="neutral">
-          <ariaComponents.Text
-            elementType="pre"
-            className="whitespace-pre-wrap text-left"
-            color="primary"
-            variant="subtitle"
-          >
-            {stack}
-          </ariaComponents.Text>
-        </ariaComponents.Alert>
-      )}
-
       <ariaComponents.ButtonGroup align="center">
         <ariaComponents.Button
           variant="submit"
-          size="large"
+          size="small"
           rounded="full"
           className="w-24"
           onPress={resetErrorBoundary}
@@ -97,6 +84,22 @@ function ErrorDisplay(props: ErrorDisplayProps): React.JSX.Element {
           {getText('tryAgain')}
         </ariaComponents.Button>
       </ariaComponents.ButtonGroup>
+
+      {detect.IS_DEV_MODE && stack != null && (
+        <ariaComponents.Alert
+          className="mx-auto mt-4 max-w-screen-lg overflow-x-auto"
+          variant="neutral"
+        >
+          <ariaComponents.Text
+            elementType="pre"
+            className="whitespace-pre-wrap text-left"
+            color="primary"
+            variant="body"
+          >
+            {stack}
+          </ariaComponents.Text>
+        </ariaComponents.Alert>
+      )}
     </result.Result>
   )
 }

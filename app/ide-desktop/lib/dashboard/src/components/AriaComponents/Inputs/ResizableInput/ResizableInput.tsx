@@ -17,7 +17,6 @@ import * as varants from './variants'
 export interface ResizableInputProps extends aria.TextFieldProps {
   readonly placeholder?: string
   readonly description?: React.ReactNode
-  readonly errorMessage?: string | null
 }
 
 /**
@@ -27,13 +26,7 @@ export const ResizableInput = React.forwardRef(function ResizableInput(
   props: ResizableInputProps,
   ref: React.ForwardedRef<HTMLTextAreaElement>
 ) {
-  const {
-    value = '',
-    placeholder = '',
-    description = null,
-    errorMessage,
-    ...textFieldProps
-  } = props
+  const { value = '', placeholder = '', description = null, ...textFieldProps } = props
   const inputRef = React.useRef<HTMLTextAreaElement>(null)
   const resizableAreaRef = React.useRef<HTMLSpanElement>(null)
 
@@ -56,7 +49,6 @@ export const ResizableInput = React.forwardRef(function ResizableInput(
     base,
     description: descriptionClass,
     inputContainer,
-    error,
     resizableSpan,
     textArea,
   } = varants.INPUT_STYLES({ isInvalid: textFieldProps.isInvalid })
@@ -90,12 +82,6 @@ export const ResizableInput = React.forwardRef(function ResizableInput(
           </aria.Text>
         )}
       </div>
-
-      {errorMessage != null && (
-        <aria.Text slot="errorMessage" className={error()}>
-          {errorMessage}
-        </aria.Text>
-      )}
     </aria.TextField>
   )
 })
