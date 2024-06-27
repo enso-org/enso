@@ -114,6 +114,7 @@ const config = useVisualizationConfig()
 
 const INDEX_FIELD_NAME = '#'
 const TABLE_NODE_TYPE = 'Standard.Table.Table.Table'
+const DB_TABLE_NODE_TYPE = 'Standard.Database.DB_Table.DB_Table'
 const VECTOR_NODE_TYPE = 'Standard.Base.Data.Vector.Vector'
 const COLUMN_NODE_TYPE = 'Standard.Table.Column.Column'
 const EXCEL_WORKBOOK_NODE_TYPE = 'Standard.Table.Excel.Excel_Workbook.Excel_Workbook'
@@ -313,7 +314,8 @@ const getTablePattern = (index: number) =>
   )
 
 function createNode(params: CellClickedEvent) {
-  if (config.nodeType === TABLE_NODE_TYPE) {
+  console.log(config.nodeType)
+  if (config.nodeType === TABLE_NODE_TYPE || config.nodeType === DB_TABLE_NODE_TYPE) {
     config.createNodes({
       content: getTablePattern(params.data[INDEX_FIELD_NAME]),
       commit: true,
@@ -336,7 +338,7 @@ function createNode(params: CellClickedEvent) {
       identifierAction = 'query'
       break
   }
-  if (selector && identifierAction) {
+  if (selector !== undefined && identifierAction) {
     config.createNodes({
       content: getAstPattern(selector, identifierAction),
       commit: true,
