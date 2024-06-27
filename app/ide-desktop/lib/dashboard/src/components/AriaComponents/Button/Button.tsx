@@ -47,9 +47,9 @@ export interface BaseButtonProps<Render>
    * The icon to display in the button
    */
   readonly icon?:
-    | ((render: Render) => React.ReactElement | string | null)
     | React.ReactElement
     | string
+    | ((render: Render) => React.ReactElement | string | null)
     | null
   /**
    * When `true`, icon will be shown only when hovered.
@@ -62,7 +62,7 @@ export interface BaseButtonProps<Render>
   readonly onPress?: (event: aria.PressEvent) => Promise<void> | void
   readonly contentClassName?: string
   readonly testId?: string
-
+  readonly isDisabled?: boolean
   readonly formnovalidate?: boolean
   /** Defaults to `full`. When `full`, the entire button will be replaced with the loader.
    * When `icon`, only the icon will be replaced with the loader. */
@@ -467,6 +467,7 @@ export const Button = React.forwardRef(function Button(
         <>
           <span className={wrapper()}>
             <span ref={contentRef} className={content({ className: contentClassName })}>
+              {/* eslint-disable-next-line @typescript-eslint/no-unsafe-argument */}
               {childrenFactory(render)}
             </span>
 
