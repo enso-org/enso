@@ -108,6 +108,7 @@ type Postgres_Aggregate_Data
         name = Name_Generator.random_name "Ttypes"
         connection.execute_update 'CREATE TEMPORARY TABLE "'+name+'" ("txt" VARCHAR, "i1" SMALLINT, "i2" INT, "i3" BIGINT, "i4" NUMERIC, "r1" REAL, "r2" DOUBLE PRECISION, "bools" BOOLEAN)'
         connection.execute_update 'INSERT INTO "'+name+'" VALUES (\'a\', 1, 2, 3, 4, 5.5, 6.6, true)'
+        connection.execute_update 'INSERT INTO "'+name+'" VALUES (\'a\', 11, 12, 13, 14, 15.5, 16.6, false)'
         t = connection.query (SQL_Query.Table_Name name)
         [connection, name, t]
 
@@ -322,6 +323,22 @@ postgres_specific_spec suite_builder create_connection_fn db_name setup =
             r.columns.at 3 . at 0 . should_be_a Decimal
             r.columns.at 4 . at 0 . should_be_a Float
             r.columns.at 5 . at 0 . should_be_a Float
+
+        group_builder.specify "Standard Deviation" <|
+            [False, True].map population->
+                r = data.t.aggregate columns=[Aggregate_Column.Standard_Deviation population=population "i1", Aggregate_Column.Standard_Deviation population=population "i2", Aggregate_Column.Standard_Deviation population=population "i3", Aggregate_Column.Standard_Deviation population=population "i4", Aggregate_Column.Standard_Deviation population=population "r1", Aggregate_Column.Standard_Deviation population=population "r2"]
+                r.columns.at 0 . value_type . should_equal Value_Type.Float
+                r.columns.at 1 . value_type . should_equal Value_Type.Float
+                r.columns.at 2 . value_type . should_equal Value_Type.Float
+                r.columns.at 3 . value_type . should_equal Value_Type.Decimal
+                r.columns.at 4 . value_type . should_equal Value_Type.Float
+                r.columns.at 5 . value_type . should_equal Value_Type.Float
+                r.columns.at 0 . at 0 . should_be_a Float
+                r.columns.at 1 . at 0 . should_be_a Float
+                r.columns.at 2 . at 0 . should_be_a Float
+                r.columns.at 3 . at 0 . should_be_a Decimal
+                r.columns.at 4 . at 0 . should_be_a Float
+                r.columns.at 5 . at 0 . should_be_a Float
 
 
     suite_builder.group "[PostgreSQL] Warning/Error handling" group_builder->
