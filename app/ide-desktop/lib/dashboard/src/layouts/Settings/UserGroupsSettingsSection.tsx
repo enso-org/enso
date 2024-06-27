@@ -178,7 +178,7 @@ export default function UserGroupsSettingsSection(props: UserGroupsSettingsSecti
       >
         <aria.Table
           aria-label={getText('userGroups')}
-          className="w-full table-fixed self-start rounded-rows"
+          className="w-full max-w-3xl table-fixed self-start rounded-rows"
           dragAndDropHooks={dragAndDropHooks}
         >
           <aria.TableHeader className="sticky top h-row">
