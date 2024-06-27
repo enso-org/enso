@@ -61,13 +61,20 @@ export function useWidgetFunctionCallInfo(
       return analyzed.lhs?.externalId
     } else {
       const knownArguments = methodCallInfo.value?.suggestion?.arguments
-      const hasSelfArgument = knownArguments?.[0]?.name === 'self'
+      const hasKnownSelfArgument = knownArguments?.[0]?.name === 'self'
+      const selfByName = analyzed.args.find(
+        (a) => a.argName === 'self' || a.argName == null,
+      )?.argument
       const selfArgument =
-        hasSelfArgument && !selfArgumentPreapplied.value ?
-          analyzed.args.find((a) => a.argName === 'self' || a.argName == null)?.argument
-        : getAccessOprSubject(analyzed.func) ?? analyzed.args[0]?.argument
+        hasKnownSelfArgument && !selfArgumentPreapplied.value ?
+          selfByName
+        : getAccessOprSubject(analyzed.func)
 
-      return selfArgument?.externalId
+      if (!selfArgument && knownArguments == null) {
+        return selfByName?.externalId ?? analyzed?.args[0]?.argument?.externalId
+      } else {
+        return selfArgument?.externalId
+      }
     }
   })
 
