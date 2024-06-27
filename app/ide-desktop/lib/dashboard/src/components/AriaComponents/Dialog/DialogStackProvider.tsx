@@ -80,18 +80,22 @@ export function DialogStackRegistrar(props: React.PropsWithChildren<DialogStackI
   const idRef = React.useRef(idRaw)
   const typeRef = React.useRef(typeRaw)
 
-  const ctx = React.useContext(DialogStackContext)
+  const context = React.useContext(DialogStackContext)
 
-  invariant(ctx, 'DialogStackRegistrar must be used within a DialogStackProvider')
+  invariant(context, 'DialogStackRegistrar must be used within a DialogStackProvider')
+
+  const { add, slice } = context
 
   React.useEffect(() => {
     const id = idRef.current
     const type = typeRef.current
-    ctx.add({ id, type })
+
+    add({ id, type })
+
     return () => {
-      ctx.slice(id)
+      slice(id)
     }
-  }, [ctx])
+  }, [add, slice])
 
   return children
 }
