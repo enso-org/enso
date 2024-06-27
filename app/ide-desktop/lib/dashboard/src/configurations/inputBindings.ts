@@ -1,5 +1,4 @@
 /** @file Shortcuts for the dashboard application. */
-
 import AddDatalinkIcon from 'enso-assets/add_datalink.svg'
 import AddFolderIcon from 'enso-assets/add_folder.svg'
 import AddKeyIcon from 'enso-assets/add_key.svg'
@@ -10,11 +9,13 @@ import ArrowRightIcon from 'enso-assets/arrow_right.svg'
 import CameraIcon from 'enso-assets/camera.svg'
 import CloseIcon from 'enso-assets/close.svg'
 import CloudToIcon from 'enso-assets/cloud_to.svg'
+import CopyAsPathIcon from 'enso-assets/copy_as_path.svg'
 import CopyIcon from 'enso-assets/copy.svg'
 import DataDownloadIcon from 'enso-assets/data_download.svg'
 import DataUploadIcon from 'enso-assets/data_upload.svg'
 import DuplicateIcon from 'enso-assets/duplicate.svg'
 import LogoIcon from 'enso-assets/enso_logo.svg'
+import OpenInFileBrowserIcon from 'enso-assets/open_in_file_browser.svg'
 import OpenIcon from 'enso-assets/open.svg'
 import PasteIcon from 'enso-assets/paste.svg'
 import PenIcon from 'enso-assets/pen.svg'
@@ -51,9 +52,9 @@ export function createBindings() {
 export const BINDINGS = inputBindings.defineBindings({
   settings: { name: 'Settings', bindings: ['Mod+,'], icon: SettingsIcon },
   open: { name: 'Open', bindings: ['Enter'], icon: OpenIcon },
-  run: { name: 'Run', bindings: ['Shift+Enter'], icon: Play2Icon },
+  run: { name: 'Execute as Task', bindings: ['Shift+Enter'], icon: Play2Icon },
   close: { name: 'Close', bindings: [], icon: CloseIcon },
-  uploadToCloud: { name: 'Upload To Cloud', bindings: [], icon: CloudToIcon },
+  uploadToCloud: { name: 'Upload to Cloud', bindings: [], icon: CloudToIcon },
   rename: { name: 'Rename', bindings: ['Mod+R'], icon: PenIcon },
   edit: { name: 'Edit', bindings: ['Mod+E'], icon: PenIcon },
   snapshot: { name: 'Snapshot', bindings: ['Mod+S'], icon: CameraIcon },
@@ -69,6 +70,7 @@ export const BINDINGS = inputBindings.defineBindings({
   label: { name: 'Label', bindings: ['Mod+L'], icon: TagIcon },
   duplicate: { name: 'Duplicate', bindings: ['Mod+D'], icon: DuplicateIcon },
   copy: { name: 'Copy', bindings: ['Mod+C'], icon: CopyIcon },
+  copyAsPath: { name: 'Copy as Path', bindings: ['Mod+Shift+C'], icon: CopyAsPathIcon },
   cut: { name: 'Cut', bindings: ['Mod+X'], icon: ScissorsIcon },
   paste: { name: 'Paste', bindings: ['Mod+V'], icon: PasteIcon },
   download: { name: 'Download', bindings: ['Mod+Shift+S'], icon: DataDownloadIcon },
@@ -86,10 +88,11 @@ export const BINDINGS = inputBindings.defineBindings({
     bindings: !detect.isOnMacOS() ? ['Mod+Alt+Shift+N'] : ['Mod+Alt+Shift+N', 'Mod+Alt+Shift+~'],
     icon: AddDatalinkIcon,
   },
-  useInNewProject: {
-    name: 'Use In New Project',
-    bindings: ['Mod+P'],
-    icon: AddNetworkIcon,
+  useInNewProject: { name: 'Use in New Project', bindings: ['Mod+P'], icon: AddNetworkIcon },
+  openInFileBrowser: {
+    name: 'Open in File Browser',
+    bindings: ['Mod+Shift+O'],
+    icon: OpenInFileBrowserIcon,
   },
   signIn: { name: 'Login', bindings: [], icon: SignInIcon },
   signOut: { name: 'Logout', bindings: [], icon: SignOutIcon, color: 'rgb(243 24 10 / 0.87)' },

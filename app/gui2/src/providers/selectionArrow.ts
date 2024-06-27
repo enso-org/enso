@@ -2,7 +2,7 @@ import { createContextStore } from '@/providers'
 import type { PortId } from '@/providers/portInfo.ts'
 import type { AstId, TokenId } from '@/util/ast/abstract.ts'
 import { identity } from '@vueuse/core'
-import type { Ref, RendererElement } from 'vue'
+import type { RendererElement } from 'vue'
 
 interface SelectionArrowInfo {
   /** Id of the subexpression that should display arrow underneath. */

@@ -4,6 +4,7 @@ import * as React from 'react'
 import LogoIcon from 'enso-assets/enso_logo.svg'
 import * as common from 'enso-common'
 
+import * as authProvider from '#/providers/AuthProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
@@ -29,6 +30,8 @@ export interface InfoMenuProps {
 /** A menu containing info about the app. */
 export default function InfoMenu(props: InfoMenuProps) {
   const { hidden = false } = props
+  const session = authProvider.useUserSession()
+  const { signOut } = authProvider.useAuth()
   const { setModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
   const [initialized, setInitialized] = React.useState(false)
@@ -79,6 +82,7 @@ export default function InfoMenu(props: InfoMenuProps) {
                     setModal(<AboutModal />)
                   }}
                 />
+                {session && <MenuEntry action="signOut" doAction={signOut} />}
               </div>
             )}
           </FocusArea>

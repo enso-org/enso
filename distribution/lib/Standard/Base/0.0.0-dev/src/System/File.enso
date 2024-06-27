@@ -47,8 +47,8 @@ polyglot java import java.nio.file.StandardCopyOption
 polyglot java import java.nio.file.StandardOpenOption
 polyglot java import java.time.ZonedDateTime
 polyglot java import org.enso.base.DryRunFileManager
-polyglot java import org.enso.base.file_system.FileSystemSPI
 polyglot java import org.enso.base.file_system.File_Utils
+polyglot java import org.enso.base.file_system.FileSystemSPI
 
 ## PRIVATE
 file_types : Vector

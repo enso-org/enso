@@ -17,7 +17,7 @@ export function locateDuplicateButton(page: test.Locator | test.Page) {
 
 /** Find a "copy" button (if any) on the current page. */
 function locateCopyButton(page: test.Locator | test.Page) {
-  return page.getByRole('button', { name: 'Copy' }).getByText('Copy')
+  return page.getByRole('button', { name: 'Copy' }).getByText('Copy', { exact: true })
 }
 
 /** Find a "cut" button (if any) on the current page. */
@@ -44,7 +44,9 @@ export async function expectPlaceholderRow(page: test.Page) {
 // === Tests ===
 // =============
 
-test.test.beforeEach(actions.mockAllAndLogin)
+test.test.beforeEach(({ page }) => {
+  return actions.mockAllAndLogin({ page })
+})
 
 test.test('copy', async ({ page }) => {
   const assetRows = actions.locateAssetRows(page)

@@ -65,7 +65,7 @@ function getWindowsDocumentsPath(): string | undefined {
         'reg',
         [
             'query',
-            '"HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ShellFolders"',
+            'HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders',
             '/v',
             'personal',
         ],
@@ -76,6 +76,6 @@ function getWindowsDocumentsPath(): string | undefined {
         return
     } else {
         const stdoutString = out.stdout.toString()
-        return stdoutString.split('\\s\\s+')[4]
+        return stdoutString.split(/\s\s+/)[4]
     }
 }

@@ -26,7 +26,7 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         'selected-frame': 'rgb(255 255 255 / 70%)',
         'ide-bg': '#ebeef1',
         selected: 'rgb(255 255 255 / 40%)',
-        'not-selected': 'rgb(0 0 0 / 15%)',
+        'not-selected': 'rgb(0 0 0 / 30%)',
         // Should be `#3e515f14`, but `bg-opacity` does not work with RGBA.
         label: '#f0f1f3',
         help: '#3f68ce',
@@ -157,10 +157,8 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         'members-email-column': 'var(--members-email-column-width)',
         'keyboard-shortcuts-icon-column': 'var(--keyboard-shortcuts-icon-column-width)',
         'keyboard-shortcuts-name-column': 'var(--keyboard-shortcuts-name-column-width)',
-        'activity-log-icon-column': 'var(--activity-log-icon-column-width)',
-        'activity-log-type-column': 'var(--activity-log-type-column-width)',
-        'activity-log-email-column': 'var(--activity-log-email-column-width)',
-        'activity-log-timestamp-column': 'var(--activity-log-timestamp-column-width)',
+        'keyboard-shortcuts-description-column':
+          'var(--keyboard-shortcuts-description-column-width)',
         'drive-name-column': 'var(--drive-name-column-width)',
         'drive-modified-column': 'var(--drive-modified-column-width)',
         'drive-shared-with-column': 'var(--drive-shared-with-column-width)',
@@ -200,7 +198,6 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
       gap: {
         modal: 'var(--modal-gap)',
         subheading: 'var(--subheading-gap)',
-        buttons: 'var(--buttons-gap)',
         icons: 'var(--icons-gap)',
         colors: 'var(--colors-gap)',
         'samples-icon-with-text': 'var(--samples-icon-with-text-gap)',
@@ -247,8 +244,6 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         'asset-panel': 'var(--asset-panel-gap)',
         'search-suggestions': 'var(--search-suggestions-gap)',
         'keyboard-shortcuts-button': 'var(--keyboard-shortcuts-button-gap)',
-        'activity-log-filters': 'var(--activity-log-filters-gap)',
-        'activity-log-filter': 'var(--activity-log-filter-gap)',
         'chat-buttons': 'var(--chat-buttons-gap)',
       },
       padding: {

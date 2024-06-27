@@ -1,8 +1,7 @@
 /** @file Switcher to choose the currently visible full-screen page. */
 import * as React from 'react'
 
-import DriveIcon from 'enso-assets/drive.svg'
-import WorkspaceIcon from 'enso-assets/workspace.svg'
+import invariant from 'tiny-invariant'
 
 import type * as text from '#/text'
 
@@ -14,17 +13,6 @@ import FocusArea from '#/components/styled/FocusArea'
 
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 
-// ============
-// === Page ===
-// ============
-
-/** Main content of the screen. Only one should be visible at a time. */
-export enum Page {
-  drive = 'drive',
-  editor = 'editor',
-  settings = 'settings',
-}
-
 // =================
 // === Constants ===
 // =================
@@ -32,40 +20,35 @@ export enum Page {
 /** The corner radius of the tabs. */
 const TAB_RADIUS_PX = 24
 
-const PAGE_DATA: PageUIData[] = [
-  { page: Page.drive, icon: DriveIcon, nameId: 'drivePageName' },
-  { page: Page.editor, icon: WorkspaceIcon, nameId: 'editorPageName' },
-]
+// =====================
+// === TabBarContext ===
+// =====================
 
-// ==================
-// === PageUIData ===
-// ==================
-
-/** Data describing how to display a button for a page. */
-interface PageUIData {
-  readonly page: Page
-  readonly icon: string
-  readonly nameId: Extract<text.TextId, `${Page}PageName`>
+/** Context for a {@link TabBarContext}. */
+interface TabBarContextValue {
+  readonly updateClipPath: (element: HTMLDivElement | null) => void
+  readonly observeElement: (element: HTMLElement) => () => void
 }
 
-// ====================
-// === PageSwitcher ===
-// ====================
+const TabBarContext = React.createContext<TabBarContextValue | null>(null)
 
-/** Props for a {@link PageSwitcher}. */
-export interface PageSwitcherProps {
-  readonly page: Page
-  readonly setPage: (page: Page) => void
-  readonly isEditorDisabled: boolean
+/** Custom hook to get tab bar context. */
+function useTabBarContext() {
+  const context = React.useContext(TabBarContext)
+  invariant(context, '`useTabBarContext` must be used inside a `<TabBar />`')
+  return context
 }
+
+// ==============
+// === TabBar ===
+// ==============
+
+/** Props for a {@link TabBar}. */
+export interface TabBarProps extends Readonly<React.PropsWithChildren> {}
 
 /** Switcher to choose the currently visible full-screen page. */
-export default function PageSwitcher(props: PageSwitcherProps) {
-  const { page, setPage, isEditorDisabled } = props
-  const visiblePageData = React.useMemo(
-    () => PAGE_DATA.filter(pageData => (pageData.page !== Page.editor ? true : !isEditorDisabled)),
-    [isEditorDisabled]
-  )
+export default function TabBar(props: TabBarProps) {
+  const { children } = props
   const cleanupResizeObserverRef = React.useRef(() => {})
   const backgroundRef = React.useRef<HTMLDivElement | null>(null)
   const selectedTabRef = React.useRef<HTMLDivElement | null>(null)
@@ -120,38 +103,30 @@ export default function PageSwitcher(props: PageSwitcherProps) {
     }
   }
 
-  React.useEffect(() => {
-    if (visiblePageData.every(pageData => page !== pageData.page)) {
-      updateClipPath(null)
-    }
-  }, [page, updateClipPath, visiblePageData])
-
   return (
-    <div className="relative flex grow">
-      <div
-        ref={element => {
-          backgroundRef.current = element
-          updateResizeObserver(element)
-        }}
-        className="pointer-events-none absolute inset-0 bg-primary/5"
-      />
-      <Tabs>
-        {visiblePageData.map(pageData => {
-          const isActive = page === pageData.page
-          return (
-            <Tab
-              key={pageData.page}
-              ref={isActive ? updateClipPath : null}
-              isActive={isActive}
-              onPress={() => {
-                setPage(pageData.page)
-              }}
-              {...pageData}
-            />
-          )
-        })}
-      </Tabs>
-    </div>
+    <TabBarContext.Provider
+      value={{
+        updateClipPath,
+        observeElement: element => {
+          resizeObserver.observe(element)
+
+          return () => {
+            resizeObserver.unobserve(element)
+          }
+        },
+      }}
+    >
+      <div className="relative flex grow">
+        <div
+          ref={element => {
+            backgroundRef.current = element
+            updateResizeObserver(element)
+          }}
+          className="pointer-events-none absolute inset-0 bg-primary/5"
+        />
+        <Tabs>{children}</Tabs>
+      </div>
+    </TabBarContext.Provider>
   )
 }
 
@@ -162,7 +137,7 @@ export default function PageSwitcher(props: PageSwitcherProps) {
 /** Props for a {@link TabsInternal}. */
 export interface InternalTabsProps extends Readonly<React.PropsWithChildren> {}
 
-/** A tab list in a {@link PageSwitcher}. */
+/** A tab list in a {@link TabBar}. */
 function TabsInternal(props: InternalTabsProps, ref: React.ForwardedRef<HTMLDivElement>) {
   const { children } = props
   return (
@@ -186,38 +161,85 @@ const Tabs = React.forwardRef(TabsInternal)
 // ===========
 
 /** Props for a {@link Tab}. */
-interface InternalTabProps extends PageUIData {
+interface InternalTabProps extends Readonly<React.PropsWithChildren> {
   readonly isActive: boolean
+  readonly icon: string
+  readonly labelId: text.TextId
+  /** When the promise is in flight, the tab icon will instead be a loading spinner. */
+  readonly loadingPromise?: Promise<unknown>
   readonly onPress: () => void
+  readonly onClose?: () => void
 }
 
-/** A tab in a {@link PageSwitcher}. */
-function TabInternal(props: InternalTabProps, ref: React.ForwardedRef<HTMLDivElement>) {
-  const { isActive, page, nameId, icon, onPress } = props
+/** A tab in a {@link TabBar}. */
+export function Tab(props: InternalTabProps) {
+  const { isActive, icon, labelId, loadingPromise, children, onPress, onClose } = props
+  const { updateClipPath, observeElement } = useTabBarContext()
+  const ref = React.useRef<HTMLDivElement | null>(null)
   const { getText } = textProvider.useText()
+  const [isLoading, setIsLoading] = React.useState(loadingPromise != null)
+
+  React.useLayoutEffect(() => {
+    if (isActive) {
+      updateClipPath(ref.current)
+    }
+  }, [isActive, updateClipPath])
+
+  React.useEffect(() => {
+    if (ref.current) {
+      return observeElement(ref.current)
+    } else {
+      return () => {}
+    }
+  }, [observeElement])
+
+  React.useEffect(() => {
+    if (loadingPromise) {
+      setIsLoading(true)
+      loadingPromise.then(
+        () => {
+          setIsLoading(false)
+        },
+        () => {
+          setIsLoading(false)
+        }
+      )
+    } else {
+      setIsLoading(false)
+    }
+  }, [loadingPromise])
 
   return (
     <div
-      key={page}
       ref={ref}
       className={tailwindMerge.twMerge(
-        'h-full transition-[padding-left]',
-        page !== page && 'hover:enabled:bg-frame'
+        'group relative h-full',
+        !isActive && 'hover:enabled:bg-frame'
       )}
     >
       <ariaComponents.Button
         size="custom"
         variant="custom"
-        icon={icon}
-        isDisabled={isActive}
+        loaderPosition="icon"
+        icon={({ isFocusVisible, isHovered }) =>
+          (isFocusVisible || isHovered) && onClose ? (
+            <div className="mt-[1px] flex h-4 w-4 items-center justify-center">
+              <ariaComponents.CloseButton onPress={onClose} />
+            </div>
+          ) : (
+            icon
+          )
+        }
+        isDisabled={false}
         isActive={isActive}
-        className="flex h-full items-center gap-3 px-4"
+        loading={isActive ? false : isLoading}
+        aria-label={getText(labelId)}
+        tooltip={false}
+        className={tailwindMerge.twMerge('relative flex h-full items-center gap-3 px-4')}
         onPress={onPress}
       >
-        {getText(nameId)}
+        {children}
       </ariaComponents.Button>
     </div>
   )
 }
-
-const Tab = React.forwardRef(TabInternal)

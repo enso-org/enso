@@ -73,7 +73,7 @@ const DIALOG_STYLES = twv.tv({
     header:
       'sticky grid grid-cols-[1fr_auto_1fr] items-center border-b border-primary/10 transition-[border-color] duration-150',
     closeButton: 'col-start-1 col-end-1 mr-auto',
-    heading: 'col-start-2 col-end-2 my-0',
+    heading: 'col-start-2 col-end-2 my-0 text-center',
     content: 'relative flex-auto overflow-y-auto p-3.5',
   },
 })
@@ -224,7 +224,9 @@ export function Dialog(props: DialogProps) {
                         }}
                       >
                         <errorBoundary.ErrorBoundary>
-                          <suspense.Suspense loaderProps={{ minHeight: 'h32' }}>
+                          <suspense.Suspense
+                            loaderProps={{ minHeight: type === 'fullscreen' ? 'full' : 'h32' }}
+                          >
                             {typeof children === 'function' ? children(opts) : children}
                           </suspense.Suspense>
                         </errorBoundary.ErrorBoundary>

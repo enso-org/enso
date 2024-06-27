@@ -68,7 +68,7 @@ const toggleDocumentationEditorShortcut = documentationEditorBindings.bindings.t
 .ExtendedMenu {
   background: var(--color-frame-bg);
   border-radius: var(--radius-full);
-  margin: 0 125px 0 auto;
+  margin: 0 32px 0 auto;
 }
 
 .moreIcon {
