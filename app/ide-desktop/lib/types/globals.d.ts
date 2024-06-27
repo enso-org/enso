@@ -83,6 +83,15 @@ interface MenuApi {
     readonly setShowAboutModalHandler: (callback: () => void) => void
 }
 
+// ==================
+// === System API ===
+// ==================
+
+/** `window.systemApi` exposes functionality related to the operating system. */
+interface SystemApi {
+    readonly showItemInFolder: (fullPath: string) => void
+}
+
 // ====================
 // === Version Info ===
 // ====================
@@ -109,6 +118,7 @@ declare global {
         readonly authenticationApi: AuthenticationApi
         readonly navigationApi: NavigationApi
         readonly menuApi: MenuApi
+        readonly systemApi?: SystemApi
         readonly versionInfo?: VersionInfo
         toggleDevtools: () => void
     }

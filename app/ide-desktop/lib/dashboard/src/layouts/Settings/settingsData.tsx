@@ -1,11 +1,11 @@
 /** @file Metadata for rendering each settings section. */
 import * as React from 'react'
 
-import type * as reactQuery from '@tanstack/react-query'
 import isEmail from 'validator/lib/isEmail'
 
 import KeyboardShortcutsIcon from 'enso-assets/keyboard_shortcuts.svg'
 import LogIcon from 'enso-assets/log.svg'
+import NotCloudIcon from 'enso-assets/not_cloud.svg'
 import PeopleSettingsIcon from 'enso-assets/people_settings.svg'
 import PeopleIcon from 'enso-assets/people.svg'
 import SettingsIcon from 'enso-assets/settings.svg'
@@ -34,6 +34,7 @@ import * as menuEntry from '#/components/MenuEntry'
 
 import * as backend from '#/services/Backend'
 import type Backend from '#/services/Backend'
+import type LocalBackend from '#/services/LocalBackend'
 
 import * as object from '#/utilities/object'
 
@@ -213,6 +214,26 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
       },
     ],
   },
+  [SettingsTabType.local]: {
+    nameId: 'localSettingsTab',
+    settingsTab: SettingsTabType.organization,
+    icon: NotCloudIcon,
+    visible: context => context.localBackend != null,
+    sections: [
+      {
+        nameId: 'localSettingsSection',
+        entries: [
+          {
+            type: SettingsEntryType.input,
+            nameId: 'localRootPathSettingsInput',
+            getValue: context => context.localBackend?.rootPath ?? '',
+            setValue: (context, value) => context.updateLocalRootPath(value),
+            getEditable: () => true,
+          },
+        ],
+      },
+    ],
+  },
   [SettingsTabType.members]: {
     nameId: 'membersSettingsTab',
     settingsTab: SettingsTabType.members,
@@ -352,20 +373,14 @@ export const ALL_SETTINGS_TABS = SETTINGS_DATA.flatMap(section =>
 export interface SettingsContext {
   readonly accessToken: string
   readonly user: backend.User
-  readonly updateUser: reactQuery.UseMutateAsyncFunction<
-    void,
-    Error,
-    Parameters<Backend['updateUser']>,
-    unknown
-  >
   readonly backend: Backend | null
+  readonly localBackend: LocalBackend | null
   readonly organization: backend.OrganizationInfo | null
-  readonly updateOrganization: reactQuery.UseMutateAsyncFunction<
-    backend.OrganizationInfo | null | undefined,
-    Error,
-    Parameters<Backend['updateOrganization']>,
-    unknown
-  >
+  readonly updateUser: (variables: Parameters<Backend['updateUser']>) => Promise<void>
+  readonly updateOrganization: (
+    variables: Parameters<Backend['updateOrganization']>
+  ) => Promise<backend.OrganizationInfo | null | undefined>
+  readonly updateLocalRootPath: (rootPath: string) => Promise<void>
   readonly toastAndLog: toastAndLogHooks.ToastAndLogCallback
   readonly getText: textProvider.GetText
 }
@@ -429,6 +444,7 @@ export interface SettingsTabData {
   readonly nameId: text.TextId & `${string}SettingsTab`
   readonly settingsTab: SettingsTabType
   readonly icon: string
+  readonly visible?: (context: SettingsContext) => boolean
   readonly organizationOnly?: true
   /** The feature behind which this settings tab is locked. If the user cannot access the feature,
    * a paywall is shown instead of the settings tab. */

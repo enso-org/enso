@@ -8,6 +8,7 @@
 enum SettingsTabType {
   account = 'account',
   organization = 'organization',
+  local = 'local',
   // features = 'features',
   // notifications = 'notifications',
   // billingAndPlans = 'billing-and-plans',

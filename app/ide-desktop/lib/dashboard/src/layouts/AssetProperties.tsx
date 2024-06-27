@@ -184,7 +184,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
                 }}
                 className="-m-multiline-input-p w-full resize-none rounded-input bg-frame p-multiline-input"
               />
-              <div className="flex gap-buttons">
+              <div className="flex gap-2">
                 <ariaComponents.Button
                   size="custom"
                   variant="custom"
@@ -259,7 +259,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
                 setValue={setEditedDatalinkValue}
               />
               {canEditThisAsset && (
-                <div className="flex gap-buttons">
+                <div className="flex gap-2">
                   <ariaComponents.Button
                     size="custom"
                     variant="custom"

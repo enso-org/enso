@@ -31,7 +31,7 @@ export default function DeleteUserAccountSettingsSection() {
           <aria.Heading level={2} className="h-[2.375rem] py-0.5 text-xl font-bold text-danger">
             {getText('dangerZone')}
           </aria.Heading>
-          <div className="flex gap-buttons">
+          <div className="flex gap-2">
             <ariaComponents.Button
               size="medium"
               variant="delete"

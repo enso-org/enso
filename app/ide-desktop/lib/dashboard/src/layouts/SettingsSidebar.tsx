@@ -19,6 +19,7 @@ import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 /** Props for a {@link SettingsSidebar} */
 export interface SettingsSidebarProps {
+  readonly context: settingsData.SettingsContext
   readonly tabsToShow: readonly SettingsTabType[]
   readonly isMenu?: true
   readonly tab: SettingsTabType
@@ -28,7 +29,7 @@ export interface SettingsSidebarProps {
 
 /** A panel to switch between settings tabs. */
 export default function SettingsSidebar(props: SettingsSidebarProps) {
-  const { tabsToShow, isMenu = false, tab, setTab } = props
+  const { context, tabsToShow, isMenu = false, tab, setTab } = props
   const { onClickCapture } = props
   const { getText } = textProvider.useText()
 
@@ -48,8 +49,10 @@ export default function SettingsSidebar(props: SettingsSidebarProps) {
         >
           {settingsData.SETTINGS_DATA.map(section => {
             const name = getText(section.nameId)
-            const visibleTabData = section.tabs.filter(tabData =>
-              tabsToShow.includes(tabData.settingsTab)
+            const visibleTabData = section.tabs.filter(
+              tabData =>
+                tabsToShow.includes(tabData.settingsTab) &&
+                (!tabData.visible || tabData.visible(context))
             )
             return visibleTabData.length === 0 ? null : (
               <div key={name} className="flex flex-col items-start">

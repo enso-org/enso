@@ -1,6 +1,8 @@
 /** @file Settings screen. */
 import * as React from 'react'
 
+import * as reactQuery from '@tanstack/react-query'
+
 import BurgerMenuIcon from 'enso-assets/burger_menu.svg'
 
 import * as backendHooks from '#/hooks/backendHooks'
@@ -23,6 +25,7 @@ import * as portal from '#/components/Portal'
 import Button from '#/components/styled/Button'
 
 import type Backend from '#/services/Backend'
+import * as projectManager from '#/services/ProjectManager'
 
 import * as array from '#/utilities/array'
 import * as string from '#/utilities/string'
@@ -39,6 +42,7 @@ export interface SettingsProps {
 /** Settings screen. */
 export default function Settings() {
   const backend = backendProvider.useRemoteBackend()
+  const localBackend = backendProvider.useLocalBackend()
   const [tab, setTab] = searchParamsState.useSearchParamsState(
     'SettingsTab',
     SettingsTabType.account,
@@ -61,18 +65,43 @@ export default function Settings() {
   const updateUser = updateUserMutation.mutateAsync
   const updateOrganization = updateOrganizationMutation.mutateAsync
 
+  const updateLocalRootPathMutation = reactQuery.useMutation({
+    mutationKey: [localBackend?.type, 'updateRootPath'],
+    mutationFn: (value: string) => {
+      if (localBackend) {
+        localBackend.rootPath = projectManager.Path(value)
+      }
+      return Promise.resolve()
+    },
+    meta: { invalidates: [[localBackend?.type, 'listDirectory']], awaitInvalidates: true },
+  })
+  const updateLocalRootPath = updateLocalRootPathMutation.mutateAsync
+
   const context = React.useMemo<settingsData.SettingsContext>(
     () => ({
       accessToken,
       user,
-      updateUser,
       backend,
+      localBackend,
       organization,
+      updateUser,
       updateOrganization,
+      updateLocalRootPath,
       toastAndLog,
       getText,
     }),
-    [accessToken, backend, getText, organization, toastAndLog, updateOrganization, updateUser, user]
+    [
+      accessToken,
+      backend,
+      getText,
+      localBackend,
+      organization,
+      toastAndLog,
+      updateLocalRootPath,
+      updateOrganization,
+      updateUser,
+      user,
+    ]
   )
 
   const isMatch = React.useMemo(() => {
@@ -154,6 +183,7 @@ export default function Settings() {
           <aria.Popover UNSTABLE_portalContainer={root}>
             <SettingsSidebar
               isMenu
+              context={context}
               tabsToShow={tabsToShow}
               tab={effectiveTab}
               setTab={setTab}
@@ -185,7 +215,12 @@ export default function Settings() {
       />
       <div className="flex flex-1 gap-6 overflow-hidden pr-0.5">
         <aside className="hidden h-full shrink-0 basis-[206px] flex-col overflow-y-auto overflow-x-hidden pb-12 sm:flex">
-          <SettingsSidebar tabsToShow={tabsToShow} tab={effectiveTab} setTab={setTab} />
+          <SettingsSidebar
+            context={context}
+            tabsToShow={tabsToShow}
+            tab={effectiveTab}
+            setTab={setTab}
+          />
         </aside>
         <SettingsTab
           context={context}
