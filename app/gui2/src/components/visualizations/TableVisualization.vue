@@ -16,6 +16,7 @@ import type {
   CellClickedEvent,
   ColumnResizedEvent,
   ICellRendererParams,
+  ITooltipParams,
 } from 'ag-grid-community'
 import type { ColDef, GridOptions, HeaderValueGetterParams } from 'ag-grid-enterprise'
 import {
@@ -347,7 +348,12 @@ function createNode(params: CellClickedEvent) {
 }
 
 function toLinkField(fieldName: string): ColDef {
-  return { field: fieldName, onCellClicked: (params) => createNode(params) }
+  return {
+    field: fieldName,
+    onCellDoubleClicked: (params) => createNode(params),
+    tooltipValueGetter: (p: ITooltipParams) =>
+      'Double click to view this value/row in seperate node',
+  }
 }
 
 /** Return a human-readable representation of an object. */
