@@ -9,7 +9,7 @@ type Phase_Conf
        Arguments:
        - iterations: The number of iterations of the phase.
        - seconds: The minimal number of seconds per one iteration.
-    private Impl (iterations:Integer) (seconds:Integer)
+    Impl (iterations:Integer) (seconds:Integer)
 
     ## PRIVATE
     to_text self =
@@ -27,7 +27,7 @@ type Phase_Conf
    https://javadoc.io/doc/org.openjdk.jmh/jmh-core/latest/org/openjdk/jmh/annotations/package-summary.html
 type Bench_Options
     ## PRIVATE
-    private Impl (warmup:Phase_Conf) (measure:Phase_Conf)
+    Impl (warmup:Phase_Conf) (measure:Phase_Conf)
 
     ## Sets the warmup phase.
     set_warmup : Phase_Conf -> Bench_Options
@@ -49,7 +49,7 @@ type Bench_Options
 ## Builder to create benchmark run.
 type Bench_Builder
     ## PRIVATE
-    private Impl builder
+    Impl builder
 
     ## Add a group to the builder.
     group : Text -> Bench_Options -> (Group_Builder -> Any) -> Any
@@ -62,7 +62,7 @@ type Bench_Builder
 ## Builder to create a group of benchmarks.
 type Group_Builder
     ## PRIVATE
-    private Impl builder
+    Impl builder
 
     ## Adds a benchmark specification to the group.
 
@@ -76,13 +76,13 @@ type Group_Builder
 
 type Bench
     ## A set of groups of benchmarks.
-    private All (groups : Vector Bench)
+    All (groups : Vector Bench)
 
     ## A single group of benchmarks sharing configuration.
-    private Group (name:Text) (configuration:Bench_Options) (specs : Vector Bench)
+    Group (name:Text) (configuration:Bench_Options) (specs : Vector Bench)
 
     ## A specific single benchmark.
-    private Spec (name:Text) (code : Any -> Any)
+    Spec (name:Text) (code : Any -> Any)
 
     ## Construct a Bench object.
     build : (Bench_Builder -> Any) -> Bench
