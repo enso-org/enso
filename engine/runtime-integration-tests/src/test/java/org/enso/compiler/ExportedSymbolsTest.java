@@ -4,7 +4,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.notNullValue;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -79,8 +78,8 @@ public class ExportedSymbolsTest {
 
   @Test
   public void exportSymbolFromDifferentModule() throws IOException {
-    var aMod =
-        new SourceModule(QualifiedName.fromString("A_Module"), """
+    var mainMod =
+        new SourceModule(QualifiedName.fromString("Main"), """
         from project.B_Module export B_Type
         type A_Type
         """);
@@ -88,12 +87,12 @@ public class ExportedSymbolsTest {
         new SourceModule(QualifiedName.fromString("B_Module"), """
         type B_Type
         """);
-    ProjectUtils.createProject("Proj", Set.of(aMod, bMod), projDir);
+    ProjectUtils.createProject("Proj", Set.of(mainMod, bMod), projDir);
     var ctx = createCtx(projDir);
     compile(ctx);
-    var aModExportedSymbols = getExportedSymbolsFromModule(ctx, "local.Proj.A_Module");
-    assertThat(aModExportedSymbols.size(), is(2));
-    assertThat(aModExportedSymbols.keySet(), containsInAnyOrder("A_Type", "B_Type"));
+    var mainExportedSymbols = getExportedSymbolsFromModule(ctx, "local.Proj.Main");
+    assertThat(mainExportedSymbols.size(), is(2));
+    assertThat(mainExportedSymbols.keySet(), containsInAnyOrder("A_Type", "B_Type"));
   }
 
   private static Context createCtx(Path projDir) {
