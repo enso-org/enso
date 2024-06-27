@@ -285,29 +285,16 @@ function toField(name: string, valueType?: ValueType | null | undefined): ColDef
   }
 }
 
-const getPattern = (index: number) =>
-  Pattern.new((ast) =>
+function getAstPattern(selector: string | number, action: string) {
+  return Pattern.new((ast) =>
     Ast.App.positional(
-      Ast.PropertyAccess.new(ast.module, ast, Ast.identifier('at')!),
-      Ast.tryNumberToEnso(index, ast.module)!,
+      Ast.PropertyAccess.new(ast.module, ast, Ast.identifier(action)!),
+      typeof selector === 'number' ?
+        Ast.tryNumberToEnso(selector, ast.module)!
+      : Ast.TextLiteral.new(selector, ast.module),
     ),
   )
-
-const getExcelWorkbookPattern = (sheetName: string) =>
-  Pattern.new((ast) =>
-    Ast.App.positional(
-      Ast.PropertyAccess.new(ast.module, ast, Ast.identifier('read')!),
-      Ast.TextLiteral.new(sheetName, ast.module)!,
-    ),
-  )
-
-const getSqliteConnectionsWorkbookPattern = (sheetName: string) =>
-  Pattern.new((ast) =>
-    Ast.App.positional(
-      Ast.PropertyAccess.new(ast.module, ast, Ast.identifier('query')!),
-      Ast.TextLiteral.new(sheetName, ast.module)!,
-    ),
-  )
+}
 
 const getTablePattern = (index: number) =>
   Pattern.new((ast) =>
@@ -326,27 +313,32 @@ const getTablePattern = (index: number) =>
   )
 
 function createNode(params: CellClickedEvent) {
-  if (config.nodeType === VECTOR_NODE_TYPE || config.nodeType === COLUMN_NODE_TYPE) {
-    config.createNodes({
-      content: getPattern(params.data[INDEX_FIELD_NAME]),
-      commit: true,
-    })
-  }
   if (config.nodeType === TABLE_NODE_TYPE) {
     config.createNodes({
       content: getTablePattern(params.data[INDEX_FIELD_NAME]),
       commit: true,
     })
   }
-  if (config.nodeType === EXCEL_WORKBOOK_NODE_TYPE) {
-    config.createNodes({
-      content: getExcelWorkbookPattern(params.data['Value']),
-      commit: true,
-    })
+  let selector
+  let identifierAction
+  switch (config.nodeType) {
+    case COLUMN_NODE_TYPE:
+    case VECTOR_NODE_TYPE:
+      selector = params.data[INDEX_FIELD_NAME]
+      identifierAction = 'at'
+      break
+    case EXCEL_WORKBOOK_NODE_TYPE:
+      selector = params.data['Value']
+      identifierAction = 'read'
+      break
+    case SQLITE_CONNECTIONS_NODE_TYPE:
+      selector = params.data['Value']
+      identifierAction = 'query'
+      break
   }
-  if (config.nodeType === SQLITE_CONNECTIONS_NODE_TYPE) {
+  if (selector && identifierAction) {
     config.createNodes({
-      content: getSqliteConnectionsWorkbookPattern(params.data['Value']),
+      content: getAstPattern(selector, identifierAction),
       commit: true,
     })
   }
