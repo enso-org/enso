@@ -62,7 +62,7 @@ type Bench_Builder
 ## Builder to create a group of benchmarks.
 type Group_Builder
     ## PRIVATE
-    Impl builder
+    Impl name builder
 
     ## Adds a benchmark specification to the group.
 
