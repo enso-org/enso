@@ -25,17 +25,12 @@ public class ModuleResolver {
 
     var compilerModuleOpt = packageRepository.getLoadedModule(name.toString());
     if (compilerModuleOpt.isEmpty()) {
-      packageRepository
-          .getLoadedModules()
-          .foreach(
-              m -> {
-                System.out.println(m.getName());
-                return null;
-              });
       return null;
     }
 
-    return compilerModuleOpt.get().getIr();
+    var moduleIr = compilerModuleOpt.get().getIr();
+    assert moduleIr != null : "Once a module is found, its IR should be present.";
+    return moduleIr;
   }
 
   public Module findContainingModule(TypeScopeReference typeScopeReference) {

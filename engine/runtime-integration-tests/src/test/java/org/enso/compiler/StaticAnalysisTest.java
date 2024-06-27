@@ -46,9 +46,10 @@ public abstract class StaticAnalysisTest {
     }
     QualifiedName qualifiedName =
         QualifiedName.fromString(name.substring(0, name.length() - suffix.length()));
+    // This creates the module and also registers it in the scope, so that import resolution will
+    // see it.
     var module =
-        new org.enso.interpreter.runtime.Module(
-            qualifiedName, null, src.getCharacters().toString());
+        langCtx.getTopScope().createModule(qualifiedName, null, src.getCharacters().toString());
     langCtx.getCompiler().run(module.asCompilerModule());
     return module.getIr();
   }
