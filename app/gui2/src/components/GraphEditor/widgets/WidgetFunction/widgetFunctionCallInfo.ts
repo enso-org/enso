@@ -61,10 +61,10 @@ export function useWidgetFunctionCallInfo(
   })
 
   const selfArgumentExternalId = computed<Opt<ExternalId>>(() => {
-    const analyzed = interpreted.value
+    const analyzed = interpretCall(toValue(input).value, true)
     if (analyzed.kind === 'infix') {
       return analyzed.lhs?.externalId
-    } else if (methodCallInfo.value?.suggestion.selfType != null) {
+    } else {
       const knownArguments = methodCallInfo.value?.suggestion?.arguments
       const hasSelfArgument = knownArguments?.[0]?.name === 'self'
       const selfArgument =
@@ -73,8 +73,6 @@ export function useWidgetFunctionCallInfo(
         : getAccessOprSubject(analyzed.func) ?? analyzed.args[0]?.argument
 
       return selfArgument?.externalId
-    } else {
-      return null
     }
   })
 
