@@ -158,7 +158,12 @@ export default function AssetRow(props: AssetRowProps) {
   React.useEffect(() => {
     setProjectStartupInfo(info =>
       info?.projectAsset.id === asset.id && asset.type === backendModule.AssetType.project
-        ? object.merge(info, { projectAsset: asset })
+        ? object.merge(info, {
+            projectAsset: asset,
+            project: info.project.then(project =>
+              asset.title === project.name ? project : object.merge(project, { name: asset.title })
+            ),
+          })
         : info
     )
   }, [asset, setProjectStartupInfo])
