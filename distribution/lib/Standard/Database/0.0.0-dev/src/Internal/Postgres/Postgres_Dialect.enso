@@ -198,7 +198,15 @@ type Postgres_Dialect
             False -> column
 
     ## PRIVATE
-       Add an extra cast to adjust the output type of certain operations with certain arguments.
+       Add an extra cast to adjust the output type of certain operations with
+       certain arguments.
+
+       It is used when the normal type inference provided by the database engine
+       needs to be adjusted.
+
+       In most cases this method will just return the expression unchanged, it
+       is used only to override the type in cases where the default one that the
+       database uses is not what we want.
     cast_op_type self (op_kind:Text) (args:(Vector Internal_Column)) (expression:SQL_Expression) =
         is_int8 ic = ic.sql_type_reference.get.typeid == Types.BIGINT
         is_int ic =

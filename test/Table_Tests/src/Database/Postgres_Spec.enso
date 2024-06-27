@@ -472,6 +472,16 @@ postgres_specific_spec suite_builder create_connection_fn db_name setup =
             t1.at "X" . value_type . should_equal (Value_Type.Decimal Nothing Nothing)
             t1.at "X" . to_vector . should_equal [x, x+1]
 
+        group_builder.specify "type inference adjustments in cast_op_type` should not cause overflows" <|
+            max_long = 9223372036854775807
+            more_than_max_long = max_long + 50
+            t = table_builder [["x", [max_long, max_long]], ["y", [more_than_max_long, more_than_max_long]]]
+            tsum = t.aggregate [] [Aggregate_Column.Sum "x" "xs", Aggregate_Column.Sum "y" "ys"]
+            tsum.at "xs" . value_type . should_equal (Value_Type.Decimal 1000 0)
+            tsum.at "ys" . value_type . should_equal (Value_Type.Decimal Nothing Nothing)
+            tsum.at "xs" . to_vector . should_equal [max_long + max_long]
+            tsum.at "ys" . to_vector . should_equal [more_than_max_long + more_than_max_long]
+
         group_builder.specify "should round-trip timestamptz column, preserving instant but converting to UTC" <|
             table_name = Name_Generator.random_name "TimestampTZ"
             table = data.connection.create_table table_name [Column_Description.Value "A" (Value_Type.Date_Time with_timezone=True)] primary_key=[]
