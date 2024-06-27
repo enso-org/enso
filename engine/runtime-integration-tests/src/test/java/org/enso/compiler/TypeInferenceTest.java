@@ -1020,7 +1020,7 @@ public class TypeInferenceTest extends StaticAnalysisTest {
     var myType = "globalMethodTypes.My_Type";
 
     assertAtomType(myType, findAssignment(foo, "x1"));
-    assertEquals("My_Type -> My_Type", getInferredType(findAssignment(foo, "x2")).toString());
+    assertEquals("(My_Type -> My_Type)", getInferredType(findAssignment(foo, "x2")).toString());
     assertAtomType(myType, findAssignment(foo, "x3"));
   }
 

@@ -314,16 +314,11 @@ abstract class TypePropagation {
       TypeRepresentation.UnresolvedSymbol function,
       Expression argument,
       LocalBindingsTyping localBindingsTyping) {
-    System.out.println("processUnresolvedSymbolApplication: " + function + " " + argument);
-
-    // TODO this is a hack. Where do these <internal-i> come from and why?
-    if (argument instanceof Name.Literal nameLiteral && nameLiteral.name().startsWith("<internal-")) {
-      // TODO where do I get a current module scope for this??
-    }
+    System.out.println("processUnresolvedSymbolApplication: " + function + " " + argument.showCode());
 
     var argumentType = tryInferringType(argument, localBindingsTyping);
     if (argumentType == null) {
-       argumentType = TypeRepresentation.ANY;
+      argumentType = TypeRepresentation.ANY;
     }
 
     switch (argumentType) {
@@ -336,14 +331,18 @@ abstract class TypePropagation {
           return typeResolver.buildAtomConstructorType(typeObject, ctorCandidate.get());
         } else {
           System.out.println("TODO: static calling " + function.name() + " on " + typeObject);
+          // TODO use adaptMemberMethodForStaticCall for also calling member functions
           var typeScope = TypeScopeReference.atomEigenType(typeObject.name());
           return methodTypeResolver.resolveMethod(typeScope, function.name());
         }
       }
 
+      case TypeRepresentation.ModuleReference moduleReference -> {
+        var typeScope = TypeScopeReference.moduleAssociatedType(moduleReference.name());
+        return methodTypeResolver.resolveMethod(typeScope, function.name());
+      }
+
       case TypeRepresentation.AtomType atomInstanceType -> {
-        System.out.println(
-            "TODO: calling " + function.name() + " on an instance of " + atomInstanceType);
         var typeScope = TypeScopeReference.atomType(atomInstanceType.fqn());
         return methodTypeResolver.resolveMethod(typeScope, function.name());
       }
@@ -359,6 +358,15 @@ abstract class TypePropagation {
         return null;
       }
     }
+  }
+
+  /** Adapts a member method of a type for calling it using the static call syntax.
+   * <p>
+   * It adds the self type as an additional first argument.
+   */
+  private TypeRepresentation adaptMemberMethodForStaticCall(TypeRepresentation.TypeObject type, TypeRepresentation memberMethodSignature) {
+    // TODO possibly move this into MethodTypeResolver
+    return new TypeRepresentation.ArrowType(type.instanceType(), memberMethodSignature);
   }
 
   private class CompilerNameResolution
@@ -393,13 +401,14 @@ abstract class TypePropagation {
               typeResolver.resolvedTypeAsTypeObject(ctor.tpe()), constructorInterface);
         }
 
-        case BindingsMap.ResolvedType tpe -> typeResolver.resolvedTypeAsTypeObject(tpe);
+        case BindingsMap.ResolvedType tpe ->
+            typeResolver.resolvedTypeAsTypeObject(tpe);
+
+        case BindingsMap.ResolvedModule mod ->
+          new TypeRepresentation.ModuleReference(mod.qualifiedName());
 
         default -> {
-          logger.trace(
-              "processGlobalName: global scope reference to {} - currently global inference is"
-                  + " unsupported",
-              resolvedName);
+          logger.trace("resolveGlobalName: reference to {} - is currently not being resolved in static analysis", resolvedName);
           yield null;
         }
       };

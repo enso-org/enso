@@ -27,6 +27,7 @@ class MethodTypeResolver {
         return definedWithAtom;
       }
     } else {
+      // TODO can we do something so that test modules are actually found?
       logger.error("Could not find declaration module of type: {}", type);
     }
 
