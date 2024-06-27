@@ -1,5 +1,4 @@
 from Standard.Base import all
-import Standard.Base.Runtime.Lazy_Ref.Lazy_Ref
 import Standard.Base.Runtime.Ref.Ref
 
 from Standard.Table import Table, Value_Type, Bits
@@ -55,10 +54,13 @@ add_redshift_specific_specs suite_builder create_connection_fn =
             data.t.at "bools" . value_type . is_boolean . should_be_true
             data.t.at "reals" . value_type . is_floating_point . should_be_true
 
+type Lazy_Ref
+   Value ~get
+
 add_database_specs suite_builder create_connection_fn =
     prefix = "[Redshift] "
     name_counter = Ref.new 0
-    default_connection = Lazy_Ref.new (create_connection_fn Nothing)
+    default_connection = Lazy_Ref.Value (create_connection_fn Nothing)
     table_builder columns connection=Nothing =
         ix = name_counter.get
         name_counter . put ix+1

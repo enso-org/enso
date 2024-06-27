@@ -1,9 +1,0 @@
-## PRIVATE
-   A simple type encapsulating the pattern of delaying initialization of some
-   value.
-type Lazy_Ref
-    ## PRIVATE
-    Value ~get
-
-    ## PRIVATE
-    new ~initializer = Lazy_Ref.Value initializer

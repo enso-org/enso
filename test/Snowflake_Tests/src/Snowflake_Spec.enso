@@ -1,7 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
-import Standard.Base.Runtime.Lazy_Ref.Lazy_Ref
 import Standard.Base.Runtime.Ref.Ref
 
 from Standard.Table import Table, Value_Type, Aggregate_Column, Bits, expr
@@ -545,13 +544,16 @@ snowflake_specific_spec suite_builder default_connection db_name setup =
             do_round 231 . should_be_a Float
             do_round 231 -1 . should_be_a Float
 
+type Lazy_Ref
+   Value ~get
+
 add_snowflake_specs suite_builder create_connection_fn db_name =
     prefix = "[Snowflake] "
     name_counter = Ref.new 0
 
     ## We prefer to keep a single connection for most tests, to avoid the overhead of initializing a new connection multiple times.
        It is initialized lazily, so that it is actually established only if actually used. Merely listing the tests to run should not establish the connection.
-    default_connection = Lazy_Ref.new (create_connection_fn Nothing)
+    default_connection = Lazy_Ref.Value (create_connection_fn Nothing)
     table_builder columns connection=Nothing =
         ix = name_counter.get
         name_counter . put ix+1
