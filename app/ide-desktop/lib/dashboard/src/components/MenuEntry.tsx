@@ -36,7 +36,12 @@ const MENU_ENTRY_VARIANTS = tailwindVariants.tv({
   },
 })
 
-const ACTION_TO_TEXT_ID: Readonly<Record<inputBindings.DashboardBindingKey, text.TextId>> = {
+export const ACTION_TO_TEXT_ID: Readonly<
+  Record<
+    inputBindings.DashboardBindingKey,
+    Extract<text.TextId, `${inputBindings.DashboardBindingKey}Shortcut`>
+  >
+> = {
   settings: 'settingsShortcut',
   open: 'openShortcut',
   run: 'runShortcut',
