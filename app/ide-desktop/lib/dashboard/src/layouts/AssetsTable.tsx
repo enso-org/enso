@@ -352,10 +352,12 @@ export interface AssetsTableProps {
   readonly hidden: boolean
   readonly query: AssetQuery
   readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
+  readonly setSuggestions: React.Dispatch<
+    React.SetStateAction<readonly assetSearchBar.Suggestion[]>
+  >
   readonly setProjectStartupInfo: (projectStartupInfo: backendModule.ProjectStartupInfo) => void
   readonly setCanDownload: (canDownload: boolean) => void
   readonly category: Category
-  readonly setSuggestions: (suggestions: assetSearchBar.Suggestion[]) => void
   readonly initialProjectName: string | null
   readonly assetListEvents: assetListEvent.AssetListEvent[]
   readonly dispatchAssetListEvent: (event: assetListEvent.AssetListEvent) => void

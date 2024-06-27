@@ -30,6 +30,7 @@ export interface InfoMenuProps {
 /** A menu containing info about the app. */
 export default function InfoMenu(props: InfoMenuProps) {
   const { hidden = false } = props
+  const session = authProvider.useUserSession()
   const { signOut } = authProvider.useAuth()
   const { setModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
@@ -81,7 +82,7 @@ export default function InfoMenu(props: InfoMenuProps) {
                     setModal(<AboutModal />)
                   }}
                 />
-                <MenuEntry action="signOut" doAction={signOut} />
+                {session && <MenuEntry action="signOut" doAction={signOut} />}
               </div>
             )}
           </FocusArea>

@@ -87,7 +87,7 @@ export default function Drive(props: DriveProps) {
   const backend = backendProvider.useBackend(category)
   const { getText } = textProvider.useText()
   const [query, setQuery] = React.useState(() => AssetQuery.fromString(''))
-  const [suggestions, setSuggestions] = React.useState<assetSearchBar.Suggestion[]>([])
+  const [suggestions, setSuggestions] = React.useState<readonly assetSearchBar.Suggestion[]>([])
   const [canDownload, setCanDownload] = React.useState(false)
   const [didLoadingProjectManagerFail, setDidLoadingProjectManagerFail] = React.useState(false)
   const [assetPanelProps, setAssetPanelProps] =
