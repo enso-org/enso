@@ -374,7 +374,11 @@ export default function ProjectIcon(props: ProjectIconProps) {
               tooltipPlacement="right"
               className="h-6 border-0"
               onPress={() => {
-                doOpenEditor()
+                dispatchAssetEvent({
+                  type: AssetEventType.openProject,
+                  id: item.id,
+                  runInBackground: false,
+                })
               }}
             />
           )}
