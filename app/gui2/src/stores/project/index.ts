@@ -35,7 +35,6 @@ import {
   readonly,
   ref,
   shallowRef,
-  toValue,
   watch,
   watchEffect,
   type WatchSource,
@@ -223,10 +222,6 @@ export const { provideFn: provideProjectStore, injectFn: useProjectStore } = cre
 
     function useVisualizationData(configuration: WatchSource<Opt<NodeVisualizationConfiguration>>) {
       const id = random.uuidv4() as Uuid
-
-      watchEffect(() => {
-        console.log('configuration', toValue(configuration))
-      })
 
       watch(
         configuration,
