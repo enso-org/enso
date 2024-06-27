@@ -42,6 +42,7 @@ export const graphBindings = defineKeybinds('graph-editor', {
   enterNode: ['Mod+E'],
   exitNode: ['Mod+Shift+E'],
   changeColorSelectedNodes: ['Mod+Shift+C'],
+  openDocumentation: ['F1'],
 })
 
 export const visualizationBindings = defineKeybinds('visualization', {

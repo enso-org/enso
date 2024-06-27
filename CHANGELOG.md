@@ -23,6 +23,7 @@
 - [Added click through on table and vector visualisation][10340] clicking on
   index column will select row or value in seperate node
 - [Added support for links in documentation panels][10353].
+- [Added support for opening documentation in an external browser][10356].
 
 [10064]: https://github.com/enso-org/enso/pull/10064
 [10179]: https://github.com/enso-org/enso/pull/10179
@@ -36,6 +37,7 @@
 [10337]: https://github.com/enso-org/enso/pull/10337
 [10340]: https://github.com/enso-org/enso/pull/10340
 [10353]: https://github.com/enso-org/enso/pull/10353
+[10396]: https://github.com/enso-org/enso/pull/10396
 
 #### Enso Standard Library
 

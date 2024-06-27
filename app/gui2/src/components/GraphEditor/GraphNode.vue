@@ -26,6 +26,7 @@ import { injectGraphSelection } from '@/providers/graphSelection'
 import { useGraphStore, type Node } from '@/stores/graph'
 import { asNodeId } from '@/stores/graph/graphDatabase'
 import { useProjectStore } from '@/stores/project'
+import { suggestionDocumentationUrl } from '@/stores/suggestionDatabase/entry'
 import { Ast } from '@/util/ast'
 import type { AstId } from '@/util/ast/abstract'
 import { prefixes } from '@/util/ast/node'
@@ -319,6 +320,9 @@ const icon = computed(() => {
     outputPortLabel.value,
   )
 })
+const documentationUrl = computed(
+  () => suggestionEntry.value && suggestionDocumentationUrl(suggestionEntry.value),
+)
 
 const nodeEditHandler = nodeEditBindings.handler({
   cancel(e) {
@@ -470,6 +474,7 @@ watchEffect(() => {
       :isFullMenuVisible="menuVisible && menuFull"
       :nodeColor="getNodeColor(nodeId)"
       :matchableNodeColors="matchableNodeColors"
+      :documentationUrl="documentationUrl"
       @update:isVisualizationEnabled="emit('update:visualizationEnabled', $event)"
       @startEditing="startEditingNode"
       @startEditingComment="editingComment = true"
