@@ -16,7 +16,6 @@ import type {
   CellClickedEvent,
   ColumnResizedEvent,
   ICellRendererParams,
-  ITooltipParams,
 } from 'ag-grid-community'
 import type { ColDef, GridOptions, HeaderValueGetterParams } from 'ag-grid-enterprise'
 import {
@@ -173,6 +172,67 @@ const selectableRowLimits = computed(() => {
 })
 const wasAutomaticallyAutosized = ref(false)
 
+const newNodeSelector = computed(() => {
+  let selector
+  switch (config.nodeType) {
+    case COLUMN_NODE_TYPE:
+    case VECTOR_NODE_TYPE:
+      selector = INDEX_FIELD_NAME
+      break
+    case ROW_NODE_TYPE:
+      selector = 'column'
+      break
+    case EXCEL_WORKBOOK_NODE_TYPE:
+      selector = 'Value'
+      break
+    case SQLITE_CONNECTIONS_NODE_TYPE:
+      selector = 'Value'
+      break
+  }
+  return selector
+})
+
+const newNodeAction = computed(() => {
+  let identifierAction
+  switch (config.nodeType) {
+    case COLUMN_NODE_TYPE:
+    case VECTOR_NODE_TYPE:
+      identifierAction = 'at'
+      break
+    case ROW_NODE_TYPE:
+      identifierAction = 'at'
+      break
+    case EXCEL_WORKBOOK_NODE_TYPE:
+      identifierAction = 'read'
+      break
+    case SQLITE_CONNECTIONS_NODE_TYPE:
+      identifierAction = 'query'
+      break
+  }
+  return identifierAction
+})
+
+const onClickTooltipValue = computed(() => {
+  let val
+  switch (config.nodeType) {
+    case COLUMN_NODE_TYPE:
+    case VECTOR_NODE_TYPE:
+    case ROW_NODE_TYPE:
+      val = 'value'
+      break
+    case EXCEL_WORKBOOK_NODE_TYPE:
+      val = 'sheet'
+      break
+    case SQLITE_CONNECTIONS_NODE_TYPE:
+      val = 'table'
+      break
+    case TABLE_NODE_TYPE:
+    case DB_TABLE_NODE_TYPE:
+      val = 'row'
+  }
+  return val
+})
+
 const numberFormatGroupped = new Intl.NumberFormat(undefined, {
   style: 'decimal',
   maximumFractionDigits: 12,
@@ -322,30 +382,9 @@ function createNode(params: CellClickedEvent) {
       commit: true,
     })
   }
-  let selector
-  let identifierAction
-  switch (config.nodeType) {
-    case COLUMN_NODE_TYPE:
-    case VECTOR_NODE_TYPE:
-      selector = params.data[INDEX_FIELD_NAME]
-      identifierAction = 'at'
-      break
-    case ROW_NODE_TYPE:
-      selector = params.data['column']
-      identifierAction = 'at'
-      break
-    case EXCEL_WORKBOOK_NODE_TYPE:
-      selector = params.data['Value']
-      identifierAction = 'read'
-      break
-    case SQLITE_CONNECTIONS_NODE_TYPE:
-      selector = params.data['Value']
-      identifierAction = 'query'
-      break
-  }
-  if (selector !== undefined && identifierAction) {
+  if (newNodeSelector.value !== undefined && newNodeAction.value) {
     config.createNodes({
-      content: getAstPattern(selector, identifierAction),
+      content: getAstPattern(params.data[newNodeSelector.value], newNodeAction.value),
       commit: true,
     })
   }
@@ -355,8 +394,8 @@ function toLinkField(fieldName: string): ColDef {
   return {
     field: fieldName,
     onCellDoubleClicked: (params) => createNode(params),
-    tooltipValueGetter: (p: ITooltipParams) => {
-      return 'Double click to view this value/row in seperate node'
+    tooltipValueGetter: () => {
+      return `Double click to view this ${onClickTooltipValue.value} in seperate node`
     },
   }
 }
