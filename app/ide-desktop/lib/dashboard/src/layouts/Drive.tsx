@@ -68,7 +68,9 @@ export interface DriveProps {
   readonly dispatchAssetListEvent: (directoryEvent: assetListEvent.AssetListEvent) => void
   readonly assetEvents: assetEvent.AssetEvent[]
   readonly dispatchAssetEvent: (directoryEvent: assetEvent.AssetEvent) => void
-  readonly setProjectStartupInfo: (projectStartupInfo: backendModule.ProjectStartupInfo) => void
+  readonly setProjectStartupInfo: React.Dispatch<
+    React.SetStateAction<backendModule.ProjectStartupInfo | null>
+  >
   readonly doOpenEditor: () => void
   readonly doCloseEditor: (projectId: backendModule.ProjectId) => void
 }

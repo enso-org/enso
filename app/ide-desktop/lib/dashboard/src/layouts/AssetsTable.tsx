@@ -313,7 +313,9 @@ export interface AssetsTableState {
   readonly setSortInfo: (sortInfo: sorting.SortInfo<columnUtils.SortableColumn> | null) => void
   readonly query: AssetQuery
   readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
-  readonly setProjectStartupInfo: (projectStartupInfo: backendModule.ProjectStartupInfo) => void
+  readonly setProjectStartupInfo: React.Dispatch<
+    React.SetStateAction<backendModule.ProjectStartupInfo | null>
+  >
   readonly dispatchAssetListEvent: (event: assetListEvent.AssetListEvent) => void
   readonly assetEvents: assetEvent.AssetEvent[]
   readonly dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
@@ -355,7 +357,9 @@ export interface AssetsTableProps {
   readonly setSuggestions: React.Dispatch<
     React.SetStateAction<readonly assetSearchBar.Suggestion[]>
   >
-  readonly setProjectStartupInfo: (projectStartupInfo: backendModule.ProjectStartupInfo) => void
+  readonly setProjectStartupInfo: React.Dispatch<
+    React.SetStateAction<backendModule.ProjectStartupInfo | null>
+  >
   readonly setCanDownload: (canDownload: boolean) => void
   readonly category: Category
   readonly initialProjectName: string | null
