@@ -7,11 +7,9 @@ import * as appConfig from 'enso-common/src/appConfig'
 // === Configuration ===
 // =====================
 
-/* eslint-disable @typescript-eslint/naming-convention */
-
 appConfig.loadTestEnvironmentVariables()
 
-const CONFIG = await (await import('./vite.config')).default
+const CONFIG = (await import('./vite.config')).default
 
 export default vite.mergeConfig(
   CONFIG,
@@ -35,6 +33,7 @@ export default vite.mergeConfig(
       ],
     },
     define: {
+      // eslint-disable-next-line @typescript-eslint/naming-convention
       'process.env.IS_IN_PLAYWRIGHT_TEST': JSON.stringify(`${true}`),
     },
   })
