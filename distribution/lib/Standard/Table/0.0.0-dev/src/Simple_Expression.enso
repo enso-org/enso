@@ -68,6 +68,7 @@ type Simple_Expression
         text = Option "<Text Value>" "''"
         number = Option "<Number Value>" "0"
         boolean = Option "<True/False>" "True"
+        date = Option "<Date Value>" "(Date.new 2024 6 27)"
         expression = Option "<Expression>" "(expr '["+table.column_names.first+"]')"
 
         col_names = Widget_Helpers.make_column_ref_by_name_selector table
@@ -108,7 +109,7 @@ type Simple_Expression
 
         derived = Option "<Simple Expression>" "..Simple_Expr" [["input", with_all_types], ["operation", Single_Choice options]]
 
-        Single_Choice [text, number, boolean, expression, derived] display=display
+        Single_Choice [text, number, boolean, date, expression, derived] display=display
 
 ## Defines the operation on a derived column.
 type Simple_Calculation
