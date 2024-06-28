@@ -1080,6 +1080,7 @@ public class TypeInferenceTest extends StaticAnalysisTest {
                         Value v
 
                         method_one self = 42
+                        static_method = 44
 
                     foo =
                         inst = My_Type.Value 23
@@ -1087,6 +1088,7 @@ public class TypeInferenceTest extends StaticAnalysisTest {
                         x2 = inst.method_two
                         x3 = inst.to_text
                         x4 = inst.is_error
+                        x5 = inst.static_method
                         [x1, x2, x3, x4]
                     """,
                 uri.getAuthority())
@@ -1099,6 +1101,7 @@ public class TypeInferenceTest extends StaticAnalysisTest {
     var x2 = findAssignment(foo, "x2");
     var x3 = findAssignment(foo, "x3");
     var x4 = findAssignment(foo, "x4");
+    var x5 = findAssignment(foo, "x5");
 
     // member method is defined
     assertEquals(List.of(), getDescendantsDiagnostics(x1.expression()));
@@ -1112,6 +1115,13 @@ public class TypeInferenceTest extends StaticAnalysisTest {
     // delegating to Any
     assertEquals(List.of(), getDescendantsDiagnostics(x3.expression()));
     assertEquals(List.of(), getDescendantsDiagnostics(x4.expression()));
+
+    // calling a static method on an instance _does not work_, so we should get a warning
+    // TODO this error may be confusing as no way to distinguish a method missing from static-member mismatch - shall we improve the error message?
+    assertEquals(
+        List.of(new Warning.NoSuchMethod(x5.expression().location(), "My_Type", "static_method")),
+        getImmediateDiagnostics(x5.expression())
+    );
   }
 
   private TypeRepresentation getInferredType(IR ir) {
