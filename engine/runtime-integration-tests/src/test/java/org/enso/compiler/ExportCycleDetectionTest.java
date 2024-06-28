@@ -53,8 +53,8 @@ public class ExportCycleDetectionTest {
         projDir,
         allOf(
             containsString("Export statements form a cycle"),
-            containsString("local.Proj.B_Module exports local.Proj.A_Module"),
-            containsString("which exports local.Proj.B_Module")));
+            containsString("local.Proj.A_Module"),
+            containsString("local.Proj.B_Module")));
   }
 
   @Test
@@ -89,13 +89,15 @@ public class ExportCycleDetectionTest {
                 """);
     var projDir = tempFolder.newFolder().toPath();
     ProjectUtils.createProject("Proj", Set.of(aMod, bMod, cMod, mainMod), projDir);
+    // The reported ordering of cycle error is non-deterministic. We don't care about it.
+    // Just check that all modules are involved in the cycle error report.
     expectProjectCompilationError(
         projDir,
         allOf(
             containsString("Export statements form a cycle"),
-            containsString("local.Proj.B_Module exports local.Proj.C_Module"),
-            containsString("which exports local.Proj.A_Module"),
-            containsString("which exports local.Proj.B_Module")));
+            containsString("local.Proj.A_Module"),
+            containsString("local.Proj.B_Module"),
+            containsString("local.Proj.C_Module")));
   }
 
   private void expectProjectCompilationError(Path projDir, Matcher<String> errMsgMatcher) {
