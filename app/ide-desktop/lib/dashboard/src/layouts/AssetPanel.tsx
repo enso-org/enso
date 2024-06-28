@@ -62,7 +62,7 @@ export interface AssetPanelRequiredProps {
 
 /** Props for an {@link AssetPanel}. */
 export interface AssetPanelProps extends AssetPanelRequiredProps {
-  readonly isVisible?: boolean
+  readonly isVisible: boolean
   readonly isReadonly?: boolean
   readonly category: Category
   readonly dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
