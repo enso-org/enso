@@ -79,7 +79,7 @@ add_specs suite_builder setup =
         if setup.prefix.contains "Snowflake" . not then table_builder table_structure else
             row_count = table_structure.first.second.length
             new_structure = table_structure+[["row_id", (0.up_to row_count) . to_vector]]
-            table_builder new_structure . order_by "row_id" . remove_columns ["row_id"]
+            table_builder new_structure . sort "row_id" . remove_columns ["row_id"]
     table_builder = build_sorted_table
     test_selection = setup.test_selection
 

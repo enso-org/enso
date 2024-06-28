@@ -29,7 +29,7 @@ type Arithmetic_Data
     y self = self.data.at 1
 
     setup table_builder = Arithmetic_Data.Value <|
-        t2 = table_builder [["x", [1, 4, 5, Nothing]], ["y", [2.0, 3.25, 5.0, Nothing]], ["row_id", [1, 2, 3, 4]]] . order_by "row_id"
+        t2 = table_builder [["x", [1, 4, 5, Nothing]], ["y", [2.0, 3.25, 5.0, Nothing]], ["row_id", [1, 2, 3, 4]]] . sort "row_id"
         x = t2.at "x"
         y = t2.at "y"
         [x, y]
@@ -43,7 +43,7 @@ type Min_Max_Data
     t self = self.data.at 3
 
     setup table_builder = Min_Max_Data.Value <|
-        t = table_builder [["a", [1, 2, 3]], ["b", [4.5, 5.5, 6.5]], ["c", ['a', 'b', 'c']], ["d", [True, False, True]]] . order_by "a"
+        t = table_builder [["a", [1, 2, 3]], ["b", [4.5, 5.5, 6.5]], ["c", ['a', 'b', 'c']], ["d", [True, False, True]]] . sort "a"
         a = t.at "a"
         b = t.at "b"
         c = t.at "c"
@@ -56,8 +56,8 @@ type Literal_Data
     col1 self = self.data.at 1
 
     setup table_builder = Literal_Data.Value <|
-        col0 = table_builder [["x", ['hello Hello', 'hello hello', 'HELLO HELLO']], ["row_id", [1, 2, 3]]] . order_by "row_id" . at "x"
-        col1 = table_builder [["x", ['a[bcd] A[bCd] a[bcd]', 'abac ad Ab aCAd']], ["row_id", [1, 2]]] . order_by "row_id" . at "x"
+        col0 = table_builder [["x", ['hello Hello', 'hello hello', 'HELLO HELLO']], ["row_id", [1, 2, 3]]] . sort "row_id" . at "x"
+        col1 = table_builder [["x", ['a[bcd] A[bCd] a[bcd]', 'abac ad Ab aCAd']], ["row_id", [1, 2]]] . sort "row_id" . at "x"
         [col0, col1]
 
 type Replace_Data
@@ -68,7 +68,7 @@ type Replace_Data
     replacements self = self.data.at 2
 
     setup table_builder = Replace_Data.Value <|
-        table = table_builder [["x", ['hello Hello', 'hello hello', 'HELLO HELLO', 'a[bcd] A[bCd] a[bcd]', 'abac ad Ab aCAd']], ["patterns", ['hello', 'hello', 'hello', 'a[bcd]', 'a[bcd]']], ["replacements", ['bye', 'bye', 'bye', 'hey', 'hey']], ["row_id", [1, 2, 3, 4, 5]]] . order_by "row_id"
+        table = table_builder [["x", ['hello Hello', 'hello hello', 'HELLO HELLO', 'a[bcd] A[bCd] a[bcd]', 'abac ad Ab aCAd']], ["patterns", ['hello', 'hello', 'hello', 'a[bcd]', 'a[bcd]']], ["replacements", ['bye', 'bye', 'bye', 'hey', 'hey']], ["row_id", [1, 2, 3, 4, 5]]] . sort "row_id"
         col = table.at "x"
         patterns = table.at "patterns"
         replacements = table.at "replacements"
@@ -84,7 +84,7 @@ type Text_Replace_Data
     d self = self.data.at 3
 
     setup table_builder = Text_Replace_Data.Value <|
-        t4 = table_builder [["A", ["Alpha", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot"]], ["B", ["A","O","a","E","o","O"]], ["C", [1,2,3,4,5,6]], ["D", ['',Nothing,'',Nothing,'','']]] . order_by "C"
+        t4 = table_builder [["A", ["Alpha", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot"]], ["B", ["A","O","a","E","o","O"]], ["C", [1,2,3,4,5,6]], ["D", ['',Nothing,'',Nothing,'','']]] . sort "C"
         a = t4.at "A"
         b = t4.at "B"
         c = t4.at "C"
@@ -99,7 +99,7 @@ type Trim_Data
     c self = self.data.at 2
 
     setup table_builder = Trim_Data.Value <|
-        table = table_builder [["A", [" A ", ' \t\n\rA\r\n\t ', "xxxAxx"]], ["B", [" ",' \t',"x"]], ["C", [1,2,3]]] . order_by "C"
+        table = table_builder [["A", [" A ", ' \t\n\rA\r\n\t ', "xxxAxx"]], ["B", [" ",' \t',"x"]], ["C", [1,2,3]]] . sort "C"
         a = table.at "A"
         b = table.at "B"
         c = table.at "C"
@@ -111,7 +111,7 @@ type Names_Data
     t self = self.data.at 0
 
     setup table_builder = Names_Data.Value <|
-        t = table_builder [["a", [1, 2, 3]], ["b", ['x', 'y', 'z']], ["c", [1.0, 2.0, 3.0]], ["d", [True, False, True]]] . order_by "a"
+        t = table_builder [["a", [1, 2, 3]], ["b", ['x', 'y', 'z']], ["c", [1.0, 2.0, 3.0]], ["d", [True, False, True]]] . sort "a"
         [t]
 
 
@@ -139,7 +139,7 @@ add_specs suite_builder setup =
         if setup.prefix.contains "Snowflake" . not then table_builder table_structure else
             row_count = table_structure.first.second.length
             new_structure = table_structure+[["row_id", (0.up_to row_count) . to_vector]]
-            table_builder new_structure . order_by "row_id" . remove_columns ["row_id"]
+            table_builder new_structure . sort "row_id" . remove_columns ["row_id"]
 
     ## Runs the provided callback with a few combinations of columns, where some
        of them are made Mixed (but still contain only the original values).
