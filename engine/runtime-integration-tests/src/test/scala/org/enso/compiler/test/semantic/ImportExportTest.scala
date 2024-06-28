@@ -308,6 +308,33 @@ class ImportExportTest
         .item shouldBe "Constructor"
     }
 
+    "be able to export constructor from type" in {
+      """
+        |type Boolean
+        |    True
+        |    False
+        |""".stripMargin
+        .createModule(packageQualifiedName.createChild("Boolean"))
+
+      val mainIr =
+        s"""
+          |export $namespace.$packageName.Boolean.Boolean.True
+          |export $namespace.$packageName.Boolean.Boolean.False
+          |""".stripMargin
+          .createModule(packageQualifiedName.createChild("Main"))
+          .getIr
+      val bindingMap = mainIr.unwrapBindingMap
+      bindingMap.exportedSymbols.keys should contain theSameElementsAs List("True", "False")
+      bindingMap
+        .exportedSymbols("True")
+        .head
+        .isInstanceOf[BindingsMap.ResolvedConstructor] shouldBe true
+      bindingMap
+        .exportedSymbols("False")
+        .head
+        .isInstanceOf[BindingsMap.ResolvedConstructor] shouldBe true
+    }
+
     "result in error when trying to import mix of constructors and methods from a type" in {
       """
         |type Other_Module_Type
