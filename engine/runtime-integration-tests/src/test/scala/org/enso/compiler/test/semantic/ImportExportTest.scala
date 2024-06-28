@@ -1091,9 +1091,6 @@ class ImportExportTest
         |# it is also considered a static module method
         |glob_var = 42
         |
-        |# This is also a static method
-        |foreign js js_function = \"\"\"
-        |    return 42
         |""".stripMargin
         .createModule(packageQualifiedName.createChild("A_Module"))
 
