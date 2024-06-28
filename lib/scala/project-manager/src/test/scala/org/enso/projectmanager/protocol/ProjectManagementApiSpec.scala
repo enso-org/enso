@@ -1334,36 +1334,47 @@ class ProjectManagementApiSpec
       val projectId      = createProject(projectName)
       //when
       client.send(json"""
-            { "jsonrpc": "2.0",
-              "method": "project/duplicate",
-              "id": 0,
-              "params": {
-                "projectId": $projectId
-              }
-            }
-          """)
-      //then
-      client.fuzzyExpectJson(json"""
-          {
-            "jsonrpc": "2.0",
-            "id": 0,
-            "result": {
-              "projectId": "*",
-              "projectName": $newProjectName,
-              "projectNormalizedName": "ProjectToCopy_1"
-            }
+        { "jsonrpc": "2.0",
+          "method": "project/duplicate",
+          "id": 0,
+          "params": {
+            "projectId": $projectId
           }
-          """)
+        }
+        """)
+      //then
+      val duplicateReply = client.fuzzyExpectJson(json"""
+        {
+          "jsonrpc": "2.0",
+          "id": 0,
+          "result": {
+            "projectId": "*",
+            "projectName": $newProjectName,
+            "projectNormalizedName": "ProjectToCopy_1"
+          }
+        }
+        """)
+
+      val Some(duplicatedProjectId) = for {
+        reply         <- duplicateReply.asObject
+        resultJson    <- reply("result")
+        result        <- resultJson.asObject
+        projectIdJson <- result("projectId")
+        projectId     <- projectIdJson.asString
+      } yield UUID.fromString(projectId)
 
       val projectDir  = new File(userProjectDir, "ProjectToCopy_1")
       val packageFile = new File(projectDir, "package.yaml")
       val buffer      = Source.fromFile(packageFile)
-      val lines       = buffer.getLines()
-      println(lines)
-      lines.contains(s"name: $newProjectName") shouldBe true
-      buffer.close()
+      try {
+        val lines = buffer.getLines()
+        lines.contains(s"name: $newProjectName") shouldBe true
+      } finally {
+        buffer.close()
+      }
 
       //teardown
+      deleteProject(duplicatedProjectId)
       deleteProject(projectId)
     }
 

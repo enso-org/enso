@@ -97,11 +97,11 @@ trait ProjectServiceApi[F[+_, +_]] {
     projectId: UUID
   ): F[ProjectServiceFailure, Unit]
 
-  /** Duplicates a project.
+  /** Duplicate an existing project.
     *
-    * @param projectId the project id
+    * @param projectId the project to copy
     * @param projectsDirectory the path to the projects directory
-    * @return the new project
+    * @return the new duplicated project
     */
   def duplicateUserProject(
     projectId: UUID,

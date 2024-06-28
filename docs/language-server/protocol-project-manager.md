@@ -790,10 +790,10 @@ interface ProjectDuplicateResponse {
 
 - [`ProjectDataStoreError`](#projectdatastoreerror) to signal problems with
   underlying data store.
+- [`ProjectNotFoundError`](#projectnotfounderror) to signal that the project
+  doesn't exist.
 - [`ServiceError`](./protocol-common.md#serviceerror) to signal that the the
   operation timed out.
-- [`LanguageServerError`](#languageservererror) to signal generic language
-  server failures.
 
 ## Action Progress Reporting
 

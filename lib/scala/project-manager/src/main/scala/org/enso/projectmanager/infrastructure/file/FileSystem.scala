@@ -48,7 +48,7 @@ trait FileSystem[F[+_, +_]] {
     */
   def remove(path: File): F[FileSystemFailure, Unit]
 
-  /** Move a file or directory recursively
+  /** Move a file or directory recursively.
     *
     * @param from a path to the source
     * @param to a path to the destination
@@ -56,7 +56,7 @@ trait FileSystem[F[+_, +_]] {
     */
   def move(from: File, to: File): F[FileSystemFailure, Unit]
 
-  /** Copy a file or directory recursively
+  /** Copy a file or directory recursively.
     *
     * @param from a path to the source
     * @param to a path to the destination

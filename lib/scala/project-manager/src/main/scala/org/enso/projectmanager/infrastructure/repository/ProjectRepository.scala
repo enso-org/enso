@@ -86,7 +86,7 @@ trait ProjectRepository[F[+_, +_]] {
     newName: String
   ): F[ProjectRepositoryFailure, File]
 
-  /** Creates the copy of the project.
+  /** Create a copy of the project.
     *
     * @param project the project to copy
     * @param newName the new project name

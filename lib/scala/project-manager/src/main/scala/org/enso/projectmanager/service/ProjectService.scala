@@ -387,12 +387,11 @@ class ProjectService[
       _       <- validateProjectName(newName)
       _       <- log.debug("Validated new project name [{}]", newName)
       repo = projectRepositoryFactory.getProjectRepository(projectsDirectory)
-      _           <- checkIfNameExists(newName, repo)
-      updatedTime <- clock.nowInUtc()
+      createdTime <- clock.nowInUtc()
       newMetadata = model.ProjectMetadata(
         id         = UUID.randomUUID(),
         kind       = project.kind,
-        created    = updatedTime,
+        created    = createdTime,
         lastOpened = None
       )
       newProject <- repo
@@ -556,7 +555,7 @@ object ProjectService {
       DataStoreFailure(s"Project repository inconsistency detected [$msg].")
   }
 
-  def toProjectMetadata(project: Project): ProjectMetadata = {
+  def toProjectMetadata(project: Project): ProjectMetadata =
     ProjectMetadata(
       name       = project.name,
       namespace  = project.namespace,
@@ -564,5 +563,4 @@ object ProjectService {
       created    = project.created,
       lastOpened = project.lastOpened
     )
-  }
 }

@@ -50,7 +50,7 @@ class ProjectDuplicateHandler[
         projectsDirectory = projectsDirectory
       )
       _ = logger.trace(
-        "Duplicated requested project {} with new name {}",
+        "Duplicated project [{}] with the new name [{}].",
         params.projectId,
         project.name
       )
