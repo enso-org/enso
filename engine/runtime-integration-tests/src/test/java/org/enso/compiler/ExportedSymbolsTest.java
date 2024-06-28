@@ -82,7 +82,7 @@ public class ExportedSymbolsTest {
         new SourceModule(
             QualifiedName.fromString("Main"),
             """
-        from project.B_Module export B_Type
+        export project.B_Module.B_Type
         type A_Type
         """);
     var bMod =
