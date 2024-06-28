@@ -1,9 +1,12 @@
 <script setup lang="ts">
-import { useLexical, type LexicalPlugin } from '@/components/lexical'
+import FloatingSelectionMenu from '@/components/FloatingSelectionMenu.vue'
+import { lexicalTheme, useLexical, type LexicalPlugin } from '@/components/lexical'
 import LexicalContent from '@/components/lexical/LexicalContent.vue'
+import { autoLinkPlugin, useLinkNode } from '@/components/lexical/LinkPlugin'
+import LinkToolbar from '@/components/lexical/LinkToolbar.vue'
 import { useLexicalStringSync } from '@/components/lexical/sync'
 import { registerPlainText } from '@lexical/plain-text'
-import { ref, watch, type ComponentInstance } from 'vue'
+import { ref, useCssModule, watch, type ComponentInstance } from 'vue'
 
 const text = defineModel<string>({ required: true })
 
@@ -21,9 +24,27 @@ const textSync: LexicalPlugin = {
   },
 }
 
-useLexical(contentElement, 'PlainTextEditor', {}, [plainText, textSync])
+const theme = lexicalTheme(useCssModule('lexicalTheme'))
+const { editor } = useLexical(contentElement, 'PlainTextEditor', theme, [
+  autoLinkPlugin,
+  plainText,
+  textSync,
+])
+const { urlUnderCursor } = useLinkNode(editor)
 </script>
 
 <template>
-  <LexicalContent ref="contentElement" />
+  <LexicalContent ref="contentElement" v-bind="$attrs" />
+  <FloatingSelectionMenu :selectionElement="contentElement">
+    <LinkToolbar v-if="urlUnderCursor" :url="urlUnderCursor" />
+  </FloatingSelectionMenu>
 </template>
+
+<style module="lexicalTheme">
+.link {
+  color: #ddf;
+  &:hover {
+    text-decoration: underline;
+  }
+}
+</style>

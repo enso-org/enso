@@ -11,6 +11,7 @@ export const codeEditorBindings = defineKeybinds('code-editor', {
 
 export const documentationEditorBindings = defineKeybinds('documentation-editor', {
   toggle: ['Mod+D'],
+  openLink: ['Mod+PointerMain'],
 })
 
 export const interactionBindings = defineKeybinds('current-interaction', {

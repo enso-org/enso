@@ -1,5 +1,10 @@
 <script lang="ts">
 import icons from '@/assets/icons.svg'
+import {
+  clipboardNodeData,
+  tsvTableToEnsoExpression,
+  writeClipboard,
+} from '@/components/GraphEditor/clipboard'
 import { Ast } from '@/util/ast'
 import { Pattern } from '@/util/ast/match'
 import { useAutoBlur } from '@/util/autoBlur'
@@ -131,6 +136,8 @@ const agGridOptions: Ref<GridOptions & Required<Pick<GridOptions, 'defaultColDef
   onFirstDataRendered: updateColumnWidths,
   onRowDataUpdated: updateColumnWidths,
   onColumnResized: lockColumnSize,
+  copyHeadersToClipboard: true,
+  sendToClipboard: ({ data }: { data: string }) => sendToClipboard(data),
   suppressFieldDotNotation: true,
   enableRangeSelection: true,
   popupParent: document.body,
@@ -463,6 +470,31 @@ function lockColumnSize(e: ColumnResizedEvent) {
     const field = column.getColDef().field
     if (field && manuallySized) widths.set(field, column.getActualWidth())
   }
+}
+
+/** Copy the provided TSV-formatted table data to the clipboard.
+ *
+ * The data will be copied as `text/plain` TSV data for spreadsheet applications, and an Enso-specific MIME section for
+ * pasting as a new table node.
+ *
+ * By default, AG Grid writes only `text/plain` TSV data to the clipboard. This is sufficient to paste into spreadsheet
+ * applications, which are liberal in what they try to interpret as tabular data; however, when pasting into Enso, the
+ * application needs to be able to distinguish tabular clipboard contents to choose the correct paste action.
+ *
+ * Our heuristic to identify clipboard data from applications like Excel and Google Sheets is to check for a <table> tag
+ * in the clipboard `text/html` data. If we were to add a `text/html` section to the data so that it could be recognized
+ * like other spreadsheets, when pasting into other applications some applications might use the `text/html` data in
+ * preference to the `text/plain` content--so we would need to construct an HTML table that fully represents the
+ * content.
+ *
+ * To avoid that complexity, we bypass our table-data detection by including application-specific data in the clipboard
+ * content. This data contains a ready-to-paste node that constructs an Enso table from the provided TSV.
+ */
+function sendToClipboard(tsvData: string) {
+  return writeClipboard({
+    ...clipboardNodeData([{ expression: tsvTableToEnsoExpression(tsvData) }]),
+    'text/plain': tsvData,
+  })
 }
 
 // ===============

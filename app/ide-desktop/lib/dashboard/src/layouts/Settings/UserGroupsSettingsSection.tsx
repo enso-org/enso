@@ -12,7 +12,6 @@ import * as authProvider from '#/providers/AuthProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
-import MembersTable from '#/layouts/Settings/MembersTable'
 import UserGroupRow from '#/layouts/Settings/UserGroupRow'
 import UserGroupUserRow from '#/layouts/Settings/UserGroupUserRow'
 
@@ -20,7 +19,6 @@ import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 import * as paywallComponents from '#/components/Paywall'
 import StatelessSpinner, * as statelessSpinner from '#/components/StatelessSpinner'
-import SettingsSection from '#/components/styled/settings/SettingsSection'
 
 import NewUserGroupModal from '#/modals/NewUserGroupModal'
 
@@ -29,19 +27,17 @@ import type Backend from '#/services/Backend'
 
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 
-import * as withPaywall from './withPaywall'
+// =================================
+// === UserGroupsSettingsSection ===
+// =================================
 
-// =============================
-// === UserGroupsSettingsTab ===
-// =============================
-
-/** Props for a {@link UserGroupsSettingsTab}. */
-export interface UserGroupsSettingsTabProps {
+/** Props for a {@link UserGroupsSettingsSection}. */
+export interface UserGroupsSettingsSectionProps {
   readonly backend: Backend
 }
 
 /** Settings tab for viewing and editing organization members. */
-function UserGroupsSettingsTab(props: UserGroupsSettingsTabProps) {
+export default function UserGroupsSettingsSection(props: UserGroupsSettingsSectionProps) {
   const { backend } = props
   const { setModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
@@ -133,115 +129,106 @@ function UserGroupsSettingsTab(props: UserGroupsSettingsTabProps) {
   }
 
   return (
-    <div className="flex h min-h-full flex-1 flex-col gap-settings-section overflow-hidden lg:h-auto lg:flex-row">
-      <div className="flex h-3/5 w-settings-main-section max-w-full flex-col gap-settings-subsection lg:h-[unset] lg:min-w">
-        <SettingsSection noFocusArea title={getText('userGroups')} className="overflow-hidden">
-          <ariaComponents.ButtonGroup>
-            {shouldDisplayPaywall ? (
-              <paywallComponents.PaywallDialogButton
-                feature="userGroupsFull"
-                variant="bar"
-                size="medium"
-                rounded="full"
-                iconPosition="end"
-                tooltip={getText('userGroupsPaywallMessage')}
-              >
-                {getText('newUserGroup')}
-              </paywallComponents.PaywallDialogButton>
-            ) : (
-              <ariaComponents.Button
-                size="medium"
-                variant="bar"
-                onPress={event => {
-                  const rect = event.target.getBoundingClientRect()
-                  const position = { pageX: rect.left, pageY: rect.top }
-                  setModal(<NewUserGroupModal backend={backend} event={position} />)
-                }}
-              >
-                {getText('newUserGroup')}
-              </ariaComponents.Button>
-            )}
-
-            {isUnderPaywall && (
-              <span className="text-xs">
-                {userGroupsLeft <= 0
-                  ? getText('userGroupsPaywallMessage')
-                  : getText('userGroupsLimitMessage', userGroupsLeft)}
-              </span>
-            )}
-          </ariaComponents.ButtonGroup>
-          <div
-            ref={rootRef}
-            className={tailwindMerge.twMerge(
-              'overflow-auto overflow-x-hidden transition-all lg:mb-2',
-              shadowClassName
-            )}
-            onScroll={onUserGroupsTableScroll}
+    <>
+      <ariaComponents.ButtonGroup>
+        {shouldDisplayPaywall && (
+          <paywallComponents.PaywallDialogButton
+            feature="userGroupsFull"
+            variant="bar"
+            size="medium"
+            rounded="full"
+            iconPosition="end"
+            tooltip={getText('userGroupsPaywallMessage')}
           >
-            <aria.Table
-              aria-label={getText('userGroups')}
-              className="w-full table-fixed self-start rounded-rows"
-              dragAndDropHooks={dragAndDropHooks}
-            >
-              <aria.TableHeader className="sticky top h-row">
-                <aria.Column
-                  isRowHeader
-                  className="w-full border-x-2 border-transparent bg-clip-padding px-cell-x text-left text-sm font-semibold last:border-r-0"
-                >
-                  {getText('userGroup')}
-                </aria.Column>
-                {/* Delete button. */}
-                <aria.Column className="relative border-0" />
-              </aria.TableHeader>
-              <aria.TableBody
-                ref={bodyRef}
-                items={userGroups ?? []}
-                dependencies={[isLoading, userGroups]}
-                className="select-text"
-              >
-                {isLoading ? (
-                  <aria.Row className="h-row">
-                    <aria.Cell
-                      ref={element => {
-                        if (element != null) {
-                          element.colSpan = 2
-                        }
-                      }}
-                    >
-                      <div className="flex justify-center">
-                        <StatelessSpinner
-                          size={32}
-                          state={statelessSpinner.SpinnerState.loadingMedium}
-                        />
-                      </div>
-                    </aria.Cell>
-                  </aria.Row>
-                ) : (
-                  userGroup => (
-                    <>
-                      <UserGroupRow userGroup={userGroup} doDeleteUserGroup={doDeleteUserGroup} />
-                      {userGroup.users.map(otherUser => (
-                        <UserGroupUserRow
-                          key={otherUser.userId}
-                          user={otherUser}
-                          userGroup={userGroup}
-                          doRemoveUserFromUserGroup={doRemoveUserFromUserGroup}
-                        />
-                      ))}
-                    </>
-                  )
-                )}
-              </aria.TableBody>
-            </aria.Table>
-          </div>
-        </SettingsSection>
-      </div>
+            {getText('newUserGroup')}
+          </paywallComponents.PaywallDialogButton>
+        )}
+        {!shouldDisplayPaywall && (
+          <ariaComponents.Button
+            size="medium"
+            variant="bar"
+            onPress={event => {
+              const rect = event.target.getBoundingClientRect()
+              const position = { pageX: rect.left, pageY: rect.top }
+              setModal(<NewUserGroupModal backend={backend} event={position} />)
+            }}
+          >
+            {getText('newUserGroup')}
+          </ariaComponents.Button>
+        )}
 
-      <SettingsSection noFocusArea title={getText('users')} className="h-2/5 lg:h-[unset]">
-        <MembersTable draggable populateWithSelf backend={backend} />
-      </SettingsSection>
-    </div>
+        {isUnderPaywall && (
+          <span className="text-xs">
+            {userGroupsLeft <= 0
+              ? getText('userGroupsPaywallMessage')
+              : getText('userGroupsLimitMessage', userGroupsLeft)}
+          </span>
+        )}
+      </ariaComponents.ButtonGroup>
+      <div
+        ref={rootRef}
+        className={tailwindMerge.twMerge(
+          'overflow-auto overflow-x-hidden transition-all lg:mb-2',
+          shadowClassName
+        )}
+        onScroll={onUserGroupsTableScroll}
+      >
+        <aria.Table
+          aria-label={getText('userGroups')}
+          className="w-full max-w-3xl table-fixed self-start rounded-rows"
+          dragAndDropHooks={dragAndDropHooks}
+        >
+          <aria.TableHeader className="sticky top h-row">
+            <aria.Column
+              isRowHeader
+              className="w-full border-x-2 border-transparent bg-clip-padding px-cell-x text-left text-sm font-semibold last:border-r-0"
+            >
+              {getText('userGroup')}
+            </aria.Column>
+            {/* Delete button. */}
+            <aria.Column className="relative border-0" />
+          </aria.TableHeader>
+          <aria.TableBody
+            ref={bodyRef}
+            items={userGroups ?? []}
+            dependencies={[isLoading, userGroups]}
+            className="select-text"
+          >
+            {isLoading ? (
+              <aria.Row className="h-row">
+                <aria.Cell
+                  ref={element => {
+                    if (element != null) {
+                      element.colSpan = 2
+                    }
+                  }}
+                >
+                  <div className="flex justify-center">
+                    <StatelessSpinner
+                      size={32}
+                      state={statelessSpinner.SpinnerState.loadingMedium}
+                    />
+                  </div>
+                </aria.Cell>
+              </aria.Row>
+            ) : (
+              userGroup => (
+                <>
+                  <UserGroupRow userGroup={userGroup} doDeleteUserGroup={doDeleteUserGroup} />
+                  {userGroup.users.map(otherUser => (
+                    <UserGroupUserRow
+                      key={otherUser.userId}
+                      user={otherUser}
+                      userGroup={userGroup}
+                      doRemoveUserFromUserGroup={doRemoveUserFromUserGroup}
+                    />
+                  ))}
+                </>
+              )
+            )}
+          </aria.TableBody>
+        </aria.Table>
+      </div>
+    </>
   )
 }
-
-export default withPaywall.withPaywall(UserGroupsSettingsTab, { feature: 'userGroups' })

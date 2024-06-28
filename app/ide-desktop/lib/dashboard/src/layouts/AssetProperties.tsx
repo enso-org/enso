@@ -21,7 +21,6 @@ import SharedWithColumn from '#/components/dashboard/column/SharedWithColumn'
 import DatalinkInput from '#/components/dashboard/DatalinkInput'
 import Label from '#/components/dashboard/Label'
 import StatelessSpinner, * as statelessSpinner from '#/components/StatelessSpinner'
-import Button from '#/components/styled/Button'
 
 import * as backendModule from '#/services/Backend'
 import type Backend from '#/services/Backend'
@@ -138,8 +137,10 @@ export default function AssetProperties(props: AssetPropertiesProps) {
         >
           {getText('description')}
           {!isReadonly && ownsThisAsset && !isEditingDescription && (
-            <Button
-              image={PenIcon}
+            <ariaComponents.Button
+              size="icon"
+              variant="icon"
+              icon={PenIcon}
               onPress={() => {
                 setIsEditingDescription(true)
                 setQueuedDescripion(item.item.description)
@@ -154,7 +155,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
           {!isEditingDescription ? (
             <aria.Text className="text">{item.item.description}</aria.Text>
           ) : (
-            <form className="flex flex-col gap-modal" onSubmit={doEditDescription}>
+            <form className="flex flex-col gap-modal pr-4" onSubmit={doEditDescription}>
               <textarea
                 ref={element => {
                   if (element != null && queuedDescription != null) {
@@ -162,8 +163,12 @@ export default function AssetProperties(props: AssetPropertiesProps) {
                     setQueuedDescripion(null)
                   }
                 }}
-                onBlur={doEditDescription}
                 value={description}
+                className="w-full resize-none rounded-default border-0.5 border-primary/20 p-2"
+                onBlur={doEditDescription}
+                onChange={event => {
+                  setDescription(event.currentTarget.value)
+                }}
                 onKeyDown={event => {
                   event.stopPropagation()
                   switch (event.key) {
@@ -179,18 +184,9 @@ export default function AssetProperties(props: AssetPropertiesProps) {
                     }
                   }
                 }}
-                onChange={event => {
-                  setDescription(event.currentTarget.value)
-                }}
-                className="-m-multiline-input-p w-full resize-none rounded-input bg-frame p-multiline-input"
               />
               <ariaComponents.ButtonGroup>
-                <ariaComponents.Button
-                  size="custom"
-                  variant="custom"
-                  className="button self-start bg-selected-frame"
-                  onPress={doEditDescription}
-                >
+                <ariaComponents.Button size="medium" variant="bar" onPress={doEditDescription}>
                   {getText('update')}
                 </ariaComponents.Button>
               </ariaComponents.ButtonGroup>
@@ -216,7 +212,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
                   isReadonly={isReadonly}
                   item={item}
                   setItem={setItem}
-                  state={{ backend, category, dispatchAssetEvent, setQuery: null }}
+                  state={{ backend, category, dispatchAssetEvent, setQuery: () => {} }}
                 />
               </td>
             </tr>
@@ -261,6 +257,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
               {canEditThisAsset && (
                 <ariaComponents.ButtonGroup>
                   <ariaComponents.Button
+                    size="medium"
                     variant="submit"
                     isDisabled={isDatalinkDisabled}
                     {...(isDatalinkDisabled
@@ -292,7 +289,8 @@ export default function AssetProperties(props: AssetPropertiesProps) {
                     {getText('update')}
                   </ariaComponents.Button>
                   <ariaComponents.Button
-                    variant="cancel"
+                    size="medium"
+                    variant="bar"
                     isDisabled={isDatalinkDisabled}
                     onPress={() => {
                       setEditedDatalinkValue(datalinkValue)

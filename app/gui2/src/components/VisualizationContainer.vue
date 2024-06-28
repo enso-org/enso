@@ -184,6 +184,7 @@ const contentStyle = computed(() => {
   --permanent-toolbar-width: 200px;
   --resize-handle-inside: var(--visualization-resize-handle-inside);
   --resize-handle-outside: var(--visualization-resize-handle-outside);
+  --resize-handle-radius: var(--radius-default);
   color: var(--color-text);
   background: var(--color-visualization-bg);
   position: absolute;
