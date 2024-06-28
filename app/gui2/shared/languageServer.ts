@@ -539,6 +539,15 @@ export class LanguageServer extends ObservableV2<Notifications & TransportEvents
     this.retainCount += 1
   }
 
+  willRelease(abortController: AbortController) {
+    this.transport.on('close', () => {
+      if (!abortController.signal.aborted) {
+        this.release()
+        abortController.abort()
+      }
+    })
+  }
+
   release() {
     if (this.retainCount > 0) {
       this.retainCount -= 1
