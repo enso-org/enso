@@ -2,6 +2,12 @@
 
 #### Enso IDE
 
+#### Enso IDE
+
+# Enso 2024.1
+
+#### Enso IDE
+
 - [Arrows navigation][10179] selected nodes may be moved around, or entire scene
   if no node is selected.
 - [Added a limit for dropdown width][10198], implemented ellipsis and scrolling
