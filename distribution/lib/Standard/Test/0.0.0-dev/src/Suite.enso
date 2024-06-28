@@ -31,7 +31,7 @@ type Suite_Builder
          is not ignored.
     group : Text -> (Group_Builder -> Any) -> (Text | Nothing) -> Nothing
     group self (name:Text) (fn : (Group_Builder -> Any)) (pending : (Text | Nothing) = Nothing) =
-        group_builder = Group_Builder.Impl
+        group_builder = Group_Builder.Impl name
         case pending of
             Nothing ->
                 fn group_builder

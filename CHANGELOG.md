@@ -23,6 +23,7 @@
 - [Added click through on table and vector visualisation][10340] clicking on
   index column will select row or value in seperate node
 - [Copied table-viz range pastes as Table component][10352]
+- [Added support for links in documentation panels][10353].
 
 [10064]: https://github.com/enso-org/enso/pull/10064
 [10179]: https://github.com/enso-org/enso/pull/10179
@@ -36,6 +37,7 @@
 [10337]: https://github.com/enso-org/enso/pull/10337
 [10340]: https://github.com/enso-org/enso/pull/10340
 [10352]: https://github.com/enso-org/enso/pull/10352
+[10353]: https://github.com/enso-org/enso/pull/10353
 
 #### Enso Standard Library
 
@@ -48,6 +50,7 @@
   database.][10206]
 - [Implemented fallback to Windows-1252 encoding for `Encoding.Default`.][10190]
 - [Added Table.duplicates component][10323]
+- [Renamed `Table.order_by` to `Table.sort`][10372]
 
 [debug-shortcuts]:
 
@@ -57,6 +60,7 @@
 [10206]: https://github.com/enso-org/enso/pull/10206
 [10190]: https://github.com/enso-org/enso/pull/10190
 [10323]: https://github.com/enso-org/enso/pull/10323
+[10372]: https://github.com/enso-org/enso/pull/10372
 
 <br/>![Release Notes](/docs/assets/tags/release_notes.svg)
 

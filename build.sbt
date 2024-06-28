@@ -333,6 +333,7 @@ lazy val enso = (project in file("."))
     `connected-lock-manager`,
     `connected-lock-manager-server`,
     testkit,
+    `test-utils`,
     `common-polyglot-core-utils`,
     `std-base`,
     `std-database`,
@@ -347,7 +348,8 @@ lazy val enso = (project in file("."))
     `benchmark-java-helpers`,
     `benchmarks-common`,
     `bench-processor`,
-    `ydoc-server`
+    `ydoc-server`,
+    `desktop-environment`
   )
   .settings(Global / concurrentRestrictions += Tags.exclusive(Exclusive))
   .settings(
@@ -2580,12 +2582,19 @@ lazy val `engine-runner` = project
           )
       }
 
-      val exec =
-        s"$jlink --module-path ${modules.mkString(":")} --output $smallJdkDirectory --add-modules $NI_MODULES,$JDK_MODULES,$DEBUG_MODULES,$PYTHON_MODULES"
-      val exitCode = scala.sys.process.Process(exec).!
-
+      var jlinkArgs = Seq(
+        "--module-path",
+        modules.mkString(File.pathSeparator),
+        "--output",
+        smallJdkDirectory.toString(),
+        "--add-modules",
+        s"$NI_MODULES,$JDK_MODULES,$DEBUG_MODULES,$PYTHON_MODULES"
+      )
+      val exitCode = scala.sys.process.Process(jlink.toString(), jlinkArgs).!
       if (exitCode != 0) {
-        throw new RuntimeException(s"Cannot execute smalljdk.sh")
+        throw new RuntimeException(
+          s"Failed to execute $jlink ${jlinkArgs.mkString(" ")} - exit code: $exitCode"
+        )
       }
       libDirs.foreach(libDir =>
         IO.copyDirectory(

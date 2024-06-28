@@ -199,16 +199,22 @@ case object FullyQualifiedNames extends IRPass {
       case tp: Definition.Type =>
         tp.copy(members =
           tp.members.map(
-            _.mapExpressions(
+            _.mapExpressions(expr => {
+              val selfTypeResolution =
+                bindings.resolveName(tp.name.name) match {
+                  case Right(List(resolvedName)) =>
+                    Some(Resolution(resolvedName))
+                  case _ => None
+                }
               processExpression(
-                _,
+                expr,
                 bindings,
                 tp.params.map(_.name),
                 freshNameSupply,
-                bindings.resolveName(tp.name.name).toOption.map(Resolution),
+                selfTypeResolution,
                 pkgRepo
               )
-            )
+            })
           )
         )
 

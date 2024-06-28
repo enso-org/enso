@@ -40,22 +40,24 @@ const staticMethod = {
 }
 
 test.each`
-  code                                       | callSuggestion  | subjectSpan | selfSpan    | subjectType                  | methodName
-  ${'val1.method val2'}                      | ${method}       | ${[0, 4]}   | ${[0, 4]}   | ${'local.Project.Type'}      | ${'.method'}
-  ${'local.Project.Type.method val1 val2'}   | ${method}       | ${[0, 18]}  | ${[26, 30]} | ${'local.Project.Type.type'} | ${'.method'}
-  ${'Type.method val1'}                      | ${method}       | ${[0, 4]}   | ${[12, 16]} | ${'local.Project.Type.type'} | ${'.method'}
-  ${'local.Project.Type.method'}             | ${method}       | ${[0, 18]}  | ${[0, 18]}  | ${'local.Project.Type.type'} | ${'.method'}
-  ${'local.Project.Type.static_method val1'} | ${staticMethod} | ${[0, 18]}  | ${[0, 18]}  | ${'local.Project.Type.type'} | ${'.static_method'}
-  ${'Type.Con val1'}                         | ${con}          | ${[0, 4]}   | ${[0, 4]}   | ${'local.Project.Type.type'} | ${'.Con'}
-  ${'..Con val1'}                            | ${con}          | ${null}     | ${null}     | ${null}                      | ${'.Con'}
-  ${'local.Project.module_method val1'}      | ${moduleMethod} | ${[0, 13]}  | ${[0, 13]}  | ${'local.Project'}           | ${'.module_method'}
+  code                                       | callSuggestion  | subjectSpan | attachedSpan | subjectType                  | methodName
+  ${'val1.method val2'}                      | ${method}       | ${[0, 4]}   | ${[0, 4]}    | ${'local.Project.Type'}      | ${'.method'}
+  ${'local.Project.Type.method val1 val2'}   | ${method}       | ${[0, 18]}  | ${[26, 30]}  | ${'local.Project.Type.type'} | ${'.method'}
+  ${'Type.method val1'}                      | ${method}       | ${[0, 4]}   | ${[12, 16]}  | ${'local.Project.Type.type'} | ${'.method'}
+  ${'local.Project.Type.method'}             | ${method}       | ${[0, 18]}  | ${null}      | ${'local.Project.Type.type'} | ${'.method'}
+  ${'foo.method'}                            | ${method}       | ${[0, 3]}   | ${null}      | ${'local.Project.Type.type'} | ${'.method'}
+  ${'foo.method'}                            | ${method}       | ${[0, 3]}   | ${[0, 3]}    | ${'local.Project.Type'}      | ${'.method'}
+  ${'local.Project.Type.static_method val1'} | ${staticMethod} | ${[0, 18]}  | ${[0, 18]}   | ${'local.Project.Type.type'} | ${'.static_method'}
+  ${'Type.Con val1'}                         | ${con}          | ${[0, 4]}   | ${[0, 4]}    | ${'local.Project.Type.type'} | ${'.Con'}
+  ${'..Con val1'}                            | ${con}          | ${null}     | ${null}      | ${null}                      | ${'.Con'}
+  ${'local.Project.module_method val1'}      | ${moduleMethod} | ${[0, 13]}  | ${[0, 13]}   | ${'local.Project'}           | ${'.module_method'}
 `(
   'Visualization config for $code',
-  ({ code, callSuggestion, subjectSpan, selfSpan, subjectType, methodName }) => {
+  ({ code, callSuggestion, subjectSpan, attachedSpan, subjectType, methodName }) => {
     const spans = {
       entireFunction: [0, code.length] as [number, number],
       ...(subjectSpan != null ? { subject: subjectSpan as [number, number] } : {}),
-      ...(selfSpan != null ? { self: selfSpan as [number, number] } : {}),
+      ...(attachedSpan != null ? { attached: attachedSpan as [number, number] } : {}),
     }
     const { ast, eid, id } = parseWithSpans(code, spans)
     const line = ast.lines[0]?.expression
@@ -101,10 +103,11 @@ test.each`
     if (typeof visConfig.value.expression === 'string') {
       expect(visConfig.value.expressionId).toBe(eid('entireFunction'))
       expect(visConfig.value.expression).toBe(
-        `_ -> ${WIDGETS_ENSO_MODULE}.${GET_WIDGETS_METHOD} ${callSuggestion.definedIn}`,
+        `_ -> ${WIDGETS_ENSO_MODULE}.${GET_WIDGETS_METHOD} ${callSuggestion.memberOf}`,
       )
+      expect(eid('attached')).toBeUndefined()
     } else {
-      expect(visConfig.value.expressionId).toBe(eid('self'))
+      expect(visConfig.value.expressionId).toBe(eid('attached'))
     }
     expect(visConfig.value.positionalArgumentsExpressions![0]).toBe(methodName)
     expect(visConfig.value.positionalArgumentsExpressions![1]).toBe("['arg']")

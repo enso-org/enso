@@ -82,7 +82,7 @@ function Tags(props: InternalTagsProps) {
   return (
     <div
       data-testid="asset-search-tag-names"
-      className="pointer-events-auto flex flex-wrap gap-buttons whitespace-nowrap px-search-suggestions"
+      className="pointer-events-auto flex flex-wrap gap-2 whitespace-nowrap px-search-suggestions"
     >
       {(isCloud ? AssetQuery.tagNames : AssetQuery.localTagNames).flatMap(entry => {
         const [key, tag] = entry
@@ -280,7 +280,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
           data-testid="asset-search-bar"
           {...aria.mergeProps<aria.LabelProps>()(innerProps, {
             className:
-              'search-bar group relative flex h-row grow max-w-[60em] items-center gap-asset-search-bar rounded-full px-3 text-primary',
+              'z-1 group relative flex h-row grow max-w-[60em] items-center gap-asset-search-bar rounded-full px-3 text-primary',
             ref: rootRef,
             onFocus: () => {
               setAreSuggestionsVisible(true)
@@ -298,7 +298,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
           <div className="relative size-4 placeholder" />
           <div
             className={tailwindMerge.twMerge(
-              'pointer-events-none absolute left top z-1 flex w-full flex-col overflow-hidden rounded-default border-0.5 border-primary/20 transition-colors before:absolute before:inset before:backdrop-blur-default hover:before:bg-frame',
+              'pointer-events-none absolute left top z-1 flex w-full flex-col overflow-hidden rounded-default border-0.5 border-primary/20 -outline-offset-1 outline-primary transition-colors before:absolute before:inset  before:backdrop-blur-default group-focus-within:outline group-focus-within:outline-2 hover:before:bg-frame',
               areSuggestionsVisible && 'before:bg-frame'
             )}
           >
@@ -316,7 +316,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
                 {isCloud && labels.length !== 0 && (
                   <div
                     data-testid="asset-search-labels"
-                    className="pointer-events-auto flex gap-buttons p-search-suggestions"
+                    className="pointer-events-auto flex gap-2 p-search-suggestions"
                   >
                     {[...labels]
                       .sort((a, b) => string.compareCaseInsensitive(a.value, b.value))

@@ -21,9 +21,7 @@ import org.graalvm.polyglot.Value;
 import org.graalvm.polyglot.io.IOAccess;
 import org.graalvm.polyglot.proxy.ProxyExecutable;
 
-/**
- * A collection of classes and methods useful for testing {@link Context} related stuff.
- */
+/** A collection of classes and methods useful for testing {@link Context} related stuff. */
 public final class ContextUtils {
   private ContextUtils() {}
 
@@ -90,7 +88,6 @@ public final class ContextUtils {
     return res;
   }
 
-
   @SuppressWarnings("unchecked")
   private static <E extends Throwable> E raise(Class<E> clazz, Throwable t) throws E {
     throw (E) t;
@@ -148,6 +145,18 @@ public final class ContextUtils {
     Value assocType = module.invokeMember(Module.GET_ASSOCIATED_TYPE);
     Value mainMethod = module.invokeMember(Module.GET_METHOD, assocType, "main");
     return mainMethod.execute();
+  }
+
+  public static org.enso.compiler.core.ir.Module compileModule(Context ctx, String src) {
+    return compileModule(ctx, src, "Test");
+  }
+
+  public static org.enso.compiler.core.ir.Module compileModule(
+      Context ctx, String src, String moduleName) {
+    var source = Source.newBuilder(LanguageInfo.ID, src, moduleName + ".enso").buildLiteral();
+    var module = ctx.eval(source);
+    var runtimeMod = (org.enso.interpreter.runtime.Module) unwrapValue(ctx, module);
+    return runtimeMod.getIr();
   }
 
   /**
