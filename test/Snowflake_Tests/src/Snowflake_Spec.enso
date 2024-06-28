@@ -621,7 +621,10 @@ with_secret name value callback =
     secret.should_succeed
     Panic.with_finalizer secret.delete (callback secret)
 
-get_configured_connection_details =
+## We rethrow any dataflow errors to ensure that they are reported.
+   Without it, a dataflow error could make some tests just not be registered and
+   not run, without displaying any failures.
+get_configured_connection_details = Panic.rethrow <|
     account_name = Environment.get "ENSO_SNOWFLAKE_ACCOUNT"
     if account_name.is_nothing then Nothing else
         get_var name =
