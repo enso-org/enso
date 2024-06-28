@@ -225,6 +225,20 @@ export default [
         ignores: ['**/.cache/**', '**/playwright-report', '**/dist'],
     },
     {
+        files: [
+            'dashboard/src/**/*.ts',
+            'dashboard/src/**/*.mts',
+            'dashboard/src/**/*.cts',
+            'dashboard/src/**/*.tsx',
+            'dashboard/src/**/*.mtsx',
+            'dashboard/src/**/*.ctsx',
+            'dashboard/mock/**/*.ts',
+            'dashboard/mock/**/*.mts',
+            'dashboard/mock/**/*.cts',
+            'dashboard/mock/**/*.tsx',
+            'dashboard/mock/**/*.mtsx',
+            'dashboard/mock/**/*.ctsx',
+        ],
         settings: {
             react: {
                 version: '18.2',

@@ -21,14 +21,10 @@ await appConfig.readEnvironmentFromFile()
 export default vite.defineConfig({
   server: { port: SERVER_PORT, headers: Object.fromEntries(common.COOP_COEP_CORP_HEADERS) },
   plugins: [
-    // @ts-expect-error It seems like there is a type error caused by differences in type
-    // definitions between Vite versions.
     vitePluginReact({
       include: '**/*.tsx',
       babel: { plugins: ['@babel/plugin-syntax-import-assertions'] },
     }),
-    // @ts-expect-error It seems like there is a type error caused by differences in type
-    // definitions between Vite versions.
     vitePluginYaml(),
     serveFavicon(),
   ],

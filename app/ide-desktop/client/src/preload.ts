@@ -5,7 +5,7 @@
 
 import * as electron from 'electron'
 
-import * as dashboard from 'enso-dashboard'
+import type * as dashboard from 'enso-dashboard'
 
 import * as debug from 'debug'
 import * as ipc from 'ipc'
