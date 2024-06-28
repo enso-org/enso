@@ -62,6 +62,7 @@ export interface AssetPanelRequiredProps {
 
 /** Props for an {@link AssetPanel}. */
 export interface AssetPanelProps extends AssetPanelRequiredProps {
+  readonly isVisible?: boolean
   readonly isReadonly?: boolean
   readonly category: Category
   readonly dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
@@ -70,7 +71,7 @@ export interface AssetPanelProps extends AssetPanelRequiredProps {
 
 /** A panel containing the description and settings for an asset. */
 export default function AssetPanel(props: AssetPanelProps) {
-  const { backend, isReadonly = false, item, setItem, category } = props
+  const { isVisible, backend, isReadonly = false, item, setItem, category } = props
   const { dispatchAssetEvent, dispatchAssetListEvent } = props
 
   const { getText } = textProvider.useText()
@@ -111,7 +112,10 @@ export default function AssetPanel(props: AssetPanelProps) {
   return (
     <div
       data-testid="asset-panel"
-      className="p-top-bar-margin pointer-events-none absolute flex h-full w-asset-panel flex-col gap-asset-panel bg-selected-frame pl-asset-panel-l"
+      className={tailwindMerge.twMerge(
+        'p-top-bar-margin clip-path-left-shadow pointer-events-none absolute flex h-full w-asset-panel flex-col gap-asset-panel bg-selected-frame pl-asset-panel-l transition-[box-shadow]',
+        isVisible ? 'shadow-soft' : ''
+      )}
       onClick={event => {
         event.stopPropagation()
       }}
@@ -122,10 +126,10 @@ export default function AssetPanel(props: AssetPanelProps) {
           item.item.type !== backendModule.AssetType.directory && (
             <ariaComponents.Button
               size="medium"
-              variant="ghost"
+              variant="bar"
               className={tailwindMerge.twMerge(
                 'pointer-events-auto disabled:opacity-100',
-                tab === AssetPanelTab.versions && 'bg-white opacity-100'
+                tab === AssetPanelTab.versions && 'bg-primary/[8%] opacity-100'
               )}
               onPress={() => {
                 setTab(oldTab =>
@@ -141,11 +145,11 @@ export default function AssetPanel(props: AssetPanelProps) {
         {item != null && item.item.type === backendModule.AssetType.project && (
           <ariaComponents.Button
             size="medium"
-            variant="ghost"
+            variant="bar"
             isDisabled={tab === AssetPanelTab.projectSessions}
             className={tailwindMerge.twMerge(
               'pointer-events-auto disabled:opacity-100',
-              tab === AssetPanelTab.projectSessions && 'bg-white opacity-100'
+              tab === AssetPanelTab.projectSessions && 'bg-primary/[8%] opacity-100'
             )}
             onPress={() => {
               setTab(oldTab =>

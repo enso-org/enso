@@ -454,6 +454,9 @@ inset 0 -36px 51px -51px #00000014`,
           '.clip-path-bottom-shadow': {
             clipPath: `polygon(0 0, 100% 0, 100% calc(100% + 100vh), 0 calc(100% + 100vh))`,
           },
+          '.clip-path-left-shadow': {
+            clipPath: `polygon(-100vw 0, 100% 0, 100% 100%, -100vw 100%)`,
+          },
           '.scroll-hidden': {
             MsOverflowStyle: 'none' /* Internet Explorer 10+ */,
             scrollbarWidth: 'none' /* Firefox */,
