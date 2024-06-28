@@ -114,7 +114,7 @@ export default function AssetPanel(props: AssetPanelProps) {
       data-testid="asset-panel"
       className={tailwindMerge.twMerge(
         'p-top-bar-margin pointer-events-none absolute flex h-full w-asset-panel flex-col gap-asset-panel bg-white pl-asset-panel-l transition-[box-shadow] clip-path-left-shadow',
-        isVisible ? 'shadow-soft' : ''
+        isVisible ? 'shadow-softer' : ''
       )}
       onClick={event => {
         event.stopPropagation()
