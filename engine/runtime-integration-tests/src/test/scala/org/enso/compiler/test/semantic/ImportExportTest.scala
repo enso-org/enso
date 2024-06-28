@@ -230,53 +230,25 @@ class ImportExportTest
       )
     }
 
-    // TODO[pm]: will be addressed in https://github.com/enso-org/enso/issues/6729
-    "resolve static method from a module" ignore {
+    "resolve module method" in {
       """
-        |static_method =
+        |module_method =
         |    42
         |""".stripMargin
         .createModule(packageQualifiedName.createChild("A_Module"))
-      val bIr =
-        s"""
-           |import $namespace.$packageName.A_Module.static_method
-           |""".stripMargin
-          .createModule(packageQualifiedName.createChild("B_Module"))
-          .getIr
       val mainIr =
         s"""
-           |from $namespace.$packageName.A_Module import static_method
+           |import $namespace.$packageName.A_Module.module_method
            |""".stripMargin
           .createModule(packageQualifiedName.createChild("Main"))
           .getIr
-
       mainIr.imports.head.isInstanceOf[errors.ImportExport] shouldBe false
-      bIr.imports.head.isInstanceOf[errors.ImportExport] shouldBe false
       val mainBindingMap = mainIr.unwrapBindingMap
-      val bBindingMap    = bIr.unwrapBindingMap
-      mainBindingMap.resolvedImports.size shouldEqual 2
-      mainBindingMap
-        .resolvedImports(0)
-        .target
-        .asInstanceOf[BindingsMap.ResolvedModule]
-        .module
-        .getName
-        .item shouldEqual "A_Module"
-      mainBindingMap
-        .resolvedImports(1)
-        .target
+      mainBindingMap.resolvedImports.size shouldEqual 1
+      mainBindingMap.resolvedImports.head.target
         .asInstanceOf[BindingsMap.ResolvedModuleMethod]
         .method
-        .name shouldEqual "static_method"
-      // In B_Module, we only have ResolvedMethod in the resolvedImports, there is no ResolvedModule
-      // But that does not matter.
-      bBindingMap.resolvedImports.size shouldEqual 1
-      bBindingMap
-        .resolvedImports(0)
-        .target
-        .asInstanceOf[BindingsMap.ResolvedModuleMethod]
-        .method
-        .name shouldEqual "static_method"
+        .name shouldEqual "module_method"
     }
 
     "be able to import constructor from type" in {
