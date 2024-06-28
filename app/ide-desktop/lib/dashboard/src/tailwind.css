@@ -424,7 +424,7 @@
   }
 
   & > * {
-    @apply bg-white/80;
+    @apply bg-white/90;
   }
 }
 
