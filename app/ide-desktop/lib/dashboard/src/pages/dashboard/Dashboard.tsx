@@ -149,11 +149,15 @@ export default function Dashboard(props: DashboardProps) {
       ? localBackendModule.newProjectId(projectManager.UUID(initialProjectNameRaw))
       : null
   const initialProjectName = initialLocalProjectId ?? initialProjectNameRaw
-  const defaultCategory =
-    remoteBackend != null && initialLocalProjectId == null ? Category.cloud : Category.local
   const [category, setCategory] = searchParamsState.useSearchParamsState(
     'driveCategory',
-    () => defaultCategory,
+    () => {
+      const isUserEnabled = session.user.isEnabled
+      const canUserAccessCloud = isUserEnabled || localBackend == null
+      const shouldDefaultToCloudCategory =
+        remoteBackend != null && initialLocalProjectId == null && canUserAccessCloud
+      return shouldDefaultToCloudCategory ? Category.cloud : Category.local
+    },
     (value): value is Category => {
       if (array.includes(Object.values(Category), value)) {
         return categoryModule.isLocal(value) ? localBackend != null : true
@@ -162,16 +166,6 @@ export default function Dashboard(props: DashboardProps) {
       }
     }
   )
-
-  const isCloud = categoryModule.isCloud(category)
-  const isUserEnabled = session.user.isEnabled
-
-  if (isCloud && !isUserEnabled && localBackend != null) {
-    setTimeout(() => {
-      // This sets `BrowserRouter`, so it must not be set synchronously.
-      setCategory(Category.local)
-    })
-  }
 
   React.useEffect(() => {
     setInitialized(true)
