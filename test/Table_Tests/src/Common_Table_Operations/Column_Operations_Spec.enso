@@ -174,23 +174,23 @@ add_specs suite_builder setup =
             t = build_sorted_table [["X", [True, False, Nothing, True]]]
             c1 = t.at "X" . iif 22 33
             c1.to_vector . should_equal [22, 33, Nothing, 22]
-            c1.value_type . is_integer . should_be_true
+            c1.value_type . should_be_a (Value_Type.Integer ...)
 
             c2 = t.at "X" . iif 22 33.0
             c2.to_vector . should_equal [22, 33, Nothing, 22]
-            c2.value_type . is_floating_point . should_be_true
+            c2.value_type . should_be_a (Value_Type.Float ...)
 
             c3 = t.at "X" . iif "A" "B"
             c3.to_vector . should_equal ["A", "B", Nothing, "A"]
-            c3.value_type . is_text . should_be_true
+            c3.value_type . should_be_a (Value_Type.Char ...)
 
             c4 = t.at "X" . iif Nothing "B"
             c4.to_vector . should_equal [Nothing, "B", Nothing, Nothing]
-            c4.value_type . is_text . should_be_true
+            c4.value_type . should_be_a (Value_Type.Char ...)
 
             c5 = t.at "X" . iif 42 Nothing
             c5.to_vector . should_equal [42, Nothing, Nothing, 42]
-            c5.value_type . is_integer . should_be_true
+            c5.value_type . should_be_a (Value_Type.Integer ...)
 
             c6 = t.at "X" . iif Nothing Nothing
             c6.to_vector . should_equal [Nothing, Nothing, Nothing, Nothing]
@@ -759,20 +759,20 @@ add_specs suite_builder setup =
                 (x ^ y).to_vector . should_equal [10000, 9765625]
 
         group_builder.specify "should correctly infer the types" <|
-            (data.x + data.x).value_type . is_integer . should_be_true
-            (data.x + data.y).value_type . is_floating_point . should_be_true
-            (data.x + 2).value_type . is_integer . should_be_true
-            (data.x + 1.5).value_type . is_floating_point . should_be_true
+            (data.x + data.x).value_type . should_be_a (Value_Type.Integer ...)
+            (data.x + data.y).value_type . should_be_a (Value_Type.Float ...)
+            (data.x + 2).value_type . should_be_a (Value_Type.Integer ...)
+            (data.x + 1.5).value_type . should_be_a (Value_Type.Float ...)
 
-            (data.x - data.x).value_type . is_integer . should_be_true
-            (data.x - data.y).value_type . is_floating_point . should_be_true
-            (data.x - 2).value_type . is_integer . should_be_true
-            (data.x - 1.5).value_type . is_floating_point . should_be_true
+            (data.x - data.x).value_type . should_be_a (Value_Type.Integer ...)
+            (data.x - data.y).value_type . should_be_a (Value_Type.Float ...)
+            (data.x - 2).value_type . should_be_a (Value_Type.Integer ...)
+            (data.x - 1.5).value_type . should_be_a (Value_Type.Float ...)
 
-            (data.x * data.x).value_type . is_integer . should_be_true
-            (data.x * data.y).value_type . is_floating_point . should_be_true
-            (data.x * 2).value_type . is_integer . should_be_true
-            (data.x * 1.5).value_type . is_floating_point . should_be_true
+            (data.x * data.x).value_type . should_be_a (Value_Type.Integer ...)
+            (data.x * data.y).value_type . should_be_a (Value_Type.Float ...)
+            (data.x * 2).value_type . should_be_a (Value_Type.Integer ...)
+            (data.x * 1.5).value_type . should_be_a (Value_Type.Float ...)
 
             (data.x ^ data.x).value_type . is_numeric . should_be_true
 
@@ -850,11 +850,11 @@ add_specs suite_builder setup =
 
             r2 = (t.at "A") / (t.at "B")
             r2 . to_vector . should_equal r
-            r2.value_type . is_floating_point . should_be_true
+            r2.value_type . should_be_a (Value_Type.Float ...)
 
             r3 = (t.at "A") / 2
             r3 . to_vector . should_equal [0.5, 2.5, 5.0, 50.0]
-            r3.value_type . is_floating_point . should_be_true
+            r3.value_type . should_be_a (Value_Type.Float ...)
 
             a2 = [1.2, 5, 10.2, 100]
             b2 = [1.2, 2, 2, 5]
@@ -867,11 +867,11 @@ add_specs suite_builder setup =
 
             r5 = (t2.at "A") / (t2.at "B")
             r5 . to_vector . should_equal r4
-            r5.value_type . is_floating_point . should_be_true
+            r5.value_type . should_be_a (Value_Type.Float ...)
 
             r6 = (t2.at "A") / 2
             r6 . to_vector . should_equal [0.6, 2.5, 5.1, 50.0]
-            r6.value_type . is_floating_point . should_be_true
+            r6.value_type . should_be_a (Value_Type.Float ...)
 
         db_pending = if setup.is_database then "Arithmetic error handling is currently not implemented for the Database backend."
         group_builder.specify "should allow division by 0 and report warnings" pending=db_pending <|
