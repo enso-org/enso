@@ -10,7 +10,9 @@ import java.nio.file.Path
 import scala.util.Try
 
 /** A helper class for resolving editions. */
-class EditionManager private (editionProvider: UpdatingEditionProvider) {
+class EditionManager private (
+  editionProvider: editions.provider.EditionProvider
+) {
   private val editionResolver = EditionResolver(editionProvider)
   private val engineVersionResolver =
     editions.EngineVersionResolver(editionProvider)
