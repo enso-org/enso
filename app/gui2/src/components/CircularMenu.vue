@@ -45,7 +45,7 @@ function openDocs(url: string) {
       <template v-if="isFullMenuVisible">
         <SvgButton
           v-if="documentationUrl"
-          name="docs"
+          name="help"
           class="slot1"
           :title="`Open Documentation (${graphBindings.bindings.openDocumentation.humanReadable})`"
           @click.stop="openDocs(documentationUrl)"
