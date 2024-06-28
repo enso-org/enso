@@ -1,15 +1,10 @@
 /** @file A panel to switch between settings tabs. */
 import * as React from 'react'
 
-import KeyboardShortcutsIcon from '#/assets/keyboard_shortcuts.svg'
-import LogIcon from '#/assets/log.svg'
-import PeopleSettingsIcon from '#/assets/people_settings.svg'
-import PeopleIcon from '#/assets/people.svg'
-import SettingsIcon from '#/assets/settings.svg'
-
 import * as textProvider from '#/providers/TextProvider'
 
-import SettingsTab from '#/layouts/Settings/SettingsTab'
+import * as settingsData from '#/layouts/Settings/settingsData'
+import type SettingsTabType from '#/layouts/Settings/SettingsTabType'
 
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
@@ -18,113 +13,23 @@ import SidebarTabButton from '#/components/styled/SidebarTabButton'
 
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 
-// =================
-// === Constants ===
-// =================
-
-const SECTIONS: SettingsSectionData[] = [
-  {
-    name: 'General',
-    tabs: [
-      {
-        name: 'Account',
-        settingsTab: SettingsTab.account,
-        icon: SettingsIcon,
-        requiresBackend: true,
-      },
-      {
-        name: 'Organization',
-        settingsTab: SettingsTab.organization,
-        icon: PeopleSettingsIcon,
-        requiresBackend: true,
-      },
-    ],
-  },
-  {
-    name: 'Access',
-    tabs: [
-      {
-        name: 'Members',
-        settingsTab: SettingsTab.members,
-        icon: PeopleIcon,
-        requiresBackend: true,
-        organizationOnly: true,
-      },
-      {
-        name: 'User Groups',
-        settingsTab: SettingsTab.userGroups,
-        icon: PeopleSettingsIcon,
-        requiresBackend: true,
-        organizationOnly: true,
-      },
-    ],
-  },
-  {
-    name: 'Look and feel',
-    tabs: [
-      {
-        name: 'Keyboard shortcuts',
-        settingsTab: SettingsTab.keyboardShortcuts,
-        icon: KeyboardShortcutsIcon,
-        requiresBackend: false,
-      },
-    ],
-  },
-  {
-    name: 'Security',
-    tabs: [
-      {
-        name: 'Activity log',
-        settingsTab: SettingsTab.activityLog,
-        icon: LogIcon,
-        requiresBackend: true,
-        organizationOnly: true,
-      },
-    ],
-  },
-]
-
-const SECTIONS_NO_BACKEND = SECTIONS.flatMap(section => {
-  const tabs = section.tabs.filter(tab => !tab.requiresBackend)
-  return tabs.length === 0 ? [] : [{ ...section, tabs }]
-})
-
-// =============
-// === Types ===
-// =============
-
-/** Metadata for rendering a settings tab label. */
-interface SettingsTabLabelData {
-  readonly name: string
-  readonly settingsTab: SettingsTab
-  readonly icon: string
-  readonly requiresBackend: boolean
-  readonly organizationOnly?: true
-}
-
-/** Metadata for rendering a settings section. */
-interface SettingsSectionData {
-  readonly name: string
-  readonly tabs: SettingsTabLabelData[]
-}
-
 // =======================
 // === SettingsSidebar ===
 // =======================
 
 /** Props for a {@link SettingsSidebar} */
 export interface SettingsSidebarProps {
+  readonly context: settingsData.SettingsContext
+  readonly tabsToShow: readonly SettingsTabType[]
   readonly isMenu?: true
-  readonly hasBackend: boolean
-  readonly isUserInOrganization: boolean
-  readonly settingsTab: SettingsTab
-  readonly setSettingsTab: React.Dispatch<React.SetStateAction<SettingsTab>>
+  readonly tab: SettingsTabType
+  readonly setTab: React.Dispatch<React.SetStateAction<SettingsTabType>>
   readonly onClickCapture?: () => void
 }
 
 /** A panel to switch between settings tabs. */
 export default function SettingsSidebar(props: SettingsSidebarProps) {
-  const { isMenu = false, hasBackend, isUserInOrganization, settingsTab, setSettingsTab } = props
+  const { context, tabsToShow, isMenu = false, tab, setTab } = props
   const { onClickCapture } = props
   const { getText } = textProvider.useText()
 
@@ -142,32 +47,38 @@ export default function SettingsSidebar(props: SettingsSidebarProps) {
           onClickCapture={onClickCapture}
           {...innerProps}
         >
-          {(hasBackend ? SECTIONS : SECTIONS_NO_BACKEND).map(section => (
-            <div key={section.name} className="flex flex-col items-start">
-              <aria.Header
-                id={`${section.name}_header`}
-                className="relative mb-sidebar-section-heading-b h-text px-sidebar-section-heading-x py-sidebar-section-heading-y text-[13.5px] font-bold leading-cozy"
-              >
-                {section.name}
-              </aria.Header>
-
-              <ariaComponents.ButtonGroup gap="xxsmall" direction="column" align="start">
-                {section.tabs.map(tab => (
-                  <SidebarTabButton
-                    key={tab.settingsTab}
-                    isDisabled={(tab.organizationOnly ?? false) && !isUserInOrganization}
-                    id={tab.settingsTab}
-                    icon={tab.icon}
-                    label={tab.name}
-                    active={tab.settingsTab === settingsTab}
-                    onPress={() => {
-                      setSettingsTab(tab.settingsTab)
-                    }}
-                  />
-                ))}
-              </ariaComponents.ButtonGroup>
-            </div>
-          ))}
+          {settingsData.SETTINGS_DATA.map(section => {
+            const name = getText(section.nameId)
+            const visibleTabData = section.tabs.filter(
+              tabData =>
+                tabsToShow.includes(tabData.settingsTab) &&
+                (!tabData.visible || tabData.visible(context))
+            )
+            return visibleTabData.length === 0 ? null : (
+              <div key={name} className="flex flex-col items-start">
+                <aria.Header
+                  id={`${name}_header`}
+                  className="mb-sidebar-section-heading-b h-text px-sidebar-section-heading-x py-sidebar-section-heading-y text-[13.5px] font-bold leading-cozy"
+                >
+                  {name}
+                </aria.Header>
+                <ariaComponents.ButtonGroup gap="xxsmall" direction="column" align="start">
+                  {visibleTabData.map(tabData => (
+                    <SidebarTabButton
+                      key={tabData.settingsTab}
+                      id={tabData.settingsTab}
+                      icon={tabData.icon}
+                      label={getText(tabData.nameId)}
+                      active={tabData.settingsTab === tab}
+                      onPress={() => {
+                        setTab(tabData.settingsTab)
+                      }}
+                    />
+                  ))}
+                </ariaComponents.ButtonGroup>
+              </div>
+            )
+          })}
         </div>
       )}
     </FocusArea>

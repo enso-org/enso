@@ -3,7 +3,6 @@
 import * as fsSync from 'node:fs'
 import * as fs from 'node:fs/promises'
 import * as http from 'node:http'
-import * as os from 'node:os'
 import * as path from 'node:path'
 
 import * as isHiddenFile from 'is-hidden-file'
@@ -11,28 +10,18 @@ import * as tar from 'tar'
 import * as yaml from 'yaml'
 
 import * as common from 'enso-common'
+import GLOBAL_CONFIG from '../../common/src/config.json' assert { type: 'json' }
+
 import * as projectManagement from './projectManagement'
 
 // =================
 // === Constants ===
 // =================
 
-/** Get the directory that stores Enso projects. */
-const PROJECTS_ROOT_DIRECTORY =
-  projectManagement.DOCUMENTS_PATH === undefined ?
-    path.join(os.homedir(), 'enso', 'projects')
-  : path.join(projectManagement.DOCUMENTS_PATH, 'enso-projects')
-
 const HTTP_STATUS_OK = 200
 const HTTP_STATUS_BAD_REQUEST = 400
 const HTTP_STATUS_NOT_FOUND = 404
-// Should be the following:
-// import GLOBAL_CONFIG from 'enso-common/src/config.json' assert { type: 'json' }
-// except that Vite's config file is processed using a target that does not understand import
-// assertions.
-const GLOBAL_CONFIG = JSON.parse(
-  await fs.readFile(new URL('../common/src/config.json', import.meta.url), { encoding: 'utf-8' }),
-)
+const PROJECTS_ROOT_DIRECTORY = projectManagement.getProjectsDirectory()
 
 // =============
 // === Types ===
@@ -226,13 +215,7 @@ export default function projectManagerShimMiddleware(
                     const entries: FileSystemEntry[] = []
                     for (const entryName of entryNames) {
                       const entryPath = path.join(directoryPath, entryName)
-                      try {
-                        if (isHiddenFile.isHiddenFile(entryPath)) continue
-                      } catch {
-                        // Ignore errors from this library, it occasionally
-                        // fails on windows due to native library loading
-                        // issues.
-                      }
+                      if (isHidden(entryPath)) continue
                       const stat = await fs.stat(entryPath)
                       const attributes: Attributes = {
                         byteSize: stat.size,
@@ -454,5 +437,23 @@ function extractProjectMetadata(yamlObj: unknown, jsonObj: unknown): ProjectMeta
     } else {
       return null
     }
+  }
+}
+
+/**
+ * Checks if the provided path should be hidden.
+ *
+ * On Windows, files that start with the dot but don't have the hidden property
+ * should also be hidden.
+ */
+function isHidden(filePath: string): boolean {
+  const dotfile = /(^|\/)\.[^/.]/g
+  try {
+    return isHiddenFile.isHiddenFile(filePath) || dotfile.test(filePath)
+  } catch {
+    // is-hidden-file library occasionally
+    // fails on Windows due to native library loading
+    // issues. Fallback to the filename check.
+    return dotfile.test(filePath)
   }
 }

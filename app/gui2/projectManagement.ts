@@ -1,6 +1,12 @@
-/** @file Functions for importing projects. This module is only used in dev mode,
- * by `projectManagerShimMiddleware.ts`. */
-import * as childProcess from 'node:child_process'
+/** @file This module contains functions for importing projects into the Project Manager.
+ *
+ * Eventually this module should be replaced with a new Project Manager API that supports
+ * importing projects.
+ * For now, we basically do the following:
+ * - if the project is already in the Project Manager's location, we just open it;
+ * - if the project is in a different location, we copy it to the Project Manager's location
+ * and open it.
+ * - if the project is a bundle, we extract it to the Project Manager's location and open it. */
 import * as crypto from 'node:crypto'
 import * as fs from 'node:fs'
 import * as os from 'node:os'
@@ -11,6 +17,7 @@ import * as tar from 'tar'
 
 import * as common from 'enso-common'
 import * as buildUtils from 'enso-common/src/buildUtils'
+import * as desktopEnvironment from './desktopEnvironment'
 
 const logger = console
 
@@ -22,53 +29,6 @@ export const PACKAGE_METADATA_RELATIVE_PATH = 'package.yaml'
 export const PROJECT_METADATA_RELATIVE_PATH = '.enso/project.json'
 /** The filename suffix for the project bundle, including the leading period character. */
 const BUNDLED_PROJECT_SUFFIX = '.enso-project'
-
-const CHILD_PROCESS_TIMEOUT = 3000
-
-/** Detects path of the user documents directory depending on the operating system. */
-export const DOCUMENTS_PATH = (() => {
-  switch (process.platform) {
-    case 'linux': {
-      // First try to get the documents directory from the XDG directory management system.
-      const out = childProcess.spawnSync('xdg-user-dir', ['DOCUMENTS'], {
-        timeout: CHILD_PROCESS_TIMEOUT,
-      })
-      if (out.error !== undefined) {
-        // Fall back to `~/enso`.
-        return pathModule.join(os.homedir(), 'enso')
-      } else {
-        return out.stdout.toString().trim()
-      }
-    }
-    case 'darwin': {
-      // On macOS, `Documents` acts as a symlink pointing to the
-      // real locale-specific user documents directory.
-      return pathModule.join(os.homedir(), 'Documents')
-    }
-    case 'win32': {
-      const out = childProcess.spawnSync(
-        'reg',
-        [
-          'query',
-          '"HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ShellFolders"',
-          '/v',
-          'personal',
-        ],
-        { timeout: CHILD_PROCESS_TIMEOUT },
-      )
-
-      if (out.error !== undefined) {
-        return
-      } else {
-        const stdoutString = out.stdout.toString()
-        return stdoutString.split(/\s\s+/)[4]
-      }
-    }
-    default: {
-      return
-    }
-  }
-})()
 
 // ======================
 // === Project Import ===
@@ -168,7 +128,7 @@ export function importBundle(
     sync: true,
     strip: rootPieces.length,
   })
-  return bumpMetadata(targetPath, name ?? null)
+  return bumpMetadata(targetPath, directory, name ?? null)
 }
 
 /** Upload the project from a bundle. */
@@ -196,7 +156,7 @@ export async function uploadBundle(
       fs.rmdirSync(temporaryDirectoryName)
     }
   }
-  return bumpMetadata(targetPath, name ?? null)
+  return bumpMetadata(targetPath, directory, name ?? null)
 }
 
 /** Import the project so it becomes visible to the Project Manager.
@@ -227,7 +187,7 @@ export function importDirectory(
       fs.cpSync(rootPath, targetPath, { recursive: true })
       // Update the project ID, so we are certain that it is unique.
       // This would be violated, if we imported the same project multiple times.
-      return bumpMetadata(targetPath, name ?? null)
+      return bumpMetadata(targetPath, directory, name ?? null)
     }
   }
 }
@@ -264,6 +224,14 @@ function isProjectMetadata(value: unknown): value is ProjectMetadata {
 /** Get the ID from the project metadata. */
 export function getProjectId(projectRoot: string): string | null {
   return getMetadata(projectRoot)?.id ?? null
+}
+
+/** Get the package name. */
+function getPackageName(projectRoot: string) {
+  const path = pathModule.join(projectRoot, PACKAGE_METADATA_RELATIVE_PATH)
+  const contents = fs.readFileSync(path, { encoding: 'utf-8' })
+  const [, name] = contents.match(/^name: (.*)/) ?? []
+  return name ?? null
 }
 
 /** Update the package name. */
@@ -405,7 +373,7 @@ export function getProjectRoot(subtreePath: string): string | null {
 
 /** Get the directory that stores Enso projects. */
 export function getProjectsDirectory(): string {
-  const documentsPath = DOCUMENTS_PATH
+  const documentsPath = desktopEnvironment.DOCUMENTS
   if (documentsPath === undefined) {
     return pathModule.join(os.homedir(), 'enso', 'projects')
   } else {
@@ -433,10 +401,37 @@ export function generateId(): string {
 }
 
 /** Update the project's ID to a new, unique value, and its last opened date to the current date. */
-export function bumpMetadata(projectRoot: string, name: string | null): string {
-  if (name != null) {
-    updatePackageName(projectRoot, name)
+export function bumpMetadata(
+  projectRoot: string,
+  parentDirectory: string,
+  name: string | null,
+): string {
+  if (name == null) {
+    const currentName = getPackageName(projectRoot) ?? ''
+    let index: number | null = null
+    const prefix = `${currentName} `
+    for (const sibling of fs.readdirSync(parentDirectory, { withFileTypes: true })) {
+      if (sibling.isDirectory()) {
+        try {
+          const siblingPath = pathModule.join(parentDirectory, sibling.name)
+          const siblingName = getPackageName(siblingPath)
+          if (siblingName === currentName) {
+            index = index ?? 2
+          } else if (siblingName != null && siblingName.startsWith(prefix)) {
+            const suffix = siblingName.replace(prefix, '')
+            const [, numberString] = suffix.match(/^\((\d+)\)/) ?? []
+            if (numberString != null) {
+              index = Math.max(index ?? 2, Number(numberString) + 1)
+            }
+          }
+        } catch {
+          // Ignored - it is a directory but not a project.
+        }
+      }
+    }
+    name = index == null ? currentName : `${currentName} (${index})`
   }
+  updatePackageName(projectRoot, name)
   return updateMetadata(projectRoot, (metadata) => ({
     ...metadata,
     id: generateId(),

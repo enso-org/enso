@@ -7,7 +7,6 @@
  * - if the project is in a different location, we copy it to the Project Manager's location
  * and open it.
  * - if the project is a bundle, we extract it to the Project Manager's location and open it. */
-
 import * as crypto from 'node:crypto'
 import * as fs from 'node:fs'
 import * as os from 'node:os'
@@ -19,13 +18,18 @@ import * as tar from 'tar'
 import * as common from 'enso-common'
 import * as buildUtils from 'enso-common/src/buildUtils'
 
-import * as config from 'content-config'
 import * as desktopEnvironment from 'desktop-environment'
-import * as paths from 'paths'
 
-import * as fileAssociations from '../file-associations'
+const logger = console
 
-const logger = config.logger
+// =================
+// === Constants ===
+// =================
+
+export const PACKAGE_METADATA_RELATIVE_PATH = 'package.yaml'
+export const PROJECT_METADATA_RELATIVE_PATH = '.enso/project.json'
+/** The filename suffix for the project bundle, including the leading period character. */
+const BUNDLED_PROJECT_SUFFIX = '.enso-project'
 
 // ======================
 // === Project Import ===
@@ -42,7 +46,7 @@ export function importProjectFromPath(
     name: string | null = null
 ): string {
     directory ??= getProjectsDirectory()
-    if (pathModule.extname(openedPath).endsWith(fileAssociations.BUNDLED_PROJECT_SUFFIX)) {
+    if (pathModule.extname(openedPath).endsWith(BUNDLED_PROJECT_SUFFIX)) {
         logger.log(`Path '${openedPath}' denotes a bundled project.`)
         // The second part of condition is for the case when someone names a directory
         // like `my-project.enso-project` and stores the project there.
@@ -54,7 +58,7 @@ export function importProjectFromPath(
             return importBundle(openedPath, directory, name)
         }
     } else {
-        logger.log(`Opening non-bundled file '${openedPath}'.`)
+        logger.log(`Opening non-bundled file: '${openedPath}'.`)
         const rootPath = getProjectRoot(openedPath)
         // Check if the project root is under the projects directory. If it is, we can open it.
         // Otherwise, we need to install it first.
@@ -125,7 +129,7 @@ export function importBundle(
         sync: true,
         strip: rootPieces.length,
     })
-    return bumpMetadata(targetPath, name ?? null)
+    return bumpMetadata(targetPath, directory, name ?? null)
 }
 
 /** Upload the project from a bundle. */
@@ -154,7 +158,7 @@ export async function uploadBundle(
             fs.rmdirSync(temporaryDirectoryName)
         }
     }
-    return bumpMetadata(targetPath, name ?? null)
+    return bumpMetadata(targetPath, directory, name ?? null)
 }
 
 /** Import the project so it becomes visible to the Project Manager.
@@ -187,7 +191,7 @@ export function importDirectory(
             fs.cpSync(rootPath, targetPath, { recursive: true })
             // Update the project ID, so we are certain that it is unique.
             // This would be violated, if we imported the same project multiple times.
-            return bumpMetadata(targetPath, name ?? null)
+            return bumpMetadata(targetPath, directory, name ?? null)
         }
     }
 }
@@ -228,9 +232,17 @@ export function getProjectId(projectRoot: string): string | null {
     return getMetadata(projectRoot)?.id ?? null
 }
 
+/** Get the package name. */
+function getPackageName(projectRoot: string) {
+    const path = pathModule.join(projectRoot, PACKAGE_METADATA_RELATIVE_PATH)
+    const contents = fs.readFileSync(path, { encoding: 'utf-8' })
+    const [, name] = contents.match(/^name: (.*)/) ?? []
+    return name ?? null
+}
+
 /** Update the package name. */
 export function updatePackageName(projectRoot: string, name: string) {
-    const path = pathModule.join(projectRoot, paths.PACKAGE_METADATA_RELATIVE)
+    const path = pathModule.join(projectRoot, PACKAGE_METADATA_RELATIVE_PATH)
     const contents = fs.readFileSync(path, { encoding: 'utf-8' })
     const newContents = contents.replace(/^name: .*/, `name: ${name}`)
     fs.writeFileSync(path, newContents)
@@ -248,7 +260,7 @@ export function createMetadata(): ProjectMetadata {
 
 /** Retrieve the project's metadata. */
 export function getMetadata(projectRoot: string): ProjectMetadata | null {
-    const metadataPath = pathModule.join(projectRoot, paths.PROJECT_METADATA_RELATIVE)
+    const metadataPath = pathModule.join(projectRoot, PROJECT_METADATA_RELATIVE_PATH)
     try {
         const jsonText = fs.readFileSync(metadataPath, 'utf8')
         const metadata: unknown = JSON.parse(jsonText)
@@ -260,7 +272,7 @@ export function getMetadata(projectRoot: string): ProjectMetadata | null {
 
 /** Write the project's metadata. */
 export function writeMetadata(projectRoot: string, metadata: ProjectMetadata): void {
-    const metadataPath = pathModule.join(projectRoot, paths.PROJECT_METADATA_RELATIVE)
+    const metadataPath = pathModule.join(projectRoot, PROJECT_METADATA_RELATIVE_PATH)
     fs.mkdirSync(pathModule.dirname(metadataPath), { recursive: true })
     fs.writeFileSync(metadataPath, JSON.stringify(metadata, null, buildUtils.INDENT_SIZE))
 }
@@ -286,7 +298,7 @@ export function updateMetadata(
 /** Check if the given path represents the root of an Enso project.
  * This is decided by the presence of the Project Manager's metadata. */
 export function isProjectRoot(candidatePath: string): boolean {
-    const projectJsonPath = pathModule.join(candidatePath, paths.PROJECT_METADATA_RELATIVE)
+    const projectJsonPath = pathModule.join(candidatePath, PROJECT_METADATA_RELATIVE_PATH)
     try {
         fs.accessSync(projectJsonPath, fs.constants.R_OK)
         return true
@@ -394,13 +406,38 @@ export function generateId(): string {
     return crypto.randomUUID()
 }
 
-/** Update the project's ID to a new, unique value, and its last opened date to the current date.
- * Return the new ID. */
-export function bumpMetadata(projectRoot: string, name: string | null): string {
-    if (name != null) {
-        console.log('nom', name)
-        updatePackageName(projectRoot, name)
+/** Update the project's ID to a new, unique value, and its last opened date to the current date. */
+export function bumpMetadata(
+    projectRoot: string,
+    parentDirectory: string,
+    name: string | null
+): string {
+    if (name == null) {
+        const currentName = getPackageName(projectRoot) ?? ''
+        let index: number | null = null
+        const prefix = `${currentName} `
+        for (const sibling of fs.readdirSync(parentDirectory, { withFileTypes: true })) {
+            if (sibling.isDirectory()) {
+                try {
+                    const siblingPath = pathModule.join(parentDirectory, sibling.name)
+                    const siblingName = getPackageName(siblingPath)
+                    if (siblingName === currentName) {
+                        index = index ?? 2
+                    } else if (siblingName != null && siblingName.startsWith(prefix)) {
+                        const suffix = siblingName.replace(prefix, '')
+                        const [, numberString] = suffix.match(/^\((\d+)\)/) ?? []
+                        if (numberString != null) {
+                            index = Math.max(index ?? 2, Number(numberString) + 1)
+                        }
+                    }
+                } catch {
+                    // Ignored - it is a directory but not a project.
+                }
+            }
+        }
+        name = index == null ? currentName : `${currentName} (${index})`
     }
+    updatePackageName(projectRoot, name)
     return updateMetadata(projectRoot, metadata => ({
         ...metadata,
         id: generateId(),

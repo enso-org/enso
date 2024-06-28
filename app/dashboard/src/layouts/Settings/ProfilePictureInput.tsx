@@ -1,4 +1,4 @@
-/** @file Settings tab for viewing and changing profile picture. */
+/** @file The input for viewing and changing the user's profile picture. */
 import * as React from 'react'
 
 import DefaultUserIcon from '#/assets/default_user.svg'
@@ -11,21 +11,20 @@ import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
 import FocusRing from '#/components/styled/FocusRing'
-import SettingsSection from '#/components/styled/settings/SettingsSection'
 
 import type Backend from '#/services/Backend'
 
-// =====================================
-// === ProfilePictureSettingsSection ===
-// =====================================
+// ===========================
+// === ProfilePictureInput ===
+// ===========================
 
-/** Props for a {@link ProfilePictureSettingsSection}. */
-export interface ProfilePictureSettingsSectionProps {
+/** Props for a {@link ProfilePictureInput}. */
+export interface ProfilePictureInputProps {
   readonly backend: Backend
 }
 
-/** Settings tab for viewing and changing profile picture. */
-export default function ProfilePictureSettingsSection(props: ProfilePictureSettingsSectionProps) {
+/** The input for viewing and changing the user's profile picture. */
+export default function ProfilePictureInput(props: ProfilePictureInputProps) {
   const { backend } = props
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { setUser } = authProvider.useAuth()
@@ -55,7 +54,7 @@ export default function ProfilePictureSettingsSection(props: ProfilePictureSetti
   }
 
   return (
-    <SettingsSection title={getText('profilePicture')}>
+    <>
       <FocusRing within>
         <aria.Label className="flex h-profile-picture-large w-profile-picture-large cursor-pointer items-center overflow-clip rounded-full transition-colors hover:bg-frame">
           <img
@@ -73,6 +72,6 @@ export default function ProfilePictureSettingsSection(props: ProfilePictureSetti
       <aria.Text className="w-profile-picture-caption py-profile-picture-caption-y">
         {getText('profilePictureWarning')}
       </aria.Text>
-    </SettingsSection>
+    </>
   )
 }

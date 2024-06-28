@@ -1,4 +1,4 @@
-/** @file Settings tab for viewing and editing account information. */
+/** @file The input for viewing and changing the organization's profile picture. */
 import * as React from 'react'
 
 import DefaultUserIcon from '#/assets/default_user.svg'
@@ -10,22 +10,21 @@ import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
 import FocusRing from '#/components/styled/FocusRing'
-import SettingsSection from '#/components/styled/settings/SettingsSection'
 
 import type Backend from '#/services/Backend'
 
-// =================================================
-// === OrganizationProfilePictureSettingsSection ===
-// =================================================
+// =======================================
+// === OrganizationProfilePictureInput ===
+// =======================================
 
-/** Props for a {@link OrganizationProfilePictureSettingsSection}. */
-export interface OrganizationProfilePictureSettingsSectionProps {
+/** Props for a {@link OrganizationProfilePictureInput}. */
+export interface OrganizationProfilePictureInputProps {
   readonly backend: Backend
 }
 
-/** Settings tab for viewing and editing organization information. */
-export default function OrganizationProfilePictureSettingsSection(
-  props: OrganizationProfilePictureSettingsSectionProps
+/** The input for viewing and changing the organization's profile picture. */
+export default function OrganizationProfilePictureInput(
+  props: OrganizationProfilePictureInputProps
 ) {
   const { backend } = props
   const toastAndLog = toastAndLogHooks.useToastAndLog()
@@ -54,7 +53,7 @@ export default function OrganizationProfilePictureSettingsSection(
   }
 
   return (
-    <SettingsSection title={getText('profilePicture')}>
+    <>
       <FocusRing within>
         <aria.Label className="flex h-profile-picture-large w-profile-picture-large cursor-pointer items-center overflow-clip rounded-full transition-colors hover:bg-frame">
           <img
@@ -72,6 +71,6 @@ export default function OrganizationProfilePictureSettingsSection(
       <aria.Text className="w-profile-picture-caption py-profile-picture-caption-y">
         {getText('organizationProfilePictureWarning')}
       </aria.Text>
-    </SettingsSection>
+    </>
   )
 }

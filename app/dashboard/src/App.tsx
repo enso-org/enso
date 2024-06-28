@@ -85,6 +85,7 @@ import * as termsOfServiceModal from '#/modals/TermsOfServiceModal'
 
 import LocalBackend from '#/services/LocalBackend'
 import * as projectManager from '#/services/ProjectManager'
+import ProjectManager from '#/services/ProjectManager'
 import RemoteBackend from '#/services/RemoteBackend'
 
 import * as appBaseUrl from '#/utilities/appBaseUrl'
@@ -164,19 +165,51 @@ export interface AppProps {
  * This component handles all the initialization and rendering of the app, and manages the app's
  * routes. It also initializes an `AuthProvider` that will be used by the rest of the app. */
 export default function App(props: AppProps) {
-  const { supportsLocalBackend } = props
-
-  const { data: rootDirectoryPath } = reactQuery.useSuspenseQuery({
-    queryKey: ['root-directory', supportsLocalBackend],
+  const {
+    data: { projectManagerRootDirectory, projectManagerInstance },
+  } = reactQuery.useSuspenseQuery<{
+    projectManagerInstance: ProjectManager | null
+    projectManagerRootDirectory: projectManager.Path | null
+  }>({
+    queryKey: [
+      'root-directory',
+      {
+        projectManagerUrl: props.projectManagerUrl,
+        supportsLocalBackend: props.supportsLocalBackend,
+      },
+    ] as const,
     meta: { persist: false },
     networkMode: 'always',
+    staleTime: Infinity,
+    gcTime: Infinity,
+    refetchOnMount: false,
+    refetchInterval: false,
+    refetchOnReconnect: false,
+    refetchIntervalInBackground: false,
+    behavior: {
+      onFetch: ({ state }) => {
+        const instance = state.data?.projectManagerInstance ?? null
+
+        if (instance != null) {
+          void instance.dispose()
+        }
+      },
+    },
     queryFn: async () => {
-      if (supportsLocalBackend) {
+      if (props.supportsLocalBackend && props.projectManagerUrl != null) {
         const response = await fetch(`${appBaseUrl.APP_BASE_URL}/api/root-directory`)
         const text = await response.text()
-        return projectManager.Path(text)
+        const rootDirectory = projectManager.Path(text)
+
+        return {
+          projectManagerInstance: new ProjectManager(props.projectManagerUrl, rootDirectory),
+          projectManagerRootDirectory: rootDirectory,
+        }
       } else {
-        return null
+        return {
+          projectManagerInstance: null,
+          projectManagerRootDirectory: null,
+        }
       }
     },
   })
@@ -198,7 +231,11 @@ export default function App(props: AppProps) {
       <router.BrowserRouter basename={getMainPageUrl().pathname}>
         <LocalStorageProvider>
           <ModalProvider>
-            <AppRouter {...props} projectManagerRootDirectory={rootDirectoryPath} />
+            <AppRouter
+              {...props}
+              projectManagerInstance={projectManagerInstance}
+              projectManagerRootDirectory={projectManagerRootDirectory}
+            />
           </ModalProvider>
         </LocalStorageProvider>
       </router.BrowserRouter>
@@ -213,6 +250,7 @@ export default function App(props: AppProps) {
 /** Props for an {@link AppRouter}. */
 export interface AppRouterProps extends AppProps {
   readonly projectManagerRootDirectory: projectManager.Path | null
+  readonly projectManagerInstance: ProjectManager | null
 }
 
 /** Router definition for the app.
@@ -222,7 +260,7 @@ export interface AppRouterProps extends AppProps {
  * component as the component that defines the provider. */
 function AppRouter(props: AppRouterProps) {
   const { logger, isAuthenticationDisabled, shouldShowDashboard, httpClient } = props
-  const { onAuthenticated, projectManagerUrl, projectManagerRootDirectory } = props
+  const { onAuthenticated, projectManagerInstance } = props
   const { portalRoot } = props
   // `navigateHooks.useNavigate` cannot be used here as it relies on `AuthProvider`, which has not
   // yet been initialized at this point.
@@ -234,11 +272,8 @@ function AppRouter(props: AppRouterProps) {
   const navigator2D = navigator2DProvider.useNavigator2D()
 
   const localBackend = React.useMemo(
-    () =>
-      projectManagerUrl != null && projectManagerRootDirectory != null
-        ? new LocalBackend(projectManagerUrl, projectManagerRootDirectory)
-        : null,
-    [projectManagerUrl, projectManagerRootDirectory]
+    () => (projectManagerInstance != null ? new LocalBackend(projectManagerInstance) : null),
+    [projectManagerInstance]
   )
 
   const remoteBackend = React.useMemo(

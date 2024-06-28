@@ -42,7 +42,7 @@ Vector.running self statistic:Statistic=..Count =
    - statistics: Set of statistics to calculate.
 @statistics Statistic.bulk_widget
 Vector.running_bulk : Vector Statistic -> Vector Any
-Vector.running_bulk self statistics:Statistic=[..Count, ..Sum] =
+Vector.running_bulk self (statistics:(Vector Statistic)=[..Count, ..Sum]) =
     Statistic.running_bulk self statistics
 
 ## GROUP Statistics

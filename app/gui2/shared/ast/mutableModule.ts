@@ -152,6 +152,16 @@ export class MutableModule implements Module {
     return ast_ as Owned<Mutable<typeof ast>>
   }
 
+  /** @internal */
+  importCopy<T extends Ast>(ast: T): Owned<Mutable<T>> {
+    assert(ast.module !== this)
+    ast.visitRecursiveAst((ast) => this.nodes.set(ast.id, ast.fields.clone() as any))
+    const fields = this.nodes.get(ast.id)
+    assertDefined(fields)
+    fields.set('parent', undefined)
+    return materializeMutable(this, fields) as Owned<Mutable<typeof ast>>
+  }
+
   static Transient() {
     return new this(new Y.Doc())
   }

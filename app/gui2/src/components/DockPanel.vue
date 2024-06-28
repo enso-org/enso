@@ -41,8 +41,7 @@ const style = computed(() => {
   width: var(--right-dock-default-width);
   right: 0;
   border-radius: 7px 0 0;
-  background-color: rgba(255, 255, 255, 0.35);
-  backdrop-filter: var(--blur-app-bg);
+  background-color: rgb(255, 255, 255);
   padding: 4px 12px 0 0;
 }
 .rightDock-enter-active,
