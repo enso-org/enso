@@ -4,7 +4,7 @@
 
 #### Enso Enso Standard Library
 
-# Enso 2024.1
+# Enso 2024.2
 
 #### Enso IDE
 
