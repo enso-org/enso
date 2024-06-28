@@ -1313,6 +1313,9 @@ public final class Main {
     if (line.hasOption(JVM_OPTION)) {
       var jvm = line.getOptionValue(JVM_OPTION);
       var current = System.getProperty("java.home");
+      if (jvm == null) {
+          jvm = current;
+      }
       if (current == null || !current.equals(jvm)) {
         var loc = Main.class.getProtectionDomain().getCodeSource().getLocation();
         var commandAndArgs = new ArrayList<String>();
