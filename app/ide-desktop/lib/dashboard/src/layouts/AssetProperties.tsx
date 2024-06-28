@@ -261,13 +261,12 @@ export default function AssetProperties(props: AssetPropertiesProps) {
               {canEditThisAsset && (
                 <div className="flex gap-2">
                   <ariaComponents.Button
-                    size="custom"
-                    variant="custom"
+                    size="medium"
+                    variant="submit"
                     isDisabled={isDatalinkDisabled}
                     {...(isDatalinkDisabled
                       ? { title: 'Edit the Datalink before updating it.' }
                       : {})}
-                    className="button bg-invite text-white enabled:active"
                     onPress={() => {
                       void (async () => {
                         if (item.item.type === backendModule.AssetType.datalink) {
@@ -294,10 +293,9 @@ export default function AssetProperties(props: AssetPropertiesProps) {
                     {getText('update')}
                   </ariaComponents.Button>
                   <ariaComponents.Button
-                    size="custom"
-                    variant="custom"
+                    size="medium"
+                    variant="bar"
                     isDisabled={isDatalinkDisabled}
-                    className="button bg-selected-frame enabled:active"
                     onPress={() => {
                       setEditedDatalinkValue(datalinkValue)
                     }}
