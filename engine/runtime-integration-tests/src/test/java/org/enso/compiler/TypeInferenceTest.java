@@ -10,6 +10,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.core.ir.ProcessingPass;
@@ -25,7 +26,6 @@ import org.junit.Test;
 import scala.Option;
 
 public class TypeInferenceTest extends StaticAnalysisTest {
-  @Ignore("TODO resolving global methods")
   @Test
   public void zeroAryCheck() throws Exception {
     final URI uri = new URI("memory://zeroAryModuleMethodCheck.enso");
@@ -52,7 +52,6 @@ public class TypeInferenceTest extends StaticAnalysisTest {
     assertAtomType("zeroAryModuleMethodCheck.My_Type", x.expression());
   }
 
-  @Ignore("TODO resolution of global function application")
   @Test
   public void functionReturnCheck() throws Exception {
     final URI uri = new URI("memory://functionReturnCheck.enso");
@@ -513,9 +512,8 @@ public class TypeInferenceTest extends StaticAnalysisTest {
   }
 
   /**
-   * This is more complex than inferBoundsFromCaseAlias, as it needs to add a type constraint only
-   * in one branch. We will need to ensure that we duplicate the local scopes in each branch to
-   * avoid bad sharing.
+   * This is more complex than inferBoundsFromCaseAlias, as it needs to add a type constraint only in one branch. We
+   * will need to ensure that we duplicate the local scopes in each branch to avoid bad sharing.
    */
   @Ignore("TODO")
   @Test
@@ -768,8 +766,8 @@ public class TypeInferenceTest extends StaticAnalysisTest {
   }
 
   /**
-   * Such signatures are not checked yet, but the syntax _is_ allowed and it is used in some places
-   * for documentation purposes, so it should not be triggering any errors.
+   * Such signatures are not checked yet, but the syntax _is_ allowed and it is used in some places for documentation
+   * purposes, so it should not be triggering any errors.
    */
   @Test
   public void noErrorInParametricTypeSignatures() throws Exception {
@@ -1089,7 +1087,24 @@ public class TypeInferenceTest extends StaticAnalysisTest {
             .buildLiteral();
 
     var module = compile(src);
-    // TODO method_two should yield warning - unknown method, others are found so no warnings
+    var foo = findStaticMethod(module, "foo");
+    var x1 = findAssignment(foo, "x1");
+    var x2 = findAssignment(foo, "x2");
+    var x3 = findAssignment(foo, "x3");
+    var x4 = findAssignment(foo, "x4");
+
+    // member method is defined
+    assertEquals(List.of(), getDescendantsDiagnostics(x1.expression()));
+
+    // this method is not found
+    assertEquals(
+        List.of(new Warning.NoSuchMethod(x2.expression().location(), "My_Type", "method_two")),
+        getImmediateDiagnostics(x2.expression())
+    );
+
+    // delegating to Any
+    assertEquals(List.of(), getDescendantsDiagnostics(x3.expression()));
+    assertEquals(List.of(), getDescendantsDiagnostics(x4.expression()));
   }
 
   private TypeRepresentation getInferredType(IR ir) {

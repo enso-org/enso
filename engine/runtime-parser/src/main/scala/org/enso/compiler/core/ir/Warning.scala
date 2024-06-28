@@ -75,6 +75,25 @@ object Warning {
     override def diagnosticKeys(): Array[Any] = Array()
   }
 
+  /** A warning about calling a method (or field getter) that is not defined on the given type.
+    *
+    * This warning indicates a place that will result in a No_Such_Method error in runtime.
+    *
+    * @param location the location of the call
+    * @param typeRepresentation the type of the value that the method is called on
+    * @param methodName the name of the method that is called
+    */
+  case class NoSuchMethod(
+    override val location: Option[IdentifiedLocation],
+    typeRepresentation: String,
+    methodName: String
+  ) extends Warning {
+    override def message(source: (IdentifiedLocation => String)): String =
+      s"Calling method `$methodName` on type $typeRepresentation will result in a No_Such_Method error in runtime, because that types does not define such a method."
+
+    override def diagnosticKeys(): Array[Any] = Array()
+  }
+
   /** A warning about a `@Builtin_Method` annotation placed in a method
     * with unexpected body.
     *
