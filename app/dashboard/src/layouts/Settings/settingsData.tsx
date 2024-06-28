@@ -3,12 +3,12 @@ import * as React from 'react'
 
 import isEmail from 'validator/lib/isEmail'
 
-import KeyboardShortcutsIcon from 'enso-assets/keyboard_shortcuts.svg'
-import LogIcon from 'enso-assets/log.svg'
-import NotCloudIcon from 'enso-assets/not_cloud.svg'
-import PeopleSettingsIcon from 'enso-assets/people_settings.svg'
-import PeopleIcon from 'enso-assets/people.svg'
-import SettingsIcon from 'enso-assets/settings.svg'
+import KeyboardShortcutsIcon from '#/assets/keyboard_shortcuts.svg'
+import LogIcon from '#/assets/log.svg'
+import NotCloudIcon from '#/assets/not_cloud.svg'
+import PeopleSettingsIcon from '#/assets/people_settings.svg'
+import PeopleIcon from '#/assets/people.svg'
+import SettingsIcon from '#/assets/settings.svg'
 
 import type * as text from '#/text'
 

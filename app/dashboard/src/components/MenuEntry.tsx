@@ -1,12 +1,9 @@
 /** @file An entry in a menu. */
 import * as React from 'react'
 
-<<<<<<< HEAD:app/dashboard/src/components/MenuEntry.tsx
-import BlankIcon from '#/assets/blank.svg'
-=======
-import BlankIcon from 'enso-assets/blank.svg'
 import * as detect from 'enso-common/src/detect'
->>>>>>> develop:app/ide-desktop/lib/dashboard/src/components/MenuEntry.tsx
+
+import BlankIcon from '#/assets/blank.svg'
 
 import type * as text from '#/text'
 

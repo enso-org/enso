@@ -1,7 +1,7 @@
 /** @file Displays information describing a specific version of an asset. */
 import * as React from 'react'
 
-import LogsIcon from 'enso-assets/logs.svg'
+import LogsIcon from '#/assets/logs.svg'
 
 import * as textProvider from '#/providers/TextProvider'
 

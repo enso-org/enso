@@ -1,7 +1,7 @@
 /** @file A search bar containing a text input, and a list of suggestions. */
 import * as React from 'react'
 
-import FindIcon from 'enso-assets/find.svg'
+import FindIcon from '#/assets/find.svg'
 
 import * as aria from '#/components/aria'
 import FocusArea from '#/components/styled/FocusArea'
