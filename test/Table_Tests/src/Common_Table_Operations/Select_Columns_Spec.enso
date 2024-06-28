@@ -13,11 +13,9 @@ main filter=Nothing = run_default_backend add_specs filter
 type Select_Columns_Data
     Value ~data
 
-    connection self = self.data.at 0
-    table self = self.data.at 1
+    table self = self.data.at 0
 
-    setup create_connection_fn table_builder = Select_Columns_Data.Value <|
-        connection = create_connection_fn Nothing
+    setup table_builder = Select_Columns_Data.Value <|
         table =
             col1 = ["foo", [1,2,3]]
             col2 = ["bar", [4,5,6]]
@@ -26,39 +24,29 @@ type Select_Columns_Data
             col5 = ["foo 2", [13,14,15]]
             col6 = ["ab.+123", [16,17,18]]
             col7 = ["abcd123", [19,20,21]]
-            table_builder [col1, col2, col3, col4, col5, col6, col7] connection=connection
-        [connection, table]
-
-    teardown self =
-        self.connection.close
+            table_builder [col1, col2, col3, col4, col5, col6, col7]
+        [table]
 
 type Mixed_Columns_Data
     Value ~data
 
-    connection self = self.data.at 0
-    table self = self.data.at 1
+    table self = self.data.at 0
 
-    setup create_connection_fn table_builder = Mixed_Columns_Data.Value <|
-        connection = create_connection_fn Nothing
+    setup table_builder = Mixed_Columns_Data.Value <|
         table =
             col1 = ["int", [1, 2, 3]]
             col2 = ["float", [4.1, 5.2, 6.3]]
             col3 = ["text", ["A", "B", "C"]]
             col4 = ["bool", [True, False, True]]
-            table_builder [col1, col2, col3, col4] connection=connection
-        [connection, table]
-
-    teardown self =
-        self.connection.close
+            table_builder [col1, col2, col3, col4]
+        [table]
 
 type Sort_Columns_Data
     Value ~data
 
-    connection self = self.data.at 0
-    table self = self.data.at 1
+    table self = self.data.at 0
 
-    setup create_connection_fn table_builder = Sort_Columns_Data.Value <|
-        connection = create_connection_fn Nothing
+    setup table_builder = Sort_Columns_Data.Value <|
         table =
             col1 = ["foo 21", [1,2,3]]
             col2 = ["foo 100", [4,5,6]]
@@ -67,44 +55,36 @@ type Sort_Columns_Data
             col5 = ["foo 3", [13,14,15]]
             col6 = ["foo 001", [16,17,18]]
             col7 = ["bar", [19,20,21]]
-            table_builder [col1, col2, col3, col4, col5, col6, col7] connection=connection
-        [connection, table]
-
-    teardown self =
-        self.connection.close
-
+            table_builder [col1, col2, col3, col4, col5, col6, col7]
+        [table]
 
 type Rename_Columns_Data
     Value ~data
 
-    connection self = self.data.at 0
-    table self = self.data.at 1
+    table self = self.data.at 0
 
-    setup create_connection_fn table_builder = Rename_Columns_Data.Value <|
-        connection = create_connection_fn Nothing
+    setup table_builder = Rename_Columns_Data.Value <|
         table =
             col1 = ["alpha", [1,2,3]]
             col2 = ["beta", [4,5,6]]
             col3 = ["gamma", [16,17,18]]
             col4 = ["delta", [19,20,21]]
-            table_builder [col1, col2, col3, col4] connection=connection
-        [connection, table]
-
-    teardown self =
-        self.connection.close
-
+            table_builder [col1, col2, col3, col4]
+        [table]
 
 add_specs suite_builder setup =
     prefix = setup.prefix
-    table_builder = setup.table_builder
-    create_connection_fn = setup.create_connection_func
+    build_sorted_table table_structure table_builder=setup.table_builder =
+        # Workaround for https://github.com/enso-org/enso/issues/10321
+        if setup.prefix.contains "Snowflake" . not then table_builder table_structure else
+            row_count = table_structure.first.second.length
+            new_structure = table_structure+[["row_id", (0.up_to row_count) . to_vector]]
+            table_builder new_structure . order_by "row_id" . remove_columns ["row_id"]
+    table_builder = build_sorted_table
     test_selection = setup.test_selection
 
     suite_builder.group prefix+"Table.select_columns" group_builder->
-        data = Select_Columns_Data.setup create_connection_fn table_builder
-
-        group_builder.teardown <|
-            data.teardown
+        data = Select_Columns_Data.setup table_builder
 
         group_builder.specify "should work as shown in the doc examples" <|
             expect_column_names ["foo", "bar"] <| data.table.select_columns ["bar", "foo"]
@@ -223,10 +203,7 @@ add_specs suite_builder setup =
             r2.catch.to_display_text . should_equal "No columns in the result, because of another problem: The criteria 'hmmm' did not match any columns."
 
     suite_builder.group prefix+"Table.select_columns_by_type and Table.remove_columns_by_type" group_builder->
-        data = Mixed_Columns_Data.setup create_connection_fn table_builder
-
-        group_builder.teardown <|
-            data.teardown
+        data = Mixed_Columns_Data.setup table_builder
 
         group_builder.specify "should be able to select by type of columns" <|
             expect_column_names ["int"] <| data.table.select_columns [..By_Type ..Integer]
@@ -274,10 +251,7 @@ add_specs suite_builder setup =
 
 
     suite_builder.group prefix+"Table.remove_columns" group_builder->
-        data = Select_Columns_Data.setup create_connection_fn table_builder
-
-        group_builder.teardown <|
-            data.teardown
+        data = Select_Columns_Data.setup table_builder
 
         group_builder.specify "should work as shown in the doc examples" <|
             expect_column_names ["Baz", "foo 1", "foo 2", "ab.+123", "abcd123"] <| data.table.remove_columns ["bar", "foo"]
@@ -362,10 +336,7 @@ add_specs suite_builder setup =
             t1.catch.cause . should_equal Nothing
 
     suite_builder.group prefix+"Table.reorder_columns" group_builder->
-        data = Select_Columns_Data.setup create_connection_fn table_builder
-
-        group_builder.teardown <|
-            data.teardown
+        data = Select_Columns_Data.setup table_builder
 
         group_builder.specify "should work as shown in the doc examples" <|
             expect_column_names ["bar", "Baz", "foo 1", "foo 2", "ab.+123", "abcd123", "foo"] <| data.table.reorder_columns "foo" Position.After_Other_Columns
@@ -434,20 +405,14 @@ add_specs suite_builder setup =
             err.should_fail_with Missing_Input_Columns
 
     suite_builder.group prefix+"Table.reorder_columns by type" group_builder->
-        data = Mixed_Columns_Data.setup create_connection_fn table_builder
-
-        group_builder.teardown <|
-            data.teardown
+        data = Mixed_Columns_Data.setup table_builder
 
         group_builder.specify "should correctly handle By_Type matching" <|
             expect_column_names ["float", "text", "bool", "int"] <| data.table.reorder_columns [..By_Type ..Integer] Position.After_Other_Columns
             expect_column_names ["float", "text", "int", "bool"] <| data.table.reorder_columns [..By_Type ..Integer, ..By_Type ..Boolean] Position.After_Other_Columns
 
     suite_builder.group prefix+"Table.sort_columns" group_builder->
-        data = Sort_Columns_Data.setup create_connection_fn table_builder
-
-        group_builder.teardown <|
-            data.teardown
+        data = Sort_Columns_Data.setup table_builder
 
         group_builder.specify "should work as shown in the doc examples" <|
             sorted = data.table.sort_columns
@@ -467,10 +432,7 @@ add_specs suite_builder setup =
             expect_column_names ["foo 100", "foo 21", "foo 3", "Foo 2", "foo 1", "foo 001", "bar"] <| data.table.sort_columns Sort_Direction.Descending text_ordering=(Text_Ordering.Case_Insensitive sort_digits_as_numbers=True)
 
     suite_builder.group prefix+"Table.rename_columns" group_builder->
-        data = Rename_Columns_Data.setup create_connection_fn table_builder
-
-        group_builder.teardown <|
-            data.teardown
+        data = Rename_Columns_Data.setup table_builder
 
         group_builder.specify "should work as shown in the doc examples" <|
             expect_column_names ["FirstColumn", "beta", "gamma", "delta"] <|
