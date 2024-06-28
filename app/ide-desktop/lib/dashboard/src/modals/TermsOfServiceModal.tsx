@@ -14,6 +14,7 @@ import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 
 import LocalStorage from '#/utilities/LocalStorage'
+import * as object from '#/utilities/object'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 // =================
@@ -129,7 +130,7 @@ export function TermsOfServiceModal() {
                           )}
                           id={checkboxId}
                           data-testid="terms-of-service-checkbox"
-                          {...register('agree')}
+                          {...object.omit(register('agree'), 'isInvalid')}
                         />
 
                         <label htmlFor={checkboxId}>
