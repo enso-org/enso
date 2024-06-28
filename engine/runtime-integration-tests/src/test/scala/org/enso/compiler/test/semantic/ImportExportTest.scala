@@ -5,6 +5,7 @@ import org.enso.compiler.core.ir.{Module, ProcessingPass, Warning}
 import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.core.ir.module.scope.Import
 import org.enso.compiler.data.BindingsMap
+import org.enso.compiler.phase.ExportsResolution
 import org.enso.compiler.pass.analyse.{BindingAnalysis, GatherDiagnostics}
 import org.enso.interpreter.runtime
 import org.enso.interpreter.runtime.EnsoContext
@@ -12,6 +13,7 @@ import org.enso.persist.Persistance
 import org.enso.pkg.QualifiedName
 import org.enso.common.LanguageInfo
 import org.enso.common.MethodNames
+import org.enso.compiler.phase.exports.Node
 import org.enso.polyglot.RuntimeOptions
 import org.graalvm.polyglot.{Context, Engine}
 import org.scalatest.BeforeAndAfter
@@ -87,6 +89,15 @@ class ImportExportTest
     def unwrapBindingMap: BindingsMap = {
       moduleIr.unsafeGetMetadata(BindingAnalysis, "Should be present")
     }
+  }
+
+  private def buildExportsGraph(
+    modules: List[org.enso.interpreter.runtime.Module]
+  ): List[Node] = {
+    val compilerCtx       = langCtx.getCompiler.context
+    val exportsResolution = new ExportsResolution(compilerCtx)
+    val compilerModules   = modules.map(_.asCompilerModule())
+    exportsResolution.buildGraph(compilerModules)
   }
 
   before {
@@ -1352,6 +1363,76 @@ class ImportExportTest
         .unsafeGetMetadata(GatherDiagnostics, "Should be included")
         .diagnostics
       diags.size shouldEqual 0
+    }
+  }
+
+  "Exports graph building" should {
+    // Directly export a single module
+    "build exports graph for a module" in {
+      val aModule =
+        """
+          |# Blank on purpose
+          |""".stripMargin
+          .createModule(packageQualifiedName.createChild("A_Module"))
+
+      val bModule =
+        s"""
+           |export $namespace.$packageName.A_Module
+           |""".stripMargin
+          .createModule(packageQualifiedName.createChild("B_Module"))
+      val graph = buildExportsGraph(List(aModule, bModule))
+      val aNode = graph.find { node =>
+        node.target match {
+          case BindingsMap.ResolvedModule(modRef)
+              if modRef.getName.item == "A_Module" =>
+            true
+          case _ => false
+        }
+      }
+      aNode shouldBe defined
+      val aNodeExporter = aNode.get.exportedBy.head.exporter
+      aNodeExporter.target
+        .isInstanceOf[BindingsMap.ResolvedModule] shouldBe true
+      aNodeExporter.target
+        .asInstanceOf[BindingsMap.ResolvedModule]
+        .qualifiedName
+        .item shouldBe "B_Module"
+    }
+
+    "build exports graph for static method" in {
+      val aModule =
+        """
+          |type A_Type
+          |    A_Constructor
+          |    instance_method self = 42
+          |
+          |static_method =
+          |    local_var = 42
+          |    local_var
+          |""".stripMargin
+          .createModule(packageQualifiedName.createChild("A_Module"))
+
+      val bModule =
+        s"""
+           |from $namespace.$packageName.A_Module export static_method
+           |
+           |type B_Type
+           |    B_Constructor val
+           |""".stripMargin
+          .createModule(packageQualifiedName.createChild("B_Module"))
+      val graph = buildExportsGraph(List(aModule, bModule))
+      val staticMethodNode = graph.find(node =>
+        node.target.isInstanceOf[BindingsMap.ResolvedStaticMethod]
+      )
+      staticMethodNode shouldBe defined
+      val staticMethodNodeExporter =
+        staticMethodNode.get.exportedBy.head.exporter
+      staticMethodNodeExporter.target
+        .isInstanceOf[BindingsMap.ResolvedModule] shouldBe true
+      staticMethodNodeExporter.target
+        .asInstanceOf[BindingsMap.ResolvedModule]
+        .qualifiedName
+        .item shouldBe "B_Module"
     }
   }
 }
