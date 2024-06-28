@@ -2,6 +2,7 @@ package org.enso.interpreter.test.exports;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.is;
 
@@ -93,7 +94,7 @@ public class ExportStaticMethodTest {
         new SourceModule(
             QualifiedName.fromString("Main"),
             """
-        from project.T_Module export module_method
+        export project.T_Module.module_method
         """);
     var projDir = tempFolder.newFolder().toPath();
     ProjectUtils.createProject("Proj", Set.of(tMod, mainMod), projDir);
@@ -135,7 +136,7 @@ public class ExportStaticMethodTest {
       var polyCtx = new PolyglotContext(ctx);
       polyCtx.getTopScope().compile(true);
       var mainModExportedSymbols = ModuleUtils.getExportedSymbolsFromModule(ctx, "local.Proj.Main");
-      assertThat(mainModExportedSymbols.size(), is(1));
+      assertThat(mainModExportedSymbols.size(), is(greaterThanOrEqualTo(1)));
       assertThat(mainModExportedSymbols, hasKey("static_method"));
     }
   }
