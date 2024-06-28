@@ -85,8 +85,69 @@ case object ImportSymbolAnalysis extends IRPass {
             }
           case None => List(imp)
         }
+      // Importing symbols from methods is not allowed. The following code checks that if the
+      // import is importing all from a method, an error is reported.
+      case imp @ Import.Module(
+            _,
+            _,
+            isAll,
+            _,
+            _,
+            _,
+            isSynthetic,
+            _,
+            _
+          ) if isAll && !isSynthetic =>
+        bindingMap.resolvedImports.find(_.importDef == imp) match {
+          case Some(resolvedImport) =>
+            val importedTarget = resolvedImport.target
+            importedTarget match {
+              case BindingsMap.ResolvedModuleMethod(module, method) =>
+                val err = createImportFromMethodError(
+                  imp,
+                  module.getName.toString,
+                  method.name
+                )
+                List(err)
+              case BindingsMap.ResolvedStaticMethod(module, staticMethod) =>
+                val err = createImportFromMethodError(
+                  imp,
+                  module.getName.createChild(staticMethod.tpName).toString,
+                  staticMethod.methodName
+                )
+                List(err)
+              case BindingsMap.ResolvedConversionMethod(
+                    module,
+                    conversionMethod
+                  ) =>
+                val err = createImportFromMethodError(
+                  imp,
+                  module.getName
+                    .createChild(conversionMethod.targetTpName)
+                    .toString,
+                  conversionMethod.methodName
+                )
+                List(err)
+              case _ => List(imp)
+            }
+          case None => List(imp)
+        }
       case _ => List(imp)
     }
+  }
+
+  private def createImportFromMethodError(
+    imp: Import,
+    moduleName: String,
+    methodName: String
+  ): errors.ImportExport = {
+    errors.ImportExport(
+      imp,
+      errors.ImportExport.IllegalImportFromMethod(
+        moduleName,
+        methodName
+      )
+    )
   }
 
   private def createErrorForUnresolvedSymbol(

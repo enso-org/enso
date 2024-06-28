@@ -165,6 +165,14 @@ object ImportExport {
       s"The symbol $symbolName (module, type, method, or constructor) does not exist in $moduleOrTypeName."
   }
 
+  case class IllegalImportFromMethod(
+    moduleName: String,
+    methodName: String
+  ) extends Reason {
+    override def message(source: (IdentifiedLocation => String)): String =
+      s"Cannot import symbols from method '$moduleName.$methodName'"
+  }
+
   case class NoSuchConstructor(
     typeName: String,
     constructorName: String

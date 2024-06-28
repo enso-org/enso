@@ -344,8 +344,8 @@ class ImportExportTest
       mainIr.imports.head
         .asInstanceOf[errors.ImportExport]
         .reason
-        .asInstanceOf[errors.ImportExport.ModuleDoesNotExist]
-        .name should include("static_method")
+        .asInstanceOf[errors.ImportExport.IllegalImportFromMethod]
+        .methodName should include("static_method")
     }
 
     "result in error when trying to import anything from a non-existing symbol" in {
