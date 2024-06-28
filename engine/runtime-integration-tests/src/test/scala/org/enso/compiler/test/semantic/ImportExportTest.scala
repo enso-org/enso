@@ -279,6 +279,35 @@ class ImportExportTest
         .name shouldEqual "static_method"
     }
 
+    "be able to import constructor from type" in {
+      """
+        |type My_Type
+        |    Constructor
+        |""".stripMargin
+        .createModule(packageQualifiedName.createChild("My_Module"))
+
+      val mainIr =
+        s"""
+          |import $namespace.$packageName.My_Module.My_Type.Constructor
+          |""".stripMargin
+          .createModule(packageQualifiedName.createChild("Main"))
+          .getIr
+      val bindingMap = mainIr.unwrapBindingMap
+      bindingMap.resolvedImports.size shouldBe 1
+      bindingMap
+        .resolvedImports
+        .head
+        .target shouldBe a[BindingsMap.ResolvedConstructor]
+
+      bindingMap
+        .resolvedImports
+        .head
+        .target
+        .asInstanceOf[BindingsMap.ResolvedConstructor]
+        .qualifiedName
+        .item shouldBe "Constructor"
+    }
+
     "result in error when trying to import mix of constructors and methods from a type" in {
       """
         |type Other_Module_Type
