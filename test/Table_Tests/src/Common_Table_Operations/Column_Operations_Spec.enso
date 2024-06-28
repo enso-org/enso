@@ -171,9 +171,7 @@ add_specs suite_builder setup =
     suite_builder.group prefix+"(Column_Operations_Spec) Boolean Column Operations" group_builder->
         table_builder = light_table_builder
         group_builder.specify "iif" <|
-            t = table_builder [["X", [True, False, Nothing, True]]]
-            # TODO
-            IO.println (t.at "X" . value_type)
+            t = build_sorted_table [["X", [True, False, Nothing, True]]]
             c1 = t.at "X" . iif 22 33
             c1.to_vector . should_equal [22, 33, Nothing, 22]
             c1.value_type . is_integer . should_be_true
