@@ -1314,7 +1314,7 @@ public final class Main {
       var jvm = line.getOptionValue(JVM_OPTION);
       var current = System.getProperty("java.home");
       if (jvm == null) {
-          jvm = current;
+        jvm = current;
       }
       if (current == null || !current.equals(jvm)) {
         var loc = Main.class.getProtectionDomain().getCodeSource().getLocation();
@@ -1338,6 +1338,16 @@ public final class Main {
         } else {
           commandAndArgs.add(new File(new File(new File(jvm), "bin"), "java").getAbsolutePath());
         }
+        var jvmOptions = System.getenv("JAVA_OPTS");
+        if (jvmOptions != null) {
+          for (var op : jvmOptions.split(" ")) {
+            if (op.isEmpty()) {
+              continue;
+            }
+            commandAndArgs.add(op);
+          }
+        }
+
         commandAndArgs.add("--add-opens=java.base/java.nio=ALL-UNNAMED");
         commandAndArgs.add("--module-path");
         var component = new File(loc.toURI().resolve("..")).getAbsoluteFile();
