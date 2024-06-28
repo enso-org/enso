@@ -2,7 +2,7 @@
 
 #### Enso IDE
 
-#### Enso IDE
+#### Enso Enso Standard Library
 
 # Enso 2024.1
 
