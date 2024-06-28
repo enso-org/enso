@@ -200,7 +200,7 @@ export default function Settings() {
         <ariaComponents.Text
           variant="h1"
           truncate="1"
-          className="ml-2.5 max-w-lg rounded-full border-0.5 border-primary/20 px-2.5 font-bold"
+          className="ml-2.5 max-w-lg rounded-full bg-white px-2.5 font-bold"
           aria-hidden
         >
           {data.organizationOnly === true ? organization?.name ?? 'your organization' : user.name}

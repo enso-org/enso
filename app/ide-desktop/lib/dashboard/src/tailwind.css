@@ -448,6 +448,10 @@
 
   @apply font-medium;
 
+  textarea {
+    background: unset;
+  }
+
   kbd {
     font-family: "Enso Prose", "Enso", "M PLUS 1", "Roboto Light", sans-serif;
   }
