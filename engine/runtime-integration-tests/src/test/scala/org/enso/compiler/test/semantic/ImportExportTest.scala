@@ -386,7 +386,6 @@ class ImportExportTest
         |""".stripMargin
         .createModule(packageQualifiedName.createChild("A_Module"))
       s"""
-         |import $namespace.$packageName.A_Module.A_Type
          |export $namespace.$packageName.A_Module.A_Type
          |""".stripMargin
         .createModule(packageQualifiedName.createChild("B_Module"))
@@ -1088,7 +1087,7 @@ class ImportExportTest
 
   "Import resolution for three modules" should {
 
-    "not resolve symbol that is not explicitly exported" in {
+    "XX not resolve symbol that is not explicitly exported" in {
       """
         |type A_Type
         |    A_Constructor
@@ -1105,15 +1104,21 @@ class ImportExportTest
         |""".stripMargin
         .createModule(packageQualifiedName.createChild("A_Module"))
 
-      s"""
-         |from $namespace.$packageName.A_Module import all
-         |from $namespace.$packageName.A_Module export static_method
-         |
-         |type B_Type
-         |    B_Constructor val
-         |""".stripMargin
+      val bIr = s"""
+                   |from $namespace.$packageName.A_Module import all
+                   |from $namespace.$packageName.A_Module export static_method
+                   |
+                   |type B_Type
+                   |    B_Constructor val
+                   |""".stripMargin
         .createModule(packageQualifiedName.createChild("B_Module"))
         .getIr
+      val bBindingMap = bIr.unwrapBindingMap
+      // TODO: bBindingsMap.resolvedExports?
+      bBindingMap.exportedSymbols.keys should contain theSameElementsAs List(
+        "static_method",
+        "B_Type"
+      )
 
       val mainIr =
         s"""
@@ -1433,6 +1438,47 @@ class ImportExportTest
         .asInstanceOf[BindingsMap.ResolvedModule]
         .qualifiedName
         .item shouldBe "B_Module"
+    }
+
+    "build exports graph for type" in {
+      val aModule =
+        """
+          |type A_Type
+          |    A_Constructor
+          |    instance_method self = 42
+          |
+          |static_method =
+          |    local_var = 42
+          |    local_var
+          |""".stripMargin
+          .createModule(packageQualifiedName.createChild("A_Module"))
+
+      val bModule =
+        s"""
+           |from $namespace.$packageName.A_Module export A_Type
+           |
+           |type B_Type
+           |    B_Constructor val
+           |""".stripMargin
+          .createModule(packageQualifiedName.createChild("B_Module"))
+      val graph = buildExportsGraph(List(aModule, bModule))
+      val typeNode = graph.find(node =>
+        node.target match {
+          case BindingsMap.ResolvedType(_, tp) =>
+            tp.name == "A_Type"
+          case _ => false
+        }
+      )
+      typeNode shouldBe defined
+      val typeNodeExporter =
+        typeNode.get.exportedBy.head.exporter
+      typeNodeExporter.target
+        .isInstanceOf[BindingsMap.ResolvedModule] shouldBe true
+      typeNodeExporter.target
+        .asInstanceOf[BindingsMap.ResolvedModule]
+        .qualifiedName
+        .item shouldBe "B_Module"
+
     }
   }
 }
