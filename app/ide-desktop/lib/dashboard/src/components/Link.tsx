@@ -47,7 +47,7 @@ export default function Link(props: LinkProps) {
             href: to,
             className,
             target: '_blank',
-            onClick: () => {
+            onPress: () => {
               toastify.toast.success(getText('openedLinkInBrowser'))
             },
           })}

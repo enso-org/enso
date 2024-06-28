@@ -218,6 +218,8 @@ export function Tab(props: InternalTabProps) {
       )}
     >
       <ariaComponents.Button
+        // Change this `button` into an `a` to avoid the DOM nesting error.
+        href=""
         size="custom"
         variant="custom"
         loaderPosition="icon"
