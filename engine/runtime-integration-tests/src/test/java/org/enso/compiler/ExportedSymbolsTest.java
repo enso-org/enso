@@ -79,7 +79,9 @@ public class ExportedSymbolsTest {
   @Test
   public void exportSymbolFromDifferentModule() throws IOException {
     var mainMod =
-        new SourceModule(QualifiedName.fromString("Main"), """
+        new SourceModule(
+            QualifiedName.fromString("Main"),
+            """
         from project.B_Module export B_Type
         type A_Type
         """);

@@ -19,8 +19,7 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 public class ExportConstructorTest {
-  @Rule
-  public TemporaryFolder tempFolder = new TemporaryFolder();
+  @Rule public TemporaryFolder tempFolder = new TemporaryFolder();
 
   @Test
   public void exportedConstructorsAreInBindingMap() throws IOException {
@@ -53,5 +52,4 @@ public class ExportConstructorTest {
       assertThat(mainModExportedSymbols, allOf(hasKey("True"), hasKey("False")));
     }
   }
-
 }

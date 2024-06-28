@@ -172,10 +172,7 @@ public final class ModuleScope implements EnsoObject {
   }
 
   public List<Type> getAllTypes() {
-    return types
-        .values()
-        .stream()
-        .collect(Collectors.toUnmodifiableList());
+    return types.values().stream().collect(Collectors.toUnmodifiableList());
   }
 
   @ExportMessage.Ignore

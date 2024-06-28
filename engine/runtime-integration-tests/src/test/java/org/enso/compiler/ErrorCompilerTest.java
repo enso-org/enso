@@ -599,8 +599,7 @@ public class ErrorCompilerTest extends CompilerTest {
         from project.Module export all
         """);
     var expectedReason = new Syntax.InvalidExport("`all` not allowed in `export` statement");
-    assertSingleSyntaxError(
-        ir, expectedReason, null, 0, 30);
+    assertSingleSyntaxError(ir, expectedReason, null, 0, 30);
   }
 
   @Test
@@ -609,8 +608,7 @@ public class ErrorCompilerTest extends CompilerTest {
         from project.Module export all hiding Foo
         """);
     var expectedReason = new Syntax.InvalidExport("`hiding` not allowed in `export` statement");
-    assertSingleSyntaxError(
-        ir, expectedReason, null, 0, 41);
+    assertSingleSyntaxError(ir, expectedReason, null, 0, 41);
   }
 
   private void assertSingleSyntaxError(

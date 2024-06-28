@@ -121,10 +121,10 @@ public abstract class ImportResolverAlgorithm<
       return null;
     }
     var constrName = parts.get(parts.size() - 1);
-    var consOpt = constructors
-        .stream()
-        .filter(cons -> nameForConstructor(cons).equals(constrName))
-        .findFirst();
+    var consOpt =
+        constructors.stream()
+            .filter(cons -> nameForConstructor(cons).equals(constrName))
+            .findFirst();
     return consOpt.orElse(null);
   }
 

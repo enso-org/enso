@@ -2,7 +2,6 @@ package org.enso.interpreter.node.callable;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import org.enso.compiler.phase.ImportResolverAlgorithm;
@@ -16,7 +15,8 @@ import org.enso.interpreter.runtime.data.atom.AtomConstructor;
 import org.enso.interpreter.runtime.scope.TopLevelScope;
 
 final class InvokeMethodImportResolver
-    extends ImportResolverAlgorithm<EnsoObject, Module, UnresolvedSymbol, Object, Type, Module, AtomConstructor> {
+    extends ImportResolverAlgorithm<
+        EnsoObject, Module, UnresolvedSymbol, Object, Type, Module, AtomConstructor> {
 
   private final Module module;
   private final TopLevelScope topScope;
@@ -97,8 +97,8 @@ final class InvokeMethodImportResolver
   }
 
   @Override
-  protected EnsoObject createResolvedConstructor(UnresolvedSymbol imp, List<Object> exp,
-      AtomConstructor cons) {
+  protected EnsoObject createResolvedConstructor(
+      UnresolvedSymbol imp, List<Object> exp, AtomConstructor cons) {
     throw new UnsupportedOperationException("unimplemented");
   }
 
