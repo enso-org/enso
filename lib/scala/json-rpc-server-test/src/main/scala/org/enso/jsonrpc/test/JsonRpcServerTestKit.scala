@@ -59,7 +59,7 @@ abstract class JsonRpcServerTestKit
 
   def clientControllerFactory(): ClientControllerFactory
 
-  var _clientControllerFactory: ClientControllerFactory = _
+  private var _clientControllerFactory: ClientControllerFactory = _
 
   override def beforeEach(): Unit = {
     super.beforeEach()
@@ -67,7 +67,7 @@ abstract class JsonRpcServerTestKit
     factory.init()
     _clientControllerFactory = clientControllerFactory()
     server                   = new JsonRpcServer(factory, _clientControllerFactory)
-    binding                  = Await.result(server.bind(interface, port = 0), 3.seconds)
+    binding                  = Await.result(server.bind(interface, port = 0), 5.seconds.dilated)
     address                  = s"ws://$interface:${binding.localAddress.getPort}"
   }
 
