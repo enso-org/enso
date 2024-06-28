@@ -260,21 +260,17 @@ class ImportExportTest
 
       val mainIr =
         s"""
-          |import $namespace.$packageName.My_Module.My_Type.Constructor
-          |""".stripMargin
+           |import $namespace.$packageName.My_Module.My_Type.Constructor
+           |""".stripMargin
           .createModule(packageQualifiedName.createChild("Main"))
           .getIr
       val bindingMap = mainIr.unwrapBindingMap
       bindingMap.resolvedImports.size shouldBe 1
-      bindingMap
-        .resolvedImports
-        .head
-        .target shouldBe a[BindingsMap.ResolvedConstructor]
+      bindingMap.resolvedImports.head.target shouldBe a[
+        BindingsMap.ResolvedConstructor
+      ]
 
-      bindingMap
-        .resolvedImports
-        .head
-        .target
+      bindingMap.resolvedImports.head.target
         .asInstanceOf[BindingsMap.ResolvedConstructor]
         .qualifiedName
         .item shouldBe "Constructor"
@@ -290,13 +286,16 @@ class ImportExportTest
 
       val mainIr =
         s"""
-          |export $namespace.$packageName.Boolean.Boolean.True
-          |export $namespace.$packageName.Boolean.Boolean.False
-          |""".stripMargin
+           |export $namespace.$packageName.Boolean.Boolean.True
+           |export $namespace.$packageName.Boolean.Boolean.False
+           |""".stripMargin
           .createModule(packageQualifiedName.createChild("Main"))
           .getIr
       val bindingMap = mainIr.unwrapBindingMap
-      bindingMap.exportedSymbols.keys should contain theSameElementsAs List("True", "False")
+      bindingMap.exportedSymbols.keys should contain theSameElementsAs List(
+        "True",
+        "False"
+      )
       bindingMap
         .exportedSymbols("True")
         .head
