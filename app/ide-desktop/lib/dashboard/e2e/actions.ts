@@ -656,6 +656,46 @@ export async function expectNotOpacity0(locator: test.Locator) {
   })
 }
 
+/** A test assertion to confirm that the element is onscreen. */
+export async function expectOnScreen(locator: test.Locator) {
+  await test.test.step('Expect to be onscreen', async () => {
+    await test
+      .expect(async () => {
+        const pageBounds = await locator.evaluate(() => document.body.getBoundingClientRect())
+        const bounds = await locator.evaluate(el => el.getBoundingClientRect())
+        test
+          .expect(
+            bounds.left < pageBounds.right &&
+              bounds.right > pageBounds.left &&
+              bounds.top < pageBounds.bottom &&
+              bounds.bottom > pageBounds.top
+          )
+          .toBe(true)
+      })
+      .toPass()
+  })
+}
+
+/** A test assertion to confirm that the element is onscreen. */
+export async function expectNotOnScreen(locator: test.Locator) {
+  await test.test.step('Expect to not be onscreen', async () => {
+    await test
+      .expect(async () => {
+        const pageBounds = await locator.evaluate(() => document.body.getBoundingClientRect())
+        const bounds = await locator.evaluate(el => el.getBoundingClientRect())
+        test
+          .expect(
+            bounds.left >= pageBounds.right ||
+              bounds.right <= pageBounds.left ||
+              bounds.top >= pageBounds.bottom ||
+              bounds.bottom <= pageBounds.top
+          )
+          .toBe(true)
+      })
+      .toPass()
+  })
+}
+
 // =======================
 // === Mouse utilities ===
 // =======================
