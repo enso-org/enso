@@ -121,6 +121,8 @@ const EXCEL_WORKBOOK_NODE_TYPE = 'Standard.Table.Excel.Excel_Workbook.Excel_Work
 const ROW_NODE_TYPE = 'Standard.Table.Row.Row'
 const SQLITE_CONNECTIONS_NODE_TYPE =
   'Standard.Database.Internal.SQLite.SQLite_Connection.SQLite_Connection'
+const POSTGRES_CONNECTIONS_NODE_TYPE =
+  'Standard.Database.Internal.Postgres.Postgres_Connection.Postgres_Connection'
 
 const rowLimit = ref(0)
 const page = ref(0)
@@ -186,6 +188,7 @@ const newNodeSelector = computed(() => {
       selector = 'Value'
       break
     case SQLITE_CONNECTIONS_NODE_TYPE:
+    case POSTGRES_CONNECTIONS_NODE_TYPE:
       selector = 'Value'
       break
   }
@@ -206,6 +209,7 @@ const newNodeAction = computed(() => {
       identifierAction = 'read'
       break
     case SQLITE_CONNECTIONS_NODE_TYPE:
+    case POSTGRES_CONNECTIONS_NODE_TYPE:
       identifierAction = 'query'
       break
   }
@@ -224,6 +228,7 @@ const onClickTooltipValue = computed(() => {
       val = 'sheet'
       break
     case SQLITE_CONNECTIONS_NODE_TYPE:
+    case POSTGRES_CONNECTIONS_NODE_TYPE:
       val = 'table'
       break
     case TABLE_NODE_TYPE:
@@ -376,6 +381,7 @@ const getTablePattern = (index: number) =>
   )
 
 function createNode(params: CellClickedEvent) {
+  console.log(config.nodeType)
   if (config.nodeType === TABLE_NODE_TYPE || config.nodeType === DB_TABLE_NODE_TYPE) {
     config.createNodes({
       content: getTablePattern(params.data[INDEX_FIELD_NAME]),
