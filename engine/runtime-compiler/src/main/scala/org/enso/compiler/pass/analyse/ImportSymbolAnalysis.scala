@@ -119,6 +119,32 @@ case object ImportSymbolAnalysis extends IRPass {
             unresolvedSymbol.name
           )
         )
+      case BindingsMap.ResolvedModuleMethod(_, method) =>
+        errors.ImportExport(
+          imp,
+          errors.ImportExport.NoSuchModuleMethod(
+            method.name,
+            unresolvedSymbol.name
+          )
+        )
+      case BindingsMap.ResolvedStaticMethod(mod, staticMethod) =>
+        errors.ImportExport(
+          imp,
+          errors.ImportExport.NoSuchStaticMethod(
+            moduleName = mod.getName.toString,
+            typeName   = staticMethod.tpName,
+            methodName = unresolvedSymbol.name
+          )
+        )
+      case BindingsMap.ResolvedConversionMethod(mod, conversionMethod) =>
+        errors.ImportExport(
+          imp,
+          errors.ImportExport.NoSuchConversionMethod(
+            moduleName     = mod.getName.toString,
+            targetTypeName = conversionMethod.targetTpName,
+            sourceTypeName = conversionMethod.sourceTpName
+          )
+        )
     }
   }
 

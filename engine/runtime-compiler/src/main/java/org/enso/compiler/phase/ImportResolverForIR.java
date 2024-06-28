@@ -15,6 +15,7 @@ import org.enso.compiler.data.BindingsMap;
 import org.enso.compiler.data.BindingsMap$ModuleReference$Concrete;
 import org.enso.compiler.data.BindingsMap.ResolvedConstructor;
 import org.enso.compiler.data.BindingsMap.ResolvedImport;
+import org.enso.compiler.data.BindingsMap.ResolvedModuleMethod;
 import org.enso.compiler.data.BindingsMap.ResolvedType;
 import org.enso.editions.LibraryName;
 
@@ -30,7 +31,8 @@ abstract class ImportResolverForIR extends ImportResolverAlgorithm<
   Export.Module,
   ResolvedType,
   CompilerContext.Module,
-  ResolvedConstructor
+  ResolvedConstructor,
+  ResolvedModuleMethod
 > {
   abstract Compiler getCompiler();
 
@@ -58,6 +60,12 @@ abstract class ImportResolverForIR extends ImportResolverAlgorithm<
   protected String nameForConstructor(ResolvedConstructor cons) {
     return cons.qualifiedName().item();
   }
+
+  @Override
+  protected String nameForModuleMethod(ResolvedModuleMethod resolvedModuleMethod) {
+    return resolvedModuleMethod.methodName();
+  }
+
 
   @Override
   protected final java.util.List<Export.Module> exportsFor(Module module, String impName) {
@@ -155,6 +163,39 @@ abstract class ImportResolverForIR extends ImportResolverAlgorithm<
   }
 
   @Override
+  protected java.util.List<ResolvedModuleMethod> definedModuleMethods(Import.Module imp) {
+    var parts = partsForImport(imp);
+    if (parts.size() < 3) {
+      return null;
+    }
+    var modMethodNameIdx = parts.size() - 1;
+    var modMethodName = parts.get(modMethodNameIdx);
+    var modFullName = parts
+        .stream()
+        .limit(modMethodNameIdx)
+        .collect(Collectors.joining("."));
+    var compiler = getCompiler();
+    var optionMod = compiler.getModule(modFullName);
+    if (optionMod.isEmpty()) {
+      return null;
+    }
+    var mod = optionMod.get();
+    compiler.ensureParsed(mod);
+    var bindingsMap = loadBindingsMap(mod);
+    var modMethods = scala.jdk.javaapi.CollectionConverters.asJava(bindingsMap.definedEntities())
+        .stream()
+        .filter(definedEntity -> {
+          if (definedEntity instanceof BindingsMap.ModuleMethod moduleMethod) {
+            return moduleMethod.name().equals(modMethodName);
+          }
+          return false;
+        })
+        .map(entity -> new ResolvedModuleMethod(new BindingsMap$ModuleReference$Concrete(mod), (BindingsMap.ModuleMethod) entity))
+        .collect(Collectors.toUnmodifiableList());
+    return modMethods;
+  }
+
+  @Override
   protected final CompilerContext.Module loadLibraryModule(LibraryName libraryName, String moduleName) throws IOException {
     var compiler = this.getCompiler();
     var repo = compiler.packageRepository();
@@ -189,6 +230,14 @@ abstract class ImportResolverForIR extends ImportResolverAlgorithm<
     scala.Option<org.enso.compiler.data.BindingsMap.ResolvedImport> someBinding = Option.apply(new BindingsMap.ResolvedImport(imp, toScalaList(exp), cons));
     return new Tuple2<>(imp, someBinding);
   }
+
+  @Override
+  protected Tuple2<Import, Option<ResolvedImport>> createResolvedModuleMethod(Import.Module imp,
+      java.util.List<Export.Module> exp, ResolvedModuleMethod resolvedModuleMethod) {
+    scala.Option<org.enso.compiler.data.BindingsMap.ResolvedImport> someBinding = Option.apply(new BindingsMap.ResolvedImport(imp, toScalaList(exp), resolvedModuleMethod));
+    return new Tuple2<>(imp, someBinding);
+  }
+
 
   @Override
   protected final Tuple2<Import, Option<BindingsMap.ResolvedImport>> createErrorPackageCoundNotBeLoaded(Import.Module imp, String impName, String loadingError) {

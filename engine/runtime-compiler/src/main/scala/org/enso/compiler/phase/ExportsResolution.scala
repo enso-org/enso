@@ -2,7 +2,11 @@ package org.enso.compiler.phase
 
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.data.BindingsMap.ModuleReference.Concrete
-import org.enso.compiler.data.BindingsMap.{ExportedModule, ImportTarget, ResolvedConstructor, ResolvedModule}
+import org.enso.compiler.data.BindingsMap.{
+  ExportedModule,
+  ImportTarget,
+  ResolvedModule
+}
 import org.enso.compiler.context.CompilerContext
 import org.enso.compiler.context.CompilerContext.Module
 
@@ -55,9 +59,8 @@ class ExportsResolution(private val context: CompilerContext) {
         Nil
       }
       val node = nodes(module)
-      node.exports = exports.map {
-        case ExportedModule(mod, rename) =>
-          Edge(node, rename, nodes.getOrElseUpdate(mod, Node(mod)))
+      node.exports = exports.map { case ExportedModule(mod, rename) =>
+        Edge(node, rename, nodes.getOrElseUpdate(mod, Node(mod)))
       }
       node.exports.foreach { edge => edge.exportee.exportedBy ::= edge }
     }
@@ -129,23 +132,20 @@ class ExportsResolution(private val context: CompilerContext) {
           ExportedModule(edge.exportee.module, edge.exportsAs)
         )
       val transitivelyExported: List[ExportedModule] =
-        explicitlyExported.flatMap {
-          case ExportedModule(module, _) =>
-            exports(module).map {
-              case ExportedModule(export, _) =>
-                ExportedModule(export, None)
-            }
+        explicitlyExported.flatMap { case ExportedModule(module, _) =>
+          exports(module).map { case ExportedModule(export, _) =>
+            ExportedModule(export, None)
+          }
         }
       val allExported = explicitlyExported ++ transitivelyExported
       exports(node.module) = allExported
     }
-    exports.foreach { case (module, exports) =>
-      module match {
-        case _: BindingsMap.ResolvedType =>
-        case _: ResolvedConstructor =>
+    exports.foreach { case (target, exports) =>
+      target match {
         case ResolvedModule(module) =>
           getBindings(module.unsafeAsModule()).resolvedExports =
             exports.map(ex => ex.copy())
+        case _ =>
       }
     }
   }

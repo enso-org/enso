@@ -653,7 +653,8 @@ object BindingsMap {
     /** @inheritdoc */
     override def module: ModuleReference = tpe.module
 
-    override def findExportedSymbolsFor(name: String): List[ResolvedName] = List()
+    override def findExportedSymbolsFor(name: String): List[ResolvedName] =
+      List()
 
     override def exportedSymbols: Map[String, List[ResolvedName]] = Map()
   }
@@ -694,8 +695,13 @@ object BindingsMap {
         .exportedSymbols
   }
 
-  sealed trait ResolvedMethod extends ResolvedName {
+  sealed trait ResolvedMethod extends ResolvedName with ImportTarget {
     def methodName: String
+
+    override def findExportedSymbolsFor(name: String): List[ResolvedName] =
+      List()
+
+    override def exportedSymbols: Map[String, List[ResolvedName]] = Map()
   }
 
   /** A representation of a resolved method defined directly on module.

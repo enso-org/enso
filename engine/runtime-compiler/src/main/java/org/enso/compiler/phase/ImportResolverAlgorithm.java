@@ -6,7 +6,14 @@ import org.enso.compiler.core.CompilerError;
 import org.enso.editions.LibraryName;
 
 public abstract class ImportResolverAlgorithm<
-    Result, Module, Import, Export, ResolvedType, ResolvedModule, ResolvedConstructor> {
+    Result,
+    Module,
+    Import,
+    Export,
+    ResolvedType,
+    ResolvedModule,
+    ResolvedConstructor,
+    ResolvedModuleMethod> {
   protected ImportResolverAlgorithm() {}
 
   protected abstract String nameForImport(Import imp);
@@ -18,6 +25,8 @@ public abstract class ImportResolverAlgorithm<
   protected abstract String nameForType(ResolvedType e);
 
   protected abstract String nameForConstructor(ResolvedConstructor cons);
+
+  protected abstract String nameForModuleMethod(ResolvedModuleMethod method);
 
   /**
    * Returns a list of all the exports from the module of the given symbol
@@ -35,6 +44,8 @@ public abstract class ImportResolverAlgorithm<
   protected abstract java.util.List<ResolvedType> definedEntities(Import name);
 
   protected abstract java.util.List<ResolvedConstructor> definedConstructors(Import name);
+
+  protected abstract java.util.List<ResolvedModuleMethod> definedModuleMethods(Import imp);
 
   /**
    * Ensure library is loaded and load a module.
@@ -54,13 +65,23 @@ public abstract class ImportResolverAlgorithm<
   protected abstract Result createResolvedConstructor(
       Import imp, java.util.List<Export> exp, ResolvedConstructor cons);
 
+  protected abstract Result createResolvedModuleMethod(
+      Import imp, java.util.List<Export> exp, ResolvedModuleMethod moduleMethod);
+
   protected abstract Result createErrorPackageCoundNotBeLoaded(
       Import imp, String impName, String loadingError);
 
   protected abstract Result createErrorModuleDoesNotExist(Import imp, String impName);
 
   /**
-   * Resolves given {@code Import} in context of given {@code Module}.
+   * Resolves given {@code Import} in context of given {@code Module}. Handles only an import of a
+   * specific symbol with syntax {@code import project.Module.Symbol}. The {@code from
+   * project.Module import Symbol} is handled by this algorithm by importing only the {@code Module}
+   * and not resolving the {@code Symbol}.
+   *
+   * <p>With the first syntax of import ({@code import project.Module.Symbol}), one case only import
+   * module, type from a module, constructor from a type or a module method. Static, extension and
+   * conversion methods can be imported only with the {@code from ... import all} syntax.
    *
    * @param module the module that wants to import something
    * @param imp the import to resolve
@@ -93,6 +114,13 @@ public abstract class ImportResolverAlgorithm<
       if (cons != null) {
         return createResolvedConstructor(imp, exp, cons);
       }
+      var moduleMethod = tryResolveAsModuleMethod(imp);
+      if (moduleMethod != null) {
+        return createResolvedModuleMethod(imp, exp, moduleMethod);
+      }
+      // static, extension and conversion methods can only be imported with
+      // `from <Module> import all` syntax. That syntax is handled by this algorithm
+      // by importing the `Module` only and not resolving all the symbols.
       return createErrorModuleDoesNotExist(imp, impName);
     } catch (IOException e) {
       return createErrorPackageCoundNotBeLoaded(imp, impName, e.getMessage());
@@ -126,6 +154,23 @@ public abstract class ImportResolverAlgorithm<
             .filter(cons -> nameForConstructor(cons).equals(constrName))
             .findFirst();
     return consOpt.orElse(null);
+  }
+
+  private ResolvedModuleMethod tryResolveAsModuleMethod(Import imp) {
+    var parts = partsForImport(imp);
+    if (parts.size() < 3) {
+      return null;
+    }
+    var moduleMethods = definedModuleMethods(imp);
+    if (moduleMethods == null) {
+      return null;
+    }
+    var methodName = parts.get(parts.size() - 1);
+    var methodOpt =
+        moduleMethods.stream()
+            .filter(method -> nameForModuleMethod(method).equals(methodName))
+            .findFirst();
+    return methodOpt.orElse(null);
   }
 
   public static final class HiddenNamesConflict extends RuntimeException {

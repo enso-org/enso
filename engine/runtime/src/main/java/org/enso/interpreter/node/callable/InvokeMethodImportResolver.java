@@ -9,6 +9,7 @@ import org.enso.editions.LibraryName;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
+import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.atom.AtomConstructor;
@@ -16,7 +17,7 @@ import org.enso.interpreter.runtime.scope.TopLevelScope;
 
 final class InvokeMethodImportResolver
     extends ImportResolverAlgorithm<
-        EnsoObject, Module, UnresolvedSymbol, Object, Type, Module, AtomConstructor> {
+        EnsoObject, Module, UnresolvedSymbol, Object, Type, Module, AtomConstructor, Function> {
 
   private final Module module;
   private final TopLevelScope topScope;
@@ -60,6 +61,11 @@ final class InvokeMethodImportResolver
   }
 
   @Override
+  protected String nameForModuleMethod(Function function) {
+    return function.getName();
+  }
+
+  @Override
   protected List<Object> exportsFor(Module module, String impName) {
     return Collections.emptyList();
   }
@@ -76,6 +82,11 @@ final class InvokeMethodImportResolver
 
   @Override
   protected List<AtomConstructor> definedConstructors(UnresolvedSymbol symbol) {
+    return Collections.emptyList();
+  }
+
+  @Override
+  protected List<Function> definedModuleMethods(UnresolvedSymbol symbol) {
     return Collections.emptyList();
   }
 
@@ -99,6 +110,12 @@ final class InvokeMethodImportResolver
   @Override
   protected EnsoObject createResolvedConstructor(
       UnresolvedSymbol imp, List<Object> exp, AtomConstructor cons) {
+    throw new UnsupportedOperationException("unimplemented");
+  }
+
+  @Override
+  protected EnsoObject createResolvedModuleMethod(
+      UnresolvedSymbol imp, List<Object> exp, Function function) {
     throw new UnsupportedOperationException("unimplemented");
   }
 

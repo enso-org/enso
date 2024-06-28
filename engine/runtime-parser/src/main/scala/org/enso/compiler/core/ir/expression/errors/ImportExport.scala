@@ -173,6 +173,32 @@ object ImportExport {
       s"No such constructor ${constructorName} in type $typeName"
   }
 
+  case class NoSuchModuleMethod(
+    moduleName: String,
+    methodName: String
+  ) extends Reason {
+    override def message(source: (IdentifiedLocation => String)): String =
+      s"No such method ${methodName} on module $moduleName"
+  }
+
+  case class NoSuchStaticMethod(
+    moduleName: String,
+    typeName: String,
+    methodName: String
+  ) extends Reason {
+    override def message(source: (IdentifiedLocation => String)): String =
+      s"No such static method ${methodName} on type $typeName in module $moduleName"
+  }
+
+  case class NoSuchConversionMethod(
+    moduleName: String,
+    targetTypeName: String,
+    sourceTypeName: String
+  ) extends Reason {
+    override def message(source: (IdentifiedLocation => String)): String =
+      s"No such conversion method from $sourceTypeName to $targetTypeName in module $moduleName"
+  }
+
   case class ExportSymbolsFromPrivateModule(
     moduleName: String
   ) extends Reason {
