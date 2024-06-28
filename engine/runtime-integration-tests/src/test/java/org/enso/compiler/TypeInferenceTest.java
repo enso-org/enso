@@ -1044,7 +1044,11 @@ public class TypeInferenceTest extends StaticAnalysisTest {
                         x2 = inst.one_arg inst
                         x3 = My_Type.static_zero
                         x4 = My_Type.static_one inst
-                        [x1, x2, x3, x4]
+                        
+                        # And calling member methods through static syntax:
+                        x5 = My_Type.zero_arg inst
+                        x6 = My_Type.one_arg inst
+                        [x1, x2, x3, x4, x5, x6]
                     """,
                 uri.getAuthority())
             .uri(uri)
@@ -1060,6 +1064,9 @@ public class TypeInferenceTest extends StaticAnalysisTest {
     assertAtomType(myType, findAssignment(foo, "x2"));
     assertAtomType(myType, findAssignment(foo, "x3"));
     assertAtomType(myType, findAssignment(foo, "x4"));
+    assertAtomType(myType, findAssignment(foo, "x5"));
+    // Last function was not fully applied - still expecting 1 arg:
+    assertEquals("My_Type -> My_Type", getInferredType(findAssignment(foo, "x6")).toString());
   }
 
   @Test
