@@ -111,6 +111,14 @@ case object ImportSymbolAnalysis extends IRPass {
             unresolvedSymbol.name
           )
         )
+      case BindingsMap.ResolvedConstructor(_, cons) =>
+        errors.ImportExport(
+          imp,
+          errors.ImportExport.NoSuchConstructor(
+            cons.name,
+            unresolvedSymbol.name
+          )
+        )
     }
   }
 

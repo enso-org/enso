@@ -2,6 +2,7 @@ package org.enso.interpreter.node.callable;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import org.enso.compiler.phase.ImportResolverAlgorithm;
@@ -11,10 +12,11 @@ import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.data.atom.AtomConstructor;
 import org.enso.interpreter.runtime.scope.TopLevelScope;
 
 final class InvokeMethodImportResolver
-    extends ImportResolverAlgorithm<EnsoObject, Module, UnresolvedSymbol, Object, Type, Module> {
+    extends ImportResolverAlgorithm<EnsoObject, Module, UnresolvedSymbol, Object, Type, Module, AtomConstructor> {
 
   private final Module module;
   private final TopLevelScope topScope;
@@ -53,6 +55,11 @@ final class InvokeMethodImportResolver
   }
 
   @Override
+  protected String nameForConstructor(AtomConstructor cons) {
+    return cons.getName();
+  }
+
+  @Override
   protected List<Object> exportsFor(Module module, String impName) {
     return Collections.emptyList();
   }
@@ -65,6 +72,11 @@ final class InvokeMethodImportResolver
   @Override
   protected List<Type> definedEntities(UnresolvedSymbol symbol) {
     return module.getScope().getAllTypes(symbol.getName());
+  }
+
+  @Override
+  protected List<AtomConstructor> definedConstructors(UnresolvedSymbol symbol) {
+    return Collections.emptyList();
   }
 
   @Override
@@ -82,6 +94,12 @@ final class InvokeMethodImportResolver
   @Override
   protected EnsoObject createResolvedType(UnresolvedSymbol imp, List<Object> exp, Type typ) {
     return typ;
+  }
+
+  @Override
+  protected EnsoObject createResolvedConstructor(UnresolvedSymbol imp, List<Object> exp,
+      AtomConstructor cons) {
+    throw new UnsupportedOperationException("unimplemented");
   }
 
   @Override

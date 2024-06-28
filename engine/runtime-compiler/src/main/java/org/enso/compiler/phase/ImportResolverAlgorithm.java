@@ -6,7 +6,7 @@ import org.enso.compiler.core.CompilerError;
 import org.enso.editions.LibraryName;
 
 public abstract class ImportResolverAlgorithm<
-    Result, Module, Import, Export, ResolvedType, ResolvedModule> {
+    Result, Module, Import, Export, ResolvedType, ResolvedModule, ResolvedConstructor> {
   protected ImportResolverAlgorithm() {}
 
   protected abstract String nameForImport(Import imp);
@@ -16,6 +16,8 @@ public abstract class ImportResolverAlgorithm<
   protected abstract String nameForExport(Export ex);
 
   protected abstract String nameForType(ResolvedType e);
+
+  protected abstract String nameForConstructor(ResolvedConstructor cons);
 
   /**
    * Returns a list of all the exports from the module of the given symbol
@@ -32,6 +34,8 @@ public abstract class ImportResolverAlgorithm<
 
   protected abstract java.util.List<ResolvedType> definedEntities(Import name);
 
+  protected abstract java.util.List<ResolvedConstructor> definedConstructors(Import name);
+
   /**
    * Ensure library is loaded and load a module.
    *
@@ -46,6 +50,9 @@ public abstract class ImportResolverAlgorithm<
 
   protected abstract Result createResolvedType(
       Import imp, java.util.List<Export> exp, ResolvedType m);
+
+  protected abstract Result createResolvedConstructor(
+      Import imp, java.util.List<Export> exp, ResolvedConstructor cons);
 
   protected abstract Result createErrorPackageCoundNotBeLoaded(
       Import imp, String impName, String loadingError);
@@ -77,14 +84,16 @@ public abstract class ImportResolverAlgorithm<
       var m = loadLibraryModule(libraryName, impName);
       if (m != null) {
         return createResolvedImport(imp, exp, m);
-      } else {
-        var typ = tryResolveAsTypeNew(imp);
-        if (typ != null) {
-          return createResolvedType(imp, exp, typ);
-        } else {
-          return createErrorModuleDoesNotExist(imp, impName);
-        }
       }
+      var typ = tryResolveAsTypeNew(imp);
+      if (typ != null) {
+        return createResolvedType(imp, exp, typ);
+      }
+      var cons = tryResolveAsConstructor(imp);
+      if (cons != null) {
+        return createResolvedConstructor(imp, exp, cons);
+      }
+      return createErrorModuleDoesNotExist(imp, impName);
     } catch (IOException e) {
       return createErrorPackageCoundNotBeLoaded(imp, impName, e.getMessage());
     }
@@ -100,6 +109,23 @@ public abstract class ImportResolverAlgorithm<
     }
     var type = entities.stream().filter(e -> nameForType(e).equals(tp)).findFirst();
     return type.orElse(null);
+  }
+
+  private ResolvedConstructor tryResolveAsConstructor(Import imp) {
+    var parts = partsForImport(imp);
+    if (parts.size() < 3) {
+      return null;
+    }
+    var constructors = definedConstructors(imp);
+    if (constructors == null) {
+      return null;
+    }
+    var constrName = parts.get(parts.size() - 1);
+    var consOpt = constructors
+        .stream()
+        .filter(cons -> nameForConstructor(cons).equals(constrName))
+        .findFirst();
+    return consOpt.orElse(null);
   }
 
   public static final class HiddenNamesConflict extends RuntimeException {

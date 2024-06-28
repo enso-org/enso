@@ -3,6 +3,7 @@ package org.enso.compiler.phase;
 import java.io.IOException;
 import java.util.Objects;
 
+import java.util.stream.Collectors;
 import org.enso.common.CompilationStage;
 import org.enso.compiler.Compiler;
 import org.enso.compiler.context.CompilerContext;
@@ -12,6 +13,8 @@ import org.enso.compiler.core.ir.module.scope.Export;
 import org.enso.compiler.core.ir.module.scope.Import;
 import org.enso.compiler.data.BindingsMap;
 import org.enso.compiler.data.BindingsMap$ModuleReference$Concrete;
+import org.enso.compiler.data.BindingsMap.ResolvedConstructor;
+import org.enso.compiler.data.BindingsMap.ResolvedImport;
 import org.enso.compiler.data.BindingsMap.ResolvedType;
 import org.enso.editions.LibraryName;
 
@@ -26,7 +29,8 @@ abstract class ImportResolverForIR extends ImportResolverAlgorithm<
   Import.Module,
   Export.Module,
   ResolvedType,
-  CompilerContext.Module
+  CompilerContext.Module,
+  ResolvedConstructor
 > {
   abstract Compiler getCompiler();
 
@@ -48,6 +52,11 @@ abstract class ImportResolverForIR extends ImportResolverAlgorithm<
   @Override
   protected final String nameForType(BindingsMap.ResolvedType e) {
     return e.qualifiedName().item();
+  }
+
+  @Override
+  protected String nameForConstructor(ResolvedConstructor cons) {
+    return cons.qualifiedName().item();
   }
 
   @Override
@@ -80,16 +89,7 @@ abstract class ImportResolverForIR extends ImportResolverAlgorithm<
     }
     var mod = optionMod.get();
     compiler.ensureParsed(mod);
-    var bindingsMap = mod.getBindingsMap();
-    if (bindingsMap == null) {
-      compiler.context().updateModule(mod, u -> {
-        u.invalidateCache();
-        u.ir(null);
-        u.compilationStage(CompilationStage.INITIAL);
-      });
-      compiler.ensureParsed(mod, false);
-      bindingsMap = mod.getBindingsMap();
-    }
+    var bindingsMap = loadBindingsMap(mod);
     var entitiesStream = bindingsMap.definedEntities().map(e -> switch (e) {
       case BindingsMap.Type t -> {
         assert e.name().equals(t.name()) : e.name() + " != " + t.name();
@@ -101,6 +101,57 @@ abstract class ImportResolverForIR extends ImportResolverAlgorithm<
     }).filter(Objects::nonNull);
     var entities = CollectionConverters.SeqHasAsJava(entitiesStream).asJava();
     return entities;
+  }
+
+  /**
+   * Returns list of constructors for the given import.
+   * @param imp The import is treated as an import of a constructor from a type.
+   *            The last part is constructor, the second to last is type,
+   *            the third to last is module.
+   * @return null if the import is not a constructor import.
+   */
+  @Override
+  protected java.util.List<ResolvedConstructor> definedConstructors(Import.Module imp) {
+    var parts = partsForImport(imp);
+    if (parts.size() < 3) {
+      return null;
+    }
+    var typeName = parts.get(parts.size() - 2);
+    var modFullName = parts
+        .stream()
+        .limit(parts.size() - 2)
+        .collect(Collectors.joining("."));
+    var compiler = getCompiler();
+    var optionMod = compiler.getModule(modFullName);
+    if (optionMod.isEmpty()) {
+      return null;
+    }
+    var mod = optionMod.get();
+    compiler.ensureParsed(mod);
+    var bindingsMap = loadBindingsMap(mod);
+    var foundType = scala.jdk.javaapi.CollectionConverters.asJava(bindingsMap.definedEntities())
+        .stream()
+        .map(e -> {
+          if (e instanceof BindingsMap.Type tp) {
+            return tp;
+          }
+          return null;
+        })
+        .filter(Objects::nonNull)
+        .filter(tp -> tp.name().equals(typeName))
+        .findFirst();
+    if (foundType.isEmpty()) {
+      return null;
+    }
+    var tp = foundType.get();
+    var resolvedType = new BindingsMap.ResolvedType(
+        new BindingsMap$ModuleReference$Concrete(mod),
+        tp
+    );
+    return scala.jdk.javaapi.CollectionConverters.asJava(tp.members())
+        .stream()
+        .map(cons -> new ResolvedConstructor(resolvedType, cons))
+        .collect(Collectors.toUnmodifiableList());
   }
 
   @Override
@@ -133,6 +184,13 @@ abstract class ImportResolverForIR extends ImportResolverAlgorithm<
   }
 
   @Override
+  protected Tuple2<Import, Option<ResolvedImport>> createResolvedConstructor(Import.Module imp,
+      java.util.List<Export.Module> exp, ResolvedConstructor cons) {
+    scala.Option<org.enso.compiler.data.BindingsMap.ResolvedImport> someBinding = Option.apply(new BindingsMap.ResolvedImport(imp, toScalaList(exp), cons));
+    return new Tuple2<>(imp, someBinding);
+  }
+
+  @Override
   protected final Tuple2<Import, Option<BindingsMap.ResolvedImport>> createErrorPackageCoundNotBeLoaded(Import.Module imp, String impName, String loadingError) {
     org.enso.compiler.core.ir.expression.errors.ImportExport importError = new ImportExport(imp, new ImportExport.PackageCouldNotBeLoaded(impName, loadingError), imp.passData(), imp.diagnostics());
     return new Tuple2<>(importError, Option.empty());
@@ -141,6 +199,20 @@ abstract class ImportResolverForIR extends ImportResolverAlgorithm<
   @Override
   protected final Tuple2<Import, Option<BindingsMap.ResolvedImport>> createErrorModuleDoesNotExist(Import.Module imp, String impName) {
     return new Tuple2<>(new ImportExport(imp, new ImportExport.ModuleDoesNotExist(impName), imp.passData(), imp.diagnostics()), Option.empty());
+  }
+
+  private BindingsMap loadBindingsMap(CompilerContext.Module mod) {
+    var bindingsMap = mod.getBindingsMap();
+    if (bindingsMap == null) {
+      getCompiler().context().updateModule(mod, u -> {
+        u.invalidateCache();
+        u.ir(null);
+        u.compilationStage(CompilationStage.INITIAL);
+      });
+      getCompiler().ensureParsed(mod, false);
+      bindingsMap = mod.getBindingsMap();
+    }
+    return bindingsMap;
   }
 
   private static <T> List<T> toScalaList(java.util.List<T> qualifiedConflicts) {

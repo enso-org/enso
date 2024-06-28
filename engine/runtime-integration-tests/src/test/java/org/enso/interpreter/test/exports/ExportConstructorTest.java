@@ -36,7 +36,8 @@ public class ExportConstructorTest {
         new SourceModule(
             QualifiedName.fromString("Main"),
             """
-        from project.Boolean.Boolean export True, False
+        export project.Boolean.Boolean.True
+        export project.Boolean.Boolean.False
         """);
     var projDir = tempFolder.newFolder().toPath();
     ProjectUtils.createProject("Proj", Set.of(booleanMod, mainMod), projDir);

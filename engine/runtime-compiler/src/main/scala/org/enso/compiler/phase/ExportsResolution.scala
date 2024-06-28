@@ -142,6 +142,7 @@ class ExportsResolution(private val context: CompilerContext) {
     exports.foreach { case (module, exports) =>
       module match {
         case _: BindingsMap.ResolvedType =>
+        case _: ResolvedConstructor =>
         case ResolvedModule(module) =>
           getBindings(module.unsafeAsModule()).resolvedExports =
             exports.map(ex => ex.copy())

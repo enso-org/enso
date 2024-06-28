@@ -631,7 +631,8 @@ object BindingsMap {
     * @param cons a representation of the constructor.
     */
   case class ResolvedConstructor(tpe: ResolvedType, cons: Cons)
-      extends ResolvedName {
+      extends ResolvedName
+      with ImportTarget {
 
     /** @inheritdoc */
     override def toAbstract: ResolvedConstructor = {
@@ -651,6 +652,10 @@ object BindingsMap {
 
     /** @inheritdoc */
     override def module: ModuleReference = tpe.module
+
+    override def findExportedSymbolsFor(name: String): List[ResolvedName] = List()
+
+    override def exportedSymbols: Map[String, List[ResolvedName]] = Map()
   }
 
   /** A representation of a name being resolved to a module.
