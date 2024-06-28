@@ -19,7 +19,7 @@ export default function Checkbox(props: CheckboxProps) {
   return (
     <FocusRing>
       <aria.Checkbox
-        className="group flex size-3 cursor-pointer overflow-clip rounded-sm text-cloud outline outline-1 outline-primary checkbox"
+        className="group flex size-3 cursor-pointer overflow-clip rounded-sm text-invite outline outline-1 outline-primary checkbox"
         {...props}
       >
         <SvgMask

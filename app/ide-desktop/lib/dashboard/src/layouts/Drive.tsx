@@ -346,21 +346,20 @@ export default function Drive(props: DriveProps) {
           <div
             className={tailwindMerge.twMerge(
               'flex flex-col overflow-hidden transition-min-width duration-side-panel ease-in-out',
-              isAssetPanelVisible ? 'min-w-side-panel' : 'invisible min-w'
+              isAssetPanelVisible ? 'min-w-side-panel' : 'min-w'
             )}
           >
-            {isAssetPanelVisible && (
-              <AssetPanel
-                key={assetPanelProps?.item?.item.id}
-                backend={assetPanelProps?.backend ?? null}
-                item={assetPanelProps?.item ?? null}
-                setItem={assetPanelProps?.setItem ?? null}
-                category={category}
-                dispatchAssetEvent={dispatchAssetEvent}
-                dispatchAssetListEvent={dispatchAssetListEvent}
-                isReadonly={category === Category.trash}
-              />
-            )}
+            <AssetPanel
+              isVisible={isAssetPanelVisible}
+              key={assetPanelProps?.item?.item.id}
+              backend={assetPanelProps?.backend ?? null}
+              item={assetPanelProps?.item ?? null}
+              setItem={assetPanelProps?.setItem ?? null}
+              category={category}
+              dispatchAssetEvent={dispatchAssetEvent}
+              dispatchAssetListEvent={dispatchAssetListEvent}
+              isReadonly={category === Category.trash}
+            />
           </div>
         </div>
       )
