@@ -657,13 +657,13 @@ supported_replace_params =
     Set.from_vector <| e0 + e1 + e2 + e3 + e4
 
 add_table_specs suite_builder =
-    db_name = Environment.get "ENSO_DATABASE_TEST_DB_NAME"
-    db_host_port = (Environment.get "ENSO_DATABASE_TEST_HOST").if_nothing "localhost" . split ':'
+    db_name = Environment.get "ENSO_POSTGRES_DATABASE"
+    db_host_port = (Environment.get "ENSO_POSTGRES_HOST").if_nothing "localhost" . split ':'
     db_host = db_host_port.at 0
     db_port = if db_host_port.length == 1 then 5432 else Integer.parse (db_host_port.at 1)
-    db_user = Environment.get "ENSO_DATABASE_TEST_DB_USER"
-    db_password = Environment.get "ENSO_DATABASE_TEST_DB_PASSWORD"
-    ca_cert_file = Environment.get "ENSO_DATABASE_TEST_CA_CERT_FILE"
+    db_user = Environment.get "ENSO_POSTGRES_USER"
+    db_password = Environment.get "ENSO_POSTGRES_PASSWORD"
+    ca_cert_file = Environment.get "ENSO_POSTGRES_CA_CERT_FILE"
 
     ssl_pending = if ca_cert_file.is_nothing then "PostgreSQL SSL test not configured." else Nothing
 
@@ -685,7 +685,7 @@ add_table_specs suite_builder =
         group_builder.specify "should connect be able to verify the host name against the certificate" <|
             Database.connect (Postgres db_host db_port db_name credentials=(Credentials.Username_And_Password db_user db_password) use_ssl=(SSL_Mode.Full_Verification ca_cert_file)) . should_succeed
 
-        alternate_host = Environment.get "ENSO_DATABASE_TEST_ALTERNATE_HOST" . if_nothing <|
+        alternate_host = Environment.get "ENSO_POSTGRES_ALTERNATE_HOST" . if_nothing <|
             if db_host == "127.0.0.1" then "localhost" else Nothing
         pending_alternate = if alternate_host.is_nothing then "Alternative host name not configured." else Nothing
         group_builder.specify "should fail to connect with alternate host name not valid in certificate" pending=pending_alternate <|
@@ -728,12 +728,12 @@ with_secret name value callback =
     Panic.with_finalizer secret.delete (callback secret)
 
 get_configured_connection_details =
-    db_name = Environment.get "ENSO_DATABASE_TEST_DB_NAME"
-    db_host_port = (Environment.get "ENSO_DATABASE_TEST_HOST").if_nothing "localhost" . split ':'
+    db_name = Environment.get "ENSO_POSTGRES_DATABASE"
+    db_host_port = (Environment.get "ENSO_POSTGRES_HOST").if_nothing "localhost" . split ':'
     db_host = db_host_port.at 0
     db_port = if db_host_port.length == 1 then 5432 else Integer.parse (db_host_port.at 1)
-    db_user = Environment.get "ENSO_DATABASE_TEST_DB_USER"
-    db_password = Environment.get "ENSO_DATABASE_TEST_DB_PASSWORD"
+    db_user = Environment.get "ENSO_POSTGRES_USER"
+    db_password = Environment.get "ENSO_POSTGRES_PASSWORD"
     if db_name.is_nothing then Nothing  else
         Postgres db_host db_port db_name credentials=(Credentials.Username_And_Password db_user db_password)
 
