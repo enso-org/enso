@@ -31,7 +31,6 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         label: '#f0f1f3',
         help: '#3f68ce',
         invite: '#0e81d4',
-        cloud: '#0666be',
         share: '#64b526',
         inversed: '#ffffff',
         green: '#3e8b29',

@@ -33,7 +33,7 @@ export default function SearchBar(props: SearchBarProps) {
           data-testid={props['data-testid']}
           {...aria.mergeProps<aria.LabelProps>()(innerProps, {
             className:
-              'group relative flex grow sm:grow-0 sm:basis-[512px] h-row items-center gap-asset-search-bar rounded-full px-input-x text-primary border-0.5 border-primary/20 transition-colors',
+              'group relative flex grow sm:grow-0 sm:basis-[512px] h-row items-center gap-asset-search-bar rounded-full px-input-x text-primary border-0.5 border-primary/20 transition-colors focus-within:outline focus-within:outline-2 outline-primary -outline-offset-1',
           })}
         >
           <SvgMask src={FindIcon} className="text-primary/30" />
