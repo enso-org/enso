@@ -96,6 +96,9 @@ export function TermsOfServiceModal() {
   )
 
   if (shouldDisplay) {
+    // Note that this produces warnings about missing a `<Heading slot="title">`, even though
+    // all `ariaComponents.Dialog`s contain one. This is likely caused by Suspense discarding
+    // renders, and so it does not seem to be fixable.
     return (
       <>
         <ariaComponents.Dialog
