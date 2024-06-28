@@ -16,7 +16,7 @@ import * as common from 'enso-common'
 import GLOBAL_CONFIG from 'enso-common/src/config.json' assert { type: 'json' }
 import * as contentConfig from 'enso-content-config'
 import * as ydocServer from 'enso-gui2/ydoc-server'
-import * as projectManagement from 'enso-project-manager-shim/src/projectManagement'
+import * as projectManagement from 'project-management'
 
 import * as paths from '../paths'
 

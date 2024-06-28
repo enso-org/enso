@@ -33,7 +33,10 @@ type Snowflake_Connection
     create : Text -> Vector -> (Text -> Text -> Snowflake_Connection) -> Snowflake_Connection
     create url properties make_new =
         jdbc_connection = JDBC_Connection.create url properties
-        entity_naming_properties = Entity_Naming_Properties.from_jdbc_connection jdbc_connection is_case_sensitive=False
+        ## As long as names are quoted, the Snowflake SQL dialect is case sensitive.
+           Our generator always quotes identifiers, so we can rely on the case sensitivity.
+           This is the same as in Postgres.
+        entity_naming_properties = Entity_Naming_Properties.from_jdbc_connection jdbc_connection is_case_sensitive=True
         Snowflake_Connection.Value (Connection.new jdbc_connection Snowflake_Dialect.snowflake entity_naming_properties) make_new
 
     ## PRIVATE
