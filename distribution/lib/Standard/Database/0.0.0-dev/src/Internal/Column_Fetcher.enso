@@ -192,7 +192,7 @@ default_fetcher_for_value_type value_type =
         Value_Type.Date_Time has_timezone ->
             if has_timezone then date_time_fetcher else local_date_time_fetcher
         ## If we can determine that scale <= 0, we use BigIntegerBuilder.
-           Otherwise, we use InferredBuilder, since it's possible some values
+           Otherwise, we use BigDecimalBuilder, since it's possible some values
            will be BigDecimal.
         Value_Type.Decimal _ scale ->
             is_guaranteed_integer = scale.is_nothing.not && scale <= 0
