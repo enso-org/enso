@@ -384,9 +384,10 @@ export abstract class MutableAst extends Ast {
     assertEqual(changes, 1)
   }
 
-  protected claimChild<T extends MutableAst>(child: Owned<T>): AstId
-  protected claimChild<T extends MutableAst>(child: Owned<T> | undefined): AstId | undefined
-  protected claimChild<T extends MutableAst>(child: Owned<T> | undefined): AstId | undefined {
+  /** @internal */
+  claimChild<T extends MutableAst>(child: Owned<T>): AstId
+  claimChild<T extends MutableAst>(child: Owned<T> | undefined): AstId | undefined
+  claimChild<T extends MutableAst>(child: Owned<T> | undefined): AstId | undefined {
     return child ? claimChild(this.module, child, this.id) : undefined
   }
 }

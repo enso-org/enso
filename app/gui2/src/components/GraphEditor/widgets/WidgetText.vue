@@ -21,7 +21,9 @@ const editing = WidgetEditHandler.New('WidgetText', props.input, {
     input.value?.blur()
   },
   pointerdown(event) {
-    if (targetIsOutside(event, unrefElement(input))) accepted()
+    if (targetIsOutside(event, unrefElement(input))) {
+      accepted()
+    }
     return false
   },
   end() {
