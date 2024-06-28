@@ -47,4 +47,4 @@ Cargo.toml
 /app/*.* @PabloBuchu @indiv0 @somebody1234 @MrFlashAccount
 # The data-link schema is owned by the libraries team
 /app/dashboard/src/data/datalinkSchema.json @radeusgd @jdunkerley @GregoryTravis @AdRiley @marthasharkey
-/app/dashboard/src/data/__tests__ @radeusgd @jdunkerley @GregoryTravis @AdRiley @marthasharkey @PabloBuchu @indiv0 @somebody1234
+/app/dashboard/src/data/__tests__ @radeusgd @jdunkerley @GregoryTravis @AdRiley @marthasharkey @PabloBuchu @indiv0 @somebody1234 @MrFlashAccount
