@@ -465,12 +465,29 @@ postgres_specific_spec suite_builder create_connection_fn db_name setup =
 
         group_builder.specify "should be able to round-trip a BigDecimal column" <|
             x = Decimal.new "123.45234737459387459837493874593874937845937495837459345345345E468"
-            m1 = Table.new [["X", [x, x+1]]]
+            m1 = Table.new [["X", [Decimal.new 10, x, x+1]]]
             m1.at "X" . value_type . should_equal (Value_Type.Decimal Nothing Nothing)
 
             t1 = m1.select_into_database_table data.connection "BigDecimal" primary_key=[] temporary=True
             t1.at "X" . value_type . should_equal (Value_Type.Decimal Nothing Nothing)
-            t1.at "X" . to_vector . should_equal [x, x+1]
+            t1.at "X" . to_vector . should_equal [10, x, x+1]
+
+            v1x = t1.at "X" . to_vector
+            v1x.should_equal [10, x, x+1]
+            v1x.each e-> Test.with_clue "("+e.to_text+"): " <| e.should_be_a Decimal
+
+            t2 = t1.set (expr "[X] + 10") "Y"
+            t2.at "X" . value_type . should_equal (Value_Type.Decimal Nothing Nothing)
+            t2.at "Y" . value_type . should_equal (Value_Type.Decimal Nothing Nothing)
+            t2.at "X" . to_vector . should_equal [10, x, x+1]
+            t2.at "Y" . to_vector . should_equal [20, x+10, x+11]
+            t2.at "Y" . cast Value_Type.Char . to_vector . should_equal ["20", (x+10).to_text, (x+11).to_text]
+
+            m2 = t2.remove_warnings.read
+            m2.at "X" . value_type . should_equal (Value_Type.Decimal Nothing Nothing)
+            m2.at "Y" . value_type . should_equal (Value_Type.Decimal Nothing Nothing)
+            m2.at "X" . to_vector . should_equal [10, x, x+1]
+            m2.at "Y" . to_vector . should_equal [20, x+10, x+11]
 
         group_builder.specify "type inference adjustments in cast_op_type` should not cause overflows" <|
             max_long = 9223372036854775807
