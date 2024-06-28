@@ -212,7 +212,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
                   isReadonly={isReadonly}
                   item={item}
                   setItem={setItem}
-                  state={{ backend, category, dispatchAssetEvent, setQuery: () => {} }}
+                  state={{ category, dispatchAssetEvent, setQuery: () => {} }}
                 />
               </td>
             </tr>

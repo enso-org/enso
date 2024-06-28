@@ -5,7 +5,7 @@
 // ===============
 
 /** An interface specifying the variant of a newtype. */
-interface NewtypeVariant<TypeName extends string> {
+export interface NewtypeVariant<TypeName extends string> {
   // eslint-disable-next-line @typescript-eslint/naming-convention
   readonly _$type: TypeName
 }
@@ -14,7 +14,7 @@ interface NewtypeVariant<TypeName extends string> {
  * This is safe, as the discriminator should be a string literal type anyway. */
 // This is required for compatibility with the dependency `enso-chat`.
 // eslint-disable-next-line no-restricted-syntax
-interface MutableNewtypeVariant<TypeName extends string> {
+export interface MutableNewtypeVariant<TypeName extends string> {
   // eslint-disable-next-line @typescript-eslint/naming-convention
   _$type: TypeName
 }
@@ -36,7 +36,8 @@ export type Newtype<T, TypeName extends string> = NewtypeVariant<TypeName> & T
 
 /** Extracts the original type out of a {@link Newtype}.
  * Its only use is in {@link newtypeConstructor}. */
-type UnNewtype<T extends Newtype<unknown, string>> = T extends infer U & NewtypeVariant<T['_$type']>
+export type UnNewtype<T extends Newtype<unknown, string>> = T extends infer U &
+  NewtypeVariant<T['_$type']>
   ? U extends infer V & MutableNewtypeVariant<T['_$type']>
     ? V
     : U
