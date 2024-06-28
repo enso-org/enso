@@ -16,6 +16,8 @@ import * as textProvider from '#/providers/TextProvider'
 import AssetEventType from '#/events/AssetEventType'
 import AssetListEventType from '#/events/AssetListEventType'
 
+import type * as dashboard from '#/pages/dashboard/Dashboard'
+
 import AssetContextMenu from '#/layouts/AssetContextMenu'
 import type * as assetsTable from '#/layouts/AssetsTable'
 import Category from '#/layouts/CategorySwitcher/Category'
@@ -74,6 +76,7 @@ export interface AssetRowInnerProps {
 /** Props for an {@link AssetRow}. */
 export interface AssetRowProps
   extends Readonly<Omit<JSX.IntrinsicElements['tr'], 'onClick' | 'onContextMenu'>> {
+  readonly isOpened: boolean
   readonly item: assetTreeNode.AnyAssetTreeNode
   readonly state: assetsTable.AssetsTableState
   readonly hidden: boolean
@@ -89,13 +92,24 @@ export interface AssetRowProps
     props: AssetRowInnerProps,
     event: React.MouseEvent<HTMLTableRowElement>
   ) => void
+  readonly doOpenProject: (project: dashboard.Project) => void
+  readonly doCloseProject: (project: dashboard.Project) => void
+  readonly updateAssetRef: React.Ref<(asset: backendModule.AnyAsset) => void>
 }
 
 /** A row containing an {@link backendModule.AnyAsset}. */
 export default function AssetRow(props: AssetRowProps) {
-  const { item: rawItem, hidden: hiddenRaw, selected, isSoleSelected, isKeyboardSelected } = props
+  const {
+    item: rawItem,
+    hidden: hiddenRaw,
+    selected,
+    isSoleSelected,
+    isKeyboardSelected,
+    isOpened,
+    updateAssetRef,
+  } = props
   const { setSelected, allowContextMenu, onContextMenu, state, columns, onClick } = props
-  const { grabKeyboardFocus } = props
+  const { grabKeyboardFocus, doOpenProject, doCloseProject } = props
   const { backend, visibilities, assetEvents, dispatchAssetEvent, dispatchAssetListEvent } = state
   const { nodeMap, setAssetPanelProps, doToggleDirectoryExpansion, doCopy, doCut, doPaste } = state
   const { setIsAssetPanelTemporarilyVisible, scrollContainerRef, rootDirectoryId } = state
@@ -166,6 +180,10 @@ export default function AssetRow(props: AssetRowProps) {
       grabKeyboardFocusRef.current()
     }
   }, [isKeyboardSelected])
+
+  React.useImperativeHandle(updateAssetRef, () => newItem => {
+    setAsset(newItem)
+  })
 
   const doCopyOnBackend = React.useCallback(
     async (newParentId: backendModule.DirectoryId | null) => {
@@ -879,6 +897,8 @@ export default function AssetRow(props: AssetRowProps) {
                     <td key={column} className={columnUtils.COLUMN_CSS_CLASS[column]}>
                       <Render
                         keyProp={key}
+                        isOpened={isOpened}
+                        backendType={backend.type}
                         item={item}
                         setItem={setItem}
                         selected={selected}
@@ -888,6 +908,8 @@ export default function AssetRow(props: AssetRowProps) {
                         rowState={rowState}
                         setRowState={setRowState}
                         isEditable={state.category !== Category.trash}
+                        doOpenProject={doOpenProject}
+                        doCloseProject={doCloseProject}
                       />
                     </td>
                   )

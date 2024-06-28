@@ -2,13 +2,16 @@
  * interactive components. */
 import * as React from 'react'
 
-import * as validator from 'validator'
+import * as reactQuery from '@tanstack/react-query'
+import invariant from 'tiny-invariant'
+import * as z from 'zod'
 
 import DriveIcon from 'enso-assets/drive.svg'
 import EditorIcon from 'enso-assets/network.svg'
 import SettingsIcon from 'enso-assets/settings.svg'
 import * as detect from 'enso-common/src/detect'
 
+import * as eventCallbacks from '#/hooks/eventCallbackHooks'
 import * as eventHooks from '#/hooks/eventHooks'
 import * as searchParamsState from '#/hooks/searchParamsStateHooks'
 
@@ -24,6 +27,7 @@ import AssetEventType from '#/events/AssetEventType'
 import type * as assetListEvent from '#/events/assetListEvent'
 import AssetListEventType from '#/events/AssetListEventType'
 
+import type * as assetTable from '#/layouts/AssetsTable'
 import Category, * as categoryModule from '#/layouts/CategorySwitcher/Category'
 import Chat from '#/layouts/Chat'
 import ChatPlaceholder from '#/layouts/ChatPlaceholder'
@@ -36,9 +40,11 @@ import UserBar from '#/layouts/UserBar'
 
 import Page from '#/components/Page'
 
+import ManagePermissionsModal from '#/modals/ManagePermissionsModal'
+
 import * as backendModule from '#/services/Backend'
-import * as localBackendModule from '#/services/LocalBackend'
-import * as projectManager from '#/services/ProjectManager'
+import type LocalBackend from '#/services/LocalBackend'
+import type RemoteBackend from '#/services/RemoteBackend'
 
 import * as array from '#/utilities/array'
 import LocalStorage from '#/utilities/LocalStorage'
@@ -53,7 +59,6 @@ import type * as types from '../../../../types/types'
 /** Main content of the screen. Only one should be visible at a time. */
 enum TabType {
   drive = 'drive',
-  editor = 'editor',
   settings = 'settings',
 }
 
@@ -61,46 +66,39 @@ declare module '#/utilities/LocalStorage' {
   /** */
   interface LocalStorageData {
     readonly isAssetPanelVisible: boolean
-    readonly page: TabType
-    readonly projectStartupInfo: Omit<backendModule.ProjectStartupInfo, 'project'>
+    readonly page: z.infer<typeof PAGES_SCHEMA>
+    readonly launchedProjects: z.infer<typeof LAUNCHED_PROJECT_SCHEMA>
   }
 }
 
-LocalStorage.registerKey('isAssetPanelVisible', {
-  tryParse: value => (value === true ? value : null),
-})
+LocalStorage.registerKey('isAssetPanelVisible', { schema: z.boolean() })
 
-const PAGES = Object.values(TabType)
-LocalStorage.registerKey('page', {
-  tryParse: value => (array.includes(PAGES, value) ? value : null),
+const PROJECT_SCHEMA = z.object({
+  id: z.custom<backendModule.ProjectId>(),
+  parentId: z.custom<backendModule.DirectoryId>(),
+  title: z.string(),
+  type: z.nativeEnum(backendModule.BackendType),
 })
+const LAUNCHED_PROJECT_SCHEMA = z.array(PROJECT_SCHEMA)
 
-const BACKEND_TYPES = Object.values(backendModule.BackendType)
-LocalStorage.registerKey('projectStartupInfo', {
+/**
+ * Launched project information.
+ */
+export type Project = z.infer<typeof PROJECT_SCHEMA>
+/**
+ * Launched project ID.
+ */
+export type ProjectId = Project['id']
+
+LocalStorage.registerKey('launchedProjects', {
   isUserSpecific: true,
-  tryParse: value => {
-    if (typeof value !== 'object' || value == null) {
-      return null
-    } else if (
-      !('accessToken' in value) ||
-      (typeof value.accessToken !== 'string' && value.accessToken != null)
-    ) {
-      return null
-    } else if (!('backendType' in value) || !array.includes(BACKEND_TYPES, value.backendType)) {
-      return null
-    } else if (!('projectAsset' in value)) {
-      return null
-    } else {
-      return {
-        // These type assertions are UNSAFE, however correctly type-checking these
-        // would be very complicated.
-        // eslint-disable-next-line no-restricted-syntax
-        projectAsset: value.projectAsset as backendModule.ProjectAsset,
-        backendType: value.backendType,
-        accessToken: value.accessToken ?? null,
-      }
-    }
-  },
+  schema: LAUNCHED_PROJECT_SCHEMA,
+})
+
+const PAGES_SCHEMA = z.nativeEnum(TabType).or(z.custom<backendModule.ProjectId>())
+
+LocalStorage.registerKey('page', {
+  schema: PAGES_SCHEMA,
 })
 
 // =================
@@ -116,41 +114,77 @@ export interface DashboardProps {
   readonly ydocUrl: string | null
 }
 
+/**
+ *
+ */
+export interface CreateOpenedProjectQueryOptions {
+  readonly type: backendModule.BackendType
+  readonly assetId: backendModule.Asset<backendModule.AssetType.project>['id']
+  readonly parentId: backendModule.Asset<backendModule.AssetType.project>['parentId']
+  readonly title: backendModule.Asset<backendModule.AssetType.project>['title']
+  readonly remoteBackend: RemoteBackend
+  readonly localBackend: LocalBackend | null
+}
+
+/**
+ * Project status query.
+ */
+export function createGetProjectDetailsQuery(options: CreateOpenedProjectQueryOptions) {
+  const { assetId, parentId, title, remoteBackend, localBackend, type } = options
+
+  return reactQuery.queryOptions({
+    queryKey: createGetProjectDetailsQuery.getQueryKey(assetId),
+    meta: { persist: false },
+    refetchInterval: ({ state }) => {
+      const states = [backendModule.ProjectState.opened, backendModule.ProjectState.closed]
+
+      if (state.data == null) {
+        // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+        return 30_000
+      } else if (states.includes(state.data.state.type)) {
+        // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+        return 30_000
+      } else {
+        // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+        return 5_000
+      }
+    },
+    refetchIntervalInBackground: true,
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
+    queryFn: async () => {
+      const backend = type === backendModule.BackendType.remote ? remoteBackend : localBackend
+
+      invariant(backend != null, 'Backend is null')
+
+      return backend.getProjectDetails(assetId, parentId, title)
+    },
+  })
+}
+createGetProjectDetailsQuery.getQueryKey = (id: Project['id']) => ['project', id] as const
+createGetProjectDetailsQuery.createPassiveListener = (id: Project['id']) =>
+  reactQuery.queryOptions<backendModule.Project>({
+    queryKey: createGetProjectDetailsQuery.getQueryKey(id),
+  })
+
 /** The component that contains the entire UI. */
 export default function Dashboard(props: DashboardProps) {
-  const { appRunner, ydocUrl, initialProjectName: initialProjectNameRaw } = props
-  const session = authProvider.useNonPartialUserSession()
-  const remoteBackend = backendProvider.useRemoteBackend()
+  const { appRunner, initialProjectName, ydocUrl } = props
+
+  const { user, ...session } = authProvider.useFullUserSession()
+
+  const remoteBackend = backendProvider.useRemoteBackendStrict()
   const localBackend = backendProvider.useLocalBackend()
   const { getText } = textProvider.useText()
   const { modalRef } = modalProvider.useModalRef()
-  const { updateModal, unsetModal } = modalProvider.useSetModal()
+  const { updateModal, unsetModal, setModal } = modalProvider.useSetModal()
   const { localStorage } = localStorageProvider.useLocalStorage()
   const inputBindings = inputBindingsProvider.useInputBindings()
-  const [initialized, setInitialized] = React.useState(false)
-  const initializedRef = React.useRef(initialized)
-  initializedRef.current = initialized
   const [isHelpChatOpen, setIsHelpChatOpen] = React.useState(false)
 
-  // These pages MUST be ROUTER PAGES.
-  const [page, setPage] = searchParamsState.useSearchParamsState(
-    'page',
-    () => localStorage.get('page') ?? TabType.drive,
-    (value: unknown): value is TabType => array.includes(Object.values(TabType), value)
-  )
-  const [projectStartupInfo, setProjectStartupInfo] =
-    React.useState<backendModule.ProjectStartupInfo | null>(null)
-  const openProjectAbortControllerRef = React.useRef<AbortController | null>(null)
-  const [assetListEvents, dispatchAssetListEvent] =
-    eventHooks.useEvent<assetListEvent.AssetListEvent>()
-  const [assetEvents, dispatchAssetEvent] = eventHooks.useEvent<assetEvent.AssetEvent>()
-  const initialLocalProjectId =
-    initialProjectNameRaw != null && validator.isUUID(initialProjectNameRaw)
-      ? localBackendModule.newProjectId(projectManager.UUID(initialProjectNameRaw))
-      : null
-  const initialProjectName = initialLocalProjectId ?? initialProjectNameRaw
-  const defaultCategory =
-    remoteBackend != null && initialLocalProjectId == null ? Category.cloud : Category.local
+  const assetManagementApiRef = React.useRef<assetTable.AssetManagementApi | null>(null)
+
+  const defaultCategory = Category.cloud
   const [category, setCategory] = searchParamsState.useSearchParamsState(
     'driveCategory',
     () => defaultCategory,
@@ -163,8 +197,56 @@ export default function Dashboard(props: DashboardProps) {
     }
   )
 
+  const [launchedProjects, privateSetLaunchedProjects] = React.useState<Project[]>(
+    () => localStorage.get('launchedProjects') ?? []
+  )
+
+  // These pages MUST be ROUTER PAGES.
+  const [page, privateSetPage] = searchParamsState.useSearchParamsState(
+    'page',
+    () => localStorage.get('page') ?? TabType.drive,
+    (value: unknown): value is Project['id'] | TabType => {
+      return (
+        array.includes(Object.values(TabType), value) || launchedProjects.some(p => p.id === value)
+      )
+    }
+  )
+
+  const setLaunchedProjects = eventCallbacks.useEventCallback(
+    (fn: (currentState: Project[]) => Project[]) => {
+      privateSetLaunchedProjects(currentState => {
+        const nextState = fn(currentState)
+        localStorage.set('launchedProjects', nextState)
+        return nextState
+      })
+    }
+  )
+
+  const addLaunchedProject = eventCallbacks.useEventCallback((project: Project) => {
+    setLaunchedProjects(currentState => [...currentState, project])
+  })
+
+  const removeLaunchedProject = eventCallbacks.useEventCallback((projectId: Project['id']) => {
+    setLaunchedProjects(currentState => currentState.filter(({ id }) => id !== projectId))
+  })
+
+  const clearLaunchedProjects = eventCallbacks.useEventCallback(() => {
+    setLaunchedProjects(() => [])
+  })
+
+  const setPage = eventCallbacks.useEventCallback((nextPage: Project['id'] | TabType) => {
+    privateSetPage(nextPage)
+    localStorage.set('page', nextPage)
+  })
+
+  const [assetListEvents, dispatchAssetListEvent] =
+    eventHooks.useEvent<assetListEvent.AssetListEvent>()
+  const [assetEvents, dispatchAssetEvent] = eventHooks.useEvent<assetEvent.AssetEvent>()
+
   const isCloud = categoryModule.isCloud(category)
-  const isUserEnabled = session.user.isEnabled
+  const isUserEnabled = user.isEnabled
+
+  const selectedProject = launchedProjects.find(p => p.id === page) ?? null
 
   if (isCloud && !isUserEnabled && localBackend != null) {
     setTimeout(() => {
@@ -173,114 +255,77 @@ export default function Dashboard(props: DashboardProps) {
     })
   }
 
-  React.useEffect(() => {
-    setInitialized(true)
-  }, [])
+  const openProjectMutation = reactQuery.useMutation({
+    networkMode: 'always',
+    mutationFn: ({ title, id, type, parentId }: Project) => {
+      const backend = type === backendModule.BackendType.remote ? remoteBackend : localBackend
 
-  React.useEffect(() => {
-    const savedProjectStartupInfo = localStorage.get('projectStartupInfo')
-    if (initialProjectName != null) {
-      if (page === TabType.editor) {
-        setPage(TabType.drive)
-      }
-    } else if (savedProjectStartupInfo != null) {
-      switch (savedProjectStartupInfo.backendType) {
-        case backendModule.BackendType.remote: {
-          if (remoteBackend != null) {
-            setPage(TabType.drive)
-            void (async () => {
-              const abortController = new AbortController()
-              openProjectAbortControllerRef.current = abortController
-              try {
-                const oldProject = await remoteBackend.getProjectDetails(
-                  savedProjectStartupInfo.projectAsset.id,
-                  savedProjectStartupInfo.projectAsset.parentId,
-                  savedProjectStartupInfo.projectAsset.title
-                )
-                if (backendModule.IS_OPENING_OR_OPENED[oldProject.state.type]) {
-                  const project = remoteBackend.waitUntilProjectIsReady(
-                    savedProjectStartupInfo.projectAsset.id,
-                    savedProjectStartupInfo.projectAsset.parentId,
-                    savedProjectStartupInfo.projectAsset.title,
-                    abortController.signal
-                  )
-                  setProjectStartupInfo({ ...savedProjectStartupInfo, project })
-                  if (page === TabType.editor) {
-                    setPage(page)
-                  }
-                }
-              } catch {
-                setProjectStartupInfo(null)
-              }
-            })()
-          }
-          break
-        }
-        case backendModule.BackendType.local: {
-          if (localBackend != null) {
-            const project = localBackend
-              .openProject(
-                savedProjectStartupInfo.projectAsset.id,
-                {
-                  executeAsync: false,
-                  cognitoCredentials: null,
-                  parentId: savedProjectStartupInfo.projectAsset.parentId,
-                },
-                savedProjectStartupInfo.projectAsset.title
-              )
-              .then(() =>
-                localBackend.getProjectDetails(
-                  savedProjectStartupInfo.projectAsset.id,
-                  savedProjectStartupInfo.projectAsset.parentId,
-                  savedProjectStartupInfo.projectAsset.title
-                )
-              )
-              .catch(error => {
-                setProjectStartupInfo(null)
-                throw error
-              })
-            setProjectStartupInfo({ ...savedProjectStartupInfo, project })
-            if (page === TabType.editor) {
-              setPage(page)
-            }
-          }
-        }
-      }
-    }
-    // This MUST only run when the component is mounted.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+      invariant(backend != null, 'Backend is null')
 
-  eventHooks.useEventHandler(assetEvents, event => {
-    switch (event.type) {
-      case AssetEventType.openProject: {
-        openProjectAbortControllerRef.current?.abort()
-        openProjectAbortControllerRef.current = null
-        break
-      }
-      default: {
-        // Ignored.
-        break
-      }
-    }
+      return backend.openProject(
+        id,
+        {
+          executeAsync: false,
+          cognitoCredentials: {
+            accessToken: session.accessToken,
+            refreshToken: session.accessToken,
+            clientId: session.clientId,
+            expireAt: session.expireAt,
+            refreshUrl: session.refreshUrl,
+          },
+          parentId,
+        },
+        title
+      )
+    },
+    onMutate: async ({ id }) => {
+      const queryKey = createGetProjectDetailsQuery.getQueryKey(id)
+
+      client.setQueryData(queryKey, {
+        state: { type: backendModule.ProjectState.openInProgress },
+      })
+
+      await client.cancelQueries({ queryKey: queryKey })
+    },
+    onError: async (_, { id }) => {
+      await client.invalidateQueries({ queryKey: createGetProjectDetailsQuery.getQueryKey(id) })
+    },
   })
 
-  React.useEffect(() => {
-    if (initializedRef.current) {
-      if (projectStartupInfo != null) {
-        // This is INTENTIONAL - `project` is intentionally omitted from this object.
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { project, ...rest } = projectStartupInfo
-        localStorage.set('projectStartupInfo', rest)
-      } else {
-        localStorage.delete('projectStartupInfo')
-      }
-    }
-  }, [projectStartupInfo, localStorage])
+  const closeProjectMutation = reactQuery.useMutation({
+    mutationFn: async ({ type, id, title }: Project) => {
+      const backend = type === backendModule.BackendType.remote ? remoteBackend : localBackend
 
-  React.useEffect(() => {
-    localStorage.set('page', page)
-  }, [page, localStorage])
+      if (backend == null) {
+        throw new Error('Backend is null')
+      } else {
+        return backend.closeProject(id, title)
+      }
+    },
+    onSuccess: (_, { id }) =>
+      client.invalidateQueries({ queryKey: createGetProjectDetailsQuery.getQueryKey(id) }),
+  })
+
+  const client = reactQuery.useQueryClient()
+
+  const renameProjectMutation = reactQuery.useMutation({
+    mutationFn: ({ newName, project }: { newName: string; project: Project }) => {
+      const { parentId, type, id, title } = project
+      const backend = type === backendModule.BackendType.remote ? remoteBackend : localBackend
+
+      invariant(backend != null, 'Backend is null')
+
+      return backend.updateProject(
+        id,
+        { projectName: newName, ami: null, ideVersion: null, parentId },
+        title
+      )
+    },
+    onSuccess: (_, { project }) =>
+      client.invalidateQueries({
+        queryKey: createGetProjectDetailsQuery.getQueryKey(project.id),
+      }),
+  })
 
   React.useEffect(
     () =>
@@ -320,40 +365,73 @@ export default function Dashboard(props: DashboardProps) {
     }
   }, [inputBindings])
 
-  const doOpenEditor = React.useCallback(() => {
-    setPage(TabType.editor)
-  }, [setPage])
+  const doCloseAllProjects = eventCallbacks.useEventCallback(() => {
+    for (const launchedProject of launchedProjects) {
+      doCloseProject(launchedProject)
+    }
+  })
 
-  const doCloseEditor = React.useCallback(
-    (id: backendModule.ProjectId) => {
-      if (id === projectStartupInfo?.projectAsset.id) {
-        setProjectStartupInfo(currentInfo => {
-          if (id === currentInfo?.projectAsset.id) {
-            setPage(TabType.drive)
-            return null
-          } else {
-            return currentInfo
-          }
-        })
+  const doOpenProject = eventCallbacks.useEventCallback((project: Project) => {
+    // since we don't support multitabs, we need to close opened project first
+    if (launchedProjects.length > 0) {
+      doCloseAllProjects()
+    }
+
+    openProjectMutation.mutate(project)
+    addLaunchedProject(project)
+  })
+
+  const doOpenEditor = eventCallbacks.useEventCallback((projectId: Project['id']) => {
+    setPage(projectId)
+  })
+
+  const doCloseProject = eventCallbacks.useEventCallback((project: Project) => {
+    const { id } = project
+
+    closeProjectMutation.mutate(project)
+    dispatchAssetEvent({ type: AssetEventType.closeProject, id })
+    removeLaunchedProject(project.id)
+
+    setPage(TabType.drive)
+  })
+
+  const doRemoveSelf = eventCallbacks.useEventCallback((project: Project) => {
+    dispatchAssetListEvent({ type: AssetListEventType.removeSelf, id: project.id })
+    doCloseProject(project)
+  })
+
+  const onSignOut = eventCallbacks.useEventCallback(() => {
+    setPage(TabType.drive)
+    doCloseAllProjects()
+    clearLaunchedProjects()
+  })
+
+  const doOpenShareModal = eventCallbacks.useEventCallback(() => {
+    if (assetManagementApiRef.current != null && selectedProject != null) {
+      const asset = assetManagementApiRef.current.getAsset(selectedProject.id)
+      const self =
+        asset?.permissions?.find(
+          backendModule.isUserPermissionAnd(permissions => permissions.user.userId === user.userId)
+        ) ?? null
+
+      if (asset != null && self != null) {
+        setModal(
+          <ManagePermissionsModal
+            item={asset}
+            setItem={updater => {
+              const nextAsset = updater instanceof Function ? updater(asset) : updater
+              assetManagementApiRef.current?.setAsset(asset.id, nextAsset)
+            }}
+            self={self}
+            doRemoveSelf={() => {
+              doRemoveSelf(selectedProject)
+            }}
+            eventTarget={null}
+          />
+        )
       }
-    },
-    [projectStartupInfo?.projectAsset.id, setPage]
-  )
-
-  const doRemoveSelf = React.useCallback(() => {
-    if (projectStartupInfo?.projectAsset != null) {
-      const id = projectStartupInfo.projectAsset.id
-      dispatchAssetListEvent({ type: AssetListEventType.removeSelf, id })
-      setProjectStartupInfo(null)
     }
-  }, [projectStartupInfo?.projectAsset, dispatchAssetListEvent])
-
-  const onSignOut = React.useCallback(() => {
-    if (page === TabType.editor) {
-      setPage(TabType.drive)
-    }
-    setProjectStartupInfo(null)
-  }, [page, setPage])
+  })
 
   return (
     <Page hideInfoBar hideChat>
@@ -377,27 +455,25 @@ export default function Dashboard(props: DashboardProps) {
               >
                 {getText('drivePageName')}
               </tabBar.Tab>
-              {projectStartupInfo != null && (
+
+              {launchedProjects.map(project => (
                 <tabBar.Tab
-                  isActive={page === TabType.editor}
+                  project={project}
+                  key={project.id}
+                  isActive={page === project.id}
                   icon={EditorIcon}
                   labelId="editorPageName"
-                  loadingPromise={projectStartupInfo.project}
                   onPress={() => {
-                    setPage(TabType.editor)
+                    setPage(project.id)
                   }}
                   onClose={() => {
-                    dispatchAssetEvent({
-                      type: AssetEventType.closeProject,
-                      id: projectStartupInfo.projectAsset.id,
-                    })
-                    setProjectStartupInfo(null)
-                    setPage(TabType.drive)
+                    doCloseProject(project)
                   }}
                 >
-                  {projectStartupInfo.projectAsset.title}
+                  {project.title}
                 </tabBar.Tab>
-              )}
+              ))}
+
               {page === TabType.settings && (
                 <tabBar.Tab
                   isActive
@@ -414,42 +490,49 @@ export default function Dashboard(props: DashboardProps) {
                 </tabBar.Tab>
               )}
             </TabBar>
+
             <UserBar
-              backend={
-                projectStartupInfo?.backendType === backendModule.BackendType.remote
-                  ? remoteBackend
-                  : localBackend
-              }
-              isOnEditorPage={page === TabType.editor}
+              onShareClick={selectedProject ? doOpenShareModal : undefined}
               setIsHelpChatOpen={setIsHelpChatOpen}
-              projectAsset={projectStartupInfo?.projectAsset ?? null}
-              setProjectAsset={projectStartupInfo?.setProjectAsset ?? null}
-              doRemoveSelf={doRemoveSelf}
               goToSettingsPage={() => {
                 setPage(TabType.settings)
               }}
               onSignOut={onSignOut}
             />
           </div>
+
           <Drive
+            assetsManagementApiRef={assetManagementApiRef}
+            openedProjects={launchedProjects}
             category={category}
             setCategory={setCategory}
             hidden={page !== TabType.drive}
             initialProjectName={initialProjectName}
-            setProjectStartupInfo={setProjectStartupInfo}
             assetListEvents={assetListEvents}
             dispatchAssetListEvent={dispatchAssetListEvent}
             assetEvents={assetEvents}
             dispatchAssetEvent={dispatchAssetEvent}
+            doOpenProject={doOpenProject}
             doOpenEditor={doOpenEditor}
-            doCloseEditor={doCloseEditor}
+            doCloseProject={doCloseProject}
           />
-          <Editor
-            hidden={page !== TabType.editor}
-            ydocUrl={ydocUrl}
-            projectStartupInfo={projectStartupInfo}
-            appRunner={appRunner}
-          />
+
+          {launchedProjects.map(project => (
+            <Editor
+              key={project.id}
+              hidden={page !== project.id}
+              ydocUrl={ydocUrl}
+              project={project}
+              projectId={project.id}
+              appRunner={appRunner}
+              isOpening={openProjectMutation.isPending}
+              startProject={openProjectMutation.mutate}
+              renameProject={newName => {
+                renameProjectMutation.mutate({ newName, project })
+              }}
+            />
+          ))}
+
           {page === TabType.settings && <Settings />}
           {process.env.ENSO_CLOUD_CHAT_URL != null ? (
             <Chat

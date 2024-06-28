@@ -1,6 +1,8 @@
 /** @file Column types and column display modes. */
 import type * as React from 'react'
 
+import type { Project } from '#/pages/dashboard/Dashboard'
+
 import type * as assetsTable from '#/layouts/AssetsTable'
 
 import * as columnUtils from '#/components/dashboard/column/columnUtils'
@@ -22,7 +24,9 @@ import type * as assetTreeNode from '#/utilities/AssetTreeNode'
 /** Props for an arbitrary variant of {@link backendModule.Asset}. */
 export interface AssetColumnProps {
   readonly keyProp: backendModule.AssetId
+  readonly isOpened: boolean
   readonly item: assetTreeNode.AnyAssetTreeNode
+  readonly backendType: backendModule.BackendType
   readonly setItem: React.Dispatch<React.SetStateAction<assetTreeNode.AnyAssetTreeNode>>
   readonly selected: boolean
   readonly setSelected: (selected: boolean) => void
@@ -31,6 +35,8 @@ export interface AssetColumnProps {
   readonly rowState: assetsTable.AssetRowState
   readonly setRowState: React.Dispatch<React.SetStateAction<assetsTable.AssetRowState>>
   readonly isEditable: boolean
+  readonly doOpenProject: (project: Project) => void
+  readonly doCloseProject: (project: Project) => void
 }
 
 /** Props for a {@link AssetColumn}. */
