@@ -150,7 +150,7 @@ export default function Settings() {
       )
     }
   }, [isQueryBlank, doesEntryMatchQuery, getText, isMatch])
-  const effectiveTab = tabsToShow.includes(tab) ? tab : tabsToShow[0] ?? SettingsTabType.members
+  const effectiveTab = tabsToShow.includes(tab) ? tab : tabsToShow[0] ?? SettingsTabType.account
 
   const data = React.useMemo<settingsData.SettingsTabData>(() => {
     const tabData = settingsData.SETTINGS_TAB_DATA[effectiveTab]
@@ -170,7 +170,11 @@ export default function Settings() {
             return [{ ...section, entries: matchingEntries }]
           }
         })
-        return { ...tabData, sections }
+        return {
+          ...tabData,
+          sections:
+            sections.length === 0 ? [settingsData.SETTINGS_NO_RESULTS_SECTION_DATA] : sections,
+        }
       }
     }
   }, [isQueryBlank, doesEntryMatchQuery, getText, isMatch, effectiveTab])
