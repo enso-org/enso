@@ -56,13 +56,13 @@ type Bench_Builder
     group self (name:Text) (configuration:Bench_Options) fn =
         validate_name name
         group = Vector.build b->
-            fn (Group_Builder.Impl b)
+            fn (Group_Builder.Impl name b)
         self.builder.append <| Bench.Group name configuration group
 
 ## Builder to create a group of benchmarks.
 type Group_Builder
     ## PRIVATE
-    Impl builder
+    Impl name builder
 
     ## Adds a benchmark specification to the group.
 

@@ -52,6 +52,19 @@ export enum SettingsEntryType {
 // === Constants ===
 // =================
 
+export const SETTINGS_NO_RESULTS_SECTION_DATA: SettingsSectionData = {
+  nameId: 'noResultsSettingsSection',
+  heading: false,
+  entries: [
+    {
+      type: SettingsEntryType.custom,
+      render: context => (
+        <div className="grid max-w-[512px] justify-center">{context.getText('noResultsFound')}</div>
+      ),
+    },
+  ],
+}
+
 export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData>> = {
   [SettingsTabType.account]: {
     nameId: 'accountSettingsTab',

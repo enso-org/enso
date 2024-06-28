@@ -424,7 +424,7 @@
   }
 
   & > * {
-    @apply bg-white/80;
+    @apply bg-white/90;
   }
 }
 
@@ -447,6 +447,10 @@
   font-feature-settings: normal;
 
   @apply font-medium;
+
+  textarea {
+    background: unset;
+  }
 
   kbd {
     font-family: "Enso Prose", "Enso", "M PLUS 1", "Roboto Light", sans-serif;
