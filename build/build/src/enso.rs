@@ -74,7 +74,7 @@ impl BuiltEnso {
 
     pub async fn run_benchmarks(&self, opt: BenchmarkOptions) -> Result {
         self.cmd()?
-            .with_args(["--run", self.paths.repo_root.test.benchmarks.as_str()])
+            .with_args(["--jvm", "--run", self.paths.repo_root.test.benchmarks.as_str()])
             .set_env(ENSO_BENCHMARK_TEST_DRY_RUN, &Boolean::from(opt.dry_run))?
             .run_ok()
             .await
