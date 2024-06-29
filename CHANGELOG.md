@@ -35,6 +35,12 @@
 [10337]: https://github.com/enso-org/enso/pull/10337
 [10340]: https://github.com/enso-org/enso/pull/10340
 
+#### Enso Language & Runtime
+
+- Support for [explicit --jvm option][10374] when launching `enso` CLI
+
+[10374]: https://github.com/enso-org/enso/pull/10374
+
 #### Enso Standard Library
 
 - [Added Statistic.Product][10122]
