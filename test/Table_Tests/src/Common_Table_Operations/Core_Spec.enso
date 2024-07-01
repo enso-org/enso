@@ -7,6 +7,7 @@ from Standard.Table.Errors import all
 import Standard.Table.Expression.Expression_Error
 
 from Standard.Database import all
+import Standard.Database.Internal.Internals_Access
 from Standard.Database.Errors import Integrity_Error
 
 from Standard.Test import all
@@ -356,7 +357,7 @@ add_specs suite_builder setup =
             Problems.assume_no_problems r5
 
         if setup.is_database then group_builder.specify "should allow similar API on Connection.read" <|
-            connection = setup.create_connection_func Nothing
+            connection = Internals_Access.get_connection data.t_big
             connection.query data.t_big.name . row_count . should_equal 1500
 
             t1 = connection.read data.t_big.name
