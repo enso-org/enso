@@ -17,69 +17,40 @@ from project.Common_Table_Operations.Util import run_default_backend
 main filter=Nothing = run_default_backend add_specs filter
 
 type Data
-    Value ~data
+    Value ~table
 
-    connection self = self.data.at 0
-    table self = self.data.at 1
-
-    setup create_connection_fn table_builder = Data.Value <|
-        connection = create_connection_fn Nothing
-        table =
-            col1 = ["foo", [1,2,3]]
-            col2 = ["bar", [4,5,6]]
-            col3 = ["Baz", [7,8,9]]
-            col4 = ["foo 1", [10,11,12]]
-            col5 = ["foo 2", [13,14,15]]
-            col6 = ["ab.+123", [16,17,18]]
-            col7 = ["abcd123", [19,20,21]]
-            table_builder [col1, col2, col3, col4, col5, col6, col7] connection=connection
-        [connection, table]
-
-    teardown self =
-        self.connection.close
-
+    setup table_builder = Data.Value <|
+        col1 = ["foo", [1,2,3]]
+        col2 = ["bar", [4,5,6]]
+        col3 = ["Baz", [7,8,9]]
+        col4 = ["foo 1", [10,11,12]]
+        col5 = ["foo 2", [13,14,15]]
+        col6 = ["ab.+123", [16,17,18]]
+        col7 = ["abcd123", [19,20,21]]
+        table_builder [col1, col2, col3, col4, col5, col6, col7]
 
 type Rows_Data
-    Value ~data
+    Value ~table
 
-    connection self = self.data.at 0
-    table self = self.data.at 1
-
-    setup create_connection_fn table_builder = Rows_Data.Value <|
-        connection = create_connection_fn Nothing
-        table = table_builder [["X", [1, 2, 3, 4]], ["Y", [5, 6, 7, 8]], ["Z", ["A", "B", "C", "D"]]] connection=connection
-        [connection, table]
-
-    teardown self =
-        self.connection.close
-
+    setup table_builder = Rows_Data.Value <|
+        table_builder [["X", [1, 2, 3, 4]], ["Y", [5, 6, 7, 8]], ["Z", ["A", "B", "C", "D"]]]
 
 type Read_Data
     Value ~data
 
-    connection self = self.data.at 0
-    t_big self = self.data.at 1
-    t_small self = self.data.at 2
+    t_big self = self.data.at 0
+    t_small self = self.data.at 1
 
-    setup create_connection_fn table_builder = Read_Data.Value <|
-        connection = create_connection_fn Nothing
-        t_big = table_builder [["X", (0.up_to 1500)]] connection=connection
-        t_small = table_builder [["X", (0.up_to 10)]] connection=connection
-        [connection, t_big, t_small]
-
-    teardown self =
-        self.connection.close
-
+    setup table_builder = Read_Data.Value <|
+        t_big = table_builder [["X", (0.up_to 1500)]]
+        t_small = table_builder [["X", (0.up_to 10)]]
+        t_big, t_small
 
 add_specs suite_builder setup =
     prefix = setup.prefix
-    create_connection_fn = setup.create_connection_func
-
+    table_builder = setup.table_builder
     suite_builder.group prefix+"(Core_Spec) Table.at" group_builder->
-        data = Data.setup create_connection_fn setup.table_builder
-
-        group_builder.teardown <|
-            data.teardown
+        data = Data.setup table_builder
 
         group_builder.specify "should allow selecting columns by name" <|
             column_1 = data.table.at "bar"
@@ -115,10 +86,7 @@ add_specs suite_builder setup =
             Test.expect_panic_with (data.table.at (Pair.new 1 2)) Type_Error
 
     suite_builder.group prefix+"(Core_Spec) Table.get" group_builder->
-        data = Data.setup create_connection_fn setup.table_builder
-
-        group_builder.teardown <|
-            data.teardown
+        data = Data.setup table_builder
 
         group_builder.specify "should allow selecting columns by name" <|
             column_1 = data.table.get "bar"
@@ -148,14 +116,7 @@ add_specs suite_builder setup =
             Test.expect_panic_with (data.table.at (Pair.new 1 2)) Type_Error
 
     suite_builder.group prefix+"(Core_Spec) Table.set" group_builder->
-        data = Data.setup create_connection_fn setup.table_builder
-
-        group_builder.teardown <|
-            data.teardown
-
-        table_builder cols =
-            setup.table_builder cols connection=data.connection
-
+        data = Data.setup table_builder
         group_builder.specify "should allow adding a column" <|
             bar2 = data.table.get "bar" . rename "bar2"
             t2 = data.table.set bar2
@@ -234,14 +195,7 @@ add_specs suite_builder setup =
                 False -> r1.should_fail_with Illegal_Argument
 
     suite_builder.group prefix+"(Core_Spec) Table.column_names" group_builder->
-        data = Data.setup create_connection_fn setup.table_builder
-
-        group_builder.teardown <|
-            data.teardown
-
-        table_builder cols =
-            setup.table_builder cols connection=data.connection
-
+        data = Data.setup table_builder
         group_builder.specify "should return the names of all columns" <|
             data.table.column_names . should_equal ["foo", "bar", "Baz", "foo 1", "foo 2", "ab.+123", "abcd123"]
 
@@ -255,20 +209,12 @@ add_specs suite_builder setup =
                 table.at name . to_vector . should_equal [100+ix, 2, 3]
 
     suite_builder.group prefix+"(Core_Spec) Table.column_count" group_builder->
-        data = Data.setup create_connection_fn setup.table_builder
-
-        group_builder.teardown <|
-            data.teardown
-
+        data = Data.setup table_builder
         group_builder.specify "should allow getting the column count" <|
             data.table.column_count . should_equal 7
 
     suite_builder.group prefix+"(Core_Spec) Table.rows" group_builder->
-        data = Rows_Data.setup create_connection_fn setup.table_builder
-
-        group_builder.teardown <|
-            data.teardown
-
+        data = Rows_Data.setup table_builder
         group_builder.specify "should allow to get a Vector of Table rows" <|
             rows = data.table.rows
             rows.length . should_equal 4
@@ -330,11 +276,7 @@ add_specs suite_builder setup =
 
 
     suite_builder.group prefix+"(Core_Spec) Table.read" group_builder->
-        data = Read_Data.setup create_connection_fn setup.table_builder
-
-        group_builder.teardown <|
-            data.teardown
-
+        data = Read_Data.setup table_builder
         has_default_row_limit = setup.is_database
 
         group_builder.specify "should have a row limit by default and warn about it" <|
