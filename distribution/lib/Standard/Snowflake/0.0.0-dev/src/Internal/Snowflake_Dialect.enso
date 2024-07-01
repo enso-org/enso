@@ -281,15 +281,24 @@ make_internal_generator_dialect =
 
 ## PRIVATE
 agg_count_is_null = Base_Generator.lift_unary_op "COUNT_IS_NULL" arg->
-    SQL_Builder.code "COUNT_IF(" ++ arg.paren ++ " IS NULL)"
+    replace_with_zero_if_null <|
+        SQL_Builder.code "COUNT_IF(" ++ arg.paren ++ " IS NULL)"
 
 ## PRIVATE
 agg_count_empty = Base_Generator.lift_unary_op "COUNT_EMPTY" arg->
-    SQL_Builder.code "COUNT_IF(" ++ arg.paren ++ " IS NULL OR " ++ arg.paren ++ " = '')"
+    replace_with_zero_if_null <|
+        SQL_Builder.code "COUNT_IF(" ++ arg.paren ++ " IS NULL OR " ++ arg.paren ++ " = '')"
 
 ## PRIVATE
 agg_count_not_empty = Base_Generator.lift_unary_op "COUNT_NOT_EMPTY" arg->
-    SQL_Builder.code "COUNT_IF(" ++ arg.paren ++ " IS NOT NULL AND " ++ arg.paren ++ " != '')"
+    replace_with_zero_if_null <|
+        SQL_Builder.code "COUNT_IF(" ++ arg.paren ++ " IS NOT NULL AND " ++ arg.paren ++ " != '')"
+
+## PRIVATE
+   A helper needed because Snowflake's aggregators return NULL if there were no
+   rows. But for aggregators like COUNT we prefer to return 0 in such cases.
+replace_with_zero_if_null expr =
+    SQL_Builder.code "COALESCE(" ++ expr ++ ", 0)"
 
 ## PRIVATE
 agg_median = Base_Generator.lift_unary_op "MEDIAN" arg->
