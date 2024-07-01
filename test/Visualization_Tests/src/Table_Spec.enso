@@ -36,6 +36,12 @@ type Foo
     to_js_object : JS_Object
     to_js_object self = JS_Object.from_pairs [["x", self.x]]
 
+type FooLink
+    Value x
+
+    to_js_object : JS_Object
+    to_js_object self = JS_Object.from_pairs [["x", self.x], ["links", ["a", "b", "c"]]]    
+
 
 add_specs suite_builder =
     make_json header data all_rows value_type has_index_col =
@@ -99,6 +105,11 @@ add_specs suite_builder =
             vis = Visualization.prepare_visualization (Foo.Value 42) 2
             json = JS_Object.from_pairs [["json", JS_Object.from_pairs [["_display_text_", (Foo.Value 42).to_display_text],["x", 42]]]]
             vis . should_equal json.to_text
+
+        group_builder.specify "should handle datatypes with links" <|
+            vis = Visualization.prepare_visualization (FooLink.Value "test-value")
+            json = JS_Object.from_pairs [["json", JS_Object.from_pairs [["_display_text_", (FooLink.Value "test-value").to_display_text],["x", "test-value"], ["links", "[a, b, c]"]]], ["links", ["a", "b", "c"]]]
+            vis . should_equal json.to_text    
 
         group_builder.specify "should visualize value type info" <|
             make_json vt =
