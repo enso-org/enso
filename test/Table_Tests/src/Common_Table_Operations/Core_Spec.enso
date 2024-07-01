@@ -75,7 +75,7 @@ add_specs suite_builder setup =
     prefix = setup.prefix
     create_connection_fn = setup.create_connection_func
 
-    suite_builder.group prefix+"Table.at" group_builder->
+    suite_builder.group prefix+"(Core_Spec) Table.at" group_builder->
         data = Data.setup create_connection_fn setup.table_builder
 
         group_builder.teardown <|
@@ -114,7 +114,7 @@ add_specs suite_builder setup =
         group_builder.specify "should fail with Type Error is not an Integer or Text" <|
             Test.expect_panic_with (data.table.at (Pair.new 1 2)) Type_Error
 
-    suite_builder.group prefix+"Table.get" group_builder->
+    suite_builder.group prefix+"(Core_Spec) Table.get" group_builder->
         data = Data.setup create_connection_fn setup.table_builder
 
         group_builder.teardown <|
@@ -147,7 +147,7 @@ add_specs suite_builder setup =
         group_builder.specify "should fail with Type Error is not an Integer or Text" <|
             Test.expect_panic_with (data.table.at (Pair.new 1 2)) Type_Error
 
-    suite_builder.group prefix+"Table.set" group_builder->
+    suite_builder.group prefix+"(Core_Spec) Table.set" group_builder->
         data = Data.setup create_connection_fn setup.table_builder
 
         group_builder.teardown <|
@@ -233,7 +233,7 @@ add_specs suite_builder setup =
                 True ->  r1.should_fail_with Integrity_Error
                 False -> r1.should_fail_with Illegal_Argument
 
-    suite_builder.group prefix+"Table.column_names" group_builder->
+    suite_builder.group prefix+"(Core_Spec) Table.column_names" group_builder->
         data = Data.setup create_connection_fn setup.table_builder
 
         group_builder.teardown <|
@@ -254,7 +254,7 @@ add_specs suite_builder setup =
             weird_names.map_with_index ix-> name->
                 table.at name . to_vector . should_equal [100+ix, 2, 3]
 
-    suite_builder.group prefix+"Table.column_count" group_builder->
+    suite_builder.group prefix+"(Core_Spec) Table.column_count" group_builder->
         data = Data.setup create_connection_fn setup.table_builder
 
         group_builder.teardown <|
@@ -263,7 +263,7 @@ add_specs suite_builder setup =
         group_builder.specify "should allow getting the column count" <|
             data.table.column_count . should_equal 7
 
-    suite_builder.group prefix+"Table.rows" group_builder->
+    suite_builder.group prefix+"(Core_Spec) Table.rows" group_builder->
         data = Rows_Data.setup create_connection_fn setup.table_builder
 
         group_builder.teardown <|
@@ -329,7 +329,7 @@ add_specs suite_builder setup =
             data.table.rows . at 0 . at "unknown" . should_fail_with No_Such_Column
 
 
-    suite_builder.group prefix+"Table.read" group_builder->
+    suite_builder.group prefix+"(Core_Spec) Table.read" group_builder->
         data = Read_Data.setup create_connection_fn setup.table_builder
 
         group_builder.teardown <|

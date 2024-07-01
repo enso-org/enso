@@ -37,7 +37,7 @@ add_specs suite_builder setup =
     supports_dates = setup.test_selection.date_time
     create_connection_fn = setup.create_connection_func
     supports_conversion_failure_reporting = setup.is_database.not
-    suite_builder.group prefix+"Table/Column.cast - to text" group_builder->
+    suite_builder.group prefix+"(Conversion_Spec) Table/Column.cast - to text" group_builder->
         data = Data.setup create_connection_fn
 
         group_builder.teardown <|
@@ -149,7 +149,7 @@ add_specs suite_builder setup =
                 r2 = c1.cast (Value_Type.Char size=0 variable_length=True)
                 r2.should_fail_with Illegal_Argument
 
-    suite_builder.group prefix+"Table/Column.cast - numeric" group_builder->
+    suite_builder.group prefix+"(Conversion_Spec) Table/Column.cast - numeric" group_builder->
         data = Data.setup create_connection_fn
 
         group_builder.teardown <|
@@ -334,7 +334,7 @@ add_specs suite_builder setup =
                 warning.to_display_text . should_contain too_big_double.to_text
 
     if supports_dates then
-        suite_builder.group prefix+"Table/Column.cast - date/time" group_builder->
+        suite_builder.group prefix+"(Conversion_Spec) Table/Column.cast - date/time" group_builder->
             data = Data.setup create_connection_fn
 
             group_builder.teardown <|
@@ -367,7 +367,7 @@ add_specs suite_builder setup =
                 expected_diff = Duration.between day1.to_date_time day2.to_date_time
                 diff . should_equal expected_diff
 
-    suite_builder.group prefix+"Table/Column.cast - checking invariants" group_builder->
+    suite_builder.group prefix+"(Conversion_Spec) Table/Column.cast - checking invariants" group_builder->
         data = Data.setup create_connection_fn
 
         group_builder.teardown <|
@@ -587,7 +587,7 @@ add_specs suite_builder setup =
                 r3 = t.cast "X" (Value_Type.Unsupported_Data_Type "foobar" "foobar")
                 r3.should_fail_with Illegal_Argument
 
-    suite_builder.group prefix+"Simple variant of Table/Column.parse in all backends" group_builder->
+    suite_builder.group prefix+"(Conversion_Spec) Simple variant of Table/Column.parse in all backends" group_builder->
         data = Data.setup create_connection_fn
 
         group_builder.teardown <|
@@ -666,7 +666,7 @@ add_specs suite_builder setup =
             r3.should_fail_with Missing_Input_Columns
             r3.catch.criteria . should_equal ["Y"]
 
-    if setup.is_database then suite_builder.group prefix+"Table/Column auto value type" group_builder->
+    if setup.is_database then suite_builder.group prefix+"(Conversion_Spec) Table/Column auto value type" group_builder->
         data = Data.setup create_connection_fn
 
         group_builder.teardown <|
@@ -681,7 +681,7 @@ add_specs suite_builder setup =
             t.at "X" . auto_cast . should_fail_with Unsupported_Database_Operation
 
     # The in-memory functionality of `expand_column` is tested in test/Table_Tests/src/In_Memory/Table_Conversion_Spec.enso
-    if setup.is_database then suite_builder.group prefix+"Table.expand_column" group_builder->
+    if setup.is_database then suite_builder.group prefix+"(Conversion_Spec) Table.expand_column" group_builder->
         data = Data.setup create_connection_fn
 
         group_builder.teardown <|
@@ -695,7 +695,7 @@ add_specs suite_builder setup =
             table.expand_column "bbb" . should_fail_with Unsupported_Database_Operation
 
     # The in-memory functionality of `expand_to_rows` is tested in test/Table_Tests/src/In_Memory/Table_Conversion_Spec.enso
-    if setup.is_database then suite_builder.group prefix+"Table.expand_to_rows" group_builder->
+    if setup.is_database then suite_builder.group prefix+"(Conversion_Spec) Table.expand_to_rows" group_builder->
         data = Data.setup create_connection_fn
 
         group_builder.teardown <|
@@ -708,7 +708,7 @@ add_specs suite_builder setup =
             table = table_builder [["aaa", [1, 2]], ["bbb", [3, 4]], ["ccc", [5, 6]]]
             table.expand_to_rows "bbb" . should_fail_with Unsupported_Database_Operation
 
-    if setup.is_database.not then suite_builder.group prefix+"Table/Column auto value type" group_builder->
+    if setup.is_database.not then suite_builder.group prefix+"(Conversion_Spec) Table/Column auto value type" group_builder->
         data = Data.setup create_connection_fn
 
         group_builder.teardown <|
