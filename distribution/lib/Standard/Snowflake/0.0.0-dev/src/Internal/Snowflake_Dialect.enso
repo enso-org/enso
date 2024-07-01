@@ -328,11 +328,11 @@ make_first_aggregator reverse ignore_null args =
 
 ## PRIVATE
 agg_shortest = Base_Generator.lift_unary_op "SHORTEST" arg->
-     SQL_Builder.code "FIRST_VALUE(" ++ arg ++ ") IGNORE NULLS OVER (ORDER BY LENGTH(" ++ arg ++ "))"
+     SQL_Builder.code "MIN_BY(" ++ arg ++ ", LENGTH(" ++ arg ++ "))"
 
 ## PRIVATE
 agg_longest = Base_Generator.lift_unary_op "LONGEST" arg->
-     SQL_Builder.code "FIRST_VALUE(" ++ arg ++ ") IGNORE NULLS OVER (ORDER BY LENGTH(" ++ arg ++ ") DESC)"
+     SQL_Builder.code "MAX_BY(" ++ arg ++ ", LENGTH(" ++ arg ++ "))"
 
 ## PRIVATE
 concat_ops =
