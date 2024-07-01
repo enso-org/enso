@@ -101,39 +101,13 @@ export function isFileOpenable(path: string): boolean {
     )
 }
 
-/** On macOS when an Enso-associated file is opened, the application is first started and then it
- * receives the `open-file` event. However, if there is already an instance of Enso running,
- * it receives the `open-file` event (and no new instance is created for us). In this case,
- * we manually start a new instance of the application and pass the file path to it (using the
- * Windows-style command). */
 export function onFileOpened(event: electron.Event, path: string): string | null {
     logger.log(`Received 'open-file' event for path '${path}'.`)
     if (isFileOpenable(path)) {
         logger.log(`The file '${path}' is openable.`)
-        // If we are not ready, we can still decide to open a project rather than enter the welcome
-        // screen. However, we still check for the presence of arguments, to prevent hijacking the
-        // user-spawned IDE instance (OS-spawned will not have arguments set).
-        if (!electron.app.isReady() && CLIENT_ARGUMENTS.length === 0) {
-            event.preventDefault()
-            logger.log(`Opening file '${path}'.`)
-            return handleOpenFile(path)
-        } else {
-            // Another copy of the application needs to be started, as the first one is
-            // already running.
-            logger.log(
-                "The application is already initialized. Starting a new instance to open file '" +
-                    path +
-                    "'."
-            )
-            const args = [path]
-            const child = childProcess.spawn(process.execPath, args, {
-                detached: true,
-                stdio: 'ignore',
-            })
-            // Prevent parent (this) process from waiting for the child to exit.
-            child.unref()
-            return null
-        }
+        event.preventDefault()
+        logger.log(`Opening file '${path}'.`)
+        return handleOpenFile(path)
     } else {
         logger.log(`The file '${path}' is not openable, ignoring the 'open-file' event.`)
         return null
@@ -148,6 +122,19 @@ export function setOpenFileEventHandler(setProjectToOpen: (id: string) => void) 
         const projectId = onFileOpened(event, path)
         if (typeof projectId === 'string') {
             setProjectToOpen(projectId)
+        }
+    })
+
+    electron.app.on('second-instance', (event, argv) => {
+        // Check if additional data is an object that contains the URL.
+        const path = argsDenoteFileOpenAttempt(argv)
+        if (path) {
+            logger.log(`Got URL from second instance: '${url.toString()}'.`)
+            event.preventDefault()
+            const projectId = onFileOpened(event, path)
+            if (typeof projectId === 'string') {
+                setProjectToOpen(projectId)
+            }
         }
     })
 }

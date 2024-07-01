@@ -79,7 +79,6 @@ class App {
         )
 
         const { windowSize, chromeOptions, fileToOpen, urlToOpen } = this.processArguments()
-        this.handleItemOpening(fileToOpen, urlToOpen)
         if (this.args.options.version.value) {
             await this.printVersion()
             electron.app.quit()
@@ -89,19 +88,26 @@ class App {
                 electron.app.quit()
             })
         } else {
-            this.setChromeOptions(chromeOptions)
-            security.enableAll()
-            electron.app.on('before-quit', () => (this.isQuitting = true))
-            electron.app.whenReady().then(
-                () => {
-                    logger.log('Electron application is ready.')
-                    void this.main(windowSize)
-                },
-                err => {
-                    logger.error('Failed to initialize electron.', err)
-                }
-            )
-            this.registerShortcuts()
+            const instanceLock = electron.app.requestSingleInstanceLock({ fileToOpen, urlToOpen })
+            if (instanceLock) {
+                this.handleItemOpening(fileToOpen, urlToOpen)
+                this.setChromeOptions(chromeOptions)
+                security.enableAll()
+                electron.app.on('before-quit', () => (this.isQuitting = true))
+                electron.app.whenReady().then(
+                    () => {
+                        logger.log('Electron application is ready.')
+                        void this.main(windowSize)
+                    },
+                    err => {
+                        logger.error('Failed to initialize electron.', err)
+                    }
+                )
+                this.registerShortcuts()
+            } else {
+                logger.log('Another instance of the application is already running, exiting.')
+                electron.app.quit()
+            }
         }
     }
 
@@ -228,6 +234,22 @@ class App {
                 await this.createWindowIfEnabled(windowSize)
                 this.initIpc()
                 await this.loadWindowContent()
+                electron.app.on('second-instance', (_event, argv) => {
+                    logger.log(`Got data from 'second-instance' event: '${argv.toString()}'.`)
+                    // The second instances will close themselves, but our Window likely is not in the
+                    // foreground - the focus went to the "second instance" of the application.
+                    const primaryWindow = electron.BrowserWindow.getAllWindows()[0]
+                    if (primaryWindow) {
+                        if (primaryWindow.isMinimized()) {
+                            primaryWindow.restore()
+                        }
+                        primaryWindow.focus()
+                    } else {
+                        logger.error(
+                            'No primary window found after receiving URL from second instance.'
+                        )
+                    }
+                })
                 /** The non-null assertion on the following line is safe because the window
                  * initialization is guarded by the `createWindowIfEnabled` method. The window is
                  * not yet created at this point, but it will be created by the time the
