@@ -418,13 +418,13 @@
     inset: 0 -16vw -16vh 0;
     z-index: -1;
 
-    background: url("enso-assets/background.jpg");
+    background-color: #ea9a39ff;
 
     @apply fixed bg-cover pointer-events-none;
   }
 
   & > * {
-    @apply bg-white/90;
+    @apply bg-white/80;
   }
 }
 
