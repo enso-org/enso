@@ -466,7 +466,7 @@ function extractProjectMetadata(yamlObj: unknown, jsonObj: unknown): ProjectMeta
 
 /**
  * Checks if files that start with the dot.
- * Not on Windows does not check the hidden property.
+ * Note on Windows does not check the hidden property.
  */
 function isHidden(filePath: string): boolean {
     const dotfile = /(^|[\\/])\.[^\\/]+$/g
