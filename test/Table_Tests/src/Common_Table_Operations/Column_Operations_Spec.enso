@@ -1309,39 +1309,38 @@ add_specs suite_builder setup =
                 result.value_type . should_equal Value_Type.Char
                 result . to_vector . should_equal expected
 
+    literal_data = Literal_Data.setup setup.table_builder
     suite_builder.group prefix+"(Column_Operations_Spec) replace: literal text pattern and replacement" group_builder->
-        data = Literal_Data.setup setup.table_builder
         group_builder.specify "case_sensitivity=sensitive/default use_regex=false only_first=false"
-            do_replace data.col0 'hello' 'bye' expected=['bye Hello', 'bye bye', 'HELLO HELLO']
-            do_replace data.col0 'hello' 'bye' case_sensitivity=Case_Sensitivity.Default expected=['bye Hello', 'bye bye', 'HELLO HELLO']
-            do_replace data.col0 'hello' 'bye' case_sensitivity=Case_Sensitivity.Sensitive expected=['bye Hello', 'bye bye', 'HELLO HELLO']
-            do_replace data.col1 'a[bcd]' 'hey' expected=['hey A[bCd] hey', 'abac ad Ab aCAd']
+            do_replace literal_data.col0 'hello' 'bye' expected=['bye Hello', 'bye bye', 'HELLO HELLO']
+            do_replace literal_data.col0 'hello' 'bye' case_sensitivity=Case_Sensitivity.Default expected=['bye Hello', 'bye bye', 'HELLO HELLO']
+            do_replace literal_data.col0 'hello' 'bye' case_sensitivity=Case_Sensitivity.Sensitive expected=['bye Hello', 'bye bye', 'HELLO HELLO']
+            do_replace literal_data.col1 'a[bcd]' 'hey' expected=['hey A[bCd] hey', 'abac ad Ab aCAd']
 
         group_builder.specify "case_sensitivity=sensitive/default use_regex=false only_first=true"
-            do_replace data.col0 'hello' 'bye' only_first=True expected=['bye Hello', 'bye hello', 'HELLO HELLO']
-            do_replace data.col1 'a[bcd]' 'hey' only_first=True expected=['hey A[bCd] a[bcd]', 'abac ad Ab aCAd']
+            do_replace literal_data.col0 'hello' 'bye' only_first=True expected=['bye Hello', 'bye hello', 'HELLO HELLO']
+            do_replace literal_data.col1 'a[bcd]' 'hey' only_first=True expected=['hey A[bCd] a[bcd]', 'abac ad Ab aCAd']
 
         group_builder.specify "case_sensitivity=insensitive use_regex=false only_first=false"
-            do_replace data.col0 'hello' 'bye' case_sensitivity=Case_Sensitivity.Insensitive expected=['bye bye', 'bye bye', 'bye bye']
-            do_replace data.col1 'a[bcd]' 'hey' case_sensitivity=Case_Sensitivity.Insensitive expected=['hey hey hey', 'abac ad Ab aCAd']
+            do_replace literal_data.col0 'hello' 'bye' case_sensitivity=Case_Sensitivity.Insensitive expected=['bye bye', 'bye bye', 'bye bye']
+            do_replace literal_data.col1 'a[bcd]' 'hey' case_sensitivity=Case_Sensitivity.Insensitive expected=['hey hey hey', 'abac ad Ab aCAd']
 
         group_builder.specify "case_sensitivity=insensitive use_regex=false only_first=true"
-            do_replace data.col0 'hello' 'bye' case_sensitivity=Case_Sensitivity.Insensitive only_first=True expected=['bye Hello', 'bye hello', 'bye HELLO']
-            do_replace data.col1 'a[bcd]' 'hey' case_sensitivity=Case_Sensitivity.Insensitive only_first=True expected=['hey A[bCd] a[bcd]', 'abac ad Ab aCAd']
+            do_replace literal_data.col0 'hello' 'bye' case_sensitivity=Case_Sensitivity.Insensitive only_first=True expected=['bye Hello', 'bye hello', 'bye HELLO']
+            do_replace literal_data.col1 'a[bcd]' 'hey' case_sensitivity=Case_Sensitivity.Insensitive only_first=True expected=['hey A[bCd] a[bcd]', 'abac ad Ab aCAd']
 
     suite_builder.group prefix+"(Column_Operations_Spec) replace: literal regex pattern and replacement" group_builder->
-        data = Literal_Data.setup setup.table_builder
         group_builder.specify "case_sensitivity=sensitive/default use_regex=True only_first=false"
-            do_replace data.col1 'a[bcd]'.to_regex 'hey' expected=['a[bcd] A[bCd] a[bcd]', 'heyhey hey Ab aCAd']
+            do_replace literal_data.col1 'a[bcd]'.to_regex 'hey' expected=['a[bcd] A[bCd] a[bcd]', 'heyhey hey Ab aCAd']
 
         group_builder.specify "case_sensitivity=sensitive/default use_regex=True only_first=true"
-            do_replace data.col1 'a[bcd]'.to_regex 'hey' only_first=True expected=['a[bcd] A[bCd] a[bcd]', 'heyac ad Ab aCAd']
+            do_replace literal_data.col1 'a[bcd]'.to_regex 'hey' only_first=True expected=['a[bcd] A[bCd] a[bcd]', 'heyac ad Ab aCAd']
 
         group_builder.specify "case_sensitivity=insensitive use_regex=True only_first=false"
-            do_replace data.col1 'a[bcd]'.to_regex 'hey' case_sensitivity=Case_Sensitivity.Insensitive expected=['a[bcd] A[bCd] a[bcd]', 'heyhey hey hey heyhey']
+            do_replace literal_data.col1 'a[bcd]'.to_regex 'hey' case_sensitivity=Case_Sensitivity.Insensitive expected=['a[bcd] A[bCd] a[bcd]', 'heyhey hey hey heyhey']
 
         group_builder.specify "case_sensitivity=insensitive use_regex=True only_first=true"
-            do_replace data.col1 'a[bcd]'.to_regex 'hey' case_sensitivity=Case_Sensitivity.Insensitive only_first=True expected=['a[bcd] A[bCd] a[bcd]', 'heyac ad Ab aCAd']
+            do_replace literal_data.col1 'a[bcd]'.to_regex 'hey' case_sensitivity=Case_Sensitivity.Insensitive only_first=True expected=['a[bcd] A[bCd] a[bcd]', 'heyac ad Ab aCAd']
 
         group_builder.specify "can properly escape complex regexes" <|
             regex = "^([^\(]+)|(?<foo>\w\d[a-z])+$"
@@ -1349,10 +1348,8 @@ add_specs suite_builder setup =
             do_replace col regex "asdf" ["asdf"]
     
     suite_builder.group prefix+"(Column_Operations_Spec) replace: Named_Pattern and replacement" group_builder->
-        data = Literal_Data.setup setup.table_builder
         group_builder.specify "can use Named_Patterns" <|
-            do_replace data.col1 Named_Pattern.Symbols 'hey' expected=['aheybcdhey AheybCdhey aheybcdhey', 'abac ad Ab aCAd']
-
+            do_replace literal_data.col1 Named_Pattern.Symbols 'hey' expected=['aheybcdhey AheybCdhey aheybcdhey', 'abac ad Ab aCAd']
 
     suite_builder.group prefix+"(Column_Operations_Spec) replace: pattern and replacement columns" group_builder->
         data = Replace_Data.setup setup.table_builder
