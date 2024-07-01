@@ -5,6 +5,8 @@ import io.circe.{Decoder, Encoder, Json}
 import org.enso.semver.SemVer
 import org.enso.cli.arguments.{Argument, OptsParseError}
 import org.enso.semver.SemVerJson._
+import org.enso.yaml.{SnakeYamlDecoder, SnakeYamlEncoder}
+import org.yaml.snakeyaml.nodes.{Node, ScalarNode}
 
 /** Default version that is used when launching Enso outside of projects and
   * when creating new projects.
@@ -17,9 +19,11 @@ object DefaultVersion {
     */
   case object LatestInstalled extends DefaultVersion {
 
+    val name = "latest-installed"
+
     /** @inheritdoc
       */
-    override def toString: String = "latest-installed"
+    override def toString: String = name
   }
 
   /** Defaults to a specified version.
@@ -49,6 +53,35 @@ object DefaultVersion {
         version <- json.as[SemVer]
       } yield Exact(version)
   }
+
+  implicit val decoderSnake: SnakeYamlDecoder[DefaultVersion] =
+    new SnakeYamlDecoder[DefaultVersion] {
+      override def decode(node: Node) = {
+        node match {
+          case node if node == null =>
+            Right(LatestInstalled)
+          case scalarNode: ScalarNode =>
+            scalarNode.getValue match {
+              case LatestInstalled.name =>
+                Right(LatestInstalled)
+              case _ =>
+                implicitly[SnakeYamlDecoder[SemVer]]
+                  .decode(scalarNode)
+                  .map(Exact(_))
+            }
+        }
+      }
+    }
+
+  implicit val encdoerSnake: SnakeYamlEncoder[DefaultVersion] =
+    new SnakeYamlEncoder[DefaultVersion] {
+      override def encode(value: DefaultVersion): AnyRef = {
+        value match {
+          case latest @ LatestInstalled => latest.toString
+          case Exact(version)           => version.toString
+        }
+      }
+    }
 
   /** [[Argument]] instance for [[DefaultVersion]].
     */

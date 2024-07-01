@@ -3,6 +3,11 @@ package org.enso.distribution.config
 import io.circe.syntax._
 import io.circe.{Decoder, Encoder, Json}
 import org.enso.distribution.config
+import org.enso.yaml.{SnakeYamlDecoder, SnakeYamlEncoder}
+import org.yaml.snakeyaml.error.YAMLException
+import org.yaml.snakeyaml.nodes.{MappingNode, Node}
+
+import java.util
 
 /** Global user configuration.
   *
@@ -65,6 +70,106 @@ object GlobalConfig {
     val AuthorEmail      = "author.email"
     val EditionProviders = "edition-providers"
   }
+
+  implicit val decoderSnake: SnakeYamlDecoder[GlobalConfig] =
+    new SnakeYamlDecoder[GlobalConfig] {
+      override def decode(node: Node) = node match {
+        case node: MappingNode =>
+          val bindings = mappingKV(node)
+          val defaultVersionDecoder =
+            implicitly[SnakeYamlDecoder[DefaultVersion]]
+          val stringDecoder    = implicitly[SnakeYamlDecoder[String]]
+          val seqStringDecoder = implicitly[SnakeYamlDecoder[Seq[String]]]
+
+          val defaultVersionOpt = bindings.get("default") match {
+            case Some(versionNode: MappingNode) =>
+              val versionBindings = mappingKV(versionNode)
+              versionBindings
+                .get("enso-version")
+                .toRight(
+                  new YAMLException(s"missing '${Fields.DefaultVersion}' field")
+                )
+                .flatMap(defaultVersionDecoder.decode)
+            case _ =>
+              // Fallback
+              bindings
+                .get(Fields.DefaultVersion)
+                .map(defaultVersionDecoder.decode)
+                .getOrElse(Right(DefaultVersion.LatestInstalled))
+          }
+          val (nameOpt, emailOpt) = bindings.get("author") match {
+            case Some(authorNode: MappingNode) =>
+              val authorBindings = mappingKV(authorNode)
+              (
+                authorBindings
+                  .get("name")
+                  .map(stringDecoder.decode)
+                  .getOrElse(Right(None))
+                  .asInstanceOf[Either[Throwable, Option[String]]],
+                authorBindings
+                  .get("email")
+                  .map(stringDecoder.decode)
+                  .getOrElse(Right(None))
+                  .asInstanceOf[Either[Throwable, Option[String]]]
+              )
+            case _ =>
+              // Fallback
+              (
+                bindings
+                  .get(Fields.AuthorName)
+                  .map(stringDecoder.decode(_).map(Some(_)))
+                  .getOrElse(Right(None)),
+                bindings
+                  .get(Fields.AuthorEmail)
+                  .map(stringDecoder.decode(_).map(Some(_)))
+                  .getOrElse(Right(None))
+              )
+          }
+          val editionProviderOpt = bindings
+            .get(Fields.EditionProviders)
+            .map(seqStringDecoder.decode)
+            .getOrElse(Right(Seq.empty))
+          for {
+            defaultVersion  <- defaultVersionOpt
+            name            <- nameOpt
+            email           <- emailOpt
+            editionProvider <- editionProviderOpt
+          } yield GlobalConfig(defaultVersion, name, email, editionProvider)
+      }
+    }
+
+  implicit val encoderSnake: SnakeYamlEncoder[GlobalConfig] =
+    new SnakeYamlEncoder[GlobalConfig] {
+      override def encode(value: GlobalConfig): AnyRef = {
+        val defaultVersionEncoder = implicitly[SnakeYamlEncoder[DefaultVersion]]
+        val editionProviders      = implicitly[SnakeYamlEncoder[Seq[String]]]
+        val elements              = new util.ArrayList[(String, AnyRef)]()
+        elements.add(
+          (
+            "default",
+            toMap(
+              "enso-version",
+              defaultVersionEncoder.encode(value.defaultVersion)
+            )
+          )
+        )
+        if (value.authorName.nonEmpty || value.authorEmail.nonEmpty) {
+          val authorElements = new util.ArrayList[(String, AnyRef)]()
+          value.authorName.foreach(v => authorElements.add(("name", v)))
+          value.authorEmail.foreach(v => authorElements.add(("email", v)))
+          elements.add(("author", toMap(authorElements)))
+        }
+        if (value.editionProviders.nonEmpty) {
+          elements.add(
+            (
+              Fields.EditionProviders,
+              editionProviders.encode(value.editionProviders)
+            )
+          )
+        }
+        toMap(elements)
+      }
+    }
 
   /** [[Decoder]] instance for [[GlobalConfig]].
     */

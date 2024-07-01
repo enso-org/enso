@@ -537,7 +537,11 @@ class RuntimeVersionManager(
         }
       }
 
-      val temporaryEngine = loadEngine(engineTemporaryPath).getOrElse {
+      val tryLoadedEngine = loadEngine(engineTemporaryPath)
+      if (tryLoadedEngine.isFailure) {
+        tryLoadedEngine.failed.foreach(_.printStackTrace())
+      }
+      val temporaryEngine = tryLoadedEngine.getOrElse {
         undoTemporaryEngine()
         throw InstallationError(
           "Cannot load downloaded engine. Installation reverted."
@@ -733,7 +737,8 @@ class RuntimeVersionManager(
   private def loadAndCheckEngineManifest(
     path: Path
   ): Try[Manifest] = {
-    Manifest.load(path / Manifest.DEFAULT_MANIFEST_NAME).flatMap { manifest =>
+    val manifestPath = path / Manifest.DEFAULT_MANIFEST_NAME
+    Manifest.load(manifestPath).flatMap { manifest =>
       if (!isEngineVersionCompatibleWithThisInstaller(manifest)) {
         Failure(
           UpgradeRequiredError(

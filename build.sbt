@@ -939,10 +939,12 @@ lazy val cli = project
     version := "0.1",
     libraryDependencies ++= circe ++ Seq(
       "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion,
+      "org.yaml"                    % "snakeyaml"     % snakeyamlVersion % "provided",
       "org.scalatest"              %% "scalatest"     % scalatestVersion % Test
     ),
     Test / parallelExecution := false
   )
+  .dependsOn(`scala-yaml`)
 
 lazy val `task-progress-notifications` = project
   .in(file("lib/scala/task-progress-notifications"))
@@ -2762,6 +2764,7 @@ lazy val `distribution-manager` = project
       "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-core"   % jsoniterVersion,
       "com.typesafe.scala-logging"            %% "scala-logging"         % scalaLoggingVersion,
       "io.circe"                              %% "circe-yaml"            % circeYamlVersion,
+      "org.yaml"                               % "snakeyaml"             % snakeyamlVersion,
       "commons-io"                             % "commons-io"            % commonsIoVersion,
       "org.scalatest"                         %% "scalatest"             % scalatestVersion % Test
     )

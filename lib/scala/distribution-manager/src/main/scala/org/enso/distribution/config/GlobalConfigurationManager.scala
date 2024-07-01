@@ -2,10 +2,11 @@ package org.enso.distribution.config
 
 import com.typesafe.scalalogging.Logger
 import io.circe.syntax._
-import io.circe.yaml.Parser
 import io.circe.{yaml, Json}
 import org.enso.distribution.DistributionManager
 import org.enso.distribution.FileSystem.PathSyntax
+import org.enso.yaml.SnakeYamlDecoder
+import org.yaml.snakeyaml.Yaml
 
 import java.io.BufferedWriter
 import java.nio.file.{Files, NoSuchFileException, Path}
@@ -85,11 +86,11 @@ object GlobalConfigurationManager {
   /** Tries to read the global config from the given `path`. */
   private def readConfig(path: Path): Try[GlobalConfig] =
     Using(Files.newBufferedReader(path)) { reader =>
-      for {
-        json   <- Parser.default.parse(reader)
-        config <- json.as[GlobalConfig]
-      } yield config
-    }.flatMap(_.toTry)
+      val snakeYaml = new Yaml()
+      Try(snakeYaml.compose(reader)).toEither
+        .flatMap(implicitly[SnakeYamlDecoder[GlobalConfig]].decode(_))
+        .toTry
+    }.flatten
 
   /** Tries to write the provided `config` to the given `path`. */
   private def writeConfig(path: Path, config: GlobalConfig): Try[Unit] =
@@ -122,6 +123,16 @@ object GlobalConfigurationManager {
           .copy(preserveOrder = true)
           .pretty(rawConfig)
         writer.write(string)
+
+        // TODO: replace circe's pretty printer
+        /*
+        val node = implicitly[SnakeYamlEncoder[GlobalConfig]]
+        val dumperOptions = new DumperOptions()
+        dumperOptions.setIndent(2)
+        dumperOptions.setPrettyFlow(true)
+        val yaml = new Yaml(dumperOptions)
+        val yamlString = yaml.dumpAs(node, Tag.MAP, DumperOptions.FlowStyle.BLOCK)
+        writer.write(yamlString) */
         writer.newLine()
       }
 
