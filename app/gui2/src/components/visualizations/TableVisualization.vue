@@ -381,7 +381,6 @@ const getTablePattern = (index: number) =>
   )
 
 function createNode(params: CellClickedEvent) {
-  console.log(config.nodeType)
   if (config.nodeType === TABLE_NODE_TYPE || config.nodeType === DB_TABLE_NODE_TYPE) {
     config.createNodes({
       content: getTablePattern(params.data[INDEX_FIELD_NAME]),
