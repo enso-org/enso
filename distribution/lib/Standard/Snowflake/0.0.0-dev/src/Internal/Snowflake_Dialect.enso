@@ -325,8 +325,8 @@ make_first_aggregator reverse ignore_null args =
         order_bys = args.drop 1
 
         method_name = if reverse then "LAST_VALUE" else "FIRST_VALUE"
-        filter_clause = if ignore_null then ") IGNORE NULLS OVER" else ") OVER"
-        order_clause = SQL_Builder.code " ORDER BY " ++ SQL_Builder.join "," order_bys
+        filter_clause = if ignore_null then ") IGNORE NULLS" else ")"
+        order_clause = SQL_Builder.code " OVER (ORDER BY " ++ SQL_Builder.join "," order_bys ++ ")"
         SQL_Builder.code (method_name + "(") ++ result_expr ++ filter_clause ++ order_clause
 
 ## PRIVATE
@@ -366,20 +366,27 @@ agg_count_distinct args = if args.is_empty then (Error.throw (Illegal_Argument.E
             ## A single null value will be skipped.
             SQL_Builder.code "COUNT(DISTINCT " ++ args.first ++ ")"
         False ->
-            ## A tuple of nulls is not a null, so it will not be skipped - but
-               we want to ignore all-null columns. So we manually filter them
-               out.
-            count = SQL_Builder.code "COUNT(DISTINCT (" ++ SQL_Builder.join ", " args ++ "))"
+            ## We do not want to ignore a row where only some values are NULL - so we coalesce them.
+            coalesced_args = args.map replace_null_with_marker
+            count = SQL_Builder.code "COUNT(DISTINCT " ++ SQL_Builder.join ", " coalesced_args ++ ")"
+            # But we want to ignore all-null columns. So we manually filter them out.
             are_nulls = args.map arg-> arg.paren ++ " IS NULL"
             all_nulls_filter = SQL_Builder.code " FILTER (WHERE NOT (" ++ SQL_Builder.join " AND " are_nulls ++ "))"
             (count ++ all_nulls_filter).paren
 
 ## PRIVATE
 agg_count_distinct_include_null args =
-    ## If we always count as tuples, then even null fields are counted.
-    ## But Snowflake seems to not like tuples?
-    #SQL_Builder.code "COUNT(DISTINCT (" ++ SQL_Builder.join ", " args ++ ", 0))"
-    SQL_Builder.code "COUNT(DISTINCT (" ++ SQL_Builder.join ", " args ++ "))"
+    # As with `agg_count_distinct`, we do want to handle columns that contain NULLs, so we need to apply the ugly coalesce.
+    coalesced_args = args.map replace_null_with_marker
+    SQL_Builder.code "COUNT(DISTINCT " ++ SQL_Builder.join ", " coalesced_args ++ ")"
+
+## PRIVATE
+   A helper function that coalesces a NULL column replacing it with a marker value that is expected to not be present in real world data.
+   It is sometimes needed when we want to count distinct values in a column that contains NULLs and still include the rows containing NULLs.
+   The columns are converted to VARIANT type because of that, which may incur some overhead.
+   But there seems to be no other reliable way to handle this for columns like numeric where no non-NULL value exists that can be guaranteed to be unused.
+replace_null_with_marker expr =
+    SQL_Builder.code "COALESCE(" ++ expr ++ ", {'enso-null-replacement-marker':'"+Random.uuid+"'}::variant)"
 
 ## PRIVATE
 starts_with = Base_Generator.lift_binary_sql_function "STARTS_WITH" "STARTSWITH"
