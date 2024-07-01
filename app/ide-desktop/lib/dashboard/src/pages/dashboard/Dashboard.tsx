@@ -34,6 +34,7 @@ import * as tabBar from '#/layouts/TabBar'
 import TabBar from '#/layouts/TabBar'
 import UserBar from '#/layouts/UserBar'
 
+import * as aria from '#/components/aria'
 import Page from '#/components/Page'
 
 import * as backendModule from '#/services/Backend'
@@ -71,8 +72,11 @@ LocalStorage.registerKey('isAssetPanelVisible', {
 })
 
 const PAGES = Object.values(TabType)
+// This is a function, even though it does not look like one.
+// eslint-disable-next-line no-restricted-syntax
+const isPage = array.includesPredicate(PAGES)
 LocalStorage.registerKey('page', {
-  tryParse: value => (array.includes(PAGES, value) ? value : null),
+  tryParse: value => (isPage(value) ? value : null),
 })
 
 const BACKEND_TYPES = Object.values(backendModule.BackendType)
@@ -102,6 +106,18 @@ LocalStorage.registerKey('projectStartupInfo', {
     }
   },
 })
+
+let i = 0
+const A = () => {
+  const j = i++
+  React.useEffect(() => {
+    console.log('A :D', j)
+    return () => {
+      console.log('A D:', j)
+    }
+  }, [])
+  return null
+}
 
 // =================
 // === Dashboard ===
@@ -351,35 +367,40 @@ export default function Dashboard(props: DashboardProps) {
 
   return (
     <Page hideInfoBar hideChat>
-      <div className="flex text-xs text-primary">
-        <div
+      <div
+        className="flex text-xs text-primary"
+        onContextMenu={event => {
+          event.preventDefault()
+          unsetModal()
+        }}
+      >
+        <aria.Tabs
           className="relative flex h-screen grow select-none flex-col container-size"
-          onContextMenu={event => {
-            event.preventDefault()
-            unsetModal()
+          selectedKey={page}
+          onSelectionChange={newPage => {
+            if (isPage(newPage)) {
+              setPage(newPage)
+            }
           }}
         >
           <div className="flex">
+            <A />
             <TabBar>
               <tabBar.Tab
+                id={TabType.drive}
                 isActive={page === TabType.drive}
                 icon={DriveIcon}
                 labelId="drivePageName"
-                onPress={() => {
-                  setPage(TabType.drive)
-                }}
               >
                 {getText('drivePageName')}
               </tabBar.Tab>
               {projectStartupInfo != null && (
                 <tabBar.Tab
+                  id={TabType.editor}
                   isActive={page === TabType.editor}
                   icon={EditorIcon}
                   labelId="editorPageName"
                   loadingPromise={projectStartupInfo.project}
-                  onPress={() => {
-                    setPage(TabType.editor)
-                  }}
                   onClose={() => {
                     dispatchAssetEvent({
                       type: AssetEventType.closeProject,
@@ -392,21 +413,18 @@ export default function Dashboard(props: DashboardProps) {
                   {projectStartupInfo.projectAsset.title}
                 </tabBar.Tab>
               )}
-              {page === TabType.settings && (
-                <tabBar.Tab
-                  isActive
-                  icon={SettingsIcon}
-                  labelId="settingsPageName"
-                  onPress={() => {
-                    setPage(TabType.settings)
-                  }}
-                  onClose={() => {
-                    setPage(TabType.drive)
-                  }}
-                >
-                  {getText('settingsPageName')}
-                </tabBar.Tab>
-              )}
+              <tabBar.Tab
+                id={TabType.settings}
+                isActive={page === TabType.settings}
+                isHidden={page !== TabType.settings}
+                icon={SettingsIcon}
+                labelId="settingsPageName"
+                onClose={() => {
+                  setPage(TabType.drive)
+                }}
+              >
+                {getText('settingsPageName')}
+              </tabBar.Tab>
             </TabBar>
             <UserBar
               backend={
@@ -425,43 +443,57 @@ export default function Dashboard(props: DashboardProps) {
               onSignOut={onSignOut}
             />
           </div>
-          <Drive
-            category={category}
-            setCategory={setCategory}
-            hidden={page !== TabType.drive}
-            initialProjectName={initialProjectName}
-            setProjectStartupInfo={setProjectStartupInfo}
-            assetListEvents={assetListEvents}
-            dispatchAssetListEvent={dispatchAssetListEvent}
-            assetEvents={assetEvents}
-            dispatchAssetEvent={dispatchAssetEvent}
-            doOpenEditor={doOpenEditor}
-            doCloseEditor={doCloseEditor}
-          />
-          <Editor
-            hidden={page !== TabType.editor}
-            ydocUrl={ydocUrl}
-            projectStartupInfo={projectStartupInfo}
-            appRunner={appRunner}
-          />
-          {page === TabType.settings && <Settings />}
-          {process.env.ENSO_CLOUD_CHAT_URL != null ? (
-            <Chat
-              isOpen={isHelpChatOpen}
-              doClose={() => {
-                setIsHelpChatOpen(false)
-              }}
-              endpoint={process.env.ENSO_CLOUD_CHAT_URL}
+          <aria.TabPanel
+            shouldForceMount
+            id={TabType.drive}
+            className="flex grow [&[data-inert]]:hidden"
+          >
+            <Drive
+              category={category}
+              setCategory={setCategory}
+              hidden={page !== TabType.drive}
+              initialProjectName={initialProjectName}
+              setProjectStartupInfo={setProjectStartupInfo}
+              assetListEvents={assetListEvents}
+              dispatchAssetListEvent={dispatchAssetListEvent}
+              assetEvents={assetEvents}
+              dispatchAssetEvent={dispatchAssetEvent}
+              doOpenEditor={doOpenEditor}
+              doCloseEditor={doCloseEditor}
             />
-          ) : (
-            <ChatPlaceholder
-              isOpen={isHelpChatOpen}
-              doClose={() => {
-                setIsHelpChatOpen(false)
-              }}
+          </aria.TabPanel>
+          <aria.TabPanel
+            shouldForceMount
+            id={TabType.editor}
+            className="flex grow [&[data-inert]]:hidden"
+          >
+            <Editor
+              hidden={page !== TabType.editor}
+              ydocUrl={ydocUrl}
+              projectStartupInfo={projectStartupInfo}
+              appRunner={appRunner}
             />
-          )}
-        </div>
+          </aria.TabPanel>
+          <aria.TabPanel id={TabType.settings} className="flex grow">
+            <Settings />
+          </aria.TabPanel>
+        </aria.Tabs>
+        {process.env.ENSO_CLOUD_CHAT_URL != null ? (
+          <Chat
+            isOpen={isHelpChatOpen}
+            doClose={() => {
+              setIsHelpChatOpen(false)
+            }}
+            endpoint={process.env.ENSO_CLOUD_CHAT_URL}
+          />
+        ) : (
+          <ChatPlaceholder
+            isOpen={isHelpChatOpen}
+            doClose={() => {
+              setIsHelpChatOpen(false)
+            }}
+          />
+        )}
       </div>
     </Page>
   )

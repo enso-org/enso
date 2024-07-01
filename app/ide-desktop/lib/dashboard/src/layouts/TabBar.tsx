@@ -9,7 +9,9 @@ import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
+import StatelessSpinner, * as spinnerModule from '#/components/StatelessSpinner'
 import FocusArea from '#/components/styled/FocusArea'
+import SvgMask from '#/components/SvgMask'
 
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 
@@ -24,9 +26,11 @@ const TAB_RADIUS_PX = 24
 // === TabBarContext ===
 // =====================
 
+let i = 0
+
 /** Context for a {@link TabBarContext}. */
 interface TabBarContextValue {
-  readonly updateClipPath: (element: HTMLDivElement | null) => void
+  readonly onTabSelected: (element: HTMLDivElement | null) => void
   readonly observeElement: (element: HTMLElement) => () => void
 }
 
@@ -55,14 +59,17 @@ export default function TabBar(props: TabBarProps) {
   const [resizeObserver] = React.useState(
     () =>
       new ResizeObserver(() => {
+        console.log('A', selectedTabRef.current)
         updateClipPath(selectedTabRef.current)
       })
   )
   const [updateClipPath] = React.useState(() => {
     return (element: HTMLDivElement | null) => {
       const backgroundElement = backgroundRef.current
+      // console.log(':0', backgroundElement, element)
       if (backgroundElement != null) {
         selectedTabRef.current = element
+        // console.log(selectedTabRef, element)
         if (element == null) {
           backgroundElement.style.clipPath = ''
         } else {
@@ -91,11 +98,20 @@ export default function TabBar(props: TabBarProps) {
     }
   })
 
+  const j = i++
+  React.useEffect(() => {
+    console.log(':D', j)
+    return () => {
+      console.log('D:', j)
+    }
+  }, [])
+
   const updateResizeObserver = (element: HTMLElement | null) => {
     cleanupResizeObserverRef.current()
     if (element == null) {
       cleanupResizeObserverRef.current = () => {}
     } else {
+      console.log(':0', element, selectedTabRef.current, selectedTabRef)
       resizeObserver.observe(element)
       cleanupResizeObserverRef.current = () => {
         resizeObserver.unobserve(element)
@@ -106,10 +122,9 @@ export default function TabBar(props: TabBarProps) {
   return (
     <TabBarContext.Provider
       value={{
-        updateClipPath,
+        onTabSelected: updateClipPath,
         observeElement: element => {
           resizeObserver.observe(element)
-
           return () => {
             resizeObserver.unobserve(element)
           }
@@ -124,37 +139,35 @@ export default function TabBar(props: TabBarProps) {
           }}
           className="pointer-events-none absolute inset-0 bg-primary/5"
         />
-        <Tabs>{children}</Tabs>
+        <TabList>{children}</TabList>
       </div>
     </TabBarContext.Provider>
   )
 }
 
-// ============
-// === Tabs ===
-// ============
+// ===============
+// === TabList ===
+// ===============
 
-/** Props for a {@link TabsInternal}. */
-export interface InternalTabsProps extends Readonly<React.PropsWithChildren> {}
+/** Props for a {@link TabList}. */
+export interface TabListProps extends Readonly<React.PropsWithChildren> {}
 
 /** A tab list in a {@link TabBar}. */
-function TabsInternal(props: InternalTabsProps, ref: React.ForwardedRef<HTMLDivElement>) {
+function TabList(props: TabListProps) {
   const { children } = props
   return (
     <FocusArea direction="horizontal">
       {innerProps => (
-        <div
+        <aria.TabList
           className="flex h-12 shrink-0 grow cursor-default items-center rounded-full"
-          {...aria.mergeProps<React.JSX.IntrinsicElements['div']>()(innerProps, { ref })}
+          {...innerProps}
         >
           {children}
-        </div>
+        </aria.TabList>
       )}
     </FocusArea>
   )
 }
-
-const Tabs = React.forwardRef(TabsInternal)
 
 // ===========
 // === Tab ===
@@ -162,86 +175,90 @@ const Tabs = React.forwardRef(TabsInternal)
 
 /** Props for a {@link Tab}. */
 interface InternalTabProps extends Readonly<React.PropsWithChildren> {
+  readonly id: string
   readonly isActive: boolean
+  readonly isHidden?: boolean
   readonly icon: string
   readonly labelId: text.TextId
   /** When the promise is in flight, the tab icon will instead be a loading spinner. */
   readonly loadingPromise?: Promise<unknown>
-  readonly onPress: () => void
   readonly onClose?: () => void
 }
 
 /** A tab in a {@link TabBar}. */
 export function Tab(props: InternalTabProps) {
-  const { isActive, icon, labelId, loadingPromise, children, onPress, onClose } = props
-  const { updateClipPath, observeElement } = useTabBarContext()
-  const ref = React.useRef<HTMLDivElement | null>(null)
+  const { id, isActive, isHidden = false, icon, labelId, loadingPromise, children, onClose } = props
+  const { onTabSelected, observeElement } = useTabBarContext()
+  // This must not be a `useRef` as `react-aria-components` does not create the DOM elements
+  // immediately.
+  const [element, ref] = React.useState<HTMLDivElement | null>(null)
   const { getText } = textProvider.useText()
   const [isLoading, setIsLoading] = React.useState(loadingPromise != null)
 
   React.useLayoutEffect(() => {
     if (isActive) {
-      updateClipPath(ref.current)
+      onTabSelected(element)
     }
-  }, [isActive, updateClipPath])
+  }, [isActive, element, onTabSelected])
 
   React.useEffect(() => {
-    if (ref.current) {
-      return observeElement(ref.current)
+    if (element) {
+      return observeElement(element)
     } else {
       return () => {}
     }
-  }, [observeElement])
+  }, [element, observeElement])
 
   React.useEffect(() => {
     if (loadingPromise) {
       setIsLoading(true)
-      loadingPromise.then(
-        () => {
-          setIsLoading(false)
-        },
-        () => {
+      const abortController = new AbortController()
+      const onLoaded = () => {
+        if (!abortController.signal.aborted) {
           setIsLoading(false)
         }
-      )
+      }
+      loadingPromise.then(onLoaded, onLoaded)
+      return () => {
+        abortController.abort()
+      }
     } else {
       setIsLoading(false)
+      return
     }
   }, [loadingPromise])
 
   return (
-    <div
+    <aria.Tab
       ref={ref}
+      id={id}
+      isDisabled={isActive}
+      aria-label={getText(labelId)}
       className={tailwindMerge.twMerge(
-        'group relative h-full',
-        !isActive && 'hover:enabled:bg-frame'
+        'group relative flex h-full items-center gap-3 rounded-t-2xl px-4',
+        !isActive &&
+          'cursor-pointer opacity-50 hover:bg-frame hover:opacity-75 disabled:cursor-not-allowed disabled:opacity-30 [&.disabled]:cursor-not-allowed [&.disabled]:opacity-30',
+        isHidden && 'hidden'
       )}
     >
-      <ariaComponents.Button
-        // Change this `button` into an `a` to avoid the DOM nesting error.
-        href=""
-        size="custom"
-        variant="custom"
-        loaderPosition="icon"
-        icon={({ isFocusVisible, isHovered }) =>
-          (isFocusVisible || isHovered) && onClose ? (
-            <div className="mt-[1px] flex h-4 w-4 items-center justify-center">
-              <ariaComponents.CloseButton onPress={onClose} />
-            </div>
-          ) : (
-            icon
-          )
-        }
-        isDisabled={false}
-        isActive={isActive}
-        loading={isActive ? false : isLoading}
-        aria-label={getText(labelId)}
-        tooltip={false}
-        className={tailwindMerge.twMerge('relative flex h-full items-center gap-3 px-4')}
-        onPress={onPress}
-      >
-        {children}
-      </ariaComponents.Button>
-    </div>
+      {onClose && (
+        <div className="mt-[1px] hidden h-4 w-4 items-center justify-center group-hover:flex focus-visible:flex">
+          <ariaComponents.CloseButton onPress={onClose} />
+        </div>
+      )}
+      {isLoading ? (
+        <StatelessSpinner
+          state={spinnerModule.SpinnerState.loadingMedium}
+          size={16}
+          className={tailwindMerge.twMerge(onClose && 'group-hover:hidden focus-visible:hidden')}
+        />
+      ) : (
+        <SvgMask
+          src={icon}
+          className={tailwindMerge.twMerge(onClose && 'group-hover:hidden focus-visible:hidden')}
+        />
+      )}
+      {children}
+    </aria.Tab>
   )
 }
