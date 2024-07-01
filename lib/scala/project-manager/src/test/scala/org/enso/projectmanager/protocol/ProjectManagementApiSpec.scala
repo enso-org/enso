@@ -1329,9 +1329,8 @@ class ProjectManagementApiSpec
     "duplicate a project" in {
       implicit val client: WsTestClient = new WsTestClient(address)
       //given
-      val projectName    = "Project To Copy"
-      val newProjectName = "Project To Copy (copy)"
-      val projectId      = createProject(projectName)
+      val projectName = "Project To Copy"
+      val projectId   = createProject(projectName)
       //when
       client.send(json"""
         { "jsonrpc": "2.0",
@@ -1343,6 +1342,7 @@ class ProjectManagementApiSpec
         }
         """)
       //then
+      val newProjectName = "Project To Copy (copy)"
       val duplicateReply = client.fuzzyExpectJson(json"""
         {
           "jsonrpc": "2.0",
@@ -1363,18 +1363,65 @@ class ProjectManagementApiSpec
         projectId     <- projectIdJson.asString
       } yield UUID.fromString(projectId)
 
-      val projectDir  = new File(userProjectDir, "ProjectToCopycopy")
-      val packageFile = new File(projectDir, "package.yaml")
-      val buffer      = Source.fromFile(packageFile)
-      try {
-        val lines = buffer.getLines()
-        lines.contains(s"name: $newProjectName") shouldBe true
-      } finally {
-        buffer.close()
+      {
+        val projectDir  = new File(userProjectDir, "ProjectToCopycopy")
+        val packageFile = new File(projectDir, "package.yaml")
+        val buffer      = Source.fromFile(packageFile)
+        try {
+          val lines = buffer.getLines()
+          lines.contains(s"name: $newProjectName") shouldBe true
+        } finally {
+          buffer.close()
+        }
+      }
+
+      //when
+      client.send(json"""
+        { "jsonrpc": "2.0",
+          "method": "project/duplicate",
+          "id": 0,
+          "params": {
+            "projectId": $projectId
+          }
+        }
+        """)
+      //then
+      val newProjectName1 = "Project To Copy (copy)_1"
+      val duplicateReply1 = client.fuzzyExpectJson(json"""
+        {
+          "jsonrpc": "2.0",
+          "id": 0,
+          "result": {
+            "projectId": "*",
+            "projectName": $newProjectName1,
+            "projectNormalizedName": "ProjectToCopycopy_1"
+          }
+        }
+        """)
+
+      val Some(duplicatedProjectId1) = for {
+        reply         <- duplicateReply1.asObject
+        resultJson    <- reply("result")
+        result        <- resultJson.asObject
+        projectIdJson <- result("projectId")
+        projectId     <- projectIdJson.asString
+      } yield UUID.fromString(projectId)
+
+      {
+        val projectDir  = new File(userProjectDir, "ProjectToCopycopy_1")
+        val packageFile = new File(projectDir, "package.yaml")
+        val buffer      = Source.fromFile(packageFile)
+        try {
+          val lines = buffer.getLines()
+          lines.contains(s"name: $newProjectName1") shouldBe true
+        } finally {
+          buffer.close()
+        }
       }
 
       //teardown
       deleteProject(duplicatedProjectId)
+      deleteProject(duplicatedProjectId1)
       deleteProject(projectId)
     }
 
