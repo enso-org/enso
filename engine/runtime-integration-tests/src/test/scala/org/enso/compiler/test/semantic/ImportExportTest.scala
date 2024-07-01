@@ -1372,6 +1372,30 @@ class ImportExportTest
   }
 
   "Exports graph building" should {
+    def assertAModExportedByBMod(graph: List[Node]): Unit = {
+      withClue("There should be only A_Module and B_Module nodes") {
+        graph.size shouldBe 2
+      }
+      val aModNode = graph.find(node =>
+        node.module match {
+          case BindingsMap.ResolvedModule(modRef) =>
+            modRef.getName.item == "A_Module"
+          case _ => false
+        }
+      )
+      aModNode shouldBe defined
+      val aModNodeExporter =
+        aModNode.get.exportedBy.head.exporter
+      withClue("A_Module should be exported by B_Module") {
+        aModNodeExporter.module
+          .isInstanceOf[BindingsMap.ResolvedModule] shouldBe true
+        aModNodeExporter.module
+          .asInstanceOf[BindingsMap.ResolvedModule]
+          .qualifiedName
+          .item shouldBe "B_Module"
+      }
+    }
+
     // Directly export a single module
     "build exports graph for a module" in {
       val aModule =
@@ -1386,22 +1410,7 @@ class ImportExportTest
            |""".stripMargin
           .createModule(packageQualifiedName.createChild("B_Module"))
       val graph = buildExportsGraph(List(aModule, bModule))
-      val aNode = graph.find { node =>
-        node.target match {
-          case BindingsMap.ResolvedModule(modRef)
-              if modRef.getName.item == "A_Module" =>
-            true
-          case _ => false
-        }
-      }
-      aNode shouldBe defined
-      val aNodeExporter = aNode.get.exportedBy.head.exporter
-      aNodeExporter.target
-        .isInstanceOf[BindingsMap.ResolvedModule] shouldBe true
-      aNodeExporter.target
-        .asInstanceOf[BindingsMap.ResolvedModule]
-        .qualifiedName
-        .item shouldBe "B_Module"
+      assertAModExportedByBMod(graph)
     }
 
     "build exports graph for static method" in {
@@ -1426,18 +1435,7 @@ class ImportExportTest
            |""".stripMargin
           .createModule(packageQualifiedName.createChild("B_Module"))
       val graph = buildExportsGraph(List(aModule, bModule))
-      val staticMethodNode = graph.find(node =>
-        node.target.isInstanceOf[BindingsMap.ResolvedStaticMethod]
-      )
-      staticMethodNode shouldBe defined
-      val staticMethodNodeExporter =
-        staticMethodNode.get.exportedBy.head.exporter
-      staticMethodNodeExporter.target
-        .isInstanceOf[BindingsMap.ResolvedModule] shouldBe true
-      staticMethodNodeExporter.target
-        .asInstanceOf[BindingsMap.ResolvedModule]
-        .qualifiedName
-        .item shouldBe "B_Module"
+      assertAModExportedByBMod(graph)
     }
 
     "build exports graph for type" in {
@@ -1462,23 +1460,32 @@ class ImportExportTest
            |""".stripMargin
           .createModule(packageQualifiedName.createChild("B_Module"))
       val graph = buildExportsGraph(List(aModule, bModule))
-      val typeNode = graph.find(node =>
-        node.target match {
-          case BindingsMap.ResolvedType(_, tp) =>
-            tp.name == "A_Type"
-          case _ => false
-        }
-      )
-      typeNode shouldBe defined
-      val typeNodeExporter =
-        typeNode.get.exportedBy.head.exporter
-      typeNodeExporter.target
-        .isInstanceOf[BindingsMap.ResolvedModule] shouldBe true
-      typeNodeExporter.target
-        .asInstanceOf[BindingsMap.ResolvedModule]
-        .qualifiedName
-        .item shouldBe "B_Module"
+      assertAModExportedByBMod(graph)
+    }
 
+    "No exports graph is constructed when only import is used" in {
+      val aModule =
+        """
+          |type A_Type
+          |    A_Constructor
+          |""".stripMargin
+          .createModule(packageQualifiedName.createChild("A_Module"))
+
+      val bModule =
+        s"""
+          |from $namespace.$packageName.A_Module import A_Type
+          |
+          |main =
+          |    A_Type.A_Constructor
+          |""".stripMargin
+          .createModule(packageQualifiedName.createChild("B_Module"))
+      val graph = buildExportsGraph(List(aModule, bModule))
+      withClue("Only two modules are defined") {
+        graph.size shouldBe 2
+      }
+      withClue("There should be no exports") {
+        graph.forall(node => node.exports.isEmpty) shouldBe true
+      }
     }
   }
 }
