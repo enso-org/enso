@@ -13,6 +13,7 @@ import org.enso.persist.Persistance
 import org.enso.pkg.QualifiedName
 import org.enso.common.LanguageInfo
 import org.enso.common.MethodNames
+import org.enso.compiler.data.BindingsMap.{ResolvedConstructor, ResolvedModule}
 import org.enso.compiler.phase.exports.Node
 import org.enso.polyglot.RuntimeOptions
 import org.graalvm.polyglot.{Context, Engine}
@@ -1087,7 +1088,7 @@ class ImportExportTest
 
   "Import resolution for three modules" should {
 
-    "XX not resolve symbol that is not explicitly exported" in {
+    "not resolve symbol that is not explicitly exported" in {
       """
         |type A_Type
         |    A_Constructor
@@ -1114,7 +1115,6 @@ class ImportExportTest
         .createModule(packageQualifiedName.createChild("B_Module"))
         .getIr
       val bBindingMap = bIr.unwrapBindingMap
-      // TODO: bBindingsMap.resolvedExports?
       bBindingMap.exportedSymbols.keys should contain theSameElementsAs List(
         "static_method",
         "B_Type"
@@ -1461,6 +1461,42 @@ class ImportExportTest
           .createModule(packageQualifiedName.createChild("B_Module"))
       val graph = buildExportsGraph(List(aModule, bModule))
       assertAModExportedByBMod(graph)
+    }
+
+    "build exports graph for constructors" in {
+      val boolModule =
+        """
+          |type Boolean
+          |    True
+          |    False
+          |""".stripMargin
+          .createModule(packageQualifiedName.createChild("Boolean"))
+
+      val mainModule =
+        s"""
+           |export $namespace.$packageName.Boolean.Boolean.True
+           |export $namespace.$packageName.Boolean.Boolean.False
+           |""".stripMargin
+          .createModule(packageQualifiedName.createChild("Main"))
+
+      val graph = buildExportsGraph(List(boolModule, mainModule))
+      withClue("graph should contains node for: [A_Module, B_Module, True, False]") {
+        graph.size shouldBe 4
+      }
+      val trueNode = graph.find(node => {
+        node.target match {
+          case ResolvedConstructor(_, cons) if (cons.name == "True") =>
+            true
+          case _ => false
+        }
+      })
+      trueNode shouldBe defined
+      val trueNodeExporter = trueNode.get.exportedBy.head.exporter
+      trueNodeExporter
+        .target
+        .asInstanceOf[ResolvedModule]
+        .qualifiedName
+        .item shouldBe "Main"
     }
 
     "No exports graph is constructed when only import is used" in {
