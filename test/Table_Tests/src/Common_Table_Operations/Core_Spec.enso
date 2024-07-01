@@ -44,14 +44,13 @@ type Read_Data
     setup table_builder = Read_Data.Value <|
         t_big = table_builder [["X", (0.up_to 1500)]]
         t_small = table_builder [["X", (0.up_to 10)]]
-        t_big, t_small
+        [t_big, t_small]
 
 add_specs suite_builder setup =
     prefix = setup.prefix
     table_builder = setup.table_builder
+    data = Data.setup table_builder
     suite_builder.group prefix+"(Core_Spec) Table.at" group_builder->
-        data = Data.setup table_builder
-
         group_builder.specify "should allow selecting columns by name" <|
             column_1 = data.table.at "bar"
             column_1.name . should_equal "bar"
@@ -86,8 +85,6 @@ add_specs suite_builder setup =
             Test.expect_panic_with (data.table.at (Pair.new 1 2)) Type_Error
 
     suite_builder.group prefix+"(Core_Spec) Table.get" group_builder->
-        data = Data.setup table_builder
-
         group_builder.specify "should allow selecting columns by name" <|
             column_1 = data.table.get "bar"
             column_1.name . should_equal "bar"
@@ -116,7 +113,6 @@ add_specs suite_builder setup =
             Test.expect_panic_with (data.table.at (Pair.new 1 2)) Type_Error
 
     suite_builder.group prefix+"(Core_Spec) Table.set" group_builder->
-        data = Data.setup table_builder
         group_builder.specify "should allow adding a column" <|
             bar2 = data.table.get "bar" . rename "bar2"
             t2 = data.table.set bar2
@@ -195,7 +191,6 @@ add_specs suite_builder setup =
                 False -> r1.should_fail_with Illegal_Argument
 
     suite_builder.group prefix+"(Core_Spec) Table.column_names" group_builder->
-        data = Data.setup table_builder
         group_builder.specify "should return the names of all columns" <|
             data.table.column_names . should_equal ["foo", "bar", "Baz", "foo 1", "foo 2", "ab.+123", "abcd123"]
 
@@ -209,7 +204,6 @@ add_specs suite_builder setup =
                 table.at name . to_vector . should_equal [100+ix, 2, 3]
 
     suite_builder.group prefix+"(Core_Spec) Table.column_count" group_builder->
-        data = Data.setup table_builder
         group_builder.specify "should allow getting the column count" <|
             data.table.column_count . should_equal 7
 

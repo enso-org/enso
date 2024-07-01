@@ -24,7 +24,6 @@ add_specs suite_builder setup =
     prefix = setup.prefix
     materialize = setup.materialize
     supports_dates = setup.test_selection.date_time
-    create_connection_fn = setup.create_connection_func
     supports_conversion_failure_reporting = setup.is_database.not
     table_builder = setup.table_builder
     suite_builder.group prefix+"(Conversion_Spec) Table/Column.cast - to text" group_builder->
