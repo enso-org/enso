@@ -383,7 +383,8 @@ class ProjectService[
       _ <- log.debug("Duplicating project [{}].", projectId)
       repo = projectRepositoryFactory.getProjectRepository(projectsDirectory)
       project <- getUserProject(projectId, repo)
-      newName <- getNameForNewProject(project.name, repo)
+      suggestedProjectName = getNameForDuplicatedProject(project.name)
+      newName <- getNameForNewProject(suggestedProjectName, repo)
       _       <- validateProjectName(newName)
       _       <- log.debug("Validated new project name [{}]", newName)
       repo = projectRepositoryFactory.getProjectRepository(projectsDirectory)
@@ -523,6 +524,9 @@ class ProjectService[
       )
       .mapError(toServiceFailure)
   }
+
+  private def getNameForDuplicatedProject(projectName: String): String =
+    s"$projectName (copy)"
 
   /** Retrieve project info.
     *

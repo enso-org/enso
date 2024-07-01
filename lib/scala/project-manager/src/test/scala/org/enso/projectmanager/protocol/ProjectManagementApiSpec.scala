@@ -1330,7 +1330,7 @@ class ProjectManagementApiSpec
       implicit val client: WsTestClient = new WsTestClient(address)
       //given
       val projectName    = "Project To Copy"
-      val newProjectName = "Project To Copy_1"
+      val newProjectName = "Project To Copy (copy)"
       val projectId      = createProject(projectName)
       //when
       client.send(json"""
@@ -1350,7 +1350,7 @@ class ProjectManagementApiSpec
           "result": {
             "projectId": "*",
             "projectName": $newProjectName,
-            "projectNormalizedName": "ProjectToCopy_1"
+            "projectNormalizedName": "ProjectToCopycopy"
           }
         }
         """)
@@ -1363,7 +1363,7 @@ class ProjectManagementApiSpec
         projectId     <- projectIdJson.asString
       } yield UUID.fromString(projectId)
 
-      val projectDir  = new File(userProjectDir, "ProjectToCopy_1")
+      val projectDir  = new File(userProjectDir, "ProjectToCopycopy")
       val packageFile = new File(projectDir, "package.yaml")
       val buffer      = Source.fromFile(packageFile)
       try {
