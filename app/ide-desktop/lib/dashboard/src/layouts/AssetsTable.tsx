@@ -1011,7 +1011,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     'listDirectory',
     [
       {
-        parentId: null,
+        parentId: rootDirectoryId,
         filterBy: CATEGORY_TO_FILTER_BY[category],
         recentProjects: category === Category.recent,
         labels: null,
