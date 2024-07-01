@@ -314,7 +314,13 @@ case class BindingsMap(
     resolvedImports.collect { case ResolvedImport(_, exports, mod) =>
       exports.map { exp =>
         val rename = Some(exp.getSimpleName.name)
-        ExportedModule(mod, rename)
+        val symbols = exp.onlyNames match {
+          case Some(onlyNames) =>
+            onlyNames.map(_.name)
+          case None =>
+            List(exp.getSimpleName.name)
+        }
+        ExportedModule(mod, rename, symbols)
       }
     }.flatten
 }
@@ -349,8 +355,13 @@ object BindingsMap {
     *
     * @param target the module being exported.
     * @param exportedAs the name it is exported as.
+    * @param symbols List of symbols connected to the export.
     */
-  case class ExportedModule(target: ImportTarget, exportedAs: Option[String]) {
+  case class ExportedModule(
+    target: ImportTarget,
+    exportedAs: Option[String],
+    symbols: List[String]
+  ) {
 
     /** Convert the internal [[ModuleReference]] to an abstract reference.
       *

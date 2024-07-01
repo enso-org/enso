@@ -95,7 +95,8 @@ case object FullyQualifiedNames extends IRPass {
       scopeMap.resolvedExports.foreach {
         case ExportedModule(
               resolution @ ResolvedType(exportedModuleRef, tpe),
-              exportedAs
+              exportedAs,
+              _
             ) =>
           val tpeName        = exportedAs.getOrElse(tpe.name)
           val exportedModule = exportedModuleRef.unsafeAsModule()

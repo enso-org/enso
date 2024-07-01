@@ -46,8 +46,8 @@ class ExportsResolution(private val context: CompilerContext) {
         Nil
       }
       val node = nodes(module)
-      node.exports = exports.map { case ExportedModule(mod, rename) =>
-        Edge(node, rename, nodes.getOrElseUpdate(mod, Node(mod)))
+      node.exports = exports.map { case ExportedModule(mod, rename, symbols) =>
+        Edge(node, symbols, rename, nodes.getOrElseUpdate(mod, Node(mod)))
       }
       node.exports.foreach { edge => edge.exportee.exportedBy ::= edge }
     }
@@ -116,16 +116,45 @@ class ExportsResolution(private val context: CompilerContext) {
     nodes.foreach { node =>
       val explicitlyExported =
         node.exports.map(edge =>
-          ExportedModule(edge.exportee.module, edge.exportsAs)
+          ExportedModule(
+            edge.exportee.target,
+            edge.exportsAs,
+            edge.symbols
+          )
         )
-      val transitivelyExported: List[ExportedModule] =
-        explicitlyExported.flatMap { case ExportedModule(module, _) =>
-          exports(module).map { case ExportedModule(export, _) =>
-            ExportedModule(export, None)
+      
+      val transitivelyExported: List[ExportedModule] = {
+        explicitlyExported.flatMap { case ExportedModule(module, _, symbols) =>
+          exports(module).map { case ExportedModule(export, _, parentSymbols) =>
+            val exportedSymbols = symbols.intersect(parentSymbols)
+            ExportedModule(
+              export,
+              None,
+              exportedSymbols
+            )
           }
         }
+      }
+      
       val allExported = explicitlyExported ++ transitivelyExported
-      exports(node.module) = allExported
+      val unified = allExported
+        .groupBy(_.target)
+        .map { case (mod, items) =>
+          val name = items.collectFirst { case ExportedModule(_, Some(n), _) =>
+            n
+          }
+          val allSymbols = items
+            .map(_.symbols)
+            .foldLeft(List[String]())(_ ++ _)
+          ExportedModule(
+            mod,
+            name,
+            allSymbols.distinct
+          )
+        }
+        .toList
+      exports(node.target) = unified
+      
     }
     exports.foreach { case (target, exports) =>
       target match {
@@ -144,15 +173,25 @@ class ExportsResolution(private val context: CompilerContext) {
         bindings.definedEntities
           .filter(_.canExport)
           .map(e => (e.name, List(e.resolvedIn(module))))
-      val exportedModules = bindings.resolvedExports.collect {
-        case ExportedModule(mod, Some(exportedAs))
-            if mod.module.unsafeAsModule() != module =>
-          (exportedAs, List(mod))
+      val exportedModules = bindings.resolvedExports.flatMap {
+        case ExportedModule(mod, Some(exportedAs), symbols) =>
+          val isThisModule = mod.module.unsafeAsModule() == module
+          val exportsOnlyModule = (symbols.size == 1 && symbols.head == mod.module.getName.item)
+          if (!isThisModule && exportsOnlyModule) {
+            Some((exportedAs, List(mod)))
+          } else {
+            None
+          }
+        case _ => None
       }
       val reExportedSymbols = bindings.resolvedExports.flatMap { export =>
         export.target.exportedSymbols
           .flatMap { case (sym, resolutions) =>
-            Some((sym, resolutions))
+            if (export.symbols.contains(sym)) {
+              Some((sym, resolutions))
+            } else {
+              None
+            }
           }
       }
       bindings.exportedSymbols = List(
