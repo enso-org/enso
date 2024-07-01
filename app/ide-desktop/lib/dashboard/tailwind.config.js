@@ -26,12 +26,11 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         'selected-frame': 'rgb(255 255 255 / 70%)',
         'ide-bg': '#ebeef1',
         selected: 'rgb(255 255 255 / 40%)',
-        'not-selected': 'rgb(0 0 0 / 15%)',
+        'not-selected': 'rgb(0 0 0 / 30%)',
         // Should be `#3e515f14`, but `bg-opacity` does not work with RGBA.
         label: '#f0f1f3',
         help: '#3f68ce',
         invite: '#0e81d4',
-        cloud: '#0666be',
         share: '#64b526',
         inversed: '#ffffff',
         green: '#3e8b29',
@@ -157,10 +156,8 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         'members-email-column': 'var(--members-email-column-width)',
         'keyboard-shortcuts-icon-column': 'var(--keyboard-shortcuts-icon-column-width)',
         'keyboard-shortcuts-name-column': 'var(--keyboard-shortcuts-name-column-width)',
-        'activity-log-icon-column': 'var(--activity-log-icon-column-width)',
-        'activity-log-type-column': 'var(--activity-log-type-column-width)',
-        'activity-log-email-column': 'var(--activity-log-email-column-width)',
-        'activity-log-timestamp-column': 'var(--activity-log-timestamp-column-width)',
+        'keyboard-shortcuts-description-column':
+          'var(--keyboard-shortcuts-description-column-width)',
         'drive-name-column': 'var(--drive-name-column-width)',
         'drive-modified-column': 'var(--drive-modified-column-width)',
         'drive-shared-with-column': 'var(--drive-shared-with-column-width)',
@@ -200,7 +197,6 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
       gap: {
         modal: 'var(--modal-gap)',
         subheading: 'var(--subheading-gap)',
-        buttons: 'var(--buttons-gap)',
         icons: 'var(--icons-gap)',
         colors: 'var(--colors-gap)',
         'samples-icon-with-text': 'var(--samples-icon-with-text-gap)',
@@ -247,8 +243,6 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         'asset-panel': 'var(--asset-panel-gap)',
         'search-suggestions': 'var(--search-suggestions-gap)',
         'keyboard-shortcuts-button': 'var(--keyboard-shortcuts-button-gap)',
-        'activity-log-filters': 'var(--activity-log-filters-gap)',
-        'activity-log-filter': 'var(--activity-log-filter-gap)',
         'chat-buttons': 'var(--chat-buttons-gap)',
       },
       padding: {
@@ -367,6 +361,9 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         soft: `0 0.5px 2.2px 0px #00000008, 0 1.2px 5.3px 0px #0000000b, \
 0 2.3px 10px 0 #0000000e, 0 4px 18px 0 #00000011, 0 7.5px 33.4px 0 #00000014, \
 0 18px 80px 0 #0000001c`,
+        softer: `0 0.5px 2.2px 0px rgb(0 0 0 / 0.84%), 0 1.2px 5.65px 0px rgb(0 0 0 / 1.21%), \
+0 2.25px 10.64px 0 rgb(0 0 0 / 1.5%), 0 4px 19px 0 rgb(0 0 0 / 1.79%), 0 7.5px 35.5px 0 rgb(0 0 0 / 2.16%), \
+0 18px 85px 0 rgb(0 0 0 / 3%)`,
         'inset-t-lg': `inset 0 1px 1.4px -1.4px #00000002, \
 inset 0 2.4px 3.4px -3.4px #00000003, inset 0 4.5px 6.4px -6.4px #00000004, \
 inset 0 8px 11.4px -11.4px #00000005, inset 0 15px 21.3px -21.3px #00000006, \
@@ -458,6 +455,9 @@ inset 0 -36px 51px -51px #00000014`,
           },
           '.clip-path-bottom-shadow': {
             clipPath: `polygon(0 0, 100% 0, 100% calc(100% + 100vh), 0 calc(100% + 100vh))`,
+          },
+          '.clip-path-left-shadow': {
+            clipPath: `polygon(-100vw 0, 100% 0, 100% 100%, -100vw 100%)`,
           },
           '.scroll-hidden': {
             MsOverflowStyle: 'none' /* Internet Explorer 10+ */,

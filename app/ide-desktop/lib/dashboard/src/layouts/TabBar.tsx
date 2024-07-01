@@ -27,6 +27,7 @@ const TAB_RADIUS_PX = 24
 /** Context for a {@link TabBarContext}. */
 interface TabBarContextValue {
   readonly updateClipPath: (element: HTMLDivElement | null) => void
+  readonly observeElement: (element: HTMLElement) => () => void
 }
 
 const TabBarContext = React.createContext<TabBarContextValue | null>(null)
@@ -103,7 +104,18 @@ export default function TabBar(props: TabBarProps) {
   }
 
   return (
-    <TabBarContext.Provider value={{ updateClipPath }}>
+    <TabBarContext.Provider
+      value={{
+        updateClipPath,
+        observeElement: element => {
+          resizeObserver.observe(element)
+
+          return () => {
+            resizeObserver.unobserve(element)
+          }
+        },
+      }}
+    >
       <div className="relative flex grow">
         <div
           ref={element => {
@@ -162,9 +174,24 @@ interface InternalTabProps extends Readonly<React.PropsWithChildren> {
 /** A tab in a {@link TabBar}. */
 export function Tab(props: InternalTabProps) {
   const { isActive, icon, labelId, loadingPromise, children, onPress, onClose } = props
-  const { updateClipPath } = useTabBarContext()
+  const { updateClipPath, observeElement } = useTabBarContext()
+  const ref = React.useRef<HTMLDivElement | null>(null)
   const { getText } = textProvider.useText()
   const [isLoading, setIsLoading] = React.useState(loadingPromise != null)
+
+  React.useLayoutEffect(() => {
+    if (isActive) {
+      updateClipPath(ref.current)
+    }
+  }, [isActive, updateClipPath])
+
+  React.useEffect(() => {
+    if (ref.current) {
+      return observeElement(ref.current)
+    } else {
+      return () => {}
+    }
+  }, [observeElement])
 
   React.useEffect(() => {
     if (loadingPromise) {
@@ -184,7 +211,7 @@ export function Tab(props: InternalTabProps) {
 
   return (
     <div
-      ref={isActive ? updateClipPath : null}
+      ref={ref}
       className={tailwindMerge.twMerge(
         'group relative h-full',
         !isActive && 'hover:enabled:bg-frame'
@@ -194,26 +221,25 @@ export function Tab(props: InternalTabProps) {
         size="custom"
         variant="custom"
         loaderPosition="icon"
-        icon={icon}
-        isDisabled={isActive}
+        icon={({ isFocusVisible, isHovered }) =>
+          (isFocusVisible || isHovered) && onClose ? (
+            <div className="mt-[1px] flex h-4 w-4 items-center justify-center">
+              <ariaComponents.CloseButton onPress={onClose} />
+            </div>
+          ) : (
+            icon
+          )
+        }
+        isDisabled={false}
         isActive={isActive}
-        loading={isLoading}
+        loading={isActive ? false : isLoading}
         aria-label={getText(labelId)}
         tooltip={false}
-        className={tailwindMerge.twMerge(
-          'relative flex h-full items-center gap-3 px-4',
-          onClose && 'pr-10'
-        )}
+        className={tailwindMerge.twMerge('relative flex h-full items-center gap-3 px-4')}
         onPress={onPress}
       >
         {children}
       </ariaComponents.Button>
-      {onClose && (
-        <ariaComponents.CloseButton
-          className="absolute right-4 top-1/2 -translate-y-1/2 opacity-0 transition-opacity group-hover:opacity-100"
-          onPress={onClose}
-        />
-      )}
     </div>
   )
 }
