@@ -378,62 +378,6 @@ class ImportExportTest
         .name should include("Non_Existing_Symbol")
     }
 
-    // TODO[pm]: Fix in https://github.com/enso-org/enso/issues/6669
-    "resolve all symbols from transitively exported type" ignore {
-      """
-        |type A_Type
-        |    A_Constructor
-        |    a_method self = 1
-        |""".stripMargin
-        .createModule(packageQualifiedName.createChild("A_Module"))
-      s"""
-         |export $namespace.$packageName.A_Module.A_Type
-         |""".stripMargin
-        .createModule(packageQualifiedName.createChild("B_Module"))
-      val mainIr =
-        s"""
-           |from $namespace.$packageName.B_Module.A_Type import all
-           |""".stripMargin
-          .createModule(packageQualifiedName.createChild("Main"))
-          .getIr
-      mainIr.imports.size shouldEqual 1
-      mainIr.imports.head.isInstanceOf[errors.ImportExport] shouldBe false
-      val mainBindingMap = mainIr.unwrapBindingMap
-      val resolvedImportTargets =
-        mainBindingMap.resolvedImports.map(_.target)
-      resolvedImportTargets
-        .collect { case c: BindingsMap.ResolvedConstructor => c }
-        .map(_.cons.name) should contain theSameElementsAs List("A_Constructor")
-    }
-
-    // TODO[pm]: Fix in https://github.com/enso-org/enso/issues/6669
-    "resolve constructor from transitively exported type" ignore {
-      """
-        |type A_Type
-        |    A_Constructor
-        |""".stripMargin
-        .createModule(packageQualifiedName.createChild("A_Module"))
-      s"""
-         |import $namespace.$packageName.A_Module.A_Type
-         |export $namespace.$packageName.A_Module.A_Type
-         |""".stripMargin
-        .createModule(packageQualifiedName.createChild("B_Module"))
-      val mainIr =
-        s"""
-           |from $namespace.$packageName.B_Module.A_Type import A_Constructor
-           |""".stripMargin
-          .createModule(packageQualifiedName.createChild("Main"))
-          .getIr
-      mainIr.imports.size shouldEqual 1
-      mainIr.imports.head.isInstanceOf[errors.ImportExport] shouldBe false
-      val mainBindingMap = mainIr.unwrapBindingMap
-      val resolvedImportTargets =
-        mainBindingMap.resolvedImports.map(_.target)
-      resolvedImportTargets
-        .collect { case c: BindingsMap.ResolvedConstructor => c }
-        .map(_.cons.name) should contain theSameElementsAs List("A_Constructor")
-    }
-
     "export is not transitive" in {
       s"""
          |import $namespace.$packageName.A_Module.A_Type
