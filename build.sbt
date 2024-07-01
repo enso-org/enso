@@ -2813,6 +2813,7 @@ lazy val `desktop-environment` =
     .settings(
       frgaalJavaCompilerSetting,
       libraryDependencies ++= Seq(
+        "commons-io"     % "commons-io"      % commonsIoVersion,
         "junit"          % "junit"           % junitVersion   % Test,
         "com.github.sbt" % "junit-interface" % junitIfVersion % Test
       )
