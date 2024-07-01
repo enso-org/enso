@@ -365,11 +365,10 @@ agg_count_distinct args = if args.is_empty then (Error.throw (Illegal_Argument.E
         False ->
             ## We do not want to ignore a row where only some values are NULL - so we coalesce them.
             coalesced_args = args.map replace_null_with_marker
-            count = SQL_Builder.code "COUNT(DISTINCT " ++ SQL_Builder.join ", " coalesced_args ++ ")"
-            # But we want to ignore all-null columns. So we manually filter them out.
-            are_nulls = args.map arg-> arg.paren ++ " IS NULL"
-            all_nulls_filter = SQL_Builder.code " FILTER (WHERE NOT (" ++ SQL_Builder.join " AND " are_nulls ++ "))"
-            (count ++ all_nulls_filter).paren
+            # But we want to ignore all-null columns. So we include an additional indicator column which is NULL if all columns were NULL - excluding such rows.
+            are_all_nulls = SQL_Builder.join " AND " (args.map arg-> arg.paren ++ " IS NULL")
+            all_null_indicator = SQL_Builder.code "CASE WHEN " ++ are_all_nulls ++ " THEN NULL ELSE 1 END"
+            SQL_Builder.code "COUNT(DISTINCT " ++ SQL_Builder.join ", " (coalesced_args + [all_null_indicator]) ++ ")"
 
 ## PRIVATE
 agg_count_distinct_include_null args =
