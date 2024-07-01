@@ -78,13 +78,17 @@ object Manifest {
           node: Node
         ): Either[Throwable, RequiredInstallerVersions] = {
           node match {
-            case node: MappingNode =>
+            case mappingNode: MappingNode =>
               val semverDecoder = implicitly[SnakeYamlDecoder[SemVer]]
-              val bindings      = mappingKV(node)
+              val bindings      = mappingKV(mappingNode)
               for {
                 launcher <- bindings
                   .get(Manifest.Fields.minimumLauncherVersion)
-                  .toRight(new YAMLException("Missing `launcher` field"))
+                  .toRight(
+                    new YAMLException(
+                      s"Missing `${Manifest.Fields.minimumLauncherVersion}` field"
+                    )
+                  )
                   .flatMap(semverDecoder.decode)
                 projectManager <- bindings
                   .get(Manifest.Fields.minimumProjectManagerVersion)

@@ -8,23 +8,29 @@ import org.yaml.snakeyaml.nodes.Tag
 import org.yaml.snakeyaml.error.YAMLException
 
 import scala.jdk.CollectionConverters.CollectionHasAsScala
-import scala.collection.BuildFrom
+import scala.collection.{BuildFrom, mutable}
 
 abstract class SnakeYamlDecoder[T] {
   def decode(node: Node): Either[Throwable, T]
 
-  protected def mappingKV(mappingNode: MappingNode): Map[String, Node] = {
-    mappingNode.getValue.asScala.map { node =>
-      node.getKeyNode match {
+  protected final def mappingKV(mappingNode: MappingNode): Map[String, Node] = {
+    val mutableMap = mutable.HashMap[String, Node]()
+    val values = mappingNode.getValue
+    val len = values.size()
+    var i = 0
+    while (i < len) {
+      val value = values.get(i)
+      value.getKeyNode match {
         case n: ScalarNode =>
-          (n.getValue, node.getValueNode)
+          mutableMap.put(n.getValue, value.getValueNode)
         case _: SequenceNode =>
           throw new YAMLException("expected a plain value as a map's key, got a sequence instead")
         case _: MappingNode =>
           throw new YAMLException("expected a plain value as a map's key, got a map instead")
-
       }
-    }.toMap
+      i += 1
+    }
+    mutableMap.toMap
   }
 }
 
