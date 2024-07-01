@@ -1294,7 +1294,10 @@ export default abstract class Backend {
   /** The path to the root directory of this {@link Backend}. */
   abstract readonly rootPath: string
   /** Return the ID of the root directory, if known. */
-  abstract rootDirectoryId(user: User | null): DirectoryId | null
+  abstract rootDirectoryId(
+    user: User | null,
+    organization: OrganizationInfo | null
+  ): DirectoryId | null
   /** Return a list of all users in the same organization. */
   abstract listUsers(): Promise<readonly User[]>
   /** Set the username of the current user. */

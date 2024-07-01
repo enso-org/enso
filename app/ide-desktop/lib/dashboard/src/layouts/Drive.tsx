@@ -3,6 +3,7 @@ import * as React from 'react'
 
 import * as appUtils from '#/appUtils'
 
+import * as backendHooks from '#/hooks/backendHooks'
 import * as offlineHooks from '#/hooks/offlineHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
@@ -96,9 +97,11 @@ export default function Drive(props: DriveProps) {
     () => localStorage.get('isAssetPanelVisible') ?? false
   )
   const [isAssetPanelTemporarilyVisible, setIsAssetPanelTemporarilyVisible] = React.useState(false)
+  const organizationQuery = backendHooks.useBackendQuery(backend, 'getOrganization', [])
+  const organization = organizationQuery.data ?? null
   const rootDirectoryId = React.useMemo(
-    () => backend.rootDirectoryId(user) ?? backendModule.DirectoryId(''),
-    [backend, user]
+    () => backend.rootDirectoryId(user, organization) ?? backendModule.DirectoryId(''),
+    [backend, user, organization]
   )
   const targetDirectoryNodeRef = React.useRef<AssetTreeNode<backendModule.DirectoryAsset> | null>(
     null

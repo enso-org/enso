@@ -169,8 +169,22 @@ export default class RemoteBackend extends Backend {
   }
 
   /** Return the ID of the root directory. */
-  override rootDirectoryId(user: backend.User | null): backend.DirectoryId | null {
-    return user?.rootDirectoryId ?? null
+  override rootDirectoryId(
+    user: backend.User | null,
+    organization: backend.OrganizationInfo | null
+  ): backend.DirectoryId | null {
+    switch (user?.plan ?? null) {
+      case null:
+      case backend.Plan.solo: {
+        return user?.rootDirectoryId ?? null
+      }
+      case backend.Plan.team:
+      case backend.Plan.enterprise: {
+        return organization == null
+          ? null
+          : backend.DirectoryId(`directory-${organization.id.replace(/^organization-/, '')}`)
+      }
+    }
   }
 
   /** Return a list of all users in the same organization. */

@@ -500,9 +500,10 @@ export default class LocalBackend extends Backend {
     return this.invalidOperation()
   }
 
-  /** Invalid operation. */
-  override getOrganization() {
-    return this.invalidOperation()
+  /** Get the current organization. Returns `null` because organizations do not exist on the
+   * Local Backend. This is required for `rootDiretoryId` to work. */
+  override async getOrganization(): Promise<backend.OrganizationInfo | null> {
+    return Promise.resolve(null)
   }
 
   /** Invalid operation. */
