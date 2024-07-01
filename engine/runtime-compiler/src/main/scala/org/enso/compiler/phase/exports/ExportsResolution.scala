@@ -122,7 +122,7 @@ class ExportsResolution(private val context: CompilerContext) {
             edge.symbols
           )
         )
-      
+
       val transitivelyExported: List[ExportedModule] = {
         explicitlyExported.flatMap { case ExportedModule(module, _, symbols) =>
           exports(module).map { case ExportedModule(export, _, parentSymbols) =>
@@ -135,7 +135,7 @@ class ExportsResolution(private val context: CompilerContext) {
           }
         }
       }
-      
+
       val allExported = explicitlyExported ++ transitivelyExported
       val unified = allExported
         .groupBy(_.target)
@@ -154,7 +154,7 @@ class ExportsResolution(private val context: CompilerContext) {
         }
         .toList
       exports(node.target) = unified
-      
+
     }
     exports.foreach { case (target, exports) =>
       target match {
@@ -176,7 +176,8 @@ class ExportsResolution(private val context: CompilerContext) {
       val exportedModules = bindings.resolvedExports.flatMap {
         case ExportedModule(mod, Some(exportedAs), symbols) =>
           val isThisModule = mod.module.unsafeAsModule() == module
-          val exportsOnlyModule = (symbols.size == 1 && symbols.head == mod.module.getName.item)
+          val exportsOnlyModule =
+            symbols.size == 1 && symbols.head == mod.module.getName.item
           if (!isThisModule && exportsOnlyModule) {
             Some((exportedAs, List(mod)))
           } else {

@@ -1480,20 +1480,21 @@ class ImportExportTest
           .createModule(packageQualifiedName.createChild("Main"))
 
       val graph = buildExportsGraph(List(boolModule, mainModule))
-      withClue("graph should contains node for: [A_Module, B_Module, True, False]") {
+      withClue(
+        "graph should contains node for: [A_Module, B_Module, True, False]"
+      ) {
         graph.size shouldBe 4
       }
       val trueNode = graph.find(node => {
         node.target match {
-          case ResolvedConstructor(_, cons) if (cons.name == "True") =>
+          case ResolvedConstructor(_, cons) if cons.name == "True" =>
             true
           case _ => false
         }
       })
       trueNode shouldBe defined
       val trueNodeExporter = trueNode.get.exportedBy.head.exporter
-      trueNodeExporter
-        .target
+      trueNodeExporter.target
         .asInstanceOf[ResolvedModule]
         .qualifiedName
         .item shouldBe "Main"
