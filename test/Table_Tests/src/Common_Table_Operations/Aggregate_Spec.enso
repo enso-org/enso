@@ -1703,7 +1703,7 @@ add_specs suite_builder setup =
             table_builder cols =
                 setup.table_builder cols connection=data.connection
 
-            expect_sum_and_unsupported_errors error_count result =
+            expect_sum_and_unsupported_errors error_count result = within_table result <|
                 result.column_count . should_equal 1
                 result.row_count . should_equal 1
                 result.columns.first.to_vector . should_equal [6]
