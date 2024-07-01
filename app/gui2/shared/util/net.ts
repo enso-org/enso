@@ -35,7 +35,7 @@ export class AbortScope {
 
   onAbort(listener: () => void) {
     if (this.signal.aborted) {
-      setTimeout(listener, 0)
+      queueMicrotask(listener)
     } else {
       this.signal.addEventListener('abort', listener, { once: true })
     }
@@ -171,7 +171,15 @@ export function printingCallbacks(successDescription: string, errorDescription: 
 }
 
 export type ReconnectingTransportWithWebsocketEvents = Transport & {
-  on<K extends keyof WebSocketEventMap>(type: K, cb: (event: WebSocketEventMap[K]) => void): void
-  off<K extends keyof WebSocketEventMap>(type: K, cb: (event: WebSocketEventMap[K]) => void): void
+  on<K extends keyof WebSocketEventMap>(
+    type: K,
+    cb: (event: WebSocketEventMap[K]) => void,
+    options?: AddEventListenerOptions,
+  ): void
+  off<K extends keyof WebSocketEventMap>(
+    type: K,
+    cb: (event: WebSocketEventMap[K]) => void,
+    options?: AddEventListenerOptions,
+  ): void
   reconnect(): void
 }

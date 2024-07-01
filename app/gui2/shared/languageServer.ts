@@ -109,7 +109,7 @@ export class LsRpcError {
   }
 
   toString() {
-    return `Language server request '${this.request} failed: ${this.cause instanceof RemoteRpcError ? this.cause.message : this.cause}`
+    return `Language Server request '${this.request}' failed: ${this.cause instanceof RemoteRpcError ? this.cause.message : this.cause}`
   }
 }
 
@@ -150,16 +150,17 @@ export class LanguageServer extends ObservableV2<Notifications & TransportEvents
       this.emit(notification.method as keyof Notifications, [notification.params])
     })
     this.client.onError((error) => {
-      console.error(`Unexpected LS connection error:`, error)
+      console.error('Unexpected Language Server connection error:', error)
     })
     transport.on('error', (error) => console.error('Language Server transport error:', error))
     const reinitializeCb = () => {
       this.emit('transport/closed', [])
-      console.log('Language Server: websocket closed')
+      console.log('Language Server: WebSocket closed')
       this.scheduleInitializationAfterConnect()
     }
     transport.on('close', reinitializeCb)
     this.clientScope.onAbort(() => {
+      console.log('aborted')
       this.transport.off('close', reinitializeCb)
       this.transport.close()
     })
@@ -169,27 +170,33 @@ export class LanguageServer extends ObservableV2<Notifications & TransportEvents
     if (this.initializationScheduled) return this.initialized
     this.initializationScheduled = true
     this.initialized = new Promise((resolve) => {
-      const cb = () => {
-        this.transport.off('open', cb)
-        this.emit('transport/connected', [])
-        this.initializationScheduled = false
-        exponentialBackoff(() => this.initProtocolConnection(this.clientID), {
-          onBeforeRetry: (error, _, delay) => {
-            console.warn(
-              `Failed to initialize language server connection, retrying after ${delay}ms...\n`,
-              error,
-            )
-          },
-        }).then((result) => {
-          if (!result.ok) {
-            result.error.log('Error initializing Language Server RPC')
-          }
-          resolve(result)
-        })
-      }
-      this.transport.on('open', cb)
+      this.transport.on(
+        'open',
+        () => {
+          this.emit('transport/connected', [])
+          this.initializationScheduled = false
+          exponentialBackoff(() => this.initProtocolConnection(this.clientID), {
+            onBeforeRetry: (error, _, delay) => {
+              console.warn(
+                `Failed to initialize Language Server connection, retrying after ${delay}ms...\n`,
+                error,
+              )
+            },
+          }).then((result) => {
+            if (!result.ok && !this.isDisposed) {
+              result.error.log('Error initializing Language Server RPC')
+            }
+            resolve(result)
+          })
+        },
+        { once: true },
+      )
     })
     return this.initialized
+  }
+
+  get isDisposed() {
+    return this.retainCount === 0
   }
 
   get contentRoots(): Promise<ContentRoot[]> {
@@ -207,8 +214,7 @@ export class LanguageServer extends ObservableV2<Notifications & TransportEvents
     params: object,
     waitForInit = true,
   ): Promise<LsRpcResult<T>> {
-    if (this.retainCount === 0)
-      return Err(new LsRpcError('LanguageServer disposed', method, params))
+    if (this.isDisposed) return Err(new LsRpcError('LanguageServer disposed', method, params))
     const uuid = uuidv4()
     const now = performance.now()
     try {
@@ -512,9 +518,9 @@ export class LanguageServer extends ObservableV2<Notifications & TransportEvents
         )
         if (!updatesAcquired) return updatesAcquired
         return await walkFs(self, { rootId, segments }, (type, path) => {
+          if (!running) return
+          if (type !== 'File') return
           if (
-            !running ||
-            type !== 'File' ||
             path.segments.length < segments.length ||
             segments.some((segment, i) => segment !== path.segments[i])
           )
@@ -533,29 +539,35 @@ export class LanguageServer extends ObservableV2<Notifications & TransportEvents
   }
 
   retain() {
-    if (this.retainCount === 0) {
-      throw new Error('Trying to retain already disposed language server.')
+    if (this.isDisposed) {
+      throw new Error('Trying to retain already disposed Language Server.')
     }
     this.retainCount += 1
   }
 
   willRelease(abortController: AbortController) {
-    this.transport.on('close', () => {
-      if (!abortController.signal.aborted) {
-        this.release()
-        abortController.abort()
-      }
-    })
+    this.transport.on(
+      'close',
+      () => {
+        if (!abortController.signal.aborted) {
+          this.release()
+          abortController.abort()
+        }
+      },
+      { once: true },
+    )
   }
 
   release() {
     if (this.retainCount > 0) {
       this.retainCount -= 1
+      // Equivalent to `this.isDisposed`, but written out explicitly here to avoid confusion,
+      // since technically here it is not yet disposed.
       if (this.retainCount === 0) {
-        this.clientScope.dispose('Language server released')
+        this.clientScope.dispose('Language Server released')
       }
     } else {
-      throw new Error('Released already disposed language server.')
+      throw new Error('Released already disposed Language Server.')
     }
   }
 }

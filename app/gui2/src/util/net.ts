@@ -189,6 +189,9 @@ export class AsyncQueue<State> {
 /** Create an abort signal that is signalled when containing Vue scope is disposed. */
 export function useAbortScope(): AbortScope {
   const scope = new AbortScope()
-  onScopeDispose(() => scope.dispose('Vue scope disposed.'))
+  onScopeDispose(() => {
+    console.log('.w. vue scope disposed')
+    scope.dispose('Vue scope disposed.')
+  })
   return scope
 }

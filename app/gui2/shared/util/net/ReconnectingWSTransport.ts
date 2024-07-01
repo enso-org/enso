@@ -24,15 +24,11 @@ class ReconnectingWebSocketTransport extends Transport {
     this.uri = uri
     this.connection = new WebSocket(uri, undefined, { WebSocket: WS })
   }
+
   public connect(): Promise<any> {
     return new Promise<void>((resolve) => {
-      const cb = () => {
-        this.connection.removeEventListener('open', cb)
-        resolve()
-      }
-      this.connection.addEventListener('open', cb)
-      this.connection.addEventListener('message', (message: { data: string }) => {
-        const { data } = message
+      this.connection.addEventListener('open', () => resolve(), { once: true })
+      this.connection.addEventListener('message', ({ data }: { data: string }) => {
         this.transportRequestManager.resolveResponse(data)
       })
     })
@@ -43,7 +39,7 @@ class ReconnectingWebSocketTransport extends Transport {
   }
 
   public async sendData(data: JSONRPCRequestData, timeout: number | null = 5000): Promise<any> {
-    let prom = this.transportRequestManager.addRequest(data, timeout)
+    let promise = this.transportRequestManager.addRequest(data, timeout)
     const notifications = getNotifications(data)
     try {
       this.connection.send(JSON.stringify(this.parseData(data)))
@@ -54,13 +50,14 @@ class ReconnectingWebSocketTransport extends Transport {
       this.transportRequestManager.settlePendingRequest(notifications, jsonError)
       this.transportRequestManager.settlePendingRequest(getBatchRequests(data), jsonError)
 
-      prom = Promise.reject(jsonError)
+      promise = Promise.reject(jsonError)
     }
 
-    return prom
+    return promise
   }
 
   public close(): void {
+    console.log(':) closing', this.uri)
     this.connection.close()
   }
 
@@ -69,16 +66,19 @@ class ReconnectingWebSocketTransport extends Transport {
     cb: (
       event: WebSocketEventMap[K] extends Event ? WebSocketEventMap[K] : never,
     ) => WebSocketEventMap[K] extends Event ? void : never,
+    options?: AddEventListenerOptions,
   ): void {
-    this.connection.addEventListener(type, cb)
+    this.connection.addEventListener(type, cb, options)
   }
+
   off<K extends keyof WebSocketEventMap>(
     type: K,
     cb: (
       event: WebSocketEventMap[K] extends Event ? WebSocketEventMap[K] : never,
     ) => WebSocketEventMap[K] extends Event ? void : never,
+    options?: AddEventListenerOptions,
   ): void {
-    this.connection.removeEventListener(type, cb)
+    this.connection.removeEventListener(type, cb, options)
   }
 }
 
