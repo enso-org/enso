@@ -664,10 +664,17 @@ object BindingsMap {
     /** @inheritdoc */
     override def module: ModuleReference = tpe.module
 
-    override def findExportedSymbolsFor(name: String): List[ResolvedName] =
-      List()
+    override def findExportedSymbolsFor(name: String): List[ResolvedName] = {
+      if (name == cons.name) {
+        List(this)
+      } else {
+        List()
+      }
+    }
 
-    override def exportedSymbols: Map[String, List[ResolvedName]] = Map()
+    override def exportedSymbols: Map[String, List[ResolvedName]] = {
+      Map(cons.name -> List(this))
+    }
   }
 
   /** A representation of a name being resolved to a module.
@@ -709,10 +716,17 @@ object BindingsMap {
   sealed trait ResolvedMethod extends ResolvedName with ImportTarget {
     def methodName: String
 
-    override def findExportedSymbolsFor(name: String): List[ResolvedName] =
-      List()
+    override def findExportedSymbolsFor(name: String): List[ResolvedName] = {
+      if (name == methodName) {
+        List(this)
+      } else {
+        List()
+      }
+    }
 
-    override def exportedSymbols: Map[String, List[ResolvedName]] = Map()
+    override def exportedSymbols: Map[String, List[ResolvedName]] = Map(
+      methodName -> List(this)
+    )
   }
 
   /** A representation of a resolved method defined directly on module.
