@@ -908,6 +908,20 @@ add_specs suite_builder setup =
                 materialized.columns.at 1 . name . should_equal "Shortest B"
                 materialized.columns.at 1 . to_vector . should_equal ["f"]
 
+
+    # Special case for Snowflake until the https://github.com/enso-org/enso/issues/10412 ticket is resolved.
+    if setup.prefix.contains "Snowflake" then
+        suite_builder.group prefix+"Table.aggregate Concatenate" group_builder->
+            group_builder.specify "should be supported" <|
+                table = table_builder [["X", ["A", "B", "C"]]]
+                result = table.aggregate columns=[(Concatenate "X")]
+                result.row_count . should_equal 1
+                str = result.at 0 . at 0
+                # No assumptions about ordering
+                str . should_contain "A"
+                str . should_contain "B"
+                str . should_contain "C"
+
     suite_builder.group prefix+"Table.aggregate Concatenate" (pending = resolve_pending test_selection.text_concat) group_builder->
         build_sorted_table table_structure =
             # Workaround for https://github.com/enso-org/enso/issues/10321
@@ -1597,7 +1611,7 @@ add_specs suite_builder setup =
                     expect_sum_and_unsupported_errors 2 <|
                         table.aggregate columns=[Sum "X", Shortest "Y", Longest "Y"]
 
-            if test_selection.text_concat.not then
+            if test_selection.text_concat.not && (setup.prefix.contains "Snowflake" . not) then
                 group_builder.specify "with Concatenate" <|
                     table = table_builder [["X", [1,2,3]], ["Y", ["a", "bb", "ccc"]]]
                     expect_sum_and_unsupported_errors 1 <|
