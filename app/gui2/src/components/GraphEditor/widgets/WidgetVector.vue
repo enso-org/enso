@@ -2,9 +2,11 @@
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import ListWidget from '@/components/widgets/ListWidget.vue'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
+import type { PortId } from '@/providers/portInfo'
 import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
+import { WidgetEditHandler, type WidgetId } from '@/providers/widgetRegistry/editHandler'
 import { Ast } from '@/util/ast'
-import { computed } from 'vue'
+import { computed, shallowRef, toRef, toValue, watchEffect, type WatchSource } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
 
@@ -41,6 +43,56 @@ const value = computed({
 })
 
 const navigator = injectGraphNavigator(true)
+
+function useChildEditForwarding(input: WatchSource<Ast.Ast | unknown>) {
+  let editStarted = false
+  const childEdit = shallowRef<{ astId: Ast.AstId; editedValue: Ast.Owned | string }>()
+
+  watchEffect(() => {
+    if (!editStarted && !childEdit.value) return
+    const inputValue = toValue(input)
+    if (!(inputValue instanceof Ast.Ast)) return
+    const editedAst = Ast.copyIntoNewModule(inputValue)
+    if (childEdit.value) {
+      const module = editedAst.module
+      const ast = module.tryGet(childEdit.value.astId)
+      if (ast) {
+        const replacement = childEdit.value.editedValue
+        ast.replace(typeof replacement === 'string' ? Ast.parse(replacement, module) : replacement)
+      }
+    }
+    editHandler.edit(editedAst)
+    editStarted = true
+  })
+
+  return {
+    childEnded: (origin: PortId) => {
+      if (childEdit.value?.astId === origin) childEdit.value = undefined
+    },
+    edit: (origin: PortId, value: Ast.Owned | string) => {
+      // The ID is used to locate a subtree; if the port isn't identified by an AstId, the lookup will simply fail.
+      const astId = origin as Ast.AstId
+      childEdit.value = { astId, editedValue: value }
+    },
+  }
+}
+const { childEnded, edit } = useChildEditForwarding(toRef(props.input, 'value'))
+
+const editHandler = WidgetEditHandler.New('WidgetVector', props.input, {
+  cancel: () => {},
+  end: () => {},
+  childEnded,
+  edit,
+})
+
+function itemInput(ast: Ast.Ast): WidgetInput {
+  return {
+    ...WidgetInput.FromAst(ast),
+    dynamicConfig: itemConfig.value,
+    forcePort: true,
+    editHandler,
+  }
+}
 </script>
 
 <script lang="ts">
@@ -75,10 +127,7 @@ const DEFAULT_ITEM = computed(() => Ast.Wildcard.new())
     contenteditable="false"
   >
     <template #default="{ item }">
-      <NodeWidget
-        :input="{ ...WidgetInput.FromAst(item), dynamicConfig: itemConfig, forcePort: true }"
-        nest
-      />
+      <NodeWidget :input="itemInput(item)" nest />
     </template>
   </ListWidget>
 </template>
