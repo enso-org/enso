@@ -1377,7 +1377,7 @@ class ImportExportTest
         graph.size shouldBe 2
       }
       val aModNode = graph.find(node =>
-        node.module match {
+        node.target match {
           case BindingsMap.ResolvedModule(modRef) =>
             modRef.getName.item == "A_Module"
           case _ => false
@@ -1387,9 +1387,9 @@ class ImportExportTest
       val aModNodeExporter =
         aModNode.get.exportedBy.head.exporter
       withClue("A_Module should be exported by B_Module") {
-        aModNodeExporter.module
+        aModNodeExporter.target
           .isInstanceOf[BindingsMap.ResolvedModule] shouldBe true
-        aModNodeExporter.module
+        aModNodeExporter.target
           .asInstanceOf[BindingsMap.ResolvedModule]
           .qualifiedName
           .item shouldBe "B_Module"
@@ -1473,11 +1473,11 @@ class ImportExportTest
 
       val bModule =
         s"""
-          |from $namespace.$packageName.A_Module import A_Type
-          |
-          |main =
-          |    A_Type.A_Constructor
-          |""".stripMargin
+           |from $namespace.$packageName.A_Module import A_Type
+           |
+           |main =
+           |    A_Type.A_Constructor
+           |""".stripMargin
           .createModule(packageQualifiedName.createChild("B_Module"))
       val graph = buildExportsGraph(List(aModule, bModule))
       withClue("Only two modules are defined") {
