@@ -231,3 +231,4 @@ add_specs suite_builder setup =
             literal_table.at "X" . value_type . should_equal Value_Type.Boolean
             c = literal_table.at "X" . iif 10 20
             c.to_vector . should_equal [10, 20, Nothing]
+            c.value_type . should_be_a (Value_Type.Integer ...)
