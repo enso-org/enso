@@ -7,6 +7,7 @@ from Standard.Table.Errors import all
 from Standard.Test import all
 
 from project.Common_Table_Operations.Util import expect_column_names, run_default_backend
+import project.Common_Table_Operations.Util
 
 main filter=Nothing = run_default_backend add_specs filter
 
@@ -74,13 +75,7 @@ type Rename_Columns_Data
 
 add_specs suite_builder setup =
     prefix = setup.prefix
-    build_sorted_table table_structure table_builder=setup.table_builder =
-        # Workaround for https://github.com/enso-org/enso/issues/10321
-        if setup.prefix.contains "Snowflake" . not then table_builder table_structure else
-            row_count = table_structure.first.second.length
-            new_structure = table_structure+[["row_id", (0.up_to row_count) . to_vector]]
-            table_builder new_structure . sort "row_id" . remove_columns ["row_id"]
-    table_builder = build_sorted_table
+    table_builder = Util.build_sorted_table setup
     test_selection = setup.test_selection
 
     suite_builder.group prefix+"Table.select_columns" group_builder->

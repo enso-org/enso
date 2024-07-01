@@ -11,6 +11,7 @@ from Standard.Test import all
 
 
 from project.Common_Table_Operations.Util import run_default_backend, within_table
+import project.Common_Table_Operations.Util
 
 polyglot java import java.lang.Double
 
@@ -923,13 +924,7 @@ add_specs suite_builder setup =
                 str . should_contain "C"
 
     suite_builder.group prefix+"Table.aggregate Concatenate" (pending = resolve_pending test_selection.text_concat) group_builder->
-        build_sorted_table table_structure =
-            # Workaround for https://github.com/enso-org/enso/issues/10321
-            if setup.prefix.contains "Snowflake" . not then table_builder table_structure else
-                row_count = table_structure.first.second.length
-                new_structure = table_structure+[["row_id", (0.up_to row_count) . to_vector]]
-                table_builder new_structure . sort "row_id" . remove_columns ["row_id"]
-
+        build_sorted_table = Util.build_sorted_table setup
         group_builder.specify "should insert the separator, add prefix and suffix" <|
             table = build_sorted_table [["A", ["foo", "bar", "foo", "foo"]], ["B", ["a", "b", "c", "d"]]]
             result = table.aggregate ["A"] [Concatenate "B" prefix="[[" suffix="]]" separator="; "]

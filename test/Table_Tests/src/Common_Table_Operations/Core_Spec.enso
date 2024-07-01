@@ -13,6 +13,7 @@ from Standard.Test import all
 
 
 from project.Common_Table_Operations.Util import run_default_backend
+import project.Common_Table_Operations.Util
 
 main filter=Nothing = run_default_backend add_specs filter
 
@@ -48,8 +49,8 @@ type Read_Data
 
 add_specs suite_builder setup =
     prefix = setup.prefix
-    table_builder = setup.table_builder
-    data = Data.setup table_builder
+    build_sorted_table = Util.build_sorted_table setup
+    data = Data.setup build_sorted_table
     suite_builder.group prefix+"(Core_Spec) Table.at" group_builder->
         group_builder.specify "should allow selecting columns by name" <|
             column_1 = data.table.at "bar"
@@ -142,7 +143,7 @@ add_specs suite_builder setup =
             data.table.set foo set_mode=Set_Mode.Add . should_fail_with Existing_Column
 
         group_builder.specify "should not affect existing columns that depended on the old column being replaced" <|
-            t1 = table_builder [["X", [1,2,3]]]
+            t1 = build_sorted_table [["X", [1,2,3]]]
             t2 = t1.set (t1.at "X" * 100) as="Y"
             t3 = t2.set (expr "[X] + 10") as="Z"
             t4 = t3.set (Simple_Expression.Simple_Expr (Column_Ref.Name "X") (Simple_Calculation.Add 1000)) as="X"
@@ -152,13 +153,13 @@ add_specs suite_builder setup =
             t4.at "Z" . to_vector . should_equal [11, 12, 13]
 
         group_builder.specify "should gracefully handle expression failures" <|
-            t1 = table_builder [["X", [1,2,3]]]
+            t1 = build_sorted_table [["X", [1,2,3]]]
             t1.set (expr "[unknown] + 10") as="Z" . should_fail_with No_Such_Column
             t1.set (expr "[[[[") . should_fail_with Expression_Error
             t1.set (expr "[[[[") . catch . should_be_a Expression_Error.Syntax_Error
 
         group_builder.specify "should forward expression problems" <|
-            t1 = table_builder [["X", [1.5, 2.0, 0.0]]]
+            t1 = build_sorted_table [["X", [1.5, 2.0, 0.0]]]
 
             r1 = t1.set (expr "([X] == 2) || ([X] + 0.5 == 2)") on_problems=Problem_Behavior.Ignore
             Problems.assume_no_problems r1
@@ -180,7 +181,7 @@ add_specs suite_builder setup =
                 Problems.test_problem_handling action2 problems2 tester2
 
         group_builder.specify "should gracefully handle columns from different backends" <|
-            t1 = table_builder [["A", [1, 2, 3]]]
+            t1 = build_sorted_table [["A", [1, 2, 3]]]
             alternative_connection = Database.connect (SQLite.In_Memory)
             t0 = (Table.new [["X", [3, 2, 1]]]).select_into_database_table alternative_connection "T0" temporary=True
             c0 = t0.at "X"
@@ -197,7 +198,7 @@ add_specs suite_builder setup =
         group_builder.specify "should allow weird column names in all backends" <|
             columns = weird_names.map_with_index ix-> name->
                 [name, [100+ix, 2, 3]]
-            table = table_builder columns
+            table = build_sorted_table columns
             table.column_names . should_equal weird_names
 
             weird_names.map_with_index ix-> name->
@@ -208,7 +209,7 @@ add_specs suite_builder setup =
             data.table.column_count . should_equal 7
 
     suite_builder.group prefix+"(Core_Spec) Table.rows" group_builder->
-        data = Rows_Data.setup table_builder
+        data = Rows_Data.setup build_sorted_table
         group_builder.specify "should allow to get a Vector of Table rows" <|
             rows = data.table.rows
             rows.length . should_equal 4
@@ -270,7 +271,7 @@ add_specs suite_builder setup =
 
 
     suite_builder.group prefix+"(Core_Spec) Table.read" group_builder->
-        data = Read_Data.setup table_builder
+        data = Read_Data.setup build_sorted_table
         has_default_row_limit = setup.is_database
 
         group_builder.specify "should have a row limit by default and warn about it" <|
@@ -355,23 +356,24 @@ add_specs suite_builder setup =
             Problems.assume_no_problems r5
 
         if setup.is_database then group_builder.specify "should allow similar API on Connection.read" <|
-            data.connection.query data.t_big.name . row_count . should_equal 1500
+            connection = setup.create_connection_func Nothing
+            connection.query data.t_big.name . row_count . should_equal 1500
 
-            t1 = data.connection.read data.t_big.name
+            t1 = connection.read data.t_big.name
             t1.row_count . should_equal 1000
             w1 = Problems.expect_only_warning Not_All_Rows_Downloaded t1
             w1.max_rows . should_equal 1000
 
-            t2 = data.connection.read data.t_big.name (..First_With_Warning 42)
+            t2 = connection.read data.t_big.name (..First_With_Warning 42)
             t2.row_count . should_equal 42
             w2 = Problems.expect_only_warning Not_All_Rows_Downloaded t2
             w2.max_rows . should_equal 42
 
-            t3 = data.connection.read data.t_big.name (..All_Rows)
+            t3 = connection.read data.t_big.name (..All_Rows)
             t3.row_count . should_equal 1500
             Problems.assume_no_problems t3
 
-            t4 = data.connection.read data.t_big.name (..First 1000)
+            t4 = connection.read data.t_big.name (..First 1000)
             t4.row_count . should_equal 1000
             Problems.assume_no_problems t4
 
