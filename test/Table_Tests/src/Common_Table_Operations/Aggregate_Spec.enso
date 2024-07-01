@@ -34,7 +34,6 @@ type Data
 ## Runs the common aggregate tests.
 add_specs suite_builder setup =
     prefix = setup.prefix
-    create_connection_fn = setup.create_connection_func
     table_fn = setup.table_fn
     empty_table_fn = setup.empty_table_fn
     materialize = setup.materialize
