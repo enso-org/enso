@@ -25,15 +25,11 @@ import org.enso.compiler.core.EnsoParser
 import org.enso.compiler.data.CompilerConfig
 import org.enso.compiler.pass.PassManager
 import org.enso.compiler.pass.analyse._
-import org.enso.compiler.phase.{
-  ExportCycleException,
-  ExportsResolution,
-  ImportResolver,
-  ImportResolverAlgorithm
-}
+import org.enso.compiler.phase.{ImportResolver, ImportResolverAlgorithm}
 import org.enso.editions.LibraryName
 import org.enso.pkg.QualifiedName
 import org.enso.common.CompilationStage
+import org.enso.compiler.phase.exports.{ExportCycleException, ExportsResolution}
 import org.enso.syntax2.Tree
 
 import java.io.PrintStream

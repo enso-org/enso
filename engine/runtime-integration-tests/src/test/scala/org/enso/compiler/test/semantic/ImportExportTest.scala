@@ -5,7 +5,7 @@ import org.enso.compiler.core.ir.{Module, ProcessingPass, Warning}
 import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.core.ir.module.scope.Import
 import org.enso.compiler.data.BindingsMap
-import org.enso.compiler.phase.ExportsResolution
+import org.enso.compiler.phase.exports.ExportsResolution
 import org.enso.compiler.pass.analyse.{BindingAnalysis, GatherDiagnostics}
 import org.enso.interpreter.runtime
 import org.enso.interpreter.runtime.EnsoContext

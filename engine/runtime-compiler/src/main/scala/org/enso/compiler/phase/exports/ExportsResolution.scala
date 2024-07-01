@@ -1,4 +1,4 @@
-package org.enso.compiler.phase
+package org.enso.compiler.phase.exports
 
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.data.BindingsMap.ModuleReference.Concrete
@@ -9,7 +9,6 @@ import org.enso.compiler.data.BindingsMap.{
 }
 import org.enso.compiler.context.CompilerContext
 import org.enso.compiler.context.CompilerContext.Module
-import org.enso.compiler.phase.exports.{Edge, Node}
 
 import scala.collection.mutable
 
