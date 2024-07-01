@@ -17,33 +17,20 @@ main filter=Nothing = run_default_backend add_specs filter
 type Data
     Value ~data
 
-    connection self = self.data.at 0
-    table self = self.data.at 1
-    table2 self = self.data.at 2
+    table self = self.data.at 0
+    table2 self = self.data.at 1
 
-    setup create_connection_fn table_builder = Data.Value <|
-        connection = create_connection_fn Nothing
-        table = table_builder [["Key", ["x", "x", "x", "x", "y", "y", "y", "z", "z"]], ["Value", [1, 2, 3, 4, 5, 6, 7, 8, 9]]] connection=connection
-        table2 = table_builder [["Group", ["A","B","A","B","A","B","A","B","A"]], ["Key", ["x", "x", "x", "x", "y", "y", "y", "z", "z"]], ["Value", [1, 2, 3, 4, 5, 6, 7, 8, 9]]] connection=connection
-        [connection, table, table2]
-
-    teardown self =
-        self.connection.close
-
+    setup table_builder = Data.Value <|
+        table = table_builder [["Key", ["x", "x", "x", "x", "y", "y", "y", "z", "z"]], ["Value", [1, 2, 3, 4, 5, 6, 7, 8, 9]]]
+        table2 = table_builder [["Group", ["A","B","A","B","A","B","A","B","A"]], ["Key", ["x", "x", "x", "x", "y", "y", "y", "z", "z"]], ["Value", [1, 2, 3, 4, 5, 6, 7, 8, 9]]]
+        [table, table2]
 
 add_specs suite_builder setup =
     prefix = setup.prefix
-    create_connection_fn = setup.create_connection_func
     db_todo = if setup.is_database.not then Nothing else "Table.cross_tab is not implemented yet in Database."
+    table_builder = setup.table_builder
     suite_builder.group prefix+"Table.cross_tab" pending=db_todo group_builder->
-        data = Data.setup create_connection_fn setup.table_builder
-
-        group_builder.teardown <|
-            data.teardown
-
-        table_builder cols =
-            setup.table_builder cols connection=data.connection
-
+        data = Data.setup setup.table_builder
         group_builder.specify "should cross_tab counts by default using first column as names" <|
             t1 = data.table.cross_tab [] "Key"
             t1.column_names . should_equal ["x", "y", "z"]
