@@ -319,11 +319,11 @@ final class PerInputImpl implements Input {
     }
 
     final Object resolveObject(Object res) {
-      if (readResolve != null) {
-        return readResolve.apply(res);
-      } else {
-        return res;
+      var v = (readResolve != null) ? readResolve.apply(res) : res;
+      if (v instanceof String s) {
+        v = s.intern();
       }
+      return v;
     }
 
     final Object getObjectAt(int at) {

@@ -182,7 +182,9 @@ public class PersistableProcessor extends AbstractProcessor {
       if (cons != null) {
         for (var v : cons.getParameters()) {
           if (tu.isSameType(eu.getTypeElement("java.lang.String").asType(), v.asType())) {
-            w.append("    var ").append(v.getSimpleName()).append(" = in.readUTF();\n");
+            w.append("    var ")
+                .append(v.getSimpleName())
+                .append(" = (java.lang.String) in.readObject();\n");
           } else if (!v.asType().getKind().isPrimitive()) {
             var type = tu.erasure(v.asType());
             var elem = (TypeElement) tu.asElement(type);
@@ -241,7 +243,7 @@ public class PersistableProcessor extends AbstractProcessor {
       if (cons != null) {
         for (var v : cons.getParameters()) {
           if (tu.isSameType(eu.getTypeElement("java.lang.String").asType(), v.asType())) {
-            w.append("    out.writeUTF(obj.").append(v.getSimpleName()).append("());\n");
+            w.append("    out.writeObject(obj.").append(v.getSimpleName()).append("());\n");
           } else if (!v.asType().getKind().isPrimitive()) {
             var type = tu.erasure(v.asType());
             var elem = (TypeElement) tu.asElement(type);

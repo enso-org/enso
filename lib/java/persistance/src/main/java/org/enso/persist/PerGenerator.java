@@ -13,7 +13,7 @@ import java.util.function.Function;
 import org.slf4j.Logger;
 
 final class PerGenerator {
-  static final byte[] HEADER = new byte[] {0x0a, 0x0d, 0x13, 0x0f};
+  static final byte[] HEADER = new byte[] {0x0a, 0x0d, 0x13, 0x13};
   private final OutputStream main;
   private final Map<Object, WriteResult> knownObjects = new IdentityHashMap<>();
   private int countReferences = 1;
