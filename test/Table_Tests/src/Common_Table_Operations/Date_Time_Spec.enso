@@ -9,23 +9,22 @@ from Standard.Database.Errors import Unsupported_Database_Operation
 from Standard.Test import all
 
 from project.Common_Table_Operations.Util import all
+import project.Common_Table_Operations.Util
 
 main filter=Nothing = run_default_backend add_specs filter
 
 type Data
     Value ~data
 
-    connection self = self.data.at 0
-    dates self = self.data.at 1
-    times self = self.data.at 2
-    datetimes self = self.data.at 3
+    dates self = self.data.at 0
+    times self = self.data.at 1
+    datetimes self = self.data.at 2
 
-    setup create_connection_fn table_builder = Data.Value <|
-        connection = create_connection_fn Nothing
-        dates = table_builder [["A", [Date.new 2020 12 31, Date.new 2024 2 29, Date.new 1990 1 1, Nothing, Date.new 2024 5 26]], ["X", [2020, 29, 1, 100, 99]]] connection=connection
-        times = table_builder [["A", [Time_Of_Day.new 23 59 59 millisecond=567 nanosecond=123, Time_Of_Day.new 2 30 44 nanosecond=1002000, Time_Of_Day.new 0 0 0, Nothing]], ["X", [2020, 29, 1, 100]]] connection=connection
-        datetimes = table_builder [["A", [Date_Time.new 2020 12 31 23 59 59 millisecond=567 nanosecond=123, Date_Time.new 2024 2 29 2 30 44 nanosecond=1002000, Date_Time.new 1990 1 1 0 0 0, Nothing, Date_Time.new 2024 5 26 11 43 22]], ["X", [2020, 29, 1, 100, 99]]] connection=connection
-        [connection, dates, times, datetimes]
+    setup table_builder = Data.Value <|
+        dates = table_builder [["A", [Date.new 2020 12 31, Date.new 2024 2 29, Date.new 1990 1 1, Nothing, Date.new 2024 5 26]], ["X", [2020, 29, 1, 100, 99]]]
+        times = table_builder [["A", [Time_Of_Day.new 23 59 59 millisecond=567 nanosecond=123, Time_Of_Day.new 2 30 44 nanosecond=1002000, Time_Of_Day.new 0 0 0, Nothing]], ["X", [2020, 29, 1, 100]]]
+        datetimes = table_builder [["A", [Date_Time.new 2020 12 31 23 59 59 millisecond=567 nanosecond=123, Date_Time.new 2024 2 29 2 30 44 nanosecond=1002000, Date_Time.new 1990 1 1 0 0 0, Nothing, Date_Time.new 2024 5 26 11 43 22]], ["X", [2020, 29, 1, 100, 99]]]
+        [dates, times, datetimes]
 
     teardown self =
         self.connection.close
@@ -33,22 +32,14 @@ type Data
 
 add_specs suite_builder setup =
     prefix = setup.prefix
-    create_connection_fn = setup.create_connection_func
-
+    table_builder = Util.build_sorted_table setup
+    data = Data.setup table_builder
     pending_datetime = if setup.test_selection.date_time.not then "Date/Time operations are not supported by this backend."
 
     suite_builder.group prefix+"Date-Time support" pending=pending_datetime group_builder->
-        data = Data.setup create_connection_fn setup.table_builder
-
-        group_builder.teardown <|
-            data.teardown
-
-        table_builder cols =
-            setup.table_builder cols connection=data.connection
-
         group_builder.specify "should allow to create Table with Date columns and round-trip them back to Enso" <|
             d = Date.new 2020 10 24
-            table = table_builder [["A", [d]], ["X", [123]]]
+            table = setup.table_builder [["A", [d]], ["X", [123]]]
             table.at "A" . value_type . should_equal Value_Type.Date
             table.at "A" . to_vector . should_equal [d]
             table.at "X" . to_vector . should_equal [123]
@@ -56,7 +47,7 @@ add_specs suite_builder setup =
         group_builder.specify "should allow to create Table with Time Of Day columns and round-trip them back to Enso" <|
             # We do not check nanoseconds, as nano support may be optional.
             t = Time_Of_Day.new hour=12 minute=3 second=5 millisecond=6 microsecond=7
-            table = table_builder [["B", [t]], ["X", [123]]]
+            table = setup.table_builder [["B", [t]], ["X", [123]]]
             table.at "B" . value_type . should_equal Value_Type.Time
             table.at "B" . to_vector . should_equal [t]
             table.at "X" . to_vector . should_equal [123]
@@ -76,14 +67,6 @@ add_specs suite_builder setup =
             table.at "X" . to_vector . should_equal xs
 
     suite_builder.group prefix+"Date-Time operations" pending=pending_datetime group_builder->
-        data = Data.setup create_connection_fn setup.table_builder
-
-        group_builder.teardown <|
-            data.teardown
-
-        table_builder cols =
-            setup.table_builder cols connection=data.connection
-
         group_builder.specify "should allow to get the year/month/day/day_of_year/day_of_week of a Date" <|
             t = data.dates
             a = t.at "A"
@@ -510,14 +493,6 @@ add_specs suite_builder setup =
 
     if setup.test_selection.date_time.not then
         suite_builder.group prefix+"partial Date-Time support" group_builder->
-            data = Data.setup create_connection_fn setup.table_builder
-
-            group_builder.teardown <|
-                data.teardown
-
-            table_builder cols =
-                setup.table_builder cols connection=data.connection
-
             group_builder.specify "will fail when uploading a Table containing Dates" <|
                 d = Date.new 2020 10 24
                 table = table_builder [["A", [d]], ["X", [123]]]
