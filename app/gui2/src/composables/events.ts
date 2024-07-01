@@ -115,8 +115,20 @@ export function useEventConditional(
 }
 
 /** Whether any element currently has keyboard focus. */
-export function keyboardBusy() {
-  return document.activeElement != document.body
+export function keyboardBusy(): boolean {
+  return (
+    document.activeElement !== document.body &&
+    document.activeElement instanceof HTMLElement &&
+    isEditable(document.activeElement)
+  )
+}
+
+function isEditable(element: HTMLElement) {
+  return (
+    element.isContentEditable ||
+    element instanceof HTMLInputElement ||
+    element instanceof HTMLTextAreaElement
+  )
 }
 
 /** Whether focused element is within given element's subtree. */
