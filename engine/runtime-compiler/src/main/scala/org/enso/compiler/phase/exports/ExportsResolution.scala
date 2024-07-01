@@ -117,7 +117,7 @@ class ExportsResolution(private val context: CompilerContext) {
     nodes.foreach { node =>
       val explicitlyExported =
         node.exports.map(edge =>
-          ExportedModule(edge.exportee.target, edge.exportsAs)
+          ExportedModule(edge.exportee.module, edge.exportsAs)
         )
       val transitivelyExported: List[ExportedModule] =
         explicitlyExported.flatMap { case ExportedModule(module, _) =>
@@ -126,7 +126,7 @@ class ExportsResolution(private val context: CompilerContext) {
           }
         }
       val allExported = explicitlyExported ++ transitivelyExported
-      exports(node.target) = allExported
+      exports(node.module) = allExported
     }
     exports.foreach { case (target, exports) =>
       target match {
@@ -185,13 +185,13 @@ class ExportsResolution(private val context: CompilerContext) {
     val cycles = findCycles(graph)
     if (cycles.nonEmpty) {
       throw ExportCycleException(
-        cycles.head.map(_.target.module.unsafeAsModule())
+        cycles.head.map(_.module.module.unsafeAsModule())
       )
     }
     val tops = topsort(graph)
     resolveExports(tops)
-    val topModules = tops.map(_.target)
-    resolveExportedSymbols(tops.map(_.target).collect {
+    val topModules = tops.map(_.module)
+    resolveExportedSymbols(tops.map(_.module).collect {
       case m: ResolvedModule => m.module.unsafeAsModule()
     })
     // Take _last_ occurrence of each module
@@ -204,7 +204,7 @@ class ExportsResolution(private val context: CompilerContext) {
   def runSort(modules: List[Module]): List[Module] = {
     val graph      = buildGraph(modules)
     val tops       = topsort(graph)
-    val topModules = tops.map(_.target)
+    val topModules = tops.map(_.module)
     topModules.map(_.module.unsafeAsModule()).reverse.distinct.reverse
   }
 }
