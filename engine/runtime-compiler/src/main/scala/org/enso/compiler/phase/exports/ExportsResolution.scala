@@ -189,7 +189,12 @@ class ExportsResolution(private val context: CompilerContext) {
         export.target.exportedSymbols
           .flatMap { case (sym, resolutions) =>
             if (export.symbols.contains(sym)) {
-              Some((sym, resolutions))
+              export.exportedAs match {
+                case Some(renamed) =>
+                  Some((renamed, resolutions))
+                case _ =>
+                  Some((sym, resolutions))
+              }
             } else {
               None
             }

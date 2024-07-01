@@ -97,6 +97,26 @@ public class ExportedSymbolsTest {
     assertThat(mainExportedSymbols.keySet(), containsInAnyOrder("A_Type", "B_Type"));
   }
 
+  @Test
+  public void exportRenamedSymbol() throws IOException {
+    var aMod =
+        new SourceModule(QualifiedName.fromString("A_Module"), """
+        type A_Type
+        """);
+    var mainSrcMod =
+        new SourceModule(
+            QualifiedName.fromString("Main"),
+            """
+        export project.A_Module.A_Type as Foo
+        """);
+    ProjectUtils.createProject("Proj", Set.of(aMod, mainSrcMod), projDir);
+    var ctx = createCtx(projDir);
+    compile(ctx);
+    var mainExportedSymbols = getExportedSymbolsFromModule(ctx, "local.Proj.Main");
+    assertThat(mainExportedSymbols.size(), is(1));
+    assertThat(mainExportedSymbols.keySet(), containsInAnyOrder("Foo"));
+  }
+
   private static Context createCtx(Path projDir) {
     return ContextUtils.defaultContextBuilder()
         .option(RuntimeOptions.PROJECT_ROOT, projDir.toAbsolutePath().toString())

@@ -318,7 +318,7 @@ case class BindingsMap(
           case Some(onlyNames) =>
             onlyNames.map(_.name)
           case None =>
-            List(exp.getSimpleName.name)
+            List(exp.name.parts.last.name)
         }
         ExportedModule(mod, rename, symbols)
       }
