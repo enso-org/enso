@@ -98,11 +98,9 @@ export function registerUrlCallback(callback: (url: URL) => void) {
     })
 
     // Second, register the callback for the `second-instance` event. This is used on Windows.
-    electron.app.on('second-instance', (event, argv) => {
+    electron.app.on('second-instance', (event, _argv, _workingDir, additionalData) => {
         // Check if additional data is an object that contains the URL.
-        const requestOneLastElementSlice = -1
-        const lastArgumentSlice = argv.slice(requestOneLastElementSlice)
-        const url = argsDenoteUrlOpenAttempt(lastArgumentSlice)
+        const url = additionalData != null && typeof additionalData === 'object' && 'urlToOpen' in additionalData && additionalData.urlToOpen instanceof URL ? additionalData.urlToOpen : null
         if (url) {
             logger.log(`Got URL from second instance: '${url.toString()}'.`)
             event.preventDefault()

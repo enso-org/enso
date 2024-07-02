@@ -125,11 +125,12 @@ export function setOpenFileEventHandler(setProjectToOpen: (id: string) => void) 
         }
     })
 
-    electron.app.on('second-instance', (event, argv) => {
+    electron.app.on('second-instance', (event, _argv, _workingDir, additionalData) => {
         // Check if additional data is an object that contains the URL.
-        const path = argsDenoteFileOpenAttempt(argv)
+        logger.log(`Checking path`, additionalData)
+        const path = additionalData != null && typeof additionalData === 'object' && 'fileToOpen' in additionalData && typeof additionalData.fileToOpen === 'string' ? additionalData.fileToOpen : null
         if (path) {
-            logger.log(`Got URL from second instance: '${url.toString()}'.`)
+            logger.log(`Got path from second instance: '${path.toString()}'.`)
             event.preventDefault()
             const projectId = onFileOpened(event, path)
             if (typeof projectId === 'string') {
