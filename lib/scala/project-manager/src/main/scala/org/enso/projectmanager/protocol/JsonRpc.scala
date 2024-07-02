@@ -26,6 +26,7 @@ object JsonRpc {
       .registerRequest(ProjectClose)
       .registerRequest(ProjectRename)
       .registerRequest(ProjectList)
+      .registerRequest(ProjectDuplicate)
       .registerNotification(TaskStarted)
       .registerNotification(TaskProgressUpdate)
       .registerNotification(TaskFinished)
