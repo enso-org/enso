@@ -69,18 +69,18 @@ export default function ConfirmDeleteModal(props: ConfirmDeleteModalProps) {
         <aria.Text className="relative">{getText('confirmPrompt', actionText)}</aria.Text>
         <ariaComponents.ButtonGroup>
           <ariaComponents.Button
-            size="custom"
-            variant="custom"
-            className="button bg-delete text-white active"
+            size="medium"
+            variant="delete"
+            className="relative"
             onPress={doSubmit}
           >
             {actionButtonLabel}
           </ariaComponents.Button>
           <ariaComponents.Button
-            size="custom"
-            variant="custom"
+            size="medium"
+            variant="cancel"
             autoFocus
-            className="button bg-selected-frame active"
+            className="relative"
             onPress={unsetModal}
           >
             {getText('cancel')}
