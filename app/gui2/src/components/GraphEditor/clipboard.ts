@@ -2,6 +2,7 @@ import type { NodeCreationOptions } from '@/composables/nodeCreation'
 import type { GraphStore, Node, NodeId } from '@/stores/graph'
 import { Ast } from '@/util/ast'
 import { Pattern } from '@/util/ast/match'
+import { filterDefined } from '@/util/data/iterable'
 import { Vec2 } from '@/util/data/vec2'
 import type { ToValue } from '@/util/reactivity'
 import type { NodeMetadataFields } from 'shared/ast'
@@ -25,98 +26,31 @@ interface CopiedNode {
   metadata?: NodeMetadataFields
 }
 
-function nodeStructuredData(node: Node): CopiedNode {
-  return {
-    expression: node.innerExpr.code(),
-    documentation: node.documentation,
-    metadata: node.rootExpr.serializeMetadata(),
-    ...(node.pattern ? { binding: node.pattern.code() } : {}),
-  }
-}
-
-function nodeDataFromExpressionText(expression: string): CopiedNode {
-  return { expression }
-}
-
-const toTable = computed(() => Pattern.parse('__.to Table'))
-
-/** @internal Exported for testing. */
-export function excelTableToEnso(excelData: string) {
-  const textLiteral = Ast.TextLiteral.new(excelData)
-  return toTable.value.instantiate(textLiteral.module, [textLiteral]).code()
-}
-
 /** @internal Exported for testing. */
 export async function nodesFromClipboardContent(
   clipboardItems: ClipboardItems,
 ): Promise<CopiedNode[]> {
-  let fallbackItem: ClipboardItem | undefined
-  for (const clipboardItem of clipboardItems) {
-    for (const type of clipboardItem.types) {
-      if (type === ENSO_MIME_TYPE) {
-        const blob = await clipboardItem.getType(type)
-        return JSON.parse(await blob.text()).nodes
-      }
-
-      if (type === 'text/html') {
-        const blob = await clipboardItem.getType(type)
-        const htmlContent = await blob.text()
-        const excelNode = await nodeDataFromExcelClipboard(htmlContent, clipboardItem)
-        if (excelNode) {
-          return [excelNode]
-        }
-      }
-
-      if (type === 'text/plain') {
-        fallbackItem = clipboardItem
-      }
-    }
-  }
-  if (fallbackItem) {
-    const fallbackData = await fallbackItem.getType('text/plain')
-    return [nodeDataFromExpressionText(await fallbackData.text())]
-  }
-  return []
-}
-
-// Excel data starts with a `table` tag; Google Sheets starts with its own marker.
-const spreadsheetHtmlRegex = /^(?:<table |<google-sheets-html-origin>).*<\/table>$/
-
-async function nodeDataFromExcelClipboard(
-  htmlContent: string,
-  clipboardItem: ClipboardItem,
-): Promise<CopiedNode | undefined> {
-  // Check if the contents look like HTML tables produced by spreadsheet software known to provide a plain-text
-  // version of the table with tab separators, as Excel does.
-  if (clipboardItem.types.includes('text/plain') && spreadsheetHtmlRegex.test(htmlContent)) {
-    const textData = await clipboardItem.getType('text/plain')
-    const expression = excelTableToEnso(await textData.text())
-    return nodeDataFromExpressionText(expression)
-  }
-  return undefined
-}
-
-type clipboardItemFactory = (itemData: Record<string, Blob>) => ClipboardItem
-type blobFactory = (parts: string[], type: string) => Blob
-
-/** @internal Exported for testing. */
-export function nodesToClipboardData(
-  nodes: Node[],
-  makeClipboardItem: clipboardItemFactory = (data) => new ClipboardItem(data),
-  makeBlob: blobFactory = (parts, type) => new Blob(parts, { type }),
-): ClipboardItem[] {
-  const clipboardData: ClipboardData = { nodes: nodes.map(nodeStructuredData) }
-  const jsonItem = makeBlob([JSON.stringify(clipboardData)], ENSO_MIME_TYPE)
-  const textItem = makeBlob([nodes.map((node) => node.outerExpr.code()).join('\n')], 'text/plain')
   return [
-    makeClipboardItem({
-      [jsonItem.type]: jsonItem,
-      [textItem.type]: textItem,
-    }),
-  ]
+    ...(await decodeClipboard(clipboardItems, [ensoDecoder, spreadsheetDecoder, plainTextDecoder])),
+  ].flat()
 }
 
-function getClipboard() {
+const ensoDecoder: ClipboardDecoder<CopiedNode[]> = {
+  mimeType: ENSO_MIME_TYPE,
+  decode: async (blob) => (JSON.parse(await blob.text()) as ClipboardData).nodes,
+}
+const plainTextDecoder: ClipboardDecoder<CopiedNode[]> = {
+  mimeType: 'text/plain',
+  decode: async (blob) => [{ expression: await blob.text() }],
+}
+
+interface ExtendedClipboard extends Clipboard {
+  // Recent addition to the spec: https://github.com/w3c/clipboard-apis/pull/197
+  // Currently supported by Chromium: https://developer.chrome.com/docs/web-platform/unsanitized-html-async-clipboard
+  read(options?: { unsanitized?: ['text/html'] }): Promise<ClipboardItems>
+}
+
+function getClipboard(): ExtendedClipboard {
   return (window.navigator as any).mockClipboard ?? window.navigator.clipboard
 }
 
@@ -126,7 +60,7 @@ export function useGraphEditorClipboard(
   createNodes: (nodesOptions: Iterable<NodeCreationOptions>) => void,
 ) {
   /** Copy the content of the selected node to the clipboard. */
-  function copySelectionToClipboard() {
+  async function copySelectionToClipboard() {
     const nodes = new Array<Node>()
     const ids = graphStore.pickInCodeOrder(toValue(selected))
     for (const id of ids) {
@@ -135,14 +69,17 @@ export function useGraphEditorClipboard(
       nodes.push(node)
     }
     if (!nodes.length) return
-    getClipboard()
-      .write(nodesToClipboardData(nodes))
-      .catch((error: any) => console.error(`Failed to write to clipboard: ${error}`))
+    return writeClipboard(nodesToClipboardData(nodes))
   }
 
   /** Read the clipboard and if it contains valid data, create nodes from the content. */
   async function createNodesFromClipboard() {
-    const clipboardItems = await getClipboard().read()
+    const clipboardItems = await getClipboard().read({
+      // Chromium-based browsers support reading unsanitized HTML data, so we can obtain predictable data for
+      // spreadsheet recognition in that case; other browsers, including Firefox (as of v127), do not, and should have
+      // their sanitized data included in test cases in `clipboardTestCases.json`.
+      unsanitized: ['text/html'],
+    })
     const clipboardData = await nodesFromClipboardContent(clipboardItems)
     if (!clipboardData.length) {
       console.warn('No valid node in clipboard.')
@@ -168,5 +105,100 @@ export function useGraphEditorClipboard(
   return {
     copySelectionToClipboard,
     createNodesFromClipboard,
+  }
+}
+
+// ==========================
+// === Clipboard decoding ===
+// ==========================
+
+interface ClipboardDecoder<T> {
+  mimeType: string
+  decode: (blob: Blob, item: ClipboardItem) => Promise<T | undefined>
+}
+
+async function decodeClipboard<T>(
+  clipboardItems: ClipboardItems,
+  decoders: ClipboardDecoder<T>[],
+): Promise<IterableIterator<T>> {
+  const decodeItem = async (clipboardItem: ClipboardItem) => {
+    for (const decoder of decoders) {
+      if (clipboardItem.types.includes(decoder.mimeType)) {
+        const blob = await clipboardItem.getType(decoder.mimeType)
+        const decoded = await decoder.decode(blob, clipboardItem)
+        if (decoded) return decoded
+      }
+    }
+  }
+  return filterDefined(await Promise.all(clipboardItems.map(decodeItem)))
+}
+
+// === Spreadsheet clipboard decoder ===
+
+const spreadsheetDecoder: ClipboardDecoder<CopiedNode[]> = {
+  mimeType: 'text/html',
+  decode: async (blob, item) => {
+    const htmlContent = await blob.text()
+    if (!item.types.includes('text/plain')) return
+    if (isSpreadsheetTsv(htmlContent)) {
+      const textData = await item.getType('text/plain').then((blob) => blob.text())
+      return [{ expression: tsvTableToEnsoExpression(textData) }]
+    }
+  },
+}
+
+const toTable = computed(() => Pattern.parse('__.to Table'))
+
+export function tsvTableToEnsoExpression(tsvData: string) {
+  const textLiteral = Ast.TextLiteral.new(tsvData)
+  return toTable.value.instantiate(textLiteral.module, [textLiteral]).code()
+}
+
+/** @internal Exported for testing. */
+export function isSpreadsheetTsv(htmlContent: string) {
+  // This is a very general criterion that can have some false-positives (e.g. pasting rich text that includes a table).
+  // However, due to non-standardized browser HTML sanitization it is difficult to precisely recognize spreadsheet
+  // clipboard data. We want to avoid false negatives (even if a browser changes its sanitization), and in case of a
+  // false positive the user is pasting data we don't have any good way to handle, so trying to make a Table from it is
+  // acceptable.
+  return /<table[ >]/i.test(htmlContent)
+}
+
+// =========================
+// === Clipboard writing ===
+// =========================
+
+export type MimeType = 'text/plain' | 'text/html' | typeof ENSO_MIME_TYPE
+export type MimeData = Partial<Record<MimeType, string>>
+
+export function writeClipboard(data: MimeData) {
+  const dataBlobs = Object.fromEntries(
+    Object.entries(data).map(([type, typeData]) => [type, new Blob([typeData], { type })]),
+  )
+  return getClipboard()
+    .write([new ClipboardItem(dataBlobs)])
+    .catch((error: any) => console.error(`Failed to write to clipboard: ${error}`))
+}
+
+// === Serializing nodes ===
+
+function nodeStructuredData(node: Node): CopiedNode {
+  return {
+    expression: node.innerExpr.code(),
+    documentation: node.documentation,
+    metadata: node.rootExpr.serializeMetadata(),
+    ...(node.pattern ? { binding: node.pattern.code() } : {}),
+  }
+}
+
+export function clipboardNodeData(nodes: CopiedNode[]): MimeData {
+  const clipboardData: ClipboardData = { nodes }
+  return { [ENSO_MIME_TYPE]: JSON.stringify(clipboardData) }
+}
+
+export function nodesToClipboardData(nodes: Node[]): MimeData {
+  return {
+    ...clipboardNodeData(nodes.map(nodeStructuredData)),
+    'text/plain': nodes.map((node) => node.outerExpr.code()).join('\n'),
   }
 }

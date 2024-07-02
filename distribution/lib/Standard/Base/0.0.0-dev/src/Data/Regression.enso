@@ -9,6 +9,7 @@ import project.Nothing.Nothing
 import project.Panic.Panic
 
 polyglot java import org.enso.base.statistics.FitError
+polyglot java import org.enso.base.statistics.LinearModel
 polyglot java import org.enso.base.statistics.Regression
 
 type Model

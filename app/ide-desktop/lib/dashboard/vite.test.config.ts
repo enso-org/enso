@@ -34,5 +34,8 @@ export default vite.mergeConfig(
         '.json',
       ],
     },
+    define: {
+      'process.env.IS_IN_PLAYWRIGHT_TEST': JSON.stringify(`${true}`),
+    },
   })
 )

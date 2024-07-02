@@ -25,6 +25,10 @@ from project.Data.Text.Extensions import all
 from project.Metadata import Display, Widget
 from project.Network.HTTP.Response_Body import decode_format_selector
 
+polyglot java import java.net.http.HttpHeaders
+polyglot java import java.util.Optional
+polyglot java import org.enso.base.enso_cloud.EnsoHttpResponse
+
 type Response
     ## PRIVATE
 

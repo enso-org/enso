@@ -28,18 +28,19 @@ import { useDoubleClick } from '@/composables/doubleClick'
 import { keyboardBusy, keyboardBusyExceptIn, unrefElement, useEvent } from '@/composables/events'
 import { groupColorVar } from '@/composables/nodeColors'
 import type { PlacementStrategy } from '@/composables/nodeCreation'
-import { useStackNavigator } from '@/composables/stackNavigator'
 import { useSyncLocalStorage } from '@/composables/syncLocalStorage'
 import { provideGraphNavigator, type GraphNavigator } from '@/providers/graphNavigator'
 import { provideNodeColors } from '@/providers/graphNodeColors'
 import { provideNodeCreation } from '@/providers/graphNodeCreation'
 import { provideGraphSelection } from '@/providers/graphSelection'
+import { provideStackNavigator } from '@/providers/graphStackNavigator'
 import { provideInteractionHandler } from '@/providers/interactionHandler'
 import { provideKeyboard } from '@/providers/keyboard'
 import { provideWidgetRegistry } from '@/providers/widgetRegistry'
 import { provideGraphStore, type NodeId } from '@/stores/graph'
+import { asNodeId } from '@/stores/graph/graphDatabase'
 import type { RequiredImport } from '@/stores/graph/imports'
-import { provideProjectStore } from '@/stores/project'
+import { useProjectStore } from '@/stores/project'
 import { provideSuggestionDbStore } from '@/stores/suggestionDatabase'
 import type { Typename } from '@/stores/suggestionDatabase/entry'
 import { provideVisualizationStore } from '@/stores/visualization'
@@ -69,7 +70,7 @@ import {
 } from 'vue'
 
 const keyboard = provideKeyboard()
-const projectStore = provideProjectStore()
+const projectStore = useProjectStore()
 const suggestionDb = provideSuggestionDbStore(projectStore)
 const graphStore = provideGraphStore(projectStore, suggestionDb)
 const widgetRegistry = provideWidgetRegistry(graphStore.db)
@@ -193,7 +194,7 @@ function panToSelected() {
 
 // == Breadcrumbs ==
 
-const stackNavigator = useStackNavigator(projectStore, graphStore)
+const stackNavigator = provideStackNavigator(projectStore, graphStore)
 
 // === Toasts ===
 
@@ -206,11 +207,11 @@ const nodeSelection = provideGraphSelection(
   graphNavigator,
   graphStore.nodeRects,
   graphStore.isPortEnabled,
-  (id) => graphStore.db.nodeIdToNode.has(id),
   {
-    onSelected(id) {
-      graphStore.db.moveNodeToTop(id)
-    },
+    isValid: (id) => graphStore.db.nodeIdToNode.has(id),
+    pack: (id) => graphStore.db.nodeIdToNode.get(id)?.rootExpr.externalId,
+    unpack: (eid) => asNodeId(graphStore.db.idFromExternal(eid)),
+    onSelected: (id) => graphStore.db.moveNodeToTop(id),
   },
 )
 
@@ -662,6 +663,8 @@ const groupColors = computed(() => {
     @click="handleClick"
     @dragover.prevent
     @drop.prevent="handleFileDrop($event)"
+    @pointermove.capture="graphNavigator.pointerEventsCapture.pointermove"
+    @wheel.capture="graphNavigator.pointerEventsCapture.wheel"
   >
     <div class="layer" :style="{ transform: graphNavigator.transform }">
       <GraphNodes
@@ -703,14 +706,8 @@ const groupColors = computed(() => {
       v-model:showColorPicker="showColorPicker"
       v-model:showCodeEditor="showCodeEditor"
       v-model:showDocumentationEditor="showDocumentationEditor"
-      :breadcrumbs="stackNavigator.breadcrumbLabels.value"
-      :allowNavigationLeft="stackNavigator.allowNavigationLeft.value"
-      :allowNavigationRight="stackNavigator.allowNavigationRight.value"
       :zoomLevel="100.0 * graphNavigator.targetScale"
       :componentsSelected="nodeSelection.selected.size"
-      @breadcrumbClick="stackNavigator.handleBreadcrumbClick"
-      @back="stackNavigator.exitNode"
-      @forward="stackNavigator.enterNextNodeFromHistory"
       @recordOnce="onRecordOnceButtonPress()"
       @fitToAllClicked="zoomToSelected"
       @zoomIn="graphNavigator.stepZoom(+1)"

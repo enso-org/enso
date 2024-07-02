@@ -4,7 +4,7 @@ import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Unimplemented.Unimplemented
 import Standard.Base.System.File.Generic.Writable_File.Writable_File
-from Standard.Base.Metadata import make_single_choice
+from Standard.Base.Metadata import make_single_choice, Widget
 
 import project.Errors.Invalid_JSON_Format
 import project.Internal.Expand_Objects_Helpers
@@ -20,6 +20,7 @@ import project.Table.Table
    Arguments:
    - fields: a Vector of Text representing the names of fields to look up.
      If `Nothing` then all fields found are added.
+@fields (Widget.Vector_Editor item_editor=Widget.Text_Input item_default='""')
 Vector.to_table : Vector | Nothing -> Table ! Type_Error
 Vector.to_table self fields=Nothing =
     Table.from_objects self fields
@@ -51,6 +52,7 @@ Date_Range.to_table self name:Text=self.default_column_name =
    Arguments:
    - fields: a Vector of Text representing the names of fields to look up.
      If `Nothing` then all fields found are added.
+@fields (Widget.Vector_Editor item_editor=Widget.Text_Input item_default='""')
 JS_Object.to_table : Vector | Nothing -> Table ! Type_Error
 JS_Object.to_table self fields=Nothing =
     self.to Table fields
@@ -77,6 +79,7 @@ JS_Object.to_table self fields=Nothing =
              json = Examples.simple_table_json
              headers = Examples.simple_table_json_headers
              Table.from_objects json headers
+@fields (Widget.Vector_Editor item_editor=Widget.Text_Input item_default='""')
 Table.from_objects : Any -> Vector | Nothing -> Table
 Table.from_objects value (fields : Vector | Nothing = Nothing) =
     Expand_Objects_Helpers.create_table_from_objects value fields

@@ -38,13 +38,8 @@ export function useWidgetFunctionCallInfo(
     useVisualizationData(config: Ref<Opt<NodeVisualizationConfiguration>>): Ref<Result<any> | null>
   },
 ) {
-  const methodCallInfo = computed(() => {
-    return getMethodCallInfoRecursively(toValue(input).value, graphDb)
-  })
-
-  const interpreted = computed(() => {
-    return interpretCall(toValue(input).value, methodCallInfo.value == null)
-  })
+  const methodCallInfo = computed(() => getMethodCallInfoRecursively(toValue(input).value, graphDb))
+  const interpreted = computed(() => interpretCall(toValue(input).value))
 
   const subjectInfo = computed(() => {
     const analyzed = interpreted.value
@@ -60,22 +55,31 @@ export function useWidgetFunctionCallInfo(
     return funcType != null && subjectInfo.value?.typename !== `${funcType}.type`
   })
 
-  const selfArgumentExternalId = computed<Opt<ExternalId>>(() => {
+  const widgetQuerySubjectExpressionId = computed<Opt<ExternalId>>(() => {
     const analyzed = interpreted.value
     if (analyzed.kind === 'infix') {
       return analyzed.lhs?.externalId
-    } else if (methodCallInfo.value?.suggestion.selfType != null) {
-      const knownArguments = methodCallInfo.value?.suggestion?.arguments
-      const hasSelfArgument = knownArguments?.[0]?.name === 'self'
-      const selfArgument =
-        hasSelfArgument && !selfArgumentPreapplied.value ?
-          analyzed.args.find((a) => a.argName === 'self' || a.argName == null)?.argument
-        : getAccessOprSubject(analyzed.func) ?? analyzed.args[0]?.argument
-
-      return selfArgument?.externalId
-    } else {
-      return null
     }
+    const knownArguments = methodCallInfo.value?.suggestion?.arguments
+    const hasKnownSelfArgument = knownArguments?.[0]?.name === 'self'
+
+    // First we always want to attach the visualization to the `self` argument,
+    // whenever we can find an unambiguous expression for it.
+    if (hasKnownSelfArgument && !selfArgumentPreapplied.value) {
+      return analyzed.args.find((a) => a.argName === 'self' || a.argName == null)?.argument
+        ?.externalId
+    }
+
+    // When no `self` argument can be resolved or it is already applied, attach to the access
+    // chain subject. This will correctly handle constructors and most common cases with not
+    // yet resolved methods.
+    const accessSubject = getAccessOprSubject(analyzed.func)
+    if (accessSubject) {
+      return accessSubject.externalId
+    }
+    // In other cases (e.g. autoscoped expression) there is no good existing
+    // expression to attach the visualization to. Fallback to synthetic type-based expression.
+    return null
   })
 
   const visualizationConfig = computed<Opt<NodeVisualizationConfiguration>>(() => {
@@ -84,7 +88,6 @@ export function useWidgetFunctionCallInfo(
       methodCallInfo.value,
     )
 
-    const selfArgId = selfArgumentExternalId.value
     const info = methodCallInfo.value
     if (!info) return null
     const annotatedArgs = info.suggestion.annotations
@@ -95,9 +98,11 @@ export function useWidgetFunctionCallInfo(
       Ast.Vector.build(annotatedArgs, Ast.TextLiteral.new).code(),
       Ast.TextLiteral.new(JSON.stringify(args)).code(),
     ]
-    if (selfArgId != null) {
+
+    const expressionId = widgetQuerySubjectExpressionId.value
+    if (expressionId != null) {
       return {
-        expressionId: selfArgId,
+        expressionId,
         visualizationModule: WIDGETS_ENSO_MODULE,
         expression: {
           module: WIDGETS_ENSO_MODULE,
@@ -107,12 +112,12 @@ export function useWidgetFunctionCallInfo(
         positionalArgumentsExpressions,
       }
     } else {
-      // In the case when no self argument is present (for example in autoscoped constructor),
-      // we assume that this is a static function call.
+      // In the case when no clear subject expression exists (for example in autoscoped constructor),
+      // we assume that this is a static function call and create the subject by using resolved type name.
       return {
         expressionId: toValue(input).value.externalId,
         visualizationModule: WIDGETS_ENSO_MODULE,
-        expression: `_ -> ${WIDGETS_ENSO_MODULE}.${GET_WIDGETS_METHOD} ${info.suggestion.definedIn}`,
+        expression: `_ -> ${WIDGETS_ENSO_MODULE}.${GET_WIDGETS_METHOD} ${info.suggestion.memberOf ?? info.suggestion.definedIn}`,
         positionalArgumentsExpressions,
       }
     }

@@ -1,9 +1,9 @@
 /** @file A styled horizontal button row. Does not have padding; does not have a background. */
 import * as React from 'react'
 
-import * as tailwindMerge from 'tailwind-merge'
-
 import FocusArea from '#/components/styled/FocusArea'
+
+import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 // =================
 // === ButtonRow ===
@@ -28,7 +28,7 @@ export default function ButtonRow(props: ButtonRowProps) {
     <FocusArea direction="horizontal">
       {innerProps => (
         <div
-          className={tailwindMerge.twMerge('relative flex gap-buttons', positionClass)}
+          className={tailwindMerge.twMerge('gap-buttons relative flex', positionClass)}
           {...innerProps}
         >
           {children}

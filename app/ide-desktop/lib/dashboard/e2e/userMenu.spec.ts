@@ -3,19 +3,21 @@ import * as test from '@playwright/test'
 
 import * as actions from './actions'
 
-test.test.beforeEach(actions.mockAllAndLogin)
+test.test('user menu', ({ page }) =>
+  actions.mockAllAndLogin({ page }).then(
+    async ({ pageActions }) =>
+      await pageActions.openUserMenu().do(async thePage => {
+        await test.expect(actions.locateUserMenu(thePage)).toBeVisible()
+      })
+  )
+)
 
-test.test('user menu', async ({ page }) => {
-  // User menu
-  await actions.locateUserMenuButton(page).click()
-  await test.expect(actions.locateUserMenu(page)).toBeVisible()
-})
-
-test.test('download app', async ({ page }) => {
-  await actions.locateUserMenuButton(page).click()
-  const downloadPromise = page.waitForEvent('download')
-  await actions.locateDownloadAppButton(page).click()
-  const download = await downloadPromise
-  await download.cancel()
-  test.expect(download.url()).toMatch(/^https:[/][/]objects.githubusercontent.com/)
-})
+test.test('download app', ({ page }) =>
+  actions.mockAllAndLogin({ page }).then(
+    async ({ pageActions }) =>
+      await pageActions.openUserMenu().userMenu.downloadApp(async download => {
+        await download.cancel()
+        test.expect(download.url()).toMatch(/^https:[/][/]objects.githubusercontent.com/)
+      })
+  )
+)

@@ -108,14 +108,16 @@ class BaseServerSpec extends JsonRpcServerTestKit with BeforeAndAfterAll {
   val testDistributionRoot = Files.createTempDirectory(null).toFile
   sys.addShutdownHook(FileUtils.deleteQuietly(testDistributionRoot))
 
-  val userProjectDir = new File(testProjectsRoot, "projects")
-
   lazy val testStorageConfig = StorageConfig(
-    projectsRoot             = testProjectsRoot,
-    userProjectsPath         = userProjectDir,
-    projectMetadataDirectory = ".enso",
-    projectMetadataFileName  = "project.json"
+    projectsRoot      = Some(testProjectsRoot),
+    projectsDirectory = "enso-projects",
+    metadata = MetadataStorageConfig(
+      projectMetadataDirectory = ".enso",
+      projectMetadataFileName  = "project.json"
+    )
   )
+
+  lazy val userProjectDir = testStorageConfig.userProjectsPath
 
   lazy val bootloaderConfig = config.bootloader
 

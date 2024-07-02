@@ -1,12 +1,13 @@
 /** @file Display the result of an operation. */
 import * as React from 'react'
 
-import * as tailwindMerge from 'tailwind-merge'
+import * as twv from 'tailwind-variants'
 
 import Success from 'enso-assets/check_mark.svg'
 import Error from 'enso-assets/cross.svg'
 
-import * as aria from '#/components/aria'
+import * as ariaComponents from '#/components/AriaComponents'
+import * as loader from '#/components/Loader'
 import SvgMask from '#/components/SvgMask'
 
 // =================
@@ -14,16 +15,54 @@ import SvgMask from '#/components/SvgMask'
 // =================
 
 const STATUS_ICON_MAP: Readonly<Record<Status, StatusIcon>> = {
+  loading: {
+    icon: <loader.Loader minHeight="h8" />,
+    colorClassName: 'text-primary',
+    bgClassName: 'bg-transparent',
+  },
   error: { icon: Error, colorClassName: 'text-red-500', bgClassName: 'bg-red-500' },
   success: { icon: Success, colorClassName: 'text-green-500', bgClassName: 'bg-green' },
+  info: {
+    icon: (
+      // eslint-disable-next-line no-restricted-syntax
+      <ariaComponents.Text variant="custom" className="pb-0.5 text-xl leading-[0]">
+        !
+      </ariaComponents.Text>
+    ),
+    colorClassName: 'text-primary',
+    bgClassName: 'bg-primary/30',
+  },
 }
+
+const RESULT_STYLES = twv.tv({
+  base: 'flex flex-col items-center justify-center px-6 py-4 text-center h-[max-content]',
+  variants: {
+    centered: {
+      horizontal: 'mx-auto',
+      vertical: 'my-auto',
+      all: 'm-auto',
+      none: '',
+    },
+  },
+  slots: {
+    statusIcon:
+      'mb-2 flex h-8 w-8 flex-none items-center justify-center rounded-full bg-opacity-25 p-1 text-green',
+    icon: 'h-8 w-8 flex-none',
+    title: '',
+    subtitle: 'max-w-[750px]',
+    content: 'mt-3 w-full',
+  },
+  defaultVariants: {
+    centered: 'all',
+  },
+})
 
 // ==============
 // === Status ===
 // ==============
 
 /** Possible statuses for a result. */
-export type Status = 'error' | 'success'
+export type Status = 'error' | 'info' | 'loading' | 'success'
 
 // ==================
 // === StatusIcon ===
@@ -31,7 +70,7 @@ export type Status = 'error' | 'success'
 
 /** The corresponding icon and color for each status. */
 interface StatusIcon {
-  readonly icon: string
+  readonly icon: React.ReactElement | string
   readonly colorClassName: string
   readonly bgClassName: string
 }
@@ -41,7 +80,9 @@ interface StatusIcon {
 // ==============
 
 /** Props for a {@link Result}. */
-export interface ResultProps extends React.PropsWithChildren {
+export interface ResultProps
+  extends React.PropsWithChildren,
+    twv.VariantProps<typeof RESULT_STYLES> {
   readonly className?: string
   readonly title?: React.JSX.Element | string
   readonly subtitle?: React.JSX.Element | string
@@ -62,32 +103,28 @@ export function Result(props: ResultProps) {
     className,
     icon,
     testId = 'Result',
+    centered,
   } = props
 
   const statusIcon = typeof status === 'string' ? STATUS_ICON_MAP[status] : null
   const showIcon = icon !== false
 
+  const classes = RESULT_STYLES({ centered })
+
   return (
-    <section
-      className={tailwindMerge.twMerge(
-        'm-auto flex flex-col items-center justify-center px-6 py-4 text-center',
-        className
-      )}
-      data-testid={testId}
-    >
+    <section className={classes.base({ className })} data-testid={testId}>
       {showIcon ? (
         <>
           {statusIcon != null ? (
-            <div
-              className={tailwindMerge.twMerge(
-                'mb-4 flex rounded-full bg-opacity-25 p-1 text-green',
-                statusIcon.bgClassName
+            <div className={classes.statusIcon({ className: statusIcon.bgClassName })}>
+              {typeof statusIcon.icon === 'string' ? (
+                <SvgMask
+                  src={icon ?? statusIcon.icon}
+                  className={classes.icon({ className: statusIcon.colorClassName })}
+                />
+              ) : (
+                statusIcon.icon
               )}
-            >
-              <SvgMask
-                src={icon ?? statusIcon.icon}
-                className={tailwindMerge.twMerge('h-16 w-16 flex-none', statusIcon.colorClassName)}
-              />
             </div>
           ) : (
             status
@@ -96,21 +133,22 @@ export function Result(props: ResultProps) {
       ) : null}
 
       {typeof title === 'string' ? (
-        <aria.Heading level={2} className="mb-2 text-2xl leading-10 text-primary/60">
+        <ariaComponents.Text.Heading level={2} className={classes.title()} variant="subtitle">
           {title}
-        </aria.Heading>
+        </ariaComponents.Text.Heading>
       ) : (
         title
       )}
 
-      <aria.Text
-        elementType="p"
-        className="max-w-[750px] text-balance text-lg leading-6 text-primary/60"
-      >
-        {subtitle}
-      </aria.Text>
+      {typeof subtitle === 'string' ? (
+        <ariaComponents.Text elementType="p" className={classes.subtitle()} balance variant="body">
+          {subtitle}
+        </ariaComponents.Text>
+      ) : (
+        subtitle
+      )}
 
-      <div className="mt-6 w-full">{children}</div>
+      {children != null && <div className={classes.content()}>{children}</div>}
     </section>
   )
 }

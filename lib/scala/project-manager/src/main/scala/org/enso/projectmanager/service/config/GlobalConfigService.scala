@@ -28,8 +28,7 @@ class GlobalConfigService[F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap](
     key: String
   ): F[GlobalConfigServiceFailure, Option[String]] =
     Sync[F].blockingOp {
-      val valueOption = configurationManager.getConfig.original.apply(key)
-      valueOption.map(json => json.asString.getOrElse(json.toString()))
+      configurationManager.getConfig.findByKey(key)
     }.recoverAccessErrors
 
   /** @inheritdoc */

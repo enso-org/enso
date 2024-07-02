@@ -51,6 +51,10 @@ export const FileId = newtype.newtypeConstructor<FileId>()
 export type SecretId = newtype.Newtype<string, 'SecretId'>
 export const SecretId = newtype.newtypeConstructor<SecretId>()
 
+/** Unique identifier for a project session. */
+export type ProjectSessionId = newtype.Newtype<string, 'ProjectSessionId'>
+export const ProjectSessionId = newtype.newtypeConstructor<ProjectSessionId>()
+
 /** Unique identifier for a Datalink. */
 export type DatalinkId = newtype.Newtype<string, 'DatalinkId'>
 export const DatalinkId = newtype.newtypeConstructor<DatalinkId>()
@@ -168,7 +172,7 @@ export interface User extends UserInfo {
   readonly isEnabled: boolean
   readonly rootDirectoryId: DirectoryId
   readonly profilePicture?: HttpsUrl
-  readonly userGroups: UserGroupId[] | null
+  readonly userGroups: readonly UserGroupId[] | null
   readonly removeAt?: dateTime.Rfc3339DateTime | null
   readonly plan?: Plan
 }
@@ -294,12 +298,21 @@ export interface BackendProject extends Project {
 
 /** Information required to open a project. */
 export interface ProjectStartupInfo {
-  readonly project: Project
+  readonly project: Promise<Project>
   readonly projectAsset: ProjectAsset
   // This MUST BE optional because it is lost when `JSON.stringify`ing to put in `localStorage`.
   readonly setProjectAsset?: React.Dispatch<React.SetStateAction<ProjectAsset>>
   readonly backendType: BackendType
   readonly accessToken: string | null
+}
+
+/** A specific session of a project being opened and used. */
+export interface ProjectSession {
+  readonly projectId: ProjectId
+  readonly projectSessionId: ProjectSessionId
+  readonly createdAt: dateTime.Rfc3339DateTime
+  readonly closedAt?: dateTime.Rfc3339DateTime
+  readonly userEmail: EmailAddress
 }
 
 /** Metadata describing the location of an uploaded file. */
@@ -1013,16 +1026,12 @@ export interface InviteUserRequestBody {
   readonly userEmail: EmailAddress
 }
 
-/**
- * HTTP request body for the "list invitations" endpoint.
- */
-export interface InvitationListRequestBody {
-  readonly invitations: Invitation[]
+/** HTTP response body for the "list invitations" endpoint. */
+export interface ListInvitationsResponseBody {
+  readonly invitations: readonly Invitation[]
 }
 
-/**
- * Invitation to join an organization.
- */
+/** Invitation to join an organization. */
 export interface Invitation {
   readonly organizationId: OrganizationId
   readonly userEmail: EmailAddress
@@ -1031,7 +1040,7 @@ export interface Invitation {
 
 /** HTTP request body for the "create permission" endpoint. */
 export interface CreatePermissionRequestBody {
-  readonly actorsIds: UserPermissionIdentifier[]
+  readonly actorsIds: readonly UserPermissionIdentifier[]
   readonly resourceId: AssetId
   readonly action: permissions.PermissionAction | null
 }
@@ -1254,6 +1263,27 @@ export function extractProjectExtension(name: string) {
   return { basename: basename ?? name, extension: extension ?? '' }
 }
 
+/**
+ * Network error class.
+ */
+export class NetworkError extends Error {
+  /**
+   * Create a new instance of the {@link NetworkError} class.
+   * @param message - The error message.
+   * @param status - The HTTP status code.
+   */
+  constructor(
+    message: string,
+    readonly status?: number
+  ) {
+    super(message)
+  }
+}
+/**
+ * Error class for when the user is not authorized to access a resource.
+ */
+export class NotAuthorizedError extends NetworkError {}
+
 // ===============
 // === Backend ===
 // ===============
@@ -1262,10 +1292,12 @@ export function extractProjectExtension(name: string) {
 export default abstract class Backend {
   abstract readonly type: BackendType
 
+  /** The path to the root directory of this {@link Backend}. */
+  abstract readonly rootPath: string
   /** Return the ID of the root directory, if known. */
   abstract rootDirectoryId(user: User | null): DirectoryId | null
   /** Return a list of all users in the same organization. */
-  abstract listUsers(): Promise<User[]>
+  abstract listUsers(): Promise<readonly User[]>
   /** Set the username of the current user. */
   abstract createUser(body: CreateUserRequestBody): Promise<User>
   /** Change the username of the current user. */
@@ -1287,7 +1319,7 @@ export default abstract class Backend {
   /** Invite a new user to the organization by email. */
   abstract inviteUser(body: InviteUserRequestBody): Promise<void>
   /** Return a list of invitations to the organization. */
-  abstract listInvitations(): Promise<Invitation[]>
+  abstract listInvitations(): Promise<readonly Invitation[]>
   /** Delete an invitation. */
   abstract deleteInvitation(userEmail: EmailAddress): Promise<void>
   /** Resend an invitation. */
@@ -1336,6 +1368,8 @@ export default abstract class Backend {
   abstract createProject(body: CreateProjectRequestBody): Promise<CreatedProject>
   /** Close a project. */
   abstract closeProject(projectId: ProjectId, title: string): Promise<void>
+  /** Return a list of sessions for the current project. */
+  abstract listProjectSessions(projectId: ProjectId, title: string): Promise<ProjectSession[]>
   /** Restore a project from a different version. */
   abstract restoreProject(
     projectId: ProjectId,
@@ -1354,6 +1388,11 @@ export default abstract class Backend {
     directoryId: DirectoryId | null,
     title: string
   ): Promise<Project>
+  /** Return Language Server logs for a project session. */
+  abstract getProjectSessionLogs(
+    projectSessionId: ProjectSessionId,
+    title: string
+  ): Promise<string[]>
   /** Set a project to an open state. */
   abstract openProject(
     projectId: ProjectId,
@@ -1431,6 +1470,6 @@ export default abstract class Backend {
     projectId: ProjectId,
     directory: DirectoryId | null,
     title: string,
-    abortController?: AbortController
+    abortSignal?: AbortSignal
   ): Promise<Project>
 }

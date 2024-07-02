@@ -59,13 +59,32 @@ export function FormError(props: FormErrorProps) {
     }
   }
 
+  const offlineMessage = errors.root?.offline?.message ?? null
   const errorMessage = getSubmitError()
 
-  return errorMessage != null ? (
-    <reactAriaComponents.Alert size={size} variant={variant} rounded={rounded} {...alertProps}>
-      <reactAriaComponents.Text variant="body" truncate="3" color="primary">
-        {errorMessage}
-      </reactAriaComponents.Text>
-    </reactAriaComponents.Alert>
+  const submitErrorAlert =
+    errorMessage != null ? (
+      <reactAriaComponents.Alert size={size} variant={variant} rounded={rounded} {...alertProps}>
+        <reactAriaComponents.Text variant="body" truncate="3" color="primary">
+          {errorMessage}
+        </reactAriaComponents.Text>
+      </reactAriaComponents.Alert>
+    ) : null
+
+  const offlineErrorAlert =
+    offlineMessage != null ? (
+      <reactAriaComponents.Alert size={size} variant="outline" rounded={rounded} {...alertProps}>
+        <reactAriaComponents.Text variant="body" truncate="3" color="primary">
+          {offlineMessage}
+        </reactAriaComponents.Text>
+      </reactAriaComponents.Alert>
+    ) : null
+
+  const hasSomethingToShow = submitErrorAlert || offlineErrorAlert
+
+  return hasSomethingToShow ? (
+    <div className="flex w-full flex-col gap-4">
+      {submitErrorAlert} {offlineErrorAlert}
+    </div>
   ) : null
 }

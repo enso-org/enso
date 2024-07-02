@@ -3,11 +3,9 @@
  * Each exported function in the {@link LocalBackend} in this module corresponds to an API endpoint.
  * The functions are asynchronous and return a {@link Promise} that resolves to the response from
  * the API. */
-import * as detect from 'enso-common/src/detect'
-
 import Backend, * as backend from '#/services/Backend'
 import * as projectManager from '#/services/ProjectManager'
-import ProjectManager from '#/services/ProjectManager'
+import type ProjectManager from '#/services/ProjectManager'
 
 import * as appBaseUrl from '#/utilities/appBaseUrl'
 import * as dateTime from '#/utilities/dateTime'
@@ -98,14 +96,20 @@ export default class LocalBackend extends Backend {
   private readonly projectManager: ProjectManager
 
   /** Create a {@link LocalBackend}. */
-  constructor(projectManagerUrl: string, rootDirectory: projectManager.Path) {
+  constructor(projectManagerInstance: ProjectManager) {
     super()
-    this.projectManager = new ProjectManager(projectManagerUrl, rootDirectory)
-    if (detect.IS_DEV_MODE) {
-      // @ts-expect-error This exists only for debugging purposes. It does not have types
-      // because it MUST NOT be used in this codebase.
-      window.localBackend = this
-    }
+
+    this.projectManager = projectManagerInstance
+  }
+
+  /** Get the root directory of this Backend as a path. */
+  get rootPath() {
+    return this.projectManager.rootDirectory
+  }
+
+  /** Set the root directory of this Backend as a path. */
+  set rootPath(value) {
+    this.projectManager.rootDirectory = value
   }
 
   /** Return the ID of the root directory. */
@@ -325,23 +329,21 @@ export default class LocalBackend extends Backend {
     title: string | null
   ): Promise<void> {
     const { id } = extractTypeAndId(projectId)
-    if (!this.projectManager.projects.has(id)) {
-      try {
-        await this.projectManager.openProject({
-          projectId: id,
-          missingComponentAction: projectManager.MissingComponentAction.install,
-          ...(body?.parentId != null
-            ? { projectsDirectory: extractTypeAndId(body.parentId).id }
-            : {}),
-        })
-        return
-      } catch (error) {
-        throw new Error(
-          `Could not open project ${title != null ? `'${title}'` : `with ID '${projectId}'`}: ${
-            errorModule.tryGetMessage(error) ?? 'unknown error'
-          }.`
-        )
-      }
+    try {
+      await this.projectManager.openProject({
+        projectId: id,
+        missingComponentAction: projectManager.MissingComponentAction.install,
+        ...(body?.parentId != null
+          ? { projectsDirectory: extractTypeAndId(body.parentId).id }
+          : {}),
+      })
+      return
+    } catch (error) {
+      throw new Error(
+        `Could not open project ${title != null ? `'${title}'` : `with ID '${projectId}'`}: ${
+          errorModule.tryGetMessage(error) ?? 'unknown error'
+        }.`
+      )
     }
   }
 
@@ -528,7 +530,7 @@ export default class LocalBackend extends Backend {
 
   /** Return `null`. This function should never need to be called. */
   override usersMe() {
-    return Promise.resolve(null)
+    return this.invalidOperation()
   }
 
   /** Create a directory. */
@@ -613,9 +615,20 @@ export default class LocalBackend extends Backend {
     return projectManager.joinPath(extractTypeAndId(parentId).id, fileName)
   }
 
-  /** Invalid operation. */
-  override updateDirectory() {
-    return this.invalidOperation()
+  /** Change the name of a directory. */
+  override async updateDirectory(
+    directoryId: backend.DirectoryId,
+    body: backend.UpdateDirectoryRequestBody
+  ): Promise<backend.UpdatedDirectory> {
+    const from = extractTypeAndId(directoryId).id
+    const folderPath = projectManager.Path(fileInfo.folderPath(from))
+    const to = projectManager.joinPath(folderPath, body.title)
+    await this.projectManager.moveFile(from, to)
+    return {
+      id: newDirectoryId(to),
+      parentId: newDirectoryId(folderPath),
+      title: body.title,
+    }
   }
 
   /** Invalid operation. */
@@ -645,6 +658,16 @@ export default class LocalBackend extends Backend {
 
   /** Invalid operation. */
   override getFileDetails() {
+    return this.invalidOperation()
+  }
+
+  /** Invalid operation. */
+  override listProjectSessions() {
+    return this.invalidOperation()
+  }
+
+  /** Invalid operation. */
+  override getProjectSessionLogs() {
     return this.invalidOperation()
   }
 

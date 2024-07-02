@@ -271,9 +271,7 @@ class Abstractor {
       }
       case RawAst.Tree.Type.Documented: {
         const open = this.abstractToken(tree.documentation.open)
-        const elements = Array.from(tree.documentation.elements, (raw) =>
-          this.abstractTextToken(raw),
-        )
+        const elements = Array.from(tree.documentation.elements, this.abstractTextToken.bind(this))
         const newlines = Array.from(tree.documentation.newlines, this.abstractToken.bind(this))
         const expression = tree.expression ? this.abstractTree(tree.expression) : undefined
         node = Documented.concrete(this.module, open, elements, newlines, expression)

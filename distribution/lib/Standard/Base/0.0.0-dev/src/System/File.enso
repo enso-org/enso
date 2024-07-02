@@ -18,6 +18,7 @@ import project.Errors.Common.Type_Error
 import project.Errors.File_Error.File_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Problem_Behavior.Problem_Behavior
+import project.Function.Function
 import project.Meta
 import project.Metadata.Display
 import project.Metadata.Widget
@@ -42,12 +43,11 @@ from project.System.File_Format import Auto_Detect, File_Format
 polyglot java import java.io.File as Java_File
 polyglot java import java.io.InputStream as Java_Input_Stream
 polyglot java import java.io.OutputStream as Java_Output_Stream
-polyglot java import java.nio.file.FileSystems
-polyglot java import java.nio.file.Path
 polyglot java import java.nio.file.StandardCopyOption
 polyglot java import java.nio.file.StandardOpenOption
 polyglot java import java.time.ZonedDateTime
 polyglot java import org.enso.base.DryRunFileManager
+polyglot java import org.enso.base.file_system.File_Utils
 polyglot java import org.enso.base.file_system.FileSystemSPI
 
 ## PRIVATE
@@ -289,14 +289,14 @@ type File
              from Standard.Table import all
              import Standard.Examples
 
-             example_xls_to_table = Examples.xls.read (Excel_Format.Sheet 'Dates')
+             example_xls_to_table = Examples.xls.read (..Sheet 'Dates')
     @format File_Format.default_widget
     read : File_Format -> Problem_Behavior -> Any ! File_Error
-    read self format=Auto_Detect (on_problems : Problem_Behavior = Problem_Behavior.Report_Warning) =
+    read self format=Auto_Detect (on_problems : Problem_Behavior = ..Report_Warning) =
         if self.exists.not then Error.throw (File_Error.Not_Found self) else
             if Data_Link.is_data_link self then Data_Link_Helpers.read_data_link self format on_problems else
-                File_Format.handle_format_missing_arguments format <|
-                    format.read self on_problems
+                resolved_format = File_Format.resolve format
+                resolved_format.read self on_problems
 
     ## ALIAS load bytes, open bytes
        ICON data_input
@@ -795,11 +795,10 @@ type File
             _ ->
                 used_filter = if recursive.not || name_filter.contains "**" then name_filter else
                     (if name_filter.starts_with "*" then "*" else "**/") + name_filter
-                fs = FileSystems.getDefault
-                matcher = fs.getPathMatcher "glob:"+used_filter
+                matcher = File_Utils.matchPath "glob:"+used_filter
                 all_files.filter file->
                     pathStr = self.relativize file . path
-                    matcher.matches (Path.of pathStr)
+                    File_Utils.matches matcher pathStr
 
     ## GROUP Metadata
        ICON metadata
@@ -894,11 +893,11 @@ Writable_File.from (that : File) = if Data_Link.is_data_link that then Data_Link
 ## PRIVATE
 local_file_copy (source : File) (destination : File) (replace_existing : Boolean) -> Nothing =
     File_Error.handle_java_exceptions source <|
-        copy_options = if replace_existing then [StandardCopyOption.REPLACE_EXISTING] else []
+        copy_options = if replace_existing then [StandardCopyOption.REPLACE_EXISTING.to_text] else []
         source.copy_builtin destination copy_options
 
 ## PRIVATE
 local_file_move (source : File) (destination : File) (replace_existing : Boolean) -> Nothing =
     File_Error.handle_java_exceptions source <|
-        copy_options = if replace_existing then [StandardCopyOption.REPLACE_EXISTING] else []
+        copy_options = if replace_existing then [StandardCopyOption.REPLACE_EXISTING.to_text] else []
         source.move_builtin destination copy_options
