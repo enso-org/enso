@@ -147,7 +147,7 @@
     "tailwindcss": "^3.2.7",
     "tar": "^6.2.0",
     "tsx": "^4.7.1",
-    "typescript": "~5.2.2",
+    "typescript": "^5.3.3",
     "unbzip2-stream": "^1.4.3",
     "vite": "^5.3.1",
     "vite-plugin-vue-devtools": "7.3.4",
