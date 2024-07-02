@@ -125,10 +125,10 @@ class ExportsResolution(private val context: CompilerContext) {
 
       val transitivelyExported: List[ExportedModule] = {
         explicitlyExported.flatMap { case ExportedModule(module, _, symbols) =>
-          exports(module).map { case ExportedModule(export, _, parentSymbols) =>
+          exports(module).map { case ExportedModule(target, _, parentSymbols) =>
             val exportedSymbols = symbols.intersect(parentSymbols)
             ExportedModule(
-              export,
+              target,
               None,
               exportedSymbols
             )
@@ -139,7 +139,7 @@ class ExportsResolution(private val context: CompilerContext) {
       val allExported = explicitlyExported ++ transitivelyExported
       val unified = allExported
         .groupBy(_.target)
-        .map { case (mod, items) =>
+        .map { case (target, items) =>
           val name = items.collectFirst { case ExportedModule(_, Some(n), _) =>
             n
           }
@@ -147,7 +147,7 @@ class ExportsResolution(private val context: CompilerContext) {
             .map(_.symbols)
             .foldLeft(List[String]())(_ ++ _)
           ExportedModule(
-            mod,
+            target,
             name,
             allSymbols.distinct
           )

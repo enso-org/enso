@@ -305,13 +305,14 @@ case class BindingsMap(
   }
 
   /** Dumps the export statements from this module into a structure ready for
-    * further analysis.
+    * further analysis. It uses only [[resolvedImports]] field, as [[resolvedExports]]
+   * and [[exportedSymbols]] fields are expected to be filled later.
     *
     * @return a list of triples of the exported module, the name it is exported
     *         as and any further symbol restrictions.
     */
   def getDirectlyExportedModules: List[ExportedModule] =
-    resolvedImports.collect { case ResolvedImport(_, exports, mod) =>
+    resolvedImports.collect { case ResolvedImport(_, exports, target) =>
       exports.map { exp =>
         val rename = Some(exp.getSimpleName.name)
         val symbols = exp.onlyNames match {
@@ -320,7 +321,7 @@ case class BindingsMap(
           case None =>
             List(exp.name.parts.last.name)
         }
-        ExportedModule(mod, rename, symbols)
+        ExportedModule(target, rename, symbols)
       }
     }.flatten
 }
@@ -353,15 +354,27 @@ object BindingsMap {
 
   /** A representation of a resolved export statement.
     *
-    * @param target the module being exported.
+    * @param target the target being exported.
     * @param exportedAs the name it is exported as.
-    * @param symbols List of symbols connected to the export.
+    * @param symbols List of symbols connected to the export. The symbol refers to the last part
+   *                of the physical name of the target being exported. It is not a fully qualified
+   *                name.
     */
   case class ExportedModule(
     target: ImportTarget,
     exportedAs: Option[String],
     symbols: List[String]
   ) {
+    assert(
+      symbols.forall(!_.contains(".")),
+      "Not expected fully qualified names as symbols"
+    )
+    if (exportedAs.isDefined) {
+      assert(
+        !exportedAs.get.contains("."),
+        "Not expected fully qualified name as `exportedAs`"
+      )
+    }
 
     /** Convert the internal [[ModuleReference]] to an abstract reference.
       *
