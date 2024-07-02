@@ -13,11 +13,12 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 
 public class SnowflakeJDBCUtils {
-  private static final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern(SnowflakeType.DATE_OR_TIME_FORMAT_PATTERN);
+  private static final DateTimeFormatter dateTimeWithOffsetFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSSSSSSS XXX");
 
   public static void setDateTime(PreparedStatement stmt, int columnIndex, ZonedDateTime dateTime, boolean keepOffset) throws SQLException {
     if (keepOffset) {
-      stmt.setString(columnIndex, dateTime.format(dateTimeFormatter));
+      String formatted = dateTime.format(dateTimeWithOffsetFormatter);
+      stmt.setString(columnIndex, formatted);
     } else {
       LocalDateTime localDateTime = dateTime.toLocalDateTime();
       Timestamp timestamp = Timestamp.valueOf(localDateTime);

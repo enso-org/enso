@@ -32,9 +32,9 @@ type Snowflake_Type_Mapping
             Value_Type.Float _ -> SQL_Type.Value Types.DOUBLE "float8"
             Value_Type.Decimal precision scale -> case precision of
                 # If precision is not set, scale is also lost because SQL is unable to express a scale without a precision.
-                Nothing -> SQL_Type.Value Types.DECIMAL "decimal" Nothing Nothing
+                Nothing -> SQL_Type.Value Types.DECIMAL "NUMERIC" Nothing Nothing
                 # Scale can be set or not, if precision is given, so no check needed.
-                _       -> SQL_Type.Value Types.DECIMAL "decimal" precision scale
+                _       -> SQL_Type.Value Types.DECIMAL "NUMERIC" precision scale
             Value_Type.Char size _ ->
                 # Snowflake does not support fixed length strings, so we use VARCHAR.
                 is_unbounded = case size of
@@ -119,6 +119,7 @@ type Snowflake_Type_Mapping
 
 ## PRIVATE
 simple_types_map = Map.from_vector <|
+    # TODO likely most of these types are not returned by Snowflake so we could remove them
     ints = [[Types.TINYINT, Value_Type.Byte], [Types.SMALLINT, Value_Type.Integer Bits.Bits_16], [Types.BIGINT, Value_Type.Integer Bits.Bits_64], [Types.INTEGER, Value_Type.Integer Bits.Bits_32]]
     floats = [[Types.DOUBLE, Value_Type.Float Bits.Bits_64], [Types.REAL, Value_Type.Float Bits.Bits_32]]
     other = [[Types.DATE, Value_Type.Date], [Types.TIME, Value_Type.Time], [Types.BOOLEAN, Value_Type.Boolean]]
@@ -151,7 +152,7 @@ complex_types_map = Map.from_vector <|
     numerics = [[Types.DECIMAL, make_decimal], [Types.NUMERIC, make_decimal]]
     strings = [[Types.VARCHAR, make_varchar], [Types.CHAR, make_char], [Types.CLOB, make_varchar]]
     binaries = [[Types.BINARY, make_binary True], [Types.BIT, handle_bit]]
-    others = [[Types.TIMESTAMP, handle_timestamp]]
+    others = [[Types.TIMESTAMP, handle_timestamp], [Types.TIMESTAMP_WITH_TIMEZONE, handle_timestamp]]
     numerics + strings + binaries + others
 
 ## PRIVATE
@@ -179,7 +180,7 @@ date_time_fetcher =
     fetch_value rs i =
         ## Read the time as a string to get the nanosecond precision.
         sf_string = rs.getString i
-        if sf_string == Nothing then Nothing else Date_Time.parse sf_string
+        if sf_string == Nothing then Nothing else Date_Time.parse sf_string "yyyy-MM-dd HH:mm:ss.f ZZ"
     make_builder initial_size _ =
         java_builder = Java_Exports.make_date_time_builder initial_size
         Column_Fetcher_Module.make_builder_from_java_object_builder java_builder
