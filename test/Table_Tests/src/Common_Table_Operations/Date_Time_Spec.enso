@@ -81,12 +81,14 @@ add_specs suite_builder setup =
             dt3 = Date_Time.new 2019 11 23 4 5 6 zone=named_zone
 
             connection = Internals_Access.get_connection data.dates
-            db_table = connection.create_table "dates-test-"+Date_Time.now.to_text [Column_Description.Value "C" (Value_Type.Date_Time with_timezone=False), Column_Description.Value "X" Value_Type.Integer] temporary=True
+            db_table = connection.create_table "dates-test-"+Date_Time.now.to_text [Column_Description.Value "C" (Value_Type.Date_Time with_timezone=False), Column_Description.Value "X" Value_Type.Integer] temporary=True on_problems=Problem_Behavior.Ignore
+            Problems.assume_no_problems db_table
 
             dates = [dt1, dt2, dt3]
             xs = [1, 2, 3]
             local_table_with_tz = Table.new [["C", dates], ["X", xs]]
-            db_table.update_rows local_table_with_tz key_columns=["X"] . should_succeed
+            Problems.assume_no_problems <|
+                db_table.update_rows local_table_with_tz key_columns=["X"]
             ordered = db_table.sort "X"
 
             ordered.at "X" . to_vector . should_equal xs

@@ -117,6 +117,14 @@ type Snowflake_Type_Mapping
             Value_Type.Date_Time _ -> date_time_fetcher
             _ -> Column_Fetcher_Module.default_fetcher_for_value_type value_type
 
+    ## PRIVATE
+    is_implicit_conversion (source_type : Value_Type) (target_type : Value_Type) -> Boolean =
+        # Currently only implicit conversion is Integer -> Decimal
+        case source_type of
+            Value_Type.Integer _ ->
+                 target_type == integer_value_type
+            _ -> False
+
 ## PRIVATE
 simple_types_map = Map.from_vector <|
     # TODO likely most of these types are not returned by Snowflake so we could remove them
@@ -140,7 +148,7 @@ complex_types_map = Map.from_vector <|
         if sql_type.name == "BOOLEAN" then Value_Type.Boolean else
             # We currently do not support bit types.
             on_unknown_type sql_type
-    handle_timestamp sql_type = case sql_type.name of
+    handle_timestamp sql_type = case sql_type.name.to_case Case.Upper of
         "TIMESTAMPTZ" -> Value_Type.Date_Time with_timezone=True
         "TIMESTAMP_TZ" -> Value_Type.Date_Time with_timezone=True
         "TIMESTAMPLTZ" -> Value_Type.Date_Time with_timezone=False
@@ -189,3 +197,6 @@ date_time_fetcher =
 ## PRIVATE
    The actual SQL type that Snowflake uses for all integer types.
 integer_type = SQL_Type.Value Types.DECIMAL "NUMERIC" 38 0
+
+## PRIVATE
+integer_value_type = Value_Type.Decimal 38 0

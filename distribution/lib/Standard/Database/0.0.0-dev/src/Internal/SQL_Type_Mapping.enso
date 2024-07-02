@@ -89,6 +89,16 @@ type SQL_Type_Mapping
         _ = column_type_suggestions
         Unimplemented.throw "This is an interface only."
 
+    ## PRIVATE
+       Checks if the conversion between the two types is one to be done implicitly in the given backend.
+       Conversions marked as implicit will not raise Inexact_Type_Coercion warnings.
+
+       For example, the Snowflake database converts all integer types to NUMERIC(38, 0).
+       This conversion is a property of the database, so warning about it would only be annoying.
+    is_implicit_conversion (source_type : Value_Type) (target_type : Value_Type) -> Boolean =
+        _ = [source_type, target_type]
+        Unimplemented.throw "This is an interface only."
+
 ## PRIVATE
 default_sql_type_to_text sql_type =
     suffix = case sql_type.precision of
