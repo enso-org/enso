@@ -34,10 +34,5 @@
   },
   "dependencies": {
     "spectorjs": "^0.9.27"
-  },
-  "optionalDependencies": {
-    "esbuild-linux-64": "^0.15.18",
-    "esbuild-windows-64": "^0.15.18",
-    "esbuild-darwin-64": "^0.15.18"
   }
 }

@@ -460,16 +460,6 @@ importers:
       yargs:
         specifier: 17.6.2
         version: 17.6.2
-    optionalDependencies:
-      '@esbuild/darwin-x64':
-        specifier: ^0.17.15
-        version: 0.17.19
-      '@esbuild/linux-x64':
-        specifier: ^0.17.15
-        version: 0.17.19
-      dmg-license:
-        specifier: ^1.0.11
-        version: 1.0.11
     devDependencies:
       '@electron/notarize':
         specifier: 2.1.0
@@ -607,13 +597,6 @@ importers:
       zod:
         specifier: ^3.23.8
         version: 3.23.8
-    optionalDependencies:
-      '@esbuild/darwin-x64':
-        specifier: ^0.17.15
-        version: 0.17.19
-      '@esbuild/linux-x64':
-        specifier: ^0.17.15
-        version: 0.17.19
     devDependencies:
       '@babel/plugin-syntax-import-assertions':
         specifier: ^7.23.3
@@ -1366,12 +1349,6 @@ packages:
     cpu: [arm64]
     os: [darwin]
 
-  '@esbuild/darwin-x64@0.17.19':
-    resolution: {integrity: sha512-IJM4JJsLhRYr9xdtLytPLSH9k/oxR3boaUIYiHkAawtwNOXKE8KoU8tMvryogdcT8AU+Bflmh81Xn6Q0vTZbQw==}
-    engines: {node: '>=12'}
-    cpu: [x64]
-    os: [darwin]
-
   '@esbuild/darwin-x64@0.19.12':
     resolution: {integrity: sha512-hKoVkKzFiToTgn+41qGhsUJXFlIjxI/jSYeZf3ugemDYZldIXIxhvwN6erJGlX4t5h417iFuheZ7l+YVn05N3A==}
     engines: {node: '>=12'}
@@ -1502,12 +1479,6 @@ packages:
     resolution: {integrity: sha512-zus5sxzqBJD3eXxwvjN1yQkRepANgxE9lgOW2qLnmr8ikMTphkjgXu1HR01K4FJg8h1kEEDAqDcZQtbrRnB41A==}
     engines: {node: '>=12'}
     cpu: [s390x]
-    os: [linux]
-
-  '@esbuild/linux-x64@0.17.19':
-    resolution: {integrity: sha512-68ngA9lg2H6zkZcyp22tsVt38mlhWde8l3eJLWkyLrp4HwMUr3c1s/M2t7+kHIhvMjglIBrFpncX1SzMckomGw==}
-    engines: {node: '>=12'}
-    cpu: [x64]
     os: [linux]
 
   '@esbuild/linux-x64@0.19.12':
@@ -8251,9 +8222,6 @@ snapshots:
   '@esbuild/darwin-arm64@0.21.5':
     optional: true
 
-  '@esbuild/darwin-x64@0.17.19':
-    optional: true
-
   '@esbuild/darwin-x64@0.19.12':
     optional: true
 
@@ -8318,9 +8286,6 @@ snapshots:
     optional: true
 
   '@esbuild/linux-s390x@0.21.5':
-    optional: true
-
-  '@esbuild/linux-x64@0.17.19':
     optional: true
 
   '@esbuild/linux-x64@0.19.12':
