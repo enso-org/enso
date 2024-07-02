@@ -324,6 +324,60 @@ class ImportExportTest
         .isInstanceOf[BindingsMap.ResolvedConstructor] shouldBe true
     }
 
+    "import single static method with one symbol" in {
+      """
+        |type My_Type
+        |My_Type.extension_method x = x
+        |""".stripMargin
+        .createModule(packageQualifiedName.createChild("Module"))
+
+      val mainIr = s"""
+        |import $namespace.$packageName.Module.extension_method
+        |""".stripMargin
+        .createModule(packageQualifiedName.createChild("Main"))
+        .getIr
+      mainIr
+        .imports
+        .head
+        .isInstanceOf[errors.ImportExport] shouldBe false
+
+      val bindingsMap = mainIr.unwrapBindingMap
+      bindingsMap.resolvedImports.size shouldBe 1
+      val resolvedImport = bindingsMap.resolvedImports.head
+      resolvedImport.targets.head shouldBe a[BindingsMap.ResolvedStaticMethod]
+      resolvedImport
+        .targets
+        .head
+        .asInstanceOf[BindingsMap.ResolvedStaticMethod]
+        .staticMethod
+        .methodName shouldBe "extension_method"
+    }
+
+    "export multiple static methods with one symbol" in {
+      """
+        |type My_Type
+        |type Other_Type
+        |
+        |My_Type.extension_method x = x
+        |Other_Type.extension_method y = y
+        |""".stripMargin
+        .createModule(packageQualifiedName.createChild("Module"))
+
+      val mainIr = s"""
+                      |export $namespace.$packageName.Module.extension_method
+                      |""".stripMargin
+        .createModule(packageQualifiedName.createChild("Main"))
+        .getIr
+      mainIr
+        .imports
+        .head
+        .isInstanceOf[errors.ImportExport] shouldBe false
+      val bm = mainIr.unwrapBindingMap
+      bm.exportedSymbols.size shouldBe 1
+      bm.exportedSymbols.get("extension_method") shouldBe defined
+      bm.exportedSymbols("extension_method").size shouldBe 2
+    }
+
     "result in error when trying to import mix of constructors and methods from a type" in {
       """
         |type Other_Module_Type
