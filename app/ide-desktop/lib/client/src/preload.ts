@@ -22,6 +22,8 @@ const AUTHENTICATION_API_KEY = 'authenticationApi'
  * window. */
 const FILE_BROWSER_API_KEY = 'fileBrowserApi'
 
+const PROJECT_MANAGEMENT_API_KEY = 'projectManagementApi'
+
 const NAVIGATION_API_KEY = 'navigationApi'
 
 const MENU_API_KEY = 'menuApi'
@@ -174,11 +176,32 @@ const AUTHENTICATION_API = {
 }
 electron.contextBridge.exposeInMainWorld(AUTHENTICATION_API_KEY, AUTHENTICATION_API)
 
+// ========================
+// === File Browser API ===
+// ========================
+
 const FILE_BROWSER_API = {
     openFileBrowser: (kind: 'any' | 'directory' | 'file' | 'filePath', defaultPath?: string) =>
         electron.ipcRenderer.invoke(ipc.Channel.openFileBrowser, kind, defaultPath),
 }
 electron.contextBridge.exposeInMainWorld(FILE_BROWSER_API_KEY, FILE_BROWSER_API)
+
+// ==============================
+// === PROJECT_MANAGEMENT_API ===
+// ==============================
+
+let currentOpenProjectHandler: ((event: Electron.IpcRendererEvent, id: string) => void) | undefined
+const PROJECT_MANAGEMENT_API = {
+    setOpenProjectHandler: (handler: (id: string) => void) => {
+        if (currentOpenProjectHandler != null) {
+            electron.ipcRenderer.off(ipc.Channel.openProject, currentOpenProjectHandler)
+        }
+        currentOpenProjectHandler = (_event, id) => handler(id)
+        electron.ipcRenderer.on(ipc.Channel.openProject, currentOpenProjectHandler)
+    },
+}
+
+electron.contextBridge.exposeInMainWorld(PROJECT_MANAGEMENT_API_KEY, PROJECT_MANAGEMENT_API)
 
 // ================
 // === Menu API ===

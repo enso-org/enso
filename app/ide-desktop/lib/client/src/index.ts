@@ -61,7 +61,11 @@ class App {
         urlAssociations.registerAssociations()
         // Register file associations for macOS.
         fileAssociations.setOpenFileEventHandler(id => {
-            this.setProjectToOpenOnStartup(id)
+            if (electron.app.isReady()) {
+                this.window?.webContents.send('open-project', id)
+            } else {
+                this.setProjectToOpenOnStartup(id)
+            }
         })
 
         electron.app.commandLine.appendSwitch('allow-insecure-localhost', 'true')
