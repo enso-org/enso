@@ -394,9 +394,6 @@ importers:
       eslint-plugin-react-hooks:
         specifier: ^4.6.0
         version: 4.6.2(eslint@8.57.0)
-      is-hidden-file:
-        specifier: ^1.1.2
-        version: 1.1.2
     devDependencies:
       '@typescript-eslint/eslint-plugin':
         specifier: ^6.7.2
@@ -4841,10 +4838,6 @@ packages:
   is-glob@4.0.3:
     resolution: {integrity: sha512-xelSayHH36ZgE7ZWhli7pW34hNbNl8Ojv5KVmkJD4hBdD3th8Tfk9vYasLM+mXWOZhFkgZfxhLSnrwRr4elSSg==}
     engines: {node: '>=0.10.0'}
-
-  is-hidden-file@1.1.2:
-    resolution: {integrity: sha512-WS2Y+gFNWlK8IPAvcvsqa4rwf4kZUqGz3VTpHVhAu4Zvrbk+XPbve/RKacyyVNYxHQulubZshXXlzmfCR7G+WQ==}
-    os: [darwin, linux, win32]
 
   is-inside-container@1.0.0:
     resolution: {integrity: sha512-KIYLCCJghfHZxqjYBE7rEy0OBuTd5xCHS7tHVgvCLkx7StIoaxwNW3hCALgEUjFfeRk+MG/Qxmp/vtETEF3tRA==}
@@ -12890,10 +12883,6 @@ snapshots:
   is-glob@4.0.3:
     dependencies:
       is-extglob: 2.1.1
-
-  is-hidden-file@1.1.2:
-    dependencies:
-      cross-spawn: 7.0.3
 
   is-inside-container@1.0.0:
     dependencies:
