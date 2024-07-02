@@ -163,6 +163,7 @@ function EditorInternal(props: EditorInternalProps) {
     projectStartupInfo.projectAsset.id,
     project.jsonAddress,
     project.binaryAddress,
+    project.ydocAddress,
     project.packageName,
     project.name,
     ydocUrl,
