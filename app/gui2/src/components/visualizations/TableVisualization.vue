@@ -174,68 +174,44 @@ const selectableRowLimits = computed(() => {
 })
 const wasAutomaticallyAutosized = ref(false)
 
-const newNodeSelector = computed(() => {
+const newNodeSelectorValues = computed(() => {
   let selector
+  let identifierAction
+  let tooltipValue
   switch (config.nodeType) {
     case COLUMN_NODE_TYPE:
     case VECTOR_NODE_TYPE:
       selector = INDEX_FIELD_NAME
+      identifierAction = 'at'
+      tooltipValue = 'value'
       break
     case ROW_NODE_TYPE:
       selector = 'column'
+      identifierAction = 'at'
+      tooltipValue = 'value'
       break
     case EXCEL_WORKBOOK_NODE_TYPE:
       selector = 'Value'
-      break
-    case SQLITE_CONNECTIONS_NODE_TYPE:
-    case POSTGRES_CONNECTIONS_NODE_TYPE:
-      selector = 'Value'
-      break
-  }
-  return selector
-})
-
-const newNodeAction = computed(() => {
-  let identifierAction
-  switch (config.nodeType) {
-    case COLUMN_NODE_TYPE:
-    case VECTOR_NODE_TYPE:
-      identifierAction = 'at'
-      break
-    case ROW_NODE_TYPE:
-      identifierAction = 'at'
-      break
-    case EXCEL_WORKBOOK_NODE_TYPE:
       identifierAction = 'read'
+      tooltipValue = 'sheet'
       break
     case SQLITE_CONNECTIONS_NODE_TYPE:
     case POSTGRES_CONNECTIONS_NODE_TYPE:
+      selector = 'Value'
       identifierAction = 'query'
-      break
-  }
-  return identifierAction
-})
-
-const onClickTooltipValue = computed(() => {
-  let val
-  switch (config.nodeType) {
-    case COLUMN_NODE_TYPE:
-    case VECTOR_NODE_TYPE:
-    case ROW_NODE_TYPE:
-      val = 'value'
-      break
-    case EXCEL_WORKBOOK_NODE_TYPE:
-      val = 'sheet'
-      break
-    case SQLITE_CONNECTIONS_NODE_TYPE:
-    case POSTGRES_CONNECTIONS_NODE_TYPE:
-      val = 'table'
+      tooltipValue = 'table'
       break
     case TABLE_NODE_TYPE:
     case DB_TABLE_NODE_TYPE:
-      val = 'row'
+      selector = null
+      identifierAction = null
+      tooltipValue = 'row'
   }
-  return val
+  return {
+    selector,
+    identifierAction,
+    tooltipValue,
+  }
 })
 
 const numberFormatGroupped = new Intl.NumberFormat(undefined, {
@@ -387,9 +363,16 @@ function createNode(params: CellClickedEvent) {
       commit: true,
     })
   }
-  if (newNodeSelector.value !== undefined && newNodeAction.value) {
+  if (
+    newNodeSelectorValues.value.selector !== undefined &&
+    newNodeSelectorValues.value.selector !== null &&
+    newNodeSelectorValues.value.identifierAction
+  ) {
     config.createNodes({
-      content: getAstPattern(params.data[newNodeSelector.value], newNodeAction.value),
+      content: getAstPattern(
+        params.data[newNodeSelectorValues.value.selector],
+        newNodeSelectorValues.value.identifierAction,
+      ),
       commit: true,
     })
   }
@@ -400,9 +383,10 @@ function toLinkField(fieldName: string): ColDef {
     field: fieldName,
     onCellDoubleClicked: (params) => createNode(params),
     tooltipValueGetter: () => {
-      return `Double click to view this ${onClickTooltipValue.value} in seperate node`
+      return `Double click to view this ${newNodeSelectorValues.value.tooltipValue} in a separate node`
     },
     cellStyle: { cursor: 'pointer' },
+    cellRenderer: (params: any) => `<a> ${params.value} </a>`,
   }
 }
 
