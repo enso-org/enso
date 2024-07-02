@@ -1,13 +1,18 @@
 <script lang="ts" setup>
 import JsonValueWidget from '@/components/visualizations/JSONVisualization/JsonValueWidget.vue'
+import { useVisualizationConfig } from '@/providers/visualizationConfig'
 import { computed } from 'vue'
 
 const props = defineProps<{ data: object }>()
 const emit = defineEmits<{
   createProjection: [path: (string | number)[][]]
 }>()
+const config = useVisualizationConfig()
 
 const MAX_INLINE_LENGTH = 40
+const JSON_OBJECT_TYPE = 'Standard.Base.Data.Json.JS_Object'
+
+const isClickThroughEnabled = config.nodeType === JSON_OBJECT_TYPE
 
 const block = computed(() => JSON.stringify(props.data).length > MAX_INLINE_LENGTH)
 
@@ -32,7 +37,7 @@ function entryTitle(key: string) {
       class="field clickable"
       @click.stop="emit('createProjection', [$event.shiftKey ? Object.keys(props.data) : [key]])"
     >
-      <span class="key" v-text="JSON.stringify(key)" />:
+      <span :class="[isClickThroughEnabled ? 'key-link' : 'key']" v-text="JSON.stringify(key)" />:
       <JsonValueWidget
         :data="value"
         @createProjection="emit('createProjection', [[key], ...$event])"
@@ -73,5 +78,9 @@ function entryTitle(key: string) {
 }
 .key {
   color: darkred;
+}
+.key-link {
+  color: blue;
+  text-decoration: underline;
 }
 </style>

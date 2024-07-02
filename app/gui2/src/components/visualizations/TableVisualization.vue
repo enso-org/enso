@@ -681,7 +681,7 @@ onUnmounted(() => {
 
 a {
   color: blue;
-  text-decoration: underline !important;
+  text-decoration: underline;
 }
 a:hover {
   color: darkblue;
