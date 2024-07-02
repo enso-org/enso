@@ -274,7 +274,6 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
   }
 
   dispose() {
-    const { forceRelease } = this.lsRpc.queueRelease()
     this.queue.pushTask(async (state) => {
       if (state.status === 'created') {
         const result = await this.withBackoff(
@@ -285,7 +284,7 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
           result.error.log('Failed to destroy execution context')
         }
       }
-      forceRelease()
+      this.lsRpc.release()
       return { status: 'not-created' }
     })
   }

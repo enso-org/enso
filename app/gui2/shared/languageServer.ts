@@ -136,6 +136,7 @@ export class LanguageServer extends ObservableV2<Notifications & TransportEvents
   initialized: Promise<LsRpcResult<response.InitProtocolConnection>>
   private clientScope: AbortScope = new AbortScope()
   private initializationScheduled = false
+  private shouldReconnect = true
   private retainCount = 1
 
   constructor(
@@ -154,6 +155,7 @@ export class LanguageServer extends ObservableV2<Notifications & TransportEvents
     })
     transport.on('error', (error) => console.error('Language Server transport error:', error))
     const reinitializeCb = () => {
+      if (!this.shouldReconnect) return
       this.emit('transport/closed', [])
       console.log('Language Server: WebSocket closed')
       this.scheduleInitializationAfterConnect()
@@ -544,16 +546,8 @@ export class LanguageServer extends ObservableV2<Notifications & TransportEvents
     this.retainCount += 1
   }
 
-  queueRelease() {
-    const abortController = new AbortController()
-    const release = () => {
-      if (!abortController.signal.aborted) {
-        this.release()
-        abortController.abort()
-      }
-    }
-    this.transport.on('close', release, { once: true })
-    return { forceRelease: release }
+  stopReconnecting() {
+    this.shouldReconnect = false
   }
 
   release() {
