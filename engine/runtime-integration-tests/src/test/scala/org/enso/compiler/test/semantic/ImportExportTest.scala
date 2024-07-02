@@ -151,7 +151,8 @@ class ImportExportTest
       mainBindingsMap.resolvedImports.size shouldEqual 1
       mainBindingsMap
         .resolvedImports(0)
-        .target
+        .targets
+        .head
         .isInstanceOf[BindingsMap.ResolvedModule] shouldBe true
     }
 
@@ -180,7 +181,8 @@ class ImportExportTest
       mainIr.unwrapBindingMap.resolvedImports.size shouldEqual 1
       mainIr.unwrapBindingMap
         .resolvedImports(0)
-        .target
+        .targets
+        .head
         .isInstanceOf[BindingsMap.ResolvedModule] shouldBe true
     }
 
@@ -257,7 +259,11 @@ class ImportExportTest
       mainIr.imports.head.isInstanceOf[errors.ImportExport] shouldBe false
       val mainBindingMap = mainIr.unwrapBindingMap
       mainBindingMap.resolvedImports.size shouldEqual 1
-      mainBindingMap.resolvedImports.head.target
+      mainBindingMap
+        .resolvedImports
+        .head
+        .targets
+        .head
         .asInstanceOf[BindingsMap.ResolvedModuleMethod]
         .method
         .name shouldEqual "module_method"
@@ -278,11 +284,11 @@ class ImportExportTest
           .getIr
       val bindingMap = mainIr.unwrapBindingMap
       bindingMap.resolvedImports.size shouldBe 1
-      bindingMap.resolvedImports.head.target shouldBe a[
+      bindingMap.resolvedImports.head.targets.head shouldBe a[
         BindingsMap.ResolvedConstructor
       ]
 
-      bindingMap.resolvedImports.head.target
+      bindingMap.resolvedImports.head.targets.head
         .asInstanceOf[BindingsMap.ResolvedConstructor]
         .qualifiedName
         .item shouldBe "Constructor"

@@ -576,12 +576,13 @@ public class IRDumper {
                 bldr.addLabelLine("resolvedImports: ");
                 for (int i = 0; i < bindingsMap.resolvedImports().size(); i++) {
                   var resolvedImport = bindingsMap.resolvedImports().apply(i);
-                  switch (resolvedImport.target()) {
+                  var firstImpTarget = resolvedImport.targets().head();
+                  switch (firstImpTarget) {
                     case ResolvedType resolvedType -> bldr.addLabelLine(
                         "  - ResolvedType(" + resolvedType.tp().name() + ")");
                     case BindingsMap.ResolvedModule resolvedModule -> bldr.addLabelLine(
                         "  - ResolvedModule(" + resolvedModule.qualifiedName() + ")");
-                    default -> throw unimpl(resolvedImport.target());
+                    default -> throw unimpl(firstImpTarget);
                   }
                 }
               }

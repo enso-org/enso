@@ -214,28 +214,29 @@ abstract class ImportResolverForIR extends ImportResolverAlgorithm<
 
   @Override
   protected final Tuple2<Import, Option<BindingsMap.ResolvedImport>> createResolvedImport(Import.Module imp, java.util.List<Export.Module> exp, CompilerContext.Module m) {
-    scala.Option<org.enso.compiler.data.BindingsMap.ResolvedImport> someBinding = Option.apply(new BindingsMap.ResolvedImport(imp, toScalaList(exp), new BindingsMap.ResolvedModule(new BindingsMap$ModuleReference$Concrete(m))));
-    return new Tuple2<>(imp, someBinding);
+    var resolvedModule = new BindingsMap.ResolvedModule(new BindingsMap$ModuleReference$Concrete(m));
+    var resolvedImport = new BindingsMap.ResolvedImport(imp, toScalaList(exp), toScalaList(java.util.List.of(resolvedModule)));
+    return new Tuple2<>(imp, scala.Some.apply(resolvedImport));
   }
 
   @Override
   protected final Tuple2<Import, Option<BindingsMap.ResolvedImport>> createResolvedType(Import.Module imp, java.util.List<Export.Module> exp, BindingsMap.ResolvedType typ) {
-    scala.Option<org.enso.compiler.data.BindingsMap.ResolvedImport> someBinding = Option.apply(new BindingsMap.ResolvedImport(imp, toScalaList(exp), typ));
-    return new Tuple2<>(imp, someBinding);
+    var resolvedImport = new BindingsMap.ResolvedImport(imp, toScalaList(exp), toScalaList(java.util.List.of(typ)));
+    return new Tuple2<>(imp, scala.Some.apply(resolvedImport));
   }
 
   @Override
   protected Tuple2<Import, Option<ResolvedImport>> createResolvedConstructor(Import.Module imp,
       java.util.List<Export.Module> exp, ResolvedConstructor cons) {
-    scala.Option<org.enso.compiler.data.BindingsMap.ResolvedImport> someBinding = Option.apply(new BindingsMap.ResolvedImport(imp, toScalaList(exp), cons));
-    return new Tuple2<>(imp, someBinding);
+    var resolvedImport = new BindingsMap.ResolvedImport(imp, toScalaList(exp), toScalaList(java.util.List.of(cons)));
+    return new Tuple2<>(imp, scala.Some.apply(resolvedImport));
   }
 
   @Override
   protected Tuple2<Import, Option<ResolvedImport>> createResolvedModuleMethod(Import.Module imp,
       java.util.List<Export.Module> exp, ResolvedModuleMethod resolvedModuleMethod) {
-    scala.Option<org.enso.compiler.data.BindingsMap.ResolvedImport> someBinding = Option.apply(new BindingsMap.ResolvedImport(imp, toScalaList(exp), resolvedModuleMethod));
-    return new Tuple2<>(imp, someBinding);
+    var resolvedImport = new BindingsMap.ResolvedImport(imp, toScalaList(exp), toScalaList(java.util.List.of(resolvedModuleMethod)));
+    return new Tuple2<>(imp, scala.Some.apply(resolvedImport));
   }
 
 

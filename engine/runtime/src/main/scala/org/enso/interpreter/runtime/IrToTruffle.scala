@@ -208,11 +208,11 @@ class IrToTruffle(
     }
 
     bindingsMap.resolvedImports.foreach { imp =>
-      imp.target match {
-        case _: BindingsMap.ResolvedType             =>
-        case _: BindingsMap.ResolvedConstructor      =>
-        case _: BindingsMap.ResolvedModuleMethod     =>
-        case _: BindingsMap.ResolvedStaticMethod     =>
+      imp.targets.foreach {
+        case _: BindingsMap.ResolvedType =>
+        case _: BindingsMap.ResolvedConstructor =>
+        case _: BindingsMap.ResolvedModuleMethod =>
+        case _: BindingsMap.ResolvedStaticMethod =>
         case _: BindingsMap.ResolvedConversionMethod =>
         case ResolvedModule(module) =>
           val mod = module
