@@ -118,14 +118,14 @@ export default function AssetPanel(props: AssetPanelProps) {
     <div
       data-testid="asset-panel"
       className={tailwindMerge.twMerge(
-        'p-top-bar-margin pointer-events-none absolute flex h-full w-asset-panel flex-col gap-asset-panel bg-white pl-asset-panel-l transition-[box-shadow] clip-path-left-shadow',
+        'pointer-events-none absolute flex h-full w-asset-panel flex-col gap-asset-panel bg-white p-4 pl-asset-panel-l transition-[box-shadow] clip-path-left-shadow',
         isVisible ? 'shadow-softer' : ''
       )}
       onClick={event => {
         event.stopPropagation()
       }}
     >
-      <ariaComponents.ButtonGroup className="mt-4 grow-0 basis-8">
+      <ariaComponents.ButtonGroup className="grow-0 basis-8">
         {isCloud &&
           item != null &&
           item.item.type !== backendModule.AssetType.secret &&

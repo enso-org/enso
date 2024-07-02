@@ -222,6 +222,8 @@
   "resetAll": "Reset All",
   "openHelpChat": "Open Help Chat",
   "organization": "Organization",
+  "metadata": "Metadata",
+  "path": "Path",
 
   "enterSecretPath": "Enter secret path",
   "enterText": "Enter text",
