@@ -17,7 +17,7 @@ import org.enso.interpreter.runtime.scope.TopLevelScope;
 
 final class InvokeMethodImportResolver
     extends ImportResolverAlgorithm<
-        EnsoObject, Module, UnresolvedSymbol, Object, Type, Module, AtomConstructor, Function> {
+        EnsoObject, Module, UnresolvedSymbol, Object, Type, Module, AtomConstructor, Function, Function, Function> {
 
   private final Module module;
   private final TopLevelScope topScope;
@@ -66,6 +66,16 @@ final class InvokeMethodImportResolver
   }
 
   @Override
+  protected String nameForExtensionMethod(Function function) {
+    return function.getName();
+  }
+
+  @Override
+  protected String nameForConversionMethod(Function function) {
+    return function.getName();
+  }
+
+  @Override
   protected List<Object> exportsFor(Module module, String impName) {
     return Collections.emptyList();
   }
@@ -88,6 +98,16 @@ final class InvokeMethodImportResolver
   @Override
   protected List<Function> definedModuleMethods(UnresolvedSymbol symbol) {
     return Collections.emptyList();
+  }
+
+  @Override
+  protected List<Function> definedExtensionMethods(UnresolvedSymbol imp) {
+    return null;
+  }
+
+  @Override
+  protected List<Function> definedConversionMethods(UnresolvedSymbol imp) {
+    return null;
   }
 
   @Override
@@ -116,6 +136,18 @@ final class InvokeMethodImportResolver
   @Override
   protected EnsoObject createResolvedModuleMethod(
       UnresolvedSymbol imp, List<Object> exp, Function function) {
+    throw new UnsupportedOperationException("unimplemented");
+  }
+
+  @Override
+  protected EnsoObject createResolvedExtensionMethods(UnresolvedSymbol imp, List<Object> exp,
+      List<Function> functions) {
+    throw new UnsupportedOperationException("unimplemented");
+  }
+
+  @Override
+  protected EnsoObject createResolvedConversionMethods(UnresolvedSymbol imp, List<Object> exp,
+      List<Function> functions) {
     throw new UnsupportedOperationException("unimplemented");
   }
 

@@ -13,9 +13,12 @@ import org.enso.compiler.core.ir.module.scope.Export;
 import org.enso.compiler.core.ir.module.scope.Import;
 import org.enso.compiler.data.BindingsMap;
 import org.enso.compiler.data.BindingsMap$ModuleReference$Concrete;
+import org.enso.compiler.data.BindingsMap.ImportTarget;
 import org.enso.compiler.data.BindingsMap.ResolvedConstructor;
+import org.enso.compiler.data.BindingsMap.ResolvedConversionMethod;
 import org.enso.compiler.data.BindingsMap.ResolvedImport;
 import org.enso.compiler.data.BindingsMap.ResolvedModuleMethod;
+import org.enso.compiler.data.BindingsMap.ResolvedStaticMethod;
 import org.enso.compiler.data.BindingsMap.ResolvedType;
 import org.enso.editions.LibraryName;
 
@@ -32,7 +35,9 @@ abstract class ImportResolverForIR extends ImportResolverAlgorithm<
   ResolvedType,
   CompilerContext.Module,
   ResolvedConstructor,
-  ResolvedModuleMethod
+  ResolvedModuleMethod,
+  ResolvedStaticMethod,
+  ResolvedConversionMethod
 > {
   abstract Compiler getCompiler();
 
@@ -66,6 +71,15 @@ abstract class ImportResolverForIR extends ImportResolverAlgorithm<
     return resolvedModuleMethod.methodName();
   }
 
+  @Override
+  protected String nameForExtensionMethod(ResolvedStaticMethod resolvedStaticMethod) {
+    return resolvedStaticMethod.methodName();
+  }
+
+  @Override
+  protected String nameForConversionMethod(ResolvedConversionMethod resolvedConversionMethod) {
+    return resolvedConversionMethod.methodName();
+  }
 
   @Override
   protected final java.util.List<Export.Module> exportsFor(Module module, String impName) {
@@ -196,6 +210,72 @@ abstract class ImportResolverForIR extends ImportResolverAlgorithm<
   }
 
   @Override
+  protected java.util.List<ResolvedStaticMethod> definedExtensionMethods(Import.Module imp) {
+    var parts = partsForImport(imp);
+    if (parts.size() < 3) {
+      return null;
+    }
+    var modMethodNameIdx = parts.size() - 1;
+    var modMethodName = parts.get(modMethodNameIdx);
+    var modFullName = parts
+        .stream()
+        .limit(modMethodNameIdx)
+        .collect(Collectors.joining("."));
+    var compiler = getCompiler();
+    var optionMod = compiler.getModule(modFullName);
+    if (optionMod.isEmpty()) {
+      return null;
+    }
+    var mod = optionMod.get();
+    compiler.ensureParsed(mod);
+    var bindingsMap = loadBindingsMap(mod);
+    var extensionMethods = scala.jdk.javaapi.CollectionConverters.asJava(bindingsMap.definedEntities())
+        .stream()
+        .filter(definedEntity -> {
+          if (definedEntity instanceof BindingsMap.StaticMethod extensionMethod) {
+            return extensionMethod.name().equals(modMethodName);
+          }
+          return false;
+        })
+        .map(entity -> new ResolvedStaticMethod(new BindingsMap$ModuleReference$Concrete(mod), (BindingsMap.StaticMethod) entity))
+        .collect(Collectors.toUnmodifiableList());
+    return extensionMethods;
+  }
+
+  @Override
+  protected java.util.List<ResolvedConversionMethod> definedConversionMethods(Import.Module imp) {
+    var parts = partsForImport(imp);
+    if (parts.size() < 3) {
+      return null;
+    }
+    var modMethodNameIdx = parts.size() - 1;
+    var modMethodName = parts.get(modMethodNameIdx);
+    var modFullName = parts
+        .stream()
+        .limit(modMethodNameIdx)
+        .collect(Collectors.joining("."));
+    var compiler = getCompiler();
+    var optionMod = compiler.getModule(modFullName);
+    if (optionMod.isEmpty()) {
+      return null;
+    }
+    var mod = optionMod.get();
+    compiler.ensureParsed(mod);
+    var bindingsMap = loadBindingsMap(mod);
+    var conversionMethods = scala.jdk.javaapi.CollectionConverters.asJava(bindingsMap.definedEntities())
+        .stream()
+        .filter(definedEntity -> {
+          if (definedEntity instanceof BindingsMap.ConversionMethod conversionMethod) {
+            return conversionMethod.methodName().equals(modMethodName);
+          }
+          return false;
+        })
+        .map(entity -> new ResolvedConversionMethod(new BindingsMap$ModuleReference$Concrete(mod), (BindingsMap.ConversionMethod) entity))
+        .collect(Collectors.toUnmodifiableList());
+    return conversionMethods;
+  }
+
+  @Override
   protected final CompilerContext.Module loadLibraryModule(LibraryName libraryName, String moduleName) throws IOException {
     var compiler = this.getCompiler();
     var repo = compiler.packageRepository();
@@ -239,6 +319,28 @@ abstract class ImportResolverForIR extends ImportResolverAlgorithm<
     return new Tuple2<>(imp, scala.Some.apply(resolvedImport));
   }
 
+  @Override
+  protected Tuple2<Import, Option<ResolvedImport>> createResolvedExtensionMethods(Import.Module imp,
+      java.util.List<Export.Module> exp, java.util.List<ResolvedStaticMethod> extensionMethods) {
+    java.util.List<ImportTarget> importTargets = extensionMethods
+        .stream()
+        .map(ImportTarget.class::cast)
+        .collect(Collectors.toUnmodifiableList());
+    var resolvedImport = new BindingsMap.ResolvedImport(imp, toScalaList(exp), toScalaList(importTargets));
+    return new Tuple2<>(imp, scala.Some.apply(resolvedImport));
+  }
+
+  @Override
+  protected Tuple2<Import, Option<ResolvedImport>> createResolvedConversionMethods(
+      Import.Module imp, java.util.List<Export.Module> exp,
+      java.util.List<ResolvedConversionMethod> resolvedConversionMethods) {
+    java.util.List<ImportTarget> importTargets = resolvedConversionMethods
+        .stream()
+        .map(ImportTarget.class::cast)
+        .collect(Collectors.toUnmodifiableList());
+    var resolvedImport = new BindingsMap.ResolvedImport(imp, toScalaList(exp), toScalaList(importTargets));
+    return new Tuple2<>(imp, scala.Some.apply(resolvedImport));
+  }
 
   @Override
   protected final Tuple2<Import, Option<BindingsMap.ResolvedImport>> createErrorPackageCoundNotBeLoaded(Import.Module imp, String impName, String loadingError) {

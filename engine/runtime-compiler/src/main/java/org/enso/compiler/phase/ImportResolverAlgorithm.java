@@ -2,6 +2,7 @@ package org.enso.compiler.phase;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.stream.Collectors;
 import org.enso.compiler.core.CompilerError;
 import org.enso.editions.LibraryName;
 
@@ -13,7 +14,9 @@ public abstract class ImportResolverAlgorithm<
     ResolvedType,
     ResolvedModule,
     ResolvedConstructor,
-    ResolvedModuleMethod> {
+    ResolvedModuleMethod,
+    ResolvedExtensionMethod,
+    ResolvedConversionMethod> {
   protected ImportResolverAlgorithm() {}
 
   protected abstract String nameForImport(Import imp);
@@ -27,6 +30,10 @@ public abstract class ImportResolverAlgorithm<
   protected abstract String nameForConstructor(ResolvedConstructor cons);
 
   protected abstract String nameForModuleMethod(ResolvedModuleMethod method);
+
+  protected abstract String nameForExtensionMethod(ResolvedExtensionMethod method);
+
+  protected abstract String nameForConversionMethod(ResolvedConversionMethod method);
 
   /**
    * Returns a list of all the exports from the module of the given symbol
@@ -46,6 +53,10 @@ public abstract class ImportResolverAlgorithm<
   protected abstract java.util.List<ResolvedConstructor> definedConstructors(Import name);
 
   protected abstract java.util.List<ResolvedModuleMethod> definedModuleMethods(Import imp);
+
+  protected abstract java.util.List<ResolvedExtensionMethod> definedExtensionMethods(Import imp);
+
+  protected abstract java.util.List<ResolvedConversionMethod> definedConversionMethods(Import imp);
 
   /**
    * Ensure library is loaded and load a module.
@@ -67,6 +78,12 @@ public abstract class ImportResolverAlgorithm<
 
   protected abstract Result createResolvedModuleMethod(
       Import imp, java.util.List<Export> exp, ResolvedModuleMethod moduleMethod);
+
+  protected abstract Result createResolvedExtensionMethods(
+      Import imp, java.util.List<Export> exp, java.util.List<ResolvedExtensionMethod> extensionMethods);
+
+  protected abstract Result createResolvedConversionMethods(
+      Import imp, java.util.List<Export> exp, java.util.List<ResolvedConversionMethod> conversionMethods);
 
   protected abstract Result createErrorPackageCoundNotBeLoaded(
       Import imp, String impName, String loadingError);
@@ -118,9 +135,14 @@ public abstract class ImportResolverAlgorithm<
       if (moduleMethod != null) {
         return createResolvedModuleMethod(imp, exp, moduleMethod);
       }
-      // static, extension and conversion methods can only be imported with
-      // `from <Module> import all` syntax. That syntax is handled by this algorithm
-      // by importing the `Module` only and not resolving all the symbols.
+      var extensionMethods = tryResolveAsExtensionMethods(imp);
+      if (extensionMethods != null) {
+        return createResolvedExtensionMethods(imp, exp, extensionMethods);
+      }
+      var conversionMethods = tryResolveAsConversionMethods(imp);
+      if (conversionMethods != null) {
+        return createResolvedConversionMethods(imp, exp, conversionMethods);
+      }
       return createErrorModuleDoesNotExist(imp, impName);
     } catch (IOException e) {
       return createErrorPackageCoundNotBeLoaded(imp, impName, e.getMessage());
@@ -171,6 +193,56 @@ public abstract class ImportResolverAlgorithm<
             .filter(method -> nameForModuleMethod(method).equals(methodName))
             .findFirst();
     return methodOpt.orElse(null);
+  }
+
+  /**
+   * Tries to resolve the given import as a list of extension methods.
+   * Note that it is possible that a single symbol resolves to multiple extension methods.
+   * @return List with at least one element. null if there are no static methods in the imported module scope.
+   */
+  private java.util.List<ResolvedExtensionMethod> tryResolveAsExtensionMethods(Import imp) {
+    var parts = partsForImport(imp);
+    if (parts.size() < 3) {
+      return null;
+    }
+    var definedExtensionMethods = definedExtensionMethods(imp);
+    if (definedExtensionMethods == null) {
+      return null;
+    }
+    var methodName = parts.get(parts.size() - 1);
+    var foundExtMethods = definedExtensionMethods.stream()
+        .filter(method -> nameForExtensionMethod(method).equals(methodName))
+        .collect(Collectors.toUnmodifiableList());
+    if (foundExtMethods.isEmpty()) {
+      return null;
+    } else {
+      return foundExtMethods;
+    }
+  }
+
+  /**
+   * Tries to resolve the given import as a list of extension methods.
+   * Note that it is possible that a single symbol resolves to multiple extension methods.
+   * @return List of at least one element. null if there are no conversion methods in the imported module scope.
+   */
+  private java.util.List<ResolvedConversionMethod> tryResolveAsConversionMethods(Import imp) {
+    var parts = partsForImport(imp);
+    if (parts.size() < 3) {
+      return null;
+    }
+    var definedConvMethods = definedConversionMethods(imp);
+    if (definedConvMethods == null) {
+      return null;
+    }
+    var methodName = parts.get(parts.size() - 1);
+    var foundConvMethods = definedConvMethods.stream()
+        .filter(method -> nameForConversionMethod(method).equals(methodName))
+        .collect(Collectors.toUnmodifiableList());
+    if (foundConvMethods.isEmpty()) {
+      return null;
+    } else {
+      return foundConvMethods;
+    }
   }
 
   public static final class HiddenNamesConflict extends RuntimeException {
