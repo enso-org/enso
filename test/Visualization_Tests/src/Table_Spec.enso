@@ -36,7 +36,7 @@ type Foo
     to_js_object : JS_Object
     to_js_object self = JS_Object.from_pairs [["x", self.x]]
 
-type FooLink
+type Foo_Link
     Value x
 
     to_js_object : JS_Object
