@@ -177,9 +177,9 @@ export project.Meta.Enso_Project.enso_project
 export project.Network.Extensions.to_uri
 export project.Network.Extensions.fetch
 export project.Network.Extensions.post
-export project.System.File_format.Auto_Detect
-export project.System.File_format.Bytes
-export project.System.File_format.File_Format
-export project.System.File_format.Infer
-export project.System.File_format.JSON_Format
-export project.System.File_format.Plain_Text_Format
+export project.System.File_Format.Auto_Detect
+export project.System.File_Format.Bytes
+export project.System.File_Format.File_Format
+export project.System.File_Format.Infer
+export project.System.File_Format.JSON_Format
+export project.System.File_Format.Plain_Text_Format
