@@ -520,7 +520,7 @@ inset 0 -36px 51px -51px #00000014`,
               & > tbody > tr.rounded-rows-child.selected > td:not(.rounded-rows-skip-level),
               & > tbody > tr.rounded-rows-child.selected > td.rounded-rows-skip-level > *
             )`]: {
-              backgroundColor: 'rgb(255 255 255 / 40%)',
+              backgroundColor: 'rgb(255 255 255 / 90%)',
             },
             [`:where(
               & > tbody > tr.rounded-rows-child[data-drop-target] > td:not(.rounded-rows-skip-level),

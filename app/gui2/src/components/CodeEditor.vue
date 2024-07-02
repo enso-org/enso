@@ -425,7 +425,7 @@ const editorStyle = computed(() => {
   color: white;
   width: 100%;
   height: 100%;
-  background-color: rgba(255, 255, 255, 0.35);
+  background-color: rgba(255, 255, 255, 0.9);
   box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.4);
   border-radius: 5px;
@@ -449,7 +449,7 @@ const editorStyle = computed(() => {
 
   &::before {
     content: '';
-    background-color: rgba(255, 255, 255, 0.35);
+    background-color: rgba(255, 255, 255, 0.9);
     backdrop-filter: blur(64px);
     border-radius: 4px;
   }
