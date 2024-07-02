@@ -82,7 +82,6 @@ add_specs suite_builder setup =
 
             connection = Internals_Access.get_connection data.dates
             db_table = connection.create_table "dates-test-"+Date_Time.now.to_text [Column_Description.Value "C" (Value_Type.Date_Time with_timezone=False), Column_Description.Value "X" Value_Type.Integer] temporary=True on_problems=Problem_Behavior.Ignore
-            IO.println db_table
             Problems.assume_no_problems db_table
 
             dates = [dt1, dt2, dt3]
