@@ -23,6 +23,7 @@
   "pnpm": {
     "overrides": {
       "tslib": "$tslib",
+      "jsdom": "^24.1.0",
       "@types/react": "^18.0.27",
       "react-native": "./_IGNORED_",
       "react-native-url-polyfill": "./_IGNORED_",
