@@ -87,8 +87,7 @@ add_specs suite_builder setup =
             dates = [dt1, dt2, dt3]
             xs = [1, 2, 3]
             local_table_with_tz = Table.new [["C", dates], ["X", xs]]
-            Problems.assume_no_problems <|
-                db_table.update_rows local_table_with_tz key_columns=["X"]
+            db_table.update_rows local_table_with_tz key_columns=["X"] . should_succeed
             ordered = db_table.sort "X"
 
             ordered.at "X" . to_vector . should_equal xs
