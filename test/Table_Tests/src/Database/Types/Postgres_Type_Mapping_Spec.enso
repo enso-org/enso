@@ -160,11 +160,9 @@ add_specs suite_builder create_connection_fn =
             table.at "B" . value_type . should_equal (Value_Type.Decimal precision=100 scale=5)
 
             m2 = table.read
-            m2.at "B" . value_type . should_equal Value_Type.Float
-            m2.at "B" . to_vector . should_equal [1.5, 2.5]
-            w2 = Problems.expect_only_warning Inexact_Type_Coercion m2
-            w2.requested_type . should_equal (Value_Type.Decimal precision=100 scale=5)
-            w2.actual_type . should_equal Value_Type.Float
+            m2.at "B" . value_type . should_equal Value_Type.Decimal
+            m2.at "B" . to_vector . at 0 . should_be_a Decimal
+            m2.at "B" . to_vector . should_equal [Decimal.new "1.5", Decimal.new "2.5"]
 
         group_builder.specify "should warn when fetching a Binary column and coercing it to Mixed because in-memory does not support Binary" <|
             table_name = Name_Generator.random_name "Bin"
