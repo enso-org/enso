@@ -81,7 +81,7 @@ function createLsRpcConnection(clientId: Uuid, url: string, abort: AbortScope): 
   const connection = new LanguageServer(clientId, transport)
   abort.onAbort(() => {
     connection.stopReconnecting()
-    connection.release()
+    connection.dispose()
   })
   return connection
 }

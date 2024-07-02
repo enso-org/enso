@@ -153,7 +153,11 @@ export class LanguageServer extends ObservableV2<Notifications & TransportEvents
     this.client.onError((error) => {
       console.error('Unexpected Language Server connection error:', error)
     })
-    transport.on('error', (error) => console.error('Language Server transport error:', error))
+    transport.on('error', (error) => {
+      if (this.shouldReconnect) {
+        console.error('Language Server transport error:', error)
+      }
+    })
     const reinitializeCb = () => {
       if (!this.shouldReconnect) return
       this.emit('transport/closed', [])
@@ -556,11 +560,17 @@ export class LanguageServer extends ObservableV2<Notifications & TransportEvents
       // Equivalent to `this.isDisposed`, but written out explicitly here to avoid confusion,
       // since technically here it is not yet disposed.
       if (this.retainCount === 0) {
-        this.clientScope.dispose('Language Server released')
+        this.dispose()
       }
     } else {
       throw new Error('Released already disposed Language Server.')
     }
+  }
+
+  /** Like `release()`, but unconditionally disposes the AbortScope. */
+  dispose() {
+    this.retainCount = 0
+    this.clientScope.dispose('Language Server released')
   }
 }
 
