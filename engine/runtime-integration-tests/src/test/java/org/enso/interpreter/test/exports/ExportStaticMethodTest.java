@@ -33,7 +33,7 @@ public class ExportStaticMethodTest {
         new SourceModule(
             QualifiedName.fromString("A_Module"),
             """
-        from project.T_Module export static_method
+        export project.T_Module.static_method
         """);
     var mainMod =
         new SourceModule(
@@ -124,7 +124,7 @@ public class ExportStaticMethodTest {
         new SourceModule(
             QualifiedName.fromString("Main"),
             """
-        from project.T_Module export static_method
+        export project.T_Module.static_method
         """);
     var projDir = tempFolder.newFolder().toPath();
     ProjectUtils.createProject("Proj", Set.of(tMod, mainMod), projDir);
@@ -136,7 +136,7 @@ public class ExportStaticMethodTest {
       var polyCtx = new PolyglotContext(ctx);
       polyCtx.getTopScope().compile(true);
       var mainModExportedSymbols = ModuleUtils.getExportedSymbolsFromModule(ctx, "local.Proj.Main");
-      assertThat(mainModExportedSymbols.size(), is(greaterThanOrEqualTo(1)));
+      assertThat(mainModExportedSymbols.size(), is(1));
       assertThat(mainModExportedSymbols, hasKey("static_method"));
     }
   }
