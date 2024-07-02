@@ -754,6 +754,10 @@ object BindingsMap {
     override def exportedSymbols: Map[String, List[ResolvedName]] = Map(
       methodName -> List(this)
     )
+
+    override def qualifiedName: QualifiedName = {
+      module.getName.createChild(methodName)
+    }
   }
 
   /** A representation of a resolved method defined directly on module.
@@ -795,9 +799,6 @@ object BindingsMap {
     def unsafeGetIr(missingMessage: String): ir.module.scope.Definition =
       getIr.getOrElse(throw new CompilerError(missingMessage))
 
-    override def qualifiedName: QualifiedName =
-      module.getName.createChild(method.name)
-
     override def methodName: String = method.name
   }
 
@@ -819,11 +820,6 @@ object BindingsMap {
       }
     }
 
-    override def qualifiedName: QualifiedName =
-      module.getName
-        .createChild(staticMethod.tpName)
-        .createChild(staticMethod.methodName)
-
     override def methodName: String = staticMethod.methodName
   }
 
@@ -842,11 +838,6 @@ object BindingsMap {
         this.copy(module = module)
       }
     }
-
-    override def qualifiedName: QualifiedName =
-      module.getName
-        .createChild(conversionMethod.targetTpName)
-        .createChild(conversionMethod.methodName)
 
     override def methodName: String = conversionMethod.methodName
   }
