@@ -62,7 +62,10 @@ type Snowflake_Type_Mapping
                     "An unsupported SQL type ["+type_name.to_text+"] cannot be converted into an SQL type because it did not contain the SQL metadata needed to reconstruct it."
 
         approximated_value_type = Snowflake_Type_Mapping.sql_type_to_value_type result
-        problems = if approximated_value_type == value_type then [] else [Inexact_Type_Coercion.Warning value_type approximated_value_type]
+        problems = if approximated_value_type == value_type then [] else
+            # We skip the inexact coercion warning if the conversion is an implicit one.
+            if Snowflake_Type_Mapping.is_implicit_conversion value_type approximated_value_type then [] else
+                [Inexact_Type_Coercion.Warning value_type approximated_value_type]
         on_problems.attach_problems_before problems result
 
     ## PRIVATE
