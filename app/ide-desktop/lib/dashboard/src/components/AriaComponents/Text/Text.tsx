@@ -27,7 +27,7 @@ export const TEXT_STYLE = twv.tv({
   variants: {
     color: {
       custom: '',
-      primary: 'text-primary/60',
+      primary: 'text-primary/90',
       danger: 'text-danger',
       success: 'text-share',
       disabled: 'text-primary/30',
