@@ -26,8 +26,8 @@ type Snowflake_Type_Mapping
         result = case value_type of
             Value_Type.Boolean -> SQL_Type.Value Types.BOOLEAN "boolean"
             # All integer types in Snowflake become NUMERIC(38,0).
-            Value_Type.Byte -> SQL_Type.Value Types.BIGINT "bigint"
-            Value_Type.Integer _ -> SQL_Type.Value Types.BIGINT "bigint"
+            Value_Type.Byte -> integer_type
+            Value_Type.Integer _ -> integer_type
             # All float types in Snowflake become double
             Value_Type.Float _ -> SQL_Type.Value Types.DOUBLE "float8"
             Value_Type.Decimal precision scale -> case precision of
@@ -184,3 +184,7 @@ date_time_fetcher =
         java_builder = Java_Exports.make_date_time_builder initial_size
         Column_Fetcher_Module.make_builder_from_java_object_builder java_builder
     Column_Fetcher.Value fetch_value make_builder
+
+## PRIVATE
+   The actual SQL type that Snowflake uses for all integer types.
+integer_type = SQL_Type.Value Types.DECIMAL "NUMERIC" 38 0
