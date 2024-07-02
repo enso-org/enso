@@ -1,17 +1,8 @@
 package org.enso.pkg
 
-import io.circe._
-import io.circe.syntax._
 import org.yaml.snakeyaml.nodes.Tag
 import org.enso.semver.SemVer
-import org.enso.editions.EditionSerialization._
-import org.enso.editions.{
-  DefaultEnsoVersion,
-  EditionName,
-  Editions,
-  EnsoVersion,
-  SemVerEnsoVersion
-}
+import org.enso.editions.{EditionName, Editions}
 import org.enso.pkg.validation.NameValidation
 import org.enso.yaml.{SnakeYamlDecoder, SnakeYamlEncoder}
 import org.yaml.snakeyaml.{DumperOptions, Yaml}
@@ -49,36 +40,6 @@ object Contact {
   object Fields {
     val Name  = "name"
     val Email = "email"
-  }
-
-  /** [[Encoder]] instance for the [[Contact]]. */
-  implicit val encoder: Encoder[Contact] = { contact =>
-    val name  = contact.name.map(Fields.Name -> _.asJson)
-    val email = contact.email.map(Fields.Email -> _.asJson)
-    Json.obj((name.toSeq ++ email.toSeq): _*)
-  }
-
-  /** [[Decoder]] instance for the [[Contact]].
-    */
-  implicit val decoder: Decoder[Contact] = { json =>
-    def verifyAtLeastOneDefined(
-      name: Option[String],
-      email: Option[String]
-    ): Either[DecodingFailure, Unit] =
-      if (name.isEmpty && email.isEmpty)
-        Left(
-          DecodingFailure(
-            "At least one of the fields `name`, `email` must be defined.",
-            json.history
-          )
-        )
-      else Right(())
-
-    for {
-      name  <- json.getOrElse[Option[String]](Fields.Name)(None)
-      email <- json.getOrElse[Option[String]](Fields.Email)(None)
-      _     <- verifyAtLeastOneDefined(name, email)
-    } yield Contact(name, email)
   }
 
   implicit val decoderSnake: SnakeYamlDecoder[Contact] =
@@ -344,99 +305,6 @@ object Config {
       }
     }
 
-  implicit val decoder: Decoder[Config] = { json =>
-    for {
-      name           <- json.get[String](JsonFields.name)
-      normalizedName <- json.get[Option[String]](JsonFields.normalizedName)
-      namespace <- json.getOrElse[String](JsonFields.namespace)(
-        defaultNamespace
-      )
-      version     <- json.getOrElse[String](JsonFields.version)(defaultVersion)
-      ensoVersion <- json.get[Option[EnsoVersion]](JsonFields.ensoVersion)
-      rawEdition <- json
-        .get[EditionName](JsonFields.edition)
-        .map(x => Left(x.name))
-        .orElse(
-          json
-            .get[Option[Editions.RawEdition]](JsonFields.edition)
-            .map(Right(_))
-        )
-      edition = rawEdition.fold(
-        editionName => Some(Editions.Raw.Edition(parent = Some(editionName))),
-        identity
-      )
-      license    <- json.getOrElse(JsonFields.license)(defaultLicense)
-      author     <- json.getOrElse[List[Contact]](JsonFields.author)(List())
-      maintainer <- json.getOrElse[List[Contact]](JsonFields.maintainer)(List())
-      preferLocal <-
-        json.getOrElse[Boolean](JsonFields.preferLocalLibraries)(
-          defaultPreferLocalLibraries
-        )
-      finalEdition <-
-        editionOrVersionBackwardsCompatibility(edition, ensoVersion).left.map {
-          error => DecodingFailure(error, json.history)
-        }
-      componentGroups <- json.getOrElse[Option[ComponentGroups]](
-        JsonFields.componentGroups
-      )(None)
-    } yield {
-
-      Config(
-        name                 = name,
-        normalizedName       = normalizedName,
-        namespace            = namespace,
-        version              = version,
-        license              = license,
-        authors              = author,
-        maintainers          = maintainer,
-        edition              = finalEdition,
-        preferLocalLibraries = preferLocal,
-        componentGroups      = componentGroups
-      )
-    }
-  }
-
-  val encoder: Encoder[Config] = { config =>
-    val edition = config.edition
-      .map { edition =>
-        if (edition.isDerivingWithoutOverrides) edition.parent.get.asJson
-        else edition.asJson
-      }
-      .map(JsonFields.edition -> _)
-
-    val componentGroups =
-      Option.unless(
-        config.componentGroups.isEmpty
-      )(
-        JsonFields.componentGroups -> config.componentGroups.asJson
-      )
-
-    val normalizedName = config.normalizedName.map(value =>
-      JsonFields.normalizedName -> value.asJson
-    )
-
-    val overrides =
-      Seq(JsonFields.name -> config.name.asJson) ++
-      normalizedName.toSeq ++
-      Seq(
-        JsonFields.namespace  -> config.namespace.asJson,
-        JsonFields.version    -> config.version.asJson,
-        JsonFields.license    -> config.license.asJson,
-        JsonFields.author     -> config.authors.asJson,
-        JsonFields.maintainer -> config.maintainers.asJson
-      ) ++ edition.toSeq ++ componentGroups.toSeq
-
-    val preferLocalOverride =
-      if (config.preferLocalLibraries)
-        Seq(JsonFields.preferLocalLibraries -> true.asJson)
-      else Seq()
-    val overridesObject = JsonObject(
-      overrides ++ preferLocalOverride: _*
-    )
-
-    overridesObject.asJson
-  }
-
   /** Tries to parse the [[Config]] directly from the Reader */
   def fromYaml(reader: Reader): Try[Config] = {
     val snakeYaml = new org.yaml.snakeyaml.Yaml()
@@ -472,37 +340,4 @@ object Config {
     repositories  = Map(),
     libraries     = Map()
   )
-
-  /** A helper method that reconciles the old and new fields of the config
-    * related to the edition.
-    *
-    * If an edition is present, it is just returned as-is. If the engine version
-    * is specified, a special edition is created that specifies this particular
-    * engine version and nothing else.
-    *
-    * If both fields are defined, an error is raised as the configuration may be
-    * inconsistent - the `engine-version` field should only be present in old
-    * configs and after migration to the edition format it should be removed.
-    */
-  private def editionOrVersionBackwardsCompatibility(
-    edition: Option[Editions.RawEdition],
-    ensoVersion: Option[EnsoVersion]
-  ): Either[String, Option[Editions.RawEdition]] =
-    (edition, ensoVersion) match {
-      case (Some(_), Some(_)) =>
-        Left(
-          s"The deprecated `${JsonFields.ensoVersion}` should not be defined " +
-          s"if the `${JsonFields.edition}` that replaces it is already defined."
-        )
-      case (Some(edition), _) =>
-        Right(Some(edition))
-      case (_, Some(SemVerEnsoVersion(version))) =>
-        Right(Some(makeCompatibilityEditionFromVersion(version)))
-      case (_, Some(DefaultEnsoVersion)) =>
-        // If the `default` version is specified, we return None, so that later
-        // on, it will fallback to the default edition.
-        Right(None)
-      case (None, None) =>
-        Right(None)
-    }
 }
