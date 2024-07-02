@@ -82,6 +82,7 @@ add_specs suite_builder setup =
 
             connection = Internals_Access.get_connection data.dates
             db_table = connection.create_table "dates-test-"+Date_Time.now.to_text [Column_Description.Value "C" (Value_Type.Date_Time with_timezone=False), Column_Description.Value "X" Value_Type.Integer] temporary=True on_problems=Problem_Behavior.Ignore
+            IO.println db_table
             Problems.assume_no_problems db_table
 
             dates = [dt1, dt2, dt3]
@@ -94,8 +95,8 @@ add_specs suite_builder setup =
             ordered.at "X" . to_vector . should_equal xs
             ordered.at "C" . value_type . should_equal (Value_Type.Date_Time with_timezone=False)
             # We now look at the values ignoring the time zone / offset - only from local time perspective.
-            as_local_date_time_repr dt = dt.format "YYYY-MM-DD HH:mm:ss.SSSSSS"
-            ordered.at "C" . to_vector . map as_local_date_time_repr . should_equal (dates.map as_local_date_time_repr)
+            as_local_date_time_repr dt = dt.format "YYYY-MM-DD HH:mm:ss.f"
+            ordered.at "C" . to_vector . map as_local_date_time_repr . should_equal ["2020-10-24 01:02:03.004005", "2021-11-23 01:02:03.0", "2019-11-23 04:05:06.0"]
 
     suite_builder.group prefix+"Date-Time operations" pending=pending_datetime group_builder->
         group_builder.specify "should allow to get the year/month/day/day_of_year/day_of_week of a Date" <|

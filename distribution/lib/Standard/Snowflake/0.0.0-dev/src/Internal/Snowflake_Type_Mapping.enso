@@ -188,7 +188,8 @@ date_time_fetcher =
     fetch_value rs i =
         ## Read the time as a string to get the nanosecond precision.
         sf_string = rs.getString i
-        if sf_string == Nothing then Nothing else Date_Time.parse sf_string "yyyy-MM-dd HH:mm:ss.f ZZ"
+        # The offset is optional - if we were fetching TIMESTAMP_NTZ it could be missing.
+        if sf_string == Nothing then Nothing else Date_Time.parse sf_string "yyyy-MM-dd HH:mm:ss.f[ ZZ]"
     make_builder initial_size _ =
         java_builder = Java_Exports.make_date_time_builder initial_size
         Column_Fetcher_Module.make_builder_from_java_object_builder java_builder
