@@ -1,10 +1,14 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
-from Standard.Table import Value_Type
+from Standard.Table import Table, Value_Type
 from Standard.Table.Errors import Inexact_Type_Coercion, Invalid_Value_Type
 
 from Standard.Database.Errors import Unsupported_Database_Operation
+import Standard.Database.Column_Description.Column_Description
+import Standard.Database.Internal.Internals_Access
+# Import the `update_rows` extension method.
+import Standard.Database.Extensions.Upload_Database_Table
 
 from Standard.Test import all
 
@@ -65,6 +69,31 @@ add_specs suite_builder setup =
             table.at "C" . value_type . should_equal Value_Type.Date_Time
             table.at "C" . to_vector . should_equal_tz_agnostic dates
             table.at "X" . to_vector . should_equal xs
+
+        # Currently we support Value_Type.Date_Time with_timezone=False in Database backends, not in-memory.
+        # In this test we create the table using the connection, so it only can run on Database.
+        # This is the only way to enforce uploading Date Times without TZ without relying on Casting (which works on another level so it would not be a good test of the upload mechanism).
+        if setup.is_database && setup.test_selection.supports_date_time_without_timezone then group_builder.specify "should allow to create Table with Date Time (without timezone) columns and round-trip them back to Enso, preserving the date/time parts, possibly losing the timezone/offset" <|
+            dt1 = Date_Time.new 2020 10 24 1 2 3 millisecond=4 microsecond=5
+            offset_zone = Time_Zone.new hours=(-11) minutes=(-30)
+            dt2 = Date_Time.new 2021 11 23 1 2 3 zone=offset_zone
+            named_zone = Time_Zone.parse "US/Hawaii"
+            dt3 = Date_Time.new 2019 11 23 4 5 6 zone=named_zone
+
+            connection = Internals_Access.get_connection data.dates
+            db_table = connection.create_table "dates-test-"+Date_Time.now.to_text [Column_Description.Value "C" (Value_Type.Date_Time with_timezone=False), Column_Description.Value "X" Value_Type.Integer] temporary=True
+
+            dates = [dt1, dt2, dt3]
+            xs = [1, 2, 3]
+            local_table_with_tz = Table.new [["C", dates], ["X", xs]]
+            db_table.update_rows local_table_with_tz key_columns=["X"] . should_succeed
+            ordered = db_table.sort "X"
+
+            ordered.at "X" . to_vector . should_equal xs
+            ordered.at "C" . value_type . should_equal (Value_Type.Date_Time with_timezone=False)
+            # We now look at the values ignoring the time zone / offset - only from local time perspective.
+            as_local_date_time_repr dt = dt.format "YYYY-MM-DD HH:mm:ss.SSSSSS"
+            ordered.at "C" . to_vector . map as_local_date_time_repr . should_equal (dates.map as_local_date_time_repr)
 
     suite_builder.group prefix+"Date-Time operations" pending=pending_datetime group_builder->
         group_builder.specify "should allow to get the year/month/day/day_of_year/day_of_week of a Date" <|
