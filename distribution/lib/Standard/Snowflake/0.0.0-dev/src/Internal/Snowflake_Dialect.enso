@@ -45,6 +45,9 @@ from Standard.Database.Internal.Statement_Setter import fill_hole_default
 
 import project.Internal.Snowflake_Type_Mapping.Snowflake_Type_Mapping
 
+polyglot java import org.enso.database.JDBCUtils
+polyglot java import org.enso.snowflake.SnowflakeJDBCUtils
+
 ## PRIVATE
    The dialect of Snowflake databases.
 snowflake : Snowflake_Dialect
@@ -138,10 +141,13 @@ type Snowflake_Dialect
     get_statement_setter : Statement_Setter
     get_statement_setter self =
         custom_fill_hole stmt i type_hint value = case value of
-            # TODO some Special handling for Date/Time
-            _ : Date -> stmt.setObject i value
-            _ : Date_Time -> stmt.setObject i value
-            _ : Time_Of_Day -> stmt.setObject i value
+            _ : Date_Time ->
+                keep_offset = case type_hint of
+                    Value_Type.Date_Time with_timezone -> with_timezone
+                    _ -> True
+                SnowflakeJDBCUtils.setDateTime stmt i value keep_offset
+            _ : Time_Of_Day -> SnowflakeJDBCUtils.setTimeOfDay stmt i value
+            _ : Date        -> SnowflakeJDBCUtils.setDate stmt i value
             # Fallback to default logic for everything else
             _ -> fill_hole_default stmt i type_hint value
         Statement_Setter.Value custom_fill_hole
