@@ -332,7 +332,7 @@ const nodeEditHandler = nodeEditBindings.handler({
   },
 })
 
-function startEditingNode(position: Vec2 | undefined) {
+function startEditingNode(position?: Vec2 | undefined) {
   let sourceOffset = props.node.rootExpr.code().length
   if (position != null) {
     let domNode, domOffset
