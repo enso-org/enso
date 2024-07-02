@@ -783,14 +783,16 @@ add_specs suite_builder setup =
             (data.x * 2).value_type . is_integer . should_be_true
             (data.x * 1.5).value_type . is_floating_point . should_be_true
 
+            (data.x ^ data.x).value_type . is_numeric . should_be_true
+
+        divide_in_memory_pending = if setup.is_database.not then "TODO: https://github.com/enso-org/enso/issues/10429"
+        group_builder.specify "should correctly infer the types (for decimal division)" pending=divide_in_memory_pending <|
             (data.x / data.x).value_type . is_floating_point . should_be_true
             (data.x / data.y).value_type . is_floating_point . should_be_true
             (data.x / data.z).value_type . is_decimal . should_be_true
             (data.y / data.z).value_type . is_decimal . should_be_true
             (data.x / 2).value_type . is_floating_point  . should_be_true
             (data.x / 1.5).value_type . is_floating_point . should_be_true
-
-            (data.x ^ data.x).value_type . is_numeric . should_be_true
 
         group_builder.specify "should check types" <|
             t = table_builder [["X", [1, 2]], ["Y", ["a", "b"]], ["Z", [True, False]]]

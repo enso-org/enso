@@ -567,7 +567,12 @@ type DB_Column
     / : DB_Column | Any -> DB_Column
     / self other =
         Value_Type_Helpers.check_binary_numeric_op self other <|
-            self.make_binary_op "/" other
+            other_is_decimal = case other of
+                _ : DB_Column -> other.value_type.is_decimal
+                _ -> False
+            either_is_decimal = self.value_type.is_decimal || other_is_decimal
+            if either_is_decimal then self.make_binary_op "DECIMAL_DIV" other else
+                self.make_binary_op "/" other
 
     ## ALIAS modulo, modulus
        GROUP Standard.Base.Operators
