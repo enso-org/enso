@@ -160,7 +160,6 @@ export class LanguageServer extends ObservableV2<Notifications & TransportEvents
     }
     transport.on('close', reinitializeCb)
     this.clientScope.onAbort(() => {
-      console.log('aborted')
       this.transport.off('close', reinitializeCb)
       this.transport.close()
     })

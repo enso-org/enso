@@ -57,7 +57,6 @@ class ReconnectingWebSocketTransport extends Transport {
   }
 
   public close(): void {
-    console.log(':) closing', this.uri)
     this.connection.close()
   }
 

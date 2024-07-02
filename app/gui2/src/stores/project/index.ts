@@ -86,7 +86,6 @@ function createLsRpcConnection(clientId: Uuid, url: string, abort: AbortScope): 
 function initializeDataConnection(clientId: Uuid, url: string, abort: AbortScope) {
   const client = createDataWebsocket(url, 'arraybuffer')
   const connection = new DataServer(clientId, client, abort)
-  abort.handleDispose(connection)
   onScopeDispose(() => connection.dispose())
   return connection
 }
