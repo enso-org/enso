@@ -107,7 +107,7 @@ add_specs suite_builder =
             vis . should_equal json.to_text
 
         group_builder.specify "should handle datatypes with links" <|
-            example = FooLink.Value "test-value"
+            example = Foo_Link.Value "test-value"
             vis = Visualization.prepare_visualization example
             json = JS_Object.from_pairs [["json", JS_Object.from_pairs [["_display_text_", example.to_display_text],["x", "test-value"], ["links", "[a, b, c]"]]], ["links", ["a", "b", "c"]]]
             vis . should_equal json.to_text    
