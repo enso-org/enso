@@ -1,20 +1,20 @@
 /**
  * @file
  *
- * React Query client for the dashboard.
+ * Tanstack Query client for Enso IDE and dashboard.
  */
 
 import * as persistClientCore from '@tanstack/query-persist-client-core'
-import * as reactQuery from '@tanstack/react-query'
+import * as queryCore from '@tanstack/query-core'
 import * as idbKeyval from 'idb-keyval'
 
-declare module '@tanstack/react-query' {
+declare module '@tanstack/query-core' {
   /**
-   * React Query client with additional methods.
+   * Query client with additional methods.
    */
   interface QueryClient {
     /**
-     * Clear the cache stored in React Query and the persister storage.
+     * Clear the cache stored in Tanstack Query and the persister storage.
      * Please use this method with caution, as it will clear all cache data.
      * Usually you should use `queryClient.invalidateQueries` instead.
      */
@@ -32,7 +32,7 @@ declare module '@tanstack/react-query' {
       /**
        * List of query keys to invalidate when the mutation succeeds.
        */
-      readonly invalidates?: reactQuery.QueryKey[]
+      readonly invalidates?: queryCore.QueryKey[]
       /**
        * List of query keys to await invalidation before the mutation is considered successful.
        *
@@ -45,7 +45,7 @@ declare module '@tanstack/react-query' {
        * Queries that are not listed in invalidates will be ignored.
        * @default false
        */
-      readonly awaitInvalidates?: reactQuery.QueryKey[] | boolean
+      readonly awaitInvalidates?: queryCore.QueryKey[] | boolean
     }
 
     readonly queryMeta: {
@@ -68,11 +68,11 @@ const DEFAULT_QUERY_PERSIST_TIME_MS = 30 * 24 * 60 * 60 * 1000 // 30 days
 const DEFAULT_BUSTER = 'v1.1'
 
 /**
- * Create a new React Query client.
+ * Create a new Tanstack Query client.
  */
-export function createReactQueryClient() {
+export function createQueryClient<T extends queryCore.QueryClient>(constructClient: (config: queryCore.QueryClientConfig) => T) {
   const store = idbKeyval.createStore('enso', 'query-persist-cache')
-  reactQuery.onlineManager.setOnline(navigator.onLine)
+  queryCore.onlineManager.setOnline(navigator.onLine)
 
   const persister = persistClientCore.experimental_createPersister({
     storage: {
@@ -82,7 +82,7 @@ export function createReactQueryClient() {
     },
     // Prefer online first and don't rely on the local cache if user is online
     // fallback to the local cache only if the user is offline
-    maxAge: reactQuery.onlineManager.isOnline() ? -1 : DEFAULT_QUERY_PERSIST_TIME_MS,
+    maxAge: queryCore.onlineManager.isOnline() ? -1 : DEFAULT_QUERY_PERSIST_TIME_MS,
     buster: DEFAULT_BUSTER,
     filters: { predicate: query => query.meta?.persist !== false },
     prefix: 'enso:query-persist:',
@@ -90,8 +90,8 @@ export function createReactQueryClient() {
     deserialize: persistedQuery => persistedQuery,
   })
 
-  const queryClient: reactQuery.QueryClient = new reactQuery.QueryClient({
-    mutationCache: new reactQuery.MutationCache({
+  const queryClient: T = constructClient({
+    mutationCache: new queryCore.MutationCache({
       onSuccess: (_data, _variables, _context, mutation) => {
         const shouldAwaitInvalidates = mutation.meta?.awaitInvalidates ?? false
         const invalidates = mutation.meta?.invalidates ?? []
@@ -108,7 +108,7 @@ export function createReactQueryClient() {
 
         for (const queryKey of invalidatesToIgnore) {
           void queryClient.invalidateQueries({
-            predicate: query => reactQuery.matchQuery({ queryKey }, query),
+            predicate: query => queryCore.matchQuery({ queryKey }, query),
           })
         }
 
@@ -117,7 +117,7 @@ export function createReactQueryClient() {
           return Promise.all(
             invalidatesToAwait.map(queryKey =>
               queryClient.invalidateQueries({
-                predicate: query => reactQuery.matchQuery({ queryKey }, query),
+                predicate: query => queryCore.matchQuery({ queryKey }, query),
               })
             )
           )

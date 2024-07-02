@@ -1,0 +1,13 @@
+{
+  "name": "common-query",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "src/commonQuery.ts",
+  "peerDependencies": {
+    "@tanstack/query-core": "5.45.0"
+  },
+  "dependencies": {
+    "idb-keyval": "^6.2.1",
+    "@tanstack/query-persist-client-core": "^5.45.0"
+  }
+}
