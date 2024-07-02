@@ -104,7 +104,11 @@ type Suite
         succ_tests = all_results.filter (r-> r.is_success) . length
         failed_tests = all_results.filter (r-> r.is_fail)
         failed_tests_number = failed_tests.length
-        failed_tests_names = failed_tests.map (t-> t.spec_name) . distinct . take 10 . join "|"
+        failed_tests_names = failed_tests.map (t-> t.spec_name)
+            . distinct
+            . take 10
+            . map Regex.escape
+            . join "|"
         skipped_tests = all_results.filter (r-> r.is_pending) . length
         pending_groups = matching_specs.filter (p-> p.first.is_pending) . length
         case should_exit of
