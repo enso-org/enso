@@ -336,7 +336,8 @@ common_update_table (source_table : DB_Table | Table) (target_table : DB_Table) 
                     check_for_null_keys_if_any_keys_set source_table effective_key_columns <| Context.Output.with_enabled <|
                         structure_hint = target_table.select_columns source_table.column_names reorder=True . columns . map c->
                             Column_Description.Value c.name c.value_type
-                        tmp_table = internal_upload_table source_table connection tmp_table_name primary_key=effective_key_columns structure_hint=structure_hint temporary=True on_problems=Problem_Behavior.Report_Error row_limit=row_limit
+                        # We ignore non-critical problems in `internal_upload_table` because we already checked the structure.
+                        tmp_table = internal_upload_table source_table connection tmp_table_name primary_key=effective_key_columns structure_hint=structure_hint temporary=True on_problems=Problem_Behavior.Ignore row_limit=row_limit
                         tmp_table.if_not_error <|
                             resulting_table = append_to_existing_table tmp_table target_table update_action effective_key_columns dry_run=dry_run
                             ## We don't need to drop the table if append panics, because
