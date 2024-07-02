@@ -15,6 +15,13 @@ import WS from 'isomorphic-ws'
 import { WebSocket } from 'partysocket'
 import { type WebSocketEventMap } from 'partysocket/ws'
 
+export interface AddEventListenerOptions {
+  capture?: boolean
+  once?: boolean
+  passive?: boolean
+  signal?: AbortSignal
+}
+
 class ReconnectingWebSocketTransport extends Transport {
   public connection: WebSocket
   public uri: string

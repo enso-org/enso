@@ -1,8 +1,9 @@
 import { Transport } from '@open-rpc/client-js/build/transports/Transport'
-import type { ObservableV2 } from 'lib0/observable'
+import { type ObservableV2 } from 'lib0/observable'
 import { wait } from 'lib0/promise'
 import { type WebSocketEventMap } from 'partysocket/ws'
 import { type Result, type ResultError } from './data/result'
+import { type AddEventListenerOptions } from './net/ReconnectingWSTransport'
 
 interface Disposable {
   dispose(): void
