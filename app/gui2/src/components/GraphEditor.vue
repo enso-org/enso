@@ -69,6 +69,8 @@ import {
   type ComponentInstance,
 } from 'vue'
 
+import { builtinWidgets } from '@/components/widgets'
+
 const keyboard = provideKeyboard()
 const projectStore = useProjectStore()
 const suggestionDb = provideSuggestionDbStore(projectStore)
@@ -76,9 +78,8 @@ const graphStore = provideGraphStore(projectStore, suggestionDb)
 const widgetRegistry = provideWidgetRegistry(graphStore.db)
 const _visualizationStore = provideVisualizationStore(projectStore)
 
-widgetRegistry.loadBuiltins()
-
 onMounted(() => {
+  widgetRegistry.loadWidgets(Object.entries(builtinWidgets))
   if (isDevMode) {
     ;(window as any).suggestionDb = toRaw(suggestionDb.entries)
   }
