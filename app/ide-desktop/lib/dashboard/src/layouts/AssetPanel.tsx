@@ -73,37 +73,42 @@ export interface AssetPanelProps extends AssetPanelRequiredProps {
 export default function AssetPanel(props: AssetPanelProps) {
   const { isVisible, backend, isReadonly = false, item, setItem, category } = props
   const { dispatchAssetEvent, dispatchAssetListEvent } = props
+  const isCloud = backend?.type === backendModule.BackendType.remote
 
   const { getText } = textProvider.useText()
   const { localStorage } = localStorageProvider.useLocalStorage()
   const [initialized, setInitialized] = React.useState(false)
   const initializedRef = React.useRef(initialized)
   initializedRef.current = initialized
-  const [tab, setTab] = React.useState(() => {
-    const savedTab = localStorage.get('assetPanelTab') ?? AssetPanelTab.properties
-    if (
+  const [tabRaw, setTab] = React.useState(
+    () => localStorage.get('assetPanelTab') ?? AssetPanelTab.properties
+  )
+  const tab = (() => {
+    if (!isCloud) {
+      return AssetPanelTab.properties
+    } else if (
       (item?.item.type === backendModule.AssetType.secret ||
         item?.item.type === backendModule.AssetType.directory) &&
-      savedTab === AssetPanelTab.versions
+      tabRaw === AssetPanelTab.versions
     ) {
       return AssetPanelTab.properties
     } else if (
       item?.item.type !== backendModule.AssetType.project &&
-      savedTab === AssetPanelTab.projectSessions
+      tabRaw === AssetPanelTab.projectSessions
     ) {
       return AssetPanelTab.properties
     } else {
-      return savedTab
+      return tabRaw
     }
-  })
+  })()
 
   React.useEffect(() => {
     // This prevents secrets and directories always setting the tab to `properties`
     // (because they do not support the `versions` tab).
     if (initializedRef.current) {
-      localStorage.set('assetPanelTab', tab)
+      localStorage.set('assetPanelTab', tabRaw)
     }
-  }, [tab, localStorage])
+  }, [tabRaw, localStorage])
 
   React.useEffect(() => {
     setInitialized(true)
@@ -121,7 +126,8 @@ export default function AssetPanel(props: AssetPanelProps) {
       }}
     >
       <ariaComponents.ButtonGroup className="mt-4 grow-0 basis-8">
-        {item != null &&
+        {isCloud &&
+          item != null &&
           item.item.type !== backendModule.AssetType.secret &&
           item.item.type !== backendModule.AssetType.directory && (
             <ariaComponents.Button
@@ -142,7 +148,7 @@ export default function AssetPanel(props: AssetPanelProps) {
               {getText('versions')}
             </ariaComponents.Button>
           )}
-        {item != null && item.item.type === backendModule.AssetType.project && (
+        {isCloud && item != null && item.item.type === backendModule.AssetType.project && (
           <ariaComponents.Button
             size="medium"
             variant="bar"
