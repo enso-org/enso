@@ -86,6 +86,11 @@ class ClientController[F[+_, +_]: Exec: CovariantFlatMap: ErrorChannel: Sync](
         ),
       ProjectRename -> ProjectRenameHandler
         .props[F](projectService, timeoutConfig.requestTimeout),
+      ProjectDuplicate -> ProjectDuplicateHandler.props[F](
+        projectService,
+        timeoutConfig.requestTimeout,
+        timeoutConfig.retries
+      ),
       EngineListInstalled -> EngineListInstalledHandler.props(
         runtimeVersionManagementService,
         timeoutConfig.requestTimeout

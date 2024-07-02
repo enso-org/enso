@@ -5,6 +5,7 @@ import java.nio.file.Path
 import java.nio.file.attribute.FileTime
 import java.util.UUID
 import org.enso.pkg.{Package, PackageManager}
+import org.enso.pkg.validation.NameValidation
 import org.enso.projectmanager.boot.configuration.MetadataStorageConfig
 import org.enso.projectmanager.control.core.{
   Applicative,
@@ -207,14 +208,7 @@ class ProjectFileRepository[
   /** @inheritdoc */
   def update(project: Project): F[ProjectRepositoryFailure, Unit] =
     metadataStorage(project.path)
-      .persist(
-        ProjectMetadata(
-          id         = project.id,
-          kind       = project.kind,
-          created    = project.created,
-          lastOpened = project.lastOpened
-        )
-      )
+      .persist(ProjectMetadata(project))
       .mapError(th => StorageFailure(th.toString))
 
   /** @inheritdoc */
@@ -231,46 +225,55 @@ class ProjectFileRepository[
   }
 
   /** @inheritdoc */
-  override def moveProjectToTargetDir(
+  override def moveProject(
     projectId: UUID,
     newName: String
   ): F[ProjectRepositoryFailure, File] = {
     def move(project: Project) =
       for {
-        targetPath <- findTargetPath(newName)
-        _          <- moveProjectDir(project, targetPath)
+        targetPath <- findTargetPath(NameValidation.normalizeName(newName))
+        _          <- moveProjectDir(project.path, targetPath)
       } yield targetPath
 
     for {
-      project <- getProject(projectId)
-      primaryPath = new File(projectsPath, newName)
-      finalPath <-
-        if (isLocationOk(project.path, primaryPath)) {
-          CovariantFlatMap[F].pure(primaryPath)
-        } else {
-          move(project)
-        }
-    } yield finalPath
+      project     <- getProject(projectId)
+      projectPath <- move(project)
+    } yield projectPath
   }
 
-  private def isLocationOk(
-    currentFile: File,
-    primaryFile: File
-  ): Boolean = {
-    val currentPath = currentFile.toString
-    val primaryPath = primaryFile.toString
-    if (currentPath.startsWith(primaryPath)) {
-      val suffixPattern = "_\\d+"
-      val suffix        = currentPath.substring(primaryPath.length, currentPath.length)
-      suffix.matches(suffixPattern)
-    } else {
-      false
-    }
+  /** @inheritdoc */
+  override def copyProject(
+    project: Project,
+    newName: String,
+    newMetadata: ProjectMetadata
+  ): F[ProjectRepositoryFailure, Project] = {
+    def copy(project: Project) =
+      for {
+        targetPath <- findTargetPath(NameValidation.normalizeName(newName))
+        _          <- copyProjectDir(project.path, targetPath)
+      } yield targetPath
+
+    for {
+      newProjectPath <- copy(project)
+      _ <- metadataStorage(newProjectPath)
+        .persist(newMetadata)
+        .mapError(th => StorageFailure(th.toString))
+      _          <- renamePackage(newProjectPath, newName)
+      newProject <- getProject(newMetadata.id)
+    } yield newProject
   }
 
-  private def moveProjectDir(project: Project, targetPath: File) = {
+  private def moveProjectDir(projectPath: File, targetPath: File) = {
     fileSystem
-      .move(project.path, targetPath)
+      .move(projectPath, targetPath)
+      .mapError[ProjectRepositoryFailure](failure =>
+        StorageFailure(failure.toString)
+      )
+  }
+
+  private def copyProjectDir(projectPath: File, targetPath: File) = {
+    fileSystem
+      .copy(projectPath, targetPath)
       .mapError[ProjectRepositoryFailure](failure =>
         StorageFailure(failure.toString)
       )
