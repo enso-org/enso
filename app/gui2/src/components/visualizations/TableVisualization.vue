@@ -139,7 +139,6 @@ const defaultColDef = {
   filter: true,
   resizable: true,
   minWidth: 25,
-  headerValueGetter: (params: HeaderValueGetterParams) => params.colDef.field,
   cellRenderer: cellRenderer,
   cellClass: cellClass,
 }
@@ -178,6 +177,7 @@ const newNodeSelectorValues = computed(() => {
   let selector
   let identifierAction
   let tooltipValue
+  let headerName
   switch (config.nodeType) {
     case COLUMN_NODE_TYPE:
     case VECTOR_NODE_TYPE:
@@ -194,23 +194,24 @@ const newNodeSelectorValues = computed(() => {
       selector = 'Value'
       identifierAction = 'read'
       tooltipValue = 'sheet'
+      headerName = 'Sheets'
       break
     case SQLITE_CONNECTIONS_NODE_TYPE:
     case POSTGRES_CONNECTIONS_NODE_TYPE:
       selector = 'Value'
       identifierAction = 'query'
       tooltipValue = 'table'
+      headerName = 'Tables'
       break
     case TABLE_NODE_TYPE:
     case DB_TABLE_NODE_TYPE:
-      selector = null
-      identifierAction = null
       tooltipValue = 'row'
   }
   return {
     selector,
     identifierAction,
     tooltipValue,
+    headerName,
   }
 })
 
@@ -380,13 +381,14 @@ function createNode(params: CellClickedEvent) {
 
 function toLinkField(fieldName: string): ColDef {
   return {
+    headerName:
+      newNodeSelectorValues.value.headerName ? newNodeSelectorValues.value.headerName : fieldName,
     field: fieldName,
     onCellDoubleClicked: (params) => createNode(params),
     tooltipValueGetter: () => {
       return `Double click to view this ${newNodeSelectorValues.value.tooltipValue} in a separate node`
     },
-    cellStyle: { cursor: 'pointer' },
-    cellRenderer: (params: any) => `<a> ${params.value} </a>`,
+    cellRenderer: (params: any) => `<a href='#'> ${params.value} </a>`,
   }
 }
 
@@ -469,7 +471,7 @@ watchEffect(() => {
     const dataHeader =
       ('header' in data_ ? data_.header : [])?.map((v, i) => {
         const valueType = data_.value_type ? data_.value_type[i] : null
-        if (config.nodeType === ROW_NODE_TYPE) {
+        if (config.nodeType === ROW_NODE_TYPE && v === 'column') {
           return toLinkField(v)
         }
         return toField(v, valueType)
@@ -675,5 +677,13 @@ onUnmounted(() => {
 <style>
 .TableVisualization > .ag-theme-alpine > .ag-root-wrapper.ag-layout-normal {
   border-radius: 0 0 var(--radius-default) var(--radius-default);
+}
+
+a {
+  color: blue;
+  text-decoration: underline !important;
+}
+a:hover {
+  color: darkblue;
 }
 </style>
