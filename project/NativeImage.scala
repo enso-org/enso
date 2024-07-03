@@ -96,8 +96,8 @@ object NativeImage {
     includeRuntime: Boolean                  = true
   ): Def.Initialize[Task[Unit]] = Def
     .task {
-      val log        = state.value.log
-      val targetFile = artifactFile(targetDir, name)
+      val log       = state.value.log
+      val targetLoc = artifactFile(targetDir, name, false)
 
       def nativeImagePath(prefix: Path)(path: Path): Path = {
         val base = path.resolve(prefix)
@@ -140,7 +140,7 @@ object NativeImage {
       }
       if (additionalOptions.contains("--language:java")) {
         log.warn(
-          s"Building ${targetFile} image with experimental Espresso support!"
+          s"Building ${targetLoc} image with experimental Espresso support!"
         )
 
       }
@@ -231,7 +231,7 @@ object NativeImage {
         buildMemoryLimitOptions ++
         runtimeMemoryOptions ++
         additionalOptions ++
-        Seq("-o", targetFile.toString())
+        Seq("-o", targetLoc.toString())
 
       args = mainClass match {
         case Some(main) =>
@@ -268,15 +268,16 @@ object NativeImage {
         sb.append(str + System.lineSeparator())
       })
       log.info(
-        s"Started building $targetFile native image. The output is captured."
+        s"Started building $targetLoc native image. The output is captured."
       )
-      val retCode = process.!(processLogger)
-      if (retCode != 0) {
-        log.error("Native Image build failed, with output: ")
+      val retCode    = process.!(processLogger)
+      val targetFile = artifactFile(targetDir, name, true)
+      if (retCode != 0 || !targetFile.exists()) {
+        log.error("Native Image build of $targetFile failed, with output: ")
         println(sb.toString())
         throw new RuntimeException("Native Image build failed")
       }
-      log.info(s"$targetFile native image build successful.")
+      log.info(s"$targetLoc native image build successful.")
     }
     .dependsOn(Compile / compile)
 
@@ -331,9 +332,13 @@ object NativeImage {
   /** [[File]] representing the artifact called `name` built with the Native
     * Image.
     */
-  def artifactFile(targetDir: File, name: String): File = {
+  def artifactFile(
+    targetDir: File,
+    name: String,
+    withExtension: Boolean = false
+  ): File = {
     val artifactName =
-      if (Platform.isWindows) name + ".exe"
+      if (withExtension && Platform.isWindows) name + ".exe"
       else name
     if (targetDir == null) {
       new File(artifactName).getAbsoluteFile()
