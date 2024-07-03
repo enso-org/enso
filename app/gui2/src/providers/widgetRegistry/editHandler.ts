@@ -258,7 +258,7 @@ export interface WidgetEditHooks extends Interaction {
    * {@link WidgetEditHandler} being called, or because a child is to be started.
    */
   start?(origin: PortId): void
-  end(origin?: PortId | undefined): void
+  end?(origin?: PortId | undefined): void
   childEnded?(origin?: PortId | undefined): void
   /**
    * Hook called when a child widget provides an updated value.

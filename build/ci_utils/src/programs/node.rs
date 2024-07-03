@@ -65,4 +65,8 @@ impl Program for Pnpm {
     fn executable_name(&self) -> &'static str {
         "corepack"
     }
+
+    fn pretty_name(&self) -> &'static str {
+        "pnpm"
+    }
 }

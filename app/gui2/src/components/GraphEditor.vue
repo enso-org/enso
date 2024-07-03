@@ -489,14 +489,6 @@ interface NewNodeOptions {
   sourcePort?: AstId | undefined
 }
 
-/**
- * Start creating a node, basing its inputs and position on the current selection, if any;
- * or the current viewport, otherwise.
- */
-function addNodeAuto() {
-  createWithComponentBrowser(fromSelection() ?? { placement: { type: 'viewport' } })
-}
-
 function addNodeDisconnected() {
   nodeSelection.deselectAll()
   createWithComponentBrowser({ placement: { type: 'viewport' } })

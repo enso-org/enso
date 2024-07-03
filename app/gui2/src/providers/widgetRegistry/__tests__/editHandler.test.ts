@@ -5,16 +5,19 @@ import { useCurrentEdit, type CurrentEdit } from '@/providers/widgetTree'
 import { assert } from 'shared/util/assert'
 import { expect, test, vi, type Mock } from 'vitest'
 import { proxyRefs } from 'vue'
-import { WidgetEditHandler, type WidgetId } from '../editHandler'
+import { WidgetEditHandler, type WidgetEditHooks } from '../editHandler'
 
 // If widget's name is a prefix of another widget's name, then it is its ancestor.
 // The ancestor with longest name is a direct parent.
 function editHandlerTree(
   widgets: string[],
   interactionHandler: InteractionHandler,
-  createInteraction: (name: PortId) => Record<string, Mock>,
+  createInteraction: (name: PortId) => WidgetEditHooks & Record<string, Mock>,
   widgetTree: CurrentEdit,
-): Map<string, { handler: WidgetEditHandler; interaction: Record<string, Mock> }> {
+): Map<
+  string,
+  { handler: WidgetEditHandler; interaction: WidgetEditHooks & Record<string, Mock> }
+> {
   const handlers = new Map()
   for (const id of widgets) {
     let parent: string | undefined
@@ -161,7 +164,7 @@ test.each`
     interactionHandler.handlePointerEvent(event, 'pointerdown', navigator)
     const handlersCalled = new Set<string>()
     for (const [id, { interaction }] of handlers)
-      if (interaction.pointerdown?.mock.lastCall) handlersCalled.add(id)
+      if ((interaction.pointerdown as Mock).mock.lastCall) handlersCalled.add(id)
     expect([...handlersCalled].sort()).toEqual([...expectedHandlerCallsSet].sort())
   },
 )
