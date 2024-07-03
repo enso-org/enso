@@ -38,7 +38,6 @@
     "@tanstack/react-query": "5.45.1",
     "ajv": "^8.12.0",
     "enso-common": "^1.0.0",
-    "common-query": "^0.1.0",
     "is-network-error": "^1.0.1",
     "monaco-editor": "0.48.0",
     "react": "^18.3.1",

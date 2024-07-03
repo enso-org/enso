@@ -1,6 +1,7 @@
 /** @file Entry point into the cloud dashboard. */
 import * as reactQuery from '@tanstack/react-query'
-import * as commonQuery from 'common-query'
+
+import * as commonQuery from 'enso-common/src/commonQuery'
 
 import '#/tailwind.css'
 

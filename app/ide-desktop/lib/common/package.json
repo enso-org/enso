@@ -10,6 +10,14 @@
     "./src/buildUtils": "./src/buildUtils.js",
     "./src/detect": "./src/detect.ts",
     "./src/gtag": "./src/gtag.ts",
-    "./src/load": "./src/load.ts"
+    "./src/load": "./src/load.ts",
+    "./src/commonQuery": "./src/commonQuery.ts"
+  },
+  "peerDependencies": {
+    "@tanstack/query-core": "5.45.0"
+  },
+  "dependencies": {
+    "idb-keyval": "^6.2.1",
+    "@tanstack/query-persist-client-core": "^5.45.0"
   }
 }
