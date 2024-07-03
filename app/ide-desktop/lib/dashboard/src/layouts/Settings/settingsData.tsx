@@ -10,7 +10,7 @@ import PeopleSettingsIcon from 'enso-assets/people_settings.svg'
 import PeopleIcon from 'enso-assets/people.svg'
 import SettingsIcon from 'enso-assets/settings.svg'
 
-import type * as text from '#/text'
+import type * as text from 'enso-common/src/text'
 
 import * as inputBindings from '#/configurations/inputBindings'
 

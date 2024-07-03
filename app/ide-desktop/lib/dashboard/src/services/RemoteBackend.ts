@@ -5,7 +5,7 @@
  * the response from the API. */
 import * as detect from 'enso-common/src/detect'
 
-import type * as text from '#/text'
+import type * as text from 'enso-common/src/text'
 
 import type * as loggerProvider from '#/providers/LoggerProvider'
 import type * as textProvider from '#/providers/TextProvider'

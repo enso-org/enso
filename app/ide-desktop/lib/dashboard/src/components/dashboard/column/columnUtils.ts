@@ -7,7 +7,7 @@ import PeopleIcon from 'enso-assets/people.svg'
 import TagIcon from 'enso-assets/tag.svg'
 import TimeIcon from 'enso-assets/time.svg'
 
-import type * as text from '#/text'
+import type * as text from 'enso-common/src/text'
 
 import * as backend from '#/services/Backend'
 

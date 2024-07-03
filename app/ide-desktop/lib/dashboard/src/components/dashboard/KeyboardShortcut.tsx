@@ -8,7 +8,7 @@ import ShiftKeyIcon from 'enso-assets/shift_key.svg'
 import WindowsKeyIcon from 'enso-assets/windows_key.svg'
 import * as detect from 'enso-common/src/detect'
 
-import type * as text from '#/text'
+import type * as text from 'enso-common/src/text'
 
 import type * as dashboardInputBindings from '#/configurations/inputBindings'
 

@@ -8,7 +8,7 @@ import * as React from 'react'
 import OpenInNewTabIcon from 'enso-assets/open.svg'
 
 import * as appUtils from '#/appUtils'
-import type * as text from '#/text'
+import type * as text from 'enso-common/src/text'
 
 import * as textProvider from '#/providers/TextProvider'
 

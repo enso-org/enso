@@ -9,7 +9,7 @@ import * as tw from 'tailwind-merge'
 
 import Check from 'enso-assets/check_mark.svg'
 
-import type * as text from '#/text'
+import type * as text from 'enso-common/src/text'
 
 import * as textProvider from '#/providers/TextProvider'
 
