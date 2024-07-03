@@ -33,6 +33,8 @@ type Data
     teardown self =
         self.connection.close
 
+type Lazy_Ref
+    Value ~get
 
 add_specs suite_builder setup =
     prefix = setup.prefix
@@ -287,45 +289,44 @@ add_specs suite_builder setup =
             ((t.at "Z") - (t.at "Y")) . should_fail_with Invalid_Value_Type
             ((t.at "Z") - (Date.new 2021 11 3)) . should_fail_with Invalid_Value_Type
 
-        group_builder.specify "should allow computing a SQL-like difference" <|
-            t1 = table_builder [["X", [Date.new 2021 11 3]], ["Y", [Date.new 2021 12 5]]]
-
+        zone = Time_Zone.parse "Europe/Warsaw"
+        dates1 = Lazy_Ref.Value <|
+            dates = [["d_X", [Date.new 2021 11 3]], ["d_Y", [Date.new 2021 12 5]], ["X1", [Date.new 2021 01 02]]]
+            date_times = [["dt_X", [Date_Time.new 2021 11 3 10 15 0 zone=zone]], ["dt_Y", [Date_Time.new 2021 12 5 12 30 20 zone=zone]]]
+            times = [["t_X", [Time_Of_Day.new 10 15 0]], ["t_Y", [Time_Of_Day.new 12 30 20]]]
+            table_builder (dates + date_times + times)
+        group_builder.specify "should allow computing a SQL-like difference (date_diff)" <|
+            t1 = dates1.get.select_columns ["d_X", "d_Y", "X1"] reorder=True . rename_columns ["X", "Y", "X1"]
             (t1.at "X").date_diff (t1.at "Y") Date_Period.Day . to_vector . should_equal [32]
             (t1.at "Y").date_diff (t1.at "X") Date_Period.Day . to_vector . should_equal [-32]
             (t1.at "X").date_diff (Date.new 2021 11 3) Date_Period.Day . to_vector . should_equal [0]
 
             (t1.at "X").date_diff (t1.at "Y") Date_Period.Month . to_vector . should_equal [1]
-            (t1.at "X").date_diff (Date.new 2021 12 1) Date_Period.Month . to_vector . should_equal [0]
             (t1.at "X").date_diff (Date.new 2020 12 1) Date_Period.Month . to_vector . should_equal [-11]
 
             (t1.at "X").date_diff (t1.at "Y") Date_Period.Quarter . to_vector . should_equal [0]
             (t1.at "X").date_diff (Date.new 2021 5 1) Date_Period.Quarter . to_vector . should_equal [-2]
-            (t1.at "X").date_diff (Date.new 2023 7 1) Date_Period.Quarter . to_vector . should_equal [6]
 
             (t1.at "X").date_diff (t1.at "Y") Date_Period.Year . to_vector . should_equal [0]
             (t1.at "X").date_diff (Date.new 2021 12 1) Date_Period.Year . to_vector . should_equal [0]
             (t1.at "X").date_diff (Date.new 2020 10 1) Date_Period.Year . to_vector . should_equal [-1]
 
             # Ensure months of varying length (e.g. February) are still counted right.
-            t1_2 = table_builder [["X", [Date.new 2021 01 02]]]
-            (t1_2 . at "X").date_diff (Date.new 2021 03 02) Date_Period.Day . to_vector . should_equal [59]
-            (t1_2 . at "X").date_diff (Date.new 2021 03 02) Date_Period.Month . to_vector . should_equal [2]
-            (t1_2 . at "X").date_diff (Date.new 2021 03 01) Date_Period.Day . to_vector . should_equal [58]
-            (t1_2 . at "X").date_diff (Date.new 2021 03 01) Date_Period.Month . to_vector . should_equal [1]
+            (t1.at "X1").date_diff (Date.new 2021 03 02) Date_Period.Day . to_vector . should_equal [59]
+            (t1.at "X1").date_diff (Date.new 2021 03 02) Date_Period.Month . to_vector . should_equal [2]
+            (t1.at "X1").date_diff (Date.new 2021 03 01) Date_Period.Day . to_vector . should_equal [58]
 
             # We do allow the `Time_Period.Day` as a kind of alias for `Date_Period.Day` here.
             (t1.at "X").date_diff (t1.at "Y") Time_Period.Day . to_vector . should_equal [32]
             (t1.at "X").date_diff (t1.at "Y") Time_Period.Hour . should_fail_with Illegal_Argument
 
-            zone = Time_Zone.parse "Europe/Warsaw"
-            t2 = table_builder [["X", [Date_Time.new 2021 11 3 10 15 0 zone=zone]], ["Y", [Date_Time.new 2021 12 5 12 30 20 zone=zone]]]
+            t2 = dates1.get.select_columns ["dt_X", "dt_Y"] reorder=True . rename_columns ["X", "Y"]
 
             (t2.at "X").date_diff (t2.at "Y") Date_Period.Day . to_vector . should_equal [32]
             (t2.at "Y").date_diff (t2.at "X") Date_Period.Day . to_vector . should_equal [-32]
             (t2.at "X").date_diff (Date_Time.new 2021 11 3 10 15 0 zone=zone) Date_Period.Day . to_vector . should_equal [0]
 
             (t2.at "X").date_diff (t2.at "Y") Date_Period.Month . to_vector . should_equal [1]
-            (t2.at "X").date_diff (Date_Time.new 2021 12 1 10 15 0 zone=zone) Date_Period.Month . to_vector . should_equal [0]
 
             (t2.at "X").date_diff (t2.at "Y") Date_Period.Year . to_vector . should_equal [0]
             (t2.at "X").date_diff (Date_Time.new 2031 12 1 10 15 0 zone=zone) Date_Period.Year . to_vector . should_equal [10]
@@ -355,7 +356,7 @@ add_specs suite_builder setup =
                     (t2.at "X").date_diff (t2.at "Y") Time_Period.Nanosecond . should_fail_with Unsupported_Database_Operation
                     (t2.at "X").date_diff (Date_Time.new 2021 11 3 10 15 30 123 456 789 zone=zone) Time_Period.Nanosecond . should_fail_with Unsupported_Database_Operation
 
-            t3 = table_builder [["X", [Time_Of_Day.new 10 15 0]], ["Y", [Time_Of_Day.new 12 30 20]]]
+            t3 = dates1.get.select_columns ["t_X", "t_Y"] reorder=True . rename_columns ["X", "Y"]
 
             # There is no default period:
             (t3.at "X").date_diff (t3.at "Y") Date_Period.Month . should_fail_with Illegal_Argument
@@ -385,6 +386,19 @@ add_specs suite_builder setup =
                 False ->
                     (t3.at "X").date_diff (t3.at "Y") Time_Period.Nanosecond . should_fail_with Unsupported_Database_Operation
                     (t3.at "X").date_diff (Time_Of_Day.new 10 15 12 34 56 78) Time_Period.Nanosecond . should_fail_with Unsupported_Database_Operation
+
+        ## TODO these were extracted from the test above, they may later be merged again, or we may keep them separate depending on resolution of
+           https://github.com/enso-org/enso/issues/10438
+        group_builder.specify "date_diff edge cases" pending=(if setup.prefix.contains "Snowflake" then "TODO: https://github.com/enso-org/enso/issues/10438") <|
+            t1 = dates1.get.select_columns ["d_X", "d_Y", "X1"] reorder=True . rename_columns ["X", "Y", "X1"]
+            ## TODO Snowflake just looks at year and month, but Postgres/in-memory look if it was a full month or not by looking at days
+            (t1.at "X").date_diff (Date.new 2021 12 1) Date_Period.Month . to_vector . should_equal [0]
+            (t1.at "X").date_diff (Date.new 2023 7 1) Date_Period.Quarter . to_vector . should_equal [6]
+
+            (t1.at "X1").date_diff (Date.new 2021 03 01) Date_Period.Month . to_vector . should_equal [1]
+
+            t2 = dates1.get.select_columns ["dt_X", "dt_Y"] reorder=True . rename_columns ["X", "Y"]
+            (t2.at "X").date_diff (Date_Time.new 2021 12 1 10 15 0 zone=zone) Date_Period.Month . to_vector . should_equal [0]
 
         group_builder.specify "date_diff should return integers" <|
             t = table_builder [["X", [Date.new 2021 01 31]], ["Y", [Time_Of_Day.new 12 30 20]], ["Z", [Date_Time.new 2021 12 5 12 30 20]]]
@@ -452,7 +466,7 @@ add_specs suite_builder setup =
             (t2.at "X").date_add 1 Time_Period.Microsecond . to_vector . should_equal_tz_agnostic [Date_Time.new 2021 01 31 12 30 microsecond=1, Date_Time.new 2021 01 01 12 30 microsecond=1, Date_Time.new 2021 12 31 12 30 microsecond=1]
             case setup.test_selection.supports_nanoseconds_in_time of
                 True ->
-                    (t2.at "X").date_add 1 Time_Period.Nanosecond . to_vector . should_equal [Date_Time.new 2021 01 31 12 30 nanosecond=1, Date_Time.new 2021 01 01 12 30 nanosecond=1, Date_Time.new 2021 12 31 12 30 nanosecond=1]
+                    (t2.at "X").date_add 1 Time_Period.Nanosecond . to_vector . should_equal_tz_agnostic [Date_Time.new 2021 01 31 12 30 nanosecond=1, Date_Time.new 2021 01 01 12 30 nanosecond=1, Date_Time.new 2021 12 31 12 30 nanosecond=1]
                 False ->
                     (t2.at "X").date_add 1 Time_Period.Nanosecond . should_fail_with Unsupported_Database_Operation
 
@@ -483,15 +497,15 @@ add_specs suite_builder setup =
             (t3.at "X").date_add (t3.at "Y") . to_vector . should_equal [Time_Of_Day.new 17 30 0, Time_Of_Day.new 22 45 0, Time_Of_Day.new 1 30 0]
 
         group_builder.specify "should check shift_amount type in date_add" <|
-            t = table_builder [["X", [Date.new 2021 01 31]]]
+            t = dates1.get
             t.at "X" . date_add "text" Date_Period.Day . should_fail_with Invalid_Value_Type
 
         group_builder.specify "date_diff and date_add should work correctly with DST" pending="May be failing on some Database configurations. ToDo: investigate - https://github.com/enso-org/enso/issues/7326" <|
             # TODO the behaviour here may differ between backends.
             # Postgres will store time in UTC and Snowflake remembers the offset but discards the timezone, so each of them have some trouble around DST.
-            zone = Time_Zone.parse "Europe/Warsaw"
             dt1 = Date_Time.new 2023 03 26 00 30 00 zone=zone
-            t = table_builder [["X", [dt1]]]
+            dt3 = Date_Time.new 2023 03 28 01 30 00 zone=zone
+            t = table_builder [["X", [dt1]], ["Y", [dt3]]]
             x = t.at "X"
 
             # +24h will shift 1 day and 1 hour, because they 26th of March has only 23 hours within it
@@ -526,14 +540,13 @@ add_specs suite_builder setup =
             # Again consistent for both backends, when counting in hours - 23 hours is not a full 24-hour day.
             x.date_diff dt2 Time_Period.Day . to_vector . should_equal [0]
 
-            dt3 = Date_Time.new 2023 03 28 01 30 00 zone=zone
             dt4 = Date_Time.new 2023 03 29 00 30 00 zone=zone
-            t2 = table_builder [["X", [dt3]]]
+            y = t.at "Y"
             # No DST switch here, so all backends agree that 0 days elapsed in the 23 hours.
             # Snowflake returns 1...
-            (t2.at "X").date_diff dt4 Date_Period.Day . to_vector . should_equal [0]
-            (t2.at "X").date_diff dt4 Time_Period.Day . to_vector . should_equal [0]
-            (t2.at "X").date_diff dt4 Time_Period.Hour . to_vector . should_equal [23]
+            y.date_diff dt4 Date_Period.Day . to_vector . should_equal [0]
+            y.date_diff dt4 Time_Period.Day . to_vector . should_equal [0]
+            y.date_diff dt4 Time_Period.Hour . to_vector . should_equal [23]
 
     if setup.test_selection.date_time.not then
         suite_builder.group prefix+"partial Date-Time support" group_builder->
