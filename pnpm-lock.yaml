@@ -175,9 +175,6 @@ importers:
       rimraf:
         specifier: ^5.0.5
         version: 5.0.7
-      semver:
-        specifier: ^7.5.4
-        version: 7.6.2
       sucrase:
         specifier: ^3.34.0
         version: 3.35.0
@@ -399,6 +396,9 @@ importers:
       '@types/node':
         specifier: ^20.11.21
         version: 20.11.21
+      '@types/react':
+        specifier: ^18.0.27
+        version: 18.3.3
       '@typescript-eslint/eslint-plugin':
         specifier: ^6.7.2
         version: 6.21.0(@typescript-eslint/parser@6.21.0(eslint@8.57.0)(typescript@5.5.2))(eslint@8.57.0)(typescript@5.5.2)
@@ -420,12 +420,12 @@ importers:
       fast-check:
         specifier: ^3.15.0
         version: 3.19.0
-      react:
-        specifier: ^18.3.1
-        version: 18.3.1
       typescript:
         specifier: ^5.3.3
         version: 5.5.2
+      vite:
+        specifier: ^5.3.1
+        version: 5.3.2(@types/node@20.11.21)(lightningcss@1.25.1)
 
   app/ide-desktop/lib/assets: {}
 
@@ -452,6 +452,9 @@ importers:
       electron-is-dev:
         specifier: ^2.0.0
         version: 2.0.0
+      enso-content-config:
+        specifier: workspace:*
+        version: link:../content-config
       mime-types:
         specifier: ^2.1.35
         version: 2.1.35
@@ -486,9 +489,18 @@ importers:
       enso-common:
         specifier: workspace:*
         version: link:../common
+      enso-gui2:
+        specifier: workspace:*
+        version: link:../../../gui2
+      enso-runner:
+        specifier: workspace:*
+        version: link:../../../../lib/js/runner
       esbuild:
         specifier: ^0.19.3
         version: 0.19.12
+      esbuild-plugin-yaml:
+        specifier: ^0.0.1
+        version: 0.0.1
       fast-glob:
         specifier: ^3.2.12
         version: 3.3.2
@@ -513,7 +525,17 @@ importers:
 
   app/ide-desktop/lib/common: {}
 
-  app/ide-desktop/lib/content-config: {}
+  app/ide-desktop/lib/content-config:
+    dependencies:
+      '@types/semver':
+        specifier: ^7.5.8
+        version: 7.5.8
+      enso-runner:
+        specifier: workspace:*
+        version: link:../../../../lib/js/runner
+      semver:
+        specifier: ^7.6.2
+        version: 7.6.2
 
   app/ide-desktop/lib/dashboard:
     dependencies:
@@ -749,6 +771,31 @@ importers:
 
   app/ide-desktop/lib/ts-plugin-namespace-auto-import:
     devDependencies:
+      typescript:
+        specifier: ^5.3.3
+        version: 5.5.2
+
+  lib/js/runner:
+    dependencies:
+      spectorjs:
+        specifier: ^0.9.27
+        version: 0.9.30
+    devDependencies:
+      '@types/node':
+        specifier: ^20.11.21
+        version: 20.11.21
+      '@typescript-eslint/eslint-plugin':
+        specifier: ^6.7.2
+        version: 6.21.0(@typescript-eslint/parser@6.21.0(eslint@8.57.0)(typescript@5.5.2))(eslint@8.57.0)(typescript@5.5.2)
+      '@typescript-eslint/parser':
+        specifier: ^6.7.2
+        version: 6.21.0(eslint@8.57.0)(typescript@5.5.2)
+      eslint:
+        specifier: ^8.49.0
+        version: 8.57.0
+      eslint-plugin-jsdoc:
+        specifier: ^46.8.1
+        version: 46.10.1(eslint@8.57.0)
       typescript:
         specifier: ^5.3.3
         version: 5.5.2
@@ -2515,6 +2562,10 @@ packages:
   '@sentry/utils@7.118.0':
     resolution: {integrity: sha512-43qItc/ydxZV1Zb3Kn2M54RwL9XXFa3IAYBO8S82Qvq5YUYmU2AmJ1jgg7DabXlVSWgMA1HntwqnOV3JLaEnTQ==}
     engines: {node: '>=8'}
+
+  '@shaderfrog/glsl-parser@2.1.5':
+    resolution: {integrity: sha512-fw7U8Y7BBV9NZVLs7lyM8lpQ9YUK7XBNJjN4HhkY3nqkKpSiIQ62PVtPYtW7uZME5072QXQNQBhHJzG3t+NH0w==}
+    engines: {node: '>=16'}
 
   '@sinclair/typebox@0.27.8':
     resolution: {integrity: sha512-+Fj43pSMwJs4KRrH/938Uf+uAELIgVBmQzg/q1YG10djyfA3TnrU8N8XzqCh/okZdszqBQTZf96idMfE5lnwTA==}
@@ -6456,6 +6507,9 @@ packages:
     resolution: {integrity: sha512-1POYv7uv2gXoyGFpBCmpDVSNV74IfsWlDW216UPjbWufNf+bSU6GdbDsxdcxtfwb4xlI3yxzOTKClUosxARYrQ==}
     engines: {node: '>=0.10.0'}
 
+  spectorjs@0.9.30:
+    resolution: {integrity: sha512-I9/VI3gfO3UiBCUXj20lQjP3fbezP2y03Virnv3jcMpIiF+/NOyWDrBQ+U8vf29IXHPscxOXzzmZDCkETznsMg==}
+
   sprintf-js@1.0.3:
     resolution: {integrity: sha512-D9cPgkvLlV3t3IzL0D0YLvGA9Ahk4PcvVwUbN0dSGr1aP0Nrt4AEnTUbuGvquEC0mA64Gqt1fzirlRs5ibXx8g==}
 
@@ -9754,6 +9808,8 @@ snapshots:
   '@sentry/utils@7.118.0':
     dependencies:
       '@sentry/types': 7.118.0
+
+  '@shaderfrog/glsl-parser@2.1.5': {}
 
   '@sinclair/typebox@0.27.8': {}
 
@@ -14348,6 +14404,10 @@ snapshots:
   spdx-license-ids@3.0.17: {}
 
   speakingurl@14.0.1: {}
+
+  spectorjs@0.9.30:
+    dependencies:
+      '@shaderfrog/glsl-parser': 2.1.5
 
   sprintf-js@1.0.3: {}
 

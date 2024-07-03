@@ -2,7 +2,7 @@
  * Also, it allows redirecting logs to different outputs, so you can plug in external sinks for the
  * logs. */
 
-import host from '../host'
+const browser = typeof window !== 'undefined'
 
 // =============
 // === Utils ===
@@ -236,7 +236,7 @@ export class Console extends Consumer {
             }
         })
         const c: globalThis.Console = console
-        if (host.browser) {
+        if (browser) {
             c[fn](...strArgs)
         } else {
             let color: null | 'yellow' | 'red'
@@ -251,10 +251,6 @@ export class Console extends Consumer {
                     color = null
                     break
             }
-            /* eslint @typescript-eslint/no-unsafe-return: "off" */
-            /* eslint @typescript-eslint/no-unsafe-call: "off" */
-            /* eslint @typescript-eslint/no-unsafe-assignment: "off" */
-            // @ts-expect-error
             const coloredArgs: string[] = color ? strArgs.map(arg => Colors[color](arg)) : strArgs
             if (this.indentLvl > 0) {
                 const indent = this.indent()
@@ -267,7 +263,7 @@ export class Console extends Consumer {
     }
 
     startGroup(...args: unknown[]) {
-        if (host.browser) {
+        if (browser) {
             console.group(...args)
         } else {
             const styleStart = `${Colors.boldStart()}${Colors.levelStart(this.indentLvl)}`
@@ -277,7 +273,7 @@ export class Console extends Consumer {
     }
 
     startGroupCollapsed(...args: unknown[]) {
-        if (host.browser) {
+        if (browser) {
             console.groupCollapsed(...args)
             this.indentLvl += 1
         } else {
@@ -288,7 +284,7 @@ export class Console extends Consumer {
     groupEnd(...args: unknown[]) {
         if (this.indentLvl > 0) {
             this.indentLvl -= 1
-            if (host.browser) {
+            if (browser) {
                 if (args.length > 0) {
                     console.log(...args)
                 }
