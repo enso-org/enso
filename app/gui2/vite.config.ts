@@ -32,6 +32,7 @@ export default defineConfig({
     vue(),
     react({
       include: fileURLToPath(new URL('../ide-desktop/lib/dashboard/**/*.tsx', import.meta.url)),
+      babel: { plugins: ['@babel/plugin-syntax-import-attributes'] },
     }),
     gatewayServer(),
     ...(process.env.NODE_ENV === 'development' ? [await projectManagerShim()] : []),
