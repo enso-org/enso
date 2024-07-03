@@ -93,7 +93,6 @@ function Tags(props: InternalTagsProps) {
               <FocusRing key={key}>
                 <ariaComponents.Button
                   variant="bar"
-                  rounded="small"
                   size="xsmall"
                   className="min-w-12"
                   onPress={() => {
@@ -409,7 +408,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
           </div>
           <SvgMask
             src={FindIcon}
-            className="absolute left-2 top-[50%] z-1 mt-[1px] -translate-y-1/2 text-primary/30"
+            className="absolute left-2 top-[50%] z-1 mt-[1px] -translate-y-1/2 text-primary/40"
           />
           <FocusRing placement="before">
             <aria.SearchField
@@ -431,7 +430,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
                       : getText('remoteBackendSearchPlaceholder')
                     : getText('localBackendSearchPlaceholder')
                 }
-                className="focus-child peer text relative z-1 w-full bg-transparent placeholder-primary/20"
+                className="focus-child peer text relative z-1 w-full bg-transparent placeholder-primary/40"
                 onChange={event => {
                   if (querySource.current !== QuerySource.internal) {
                     querySource.current = QuerySource.typing
