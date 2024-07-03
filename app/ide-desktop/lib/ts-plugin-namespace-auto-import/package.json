@@ -15,6 +15,6 @@
     "url": "https://github.com/enso-org/enso/issues"
   },
   "devDependencies": {
-    "typescript": "^5.3.3"
+    "typescript": "^5.5.3"
   }
 }

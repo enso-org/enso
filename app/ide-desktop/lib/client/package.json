@@ -48,7 +48,7 @@
     "sharp": "^0.31.2",
     "to-ico": "^1.1.5",
     "tsx": "^4.7.1",
-    "vite": "^5.3.1"
+    "vite": "^5.3.3"
   },
   "scripts": {
     "typecheck": "npm run --workspace=enso-gui2 compile-server && tsc --build",
