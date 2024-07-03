@@ -146,7 +146,12 @@ object Export {
     /** @inheritdoc */
     override def showCode(indent: Int): String = {
       val renameCode = rename.map(n => s" as ${n.name}").getOrElse("")
-      s"export ${name.name}$renameCode"
+      onlyNames match {
+        case Some(names) =>
+          s"from ${name.name} export ${names.map(_.name).mkString(", ")}$renameCode"
+        case None =>
+          s"export ${name.name}$renameCode"
+      }
     }
 
     /** Gets the name of the module visible in the importing scope,
