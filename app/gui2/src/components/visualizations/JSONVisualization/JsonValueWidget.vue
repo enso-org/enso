@@ -16,9 +16,10 @@ const emit = defineEmits<{
     @createProjection="emit('createProjection', $event)"
   />
   <JsonPrimitiveWidget
-    v-else-if="props.data && typeof props.data === 'object'&& (props.data as any).type === 'Nothing'"
+    v-else-if="
+      props.data && typeof props.data === 'object' && (props.data as any).type === 'Nothing'
+    "
     :data="null"
-    @createProjection="emit('createProjection', $event)"
   />
   <JsonObjectWidget
     v-else-if="props.data && typeof props.data === 'object'"
