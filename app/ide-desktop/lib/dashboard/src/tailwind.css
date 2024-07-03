@@ -438,7 +438,7 @@
 
 /* These styles MUST still be copied
  * as `.enso-dashboard body` and `.enso-dashboard html` make no sense. */
-:where(:is(.enso-dashboard, .enso-chat, .enso-portal-root)) {
+:where(.enso-dashboard, .enso-chat, .enso-portal-root) {
   line-height: 1.5;
   -webkit-text-size-adjust: 100%;
   -moz-tab-size: 4;

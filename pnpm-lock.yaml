@@ -360,8 +360,8 @@ importers:
         specifier: ^5.3.3
         version: 5.3.3(@types/node@20.11.21)(lightningcss@1.25.1)
       vite-plugin-vue-devtools:
-        specifier: 7.3.4
-        version: 7.3.4(rollup@4.18.0)(vite@5.3.3(@types/node@20.11.21)(lightningcss@1.25.1))(vue@3.4.31(typescript@5.5.3))
+        specifier: 7.3.5
+        version: 7.3.5(rollup@4.18.0)(vite@5.3.3(@types/node@20.11.21)(lightningcss@1.25.1))(vue@3.4.31(typescript@5.5.3))
       vitest:
         specifier: ^1.3.1
         version: 1.6.0(@types/node@20.11.21)(jsdom@24.1.0)(lightningcss@1.25.1)
@@ -6980,8 +6980,8 @@ packages:
       '@nuxt/kit':
         optional: true
 
-  vite-plugin-vue-devtools@7.3.4:
-    resolution: {integrity: sha512-5WKGIFldO9/E/J6d+x286ENieFUsexcg8Qgh/js3rEJtzipHzxiD47xMJVSBhl14n1E4jABIMuwmn1FYtpwm3w==}
+  vite-plugin-vue-devtools@7.3.5:
+    resolution: {integrity: sha512-6omLXTfYu0bmSmncPSbj4mdMPB3t5dAZkUyriJikahGEnvv5gynHlydDsJShHT6l/5dCkvmSesSji/2a6FfutQ==}
     engines: {node: '>=v14.21.3'}
     peerDependencies:
       vite: ^3.1.0 || ^4.0.0-0 || ^5.0.0-0
@@ -14942,7 +14942,7 @@ snapshots:
       - rollup
       - supports-color
 
-  vite-plugin-vue-devtools@7.3.4(rollup@4.18.0)(vite@5.3.3(@types/node@20.11.21)(lightningcss@1.25.1))(vue@3.4.31(typescript@5.5.3)):
+  vite-plugin-vue-devtools@7.3.5(rollup@4.18.0)(vite@5.3.3(@types/node@20.11.21)(lightningcss@1.25.1))(vue@3.4.31(typescript@5.5.3)):
     dependencies:
       '@vue/devtools-core': 7.3.5(vite@5.3.3(@types/node@20.11.21)(lightningcss@1.25.1))(vue@3.4.31(typescript@5.5.3))
       '@vue/devtools-kit': 7.3.5

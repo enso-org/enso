@@ -745,5 +745,11 @@ const groupColors = computed(() => {
   left: 0;
   width: 0;
   height: 0;
+  contain: layout size style;
+  will-change: transform;
+}
+
+::selection {
+  background-color: rgba(255, 255, 255, 20%);
 }
 </style>
