@@ -17,7 +17,7 @@ import type {
   ColumnResizedEvent,
   ICellRendererParams,
 } from 'ag-grid-community'
-import type { ColDef, GridOptions, HeaderValueGetterParams } from 'ag-grid-enterprise'
+import type { ColDef, GridOptions } from 'ag-grid-enterprise'
 import {
   computed,
   onMounted,
