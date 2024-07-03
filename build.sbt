@@ -773,7 +773,7 @@ lazy val pkg = (project in file("lib/scala/pkg"))
     version := "0.1",
     libraryDependencies ++= Seq(
       "org.graalvm.truffle" % "truffle-api"      % graalMavenPackagesVersion % "provided",
-      "io.circe"           %% "circe-core"       % circeVersion              % "provided",
+      "io.circe"           %% "circe-core"       % circeVersion,
       "org.yaml"            % "snakeyaml"        % snakeyamlVersion          % "provided",
       "org.scalatest"      %% "scalatest"        % scalatestVersion          % Test,
       "org.apache.commons"  % "commons-compress" % commonsCompressVersion
