@@ -294,9 +294,10 @@ type File
     read : File_Format -> Problem_Behavior -> Any ! File_Error
     read self format=Auto_Detect (on_problems : Problem_Behavior = ..Report_Warning) =
         if self.exists.not then Error.throw (File_Error.Not_Found self) else
-            if Data_Link.is_data_link self then Data_Link_Helpers.read_data_link self format on_problems else
-                resolved_format = File_Format.resolve format
-                resolved_format.read self on_problems
+            if self.is_directory then Error.throw (Illegal_Argument.Error "Cannot `read` a directory, use `list`.") else
+                if Data_Link.is_data_link self then Data_Link_Helpers.read_data_link self format on_problems else
+                    resolved_format = File_Format.resolve format
+                    resolved_format.read self on_problems
 
     ## ALIAS load bytes, open bytes
        ICON data_input

@@ -165,14 +165,15 @@ type S3_File
     read : File_Format -> Problem_Behavior -> Any ! S3_Error
     read self format=Auto_Detect (on_problems : Problem_Behavior = Problem_Behavior.Report_Warning) =
         if Data_Link.is_data_link self then Data_Link_Helpers.read_data_link self format on_problems else
-            case format of
-                Auto_Detect -> if self.is_directory then format.read self on_problems else
-                    response = translate_file_errors self <| S3.get_object self.s3_path.bucket self.s3_path.key self.credentials delimiter=S3_Path.delimiter
-                    response.decode Auto_Detect
-                _ ->
-                    metadata = File_Format_Metadata.Value path=self.path name=self.name
-                    resolved_format = File_Format.resolve format
-                    self.with_input_stream [File_Access.Read] (stream-> resolved_format.read_stream stream metadata)
+            if self.is_directory then Error.throw (Illegal_Argument.Error "Cannot `read` a directory, use `list`.") else
+                case format of
+                    Auto_Detect ->
+                        response = translate_file_errors self <| S3.get_object self.s3_path.bucket self.s3_path.key self.credentials delimiter=S3_Path.delimiter
+                        response.decode Auto_Detect
+                    _ ->
+                        metadata = File_Format_Metadata.Value path=self.path name=self.name
+                        resolved_format = File_Format.resolve format
+                        self.with_input_stream [File_Access.Read] (stream-> resolved_format.read_stream stream metadata)
 
     ## ALIAS load bytes, open bytes
        ICON data_input
