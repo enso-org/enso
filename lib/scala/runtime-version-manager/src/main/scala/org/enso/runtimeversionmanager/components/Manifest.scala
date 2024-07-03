@@ -11,7 +11,7 @@ import org.enso.runtimeversionmanager.components.Manifest.{
   RequiredInstallerVersions
 }
 import org.enso.runtimeversionmanager.components
-import org.enso.yaml.{ParseError, SnakeYamlDecoder}
+import org.enso.yaml.{ParseError, YamlDecoder}
 import org.yaml.snakeyaml.error.YAMLException
 import org.yaml.snakeyaml.nodes.{MappingNode, Node}
 
@@ -72,14 +72,14 @@ object Manifest {
   case class RequiredInstallerVersions(launcher: SemVer, projectManager: SemVer)
 
   object RequiredInstallerVersions {
-    implicit val yamlDecoder: SnakeYamlDecoder[RequiredInstallerVersions] =
-      new SnakeYamlDecoder[RequiredInstallerVersions] {
+    implicit val yamlDecoder: YamlDecoder[RequiredInstallerVersions] =
+      new YamlDecoder[RequiredInstallerVersions] {
         override def decode(
           node: Node
         ): Either[Throwable, RequiredInstallerVersions] = {
           node match {
             case mappingNode: MappingNode =>
-              val semverDecoder = implicitly[SnakeYamlDecoder[SemVer]]
+              val semverDecoder = implicitly[YamlDecoder[SemVer]]
               val bindings      = mappingKV(mappingNode)
               for {
                 launcher <- bindings
@@ -143,14 +143,14 @@ object Manifest {
       val value = "value"
     }
 
-    implicit val yamlDecoder: SnakeYamlDecoder[JVMOption] =
-      new SnakeYamlDecoder[JVMOption] {
+    implicit val yamlDecoder: YamlDecoder[JVMOption] =
+      new YamlDecoder[JVMOption] {
         override def decode(node: Node): Either[Throwable, JVMOption] = {
           node match {
             case node: MappingNode =>
               val bindings      = mappingKV(node)
-              val stringDecoder = implicitly[SnakeYamlDecoder[String]]
-              val OSdecoder     = implicitly[SnakeYamlDecoder[OS]]
+              val stringDecoder = implicitly[YamlDecoder[String]]
+              val OSdecoder     = implicitly[YamlDecoder[OS]]
               for {
                 value <- bindings
                   .get(Fields.value)
@@ -175,7 +175,7 @@ object Manifest {
       val snakeYaml = new org.yaml.snakeyaml.Yaml()
       Try(snakeYaml.compose(reader))
         .flatMap(
-          implicitly[enso.yaml.SnakeYamlDecoder[Manifest]].decode(_).toTry
+          implicitly[enso.yaml.YamlDecoder[Manifest]].decode(_).toTry
         )
     }.flatten.recoverWith { error =>
       Failure(ManifestLoadingError.fromThrowable(error))
@@ -188,7 +188,7 @@ object Manifest {
   def fromYaml(yamlString: String): Try[Manifest] = {
     val snakeYaml = new org.yaml.snakeyaml.Yaml()
     Try(snakeYaml.compose(new StringReader(yamlString))).toEither
-      .flatMap(implicitly[enso.yaml.SnakeYamlDecoder[Manifest]].decode(_))
+      .flatMap(implicitly[enso.yaml.YamlDecoder[Manifest]].decode(_))
       .left
       .map(ParseError(_))
       .toTry
@@ -230,18 +230,18 @@ object Manifest {
     val brokenMark                   = "broken"
   }
 
-  implicit val yamlDecoder: SnakeYamlDecoder[Manifest] =
-    new SnakeYamlDecoder[Manifest] {
+  implicit val yamlDecoder: YamlDecoder[Manifest] =
+    new YamlDecoder[Manifest] {
       override def decode(node: Node): Either[Throwable, Manifest] = {
         node match {
           case node: MappingNode =>
             val bindings = mappingKV(node)
             val requiredInstallerVersionsDecoder =
-              implicitly[SnakeYamlDecoder[RequiredInstallerVersions]]
-            val stringDecoder = implicitly[SnakeYamlDecoder[String]]
+              implicitly[YamlDecoder[RequiredInstallerVersions]]
+            val stringDecoder = implicitly[YamlDecoder[String]]
             val seqJVMOptionsDecoder =
-              implicitly[SnakeYamlDecoder[Seq[JVMOption]]]
-            val booleanDecoder = implicitly[SnakeYamlDecoder[Boolean]]
+              implicitly[YamlDecoder[Seq[JVMOption]]]
+            val booleanDecoder = implicitly[YamlDecoder[Boolean]]
 
             for {
               requiredInstallerVersions <- requiredInstallerVersionsDecoder

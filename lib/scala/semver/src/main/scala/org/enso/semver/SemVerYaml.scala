@@ -1,6 +1,6 @@
 package org.enso.semver
 
-import org.enso.yaml.{SnakeYamlDecoder, SnakeYamlEncoder}
+import org.enso.yaml.{YamlDecoder, YamlEncoder}
 import org.yaml.snakeyaml.error.YAMLException
 import org.yaml.snakeyaml.nodes.{Node, ScalarNode}
 
@@ -20,8 +20,8 @@ object SemVerYaml {
         )
     }
   }
-  implicit val yamlSemverDecoder: SnakeYamlDecoder[SemVer] =
-    new SnakeYamlDecoder[SemVer] {
+  implicit val yamlSemverDecoder: YamlDecoder[SemVer] =
+    new YamlDecoder[SemVer] {
       override def decode(node: Node): Either[Throwable, SemVer] = node match {
         case node: ScalarNode =>
           safeParse(node.getValue)
@@ -34,8 +34,8 @@ object SemVerYaml {
       }
     }
 
-  implicit val yamlSemverEncoder: SnakeYamlEncoder[SemVer] =
-    new SnakeYamlEncoder[SemVer] {
+  implicit val yamlSemverEncoder: YamlEncoder[SemVer] =
+    new YamlEncoder[SemVer] {
       override def encode(value: SemVer): Object = {
         value.toString
       }

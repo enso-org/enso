@@ -2,7 +2,7 @@ package org.enso.yaml
 
 import java.util
 
-trait SnakeYamlEncoder[T] {
+trait YamlEncoder[T] {
 
   def encode(value: T): Object
 
@@ -30,25 +30,25 @@ trait SnakeYamlEncoder[T] {
   }
 }
 
-object SnakeYamlEncoder {
+object YamlEncoder {
 
-  implicit def stringEncoderYaml: SnakeYamlEncoder[String] =
-    new SnakeYamlEncoder[String] {
+  implicit def stringEncoderYaml: YamlEncoder[String] =
+    new YamlEncoder[String] {
       override def encode(value: String): Object = {
         value
       }
     }
 
-  implicit def booleanEncoderYaml: SnakeYamlEncoder[Boolean] =
-    new SnakeYamlEncoder[Boolean] {
+  implicit def booleanEncoderYaml: YamlEncoder[Boolean] =
+    new YamlEncoder[Boolean] {
       override def encode(value: Boolean): Object = {
         value.toString
       }
     }
 
   implicit def iterableEncoderYaml[CC[X] <: IterableOnce[X], T](implicit
-    elemEncoder: SnakeYamlEncoder[T]
-  ): SnakeYamlEncoder[CC[T]] = new SnakeYamlEncoder[CC[T]] {
+    elemEncoder: YamlEncoder[T]
+  ): YamlEncoder[CC[T]] = new YamlEncoder[CC[T]] {
     override def encode(value: CC[T]): Object = {
       val elements = new util.ArrayList[Object](value.iterator.size)
       value.iterator.foreach(e => elements.add(elemEncoder.encode(e)))

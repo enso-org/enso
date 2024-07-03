@@ -2,7 +2,7 @@ package org.enso.editions
 
 import io.circe.syntax.EncoderOps
 import io.circe.{Decoder, DecodingFailure, Encoder}
-import org.enso.yaml.{SnakeYamlDecoder, SnakeYamlEncoder}
+import org.enso.yaml.{YamlDecoder, YamlEncoder}
 import org.yaml.snakeyaml.error.YAMLException
 import org.yaml.snakeyaml.nodes.{MappingNode, Node, ScalarNode}
 
@@ -30,12 +30,12 @@ object LibraryName {
     val Email     = "email"
   }
 
-  implicit val yamlDecoder: SnakeYamlDecoder[LibraryName] =
-    new SnakeYamlDecoder[LibraryName] {
+  implicit val yamlDecoder: YamlDecoder[LibraryName] =
+    new YamlDecoder[LibraryName] {
       override def decode(node: Node): Either[Throwable, LibraryName] =
         node match {
           case mappingNode: MappingNode =>
-            val stringDecoder = implicitly[SnakeYamlDecoder[String]]
+            val stringDecoder = implicitly[YamlDecoder[String]]
 
             if (mappingNode.getValue.size() != 2)
               Left(new YAMLException("invalid number of fields for Contact"))
@@ -65,8 +65,8 @@ object LibraryName {
         }
     }
 
-  implicit val yamlEncoder: SnakeYamlEncoder[LibraryName] =
-    new SnakeYamlEncoder[LibraryName] {
+  implicit val yamlEncoder: YamlEncoder[LibraryName] =
+    new YamlEncoder[LibraryName] {
       override def encode(value: LibraryName) = {
         value.toString
       }

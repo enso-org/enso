@@ -10,7 +10,7 @@ import org.yaml.snakeyaml.error.YAMLException
 import scala.jdk.CollectionConverters.CollectionHasAsScala
 import scala.collection.{mutable, BuildFrom}
 
-abstract class SnakeYamlDecoder[T] {
+abstract class YamlDecoder[T] {
   def decode(node: Node): Either[Throwable, T]
 
   final protected def mappingKV(mappingNode: MappingNode): Map[String, Node] = {
@@ -38,10 +38,10 @@ abstract class SnakeYamlDecoder[T] {
   }
 }
 
-object SnakeYamlDecoder {
+object YamlDecoder {
   implicit def optionDecoderYaml[T](implicit
-    valueDecoder: SnakeYamlDecoder[T]
-  ): SnakeYamlDecoder[Option[T]] = new SnakeYamlDecoder[Option[T]] {
+    valueDecoder: YamlDecoder[T]
+  ): YamlDecoder[Option[T]] = new YamlDecoder[Option[T]] {
     override def decode(node: Node): Either[Throwable, Option[T]] = node match {
       case node: ScalarNode =>
         node.getTag match {
@@ -71,10 +71,10 @@ object SnakeYamlDecoder {
   }
 
   implicit def mapDecoderYaml[K, V](implicit
-    keyDecoder: SnakeYamlDecoder[K],
-    valueDecoder: SnakeYamlDecoder[V],
-    keyMapper: MapKeyField
-  ): SnakeYamlDecoder[Map[K, V]] = new SnakeYamlDecoder[Map[K, V]] {
+                                    keyDecoder: YamlDecoder[K],
+                                    valueDecoder: YamlDecoder[V],
+                                    keyMapper: MapKeyField
+  ): YamlDecoder[Map[K, V]] = new YamlDecoder[Map[K, V]] {
     override def decode(node: Node): Either[Throwable, Map[K, V]] = node match {
       case mapping: MappingNode =>
         val kv = mapping.getValue.asScala.map { node =>
@@ -128,8 +128,8 @@ object SnakeYamlDecoder {
     }
   }
 
-  implicit def stringDecoderYaml: SnakeYamlDecoder[String] =
-    new SnakeYamlDecoder[String] {
+  implicit def stringDecoderYaml: YamlDecoder[String] =
+    new YamlDecoder[String] {
       override def decode(node: Node): Either[Throwable, String] = {
         node match {
           case node: ScalarNode =>
@@ -140,8 +140,8 @@ object SnakeYamlDecoder {
       }
     }
 
-  implicit def booleanDecoderYaml: SnakeYamlDecoder[Boolean] =
-    new SnakeYamlDecoder[Boolean] {
+  implicit def booleanDecoderYaml: YamlDecoder[Boolean] =
+    new YamlDecoder[Boolean] {
       override def decode(node: Node): Either[Throwable, Boolean] = {
         node match {
           case node: ScalarNode =>
@@ -157,9 +157,9 @@ object SnakeYamlDecoder {
     }
 
   implicit def iterableDecoderYaml[CC[X] <: IterableOnce[X], T](implicit
-    valueDecoder: SnakeYamlDecoder[T],
-    cbf: BuildFrom[List[Either[Throwable, T]], T, CC[T]]
-  ): SnakeYamlDecoder[CC[T]] = new SnakeYamlDecoder[CC[T]] {
+                                                                valueDecoder: YamlDecoder[T],
+                                                                cbf: BuildFrom[List[Either[Throwable, T]], T, CC[T]]
+  ): YamlDecoder[CC[T]] = new YamlDecoder[CC[T]] {
 
     override def decode(node: Node): Either[Throwable, CC[T]] = node match {
       case seqNode: SequenceNode =>

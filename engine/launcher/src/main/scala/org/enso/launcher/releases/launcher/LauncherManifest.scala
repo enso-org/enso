@@ -4,7 +4,7 @@ import org.enso.launcher.releases.launcher
 import org.enso.semver.SemVer
 import org.enso.runtimeversionmanager.releases.ReleaseProviderException
 import org.enso.semver.SemVerYaml._
-import org.enso.yaml.{ParseError, SnakeYamlDecoder}
+import org.enso.yaml.{ParseError, YamlDecoder}
 import org.yaml.snakeyaml.error.YAMLException
 import org.yaml.snakeyaml.nodes.{MappingNode, Node}
 
@@ -41,14 +41,14 @@ object LauncherManifest {
     val directoriesToCopy        = "directories-to-copy"
   }
 
-  implicit val yamlDecoder: SnakeYamlDecoder[LauncherManifest] =
-    new SnakeYamlDecoder[LauncherManifest] {
+  implicit val yamlDecoder: YamlDecoder[LauncherManifest] =
+    new YamlDecoder[LauncherManifest] {
       override def decode(node: Node): Either[Throwable, LauncherManifest] = {
         node match {
           case node: MappingNode =>
             val bindings         = mappingKV(node)
-            val semverDecoder    = implicitly[SnakeYamlDecoder[SemVer]]
-            val seqStringDecoder = implicitly[SnakeYamlDecoder[Seq[String]]]
+            val semverDecoder    = implicitly[YamlDecoder[SemVer]]
+            val seqStringDecoder = implicitly[YamlDecoder[Seq[String]]]
             for {
               minimumVersionForUpgrade <- bindings
                 .get(Fields.minimumVersionForUpgrade)
@@ -83,7 +83,7 @@ object LauncherManifest {
     val snakeYaml = new org.yaml.snakeyaml.Yaml()
     Try(snakeYaml.compose(new StringReader(string))).toEither
       .flatMap(
-        implicitly[SnakeYamlDecoder[launcher.LauncherManifest]].decode(_)
+        implicitly[YamlDecoder[launcher.LauncherManifest]].decode(_)
       )
       .left
       .map(ParseError(_))

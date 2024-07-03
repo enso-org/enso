@@ -1,6 +1,6 @@
 package org.enso.launcher.releases.fallback.staticwebsite
 
-import org.enso.yaml.SnakeYamlDecoder
+import org.enso.yaml.YamlDecoder
 import org.yaml.snakeyaml.nodes.{MappingNode, Node}
 
 import java.io.StringReader
@@ -15,12 +15,12 @@ case class FallbackManifest(enabled: Boolean)
 
 object FallbackManifest {
 
-  implicit val yamlDecoder: SnakeYamlDecoder[FallbackManifest] =
-    new SnakeYamlDecoder[FallbackManifest] {
+  implicit val yamlDecoder: YamlDecoder[FallbackManifest] =
+    new YamlDecoder[FallbackManifest] {
       override def decode(node: Node) = {
         node match {
           case node: MappingNode =>
-            val booleanDecoder = implicitly[SnakeYamlDecoder[Boolean]]
+            val booleanDecoder = implicitly[YamlDecoder[Boolean]]
             val bindings       = mappingKV(node)
             for {
               enabled <- bindings
@@ -47,7 +47,7 @@ object FallbackManifest {
   def parseString(yamlString: String): Try[FallbackManifest] = {
     val snakeYaml = new org.yaml.snakeyaml.Yaml()
     Try(snakeYaml.compose(new StringReader(yamlString))).toEither
-      .flatMap(implicitly[SnakeYamlDecoder[FallbackManifest]].decode(_))
+      .flatMap(implicitly[YamlDecoder[FallbackManifest]].decode(_))
       .toTry
   }
 }

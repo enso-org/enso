@@ -1,6 +1,6 @@
 package org.enso.distribution.config
 
-import org.enso.yaml.{SnakeYamlDecoder, SnakeYamlEncoder}
+import org.enso.yaml.{YamlDecoder, YamlEncoder}
 import org.yaml.snakeyaml.error.YAMLException
 import org.yaml.snakeyaml.nodes.{MappingNode, Node}
 
@@ -66,15 +66,15 @@ object GlobalConfig {
     val EditionProviders = "edition-providers"
   }
 
-  implicit val yamlDecoder: SnakeYamlDecoder[GlobalConfig] =
-    new SnakeYamlDecoder[GlobalConfig] {
+  implicit val yamlDecoder: YamlDecoder[GlobalConfig] =
+    new YamlDecoder[GlobalConfig] {
       override def decode(node: Node) = node match {
         case node: MappingNode =>
           val bindings = mappingKV(node)
           val defaultVersionDecoder =
-            implicitly[SnakeYamlDecoder[DefaultVersion]]
-          val stringDecoder    = implicitly[SnakeYamlDecoder[String]]
-          val seqStringDecoder = implicitly[SnakeYamlDecoder[Seq[String]]]
+            implicitly[YamlDecoder[DefaultVersion]]
+          val stringDecoder    = implicitly[YamlDecoder[String]]
+          val seqStringDecoder = implicitly[YamlDecoder[Seq[String]]]
 
           val defaultVersionOpt = bindings.get("default") match {
             case Some(versionNode: MappingNode) =>
@@ -133,11 +133,11 @@ object GlobalConfig {
       }
     }
 
-  implicit val yamlEncoder: SnakeYamlEncoder[GlobalConfig] =
-    new SnakeYamlEncoder[GlobalConfig] {
+  implicit val yamlEncoder: YamlEncoder[GlobalConfig] =
+    new YamlEncoder[GlobalConfig] {
       override def encode(value: GlobalConfig): AnyRef = {
-        val defaultVersionEncoder = implicitly[SnakeYamlEncoder[DefaultVersion]]
-        val editionProviders      = implicitly[SnakeYamlEncoder[Seq[String]]]
+        val defaultVersionEncoder = implicitly[YamlEncoder[DefaultVersion]]
+        val editionProviders      = implicitly[YamlEncoder[Seq[String]]]
         val elements              = new util.ArrayList[(String, AnyRef)]()
         elements.add(
           (

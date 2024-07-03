@@ -13,7 +13,7 @@ object YamlHelper {
   /** Parses a string representation of a YAML configuration of type `R`. */
   def parseString[R](
     yamlString: String
-  )(implicit decoder: SnakeYamlDecoder[R]): Either[ParseError, R] = {
+  )(implicit decoder: YamlDecoder[R]): Either[ParseError, R] = {
     val snakeYaml = new org.yaml.snakeyaml.Yaml()
     Try(snakeYaml.compose(new StringReader(yamlString))).toEither
       .flatMap(decoder.decode(_))
@@ -22,7 +22,7 @@ object YamlHelper {
   }
 
   /** Tries to load and parse a YAML file at the provided path. */
-  def load[R](path: Path)(implicit decoder: SnakeYamlDecoder[R]): Try[R] =
+  def load[R](path: Path)(implicit decoder: YamlDecoder[R]): Try[R] =
     Using(new FileReader(path.toFile)) { reader =>
       val snakeYaml = new org.yaml.snakeyaml.Yaml()
       Try(snakeYaml.compose(reader))
@@ -30,7 +30,7 @@ object YamlHelper {
     }.flatten
 
   /** Saves a YAML representation of an object into a string. */
-  def toYaml[A](obj: A)(implicit encoder: SnakeYamlEncoder[A]): String = {
+  def toYaml[A](obj: A)(implicit encoder: YamlEncoder[A]): String = {
     val node          = encoder.encode(obj)
     val dumperOptions = new DumperOptions()
     dumperOptions.setIndent(2)

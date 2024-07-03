@@ -2,7 +2,7 @@ package org.enso.editions
 
 import org.yaml.snakeyaml.error.YAMLException
 import org.yaml.snakeyaml.nodes.{Node, ScalarNode, Tag}
-import org.enso.yaml.{SnakeYamlDecoder, SnakeYamlEncoder}
+import org.enso.yaml.{YamlDecoder, YamlEncoder}
 
 /** A helper type to handle special parsing logic of edition names.
   *
@@ -24,8 +24,8 @@ object EditionName {
   /** A helper method for constructing an [[EditionName]]. */
   def apply(name: String): EditionName = new EditionName(name)
 
-  implicit val yamlDecoder: SnakeYamlDecoder[EditionName] =
-    new SnakeYamlDecoder[EditionName] {
+  implicit val yamlDecoder: YamlDecoder[EditionName] =
+    new YamlDecoder[EditionName] {
       override def decode(node: Node): Either[Throwable, EditionName] =
         node match {
           case scalarNode: ScalarNode =>
@@ -33,7 +33,7 @@ object EditionName {
               case Tag.NULL =>
                 Left(new YAMLException("edition cannot be empty"))
               case _ =>
-                val stringDecoder = implicitly[SnakeYamlDecoder[String]]
+                val stringDecoder = implicitly[YamlDecoder[String]]
                 stringDecoder.decode(scalarNode).map(EditionName(_))
             }
           case _ =>
@@ -41,8 +41,8 @@ object EditionName {
         }
     }
 
-  implicit val yamlEncoder: SnakeYamlEncoder[EditionName] =
-    new SnakeYamlEncoder[EditionName] {
+  implicit val yamlEncoder: YamlEncoder[EditionName] =
+    new YamlEncoder[EditionName] {
       override def encode(value: EditionName): Object = {
         value.name
       }

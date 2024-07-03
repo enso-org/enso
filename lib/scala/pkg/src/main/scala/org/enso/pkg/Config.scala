@@ -4,7 +4,7 @@ import org.yaml.snakeyaml.nodes.Tag
 import org.enso.semver.SemVer
 import org.enso.editions.{EditionName, Editions}
 import org.enso.pkg.validation.NameValidation
-import org.enso.yaml.{SnakeYamlDecoder, SnakeYamlEncoder}
+import org.enso.yaml.{YamlDecoder, YamlEncoder}
 import org.yaml.snakeyaml.{DumperOptions, Yaml}
 import org.yaml.snakeyaml.error.YAMLException
 import org.yaml.snakeyaml.nodes.{MappingNode, Node}
@@ -42,11 +42,11 @@ object Contact {
     val Email = "email"
   }
 
-  implicit val decoderSnake: SnakeYamlDecoder[Contact] =
-    new SnakeYamlDecoder[Contact] {
+  implicit val decoderSnake: YamlDecoder[Contact] =
+    new YamlDecoder[Contact] {
       override def decode(node: Node): Either[Throwable, Contact] = node match {
         case mappingNode: MappingNode =>
-          val optString = implicitly[SnakeYamlDecoder[Option[String]]]
+          val optString = implicitly[YamlDecoder[Option[String]]]
 
           if (mappingNode.getValue.size() > 2)
             Left(new YAMLException("invalid number of fields for Contact"))
@@ -67,8 +67,8 @@ object Contact {
       }
     }
 
-  implicit val encoderSnake: SnakeYamlEncoder[Contact] =
-    new SnakeYamlEncoder[Contact] {
+  implicit val encoderSnake: YamlEncoder[Contact] =
+    new YamlEncoder[Contact] {
       override def encode(value: Contact) = {
         val elements = new util.ArrayList[(String, Object)]()
         value.name
@@ -120,7 +120,7 @@ case class Config(
 
   /** Converts the configuration into a YAML representation. */
   def toYaml: String = {
-    val node          = implicitly[SnakeYamlEncoder[Config]].encode(this)
+    val node          = implicitly[YamlEncoder[Config]].encode(this)
     val dumperOptions = new DumperOptions()
     dumperOptions.setIndent(2)
     dumperOptions.setPrettyFlow(true)
@@ -155,24 +155,24 @@ object Config {
     val componentGroups        = "component-groups"
   }
 
-  implicit val yamlDecoder: SnakeYamlDecoder[Config] =
-    new SnakeYamlDecoder[Config] {
+  implicit val yamlDecoder: YamlDecoder[Config] =
+    new YamlDecoder[Config] {
       override def decode(node: Node): Either[Throwable, Config] = node match {
         case mappingNode: MappingNode =>
           if (mappingNode.getValue.size() > 10)
             Left(new YAMLException("invalid number of fields for Contact"))
           else {
             val clazzMap      = mappingKV(mappingNode)
-            val stringDecoder = implicitly[SnakeYamlDecoder[String]]
+            val stringDecoder = implicitly[YamlDecoder[String]]
             val normalizedNameDecoder =
-              implicitly[SnakeYamlDecoder[Option[String]]]
-            val contactDecoder     = implicitly[SnakeYamlDecoder[List[Contact]]]
-            val editionNameDecoder = implicitly[SnakeYamlDecoder[EditionName]]
+              implicitly[YamlDecoder[Option[String]]]
+            val contactDecoder     = implicitly[YamlDecoder[List[Contact]]]
+            val editionNameDecoder = implicitly[YamlDecoder[EditionName]]
             val editionDecoder =
-              implicitly[SnakeYamlDecoder[Option[Editions.RawEdition]]]
-            val booleanDecoder = implicitly[SnakeYamlDecoder[Boolean]]
+              implicitly[YamlDecoder[Option[Editions.RawEdition]]]
+            val booleanDecoder = implicitly[YamlDecoder[Boolean]]
             val componentGroups =
-              implicitly[SnakeYamlDecoder[Option[ComponentGroups]]]
+              implicitly[YamlDecoder[Option[ComponentGroups]]]
             for {
               name <- clazzMap
                 .get(JsonFields.name)
@@ -247,14 +247,14 @@ object Config {
       }
     }
 
-  implicit val encoderSnake: SnakeYamlEncoder[Config] =
-    new SnakeYamlEncoder[Config] {
+  implicit val encoderSnake: YamlEncoder[Config] =
+    new YamlEncoder[Config] {
       override def encode(value: Config) = {
-        val contactsEncoder = implicitly[SnakeYamlEncoder[List[Contact]]]
-        val editionEncoder  = implicitly[SnakeYamlEncoder[Editions.RawEdition]]
-        val booleanEncoder  = implicitly[SnakeYamlEncoder[Boolean]]
+        val contactsEncoder = implicitly[YamlEncoder[List[Contact]]]
+        val editionEncoder  = implicitly[YamlEncoder[Editions.RawEdition]]
+        val booleanEncoder  = implicitly[YamlEncoder[Boolean]]
         val componentGroupsEncoder =
-          implicitly[SnakeYamlEncoder[ComponentGroups]]
+          implicitly[YamlEncoder[ComponentGroups]]
 
         val elements = new util.ArrayList[(String, Object)]()
         elements.add((JsonFields.name, value.name))
@@ -309,14 +309,14 @@ object Config {
   def fromYaml(reader: Reader): Try[Config] = {
     val snakeYaml = new org.yaml.snakeyaml.Yaml()
     Try(snakeYaml.compose(reader)).toEither
-      .flatMap(implicitly[SnakeYamlDecoder[Config]].decode(_))
+      .flatMap(implicitly[YamlDecoder[Config]].decode(_))
       .toTry
   }
 
   def fromYaml(yamlString: String): Try[Config] = {
     val snakeYaml = new org.yaml.snakeyaml.Yaml()
     Try(snakeYaml.compose(new StringReader(yamlString))).toEither
-      .flatMap(implicitly[SnakeYamlDecoder[Config]].decode(_))
+      .flatMap(implicitly[YamlDecoder[Config]].decode(_))
       .toTry
   }
 

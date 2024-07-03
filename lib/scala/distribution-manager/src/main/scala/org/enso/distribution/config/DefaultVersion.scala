@@ -3,7 +3,7 @@ package org.enso.distribution.config
 import org.enso.semver.SemVer
 import org.enso.cli.arguments.{Argument, OptsParseError}
 import org.enso.semver.SemVerYaml._
-import org.enso.yaml.{SnakeYamlDecoder, SnakeYamlEncoder}
+import org.enso.yaml.{YamlDecoder, YamlEncoder}
 import org.yaml.snakeyaml.nodes.{Node, ScalarNode}
 
 /** Default version that is used when launching Enso outside of projects and
@@ -33,8 +33,8 @@ object DefaultVersion {
     override def toString: String = version.toString
   }
 
-  implicit val yamlDecoder: SnakeYamlDecoder[DefaultVersion] =
-    new SnakeYamlDecoder[DefaultVersion] {
+  implicit val yamlDecoder: YamlDecoder[DefaultVersion] =
+    new YamlDecoder[DefaultVersion] {
       override def decode(node: Node) = {
         node match {
           case node if node == null =>
@@ -44,7 +44,7 @@ object DefaultVersion {
               case LatestInstalled.name =>
                 Right(LatestInstalled)
               case _ =>
-                implicitly[SnakeYamlDecoder[SemVer]]
+                implicitly[YamlDecoder[SemVer]]
                   .decode(scalarNode)
                   .map(Exact(_))
             }
@@ -52,8 +52,8 @@ object DefaultVersion {
       }
     }
 
-  implicit val yamlEncoder: SnakeYamlEncoder[DefaultVersion] =
-    new SnakeYamlEncoder[DefaultVersion] {
+  implicit val yamlEncoder: YamlEncoder[DefaultVersion] =
+    new YamlEncoder[DefaultVersion] {
       override def encode(value: DefaultVersion): AnyRef = {
         value match {
           case latest @ LatestInstalled => latest.toString

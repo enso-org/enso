@@ -1,7 +1,7 @@
 package org.enso.librarymanager.published.repository
 
 import org.enso.editions.LibraryName
-import org.enso.yaml.{SnakeYamlDecoder, SnakeYamlEncoder}
+import org.enso.yaml.{YamlDecoder, YamlEncoder}
 import org.yaml.snakeyaml.error.YAMLException
 import org.yaml.snakeyaml.nodes.{MappingNode, Node}
 
@@ -43,15 +43,15 @@ object LibraryManifest {
     val description  = "description"
   }
 
-  implicit val yamlDecoder: SnakeYamlDecoder[LibraryManifest] =
-    new SnakeYamlDecoder[LibraryManifest] {
+  implicit val yamlDecoder: YamlDecoder[LibraryManifest] =
+    new YamlDecoder[LibraryManifest] {
       override def decode(node: Node): Either[Throwable, LibraryManifest] =
         node match {
           case mappingNode: MappingNode =>
-            val archivesDecoder = implicitly[SnakeYamlDecoder[Seq[String]]]
+            val archivesDecoder = implicitly[YamlDecoder[Seq[String]]]
             val dependenciesDecoder =
-              implicitly[SnakeYamlDecoder[Seq[LibraryName]]]
-            val optStringDecoder = implicitly[SnakeYamlDecoder[Option[String]]]
+              implicitly[YamlDecoder[Seq[LibraryName]]]
+            val optStringDecoder = implicitly[YamlDecoder[Option[String]]]
             val kv               = mappingKV(mappingNode)
             for {
               archives <- kv
@@ -81,11 +81,11 @@ object LibraryManifest {
         }
     }
 
-  implicit val yamlEncoder: SnakeYamlEncoder[LibraryManifest] =
-    new SnakeYamlEncoder[LibraryManifest] {
+  implicit val yamlEncoder: YamlEncoder[LibraryManifest] =
+    new YamlEncoder[LibraryManifest] {
       override def encode(value: LibraryManifest): AnyRef = {
-        val archivesEncoder     = implicitly[SnakeYamlEncoder[Seq[String]]]
-        val dependenciesEncoder = implicitly[SnakeYamlEncoder[Seq[LibraryName]]]
+        val archivesEncoder     = implicitly[YamlEncoder[Seq[String]]]
+        val dependenciesEncoder = implicitly[YamlEncoder[Seq[LibraryName]]]
         val elements            = new util.ArrayList[(String, Object)]()
         if (value.archives.nonEmpty)
           elements.add(
@@ -108,7 +108,7 @@ object LibraryManifest {
   def fromYaml(yamlString: String): Try[LibraryManifest] = {
     val snakeYaml = new org.yaml.snakeyaml.Yaml()
     Try(snakeYaml.compose(new StringReader(yamlString))).toEither
-      .flatMap(implicitly[SnakeYamlDecoder[LibraryManifest]].decode(_))
+      .flatMap(implicitly[YamlDecoder[LibraryManifest]].decode(_))
       .toTry
   }
 

@@ -3,7 +3,7 @@ package org.enso.distribution.config
 import com.typesafe.scalalogging.Logger
 import org.enso.distribution.DistributionManager
 import org.enso.distribution.FileSystem.PathSyntax
-import org.enso.yaml.{SnakeYamlDecoder, SnakeYamlEncoder}
+import org.enso.yaml.{YamlDecoder, YamlEncoder}
 import org.yaml.snakeyaml.{DumperOptions, Yaml}
 import org.yaml.snakeyaml.error.YAMLException
 import org.yaml.snakeyaml.nodes.{MappingNode, Node, NodeTuple, ScalarNode, Tag}
@@ -85,7 +85,7 @@ class GlobalConfigurationManager(distributionManager: DistributionManager) {
     config: GlobalConfig,
     yamlNode: Node
   ): Try[Node] = {
-    val encoder   = implicitly[SnakeYamlEncoder[GlobalConfig]]
+    val encoder   = implicitly[YamlEncoder[GlobalConfig]]
     val snakeYaml = new org.yaml.snakeyaml.Yaml()
     updateYamlNode(keys, snakeYaml.represent(encoder.encode(config)), yamlNode)
   }
@@ -215,7 +215,7 @@ object GlobalConfigurationManager {
     Using(Files.newBufferedReader(path)) { reader =>
       val snakeYaml = new Yaml()
       Try(snakeYaml.compose(reader)).toEither
-        .flatMap(implicitly[SnakeYamlDecoder[GlobalConfig]].decode(_))
+        .flatMap(implicitly[YamlDecoder[GlobalConfig]].decode(_))
         .toTry
     }.flatten
 
@@ -225,7 +225,7 @@ object GlobalConfigurationManager {
     writeConfigRaw(
       path,
       snakeYaml.represent(
-        implicitly[SnakeYamlEncoder[GlobalConfig]].encode(config)
+        implicitly[YamlEncoder[GlobalConfig]].encode(config)
       )
     )
   }
@@ -237,7 +237,7 @@ object GlobalConfigurationManager {
     */
   private def writeConfigRaw(path: Path, rawNode: Node): Try[Unit] = {
     def verifyConfig: Try[Unit] = {
-      implicitly[SnakeYamlDecoder[GlobalConfig]].decode(rawNode) match {
+      implicitly[YamlDecoder[GlobalConfig]].decode(rawNode) match {
         case Left(failure) =>
           Failure(
             InvalidConfigError(

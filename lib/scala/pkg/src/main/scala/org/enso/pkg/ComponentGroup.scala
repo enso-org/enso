@@ -5,7 +5,7 @@ import io.circe.syntax._
 import org.enso.editions.LibraryName
 import org.yaml.snakeyaml.error.YAMLException
 import org.yaml.snakeyaml.nodes.{MappingNode, Node, ScalarNode, SequenceNode}
-import org.enso.yaml.{SnakeYamlDecoder, SnakeYamlEncoder}
+import org.enso.yaml.{YamlDecoder, YamlEncoder}
 
 import java.util
 
@@ -51,8 +51,8 @@ object ComponentGroups {
     } yield ComponentGroups(newGroups, extendsGroups)
   }
 
-  implicit val yamlDecoder: SnakeYamlDecoder[ComponentGroups] =
-    new SnakeYamlDecoder[ComponentGroups] {
+  implicit val yamlDecoder: YamlDecoder[ComponentGroups] =
+    new YamlDecoder[ComponentGroups] {
       override def decode(node: Node): Either[Throwable, ComponentGroups] =
         node match {
           case mappingNode: MappingNode =>
@@ -65,9 +65,9 @@ object ComponentGroups {
             else {
               val clazzMap = mappingKV(mappingNode)
               val newGroupsDecoder =
-                implicitly[SnakeYamlDecoder[List[ComponentGroup]]]
+                implicitly[YamlDecoder[List[ComponentGroup]]]
               val extendedGroupsDecoder =
-                implicitly[SnakeYamlDecoder[List[ExtendedComponentGroup]]]
+                implicitly[YamlDecoder[List[ExtendedComponentGroup]]]
               for {
                 newGroups <- clazzMap
                   .get(Fields.New)
@@ -82,13 +82,13 @@ object ComponentGroups {
         }
     }
 
-  implicit val yamlEncoder: SnakeYamlEncoder[ComponentGroups] =
-    new SnakeYamlEncoder[ComponentGroups] {
+  implicit val yamlEncoder: YamlEncoder[ComponentGroups] =
+    new YamlEncoder[ComponentGroups] {
       override def encode(value: ComponentGroups) = {
         val componentGroupEncoder =
-          implicitly[SnakeYamlEncoder[List[ComponentGroup]]]
+          implicitly[YamlEncoder[List[ComponentGroup]]]
         val extendedComponentGoupEncoder =
-          implicitly[SnakeYamlEncoder[List[ExtendedComponentGroup]]]
+          implicitly[YamlEncoder[List[ExtendedComponentGroup]]]
         val elements = new util.ArrayList[(String, Object)](0)
         if (value.newGroups.nonEmpty) {
           elements.add(("new", componentGroupEncoder.encode(value.newGroups)))
@@ -129,8 +129,8 @@ object ComponentGroup {
     val Exports = "exports"
   }
 
-  implicit val yamlDecoder: SnakeYamlDecoder[ComponentGroup] =
-    new SnakeYamlDecoder[ComponentGroup] {
+  implicit val yamlDecoder: YamlDecoder[ComponentGroup] =
+    new YamlDecoder[ComponentGroup] {
       override def decode(node: Node): Either[Throwable, ComponentGroup] =
         node match {
           case mappingNode: MappingNode =>
@@ -143,13 +143,13 @@ object ComponentGroup {
               (groupNode.getKeyNode, groupNode.getValueNode) match {
                 case (scalarNode: ScalarNode, mappingNode: MappingNode) =>
                   val clazzMap     = mappingKV(mappingNode)
-                  val groupDecoder = implicitly[SnakeYamlDecoder[GroupName]]
+                  val groupDecoder = implicitly[YamlDecoder[GroupName]]
                   val colorDecoder =
-                    implicitly[SnakeYamlDecoder[Option[String]]]
+                    implicitly[YamlDecoder[Option[String]]]
                   val iconDecoder =
-                    implicitly[SnakeYamlDecoder[Option[String]]]
+                    implicitly[YamlDecoder[Option[String]]]
                   val exportDecoder =
-                    implicitly[SnakeYamlDecoder[Seq[Component]]]
+                    implicitly[YamlDecoder[Seq[Component]]]
 
                   for {
                     group <- groupDecoder.decode(scalarNode)
@@ -193,11 +193,11 @@ object ComponentGroup {
         }
     }
 
-  implicit val yamlEncoder: SnakeYamlEncoder[ComponentGroup] =
-    new SnakeYamlEncoder[ComponentGroup] {
+  implicit val yamlEncoder: YamlEncoder[ComponentGroup] =
+    new YamlEncoder[ComponentGroup] {
       override def encode(value: ComponentGroup) = {
         val fields     = new util.ArrayList[(String, Object)](3)
-        val seqEncoder = implicitly[SnakeYamlEncoder[Seq[Component]]]
+        val seqEncoder = implicitly[YamlEncoder[Seq[Component]]]
         value.color.foreach(v => fields.add((Fields.Color, v)))
         value.icon.foreach(v => fields.add((Fields.Icon, v)))
         if (value.exports.nonEmpty) {
@@ -275,8 +275,8 @@ object ExtendedComponentGroup {
     val Exports = "exports"
   }
 
-  implicit val yamlDecoder: SnakeYamlDecoder[ExtendedComponentGroup] =
-    new SnakeYamlDecoder[ExtendedComponentGroup] {
+  implicit val yamlDecoder: YamlDecoder[ExtendedComponentGroup] =
+    new YamlDecoder[ExtendedComponentGroup] {
       override def decode(
         node: Node
       ): Either[Throwable, ExtendedComponentGroup] = node match {
@@ -288,8 +288,8 @@ object ExtendedComponentGroup {
               )
             )
           else if (mappingNode.getValue.size() == 1) {
-            val groupDecoder   = implicitly[SnakeYamlDecoder[GroupReference]]
-            val exportsDecoder = implicitly[SnakeYamlDecoder[Seq[Component]]]
+            val groupDecoder   = implicitly[YamlDecoder[GroupReference]]
+            val exportsDecoder = implicitly[YamlDecoder[Seq[Component]]]
             val groupNode      = mappingNode.getValue.get(0)
             (groupNode.getKeyNode, groupNode.getValueNode) match {
               case (scalarNode: ScalarNode, seqNode: SequenceNode) =>
@@ -340,18 +340,18 @@ object ExtendedComponentGroup {
             )
           }
         case scalarNode: ScalarNode =>
-          val groupDecoder = implicitly[SnakeYamlDecoder[GroupReference]]
+          val groupDecoder = implicitly[YamlDecoder[GroupReference]]
           groupDecoder
             .decode(scalarNode)
             .map(ExtendedComponentGroup(_, Seq.empty))
       }
     }
 
-  implicit val yamlEncoder: SnakeYamlEncoder[ExtendedComponentGroup] =
-    new SnakeYamlEncoder[ExtendedComponentGroup] {
+  implicit val yamlEncoder: YamlEncoder[ExtendedComponentGroup] =
+    new YamlEncoder[ExtendedComponentGroup] {
       override def encode(value: ExtendedComponentGroup): Object = {
-        val groupReferenceEncoder = implicitly[SnakeYamlEncoder[GroupReference]]
-        val componentsEncoder     = implicitly[SnakeYamlEncoder[Seq[Component]]]
+        val groupReferenceEncoder = implicitly[YamlEncoder[GroupReference]]
+        val componentsEncoder     = implicitly[YamlEncoder[Seq[Component]]]
 
         val groupReferenceNode =
           groupReferenceEncoder.encode(value.group).asInstanceOf[String]
@@ -435,8 +435,8 @@ object Component {
     val Shortcut = "shortcut"
   }
 
-  implicit val yamlDecoder: SnakeYamlDecoder[Component] =
-    new SnakeYamlDecoder[Component] {
+  implicit val yamlDecoder: YamlDecoder[Component] =
+    new YamlDecoder[Component] {
       override def decode(node: Node): Either[Throwable, Component] =
         node match {
           case mappingNode: MappingNode =>
@@ -446,9 +446,9 @@ object Component {
               val componentNode = mappingNode.getValue.get(0)
               (componentNode.getKeyNode, componentNode.getValueNode) match {
                 case (scalarNode: ScalarNode, mappingNode: MappingNode) =>
-                  val stringDecoder = implicitly[SnakeYamlDecoder[String]]
+                  val stringDecoder = implicitly[YamlDecoder[String]]
                   val shortcutDecoder =
-                    implicitly[SnakeYamlDecoder[Option[Shortcut]]]
+                    implicitly[YamlDecoder[Option[Shortcut]]]
                   for {
                     name <- stringDecoder.decode(scalarNode)
                     shortcut <- shortcutDecoder
@@ -472,18 +472,18 @@ object Component {
               Left(new YAMLException("Failed to decode Component"))
             }
           case scalarNode: ScalarNode =>
-            val stringDecoder = implicitly[SnakeYamlDecoder[String]]
+            val stringDecoder = implicitly[YamlDecoder[String]]
             stringDecoder.decode(scalarNode).map(Component(_, None))
         }
     }
 
-  implicit val yamlEncoder: SnakeYamlEncoder[Component] =
-    new SnakeYamlEncoder[Component] {
+  implicit val yamlEncoder: YamlEncoder[Component] =
+    new YamlEncoder[Component] {
       override def encode(value: Component) = {
         if (value.shortcut.isEmpty) {
           value.name
         } else {
-          val shortcutEncoder = implicitly[SnakeYamlEncoder[Shortcut]]
+          val shortcutEncoder = implicitly[YamlEncoder[Shortcut]]
           val shortcutNode    = value.shortcut.map(shortcutEncoder.encode(_)).get
           toMap(value.name, shortcutNode)
         }
@@ -547,12 +547,12 @@ object Shortcut {
     val Key = "key"
   }
 
-  implicit val yamlDecoder: SnakeYamlDecoder[Shortcut] =
-    new SnakeYamlDecoder[Shortcut] {
+  implicit val yamlDecoder: YamlDecoder[Shortcut] =
+    new YamlDecoder[Shortcut] {
       override def decode(node: Node): Either[Throwable, Shortcut] =
         node match {
           case mappingNode: MappingNode =>
-            val stringDecoder = implicitly[SnakeYamlDecoder[String]]
+            val stringDecoder = implicitly[YamlDecoder[String]]
 
             if (mappingNode.getValue.size() != 1)
               Left(new YAMLException("Invalid number of fields for Shortcut"))
@@ -580,8 +580,8 @@ object Shortcut {
         }
     }
 
-  implicit val yamlEncoder: SnakeYamlEncoder[Shortcut] =
-    new SnakeYamlEncoder[Shortcut] {
+  implicit val yamlEncoder: YamlEncoder[Shortcut] =
+    new YamlEncoder[Shortcut] {
       override def encode(value: Shortcut) = {
         toMap("shortcut", value.key)
       }
@@ -644,8 +644,8 @@ object GroupReference {
     val GroupName   = "group-name"
   }
 
-  implicit val yamlDecoder: SnakeYamlDecoder[GroupReference] =
-    new SnakeYamlDecoder[GroupReference] {
+  implicit val yamlDecoder: YamlDecoder[GroupReference] =
+    new YamlDecoder[GroupReference] {
       override def decode(node: Node): Either[Throwable, GroupReference] =
         node match {
           case scalarNode: ScalarNode =>
@@ -657,8 +657,8 @@ object GroupReference {
         }
     }
 
-  implicit val yamlEncoder: SnakeYamlEncoder[GroupReference] =
-    new SnakeYamlEncoder[GroupReference] {
+  implicit val yamlEncoder: YamlEncoder[GroupReference] =
+    new YamlEncoder[GroupReference] {
       override def encode(value: GroupReference) = {
         value.libraryName.qualifiedName + LibraryName.separator + value.groupName.name
       }
@@ -676,12 +676,12 @@ object GroupName {
     val Name = "name"
   }
 
-  implicit val yamlDecoder: SnakeYamlDecoder[GroupName] =
-    new SnakeYamlDecoder[GroupName] {
+  implicit val yamlDecoder: YamlDecoder[GroupName] =
+    new YamlDecoder[GroupName] {
       override def decode(node: Node): Either[Throwable, GroupName] =
         node match {
           case scalarNode: ScalarNode =>
-            val stringDecoder = implicitly[SnakeYamlDecoder[String]]
+            val stringDecoder = implicitly[YamlDecoder[String]]
             stringDecoder.decode(scalarNode).map(GroupName(_))
         }
     }
