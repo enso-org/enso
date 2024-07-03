@@ -140,7 +140,7 @@ export const BUTTON_STYLES = twv.tv({
           variant: 'body',
           color: 'custom',
           weight: 'medium',
-          className: 'flex px-[5px] py-[1px]',
+          className: 'flex px-[5px] py-[0px]',
         }),
         icon: 'mb-[-0.3cap]',
         content: 'gap-1',

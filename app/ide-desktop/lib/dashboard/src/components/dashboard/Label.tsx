@@ -75,7 +75,7 @@ export default function Label(props: InternalLabelProps) {
           title={title}
           disabled={isDisabled}
           className={tailwindMerge.twMerge(
-            'focus-child relative flex h-text items-center whitespace-nowrap rounded-inherit px-label-x transition-all selectable after:pointer-events-none after:absolute after:inset after:rounded-full',
+            'focus-child relative flex h-text items-center whitespace-nowrap rounded-inherit px-[7px] transition-all selectable after:pointer-events-none after:absolute after:inset after:rounded-full',
             active && 'active',
             negated && 'after:border-2 after:border-delete',
             className,
