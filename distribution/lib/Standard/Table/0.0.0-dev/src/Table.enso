@@ -69,7 +69,7 @@ import project.Sort_Column.Sort_Column
 import project.Value_Type.Auto
 import project.Value_Type.By_Type
 import project.Value_Type.Value_Type
-from project.Column import get_item_string, make_storage_builder_for_type, normalize_string_for_display
+from project.Column import make_storage_builder_for_type
 from project.Errors import all
 from project.Internal.Filter_Condition_Helpers import make_filter_column
 from project.Internal.Lookup_Helpers import make_java_lookup_column_description
