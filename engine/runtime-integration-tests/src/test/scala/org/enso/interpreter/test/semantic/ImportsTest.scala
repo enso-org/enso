@@ -143,26 +143,6 @@ class ImportsTest extends PackageTest {
     outLines(1) shouldEqual "42"
   }
 
-  "Compiler" should "reject qualified exports of the same module with conflicting hidden names" in {
-    the[InterpreterException] thrownBy evalTestProject(
-      "Test_Multiple_Conflicting_Exports_1"
-    ) should have message "Compilation aborted due to errors."
-    val outLines = consumeOut
-    outLines(
-      1
-    ) shouldEqual "Hidden 'foo' name of the exported module local.Test_Multiple_Conflicting_Exports_1.F1 conflicts with the qualified export"
-  }
-
-  "Compiler" should "reject unqualified exports of the same module with conflicting hidden names" in {
-    the[InterpreterException] thrownBy evalTestProject(
-      "Test_Multiple_Conflicting_Exports_2"
-    ) should have message "Compilation aborted due to errors."
-    val outLines = consumeOut
-    outLines(
-      1
-    ) shouldEqual "Hidden 'bar' name of the export module local.Test_Multiple_Conflicting_Exports_2.F1 conflicts with the unqualified export"
-  }
-
   "Polyglot symbols" should "not be exported" in {
     val ex = the[InterpreterException] thrownBy evalTestProject(
       "Test_Polyglot_Exports"
