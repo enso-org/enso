@@ -71,14 +71,12 @@ type Snowflake_Dialect
        A function which generates SQL code from the internal representation
        according to the specific dialect.
     generate_sql : Query -> SQL_Statement
-    generate_sql self query = case query of
-        Query.Truncate_Table name ->
-            # Special handling to use TRUNCATE TABLE instead of the default DELETE FROM.
-            wrapped_name = self.internal_generator_dialect.wrap_identifier name
-            (SQL_Builder.code "TRUNCATE TABLE " ++ wrapped_name) . build
-        _ ->
-            # Rely on the base generator for most queries.
-            Base_Generator.generate_query self.internal_generator_dialect query . build
+    generate_sql self query =
+        Base_Generator.generate_query self.internal_generator_dialect query . build
+
+    generate_truncate_table_sql : Text -> SQL_Builder
+    generate_truncate_table_sql self table_name =
+        Dialect_Menu.truncate_table_truncate_table_style self table_name
 
     ## PRIVATE
        Wraps and possibly escapes the identifier so that it can be used in a

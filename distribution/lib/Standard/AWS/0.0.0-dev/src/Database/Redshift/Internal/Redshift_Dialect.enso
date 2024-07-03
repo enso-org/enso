@@ -22,6 +22,7 @@ import Standard.Database.Internal.Postgres.Postgres_Type_Mapping.Postgres_Type_M
 import Standard.Database.Internal.SQL_Type_Mapping.SQL_Type_Mapping
 import Standard.Database.Internal.SQL_Type_Reference.SQL_Type_Reference
 import Standard.Database.Internal.Statement_Setter.Statement_Setter
+import Standard.Database.SQL.SQL_Builder
 import Standard.Database.SQL_Statement.SQL_Statement
 import Standard.Database.SQL_Type.SQL_Type
 from Standard.Database.Errors import SQL_Error, Unsupported_Database_Operation
@@ -58,6 +59,10 @@ type Redshift_Dialect
     generate_sql : Query -> SQL_Statement
     generate_sql self query =
         Base_Generator.generate_query self.internal_generator_dialect query . build
+
+    generate_truncate_table_sql : Text -> SQL_Builder
+    generate_truncate_table_sql self table_name =
+        Dialect_Menu.truncate_table_delete_from_style self table_name
 
     ## PRIVATE
        Wraps and possibly escapes the identifier so that it can be used in a
