@@ -2,7 +2,7 @@ from Standard.Base import all
 import Standard.Base.Data.Vector.Builder
 
 import Standard.Table.Row.Row
-from Standard.Table import Column, Table
+from Standard.Table import Column, Table, Excel_Workbook
 
 import Standard.Database.DB_Column.DB_Column
 import Standard.Database.DB_Table.DB_Table
@@ -46,12 +46,11 @@ prepare_visualization y max_rows=1000 =
             JS_Object.from_pairs [["json", value]]
         _ : Number ->
             JS_Object.from_pairs [["json", make_json_for_value x]]
-        _ ->
+        _ : Excel_Workbook ->
             js_value = x.to_js_object
-            value = if js_value.is_a JS_Object . not then js_value else
-                pairs = [['_display_text_', x.to_display_text]] + js_value.field_names.map f-> [f, make_json_for_value (js_value.get f)]
-                JS_Object.from_pairs pairs
-            JS_Object.from_pairs [["json", value]]
+            JS_Object.from_pairs [["json", js_value], ["sheet_names", x . sheet_names], ["type", "Excel_Workbook"]]
+        _ ->
+            make_json_for_other x
 
     result.to_text
 
@@ -157,6 +156,16 @@ make_json_for_table dataframe all_rows_count include_index_col =
     has_index_col = ["has_index_col", include_index_col]
     pairs       = [header, value_type, data, all_rows, has_index_col, ["type", "Table"]]
     JS_Object.from_pairs pairs
+
+make_json_for_other : Any -> JS_Object
+make_json_for_other x =
+    js_value = x.to_js_object
+    value = if js_value.is_a JS_Object . not then js_value else
+        pairs = [['_display_text_', x.to_display_text]] + js_value.field_names.map f-> [f, make_json_for_value (js_value.get f)]
+        JS_Object.from_pairs pairs
+    additional_fields = if js_value.is_a JS_Object . not then [] else
+        if js_value.contains_key 'links' then [["links", js_value.get 'links']] else []
+    JS_Object.from_pairs <| [["json", value]] + additional_fields
 
 ## PRIVATE
    Create JSON serialization of values for the table.
