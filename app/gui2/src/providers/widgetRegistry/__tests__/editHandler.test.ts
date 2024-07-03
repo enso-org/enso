@@ -164,7 +164,7 @@ test.each`
     interactionHandler.handlePointerEvent(event, 'pointerdown', navigator)
     const handlersCalled = new Set<string>()
     for (const [id, { interaction }] of handlers)
-      if ((interaction.pointerdown as Mock).mock.lastCall) handlersCalled.add(id)
+      if ((interaction.pointerdown as Mock | undefined)?.mock.lastCall) handlersCalled.add(id)
     expect([...handlersCalled].sort()).toEqual([...expectedHandlerCallsSet].sort())
   },
 )

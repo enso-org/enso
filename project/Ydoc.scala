@@ -5,8 +5,9 @@ import scala.sys.process.*
 
 object Ydoc {
 
-  private val npmCommand =  if (Platform.isWindows) "npm.cmd"           else "npm"
-  private val pnpmCommand = if (Platform.isWindows) "corepack.cmd pnpm" else "corepack pnpm"
+  private val npmCommand = if (Platform.isWindows) "npm.cmd" else "npm"
+  private val pnpmCommand =
+    if (Platform.isWindows) "corepack.cmd pnpm" else "corepack pnpm"
 
   /** Generates the bundled JS source of the Ydoc server.
     *
