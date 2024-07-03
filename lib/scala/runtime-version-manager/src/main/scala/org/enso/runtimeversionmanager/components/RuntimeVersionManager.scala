@@ -537,11 +537,7 @@ class RuntimeVersionManager(
         }
       }
 
-      val tryLoadedEngine = loadEngine(engineTemporaryPath)
-      if (tryLoadedEngine.isFailure) {
-        tryLoadedEngine.failed.foreach(_.printStackTrace())
-      }
-      val temporaryEngine = tryLoadedEngine.getOrElse {
+      val temporaryEngine = loadEngine(engineTemporaryPath).getOrElse {
         undoTemporaryEngine()
         throw InstallationError(
           "Cannot load downloaded engine. Installation reverted."

@@ -290,6 +290,7 @@ lazy val enso = (project in file("."))
     `syntax-rust-definition`,
     `text-buffer`,
     yaml,
+    `scala-yaml`,
     pkg,
     cli,
     `task-progress-notifications`,
@@ -415,7 +416,6 @@ val catsVersion = "2.9.0"
 // === Circe ==================================================================
 
 val circeVersion              = "0.14.7"
-val circeYamlVersion          = "0.15.1"
 val circeGenericExtrasVersion = "0.14.3"
 val circe = Seq("circe-core", "circe-generic", "circe-parser")
   .map("io.circe" %% _ % circeVersion)
@@ -2763,7 +2763,7 @@ lazy val `distribution-manager` = project
       "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-macros" % jsoniterVersion  % "provided",
       "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-core"   % jsoniterVersion,
       "com.typesafe.scala-logging"            %% "scala-logging"         % scalaLoggingVersion,
-      "io.circe"                              %% "circe-yaml"            % circeYamlVersion,
+      "io.circe"                              %% "circe-core"            % circeVersion,
       "org.yaml"                               % "snakeyaml"             % snakeyamlVersion,
       "commons-io"                             % "commons-io"            % commonsIoVersion,
       "org.scalatest"                         %% "scalatest"             % scalatestVersion % Test
