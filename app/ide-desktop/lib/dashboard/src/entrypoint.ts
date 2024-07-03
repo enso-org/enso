@@ -1,8 +1,8 @@
 /** @file Entry point into the cloud dashboard. */
-import '#/tailwind.css'
-
 import * as reactQuery from '@tanstack/react-query'
 import * as commonQuery from 'common-query'
+
+import '#/tailwind.css'
 
 import * as main from '#/index'
 import * as testAppRunner from '#/TestAppRunner'
