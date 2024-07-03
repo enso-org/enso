@@ -242,6 +242,17 @@ function formatNumber(params: ICellRendererParams) {
   return needsGrouping ? numberFormatGroupped.format(value) : numberFormat.format(value)
 }
 
+function formatText(params: ICellRendererParams) {
+  let newString
+  const string = params.value
+  console.log({ string })
+  newString = string.replaceAll(' ', `<span style="color: grey">&#183;</span>`)
+  newString = newString.replaceAll('\n', ` <span style="color: grey">&#9226;</span> \n`)
+  newString = newString.replaceAll('\r', `<span style="color: grey">&#9229;</span>`)
+  newString = newString.replaceAll('\t', `<span style="color: grey">&#8594;</span>`)
+  return `<span class="text-cell"> ${newString}</span>`
+}
+
 function setRowLimit(newRowLimit: number) {
   if (newRowLimit !== rowLimit.value) {
     rowLimit.value = newRowLimit
@@ -282,7 +293,7 @@ function cellRenderer(params: ICellRendererParams) {
   else if (params.value === undefined) return ''
   else if (params.value === '') return '<span style="color:grey; font-style: italic;">Empty</span>'
   else if (typeof params.value === 'number') return formatNumber(params)
-  else if (typeof params.value === 'string') return `<span class="text-cell">${params.value}</span>`
+  else if (typeof params.value === 'string') return formatText(params)
   else if (Array.isArray(params.value)) return `[Vector ${params.value.length} items]`
   else if (typeof params.value === 'object') {
     const valueType = params.value?.type
@@ -712,5 +723,6 @@ onUnmounted(() => {
 }
 .text-cell {
   font-family: monospace;
+  white-space: 'pre';
 }
 </style>
