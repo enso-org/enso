@@ -416,6 +416,7 @@ add_specs suite_builder setup =
 
         group_builder.specify "should allow an SQL-like shift" <|
             t1 = table_builder [["X", [Date.new 2021 01 31, Date.new 2021 01 01, Date.new 2021 12 31]], ["Y", [5, -1, 0]]]
+            t1.at "X" . value_type . should_equal Value_Type.Date
             (t1.at "X").date_add (t1.at "Y") Date_Period.Day . to_vector . should_equal [Date.new 2021 02 05, Date.new 2020 12 31, Date.new 2021 12 31]
             (t1.at "X").date_add -1 Date_Period.Day . to_vector . should_equal [Date.new 2021 01 30, Date.new 2020 12 31, Date.new 2021 12 30]
             (t1.at "X").date_add (t1.at "Y") Date_Period.Month . to_vector . should_equal [Date.new 2021 06 30, Date.new 2020 12 01, Date.new 2021 12 31]
@@ -430,7 +431,9 @@ add_specs suite_builder setup =
 
             (t1.at "X").date_add 1 Time_Period.Hour . should_fail_with Illegal_Argument
             # Will accept Time_Period.Day as alias of Date_Period.Day
-            (t1.at "X").date_add 1 Time_Period.Day . to_vector . should_equal [Date.new 2021 02 01, Date.new 2021 01 02, Date.new 2022 01 01]
+            r1 = (t1.at "X").date_add 1 Time_Period.Day
+            r1.value_type . should_equal Value_Type.Date
+            r1.to_vector . should_equal [Date.new 2021 02 01, Date.new 2021 01 02, Date.new 2022 01 01]
 
             t2 = table_builder [["X", [Date_Time.new 2021 01 31 12 30 0, Date_Time.new 2021 01 01 12 30 0, Date_Time.new 2021 12 31 12 30 0]], ["Y", [5, -1, 0]]]
             (t2.at "X").date_add (t2.at "Y") Date_Period.Day . to_vector . should_equal_tz_agnostic [Date_Time.new 2021 02 05 12 30 0, Date_Time.new 2020 12 31 12 30 0, Date_Time.new 2021 12 31 12 30 0]
