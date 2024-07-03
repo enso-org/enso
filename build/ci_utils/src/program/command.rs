@@ -314,13 +314,11 @@ impl Command {
         self.stdout(Stdio::piped());
         self.stderr(Stdio::piped());
 
-        let program = self.pretty_name.clone().unwrap_or_else(
-            || {
-                let program = self.inner.as_std().get_program();
-                let program = Path::new(program).file_stem().unwrap_or_default().to_os_string();
-                program.to_string_lossy().to_string()
-            }
-        );
+        let program = self.pretty_name.clone().unwrap_or_else(|| {
+            let program = self.inner.as_std().get_program();
+            let program = Path::new(program).file_stem().unwrap_or_default().to_os_string();
+            program.to_string_lossy().to_string()
+        });
 
         let mut child = self.spawn()?;
 
