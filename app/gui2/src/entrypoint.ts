@@ -1,7 +1,7 @@
 import { baseConfig, configValue, mergeConfig } from '@/util/config'
 import { urlParams } from '@/util/urlParams'
 import * as vueQuery from '@tanstack/vue-query'
-import * as commonQuery from 'enso-common/src/commonQuery'
+import * as commonQuery from 'enso-common/src/queryClient'
 import { isOnLinux } from 'enso-common/src/detect'
 import * as dashboard from 'enso-dashboard'
 import { isDevMode } from 'shared/util/detect'
