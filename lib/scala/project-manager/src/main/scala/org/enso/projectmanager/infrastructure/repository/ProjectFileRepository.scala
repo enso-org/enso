@@ -15,6 +15,7 @@ import org.enso.projectmanager.control.core.{
 import org.enso.projectmanager.control.core.syntax._
 import org.enso.projectmanager.control.effect.syntax._
 import org.enso.projectmanager.control.effect.{ErrorChannel, Sync}
+import org.enso.projectmanager.infrastructure.desktop.TrashCan
 import org.enso.projectmanager.infrastructure.file.FileSystem
 import org.enso.projectmanager.infrastructure.file.FileSystemFailure.{
   FileNotFound,
@@ -35,6 +36,7 @@ import org.enso.projectmanager.model.{Project, ProjectMetadata}
   * @param clock a clock
   * @param fileSystem a file system abstraction
   * @param gen a random generator
+  * @param trash a trash can
   */
 class ProjectFileRepository[
   F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap: Applicative
@@ -43,7 +45,8 @@ class ProjectFileRepository[
   metadataStorageConfig: MetadataStorageConfig,
   clock: Clock[F],
   fileSystem: FileSystem[F],
-  gen: Generator[F]
+  gen: Generator[F],
+  trash: TrashCan[F]
 ) extends ProjectRepository[F] {
 
   /** @inheritdoc */
@@ -219,6 +222,19 @@ class ProjectFileRepository[
           fileSystem
             .remove(project.path)
             .mapError(th => StorageFailure(th.toString))
+        case None =>
+          ErrorChannel[F].fail(ProjectNotFoundInIndex)
+      }
+  }
+
+  /** @inheritdoc */
+  override def moveToTrash(
+    projectId: UUID
+  ): F[ProjectRepositoryFailure, Boolean] = {
+    findById(projectId)
+      .flatMap {
+        case Some(project) =>
+          trash.moveToTrash(project.path)
         case None =>
           ErrorChannel[F].fail(ProjectNotFoundInIndex)
       }

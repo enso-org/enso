@@ -2,6 +2,7 @@ package org.enso.projectmanager.infrastructure.repository
 import org.enso.projectmanager.boot.configuration.StorageConfig
 import org.enso.projectmanager.control.core.{Applicative, CovariantFlatMap}
 import org.enso.projectmanager.control.effect.{ErrorChannel, Sync}
+import org.enso.projectmanager.infrastructure.desktop.TrashCan
 import org.enso.projectmanager.infrastructure.file.FileSystem
 import org.enso.projectmanager.infrastructure.random.Generator
 import org.enso.projectmanager.infrastructure.time.Clock
@@ -14,7 +15,8 @@ class ProjectFileRepositoryFactory[
   storageConfig: StorageConfig,
   clock: Clock[F],
   fileSystem: FileSystem[F],
-  gen: Generator[F]
+  gen: Generator[F],
+  trash: TrashCan[F]
 ) extends ProjectRepositoryFactory[F] {
 
   /** @inheritdoc */
@@ -28,7 +30,8 @@ class ProjectFileRepositoryFactory[
       storageConfig.metadata,
       clock,
       fileSystem,
-      gen
+      gen,
+      trash
     )
   }
 }
