@@ -27,11 +27,12 @@ export const TEXT_STYLE = twv.tv({
   variants: {
     color: {
       custom: '',
-      primary: 'text-primary/90',
+      primary: 'text-primary',
       danger: 'text-danger',
       success: 'text-share',
       disabled: 'text-primary/30',
-      invert: 'text-white/80',
+      invert: 'text-white',
+      inherit: 'text-inherit',
     },
     font: {
       default: '',
