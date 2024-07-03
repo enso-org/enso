@@ -4,6 +4,11 @@
 
 #### Enso Enso Standard Library
 
+- [Reamed `Data.list_directory` to `Data.list`. Removed list support from read
+  methods.][10434]
+
+[10434]: https://github.com/enso-org/enso/pull/10434
+
 # Enso 2024.2
 
 #### Enso IDE
