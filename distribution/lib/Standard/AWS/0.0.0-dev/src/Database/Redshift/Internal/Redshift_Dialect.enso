@@ -9,6 +9,7 @@ import Standard.Database.Internal.Base_Generator
 import Standard.Database.Internal.Column_Fetcher as Column_Fetcher_Module
 import Standard.Database.Internal.Column_Fetcher.Column_Fetcher
 import Standard.Database.Internal.Common.Database_Join_Helper
+import Standard.Database.Internal.Dialect_Menu
 import Standard.Database.Internal.Error_Mapper.Error_Mapper
 import Standard.Database.Internal.IR.Context.Context
 import Standard.Database.Internal.IR.From_Spec.From_Spec

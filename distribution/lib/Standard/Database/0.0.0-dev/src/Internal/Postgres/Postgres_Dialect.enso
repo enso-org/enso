@@ -17,6 +17,7 @@ import project.Dialect
 import project.Internal.Base_Generator
 import project.Internal.Common.Database_Distinct_Helper
 import project.Internal.Common.Database_Join_Helper
+import project.Internal.Dialect_Menu
 import project.Internal.Error_Mapper.Error_Mapper
 import project.Internal.IR.Context.Context
 import project.Internal.IR.From_Spec.From_Spec
