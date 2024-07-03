@@ -109,7 +109,8 @@ object SnakeYamlDecoder {
             }
           )
         val lifted = liftEither(result).map(_.toMap)
-        if (lifted.isRight && lifted
+        if (
+          lifted.isRight && lifted
             .map(_.size)
             .getOrElse(-1) != result.size && !keyMapper.duplicatesAllowed
         ) Left(new YAMLException("YAML definition contains duplicate entries"))
