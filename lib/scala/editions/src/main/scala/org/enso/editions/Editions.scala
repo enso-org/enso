@@ -49,13 +49,11 @@ trait Editions {
     def name: LibraryName
   }
 
-  implicit def nestedEditionTypeDecoder: YamlDecoder[NestedEditionType]
-  implicit def libraryRepositoryTypeDecoder
-    : YamlDecoder[LibraryRepositoryType]
+  implicit def nestedEditionTypeDecoder:     YamlDecoder[NestedEditionType]
+  implicit def libraryRepositoryTypeDecoder: YamlDecoder[LibraryRepositoryType]
 
-  implicit def nestedEditionTypeEncoder: YamlEncoder[NestedEditionType]
-  implicit def libraryRepositoryTypeEncoder
-    : YamlEncoder[LibraryRepositoryType]
+  implicit def nestedEditionTypeEncoder:     YamlEncoder[NestedEditionType]
+  implicit def libraryRepositoryTypeEncoder: YamlEncoder[LibraryRepositoryType]
 
   object Library {
 
@@ -436,8 +434,7 @@ object Editions {
     implicit override def nestedEditionTypeEncoder: YamlEncoder[String] =
       YamlEncoder.stringEncoderYaml
 
-    implicit override def libraryRepositoryTypeEncoder
-      : YamlEncoder[String] =
+    implicit override def libraryRepositoryTypeEncoder: YamlEncoder[String] =
       YamlEncoder.stringEncoderYaml
   }
 

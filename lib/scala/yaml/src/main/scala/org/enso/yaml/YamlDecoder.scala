@@ -71,9 +71,9 @@ object YamlDecoder {
   }
 
   implicit def mapDecoderYaml[K, V](implicit
-                                    keyDecoder: YamlDecoder[K],
-                                    valueDecoder: YamlDecoder[V],
-                                    keyMapper: MapKeyField
+    keyDecoder: YamlDecoder[K],
+    valueDecoder: YamlDecoder[V],
+    keyMapper: MapKeyField
   ): YamlDecoder[Map[K, V]] = new YamlDecoder[Map[K, V]] {
     override def decode(node: Node): Either[Throwable, Map[K, V]] = node match {
       case mapping: MappingNode =>
@@ -157,8 +157,8 @@ object YamlDecoder {
     }
 
   implicit def iterableDecoderYaml[CC[X] <: IterableOnce[X], T](implicit
-                                                                valueDecoder: YamlDecoder[T],
-                                                                cbf: BuildFrom[List[Either[Throwable, T]], T, CC[T]]
+    valueDecoder: YamlDecoder[T],
+    cbf: BuildFrom[List[Either[Throwable, T]], T, CC[T]]
   ): YamlDecoder[CC[T]] = new YamlDecoder[CC[T]] {
 
     override def decode(node: Node): Either[Throwable, CC[T]] = node match {
