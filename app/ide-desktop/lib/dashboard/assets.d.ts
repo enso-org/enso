@@ -1,9 +1,11 @@
+/** @file Blanket module declarations for asset file imports. */
+
 declare module 'enso-assets/*.svg' {
-  const value: string
-  export default value
+  const VALUE: string
+  export default VALUE
 }
 
 declare module 'enso-assets/*.png' {
-  const value: string
-  export default value
+  const VALUE: string
+  export default VALUE
 }

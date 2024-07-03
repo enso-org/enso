@@ -126,7 +126,7 @@ declare module 'eslint-plugin-react-hooks' {
 declare module 'esbuild-plugin-time' {
     import type * as esbuild from 'esbuild'
 
-    export default function (name?: string): any
+    export default function (name?: string): esbuild.Plugin
 }
 
 declare module 'create-servers' {
