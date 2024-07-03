@@ -126,14 +126,7 @@ declare module 'eslint-plugin-react-hooks' {
 declare module 'esbuild-plugin-time' {
     import type * as esbuild from 'esbuild'
 
-    export default function (name?: string): esbuild.Plugin
-}
-
-declare module 'tailwindcss/nesting/index.js' {
-    import type * as nested from 'postcss-nested'
-
-    const DEFAULT: nested.Nested
-    export default DEFAULT
+    export default function (name?: string): any
 }
 
 declare module 'create-servers' {

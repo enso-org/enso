@@ -21,6 +21,9 @@ importers:
       tslib:
         specifier: ^2.6.3
         version: 2.6.3
+      typescript:
+        specifier: ^5.3.3
+        version: 5.5.2
     devDependencies:
       npm-run-all:
         specifier: ^4.1.5
@@ -393,6 +396,9 @@ importers:
         specifier: ^4.6.0
         version: 4.6.2(eslint@8.57.0)
     devDependencies:
+      '@types/node':
+        specifier: ^20.11.21
+        version: 20.11.21
       '@typescript-eslint/eslint-plugin':
         specifier: ^6.7.2
         version: 6.21.0(@typescript-eslint/parser@6.21.0(eslint@8.57.0)(typescript@5.5.2))(eslint@8.57.0)(typescript@5.5.2)
@@ -402,6 +408,9 @@ importers:
       cross-env:
         specifier: ^7.0.3
         version: 7.0.3
+      esbuild:
+        specifier: ^0.19.3
+        version: 0.19.12
       eslint:
         specifier: ^8.49.0
         version: 8.57.0
@@ -411,6 +420,9 @@ importers:
       fast-check:
         specifier: ^3.15.0
         version: 3.19.0
+      react:
+        specifier: ^18.3.1
+        version: 18.3.1
       typescript:
         specifier: ^5.3.3
         version: 5.5.2
@@ -463,7 +475,7 @@ importers:
         specifier: 2.1.0
         version: 2.1.0
       '@types/node':
-        specifier: ^20.10.5
+        specifier: ^20.11.21
         version: 20.11.21
       electron:
         specifier: 25.7.0

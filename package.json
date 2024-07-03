@@ -4,7 +4,8 @@
     "prettier": "^3.3.2"
   },
   "dependencies": {
-    "tslib": "^2.6.3"
+    "tslib": "^2.6.3",
+    "typescript": "^5.3.3"
   },
   "name": "root",
   "scripts": {
