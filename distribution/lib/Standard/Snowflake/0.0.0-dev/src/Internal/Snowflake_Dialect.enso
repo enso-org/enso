@@ -279,10 +279,15 @@ make_internal_generator_dialect =
     stddev_pop = ["STDDEV_POP", Base_Generator.make_function "stddev_pop"]
     stddev_samp = ["STDDEV_SAMP", Base_Generator.make_function "stddev_samp"]
     stats = [agg_median, agg_mode, agg_percentile, stddev_pop, stddev_samp]
-    date_ops = [make_extract_as_int "year", make_extract_as_int "quarter", make_extract_as_int "month", make_extract_as_int "week", make_extract_as_int "day", make_extract_as_int "hour", make_extract_as_int "minute", make_extract_fractional_as_int "second", make_extract_fractional_as_int "millisecond" modulus=1000, make_extract_fractional_as_int "microsecond" modulus=1000, ["date_add", make_date_add], ["date_diff", make_date_diff], ["date_trunc_to_day", make_date_trunc_to_day]]
-    special_overrides = []
+    date_ops =
+        trivial = ["year", "quarter", "month", "week", "day", "hour", "minute", "second"]
+            . map name-> [name, Base_Generator.make_function name]
+        fractional = [extract_just_milliseconds, extract_just_microseconds, extract_just_nanoseconds]
+        other = [["day_of_year", Base_Generator.make_function "DAYOFYEAR"], ["day_of_week", Base_Generator.make_function "DAYOFWEEKISO"]]
+        operations = [["date_add", make_date_add], ["date_diff", make_date_diff], ["date_trunc_to_day", make_date_trunc_to_day]]
+        trivial + fractional + other + operations
     other = [["RUNTIME_ERROR", make_runtime_error_op]]
-    my_mappings = text + counts + stats + arith_extensions + bool + date_ops + special_overrides + other
+    my_mappings = text + counts + stats + arith_extensions + bool + date_ops + other
     Base_Generator.base_dialect . extend_with my_mappings
 
 ## PRIVATE
@@ -541,139 +546,62 @@ replace args metadata =
                 True -> Nothing
     expression.if_nothing (replace_params.throw_unsupported snowflake_dialect_name)
 
-## PRIVATE
-make_extract_as_int enso_name sql_name=enso_name =
-    Base_Generator.lift_unary_op enso_name arg->
-        as_int32 <| SQL_Builder.code "EXTRACT(" ++ sql_name ++ " FROM " ++ arg ++ ")"
+extract_just_nanoseconds = Base_Generator.lift_unary_op "nanosecond" arg->
+    SQL_Builder.code "(EXTRACT(NANOSECOND FROM " ++ arg ++ ") % 1000)"
+
+extract_just_microseconds = Base_Generator.lift_unary_op "microsecond" arg->
+    SQL_Builder.code "(TRUNC(EXTRACT(NANOSECOND FROM " ++ arg ++ ") / 1000) % 1000)"
+
+extract_just_milliseconds = Base_Generator.lift_unary_op "millisecond" arg->
+    # No modulo is needed, as the milliseconds are the last part of the nanoseconds.
+    SQL_Builder.code "TRUNC(EXTRACT(NANOSECOND FROM " ++ arg ++ ") / 1000000)"
 
 ## PRIVATE
-make_extract_fractional_as_int enso_name sql_name=enso_name modulus=Nothing =
-    Base_Generator.lift_unary_op enso_name arg->
-        result = as_int32 <| SQL_Builder.code "TRUNC(EXTRACT(" ++ sql_name ++ " FROM " ++ arg ++ "))"
-        case modulus of
-            Nothing -> result
-            _ : Integer ->
-                (result ++ (" % "+modulus.to_text)).paren
+date_period_to_part_with_multiplier period =
+    case period of
+        Date_Period.Year    -> ["year", 1]
+        Date_Period.Quarter -> ["quarter", 1]
+        Date_Period.Month   -> ["month", 1]
+        Date_Period.Week _  -> ["week", 1]
+        Date_Period.Day     -> ["day", 1]
+        Time_Period.Day     -> ["hour", 24]
+        Time_Period.Hour    -> ["hour", 1]
+        Time_Period.Minute  -> ["minute", 1]
+        Time_Period.Second  -> ["second", 1]
+        Time_Period.Millisecond -> ["millisecond", 1]
+        Time_Period.Microsecond -> ["microsecond", 1]
+        Time_Period.Nanosecond  -> ["nanosecond", 1]
 
 ## PRIVATE
 make_date_add arguments (metadata : Date_Period_Metadata) =
     if arguments.length != 2 then Error.throw (Illegal_State.Error "date_add expects exactly 2 sub expressions. This is a bug in Database library.") else
         expr = arguments.at 0
         amount = arguments.at 1
-        interval_arg = case metadata.period of
-            Date_Period.Year ->
-                "years=>1"
-            Date_Period.Quarter ->
-                "months=>3"
-            Date_Period.Month ->
-                "months=>1"
-            Date_Period.Week _ ->
-                "weeks=>1"
-            Date_Period.Day ->
-                "days=>1"
-            Time_Period.Day ->
-                "hours=>24"
-            Time_Period.Hour ->
-                "hours=>1"
-            Time_Period.Minute ->
-                "mins=>1"
-            Time_Period.Second ->
-                "secs=>1"
-            Time_Period.Millisecond ->
-                "secs=>0.001"
-            Time_Period.Microsecond ->
-                "secs=>0.000001"
-        interval_expression = SQL_Builder.code "make_interval(" ++ interval_arg ++ ")"
-        shifted = SQL_Builder.code "(" ++ expr ++ " + (" ++ amount ++ " * " ++ interval_expression ++ "))"
-        case metadata.input_value_type of
-            Value_Type.Date ->
-                SQL_Builder.code "(" ++ shifted ++ "::date)"
-            _ -> shifted
+        part_with_multiplier = date_period_to_part_with_multiplier metadata.period
+        date_part = part_with_multiplier.first
+        multiplier = part_with_multiplier.second
+        scaled_amount = if multiplier == 1 then amount else
+            amount ++ " * " ++ multiplier.to_text
+        SQL_Builder.code "DATEADD('"+date_part+"', " ++ scaled_amount ++ ", " ++ expr ++ ")"
 
 ## PRIVATE
 make_date_diff arguments (metadata : Date_Period_Metadata) =
     if arguments.length != 2 then Error.throw (Illegal_State.Error "date_diff expects exactly 2 sub expressions. This is a bug in Database library.") else
         start = arguments.at 0
         end = arguments.at 1
-
-        truncate expr =
-            SQL_Builder.code "TRUNC(" ++ expr ++ ")"
-
-        # `age` computes a 'symbolic' difference expressed in years, months and days.
-        extract_years =
-            as_int32 <| SQL_Builder.code "EXTRACT(YEARS FROM age(" ++ end ++ ", " ++ start ++ "))"
-        # To get total months, we need to sum up with whole years.
-        extract_months =
-            months = as_int32 <|
-                SQL_Builder.code "EXTRACT(MONTHS FROM age(" ++ end ++ ", " ++ start ++ "))"
-            SQL_Builder.code "(" ++ extract_years ++ " * 12 + " ++ months ++ ")"
-        ## To get total days, we cannot use `age`, because we cannot convert an
-           amount of months to days (month lengths vary). Instead we rely on `-`
-           returning an interval based in 'raw' days.
-        extract_days =
-            as_int32 <| case metadata.input_value_type of
-                ## For pure 'date' datatype, the difference is a simple integer
-                   count of days.
-                Value_Type.Date -> (end ++ " - " ++ start).paren
-                # For others, it is an interval, so we need to extract.
-                _ -> SQL_Builder.code "EXTRACT(DAYS FROM (" ++ end ++ " - " ++ start ++ "))"
-        ## We round the amount of seconds towards zero, as we only count full
-           elapsed seconds in the interval.
-           Note that it is important the interval is computed using `-`. The
-           symbolic `age` has no clear mapping to the count of days, skewing the
-           result.
-        extract_seconds =
-            seconds_numeric = SQL_Builder.code "EXTRACT(EPOCH FROM (" ++ end ++ " - " ++ start ++ "))"
-            as_int64 (truncate seconds_numeric)
-        case metadata.period of
-            Date_Period.Year    -> extract_years
-            Date_Period.Month   -> extract_months
-            Date_Period.Quarter -> (extract_months ++ " / 3").paren
-            Date_Period.Week _  -> (extract_days ++ " / 7").paren
-            Date_Period.Day     -> extract_days
-            ## EXTRACT HOURS/MINUTES would yield only a date part, but we need
-               the total which is easiest achieved by EPOCH
-            Time_Period.Hour    -> (extract_seconds ++ " / 3600").paren
-            Time_Period.Minute  -> (extract_seconds ++ " / 60").paren
-            Time_Period.Second  -> extract_seconds
-            Time_Period.Day     -> case metadata.input_value_type of
-                Value_Type.Date -> extract_days
-                # Time_Period.Day is treated as 24 hours, so for types that support time we use the same algorithm like for hours, but divide by 24.
-                _ -> (extract_seconds ++ " / (3600 * 24)").paren
-            ## The EPOCH gives back just the integer amount of seconds, without
-               the fractional part. So we get the fractional part using
-               MILLISECONDS - but that does not give the _total_ just the
-               'seconds of minute' part, expressed in milliseconds. So we need
-               to merge both - but then seconds of minute appear twice, so we %
-               the milliseconds to get just the fractional part from it and sum
-               both.
-            Time_Period.Millisecond ->
-                millis = truncate <|
-                    SQL_Builder.code "EXTRACT(MILLISECONDS FROM (" ++ end ++ " - " ++ start ++ "))"
-                as_int64 <|
-                    ((extract_seconds ++ " * 1000").paren ++ " + " ++ (millis ++ " % 1000").paren).paren
-            Time_Period.Microsecond ->
-                micros = SQL_Builder.code "EXTRACT(MICROSECONDS FROM (" ++ end ++ " - " ++ start ++ "))"
-                as_int64 <|
-                    ((extract_seconds ++ " * 1000000").paren ++ " + " ++ (micros ++ " % 1000000").paren).paren
+        part_with_multiplier = date_period_to_part_with_multiplier metadata.period
+        date_part = part_with_multiplier.first
+        multiplier = part_with_multiplier.second
+        diff = SQL_Builder.code "DATEDIFF('" ++ date_part ++ "', " ++ start ++ ", " ++ end ++ ")"
+        if multiplier == 1 then diff else
+            # We want to return integer, so we truncate any fractional part that did not constitute a full unit.
+            SQL_Builder.code "TRUNC(" ++ diff ++ " / " ++ multiplier.to_text ++ ")"
 
 ## PRIVATE
 make_date_trunc_to_day arguments =
     if arguments.length != 1 then Error.throw (Illegal_State.Error "date_trunc_to_day expects exactly one sub expression. This is a bug in Database library.") else
         expr = arguments.at 0
         SQL_Builder.code "(DATE_TRUNC('day'," ++ expr ++ ") :: DATE)"
-
-## PRIVATE
-   Alters the expression casting the value to a 64-bit integer.
-   TODO probably remove
-as_int64 expr =
-    SQL_Builder.code "(" ++ expr ++ "::int8)"
-
-## PRIVATE
-   Alters the expression casting the value to a 32-bit integer.
-   TODO probably remove
-as_int32 expr =
-    SQL_Builder.code "(" ++ expr ++ "::int4)"
 
 ## PRIVATE
    The RUNTIME_ERROR operation should allow the query to compile fine and it

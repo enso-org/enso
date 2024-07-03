@@ -660,6 +660,8 @@ make_date_add arguments (metadata : Date_Period_Metadata) =
                 "secs=>0.001"
             Time_Period.Microsecond ->
                 "secs=>0.000001"
+            Time_Period.Nanosecond ->
+                Panic.throw (Illegal_State.Error "Nanosecond precision is not supported by Postgres.")
         interval_expression = SQL_Builder.code "make_interval(" ++ interval_arg ++ ")"
         shifted = SQL_Builder.code "(" ++ expr ++ " + (" ++ amount ++ " * " ++ interval_expression ++ "))"
         case metadata.input_value_type of
