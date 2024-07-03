@@ -2776,13 +2776,11 @@ lazy val `distribution-manager` = project
     frgaalJavaCompilerSetting,
     resolvers += Resolver.bintrayRepo("gn0s1s", "releases"),
     libraryDependencies ++= Seq(
-      "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-macros" % jsoniterVersion  % "provided",
-      "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-core"   % jsoniterVersion,
-      "com.typesafe.scala-logging"            %% "scala-logging"         % scalaLoggingVersion,
-      "io.circe"                              %% "circe-core"            % circeVersion,
-      "org.yaml"                               % "snakeyaml"             % snakeyamlVersion,
-      "commons-io"                             % "commons-io"            % commonsIoVersion,
-      "org.scalatest"                         %% "scalatest"             % scalatestVersion % Test
+      "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion,
+      "io.circe"                   %% "circe-core"    % circeVersion,
+      "org.yaml"                    % "snakeyaml"     % snakeyamlVersion,
+      "commons-io"                  % "commons-io"    % commonsIoVersion,
+      "org.scalatest"              %% "scalatest"     % scalatestVersion % Test
     )
   )
   .dependsOn(editions)
