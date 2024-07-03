@@ -98,7 +98,7 @@ type Existing_Enso_Asset
     is_regular_file self = self.asset_type == Enso_Asset_Type.File
 
     ## PRIVATE
-    list self =
+    list_directory self =
         if self.asset_type != Enso_Asset_Type.Directory then Error.throw (Illegal_Argument.Error "Only directories can be listed.") else
              response = Utils.http_request_as_json HTTP_Method.Get self.internal_uri
              assets = get_required_field "assets" response expected_type=Vector
