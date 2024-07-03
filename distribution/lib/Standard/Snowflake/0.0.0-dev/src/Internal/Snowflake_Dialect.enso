@@ -501,18 +501,18 @@ replace args metadata =
                     _ ->
                         SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ escaped_pattern ++ ", " ++ replacement ++ ", 1, 1)"
         Regex ->
-            pattern_string = SQL_Builder.interpolation raw_pattern.pattern_string
+            pattern = SQL_Builder.interpolation raw_pattern.pattern
             case replace_params.only_first of
                 False -> case replace_params.case_sensitivity of
                     Case_Sensitivity.Insensitive _ ->
-                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_string ++ ", " ++ replacement ++ ", 1, 0, 'i')"
+                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern ++ ", " ++ replacement ++ ", 1, 0, 'i')"
                     _ ->
-                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_string ++ ", " ++ replacement ++ ")"
+                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern ++ ", " ++ replacement ++ ")"
                 True -> case replace_params.case_sensitivity of
                     Case_Sensitivity.Insensitive _ ->
-                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_string ++ ", " ++ replacement ++ ", 1, 1, 'i')"
+                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern ++ ", " ++ replacement ++ ", 1, 1, 'i')"
                     _ ->
-                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_string ++ ", " ++ replacement ++ ", 1, 1)"
+                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern ++ ", " ++ replacement ++ ", 1, 1)"
         DB_Column ->
             case replace_params.only_first of
                 False -> case replace_params.case_sensitivity of
