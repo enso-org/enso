@@ -388,7 +388,7 @@ type S3_File
     list self name_filter:Text="" recursive:Boolean=False =
         check_name_filter action = if name_filter != "" then Unimplemented.throw "S3 listing with name filter is not currently implemented." else action
         check_recursion action = if recursive then Unimplemented.throw "S3 listing with recursion is not currently implemented." else action
-        check_directory action = if self.is_directory.not then Error.throw (S3_Error.Error "Only folders can be listed." self.uri) else action
+        check_directory action = if self.is_directory.not then Error.throw (S3_Error.Error "Cannot `list` a non-directory." self.uri) else action
 
         check_directory <| check_recursion <| check_name_filter <|
             if self.s3_path.bucket == "" then translate_file_errors self <| S3.list_buckets self.credentials . map bucket-> S3_File.Value bucket "" self.credentials else

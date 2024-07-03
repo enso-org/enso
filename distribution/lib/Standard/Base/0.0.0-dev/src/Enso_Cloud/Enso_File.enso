@@ -310,7 +310,7 @@ type Enso_File
        ICON data_input
        Gets a list of assets within self.
     list : Vector Enso_File
-    list self =
+    list self = if self.is_directory.not then Error.throw (Illegal_Argument.Error "Cannot `list` a non-directory.") else
         # Remove secrets from the list - they are handled separately in `Enso_Secret.list`.
         assets = list_assets self . filter f-> f.asset_type != Enso_Asset_Type.Secret
         assets.map asset->
