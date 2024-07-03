@@ -230,7 +230,7 @@ export const BUTTON_STYLES = twv.tv({
     loader: 'absolute inset-0 flex items-center justify-center',
     content: 'flex items-center gap-[0.5em]',
     text: 'inline-flex items-center justify-center gap-1',
-    icon: 'h-[2cap] flex-none aspect-square',
+    icon: 'h-[2cap] flex-none aspect-square flex items-center justify-center',
   },
   defaultVariants: {
     isActive: 'none',

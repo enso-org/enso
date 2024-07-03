@@ -132,20 +132,18 @@ export default function Labels(props: LabelsProps) {
               )
             })}
             <ariaComponents.Button
-              size="custom"
+              size="xsmall"
               variant="bar"
-              className="px-2"
-              isActive={false}
+              className="pl-0 pr-2"
+              /* eslint-disable-next-line no-restricted-syntax */
+              icon={<img src={PlusIcon} alt="" className="ml-auto size-[8px]" />}
               onPress={event => {
                 if (event.target instanceof HTMLElement) {
                   setModal(<NewLabelModal backend={backend} eventTarget={event.target} />)
                 }
               }}
             >
-              {/* This is a non-standard-sized icon. */}
-              {/* eslint-disable-next-line no-restricted-syntax */}
-              <img src={PlusIcon} className="mr-[6px] size-[6px]" />
-              <aria.Text className="text-header">{getText('newLabelButtonLabel')}</aria.Text>
+              {getText('newLabelButtonLabel')}
             </ariaComponents.Button>
           </div>
         </div>
