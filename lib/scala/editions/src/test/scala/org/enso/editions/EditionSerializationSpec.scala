@@ -81,6 +81,23 @@ class EditionSerializationSpec extends AnyWordSpec with Matchers with Inside {
       }
     }
 
+    "not allow non-unique libraries" in {
+      val parsed = EditionSerialization.parseYamlString(
+        """engine-version: 1.2.3-SNAPSHOT
+          |libraries:
+          |- name: Foo.local
+          |  repository: local
+          |- name: Foo.local
+          |  repository: local
+          |""".stripMargin
+      )
+      inside(parsed) { case Failure(exception) =>
+        exception.getMessage should include(
+          "YAML definition contains duplicate entries"
+        )
+      }
+    }
+
     "not allow invalid version combinations for libraries" in {
       val parsed = EditionSerialization.parseYamlString(
         """extends: foo

@@ -773,7 +773,7 @@ lazy val pkg = (project in file("lib/scala/pkg"))
     version := "0.1",
     libraryDependencies ++= Seq(
       "org.graalvm.truffle" % "truffle-api"      % graalMavenPackagesVersion % "provided",
-      "io.circe"           %% "circe-core"       % circeVersion,
+      "io.circe"           %% "circe-core"       % circeVersion              % "provided",
       "org.yaml"            % "snakeyaml"        % snakeyamlVersion          % "provided",
       "org.scalatest"      %% "scalatest"        % scalatestVersion          % Test,
       "org.apache.commons"  % "commons-compress" % commonsCompressVersion
@@ -1475,6 +1475,7 @@ lazy val `polyglot-api` = project
         "runtime-fat-jar"
       ) / Compile / fullClasspath).value,
     libraryDependencies ++= Seq(
+      "io.circe"                              %% "circe-core"            % circeVersion              % "provided",
       "org.graalvm.sdk"                        % "polyglot-tck"          % graalMavenPackagesVersion % "provided",
       "org.graalvm.truffle"                    % "truffle-api"           % graalMavenPackagesVersion % "provided",
       "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-macros" % jsoniterVersion,
@@ -2777,7 +2778,6 @@ lazy val `distribution-manager` = project
     resolvers += Resolver.bintrayRepo("gn0s1s", "releases"),
     libraryDependencies ++= Seq(
       "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion,
-      "io.circe"                   %% "circe-core"    % circeVersion,
       "org.yaml"                    % "snakeyaml"     % snakeyamlVersion,
       "commons-io"                  % "commons-io"    % commonsIoVersion,
       "org.scalatest"              %% "scalatest"     % scalatestVersion % Test
@@ -3055,7 +3055,10 @@ lazy val `edition-updater` = project
 lazy val `edition-uploader` = project
   .in(file("lib/scala/edition-uploader"))
   .settings(
-    frgaalJavaCompilerSetting
+    frgaalJavaCompilerSetting,
+    libraryDependencies ++= Seq(
+      "io.circe" %% "circe-core" % circeVersion % "provided"
+    )
   )
   .dependsOn(editions)
   .dependsOn(`version-output`)

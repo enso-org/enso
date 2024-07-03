@@ -1,7 +1,5 @@
 package org.enso.distribution.config
 
-import io.circe.syntax._
-import io.circe.{Decoder, Encoder, Json}
 import org.enso.semver.SemVer
 import org.enso.cli.arguments.{Argument, OptsParseError}
 import org.enso.semver.SemVerJson._
@@ -33,25 +31,6 @@ object DefaultVersion {
     /** @inheritdoc
       */
     override def toString: String = version.toString
-  }
-
-  /** [[Encoder]] instance for [[DefaultVersion]].
-    */
-  implicit val encoder: Encoder[DefaultVersion] = {
-    case LatestInstalled =>
-      Json.Null
-    case Exact(version) =>
-      version.asJson
-  }
-
-  /** [[Decoder]] instance for [[DefaultVersion]].
-    */
-  implicit val decoder: Decoder[DefaultVersion] = { json =>
-    if (json.value.isNull) Right(LatestInstalled)
-    else
-      for {
-        version <- json.as[SemVer]
-      } yield Exact(version)
   }
 
   implicit val decoderSnake: SnakeYamlDecoder[DefaultVersion] =

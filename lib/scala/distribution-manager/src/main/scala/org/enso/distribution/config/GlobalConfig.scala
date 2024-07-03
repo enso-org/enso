@@ -1,8 +1,5 @@
 package org.enso.distribution.config
 
-import io.circe.syntax._
-import io.circe.{Decoder, Encoder, Json}
-import org.enso.distribution.config
 import org.enso.yaml.{SnakeYamlDecoder, SnakeYamlEncoder}
 import org.yaml.snakeyaml.error.YAMLException
 import org.yaml.snakeyaml.nodes.{MappingNode, Node}
@@ -30,20 +27,18 @@ case class GlobalConfig(
   editionProviders: Seq[String]
 ) {
   def findByKey(key: String): Option[String] = {
-    val jsonValue: Option[Json] = key match {
+    key match {
       case GlobalConfig.Fields.DefaultVersion =>
-        Option(defaultVersion).map(_.asJson)
+        Option(defaultVersion).map(_.toString)
       case GlobalConfig.Fields.AuthorName =>
-        authorName.map(_.asJson)
+        authorName
       case GlobalConfig.Fields.AuthorEmail =>
-        authorEmail.map(_.asJson)
+        authorEmail
       case GlobalConfig.Fields.EditionProviders =>
-        Option(editionProviders).map(_.asJson)
+        Option(editionProviders).map(_.toString())
       case _ =>
         None
     }
-
-    jsonValue.map(j => j.asString.getOrElse(j.toString()))
   }
 }
 
@@ -170,37 +165,4 @@ object GlobalConfig {
         toMap(elements)
       }
     }
-
-  /** [[Decoder]] instance for [[GlobalConfig]].
-    */
-  implicit val decoder: Decoder[GlobalConfig] = { json =>
-    for {
-      defaultVersion <- json.getOrElse[DefaultVersion](Fields.DefaultVersion)(
-        DefaultVersion.LatestInstalled
-      )
-      authorName  <- json.getOrElse[Option[String]](Fields.AuthorName)(None)
-      authorEmail <- json.getOrElse[Option[String]](Fields.AuthorEmail)(None)
-      editionProviders <- json.getOrElse[Seq[String]](Fields.EditionProviders)(
-        defaultEditionProviders
-      )
-    } yield config.GlobalConfig(
-      defaultVersion   = defaultVersion,
-      authorName       = authorName,
-      authorEmail      = authorEmail,
-      editionProviders = editionProviders
-    )
-  }
-
-  /** [[Encoder]] instance for [[GlobalConfig]].
-    */
-  implicit val encoder: Encoder[GlobalConfig] = { config =>
-    val overrides =
-      Json.obj(
-        Fields.DefaultVersion   -> config.defaultVersion.asJson,
-        Fields.AuthorName       -> config.authorName.asJson,
-        Fields.AuthorEmail      -> config.authorEmail.asJson,
-        Fields.EditionProviders -> config.editionProviders.asJson
-      )
-    overrides.dropNullValues.asJson
-  }
 }

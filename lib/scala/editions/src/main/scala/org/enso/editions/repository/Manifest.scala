@@ -1,7 +1,5 @@
 package org.enso.editions.repository
 
-import io.circe._
-import io.circe.syntax.EncoderOps
 import org.enso.editions.EditionName
 import org.enso.yaml.{SnakeYamlDecoder, SnakeYamlEncoder}
 import org.yaml.snakeyaml.error.YAMLException
@@ -15,18 +13,6 @@ case class Manifest(editions: Seq[EditionName])
 object Manifest {
   object Fields {
     val editions = "editions"
-  }
-
-  /** A [[Decoder]] instance for parsing [[Manifest]]. */
-  implicit val decoder: Decoder[Manifest] = { json =>
-    for {
-      editions <- json.get[Seq[EditionName]](Fields.editions)
-    } yield Manifest(editions)
-  }
-
-  /** An [[Encoder]] instance for serializing [[Manifest]]. */
-  implicit val encoder: Encoder[Manifest] = { manifest =>
-    Json.obj(Fields.editions -> manifest.editions.asJson)
   }
 
   implicit val decoderSnake: SnakeYamlDecoder[Manifest] =

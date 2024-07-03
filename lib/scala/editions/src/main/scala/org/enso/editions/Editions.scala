@@ -304,6 +304,7 @@ trait Editions {
                 .get(Fields.libraries)
                 .map(librariesDecoder.decode)
                 .getOrElse(Right(Map.empty[LibraryName, Library]))
+
             } yield Edition(parent, engineVersion, repositories, libraries)
           }
       }
@@ -319,6 +320,11 @@ trait Editions {
           implicitly[SnakeYamlEncoder[Seq[Editions.Repository]]]
         val librariesEncoder = implicitly[SnakeYamlEncoder[Seq[Library]]]
 
+        if (value.parent.isEmpty && value.engineVersion.isEmpty)
+          throw new YAMLException(
+            s"The edition must specify at least one of " +
+            s"${Fields.engineVersion} or ${Fields.parent}"
+          )
         val elements = new util.ArrayList[(String, Object)]()
         value.parent
           .map(parentEncoder.encode)

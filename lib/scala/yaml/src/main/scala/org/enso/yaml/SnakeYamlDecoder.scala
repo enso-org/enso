@@ -59,13 +59,15 @@ object SnakeYamlDecoder {
   }
 
   trait MapKeyField {
-    def key: String
+    def key:               String
+    def duplicatesAllowed: Boolean
   }
 
   object MapKeyField {
-    private case class PlainMapKeyField(key: String) extends MapKeyField
+    private case class PlainMapKeyField(key: String, duplicatesAllowed: Boolean)
+        extends MapKeyField
 
-    def plainField(key: String): MapKeyField = PlainMapKeyField(key)
+    def plainField(key: String): MapKeyField = PlainMapKeyField(key, false)
   }
 
   implicit def mapDecoderYaml[K, V](implicit
@@ -106,7 +108,12 @@ object SnakeYamlDecoder {
                 }
             }
           )
-        liftEither(result).map(_.toMap)
+        val lifted = liftEither(result).map(_.toMap)
+        if (lifted.isRight && lifted
+            .map(_.size)
+            .getOrElse(-1) != result.size && !keyMapper.duplicatesAllowed
+        ) Left(new YAMLException("YAML definition contains duplicate entries"))
+        else lifted
       case _ =>
         Left(new YAMLException("Expected `MappingNode` for a map value"))
     }

@@ -1,7 +1,5 @@
 package org.enso.editions
 
-import io.circe.syntax.EncoderOps
-import io.circe.{Decoder, DecodingFailure, Encoder, Json}
 import org.yaml.snakeyaml.error.YAMLException
 import org.yaml.snakeyaml.nodes.{Node, ScalarNode, Tag}
 import org.enso.yaml.{SnakeYamlDecoder, SnakeYamlEncoder}
@@ -32,13 +30,14 @@ object EditionName {
         node match {
           case scalarNode: ScalarNode =>
             scalarNode.getTag match {
-              case Tag.NULL => Left(new YAMLException("Missing edition name"))
+              case Tag.NULL =>
+                Left(new YAMLException("edition cannot be empty"))
               case _ =>
                 val stringDecoder = implicitly[SnakeYamlDecoder[String]]
                 stringDecoder.decode(scalarNode).map(EditionName(_))
             }
           case _ =>
-            Left(new YAMLException("Unexpected edition name"))
+            Left(new YAMLException("unexpected edition name"))
         }
     }
 
@@ -48,33 +47,6 @@ object EditionName {
         value.name
       }
     }
-
-  /** A [[Decoder]] instance for [[EditionName]] that accepts not only strings
-    * but also numbers as valid edition names.
-    */
-  implicit val editionNameDecoder: Decoder[EditionName] = { json =>
-    json
-      .as[String]
-      .fold[Either[DecodingFailure, Any]](
-        _ =>
-          if (json.value == Json.Null)
-            Left(DecodingFailure("edition cannot be empty", Nil))
-          else
-            json.as[Int].orElse(json.as[Float]),
-        Right(_)
-      )
-      .map(v => EditionName(v.toString))
-  }
-
-  /** An [[Encoder]] instance for serializing [[EditionName]].
-    *
-    * Regardless of the original representation, the edition name is always
-    * serialized as string as this is the most portable and precise format for
-    * this datatype.
-    */
-  implicit val encoder: Encoder[EditionName] = { case EditionName(name) =>
-    name.asJson
-  }
 
   /** The filename suffix that is used to create a filename corresponding to a
     * named edition.

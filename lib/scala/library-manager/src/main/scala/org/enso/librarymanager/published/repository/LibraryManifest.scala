@@ -1,7 +1,5 @@
 package org.enso.librarymanager.published.repository
 
-import io.circe.{Decoder, Encoder, Json}
-import io.circe.syntax.EncoderOps
 import org.enso.editions.LibraryName
 import org.enso.yaml.{SnakeYamlDecoder, SnakeYamlEncoder}
 import org.yaml.snakeyaml.error.YAMLException
@@ -105,37 +103,6 @@ object LibraryManifest {
         toMap(elements)
       }
     }
-
-  /** A [[Decoder]] instance for parsing [[LibraryManifest]]. */
-  implicit val decoder: Decoder[LibraryManifest] = { json =>
-    for {
-      archives <- json.get[Seq[String]](Fields.archives)
-      dependencies <- json.getOrElse[Seq[LibraryName]](Fields.dependencies)(
-        Seq()
-      )
-      tagLine     <- json.get[Option[String]](Fields.tagLine)
-      description <- json.get[Option[String]](Fields.description)
-    } yield LibraryManifest(
-      archives     = archives,
-      dependencies = dependencies,
-      tagLine      = tagLine,
-      description  = description
-    )
-  }
-
-  /** An [[Encoder]] instance for parsing [[LibraryManifest]]. */
-  implicit val encoder: Encoder[LibraryManifest] = { manifest =>
-    val baseFields = Seq(
-      Fields.archives     -> manifest.archives.asJson,
-      Fields.dependencies -> manifest.dependencies.asJson
-    )
-
-    val allFields = baseFields ++
-      manifest.tagLine.map(Fields.tagLine -> _.asJson).toSeq ++
-      manifest.description.map(Fields.description -> _.asJson).toSeq
-
-    Json.obj(allFields: _*)
-  }
 
   /** Parser the provided string and returns a LibraryManifest, if valid */
   def fromYaml(yamlString: String): Try[LibraryManifest] = {
