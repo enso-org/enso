@@ -147,17 +147,17 @@ object OS {
     }
   }
 
-  implicit val decoderSnake: SnakeYamlDecoder[OS] = (node: Node) => {
+  implicit val yamlDecoder: SnakeYamlDecoder[OS] = (node: Node) => {
     node match {
       case s: ScalarNode =>
         s.getValue match {
           case Linux.configName   => Right(Linux)
           case Windows.configName => Right(Windows)
           case MacOS.configName   => Right(MacOS)
-          case os                 => Left(new YAMLException(s"Unsupported os $os"))
+          case os                 => Left(new YAMLException(s"Unsupported os `$os`"))
         }
       case _ =>
-        Left(new YAMLException("Expected a scalar node"))
+        Left(new YAMLException("Expected a plain string value"))
     }
   }
 }

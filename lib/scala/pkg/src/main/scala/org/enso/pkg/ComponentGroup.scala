@@ -82,7 +82,7 @@ object ComponentGroups {
         }
     }
 
-  implicit val encoderSnake: SnakeYamlEncoder[ComponentGroups] =
+  implicit val yamlEncoder: SnakeYamlEncoder[ComponentGroups] =
     new SnakeYamlEncoder[ComponentGroups] {
       override def encode(value: ComponentGroups) = {
         val componentGroupEncoder =
@@ -129,7 +129,7 @@ object ComponentGroup {
     val Exports = "exports"
   }
 
-  implicit val decoderSnake: SnakeYamlDecoder[ComponentGroup] =
+  implicit val yamlDecoder: SnakeYamlDecoder[ComponentGroup] =
     new SnakeYamlDecoder[ComponentGroup] {
       override def decode(node: Node): Either[Throwable, ComponentGroup] =
         node match {
@@ -193,7 +193,7 @@ object ComponentGroup {
         }
     }
 
-  implicit val encoderSnake: SnakeYamlEncoder[ComponentGroup] =
+  implicit val yamlEncoder: SnakeYamlEncoder[ComponentGroup] =
     new SnakeYamlEncoder[ComponentGroup] {
       override def encode(value: ComponentGroup) = {
         val fields     = new util.ArrayList[(String, Object)](3)
@@ -275,7 +275,7 @@ object ExtendedComponentGroup {
     val Exports = "exports"
   }
 
-  implicit val decoderSnake: SnakeYamlDecoder[ExtendedComponentGroup] =
+  implicit val yamlDecoder: SnakeYamlDecoder[ExtendedComponentGroup] =
     new SnakeYamlDecoder[ExtendedComponentGroup] {
       override def decode(
         node: Node
@@ -347,7 +347,7 @@ object ExtendedComponentGroup {
       }
     }
 
-  implicit val encoderSnake: SnakeYamlEncoder[ExtendedComponentGroup] =
+  implicit val yamlEncoder: SnakeYamlEncoder[ExtendedComponentGroup] =
     new SnakeYamlEncoder[ExtendedComponentGroup] {
       override def encode(value: ExtendedComponentGroup): Object = {
         val groupReferenceEncoder = implicitly[SnakeYamlEncoder[GroupReference]]
@@ -435,7 +435,7 @@ object Component {
     val Shortcut = "shortcut"
   }
 
-  implicit val decoderSnake: SnakeYamlDecoder[Component] =
+  implicit val yamlDecoder: SnakeYamlDecoder[Component] =
     new SnakeYamlDecoder[Component] {
       override def decode(node: Node): Either[Throwable, Component] =
         node match {
@@ -477,7 +477,7 @@ object Component {
         }
     }
 
-  implicit val encoderSnake: SnakeYamlEncoder[Component] =
+  implicit val yamlEncoder: SnakeYamlEncoder[Component] =
     new SnakeYamlEncoder[Component] {
       override def encode(value: Component) = {
         if (value.shortcut.isEmpty) {
@@ -547,7 +547,7 @@ object Shortcut {
     val Key = "key"
   }
 
-  implicit val decoderSnake: SnakeYamlDecoder[Shortcut] =
+  implicit val yamlDecoder: SnakeYamlDecoder[Shortcut] =
     new SnakeYamlDecoder[Shortcut] {
       override def decode(node: Node): Either[Throwable, Shortcut] =
         node match {
@@ -580,7 +580,7 @@ object Shortcut {
         }
     }
 
-  implicit val encoderSnake: SnakeYamlEncoder[Shortcut] =
+  implicit val yamlEncoder: SnakeYamlEncoder[Shortcut] =
     new SnakeYamlEncoder[Shortcut] {
       override def encode(value: Shortcut) = {
         toMap("shortcut", value.key)
@@ -644,7 +644,7 @@ object GroupReference {
     val GroupName   = "group-name"
   }
 
-  implicit val decoderSnake: SnakeYamlDecoder[GroupReference] =
+  implicit val yamlDecoder: SnakeYamlDecoder[GroupReference] =
     new SnakeYamlDecoder[GroupReference] {
       override def decode(node: Node): Either[Throwable, GroupReference] =
         node match {
@@ -657,7 +657,7 @@ object GroupReference {
         }
     }
 
-  implicit val encoderSnake: SnakeYamlEncoder[GroupReference] =
+  implicit val yamlEncoder: SnakeYamlEncoder[GroupReference] =
     new SnakeYamlEncoder[GroupReference] {
       override def encode(value: GroupReference) = {
         value.libraryName.qualifiedName + LibraryName.separator + value.groupName.name
@@ -676,7 +676,7 @@ object GroupName {
     val Name = "name"
   }
 
-  implicit val decoderSnake: SnakeYamlDecoder[GroupName] =
+  implicit val yamlDecoder: SnakeYamlDecoder[GroupName] =
     new SnakeYamlDecoder[GroupName] {
       override def decode(node: Node): Either[Throwable, GroupName] =
         node match {

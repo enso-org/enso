@@ -66,7 +66,7 @@ object GlobalConfig {
     val EditionProviders = "edition-providers"
   }
 
-  implicit val decoderSnake: SnakeYamlDecoder[GlobalConfig] =
+  implicit val yamlDecoder: SnakeYamlDecoder[GlobalConfig] =
     new SnakeYamlDecoder[GlobalConfig] {
       override def decode(node: Node) = node match {
         case node: MappingNode =>
@@ -133,7 +133,7 @@ object GlobalConfig {
       }
     }
 
-  implicit val encoderSnake: SnakeYamlEncoder[GlobalConfig] =
+  implicit val yamlEncoder: SnakeYamlEncoder[GlobalConfig] =
     new SnakeYamlEncoder[GlobalConfig] {
       override def encode(value: GlobalConfig): AnyRef = {
         val defaultVersionEncoder = implicitly[SnakeYamlEncoder[DefaultVersion]]

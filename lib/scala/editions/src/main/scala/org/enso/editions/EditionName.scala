@@ -24,7 +24,7 @@ object EditionName {
   /** A helper method for constructing an [[EditionName]]. */
   def apply(name: String): EditionName = new EditionName(name)
 
-  implicit val decoderSnake: SnakeYamlDecoder[EditionName] =
+  implicit val yamlDecoder: SnakeYamlDecoder[EditionName] =
     new SnakeYamlDecoder[EditionName] {
       override def decode(node: Node): Either[Throwable, EditionName] =
         node match {
@@ -41,7 +41,7 @@ object EditionName {
         }
     }
 
-  implicit val encoderSnake: SnakeYamlEncoder[EditionName] =
+  implicit val yamlEncoder: SnakeYamlEncoder[EditionName] =
     new SnakeYamlEncoder[EditionName] {
       override def encode(value: EditionName): Object = {
         value.name

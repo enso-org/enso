@@ -2,9 +2,6 @@ package org.enso.semver
 
 import io.circe.syntax._
 import io.circe.{Decoder, DecodingFailure, Encoder, HCursor}
-import org.yaml.snakeyaml.error.YAMLException
-import org.yaml.snakeyaml.nodes.{Node, ScalarNode}
-import org.enso.yaml.{SnakeYamlDecoder, SnakeYamlEncoder}
 
 import scala.util.Success
 
@@ -38,26 +35,5 @@ object SemVerJson {
   /** [[Encoder]] instance allowing to serialize semantic versioning strings.
     */
   implicit val semverEncoder: Encoder[SemVer] = _.toString.asJson
-
-  implicit val yamlDecoder: SnakeYamlDecoder[SemVer] =
-    new SnakeYamlDecoder[SemVer] {
-      override def decode(node: Node): Either[Throwable, SemVer] = node match {
-        case node: ScalarNode =>
-          safeParse(node.getValue, null).left.map(_.getCause)
-        case _ =>
-          Left(
-            new YAMLException(
-              "Expected a simple value node for SemVer, instead got " + node.getClass
-            )
-          )
-      }
-    }
-
-  implicit val yamlEncoder: SnakeYamlEncoder[SemVer] =
-    new SnakeYamlEncoder[SemVer] {
-      override def encode(value: SemVer): Object = {
-        value.toString
-      }
-    }
 
 }

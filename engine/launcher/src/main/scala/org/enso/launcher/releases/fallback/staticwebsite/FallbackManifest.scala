@@ -1,6 +1,5 @@
 package org.enso.launcher.releases.fallback.staticwebsite
 
-import io.circe.Decoder
 import org.enso.yaml.SnakeYamlDecoder
 import org.yaml.snakeyaml.nodes.{MappingNode, Node}
 
@@ -16,7 +15,7 @@ case class FallbackManifest(enabled: Boolean)
 
 object FallbackManifest {
 
-  implicit val decoderSnake: SnakeYamlDecoder[FallbackManifest] =
+  implicit val yamlDecoder: SnakeYamlDecoder[FallbackManifest] =
     new SnakeYamlDecoder[FallbackManifest] {
       override def decode(node: Node) = {
         node match {
@@ -43,17 +42,6 @@ object FallbackManifest {
 
   private object Fields {
     val enabled = "enabled"
-  }
-
-  /** [[Decoder]] instance for [[FallbackManifest]].
-    *
-    * It should always remain backwards compatible, since the fallback mechanism
-    * must work for all released launcher versions.
-    */
-  implicit val decoder: Decoder[FallbackManifest] = { json =>
-    for {
-      enabled <- json.get[Boolean](Fields.enabled)
-    } yield FallbackManifest(enabled)
   }
 
   def parseString(yamlString: String): Try[FallbackManifest] = {

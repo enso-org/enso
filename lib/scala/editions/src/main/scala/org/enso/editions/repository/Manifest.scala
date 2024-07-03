@@ -15,7 +15,7 @@ object Manifest {
     val editions = "editions"
   }
 
-  implicit val decoderSnake: SnakeYamlDecoder[Manifest] =
+  implicit val yamlDecoder: SnakeYamlDecoder[Manifest] =
     new SnakeYamlDecoder[Manifest] {
       override def decode(node: Node): Either[Throwable, Manifest] =
         node match {
@@ -37,7 +37,7 @@ object Manifest {
         }
     }
 
-  implicit val encoderSnake: SnakeYamlEncoder[Manifest] =
+  implicit val yamlEncoder: SnakeYamlEncoder[Manifest] =
     new SnakeYamlEncoder[Manifest] {
       override def encode(value: Manifest) = {
         val editionsEncoder = implicitly[SnakeYamlEncoder[Seq[EditionName]]]

@@ -3,7 +3,7 @@ package org.enso.launcher.releases.launcher
 import org.enso.launcher.releases.launcher
 import org.enso.semver.SemVer
 import org.enso.runtimeversionmanager.releases.ReleaseProviderException
-import org.enso.semver.SemVerJson._
+import org.enso.semver.SemVerYaml._
 import org.enso.yaml.{ParseError, SnakeYamlDecoder}
 import org.yaml.snakeyaml.error.YAMLException
 import org.yaml.snakeyaml.nodes.{MappingNode, Node}
@@ -41,7 +41,7 @@ object LauncherManifest {
     val directoriesToCopy        = "directories-to-copy"
   }
 
-  implicit val decoderSnake: SnakeYamlDecoder[LauncherManifest] =
+  implicit val yamlDecoder: SnakeYamlDecoder[LauncherManifest] =
     new SnakeYamlDecoder[LauncherManifest] {
       override def decode(node: Node): Either[Throwable, LauncherManifest] = {
         node match {
@@ -56,7 +56,7 @@ object LauncherManifest {
                 .getOrElse(
                   Left(
                     new YAMLException(
-                      s"Required ${Fields.minimumVersionForUpgrade} field is missing"
+                      s"Required `${Fields.minimumVersionForUpgrade}` field is missing"
                     )
                   )
                 )

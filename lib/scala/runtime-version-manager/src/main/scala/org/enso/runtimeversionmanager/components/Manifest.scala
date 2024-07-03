@@ -5,7 +5,7 @@ import java.nio.file.Path
 import org.enso
 import org.enso.semver.SemVer
 import org.enso.cli.OS
-import org.enso.semver.SemVerJson._
+import org.enso.semver.SemVerYaml._
 import org.enso.runtimeversionmanager.components.Manifest.{
   JVMOption,
   RequiredInstallerVersions
@@ -72,7 +72,7 @@ object Manifest {
   case class RequiredInstallerVersions(launcher: SemVer, projectManager: SemVer)
 
   object RequiredInstallerVersions {
-    implicit val decoderSnake: SnakeYamlDecoder[RequiredInstallerVersions] =
+    implicit val yamlDecoder: SnakeYamlDecoder[RequiredInstallerVersions] =
       new SnakeYamlDecoder[RequiredInstallerVersions] {
         override def decode(
           node: Node
@@ -143,7 +143,7 @@ object Manifest {
       val value = "value"
     }
 
-    implicit val decoderSnake: SnakeYamlDecoder[JVMOption] =
+    implicit val yamlDecoder: SnakeYamlDecoder[JVMOption] =
       new SnakeYamlDecoder[JVMOption] {
         override def decode(node: Node): Either[Throwable, JVMOption] = {
           node match {
@@ -230,7 +230,7 @@ object Manifest {
     val brokenMark                   = "broken"
   }
 
-  implicit val decoderSnake: SnakeYamlDecoder[Manifest] =
+  implicit val yamlDecoder: SnakeYamlDecoder[Manifest] =
     new SnakeYamlDecoder[Manifest] {
       override def decode(node: Node): Either[Throwable, Manifest] = {
         node match {

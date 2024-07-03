@@ -2,7 +2,7 @@ package org.enso.distribution.config
 
 import org.enso.semver.SemVer
 import org.enso.cli.arguments.{Argument, OptsParseError}
-import org.enso.semver.SemVerJson._
+import org.enso.semver.SemVerYaml._
 import org.enso.yaml.{SnakeYamlDecoder, SnakeYamlEncoder}
 import org.yaml.snakeyaml.nodes.{Node, ScalarNode}
 
@@ -33,7 +33,7 @@ object DefaultVersion {
     override def toString: String = version.toString
   }
 
-  implicit val decoderSnake: SnakeYamlDecoder[DefaultVersion] =
+  implicit val yamlDecoder: SnakeYamlDecoder[DefaultVersion] =
     new SnakeYamlDecoder[DefaultVersion] {
       override def decode(node: Node) = {
         node match {
@@ -52,7 +52,7 @@ object DefaultVersion {
       }
     }
 
-  implicit val encdoerSnake: SnakeYamlEncoder[DefaultVersion] =
+  implicit val yamlEncoder: SnakeYamlEncoder[DefaultVersion] =
     new SnakeYamlEncoder[DefaultVersion] {
       override def encode(value: DefaultVersion): AnyRef = {
         value match {

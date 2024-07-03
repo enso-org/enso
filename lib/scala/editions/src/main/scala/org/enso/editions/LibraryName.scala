@@ -65,7 +65,7 @@ object LibraryName {
         }
     }
 
-  implicit val encoderSnake: SnakeYamlEncoder[LibraryName] =
+  implicit val yamlEncoder: SnakeYamlEncoder[LibraryName] =
     new SnakeYamlEncoder[LibraryName] {
       override def encode(value: LibraryName) = {
         value.toString

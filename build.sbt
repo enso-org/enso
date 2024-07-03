@@ -757,7 +757,6 @@ lazy val yaml = (project in file("lib/java/yaml"))
   )
 
 lazy val `scala-yaml` = (project in file("lib/scala/yaml"))
-  .enablePlugins(JPMSPlugin)
   .configs(Test)
   .settings(
     frgaalJavaCompilerSetting,

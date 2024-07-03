@@ -43,7 +43,7 @@ object LibraryManifest {
     val description  = "description"
   }
 
-  implicit val decoderSnake: SnakeYamlDecoder[LibraryManifest] =
+  implicit val yamlDecoder: SnakeYamlDecoder[LibraryManifest] =
     new SnakeYamlDecoder[LibraryManifest] {
       override def decode(node: Node): Either[Throwable, LibraryManifest] =
         node match {
@@ -81,7 +81,7 @@ object LibraryManifest {
         }
     }
 
-  implicit val encoderSnake: SnakeYamlEncoder[LibraryManifest] =
+  implicit val yamlEncoder: SnakeYamlEncoder[LibraryManifest] =
     new SnakeYamlEncoder[LibraryManifest] {
       override def encode(value: LibraryManifest): AnyRef = {
         val archivesEncoder     = implicitly[SnakeYamlEncoder[Seq[String]]]
