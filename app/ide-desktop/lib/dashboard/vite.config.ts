@@ -20,14 +20,7 @@ await appConfig.readEnvironmentFromFile()
 /* eslint-disable @typescript-eslint/naming-convention */
 export default vite.defineConfig({
   server: { port: SERVER_PORT, headers: Object.fromEntries(common.COOP_COEP_CORP_HEADERS) },
-  plugins: [
-    vitePluginReact({
-      include: '**/*.tsx',
-      babel: { plugins: ['@babel/plugin-syntax-import-assertions'] },
-    }),
-    vitePluginYaml(),
-    serveFavicon(),
-  ],
+  plugins: [vitePluginReact({ include: '**/*.tsx' }), vitePluginYaml(), serveFavicon()],
   resolve: {
     alias: {
       '#': url.fileURLToPath(new URL('./src', import.meta.url)),

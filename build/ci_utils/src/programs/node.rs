@@ -66,7 +66,7 @@ impl Program for Pnpm {
         "corepack"
     }
 
-    fn pretty_name(&self) -> &'static str {
-        "pnpm"
+    fn pretty_name() -> Option<&'static str> {
+        Some("pnpm")
     }
 }

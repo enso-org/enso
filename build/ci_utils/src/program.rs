@@ -55,8 +55,8 @@ pub trait Program: Sized + 'static {
         Vec::new()
     }
 
-    fn pretty_name(&self) -> &str {
-        self.executable_name()
+    fn pretty_name() -> Option<&'static str> {
+        None
     }
 
     /// Locate the program executable.
