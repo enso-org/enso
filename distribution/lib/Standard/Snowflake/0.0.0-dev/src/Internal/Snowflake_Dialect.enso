@@ -19,7 +19,6 @@ import Standard.Database.Dialect
 import Standard.Database.Internal.Base_Generator
 import Standard.Database.Internal.Common.Database_Distinct_Helper
 import Standard.Database.Internal.Common.Database_Join_Helper
-import Standard.Database.Internal.Dialect_Menu
 import Standard.Database.Internal.Error_Mapper.Error_Mapper
 import Standard.Database.Internal.Internals_Access
 import Standard.Database.Internal.IR.Context.Context
@@ -77,7 +76,7 @@ type Snowflake_Dialect
 
     generate_truncate_table_sql : Text -> SQL_Builder
     generate_truncate_table_sql self table_name =
-        Dialect_Menu.truncate_table_truncate_table_style self table_name
+        Base_Generator.truncate_table_truncate_table_style self table_name
 
     ## PRIVATE
        Wraps and possibly escapes the identifier so that it can be used in a

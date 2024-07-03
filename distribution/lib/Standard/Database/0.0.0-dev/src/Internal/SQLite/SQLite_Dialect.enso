@@ -14,7 +14,6 @@ import project.Dialect
 import project.Internal.Base_Generator
 import project.Internal.Common.Database_Distinct_Helper
 import project.Internal.Common.Database_Join_Helper
-import project.Internal.Dialect_Menu
 import project.Internal.Error_Mapper.Error_Mapper
 import project.Internal.IR.Context.Context
 import project.Internal.IR.From_Spec.From_Spec
@@ -67,7 +66,7 @@ type SQLite_Dialect
 
     generate_truncate_table_sql : Text -> SQL_Builder
     generate_truncate_table_sql self table_name =
-        Dialect_Menu.truncate_table_delete_from_style self table_name
+        Base_Generator.truncate_table_delete_from_style self table_name
 
     ## PRIVATE
        Wraps and possibly escapes the identifier so that it can be used in a

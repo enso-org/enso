@@ -617,3 +617,15 @@ generate_column_description dialect descriptor =
    like a SQL query for the given dialect or is rather a table name.
 is_probably_a_query : Text -> Boolean
 is_probably_a_query text = (text.contains "SELECT ") || (text.contains "EXEC ")
+
+## generate_truncate_table_sql choices
+
+## PRIVATE
+truncate_table_delete_from_style : Internal_Dialect -> Text -> SQL_Builder
+truncate_table_delete_from_style dialect table_name =
+    SQL_Builder.code "DELETE FROM " ++ dialect.wrap_identifier table_name
+
+## PRIVATE
+truncate_table_truncate_table_style : Internal_Dialect -> Text -> SQL_Builder
+truncate_table_truncate_table_style dialect table_name =
+    SQL_Builder.code "TRUNCATE TABLE " ++ dialect.wrap_identifier table_name
