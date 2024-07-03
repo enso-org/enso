@@ -53,8 +53,12 @@ const handler = {
   <div v-if="props.left" class="left" v-on="handler.left" />
   <div v-if="props.right" class="right" v-on="handler.right" />
   <div v-if="props.bottom" class="bottom" v-on="handler.bottom" />
-  <div v-if="props.bottom && props.left" class="bottom left" v-on="handler.bottomLeft" />
-  <div v-if="props.bottom && props.right" class="bottom right" v-on="handler.bottomRight" />
+  <svg v-if="props.bottom && props.left" class="corner bottom left" v-on="handler.bottomLeft">
+    <circle />
+  </svg>
+  <svg v-if="props.bottom && props.right" class="corner bottom right" v-on="handler.bottomRight">
+    <circle />
+  </svg>
 </template>
 
 <style scoped>
@@ -81,12 +85,33 @@ const handler = {
   width: calc(var(--resize-handle-inside) + var(--resize-handle-outside));
 }
 .right {
-  left: calc(100% - var(--resize-handle-inside));
+  right: calc(0px - var(--resize-handle-outside));
   width: calc(var(--resize-handle-inside) + var(--resize-handle-outside));
 }
 .bottom {
-  top: calc(100% - var(--resize-handle-inside));
+  top: unset;
+  bottom: calc(0px - var(--resize-handle-outside));
   height: calc(var(--resize-handle-inside) + var(--resize-handle-outside));
+}
+
+.corner {
+  pointer-events: none;
+  z-index: 2;
+  --corner-size: calc(
+    max(var(--resize-handle-inside), var(--resize-handle-radius, 0)) + var(--resize-handle-outside)
+  );
+  width: var(--corner-size);
+  height: var(--corner-size);
+  & circle {
+    pointer-events: all;
+    r: calc(
+      var(--resize-handle-radius, 0) + (var(--resize-handle-outside) - var(--resize-handle-inside)) /
+        2
+    );
+    stroke: transparent;
+    stroke-width: calc(var(--resize-handle-inside) + var(--resize-handle-outside));
+    fill: none;
+  }
 }
 
 .bottom.right {
@@ -94,6 +119,9 @@ const handler = {
 }
 .bottom.left {
   cursor: nesw-resize;
+  & circle {
+    cx: var(--corner-size);
+  }
 }
 
 .left,

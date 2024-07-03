@@ -59,7 +59,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
   const setAsset = setAssetHooks.useSetAsset(asset, setItem)
   const ownPermission =
     asset.permissions?.find(
-      backendModule.isUserPermissionAnd(permission => permission.user.userId === user?.userId)
+      backendModule.isUserPermissionAnd(permission => permission.user.userId === user.userId)
     ) ?? null
   // This is a workaround for a temporary bad state in the backend causing the `projectState` key
   // to be absent.
@@ -75,7 +75,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
         permissions.PERMISSION_ACTION_CAN_EXECUTE[ownPermission.permission]))
   const isCloud = backend.type === backendModule.BackendType.remote
   const isOtherUserUsingProject =
-    isCloud && projectState.openedBy != null && projectState.openedBy !== user?.email
+    isCloud && projectState.openedBy != null && projectState.openedBy !== user.email
 
   const createProjectMutation = backendHooks.useBackendMutation(backend, 'createProject')
   const updateProjectMutation = backendHooks.useBackendMutation(backend, 'updateProject')
@@ -178,7 +178,6 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
               dispatchAssetEvent({
                 type: AssetEventType.openProject,
                 id: createdProject.projectId,
-                shouldAutomaticallySwitchPage: true,
                 runInBackground: false,
               })
             } catch (error) {
@@ -270,22 +269,6 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
   )
 
   const handleClick = inputBindings.handler({
-    open: () => {
-      dispatchAssetEvent({
-        type: AssetEventType.openProject,
-        id: asset.id,
-        shouldAutomaticallySwitchPage: true,
-        runInBackground: false,
-      })
-    },
-    run: () => {
-      dispatchAssetEvent({
-        type: AssetEventType.openProject,
-        id: asset.id,
-        shouldAutomaticallySwitchPage: false,
-        runInBackground: true,
-      })
-    },
     editName: () => {
       setIsEditing(true)
     },
@@ -314,6 +297,12 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
           selectedKeys.current.size === 1
         ) {
           setIsEditing(true)
+        } else if (eventModule.isDoubleClick(event)) {
+          dispatchAssetEvent({
+            type: AssetEventType.openProject,
+            id: asset.id,
+            runInBackground: false,
+          })
         }
       }}
     >
@@ -329,12 +318,8 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
           assetEvents={assetEvents}
           dispatchAssetEvent={dispatchAssetEvent}
           setProjectStartupInfo={setProjectStartupInfo}
-          doOpenEditor={switchPage => {
-            doOpenEditor(asset, setAsset, switchPage)
-          }}
-          doCloseEditor={() => {
-            doCloseEditor(asset)
-          }}
+          doOpenEditor={doOpenEditor}
+          doCloseEditor={doCloseEditor}
         />
       )}
       <EditableSpan
@@ -346,16 +331,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
           rowState.isEditingName && 'cursor-text'
         )}
         checkSubmittable={newTitle =>
-          newTitle !== item.item.title &&
-          (nodeMap.current.get(item.directoryKey)?.children ?? []).every(
-            child =>
-              // All siblings,
-              child.key === item.key ||
-              // that are not directories,
-              backendModule.assetIsDirectory(child.item) ||
-              // must have a different name.
-              child.item.title !== newTitle
-          )
+          item.isNewTitleValid(newTitle, nodeMap.current.get(item.directoryKey)?.children)
         }
         onSubmit={doRename}
         onCancel={() => {

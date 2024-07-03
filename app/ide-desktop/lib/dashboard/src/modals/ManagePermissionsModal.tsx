@@ -1,10 +1,12 @@
 /** @file A modal with inputs for user email and permission level. */
 import * as React from 'react'
 
+import * as reactQuery from '@tanstack/react-query'
 import * as toast from 'react-toastify'
 import isEmail from 'validator/es/lib/isEmail'
 
 import * as backendHooks from '#/hooks/backendHooks'
+import * as billingHooks from '#/hooks/billing'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
@@ -17,6 +19,7 @@ import Autocomplete from '#/components/Autocomplete'
 import Permission from '#/components/dashboard/Permission'
 import PermissionSelector from '#/components/dashboard/PermissionSelector'
 import Modal from '#/components/Modal'
+import * as paywall from '#/components/Paywall'
 import FocusArea from '#/components/styled/FocusArea'
 
 import * as backendModule from '#/services/Backend'
@@ -59,12 +62,26 @@ export default function ManagePermissionsModal<
   Asset extends backendModule.AnyAsset = backendModule.AnyAsset,
 >(props: ManagePermissionsModalProps<Asset>) {
   const { backend, item, setItem, self, doRemoveSelf, eventTarget } = props
-  const { user } = authProvider.useNonPartialUserSession()
+  const { user } = authProvider.useFullUserSession()
   const { unsetModal } = modalProvider.useSetModal()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { getText } = textProvider.useText()
-  const listedUsers = backendHooks.useBackendListUsers(backend)
-  const listedUserGroups = backendHooks.useBackendListUserGroups(backend)
+
+  const { isFeatureUnderPaywall } = billingHooks.usePaywall({ plan: user.plan })
+  const isUnderPaywall = isFeatureUnderPaywall('shareFull')
+
+  const listedUsers = reactQuery.useQuery({
+    queryKey: ['listUsers'],
+    queryFn: () => backend.listUsers(),
+    enabled: !isUnderPaywall,
+    select: data => (isUnderPaywall ? [] : data),
+  })
+
+  const listedUserGroups = reactQuery.useQuery({
+    queryKey: ['listUserGroups'],
+    queryFn: () => backend.listUserGroups(),
+  })
+
   const [permissions, setPermissions] = React.useState(item.permissions ?? [])
   const [usersAndUserGroups, setUserAndUserGroups] = React.useState<
     readonly (backendModule.UserGroupInfo | backendModule.UserInfo)[]
@@ -100,9 +117,9 @@ export default function ManagePermissionsModal<
       permissions.every(
         permission =>
           permission.permission !== permissionsModule.PermissionAction.own ||
-          (backendModule.isUserPermission(permission) && permission.user.userId === user?.userId)
+          (backendModule.isUserPermission(permission) && permission.user.userId === user.userId)
       ),
-    [user?.userId, permissions, self.permission]
+    [user.userId, permissions, self.permission]
   )
 
   const inviteUserMutation = backendHooks.useBackendMutation(backend, 'inviteUser')
@@ -112,9 +129,9 @@ export default function ManagePermissionsModal<
     // This is SAFE, as the type of asset is not being changed.
     // eslint-disable-next-line no-restricted-syntax
     setItem(object.merger({ permissions } as Partial<Asset>))
-  }, [permissions, /* should never change */ setItem])
+  }, [permissions, setItem])
 
-  if (backend.type === backendModule.BackendType.local || user == null) {
+  if (backend.type === backendModule.BackendType.local) {
     // This should never happen - the local backend does not have the "shared with" column,
     // and `organization` is absent only when offline - in which case the user should only
     // be able to access the local backend.
@@ -123,12 +140,12 @@ export default function ManagePermissionsModal<
   } else {
     const canAdd = React.useMemo(
       () => [
-        ...(listedUsers ?? []).filter(
+        ...(listedUsers.data ?? []).filter(
           listedUser =>
             !permissionsHoldersNames.has(listedUser.name) &&
             !emailsOfUsersWithPermission.has(listedUser.email)
         ),
-        ...(listedUserGroups ?? []).filter(
+        ...(listedUserGroups.data ?? []).filter(
           userGroup => !permissionsHoldersNames.has(userGroup.groupName)
         ),
       ],
@@ -299,7 +316,7 @@ export default function ManagePermissionsModal<
                   }}
                   {...innerProps}
                 >
-                  <div className="flex grow items-center gap-user-permission rounded-full border border-primary/10 px-1">
+                  <div className="flex w-0 grow items-center gap-user-permission rounded-full border border-primary/10 px-1">
                     <PermissionSelector
                       isInput
                       isDisabled={willInviteNewUser}
@@ -315,7 +332,7 @@ export default function ManagePermissionsModal<
                         autoFocus
                         placeholder={
                           // `listedUsers` will always include the current user.
-                          (listedUsers ?? []).length > 1
+                          (listedUsers.data ?? []).length > 1
                             ? getText('inviteUserPlaceholder')
                             : getText('inviteFirstUserPlaceholder')
                         }
@@ -406,6 +423,13 @@ export default function ManagePermissionsModal<
                 </div>
               ))}
             </div>
+
+            {isUnderPaywall && (
+              <paywall.PaywallAlert
+                feature="shareFull"
+                label={getText('shareFullPaywallMessage')}
+              />
+            )}
           </div>
         </div>
       </Modal>

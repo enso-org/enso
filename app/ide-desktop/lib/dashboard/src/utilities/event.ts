@@ -106,9 +106,7 @@ export function isElementSingleLineTextInput(
 // === isElementPartOfMonaco ===
 // =============================
 
-/**
- * Whether the element is part of a Monaco editor.
- */
+/** Whether the element is part of a Monaco editor. */
 export function isElementPartOfMonaco(element: EventTarget | null) {
   const recursiveCheck = (htmlElement: HTMLElement | null): boolean => {
     if (htmlElement == null || htmlElement === document.body) {
@@ -123,6 +121,24 @@ export function isElementPartOfMonaco(element: EventTarget | null) {
     }
   }
   return element != null && element instanceof HTMLElement && recursiveCheck(element)
+}
+
+// =========================
+// === isElementInBounds ===
+// =========================
+
+/** Whether the event occurred within the given {@link DOMRect}. */
+export function isElementInBounds(
+  event: Pick<MouseEvent, 'clientX' | 'clientY'>,
+  bounds: DOMRect,
+  margin = 0
+) {
+  return (
+    bounds.left - margin <= event.clientX &&
+    event.clientX <= bounds.right + margin &&
+    bounds.top - margin <= event.clientY &&
+    event.clientY <= bounds.bottom + margin
+  )
 }
 
 // ==================

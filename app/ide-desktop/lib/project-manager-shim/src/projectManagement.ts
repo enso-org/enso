@@ -17,6 +17,7 @@ import * as tar from 'tar'
 
 import * as common from 'enso-common'
 import * as buildUtils from 'enso-common/src/buildUtils'
+import * as desktopEnvironment from './desktopEnvironment'
 
 const logger = console
 
@@ -27,7 +28,7 @@ const logger = console
 export const PACKAGE_METADATA_RELATIVE_PATH = 'package.yaml'
 export const PROJECT_METADATA_RELATIVE_PATH = '.enso/project.json'
 /** The filename suffix for the project bundle, including the leading period character. */
-const BUNDLED_PROJECT_SUFFIX = `.enso-project`
+const BUNDLED_PROJECT_SUFFIX = '.enso-project'
 
 // ======================
 // === Project Import ===
@@ -127,7 +128,7 @@ export function importBundle(
         sync: true,
         strip: rootPieces.length,
     })
-    return bumpMetadata(targetPath, name ?? null)
+    return bumpMetadata(targetPath, directory, name ?? null)
 }
 
 /** Upload the project from a bundle. */
@@ -156,7 +157,7 @@ export async function uploadBundle(
             fs.rmdirSync(temporaryDirectoryName)
         }
     }
-    return bumpMetadata(targetPath, name ?? null)
+    return bumpMetadata(targetPath, directory, name ?? null)
 }
 
 /** Import the project so it becomes visible to the Project Manager.
@@ -189,7 +190,7 @@ export function importDirectory(
             fs.cpSync(rootPath, targetPath, { recursive: true })
             // Update the project ID, so we are certain that it is unique.
             // This would be violated, if we imported the same project multiple times.
-            return bumpMetadata(targetPath, name ?? null)
+            return bumpMetadata(targetPath, directory, name ?? null)
         }
     }
 }
@@ -228,6 +229,14 @@ function isProjectMetadata(value: unknown): value is ProjectMetadata {
 /** Get the ID from the project metadata. */
 export function getProjectId(projectRoot: string): string | null {
     return getMetadata(projectRoot)?.id ?? null
+}
+
+/** Get the package name. */
+function getPackageName(projectRoot: string) {
+    const path = pathModule.join(projectRoot, PACKAGE_METADATA_RELATIVE_PATH)
+    const contents = fs.readFileSync(path, { encoding: 'utf-8' })
+    const [, name] = contents.match(/^name: (.*)/) ?? []
+    return name ?? null
 }
 
 /** Update the package name. */
@@ -369,7 +378,12 @@ export function getProjectRoot(subtreePath: string): string | null {
 
 /** Get the directory that stores Enso projects. */
 export function getProjectsDirectory(): string {
-    return pathModule.join(os.homedir(), 'enso', 'projects')
+    const documentsPath = desktopEnvironment.DOCUMENTS
+    if (documentsPath === undefined) {
+        return pathModule.join(os.homedir(), 'enso', 'projects')
+    } else {
+        return pathModule.join(documentsPath, 'enso-projects')
+    }
 }
 
 /** Check if the given project is installed, i.e. can be opened with the Project Manager. */
@@ -392,10 +406,37 @@ export function generateId(): string {
 }
 
 /** Update the project's ID to a new, unique value, and its last opened date to the current date. */
-export function bumpMetadata(projectRoot: string, name: string | null): string {
-    if (name != null) {
-        updatePackageName(projectRoot, name)
+export function bumpMetadata(
+    projectRoot: string,
+    parentDirectory: string,
+    name: string | null
+): string {
+    if (name == null) {
+        const currentName = getPackageName(projectRoot) ?? ''
+        let index: number | null = null
+        const prefix = `${currentName} `
+        for (const sibling of fs.readdirSync(parentDirectory, { withFileTypes: true })) {
+            if (sibling.isDirectory()) {
+                try {
+                    const siblingPath = pathModule.join(parentDirectory, sibling.name)
+                    const siblingName = getPackageName(siblingPath)
+                    if (siblingName === currentName) {
+                        index = index ?? 2
+                    } else if (siblingName != null && siblingName.startsWith(prefix)) {
+                        const suffix = siblingName.replace(prefix, '')
+                        const [, numberString] = suffix.match(/^\((\d+)\)/) ?? []
+                        if (numberString != null) {
+                            index = Math.max(index ?? 2, Number(numberString) + 1)
+                        }
+                    }
+                } catch {
+                    // Ignored - it is a directory but not a project.
+                }
+            }
+        }
+        name = index == null ? currentName : `${currentName} (${index})`
     }
+    updatePackageName(projectRoot, name)
     return updateMetadata(projectRoot, metadata => ({
         ...metadata,
         id: generateId(),

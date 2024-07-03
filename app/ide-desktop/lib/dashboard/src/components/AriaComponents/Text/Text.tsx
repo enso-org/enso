@@ -27,7 +27,7 @@ export const TEXT_STYLE = twv.tv({
   variants: {
     color: {
       custom: '',
-      primary: 'text-primary/60',
+      primary: 'text-primary/90',
       danger: 'text-danger',
       success: 'text-share',
       disabled: 'text-primary/30',
@@ -42,9 +42,9 @@ export const TEXT_STYLE = twv.tv({
     // leading should always be after the text size to make sure it is not stripped by twMerge
     variant: {
       custom: '',
-      body: 'text-xs leading-[20px] before:h-[1px] after:h-[3px]',
-      h1: 'text-xl leading-[29px] before:h-0.5 after:h-[5px]',
-      subtitle: 'text-[13.5px] leading-[20px] before:h-[1px] after:h-[3px]',
+      body: 'text-xs leading-[20px] before:h-[1px] after:h-[3px] font-medium',
+      h1: 'text-xl leading-[29px] before:h-0.5 after:h-[5px] font-bold',
+      subtitle: 'text-[13.5px] leading-[19px] before:h-[1px] after:h-[3px] font-bold',
     },
     weight: {
       custom: '',
@@ -66,16 +66,16 @@ export const TEXT_STYLE = twv.tv({
     },
     truncate: {
       /* eslint-disable @typescript-eslint/naming-convention */
-      '1': 'truncate ellipsis w-full',
-      '2': 'line-clamp-2 ellipsis w-full',
-      '3': 'line-clamp-3 ellipsis w-full',
-      '4': 'line-clamp-4 ellipsis w-full',
-      '5': 'line-clamp-5 ellipsis w-full',
-      '6': 'line-clamp-6 ellipsis w-full',
-      '7': 'line-clamp-7 ellipsis w-full',
-      '8': 'line-clamp-8 ellipsis w-full',
-      '9': 'line-clamp-9 ellipsis w-full',
-      custom: 'line-clamp-[var(--line-clamp)] ellipsis w-full',
+      '1': 'truncate ellipsis',
+      '2': 'line-clamp-2 ellipsis',
+      '3': 'line-clamp-3 ellipsis',
+      '4': 'line-clamp-4 ellipsis',
+      '5': 'line-clamp-5 ellipsis',
+      '6': 'line-clamp-6 ellipsis',
+      '7': 'line-clamp-7 ellipsis',
+      '8': 'line-clamp-8 ellipsis',
+      '9': 'line-clamp-9 ellipsis',
+      custom: 'line-clamp-[var(--line-clamp)] ellipsis',
       /* eslint-enable @typescript-eslint/naming-convention */
     },
     monospace: { true: 'font-mono' },
@@ -88,7 +88,7 @@ export const TEXT_STYLE = twv.tv({
       all: 'select-all',
     },
     disableLineHeightCompensation: {
-      true: '',
+      true: 'before:hidden after:hidden before:w-0 after:w-0',
       false:
         'inline-block flex-col before:block after:block before:flex-none after:flex-none before:w-full after:w-full',
     },
@@ -105,24 +105,6 @@ export const TEXT_STYLE = twv.tv({
     disableLineHeightCompensation: false,
     textSelection: 'auto',
   },
-  compoundVariants: [
-    { variant: 'h1', class: 'font-bold' },
-    {
-      variant: 'h1',
-      disableLineHeightCompensation: true,
-      class: 'before:h-[unset] after:h-[unset]',
-    },
-    {
-      variant: 'body',
-      disableLineHeightCompensation: true,
-      class: 'before:h-[unset] after:h-[unset]',
-    },
-    {
-      variant: 'subtitle',
-      disableLineHeightCompensation: true,
-      class: 'before:h-[unset] after:h-[unset]',
-    },
-  ],
 })
 
 /**

@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import ExtendedMenu from '@/components/ExtendedMenu.vue'
 import NavBar from '@/components/NavBar.vue'
-import type { BreadcrumbItem } from '@/components/NavBreadcrumbs.vue'
 import RecordControl from '@/components/RecordControl.vue'
 import SelectionMenu from '@/components/SelectionMenu.vue'
 import { injectGuiConfig } from '@/providers/guiConfig'
@@ -11,18 +10,12 @@ const showColorPicker = defineModel<boolean>('showColorPicker', { required: true
 const showCodeEditor = defineModel<boolean>('showCodeEditor', { required: true })
 const showDocumentationEditor = defineModel<boolean>('showDocumentationEditor', { required: true })
 const props = defineProps<{
-  breadcrumbs: BreadcrumbItem[]
   recordMode: boolean
-  allowNavigationLeft: boolean
-  allowNavigationRight: boolean
   zoomLevel: number
   componentsSelected: number
 }>()
 const emit = defineEmits<{
   recordOnce: []
-  back: []
-  forward: []
-  breadcrumbClick: [index: number]
   'update:recordMode': [enabled: boolean]
   fitToAllClicked: []
   zoomIn: []
@@ -50,14 +43,7 @@ const barStyle = computed(() => {
       @update:recordMode="emit('update:recordMode', $event)"
       @recordOnce="emit('recordOnce')"
     />
-    <NavBar
-      :breadcrumbs="props.breadcrumbs"
-      :allowNavigationLeft="props.allowNavigationLeft"
-      :allowNavigationRight="props.allowNavigationRight"
-      @back="emit('back')"
-      @forward="emit('forward')"
-      @breadcrumbClick="emit('breadcrumbClick', $event)"
-    />
+    <NavBar />
     <Transition name="selection-menu">
       <SelectionMenu
         v-if="componentsSelected > 1"

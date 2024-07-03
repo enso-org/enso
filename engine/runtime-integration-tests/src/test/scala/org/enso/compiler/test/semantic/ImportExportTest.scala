@@ -265,7 +265,7 @@ class ImportExportTest
       mainBindingMap
         .resolvedImports(1)
         .target
-        .asInstanceOf[BindingsMap.ResolvedMethod]
+        .asInstanceOf[BindingsMap.ResolvedModuleMethod]
         .method
         .name shouldEqual "static_method"
       // In B_Module, we only have ResolvedMethod in the resolvedImports, there is no ResolvedModule
@@ -274,7 +274,7 @@ class ImportExportTest
       bBindingMap
         .resolvedImports(0)
         .target
-        .asInstanceOf[BindingsMap.ResolvedMethod]
+        .asInstanceOf[BindingsMap.ResolvedModuleMethod]
         .method
         .name shouldEqual "static_method"
     }

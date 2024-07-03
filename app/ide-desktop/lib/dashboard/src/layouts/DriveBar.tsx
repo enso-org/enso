@@ -9,6 +9,8 @@ import DataDownloadIcon from 'enso-assets/data_download.svg'
 import DataUploadIcon from 'enso-assets/data_upload.svg'
 import RightPanelIcon from 'enso-assets/right_panel.svg'
 
+import * as offlineHooks from '#/hooks/offlineHooks'
+
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
@@ -23,7 +25,6 @@ import StartModal from '#/layouts/StartModal'
 
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
-import Button from '#/components/styled/Button'
 import HorizontalMenuBar from '#/components/styled/HorizontalMenuBar'
 
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
@@ -71,6 +72,9 @@ export default function DriveBar(props: DriveBarProps) {
   const inputBindings = inputBindingsProvider.useInputBindings()
   const uploadFilesRef = React.useRef<HTMLInputElement>(null)
   const isCloud = categoryModule.isCloud(category)
+  const { isOffline } = offlineHooks.useOffline()
+
+  const shouldBeDisabled = isCloud && isOffline
 
   React.useEffect(() => {
     return inputBindings.attach(sanitizedEventTargets.document.body, 'keydown', {
@@ -88,7 +92,7 @@ export default function DriveBar(props: DriveBarProps) {
         uploadFilesRef.current?.click()
       },
     })
-  }, [isCloud, doCreateDirectory, doCreateProject, /* should never change */ inputBindings])
+  }, [isCloud, doCreateDirectory, doCreateProject, inputBindings])
 
   const searchBar = (
     <AssetSearchBar
@@ -99,6 +103,7 @@ export default function DriveBar(props: DriveBarProps) {
       suggestions={suggestions}
     />
   )
+
   const assetPanelToggle = (
     <>
       {/* Spacing. */}
@@ -141,6 +146,7 @@ export default function DriveBar(props: DriveBarProps) {
             <ariaComponents.Button
               size="medium"
               variant="bar"
+              isDisabled={shouldBeDisabled}
               onPress={() => {
                 setModal(
                   <ConfirmDeleteModal
@@ -164,14 +170,16 @@ export default function DriveBar(props: DriveBarProps) {
         <div className="flex h-9 items-center">
           <HorizontalMenuBar grow>
             <aria.DialogTrigger>
-              <ariaComponents.Button size="medium" variant="tertiary" onPress={() => {}}>
+              <ariaComponents.Button size="medium" variant="tertiary" isDisabled={shouldBeDisabled}>
                 {getText('startWithATemplate')}
               </ariaComponents.Button>
+
               <StartModal createProject={doCreateProject} />
             </aria.DialogTrigger>
             <ariaComponents.Button
               size="medium"
               variant="bar"
+              isDisabled={shouldBeDisabled}
               onPress={() => {
                 doCreateProject()
               }}
@@ -179,29 +187,35 @@ export default function DriveBar(props: DriveBarProps) {
               {getText('newEmptyProject')}
             </ariaComponents.Button>
             <div className="flex h-row items-center gap-4 rounded-full border-0.5 border-primary/20 px-[11px] text-primary/50">
-              <Button
-                active
-                image={AddFolderIcon}
-                alt={getText('newFolder')}
+              <ariaComponents.Button
+                variant="icon"
+                size="medium"
+                icon={AddFolderIcon}
+                isDisabled={shouldBeDisabled}
+                aria-label={getText('newFolder')}
                 onPress={() => {
                   doCreateDirectory()
                 }}
               />
               {isCloud && (
-                <Button
-                  active
-                  image={AddKeyIcon}
-                  alt={getText('newSecret')}
+                <ariaComponents.Button
+                  variant="icon"
+                  size="medium"
+                  icon={AddKeyIcon}
+                  isDisabled={shouldBeDisabled}
+                  aria-label={getText('newSecret')}
                   onPress={() => {
                     setModal(<UpsertSecretModal id={null} name={null} doCreate={doCreateSecret} />)
                   }}
                 />
               )}
               {isCloud && (
-                <Button
-                  active
-                  image={AddDatalinkIcon}
-                  alt={getText('newDatalink')}
+                <ariaComponents.Button
+                  variant="icon"
+                  size="medium"
+                  icon={AddDatalinkIcon}
+                  isDisabled={shouldBeDisabled}
+                  aria-label={getText('newDatalink')}
                   onPress={() => {
                     setModal(<UpsertDatalinkModal doCreate={doCreateDatalink} />)
                   }}
@@ -223,23 +237,23 @@ export default function DriveBar(props: DriveBarProps) {
                   event.currentTarget.value = ''
                 }}
               />
-              <Button
-                active
-                image={DataUploadIcon}
-                alt={getText('uploadFiles')}
+              <ariaComponents.Button
+                variant="icon"
+                size="medium"
+                icon={DataUploadIcon}
+                isDisabled={shouldBeDisabled}
+                aria-label={getText('uploadFiles')}
                 onPress={() => {
                   unsetModal()
                   uploadFilesRef.current?.click()
                 }}
               />
-              <Button
-                active={canDownload}
-                isDisabled={!canDownload}
-                image={DataDownloadIcon}
-                alt={getText('downloadFiles')}
-                error={
-                  isCloud ? getText('canOnlyDownloadFilesError') : getText('noProjectSelectedError')
-                }
+              <ariaComponents.Button
+                isDisabled={!canDownload || shouldBeDisabled}
+                variant="icon"
+                size="medium"
+                icon={DataDownloadIcon}
+                aria-label={getText('downloadFiles')}
                 onPress={() => {
                   unsetModal()
                   dispatchAssetEvent({ type: AssetEventType.downloadSelected })

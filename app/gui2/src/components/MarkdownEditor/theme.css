@@ -56,3 +56,10 @@ using `_` to separate levels. See the `lexicalTheme` function in `lexical/format
   display: inline;
   margin: 0 0.1em;
 }
+
+.link {
+  color: #555;
+  &:hover {
+    text-decoration: underline;
+  }
+}

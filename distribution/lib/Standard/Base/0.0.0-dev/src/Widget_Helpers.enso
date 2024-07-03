@@ -146,3 +146,18 @@ make_data_cleanse_vector_selector display:Display=Display.Always =
     patterns = ['Leading_Whitespace', 'Trailing_Whitespace', 'Duplicate_Whitespace', 'All_Whitespace', 'Leading_Numbers', 'Trailing_Numbers', 'Non_ASCII', 'Tabs', 'Letters', 'Numbers', 'Punctuation', 'Symbols']
     options = patterns.map f-> Option f (".." + f)
     Multiple_Choice values=options display=display
+
+## PRIVATE
+   Make a single value selector
+make_any_selector : Display -> Boolean -> Boolean -> Boolean -> Boolean -> Boolean -> Boolean -> Widget
+make_any_selector display:Display=..Always add_text:Boolean=False add_regex:Boolean=False add_number:Boolean=False add_boolean:Boolean=False add_named_pattern:Boolean=False add_nothing:Boolean=False =
+    text = if add_text then [Option "<Text Value>" "''"] else []
+    regex = if add_regex then [Option "<Regular Expression>" "(regex '')"] else []
+    number = if add_number then [Option "<Number Value>" "0"] else []
+    boolean = if add_boolean then [Option "<True/False>" "True"] else []
+    named_pattern = if add_named_pattern.not then [] else
+        patterns = ["Leading_Whitespace", "Trailing_Whitespace", "All_Whitespace", "Leading_Numbers", "Trailing_Numbers", "Non_ASCII", "Tabs", "Letters", "Numbers", "Punctuation", "Symbols"]
+        ## Can't use auto-scoping as Named_Patterns are materialised into Regex.
+        patterns.map p-> Option "<"+p+">" "Named_Pattern."+p
+    nothing = if add_nothing then [Option "<Nothing>" "Nothing"] else []
+    make_single_choice (text + regex + number + boolean + named_pattern + nothing) display=display

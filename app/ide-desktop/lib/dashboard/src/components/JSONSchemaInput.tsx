@@ -35,29 +35,16 @@ export interface JSONSchemaInputProps {
 /** A dynamic wizard for creating an arbitrary type of Datalink. */
 export default function JSONSchemaInput(props: JSONSchemaInputProps) {
   const { dropdownTitle, readOnly = false, defs, schema, path, getValidator } = props
-  const { value: valueRaw, setValue: setValueRaw } = props
+  const { value, setValue } = props
   // The functionality for inputting `enso-secret`s SHOULD be injected using a plugin,
   // but it is more convenient to avoid having plugin infrastructure.
   const remoteBackend = backendProvider.useRemoteBackend()
   const { getText } = textProvider.useText()
-  const [value, setValue] = React.useState(valueRaw)
   const [autocompleteText, setAutocompleteText] = React.useState(() =>
     typeof value === 'string' ? value : null
   )
   const [selectedChildIndex, setSelectedChildIndex] = React.useState<number | null>(null)
   const [autocompleteItems, setAutocompleteItems] = React.useState<string[] | null>(null)
-
-  React.useEffect(() => {
-    setValue(valueRaw)
-    // `initializing` is not a dependency.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [valueRaw])
-
-  React.useEffect(() => {
-    setValueRaw(value)
-    // `setStateRaw` is a callback, not a dependency.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [value])
 
   // NOTE: `enum` schemas omitted for now as they are not yet used.
   if ('const' in schema) {
@@ -215,54 +202,51 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
                   return jsonSchema.constantValue(defs, childSchema).length === 1 ? null : (
                     <div
                       key={key}
-                      className="flex flex-wrap items-center gap-buttons"
+                      className="flex flex-wrap items-center gap-2"
                       {...('description' in childSchema
                         ? { title: String(childSchema.description) }
                         : {})}
                     >
                       <FocusArea active={isOptional} direction="horizontal">
-                        {innerProps => (
-                          <ariaComponents.Button
-                            size="custom"
-                            variant="custom"
-                            isDisabled={!isOptional}
-                            className={tailwindMerge.twMerge(
-                              'text inline-block w-json-schema-object-key whitespace-nowrap rounded-full px-button-x text-left',
-                              isOptional && 'hover:bg-hover-bg'
-                            )}
-                            onPress={() => {
-                              if (isOptional) {
-                                setValue(oldValue => {
-                                  if (oldValue != null && key in oldValue) {
-                                    // This is SAFE, as `value` is an untyped object.
-                                    // The removed key is intentionally unused.
-                                    // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/no-unused-vars
-                                    const { [key]: removed, ...newValue } = oldValue as Record<
-                                      string,
-                                      NonNullable<unknown> | null
-                                    >
-                                    return newValue
-                                  } else {
-                                    return {
-                                      ...oldValue,
-                                      [key]: jsonSchema.constantValue(defs, childSchema, true)[0],
-                                    }
-                                  }
-                                })
-                              }
-                            }}
-                            {...innerProps}
-                          >
-                            <aria.Text
+                        {innerProps => {
+                          const isPresent = value != null && key in value
+                          return (
+                            <ariaComponents.Button
+                              size="custom"
+                              variant="custom"
+                              isDisabled={!isOptional}
+                              isActive={!isOptional || isPresent}
                               className={tailwindMerge.twMerge(
-                                'selectable',
-                                value != null && key in value && 'active'
+                                'text inline-block w-json-schema-object-key whitespace-nowrap rounded-full px-button-x text-left',
+                                isOptional && 'hover:bg-hover-bg'
                               )}
+                              onPress={() => {
+                                if (isOptional) {
+                                  setValue(oldValue => {
+                                    if (oldValue != null && key in oldValue) {
+                                      // This is SAFE, as `value` is an untyped object.
+                                      // The removed key is intentionally unused.
+                                      // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/no-unused-vars
+                                      const { [key]: removed, ...newValue } = oldValue as Record<
+                                        string,
+                                        NonNullable<unknown> | null
+                                      >
+                                      return newValue
+                                    } else {
+                                      return {
+                                        ...oldValue,
+                                        [key]: jsonSchema.constantValue(defs, childSchema, true)[0],
+                                      }
+                                    }
+                                  })
+                                }
+                              }}
+                              {...innerProps}
                             >
                               {'title' in childSchema ? String(childSchema.title) : key}
-                            </aria.Text>
-                          </ariaComponents.Button>
-                        )}
+                            </ariaComponents.Button>
+                          )
+                        }}
                       </FocusArea>
                       {value != null && key in value && (
                         <JSONSchemaInput

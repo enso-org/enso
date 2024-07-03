@@ -4,6 +4,8 @@ import project.Errors.Encoding_Error.Encoding_Error
 from project.Data.Text.Extensions import all
 
 polyglot java import java.util.Base64
+polyglot java import java.util.Base64.Decoder
+polyglot java import java.util.Base64.Encoder
 
 ## A helper utility for handling base64 encoding.
 type Base_64

@@ -19,8 +19,8 @@ import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.data.BindingsMap.{
   Resolution,
   ResolutionNotFound,
-  ResolvedMethod,
-  ResolvedModule
+  ResolvedModule,
+  ResolvedModuleMethod
 }
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.core.ConstantsNames
@@ -122,15 +122,21 @@ case object GlobalNames extends IRPass {
       case tp: Definition.Type =>
         tp.copy(members =
           tp.members.map(
-            _.mapExpressions(
+            _.mapExpressions { expr =>
+              val selfTypeResolution =
+                bindings.resolveName(tp.name.name) match {
+                  case Right(List(resolvedName)) =>
+                    Some(Resolution(resolvedName))
+                  case _ => None
+                }
               processExpression(
-                _,
+                expr,
                 bindings,
                 tp.params,
                 freshNameSupply,
-                bindings.resolveName(tp.name.name).toOption.map(Resolution)
+                selfTypeResolution
               )
-            )
+            }
           )
         )
 
@@ -181,10 +187,17 @@ case object GlobalNames extends IRPass {
                       lit,
                       errors.Resolution.ResolverError(error)
                     )
-                  case Right(r @ BindingsMap.ResolvedMethod(mod, method)) =>
+                  case Right(values)
+                      if values.exists(_.isInstanceOf[ResolvedModuleMethod]) =>
+                    val resolvedModuleMethod = values.collectFirst {
+                      case r: ResolvedModuleMethod => r
+                    }.get
                     if (isInsideApplication) {
                       lit.updateMetadata(
-                        new MetadataPair(this, BindingsMap.Resolution(r))
+                        new MetadataPair(
+                          this,
+                          BindingsMap.Resolution(resolvedModuleMethod)
+                        )
                       )
                     } else {
                       val self = freshNameSupply
@@ -193,14 +206,15 @@ case object GlobalNames extends IRPass {
                           new MetadataPair(
                             this,
                             BindingsMap.Resolution(
-                              BindingsMap.ResolvedModule(mod)
+                              BindingsMap
+                                .ResolvedModule(resolvedModuleMethod.module)
                             )
                           )
                         )
                       // The synthetic applications gets the location so that instrumentation
                       // identifies the node correctly
                       val fun = lit.copy(
-                        name     = method.name,
+                        name     = resolvedModuleMethod.method.name,
                         location = None
                       )
                       val app = Application.Prefix(
@@ -222,9 +236,11 @@ case object GlobalNames extends IRPass {
                       fun.passData.remove(ExpressionAnnotations)
                       app
                     }
-                  case Right(value) =>
-                    lit.updateMetadata(
-                      new MetadataPair(this, BindingsMap.Resolution(value))
+                  case Right(values) =>
+                    values.foldLeft(lit)((lit, value) =>
+                      lit.updateMetadata(
+                        new MetadataPair(this, BindingsMap.Resolution(value))
+                      )
                     )
                 }
 
@@ -297,7 +313,7 @@ case object GlobalNames extends IRPass {
       )
     )
     processedFun.getMetadata(this) match {
-      case Some(Resolution(ResolvedMethod(mod, _))) if !isLocalVar(fun) =>
+      case Some(Resolution(ResolvedModuleMethod(mod, _))) if !isLocalVar(fun) =>
         val self = freshNameSupply
           .newName()
           .updateMetadata(
@@ -408,8 +424,8 @@ case object GlobalNames extends IRPass {
           )
           .resolveExportedName(consName.name)
         resolution match {
-          case Right(res) => Some(res)
-          case _          => None
+          case Right(List(res)) => Some(res)
+          case _                => None
         }
       case _ => None
     }

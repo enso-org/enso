@@ -14,5 +14,6 @@
 <style scoped>
 .LexicalContent {
   outline-style: none;
+  flex: 1;
 }
 </style>

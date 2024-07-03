@@ -30,13 +30,18 @@ from project.Data.Json.Extensions import all
 
 polyglot java import java.lang.Exception as JException
 polyglot java import java.net.http.HttpClient
+polyglot java import java.net.http.HttpClient.Builder as ClientBuilder
+polyglot java import java.net.http.HttpClient.Redirect
+polyglot java import java.net.http.HttpClient.Version
 polyglot java import java.net.http.HttpRequest
 polyglot java import java.net.http.HttpRequest.BodyPublisher
+polyglot java import java.net.http.HttpRequest.BodyPublishers
+polyglot java import java.net.http.HttpRequest.Builder
 polyglot java import java.net.InetSocketAddress
 polyglot java import java.net.ProxySelector
-polyglot java import java.nio.file.Path
 polyglot java import javax.net.ssl.SSLContext
 polyglot java import org.enso.base.enso_cloud.EnsoSecretHelper
+polyglot java import org.enso.base.file_system.File_Utils
 polyglot java import org.enso.base.net.http.MultipartBodyBuilder
 polyglot java import org.enso.base.net.http.UrlencodedBodyBuilder
 
@@ -242,7 +247,7 @@ resolve_body_to_publisher_and_boundary body:Request_Body =
             json.if_not_error <|
                 Pair.new (body_publishers.ofString json) Nothing
         Request_Body.Binary file ->
-            path = Path.of file.path
+            path = File_Utils.toPath file.path
             Pair.new (body_publishers.ofFile path) Nothing
         Request_Body.Form_Data form_data url_encoded ->
             build_form_body_publisher form_data url_encoded

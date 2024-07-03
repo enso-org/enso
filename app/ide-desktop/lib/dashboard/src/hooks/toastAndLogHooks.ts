@@ -10,6 +10,13 @@ import * as textProvider from '#/providers/TextProvider'
 
 import * as errorModule from '#/utilities/error'
 
+// ===========================
+// === ToastAndLogCallback ===
+// ===========================
+
+/** The type of the `toastAndLog` function returned by {@link useToastAndLog}. */
+export type ToastAndLogCallback = ReturnType<typeof useToastAndLog>
+
 // ======================
 // === useToastAndLog ===
 // ======================
@@ -50,6 +57,6 @@ export function useToastAndLog() {
       logger.error(message)
       return id
     },
-    [getText, /* should never change */ logger]
+    [getText, logger]
   )
 }

@@ -185,6 +185,20 @@ type Snowflake_Dialect
         column
 
     ## PRIVATE
+       Add an extra cast to adjust the output type of certain operations with
+       certain arguments.
+
+       It is used when the normal type inference provided by the database engine
+       needs to be adjusted.
+
+       In most cases this method will just return the expression unchanged, it
+       is used only to override the type in cases where the default one that the
+       database uses is not what we want.
+    cast_op_type self (op_kind:Text) (args:(Vector Internal_Column)) (expression:SQL_Expression) =
+        _ = [op_kind, args]
+        expression
+
+    ## PRIVATE
     prepare_fetch_types_query : SQL_Expression -> Context -> SQL_Statement
     prepare_fetch_types_query self expression context =
         Dialect.default_fetch_types_query self expression context
@@ -271,7 +285,7 @@ agg_count_is_null = Base_Generator.lift_unary_op "COUNT_IS_NULL" arg->
 
 ## PRIVATE
 agg_count_empty = Base_Generator.lift_unary_op "COUNT_EMPTY" arg->
-    SQL_Builder.code "COUNT_IF("++ arg.paren ++ " IS NULL OR " ++ arg.paren ++ " == '')"
+    SQL_Builder.code "COUNT_IF(" ++ arg.paren ++ " IS NULL OR " ++ arg.paren ++ " = '')"
 
 ## PRIVATE
 agg_count_not_empty = Base_Generator.lift_unary_op "COUNT_NOT_EMPTY" arg->
@@ -326,7 +340,7 @@ agg_longest = Base_Generator.lift_unary_op "LONGEST" arg->
 ## PRIVATE
 concat_ops =
     make_raw_concat_expr expr separator =
-        SQL_Builder.code "string_agg(" ++ expr ++ ", " ++ separator ++ ")"
+        SQL_Builder.code "LISTAGG(" ++ expr ++ ", " ++ separator ++ ")"
     concat = Base_Generator.make_concat make_raw_concat_expr make_contains_expr
     [["CONCAT", concat (has_quote=False)], ["CONCAT_QUOTE_IF_NEEDED", concat (has_quote=True)]]
 
@@ -363,7 +377,9 @@ agg_count_distinct args = if args.is_empty then (Error.throw (Illegal_Argument.E
 ## PRIVATE
 agg_count_distinct_include_null args =
     ## If we always count as tuples, then even null fields are counted.
-    SQL_Builder.code "COUNT(DISTINCT (" ++ SQL_Builder.join ", " args ++ ", 0))"
+    ## But Snowflake seems to not like tuples?
+    #SQL_Builder.code "COUNT(DISTINCT (" ++ SQL_Builder.join ", " args ++ ", 0))"
+    SQL_Builder.code "COUNT(DISTINCT (" ++ SQL_Builder.join ", " args ++ "))"
 
 ## PRIVATE
 starts_with = Base_Generator.lift_binary_sql_function "STARTS_WITH" "STARTSWITH"
@@ -375,11 +391,11 @@ ends_with = Base_Generator.lift_binary_sql_function "ENDS_WITH" "ENDSWITH"
 contains = Base_Generator.lift_binary_sql_function "CONTAINS" "CONTAINS"
 
 ## PRIVATE
-make_contains_expr expr substring = contains [expr, substring]
+make_contains_expr expr substring = contains.second [expr, substring]
 
 ## PRIVATE
 make_case_sensitive = Base_Generator.lift_unary_op "MAKE_CASE_SENSITIVE" arg->
-    SQL_Builder.code "((" ++ arg ++ ') COLLATE "ucs_basic")'
+    SQL_Builder.code "((" ++ arg ++ ") COLLATE 'ucs_basic')"
 
 ## PRIVATE
 left = Base_Generator.lift_binary_op "LEFT" str-> n->
@@ -415,11 +431,11 @@ make_order_descriptor internal_column sort_direction text_ordering =
 
 ## PRIVATE
 is_nan = Base_Generator.lift_unary_op "IS_NAN" arg->
-    (arg ++ " in (double precision 'NaN')").paren
+    (arg ++ " in ('NaN'::float)").paren
 
 ## PRIVATE
 is_inf = Base_Generator.lift_unary_op "IS_INF" arg->
-    (arg ++ " in (double precision 'Infinity', double precision '-Infinity')").paren
+    (arg ++ " in ('Infinity'::float, '-Infinity'::float)").paren
 
 ## PRIVATE
 bool_or = Base_Generator.lift_unary_op "BOOL_OR" arg->
@@ -427,11 +443,11 @@ bool_or = Base_Generator.lift_unary_op "BOOL_OR" arg->
 
 ## PRIVATE
 floating_point_div = Base_Generator.lift_binary_op "/" x-> y->
-    SQL_Builder.code "CAST(" ++ x ++ " AS double precision) / CAST(" ++ y ++ " AS double precision)"
+    SQL_Builder.code "CAST(" ++ x ++ " AS float) / CAST(" ++ y ++ " AS float)"
 
 ## PRIVATE
 mod_op = Base_Generator.lift_binary_op "MOD" x-> y->
-    x ++ " - FLOOR(CAST(" ++ x ++ " AS double precision) / CAST(" ++ y ++ " AS double precision)) * " ++ y
+    x ++ " - FLOOR(CAST(" ++ x ++ " AS float) / CAST(" ++ y ++ " AS float)) * " ++ y
 
 ## PRIVATE
 decimal_div = Base_Generator.lift_binary_op "DECIMAL_DIV" x-> y->
@@ -463,6 +479,12 @@ replace args metadata =
     raw_pattern = metadata.at 0
     replace_params = metadata.at 1
 
+    ## The REGEXP_REPLACE function in Snowflake takes the following parameters:
+       <subject>, <pattern> [, <replacement>, <position>, <occurrence>, <parameters>
+
+       The `position` starts at 1 to search the whole string. Defaults to 1.
+       If `occurrence` is set to 0 all occurrences are replaced, otherwise the first N are replaced. Defaults to 0.
+       See: https://docs.snowflake.com/en/sql-reference/functions/regexp_replace
     expression = case replace_params.input_type of
         Text ->
             ## To use REGEXP_REPLACE on a non-regex, we have to escape it.
@@ -470,27 +492,27 @@ replace args metadata =
             case replace_params.only_first of
                 False -> case replace_params.case_sensitivity of
                     Case_Sensitivity.Insensitive _ ->
-                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ escaped_pattern ++ ", " ++ replacement ++ ", 'ig')"
+                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ escaped_pattern ++ ", " ++ replacement ++ ", 1, 0, 'i')"
                     _ ->
                         SQL_Builder.code "REPLACE(" ++ input ++ ", " ++ pattern ++ ", " ++ replacement ++ ")"
                 True -> case replace_params.case_sensitivity of
                     Case_Sensitivity.Insensitive _ ->
-                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ escaped_pattern ++ ", " ++ replacement ++ ", 'i')"
+                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ escaped_pattern ++ ", " ++ replacement ++ ", 1, 1, 'i')"
                     _ ->
-                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ escaped_pattern ++ ", " ++ replacement ++ ")"
+                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ escaped_pattern ++ ", " ++ replacement ++ ", 1, 1)"
         Regex ->
             pattern_string = SQL_Builder.interpolation raw_pattern.pattern_string
             case replace_params.only_first of
                 False -> case replace_params.case_sensitivity of
                     Case_Sensitivity.Insensitive _ ->
-                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_string ++ ", " ++ replacement ++ ", 'ig')"
-                    _ ->
-                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_string ++ ", " ++ replacement ++ ", 'g')"
-                True -> case replace_params.case_sensitivity of
-                    Case_Sensitivity.Insensitive _ ->
-                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_string ++ ", " ++ replacement ++ ", 'i')"
+                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_string ++ ", " ++ replacement ++ ", 1, 0, 'i')"
                     _ ->
                         SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_string ++ ", " ++ replacement ++ ")"
+                True -> case replace_params.case_sensitivity of
+                    Case_Sensitivity.Insensitive _ ->
+                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_string ++ ", " ++ replacement ++ ", 1, 1, 'i')"
+                    _ ->
+                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_string ++ ", " ++ replacement ++ ", 1, 1)"
         DB_Column ->
             case replace_params.only_first of
                 False -> case replace_params.case_sensitivity of

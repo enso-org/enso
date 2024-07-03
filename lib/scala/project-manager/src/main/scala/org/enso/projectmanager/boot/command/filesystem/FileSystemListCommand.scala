@@ -58,6 +58,17 @@ object FileSystemListCommand {
   private def filterNotHidden(
     entries: Seq[FileSystemEntry]
   ): Seq[FileSystemEntry] =
-    entries.filterNot(_.path.isHidden)
+    entries.filterNot(isHidden)
 
+  /** Checks whether the provided entry is hidden.
+    *
+    * On Windows, files that start with the dot but don't have the hidden
+    * property should also be hidden.
+    *
+    * @param entry the file system entry
+    * @return `true` if the entry is hidden
+    */
+  private def isHidden(entry: FileSystemEntry): Boolean = {
+    entry.path.isHidden || entry.path.getName.startsWith(".")
+  }
 }

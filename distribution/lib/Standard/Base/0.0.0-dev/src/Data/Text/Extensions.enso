@@ -237,7 +237,8 @@ Text.characters self =
     Vector.build builder->
         self.each builder.append
 
-## GROUP Selections
+## ALIAS match
+   GROUP Selections
    ICON find
    Find the regular expression `pattern` in `self`, returning the first match
    if present or `Nothing` if not found.
@@ -266,7 +267,8 @@ Text.find self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
     compiled_pattern = Regex.compile pattern case_insensitive=case_insensitive
     compiled_pattern.match self
 
-## GROUP Selections
+## ALIAS matches
+   GROUP Selections
    ICON find
    Finds all the matches of the regular expression `pattern` in `self`,
    returning a Vector. If not found, will be an empty Vector.
@@ -544,7 +546,7 @@ Text.replace self term:(Text | Regex) replacement:Text (case_sensitivity:Case_Se
    Applies the specified cleansings to the text.
 
    Arguments:
-   - remove: A vector of the named patterns to cleanse from the text. The named patterns are 
+   - remove: A vector of the named patterns to cleanse from the text. The named patterns are
       applied in the order they are provided. The same named pattern can be used multiple
       times. The named patterns are:
       - ..Leading_Whitespace: Removes all whitespace from the start of the string.

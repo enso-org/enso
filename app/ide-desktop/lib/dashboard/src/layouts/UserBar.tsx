@@ -6,15 +6,17 @@ import DefaultUserIcon from 'enso-assets/default_user.svg'
 
 import * as appUtils from '#/appUtils'
 
+import * as billing from '#/hooks/billing'
+
 import * as authProvider from '#/providers/AuthProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
-import * as pageSwitcher from '#/layouts/PageSwitcher'
 import UserMenu from '#/layouts/UserMenu'
 
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
+import * as paywall from '#/components/Paywall'
 import Button from '#/components/styled/Button'
 import FocusArea from '#/components/styled/FocusArea'
 
@@ -34,36 +36,36 @@ export interface UserBarProps {
   /** When `true`, the element occupies space in the layout but is not visible.
    * Defaults to `false`. */
   readonly invisible?: boolean
-  readonly page: pageSwitcher.Page
-  readonly setPage: (page: pageSwitcher.Page) => void
+  readonly isOnEditorPage: boolean
   readonly setIsHelpChatOpen: (isHelpChatOpen: boolean) => void
   readonly projectAsset: backendModule.ProjectAsset | null
   readonly setProjectAsset: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>> | null
   readonly doRemoveSelf: () => void
+  readonly goToSettingsPage: () => void
   readonly onSignOut: () => void
 }
 
 /** A toolbar containing chat and the user menu. */
 export default function UserBar(props: UserBarProps) {
-  const { backend, invisible = false, page, setPage, setIsHelpChatOpen } = props
-  const { projectAsset, setProjectAsset, doRemoveSelf, onSignOut } = props
-  const { type: sessionType, user } = authProvider.useNonPartialUserSession()
+  const { backend, invisible = false, isOnEditorPage, setIsHelpChatOpen } = props
+  const { projectAsset, setProjectAsset, doRemoveSelf, goToSettingsPage, onSignOut } = props
+  const { user } = authProvider.useNonPartialUserSession()
   const { setModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
+  const { isFeatureUnderPaywall } = billing.usePaywall({ plan: user.plan })
   const self =
-    user != null
-      ? projectAsset?.permissions?.find(
-          backendModule.isUserPermissionAnd(permissions => permissions.user.userId === user.userId)
-        ) ?? null
-      : null
+    projectAsset?.permissions?.find(
+      backendModule.isUserPermissionAnd(permissions => permissions.user.userId === user.userId)
+    ) ?? null
   const shouldShowShareButton =
-    backend != null &&
-    page === pageSwitcher.Page.editor &&
+    backend?.type === backendModule.BackendType.remote &&
+    isOnEditorPage &&
     projectAsset != null &&
     setProjectAsset != null &&
     self != null
+  const shouldShowUpgradeButton = isFeatureUnderPaywall('inviteUser')
   const shouldShowInviteButton =
-    backend != null && sessionType === authProvider.UserSessionType.full && !shouldShowShareButton
+    backend != null && !shouldShowShareButton && !shouldShowUpgradeButton
 
   return (
     <FocusArea active={!invisible} direction="horizontal">
@@ -84,6 +86,12 @@ export default function UserBar(props: UserBarProps) {
               }}
             />
 
+            {shouldShowUpgradeButton && (
+              <paywall.PaywallDialogButton feature={'inviteUser'} size="medium" variant="tertiary">
+                {getText('invite')}
+              </paywall.PaywallDialogButton>
+            )}
+
             {shouldShowInviteButton && (
               <ariaComponents.DialogTrigger>
                 <ariaComponents.Button size="medium" variant="tertiary">
@@ -97,6 +105,7 @@ export default function UserBar(props: UserBarProps) {
             <ariaComponents.Button variant="primary" size="medium" href={appUtils.SUBSCRIBE_PATH}>
               {getText('upgrade')}
             </ariaComponents.Button>
+
             {shouldShowShareButton && (
               <ariaComponents.Button
                 size="medium"
@@ -122,16 +131,16 @@ export default function UserBar(props: UserBarProps) {
               active
               mask={false}
               alt={getText('userMenuAltText')}
-              image={user?.profilePicture ?? DefaultUserIcon}
+              image={user.profilePicture ?? DefaultUserIcon}
               buttonClassName="rounded-full after:rounded-full"
               className="h-row-h w-row-h rounded-full"
               onPress={() => {
-                setModal(<UserMenu setPage={setPage} onSignOut={onSignOut} />)
+                setModal(<UserMenu goToSettingsPage={goToSettingsPage} onSignOut={onSignOut} />)
               }}
             />
             {/* Required for shortcuts to work. */}
             <div className="hidden">
-              <UserMenu hidden setPage={setPage} onSignOut={onSignOut} />
+              <UserMenu hidden goToSettingsPage={goToSettingsPage} onSignOut={onSignOut} />
             </div>
           </div>
         </div>
