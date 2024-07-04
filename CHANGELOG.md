@@ -2,6 +2,10 @@
 
 #### Enso IDE
 
+- ["Add node" button is not obscured by output port][10433]
+
+[10433]: https://github.com/enso-org/enso/pull/10443
+
 #### Enso Enso Standard Library
 
 - [Reamed `Data.list_directory` to `Data.list`. Removed list support from read
