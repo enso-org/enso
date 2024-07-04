@@ -2,13 +2,10 @@ package org.enso.compiler.phase.exports
 
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.data.BindingsMap.ModuleReference.Concrete
-import org.enso.compiler.data.BindingsMap.{
-  ExportedModule,
-  ImportTarget,
-  ResolvedModule
-}
+import org.enso.compiler.data.BindingsMap.{ExportedModule, ImportTarget, ResolvedConversionMethod, ResolvedModule, ResolvedName, ResolvedStaticMethod}
 import org.enso.compiler.context.CompilerContext
 import org.enso.compiler.context.CompilerContext.Module
+import org.enso.compiler.core.CompilerError
 
 import scala.collection.mutable
 
@@ -172,45 +169,36 @@ class ExportsResolution(private val context: CompilerContext) {
       val ownEntities =
         bindings.definedEntities
           .filter(_.canExport)
-          .map(e => (e.name, List(e.resolvedIn(module))))
-      val exportedModules = bindings.resolvedExports.flatMap {
-        case ExportedModule(mod, Some(exportedAs), symbols) =>
-          val isThisModule = mod.module.unsafeAsModule() == module
-          val exportsOnlyModule =
-            symbols.size == 1 && symbols.head == mod.module.getName.item
-          if (!isThisModule && exportsOnlyModule) {
-            Some((exportedAs, List(mod)))
+          .map(e => (e.name, e.resolvedIn(module)))
+      val exportedSymbols: List[(String, ResolvedName)] = bindings.resolvedExports.flatMap {
+        case ExportedModule(target, exportedAsOpt, symbols) =>
+          val isThisModule = target.module.unsafeAsModule() == module
+          if (!isThisModule) {
+            exportedAsOpt match {
+              case Some(exportedAs) =>
+                if (symbols.size > 1) {
+                  throw new CompilerError(s"Renamed export with multiple targets (extension methods, conversion methods) is not viable")
+                }
+                Some((exportedAs, target))
+              case None =>
+                symbols.map { symbol =>
+                  (symbol, target)
+                }
+            }
           } else {
             None
-          }
-        case _ => None
-      }
-      val reExportedSymbols = bindings.resolvedExports.flatMap { export =>
-        export.target.exportedSymbols
-          .flatMap { case (sym, resolutions) =>
-            if (export.symbols.contains(sym)) {
-              export.exportedAs match {
-                case Some(renamed) =>
-                  Some((renamed, resolutions))
-                case _ =>
-                  Some((sym, resolutions))
-              }
-            } else {
-              None
-            }
           }
       }
       bindings.exportedSymbols = List(
         ownEntities,
-        exportedModules,
-        reExportedSymbols
-      ).flatten.groupBy(_._1).map { case (m, names) =>
-        val resolvedNames = names.flatMap(_._2).distinct
+        exportedSymbols
+      ).flatten.groupBy(_._1).map { case (symbolName, duplicateResolutions) =>
+        val resolvedNames = duplicateResolutions.map(_._2)
         assert(
           areResolvedNamesConsistent(resolvedNames),
           s"Resolved names are not consistent: ${resolvedNames}"
         )
-        (m, resolvedNames)
+        (symbolName, resolvedNames)
       }
     }
   }
