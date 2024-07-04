@@ -60,7 +60,7 @@ object YamlDecoder {
 
   /** Helper class used for automatic decoding of sequences of fields to a map.
     */
-  private trait MapKeyField {
+  trait MapKeyField {
 
     /** Determines the name of the field to be used as a key in the map.
       */
