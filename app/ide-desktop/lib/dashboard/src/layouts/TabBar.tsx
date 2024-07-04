@@ -231,7 +231,9 @@ export function Tab(props: InternalTabProps) {
         tooltip={false}
         onPress={onPress}
       >
-        {children}
+        <ariaComponents.Text truncate="1" className="max-w-32">
+          {children}
+        </ariaComponents.Text>
       </ariaComponents.Button>
 
       {onClose && (
