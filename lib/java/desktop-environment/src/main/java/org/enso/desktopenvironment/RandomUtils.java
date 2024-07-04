@@ -4,8 +4,6 @@ import java.util.Random;
 
 final class RandomUtils {
 
-  private static final Random random = new Random();
-
   private static final char[] ALPHANUMERIC =
       new char[] {
         '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h',
@@ -14,17 +12,35 @@ final class RandomUtils {
         'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'
       };
 
+  private RandomUtils() {}
+
+  /** Delay the {@link Random} instance initialization when building the native image. */
+  private static final class LazyRandom {
+
+    private static Random instance = null;
+
+    private LazyRandom() {}
+
+    public static Random getInstance() {
+      if (instance == null) {
+        instance = new Random();
+      }
+      return instance;
+    }
+  }
+
   /**
    * Get random alphanumeric ASCII string.
    *
    * @param size the size of the result string.
    * @return the random string.
    */
-  public static String alphanumericString(int size) {
+  public static synchronized String alphanumericString(int size) {
     if (size < 0) {
       throw new IllegalArgumentException("String size should be positive.");
     }
 
+    var random = LazyRandom.getInstance();
     var builder = new StringBuilder(size);
     while (builder.length() < size) {
       builder.append(ALPHANUMERIC[random.nextInt(ALPHANUMERIC.length)]);
