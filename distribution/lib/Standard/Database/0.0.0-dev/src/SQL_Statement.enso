@@ -45,9 +45,9 @@ type SQL_Statement
             # TODO #183734954: date and time formatting is limited and will lose sub-second precision and timezone offset.
             SQL_Fragment.Interpolation obj -> case obj of
                 Number -> obj.to_text
-                Date_Time -> "'" + (obj.format "yyyy-MM-dd HH:mm:ss") + "'"
+                Date_Time -> "'" + (obj.format "yyyy-MM-dd HH:mm:ss.f") + "'"
                 Date -> "'" + (obj.format "yyyy-MM-dd") + "'"
-                Time_Of_Day -> "'" + (obj.format "HH:mm:ss") + "'"
+                Time_Of_Day -> "'" + (obj.format "HH:mm:ss.f") + "'"
                 _ -> "'" + obj.to_text.replace "'" "''" + "'"
         strings.join ""
 

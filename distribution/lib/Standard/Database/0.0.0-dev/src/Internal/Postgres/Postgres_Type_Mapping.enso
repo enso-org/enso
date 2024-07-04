@@ -131,6 +131,9 @@ type Postgres_Type_Mapping
         _ = [source_type, target_type]
         False
 
+    ## PRIVATE
+    is_integer_type (value_type : Value_Type) -> Boolean = value_type.is_integer
+
 ## PRIVATE
 simple_types_map = Map.from_vector <|
     ints = [[Types.SMALLINT, Value_Type.Integer Bits.Bits_16], [Types.BIGINT, Value_Type.Integer Bits.Bits_64], [Types.INTEGER, Value_Type.Integer Bits.Bits_32]]

@@ -99,6 +99,19 @@ type SQL_Type_Mapping
         _ = [source_type, target_type]
         Unimplemented.throw "This is an interface only."
 
+    ## PRIVATE
+       Specifies if this backend recognizes the given type as an integer type.
+
+       For most backends, this should just be `.is_integer`.
+       However, in some backends (e.g. Snowflake), the Decimal type is treated
+       as the main Integer type, so this method can be used to specify that.
+       We don't make Decimal type an integer type by default, as in other
+       backends we do want to keep the distinction (for example in Postgres,
+       `date_add` function will work with Integer but not with Decimal types).
+    is_integer_type (value_type : Value_Type) -> Boolean =
+        _ = value_type
+        Unimplemented.throw "This is an interface only."
+
 ## PRIVATE
 default_sql_type_to_text sql_type =
     suffix = case sql_type.precision of

@@ -47,6 +47,8 @@ type SQL_Type_Reference
             statement = connection.dialect.prepare_fetch_types_query expression context
             statement_setter = connection.dialect.get_statement_setter
             columns = connection.fetch_columns statement statement_setter
+            if columns.is_error then
+                IO.println '\nFailed to fetch types!!!\nQuery was: '+statement.to_text+'\nError was: '+columns.to_display_text+'\n'
             only_column = columns.first
             only_column.second
         SQL_Type_Reference.Computed_By_Database do_fetch

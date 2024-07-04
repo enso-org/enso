@@ -498,7 +498,7 @@ add_specs suite_builder setup =
 
         group_builder.specify "should check shift_amount type in date_add" <|
             t = dates1.get
-            t.at "X" . date_add "text" Date_Period.Day . should_fail_with Invalid_Value_Type
+            t.at "d_X" . date_add "text" Date_Period.Day . should_fail_with Invalid_Value_Type
 
         group_builder.specify "date_diff and date_add should work correctly with DST" pending="May be failing on some Database configurations. ToDo: investigate - https://github.com/enso-org/enso/issues/7326" <|
             # TODO the behaviour here may differ between backends.

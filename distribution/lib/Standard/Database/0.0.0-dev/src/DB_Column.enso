@@ -1294,7 +1294,7 @@ type DB_Column
                 Examples.text_column_1.text_left 5
     text_left : DB_Column|Integer -> DB_Column
     text_left self n =
-        Value_Type.expect_text self <| Value_Type.expect_integer n <|
+        Value_Type.expect_text self <| Helpers.expect_dialect_specific_integer_type self n <|
             n2 = n.max 0
             new_name = self.naming_helper.function_name "text_left" [self, n]
             self.make_binary_op "LEFT" n2 new_name
@@ -1315,7 +1315,7 @@ type DB_Column
                 Examples.text_column_1.text_right 5
     text_right : DB_Column|Integer -> DB_Column
     text_right self n =
-        Value_Type.expect_text self <| Value_Type.expect_integer n <|
+        Value_Type.expect_text self <| Helpers.expect_dialect_specific_integer_type self n <|
             n2 = n.max 0
             new_name = self.naming_helper.function_name "text_right" [self, n]
             self.make_binary_op "RIGHT" n2 new_name
@@ -1643,7 +1643,7 @@ type DB_Column
     date_add self amount (period : Date_Period | Time_Period = default_date_period self) =
         Value_Type.expect_type self .is_date_or_time "date/time" <|
             my_type = self.inferred_precise_value_type
-            Value_Type.expect_integer amount <|
+            Helpers.expect_dialect_specific_integer_type self amount <|
                 aligned_period = Date_Time_Helpers.align_period_with_value_type my_type period
                 aligned_period.if_not_error <|
                     new_name = self.naming_helper.function_name "date_add" [self, amount, period.to_display_text]
