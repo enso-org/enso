@@ -1186,7 +1186,7 @@ Text.to_case self case_option:Case=..Lower locale:Locale=Locale.default = case c
 @with_pad (Widget.Text_Input display=Display.Always)
 @at (make_single_choice [["Left", "..Left"], ["Right", "..Right"]])
 Text.pad : Integer -> Text -> Location -> Text
-Text.pad self length:Integer=0 with_pad:Text=' ' at:Location=..Left = case at of
+Text.pad self length:Integer=0 with_pad:Text=' ' at:Location=..Right = case at of
     Location.Both -> Error.throw (Illegal_Argument.Error "`Location.Both` cannot be used with `pad`.")
     _ ->
         with_pad_length = with_pad.length
