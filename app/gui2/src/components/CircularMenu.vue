@@ -33,6 +33,10 @@ const showColorPicker = ref(false)
 function openDocs(url: string) {
   window.open(url, '_blank')
 }
+
+function readableBinding(binding: keyof (typeof graphBindings)['bindings']) {
+  return graphBindings.bindings[binding].humanReadable
+}
 </script>
 
 <template>
@@ -47,7 +51,7 @@ function openDocs(url: string) {
           v-if="documentationUrl"
           name="help"
           class="slot1"
-          :title="`Open Documentation (${graphBindings.bindings.openDocumentation.humanReadable})`"
+          :title="`Open Documentation (${readableBinding('openDocumentation')})`"
           @click.stop="openDocs(documentationUrl)"
         />
         <SvgButton
@@ -62,7 +66,12 @@ function openDocs(url: string) {
           title="Color"
           @click.stop="showColorPicker = true"
         />
-        <SvgButton name="trash2" class="slot4" title="Delete" @click.stop="emit('delete')" />
+        <SvgButton
+          name="trash2"
+          class="slot4"
+          :title="`Delete (${readableBinding('deleteSelected')})`"
+          @click.stop="emit('delete')"
+        />
       </template>
       <div v-else class="More" @pointerdown.stop="emit('openFullMenu')"></div>
       <ToggleIcon
