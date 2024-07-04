@@ -30,14 +30,14 @@ object FileSystemManagementApi {
 
     case class Result(exists: Boolean)
 
-    implicit val hasParams: HasParams.Aux[this.type, FileSystemList.Params] =
+    implicit val hasParams: HasParams.Aux[this.type, FileSystemExists.Params] =
       new HasParams[this.type] {
-        type Params = FileSystemList.Params
+        type Params = FileSystemExists.Params
       }
 
-    implicit val hasResult: HasResult.Aux[this.type, FileSystemList.Result] =
+    implicit val hasResult: HasResult.Aux[this.type, FileSystemExists.Result] =
       new HasResult[this.type] {
-        type Result = FileSystemList.Result
+        type Result = FileSystemExists.Result
       }
   }
 
