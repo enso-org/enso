@@ -222,7 +222,7 @@ export default function projectManagerShimMiddleware(
                                             .catch(() => false)
                                         result = toJSONRPCResult(exists)
                                     }
-                                    break;
+                                    break
                                 }
                                 case '--filesystem-list': {
                                     const directoryPath = cliArguments[1]

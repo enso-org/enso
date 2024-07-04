@@ -418,9 +418,9 @@ export default class ProjectManager {
   /** Checks if a file or directory exists. */
   async exists(parentId: Path | null) {
     const response = await this.runStandaloneCommand<boolean>(
-        null,
-        'filesystem-exists',
-        parentId ?? this.rootDirectory
+      null,
+      'filesystem-exists',
+      parentId ?? this.rootDirectory
     )
     return response
   }
