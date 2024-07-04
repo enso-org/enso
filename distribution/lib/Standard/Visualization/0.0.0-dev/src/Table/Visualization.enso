@@ -2,7 +2,7 @@ from Standard.Base import all
 import Standard.Base.Data.Vector.Builder
 
 import Standard.Table.Row.Row
-from Standard.Table import Column, Table, Excel_Workbook
+from Standard.Table import Column, Excel_Workbook, Table
 
 import Standard.Database.DB_Column.DB_Column
 import Standard.Database.DB_Table.DB_Table
@@ -157,6 +157,8 @@ make_json_for_table dataframe all_rows_count include_index_col =
     pairs       = [header, value_type, data, all_rows, has_index_col, ["type", "Table"]]
     JS_Object.from_pairs pairs
 
+## PRIVATE
+   Create JSON serialization of values.
 make_json_for_other : Any -> JS_Object
 make_json_for_other x =
     js_value = x.to_js_object
