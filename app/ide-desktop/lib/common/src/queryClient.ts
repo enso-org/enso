@@ -9,8 +9,6 @@ import * as persistClientCore from '@tanstack/query-persist-client-core'
 import * as queryCore from '@tanstack/query-core'
 import * as vueQuery from '@tanstack/vue-query'
 
-export type QueryClient = vueQuery.QueryClient
-
 declare module '@tanstack/query-core' {
     /**
      * Query client with additional methods.
@@ -62,6 +60,9 @@ declare module '@tanstack/query-core' {
         }
     }
 }
+
+/** Query Client type suitable for shared use in React and Vue. */
+export type QueryClient = vueQuery.QueryClient
 
 // eslint-disable-next-line @typescript-eslint/no-magic-numbers
 const DEFAULT_QUERY_STALE_TIME_MS = 2 * 60 * 1000
