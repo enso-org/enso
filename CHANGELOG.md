@@ -8,10 +8,13 @@
 
 #### Enso Enso Standard Library
 
-- [Reamed `Data.list_directory` to `Data.list`. Removed list support from read
+- [Renamed `Data.list_directory` to `Data.list`. Removed list support from read
   methods.][10434]
+- [Renamed `Location.Start` to `Location.Left` and `Location.End` to
+  `Location.Right`.][10445]
 
 [10434]: https://github.com/enso-org/enso/pull/10434
+[10445]: https://github.com/enso-org/enso/pull/10445
 
 # Enso 2024.2
 
