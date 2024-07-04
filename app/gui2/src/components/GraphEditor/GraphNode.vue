@@ -16,6 +16,7 @@ import NodeWidgetTree, {
   GRAB_HANDLE_X_MARGIN_R,
   ICON_WIDTH,
 } from '@/components/GraphEditor/NodeWidgetTree.vue'
+import SmallPlusButton from '@/components/SmallPlusButton.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import { useDoubleClick } from '@/composables/doubleClick'
 import { usePointer, useResizeObserver } from '@/composables/events'
@@ -242,11 +243,9 @@ const isVisualizationFullscreen = computed(() => props.node.vis?.fullscreen ?? f
 
 const bgStyleVariables = computed(() => {
   const { x: width, y: height } = nodeSize.value
-  const visBelowNode = graphSelectionSize.value.y - nodeSize.value.y
   return {
     '--node-width': `${width}px`,
     '--node-height': `${height}px`,
-    '--output-port-transform': `translateY(${visBelowNode}px)`,
   }
 })
 
@@ -423,6 +422,7 @@ watchEffect(() => {
       minWidth: isVisualizationEnabled ? `${visualizationWidth ?? 200}px` : undefined,
       '--node-group-color': color,
       ...(node.zIndex ? { 'z-index': node.zIndex } : {}),
+      '--viz-below-node': `${graphSelectionSize.y - nodeSize.y}px`,
     }"
     :class="{
       selected,
@@ -549,6 +549,11 @@ watchEffect(() => {
         @update:nodeHovered="outputHovered = $event"
       />
     </svg>
+    <SmallPlusButton
+      v-if="menuVisible && isVisualizationVisible"
+      class="below-viz"
+      @createNodes="emit('createNodes', $event)"
+    />
   </div>
 </template>
 
@@ -562,6 +567,7 @@ watchEffect(() => {
   left: 0;
   display: flex;
 
+  --output-port-transform: translateY(var(--viz-below-node));
   --output-port-max-width: 4px;
   --output-port-hovered-extra-width: 2px;
   --output-port-overlap: -8px;
@@ -697,5 +703,12 @@ watchEffect(() => {
 
 .dragged {
   cursor: grabbing !important;
+}
+
+.below-viz {
+  position: absolute;
+  top: 100%;
+  transform: translateY(var(--viz-below-node));
+  margin-top: 4px;
 }
 </style>
