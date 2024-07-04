@@ -630,8 +630,8 @@ add_specs suite_builder setup =
             with_mixed_columns_if_supported [["x", [1, 4, 5, Nothing]], ["y", [2.0, 3.25, 5.0, Nothing]]] t2->
                 x = t2.at "x"
                 y = t2.at "y"
-                setup.expect_integer_type <| x.inferred_precise_value_type
-                y.inferred_precise_value_type . is_floating_point . should_be_true
+                setup.is_integer_type x.inferred_precise_value_type . should_be_true
+                y.inferred_precise_value_type . should_be_a (Value_Type.Float ...)
 
                 (x < y).to_vector . should_equal [True, False, False, Nothing]
                 (x <= y).to_vector . should_equal [True, False, True, Nothing]
