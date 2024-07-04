@@ -4,6 +4,11 @@
 
 #### Enso Enso Standard Library
 
+- [Reamed `Data.list_directory` to `Data.list`. Removed list support from read
+  methods.][10434]
+
+[10434]: https://github.com/enso-org/enso/pull/10434
+
 # Enso 2024.2
 
 #### Enso IDE
@@ -57,6 +62,7 @@
 - [Implemented fallback to Windows-1252 encoding for `Encoding.Default`.][10190]
 - [Added Table.duplicates component][10323]
 - [Renamed `Table.order_by` to `Table.sort`][10372]
+- [Implemented `Decimal` support for Postgres backend.][10216]
 
 [debug-shortcuts]:
 
@@ -67,6 +73,7 @@
 [10190]: https://github.com/enso-org/enso/pull/10190
 [10323]: https://github.com/enso-org/enso/pull/10323
 [10372]: https://github.com/enso-org/enso/pull/10372
+[10216]: https://github.com/enso-org/enso/pull/10216
 
 <br/>![Release Notes](/docs/assets/tags/release_notes.svg)
 

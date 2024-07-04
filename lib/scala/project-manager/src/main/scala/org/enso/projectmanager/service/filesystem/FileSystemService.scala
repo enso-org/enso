@@ -57,6 +57,12 @@ class FileSystemService[F[+_, +_]: Applicative: CovariantFlatMap: ErrorChannel](
       .mapError(_ => FileSystemServiceFailure.FileSystem("Failed to move path"))
 
   /** @inheritdoc */
+  override def copy(from: File, to: File): F[FileSystemServiceFailure, Unit] =
+    fileSystem
+      .copy(from, to)
+      .mapError(_ => FileSystemServiceFailure.FileSystem("Failed to copy path"))
+
+  /** @inheritdoc */
   override def write(
     path: File,
     contents: InputStream
