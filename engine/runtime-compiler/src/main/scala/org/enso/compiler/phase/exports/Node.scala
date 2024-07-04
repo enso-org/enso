@@ -1,9 +1,9 @@
 package org.enso.compiler.phase.exports
 
-import org.enso.compiler.data.BindingsMap.ImportTarget
+import org.enso.compiler.data.BindingsMap.ResolvedModule
 
 case class Node(
-  target: ImportTarget
+  module: ResolvedModule
 ) {
   var exports: List[Edge]    = List()
   var exportedBy: List[Edge] = List()

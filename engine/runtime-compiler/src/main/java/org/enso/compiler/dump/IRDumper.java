@@ -586,22 +586,6 @@ public class IRDumper {
                   }
                 }
               }
-
-              if (bindingsMap.resolvedExports().isEmpty()) {
-                bldr.addLabelLine("resolvedExports: []");
-              } else {
-                bldr.addLabelLine("resolvedExports: ");
-                for (int i = 0; i < bindingsMap.resolvedExports().size(); i++) {
-                  var resolvedExport = bindingsMap.resolvedExports().apply(i);
-                  switch (resolvedExport.target()) {
-                    case ResolvedType resolvedType -> bldr.addLabelLine(
-                        "  - ResolvedType(" + resolvedType.tp().name() + ")");
-                    case BindingsMap.ResolvedModule resolvedModule -> bldr.addLabelLine(
-                        "  - ResolvedModule(" + resolvedModule.qualifiedName() + ")");
-                    default -> throw unimpl(resolvedExport.target());
-                  }
-                }
-              }
               var bmNode = bldr.build();
               addNode(bmNode);
               createEdge(ir, bindingsMap, "BindingsMap");

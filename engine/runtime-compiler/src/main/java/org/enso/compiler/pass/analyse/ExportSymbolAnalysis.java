@@ -66,8 +66,8 @@ public final class ExportSymbolAnalysis implements IRPass {
                     var symbolName = exportMod.name().parts().last();
                     assert exportNameParts.size() > 1;
                     var moduleOrTypeName = exportNameParts.apply(exportNameParts.size() - 2);
-                    var foundResolvedExp = findResolvedExportForIr(export, bindingsMap);
-                    if (foundResolvedExp == null) {
+                    var foundResolvedNames = findResolvedExportForIr(export, bindingsMap);
+                    if (foundResolvedNames == null) {
                       exportErrors.add(
                           ImportExport.apply(
                               symbolName,
@@ -81,19 +81,19 @@ public final class ExportSymbolAnalysis implements IRPass {
                         var exportedSymbols = exportMod.onlyNames().get();
                         exportedSymbols.foreach(
                             exportedSymbol -> {
-                              var foundSymbols =
-                                  foundResolvedExp
-                                      .target()
-                                      .findExportedSymbolsFor(exportedSymbol.name());
-                              if (foundSymbols.isEmpty()) {
-                                exportErrors.add(
-                                    ImportExport.apply(
-                                        exportedSymbol,
-                                        new ImportExport.SymbolDoesNotExist(
-                                            exportedSymbol.name(), moduleOrTypeName.name()),
-                                        ImportExport.apply$default$3(),
-                                        ImportExport.apply$default$4()));
-                              }
+                              foundResolvedNames.foreach(resolvedName -> {
+                                var bm = resolvedName.module().unsafeAsModule("Should be defined").getBindingsMap();
+                                if (!bm.exportedSymbols().contains(exportedSymbol.name())) {
+                                  exportErrors.add(
+                                      ImportExport.apply(
+                                          exportedSymbol,
+                                          new ImportExport.SymbolDoesNotExist(
+                                              exportedSymbol.name(), moduleOrTypeName.name()),
+                                          ImportExport.apply$default$3(),
+                                          ImportExport.apply$default$4()));
+                                }
+                                return null;
+                              });
                               return null;
                             });
                       }
@@ -129,20 +129,17 @@ public final class ExportSymbolAnalysis implements IRPass {
    * @param bindingsMap Bindings map of the module that contains the export IR
    * @return null if no resolved export was found, otherwise the resolved export
    */
-  private BindingsMap.ExportedModule findResolvedExportForIr(
+  private scala.collection.immutable.List<BindingsMap.ResolvedName> findResolvedExportForIr(
       Export exportIr, BindingsMap bindingsMap) {
     switch (exportIr) {
       case Export.Module exportedModIr -> {
-        var exportedModName = exportedModIr.name().name();
-        var foundResolvedExp =
-            bindingsMap
-                .resolvedExports()
-                .find(
-                    resolvedExport -> {
-                      var resolvedExportName = resolvedExport.target().qualifiedName();
-                      return resolvedExportName.toString().equals(exportedModName);
-                    });
-        return foundResolvedExp.isEmpty() ? null : foundResolvedExp.get();
+        var exportedSymbolName = exportedModIr.name().parts().last().name();
+        var resolvedNamesOpt = bindingsMap.exportedSymbols().get(exportedSymbolName);
+        if (resolvedNamesOpt.isEmpty()) {
+          return null;
+        } else {
+          return resolvedNamesOpt.get();
+        }
       }
       default -> throw new IllegalStateException("Unexpected value: " + exportIr);
     }

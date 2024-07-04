@@ -107,7 +107,7 @@ public final class PrivateModuleAnalysis implements IRPass {
         .getDirectlyExportedModules()
         .foreach(
             expModule -> {
-              var expModuleRef = expModule.target().module().unsafeAsModule("should succeed");
+              var expModuleRef = expModule.module().module().unsafeAsModule("should succeed");
               if (expModuleRef.isPrivate() && !isCurrentModuleSynthetic) {
                 var associatedExportIR = findExportIRByName(moduleIr, expModuleRef.getName());
                 assert associatedExportIR.isDefined();

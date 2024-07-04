@@ -39,10 +39,6 @@ case class BindingsMap(
     */
   var resolvedImports: List[ResolvedImport] = List()
 
-  /** Modules exported by [[currentModule]].
-    */
-  var resolvedExports: List[ExportedModule] = List()
-
   /** Symbols exported by [[currentModule]].
     */
   var exportedSymbols: Map[String, List[ResolvedName]] = Map()
@@ -69,7 +65,6 @@ case class BindingsMap(
   def toAbstract: BindingsMap = {
     val copy = this.copy(currentModule = currentModule.toAbstract)
     copy.resolvedImports = this.resolvedImports.map(_.toAbstract)
-    copy.resolvedExports = this.resolvedExports.map(_.toAbstract)
     copy.exportedSymbols = this.exportedSymbols.map { case (key, value) =>
       key -> value.map(name => name.toAbstract)
     }
@@ -97,17 +92,7 @@ case class BindingsMap(
       }
     }
 
-    val withExports: Option[BindingsMap] = withImports.flatMap { bindings =>
-      val newExports = this.resolvedExports.map(_.toConcrete(moduleMap))
-      if (newExports.exists(_.isEmpty)) {
-        None
-      } else {
-        bindings.resolvedExports = newExports.map(_.get)
-        Some(bindings)
-      }
-    }
-
-    val withSymbols: Option[BindingsMap] = withExports.flatMap { bindings =>
+    val withSymbols: Option[BindingsMap] = withImports.flatMap { bindings =>
       val newSymbols = this.exportedSymbols.map { case (key, value) =>
         val newValue = value.map(_.toConcrete(moduleMap))
         if (newValue.exists(_.isEmpty)) {
@@ -305,8 +290,12 @@ case class BindingsMap(
   }
 
   /** Dumps the export statements from this module into a structure ready for
-    * further analysis. It uses only [[resolvedImports]] field, as [[resolvedExports]]
-   * and [[exportedSymbols]] fields are expected to be filled later.
+    * further analysis. It uses only [[resolvedImports]] field, as
+   *  [[exportedSymbols]] fields are expected to be filled later.
+   *
+   * For every symbol that is exported from this bindings map, gathers the module
+   * in which the symbol is defined and returns it in the list. For example, if there
+   * is an export `export project.Module.method`, there will be `Module` in the returned list.
     *
     * @return a list of triples of the exported module, the name it is exported
     *         as and any further symbol restrictions.
@@ -314,16 +303,33 @@ case class BindingsMap(
   def getDirectlyExportedModules: List[ExportedModule] =
     resolvedImports.collect { case ResolvedImport(_, exports, targets) =>
       exports.flatMap { exp =>
-        val rename = Some(exp.getSimpleName.name)
+        val exportAs = exp.rename match {
+          case Some(rename) => Some(rename.name)
+          case None => None
+        }
         val symbols = exp.onlyNames match {
           case Some(onlyNames) =>
             onlyNames.map(_.name)
           case None =>
             List(exp.name.parts.last.name)
         }
-        targets.map(ExportedModule(_, rename, symbols))
+        targets.map {
+          case m : ResolvedModule => ExportedModule(m, exportAs, symbols)
+          case ResolvedType(modRef, _) =>
+            ExportedModule(ResolvedModule(modRef), exportAs, symbols)
+          case ResolvedConstructor(ResolvedType(modRef, _), _) =>
+            ExportedModule(ResolvedModule(modRef), exportAs, symbols)
+          case ResolvedModuleMethod(modRef, _) =>
+            ExportedModule(ResolvedModule(modRef), exportAs, symbols)
+          case ResolvedStaticMethod(modRef, _) =>
+            ExportedModule(ResolvedModule(modRef), exportAs, symbols)
+          case ResolvedConversionMethod(modRef, _) =>
+            ExportedModule(ResolvedModule(modRef), exportAs, symbols)
+        }
       }
-    }.flatten
+    }
+      .flatten
+      .distinct
 }
 
 object BindingsMap {
@@ -354,14 +360,14 @@ object BindingsMap {
 
   /** A representation of a resolved export statement.
     *
-    * @param target the target being exported.
+    * @param module the target being exported.
     * @param exportedAs the name it is exported as.
     * @param symbols List of symbols connected to the export. The symbol refers to the last part
    *                of the physical name of the target being exported. It is not a fully qualified
    *                name.
     */
   case class ExportedModule(
-    target: ImportTarget,
+    module: ResolvedModule,
     exportedAs: Option[String],
     symbols: List[String]
   ) {
@@ -381,7 +387,7 @@ object BindingsMap {
       * @return `this` with its module reference made abstract
       */
     def toAbstract: ExportedModule = {
-      this.copy(target = target.toAbstract)
+      this.copy(module = module.toAbstract)
     }
 
     /** Convert the internal [[ModuleReference]] to a concrete reference.
@@ -390,8 +396,8 @@ object BindingsMap {
       * @return `this` with its module reference made concrete
       */
     def toConcrete(moduleMap: ModuleMap): Option[ExportedModule] = {
-      target.toConcrete(moduleMap).map { target =>
-        this.copy(target = target)
+      module.toConcrete(moduleMap).map { target =>
+        this.copy(module = target)
       }
     }
   }

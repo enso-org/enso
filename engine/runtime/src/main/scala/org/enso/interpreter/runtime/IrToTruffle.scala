@@ -42,7 +42,6 @@ import org.enso.compiler.core.ir.expression.{
   Section
 }
 import org.enso.compiler.data.BindingsMap.{
-  ExportedModule,
   ResolvedConstructor,
   ResolvedModule
 }
@@ -197,11 +196,15 @@ class IrToTruffle(
           "No binding analysis at the point of codegen."
         )
 
-    bindingsMap.resolvedExports
-      .collect { case ExportedModule(ResolvedModule(module), _, _) => module }
-      .foreach(exp =>
-        scopeBuilder.addExport(new ImportExportScope(exp.unsafeAsModule()))
-      )
+    bindingsMap.exportedSymbols.foreach { case (_, resolvedNames) =>
+      val resolvedModules = resolvedNames.collect {
+        case ResolvedModule(module) => module
+      }
+      resolvedModules.foreach { resolvedModule =>
+        scopeBuilder.addExport(new ImportExportScope(resolvedModule.unsafeAsModule()))
+      }
+    }
+
     val importDefs = module.imports
     val methodDefs = module.bindings.collect {
       case method: definition.Method.Explicit => method

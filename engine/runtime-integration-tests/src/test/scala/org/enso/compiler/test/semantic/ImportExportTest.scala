@@ -98,7 +98,7 @@ class ImportExportTest
     val compilerCtx       = langCtx.getCompiler.context
     val exportsResolution = new ExportsResolution(compilerCtx)
     val compilerModules   = modules.map(_.asCompilerModule())
-    exportsResolution.buildGraph(compilerModules)
+    exportsResolution.buildModuleGraph(compilerModules)
   }
 
   before {
@@ -484,10 +484,6 @@ class ImportExportTest
       mainModule.getIr.imports.head
         .asInstanceOf[Import.Module]
         .isSynthetic shouldBe true
-
-      val resolvedExports = mainModule.getIr.unwrapBindingMap.resolvedExports
-      resolvedExports.size shouldBe 1
-      resolvedExports.head.target.qualifiedName.item shouldBe "A_Type"
     }
 
     "(from) export type without import should insert synthetic import" in {
@@ -505,9 +501,6 @@ class ImportExportTest
       mainModule.getIr.imports.head
         .asInstanceOf[Import.Module]
         .isSynthetic shouldBe true
-
-      val resolvedExports = mainModule.getIr.unwrapBindingMap.resolvedExports
-      resolvedExports.size shouldBe 1
     }
 
     "export module without import should insert synthetic import" in {
@@ -525,10 +518,6 @@ class ImportExportTest
       mainModule.getIr.imports.head
         .asInstanceOf[Import.Module]
         .isSynthetic shouldBe true
-
-      val resolvedExports = mainModule.getIr.unwrapBindingMap.resolvedExports
-      resolvedExports.size shouldBe 1
-      resolvedExports.head.target.qualifiedName.item shouldBe "A_Module"
     }
 
     "export unknown type without import should result in error" in {
@@ -1381,7 +1370,7 @@ class ImportExportTest
         graph.size shouldBe 2
       }
       val aModNode = graph.find(node =>
-        node.target match {
+        node.module match {
           case BindingsMap.ResolvedModule(modRef) =>
             modRef.getName.item == "A_Module"
           case _ => false
@@ -1391,9 +1380,9 @@ class ImportExportTest
       val aModNodeExporter =
         aModNode.get.exportedBy.head.exporter
       withClue("A_Module should be exported by B_Module") {
-        aModNodeExporter.target
+        aModNodeExporter.module
           .isInstanceOf[BindingsMap.ResolvedModule] shouldBe true
-        aModNodeExporter.target
+        aModNodeExporter.module
           .asInstanceOf[BindingsMap.ResolvedModule]
           .qualifiedName
           .item shouldBe "B_Module"
@@ -1490,7 +1479,7 @@ class ImportExportTest
         graph.size shouldBe 4
       }
       val trueNode = graph.find(node => {
-        node.target match {
+        node.module match {
           case ResolvedConstructor(_, cons) if cons.name == "True" =>
             true
           case _ => false

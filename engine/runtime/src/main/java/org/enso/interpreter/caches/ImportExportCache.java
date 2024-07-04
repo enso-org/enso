@@ -226,7 +226,6 @@ public final class ImportExportCache
       out.writeObject(obj.definedEntities());
       out.writeObject(obj.currentModule());
       out.writeInline(scala.collection.immutable.List.class, obj.resolvedImports());
-      out.writeInline(scala.collection.immutable.List.class, obj.resolvedExports());
       out.writeInline(scala.collection.immutable.Map.class, obj.exportedSymbols());
     }
 
@@ -236,11 +235,9 @@ public final class ImportExportCache
       var de = (scala.collection.immutable.List<DefinedEntity>) in.readObject();
       var cm = (ModuleReference) in.readObject();
       var imp = in.readInline(scala.collection.immutable.List.class);
-      var exp = in.readInline(scala.collection.immutable.List.class);
       var sym = in.readInline(scala.collection.immutable.Map.class);
       var map = new BindingsMap(de, cm);
       map.resolvedImports_$eq(imp);
-      map.resolvedExports_$eq(exp);
       map.exportedSymbols_$eq(sym);
       return map;
     }
