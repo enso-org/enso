@@ -72,7 +72,7 @@ type Snowflake_Dialect
        according to the specific dialect.
     generate_sql : Query -> SQL_Statement
     generate_sql self query =
-        Base_Generator.generate_query self.internal_generator_dialect query . build
+        Base_Generator.generate_query self query . build
 
     generate_truncate_table_sql : Text -> SQL_Builder
     generate_truncate_table_sql self table_name =
