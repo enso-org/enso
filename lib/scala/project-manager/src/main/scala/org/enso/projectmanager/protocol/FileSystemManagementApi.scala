@@ -24,6 +24,23 @@ object FileSystemManagementApi {
       }
   }
 
+  case object FileSystemExists extends Method("filesystem/exists") {
+
+    case class Params(path: File)
+
+    case class Result(exists: Boolean)
+
+    implicit val hasParams: HasParams.Aux[this.type, FileSystemList.Params] =
+      new HasParams[this.type] {
+        type Params = FileSystemList.Params
+      }
+
+    implicit val hasResult: HasResult.Aux[this.type, FileSystemList.Result] =
+      new HasResult[this.type] {
+        type Result = FileSystemList.Result
+      }
+  }
+
   case object FileSystemCreateDirectory
       extends Method("filesystem/createDirectory") {
 
