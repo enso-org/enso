@@ -131,7 +131,9 @@ class Synchronizer {
       await firstExecution
       const groups = await exponentialBackoff(() => lsRpc.getComponentGroups())
       if (!groups.ok) {
-        groups.error.log('Cannot read component groups. Continuing without gruops.')
+        if (!lsRpc.isDisposed) {
+          groups.error.log('Cannot read component groups. Continuing without groups')
+        }
         return { currentVersion }
       }
       this.groups.value = groups.value.componentGroups.map(
