@@ -845,8 +845,8 @@ add_specs suite_builder setup =
             a.zip b (/) . should_equal r
 
             t = build_sorted_table [["A", a], ["B", b]]
-            t.at "A" . value_type . is_integer . should_be_true
-            t.at "B" . value_type . is_integer . should_be_true
+            t.at "A" . value_type . should_be_a (Value_Type.Integer ...)
+            t.at "B" . value_type . should_be_a (Value_Type.Integer ...)
 
             r2 = (t.at "A") / (t.at "B")
             r2 . to_vector . should_equal r
