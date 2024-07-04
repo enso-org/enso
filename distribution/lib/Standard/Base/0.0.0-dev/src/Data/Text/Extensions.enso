@@ -981,12 +981,12 @@ Text.contains self term="" case_sensitivity=Case_Sensitivity.Sensitive = case ca
      the new text.
 
    > Example
-     Repeat the string "A" five times.
+     Repeat the text "A" five times.
 
          "A" * 5 == "AAAAA"
 
    > Example
-     Repeat the string "Hello " twice.
+     Repeat the text "Hello " twice.
 
          "Hello " * 2 == "Hello Hello "
 Text.* : Integer -> Text
@@ -1002,12 +1002,12 @@ Text.* self count = self.repeat count
      the new text.
 
    > Example
-     Repeat the string "ABBA" five times.
+     Repeat the text "ABBA" five times.
 
          "ABBA".repeat 5 == "ABBAABBAABBAABBAABBA"
 
    > Example
-     Repeat the string "Hello " twice.
+     Repeat the text "Hello " twice.
 
          "Hello ".repeat 2 == "Hello Hello "
 Text.repeat : Integer -> Text

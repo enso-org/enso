@@ -498,6 +498,11 @@ function addNodeAuto() {
   createWithComponentBrowser(fromSelection() ?? { placement: { type: 'viewport' } })
 }
 
+function addNodeDisconnected() {
+  nodeSelection.deselectAll()
+  createWithComponentBrowser({ placement: { type: 'viewport' } })
+}
+
 function fromSelection(): NewNodeOptions | undefined {
   if (graphStore.editedNodeInfo != null) return undefined
   const firstSelectedNode = set.first(nodeSelection.selected)
@@ -707,7 +712,7 @@ const groupColors = computed(() => {
           @collapseNodes="collapseNodes"
           @removeNodes="deleteSelected"
         />
-        <PlusButton title="Add Component" @click.stop="addNodeAuto()" />
+        <PlusButton title="Add Component" @click.stop="addNodeDisconnected()" />
         <SceneScroller
           :navigator="graphNavigator"
           :scrollableArea="Rect.Bounding(...graphStore.visibleNodeAreas)"

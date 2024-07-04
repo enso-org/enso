@@ -349,7 +349,7 @@ onMounted(() => {
 
   &::before {
     content: '';
-    background-color: rgba(255, 255, 255, 0.35);
+    background-color: rgba(255, 255, 255, 0.9);
     backdrop-filter: blur(64px);
     border-radius: 4px;
   }

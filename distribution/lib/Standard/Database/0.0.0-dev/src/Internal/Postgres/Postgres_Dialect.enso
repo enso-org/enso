@@ -39,6 +39,8 @@ import project.SQL_Type.SQL_Type
 from project.Errors import SQL_Error, Unsupported_Database_Operation
 from project.Internal.IR.Operation_Metadata import Date_Period_Metadata
 
+polyglot java import java.sql.Types
+
 ## PRIVATE
 
    The dialect of PostgreSQL databases.
@@ -194,6 +196,36 @@ type Postgres_Dialect
                     _ -> Panic.throw <|
                         Illegal_State.Error "The type computed by our logic is Char, but the Database computed a non-text type ("+db_type.to_display_text+"). This should never happen and should be reported as a bug in the Database library."
             False -> column
+
+    ## PRIVATE
+       Add an extra cast to adjust the output type of certain operations with
+       certain arguments.
+
+       It is used when the normal type inference provided by the database engine
+       needs to be adjusted.
+
+       In most cases this method will just return the expression unchanged, it
+       is used only to override the type in cases where the default one that the
+       database uses is not what we want.
+    cast_op_type self (op_kind:Text) (args:(Vector Internal_Column)) (expression:SQL_Expression) =
+        is_int8 ic = ic.sql_type_reference.get.typeid == Types.BIGINT
+        is_int ic =
+            typeid = ic.sql_type_reference.get.typeid
+            typeid == Types.SMALLINT || typeid == Types.INTEGER || typeid == Types.BIGINT
+
+        cast_to = case op_kind of
+            "SUM" ->
+                if is_int8 (args.at 0) then "numeric(1000,0)" else Nothing
+            "AVG" ->
+                if is_int (args.at 0) then "float8" else Nothing
+            "STDDEV_POP" ->
+                if is_int (args.at 0) then "float8" else Nothing
+            "STDDEV_SAMP" ->
+                if is_int (args.at 0) then "float8" else Nothing
+            _ -> Nothing
+
+        if cast_to.is_nothing then expression else
+            SQL_Expression.Operation "CAST" [expression, SQL_Expression.Literal cast_to]
 
     ## PRIVATE
     prepare_fetch_types_query : SQL_Expression -> Context -> SQL_Statement
@@ -564,18 +596,18 @@ replace args metadata =
                     _ ->
                         SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ escaped_pattern ++ ", " ++ replacement ++ ")"
         Regex ->
-            pattern_string = SQL_Builder.interpolation raw_pattern.pattern_string
+            pattern_text = SQL_Builder.interpolation raw_pattern.pattern
             case replace_params.only_first of
                 False -> case replace_params.case_sensitivity of
                     Case_Sensitivity.Insensitive _ ->
-                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_string ++ ", " ++ replacement ++ ", 'ig')"
+                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_text ++ ", " ++ replacement ++ ", 'ig')"
                     _ ->
-                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_string ++ ", " ++ replacement ++ ", 'g')"
+                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_text ++ ", " ++ replacement ++ ", 'g')"
                 True -> case replace_params.case_sensitivity of
                     Case_Sensitivity.Insensitive _ ->
-                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_string ++ ", " ++ replacement ++ ", 'i')"
+                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_text ++ ", " ++ replacement ++ ", 'i')"
                     _ ->
-                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_string ++ ", " ++ replacement ++ ")"
+                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_text ++ ", " ++ replacement ++ ")"
         DB_Column ->
             case replace_params.only_first of
                 False -> case replace_params.case_sensitivity of

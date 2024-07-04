@@ -57,7 +57,7 @@ const style = computed(() =>
   height: var(--panel-size);
   margin-right: 1px;
   backdrop-filter: var(--blur-app-bg);
-  background-color: rgba(255, 255, 255, 0.35);
+  background-color: rgba(255, 255, 255, 0.9);
   box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.4);
 }
