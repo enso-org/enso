@@ -74,9 +74,11 @@ export const BUTTON_STYLES = twv.tv({
     'group',
     // we need to set the height to max-content to prevent the button from growing in flex containers
     'h-[max-content]',
+    // basic outline
+    'outline-offset-[1px] outline-transparent',
     // buttons always have borders
     // so keep them in mind when setting paddings
-    'border border-transparent',
+    'border-0.5 border-transparent',
     // button reset styles
     'whitespace-nowrap cursor-pointer select-none appearance-none',
     // Align the content by the center
@@ -87,7 +89,7 @@ export const BUTTON_STYLES = twv.tv({
   variants: {
     isDisabled: { true: 'disabled:opacity-50 disabled:cursor-not-allowed' },
     isFocused: {
-      true: 'focus:outline-none focus-visible:outline focus-visible:outline-primary focus-visible:outline-offset-2',
+      true: 'focus:outline-none focus-visible:outline-2 focus-visible:outline-black focus-visible:outline-offset-[-2px]',
     },
     isActive: {
       none: '',
@@ -107,10 +109,10 @@ export const BUTTON_STYLES = twv.tv({
           variant: 'body',
           color: 'custom',
           weight: 'semibold',
-          className: 'flex px-[11px] py-[5px]',
+          className: 'flex px-[11px] py-[5.5px]',
         }),
         content: 'gap-2',
-        icon: 'mb-[-0.3cap]',
+        icon: 'mb-[-0.1cap] h-4.5 w-4.5',
         extraClickZone: 'after:inset-[-6px]',
       },
       medium: {
@@ -118,9 +120,9 @@ export const BUTTON_STYLES = twv.tv({
           variant: 'body',
           color: 'custom',
           weight: 'semibold',
-          className: 'flex px-[9px] py-[3px]',
+          className: 'flex px-[9px] py-[3.5px]',
         }),
-        icon: 'mb-[-0.3cap]',
+        icon: 'mb-[-0.1cap] h-4 w-4',
         content: 'gap-2',
         extraClickZone: 'after:inset-[-8px]',
       },
@@ -129,9 +131,9 @@ export const BUTTON_STYLES = twv.tv({
           variant: 'body',
           color: 'custom',
           weight: 'medium',
-          className: 'flex px-[7px] py-[1px]',
+          className: 'flex px-[7px] py-[1.5px]',
         }),
-        icon: 'mb-[-0.3cap]',
+        icon: 'mb-[-0.1cap] h-3.5 w-3.5',
         content: 'gap-1',
         extraClickZone: 'after:inset-[-10px]',
       },
@@ -140,9 +142,10 @@ export const BUTTON_STYLES = twv.tv({
           variant: 'body',
           color: 'custom',
           weight: 'medium',
-          className: 'flex px-[5px] py-[1px]',
+          disableLineHeightCompensation: true,
+          className: 'flex px-[5px] pt-[0.5px] pb-[2.5px]',
         }),
-        icon: 'mb-[-0.3cap]',
+        icon: 'mb-[-0.2cap] h-3 w-3',
         content: 'gap-1',
         extraClickZone: 'after:inset-[-12px]',
       },
@@ -150,17 +153,24 @@ export const BUTTON_STYLES = twv.tv({
         base: text.TEXT_STYLE({
           variant: 'body',
           color: 'custom',
-          className: 'flex px-[3px] py-[0px]',
+          className: 'flex px-[3px] pt-[0.5px] pb-[2.5px] leading-[16px]',
           // we need to disable line height compensation for this size
           // because otherwise the text will be too high in the button
           disableLineHeightCompensation: true,
         }),
         content: 'gap-0.5',
+        icon: 'mb-[-0.1cap]',
         extraClickZone: 'after:inset-[-12px]',
       },
     },
     iconOnly: {
-      true: { base: text.TEXT_STYLE({ disableLineHeightCompensation: true }), icon: 'mb-[unset]' },
+      true: {
+        base: text.TEXT_STYLE({
+          disableLineHeightCompensation: true,
+          className: 'border-0 outline-offset-[5px]',
+        }),
+        icon: 'mb-[unset]',
+      },
     },
     rounded: {
       full: 'rounded-full',
@@ -173,10 +183,11 @@ export const BUTTON_STYLES = twv.tv({
       xxxlarge: 'rounded-3xl',
     },
     variant: {
-      custom: 'focus-visible:outline-offset-2',
+      custom: '',
       link: {
-        base: 'inline-block px-0 py-0 rounded-sm text-primary/50 underline hover:text-primary border-none',
-        icon: 'h-[1.25cap] mt-[0.25cap]',
+        base: 'inline-block px-0 py-0 rounded-sm text-primary/50 underline hover:text-primary border-0',
+        content: 'gap-1.5',
+        icon: 'h-[1.25cap] w-[1.25cap] mt-[0.25cap]',
       },
       primary: 'bg-primary text-white hover:bg-primary/70',
       tertiary: 'bg-accent text-white hover:bg-accent-dark',
@@ -184,17 +195,16 @@ export const BUTTON_STYLES = twv.tv({
       delete:
         'bg-danger/80 hover:bg-danger text-white focus-visible:outline-danger focus-visible:bg-danger',
       icon: {
-        base: 'border-0 opacity-80 hover:opacity-100 focus-visible:opacity-100 text-primary',
+        base: 'opacity-80 hover:opacity-100 focus-visible:opacity-100',
         wrapper: 'w-full h-full',
         content: 'w-full h-full',
         extraClickZone: 'w-full h-full',
       },
       ghost:
         'text-primary hover:text-primary/80 hover:bg-white focus-visible:text-primary/80 focus-visible:bg-white',
-      submit: 'bg-invite text-white opacity-80 hover:opacity-100 focus-visible:outline-offset-2',
-      outline:
-        'border-primary/40 text-primary hover:border-primary focus-visible:outline-offset-2 hover:bg-primary/10',
-      bar: 'rounded-full border-0.5 border-primary/20 transition-colors hover:bg-primary/10',
+      submit: 'bg-invite text-white opacity-80 hover:opacity-100',
+      outline: 'border-primary/40 text-primary hover:border-primary hover:bg-primary/5',
+      bar: 'border-primary/20 hover:bg-primary/5',
     },
     iconPosition: {
       start: { content: '' },
@@ -230,7 +240,7 @@ export const BUTTON_STYLES = twv.tv({
     loader: 'absolute inset-0 flex items-center justify-center',
     content: 'flex items-center gap-[0.5em]',
     text: 'inline-flex items-center justify-center gap-1',
-    icon: 'h-[2cap] flex-none aspect-square',
+    icon: 'h-[1.906cap] w-[1.906cap] flex-none aspect-square flex items-center justify-center',
   },
   defaultVariants: {
     isActive: 'none',
@@ -243,42 +253,16 @@ export const BUTTON_STYLES = twv.tv({
     showIconOnHover: false,
   },
   compoundVariants: [
-    { isFocused: true, iconOnly: true, class: 'focus-visible:outline-offset-3' },
-    {
-      variant: 'link',
-      isFocused: true,
-      class: 'focus-visible:outline-offset-1',
-    },
-    {
-      size: 'xxsmall',
-      iconOnly: true,
-      class: { base: 'p-0 rounded-full', icon: 'h-[1.25cap] -mt-[0.1cap]' },
-    },
-    {
-      size: 'xsmall',
-      iconOnly: true,
-      class: { base: 'p-0 rounded-full', icon: 'h-[1.45cap] -mt-[0.1cap]' },
-    },
-    {
-      size: 'small',
-      iconOnly: true,
-      class: { base: 'p-0 rounded-full', icon: 'h-[1.65cap] -mt-[0.1cap]' },
-    },
-    {
-      size: 'medium',
-      iconOnly: true,
-      class: { base: 'p-0 rounded-full', icon: 'h-[2cap] -mt-[0.1cap]' },
-    },
-    {
-      size: 'large',
-      iconOnly: true,
-      class: { base: 'p-0 rounded-full', icon: 'h-[3.65cap]' },
-    },
-    {
-      size: 'hero',
-      class: { base: 'p-0 rounded-full', icon: 'h-[5.5cap]' },
-      iconOnly: true,
-    },
+    { isFocused: true, iconOnly: true, class: 'focus-visible:outline-offset-[3px]' },
+    { size: 'custom', iconOnly: true, class: { icon: 'w-full h-full' } },
+    { size: 'xxsmall', iconOnly: true, class: { base: 'p-0 rounded-full', icon: 'w-2.5 h-2.5' } },
+    { size: 'xsmall', iconOnly: true, class: { base: 'p-0 rounded-full', icon: 'w-3 h-3' } },
+    { size: 'small', iconOnly: true, class: { base: 'p-0 rounded-full', icon: 'w-3.5 h-3.5' } },
+    { size: 'medium', iconOnly: true, class: { base: 'p-0 rounded-full', icon: 'w-4 h-4' } },
+    { size: 'large', iconOnly: true, class: { base: 'p-0 rounded-full', icon: 'w-4.5 h-4.5' } },
+    { size: 'hero', iconOnly: true, class: { base: 'p-0 rounded-full', icon: 'w-12 h-12' } },
+
+    { variant: 'link', isFocused: true, class: 'focus-visible:outline-offset-1' },
     { variant: 'link', size: 'xxsmall', class: 'font-medium' },
     { variant: 'link', size: 'xsmall', class: 'font-medium' },
     { variant: 'link', size: 'small', class: 'font-medium' },

@@ -22,6 +22,14 @@ class FileSystemService[F[+_, +_]: Applicative: CovariantFlatMap: ErrorChannel](
 ) extends FileSystemServiceApi[F] {
 
   /** @inheritdoc */
+  override def exists(path: File): F[FileSystemServiceFailure, Boolean] =
+    fileSystem
+      .exists(path)
+      .mapError(_ =>
+        FileSystemServiceFailure.FileSystem("Failed to check if path exists")
+      )
+
+  /** @inheritdoc */
   override def list(
     path: File
   ): F[FileSystemServiceFailure, Seq[FileSystemEntry]] =

@@ -96,8 +96,8 @@ type Date
          Get the local date of 5th August 1986.
 
              example_new = Date.new 1986 8 5
-    @year Widget.Numeric_Input
-    @month (Widget.Numeric_Input minimum=1 maximum=12)
+    @year (Widget.Numeric_Input display=Display.Always)
+    @month (Widget.Numeric_Input minimum=1 maximum=12 display=Display.Always)
     @day make_day_picker
     new : Integer -> Integer -> Integer -> Date ! Time_Error
     new year:Integer (month:Integer=1) (day:Integer=1) =
@@ -868,11 +868,12 @@ Date.from (that:JS_Object) =
         Error.throw (Illegal_Argument.Error "Invalid JS_Object for Date.from.")
 
 ## PRIVATE
-private make_day_picker cache=Nothing =
+private make_day_picker value cache =
+    _ = value
     year = cache.if_not_nothing <| cache "year"
     month = cache.if_not_nothing <| cache "month"
     days = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
     max = if month.is_nothing then 31 else
         if month != 2 || year.is_nothing then days.at (month - 1) else
-            if Date.new year month 1 . is_leap_year then 29 else 28
-    Widget.Numeric_Input minimum=1 maximum=max
+            if Date.new year 1 1 . is_leap_year then 29 else 28
+    Widget.Numeric_Input minimum=1 maximum=max display=Display.Always

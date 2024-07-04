@@ -42,7 +42,7 @@ import { asNodeId } from '@/stores/graph/graphDatabase'
 import type { RequiredImport } from '@/stores/graph/imports'
 import { useProjectStore } from '@/stores/project'
 import { provideSuggestionDbStore } from '@/stores/suggestionDatabase'
-import type { Typename } from '@/stores/suggestionDatabase/entry'
+import { suggestionDocumentationUrl, type Typename } from '@/stores/suggestionDatabase/entry'
 import { provideVisualizationStore } from '@/stores/visualization'
 import { bail } from '@/util/assert'
 import type { AstId } from '@/util/ast/abstract'
@@ -349,7 +349,29 @@ const graphBindingsHandler = graphBindings.handler({
   changeColorSelectedNodes() {
     showColorPicker.value = true
   },
+  openDocumentation() {
+    const failure = 'Unable to show node documentation'
+    const selected = getSoleSelectionOrToast(failure)
+    if (selected == null) return
+    const suggestion = graphStore.db.nodeMainSuggestion.lookup(selected)
+    const documentation = suggestion && suggestionDocumentationUrl(suggestion)
+    if (documentation) {
+      window.open(documentation, '_blank')
+    } else {
+      toasts.userActionFailed.show(`${failure}: no documentation available for selected node.`)
+    }
+  },
 })
+
+function getSoleSelectionOrToast(context: string) {
+  if (nodeSelection.selected.size === 0) {
+    toasts.userActionFailed.show(`${context}: no node selected.`)
+  } else if (nodeSelection.selected.size > 1) {
+    toasts.userActionFailed.show(`${context}: multiple nodes selected.`)
+  } else {
+    return set.first(nodeSelection.selected)
+  }
+}
 
 const { handleClick } = useDoubleClick(
   (e: MouseEvent) => {
