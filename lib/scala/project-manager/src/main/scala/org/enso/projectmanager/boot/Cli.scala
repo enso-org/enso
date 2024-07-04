@@ -17,7 +17,7 @@ object Cli {
   val PROJECTS_DIRECTORY = "projects-directory"
   val PROJECT_LIST       = "project-list"
 
-  val FILESYSTEM_EXIST            = "filesystem-exist"
+  val FILESYSTEM_EXISTS           = "filesystem-exists"
   val FILESYSTEM_LIST             = "filesystem-list"
   val FILESYSTEM_CREATE_DIRECTORY = "filesystem-create-directory"
   val FILESYSTEM_DELETE           = "filesystem-delete"
@@ -91,11 +91,11 @@ object Cli {
       .desc("List user projects.")
       .build()
 
-    val filesystemExist: cli.Option = cli.Option.builder
+    val filesystemExists: cli.Option = cli.Option.builder
       .hasArg(true)
       .numberOfArgs(1)
       .argName("path")
-      .longOpt(FILESYSTEM_EXIST)
+      .longOpt(FILESYSTEM_EXISTS)
       .desc("Check if a file or directory exists.")
       .build()
 
@@ -159,6 +159,7 @@ object Cli {
       .addOption(option.profilingTime)
       .addOption(option.projectsDirectory)
       .addOption(option.projectList)
+      .addOption(option.filesystemExists)
       .addOption(option.filesystemList)
       .addOption(option.filesystemCreateDirectory)
       .addOption(option.filesystemDelete)

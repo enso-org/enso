@@ -415,6 +415,16 @@ export default class ProjectManager {
     return await this.sendRequest<VersionList>('engine/list-available', {})
   }
 
+  /** Checks if a file or directory exists. */
+  async exists(parentId: Path | null) {
+    const response = await this.runStandaloneCommand<boolean>(
+        null,
+        'filesystem-exists',
+        parentId ?? this.rootDirectory
+    )
+    return response
+  }
+
   /** List directories, projects and files in the given folder. */
   async listDirectory(parentId: Path | null) {
     /** The type of the response body of this endpoint. */

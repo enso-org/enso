@@ -124,6 +124,14 @@ export default class LocalBackend extends Backend {
   ): Promise<backend.AnyAsset[]> {
     const parentIdRaw = query.parentId == null ? null : extractTypeAndId(query.parentId).id
     const parentId = query.parentId ?? newDirectoryId(this.projectManager.rootDirectory)
+    if (parentIdRaw == null) {
+      // Check if Root Directory Exists
+      const rootExists = await this.projectManager.exists(this.projectManager.rootDirectory)
+      if (!rootExists) {
+        await this.projectManager.createDirectory(this.projectManager.rootDirectory)
+        return []
+      }
+    }
     const entries = await this.projectManager.listDirectory(parentIdRaw)
     return entries
       .map(entry => {
