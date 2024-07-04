@@ -4,13 +4,12 @@
  * Tanstack Query client for Enso IDE and dashboard.
  */
 
+import * as idbKeyval from 'idb-keyval'
 import * as persistClientCore from '@tanstack/query-persist-client-core'
 import * as queryCore from '@tanstack/query-core'
-import * as idbKeyval from 'idb-keyval'
+import * as vueQuery from '@tanstack/vue-query'
 
-import { QueryClient } from '@tanstack/vue-query'
-
-export { QueryClient }
+export type QueryClient = vueQuery.QueryClient
 
 declare module '@tanstack/query-core' {
     /**
@@ -94,7 +93,7 @@ export function createQueryClient(): QueryClient {
         deserialize: persistedQuery => persistedQuery,
     })
 
-    const queryClient: QueryClient = new QueryClient({
+    const queryClient: QueryClient = new vueQuery.QueryClient({
         mutationCache: new queryCore.MutationCache({
             onSuccess: (_data, _variables, _context, mutation) => {
                 const shouldAwaitInvalidates = mutation.meta?.awaitInvalidates ?? false
