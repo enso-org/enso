@@ -108,8 +108,8 @@ add_specs suite_builder setup =
             a.day_of_week . to_vector . should_equal [4, 4, 1, Nothing, 7]
             [a.year, a.month, a.day, a.day_of_year, a.day_of_week].each c->
                 Test.with_clue "The column "+c.name+" value type ("+c.value_type.to_display_text+") should be an integer: " <|
-                    c.value_type.is_integer.should_be_true
-                c.value_type.is_integer.should_be_true
+                    setup.expect_integer_type c
+                setup.expect_integer_type c
 
             ((a.year) == (t.at "X")).to_vector . should_equal [True, False, False, Nothing, False]
             ((a.month) == (t.at "X")).to_vector . should_equal [False, False, True, Nothing, False]
@@ -125,7 +125,7 @@ add_specs suite_builder setup =
             a.day_of_week . to_vector . should_equal [4, 4, 1, Nothing, 7]
             [a.year, a.month, a.day, a.day_of_year, a.day_of_week].each c->
                 Test.with_clue "The column "+c.name+" value type ("+c.value_type.to_display_text+") should be an integer: " <|
-                    c.value_type.is_integer.should_be_true
+                    setup.expect_integer_type c
 
             ((a.year) == (t.at "X")).to_vector . should_equal [True, False, False, Nothing, False]
             ((a.month) == (t.at "X")).to_vector . should_equal [False, False, True, Nothing, False]
@@ -135,7 +135,7 @@ add_specs suite_builder setup =
             t = table_builder [["A", [Date.new 2020 12 31, Date.new 2024 2 29, Date.new 1990 1 1, Nothing]], ["X", [0, 2, 1, 100]], ["B", [Date_Time.new 2020 10 31 23 59 59, Date_Time.new 2024 4 29 2 30 44, Date_Time.new 1990 10 1 0 0 0, Nothing]]]
             c = t.evaluate_expression "year([A]) + [X] + day([A]) * month([B])"
             Test.with_clue "The column "+c.name+" value type ("+c.value_type.to_display_text+") should be an integer: " <|
-                c.value_type.is_integer.should_be_true
+                setup.expect_integer_type c
             c.to_vector . should_equal [(2020 + 0 + 31 * 10), (2024 + 2 + 29 * 4), (1990 + 1 + 1 * 10), Nothing]
 
         group_builder.specify "should allow to get hour/minute/second of a Time_Of_Day" <|
@@ -150,7 +150,7 @@ add_specs suite_builder setup =
 
             [a.hour, a.minute, a.second, a.date_part Time_Period.Hour, a.date_part Time_Period.Minute, a.date_part Time_Period.Second].each c->
                 Test.with_clue "The column "+c.name+" value type ("+c.value_type.to_display_text+") should be an integer: " <|
-                    c.value_type.is_integer.should_be_true
+                    setup.expect_integer_type c
 
         group_builder.specify "should allow to get hour/minute/second of a Date_Time" <|
             a = data.datetimes.at "A"
@@ -164,7 +164,7 @@ add_specs suite_builder setup =
 
             [a.hour, a.minute, a.second, a.date_part Time_Period.Hour, a.date_part Time_Period.Minute, a.date_part Time_Period.Second].each c->
                 Test.with_clue "The column "+c.name+" value type ("+c.value_type.to_display_text+") should be an integer: " <|
-                    c.value_type.is_integer.should_be_true
+                    setup.expect_integer_type c
 
         group_builder.specify "should allow to get millisecond/nanosecond of Time_Of_Day through date_part" <|
             a = data.times.at "A"
@@ -182,7 +182,7 @@ add_specs suite_builder setup =
                 testCases = testCases + (a.date_part Time_Period.Nanosecond)
             testCases.each c->
                 Test.with_clue "The column "+c.name+" value type ("+c.value_type.to_display_text+") should be an integer: " <|
-                    c.value_type.is_integer.should_be_true
+                    setup.expect_integer_type c
 
         group_builder.specify "should allow to get week/quarter of Date through date_part" <|
             a = data.dates.at "A"
@@ -191,7 +191,7 @@ add_specs suite_builder setup =
 
             [a.date_part Date_Period.Quarter, a.date_part Date_Period.Week].each c->
                 Test.with_clue "The column "+c.name+" value type ("+c.value_type.to_display_text+") should be an integer: " <|
-                    c.value_type.is_integer.should_be_true
+                    setup.expect_integer_type c
 
         group_builder.specify "should allow to get various date_part of Date_Time" <|
             a = data.datetimes.at "A"
@@ -210,7 +210,7 @@ add_specs suite_builder setup =
                 testCases = testCases + (a.date_part Time_Period.Nanosecond)
             testCases.each c->
                 Test.with_clue "The column "+c.name+" value type ("+c.value_type.to_display_text+") should be an integer: " <|
-                    c.value_type.is_integer.should_be_true
+                    setup.expect_integer_type c
 
 
         group_builder.specify "should allow to compare dates" <|
@@ -407,13 +407,13 @@ add_specs suite_builder setup =
             date_periods = [Date_Period.Day, Date_Period.Week, Date_Period.Month, Date_Period.Quarter, Date_Period.Year]
 
             date_periods.each p->
-                (t.at "X").date_diff (Date.new 2021 12 05) p . value_type . is_integer . should_be_true
+                setup.expect_integer_type <| (t.at "X").date_diff (Date.new 2021 12 05) p
 
             time_periods.each p->
-                (t.at "Y").date_diff (Time_Of_Day.new 01 02) p . value_type . is_integer . should_be_true
+                setup.expect_integer_type <| (t.at "Y").date_diff (Time_Of_Day.new 01 02) p
 
             (date_periods+time_periods).each p->
-                (t.at "Z").date_diff (Date_Time.new 2021 12 05 01 02) p . value_type . is_integer . should_be_true
+                setup.expect_integer_type <| (t.at "Z").date_diff (Date_Time.new 2021 12 05 01 02) p
 
         group_builder.specify "should not allow mixing types in date_diff" <|
             t = table_builder [["X", [Date.new 2021 01 31]], ["Y", [Time_Of_Day.new 12 30 20]], ["Z", [Date_Time.new 2021 12 5 12 30 20]]]

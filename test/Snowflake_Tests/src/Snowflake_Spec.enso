@@ -191,7 +191,7 @@ snowflake_specific_spec suite_builder default_connection db_name setup =
 
         group_builder.specify "should infer standard types correctly" <|
             data.t.at "strs" . value_type . is_text . should_be_true
-            data.t.at "ints" . value_type . is_integer . should_be_true
+            setup.expect_integer_type <| data.t.at "ints"
             data.t.at "bools" . value_type . is_boolean . should_be_true
             data.t.at "doubles" . value_type . is_floating_point . should_be_true
 
@@ -581,6 +581,7 @@ add_snowflake_specs suite_builder create_connection_fn db_name =
 
     snowflake_specific_spec suite_builder default_connection db_name setup
     Common_Table_Operations.Main.add_specs suite_builder setup
+    Upload_Spec.add_specs suite_builder setup create_connection_fn
 
 ## PRIVATE
 is_snowflake_integer value_type = case value_type of
@@ -607,7 +608,6 @@ add_table_specs suite_builder =
             db_name = get_configured_connection_details.database
             add_snowflake_specs suite_builder connection_builder db_name
             Transaction_Spec.add_specs suite_builder connection_builder "[Snowflake] "
-            Upload_Spec.add_specs suite_builder connection_builder "[Snowflake] "
 
             suite_builder.group "[Snowflake] Secrets in connection settings" group_builder->
                 cloud_setup = Cloud_Tests_Setup.prepare

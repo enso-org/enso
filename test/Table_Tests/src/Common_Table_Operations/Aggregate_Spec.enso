@@ -1500,12 +1500,12 @@ add_specs suite_builder setup =
 
             t1 = table.aggregate ["Text", "Int", "Float"]
             t1.at "Text" . value_type . is_text . should_be_true
-            t1.at "Int" . value_type . is_integer . should_be_true
+            setup.expect_integer_type <| t1.at "Int"
             t1.at "Float" . value_type . is_floating_point . should_be_true
 
             t2 = table.aggregate columns=[Count, Count_Not_Empty "Text", Sum "Int", Sum "Float", Average "Int", Concatenate "Text"]
-            t2.at "Count" . value_type . is_integer . should_be_true
-            t2.at "Count Not Empty Text" . value_type . is_integer . should_be_true
+            setup.expect_integer_type <| t2.at "Count"
+            setup.expect_integer_type <| t2.at "Count Not Empty Text"
             t2.at "Sum Int" . value_type . is_numeric . should_be_true
             t2.at "Sum Float" . value_type . is_floating_point . should_be_true
             t2.at "Average Int" . value_type . is_numeric . should_be_true

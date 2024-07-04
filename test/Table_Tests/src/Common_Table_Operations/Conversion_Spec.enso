@@ -407,7 +407,7 @@ add_specs suite_builder setup =
             t2 = t.cast ["Z", "Y"] Value_Type.Char
             t2.column_names . should_equal ["X", "Y", "Z", "A"]
 
-            t2.at "X" . value_type . is_integer . should_be_true
+            setup.expect_integer_type <| t2.at "X"
             t2.at "Y" . value_type . is_text . should_be_true
             t2.at "Z" . value_type . is_text . should_be_true
             t2.at "A" . value_type . is_boolean . should_be_true
@@ -604,7 +604,7 @@ add_specs suite_builder setup =
 
             t1 = t.parse ["X", "Y"] Value_Type.Integer error_on_missing_columns=False
             t1.at "X" . to_vector . should_equal [42, 0, -1]
-            t1.at "X" . value_type . is_integer . should_be_true
+            setup.expect_integer_type <| t1.at "X"
             Problems.expect_warning Missing_Input_Columns t1
 
             t2 = t.parse ["Y"] Value_Type.Integer error_on_missing_columns=False
@@ -653,7 +653,7 @@ add_specs suite_builder setup =
                 t2 = t1.auto_cast shrink_types=shrink_types
                 # Depending on shrink_types value the size of the Char/Integer types may vary - exact details tested elsewhere.
                 t2.at "strs" . value_type . should_be_a (Value_Type.Char ...)
-                t2.at "ints" . value_type . should_be_a (Value_Type.Integer ...)
+                setup.expect_integer_type <| t2.at "ints"
                 t2.at "floats" . value_type . should_equal Value_Type.Float
                 t2.at "mix" . value_type . should_equal Value_Type.Mixed
                 t2.at "dates" . value_type . should_equal Value_Type.Date

@@ -133,7 +133,7 @@ add_specs suite_builder setup =
             rows = t1.rows.to_vector . map .to_vector
             rows . should_equal [['a', 1], ['b', 2], ['a', 3], ['a', 4], ['c', 5]]
             t1.at "Row" . to_vector . should_equal [1, 2, 3, 4, 5]
-            t1.at "Row" . value_type . is_integer . should_be_true
+            setup.expect_integer_type <| t1.at "Row"
 
         group_builder.specify "should allow customizing the starting index and step" <|
             t = table_builder [["X", ['a', 'b', 'a']]]
