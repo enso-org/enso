@@ -111,20 +111,18 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
     const moduleRoot = ref<Ast.Ast>()
     const topLevel = ref<Ast.BodyBlock>()
 
-    let disconnectSyncModule: undefined | (() => void)
-    watch(syncModule, (syncModule) => {
+    watch(syncModule, (syncModule, _, onCleanup) => {
       if (!syncModule) return
       let moduleChanged = true
-      disconnectSyncModule?.()
       const handle = syncModule.observe((update) => {
         moduleSource.applyUpdate(syncModule, update)
         handleModuleUpdate(syncModule, moduleChanged, update)
         moduleChanged = false
       })
-      disconnectSyncModule = () => {
+      onCleanup(() => {
         syncModule.unobserve(handle)
         moduleSource.clear()
-      }
+      })
     })
 
     let toRaw = new Map<SourceRangeKey, RawAst.Tree.Function>()

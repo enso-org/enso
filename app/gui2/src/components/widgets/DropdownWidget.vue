@@ -73,7 +73,7 @@ export interface DropdownEntry {
 
 <template>
   <div class="DropdownWidget" :style="styleVars">
-    <ul class="list scrollable" @wheel.stop>
+    <ul class="list scrollable" @wheel.stop.passive>
       <li
         v-for="entry in sortedValues"
         :key="entry.value"

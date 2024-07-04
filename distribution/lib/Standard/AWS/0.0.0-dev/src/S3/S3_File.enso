@@ -165,13 +165,15 @@ type S3_File
     read : File_Format -> Problem_Behavior -> Any ! S3_Error
     read self format=Auto_Detect (on_problems : Problem_Behavior = Problem_Behavior.Report_Warning) =
         if Data_Link.is_data_link self then Data_Link_Helpers.read_data_link self format on_problems else
-            File_Format.handle_format_missing_arguments format <| case format of
-                Auto_Detect -> if self.is_directory then format.read self on_problems else
-                    response = translate_file_errors self <| S3.get_object self.s3_path.bucket self.s3_path.key self.credentials delimiter=S3_Path.delimiter
-                    response.decode Auto_Detect
-                _ ->
-                    metadata = File_Format_Metadata.Value path=self.path name=self.name
-                    self.with_input_stream [File_Access.Read] (stream-> format.read_stream stream metadata)
+            if self.is_directory then Error.throw (Illegal_Argument.Error "Cannot `read` a directory, use `list`.") else
+                case format of
+                    Auto_Detect ->
+                        response = translate_file_errors self <| S3.get_object self.s3_path.bucket self.s3_path.key self.credentials delimiter=S3_Path.delimiter
+                        response.decode Auto_Detect
+                    _ ->
+                        metadata = File_Format_Metadata.Value path=self.path name=self.name
+                        resolved_format = File_Format.resolve format
+                        self.with_input_stream [File_Access.Read] (stream-> resolved_format.read_stream stream metadata)
 
     ## ALIAS load bytes, open bytes
        ICON data_input
@@ -194,7 +196,7 @@ type S3_File
     @encoding Encoding.default_widget
     read_text : Encoding -> Problem_Behavior -> Text ! File_Error
     read_text self (encoding : Encoding = Encoding.default) (on_problems : Problem_Behavior = Problem_Behavior.Report_Warning) =
-        self.read (Plain_Text encoding) on_problems
+        self.read (Plain_Text_Format.Plain_Text encoding) on_problems
 
     ## ICON data_output
        Deletes the object.
@@ -386,7 +388,7 @@ type S3_File
     list self name_filter:Text="" recursive:Boolean=False =
         check_name_filter action = if name_filter != "" then Unimplemented.throw "S3 listing with name filter is not currently implemented." else action
         check_recursion action = if recursive then Unimplemented.throw "S3 listing with recursion is not currently implemented." else action
-        check_directory action = if self.is_directory.not then Error.throw (S3_Error.Error "Only folders can be listed." self.uri) else action
+        check_directory action = if self.is_directory.not then Error.throw (S3_Error.Error "Cannot `list` a non-directory." self.uri) else action
 
         check_directory <| check_recursion <| check_name_filter <|
             if self.s3_path.bucket == "" then translate_file_errors self <| S3.list_buckets self.credentials . map bucket-> S3_File.Value bucket "" self.credentials else

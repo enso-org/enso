@@ -1,7 +1,7 @@
 /** @file File containing SVG icon definitions. */
 import * as React from 'react'
 
-import * as tailwindMerge from 'tailwind-merge'
+import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 // ===============
 // === SvgMask ===
@@ -15,12 +15,7 @@ export interface SvgMaskProps {
   readonly src: string
   readonly title?: string
   readonly style?: React.CSSProperties
-  // Allowing `undefined` is fine here as this prop has a fallback.
-  // eslint-disable-next-line no-restricted-syntax
   readonly color?: string | undefined
-  // Allowing `undefined` is fine here as this prop is being transparently passed through to the
-  // underlying `div`.
-  // eslint-disable-next-line no-restricted-syntax
   readonly className?: string | undefined
 }
 

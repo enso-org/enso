@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Data.Numbers.Positive_Integer
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 from Standard.Table import Bits, Value_Type
@@ -43,7 +44,9 @@ type Postgres_Type_Mapping
             Value_Type.Char size variable ->
                 case variable of
                     True  ->
-                        is_unbounded = size.is_nothing || (size == max_precision)
+                        is_unbounded = case size of
+                            Nothing -> True
+                            Positive_Integer.Value integer -> integer == max_precision
                         case is_unbounded of
                             True  -> SQL_Type.Value Types.VARCHAR "text"
                             False -> SQL_Type.Value Types.VARCHAR "varchar" size

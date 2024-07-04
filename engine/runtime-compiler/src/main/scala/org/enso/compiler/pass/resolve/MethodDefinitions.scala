@@ -190,43 +190,60 @@ case object MethodDefinitions extends IRPass {
               typePointer,
               errors.Resolution.ResolverError(err)
             )
-          case Right(_: BindingsMap.ResolvedConstructor) =>
-            errors.Resolution(
-              typePointer,
-              errors.Resolution.UnexpectedConstructor(
-                "a method definition target"
-              )
-            )
-          case Right(value: BindingsMap.ResolvedModule) =>
-            typePointer.updateMetadata(
-              new MetadataPair(this, BindingsMap.Resolution(value))
-            )
-          case Right(value: BindingsMap.ResolvedType) =>
-            typePointer.updateMetadata(
-              new MetadataPair(this, BindingsMap.Resolution(value))
-            )
-          case Right(_: BindingsMap.ResolvedPolyglotSymbol) =>
-            errors.Resolution(
-              typePointer,
-              errors.Resolution.UnexpectedPolyglot(
-                "a method definition target"
-              )
-            )
-          case Right(_: BindingsMap.ResolvedPolyglotField) =>
-            errors.Resolution(
-              typePointer,
-              errors.Resolution.UnexpectedPolyglot(
-                "a method definition target"
-              )
-            )
-          case Right(_: BindingsMap.ResolvedMethod) =>
-            errors.Resolution(
-              typePointer,
-              errors.Resolution.UnexpectedMethod(
-                "a method definition target"
-              )
-            )
-
+          case Right(resolvedItems) =>
+            assert(resolvedItems.size == 1, "Expected a single resolution")
+            resolvedItems.head match {
+              case _: BindingsMap.ResolvedConstructor =>
+                errors.Resolution(
+                  typePointer,
+                  errors.Resolution.UnexpectedConstructor(
+                    "a method definition target"
+                  )
+                )
+              case value: BindingsMap.ResolvedModule =>
+                typePointer.updateMetadata(
+                  new MetadataPair(this, BindingsMap.Resolution(value))
+                )
+              case value: BindingsMap.ResolvedType =>
+                typePointer.updateMetadata(
+                  new MetadataPair(this, BindingsMap.Resolution(value))
+                )
+              case _: BindingsMap.ResolvedPolyglotSymbol =>
+                errors.Resolution(
+                  typePointer,
+                  errors.Resolution.UnexpectedPolyglot(
+                    "a method definition target"
+                  )
+                )
+              case _: BindingsMap.ResolvedPolyglotField =>
+                errors.Resolution(
+                  typePointer,
+                  errors.Resolution.UnexpectedPolyglot(
+                    "a method definition target"
+                  )
+                )
+              case _: BindingsMap.ResolvedModuleMethod =>
+                errors.Resolution(
+                  typePointer,
+                  errors.Resolution.UnexpectedMethod(
+                    "a method definition target"
+                  )
+                )
+              case _: BindingsMap.ResolvedStaticMethod =>
+                errors.Resolution(
+                  typePointer,
+                  errors.Resolution.UnexpectedMethod(
+                    "a static method definition target"
+                  )
+                )
+              case _: BindingsMap.ResolvedConversionMethod =>
+                errors.Resolution(
+                  typePointer,
+                  errors.Resolution.UnexpectedMethod(
+                    "a conversion method definition target"
+                  )
+                )
+            }
         }
       case tp: errors.Resolution => tp
       case _ =>

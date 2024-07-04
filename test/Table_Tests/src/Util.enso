@@ -94,3 +94,51 @@ normalize_lines string line_separator=Line_Ending_Style.Unix.to_text newline_at_
 set_writable file writable =
     path = file.absolute.path
     FileSystemHelper.setWritable path writable
+
+## Checks if the given result is a Vector and it has ordering as denoted by an
+   example vector.
+
+   The example should be a vector of vectors. Elements of the inner vectors can
+   be ordered arbitrarily (we treat them as belonging to the same equivalence
+   class), but the ordering between elements from different inner vectors must
+   be preserved.
+
+   For example, if `example` is `[[1, 2], [3]]`, then both `[1, 2, 3]` and
+   `[2, 1, 3]` will be accepted, but `[2, 3, 1]` will be rejected.
+Any.should_have_relative_ordering self (example : Vector) =
+    loc = Meta.get_source_location 1
+    case self of
+        _ : Vector ->
+            example.each v-> case v of
+                _ : Vector ->
+                    if v.is_empty then Test.fail "The example vector should not contain empty vectors as they are meaningless (at "+loc+")."
+                _ -> Test.fail "Expected a vector of vectors but got a vector containing "+v.to_display_text+" (at "+loc+")."
+
+            total_length = example.fold 0 acc-> v-> acc+v.length
+            if self.length != total_length then
+                Test.fail "Expected a vector of length "+total_length.to_text+" but got "+self.length.to_text+" (at "+loc+")."
+
+            pieces = Vector.build builder->
+                example.fold 0 offset-> reference_v->
+                    new_offset = offset + reference_v.length
+                    current_part = self.take (offset.up_to new_offset)
+                    builder.append current_part
+                    new_offset
+            Runtime.assert (pieces.length == example.length)
+            n = pieces.length
+            0.up_to n . each ix->
+                got_piece = pieces.at ix
+                expected_piece = example.at ix
+                are_consistent = Panic.rethrow <|
+                    (got_piece.sort on_incomparable=Problem_Behavior.Report_Error) == (expected_piece.sort on_incomparable=Problem_Behavior.Report_Error)
+                if are_consistent.not then
+                    offset = pieces.take ix . fold 0 acc-> p-> acc+p.length
+                    Test.fail "Expected the run of vector elements starting at offset "+offset.to_text+" to be a permutation of "+expected_piece.to_display_text+" but got "+got_piece.to_display_text+" (at "+loc+")."
+
+        _ -> Test.fail "Expected a vector but got "+self.to_display_text+" (at "+loc+")."
+## PRIVATE
+   See `Any.should_have_relative_ordering`.
+Error.should_have_relative_ordering self example =
+    loc = Meta.get_source_location 1
+    _ = example
+    Test.fail "Expected a vector but got a dataflow error "+self.catch.to_display_text+" (at "+loc+")."

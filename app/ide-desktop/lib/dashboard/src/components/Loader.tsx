@@ -1,7 +1,7 @@
 /** @file A full-screen loading spinner. */
-import * as twv from 'tailwind-variants'
+import StatelessSpinner, * as spinnerModule from '#/components/StatelessSpinner'
 
-import Spinner, * as spinnerModule from '#/components/Spinner'
+import * as twv from '#/utilities/tailwindVariants'
 
 // =================
 // === Constants ===
@@ -74,7 +74,7 @@ export function Loader(props: LoaderProps) {
 
   return (
     <div className={STYLES({ minHeight, className, color })}>
-      <Spinner size={size} state={state} className="text-current" />
+      <StatelessSpinner size={size} state={state} className="text-current" />
     </div>
   )
 }

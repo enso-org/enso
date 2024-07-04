@@ -30,6 +30,7 @@ from project.Data.Text.Extensions import all
 from project.Metadata.Choice import Option
 from project.Metadata.Widget import Single_Choice
 
+polyglot java import com.fasterxml.jackson.core.JsonLocation
 polyglot java import com.fasterxml.jackson.core.JsonProcessingException
 polyglot java import com.fasterxml.jackson.databind.JsonNode
 polyglot java import com.fasterxml.jackson.databind.node.ArrayNode
@@ -124,11 +125,13 @@ to_json_node value =
     case value of
         Nothing -> NullNode.getInstance
         b : Boolean -> BooleanNode.valueOf b
-        n : Integer -> LongNode.valueOf(n)
+        n : Integer ->
+            js_obj = n.to_js_object
+            if js_obj.is_a JS_Object then to_json_node js_obj else LongNode.valueOf n
         f : Float   ->
-            if f.is_nan || f.is_infinite then NullNode.getInstance else DoubleNode.valueOf(f)
+            if f.is_nan || f.is_infinite then NullNode.getInstance else DoubleNode.valueOf f
         t : Text    ->
-            TextNode.valueOf(t)
+            TextNode.valueOf t
         v : Vector  ->
             n = ArrayNode.new JsonNodeFactory.instance
             v.each e-> n.add (to_json_node e)

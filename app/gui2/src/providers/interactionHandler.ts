@@ -1,6 +1,6 @@
 import { createContextStore } from '@/providers'
 import type { GraphNavigator } from '@/providers/graphNavigator'
-import { watch, type WatchSource } from 'vue'
+import { shallowRef, watch, type WatchSource } from 'vue'
 
 export { injectFn as injectInteractionHandler, provideFn as provideInteractionHandler }
 const { provideFn, injectFn } = createContextStore(
@@ -9,10 +9,10 @@ const { provideFn, injectFn } = createContextStore(
 )
 
 export class InteractionHandler {
-  private currentInteraction: Interaction | undefined = undefined
+  private currentInteraction = shallowRef<Interaction>()
 
   isActive(interaction: Interaction | undefined): interaction is Interaction {
-    return interaction != null && interaction === this.currentInteraction
+    return interaction != null && interaction === this.currentInteraction.value
   }
 
   /** Automatically activate specified interaction any time a specified condition becomes true. */
@@ -28,24 +28,24 @@ export class InteractionHandler {
 
   setCurrent(interaction: Interaction | undefined) {
     if (!this.isActive(interaction)) {
-      this.currentInteraction?.end()
-      this.currentInteraction = interaction
+      this.currentInteraction.value?.end()
+      this.currentInteraction.value = interaction
     }
   }
 
   getCurrent(): Interaction | undefined {
-    return this.currentInteraction
+    return this.currentInteraction.value
   }
 
   /** Clear the current interaction without calling any callback, if the current interaction is `interaction`. */
   ended(interaction: Interaction) {
-    if (this.isActive(interaction)) this.currentInteraction = undefined
+    if (this.isActive(interaction)) this.currentInteraction.value = undefined
   }
 
   /** End the current interaction, if it is the specified instance. */
   end(interaction: Interaction) {
     if (this.isActive(interaction)) {
-      this.currentInteraction = undefined
+      this.currentInteraction.value = undefined
       interaction.end()
     }
   }
@@ -53,15 +53,15 @@ export class InteractionHandler {
   /** Cancel the current interaction, if it is the specified instance. */
   cancel(interaction: Interaction) {
     if (this.isActive(interaction)) {
-      this.currentInteraction = undefined
+      this.currentInteraction.value = undefined
       interaction.cancel()
     }
   }
 
   handleCancel(): boolean {
-    const hasCurrent = this.currentInteraction != null
-    this.currentInteraction?.cancel()
-    this.currentInteraction = undefined
+    const hasCurrent = this.currentInteraction.value != null
+    this.currentInteraction.value?.cancel()
+    this.currentInteraction.value = undefined
     return hasCurrent
   }
 
@@ -71,10 +71,10 @@ export class InteractionHandler {
     : never,
     graphNavigator: GraphNavigator,
   ): boolean {
-    if (!this.currentInteraction) return false
-    const handler = this.currentInteraction[handlerName]
+    if (!this.currentInteraction.value) return false
+    const handler = this.currentInteraction.value[handlerName]
     if (!handler) return false
-    const handled = handler.bind(this.currentInteraction)(event, graphNavigator) !== false
+    const handled = handler.bind(this.currentInteraction.value)(event, graphNavigator) !== false
     if (handled) {
       event.stopImmediatePropagation()
       event.preventDefault()

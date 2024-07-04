@@ -1,5 +1,4 @@
 import project.Any.Any
-import project.Data.Index_Sub_Range as Index_Sub_Range_Module
 import project.Data.Index_Sub_Range.Index_Sub_Range
 import project.Data.Locale.Locale
 import project.Data.Range.Range
@@ -35,6 +34,7 @@ import project.Nothing.Nothing
 import project.Panic.Panic
 import project.System.Internal.Reporting_Stream_Decoder_Helper
 from project.Data.Boolean import Boolean, False, True
+from project.Data.Index_Sub_Range import invert_range_selection
 from project.Data.Json import Invalid_JSON, JS_Object, Json
 from project.Data.Numbers import Float, Integer, Number, Number_Parse_Error
 from project.Data.Range.Extensions import all
@@ -46,12 +46,12 @@ polyglot java import com.ibm.icu.lang.UCharacter
 polyglot java import com.ibm.icu.text.BreakIterator
 polyglot java import java.lang.StringBuilder
 polyglot java import org.enso.base.encoding.Encoding_Utils
-polyglot java import org.enso.base.text.ResultWithWarnings
-polyglot java import org.enso.base.Text_Utils
 polyglot java import org.enso.base.Regex_Utils
-polyglot java import org.enso.base.WithProblems
 polyglot java import org.enso.base.text.GraphemeSpan
+polyglot java import org.enso.base.text.ResultWithWarnings
 polyglot java import org.enso.base.text.Utf16Span
+polyglot java import org.enso.base.Text_Utils
+polyglot java import org.enso.base.WithProblems
 
 ## GROUP Text
    ICON text
@@ -237,7 +237,8 @@ Text.characters self =
     Vector.build builder->
         self.each builder.append
 
-## GROUP Selections
+## ALIAS match
+   GROUP Selections
    ICON find
    Find the regular expression `pattern` in `self`, returning the first match
    if present or `Nothing` if not found.
@@ -266,7 +267,8 @@ Text.find self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
     compiled_pattern = Regex.compile pattern case_insensitive=case_insensitive
     compiled_pattern.match self
 
-## GROUP Selections
+## ALIAS matches
+   GROUP Selections
    ICON find
    Finds all the matches of the regular expression `pattern` in `self`,
    returning a Vector. If not found, will be an empty Vector.
@@ -458,7 +460,7 @@ Text.tokenize self pattern="." case_sensitivity=Case_Sensitivity.Sensitive =
        $0: the entire match string
        $&: the entire match string
        $n: the nth group
-       $<foo>: Named group `foo`
+       $&lt;foo&gt;: Named group `foo`
 
    Arguments:
    - term: The `Text` or `Regex` to find.
@@ -515,7 +517,7 @@ Text.tokenize self pattern="." case_sensitivity=Case_Sensitivity.Sensitive =
    > Example
      Regexp replace.
 
-     '<a href="url">content</a>'.replace '<a href="(.*?)">(.*?)</a>'.to_regex '$2 is at $1'== 'content is at url'
+         '<a href="url">content</a>'.replace '<a href="(.*?)">(.*?)</a>'.to_regex '$2 is at $1'== 'content is at url'
 @term make_regex_text_widget
 Text.replace : Text | Regex -> Text -> Case_Sensitivity -> Boolean -> Text ! Illegal_Argument
 Text.replace self term:(Text | Regex) replacement:Text (case_sensitivity:Case_Sensitivity=Case_Sensitivity.Default) only_first:Boolean=False =
@@ -544,7 +546,7 @@ Text.replace self term:(Text | Regex) replacement:Text (case_sensitivity:Case_Se
    Applies the specified cleansings to the text.
 
    Arguments:
-   - remove: A vector of the named patterns to cleanse from the text. The named patterns are 
+   - remove: A vector of the named patterns to cleanse from the text. The named patterns are
       applied in the order they are provided. The same named pattern can be used multiple
       times. The named patterns are:
       - ..Leading_Whitespace: Removes all whitespace from the start of the string.
@@ -979,12 +981,12 @@ Text.contains self term="" case_sensitivity=Case_Sensitivity.Sensitive = case ca
      the new text.
 
    > Example
-     Repeat the string "A" five times.
+     Repeat the text "A" five times.
 
          "A" * 5 == "AAAAA"
 
    > Example
-     Repeat the string "Hello " twice.
+     Repeat the text "Hello " twice.
 
          "Hello " * 2 == "Hello Hello "
 Text.* : Integer -> Text
@@ -1000,12 +1002,12 @@ Text.* self count = self.repeat count
      the new text.
 
    > Example
-     Repeat the string "ABBA" five times.
+     Repeat the text "ABBA" five times.
 
          "ABBA".repeat 5 == "ABBAABBAABBAABBAABBA"
 
    > Example
-     Repeat the string "Hello " twice.
+     Repeat the text "Hello " twice.
 
          "Hello ".repeat 2 == "Hello Hello "
 Text.repeat : Integer -> Text
@@ -1113,7 +1115,7 @@ Text.drop self range=(Index_Sub_Range.First 1) =
         _ : Codepoint_Ranges ->
             sorted_char_ranges_to_remove = ranges.sorted_and_distinct_ranges
             char_length = Text_Utils.char_length self
-            inverted = Index_Sub_Range_Module.invert_range_selection sorted_char_ranges_to_remove char_length needs_sorting=False
+            inverted = invert_range_selection sorted_char_ranges_to_remove char_length needs_sorting=False
             slice_text self inverted
 
 ## ALIAS lower, proper, title, upper
@@ -1150,7 +1152,7 @@ Text.drop self range=(Index_Sub_Range.First 1) =
          example_case_with_locale = "i".to_case Upper (Locale.new "tr") == "İ"
 @locale Locale.default_widget
 Text.to_case : Case -> Locale -> Text
-Text.to_case self case_option=Case.Lower locale=Locale.default = case case_option of
+Text.to_case self case_option:Case=..Lower locale:Locale=Locale.default = case case_option of
     Case.Lower -> UCharacter.toLowerCase locale.java_locale self
     Case.Upper -> UCharacter.toUpperCase locale.java_locale self
     Case.Title -> UCharacter.toTitleCase locale.java_locale self Nothing

@@ -123,8 +123,7 @@ type SQLite_Dialect
        A heuristic used by `Connection.query` to determine if a given text looks
        like a SQL query for the given dialect or is rather a table name.
     is_probably_a_query : Text -> Boolean
-    is_probably_a_query self text =
-        (text.contains "SELECT ") || (text.contains "EXEC ")
+    is_probably_a_query self text = Base_Generator.is_probably_a_query text
 
     ## PRIVATE
        Returns the mapping between SQL types of this dialect and Enso
@@ -167,8 +166,8 @@ type SQLite_Dialect
     supports_negative_round_decimal_places self = False
 
     ## PRIVATE
-    rounding_decimal_places_not_allowed_for_floats : Boolean
-    rounding_decimal_places_not_allowed_for_floats self = False
+    supports_float_round_decimal_places : Boolean
+    supports_float_round_decimal_places self = True
 
     ## PRIVATE
        SQLite allows mixed type columns, but we want our columns to be uniform.
@@ -184,6 +183,20 @@ type SQLite_Dialect
                 new_expression = self.make_cast_expression column sql_type
                 new_sql_type_reference = SQL_Type_Reference.from_constant sql_type
                 Internal_Column.Value column.name new_sql_type_reference new_expression
+
+    ## PRIVATE
+       Add an extra cast to adjust the output type of certain operations with
+       certain arguments.
+
+       It is used when the normal type inference provided by the database engine
+       needs to be adjusted.
+
+       In most cases this method will just return the expression unchanged, it
+       is used only to override the type in cases where the default one that the
+       database uses is not what we want.
+    cast_op_type self (op_kind:Text) (args:(Vector Internal_Column)) (expression:SQL_Expression) =
+        _ = [op_kind, args]
+        expression
 
     ## PRIVATE
     prepare_fetch_types_query : SQL_Expression -> Context -> SQL_Statement
@@ -248,7 +261,7 @@ type SQLite_Dialect
         ## The `pk` field is non-zero if the columns is part of the primary key.
            The column value indicates the position in the key.
            See: https://www.sqlite.org/pragma.html#pragma_table_info
-        v = info_table.filter "pk" (>0) . order_by "pk" . at "name" . to_vector
+        v = info_table.filter "pk" (>0) . sort "pk" . at "name" . to_vector
         if v.is_empty then Nothing else v
 
     ## PRIVATE
@@ -279,7 +292,9 @@ make_internal_generator_dialect =
 
     bool = [bool_or]
     my_mappings = text + counts + stats + arith_extensions + bool + other
-    Base_Generator.base_dialect . extend_with my_mappings
+    Base_Generator.base_dialect
+        . extend_with my_mappings
+        . override_make_table_literal make_sqlite_table_literal
 
 ## PRIVATE
 unsupported name =
@@ -378,12 +393,12 @@ agg_count_distinct_include_null args = case args.length == 1 of
     False -> Error.throw (Illegal_Argument.Error "COUNT_DISTINCT supports only single arguments in SQLite.")
 
 ## PRIVATE
-starts_with = Base_Generator.lift_binary_op "starts_with" str-> sub->
+starts_with = Base_Generator.lift_binary_op "STARTS_WITH" str-> sub->
     res = str ++ " GLOB (" ++ sub ++ " || '*')"
     res.paren
 
 ## PRIVATE
-ends_with = Base_Generator.lift_binary_op "ends_with" str-> sub->
+ends_with = Base_Generator.lift_binary_op "ENDS_WITH" str-> sub->
     res = str ++ " GLOB ('*' || " ++ sub ++ ")"
     res.paren
 
@@ -396,7 +411,7 @@ make_contains_expr expr substring =
     SQL_Builder.code "instr(" ++ expr ++ ", " ++ substring ++ ") > 0"
 
 ## PRIVATE
-contains = Base_Generator.lift_binary_op "contains" make_contains_expr
+contains = Base_Generator.lift_binary_op "CONTAINS" make_contains_expr
 
 ## PRIVATE
 left = Base_Generator.lift_binary_op "LEFT" str-> n->
@@ -415,7 +430,7 @@ floating_point_div = Base_Generator.lift_binary_op "/" x-> y->
     SQL_Builder.code "CAST(" ++ x ++ " AS REAL) / CAST(" ++ y ++ " AS REAL)"
 
 ## PRIVATE
-mod_op = Base_Generator.lift_binary_op "mod" x-> y->
+mod_op = Base_Generator.lift_binary_op "MOD" x-> y->
     x ++ " - FLOOR(CAST(" ++ x ++ " AS REAL) / CAST(" ++ y ++ " AS REAL)) * " ++ y
 
 ## PRIVATE
@@ -497,3 +512,11 @@ make_runtime_error_op arguments =
     variable_to_defer = arguments.at 1
     # We have to ensure that the implementation of SQLite that we use does not have a MATCH function defined which would make the code below succeed.
     SQL_Builder.code "match('[ENSO INVARIANT VIOLATED: '||" ++ error_message ++ "||'] ', " ++ variable_to_defer ++ ")"
+
+## PRIVATE
+make_sqlite_table_literal vecs column_names as_name =
+    values = SQL_Builder.join ", " (vecs.transpose.map (vec-> SQL_Builder.join ", " (vec.map SQL_Builder.interpolation) . paren))
+    wrap_identifier_as_builder n = SQL_Builder.code (Base_Generator.wrap_in_quotes n)
+    wrapped_name = wrap_identifier_as_builder as_name
+    structure = wrapped_name ++ (SQL_Builder.join ", " (column_names.map wrap_identifier_as_builder) . paren)
+    SQL_Builder.code "(WITH " ++ structure ++ " AS (VALUES " ++ values ++ ") SELECT * FROM " ++ wrapped_name ++ ") AS " ++ wrapped_name

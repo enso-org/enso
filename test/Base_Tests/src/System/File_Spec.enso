@@ -1,6 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Errors.Common.Forbidden_Operation
 import Standard.Base.Errors.Common.Dry_Run_Operation
+import Standard.Base.Errors.Common.Unsupported_Argument_Types
 import Standard.Base.Errors.Encoding_Error.Encoding_Error
 import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
@@ -31,6 +32,10 @@ add_specs suite_builder =
     windows_file = enso_project.data / "windows.txt"
     non_existent_file = File.new "does_not_exist.txt"
 
+    only_on_windows = case Platform.os of
+        Platform.OS.Windows -> Nothing
+        _ -> "This test runs only on Windows."
+
     suite_builder.group "File Operations" group_builder->
         group_builder.specify "should get name of the root" <|
             root = File.new "/"
@@ -40,6 +45,10 @@ add_specs suite_builder =
         group_builder.specify "should allow creating a new file" <|
             path = sample_file.path
             File.new path
+
+        group_builder.specify "invalid character in path on Windows" pending=only_on_windows <|
+            err = File.new "C:\dev:a"
+            err . should_fail_with Unsupported_Argument_Types
 
         group_builder.specify "should have `new` be a no-op on a file" <|
             file = File.new sample_file
@@ -853,7 +862,7 @@ add_specs suite_builder =
             filtered1 = root.list name_filter="s[a-cw]mple.{t?t,md}"
             filtered1.should_equal [root / "sample.txt"]
 
-            filtered2 = Data.list_directory root name_filter="*di*"
+            filtered2 = Data.list root name_filter="*di*"
             filtered2.should_equal [root / "subdirectory"]
 
         group_builder.specify "should list files in a directory recursively" <|

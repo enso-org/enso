@@ -38,6 +38,6 @@ export function useSetAsset<T extends backend.AnyAsset>(
         return ret
       })
     },
-    [/* should never change */ setNode]
+    [setNode]
   )
 }

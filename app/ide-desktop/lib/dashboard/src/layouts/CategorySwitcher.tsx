@@ -1,8 +1,6 @@
 /** @file Switcher to choose the currently visible assets table category. */
 import * as React from 'react'
 
-import * as tailwindMerge from 'tailwind-merge'
-
 import CloudIcon from 'enso-assets/cloud.svg'
 import NotCloudIcon from 'enso-assets/not_cloud.svg'
 import RecentIcon from 'enso-assets/recent.svg'
@@ -12,8 +10,10 @@ import type * as text from '#/text'
 
 import * as mimeTypes from '#/data/mimeTypes'
 
+import * as offlineHooks from '#/hooks/offlineHooks'
+
+import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
-import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
@@ -29,6 +29,8 @@ import SvgMask from '#/components/SvgMask'
 
 import type * as backend from '#/services/Backend'
 
+import * as tailwindMerge from '#/utilities/tailwindMerge'
+
 // =============
 // === Types ===
 // =============
@@ -40,6 +42,7 @@ interface CategoryMetadata {
   readonly textId: Extract<text.TextId, `${Category}Category`>
   readonly buttonTextId: Extract<text.TextId, `${Category}CategoryButtonLabel`>
   readonly dropZoneTextId: Extract<text.TextId, `${Category}CategoryDropZoneLabel`>
+  readonly className?: string
 }
 
 // =================
@@ -55,18 +58,12 @@ const CATEGORY_DATA: readonly CategoryMetadata[] = [
     dropZoneTextId: 'cloudCategoryDropZoneLabel',
   },
   {
-    category: Category.local,
-    icon: NotCloudIcon,
-    textId: 'localCategory',
-    buttonTextId: 'localCategoryButtonLabel',
-    dropZoneTextId: 'localCategoryDropZoneLabel',
-  },
-  {
     category: Category.recent,
     icon: RecentIcon,
     textId: 'recentCategory',
     buttonTextId: 'recentCategoryButtonLabel',
     dropZoneTextId: 'recentCategoryDropZoneLabel',
+    className: 'ml-4',
   },
   {
     category: Category.trash,
@@ -74,6 +71,14 @@ const CATEGORY_DATA: readonly CategoryMetadata[] = [
     textId: 'trashCategory',
     buttonTextId: 'trashCategoryButtonLabel',
     dropZoneTextId: 'trashCategoryDropZoneLabel',
+    className: 'ml-4',
+  },
+  {
+    category: Category.local,
+    icon: NotCloudIcon,
+    textId: 'localCategory',
+    buttonTextId: 'localCategoryButtonLabel',
+    dropZoneTextId: 'localCategoryDropZoneLabel',
   },
 ]
 
@@ -86,6 +91,8 @@ interface InternalCategorySwitcherItemProps {
   readonly id: string
   readonly data: CategoryMetadata
   readonly isCurrent: boolean
+  readonly isDisabled: boolean
+  readonly tooltip?: string | false
   readonly onPress: (event: aria.PressEvent) => void
   readonly acceptedDragTypes: string[]
   readonly onDrop: (event: aria.DropEvent) => void
@@ -93,7 +100,7 @@ interface InternalCategorySwitcherItemProps {
 
 /** An entry in a {@link CategorySwitcher}. */
 function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
-  const { data, isCurrent, onPress, acceptedDragTypes, onDrop } = props
+  const { data, isCurrent, isDisabled, tooltip = false, onPress, acceptedDragTypes, onDrop } = props
   const { category, icon, textId, buttonTextId, dropZoneTextId } = data
   const { getText } = textProvider.useText()
 
@@ -109,15 +116,21 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
       <ariaComponents.Button
         size="custom"
         variant="custom"
-        tooltip={false}
-        className={tailwindMerge.twMerge('rounded-full', isCurrent && 'focus-default')}
+        tooltip={tooltip}
+        tooltipPlacement="right"
+        className={tailwindMerge.twMerge(
+          isCurrent && 'focus-default',
+          isDisabled && 'cursor-not-allowed hover:bg-transparent',
+          data.className
+        )}
         aria-label={getText(buttonTextId)}
         onPress={onPress}
       >
         <div
           className={tailwindMerge.twMerge(
             'group flex h-row items-center gap-icon-with-text rounded-full px-button-x selectable',
-            isCurrent ? 'disabled active' : 'hover:bg-selected-frame'
+            isCurrent && 'disabled active',
+            !isCurrent && !isDisabled && 'hover:bg-selected-frame'
           )}
         >
           <SvgMask
@@ -153,11 +166,13 @@ export interface CategorySwitcherProps {
 export default function CategorySwitcher(props: CategorySwitcherProps) {
   const { category, setCategory } = props
   const { dispatchAssetEvent } = props
+  const { user } = authProvider.useNonPartialUserSession()
   const { unsetModal } = modalProvider.useSetModal()
-  const { localStorage } = localStorageProvider.useLocalStorage()
   const { getText } = textProvider.useText()
-  const remoteBackend = backendProvider.useRemoteBackend()
+  const { isOffline } = offlineHooks.useOffline()
+
   const localBackend = backendProvider.useLocalBackend()
+  /** The list of *visible* categories. */
   const categoryData = React.useMemo(
     () =>
       CATEGORY_DATA.filter(data => {
@@ -166,79 +181,107 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
             return localBackend != null
           }
           default: {
-            return remoteBackend != null
+            return true
           }
         }
       }),
-    [remoteBackend, localBackend]
+    [localBackend]
   )
+  const getCategoryError = (otherCategory: Category) => {
+    switch (otherCategory) {
+      case Category.local: {
+        if (localBackend == null) {
+          return getText('localBackendNotDetectedError')
+        } else {
+          return null
+        }
+      }
+      case Category.cloud:
+      case Category.recent:
+      case Category.trash: {
+        if (isOffline) {
+          return getText('unavailableOffline')
+        } else if (!user.isEnabled) {
+          return getText('notEnabledSubtitle')
+        } else {
+          return null
+        }
+      }
+    }
+  }
 
-  React.useEffect(() => {
-    localStorage.set('driveCategory', category)
-  }, [category, /* should never change */ localStorage])
+  if (!categoryData.some(data => data.category === category)) {
+    setCategory(categoryData[0]?.category ?? Category.cloud)
+  }
 
   return (
     <FocusArea direction="vertical">
       {innerProps => (
-        <div className="flex w-full flex-col" {...innerProps}>
-          <aria.Header
-            id="header"
-            className="text-header mb-sidebar-section-heading-b px-sidebar-section-heading-x text-sm font-bold"
-          >
+        <div className="flex w-full flex-col gap-2 py-1" {...innerProps}>
+          <ariaComponents.Text variant="subtitle" className="px-2 font-bold">
             {getText('category')}
-          </aria.Header>
+          </ariaComponents.Text>
+
           <div
             aria-label={getText('categorySwitcherMenuLabel')}
             role="grid"
             className="flex flex-col items-start"
           >
-            {categoryData.map(data => (
-              <CategorySwitcherItem
-                key={data.category}
-                id={data.category}
-                data={data}
-                isCurrent={category === data.category}
-                onPress={() => {
-                  setCategory(data.category)
-                }}
-                acceptedDragTypes={
-                  (category === Category.trash &&
-                    (data.category === Category.cloud || data.category === Category.local)) ||
-                  (category !== Category.trash && data.category === Category.trash)
-                    ? [mimeTypes.ASSETS_MIME_TYPE]
-                    : []
-                }
-                onDrop={event => {
-                  unsetModal()
-                  void Promise.all(
-                    event.items.flatMap(async item => {
-                      if (item.kind === 'text') {
-                        const text = await item.getText(mimeTypes.ASSETS_MIME_TYPE)
-                        const payload: unknown = JSON.parse(text)
-                        return Array.isArray(payload)
-                          ? payload.flatMap(key =>
-                              // This is SAFE, assuming only this app creates payloads with
-                              // the specific mimetype above.
-                              // eslint-disable-next-line no-restricted-syntax
-                              typeof key === 'string' ? [key as backend.AssetId] : []
-                            )
-                          : []
-                      } else {
-                        return []
-                      }
+            {categoryData.map(data => {
+              const error = getCategoryError(data.category)
+
+              return (
+                <CategorySwitcherItem
+                  key={data.category}
+                  id={data.category}
+                  data={data}
+                  isCurrent={category === data.category}
+                  isDisabled={error != null}
+                  tooltip={error ?? false}
+                  onPress={() => {
+                    if (error == null) {
+                      setCategory(data.category)
+                    }
+                  }}
+                  acceptedDragTypes={
+                    (category === Category.trash &&
+                      (data.category === Category.cloud || data.category === Category.local)) ||
+                    (category !== Category.trash && data.category === Category.trash)
+                      ? [mimeTypes.ASSETS_MIME_TYPE]
+                      : []
+                  }
+                  onDrop={event => {
+                    unsetModal()
+                    void Promise.all(
+                      event.items.flatMap(async item => {
+                        if (item.kind === 'text') {
+                          const text = await item.getText(mimeTypes.ASSETS_MIME_TYPE)
+                          const payload: unknown = JSON.parse(text)
+                          return Array.isArray(payload)
+                            ? payload.flatMap(key =>
+                                // This is SAFE, assuming only this app creates payloads with
+                                // the specific mimetype above.
+                                // eslint-disable-next-line no-restricted-syntax
+                                typeof key === 'string' ? [key as backend.AssetId] : []
+                              )
+                            : []
+                        } else {
+                          return []
+                        }
+                      })
+                    ).then(keys => {
+                      dispatchAssetEvent({
+                        type:
+                          category === Category.trash
+                            ? AssetEventType.restore
+                            : AssetEventType.delete,
+                        ids: new Set(keys.flat(1)),
+                      })
                     })
-                  ).then(keys => {
-                    dispatchAssetEvent({
-                      type:
-                        category === Category.trash
-                          ? AssetEventType.restore
-                          : AssetEventType.delete,
-                      ids: new Set(keys.flat(1)),
-                    })
-                  })
-                }}
-              />
-            ))}
+                  }}
+                />
+              )
+            })}
           </div>
         </div>
       )}

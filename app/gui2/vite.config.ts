@@ -8,6 +8,7 @@ import postcssNesting from 'postcss-nesting'
 import tailwindcss from 'tailwindcss'
 import tailwindcssNesting from 'tailwindcss/nesting'
 import { defineConfig, type Plugin } from 'vite'
+import VueDevTools from 'vite-plugin-vue-devtools'
 // @ts-expect-error
 import * as tailwindConfig from 'enso-dashboard/tailwind.config'
 import { createGatewayServer } from './ydoc-server'
@@ -27,6 +28,7 @@ export default defineConfig({
   publicDir: fileURLToPath(new URL('./public', import.meta.url)),
   envDir: fileURLToPath(new URL('.', import.meta.url)),
   plugins: [
+    VueDevTools(),
     vue(),
     react({
       include: fileURLToPath(new URL('../ide-desktop/lib/dashboard/**/*.tsx', import.meta.url)),
@@ -81,13 +83,6 @@ export default defineConfig({
   build: {
     // dashboard chunk size is larger than the default warning limit
     chunkSizeWarningLimit: 700,
-    rollupOptions: {
-      output: {
-        manualChunks: {
-          fontawesome: ['@fortawesome/react-fontawesome', '@fortawesome/free-brands-svg-icons'],
-        },
-      },
-    },
   },
 })
 

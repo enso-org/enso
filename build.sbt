@@ -47,7 +47,7 @@ val currentEdition = sys.env.getOrElse(
 // Note [Stdlib Version]
 val stdLibVersion       = defaultDevEnsoVersion
 val targetStdlibVersion = ensoVersion
-val persistanceVersion  = "0.2-SNAPSHOT"
+val mavenUploadVersion  = "0.2-SNAPSHOT"
 
 // Inspired by https://www.scala-sbt.org/1.x/docs/Howto-Startup.html#How+to+take+an+action+on+startup
 lazy val startupStateTransition: State => State = { s: State =>
@@ -333,6 +333,7 @@ lazy val enso = (project in file("."))
     `connected-lock-manager`,
     `connected-lock-manager-server`,
     testkit,
+    `test-utils`,
     `common-polyglot-core-utils`,
     `std-base`,
     `std-database`,
@@ -347,7 +348,8 @@ lazy val enso = (project in file("."))
     `benchmark-java-helpers`,
     `benchmarks-common`,
     `bench-processor`,
-    `ydoc-server`
+    `ydoc-server`,
+    `desktop-environment`
   )
   .settings(Global / concurrentRestrictions += Tags.exclusive(Exclusive))
   .settings(
@@ -414,9 +416,9 @@ val catsVersion = "2.9.0"
 
 // === Circe ==================================================================
 
-val circeVersion              = "0.14.5"
-val circeYamlVersion          = "0.14.2"
-val circeGenericExtrasVersion = "0.14.2"
+val circeVersion              = "0.14.7"
+val circeYamlVersion          = "0.15.1"
+val circeGenericExtrasVersion = "0.14.3"
 val circe = Seq("circe-core", "circe-generic", "circe-parser")
   .map("io.circe" %% _ % circeVersion)
 
@@ -731,11 +733,17 @@ lazy val `syntax-rust-definition` = project
   .enablePlugins(JPMSPlugin)
   .configs(Test)
   .settings(
+    version := mavenUploadVersion,
     Compile / exportJars := true,
+    javadocSettings,
+    publish / skip := false,
+    autoScalaLibrary := false,
+    crossPaths := false,
     javaModuleName := "org.enso.syntax",
     Compile / sourceGenerators += generateParserJavaSources,
     Compile / resourceGenerators += generateRustParserLib,
-    Compile / javaSource := baseDirectory.value / "generate-java" / "java"
+    Compile / javaSource := baseDirectory.value / "generate-java" / "java",
+    Compile / compile / javacOptions ++= Seq("-source", "11", "-target", "11")
   )
 
 lazy val yaml = (project in file("lib/java/yaml"))
@@ -1114,6 +1122,7 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
       .value
   )
   .dependsOn(`akka-native`)
+  .dependsOn(`desktop-environment`)
   .dependsOn(`version-output`)
   .dependsOn(editions)
   .dependsOn(`edition-updater`)
@@ -1306,7 +1315,7 @@ lazy val `ydoc-server` = project
 
 lazy val `persistance` = (project in file("lib/java/persistance"))
   .settings(
-    version := persistanceVersion,
+    version := mavenUploadVersion,
     Test / fork := true,
     commands += WithDebugCommand.withDebug,
     frgaalJavaCompilerSetting,
@@ -1328,7 +1337,7 @@ lazy val `persistance` = (project in file("lib/java/persistance"))
 
 lazy val `persistance-dsl` = (project in file("lib/java/persistance-dsl"))
   .settings(
-    version := persistanceVersion,
+    version := mavenUploadVersion,
     frgaalJavaCompilerSetting,
     publish / skip := false,
     autoScalaLibrary := false,
@@ -2178,6 +2187,10 @@ lazy val `runtime-benchmarks` =
 lazy val `runtime-parser` =
   (project in file("engine/runtime-parser"))
     .settings(
+      version := mavenUploadVersion,
+      javadocSettings,
+      publish / skip := false,
+      crossPaths := false,
       frgaalJavaCompilerSetting,
       annotationProcSetting,
       commands += WithDebugCommand.withDebug,
@@ -2539,8 +2552,10 @@ lazy val `engine-runner` = project
       if (smallJdkDirectory.exists()) {
         IO.delete(smallJdkDirectory)
       }
-      val JS_MODULES =
-        "org.graalvm.nativeimage,org.graalvm.nativeimage.builder,org.graalvm.nativeimage.base,org.graalvm.nativeimage.driver,org.graalvm.nativeimage.librarysupport,org.graalvm.nativeimage.objectfile,org.graalvm.nativeimage.pointsto,com.oracle.graal.graal_enterprise,com.oracle.svm.svm_enterprise,jdk.compiler.graal,jdk.httpserver,java.naming,java.net.http"
+      val NI_MODULES =
+        "org.graalvm.nativeimage,org.graalvm.nativeimage.builder,org.graalvm.nativeimage.base,org.graalvm.nativeimage.driver,org.graalvm.nativeimage.librarysupport,org.graalvm.nativeimage.objectfile,org.graalvm.nativeimage.pointsto,com.oracle.graal.graal_enterprise,com.oracle.svm.svm_enterprise"
+      val JDK_MODULES =
+        "jdk.localedata,jdk.compiler.graal,jdk.httpserver,java.naming,java.net.http"
       val DEBUG_MODULES  = "jdk.jdwp.agent"
       val PYTHON_MODULES = "jdk.security.auth,java.naming"
 
@@ -2567,12 +2582,19 @@ lazy val `engine-runner` = project
           )
       }
 
-      val exec =
-        s"$jlink --module-path ${modules.mkString(":")} --output $smallJdkDirectory --add-modules $JS_MODULES,$DEBUG_MODULES,$PYTHON_MODULES"
-      val exitCode = scala.sys.process.Process(exec).!
-
+      var jlinkArgs = Seq(
+        "--module-path",
+        modules.mkString(File.pathSeparator),
+        "--output",
+        smallJdkDirectory.toString(),
+        "--add-modules",
+        s"$NI_MODULES,$JDK_MODULES,$DEBUG_MODULES,$PYTHON_MODULES"
+      )
+      val exitCode = scala.sys.process.Process(jlink.toString(), jlinkArgs).!
       if (exitCode != 0) {
-        throw new RuntimeException(s"Cannot execute smalljdk.sh")
+        throw new RuntimeException(
+          s"Failed to execute $jlink ${jlinkArgs.mkString(" ")} - exit code: $exitCode"
+        )
       }
       libDirs.foreach(libDir =>
         IO.copyDirectory(
@@ -2600,6 +2622,9 @@ lazy val `engine-runner` = project
           additionalOptions = Seq(
             "-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.NoOpLog",
             "-H:IncludeResources=.*Main.enso$",
+            "-H:+AddAllCharsets",
+            "-H:+IncludeAllLocales",
+            "-ea",
             // useful perf & debug switches:
             // "-g",
             // "-H:+SourceLevelDebug",
@@ -2650,6 +2675,7 @@ lazy val `engine-runner` = project
   .dependsOn(`logging-service`)
   .dependsOn(`logging-service-logback` % Runtime)
   .dependsOn(`polyglot-api`)
+  .dependsOn(`enso-test-java-helpers`)
 
 lazy val buildSmallJdk =
   taskKey[File]("Build a minimal JDK used for native image generation")
@@ -2780,6 +2806,17 @@ lazy val `benchmarks-common` =
       )
     )
     .dependsOn(`polyglot-api`)
+
+lazy val `desktop-environment` =
+  project
+    .in(file("lib/java/desktop-environment"))
+    .settings(
+      frgaalJavaCompilerSetting,
+      libraryDependencies ++= Seq(
+        "junit"          % "junit"           % junitVersion   % Test,
+        "com.github.sbt" % "junit-interface" % junitIfVersion % Test
+      )
+    )
 
 lazy val `bench-processor` = (project in file("lib/scala/bench-processor"))
   .settings(
@@ -3557,7 +3594,7 @@ ThisBuild / buildEngineDistributionNoIndex := {
 lazy val runEngineDistribution =
   inputKey[Unit]("Run or --debug the engine distribution with arguments")
 runEngineDistribution := {
-  buildEngineDistribution.value
+  buildEngineDistributionNoIndex.value
   val args: Seq[String] = spaceDelimited("<arg>").parsed
   DistributionPackage.runEnginePackage(
     engineDistributionRoot.value,

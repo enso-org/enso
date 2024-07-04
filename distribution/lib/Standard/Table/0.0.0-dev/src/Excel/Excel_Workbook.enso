@@ -72,7 +72,11 @@ type Excel_Workbook
 
     ## PRIVATE
        Creates an Excel_Workbook connection.
-    Value (excel_connection_resource_ref : Ref (Managed_Resource ReadOnlyExcelConnection)) (file:(File|Temporary_File|Nothing)) xls_format:Boolean
+    private Value (excel_connection_resource_ref : Ref (Managed_Resource ReadOnlyExcelConnection)) (file:(File|Temporary_File|Nothing)) internal_xls_format:Boolean
+
+    ## Is the Workbook in the old XLS format?
+    xls_format : Boolean
+    xls_format self = self.internal_xls_format
 
     ## PRIVATE
        ICON metadata
@@ -307,8 +311,9 @@ type Excel_Workbook
        Provides a JS object representation for use in visualizations.
     to_js_object : JS_Object
     to_js_object self =
+        values=(self.tables.at "Name" . to_vector)
         additional_fields = case self.file of
-            regular_file : File -> [["file", regular_file.path]]
+            regular_file : File -> [["file", regular_file.path], ["sheet_names", values]]
             _ -> []
         JS_Object.from_pairs <|
             [["type", "Excel_Workbook"], ["xls_format", self.xls_format]] + additional_fields

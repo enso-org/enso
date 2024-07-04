@@ -1,11 +1,10 @@
 /** @file A table row for an arbitrary asset. */
 import * as React from 'react'
 
-import * as tailwindMerge from 'tailwind-merge'
-
 import BlankIcon from 'enso-assets/blank.svg'
 
 import * as backendHooks from '#/hooks/backendHooks'
+import * as dragAndDropHooks from '#/hooks/dragAndDropHooks'
 import * as eventHooks from '#/hooks/eventHooks'
 import * as setAssetHooks from '#/hooks/setAssetHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
@@ -45,6 +44,7 @@ import * as indent from '#/utilities/indent'
 import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
 import * as set from '#/utilities/set'
+import * as tailwindMerge from '#/utilities/tailwindMerge'
 import Visibility from '#/utilities/Visibility'
 
 // =================
@@ -100,6 +100,7 @@ export default function AssetRow(props: AssetRowProps) {
   const { nodeMap, setAssetPanelProps, doToggleDirectoryExpansion, doCopy, doCut, doPaste } = state
   const { setIsAssetPanelTemporarilyVisible, scrollContainerRef, rootDirectoryId } = state
 
+  const draggableProps = dragAndDropHooks.useDraggable()
   const { user } = authProvider.useNonPartialUserSession()
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
@@ -157,7 +158,7 @@ export default function AssetRow(props: AssetRowProps) {
     if (selected && insertionVisibility !== Visibility.visible) {
       setSelected(false)
     }
-  }, [selected, insertionVisibility, /* should never change */ setSelected])
+  }, [selected, insertionVisibility, setSelected])
 
   React.useEffect(() => {
     if (isKeyboardSelected) {
@@ -202,10 +203,10 @@ export default function AssetRow(props: AssetRowProps) {
       asset,
       item.key,
       toastAndLog,
-      /* should never change */ copyAssetMutate,
-      /* should never change */ nodeMap,
-      /* should never change */ setAsset,
-      /* should never change */ dispatchAssetListEvent,
+      copyAssetMutate,
+      nodeMap,
+      setAsset,
+      dispatchAssetListEvent,
     ]
   )
 
@@ -317,9 +318,9 @@ export default function AssetRow(props: AssetRowProps) {
       item.directoryKey,
       item.key,
       toastAndLog,
-      /* should never change */ updateAssetMutate,
-      /* should never change */ setAsset,
-      /* should never change */ dispatchAssetListEvent,
+      updateAssetMutate,
+      setAsset,
+      dispatchAssetListEvent,
     ]
   )
 
@@ -328,13 +329,7 @@ export default function AssetRow(props: AssetRowProps) {
       setAssetPanelProps({ backend, item, setItem })
       setIsAssetPanelTemporarilyVisible(false)
     }
-  }, [
-    item,
-    isSoleSelected,
-    /* should never change */ backend,
-    /* should never change */ setAssetPanelProps,
-    /* should never change */ setIsAssetPanelTemporarilyVisible,
-  ])
+  }, [item, isSoleSelected, backend, setAssetPanelProps, setIsAssetPanelTemporarilyVisible])
 
   const doDelete = React.useCallback(
     async (forever = false) => {
@@ -378,14 +373,14 @@ export default function AssetRow(props: AssetRowProps) {
       }
     },
     [
-      backend.type,
+      backend,
       dispatchAssetListEvent,
       asset,
-      /* should never change */ openProjectMutate,
-      /* should never change */ closeProjectMutate,
-      /* should never change */ deleteAssetMutate,
-      /* should never change */ item.key,
-      /* should never change */ toastAndLog,
+      openProjectMutate,
+      closeProjectMutate,
+      deleteAssetMutate,
+      item.key,
+      toastAndLog,
     ]
   )
 
@@ -399,13 +394,7 @@ export default function AssetRow(props: AssetRowProps) {
       setInsertionVisibility(Visibility.visible)
       toastAndLog('restoreAssetError', error, asset.title)
     }
-  }, [
-    dispatchAssetListEvent,
-    asset,
-    toastAndLog,
-    /* should never change */ undoDeleteAssetMutate,
-    /* should never change */ item.key,
-  ])
+  }, [dispatchAssetListEvent, asset, toastAndLog, undoDeleteAssetMutate, item.key])
 
   const doTriggerDescriptionEdit = React.useCallback(() => {
     setModal(
@@ -578,7 +567,7 @@ export default function AssetRow(props: AssetRowProps) {
         }
         case AssetEventType.removeSelf: {
           // This is not triggered from the asset list, so it uses `item.id` instead of `key`.
-          if (event.id === asset.id && user != null && user.isEnabled) {
+          if (event.id === asset.id && user.isEnabled) {
             setInsertionVisibility(Visibility.hidden)
             try {
               await createPermissionMutation.mutateAsync([
@@ -724,20 +713,12 @@ export default function AssetRow(props: AssetRowProps) {
     case backendModule.AssetType.file:
     case backendModule.AssetType.datalink:
     case backendModule.AssetType.secret: {
-      const innerProps: AssetRowInnerProps = {
-        key,
-        item,
-        setItem,
-        state,
-        rowState,
-        setRowState,
-      }
+      const innerProps: AssetRowInnerProps = { key, item, setItem, state, rowState, setRowState }
       return (
         <>
           {!hidden && (
             <FocusRing>
               <tr
-                draggable
                 tabIndex={0}
                 ref={element => {
                   rootRef.current = element
@@ -758,10 +739,11 @@ export default function AssetRow(props: AssetRowProps) {
                   }
                 }}
                 className={tailwindMerge.twMerge(
-                  'h-row rounded-full transition-all ease-in-out rounded-rows-child',
+                  'h-table-row rounded-full transition-all ease-in-out rounded-rows-child',
                   visibility,
                   (isDraggedOver || selected) && 'selected'
                 )}
+                {...draggableProps}
                 onClick={event => {
                   unsetModal()
                   onClick(innerProps, event)
@@ -826,7 +808,6 @@ export default function AssetRow(props: AssetRowProps) {
                   if (state.category === Category.trash) {
                     event.dataTransfer.dropEffect = 'none'
                   }
-
                   props.onDragOver?.(event)
                   onDragOver(event)
                 }}
@@ -947,7 +928,7 @@ export default function AssetRow(props: AssetRowProps) {
           <td colSpan={columns.length} className="border-r p-0 rounded-rows-skip-level">
             <div
               className={tailwindMerge.twMerge(
-                'flex h-row w-container justify-center rounded-full rounded-rows-child',
+                'flex h-table-row w-container items-center justify-center rounded-full rounded-rows-child',
                 indent.indentClass(item.depth)
               )}
             >
@@ -963,7 +944,7 @@ export default function AssetRow(props: AssetRowProps) {
           <td colSpan={columns.length} className="border-r p-0 rounded-rows-skip-level">
             <div
               className={tailwindMerge.twMerge(
-                'flex h-row items-center rounded-full rounded-rows-child',
+                'flex h-table-row items-center rounded-full rounded-rows-child',
                 indent.indentClass(item.depth)
               )}
             >

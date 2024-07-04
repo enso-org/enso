@@ -7,12 +7,12 @@ import { Ast } from '@/util/ast'
 import { MutableModule } from '@/util/ast/abstract.ts'
 import type { ViteHotContext } from 'vite/types/hot'
 import { computed, shallowReactive, type Component, type PropType } from 'vue'
-import type { WidgetEditHandler } from './widgetRegistry/editHandler'
+import type { WidgetEditHandlerParent } from './widgetRegistry/editHandler'
 
 export type WidgetComponent<T extends WidgetInput> = Component<WidgetProps<T>>
 
 export namespace WidgetInput {
-  export function FromAst(ast: Ast.Ast | Ast.Token): WidgetInput {
+  export function FromAst<A extends Ast.Ast | Ast.Token>(ast: A): WidgetInput & { value: A } {
     return {
       portId: ast.id,
       value: ast,
@@ -113,7 +113,7 @@ export interface WidgetInput {
   dynamicConfig?: WidgetConfiguration | undefined
   /** Force the widget to be a connectible port. */
   forcePort?: boolean
-  editHandler?: WidgetEditHandler
+  editHandler?: WidgetEditHandlerParent | undefined
 }
 
 /**

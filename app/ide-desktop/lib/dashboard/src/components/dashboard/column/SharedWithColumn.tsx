@@ -3,6 +3,8 @@ import * as React from 'react'
 
 import Plus2Icon from 'enso-assets/plus2.svg'
 
+import * as billingHooks from '#/hooks/billing'
+
 import * as authProvider from '#/providers/AuthProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 
@@ -13,6 +15,7 @@ import Category from '#/layouts/CategorySwitcher/Category'
 import * as ariaComponents from '#/components/AriaComponents'
 import type * as column from '#/components/dashboard/column'
 import PermissionDisplay from '#/components/dashboard/PermissionDisplay'
+import * as paywall from '#/components/Paywall'
 
 import ManagePermissionsModal from '#/modals/ManagePermissionsModal'
 
@@ -27,10 +30,9 @@ import * as uniqueString from '#/utilities/uniqueString'
 
 /** The type of the `state` prop of a {@link SharedWithColumn}. */
 interface SharedWithColumnStateProp
-  extends Pick<
-    column.AssetColumnProps['state'],
-    'backend' | 'category' | 'dispatchAssetEvent' | 'setQuery'
-  > {}
+  extends Pick<column.AssetColumnProps['state'], 'backend' | 'category' | 'dispatchAssetEvent'> {
+  readonly setQuery: column.AssetColumnProps['state']['setQuery'] | null
+}
 
 /** Props for a {@link SharedWithColumn}. */
 interface SharedWithColumnPropsInternal extends Pick<column.AssetColumnProps, 'item' | 'setItem'> {
@@ -44,9 +46,14 @@ export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
   const { backend, category, dispatchAssetEvent, setQuery } = state
   const asset = item.item
   const { user } = authProvider.useNonPartialUserSession()
+
+  const { isFeatureUnderPaywall } = billingHooks.usePaywall({ plan: user.plan })
+
+  const isUnderPaywall = isFeatureUnderPaywall('share')
+
   const { setModal } = modalProvider.useSetModal()
   const self = asset.permissions?.find(
-    backendModule.isUserPermissionAnd(permission => permission.user.userId === user?.userId)
+    backendModule.isUserPermissionAnd(permission => permission.user.userId === user.userId)
   )
   const plusButtonRef = React.useRef<HTMLButtonElement>(null)
   const managesThisAsset =
@@ -63,7 +70,7 @@ export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
         })
       )
     },
-    [/* should never change */ setItem]
+    [setItem]
   )
 
   return (
@@ -72,26 +79,40 @@ export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
         <PermissionDisplay
           key={backendModule.getAssetPermissionId(other)}
           action={other.permission}
-          onPress={event => {
-            setQuery(oldQuery =>
-              oldQuery.withToggled(
-                'owners',
-                'negativeOwners',
-                backendModule.getAssetPermissionName(other),
-                event.shiftKey
-              )
-            )
-          }}
+          onPress={
+            setQuery == null
+              ? null
+              : event => {
+                  setQuery(oldQuery =>
+                    oldQuery.withToggled(
+                      'owners',
+                      'negativeOwners',
+                      backendModule.getAssetPermissionName(other),
+                      event.shiftKey
+                    )
+                  )
+                }
+          }
         >
           {backendModule.getAssetPermissionName(other)}
         </PermissionDisplay>
       ))}
-      {managesThisAsset && (
+      {isUnderPaywall && (
+        <paywall.PaywallDialogButton
+          feature="share"
+          variant="icon"
+          size="xxsmall"
+          className="opacity-0 group-hover:opacity-100"
+          children={false}
+        />
+      )}
+      {managesThisAsset && !isUnderPaywall && (
         <ariaComponents.Button
-          size="custom"
-          variant="custom"
           ref={plusButtonRef}
-          className="shrink-0 rounded-full opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
+          size="icon"
+          variant="ghost"
+          icon={Plus2Icon}
+          showIconOnHover
           onPress={() => {
             setModal(
               <ManagePermissionsModal
@@ -102,17 +123,12 @@ export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
                 self={self}
                 eventTarget={plusButtonRef.current}
                 doRemoveSelf={() => {
-                  dispatchAssetEvent({
-                    type: AssetEventType.removeSelf,
-                    id: asset.id,
-                  })
+                  dispatchAssetEvent({ type: AssetEventType.removeSelf, id: asset.id })
                 }}
               />
             )
           }}
-        >
-          <img className="size-plus-icon" src={Plus2Icon} />
-        </ariaComponents.Button>
+        />
       )}
     </div>
   )

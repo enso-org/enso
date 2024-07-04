@@ -1,16 +1,17 @@
 /** @file An label that can be applied to an asset. */
 import * as React from 'react'
 
-import * as tailwindMerge from 'tailwind-merge'
-
 import * as focusHooks from '#/hooks/focusHooks'
 
 import * as focusDirectionProvider from '#/providers/FocusDirectionProvider'
 
 import type * as aria from '#/components/aria'
+import * as ariaComponents from '#/components/AriaComponents'
 import FocusRing from '#/components/styled/FocusRing'
 
 import * as backend from '#/services/Backend'
+
+import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 // =============
 // === Label ===
@@ -38,7 +39,8 @@ interface InternalLabelProps extends Readonly<React.PropsWithChildren> {
 /** An label that can be applied to an asset. */
 export default function Label(props: InternalLabelProps) {
   const { active = false, isDisabled = false, color, negated = false, draggable, title } = props
-  const { className = 'text-tag-text', children, onPress, onDragStart, onContextMenu } = props
+  const { className = 'text-tag-text', onPress, onDragStart, onContextMenu } = props
+  const { children: childrenRaw } = props
   const focusDirection = focusDirectionProvider.useFocusDirection()
   const handleFocusMove = focusHooks.useHandleFocusMove(focusDirection)
   const textClass = /\btext-/.test(className)
@@ -46,6 +48,15 @@ export default function Label(props: InternalLabelProps) {
     : color.lightness <= 50
       ? 'text-tag-text'
       : 'text-primary'
+
+  const children =
+    typeof childrenRaw !== 'string' ? (
+      childrenRaw
+    ) : (
+      <ariaComponents.Text truncate="1" className="max-w-24" color="invert" variant="body">
+        {childrenRaw}
+      </ariaComponents.Text>
+    )
 
   return (
     <FocusRing within placement="after">
@@ -64,7 +75,7 @@ export default function Label(props: InternalLabelProps) {
           title={title}
           disabled={isDisabled}
           className={tailwindMerge.twMerge(
-            'focus-child relative flex h-text items-center whitespace-nowrap rounded-inherit px-label-x transition-all selectable after:pointer-events-none after:absolute after:inset after:rounded-full',
+            'focus-child relative flex items-center whitespace-nowrap rounded-inherit px-[7px] opacity-75 transition-all after:pointer-events-none after:absolute after:inset after:rounded-full hover:opacity-100 focus:opacity-100',
             active && 'active',
             negated && 'after:border-2 after:border-delete',
             className,

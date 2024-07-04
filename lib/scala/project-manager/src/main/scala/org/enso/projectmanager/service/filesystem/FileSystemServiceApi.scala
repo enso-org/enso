@@ -30,6 +30,13 @@ trait FileSystemServiceApi[F[+_, +_]] {
     */
   def move(from: File, to: File): F[FileSystemServiceFailure, Unit]
 
+  /** Copy a file or directory recursively.
+    *
+    * @param from the target path
+    * @param to the destination path
+    */
+  def copy(from: File, to: File): F[FileSystemServiceFailure, Unit]
+
   /** Writes a file
     *
     * @param path the file path to write

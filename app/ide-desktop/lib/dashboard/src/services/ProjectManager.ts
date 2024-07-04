@@ -281,7 +281,7 @@ export enum ProjectManagerEvents {
  * `app/gui/controller/engine-protocol/src/project_manager.rs`. */
 export default class ProjectManager {
   private readonly internalProjects = new Map<UUID, ProjectState>()
-  // This MUST be declared after `internalProjects` because it depends on `internalProjects.
+  // This MUST be declared after `internalProjects` because it depends on `internalProjects`.
   // eslint-disable-next-line @typescript-eslint/member-ordering
   readonly projects: ReadonlyMap<UUID, ProjectState> = this.internalProjects
   private id = 0
@@ -292,7 +292,7 @@ export default class ProjectManager {
   /** Create a {@link ProjectManager} */
   constructor(
     private readonly connectionUrl: string,
-    readonly rootDirectory: Path
+    public rootDirectory: Path
   ) {
     const firstConnectionStartMs = Number(new Date())
     let lastConnectionStartMs = 0
@@ -345,6 +345,14 @@ export default class ProjectManager {
       })
     }
     this.socketPromise = createSocket()
+  }
+
+  /**
+   * Dispose of the {@link ProjectManager}.
+   */
+  async dispose() {
+    const socket = await this.socketPromise
+    socket.close()
   }
 
   /** Open an existing project. */
@@ -436,7 +444,7 @@ export default class ProjectManager {
     await this.runStandaloneCommand(null, 'filesystem-move-from', from, '--filesystem-move-to', to)
   }
 
-  /** Create a file or directory. */
+  /** Delete a file or directory. */
   async deleteFile(path: Path) {
     await this.runStandaloneCommand(null, 'filesystem-delete', path)
   }

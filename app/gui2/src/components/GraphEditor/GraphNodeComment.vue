@@ -33,7 +33,7 @@ syncRef(editing, useFocusDelayed(textEditor).focused)
 </template>
 
 <style scoped>
-.GraphNodeComment > :deep(*) {
+.GraphNodeComment > :deep(.LexicalContent) {
   display: inline-block;
   padding: 0 8px 0 8px;
   min-width: 22px;

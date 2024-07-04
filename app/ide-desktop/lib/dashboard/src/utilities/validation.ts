@@ -27,3 +27,9 @@ export const PASSWORD_REGEX = new RegExp('^' + PASSWORD_PATTERN + '$')
  * - allow any non-empty string
  */
 export const LOCAL_PROJECT_NAME_PATTERN = '.*\\S.*'
+
+/** Match only valid names for titles. The following substrings are disallowed:
+ * - `/` - folder separator (non-Windows)
+ * - `\` - folder separator (Windows)
+ * - `..` - parent directory */
+export const DIRECTORY_NAME_REGEX = /^(?:[^/\\.]|[.](?=[^.]|$))+$/

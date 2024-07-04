@@ -46,7 +46,7 @@ class FileSystemServiceSpec
   def metadataFileStorage(directory: File) =
     new MetadataFileStorage[ZIO[ZAny, +*, +*]](
       directory,
-      config.storage,
+      config.storage.metadata,
       testClock,
       fileSystem,
       gen
@@ -180,6 +180,52 @@ class FileSystemServiceSpec
       Files.isDirectory(targetPath.toPath) shouldEqual true
 
       // cleanup
+      FileUtils.deleteQuietly(targetPath)
+    }
+
+    "copy file" in {
+      val testDir = testStorageConfig.userProjectsPath
+
+      val targetFileName      = "target_copy_file.txt"
+      val destinationFileName = "destination_copy_file.txt"
+      val targetFilePath      = new File(testDir, targetFileName)
+      val destinationFilePath = new File(testDir, destinationFileName)
+
+      FileUtils.forceMkdirParent(targetFilePath)
+      FileUtils.touch(targetFilePath)
+
+      fileSystemService
+        .copy(targetFilePath, destinationFilePath)
+        .unsafeRunSync()
+
+      Files.exists(targetFilePath.toPath) shouldEqual true
+      Files.exists(destinationFilePath.toPath) shouldEqual true
+
+      // cleanup
+      FileUtils.deleteQuietly(targetFilePath)
+      FileUtils.deleteQuietly(destinationFilePath)
+    }
+
+    "copy directory" in {
+      implicit val client: WsTestClient = new WsTestClient(address)
+
+      val testDir = testStorageConfig.userProjectsPath
+
+      val projectName = "New_Project_To_Copy"
+      createProject(projectName)
+
+      val directoryPath = new File(testDir, projectName)
+      val targetPath    = new File(testDir, "Target_Copy_Directory")
+
+      fileSystemService
+        .copy(directoryPath, targetPath)
+        .unsafeRunSync()
+
+      Files.exists(directoryPath.toPath) shouldEqual true
+      Files.isDirectory(targetPath.toPath) shouldEqual true
+
+      // cleanup
+      FileUtils.deleteQuietly(directoryPath)
       FileUtils.deleteQuietly(targetPath)
     }
 

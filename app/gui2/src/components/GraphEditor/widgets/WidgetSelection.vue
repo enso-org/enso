@@ -4,8 +4,8 @@ import SizeTransition from '@/components/SizeTransition.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import DropdownWidget, { type DropdownEntry } from '@/components/widgets/DropdownWidget.vue'
 import { unrefElement } from '@/composables/events'
-import { provideSelectionArrow } from '@/providers/selectionArrow.ts'
-import { defineWidget, Score, WidgetInput, widgetProps } from '@/providers/widgetRegistry'
+import { injectSelectionArrow, provideSelectionArrow } from '@/providers/selectionArrow.ts'
+import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import {
   multipleChoiceConfiguration,
   singleChoiceConfiguration,
@@ -27,7 +27,7 @@ import { arrayEquals } from '@/util/data/array'
 import type { Opt } from '@/util/data/opt'
 import { qnLastSegment, tryQualifiedName } from '@/util/qualifiedName'
 import { autoUpdate, offset, shift, size, useFloating } from '@floating-ui/vue'
-import { computed, proxyRefs, ref, type ComponentInstance, type RendererNode } from 'vue'
+import { computed, proxyRefs, ref, watch, type ComponentInstance, type RendererNode } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
 const suggestions = useSuggestionDbStore()
@@ -196,7 +196,7 @@ const removeSurroundingParens = (expr?: string) => expr?.trim().replaceAll(/(^[(
 const selectedExpressions = computed(() => {
   const selected = new Set<string>()
   if (isMulti.value) {
-    for (const element of getValues(props.input.value)) {
+    for (const element of getValues(editedValue.value ?? props.input.value)) {
       const normalized = removeSurroundingParens(element.code())
       if (normalized) selected.add(normalized)
     }
@@ -221,6 +221,9 @@ const innerWidgetInput = computed<WidgetInput>(() => {
   }
 })
 
+const parentSelectionArrow = injectSelectionArrow(true)
+const arrowSuppressed = ref(false)
+const showArrow = computed(() => isHovered.value && !arrowSuppressed.value)
 provideSelectionArrow(
   proxyRefs({
     id: computed(() => {
@@ -231,7 +234,11 @@ provideSelectionArrow(
         if (node instanceof Ast.AutoscopedIdentifier) return node.identifier.id
         if (node instanceof Ast.PropertyAccess) return node.rhs.id
         if (node instanceof Ast.App) node = node.function
-        else break
+        else {
+          const wrapped = node.wrappedExpression()
+          if (wrapped != null) node = wrapped
+          else break
+        }
       }
       return null
     }),
@@ -239,18 +246,39 @@ provideSelectionArrow(
       arrowLocation.value = target
     },
     handled: false,
+    get suppressArrow() {
+      return arrowSuppressed.value
+    },
+    set suppressArrow(value) {
+      arrowSuppressed.value = value
+    },
   }),
 )
+
+watch(showArrow, (arrowShown) => {
+  if (parentSelectionArrow) {
+    parentSelectionArrow.suppressArrow = arrowShown
+  }
+})
 
 const isMulti = computed(() => props.input.dynamicConfig?.kind === 'Multiple_Choice')
 const dropDownInteraction = WidgetEditHandler.New('WidgetSelection', props.input, {
   cancel: () => {},
   end: () => {},
   pointerdown: (e, _) => {
-    if (targetIsOutside(e, unrefElement(dropdownElement))) {
+    if (
+      targetIsOutside(e, unrefElement(dropdownElement)) &&
+      targetIsOutside(e, unrefElement(widgetRoot))
+    ) {
       dropDownInteraction.end()
       if (editedWidget.value)
         props.onUpdate({ portUpdate: { origin: props.input.portId, value: editedValue.value } })
+    } else if (isMulti.value) {
+      // In multi-select mode the children contain actual values; when a dropdown click occurs,
+      // we allow the event to propagate so the child widget can commit before the dropdown-toggle occurs.
+      // We don't do this in single-select mode because the value is treated as a filter in that case,
+      // so it shouldn't be committed as a value before the dropdown operation.
+      return false
     }
   },
   start: () => {
@@ -265,10 +293,13 @@ const dropDownInteraction = WidgetEditHandler.New('WidgetSelection', props.input
     dropDownInteraction.start()
     return true
   },
+  childEnded: () => {
+    if (!isMulti.value) dropDownInteraction.end()
+  },
 })
 
 function toggleDropdownWidget() {
-  if (!dropDownInteraction.active.value) dropDownInteraction.start()
+  if (!dropDownInteraction.isActive()) dropDownInteraction.start()
   else dropDownInteraction.cancel()
 }
 
@@ -319,7 +350,7 @@ function expressionTagClicked(tag: ExpressionTag, previousState: boolean) {
   const edit = graph.startEdit()
   const tagValue = resolveTagExpression(edit, tag)
   if (isMulti.value) {
-    const inputValue = props.input.value
+    const inputValue = editedValue.value ?? props.input.value
     if (inputValue instanceof Ast.Vector) {
       toggleVectorValue(edit.getVersion(inputValue), tagValue, previousState)
       props.onUpdate({ edit })
@@ -399,13 +430,13 @@ declare module '@/providers/widgetRegistry' {
       must be already in the DOM when the <Teleport> component is mounted.
       So the Teleport itself can be instantiated only when `arrowLocation` is already available. -->
     <Teleport v-if="arrowLocation" :to="arrowLocation">
-      <SvgIcon v-if="isHovered" name="arrow_right_head_only" class="arrow" />
+      <SvgIcon v-if="showArrow" name="arrow_right_head_only" class="arrow" />
     </Teleport>
-    <SvgIcon v-else-if="isHovered" name="arrow_right_head_only" class="arrow" />
+    <SvgIcon v-else-if="showArrow" name="arrow_right_head_only" class="arrow" />
     <Teleport v-if="tree.nodeElement" :to="tree.nodeElement">
       <SizeTransition height :duration="100">
         <DropdownWidget
-          v-if="dropDownInteraction.active.value"
+          v-if="dropDownInteraction.isActive()"
           ref="dropdownElement"
           :style="floatingStyles"
           :color="'var(--node-color-primary)'"

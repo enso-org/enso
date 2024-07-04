@@ -64,15 +64,18 @@ from project.System.File_Format import Auto_Detect, File_Format
          from Standard.Table import all
          import Standard.Examples
 
-         example_xls_to_table = Data.read Examples.xls (Excel_Format.Sheet 'Dates')
+         example_xls_to_table = Data.read Examples.xls (..Sheet 'Dates')
 @path Text_Input
 @format File_Format.default_widget
-read : Text | File -> File_Format -> Problem_Behavior -> Any ! File_Error
+read : Text | URI | File -> File_Format -> Problem_Behavior -> Any ! File_Error
 read path format=Auto_Detect (on_problems : Problem_Behavior = Problem_Behavior.Report_Warning) = case path of
     _ : Text -> if Data_Read_Helpers.looks_like_uri path then Data_Read_Helpers.fetch_following_data_links path format=format else
         read (File.new path) format on_problems
     uri : URI -> Data_Read_Helpers.fetch_following_data_links uri format=format
-    _ -> File.new path . read format on_problems
+    _ ->
+        file_obj = File.new path
+        if file_obj.is_directory then Error.throw (Illegal_Argument.Error "Cannot `read` a directory, use `Data.list`.") else
+            file_obj.read format on_problems
 
 ## ALIAS load text, open text
    GROUP Input
@@ -154,11 +157,13 @@ read_text path (encoding : Encoding = Encoding.default) (on_problems : Problem_B
          import Standard.Examples
 
          example_list_files =
-             Data.list_directory Examples.data_dir name_filter="**.md" recursive=True
+             Data.list Examples.data_dir name_filter="**.md" recursive=True
 @directory Folder_Browse
-list_directory : Text | File -> Text -> Boolean -> Vector File
-list_directory (directory:(Text | File)=enso_project.root) (name_filter:Text="") recursive:Boolean=False =
-    (directory:File) . list name_filter=name_filter recursive=recursive
+list : Text | File -> Text -> Boolean -> Vector File
+list (directory:(Text | File)=enso_project.root) (name_filter:Text="") recursive:Boolean=False =
+    file_obj = File.new directory
+    if file_obj.is_directory.not then Error.throw (Illegal_Argument.Error "Cannot `list` a non-directory.") else
+        file_obj.list name_filter=name_filter recursive=recursive
 
 ## ALIAS download, http get
    GROUP Input

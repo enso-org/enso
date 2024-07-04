@@ -24,7 +24,13 @@ public final class ModuleScope implements EnsoObject {
   private final Map<String, Object> polyglotSymbols;
   private final Map<String, Type> types;
   private final Map<Type, Map<String, Supplier<Function>>> methods;
+
+  /**
+   * First key is target type, second key is source type. The value is the conversion function from
+   * source to target.
+   */
   private final Map<Type, Map<Type, Function>> conversions;
+
   private final Set<ImportExportScope> imports;
   private final Set<ImportExportScope> exports;
 
@@ -97,24 +103,37 @@ public final class ModuleScope implements EnsoObject {
         .orElse(null);
   }
 
+  /**
+   * Looks up a conversion method from source type to target type. The conversion method
+   * implementation looks like this:
+   *
+   * <pre>
+   *   Target_Type.from (other : Source_Type) = ...
+   * </pre>
+   *
+   * The conversion method is first looked up in the scope of the source type, then in the scope of
+   * the target type and finally in all the imported scopes.
+   *
+   * @param source Source type
+   * @param target Target type
+   * @return The conversion method or null if not found.
+   */
   @CompilerDirectives.TruffleBoundary
-  public Function lookupConversionDefinition(Type original, Type target) {
-    Function definedWithOriginal =
-        original.getDefinitionScope().getConversionsFor(target).get(original);
-    if (definedWithOriginal != null) {
-      return definedWithOriginal;
+  public Function lookupConversionDefinition(Type source, Type target) {
+    Function definedWithSource = source.getDefinitionScope().getConversionsFor(target).get(source);
+    if (definedWithSource != null) {
+      return definedWithSource;
     }
-    Function definedWithTarget =
-        target.getDefinitionScope().getConversionsFor(target).get(original);
+    Function definedWithTarget = target.getDefinitionScope().getConversionsFor(target).get(source);
     if (definedWithTarget != null) {
       return definedWithTarget;
     }
-    Function definedHere = getConversionsFor(target).get(original);
+    Function definedHere = getConversionsFor(target).get(source);
     if (definedHere != null) {
       return definedHere;
     }
     return imports.stream()
-        .map(scope -> scope.getExportedConversion(original, target))
+        .map(scope -> scope.getExportedConversion(source, target))
         .filter(Objects::nonNull)
         .findFirst()
         .orElse(null);

@@ -5,9 +5,9 @@
  */
 import * as React from 'react'
 
-import * as twv from 'tailwind-variants'
-
 import * as aria from '#/components/aria'
+
+import * as twv from '#/utilities/tailwindVariants'
 
 /**
  * The props for {@link Separator} component.

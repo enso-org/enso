@@ -14,14 +14,20 @@ supported = [".bmp", ".dib", ".jpeg", ".jpg", ".jpe", ".jp2", ".png", ".webp", "
 ## Read the file to a `Image` from a supported file format.
 type Image_File_Format
     ## File_Format to read Image files
-    For_File
+    Image
+
+    ## PRIVATE
+       Resolve an unresolved constructor to the actual type.
+    resolve : Function -> Image_File_Format | Nothing
+    resolve constructor =
+        Panic.catch Any (constructor:Image_File_Format) _->Nothing
 
     ## PRIVATE
        If the File_Format supports reading from the file, return a configured instance.
     for_read : File_Format_Metadata -> Image_File_Format | Nothing
     for_read file:File_Format_Metadata =
         extension = file.guess_extension
-        if supported.contains extension then Image_File_Format.For_File else Nothing
+        if supported.contains extension then Image_File_Format.Image else Nothing
 
     ## PRIVATE
        If this File_Format should be used for writing to that file, return a configured instance.
@@ -30,7 +36,7 @@ type Image_File_Format
 
     ## PRIVATE
     get_dropdown_options : Vector Option
-    get_dropdown_options = [Option "Image" (Meta.get_qualified_type_name Image_File_Format)+".For_File"]
+    get_dropdown_options = [Option "Image" "..Image"]
 
     ## PRIVATE
        Implements the `File.read` for this `File_Format`

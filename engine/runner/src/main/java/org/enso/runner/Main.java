@@ -31,7 +31,6 @@ import org.enso.languageserver.boot.LanguageServerConfig;
 import org.enso.languageserver.boot.ProfilingConfig;
 import org.enso.languageserver.boot.StartupConfig;
 import org.enso.libraryupload.LibraryUploader.UploadFailedError;
-import org.enso.pkg.ComponentGroups;
 import org.enso.pkg.Contact;
 import org.enso.pkg.PackageManager;
 import org.enso.pkg.PackageManager$;
@@ -46,6 +45,7 @@ import org.graalvm.polyglot.PolyglotException.StackFrame;
 import org.graalvm.polyglot.SourceSection;
 import org.slf4j.LoggerFactory;
 import org.slf4j.event.Level;
+import scala.Option$;
 import scala.concurrent.ExecutionContext;
 import scala.concurrent.ExecutionContextExecutor;
 import scala.concurrent.duration.FiniteDuration;
@@ -84,6 +84,7 @@ public final class Main {
   private static final String NO_IR_CACHES_OPTION = "no-ir-caches";
   private static final String NO_READ_IR_CACHES_OPTION = "no-read-ir-caches";
   private static final String DISABLE_PRIVATE_CHECK_OPTION = "disable-private-check";
+  private static final String ENABLE_STATIC_ANALYSIS_OPTION = "enable-static-analysis";
   private static final String COMPILE_OPTION = "compile";
   private static final String NO_COMPILE_DEPENDENCIES_OPTION = "no-compile-dependencies";
   private static final String NO_GLOBAL_CACHE_OPTION = "no-global-cache";
@@ -440,6 +441,11 @@ public final class Main {
             .longOpt(DISABLE_PRIVATE_CHECK_OPTION)
             .desc("Disables private module checking at runtime. Useful for tests.")
             .build();
+    var enableStaticAnalysisOption =
+        cliOptionBuilder()
+            .longOpt(ENABLE_STATIC_ANALYSIS_OPTION)
+            .desc("Enable static analysis (Experimental type inference).")
+            .build();
 
     var options = new Options();
     options
@@ -486,7 +492,8 @@ public final class Main {
         .addOption(skipGraalVMUpdater)
         .addOption(executionEnvironmentOption)
         .addOption(warningsLimitOption)
-        .addOption(disablePrivateCheckOption);
+        .addOption(disablePrivateCheckOption)
+        .addOption(enableStaticAnalysisOption);
 
     return options;
   }
@@ -575,7 +582,7 @@ public final class Main {
             authors,
             nil(),
             "",
-            ComponentGroups.empty());
+            Option$.MODULE$.empty());
     throw exitSuccess();
   }
 
@@ -587,6 +594,7 @@ public final class Main {
    *     compiled
    * @param shouldUseGlobalCache whether or not the compilation result should be written to the
    *     global cache
+   * @param enableStaticAnalysis whether or not static type checking should be enabled
    * @param logLevel the logging level
    * @param logMasking whether or not log masking is enabled
    */
@@ -594,6 +602,7 @@ public final class Main {
       String packagePath,
       boolean shouldCompileDependencies,
       boolean shouldUseGlobalCache,
+      boolean enableStaticAnalysis,
       Level logLevel,
       boolean logMasking) {
     var file = new File(packagePath);
@@ -611,6 +620,7 @@ public final class Main {
             .logLevel(logLevel)
             .logMasking(logMasking)
             .enableIrCaches(true)
+            .enableStaticAnalysis(enableStaticAnalysis)
             .strictErrors(true)
             .useGlobalIrCacheLocation(shouldUseGlobalCache)
             .build();
@@ -640,6 +650,7 @@ public final class Main {
    * @param enableIrCaches are IR caches enabled
    * @param disablePrivateCheck Is private modules check disabled. If yes, `private` keyword is
    *     ignored.
+   * @param enableStaticAnalysis whether or not static type checking should be enabled
    * @param inspect shall inspect option be enabled
    * @param dump shall graphs be sent to the IGV
    * @param executionEnvironment name of the execution environment to use during execution or {@code
@@ -654,6 +665,7 @@ public final class Main {
       boolean enableIrCaches,
       boolean disablePrivateCheck,
       boolean enableAutoParallelism,
+      boolean enableStaticAnalysis,
       boolean inspect,
       boolean dump,
       String executionEnvironment,
@@ -686,6 +698,7 @@ public final class Main {
             .disablePrivateCheck(disablePrivateCheck)
             .strictErrors(true)
             .enableAutoParallelism(enableAutoParallelism)
+            .enableStaticAnalysis(enableStaticAnalysis)
             .executionEnvironment(executionEnvironment != null ? executionEnvironment : "live")
             .warningsLimit(warningsLimit)
             .options(options)
@@ -867,9 +880,14 @@ public final class Main {
    * @param logLevel log level to set for the engine runtime
    * @param logMasking is the log masking enabled
    * @param enableIrCaches are IR caches enabled
+   * @param enableStaticAnalysis whether or not static type checking should be enabled
    */
   private void runRepl(
-      String projectPath, Level logLevel, boolean logMasking, boolean enableIrCaches) {
+      String projectPath,
+      Level logLevel,
+      boolean logMasking,
+      boolean enableIrCaches,
+      boolean enableStaticAnalysis) {
     var mainMethodName = "internal_repl_entry_point___";
     var dummySourceToTriggerRepl =
         """
@@ -890,6 +908,7 @@ public final class Main {
             .logLevel(logLevel)
             .logMasking(logMasking)
             .enableIrCaches(enableIrCaches)
+            .enableStaticAnalysis(enableStaticAnalysis)
             .build();
     var mainModule = context.evalModule(dummySourceToTriggerRepl, replModuleName);
     runMain(mainModule, null, Collections.emptyList(), mainMethodName);
@@ -1032,7 +1051,13 @@ public final class Main {
       var shouldCompileDependencies = !line.hasOption(NO_COMPILE_DEPENDENCIES_OPTION);
       var shouldUseGlobalCache = !line.hasOption(NO_GLOBAL_CACHE_OPTION);
 
-      compile(packagePaths, shouldCompileDependencies, shouldUseGlobalCache, logLevel, logMasking);
+      compile(
+          packagePaths,
+          shouldCompileDependencies,
+          shouldUseGlobalCache,
+          line.hasOption(ENABLE_STATIC_ANALYSIS_OPTION),
+          logLevel,
+          logMasking);
     }
 
     if (line.hasOption(RUN_OPTION)) {
@@ -1045,6 +1070,7 @@ public final class Main {
           shouldEnableIrCaches(line),
           line.hasOption(DISABLE_PRIVATE_CHECK_OPTION),
           line.hasOption(AUTO_PARALLELISM_OPTION),
+          line.hasOption(ENABLE_STATIC_ANALYSIS_OPTION),
           line.hasOption(INSPECT_OPTION),
           line.hasOption(DUMP_GRAPHS_OPTION),
           line.getOptionValue(EXECUTION_ENVIRONMENT_OPTION),
@@ -1054,7 +1080,11 @@ public final class Main {
     }
     if (line.hasOption(REPL_OPTION)) {
       runRepl(
-          line.getOptionValue(IN_PROJECT_OPTION), logLevel, logMasking, shouldEnableIrCaches(line));
+          line.getOptionValue(IN_PROJECT_OPTION),
+          logLevel,
+          logMasking,
+          shouldEnableIrCaches(line),
+          line.hasOption(ENABLE_STATIC_ANALYSIS_OPTION));
     }
     if (line.hasOption(DOCS_OPTION)) {
       genDocs(

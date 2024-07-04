@@ -30,7 +30,7 @@ object Implicits {
 
     /** Converts a multiline string to a single line
       *
-      * @return [[string]], converted to a single line
+      * @return String, converted to a single line
       */
     def toSingleLine: String = {
       val lines = string.stripMargin.split("\n").toList.filterNot(_ == "")
@@ -69,7 +69,7 @@ object Implicits {
 
     /** Adds a metadata pair to the node metadata.
       *
-      * This will overwrite any entry whose key matches [[MetadataPair#pass]].
+      * This will overwrite any entry whose key matches MetadataPair#pass.
       *
       * @param metadataPair the pair to add to the storage
       * @tparam K the concrete type of the pass
@@ -118,7 +118,7 @@ object Implicits {
     */
   implicit class ListAsIr[T <: IR](list: List[T]) {
 
-    /** Calls [[IR#duplicate]] on the elements in [[list]].
+    /** Calls [[IR#duplicate]] on the elements in list.
       *
       * @param keepLocations   whether or not locations should be kept in the
       *                        duplicated IR
@@ -128,7 +128,7 @@ object Implicits {
       *                        the duplicated IR
       * @param keepIdentifiers whether or not the identifiers should be
       *                        regenerated in the duplicated IR
-      * @return a duplicate of [[list]]
+      * @return a duplicate of list
       */
     def duplicate(
       keepLocations: Boolean   = true,

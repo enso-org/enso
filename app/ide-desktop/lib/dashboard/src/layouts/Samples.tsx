@@ -1,8 +1,6 @@
 /** @file Renders the list of templates from which a project can be created. */
 import * as React from 'react'
 
-import * as tailwindMerge from 'tailwind-merge'
-
 import Logo from 'enso-assets/enso_logo.svg'
 import GeoImage from 'enso-assets/geo.svg'
 import HeartIcon from 'enso-assets/heart.svg'
@@ -16,6 +14,8 @@ import * as aria from '#/components/aria'
 import FocusArea from '#/components/styled/FocusArea'
 import FocusRing from '#/components/styled/FocusRing'
 import SvgMask from '#/components/SvgMask'
+
+import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 // =================
 // === Constants ===
@@ -132,17 +132,17 @@ function ProjectTile(props: InternalProjectTileProps) {
       {/* eslint-disable-next-line no-restricted-syntax */}
       <div className="flex h-sample-info justify-between px-sample-description-x text-primary opacity-70">
         <div className="flex gap-samples-icon-with-text">
-          <SvgMask src={Logo} className="size-icon self-end" />
+          <SvgMask src={Logo} className="size-4 self-end" />
           <aria.Text className="self-start font-bold leading-snug">{author}</aria.Text>
         </div>
         {/* Normally `flex` */}
         <div className="hidden gap-icons">
           <div title={getText('views')} className="flex gap-samples-icon-with-text">
-            <SvgMask alt={getText('views')} src={OpenCountIcon} className="size-icon self-end" />
+            <SvgMask alt={getText('views')} src={OpenCountIcon} className="size-4 self-end" />
             <aria.Text className="self-start font-bold leading-snug">{opens}</aria.Text>
           </div>
           <div title={getText('likes')} className="flex gap-samples-icon-with-text">
-            <SvgMask alt={getText('likes')} src={HeartIcon} className="size-icon self-end" />
+            <SvgMask alt={getText('likes')} src={HeartIcon} className="size-4 self-end" />
             <aria.Text className="self-start font-bold leading-snug">{likes}</aria.Text>
           </div>
         </div>
@@ -166,10 +166,11 @@ export default function Samples(props: SamplesProps) {
   const { getText } = textProvider.useText()
 
   return (
-    <div data-testid="samples" className="flex flex-col gap-subheading px-home-section-x">
+    <div data-testid="samples" className="flex flex-col gap-subheading px-[5px]">
       <aria.Heading level={2} className="text-subheading font-normal">
         {getText('sampleAndCommunityProjects')}
       </aria.Heading>
+
       <div className="grid grid-cols-fill-samples gap-samples">
         {SAMPLES.map(sample => (
           <ProjectTile key={sample.id} sample={sample} createProject={createProject} />

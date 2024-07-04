@@ -43,7 +43,8 @@ object DependencyPreinstaller {
 
     val editionProvider = EditionManager.makeEditionProvider(
       distributionManager,
-      Some(languageHome)
+      Some(languageHome),
+      true
     )
     val editionResolver = EditionResolver(editionProvider)
     val edition = editionResolver

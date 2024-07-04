@@ -21,7 +21,14 @@ export default Category
 // ===============
 
 /** Return `true` if the category is only accessible from the cloud.
- * Return `false` if the category is only accessibly locally. */
+ */
 export function isCloud(category: Category) {
   return category !== Category.local
+}
+
+/**
+ * Return `true` if the category is only accessible locally.
+ */
+export function isLocal(category: Category) {
+  return category === Category.local
 }

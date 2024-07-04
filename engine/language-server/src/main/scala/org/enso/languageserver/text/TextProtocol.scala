@@ -1,5 +1,7 @@
 package org.enso.languageserver.text
 
+import io.circe.{Decoder, Encoder, Json}
+import io.circe.syntax._
 import org.enso.languageserver.data.{CapabilityRegistration, ClientId}
 import org.enso.languageserver.filemanager.{
   FileAttributes,
@@ -9,7 +11,9 @@ import org.enso.languageserver.filemanager.{
 }
 import org.enso.languageserver.session.JsonSession
 import org.enso.polyglot.runtime.Runtime.Api.ExpressionId
-import org.enso.text.editing.model.TextEdit
+import org.enso.text.editing.model.{IdMap, Span, TextEdit}
+
+import java.util.UUID
 
 object TextProtocol {
 
@@ -69,11 +73,13 @@ object TextProtocol {
     * @param clientId the client requesting edits.
     * @param edit a diff describing changes made to a file
     * @param execute whether to execute the program after applying the edits
+    * @param idMap external identifiers
     */
   case class ApplyEdit(
     clientId: Option[ClientId],
     edit: FileEdit,
-    execute: Boolean
+    execute: Boolean,
+    idMap: Option[IdMap]
   )
 
   /** Signals the result of applying a series of edits.
@@ -214,4 +220,67 @@ object TextProtocol {
     */
   case class ReadCollaborativeBufferResult(buffer: Option[Buffer])
 
+  trait Codecs {
+
+    private object IdMapOldCodecs {
+
+      private object CodecField {
+        val Index = "index"
+        val Size  = "size"
+        val Value = "value"
+      }
+
+      implicit private val spanDecoder: Decoder[Span] =
+        Decoder.instance { cursor =>
+          for {
+            index <- cursor
+              .downField(CodecField.Index)
+              .downField(CodecField.Value)
+              .as[Int]
+            size <- cursor
+              .downField(CodecField.Size)
+              .downField(CodecField.Value)
+              .as[Int]
+          } yield Span(index, index + size)
+        }
+
+      implicit def idMapDecoder: Decoder[IdMap] =
+        Decoder.instance { cursor =>
+          for {
+            pairs <- Decoder[Vector[(Span, UUID)]].tryDecode(cursor)
+          } yield IdMap(pairs)
+        }
+    }
+
+    private object IdMapCodecs {
+
+      implicit def idMapEncoder: Encoder[IdMap] =
+        Encoder.instance { idMap =>
+          Json.fromValues(
+            idMap.values
+              .map({ case (span, uuid) =>
+                Json.arr((span.start, span.length, uuid).asJson)
+              })
+          )
+        }
+
+      implicit def idMapDecoder: Decoder[IdMap] =
+        Decoder.instance { cursor =>
+          for {
+            triples <- Decoder[Vector[(Int, Int, UUID)]].tryDecode(cursor)
+          } yield {
+            val pairs = triples.map({ case (start, length, uuid) =>
+              Span(start, start + length) -> uuid
+            })
+            IdMap(pairs)
+          }
+        }
+    }
+
+    implicit val encoder: Encoder[IdMap] =
+      IdMapCodecs.idMapEncoder
+
+    implicit val decoder: Decoder[IdMap] =
+      IdMapCodecs.idMapDecoder.or(IdMapOldCodecs.idMapDecoder)
+  }
 }

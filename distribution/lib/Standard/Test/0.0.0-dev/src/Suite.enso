@@ -31,7 +31,7 @@ type Suite_Builder
          is not ignored.
     group : Text -> (Group_Builder -> Any) -> (Text | Nothing) -> Nothing
     group self (name:Text) (fn : (Group_Builder -> Any)) (pending : (Text | Nothing) = Nothing) =
-        group_builder = Group_Builder.Impl
+        group_builder = Group_Builder.Impl name
         case pending of
             Nothing ->
                 fn group_builder
@@ -115,9 +115,10 @@ type Suite
                 IO.println <| skipped_tests.to_text + " tests skipped."
                 IO.println <| pending_groups.to_text + " groups skipped."
                 IO.println ""
-                IO.println <| "Failed tests: '" + failed_tests_names + "'"
-                if failed_tests_number > 10 then IO.println "(Displaying only first 10 failed tests)"
-                IO.println ""
+                if failed_tests_number > 0 then
+                    IO.println <| "Failed tests: '" + failed_tests_names + "'"
+                    if failed_tests_number > 10 then IO.println "(Displaying only first 10 failed tests)"
+                    IO.println ""
                 exit_code = if failed_tests_number > 0 then 1 else 0
                 System.exit exit_code
             False ->
@@ -142,5 +143,5 @@ name_matches (name : Text) (filter : (Text | Nothing)) -> Boolean =
         text : Text ->
             regex = Regex.compile text
             if regex.is_error.not then regex.match name != Nothing else
-                Panic.throw (Illegal_Argument.Error ("Filter '" + text + "' cannot be converted to regex"))
+                Panic.throw (Illegal_Argument.Error ("Filter " + text.pretty + " cannot be converted to regex"))
         Nothing -> True

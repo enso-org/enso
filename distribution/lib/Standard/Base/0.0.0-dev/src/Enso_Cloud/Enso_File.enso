@@ -259,13 +259,13 @@ type Enso_File
                 json = Utils.http_request_as_json HTTP_Method.Get asset.internal_uri
                 datalink = Data_Link_Helpers.interpret_json_as_data_link json
                 datalink.read format on_problems
-            Enso_Asset_Type.Directory -> if format == Auto_Detect then self.list else Error.throw (Illegal_Argument.Error "Directories can only be read using the Auto_Detect format.")
-            Enso_Asset_Type.File -> File_Format.handle_format_missing_arguments format <|
+            Enso_Asset_Type.Directory -> Error.throw (Illegal_Argument.Error "Cannot `read` a directory, use `list`.")
+            Enso_Asset_Type.File ->
                 read_with_format effective_format =
                     metadata = File_Format_Metadata.from self
                     self.with_input_stream [File_Access.Read] (stream-> effective_format.read_stream stream metadata)
 
-                if format != Auto_Detect then read_with_format format else
+                if format != Auto_Detect then read_with_format (File_Format.resolve format) else
                     real_format = Auto_Detect.get_reading_format self
                     if real_format == Nothing then Error.throw (File_Error.Unsupported_Type self) else
                         read_with_format real_format
@@ -310,7 +310,7 @@ type Enso_File
        ICON data_input
        Gets a list of assets within self.
     list : Vector Enso_File
-    list self =
+    list self = if self.is_directory.not then Error.throw (Illegal_Argument.Error "Cannot `list` a non-directory.") else
         # Remove secrets from the list - they are handled separately in `Enso_Secret.list`.
         assets = list_assets self . filter f-> f.asset_type != Enso_Asset_Type.Secret
         assets.map asset->

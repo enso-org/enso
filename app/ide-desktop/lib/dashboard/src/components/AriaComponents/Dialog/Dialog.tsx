@@ -2,15 +2,14 @@
  * Can be used to display alerts, confirmations, or other content. */
 import * as React from 'react'
 
-import * as twv from 'tailwind-variants'
-
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 import * as errorBoundary from '#/components/ErrorBoundary'
-import * as loader from '#/components/Loader'
 import * as portal from '#/components/Portal'
+import * as suspense from '#/components/Suspense'
 
 import * as mergeRefs from '#/utilities/mergeRefs'
+import * as twv from '#/utilities/tailwindVariants'
 
 import * as dialogProvider from './DialogProvider'
 import * as dialogStackProvider from './DialogStackProvider'
@@ -24,7 +23,9 @@ import * as variants from './variants'
 /**
  * Props for the {@link Dialog} component.
  */
-export interface DialogProps extends types.DialogProps, twv.VariantProps<typeof DIALOG_STYLES> {}
+export interface DialogProps
+  extends types.DialogProps,
+    Omit<twv.VariantProps<typeof DIALOG_STYLES>, 'scrolledToTop'> {}
 
 const OVERLAY_STYLES = twv.tv({
   base: 'fixed inset-0 isolate flex items-center justify-center bg-black/[25%]',
@@ -47,16 +48,32 @@ const DIALOG_STYLES = twv.tv({
   base: '',
   variants: {
     type: {
-      modal: 'w-full max-w-md min-h-[100px] max-h-[90vh]',
-      fullscreen: 'w-full h-full max-w-full max-h-full bg-clip-border',
+      modal: {
+        base: 'w-full max-w-md min-h-[100px] max-h-[90vh]',
+        header: 'px-3.5 pt-[3px] pb-0.5 min-h-[42px]',
+      },
+      fullscreen: {
+        base: 'w-full h-full max-w-full max-h-full bg-clip-border',
+        header: 'px-4 pt-[5px] pb-1.5 min-h-12',
+      },
     },
     hideCloseButton: { true: { closeButton: 'hidden' } },
+    closeButton: {
+      normal: { base: '', closeButton: '' },
+      floating: {
+        base: '',
+        closeButton: 'absolute left-4 top-4 visible z-1 transition-all duration-150',
+        header: 'invisible p-0 h-0 border-0 z-1',
+        content: 'isolate',
+      },
+    },
+    scrolledToTop: { true: { header: 'border-transparent' } },
   },
   slots: {
     header:
-      'sticky grid grid-cols-[1fr_auto_1fr] items-center border-b border-primary/10 px-3.5 pt-[3px] pb-0.5',
+      'sticky grid grid-cols-[1fr_auto_1fr] items-center border-b border-primary/10 transition-[border-color] duration-150',
     closeButton: 'col-start-1 col-end-1 mr-auto',
-    heading: 'col-start-2 col-end-2 my-0',
+    heading: 'col-start-2 col-end-2 my-0 text-center',
     content: 'relative flex-auto overflow-y-auto p-3.5',
   },
 })
@@ -72,7 +89,7 @@ export function Dialog(props: DialogProps) {
     children,
     title,
     type = 'modal',
-    closeButton = 'none',
+    closeButton = 'normal',
     isDismissable = true,
     isKeyboardDismissDisabled = false,
     hideCloseButton = false,
@@ -84,12 +101,32 @@ export function Dialog(props: DialogProps) {
     ...ariaDialogProps
   } = props
 
+  const [isScrolledToTop, setIsScrolledToTop] = React.useState(true)
+
+  /**
+   * Handles the scroll event on the dialog content.
+   */
+  const handleScroll = (scrollTop: number) => {
+    if (scrollTop > 0) {
+      setIsScrolledToTop(false)
+    } else {
+      setIsScrolledToTop(true)
+    }
+  }
+
   const dialogId = aria.useId()
   const dialogRef = React.useRef<HTMLDivElement>(null)
   const overlayState = React.useRef<aria.OverlayTriggerState | null>(null)
   const root = portal.useStrictPortalContext()
-  const shouldRenderTitle = typeof title === 'string'
-  const dialogSlots = DIALOG_STYLES({ className, type, rounded, hideCloseButton })
+
+  const dialogSlots = DIALOG_STYLES({
+    className,
+    type,
+    rounded,
+    hideCloseButton,
+    closeButton,
+    scrolledToTop: isScrolledToTop,
+  })
 
   utlities.useInteractOutside({
     ref: dialogRef,
@@ -152,39 +189,51 @@ export function Dialog(props: DialogProps) {
                 className={dialogSlots.base()}
                 {...ariaDialogProps}
               >
-                {opts => (
-                  <dialogProvider.DialogProvider value={{ close: opts.close, dialogId }}>
-                    {shouldRenderTitle && (
-                      <aria.Header className={dialogSlots.header()}>
+                {opts => {
+                  return (
+                    <dialogProvider.DialogProvider value={{ close: opts.close, dialogId }}>
+                      <aria.Header
+                        className={dialogSlots.header({ scrolledToTop: isScrolledToTop })}
+                      >
                         <ariaComponents.CloseButton
                           className={dialogSlots.closeButton()}
                           onPress={opts.close}
                         />
 
-                        <ariaComponents.Text.Heading
-                          slot="title"
-                          level={2}
-                          className={dialogSlots.heading()}
-                        >
-                          {title}
-                        </ariaComponents.Text.Heading>
+                        {title != null && (
+                          <ariaComponents.Text.Heading
+                            slot="title"
+                            level={2}
+                            className={dialogSlots.heading()}
+                            weight="semibold"
+                          >
+                            {title}
+                          </ariaComponents.Text.Heading>
+                        )}
                       </aria.Header>
-                    )}
 
-                    <div className={dialogSlots.content()}>
-                      <errorBoundary.ErrorBoundary>
-                        <React.Suspense fallback={<loader.Loader minHeight="h32" />}>
-                          {typeof children === 'function' ? children(opts) : children}
-                        </React.Suspense>
-                      </errorBoundary.ErrorBoundary>
-                    </div>
-                    {closeButton === 'floating' && (
-                      <div className="absolute m-[19px] flex gap-1">
-                        <ariaComponents.CloseButton onPress={opts.close} />
+                      <div
+                        ref={ref => {
+                          if (ref) {
+                            handleScroll(ref.scrollTop)
+                          }
+                        }}
+                        className={dialogSlots.content()}
+                        onScroll={event => {
+                          handleScroll(event.currentTarget.scrollTop)
+                        }}
+                      >
+                        <errorBoundary.ErrorBoundary>
+                          <suspense.Suspense
+                            loaderProps={{ minHeight: type === 'fullscreen' ? 'full' : 'h32' }}
+                          >
+                            {typeof children === 'function' ? children(opts) : children}
+                          </suspense.Suspense>
+                        </errorBoundary.ErrorBoundary>
                       </div>
-                    )}
-                  </dialogProvider.DialogProvider>
-                )}
+                    </dialogProvider.DialogProvider>
+                  )
+                }}
               </aria.Dialog>
             </dialogStackProvider.DialogStackRegistrar>
           </aria.Modal>
