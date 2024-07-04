@@ -575,7 +575,7 @@ export class LanguageServer extends ObservableV2<Notifications & TransportEvents
   }
 
   /** Like `release()`, but unconditionally disposes the AbortScope. */
-  dispose() {
+  private dispose() {
     this.retainCount = 0
     this.clientScope.dispose('Language Server released')
   }
