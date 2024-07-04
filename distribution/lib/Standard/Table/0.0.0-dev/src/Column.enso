@@ -1402,7 +1402,7 @@ type Column
        - what: A `Text` (or text `Column`) containing characters that should be
          removed. By default, all whitespace is removed.
     trim : Location -> Column | Text -> Column
-    trim self where=Location.Both what='' = Value_Type.expect_text self <|
+    trim self where:Location=..Both what:Text='' = Value_Type.expect_text self <|
         new_name = naming_helper.function_name "trim" [self]
 
         trim_get = wrap_text_argument_as_value_provider what
