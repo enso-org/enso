@@ -229,7 +229,14 @@ const numberFormat = new Intl.NumberFormat(undefined, {
 
 function formatNumber(params: ICellRendererParams) {
   const valueType = params.value?.type
-  const value = valueType === 'BigInt' ? BigInt(params.value?.value) : params.value
+  let value
+  if (valueType === 'BigInt') {
+    value = BigInt(params.value?.value)
+  } else if (valueType === 'Decimal') {
+    value = Number(params.value?.value)
+  } else {
+    value = params.value
+  }
   const needsGrouping = dataGroupingMap.value?.get(params.colDef?.field || '')
   return needsGrouping ? numberFormatGroupped.format(value) : numberFormat.format(value)
 }
@@ -262,7 +269,8 @@ function cellClass(params: CellClassParams) {
   if (typeof params.value === 'number' || params.value === null) return 'ag-right-aligned-cell'
   if (typeof params.value === 'object') {
     const valueType = params.value?.type
-    if (valueType === 'BigInt' || valueType === 'Float') return 'ag-right-aligned-cell'
+    if (valueType === 'BigInt' || valueType === 'Float' || valueType === 'Decimal')
+      return 'ag-right-aligned-cell'
   }
   return null
 }
@@ -277,6 +285,7 @@ function cellRenderer(params: ICellRendererParams) {
   else if (typeof params.value === 'object') {
     const valueType = params.value?.type
     if (valueType === 'BigInt') return formatNumber(params)
+    else if (valueType === 'Decimal') return formatNumber(params)
     else if (valueType === 'Float')
       return `<span style="color:grey; font-style: italic;">${params.value?.value ?? 'Unknown'}</span>`
     else if ('_display_text_' in params.value && params.value['_display_text_'])

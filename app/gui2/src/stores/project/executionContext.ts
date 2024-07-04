@@ -280,11 +280,13 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
           () => this.lsRpc.destroyExecutionContext(this.id),
           'Destroying execution context',
         )
-        if (!result.ok) {
+        if (!result.ok && !this.lsRpc.isDisposed) {
           result.error.log('Failed to destroy execution context')
         }
       }
-      this.lsRpc.release()
+      if (!this.lsRpc.isDisposed) {
+        this.lsRpc.release()
+      }
       return { status: 'not-created' }
     })
   }

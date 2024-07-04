@@ -251,5 +251,29 @@ class FileSystemServiceSpec
       FileUtils.deleteQuietly(filePath)
     }
 
+    "check existence of a path" in {
+      implicit val client: WsTestClient = new WsTestClient(address)
+
+      val testDir = testStorageConfig.userProjectsPath
+
+      val projectName = "New_Project_1"
+      createProject(projectName)
+
+      val testFile  = new File(testDir, "foo.txt")
+      val dummyFile = new File(testDir, "foo.exe")
+
+      Files.createFile(testFile.toPath)
+
+      val result1 = fileSystemService
+        .exists(testFile)
+        .unsafeRunSync()
+      result1.value should be(true)
+
+      val result2 = fileSystemService
+        .exists(dummyFile)
+        .unsafeRunSync()
+      result2.value should be(false)
+    }
+
   }
 }

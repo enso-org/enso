@@ -51,7 +51,7 @@ type Auto_Detect
     ## PRIVATE
        Implements the `File.read` for this `File_Format`
     read : File -> Problem_Behavior -> Any ! File_Error
-    read self file on_problems:Problem_Behavior = if file.is_directory then file.list else
+    read self file on_problems:Problem_Behavior =
         metadata = File_Format_Metadata.from file
         reader = Auto_Detect.get_reading_format metadata
         if reader == Nothing then Error.throw (File_Error.Unsupported_Type file) else
