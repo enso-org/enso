@@ -121,14 +121,16 @@ add_specs suite_builder setup =
     light_table_builder = setup.light_table_builder
     pending_datetime = if setup.test_selection.date_time.not then "Date/Time operations are not supported by this backend."
     suite_builder.group prefix+"(Column_Operations_Spec) Rounding numeric tests" group_builder->
-        do_op n op =
+        round_one n dp=0 use_bankers=False =
             table = light_table_builder [["x", [n]]]
-            result = table.at "x" |> op
+            result = table.at "x" . round dp use_bankers
             result.to_vector.at 0
 
-        do_round n dp=0 use_bankers=False = do_op n (_.round dp use_bankers)
-
-        Round_Spec.add_specs group_builder do_round
+        round_batch n_vec dp_vec use_bankers =
+            table = light_table_builder [["x", n_vec], ["dp", dp_vec]]
+            result = table.at "x" . round (table.at "dp") use_bankers
+            result.to_vector
+        Round_Spec.add_specs group_builder (Round_Spec.Batch_Runner.Value round_batch round_one)
 
         group_builder.specify "Decimal places out of range" <|
             3.1 . round 16 . should_fail_with Illegal_Argument
