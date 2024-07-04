@@ -36,6 +36,7 @@
     "@monaco-editor/react": "4.6.0",
     "@sentry/react": "^7.74.0",
     "@tanstack/react-query": "5.45.1",
+    "@tanstack/vue-query": ">= 5.45.0 < 5.46.0",
     "ajv": "^8.12.0",
     "enso-common": "^1.0.0",
     "is-network-error": "^1.0.1",
