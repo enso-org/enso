@@ -8,6 +8,10 @@ import * as persistClientCore from '@tanstack/query-persist-client-core'
 import * as queryCore from '@tanstack/query-core'
 import * as idbKeyval from 'idb-keyval'
 
+import { QueryClient } from '@tanstack/vue-query'
+
+export { QueryClient }
+
 declare module '@tanstack/query-core' {
     /**
      * Query client with additional methods.
@@ -70,9 +74,7 @@ const DEFAULT_BUSTER = 'v1.1'
 /**
  * Create a new Tanstack Query client.
  */
-export function createQueryClient<T extends queryCore.QueryClient>(
-    constructClient: (config: queryCore.QueryClientConfig) => T
-) {
+export function createQueryClient(): QueryClient {
     const store = idbKeyval.createStore('enso', 'query-persist-cache')
     queryCore.onlineManager.setOnline(navigator.onLine)
 
@@ -92,7 +94,7 @@ export function createQueryClient<T extends queryCore.QueryClient>(
         deserialize: persistedQuery => persistedQuery,
     })
 
-    const queryClient: T = constructClient({
+    const queryClient: QueryClient = new QueryClient({
         mutationCache: new queryCore.MutationCache({
             onSuccess: (_data, _variables, _context, mutation) => {
                 const shouldAwaitInvalidates = mutation.meta?.awaitInvalidates ?? false

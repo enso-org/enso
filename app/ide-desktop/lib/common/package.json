@@ -14,7 +14,8 @@
     "./src/queryClient": "./src/queryClient.ts"
   },
   "peerDependencies": {
-    "@tanstack/query-core": "5.45.0"
+    "@tanstack/query-core": "5.45.0",
+    "@tanstack/vue-query": ">= 5.45.0 < 5.46.0"
   },
   "dependencies": {
     "idb-keyval": "^6.2.1",

@@ -1,6 +1,4 @@
 /** @file Entry point into the cloud dashboard. */
-import * as reactQuery from '@tanstack/react-query'
-
 import * as commonQuery from 'enso-common/src/queryClient'
 
 import '#/tailwind.css'
@@ -31,5 +29,5 @@ main.run({
   projectManagerUrl: null,
   ydocUrl: null,
   appRunner: testAppRunner.TestAppRunner,
-  queryClient: commonQuery.createQueryClient(config => new reactQuery.QueryClient(config)),
+  queryClient: commonQuery.createQueryClient(),
 })

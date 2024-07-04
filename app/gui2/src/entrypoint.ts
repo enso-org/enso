@@ -75,7 +75,7 @@ function main() {
   const projectManagerUrl = config.engine.projectManagerUrl || PROJECT_MANAGER_URL
   const ydocUrl = config.engine.ydocUrl === '' ? YDOC_SERVER_URL : config.engine.ydocUrl
   const initialProjectName = config.startup.project || null
-  const queryClient = commonQuery.createQueryClient((config) => new vueQuery.QueryClient(config))
+  const queryClient = commonQuery.createQueryClient()
 
   const registerPlugins = (app: App) => {
     app.use(vueQuery.VueQueryPlugin, { queryClient })
