@@ -220,7 +220,7 @@ export default function projectManagerShimMiddleware(
                                             .access(directoryPath)
                                             .then(() => true)
                                             .catch(() => false)
-                                        result = toJSONRPCResult(exists)
+                                        result = toJSONRPCResult({ exists })
                                     }
                                     break
                                 }

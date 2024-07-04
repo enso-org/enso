@@ -417,12 +417,16 @@ export default class ProjectManager {
 
   /** Checks if a file or directory exists. */
   async exists(parentId: Path | null) {
-    const response = await this.runStandaloneCommand<boolean>(
+    /** The type of the response body of this endpoint. */
+    interface ResponseBody {
+      readonly exists: boolean
+    }
+    const response = await this.runStandaloneCommand<ResponseBody>(
       null,
       'filesystem-exists',
       parentId ?? this.rootDirectory
     )
-    return response
+    return response.exists
   }
 
   /** List directories, projects and files in the given folder. */
