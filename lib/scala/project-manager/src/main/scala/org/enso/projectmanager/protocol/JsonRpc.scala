@@ -39,6 +39,7 @@ object JsonRpc {
       .registerRequest(ConfigDelete)
       .registerRequest(LoggingServiceGetEndpoint)
       .registerRequest(FileSystemList)
+      .registerRequest(FileSystemExists)
       .registerRequest(FileSystemCreateDirectory)
       .registerRequest(FileSystemDeleteDirectory)
       .registerRequest(FileSystemMoveDirectory)
