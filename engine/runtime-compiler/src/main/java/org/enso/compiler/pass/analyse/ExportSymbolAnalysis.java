@@ -5,12 +5,16 @@ import java.util.List;
 import java.util.UUID;
 import org.enso.compiler.context.InlineContext;
 import org.enso.compiler.context.ModuleContext;
+import org.enso.compiler.core.CompilerError;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.ir.Expression;
 import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.core.ir.expression.errors.ImportExport;
 import org.enso.compiler.core.ir.module.scope.Export;
 import org.enso.compiler.data.BindingsMap;
+import org.enso.compiler.data.BindingsMap.ImportTarget;
+import org.enso.compiler.data.BindingsMap.ResolvedModule;
+import org.enso.compiler.data.BindingsMap.ResolvedType;
 import org.enso.compiler.pass.IRPass;
 import scala.collection.immutable.Seq;
 import scala.jdk.javaapi.CollectionConverters;
@@ -67,39 +71,60 @@ public final class ExportSymbolAnalysis implements IRPass {
                     exportIr.onlyNames().isDefined() &&
                     exportIr.rename().isEmpty()) {
                   var exportNameParts = exportIr.name().parts();
-                  var symbolName = exportNameParts.last().name();
+                  var lastName = exportNameParts.last().name();
                   assert exportNameParts.size() > 1;
-                  var moduleOrTypeName = exportNameParts.apply(exportNameParts.size() - 2);
-                  var exportedSymbols = exportIr.onlyNames().get();
-                  var resolvedTargetsOpt = bindingsMap.exportedSymbols().get(symbolName);
-                  if (resolvedTargetsOpt.isEmpty()) {
-                    var err = ImportExport.apply(
-                        exportIr,
-                        new ImportExport.SymbolDoesNotExist(
-                            symbolName, moduleOrTypeName.name()),
-                        ImportExport.apply$default$3(),
-                        ImportExport.apply$default$4());
-                    exportErrors.add(err);
-                    return null;
+                  var preLastName = exportNameParts.apply(exportNameParts.size() - 2).name();
+
+                  // importTarget is the entity which we will check for the presence of symbols.
+                  // It can either be ResolvedModule or ResolvedType.
+                  ImportTarget importTarget = null;
+                  // In correctly formed export, either `lastName` or `preLastName` must resolve
+                  // to a module
+                  var resolvedModule = findInDirectlyExportedModules(lastName, bindingsMap);
+                  if (resolvedModule != null) {
+                    importTarget = resolvedModule;
+                  } else {
+                    resolvedModule = findInDirectlyExportedModules(preLastName, bindingsMap);
+                    if (resolvedModule == null) {
+                      var err = ImportExport.apply(
+                          exportIr,
+                          new ImportExport.ModuleDoesNotExist(preLastName),
+                          ImportExport.apply$default$3(),
+                          ImportExport.apply$default$4());
+                      exportErrors.add(err);
+                      return null;
+                    }
+                    var resolvedTypeOpt = resolvedModule.resolveExportedSymbol(lastName);
+                    if (resolvedTypeOpt.isLeft()) {
+                      var err = ImportExport.apply(
+                          exportIr,
+                          new ImportExport.TypeDoesNotExist(
+                              lastName, preLastName),
+                          ImportExport.apply$default$3(),
+                          ImportExport.apply$default$4());
+                      exportErrors.add(err);
+                      return null;
+                    }
+                    var resolvedType = resolvedTypeOpt.toOption().get();
+                    if (resolvedType.size() > 1 || !(resolvedType.head() instanceof ResolvedType)) {
+                      throw new CompilerError("Multiple resolved targets for a symbol, expected resolved type: " + resolvedType);
+                    }
+                    importTarget = (ImportTarget) resolvedType.head();
                   }
-                  exportedSymbols.foreach(
-                      exportedSymbol -> {
-                        resolvedTargetsOpt.get().foreach(resolvedTarget -> {
-                          var bm = resolvedTarget.module().unsafeAsModule("Should be defined")
-                              .getBindingsMap();
-                          if (!bm.exportedSymbols().contains(exportedSymbol.name())) {
-                            exportErrors.add(
-                                ImportExport.apply(
-                                    exportedSymbol,
-                                    new ImportExport.SymbolDoesNotExist(
-                                        exportedSymbol.name(), moduleOrTypeName.name()),
-                                    ImportExport.apply$default$3(),
-                                    ImportExport.apply$default$4()));
-                          }
-                          return null;
-                        });
-                        return null;
-                      });
+                  assert importTarget != null;
+
+                  for (var exportedSymbol : CollectionConverters.asJava(exportIr.onlyNames().get())) {
+                    var res = importTarget.resolveExportedSymbol(exportedSymbol.name());
+                    if (res.isLeft()) {
+                      var err = ImportExport.apply(
+                          exportedSymbol,
+                          new ImportExport.SymbolDoesNotExist(
+                              exportedSymbol.name(), importTarget.qualifiedName().toString()),
+                          ImportExport.apply$default$3(),
+                          ImportExport.apply$default$4());
+                      exportErrors.add(err);
+                    }
+                  }
                 }
               return null;
             }
@@ -117,6 +142,22 @@ public final class ExportSymbolAnalysis implements IRPass {
           moduleIr.diagnostics(),
           moduleIr.id());
     }
+  }
+
+  /**
+   * Tries to find module with {@code name} name in modules that are _directly exported_ from
+   * the current module.
+   * @return null if not found.
+   */
+  private ResolvedModule findInDirectlyExportedModules(String name, BindingsMap bindingsMap) {
+    assert !name.contains(".") : "Name must not be FQN";
+    for (var exportedMod : CollectionConverters.asJava(bindingsMap.getDirectlyExportedModules())) {
+      var exportedModName = exportedMod.module().qualifiedName().item();
+      if (name.equals(exportedModName)) {
+        return exportedMod.module();
+      }
+    }
+    return null;
   }
 
   @Override
