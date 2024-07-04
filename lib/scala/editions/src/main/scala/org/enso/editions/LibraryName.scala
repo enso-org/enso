@@ -36,27 +36,21 @@ object LibraryName {
         node match {
           case mappingNode: MappingNode =>
             val stringDecoder = implicitly[YamlDecoder[String]]
-
-            if (mappingNode.getValue.size() != 2)
-              Left(new YAMLException("invalid number of fields for Contact"))
-            else {
-              val clazzMap = mappingKV(mappingNode)
-              val result = for {
-                namesapce <- clazzMap
-                  .get(Fields.Namespace)
-                  .toRight(
-                    new YAMLException(s"Missing '${Fields.Namespace}' field")
-                  )
-                  .flatMap(stringDecoder.decode)
-                email <- clazzMap
-                  .get(Fields.Email)
-                  .toRight(
-                    new YAMLException(s"Missing '${Fields.Email}' field")
-                  )
-                  .flatMap(stringDecoder.decode)
-              } yield LibraryName(namesapce, email)
-              result
-            }
+            val clazzMap      = mappingKV(mappingNode)
+            for {
+              namesapce <- clazzMap
+                .get(Fields.Namespace)
+                .toRight(
+                  new YAMLException(s"Missing '${Fields.Namespace}' field")
+                )
+                .flatMap(stringDecoder.decode)
+              email <- clazzMap
+                .get(Fields.Email)
+                .toRight(
+                  new YAMLException(s"Missing '${Fields.Email}' field")
+                )
+                .flatMap(stringDecoder.decode)
+            } yield LibraryName(namesapce, email)
           case scalarNode: ScalarNode =>
             val v = scalarNode.getValue
             fromModuleName(v).toRight(

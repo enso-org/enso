@@ -77,7 +77,7 @@ object LibraryManifest {
               description
             )
           case _ =>
-            Left(new YAMLException("Unexpected edition name"))
+            Left(new YAMLException("Unexpected library manifest definition"))
         }
     }
 

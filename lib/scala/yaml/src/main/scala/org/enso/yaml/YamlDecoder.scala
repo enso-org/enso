@@ -25,11 +25,11 @@ abstract class YamlDecoder[T] {
           mutableMap.put(n.getValue, value.getValueNode)
         case _: SequenceNode =>
           throw new YAMLException(
-            "expected a plain value as a map's key, got a sequence instead"
+            "Expected a plain value as a map's key, got a sequence instead"
           )
         case _: MappingNode =>
           throw new YAMLException(
-            "expected a plain value as a map's key, got a map instead"
+            "Expected a plain value as a map's key, got a map instead"
           )
       }
       i += 1
@@ -54,12 +54,20 @@ object YamlDecoder {
       case mappingNode: MappingNode =>
         valueDecoder
           .decode(mappingNode)
-          .map(v => if (v == null) None else Some(v))
+          .map(Option(_))
     }
   }
 
-  trait MapKeyField {
-    def key:               String
+  /** Helper class used for automatic decoding of sequences of fields to a map.
+    */
+  private trait MapKeyField {
+
+    /** Determines the name of the field to be used as a key in the map.
+      */
+    def key: String
+
+    /** Determines if duplicate map entries are allowed in the source YAML.
+      */
     def duplicatesAllowed: Boolean
   }
 
@@ -67,7 +75,10 @@ object YamlDecoder {
     private case class PlainMapKeyField(key: String, duplicatesAllowed: Boolean)
         extends MapKeyField
 
-    def plainField(key: String): MapKeyField = PlainMapKeyField(key, false)
+    def plainField(
+      key: String,
+      duplicatesAllowed: Boolean = false
+    ): MapKeyField = PlainMapKeyField(key, duplicatesAllowed)
   }
 
   implicit def mapDecoderYaml[K, V](implicit
@@ -134,8 +145,14 @@ object YamlDecoder {
         node match {
           case node: ScalarNode =>
             Right(node.getValue)
-          case _ =>
-            Left(new YAMLException("Expected `ScalarNode` for a string value"))
+          case _: MappingNode =>
+            Left(new YAMLException("Expected a plain value, got a map instead"))
+          case _: SequenceNode =>
+            Left(
+              new YAMLException(
+                "Expected a plain value, got a sequence instead"
+              )
+            )
         }
       }
     }
@@ -148,10 +165,16 @@ object YamlDecoder {
             node.getValue match {
               case "true"  => Right(true)
               case "false" => Right(false)
-              case v       => Left(new YAMLException("unknown boolean value: " + v))
+              case v       => Left(new YAMLException("Unknown boolean value: " + v))
             }
-          case _ =>
-            Left(new YAMLException("failed to decode a boolean field"))
+          case _: MappingNode =>
+            Left(new YAMLException("Expected a plain value, got a map instead"))
+          case _: SequenceNode =>
+            Left(
+              new YAMLException(
+                "Expected a plain value, got a sequence instead"
+              )
+            )
         }
       }
     }
@@ -167,10 +190,10 @@ object YamlDecoder {
         liftEither(elements)(cbf)
       case _: ScalarNode =>
         Left(
-          new YAMLException("expected a sequence, got a plain value instead")
+          new YAMLException("Expected a sequence, got a plain value instead")
         )
       case _: MappingNode =>
-        Left(new YAMLException("expected a sequence, got a map instead"))
+        Left(new YAMLException("Expected a sequence, got a map instead"))
     }
 
     def liftEither[A, B](xs: List[Either[A, B]])(implicit

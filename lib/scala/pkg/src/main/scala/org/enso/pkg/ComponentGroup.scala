@@ -56,29 +56,21 @@ object ComponentGroups {
       override def decode(node: Node): Either[Throwable, ComponentGroups] =
         node match {
           case mappingNode: MappingNode =>
-            if (mappingNode.getValue.size() > 2)
-              Left(
-                new YAMLException(
-                  "Invalid number of fields for ComponentGroups. Expected: 2"
-                )
-              )
-            else {
-              val clazzMap = mappingKV(mappingNode)
-              val newGroupsDecoder =
-                implicitly[YamlDecoder[List[ComponentGroup]]]
-              val extendedGroupsDecoder =
-                implicitly[YamlDecoder[List[ExtendedComponentGroup]]]
-              for {
-                newGroups <- clazzMap
-                  .get(Fields.New)
-                  .map(newGroupsDecoder.decode)
-                  .getOrElse(Right(Nil))
-                extendedGroups <- clazzMap
-                  .get(Fields.Extends)
-                  .map(extendedGroupsDecoder.decode)
-                  .getOrElse(Right(Nil))
-              } yield ComponentGroups(newGroups, extendedGroups)
-            }
+            val clazzMap = mappingKV(mappingNode)
+            val newGroupsDecoder =
+              implicitly[YamlDecoder[List[ComponentGroup]]]
+            val extendedGroupsDecoder =
+              implicitly[YamlDecoder[List[ExtendedComponentGroup]]]
+            for {
+              newGroups <- clazzMap
+                .get(Fields.New)
+                .map(newGroupsDecoder.decode)
+                .getOrElse(Right(Nil))
+              extendedGroups <- clazzMap
+                .get(Fields.Extends)
+                .map(extendedGroupsDecoder.decode)
+                .getOrElse(Right(Nil))
+            } yield ComponentGroups(newGroups, extendedGroups)
         }
     }
 
@@ -91,12 +83,14 @@ object ComponentGroups {
           implicitly[YamlEncoder[List[ExtendedComponentGroup]]]
         val elements = new util.ArrayList[(String, Object)](0)
         if (value.newGroups.nonEmpty) {
-          elements.add(("new", componentGroupEncoder.encode(value.newGroups)))
+          elements.add(
+            (Fields.New, componentGroupEncoder.encode(value.newGroups))
+          )
         }
         if (value.extendedGroups.nonEmpty) {
           elements.add(
             (
-              "extends",
+              Fields.Extends,
               extendedComponentGoupEncoder.encode(value.extendedGroups)
             )
           )
@@ -134,11 +128,7 @@ object ComponentGroup {
       override def decode(node: Node): Either[Throwable, ComponentGroup] =
         node match {
           case mappingNode: MappingNode =>
-            if (mappingNode.getValue.size() > 4)
-              Left(
-                new YAMLException("Invalid number of fields for ComponentGroup")
-              )
-            else if (mappingNode.getValue.size() == 1) {
+            if (mappingNode.getValue.size() == 1) {
               val groupNode = mappingNode.getValue.get(0)
               (groupNode.getKeyNode, groupNode.getValueNode) match {
                 case (scalarNode: ScalarNode, mappingNode: MappingNode) =>
@@ -169,7 +159,7 @@ object ComponentGroup {
                 case (_: ScalarNode, value: ScalarNode) =>
                   Left(
                     new YAMLException(
-                      "Failed to decode component group. Expected a mapping, got " + value.getValue
+                      "Failed to decode component group. Expected a map field, got a value:" + value.getValue
                     )
                   )
                 case (_: ScalarNode, _: SequenceNode) =>
@@ -181,7 +171,7 @@ object ComponentGroup {
                 case _ =>
                   Left(
                     new YAMLException(
-                      "Failed to decode component"
+                      "Failed to decode component group"
                     )
                   )
               }
@@ -281,13 +271,7 @@ object ExtendedComponentGroup {
         node: Node
       ): Either[Throwable, ExtendedComponentGroup] = node match {
         case mappingNode: MappingNode =>
-          if (mappingNode.getValue.size() > 2)
-            Left(
-              new YAMLException(
-                "Invalid number of fields for ExtendedComponentGroup"
-              )
-            )
-          else if (mappingNode.getValue.size() == 1) {
+          if (mappingNode.getValue.size() == 1) {
             val groupDecoder   = implicitly[YamlDecoder[GroupReference]]
             val exportsDecoder = implicitly[YamlDecoder[Seq[Component]]]
             val groupNode      = mappingNode.getValue.get(0)
@@ -440,9 +424,7 @@ object Component {
       override def decode(node: Node): Either[Throwable, Component] =
         node match {
           case mappingNode: MappingNode =>
-            if (mappingNode.getValue.size() > 2)
-              Left(new YAMLException("invalid number of fields for Component"))
-            else if (mappingNode.getValue.size() == 1) {
+            if (mappingNode.getValue.size() == 1) {
               val componentNode = mappingNode.getValue.get(0)
               (componentNode.getKeyNode, componentNode.getValueNode) match {
                 case (scalarNode: ScalarNode, mappingNode: MappingNode) =>
@@ -464,7 +446,7 @@ object Component {
                 case _ =>
                   Left(
                     new YAMLException(
-                      "Failed to decode component"
+                      "Failed to decode Component"
                     )
                   )
               }
@@ -544,7 +526,7 @@ case class Shortcut(key: String)
 object Shortcut {
 
   object Fields {
-    val Key = "key"
+    val Key = "shortcut"
   }
 
   implicit val yamlDecoder: YamlDecoder[Shortcut] =
@@ -553,29 +535,23 @@ object Shortcut {
         node match {
           case mappingNode: MappingNode =>
             val stringDecoder = implicitly[YamlDecoder[String]]
-
-            if (mappingNode.getValue.size() != 1)
-              Left(new YAMLException("Invalid number of fields for Shortcut"))
-            else {
-              val shortcutNode = mappingNode.getValue.get(0)
-              (shortcutNode.getKeyNode, shortcutNode.getValueNode) match {
-                case (key: ScalarNode, valueNode)
-                    if key.getValue == "shortcut" =>
-                  valueNode match {
-                    case valueNode: ScalarNode =>
-                      stringDecoder.decode(valueNode).map(Shortcut(_))
-                    case _: SequenceNode =>
-                      Left(
-                        new YAMLException(
-                          "Failed to decode shortcut. Expected a string value, got a sequence"
-                        )
+            val shortcutNode  = mappingNode.getValue.get(0)
+            (shortcutNode.getKeyNode, shortcutNode.getValueNode) match {
+              case (key: ScalarNode, valueNode) if key.getValue == Fields.Key =>
+                valueNode match {
+                  case valueNode: ScalarNode =>
+                    stringDecoder.decode(valueNode).map(Shortcut(_))
+                  case _: SequenceNode =>
+                    Left(
+                      new YAMLException(
+                        "Failed to decode shortcut. Expected a string value, got a sequence"
                       )
-                    case _ =>
-                      Left(new YAMLException("Failed to decode shortcut"))
-                  }
-                case _ =>
-                  Left(new YAMLException("Failed to decode shortcut"))
-              }
+                    )
+                  case _ =>
+                    Left(new YAMLException("Failed to decode Shortcut"))
+                }
+              case _ =>
+                Left(new YAMLException("Failed to decode Shortcut"))
             }
         }
     }
@@ -583,7 +559,7 @@ object Shortcut {
   implicit val yamlEncoder: YamlEncoder[Shortcut] =
     new YamlEncoder[Shortcut] {
       override def encode(value: Shortcut) = {
-        toMap("shortcut", value.key)
+        toMap(Fields.Key, value.key)
       }
     }
 

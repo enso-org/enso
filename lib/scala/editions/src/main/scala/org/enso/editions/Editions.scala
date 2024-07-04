@@ -58,13 +58,13 @@ trait Editions {
   object Library {
 
     trait LibraryFields {
-      val name = "name"
+      val Name = "name"
     }
 
     object LocalLibraryFields extends LibraryFields
     object PublishedLibraryFields extends LibraryFields {
-      val version    = "version"
-      val repository = "repository"
+      val Version    = "version"
+      val Repository = "repository"
     }
 
     implicit val yamlDecoder: YamlDecoder[Library] =
@@ -74,10 +74,10 @@ trait Editions {
             case mappingNode: MappingNode =>
               val bindings = mappingKV(mappingNode)
 
-              bindings.get(LocalLibraryFields.name) match {
+              bindings.get(LocalLibraryFields.Name) match {
                 case Some(node) =>
                   val repoField =
-                    bindings.get(PublishedLibraryFields.repository)
+                    bindings.get(PublishedLibraryFields.Repository)
 
                   val isLocalRepo = repoField
                     .map(node =>
@@ -87,10 +87,10 @@ trait Editions {
                     )
                     .getOrElse(false)
                   if (isLocalRepo) {
-                    if (bindings.contains(PublishedLibraryFields.version))
+                    if (bindings.contains(PublishedLibraryFields.Version))
                       Left(
                         new YAMLException(
-                          "'version' field must not be set for libraries associated with the local repository"
+                          s"'${PublishedLibraryFields.Version}' field must not be set for libraries associated with the local repository"
                         )
                       )
                     else
@@ -105,26 +105,26 @@ trait Editions {
                       implicitly[YamlDecoder[LibraryRepositoryType]]
                     for {
                       name <- bindings
-                        .get(PublishedLibraryFields.name)
+                        .get(PublishedLibraryFields.Name)
                         .toRight(
                           new YAMLException(
-                            s"Missing '${PublishedLibraryFields.name}' field"
+                            s"Missing '${PublishedLibraryFields.Name}' field"
                           )
                         )
                         .flatMap(libraryNameDecoder.decode)
                       version <- bindings
-                        .get(PublishedLibraryFields.version)
+                        .get(PublishedLibraryFields.Version)
                         .toRight(
                           new YAMLException(
-                            s"'${PublishedLibraryFields.version}' field is mandatory for non-local libraries"
+                            s"'${PublishedLibraryFields.Version}' field is mandatory for non-local libraries"
                           )
                         )
                         .flatMap(versionDecoder.decode)
                       repository <- bindings
-                        .get(PublishedLibraryFields.repository)
+                        .get(PublishedLibraryFields.Repository)
                         .toRight(
                           new YAMLException(
-                            s"Missing '${PublishedLibraryFields.repository}' field"
+                            s"Missing '${PublishedLibraryFields.Repository}' field"
                           )
                         )
                         .flatMap(repositoryDecoder.decode)
@@ -133,7 +133,7 @@ trait Editions {
                 case None =>
                   Left(
                     new YAMLException(
-                      s"Library requires `${LocalLibraryFields.name}` field"
+                      s"Library requires `${LocalLibraryFields.Name}` field"
                     )
                   )
               }
@@ -149,7 +149,7 @@ trait Editions {
           value match {
             case local: LocalLibrary =>
               elements.add(
-                (LocalLibraryFields.name, libraryNamencoder.encode(local.name))
+                (LocalLibraryFields.Name, libraryNamencoder.encode(local.name))
               )
             case remote: PublishedLibrary =>
               val semverEncoder = implicitly[YamlEncoder[SemVer]]
@@ -157,19 +157,19 @@ trait Editions {
                 implicitly[YamlEncoder[LibraryRepositoryType]]
               elements.add(
                 (
-                  PublishedLibraryFields.name,
+                  PublishedLibraryFields.Name,
                   libraryNamencoder.encode(remote.name)
                 )
               )
               elements.add(
                 (
-                  PublishedLibraryFields.version,
+                  PublishedLibraryFields.Version,
                   semverEncoder.encode(remote.version)
                 )
               )
               elements.add(
                 (
-                  PublishedLibraryFields.repository,
+                  PublishedLibraryFields.Repository,
                   repoEncoder.encode(remote.repository)
                 )
               )
@@ -249,10 +249,10 @@ trait Editions {
   }
 
   object Fields {
-    val parent        = "parent"
-    val engineVersion = "engine-version"
-    val repositories  = "repositories"
-    val libraries     = "libraries"
+    val Parent        = "extends"
+    val EngineVersion = "engine-version"
+    val Repositories  = "repositories"
+    val Libraries     = "libraries"
   }
 
   implicit val yamlDecoder: YamlDecoder[Edition] =
@@ -260,51 +260,43 @@ trait Editions {
       import org.enso.semver.SemVerYaml._
       override def decode(node: Node): Either[Throwable, Edition] = node match {
         case mappingNode: MappingNode =>
-          if (mappingNode.getValue.size() > 4)
-            Left(
-              new YAMLException(
-                "Invalid number of fields: " + mappingNode.getValue.size()
-              )
-            )
-          else {
-            val clazzMap = mappingKV(mappingNode)
-            val parentDecoder =
-              implicitly[YamlDecoder[Option[NestedEditionType]]]
-            val semverDecoder   = implicitly[YamlDecoder[Option[SemVer]]]
-            implicit val mapKey = MapKeyField.plainField("name")
-            val repositoriesDecoder =
-              implicitly[YamlDecoder[Map[String, Editions.Repository]]]
-            val librariesDecoder =
-              implicitly[YamlDecoder[Map[LibraryName, Library]]]
-            for {
-              parent <- clazzMap
-                .get("extends")
-                .map(parentDecoder.decode)
-                .getOrElse(Right(None))
-              engineVersion <- clazzMap
-                .get(Fields.engineVersion)
-                .map(semverDecoder.decode)
-                .getOrElse(Right(None))
-              _ <-
-                if (parent.isEmpty && engineVersion.isEmpty)
-                  Left(
-                    new YAMLException(
-                      s"The edition must specify at least one of " +
-                      s"${Fields.engineVersion} or ${Fields.parent}"
-                    )
+          val clazzMap = mappingKV(mappingNode)
+          val parentDecoder =
+            implicitly[YamlDecoder[Option[NestedEditionType]]]
+          val semverDecoder   = implicitly[YamlDecoder[Option[SemVer]]]
+          implicit val mapKey = MapKeyField.plainField("name")
+          val repositoriesDecoder =
+            implicitly[YamlDecoder[Map[String, Editions.Repository]]]
+          val librariesDecoder =
+            implicitly[YamlDecoder[Map[LibraryName, Library]]]
+          for {
+            parent <- clazzMap
+              .get(Fields.Parent)
+              .map(parentDecoder.decode)
+              .getOrElse(Right(None))
+            engineVersion <- clazzMap
+              .get(Fields.EngineVersion)
+              .map(semverDecoder.decode)
+              .getOrElse(Right(None))
+            _ <-
+              if (parent.isEmpty && engineVersion.isEmpty)
+                Left(
+                  new YAMLException(
+                    s"The edition must specify at least one of " +
+                    s"`${Fields.EngineVersion}` or `${Fields.Parent}`"
                   )
-                else Right(())
-              repositories <- clazzMap
-                .get(Fields.repositories)
-                .map(repositoriesDecoder.decode)
-                .getOrElse(Right(Map.empty[String, Editions.Repository]))
-              libraries <- clazzMap
-                .get(Fields.libraries)
-                .map(librariesDecoder.decode)
-                .getOrElse(Right(Map.empty[LibraryName, Library]))
+                )
+              else Right(())
+            repositories <- clazzMap
+              .get(Fields.Repositories)
+              .map(repositoriesDecoder.decode)
+              .getOrElse(Right(Map.empty[String, Editions.Repository]))
+            libraries <- clazzMap
+              .get(Fields.Libraries)
+              .map(librariesDecoder.decode)
+              .getOrElse(Right(Map.empty[LibraryName, Library]))
 
-            } yield Edition(parent, engineVersion, repositories, libraries)
-          }
+          } yield Edition(parent, engineVersion, repositories, libraries)
       }
     }
 
@@ -321,26 +313,26 @@ trait Editions {
         if (value.parent.isEmpty && value.engineVersion.isEmpty)
           throw new YAMLException(
             s"The edition must specify at least one of " +
-            s"${Fields.engineVersion} or ${Fields.parent}"
+            s"`${Fields.EngineVersion}` or `${Fields.Parent}`"
           )
         val elements = new util.ArrayList[(String, Object)]()
         value.parent
           .map(parentEncoder.encode)
-          .foreach(n => elements.add(("extends", n)))
+          .foreach(n => elements.add((Fields.Parent, n)))
         value.engineVersion
           .map(semverEncoder.encode)
-          .foreach(n => elements.add((Fields.engineVersion, n)))
+          .foreach(n => elements.add((Fields.EngineVersion, n)))
         if (value.libraries.nonEmpty)
           elements.add(
             (
-              Fields.repositories,
+              Fields.Repositories,
               repositoriesEncoder.encode(value.repositories.values.toSeq)
             )
           )
         if (value.repositories.nonEmpty)
           elements.add(
             (
-              Fields.libraries,
+              Fields.Libraries,
               librariesEncoder.encode(value.libraries.values.toSeq)
             )
           )
@@ -358,8 +350,8 @@ object Editions {
   object Repository {
 
     object Fields {
-      val name = "name"
-      val url  = "url"
+      val Name = "name"
+      val Url  = "url"
     }
 
     /** An alternative constructor for unnamed repositories.
@@ -374,30 +366,21 @@ object Editions {
           node match {
             case mappingNode: MappingNode =>
               val stringDecoder = implicitly[YamlDecoder[String]]
-
-              if (mappingNode.getValue.size() != 2)
-                Left(
-                  new YAMLException(
-                    s"Invalid number of fields for Repository: ${mappingNode.getValue.size()}"
+              val clazzMap      = mappingKV(mappingNode)
+              for {
+                name <- clazzMap
+                  .get(Fields.Name)
+                  .toRight(
+                    new YAMLException(s"Missing '${Fields.Name}' field")
                   )
-                )
-              else {
-                val clazzMap = mappingKV(mappingNode)
-                for {
-                  name <- clazzMap
-                    .get(Fields.name)
-                    .toRight(
-                      new YAMLException(s"Missing '${Fields.name}' field")
-                    )
-                    .flatMap(stringDecoder.decode)
-                  url <- clazzMap
-                    .get(Fields.url)
-                    .toRight(
-                      new YAMLException(s"Missing '${Fields.url}' field")
-                    )
-                    .flatMap(stringDecoder.decode)
-                } yield Repository(name, url)
-              }
+                  .flatMap(stringDecoder.decode)
+                url <- clazzMap
+                  .get(Fields.Url)
+                  .toRight(
+                    new YAMLException(s"Missing '${Fields.Url}' field")
+                  )
+                  .flatMap(stringDecoder.decode)
+              } yield Repository(name, url)
           }
       }
     }
@@ -406,8 +389,8 @@ object Editions {
       new YamlEncoder[Repository] {
         override def encode(value: Repository) = {
           val elements = new util.ArrayList[(String, Object)](2)
-          elements.add((Fields.name, value.name))
-          elements.add((Fields.url, value.url))
+          elements.add((Fields.Name, value.name))
+          elements.add((Fields.Url, value.url))
           toMap(elements)
         }
       }
@@ -451,12 +434,10 @@ object Editions {
       : YamlDecoder[Repository] = Repository.yamlDecoder
 
     implicit override def nestedEditionTypeEncoder
-      : YamlEncoder[NestedEditionType] =
-      yamlEncoder
+      : YamlEncoder[NestedEditionType] = yamlEncoder
 
     implicit override def libraryRepositoryTypeEncoder
-      : YamlEncoder[Repository] =
-      Repository.yamlEncoder
+      : YamlEncoder[Repository] = Repository.yamlEncoder
   }
 
   /** An alias for Raw editions. */

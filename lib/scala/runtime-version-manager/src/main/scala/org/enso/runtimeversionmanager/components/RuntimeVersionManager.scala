@@ -524,7 +524,7 @@ class RuntimeVersionManager(
             )
           ) { writer =>
             writer.newLine()
-            writer.write(s"${Manifest.Fields.brokenMark}: true\n")
+            writer.write(s"${Manifest.Fields.NrokenMark}: true\n")
           }.get
         } catch {
           case ex: Exception =>

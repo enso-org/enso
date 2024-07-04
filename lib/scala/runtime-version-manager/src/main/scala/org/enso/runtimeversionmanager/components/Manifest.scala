@@ -83,16 +83,20 @@ object Manifest {
               val bindings      = mappingKV(mappingNode)
               for {
                 launcher <- bindings
-                  .get(Manifest.Fields.minimumLauncherVersion)
+                  .get(Manifest.Fields.MinimumLauncherVersion)
                   .toRight(
                     new YAMLException(
-                      s"Missing `${Manifest.Fields.minimumLauncherVersion}` field"
+                      s"Missing `${Manifest.Fields.MinimumLauncherVersion}` field"
                     )
                   )
                   .flatMap(semverDecoder.decode)
                 projectManager <- bindings
-                  .get(Manifest.Fields.minimumProjectManagerVersion)
-                  .toRight(new YAMLException("Missing `project-manager` field"))
+                  .get(Manifest.Fields.MinimumProjectManagerVersion)
+                  .toRight(
+                    new YAMLException(
+                      s"Missing `${Manifest.Fields.MinimumProjectManagerVersion}` field"
+                    )
+                  )
                   .flatMap(semverDecoder.decode)
               } yield RequiredInstallerVersions(launcher, projectManager)
           }
@@ -139,8 +143,8 @@ object Manifest {
 
   object JVMOption {
     private object Fields {
-      val os    = "os"
-      val value = "value"
+      val Os    = "os"
+      val Value = "value"
     }
 
     implicit val yamlDecoder: YamlDecoder[JVMOption] =
@@ -153,11 +157,11 @@ object Manifest {
               val OSdecoder     = implicitly[YamlDecoder[OS]]
               for {
                 value <- bindings
-                  .get(Fields.value)
-                  .toRight(new YAMLException(s"missing `${Fields.value} field"))
+                  .get(Fields.Value)
+                  .toRight(new YAMLException(s"missing `${Fields.Value} field"))
                   .flatMap(stringDecoder.decode)
                 osRestriction <- bindings
-                  .get(Fields.os)
+                  .get(Fields.Os)
                   .map(OSdecoder.decode(_).map(Some(_)))
                   .getOrElse(Right(None))
               } yield JVMOption(value, osRestriction)
@@ -222,12 +226,12 @@ object Manifest {
   }
 
   object Fields {
-    val minimumLauncherVersion       = "minimum-launcher-version"
-    val minimumProjectManagerVersion = "minimum-project-manager-version"
-    val jvmOptions                   = "jvm-options"
-    val graalVMVersion               = "graal-vm-version"
-    val graalJavaVersion             = "graal-java-version"
-    val brokenMark                   = "broken"
+    val MinimumLauncherVersion       = "minimum-launcher-version"
+    val MinimumProjectManagerVersion = "minimum-project-manager-version"
+    val JvmOptions                   = "jvm-options"
+    val GraalVMVersion               = "graal-vm-version"
+    val GraalJavaVersion             = "graal-java-version"
+    val NrokenMark                   = "broken"
   }
 
   implicit val yamlDecoder: YamlDecoder[Manifest] =
@@ -247,27 +251,27 @@ object Manifest {
               requiredInstallerVersions <- requiredInstallerVersionsDecoder
                 .decode(node)
               graalVMVersion <- bindings
-                .get(Fields.graalVMVersion)
+                .get(Fields.GraalVMVersion)
                 .toRight(
                   new YAMLException(
-                    s"Required `${Fields.graalVMVersion}`field is missing"
+                    s"Required `${Fields.GraalVMVersion}`field is missing"
                   )
                 )
                 .flatMap(stringDecoder.decode)
               graalJavaVersion <- bindings
-                .get(Fields.graalJavaVersion)
+                .get(Fields.GraalJavaVersion)
                 .toRight(
                   new YAMLException(
-                    s"Required `${Fields.graalJavaVersion}` field is missing"
+                    s"Required `${Fields.GraalJavaVersion}` field is missing"
                   )
                 )
                 .flatMap(stringDecoder.decode)
               jvmOptions <- bindings
-                .get(Fields.jvmOptions)
+                .get(Fields.JvmOptions)
                 .map(seqJVMOptionsDecoder.decode)
                 .getOrElse(Right(Seq.empty))
               brokenMark <- bindings
-                .get(Fields.brokenMark)
+                .get(Fields.NrokenMark)
                 .map(booleanDecoder.decode)
                 .getOrElse(Right(false))
             } yield Manifest(

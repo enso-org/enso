@@ -26,7 +26,7 @@ object Manifest {
             val editionsNode = mappingNode.getValue.get(0)
             (editionsNode.getKeyNode, editionsNode.getValueNode) match {
               case (keyNode: ScalarNode, seqNode: SequenceNode)
-                  if keyNode.getValue == "editions" =>
+                  if keyNode.getValue == Fields.editions =>
                 val decoder = implicitly[YamlDecoder[Seq[EditionName]]]
                 decoder.decode(seqNode).map(Manifest(_))
               case _ =>
@@ -41,7 +41,7 @@ object Manifest {
     new YamlEncoder[Manifest] {
       override def encode(value: Manifest) = {
         val editionsEncoder = implicitly[YamlEncoder[Seq[EditionName]]]
-        toMap("editions", editionsEncoder.encode(value.editions))
+        toMap(Fields.editions, editionsEncoder.encode(value.editions))
       }
     }
 

@@ -47,23 +47,17 @@ object Contact {
       override def decode(node: Node): Either[Throwable, Contact] = node match {
         case mappingNode: MappingNode =>
           val optString = implicitly[YamlDecoder[Option[String]]]
-
-          if (mappingNode.getValue.size() > 2)
-            Left(new YAMLException("invalid number of fields for Contact"))
-          else {
-            val bindings = mappingKV(mappingNode)
-            val result = for {
-              name <- bindings
-                .get("name")
-                .map(optString.decode)
-                .getOrElse(Right(None))
-              email <- bindings
-                .get("email")
-                .map(optString.decode)
-                .getOrElse(Right(None))
-            } yield Contact(name, email)
-            result
-          }
+          val bindings  = mappingKV(mappingNode)
+          for {
+            name <- bindings
+              .get(Fields.Name)
+              .map(optString.decode)
+              .getOrElse(Right(None))
+            email <- bindings
+              .get(Fields.Email)
+              .map(optString.decode)
+              .getOrElse(Right(None))
+          } yield Contact(name, email)
       }
     }
 
@@ -136,114 +130,108 @@ case class Config(
 
 object Config {
 
-  val defaultNamespace: String    = "local"
-  val defaultVersion: String      = "dev"
-  val defaultLicense: String      = ""
-  val defaultPreferLocalLibraries = false
+  val DefaultNamespace: String    = "local"
+  val DefaultVersion: String      = "dev"
+  val DefaultLicense: String      = ""
+  val DefaultPreferLocalLibraries = false
 
   private object JsonFields {
-    val name: String           = "name"
-    val normalizedName: String = "normalized-name"
-    val version: String        = "version"
-    val ensoVersion: String    = "enso-version"
-    val license: String        = "license"
-    val author: String         = "authors"
-    val namespace: String      = "namespace"
-    val maintainer: String     = "maintainers"
-    val edition: String        = "edition"
-    val preferLocalLibraries   = "prefer-local-libraries"
-    val componentGroups        = "component-groups"
+    val Name: String           = "name"
+    val NormalizedName: String = "normalized-name"
+    val Version: String        = "version"
+    val EnsoVersion: String    = "enso-version"
+    val License: String        = "license"
+    val Author: String         = "authors"
+    val Namespace: String      = "namespace"
+    val Maintainer: String     = "maintainers"
+    val Edition: String        = "edition"
+    val PreferLocalLibraries   = "prefer-local-libraries"
+    val ComponentGroups        = "component-groups"
   }
 
   implicit val yamlDecoder: YamlDecoder[Config] =
     new YamlDecoder[Config] {
       override def decode(node: Node): Either[Throwable, Config] = node match {
         case mappingNode: MappingNode =>
-          if (mappingNode.getValue.size() > 10)
-            Left(new YAMLException("invalid number of fields for Contact"))
-          else {
-            val clazzMap      = mappingKV(mappingNode)
-            val stringDecoder = implicitly[YamlDecoder[String]]
-            val normalizedNameDecoder =
-              implicitly[YamlDecoder[Option[String]]]
-            val contactDecoder     = implicitly[YamlDecoder[List[Contact]]]
-            val editionNameDecoder = implicitly[YamlDecoder[EditionName]]
-            val editionDecoder =
-              implicitly[YamlDecoder[Option[Editions.RawEdition]]]
-            val booleanDecoder = implicitly[YamlDecoder[Boolean]]
-            val componentGroups =
-              implicitly[YamlDecoder[Option[ComponentGroups]]]
-            for {
-              name <- clazzMap
-                .get(JsonFields.name)
-                .toRight(
-                  new YAMLException(s"Missing '${JsonFields.name}' field")
-                )
-                .flatMap(stringDecoder.decode)
-              normalizedName <- clazzMap
-                .get(JsonFields.normalizedName)
-                .map(normalizedNameDecoder.decode)
-                .getOrElse(Right(None))
-              namespace <- clazzMap
-                .get(JsonFields.namespace)
-                .map(stringDecoder.decode)
-                .getOrElse(Right(defaultNamespace))
-              version <- clazzMap
-                .get(JsonFields.version)
-                .map(stringDecoder.decode)
-                .getOrElse(Right(defaultVersion))
-              license <- clazzMap
-                .get(JsonFields.license)
-                .map(stringDecoder.decode)
-                .getOrElse(Right(defaultLicense))
-              authors <- clazzMap
-                .get(JsonFields.author)
-                .map(contactDecoder.decode)
-                .getOrElse(Right(Nil))
-              maintainers <- clazzMap
-                .get(JsonFields.maintainer)
-                .map(contactDecoder.decode)
-                .getOrElse(Right(Nil))
-              rawEdition = clazzMap
-                .get(JsonFields.edition)
-                .flatMap(x =>
-                  editionNameDecoder.decode(x).toOption.map(Left(_))
-                )
-                .getOrElse(
-                  clazzMap
-                    .get(JsonFields.edition)
-                    .map(editionDecoder.decode)
-                    .getOrElse(Right(None))
-                )
-                .asInstanceOf[Either[EditionName, Option[Editions.RawEdition]]]
-              edition <- rawEdition.fold(
-                editionName =>
-                  Right(
-                    Some(Editions.Raw.Edition(parent = Some(editionName.name)))
-                  ),
-                r => Right(r)
+          val clazzMap      = mappingKV(mappingNode)
+          val stringDecoder = implicitly[YamlDecoder[String]]
+          val normalizedNameDecoder =
+            implicitly[YamlDecoder[Option[String]]]
+          val contactDecoder     = implicitly[YamlDecoder[List[Contact]]]
+          val editionNameDecoder = implicitly[YamlDecoder[EditionName]]
+          val editionDecoder =
+            implicitly[YamlDecoder[Option[Editions.RawEdition]]]
+          val booleanDecoder = implicitly[YamlDecoder[Boolean]]
+          val componentGroups =
+            implicitly[YamlDecoder[Option[ComponentGroups]]]
+          for {
+            name <- clazzMap
+              .get(JsonFields.Name)
+              .toRight(
+                new YAMLException(s"Missing '${JsonFields.Name}' field")
               )
-              preferLocalLibraries <- clazzMap
-                .get(JsonFields.preferLocalLibraries)
-                .map(booleanDecoder.decode)
-                .getOrElse(Right(defaultPreferLocalLibraries))
-              componentGroups <- clazzMap
-                .get(JsonFields.componentGroups)
-                .map(componentGroups.decode)
-                .getOrElse(Right(None))
-            } yield Config(
-              name,
-              normalizedName,
-              namespace,
-              version,
-              license,
-              authors,
-              maintainers,
-              edition,
-              preferLocalLibraries,
-              componentGroups
+              .flatMap(stringDecoder.decode)
+            normalizedName <- clazzMap
+              .get(JsonFields.NormalizedName)
+              .map(normalizedNameDecoder.decode)
+              .getOrElse(Right(None))
+            namespace <- clazzMap
+              .get(JsonFields.Namespace)
+              .map(stringDecoder.decode)
+              .getOrElse(Right(DefaultNamespace))
+            version <- clazzMap
+              .get(JsonFields.Version)
+              .map(stringDecoder.decode)
+              .getOrElse(Right(DefaultVersion))
+            license <- clazzMap
+              .get(JsonFields.License)
+              .map(stringDecoder.decode)
+              .getOrElse(Right(DefaultLicense))
+            authors <- clazzMap
+              .get(JsonFields.Author)
+              .map(contactDecoder.decode)
+              .getOrElse(Right(Nil))
+            maintainers <- clazzMap
+              .get(JsonFields.Maintainer)
+              .map(contactDecoder.decode)
+              .getOrElse(Right(Nil))
+            rawEdition = clazzMap
+              .get(JsonFields.Edition)
+              .flatMap(x => editionNameDecoder.decode(x).toOption.map(Left(_)))
+              .getOrElse(
+                clazzMap
+                  .get(JsonFields.Edition)
+                  .map(editionDecoder.decode)
+                  .getOrElse(Right(None))
+              )
+              .asInstanceOf[Either[EditionName, Option[Editions.RawEdition]]]
+            edition <- rawEdition.fold(
+              editionName =>
+                Right(
+                  Some(Editions.Raw.Edition(parent = Some(editionName.name)))
+                ),
+              r => Right(r)
             )
-          }
+            preferLocalLibraries <- clazzMap
+              .get(JsonFields.PreferLocalLibraries)
+              .map(booleanDecoder.decode)
+              .getOrElse(Right(DefaultPreferLocalLibraries))
+            componentGroups <- clazzMap
+              .get(JsonFields.ComponentGroups)
+              .map(componentGroups.decode)
+              .getOrElse(Right(None))
+          } yield Config(
+            name,
+            normalizedName,
+            namespace,
+            version,
+            license,
+            authors,
+            maintainers,
+            edition,
+            preferLocalLibraries,
+            componentGroups
+          )
       }
     }
 
@@ -257,47 +245,47 @@ object Config {
           implicitly[YamlEncoder[ComponentGroups]]
 
         val elements = new util.ArrayList[(String, Object)]()
-        elements.add((JsonFields.name, value.name))
+        elements.add((JsonFields.Name, value.name))
         value.normalizedName.foreach(v =>
-          elements.add((JsonFields.normalizedName, v))
+          elements.add((JsonFields.NormalizedName, v))
         )
-        if (value.namespace != defaultNamespace)
-          elements.add((JsonFields.namespace, value.namespace))
-        if (value.version != defaultVersion)
+        if (value.namespace != DefaultNamespace)
+          elements.add((JsonFields.Namespace, value.namespace))
+        if (value.version != DefaultVersion)
           elements.add(
-            (JsonFields.version, value.version)
+            (JsonFields.Version, value.version)
           )
-        if (value.license != defaultLicense)
+        if (value.license != DefaultLicense)
           elements.add(
-            (JsonFields.license, value.license)
+            (JsonFields.License, value.license)
           )
         if (value.authors.nonEmpty) {
           elements.add(
-            (JsonFields.author, contactsEncoder.encode(value.authors))
+            (JsonFields.Author, contactsEncoder.encode(value.authors))
           )
         }
         if (value.maintainers.nonEmpty) {
           elements.add(
-            (JsonFields.maintainer, contactsEncoder.encode(value.maintainers))
+            (JsonFields.Maintainer, contactsEncoder.encode(value.maintainers))
           )
         }
 
         value.edition.foreach { edition =>
           if (edition.isDerivingWithoutOverrides)
-            elements.add((JsonFields.edition, edition.parent.get))
+            elements.add((JsonFields.Edition, edition.parent.get))
           else
-            elements.add((JsonFields.edition, editionEncoder.encode(edition)))
+            elements.add((JsonFields.Edition, editionEncoder.encode(edition)))
         }
-        if (value.preferLocalLibraries != defaultPreferLocalLibraries)
+        if (value.preferLocalLibraries != DefaultPreferLocalLibraries)
           elements.add(
             (
-              JsonFields.preferLocalLibraries,
+              JsonFields.PreferLocalLibraries,
               booleanEncoder.encode(value.preferLocalLibraries)
             )
           )
         value.componentGroups.foreach(v =>
           elements.add(
-            (JsonFields.componentGroups, componentGroupsEncoder.encode(v))
+            (JsonFields.ComponentGroups, componentGroupsEncoder.encode(v))
           )
         )
 

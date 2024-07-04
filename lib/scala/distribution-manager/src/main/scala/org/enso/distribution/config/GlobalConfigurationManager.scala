@@ -60,7 +60,7 @@ class GlobalConfigurationManager(distributionManager: DistributionManager) {
               .recoverWith { case e: InvalidConfigError =>
                 Failure(
                   InvalidConfigError(
-                    s"Invalid value for key `$key`. Config changes were not saved.",
+                    s"Invalid value for key `$key`. Config changes were not saved",
                     e
                   )
                 )
@@ -117,7 +117,9 @@ class GlobalConfigurationManager(distributionManager: DistributionManager) {
                     Right((s.getValue, (tuple.getValueNode, s)))
                   case _ =>
                     Left(
-                      new YAMLException("unexpected key in the mapping node")
+                      new YAMLException(
+                        "Internal error: Unexpected key in the mapping node"
+                      )
                     )
                 }
               }
@@ -164,7 +166,7 @@ class GlobalConfigurationManager(distributionManager: DistributionManager) {
             }
           case _ =>
             Failure(
-              new YAMLException(s"cannot replace $head in the non-Mapping Node")
+              new YAMLException(s"Cannot replace `$head` in the non-map field")
             )
         }
     }
