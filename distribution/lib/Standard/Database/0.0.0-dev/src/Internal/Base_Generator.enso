@@ -14,11 +14,11 @@ import project.SQL.SQL_Builder
 from project.Errors import Unsupported_Database_Operation
 from project.Internal.IR.Operation_Metadata import Row_Number_Metadata
 
-type Internal_Dialect
+type Dialect_Operations
 
     ## PRIVATE
 
-       An internal representation of a SQL dialect.
+       Operations supported by a particular SQL dialect and how they are implemeneted.
 
        Arguments:
        - operation_map: The mapping which maps operation names to their
@@ -33,11 +33,11 @@ type Internal_Dialect
        Creates a copy of the dialect that supports additional operations or
        overrides existing ones.
 
-       # extend_with : Vector [Text, Vector SQL_Builder -> SQL_Builder] -> Internal_Dialect
-    extend_with : Vector Any -> Internal_Dialect
+       # extend_with : Vector [Text, Vector SQL_Builder -> SQL_Builder] -> Dialect_Operations
+    extend_with : Vector Any -> Dialect_Operations
     extend_with self mappings =
         new_map = mappings.fold self.operation_map (m -> el -> m.insert (el.at 0) (el.at 1))
-        Internal_Dialect.Value new_map
+        Dialect_Operations.Value new_map
 
     ## PRIVATE
        Checks if an operation is supported by the dialect.
@@ -182,7 +182,7 @@ wrap_in_quotes identifier =
 
    It is a base to help creating concrete dialects. It can be extended or
    completely overridden.
-base_dialect =
+base_dialect_operations =
     bin = name -> [name, make_binary_op name]
     unary = name -> [name, make_unary_op name]
     fun = name -> [name, make_function name]
@@ -201,7 +201,7 @@ base_dialect =
     types = [simple_cast]
     windows = [["ROW_NUMBER", make_row_number], ["ROW_NUMBER_IN_GROUP", make_row_number_in_group]]
     base_map = Map.from_vector (arith + logic + compare + functions + agg + counts + text + nulls + contains + types + windows)
-    Internal_Dialect.Value base_map
+    Dialect_Operations.Value base_map
 
 ## PRIVATE
 is_empty = lift_unary_op "IS_EMPTY" arg->
@@ -311,7 +311,7 @@ generate_expression dialect expr = case expr of
         escaped = value.replace "'" "''"
         SQL_Builder.code ("'" + escaped + "'")
     SQL_Expression.Operation kind arguments metadata ->
-        op = dialect.internal_generator_dialect.operation_map.get kind (Error.throw <| Unsupported_Database_Operation.Error kind)
+        op = dialect.dialect_operations.operation_map.get kind (Error.throw <| Unsupported_Database_Operation.Error kind)
         parsed_args = arguments.map (generate_expression dialect)
         result = op parsed_args
         # If the function expects more arguments, we pass the metadata as the last argument.

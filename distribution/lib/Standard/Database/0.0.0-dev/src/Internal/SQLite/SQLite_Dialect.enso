@@ -38,7 +38,7 @@ from project.Errors import SQL_Error, Unsupported_Database_Operation
    The dialect of SQLite databases.
 sqlite : SQLite_Dialect
 sqlite =
-    SQLite_Dialect.Value make_internal_generator_dialect
+    SQLite_Dialect.Value make_dialect_operations
 
 ## PRIVATE
 
@@ -47,7 +47,7 @@ type SQLite_Dialect
     ## PRIVATE
 
        The dialect of SQLite databases.
-    Value internal_generator_dialect
+    Value dialect_operations
 
     ## PRIVATE
        Name of the dialect.
@@ -247,7 +247,7 @@ type SQLite_Dialect
        Checks if an operation is supported by the dialect.
     is_supported : Text -> Boolean
     is_supported self operation =
-        self.internal_generator_dialect.is_supported operation
+        self.dialect_operations.is_supported operation
 
     ## PRIVATE
        The default table types to use when listing tables.
@@ -296,7 +296,7 @@ type SQLite_Dialect
     value_type_for_upload_of_existing_column self column = column.value_type
 
 ## PRIVATE
-make_internal_generator_dialect =
+make_dialect_operations =
     text = [starts_with, contains, ends_with, make_case_sensitive, ["REPLACE", replace], left, right]+concat_ops+trim_ops
     counts = [agg_count_is_null, agg_count_empty, agg_count_not_empty, ["COUNT_DISTINCT", agg_count_distinct], ["COUNT_DISTINCT_INCLUDE_NULL", agg_count_distinct_include_null]]
     stats = [agg_stddev_pop, agg_stddev_samp]
@@ -305,7 +305,7 @@ make_internal_generator_dialect =
 
     bool = [bool_or]
     my_mappings = text + counts + stats + arith_extensions + bool + other
-    Base_Generator.base_dialect . extend_with my_mappings
+    Base_Generator.base_dialect_operations . extend_with my_mappings
 
 ## PRIVATE
 unsupported name =
