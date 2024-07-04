@@ -191,7 +191,7 @@ snowflake_specific_spec suite_builder default_connection db_name setup =
 
         group_builder.specify "should infer standard types correctly" <|
             data.t.at "strs" . value_type . is_text . should_be_true
-            data.t.at "ints" . value_type . should_be_a (Value_Type.Integer ...)
+            data.t.at "ints" . value_type . is_integer . should_be_true
             data.t.at "bools" . value_type . is_boolean . should_be_true
             data.t.at "doubles" . value_type . is_floating_point . should_be_true
 

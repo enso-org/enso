@@ -303,7 +303,7 @@ add_specs suite_builder setup =
 
             t2 = my_table.merge lookup key_columns="X" allow_unmatched_rows=False
             t2.column_names . should_equal ["X", "Y", "Z"]
-            t2.at "Y" . value_type . should_be_a (Value_Type.Integer ...)
+            t2.at "Y" . value_type . is_integer . should_be_true
             m2 = t2 |> materialize |> _.sort "Z"
             m2.at "X" . to_vector . should_equal [2, 3, 2, 3]
             m2.at "Y" . to_vector . should_equal [11, 111, 11, 111]

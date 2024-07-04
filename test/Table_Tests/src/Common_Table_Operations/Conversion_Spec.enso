@@ -407,7 +407,7 @@ add_specs suite_builder setup =
             t2 = t.cast ["Z", "Y"] Value_Type.Char
             t2.column_names . should_equal ["X", "Y", "Z", "A"]
 
-            t2.at "X" . value_type . should_be_a (Value_Type.Integer ...)
+            t2.at "X" . value_type . is_integer . should_be_true
             t2.at "Y" . value_type . is_text . should_be_true
             t2.at "Z" . value_type . is_text . should_be_true
             t2.at "A" . value_type . is_boolean . should_be_true
@@ -604,7 +604,7 @@ add_specs suite_builder setup =
 
             t1 = t.parse ["X", "Y"] Value_Type.Integer error_on_missing_columns=False
             t1.at "X" . to_vector . should_equal [42, 0, -1]
-            t1.at "X" . value_type . should_be_a (Value_Type.Integer ...)
+            t1.at "X" . value_type . is_integer . should_be_true
             Problems.expect_warning Missing_Input_Columns t1
 
             t2 = t.parse ["Y"] Value_Type.Integer error_on_missing_columns=False

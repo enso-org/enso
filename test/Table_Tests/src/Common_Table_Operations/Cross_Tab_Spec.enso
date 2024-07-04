@@ -233,9 +233,9 @@ add_specs suite_builder setup =
             table = table_builder [["Text", ["a", "b"]], ["Int", [1, 2]], ["Float", [1.1, 2.2]]]
             t1 = table.cross_tab ["Int"] "Text"
             t1.column_names . should_equal ["Int", "a", "b"]
-            t1.at "Int" . value_type . should_be_a (Value_Type.Integer ...)
-            t1.at "a" . value_type . should_be_a (Value_Type.Integer ...)
-            t1.at "b" . value_type . should_be_a (Value_Type.Integer ...)
+            t1.at "Int" . value_type . is_integer . should_be_true
+            t1.at "a" . value_type . is_integer . should_be_true
+            t1.at "b" . value_type . is_integer . should_be_true
 
             t2 = table.cross_tab [] "Int" values=[Aggregate_Column.Average "Float", Aggregate_Column.Concatenate "Text"] . sort_columns
             t2.column_names . should_equal ["1 Average Float", "1 Concatenate Text", "2 Average Float", "2 Concatenate Text"]

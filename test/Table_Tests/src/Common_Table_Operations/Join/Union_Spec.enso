@@ -285,7 +285,7 @@ run_union_tests group_builder setup call_union =
         t1 = table_builder [["A", [0, 1, 2]]]
         t2 = table_builder [["A", [1.0, 2.0, 2.5]]]
 
-        t1.at "A" . value_type . should_be_a (Value_Type.Integer ...)
+        t1.at "A" . value_type . is_integer . should_be_true
         t2.at "A" . value_type . is_floating_point . should_be_true
 
         t3 = call_union [t1, t2]
@@ -298,13 +298,13 @@ run_union_tests group_builder setup call_union =
         t1 = table_builder [["A", [0, 1, 20]]]
         t2 = table_builder [["A", [True, False, True]]]
 
-        t1.at "A" . value_type . should_be_a (Value_Type.Integer ...)
+        t1.at "A" . value_type . is_integer . should_be_true
         t2.at "A" . value_type . should_equal Value_Type.Boolean
 
         t3 = call_union [t1, t2]
         expect_column_names ["A"] t3
         Problems.assume_no_problems t3
-        t3.at "A" . value_type . should_be_a (Value_Type.Integer ...)
+        t3.at "A" . value_type . is_integer . should_be_true
         t3.at "A" . to_vector . should_equal [0, 1, 20, 1, 0, 1]
 
         t4 = table_builder [["A", [1.5, 0.0, 2.0]]]
@@ -397,7 +397,7 @@ run_union_tests group_builder setup call_union =
             expect_column_names ["A", "B", "C"] table
             # If type was matched - the columns are merged as is:
             table.at "A" . to_vector . should_equal [1, 2, 3, 4, 5, 6]
-            table.at "A" . value_type . should_be_a (Value_Type.Integer ...)
+            table.at "A" . value_type . is_integer . should_be_true
             # If mixed, they are converted to text representation:
             table.at "B" . to_vector . should_equal ["a", "b", "c", "1", "2", "3"]
             table.at "B" . value_type . is_text . should_be_true
