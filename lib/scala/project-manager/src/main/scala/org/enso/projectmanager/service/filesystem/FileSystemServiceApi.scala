@@ -4,6 +4,13 @@ import java.io.{File, InputStream}
 
 trait FileSystemServiceApi[F[+_, +_]] {
 
+    /** Checks if the file or directory exists.
+      *
+      * @param path the file or directory to check
+      * @return true if the file or directory exists, false otherwise
+      */
+  def exists(path: File): F[FileSystemServiceFailure, Boolean]
+
   /** List file system entries in the provided directory
     *
     * @param path the directory to list

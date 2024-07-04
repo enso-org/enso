@@ -213,6 +213,17 @@ export default function projectManagerShimMiddleware(
                         })
                         try {
                             switch (cliArguments[0]) {
+                                case '--filesystem-exists': {
+                                    const directoryPath = cliArguments[1]
+                                    if (directoryPath != null) {
+                                        const exists = await fs
+                                            .access(directoryPath)
+                                            .then(() => true)
+                                            .catch(() => false)
+                                        result = toJSONRPCResult(exists)
+                                    }
+                                    break;
+                                }
                                 case '--filesystem-list': {
                                     const directoryPath = cliArguments[1]
                                     if (directoryPath != null) {

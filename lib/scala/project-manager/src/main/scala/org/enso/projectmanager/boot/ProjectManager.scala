@@ -218,6 +218,9 @@ object ProjectManager extends ZIOAppDefault with LazyLogging {
       ZIO.succeed(SuccessExitCode)
     } else if (options.hasOption(Cli.VERSION_OPTION)) {
       displayVersion(options.hasOption(Cli.JSON_OPTION))
+    } else if (options.hasOption(Cli.FILESYSTEM_EXIST)) {
+      val directory = Paths.get(options.getOptionValue(Cli.FILESYSTEM_EXIST))
+      commandHandler.printJson(ZIO.succeed(directory.toFile.exists()))
     } else if (options.hasOption(Cli.FILESYSTEM_LIST)) {
       val directory = Paths.get(options.getOptionValue(Cli.FILESYSTEM_LIST))
       val fileSystemListCommand =

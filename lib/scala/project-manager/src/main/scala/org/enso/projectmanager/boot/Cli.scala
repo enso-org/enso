@@ -17,6 +17,7 @@ object Cli {
   val PROJECTS_DIRECTORY = "projects-directory"
   val PROJECT_LIST       = "project-list"
 
+  val FILESYSTEM_EXIST            = "filesystem-exist"
   val FILESYSTEM_LIST             = "filesystem-list"
   val FILESYSTEM_CREATE_DIRECTORY = "filesystem-create-directory"
   val FILESYSTEM_DELETE           = "filesystem-delete"
@@ -88,6 +89,14 @@ object Cli {
       .argName("limit")
       .longOpt(PROJECT_LIST)
       .desc("List user projects.")
+      .build()
+
+    val filesystemExist: cli.Option = cli.Option.builder
+      .hasArg(true)
+      .numberOfArgs(1)
+      .argName("path")
+      .longOpt(FILESYSTEM_EXIST)
+      .desc("Check if a file or directory exists.")
       .build()
 
     val filesystemList: cli.Option = cli.Option.builder
