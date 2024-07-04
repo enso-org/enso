@@ -159,7 +159,12 @@ export class LanguageServer extends ObservableV2<Notifications & TransportEvents
       }
     })
     const reinitializeCb = () => {
-      if (!this.shouldReconnect) return
+      if (!this.shouldReconnect) {
+        if (!this.isDisposed) {
+          this.dispose()
+        }
+        return
+      }
       this.emit('transport/closed', [])
       console.log('Language Server: WebSocket closed')
       this.scheduleInitializationAfterConnect()
@@ -188,7 +193,7 @@ export class LanguageServer extends ObservableV2<Notifications & TransportEvents
               )
             },
           }).then((result) => {
-            if (!result.ok && !this.isDisposed) {
+            if (!result.ok) {
               result.error.log('Error initializing Language Server RPC')
             }
             resolve(result)
@@ -219,7 +224,9 @@ export class LanguageServer extends ObservableV2<Notifications & TransportEvents
     params: object,
     waitForInit = true,
   ): Promise<LsRpcResult<T>> {
-    if (this.isDisposed) return Err(new LsRpcError('LanguageServer disposed', method, params))
+    if (this.isDisposed) {
+      return Err(new LsRpcError('LanguageServer disposed', method, params))
+    }
     const uuid = uuidv4()
     const now = performance.now()
     try {
