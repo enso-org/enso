@@ -1,6 +1,7 @@
 package org.enso.desktopenvironment;
 
 import java.awt.Desktop;
+import java.nio.file.Files;
 import java.nio.file.Path;
 
 /** The {@link Trash} implementation provided by Java Abstract Window Toolkit. */
@@ -19,7 +20,7 @@ final class AwtTrash implements Trash {
 
   @Override
   public boolean moveToTrash(Path path) {
-    if (isSupported()) {
+    if (Files.exists(path) && isSupported()) {
       return desktop.moveToTrash(path.toFile());
     } else {
       return false;
