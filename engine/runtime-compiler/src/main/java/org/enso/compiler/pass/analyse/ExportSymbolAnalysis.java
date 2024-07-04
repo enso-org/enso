@@ -7,7 +7,10 @@ import org.enso.compiler.context.InlineContext;
 import org.enso.compiler.context.ModuleContext;
 import org.enso.compiler.core.CompilerError;
 import org.enso.compiler.core.IR;
+import org.enso.compiler.core.ir.Diagnostic;
+import org.enso.compiler.core.ir.DiagnosticStorage;
 import org.enso.compiler.core.ir.Expression;
+import org.enso.compiler.core.ir.MetadataStorage;
 import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.core.ir.expression.errors.ImportExport;
 import org.enso.compiler.core.ir.module.scope.Export;
@@ -17,6 +20,7 @@ import org.enso.compiler.data.BindingsMap.ResolvedModule;
 import org.enso.compiler.data.BindingsMap.ResolvedType;
 import org.enso.compiler.pass.IRPass;
 import scala.collection.immutable.Seq;
+import scala.collection.immutable.Seq$;
 import scala.jdk.javaapi.CollectionConverters;
 
 /**
@@ -89,8 +93,8 @@ public final class ExportSymbolAnalysis implements IRPass {
                       var err = ImportExport.apply(
                           exportIr,
                           new ImportExport.ModuleDoesNotExist(preLastName),
-                          ImportExport.apply$default$3(),
-                          ImportExport.apply$default$4());
+                          emptyPassData(),
+                          emptyDiagnostics());
                       exportErrors.add(err);
                       return null;
                     }
@@ -100,8 +104,8 @@ public final class ExportSymbolAnalysis implements IRPass {
                           exportIr,
                           new ImportExport.TypeDoesNotExist(
                               lastName, preLastName),
-                          ImportExport.apply$default$3(),
-                          ImportExport.apply$default$4());
+                          emptyPassData(),
+                          emptyDiagnostics());
                       exportErrors.add(err);
                       return null;
                     }
@@ -120,8 +124,8 @@ public final class ExportSymbolAnalysis implements IRPass {
                           exportedSymbol,
                           new ImportExport.SymbolDoesNotExist(
                               exportedSymbol.name(), importTarget.qualifiedName().toString()),
-                          ImportExport.apply$default$3(),
-                          ImportExport.apply$default$4());
+                          emptyPassData(),
+                          emptyDiagnostics());
                       exportErrors.add(err);
                     }
                   }
@@ -192,4 +196,14 @@ public final class ExportSymbolAnalysis implements IRPass {
   public <T extends IR> T updateMetadataInDuplicate(T sourceIr, T copyOfIr) {
     return IRPass.super.updateMetadataInDuplicate(sourceIr, copyOfIr);
   }
+
+  private static MetadataStorage emptyPassData() {
+    return new MetadataStorage();
+  }
+
+  @SuppressWarnings("unchecked")
+  private static DiagnosticStorage emptyDiagnostics() {
+    return DiagnosticStorage.apply((Seq<Diagnostic>) Seq$.MODULE$.empty());
+  }
+
 }
