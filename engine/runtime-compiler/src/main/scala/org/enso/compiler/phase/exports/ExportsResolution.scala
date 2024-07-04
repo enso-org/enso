@@ -205,9 +205,33 @@ class ExportsResolution(private val context: CompilerContext) {
         exportedModules,
         reExportedSymbols
       ).flatten.groupBy(_._1).map { case (m, names) =>
-        (m, names.flatMap(_._2).distinct)
+        val resolvedNames = names.flatMap(_._2).distinct
+        assert(
+          areResolvedNamesConsistent(resolvedNames),
+          s"Resolved names are not consistent: ${resolvedNames}"
+        )
+        (m, resolvedNames)
       }
     }
+  }
+
+  /**
+   * If there are multiple resolved names for one exported symbol, they must be consistent.
+   * I.e., either they are all static methods, or all conversion methods.
+   * We cannot, for example, export type and a module for one symbol - that would result
+   * in a collision.
+   * @return true if they are consistent, false otherwise.
+   */
+  private def areResolvedNamesConsistent(
+    resolvedNames: List[ResolvedName]
+  ): Boolean = {
+   if (resolvedNames.size > 1)  {
+     val allStaticMethods = resolvedNames.forall(_.isInstanceOf[ResolvedStaticMethod])
+     val allConversionMethods = resolvedNames.forall(_.isInstanceOf[ResolvedConversionMethod])
+     allStaticMethods || allConversionMethods
+   } else {
+     true
+   }
   }
 
   /** Performs exports resolution on a selected set of modules.

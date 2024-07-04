@@ -430,6 +430,7 @@ object BindingsMap {
     targets: List[ImportTarget]
   ) {
     assert(targets.nonEmpty)
+    assert(areTargetsConsistent(), "All targets must be either static methods or conversion methods")
 
     /** Convert the internal [[ModuleReference]] to an abstract reference.
       *
@@ -463,6 +464,18 @@ object BindingsMap {
 
     def findExportedSymbolsFor(name: String): List[ResolvedName] = {
       targets.flatMap(_.findExportedSymbolsFor(name))
+    }
+
+    private def areTargetsConsistent(): Boolean = {
+      if (targets.size > 1) {
+        // If there are multiple targets, they can either all be static methods, or all be
+        // conversion methods.
+        val allStaticMethods = targets.forall(_.isInstanceOf[ResolvedStaticMethod])
+        val allConversionMethods = targets.forall(_.isInstanceOf[ResolvedConversionMethod])
+        allStaticMethods || allConversionMethods
+      } else {
+        true
+      }
     }
   }
 
