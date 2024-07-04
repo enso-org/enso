@@ -17,6 +17,9 @@ import scala.jdk.javaapi.CollectionConverters;
 
 /**
  * This pass ensures that all the symbols that are exported exist. If not, an IR error is generated.
+ * Iterates only exports that are not renamed and contain multiple symbols. For example:
+ * {@code from project.Module export Symbol_1, Symbol_2 }.
+ * All the other types of exports are assumed to already be resolved prior to this pass.
  */
 public final class ExportSymbolAnalysis implements IRPass {
   public static final ExportSymbolAnalysis INSTANCE = new ExportSymbolAnalysis();
@@ -59,49 +62,48 @@ public final class ExportSymbolAnalysis implements IRPass {
     moduleIr
         .exports()
         .foreach(
-            export ->
-                switch (export) {
-                  case Export.Module exportMod -> {
-                    var exportNameParts = exportMod.name().parts();
-                    var symbolName = exportMod.name().parts().last();
-                    assert exportNameParts.size() > 1;
-                    var moduleOrTypeName = exportNameParts.apply(exportNameParts.size() - 2);
-                    var foundResolvedNames = findResolvedExportForIr(export, bindingsMap);
-                    if (foundResolvedNames == null) {
-                      exportErrors.add(
-                          ImportExport.apply(
-                              symbolName,
-                              new ImportExport.SymbolDoesNotExist(
-                                  symbolName.name(), moduleOrTypeName.name()),
-                              ImportExport.apply$default$3(),
-                              ImportExport.apply$default$4()));
-                    } else {
-                      if (exportMod.onlyNames().isDefined()) {
-                        assert exportMod.onlyNames().isDefined();
-                        var exportedSymbols = exportMod.onlyNames().get();
-                        exportedSymbols.foreach(
-                            exportedSymbol -> {
-                              foundResolvedNames.foreach(resolvedName -> {
-                                var bm = resolvedName.module().unsafeAsModule("Should be defined").getBindingsMap();
-                                if (!bm.exportedSymbols().contains(exportedSymbol.name())) {
-                                  exportErrors.add(
-                                      ImportExport.apply(
-                                          exportedSymbol,
-                                          new ImportExport.SymbolDoesNotExist(
-                                              exportedSymbol.name(), moduleOrTypeName.name()),
-                                          ImportExport.apply$default$3(),
-                                          ImportExport.apply$default$4()));
-                                }
-                                return null;
-                              });
-                              return null;
-                            });
-                      }
-                    }
-                    yield null;
+            export -> {
+                if (export instanceof Export.Module exportIr &&
+                    exportIr.onlyNames().isDefined() &&
+                    exportIr.rename().isEmpty()) {
+                  var exportNameParts = exportIr.name().parts();
+                  var symbolName = exportNameParts.last().name();
+                  assert exportNameParts.size() > 1;
+                  var moduleOrTypeName = exportNameParts.apply(exportNameParts.size() - 2);
+                  var exportedSymbols = exportIr.onlyNames().get();
+                  var resolvedTargetsOpt = bindingsMap.exportedSymbols().get(symbolName);
+                  if (resolvedTargetsOpt.isEmpty()) {
+                    var err = ImportExport.apply(
+                        exportIr,
+                        new ImportExport.SymbolDoesNotExist(
+                            symbolName, moduleOrTypeName.name()),
+                        ImportExport.apply$default$3(),
+                        ImportExport.apply$default$4());
+                    exportErrors.add(err);
+                    return null;
                   }
-                  default -> export;
-                });
+                  exportedSymbols.foreach(
+                      exportedSymbol -> {
+                        resolvedTargetsOpt.get().foreach(resolvedTarget -> {
+                          var bm = resolvedTarget.module().unsafeAsModule("Should be defined")
+                              .getBindingsMap();
+                          if (!bm.exportedSymbols().contains(exportedSymbol.name())) {
+                            exportErrors.add(
+                                ImportExport.apply(
+                                    exportedSymbol,
+                                    new ImportExport.SymbolDoesNotExist(
+                                        exportedSymbol.name(), moduleOrTypeName.name()),
+                                    ImportExport.apply$default$3(),
+                                    ImportExport.apply$default$4()));
+                          }
+                          return null;
+                        });
+                        return null;
+                      });
+                }
+              return null;
+            }
+        );
 
     if (exportErrors.isEmpty()) {
       return moduleIr;
