@@ -382,7 +382,7 @@ Text.to_regex self case_insensitive=False = Regex.compile self case_insensitive
 
          'azbzczdzezfzg'.split ['b', 'zez'] == ['az', 'zczd', 'fzg']
 @delimiter make_delimiter_selector
-Text.split : Text | Vector Text -> Case_Sensitivity -> Boolean -> Vector Text | Illegal_Argument
+Text.split : Text | Vector Text -> Case_Sensitivity -> Boolean -> Vector Text ! Illegal_Argument
 Text.split self delimiter="," case_sensitivity=Case_Sensitivity.Sensitive use_regex=False =
     delimiter_is_empty = case delimiter of
         _ : Text -> delimiter.is_empty
