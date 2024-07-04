@@ -158,7 +158,11 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
   val distributionManager = new DistributionManager(environment)
 
   val editionProvider =
-    EditionManager.makeEditionProvider(distributionManager, Some(languageHome))
+    EditionManager.makeEditionProvider(
+      distributionManager,
+      Some(languageHome),
+      false
+    )
   val editionResolver = EditionResolver(editionProvider)
   val editionReferenceResolver = new EditionReferenceResolver(
     contentRoot.file,

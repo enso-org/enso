@@ -90,6 +90,20 @@ class BlockingFileSystem[F[+_, +_]: Sync: ErrorChannel](
       .mapError(toFsFailure)
 
   /** @inheritdoc */
+  override def copy(from: File, to: File): F[FileSystemFailure, Unit] =
+    Sync[F]
+      .blockingOp {
+        if (to.isDirectory) {
+          FileUtils.copyToDirectory(from, to)
+        } else if (from.isDirectory) {
+          FileUtils.copyDirectory(from, to)
+        } else {
+          FileUtils.copyFile(from, to)
+        }
+      }
+      .mapError(toFsFailure)
+
+  /** @inheritdoc */
   override def exists(file: File): F[FileSystemFailure, Boolean] =
     Sync[F]
       .blockingOp(file.exists())

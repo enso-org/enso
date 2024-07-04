@@ -1,7 +1,7 @@
 from Standard.Base import all
 
 import project.Table.Table
-from project.Column import get_item_string, normalize_string_for_display
+from project.Column import get_item_as_text, normalize_text_for_display
 
 polyglot java import java.lang.System as Java_System
 
@@ -22,12 +22,12 @@ polyglot java import java.lang.System as Java_System
      codes for rich formatting in the terminal.
 display_table (table : Table) (add_row_index : Boolean) (max_rows_to_show : Integer) (all_rows_count : Integer) (format_terminal : Boolean) -> Text =
     cols = Vector.from_polyglot_array table.java_table.getColumns
-    col_names = cols.map .getName . map normalize_string_for_display
+    col_names = cols.map .getName . map normalize_text_for_display
     col_vals = cols.map .getStorage
     display_rows = table.row_count.min max_rows_to_show
     rows = Vector.new display_rows row_num->
         cols = col_vals.map col->
-            if col.isNothing row_num then "Nothing" else get_item_string col row_num
+            if col.isNothing row_num then "Nothing" else get_item_as_text col row_num
         if add_row_index then [row_num.to_text] + cols else cols
     table_text = case add_row_index of
         True -> print_table [""]+col_names rows 1 format_terminal

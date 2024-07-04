@@ -395,6 +395,7 @@
   "hidePassword": "Hide password",
   "showPassword": "Show password",
   "copiedToClipboard": "Copied to clipboard",
+  "noResultsFound": "No results found.",
 
   "deleteLabelActionText": "delete the label '$0'",
   "deleteSelectedAssetActionText": "delete '$0'",
@@ -677,6 +678,7 @@
   "userGroupContextMenuLabel": "User Group context menu",
   "userGroupUserContextMenuLabel": "User Group User context menu",
 
+  "noResultsSettingsSection": "",
   "generalSettingsTabSection": "General",
   "accountSettingsTab": "Account",
   "userAccountSettingsSection": "User Account",

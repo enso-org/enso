@@ -79,14 +79,16 @@ function resolveLsUrl(config: GuiConfig): LsUrls {
 function createLsRpcConnection(clientId: Uuid, url: string, abort: AbortScope): LanguageServer {
   const transport = createRpcTransport(url)
   const connection = new LanguageServer(clientId, transport)
-  abort.onAbort(() => connection.release())
+  abort.onAbort(() => {
+    connection.stopReconnecting()
+    connection.release()
+  })
   return connection
 }
 
 function initializeDataConnection(clientId: Uuid, url: string, abort: AbortScope) {
   const client = createDataWebsocket(url, 'arraybuffer')
   const connection = new DataServer(clientId, client, abort)
-  abort.handleDispose(connection)
   onScopeDispose(() => connection.dispose())
   return connection
 }
