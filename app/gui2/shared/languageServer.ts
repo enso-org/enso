@@ -158,7 +158,7 @@ export class LanguageServer extends ObservableV2<Notifications & TransportEvents
         console.error('Language Server transport error:', error)
       }
     })
-    const reinitializeCb = () => {
+    const onTransportClosed = () => {
       if (!this.shouldReconnect) {
         if (!this.isDisposed) {
           this.dispose()
@@ -169,9 +169,9 @@ export class LanguageServer extends ObservableV2<Notifications & TransportEvents
       console.log('Language Server: WebSocket closed')
       this.scheduleInitializationAfterConnect()
     }
-    transport.on('close', reinitializeCb)
+    transport.on('close', onTransportClosed)
     this.clientScope.onAbort(() => {
-      this.transport.off('close', reinitializeCb)
+      this.transport.off('close', onTransportClosed)
       this.transport.close()
     })
   }
