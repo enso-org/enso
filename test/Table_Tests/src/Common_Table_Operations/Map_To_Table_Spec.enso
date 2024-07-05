@@ -61,14 +61,19 @@ add_specs suite_builder setup =
 
         if setup.test_selection.date_time then
             group_builder.specify "should be able to create a table of date-time values" <|
-                vecs = [[Date.new 2021 01 02], [Time_Of_Day.new 12 35 4], [Date_Time.new 2020 04 02 18 55]]
-                t = data.dummy_table.make_table_from_vectors vecs ['date', 'time', 'datetime']
+                vecs = [[Date.new 2021 01 02], [Time_Of_Day.new 12 35 4], [Date_Time.new 2020 04 02 18 55], ['2001-01-01'], ['01:01:01']]
+                t = data.dummy_table.make_table_from_vectors vecs ['date', 'time', 'datetime', 'date-like-text', 'time-like-text']
+                IO.println t.to_sql
                 t.at 'date' . to_vector . should_equal [Date.new 2021 01 02]
                 t.at 'time' . to_vector . should_equal [Time_Of_Day.new 12 35 4]
+                t.at 'date-like-text' . to_vector . should_equal ['2001-01-01']
+                t.at 'time-like-text' . to_vector . should_equal ['01:01:01']
 
                 t.at 'date' . value_type . should_equal Value_Type.Date
                 t.at 'time' . value_type . should_equal Value_Type.Time
                 t.at 'datetime' . value_type . should_be_a (Value_Type.Date_Time ...)
+                t.at 'date-like-text' . value_type . should_be_a (Value_Type.Char ...)
+                t.at 'time-like-text' . value_type . should_be_a (Value_Type.Char ...)
 
         group_builder.specify "should be able to create a literal table from a map" <|
             map = Map.from_vector [['x', 1], ['y', 2], ['z', 3]]
