@@ -58,7 +58,7 @@ public final class ExportSymbolAnalysis {
                   preLastNameFQN =
                       exportNameParts.stream()
                           .map(Name::name)
-                          .limit(exportNameParts.size() - 2)
+                          .limit(exportNameParts.size() - 1)
                           .collect(Collectors.joining("."));
                   symbols =
                       CollectionConverters.asJava(exportIr.onlyNames().get()).stream()
@@ -69,12 +69,12 @@ public final class ExportSymbolAnalysis {
                   lastNameFQN =
                       exportNameParts.stream()
                           .map(Name::name)
-                          .limit(exportNameParts.size() - 2)
+                          .limit(exportNameParts.size() - 1)
                           .collect(Collectors.joining("."));
                   preLastNameFQN =
                       exportNameParts.stream()
                           .map(Name::name)
-                          .limit(exportNameParts.size() - 3)
+                          .limit(exportNameParts.size() - 2)
                           .collect(Collectors.joining("."));
                   symbols = List.of(exportNameParts.get(exportNameParts.size() - 1));
                 }

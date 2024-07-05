@@ -601,12 +601,12 @@ class ImportExportTest
       mainIr.exports.head
         .asInstanceOf[errors.ImportExport]
         .reason
-        .isInstanceOf[errors.ImportExport.SymbolDoesNotExist] shouldBe true
+        .isInstanceOf[errors.ImportExport.NoSuchConstructor] shouldBe true
       mainIr.exports.head
         .asInstanceOf[errors.ImportExport]
         .reason
-        .asInstanceOf[errors.ImportExport.SymbolDoesNotExist]
-        .symbolName shouldEqual "Non_Existing_Ctor"
+        .asInstanceOf[errors.ImportExport.NoSuchConstructor]
+        .constructorName shouldEqual "Non_Existing_Ctor"
     }
 
     "fail when exporting from type" in {
@@ -629,12 +629,12 @@ class ImportExportTest
       mainIr.exports.head
         .asInstanceOf[errors.ImportExport]
         .reason
-        .isInstanceOf[errors.ImportExport.SymbolDoesNotExist] shouldBe true
+        .isInstanceOf[errors.ImportExport.NoSuchConstructor] shouldBe true
       mainIr.exports.head
         .asInstanceOf[errors.ImportExport]
         .reason
-        .asInstanceOf[errors.ImportExport.SymbolDoesNotExist]
-        .symbolName shouldEqual "FOO"
+        .asInstanceOf[errors.ImportExport.NoSuchConstructor]
+        .constructorName shouldEqual "FOO"
     }
 
     "fail when exporting from module with `from`" in {
