@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { usePointer } from '@/composables/events'
+import { isNumericLiteral } from 'shared/ast/tree'
 import { computed, ref, watch, type CSSProperties, type ComponentInstance } from 'vue'
 import AutoSizedInput from './AutoSizedInput.vue'
 
@@ -9,7 +10,7 @@ const props = defineProps<{
   limits?: { min: number; max: number } | undefined
 }>()
 const emit = defineEmits<{
-  'update:modelValue': [modelValue: number | string]
+  'update:modelValue': [modelValue: string | undefined]
   blur: []
   focus: []
   input: [content: string]
@@ -21,6 +22,20 @@ const MIN_CONTENT_WIDTH = 56
 
 // Edited value reflects the `modelValue`, but does not update it until the user defocuses the field.
 const editedValue = ref('')
+// Last value which is a parseable number. It's a string, the Enso number literals differ from js
+// representations.
+const lastNumericValue = ref<string>()
+watch(
+  editedValue,
+  (newValue, oldValue) => {
+    if (newValue != oldValue) {
+      if (isNumericLiteral(newValue)) {
+        lastNumericValue.value = newValue
+      }
+    }
+  },
+  { flush: 'sync' },
+)
 const valueString = computed(() => (props.modelValue != null ? props.modelValue.toString() : ''))
 watch(valueString, (newValue) => (editedValue.value = newValue), { immediate: true })
 const inputFieldActive = ref(false)
@@ -91,13 +106,14 @@ const inputStyle = computed<CSSProperties>(() => {
 })
 
 function emitUpdate() {
-  if (valueString.value !== editedValue.value) {
-    emit('update:modelValue', editedValue.value)
+  if (props.modelValue !== lastNumericValue.value) {
+    emit('update:modelValue', lastNumericValue.value)
   }
 }
 
 function blurred() {
   inputFieldActive.value = false
+  editedValue.value = lastNumericValue.value?.toString() ?? ''
   emit('blur')
   emitUpdate()
 }

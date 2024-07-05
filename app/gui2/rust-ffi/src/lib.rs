@@ -37,6 +37,16 @@ pub fn is_ident_or_operator(code: &str) -> u32 {
     }
 }
 
+#[wasm_bindgen]
+pub fn is_numeric_literal(code: &str) -> bool {
+    let parsed = PARSER.with(|parser| parser.run(code));
+    let enso_parser::syntax::tree::Variant::BodyBlock(body) = *parsed.variant else { return false };
+    let [stmt] = &body.statements[..] else { return false };
+    stmt.expression.as_ref().map_or(false, |expr| {
+        matches!(*expr.variant, enso_parser::syntax::tree::Variant::Number(_))
+    })
+}
+
 #[wasm_bindgen(start)]
 fn main() {
     console_error_panic_hook::set_once();

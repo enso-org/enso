@@ -32,6 +32,7 @@ import type { SourceRangeEdit } from '../util/data/text'
 import { allKeys } from '../util/types'
 import type { ExternalId, VisualizationMetadata } from '../yjsModel'
 import { visMetadataEquals } from '../yjsModel'
+import { is_numeric_literal } from './ffi'
 import * as RawAst from './generated/ast'
 import {
   applyTextEditsToAst,
@@ -1824,6 +1825,10 @@ export class MutableNumericLiteral extends NumericLiteral implements MutableAst 
 }
 export interface MutableNumericLiteral extends NumericLiteral, MutableAst {}
 applyMixins(MutableNumericLiteral, [MutableAst])
+
+export function isNumericLiteral(s: string) {
+  return is_numeric_literal(s.trim())
+}
 
 /** The actual contents of an `ArgumentDefinition` are complex, but probably of more interest to the compiler than the
  *  GUI. We just need to represent them faithfully and create the simple cases. */
