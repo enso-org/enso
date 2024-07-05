@@ -48,7 +48,7 @@ polyglot java import java.sql.Types
 type SQLite_Type_Mapping
     ## PRIVATE
     value_type_to_sql : Value_Type -> Problem_Behavior -> SQL_Type
-    value_type_to_sql value_type on_problems =
+    value_type_to_sql value_type on_problems:Problem_Behavior =
         result = case value_type of
             Value_Type.Boolean -> SQLite_Types.boolean
             Value_Type.Byte -> SQLite_Types.integer
