@@ -561,18 +561,6 @@ importers:
 
   app/ide-desktop/client:
     dependencies:
-      '@types/mime-types':
-        specifier: ^2.1.1
-        version: 2.1.4
-      '@types/opener':
-        specifier: ^1.4.0
-        version: 1.4.3
-      '@types/tar':
-        specifier: ^6.1.4
-        version: 6.1.13
-      '@types/yargs':
-        specifier: ^17.0.30
-        version: 17.0.32
       chalk:
         specifier: ^5.2.0
         version: 5.3.0
@@ -591,6 +579,9 @@ importers:
       opener:
         specifier: ^1.5.2
         version: 1.5.2
+      semver:
+        specifier: ^7.6.2
+        version: 7.6.2
       string-length:
         specifier: ^5.0.1
         version: 5.0.1
@@ -604,9 +595,24 @@ importers:
       '@electron/notarize':
         specifier: 2.1.0
         version: 2.1.0
+      '@types/mime-types':
+        specifier: ^2.1.1
+        version: 2.1.4
       '@types/node':
         specifier: ^20.11.21
         version: 20.11.21
+      '@types/opener':
+        specifier: ^1.4.0
+        version: 1.4.3
+      '@types/semver':
+        specifier: ^7.5.8
+        version: 7.5.8
+      '@types/tar':
+        specifier: ^6.1.4
+        version: 6.1.13
+      '@types/yargs':
+        specifier: ^17.0.30
+        version: 17.0.32
       electron:
         specifier: 25.7.0
         version: 25.7.0
@@ -616,6 +622,9 @@ importers:
       enso-common:
         specifier: workspace:*
         version: link:../common
+      enso-dashboard:
+        specifier: workspace:*
+        version: link:../../dashboard
       enso-gui2:
         specifier: workspace:*
         version: link:../../gui2
@@ -2717,6 +2726,9 @@ packages:
 
   '@types/scheduler@0.23.0':
     resolution: {integrity: sha512-YIoDCTH3Af6XM5VuwGG/QL/CJqga1Zm3NkU3HZ4ZHK2fRMPYP1VczsTUqtsf43PH/iJNVlPHAo2oWX7BSdB2Hw==}
+
+  '@types/semver@7.5.8':
+    resolution: {integrity: sha512-I8EUhyrgfLrcTkzV3TSsGyl1tSuPrEDzr0yd5m90UgNxQkyDXULk3b6MlQqTCpZpNtWe1K0hzclnZkTcLBe2UQ==}
 
   '@types/sharp@0.31.1':
     resolution: {integrity: sha512-5nWwamN9ZFHXaYEincMSuza8nNfOof8nmO+mcI+Agx1uMUk4/pQnNIcix+9rLPXzKrm1pS34+6WRDbDV0Jn7ag==}
@@ -9964,6 +9976,8 @@ snapshots:
       '@types/node': 20.11.21
 
   '@types/scheduler@0.23.0': {}
+
+  '@types/semver@7.5.8': {}
 
   '@types/sharp@0.31.1':
     dependencies:
