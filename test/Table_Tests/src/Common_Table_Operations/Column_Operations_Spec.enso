@@ -143,12 +143,11 @@ add_specs suite_builder setup =
                     n_col.round dp use_bankers . rename (name_for ix)
                 # In new table input columns are replaced with results of output
                 new_table = new_columns.fold table acc-> col-> acc.set col (set_mode=..Update)
-                IO.println '\nSQL size = '+new_table.to_sql.to_text.length.to_text
                 # We read all operations in a single query
                 materialized = new_table.read
                 Runtime.assert (materialized.row_count == 1)
                 materialized.first_row.to_vector
-        Round_Spec.add_specs group_builder (Round_Spec.Batch_Runner.Value round_batch round_one)
+        Round_Spec.add_specs group_builder (Round_Spec.Batch_Runner.Value round_batch round_one) run_advanced=setup.test_selection.run_advanced_edge_case_tests
 
         group_builder.specify "Decimal places out of range" <|
             3.1 . round 16 . should_fail_with Illegal_Argument

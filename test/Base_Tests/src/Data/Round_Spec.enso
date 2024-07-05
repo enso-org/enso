@@ -41,7 +41,8 @@ type Check_Instance
         self.vector_builder.append [self.value, self.dp, expected]
 
 ## PRIVATE
-add_specs group_builder batch_runner =
+add_specs group_builder batch_runner run_advanced =
+    pending_advanced = if run_advanced.not then "Advanced edge tests are disabled in this run."
     group_builder.specify "Can round positive decimals correctly" <|
         batch_runner.run use_bankers=False round_fun->
             round_fun 3.0 . should_equal 3
@@ -135,7 +136,7 @@ add_specs group_builder batch_runner =
             round_fun -1495.0 -2 . should_equal -1500
             round_fun -1494.0 -2 . should_equal -1500
 
-    group_builder.specify "Banker's rounding handles half-way values correctly" <|
+    group_builder.specify "Banker's rounding handles half-way values correctly" pending=pending_advanced <|
         batch_runner.run use_bankers=True round_fun->
             round_fun -3.5 . should_equal -4
             round_fun -2.5 . should_equal -2
@@ -156,7 +157,7 @@ add_specs group_builder batch_runner =
             round_fun -12350.0 -2 . should_equal -12400
             round_fun -12250.0 -2 . should_equal -12200
 
-    group_builder.specify "Banker's rounding handles non-half-way values just like normal rounding" <|
+    group_builder.specify "Banker's rounding handles non-half-way values just like normal rounding" pending=pending_advanced <|
         batch_runner.run use_bankers=True round_fun->
             round_fun 3.0 . should_equal 3
             round_fun 3.00001 . should_equal 3
@@ -173,7 +174,7 @@ add_specs group_builder batch_runner =
             round_fun -3.50001 . should_equal -4
             round_fun -3.99999 . should_equal -4
 
-    group_builder.specify "Can round correctly near the precision limit" <|
+    group_builder.specify "Can round correctly near the precision limit" pending=pending_advanced <|
         batch_runner.run use_bankers=False round_fun->
             round_fun 1.22222222225 10 . should_equal 1.2222222223
             round_fun 1.222222222225 11 . should_equal 1.22222222223
@@ -199,7 +200,7 @@ add_specs group_builder batch_runner =
             round_fun -1.22222222222235 13 . should_equal -1.2222222222224
             round_fun -1.222222222222235 14 . should_equal -1.22222222222224
 
-    group_builder.specify "Can round correctly near the precision limit, using banker's rounding" <|
+    group_builder.specify "Can round correctly near the precision limit, using banker's rounding" pending=pending_advanced <|
         batch_runner.run use_bankers=True round_fun->
             round_fun 1.22222222225 10 . should_equal 1.2222222222
             round_fun 1.222222222225 11 . should_equal 1.22222222222
@@ -268,7 +269,7 @@ add_specs group_builder batch_runner =
             round_fun 3098 -3 . should_equal 3000
             round_fun 3101 -3 . should_equal 3000
 
-    group_builder.specify "Can round negative integers to a specified number of negative places correctly"
+    group_builder.specify "Can round negative integers to a specified number of negative places correctly" pending=pending_advanced <|
         batch_runner.run use_bankers=False round_fun->
             round_fun -4 -1 . should_equal 0
             round_fun -5 -1 . should_equal -10
@@ -296,7 +297,7 @@ add_specs group_builder batch_runner =
             round_fun -3098 -3 . should_equal -3000
             round_fun -3101 -3 . should_equal -3000
 
-    group_builder.specify "Can round negative integers to a specified number of negative places with banker's rounding correctly" <|
+    group_builder.specify "Can round negative integers to a specified number of negative places with banker's rounding correctly" pending=pending_advanced <|
         batch_runner.run use_bankers=True round_fun->
             round_fun 12300 -2 . should_equal 12300
             round_fun 12301 -2 . should_equal 12300

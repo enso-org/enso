@@ -752,7 +752,7 @@ add_specs suite_builder =
             d = Decimal.new n . round dp use_bankers
             d.to_float
 
-        Round_Spec.add_specs group_builder (Round_Spec.Batch_Runner.from_function do_round)
+        Round_Spec.add_specs group_builder (Round_Spec.Batch_Runner.from_function do_round) run_advanced=True
 
         group_builder.specify "Large values" <|
             Decimal.new "1234.5678E-50" . round 53 . should_equal (Decimal.new "1234.568E-50")
