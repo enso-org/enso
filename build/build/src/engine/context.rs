@@ -483,7 +483,7 @@ impl RunContext {
         if self.config.build_native_runner {
             debug!("Building and testing native engine runners");
             runner_sanity_test(&self.repo_root, None).await?;
-            let filename = format!("enso{}", if TARGET_OS == OS::Windows { ".bat" } else { "" });
+            let filename = format!("enso{}", if TARGET_OS == OS::Windows { ".exe" } else { "" });
             let enso = self
                 .repo_root
                 .built_distribution
@@ -644,7 +644,7 @@ pub async fn runner_sanity_test(
     // The engine package is necessary for running the native runner.
     ide_ci::fs::tokio::require_exist(engine_package).await?;
     if enso_java.is_none() {
-        let filename = format!("enso{}", if TARGET_OS == OS::Windows { ".bat" } else { "" });
+        let filename = format!("enso{}", if TARGET_OS == OS::Windows { ".exe" } else { "" });
         let enso =
             repo_root.built_distribution.enso_engine_triple.engine_package.bin.join(filename);
         let test_base = Command::new(&enso)
