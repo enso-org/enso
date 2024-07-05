@@ -17,7 +17,7 @@ import type {
   ColumnResizedEvent,
   ICellRendererParams,
 } from 'ag-grid-community'
-import type { ColDef, GridOptions, HeaderValueGetterParams } from 'ag-grid-enterprise'
+import type { ColDef, GridOptions } from 'ag-grid-enterprise'
 import {
   computed,
   onMounted,
@@ -39,7 +39,7 @@ export const defaultPreprocessor = [
   '1000',
 ] as const
 
-type Data = Error | Matrix | ObjectMatrix | UnknownTable
+type Data = Error | Matrix | ObjectMatrix | UnknownTable | Excel_Workbook
 
 interface Error {
   type: undefined
@@ -58,6 +58,14 @@ interface Matrix {
   all_rows_count: number
   json: unknown[][]
   value_type: ValueType[]
+}
+
+interface Excel_Workbook {
+  type: 'Excel_Workbook'
+  column_count: number
+  all_rows_count: number
+  sheet_names: string[]
+  json: unknown[][]
 }
 
 interface ObjectMatrix {
@@ -79,6 +87,7 @@ interface UnknownTable {
   data: unknown[][] | undefined
   value_type: ValueType[]
   has_index_col: boolean | undefined
+  links: string[] | undefined
 }
 
 declare module 'ag-grid-enterprise' {
@@ -105,8 +114,15 @@ const config = useVisualizationConfig()
 
 const INDEX_FIELD_NAME = '#'
 const TABLE_NODE_TYPE = 'Standard.Table.Table.Table'
+const DB_TABLE_NODE_TYPE = 'Standard.Database.DB_Table.DB_Table'
 const VECTOR_NODE_TYPE = 'Standard.Base.Data.Vector.Vector'
 const COLUMN_NODE_TYPE = 'Standard.Table.Column.Column'
+const EXCEL_WORKBOOK_NODE_TYPE = 'Standard.Table.Excel.Excel_Workbook.Excel_Workbook'
+const ROW_NODE_TYPE = 'Standard.Table.Row.Row'
+const SQLITE_CONNECTIONS_NODE_TYPE =
+  'Standard.Database.Internal.SQLite.SQLite_Connection.SQLite_Connection'
+const POSTGRES_CONNECTIONS_NODE_TYPE =
+  'Standard.Database.Internal.Postgres.Postgres_Connection.Postgres_Connection'
 
 const rowLimit = ref(0)
 const page = ref(0)
@@ -123,7 +139,6 @@ const defaultColDef = {
   filter: true,
   resizable: true,
   minWidth: 25,
-  headerValueGetter: (params: HeaderValueGetterParams) => params.colDef.field,
   cellRenderer: cellRenderer,
   cellClass: cellClass,
 }
@@ -157,6 +172,48 @@ const selectableRowLimits = computed(() => {
   return defaults
 })
 
+const newNodeSelectorValues = computed(() => {
+  let selector
+  let identifierAction
+  let tooltipValue
+  let headerName
+  switch (config.nodeType) {
+    case COLUMN_NODE_TYPE:
+    case VECTOR_NODE_TYPE:
+      selector = INDEX_FIELD_NAME
+      identifierAction = 'at'
+      tooltipValue = 'value'
+      break
+    case ROW_NODE_TYPE:
+      selector = 'column'
+      identifierAction = 'at'
+      tooltipValue = 'value'
+      break
+    case EXCEL_WORKBOOK_NODE_TYPE:
+      selector = 'Value'
+      identifierAction = 'read'
+      tooltipValue = 'sheet'
+      headerName = 'Sheets'
+      break
+    case SQLITE_CONNECTIONS_NODE_TYPE:
+    case POSTGRES_CONNECTIONS_NODE_TYPE:
+      selector = 'Value'
+      identifierAction = 'query'
+      tooltipValue = 'table'
+      headerName = 'Tables'
+      break
+    case TABLE_NODE_TYPE:
+    case DB_TABLE_NODE_TYPE:
+      tooltipValue = 'row'
+  }
+  return {
+    selector,
+    identifierAction,
+    tooltipValue,
+    headerName,
+  }
+})
+
 const numberFormatGroupped = new Intl.NumberFormat(undefined, {
   style: 'decimal',
   maximumFractionDigits: 12,
@@ -171,7 +228,14 @@ const numberFormat = new Intl.NumberFormat(undefined, {
 
 function formatNumber(params: ICellRendererParams) {
   const valueType = params.value?.type
-  const value = valueType === 'BigInt' ? BigInt(params.value?.value) : params.value
+  let value
+  if (valueType === 'BigInt') {
+    value = BigInt(params.value?.value)
+  } else if (valueType === 'Decimal') {
+    value = Number(params.value?.value)
+  } else {
+    value = params.value
+  }
   const needsGrouping = dataGroupingMap.value?.get(params.colDef?.field || '')
   return needsGrouping ? numberFormatGroupped.format(value) : numberFormat.format(value)
 }
@@ -204,7 +268,8 @@ function cellClass(params: CellClassParams) {
   if (typeof params.value === 'number' || params.value === null) return 'ag-right-aligned-cell'
   if (typeof params.value === 'object') {
     const valueType = params.value?.type
-    if (valueType === 'BigInt' || valueType === 'Float') return 'ag-right-aligned-cell'
+    if (valueType === 'BigInt' || valueType === 'Float' || valueType === 'Decimal')
+      return 'ag-right-aligned-cell'
   }
   return null
 }
@@ -219,6 +284,7 @@ function cellRenderer(params: ICellRendererParams) {
   else if (typeof params.value === 'object') {
     const valueType = params.value?.type
     if (valueType === 'BigInt') return formatNumber(params)
+    else if (valueType === 'Decimal') return formatNumber(params)
     else if (valueType === 'Float')
       return `<span style="color:grey; font-style: italic;">${params.value?.value ?? 'Unknown'}</span>`
     else if ('_display_text_' in params.value && params.value['_display_text_'])
@@ -272,13 +338,16 @@ function toField(name: string, valueType?: ValueType | null | undefined): ColDef
   }
 }
 
-const getPattern = (index: number) =>
-  Pattern.new((ast) =>
+function getAstPattern(selector: string | number, action: string) {
+  return Pattern.new((ast) =>
     Ast.App.positional(
-      Ast.PropertyAccess.new(ast.module, ast, Ast.identifier('at')!),
-      Ast.tryNumberToEnso(index, ast.module)!,
+      Ast.PropertyAccess.new(ast.module, ast, Ast.identifier(action)!),
+      typeof selector === 'number' ?
+        Ast.tryNumberToEnso(selector, ast.module)!
+      : Ast.TextLiteral.new(selector, ast.module),
     ),
   )
+}
 
 const getTablePattern = (index: number) =>
   Pattern.new((ast) =>
@@ -295,23 +364,40 @@ const getTablePattern = (index: number) =>
       ),
     ),
   )
+
 function createNode(params: CellClickedEvent) {
-  if (config.nodeType === VECTOR_NODE_TYPE || config.nodeType === COLUMN_NODE_TYPE) {
-    config.createNodes({
-      content: getPattern(params.data[INDEX_FIELD_NAME]),
-      commit: true,
-    })
-  }
-  if (config.nodeType === TABLE_NODE_TYPE) {
+  if (config.nodeType === TABLE_NODE_TYPE || config.nodeType === DB_TABLE_NODE_TYPE) {
     config.createNodes({
       content: getTablePattern(params.data[INDEX_FIELD_NAME]),
       commit: true,
     })
   }
+  if (
+    newNodeSelectorValues.value.selector !== undefined &&
+    newNodeSelectorValues.value.selector !== null &&
+    newNodeSelectorValues.value.identifierAction
+  ) {
+    config.createNodes({
+      content: getAstPattern(
+        params.data[newNodeSelectorValues.value.selector],
+        newNodeSelectorValues.value.identifierAction,
+      ),
+      commit: true,
+    })
+  }
 }
 
-function indexField(): ColDef {
-  return { field: INDEX_FIELD_NAME, onCellClicked: (params) => createNode(params) }
+function toLinkField(fieldName: string): ColDef {
+  return {
+    headerName:
+      newNodeSelectorValues.value.headerName ? newNodeSelectorValues.value.headerName : fieldName,
+    field: fieldName,
+    onCellDoubleClicked: (params) => createNode(params),
+    tooltipValueGetter: () => {
+      return `Double click to view this ${newNodeSelectorValues.value.tooltipValue} in a separate node`
+    },
+    cellRenderer: (params: any) => `<a href='#'> ${params.value} </a>`,
+  }
 }
 
 /** Return a human-readable representation of an object. */
@@ -334,6 +420,7 @@ watchEffect(() => {
         value_type: undefined,
         // eslint-disable-next-line camelcase
         has_index_col: false,
+        links: undefined,
       }
   const options = agGridOptions.value
   if (options.api == null) {
@@ -352,14 +439,14 @@ watchEffect(() => {
     ]
     rowData = [{ Error: data_.error }]
   } else if (data_.type === 'Matrix') {
-    columnDefs.push(indexField())
+    columnDefs.push(toLinkField(INDEX_FIELD_NAME))
     for (let i = 0; i < data_.column_count; i++) {
       columnDefs.push(toField(i.toString()))
     }
     rowData = addRowIndex(data_.json)
     isTruncated.value = data_.all_rows_count !== data_.json.length
   } else if (data_.type === 'Object_Matrix') {
-    columnDefs.push(indexField())
+    columnDefs.push(toLinkField(INDEX_FIELD_NAME))
     let keys = new Set<string>()
     for (const val of data_.json) {
       if (val != null) {
@@ -373,21 +460,32 @@ watchEffect(() => {
     }
     rowData = addRowIndex(data_.json)
     isTruncated.value = data_.all_rows_count !== data_.json.length
+  } else if (data_.type === 'Excel_Workbook') {
+    columnDefs = [toLinkField('Value')]
+    rowData = data_.sheet_names.map((name) => ({ Value: name }))
   } else if (Array.isArray(data_.json)) {
-    columnDefs = [indexField(), toField('Value')]
+    columnDefs = [toLinkField(INDEX_FIELD_NAME), toField('Value')]
     rowData = data_.json.map((row, i) => ({ [INDEX_FIELD_NAME]: i, Value: toRender(row) }))
     isTruncated.value = data_.all_rows_count ? data_.all_rows_count !== data_.json.length : false
   } else if (data_.json !== undefined) {
-    columnDefs = [toField('Value')]
-    rowData = [{ Value: toRender(data_.json) }]
+    columnDefs = data_.links ? [toLinkField('Value')] : [toField('Value')]
+    rowData =
+      data_.links ?
+        data_.links.map((link) => ({
+          Value: link,
+        }))
+      : [{ Value: toRender(data_.json) }]
   } else {
     const dataHeader =
       ('header' in data_ ? data_.header : [])?.map((v, i) => {
         const valueType = data_.value_type ? data_.value_type[i] : null
+        if (config.nodeType === ROW_NODE_TYPE && v === 'column') {
+          return toLinkField(v)
+        }
         return toField(v, valueType)
       }) ?? []
 
-    columnDefs = data_.has_index_col ? [indexField(), ...dataHeader] : dataHeader
+    columnDefs = data_.has_index_col ? [toLinkField(INDEX_FIELD_NAME), ...dataHeader] : dataHeader
     const rows = data_.data && data_.data.length > 0 ? data_.data[0]?.length ?? 0 : 0
     rowData = Array.from({ length: rows }, (_, i) => {
       const shift = data_.has_index_col ? 1 : 0
@@ -586,5 +684,13 @@ onUnmounted(() => {
 <style>
 .TableVisualization > .ag-theme-alpine > .ag-root-wrapper.ag-layout-normal {
   border-radius: 0 0 var(--radius-default) var(--radius-default);
+}
+
+a {
+  color: blue;
+  text-decoration: underline;
+}
+a:hover {
+  color: darkblue;
 }
 </style>

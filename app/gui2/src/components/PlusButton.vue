@@ -11,7 +11,7 @@
 .PlusButton {
   position: absolute;
   bottom: 10px;
-  left: 10px;
+  right: 10px;
   width: 60px;
   height: 60px;
   border-radius: 50%;

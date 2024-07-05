@@ -58,6 +58,7 @@
   --visualization-resize-handle-inside: 3px;
   --visualization-resize-handle-outside: 3px;
   --right-dock-default-width: 40%;
+  --code-editor-default-height: 30%;
 }
 
 *,

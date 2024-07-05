@@ -4,7 +4,6 @@ import org.enso.semver.SemVer
 import org.enso.cli.OS
 import org.enso.distribution.FileSystem
 import org.enso.downloader.archive.TarGzWriter
-import org.enso.editions.EditionSerialization.editionEncoder
 import org.enso.editions.Editions.RawEdition
 import org.enso.editions.{Editions, LibraryName}
 import org.enso.pkg.{Package, PackageManager}
