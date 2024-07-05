@@ -152,17 +152,12 @@ class ExportsResolution(private val context: CompilerContext) {
                   case None =>
                     List(export.name.parts.last.name)
                 }
-                val isThisModule = target.module.unsafeAsModule() == module
-                if (isThisModule) {
-                  None
-                } else {
-                  symbols.flatMap { symbol =>
-                    export.rename match {
-                      case Some(rename) =>
-                        Some((rename.name, target))
-                      case None =>
-                        Some((symbol, target))
-                    }
+                symbols.flatMap { symbol =>
+                  export.rename match {
+                    case Some(rename) =>
+                      Some((rename.name, target))
+                    case None =>
+                      Some((symbol, target))
                   }
                 }
               }
@@ -174,14 +169,16 @@ class ExportsResolution(private val context: CompilerContext) {
       bindings.exportedSymbols = List(
         ownEntities,
         expSymbolsFromResolvedImps
-      ).flatten.groupBy(_._1).map { case (symbolName, duplicateResolutions) =>
-        val resolvedNames = duplicateResolutions.map(_._2)
-        if (!areResolvedNamesConsistent(resolvedNames)) {
-          throw ConflictingResolutionsError
-            .create(module.getName, resolvedNames.asJava)
+      ).flatten.distinct
+        .groupBy(_._1)
+        .map { case (symbolName, duplicateResolutions) =>
+          val resolvedNames = duplicateResolutions.map(_._2)
+          if (!areResolvedNamesConsistent(resolvedNames)) {
+            throw ConflictingResolutionsError
+              .create(module.getName, resolvedNames.asJava)
+          }
+          (symbolName, resolvedNames)
         }
-        (symbolName, resolvedNames)
-      }
     }
   }
 
