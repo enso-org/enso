@@ -60,6 +60,8 @@ type Redshift_Dialect
     generate_sql self query =
         Base_Generator.generate_query self query . build
 
+    ## PRIVATE
+       Generates SQL to truncate a table.
     generate_truncate_table_sql : Text -> SQL_Builder
     generate_truncate_table_sql self table_name =
         Base_Generator.truncate_table_delete_from_style self table_name

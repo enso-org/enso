@@ -47,7 +47,8 @@ type Dialect
         _ = [query]
         Unimplemented.throw "This is an interface only."
 
-   
+    ## PRIVATE
+       Generates SQL to truncate a table.
     generate_truncate_table_sql : Text -> SQL_Builder
     generate_truncate_table_sql self table_name =
          _ = [table_name]

@@ -174,7 +174,7 @@ make_constant sql_code =
 wrap_in_quotes : Text -> SQL_Builder
 wrap_in_quotes identifier =
     escaped = identifier.replace '"' '""'
-    SQL_Builder.code '"' ++ escaped ++ '"'
+    SQL_Builder.code ('"'+escaped+'"')
 
 ## PRIVATE
 
