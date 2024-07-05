@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { usePointer } from '@/composables/events'
 import { is_numeric_literal } from 'shared/ast/ffi'
-import { isNumericLiteral } from 'shared/ast/tree'
 import { computed, nextTick, ref, watch, type CSSProperties, type ComponentInstance } from 'vue'
 import AutoSizedInput from './AutoSizedInput.vue'
 
