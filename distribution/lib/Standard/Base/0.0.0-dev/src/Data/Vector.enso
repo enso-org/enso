@@ -689,7 +689,7 @@ type Vector a
          Errors that are thrown when executing the supplied function are wrapped
          in `Map_Error`, which contains the index at which the error occurred.
 
-         In the `Problem_Behavior.Report_Warning` case, only `MAX_MAP_WARNINGS`
+         In the `Report_Warning` case, only `MAX_MAP_WARNINGS`
          warnings are attached to result values. After that, the warnings are
          dropped, but a count of the additional warnings is attached in an
          `Additional_Warnings` warning.
@@ -728,7 +728,7 @@ type Vector a
          Errors that are thrown when executing the supplied function are wrapped
          in `Map_Error`, which contains the index at which the error occurred.
 
-         In the `Problem_Behavior.Report_Warning` case, only `MAX_MAP_WARNINGS`
+         In the `Report_Warning` case, only `MAX_MAP_WARNINGS`
          warnings are attached to result values. After that, the warnings are
          dropped, but a count of the additional warnings is attached in an
          `Additional_Warnings` warning.
@@ -782,7 +782,7 @@ type Vector a
          Errors that are thrown when executing the supplied function are wrapped
          in `Map_Error`, which contains the index at which the error occurred.
 
-         In the `Problem_Behavior.Report_Warning` case, only `MAX_MAP_WARNINGS`
+         In the `Report_Warning` case, only `MAX_MAP_WARNINGS`
          warnings are attached to result values. After that, the warnings are
          dropped, but a count of the additional warnings is attached in an
          `Additional_Warnings` warning.
@@ -1024,7 +1024,7 @@ type Vector a
          Errors that are thrown when executing the supplied function are wrapped
          in `Map_Error`, which contains the index at which the error occurred.
 
-         In the `Problem_Behavior.Report_Warning` case, only `MAX_MAP_WARNINGS`
+         In the `Report_Warning` case, only `MAX_MAP_WARNINGS`
          warnings are attached to result values. After that, the warnings are
          dropped, but a count of the additional warnings is attached in an
          `Additional_Warnings` warning.
@@ -1157,9 +1157,9 @@ type Vector a
          for the default comparator, which is always the first group.
 
          Additionally, an `Incomparable_Values` dataflow error will be returned
-         if the `on_incomparable` parameter is set to `Problem_Behavior.Report_Error`,
+         if the `on_incomparable` parameter is set to `Report_Error`,
          or a warning attached if the `on_incomparable` parameter is set to
-         `Problem_Behavior.Report_Warning` in case of encountering incomparable
+         `Report_Warning` in case of encountering incomparable
          values.
 
          It takes equal advantage of ascending and descending runs in the array,

@@ -130,7 +130,7 @@ Any.should_have_relative_ordering self (example : Vector) =
                 got_piece = pieces.at ix
                 expected_piece = example.at ix
                 are_consistent = Panic.rethrow <|
-                    (got_piece.sort on_incomparable=Problem_Behavior.Report_Error) == (expected_piece.sort on_incomparable=Problem_Behavior.Report_Error)
+                    (got_piece.sort on_incomparable=..Report_Error) == (expected_piece.sort on_incomparable=..Report_Error)
                 if are_consistent.not then
                     offset = pieces.take ix . fold 0 acc-> p-> acc+p.length
                     Test.fail "Expected the run of vector elements starting at offset "+offset.to_text+" to be a permutation of "+expected_piece.to_display_text+" but got "+got_piece.to_display_text+" (at "+loc+")."

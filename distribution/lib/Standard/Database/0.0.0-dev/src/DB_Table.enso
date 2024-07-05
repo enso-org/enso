@@ -1405,7 +1405,7 @@ type DB_Table
          their layout in memory. Database tables may not impose a deterministic
          ordering. If the table defines a primary key, it is used to by default
          to ensure deterministic ordering. That can be overridden by specifying
-         a different ordering using `Table.order_by`. If no primary key was
+         a different ordering using `Table.sort`. If no primary key was
          defined nor any ordering was specified explicitly by the user, the
          order of columns is undefined and the operation will fail, reporting a
          `Undefined_Column_Order` problem and returning an empty table.
@@ -1526,7 +1526,7 @@ type DB_Table
          their layout in memory. Database tables may not impose a deterministic
          ordering. If the table defines a primary key, it is used to by default
          to ensure deterministic ordering. That can be overridden by specifying
-         a different ordering using `Table.order_by`. If no primary key was
+         a different ordering using `Table.sort`. If no primary key was
          defined nor any ordering was specified explicitly by the user, the
          order of columns is undefined and the operation will fail, reporting a
          `Undefined_Column_Order` problem and returning an empty table.
@@ -1729,7 +1729,7 @@ type DB_Table
          their layout in memory. Database tables may not impose a deterministic
          ordering. If the table defines a primary key, it is used to by default
          to ensure deterministic ordering. That can be overridden by specifying
-         a different ordering using `Table.order_by`. If no primary key was
+         a different ordering using `Table.sort`. If no primary key was
          defined nor any ordering was specified explicitly by the user, the
          order of columns is undefined and the operation will fail, reporting a
          `Undefined_Column_Order` problem and returning an empty table.

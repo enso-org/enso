@@ -126,7 +126,7 @@ add_specs suite_builder =
                This is based on assumption that it is very unlikely for a valid Windows-1252 encoded file to start with
                characters `ï»¿` or `ÿþ` (the Win-1252 representations of UTF-8 and UTF-16 BOMs).
             bytes1 = [-17, -69, -65] + [-30, -55, -1]
-            r1 = Text.from_bytes bytes1 Encoding.default Problem_Behavior.Report_Warning
+            r1 = Text.from_bytes bytes1 Encoding.default ..Report_Warning
             r1.should_equal "���"
             # We've got 3 characters that failed to decode. The BOM is stripped, so it is not counted.
             r1.length . should_equal 3
@@ -135,7 +135,7 @@ add_specs suite_builder =
             w1.to_display_text . should_contain "BOM"
 
             bytes2 = [-2, -1] + [0, 65, -1]
-            r2 = Text.from_bytes bytes2 Encoding.default Problem_Behavior.Report_Warning
+            r2 = Text.from_bytes bytes2 Encoding.default ..Report_Warning
             r2.should_equal "A�"
             # We have 1 correct character (A), one invalid character (odd number of bytes). The BOM is not counted.
             r2.length . should_equal 2
@@ -147,7 +147,7 @@ add_specs suite_builder =
             empty.should_equal ""
             Problems.assume_no_problems empty
 
-            txt = Text.from_bytes [-1] Encoding.default Problem_Behavior.Report_Warning
+            txt = Text.from_bytes [-1] Encoding.default ..Report_Warning
             txt.should_equal 'ÿ'
             # No problems, as falling back to Windows-1252.
             Problems.assume_no_problems txt
@@ -236,7 +236,7 @@ add_specs suite_builder =
         ## A UTF-16 BOM representation does not make sense in UTF-8, so we can detect that situation and report it.
         group_builder.specify "should report a clearer error when UTF-16 BOM is encountered" <|
             bytes = [-2, -1] + [0, 65, 1, 5, 1, 25]
-            as_utf = Text.from_bytes bytes Encoding.utf_8 Problem_Behavior.Report_Warning
+            as_utf = Text.from_bytes bytes Encoding.utf_8 ..Report_Warning
 
             warnings = Problems.get_attached_warnings as_utf . map .to_display_text
             warnings.find (t-> t.contains "BOM") . should_succeed
@@ -246,14 +246,14 @@ add_specs suite_builder =
             empty.should_equal ""
             Problems.assume_no_problems empty
 
-            txt = Text.from_bytes [-1] Encoding.utf_8 Problem_Behavior.Report_Warning
+            txt = Text.from_bytes [-1] Encoding.utf_8 ..Report_Warning
             txt.should_equal '\ufffd'
             w = Problems.expect_only_warning Encoding_Error txt
             w.to_display_text . should_contain "Failed to decode 1 code units (at positions: 0)."
 
         group_builder.specify "should report only a few example positions if many errors are encountered" <|
             bytes = Vector.fill 10000 -1
-            txt = Text.from_bytes bytes Encoding.utf_8 Problem_Behavior.Report_Warning
+            txt = Text.from_bytes bytes Encoding.utf_8 ..Report_Warning
             txt.length . should_equal 10000
             w = Problems.expect_only_warning Encoding_Error txt
             w.to_display_text . should_contain "Failed to decode 10000 code units"
@@ -281,7 +281,7 @@ add_specs suite_builder =
 
         group_builder.specify "should warn if an inverted BOM is encountered" <|
             bytes = [-1, -2] + [0, 65, 1, 5, 1, 25]
-            txt = Text.from_bytes bytes Encoding.utf_16_be Problem_Behavior.Report_Warning
+            txt = Text.from_bytes bytes Encoding.utf_16_be ..Report_Warning
             txt.should_equal "￾Aąę"
             w = Problems.expect_only_warning Encoding_Error txt
             w.to_display_text . should_contain "BOM"
@@ -291,7 +291,7 @@ add_specs suite_builder =
             empty.should_equal ""
             Problems.assume_no_problems empty
 
-            txt = Text.from_bytes [-1] Encoding.utf_16_be Problem_Behavior.Report_Warning
+            txt = Text.from_bytes [-1] Encoding.utf_16_be ..Report_Warning
             w = Problems.expect_only_warning Encoding_Error txt
             w.to_display_text . should_contain "Failed to decode 1 code units (at positions: 0)."
 
@@ -317,7 +317,7 @@ add_specs suite_builder =
         # We cannot warn on UTF-8 BOM because it actually represents valid text: [-17, -69, -65] + [65] decoded as UTF-16 LE is "믯䆿".
         group_builder.specify "should warn if an inverted BOM is encountered" <|
             bytes = [-2, -1] + [0, 65, 1, 5, 1, 25]
-            txt = Text.from_bytes bytes Encoding.utf_16_le Problem_Behavior.Report_Warning
+            txt = Text.from_bytes bytes Encoding.utf_16_le ..Report_Warning
             txt.should_equal "￾䄀ԁᤁ"
             w = Problems.expect_only_warning Encoding_Error txt
             w.to_display_text . should_contain "BOM"
@@ -327,7 +327,7 @@ add_specs suite_builder =
             empty.should_equal ""
             Problems.assume_no_problems empty
 
-            txt = Text.from_bytes [-1] Encoding.utf_16_le Problem_Behavior.Report_Warning
+            txt = Text.from_bytes [-1] Encoding.utf_16_le ..Report_Warning
             w = Problems.expect_only_warning Encoding_Error txt
             w.to_display_text . should_contain "Failed to decode 1 code units (at positions: 0)."
 

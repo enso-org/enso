@@ -173,8 +173,8 @@ add_specs suite_builder =
             expect_no_warns [[1]].sort
 
         group_builder.specify "should produce warnings when sorting nested vectors" <|
-            expect_incomparable_warn [1] [2] <| [[1], [2]].sort on_incomparable=Problem_Behavior.Report_Warning . should_equal [[1], [2]]
-            expect_incomparable_warn [2] [1] <| [[2], [1]].sort on_incomparable=Problem_Behavior.Report_Warning . should_equal [[2], [1]]
+            expect_incomparable_warn [1] [2] <| [[1], [2]].sort on_incomparable=..Report_Warning . should_equal [[1], [2]]
+            expect_incomparable_warn [2] [1] <| [[2], [1]].sort on_incomparable=..Report_Warning . should_equal [[2], [1]]
 
         group_builder.specify "should be able to sort primitive values in atoms" pending=topo_sort_pending <|
             [Ord.Value Nothing, Ord.Value 20, Ord.Value 10].sort . should_equal [Ord.Value 10, Ord.Value 20, Ord.Value Nothing]
@@ -186,13 +186,13 @@ add_specs suite_builder =
             [(UPair.Value 1 2), (UPair.Value 3 4)].sort . should_fail_with Incomparable_Values
 
         group_builder.specify "should attach warning when trying to sort incomparable values" <|
-            expect_incomparable_warn Nothing Number.nan <| [Nothing, Number.nan].sort on_incomparable=Problem_Behavior.Report_Warning
-            expect_incomparable_warn 1 "hello" <| [1, "hello"].sort on_incomparable=Problem_Behavior.Report_Warning
+            expect_incomparable_warn Nothing Number.nan <| [Nothing, Number.nan].sort on_incomparable=..Report_Warning
+            expect_incomparable_warn 1 "hello" <| [1, "hello"].sort on_incomparable=..Report_Warning
 
         group_builder.specify "should respect previous warnings on a vector" <|
             Problems.expect_warning "my_warn" <| (Warning.attach "my_warn" [3, 2]) . sort
             Problems.expect_warning "my_warn" <| (Warning.attach "my_warn" [3, Number.nan]) . sort
-            expect_incomparable_warn 3 Number.nan <| (Warning.attach "my_warn" [3, Number.nan]) . sort on_incomparable=Problem_Behavior.Report_Warning
+            expect_incomparable_warn 3 Number.nan <| (Warning.attach "my_warn" [3, Number.nan]) . sort on_incomparable=..Report_Warning
 
         group_builder.specify "should respect previous warnings on vectors" pending="https://github.com/enso-org/enso/issues/6070" <|
             Problems.expect_warning "my_warn" <| [3, Warning.attach "my_warn" 2].sort
@@ -216,13 +216,13 @@ add_specs suite_builder =
 
         group_builder.specify "should produce warning when sorting types with different comparators" <|
             [Ord.Value 1, 1].sort . should_equal [1, Ord.Value 1]
-            sorted = [Ord.Value 1, 1].sort on_incomparable=Problem_Behavior.Report_Warning
+            sorted = [Ord.Value 1, 1].sort on_incomparable=..Report_Warning
             Warning.get_all sorted . at 0 . value . starts_with "Different comparators" . should_be_true
 
         group_builder.specify "should merge groups of values with custom comparators based on the comparators FQN" <|
             [Ord.Value 1, My_Type.Value 1].sort . should_equal [My_Type.Value 1, Ord.Value 1]
             [My_Type.Value 1, Ord.Value 1].sort . should_equal [My_Type.Value 1, Ord.Value 1]
-            sorted = [Ord.Value 1, My_Type.Value 1].sort on_incomparable=Problem_Behavior.Report_Warning
+            sorted = [Ord.Value 1, My_Type.Value 1].sort on_incomparable=..Report_Warning
             Warning.get_all sorted . at 0 . value . starts_with "Different comparators" . should_be_true
 
         group_builder.specify "should be stable when sorting values with different comparators" <|

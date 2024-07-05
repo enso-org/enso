@@ -158,7 +158,7 @@ add_specs suite_builder setup =
 
         group_builder.specify "should correctly handle edge-cases: duplicate indices" <|
             selector = [0, 0, 0]
-            t = data.table.select_columns selector on_problems=Problem_Behavior.Report_Error
+            t = data.table.select_columns selector on_problems=..Report_Error
             expect_column_names ["foo"] t
 
             expect_column_names ["foo", "bar"] <|
@@ -166,12 +166,12 @@ add_specs suite_builder setup =
 
         group_builder.specify "should correctly handle edge-cases: aliased indices" <|
             selector = [0, -6, 1, -7]
-            t = data.table.select_columns selector on_problems=Problem_Behavior.Report_Error
+            t = data.table.select_columns selector on_problems=..Report_Error
             expect_column_names ["foo", "bar"] t
 
         group_builder.specify "should correctly handle edge-cases: duplicate names" <|
             selector = ["foo", "foo"]
-            t = data.table.select_columns selector on_problems=Problem_Behavior.Report_Error
+            t = data.table.select_columns selector on_problems=..Report_Error
             expect_column_names ["foo"] t
 
             expect_column_names ["foo", "bar"] <|
@@ -185,7 +185,7 @@ add_specs suite_builder setup =
 
         group_builder.specify "should correctly handle edge-cases: duplicate matches due to case insensitivity" <|
             selector = ["FOO", "foo"]
-            t = data.table.select_columns selector case_sensitivity=Case_Sensitivity.Insensitive on_problems=Problem_Behavior.Report_Error
+            t = data.table.select_columns selector case_sensitivity=Case_Sensitivity.Insensitive on_problems=..Report_Error
             expect_column_names ["foo"] t
 
             expect_column_names ["bar", "foo"] <|
@@ -199,12 +199,12 @@ add_specs suite_builder setup =
             problems = [Missing_Input_Columns.Error ["hmm", weird_name]]
             Problems.test_problem_handling action problems tester
 
-            err = data.table.select_columns selector on_problems=Problem_Behavior.Ignore
+            err = data.table.select_columns selector on_problems=..Ignore
             err.should_fail_with Missing_Input_Columns
             err.catch.criteria . should_equal ["hmm", weird_name]
 
         group_builder.specify "should correctly handle problems in mixed case" <|
-            err = data.table.select_columns ["foo", "hmm", 99] on_problems=Problem_Behavior.Ignore
+            err = data.table.select_columns ["foo", "hmm", 99] on_problems=..Ignore
             err.should_fail_with Missing_Input_Columns
             err.catch.criteria . should_equal ["hmm", 99]
 
@@ -320,22 +320,22 @@ add_specs suite_builder setup =
 
         group_builder.specify "should correctly handle edge-cases: duplicate indices" <|
             selector = [0, 0, 0]
-            t = data.table.remove_columns selector on_problems=Problem_Behavior.Report_Error
+            t = data.table.remove_columns selector on_problems=..Report_Error
             expect_column_names ["bar", "Baz", "foo 1", "foo 2", "ab.+123", "abcd123"] t
 
         group_builder.specify "should correctly handle edge-cases: aliased indices" <|
             selector = [0, -7, -6, 1]
-            t = data.table.remove_columns selector on_problems=Problem_Behavior.Report_Error
+            t = data.table.remove_columns selector on_problems=..Report_Error
             expect_column_names ["Baz", "foo 1", "foo 2", "ab.+123", "abcd123"]  t
 
         group_builder.specify "should correctly handle edge-cases: duplicate names" <|
             selector = ["foo", "foo"]
-            t = data.table.remove_columns selector on_problems=Problem_Behavior.Report_Error
+            t = data.table.remove_columns selector on_problems=..Report_Error
             expect_column_names ["bar", "Baz", "foo 1", "foo 2", "ab.+123", "abcd123"] t
 
         group_builder.specify "should correctly handle edge-cases: duplicate matches due to case insensitivity" <|
             selector = ["FOO", "foo"]
-            t = data.table.remove_columns selector Case_Sensitivity.Insensitive on_problems=Problem_Behavior.Report_Error
+            t = data.table.remove_columns selector Case_Sensitivity.Insensitive on_problems=..Report_Error
             expect_column_names ["bar", "Baz", "foo 1", "foo 2", "ab.+123", "abcd123"] t
 
         group_builder.specify "should correctly handle problems: unmatched names" <|
@@ -346,7 +346,7 @@ add_specs suite_builder setup =
             problems = [Missing_Input_Columns.Error ["hmm", weird_name]]
             Problems.test_problem_handling action problems tester
 
-            err = data.table.remove_columns selector error_on_missing_columns=True on_problems=Problem_Behavior.Ignore
+            err = data.table.remove_columns selector error_on_missing_columns=True on_problems=..Ignore
             err.should_fail_with Missing_Input_Columns
 
         group_builder.specify "should correctly handle problems: no columns in the output" <|
@@ -409,17 +409,17 @@ add_specs suite_builder setup =
 
         group_builder.specify "should correctly handle edge-cases: duplicate indices" <|
             selector = [0, 0, 0]
-            t = data.table.reorder_columns selector Position.After_Other_Columns on_problems=Problem_Behavior.Report_Error
+            t = data.table.reorder_columns selector Position.After_Other_Columns on_problems=..Report_Error
             expect_column_names ["bar", "Baz", "foo 1", "foo 2", "ab.+123", "abcd123", "foo"] t
 
         group_builder.specify "should correctly handle edge-cases: aliased indices" <|
             selector = [0, -7, -6, 1]
-            t = data.table.reorder_columns selector Position.After_Other_Columns on_problems=Problem_Behavior.Report_Error
+            t = data.table.reorder_columns selector Position.After_Other_Columns on_problems=..Report_Error
             expect_column_names ["Baz", "foo 1", "foo 2", "ab.+123", "abcd123", "foo", "bar"] t
 
         group_builder.specify "should correctly handle edge-cases: duplicate names" <|
             selector = ["foo", "foo"]
-            t = data.table.reorder_columns selector Position.After_Other_Columns on_problems=Problem_Behavior.Report_Error
+            t = data.table.reorder_columns selector Position.After_Other_Columns on_problems=..Report_Error
             expect_column_names ["bar", "Baz", "foo 1", "foo 2", "ab.+123", "abcd123", "foo"] t
 
         group_builder.specify "should correctly handle problems: unmatched names" <|
@@ -616,12 +616,12 @@ add_specs suite_builder setup =
 
         group_builder.specify "should correctly handle edge-cases: aliased indices" <|
             map1 = Map.from_vector [[1, "FirstColumn"], [-3, "FirstColumn"]]
-            t1 = data.table.rename_columns map1 on_problems=Problem_Behavior.Report_Error
+            t1 = data.table.rename_columns map1 on_problems=..Report_Error
             Problems.assume_no_problems t1
             expect_column_names ["alpha", "FirstColumn", "gamma", "delta"] t1
 
             map2 = Map.from_vector [[1, "FirstColumn"], [-3, "DifferentName!"]]
-            t2 = data.table.rename_columns map2 on_problems=Problem_Behavior.Report_Error
+            t2 = data.table.rename_columns map2 on_problems=..Report_Error
             t2.should_fail_with Ambiguous_Column_Rename
             err = t2.catch . inner_error
             err.column_name . should_equal "beta"
@@ -630,12 +630,12 @@ add_specs suite_builder setup =
         group_builder.specify "should correctly handle edge-cases: aliased selectors" <|
             t = table_builder [["alpha", [1,2,3]], ["bet", [4,5,6]]]
             map1 = Map.from_vector [["a.*".to_regex, "AA"], [".*a".to_regex, "AA"]]
-            t1 = t.rename_columns map1 on_problems=Problem_Behavior.Report_Error
+            t1 = t.rename_columns map1 on_problems=..Report_Error
             Problems.assume_no_problems t1
             expect_column_names ["AA", "bet"] t1
 
             map2 = Map.from_vector [["a.*".to_regex, "StartsWithA"], [".*a".to_regex, "EndsWithA"]]
-            t2 = t.rename_columns map2 on_problems=Problem_Behavior.Report_Error
+            t2 = t.rename_columns map2 on_problems=..Report_Error
             t2.should_fail_with Ambiguous_Column_Rename
             err = t2.catch . inner_error
             err.column_name . should_equal "alpha"
@@ -648,7 +648,7 @@ add_specs suite_builder setup =
                same column, if the resulting rename is unambiguous, no error is
                raised.
             map3 = Map.from_vector [["a(.*)".to_regex, "$1A"], ["(.*)aa".to_regex, "$1aA"]]
-            t4 = t3.rename_columns map3 on_problems=Problem_Behavior.Report_Error
+            t4 = t3.rename_columns map3 on_problems=..Report_Error
             Problems.assume_no_problems t4
             expect_column_names ["aaA", "bbb"] t4
 
