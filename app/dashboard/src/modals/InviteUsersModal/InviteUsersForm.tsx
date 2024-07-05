@@ -74,7 +74,9 @@ export function InviteUsersForm(props: InviteUsersFormProps) {
       const trimValue = value.trim()
       const { entries } = getEmailsFromInput(value)
 
-      CSS.highlights?.delete('field-wrong-email')
+      if (typeof Highlight !== 'undefined') {
+        CSS.highlights.delete('field-wrong-email')
+      }
 
       let offset = 0
 
@@ -95,7 +97,7 @@ export function InviteUsersForm(props: InviteUsersFormProps) {
       }
 
       if (typeof Highlight !== 'undefined') {
-        CSS.highlights?.set('field-wrong-email', new Highlight(...wrongEmailsRanges))
+        CSS.highlights.set('field-wrong-email', new Highlight(...wrongEmailsRanges))
       }
     }
   })

@@ -23,20 +23,6 @@ interface Enso {
   readonly main: (inputConfig?: StringConfig) => Promise<void>
 }
 
-/** Highlight a range of text. */
-class Highlight_ {
-  type: string
-  /** @param ranges - The range to highlight. */
-  constructor(...ranges: Range[])
-}
-
-/** */
-interface CSSHighlights {
-  readonly set: (key: string, value: Highlight) => void
-  readonly delete: (key: string) => void
-  readonly clear: () => void
-}
-
 // ===================
 // === Backend API ===
 // ===================
@@ -136,18 +122,6 @@ declare global {
     readonly systemApi?: SystemApi
     readonly versionInfo?: VersionInfo
     toggleDevtools: () => void
-  }
-
-  /** */
-  interface Highlight extends Highlight_ {}
-
-  // eslint-disable-next-line no-restricted-syntax
-  const Highlight: typeof Highlight_ | undefined
-
-  /** */
-  namespace CSS {
-    // eslint-disable-next-line no-restricted-syntax
-    export const highlights: CSSHighlights | undefined
   }
 
   namespace NodeJS {
