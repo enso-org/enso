@@ -4,7 +4,7 @@ import java.awt.Desktop;
 
 final class TrashFactory {
 
-  private static final Trash Instance = initTrash();
+  private static Trash Instance = null;
 
   private TrashFactory() {}
 
@@ -23,7 +23,10 @@ final class TrashFactory {
     return new UnsupportedTrash();
   }
 
-  public static Trash getInstance() {
+  public static synchronized Trash getInstance() {
+    if (Instance == null) {
+      Instance = initTrash();
+    }
     return Instance;
   }
 }
