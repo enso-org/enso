@@ -68,13 +68,6 @@ type Existing_Enso_Asset
         Utils.http_request_as_json HTTP_Method.Get self.internal_uri
 
     ## PRIVATE
-       The returned URL may be valid only for a very short time, so it should not be
-       stored anywhere.
-    get_download_url self -> Text =
-        presigned_url = self.get_file_description |> get_required_field "url" expected_type=Text
-        presigned_url
-
-    ## PRIVATE
        Fetches the basic information about an existing file from the Cloud.
        It will fail if the file does not exist.
     get_asset_reference_for (file : Enso_File) -> Existing_Enso_Asset ! File_Error =

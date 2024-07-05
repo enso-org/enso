@@ -225,7 +225,7 @@ type Enso_File
                 asset = Existing_Enso_Asset.get_asset_reference_for self
                 response = case asset.asset_type of
                     Enso_Asset_Type.File ->
-                        HTTP.fetch asset.get_download_url HTTP_Method.Get
+                        Utils.http_request HTTP_Method.Get (asset.internal_uri + "/contents")
                     Enso_Asset_Type.Data_Link ->
                         Runtime.assert (open_options.contains Data_Link_Access.No_Follow)
                         Utils.http_request HTTP_Method.Get asset.internal_uri
