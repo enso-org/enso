@@ -1640,13 +1640,22 @@ add_specs suite_builder setup =
 
             dt = Date_Time.new 2024 07 05 12 30 45
             c2 = t.make_constant_column dt
-            c2.to_vector . should_equal [dt, dt, dt]
             c2.value_type.should_be_a (Value_Type.Date_Time ...)
 
             time = Time_Of_Day.new 12 30 45
             c3 = t.make_constant_column time
             c3.to_vector . should_equal [time, time, time]
             c3.value_type.should_equal Value_Type.Time
+
+            # The types should be preserved after an 'identity' operation:
+            c1_prime = (c1 == c1).iif c1 c1
+            c1_prime.value_type.should_equal Value_Type.Date
+
+            c2_prime = (c2 == c2).iif c2 c2
+            c2_prime.value_type.should_be_a (Value_Type.Date_Time ...)
+
+            c3_prime = (c3 == c3).iif c3 c3
+            c3_prime.value_type.should_equal Value_Type.Time
 
         group_builder.specify "Should allow the creation of constant columns on a table with no rows" <|
             t = table_builder [["x", ["1", "2", "3"]]]
