@@ -181,6 +181,13 @@ type DB_Column
     inferred_precise_value_type self =
         self.value_type
 
+    ## PRIVATE
+       Internal hook that says if a given column should be selected by a
+       specific type in a `By_Type` selection.
+    should_be_selected_by_type self (value_type : Value_Type) -> Boolean =
+        type_mapping = self.connection.dialect.get_type_mapping
+        type_mapping.is_same_type self.value_type value_type
+
     ## ICON convert
        Returns an SQL statement that will be used for materializing this column.
     to_sql : SQL_Statement

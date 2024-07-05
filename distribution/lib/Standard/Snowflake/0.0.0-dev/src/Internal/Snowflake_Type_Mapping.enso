@@ -134,6 +134,11 @@ type Snowflake_Type_Mapping
         Value_Type.Decimal _ scale -> scale == 0
         _ -> False
 
+    ## PRIVATE
+    is_same_type (value_type1 : Value_Type) (value_type2 : Value_Type) -> Boolean =
+        # Types are considered the same by original semantics, or additionally if both of them are an integer-like type as denoted by `is_integer_type`.
+        (value_type1.is_same_type value_type2) || (Snowflake_Type_Mapping.is_integer_type value_type1 && Snowflake_Type_Mapping.is_integer_type value_type2)
+
 ## PRIVATE
 simple_types_map = Map.from_vector <|
     floats = [[Types.DOUBLE, Value_Type.Float Bits.Bits_64], [Types.REAL, Value_Type.Float Bits.Bits_64]]

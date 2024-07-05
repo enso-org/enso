@@ -44,10 +44,10 @@ add_specs suite_builder setup =
         group_builder.specify "should allow to cast columns selecting columns by type" <|
             t = table_builder [["X", [1, 2, 3000]], ["Y", [True, False, True]], ["Z", [1.5, 0.125, -2.5]], ["W", ["a", "DEF", "a slightly longer text"]]]
             t2 = t.cast [..By_Type ..Integer] Value_Type.Char
-            t2.at "X" . value_type . is_text . should_be_true
+            t2.at "X" . value_type . should_be_a (Value_Type.Char ...)
             t2.at "Y" . value_type . is_text . should_be_false
             t2.at "Z" . value_type . is_text . should_be_false
-            t2.at "W" . value_type . is_text . should_be_true
+            t2.at "W" . value_type . should_be_a (Value_Type.Char ...)
 
         if supports_dates then
             group_builder.specify "should allow to cast date/time columns to text" <|
@@ -139,9 +139,7 @@ add_specs suite_builder setup =
         group_builder.specify "should allow to cast a boolean column to integer" <|
             t = table_builder [["X", [True, False, True]]]
             c = t.at "X" . cast Value_Type.Integer
-            vt = c.value_type
-            Test.with_clue "Expecting "+vt.to_display_text+" to be Integer. " <|
-                vt.is_integer . should_be_true
+            setup.expect_integer_type c
             c.to_vector . should_equal [1, 0, 1]
 
         group_builder.specify "should allow to cast an integer column to floating point" <|
@@ -208,9 +206,7 @@ add_specs suite_builder setup =
         group_builder.specify "should allow to cast a floating point column to integer" <|
             t = table_builder [["X", [1.0001, 2.25, 4.0]]]
             c = t.at "X" . cast Value_Type.Integer
-            vt = c.value_type
-            Test.with_clue "Expecting "+vt.to_display_text+" to be Integer. " <|
-                vt.is_integer . should_be_true
+            setup.expect_integer_type c
             c.to_vector . should_equal [1, 2, 4]
             # Not reporting Lossy Conversion as converting floats to integers obviously truncates the value.
             Problems.assume_no_problems c
@@ -370,11 +366,11 @@ add_specs suite_builder setup =
             t = table_builder [["X", [Nothing, 1, 2, 3000]], ["Y", [Nothing, True, False, True]]]
 
             c1 = t.at "X" . cast Value_Type.Char
-            c1.value_type.is_text . should_be_true
+            c1.value_type . should_be_a (Value_Type.Char ...)
             c1.to_vector . should_equal [Nothing, "1", "2", "3000"]
 
             c2 = t.at "Y" . cast Value_Type.Integer
-            c2.value_type . should_equal Value_Type.Integer
+            setup.expect_integer_type c2
             c2.to_vector . should_equal [Nothing, 1, 0, 1]
 
         group_builder.specify "should not lose the type after further operations were performed on the result" <|
@@ -383,13 +379,11 @@ add_specs suite_builder setup =
             c2 = t.at "Y" . cast Value_Type.Integer
 
             c3 = c1 + '_suffix'
-            c3.value_type.is_text . should_be_true
+            c3.value_type . should_be_a (Value_Type.Char ...)
             c3.to_vector . should_equal ["1_suffix", "2_suffix", "3000_suffix"]
 
             c4 = c2 + 1000
-            vt4 = c4.value_type
-            Test.with_clue "Expecting "+vt4.to_display_text+" to be Integer. " <|
-                vt4.is_integer . should_be_true
+            setup.expect_integer_type c4
             c4.to_vector . should_equal [1001, 1000, 1001]
 
         group_builder.specify "should not lose the type after further operations were performed on the result, even if the first row is NULL" <|
@@ -398,13 +392,11 @@ add_specs suite_builder setup =
             c2 = t.at "Y" . cast Value_Type.Integer
 
             c3 = c1 + '_suffix'
-            c3.value_type.is_text . should_be_true
+            c3.value_type.should_be_a (Value_Type.Char ...)
             c3.to_vector . should_equal [Nothing, "1_suffix", "2_suffix", "3000_suffix"]
 
             c4 = c2 + 1000
-            vt4 = c4.value_type
-            Test.with_clue "Expecting "+vt4.to_display_text+" to be Integer. " <|
-                vt4.is_integer . should_be_true
+            setup.expect_integer_type c4
             c4.to_vector . should_equal [Nothing, 1001, 1000, 1001]
 
         group_builder.specify 'Table.cast should cast the columns "in-place" and not reorder them' <|
@@ -554,11 +546,11 @@ add_specs suite_builder setup =
             t = table_builder [["X", ["42", "0", "-1"]]]
 
             c1 = t.at "X" . parse Value_Type.Integer
-            c1.value_type.is_integer . should_be_true
+            setup.expect_integer_type c1
             c1.to_vector . should_equal [42, 0, -1]
 
             c2 = t.parse ["X"] Value_Type.Integer . at "X"
-            c2.value_type.is_integer . should_be_true
+            setup.expect_integer_type c2
             c2.to_vector . should_equal [42, 0, -1]
 
         group_builder.specify "should be able to parse simple floats" <|

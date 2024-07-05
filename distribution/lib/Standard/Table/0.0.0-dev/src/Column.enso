@@ -2289,6 +2289,12 @@ type Column
         Storage.to_value_type storage_type
 
     ## PRIVATE
+       Internal hook that says if a given column should be selected by a
+       specific type in a `By_Type` selection.
+    should_be_selected_by_type self (value_type : Value_Type) -> Boolean =
+        self.value_type.is_same_type value_type
+
+    ## PRIVATE
        Converts this column to JS_Object representation.
 
        > Example

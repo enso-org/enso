@@ -126,6 +126,10 @@ type SQLite_Type_Mapping
     ## PRIVATE
     is_integer_type (value_type : Value_Type) -> Boolean = value_type.is_integer
 
+    ## PRIVATE
+    is_same_type (value_type1 : Value_Type) (value_type2 : Value_Type) -> Boolean =
+        value_type1.is_same_type value_type2
+
 ## PRIVATE
    The types that SQLite JDBC driver will report are: BOOLEAN, TINYINT,
    SMALLINT, BIGINT, INTEGER, DECIMAL, DOUBLE, REAL, FLOAT, NUMERIC, DATE,

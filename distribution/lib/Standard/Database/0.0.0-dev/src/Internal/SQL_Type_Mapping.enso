@@ -112,6 +112,17 @@ type SQL_Type_Mapping
         _ = value_type
         Unimplemented.throw "This is an interface only."
 
+    ## PRIVATE
+       Checks if the two types are to be considered the same by the `By_Type`
+       selector.
+
+       In most backends this can just delegate to `Value_Type.is_same_type`. But
+       e.g. in Snowflake this can be used to make Decimal and Integer types
+       interchangeable.
+    is_same_type (value_type1 : Value_Type) (value_type2 : Value_Type) -> Boolean =
+        _ = [value_type1, value_type2]
+        Unimplemented.throw "This is an interface only."
+
 ## PRIVATE
 default_sql_type_to_text sql_type =
     suffix = case sql_type.precision of
