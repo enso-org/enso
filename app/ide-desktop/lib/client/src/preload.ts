@@ -12,24 +12,13 @@ import * as ipc from 'ipc'
 // === Constants ===
 // =================
 
-/** Name given to the {@link BACKEND_API} object, when it is exposed on the Electron main
- * window. */
 const BACKEND_API_KEY = 'backendApi'
-/** Name given to the {@link AUTHENTICATION_API} object, when it is exposed on the Electron main
- * window. */
 const AUTHENTICATION_API_KEY = 'authenticationApi'
-/** Name given to the {@link FILE_BROWSER_API} object, when it is exposed on the Electron main
- * window. */
 const FILE_BROWSER_API_KEY = 'fileBrowserApi'
-
 const PROJECT_MANAGEMENT_API_KEY = 'projectManagementApi'
-
 const NAVIGATION_API_KEY = 'navigationApi'
-
 const MENU_API_KEY = 'menuApi'
-
 const SYSTEM_API_KEY = 'systemApi'
-
 const VERSION_INFO_KEY = 'versionInfo'
 
 // =============================
@@ -66,71 +55,21 @@ electron.ipcRenderer.on(
     }
 )
 
-// =======================
-// === Debug Info APIs ===
-// =======================
-
-// These APIs expose functionality for use from Rust. See the bindings in the `debug_api` module for
-// the primary documentation.
-
-/** Shutdown-related commands and events. */
-electron.contextBridge.exposeInMainWorld('enso_lifecycle', {
-    /** Allow application-exit to be initiated from WASM code.
-     * This is used, for example, in a key binding (Ctrl+Alt+Q) that saves a performance profile and
-     * exits. */
-    quit: () => {
-        electron.ipcRenderer.send(ipc.Channel.quit)
-    },
-})
-
-// Save and load profile data.
-let onProfiles: ((profiles: string[]) => void)[] = []
-let profilesLoaded: string[] | null
-
-electron.ipcRenderer.on(ipc.Channel.profilesLoaded, (_event, profiles: string[]) => {
-    for (const callback of onProfiles) {
-        callback(profiles)
-    }
-    onProfiles = []
-    profilesLoaded = profiles
-})
-
-electron.contextBridge.exposeInMainWorld('enso_profiling_data', {
-    // Delivers profiling log.
-    saveProfile: (data: unknown) => {
-        electron.ipcRenderer.send(ipc.Channel.saveProfile, data)
-    },
-    // Requests any loaded profiling logs.
-    loadProfiles: (callback: (profiles: string[]) => void) => {
-        if (profilesLoaded == null) {
-            electron.ipcRenderer.send('load-profiles')
-            onProfiles.push(callback)
-        } else {
-            callback(profilesLoaded)
-        }
-    },
-})
-
-electron.contextBridge.exposeInMainWorld('enso_hardware_info', {
-    // Open a page displaying GPU debug info.
-    openGpuDebugInfo: () => {
-        electron.ipcRenderer.send(ipc.Channel.openGpuDebugInfo)
-    },
-})
-
-// Access to the system console that Electron was run from.
-electron.contextBridge.exposeInMainWorld('enso_console', {
-    // Print an error message with `console.error`.
-    error: (data: unknown) => {
-        electron.ipcRenderer.send('error', data)
-    },
-})
-
 // ==========================
 // === Authentication API ===
 // ==========================
 
-let currentDeepLinkHandler: ((event: Electron.IpcRendererEvent, url: string) => void) | null = null
+/** A callback called when a deep link is opened. */
+type OpenDeepLinkHandler = (url: string) => void
+
+let deepLinkHandler: OpenDeepLinkHandler | null = null
+
+electron.ipcRenderer.on(
+    ipc.Channel.openProject,
+    (_event: Electron.IpcRendererEvent, ...args: Parameters<OpenDeepLinkHandler>) => {
+        deepLinkHandler?.(...args)
+    }
+)
 
 /** Object exposed on the Electron main window; provides proxy functions to:
  * - open OAuth flows in the system browser, and
@@ -158,13 +97,7 @@ const AUTHENTICATION_API = {
      * system browser or email client. Handling the links involves resuming whatever flow was in
      * progress when the link was opened (e.g., an OAuth registration flow). */
     setDeepLinkHandler: (callback: (url: string) => void) => {
-        if (currentDeepLinkHandler != null) {
-            electron.ipcRenderer.off(ipc.Channel.openDeepLink, currentDeepLinkHandler)
-        }
-        currentDeepLinkHandler = (_event, url: string) => {
-            callback(url)
-        }
-        electron.ipcRenderer.on(ipc.Channel.openDeepLink, currentDeepLinkHandler)
+        deepLinkHandler = callback
     },
     /** Save the access token to a credentials file.
      *
@@ -187,17 +120,23 @@ const FILE_BROWSER_API = {
 electron.contextBridge.exposeInMainWorld(FILE_BROWSER_API_KEY, FILE_BROWSER_API)
 
 // ==============================
-// === PROJECT_MANAGEMENT_API ===
+// === Project management API ===
 // ==============================
 
-let currentOpenProjectHandler: ((event: Electron.IpcRendererEvent, id: string) => void) | undefined
+/** A callback when a project is opened by opening a fileusing the system's default method. */
+type OpenProjectHandler = (id: string) => void
+let openProjectHandler: OpenProjectHandler | undefined
+
+electron.ipcRenderer.on(
+    ipc.Channel.openProject,
+    (_event: Electron.IpcRendererEvent, ...args: Parameters<OpenProjectHandler>) => {
+        openProjectHandler?.(...args)
+    }
+)
+
 const PROJECT_MANAGEMENT_API = {
     setOpenProjectHandler: (handler: (id: string) => void) => {
-        if (currentOpenProjectHandler != null) {
-            electron.ipcRenderer.off(ipc.Channel.openProject, currentOpenProjectHandler)
-        }
-        currentOpenProjectHandler = (_event, id) => handler(id)
-        electron.ipcRenderer.on(ipc.Channel.openProject, currentOpenProjectHandler)
+        openProjectHandler = handler
     },
 }
 

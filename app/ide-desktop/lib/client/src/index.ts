@@ -62,7 +62,7 @@ class App {
         // Register file associations for macOS.
         fileAssociations.setOpenFileEventHandler(id => {
             if (electron.app.isReady()) {
-                this.window?.webContents.send('open-project', id)
+                this.window?.webContents.send(ipc.Channel.openProject, id)
             } else {
                 this.setProjectToOpenOnStartup(id)
             }
