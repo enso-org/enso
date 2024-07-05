@@ -1697,6 +1697,14 @@ export default function AssetsTable(props: AssetsTableProps) {
         insertArbitraryAssets(event.assets, event.parentKey, event.parentId)
         break
       }
+      case AssetListEventType.openProject: {
+        dispatchAssetEvent({
+          type: AssetEventType.openProject,
+          id: event.id,
+          runInBackground: false,
+        })
+        break
+      }
       case AssetListEventType.duplicateProject: {
         const siblings = nodeMapRef.current.get(event.parentKey)?.children ?? []
         const siblingTitles = new Set(siblings.map(sibling => sibling.item.title))

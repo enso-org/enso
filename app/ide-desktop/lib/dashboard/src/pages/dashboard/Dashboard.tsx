@@ -178,6 +178,19 @@ export default function Dashboard(props: DashboardProps) {
   }, [])
 
   React.useEffect(() => {
+    window.projectManagementApi?.setOpenProjectHandler(id => {
+      setCategory(Category.local)
+      dispatchAssetListEvent({
+        type: AssetListEventType.openProject,
+        id: backendModule.ProjectId(id),
+      })
+    })
+    return () => {
+      window.projectManagementApi?.setOpenProjectHandler(() => {})
+    }
+  }, [dispatchAssetListEvent, setCategory])
+
+  React.useEffect(() => {
     const savedProjectStartupInfo = localStorage.get('projectStartupInfo')
     if (initialProjectName != null) {
       if (page === TabType.editor) {
