@@ -20,8 +20,6 @@ public class SnowflakeJDBCUtils {
       stmt.setString(columnIndex, formatted);
     } else {
       LocalDateTime localDateTime = dateTime.toLocalDateTime();
-      // Timestamp timestamp = Timestamp.valueOf(localDateTime);
-      // stmt.setObject(columnIndex, timestamp, SnowflakeUtil.EXTRA_TYPES_TIMESTAMP_NTZ);
       stmt.setString(columnIndex, localDateTime.toString());
     }
   }
