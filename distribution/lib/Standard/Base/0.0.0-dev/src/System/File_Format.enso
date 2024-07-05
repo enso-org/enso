@@ -106,7 +106,7 @@ type File_Format
     ## PRIVATE
        Implements the `File.read` for this `File_Format`
     read : File -> Problem_Behavior -> Any
-    read self file on_problems =
+    read self file on_problems:Problem_Behavior =
         _ = [file, on_problems]
         Unimplemented.throw "This is an interface only."
 
@@ -170,7 +170,7 @@ type Plain_Text_Format
     ## PRIVATE
        Implements the `File.read` for this `File_Format`
     read : File -> Problem_Behavior -> Any
-    read self file on_problems =
+    read self file on_problems:Problem_Behavior =
         file.read_text (self.resolve_encoding file) on_problems
 
     ## PRIVATE
@@ -216,7 +216,7 @@ type Bytes
     ## PRIVATE
        Implements the `File.read` for this `File_Format`
     read : File -> Problem_Behavior -> Any
-    read self file on_problems =
+    read self file on_problems:Problem_Behavior =
         _ = [on_problems]
         file.read_bytes
 
@@ -262,7 +262,7 @@ type JSON_Format
     ## PRIVATE
        Implements the `File.read` for this `File_Format`
     read : File -> Problem_Behavior -> Any
-    read self file on_problems =
+    read self file on_problems:Problem_Behavior =
         _ = [on_problems]
         text = file.read_text
         Json.parse text . catch Invalid_JSON error->

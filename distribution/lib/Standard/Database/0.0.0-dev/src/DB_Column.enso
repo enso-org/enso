@@ -1373,16 +1373,15 @@ type DB_Column
        - what: A `Text` (or text `DB_Column`) containing characters that should be
          removed. By default, spaces, tabs, returns and new lines are removed.
     trim : Location -> DB_Column | Text -> DB_Column
-    trim self where=Location.Both what='' =
-        Value_Type.expect_text self <|
-            Value_Type.expect_text what <|
-                new_name = self.naming_helper.function_name "trim" [self]
-                operator = case where of
-                    Location.Both -> "TRIM"
-                    Location.Start -> "LTRIM"
-                    Location.End -> "RTRIM"
-                if self.connection.dialect.is_supported operator then self.make_binary_op operator what new_name else
-                    Error.throw (Unsupported_Database_Operation.Error ("`DB_Column.trim "+where.to_text+"` is not supported by this connection."))
+    trim self where:Location=..Both what='' =
+        Value_Type.expect_text self <| Value_Type.expect_text what <|
+            new_name = self.naming_helper.function_name "trim" [self]
+            operator = case where of
+                Location.Both -> "TRIM"
+                Location.Left -> "LTRIM"
+                Location.Right -> "RTRIM"
+            if self.connection.dialect.is_supported operator then self.make_binary_op operator what new_name else
+                Error.throw (Unsupported_Database_Operation.Error ("`DB_Column.trim "+where.to_text+"` is not supported by this connection."))
 
     ## GROUP Standard.Base.Text
        ICON column_add

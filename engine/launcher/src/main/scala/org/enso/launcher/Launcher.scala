@@ -2,7 +2,6 @@ package org.enso.launcher
 
 import java.nio.file.Path
 import com.typesafe.scalalogging.Logger
-import io.circe.Json
 import org.enso.semver.SemVer
 import org.enso.distribution.config.DefaultVersion
 import org.enso.editions.updater.EditionManager
@@ -368,7 +367,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
         s"(${configurationManager.configLocation.toAbsolutePath})."
       )
     } else {
-      configurationManager.updateConfigRaw(key, Json.fromString(value))
+      configurationManager.updateConfigRaw(key, value)
       InfoLogger.info(
         s"""Key `$key` set to "$value" in the global configuration file """ +
         s"(${configurationManager.configLocation.toAbsolutePath})."

@@ -83,7 +83,7 @@ slice vector start end = @Builtin_Method "Array_Like_Helpers.slice"
      - Ignore: The result is `Nothing`, and the error is
        ignored.
 vector_from_function : Integer -> (Integer -> Any) -> Problem_Behavior | No_Wrap -> Vector Any
-vector_from_function length function on_problems=Problem_Behavior.Report_Error =
+vector_from_function length function on_problems:(Problem_Behavior | No_Wrap)=..Report_Error =
     num_errors = Ref.new 0
     wrapped_function i =
         result = function i

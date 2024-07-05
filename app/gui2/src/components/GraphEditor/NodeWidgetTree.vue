@@ -9,7 +9,7 @@ import { useGraphStore, type NodeId } from '@/stores/graph'
 import { Ast } from '@/util/ast'
 import type { Vec2 } from '@/util/data/vec2'
 import type { Icon } from '@/util/iconName'
-import { computed, ref, toRef, watch } from 'vue'
+import { computed, toRef, watch } from 'vue'
 
 const props = defineProps<{
   ast: Ast.Ast

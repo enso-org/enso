@@ -172,10 +172,10 @@ add_specs suite_builder setup =
             t = table_builder [["A", ["  a ", "b"]], ["B", ["c", " d    "]]]
 
             t.set (Simple_Expression.Simple_Expr (Column_Ref.Name "A") Simple_Calculation.Trim) "Z" . at "Z" . to_vector . should_equal ["a", "b"]
-            t.set (Simple_Expression.Simple_Expr (Column_Ref.Name "A") (Simple_Calculation.Trim Location.End)) "Z" . at "Z" . to_vector . should_equal ["  a", "b"]
-            t.set (Simple_Expression.Simple_Expr (Column_Ref.Name "A") (Simple_Calculation.Trim Location.Start)) "Z" . at "Z" . to_vector . should_equal ["a ", "b"]
-            t.set (Simple_Expression.Simple_Expr (Column_Ref.Name "A") (Simple_Calculation.Trim Location.Both "abc")) "Z" . at "Z" . to_vector . should_equal ["  a ", ""]
-            t.set (Simple_Expression.Simple_Expr "bb aaaa" (Simple_Calculation.Trim Location.Both (Column_Ref.Name "A"))) "Z" . at "Z" . to_vector . should_equal ["bb", " aaaa"]
+            t.set (Simple_Expression.Simple_Expr (Column_Ref.Name "A") (Simple_Calculation.Trim ..Right)) "Z" . at "Z" . to_vector . should_equal ["  a", "b"]
+            t.set (Simple_Expression.Simple_Expr (Column_Ref.Name "A") (Simple_Calculation.Trim ..Left)) "Z" . at "Z" . to_vector . should_equal ["a ", "b"]
+            t.set (Simple_Expression.Simple_Expr (Column_Ref.Name "A") (Simple_Calculation.Trim ..Both "abc")) "Z" . at "Z" . to_vector . should_equal ["  a ", ""]
+            t.set (Simple_Expression.Simple_Expr "bb aaaa" (Simple_Calculation.Trim ..Both (Column_Ref.Name "A"))) "Z" . at "Z" . to_vector . should_equal ["bb", " aaaa"]
 
             t.set (Simple_Expression.Simple_Expr (Column_Ref.Name "A") (Simple_Calculation.Add (Column_Ref.Name "B"))) "Z" . at "Z" . to_vector . should_equal ["  a c", "b d    "]
             t.set (Simple_Expression.Simple_Expr "prefix_" (Simple_Calculation.Add (Column_Ref.Name "B"))) "Z" . at "Z" . to_vector . should_equal ["prefix_c", "prefix_ d    "]

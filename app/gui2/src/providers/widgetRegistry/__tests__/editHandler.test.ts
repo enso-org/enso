@@ -5,7 +5,7 @@ import { useCurrentEdit, type CurrentEdit } from '@/providers/widgetTree'
 import { assert } from 'shared/util/assert'
 import { expect, test, vi, type Mock } from 'vitest'
 import { proxyRefs } from 'vue'
-import { WidgetEditHandler, type WidgetId } from '../editHandler'
+import { WidgetEditHandler } from '../editHandler'
 
 // If widget's name is a prefix of another widget's name, then it is its ancestor.
 // The ancestor with longest name is a direct parent.

@@ -1,11 +1,11 @@
 import project.Any.Any
 import project.Data.Array.Array
 import project.Data.Array_Proxy.Array_Proxy
+import project.Data.Decimal.Decimal
 import project.Data.Json.JS_Object
 import project.Data.Json.Json
 import project.Data.Locale.Locale
 import project.Data.Map.Map
-import project.Data.Decimal.Decimal
 import project.Data.Numbers.Float
 import project.Data.Numbers.Integer
 import project.Data.Numbers.Number
