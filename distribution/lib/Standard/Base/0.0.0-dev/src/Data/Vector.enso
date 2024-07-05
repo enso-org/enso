@@ -699,7 +699,7 @@ type Vector a
 
              [1, 2, 3] . map +1
     map : (Any -> Any) -> Problem_Behavior | No_Wrap -> Vector Any
-    map self function on_problems:Problem_Behavior=..Report_Error =
+    map self function on_problems:(Problem_Behavior | No_Wrap)=..Report_Error =
         Array_Like_Helpers.map self function on_problems
 
     ## ICON union
@@ -738,7 +738,7 @@ type Vector a
 
             [0, 1, 2] . flat_map (n -> Vector.fill n n)
     flat_map : (Any -> Vector Any) -> Problem_Behavior | No_Wrap -> Vector Any
-    flat_map self function on_problems:Problem_Behavior=..Report_Error =
+    flat_map self function on_problems:(Problem_Behavior | No_Wrap)=..Report_Error =
         Array_Like_Helpers.flat_map self function on_problems
 
     ## GROUP Calculations
@@ -792,7 +792,7 @@ type Vector a
 
              [1, 2, 3].map_with_index (+)
     map_with_index : (Integer -> Any -> Any) -> Problem_Behavior | No_Wrap -> Vector Any
-    map_with_index self function on_problems:Problem_Behavior=..Report_Error =
+    map_with_index self function on_problems:(Problem_Behavior | No_Wrap)=..Report_Error =
         Array_Like_Helpers.map_with_index self function on_problems
 
     ## PRIVATE
@@ -1040,7 +1040,7 @@ type Vector a
 
              [1, 2, 3].zip [4, 5, 6] == [[1, 4], [2, 5], [3, 6]]
     zip : Vector Any -> (Any -> Any -> Any) -> Problem_Behavior | No_Wrap -> Vector Any
-    zip self that:Vector function=[_,_] on_problems:Problem_Behavior=..Report_Error =
+    zip self that:Vector function=[_,_] on_problems:(Problem_Behavior | No_Wrap)=..Report_Error =
         len = self.length.min that.length
         Array_Like_Helpers.vector_from_function len (i-> function (self.at i) (that.at i)) on_problems
 
