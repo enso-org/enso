@@ -72,6 +72,7 @@ impl BuiltEnso {
         self.paths.repo_root.built_distribution.enso_engine_triple.engine_package.bin.join(filename)
     }
 
+    #[allow(clippy::needless_question_mark)]
     pub async fn run_benchmarks(&self, opt: BenchmarkOptions) -> Result {
         let filename = format!("enso{}", if TARGET_OS == OS::Windows { ".exe" } else { "" });
         let enso = self
