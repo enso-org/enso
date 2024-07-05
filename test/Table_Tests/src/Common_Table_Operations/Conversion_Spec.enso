@@ -8,7 +8,7 @@ from Standard.Database.Errors import Unsupported_Database_Operation
 
 from Standard.Test import all
 
-from project.Common_Table_Operations.Util import run_default_backend
+from project.Common_Table_Operations.Util import run_default_backend, build_sorted_table
 
 polyglot java import java.lang.Long as Java_Long
 
@@ -25,7 +25,7 @@ add_specs suite_builder setup =
     materialize = setup.materialize
     supports_dates = setup.test_selection.date_time
     supports_conversion_failure_reporting = setup.is_database.not
-    table_builder = setup.table_builder
+    table_builder = build_sorted_table setup
     suite_builder.group prefix+"(Conversion_Spec) Table/Column.cast - to text" group_builder->
         group_builder.specify "should allow to cast columns of various basic types to text" <|
             t = table_builder [["X", [1, 2, 3000]], ["Y", [True, False, True]], ["Z", [1.5, 0.125, -2.5]], ["W", ["a", "DEF", "a slightly longer text"]]]
