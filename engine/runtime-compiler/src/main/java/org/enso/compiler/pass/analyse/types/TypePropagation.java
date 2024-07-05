@@ -328,9 +328,19 @@ abstract class TypePropagation {
           return typeResolver.buildAtomConstructorType(typeObject, ctorCandidate.get());
         } else {
           System.out.println("TODO: static calling " + function.name() + " on " + typeObject);
-          // TODO use adaptMemberMethodForStaticCall for also calling member functions
-          var typeScope = TypeScopeReference.atomEigenType(typeObject.name());
-          return methodTypeResolver.resolveMethod(typeScope, function.name());
+          var staticScope = TypeScopeReference.atomEigenType(typeObject.name());
+          var resolvedStaticMethod = methodTypeResolver.resolveMethod(staticScope, function.name());
+          if (resolvedStaticMethod != null) {
+            return resolvedStaticMethod;
+          }
+
+          var memberScope = TypeScopeReference.atomType(typeObject.name());
+          var resolvedMemberMethod = methodTypeResolver.resolveMethod(memberScope, function.name());
+          if (resolvedMemberMethod != null) {
+            return adaptMemberMethodForStaticCall(typeObject, resolvedMemberMethod);
+          }
+
+          return null;
         }
       }
 
