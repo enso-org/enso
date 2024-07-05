@@ -259,7 +259,7 @@ add_specs suite_builder setup make_new_connection persistent_connector=True =
 
             logs = log_file.read ..Plain_Text . lines
             deletes = logs.filter (_.contains "DROP")
-            wrapped_name = data.connection.dialect.wrap_identifier original_table_name
+            wrapped_name = data.connection.dialect.wrap_identifier original_table_name . build . unsafe_to_raw_sql
             deletes.each line->
                 if line.contains wrapped_name then
                     Test.fail "The log file contains a dangerous DELETE statement for the original table: "+line
