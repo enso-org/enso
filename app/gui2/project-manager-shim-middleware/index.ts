@@ -9,7 +9,7 @@ import * as tar from 'tar'
 import * as yaml from 'yaml'
 
 import * as common from 'enso-common'
-import GLOBAL_CONFIG from '../../common/src/config.json' with { type: 'json' }
+import GLOBAL_CONFIG from 'enso-common/src/config.json' with { type: 'json' }
 
 import * as projectManagement from './projectManagement'
 
