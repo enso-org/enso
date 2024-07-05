@@ -22,7 +22,7 @@ const MIN_CONTENT_WIDTH = 56
 
 // Edited value reflects the `modelValue`, but does not update it until the user defocuses the field.
 const editedValue = ref('')
-// Last value which is a parseable number. It's a string, the Enso number literals differ from js
+// Last value which is a parseable number. It's a string, because the Enso number literals differ from js
 // representations.
 const lastValidValue = ref<string>()
 watch(editedValue, (newValue, oldValue) => {
