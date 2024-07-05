@@ -7,11 +7,7 @@ import java.nio.file.Path;
 /** The {@link Trash} implementation provided by Java Abstract Window Toolkit. */
 final class AwtTrash implements Trash {
 
-  private final Desktop desktop;
-
-  AwtTrash(Desktop desktop) {
-    this.desktop = desktop;
-  }
+  private final Desktop desktop = Desktop.getDesktop();
 
   @Override
   public boolean isSupported() {

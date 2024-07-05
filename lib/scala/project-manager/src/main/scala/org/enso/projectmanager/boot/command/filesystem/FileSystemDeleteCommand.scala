@@ -36,7 +36,7 @@ object FileSystemDeleteCommand {
     val clock      = new RealClock[F]
     val fileSystem = new BlockingFileSystem[F](config.timeout.ioTimeout)
     val gen        = new SystemGenerator[F]
-    val trash      = new DesktopTrash[F]
+    val trash      = DesktopTrash[F]
 
     val projectRepositoryFactory =
       new ProjectFileRepositoryFactory[F](

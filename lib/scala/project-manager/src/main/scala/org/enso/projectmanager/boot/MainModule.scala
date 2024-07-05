@@ -11,7 +11,7 @@ import org.enso.projectmanager.boot.configuration.{
 }
 import org.enso.projectmanager.control.core.{Applicative, CovariantFlatMap}
 import org.enso.projectmanager.control.effect.{Async, ErrorChannel, Exec, Sync}
-import org.enso.projectmanager.infrastructure.desktop.DesktopTrash
+import org.enso.projectmanager.infrastructure.desktop.{DesktopTrash, TrashCan}
 import org.enso.projectmanager.infrastructure.file.BlockingFileSystem
 import org.enso.projectmanager.infrastructure.http.ProjectsEndpoint
 import org.enso.projectmanager.infrastructure.languageserver.{
@@ -69,7 +69,7 @@ class MainModule[
 
   lazy val projectValidator = new ProjectNameValidator[F]()
 
-  lazy val trash = new DesktopTrash[F]
+  lazy val trash: TrashCan[F] = DesktopTrash[F]
 
   lazy val projectRepositoryFactory =
     new ProjectFileRepositoryFactory[F](

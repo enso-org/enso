@@ -1106,6 +1106,7 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
         staticOnLinux = true,
         initializeAtRuntime = Seq(
           "scala.util.Random",
+          //"sun.awt",
           "zio.internal.ZScheduler$$anon$4",
           "zio.Runtime$",
           "zio.FiberRef$"

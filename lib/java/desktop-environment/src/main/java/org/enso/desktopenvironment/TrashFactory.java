@@ -4,10 +4,26 @@ import java.awt.Desktop;
 
 final class TrashFactory {
 
-  private static Trash Instance = null;
+  private static final class LazyTrash {
+
+    private static Trash Instance = null;
+
+    private LazyTrash() {}
+
+    public static Trash getInstance() {
+      if (Instance == null) {
+        Instance = switch (Platform.getOperatingSystem()) {
+          case Platform.OS.LINUX -> new LinuxTrash();
+          case Platform.OS.MACOS, Platform.OS.WINDOWS -> new AwtTrash();
+        };
+      }
+      return Instance;
+    }
+  }
 
   private TrashFactory() {}
 
+  /*
   private static Trash initTrash() {
     if (Desktop.isDesktopSupported()) {
       var desktop = Desktop.getDesktop();
@@ -22,11 +38,9 @@ final class TrashFactory {
 
     return new UnsupportedTrash();
   }
+   */
 
-  public static synchronized Trash getInstance() {
-    if (Instance == null) {
-      Instance = initTrash();
-    }
-    return Instance;
+  public static Trash getInstance() {
+    return LazyTrash.getInstance();
   }
 }
