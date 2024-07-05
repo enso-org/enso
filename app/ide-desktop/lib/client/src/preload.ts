@@ -21,23 +21,34 @@ const MENU_API_KEY = 'menuApi'
 const SYSTEM_API_KEY = 'systemApi'
 const VERSION_INFO_KEY = 'versionInfo'
 
+// =========================
+// === exposeInMainWorld ===
+// =========================
+
+/** A type-safe wrapper around {@link electron.contextBridge.exposeInMainWorld}. */
+function exposeInMainWorld<Key extends string & keyof typeof window>(
+    key: Key,
+    value: NonNullable<(typeof window)[Key]>
+) {
+    electron.contextBridge.exposeInMainWorld(key, value)
+}
+
 // =============================
 // === importProjectFromPath ===
 // =============================
 
 const IMPORT_PROJECT_RESOLVE_FUNCTIONS = new Map<string, (projectId: string) => void>()
 
-const BACKEND_API = {
+exposeInMainWorld(BACKEND_API_KEY, {
     importProjectFromPath: (projectPath: string, directory: string | null = null) => {
         electron.ipcRenderer.send(ipc.Channel.importProjectFromPath, projectPath, directory)
         return new Promise<string>(resolve => {
             IMPORT_PROJECT_RESOLVE_FUNCTIONS.set(projectPath, resolve)
         })
     },
-}
-electron.contextBridge.exposeInMainWorld(BACKEND_API_KEY, BACKEND_API)
+})
 
-electron.contextBridge.exposeInMainWorld(NAVIGATION_API_KEY, {
+exposeInMainWorld(NAVIGATION_API_KEY, {
     goBack: () => {
         electron.ipcRenderer.send(ipc.Channel.goBack)
     },
@@ -77,12 +88,12 @@ electron.ipcRenderer.on(
  *
  * Some functions (i.e., the functions to open URLs in the system browser) are not available in
  * sandboxed processes (i.e., the dashboard). So the
- * {@link electron.contextBridge.exposeInMainWorld} API is used to expose these functions.
+ * {@link exposeInMainWorld} API is used to expose these functions.
  * The functions are exposed via this "API object", which is added to the main window.
  *
  * For more details, see:
  * https://www.electronjs.org/docs/latest/api/context-bridge#api-functions. */
-const AUTHENTICATION_API = {
+exposeInMainWorld(AUTHENTICATION_API_KEY, {
     /** Open a URL in the system browser (rather than in the app).
      *
      * OAuth URLs must be opened this way because the dashboard application is sandboxed and thus
@@ -106,18 +117,16 @@ const AUTHENTICATION_API = {
     saveAccessToken: (accessTokenPayload: SaveAccessTokenPayload | null) => {
         electron.ipcRenderer.send(ipc.Channel.saveAccessToken, accessTokenPayload)
     },
-}
-electron.contextBridge.exposeInMainWorld(AUTHENTICATION_API_KEY, AUTHENTICATION_API)
+})
 
 // ========================
 // === File Browser API ===
 // ========================
 
-const FILE_BROWSER_API = {
+exposeInMainWorld(FILE_BROWSER_API_KEY, {
     openFileBrowser: (kind: 'any' | 'directory' | 'file' | 'filePath', defaultPath?: string) =>
         electron.ipcRenderer.invoke(ipc.Channel.openFileBrowser, kind, defaultPath),
-}
-electron.contextBridge.exposeInMainWorld(FILE_BROWSER_API_KEY, FILE_BROWSER_API)
+})
 
 // ==============================
 // === Project management API ===
@@ -134,13 +143,11 @@ electron.ipcRenderer.on(
     }
 )
 
-const PROJECT_MANAGEMENT_API = {
+exposeInMainWorld(PROJECT_MANAGEMENT_API_KEY, {
     setOpenProjectHandler: (handler: (id: string) => void) => {
         openProjectHandler = handler
     },
-}
-
-electron.contextBridge.exposeInMainWorld(PROJECT_MANAGEMENT_API_KEY, PROJECT_MANAGEMENT_API)
+})
 
 // ================
 // === Menu API ===
@@ -152,28 +159,24 @@ electron.ipcRenderer.on(ipc.Channel.showAboutModal, () => {
     showAboutModalHandler?.()
 })
 
-const MENU_API = {
+exposeInMainWorld(MENU_API_KEY, {
     setShowAboutModalHandler: (callback: () => void) => {
         showAboutModalHandler = callback
     },
-}
-
-electron.contextBridge.exposeInMainWorld(MENU_API_KEY, MENU_API)
+})
 
 // ==================
 // === System API ===
 // ==================
 
-const SYSTEM_API = {
+exposeInMainWorld(SYSTEM_API_KEY, {
     showItemInFolder: (fullPath: string) => {
         electron.ipcRenderer.send(ipc.Channel.showItemInFolder, fullPath)
     },
-}
-
-electron.contextBridge.exposeInMainWorld(SYSTEM_API_KEY, SYSTEM_API)
+})
 
 // ====================
 // === Version info ===
 // ====================
 
-electron.contextBridge.exposeInMainWorld(VERSION_INFO_KEY, debug.VERSION_INFO)
+exposeInMainWorld(VERSION_INFO_KEY, debug.VERSION_INFO)
