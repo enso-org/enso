@@ -13,7 +13,6 @@ import org.enso.persist.Persistance
 import org.enso.pkg.QualifiedName
 import org.enso.common.LanguageInfo
 import org.enso.common.MethodNames
-import org.enso.compiler.data.BindingsMap.{ResolvedConstructor, ResolvedModule}
 import org.enso.compiler.phase.exports.Node
 import org.enso.polyglot.RuntimeOptions
 import org.graalvm.polyglot.{Context, Engine}
@@ -99,6 +98,20 @@ class ImportExportTest
     val exportsResolution = new ExportsResolution(compilerCtx)
     val compilerModules   = modules.map(_.asCompilerModule())
     exportsResolution.buildModuleGraph(compilerModules)
+  }
+
+  /** Just delegates to [[ExportsResolution.runSort()]]
+    */
+  private def runExportsResolutionSort(
+    modules: List[org.enso.interpreter.runtime.Module]
+  ): List[org.enso.interpreter.runtime.Module] = {
+    val compilerCtx           = langCtx.getCompiler.context
+    val exportsResolution     = new ExportsResolution(compilerCtx)
+    val compilerModules       = modules.map(_.asCompilerModule())
+    val sortedCompilerModules = exportsResolution.runSort(compilerModules)
+    sortedCompilerModules.map(
+      org.enso.interpreter.runtime.Module.fromCompilerModule
+    )
   }
 
   before {
@@ -1354,9 +1367,6 @@ class ImportExportTest
 
   "Exports graph building" should {
     def assertAModExportedByBMod(graph: List[Node]): Unit = {
-      withClue("There should be only A_Module and B_Module nodes") {
-        graph.size shouldBe 2
-      }
       val aModNode = graph.find(node =>
         node.module match {
           case BindingsMap.ResolvedModule(modRef) =>
@@ -1391,17 +1401,20 @@ class ImportExportTest
            |""".stripMargin
           .createModule(packageQualifiedName.createChild("B_Module"))
       val graph = buildExportsGraph(List(aModule, bModule))
+      withClue("There should be only A_Module and B_Module nodes") {
+        graph.size shouldBe 2
+      }
       assertAModExportedByBMod(graph)
     }
 
-    "build exports graph for static method" in {
+    "build exports graph for module method with `from ... export ...` syntax" in {
       val aModule =
         """
           |type A_Type
           |    A_Constructor
           |    instance_method self = 42
           |
-          |static_method =
+          |module_method =
           |    local_var = 42
           |    local_var
           |""".stripMargin
@@ -1409,13 +1422,44 @@ class ImportExportTest
 
       val bModule =
         s"""
-           |from $namespace.$packageName.A_Module export static_method
+           |from $namespace.$packageName.A_Module export module_method
            |
            |type B_Type
            |    B_Constructor val
            |""".stripMargin
           .createModule(packageQualifiedName.createChild("B_Module"))
       val graph = buildExportsGraph(List(aModule, bModule))
+      withClue("There should be only A_Module and B_Module nodes") {
+        graph.size shouldBe 2
+      }
+      assertAModExportedByBMod(graph)
+    }
+
+    "build exports graph for module method with `export ...` syntax" in {
+      val aModule =
+        """
+          |type A_Type
+          |    A_Constructor
+          |    instance_method self = 42
+          |
+          |module_method =
+          |    local_var = 42
+          |    local_var
+          |""".stripMargin
+          .createModule(packageQualifiedName.createChild("A_Module"))
+
+      val bModule =
+        s"""
+           |export $namespace.$packageName.A_Module.module_method
+           |
+           |type B_Type
+           |    B_Constructor val
+           |""".stripMargin
+          .createModule(packageQualifiedName.createChild("B_Module"))
+      val graph = buildExportsGraph(List(aModule, bModule))
+      withClue("There should be only A_Module and B_Module nodes") {
+        graph.size shouldBe 2
+      }
       assertAModExportedByBMod(graph)
     }
 
@@ -1441,6 +1485,9 @@ class ImportExportTest
            |""".stripMargin
           .createModule(packageQualifiedName.createChild("B_Module"))
       val graph = buildExportsGraph(List(aModule, bModule))
+      withClue("There should be only A_Module and B_Module nodes") {
+        graph.size shouldBe 2
+      }
       assertAModExportedByBMod(graph)
     }
 
@@ -1462,23 +1509,14 @@ class ImportExportTest
 
       val graph = buildExportsGraph(List(boolModule, mainModule))
       withClue(
-        "graph should contains node for: [A_Module, B_Module, True, False]"
+        "graph should contains node for: [Boolean, Main]"
       ) {
-        graph.size shouldBe 4
+        graph.size shouldBe 2
       }
-      val trueNode = graph.find(node => {
-        node.module match {
-          case ResolvedConstructor(_, cons) if cons.name == "True" =>
-            true
-          case _ => false
-        }
-      })
-      trueNode shouldBe defined
-      val trueNodeExporter = trueNode.get.exportedBy.head.exporter
-      trueNodeExporter.target
-        .asInstanceOf[ResolvedModule]
-        .qualifiedName
-        .item shouldBe "Main"
+      val boolNode = graph.find(_.module.qualifiedName.item == "Boolean")
+      boolNode shouldBe defined
+      val boolExporter = boolNode.get.exportedBy.head.exporter
+      boolExporter.module.qualifiedName.item shouldBe "Main"
     }
 
     "No exports graph is constructed when only import is used" in {
@@ -1504,6 +1542,128 @@ class ImportExportTest
       withClue("There should be no exports") {
         graph.forall(node => node.exports.isEmpty) shouldBe true
       }
+    }
+  }
+
+  "Export resolution sorting" should {
+    "correctly sort two modules" in {
+      val aModule =
+        """
+          |type A_Type
+          |""".stripMargin
+          .createModule(packageQualifiedName.createChild("A_Module"))
+
+      val bModule =
+        s"""
+           |export $namespace.$packageName.A_Module.A_Type
+           |""".stripMargin
+          .createModule(packageQualifiedName.createChild("B_Module"))
+      val sortedMods = runExportsResolutionSort(List(aModule, bModule))
+      sortedMods should contain theSameElementsInOrderAs List(
+        aModule,
+        bModule
+      )
+    }
+
+    "correctly sort three modules with two independent modules" in {
+      val aModule =
+        """
+          |type A_Type
+          |""".stripMargin
+          .createModule(packageQualifiedName.createChild("A_Module"))
+
+      val bModule =
+        s"""
+           |type B_Type
+           |""".stripMargin
+          .createModule(packageQualifiedName.createChild("B_Module"))
+
+      val cModule =
+        s"""
+           |export $namespace.$packageName.A_Module.A_Type
+           |export $namespace.$packageName.B_Module.B_Type
+           |""".stripMargin
+          .createModule(packageQualifiedName.createChild("C_Module"))
+      val sortedMods = runExportsResolutionSort(List(aModule, bModule, cModule))
+      sortedMods.last shouldBe cModule
+      sortedMods.take(2) should contain theSameElementsAs List(
+        aModule,
+        bModule
+      )
+    }
+
+    "correctly sort three modules with transitive exports" in {
+      val aModule =
+        """
+          |# blank on purpose
+          |""".stripMargin
+          .createModule(packageQualifiedName.createChild("A_Module"))
+
+      val bModule =
+        s"""
+           |export $namespace.$packageName.A_Module
+           |""".stripMargin
+          .createModule(packageQualifiedName.createChild("B_Module"))
+
+      val cModule =
+        s"""
+           |export $namespace.$packageName.B_Module
+           |""".stripMargin
+          .createModule(packageQualifiedName.createChild("C_Module"))
+      val sortedMods = runExportsResolutionSort(List(aModule, bModule, cModule))
+      sortedMods should contain theSameElementsInOrderAs List(
+        aModule,
+        bModule,
+        cModule
+      )
+    }
+
+    "correctly sort two modules with exported module method" in {
+      val aModule =
+        """
+          |module_method =
+          |    42
+          |""".stripMargin
+          .createModule(packageQualifiedName.createChild("A_Module"))
+
+      val bModule =
+        s"""
+           |export $namespace.$packageName.A_Module.module_method
+           |""".stripMargin
+          .createModule(packageQualifiedName.createChild("B_Module"))
+      val sortedMods = runExportsResolutionSort(List(aModule, bModule))
+      sortedMods should contain theSameElementsInOrderAs List(
+        aModule,
+        bModule
+      )
+    }
+
+    "correctly sort three modules with exported module method and import" in {
+      val aModule =
+        """
+          |module_method =
+          |    42
+          |""".stripMargin
+          .createModule(packageQualifiedName.createChild("A_Module"))
+
+      val bModule =
+        s"""
+           |export $namespace.$packageName.A_Module.module_method
+           |""".stripMargin
+          .createModule(packageQualifiedName.createChild("B_Module"))
+
+      val cModule =
+        s"""
+           |from $namespace.$packageName.B_Module import all
+           |""".stripMargin
+          .createModule(packageQualifiedName.createChild("C_Module"))
+
+      val sortedMods = runExportsResolutionSort(List(aModule, bModule, cModule))
+      sortedMods should contain theSameElementsInOrderAs List(
+        aModule,
+        bModule,
+        cModule
+      )
     }
   }
 }
