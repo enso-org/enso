@@ -12,7 +12,7 @@ const inputComponent = ref<ComponentInstance<typeof NumericInputWidget>>()
 
 function setValue(value: string | undefined) {
   props.onUpdate({
-    portUpdate: { value: value ?? '', origin: props.input.portId },
+    portUpdate: { value, origin: props.input.portId },
   })
 }
 

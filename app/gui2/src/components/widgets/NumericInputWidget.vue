@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { usePointer } from '@/composables/events'
+import { is_numeric_literal } from 'shared/ast/ffi'
 import { isNumericLiteral } from 'shared/ast/tree'
 import { computed, nextTick, ref, watch, type CSSProperties, type ComponentInstance } from 'vue'
 import AutoSizedInput from './AutoSizedInput.vue'
@@ -27,7 +28,7 @@ const editedValue = ref('')
 const lastValidValue = ref<string>()
 watch(editedValue, (newValue, oldValue) => {
   if (newValue != oldValue) {
-    if (newValue == '' || isNumericLiteral(newValue)) {
+    if (newValue == '' || is_numeric_literal(newValue)) {
       lastValidValue.value = newValue
     }
   }
@@ -103,7 +104,7 @@ const inputStyle = computed<CSSProperties>(() => {
 
 function emitUpdate() {
   if (props.modelValue !== lastValidValue.value) {
-    emit('update:modelValue', lastValidValue.value)
+    emit('update:modelValue', lastValidValue.value == '' ? undefined : lastValidValue.value)
   }
 }
 
