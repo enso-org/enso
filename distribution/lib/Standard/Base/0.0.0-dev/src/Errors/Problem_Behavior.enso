@@ -3,8 +3,6 @@ import project.Data.Vector.Vector
 import project.Error.Error
 import project.Warning.Warning
 
-from project.Errors.Problem_Behavior.Problem_Behavior import all
-
 ## Specifies how to handle problems.
 type Problem_Behavior
     ## Ignore the problem and attempt to complete the operation
@@ -29,12 +27,12 @@ type Problem_Behavior
        error takes precedence.
     attach_problem_after : Any -> Any -> Any
     attach_problem_after self decorated_value problem = case self of
-        Ignore ->
+        Problem_Behavior.Ignore ->
             if decorated_value.is_error then decorated_value else
                 if problem.is_error then problem else decorated_value
-        Report_Warning ->
+        Problem_Behavior.Report_Warning ->
             Warning.attach problem decorated_value
-        Report_Error ->
+        Problem_Behavior.Report_Error ->
             if decorated_value.is_error then decorated_value else
                 Error.throw problem
 
@@ -50,11 +48,11 @@ type Problem_Behavior
        a dataflow error.
     attach_problem_before : Any -> Any -> Any
     attach_problem_before self problem ~decorated_value = case self of
-        Ignore ->
+        Problem_Behavior.Ignore ->
             if problem.is_error then problem else decorated_value
-        Report_Warning ->
+        Problem_Behavior.Report_Warning ->
             Warning.attach problem decorated_value
-        Report_Error ->
+        Problem_Behavior.Report_Error ->
             Error.throw problem
 
     ## PRIVATE
@@ -79,12 +77,12 @@ type Problem_Behavior
 
     attach_problems_before : Vector -> Any -> Any
     attach_problems_before self problems ~decorated_value = case self of
-        Ignore ->
+        Problem_Behavior.Ignore ->
             if problems.is_error then problems else decorated_value
-        Report_Warning ->
+        Problem_Behavior.Report_Warning ->
             problems.fold decorated_value acc-> problem->
                 Warning.attach problem acc
-        Report_Error ->
+        Problem_Behavior.Report_Error ->
             if problems.is_empty then decorated_value else
                 Error.throw problems.first
 
@@ -109,13 +107,13 @@ type Problem_Behavior
                  perform_post_process_checks_and_return_problems
     attach_problems_after : Any -> Vector -> Any
     attach_problems_after self decorated_value problems = case self of
-        Ignore ->
+        Problem_Behavior.Ignore ->
             if decorated_value.is_error then decorated_value else
                 if problems.is_error then problems else decorated_value
-        Report_Warning ->
+        Problem_Behavior.Report_Warning ->
             problems.fold decorated_value acc-> problem->
                 Warning.attach problem acc
-        Report_Error ->
+        Problem_Behavior.Report_Error ->
             if decorated_value.is_error || problems.is_empty then decorated_value else
                 Error.throw problems.first
 
@@ -133,9 +131,9 @@ type Problem_Behavior
        errors. By default `Any` error is caught.
     handle_errors : Any -> Any -> Any -> Any
     handle_errors self result ~fallback error_type=Any = result.catch error_type error-> case self of
-        Ignore -> fallback
-        Report_Warning -> Warning.attach error fallback
-        Report_Error -> result
+        Problem_Behavior.Ignore -> fallback
+        Problem_Behavior.Report_Warning -> Warning.attach error fallback
+        Problem_Behavior.Report_Error -> result
 
     ## PRIVATE
        ADVANCED
@@ -155,6 +153,6 @@ type Problem_Behavior
        Returns a mapping of Problem_Behavior constructors to an integer.
        Used for sending the number to Java, rather than sending the atom.
     to_number self = case self of
-        Ignore -> 0
-        Report_Warning -> 1
-        Report_Error -> 2
+        Problem_Behavior.Ignore -> 0
+        Problem_Behavior.Report_Warning -> 1
+        Problem_Behavior.Report_Error -> 2
