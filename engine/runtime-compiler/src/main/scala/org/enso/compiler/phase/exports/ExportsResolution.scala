@@ -16,6 +16,7 @@ import org.enso.compiler.context.CompilerContext
 import org.enso.compiler.context.CompilerContext.Module
 
 import scala.collection.mutable
+import scala.jdk.CollectionConverters._
 
 /** An exception signaling a loop in the export statements.
   * @param modules the modules forming the cycle.
@@ -140,9 +141,9 @@ class ExportsResolution(private val context: CompilerContext) {
         bindings.definedEntities
           .filter(_.canExport)
           .map(e => (e.name, e.resolvedIn(module)))
-      val exportedSymbols: List[(String, ResolvedName)] =
-        bindings.resolvedImports.collect {
-          case ResolvedImport(_, exports, targets) =>
+      val expSymbolsFromResolvedImps: List[(String, ResolvedName)] =
+        bindings.resolvedImports
+          .collect { case ResolvedImport(_, exports, targets) =>
             exports.flatMap { export =>
               targets.flatMap { target =>
                 val symbols = export.onlyNames match {
@@ -166,19 +167,19 @@ class ExportsResolution(private val context: CompilerContext) {
                 }
               }
             }
-        }
+          }
           .flatten
           .distinct
 
       bindings.exportedSymbols = List(
         ownEntities,
-        exportedSymbols
+        expSymbolsFromResolvedImps
       ).flatten.groupBy(_._1).map { case (symbolName, duplicateResolutions) =>
         val resolvedNames = duplicateResolutions.map(_._2)
-        assert(
-          areResolvedNamesConsistent(resolvedNames),
-          s"Resolved names are not consistent: ${resolvedNames}"
-        )
+        if (!areResolvedNamesConsistent(resolvedNames)) {
+          throw ConflictingResolutionsError
+            .create(module.getName, resolvedNames.asJava)
+        }
         (symbolName, resolvedNames)
       }
     }

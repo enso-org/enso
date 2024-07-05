@@ -128,12 +128,13 @@ class ImportsTest extends PackageTest {
   }
 
   "Compiler" should "detect name conflicts preventing users from importing submodules" in {
-    the[InterpreterException] thrownBy evalTestProject(
-      "Test_Submodules_Name_Conflict"
-    ) should have message "Method `c_mod_method` of type C.type could not be found."
-    val outLines = consumeOut
-    outLines(1) should include
-    "Declaration of type C shadows module local.Test_Submodules_Name_Conflict.A.B.C making it inaccessible via a qualified name."
+    try {
+      evalTestProject("Test_Submodules_Name_Conflict")
+      fail("Should throw CompilerError")
+    } catch {
+      case e: InterpreterException =>
+        e.getMessage.contains("Conflicting resolutions") shouldBe true
+    }
   }
 
   "Compiler" should "accept exports of the same module" in {
