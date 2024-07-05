@@ -45,7 +45,32 @@ public final class ExportSymbolAnalysis {
                 var exportNameParts = CollectionConverters.asJava(exportIr.name().parts());
                 assert exportNameParts.size() > 2
                     : "All the exports should already be desugared in the module discovery compiler"
-                          + " passes";
+                        + " passes";
+
+                if (exportNameParts.size() == 3) {
+                  // There are 3 parts of the export, which means that it should be a direct
+                  // module export like `export namespace.project.Module`, or
+                  // `from namespace.project.Module export Symbol`.
+                  var modFQN =
+                      exportNameParts.stream().map(Name::name).collect(Collectors.joining("."));
+                  var mod = getLoadedModule(modFQN, packageRepository);
+                  if (mod == null) {
+                    var err = createModuleDoesNotExistError(exportIr, modFQN);
+                    exportErrors.add(err);
+                    return null;
+                  }
+                  if (exportIr.onlyNames().isDefined()) {
+                    var symbols =
+                        CollectionConverters.asJava(exportIr.onlyNames().get()).stream()
+                            .map(Name.class::cast)
+                            .toList();
+                    var errs = analyseSymbolsFromModule(mod, symbols);
+                    exportErrors.addAll(errs);
+                  }
+                  return null;
+                }
+
+                assert exportNameParts.size() > 3;
 
                 String lastNameFQN;
                 String lastNameItem;
