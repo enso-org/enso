@@ -338,7 +338,7 @@ type Connection
        result set.
     fetch_columns : Text | SQL_Statement -> Statement_Setter -> Any
     fetch_columns self statement statement_setter =
-        needs_execute_query = self.dialect.needs_execute_query_for_type_inference
+        needs_execute_query = self.dialect.needs_execute_query_for_type_inference statement
         self.jdbc_connection.raw_fetch_columns statement needs_execute_query statement_setter
 
     ## PRIVATE

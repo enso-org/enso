@@ -154,8 +154,10 @@ type SQLite_Dialect
         SQL_Expression.Operation "CAST" [column.expression, SQL_Expression.Literal sql_type_text]
 
     ## PRIVATE
-    needs_execute_query_for_type_inference : Boolean
-    needs_execute_query_for_type_inference self = True
+    needs_execute_query_for_type_inference : Text | SQL_Statement -> Boolean
+    needs_execute_query_for_type_inference self statement =
+        _ = statement
+        True
 
     ## PRIVATE
     supports_separate_nan : Boolean

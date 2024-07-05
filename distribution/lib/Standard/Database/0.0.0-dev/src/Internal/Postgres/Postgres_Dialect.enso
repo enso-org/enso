@@ -154,8 +154,10 @@ type Postgres_Dialect
         Internal_Column.Value column.name new_sql_type_reference new_expression
 
     ## PRIVATE
-    needs_execute_query_for_type_inference : Boolean
-    needs_execute_query_for_type_inference self = False
+    needs_execute_query_for_type_inference : Text | SQL_Statement -> Boolean
+    needs_execute_query_for_type_inference self statement =
+        _ = statement
+        False
 
     ## PRIVATE
     supports_separate_nan : Boolean

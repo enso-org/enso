@@ -13,29 +13,11 @@ from project.Common_Table_Operations.Util import all
 
 main filter=Nothing = run_default_backend add_specs filter
 
-type Data
-    Value ~connection
-
-    setup create_connection_fn =
-        Data.Value (create_connection_fn Nothing)
-
-    teardown self =
-        self.connection.close
-
-
 add_specs suite_builder setup =
     prefix = setup.prefix
-    create_connection_fn = setup.create_connection_func
+    table_builder = setup.light_table_builder
     pending_datetime = if setup.test_selection.date_time.not then "Date/Time operations are not supported by this backend."
     suite_builder.group prefix+"(Derived_Columns_Spec) Table.set with Simple_Expression" group_builder->
-        data = Data.setup create_connection_fn
-
-        group_builder.teardown <|
-            data.teardown
-
-        table_builder cols =
-            setup.table_builder cols connection=data.connection
-
         group_builder.specify "arithmetics" <|
             t = table_builder [["A", [1, 2]], ["B", [10, 40]]]
             t.set (Simple_Expression.Simple_Expr (Column_Ref.Name "A") Simple_Calculation.Copy) "C" . at "C" . to_vector . should_equal [1, 2]
@@ -224,14 +206,6 @@ add_specs suite_builder setup =
             t.set (Simple_Expression.Simple_Expr (Column_Ref.Index 42) Simple_Calculation.Not) . should_fail_with Index_Out_Of_Bounds
 
     suite_builder.group prefix+"(Derived_Columns_Spec) Unique derived column names" group_builder->
-        data = Data.setup create_connection_fn
-
-        group_builder.teardown <|
-            data.teardown
-
-        table_builder cols =
-            setup.table_builder cols connection=data.connection
-
         group_builder.specify "Should not disambiguate two derived columns that would otherwise have had the same name, with Set_Mode.Add_Or_Update" <|
             t = table_builder [["X", [1, 2, 3]]]
             column_op = Simple_Expression.Simple_Expr 2 (Simple_Calculation.Power (Column_Ref.Name "X"))
