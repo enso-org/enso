@@ -1,11 +1,13 @@
 /** @file Metadata for rendering each settings section. */
 import * as React from 'react'
 
+import type * as reactQuery from '@tanstack/react-query'
 import isEmail from 'validator/lib/isEmail'
 
 import type * as text from 'enso-common/src/text'
 
 import ComputerIcon from '#/assets/computer.svg'
+import CreditCardIcon from '#/assets/credit_card.svg'
 import KeyboardShortcutsIcon from '#/assets/keyboard_shortcuts.svg'
 import LogIcon from '#/assets/log.svg'
 import PeopleSettingsIcon from '#/assets/people_settings.svg'
@@ -35,6 +37,7 @@ import * as menuEntry from '#/components/MenuEntry'
 import * as backend from '#/services/Backend'
 import type Backend from '#/services/Backend'
 import type LocalBackend from '#/services/LocalBackend'
+import type RemoteBackend from '#/services/RemoteBackend'
 
 import * as object from '#/utilities/object'
 
@@ -139,7 +142,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
           {
             type: SettingsEntryType.custom,
             aliasesId: 'profilePictureSettingsCustomEntryAliases',
-            render: context => context.backend && <ProfilePictureInput backend={context.backend} />,
+            render: context => <ProfilePictureInput backend={context.backend} />,
           },
         ],
       },
@@ -220,8 +223,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
           {
             type: SettingsEntryType.custom,
             aliasesId: 'organizationProfilePictureSettingsCustomEntryAliases',
-            render: context =>
-              context.backend && <OrganizationProfilePictureInput backend={context.backend} />,
+            render: context => <OrganizationProfilePictureInput backend={context.backend} />,
           },
         ],
       },
@@ -247,6 +249,32 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
       },
     ],
   },
+  [SettingsTabType.billingAndPlans]: {
+    nameId: 'billingAndPlansSettingsTab',
+    settingsTab: SettingsTabType.billingAndPlans,
+    icon: CreditCardIcon,
+    organizationOnly: true,
+    visible: context => context.organization?.subscription != null,
+    sections: [],
+    onPress: context =>
+      context.queryClient.fetchQuery({
+        queryKey: ['billing', 'customerPortalSession'],
+        queryFn: () =>
+          context.backend
+            .createCustomerPortalSession()
+            .then(url => {
+              if (url != null) {
+                window.open(url, '_blank')?.focus()
+              }
+
+              return url
+            })
+            .catch(err => {
+              context.toastAndLog('arbitraryErrorTitle', err)
+              throw err
+            }),
+      }),
+  },
   [SettingsTabType.members]: {
     nameId: 'membersSettingsTab',
     settingsTab: SettingsTabType.members,
@@ -256,12 +284,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
     sections: [
       {
         nameId: 'membersSettingsSection',
-        entries: [
-          {
-            type: SettingsEntryType.custom,
-            render: () => <MembersSettingsSection />,
-          },
-        ],
+        entries: [{ type: SettingsEntryType.custom, render: () => <MembersSettingsSection /> }],
       },
     ],
   },
@@ -278,8 +301,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
         entries: [
           {
             type: SettingsEntryType.custom,
-            render: context =>
-              context.backend && <UserGroupsSettingsSection backend={context.backend} />,
+            render: context => <UserGroupsSettingsSection backend={context.backend} />,
           },
         ],
       },
@@ -290,10 +312,9 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
         entries: [
           {
             type: SettingsEntryType.custom,
-            render: context =>
-              context.backend && (
-                <MembersTable backend={context.backend} draggable populateWithSelf />
-              ),
+            render: context => (
+              <MembersTable backend={context.backend} draggable populateWithSelf />
+            ),
           },
         ],
       },
@@ -340,8 +361,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
         entries: [
           {
             type: SettingsEntryType.custom,
-            render: context =>
-              context.backend && <ActivityLogSettingsSection backend={context.backend} />,
+            render: context => <ActivityLogSettingsSection backend={context.backend} />,
           },
         ],
       },
@@ -360,6 +380,7 @@ export const SETTINGS_DATA: SettingsData = [
   {
     nameId: 'accessSettingsTabSection',
     tabs: [
+      SETTINGS_TAB_DATA[SettingsTabType.billingAndPlans],
       SETTINGS_TAB_DATA[SettingsTabType.members],
       SETTINGS_TAB_DATA[SettingsTabType.userGroups],
     ],
@@ -386,7 +407,7 @@ export const ALL_SETTINGS_TABS = SETTINGS_DATA.flatMap(section =>
 export interface SettingsContext {
   readonly accessToken: string
   readonly user: backend.User
-  readonly backend: Backend | null
+  readonly backend: RemoteBackend
   readonly localBackend: LocalBackend | null
   readonly organization: backend.OrganizationInfo | null
   readonly updateUser: (variables: Parameters<Backend['updateUser']>) => Promise<void>
@@ -396,6 +417,7 @@ export interface SettingsContext {
   readonly updateLocalRootPath: (rootPath: string) => Promise<void>
   readonly toastAndLog: toastAndLogHooks.ToastAndLogCallback
   readonly getText: textProvider.GetText
+  readonly queryClient: reactQuery.QueryClient
 }
 
 // ==============================
@@ -463,6 +485,7 @@ export interface SettingsTabData {
    * a paywall is shown instead of the settings tab. */
   readonly feature?: billing.PaywallFeatureName
   readonly sections: readonly SettingsSectionData[]
+  readonly onPress?: (context: SettingsContext) => Promise<void> | void
 }
 
 // ==============================

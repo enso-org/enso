@@ -1111,6 +1111,21 @@ export default class RemoteBackend extends Backend {
     await download.downloadWithHeaders(url, this.client.defaultHeaders, name)
   }
 
+  /**
+   * Fetch the URL of the customer portal.
+   */
+  override async createCustomerPortalSession(returnUrl?: string) {
+    const response = await this.get<backend.CreateCustomerPortalSessionResponse>(
+      remoteBackendPaths.getCustomerPortalSessionPath(returnUrl)
+    )
+
+    if (!responseIsSuccessful(response)) {
+      return await this.throw(response, 'getCustomerPortalUrlBackendError')
+    } else {
+      return (await response.json()).url
+    }
+  }
+
   /** Get the default version given the type of version (IDE or backend). */
   private async getDefaultVersion(versionType: backend.VersionType) {
     const cached = this.defaultVersions[versionType]
