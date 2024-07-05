@@ -6,6 +6,8 @@ import scala.sys.process.*
 object Ydoc {
 
   private val npmCommand = if (Platform.isWindows) "npm.cmd" else "npm"
+  private val pnpmCommand =
+    if (Platform.isWindows) "corepack.cmd pnpm" else "corepack pnpm"
 
   /** Generates the bundled JS source of the Ydoc server.
     *
@@ -78,7 +80,7 @@ object Ydoc {
       case (changed, _) =>
         val nodeModules = base / "node_modules"
         if (changed || !nodeModules.isDirectory) {
-          val command = s"$npmCommand install"
+          val command = s"$pnpmCommand i --frozen-lockfile"
           streams.log.info(command)
           command ! streams.log
         }

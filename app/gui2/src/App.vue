@@ -75,6 +75,7 @@ registerAutoBlurHandler()
   <ProjectView
     v-else
     v-show="!props.hidden"
+    v-bind="$attrs"
     class="App"
     :class="[...classSet.keys()]"
     :renameProject="renameProject"

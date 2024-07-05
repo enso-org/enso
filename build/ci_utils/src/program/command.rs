@@ -274,6 +274,7 @@ pub trait CommandOption {
 pub struct Command {
     pub inner:          tokio::process::Command,
     pub status_checker: Arc<dyn Fn(ExitStatus) -> Result + Send + Sync>,
+    pub pretty_name:    Option<String>,
 }
 
 impl Borrow<tokio::process::Command> for Command {
@@ -298,26 +299,32 @@ impl Command {
     pub fn new<S: AsRef<OsStr>>(program: S) -> Command {
         let inner = tokio::process::Command::new(program);
         let status_checker = Arc::new(|status: ExitStatus| status.exit_ok().anyhow_err());
-        Self { inner, status_checker }
+        Self { inner, status_checker, pretty_name: None }
     }
 
     pub fn new_over<P: Program + 'static>(inner: tokio::process::Command) -> Self {
-        Command { inner, status_checker: Arc::new(P::handle_exit_status) }
+        Command {
+            inner,
+            status_checker: Arc::new(P::handle_exit_status),
+            pretty_name: P::pretty_name().map(String::from),
+        }
     }
 
     pub fn spawn_intercepting(&mut self) -> Result<Child> {
         self.stdout(Stdio::piped());
         self.stderr(Stdio::piped());
 
-        let program = self.inner.as_std().get_program();
-        let program = Path::new(program).file_stem().unwrap_or_default().to_os_string();
-        let program = program.to_string_lossy();
+        let program = self.pretty_name.clone().unwrap_or_else(|| {
+            let program = self.inner.as_std().get_program();
+            let program = Path::new(program).file_stem().unwrap_or_default().to_os_string();
+            program.to_string_lossy().to_string()
+        });
 
         let mut child = self.spawn()?;
 
         // FIXME unwraps
-        spawn_log_processor(format!("{program}ℹ️"), child.stdout.take().unwrap());
-        spawn_log_processor(format!("{program}⚠️"), child.stderr.take().unwrap());
+        spawn_log_processor(format!("{program} ℹ️"), child.stdout.take().unwrap());
+        spawn_log_processor(format!("{program} ⚠️"), child.stderr.take().unwrap());
         Ok(child)
     }
 

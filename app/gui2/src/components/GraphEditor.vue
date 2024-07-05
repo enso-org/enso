@@ -70,6 +70,8 @@ import {
   type ComponentInstance,
 } from 'vue'
 
+import { builtinWidgets } from '@/components/widgets'
+
 const keyboard = provideKeyboard()
 const projectStore = useProjectStore()
 const suggestionDb = provideSuggestionDbStore(projectStore)
@@ -77,9 +79,8 @@ const graphStore = provideGraphStore(projectStore, suggestionDb)
 const widgetRegistry = provideWidgetRegistry(graphStore.db)
 const _visualizationStore = provideVisualizationStore(projectStore)
 
-widgetRegistry.loadBuiltins()
-
 onMounted(() => {
+  widgetRegistry.loadWidgets(Object.entries(builtinWidgets))
   if (isDevMode) {
     ;(window as any).suggestionDb = toRaw(suggestionDb.entries)
   }
@@ -512,14 +513,6 @@ interface NewNodeOptions {
   sourcePort?: AstId | undefined
 }
 
-/**
- * Start creating a node, basing its inputs and position on the current selection, if any;
- * or the current viewport, otherwise.
- */
-function addNodeAuto() {
-  createWithComponentBrowser(fromSelection() ?? { placement: { type: 'viewport' } })
-}
-
 function addNodeDisconnected() {
   nodeSelection.deselectAll()
   createWithComponentBrowser({ placement: { type: 'viewport' } })
@@ -808,5 +801,11 @@ const groupColors = computed(() => {
   left: 0;
   width: 0;
   height: 0;
+  contain: layout size style;
+  will-change: transform;
+}
+
+::selection {
+  background-color: rgba(255, 255, 255, 20%);
 }
 </style>

@@ -171,7 +171,6 @@ const selectableRowLimits = computed(() => {
   }
   return defaults
 })
-const wasAutomaticallyAutosized = ref(false)
 
 const newNodeSelectorValues = computed(() => {
   let selector
@@ -562,8 +561,7 @@ function lockColumnSize(e: ColumnResizedEvent) {
   if (!e.finished || e.source === 'api') return
   // If the user manually resized (or manually autosized) a column, we don't want to auto-size it
   // on a resize.
-  const manuallySized = e.source !== 'autosizeColumns' || !wasAutomaticallyAutosized.value
-  wasAutomaticallyAutosized.value = false
+  const manuallySized = e.source !== 'autosizeColumns'
   for (const column of e.columns ?? []) {
     const field = column.getColDef().field
     if (field && manuallySized) widths.set(field, column.getActualWidth())
