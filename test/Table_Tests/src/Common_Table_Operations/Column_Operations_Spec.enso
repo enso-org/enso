@@ -1615,10 +1615,38 @@ add_specs suite_builder setup =
     suite_builder.group prefix+"(Column_Operations_Spec) Table.make_constant_column" group_builder->
         group_builder.specify "Should allow the creation of constant columns" <|
             t = table_builder [["x", ["1", "2", "3"]]]
-            t.make_constant_column True . to_vector . should_equal [True, True, True]
-            t.make_constant_column 12 . to_vector . should_equal [12, 12, 12]
-            t.make_constant_column 12.3 . to_vector . should_equal [12.3, 12.3, 12.3]
-            t.make_constant_column "asdf" . to_vector . should_equal ["asdf", "asdf", "asdf"]
+            c1 = t.make_constant_column True
+            c1.to_vector . should_equal [True, True, True]
+            c1.value_type.should_equal Value_Type.Boolean
+
+            c2 = t.make_constant_column 12
+            c2.to_vector . should_equal [12, 12, 12]
+            setup.expect_integer_type c2
+
+            c3 = t.make_constant_column 12.3
+            c3.to_vector . should_equal [12.3, 12.3, 12.3]
+            c3.value_type.should_be_a (Value_Type.Float ...)
+
+            c4 = t.make_constant_column "asdf"
+            c4.to_vector . should_equal ["asdf", "asdf", "asdf"]
+            c4.value_type.should_be_a (Value_Type.Char ...)
+
+        if setup.test_selection.date_time then group_builder.specify "Should allow the creation of constant date/time columns" <|
+            t = table_builder [["x", ["1", "2", "3"]]]
+            d = Date.new 2024 07 05
+            c1 = t.make_constant_column d
+            c1.to_vector . should_equal [d, d, d]
+            c1.value_type.should_equal Value_Type.Date
+
+            dt = Date_Time.new 2024 07 05 12 30 45
+            c2 = t.make_constant_column dt
+            c2.to_vector . should_equal [dt, dt, dt]
+            c2.value_type.should_be_a (Value_Type.Date_Time ...)
+
+            time = Time_Of_Day.new 12 30 45
+            c3 = t.make_constant_column time
+            c3.to_vector . should_equal [time, time, time]
+            c3.value_type.should_equal Value_Type.Time
 
         group_builder.specify "Should allow the creation of constant columns on a table with no rows" <|
             t = table_builder [["x", ["1", "2", "3"]]]
