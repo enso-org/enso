@@ -22,7 +22,7 @@
           pkgs.mkShell {
             packages = with pkgs; [
               # === TypeScript dependencies ===
-              nodejs_20 # should match the Node.JS version of the lambdas
+              nodejs_20
               corepack
               # === Electron ===
               electron
