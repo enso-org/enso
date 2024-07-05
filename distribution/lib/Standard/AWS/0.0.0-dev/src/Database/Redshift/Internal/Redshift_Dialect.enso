@@ -187,3 +187,9 @@ type Redshift_Dialect
         ## TODO special behaviour for big integer columns should be added here, once we start testing this dialect again
            See: https://docs.aws.amazon.com/redshift/latest/dg/r_Numeric_types201.html#r_Numeric_types201-decimal-or-numeric-type
         column.value_type
+
+    ## PRIVATE
+    needs_literal_table_cast : Value_Type -> Boolean
+    needs_literal_table_cast self value_type =
+        _ = value_type
+        False

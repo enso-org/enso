@@ -1085,7 +1085,13 @@ type DB_Table
                 _ -> type_mapping.value_type_to_sql argument_value_type Problem_Behavior.Ignore
             expr = SQL_Expression.Constant value
             new_type_ref = SQL_Type_Reference.from_constant sql_type
-            DB_Column.Value value.pretty self.connection new_type_ref expr self.context
+            base_column = Internal_Column.Value value.pretty new_type_ref expr
+            needs_cast = argument_value_type.is_nothing.not && self.connection.dialect.needs_literal_table_cast argument_value_type
+            result_internal_column = if needs_cast.not then base_column else
+                infer_type_from_database new_expression =
+                    SQL_Type_Reference.new self.connection self.context new_expression
+                self.connection.dialect.make_cast base_column sql_type infer_type_from_database
+            self.make_column result_internal_column
 
     ## PRIVATE
        Create a unique temporary column name.
@@ -3055,23 +3061,26 @@ make_literal_table connection column_vectors column_names alias =
     if total_size == 0 then Error.throw (Illegal_Argument.Error "Vectors cannot be empty") else
         if total_size > MAX_LITERAL_ELEMENT_COUNT then Error.throw (Illegal_Argument.Error "Too many elements for table literal ("+total_size.to_text+"): materialize a table into the database instead") else
             type_mapping = connection.dialect.get_type_mapping
-
-            values_to_type_ref column_vector =
-                value_type = Value_Type_Helpers.find_common_type_for_arguments column_vector
-                sql_type = case value_type of
-                    Nothing -> SQL_Type.null
-                    _ -> type_mapping.value_type_to_sql value_type Problem_Behavior.Ignore
-                SQL_Type_Reference.from_constant sql_type
-
             from_spec = From_Spec.Literal_Values column_vectors column_names alias
             context = Context.for_subquery from_spec
+
+            infer_type_from_database new_expression =
+                SQL_Type_Reference.new connection context new_expression
 
             internal_columns = 0.up_to column_vectors.length . map i->
                 column_vector = column_vectors.at i
                 column_name = column_names.at i
 
-                type_ref = values_to_type_ref column_vector.to_vector
+                value_type = Value_Type_Helpers.find_common_type_for_arguments column_vector.to_vector
+                sql_type = case value_type of
+                   Nothing -> SQL_Type.null
+                   _ -> type_mapping.value_type_to_sql value_type Problem_Behavior.Ignore
+                type_ref = SQL_Type_Reference.from_constant sql_type
                 sql_expression = SQL_Expression.Column alias column_name
-                Internal_Column.Value column_name type_ref sql_expression
+                base_column = Internal_Column.Value column_name type_ref sql_expression
+
+                needs_cast = value_type.is_nothing.not && connection.dialect.needs_literal_table_cast value_type
+                if needs_cast.not then base_column else
+                    connection.dialect.make_cast base_column sql_type infer_type_from_database
 
             DB_Table.Value alias connection internal_columns context

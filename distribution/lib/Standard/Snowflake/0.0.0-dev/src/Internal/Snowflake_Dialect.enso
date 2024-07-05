@@ -280,6 +280,13 @@ type Snowflake_Dialect
                         Warning.attach (Inexact_Type_Coercion.Warning base_type new_type unavailable=False) new_type
                 _ -> base_type
 
+    ## PRIVATE
+    needs_literal_table_cast : Value_Type -> Boolean
+    needs_literal_table_cast self value_type = case value_type of
+        Value_Type.Time        -> True
+        Value_Type.Date_Time _ -> True
+        _                      -> False
+
 ## PRIVATE
 make_internal_generator_dialect =
     cases = [["LOWER", Base_Generator.make_function "LOWER"], ["UPPER", Base_Generator.make_function "UPPER"]]
