@@ -743,7 +743,7 @@ Text.is_whitespace self =
          "Hello".bytes (Encoding.ascii)
 @encoding Encoding.default_widget
 Text.bytes : Encoding -> Problem_Behavior -> Vector Integer
-Text.bytes self (encoding : Encoding = Encoding.utf_8) (on_problems : Problem_Behavior = Problem_Behavior.Report_Warning) =
+Text.bytes self (encoding : Encoding = Encoding.utf_8) (on_problems : Problem_Behavior = ..Report_Warning) =
     result = Encoding_Utils.get_bytes self encoding.to_java_charset : ResultWithWarnings
     vector = Vector.from_polyglot_array result.result
     if result.warnings.is_nothing then vector else
@@ -765,7 +765,7 @@ Text.bytes self (encoding : Encoding = Encoding.utf_8) (on_problems : Problem_Be
          Text.from_bytes [72, 101, 108, 108, 111] (Encoding.ascii)
 @encoding Encoding.default_widget
 Text.from_bytes : Vector Integer -> Encoding -> Problem_Behavior -> Text
-Text.from_bytes bytes (encoding : Encoding = Encoding.default) (on_problems : Problem_Behavior = Problem_Behavior.Report_Error) =
+Text.from_bytes bytes (encoding : Encoding = Encoding.default) (on_problems : Problem_Behavior = ..Report_Error) =
     Reporting_Stream_Decoder_Helper.decode_bytes_to_text bytes encoding on_problems
 
 ## ICON convert
@@ -787,7 +787,7 @@ Text.from_bytes bytes (encoding : Encoding = Encoding.default) (on_problems : Pr
 
          "Hello".utf_8
 Text.utf_8 : Problem_Behavior -> Vector Integer
-Text.utf_8 self (on_problems : Problem_Behavior = Problem_Behavior.Report_Warning) =
+Text.utf_8 self (on_problems : Problem_Behavior = ..Report_Warning) =
     self.bytes Encoding.utf_8 on_problems
 
 ## ICON convert
@@ -806,7 +806,7 @@ Text.utf_8 self (on_problems : Problem_Behavior = Problem_Behavior.Report_Warnin
 
          Text.from_utf_8 [-32, -92, -107, -32, -91, -115, -32, -92, -73, -32, -92, -65]
 Text.from_utf_8 : Vector Integer -> Problem_Behavior -> Text
-Text.from_utf_8 bytes (on_problems : Problem_Behavior = Problem_Behavior.Report_Error) =
+Text.from_utf_8 bytes (on_problems : Problem_Behavior = ..Report_Error) =
     Text.from_bytes bytes Encoding.utf_8 on_problems
 
 ## ICON convert
