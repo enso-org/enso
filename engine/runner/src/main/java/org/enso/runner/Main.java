@@ -1303,7 +1303,11 @@ public final class Main {
   protected CommandLine preprocessArguments(Options options, String[] args) {
     var parser = new DefaultParser();
     try {
+      var startParsing = System.currentTimeMillis();
       var line = parser.parse(options, args);
+      logger.trace(
+          "Parsing Language Server arguments took {0}ms",
+          System.currentTimeMillis() - startParsing);
       return line;
     } catch (Exception e) {
       printHelp(options);
