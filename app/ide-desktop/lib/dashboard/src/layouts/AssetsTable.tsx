@@ -1,80 +1,108 @@
+;
 /** @file Table displaying a list of projects. */
-import * as React from 'react'
+import * as React from 'react';
 
-import * as toast from 'react-toastify'
 
-import DropFilesImage from 'enso-assets/drop_files.svg'
 
-import * as mimeTypes from '#/data/mimeTypes'
+import * as toast from 'react-toastify';
 
-import * as backendHooks from '#/hooks/backendHooks'
-import * as eventHooks from '#/hooks/eventHooks'
-import * as intersectionHooks from '#/hooks/intersectionHooks'
-import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
-import useOnScroll from '#/hooks/useOnScroll'
 
-import * as authProvider from '#/providers/AuthProvider'
-import * as backendProvider from '#/providers/BackendProvider'
-import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
-import * as localStorageProvider from '#/providers/LocalStorageProvider'
-import * as modalProvider from '#/providers/ModalProvider'
-import * as navigator2DProvider from '#/providers/Navigator2DProvider'
-import * as textProvider from '#/providers/TextProvider'
 
-import type * as assetEvent from '#/events/assetEvent'
-import AssetEventType from '#/events/AssetEventType'
-import type * as assetListEvent from '#/events/assetListEvent'
-import AssetListEventType from '#/events/AssetListEventType'
+import DropFilesImage from 'enso-assets/drop_files.svg';
 
-import type * as assetPanel from '#/layouts/AssetPanel'
-import type * as assetSearchBar from '#/layouts/AssetSearchBar'
-import AssetsTableContextMenu from '#/layouts/AssetsTableContextMenu'
-import Category from '#/layouts/CategorySwitcher/Category'
 
-import * as aria from '#/components/aria'
-import type * as assetRow from '#/components/dashboard/AssetRow'
-import AssetRow from '#/components/dashboard/AssetRow'
-import * as assetRowUtils from '#/components/dashboard/AssetRow/assetRowUtils'
-import * as columnUtils from '#/components/dashboard/column/columnUtils'
-import NameColumn from '#/components/dashboard/column/NameColumn'
-import * as columnHeading from '#/components/dashboard/columnHeading'
-import Label from '#/components/dashboard/Label'
-import SelectionBrush from '#/components/SelectionBrush'
-import Spinner, * as spinner from '#/components/Spinner'
-import Button from '#/components/styled/Button'
-import FocusArea from '#/components/styled/FocusArea'
-import FocusRing from '#/components/styled/FocusRing'
-import SvgMask from '#/components/SvgMask'
 
-import DragModal from '#/modals/DragModal'
-import DuplicateAssetsModal from '#/modals/DuplicateAssetsModal'
-import UpsertSecretModal from '#/modals/UpsertSecretModal'
+import * as mimeTypes from '#/data/mimeTypes';
 
-import * as backendModule from '#/services/Backend'
-import type Backend from '#/services/Backend'
-import LocalBackend from '#/services/LocalBackend'
 
-import * as array from '#/utilities/array'
-import type * as assetQuery from '#/utilities/AssetQuery'
-import AssetQuery from '#/utilities/AssetQuery'
-import type * as assetTreeNode from '#/utilities/AssetTreeNode'
-import AssetTreeNode from '#/utilities/AssetTreeNode'
-import * as dateTime from '#/utilities/dateTime'
-import * as drag from '#/utilities/drag'
-import * as fileInfo from '#/utilities/fileInfo'
-import type * as geometry from '#/utilities/geometry'
-import * as inputBindingsModule from '#/utilities/inputBindings'
-import LocalStorage from '#/utilities/LocalStorage'
-import type * as pasteDataModule from '#/utilities/pasteData'
-import PasteType from '#/utilities/PasteType'
-import * as permissions from '#/utilities/permissions'
-import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
-import * as set from '#/utilities/set'
-import * as sorting from '#/utilities/sorting'
-import * as string from '#/utilities/string'
-import * as tailwindMerge from '#/utilities/tailwindMerge'
-import * as uniqueString from '#/utilities/uniqueString'
-import Visibility from '#/utilities/Visibility'
+
+import * as autoScrollHooks from '#/hooks/autoScrollHooks';
+import * as backendHooks from '#/hooks/backendHooks';
+import * as eventHooks from '#/hooks/eventHooks';
+import * as intersectionHooks from '#/hooks/intersectionHooks';
+import * as toastAndLogHooks from '#/hooks/toastAndLogHooks';
+import useOnScroll from '#/hooks/useOnScroll';
+
+
+
+import * as authProvider from '#/providers/AuthProvider';
+import * as backendProvider from '#/providers/BackendProvider';
+import * as inputBindingsProvider from '#/providers/InputBindingsProvider';
+import * as localStorageProvider from '#/providers/LocalStorageProvider';
+import * as modalProvider from '#/providers/ModalProvider';
+import * as navigator2DProvider from '#/providers/Navigator2DProvider';
+import * as textProvider from '#/providers/TextProvider';
+
+
+
+import type * as assetEvent from '#/events/assetEvent';
+import AssetEventType from '#/events/AssetEventType';
+import type * as assetListEvent from '#/events/assetListEvent';
+import AssetListEventType from '#/events/AssetListEventType';
+
+
+
+import type * as assetPanel from '#/layouts/AssetPanel';
+import type * as assetSearchBar from '#/layouts/AssetSearchBar';
+import AssetsTableContextMenu from '#/layouts/AssetsTableContextMenu';
+import Category from '#/layouts/CategorySwitcher/Category';
+
+
+
+import * as aria from '#/components/aria';
+import type * as assetRow from '#/components/dashboard/AssetRow';
+import AssetRow from '#/components/dashboard/AssetRow';
+import * as assetRowUtils from '#/components/dashboard/AssetRow/assetRowUtils';
+import * as columnUtils from '#/components/dashboard/column/columnUtils';
+import NameColumn from '#/components/dashboard/column/NameColumn';
+import * as columnHeading from '#/components/dashboard/columnHeading';
+import Label from '#/components/dashboard/Label';
+import SelectionBrush from '#/components/SelectionBrush';
+import Spinner, * as spinner from '#/components/Spinner';
+import Button from '#/components/styled/Button';
+import FocusArea from '#/components/styled/FocusArea';
+import FocusRing from '#/components/styled/FocusRing';
+import SvgMask from '#/components/SvgMask';
+
+
+
+import DragModal from '#/modals/DragModal';
+import DuplicateAssetsModal from '#/modals/DuplicateAssetsModal';
+import UpsertSecretModal from '#/modals/UpsertSecretModal';
+
+
+
+import * as backendModule from '#/services/Backend';
+import type Backend from '#/services/Backend';
+import LocalBackend from '#/services/LocalBackend';
+
+
+
+import * as array from '#/utilities/array';
+import type * as assetQuery from '#/utilities/AssetQuery';
+import AssetQuery from '#/utilities/AssetQuery';
+import type * as assetTreeNode from '#/utilities/AssetTreeNode';
+import AssetTreeNode from '#/utilities/AssetTreeNode';
+import * as dateTime from '#/utilities/dateTime';
+import * as drag from '#/utilities/drag';
+import * as fileInfo from '#/utilities/fileInfo';
+import type * as geometry from '#/utilities/geometry';
+import * as inputBindingsModule from '#/utilities/inputBindings';
+import LocalStorage from '#/utilities/LocalStorage';
+import type * as pasteDataModule from '#/utilities/pasteData';
+import PasteType from '#/utilities/PasteType';
+import * as permissions from '#/utilities/permissions';
+import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets';
+import * as set from '#/utilities/set';
+import * as sorting from '#/utilities/sorting';
+import * as string from '#/utilities/string';
+import * as tailwindMerge from '#/utilities/tailwindMerge';
+import * as uniqueString from '#/utilities/uniqueString';
+import Visibility from '#/utilities/Visibility';
+
+
+
+
 
 // ============================
 // === Global configuration ===
@@ -102,14 +130,6 @@ LocalStorage.registerKey('enabledColumns', {
 /** If the ratio of intersection between the main dropzone that should be visible, and the
  * scrollable container, is below this value, then the backup dropzone will be shown. */
 const MINIMUM_DROPZONE_INTERSECTION_RATIO = 0.5
-/** If the drag pointer is less than this distance away from the top or bottom of the
- * scroll container, then the scroll container automatically scrolls upwards if the cursor is near
- * the top of the scroll container, or downwards if the cursor is near the bottom. */
-const AUTOSCROLL_THRESHOLD_PX = 50
-/** An arbitrary constant that controls the speed of autoscroll. */
-const AUTOSCROLL_SPEED = 100
-/** The autoscroll speed is `AUTOSCROLL_SPEED / (distance + AUTOSCROLL_DAMPENING)`. */
-const AUTOSCROLL_DAMPENING = 10
 /** The height of each row in the table body. MUST be identical to the value as set by the
  * Tailwind styling. */
 const ROW_HEIGHT_PX = 38
@@ -2063,10 +2083,14 @@ export default function AssetsTable(props: AssetsTableProps) {
   const [visuallySelectedKeysOverride, setVisuallySelectedKeysOverride] =
     React.useState<ReadonlySet<backendModule.AssetId> | null>(null)
 
+  const { startAutoScroll, endAutoScroll, onMouseEvent } = autoScrollHooks.useAutoScroll(rootRef)
+
   const dragSelectionChangeLoopHandle = React.useRef(0)
   const dragSelectionRangeRef = React.useRef<DragSelectionInfo | null>(null)
   const onSelectionDrag = React.useCallback(
     (rectangle: geometry.DetailedRectangle, event: MouseEvent) => {
+      startAutoScroll()
+      onMouseEvent(event)
       if (mostRecentlySelectedIndexRef.current != null) {
         setKeyboardSelectedIndex(null)
       }
@@ -2074,31 +2098,6 @@ export default function AssetsTable(props: AssetsTableProps) {
       const scrollContainer = rootRef.current
       if (scrollContainer != null) {
         const rect = scrollContainer.getBoundingClientRect()
-        if (rectangle.signedHeight <= 0 && scrollContainer.scrollTop > 0) {
-          const distanceToTop = Math.max(0, rectangle.top - rect.top - ROW_HEIGHT_PX)
-          if (distanceToTop < AUTOSCROLL_THRESHOLD_PX) {
-            scrollContainer.scrollTop -= Math.floor(
-              AUTOSCROLL_SPEED / (distanceToTop + AUTOSCROLL_DAMPENING)
-            )
-            dragSelectionChangeLoopHandle.current = requestAnimationFrame(() => {
-              onSelectionDrag(rectangle, event)
-            })
-          }
-        }
-        if (
-          rectangle.signedHeight >= 0 &&
-          scrollContainer.scrollTop + rect.height < scrollContainer.scrollHeight
-        ) {
-          const distanceToBottom = Math.max(0, rect.bottom - rectangle.bottom)
-          if (distanceToBottom < AUTOSCROLL_THRESHOLD_PX) {
-            scrollContainer.scrollTop += Math.floor(
-              AUTOSCROLL_SPEED / (distanceToBottom + AUTOSCROLL_DAMPENING)
-            )
-            dragSelectionChangeLoopHandle.current = requestAnimationFrame(() => {
-              onSelectionDrag(rectangle, event)
-            })
-          }
-        }
         const overlapsHorizontally = rect.right > rectangle.left && rect.left < rectangle.right
         const selectionTop = Math.max(0, rectangle.top - rect.top - ROW_HEIGHT_PX)
         const selectionBottom = Math.max(
@@ -2134,11 +2133,13 @@ export default function AssetsTable(props: AssetsTableProps) {
         }
       }
     },
-    [displayItems, calculateNewKeys]
+    [startAutoScroll, onMouseEvent, displayItems, calculateNewKeys]
   )
 
   const onSelectionDragEnd = React.useCallback(
     (event: MouseEvent) => {
+      endAutoScroll()
+      onMouseEvent(event)
       const range = dragSelectionRangeRef.current
       if (range != null) {
         const keys = displayItems.slice(range.start, range.end).map(node => node.key)
@@ -2147,7 +2148,7 @@ export default function AssetsTable(props: AssetsTableProps) {
       setVisuallySelectedKeysOverride(null)
       dragSelectionRangeRef.current = null
     },
-    [displayItems, calculateNewKeys, setSelectedKeys]
+    [endAutoScroll, onMouseEvent, displayItems, setSelectedKeys, calculateNewKeys]
   )
 
   const onSelectionDragCancel = React.useCallback(() => {
@@ -2241,6 +2242,8 @@ export default function AssetsTable(props: AssetsTableProps) {
             }
           }}
           onDragStart={event => {
+            startAutoScroll()
+            onMouseEvent(event)
             let newSelectedKeys = selectedKeysRef.current
             if (!newSelectedKeys.has(key)) {
               setMostRecentlySelectedIndex(visibleItems.indexOf(item))
@@ -2290,6 +2293,7 @@ export default function AssetsTable(props: AssetsTableProps) {
             )
           }}
           onDragOver={event => {
+            onMouseEvent(event)
             const payload = drag.LABELS.lookup(event)
             if (payload != null) {
               event.preventDefault()
@@ -2325,6 +2329,7 @@ export default function AssetsTable(props: AssetsTableProps) {
             }
           }}
           onDragEnd={() => {
+            endAutoScroll()
             lastSelectedIdsRef.current = null
             dispatchAssetEvent({
               type: AssetEventType.temporarilyAddLabels,
@@ -2333,6 +2338,7 @@ export default function AssetsTable(props: AssetsTableProps) {
             })
           }}
           onDrop={event => {
+            endAutoScroll()
             const ids = new Set(selectedKeysRef.current.has(key) ? selectedKeysRef.current : [key])
             const payload = drag.LABELS.lookup(event)
             if (payload != null) {
