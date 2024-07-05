@@ -5,12 +5,11 @@ import * as fs from 'node:fs/promises'
 import * as http from 'node:http'
 import * as path from 'node:path'
 
-import * as isHiddenFile from 'is-hidden-file'
 import * as tar from 'tar'
 import * as yaml from 'yaml'
 
 import * as common from 'enso-common'
-import GLOBAL_CONFIG from '../../common/src/config.json' assert { type: 'json' }
+import GLOBAL_CONFIG from '../../common/src/config.json' with { type: 'json' }
 
 import * as projectManagement from './projectManagement'
 
@@ -441,19 +440,10 @@ function extractProjectMetadata(yamlObj: unknown, jsonObj: unknown): ProjectMeta
 }
 
 /**
- * Checks if the provided path should be hidden.
- *
- * On Windows, files that start with the dot but don't have the hidden property
- * should also be hidden.
+ * Checks if files that start with the dot.
+ * Note on Windows does not check the hidden property.
  */
 function isHidden(filePath: string): boolean {
-  const dotfile = /(^|\/)\.[^/.]/g
-  try {
-    return isHiddenFile.isHiddenFile(filePath) || dotfile.test(filePath)
-  } catch {
-    // is-hidden-file library occasionally
-    // fails on Windows due to native library loading
-    // issues. Fallback to the filename check.
-    return dotfile.test(filePath)
-  }
+  const dotfile = /(^|[\\/])\.[^\\/]+$/g
+  return dotfile.test(filePath)
 }

@@ -143,14 +143,15 @@ export default function ProjectIcon(props: ProjectIconProps) {
           { executeAsync: false, parentId: item2.parentId, cognitoCredentials: session },
           item2.title,
         ])
-        .then(() =>
-          waitUntilProjectIsReadyMutation.mutateAsync([
+        .then(async () => {
+          const proj = await waitUntilProjectIsReadyMutation.mutateAsync([
             item2.id,
             item2.parentId,
             item2.title,
             abortController.signal,
           ])
-        )
+          return proj
+        })
       setProjectStartupInfo({
         project: projectPromise,
         projectAsset: item2,

@@ -1039,7 +1039,7 @@ add_specs suite_builder =
             "Hello World!".pad 15 . should_equal "Hello World!   "
             "HELLO".pad 9 "AB" . should_equal "HELLOABAB"
             "HELLO".pad 8 "AB" . should_equal "HELLOABA"
-            "HELLO".pad 8 "AB" Location.Start . should_equal "BABHELLO"
+            "HELLO".pad 8 "AB" ..Left . should_equal "BABHELLO"
             "".pad 4 . should_equal "    "
             "A".pad 3 "" . should_fail_with Illegal_Argument
             "ABCDE".pad 3 "" . should_fail_with Illegal_Argument
@@ -1056,8 +1056,8 @@ add_specs suite_builder =
             'XX'.pad 5 'y\u{301}y' . should_equal 'XXy\u{301}yy\u{301}'
             'XX'.pad 4 'yy\u{301}Z' . should_equal 'XXyy\u{301}'
 
-            '🚀'.pad 3 'B' Location.End . should_equal '🚀BB'
-            '🚀'.pad 3 'B' Location.Start . should_equal 'BB🚀'
+            '🚀'.pad 3 'B' ..Right . should_equal '🚀BB'
+            '🚀'.pad 3 'B' ..Left . should_equal 'BB🚀'
 
             ## It is technically possible to use a combining diacritical mark as
                the padding, then the actual length of the text will not increase
@@ -1067,19 +1067,19 @@ add_specs suite_builder =
 
         group_builder.specify "should allow to trim a text" <|
             " Hello! ".trim . should_equal  "Hello!"
-            " Hello! ".trim Location.Start . should_equal  "Hello! "
-            " Hello! ".trim Location.End . should_equal  " Hello!"
-            "ABC123".trim Location.Start "ABC" . should_equal  "123"
-            "ABBA123".trim Location.Start "ABC" . should_equal  "123"
-            "ABCZ-]".trim Location.Both "[A-Z]" . should_equal "BC"
+            " Hello! ".trim ..Left . should_equal  "Hello! "
+            " Hello! ".trim ..Right . should_equal  " Hello!"
+            "ABC123".trim ..Left "ABC" . should_equal  "123"
+            "ABBA123".trim ..Left "ABC" . should_equal  "123"
+            "ABCZ-]".trim ..Both "[A-Z]" . should_equal "BC"
 
             "   ".trim . should_equal ""
             "  Hello World!   ".trim . should_equal  "Hello World!"
-            "  Hello World!   ".trim Location.Start . should_equal  "Hello World!   "
-            "  Hello World!   ".trim Location.End . should_equal  "  Hello World!"
-            "ABCD".trim Location.Start "ABCDEF" . should_equal ""
-            "ABCD".trim Location.End "ABCDEF" . should_equal ""
-            "ABCD".trim Location.Both "ABCDEF" . should_equal ""
+            "  Hello World!   ".trim ..Left . should_equal  "Hello World!   "
+            "  Hello World!   ".trim ..Right . should_equal  "  Hello World!"
+            "ABCD".trim ..Left "ABCDEF" . should_equal ""
+            "ABCD".trim ..Right "ABCDEF" . should_equal ""
+            "ABCD".trim ..Both "ABCDEF" . should_equal ""
 
             "".trim . should_equal ""
             "A".trim . should_equal "A"
@@ -1087,12 +1087,12 @@ add_specs suite_builder =
             '   A\u{301} \n   '.trim . should_equal 'A\u{301}'
             "🚧".trim . should_equal "🚧"
             "  🚧  🚧  ".trim . should_equal "🚧  🚧"
-            "  🚧  🚧  ".trim Location.End . should_equal "  🚧  🚧"
+            "  🚧  🚧  ".trim ..Right . should_equal "  🚧  🚧"
 
-            "ABCD".trim Location.Start (_ -> True) . should_equal ""
-            "ABCD".trim Location.Both (_ -> True) . should_equal ""
-            "ABCD".trim Location.Both (_ -> False) . should_equal "ABCD"
-            "123AB98".trim Location.Both _.is_digit . should_equal "AB"
+            "ABCD".trim ..Left (_ -> True) . should_equal ""
+            "ABCD".trim ..Both (_ -> True) . should_equal ""
+            "ABCD".trim ..Both (_ -> False) . should_equal "ABCD"
+            "123AB98".trim ..Both _.is_digit . should_equal "AB"
 
             ' \t\n\r'.trim . should_equal ''
             '\t\t  Test\nFoo\r\n'.trim . should_equal 'Test\nFoo'

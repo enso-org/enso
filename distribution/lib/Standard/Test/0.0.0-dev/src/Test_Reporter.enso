@@ -189,7 +189,7 @@ progress_width = 70
 print_progress current_progress total_count status_text =
     total_count_as_text = total_count.to_text
     counter_width = total_count_as_text.length
-    current_progress_as_text = current_progress.to_text.pad counter_width at=Location.Start
+    current_progress_as_text = current_progress.to_text.pad counter_width at=..Left
     line = " ("+ current_progress_as_text + " / " + total_count_as_text + ") " + status_text
     truncated_line = if line.length <= progress_width then line else
         line.take (progress_width - 3) + '...'

@@ -418,13 +418,13 @@
     inset: 0 -16vw -16vh 0;
     z-index: -1;
 
-    background: url("./assets/background.jpg");
+    background-color: #b09778ff;
 
     @apply fixed bg-cover pointer-events-none;
   }
 
   & > * {
-    @apply bg-white/90;
+    @apply bg-white/80;
   }
 }
 
@@ -438,7 +438,7 @@
 
 /* These styles MUST still be copied
  * as `.enso-dashboard body` and `.enso-dashboard html` make no sense. */
-:where(:is(.enso-dashboard, .enso-chat, .enso-portal-root)) {
+:where(.enso-dashboard, .enso-chat, .enso-portal-root) {
   line-height: 1.5;
   -webkit-text-size-adjust: 100%;
   -moz-tab-size: 4;

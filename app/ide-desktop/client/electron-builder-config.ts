@@ -11,7 +11,6 @@ import * as fs from 'node:fs/promises'
 
 import * as electronBuilder from 'electron-builder'
 import * as electronNotarize from '@electron/notarize'
-import type * as macOptions from 'app-builder-lib/out/options/macOptions'
 import yargs from 'yargs'
 
 import * as common from 'enso-common'
@@ -200,8 +199,8 @@ export function createElectronBuilderConfig(passedArgs: Arguments): electronBuil
             // almost zero.
             // This type assertion is UNSAFE, and any users MUST verify that
             // they are passing a valid value to `target`.
-            // eslint-disable-next-line no-restricted-syntax
-            target: (passedArgs.target ?? 'dmg') as macOptions.MacOsTargetName,
+            // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment
+            target: (passedArgs.target as any) ?? 'dmg',
             icon: `${passedArgs.iconsDist}/icon.icns`,
             category: 'public.app-category.developer-tools',
             darkModeSupport: true,

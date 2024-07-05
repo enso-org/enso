@@ -1,6 +1,7 @@
 import project.Any.Any
 import project.Data.Array.Array
 import project.Data.Array_Proxy.Array_Proxy
+import project.Data.Decimal.Decimal
 import project.Data.Json.JS_Object
 import project.Data.Json.Json
 import project.Data.Locale.Locale
@@ -58,6 +59,12 @@ Number.to_js_object self = case self of
         if self >= -js_max_integer && self < js_max_integer then self else
             JS_Object.from_pairs [["type", "BigInt"], ["value", self.to_text]]
     _ -> self
+
+## PRIVATE
+   Converts the given value to a JSON serializable object.
+Decimal.to_js_object : JS_Object
+Decimal.to_js_object self =
+    JS_Object.from_pairs [["type", "Decimal"], ["value", self.to_text], ["scale", self.scale], ["precision", self.precision]]
 
 ## PRIVATE
    Converts the given value to a JSON serializable object.

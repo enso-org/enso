@@ -21,6 +21,5 @@
     "to-ico": "^1.1.5",
     "@types/sharp": "^0.31.1",
     "@types/to-ico": "^1.1.1"
-  },
-  "type": "module"
+  }
 }

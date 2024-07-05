@@ -4,7 +4,7 @@ import ListWidget from '@/components/widgets/ListWidget.vue'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
 import type { PortId } from '@/providers/portInfo'
 import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
-import { WidgetEditHandler, type WidgetId } from '@/providers/widgetRegistry/editHandler'
+import { WidgetEditHandler } from '@/providers/widgetRegistry/editHandler'
 import { Ast } from '@/util/ast'
 import { computed, shallowRef, toRef, toValue, watchEffect, type WatchSource } from 'vue'
 

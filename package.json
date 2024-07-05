@@ -3,11 +3,11 @@
     "eslint-plugin-jsdoc": "^48.2.12",
     "eslint-plugin-react-hooks": "^4.6.2",
     "npm-run-all": "^4.1.5",
-    "prettier": "^3.0.0"
+    "prettier": "^3.3.2"
   },
   "dependencies": {
-    "chromedriver": "^106.0.1",
-    "tslib": "^2.6.2"
+    "tslib": "^2.6.3",
+    "typescript": "^5.5.3"
   },
   "name": "root",
   "scripts": {
@@ -19,11 +19,37 @@
     "ci-check": "run-p test prettier lint typecheck"
   },
   "workspaces": [
-    "app/*",
+    "app/dashboard",
     "app/ide-desktop/*",
+    "app/gui2",
     "lib/js/runner"
   ],
-  "overrides": {
-    "tslib": "$tslib"
-  }
+  "pnpm": {
+    "overrides": {
+      "tslib": "$tslib",
+      "jsdom": "^24.1.0",
+      "@types/react": "^18.0.27",
+      "react-native": "./_IGNORED_",
+      "react-native-url-polyfill": "./_IGNORED_",
+      "react-native-get-random-values": "./_IGNORED_"
+    },
+    "packageExtensions": {
+      "@aws-amplify/auth": {
+        "dependencies": {
+          "@aws-crypto/sha256-js": "*"
+        }
+      },
+      "ag-grid-enterprise": {
+        "dependencies": {
+          "ag-grid-community": "*"
+        }
+      },
+      "@open-rpc/client-js": {
+        "dependencies": {
+          "events": "^3.3.0"
+        }
+      }
+    }
+  },
+  "packageManager": "pnpm@9.4.0+sha256.b6fd0bfda555e7e584ad7e56b30c68b01d5a04f9ee93989f4b93ca8473c49c74"
 }

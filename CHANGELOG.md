@@ -2,6 +2,24 @@
 
 #### Enso IDE
 
+- ["Add node" button is not obscured by output port][10433]
+
+[10433]: https://github.com/enso-org/enso/pull/10443
+
+#### Enso Enso Standard Library
+
+- [Renamed `Data.list_directory` to `Data.list`. Removed list support from read
+  methods.][10434]
+- [Renamed `Location.Start` to `Location.Left` and `Location.End` to
+  `Location.Right`.][10445]
+
+[10434]: https://github.com/enso-org/enso/pull/10434
+[10445]: https://github.com/enso-org/enso/pull/10445
+
+# Enso 2024.2
+
+#### Enso IDE
+
 - [Arrows navigation][10179] selected nodes may be moved around, or entire scene
   if no node is selected.
 - [Added a limit for dropdown width][10198], implemented ellipsis and scrolling
@@ -22,7 +40,9 @@
   disallowed changing it again.][10337]
 - [Added click through on table and vector visualisation][10340] clicking on
   index column will select row or value in seperate node
+- [Copied table-viz range pastes as Table component][10352]
 - [Added support for links in documentation panels][10353].
+- [Added support for opening documentation in an external browser][10396].
 
 [10064]: https://github.com/enso-org/enso/pull/10064
 [10179]: https://github.com/enso-org/enso/pull/10179
@@ -35,7 +55,9 @@
 [10327]: https://github.com/enso-org/enso/pull/10327
 [10337]: https://github.com/enso-org/enso/pull/10337
 [10340]: https://github.com/enso-org/enso/pull/10340
+[10352]: https://github.com/enso-org/enso/pull/10352
 [10353]: https://github.com/enso-org/enso/pull/10353
+[10396]: https://github.com/enso-org/enso/pull/10396
 
 #### Enso Standard Library
 
@@ -49,6 +71,7 @@
 - [Implemented fallback to Windows-1252 encoding for `Encoding.Default`.][10190]
 - [Added Table.duplicates component][10323]
 - [Renamed `Table.order_by` to `Table.sort`][10372]
+- [Implemented `Decimal` support for Postgres backend.][10216]
 
 [debug-shortcuts]:
 
@@ -59,6 +82,7 @@
 [10190]: https://github.com/enso-org/enso/pull/10190
 [10323]: https://github.com/enso-org/enso/pull/10323
 [10372]: https://github.com/enso-org/enso/pull/10372
+[10216]: https://github.com/enso-org/enso/pull/10216
 
 <br/>![Release Notes](/docs/assets/tags/release_notes.svg)
 

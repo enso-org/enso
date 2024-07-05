@@ -47,7 +47,7 @@ export function generateUniqueLogFileName(): string {
 // ================
 
 /** Log consumer that writes to a file. */
-export class FileConsumer extends linkedDist.Consumer {
+export class FileConsumer extends linkedDist.log.Consumer {
     private readonly logFilePath: string
     private readonly logFileHandle: number
 
@@ -63,7 +63,7 @@ export class FileConsumer extends linkedDist.Consumer {
     }
 
     /** Append a message to the log. */
-    override message(level: linkedDist.LogLevel, ...args: unknown[]): void {
+    override message(level: linkedDist.log.LogLevel, ...args: unknown[]): void {
         const timestamp = new Date().toISOString()
         const message = args
             .map(arg => (typeof arg === 'string' ? arg : JSON.stringify(arg)))
