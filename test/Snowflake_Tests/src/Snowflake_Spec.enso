@@ -239,15 +239,15 @@ snowflake_specific_spec suite_builder default_connection db_name setup =
             r = data.t.aggregate columns=[Aggregate_Column.Count, Aggregate_Column.Count_Empty "txt", Aggregate_Column.Count_Not_Empty "txt", Aggregate_Column.Count_Distinct "i1", Aggregate_Column.Count_Not_Nothing "i2", Aggregate_Column.Count_Nothing "i3"]
             r.column_count . should_equal 6
             r.columns.each column->
-                column.value_type . should_equal Value_Type.Integer
+                column.value_type . should_equal (Value_Type.Decimal 18 0)
 
         group_builder.specify "Sum" <|
             r = data.t.aggregate columns=[Aggregate_Column.Sum "i1", Aggregate_Column.Sum "i2", Aggregate_Column.Sum "i3", Aggregate_Column.Sum "i4", Aggregate_Column.Sum "r1", Aggregate_Column.Sum "r2"]
-            r.columns.at 0 . value_type . should_equal Value_Type.Integer
-            r.columns.at 1 . value_type . should_equal Value_Type.Integer
-            # TODO are these types right??
-            r.columns.at 2 . value_type . should_equal Value_Type.Integer
-            r.columns.at 3 . value_type . should_equal Value_Type.Integer
+            r.columns.at 0 . value_type . should_equal (Value_Type.Decimal 38 0)
+            r.columns.at 1 . value_type . should_equal (Value_Type.Decimal 38 0)
+
+            r.columns.at 2 . value_type . should_equal (Value_Type.Decimal 38 0)
+            r.columns.at 3 . value_type . should_equal (Value_Type.Decimal 38 0)
             r.columns.at 4 . value_type . should_equal (Value_Type.Float Bits.Bits_64)
             r.columns.at 5 . value_type . should_equal (Value_Type.Float Bits.Bits_64)
 
