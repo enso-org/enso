@@ -3,6 +3,8 @@ import Standard.Base.Errors.Common.Assertion_Error
 import Standard.Base.Errors.Empty_Error.Empty_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
+from Standard.Table import Value_Type
+
 from Standard.Database.DB_Table import MAX_LITERAL_ELEMENT_COUNT
 
 from Standard.Test import all
@@ -12,41 +14,32 @@ from project.Common_Table_Operations.Util import run_default_backend
 main = run_default_backend add_specs
 
 type Data
-    Value ~data
+    Value ~dummy_table
 
-    connection self = self.data.at 0
-    dummy_table self = self.data.at 1
-
-    setup test_setup create_connection_fn =
-        connection = (create_connection_fn Nothing)
-        dummy_table = test_setup.table_builder [['x', [1]]] connection=connection
-        Data.Value [connection, dummy_table]
-
-    teardown self = self.connection.close
-
+    setup table_builder =
+        Data.Value (table_builder [['x', [1]]])
 
 add_specs suite_builder setup =
     prefix = setup.prefix
-    create_connection_fn = setup.create_connection_func
     suite_builder.group prefix+"Table.make_table_from_map/vectors" group_builder->
-        data = Data.setup setup create_connection_fn
-
-        group_builder.teardown <|
-            data.teardown
-
-        group_builder.specify "should be able to create a literal table with one column" <|
-            vecs = [[0], [3], [6]]
+        data = Data.setup setup.table_builder
+        group_builder.specify "should be able to create a literal table with one row" <|
+            vecs = [[0], [3.5], ['ABC']]
             t = data.dummy_table.make_table_from_vectors vecs ['x', 'y', 'z']
             t.at 'x' . to_vector . should_equal [0]
-            t.at 'y' . to_vector . should_equal [3]
-            t.at 'z' . to_vector . should_equal [6]
+            t.at 'y' . to_vector . should_equal [3.5]
+            t.at 'z' . to_vector . should_equal ['ABC']
 
-        group_builder.specify "should be able to create a literal table with three columns" <|
-            vecs = [[0, 1, 2], [3, 4, 5], [6, 7, 8]]
-            t = data.dummy_table.make_table_from_vectors vecs ['x', 'y', 'z']
+            setup.expect_integer_type <|  t.at 'x'
+            t.at 'y' . value_type . should_be_a (Value_Type.Float ...)
+            t.at 'z' . value_type . should_be_a (Value_Type.Char ...)
+
+        group_builder.specify "should be able to create a literal table with three rows" <|
+            vecs = [[0, 1, 2], [3, 4, 5], ['a', 'b', 'c']]
+            t = data.dummy_table.make_table_from_vectors vecs ['x', 'y', 'z'] . read . order_by 'x'
             t.at 'x' . to_vector . should_equal [0, 1, 2]
             t.at 'y' . to_vector . should_equal [3, 4, 5]
-            t.at 'z' . to_vector . should_equal [6, 7, 8]
+            t.at 'z' . to_vector . should_equal ['a', 'b', 'c']
 
         if setup.is_database then
             group_builder.specify "should not be able to create a literal table with empty columns (db backend)" <|
@@ -65,6 +58,17 @@ add_specs suite_builder setup =
                 data.dummy_table.make_table_from_vectors vecs ['x', 'y', 'z'] . read . should_fail_with Illegal_Argument
                 vecs2 = [[], [3, 4, 5], [6, 7, 8]]
                 data.dummy_table.make_table_from_vectors vecs2 ['x', 'y', 'z'] . read . should_fail_with Illegal_Argument
+
+        if setup.test_selection.date_time then
+            group_builder.specify "should be able to create a table of date-time values" <|
+                vecs = [[Date.new 2021 01 02], [Time_Of_Day.new 12 35 4], [Date_Time.new 2020 04 02 18 55]]
+                t = data.dummy_table.make_table_from_vectors vecs ['date', 'time', 'datetime']
+                t.at 'date' . to_vector . should_equal [Date.new 2021 01 02]
+                t.at 'time' . to_vector . should_equal [Time_Of_Day.new 12 35 4]
+
+                t.at 'date' . value_type . should_equal Value_Type.Date
+                t.at 'time' . value_type . should_equal Value_Type.Time
+                t.at 'datetime' . value_type . should_be_a (Value_Type.Date_Time ...)
 
         group_builder.specify "should be able to create a literal table from a map" <|
             map = Map.from_vector [['x', 1], ['y', 2], ['z', 3]]
