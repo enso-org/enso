@@ -2,7 +2,16 @@ package org.enso.compiler.phase.exports
 
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.data.BindingsMap.ModuleReference.Concrete
-import org.enso.compiler.data.BindingsMap.{ExportedModule, ImportTarget, ResolvedConversionMethod, ResolvedImport, ResolvedModule, ResolvedModuleMethod, ResolvedName, ResolvedStaticMethod}
+import org.enso.compiler.data.BindingsMap.{
+  ExportedModule,
+  ImportTarget,
+  ResolvedConversionMethod,
+  ResolvedImport,
+  ResolvedModule,
+  ResolvedModuleMethod,
+  ResolvedName,
+  ResolvedStaticMethod
+}
 import org.enso.compiler.context.CompilerContext
 import org.enso.compiler.context.CompilerContext.Module
 
@@ -107,6 +116,10 @@ class ExportsResolution(private val context: CompilerContext) {
     result.reverse
   }
 
+  /** Fills in the [[BindingsMap.exportedSymbols]] field for every given module.
+    * This field is only filled with the symbols that are resolved. The symbols
+    * that are not resolved are ignored at this staged.
+    */
   private def resolveExportedSymbols(modules: List[Module]): Unit = {
     modules.foreach { module =>
       val bindings = getBindings(module)
@@ -114,32 +127,33 @@ class ExportsResolution(private val context: CompilerContext) {
         bindings.definedEntities
           .filter(_.canExport)
           .map(e => (e.name, e.resolvedIn(module)))
-      val exportedSymbols: List[(String, ResolvedName)] = bindings.resolvedImports.collect {
-        case ResolvedImport(_, exports, targets) =>
-          exports.flatMap { export =>
-            targets.flatMap { target =>
-              val symbols = export.onlyNames match {
-                case Some(onlyNames) =>
-                  onlyNames.map(_.name)
-                case None =>
-                  List(export.name.parts.last.name)
-              }
-              val isThisModule = target.module.unsafeAsModule() == module
-              if (isThisModule) {
-                None
-              } else {
-                symbols.flatMap { symbol =>
-                  export.rename match {
-                    case Some(rename) =>
-                      Some((rename.name, target))
-                    case None =>
-                      Some((symbol, target))
+      val exportedSymbols: List[(String, ResolvedName)] =
+        bindings.resolvedImports.collect {
+          case ResolvedImport(_, exports, targets) =>
+            exports.flatMap { export =>
+              targets.flatMap { target =>
+                val symbols = export.onlyNames match {
+                  case Some(onlyNames) =>
+                    onlyNames.map(_.name)
+                  case None =>
+                    List(export.name.parts.last.name)
+                }
+                val isThisModule = target.module.unsafeAsModule() == module
+                if (isThisModule) {
+                  None
+                } else {
+                  symbols.flatMap { symbol =>
+                    export.rename match {
+                      case Some(rename) =>
+                        Some((rename.name, target))
+                      case None =>
+                        Some((symbol, target))
+                    }
                   }
                 }
               }
             }
-          }
-      }.flatten
+        }.flatten
 
       bindings.exportedSymbols = List(
         ownEntities,
@@ -155,27 +169,27 @@ class ExportsResolution(private val context: CompilerContext) {
     }
   }
 
-  /**
-   * If there are multiple resolved names for one exported symbol, they must be consistent.
-   * I.e., either they are all static (extension) and module methods, or all conversion methods.
-   * We cannot, for example, export type and a module for one symbol - that would result
-   * in a collision.
-   * @return true if they are consistent, false otherwise.
-   */
+  /** If there are multiple resolved names for one exported symbol, they must be consistent.
+    * I.e., either they are all static (extension) and module methods, or all conversion methods.
+    * We cannot, for example, export type and a module for one symbol - that would result
+    * in a collision.
+    * @return true if they are consistent, false otherwise.
+    */
   private def areResolvedNamesConsistent(
     resolvedNames: List[ResolvedName]
   ): Boolean = {
-   if (resolvedNames.size > 1)  {
-     val allStaticOrModuleMethods = resolvedNames.forall {
-       case _: ResolvedStaticMethod => true
-       case _: ResolvedModuleMethod => true
-       case _ => false
-     }
-     val allConversionMethods = resolvedNames.forall(_.isInstanceOf[ResolvedConversionMethod])
-     allStaticOrModuleMethods || allConversionMethods
-   } else {
-     true
-   }
+    if (resolvedNames.size > 1) {
+      val allStaticOrModuleMethods = resolvedNames.forall {
+        case _: ResolvedStaticMethod => true
+        case _: ResolvedModuleMethod => true
+        case _                       => false
+      }
+      val allConversionMethods =
+        resolvedNames.forall(_.isInstanceOf[ResolvedConversionMethod])
+      allStaticOrModuleMethods || allConversionMethods
+    } else {
+      true
+    }
   }
 
   /** Performs exports resolution on a selected set of modules.
@@ -200,10 +214,10 @@ class ExportsResolution(private val context: CompilerContext) {
         cycles.head.map(_.module.module.unsafeAsModule())
       )
     }
-    val tops = topsort(graph)
+    val tops       = topsort(graph)
     val topModules = tops.map(_.module)
-    resolveExportedSymbols(tops.map(_.module).collect {
-      case m: ResolvedModule => m.module.unsafeAsModule()
+    resolveExportedSymbols(topModules.collect { case m: ResolvedModule =>
+      m.module.unsafeAsModule()
     })
     // Take _last_ occurrence of each module
     topModules.map(_.module.unsafeAsModule()).reverse.distinct.reverse

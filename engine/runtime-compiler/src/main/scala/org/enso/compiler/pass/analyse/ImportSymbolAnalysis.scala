@@ -119,9 +119,9 @@ case object ImportSymbolAnalysis extends IRPass {
                   )
                   Some(err)
                 case BindingsMap.ResolvedConversionMethod(
-                  module,
-                  conversionMethod
-                ) =>
+                      module,
+                      conversionMethod
+                    ) =>
                   val err = createImportFromMethodError(
                     imp,
                     module.getName

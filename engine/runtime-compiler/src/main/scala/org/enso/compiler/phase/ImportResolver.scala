@@ -134,10 +134,11 @@ final class ImportResolver(compiler: Compiler) extends ImportResolverForIR {
                 )
                 val bm = current.getBindingsMap
                 if (bm != null) {
-                  val modulesFromResolvedImps = bm.resolvedImports.flatMap { resolvedImp =>
-                    resolvedImp.targets.map { target =>
-                      target.module.unsafeAsModule()
-                    }
+                  val modulesFromResolvedImps = bm.resolvedImports.flatMap {
+                    resolvedImp =>
+                      resolvedImp.targets.map { target =>
+                        target.module.unsafeAsModule()
+                      }
                   }
                   (modulesFromResolvedImps.distinct, false)
                 } else {

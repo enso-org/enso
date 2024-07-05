@@ -22,8 +22,7 @@ import org.junit.rules.TemporaryFolder;
 
 public class ExportConversionMethodTest {
 
-  @Rule
-  public TemporaryFolder tempFolder = new TemporaryFolder();
+  @Rule public TemporaryFolder tempFolder = new TemporaryFolder();
 
   @Test
   public void conversionMethodCanBeImportedByName() throws IOException {
@@ -41,13 +40,12 @@ public class ExportConversionMethodTest {
             """
         import project.A_Module.A_Type
         import project.A_Module.B_Type
-        
+
         B_Type.from (_:A_Type) = 42
         """);
     var mainMod =
         new SourceModule(
-            QualifiedName.fromString("Main"),
-            """
+            QualifiedName.fromString("Main"), """
         import project.B_Module.from
         """);
     var projDir = tempFolder.newFolder().toPath();
@@ -62,7 +60,8 @@ public class ExportConversionMethodTest {
       var mainResolvedImps = ModuleUtils.getResolvedImports(ctx, "local.Proj.Main");
       assertThat(mainResolvedImps.size(), is(1));
       assertThat(mainResolvedImps.get(0).targets().size(), is(1));
-      assertThat(mainResolvedImps.get(0).targets().head(), is(instanceOf(ResolvedConversionMethod.class)));
+      assertThat(
+          mainResolvedImps.get(0).targets().head(), is(instanceOf(ResolvedConversionMethod.class)));
     }
   }
 
@@ -70,12 +69,15 @@ public class ExportConversionMethodTest {
   public void conversionMethodIsInBindingMap() throws IOException {
     var aMod =
         new SourceModule(
-            QualifiedName.fromString("A_Module"), """
+            QualifiedName.fromString("A_Module"),
+            """
         type A_Type
         type B_Type
         B_Type.from (_:A_Type) = 42
         """);
-    var mainMod = new SourceModule(QualifiedName.fromString("Main"), """
+    var mainMod =
+        new SourceModule(
+            QualifiedName.fromString("Main"), """
         export project.A_Module.from
         """);
     var projDir = tempFolder.newFolder().toPath();
@@ -88,14 +90,16 @@ public class ExportConversionMethodTest {
       var polyCtx = new PolyglotContext(ctx);
       polyCtx.getTopScope().compile(true);
 
-      var aModExportedSymbols = ModuleUtils.getExportedSymbolsFromModule(ctx, "local.Proj.A_Module");
+      var aModExportedSymbols =
+          ModuleUtils.getExportedSymbolsFromModule(ctx, "local.Proj.A_Module");
       assertThat(aModExportedSymbols.size(), is(3));
       assertThat(aModExportedSymbols.keySet(), containsInAnyOrder("A_Type", "B_Type", "from"));
 
       var mainResolvedImps = ModuleUtils.getResolvedImports(ctx, "local.Proj.Main");
       assertThat(mainResolvedImps.size(), is(1));
       assertThat(mainResolvedImps.get(0).targets().size(), is(1));
-      assertThat(mainResolvedImps.get(0).targets().head(), is(instanceOf(ResolvedConversionMethod.class)));
+      assertThat(
+          mainResolvedImps.get(0).targets().head(), is(instanceOf(ResolvedConversionMethod.class)));
       var mainExportedSyms = ModuleUtils.getExportedSymbolsFromModule(ctx, "local.Proj.Main");
       assertThat(mainExportedSyms.size(), is(1));
       assertThat(mainExportedSyms, hasKey("from"));
@@ -106,13 +110,16 @@ public class ExportConversionMethodTest {
   public void multipleConversionMethodsCanBeImported() throws IOException {
     var aMod =
         new SourceModule(
-            QualifiedName.fromString("A_Module"), """
+            QualifiedName.fromString("A_Module"),
+            """
         type A_Type
         type B_Type
         B_Type.from (_:A_Type) = 1
         A_Type.from (_:B_Type) = 2
         """);
-    var mainMod = new SourceModule(QualifiedName.fromString("Main"), """
+    var mainMod =
+        new SourceModule(
+            QualifiedName.fromString("Main"), """
         export project.A_Module.from
         """);
     var projDir = tempFolder.newFolder().toPath();
@@ -125,15 +132,20 @@ public class ExportConversionMethodTest {
       var polyCtx = new PolyglotContext(ctx);
       polyCtx.getTopScope().compile(true);
 
-      var aModExportedSymbols = ModuleUtils.getExportedSymbolsFromModule(ctx, "local.Proj.A_Module");
+      var aModExportedSymbols =
+          ModuleUtils.getExportedSymbolsFromModule(ctx, "local.Proj.A_Module");
       assertThat(aModExportedSymbols.size(), is(3));
       assertThat(aModExportedSymbols.keySet(), containsInAnyOrder("A_Type", "B_Type", "from"));
 
       var mainResolvedImps = ModuleUtils.getResolvedImports(ctx, "local.Proj.Main");
       assertThat(mainResolvedImps.size(), is(1));
       assertThat(mainResolvedImps.get(0).targets().size(), is(2));
-      assertThat(mainResolvedImps.get(0).targets().apply(0), is(instanceOf(ResolvedConversionMethod.class)));
-      assertThat(mainResolvedImps.get(0).targets().apply(1), is(instanceOf(ResolvedConversionMethod.class)));
+      assertThat(
+          mainResolvedImps.get(0).targets().apply(0),
+          is(instanceOf(ResolvedConversionMethod.class)));
+      assertThat(
+          mainResolvedImps.get(0).targets().apply(1),
+          is(instanceOf(ResolvedConversionMethod.class)));
       var mainExportedSyms = ModuleUtils.getExportedSymbolsFromModule(ctx, "local.Proj.Main");
       assertThat(mainExportedSyms.size(), is(1));
       assertThat(mainExportedSyms, hasKey("from"));

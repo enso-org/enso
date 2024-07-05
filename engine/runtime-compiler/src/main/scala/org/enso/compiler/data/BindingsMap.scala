@@ -291,43 +291,44 @@ case class BindingsMap(
 
   /** Dumps the export statements from this module into a structure ready for
     * further analysis. It uses only [[resolvedImports]] field, as
-   *  [[exportedSymbols]] fields are expected to be filled later.
-   *
-   * For every symbol that is exported from this bindings map, gathers the module
-   * in which the symbol is defined and returns it in the list. For example, if there
-   * is an export `export project.Module.method`, there will be `Module` in the returned list.
+    *  [[exportedSymbols]] fields are expected to be filled later.
+    *
+    * For every symbol that is exported from this bindings map, gathers the module
+    * in which the symbol is defined and returns it in the list. For example, if there
+    * is an export `export project.Module.method`, there will be `Module` in the returned list.
     *
     * @return a list of triples of the exported module, the name it is exported
     *         as and any further symbol restrictions.
     */
   def getDirectlyExportedModules: List[ExportedModule] =
-    resolvedImports.collect { case ResolvedImport(_, exports, targets) =>
-      exports.flatMap { exp =>
-        val exportAs = exp.rename match {
-          case Some(rename) => Some(rename.name)
-          case None => None
-        }
-        val symbols = exp.onlyNames match {
-          case Some(onlyNames) =>
-            onlyNames.map(_.name)
-          case None =>
-            List(exp.name.parts.last.name)
-        }
-        targets.map {
-          case m : ResolvedModule => ExportedModule(m, exportAs, symbols)
-          case ResolvedType(modRef, _) =>
-            ExportedModule(ResolvedModule(modRef), exportAs, symbols)
-          case ResolvedConstructor(ResolvedType(modRef, _), _) =>
-            ExportedModule(ResolvedModule(modRef), exportAs, symbols)
-          case ResolvedModuleMethod(modRef, _) =>
-            ExportedModule(ResolvedModule(modRef), exportAs, symbols)
-          case ResolvedStaticMethod(modRef, _) =>
-            ExportedModule(ResolvedModule(modRef), exportAs, symbols)
-          case ResolvedConversionMethod(modRef, _) =>
-            ExportedModule(ResolvedModule(modRef), exportAs, symbols)
+    resolvedImports
+      .collect { case ResolvedImport(_, exports, targets) =>
+        exports.flatMap { exp =>
+          val exportAs = exp.rename match {
+            case Some(rename) => Some(rename.name)
+            case None         => None
+          }
+          val symbols = exp.onlyNames match {
+            case Some(onlyNames) =>
+              onlyNames.map(_.name)
+            case None =>
+              List(exp.name.parts.last.name)
+          }
+          targets.map {
+            case m: ResolvedModule => ExportedModule(m, exportAs, symbols)
+            case ResolvedType(modRef, _) =>
+              ExportedModule(ResolvedModule(modRef), exportAs, symbols)
+            case ResolvedConstructor(ResolvedType(modRef, _), _) =>
+              ExportedModule(ResolvedModule(modRef), exportAs, symbols)
+            case ResolvedModuleMethod(modRef, _) =>
+              ExportedModule(ResolvedModule(modRef), exportAs, symbols)
+            case ResolvedStaticMethod(modRef, _) =>
+              ExportedModule(ResolvedModule(modRef), exportAs, symbols)
+            case ResolvedConversionMethod(modRef, _) =>
+              ExportedModule(ResolvedModule(modRef), exportAs, symbols)
+          }
         }
       }
-    }
       .flatten
       .distinct
 }
@@ -363,8 +364,8 @@ object BindingsMap {
     * @param module the target being exported.
     * @param exportedAs the name it is exported as.
     * @param symbols List of symbols connected to the export. The symbol refers to the last part
-   *                of the physical name of the target being exported. It is not a fully qualified
-   *                name.
+    *                of the physical name of the target being exported. It is not a fully qualified
+    *                name.
     */
   case class ExportedModule(
     module: ResolvedModule,
@@ -428,7 +429,7 @@ object BindingsMap {
     * @param importDef the definition of the import
     * @param exports the exports associated with the import
     * @param targets list of targets that this import resolves to. Note that it is valid for a single
-   *                import to resolve to multiple entities, for example, in case of extension methods.
+    *                import to resolve to multiple entities, for example, in case of extension methods.
     */
   case class ResolvedImport(
     importDef: ir.module.scope.Import.Module,
@@ -436,7 +437,10 @@ object BindingsMap {
     targets: List[ImportTarget]
   ) {
     assert(targets.nonEmpty)
-    assert(areTargetsConsistent(), "All targets must be either static methods or conversion methods")
+    assert(
+      areTargetsConsistent(),
+      "All targets must be either static methods or conversion methods"
+    )
 
     /** Convert the internal [[ModuleReference]] to an abstract reference.
       *
@@ -476,8 +480,10 @@ object BindingsMap {
       if (targets.size > 1) {
         // If there are multiple targets, they can either all be static methods, or all be
         // conversion methods.
-        val allStaticMethods = targets.forall(_.isInstanceOf[ResolvedStaticMethod])
-        val allConversionMethods = targets.forall(_.isInstanceOf[ResolvedConversionMethod])
+        val allStaticMethods =
+          targets.forall(_.isInstanceOf[ResolvedStaticMethod])
+        val allConversionMethods =
+          targets.forall(_.isInstanceOf[ResolvedConversionMethod])
         allStaticMethods || allConversionMethods
       } else {
         true

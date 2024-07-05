@@ -259,11 +259,7 @@ class ImportExportTest
       mainIr.imports.head.isInstanceOf[errors.ImportExport] shouldBe false
       val mainBindingMap = mainIr.unwrapBindingMap
       mainBindingMap.resolvedImports.size shouldEqual 1
-      mainBindingMap
-        .resolvedImports
-        .head
-        .targets
-        .head
+      mainBindingMap.resolvedImports.head.targets.head
         .asInstanceOf[BindingsMap.ResolvedModuleMethod]
         .method
         .name shouldEqual "module_method"
@@ -332,22 +328,18 @@ class ImportExportTest
         .createModule(packageQualifiedName.createChild("Module"))
 
       val mainIr = s"""
-        |import $namespace.$packageName.Module.extension_method
-        |""".stripMargin
+                      |import $namespace.$packageName.Module.extension_method
+                      |""".stripMargin
         .createModule(packageQualifiedName.createChild("Main"))
         .getIr
-      mainIr
-        .imports
-        .head
+      mainIr.imports.head
         .isInstanceOf[errors.ImportExport] shouldBe false
 
       val bindingsMap = mainIr.unwrapBindingMap
       bindingsMap.resolvedImports.size shouldBe 1
       val resolvedImport = bindingsMap.resolvedImports.head
       resolvedImport.targets.head shouldBe a[BindingsMap.ResolvedStaticMethod]
-      resolvedImport
-        .targets
-        .head
+      resolvedImport.targets.head
         .asInstanceOf[BindingsMap.ResolvedStaticMethod]
         .staticMethod
         .methodName shouldBe "extension_method"
@@ -368,9 +360,7 @@ class ImportExportTest
                       |""".stripMargin
         .createModule(packageQualifiedName.createChild("Main"))
         .getIr
-      mainIr
-        .imports
-        .head
+      mainIr.imports.head
         .isInstanceOf[errors.ImportExport] shouldBe false
       val bm = mainIr.unwrapBindingMap
       bm.exportedSymbols.size shouldBe 1
@@ -578,8 +568,6 @@ class ImportExportTest
           .createModule(packageQualifiedName.createChild("Main"))
           .getIr
 
-      val bindingsMap = mainIr.unwrapBindingMap
-      bindingsMap shouldNot be(null)
       mainIr.exports.size shouldEqual 1
       mainIr.exports.head.isInstanceOf[errors.ImportExport] shouldBe true
       mainIr.exports.head

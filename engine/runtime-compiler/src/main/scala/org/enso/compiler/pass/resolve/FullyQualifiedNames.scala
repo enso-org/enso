@@ -94,7 +94,7 @@ case object FullyQualifiedNames extends IRPass {
       scopeMap.exportedSymbols.foreach { case (symbolName, resolvedNames) =>
         resolvedNames.foreach {
           case resolution @ ResolvedType(exportedModuleRef, _) =>
-            val tpeName = symbolName
+            val tpeName        = symbolName
             val exportedModule = exportedModuleRef.unsafeAsModule()
             if (
               exportedModuleRef.getName.path.length == 2 && exportedModuleRef.getName.item == tpeName && !exportedModule.isSynthetic
@@ -113,7 +113,7 @@ case object FullyQualifiedNames extends IRPass {
                 ir.exports.foreach { export =>
                   export match {
                     case m: Export.Module
-                      if m.name.name == resolution.qualifiedName.toString =>
+                        if m.name.name == resolution.qualifiedName.toString =>
                       m.addDiagnostic(
                         warnings.Shadowed.TypeInModuleNameConflicts(
                           exportedModule.getName.toString,

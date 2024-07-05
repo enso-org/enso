@@ -80,10 +80,14 @@ public abstract class ImportResolverAlgorithm<
       Import imp, java.util.List<Export> exp, ResolvedModuleMethod moduleMethod);
 
   protected abstract Result createResolvedExtensionMethods(
-      Import imp, java.util.List<Export> exp, java.util.List<ResolvedExtensionMethod> extensionMethods);
+      Import imp,
+      java.util.List<Export> exp,
+      java.util.List<ResolvedExtensionMethod> extensionMethods);
 
   protected abstract Result createResolvedConversionMethods(
-      Import imp, java.util.List<Export> exp, java.util.List<ResolvedConversionMethod> conversionMethods);
+      Import imp,
+      java.util.List<Export> exp,
+      java.util.List<ResolvedConversionMethod> conversionMethods);
 
   protected abstract Result createErrorPackageCoundNotBeLoaded(
       Import imp, String impName, String loadingError);
@@ -196,9 +200,11 @@ public abstract class ImportResolverAlgorithm<
   }
 
   /**
-   * Tries to resolve the given import as a list of extension methods.
-   * Note that it is possible that a single symbol resolves to multiple extension methods.
-   * @return List with at least one element. null if there are no static methods in the imported module scope.
+   * Tries to resolve the given import as a list of extension methods. Note that it is possible that
+   * a single symbol resolves to multiple extension methods.
+   *
+   * @return List with at least one element. null if there are no static methods in the imported
+   *     module scope.
    */
   private java.util.List<ResolvedExtensionMethod> tryResolveAsExtensionMethods(Import imp) {
     var parts = partsForImport(imp);
@@ -210,9 +216,10 @@ public abstract class ImportResolverAlgorithm<
       return null;
     }
     var methodName = parts.get(parts.size() - 1);
-    var foundExtMethods = definedExtensionMethods.stream()
-        .filter(method -> nameForExtensionMethod(method).equals(methodName))
-        .collect(Collectors.toUnmodifiableList());
+    var foundExtMethods =
+        definedExtensionMethods.stream()
+            .filter(method -> nameForExtensionMethod(method).equals(methodName))
+            .collect(Collectors.toUnmodifiableList());
     if (foundExtMethods.isEmpty()) {
       return null;
     } else {
@@ -221,9 +228,11 @@ public abstract class ImportResolverAlgorithm<
   }
 
   /**
-   * Tries to resolve the given import as a list of extension methods.
-   * Note that it is possible that a single symbol resolves to multiple extension methods.
-   * @return List of at least one element. null if there are no conversion methods in the imported module scope.
+   * Tries to resolve the given import as a list of extension methods. Note that it is possible that
+   * a single symbol resolves to multiple extension methods.
+   *
+   * @return List of at least one element. null if there are no conversion methods in the imported
+   *     module scope.
    */
   private java.util.List<ResolvedConversionMethod> tryResolveAsConversionMethods(Import imp) {
     var parts = partsForImport(imp);
@@ -235,9 +244,10 @@ public abstract class ImportResolverAlgorithm<
       return null;
     }
     var methodName = parts.get(parts.size() - 1);
-    var foundConvMethods = definedConvMethods.stream()
-        .filter(method -> nameForConversionMethod(method).equals(methodName))
-        .collect(Collectors.toUnmodifiableList());
+    var foundConvMethods =
+        definedConvMethods.stream()
+            .filter(method -> nameForConversionMethod(method).equals(methodName))
+            .collect(Collectors.toUnmodifiableList());
     if (foundConvMethods.isEmpty()) {
       return null;
     } else {

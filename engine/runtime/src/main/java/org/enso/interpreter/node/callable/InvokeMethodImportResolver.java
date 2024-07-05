@@ -17,7 +17,16 @@ import org.enso.interpreter.runtime.scope.TopLevelScope;
 
 final class InvokeMethodImportResolver
     extends ImportResolverAlgorithm<
-        EnsoObject, Module, UnresolvedSymbol, Object, Type, Module, AtomConstructor, Function, Function, Function> {
+        EnsoObject,
+        Module,
+        UnresolvedSymbol,
+        Object,
+        Type,
+        Module,
+        AtomConstructor,
+        Function,
+        Function,
+        Function> {
 
   private final Module module;
   private final TopLevelScope topScope;
@@ -140,14 +149,14 @@ final class InvokeMethodImportResolver
   }
 
   @Override
-  protected EnsoObject createResolvedExtensionMethods(UnresolvedSymbol imp, List<Object> exp,
-      List<Function> functions) {
+  protected EnsoObject createResolvedExtensionMethods(
+      UnresolvedSymbol imp, List<Object> exp, List<Function> functions) {
     throw new UnsupportedOperationException("unimplemented");
   }
 
   @Override
-  protected EnsoObject createResolvedConversionMethods(UnresolvedSymbol imp, List<Object> exp,
-      List<Function> functions) {
+  protected EnsoObject createResolvedConversionMethods(
+      UnresolvedSymbol imp, List<Object> exp, List<Function> functions) {
     throw new UnsupportedOperationException("unimplemented");
   }
 

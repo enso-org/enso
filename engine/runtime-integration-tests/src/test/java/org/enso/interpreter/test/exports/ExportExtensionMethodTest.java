@@ -3,7 +3,6 @@ package org.enso.interpreter.test.exports;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.hasItem;
-import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.is;
 
 import java.io.IOException;
@@ -127,7 +126,8 @@ public class ExportExtensionMethodTest {
       polyCtx.getTopScope().compile(true);
       var mainModExportedSymbols = ModuleUtils.getExportedSymbolsFromModule(ctx, "local.Proj.Main");
       assertThat(mainModExportedSymbols.size(), is(2));
-      assertThat(mainModExportedSymbols.keySet(), containsInAnyOrder("My_Type", "extension_method"));
+      assertThat(
+          mainModExportedSymbols.keySet(), containsInAnyOrder("My_Type", "extension_method"));
     }
   }
 

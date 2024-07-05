@@ -120,26 +120,39 @@ public class ExportedSymbolsTest {
 
   @Test
   public void exportedSymbolsFromSubModule() throws IOException {
-    var aMod = new SourceModule(QualifiedName.fromString("Synthetic_Module.A_Module"), """
+    var aMod =
+        new SourceModule(
+            QualifiedName.fromString("Synthetic_Module.A_Module"),
+            """
         type A_Module
         """);
-    var mainMod = new SourceModule(QualifiedName.fromString("Main"), """
+    var mainMod =
+        new SourceModule(
+            QualifiedName.fromString("Main"),
+            """
         import project.Synthetic_Module
         """);
     ProjectUtils.createProject("Proj", Set.of(aMod, mainMod), projDir);
     var ctx = createCtx(projDir);
     compile(ctx);
     var syntheticModExpSymbols = getExportedSymbolsFromModule(ctx, "local.Proj.Synthetic_Module");
-    assertThat("Just a A_Module submodule should be exported", syntheticModExpSymbols.size(), is(1));
-    assertThat("Just a A_Module submodule should be exported", syntheticModExpSymbols, hasKey("A_Module"));
+    assertThat(
+        "Just a A_Module submodule should be exported", syntheticModExpSymbols.size(), is(1));
+    assertThat(
+        "Just a A_Module submodule should be exported", syntheticModExpSymbols, hasKey("A_Module"));
   }
 
   @Test
   public void exportTypeFromModuleWithSameName() throws IOException {
-    var aMod = new SourceModule(QualifiedName.fromString("A_Module"), """
+    var aMod =
+        new SourceModule(
+            QualifiedName.fromString("A_Module"), """
         type A_Module
         """);
-    var mainMod = new SourceModule(QualifiedName.fromString("Main"), """
+    var mainMod =
+        new SourceModule(
+            QualifiedName.fromString("Main"),
+            """
         export project.A_Module.A_Module
         """);
     ProjectUtils.createProject("Proj", Set.of(aMod, mainMod), projDir);
@@ -149,15 +162,20 @@ public class ExportedSymbolsTest {
     assertThat(mainExportedSymbols.size(), is(1));
     assertThat(mainExportedSymbols.keySet(), containsInAnyOrder("A_Module"));
     assertThat(mainExportedSymbols.get("A_Module").size(), is(1));
-    assertThat(mainExportedSymbols.get("A_Module").get(0), is(instanceOf(BindingsMap.ResolvedType.class)));
+    assertThat(
+        mainExportedSymbols.get("A_Module").get(0), is(instanceOf(BindingsMap.ResolvedType.class)));
   }
 
   @Test
   public void exportModuleWithTypeWithSameName() throws IOException {
-    var aMod = new SourceModule(QualifiedName.fromString("A_Module"), """
+    var aMod =
+        new SourceModule(
+            QualifiedName.fromString("A_Module"), """
         type A_Module
         """);
-    var mainMod = new SourceModule(QualifiedName.fromString("Main"), """
+    var mainMod =
+        new SourceModule(
+            QualifiedName.fromString("Main"), """
         export project.A_Module
         """);
     ProjectUtils.createProject("Proj", Set.of(aMod, mainMod), projDir);
@@ -167,15 +185,23 @@ public class ExportedSymbolsTest {
     assertThat(mainExportedSymbols.size(), is(1));
     assertThat(mainExportedSymbols.keySet(), containsInAnyOrder("A_Module"));
     assertThat(mainExportedSymbols.get("A_Module").size(), is(1));
-    assertThat(mainExportedSymbols.get("A_Module").get(0), is(instanceOf(BindingsMap.ResolvedModule.class)));
+    assertThat(
+        mainExportedSymbols.get("A_Module").get(0),
+        is(instanceOf(BindingsMap.ResolvedModule.class)));
   }
 
   @Test
   public void exportSyntheticModule() throws IOException {
-    var aMod = new SourceModule(QualifiedName.fromString("Synthetic_Module.A_Module"), """
+    var aMod =
+        new SourceModule(
+            QualifiedName.fromString("Synthetic_Module.A_Module"),
+            """
         type A_Type
         """);
-    var mainMod = new SourceModule(QualifiedName.fromString("Main"), """
+    var mainMod =
+        new SourceModule(
+            QualifiedName.fromString("Main"),
+            """
         export project.Synthetic_Module
         """);
     ProjectUtils.createProject("Proj", Set.of(aMod, mainMod), projDir);
@@ -185,7 +211,9 @@ public class ExportedSymbolsTest {
     assertThat(mainExportedSymbols.size(), is(1));
     assertThat(mainExportedSymbols.keySet(), containsInAnyOrder("Synthetic_Module"));
     assertThat(mainExportedSymbols.get("Synthetic_Module").size(), is(1));
-    assertThat(mainExportedSymbols.get("Synthetic_Module").get(0), is(instanceOf(BindingsMap.ResolvedModule.class)));
+    assertThat(
+        mainExportedSymbols.get("Synthetic_Module").get(0),
+        is(instanceOf(BindingsMap.ResolvedModule.class)));
   }
 
   private static Context createCtx(Path projDir) {

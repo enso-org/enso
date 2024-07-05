@@ -1,21 +1,10 @@
 package org.enso.compiler
 
-import org.enso.compiler.context.{
-  CompilerContext,
-  FreshNameSupply,
-  InlineContext,
-  ModuleContext
-}
+import org.enso.compiler.context.{CompilerContext, FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.context.CompilerContext.Module
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.core.Implicits.AsMetadata
-import org.enso.compiler.core.ir.{
-  Diagnostic,
-  Expression,
-  Name,
-  Warning,
-  Module => IRModule
-}
+import org.enso.compiler.core.ir.{Diagnostic, Expression, Name, Warning, Module => IRModule}
 import org.enso.compiler.core.ir.MetadataStorage.MetadataPair
 import org.enso.compiler.core.ir.expression.Error
 import org.enso.compiler.core.ir.module.scope.Export
@@ -33,14 +22,7 @@ import org.enso.compiler.phase.exports.{ExportCycleException, ExportSymbolAnalys
 import org.enso.syntax2.Tree
 
 import java.io.PrintStream
-import java.util.concurrent.{
-  CompletableFuture,
-  ExecutorService,
-  Future,
-  LinkedBlockingDeque,
-  ThreadPoolExecutor,
-  TimeUnit
-}
+import java.util.concurrent.{CompletableFuture, ExecutorService, Future, LinkedBlockingDeque, ThreadPoolExecutor, TimeUnit}
 import java.util.logging.Level
 
 /** This class encapsulates the static transformation processes that take place

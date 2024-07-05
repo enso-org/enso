@@ -41,10 +41,7 @@ import org.enso.compiler.core.ir.expression.{
   Operator,
   Section
 }
-import org.enso.compiler.data.BindingsMap.{
-  ResolvedConstructor,
-  ResolvedModule
-}
+import org.enso.compiler.data.BindingsMap.{ResolvedConstructor, ResolvedModule}
 import org.enso.compiler.data.{BindingsMap, CompilerConfig}
 import org.enso.compiler.exception.BadPatternMatch
 import org.enso.compiler.pass.analyse.alias.Graph.{Scope => AliasScope}
@@ -201,7 +198,9 @@ class IrToTruffle(
         case ResolvedModule(module) => module
       }
       resolvedModules.foreach { resolvedModule =>
-        scopeBuilder.addExport(new ImportExportScope(resolvedModule.unsafeAsModule()))
+        scopeBuilder.addExport(
+          new ImportExportScope(resolvedModule.unsafeAsModule())
+        )
       }
     }
 
@@ -212,10 +211,10 @@ class IrToTruffle(
 
     bindingsMap.resolvedImports.foreach { imp =>
       imp.targets.foreach {
-        case _: BindingsMap.ResolvedType =>
-        case _: BindingsMap.ResolvedConstructor =>
-        case _: BindingsMap.ResolvedModuleMethod =>
-        case _: BindingsMap.ResolvedStaticMethod =>
+        case _: BindingsMap.ResolvedType             =>
+        case _: BindingsMap.ResolvedConstructor      =>
+        case _: BindingsMap.ResolvedModuleMethod     =>
+        case _: BindingsMap.ResolvedStaticMethod     =>
         case _: BindingsMap.ResolvedConversionMethod =>
         case ResolvedModule(module) =>
           val mod = module
