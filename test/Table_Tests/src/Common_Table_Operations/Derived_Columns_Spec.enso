@@ -27,7 +27,7 @@ add_specs suite_builder setup =
     prefix = setup.prefix
     create_connection_fn = setup.create_connection_func
     pending_datetime = if setup.test_selection.date_time.not then "Date/Time operations are not supported by this backend."
-    suite_builder.group prefix+"Table.set with Simple_Expression" group_builder->
+    suite_builder.group prefix+"(Derived_Columns_Spec) Table.set with Simple_Expression" group_builder->
         data = Data.setup create_connection_fn
 
         group_builder.teardown <|
@@ -223,7 +223,7 @@ add_specs suite_builder setup =
             t.set (Simple_Expression.Simple_Expr (Column_Ref.Name "zzz") Simple_Calculation.Not) . should_fail_with No_Such_Column
             t.set (Simple_Expression.Simple_Expr (Column_Ref.Index 42) Simple_Calculation.Not) . should_fail_with Index_Out_Of_Bounds
 
-    suite_builder.group prefix+"Unique derived column names" group_builder->
+    suite_builder.group prefix+"(Derived_Columns_Spec) Unique derived column names" group_builder->
         data = Data.setup create_connection_fn
 
         group_builder.teardown <|

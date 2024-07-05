@@ -291,7 +291,7 @@ make_internal_generator_dialect =
         other = [["day_of_year", Base_Generator.make_function "DAYOFYEAR"], ["day_of_week", Base_Generator.make_function "DAYOFWEEKISO"]]
         operations = [["date_add", make_date_add], ["date_diff", make_date_diff], ["date_trunc_to_day", make_date_trunc_to_day]]
         trivial + fractional + other + operations
-    other = [["RUNTIME_ERROR", make_runtime_error_op]]
+    other = [["IIF", make_iif], ["RUNTIME_ERROR", make_runtime_error_op]]
     my_mappings = text + counts + stats + arith_extensions + bool + date_ops + other
     Base_Generator.base_dialect . extend_with my_mappings
 
@@ -641,6 +641,19 @@ make_runtime_error_op arguments =
     variable_to_defer = arguments.at 1
 
     SQL_Builder.code "CAST('[ENSO INVARIANT VIOLATED: '||" ++ error_message ++ "||'] '||COALESCE(" ++ variable_to_defer ++ "::TEXT,'NULL') AS BOOLEAN)"
+
+## PRIVATE
+make_iif : Vector SQL_Builder -> SQL_Builder
+make_iif arguments = case arguments.length of
+    3 ->
+        expr = arguments.at 0
+        when_true = arguments.at 1
+        when_false = arguments.at 2
+        # We can rely on Snowflake's decode to avoid duplicating `expr` in the SQL code:
+        # (if no default fallback is provided, NULL will be returned - meaning that NULL is mapped to NULL as expected)
+        SQL_Builder.code "DECODE(" ++ expr ++ ", TRUE, " ++ when_true ++ ", FALSE, " ++ when_false ++ ")"
+    _ ->
+        Error.throw <| Illegal_State.Error ("Invalid amount of arguments for operation IIF")
 
 ## PRIVATE
 snowflake_dialect_name = "Snowflake"
