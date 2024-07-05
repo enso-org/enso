@@ -174,7 +174,9 @@ type Snowflake_Dialect
         query_text = case statement of
             text : Text -> text
             _ : SQL_Statement -> statement.prepare.first
-        needs_execute = query_text.contains "VALUES" || query_text.contains "DECODE"
+        keywords_that_need_execute = ["VALUES", "DECODE"]
+        regex = keywords_that_need_execute.join "|"
+        needs_execute = query_text.find regex . is_nothing . not
         needs_execute
 
     ## PRIVATE
