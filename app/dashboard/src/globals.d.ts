@@ -7,7 +7,7 @@ import type * as saveAccessToken from '#/utilities/accessToken'
 // This file is being imported for its types.
 // prettier-ignore
 // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/consistent-type-imports
-import * as buildJson from './../../build.json' assert { type: 'json' };
+import * as buildJson from './../../build.json' with { type: 'json' };
 
 // =============
 // === Types ===
