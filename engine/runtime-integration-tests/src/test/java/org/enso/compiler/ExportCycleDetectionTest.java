@@ -3,6 +3,8 @@ package org.enso.compiler;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.hasKey;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.fail;
 
 import java.io.ByteArrayOutputStream;
@@ -13,6 +15,7 @@ import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.PolyglotContext;
 import org.enso.polyglot.RuntimeOptions;
 import org.enso.test.utils.ContextUtils;
+import org.enso.test.utils.ModuleUtils;
 import org.enso.test.utils.ProjectUtils;
 import org.enso.test.utils.SourceModule;
 import org.graalvm.polyglot.PolyglotException;
@@ -98,6 +101,60 @@ public class ExportCycleDetectionTest {
             containsString("local.Proj.A_Module"),
             containsString("local.Proj.B_Module"),
             containsString("local.Proj.C_Module")));
+  }
+
+  @Test
+  public void noCycleDetectedWhenExportingSymbolsFromItself_1() throws IOException {
+    var mainMod =
+        new SourceModule(
+            QualifiedName.fromString("Main"),
+            """
+        type Main_Type
+        export project.Main.Main_Type
+        """);
+    var projDir = tempFolder.newFolder().toPath();
+    ProjectUtils.createProject("Proj", Set.of(mainMod), projDir);
+    try (var ctx =
+        ContextUtils.defaultContextBuilder()
+            .option(RuntimeOptions.PROJECT_ROOT, projDir.toAbsolutePath().toString())
+            .build()) {
+      var polyCtx = new PolyglotContext(ctx);
+      try {
+        polyCtx.getTopScope().compile(true);
+      } catch (PolyglotException e) {
+        fail("Compilation error not expected. But got: " + e);
+      }
+      var exportedSyms = ModuleUtils.getExportedSymbolsFromModule(ctx, "local.Proj.Main");
+      assertThat(exportedSyms.size(), is(1));
+      assertThat(exportedSyms, hasKey("Main_Type"));
+    }
+  }
+
+  @Test
+  public void noCycleDetectedWhenExportingSymbolsFromItself_2() throws IOException {
+    var mainMod =
+        new SourceModule(
+            QualifiedName.fromString("Main"),
+            """
+        type Main_Type
+        from project.Main export Main_Type
+        """);
+    var projDir = tempFolder.newFolder().toPath();
+    ProjectUtils.createProject("Proj", Set.of(mainMod), projDir);
+    try (var ctx =
+        ContextUtils.defaultContextBuilder()
+            .option(RuntimeOptions.PROJECT_ROOT, projDir.toAbsolutePath().toString())
+            .build()) {
+      var polyCtx = new PolyglotContext(ctx);
+      try {
+        polyCtx.getTopScope().compile(true);
+      } catch (PolyglotException e) {
+        fail("Compilation error not expected. But got: " + e);
+      }
+      var exportedSyms = ModuleUtils.getExportedSymbolsFromModule(ctx, "local.Proj.Main");
+      assertThat(exportedSyms.size(), is(1));
+      assertThat(exportedSyms, hasKey("Main_Type"));
+    }
   }
 
   private void expectProjectCompilationError(Path projDir, Matcher<String> errMsgMatcher) {

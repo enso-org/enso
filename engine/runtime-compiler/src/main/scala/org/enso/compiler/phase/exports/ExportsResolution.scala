@@ -51,8 +51,21 @@ class ExportsResolution(private val context: CompilerContext) {
         Nil
       }
       val node = nodes(module)
-      node.exports = exports.map { case ExportedModule(mod, rename, symbols) =>
-        Edge(node, symbols, rename, nodes.getOrElseUpdate(mod, Node(mod)))
+      node.exports = exports.flatMap {
+        case ExportedModule(exportedMod, rename, symbols) =>
+          // Don't create edges for self-exports
+          if (exportedMod.qualifiedName != module.qualifiedName) {
+            Some(
+              Edge(
+                node,
+                symbols,
+                rename,
+                nodes.getOrElseUpdate(exportedMod, Node(exportedMod))
+              )
+            )
+          } else {
+            None
+          }
       }
       node.exports.foreach { edge => edge.exportee.exportedBy ::= edge }
     }
