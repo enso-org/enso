@@ -121,10 +121,9 @@ type Array
          for the default comparator, which is always the first group.
 
          Additionally, an `Incomparable_Values` dataflow error will be returned
-         if the `on_incomparable` parameter is set to `Report_Error`,
-         or a warning attached if the `on_incomparable` parameter is set to
-         `Report_Warning` in case of encountering incomparable
-         values.
+         if the `on_problems` parameter is set to `Report_Error`, or a warning
+         attached if the `on_problems` parameter is set to `Report_Warning` in
+         case of encountering incomparable values.
 
          It takes equal advantage of ascending and descending runs in the array,
          making it much simpler to merge two or more sorted arrays: simply
@@ -147,8 +146,8 @@ type Array
 
              [My_Type.Value 'hello', 1].to_array.sort == [1, My_Type.Value 'hello'].to_array
     sort : Sort_Direction -> (Any -> Any)|Nothing -> (Any -> Any -> (Ordering|Nothing))|Nothing -> Problem_Behavior -> Vector Any ! Incomparable_Values
-    sort self (order = Sort_Direction.Ascending) on=Nothing by=Nothing on_incomparable:Problem_Behavior=..Ignore =
-        Array_Like_Helpers.sort self order on by on_incomparable
+    sort self (order = Sort_Direction.Ascending) on=Nothing by=Nothing on_problems:Problem_Behavior=..Ignore =
+        Array_Like_Helpers.sort self order on by on_problems
 
     ## ALIAS first, head, last, limit, sample, slice, tail, top, keep
        GROUP Selections
