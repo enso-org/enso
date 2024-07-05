@@ -95,7 +95,7 @@ add_specs suite_builder setup =
             t2.set (Simple_Expression.Simple_Expr (Column_Ref.Name "C") (Simple_Calculation.Date_Add 5 Date_Period.Month)) "Z" . at "Z" . to_vector . should_equal [Date.new 2003 5 10, Date.new 2005 6 01]
             t2.set (Simple_Expression.Simple_Expr (Column_Ref.Name "D") (Simple_Calculation.Date_Add 15 Time_Period.Hour)) "Z" . at "Z" . to_vector . should_equal [Time_Of_Day.new 03 45, Time_Of_Day.new 16 01]
 
-            t2.set (Simple_Expression.Simple_Expr (Column_Ref.Name "C") (Simple_Calculation.Date_Diff (Date.new 2003) Date_Period.Year)) "Z" . at "Z" . to_vector . should_equal [0, -2]
+            t2.set (Simple_Expression.Simple_Expr (Column_Ref.Name "C") (Simple_Calculation.Date_Diff (Date.new 2003 12 11) Date_Period.Year)) "Z" . at "Z" . to_vector . should_equal [1, -2]
             t2.set (Simple_Expression.Simple_Expr (Column_Ref.Name "D") (Simple_Calculation.Date_Diff (Time_Of_Day.new 13) Time_Period.Minute)) "Z" . at "Z" . to_vector . should_equal [15, 59+(60*11)]
 
             t2.set (Simple_Expression.Simple_Expr (Column_Ref.Name "C") (Simple_Calculation.Date_Part Date_Period.Year)) "Z" . at "Z" . to_vector . should_equal [2002, 2005]

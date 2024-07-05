@@ -57,10 +57,15 @@ add_specs suite_builder setup =
                 t2.at "Y" . value_type . is_text . should_be_true
                 t2.at "Z" . value_type . is_text . should_be_true
 
-                t2.at "X" . to_vector . should_equal ["2015-01-01", "2023-12-31"]
-                t2.at "Y" . to_vector . should_equal ["01:02:03", "23:57:59"]
+                m2 = t2.read
+                m2.at "X" . to_vector . should_equal ["2015-01-01", "2023-12-31"]
+
+                # The nanoseconds suffix is optional - we strip it for the comparison.
+                strip_ns s = s.replace "\.\d+$".to_regex ""
+                m2.at "Y" . to_vector . map strip_ns . should_equal ["01:02:03", "23:57:59"]
+
                 # The particular format depends on the backend.
-                vz = t2.at "Z" . to_vector
+                vz = m2.at "Z" . to_vector
                 vz.first . should_contain "2015-01-01"
                 vz.first . should_contain "01:02:03"
                 vz.second . should_contain "2023-11-30"
