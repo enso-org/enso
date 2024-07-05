@@ -29,7 +29,7 @@ import org.enso.compiler.phase.{ImportResolver, ImportResolverAlgorithm}
 import org.enso.editions.LibraryName
 import org.enso.pkg.QualifiedName
 import org.enso.common.CompilationStage
-import org.enso.compiler.phase.exports.{ExportCycleException, ExportsResolution}
+import org.enso.compiler.phase.exports.{ExportCycleException, ExportSymbolAnalysis, ExportsResolution}
 import org.enso.syntax2.Tree
 
 import java.io.PrintStream
@@ -475,7 +475,18 @@ class Compiler(
     // the symbol brought to the scope has not been properly resolved yet.
     val sortedCachedModules =
       new ExportsResolution(context).runSort(modulesImportedWithCachedBindings)
-    sortedCachedModules ++ requiredModules
+    val allSortedModules = sortedCachedModules ++ requiredModules
+    allSortedModules.foreach { mod =>
+      val newModIr =
+        ExportSymbolAnalysis.analyseModule(mod.getIr, packageRepository)
+      context.updateModule(
+        mod,
+        updater => {
+          updater.ir(newModIr)
+        }
+      )
+    }
+    allSortedModules
   }
 
   private def ensureParsedAndAnalyzed(module: Module): Unit = {
