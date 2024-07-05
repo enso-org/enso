@@ -166,7 +166,9 @@ class ExportsResolution(private val context: CompilerContext) {
                 }
               }
             }
-        }.flatten
+        }
+          .flatten
+          .distinct
 
       bindings.exportedSymbols = List(
         ownEntities,
