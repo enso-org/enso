@@ -1486,13 +1486,13 @@ add_specs suite_builder setup =
             with_mixed_columns_if_supported [["A", [" A ", ' \t\n\rA\r\n\t ', "xxxAxx"]]] t->
                 a = t.at "A"
                 a.trim . to_vector . should_equal ["A", "A", "xxxAxx"]
-                a.trim Location.Start . to_vector . should_equal ["A ", 'A\r\n\t ', "xxxAxx"]
-                a.trim Location.End . to_vector . should_equal [" A", ' \t\n\rA', "xxxAxx"]
+                a.trim ..Left . to_vector . should_equal ["A ", 'A\r\n\t ', "xxxAxx"]
+                a.trim ..Right . to_vector . should_equal [" A", ' \t\n\rA', "xxxAxx"]
 
        group_builder.specify "should trim custom characters" <|
             data.a.trim what='x' . to_vector . should_equal [" A ", ' \t\n\rA\r\n\t ', "A"]
-            data.a.trim what='x' Location.Start . to_vector . should_equal [" A ", ' \t\n\rA\r\n\t ', "Axx"]
-            data.a.trim what='x' Location.End . to_vector . should_equal [" A ", ' \t\n\rA\r\n\t ', "xxxA"]
+            data.a.trim what='x' ..Left . to_vector . should_equal [" A ", ' \t\n\rA\r\n\t ', "Axx"]
+            data.a.trim what='x' ..Right . to_vector . should_equal [" A ", ' \t\n\rA\r\n\t ', "xxxA"]
             data.a.trim what=' ' . to_vector . should_equal ["A", '\t\n\rA\r\n\t', "xxxAxx"]
             data.a.trim what=' \t' . to_vector . should_equal ["A", '\n\rA\r\n', "xxxAxx"]
             data.a.trim what=' \r' . to_vector . should_equal ["A", '\t\n\rA\r\n\t', "xxxAxx"]

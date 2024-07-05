@@ -95,7 +95,7 @@ unpack_problem_summary problem_summary =
 ## PRIVATE
    This is the new preferred way of running Java methods that may report problems.
 with_problem_aggregator : Problem_Behavior -> (ProblemAggregator -> Any) -> Any
-with_problem_aggregator on_problems f =
+with_problem_aggregator on_problems:Problem_Behavior f =
     ## This should be the only call to the `makeTopLevelAggregator` method in the whole codebase.
     aggregator = ProblemAggregator.makeTopLevelAggregator
     result = f aggregator
@@ -103,7 +103,7 @@ with_problem_aggregator on_problems f =
 
 ## PRIVATE
 with_map_operation_problem_aggregator : (Text | Nothing) -> Problem_Behavior -> (MapOperationProblemAggregator -> Any) -> Any
-with_map_operation_problem_aggregator (location : Text | Nothing) on_problems f =
+with_map_operation_problem_aggregator (location : Text | Nothing) on_problems:Problem_Behavior f =
     with_problem_aggregator on_problems java_aggregator->
         problem_builder = MapOperationProblemAggregator.new java_aggregator location
         f problem_builder

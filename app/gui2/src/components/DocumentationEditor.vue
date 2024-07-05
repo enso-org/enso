@@ -9,6 +9,9 @@ import { Err, Ok, mapOk, withContext, type Result } from 'shared/util/data/resul
 import { toRef, toValue } from 'vue'
 
 const documentation = defineModel<string>({ required: true })
+const _props = defineProps<{
+  toolbarContainer: HTMLElement | undefined
+}>()
 
 const graphStore = useGraphStore()
 const projectStore = useProjectStore()
@@ -66,5 +69,9 @@ function useDocumentationImages(
 </script>
 
 <template>
-  <MarkdownEditor v-model="documentation" :transformImageUrl="transformImageUrl" />
+  <MarkdownEditor
+    v-model="documentation"
+    :transformImageUrl="transformImageUrl"
+    :toolbarContainer="toolbarContainer"
+  />
 </template>

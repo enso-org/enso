@@ -49,14 +49,14 @@ import project.Internal.Snowflake_Type_Mapping.Snowflake_Type_Mapping
    The dialect of Snowflake databases.
 snowflake : Snowflake_Dialect
 snowflake =
-    Snowflake_Dialect.Value make_internal_generator_dialect
+    Snowflake_Dialect.Value make_dialect_operations
 
 ## PRIVATE
    The dialect of Snowflake databases.
 type Snowflake_Dialect
     ## PRIVATE
        The dialect of Snowflake databases.
-    Value internal_generator_dialect
+    Value dialect_operations
 
     ## PRIVATE
        Name of the dialect.
@@ -71,22 +71,28 @@ type Snowflake_Dialect
        A function which generates SQL code from the internal representation
        according to the specific dialect.
     generate_sql : Query -> SQL_Statement
-    generate_sql self query = case query of
-        Query.Truncate_Table name ->
-            # Special handling to use TRUNCATE TABLE instead of the default DELETE FROM.
-            wrapped_name = self.internal_generator_dialect.wrap_identifier name
-            (SQL_Builder.code "TRUNCATE TABLE " ++ wrapped_name) . build
-        _ ->
-            # Rely on the base generator for most queries.
-            Base_Generator.generate_query self.internal_generator_dialect query . build
+    generate_sql self query =
+        Base_Generator.generate_query self query . build
+
+    ## PRIVATE
+       Generates SQL to truncate a table.
+    generate_truncate_table_sql : Text -> SQL_Builder
+    generate_truncate_table_sql self table_name =
+        Base_Generator.truncate_table_truncate_table_style self table_name
 
     ## PRIVATE
        Wraps and possibly escapes the identifier so that it can be used in a
        generated query regardless of what characters it contains.
        The quotes used will depend on the dialect.
-    wrap_identifier : Text -> Text
+    wrap_identifier : Text -> SQL_Builder
     wrap_identifier self identifier =
-        self.internal_generator_dialect.wrap_identifier_raw identifier
+        Base_Generator.wrap_in_quotes identifier
+
+    ## PRIVATE
+       Generates a SQL expression for a table literal.
+    make_table_literal : Vector (Vector Text) -> Vector Text -> Text -> SQL_Builder
+    make_table_literal self vecs column_names as_name =
+        Base_Generator.default_make_table_literal self.wrap_identifier vecs column_names as_name
 
     ## PRIVATE
        Prepares an ordering descriptor.
@@ -213,7 +219,7 @@ type Snowflake_Dialect
        Checks if an operation is supported by the dialect.
     is_supported : Text -> Boolean
     is_supported self operation =
-        self.internal_generator_dialect.is_supported operation
+        self.dialect_operations.is_supported operation
 
     ## PRIVATE
        The default table types to use when listing tables.
@@ -263,7 +269,7 @@ type Snowflake_Dialect
                 _ -> base_type
 
 ## PRIVATE
-make_internal_generator_dialect =
+make_dialect_operations =
     cases = [["LOWER", Base_Generator.make_function "LOWER"], ["UPPER", Base_Generator.make_function "UPPER"]]
     text = [starts_with, contains, ends_with, agg_shortest, agg_longest, make_case_sensitive, ["REPLACE", replace], left, right]+concat_ops+cases+trim_ops
     counts = [agg_count_is_null, agg_count_empty, agg_count_not_empty, ["COUNT_DISTINCT", agg_count_distinct], ["COUNT_DISTINCT_INCLUDE_NULL", agg_count_distinct_include_null]]
@@ -277,7 +283,7 @@ make_internal_generator_dialect =
     special_overrides = []
     other = [["RUNTIME_ERROR", make_runtime_error_op]]
     my_mappings = text + counts + stats + first_last_aggregators + arith_extensions + bool + date_ops + special_overrides + other
-    Base_Generator.base_dialect . extend_with my_mappings
+    Base_Generator.base_dialect_operations . extend_with my_mappings
 
 ## PRIVATE
 agg_count_is_null = Base_Generator.lift_unary_op "COUNT_IS_NULL" arg->
@@ -501,18 +507,18 @@ replace args metadata =
                     _ ->
                         SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ escaped_pattern ++ ", " ++ replacement ++ ", 1, 1)"
         Regex ->
-            pattern_string = SQL_Builder.interpolation raw_pattern.pattern_string
+            pattern_text = SQL_Builder.interpolation raw_pattern.pattern
             case replace_params.only_first of
                 False -> case replace_params.case_sensitivity of
                     Case_Sensitivity.Insensitive _ ->
-                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_string ++ ", " ++ replacement ++ ", 1, 0, 'i')"
+                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_text ++ ", " ++ replacement ++ ", 1, 0, 'i')"
                     _ ->
-                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_string ++ ", " ++ replacement ++ ")"
+                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_text ++ ", " ++ replacement ++ ")"
                 True -> case replace_params.case_sensitivity of
                     Case_Sensitivity.Insensitive _ ->
-                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_string ++ ", " ++ replacement ++ ", 1, 1, 'i')"
+                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_text ++ ", " ++ replacement ++ ", 1, 1, 'i')"
                     _ ->
-                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_string ++ ", " ++ replacement ++ ", 1, 1)"
+                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_text ++ ", " ++ replacement ++ ", 1, 1)"
         DB_Column ->
             case replace_params.only_first of
                 False -> case replace_params.case_sensitivity of

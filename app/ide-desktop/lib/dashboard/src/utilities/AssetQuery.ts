@@ -243,7 +243,7 @@ export default class AssetQuery {
       }
       if (toRemove != null) {
         const termsAfterRemovals = terms.filter(term =>
-          toRemove?.every(otherTerm => !array.shallowEqual([...term].sort(), [...otherTerm].sort()))
+          toRemove.every(otherTerm => !array.shallowEqual([...term].sort(), [...otherTerm].sort()))
         )
         if (termsAfterRemovals.length !== terms.length) {
           terms = termsAfterRemovals
@@ -280,7 +280,7 @@ export default class AssetQuery {
         }
       }
       if (toRemove != null) {
-        const lastTermAfterRemovals = lastTerm.filter(word => toRemove?.includes(word) === false)
+        const lastTermAfterRemovals = lastTerm.filter(word => toRemove.includes(word) === false)
         if (lastTermAfterRemovals.length !== lastTerm.length) {
           lastTerm = lastTermAfterRemovals
           changed = true
@@ -314,7 +314,7 @@ export default class AssetQuery {
           }
         }
         if (toRemove != null) {
-          const termAfterRemovals = newTerm.filter(word => toRemove?.includes(word) === false)
+          const termAfterRemovals = newTerm.filter(word => toRemove.includes(word) === false)
           if (termAfterRemovals.length !== newTerm.length) {
             newTerm = termAfterRemovals
             changed = true

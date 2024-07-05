@@ -337,8 +337,8 @@ function zoomed(event: d3.D3ZoomEvent<Element, unknown>) {
     const newYDomain = transformEvent.rescaleY(yScale_).domain()
     const yMin = newYDomain[0] ?? 0
     if (yMin >= -EPSILON && yMin <= EPSILON) {
-      newYDomain[0] -= yMin
-      newYDomain[1] -= yMin
+      newYDomain[0]! -= yMin
+      newYDomain[1]! -= yMin
     }
     if ((newYDomain[0] ?? 0) >= 0) {
       yDomain.value = newYDomain

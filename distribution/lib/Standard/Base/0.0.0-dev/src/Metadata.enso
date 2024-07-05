@@ -6,10 +6,9 @@ import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Meta
 import project.Nothing.Nothing
+from project.Data.Boolean import Boolean, False, True
 from project.Data.Json.Extensions import all
 from project.Data.Range.Extensions import all
-
-from project.Data.Boolean import Boolean, False, True
 
 type Display
     ## Parameter is always shown on the collapsed view.
@@ -94,7 +93,7 @@ type Widget
 
         fs = m.fields
         field_names = cons.fields
-        field_pairs = 0.up_to field_names.length . filter (i-> fs.at i . is_nothing . not) . map i->
+        field_pairs = 0.up_to field_names.length . filter (i-> (field_names.at i == "label") || (fs.at i . is_nothing . not)) . map i->
             [field_names.at i, fs.at i . to_js_object]
 
         JS_Object.from_pairs (type_pair + cons_pair + field_pairs)
