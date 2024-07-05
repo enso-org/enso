@@ -335,7 +335,7 @@ const nodeEditHandler = nodeEditBindings.handler({
   },
 })
 
-function startEditingNode(position: Vec2 | undefined) {
+function startEditingNode(position?: Vec2 | undefined) {
   let sourceOffset = props.node.rootExpr.code().length
   if (position != null) {
     let domNode, domOffset
@@ -608,9 +608,6 @@ watchEffect(() => {
   border-radius: var(--node-border-radius);
   transition: box-shadow 0.2s ease-in-out;
   box-sizing: border-box;
-  ::selection {
-    background-color: rgba(255, 255, 255, 20%);
-  }
 }
 
 .content {

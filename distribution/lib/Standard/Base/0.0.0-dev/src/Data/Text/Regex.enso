@@ -189,7 +189,7 @@ type Regex
              input = "abcdefghij"
              texts = pattern.split input
              texts . should_equal ["abcdefghij"]
-    split : Text -> Boolean -> Vector Text | Type_Error
+    split : Text -> Boolean -> Vector Text ! Type_Error
     split self (input : Text) (only_first : Boolean = False) =
         Vector.build builder->
             it = Match_Iterator.new self input

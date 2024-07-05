@@ -39,7 +39,7 @@ from project.Data.Json import Invalid_JSON, JS_Object, Json
 from project.Data.Numbers import Float, Integer, Number, Number_Parse_Error
 from project.Data.Range.Extensions import all
 from project.Data.Text.Text_Cleanse import Cleansable_Text, Text_Cleanse
-from project.Metadata import Display, Widget
+from project.Metadata import Display, make_single_choice, Widget
 from project.Widget_Helpers import make_data_cleanse_vector_selector, make_date_format_selector, make_date_time_format_selector, make_delimiter_selector, make_regex_text_widget, make_time_format_selector
 
 polyglot java import com.ibm.icu.lang.UCharacter
@@ -382,7 +382,7 @@ Text.to_regex self case_insensitive=False = Regex.compile self case_insensitive
 
          'azbzczdzezfzg'.split ['b', 'zez'] == ['az', 'zczd', 'fzg']
 @delimiter make_delimiter_selector
-Text.split : Text | Vector Text -> Case_Sensitivity -> Boolean -> Vector Text | Illegal_Argument
+Text.split : Text | Vector Text -> Case_Sensitivity -> Boolean -> Vector Text ! Illegal_Argument
 Text.split self delimiter="," case_sensitivity=Case_Sensitivity.Sensitive use_regex=False =
     delimiter_is_empty = case delimiter of
         _ : Text -> delimiter.is_empty
@@ -743,7 +743,7 @@ Text.is_whitespace self =
          "Hello".bytes (Encoding.ascii)
 @encoding Encoding.default_widget
 Text.bytes : Encoding -> Problem_Behavior -> Vector Integer
-Text.bytes self (encoding : Encoding = Encoding.utf_8) (on_problems : Problem_Behavior = Problem_Behavior.Report_Warning) =
+Text.bytes self (encoding : Encoding = Encoding.utf_8) (on_problems : Problem_Behavior = ..Report_Warning) =
     result = Encoding_Utils.get_bytes self encoding.to_java_charset : ResultWithWarnings
     vector = Vector.from_polyglot_array result.result
     if result.warnings.is_nothing then vector else
@@ -765,7 +765,7 @@ Text.bytes self (encoding : Encoding = Encoding.utf_8) (on_problems : Problem_Be
          Text.from_bytes [72, 101, 108, 108, 111] (Encoding.ascii)
 @encoding Encoding.default_widget
 Text.from_bytes : Vector Integer -> Encoding -> Problem_Behavior -> Text
-Text.from_bytes bytes (encoding : Encoding = Encoding.default) (on_problems : Problem_Behavior = Problem_Behavior.Report_Error) =
+Text.from_bytes bytes (encoding : Encoding = Encoding.default) (on_problems : Problem_Behavior = ..Report_Error) =
     Reporting_Stream_Decoder_Helper.decode_bytes_to_text bytes encoding on_problems
 
 ## ICON convert
@@ -787,7 +787,7 @@ Text.from_bytes bytes (encoding : Encoding = Encoding.default) (on_problems : Pr
 
          "Hello".utf_8
 Text.utf_8 : Problem_Behavior -> Vector Integer
-Text.utf_8 self (on_problems : Problem_Behavior = Problem_Behavior.Report_Warning) =
+Text.utf_8 self (on_problems : Problem_Behavior = ..Report_Warning) =
     self.bytes Encoding.utf_8 on_problems
 
 ## ICON convert
@@ -806,7 +806,7 @@ Text.utf_8 self (on_problems : Problem_Behavior = Problem_Behavior.Report_Warnin
 
          Text.from_utf_8 [-32, -92, -107, -32, -91, -115, -32, -92, -73, -32, -92, -65]
 Text.from_utf_8 : Vector Integer -> Problem_Behavior -> Text
-Text.from_utf_8 bytes (on_problems : Problem_Behavior = Problem_Behavior.Report_Error) =
+Text.from_utf_8 bytes (on_problems : Problem_Behavior = ..Report_Error) =
     Text.from_bytes bytes Encoding.utf_8 on_problems
 
 ## ICON convert
@@ -1181,10 +1181,12 @@ Text.to_case self case_option:Case=..Lower locale:Locale=Locale.default = case c
 
          "HELLO".pad 9 "AB" == "HELLOABAB"
          "HELLO".pad 8 "AB" == "HELLOABA"
-         "HELLO".pad 8 "AB" Location.Start == "BABHELLO"
-
+         "HELLO".pad 8 "AB" ..Left == "BABHELLO"
+@length (Widget.Numeric_Input display=Display.Always)
+@with_pad (Widget.Text_Input display=Display.Always)
+@at (make_single_choice [["Left", "..Left"], ["Right", "..Right"]])
 Text.pad : Integer -> Text -> Location -> Text
-Text.pad self length=0 with_pad=' ' at=Location.End = case at of
+Text.pad self length:Integer=0 with_pad:Text=' ' at:Location=..Right = case at of
     Location.Both -> Error.throw (Illegal_Argument.Error "`Location.Both` cannot be used with `pad`.")
     _ ->
         with_pad_length = with_pad.length
@@ -1194,9 +1196,9 @@ Text.pad self length=0 with_pad=' ' at=Location.End = case at of
                 full_repetitions = pad_size.div with_pad_length
                 remainder = pad_size % with_pad_length
                 case at of
-                    Location.Start ->
+                    Location.Left ->
                         with_pad.take (Index_Sub_Range.Last remainder) + with_pad.repeat full_repetitions + self
-                    Location.End ->
+                    Location.Right ->
                         self + with_pad.repeat full_repetitions + with_pad.take (Index_Sub_Range.First remainder)
 
 ## GROUP Text
@@ -1215,42 +1217,40 @@ Text.pad self length=0 with_pad=' ' at=Location.End = case at of
      Trimming whitespace from a string.
 
          " Hello! ".trim == "Hello!"
-         " Hello! ".trim Location.Start == "Hello! "
-         " Hello! ".trim Location.End == " Hello!"
+         " Hello! ".trim ..Left == "Hello! "
+         " Hello! ".trim ..Right == " Hello!"
 
    > Example
      Trimming a specific set of letters from a string.
 
-        "ABC123".trim Location.Start "ABC" == "123"
-        "ABBA123".trim Location.Start "ABC" == "123"
+        "ABC123".trim ..Left "ABC" == "123"
+        "ABBA123".trim ..Left "ABC" == "123"
+@where (make_single_choice [["Both", "..Both"], ["Left", "..Left"], ["Right", "..Right"]])
+@what (Widget.Text_Input display=Display.Always)
 Text.trim : Location -> (Text | (Text -> Boolean)) -> Text
-Text.trim self where=Location.Both what=_.is_whitespace =
+Text.trim self where:Location=..Both what=_.is_whitespace =
     predicate = case what of
         _ : Text -> what.contains _
         _ -> what
     break_iterator = BreakIterator.getCharacterInstance
     break_iterator.setText self
-    start_index = case where of
-        Location.End -> 0
-        _ ->
-            loop current next =
-                if next < 0 then current else
-                    case predicate (Text_Utils.substring self current next) of
-                        True ->
-                            @Tail_Call loop next break_iterator.next
-                        False -> current
-            loop 0 break_iterator.next
-    end_index = case where of
-        Location.Start -> Text_Utils.char_length self
-        _ ->
-            loop current prev =
-                if prev < 0 then current else
-                    case predicate (Text_Utils.substring self prev current) of
-                        True ->
-                            @Tail_Call loop prev break_iterator.previous
-                        False -> current
-            current = break_iterator.last
-            loop current break_iterator.previous
+    start_index = if where == Location.Right then 0 else
+        loop current next =
+            if next < 0 then current else
+                case predicate (Text_Utils.substring self current next) of
+                    True ->
+                        @Tail_Call loop next break_iterator.next
+                    False -> current
+        loop 0 break_iterator.next
+    end_index = if where == Location.Left then Text_Utils.char_length self else
+        loop current prev =
+            if prev < 0 then current else
+                case predicate (Text_Utils.substring self prev current) of
+                    True ->
+                        @Tail_Call loop prev break_iterator.previous
+                    False -> current
+        current = break_iterator.last
+        loop current break_iterator.previous
     if start_index >= end_index then "" else
         Text_Utils.substring self start_index end_index
 

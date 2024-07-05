@@ -29,6 +29,7 @@ tools/http-test-helper/www-files
 **/scala-parser.js
 **/package-lock.json
 **/msdfgen_wasm.js
+pnpm-lock.yaml
 
 # Generated files
 app/ide-desktop/lib/client/electron-builder-config.json

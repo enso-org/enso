@@ -16,7 +16,6 @@ import org.enso.languageserver.boot.resource.{
 import org.enso.languageserver.data.ProjectDirectoriesConfig
 import org.enso.languageserver.effect
 import org.enso.searcher.memory.InMemorySuggestionsRepo
-import org.enso.ydoc.Ydoc
 import org.graalvm.polyglot.Context
 
 import scala.concurrent.ExecutionContextExecutor
@@ -42,9 +41,10 @@ object ResourcesInitialization {
     directoriesConfig: ProjectDirectoriesConfig,
     protocolFactory: ProtocolFactory,
     suggestionsRepo: InMemorySuggestionsRepo,
-    truffleContext: Context,
+    truffleContextBuilder: Context#Builder,
+    truffleContextSupervisor: ComponentSupervisor,
     runtime: effect.Runtime,
-    ydoc: Ydoc
+    ydocSupervisor: ComponentSupervisor
   )(implicit ec: ExecutionContextExecutor): InitializationComponent = {
     new SequentialResourcesInitialization(
       ec,
@@ -58,8 +58,13 @@ object ResourcesInitialization {
           eventStream,
           suggestionsRepo
         ),
-        new TruffleContextInitialization(ec, truffleContext, eventStream),
-        new YdocInitialization(ec, ydoc)
+        new TruffleContextInitialization(
+          ec,
+          truffleContextBuilder,
+          truffleContextSupervisor,
+          eventStream
+        ),
+        new YdocInitialization(ec, ydocSupervisor)
       )
     )
   }
