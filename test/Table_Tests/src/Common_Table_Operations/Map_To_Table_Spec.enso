@@ -63,17 +63,34 @@ add_specs suite_builder setup =
             group_builder.specify "should be able to create a table of date-time values" <|
                 vecs = [[Date.new 2021 01 02], [Time_Of_Day.new 12 35 4], [Date_Time.new 2020 04 02 18 55], ['2001-01-01'], ['01:01:01']]
                 t = data.dummy_table.make_table_from_vectors vecs ['date', 'time', 'datetime', 'date-like-text', 'time-like-text']
-                IO.println t.to_sql
-                t.at 'date' . to_vector . should_equal [Date.new 2021 01 02]
-                t.at 'time' . to_vector . should_equal [Time_Of_Day.new 12 35 4]
-                t.at 'date-like-text' . to_vector . should_equal ['2001-01-01']
-                t.at 'time-like-text' . to_vector . should_equal ['01:01:01']
+                m = t.read
+                m.at 'date' . to_vector . should_equal [Date.new 2021 01 02]
+                m.at 'time' . to_vector . should_equal [Time_Of_Day.new 12 35 4]
+                m.at 'date-like-text' . to_vector . should_equal ['2001-01-01']
+                m.at 'time-like-text' . to_vector . should_equal ['01:01:01']
 
                 t.at 'date' . value_type . should_equal Value_Type.Date
                 t.at 'time' . value_type . should_equal Value_Type.Time
                 t.at 'datetime' . value_type . should_be_a (Value_Type.Date_Time ...)
                 t.at 'date-like-text' . value_type . should_be_a (Value_Type.Char ...)
                 t.at 'time-like-text' . value_type . should_be_a (Value_Type.Char ...)
+
+                # The types should be preserved after an 'identity' operation:
+                new_cols = ['date', 'time', 'datetime', 'date-like-text', 'time-like-text'].map name->
+                    c = t.at name
+                    (c == c).iif c c . rename name
+                t2 = new_cols.fold t acc-> c-> acc.set c set_mode=..Update
+                t2.at 'date' . value_type . should_equal Value_Type.Date
+                t2.at 'time' . value_type . should_equal Value_Type.Time
+                t2.at 'datetime' . value_type . should_be_a (Value_Type.Date_Time ...)
+                t2.at 'date-like-text' . value_type . should_be_a (Value_Type.Char ...)
+                t2.at 'time-like-text' . value_type . should_be_a (Value_Type.Char ...)
+
+                m2 = t2.read
+                m2.at 'date' . to_vector . should_equal [Date.new 2021 01 02]
+                m2.at 'time' . to_vector . should_equal [Time_Of_Day.new 12 35 4]
+                m2.at 'date-like-text' . to_vector . should_equal ['2001-01-01']
+                m2.at 'time-like-text' . to_vector . should_equal ['01:01:01']
 
         group_builder.specify "should be able to create a literal table from a map" <|
             map = Map.from_vector [['x', 1], ['y', 2], ['z', 3]]
