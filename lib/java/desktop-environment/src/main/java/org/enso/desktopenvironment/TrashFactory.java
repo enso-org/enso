@@ -23,23 +23,6 @@ final class TrashFactory {
 
   private TrashFactory() {}
 
-  /*
-  private static Trash initTrash() {
-    if (Desktop.isDesktopSupported()) {
-      var desktop = Desktop.getDesktop();
-      if (desktop.isSupported(Desktop.Action.MOVE_TO_TRASH)) {
-        return new AwtTrash(desktop);
-      }
-    }
-
-    if (Platform.isLinux()) {
-      return new LinuxTrash();
-    }
-
-    return new UnsupportedTrash();
-  }
-   */
-
   public static Trash getInstance() {
     return LazyTrash.getInstance();
   }
