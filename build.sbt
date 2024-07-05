@@ -2226,7 +2226,6 @@ lazy val `runtime-compiler` =
       annotationProcSetting,
       (Test / fork) := true,
       libraryDependencies ++= Seq(
-        "com.chuusai"     %% "shapeless"               % shapelessVersion   % "provided",
         "junit"            % "junit"                   % junitVersion       % Test,
         "com.github.sbt"   % "junit-interface"         % junitIfVersion     % Test,
         "org.scalatest"   %% "scalatest"               % scalatestVersion   % Test,
