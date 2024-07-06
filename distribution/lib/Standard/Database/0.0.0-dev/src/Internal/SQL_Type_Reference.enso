@@ -71,6 +71,9 @@ type SQL_Type_Reference
        if it was overridden, it will return that override to be used instead of
        the type coming from the metadata.
     to_type_override : SQL_Type | Nothing
-    to_type_override self = case self of
-        SQL_Type_Reference.Overridden sql_type -> sql_type
-        SQL_Type_Reference.Computed_By_Database _ -> Nothing
+    to_type_override self =
+        # Workaround for https://github.com/enso-org/enso/issues/10465
+        # We avoid pattern matching to avoid triggering the `lazy_ref` computation.
+        meta = Meta.meta self
+        is_overridden = meta.constructor.name == "Overridden"
+        if is_overridden then self.value else Nothing
