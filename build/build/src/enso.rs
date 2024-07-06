@@ -88,7 +88,7 @@ impl BuiltEnso {
             .set_env(ENSO_BENCHMARK_TEST_DRY_RUN, &Boolean::from(opt.dry_run))?
             .run_ok()
             .await;
-        Ok(benchmarks?)
+        benchmarks
     }
 
     pub fn run_test(&self, test_path: impl AsRef<Path>, ir_caches: IrCaches) -> Result<Command> {
