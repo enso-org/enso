@@ -1,5 +1,6 @@
 package org.enso.compiler.pass.analyse.types.scope;
 
+import org.enso.compiler.pass.analyse.types.TypeRepresentation;
 import org.enso.pkg.QualifiedName;
 
 /**
@@ -48,10 +49,14 @@ public final class TypeScopeReference {
     return name.equals(other.name) && kind.equals(other.kind);
   }
 
-  private enum Kind {
+  enum Kind {
     MODULE_ASSOCIATED_TYPE,
     ATOM_TYPE,
     ATOM_EIGEN_TYPE
+  }
+
+  QualifiedName getName() {
+    return name;
   }
 
   QualifiedName relatedModuleName() {
@@ -68,6 +73,10 @@ public final class TypeScopeReference {
     }
   }
 
+  Kind getKind() {
+    return kind;
+  }
+
   @Override
   public String toString() {
     return switch (kind) {
@@ -76,4 +85,6 @@ public final class TypeScopeReference {
       case ATOM_EIGEN_TYPE -> "AtomEigenType(" + name + ")";
     };
   }
+
+  public static TypeScopeReference ANY = TypeScopeReference.atomType(TypeRepresentation.ANY.getAssociatedType());
 }

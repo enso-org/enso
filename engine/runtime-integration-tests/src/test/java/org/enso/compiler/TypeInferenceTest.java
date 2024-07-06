@@ -10,7 +10,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.core.ir.ProcessingPass;
@@ -512,8 +511,9 @@ public class TypeInferenceTest extends StaticAnalysisTest {
   }
 
   /**
-   * This is more complex than inferBoundsFromCaseAlias, as it needs to add a type constraint only in one branch. We
-   * will need to ensure that we duplicate the local scopes in each branch to avoid bad sharing.
+   * This is more complex than inferBoundsFromCaseAlias, as it needs to add a type constraint only
+   * in one branch. We will need to ensure that we duplicate the local scopes in each branch to
+   * avoid bad sharing.
    */
   @Ignore("TODO")
   @Test
@@ -766,8 +766,8 @@ public class TypeInferenceTest extends StaticAnalysisTest {
   }
 
   /**
-   * Such signatures are not checked yet, but the syntax _is_ allowed and it is used in some places for documentation
-   * purposes, so it should not be triggering any errors.
+   * Such signatures are not checked yet, but the syntax _is_ allowed and it is used in some places
+   * for documentation purposes, so it should not be triggering any errors.
    */
   @Test
   public void noErrorInParametricTypeSignatures() throws Exception {
@@ -1044,7 +1044,7 @@ public class TypeInferenceTest extends StaticAnalysisTest {
                         x2 = inst.one_arg inst
                         x3 = My_Type.static_zero
                         x4 = My_Type.static_one inst
-                        
+
                         # And calling member methods through static syntax:
                         x5 = My_Type.zero_arg inst
                         x6 = My_Type.one_arg inst
@@ -1109,19 +1109,18 @@ public class TypeInferenceTest extends StaticAnalysisTest {
     // this method is not found
     assertEquals(
         List.of(new Warning.NoSuchMethod(x2.expression().location(), "My_Type", "method_two")),
-        getImmediateDiagnostics(x2.expression())
-    );
+        getImmediateDiagnostics(x2.expression()));
 
     // delegating to Any
     assertEquals(List.of(), getDescendantsDiagnostics(x3.expression()));
     assertEquals(List.of(), getDescendantsDiagnostics(x4.expression()));
 
     // calling a static method on an instance _does not work_, so we should get a warning
-    // TODO this error may be confusing as no way to distinguish a method missing from static-member mismatch - shall we improve the error message?
+    // TODO this error may be confusing as no way to distinguish a method missing from static-member
+    // mismatch - shall we improve the error message?
     assertEquals(
         List.of(new Warning.NoSuchMethod(x5.expression().location(), "My_Type", "static_method")),
-        getImmediateDiagnostics(x5.expression())
-    );
+        getImmediateDiagnostics(x5.expression()));
   }
 
   private TypeRepresentation getInferredType(IR ir) {

@@ -16,7 +16,7 @@ public sealed interface TypeRepresentation
         TypeRepresentation.TopType,
         TypeRepresentation.TypeObject,
         TypeRepresentation.UnresolvedSymbol {
-  TypeRepresentation ANY = new TopType();
+  TopType ANY = new TopType();
 
   // In the future we may want to split this unknown type to be a separate entity.
   TypeRepresentation UNKNOWN = ANY;

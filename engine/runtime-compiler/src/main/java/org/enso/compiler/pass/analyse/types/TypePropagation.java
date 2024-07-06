@@ -76,6 +76,13 @@ abstract class TypePropagation {
   protected abstract void encounteredInvocationOfNonFunctionType(
       IR relatedIr, TypeRepresentation type);
 
+  /**
+   * The callback that is called when a method is being invoked on a type that does not have such a
+   * method.
+   */
+  protected abstract void encounteredNoSuchMethod(
+      IR relatedIr, TypeRepresentation type, String methodName);
+
   void checkTypeCompatibility(
       IR relatedIr, TypeRepresentation expected, TypeRepresentation provided) {
     TypeCompatibility.Compatibility compatibility =
@@ -340,24 +347,33 @@ abstract class TypePropagation {
             return adaptMemberMethodForStaticCall(typeObject, resolvedMemberMethod);
           }
 
+          encounteredNoSuchMethod(argument, argumentType, function.name());
           return null;
         }
       }
 
       case TypeRepresentation.ModuleReference moduleReference -> {
         var typeScope = TypeScopeReference.moduleAssociatedType(moduleReference.name());
-        return methodTypeResolver.resolveMethod(typeScope, function.name());
+        var resolvedModuleMethod = methodTypeResolver.resolveMethod(typeScope, function.name());
+        if (resolvedModuleMethod == null) {
+          encounteredNoSuchMethod(argument, argumentType, function.name());
+        }
+        return resolvedModuleMethod;
       }
 
       case TypeRepresentation.AtomType atomInstanceType -> {
         var typeScope = TypeScopeReference.atomType(atomInstanceType.fqn());
-        return methodTypeResolver.resolveMethod(typeScope, function.name());
+        var resolvedMemberMethod = methodTypeResolver.resolveMethod(typeScope, function.name());
+        if (resolvedMemberMethod == null) {
+          encounteredNoSuchMethod(argument, argumentType, function.name());
+        }
+        return resolvedMemberMethod;
       }
 
       case TypeRepresentation.TopType topType -> {
-        System.out.println("TODO: calling " + function.name() + " on Any");
-        var typeScope = TypeScopeReference.atomType(topType.getAssociatedType());
-        return methodTypeResolver.resolveMethod(typeScope, function.name());
+        // We don't report not found methods here, because the top type can be anything, so the call
+        // 'may' be valid and we only want to report guaranteed failures
+        return methodTypeResolver.resolveMethod(TypeScopeReference.ANY, function.name());
       }
 
       default -> {

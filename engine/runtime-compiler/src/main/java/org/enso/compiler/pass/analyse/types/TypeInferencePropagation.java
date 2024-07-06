@@ -94,6 +94,14 @@ public final class TypeInferencePropagation implements IRPass {
             .diagnostics()
             .add(new Warning.NotInvokable(relatedIr.location(), type.toString()));
       }
+
+      @Override
+      protected void encounteredNoSuchMethod(
+          IR relatedIr, TypeRepresentation type, String methodName) {
+        relatedIr
+            .diagnostics()
+            .add(new Warning.NoSuchMethod(relatedIr.location(), type.toString(), methodName));
+      }
     };
   }
 

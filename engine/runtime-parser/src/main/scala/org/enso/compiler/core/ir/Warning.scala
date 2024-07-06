@@ -89,7 +89,7 @@ object Warning {
     methodName: String
   ) extends Warning {
     override def message(source: (IdentifiedLocation => String)): String =
-      s"Calling method `$methodName` on type $typeRepresentation will result in a No_Such_Method error in runtime, because that types does not define such a method."
+      s"Calling method `$methodName` on type $typeRepresentation will result in a No_Such_Method error in runtime, because that type does not define such a method."
 
     override def diagnosticKeys(): Array[Any] = Array()
   }
