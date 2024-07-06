@@ -1802,7 +1802,7 @@ type Column
     @type Widget_Helpers.parse_type_selector
     @format (make_format_chooser include_number=False)
     parse : Value_Type | Auto -> Text | Data_Formatter -> Problem_Behavior -> Column
-    parse self type:(Value_Type | Auto)=Auto format:(Text | Data_Formatter)="" on_problems=Report_Warning =
+    parse self type:(Value_Type | Auto)=Auto format:(Text | Data_Formatter)="" on_problems:Problem_Behavior=..Report_Warning =
         Value_Type.expect_text self <|
             formatter = case format of
                 _ : Text -> if format == "" then Data_Formatter.Value else Data_Formatter.Value.with_format type format
@@ -1955,7 +1955,7 @@ type Column
          types. Due to this, a Mixed column containing values `[2, "3"]` will
          actually be converted into `[2, Nothing]` when casting to Integer type.
     cast : Value_Type -> Problem_Behavior -> Column ! Illegal_Argument | Inexact_Type_Coercion | Conversion_Failure
-    cast self value_type on_problems=Problem_Behavior.Report_Warning =
+    cast self value_type on_problems:Problem_Behavior=..Report_Warning =
         Cast_Helpers.check_cast_compatibility self.value_type value_type <|
             target_storage_type = Storage.from_value_type value_type on_problems
             Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->

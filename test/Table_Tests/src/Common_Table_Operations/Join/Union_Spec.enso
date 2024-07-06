@@ -388,7 +388,7 @@ run_union_tests group_builder setup call_union =
         t1 = table_builder [["A", [1, 2, 3]], ["B", ["a", "b", "c"]], ["C", [True, False, Nothing]]]
         t2 = table_builder [["C", ["x", "Y", "Z"]], ["A", [4, 5, 6]], ["B", [1, 2, 3]]]
 
-        r1 = call_union [t1, t2] on_problems=Problem_Behavior.Report_Error
+        r1 = call_union [t1, t2] on_problems=..Report_Error
         r1.should_fail_with No_Common_Type
         r1.catch.to_display_text . should_contain "converted to text"
 

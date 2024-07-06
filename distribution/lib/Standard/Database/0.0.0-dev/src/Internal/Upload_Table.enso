@@ -29,7 +29,7 @@ from project.Internal.Result_Set import result_set_to_table
    of the created table.
 
    The user-facing function that handles the dry-run logic.
-create_table_implementation connection table_name structure primary_key temporary allow_existing on_problems = Panic.recover SQL_Error <|
+create_table_implementation connection table_name structure primary_key temporary allow_existing on_problems:Problem_Behavior = Panic.recover SQL_Error <|
     connection.base_connection.maybe_run_maintenance
     table_naming_helper = connection.base_connection.table_naming_helper
     table_naming_helper.verify_table_name table_name <| connection.jdbc_connection.run_within_transaction <|
@@ -58,7 +58,7 @@ create_table_implementation connection table_name structure primary_key temporar
    Assumes the output context is enabled for it to work.
    Does not check if the table already exists - so if it does, it may fail with
    `SQL_Error`. The caller should perform the check for better error handling.
-internal_create_table_structure connection table_name structure primary_key temporary on_problems =
+internal_create_table_structure connection table_name structure primary_key temporary on_problems:Problem_Behavior =
     aligned_structure = align_structure connection structure
     resolved_primary_key = resolve_primary_key aligned_structure primary_key
     validate_structure connection.base_connection.column_naming_helper aligned_structure <|
@@ -85,7 +85,7 @@ internal_create_table_structure connection table_name structure primary_key temp
    - on_problems: the behavior to be used when reporting problems.
    - row_limit: if set, only the first `row_limit` rows will be uploaded.
 internal_upload_table : DB_Table | Table -> Connection -> Text -> Nothing | Vector Text -> Boolean -> Vector Column_Description ->  Problem_Behavior -> Integer|Nothing -> DB_Table
-internal_upload_table source_table connection table_name primary_key temporary structure_hint=Nothing on_problems=Problem_Behavior.Report_Error row_limit=Nothing =
+internal_upload_table source_table connection table_name primary_key temporary structure_hint=Nothing on_problems:Problem_Behavior=..Report_Error row_limit=Nothing =
     case source_table of
         _ : Table ->
             internal_upload_in_memory_table source_table connection table_name primary_key temporary structure_hint on_problems row_limit
@@ -95,7 +95,7 @@ internal_upload_table source_table connection table_name primary_key temporary s
             Panic.throw <| Illegal_Argument.Error ("Unsupported table type: " + Meta.get_qualified_type_name source_table)
 
 ## PRIVATE
-select_into_table_implementation source_table connection table_name primary_key temporary on_problems =
+select_into_table_implementation source_table connection table_name primary_key temporary on_problems:Problem_Behavior =
     connection.base_connection.maybe_run_maintenance
     table_naming_helper = connection.base_connection.table_naming_helper
     table_naming_helper.verify_table_name table_name <|
@@ -123,7 +123,7 @@ select_into_table_implementation source_table connection table_name primary_key 
 
 ## PRIVATE
    It should be run within a transaction and wrapped in `handle_upload_errors`.
-internal_upload_in_memory_table source_table connection table_name primary_key temporary structure_hint on_problems row_limit =
+internal_upload_in_memory_table source_table connection table_name primary_key temporary structure_hint on_problems:Problem_Behavior row_limit =
     In_Transaction.ensure_in_transaction <|
         verify_structure_hint structure_hint source_table.column_names
         structure = structure_hint.if_nothing source_table
@@ -147,7 +147,7 @@ internal_upload_in_memory_table source_table connection table_name primary_key t
 
 ## PRIVATE
    It should be run within a transaction and wrapped in `handle_upload_errors`.
-internal_upload_database_table source_table connection table_name primary_key temporary structure_hint on_problems row_limit =
+internal_upload_database_table source_table connection table_name primary_key temporary structure_hint on_problems:Problem_Behavior row_limit =
     In_Transaction.ensure_in_transaction <|
         connection_check = if source_table.connection.jdbc_connection == connection.jdbc_connection then True else
             Error.throw (Unsupported_Database_Operation.Error "The Database table to be uploaded must be coming from the same connection as the connection on which the new table is being created. Cross-connection uploads are currently not supported. To work around this, you can first `.read` the table into memory and then upload it from memory to a different connection.")
@@ -299,7 +299,7 @@ first_column_name_in_structure structure = case structure of
    responsibility of the caller to ensure that, otherwise the generated
    statement will be invalid.
 prepare_create_table_statement : Connection -> Text -> Vector Column_Description -> Vector Text -> Boolean -> Problem_Behavior -> SQL_Statement
-prepare_create_table_statement connection table_name columns primary_key temporary on_problems =
+prepare_create_table_statement connection table_name columns primary_key temporary on_problems:Problem_Behavior =
     type_mapping = connection.dialect.get_type_mapping
     column_descriptors = columns.map on_problems=No_Wrap def->
         sql_type = type_mapping.value_type_to_sql def.value_type on_problems
@@ -323,7 +323,7 @@ make_batched_insert_template connection table_name column_names =
     template
 
 ## PRIVATE
-common_update_table (source_table : DB_Table | Table) (target_table : DB_Table) update_action key_columns error_on_missing_columns on_problems =
+common_update_table (source_table : DB_Table | Table) (target_table : DB_Table) update_action key_columns error_on_missing_columns on_problems:Problem_Behavior =
     check_target_table_for_update target_table <|
         connection = target_table.connection
         Panic.recover SQL_Error <| handle_upload_errors <|
@@ -461,7 +461,7 @@ type Append_Helper
    - all columns in `source_table` have a corresponding column in `target_table`
      (with the same name),
    - all `key_columns` are present in both source and target tables.
-check_update_arguments_structure_match source_table target_table key_columns update_action error_on_missing_columns on_problems ~action =
+check_update_arguments_structure_match source_table target_table key_columns update_action error_on_missing_columns on_problems:Problem_Behavior ~action =
     check_source_column source_column =
         # The column must exist because it was verified earlier.
         target_column = target_table.get source_column.name

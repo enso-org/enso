@@ -166,7 +166,7 @@ add_specs suite_builder setup =
                     w2.affected_rows_count . should_equal 1
                     w2.to_display_text . should_contain "out of the range of the target type"
 
-                    r3 = t2.at "X" . cast (Value_Type.Integer Bits.Bits_16) on_problems=Problem_Behavior.Report_Error
+                    r3 = t2.at "X" . cast (Value_Type.Integer Bits.Bits_16) on_problems=..Report_Error
                     r3.should_fail_with Conversion_Failure
 
                 # Now converting the 16-bit column `c` into 32 bits.
