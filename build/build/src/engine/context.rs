@@ -483,14 +483,14 @@ impl RunContext {
         if self.config.build_native_runner {
             debug!("Building and testing native engine runners");
             runner_sanity_test(&self.repo_root, None).await?;
-            let filename = format!("enso{}", if TARGET_OS == OS::Windows { ".exe" } else { "" });
             let enso = self
                 .repo_root
                 .built_distribution
                 .enso_engine_triple
                 .engine_package
                 .bin
-                .join(filename);
+                .join("enso")
+                .with_executable_extension();
             ide_ci::fs::remove_file_if_exists(&enso)?;
             if self.config.build_espresso_runner {
                 let enso_java = "espresso";
