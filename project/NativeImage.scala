@@ -242,8 +242,8 @@ object NativeImage {
           Seq("-jar", pathToJAR.toString)
       }
 
-      val td      = (Compile / target).value
-      val argFile = td.toPath.resolve(NATIVE_IMAGE_ARG_FILE)
+      val targetDirValue = (Compile / target).value
+      val argFile        = targetDirValue.toPath.resolve(NATIVE_IMAGE_ARG_FILE)
       IO.writeLines(argFile.toFile, args, append = false)
 
       val pathParts = pathExts ++ Option(System.getenv("PATH")).toSeq
