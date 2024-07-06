@@ -1055,7 +1055,7 @@ Text.repeat self count=1 =
          "Hello World!".take (Sample 3 seed=42) == "l d"
 @range Text_Sub_Range.default_widget
 Text.take : (Text_Sub_Range | Index_Sub_Range | Range | Integer) -> Text ! Index_Out_Of_Bounds
-Text.take self range=(Index_Sub_Range.First 1) =
+Text.take self range:(Text_Sub_Range | Index_Sub_Range | Range | Integer)=..First =
     ranges = Codepoint_Ranges.resolve self range
     case ranges of
         Range.Between start end 1 ->
@@ -1104,7 +1104,7 @@ Text.take self range=(Index_Sub_Range.First 1) =
          "Hello World!".drop (Sample 3 seed=42) == "HeloWorl!"
 @range Text_Sub_Range.default_widget
 Text.drop : (Text_Sub_Range | Index_Sub_Range | Range) -> Text ! Index_Out_Of_Bounds
-Text.drop self range=(Index_Sub_Range.First 1) =
+Text.drop self range:(Text_Sub_Range | Index_Sub_Range | Range | Integer)=..First =
     ranges = Codepoint_Ranges.resolve self range
     case ranges of
         Range.Between start end 1 ->

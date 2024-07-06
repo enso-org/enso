@@ -54,7 +54,7 @@ prepare_credentials data_link_location:Enso_File details:Postgres_Details -> JS_
                 secret : Enso_Secret -> secret
                 plain_text_password : Text ->
                     secret_location = data_link_location.parent.if_nothing Enso_File.root
-                    location_name = if data_link_location.name.ends_with data_link_extension then data_link_location.name.drop (Index_Sub_Range.Last data_link_extension.length) else data_link_location.name
+                    location_name = if data_link_location.name.ends_with data_link_extension then data_link_location.name.drop (..Last data_link_extension.length) else data_link_location.name
 
                     create_fresh_secret ix =
                         secret_name = location_name + "-password" + (if ix == 0 then "" else "-"+ix.to_text)

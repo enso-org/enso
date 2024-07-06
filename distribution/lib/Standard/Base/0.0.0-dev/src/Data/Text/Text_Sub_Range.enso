@@ -1,4 +1,3 @@
-import project.Data.Index_Sub_Range as Index_Sub_Range_Module
 import project.Data.Index_Sub_Range.Index_Sub_Range
 import project.Data.Numbers.Integer
 import project.Data.Pair.Pair
@@ -16,7 +15,7 @@ import project.Nothing.Nothing
 import project.Panic.Panic
 import project.Random.Random
 from project.Data.Boolean import Boolean, False, True
-from project.Data.Index_Sub_Range import handle_unmatched_type
+from project.Data.Index_Sub_Range import handle_unmatched_type, sort_and_merge_ranges
 from project.Data.Range.Extensions import all
 from project.Metadata.Choice import Option
 from project.Metadata.Widget import Single_Choice
@@ -89,7 +88,7 @@ type Codepoint_Ranges
        Empty ranges are not discarded.
     sorted_and_distinct_ranges : Vector Range
     sorted_and_distinct_ranges self = if self.is_sorted_and_distinct then self.ranges else
-        Index_Sub_Range_Module.sort_and_merge_ranges self.ranges
+        sort_and_merge_ranges self.ranges
 
     ## PRIVATE
        Finds code-point indices corresponding to the part of the input matching the

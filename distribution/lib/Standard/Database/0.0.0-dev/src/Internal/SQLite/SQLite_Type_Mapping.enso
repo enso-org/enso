@@ -180,7 +180,7 @@ operations_map =
             Panic.throw (Illegal_State.Error "Impossible: constructed a CASE with an odd number of case arguments.")
         if cases.is_empty then
             Panic.throw (Illegal_State.Error "Impossible: too few cases provided for a CASE statement.")
-        case_results = cases.take (Index_Sub_Range.Every 2 first=1)
+        case_results = cases.take (..Every 2 first=1)
         possible_results = case_results + [fallback]
         find_a_common_type possible_results
 
