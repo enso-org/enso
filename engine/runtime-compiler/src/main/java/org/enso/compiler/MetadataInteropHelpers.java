@@ -37,6 +37,10 @@ public final class MetadataInteropHelpers {
       if (textRepresentation.length() > 100) {
         textRepresentation = textRepresentation.substring(0, 100) + "...";
       }
+
+      // System.out.println("Did not find " + expectedType.toString() + " among " +
+      // ir.passData().toString());
+
       throw new IllegalStateException(
           "Missing expected "
               + pass
@@ -44,7 +48,9 @@ public final class MetadataInteropHelpers {
               + textRepresentation
               + " ("
               + ir.getClass().getCanonicalName()
-              + ").");
+              + "), had "
+              + ir.passData().toString()
+              + ".");
     }
 
     return metadataOrNull;
