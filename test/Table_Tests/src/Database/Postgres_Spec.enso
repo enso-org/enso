@@ -877,7 +877,7 @@ add_connection_setup_specs suite_builder = suite_builder.group "[PostgreSQL] Con
         ## Currently we require the port to be numeric. When we support
            Unix-sockets, we may lift that restriction.
         c4 = Test_Environment.unsafe_with_environment_override "PGPORT" "foobar" <|
-            Postgres
+            Postgres.Server
         c4.host . should_equal "localhost"
         c4.port . should_equal 5432
         c4.database . should_equal "postgres"
@@ -890,7 +890,7 @@ add_connection_setup_specs suite_builder = suite_builder.group "[PostgreSQL] Con
         c.jdbc_properties . should_equal <| add_ssl [Pair.new "user" "myuser", Pair.new "password" "mypass"]
 
     group_builder.specify "should fallback to environment variables and fill-out missing information based on the PGPASS file (if available)" <|
-        c1 = Postgres
+        c1 = Postgres.Server
         c1.jdbc_url . should_equal "jdbc:postgresql://localhost:5432/postgres"
 
         c1.jdbc_properties . should_equal <| add_ssl []
