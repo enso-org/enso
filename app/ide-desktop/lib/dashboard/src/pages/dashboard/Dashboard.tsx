@@ -120,6 +120,18 @@ export interface DashboardProps {
 /**
  *
  */
+export interface OpenProjectOptions {
+  /**
+   * Whether to open the project in the background.
+   * Set to `false` to navigate to the project tab.
+   * @default true
+   */
+  readonly openInBackground?: boolean
+}
+
+/**
+ *
+ */
 export interface CreateOpenedProjectQueryOptions {
   readonly type: backendModule.BackendType
   readonly assetId: backendModule.Asset<backendModule.AssetType.project>['id']
@@ -193,7 +205,8 @@ export default function Dashboard(props: DashboardProps) {
       : null
   const initialProjectName = initialLocalProjectId ?? initialProjectNameRaw
 
-  const defaultCategory = Category.cloud
+  const defaultCategory = initialLocalProjectId == null ? Category.cloud : Category.local
+
   const [category, setCategory] = searchParamsState.useSearchParamsState(
     'driveCategory',
     () => defaultCategory,
@@ -336,6 +349,30 @@ export default function Dashboard(props: DashboardProps) {
       }),
   })
 
+  eventHooks.useEventHandler(assetEvents, event => {
+    switch (event.type) {
+      case AssetEventType.openProject: {
+        const { title, parentId, backendType, id, runInBackground } = event
+        doOpenProject(
+          { title, parentId, type: backendType, id },
+          { openInBackground: runInBackground }
+        )
+        break
+      }
+      case AssetEventType.closeProject: {
+        const { title, parentId, backendType, id } = event
+        doCloseProject({ title, parentId, type: backendType, id })
+        break
+      }
+      default: {
+        // Ignored. Any missing project-related events should be handled by `ProjectNameColumn`.
+        // `delete`, `deleteForever`, `restore`, `download`, and `downloadSelected`
+        // are handled by`AssetRow`.
+        break
+      }
+    }
+  })
+
   React.useEffect(
     () =>
       inputBindings.attach(sanitizedEventTargets.document.body, 'keydown', {
@@ -380,25 +417,29 @@ export default function Dashboard(props: DashboardProps) {
     }
   })
 
-  const doOpenProject = eventCallbacks.useEventCallback((project: Project) => {
-    // since we don't support multitabs, we need to close opened project first
-    if (launchedProjects.length > 0) {
-      doCloseAllProjects()
-    }
+  const doOpenProject = eventCallbacks.useEventCallback(
+    (project: Project, options: OpenProjectOptions = {}) => {
+      const { openInBackground = true } = options
+      // since we don't support multitabs, we need to close opened project first
+      if (launchedProjects.length > 0) {
+        doCloseAllProjects()
+      }
 
-    openProjectMutation.mutate(project)
-    addLaunchedProject(project)
-  })
+      openProjectMutation.mutate(project)
+      addLaunchedProject(project)
+
+      if (!openInBackground) {
+        doOpenEditor(project.id)
+      }
+    }
+  )
 
   const doOpenEditor = eventCallbacks.useEventCallback((projectId: Project['id']) => {
     setPage(projectId)
   })
 
   const doCloseProject = eventCallbacks.useEventCallback((project: Project) => {
-    const { id } = project
-
     closeProjectMutation.mutate(project)
-    dispatchAssetEvent({ type: AssetEventType.closeProject, id })
     removeLaunchedProject(project.id)
 
     setPage(TabType.drive)

@@ -170,6 +170,9 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                 dispatchAssetEvent({
                   type: AssetEventType.openProject,
                   id: asset.id,
+                  title: asset.title,
+                  parentId: item.directoryId,
+                  backendType: state.backend.type,
                   runInBackground: false,
                 })
               }}
@@ -184,6 +187,9 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
               dispatchAssetEvent({
                 type: AssetEventType.openProject,
                 id: asset.id,
+                title: asset.title,
+                parentId: item.directoryId,
+                backendType: state.backend.type,
                 runInBackground: true,
               })
             }}
@@ -211,6 +217,9 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                 dispatchAssetEvent({
                   type: AssetEventType.closeProject,
                   id: asset.id,
+                  title: asset.title,
+                  parentId: item.directoryId,
+                  backendType: state.backend.type,
                 })
               }}
             />
