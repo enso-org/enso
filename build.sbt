@@ -2627,55 +2627,60 @@ lazy val `engine-runner` = project
     assembly := assembly
       .dependsOn(`runtime-fat-jar` / assembly)
       .value,
-    rebuildNativeImage :=
-      NativeImage
-        .buildNativeImage(
-          "runner",
-          staticOnLinux = false,
-          additionalOptions = Seq(
-            "-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.NoOpLog",
-            "-H:IncludeResources=.*Main.enso$",
-            "-H:+AddAllCharsets",
-            "-H:+IncludeAllLocales",
-            "-ea",
-            // useful perf & debug switches:
-            // "-g",
-            // "-H:+SourceLevelDebug",
-            // "-H:-DeleteLocalSymbols",
-            // you may need to set smallJdk := None to use following flags:
-            // "--trace-class-initialization=org.enso.syntax2.Parser",
-            "-Dnic=nic"
-          ),
-          mainClass = Some("org.enso.runner.Main"),
-          initializeAtRuntime = Seq(
-            "org.jline.nativ.JLineLibrary",
-            "org.jline.terminal.impl.jna",
-            "io.methvin.watchservice.jna.CarbonAPI",
-            "zio.internal.ZScheduler$$anon$4",
-            "org.enso.runner.Main$",
-            "sun.awt",
-            "sun.java2d",
-            "sun.font",
-            "java.awt",
-            "com.sun.imageio",
-            "com.sun.jna.internal.Cleaner",
-            "com.sun.jna.Structure$FFIType",
-            "akka.http"
+    rebuildNativeImage := Def
+      .taskDyn {
+        NativeImage
+          .buildNativeImage(
+            "enso",
+            targetDir     = engineDistributionRoot.value / "bin",
+            staticOnLinux = false,
+            additionalOptions = Seq(
+              "-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.NoOpLog",
+              "-H:IncludeResources=.*Main.enso$",
+              "-H:+AddAllCharsets",
+              "-H:+IncludeAllLocales",
+              "-ea",
+              // useful perf & debug switches:
+              // "-g",
+              // "-H:+SourceLevelDebug",
+              // "-H:-DeleteLocalSymbols",
+              // you may need to set smallJdk := None to use following flags:
+              // "--trace-class-initialization=org.enso.syntax2.Parser",
+              "-Dnic=nic"
+            ),
+            mainClass = Some("org.enso.runner.Main"),
+            initializeAtRuntime = Seq(
+              "org.jline.nativ.JLineLibrary",
+              "org.jline.terminal.impl.jna",
+              "io.methvin.watchservice.jna.CarbonAPI",
+              "zio.internal.ZScheduler$$anon$4",
+              "org.enso.runner.Main$",
+              "sun.awt",
+              "sun.java2d",
+              "sun.font",
+              "java.awt",
+              "com.sun.imageio",
+              "com.sun.jna.internal.Cleaner",
+              "com.sun.jna.Structure$FFIType",
+              "akka.http"
+            )
           )
-        )
-        .dependsOn(NativeImage.additionalCp)
-        .dependsOn(NativeImage.smallJdk)
-        .dependsOn(assembly)
-        .dependsOn(
-          buildEngineDistribution
-        )
-        .value,
-    buildNativeImage := NativeImage
-      .incrementalNativeImageBuild(
-        rebuildNativeImage,
-        "runner"
+      }
+      .dependsOn(NativeImage.additionalCp)
+      .dependsOn(NativeImage.smallJdk)
+      .dependsOn(assembly)
+      .dependsOn(
+        buildEngineDistribution
       )
-      .value
+      .value,
+    buildNativeImage := Def.taskDyn {
+      NativeImage
+        .incrementalNativeImageBuild(
+          rebuildNativeImage,
+          "enso",
+          targetDir = engineDistributionRoot.value / "bin"
+        )
+    }.value
   )
   .dependsOn(`version-output`)
   .dependsOn(yaml)
@@ -3573,6 +3578,10 @@ buildEngineDistribution := {
 // of other tasks.
 ThisBuild / buildEngineDistribution := {
   buildEngineDistribution.result.value
+}
+
+ThisBuild / engineDistributionRoot := {
+  engineDistributionRoot.value
 }
 
 lazy val buildEngineDistributionNoIndex =
