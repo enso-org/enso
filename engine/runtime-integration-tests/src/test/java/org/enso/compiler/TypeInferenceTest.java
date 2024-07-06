@@ -93,13 +93,13 @@ public class TypeInferenceTest extends StaticAnalysisTest {
                         Value v
 
                     f1 (x1 : My_Type) =
-                      y1 = x1
-                      My_Type.Value (y2.v + y2.v)
+                        y1 = x1
+                        My_Type.Value (y1.v + y1.v)
 
                     f2 : My_Type -> My_Type
                     f2 x2 =
-                      y2 = x2
-                      My_Type.Value (y2.v + y2.v)
+                        y2 = x2
+                        My_Type.Value (y2.v + y2.v)
 
                     f3 (x3 : My_Type) -> My_Type = My_Type.Value (x3.v + x3.v)
                     """,
