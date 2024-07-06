@@ -1077,7 +1077,7 @@ public class TypeInferenceTest extends StaticAnalysisTest {
                 "enso",
                 """
                     import Standard.Base.Any.Any
-                    
+
                     type My_Type
                         Value v
 

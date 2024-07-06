@@ -86,5 +86,6 @@ public final class TypeScopeReference {
     };
   }
 
-  public static TypeScopeReference ANY = TypeScopeReference.atomType(TypeRepresentation.ANY.getAssociatedType());
+  public static TypeScopeReference ANY =
+      TypeScopeReference.atomType(TypeRepresentation.ANY.getAssociatedType());
 }

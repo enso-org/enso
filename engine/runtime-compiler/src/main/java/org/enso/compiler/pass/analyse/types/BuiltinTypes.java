@@ -30,6 +30,7 @@ public class BuiltinTypes {
     var str = qualifiedName.toString();
     return str.equals("Standard.Base.Function.Function");
   }
+
   public final TypeRepresentation INTEGER = fromQualifiedName(integerQualifiedName);
 
   static final String anyQualifiedName = "Standard.Base.Any.Any";

@@ -5,7 +5,6 @@ import static org.junit.Assert.assertTrue;
 import java.io.OutputStream;
 import java.util.List;
 import java.util.logging.Level;
-
 import org.enso.common.LanguageInfo;
 import org.enso.common.MethodNames;
 import org.enso.compiler.core.IR;
@@ -32,12 +31,12 @@ public abstract class StaticAnalysisTest {
    */
   private final InterpreterContext interpreterContext =
       new InterpreterContext(
-          (builder) -> builder
+          (builder) ->
+              builder
                   .option(RuntimeOptions.ENABLE_STATIC_ANALYSIS, "true")
                   .option(RuntimeOptions.LOG_LEVEL, Level.SEVERE.getName())
                   .out(OutputStream.nullOutputStream())
-                  .err(OutputStream.nullOutputStream())
-      );
+                  .err(OutputStream.nullOutputStream()));
 
   private final EnsoContext langCtx =
       interpreterContext

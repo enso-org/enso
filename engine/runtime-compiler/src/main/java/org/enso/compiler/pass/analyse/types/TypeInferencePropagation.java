@@ -14,6 +14,7 @@ import org.enso.compiler.core.ir.module.scope.definition.Method;
 import org.enso.compiler.pass.IRPass;
 import org.enso.compiler.pass.analyse.BindingAnalysis$;
 import org.enso.compiler.pass.analyse.types.scope.ModuleResolver;
+import org.enso.compiler.pass.analyse.types.scope.StaticModuleScopeAnalysis;
 import org.enso.compiler.pass.resolve.FullyQualifiedNames$;
 import org.enso.compiler.pass.resolve.GlobalNames$;
 import org.enso.compiler.pass.resolve.Patterns$;
@@ -132,6 +133,7 @@ public final class TypeInferencePropagation implements IRPass {
             TypeNames$.MODULE$,
             Patterns$.MODULE$,
             TypeSignatures$.MODULE$,
+            StaticModuleScopeAnalysis.INSTANCE,
             TypeInferenceSignatures.INSTANCE);
     return CollectionConverters.asScala(passes).toList();
   }
