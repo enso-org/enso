@@ -644,8 +644,13 @@ pub async fn runner_sanity_test(
     // The engine package is necessary for running the native runner.
     ide_ci::fs::tokio::require_exist(engine_package).await?;
     if enso_java.is_none() {
-        let enso =
-            repo_root.built_distribution.enso_engine_triple.engine_package.bin.join("enso").with_executable_extension();
+        let enso = repo_root
+            .built_distribution
+            .enso_engine_triple
+            .engine_package
+            .bin
+            .join("enso")
+            .with_executable_extension();
         let test_base = Command::new(&enso)
             .args(["--run", repo_root.test.join("Base_Tests").as_str()])
             .set_env_opt(ENSO_JAVA, enso_java)?
