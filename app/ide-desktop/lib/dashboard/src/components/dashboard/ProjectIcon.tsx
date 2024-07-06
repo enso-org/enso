@@ -8,7 +8,6 @@ import PlayIcon from 'enso-assets/play.svg'
 import StopIcon from 'enso-assets/stop.svg'
 
 import * as authProvider from '#/providers/AuthProvider'
-import * as backendProvider from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import * as dashboard from '#/pages/dashboard/Dashboard'
@@ -125,31 +124,57 @@ export default function ProjectIcon(props: ProjectIconProps) {
     }
   })()
 
-  if (isOpened)
-    switch (state) {
-      case null:
-      case backendModule.ProjectState.created:
-      case backendModule.ProjectState.new:
-      case backendModule.ProjectState.closing:
-      case backendModule.ProjectState.closed:
-        return (
+  switch (state) {
+    case null:
+    case backendModule.ProjectState.created:
+    case backendModule.ProjectState.new:
+    case backendModule.ProjectState.closing:
+    case backendModule.ProjectState.closed:
+      return (
+        <ariaComponents.Button
+          size="custom"
+          variant="icon"
+          icon={PlayIcon}
+          aria-label={getText('openInEditor')}
+          tooltipPlacement="left"
+          extraClickZone="xsmall"
+          onPress={() => {
+            doOpenProject(item.id, false)
+          }}
+        />
+      )
+    case backendModule.ProjectState.openInProgress:
+    case backendModule.ProjectState.scheduled:
+    case backendModule.ProjectState.provisioned:
+    case backendModule.ProjectState.placeholder:
+      return (
+        <div className="relative flex">
           <ariaComponents.Button
             size="custom"
             variant="icon"
-            icon={PlayIcon}
-            aria-label={getText('openInEditor')}
-            tooltipPlacement="left"
             extraClickZone="xsmall"
+            isDisabled={isOtherUserUsingProject}
+            icon={StopIcon}
+            aria-label={getText('stopExecution')}
+            tooltipPlacement="left"
+            className={tailwindMerge.twJoin(isRunningInBackground && 'text-green')}
+            {...(isOtherUserUsingProject ? { title: getText('otherUserIsUsingProjectError') } : {})}
             onPress={() => {
-              doOpenProject(item.id, false)
+              doCloseProject(item.id)
             }}
           />
-        )
-      case backendModule.ProjectState.openInProgress:
-      case backendModule.ProjectState.scheduled:
-      case backendModule.ProjectState.provisioned:
-      case backendModule.ProjectState.placeholder:
-        return (
+          <Spinner
+            state={spinnerState}
+            className={tailwindMerge.twMerge(
+              'pointer-events-none absolute top-0 size-project-icon',
+              isRunningInBackground && 'text-green'
+            )}
+          />
+        </div>
+      )
+    case backendModule.ProjectState.opened:
+      return (
+        <div className="flex flex-row gap-0.5">
           <div className="relative flex">
             <ariaComponents.Button
               size="custom"
@@ -159,10 +184,8 @@ export default function ProjectIcon(props: ProjectIconProps) {
               icon={StopIcon}
               aria-label={getText('stopExecution')}
               tooltipPlacement="left"
-              className={tailwindMerge.twJoin(isRunningInBackground && 'text-green')}
-              {...(isOtherUserUsingProject
-                ? { title: getText('otherUserIsUsingProjectError') }
-                : {})}
+              tooltip={isOtherUserUsingProject ? getText('otherUserIsUsingProjectError') : null}
+              className={tailwindMerge.twMerge(isRunningInBackground && 'text-green')}
               onPress={() => {
                 doCloseProject(item.id)
               }}
@@ -175,48 +198,21 @@ export default function ProjectIcon(props: ProjectIconProps) {
               )}
             />
           </div>
-        )
-      case backendModule.ProjectState.opened:
-        return (
-          <div className="flex flex-row gap-0.5">
-            <div className="relative flex">
-              <ariaComponents.Button
-                size="custom"
-                variant="icon"
-                extraClickZone="xsmall"
-                isDisabled={isOtherUserUsingProject}
-                icon={StopIcon}
-                aria-label={getText('stopExecution')}
-                tooltipPlacement="left"
-                tooltip={isOtherUserUsingProject ? getText('otherUserIsUsingProjectError') : null}
-                className={tailwindMerge.twMerge(isRunningInBackground && 'text-green')}
-                onPress={() => {
-                  doCloseProject(item.id)
-                }}
-              />
-              <Spinner
-                state={spinnerState}
-                className={tailwindMerge.twMerge(
-                  'pointer-events-none absolute top-0 size-project-icon',
-                  isRunningInBackground && 'text-green'
-                )}
-              />
-            </div>
 
-            {!isOtherUserUsingProject && !isRunningInBackground && (
-              <ariaComponents.Button
-                size="custom"
-                variant="icon"
-                extraClickZone="xsmall"
-                icon={ArrowUpIcon}
-                aria-label={getText('openInEditor')}
-                tooltipPlacement="right"
-                onPress={() => {
-                  openProjectTab(item.id)
-                }}
-              />
-            )}
-          </div>
-        )
-    }
+          {!isOtherUserUsingProject && !isRunningInBackground && (
+            <ariaComponents.Button
+              size="custom"
+              variant="icon"
+              extraClickZone="xsmall"
+              icon={ArrowUpIcon}
+              aria-label={getText('openInEditor')}
+              tooltipPlacement="right"
+              onPress={() => {
+                openProjectTab(item.id)
+              }}
+            />
+          )}
+        </div>
+      )
+  }
 }

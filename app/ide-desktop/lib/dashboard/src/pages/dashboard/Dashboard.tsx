@@ -4,6 +4,7 @@ import * as React from 'react'
 
 import * as reactQuery from '@tanstack/react-query'
 import invariant from 'tiny-invariant'
+import * as validator from 'validator'
 import * as z from 'zod'
 
 import DriveIcon from 'enso-assets/drive.svg'
@@ -44,6 +45,8 @@ import ManagePermissionsModal from '#/modals/ManagePermissionsModal'
 
 import * as backendModule from '#/services/Backend'
 import type LocalBackend from '#/services/LocalBackend'
+import * as localBackendModule from '#/services/LocalBackend'
+import * as projectManager from '#/services/ProjectManager'
 import type RemoteBackend from '#/services/RemoteBackend'
 
 import * as array from '#/utilities/array'
@@ -169,7 +172,7 @@ createGetProjectDetailsQuery.createPassiveListener = (id: Project['id']) =>
 
 /** The component that contains the entire UI. */
 export default function Dashboard(props: DashboardProps) {
-  const { appRunner, initialProjectName, ydocUrl } = props
+  const { appRunner, initialProjectName: initialProjectNameRaw, ydocUrl } = props
 
   const { user, ...session } = authProvider.useFullUserSession()
 
@@ -183,6 +186,12 @@ export default function Dashboard(props: DashboardProps) {
   const [isHelpChatOpen, setIsHelpChatOpen] = React.useState(false)
 
   const assetManagementApiRef = React.useRef<assetTable.AssetManagementApi | null>(null)
+
+  const initialLocalProjectId =
+    initialProjectNameRaw != null && validator.isUUID(initialProjectNameRaw)
+      ? localBackendModule.newProjectId(projectManager.UUID(initialProjectNameRaw))
+      : null
+  const initialProjectName = initialLocalProjectId ?? initialProjectNameRaw
 
   const defaultCategory = Category.cloud
   const [category, setCategory] = searchParamsState.useSearchParamsState(
