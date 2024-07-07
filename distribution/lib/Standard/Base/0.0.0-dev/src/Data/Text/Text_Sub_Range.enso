@@ -101,7 +101,7 @@ type Codepoint_Ranges
        in such a way that the ranges returned by this method always have a step
        equal to 1.
     resolve : Text -> (Text_Sub_Range | Index_Sub_Range | Range | Integer) -> (Range | Codepoint_Ranges)
-    resolve text range =
+    resolve text:Text range:(Text_Sub_Range | Index_Sub_Range | Range | Integer) =
         case range of
             Text_Sub_Range.Before delimiter ->
                 if delimiter.is_empty then (0.up_to 0) else
@@ -150,17 +150,17 @@ type Codepoint_Ranges
             Index_Sub_Range.Sample count seed ->
                 rng = Random.new_generator seed
                 indices = rng.indices text.length count
-                Codepoint_Ranges.resolve text (Index_Sub_Range.By_Index indices)
+                Codepoint_Ranges.resolve text (..By_Index indices)
             Index_Sub_Range.Every step start ->
                 if step <= 0 then Error.throw (Illegal_Argument.Error "Step within Every must be positive.") else
                     len = text.length
                     if start >= len then 0.up_to 0 else
                         simple_range = start.up_to text.length . with_step step
-                        Codepoint_Ranges.resolve text (Index_Sub_Range.By_Index simple_range)
+                        Codepoint_Ranges.resolve text (..By_Index simple_range)
             _ : Range ->
-                Codepoint_Ranges.resolve text (Index_Sub_Range.By_Index range)
+                Codepoint_Ranges.resolve text (..By_Index range)
             _ : Integer ->
-                Codepoint_Ranges.resolve text (Index_Sub_Range.First range)
+                Codepoint_Ranges.resolve text (..First range)
             _ -> handle_unmatched_type [Text_Sub_Range, Index_Sub_Range, Range, Integer] range
 
 

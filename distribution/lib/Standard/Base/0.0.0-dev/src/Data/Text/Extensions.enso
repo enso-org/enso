@@ -1197,9 +1197,9 @@ Text.pad self length:Integer=0 with_pad:Text=' ' at:Location=..Right = case at o
                 remainder = pad_size % with_pad_length
                 case at of
                     Location.Left ->
-                        with_pad.take (Index_Sub_Range.Last remainder) + with_pad.repeat full_repetitions + self
+                        with_pad.take (..Last remainder) + with_pad.repeat full_repetitions + self
                     Location.Right ->
-                        self + with_pad.repeat full_repetitions + with_pad.take (Index_Sub_Range.First remainder)
+                        self + with_pad.repeat full_repetitions + with_pad.take (..First remainder)
 
 ## GROUP Text
    ICON text
