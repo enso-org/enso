@@ -158,9 +158,9 @@ type Codepoint_Ranges
                         simple_range = start.up_to text.length . with_step step
                         Codepoint_Ranges.resolve text (..By_Index simple_range)
             _ : Range ->
-                Codepoint_Ranges.resolve text (..By_Index range)
+                Codepoint_Ranges.resolve text (Index_Sub_Range.By_Index range)
             _ : Integer ->
-                Codepoint_Ranges.resolve text (..First range)
+                Codepoint_Ranges.resolve text (Index_Sub_Range.First range)
             _ -> handle_unmatched_type [Text_Sub_Range, Index_Sub_Range, Range, Integer] range
 
 
