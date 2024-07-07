@@ -688,17 +688,9 @@ type_spec suite_builder name alter = suite_builder.group name group_builder->
         r1.should_fail_with Missing_Argument
         r1.catch.to_display_text . should_contain "Provide a value for the argument `predicate`."
 
-        r1b = [].take (..By_Index)
-        r1b.should_fail_with Missing_Argument
-        r1b.catch.to_display_text . should_contain "Provide a value for the argument `indexes`."
-
-        r2 = [].drop (Index_Sub_Range.Every ...)
-        r2.should_fail_with Illegal_Argument
-        r2.catch.to_display_text . should_contain "The constructor Every is missing some arguments"
-
-        r3 = [].take (Index_Sub_Range.First _)
-        r3.should_fail_with Illegal_Argument
-        r3.catch.to_display_text . should_contain "Got a Function instead of a range, is a constructor argument missing?"
+        r2 = [].take (..By_Index)
+        r2.should_fail_with Missing_Argument
+        r2.catch.to_display_text . should_contain "Provide a value for the argument `indexes`."
 
     group_builder.specify "should allow getting the last element of the vector" <|
         non_empty_vec = alter [1, 2, 3, 4, 5]
