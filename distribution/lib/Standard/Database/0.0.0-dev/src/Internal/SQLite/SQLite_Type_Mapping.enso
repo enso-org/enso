@@ -175,7 +175,7 @@ operations_map =
 
     handle_case arguments =
         fallback = arguments.last
-        cases = arguments.drop (Last 1)
+        cases = arguments.drop (..Last 1)
         if cases.length % 2 != 0 then
             Panic.throw (Illegal_State.Error "Impossible: constructed a CASE with an odd number of case arguments.")
         if cases.is_empty then

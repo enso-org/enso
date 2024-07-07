@@ -757,7 +757,7 @@ type DB_Table
        > Example
          Take first 10 rows of the table.
 
-             table.take (First 10)
+             table.take (..First 10)
 
        > Example
          Take rows from the top of the table as long as their values sum to 10.
@@ -789,7 +789,7 @@ type DB_Table
        > Example
          Drop first 10 rows of the table.
 
-             table.drop (First 10)
+             table.drop (..First 10)
 
        > Example
          Drop rows from the top of the table as long as their values sum to 10.

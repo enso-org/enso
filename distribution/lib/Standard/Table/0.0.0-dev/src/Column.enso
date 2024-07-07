@@ -2404,7 +2404,7 @@ type Column
              table = Table.new [["Name", ["Alice", "Bob", "Charlie"]]]
              column = table.get "Name"
              ## The take returns "Alice"
-             first_row = column.take (First 1)
+             first_row = column.take (..First 1)
 
        > Example
          Select the last row from the "Name" Column.
@@ -2412,7 +2412,7 @@ type Column
              table = Table.new [["Name", ["Alice", "Bob", "Charlie"]]]
              column = table.get "Name"
              ## The take returns "Charlie"
-             last_row = column.take (Last 1)
+             last_row = column.take (..Last 1)
     @range Index_Sub_Range.default_widget
     take : (Index_Sub_Range | Range | Integer) -> Column
     take self range:(Index_Sub_Range | Range | Integer)=..First =

@@ -6,7 +6,6 @@ import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Extensions
 import project.Data.Text.Matching_Mode.Matching_Mode
 import project.Data.Text.Text
-import project.Data.Text.Text_Sub_Range.Text_Sub_Range
 import project.Data.Time.Date_Time.Date_Time
 import project.Data.Vector.Vector
 import project.Enso_Cloud.Data_Link.Data_Link
@@ -873,7 +872,7 @@ get_child_widget file =
 ## PRIVATE
 find_extension_from_name : Text -> Text
 find_extension_from_name name =
-    extension = name.drop (Text_Sub_Range.Before_Last ".")
+    extension = name.drop (..Before_Last ".")
     if extension == "." then "" else extension
 
 ## PRIVATE

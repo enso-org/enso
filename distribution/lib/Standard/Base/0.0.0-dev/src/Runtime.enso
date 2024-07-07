@@ -36,7 +36,7 @@ get_stack_trace : Vector Stack_Trace_Element
 get_stack_trace =
     prim_stack = primitive_get_stack_trace
     stack_with_own_frame = Vector.from_polyglot_array prim_stack
-    stack = stack_with_own_frame.drop (First 1)
+    stack = stack_with_own_frame.drop (..First 1)
     stack.map wrap_primitive_stack_trace_element
 
 ## PRIVATE

@@ -746,7 +746,7 @@ type Table
         problem_builder = Problem_Builder.new
         problem_builder.report_unique_name_strategy unique
         problem_builder.attach_problems_before on_problems <|
-            self.drop (First 1) . rename_columns new_names_cleaned on_problems=on_problems
+            self.drop (..First 1) . rename_columns new_names_cleaned on_problems=on_problems
 
     ## ALIAS group by, summarize
        GROUP Standard.Base.Calculations
@@ -1688,7 +1688,7 @@ type Table
        > Example
          Take first 10 rows of the table.
 
-             table.take (First 10)
+             table.take (..First 10)
 
        > Example
          Take rows from the top of the table as long as their values sum to 10.
@@ -1720,7 +1720,7 @@ type Table
        > Example
          Drop first 10 rows of the table.
 
-             table.drop (First 10)
+             table.drop (..First 10)
 
        > Example
          Drop rows from the top of the table as long as their values sum to 10.
@@ -2481,9 +2481,9 @@ type Table
     read : Rows_To_Read -> Table
     read self (max_rows : Rows_To_Read = ..All_Rows) = case max_rows of
         Rows_To_Read.All_Rows -> self
-        Rows_To_Read.First n -> self.take (First n)
+        Rows_To_Read.First n -> self.take (..First n)
         Rows_To_Read.First_With_Warning n ->
-            truncated = self.take (First n)
+            truncated = self.take (..First n)
             if self.row_count <= n then truncated else
                 Problem_Behavior.Report_Warning.attach_problem_after truncated <|
                     Not_All_Rows_Downloaded.Warning n
