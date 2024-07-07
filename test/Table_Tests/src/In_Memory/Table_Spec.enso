@@ -499,23 +499,23 @@ add_specs suite_builder =
         group_builder.specify "should allow taking/dropping a prefix of rows that satisfy a predicate" <|
             t1 = Table.new [["X", [1, 2, 3, 4, 5, 5]], ["Y", [9, 8, 7, 2, 10, 5]]]
 
-            t2 = t1.take (Index_Sub_Range.While row-> row.to_vector.compute Statistic.Sum == 10)
+            t2 = t1.take (..While row-> row.to_vector.compute Statistic.Sum == 10)
             t2.at "X" . to_vector . should_equal [1, 2, 3]
             t2.at "Y" . to_vector . should_equal [9, 8, 7]
 
-            t3 = t1.drop (Index_Sub_Range.While row-> row.to_vector.compute Statistic.Sum == 10)
+            t3 = t1.drop (..While row-> row.to_vector.compute Statistic.Sum == 10)
             t3.at "X" . to_vector . should_equal [4, 5, 5]
             t3.at "Y" . to_vector . should_equal [2, 10, 5]
 
-            t4 = t1.take (Index_Sub_Range.While row-> row.at "X" < 3)
+            t4 = t1.take (..While row-> row.at "X" < 3)
             t4.at "X" . to_vector . should_equal [1, 2]
             t4.at "Y" . to_vector . should_equal [9, 8]
 
-            t5 = t1.drop (Index_Sub_Range.While row-> row.at 1 > 3)
+            t5 = t1.drop (..While row-> row.at 1 > 3)
             t5.at "X" . to_vector . should_equal [4, 5, 5]
             t5.at "Y" . to_vector . should_equal [2, 10, 5]
 
-            t6 = t1.take (Index_Sub_Range.While row-> row.at "X" > 1)
+            t6 = t1.take (..While row-> row.at "X" > 1)
             t6.at "X" . to_vector . should_equal []
             t6.at "Y" . to_vector . should_equal []
 

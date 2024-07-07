@@ -684,9 +684,13 @@ type_spec suite_builder name alter = suite_builder.group name group_builder->
         Test.expect_panic Type_Error <| [].take "FOO"
         Test.expect_panic Type_Error <| [].drop "FOO"
 
-        r1 = [].take (Index_Sub_Range.While)
+        r1 = [].take (..While)
         r1.should_fail_with Missing_Argument
         r1.catch.to_display_text . should_contain "Provide a value for the argument `predicate`."
+
+        r1b = [].take (..By_Index)
+        r1b.should_fail_with Missing_Argument
+        r1b.catch.to_display_text . should_contain "Provide a value for the argument `ranges`."
 
         r2 = [].drop (Index_Sub_Range.Every ...)
         r2.should_fail_with Illegal_Argument
