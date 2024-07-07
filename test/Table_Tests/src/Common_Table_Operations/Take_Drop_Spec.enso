@@ -433,7 +433,7 @@ add_specs suite_builder setup =
 
             r1b = c.take (..By_Index)
             r1b.should_fail_with Missing_Argument
-            r1b.catch.to_display_text . should_contain "Provide a value for the argument `ranges`."
+            r1b.catch.to_display_text . should_contain "Provide a value for the argument `indexes`."
 
         group_builder.specify "unordered table" <|
             unordered_table =
