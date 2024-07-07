@@ -12,9 +12,11 @@
   methods.][10434]
 - [Renamed `Location.Start` to `Location.Left` and `Location.End` to
   `Location.Right`.][10445]
+- [Remove `First` and `Last` from namespace, use auto-scoped.][10467]
 
 [10434]: https://github.com/enso-org/enso/pull/10434
 [10445]: https://github.com/enso-org/enso/pull/10445
+[10467]: https://github.com/enso-org/enso/pull/10467
 
 # Enso 2024.2
 
