@@ -1,4 +1,3 @@
-import project.Data.Index_Sub_Range as Index_Sub_Range_Module
 import project.Data.Index_Sub_Range.Index_Sub_Range
 import project.Data.Numbers.Integer
 import project.Data.Pair.Pair
@@ -16,7 +15,7 @@ import project.Nothing.Nothing
 import project.Panic.Panic
 import project.Random.Random
 from project.Data.Boolean import Boolean, False, True
-from project.Data.Index_Sub_Range import handle_unmatched_type
+from project.Data.Index_Sub_Range import handle_unmatched_type, sort_and_merge_ranges
 from project.Data.Range.Extensions import all
 from project.Metadata.Choice import Option
 from project.Metadata.Widget import Single_Choice
@@ -56,10 +55,10 @@ type Text_Sub_Range
     ## PRIVATE
     default_options : Vector Option
     default_options =
-        o1 = Option "Before" "(Text_Sub_Range.Before ' ')"
-        o2 = Option "Before_Last" "(Text_Sub_Range.Before_Last ' ')"
-        o3 = Option "After" "(Text_Sub_Range.After ' ')"
-        o4 = Option "After_Last" "(Text_Sub_Range.After_Last ' ')"
+        o1 = Option "Before" "(..Before ' ')"
+        o2 = Option "Before_Last" "(..Before_Last ' ')"
+        o3 = Option "After" "(..After ' ')"
+        o4 = Option "After_Last" "(..After_Last ' ')"
         [o1, o2, o3, o4]
 
     ## PRIVATE
@@ -89,7 +88,7 @@ type Codepoint_Ranges
        Empty ranges are not discarded.
     sorted_and_distinct_ranges : Vector Range
     sorted_and_distinct_ranges self = if self.is_sorted_and_distinct then self.ranges else
-        Index_Sub_Range_Module.sort_and_merge_ranges self.ranges
+        sort_and_merge_ranges self.ranges
 
     ## PRIVATE
        Finds code-point indices corresponding to the part of the input matching the
@@ -102,7 +101,7 @@ type Codepoint_Ranges
        in such a way that the ranges returned by this method always have a step
        equal to 1.
     resolve : Text -> (Text_Sub_Range | Index_Sub_Range | Range | Integer) -> (Range | Codepoint_Ranges)
-    resolve text range =
+    resolve text:Text range:(Text_Sub_Range | Index_Sub_Range | Range | Integer) =
         case range of
             Text_Sub_Range.Before delimiter ->
                 if delimiter.is_empty then (0.up_to 0) else
@@ -151,13 +150,13 @@ type Codepoint_Ranges
             Index_Sub_Range.Sample count seed ->
                 rng = Random.new_generator seed
                 indices = rng.indices text.length count
-                Codepoint_Ranges.resolve text (Index_Sub_Range.By_Index indices)
+                Codepoint_Ranges.resolve text (..By_Index indices)
             Index_Sub_Range.Every step start ->
                 if step <= 0 then Error.throw (Illegal_Argument.Error "Step within Every must be positive.") else
                     len = text.length
                     if start >= len then 0.up_to 0 else
                         simple_range = start.up_to text.length . with_step step
-                        Codepoint_Ranges.resolve text (Index_Sub_Range.By_Index simple_range)
+                        Codepoint_Ranges.resolve text (..By_Index simple_range)
             _ : Range ->
                 Codepoint_Ranges.resolve text (Index_Sub_Range.By_Index range)
             _ : Integer ->

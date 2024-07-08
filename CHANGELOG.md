@@ -3,8 +3,11 @@
 #### Enso IDE
 
 - ["Add node" button is not obscured by output port][10433]
+- [Numeric Widget does not accept non-numeric input][10457]. This is to prevent
+  node being completely altered by accidental code put to the widget.
 
 [10433]: https://github.com/enso-org/enso/pull/10443
+[10457]: https://github.com/enso-org/enso/pull/10457
 
 #### Enso Enso Standard Library
 
@@ -12,12 +15,13 @@
   methods.][10434]
 - [Renamed `Location.Start` to `Location.Left` and `Location.End` to
   `Location.Right`.][10445]
-- [Numeric Widget does not accept non-numeric input][10457]. This is to prevent
-  node being completely altered by accidental code put to the widget.
+- [Renamed `Postgres_Details.Postgres` to `Postgres.Server`.][10466]
+- [Remove `First` and `Last` from namespace, use auto-scoped.][10467]
 
 [10434]: https://github.com/enso-org/enso/pull/10434
 [10445]: https://github.com/enso-org/enso/pull/10445
-[10457]: https://github.com/enso-org/enso/pull/10457
+[10466]: https://github.com/enso-org/enso/pull/10466
+[10467]: https://github.com/enso-org/enso/pull/10467
 
 # Enso 2024.2
 
@@ -61,6 +65,12 @@
 [10352]: https://github.com/enso-org/enso/pull/10352
 [10353]: https://github.com/enso-org/enso/pull/10353
 [10396]: https://github.com/enso-org/enso/pull/10396
+
+#### Enso Language & Runtime
+
+- Support for [explicit --jvm option][10374] when launching `enso` CLI
+
+[10374]: https://github.com/enso-org/enso/pull/10374
 
 #### Enso Standard Library
 

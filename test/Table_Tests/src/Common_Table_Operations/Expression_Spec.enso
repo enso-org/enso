@@ -370,16 +370,16 @@ add_specs suite_builder detailed setup =
         group_builder.specify "should report floating point equality" <|
             t1 = table_builder [["X", [1.5, 2.0, 0.0]]]
 
-            r1 = t1.evaluate_expression "([X] == 2) || ([X] + 0.5 == 2)" on_problems=Problem_Behavior.Ignore
+            r1 = t1.evaluate_expression "([X] == 2) || ([X] + 0.5 == 2)" on_problems=..Ignore
             Problems.assume_no_problems r1
             r1.to_vector . should_equal [True, True, False]
 
-            r2 = t1.evaluate_expression "([X] == 2) || ([X] + 0.5 == 2)" on_problems=Problem_Behavior.Report_Warning
+            r2 = t1.evaluate_expression "([X] == 2) || ([X] + 0.5 == 2)" on_problems=..Report_Warning
             Problems.get_attached_warnings r2 . each warn->
                 (Error.unwrap warn).should_be_a Floating_Point_Equality
             r2.to_vector . should_equal [True, True, False]
 
-            err3 = t1.evaluate_expression "([X] == 2) || ([X] + 0.5 == 2)" on_problems=Problem_Behavior.Report_Error
+            err3 = t1.evaluate_expression "([X] == 2) || ([X] + 0.5 == 2)" on_problems=..Report_Error
             err3.should_fail_with Floating_Point_Equality
 
             r4 = t1.evaluate_expression 'if ([X] != 2) && ([X] + 0.5 != 2) then "A" else "B"'
@@ -398,24 +398,24 @@ add_specs suite_builder detailed setup =
 
         group_builder.specify "already existing warnings should not be escalated to errors in error handling mode (1)" pending=db_pending <|
             t1 = table_builder [["X", [1.5, 2.0, 0.0]]]
-            c1 = t1.evaluate_expression "3 / [X]" on_problems=Problem_Behavior.Report_Warning
+            c1 = t1.evaluate_expression "3 / [X]" on_problems=..Report_Warning
             Problems.expect_warning Arithmetic_Error c1
 
             t2 = t1.set c1 as="Y"
             Problems.expect_warning Arithmetic_Error t2
             Problems.expect_warning Arithmetic_Error (t2.at "Y")
 
-            c2 = t2.evaluate_expression "[Y] >= 42.0" on_problems=Problem_Behavior.Report_Error
+            c2 = t2.evaluate_expression "[Y] >= 42.0" on_problems=..Report_Error
             Problems.expect_warning Arithmetic_Error c2
             c2.to_vector . should_equal [False, False, True]
 
-            c3 = t2.evaluate_expression "[Y] == 42.0" on_problems=Problem_Behavior.Report_Error
+            c3 = t2.evaluate_expression "[Y] == 42.0" on_problems=..Report_Error
             c3.should_fail_with Floating_Point_Equality
 
-            t3 = t2.set (expr 'if [Y] == 42.0 then "A" else "B"') as="Z" on_problems=Problem_Behavior.Report_Error
+            t3 = t2.set (expr 'if [Y] == 42.0 then "A" else "B"') as="Z" on_problems=..Report_Error
             t3.should_fail_with Floating_Point_Equality
 
-            t4 = t2.set (expr 'if [Y] >= 42.0 then "A" else "B"') as="Z" on_problems=Problem_Behavior.Report_Error
+            t4 = t2.set (expr 'if [Y] >= 42.0 then "A" else "B"') as="Z" on_problems=..Report_Error
             t4.at "Z" . to_vector . should_equal ["B", "B", "A"]
             # Should still keep the inherited warning from "Y".
             Problems.expect_warning Arithmetic_Error t4
@@ -429,23 +429,23 @@ add_specs suite_builder detailed setup =
             Problems.expect_warning Illegal_State t2
             Problems.expect_warning Illegal_State (t2.at "Y")
 
-            c2 = t2.evaluate_expression "[Y] >= 3.5" on_problems=Problem_Behavior.Report_Error
+            c2 = t2.evaluate_expression "[Y] >= 3.5" on_problems=..Report_Error
             Problems.expect_warning Illegal_State c2
             c2.to_vector . should_equal [True, True, False]
 
-            c3 = t2.evaluate_expression "[Y] == 42.0" on_problems=Problem_Behavior.Report_Error
+            c3 = t2.evaluate_expression "[Y] == 42.0" on_problems=..Report_Error
             c3.should_fail_with Floating_Point_Equality
 
-            c4 = t2.evaluate_expression "[Y] == 3.0" on_problems=Problem_Behavior.Report_Warning
+            c4 = t2.evaluate_expression "[Y] == 3.0" on_problems=..Report_Warning
             c4.to_vector . should_equal [False, False, True]
             Problems.expect_warning Floating_Point_Equality c4
             # Should still keep the inherited warning from "Y".
             Problems.expect_warning Illegal_State c4
 
-            t3 = t2.set (expr 'if [Y] == 42.0 then "A" else "B"') as="Z" on_problems=Problem_Behavior.Report_Error
+            t3 = t2.set (expr 'if [Y] == 42.0 then "A" else "B"') as="Z" on_problems=..Report_Error
             t3.should_fail_with Floating_Point_Equality
 
-            t4 = t2.set (expr 'if [Y] >= 3.5 then "A" else "B"') as="Z" on_problems=Problem_Behavior.Report_Error
+            t4 = t2.set (expr 'if [Y] >= 3.5 then "A" else "B"') as="Z" on_problems=..Report_Error
             t4.at "Z" . to_vector . should_equal ["A", "A", "B"]
             # Should still keep the inherited warning from "Y".
             Problems.expect_warning Illegal_State t4

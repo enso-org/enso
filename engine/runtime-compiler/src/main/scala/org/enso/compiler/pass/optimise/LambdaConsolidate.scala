@@ -418,20 +418,21 @@ case object LambdaConsolidate extends IRPass {
   ): List[DefinitionArgument] = {
     argsWithShadowed.map {
       case (
-            spec @ DefinitionArgument.Specified(name, _, _, _, _, _, _),
+            spec: DefinitionArgument.Specified,
             isShadowed
           ) =>
+        val oldName = spec.name
         val newName =
           if (isShadowed) {
             freshNameSupply
-              .newName(from = Some(name))
+              .newName(from = Some(oldName))
               .copy(
-                location    = name.location,
-                passData    = name.passData,
-                diagnostics = name.diagnostics,
-                id          = name.getId
+                location    = oldName.location,
+                passData    = oldName.passData,
+                diagnostics = oldName.diagnostics,
+                id          = oldName.getId
               )
-          } else name
+          } else oldName
 
         spec.copy(name = newName)
     }

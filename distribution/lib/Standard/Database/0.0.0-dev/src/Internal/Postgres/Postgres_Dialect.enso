@@ -1,4 +1,4 @@
-from Standard.Base import all hiding First, Last
+from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Errors.Unimplemented.Unimplemented
@@ -85,11 +85,11 @@ type Postgres_Dialect
     wrap_identifier self identifier =
         Base_Generator.wrap_in_quotes identifier
 
-   ## PRIVATE
-      Generates a SQL expression for a table literal.
-   make_table_literal : Vector (Vector Text) -> Vector Text -> Text -> SQL_Builder
-   make_table_literal self vecs column_names as_name =
-       Base_Generator.default_make_table_literal self.wrap_identifier vecs column_names as_name
+    ## PRIVATE
+       Generates a SQL expression for a table literal.
+    make_table_literal : Vector (Vector Text) -> Vector Text -> Text -> SQL_Builder
+    make_table_literal self vecs column_names as_name =
+        Base_Generator.default_make_table_literal self.wrap_identifier vecs column_names as_name
 
     ## PRIVATE
        Prepares an ordering descriptor.

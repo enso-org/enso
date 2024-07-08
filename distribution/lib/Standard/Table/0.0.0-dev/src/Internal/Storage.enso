@@ -95,7 +95,7 @@ java_to_enso x = case x of
    Converts a value type to an in-memory storage type, possibly approximating it
    to the closest supported type.
 from_value_type : Value_Type -> Problem_Behavior -> StorageType
-from_value_type value_type on_problems =
+from_value_type value_type on_problems:Problem_Behavior =
     approximate_storage = closest_storage_type value_type
     approximated_value_type = to_value_type approximate_storage
     problems = if approximated_value_type == value_type then [] else

@@ -9,7 +9,7 @@ import project.Internal.Problem_Builder.Problem_Builder
    Map a text-returning function over the column values, using Storage directly.
    The output column has the same name as the input.
 map_over_storage : Column -> (Any -> Text) -> (Integer -> Any) -> Boolean -> Problem_Behavior -> Column
-map_over_storage input_column function builder skip_nothing=True on_problems=Report_Warning =
+map_over_storage input_column function builder skip_nothing=True on_problems:Problem_Behavior=..Report_Warning =
     problem_builder = Problem_Builder.new
     input_storage = input_column.java_column.getStorage
     num_input_rows = input_storage.size

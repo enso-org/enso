@@ -16,7 +16,7 @@ add_specs suite_builder =
             f.exists.should_be_false
             contents = 1.up_to 7 . map _->'Cześc\u0301 😎🚀🚧!' . join '\n'
             f.with_output_stream [File_Access.Write, File_Access.Create_New] stream->
-                stream.with_stream_encoder Encoding.utf_8 Problem_Behavior.Report_Error reporting_stream_encoder->
+                stream.with_stream_encoder Encoding.utf_8 ..Report_Error reporting_stream_encoder->
                     contents.char_vector.each char->
                         reporting_stream_encoder.write char
             f.read_text.should_equal contents
@@ -28,7 +28,7 @@ add_specs suite_builder =
             encoding = Encoding.utf_16_be
             big = 1.up_to 7 . map _->'Cześc\u0301 😎🚀🚧!' . join '\n'
             f.with_output_stream [File_Access.Write, File_Access.Create_New] stream->
-                stream.with_stream_encoder encoding Problem_Behavior.Report_Error reporting_stream_encoder->
+                stream.with_stream_encoder encoding ..Report_Error reporting_stream_encoder->
                     reporting_stream_encoder.write "A"
                     reporting_stream_encoder.write "Abc"
                     reporting_stream_encoder.write "Defghi"
@@ -48,7 +48,7 @@ add_specs suite_builder =
 
             f.delete_if_exists
             f.with_output_stream [File_Access.Write, File_Access.Create_New] stream->
-                stream.with_stream_encoder encoding Problem_Behavior.Report_Error reporting_stream_encoder->
+                stream.with_stream_encoder encoding ..Report_Error reporting_stream_encoder->
                     reporting_stream_encoder.write contents
 
             f.read_text encoding . should_equal contents
@@ -59,7 +59,7 @@ add_specs suite_builder =
             contents = 'Sło\u0301wka!'
             f.delete_if_exists
             result = f.with_output_stream [File_Access.Write, File_Access.Create_New] stream->
-                stream.with_stream_encoder encoding Problem_Behavior.Report_Warning reporting_stream_encoder->
+                stream.with_stream_encoder encoding ..Report_Warning reporting_stream_encoder->
                     reporting_stream_encoder.write contents
             result.should_succeed
             Problems.get_attached_warnings result . should_equal [Encoding_Error.Error "Encoding issues at codepoints 1, 3."]
@@ -67,7 +67,7 @@ add_specs suite_builder =
 
             f.delete_if_exists
             result_2 = f.with_output_stream [File_Access.Write, File_Access.Create_New] stream->
-                stream.with_stream_encoder encoding Problem_Behavior.Report_Warning reporting_stream_encoder->
+                stream.with_stream_encoder encoding ..Report_Warning reporting_stream_encoder->
                     reporting_stream_encoder.write "ABC"
                     reporting_stream_encoder.write "ą"
                     reporting_stream_encoder.write "foo"
@@ -83,7 +83,7 @@ add_specs suite_builder =
             encoding = Encoding.ascii
             f.delete_if_exists
             result = f.with_output_stream [File_Access.Write, File_Access.Create_New] stream->
-                stream.with_stream_encoder encoding Problem_Behavior.Report_Error _->Nothing
+                stream.with_stream_encoder encoding ..Report_Error _->Nothing
             result.should_succeed
             f.read_text encoding . should_equal ""
 
@@ -92,7 +92,7 @@ add_specs suite_builder =
             encoding = Encoding.ascii
             f.delete_if_exists
             result = f.with_output_stream [File_Access.Write, File_Access.Create_New] stream->
-                stream.with_stream_encoder encoding Problem_Behavior.Ignore rse->
+                stream.with_stream_encoder encoding ..Ignore rse->
                     rse.write "BAR"
                     Error.throw (Illegal_State.Error "FOO")
             result.should_fail_with Illegal_State
@@ -104,7 +104,7 @@ add_specs suite_builder =
             encoding = Encoding.ascii
             f.delete_if_exists
             result = f.with_output_stream [File_Access.Write, File_Access.Create_New] stream->
-                stream.with_stream_encoder encoding Problem_Behavior.Ignore rse->
+                stream.with_stream_encoder encoding ..Ignore rse->
                     rse.write "BAZ"
                     result = Warning.attach "warn:1" <| Warning.attach "warn:2" <| 42
                     rse.write "23"
@@ -119,7 +119,7 @@ add_specs suite_builder =
             encoding = Encoding.ascii
             f.delete_if_exists
             result = f.with_output_stream [File_Access.Write, File_Access.Create_New] stream->
-                stream.with_stream_encoder encoding Problem_Behavior.Ignore rse->
+                stream.with_stream_encoder encoding ..Ignore rse->
                     rse.write "BAZ"
                     result = Warning.attach "warn:1" <| Warning.attach "warn:2" <| Nothing
                     rse.write "23"

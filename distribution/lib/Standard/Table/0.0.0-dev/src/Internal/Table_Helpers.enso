@@ -353,8 +353,8 @@ rename_columns (naming_helper : Column_Naming_Helper) (internal_columns:Vector) 
                 vec : Vector ->
                     col_count = internal_columns.length
                     good_names = if vec.length <= col_count then vec else
-                        problem_builder.report_other_warning (Too_Many_Column_Names_Provided.Error (vec.drop (First col_count)))
-                        vec.take (First col_count)
+                        problem_builder.report_other_warning (Too_Many_Column_Names_Provided.Error (vec.drop (..First col_count)))
+                        vec.take (..First col_count)
                     internal_columns.take good_names.length . zip good_names
                 _ : Map ->
                     resolve_rename selector replacement = case selector of
@@ -577,7 +577,7 @@ replace_columns_with_columns table old_columns new_columns =
    transforming the old columns. The old columns must all exist in the table,
    and the new columns must all have the same name.
 replace_columns_with_transformed_columns : Table -> Text | Integer | Regex | Vector (Integer | Text | Regex) -> (Column -> Column) -> Boolean -> Problem_Behavior -> Table
-replace_columns_with_transformed_columns table selectors transformer error_on_missing_columns=True on_problems=Report_Warning =
+replace_columns_with_transformed_columns table selectors transformer error_on_missing_columns=True on_problems:Problem_Behavior=..Report_Warning =
     internal_columns = table.columns_helper.select_columns selectors Case_Sensitivity.Default reorder=False error_on_missing_columns=error_on_missing_columns on_problems=on_problems
     columns = internal_columns.map table.columns_helper.make_column
     new_columns = columns.map on_problems=No_Wrap transformer
