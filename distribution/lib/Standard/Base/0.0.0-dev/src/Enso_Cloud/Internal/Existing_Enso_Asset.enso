@@ -1,7 +1,7 @@
 private
 
+import project.Data.Dictionary.Dictionary
 import project.Data.Json.JS_Object
-import project.Data.Map.Map
 import project.Data.Text.Text
 import project.Data.Time.Date_Time.Date_Time
 import project.Data.Time.Date_Time_Formatter.Date_Time_Formatter
@@ -83,7 +83,7 @@ type Existing_Enso_Asset
        Resolves a path to an existing asset in the cloud.
     resolve_path (path : Text) ~if_not_found = path.if_not_error <|
         handle_not_found _ = Error.throw Not_Found
-        error_handlers = Map.from_vector [["resource_missing", handle_not_found]]
+        error_handlers = Dictionary.from_vector [["resource_missing", handle_not_found]]
 
         uri = ((URI.from Utils.cloud_root_uri) / "path/resolve") . add_query_argument "path" path
         response = Utils.http_request_as_json HTTP_Method.Get uri error_handlers=error_handlers

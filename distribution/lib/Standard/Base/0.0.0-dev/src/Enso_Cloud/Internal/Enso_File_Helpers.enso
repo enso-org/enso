@@ -1,9 +1,9 @@
 private
 
 import project.Any.Any
+import project.Data.Dictionary.Dictionary
 import project.Data.Json.Invalid_JSON
 import project.Data.Json.JS_Object
-import project.Data.Map.Map
 import project.Data.Text.Text
 import project.Enso_Cloud.Enso_File.Enso_Asset_Type
 import project.Enso_Cloud.Enso_File.Enso_File
@@ -44,7 +44,7 @@ upload_file (local_file : File) (destination : Enso_File) (replace_existing : Bo
    The `create_action` function is called with the existing asset for the parent
    directory and for the file, if it already exists, or `Nothing` otherwise, and
    with a mapping of error handlers that may be added to the request.
-generic_create_asset (destination : Enso_File) (allow_existing : Boolean) (create_action : Existing_Enso_Asset -> (Existing_Enso_Asset | Nothing) -> Map -> Any) -> Any =
+generic_create_asset (destination : Enso_File) (allow_existing : Boolean) (create_action : Existing_Enso_Asset -> (Existing_Enso_Asset | Nothing) -> Dictionary -> Any) -> Any =
     parent_directory = destination.parent
     if parent_directory.is_nothing then Error.throw (Illegal_Argument.Error "Please provide an asset name inside of the root directory.") else
         parent_directory_asset = Existing_Enso_Asset.get_asset_reference_for parent_directory
@@ -55,7 +55,7 @@ generic_create_asset (destination : Enso_File) (allow_existing : Boolean) (creat
                     File_Error.Not_Found _ -> Nothing
                     _ -> Error.throw error
             if existing_asset.is_nothing.not && allow_existing.not then Error.throw (File_Error.Already_Exists destination) else
-                error_handlers = if existing_asset.is_nothing.not then Map.empty else
+                error_handlers = if existing_asset.is_nothing.not then Dictionary.empty else
                     ## Currently we just report the race condition and request the user to re-run.
                        We don't retry automatically because it is harder than it seems - the `create_action` usually
                        depends on some user code that is writing to a stream (the callback given to `with_output_stream`).
@@ -64,7 +64,7 @@ generic_create_asset (destination : Enso_File) (allow_existing : Boolean) (creat
                        into memory or a temporary file and relies on that for the retry.
                        For now, reporting the race condition in a sane way seemed like the simplest choice.
                        This situation should be very rare.
-                    Map.from_vector [["resource_already_exists", Error.throw (Illegal_State.Error "A race-condition has been encountered - another process has created a colliding resource at "+destination.path+". Please try re-running the operation.")]]
+                    Dictionary.from_vector [["resource_already_exists", Error.throw (Illegal_State.Error "A race-condition has been encountered - another process has created a colliding resource at "+destination.path+". Please try re-running the operation.")]]
                 create_action parent_directory_asset existing_asset error_handlers
 
 ## PRIVATE

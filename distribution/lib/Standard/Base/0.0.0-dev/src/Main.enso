@@ -2,6 +2,7 @@ export project.Any.Any
 export project.Data
 export project.Data.Array.Array
 export project.Data.Decimal.Decimal
+export project.Data.Dictionary.Dictionary
 export project.Data.Filter_Condition.Filter_Action
 export project.Data.Filter_Condition.Filter_Condition
 export project.Data.Index_Sub_Range.Index_Sub_Range
@@ -12,7 +13,6 @@ export project.Data.Json.JS_Object
 export project.Data.Json.Json
 export project.Data.List.List
 export project.Data.Locale.Locale
-export project.Data.Map.Map
 export project.Data.Maybe.Maybe
 export project.Data.Numeric.Math_Context.Math_Context
 export project.Data.Numeric.Math_Context.Unlimited

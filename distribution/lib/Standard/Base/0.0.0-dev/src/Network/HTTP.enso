@@ -1,5 +1,5 @@
 import project.Any.Any
-import project.Data.Map.Map
+import project.Data.Dictionary.Dictionary
 import project.Data.Pair.Pair
 import project.Data.Set.Set
 import project.Data.Text.Encoding.Encoding
@@ -261,8 +261,8 @@ resolve_body_to_publisher_and_boundary body:Request_Body =
 
    Build a BodyPublisher from the given form data.
    The pair's second value is a content boundary in the case of a `multipart/form-data` form; otherwise, Nothing
-build_form_body_publisher : Map Text (Text | File) -> Boolean -> Pair BodyPublisher Text
-build_form_body_publisher (form_data:(Map Text (Text | File))) (url_encoded:Boolean=False) = case url_encoded of
+build_form_body_publisher : Dictionary Text (Text | File) -> Boolean -> Pair BodyPublisher Text
+build_form_body_publisher (form_data:(Dictionary Text (Text | File))) (url_encoded:Boolean=False) = case url_encoded of
     True ->
         body_builder = UrlencodedBodyBuilder.new
         form_data.map_with_key key-> value->
