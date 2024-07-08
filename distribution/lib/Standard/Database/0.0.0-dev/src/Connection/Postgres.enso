@@ -12,7 +12,7 @@ import project.Internal.Postgres.Postgres_Data_Link_Setup.Postgres_Data_Link_Set
 
 polyglot java import org.postgresql.Driver
 
-type Postgres_Details
+type Postgres
     ## Connect to a PostgreSQL database.
 
        Arguments:
@@ -28,7 +28,7 @@ type Postgres_Details
        - use_ssl: Whether to use SSL (defaults to `SSL_Mode.Prefer`).
        - client_cert: The client certificate to use or `Nothing` if not needed.
     @credentials Credentials.default_widget
-    Postgres (host:Text=default_postgres_host) (port:Integer=default_postgres_port) (database:Text=default_postgres_database) (schema:Text="") (credentials:(Credentials|Nothing)=Nothing) (use_ssl:SSL_Mode=SSL_Mode.Prefer) (client_cert:(Client_Certificate|Nothing)=Nothing)
+    Server (host:Text=default_postgres_host) (port:Integer=default_postgres_port) (database:Text=default_postgres_database) (schema:Text="") (credentials:(Credentials|Nothing)=Nothing) (use_ssl:SSL_Mode=SSL_Mode.Prefer) (client_cert:(Client_Certificate|Nothing)=Nothing)
 
     ## PRIVATE
        Build the Connection resource.
@@ -46,7 +46,7 @@ type Postgres_Details
 
         ## Cannot use default argument values as gets in an infinite loop if you do.
         make_new database schema =
-            Postgres_Details.Postgres self.host self.port (database.if_nothing self.database) (schema.if_nothing self.schema) self.credentials self.use_ssl self.client_cert . connect options allow_data_links
+            Postgres.Server self.host self.port (database.if_nothing self.database) (schema.if_nothing self.schema) self.credentials self.use_ssl self.client_cert . connect options allow_data_links
 
         Postgres_Connection.create self.jdbc_url properties make_new data_link_setup
 
