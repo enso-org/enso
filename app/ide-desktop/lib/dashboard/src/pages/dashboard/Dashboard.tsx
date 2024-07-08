@@ -349,9 +349,10 @@ export default function Dashboard(props: DashboardProps) {
       void client.cancelQueries({ queryKey })
       void client.invalidateQueries({ queryKey })
     },
-    onError: async (_, { id }) => {
-      await client.invalidateQueries({ queryKey: createGetProjectDetailsQuery.getQueryKey(id) })
-    },
+    onSuccess: (_, { id }) =>
+      client.resetQueries({ queryKey: createGetProjectDetailsQuery.getQueryKey(id) }),
+    onError: (_, { id }) =>
+      client.invalidateQueries({ queryKey: createGetProjectDetailsQuery.getQueryKey(id) }),
   })
 
   const client = reactQuery.useQueryClient()
