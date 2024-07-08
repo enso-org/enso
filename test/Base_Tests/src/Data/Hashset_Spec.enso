@@ -66,8 +66,8 @@ add_specs suite_builder =
         group_builder.specify "should be able to convert to text" <|
             s1 = Hashset.from_vector ["1", "2", "3"]
             s2 = Hashset.from_vector [1, 2, 3]
-            s1.to_text.should_equal "Set{'1', '2', '3'}"
-            s2.to_text.should_equal "Set{1, 2, 3}"
+            s1.to_text.should_equal "Hashset{'1', '2', '3'}"
+            s2.to_text.should_equal "Hashset{1, 2, 3}"
 
 main filter=Nothing =
     suite = Test.build suite_builder->
