@@ -168,9 +168,12 @@ export default function Dashboard(props: DashboardProps) {
           case categoryModule.CategoryType.team: {
             if (!('homeDirectoryId' in value) || typeof value.homeDirectoryId !== 'string') {
               return false
+            } else if (!('rootPath' in value) || typeof value.rootPath !== 'string') {
+              return false
             } else {
               const narrowedValue = {
                 type: value.type,
+                rootPath: backendModule.Path(value.rootPath),
                 homeDirectoryId: backendModule.DirectoryId(value.homeDirectoryId),
               } as const
               return categoryModule.isLocalCategory(narrowedValue) ? localBackend != null : true

@@ -1,13 +1,13 @@
 /** @file This module defines the Project Manager endpoint.
  * @see
  * https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-project-manager.md */
-import * as detect from 'enso-common/src/detect'
 
 import * as backend from '#/services/Backend'
 
 import * as appBaseUrl from '#/utilities/appBaseUrl'
 import type * as dateTime from '#/utilities/dateTime'
 import * as newtype from '#/utilities/newtype'
+import * as path from '#/utilities/path'
 
 // =================
 // === Constants ===
@@ -244,28 +244,6 @@ export interface DeleteProjectParams {
   readonly projectsDirectory?: Path
 }
 
-// ================
-// === joinPath ===
-// ================
-
-/** Construct a {@link Path} from an existing {@link Path} of the parent directory. */
-export function joinPath(directoryPath: Path, fileName: string) {
-  return Path(`${directoryPath}/${fileName}`)
-}
-
-// ========================
-// === normalizeSlashes ===
-// ========================
-
-/** Return the path, with backslashes (on Windows only) normalized to forward slashes. */
-function normalizeSlashes(path: string): Path {
-  if (detect.isOnWindows()) {
-    return Path(path.replace(/\\/g, '/'))
-  } else {
-    return Path(path)
-  }
-}
-
 // =======================
 // === Project Manager ===
 // =======================
@@ -440,7 +418,7 @@ export default class ProjectManager {
       'filesystem-list',
       parentId ?? this.rootDirectory
     )
-    return response.entries.map(entry => ({ ...entry, path: normalizeSlashes(entry.path) }))
+    return response.entries.map(entry => ({ ...entry, path: path.normalizeSlashes(entry.path) }))
   }
 
   /** Create a directory. */

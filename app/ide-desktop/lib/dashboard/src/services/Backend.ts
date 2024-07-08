@@ -4,6 +4,7 @@ import type * as React from 'react'
 import * as array from '#/utilities/array'
 import * as dateTime from '#/utilities/dateTime'
 import * as newtype from '#/utilities/newtype'
+import * as path from '#/utilities/path'
 import * as permissions from '#/utilities/permissions'
 import * as uniqueString from '#/utilities/uniqueString'
 
@@ -108,8 +109,8 @@ export const Ami = newtype.newtypeConstructor<Ami>()
 export type UserPermissionIdentifier = UserGroupId | UserId
 
 /** An filesystem path. Only present on the local backend. */
-export type Path = newtype.Newtype<string, 'Path'>
-export const Path = newtype.newtypeConstructor<Path>()
+export type Path = path.Path
+export const Path = path.Path
 
 /* eslint-enable @typescript-eslint/no-redeclare */
 

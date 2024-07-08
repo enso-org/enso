@@ -416,12 +416,23 @@ export default function AssetsTable(props: AssetsTableProps) {
   )
   const [assetTree, setAssetTree] = React.useState<assetTreeNode.AnyAssetTreeNode>(() => {
     const rootParentDirectoryId = backendModule.DirectoryId('')
+    const path = (() => {
+      switch (category.type) {
+        case categoryModule.CategoryType.user:
+        case categoryModule.CategoryType.team: {
+          return category.rootPath
+        }
+        default: {
+          return backend.rootPath
+        }
+      }
+    })()
     return AssetTreeNode.fromAsset(
       backendModule.createRootDirectoryAsset(rootDirectoryId),
       rootParentDirectoryId,
       rootParentDirectoryId,
       -1,
-      backend.rootPath
+      path
     )
   })
   const [isDraggingFiles, setIsDraggingFiles] = React.useState(false)

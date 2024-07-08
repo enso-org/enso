@@ -13,12 +13,14 @@ interface StaticCategory {
 /** A category corresponding to the root directory of a user. */
 interface UserCategory {
   readonly type: CategoryType.user
+  readonly rootPath: backend.Path
   readonly homeDirectoryId: backend.DirectoryId
 }
 
 /** A category corresponding to the root directory of a team within an organization. */
 interface TeamCategory {
   readonly type: CategoryType.team
+  readonly rootPath: backend.Path
   readonly homeDirectoryId: backend.DirectoryId
 }
 

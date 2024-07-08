@@ -11,6 +11,7 @@ import * as appBaseUrl from '#/utilities/appBaseUrl'
 import * as dateTime from '#/utilities/dateTime'
 import * as errorModule from '#/utilities/error'
 import * as fileInfo from '#/utilities/fileInfo'
+import * as pathModule from '#/utilities/path'
 
 // =============================
 // === ipWithSocketToAddress ===
@@ -218,7 +219,7 @@ export default class LocalBackend extends Backend {
       missingComponentAction: projectManager.MissingComponentAction.install,
       ...(projectsDirectory == null ? {} : { projectsDirectory }),
     })
-    const path = projectManager.joinPath(
+    const path = pathModule.joinPath(
       projectsDirectory ?? this.projectManager.rootDirectory,
       project.projectNormalizedName
     )
@@ -546,7 +547,7 @@ export default class LocalBackend extends Backend {
   ): Promise<backend.CreatedDirectory> {
     const parentDirectoryPath =
       body.parentId == null ? this.projectManager.rootDirectory : extractTypeAndId(body.parentId).id
-    const path = projectManager.joinPath(parentDirectoryPath, body.title)
+    const path = pathModule.joinPath(parentDirectoryPath, body.title)
     await this.projectManager.createDirectory(path)
     return {
       id: newDirectoryId(path),
@@ -568,7 +569,7 @@ export default class LocalBackend extends Backend {
         throw new Error('Could not move project: project has no `projectPath`.')
       } else {
         const fileName = fileInfo.fileName(from)
-        const to = projectManager.joinPath(extractTypeAndId(body.parentDirectoryId).id, fileName)
+        const to = pathModule.joinPath(extractTypeAndId(body.parentDirectoryId).id, fileName)
         await this.projectManager.moveFile(from, to)
         return
       }
@@ -584,7 +585,7 @@ export default class LocalBackend extends Backend {
       params.parentDirectoryId == null
         ? this.projectManager.rootDirectory
         : extractTypeAndId(params.parentDirectoryId).id
-    const path = projectManager.joinPath(parentPath, params.fileName)
+    const path = pathModule.joinPath(parentPath, params.fileName)
     const searchParams = new URLSearchParams([
       ['file_name', params.fileName],
       ...(params.parentDirectoryId == null ? [] : [['directory', parentPath]]),
@@ -605,7 +606,7 @@ export default class LocalBackend extends Backend {
     const typeAndId = extractTypeAndId(fileId)
     const from = typeAndId.id
     const folderPath = fileInfo.folderPath(from)
-    const to = projectManager.joinPath(projectManager.Path(folderPath), body.title)
+    const to = pathModule.joinPath(projectManager.Path(folderPath), body.title)
     await this.projectManager.moveFile(from, to)
   }
   /** Return a {@link Promise} that resolves only when a project is ready to open. */
@@ -619,7 +620,7 @@ export default class LocalBackend extends Backend {
 
   /** Construct a new path using the given parent directory and a file name. */
   joinPath(parentId: backend.DirectoryId, fileName: string) {
-    return projectManager.joinPath(extractTypeAndId(parentId).id, fileName)
+    return pathModule.joinPath(extractTypeAndId(parentId).id, fileName)
   }
 
   /** Change the name of a directory. */
@@ -629,7 +630,7 @@ export default class LocalBackend extends Backend {
   ): Promise<backend.UpdatedDirectory> {
     const from = extractTypeAndId(directoryId).id
     const folderPath = projectManager.Path(fileInfo.folderPath(from))
-    const to = projectManager.joinPath(folderPath, body.title)
+    const to = pathModule.joinPath(folderPath, body.title)
     await this.projectManager.moveFile(from, to)
     return {
       id: newDirectoryId(to),

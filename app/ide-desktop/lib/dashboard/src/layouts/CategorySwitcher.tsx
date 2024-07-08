@@ -277,6 +277,7 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
                 {...itemProps}
                 category={{
                   type: categoryModule.CategoryType.user,
+                  rootPath: backend.Path(`enso://Users/${userDirectory.title}`),
                   // This is SAFE as user directories are guaranteed to be directories.
                   // eslint-disable-next-line no-restricted-syntax
                   homeDirectoryId: userDirectory.id as backend.DirectoryId,
@@ -293,7 +294,8 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
                 key={teamDirectory.id}
                 {...itemProps}
                 category={{
-                  type: categoryModule.CategoryType.user,
+                  type: categoryModule.CategoryType.team,
+                  rootPath: backend.Path(`enso://Teams/${teamDirectory.title}`),
                   // This is SAFE as team directories are guaranteed to be directories.
                   // eslint-disable-next-line no-restricted-syntax
                   homeDirectoryId: teamDirectory.id as backend.DirectoryId,

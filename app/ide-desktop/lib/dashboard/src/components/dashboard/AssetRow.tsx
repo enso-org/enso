@@ -31,7 +31,6 @@ import EditAssetDescriptionModal from '#/modals/EditAssetDescriptionModal'
 
 import * as backendModule from '#/services/Backend'
 import * as localBackend from '#/services/LocalBackend'
-import * as projectManager from '#/services/ProjectManager'
 
 import type * as assetTreeNode from '#/utilities/AssetTreeNode'
 import AssetTreeNode from '#/utilities/AssetTreeNode'
@@ -42,6 +41,7 @@ import * as eventModule from '#/utilities/event'
 import * as fileInfo from '#/utilities/fileInfo'
 import * as indent from '#/utilities/indent'
 import * as object from '#/utilities/object'
+import * as path from '#/utilities/path'
 import * as permissions from '#/utilities/permissions'
 import * as set from '#/utilities/set'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
@@ -230,7 +230,7 @@ export default function AssetRow(props: AssetRowProps) {
                 asset.projectState.path == null
                   ? {}
                   : {
-                      path: projectManager.joinPath(
+                      path: path.joinPath(
                         newParentPath,
                         fileInfo.fileName(asset.projectState.path)
                       ),
@@ -239,7 +239,7 @@ export default function AssetRow(props: AssetRowProps) {
         let newId = asset.id
         if (!isCloud) {
           const oldPath = localBackend.extractTypeAndId(asset.id).id
-          const newPath = projectManager.joinPath(newParentPath, fileInfo.fileName(oldPath))
+          const newPath = path.joinPath(newParentPath, fileInfo.fileName(oldPath))
           switch (asset.type) {
             case backendModule.AssetType.file: {
               newId = localBackend.newFileId(newPath)
