@@ -5,6 +5,7 @@ import java.time.LocalTime;
 import java.time.ZonedDateTime;
 import java.util.Comparator;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import org.graalvm.polyglot.Context;
@@ -22,9 +23,10 @@ public final class ObjectComparator implements Comparator<Object> {
           Context.getCurrent()
               .getBindings("enso")
               .invokeMember("get_module", "Standard.Base.Data.Ordering");
-      var type = module.invokeMember("get_type", "Comparable");
+      var type = module.invokeMember("get_type", "Default_Comparator");
 
       var hash_callback = module.invokeMember("get_method", type, "hash_callback");
+      Objects.requireNonNull(hash_callback, "hash_callback");
       ensoHashCodeCallback =
           v -> {
             var result = hash_callback.execute(null, v);
@@ -37,6 +39,7 @@ public final class ObjectComparator implements Comparator<Object> {
           };
 
       var compare_callback = module.invokeMember("get_method", type, "compare_callback");
+      Objects.requireNonNull(compare_callback, "compare_callback");
       ensoCompareCallback =
           (v, u) -> {
             var result = compare_callback.execute(null, v, u);
