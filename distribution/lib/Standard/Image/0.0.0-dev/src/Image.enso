@@ -489,4 +489,4 @@ type Image_Comparator
     hash x = x.opencv_mat.hashCode
 
 ## PRIVATE
-Comparable.from (that :Image) = Comparable.new that Image_Comparator
+Comparable.from (that:Image) = Comparable.new that Image_Comparator
