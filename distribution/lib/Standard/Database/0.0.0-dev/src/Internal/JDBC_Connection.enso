@@ -337,7 +337,7 @@ profile_sql_if_enabled (jdbc_connection : JDBC_Connection) (~query_text : Text) 
             result.if_not_error <|
                 padded_query = query_text.to_display_text.pad length=80
                 millis = duration.total_milliseconds
-                millis_text = (millis.to_text.pad length=5 with_pad=' ' at=Location.Start) + ' ms'
+                millis_text = (millis.to_text.pad length=5 with_pad=' ' at=..Left) + ' ms'
 
                 # E.g. [SQLite] SELECT * FROM "test" ... --> 12 ms
                 log_line = "[" + db_id + "] " + padded_query + " --> " + millis_text + '\n'

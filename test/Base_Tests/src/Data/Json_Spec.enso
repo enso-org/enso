@@ -153,6 +153,18 @@ add_specs suite_builder =
             Number.positive_infinity.to_json . should_equal "null"
             Number.negative_infinity.to_json . should_equal "null"
 
+        group_builder.specify "should serialise large integers and parse back" <|
+            large_number = 1234567890123456789012345678901234567890
+            large_number.to_json . should_equal '{"type":"Integer","value":"1234567890123456789012345678901234567890"}'
+            large_number.to_json . parse_json . should_equal large_number
+
+        group_builder.specify "should serialise decimals and parse back" <|
+            decimal = Decimal.from_string "1234567890123456789012345678901234567890.1234567890123456789012345678901234567890"
+            decimal.to_json . should_equal '{"type":"Decimal","value":"1234567890123456789012345678901234567890.1234567890123456789012345678901234567890","scale":40,"precision":80}'
+            decimal.to_json . parse_json . should_equal decimal
+            decimal.to_json . parse_json . scale . should_equal 40
+            decimal.to_json . parse_json . precision . should_equal 80
+
     suite_builder.group "JS_Object" group_builder->
         group_builder.specify "should be buildable from pairs" <|
             JS_Object.from_pairs [["foo", "bar"]] . to_json . should_equal '{"foo":"bar"}'

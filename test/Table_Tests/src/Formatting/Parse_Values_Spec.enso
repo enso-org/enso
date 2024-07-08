@@ -318,7 +318,7 @@ add_specs suite_builder =
 
         group_builder.specify "should correctly handle problems: missing input columns" <|
             t1 = Table.new [["A", ["1", "2", "3"]]]
-            r1 = t1.parse columns=["A", "B", "C", "E"] on_problems=Problem_Behavior.Ignore
+            r1 = t1.parse columns=["A", "B", "C", "E"] on_problems=..Ignore
             r1.should_fail_with Missing_Input_Columns
             r1.catch.criteria . should_equal ["B", "C", "E"]
 
@@ -381,11 +381,11 @@ add_specs suite_builder =
             r2 . should_equal t1
             Problems.expect_warning No_Input_Columns_Selected r2
 
-            r3 = t1.parse columns=[] error_on_missing_columns=False on_problems=Problem_Behavior.Ignore
+            r3 = t1.parse columns=[] error_on_missing_columns=False on_problems=..Ignore
             r3 . should_equal t1
             Problems.assume_no_problems r3
 
-            r4 = t1.parse columns=["nonexistent column :D", -42] error_on_missing_columns=False on_problems=Problem_Behavior.Report_Warning
+            r4 = t1.parse columns=["nonexistent column :D", -42] error_on_missing_columns=False on_problems=..Report_Warning
             r4 . should_equal t1
             Problems.expect_warning No_Input_Columns_Selected r4
             Problems.expect_warning (Missing_Input_Columns.Error ["nonexistent column :D", -42]) r4

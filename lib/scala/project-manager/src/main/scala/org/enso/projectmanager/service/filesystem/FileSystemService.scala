@@ -22,6 +22,14 @@ class FileSystemService[F[+_, +_]: Applicative: CovariantFlatMap: ErrorChannel](
 ) extends FileSystemServiceApi[F] {
 
   /** @inheritdoc */
+  override def exists(path: File): F[FileSystemServiceFailure, Boolean] =
+    fileSystem
+      .exists(path)
+      .mapError(_ =>
+        FileSystemServiceFailure.FileSystem("Failed to check if path exists")
+      )
+
+  /** @inheritdoc */
   override def list(
     path: File
   ): F[FileSystemServiceFailure, Seq[FileSystemEntry]] =
@@ -55,6 +63,12 @@ class FileSystemService[F[+_, +_]: Applicative: CovariantFlatMap: ErrorChannel](
     fileSystem
       .move(from, to)
       .mapError(_ => FileSystemServiceFailure.FileSystem("Failed to move path"))
+
+  /** @inheritdoc */
+  override def copy(from: File, to: File): F[FileSystemServiceFailure, Unit] =
+    fileSystem
+      .copy(from, to)
+      .mapError(_ => FileSystemServiceFailure.FileSystem("Failed to copy path"))
 
   /** @inheritdoc */
   override def write(

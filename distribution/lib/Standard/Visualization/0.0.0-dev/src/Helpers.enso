@@ -7,6 +7,7 @@ from Standard.Table import Column, Table
 
 import project.Id.Id
 import project.Table as Table_Visualization
+from project.Table.Visualization import make_json_for_value
 from project.Text import get_lazy_visualization_text_window
 
 ## PRIVATE
@@ -70,6 +71,12 @@ Any.map_valid self f = f self
    - val: a value that will be evaluated and returned if `self` is an error.
 Any.catch_ : Any -> Any
 Any.catch_ self ~val = self.catch Any (_-> val)
+
+## PRIVATE
+   Returns a Text used to display this value in the IDE.
+Nothing.to_default_visualization_data : Text
+Nothing.to_default_visualization_data self =
+    '{"type": "Nothing"}'
 
 ## PRIVATE
    Returns a display representation of the dataflow error on which it is called.
