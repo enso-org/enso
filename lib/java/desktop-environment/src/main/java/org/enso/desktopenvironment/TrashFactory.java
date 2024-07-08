@@ -1,7 +1,5 @@
 package org.enso.desktopenvironment;
 
-import java.awt.Desktop;
-
 final class TrashFactory {
 
   private static final class LazyTrash {
@@ -10,12 +8,13 @@ final class TrashFactory {
 
     private LazyTrash() {}
 
-    public static Trash getInstance() {
+    public static synchronized Trash getInstance() {
       if (Instance == null) {
-        Instance = switch (Platform.getOperatingSystem()) {
-          case Platform.OS.LINUX -> new LinuxTrash();
-          case Platform.OS.MACOS, Platform.OS.WINDOWS -> new AwtTrash();
-        };
+        Instance =
+            switch (Platform.getOperatingSystem()) {
+              case Platform.OS.LINUX -> new LinuxTrash();
+              case Platform.OS.MACOS, Platform.OS.WINDOWS -> new AwtTrash();
+            };
       }
       return Instance;
     }
