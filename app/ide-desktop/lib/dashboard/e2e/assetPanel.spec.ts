@@ -29,15 +29,15 @@ test.test('open and close asset panel', ({ page }) =>
         .createFolder()
         .driveTable.clickRow(0)
         .withAssetPanel(async assetPanel => {
-          await test.expect(assetPanel).not.toBeVisible()
+          await actions.expectNotOnScreen(assetPanel)
         })
         .toggleAssetPanel()
         .withAssetPanel(async assetPanel => {
-          await test.expect(assetPanel).toBeVisible()
+          await actions.expectOnScreen(assetPanel)
         })
         .toggleAssetPanel()
         .withAssetPanel(async assetPanel => {
-          await test.expect(assetPanel).not.toBeVisible()
+          await actions.expectNotOnScreen(assetPanel)
         })
   )
 )

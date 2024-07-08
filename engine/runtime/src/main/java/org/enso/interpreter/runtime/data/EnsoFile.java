@@ -42,6 +42,7 @@ import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeAtNode;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeLengthNode;
+import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 
@@ -451,7 +452,12 @@ public final class EnsoFile implements EnsoObject {
       return noSuchFileException;
     }
 
-    var parent = fromString(EnsoContext.get(null), path).truffleFile.getParent();
+    var parent =
+        switch (fromString(EnsoContext.get(null), path)) {
+          case EnsoFile f -> f.truffleFile.getParent();
+          case null -> null;
+          default -> null;
+        };
     // Unknown parent, so the heuristic cannot be applied - return the original.
     if (parent == null) {
       return noSuchFileException;
@@ -486,7 +492,12 @@ public final class EnsoFile implements EnsoObject {
       // On Linux, when creating a directory tree `foo/my-file.txt/a/b/c`, the operation fails with
       // `FileSystemException` with the full path (`foo/my-file.txt/a/b/c`). So we need to traverse
       // this path to find the actually problematic part.
-      var file = fromString(EnsoContext.get(null), path).truffleFile;
+      var file =
+          switch (fromString(EnsoContext.get(null), path)) {
+            case EnsoFile f -> f.truffleFile;
+            case null -> null;
+            default -> null;
+          };
       // We try to find the first file that exists on the path.
       while (file != null && !file.exists()) {
         file = file.getParent();
@@ -630,9 +641,19 @@ public final class EnsoFile implements EnsoObject {
       autoRegister = false)
   @Builtin.Specialize
   @TruffleBoundary
-  public static EnsoFile fromString(EnsoContext context, String path) {
-    TruffleFile file = context.getPublicTruffleFile(path);
-    return new EnsoFile(file);
+  public static EnsoObject fromString(EnsoContext context, String path)
+      throws IllegalArgumentException {
+    try {
+      TruffleFile file = context.getPublicTruffleFile(path);
+      return new EnsoFile(file);
+    } catch (IllegalArgumentException | UnsupportedOperationException ex) {
+      var err =
+          context
+              .getBuiltins()
+              .error()
+              .makeUnsupportedArgumentsError(new Object[] {Text.create(path)}, ex.getMessage());
+      return DataflowError.withoutTrace(err, null);
+    }
   }
 
   @Builtin.Method(
@@ -652,7 +673,7 @@ public final class EnsoFile implements EnsoObject {
       autoRegister = false)
   @Builtin.Specialize
   @TruffleBoundary
-  public static EnsoFile userHome(EnsoContext context) {
+  public static EnsoObject userHome(EnsoContext context) {
     return fromString(context, System.getProperty("user.home"));
   }
 

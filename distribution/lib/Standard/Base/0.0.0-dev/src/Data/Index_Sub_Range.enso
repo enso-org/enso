@@ -81,12 +81,12 @@ type Index_Sub_Range
        `Range` too.
     default_options : Vector Option
     default_options =
-        o1 = Option "First" "(Index_Sub_Range.First 1)"
-        o2 = Option "Last" "(Index_Sub_Range.Last 1)"
-        o3 = Option "While" "(Index_Sub_Range.While (x-> False))"
-        o4 = Option "By_Index" "(Index_Sub_Range.By_Index [0])"
-        o5 = Option "Sample" "(Index_Sub_Range.Sample 10)"
-        o6 = Option "Every" "(Index_Sub_Range.Every 2)"
+        o1 = Option "First" "(..First 1)"
+        o2 = Option "Last" "(..Last 1)"
+        o3 = Option "While" "(..While (x-> False))"
+        o4 = Option "By_Index" "(..By_Index [0])"
+        o5 = Option "Sample" "(..Sample 10)"
+        o6 = Option "Every" "(..Every 2)"
         o7 = Option "Range" "(Range.new 0 100)"
         [o1, o2, o3, o4, o5, o6, o7]
 
@@ -196,7 +196,7 @@ sort_and_merge_ranges ranges =
      normalization on its own.
    - range: The `Index_Sub_Range` to take from the collection.
 take_helper : Integer -> (Integer -> Any) -> (Integer -> Integer -> Any) -> (Vector (Integer | Range) -> Vector Any) -> (Index_Sub_Range | Range | Integer) -> Any
-take_helper length at single_slice slice_ranges range = case range of
+take_helper length at single_slice slice_ranges range:(Index_Sub_Range | Range | Integer) = case range of
     count : Integer -> take_helper length at single_slice slice_ranges (Index_Sub_Range.First count)
     _ : Range -> take_helper length at single_slice slice_ranges (Index_Sub_Range.By_Index range)
     Index_Sub_Range.First count -> single_slice 0 (length.min count)
@@ -247,7 +247,7 @@ take_helper length at single_slice slice_ranges range = case range of
      normalized.
    - range: The `Index_Sub_Range` to drop from the collection.
 drop_helper : Integer -> (Integer -> Any) -> (Integer -> Integer -> Any) -> (Vector (Integer | Range) -> Vector Any) -> (Index_Sub_Range | Range | Integer) -> Any
-drop_helper length at single_slice slice_ranges range = case range of
+drop_helper length at single_slice slice_ranges range:(Index_Sub_Range | Range | Integer) = case range of
     _ : Integer -> single_slice range length
     _ : Range -> drop_helper length at single_slice slice_ranges (Index_Sub_Range.By_Index range)
     Index_Sub_Range.First count -> single_slice count length

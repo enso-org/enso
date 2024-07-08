@@ -134,7 +134,8 @@ const AuthContext = React.createContext<AuthContextType | null>(null)
  */
 function createUsersMeQuery(
   session: cognitoModule.UserSession | null,
-  remoteBackend: RemoteBackend
+  remoteBackend: RemoteBackend,
+  performLogout: () => Promise<void>
 ) {
   return reactQuery.queryOptions({
     queryKey: ['usersMe', session?.clientId] as const,
@@ -143,14 +144,23 @@ function createUsersMeQuery(
         // eslint-disable-next-line no-restricted-syntax
         return null
       }
+      try {
+        const user = await remoteBackend.usersMe()
 
-      const user = await remoteBackend.usersMe()
-
-      // if API returns null, user is not yet registered
-      // but already authenticated with Cognito
-      return user == null
-        ? ({ type: UserSessionType.partial, ...session } satisfies PartialUserSession)
-        : ({ type: UserSessionType.full, user, ...session } satisfies FullUserSession)
+        // if API returns null, user is not yet registered
+        // but already authenticated with Cognito
+        return user == null
+          ? ({ type: UserSessionType.partial, ...session } satisfies PartialUserSession)
+          : ({ type: UserSessionType.full, user, ...session } satisfies FullUserSession)
+      } catch (error) {
+        if (error instanceof backendModule.NotAuthorizedError) {
+          await performLogout()
+          return null
+        } else {
+          // eslint-disable-next-line no-restricted-syntax
+          throw error
+        }
+      }
     },
   })
 }
@@ -182,7 +192,49 @@ export default function AuthProvider(props: AuthProviderProps) {
 
   const queryClient = reactQuery.useQueryClient()
 
-  const usersMeQuery = createUsersMeQuery(session, remoteBackend)
+  // This component cannot use `useGtagEvent` because `useGtagEvent` depends on the React Context
+  // defined by this component.
+  const gtagEvent = React.useCallback((name: string, params?: object) => {
+    gtag.event(name, params)
+  }, [])
+
+  const performLogout = async () => {
+    if (cognito != null) {
+      await cognito.signOut()
+
+      const parentDomain = location.hostname.replace(/^[^.]*\./, '')
+      document.cookie = `logged_in=no;max-age=0;domain=${parentDomain}`
+      gtagEvent('cloud_sign_out')
+      cognito.saveAccessToken(null)
+      localStorage.clearUserSpecificEntries()
+      sentry.setUser(null)
+
+      await queryClient.invalidateQueries({ queryKey: sessionQueryKey })
+      await queryClient.clearWithPersister()
+
+      return Promise.resolve()
+    } else {
+      return Promise.reject()
+    }
+  }
+
+  const logoutMutation = reactQuery.useMutation({
+    mutationKey: ['usersMe', 'logout', session?.clientId] as const,
+    mutationFn: () => performLogout(),
+    onMutate: () => {
+      // If the User Menu is still visible, it breaks when `userSession` is set to `null`.
+      unsetModal()
+    },
+    onSuccess: () => toast.toast.success(getText('signOutSuccess')),
+    onError: () => toast.toast.error(getText('signOutError')),
+    meta: { invalidates: [sessionQueryKey], awaitInvalidates: true },
+  })
+
+  const usersMeQuery = createUsersMeQuery(session, remoteBackend, () =>
+    performLogout().then(() => {
+      toast.toast.info(getText('userNotAuthorizedError'))
+    })
+  )
 
   const { data: userData } = reactQuery.useSuspenseQuery(usersMeQuery)
 
@@ -200,34 +252,6 @@ export default function AuthProvider(props: AuthProviderProps) {
     mutationFn: () => remoteBackend.restoreUser(),
     meta: { invalidates: [usersMeQuery.queryKey], awaitInvalidates: true },
   })
-
-  const logoutMutation = reactQuery.useMutation({
-    mutationFn: () => (cognito != null ? cognito.signOut() : Promise.reject()),
-    onMutate: () => {
-      // If the User Menu is still visible, it breaks when `userSession` is set to `null`.
-      unsetModal()
-    },
-    onSuccess: async () => {
-      const parentDomain = location.hostname.replace(/^[^.]*\./, '')
-      document.cookie = `logged_in=no;max-age=0;domain=${parentDomain}`
-      gtagEvent('cloud_sign_out')
-      cognito?.saveAccessToken(null)
-      localStorage.clearUserSpecificEntries()
-      sentry.setUser(null)
-
-      await queryClient.clearWithPersister()
-
-      return toast.toast.success(getText('signOutSuccess'))
-    },
-    onError: () => toast.toast.error(getText('signOutError')),
-    meta: { invalidates: [sessionQueryKey], awaitInvalidates: true },
-  })
-
-  // This component cannot use `useGtagEvent` because `useGtagEvent` depends on the React Context
-  // defined by this component.
-  const gtagEvent = React.useCallback((name: string, params?: object) => {
-    gtag.event(name, params)
-  }, [])
 
   /** Wrap a function returning a {@link Promise} to display a loading toast notification
    * until the returned {@link Promise} finishes loading. */
@@ -622,6 +646,8 @@ export function SemiProtectedLayout() {
     } else {
       return <router.Navigate to={appUtils.DASHBOARD_PATH} />
     }
+  } else if (session?.type !== UserSessionType.partial) {
+    return <router.Navigate to={appUtils.LOGIN_PATH} />
   } else {
     return <router.Outlet context={session} />
   }

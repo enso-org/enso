@@ -8,7 +8,8 @@
  * server. It is not yet deployed to any other environment.
  */
 
-import { Server } from 'http'
+import type { Server } from 'http'
+import type { Http2SecureServer } from 'http2'
 import { IncomingMessage } from 'node:http'
 import { parse } from 'url'
 import { WebSocket, WebSocketServer } from 'ws'
@@ -16,7 +17,10 @@ import { initializeFFI } from '../shared/ast/ffi'
 import { ConnectionData, docName } from './auth'
 import { setupGatewayClient } from './ydoc'
 
-export async function createGatewayServer(httpServer: Server, rustFFIPath: string | undefined) {
+export async function createGatewayServer(
+  httpServer: Server | Http2SecureServer,
+  rustFFIPath: string | undefined,
+) {
   await initializeFFI(rustFFIPath)
   const wss = new WebSocketServer({ noServer: true })
   wss.on('connection', (ws: WebSocket, _request: IncomingMessage, data: ConnectionData) => {

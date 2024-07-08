@@ -69,14 +69,17 @@ const barStyle = computed(() => {
   position: absolute;
   display: flex;
   gap: 8px;
-  top: 9px;
-  /* FIXME[sb]: Get correct offset from dashboard. */
-  left: 9px;
-  width: 100%;
+  top: 8px;
+  left: 0;
+  right: 0;
   pointer-events: none;
   > * {
     pointer-events: auto;
   }
+}
+
+.TopBar.extraRightSpace {
+  right: 32px;
 }
 
 .selection-menu-enter-active,

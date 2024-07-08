@@ -48,7 +48,7 @@ polyglot java import java.sql.Types
 type SQLite_Type_Mapping
     ## PRIVATE
     value_type_to_sql : Value_Type -> Problem_Behavior -> SQL_Type
-    value_type_to_sql value_type on_problems =
+    value_type_to_sql value_type on_problems:Problem_Behavior =
         result = case value_type of
             Value_Type.Boolean -> SQLite_Types.boolean
             Value_Type.Byte -> SQLite_Types.integer
@@ -175,12 +175,12 @@ operations_map =
 
     handle_case arguments =
         fallback = arguments.last
-        cases = arguments.drop (Last 1)
+        cases = arguments.drop (..Last 1)
         if cases.length % 2 != 0 then
             Panic.throw (Illegal_State.Error "Impossible: constructed a CASE with an odd number of case arguments.")
         if cases.is_empty then
             Panic.throw (Illegal_State.Error "Impossible: too few cases provided for a CASE statement.")
-        case_results = cases.take (Index_Sub_Range.Every 2 first=1)
+        case_results = cases.take (..Every 2 first=1)
         possible_results = case_results + [fallback]
         find_a_common_type possible_results
 

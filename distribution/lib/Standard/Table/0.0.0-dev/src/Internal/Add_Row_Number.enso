@@ -17,7 +17,7 @@ polyglot java import org.enso.table.operations.AddRowNumber
 
 ## PRIVATE
 add_row_number : Table -> Text -> Integer -> Integer -> Text | Integer | Regex | Vector (Integer | Text | Regex) -> Vector (Text | Sort_Column) | Text | Sort_Column -> Problem_Behavior -> Table
-add_row_number table name from step group_by order_by on_problems =
+add_row_number table name from step group_by order_by on_problems:Problem_Behavior =
     problem_builder = Problem_Builder.new error_on_missing_columns=True
     grouping_columns = table.columns_helper.select_columns_helper group_by Case_Sensitivity.Default True problem_builder
     ordering = Table_Helpers.resolve_order_by table.columns order_by problem_builder
@@ -43,7 +43,7 @@ add_row_number table name from step group_by order_by on_problems =
 ## PRIVATE
    If the table already contains a column called `name` it will be renamed to a
    unique name, so that a new column with this name can be added.
-rename_columns_if_needed table name on_problems build_table_from_columns =
+rename_columns_if_needed table name on_problems:Problem_Behavior build_table_from_columns =
     column_names = table.column_names
     if column_names.contains name . not then table else
         problems = [Duplicate_Output_Column_Names.Error [name]]

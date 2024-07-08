@@ -1,7 +1,9 @@
 package org.enso.launcher.releases.fallback.staticwebsite
 
-import io.circe.Decoder
+import org.enso.yaml.YamlDecoder
+import org.yaml.snakeyaml.nodes.{MappingNode, Node}
 
+import java.io.StringReader
 import scala.util.Try
 
 /** Manifest of the fallback mechanism.
@@ -12,6 +14,23 @@ import scala.util.Try
 case class FallbackManifest(enabled: Boolean)
 
 object FallbackManifest {
+
+  implicit val yamlDecoder: YamlDecoder[FallbackManifest] =
+    new YamlDecoder[FallbackManifest] {
+      override def decode(node: Node) = {
+        node match {
+          case node: MappingNode =>
+            val booleanDecoder = implicitly[YamlDecoder[Boolean]]
+            val bindings       = mappingKV(node)
+            for {
+              enabled <- bindings
+                .get(Fields.enabled)
+                .map(booleanDecoder.decode(_))
+                .getOrElse(Right(false))
+            } yield FallbackManifest(enabled)
+        }
+      }
+    }
 
   /** Defines a part of the URL scheme of the fallback mechanism - the name of
     * manifest file.
@@ -25,17 +44,10 @@ object FallbackManifest {
     val enabled = "enabled"
   }
 
-  /** [[Decoder]] instance for [[FallbackManifest]].
-    *
-    * It should always remain backwards compatible, since the fallback mechanism
-    * must work for all released launcher versions.
-    */
-  implicit val decoder: Decoder[FallbackManifest] = { json =>
-    for {
-      enabled <- json.get[Boolean](Fields.enabled)
-    } yield FallbackManifest(enabled)
+  def parseString(yamlString: String): Try[FallbackManifest] = {
+    val snakeYaml = new org.yaml.snakeyaml.Yaml()
+    Try(snakeYaml.compose(new StringReader(yamlString))).toEither
+      .flatMap(implicitly[YamlDecoder[FallbackManifest]].decode(_))
+      .toTry
   }
-
-  def parseString(string: String): Try[FallbackManifest] =
-    io.circe.yaml.parser.parse(string).flatMap(_.as[FallbackManifest]).toTry
 }

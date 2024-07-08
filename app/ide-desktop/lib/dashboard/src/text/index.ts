@@ -1,6 +1,6 @@
 /** @file Functions related to displaying text. */
 
-import ENGLISH from '#/text/english.json' assert { type: 'json' }
+import ENGLISH from '#/text/english.json' with { type: 'json' }
 
 // =============
 // === Types ===
@@ -85,7 +85,9 @@ interface PlaceholderOverrides {
   readonly restoreProjectBackendError: [string]
   readonly duplicateProjectBackendError: [string]
   readonly closeProjectBackendError: [string]
+  readonly listProjectSessionsBackendError: [string]
   readonly getProjectDetailsBackendError: [string]
+  readonly getProjectLogsBackendError: [string]
   readonly openProjectBackendError: [string]
   readonly openProjectMissingCredentialsBackendError: [string]
   readonly updateProjectBackendError: [string]

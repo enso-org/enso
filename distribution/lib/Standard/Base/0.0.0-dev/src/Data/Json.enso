@@ -1,6 +1,7 @@
 import project.Any.Any
 import project.Data.Array.Array
 import project.Data.Array_Proxy.Array_Proxy
+import project.Data.Decimal.Decimal
 import project.Data.Map.Map
 import project.Data.Numbers.Float
 import project.Data.Numbers.Integer
@@ -125,11 +126,13 @@ to_json_node value =
     case value of
         Nothing -> NullNode.getInstance
         b : Boolean -> BooleanNode.valueOf b
-        n : Integer -> LongNode.valueOf(n)
+        n : Integer ->
+            js_obj = n.to_js_object
+            if js_obj.is_a JS_Object then to_json_node js_obj else LongNode.valueOf n
         f : Float   ->
-            if f.is_nan || f.is_infinite then NullNode.getInstance else DoubleNode.valueOf(f)
+            if f.is_nan || f.is_infinite then NullNode.getInstance else DoubleNode.valueOf f
         t : Text    ->
-            TextNode.valueOf(t)
+            TextNode.valueOf t
         v : Vector  ->
             n = ArrayNode.new JsonNodeFactory.instance
             v.each e-> n.add (to_json_node e)
@@ -411,9 +414,12 @@ make_enso object =
         js_object : JS_Object ->
             ## Handle deserializing date and time types.
             type_name = js_object.get "type"
-            parsed = if type_name == "Date" then Date.from js_object else
-                if type_name == "Date_Time" then Date_Time.from js_object else
-                    if type_name == "Time_Of_Day" then Time_Of_Day.from js_object else
-                        js_object
+            parsed = case type_name of
+                "Date" -> Date.from js_object
+                "Date_Time" -> Date_Time.from js_object
+                "Time_Of_Day" -> Time_Of_Day.from js_object
+                "Decimal" -> Decimal.from js_object
+                "Integer" -> Integer.from js_object
+                _ -> js_object
 
             if parsed.is_error then js_object else parsed

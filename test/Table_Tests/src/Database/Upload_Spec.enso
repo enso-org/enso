@@ -259,7 +259,7 @@ add_specs suite_builder make_new_connection prefix persistent_connector=True =
 
             logs = log_file.read ..Plain_Text . lines
             deletes = logs.filter (_.contains "DROP")
-            wrapped_name = data.connection.dialect.wrap_identifier original_table_name
+            wrapped_name = data.connection.dialect.wrap_identifier original_table_name . build . unsafe_to_raw_sql
             deletes.each line->
                 if line.contains wrapped_name then
                     Test.fail "The log file contains a dangerous DELETE statement for the original table: "+line
@@ -994,7 +994,7 @@ test_table_append group_builder (data : Data) source_table_builder target_table_
 
         r2 = t1.update_rows s1 update_action=Update_Action.Insert key_columns=[]
         Problems.assume_no_problems r2
-        m2 = r2.read . order_by "Y"
+        m2 = r2.read . sort "Y"
         m2.at "Y" . to_vector . should_equal ["a", "b", "c", "x", "y"]
         m2.at "X" . to_vector . should_equal [0, 10, 100, 10, Nothing]
 
@@ -1332,7 +1332,7 @@ test_table_delete group_builder (data : Data) source_table_builder target_table_
         t1 = target_table_builder [["X", ["a", "b", Nothing, "c"]], ["Y", [1, 2, 3, Nothing]]] connection=data.connection
         s1 = source_table_builder [["X", ["b", "c"]]] connection=data.connection
         t1.delete_rows s1 key_columns=["X"] . should_equal 2
-        m1 = t1.read . order_by "X"
+        m1 = t1.read . sort "X"
         m1.at "X" . to_vector . should_equal [Nothing, "a"]
         m1.at "Y" . to_vector . should_equal [3, 1]
 

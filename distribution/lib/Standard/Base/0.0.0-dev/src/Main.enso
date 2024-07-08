@@ -96,8 +96,6 @@ export project.Warning.Warning
 export project.Data.Boolean.Boolean
 export project.Data.Boolean.Boolean.False
 export project.Data.Boolean.Boolean.True
-export project.Data.Index_Sub_Range.Index_Sub_Range.First
-export project.Data.Index_Sub_Range.Index_Sub_Range.Last
 export project.Data.Json.Extensions.to_json
 export project.Data.Json.Extensions.to_js_object
 export project.Data.Numbers.Float
@@ -164,9 +162,6 @@ export project.Data.Text.Extensions.substring
 export project.Data.Text.Extensions.slice_text
 export project.Data.Text.Extensions.split_find_delimiters
 export project.Data.Text.Regex.regex
-export project.Errors.Problem_Behavior.Problem_Behavior.Ignore
-export project.Errors.Problem_Behavior.Problem_Behavior.Report_Warning
-export project.Errors.Problem_Behavior.Problem_Behavior.Report_Error
 export project.Function.Function
 export project.Function.identity
 export project.Function.flip

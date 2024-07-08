@@ -1,4 +1,4 @@
-from Standard.Base import all hiding First, Last
+from Standard.Base import all
 
 from Standard.Table import Table, Sort_Column, expr
 from Standard.Table.Aggregate_Column.Aggregate_Column import all
@@ -10,7 +10,7 @@ from Standard.Database.Errors import Unsupported_Database_Operation
 from Standard.Test import all
 
 
-from project.Common_Table_Operations.Util import run_default_backend
+from project.Common_Table_Operations.Util import run_default_backend, within_table
 
 polyglot java import java.lang.Double
 
@@ -360,21 +360,23 @@ add_specs suite_builder setup =
             grouped = data.empty_table.aggregate columns=[Shortest "TextWithNothing", Longest "TextWithNothing"]
             materialized = materialize grouped
             Problems.assume_no_problems materialized
-            grouped.row_count . should_equal 1
-            materialized.column_count . should_equal 2
-            materialized.columns.at 0 . name . should_equal "Shortest TextWithNothing"
-            materialized.columns.at 0 . at 0 . should_equal Nothing
-            materialized.columns.at 1 . name . should_equal "Longest TextWithNothing"
-            materialized.columns.at 1 . at 0 . should_equal Nothing
+            within_table grouped <|
+                grouped.row_count . should_equal 1
+                materialized.column_count . should_equal 2
+                materialized.columns.at 0 . name . should_equal "Shortest TextWithNothing"
+                materialized.columns.at 0 . at 0 . should_equal Nothing
+                materialized.columns.at 1 . name . should_equal "Longest TextWithNothing"
+                materialized.columns.at 1 . at 0 . should_equal Nothing
 
         group_builder.specify "should be able to get concatenated text values" (pending = resolve_pending test_selection.text_concat) <|
             grouped = data.empty_table.aggregate columns=[Concatenate "Code"]
             materialized = materialize grouped
             Problems.assume_no_problems materialized
-            grouped.row_count . should_equal 1
-            materialized.column_count . should_equal 1
-            materialized.columns.at 0 . name . should_equal "Concatenate Code"
-            materialized.columns.at 0 . at 0 . should_equal Nothing
+            within_table grouped <|
+                grouped.row_count . should_equal 1
+                materialized.column_count . should_equal 1
+                materialized.columns.at 0 . name . should_equal "Concatenate Code"
+                materialized.columns.at 0 . at 0 . should_equal Nothing
 
     suite_builder.group prefix+"Table.aggregate should not summarize empty table when grouped" group_builder->
         data = Data.setup create_connection_fn table_fn empty_table_fn
@@ -922,14 +924,15 @@ add_specs suite_builder setup =
         group_builder.specify "should correctly handle empty strings versus missing (null) strings" <|
             table = table_builder [["A", ["abcd", "f", ""]], ["B", [Nothing, "f", "abc"]]]
             result = table.aggregate [] [Shortest "A", Shortest "B"]
-            result.row_count . should_equal 1
-            materialized = materialize result
-            Problems.assume_no_problems materialized
-            materialized.column_count . should_equal 2
-            materialized.columns.at 0 . name . should_equal "Shortest A"
-            materialized.columns.at 0 . to_vector . should_equal [""]
-            materialized.columns.at 1 . name . should_equal "Shortest B"
-            materialized.columns.at 1 . to_vector . should_equal ["f"]
+            within_table result <|
+                result.row_count . should_equal 1
+                materialized = materialize result
+                Problems.assume_no_problems materialized
+                materialized.column_count . should_equal 2
+                materialized.columns.at 0 . name . should_equal "Shortest A"
+                materialized.columns.at 0 . to_vector . should_equal [""]
+                materialized.columns.at 1 . name . should_equal "Shortest B"
+                materialized.columns.at 1 . to_vector . should_equal ["f"]
 
     suite_builder.group prefix+"Table.aggregate Concatenate" (pending = resolve_pending test_selection.text_concat) group_builder->
         data = Data.setup create_connection_fn table_fn empty_table_fn
@@ -940,11 +943,18 @@ add_specs suite_builder setup =
         table_builder cols =
             setup.table_builder cols connection=data.connection
 
+        build_sorted_table table_structure =
+            # Workaround for https://github.com/enso-org/enso/issues/10321
+            if setup.prefix.contains "Snowflake" . not then table_builder table_structure else
+                row_count = table_structure.first.second.length
+                new_structure = table_structure+[["row_id", (0.up_to row_count) . to_vector]]
+                table_builder new_structure . order_by "row_id" . remove_columns ["row_id"]
+
         group_builder.specify "should insert the separator, add prefix and suffix" <|
-            table = table_builder [["A", ["foo", "bar", "foo", "foo"]], ["B", ["a", "b", "c", "d"]]]
+            table = build_sorted_table [["A", ["foo", "bar", "foo", "foo"]], ["B", ["a", "b", "c", "d"]]]
             result = table.aggregate ["A"] [Concatenate "B" prefix="[[" suffix="]]" separator="; "]
             result.row_count . should_equal 2
-            materialized = materialize result . order_by ([Sort_Column.Name "A"])
+            materialized = materialize result . sort ([..Name "A"])
             Problems.assume_no_problems materialized
             materialized.column_count . should_equal 2
             materialized.columns.at 0 . name . should_equal "A"
@@ -953,7 +963,7 @@ add_specs suite_builder setup =
             materialized.columns.at 1 . to_vector . should_equal ["[[b]]", "[[a; c; d]]"]
 
         group_builder.specify "should correctly escape separator and quote characters but only if necessary" <|
-            table = table_builder [["A", ["1,0", "b", "'c", "''", ","]]]
+            table = build_sorted_table [["A", ["1,0", "b", "'c", "''", ","]]]
             result = table.aggregate columns=[(Concatenate "A" prefix="[[" suffix="]]" separator="," quote_char="'")]
             result.row_count . should_equal 1
             materialized = materialize result
@@ -963,7 +973,7 @@ add_specs suite_builder setup =
             materialized.columns.at 0 . to_vector . should_equal ["[['1,0',b,'''c','''''',',']]"]
 
         group_builder.specify "should correctly handle missing values and empty values with quote character" <|
-            table = table_builder [["A", ["1,0", "A", "", "", "B", Nothing, Nothing, "C"]]]
+            table = build_sorted_table [["A", ["1,0", "A", "", "", "B", Nothing, Nothing, "C"]]]
             result = table.aggregate columns=[(Concatenate "A" prefix="[[" suffix="]]" separator="," quote_char="'")]
             result.row_count . should_equal 1
             materialized = materialize result
@@ -973,7 +983,7 @@ add_specs suite_builder setup =
             materialized.columns.at 0 . to_vector . should_equal ["[['1,0',A,'','',B,,,C]]"]
 
         group_builder.specify "will not be able to distinguish missing values from empty values without quote character" <|
-            table = table_builder [["A", ["1,0", "A", "", "", "B", Nothing, Nothing, "C"]]]
+            table = build_sorted_table [["A", ["1,0", "A", "", "", "B", Nothing, Nothing, "C"]]]
             result = table.aggregate columns=[(Concatenate "A" prefix="[[" suffix="]]" separator=",")]
             result.row_count . should_equal 1
             materialized = materialize result
@@ -988,7 +998,7 @@ add_specs suite_builder setup =
             materialized.columns.at 0 . to_vector . should_equal ["[[1,0,A,,,B,,,C]]"]
 
         group_builder.specify "should work with empty separator" <|
-            table = table_builder [["A", ["1,0", "A", "", "", "B", Nothing, Nothing, "C"]]]
+            table = build_sorted_table [["A", ["1,0", "A", "", "", "B", Nothing, Nothing, "C"]]]
             result = table.aggregate columns=[(Concatenate "A")]
             result.row_count . should_equal 1
             materialized = materialize result
@@ -998,7 +1008,7 @@ add_specs suite_builder setup =
             materialized.columns.at 0 . to_vector . should_equal ["1,0ABC"]
 
         group_builder.specify "should work with empty separator but non-empty quote" <|
-            table = table_builder [["A", ["1'0", "A", "", "", "B", Nothing, Nothing, "C"]]]
+            table = build_sorted_table [["A", ["1'0", "A", "", "", "B", Nothing, Nothing, "C"]]]
             result = table.aggregate columns=[(Concatenate "A" quote_char="'")]
             result.row_count . should_equal 1
             materialized = materialize result
@@ -1055,14 +1065,14 @@ add_specs suite_builder setup =
 
             r1 = t5.aggregate ["G"] [Count_Distinct "A" (ignore_nothing=True)]
             r1.row_count . should_equal 2
-            m1 = materialize r1 . order_by ([Sort_Column.Name "G"])
+            m1 = materialize r1 . sort ([..Name "G"])
             m1.column_count . should_equal 2
             m1.columns.first.to_vector . should_equal ["bar", "foo"]
             m1.columns.second.to_vector . should_equal [0, 1]
 
             r2 = t5.aggregate ["G"] [Count_Distinct "A" (ignore_nothing=False)]
             r2.row_count . should_equal 2
-            m2 = materialize r2 . order_by ([Sort_Column.Name "G"])
+            m2 = materialize r2 . sort ([..Name "G"])
             m2.column_count . should_equal 2
             m2.columns.first.to_vector . should_equal ["bar", "foo"]
             m2.columns.second.to_vector . should_equal [1, 2]
@@ -1120,7 +1130,7 @@ add_specs suite_builder setup =
 
             r2 = table.aggregate ["G"] [Average "X"]
             r2.row_count.should_equal 2
-            m2 = materialize r2 . order_by ([Sort_Column.Name "G"])
+            m2 = materialize r2 . sort ([..Name "G"])
             m2.column_count . should_equal 2
             m2.columns.first.to_vector . should_equal ["a", "b"]
             m2.columns.second.to_vector . should_equal [0.5, 1]
@@ -1347,7 +1357,7 @@ add_specs suite_builder setup =
             table = table_builder [["A", [1, 1, 2, 1]], ["B", [3, 2, 2, 3]], ["C", [11, 12, 13, 14]]]
             grouped = table.aggregate ["B", "A"]
             grouped.row_count . should_equal 3
-            materialized = materialize grouped . order_by ([Sort_Column.Name "A", Sort_Column.Name "B"])
+            materialized = materialize grouped . sort ([..Name "A", ..Name "B"])
             Problems.assume_no_problems materialized
             materialized.column_count . should_equal 2
             materialized.columns.at 1 . name . should_equal "A"
@@ -1360,7 +1370,7 @@ add_specs suite_builder setup =
                 table = table_builder [["A", ['s', 's\u0301', 'ś', 's\u0301']], ["B", [1, 2, 4, 8]]]
                 grouped = table.aggregate ["A"] [Sum "B"]
                 grouped.row_count . should_equal 2
-                materialized = materialize grouped . order_by ["A"]
+                materialized = materialize grouped . sort ["A"]
                 Problems.assume_no_problems materialized
                 materialized.column_count . should_equal 2
                 materialized.columns.at 0 . name . should_equal "A"
@@ -1377,17 +1387,17 @@ add_specs suite_builder setup =
                 table = table_builder [dates, times, datetimes, ints]
 
                 g1 = table.aggregate ["Date"] [Sum "Int"]
-                m1 = materialize g1 . order_by (["Date"])
+                m1 = materialize g1 . sort (["Date"])
                 m1.at "Date" . to_vector . should_equal [Date.new 1997, Date.new 2000 2 2, Date.new 2022 12 31]
                 m1.at "Sum Int" . to_vector . should_equal [17, 10, 4]
 
                 g2 = table.aggregate ["Time"] [Sum "Int"]
-                m2 = materialize g2 . order_by (["Time"])
+                m2 = materialize g2 . sort (["Time"])
                 m2.at "Time" . to_vector . should_equal [Time_Of_Day.new, Time_Of_Day.new 0 0 0 500, Time_Of_Day.new 1 2 3, Time_Of_Day.new 11 25 40]
                 m2.at "Sum Int" . to_vector . should_equal [9, 2, 4, 16]
 
                 g3 = table.aggregate ["DateTime"] [Sum "Int"]
-                m3 = materialize g3 . order_by (["DateTime"])
+                m3 = materialize g3 . sort (["DateTime"])
                 ## The DB may change the timezone of the values, so we need to convert them back to be able to check for equality.
                    All that we require is that the instant in time represented by the values is preserved.
                 at_system_tz dt =
@@ -1431,7 +1441,7 @@ add_specs suite_builder setup =
             table = table_builder [["Index", [1, 1, 2, 2]], ["Value", [1, 2, 3, 4]]]
             t1 = table.aggregate ["Index"] [Sum "Value", Sum (expr "[Value]*[Value]")]
             t1.column_count . should_equal 3
-            r1 =  t1 |> materialize |> _.order_by "Index"
+            r1 =  t1 |> materialize |> _.sort "Index"
             r1.at "Index" . to_vector . should_equal [1, 2]
             r1.at "Sum Value" . to_vector . should_equal [3, 7]
             # Not using by name, as naming is not yet consistent between backends.
@@ -1444,9 +1454,9 @@ add_specs suite_builder setup =
             problems1 = [Invalid_Aggregate_Column.Error "[MISSING]*[MISSING]" (No_Such_Column.Error "MISSING")]
             Problems.test_problem_handling action1 problems1 tester1
 
-            t2 = data.table.aggregate ["Index"] [Sum "Value", Sum (expr "[[[")] on_problems=Problem_Behavior.Ignore
+            t2 = data.table.aggregate ["Index"] [Sum "Value", Sum (expr "[[[")] on_problems=..Ignore
             expect_column_names ["Index", "Sum Value"] t2
-            err3 = data.table.aggregate ["Index"] [Sum "Value", Sum (expr "[[[")] on_problems=Problem_Behavior.Report_Error
+            err3 = data.table.aggregate ["Index"] [Sum "Value", Sum (expr "[[[")] on_problems=..Report_Error
             err3.should_fail_with Invalid_Aggregate_Column
             err3.catch.name . should_equal "[[["
             err3.catch.expression_error . should_be_a Expression_Error.Syntax_Error
@@ -1485,11 +1495,11 @@ add_specs suite_builder setup =
             t3.catch.criteria.should_equal [42]
 
         group_builder.specify "should raise a warning when can't find a column by name, but a hard error if the missing column is in group_by" <|
-            err1 = table.aggregate ["Missing", "Index", "Other_Missing"] on_problems=Problem_Behavior.Ignore
+            err1 = table.aggregate ["Missing", "Index", "Other_Missing"] on_problems=..Ignore
             err1.should_fail_with Invalid_Aggregate_Column
             err1.catch.name . should_equal "Missing"
 
-            t1 = table.aggregate ["Index"] [Sum "Value", Sum "Missing"] on_problems=Problem_Behavior.Report_Warning
+            t1 = table.aggregate ["Index"] [Sum "Value", Sum "Missing"] on_problems=..Report_Warning
             t1.column_names . should_equal ["Index", "Sum Value"]
             warnings = Problems.get_attached_warnings t1
             warnings.not_empty . should_be_true
@@ -1498,15 +1508,15 @@ add_specs suite_builder setup =
 
             ## Even if there are missing columns both for group-by and
                aggregations, the groupby errors are reported separately.
-            err2 = table.aggregate ["Index", "Unknown", "Other Missing"] [Sum "Value", Sum "Missing"] on_problems=Problem_Behavior.Report_Error
+            err2 = table.aggregate ["Index", "Unknown", "Other Missing"] [Sum "Value", Sum "Missing"] on_problems=..Report_Error
             err2.should_fail_with Invalid_Aggregate_Column
             err2.catch.name.should_equal "Unknown"
 
-            err3 = table.aggregate ["Index"] [Sum "Value", Sum "Missing"] on_problems=Problem_Behavior.Ignore error_on_missing_columns=True
+            err3 = table.aggregate ["Index"] [Sum "Value", Sum "Missing"] on_problems=..Ignore error_on_missing_columns=True
             err3.should_fail_with Invalid_Aggregate_Column
             err3.catch.name.should_equal "Missing"
 
-            err4 = table.aggregate [100, "Index", -42] on_problems=Problem_Behavior.Ignore
+            err4 = table.aggregate [100, "Index", -42] on_problems=..Ignore
             err4.should_fail_with Missing_Input_Columns
             err4.catch.criteria.should_equal [100, -42]
 
@@ -1516,11 +1526,11 @@ add_specs suite_builder setup =
             Problems.test_problem_handling action2 problems2 tester2
 
             # As above, missing errors from group-by take precedence over aggregates.
-            err5 = table.aggregate ["Index", 55, -33] [Sum "Value", Sum 144] on_problems=Problem_Behavior.Report_Error
+            err5 = table.aggregate ["Index", 55, -33] [Sum "Value", Sum 144] on_problems=..Report_Error
             err5.should_fail_with Missing_Input_Columns
             err5.catch.criteria.should_equal [55, -33]
 
-            err6 = table.aggregate ["Index"] [Sum "Value", Sum 42] on_problems=Problem_Behavior.Ignore error_on_missing_columns=True
+            err6 = table.aggregate ["Index"] [Sum "Value", Sum 42] on_problems=..Ignore error_on_missing_columns=True
             err6.catch . should_equal (Missing_Input_Columns.Error [42])
 
         group_builder.specify "should raise a warning when a duplicate column name" <|
@@ -1580,7 +1590,7 @@ add_specs suite_builder setup =
             False ->
                 group_builder.specify "should error if unsupported operations are selected" <|
                     t1 = table_builder [["X", [1.5, 2.0, 1.5, 1.0]]]
-                    t2 = t1.aggregate columns=[Mode "X"] on_problems=Problem_Behavior.Ignore
+                    t2 = t1.aggregate columns=[Mode "X"] on_problems=..Ignore
                     t2.should_fail_with No_Output_Columns
 
         group_builder.specify "should check types" <|
@@ -1633,7 +1643,7 @@ add_specs suite_builder setup =
         group_builder.specify "should not fail if trying concatenate unquoted delimiters with no separator" <|
             column = Concatenate "Text" separator=""
             t = table_builder [["Text", ["A", "BC", "def"]]]
-            result = t.aggregate columns=[column] on_problems=Report_Error
+            result = t.aggregate columns=[column] on_problems=..Report_Error
             Problems.assume_no_problems result
             result.column_names . should_equal ["Concatenate Text"]
             result.at "Concatenate Text" . to_vector . should_equal ["ABCdef"]

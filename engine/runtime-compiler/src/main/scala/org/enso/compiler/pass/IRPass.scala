@@ -5,7 +5,6 @@ import org.enso.compiler.core.{CompilerError, IR, Identifier}
 import org.enso.compiler.core.ir.ProcessingPass
 import org.enso.compiler.core.ir.Module
 import org.enso.compiler.core.ir.Expression
-import shapeless.=:!=
 
 import java.util.UUID
 import scala.annotation.unused
@@ -129,7 +128,7 @@ object IRPass {
       * @return `ev`, cast to `T` if it is a `T`
       */
     def as[T <: Metadata: ClassTag](implicit
-      @unused ev: T =:!= Metadata
+      @unused ev: T =!= Metadata
     ): Option[T] = {
       this match {
         case p: T => Some(p)
@@ -146,7 +145,7 @@ object IRPass {
       */
     @throws[CompilerError]
     def unsafeAs[T <: Metadata: ClassTag](implicit
-      @unused ev: T =:!= Metadata
+      @unused ev: T =!= Metadata
     ): T = {
       this
         .as[T]
@@ -182,5 +181,19 @@ object IRPass {
       /** @inheritdoc */
       override def duplicate(): Option[Metadata] = Some(this)
     }
+  }
+
+  // https://stackoverflow.com/questions/6909053/enforce-type-difference
+
+  sealed class =!=[A, B]
+
+  trait LowerPriorityImplicits {
+    implicit def equal[A]: =!=[A, A] = sys.error("should not be called")
+  }
+  object =!= extends LowerPriorityImplicits {
+    implicit def nequal[A, B](implicit same: A =:= B = null): =!=[A, B] =
+      if (same != null)
+        sys.error("should not be called explicitly with same type")
+      else new =!=[A, B]
   }
 }

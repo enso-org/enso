@@ -5,7 +5,7 @@ import * as focusHooks from '#/hooks/focusHooks'
 
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
-import Spinner, * as spinnerModule from '#/components/Spinner'
+import StatelessSpinner, * as spinnerModule from '#/components/StatelessSpinner'
 import SvgMask from '#/components/SvgMask'
 
 import * as twv from '#/utilities/tailwindVariants'
@@ -18,36 +18,39 @@ import * as text from '../Text'
 
 /** Props for a {@link Button}. */
 export type ButtonProps =
-  | (BaseButtonProps & Omit<aria.ButtonProps, 'children' | 'onPress' | 'type'> & PropsWithoutHref)
-  | (BaseButtonProps & Omit<aria.LinkProps, 'children' | 'onPress' | 'type'> & PropsWithHref)
+  | (BaseButtonProps<aria.ButtonRenderProps> & Omit<aria.ButtonProps, 'onPress'> & PropsWithoutHref)
+  | (BaseButtonProps<aria.LinkRenderProps> & Omit<aria.LinkProps, 'onPress'> & PropsWithHref)
 
 /**
  * Props for a button with an href.
  */
 interface PropsWithHref {
-  readonly href?: string
-  readonly type?: never
+  readonly href: string
 }
 
 /**
  * Props for a button without an href.
  */
 interface PropsWithoutHref {
-  readonly type?: 'button' | 'reset' | 'submit'
   readonly href?: never
 }
 
 /**
  * Base props for a button.
  */
-export interface BaseButtonProps extends Omit<twv.VariantProps<typeof BUTTON_STYLES>, 'iconOnly'> {
+export interface BaseButtonProps<Render>
+  extends Omit<twv.VariantProps<typeof BUTTON_STYLES>, 'iconOnly'> {
   /** Falls back to `aria-label`. Pass `false` to explicitly disable the tooltip. */
   readonly tooltip?: React.ReactElement | string | false
   readonly tooltipPlacement?: aria.Placement
   /**
    * The icon to display in the button
    */
-  readonly icon?: React.ReactElement | string | null
+  readonly icon?:
+    | React.ReactElement
+    | string
+    | ((render: Render) => React.ReactElement | string | null)
+    | null
   /**
    * When `true`, icon will be shown only when hovered.
    */
@@ -58,10 +61,12 @@ export interface BaseButtonProps extends Omit<twv.VariantProps<typeof BUTTON_STY
    */
   readonly onPress?: (event: aria.PressEvent) => Promise<void> | void
   readonly contentClassName?: string
-  readonly children?: React.ReactNode
   readonly testId?: string
-
+  readonly isDisabled?: boolean
   readonly formnovalidate?: boolean
+  /** Defaults to `full`. When `full`, the entire button will be replaced with the loader.
+   * When `icon`, only the icon will be replaced with the loader. */
+  readonly loaderPosition?: 'full' | 'icon'
 }
 
 export const BUTTON_STYLES = twv.tv({
@@ -69,9 +74,11 @@ export const BUTTON_STYLES = twv.tv({
     'group',
     // we need to set the height to max-content to prevent the button from growing in flex containers
     'h-[max-content]',
+    // basic outline
+    'outline-offset-[1px] outline-transparent',
     // buttons always have borders
     // so keep them in mind when setting paddings
-    'border border-transparent',
+    'border-0.5 border-transparent',
     // button reset styles
     'whitespace-nowrap cursor-pointer select-none appearance-none',
     // Align the content by the center
@@ -82,7 +89,7 @@ export const BUTTON_STYLES = twv.tv({
   variants: {
     isDisabled: { true: 'disabled:opacity-50 disabled:cursor-not-allowed' },
     isFocused: {
-      true: 'focus:outline-none focus-visible:outline focus-visible:outline-primary focus-visible:outline-offset-2',
+      true: 'focus:outline-none focus-visible:outline-2 focus-visible:outline-black focus-visible:outline-offset-[-2px]',
     },
     isActive: {
       none: '',
@@ -102,10 +109,10 @@ export const BUTTON_STYLES = twv.tv({
           variant: 'body',
           color: 'custom',
           weight: 'semibold',
-          className: 'flex px-[11px] py-[5px]',
+          className: 'flex px-[11px] py-[5.5px]',
         }),
         content: 'gap-2',
-        icon: 'mb-[-0.3cap]',
+        icon: 'mb-[-0.1cap] h-4.5 w-4.5',
         extraClickZone: 'after:inset-[-6px]',
       },
       medium: {
@@ -113,9 +120,9 @@ export const BUTTON_STYLES = twv.tv({
           variant: 'body',
           color: 'custom',
           weight: 'semibold',
-          className: 'flex px-[9px] py-[3px]',
+          className: 'flex px-[9px] py-[3.5px]',
         }),
-        icon: 'mb-[-0.3cap]',
+        icon: 'mb-[-0.1cap] h-4 w-4',
         content: 'gap-2',
         extraClickZone: 'after:inset-[-8px]',
       },
@@ -124,9 +131,9 @@ export const BUTTON_STYLES = twv.tv({
           variant: 'body',
           color: 'custom',
           weight: 'medium',
-          className: 'flex px-[7px] py-[1px]',
+          className: 'flex px-[7px] py-[1.5px]',
         }),
-        icon: 'mb-[-0.3cap]',
+        icon: 'mb-[-0.1cap] h-3.5 w-3.5',
         content: 'gap-1',
         extraClickZone: 'after:inset-[-10px]',
       },
@@ -135,9 +142,10 @@ export const BUTTON_STYLES = twv.tv({
           variant: 'body',
           color: 'custom',
           weight: 'medium',
-          className: 'flex px-[5px] py-[1px]',
+          disableLineHeightCompensation: true,
+          className: 'flex px-[5px] pt-[0.5px] pb-[2.5px]',
         }),
-        icon: 'mb-[-0.3cap]',
+        icon: 'mb-[-0.2cap] h-3 w-3',
         content: 'gap-1',
         extraClickZone: 'after:inset-[-12px]',
       },
@@ -145,17 +153,24 @@ export const BUTTON_STYLES = twv.tv({
         base: text.TEXT_STYLE({
           variant: 'body',
           color: 'custom',
-          className: 'flex px-[3px] py-[0px]',
+          className: 'flex px-[3px] pt-[0.5px] pb-[2.5px] leading-[16px]',
           // we need to disable line height compensation for this size
           // because otherwise the text will be too high in the button
           disableLineHeightCompensation: true,
         }),
         content: 'gap-0.5',
+        icon: 'mb-[-0.1cap]',
         extraClickZone: 'after:inset-[-12px]',
       },
     },
     iconOnly: {
-      true: { base: text.TEXT_STYLE({ disableLineHeightCompensation: true }), icon: 'mb-[unset]' },
+      true: {
+        base: text.TEXT_STYLE({
+          disableLineHeightCompensation: true,
+          className: 'border-0 outline-offset-[5px]',
+        }),
+        icon: 'mb-[unset]',
+      },
     },
     rounded: {
       full: 'rounded-full',
@@ -168,10 +183,11 @@ export const BUTTON_STYLES = twv.tv({
       xxxlarge: 'rounded-3xl',
     },
     variant: {
-      custom: 'focus-visible:outline-offset-2',
+      custom: '',
       link: {
-        base: 'inline-block px-0 py-0 rounded-sm text-primary/50 underline hover:text-primary border-none',
-        icon: 'h-[1.25cap] mt-[0.25cap]',
+        base: 'inline-block px-0 py-0 rounded-sm text-primary/50 underline hover:text-primary border-0',
+        content: 'gap-1.5',
+        icon: 'h-[1.25cap] w-[1.25cap] mt-[0.25cap]',
       },
       primary: 'bg-primary text-white hover:bg-primary/70',
       tertiary: 'bg-accent text-white hover:bg-accent-dark',
@@ -179,17 +195,16 @@ export const BUTTON_STYLES = twv.tv({
       delete:
         'bg-danger/80 hover:bg-danger text-white focus-visible:outline-danger focus-visible:bg-danger',
       icon: {
-        base: 'border-0 opacity-80 hover:opacity-100 focus-visible:opacity-100 text-primary',
+        base: 'opacity-80 hover:opacity-100 focus-visible:opacity-100',
         wrapper: 'w-full h-full',
         content: 'w-full h-full',
         extraClickZone: 'w-full h-full',
       },
       ghost:
         'text-primary hover:text-primary/80 hover:bg-white focus-visible:text-primary/80 focus-visible:bg-white',
-      submit: 'bg-invite text-white opacity-80 hover:opacity-100 focus-visible:outline-offset-2',
-      outline:
-        'border-primary/40 text-primary hover:border-primary focus-visible:outline-offset-2 hover:bg-primary/10',
-      bar: 'rounded-full border-0.5 border-primary/20 transition-colors hover:bg-primary/10',
+      submit: 'bg-invite text-white opacity-80 hover:opacity-100',
+      outline: 'border-primary/40 text-primary hover:border-primary hover:bg-primary/5',
+      bar: 'border-primary/20 hover:bg-primary/5',
     },
     iconPosition: {
       start: { content: '' },
@@ -198,6 +213,26 @@ export const BUTTON_STYLES = twv.tv({
     showIconOnHover: {
       true: { icon: 'opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100' },
     },
+    extraClickZone: {
+      true: {
+        extraClickZone: 'flex relative after:absolute after:cursor-pointer',
+      },
+      false: {
+        extraClickZone: '',
+      },
+      small: {
+        extraClickZone: 'after:inset-[-6px]',
+      },
+      medium: {
+        extraClickZone: 'after:inset-[-8px]',
+      },
+      large: {
+        extraClickZone: 'after:inset-[-10px]',
+      },
+      custom: {
+        extraClickZone: 'after:inset-[calc(var(--extra-click-zone-offset, 0) * -1)]',
+      },
+    },
   },
   slots: {
     extraClickZone: 'flex relative after:absolute after:cursor-pointer',
@@ -205,7 +240,7 @@ export const BUTTON_STYLES = twv.tv({
     loader: 'absolute inset-0 flex items-center justify-center',
     content: 'flex items-center gap-[0.5em]',
     text: 'inline-flex items-center justify-center gap-1',
-    icon: 'h-[2cap] flex-none aspect-square',
+    icon: 'h-[1.906cap] w-[1.906cap] flex-none aspect-square flex items-center justify-center',
   },
   defaultVariants: {
     isActive: 'none',
@@ -218,42 +253,16 @@ export const BUTTON_STYLES = twv.tv({
     showIconOnHover: false,
   },
   compoundVariants: [
-    { isFocused: true, iconOnly: true, class: 'focus-visible:outline-offset-3' },
-    {
-      variant: 'link',
-      isFocused: true,
-      class: 'focus-visible:outline-offset-1',
-    },
-    {
-      size: 'xxsmall',
-      iconOnly: true,
-      class: { base: 'p-0 rounded-full', icon: 'h-[1.25cap] -mt-[0.1cap]' },
-    },
-    {
-      size: 'xsmall',
-      iconOnly: true,
-      class: { base: 'p-0 rounded-full', icon: 'h-[1.45cap] -mt-[0.1cap]' },
-    },
-    {
-      size: 'small',
-      iconOnly: true,
-      class: { base: 'p-0 rounded-full', icon: 'h-[1.65cap] -mt-[0.1cap]' },
-    },
-    {
-      size: 'medium',
-      iconOnly: true,
-      class: { base: 'p-0 rounded-full', icon: 'h-[2cap] -mt-[0.1cap]' },
-    },
-    {
-      size: 'large',
-      iconOnly: true,
-      class: { base: 'p-0 rounded-full', icon: 'h-[3.65cap]' },
-    },
-    {
-      size: 'hero',
-      class: { base: 'p-0 rounded-full', icon: 'h-[5.5cap]' },
-      iconOnly: true,
-    },
+    { isFocused: true, iconOnly: true, class: 'focus-visible:outline-offset-[3px]' },
+    { size: 'custom', iconOnly: true, class: { icon: 'w-full h-full' } },
+    { size: 'xxsmall', iconOnly: true, class: { base: 'p-0 rounded-full', icon: 'w-2.5 h-2.5' } },
+    { size: 'xsmall', iconOnly: true, class: { base: 'p-0 rounded-full', icon: 'w-3 h-3' } },
+    { size: 'small', iconOnly: true, class: { base: 'p-0 rounded-full', icon: 'w-3.5 h-3.5' } },
+    { size: 'medium', iconOnly: true, class: { base: 'p-0 rounded-full', icon: 'w-4 h-4' } },
+    { size: 'large', iconOnly: true, class: { base: 'p-0 rounded-full', icon: 'w-4.5 h-4.5' } },
+    { size: 'hero', iconOnly: true, class: { base: 'p-0 rounded-full', icon: 'w-12 h-12' } },
+
+    { variant: 'link', isFocused: true, class: 'focus-visible:outline-offset-1' },
     { variant: 'link', size: 'xxsmall', class: 'font-medium' },
     { variant: 'link', size: 'xsmall', class: 'font-medium' },
     { variant: 'link', size: 'small', class: 'font-medium' },
@@ -275,7 +284,6 @@ export const Button = React.forwardRef(function Button(
     variant,
     icon,
     loading = false,
-    isDisabled,
     isActive,
     showIconOnHover,
     iconPosition,
@@ -286,6 +294,8 @@ export const Button = React.forwardRef(function Button(
     tooltip,
     tooltipPlacement,
     testId,
+    loaderPosition = 'full',
+    extraClickZone: extraClickZoneProp,
     onPress = () => {},
     ...ariaProps
   } = props
@@ -300,10 +310,11 @@ export const Button = React.forwardRef(function Button(
   const Tag = isLink ? aria.Link : aria.Button
 
   const goodDefaults = {
-    ...(isLink ? { rel: 'noopener noreferrer' } : {}),
+    ...(isLink ? { rel: 'noopener noreferrer', ref } : {}),
     ...(isLink ? {} : { type: 'button' as const }),
     'data-testid': testId ?? (isLink ? 'link' : 'button'),
   }
+
   const isIconOnly = (children == null || children === '' || children === false) && icon != null
   const shouldShowTooltip = (() => {
     if (tooltip === false) {
@@ -317,6 +328,7 @@ export const Button = React.forwardRef(function Button(
   const tooltipElement = shouldShowTooltip ? tooltip ?? ariaProps['aria-label'] : null
 
   const isLoading = loading || implicitlyLoading
+  const isDisabled = props.isDisabled == null ? isLoading : props.isDisabled
 
   React.useLayoutEffect(() => {
     const delay = 350
@@ -326,12 +338,15 @@ export const Button = React.forwardRef(function Button(
         [{ opacity: 0 }, { opacity: 0, offset: 1 }, { opacity: 1 }],
         { duration: delay, easing: 'linear', delay: 0, fill: 'forwards' }
       )
-      const contentAnimation = contentRef.current?.animate([{ opacity: 1 }, { opacity: 0 }], {
-        duration: 0,
-        easing: 'linear',
-        delay,
-        fill: 'forwards',
-      })
+      const contentAnimation =
+        loaderPosition !== 'full'
+          ? null
+          : contentRef.current?.animate([{ opacity: 1 }, { opacity: 0 }], {
+              duration: 0,
+              easing: 'linear',
+              delay,
+              fill: 'forwards',
+            })
 
       return () => {
         loaderAnimation?.cancel()
@@ -340,10 +355,10 @@ export const Button = React.forwardRef(function Button(
     } else {
       return () => {}
     }
-  }, [isLoading])
+  }, [isLoading, loaderPosition])
 
   const handlePress = (event: aria.PressEvent): void => {
-    if (!isLoading) {
+    if (!isDisabled) {
       const result = onPress(event)
 
       if (result instanceof Promise) {
@@ -364,7 +379,7 @@ export const Button = React.forwardRef(function Button(
     icon: iconClasses,
     text: textClasses,
   } = BUTTON_STYLES({
-    isDisabled,
+    isDisabled: isDisabled,
     isActive,
     loading: isLoading,
     fullWidth,
@@ -374,17 +389,31 @@ export const Button = React.forwardRef(function Button(
     variant,
     iconPosition,
     showIconOnHover,
+    extraClickZone: extraClickZoneProp,
     iconOnly: isIconOnly,
   })
 
-  const childrenFactory = (): React.ReactNode => {
+  const childrenFactory = (
+    render: aria.ButtonRenderProps | aria.LinkRenderProps
+  ): React.ReactNode => {
     const iconComponent = (() => {
       if (icon == null) {
         return null
-      } else if (typeof icon === 'string') {
-        return <SvgMask src={icon} className={iconClasses()} />
+      } else if (isLoading && loaderPosition === 'icon') {
+        return (
+          <span className={iconClasses()}>
+            <StatelessSpinner state={spinnerModule.SpinnerState.loadingMedium} size={16} />
+          </span>
+        )
       } else {
-        return <span className={iconClasses()}>{icon}</span>
+        /* @ts-expect-error any here is safe because we transparently pass it to the children, and ts infer the type outside correctly */
+        const actualIcon = typeof icon === 'function' ? icon(render) : icon
+
+        if (typeof actualIcon === 'string') {
+          return <SvgMask src={actualIcon} className={iconClasses()} />
+        } else {
+          return <span className={iconClasses()}>{actualIcon}</span>
+        }
       }
     })()
     // Icon only button
@@ -395,7 +424,10 @@ export const Button = React.forwardRef(function Button(
       return (
         <>
           {iconComponent}
-          <span className={textClasses()}>{children}</span>
+          <span className={textClasses()}>
+            {/* @ts-expect-error any here is safe because we transparently pass it to the children, and ts infer the type outside correctly */}
+            {typeof children === 'function' ? children(render) : children}
+          </span>
         </>
       )
     }
@@ -403,34 +435,34 @@ export const Button = React.forwardRef(function Button(
 
   const button = (
     <Tag
-      {...aria.mergeProps<aria.ButtonProps | aria.LinkProps>()(
-        goodDefaults,
-        ariaProps,
-        focusChildProps,
-        {
-          // eslint-disable-next-line no-restricted-syntax
-          ...{ ref: ref as never },
-          isDisabled,
-          // we use onPressEnd instead of onPress because for some reason react-aria doesn't trigger
-          // onPress on EXTRA_CLICK_ZONE, but onPress{start,end} are triggered
-          onPressEnd: handlePress,
-          className: aria.composeRenderProps(className, (classNames, states) =>
-            base({ className: classNames, ...states })
-          ),
-        }
-      )}
+      // @ts-expect-error ts errors are expected here because we are merging props with different types
+      {...aria.mergeProps<aria.ButtonProps>()(goodDefaults, ariaProps, focusChildProps, {
+        isDisabled: isDisabled,
+        // we use onPressEnd instead of onPress because for some reason react-aria doesn't trigger
+        // onPress on EXTRA_CLICK_ZONE, but onPress{start,end} are triggered
+        onPressEnd: handlePress,
+        className: aria.composeRenderProps(className, (classNames, states) =>
+          base({ className: classNames, ...states })
+        ),
+      })}
     >
-      <span className={wrapper()}>
-        <span ref={contentRef} className={content({ className: contentClassName })}>
-          {childrenFactory()}
-        </span>
+      {/* @ts-expect-error any here is safe because we transparently pass it to the children, and ts infer the type outside correctly */}
+      {render => (
+        <>
+          <span className={wrapper()}>
+            <span ref={contentRef} className={content({ className: contentClassName })}>
+              {/* eslint-disable-next-line @typescript-eslint/no-unsafe-argument */}
+              {childrenFactory(render)}
+            </span>
 
-        {isLoading && (
-          <span ref={loaderRef} className={loader()}>
-            <Spinner state={spinnerModule.SpinnerState.loadingMedium} size={16} />
+            {isLoading && loaderPosition === 'full' && (
+              <span ref={loaderRef} className={loader()}>
+                <StatelessSpinner state={spinnerModule.SpinnerState.loadingMedium} size={16} />
+              </span>
+            )}
           </span>
-        )}
-      </span>
+        </>
+      )}
     </Tag>
   )
 

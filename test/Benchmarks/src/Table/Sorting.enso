@@ -21,7 +21,7 @@ Comparable.from (_:My) = My_Comparator
 
 vector_size = 100000
 
-create_ints = (0.up_to vector_size).to_vector.take (Index_Sub_Range.Sample vector_size 42)
+create_ints = (0.up_to vector_size).to_vector.take (..Sample vector_size 42)
 
 create_dates = create_ints.map x->
     (Date_Time.new 1990 1 1) + (Duration.new seconds=x)
@@ -50,14 +50,14 @@ collect_benches = Bench.build builder->
     data = Data.create
 
     builder.group "Table_Sorting" table_sort_opts group_builder->
-        group_builder.specify "table_order_by_ints" <|
-            data.ints_table.order_by [Sort_Column.Index 0]
+        group_builder.specify "table_sort_ints" <|
+            data.ints_table.sort [..Index 0]
 
-        group_builder.specify "table_order_by_dates" <|
-            data.dates_table.order_by [Sort_Column.Index 0]
+        group_builder.specify "table_sort_dates" <|
+            data.dates_table.sort [..Index 0]
 
-        group_builder.specify "table_order_by_objects" <|
-            data.objects_table.order_by [Sort_Column.Index 0]
+        group_builder.specify "table_sort_objects" <|
+            data.objects_table.sort [..Index 0]
 
     builder.group "Vector_Sorting" vec_sort_opts group_builder->
         group_builder.specify "vector_sort_ints" <|

@@ -15,7 +15,7 @@ import Standard.Base.Errors.Unimplemented.Unimplemented
 import Standard.Base.System.File.Generic.Writable_File.Writable_File
 from Standard.Base.Metadata import Display, make_single_choice, Widget
 from Standard.Base.Runtime import assert
-from Standard.Base.Widget_Helpers import make_data_cleanse_vector_selector, make_delimiter_selector, make_format_chooser
+from Standard.Base.Widget_Helpers import make_any_selector, make_data_cleanse_vector_selector, make_delimiter_selector, make_format_chooser
 
 import Standard.Table.Column_Operation.Column_Operation
 import Standard.Table.Columns_To_Add.Columns_To_Add
@@ -167,6 +167,7 @@ type DB_Table
        - if_missing: The value to use if the selector isn't present.
     @selector Widget_Helpers.make_column_name_selector
     @index (t-> Widget.Numeric_Input minimum=0 maximum=t.row_count-1)
+    @if_missing (make_any_selector add_text=True add_regex=True add_number=True add_boolean=True add_named_pattern=True add_nothing=True)
     get_value : Text | Integer -> Integer -> Any -> Any
     get_value self selector:(Text | Integer)=0 index:Integer=0 ~if_missing=Nothing =
         col = self.get selector if_missing=Nothing
@@ -735,7 +736,7 @@ type DB_Table
         result = self.filter column Filter_Condition.Is_True
         Warning.attach (Deprecated.Warning "Standard.Database.DB_Table.DB_Table" "filter_by_expression" "Deprecated: use `filter` with an `Expression` instead.") result
 
-    ## ALIAS first, head, last, limit, sample, slice, tail, top, keep
+    ## ALIAS first, head, keep, last, limit, sample, slice, tail, top
        GROUP Standard.Base.Selections
        ICON select_row
        Creates a new Table with the specified range of rows from the input
@@ -756,7 +757,7 @@ type DB_Table
        > Example
          Take first 10 rows of the table.
 
-             table.take (First 10)
+             table.take (..First 10)
 
        > Example
          Take rows from the top of the table as long as their values sum to 10.
@@ -764,10 +765,10 @@ type DB_Table
              table.take (While row-> row.to_vector.compute Statistic.Sum == 10)
     @range Index_Sub_Range.default_widget
     take : (Index_Sub_Range | Range | Integer) -> DB_Table
-    take self range:(Index_Sub_Range | Range | Integer)=(..First 1) =
+    take self range:(Index_Sub_Range | Range | Integer)=..First =
         Take_Drop_Helpers.take_drop_helper Take_Drop.Take self range
 
-    ## ALIAS skip, remove
+    ## ALIAS remove, skip
        GROUP Standard.Base.Selections
        ICON select_row
        Creates a new Table from the input with the specified range of rows
@@ -788,7 +789,7 @@ type DB_Table
        > Example
          Drop first 10 rows of the table.
 
-             table.drop (First 10)
+             table.drop (..First 10)
 
        > Example
          Drop rows from the top of the table as long as their values sum to 10.
@@ -796,7 +797,7 @@ type DB_Table
              table.drop (While row-> row.to_vector.compute Statistic.Sum == 10)
     @range Index_Sub_Range.default_widget
     drop : (Index_Sub_Range | Range | Integer) -> DB_Table
-    drop self range:(Index_Sub_Range | Range | Integer)=(..First 1) =
+    drop self range:(Index_Sub_Range | Range | Integer)=..First =
         Take_Drop_Helpers.take_drop_helper Take_Drop.Drop self range
 
     ## PRIVATE
@@ -877,7 +878,7 @@ type DB_Table
             updated_table.as_subquery
 
 
-    ## UNSTABLE
+    ## ALIAS order_by
        GROUP Standard.Base.Selections
        ICON select_row
 
@@ -906,8 +907,9 @@ type DB_Table
          In the call below, assuming that the table of `t1` contains rows for
          numbers 1, 2, ..., 10, will return rows starting from 6 and not an empty
          result as one could expect if the limit was applied before the filters.
-             t1 = table.order_by [Sort_Column.Name "A"] . limit 5
-             t2 = t1.filter 'A' (Greater than=5)
+
+             t1 = table.sort [..Name "A"] . limit 5
+             t2 = t1.filter 'A' (..Greater than=5)
              t2.read
     limit : Integer -> DB_Table
     limit self max_rows:Integer=1000 =
@@ -1067,38 +1069,8 @@ type DB_Table
        - column_names: The names of the columns of the new table.
     make_table_from_vectors : Vector (Vector Any) -> Vector Text -> DB_Table
     make_table_from_vectors self column_vectors column_names =
-        Runtime.assert (column_vectors.length == column_names.length) "column_vectors and column_names must have the same length"
-
-        # Assume the columns are all the same length; if not, it will be an error anyway.
-        total_size = if column_vectors.is_empty || column_vectors.at 0 . is_empty then 0 else
-            column_vectors.length * (column_vectors.at 0 . length)
-
-        if total_size == 0 then Error.throw (Illegal_Argument.Error "Vectors cannot be empty") else
-            if total_size > MAX_LITERAL_ELEMENT_COUNT then Error.throw (Illegal_Argument.Error "Too many elements for table literal ("+total_size.to_text+"): materialize a table into the database instead") else
-                type_mapping = self.connection.dialect.get_type_mapping
-
-                values_to_type_ref column_vector =
-                    value_type = Value_Type_Helpers.find_common_type_for_arguments column_vector
-                    sql_type = case value_type of
-                        Nothing -> SQL_Type.null
-                        _ -> type_mapping.value_type_to_sql value_type Problem_Behavior.Ignore
-                    SQL_Type_Reference.from_constant sql_type
-
-                literal_table_name = self.connection.base_connection.table_naming_helper.generate_random_table_name "enso-literal-"
-
-                from_spec = From_Spec.Literal_Values column_vectors column_names literal_table_name
-                context = Context.for_subquery from_spec
-
-                internal_columns = 0.up_to column_vectors.length . map i->
-                    column_vector = column_vectors.at i
-                    column_name = column_names.at i
-
-                    type_ref = values_to_type_ref column_vector.to_vector
-                    generated_literal_column_name = "column"+(i+1).to_text
-                    sql_expression = SQL_Expression.Column literal_table_name generated_literal_column_name
-                    Internal_Column.Value column_name type_ref sql_expression
-
-                DB_Table.Value literal_table_name self.connection internal_columns context
+        literal_table_name = self.connection.base_connection.table_naming_helper.generate_random_table_name "enso-literal-"
+        make_literal_table self.connection column_vectors column_names literal_table_name
 
     ## PRIVATE
 
@@ -1218,40 +1190,40 @@ type DB_Table
        > Example
          Sorting `table` in ascending order by the value in column `'Quantity'`.
 
-             table.order_by ['Quantity']
+             table.sort ['Quantity']
 
        > Example
          Sorting `table` in descending order by the value in column `'Quantity'`.
 
-             table.order_by [Sort_Column.Name 'Quantity' Sort_Direction.Descending]
+             table.sort [..Name 'Quantity' ..Descending]
 
        > Example
          Sorting `table` in ascending order by the value in column `'Quantity'`,
          using the value in column `'Rating'` for breaking ties.
 
-             table.order_by ['Quantity', 'Rating']
+             table.sort ['Quantity', 'Rating']
 
        > Example
          Sorting `table` in ascending order by the value in column `'Quantity'`,
          using the value in column `'Rating'` in descending order for breaking
          ties.
 
-             table.order_by [Sort_Column.Name 'Quantity', Sort_Column.Name 'Rating' Sort_Direction.Descending]
+             table.sort [..Name 'Quantity', ..Name 'Rating' ..Descending]
 
        > Example
          Order the table by the second column in ascending order. In case of any
          ties, break them based on the 7th column from the end of the table in
          descending order.
 
-             table.order_by [1, Sort_Column.Index -7 Sort_Direction.Descending]
+             table.sort [1, ..Index -7 ..Descending]
 
        > Example
          Sort the table by columns whose names start with letter `a`.
 
-              table.order_by [(Sort_Column.Select_By_Name "a.*".to_regex case_sensitivity=Case_Sensitivity.Insensitive)]
+              table.sort [(..Select_By_Name "a.*".to_regex case_sensitivity=..Insensitive)]
     @columns Widget_Helpers.make_order_by_selector
-    order_by : Vector (Text | Sort_Column) | Text -> Text_Ordering -> Boolean -> Problem_Behavior -> DB_Table  ! Incomparable_Values | No_Input_Columns_Selected | Missing_Input_Columns
-    order_by self (columns = ([(Sort_Column.Name (self.columns.at 0 . name))])) text_ordering:Text_Ordering=..Default error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=..Report_Warning =
+    sort : Vector (Text | Sort_Column) | Text -> Text_Ordering -> Boolean -> Problem_Behavior -> DB_Table  ! Incomparable_Values | No_Input_Columns_Selected | Missing_Input_Columns
+    sort self (columns = ([(Sort_Column.Name (self.columns.at 0 . name))])) text_ordering:Text_Ordering=..Default error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=..Report_Warning =
         problem_builder = Problem_Builder.new error_on_missing_columns=error_on_missing_columns types_to_always_throw=[No_Input_Columns_Selected]
         columns_for_ordering = Table_Helpers.prepare_order_by self.columns columns problem_builder
         problem_builder.attach_problems_before on_problems <|
@@ -1262,6 +1234,16 @@ type DB_Table
                 self.connection.dialect.prepare_order_descriptor column associated_selector.direction effective_text_ordering
             new_ctx = self.context.add_orders new_order_descriptors
             self.updated_context new_ctx
+
+    ## PRIVATE
+       GROUP Standard.Base.Selections
+       ICON order
+       Deprecated - use `Table.sort` instead.
+    @columns Widget_Helpers.make_order_by_selector
+    order_by : Vector (Text | Sort_Column) | Text -> Text_Ordering -> Boolean -> Problem_Behavior -> DB_Table  ! Incomparable_Values | No_Input_Columns_Selected | Missing_Input_Columns
+    order_by self (columns = ([(Sort_Column.Name (self.columns.at 0 . name))])) text_ordering:Text_Ordering=..Default error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=..Report_Warning =
+        result = self.sort columns text_ordering error_on_missing_columns on_problems
+        Warning.attach (Deprecated.Warning "Standard.Database.Table.Table" "order_by" "Deprecated: use `sort` instead.") result
 
     ## PRIVATE
        Returns the default ordering used for operations like `add_row_number` or
@@ -1331,7 +1313,7 @@ type DB_Table
            setting.
     @columns Widget_Helpers.make_column_name_multi_selector
     distinct : Vector (Integer | Text | Regex) | Text | Integer | Regex -> Case_Sensitivity -> Problem_Behavior -> DB_Table ! No_Output_Columns | Missing_Input_Columns | No_Input_Columns_Selected | Floating_Point_Equality
-    distinct self columns=self.column_names case_sensitivity:Case_Sensitivity=..Default on_problems:Problem_Behavior=Report_Warning =
+    distinct self columns=self.column_names case_sensitivity:Case_Sensitivity=..Default on_problems:Problem_Behavior=..Report_Warning =
         key_columns = self.columns_helper.select_columns columns Case_Sensitivity.Default reorder=True error_on_missing_columns=True on_problems=on_problems . catch No_Output_Columns _->
             Error.throw No_Input_Columns_Selected
         problem_builder = Problem_Builder.new
@@ -1423,7 +1405,7 @@ type DB_Table
          their layout in memory. Database tables may not impose a deterministic
          ordering. If the table defines a primary key, it is used to by default
          to ensure deterministic ordering. That can be overridden by specifying
-         a different ordering using `Table.order_by`. If no primary key was
+         a different ordering using `Table.sort`. If no primary key was
          defined nor any ordering was specified explicitly by the user, the
          order of columns is undefined and the operation will fail, reporting a
          `Undefined_Column_Order` problem and returning an empty table.
@@ -1544,7 +1526,7 @@ type DB_Table
          their layout in memory. Database tables may not impose a deterministic
          ordering. If the table defines a primary key, it is used to by default
          to ensure deterministic ordering. That can be overridden by specifying
-         a different ordering using `Table.order_by`. If no primary key was
+         a different ordering using `Table.sort`. If no primary key was
          defined nor any ordering was specified explicitly by the user, the
          order of columns is undefined and the operation will fail, reporting a
          `Undefined_Column_Order` problem and returning an empty table.
@@ -1697,6 +1679,7 @@ type DB_Table
              #    1 | 20 | b | f
              #    2 | 30 | c | g
              #    3 | 40 | d | h
+    @lookup_table Widget_Helpers.make_replace_selector
     @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True add_by_type=True)
     @from_column Widget.Text_Input
     @to_column Widget.Text_Input
@@ -1746,7 +1729,7 @@ type DB_Table
          their layout in memory. Database tables may not impose a deterministic
          ordering. If the table defines a primary key, it is used to by default
          to ensure deterministic ordering. That can be overridden by specifying
-         a different ordering using `Table.order_by`. If no primary key was
+         a different ordering using `Table.sort`. If no primary key was
          defined nor any ordering was specified explicitly by the user, the
          order of columns is undefined and the operation will fail, reporting a
          `Undefined_Column_Order` problem and returning an empty table.
@@ -3060,3 +3043,35 @@ Table_Ref.from (that:DB_Table) = Table_Ref.Value that
 ## PRIVATE
     The largest dataset that can be used to make a literal table, expressed in number of elements.
 MAX_LITERAL_ELEMENT_COUNT = 256
+
+## PRIVATE
+make_literal_table connection column_vectors column_names alias =
+    Runtime.assert (column_vectors.length == column_names.length) "column_vectors and column_names must have the same length"
+
+    # Assume the columns are all the same length; if not, it will be an error anyway.
+    total_size = if column_vectors.is_empty || column_vectors.at 0 . is_empty then 0 else
+        column_vectors.length * (column_vectors.at 0 . length)
+
+    if total_size == 0 then Error.throw (Illegal_Argument.Error "Vectors cannot be empty") else
+        if total_size > MAX_LITERAL_ELEMENT_COUNT then Error.throw (Illegal_Argument.Error "Too many elements for table literal ("+total_size.to_text+"): materialize a table into the database instead") else
+            type_mapping = connection.dialect.get_type_mapping
+
+            values_to_type_ref column_vector =
+                value_type = Value_Type_Helpers.find_common_type_for_arguments column_vector
+                sql_type = case value_type of
+                    Nothing -> SQL_Type.null
+                    _ -> type_mapping.value_type_to_sql value_type Problem_Behavior.Ignore
+                SQL_Type_Reference.from_constant sql_type
+
+            from_spec = From_Spec.Literal_Values column_vectors column_names alias
+            context = Context.for_subquery from_spec
+
+            internal_columns = 0.up_to column_vectors.length . map i->
+                column_vector = column_vectors.at i
+                column_name = column_names.at i
+
+                type_ref = values_to_type_ref column_vector.to_vector
+                sql_expression = SQL_Expression.Column alias column_name
+                Internal_Column.Value column_name type_ref sql_expression
+
+            DB_Table.Value alias connection internal_columns context

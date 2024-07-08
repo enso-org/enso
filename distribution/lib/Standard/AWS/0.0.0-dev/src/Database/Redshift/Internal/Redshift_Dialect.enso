@@ -22,6 +22,7 @@ import Standard.Database.Internal.Postgres.Postgres_Type_Mapping.Postgres_Type_M
 import Standard.Database.Internal.SQL_Type_Mapping.SQL_Type_Mapping
 import Standard.Database.Internal.SQL_Type_Reference.SQL_Type_Reference
 import Standard.Database.Internal.Statement_Setter.Statement_Setter
+import Standard.Database.SQL.SQL_Builder
 import Standard.Database.SQL_Statement.SQL_Statement
 import Standard.Database.SQL_Type.SQL_Type
 from Standard.Database.Errors import SQL_Error, Unsupported_Database_Operation
@@ -33,7 +34,7 @@ import project.Database.Redshift.Internal.Redshift_Error_Mapper.Redshift_Error_M
    The dialect for Redshift connections.
 redshift : Redshift_Dialect
 redshift =
-    Redshift_Dialect.Value Postgres_Dialect.make_internal_generator_dialect
+    Redshift_Dialect.Value Postgres_Dialect.make_dialect_operations
 
 ## PRIVATE
 
@@ -42,7 +43,7 @@ type Redshift_Dialect
     ## PRIVATE
 
        The dialect for Redshift connections.
-    Value internal_generator_dialect
+    Value dialect_operations
 
     ## PRIVATE
        Name of the dialect.
@@ -57,15 +58,27 @@ type Redshift_Dialect
        according to the specific dialect.
     generate_sql : Query -> SQL_Statement
     generate_sql self query =
-        Base_Generator.generate_query self.internal_generator_dialect query . build
+        Base_Generator.generate_query self query . build
+
+    ## PRIVATE
+       Generates SQL to truncate a table.
+    generate_truncate_table_sql : Text -> SQL_Builder
+    generate_truncate_table_sql self table_name =
+        Base_Generator.truncate_table_delete_from_style self table_name
 
     ## PRIVATE
        Wraps and possibly escapes the identifier so that it can be used in a
        generated query regardless of what characters it contains.
        The quotes used will depend on the dialect.
-    wrap_identifier : Text -> Text
+    wrap_identifier : Text -> SQL_Builder
     wrap_identifier self identifier =
-        self.internal_generator_dialect.wrap_identifier_raw identifier
+        Base_Generator.wrap_in_quotes identifier
+
+    ## PRIVATE
+       Generates a SQL expression for a table literal.
+    make_table_literal : Vector (Vector Text) -> Vector Text -> Text -> SQL_Builder
+    make_table_literal self vecs column_names as_name =
+        Base_Generator.default_make_table_literal self.wrap_identifier vecs column_names as_name
 
     ## PRIVATE
        Prepares an ordering descriptor.
@@ -131,6 +144,20 @@ type Redshift_Dialect
         column
 
     ## PRIVATE
+       Add an extra cast to adjust the output type of certain operations with
+       certain arguments.
+
+       It is used when the normal type inference provided by the database engine
+       needs to be adjusted.
+
+       In most cases this method will just return the expression unchanged, it
+       is used only to override the type in cases where the default one that the
+       database uses is not what we want.
+    cast_op_type self (op_kind:Text) (args:(Vector Internal_Column)) (expression:SQL_Expression) =
+        _ = [op_kind, args]
+        expression
+
+    ## PRIVATE
     prepare_fetch_types_query : SQL_Expression -> Context -> SQL_Statement
     prepare_fetch_types_query self expression context =
         Dialect.default_fetch_types_query self expression context
@@ -145,7 +172,7 @@ type Redshift_Dialect
        Checks if an operation is supported by the dialect.
     is_supported : Text -> Boolean
     is_supported self operation =
-        self.internal_generator_dialect.is_supported operation
+        self.dialect_operations.is_supported operation
 
     ## PRIVATE
        The default table types to use when listing tables.

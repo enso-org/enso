@@ -42,6 +42,7 @@ transport formats, please look [here](./protocol-architecture.md).
   - [`project/delete`](#projectdelete)
   - [`project/listSample`](#projectlistsample)
   - [`project/status`](#projectstatus)
+  - [`project/duplicate`](#projectduplicate)
 - [Action Progress Reporting](#action-progress-reporting)
   - [`task/started`](#taskstarted)
   - [`task/progress-update`](#taskprogress-update)
@@ -749,6 +750,50 @@ interface ProjectStatusResponse {
   status: RunningStatus;
 }
 ```
+
+### `project/duplicate`
+
+This message requests to make a copy of the project.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
+
+#### Parameters
+
+```typescript
+interface ProjectDuplicateRequest {
+  /**
+   * The project to duplicate.
+   */
+  projectId: UUID;
+
+  /**
+   * Custom directory with the user projects.
+   */
+  projectsDirectory?: string;
+}
+```
+
+#### Result
+
+```typescript
+interface ProjectDuplicateResponse {
+  projectId: UUID;
+  projectName: string;
+  projectNormalizedName: string;
+}
+```
+
+#### Errors
+
+- [`ProjectDataStoreError`](#projectdatastoreerror) to signal problems with
+  underlying data store.
+- [`ProjectNotFoundError`](#projectnotfounderror) to signal that the project
+  doesn't exist.
+- [`ServiceError`](./protocol-common.md#serviceerror) to signal that the the
+  operation timed out.
 
 ## Action Progress Reporting
 

@@ -2,6 +2,7 @@ from Standard.Base import all
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
 import project.Column_Constraint.Column_Constraint
+import project.Dialect.Dialect
 import project.Internal.IR.Context.Context
 import project.Internal.IR.From_Spec.From_Spec
 import project.Internal.IR.Nulls_Order.Nulls_Order
@@ -13,11 +14,11 @@ import project.SQL.SQL_Builder
 from project.Errors import Unsupported_Database_Operation
 from project.Internal.IR.Operation_Metadata import Row_Number_Metadata
 
-type Internal_Dialect
+type Dialect_Operations
 
     ## PRIVATE
 
-       An internal representation of a SQL dialect.
+       Operations supported by a particular SQL dialect and how they are implemeneted.
 
        Arguments:
        - operation_map: The mapping which maps operation names to their
@@ -25,27 +26,18 @@ type Internal_Dialect
          builders for the arguments, and optionally an additional metadata
          argument, and should return a SQL builder yielding code for the whole
          operation.
-       - wrap_identifier_raw: A function that converts an arbitrary supported
-         identifier name in such a way that it can be used in the query; that
-         usually consists of wrapping the name in quotes and escaping any quotes
-         within it.
-    Value (operation_map:(Map Text (Vector (SQL_Builder->SQL_Builder)))) (wrap_identifier_raw:(Text->Text))
-
-    ## PRIVATE
-    wrap_identifier : Text -> SQL_Builder
-    wrap_identifier self identifier:Text =
-        SQL_Builder.code (self.wrap_identifier_raw identifier)
+    Value (operation_map:(Map Text (Vector (SQL_Builder->SQL_Builder))))
 
     ## PRIVATE
 
        Creates a copy of the dialect that supports additional operations or
        overrides existing ones.
 
-       # extend_with : Vector [Text, Vector SQL_Builder -> SQL_Builder] -> Internal_Dialect
-    extend_with : Vector Any -> Internal_Dialect
+       # extend_with : Vector [Text, Vector SQL_Builder -> SQL_Builder] -> Dialect_Operations
+    extend_with : Vector Any -> Dialect_Operations
     extend_with self mappings =
         new_map = mappings.fold self.operation_map (m -> el -> m.insert (el.at 0) (el.at 1))
-        Internal_Dialect.Value new_map self.wrap_identifier_raw
+        Dialect_Operations.Value new_map
 
     ## PRIVATE
        Checks if an operation is supported by the dialect.
@@ -179,10 +171,10 @@ make_constant sql_code =
 
    This is the simplest way of escaping identifiers that should work across most
    dialects.
-wrap_in_quotes : Text -> Text
+wrap_in_quotes : Text -> SQL_Builder
 wrap_in_quotes identifier =
     escaped = identifier.replace '"' '""'
-    '"'+escaped+'"'
+    SQL_Builder.code ('"'+escaped+'"')
 
 ## PRIVATE
 
@@ -190,7 +182,7 @@ wrap_in_quotes identifier =
 
    It is a base to help creating concrete dialects. It can be extended or
    completely overridden.
-base_dialect =
+base_dialect_operations =
     bin = name -> [name, make_binary_op name]
     unary = name -> [name, make_unary_op name]
     fun = name -> [name, make_function name]
@@ -209,7 +201,7 @@ base_dialect =
     types = [simple_cast]
     windows = [["ROW_NUMBER", make_row_number], ["ROW_NUMBER_IN_GROUP", make_row_number_in_group]]
     base_map = Map.from_vector (arith + logic + compare + functions + agg + counts + text + nulls + contains + types + windows)
-    Internal_Dialect.Value base_map wrap_in_quotes
+    Dialect_Operations.Value base_map
 
 ## PRIVATE
 is_empty = lift_unary_op "IS_EMPTY" arg->
@@ -235,7 +227,7 @@ case_when : Vector SQL_Builder -> SQL_Builder
 case_when arguments =
     if arguments.length < 3 then Error.throw (Illegal_State.Error "CASE_WHEN needs at least 3 arguments.") else
         fallback = arguments.last
-        cases = arguments.drop (Last 1)
+        cases = arguments.drop (..Last 1)
         if cases.length % 2 != 0 then Error.throw (Illegal_State.Error "CASE_WHEN expects an odd number of arguments (two arguments for each case and a fallback).") else
             n = cases.length . div 2
             cases_exprs = 0.up_to n . map i->
@@ -287,8 +279,8 @@ make_row_number (arguments : Vector) (metadata : Row_Number_Metadata) = if argum
     step = arguments.at 1
 
     ordering_and_grouping = arguments.drop 2
-    ordering = ordering_and_grouping.drop (Last metadata.groupings_count)
-    grouping = ordering_and_grouping.take (Last metadata.groupings_count)
+    ordering = ordering_and_grouping.drop (..Last metadata.groupings_count)
+    grouping = ordering_and_grouping.take (..Last metadata.groupings_count)
 
     group_part = if grouping.length == 0 then "" else
         SQL_Builder.code "PARTITION BY " ++ SQL_Builder.join ", " grouping
@@ -309,7 +301,7 @@ make_row_number_in_group arguments =
    Arguments:
    - dialect: The SQL dialect in which the expression is being generated.
    - expr: The expression to generate SQL code for.
-generate_expression : Internal_Dialect -> SQL_Expression | Order_Descriptor | Query -> SQL_Builder
+generate_expression : Dialect -> SQL_Expression | Order_Descriptor | Query -> SQL_Builder
 generate_expression dialect expr = case expr of
     SQL_Expression.Column origin name ->
         dialect.wrap_identifier origin ++ '.' ++ dialect.wrap_identifier name
@@ -319,7 +311,7 @@ generate_expression dialect expr = case expr of
         escaped = value.replace "'" "''"
         SQL_Builder.code ("'" + escaped + "'")
     SQL_Expression.Operation kind arguments metadata ->
-        op = dialect.operation_map.get kind (Error.throw <| Unsupported_Database_Operation.Error kind)
+        op = dialect.dialect_operations.operation_map.get kind (Error.throw <| Unsupported_Database_Operation.Error kind)
         parsed_args = arguments.map (generate_expression dialect)
         result = op parsed_args
         # If the function expects more arguments, we pass the metadata as the last argument.
@@ -337,7 +329,7 @@ generate_expression dialect expr = case expr of
    Arguments:
    - dialect: The dialect for which to add the alias.
    - name: The name of the alias.
-alias : Internal_Dialect -> Text -> SQL_Builder
+alias : Dialect -> Text -> SQL_Builder
 alias dialect name =
     wrapped = dialect.wrap_identifier name
     SQL_Builder.code " AS " ++ wrapped
@@ -349,7 +341,7 @@ alias dialect name =
    Arguments:
    - dialect: The SQL dialect for which the code is generated.
    - from_spec: A description of the FROM clause.
-generate_from_part : Internal_Dialect -> From_Spec -> SQL_Builder
+generate_from_part : Dialect -> From_Spec -> SQL_Builder
 generate_from_part dialect from_spec = case from_spec of
     From_Spec.Table name as_name _ ->
         dialect.wrap_identifier name ++ alias dialect as_name
@@ -357,8 +349,7 @@ generate_from_part dialect from_spec = case from_spec of
         SQL_Builder.code raw_sql . paren ++ alias dialect as_name
     From_Spec.Literal_Values vecs column_names as_name ->
         Runtime.assert (vecs.length == column_names.length) "Vectors and column names must have the same length"
-        values = SQL_Builder.join ", " (vecs.transpose.map (vec-> SQL_Builder.join ", " (vec.map SQL_Builder.interpolation) . paren))
-        SQL_Builder.code "(VALUES " ++ values ++ ")" ++ alias dialect as_name
+        dialect.make_table_literal vecs column_names as_name
     From_Spec.Join kind left_spec right_spec on ->
         left = generate_from_part dialect left_spec
         right = generate_from_part dialect right_spec
@@ -375,6 +366,12 @@ generate_from_part dialect from_spec = case from_spec of
     From_Spec.Sub_Query columns context as_name ->
         sub = generate_query dialect (Query.Select columns context)
         sub.paren ++ alias dialect as_name
+
+## PRIVATE
+default_make_table_literal wrap_identifier vecs column_names as_name =
+    values = SQL_Builder.join ", " (vecs.transpose.map (vec-> SQL_Builder.join ", " (vec.map SQL_Builder.interpolation) . paren))
+    structure = (wrap_identifier as_name) ++ (SQL_Builder.join ", " (column_names.map wrap_identifier) . paren)
+    SQL_Builder.code "(VALUES " ++ values ++ ") AS " ++ structure
 
 ## PRIVATE
 fold_case = lift_unary_op "FOLD_CASE" arg->
@@ -407,7 +404,7 @@ make_not_equals a b =
    Arguments:
    - dialect: The SQL dialect for which the code is generated.
    - order_descriptor: A description of the ORDER clause.
-generate_order : Internal_Dialect -> Order_Descriptor -> SQL_Builder
+generate_order : Dialect -> Order_Descriptor -> SQL_Builder
 generate_order dialect order_descriptor =
     order_suffix = case order_descriptor.direction of
         Sort_Direction.Ascending -> " ASC"
@@ -430,7 +427,7 @@ generate_order dialect order_descriptor =
    Arguments:
    - dialect: The SQL dialect for which the code is being generated.
    - ctx: A description of the SELECT clause.
-generate_select_context : Internal_Dialect -> Context -> SQL_Builder
+generate_select_context : Dialect -> Context -> SQL_Builder
 generate_select_context dialect ctx =
     gen_exprs exprs = exprs.map (generate_expression dialect)
     from_part = generate_from_part dialect ctx.from_spec
@@ -453,7 +450,7 @@ generate_select_context dialect ctx =
    - table_name: The name of the table into which the values are being inserted.
    - pairs: The values to insert into the table, consisting of pairs of key, and
      expression returning a value.
-generate_insert_query : Internal_Dialect -> Text -> Vector Any -> SQL_Builder
+generate_insert_query : Dialect -> Text -> Vector Any -> SQL_Builder
 generate_insert_query dialect table_name pairs =
     names = SQL_Builder.join ", " <| pairs.map (.first >> dialect.wrap_identifier)
     values = SQL_Builder.join ", " <| pairs.map (.second >> generate_expression dialect)
@@ -468,7 +465,7 @@ generate_insert_query dialect table_name pairs =
    Arguments:
    - dialect: The SQL dialect for which the code is being generated.
    - query: An IR describing the query.
-generate_query : Internal_Dialect -> Query -> SQL_Builder
+generate_query : Dialect -> Query -> SQL_Builder
 generate_query dialect query = case query of
     Query.Select columns ctx ->
         gen_column pair = (generate_expression dialect pair.second) ++ alias dialect pair.first
@@ -491,7 +488,7 @@ generate_query dialect query = case query of
         maybe_if_exists = if if_exists then SQL_Builder.code "IF EXISTS " else SQL_Builder.empty
         SQL_Builder.code "DROP TABLE " ++ maybe_if_exists ++ dialect.wrap_identifier name
     Query.Truncate_Table name ->
-        SQL_Builder.code "DELETE FROM " ++ dialect.wrap_identifier name
+        dialect.generate_truncate_table_sql name
     Query.Insert_From_Select table_name column_names select_query -> case select_query of
         Query.Select _ _ ->
             inner_query = generate_query dialect select_query
@@ -604,3 +601,15 @@ generate_column_description dialect descriptor =
    like a SQL query for the given dialect or is rather a table name.
 is_probably_a_query : Text -> Boolean
 is_probably_a_query text = (text.contains "SELECT ") || (text.contains "EXEC ")
+
+## PRIVATE
+   option for implementing generate_truncate_table_sql
+truncate_table_delete_from_style : Dialect -> Text -> SQL_Builder
+truncate_table_delete_from_style dialect table_name =
+    SQL_Builder.code "DELETE FROM " ++ dialect.wrap_identifier table_name
+
+## PRIVATE
+   option for implementing generate_truncate_table_sql
+truncate_table_truncate_table_style : Dialect -> Text -> SQL_Builder
+truncate_table_truncate_table_style dialect table_name =
+    SQL_Builder.code "TRUNCATE TABLE " ++ dialect.wrap_identifier table_name

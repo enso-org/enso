@@ -96,7 +96,6 @@ export interface AssetNewSecretEvent extends AssetBaseEvent<AssetEventType.newSe
 /** A signal to open the specified project. */
 export interface AssetOpenProjectEvent extends AssetBaseEvent<AssetEventType.openProject> {
   readonly id: backend.ProjectId
-  readonly shouldAutomaticallySwitchPage: boolean
   readonly runInBackground: boolean
 }
 

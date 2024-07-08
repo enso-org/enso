@@ -7,7 +7,6 @@ import DropFilesImage from 'enso-assets/drop_files.svg'
 
 import * as mimeTypes from '#/data/mimeTypes'
 
-import * as asyncEffectHooks from '#/hooks/asyncEffectHooks'
 import * as backendHooks from '#/hooks/backendHooks'
 import * as eventHooks from '#/hooks/eventHooks'
 import * as intersectionHooks from '#/hooks/intersectionHooks'
@@ -214,7 +213,7 @@ function insertAssetTreeNodeChildren(
     node => node.item.type !== backendModule.AssetType.specialEmpty
   )
   const nodesToInsert = children.map(asset =>
-    AssetTreeNode.fromAsset(asset, directoryKey, directoryId, depth)
+    AssetTreeNode.fromAsset(asset, directoryKey, directoryId, depth, `${item.path}/${asset.title}`)
   )
   const newNodes = array.splicedBefore(
     nodes,
@@ -260,6 +259,7 @@ function insertArbitraryAssetTreeNodeChildren(
           directoryKey,
           directoryId,
           depth,
+          `${item.path}/${asset.title}`,
           getKey?.(asset) ?? asset.id
         )
       )
@@ -352,10 +352,12 @@ export interface AssetsTableProps {
   readonly hidden: boolean
   readonly query: AssetQuery
   readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
+  readonly setSuggestions: React.Dispatch<
+    React.SetStateAction<readonly assetSearchBar.Suggestion[]>
+  >
   readonly setProjectStartupInfo: (projectStartupInfo: backendModule.ProjectStartupInfo) => void
   readonly setCanDownload: (canDownload: boolean) => void
   readonly category: Category
-  readonly setSuggestions: (suggestions: assetSearchBar.Suggestion[]) => void
   readonly initialProjectName: string | null
   readonly assetListEvents: assetListEvent.AssetListEvent[]
   readonly dispatchAssetListEvent: (event: assetListEvent.AssetListEvent) => void
@@ -411,7 +413,8 @@ export default function AssetsTable(props: AssetsTableProps) {
       backendModule.createRootDirectoryAsset(rootDirectoryId),
       rootParentDirectoryId,
       rootParentDirectoryId,
-      -1
+      -1,
+      backend.rootPath
     )
   })
   const [isDraggingFiles, setIsDraggingFiles] = React.useState(false)
@@ -883,7 +886,6 @@ export default function AssetsTable(props: AssetsTableProps) {
           dispatchAssetEvent({
             type: AssetEventType.openProject,
             id: projectToLoad.id,
-            shouldAutomaticallySwitchPage: true,
             runInBackground: false,
           })
         })
@@ -943,9 +945,16 @@ export default function AssetsTable(props: AssetsTableProps) {
           rootParentDirectoryId,
           rootParentDirectoryId,
           newAssets.map(asset =>
-            AssetTreeNode.fromAsset(asset, rootDirectory.id, rootDirectory.id, 0)
+            AssetTreeNode.fromAsset(
+              asset,
+              rootDirectory.id,
+              rootDirectory.id,
+              0,
+              `${backend.rootPath}/${asset.title}`
+            )
           ),
           -1,
+          backend.rootPath,
           rootDirectory.id,
           true
         )
@@ -964,7 +973,6 @@ export default function AssetsTable(props: AssetsTableProps) {
               dispatchAssetEvent({
                 type: AssetEventType.openProject,
                 id: projectToLoad.id,
-                shouldAutomaticallySwitchPage: true,
                 runInBackground: false,
               })
             })
@@ -985,7 +993,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         return null
       })
     },
-    [rootDirectoryId, toastAndLog, setNameOfProjectToImmediatelyOpen, dispatchAssetEvent]
+    [rootDirectoryId, backend.rootPath, dispatchAssetEvent, toastAndLog]
   )
   const overwriteNodesRef = React.useRef(overwriteNodes)
   overwriteNodesRef.current = overwriteNodes
@@ -996,40 +1004,29 @@ export default function AssetsTable(props: AssetsTableProps) {
     }
   }, [backend, category])
 
-  asyncEffectHooks.useAsyncEffect(
-    null,
-    async signal => {
-      setSelectedKeys(new Set())
-      try {
-        const newAssets = await backend
-          .listDirectory(
-            {
-              parentId: null,
-              filterBy: CATEGORY_TO_FILTER_BY[category],
-              recentProjects: category === Category.recent,
-              labels: null,
-            },
-            // The root directory has no name. This is also SAFE, as there is a different error
-            // message when the directory is the root directory (when `parentId == null`).
-            '(root)'
-          )
-          .catch(error => {
-            toastAndLog('listRootFolderBackendError', error)
-            throw error
-          })
-        if (!signal.aborted) {
-          setIsLoading(false)
-          overwriteNodes(newAssets)
-        }
-      } catch (error) {
-        if (!signal.aborted) {
-          setIsLoading(false)
-          toastAndLog(null, error)
-        }
-      }
-    },
-    [category, backend, setSelectedKeys]
+  const rootDirectoryQuery = backendHooks.useBackendQuery(
+    backend,
+    'listDirectory',
+    [
+      {
+        parentId: null,
+        filterBy: CATEGORY_TO_FILTER_BY[category],
+        recentProjects: category === Category.recent,
+        labels: null,
+      },
+      // The root directory has no name. This is also SAFE, as there is a different error
+      // message when the directory is the root directory (when `parentId == null`).
+      '(root)',
+    ],
+    { queryKey: [], staleTime: 0, meta: { persist: false } }
   )
+
+  React.useEffect(() => {
+    if (rootDirectoryQuery.data) {
+      setIsLoading(false)
+      overwriteNodes(rootDirectoryQuery.data)
+    }
+  }, [rootDirectoryQuery.data, overwriteNodes])
 
   React.useEffect(() => {
     const savedEnabledColumns = localStorage.get('enabledColumns')
@@ -1092,7 +1089,8 @@ export default function AssetsTable(props: AssetsTableProps) {
                         backendModule.createSpecialLoadingAsset(directoryId),
                         key,
                         directoryId,
-                        item.depth + 1
+                        item.depth + 1,
+                        ''
                       ),
                     ],
                   })
@@ -1134,7 +1132,13 @@ export default function AssetsTable(props: AssetsTableProps) {
                     }
                   }
                   const childAssetNodes = Array.from(childAssetsMap.values(), child =>
-                    AssetTreeNode.fromAsset(child, key, directoryId, item.depth + 1)
+                    AssetTreeNode.fromAsset(
+                      child,
+                      key,
+                      directoryId,
+                      item.depth + 1,
+                      `${item.path}/${child.title}`
+                    )
                   )
                   const specialEmptyAsset: backendModule.SpecialEmptyAsset | null =
                     (initialChildren != null && initialChildren.length !== 0) ||
@@ -1148,7 +1152,8 @@ export default function AssetsTable(props: AssetsTableProps) {
                             specialEmptyAsset,
                             key,
                             directoryId,
-                            item.depth + 1
+                            item.depth + 1,
+                            ''
                           ),
                         ]
                       : initialChildren == null || initialChildren.length === 0
@@ -1219,7 +1224,6 @@ export default function AssetsTable(props: AssetsTableProps) {
                   type: AssetEventType.openProject,
                   id: item.item.id,
                   runInBackground: false,
-                  shouldAutomaticallySwitchPage: true,
                 })
                 break
               }

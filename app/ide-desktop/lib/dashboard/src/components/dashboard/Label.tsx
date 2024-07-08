@@ -53,7 +53,7 @@ export default function Label(props: InternalLabelProps) {
     typeof childrenRaw !== 'string' ? (
       childrenRaw
     ) : (
-      <ariaComponents.Text truncate="1" className="max-w-24 text-inherit">
+      <ariaComponents.Text truncate="1" className="max-w-24" color="invert" variant="body">
         {childrenRaw}
       </ariaComponents.Text>
     )
@@ -75,7 +75,7 @@ export default function Label(props: InternalLabelProps) {
           title={title}
           disabled={isDisabled}
           className={tailwindMerge.twMerge(
-            'focus-child relative flex h-text items-center whitespace-nowrap rounded-inherit px-label-x transition-all selectable after:pointer-events-none after:absolute after:inset after:rounded-full',
+            'focus-child relative flex items-center whitespace-nowrap rounded-inherit px-[7px] opacity-75 transition-all after:pointer-events-none after:absolute after:inset after:rounded-full hover:opacity-100 focus:opacity-100',
             active && 'active',
             negated && 'after:border-2 after:border-delete',
             className,

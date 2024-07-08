@@ -28,7 +28,7 @@ export default function ButtonRow(props: ButtonRowProps) {
     <FocusArea direction="horizontal">
       {innerProps => (
         <div
-          className={tailwindMerge.twMerge('relative flex gap-buttons', positionClass)}
+          className={tailwindMerge.twMerge('gap-buttons relative flex', positionClass)}
           {...innerProps}
         >
           {children}

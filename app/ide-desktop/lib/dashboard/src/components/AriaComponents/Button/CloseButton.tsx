@@ -34,18 +34,19 @@ export function CloseButton(props: CloseButtonProps) {
   return (
     <button.Button
       variant="icon"
-      // @ts-expect-error ts fails to infer the type of the className prop
       className={values =>
         tailwindMerge.twMerge(
-          'h-3 w-3 bg-primary/30 hover:bg-red-500/80 focus-visible:bg-red-500/80 focus-visible:outline-offset-1',
+          'bg-primary/30 hover:bg-red-500/80 focus-visible:bg-red-500/80 focus-visible:outline-offset-1',
           // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+          // @ts-expect-error ts fails to infer the type of the className prop
           typeof className === 'function' ? className(values) : className
         )
       }
       tooltip={tooltip}
       showIconOnHover
-      size="custom"
+      size="xsmall"
       rounded="full"
+      extraClickZone="medium"
       icon={icon}
       aria-label={ariaLabel}
       /* This is safe because we are passing all props to the button */
