@@ -120,20 +120,21 @@ export class DataServer extends ObservableV2<DataServerEvents> {
     return this.initialized
   }
 
-  private initialize() {
-    return exponentialBackoff(() => this.initSession().then(responseAsResult), {
+  private async initialize() {
+    const result = await exponentialBackoff(() => this.initSession().then(responseAsResult), {
       onBeforeRetry: (error, _, delay) => {
         console.warn(
           `Failed to initialize language server binary connection, retrying after ${delay}ms...\n`,
           error,
         )
       },
-    }).then((result) => {
-      if (!result.ok) {
-        result.error.log('Error initializing Language Server Binary Protocol')
-        return result
-      } else return Ok()
     })
+    if (!result.ok) {
+      result.error.log('Error initializing Language Server Binary Protocol')
+      return result
+    } else {
+      return Ok()
+    }
   }
 
   protected async send<T = void>(

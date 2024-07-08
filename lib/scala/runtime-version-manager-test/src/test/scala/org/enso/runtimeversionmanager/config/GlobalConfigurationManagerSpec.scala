@@ -1,6 +1,5 @@
 package org.enso.runtimeversionmanager.config
 
-import io.circe.Json
 import org.enso.semver.SemVer
 import org.enso.distribution.DistributionManager
 import org.enso.distribution.config.InvalidConfigError
@@ -27,16 +26,16 @@ class GlobalConfigurationManagerSpec
   "GlobalConfigurationManager" should {
     "allow to edit and remove known keys" in {
       val configurationManager = makeConfigManager()
-      val value                = Json.fromInt(42)
+      val value                = 42.toString
       configurationManager.updateConfigRaw("unknown-key", value)
       configurationManager.getConfig
         .findByKey("unknown-key") should not be defined
-      val newEmail = Json.fromString("foo@bar.com")
+      val newEmail = "foo@bar.com"
       configurationManager.getConfig
         .findByKey("author.email") should not be defined
       configurationManager.updateConfigRaw("author.email", newEmail)
       configurationManager.getConfig
-        .findByKey("author.email") shouldEqual newEmail.asString
+        .findByKey("author.email") shouldEqual Some(newEmail)
     }
 
     "not allow saving an invalid config" in {
@@ -44,7 +43,7 @@ class GlobalConfigurationManagerSpec
       intercept[InvalidConfigError] {
         configurationManager.updateConfigRaw(
           "default.enso-version",
-          Json.fromString("invalid-version")
+          "invalid-version"
         )
       }
     }

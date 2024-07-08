@@ -15,7 +15,7 @@ export default {}
 </script>
 <script setup lang="ts">
 import { hookBeforeFunctionCall } from '@/util/patching'
-import { nextTick } from 'process'
+import { nextTick } from 'vue'
 
 const props = withDefaults(
   defineProps<{

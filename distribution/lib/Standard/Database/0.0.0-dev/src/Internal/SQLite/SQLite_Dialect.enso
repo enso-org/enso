@@ -1,4 +1,4 @@
-from Standard.Base import all hiding First, Last
+from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Runtime.Ref.Ref
@@ -38,7 +38,7 @@ from project.Errors import SQL_Error, Unsupported_Database_Operation
    The dialect of SQLite databases.
 sqlite : SQLite_Dialect
 sqlite =
-    SQLite_Dialect.Value make_internal_generator_dialect
+    SQLite_Dialect.Value make_dialect_operations
 
 ## PRIVATE
 
@@ -47,7 +47,7 @@ type SQLite_Dialect
     ## PRIVATE
 
        The dialect of SQLite databases.
-    Value internal_generator_dialect
+    Value dialect_operations
 
     ## PRIVATE
        Name of the dialect.
@@ -62,15 +62,30 @@ type SQLite_Dialect
        according to the specific dialect.
     generate_sql : Query -> SQL_Statement
     generate_sql self query =
-        Base_Generator.generate_query self.internal_generator_dialect query . build
+        Base_Generator.generate_query self query . build
+
+    ## PRIVATE
+       Generates SQL to truncate a table.
+    generate_truncate_table_sql : Text -> SQL_Builder
+    generate_truncate_table_sql self table_name =
+        Base_Generator.truncate_table_delete_from_style self table_name
 
     ## PRIVATE
        Wraps and possibly escapes the identifier so that it can be used in a
        generated query regardless of what characters it contains.
        The quotes used will depend on the dialect.
-    wrap_identifier : Text -> Text
+    wrap_identifier : Text -> SQL_Builder
     wrap_identifier self identifier =
-        self.internal_generator_dialect.wrap_identifier_raw identifier
+        Base_Generator.wrap_in_quotes identifier
+
+    ## PRIVATE
+       Generates a SQL expression for a table literal.
+    make_table_literal : Vector (Vector Text) -> Vector Text -> Text -> SQL_Builder
+    make_table_literal self vecs column_names as_name =
+        values = SQL_Builder.join ", " (vecs.transpose.map (vec-> SQL_Builder.join ", " (vec.map SQL_Builder.interpolation) . paren))
+        wrapped_name = self.wrap_identifier as_name
+        structure = wrapped_name ++ (SQL_Builder.join ", " (column_names.map self.wrap_identifier) . paren)
+        SQL_Builder.code "(WITH " ++ structure ++ " AS (VALUES " ++ values ++ ") SELECT * FROM " ++ wrapped_name ++ ") AS " ++ wrapped_name
 
     ## PRIVATE
        Prepares an ordering descriptor.
@@ -185,6 +200,20 @@ type SQLite_Dialect
                 Internal_Column.Value column.name new_sql_type_reference new_expression
 
     ## PRIVATE
+       Add an extra cast to adjust the output type of certain operations with
+       certain arguments.
+
+       It is used when the normal type inference provided by the database engine
+       needs to be adjusted.
+
+       In most cases this method will just return the expression unchanged, it
+       is used only to override the type in cases where the default one that the
+       database uses is not what we want.
+    cast_op_type self (op_kind:Text) (args:(Vector Internal_Column)) (expression:SQL_Expression) =
+        _ = [op_kind, args]
+        expression
+
+    ## PRIVATE
     prepare_fetch_types_query : SQL_Expression -> Context -> SQL_Statement
     prepare_fetch_types_query self expression context =
         _ = [expression, context]
@@ -220,7 +249,7 @@ type SQLite_Dialect
        Checks if an operation is supported by the dialect.
     is_supported : Text -> Boolean
     is_supported self operation =
-        self.internal_generator_dialect.is_supported operation
+        self.dialect_operations.is_supported operation
 
     ## PRIVATE
        The default table types to use when listing tables.
@@ -241,7 +270,7 @@ type SQLite_Dialect
        implementation does not correctly handle temporary tables.
     fetch_primary_key : Connection -> Text -> Vector Text ! Nothing
     fetch_primary_key self connection table_name =
-        wrapped_name = self.internal_generator_dialect.wrap_identifier table_name
+        wrapped_name = self.wrap_identifier table_name
         query = SQL_Builder.code "pragma table_info(" ++ wrapped_name ++ ")"
         info_table = connection.read_statement query.build
         ## The `pk` field is non-zero if the columns is part of the primary key.
@@ -269,7 +298,7 @@ type SQLite_Dialect
     value_type_for_upload_of_existing_column self column = column.value_type
 
 ## PRIVATE
-make_internal_generator_dialect =
+make_dialect_operations =
     text = [starts_with, contains, ends_with, make_case_sensitive, ["REPLACE", replace], left, right]+concat_ops+trim_ops
     counts = [agg_count_is_null, agg_count_empty, agg_count_not_empty, ["COUNT_DISTINCT", agg_count_distinct], ["COUNT_DISTINCT_INCLUDE_NULL", agg_count_distinct_include_null]]
     stats = [agg_stddev_pop, agg_stddev_samp]
@@ -278,9 +307,7 @@ make_internal_generator_dialect =
 
     bool = [bool_or]
     my_mappings = text + counts + stats + arith_extensions + bool + other
-    Base_Generator.base_dialect
-        . extend_with my_mappings
-        . override_make_table_literal make_sqlite_table_literal
+    Base_Generator.base_dialect_operations . extend_with my_mappings
 
 ## PRIVATE
 unsupported name =
@@ -498,11 +525,3 @@ make_runtime_error_op arguments =
     variable_to_defer = arguments.at 1
     # We have to ensure that the implementation of SQLite that we use does not have a MATCH function defined which would make the code below succeed.
     SQL_Builder.code "match('[ENSO INVARIANT VIOLATED: '||" ++ error_message ++ "||'] ', " ++ variable_to_defer ++ ")"
-
-## PRIVATE
-make_sqlite_table_literal vecs column_names as_name =
-    values = SQL_Builder.join ", " (vecs.transpose.map (vec-> SQL_Builder.join ", " (vec.map SQL_Builder.interpolation) . paren))
-    wrap_identifier_as_builder n = SQL_Builder.code (Base_Generator.wrap_in_quotes n)
-    wrapped_name = wrap_identifier_as_builder as_name
-    structure = wrapped_name ++ (SQL_Builder.join ", " (column_names.map wrap_identifier_as_builder) . paren)
-    SQL_Builder.code "(WITH " ++ structure ++ " AS (VALUES " ++ values ++ ") SELECT * FROM " ++ wrapped_name ++ ") AS " ++ wrapped_name

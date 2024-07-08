@@ -7,6 +7,7 @@ import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
 import org.enso.table.data.column.storage.numeric.BigIntegerStorage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
+import org.enso.table.data.column.storage.type.BigDecimalType;
 import org.enso.table.data.column.storage.type.BigIntegerType;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.IntegerType;
@@ -37,7 +38,9 @@ public class BigIntegerBuilder extends TypedBuilderImpl<BigInteger> {
 
   @Override
   public boolean canRetypeTo(StorageType type) {
-    return type instanceof FloatType || type instanceof AnyObjectType;
+    return type instanceof FloatType
+        || type instanceof BigDecimalType
+        || type instanceof AnyObjectType;
   }
 
   @Override
@@ -50,6 +53,16 @@ public class BigIntegerBuilder extends TypedBuilderImpl<BigInteger> {
           res.appendNulls(1);
         } else {
           res.appendBigInteger(data[i]);
+        }
+      }
+      return res;
+    } else if (type instanceof BigDecimalType) {
+      BigDecimalBuilder res = new BigDecimalBuilder(currentSize);
+      for (int i = 0; i < currentSize; i++) {
+        if (data[i] == null) {
+          res.appendNulls(1);
+        } else {
+          res.appendNoGrow(data[i]);
         }
       }
       return res;

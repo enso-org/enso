@@ -7,7 +7,6 @@ import plugin from 'tailwindcss/plugin.js'
 /* eslint-disable no-restricted-syntax, @typescript-eslint/naming-convention, @typescript-eslint/no-magic-numbers */
 export default /** @satisfies {import('tailwindcss').Config} */ ({
   content: ['./src/**/*.tsx', './src/**/*.ts'],
-  important: `:is(.enso-dashboard, .enso-chat, .enso-portal-root)`,
   theme: {
     extend: {
       cursor: {
@@ -520,7 +519,7 @@ inset 0 -36px 51px -51px #00000014`,
               & > tbody > tr.rounded-rows-child.selected > td:not(.rounded-rows-skip-level),
               & > tbody > tr.rounded-rows-child.selected > td.rounded-rows-skip-level > *
             )`]: {
-              backgroundColor: 'rgb(255 255 255 / 40%)',
+              backgroundColor: 'rgb(255 255 255 / 90%)',
             },
             [`:where(
               & > tbody > tr.rounded-rows-child[data-drop-target] > td:not(.rounded-rows-skip-level),

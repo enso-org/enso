@@ -17,7 +17,7 @@ import esbuildPluginTime from 'esbuild-plugin-time'
 import esbuildPluginYaml from 'esbuild-plugin-yaml'
 import postcss from 'postcss'
 import tailwindcss from 'tailwindcss'
-import tailwindcssNesting from 'tailwindcss/nesting/index.js'
+import tailwindcssNesting from 'tailwindcss/nesting'
 
 import * as appConfig from 'enso-common/src/appConfig'
 import * as buildUtils from 'enso-common/src/buildUtils'

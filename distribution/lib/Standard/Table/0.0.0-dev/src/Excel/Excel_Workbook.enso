@@ -311,8 +311,9 @@ type Excel_Workbook
        Provides a JS object representation for use in visualizations.
     to_js_object : JS_Object
     to_js_object self =
+        values=(self.tables.at "Name" . to_vector)
         additional_fields = case self.file of
-            regular_file : File -> [["file", regular_file.path]]
+            regular_file : File -> [["file", regular_file.path], ["sheet_names", values]]
             _ -> []
         JS_Object.from_pairs <|
             [["type", "Excel_Workbook"], ["xls_format", self.xls_format]] + additional_fields
