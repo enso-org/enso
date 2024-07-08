@@ -562,7 +562,7 @@ add_specs suite_builder make_new_connection prefix persistent_connector=True =
                 e2.clashing_example_key_values.length . should_equal 1
                 x = e2.clashing_example_key_values.first
                 [1, 2, 3].should_contain x
-                counts = Map.from_vector [[1, 2], [2, 4], [3, 2]]
+                counts = Dictionary.from_vector [[1, 2], [2, 4], [3, 2]]
                 e2.clashing_example_row_count . should_equal (counts.at x)
 
             # Will not find clashes if they are not in the first 1000 rows, in Output disabled mode.
