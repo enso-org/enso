@@ -574,7 +574,7 @@ type DB_Table
     rename_columns : Map (Text | Integer | Regex) Text | Vector Text | Vector Vector -> Case_Sensitivity -> Boolean -> Problem_Behavior -> DB_Table ! Missing_Input_Columns | Ambiguous_Column_Rename | Too_Many_Column_Names_Provided | Invalid_Column_Names | Duplicate_Output_Column_Names
     rename_columns self (column_map:(Table | Map | Vector)=["Column"]) (case_sensitivity:Case_Sensitivity=..Default) (error_on_missing_columns:Boolean=True) (on_problems:Problem_Behavior=..Report_Warning) = case column_map of
         _ : Table ->
-            resolved = Table_Helpers.read_name_map_from_table column_map
+            resolved = Table_Helpers.read_name_mapping_from_table column_map
             self.rename_columns resolved case_sensitivity error_on_missing_columns on_problems
         _ ->
             new_names = Table_Helpers.rename_columns self.column_naming_helper self.internal_columns column_map case_sensitivity error_on_missing_columns on_problems
@@ -1035,26 +1035,26 @@ type DB_Table
             Warning.set result []
 
     ## PRIVATE
-       A helper that creates a two-column table from a Map.
+       A helper that creates a two-column table from a Dictionary.
 
-       The keys of the `Map` become the first column, with name
-       `key_column_name`, and the values of the `Map` become the second column,
-       with name `value_column_name`.
+       The keys of the `Dictionary` become the first column, with name
+       `key_column_name`, and the values become the second column, with name
+       `value_column_name`.
 
-       For the in-memory database, the `Map` can be empty. For the database
-       backends, it must not be empty.
+       For the in-memory database, the `Dictionary` can be empty. For the
+       database backends, it must not be empty.
 
        Arguments:
-       - map: The `Map` to create the table from.
+       - dict: The `Dictionary` to create the table from.
        - key_column_name: The name to use for the first column.
        - value_column_name: The name to use for the second column.
-    make_table_from_map : Map Any Any -> Text -> Text -> Table
-    make_table_from_map self map key_column_name value_column_name =
-        total_size = map.size * 2
+    make_table_from_dictionary : Dictionary Any Any -> Text -> Text -> Table
+    make_table_from_dictionary self dict key_column_name value_column_name =
+        total_size = dict.size * 2
 
-        if map.is_empty then Error.throw (Illegal_Argument.Error "Map argument cannot be empty") else
-            if total_size > MAX_LITERAL_ELEMENT_COUNT then Error.throw (Illegal_Argument.Error "Map argument is too large ("+map.size.to_text+" entries): materialize a table into the database instead") else
-                keys_and_values = map.to_vector
+        if dict.is_empty then Error.throw (Illegal_Argument.Error "Dictionary cannot be empty") else
+            if total_size > MAX_LITERAL_ELEMENT_COUNT then Error.throw (Illegal_Argument.Error "Dictionary is too large ("+dict.size.to_text+" entries): materialize a table into the database instead") else
+                keys_and_values = dict.to_vector
                 self.make_table_from_vectors [keys_and_values.map .first, keys_and_values.map .second] [key_column_name, value_column_name]
 
     ## PRIVATE

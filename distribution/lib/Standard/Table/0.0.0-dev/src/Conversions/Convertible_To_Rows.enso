@@ -54,7 +54,7 @@ Convertible_To_Rows.from that:Pair = Convertible_To_Rows.Value that.length (that
 Convertible_To_Rows.from that:Date_Range = Convertible_To_Rows.Value that.length (that.get _)
 
 ## PRIVATE
-Convertible_To_Rows.from that:Map =
+Convertible_To_Rows.from that:Dictionary =
     vals = that.to_vector.map p-> Key_Value.Pair p.first p.second
     Convertible_To_Rows.Value vals.length (vals.get _) ["Key", "Value"]
 
