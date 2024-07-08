@@ -64,7 +64,7 @@ import java.net.URI
 import java.nio.charset.StandardCharsets
 import java.time.Clock
 
-import scala.concurrent.duration._
+import scala.concurrent.duration.DurationInt
 
 /** A main module containing all components of the server.
   *
@@ -91,7 +91,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     new File(serverConfig.contentRootPath)
   )
 
-  private val openAiKey = sys.env.get("OPENAI_API_KEY")
+  private val openAiKey = Option(java.lang.System.getenv("OPENAI_API_KEY"))
   private val openAiCfg = openAiKey.map(AICompletionConfig)
 
   val languageServerConfig = Config(
