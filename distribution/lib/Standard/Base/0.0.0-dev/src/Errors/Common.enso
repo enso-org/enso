@@ -550,3 +550,21 @@ type Out_Of_Range
     to_text self =
         extra = if self.message.is_nothing then "" else ": "+self.message.to_text
         "(Out_Of_Range (value = "+self.value.to_text+")" + extra + ")"
+
+## Indicates that an operation cannot be performed unless one or both of the arguments are converted to another type.
+type Conversion_Required
+    ## PRIVATE
+    Error value_a value_b (message : Text)
+
+    ## PRIVATE
+       Create a human-readable version of the error.
+    to_display_text : Text
+    to_display_text self =
+        tsa = Meta.get_simple_type_name self.value_a . to_text
+        tsb = Meta.get_simple_type_name self.value_b . to_text
+        "Conversion required for operation with arguments of types "+tsa+" and "+tsb+": "+self.message
+
+    ## PRIVATE
+    to_text : Text
+    to_text self =
+        "(Conversion_Required (value_a = "+self.value_a.to_text+") (value_b = "+self.value_b.to_text+"): "+self.message
