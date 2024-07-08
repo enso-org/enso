@@ -107,6 +107,15 @@ public final class ExportSymbolAnalysis {
                 var mod = getLoadedModule(lastNameFQN, packageRepository);
                 if (mod != null) {
                   var errs = analyseSymbolsFromModule(mod, symbols);
+                  if (!errs.isEmpty()) {
+                    // It is also possible that symbol refers to a submodule of this module
+                    var subModFQN = exportNameParts.stream().map(Name::name).collect(Collectors.joining("."));
+                    var subMod = getLoadedModule(subModFQN, packageRepository);
+                    if (subMod != null) {
+                      // Everything is OK - we export the subMod directly
+                      return null;
+                    }
+                  }
                   exportErrors.addAll(errs);
                   return null;
                 }
