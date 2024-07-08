@@ -478,11 +478,12 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
     if (this.syncedContent == null || this.syncedVersion == null) return
 
     const code = newCode ?? synced.code
-    const metadataToPersist = {
-      ...this.syncedMeta,
-      ide: { ...this.syncedMeta.ide, node: newMetadata },
-    }
-    const newMetadataJson = newMetadata && json.stringify(metadataToPersist)
+    const newMetadataJson =
+      newMetadata &&
+      json.stringify({
+        ...this.syncedMeta,
+        ide: { ...this.syncedMeta.ide, node: newMetadata },
+      })
     const idMapToPersist =
       (newIdMap || newMetadata) &&
       ModulePersistence.getIdMapToPersist(newIdMap, newMetadata ?? this.syncedMeta.ide.node)
