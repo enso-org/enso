@@ -17,18 +17,18 @@ export interface StatelessSpinnerProps extends spinner.SpinnerProps {}
 /** A spinner that does not expose its {@link spinner.SpinnerState}. Instead, it begins at
  * {@link spinner.SpinnerState.initial} and immediately changes to the given state. */
 export default function StatelessSpinner(props: StatelessSpinnerProps) {
-  const { size, state: rawState } = props
+  const { size, state: rawState, ...spinnerProps } = props
   const [state, setState] = React.useState(spinner.SpinnerState.initial)
 
-  React.useEffect(() => {
-    const timeout = window.setTimeout(() => {
+  React.useLayoutEffect(() => {
+    const id = requestAnimationFrame(() => {
       setState(rawState)
     })
 
     return () => {
-      window.clearTimeout(timeout)
+      cancelAnimationFrame(id)
     }
   }, [rawState])
 
-  return <Spinner state={state} {...(size != null ? { size } : {})} />
+  return <Spinner state={state} {...(size != null ? { size } : {})} {...spinnerProps} />
 }

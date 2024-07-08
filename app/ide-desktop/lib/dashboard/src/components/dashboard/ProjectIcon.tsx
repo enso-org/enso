@@ -14,6 +14,7 @@ import * as dashboard from '#/pages/dashboard/Dashboard'
 
 import * as ariaComponents from '#/components/AriaComponents'
 import Spinner, * as spinner from '#/components/Spinner'
+import StatelessSpinner from '#/components/StatelessSpinner'
 
 import * as backendModule from '#/services/Backend'
 import type Backend from '#/services/Backend'
@@ -163,7 +164,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
               doCloseProject(item.id)
             }}
           />
-          <Spinner
+          <StatelessSpinner
             state={spinnerState}
             className={tailwindMerge.twMerge(
               'pointer-events-none absolute top-0 size-project-icon',
@@ -190,7 +191,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
                 doCloseProject(item.id)
               }}
             />
-            <Spinner
+            <StatelessSpinner
               state={spinnerState}
               className={tailwindMerge.twMerge(
                 'pointer-events-none absolute top-0 size-project-icon',
