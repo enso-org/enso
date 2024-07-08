@@ -304,7 +304,7 @@ main = Nothing
             continue;
           }
           if (v.hasHashEntries()) {
-            assertEquals("Map", simpleName);
+            assertEquals("Dictionary", simpleName);
             continue;
           }
         }

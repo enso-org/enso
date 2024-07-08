@@ -304,8 +304,8 @@ public final class ValuesGenerator {
 
   public Value typeMap() {
     return v("typeMap", """
-    import Standard.Base.Data.Map.Map
-    """, "Map").type();
+    import Standard.Base.Data.Dictionary.Dictionary
+    """, "Dictionary").type();
   }
 
   public Value typeWarning() {
