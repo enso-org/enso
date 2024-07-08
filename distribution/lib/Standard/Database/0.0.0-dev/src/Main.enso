@@ -9,6 +9,10 @@ export project.Connection.SQLite_Format.SQLite_Format
 export project.Connection.SSL_Mode.SSL_Mode
 export project.SQL_Query.SQL_Query
 export project.Update_Action.Update_Action
-from project.Connection.Postgres_Details.Postgres_Details export Postgres
-from project.Extensions.Upload_Database_Table export update_rows, select_into_database_table, delete_rows
-from project.Extensions.Upload_In_Memory_Table export update_rows, select_into_database_table, delete_rows
+export project.Connection.Postgres_Details.Postgres_Details.Postgres
+export project.Extensions.Upload_Database_Table.update_rows
+export project.Extensions.Upload_Database_Table.select_into_database_table
+export project.Extensions.Upload_Database_Table.delete_rows
+export project.Extensions.Upload_In_Memory_Table.update_rows
+export project.Extensions.Upload_In_Memory_Table.select_into_database_table
+export project.Extensions.Upload_In_Memory_Table.delete_rows
