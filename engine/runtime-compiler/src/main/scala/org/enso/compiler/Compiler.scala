@@ -362,6 +362,33 @@ class Compiler(
       }
     }
 
+    requiredModules.foreach { module =>
+      if (
+        !context
+          .getCompilationStage(module)
+          .isAtLeast(
+            CompilationStage.AFTER_TYPE_INFERENCE_PASSES
+          )
+      ) {
+
+        val moduleContext = ModuleContext(
+          module          = module,
+          freshNameSupply = Some(freshNameSupply),
+          compilerConfig  = config,
+          pkgRepo         = Some(packageRepository)
+        )
+        val compilerOutput =
+          runFinalTypeInferencePasses(context.getIr(module), moduleContext)
+        context.updateModule(
+          module,
+          { u =>
+            u.ir(compilerOutput)
+            u.compilationStage(CompilationStage.AFTER_TYPE_INFERENCE_PASSES)
+          }
+        )
+      }
+    }
+
     runErrorHandling(requiredModules)
 
     val requiredModulesWithScope = requiredModules.map { module =>
@@ -817,6 +844,13 @@ class Compiler(
     moduleContext: ModuleContext
   ): IRModule = {
     passManager.runPassesOnModule(ir, moduleContext, passes.globalTypingPasses)
+  }
+
+  private def runFinalTypeInferencePasses(
+                                   ir: IRModule,
+                                   moduleContext: ModuleContext
+                                 ): IRModule = {
+    passManager.runPassesOnModule(ir, moduleContext, passes.typeInferenceFinalPasses)
   }
 
   /** Runs the various compiler passes in an inline context.

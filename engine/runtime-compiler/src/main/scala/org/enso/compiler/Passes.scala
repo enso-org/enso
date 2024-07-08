@@ -110,11 +110,19 @@ class Passes(config: CompilerConfig) {
           }) ++ (if (config.staticTypeInferenceEnabled) {
                    List(
                      TypeInferenceSignatures.INSTANCE,
-              StaticModuleScopeAnalysis.INSTANCE,
-              TypeInferencePropagation.INSTANCE
+              StaticModuleScopeAnalysis.INSTANCE
             )
           } else Nil)
   )
+
+  val typeInferenceFinalPasses = new PassGroup(
+    if (config.staticTypeInferenceEnabled) {
+      List(
+        TypeInferencePropagation.INSTANCE
+      )
+    } else List()
+  )
+
 
   /** A list of the compiler phases, in the order they should be run.
     *
@@ -126,7 +134,8 @@ class Passes(config: CompilerConfig) {
     List(
       moduleDiscoveryPasses,
       globalTypingPasses,
-      functionBodyPasses
+      functionBodyPasses,
+      typeInferenceFinalPasses
     )
 
   /** The ordered representation of all passes run by the compiler. */
