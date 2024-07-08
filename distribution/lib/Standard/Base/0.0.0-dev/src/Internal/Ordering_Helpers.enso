@@ -30,7 +30,7 @@ type Positive_Integer_Comparator
 ## PRIVATE
 type Ordering_Comparator
     ## PRIVATE
-    compare x y = (Comparable.from x.to_sign).compare x.to_sign y.to_sign
+    compare x y = (Comparable.from x.to_sign).compare y.to_sign
 
     ## PRIVATE
     hash x = x.to_sign

@@ -125,10 +125,10 @@ type Comparable
     new value:Any comparator:Any -> Comparable = Comparable.By value comparator
 
     compare self that:Comparable = case Meta.is_same_object self.comparator that.comparator of
-        True -> self.comparator self that
+        True -> self.comparator.compare self.value that.value
         False -> Error.throw (Incomparable_Values.Error self that)
 
-    hash self -> Integer = self.comparator.hash self
+    hash self -> Integer = self.comparator.hash self.value
 
     ## PRIVATE
        Called as a callback from internal engine code for an atom with a custom

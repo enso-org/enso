@@ -155,7 +155,7 @@ add_specs suite_builder =
         group_builder.specify "should support atom with custom comparators with complicated hash method" <|
             keys = 0.up_to 500 . map ix->
                 value = ["A", "B", "C", "D", "E"].at (ix % 5)
-                hash_code = Comparable.from value . hash value
+                hash_code = Comparable.from value . hash
                 My_Key.Value hash_code value ix
             distinct_keys = keys.fold Map.empty acc_map->
                 item->
@@ -463,7 +463,12 @@ add_common_specs suite_builder prefix:Text (pending : (Text | Nothing)) (empty_m
 
     suite_builder.group prefix+": Common polyglot Map operations" pending=pending group_builder->
         group_builder.specify "should get the default comparator for polyglot maps" <|
-            Comparable.from empty_map . should_equal Default_Comparator
+            assert_comparator value comparator =
+                actual = Comparable.from value
+                expected = Comparable.new value comparator
+                actual . should_equal expected
+
+            assert_comparator empty_map Default_Comparator
 
         group_builder.specify "should compare two hash maps" <|
             (empty_map.insert "a" 1).should_equal (empty_map.insert "a" 1)
