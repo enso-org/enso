@@ -416,23 +416,13 @@ export default function AssetsTable(props: AssetsTableProps) {
   )
   const [assetTree, setAssetTree] = React.useState<assetTreeNode.AnyAssetTreeNode>(() => {
     const rootParentDirectoryId = backendModule.DirectoryId('')
-    const path = (() => {
-      switch (category.type) {
-        case categoryModule.CategoryType.user:
-        case categoryModule.CategoryType.team: {
-          return category.rootPath
-        }
-        default: {
-          return backend.rootPath
-        }
-      }
-    })()
+    const rootPath = 'rootPath' in category ? category.rootPath : backend.rootPath
     return AssetTreeNode.fromAsset(
       backendModule.createRootDirectoryAsset(rootDirectoryId),
       rootParentDirectoryId,
       rootParentDirectoryId,
       -1,
-      path
+      rootPath
     )
   })
   const [isDraggingFiles, setIsDraggingFiles] = React.useState(false)
@@ -952,6 +942,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     (newAssets: readonly backendModule.AnyAsset[]) => {
       mostRecentlySelectedIndexRef.current = null
       selectionStartIndexRef.current = null
+      const rootPath = 'rootPath' in category ? category.rootPath : backend.rootPath
       // This is required, otherwise we are using an outdated
       // `nameOfProjectToImmediatelyOpen`.
       setNameOfProjectToImmediatelyOpen(oldNameOfProjectToImmediatelyOpen => {
@@ -968,11 +959,11 @@ export default function AssetsTable(props: AssetsTableProps) {
               rootDirectory.id,
               rootDirectory.id,
               0,
-              `${backend.rootPath}/${asset.title}`
+              `${rootPath}/${asset.title}`
             )
           ),
           -1,
-          backend.rootPath,
+          rootPath,
           rootDirectory.id,
           true
         )
@@ -1011,7 +1002,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         return null
       })
     },
-    [rootDirectoryId, backend.rootPath, dispatchAssetEvent, toastAndLog]
+    [rootDirectoryId, backend.rootPath, category, dispatchAssetEvent, toastAndLog]
   )
   const overwriteNodesRef = React.useRef(overwriteNodes)
   overwriteNodesRef.current = overwriteNodes

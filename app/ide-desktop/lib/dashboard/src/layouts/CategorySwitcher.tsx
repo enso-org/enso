@@ -68,7 +68,7 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
   const { getText } = textProvider.useText()
   const localBackend = backendProvider.useLocalBackend()
   const { isOffline } = offlineHooks.useOffline()
-  const isCurrent = currentCategory === category
+  const isCurrent = categoryModule.areCategoriesEqual(currentCategory, category)
   const getCategoryError = (otherCategory: Category) => {
     switch (otherCategory.type) {
       case categoryModule.CategoryType.local: {
@@ -117,7 +117,7 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
   const acceptedDragTypes = isDropTarget ? [mimeTypes.ASSETS_MIME_TYPE] : []
 
   const onPress = () => {
-    if (error == null) {
+    if (error == null && !categoryModule.areCategoriesEqual(category, currentCategory)) {
       setCategory(category)
     }
   }
@@ -213,7 +213,7 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
 
   const usersDirectoryQuery = backendHooks.useBackendQuery(remoteBackend, 'listDirectory', [
     {
-      parentId: backend.DirectoryId('directory-users'),
+      parentId: backend.DirectoryId('users'),
       filterBy: backend.FilterBy.active,
       labels: [],
       recentProjects: false,
@@ -222,7 +222,7 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
   ])
   const teamsDirectoryQuery = backendHooks.useBackendQuery(remoteBackend, 'listDirectory', [
     {
-      parentId: backend.DirectoryId('directory-teams'),
+      parentId: backend.DirectoryId('teams'),
       filterBy: backend.FilterBy.active,
       labels: [],
       recentProjects: false,
