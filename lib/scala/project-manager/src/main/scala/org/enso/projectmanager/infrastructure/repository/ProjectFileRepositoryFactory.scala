@@ -19,12 +19,16 @@ class ProjectFileRepositoryFactory[
 
   /** @inheritdoc */
   override def getProjectRepository(
-    projectsDirectory: Option[File]
+    projectsDirectory: Option[File],
+    projectSubdirectory: Option[File]
   ): ProjectRepository[F] = {
     val projectsPath =
-      projectsDirectory.getOrElse(storageConfig.userProjectsPath)
+      projectsDirectory.getOrElse(storageConfig.userProjectsPath).toPath
     new ProjectFileRepository[F](
-      projectsPath,
+      projectSubdirectory
+        .map(subdir => projectsPath.resolve(subdir.toPath))
+        .getOrElse(projectsPath)
+        .toFile,
       storageConfig.metadata,
       clock,
       fileSystem,
