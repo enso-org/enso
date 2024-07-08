@@ -8,13 +8,13 @@ import Standard.Base.Runtime.Context
 from Standard.Base.Enso_Cloud.Data_Link_Helpers import data_link_extension, secure_value_to_json
 
 import project.Connection.Credentials.Credentials
-import project.Connection.Postgres_Details.Postgres_Details
+import project.Connection.Postgres.Postgres
 import project.Connection.SSL_Mode.SSL_Mode
 
 ## PRIVATE
 type Postgres_Data_Link_Setup
     ## PRIVATE
-    Available details:Postgres_Details
+    Available details:Postgres
 
     ## PRIVATE
     Unavailable cause:Text
@@ -45,7 +45,7 @@ type Postgres_Data_Link_Setup
             Error.throw (Illegal_Argument.Error "Cannot save connection as Data Link: "+cause)
 
 ## PRIVATE
-prepare_credentials data_link_location:Enso_File details:Postgres_Details -> JS_Object | Nothing =
+prepare_credentials data_link_location:Enso_File details:Postgres -> JS_Object | Nothing =
     case details.credentials of
         Nothing -> Nothing
         credentials:Credentials ->

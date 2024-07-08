@@ -41,7 +41,7 @@ type Snowflake_Connection
 
     ## PRIVATE
 
-       A Postgres database connection.
+       A Snowflake database connection.
 
        Arguments:
        - connection: the underlying connection.
