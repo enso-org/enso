@@ -11,7 +11,6 @@ import project.Data.Numbers.Integer
 import project.Data.Numbers.Number
 import project.Data.Numeric.Math_Context.Math_Context
 import project.Data.Text.Text
-import project.Data.Text.Text_Sub_Range.Text_Sub_Range
 import project.Data.Vector.Vector
 import project.Error.Error
 import project.Errors.Deprecated.Deprecated
