@@ -13,8 +13,7 @@ import * as textProvider from '#/providers/TextProvider'
 import * as dashboard from '#/pages/dashboard/Dashboard'
 
 import * as ariaComponents from '#/components/AriaComponents'
-import Spinner, * as spinner from '#/components/Spinner'
-import StatelessSpinner from '#/components/StatelessSpinner'
+import StatelessSpinner, * as spinner from '#/components/StatelessSpinner'
 
 import * as backendModule from '#/services/Backend'
 import type Backend from '#/services/Backend'
