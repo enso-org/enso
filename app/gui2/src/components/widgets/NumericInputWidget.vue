@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { usePointer } from '@/composables/events'
-import { is_numeric_literal } from 'shared/ast/ffi'
-import { computed, nextTick, ref, watch, type CSSProperties, type ComponentInstance } from 'vue'
+import { isNumericLiteral } from 'shared/ast/tree'
+import { computed, ref, watch, type CSSProperties, type ComponentInstance } from 'vue'
 import AutoSizedInput from './AutoSizedInput.vue'
 
 const props = defineProps<{
@@ -25,11 +25,9 @@ const editedValue = ref('')
 // Last value which is a parseable number. It's a string, because the Enso number literals differ from js
 // representations.
 const lastValidValue = ref<string>()
-watch(editedValue, (newValue, oldValue) => {
-  if (newValue != oldValue) {
-    if (newValue == '' || is_numeric_literal(newValue)) {
-      lastValidValue.value = newValue
-    }
+watch(editedValue, (newValue) => {
+  if (newValue == '' || isNumericLiteral(newValue)) {
+    lastValidValue.value = newValue
   }
 })
 const valueString = computed(() => (props.modelValue != null ? props.modelValue.toString() : ''))
@@ -102,7 +100,7 @@ const inputStyle = computed<CSSProperties>(() => {
 })
 
 function emitUpdate() {
-  if (props.modelValue !== lastValidValue.value) {
+  if (valueString.value !== lastValidValue.value) {
     emit('update:modelValue', lastValidValue.value == '' ? undefined : lastValidValue.value)
   }
 }
