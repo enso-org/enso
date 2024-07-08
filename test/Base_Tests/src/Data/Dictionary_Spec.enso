@@ -135,7 +135,7 @@ add_specs suite_builder =
             (k==k2).should_be_false
             Meta.is_same_object k k2 . should_be_false
             Meta.is_same_object k k . should_be_true
-            m = Dictionary.empty.insert k 10
+            m = Dictionary.singleton k 10
             m.contains_key k . should_be_true
             m.get k . should_equal 10
             m.contains_key k2 . should_be_false
@@ -447,9 +447,9 @@ add_specs suite_builder =
             py_dict.insert Nothing 23 . get Nothing . should_equal 23
 
         group_builder.specify "should treat Enso Dictionaries as Python dicts when passed to Python" pending=pending_python_missing <|
-            dict1 = Dictionary.empty.insert "A" 1 . insert "B" 2
+            dict1 = Dictionary.singleton "A" 1 . insert "B" 2
             py_vec_from_map dict1 . should_contain_the_same_elements_as [["A", 1], ["B", 2]]
-            dict2 = Dictionary.empty.insert "A" 1 . insert Nothing 2
+            dict2 = Dictionary.singleton "A" 1 . insert Nothing 2
             py_vec_from_map dict2 . should_contain_the_same_elements_as [["A", 1], [Nothing, 2]]
 
 
@@ -492,14 +492,14 @@ add_common_specs suite_builder prefix:Text (pending : (Text | Nothing)) (empty_d
             empty_dict.insert Nothing Nothing . at Nothing . should_equal Nothing
 
         group_builder.specify "should support rewriting values with same keys" <|
-            dict = Dictionary.empty.insert "a" 1 . insert "a" 42
+            dict = Dictionary.singleton "a" 1 . insert "a" 42
             dict.size.should_equal 1
             dict.get "a" . should_equal 42
 
         group_builder.specify "should allow storing atoms as values" <|
             json = Json.parse '{"a": 1}'
             pair = Pair.new "first" "second"
-            dict = Dictionary.empty.insert 0 json . insert 1 pair
+            dict = Dictionary.singleton 0 json . insert 1 pair
             dict.get 0 . should_equal json
             dict.get 1 . should_equal pair
 
