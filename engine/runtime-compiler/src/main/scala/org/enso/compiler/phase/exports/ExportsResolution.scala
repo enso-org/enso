@@ -10,7 +10,7 @@ import org.enso.compiler.data.BindingsMap.{
   ResolvedModule,
   ResolvedModuleMethod,
   ResolvedName,
-  ResolvedStaticMethod
+  ResolvedExtensionMethod
 }
 import org.enso.compiler.context.CompilerContext
 import org.enso.compiler.context.CompilerContext.Module
@@ -193,7 +193,7 @@ class ExportsResolution(private val context: CompilerContext) {
   ): Boolean = {
     if (resolvedNames.size > 1) {
       val allStaticOrModuleMethods = resolvedNames.forall {
-        case _: ResolvedStaticMethod => true
+        case _: ResolvedExtensionMethod => true
         case _: ResolvedModuleMethod => true
         case _                       => false
       }

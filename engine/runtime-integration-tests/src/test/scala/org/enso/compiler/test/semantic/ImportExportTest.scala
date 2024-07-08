@@ -351,9 +351,9 @@ class ImportExportTest
       val bindingsMap = mainIr.unwrapBindingMap
       bindingsMap.resolvedImports.size shouldBe 1
       val resolvedImport = bindingsMap.resolvedImports.head
-      resolvedImport.targets.head shouldBe a[BindingsMap.ResolvedStaticMethod]
+      resolvedImport.targets.head shouldBe a[BindingsMap.ResolvedExtensionMethod]
       resolvedImport.targets.head
-        .asInstanceOf[BindingsMap.ResolvedStaticMethod]
+        .asInstanceOf[BindingsMap.ResolvedExtensionMethod]
         .staticMethod
         .methodName shouldBe "extension_method"
     }

@@ -214,7 +214,7 @@ class IrToTruffle(
         case _: BindingsMap.ResolvedType             =>
         case _: BindingsMap.ResolvedConstructor      =>
         case _: BindingsMap.ResolvedModuleMethod     =>
-        case _: BindingsMap.ResolvedStaticMethod     =>
+        case _: BindingsMap.ResolvedExtensionMethod     =>
         case _: BindingsMap.ResolvedConversionMethod =>
         case ResolvedModule(module) =>
           val mod = module
@@ -412,7 +412,7 @@ class IrToTruffle(
                     throw new CompilerError(
                       "Impossible module method here, should be caught by MethodDefinitions pass."
                     )
-                  case _: BindingsMap.ResolvedStaticMethod =>
+                  case _: BindingsMap.ResolvedExtensionMethod =>
                     throw new CompilerError(
                       "Impossible static method here, should be caught by MethodDefinitions pass."
                     )
@@ -887,7 +887,7 @@ class IrToTruffle(
           throw new CompilerError(
             "Impossible module method here, should be caught by MethodDefinitions pass."
           )
-        case _: BindingsMap.ResolvedStaticMethod =>
+        case _: BindingsMap.ResolvedExtensionMethod =>
           throw new CompilerError(
             "Impossible static method here, should be caught by MethodDefinitions pass."
           )
@@ -1015,7 +1015,7 @@ class IrToTruffle(
                 name,
                 fun
               )
-            case BindingsMap.ResolvedStaticMethod(module, staticMethod) =>
+            case BindingsMap.ResolvedExtensionMethod(module, staticMethod) =>
               val actualModule = module.unsafeAsModule()
               val currentScope = asScope(actualModule)
               actualModule.getBindingsMap.resolveName(
@@ -1550,7 +1550,7 @@ class IrToTruffle(
                   )
                 case Some(
                       BindingsMap.Resolution(
-                        BindingsMap.ResolvedStaticMethod(_, _)
+                        BindingsMap.ResolvedExtensionMethod(_, _)
                       )
                     ) =>
                   throw new CompilerError(
@@ -1934,7 +1934,7 @@ class IrToTruffle(
           throw new CompilerError(
             s"Impossible here, module method ${method.name} should be caught when translating application"
           )
-        case BindingsMap.ResolvedStaticMethod(_, staticMethod) =>
+        case BindingsMap.ResolvedExtensionMethod(_, staticMethod) =>
           throw new CompilerError(
             s"Impossible here, static method ${staticMethod.name} should be caught when translating application"
           )

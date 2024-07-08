@@ -11,7 +11,7 @@ import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.data.BindingsMap.{
   ConversionMethod,
   ModuleMethod,
-  StaticMethod
+  ExtensionMethod
 }
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.desugar.{
@@ -77,7 +77,7 @@ case object BindingAnalysis extends IRPass {
               Some(ModuleMethod(ref.methodName.name))
             else {
               Some(
-                StaticMethod(ref.methodName.name, n.name)
+                ExtensionMethod(ref.methodName.name, n.name)
               )
             }
           case Some(literal: Name.Literal) =>
@@ -86,7 +86,7 @@ case object BindingAnalysis extends IRPass {
               Some(ModuleMethod(ref.methodName.name))
             else {
               Some(
-                StaticMethod(ref.methodName.name, literal.name)
+                ExtensionMethod(ref.methodName.name, literal.name)
               )
             }
           case None => Some(ModuleMethod(ref.methodName.name))

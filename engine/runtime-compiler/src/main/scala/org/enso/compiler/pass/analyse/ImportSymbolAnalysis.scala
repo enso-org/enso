@@ -111,7 +111,7 @@ case object ImportSymbolAnalysis extends IRPass {
                     method.name
                   )
                   Some(err)
-                case BindingsMap.ResolvedStaticMethod(module, staticMethod) =>
+                case BindingsMap.ResolvedExtensionMethod(module, staticMethod) =>
                   val err = createImportFromMethodError(
                     imp,
                     module.getName.createChild(staticMethod.tpName).toString,
@@ -196,7 +196,7 @@ case object ImportSymbolAnalysis extends IRPass {
             unresolvedSymbol.name
           )
         )
-      case BindingsMap.ResolvedStaticMethod(mod, staticMethod) =>
+      case BindingsMap.ResolvedExtensionMethod(mod, staticMethod) =>
         errors.ImportExport(
           imp,
           errors.ImportExport.NoSuchStaticMethod(

@@ -322,7 +322,7 @@ case class BindingsMap(
               ExportedModule(ResolvedModule(modRef), exportAs, symbols)
             case ResolvedModuleMethod(modRef, _) =>
               ExportedModule(ResolvedModule(modRef), exportAs, symbols)
-            case ResolvedStaticMethod(modRef, _) =>
+            case ResolvedExtensionMethod(modRef, _) =>
               ExportedModule(ResolvedModule(modRef), exportAs, symbols)
             case ResolvedConversionMethod(modRef, _) =>
               ExportedModule(ResolvedModule(modRef), exportAs, symbols)
@@ -481,7 +481,7 @@ object BindingsMap {
         // If there are multiple targets, they can either all be static methods, or all be
         // conversion methods.
         val allStaticMethods =
-          targets.forall(_.isInstanceOf[ResolvedStaticMethod])
+          targets.forall(_.isInstanceOf[ResolvedExtensionMethod])
         val allConversionMethods =
           targets.forall(_.isInstanceOf[ResolvedConversionMethod])
         allStaticMethods || allConversionMethods
@@ -496,8 +496,8 @@ object BindingsMap {
 
     def resolvedIn(module: ModuleReference): ResolvedName = this match {
       case t: Type => ResolvedType(module, t)
-      case staticMethod: StaticMethod =>
-        ResolvedStaticMethod(module, staticMethod)
+      case staticMethod: ExtensionMethod =>
+        ResolvedExtensionMethod(module, staticMethod)
       case conversionMethod: ConversionMethod =>
         ResolvedConversionMethod(module, conversionMethod)
       case m: ModuleMethod   => ResolvedModuleMethod(module, m)
@@ -611,7 +611,7 @@ object BindingsMap {
     * My_Type.method = 42
     * ```
     */
-  case class StaticMethod(
+  case class ExtensionMethod(
     methodName: String,
     tpName: String
   ) extends Method {
@@ -826,17 +826,17 @@ object BindingsMap {
 
   /** Method resolved on a type - either static method or extension method.
     */
-  case class ResolvedStaticMethod(
+  case class ResolvedExtensionMethod(
     module: ModuleReference,
-    staticMethod: StaticMethod
+    staticMethod: ExtensionMethod
   ) extends ResolvedMethod {
-    override def toAbstract: ResolvedStaticMethod = {
+    override def toAbstract: ResolvedExtensionMethod = {
       this.copy(module = module.toAbstract)
     }
 
     override def toConcrete(
       moduleMap: ModuleMap
-    ): Option[ResolvedStaticMethod] = {
+    ): Option[ResolvedExtensionMethod] = {
       module.toConcrete(moduleMap).map { module =>
         this.copy(module = module)
       }
@@ -931,7 +931,7 @@ object BindingsMap {
           s"    The imported polyglot field ${name};"
         case BindingsMap.ResolvedModuleMethod(module, symbol) =>
           s"    The method ${symbol.name} defined in module ${module.getName}"
-        case BindingsMap.ResolvedStaticMethod(module, staticMethod) =>
+        case BindingsMap.ResolvedExtensionMethod(module, staticMethod) =>
           s"    The static method ${staticMethod.methodName} defined in module ${module.getName} for type ${staticMethod.tpName}"
         case BindingsMap.ResolvedConversionMethod(module, conversionMethod) =>
           s"    The conversion method ${conversionMethod.targetTpName}.${conversionMethod.methodName} defined in module ${module.getName}"

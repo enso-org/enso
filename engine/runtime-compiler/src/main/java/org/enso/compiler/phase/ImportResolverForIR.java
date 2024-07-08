@@ -18,7 +18,7 @@ import org.enso.compiler.data.BindingsMap.ResolvedConstructor;
 import org.enso.compiler.data.BindingsMap.ResolvedConversionMethod;
 import org.enso.compiler.data.BindingsMap.ResolvedImport;
 import org.enso.compiler.data.BindingsMap.ResolvedModuleMethod;
-import org.enso.compiler.data.BindingsMap.ResolvedStaticMethod;
+import org.enso.compiler.data.BindingsMap.ResolvedExtensionMethod;
 import org.enso.compiler.data.BindingsMap.ResolvedType;
 import org.enso.editions.LibraryName;
 
@@ -36,7 +36,7 @@ abstract class ImportResolverForIR extends ImportResolverAlgorithm<
   CompilerContext.Module,
   ResolvedConstructor,
   ResolvedModuleMethod,
-  ResolvedStaticMethod,
+    ResolvedExtensionMethod,
   ResolvedConversionMethod
 > {
   abstract Compiler getCompiler();
@@ -72,7 +72,7 @@ abstract class ImportResolverForIR extends ImportResolverAlgorithm<
   }
 
   @Override
-  protected String nameForExtensionMethod(ResolvedStaticMethod resolvedStaticMethod) {
+  protected String nameForExtensionMethod(ResolvedExtensionMethod resolvedStaticMethod) {
     return resolvedStaticMethod.methodName();
   }
 
@@ -210,7 +210,7 @@ abstract class ImportResolverForIR extends ImportResolverAlgorithm<
   }
 
   @Override
-  protected java.util.List<ResolvedStaticMethod> definedExtensionMethods(Import.Module imp) {
+  protected java.util.List<ResolvedExtensionMethod> definedExtensionMethods(Import.Module imp) {
     var parts = partsForImport(imp);
     if (parts.size() < 3) {
       return null;
@@ -232,12 +232,12 @@ abstract class ImportResolverForIR extends ImportResolverAlgorithm<
     var extensionMethods = scala.jdk.javaapi.CollectionConverters.asJava(bindingsMap.definedEntities())
         .stream()
         .filter(definedEntity -> {
-          if (definedEntity instanceof BindingsMap.StaticMethod extensionMethod) {
+          if (definedEntity instanceof BindingsMap.ExtensionMethod extensionMethod) {
             return extensionMethod.name().equals(modMethodName);
           }
           return false;
         })
-        .map(entity -> new ResolvedStaticMethod(new BindingsMap$ModuleReference$Concrete(mod), (BindingsMap.StaticMethod) entity))
+        .map(entity -> new ResolvedExtensionMethod(new BindingsMap$ModuleReference$Concrete(mod), (BindingsMap.ExtensionMethod) entity))
         .collect(Collectors.toUnmodifiableList());
     return extensionMethods;
   }
@@ -321,7 +321,7 @@ abstract class ImportResolverForIR extends ImportResolverAlgorithm<
 
   @Override
   protected Tuple2<Import, Option<ResolvedImport>> createResolvedExtensionMethods(Import.Module imp,
-      java.util.List<Export.Module> exp, java.util.List<ResolvedStaticMethod> extensionMethods) {
+      java.util.List<Export.Module> exp, java.util.List<ResolvedExtensionMethod> extensionMethods) {
     java.util.List<ImportTarget> importTargets = extensionMethods
         .stream()
         .map(ImportTarget.class::cast)
