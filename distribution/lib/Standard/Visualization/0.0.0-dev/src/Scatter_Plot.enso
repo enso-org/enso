@@ -175,8 +175,8 @@ limit_data limit data = case limit of
             _ -> []
         extreme = Map.from_vector bounds error_on_duplicates=False . values
 
-        if limit <= extreme.length then extreme.take (First limit) else
-            extreme + data.take (Index_Sub_Range.Sample (limit - extreme.length))
+        if limit <= extreme.length then extreme.take (..First limit) else
+            extreme + data.take (..Sample (limit - extreme.length))
 
 ## PRIVATE
 json_from_table : Table -> Vector Integer | Nothing -> Integer | Nothing -> Text

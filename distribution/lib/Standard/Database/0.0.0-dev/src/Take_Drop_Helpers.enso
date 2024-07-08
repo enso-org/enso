@@ -1,10 +1,9 @@
 from Standard.Base import all
 
-import Standard.Base.Data.Index_Sub_Range as Index_Sub_Range_Module
 import Standard.Base.Data.Vector.No_Wrap
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
-from Standard.Base.Data.Index_Sub_Range import normalize_ranges, resolve_ranges, sort_and_merge_ranges
+from Standard.Base.Data.Index_Sub_Range import drop_helper, normalize_ranges, resolve_ranges, sort_and_merge_ranges, take_helper
 
 from Standard.Table import Set_Mode
 
@@ -22,7 +21,7 @@ type Take_Drop
 ## PRIVATE
    Apply `take` or `drop` to a table, returning the specified by the selector.
 take_drop_helper : Take_Drop -> DB_Table -> (Index_Sub_Range | Range | Integer) -> DB_Table
-take_drop_helper take_drop table selector =
+take_drop_helper take_drop table selector:(Index_Sub_Range | Range | Integer) =
     check_supported selector <|
         length = table.row_count
         ranges = cleanup_ranges (collect_ranges take_drop length selector)
@@ -40,7 +39,7 @@ take_drop_helper take_drop table selector =
 ## PRIVATE
    Turn the selector into a vector of ranges
 collect_ranges : Take_Drop -> Integer -> (Index_Sub_Range | Range | Integer) -> Vector Range
-collect_ranges take_drop length selector =
+collect_ranges take_drop length selector:(Index_Sub_Range | Range | Integer) =
     at _ = Panic.throw (Illegal_State.Error "Impossible: at called in Database take/drop. This is a bug in the Database library.")
     single_slice s e = [Range.new s e]
     slice_ranges selectors =
@@ -49,14 +48,14 @@ collect_ranges take_drop length selector =
             r : Range -> r
         selectors.map slice_range
     helper = case take_drop of
-        Take_Drop.Take -> Index_Sub_Range_Module.take_helper
-        Take_Drop.Drop -> Index_Sub_Range_Module.drop_helper
+        Take_Drop.Take -> take_helper
+        Take_Drop.Drop -> drop_helper
     helper length at single_slice slice_ranges selector
 
 ## PRIVATE
    Throw Unsupported_Database_Operation for selectors that are not supported by database backends.
 check_supported : (Index_Sub_Range | Range | Integer) -> Any -> Any | Unsupported_Database_Operation
-check_supported selector ~cont =
+check_supported selector:(Index_Sub_Range | Range | Integer) ~cont =
     err =
         msg = selector.to_display_text + " is not supported for database backends"
         Error.throw (Unsupported_Database_Operation.Error msg)

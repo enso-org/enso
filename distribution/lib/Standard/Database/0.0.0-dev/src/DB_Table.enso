@@ -757,7 +757,7 @@ type DB_Table
        > Example
          Take first 10 rows of the table.
 
-             table.take (First 10)
+             table.take (..First 10)
 
        > Example
          Take rows from the top of the table as long as their values sum to 10.
@@ -765,7 +765,7 @@ type DB_Table
              table.take (While row-> row.to_vector.compute Statistic.Sum == 10)
     @range Index_Sub_Range.default_widget
     take : (Index_Sub_Range | Range | Integer) -> DB_Table
-    take self range:(Index_Sub_Range | Range | Integer)=(..First 1) =
+    take self range:(Index_Sub_Range | Range | Integer)=..First =
         Take_Drop_Helpers.take_drop_helper Take_Drop.Take self range
 
     ## ALIAS remove, skip
@@ -789,7 +789,7 @@ type DB_Table
        > Example
          Drop first 10 rows of the table.
 
-             table.drop (First 10)
+             table.drop (..First 10)
 
        > Example
          Drop rows from the top of the table as long as their values sum to 10.
@@ -797,7 +797,7 @@ type DB_Table
              table.drop (While row-> row.to_vector.compute Statistic.Sum == 10)
     @range Index_Sub_Range.default_widget
     drop : (Index_Sub_Range | Range | Integer) -> DB_Table
-    drop self range:(Index_Sub_Range | Range | Integer)=(..First 1) =
+    drop self range:(Index_Sub_Range | Range | Integer)=..First =
         Take_Drop_Helpers.take_drop_helper Take_Drop.Drop self range
 
     ## PRIVATE

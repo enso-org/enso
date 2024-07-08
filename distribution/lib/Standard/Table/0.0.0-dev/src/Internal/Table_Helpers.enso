@@ -354,8 +354,8 @@ rename_columns (naming_helper : Column_Naming_Helper) (internal_columns:Vector) 
                 vec : Vector ->
                     col_count = internal_columns.length
                     good_names = if vec.length <= col_count then vec else
-                        problem_builder.report_other_warning (Too_Many_Column_Names_Provided.Error (vec.drop (First col_count)))
-                        vec.take (First col_count)
+                        problem_builder.report_other_warning (Too_Many_Column_Names_Provided.Error (vec.drop (..First col_count)))
+                        vec.take (..First col_count)
                     internal_columns.take good_names.length . zip good_names
                 _ : Map ->
                     resolve_rename selector replacement = case selector of
