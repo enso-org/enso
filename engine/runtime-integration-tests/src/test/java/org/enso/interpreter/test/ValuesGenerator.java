@@ -698,8 +698,8 @@ public final class ValuesGenerator {
               "Dictionary.empty.insert 'A' 10 . insert 'B' 20",
               // ((int) 'A') + ((int) 'B') = 131 ; codePoint(131) = \203
               "Dictionary.singleton '\203' 30",
-              "Dictionary.singleton Map.empty 1",
-              "Dictionary.singleton Map.empty Map.empty",
+              "Dictionary.singleton Dictionary.empty 1",
+              "Dictionary.singleton Dictionary.empty Dictionary.empty",
               "Dictionary.empty.insert 1 1 . insert 2 2",
               "Dictionary.empty.insert Nothing 'val' . insert 'key' 42",
               "Dictionary.empty.insert 'A' 1 . insert 'B' 2 . insert 'C' 3",
