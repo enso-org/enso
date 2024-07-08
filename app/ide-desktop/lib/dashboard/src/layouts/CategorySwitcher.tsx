@@ -3,13 +3,14 @@ import * as React from 'react'
 
 import CloudIcon from 'enso-assets/cloud.svg'
 import NotCloudIcon from 'enso-assets/not_cloud.svg'
+import PeopleIcon from 'enso-assets/people.svg'
+import PersonIcon from 'enso-assets/person.svg'
 import RecentIcon from 'enso-assets/recent.svg'
 import Trash2Icon from 'enso-assets/trash2.svg'
 
-import type * as text from '#/text'
-
 import * as mimeTypes from '#/data/mimeTypes'
 
+import * as backendHooks from '#/hooks/backendHooks'
 import * as offlineHooks from '#/hooks/offlineHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
@@ -27,21 +28,21 @@ import * as ariaComponents from '#/components/AriaComponents'
 import FocusArea from '#/components/styled/FocusArea'
 import SvgMask from '#/components/SvgMask'
 
-import type * as backend from '#/services/Backend'
+import * as backend from '#/services/Backend'
 
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 
-// =============
-// === Types ===
-// =============
+// ========================
+// === CategoryMetadata ===
+// ========================
 
 /** Metadata for a category. */
 interface CategoryMetadata {
   readonly category: Category
   readonly icon: string
-  readonly textId: Extract<text.TextId, `${Category}Category`>
-  readonly buttonTextId: Extract<text.TextId, `${Category}CategoryButtonLabel`>
-  readonly dropZoneTextId: Extract<text.TextId, `${Category}CategoryDropZoneLabel`>
+  readonly label: string
+  readonly buttonLabel: string
+  readonly dropZoneLabel: string
   readonly className?: string
 }
 
@@ -59,7 +60,7 @@ interface InternalCategorySwitcherItemProps extends CategoryMetadata {
 /** An entry in a {@link CategorySwitcher}. */
 function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
   const { currentCategory, setCategory, dispatchAssetEvent } = props
-  const { category, icon, textId, buttonTextId, dropZoneTextId, className } = props
+  const { category, icon, label, buttonLabel, dropZoneLabel, className } = props
   const { user } = authProvider.useNonPartialUserSession()
   const { unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
@@ -134,7 +135,7 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
 
   return (
     <aria.DropZone
-      aria-label={getText(dropZoneTextId)}
+      aria-label={dropZoneLabel}
       getDropOperation={types =>
         acceptedDragTypes.some(type => types.has(type)) ? 'move' : 'cancel'
       }
@@ -151,7 +152,7 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
           isDisabled && 'cursor-not-allowed hover:bg-transparent',
           className
         )}
-        aria-label={getText(buttonTextId)}
+        aria-label={buttonLabel}
         onPress={onPress}
       >
         <div
@@ -169,7 +170,7 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
               category === Category.recent ? '-ml-0.5' : ''
             }
           />
-          <aria.Text slot="description">{getText(textId)}</aria.Text>
+          <aria.Text slot="description">{label}</aria.Text>
         </div>
       </ariaComponents.Button>
       <div className="absolute left-full ml-2 hidden group-focus-visible:block">
@@ -194,8 +195,29 @@ export interface CategorySwitcherProps {
 export default function CategorySwitcher(props: CategorySwitcherProps) {
   const { category, setCategory, dispatchAssetEvent } = props
   const { getText } = textProvider.useText()
+  const remoteBackend = backendProvider.useRemoteBackend()
   const localBackend = backendProvider.useLocalBackend()
   const itemProps = { currentCategory: category, setCategory, dispatchAssetEvent }
+
+  const usersDirectoryQuery = backendHooks.useBackendQuery(remoteBackend, 'listDirectory', [
+    {
+      parentId: backend.DirectoryId('directory-users'),
+      filterBy: backend.FilterBy.active,
+      labels: [],
+      recentProjects: false,
+    },
+    'Users',
+  ])
+  const teamsDirectoryQuery = backendHooks.useBackendQuery(remoteBackend, 'listDirectory', [
+    {
+      parentId: backend.DirectoryId('directory-teams'),
+      filterBy: backend.FilterBy.active,
+      labels: [],
+      recentProjects: false,
+    },
+
+    'Teams',
+  ])
 
   return (
     <FocusArea direction="vertical">
@@ -214,36 +236,60 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
               {...itemProps}
               category={Category.cloud}
               icon={CloudIcon}
-              textId="cloudCategory"
-              buttonTextId="cloudCategoryButtonLabel"
-              dropZoneTextId="cloudCategoryDropZoneLabel"
+              label={getText('cloudCategory')}
+              buttonLabel={getText('cloudCategoryButtonLabel')}
+              dropZoneLabel={getText('cloudCategoryDropZoneLabel')}
             />
             <CategorySwitcherItem
               {...itemProps}
               category={Category.recent}
               icon={RecentIcon}
-              textId="recentCategory"
-              buttonTextId="recentCategoryButtonLabel"
-              dropZoneTextId="recentCategoryDropZoneLabel"
+              label={getText('recentCategory')}
+              buttonLabel={getText('recentCategoryButtonLabel')}
+              dropZoneLabel={getText('recentCategoryDropZoneLabel')}
               className="ml-4"
             />
             <CategorySwitcherItem
               {...itemProps}
               category={Category.trash}
               icon={Trash2Icon}
-              textId="trashCategory"
-              buttonTextId="trashCategoryButtonLabel"
-              dropZoneTextId="trashCategoryDropZoneLabel"
+              label={getText('trashCategory')}
+              buttonLabel={getText('trashCategoryButtonLabel')}
+              dropZoneLabel={getText('trashCategoryDropZoneLabel')}
               className="ml-4"
             />
+            {usersDirectoryQuery.data?.map(userDirectory => (
+              <CategorySwitcherItem
+                key={userDirectory.id}
+                {...itemProps}
+                category={Category.trash}
+                icon={PersonIcon}
+                label={getText('userCategory', userDirectory.title)}
+                buttonLabel={getText('userCategoryButtonLabel', userDirectory.title)}
+                dropZoneLabel={getText('userCategoryDropZoneLabel', userDirectory.title)}
+                className="ml-4"
+              />
+            ))}
+            {teamsDirectoryQuery.data?.map(teamDirectory => (
+              <CategorySwitcherItem
+                key={teamDirectory.id}
+                {...itemProps}
+                category={Category.trash}
+                icon={PeopleIcon}
+                label={getText('teamCategory', teamDirectory.title)}
+                buttonLabel={getText('teamCategoryButtonLabel', teamDirectory.title)}
+                dropZoneLabel={getText('teamCategoryDropZoneLabel', teamDirectory.title)}
+                className="ml-4"
+              />
+            ))}
             {localBackend != null && (
               <CategorySwitcherItem
                 {...itemProps}
                 category={Category.local}
                 icon={NotCloudIcon}
-                textId="localCategory"
-                buttonTextId="localCategoryButtonLabel"
-                dropZoneTextId="localCategoryDropZoneLabel"
+                label={getText('localCategory')}
+                buttonLabel={getText('localCategoryButtonLabel')}
+                dropZoneLabel={getText('localCategoryDropZoneLabel')}
               />
             )}
           </div>

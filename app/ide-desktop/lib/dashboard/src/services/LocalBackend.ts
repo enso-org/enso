@@ -121,7 +121,7 @@ export default class LocalBackend extends Backend {
    * @throws An error if the JSON-RPC call fails. */
   override async listDirectory(
     query: backend.ListDirectoryRequestParams
-  ): Promise<backend.AnyAsset[]> {
+  ): Promise<readonly backend.AnyAsset[]> {
     const parentIdRaw = query.parentId == null ? null : extractTypeAndId(query.parentId).id
     const parentId = query.parentId ?? newDirectoryId(this.projectManager.rootDirectory)
     const entries = await this.projectManager.listDirectory(parentIdRaw)
@@ -180,7 +180,7 @@ export default class LocalBackend extends Backend {
 
   /** Return a list of projects belonging to the current user.
    * @throws An error if the JSON-RPC call fails. */
-  override async listProjects(): Promise<backend.ListedProject[]> {
+  override async listProjects(): Promise<readonly backend.ListedProject[]> {
     const result = await this.projectManager.listProjects({})
     return result.projects.map(project => ({
       name: project.name,

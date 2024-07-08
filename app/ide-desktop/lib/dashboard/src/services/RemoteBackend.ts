@@ -66,37 +66,37 @@ function responseIsSuccessful(response: Response) {
 
 /** HTTP response body for the "list users" endpoint. */
 export interface ListUsersResponseBody {
-  readonly users: backend.User[]
+  readonly users: readonly backend.User[]
 }
 
 /** HTTP response body for the "list projects" endpoint. */
 export interface ListDirectoryResponseBody {
-  readonly assets: backend.AnyAsset[]
+  readonly assets: readonly backend.AnyAsset[]
 }
 
 /** HTTP response body for the "list projects" endpoint. */
 export interface ListProjectsResponseBody {
-  readonly projects: backend.ListedProjectRaw[]
+  readonly projects: readonly backend.ListedProjectRaw[]
 }
 
 /** HTTP response body for the "list files" endpoint. */
 export interface ListFilesResponseBody {
-  readonly files: backend.FileLocator[]
+  readonly files: readonly backend.FileLocator[]
 }
 
 /** HTTP response body for the "list secrets" endpoint. */
 export interface ListSecretsResponseBody {
-  readonly secrets: backend.SecretInfo[]
+  readonly secrets: readonly backend.SecretInfo[]
 }
 
 /** HTTP response body for the "list tag" endpoint. */
 export interface ListTagsResponseBody {
-  readonly tags: backend.Label[]
+  readonly tags: readonly backend.Label[]
 }
 
 /** HTTP response body for the "list versions" endpoint. */
 export interface ListVersionsResponseBody {
-  readonly versions: [backend.Version, ...backend.Version[]]
+  readonly versions: readonly [backend.Version, ...backend.Version[]]
 }
 
 // =====================
@@ -426,7 +426,7 @@ export default class RemoteBackend extends Backend {
   override async listDirectory(
     query: backend.ListDirectoryRequestParams,
     title: string
-  ): Promise<backend.AnyAsset[]> {
+  ): Promise<readonly backend.AnyAsset[]> {
     const path = remoteBackendPaths.LIST_DIRECTORY_PATH
     const response = await this.get<ListDirectoryResponseBody>(
       path +
@@ -793,7 +793,7 @@ export default class RemoteBackend extends Backend {
 
   /** Return a list of files accessible by the current user.
    * @throws An error if a non-successful status code (not 200-299) was received. */
-  override async listFiles(): Promise<backend.FileLocator[]> {
+  override async listFiles(): Promise<readonly backend.FileLocator[]> {
     const path = remoteBackendPaths.LIST_FILES_PATH
     const response = await this.get<ListFilesResponseBody>(path)
     if (!responseIsSuccessful(response)) {
@@ -928,7 +928,7 @@ export default class RemoteBackend extends Backend {
 
   /** Return the secret environment variables accessible by the user.
    * @throws An error if a non-successful status code (not 200-299) was received. */
-  override async listSecrets(): Promise<backend.SecretInfo[]> {
+  override async listSecrets(): Promise<readonly backend.SecretInfo[]> {
     const path = remoteBackendPaths.LIST_SECRETS_PATH
     const response = await this.get<ListSecretsResponseBody>(path)
     if (!responseIsSuccessful(response)) {
@@ -952,7 +952,7 @@ export default class RemoteBackend extends Backend {
 
   /** Return all labels accessible by the user.
    * @throws An error if a non-successful status code (not 200-299) was received. */
-  override async listTags(): Promise<backend.Label[]> {
+  override async listTags(): Promise<readonly backend.Label[]> {
     const path = remoteBackendPaths.LIST_TAGS_PATH
     const response = await this.get<ListTagsResponseBody>(path)
     if (!responseIsSuccessful(response)) {
@@ -1030,7 +1030,7 @@ export default class RemoteBackend extends Backend {
    * @throws An error if a non-successful status code (not 200-299) was received. */
   override async listVersions(
     params: backend.ListVersionsRequestParams
-  ): Promise<backend.Version[]> {
+  ): Promise<readonly backend.Version[]> {
     const paramsString = new URLSearchParams({
       // eslint-disable-next-line @typescript-eslint/naming-convention
       version_type: params.versionType,

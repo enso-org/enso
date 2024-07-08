@@ -1,6 +1,6 @@
 /** @file Functions related to displaying text. */
 
-import ENGLISH from '#/text/english.json' assert { type: 'json' }
+import ENGLISH from '#/text/english.json' with { type: 'json' }
 
 // =============
 // === Types ===
@@ -120,6 +120,13 @@ interface PlaceholderOverrides {
   readonly inviteFormSeatsLeftError: [exceedBy: number]
   readonly inviteFormSeatsLeft: [seatsLeft: number]
   readonly seatsLeft: [seatsLeft: number, seatsTotal: number]
+
+  readonly userCategory: [userName: string]
+  readonly teamCategory: [teamName: string]
+  readonly userCategoryButtonLabel: [userName: string]
+  readonly teamCategoryButtonLabel: [teamName: string]
+  readonly userCategoryDropZoneLabel: [userName: string]
+  readonly teamCategoryDropZoneLabel: [teamName: string]
 }
 
 /** An tuple of `string` for placeholders for each {@link TextId}. */

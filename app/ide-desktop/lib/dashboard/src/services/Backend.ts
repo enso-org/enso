@@ -1143,7 +1143,7 @@ export interface CreateCheckoutSessionRequestBody {
 export interface ListDirectoryRequestParams {
   readonly parentId: DirectoryId | null
   readonly filterBy: FilterBy | null
-  readonly labels: LabelName[] | null
+  readonly labels: readonly LabelName[] | null
   readonly recentProjects: boolean
 }
 
@@ -1340,7 +1340,10 @@ export default abstract class Backend {
   /** Return user details for the current user. */
   abstract usersMe(): Promise<User | null>
   /** Return a list of assets in a directory. */
-  abstract listDirectory(query: ListDirectoryRequestParams, title: string): Promise<AnyAsset[]>
+  abstract listDirectory(
+    query: ListDirectoryRequestParams,
+    title: string
+  ): Promise<readonly AnyAsset[]>
   /** Create a directory. */
   abstract createDirectory(body: CreateDirectoryRequestBody): Promise<CreatedDirectory>
   /** Change the name of a directory. */
@@ -1365,13 +1368,16 @@ export default abstract class Backend {
     parentDirectoryTitle: string
   ): Promise<CopyAssetResponse>
   /** Return a list of projects belonging to the current user. */
-  abstract listProjects(): Promise<ListedProject[]>
+  abstract listProjects(): Promise<readonly ListedProject[]>
   /** Create a project for the current user. */
   abstract createProject(body: CreateProjectRequestBody): Promise<CreatedProject>
   /** Close a project. */
   abstract closeProject(projectId: ProjectId, title: string): Promise<void>
   /** Return a list of sessions for the current project. */
-  abstract listProjectSessions(projectId: ProjectId, title: string): Promise<ProjectSession[]>
+  abstract listProjectSessions(
+    projectId: ProjectId,
+    title: string
+  ): Promise<readonly ProjectSession[]>
   /** Restore a project from a different version. */
   abstract restoreProject(
     projectId: ProjectId,
@@ -1394,7 +1400,7 @@ export default abstract class Backend {
   abstract getProjectSessionLogs(
     projectSessionId: ProjectSessionId,
     title: string
-  ): Promise<string[]>
+  ): Promise<readonly string[]>
   /** Set a project to an open state. */
   abstract openProject(
     projectId: ProjectId,
@@ -1412,7 +1418,7 @@ export default abstract class Backend {
   /** Return project memory, processor and storage usage. */
   abstract checkResources(projectId: ProjectId, title: string): Promise<ResourceUsage>
   /** Return a list of files accessible by the current user. */
-  abstract listFiles(): Promise<FileLocator[]>
+  abstract listFiles(): Promise<readonly FileLocator[]>
   /** Upload a file. */
   abstract uploadFile(params: UploadFileRequestParams, file: Blob): Promise<FileInfo>
   /** Change the name of a file. */
@@ -1436,13 +1442,17 @@ export default abstract class Backend {
     title: string
   ): Promise<void>
   /** Return the secret environment variables accessible by the user. */
-  abstract listSecrets(): Promise<SecretInfo[]>
+  abstract listSecrets(): Promise<readonly SecretInfo[]>
   /** Create a label used for categorizing assets. */
   abstract createTag(body: CreateTagRequestBody): Promise<Label>
   /** Return all labels accessible by the user. */
-  abstract listTags(): Promise<Label[]>
+  abstract listTags(): Promise<readonly Label[]>
   /** Set the full list of labels for a specific asset. */
-  abstract associateTag(assetId: AssetId, tagIds: LabelName[], title: string): Promise<void>
+  abstract associateTag(
+    assetId: AssetId,
+    tagIds: readonly LabelName[],
+    title: string
+  ): Promise<void>
   /** Delete a label. */
   abstract deleteTag(tagId: TagId, value: LabelName): Promise<void>
   /** Create a user group. */
@@ -1450,9 +1460,9 @@ export default abstract class Backend {
   /** Delete a user group. */
   abstract deleteUserGroup(userGroupId: UserGroupId, name: string): Promise<void>
   /** Return all user groups in the organization. */
-  abstract listUserGroups(): Promise<UserGroupInfo[]>
+  abstract listUserGroups(): Promise<readonly UserGroupInfo[]>
   /** Return a list of backend or IDE versions. */
-  abstract listVersions(params: ListVersionsRequestParams): Promise<Version[]>
+  abstract listVersions(params: ListVersionsRequestParams): Promise<readonly Version[]>
   /** Create a payment checkout session. */
   abstract createCheckoutSession(
     params: CreateCheckoutSessionRequestParams
@@ -1460,7 +1470,7 @@ export default abstract class Backend {
   /** Get the status of a payment checkout session. */
   abstract getCheckoutSession(sessionId: CheckoutSessionId): Promise<CheckoutSessionStatus>
   /** List events in the organization's audit log. */
-  abstract getLogEvents(): Promise<Event[]>
+  abstract getLogEvents(): Promise<readonly Event[]>
   /** Log an event that will be visible in the organization audit log. */
   abstract logEvent(
     message: string,
