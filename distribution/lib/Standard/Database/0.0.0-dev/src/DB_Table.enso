@@ -1159,8 +1159,8 @@ type DB_Table
     last_row self =
         if self.internal_columns.is_empty then Error.throw (Illegal_Argument.Error "Cannot create a table with no columns.") else
             sql = self.to_sql
-            column_type_suggestions = self.internal_columns.map .sql_type_reference
-            table = self.connection.read_statement sql column_type_suggestions last_row_only=True
+            column_types = self.internal_columns.map .sql_type_reference
+            table = self.connection.read_statement sql column_types last_row_only=True
             table.rows.first
 
     ## ALIAS sort
@@ -2602,8 +2602,8 @@ type DB_Table
                 Rows_To_Read.First_With_Warning n -> self.limit n+1
 
             sql = preprocessed.to_sql
-            column_type_suggestions = preprocessed.internal_columns.map .sql_type_reference
-            materialized_table = self.connection.read_statement sql column_type_suggestions . catch SQL_Error sql_error->
+            column_types = preprocessed.internal_columns.map .sql_type_reference
+            materialized_table = self.connection.read_statement sql column_types . catch SQL_Error sql_error->
                 Error.throw (self.connection.dialect.get_error_mapper.transform_custom_errors sql_error)
 
             warnings_builder = Builder.new
