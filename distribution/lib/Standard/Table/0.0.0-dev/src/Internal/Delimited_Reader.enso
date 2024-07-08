@@ -37,7 +37,7 @@ polyglot java import org.enso.table.read.QuoteStrippingParser
      If set to `Report_Error`, the operation fails with a dataflow error.
      If set to `Ignore`, the operation proceeds without errors or warnings.
 read_file : Delimited_Format -> File -> Problem_Behavior -> Any
-read_file format file on_problems =
+read_file format file on_problems:Problem_Behavior =
     ## We use the default `max_columns` setting. If we want to be able to
        read files with unlimited column limits (risking OutOfMemory
        exceptions), we can catch the exception indicating the limit has been
@@ -50,7 +50,7 @@ read_file format file on_problems =
 
 ## PRIVATE
 read_text : Text -> Delimited_Format -> Problem_Behavior -> Table
-read_text text format on_problems =
+read_text text format on_problems:Problem_Behavior =
     java_reader = StringReader.new text
     read_from_reader format java_reader on_problems
 
@@ -70,7 +70,7 @@ read_text text format on_problems =
    - related_file: The file related to the provided `java_stream`, if available,
      or `Nothing`. It is used for more detailed error reporting.
 read_stream : Delimited_Format -> Input_Stream -> Problem_Behavior -> Integer -> File | Nothing -> Any
-read_stream format stream on_problems max_columns=default_max_columns related_file=Nothing =
+read_stream format stream on_problems:Problem_Behavior max_columns=default_max_columns related_file=Nothing =
     handle_io_exception related_file <|
         stream.with_stream_decoder format.encoding on_problems reporting_stream_decoder->
             read_from_reader format reporting_stream_decoder on_problems max_columns
@@ -92,7 +92,7 @@ read_stream format stream on_problems max_columns=default_max_columns related_fi
      avoid `OutOfMemory` errors on malformed files. It must be a positive
      integer.
 read_from_reader : Delimited_Format -> Reader -> Problem_Behavior -> Integer -> Any
-read_from_reader format java_reader on_problems max_columns=4096 =
+read_from_reader format java_reader on_problems:Problem_Behavior max_columns=4096 =
     Illegal_Argument.handle_java_exception <| handle_parsing_failure <| handle_parsing_exception <| Empty_File_Error.handle_java_exception <|
         Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
             reader = prepare_reader format max_columns on_problems java_problem_aggregator
@@ -100,7 +100,7 @@ read_from_reader format java_reader on_problems max_columns=4096 =
             format.row_limit.attach_warning (Table.Value java_table)
 
 ## PRIVATE
-prepare_reader format:Delimited_Format max_columns on_problems java_problem_aggregator newline_override=Nothing =
+prepare_reader format:Delimited_Format max_columns on_problems:Problem_Behavior java_problem_aggregator newline_override=Nothing =
     java_headers = case format.headers of
         Headers.Has_Headers -> DelimitedReader.HeaderBehavior.USE_FIRST_ROW_AS_HEADERS
         Headers.Detect_Headers -> DelimitedReader.HeaderBehavior.INFER
@@ -207,7 +207,7 @@ detect_metadata file format =
 newline_at_eof : File -> Encoding -> Text|Nothing
 newline_at_eof file encoding =
     newlines = ['\r\n', '\n', '\r']
-    newline_bytes = newlines.map (x-> x.bytes encoding Report_Error)
+    newline_bytes = newlines.map (x-> x.bytes encoding Problem_Behavior.Report_Error)
     most_bytes = newline_bytes.map .length . compute Statistic.Maximum
     file_last_bytes = file.read_last_bytes most_bytes
     result = newlines.zip newline_bytes . find if_missing=[Nothing] pair->

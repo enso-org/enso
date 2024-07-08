@@ -1000,6 +1000,12 @@ type Decimal
     scale self = self.big_decimal.scale
 
     ## PRIVATE
+    with_scale : Integer -> Decimal
+    private with_scale self new_scale:Integer =
+        if self.scale == new_scale then self else
+            Decimal.Value (self.big_decimal.setScale new_scale)
+
+    ## PRIVATE
     unscaled_value : Integer
     unscaled_value self = self.big_decimal.unscaledValue
 

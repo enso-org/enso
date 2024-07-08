@@ -148,12 +148,20 @@ check_start_valid start length function =
     if used_start < 0 || used_start > length then Error.throw (Index_Out_Of_Bounds.Error start length+1) else
         function used_start
 
-sort vector order on by on_incomparable =
+sort vector order on by on_problems:Problem_Behavior =
     comps = case on == Nothing of
         True -> vector.map it-> Comparable.from it
         False -> vector.map it-> Comparable.from (on it)
     compare_funcs = comps.map (it-> it.compare)
-    vector.sort_builtin order.to_sign comps compare_funcs by on on_incomparable.to_number
+    vector.sort_builtin order.to_sign comps compare_funcs by on (on_problems_to_number on_problems)
+
+## PRIVATE
+   Returns a mapping of Problem_Behavior constructors to an integer.
+   Used for sending the number to Java, rather than sending the atom.
+private on_problems_to_number on_problems:Problem_Behavior = case on_problems of
+    Problem_Behavior.Ignore -> 0
+    Problem_Behavior.Report_Warning -> 1
+    Problem_Behavior.Report_Error -> 2
 
 distinct vector on =
     Vector.build builder->

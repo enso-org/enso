@@ -2329,7 +2329,7 @@ type Table
          their layout in memory. Database tables may not impose a deterministic
          ordering. If the table defines a primary key, it is used to by default
          to ensure deterministic ordering. That can be overridden by specifying
-         a different ordering using `Table.order_by`. If no primary key was
+         a different ordering using `Table.sort`. If no primary key was
          defined nor any ordering was specified explicitly by the user, the
          order of columns is undefined and the operation will fail, reporting a
          `Undefined_Column_Order` problem and returning an empty table.
@@ -3177,7 +3177,7 @@ concat_columns column_set all_tables result_type result_row_count needs_cast on_
                     storage_builder.appendNulls null_row_count
                 _ : Integer ->
                     column = parent_table.at i
-                    converted = if needs_cast then column.cast result_type on_problems=Report_Error else column
+                    converted = if needs_cast then column.cast result_type on_problems=..Report_Error else column
                     storage = converted.java_column.getStorage
                     storage_builder.appendBulkStorage storage
         sealed_storage = storage_builder.seal

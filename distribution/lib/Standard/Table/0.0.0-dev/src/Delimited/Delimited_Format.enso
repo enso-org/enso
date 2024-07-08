@@ -99,7 +99,7 @@ type Delimited_Format
        ADVANCED
        Implements the `File.read` for this `File_Format`
     read : File -> Problem_Behavior -> Any
-    read self file on_problems =
+    read self file on_problems:Problem_Behavior =
         Delimited_Reader.read_file self file on_problems
 
     ## PRIVATE
@@ -107,13 +107,13 @@ type Delimited_Format
     read_stream : Input_Stream -> File_Format_Metadata -> Any
     read_stream self stream:Input_Stream (metadata : File_Format_Metadata = File_Format_Metadata.no_information) =
         _ = metadata
-        Delimited_Reader.read_stream self stream on_problems=Report_Warning
+        Delimited_Reader.read_stream self stream on_problems=..Report_Warning
 
     ## PRIVATE
        ADVANCED
        Implements the `Table.write` for this `File_Format`.
     write_table : File -> Table -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> File
-    write_table self file table on_existing_file match_columns on_problems =
+    write_table self file table on_existing_file match_columns on_problems:Problem_Behavior =
         Delimited_Writer.write_file table self file on_existing_file match_columns on_problems
 
     ## PRIVATE
