@@ -457,9 +457,16 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
     }
   }
 
-  private static getIdMapToPersist(idMap: IdMap, metadata: fileFormat.IdeMetadata['node']): IdMap {
-    const entriesIntersection = idMap.entries().filter(([, id]) => id in metadata)
-    return new IdMap(entriesIntersection)
+  private static getIdMapToPersist(
+    idMap: IdMap | undefined,
+    metadata: fileFormat.IdeMetadata['node'],
+  ): IdMap | undefined {
+    if (idMap === undefined) {
+      return
+    } else {
+      const entriesIntersection = idMap.entries().filter(([, id]) => id in metadata)
+      return new IdMap(entriesIntersection)
+    }
   }
 
   private sendLsUpdate(
@@ -477,11 +484,8 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
     }
     const newMetadataJson = newMetadata && json.stringify(metadataToPersist)
     const idMapToPersist =
-      newIdMap &&
-      ModulePersistence.getIdMapToPersist(
-        newIdMap,
-        metadataToPersist.ide.node ?? this.syncedMeta.ide.node,
-      )
+      (newIdMap || newMetadata) &&
+      ModulePersistence.getIdMapToPersist(newIdMap, newMetadata ?? this.syncedMeta.ide.node)
     const newIdMapToPersistJson = idMapToPersist && serializeIdMap(idMapToPersist)
     const newContent = combineFileParts({
       code,
