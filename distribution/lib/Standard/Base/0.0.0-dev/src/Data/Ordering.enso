@@ -109,6 +109,20 @@ from project.Data.Boolean import Boolean, False, True
        the custom comparator whenever equality or hash code is needed.
 @Builtin_Type
 type Comparable
+    private By value:Any comparator:Any
+
+    ##
+       Creates new comparable instance for given `value` and
+       a `comparator` with two static methods what work on the
+       type `T` of the provided `value`:
+
+       ```
+       type Comparator T
+           compare : T -> T -> (Ordering|Nothing)
+           hash : T -> Integer
+       ```
+    new value:Any comparator:Any -> Comparable = Comparable.By value comparator
+
     ## PRIVATE
        Called as a callback from internal engine code for an atom with a custom
        comparator. It is assumed that the given atom has a custom comparator, that is
@@ -147,7 +161,7 @@ type Default_Comparator
     hash x = Comparable.hash_builtin x
 
 ## PRIVATE
-Comparable.from (_:Any) = Default_Comparator
+Comparable.from (that:Any) = Comparable.new that Default_Comparator
 
 ## Types representing the ordering of values.
 @Builtin_Type
