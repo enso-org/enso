@@ -1659,11 +1659,13 @@ class ImportExportTest
           .createModule(packageQualifiedName.createChild("C_Module"))
 
       val sortedMods = runExportsResolutionSort(List(aModule, bModule, cModule))
-      sortedMods should contain theSameElementsInOrderAs List(
-        aModule,
-        bModule,
-        cModule
-      )
+      withClue(
+        "A_Module should always be before B_Module.C_Module can be anywhere"
+      ) {
+        val aModIdx = sortedMods.indexOf(aModule)
+        val bModIdx = sortedMods.indexOf(bModule)
+        aModIdx should be < bModIdx
+      }
     }
   }
 }
