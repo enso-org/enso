@@ -45,65 +45,27 @@ interface CategoryMetadata {
   readonly className?: string
 }
 
-// =================
-// === Constants ===
-// =================
-
-const CATEGORY_DATA: readonly CategoryMetadata[] = [
-  {
-    category: Category.cloud,
-    icon: CloudIcon,
-    textId: 'cloudCategory',
-    buttonTextId: 'cloudCategoryButtonLabel',
-    dropZoneTextId: 'cloudCategoryDropZoneLabel',
-  },
-  {
-    category: Category.recent,
-    icon: RecentIcon,
-    textId: 'recentCategory',
-    buttonTextId: 'recentCategoryButtonLabel',
-    dropZoneTextId: 'recentCategoryDropZoneLabel',
-    className: 'ml-4',
-  },
-  {
-    category: Category.trash,
-    icon: Trash2Icon,
-    textId: 'trashCategory',
-    buttonTextId: 'trashCategoryButtonLabel',
-    dropZoneTextId: 'trashCategoryDropZoneLabel',
-    className: 'ml-4',
-  },
-  {
-    category: Category.local,
-    icon: NotCloudIcon,
-    textId: 'localCategory',
-    buttonTextId: 'localCategoryButtonLabel',
-    dropZoneTextId: 'localCategoryDropZoneLabel',
-  },
-]
-
 // ============================
 // === CategorySwitcherItem ===
 // ============================
 
 /** Props for a {@link CategorySwitcherItem}. */
-interface InternalCategorySwitcherItemProps {
-  readonly data: CategoryMetadata
-  readonly category: Category
+interface InternalCategorySwitcherItemProps extends CategoryMetadata {
+  readonly currentCategory: Category
   readonly setCategory: (category: Category) => void
   readonly dispatchAssetEvent: (directoryEvent: assetEvent.AssetEvent) => void
 }
 
 /** An entry in a {@link CategorySwitcher}. */
 function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
-  const { data, category, setCategory, dispatchAssetEvent } = props
-  const { icon, textId, buttonTextId, dropZoneTextId } = data
+  const { currentCategory, setCategory, dispatchAssetEvent } = props
+  const { category, icon, textId, buttonTextId, dropZoneTextId, className } = props
   const { user } = authProvider.useNonPartialUserSession()
   const { unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
   const localBackend = backendProvider.useLocalBackend()
   const { isOffline } = offlineHooks.useOffline()
-  const isCurrent = category === data.category
+  const isCurrent = currentCategory === category
   const getCategoryError = (otherCategory: Category) => {
     switch (otherCategory) {
       case Category.local: {
@@ -126,20 +88,20 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
       }
     }
   }
-  const error = getCategoryError(data.category)
+  const error = getCategoryError(category)
   const isDisabled = error != null
   const tooltip = error ?? false
 
   const acceptedDragTypes =
-    (category === Category.trash &&
-      (data.category === Category.cloud || data.category === Category.local)) ||
-    (category !== Category.trash && data.category === Category.trash)
+    (currentCategory === Category.trash &&
+      (category === Category.cloud || category === Category.local)) ||
+    (currentCategory !== Category.trash && category === Category.trash)
       ? [mimeTypes.ASSETS_MIME_TYPE]
       : []
 
   const onPress = () => {
     if (error == null) {
-      setCategory(data.category)
+      setCategory(category)
     }
   }
 
@@ -164,7 +126,7 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
       })
     ).then(keys => {
       dispatchAssetEvent({
-        type: category === Category.trash ? AssetEventType.restore : AssetEventType.delete,
+        type: currentCategory === Category.trash ? AssetEventType.restore : AssetEventType.delete,
         ids: new Set(keys.flat(1)),
       })
     })
@@ -187,7 +149,7 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
         className={tailwindMerge.twMerge(
           isCurrent && 'focus-default',
           isDisabled && 'cursor-not-allowed hover:bg-transparent',
-          data.className
+          className
         )}
         aria-label={getText(buttonTextId)}
         onPress={onPress}
@@ -230,29 +192,10 @@ export interface CategorySwitcherProps {
 
 /** A switcher to choose the currently visible assets table category. */
 export default function CategorySwitcher(props: CategorySwitcherProps) {
-  const { category, setCategory } = props
+  const { category, setCategory, dispatchAssetEvent } = props
   const { getText } = textProvider.useText()
-
   const localBackend = backendProvider.useLocalBackend()
-  /** The list of visible categories. */
-  const categoryData = React.useMemo(
-    () =>
-      CATEGORY_DATA.filter(data => {
-        switch (data.category) {
-          case Category.local: {
-            return localBackend != null
-          }
-          default: {
-            return true
-          }
-        }
-      }),
-    [localBackend]
-  )
-
-  if (!categoryData.some(data => data.category === category)) {
-    setCategory(categoryData[0]?.category ?? Category.cloud)
-  }
+  const itemProps = { currentCategory: category, setCategory, dispatchAssetEvent }
 
   return (
     <FocusArea direction="vertical">
@@ -267,9 +210,42 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
             role="grid"
             className="flex flex-col items-start"
           >
-            {categoryData.map(data => (
-              <CategorySwitcherItem key={data.category} data={data} {...props} />
-            ))}
+            <CategorySwitcherItem
+              {...itemProps}
+              category={Category.cloud}
+              icon={CloudIcon}
+              textId="cloudCategory"
+              buttonTextId="cloudCategoryButtonLabel"
+              dropZoneTextId="cloudCategoryDropZoneLabel"
+            />
+            <CategorySwitcherItem
+              {...itemProps}
+              category={Category.recent}
+              icon={RecentIcon}
+              textId="recentCategory"
+              buttonTextId="recentCategoryButtonLabel"
+              dropZoneTextId="recentCategoryDropZoneLabel"
+              className="ml-4"
+            />
+            <CategorySwitcherItem
+              {...itemProps}
+              category={Category.trash}
+              icon={Trash2Icon}
+              textId="trashCategory"
+              buttonTextId="trashCategoryButtonLabel"
+              dropZoneTextId="trashCategoryDropZoneLabel"
+              className="ml-4"
+            />
+            {localBackend != null && (
+              <CategorySwitcherItem
+                {...itemProps}
+                category={Category.local}
+                icon={NotCloudIcon}
+                textId="localCategory"
+                buttonTextId="localCategoryButtonLabel"
+                dropZoneTextId="localCategoryDropZoneLabel"
+              />
+            )}
           </div>
         </div>
       )}
