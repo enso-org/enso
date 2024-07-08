@@ -1,4 +1,6 @@
 import project.Any.Any
+import project.Data.Boolean.Boolean
+import project.Data.Vector.Vector
 import project.Error.Error
 import project.Errors.Deprecated.Deprecated
 
@@ -7,13 +9,13 @@ import project.Errors.Deprecated.Deprecated
 type Map key value
     ## PRIVATE
        DEPRECATED Use Dictionary.empty instead.
-    empty : Any !
+    empty : Any ! Deprecated
     empty =
         Error.throw (Deprecated.Warning "Standard.Base.Data.Map.Map" "empty" "Deprecated: `Map.empty` has been replaced by `Dictionary.empty`.")
 
     ## PRIVATE
        DEPRECATED Use Dictionary.singleton instead.
-    singleton : Any -> Any -> Dictionary
+    singleton : Any -> Any -> Any ! Deprecated
     singleton key value =
         _ = [key, value]
         Error.throw (Deprecated.Warning "Standard.Base.Data.Map.Map" "singleton" "Deprecated: `Map.singleton` has been replaced by `Dictionary.singleton`.")
@@ -21,7 +23,7 @@ type Map key value
     ## PRIVATE
        ICON convert
        DEPRECATED Use Dictionary.from_keys_and_values instead.
-    from_keys_and_values : Vector Any -> Vector Any -> Boolean -> Dictionary ! Illegal_Argument
+    from_keys_and_values : Vector Any -> Vector Any -> Boolean -> Any ! Deprecated
     from_keys_and_values keys:Vector values:Vector error_on_duplicates:Boolean=True =
         _ = [keys, values, error_on_duplicates]
         Error.throw (Deprecated.Warning "Standard.Base.Data.Map.Map" "from_keys_and_values" "Deprecated: `Map.from_keys_and_values` has been replaced by `Dictionary.from_keys_and_values`.")
@@ -29,7 +31,7 @@ type Map key value
     ## PRIVATE
        ICON convert
        DEPRECATED Use Dictionary.from_vector instead.
-    from_vector : Vector Any -> Boolean -> Dictionary ! Illegal_Argument
+    from_vector : Vector Any -> Boolean -> Any ! Deprecated
     from_vector vec error_on_duplicates=True =
         _ = [vec, error_on_duplicates]
         Error.throw (Deprecated.Warning "Standard.Base.Data.Map.Map" "from_vector" "Deprecated: `Map.from_vector` has been replaced by `Dictionary.from_vector`.")
