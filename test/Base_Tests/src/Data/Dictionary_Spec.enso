@@ -214,7 +214,7 @@ add_specs suite_builder =
 
         group_builder.specify "should disallow duplicate keys when transforming the Dictionary" <|
             d = Dictionary.from_vector [[1, 2], [11, 3]]
-            d2 = m.transform (k -> v -> [k % 10, v*2])
+            d2 = d.transform (k -> v -> [k % 10, v*2])
             d2.should_fail_with Illegal_Argument
             d2.catch.message . should_equal "`Dictionary.transform` encountered duplicate key: 1"
 
