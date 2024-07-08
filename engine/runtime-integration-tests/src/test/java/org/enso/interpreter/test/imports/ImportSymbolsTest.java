@@ -59,7 +59,8 @@ public class ImportSymbolsTest {
   public void importAllFromTypeDoesNotImportTypeItself() throws IOException {
     var aMod =
         new SourceModule(
-            QualifiedName.fromString("A_module"), """
+            QualifiedName.fromString("A_module"),
+            """
         type A_Type
             Cons
         """);
