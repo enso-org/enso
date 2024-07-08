@@ -206,10 +206,12 @@ export interface CategorySwitcherProps {
 /** A switcher to choose the currently visible assets table categoryModule.categoryType. */
 export default function CategorySwitcher(props: CategorySwitcherProps) {
   const { category, setCategory, dispatchAssetEvent } = props
+  const { user } = authProvider.useNonPartialUserSession()
   const { getText } = textProvider.useText()
   const remoteBackend = backendProvider.useRemoteBackend()
   const localBackend = backendProvider.useLocalBackend()
   const itemProps = { currentCategory: category, setCategory, dispatchAssetEvent }
+  const selfDirectoryId = backend.DirectoryId(`directory-${user.userId.replace(/^user-/, '')}`)
 
   const usersDirectoryQuery = backendHooks.useBackendQuery(remoteBackend, 'listDirectory', [
     {
@@ -252,6 +254,21 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
               buttonLabel={getText('cloudCategoryButtonLabel')}
               dropZoneLabel={getText('cloudCategoryDropZoneLabel')}
             />
+            {(user.plan === backend.Plan.team || user.plan === backend.Plan.enterprise) && (
+              <CategorySwitcherItem
+                {...itemProps}
+                category={{
+                  type: categoryModule.CategoryType.user,
+                  rootPath: backend.Path(`enso://Users/${user.name}`),
+                  homeDirectoryId: selfDirectoryId,
+                }}
+                icon={PersonIcon}
+                label={getText('myFilesCategory')}
+                buttonLabel={getText('myFilesCategoryButtonLabel')}
+                dropZoneLabel={getText('myFilesCategoryDropZoneLabel')}
+                className="ml-4"
+              />
+            )}
             <CategorySwitcherItem
               {...itemProps}
               category={{ type: categoryModule.CategoryType.recent }}
@@ -271,24 +288,26 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
               dropZoneLabel={getText('trashCategoryDropZoneLabel')}
               className="ml-4"
             />
-            {usersDirectoryQuery.data?.map(userDirectory => (
-              <CategorySwitcherItem
-                key={userDirectory.id}
-                {...itemProps}
-                category={{
-                  type: categoryModule.CategoryType.user,
-                  rootPath: backend.Path(`enso://Users/${userDirectory.title}`),
-                  // This is SAFE as user directories are guaranteed to be directories.
-                  // eslint-disable-next-line no-restricted-syntax
-                  homeDirectoryId: userDirectory.id as backend.DirectoryId,
-                }}
-                icon={PersonIcon}
-                label={getText('userCategory', userDirectory.title)}
-                buttonLabel={getText('userCategoryButtonLabel', userDirectory.title)}
-                dropZoneLabel={getText('userCategoryDropZoneLabel', userDirectory.title)}
-                className="ml-4"
-              />
-            ))}
+            {usersDirectoryQuery.data?.map(userDirectory =>
+              userDirectory.id === selfDirectoryId ? null : (
+                <CategorySwitcherItem
+                  key={userDirectory.id}
+                  {...itemProps}
+                  category={{
+                    type: categoryModule.CategoryType.user,
+                    rootPath: backend.Path(`enso://Users/${userDirectory.title}`),
+                    // This is SAFE as user directories are guaranteed to be directories.
+                    // eslint-disable-next-line no-restricted-syntax
+                    homeDirectoryId: userDirectory.id as backend.DirectoryId,
+                  }}
+                  icon={PersonIcon}
+                  label={getText('userCategory', userDirectory.title)}
+                  buttonLabel={getText('userCategoryButtonLabel', userDirectory.title)}
+                  dropZoneLabel={getText('userCategoryDropZoneLabel', userDirectory.title)}
+                  className="ml-4"
+                />
+              )
+            )}
             {teamsDirectoryQuery.data?.map(teamDirectory => (
               <CategorySwitcherItem
                 key={teamDirectory.id}
