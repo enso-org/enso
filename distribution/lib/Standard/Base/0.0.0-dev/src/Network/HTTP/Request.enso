@@ -249,7 +249,7 @@ type Request
 
              example_delete =
                 Request.delete (URI.parse "http://example.com") . with_form []
-    with_form : (Vector | Map) -> Request
+    with_form : (Vector | Dictionary) -> Request
     with_form self parts =
         form_data = case parts of
             _ : Vector -> Dictionary.from_vector parts

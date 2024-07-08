@@ -135,8 +135,8 @@ create_table_from_objects (value : Convertible_To_Rows) (fields : Vector | Nothi
         column_dict.if_not_error <|
             # Create a vector of columns, preserving the original order if it was specified.
             columns = case preset_fields of
-                True  -> fields.distinct.map column_map.get
+                True  -> fields.distinct.map column_dict.get
                 False ->
                     if discovered_field_names.is_empty then Error.throw (Illegal_Argument.Error "Unable to generate column names as all inputs had no fields.") else
-                        discovered_field_names.to_vector.map column_map.get
+                        discovered_field_names.to_vector.map column_dict.get
             Table.new columns

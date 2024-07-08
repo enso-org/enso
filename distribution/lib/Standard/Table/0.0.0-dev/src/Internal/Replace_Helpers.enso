@@ -10,7 +10,7 @@ import project.Value_Type.By_Type
 from project.Errors import Missing_Input_Columns, No_Such_Column, Non_Unique_Key, Unmatched_Rows_In_Lookup
 
 ## PRIVATE
-replace : Table -> (Table | Map) -> (Text | Integer | By_Type | Vector (Text | Integer | By_Type)) -> (Text | Integer | Nothing) -> (Text | Integer | Nothing) -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns | Non_Unique_Key | Unmatched_Rows_In_Lookup
+replace : Table -> (Table | Dictionary) -> (Text | Integer | By_Type | Vector (Text | Integer | By_Type)) -> (Text | Integer | Nothing) -> (Text | Integer | Nothing) -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns | Non_Unique_Key | Unmatched_Rows_In_Lookup
 replace base_table lookup_table columns:(Text | Integer | By_Type | Vector (Text | Integer | By_Type)) from_column:(Text | Integer | Nothing)=Nothing to_column:(Text | Integer | Nothing)=Nothing allow_unmatched_rows:Boolean=True on_problems:Problem_Behavior=..Report_Warning =
     case columns of
         _ : Vector ->
