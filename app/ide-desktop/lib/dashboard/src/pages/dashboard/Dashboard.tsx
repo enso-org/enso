@@ -167,6 +167,7 @@ export function createGetProjectDetailsQuery(options: CreateOpenedProjectQueryOp
     refetchIntervalInBackground: true,
     refetchOnWindowFocus: true,
     refetchOnMount: true,
+    gcTime: 0,
     queryFn: async () => {
       const backend = type === backendModule.BackendType.remote ? remoteBackend : localBackend
 
