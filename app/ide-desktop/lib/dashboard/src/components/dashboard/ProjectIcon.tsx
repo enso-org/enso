@@ -190,13 +190,6 @@ export default function ProjectIcon(props: ProjectIconProps) {
                 doCloseProject(item.id)
               }}
             />
-            <StatelessSpinner
-              state={spinnerState}
-              className={tailwindMerge.twMerge(
-                'pointer-events-none absolute top-0 size-project-icon',
-                isRunningInBackground && 'text-green'
-              )}
-            />
           </div>
 
           {!isOtherUserUsingProject && !isRunningInBackground && (
