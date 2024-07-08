@@ -7,7 +7,7 @@
 import * as idbKeyval from 'idb-keyval'
 import * as persistClientCore from '@tanstack/query-persist-client-core'
 import * as queryCore from '@tanstack/query-core'
-import * as vueQuery from '@tanstack/vue-query'
+import * as vueQuery from './vueQuery'
 
 declare module '@tanstack/query-core' {
     /**
