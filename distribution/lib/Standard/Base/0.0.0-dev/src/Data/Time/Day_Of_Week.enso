@@ -71,7 +71,7 @@ type Day_Of_Week_Comparator
     compare x y =
         x_int = x.to_integer
         y_int = y.to_integer
-        Comparable.from x_int . compare x_int y_int
+        Comparable.from x_int . compare y_int
 
     ## PRIVATE
     hash : Day_Of_Week -> Integer
