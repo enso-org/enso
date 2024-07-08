@@ -34,7 +34,7 @@ import {
   translateVisualizationFromFile,
 } from './edits'
 import * as fileFormat from './fileFormat'
-import { deserializeIdMap, serializeIdMap } from './serialization'
+import { deserializeIdMap, idMapToArray, serializeIdMap } from './serialization'
 import { WSSharedDoc } from './ydoc'
 
 const SOURCE_DIR = 'src'
@@ -457,6 +457,18 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
     }
   }
 
+  private static getIdMapToPersist(
+    idMap: IdMap | undefined,
+    metadata: fileFormat.IdeMetadata['node'],
+  ): IdMap | undefined {
+    if (idMap === undefined) {
+      return
+    } else {
+      const entriesIntersection = idMap.entries().filter(([, id]) => id in metadata)
+      return new IdMap(entriesIntersection)
+    }
+  }
+
   private sendLsUpdate(
     synced: EnsoFileParts,
     newCode: string | undefined,
@@ -468,11 +480,17 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
     const code = newCode ?? synced.code
     const newMetadataJson =
       newMetadata &&
-      json.stringify({ ...this.syncedMeta, ide: { ...this.syncedMeta.ide, node: newMetadata } })
-    const newIdMapJson = newIdMap && serializeIdMap(newIdMap)
+      json.stringify({
+        ...this.syncedMeta,
+        ide: { ...this.syncedMeta.ide, node: newMetadata },
+      })
+    const idMapToPersist =
+      (newIdMap || newMetadata) &&
+      ModulePersistence.getIdMapToPersist(newIdMap, newMetadata ?? this.syncedMeta.ide.node)
+    const newIdMapToPersistJson = idMapToPersist && serializeIdMap(idMapToPersist)
     const newContent = combineFileParts({
       code,
-      idMapJson: newIdMapJson ?? synced.idMapJson ?? '[]',
+      idMapJson: newIdMapToPersistJson ?? synced.idMapJson ?? '[]',
       metadataJson: newMetadataJson ?? synced.metadataJson ?? '{}',
     })
 
@@ -502,7 +520,7 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
 
     const execute = newCode != null || newIdMap != null
     const edit: FileEdit = { path: this.path, edits, oldVersion: this.syncedVersion, newVersion }
-    const apply = this.ls.applyEdit(edit, execute)
+    const apply = this.ls.applyEdit(edit, execute, newIdMap && idMapToArray(newIdMap))
     const handleError = (error: unknown) => {
       console.error('Could not apply edit:', error)
       // Try to recover by reloading the file.
@@ -521,7 +539,7 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
       this.syncedVersion = newVersion
       if (newMetadata) this.syncedMeta.ide.node = newMetadata
       if (newCode) this.syncedCode = newCode
-      if (newIdMapJson) this.syncedIdMap = newIdMapJson
+      if (newIdMapToPersistJson) this.syncedIdMap = newIdMapToPersistJson
       if (newMetadataJson) this.syncedMetaJson = newMetadataJson
       this.setState(LsSyncState.Synchronized)
     }, handleError)
