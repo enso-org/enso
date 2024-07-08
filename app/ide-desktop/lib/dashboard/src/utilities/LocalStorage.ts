@@ -75,7 +75,7 @@ export default class LocalStorage {
             // This is SAFE, as the `tryParse` function is required by definition to
             // return a value of the correct type.
             // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment
-            object.unsafeMutable(this.values)[key] = value as any
+            object.unsafeMutable(this.values)[key] = value as never
           }
         }
       }

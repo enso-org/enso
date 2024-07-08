@@ -21,7 +21,8 @@ import AssetPanel from '#/layouts/AssetPanel'
 import type * as assetSearchBar from '#/layouts/AssetSearchBar'
 import AssetsTable from '#/layouts/AssetsTable'
 import CategorySwitcher from '#/layouts/CategorySwitcher'
-import Category, * as categoryModule from '#/layouts/CategorySwitcher/Category'
+import * as categoryModule from '#/layouts/CategorySwitcher/Category'
+import type Category from '#/layouts/CategorySwitcher/Category'
 import DriveBar from '#/layouts/DriveBar'
 import Labels from '#/layouts/Labels'
 
@@ -99,10 +100,17 @@ export default function Drive(props: DriveProps) {
   const [isAssetPanelTemporarilyVisible, setIsAssetPanelTemporarilyVisible] = React.useState(false)
   const organizationQuery = backendHooks.useBackendQuery(backend, 'getOrganization', [])
   const organization = organizationQuery.data ?? null
-  const rootDirectoryId = React.useMemo(
-    () => backend.rootDirectoryId(user, organization) ?? backendModule.DirectoryId(''),
-    [backend, user, organization]
-  )
+  const rootDirectoryId = React.useMemo(() => {
+    switch (category.type) {
+      case categoryModule.CategoryType.user:
+      case categoryModule.CategoryType.team: {
+        return category.homeDirectoryId
+      }
+      default: {
+        return backend.rootDirectoryId(user, organization) ?? backendModule.DirectoryId('')
+      }
+    }
+  }, [category, backend, user, organization])
   const targetDirectoryNodeRef = React.useRef<AssetTreeNode<backendModule.DirectoryAsset> | null>(
     null
   )
@@ -296,7 +304,7 @@ export default function Drive(props: DriveProps) {
                 {isCloud && (
                   <Labels
                     backend={backend}
-                    draggable={category !== Category.trash}
+                    draggable={category.type !== categoryModule.CategoryType.trash}
                     query={query}
                     setQuery={setQuery}
                   />
@@ -316,7 +324,7 @@ export default function Drive(props: DriveProps) {
                       size="small"
                       className="mx-auto"
                       onPress={() => {
-                        setCategory(Category.local)
+                        setCategory({ type: categoryModule.CategoryType.local })
                       }}
                     >
                       {getText('switchToLocal')}
@@ -361,7 +369,7 @@ export default function Drive(props: DriveProps) {
               category={category}
               dispatchAssetEvent={dispatchAssetEvent}
               dispatchAssetListEvent={dispatchAssetListEvent}
-              isReadonly={category === Category.trash}
+              isReadonly={category.type === categoryModule.CategoryType.trash}
             />
           </div>
         </div>

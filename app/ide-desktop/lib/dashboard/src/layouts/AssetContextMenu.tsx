@@ -16,7 +16,7 @@ import * as textProvider from '#/providers/TextProvider'
 import AssetEventType from '#/events/AssetEventType'
 import AssetListEventType from '#/events/AssetListEventType'
 
-import Category, * as categoryModule from '#/layouts/CategorySwitcher/Category'
+import * as categoryModule from '#/layouts/CategorySwitcher/Category'
 import GlobalContextMenu from '#/layouts/GlobalContextMenu'
 
 import ContextMenu from '#/components/ContextMenu'
@@ -76,7 +76,8 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   )
   const isCloud = categoryModule.isCloudCategory(category)
   const path =
-    category !== Category.cloud && category !== Category.local
+    category.type === categoryModule.CategoryType.recent ||
+    category.type === categoryModule.CategoryType.trash
       ? null
       : isCloud
         ? `${item.path}${item.type === backendModule.AssetType.datalink ? '.datalink' : ''}`
@@ -106,7 +107,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
     asset.projectState.openedBy !== user.email
   const setAsset = setAssetHooks.useSetAsset(asset, setItem)
 
-  return category === Category.trash ? (
+  return category.type === categoryModule.CategoryType.trash ? (
     !ownsThisAsset ? null : (
       <ContextMenus hidden={hidden} key={asset.id} event={event}>
         <ContextMenu aria-label={getText('assetContextMenuLabel')} hidden={hidden}>
@@ -437,7 +438,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
           />
         )}
       </ContextMenu>
-      {(category === Category.cloud || category === Category.local) &&
+      {category.type !== categoryModule.CategoryType.recent &&
         asset.type === backendModule.AssetType.directory && (
           <GlobalContextMenu
             hidden={hidden}

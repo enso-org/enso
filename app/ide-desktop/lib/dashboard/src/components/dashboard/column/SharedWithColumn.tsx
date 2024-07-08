@@ -10,7 +10,7 @@ import * as modalProvider from '#/providers/ModalProvider'
 
 import AssetEventType from '#/events/AssetEventType'
 
-import Category from '#/layouts/CategorySwitcher/Category'
+import * as categoryModule from '#/layouts/CategorySwitcher/Category'
 
 import * as ariaComponents from '#/components/AriaComponents'
 import type * as column from '#/components/dashboard/column'
@@ -58,7 +58,7 @@ export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
   const plusButtonRef = React.useRef<HTMLButtonElement>(null)
   const managesThisAsset =
     !isReadonly &&
-    category !== Category.trash &&
+    category.type !== categoryModule.CategoryType.trash &&
     (self?.permission === permissions.PermissionAction.own ||
       self?.permission === permissions.PermissionAction.admin)
   const setAsset = React.useCallback(

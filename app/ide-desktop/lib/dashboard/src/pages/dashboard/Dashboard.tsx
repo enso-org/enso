@@ -24,7 +24,8 @@ import AssetEventType from '#/events/AssetEventType'
 import type * as assetListEvent from '#/events/assetListEvent'
 import AssetListEventType from '#/events/AssetListEventType'
 
-import Category, * as categoryModule from '#/layouts/CategorySwitcher/Category'
+import * as categoryModule from '#/layouts/CategorySwitcher/Category'
+import type Category from '#/layouts/CategorySwitcher/Category'
 import Chat from '#/layouts/Chat'
 import ChatPlaceholder from '#/layouts/ChatPlaceholder'
 import Drive from '#/layouts/Drive'
@@ -149,14 +150,37 @@ export default function Dashboard(props: DashboardProps) {
       ? localBackendModule.newProjectId(projectManager.UUID(initialProjectNameRaw))
       : null
   const initialProjectName = initialLocalProjectId ?? initialProjectNameRaw
-  const defaultCategory =
-    remoteBackend != null && initialLocalProjectId == null ? Category.cloud : Category.local
+  const defaultCategory: Category =
+    remoteBackend != null && initialLocalProjectId == null
+      ? { type: categoryModule.CategoryType.cloud }
+      : { type: categoryModule.CategoryType.local }
   const [category, setCategory] = searchParamsState.useSearchParamsState(
     'driveCategory',
     () => defaultCategory,
     (value): value is Category => {
-      if (array.includes(Object.values(Category), value)) {
-        return categoryModule.isLocalCategory(value) ? localBackend != null : true
+      if (typeof value !== 'object' || value == null) {
+        return false
+      } else if (!('type' in value) || typeof value.type !== 'string') {
+        return false
+      } else if (array.includes(Object.values(categoryModule.CategoryType), value.type)) {
+        switch (value.type) {
+          case categoryModule.CategoryType.user:
+          case categoryModule.CategoryType.team: {
+            if (!('homeDirectoryId' in value) || typeof value.homeDirectoryId !== 'string') {
+              return false
+            } else {
+              const narrowedValue = {
+                type: value.type,
+                homeDirectoryId: backendModule.DirectoryId(value.homeDirectoryId),
+              } as const
+              return categoryModule.isLocalCategory(narrowedValue) ? localBackend != null : true
+            }
+          }
+          default: {
+            const narrowedValue = { type: value.type } as const
+            return categoryModule.isLocalCategory(narrowedValue) ? localBackend != null : true
+          }
+        }
       } else {
         return false
       }
@@ -169,7 +193,7 @@ export default function Dashboard(props: DashboardProps) {
   if (isCloud && !isUserEnabled && localBackend != null) {
     setTimeout(() => {
       // This sets `BrowserRouter`, so it must not be set synchronously.
-      setCategory(Category.local)
+      setCategory({ type: categoryModule.CategoryType.local })
     })
   }
 

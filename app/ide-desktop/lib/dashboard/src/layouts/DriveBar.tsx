@@ -20,7 +20,8 @@ import AssetEventType from '#/events/AssetEventType'
 
 import type * as assetSearchBar from '#/layouts/AssetSearchBar'
 import AssetSearchBar from '#/layouts/AssetSearchBar'
-import Category, * as categoryModule from '#/layouts/CategorySwitcher/Category'
+import * as categoryModule from '#/layouts/CategorySwitcher/Category'
+import type Category from '#/layouts/CategorySwitcher/Category'
 import StartModal from '#/layouts/StartModal'
 
 import * as aria from '#/components/aria'
@@ -128,8 +129,8 @@ export default function DriveBar(props: DriveBarProps) {
     </>
   )
 
-  switch (category) {
-    case Category.recent: {
+  switch (category.type) {
+    case categoryModule.CategoryType.recent: {
       return (
         <div className="flex h-9 items-center">
           <HorizontalMenuBar grow>
@@ -139,7 +140,7 @@ export default function DriveBar(props: DriveBarProps) {
         </div>
       )
     }
-    case Category.trash: {
+    case categoryModule.CategoryType.trash: {
       return (
         <div className="flex h-9 items-center">
           <HorizontalMenuBar grow>
@@ -164,8 +165,10 @@ export default function DriveBar(props: DriveBarProps) {
         </div>
       )
     }
-    case Category.cloud:
-    case Category.local: {
+    case categoryModule.CategoryType.cloud:
+    case categoryModule.CategoryType.local:
+    case categoryModule.CategoryType.user:
+    case categoryModule.CategoryType.team: {
       return (
         <div className="flex h-9 items-center">
           <HorizontalMenuBar grow>

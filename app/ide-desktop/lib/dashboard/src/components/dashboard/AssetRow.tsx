@@ -18,7 +18,7 @@ import AssetListEventType from '#/events/AssetListEventType'
 
 import AssetContextMenu from '#/layouts/AssetContextMenu'
 import type * as assetsTable from '#/layouts/AssetsTable'
-import Category from '#/layouts/CategorySwitcher/Category'
+import * as categoryModule from '#/layouts/CategorySwitcher/Category'
 
 import * as aria from '#/components/aria'
 import * as assetRowUtils from '#/components/dashboard/AssetRow/assetRowUtils'
@@ -417,7 +417,7 @@ export default function AssetRow(props: AssetRowProps) {
   }, [setModal, asset.description, setAsset, backend, item.item.id, item.item.title])
 
   eventHooks.useEventHandler(assetEvents, async event => {
-    if (state.category === Category.trash) {
+    if (state.category.type === categoryModule.CategoryType.trash) {
       switch (event.type) {
         case AssetEventType.deleteForever: {
           if (event.ids.has(item.key)) {
@@ -700,7 +700,7 @@ export default function AssetRow(props: AssetRowProps) {
       event.preventDefault()
       if (
         item.item.type === backendModule.AssetType.directory &&
-        state.category !== Category.trash
+        state.category.type !== categoryModule.CategoryType.trash
       ) {
         setIsDraggedOver(true)
       }
@@ -805,7 +805,7 @@ export default function AssetRow(props: AssetRowProps) {
                   onDragOver(event)
                 }}
                 onDragOver={event => {
-                  if (state.category === Category.trash) {
+                  if (state.category.type === categoryModule.CategoryType.trash) {
                     event.dataTransfer.dropEffect = 'none'
                   }
                   props.onDragOver?.(event)
@@ -832,7 +832,7 @@ export default function AssetRow(props: AssetRowProps) {
                   props.onDragLeave?.(event)
                 }}
                 onDrop={event => {
-                  if (state.category !== Category.trash) {
+                  if (state.category.type !== categoryModule.CategoryType.trash) {
                     props.onDrop?.(event)
                     clearDragState()
                     const [directoryKey, directoryId, directoryTitle] =
@@ -887,7 +887,7 @@ export default function AssetRow(props: AssetRowProps) {
                         state={state}
                         rowState={rowState}
                         setRowState={setRowState}
-                        isEditable={state.category !== Category.trash}
+                        isEditable={state.category.type !== categoryModule.CategoryType.trash}
                       />
                     </td>
                   )
