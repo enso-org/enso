@@ -41,7 +41,6 @@
     "clsx": "^2.1.1",
     "enso-assets": "workspace:*",
     "enso-common": "workspace:*",
-    "idb-keyval": "6.2.1",
     "is-network-error": "^1.0.1",
     "monaco-editor": "0.48.0",
     "react": "^18.3.1",
