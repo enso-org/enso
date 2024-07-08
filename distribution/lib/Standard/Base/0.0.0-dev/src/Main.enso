@@ -14,6 +14,7 @@ export project.Data.Json.JS_Object
 export project.Data.Json.Json
 export project.Data.List.List
 export project.Data.Locale.Locale
+export project.Data.Map.Map
 export project.Data.Maybe.Maybe
 export project.Data.Numeric.Math_Context.Math_Context
 export project.Data.Numeric.Math_Context.Unlimited
