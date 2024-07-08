@@ -548,7 +548,6 @@ val scalacticVersion        = "3.3.0-SNAP4"
 val scalaLoggingVersion     = "3.9.4"
 val scalameterVersion       = "0.19"
 val scalatestVersion        = "3.3.0-SNAP4"
-val shapelessVersion        = "2.3.10"
 val slf4jVersion            = JPMSUtils.slf4jVersion
 val sqliteVersion           = "3.42.0.0"
 val tikaVersion             = "2.4.1"
