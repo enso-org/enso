@@ -81,6 +81,23 @@ class EditionSerializationSpec extends AnyWordSpec with Matchers with Inside {
       }
     }
 
+    "not allow non-unique libraries" in {
+      val parsed = EditionSerialization.parseYamlString(
+        """engine-version: 1.2.3-SNAPSHOT
+          |libraries:
+          |- name: Foo.local
+          |  repository: local
+          |- name: Foo.local
+          |  repository: local
+          |""".stripMargin
+      )
+      inside(parsed) { case Failure(exception) =>
+        exception.getMessage should include(
+          "YAML definition contains duplicate entries"
+        )
+      }
+    }
+
     "not allow invalid version combinations for libraries" in {
       val parsed = EditionSerialization.parseYamlString(
         """extends: foo
@@ -91,7 +108,7 @@ class EditionSerializationSpec extends AnyWordSpec with Matchers with Inside {
           |""".stripMargin
       )
       inside(parsed) { case Failure(exception) =>
-        exception.getMessage should include("Version field must not be set")
+        exception.getMessage should include("'version' field must not be set")
       }
 
       val parsed2 = EditionSerialization.parseYamlString(
@@ -102,7 +119,9 @@ class EditionSerializationSpec extends AnyWordSpec with Matchers with Inside {
           |""".stripMargin
       )
       inside(parsed2) { case Failure(exception) =>
-        exception.getMessage should include("Version field is mandatory")
+        exception.getMessage should include(
+          "'version' field is mandatory for non-local libraries"
+        )
       }
     }
   }

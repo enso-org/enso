@@ -1,6 +1,6 @@
 /** @file Functions related to displaying text. */
 
-import ENGLISH from '#/text/english.json' assert { type: 'json' }
+import ENGLISH from '#/text/english.json' with { type: 'json' }
 
 // =============
 // === Types ===

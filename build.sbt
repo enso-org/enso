@@ -290,6 +290,7 @@ lazy val enso = (project in file("."))
     `syntax-rust-definition`,
     `text-buffer`,
     yaml,
+    `scala-yaml`,
     pkg,
     cli,
     `task-progress-notifications`,
@@ -417,10 +418,10 @@ val catsVersion = "2.9.0"
 // === Circe ==================================================================
 
 val circeVersion              = "0.14.7"
-val circeYamlVersion          = "0.15.1"
 val circeGenericExtrasVersion = "0.14.3"
 val circe = Seq("circe-core", "circe-generic", "circe-parser")
   .map("io.circe" %% _ % circeVersion)
+val snakeyamlVersion = "2.2"
 
 // === Commons ================================================================
 
@@ -751,7 +752,16 @@ lazy val yaml = (project in file("lib/java/yaml"))
     frgaalJavaCompilerSetting,
     version := "0.1",
     libraryDependencies ++= Seq(
-      "io.circe" %% "circe-yaml" % circeYamlVersion % "provided"
+      "org.yaml" % "snakeyaml" % snakeyamlVersion % "provided"
+    )
+  )
+
+lazy val `scala-yaml` = (project in file("lib/scala/yaml"))
+  .configs(Test)
+  .settings(
+    frgaalJavaCompilerSetting,
+    libraryDependencies ++= Seq(
+      "org.yaml" % "snakeyaml" % snakeyamlVersion % "provided"
     )
   )
 
@@ -762,7 +772,8 @@ lazy val pkg = (project in file("lib/scala/pkg"))
     version := "0.1",
     libraryDependencies ++= Seq(
       "org.graalvm.truffle" % "truffle-api"      % graalMavenPackagesVersion % "provided",
-      "io.circe"           %% "circe-yaml"       % circeYamlVersion          % "provided",
+      "io.circe"           %% "circe-core"       % circeVersion              % "provided",
+      "org.yaml"            % "snakeyaml"        % snakeyamlVersion          % "provided",
       "org.scalatest"      %% "scalatest"        % scalatestVersion          % Test,
       "org.apache.commons"  % "commons-compress" % commonsCompressVersion
     )
@@ -930,10 +941,12 @@ lazy val cli = project
     version := "0.1",
     libraryDependencies ++= circe ++ Seq(
       "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion,
+      "org.yaml"                    % "snakeyaml"     % snakeyamlVersion % "provided",
       "org.scalatest"              %% "scalatest"     % scalatestVersion % Test
     ),
     Test / parallelExecution := false
   )
+  .dependsOn(`scala-yaml`)
 
 lazy val `task-progress-notifications` = project
   .in(file("lib/scala/task-progress-notifications"))
@@ -1461,11 +1474,11 @@ lazy val `polyglot-api` = project
         "runtime-fat-jar"
       ) / Compile / fullClasspath).value,
     libraryDependencies ++= Seq(
+      "io.circe"                              %% "circe-core"            % circeVersion              % "provided",
       "org.graalvm.sdk"                        % "polyglot-tck"          % graalMavenPackagesVersion % "provided",
       "org.graalvm.truffle"                    % "truffle-api"           % graalMavenPackagesVersion % "provided",
       "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-macros" % jsoniterVersion,
       "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-core"   % jsoniterVersion,
-      "io.circe"                              %% "circe-yaml"            % circeYamlVersion          % "provided", // as required by `pkg` and `editions`
       "com.google.flatbuffers"                 % "flatbuffers-java"      % flatbuffersVersion,
       "org.scalatest"                         %% "scalatest"             % scalatestVersion          % Test,
       "org.scalacheck"                        %% "scalacheck"            % scalacheckVersion         % Test
@@ -2614,55 +2627,60 @@ lazy val `engine-runner` = project
     assembly := assembly
       .dependsOn(`runtime-fat-jar` / assembly)
       .value,
-    rebuildNativeImage :=
-      NativeImage
-        .buildNativeImage(
-          "runner",
-          staticOnLinux = false,
-          additionalOptions = Seq(
-            "-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.NoOpLog",
-            "-H:IncludeResources=.*Main.enso$",
-            "-H:+AddAllCharsets",
-            "-H:+IncludeAllLocales",
-            "-ea",
-            // useful perf & debug switches:
-            // "-g",
-            // "-H:+SourceLevelDebug",
-            // "-H:-DeleteLocalSymbols",
-            // you may need to set smallJdk := None to use following flags:
-            // "--trace-class-initialization=org.enso.syntax2.Parser",
-            "-Dnic=nic"
-          ),
-          mainClass = Some("org.enso.runner.Main"),
-          initializeAtRuntime = Seq(
-            "org.jline.nativ.JLineLibrary",
-            "org.jline.terminal.impl.jna",
-            "io.methvin.watchservice.jna.CarbonAPI",
-            "zio.internal.ZScheduler$$anon$4",
-            "org.enso.runner.Main$",
-            "sun.awt",
-            "sun.java2d",
-            "sun.font",
-            "java.awt",
-            "com.sun.imageio",
-            "com.sun.jna.internal.Cleaner",
-            "com.sun.jna.Structure$FFIType",
-            "akka.http"
+    rebuildNativeImage := Def
+      .taskDyn {
+        NativeImage
+          .buildNativeImage(
+            "enso",
+            targetDir     = engineDistributionRoot.value / "bin",
+            staticOnLinux = false,
+            additionalOptions = Seq(
+              "-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.NoOpLog",
+              "-H:IncludeResources=.*Main.enso$",
+              "-H:+AddAllCharsets",
+              "-H:+IncludeAllLocales",
+              "-ea",
+              // useful perf & debug switches:
+              // "-g",
+              // "-H:+SourceLevelDebug",
+              // "-H:-DeleteLocalSymbols",
+              // you may need to set smallJdk := None to use following flags:
+              // "--trace-class-initialization=org.enso.syntax2.Parser",
+              "-Dnic=nic"
+            ),
+            mainClass = Some("org.enso.runner.Main"),
+            initializeAtRuntime = Seq(
+              "org.jline.nativ.JLineLibrary",
+              "org.jline.terminal.impl.jna",
+              "io.methvin.watchservice.jna.CarbonAPI",
+              "zio.internal.ZScheduler$$anon$4",
+              "org.enso.runner.Main$",
+              "sun.awt",
+              "sun.java2d",
+              "sun.font",
+              "java.awt",
+              "com.sun.imageio",
+              "com.sun.jna.internal.Cleaner",
+              "com.sun.jna.Structure$FFIType",
+              "akka.http"
+            )
           )
-        )
-        .dependsOn(NativeImage.additionalCp)
-        .dependsOn(NativeImage.smallJdk)
-        .dependsOn(assembly)
-        .dependsOn(
-          buildEngineDistribution
-        )
-        .value,
-    buildNativeImage := NativeImage
-      .incrementalNativeImageBuild(
-        rebuildNativeImage,
-        "runner"
+      }
+      .dependsOn(NativeImage.additionalCp)
+      .dependsOn(NativeImage.smallJdk)
+      .dependsOn(assembly)
+      .dependsOn(
+        buildEngineDistribution
       )
-      .value
+      .value,
+    buildNativeImage := Def.taskDyn {
+      NativeImage
+        .incrementalNativeImageBuild(
+          rebuildNativeImage,
+          "enso",
+          targetDir = engineDistributionRoot.value / "bin"
+        )
+    }.value
   )
   .dependsOn(`version-output`)
   .dependsOn(yaml)
@@ -2764,7 +2782,7 @@ lazy val `distribution-manager` = project
     resolvers += Resolver.bintrayRepo("gn0s1s", "releases"),
     libraryDependencies ++= Seq(
       "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion,
-      "io.circe"                   %% "circe-yaml"    % circeYamlVersion,
+      "org.yaml"                    % "snakeyaml"     % snakeyamlVersion,
       "commons-io"                  % "commons-io"    % commonsIoVersion,
       "org.scalatest"              %% "scalatest"     % scalatestVersion % Test
     )
@@ -2944,7 +2962,8 @@ lazy val editions = project
   .settings(
     frgaalJavaCompilerSetting,
     libraryDependencies ++= Seq(
-      "io.circe"      %% "circe-yaml" % circeYamlVersion % "provided",
+      "io.circe"      %% "circe-core" % circeVersion     % "provided",
+      "org.yaml"       % "snakeyaml"  % snakeyamlVersion % "provided",
       "org.scalatest" %% "scalatest"  % scalatestVersion % Test
     )
   )
@@ -2973,7 +2992,8 @@ lazy val semver = project
   .settings(
     frgaalJavaCompilerSetting,
     libraryDependencies ++= Seq(
-      "io.circe"      %% "circe-yaml"      % circeYamlVersion % "provided",
+      "io.circe"      %% "circe-core"      % circeVersion     % "provided",
+      "org.yaml"       % "snakeyaml"       % snakeyamlVersion % "provided",
       "org.scalatest" %% "scalatest"       % scalatestVersion % Test,
       "junit"          % "junit"           % junitVersion     % Test,
       "com.github.sbt" % "junit-interface" % junitIfVersion   % Test
@@ -2996,6 +3016,7 @@ lazy val semver = project
     cleanFiles += baseDirectory.value / ".." / ".." / "distribution" / "editions"
   )
   .dependsOn(testkit % Test)
+  .dependsOn(`scala-yaml`)
 
 lazy val downloader = (project in file("lib/scala/downloader"))
   .settings(
@@ -3040,7 +3061,7 @@ lazy val `edition-uploader` = project
   .settings(
     frgaalJavaCompilerSetting,
     libraryDependencies ++= Seq(
-      "io.circe" %% "circe-yaml" % circeYamlVersion % "provided"
+      "io.circe" %% "circe-core" % circeVersion % "provided"
     )
   )
   .dependsOn(editions)
@@ -3557,6 +3578,10 @@ buildEngineDistribution := {
 // of other tasks.
 ThisBuild / buildEngineDistribution := {
   buildEngineDistribution.result.value
+}
+
+ThisBuild / engineDistributionRoot := {
+  engineDistributionRoot.value
 }
 
 lazy val buildEngineDistributionNoIndex =

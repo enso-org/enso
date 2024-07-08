@@ -8,6 +8,7 @@ import java.net.URISyntaxException;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -53,6 +54,7 @@ import scala.runtime.BoxedUnit;
 
 /** The main CLI entry point class. */
 public final class Main {
+  private static final String JVM_OPTION = "jvm";
   private static final String RUN_OPTION = "run";
   private static final String INSPECT_OPTION = "inspect";
   private static final String DUMP_GRAPHS_OPTION = "dump-graphs";
@@ -126,6 +128,15 @@ public final class Main {
             .argName("file")
             .longOpt(RUN_OPTION)
             .desc("Runs a specified Enso file.")
+            .build();
+    var jvm =
+        cliOptionBuilder()
+            .hasArg(true)
+            .numberOfArgs(1)
+            .optionalArg(true)
+            .argName("jvm")
+            .longOpt(JVM_OPTION)
+            .desc("Specifies whether to run JVM mode and optionally selects a JVM to run with.")
             .build();
     var inspect =
         cliOptionBuilder()
@@ -451,6 +462,7 @@ public final class Main {
     options
         .addOption(help)
         .addOption(repl)
+        .addOption(jvm)
         .addOption(run)
         .addOption(inspect)
         .addOption(dumpGraphs)
@@ -508,17 +520,17 @@ public final class Main {
   }
 
   /** Terminates the process with a failure exit code. */
-  private RuntimeException exitFail() {
+  private static RuntimeException exitFail() {
     return doExit(1);
   }
 
   /** Terminates the process with a success exit code. */
-  private RuntimeException exitSuccess() {
+  private static RuntimeException exitSuccess() {
     return doExit(0);
   }
 
   /** Shuts down the logging service and terminates the process. */
-  private RuntimeException doExit(int exitCode) {
+  private static RuntimeException doExit(int exitCode) {
     RunnerLogging.tearDown();
     System.exit(exitCode);
     return null;
@@ -932,7 +944,7 @@ public final class Main {
   }
 
   /** Parses the log level option. */
-  private Level parseLogLevel(String levelOption) {
+  private static Level parseLogLevel(String levelOption) {
     var name = levelOption.toLowerCase();
     var found =
         Stream.of(Level.values()).filter(x -> name.equals(x.name().toLowerCase())).findFirst();
@@ -949,7 +961,7 @@ public final class Main {
   }
 
   /** Parses an URI that specifies the logging service connection. */
-  private URI parseUri(String string) {
+  private static URI parseUri(String string) {
     try {
       return new URI(string);
     } catch (URISyntaxException ex) {
@@ -966,7 +978,7 @@ public final class Main {
    *
    * @param args the command line arguments
    */
-  public static void main(String[] args) throws IOException {
+  public static void main(String[] args) throws Exception {
     new Main().launch(args);
   }
 
@@ -1294,16 +1306,105 @@ public final class Main {
     System.out.println(msg);
   }
 
-  private void launch(String[] args) {
+  private void launch(String[] args) throws IOException, InterruptedException, URISyntaxException {
     var options = buildOptions();
     var line = preprocessArguments(options, args);
-    launch(options, line);
+
+    var logMasking = new boolean[1];
+    var logLevel = setupLogging(options, line, logMasking);
+
+    if (line.hasOption(JVM_OPTION)) {
+      var jvm = line.getOptionValue(JVM_OPTION);
+      var current = System.getProperty("java.home");
+      if (jvm == null) {
+        jvm = current;
+      }
+      if (current == null || !current.equals(jvm)) {
+        var loc = Main.class.getProtectionDomain().getCodeSource().getLocation();
+        var commandAndArgs = new ArrayList<String>();
+        JVM_FOUND:
+        if (jvm == null) {
+          var env = new Environment() {};
+          var dm = new DistributionManager(env);
+          var paths = dm.paths();
+          var files = paths.runtimes().toFile().listFiles();
+          if (files != null) {
+            for (var d : files) {
+              var java = new File(new File(d, "bin"), "java").getAbsoluteFile();
+              if (java.exists()) {
+                commandAndArgs.add(java.getPath());
+                break JVM_FOUND;
+              }
+            }
+          }
+          commandAndArgs.add("java");
+        } else {
+          commandAndArgs.add(new File(new File(new File(jvm), "bin"), "java").getAbsolutePath());
+        }
+        var jvmOptions = System.getenv("JAVA_OPTS");
+        if (jvmOptions != null) {
+          for (var op : jvmOptions.split(" ")) {
+            if (op.isEmpty()) {
+              continue;
+            }
+            commandAndArgs.add(op);
+          }
+        }
+
+        commandAndArgs.add("--add-opens=java.base/java.nio=ALL-UNNAMED");
+        commandAndArgs.add("--module-path");
+        var component = new File(loc.toURI().resolve("..")).getAbsoluteFile();
+        if (!component.getName().equals("component")) {
+          component = new File(component, "component");
+        }
+        if (!component.isDirectory()) {
+          throw new IOException("Cannot find " + component + " directory");
+        }
+        commandAndArgs.add(component.getPath());
+        commandAndArgs.add("-m");
+        commandAndArgs.add("org.enso.runtime/org.enso.EngineRunnerBootLoader");
+        var it = line.iterator();
+        while (it.hasNext()) {
+          var op = it.next();
+          if (JVM_OPTION.equals(op.getLongOpt())) {
+            continue;
+          }
+          var longName = op.getLongOpt();
+          if (longName != null) {
+            commandAndArgs.add("--" + longName);
+          } else {
+            commandAndArgs.add("-" + op.getOpt());
+          }
+          var values = op.getValuesList();
+          if (values != null) {
+            commandAndArgs.addAll(values);
+          }
+        }
+        commandAndArgs.addAll(line.getArgList());
+        var pb = new ProcessBuilder();
+        pb.inheritIO();
+        pb.command(commandAndArgs);
+        var p = pb.start();
+        var exitCode = p.waitFor();
+        if (exitCode == 0) {
+          throw exitSuccess();
+        } else {
+          throw doExit(exitCode);
+        }
+      }
+    }
+
+    launch(options, line, logLevel, logMasking[0]);
   }
 
   protected CommandLine preprocessArguments(Options options, String[] args) {
     var parser = new DefaultParser();
     try {
+      var startParsing = System.currentTimeMillis();
       var line = parser.parse(options, args);
+      logger.trace(
+          "Parsing Language Server arguments took {0}ms",
+          System.currentTimeMillis() - startParsing);
       return line;
     } catch (Exception e) {
       printHelp(options);
@@ -1311,15 +1412,18 @@ public final class Main {
     }
   }
 
-  protected void launch(Options options, CommandLine line) {
+  private static Level setupLogging(Options options, CommandLine line, boolean[] logMasking) {
     var logLevel =
         scala.Option.apply(line.getOptionValue(LOG_LEVEL))
-            .map(this::parseLogLevel)
+            .map(Main::parseLogLevel)
             .getOrElse(() -> defaultLogLevel);
-    var connectionUri = scala.Option.apply(line.getOptionValue(LOGGER_CONNECT)).map(this::parseUri);
-    var logMasking = !line.hasOption(NO_LOG_MASKING);
-    RunnerLogging.setup(connectionUri, logLevel, logMasking);
+    var connectionUri = scala.Option.apply(line.getOptionValue(LOGGER_CONNECT)).map(Main::parseUri);
+    logMasking[0] = !line.hasOption(NO_LOG_MASKING);
+    RunnerLogging.setup(connectionUri, logLevel, logMasking[0]);
+    return logLevel;
+  }
 
+  private void launch(Options options, CommandLine line, Level logLevel, boolean logMasking) {
     if (line.hasOption(LANGUAGE_SERVER_OPTION)) {
       runLanguageServer(line, logLevel);
     } else {

@@ -16,6 +16,7 @@ import NodeWidgetTree, {
   GRAB_HANDLE_X_MARGIN_R,
   ICON_WIDTH,
 } from '@/components/GraphEditor/NodeWidgetTree.vue'
+import SmallPlusButton from '@/components/SmallPlusButton.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import { useDoubleClick } from '@/composables/doubleClick'
 import { usePointer, useResizeObserver } from '@/composables/events'
@@ -26,6 +27,7 @@ import { injectGraphSelection } from '@/providers/graphSelection'
 import { useGraphStore, type Node } from '@/stores/graph'
 import { asNodeId } from '@/stores/graph/graphDatabase'
 import { useProjectStore } from '@/stores/project'
+import { suggestionDocumentationUrl } from '@/stores/suggestionDatabase/entry'
 import { Ast } from '@/util/ast'
 import type { AstId } from '@/util/ast/abstract'
 import { prefixes } from '@/util/ast/node'
@@ -242,11 +244,9 @@ const isVisualizationFullscreen = computed(() => props.node.vis?.fullscreen ?? f
 
 const bgStyleVariables = computed(() => {
   const { x: width, y: height } = nodeSize.value
-  const visBelowNode = graphSelectionSize.value.y - nodeSize.value.y
   return {
     '--node-width': `${width}px`,
     '--node-height': `${height}px`,
-    '--output-port-transform': `translateY(${visBelowNode}px)`,
   }
 })
 
@@ -319,6 +319,9 @@ const icon = computed(() => {
     outputPortLabel.value,
   )
 })
+const documentationUrl = computed(
+  () => suggestionEntry.value && suggestionDocumentationUrl(suggestionEntry.value),
+)
 
 const nodeEditHandler = nodeEditBindings.handler({
   cancel(e) {
@@ -332,7 +335,7 @@ const nodeEditHandler = nodeEditBindings.handler({
   },
 })
 
-function startEditingNode(position: Vec2 | undefined) {
+function startEditingNode(position?: Vec2 | undefined) {
   let sourceOffset = props.node.rootExpr.code().length
   if (position != null) {
     let domNode, domOffset
@@ -423,6 +426,7 @@ watchEffect(() => {
       minWidth: isVisualizationEnabled ? `${visualizationWidth ?? 200}px` : undefined,
       '--node-group-color': color,
       ...(node.zIndex ? { 'z-index': node.zIndex } : {}),
+      '--viz-below-node': `${graphSelectionSize.y - nodeSize.y}px`,
     }"
     :class="{
       selected,
@@ -470,6 +474,7 @@ watchEffect(() => {
       :isFullMenuVisible="menuVisible && menuFull"
       :nodeColor="getNodeColor(nodeId)"
       :matchableNodeColors="matchableNodeColors"
+      :documentationUrl="documentationUrl"
       @update:isVisualizationEnabled="emit('update:visualizationEnabled', $event)"
       @startEditing="startEditingNode"
       @startEditingComment="editingComment = true"
@@ -549,6 +554,11 @@ watchEffect(() => {
         @update:nodeHovered="outputHovered = $event"
       />
     </svg>
+    <SmallPlusButton
+      v-if="menuVisible && isVisualizationVisible"
+      class="below-viz"
+      @createNodes="emit('createNodes', $event)"
+    />
   </div>
 </template>
 
@@ -562,6 +572,7 @@ watchEffect(() => {
   left: 0;
   display: flex;
 
+  --output-port-transform: translateY(var(--viz-below-node));
   --output-port-max-width: 4px;
   --output-port-hovered-extra-width: 2px;
   --output-port-overlap: -8px;
@@ -597,9 +608,6 @@ watchEffect(() => {
   border-radius: var(--node-border-radius);
   transition: box-shadow 0.2s ease-in-out;
   box-sizing: border-box;
-  ::selection {
-    background-color: rgba(255, 255, 255, 20%);
-  }
 }
 
 .content {
@@ -697,5 +705,12 @@ watchEffect(() => {
 
 .dragged {
   cursor: grabbing !important;
+}
+
+.below-viz {
+  position: absolute;
+  top: 100%;
+  transform: translateY(var(--viz-below-node));
+  margin-top: 4px;
 }
 </style>

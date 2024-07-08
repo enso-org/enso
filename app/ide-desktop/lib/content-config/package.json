@@ -14,5 +14,10 @@
   },
   "bugs": {
     "url": "https://github.com/enso-org/enso/issues"
+  },
+  "dependencies": {
+    "@types/semver": "^7.5.8",
+    "semver": "^7.6.2",
+    "enso-runner": "workspace:*"
   }
 }

@@ -39,16 +39,16 @@ test('Different ways of opening Component Browser', async ({ page }) => {
   // (+) button
   await locate.addNewNodeButton(page).click()
   await expectAndCancelBrowser(page, '')
+  // (+) button with selection (ignored)
+  await locate.graphNodeByBinding(page, 'final').click()
+  await locate.addNewNodeButton(page).click()
+  await expectAndCancelBrowser(page, '')
   // Enter key
   await locate.graphEditor(page).press('Enter')
   await expectAndCancelBrowser(page, '')
 
   // With source node
 
-  // (+) button
-  await locate.graphNodeByBinding(page, 'final').click()
-  await locate.addNewNodeButton(page).click()
-  await expectAndCancelBrowser(page, '', 'final')
   // Enter key
   await locate.graphNodeByBinding(page, 'final').click()
   await locate.graphEditor(page).press('Enter')
@@ -117,7 +117,7 @@ test('Graph Editor pans to Component Browser', async ({ page }) => {
 })
 
 test('Accepting suggestion', async ({ page }) => {
-  // Clicking enry
+  // Clicking entry
   await actions.goToGraph(page)
   await locate.addNewNodeButton(page).click()
   let nodeCount = await locate.graphNode(page).count()
