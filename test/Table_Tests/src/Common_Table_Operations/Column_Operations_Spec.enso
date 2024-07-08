@@ -1642,7 +1642,7 @@ add_specs suite_builder setup =
             c.value_type . should_equal Value_Type.Mixed
             (empty.set c).at c.name . value_type . should_equal Value_Type.Mixed
 
-    decimal_db_pending = if setup.test_selection.supports_decimal_type.not then "Decimals are currently not supported by this backend."
+    decimal_db_pending = if setup.is_database then "Decimals are currently not implemented for the Database backend."
     suite_builder.group prefix+"(Column_Operations_Spec) Decimal" pending=decimal_db_pending group_builder->
         table_builder = setup.light_table_builder
         group_builder.specify "can store and retrieve values" <|
