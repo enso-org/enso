@@ -1,9 +1,13 @@
+/** @file QueryClient based on the '@tanstack/vue-query' implementation. */
+
 import * as vueQuery from '@tanstack/vue-query'
 import * as queryCore from '@tanstack/query-core'
 import * as vue from 'vue'
 
 /** The QueryClient from vue-query, but with immediate query invalidation. */
 export class QueryClient extends vueQuery.QueryClient {
+    /** Like the `invalidateQueries` method of `vueQuery.QueryClient`, but invalidates queries immediately. */
+    // Workaround for https://github.com/TanStack/query/issues/7694
     override invalidateQueries(
         filters: MaybeRefDeep<queryCore.InvalidateQueryFilters> = {},
         options: MaybeRefDeep<queryCore.InvalidateOptions> = {}
@@ -19,19 +23,22 @@ export class QueryClient extends vueQuery.QueryClient {
         })
         if (filtersValue.refetchType === 'none') {
             return Promise.resolve()
-        }
-        const refetchType = filtersValue.refetchType
-        return vue.nextTick(() =>
+        } else {
+          const refetchType = filtersValue.refetchType
+          return vue.nextTick(() =>
             queryCore.notifyManager.batch(() => {
-                const refetchFilters: queryCore.RefetchQueryFilters = {
-                    ...filtersValue,
-                    type: refetchType ?? filtersValue.type ?? 'active',
-                }
-                return this.refetchQueries(refetchFilters, optionsValue)
+              const refetchFilters: queryCore.RefetchQueryFilters = {
+                ...filtersValue,
+                type: refetchType ?? filtersValue.type ?? 'active',
+              }
+              return this.refetchQueries(refetchFilters, optionsValue)
             })
-        )
+          )
+        }
     }
 }
+
+/* eslint-disable */
 
 function isPlainObject(value: unknown): value is Object {
     if (Object.prototype.toString.call(value) !== '[object Object]') {
@@ -88,3 +95,5 @@ type MaybeRefDeep<T> = vue.MaybeRef<
             }
           : T
 >
+
+/* eslint-enable */
