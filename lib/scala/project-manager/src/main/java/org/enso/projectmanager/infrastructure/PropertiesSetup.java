@@ -1,7 +1,5 @@
 package org.enso.projectmanager.infrastructure;
 
-import org.enso.projectmanager.service.versionmanagement.NoOpInterface;
-import org.enso.projectmanager.versionmanagement.DefaultDistributionConfiguration;
 import org.enso.runtimeversionmanager.components.RuntimeVersionManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -10,25 +8,23 @@ public final class PropertiesSetup {
 
   private static final Logger logger = LoggerFactory.getLogger(PropertiesSetup.class);
 
-  private static final RuntimeVersionManager runtimeVersionManager =
-      DefaultDistributionConfiguration.makeRuntimeVersionManager(new NoOpInterface());
-
   private PropertiesSetup() {}
 
   /**
    * Setup {@code java.home} system property.
    *
-   * <p>{@code java.home} system property is required for Java AWT to work in the native image.
+   * <p>{@code java.home} system property is required for Java Abstract Window Toolkit to work in
+   * the native image.
    *
    * @see <a href="https://github.com/oracle/graal/issues/3659">graal/3659</a>.
    */
-  public static void setupJavaHome() {
+  public static void setupJavaHome(RuntimeVersionManager runtimeVersionManager) {
     var propJavaHome = System.getProperty("java.home");
-    logger.debug("java.home={}", propJavaHome);
+    logger.debug("System property java.home={}", propJavaHome);
 
-    if (System.getProperty("java.home") == null) {
+    if (propJavaHome == null) {
       var envJavaHome = System.getenv("JAVA_HOME");
-      logger.debug("JAVA_HOME={}", envJavaHome);
+      logger.debug("Environment variable JAVA_HOME={}", envJavaHome);
       if (envJavaHome != null) {
         setProperty("java.home", envJavaHome);
         return;

@@ -25,6 +25,8 @@ import org.enso.projectmanager.boot.configuration.{
 import org.enso.projectmanager.infrastructure.PropertiesSetup
 import org.enso.projectmanager.infrastructure.migration.ProjectsMigration
 import org.enso.projectmanager.protocol.JsonRpcProtocolFactory
+import org.enso.projectmanager.service.versionmanagement.NoOpInterface
+import org.enso.projectmanager.versionmanagement.DefaultDistributionConfiguration
 import org.enso.version.VersionDescription
 import org.slf4j.event.Level
 import pureconfig.ConfigSource
@@ -81,7 +83,11 @@ object ProjectManager extends ZIOAppDefault with LazyLogging {
     processConfig: MainProcessConfig
   ): ZIO[ZAny, IOException, Unit] = {
     ProjectsMigration.migrate(config.storage)
-    PropertiesSetup.setupJavaHome()
+    PropertiesSetup.setupJavaHome(
+      DefaultDistributionConfiguration.makeRuntimeVersionManager(
+        new NoOpInterface()
+      )
+    )
     val mainModule =
       new MainModule[ZIO[ZAny, +*, +*]](
         config,
