@@ -296,6 +296,7 @@ export default function Dashboard(props: DashboardProps) {
   }
 
   const openProjectMutation = reactQuery.useMutation({
+    mutationKey: ['openProject'],
     networkMode: 'always',
     mutationFn: ({ title, id, type, parentId }: Project) => {
       const backend = type === backendModule.BackendType.remote ? remoteBackend : localBackend
@@ -329,10 +330,10 @@ export default function Dashboard(props: DashboardProps) {
     onError: async (_, { id }) => {
       await client.invalidateQueries({ queryKey: createGetProjectDetailsQuery.getQueryKey(id) })
     },
-    retry: 3,
   })
 
   const closeProjectMutation = reactQuery.useMutation({
+    mutationKey: ['closeProject'],
     mutationFn: async ({ type, id, title }: Project) => {
       const backend = type === backendModule.BackendType.remote ? remoteBackend : localBackend
 
@@ -351,7 +352,6 @@ export default function Dashboard(props: DashboardProps) {
     onError: async (_, { id }) => {
       await client.invalidateQueries({ queryKey: createGetProjectDetailsQuery.getQueryKey(id) })
     },
-    retry: 3,
   })
 
   const client = reactQuery.useQueryClient()
@@ -437,25 +437,41 @@ export default function Dashboard(props: DashboardProps) {
     }
   }, [inputBindings])
 
-  const doCloseAllProjects = eventCallbacks.useEventCallback(() => {
-    for (const launchedProject of launchedProjects) {
-      doCloseProject(launchedProject)
-    }
-  })
-
   const doOpenProject = eventCallbacks.useEventCallback(
     (project: Project, options: OpenProjectOptions = {}) => {
       const { openInBackground = true } = options
+
       // since we don't support multitabs, we need to close opened project first
       if (launchedProjects.length > 0) {
         doCloseAllProjects()
       }
 
-      openProjectMutation.mutate(project)
-      addLaunchedProject(project)
+      const isOpeningTheSameProject =
+        client.getMutationCache().find({
+          mutationKey: ['openProject'],
+          predicate: mutation => mutation.options.scope?.id === project.id,
+        })?.state.status === 'pending'
 
-      if (!openInBackground) {
-        doOpenEditor(project.id)
+      if (!isOpeningTheSameProject) {
+        openProjectMutation.mutate(project)
+
+        const openingProjectMutation = client.getMutationCache().find({
+          mutationKey: ['openProject'],
+          // this is unsafe, but we can't do anything about it
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          predicate: mutation => mutation.state.variables?.id === project.id,
+        })
+
+        openingProjectMutation?.setOptions({
+          ...openingProjectMutation.options,
+          scope: { id: project.id },
+        })
+
+        addLaunchedProject(project)
+
+        if (!openInBackground) {
+          doOpenEditor(project.id)
+        }
       }
     }
   )
@@ -465,10 +481,40 @@ export default function Dashboard(props: DashboardProps) {
   })
 
   const doCloseProject = eventCallbacks.useEventCallback((project: Project) => {
+    client
+      .getMutationCache()
+      .findAll({
+        mutationKey: ['openProject'],
+        predicate: mutation => mutation.options.scope?.id === project.id,
+      })
+      .forEach(mutation => {
+        mutation.setOptions({ ...mutation.options, retry: false })
+        mutation.destroy()
+      })
+
     closeProjectMutation.mutate(project)
+
+    client
+      .getMutationCache()
+      .findAll({
+        mutationKey: ['closeProject'],
+        // this is unsafe, but we can't do anything about it
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        predicate: mutation => mutation.state.variables?.id === project.id,
+      })
+      .forEach(mutation => {
+        mutation.setOptions({ ...mutation.options, scope: { id: project.id } })
+      })
+
     removeLaunchedProject(project.id)
 
     setPage(TabType.drive)
+  })
+
+  const doCloseAllProjects = eventCallbacks.useEventCallback(() => {
+    for (const launchedProject of launchedProjects) {
+      doCloseProject(launchedProject)
+    }
   })
 
   const doRemoveSelf = eventCallbacks.useEventCallback((project: Project) => {
