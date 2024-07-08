@@ -15,7 +15,7 @@ from project.Data.Text.Extensions import all
 ## An unordered collection of unique values.
 type Hashset
     ## PRIVATE
-    Value (underling_dictionary : Dictionary Any Nothing)
+    Value (underlying_dictionary : Dictionary Any Nothing)
 
     ## PRIVATE
        ADVANCED
@@ -45,13 +45,13 @@ type Hashset
        ICON convert
        Returns a vector containing all elements of this set.
     to_vector : Vector
-    to_vector self = self.underling_dictionary.keys
+    to_vector self = self.underlying_dictionary.keys
 
     ## GROUP Metadata
        ICON metadata
        Returns the number of elements in this set.
     size : Integer
-    size self = self.underling_dictionary.size
+    size self = self.underlying_dictionary.size
 
     ## GROUP Metadata
        ICON metadata
@@ -63,19 +63,19 @@ type Hashset
        ICON metadata
        Checks if the set is empty.
     is_empty : Boolean
-    is_empty self = self.underling_dictionary.is_empty
+    is_empty self = self.underlying_dictionary.is_empty
 
     ## GROUP Logical
        ICON metadata
        Checks if the set is not empty.
     not_empty : Boolean
-    not_empty self = self.underling_dictionary.not_empty
+    not_empty self = self.underlying_dictionary.not_empty
 
     ## GROUP Logical
        ICON preparation
        Checks if this set contains a given value.
     contains : Any -> Boolean
-    contains self value = self.underling_dictionary.contains_key value
+    contains self value = self.underlying_dictionary.contains_key value
 
     ## GROUP Logical
        ICON preparation
@@ -105,7 +105,7 @@ type Hashset
        Adds a value to this set.
     insert : Any -> Hashset
     insert self value =
-        dictionary = self.underling_dictionary.insert value Nothing
+        dictionary = self.underlying_dictionary.insert value Nothing
         Hashset.Value dictionary
 
     ## GROUP Calculations
@@ -113,7 +113,7 @@ type Hashset
        Creates a union of the two sets.
     union : Hashset -> Hashset
     union self (other : Hashset) =
-        start_dictionary = self.underling_dictionary
+        start_dictionary = self.underlying_dictionary
         dictionary = other.to_vector.fold start_dictionary m-> el-> m.insert el Nothing
         Hashset.Value dictionary
 
@@ -122,8 +122,8 @@ type Hashset
        Creates an intersection of the two sets.
     intersection : Hashset -> Hashset
     intersection self (other : Hashset) =
-        other_dictionary = other.underling_dictionary
-        dictionary = self.underling_dictionary.keys.fold Dictionary.empty m-> el->
+        other_dictionary = other.underlying_dictionary
+        dictionary = self.underlying_dictionary.keys.fold Dictionary.empty m-> el->
             if other_dictionary.contains_key el then m.insert el Nothing else m
         Hashset.Value dictionary
 
@@ -134,8 +134,8 @@ type Hashset
        the other set.
     difference : Hashset -> Hashset
     difference self (other : Hashset) =
-        other_dictionary = other.underling_dictionary
-        dictionary = self.underling_dictionary.keys.fold Dictionary.empty m-> el->
+        other_dictionary = other.underlying_dictionary
+        dictionary = self.underlying_dictionary.keys.fold Dictionary.empty m-> el->
             if other_dictionary.contains_key el then m else m.insert el Nothing
         Hashset.Value dictionary
 
