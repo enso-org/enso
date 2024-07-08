@@ -119,7 +119,7 @@ type Snowflake_Dialect
         inner_table_alias = table_name_deduplicator.make_unique table.name+"_inner"
         setup = (Internals_Access.get_context table).as_subquery inner_table_alias [Internals_Access.internal_columns table]
         new_columns = setup.new_columns.first
-        column_mapping = Map.from_vector <| new_columns.map c-> [c.name, c]
+        column_mapping = Dictionary.from_vector <| new_columns.map c-> [c.name, c]
         new_key_columns = key_columns.map c-> column_mapping.at c.name
         type_mapping = self.get_type_mapping
         distinct_expressions = new_key_columns.map column->

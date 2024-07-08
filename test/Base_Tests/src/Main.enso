@@ -30,12 +30,12 @@ import project.Data.Array_Proxy_Spec
 import project.Data.Bool_Spec
 import project.Data.Base_64_Spec
 import project.Data.Decimal_Spec
+import project.Data.Dictionary_Spec
 import project.Data.Function_Spec
 import project.Data.Interval_Spec
 import project.Data.Json_Spec
 import project.Data.List_Spec
 import project.Data.Locale_Spec
-import project.Data.Map_Spec
 import project.Data.Maybe_Spec
 import project.Data.Numbers_Spec
 import project.Data.Ordering_Spec
@@ -129,7 +129,7 @@ main filter=Nothing =
         Json_Spec.add_specs suite_builder
         List_Spec.add_specs suite_builder
         Locale_Spec.add_specs suite_builder
-        Map_Spec.add_specs suite_builder
+        Dictionary_Spec.add_specs suite_builder
         Set_Spec.add_specs suite_builder
         Maybe_Spec.add_specs suite_builder
         Meta_Spec.add_specs suite_builder
