@@ -254,10 +254,12 @@ export default function Dashboard(props: DashboardProps) {
 
   const setLaunchedProjects = eventCallbacks.useEventCallback(
     (fn: (currentState: Project[]) => Project[]) => {
-      privateSetLaunchedProjects(currentState => {
-        const nextState = fn(currentState)
-        localStorage.set('launchedProjects', nextState)
-        return nextState
+      React.startTransition(() => {
+        privateSetLaunchedProjects(currentState => {
+          const nextState = fn(currentState)
+          localStorage.set('launchedProjects', nextState)
+          return nextState
+        })
       })
     }
   )
@@ -478,7 +480,9 @@ export default function Dashboard(props: DashboardProps) {
   )
 
   const doOpenEditor = eventCallbacks.useEventCallback((projectId: Project['id']) => {
-    setPage(projectId)
+    React.startTransition(() => {
+      setPage(projectId)
+    })
   })
 
   const doCloseProject = eventCallbacks.useEventCallback((project: Project) => {

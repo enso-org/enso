@@ -18,11 +18,15 @@ export interface StatelessSpinnerProps extends spinner.SpinnerProps {}
  * {@link spinner.SpinnerState.initial} and immediately changes to the given state. */
 export default function StatelessSpinner(props: StatelessSpinnerProps) {
   const { size, state: rawState, ...spinnerProps } = props
+  const [, startTransition] = React.useTransition()
   const [state, setState] = React.useState(spinner.SpinnerState.initial)
 
   React.useLayoutEffect(() => {
     const id = requestAnimationFrame(() => {
-      setState(rawState)
+      // consider this as a low-priority update
+      startTransition(() => {
+        setState(rawState)
+      })
     })
 
     return () => {
