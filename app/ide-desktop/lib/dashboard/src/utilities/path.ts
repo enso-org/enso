@@ -10,7 +10,9 @@ import * as newtype from '#/utilities/newtype'
 /** A filesystem path. */
 export type Path = newtype.Newtype<string, 'Path'>
 /** Create a {@link Path}. */
+// eslint-disable-next-line @typescript-eslint/no-redeclare
 export const Path = newtype.newtypeConstructor<Path>()
+
 // ================
 // === joinPath ===
 // ================

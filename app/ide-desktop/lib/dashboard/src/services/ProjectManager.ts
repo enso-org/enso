@@ -7,7 +7,7 @@ import * as backend from '#/services/Backend'
 import * as appBaseUrl from '#/utilities/appBaseUrl'
 import type * as dateTime from '#/utilities/dateTime'
 import * as newtype from '#/utilities/newtype'
-import * as path from '#/utilities/path'
+import * as pathModule from '#/utilities/path'
 
 // =================
 // === Constants ===
@@ -418,7 +418,10 @@ export default class ProjectManager {
       'filesystem-list',
       parentId ?? this.rootDirectory
     )
-    return response.entries.map(entry => ({ ...entry, path: path.normalizeSlashes(entry.path) }))
+    return response.entries.map(entry => ({
+      ...entry,
+      path: pathModule.normalizeSlashes(entry.path),
+    }))
   }
 
   /** Create a directory. */
