@@ -28,9 +28,6 @@ public class ModuleResolver {
       return null;
     }
 
-    System.out.println(
-        "Module " + name + " is at stage " + compilerModuleOpt.get().getCompilationStage());
-
     var moduleIr = compilerModuleOpt.get().getIr();
     assert moduleIr != null : "Once a module is found, its IR should be present.";
     return moduleIr;
