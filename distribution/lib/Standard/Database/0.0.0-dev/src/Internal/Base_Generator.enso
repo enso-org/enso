@@ -17,33 +17,32 @@ from project.Internal.IR.Operation_Metadata import Row_Number_Metadata
 type Dialect_Operations
 
     ## PRIVATE
-
-       Operations supported by a particular SQL dialect and how they are implemeneted.
+       Operations supported by a particular SQL dialect and how they are
+       implemented.
 
        Arguments:
-       - operation_map: The mapping which maps operation names to their
+       - operation_dict: Dictionary mapping operation names to their
          implementations; each implementation is a function which takes SQL
          builders for the arguments, and optionally an additional metadata
          argument, and should return a SQL builder yielding code for the whole
          operation.
-    Value (operation_map:(Map Text (Vector (SQL_Builder->SQL_Builder))))
+    Value (operation_dict:(Dictionary Text (Vector (SQL_Builder->SQL_Builder))))
 
     ## PRIVATE
-
        Creates a copy of the dialect that supports additional operations or
        overrides existing ones.
 
        # extend_with : Vector [Text, Vector SQL_Builder -> SQL_Builder] -> Dialect_Operations
     extend_with : Vector Any -> Dialect_Operations
     extend_with self mappings =
-        new_map = mappings.fold self.operation_map (m -> el -> m.insert (el.at 0) (el.at 1))
-        Dialect_Operations.Value new_map
+        new_dict = mappings.fold self.operation_dict (m -> el -> m.insert (el.at 0) (el.at 1))
+        Dialect_Operations.Value new_dict
 
     ## PRIVATE
        Checks if an operation is supported by the dialect.
     is_supported : Text -> Boolean
     is_supported self operation =
-        self.operation_map.contains_key operation
+        self.operation_dict.contains_key operation
 
 ## PRIVATE
 
@@ -200,8 +199,8 @@ base_dialect_operations =
     contains = [["IS_IN", make_is_in], ["IS_IN_COLUMN", make_is_in_column]]
     types = [simple_cast]
     windows = [["ROW_NUMBER", make_row_number], ["ROW_NUMBER_IN_GROUP", make_row_number_in_group]]
-    base_map = Map.from_vector (arith + logic + compare + functions + agg + counts + text + nulls + contains + types + windows)
-    Dialect_Operations.Value base_map
+    base_dict = Dictionary.from_vector (arith + logic + compare + functions + agg + counts + text + nulls + contains + types + windows)
+    Dialect_Operations.Value base_dict
 
 ## PRIVATE
 is_empty = lift_unary_op "IS_EMPTY" arg->
@@ -311,7 +310,7 @@ generate_expression dialect expr = case expr of
         escaped = value.replace "'" "''"
         SQL_Builder.code ("'" + escaped + "'")
     SQL_Expression.Operation kind arguments metadata ->
-        op = dialect.dialect_operations.operation_map.get kind (Error.throw <| Unsupported_Database_Operation.Error kind)
+        op = dialect.dialect_operations.operation_dict.get kind (Error.throw <| Unsupported_Database_Operation.Error kind)
         parsed_args = arguments.map (generate_expression dialect)
         result = op parsed_args
         # If the function expects more arguments, we pass the metadata as the last argument.
