@@ -12,9 +12,11 @@
   methods.][10434]
 - [Renamed `Location.Start` to `Location.Left` and `Location.End` to
   `Location.Right`.][10445]
+- [Renamed `Postgres_Details.Postgres` to `Postgres.Server`.][10466]
 
 [10434]: https://github.com/enso-org/enso/pull/10434
 [10445]: https://github.com/enso-org/enso/pull/10445
+[10466]: https://github.com/enso-org/enso/pull/10466
 
 # Enso 2024.2
 
