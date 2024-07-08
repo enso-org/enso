@@ -88,21 +88,87 @@ const CATEGORY_DATA: readonly CategoryMetadata[] = [
 
 /** Props for a {@link CategorySwitcherItem}. */
 interface InternalCategorySwitcherItemProps {
-  readonly id: string
   readonly data: CategoryMetadata
-  readonly isCurrent: boolean
-  readonly isDisabled: boolean
-  readonly tooltip?: string | false
-  readonly onPress: (event: aria.PressEvent) => void
-  readonly acceptedDragTypes: string[]
-  readonly onDrop: (event: aria.DropEvent) => void
+  readonly category: Category
+  readonly setCategory: (category: Category) => void
+  readonly dispatchAssetEvent: (directoryEvent: assetEvent.AssetEvent) => void
 }
 
 /** An entry in a {@link CategorySwitcher}. */
 function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
-  const { data, isCurrent, isDisabled, tooltip = false, onPress, acceptedDragTypes, onDrop } = props
-  const { category, icon, textId, buttonTextId, dropZoneTextId } = data
+  const { data, category, setCategory, dispatchAssetEvent } = props
+  const { icon, textId, buttonTextId, dropZoneTextId } = data
+  const { user } = authProvider.useNonPartialUserSession()
+  const { unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
+  const localBackend = backendProvider.useLocalBackend()
+  const { isOffline } = offlineHooks.useOffline()
+  const isCurrent = category === data.category
+  const getCategoryError = (otherCategory: Category) => {
+    switch (otherCategory) {
+      case Category.local: {
+        if (localBackend == null) {
+          return getText('localBackendNotDetectedError')
+        } else {
+          return null
+        }
+      }
+      case Category.cloud:
+      case Category.recent:
+      case Category.trash: {
+        if (isOffline) {
+          return getText('unavailableOffline')
+        } else if (!user.isEnabled) {
+          return getText('notEnabledSubtitle')
+        } else {
+          return null
+        }
+      }
+    }
+  }
+  const error = getCategoryError(data.category)
+  const isDisabled = error != null
+  const tooltip = error ?? false
+
+  const acceptedDragTypes =
+    (category === Category.trash &&
+      (data.category === Category.cloud || data.category === Category.local)) ||
+    (category !== Category.trash && data.category === Category.trash)
+      ? [mimeTypes.ASSETS_MIME_TYPE]
+      : []
+
+  const onPress = () => {
+    if (error == null) {
+      setCategory(data.category)
+    }
+  }
+
+  const onDrop = (event: aria.DropEvent) => {
+    unsetModal()
+    void Promise.all(
+      event.items.flatMap(async item => {
+        if (item.kind === 'text') {
+          const text = await item.getText(mimeTypes.ASSETS_MIME_TYPE)
+          const payload: unknown = JSON.parse(text)
+          return Array.isArray(payload)
+            ? payload.flatMap(key =>
+                // This is SAFE, assuming only this app creates payloads with
+                // the specific mimetype above.
+                // eslint-disable-next-line no-restricted-syntax
+                typeof key === 'string' ? [key as backend.AssetId] : []
+              )
+            : []
+        } else {
+          return []
+        }
+      })
+    ).then(keys => {
+      dispatchAssetEvent({
+        type: category === Category.trash ? AssetEventType.restore : AssetEventType.delete,
+        ids: new Set(keys.flat(1)),
+      })
+    })
+  }
 
   return (
     <aria.DropZone
@@ -165,14 +231,10 @@ export interface CategorySwitcherProps {
 /** A switcher to choose the currently visible assets table category. */
 export default function CategorySwitcher(props: CategorySwitcherProps) {
   const { category, setCategory } = props
-  const { dispatchAssetEvent } = props
-  const { user } = authProvider.useNonPartialUserSession()
-  const { unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
-  const { isOffline } = offlineHooks.useOffline()
 
   const localBackend = backendProvider.useLocalBackend()
-  /** The list of *visible* categories. */
+  /** The list of visible categories. */
   const categoryData = React.useMemo(
     () =>
       CATEGORY_DATA.filter(data => {
@@ -187,28 +249,6 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
       }),
     [localBackend]
   )
-  const getCategoryError = (otherCategory: Category) => {
-    switch (otherCategory) {
-      case Category.local: {
-        if (localBackend == null) {
-          return getText('localBackendNotDetectedError')
-        } else {
-          return null
-        }
-      }
-      case Category.cloud:
-      case Category.recent:
-      case Category.trash: {
-        if (isOffline) {
-          return getText('unavailableOffline')
-        } else if (!user.isEnabled) {
-          return getText('notEnabledSubtitle')
-        } else {
-          return null
-        }
-      }
-    }
-  }
 
   if (!categoryData.some(data => data.category === category)) {
     setCategory(categoryData[0]?.category ?? Category.cloud)
@@ -227,61 +267,9 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
             role="grid"
             className="flex flex-col items-start"
           >
-            {categoryData.map(data => {
-              const error = getCategoryError(data.category)
-
-              return (
-                <CategorySwitcherItem
-                  key={data.category}
-                  id={data.category}
-                  data={data}
-                  isCurrent={category === data.category}
-                  isDisabled={error != null}
-                  tooltip={error ?? false}
-                  onPress={() => {
-                    if (error == null) {
-                      setCategory(data.category)
-                    }
-                  }}
-                  acceptedDragTypes={
-                    (category === Category.trash &&
-                      (data.category === Category.cloud || data.category === Category.local)) ||
-                    (category !== Category.trash && data.category === Category.trash)
-                      ? [mimeTypes.ASSETS_MIME_TYPE]
-                      : []
-                  }
-                  onDrop={event => {
-                    unsetModal()
-                    void Promise.all(
-                      event.items.flatMap(async item => {
-                        if (item.kind === 'text') {
-                          const text = await item.getText(mimeTypes.ASSETS_MIME_TYPE)
-                          const payload: unknown = JSON.parse(text)
-                          return Array.isArray(payload)
-                            ? payload.flatMap(key =>
-                                // This is SAFE, assuming only this app creates payloads with
-                                // the specific mimetype above.
-                                // eslint-disable-next-line no-restricted-syntax
-                                typeof key === 'string' ? [key as backend.AssetId] : []
-                              )
-                            : []
-                        } else {
-                          return []
-                        }
-                      })
-                    ).then(keys => {
-                      dispatchAssetEvent({
-                        type:
-                          category === Category.trash
-                            ? AssetEventType.restore
-                            : AssetEventType.delete,
-                        ids: new Set(keys.flat(1)),
-                      })
-                    })
-                  }}
-                />
-              )
-            })}
+            {categoryData.map(data => (
+              <CategorySwitcherItem key={data.category} data={data} {...props} />
+            ))}
           </div>
         </div>
       )}
