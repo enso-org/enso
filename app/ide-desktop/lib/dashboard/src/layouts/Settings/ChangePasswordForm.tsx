@@ -6,7 +6,6 @@ import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
-import ButtonRow from '#/components/styled/ButtonRow'
 import SettingsInput from '#/components/styled/SettingsInput'
 
 import * as eventModule from '#/utilities/event'
@@ -94,7 +93,7 @@ export default function ChangePasswordForm() {
           autoComplete="new-password"
         />
       </aria.TextField>
-      <ButtonRow>
+      <ariaComponents.ButtonGroup>
         <ariaComponents.Button
           variant="submit"
           isDisabled={!canSubmitPassword}
@@ -114,7 +113,7 @@ export default function ChangePasswordForm() {
         >
           {getText('cancel')}
         </ariaComponents.Button>
-      </ButtonRow>
+      </ariaComponents.ButtonGroup>
     </aria.Form>
   )
 }
