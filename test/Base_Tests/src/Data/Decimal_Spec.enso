@@ -15,6 +15,14 @@ Decimal.should_have_rep self rep = self.internal_representation . should_equal r
 
 add_specs suite_builder =
     suite_builder.group "construction" group_builder->
+        group_builder.specify "should be able to construct a Decimal with dec" <|
+            dec "123.45" . should_have_rep [12345, 5, 2]
+            dec 123.45 . should_have_rep [12345, 5, 2]
+            dec 12345 . should_have_rep [12345, 5, 0]
+
+            mc = Math_Context.new 4
+            dec "123.45" mc . should_have_rep [1235, 4, 1]
+
         group_builder.specify "should be able to construct a Decimal from a string" <|
             Decimal.new "123.45" . should_have_rep [12345, 5, 2]
             Decimal.from_text "123.45" . should_have_rep [12345, 5, 2]

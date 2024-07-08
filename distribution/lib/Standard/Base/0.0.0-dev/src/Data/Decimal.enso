@@ -89,7 +89,7 @@ type Decimal
     Value (big_decimal : BigDecimal)
 
     ## ICON input_number
-       Construct a `Decimal` from a string or integer.
+       Construct a `Decimal` from a string, integer or float.
 
        Arguments:
        - x: The `Text`, `Integer`, or `Float` to construct a `Decimal` from.
@@ -114,6 +114,16 @@ type Decimal
           Create a `Decimal` from a string.
 
               c = Decimal.new "12.345"
+
+        ^ Example
+          Create a `Decimal` from an integer.
+
+              c = Decimal.new 12345
+
+        ^ Example
+          Create a `Decimal` from a float.
+
+              c = Decimal.new 12.345
     new : Text | Integer | Float -> Math_Context | Nothing -> Decimal ! Arithmetic_Error | Number_Parse_Error
     new (x : Text | Integer | Float) (mc : Math_Context | Nothing = Nothing) -> Decimal ! Arithmetic_Error | Number_Parse_Error =
         handle_java_exception <|
@@ -1030,6 +1040,46 @@ type Decimal
        locale.
     to_text_without_scientific_notation : Text
     to_text_without_scientific_notation  self = self.big_decimal.toPlainString
+
+## ICON input_number
+    Construct a `Decimal` from a string, integer or float.
+
+    Arguments:
+    - x: The `Text`, `Integer`, or `Float` to construct a `Decimal` from.
+    - mc: The `Math_Context` to use to specify precision and `Rounding_Mode`.
+        If a `Math_Context` is used, there is a possibility of a loss of
+        precision.
+
+    ? Number Format
+
+        The textual format for a Decimal is defined at
+        https://docs.oracle.com/javase/8/docs/api/java/math/BigDecimal.html#BigDecimal-java.lang.String-.
+
+    ! Error Conditions
+
+        - If the `Text` argument is incorrectly formatted, a `Number_Parse_Error`
+        is thrown.
+        - If the construction of the Decimal results in a loss of precision, a
+        `Loss_Of_Numeric_Precision` warning is attached. This can only happen
+        if a `Math_Context` value is explicitly passed.
+
+    ^ Example
+        Create a `Decimal` from a string.
+
+            c = dec "12.345"
+
+    ^ Example
+        Create a `Decimal` from an integer.
+
+            c = dec 12345
+
+    ^ Example
+        Create a `Decimal` from a float.
+
+            c = dec 12.345
+dec : Text | Integer | Float -> Math_Context | Nothing -> Decimal ! Arithmetic_Error | Number_Parse_Error
+dec (x : Text | Integer | Float) (mc : Math_Context | Nothing = Nothing) -> Decimal ! Arithmetic_Error | Number_Parse_Error =
+    Decimal.new x mc
 
 ## PRIVATE
 handle_number_format_exception ~action =
