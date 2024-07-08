@@ -22,7 +22,7 @@ public class ImportSymbolsTest {
   @Rule public TemporaryFolder tempFolder = new TemporaryFolder();
 
   @Test
-  public void importAllDoesNotImportModuleItself() throws IOException {
+  public void importAllFromModuleDoesNotImportModuleItself() throws IOException {
     var aMod =
         new SourceModule(
             QualifiedName.fromString("A_module"), """
@@ -51,6 +51,41 @@ public class ImportSymbolsTest {
         fail("Compilation error expected. out = " + out);
       } catch (PolyglotException e) {
         assertThat(e.getMessage(), containsString("The name `A_Module` could not be found"));
+      }
+    }
+  }
+
+  @Test
+  public void importAllFromTypeDoesNotImportTypeItself() throws IOException {
+    var aMod =
+        new SourceModule(
+            QualifiedName.fromString("A_module"), """
+        type A_Type
+            Cons
+        """);
+    var mainMod =
+        new SourceModule(
+            QualifiedName.fromString("Main"),
+            """
+        from project.A_module.A_Type import all
+        main =
+            A_Type.Cons
+        """);
+    var projDir = tempFolder.newFolder().toPath();
+    ProjectUtils.createProject("Proj", Set.of(aMod, mainMod), projDir);
+    var out = new ByteArrayOutputStream();
+    try (var ctx =
+        ContextUtils.defaultContextBuilder()
+            .option(RuntimeOptions.PROJECT_ROOT, projDir.toAbsolutePath().toString())
+            .out(out)
+            .err(out)
+            .build()) {
+      var polyCtx = new PolyglotContext(ctx);
+      try {
+        polyCtx.getTopScope().compile(true);
+        fail("Compilation error expected. Captured output = " + out);
+      } catch (PolyglotException e) {
+        assertThat(e.getMessage(), containsString("The name `A_Type` could not be found"));
       }
     }
   }
