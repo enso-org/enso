@@ -37,11 +37,6 @@ public class BigDecimalBuilder extends TypedBuilderImpl<BigDecimal> {
   }
 
   @Override
-  public void append(Object o) {
-    appendNoGrow(o);
-  }
-
-  @Override
   public boolean accepts(Object o) {
     return o instanceof BigDecimal;
   }

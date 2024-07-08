@@ -30,8 +30,8 @@ const toggleDocumentationEditorShortcut = documentationEditorBindings.bindings.t
     /></template>
     <template #entries>
       <div>
-        <div class="label">Zoom</div>
-        <div class="zoomControl">
+        <div class="nonInteractive"><SvgIcon name="zoom" class="rowIcon" />Zoom</div>
+        <div class="zoomControl rightSide">
           <SvgButton
             class="zoomButton"
             name="minus"
@@ -53,12 +53,14 @@ const toggleDocumentationEditorShortcut = documentationEditorBindings.bindings.t
         </div>
       </div>
       <MenuButton v-model="showCodeEditor" @click="open = false">
+        <SvgIcon name="bottom_panel" class="rowIcon" />
         Code Editor
-        <div v-text="toggleCodeEditorShortcut" />
+        <div class="rightSide" v-text="toggleCodeEditorShortcut" />
       </MenuButton>
       <MenuButton v-model="showDocumentationEditor" @click="open = false">
+        <SvgIcon name="right_panel" class="rowIcon" />
         Documentation Editor
-        <div v-text="toggleDocumentationEditorShortcut" />
+        <div class="rightSide" v-text="toggleDocumentationEditorShortcut" />
       </MenuButton>
     </template>
   </DropdownMenu>
@@ -68,7 +70,7 @@ const toggleDocumentationEditorShortcut = documentationEditorBindings.bindings.t
 .ExtendedMenu {
   background: var(--color-frame-bg);
   border-radius: var(--radius-full);
-  margin: 0 32px 0 auto;
+  margin: 0 12px 0 auto;
 }
 
 .moreIcon {
@@ -82,7 +84,6 @@ const toggleDocumentationEditorShortcut = documentationEditorBindings.bindings.t
 
   > * {
     display: flex;
-    justify-content: space-between;
     align-items: center;
     padding-left: 8px;
     padding-right: 8px;
@@ -93,7 +94,16 @@ const toggleDocumentationEditorShortcut = documentationEditorBindings.bindings.t
   background-color: var(--color-menu-entry-selected-bg);
 }
 
-.label {
+.rowIcon {
+  display: inline-block;
+  margin-right: 4px;
+}
+
+.rightSide {
+  margin-left: auto;
+}
+
+.nonInteractive {
   user-select: none;
   pointer-events: none;
 }

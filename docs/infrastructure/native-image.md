@@ -111,7 +111,7 @@ For example, to update settings for the Launcher:
 java -agentlib:native-image-agent=config-merge-dir=engine/launcher/src/main/resources/META-INF/native-image/org/enso/launcher -jar launcher.jar <arguments>
 ```
 
-Note that for convenience, you can run the launcher/engine runner via
+Note that for convenience, you can run the launcher/engine runtime via
 `bin/enso`, e.g.
 
 ```bash
@@ -210,7 +210,7 @@ sbt> engine-runner/buildNativeImage
 and execute any program with that binary - for example `test/Base_Tests`
 
 ```bash
-$ runner --run test/Base_Tests
+$ ./built-distribution/enso-engine-*/enso-*/bin/enso --run test/Base_Tests
 ```
 
 The task that generates the Native Image, along with all the necessary
@@ -224,7 +224,7 @@ Since [PR-6966](https://github.com/enso-org/enso/pull/6966) there is an
 experimental support for including
 [Espresso Java interpreter](https://www.graalvm.org/jdk17/reference-manual/java-on-truffle/)
 to allow use of some library functions (like `IO.println`) in the _Native Image_
-built runner.
+built runtime.
 
 The support can be enabled by setting environment variable `ENSO_JAVA=espresso`
 and making sure Espresso is installed in the Enso engine `component` directory:
@@ -278,7 +278,7 @@ Espresso support works also with
 `ENSO_JAVA=espresso` is specified when building the `runner` executable:
 
 ```bash
-enso$ rm runner
+enso$ rm ./built-distribution/enso-engine-*/enso-*/bin/enso
 enso$ ENSO_JAVA=espresso sbt --java-home /graalvm
 sbt> engine-runner/buildNativeImage
 ```
@@ -288,7 +288,7 @@ build script detects presence of Espresso and automatically adds
 `--language:java` when creating the image. Then you can use
 
 ```bash
-$ ENSO_JAVA=espresso ./runner --run hello.enso
+$ ENSO_JAVA=espresso ./built-distribution/enso-engine-*/enso-*/bin/enso --run hello.enso
 ```
 
-to execute native image `runner` build of Enso together with Espresso.
+to execute native image build of Enso together with Espresso.

@@ -23,8 +23,14 @@ import * as object from '#/utilities/object'
 import type * as types from '../../../types/types'
 
 // =================
-// === Component ===
+// === Constants ===
 // =================
+
+const IGNORE_PARAMS_REGEX = new RegExp(`^${appUtils.SEARCH_PARAMS_PREFIX}(.+)$`)
+
+// ==============
+// === Editor ===
+// ==============
 
 /** Props for an {@link Editor}. */
 export interface EditorProps {
@@ -79,14 +85,9 @@ function EditorInternal(props: EditorInternalProps) {
   const projectTitleRef = syncRefHooks.useSyncRef(projectStartupInfo.projectAsset.title)
 
   const projectQuery = reactQuery.useSuspenseQuery({
-    queryKey: ['editorProject', projectStartupInfo.projectAsset],
-    queryFn: () =>
-      // Wrap in a new Promise, otherwise React Suspense forgets to unsuspend.
-      new Promise<backendModule.Project>(resolve => {
-        setTimeout(() => {
-          resolve(projectStartupInfo.project)
-        })
-      }),
+    queryKey: ['editorProject', projectStartupInfo.projectAsset.id],
+    // Wrap in an unresolved promise, otherwise React Suspense breaks.
+    queryFn: () => Promise.resolve(projectStartupInfo.project),
     staleTime: 0,
     gcTime: 0,
     meta: { persist: false },
@@ -160,7 +161,7 @@ function EditorInternal(props: EditorInternalProps) {
   }, [projectStartupInfo, hidden])
 
   const appProps: types.EditorProps | null = React.useMemo(() => {
-    const projectId = projectStartupInfo.projectAsset.id
+    const projectId = project.projectId
     const jsonAddress = project.jsonAddress
     const binaryAddress = project.binaryAddress
     const ydocAddress = ydocUrl ?? ''
@@ -186,13 +187,13 @@ function EditorInternal(props: EditorInternalProps) {
         },
         projectId,
         hidden,
-        ignoreParamsRegex: new RegExp(`^${appUtils.SEARCH_PARAMS_PREFIX}(.+)$`),
+        ignoreParamsRegex: IGNORE_PARAMS_REGEX,
         logEvent,
         renameProject,
       }
     }
   }, [
-    projectStartupInfo.projectAsset.id,
+    project.projectId,
     project.jsonAddress,
     project.binaryAddress,
     project.packageName,

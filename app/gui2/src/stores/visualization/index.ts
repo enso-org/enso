@@ -227,7 +227,9 @@ export const { provideFn: provideVisualizationStore, injectFn: useVisualizationS
               "If you have custom visualizations, please put them under 'visualizations/'.",
           )
         } else {
-          watching.error.log('Could not load custom visualizations')
+          if (!proj.lsRpcConnection.isDisposed) {
+            watching.error.log('Could not load custom visualizations')
+          }
         }
       }
     })

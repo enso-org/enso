@@ -5,9 +5,7 @@ export type * from '@react-types/shared'
 export * from 'react-aria'
 // @ts-expect-error The conflicting exports are props types ONLY.
 export * from 'react-aria-components'
-// @ts-expect-error The conflicting exports are props types ONLY.
-export * from '@react-stately/overlays'
-export * from '@react-stately/tooltip'
+export { useTooltipTriggerState, type OverlayTriggerState } from 'react-stately'
 
 // ==================
 // === mergeProps ===

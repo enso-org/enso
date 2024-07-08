@@ -12,7 +12,7 @@ from project.Errors import Nothing_Value_In_Filter_Condition
 
    It also performs validation and will throw errors if unexpected column types
    are encountered.
-make_filter_column source_column filter_condition on_problems =
+make_filter_column source_column filter_condition on_problems:Problem_Behavior =
     base_column = case filter_condition of
         # Equality
         Equal value _ ->

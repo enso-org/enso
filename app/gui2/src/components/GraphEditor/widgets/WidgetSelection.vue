@@ -196,7 +196,7 @@ const removeSurroundingParens = (expr?: string) => expr?.trim().replaceAll(/(^[(
 const selectedExpressions = computed(() => {
   const selected = new Set<string>()
   if (isMulti.value) {
-    for (const element of getValues(props.input.value)) {
+    for (const element of getValues(editedValue.value ?? props.input.value)) {
       const normalized = removeSurroundingParens(element.code())
       if (normalized) selected.add(normalized)
     }
@@ -266,10 +266,19 @@ const dropDownInteraction = WidgetEditHandler.New('WidgetSelection', props.input
   cancel: () => {},
   end: () => {},
   pointerdown: (e, _) => {
-    if (targetIsOutside(e, unrefElement(dropdownElement))) {
+    if (
+      targetIsOutside(e, unrefElement(dropdownElement)) &&
+      targetIsOutside(e, unrefElement(widgetRoot))
+    ) {
       dropDownInteraction.end()
       if (editedWidget.value)
         props.onUpdate({ portUpdate: { origin: props.input.portId, value: editedValue.value } })
+    } else if (isMulti.value) {
+      // In multi-select mode the children contain actual values; when a dropdown click occurs,
+      // we allow the event to propagate so the child widget can commit before the dropdown-toggle occurs.
+      // We don't do this in single-select mode because the value is treated as a filter in that case,
+      // so it shouldn't be committed as a value before the dropdown operation.
+      return false
     }
   },
   start: () => {
@@ -284,10 +293,13 @@ const dropDownInteraction = WidgetEditHandler.New('WidgetSelection', props.input
     dropDownInteraction.start()
     return true
   },
+  childEnded: () => {
+    if (!isMulti.value) dropDownInteraction.end()
+  },
 })
 
 function toggleDropdownWidget() {
-  if (!dropDownInteraction.active.value) dropDownInteraction.start()
+  if (!dropDownInteraction.isActive()) dropDownInteraction.start()
   else dropDownInteraction.cancel()
 }
 
@@ -338,7 +350,7 @@ function expressionTagClicked(tag: ExpressionTag, previousState: boolean) {
   const edit = graph.startEdit()
   const tagValue = resolveTagExpression(edit, tag)
   if (isMulti.value) {
-    const inputValue = props.input.value
+    const inputValue = editedValue.value ?? props.input.value
     if (inputValue instanceof Ast.Vector) {
       toggleVectorValue(edit.getVersion(inputValue), tagValue, previousState)
       props.onUpdate({ edit })
@@ -424,7 +436,7 @@ declare module '@/providers/widgetRegistry' {
     <Teleport v-if="tree.nodeElement" :to="tree.nodeElement">
       <SizeTransition height :duration="100">
         <DropdownWidget
-          v-if="dropDownInteraction.active.value"
+          v-if="dropDownInteraction.isActive()"
           ref="dropdownElement"
           :style="floatingStyles"
           :color="'var(--node-color-primary)'"

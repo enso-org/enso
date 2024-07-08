@@ -6,6 +6,7 @@ use crate::prelude::*;
 
 use ide_ci::io::retry;
 use ide_ci::programs::Npm;
+use ide_ci::programs::Pnpm;
 
 
 
@@ -39,9 +40,9 @@ pub fn install(repo_root: impl AsRef<Path>) -> BoxFuture<'static, Result> {
         .boxed()
 }
 
-/// Run `npm install` in the given directory.
+/// Run `pnpm install` in the given directory.
 fn install_internal_run(path: &Path) -> impl Future<Output = Result> + 'static {
-    Npm.cmd().and_then_async(move |cmd| {
+    Pnpm.cmd().and_then_async(move |cmd| {
         let err = format!("Failed to install NPM dependencies in {}.", path.display());
         cmd.with_current_dir(path).install().run_ok().context(err)
     })

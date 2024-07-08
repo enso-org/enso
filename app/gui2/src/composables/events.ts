@@ -115,8 +115,20 @@ export function useEventConditional(
 }
 
 /** Whether any element currently has keyboard focus. */
-export function keyboardBusy() {
-  return document.activeElement != document.body
+export function keyboardBusy(): boolean {
+  return (
+    document.activeElement !== document.body &&
+    document.activeElement instanceof HTMLElement &&
+    isEditable(document.activeElement)
+  )
+}
+
+function isEditable(element: HTMLElement) {
+  return (
+    element.isContentEditable ||
+    element instanceof HTMLInputElement ||
+    element instanceof HTMLTextAreaElement
+  )
 }
 
 /** Whether focused element is within given element's subtree. */
@@ -140,12 +152,32 @@ export function modKey(e: KeyboardEvent | MouseEvent): boolean {
   return isMacLike ? e.metaKey : e.ctrlKey
 }
 
-/** A helper for getting Element out of VueInstance, it allows using `useResizeObserver` with Vue components. */
+/** A helper for getting Element out of VueInstance, it allows using `useResizeObserver` with Vue components.
+ *
+ * Note that this function is only shallowly reactive: It will trigger its reactive scope if the value of `element`
+ * changes, but not if the root `Element` of the provided `VueInstance` changes. This is because a
+ * `ComponentPublicInstance` is implicitly treated as if `markRaw` were applied[^1]. As a result, this function should
+ * not be used for any component that may have a dynamic root element; rather, the component can use `defineExpose` to
+ * provide access to a `ref`.
+ *
+ * [^1]: https://github.com/vuejs/core/blob/ae97e5053895eeaaa443306e72cd8f45da001179/packages/runtime-core/src/componentPublicInstance.ts#L312
+ */
 export function unrefElement(
   element: Ref<Element | undefined | null | VueInstance>,
 ): Element | undefined | null {
   const plain = toValue(element)
-  return (plain as VueInstance)?.$el ?? plain
+  const result = (plain as VueInstance)?.$el ?? plain
+  // A component's root can be a Node (if it's a fragment), TextNode, or Comment (if its root uses a v-if).
+  if (result != null && !(result instanceof Element)) {
+    if (result instanceof Comment && result.data.includes('v-if')) {
+      console.warn(
+        "unrefElement: Component root is a v-if, but a root element can't be watched reactively.",
+        result,
+      )
+    }
+    return undefined
+  }
+  return result
 }
 
 interface ResizeObserverData {

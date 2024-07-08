@@ -9,9 +9,11 @@ import DocsTags from '@/components/DocumentationPanel/DocsTags.vue'
 import { HistoryStack } from '@/components/DocumentationPanel/history'
 import type { Docs, FunctionDocs, Sections, TypeDocs } from '@/components/DocumentationPanel/ir'
 import { lookupDocumentation, placeholder } from '@/components/DocumentationPanel/ir'
+import SvgButton from '@/components/SvgButton.vue'
 import { groupColorStyle } from '@/composables/nodeColors'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import type { SuggestionId } from '@/stores/suggestionDatabase/entry'
+import { suggestionDocumentationUrl } from '@/stores/suggestionDatabase/entry'
 import { tryGetIndex } from '@/util/data/array'
 import { type Opt } from '@/util/data/opt'
 import type { Icon as IconName } from '@/util/iconName'
@@ -60,21 +62,17 @@ const name = computed<Opt<QualifiedName>>(() => {
 
 // === Breadcrumbs ===
 
-const color = computed(() => {
-  const groupIndex =
-    props.selectedEntry != null ? db.entries.get(props.selectedEntry)?.groupIndex : undefined
-  return groupColorStyle(tryGetIndex(db.groups, groupIndex))
-})
+const suggestion = computed(() =>
+  props.selectedEntry != null ? db.entries.get(props.selectedEntry) : undefined,
+)
 
-const icon = computed<IconName>(() => {
-  const id = props.selectedEntry
-  if (id) {
-    const entry = db.entries.get(id)
-    return entry?.iconName ?? 'marketplace'
-  } else {
-    return 'marketplace'
-  }
-})
+const color = computed(() => groupColorStyle(tryGetIndex(db.groups, suggestion.value?.groupIndex)))
+
+const icon = computed<IconName>(() => suggestion.value?.iconName ?? 'marketplace')
+
+const documentationUrl = computed(
+  () => suggestion.value && suggestionDocumentationUrl(suggestion.value),
+)
 
 const historyStack = new HistoryStack()
 
@@ -115,21 +113,32 @@ function handleBreadcrumbClick(index: number) {
     }
   }
 }
+
+function openDocs(url: string) {
+  window.open(url, '_blank')
+}
 </script>
 
 <template>
   <div class="DocumentationPanel scrollable" @wheel.stop.passive>
-    <Breadcrumbs
-      v-if="!isPlaceholder"
-      :breadcrumbs="breadcrumbs"
-      :color="color"
-      :icon="icon"
-      :canGoForward="historyStack.canGoForward()"
-      :canGoBackward="historyStack.canGoBackward()"
-      @click="(index) => handleBreadcrumbClick(index)"
-      @forward="historyStack.forward()"
-      @backward="historyStack.backward()"
-    />
+    <div v-if="!isPlaceholder" class="topBar">
+      <Breadcrumbs
+        :breadcrumbs="breadcrumbs"
+        :color="color"
+        :icon="icon"
+        :canGoForward="historyStack.canGoForward()"
+        :canGoBackward="historyStack.canGoBackward()"
+        @click="(index) => handleBreadcrumbClick(index)"
+        @forward="historyStack.forward()"
+        @backward="historyStack.backward()"
+      />
+      <SvgButton
+        v-if="documentationUrl"
+        name="open"
+        title="Open in New Window"
+        @click.stop="openDocs(documentationUrl)"
+      />
+    </div>
     <DocsTags
       v-if="sections.tags.length > 0"
       class="tags"
@@ -197,5 +206,13 @@ function handleBreadcrumbClick(index: number) {
 .sections {
   width: 100%;
   padding: 0 8px;
+}
+
+.topBar {
+  display: flex;
+  width: 100%;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
 }
 </style>

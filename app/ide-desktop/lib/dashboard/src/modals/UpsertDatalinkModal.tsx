@@ -1,7 +1,7 @@
 /** @file A modal for creating a Datalink. */
 import * as React from 'react'
 
-import SCHEMA from '#/data/datalinkSchema.json' assert { type: 'json' }
+import SCHEMA from '#/data/datalinkSchema.json' with { type: 'json' }
 import * as datalinkValidator from '#/data/datalinkValidator'
 
 import * as modalProvider from '#/providers/ModalProvider'

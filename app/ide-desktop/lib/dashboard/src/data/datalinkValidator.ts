@@ -2,7 +2,7 @@
 import type * as ajv from 'ajv/dist/2020'
 import Ajv from 'ajv/dist/2020'
 
-import SCHEMA from '#/data/datalinkSchema.json' assert { type: 'json' }
+import SCHEMA from '#/data/datalinkSchema.json' with { type: 'json' }
 
 import * as error from '#/utilities/error'
 
