@@ -147,30 +147,47 @@ export interface CreateOpenedProjectQueryOptions {
 export function createGetProjectDetailsQuery(options: CreateOpenedProjectQueryOptions) {
   const { assetId, parentId, title, remoteBackend, localBackend, type } = options
 
+  const backend = type === backendModule.BackendType.remote ? remoteBackend : localBackend
+  const isLocal = type === backendModule.BackendType.local
+
   return reactQuery.queryOptions({
     queryKey: createGetProjectDetailsQuery.getQueryKey(assetId),
     meta: { persist: false },
     refetchInterval: ({ state }) => {
+      /**
+       * Default interval for refetching project status when the project is opened.
+       */
+      const openedIntervalMS = 30_000
+      /**
+       * Interval when we open a cloud project.
+       * Since opening a cloud project is a long operation, we want to check the status less often.
+       */
+      const cloudOpeningIntervalMS = 5_000
+      /**
+       * Interval when we open a local project or when we want to sync the project status as soon as possible.
+       */
+      const activeSyncIntervalMS = 100
       const states = [backendModule.ProjectState.opened, backendModule.ProjectState.closed]
 
-      if (state.data == null) {
-        // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-        return 30_000
+      if (isLocal) {
+        if (state.data?.state.type === backendModule.ProjectState.opened) {
+          return openedIntervalMS
+        } else {
+          return activeSyncIntervalMS
+        }
+      } else if (state.data == null) {
+        return activeSyncIntervalMS
       } else if (states.includes(state.data.state.type)) {
-        // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-        return 30_000
+        return openedIntervalMS
       } else {
-        // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-        return 5_000
+        return cloudOpeningIntervalMS
       }
     },
     refetchIntervalInBackground: true,
     refetchOnWindowFocus: true,
     refetchOnMount: true,
     gcTime: 0,
-    queryFn: async () => {
-      const backend = type === backendModule.BackendType.remote ? remoteBackend : localBackend
-
+    queryFn: () => {
       invariant(backend != null, 'Backend is null')
 
       return backend.getProjectDetails(assetId, parentId, title)
@@ -301,32 +318,40 @@ export default function Dashboard(props: DashboardProps) {
         title
       )
     },
-    onMutate: async ({ id }) => {
+    onMutate: ({ id }) => {
       const queryKey = createGetProjectDetailsQuery.getQueryKey(id)
 
-      client.setQueryData(queryKey, {
-        state: { type: backendModule.ProjectState.openInProgress },
-      })
+      client.setQueryData(queryKey, { state: { type: backendModule.ProjectState.openInProgress } })
 
-      await client.cancelQueries({ queryKey: queryKey })
+      void client.cancelQueries({ queryKey })
+      void client.invalidateQueries({ queryKey })
     },
     onError: async (_, { id }) => {
       await client.invalidateQueries({ queryKey: createGetProjectDetailsQuery.getQueryKey(id) })
     },
+    retry: 3,
   })
 
   const closeProjectMutation = reactQuery.useMutation({
     mutationFn: async ({ type, id, title }: Project) => {
       const backend = type === backendModule.BackendType.remote ? remoteBackend : localBackend
 
-      if (backend == null) {
-        throw new Error('Backend is null')
-      } else {
-        return backend.closeProject(id, title)
-      }
+      invariant(backend != null, 'Backend is null')
+
+      return backend.closeProject(id, title)
     },
-    onSuccess: (_, { id }) =>
-      client.invalidateQueries({ queryKey: createGetProjectDetailsQuery.getQueryKey(id) }),
+    onMutate: ({ id }) => {
+      const queryKey = createGetProjectDetailsQuery.getQueryKey(id)
+
+      client.setQueryData(queryKey, { state: { type: backendModule.ProjectState.closing } })
+
+      void client.cancelQueries({ queryKey })
+      void client.invalidateQueries({ queryKey })
+    },
+    onError: async (_, { id }) => {
+      await client.invalidateQueries({ queryKey: createGetProjectDetailsQuery.getQueryKey(id) })
+    },
+    retry: 3,
   })
 
   const client = reactQuery.useQueryClient()

@@ -88,7 +88,11 @@ export default function Editor(props: EditorProps) {
         ) {
           return <suspense.Loader loaderProps={{ minHeight: 'full' }} />
         } else {
-          return <EditorInternal {...props} openedProject={projectQuery.data} />
+          return (
+            <suspense.Suspense>
+              <EditorInternal {...props} openedProject={projectQuery.data} />{' '}
+            </suspense.Suspense>
+          )
         }
       })()}
     </div>
