@@ -118,7 +118,7 @@ type Decimal
     new (x : Text | Integer | Float) (mc : Math_Context | Nothing = Nothing) -> Decimal ! Arithmetic_Error | Number_Parse_Error =
         handle_java_exception <|
             case x of
-                _ : Text -> Decimal.from_string x mc
+                _ : Text -> Decimal.from_text x mc
                 _ : Integer -> Decimal.from_integer x mc
                 _ : Float -> Decimal.from_float x mc
 
@@ -147,9 +147,9 @@ type Decimal
         ^ Example
           Create a `Decimal` from a string.
 
-              d = Decimal.from_string "12.345"
-    from_string : Text -> Math_Context | Nothing -> Decimal ! Number_Parse_Error
-    from_string (s : Text) (mc : Math_Context | Nothing = Nothing) -> Decimal ! Number_Parse_Error =
+              d = Decimal.from_text "12.345"
+    from_text : Text -> Math_Context | Nothing -> Decimal ! Number_Parse_Error
+    from_text (s : Text) (mc : Math_Context | Nothing = Nothing) -> Decimal ! Number_Parse_Error =
         handle_java_exception <| handle_number_format_exception <|
             case mc of
                 _ : Math_Context -> Decimal.Value <| handle_precision_loss s <| Decimal_Utils.fromString s mc.math_context
@@ -987,7 +987,7 @@ type Decimal
              # => 123456789.87654
     parse : Text -> Locale | Nothing -> Decimal ! Number_Parse_Error
     parse text locale:(Locale | Nothing)=Nothing = case locale of
-        Nothing -> Decimal.from_string text
+        Nothing -> Decimal.from_text text
         Locale.Value java_locale -> Panic.catch ParseException ((NumberFormat.getInstance java_locale).parse text) _->
             Error.throw (Number_Parse_Error.Error text)
 
@@ -1065,7 +1065,7 @@ Comparable.from (_ : Decimal) = Decimal_Comparator
 Comparable.from (_ : Number) = Decimal_Comparator
 
 ## PRIVATE
-Decimal.from (that : Text) = Decimal.from_string that
+Decimal.from (that : Text) = Decimal.from_text that
 
 ## PRIVATE
 Decimal.from (that : Integer) = Decimal.new that
