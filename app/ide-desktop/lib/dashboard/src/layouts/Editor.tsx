@@ -12,7 +12,7 @@ import * as backendProvider from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import * as errorBoundary from '#/components/ErrorBoundary'
-import * as suspense from '#/components/Suspense'
+import * as loader from '#/components/Loader'
 
 import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
@@ -22,8 +22,14 @@ import * as object from '#/utilities/object'
 import type * as types from '../../../types/types'
 
 // =================
-// === Component ===
+// === Constants ===
 // =================
+
+const IGNORE_PARAMS_REGEX = new RegExp(`^${appUtils.SEARCH_PARAMS_PREFIX}(.+)$`)
+
+// ==============
+// === Editor ===
+// ==============
 
 /** Props for an {@link Editor}. */
 export interface EditorProps {
@@ -41,16 +47,13 @@ export default function Editor(props: EditorProps) {
     <EditorInternal {...props} projectStartupInfo={projectStartupInfo} />
   )
 
-  return hidden ? (
-    <React.Suspense>
-      <errorBoundary.ErrorBoundary FallbackComponent={() => null}>
+  return (
+    <React.Suspense fallback={hidden ? undefined : <loader.Loader minHeight="full" />}>
+      {/* eslint-disable-next-line @typescript-eslint/naming-convention */}
+      <errorBoundary.ErrorBoundary {...(hidden ? { FallbackComponent: () => null } : {})}>
         {editor}
       </errorBoundary.ErrorBoundary>
     </React.Suspense>
-  ) : (
-    <suspense.Suspense loaderProps={{ minHeight: 'full' }}>
-      <errorBoundary.ErrorBoundary>{editor}</errorBoundary.ErrorBoundary>
-    </suspense.Suspense>
   )
 }
 
@@ -75,9 +78,11 @@ function EditorInternal(props: EditorInternalProps) {
   const localBackend = backendProvider.useLocalBackend()
 
   const projectQuery = reactQuery.useSuspenseQuery({
-    queryKey: ['editorProject'],
-    queryFn: () => projectStartupInfo.project,
+    queryKey: ['editorProject', projectStartupInfo.projectAsset.id],
+    // Wrap in an unresolved promise, otherwise React Suspense breaks.
+    queryFn: () => Promise.resolve(projectStartupInfo.project),
     staleTime: 0,
+    gcTime: 0,
     meta: { persist: false },
   })
   const project = projectQuery.data
@@ -128,7 +133,7 @@ function EditorInternal(props: EditorInternalProps) {
   }, [projectStartupInfo, hidden])
 
   const appProps: types.EditorProps | null = React.useMemo(() => {
-    const projectId = projectStartupInfo.projectAsset.id
+    const projectId = project.projectId
     const jsonAddress = project.jsonAddress
     const binaryAddress = project.binaryAddress
     const ydocAddress = ydocUrl ?? ''
@@ -154,13 +159,13 @@ function EditorInternal(props: EditorInternalProps) {
         },
         projectId,
         hidden,
-        ignoreParamsRegex: new RegExp(`^${appUtils.SEARCH_PARAMS_PREFIX}(.+)$`),
+        ignoreParamsRegex: IGNORE_PARAMS_REGEX,
         logEvent,
         renameProject,
       }
     }
   }, [
-    projectStartupInfo.projectAsset.id,
+    project.projectId,
     project.jsonAddress,
     project.binaryAddress,
     project.packageName,
@@ -173,7 +178,7 @@ function EditorInternal(props: EditorInternalProps) {
   ])
 
   if (AppRunner == null) {
-    return <></>
+    return null
   } else {
     // Currently the GUI component needs to be fully rerendered whenever the project is changed. Once
     // this is no longer necessary, the `key` could be removed.

@@ -11,6 +11,7 @@ export const codeEditorBindings = defineKeybinds('code-editor', {
 
 export const documentationEditorBindings = defineKeybinds('documentation-editor', {
   toggle: ['Mod+D'],
+  openLink: ['Mod+PointerMain'],
 })
 
 export const interactionBindings = defineKeybinds('current-interaction', {
@@ -41,6 +42,7 @@ export const graphBindings = defineKeybinds('graph-editor', {
   enterNode: ['Mod+E'],
   exitNode: ['Mod+Shift+E'],
   changeColorSelectedNodes: ['Mod+Shift+C'],
+  openDocumentation: ['F1'],
 })
 
 export const visualizationBindings = defineKeybinds('visualization', {

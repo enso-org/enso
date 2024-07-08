@@ -103,6 +103,7 @@ export default function DriveBar(props: DriveBarProps) {
       suggestions={suggestions}
     />
   )
+
   const assetPanelToggle = (
     <>
       {/* Spacing. */}

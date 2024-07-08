@@ -47,8 +47,8 @@ polyglot java import java.nio.file.StandardCopyOption
 polyglot java import java.nio.file.StandardOpenOption
 polyglot java import java.time.ZonedDateTime
 polyglot java import org.enso.base.DryRunFileManager
-polyglot java import org.enso.base.file_system.FileSystemSPI
 polyglot java import org.enso.base.file_system.File_Utils
+polyglot java import org.enso.base.file_system.FileSystemSPI
 
 ## PRIVATE
 file_types : Vector
@@ -294,9 +294,10 @@ type File
     read : File_Format -> Problem_Behavior -> Any ! File_Error
     read self format=Auto_Detect (on_problems : Problem_Behavior = ..Report_Warning) =
         if self.exists.not then Error.throw (File_Error.Not_Found self) else
-            if Data_Link.is_data_link self then Data_Link_Helpers.read_data_link self format on_problems else
-                resolved_format = File_Format.resolve format
-                resolved_format.read self on_problems
+            if self.is_directory then Error.throw (Illegal_Argument.Error "Cannot `read` a directory, use `list`.") else
+                if Data_Link.is_data_link self then Data_Link_Helpers.read_data_link self format on_problems else
+                    resolved_format = File_Format.resolve format
+                    resolved_format.read self on_problems
 
     ## ALIAS load bytes, open bytes
        ICON data_input
@@ -333,7 +334,7 @@ type File
              example_read = Examples.csv.read
     @encoding Encoding.default_widget
     read_text : Encoding -> Problem_Behavior -> Text ! File_Error
-    read_text self (encoding : Encoding = Encoding.default) (on_problems : Problem_Behavior = Problem_Behavior.Report_Warning) =
+    read_text self (encoding : Encoding = Encoding.default) (on_problems : Problem_Behavior = ..Report_Warning) =
         bytes = self.read_bytes
         Text.from_bytes bytes encoding on_problems
 
@@ -789,16 +790,17 @@ type File
                  Examples.data_dir.list name_filter="**.{txt,md}" recursive=True
     list : Text -> Boolean -> Vector File
     list self name_filter:Text="" recursive:Boolean=False =
-        all_files = if recursive then list_descendants self else self.list_immediate_children
-        case name_filter of
-            "" -> all_files
-            _ ->
-                used_filter = if recursive.not || name_filter.contains "**" then name_filter else
-                    (if name_filter.starts_with "*" then "*" else "**/") + name_filter
-                matcher = File_Utils.matchPath "glob:"+used_filter
-                all_files.filter file->
-                    pathStr = self.relativize file . path
-                    File_Utils.matches matcher pathStr
+        if self.is_directory.not then Error.throw (Illegal_Argument.Error "Cannot `list` a non-directory.") else
+            all_files = if recursive then list_descendants self else self.list_immediate_children
+            case name_filter of
+                "" -> all_files
+                _ ->
+                    used_filter = if recursive.not || name_filter.contains "**" then name_filter else
+                        (if name_filter.starts_with "*" then "*" else "**/") + name_filter
+                    matcher = File_Utils.matchPath "glob:"+used_filter
+                    all_files.filter file->
+                        pathStr = self.relativize file . path
+                        File_Utils.matches matcher pathStr
 
     ## GROUP Metadata
        ICON metadata

@@ -40,12 +40,21 @@ const BASE_URL = 'https://mock/'
 /** Parameters for {@link mockApi}. */
 interface MockParams {
   readonly page: test.Page
+  readonly setupAPI?: SetupAPI | null | undefined
+}
+
+/**
+ * Setup function for the mock API.
+ * use it to setup the mock API with custom handlers.
+ */
+export interface SetupAPI {
+  (api: Awaited<ReturnType<typeof mockApi>>): Promise<void> | void
 }
 
 /** Add route handlers for the mock API to a page. */
 // This syntax is required for Playwright to work properly.
 // eslint-disable-next-line no-restricted-syntax
-export async function mockApi({ page }: MockParams) {
+export async function mockApi({ page, setupAPI }: MockParams) {
   // eslint-disable-next-line no-restricted-syntax
   const defaultEmail = 'email@example.com' as backend.EmailAddress
   const defaultUsername = 'user name'
@@ -822,7 +831,7 @@ export async function mockApi({ page }: MockParams) {
     })
   })
 
-  return {
+  const api = {
     defaultEmail,
     defaultName: defaultUsername,
     defaultOrganization,
@@ -871,5 +880,11 @@ export async function mockApi({ page }: MockParams) {
     // deletePermission,
     addUserGroupToUser,
     removeUserGroupFromUser,
+  } as const
+
+  if (setupAPI) {
+    await setupAPI(api)
   }
+
+  return api
 }

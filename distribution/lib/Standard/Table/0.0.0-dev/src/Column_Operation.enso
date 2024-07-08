@@ -74,7 +74,7 @@ type Column_Operation
 
     ## Removes the specified characters, by default any whitespace, from the
        start, the end, or both ends of the input.
-    Trim (input : Column_Ref|Expression|Text) (where:Location = Location.Both) (what:Text|Column_Ref = "")
+    Trim (input : Column_Ref|Expression|Text) (where:Location=..Both) (what:Text|Column_Ref = "")
 
 ## PRIVATE
 Simple_Expression.from (that:Column_Operation) =

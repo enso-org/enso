@@ -747,9 +747,9 @@ type_spec suite_builder name alter = suite_builder.group name group_builder->
         small_expected = [T.Value -20 0, T.Value -1 1, T.Value -1 10, T.Value 1 8, T.Value 1 3, T.Value 4 0]
         small_vec.sort . should_equal small_expected
 
-    group_builder.specify "should fail the sort if Report_Error problem_behavior specified" <|
-        alter [T.Value 1 8, Nothing] . sort on_incomparable=Problem_Behavior.Report_Error . should_fail_with Incomparable_Values
-        alter [Nothing, Number.nan] . sort on_incomparable=Problem_Behavior.Report_Error . should_fail_with Incomparable_Values
+    group_builder.specify "should fail the sort if `Report_Error` problem_behavior specified" <|
+        alter [T.Value 1 8, Nothing] . sort on_problems=..Report_Error . should_fail_with Incomparable_Values
+        alter [Nothing, Number.nan] . sort on_problems=..Report_Error . should_fail_with Incomparable_Values
 
     group_builder.specify "should be able to use a custom element projection" <|
         small_vec = alter [T.Value 1 8, T.Value 1 3, T.Value -20 0, T.Value -1 1, T.Value -1 10, T.Value 4 0]
@@ -913,7 +913,7 @@ type_spec suite_builder name alter = suite_builder.group name group_builder->
             8 -> Time_Of_Day.new
             _ -> x
         input = 0.up_to 500 . map gen
-        sorted = input.sort on_incomparable=Problem_Behavior.Report_Warning
+        sorted = input.sort on_problems=..Report_Warning
         Warning.get_all sorted . length . should_equal 10
         Warning.limit_reached sorted . should_equal True
 
@@ -954,29 +954,29 @@ type_spec suite_builder name alter = suite_builder.group name group_builder->
     group_builder.specify "nested Map_Error indicies should be in the correct order" <|
         nested_vector = [[10, 20, 30, 40], [30, 10, 20, 30]]
         expected_warnings = [(Map_Error.Error 1 (Map_Error.Error 3 (My_Error.Error 30))), (Map_Error.Error 1 (Map_Error.Error 0 (My_Error.Error 30))), (Map_Error.Error 0 (Map_Error.Error 2 (My_Error.Error 30)))]
-        Warning.get_all wrap_errors=True (nested_vector.map (_.map map_fun on_problems=Problem_Behavior.Report_Warning) on_problems=Problem_Behavior.Report_Warning) . map .value . should_equal expected_warnings
+        Warning.get_all wrap_errors=True (nested_vector.map (_.map map_fun on_problems=..Report_Warning) on_problems=..Report_Warning) . map .value . should_equal expected_warnings
 
     group_builder.specify "a Nothing thrown inside map should be caught as Nothing" <|
         map_fun a = if a == 30 then Error.throw Nothing else a+1
         alter [10, 20, 30, 40] . map map_fun . should_fail_with (Map_Error.Error 2 Nothing) unwrap_errors=False
 
-    group_builder.specify "an error thrown inside map with on_problems=Problem_Behavior.Ignore should be ignored" <|
-        results = alter [10, 20, 30, 40] . map map_fun on_problems=Problem_Behavior.Ignore
+    group_builder.specify "an error thrown inside map with on_problems=..Ignore should be ignored" <|
+        results = alter [10, 20, 30, 40] . map map_fun on_problems=..Ignore
         results . should_equal [11, 21, Nothing, 41]
         Warning.get_all results wrap_errors=True . should_equal []
 
-    group_builder.specify "an error thrown inside map with on_problems=Problem_Behavior.Report_Warning should be attached as a warning" <|
-        result = alter [10, 20, 30, 40] . map map_fun on_problems=Problem_Behavior.Report_Warning
+    group_builder.specify "an error thrown inside map with on_problems=..Report_Warning should be attached as a warning" <|
+        result = alter [10, 20, 30, 40] . map map_fun on_problems=..Report_Warning
         result . should_equal [11, 21, Nothing, 41]
         Warning.get_all result wrap_errors=True . map .value . should_equal [Map_Error.Error 2 (My_Error.Error 30)]
 
-    group_builder.specify "multiple errors thrown inside map with on_problems=Problem_Behavior.Report_Warning should be attached as warnings" <|
-        result = alter [10, 30, 20, 30, 40, 30] . map map_fun on_problems=Problem_Behavior.Report_Warning
+    group_builder.specify "multiple errors thrown inside map with on_problems=..Report_Warning should be attached as warnings" <|
+        result = alter [10, 30, 20, 30, 40, 30] . map map_fun on_problems=..Report_Warning
         result . should_equal [11, Nothing, 21, Nothing, 41, Nothing]
         Warning.get_all result wrap_errors=True . map .value . should_equal ([5, 3, 1].map i-> Map_Error.Error i (My_Error.Error 30))
 
-    group_builder.specify "many errors thrown inside map with on_problems=Problem_Behavior.Report_Warning should be attached as warnings and an Additional_Warnings" <|
-        result = alter ([10, 20] + (Vector.fill 12 30) + [40]) . map map_fun on_problems=Problem_Behavior.Report_Warning
+    group_builder.specify "many errors thrown inside map with on_problems=..Report_Warning should be attached as warnings and an Additional_Warnings" <|
+        result = alter ([10, 20] + (Vector.fill 12 30) + [40]) . map map_fun on_problems=..Report_Warning
         result . should_equal ([11, 21] + (Vector.fill 12 Nothing) + [41])
         expected_warnings_regular = 11.down_to 1 . map i-> Map_Error.Error i (My_Error.Error 30)
         expected_warnings = expected_warnings_regular + [(Additional_Warnings.Error 2)]

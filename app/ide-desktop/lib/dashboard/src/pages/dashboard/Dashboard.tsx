@@ -2,9 +2,11 @@
  * interactive components. */
 import * as React from 'react'
 
+import * as validator from 'validator'
+
 import DriveIcon from 'enso-assets/drive.svg'
+import EditorIcon from 'enso-assets/network.svg'
 import SettingsIcon from 'enso-assets/settings.svg'
-import WorkspaceIcon from 'enso-assets/workspace.svg'
 import * as detect from 'enso-common/src/detect'
 
 import * as eventHooks from '#/hooks/eventHooks'
@@ -35,11 +37,11 @@ import UserBar from '#/layouts/UserBar'
 import Page from '#/components/Page'
 
 import * as backendModule from '#/services/Backend'
-import type * as projectManager from '#/services/ProjectManager'
+import * as localBackendModule from '#/services/LocalBackend'
+import * as projectManager from '#/services/ProjectManager'
 
 import * as array from '#/utilities/array'
 import LocalStorage from '#/utilities/LocalStorage'
-import * as object from '#/utilities/object'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 
 import type * as types from '../../../../types/types'
@@ -60,7 +62,7 @@ declare module '#/utilities/LocalStorage' {
   interface LocalStorageData {
     readonly isAssetPanelVisible: boolean
     readonly page: TabType
-    readonly projectStartupInfo: backendModule.ProjectStartupInfo<backendModule.Project>
+    readonly projectStartupInfo: Omit<backendModule.ProjectStartupInfo, 'project'>
   }
 }
 
@@ -86,14 +88,12 @@ LocalStorage.registerKey('projectStartupInfo', {
       return null
     } else if (!('backendType' in value) || !array.includes(BACKEND_TYPES, value.backendType)) {
       return null
-    } else if (!('project' in value) || !('projectAsset' in value)) {
+    } else if (!('projectAsset' in value)) {
       return null
     } else {
       return {
         // These type assertions are UNSAFE, however correctly type-checking these
         // would be very complicated.
-        // eslint-disable-next-line no-restricted-syntax
-        project: value.project as backendModule.Project,
         // eslint-disable-next-line no-restricted-syntax
         projectAsset: value.projectAsset as backendModule.ProjectAsset,
         backendType: value.backendType,
@@ -113,15 +113,12 @@ export interface DashboardProps {
   readonly supportsLocalBackend: boolean
   readonly appRunner: types.EditorRunner | null
   readonly initialProjectName: string | null
-  readonly projectManagerUrl: string | null
   readonly ydocUrl: string | null
-  readonly projectManagerRootDirectory: projectManager.Path | null
 }
 
 /** The component that contains the entire UI. */
 export default function Dashboard(props: DashboardProps) {
-  const { appRunner, initialProjectName } = props
-  const { ydocUrl, projectManagerUrl, projectManagerRootDirectory } = props
+  const { appRunner, ydocUrl, initialProjectName: initialProjectNameRaw } = props
   const session = authProvider.useNonPartialUserSession()
   const remoteBackend = backendProvider.useRemoteBackend()
   const localBackend = backendProvider.useLocalBackend()
@@ -143,12 +140,17 @@ export default function Dashboard(props: DashboardProps) {
   )
   const [projectStartupInfo, setProjectStartupInfo] =
     React.useState<backendModule.ProjectStartupInfo | null>(null)
-  const [openProjectAbortController, setOpenProjectAbortController] =
-    React.useState<AbortController | null>(null)
+  const openProjectAbortControllerRef = React.useRef<AbortController | null>(null)
   const [assetListEvents, dispatchAssetListEvent] =
     eventHooks.useEvent<assetListEvent.AssetListEvent>()
   const [assetEvents, dispatchAssetEvent] = eventHooks.useEvent<assetEvent.AssetEvent>()
-  const defaultCategory = remoteBackend != null ? Category.cloud : Category.local
+  const initialLocalProjectId =
+    initialProjectNameRaw != null && validator.isUUID(initialProjectNameRaw)
+      ? localBackendModule.newProjectId(projectManager.UUID(initialProjectNameRaw))
+      : null
+  const initialProjectName = initialLocalProjectId ?? initialProjectNameRaw
+  const defaultCategory =
+    remoteBackend != null && initialLocalProjectId == null ? Category.cloud : Category.local
   const [category, setCategory] = searchParamsState.useSearchParamsState(
     'driveCategory',
     () => defaultCategory,
@@ -182,63 +184,66 @@ export default function Dashboard(props: DashboardProps) {
         setPage(TabType.drive)
       }
     } else if (savedProjectStartupInfo != null) {
-      if (savedProjectStartupInfo.backendType === backendModule.BackendType.remote) {
-        if (remoteBackend != null) {
-          setPage(TabType.drive)
-          void (async () => {
-            const abortController = new AbortController()
-            setOpenProjectAbortController(abortController)
-            try {
-              const oldProject = await remoteBackend.getProjectDetails(
-                savedProjectStartupInfo.projectAsset.id,
-                savedProjectStartupInfo.projectAsset.parentId,
-                savedProjectStartupInfo.projectAsset.title
-              )
-              if (backendModule.IS_OPENING_OR_OPENED[oldProject.state.type]) {
-                const project = remoteBackend.waitUntilProjectIsReady(
+      switch (savedProjectStartupInfo.backendType) {
+        case backendModule.BackendType.remote: {
+          if (remoteBackend != null) {
+            setPage(TabType.drive)
+            void (async () => {
+              const abortController = new AbortController()
+              openProjectAbortControllerRef.current = abortController
+              try {
+                const oldProject = await remoteBackend.getProjectDetails(
                   savedProjectStartupInfo.projectAsset.id,
                   savedProjectStartupInfo.projectAsset.parentId,
-                  savedProjectStartupInfo.projectAsset.title,
-                  abortController
+                  savedProjectStartupInfo.projectAsset.title
                 )
-                setProjectStartupInfo(
-                  object.merge<backendModule.ProjectStartupInfo>(savedProjectStartupInfo, {
-                    project,
-                  })
-                )
-                if (page === TabType.editor) {
-                  setPage(page)
+                if (backendModule.IS_OPENING_OR_OPENED[oldProject.state.type]) {
+                  const project = remoteBackend.waitUntilProjectIsReady(
+                    savedProjectStartupInfo.projectAsset.id,
+                    savedProjectStartupInfo.projectAsset.parentId,
+                    savedProjectStartupInfo.projectAsset.title,
+                    abortController.signal
+                  )
+                  setProjectStartupInfo({ ...savedProjectStartupInfo, project })
+                  if (page === TabType.editor) {
+                    setPage(page)
+                  }
                 }
+              } catch {
+                setProjectStartupInfo(null)
               }
-            } catch {
-              setProjectStartupInfo(null)
-            }
-          })()
+            })()
+          }
+          break
         }
-      } else if (projectManagerUrl != null && projectManagerRootDirectory != null) {
-        if (localBackend != null) {
-          void (async () => {
-            await localBackend.openProject(
-              savedProjectStartupInfo.projectAsset.id,
-              {
-                executeAsync: false,
-                cognitoCredentials: null,
-                parentId: savedProjectStartupInfo.projectAsset.parentId,
-              },
-              savedProjectStartupInfo.projectAsset.title
-            )
-            const project = localBackend.getProjectDetails(
-              savedProjectStartupInfo.projectAsset.id,
-              savedProjectStartupInfo.projectAsset.parentId,
-              savedProjectStartupInfo.projectAsset.title
-            )
-            setProjectStartupInfo(
-              object.merge<backendModule.ProjectStartupInfo>(savedProjectStartupInfo, { project })
-            )
+        case backendModule.BackendType.local: {
+          if (localBackend != null) {
+            const project = localBackend
+              .openProject(
+                savedProjectStartupInfo.projectAsset.id,
+                {
+                  executeAsync: false,
+                  cognitoCredentials: null,
+                  parentId: savedProjectStartupInfo.projectAsset.parentId,
+                },
+                savedProjectStartupInfo.projectAsset.title
+              )
+              .then(() =>
+                localBackend.getProjectDetails(
+                  savedProjectStartupInfo.projectAsset.id,
+                  savedProjectStartupInfo.projectAsset.parentId,
+                  savedProjectStartupInfo.projectAsset.title
+                )
+              )
+              .catch(error => {
+                setProjectStartupInfo(null)
+                throw error
+              })
+            setProjectStartupInfo({ ...savedProjectStartupInfo, project })
             if (page === TabType.editor) {
               setPage(page)
             }
-          })()
+          }
         }
       }
     }
@@ -249,8 +254,8 @@ export default function Dashboard(props: DashboardProps) {
   eventHooks.useEventHandler(assetEvents, event => {
     switch (event.type) {
       case AssetEventType.openProject: {
-        openProjectAbortController?.abort()
-        setOpenProjectAbortController(null)
+        openProjectAbortControllerRef.current?.abort()
+        openProjectAbortControllerRef.current = null
         break
       }
       default: {
@@ -263,9 +268,10 @@ export default function Dashboard(props: DashboardProps) {
   React.useEffect(() => {
     if (initializedRef.current) {
       if (projectStartupInfo != null) {
-        void Promise.resolve(projectStartupInfo.project).then(project => {
-          localStorage.set('projectStartupInfo', { ...projectStartupInfo, project })
-        })
+        // This is INTENTIONAL - `project` is intentionally omitted from this object.
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { project, ...rest } = projectStartupInfo
+        localStorage.set('projectStartupInfo', rest)
       } else {
         localStorage.delete('projectStartupInfo')
       }
@@ -374,8 +380,9 @@ export default function Dashboard(props: DashboardProps) {
               {projectStartupInfo != null && (
                 <tabBar.Tab
                   isActive={page === TabType.editor}
-                  icon={WorkspaceIcon}
+                  icon={EditorIcon}
                   labelId="editorPageName"
+                  loadingPromise={projectStartupInfo.project}
                   onPress={() => {
                     setPage(TabType.editor)
                   }}
@@ -384,6 +391,7 @@ export default function Dashboard(props: DashboardProps) {
                       type: AssetEventType.closeProject,
                       id: projectStartupInfo.projectAsset.id,
                     })
+                    setProjectStartupInfo(null)
                     setPage(TabType.drive)
                   }}
                 >
@@ -407,7 +415,11 @@ export default function Dashboard(props: DashboardProps) {
               )}
             </TabBar>
             <UserBar
-              backend={remoteBackend}
+              backend={
+                projectStartupInfo?.backendType === backendModule.BackendType.remote
+                  ? remoteBackend
+                  : localBackend
+              }
               isOnEditorPage={page === TabType.editor}
               setIsHelpChatOpen={setIsHelpChatOpen}
               projectAsset={projectStartupInfo?.projectAsset ?? null}
@@ -438,7 +450,7 @@ export default function Dashboard(props: DashboardProps) {
             projectStartupInfo={projectStartupInfo}
             appRunner={appRunner}
           />
-          {page === TabType.settings && <Settings backend={remoteBackend} />}
+          {page === TabType.settings && <Settings />}
           {process.env.ENSO_CLOUD_CHAT_URL != null ? (
             <Chat
               isOpen={isHelpChatOpen}

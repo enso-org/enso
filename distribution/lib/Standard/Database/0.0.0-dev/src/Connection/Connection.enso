@@ -20,6 +20,7 @@ import project.Dialect.Dialect
 import project.Internal.Connection.Entity_Naming_Properties.Entity_Naming_Properties
 import project.Internal.Hidden_Table_Registry
 import project.Internal.IR.Context.Context
+import project.Internal.IR.From_Spec.From_Spec
 import project.Internal.IR.Query.Query
 import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
@@ -309,7 +310,7 @@ type Connection
          a `Dry_Run_Operation` warning attached.
     @structure make_structure_creator
     create_table : Text  -> Vector Column_Description | DB_Table | Table -> Vector Text | Nothing -> Boolean -> Boolean -> Problem_Behavior -> DB_Table ! Table_Already_Exists
-    create_table self (table_name : Text) (structure : Vector Column_Description | DB_Table | Table) (primary_key : (Vector Text | Nothing) = [first_column_name_in_structure structure]) (temporary : Boolean = False) (allow_existing : Boolean = False) (on_problems:Problem_Behavior = Problem_Behavior.Report_Warning) =
+    create_table self (table_name : Text) (structure : Vector Column_Description | DB_Table | Table) (primary_key : (Vector Text | Nothing) = [first_column_name_in_structure structure]) (temporary : Boolean = False) (allow_existing : Boolean = False) (on_problems:Problem_Behavior = ..Report_Warning) =
         create_table_implementation self table_name structure primary_key temporary allow_existing on_problems
 
     ## PRIVATE
@@ -441,6 +442,22 @@ type Connection
     internal_allocate_dry_run_table self table_name =
         ref = self.hidden_table_registry.make_reference table_name
         make_table_for_name self table_name table_name ref
+
+    ## PRIVATE
+       ADVANCED
+       Creates a `DB_Table` that is not backed by an existing table in the
+       Database, but is created in a query by constructing a `VALUES` expression.
+
+       We limit these tables to at most 256 cells to avoid creating too large
+       queries. If you need a larger table, create a temporary table instead.
+
+       Note that the types of columns in the created table will depend on how
+       the Database interprets the provided values and may not reflect the types
+       of the source table. If you need more sophisticated type mapping
+       mechanism, use `create_table` instead.
+    create_literal_table self (source : Table) (alias : Text) -> DB_Table =
+        DB_Table_Module.make_literal_table self (source.columns.map .to_vector) source.column_names alias
+
 
 ## PRIVATE
 make_table_types_selector : Connection -> Widget

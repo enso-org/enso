@@ -1,6 +1,7 @@
 private
 
 from Standard.Base import all
+import Standard.Base.Data.Numbers.Positive_Integer
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 import Standard.Table.Internal.Java_Exports
@@ -21,7 +22,7 @@ polyglot java import java.sql.Types
 type Snowflake_Type_Mapping
     ## PRIVATE
     value_type_to_sql : Value_Type -> Problem_Behavior -> SQL_Type
-    value_type_to_sql value_type on_problems =
+    value_type_to_sql value_type on_problems:Problem_Behavior =
         result = case value_type of
             Value_Type.Boolean -> SQL_Type.Value Types.BOOLEAN "boolean"
             # All integer types in Snowflake become NUMERIC(38,0).
@@ -36,7 +37,9 @@ type Snowflake_Type_Mapping
                 _       -> SQL_Type.Value Types.DECIMAL "decimal" precision scale
             Value_Type.Char size _ ->
                 # Snowflake does not support fixed length strings, so we use VARCHAR.
-                is_unbounded = size.is_nothing || (size >= max_length)
+                is_unbounded = case size of
+                    Nothing -> True
+                    Positive_Integer.Value integer -> integer >= max_length
                 case is_unbounded of
                     True  -> SQL_Type.Value Types.VARCHAR "varchar"
                     False -> SQL_Type.Value Types.VARCHAR "varchar" size
@@ -47,7 +50,9 @@ type Snowflake_Type_Mapping
                 SQL_Type.Value Types.TIMESTAMP type_name
             Value_Type.Binary size _ ->
                 ## Snowflake does not support fixed length binary types, so we use BINARY.
-                is_unbounded = size.is_nothing || (size >= max_length)
+                is_unbounded = case size of
+                    Nothing -> True
+                    Positive_Integer.Value integer -> integer >= max_length
                 case is_unbounded of
                     True  -> SQL_Type.Value Types.BINARY "binary"
                     False -> SQL_Type.Value Types.BINARY "binary" size

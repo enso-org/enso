@@ -187,6 +187,7 @@ add_specs suite_builder =
                  0 | 10  | False
                  1 | 20  | True
                  2 | 30  | False
+            ## """
             expected_text = raw_expected_text.lines.map .trim . join '\n'
             raw_got_text = t.display
             got_text = raw_got_text.lines.map .trim . join '\n'
@@ -357,7 +358,7 @@ add_specs suite_builder =
             c_1 = ['id', [1, 2, 3, 4, 5, 6]]
             c_2 = ['val', [My.Data 1 2, My.Data 3 4, My.Data 2 1, My.Data 5 2, My.Data 7 0, My.Data 4 -1]]
             df = Table.new [c_1, c_2]
-            r = df.order_by (['val'])
+            r = df.sort (['val'])
             r.at 'id' . to_vector . should_equal [1,3,6,2,4,5]
 
         group_builder.specify 'should correctly reorder all kinds of columns and leave the original columns untouched' <|
@@ -373,7 +374,7 @@ add_specs suite_builder =
             mixed_dates = [Date.new 1999 1 2, Date_Time.new 1999 1 2 3 40, Date.new 1999 1 2, Date_Time.new 1999 1 2 3 40, Date.new 2000]
 
             df = Table.new [['ord', ord], ['ints', ints], ['reals', reals], ['bools', bools], ['texts', texts], ['objs', objs], ['dates', dates], ['times', times], ['datetimes', datetimes], ['mixed_dates', mixed_dates]]
-            r = df.order_by (['ord'])
+            r = df.sort (['ord'])
 
             r.at 'ints' . to_vector . should_equal [1, 5, 3, 2, 4]
             df.at 'ints' . to_vector . should_equal ints
@@ -400,23 +401,23 @@ add_specs suite_builder =
             df.at 'datetimes' . to_vector . should_equal datetimes
 
             # TODO move this test to Common_Table_Operations once we support dates there
-            r2 = df.order_by (['dates'])
+            r2 = df.sort (['dates'])
             r2.at 'dates' . to_vector . should_equal [Date.new 1999, Date.new 1999 12 31, Date.new 2000 2 7, Date.new 2000 10 3, Date.new 2020]
             r2.at 'ints' . to_vector . should_equal [2, 4, 5, 3, 1]
 
-            r3 = df.order_by (['times'])
+            r3 = df.sort (['times'])
             r3.at 'times' . to_vector . should_equal [Time_Of_Day.new 1 30 40, Time_Of_Day.new 10 20 30, Time_Of_Day.new 12, Time_Of_Day.new 12 30 0, Time_Of_Day.new 23 59 59]
             r3.at 'ints' . to_vector . should_equal [2, 5, 1, 4, 3]
 
-            r4 = df.order_by (['datetimes'])
+            r4 = df.sort (['datetimes'])
             r4.at 'datetimes' . to_vector . should_equal [Date_Time.new 1999 1 1 1 30 40, Date_Time.new 1999 12 31 12 30 0, Date_Time.new 2000 10 3 10 20 30, Date_Time.new 2000 10 3 23 59 59, Date_Time.new 2020 1 1 12]
             r4.at 'ints' . to_vector . should_equal [2, 4, 5, 3, 1]
 
-            r5 = df.order_by (['objs'])
+            r5 = df.sort (['objs'])
             r5.at 'objs' . to_vector . should_equal [My.Data 2 3, My.Data 6 7, My.Data 8 9, My.Data 10 30, My.Data 100 2]
             r5.at 'ints' . to_vector . should_equal [2, 3, 4, 5, 1]
 
-            r6 = df.order_by (['mixed_dates'])
+            r6 = df.sort (['mixed_dates'])
             r6 . should_fail_with Incomparable_Values
 
     suite_builder.group "Sorting Columns" group_builder->
@@ -712,7 +713,7 @@ add_specs suite_builder =
             texts = ["texts", ['ściana', 'ściana', 'łąka', 's\u0301ciana', 'ła\u0328ka', 'sciana']]
             ints = ["ints", [1, 2, 4, 8, 16, 32]]
             table = Table.new [texts, ints]
-            r1 = table.aggregate ["texts"] [Aggregate_Column.Sum "ints"] . order_by ([Sort_Column.Name "texts"])
+            r1 = table.aggregate ["texts"] [Aggregate_Column.Sum "ints"] . sort ([..Name "texts"])
             r1.at "texts" . to_vector . should_equal ['sciana', 'ściana', 'łąka']
             r1.at "Sum ints" . to_vector . should_equal [32, 11, 20]
 
@@ -722,10 +723,10 @@ add_specs suite_builder =
         group_builder.specify "should be able to aggregate over enso Types" <|
             weekday_table  = Table.new [["days", [Day_Of_Week.Monday, Day_Of_Week.Monday, Day_Of_Week.Monday, Day_Of_Week.Tuesday, Day_Of_Week.Sunday]], ["group", [1,1,2,1,2]]]
 
-            r1 = weekday_table.aggregate ["days"] . order_by "days"
+            r1 = weekday_table.aggregate ["days"] . sort "days"
             r1.at "days" . to_vector . should_equal [Day_Of_Week.Sunday, Day_Of_Week.Monday, Day_Of_Week.Tuesday]
 
-            r2 = weekday_table.aggregate ["group"] [Aggregate_Column.Minimum "days" "min", Aggregate_Column.Maximum "days" "max"] . order_by "group"
+            r2 = weekday_table.aggregate ["group"] [Aggregate_Column.Minimum "days" "min", Aggregate_Column.Maximum "days" "max"] . sort "group"
             r2.at "group" . to_vector . should_equal [1, 2]
             r2.at "min" . to_vector . should_equal [Day_Of_Week.Monday, Day_Of_Week.Sunday]
             r2.at "max" . to_vector . should_equal [Day_Of_Week.Tuesday, Day_Of_Week.Monday]
@@ -741,7 +742,7 @@ add_specs suite_builder =
             c = ["C", [0.1, 0.2, 0.3, 0.4, 0.5, 0.6]]
             t = Table.new [a, b, c]
 
-            r2 = t.distinct ["A", "B"] on_problems=Report_Error
+            r2 = t.distinct ["A", "B"] on_problems=..Report_Error
             r2.at "A" . to_vector . should_equal ["a", "a"]
             r2.at "B" . to_vector . should_equal [1, 2]
             r2.at "C" . to_vector . should_equal [0.1, 0.3]
@@ -750,7 +751,7 @@ add_specs suite_builder =
             a = ["A", ["a", Nothing, "b", "a", "b", Nothing, "a", "b"]]
             b = ["B", [1, 2, 3, 4, 5, 6, 7, 8]]
             t = Table.new [a, b]
-            r = t.distinct ["A"] on_problems=Report_Error
+            r = t.distinct ["A"] on_problems=..Report_Error
             r.at "A" . to_vector . should_equal ["a", Nothing, "b"]
             r.at "B" . to_vector . should_equal [1, 2, 3]
 
@@ -762,11 +763,11 @@ add_specs suite_builder =
             x = ["X", ['A', 'a', 'enso', 'śledź', 'Enso', 'A', 's\u0301ledz\u0301']]
             y = ["Y", [1, 2, 3, 4, 5, 6, 7]]
             t1 = Table.new [x, y]
-            d1 = t1.distinct ["X"] on_problems=Report_Error
+            d1 = t1.distinct ["X"] on_problems=..Report_Error
             d1.at "X" . to_vector . should_equal ['A', 'a', 'enso', 'śledź', 'Enso']
             d1.at "Y" . to_vector . should_equal [1, 2, 3, 4, 5]
 
-            d2 = t1.distinct ["X"] case_sensitivity=Case_Sensitivity.Insensitive on_problems=Report_Error
+            d2 = t1.distinct ["X"] case_sensitivity=Case_Sensitivity.Insensitive on_problems=..Report_Error
             d2.at "X" . to_vector . should_equal ['A', 'enso', 'śledź']
             d2.at "Y" . to_vector . should_equal [1, 3, 4]
 

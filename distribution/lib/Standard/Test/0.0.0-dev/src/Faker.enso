@@ -46,17 +46,17 @@ type Faker
                 n = "0123456789".char_vector
                 s = "ABCDFMP ".char_vector
                 template = [l, l, n, n, n, n, n, s]
-                ni_number = Faker.new . string_value template
-    string_value : Vector | Text -> Text
-    string_value self template =
+                ni_number = Faker.new . text_value template
+    text_value : Vector | Text -> Text
+    text_value self template =
         case template of
             _ : Text ->
-                 char_vector = template.char_vector.map c-> case c of
+                 char_vector = template.characters.map c-> case c of
                     "A" -> Faker.upper_case_letters
                     "a" -> Faker.lower_case_letters
                     "0" -> Faker.numbers
-                    _ -> c
-                 self.string_value char_vector
+                    _ -> [c]
+                 self.text_value char_vector
             _ ->
                 characters = template.map possible_chars->
                     selected_char_ix = self.generator.nextInt possible_chars.length
@@ -73,7 +73,7 @@ type Faker
     alpha : Integer -> Boolean -> Text
     alpha self length=1 upper_case=False =
         alphabet = if upper_case then Faker.upper_case_letters else Faker.lower_case_letters
-        self.string_value <| 0.up_to length . map _->alphabet
+        self.text_value <| 0.up_to length . map _->alphabet
 
     ## GROUP Standard.Base.Random
        ICON random
@@ -85,7 +85,7 @@ type Faker
     alpha_numeric : Integer -> Boolean -> Text
     alpha_numeric self length=1 upper_case=False =
         alphabet = (if upper_case then Faker.upper_case_letters else Faker.lower_case_letters) + Faker.numbers
-        self.string_value <| 0.up_to length . map _->alphabet
+        self.text_value <| 0.up_to length . map _->alphabet
 
     ## GROUP Standard.Base.Random
        ICON random
@@ -96,7 +96,7 @@ type Faker
     hexadecimal : Integer -> Text
     hexadecimal self length=1 =
         alphabet = "0123456789ABCDEF".char_vector
-        self.string_value <| 0.up_to length . map _->alphabet
+        self.text_value <| 0.up_to length . map _->alphabet
 
     ## GROUP Standard.Base.Random
        ICON random

@@ -22,9 +22,10 @@ const { blockType } = props.formatting
 <style scoped>
 .FormattingToolbar {
   --color-frame-bg: white;
-  position: sticky;
-  top: 0;
   display: flex;
+  height: 100%;
+  flex-direction: row;
+  align-items: center;
   gap: 6px;
   line-height: 16px;
 }

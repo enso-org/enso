@@ -36,7 +36,7 @@ add_specs suite_builder = suite_builder.group "Aggregate Columns" group_builder-
         result =
             acc = Aggregate_Column_Helper.java_aggregator "Name" resolved
             indexes = Vector.new table.row_count v->v
-            Java_Problems.with_problem_aggregator Problem_Behavior.Report_Warning java_problem_aggregator->
+            Java_Problems.with_problem_aggregator ..Report_Warning java_problem_aggregator->
                 Illegal_Argument.handle_java_exception <|
                     acc.aggregate indexes java_problem_aggregator
 

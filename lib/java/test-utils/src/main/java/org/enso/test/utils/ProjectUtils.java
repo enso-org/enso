@@ -13,12 +13,9 @@ import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Context.Builder;
 import org.graalvm.polyglot.Value;
 
-/**
- * Utility methods for creating and running Enso projects.
- */
+/** Utility methods for creating and running Enso projects. */
 public class ProjectUtils {
   private ProjectUtils() {}
-
 
   /**
    * Creates temporary project directory structure with a given main source content. No need to
@@ -42,13 +39,14 @@ public class ProjectUtils {
    *
    * @param projName Name of the project
    * @param modules Set of modules. Must contain `Main` module.
-   * @param projDir A directory in which the whole project structure will be created.
-   *                Must exist and be a directory.
+   * @param projDir A directory in which the whole project structure will be created. Must exist and
+   *     be a directory.
    */
-  public static void createProject(
-      String projName, Set<SourceModule> modules, Path projDir) throws IOException {
+  public static void createProject(String projName, Set<SourceModule> modules, Path projDir)
+      throws IOException {
     if (!projDir.toFile().exists() || !projDir.toFile().isDirectory()) {
-      throw new IllegalArgumentException("Project directory " + projDir + " must already be created");
+      throw new IllegalArgumentException(
+          "Project directory " + projDir + " must already be created");
     }
     var projYaml =
         """

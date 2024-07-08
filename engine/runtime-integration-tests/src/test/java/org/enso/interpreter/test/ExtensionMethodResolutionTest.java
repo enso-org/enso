@@ -36,6 +36,11 @@ public class ExtensionMethodResolutionTest {
           containsString("Method overloads are not supported"),
           containsString("defined multiple times"));
 
+  private static final Matcher<String> ambiguousResolutionErrorMessageMatcher =
+      allOf(
+          containsString("resolved ambiguously to"),
+          containsString("The symbol was first resolved to"));
+
   @Test
   public void twoExtensionMethodsWithSameNameInOneModuleShouldFail() throws IOException {
     var src = """
@@ -330,7 +335,10 @@ public class ExtensionMethodResolutionTest {
         topScope.compile(true);
         fail("Expected compilation error: " + out);
       } catch (PolyglotException e) {
-        assertThat(e.isSyntaxError(), is(true));
+        assertThat(
+            "Exception should be a syntax error, but instead is " + e.getMessage(),
+            e.isSyntaxError(),
+            is(true));
         assertThat(out.toString(), errorMessageMatcher);
       }
     }

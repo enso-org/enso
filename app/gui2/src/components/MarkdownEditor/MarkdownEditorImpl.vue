@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import FloatingSelectionMenu from '@/components/MarkdownEditor/FloatingSelectionMenu.vue'
+import FloatingSelectionMenu from '@/components/FloatingSelectionMenu.vue'
 import FormattingToolbar from '@/components/MarkdownEditor/FormattingToolbar.vue'
 import { imagePlugin } from '@/components/MarkdownEditor/ImagePlugin'
 import SelectionFormattingToolbar from '@/components/MarkdownEditor/SelectionFormattingToolbar.vue'
@@ -13,11 +13,14 @@ import { markdownPlugin } from '@/components/MarkdownEditor/markdown'
 import { useLexical } from '@/components/lexical'
 import LexicalContent from '@/components/lexical/LexicalContent.vue'
 import LexicalDecorators from '@/components/lexical/LexicalDecorators.vue'
+import { autoLinkPlugin, linkPlugin, useLinkNode } from '@/components/lexical/LinkPlugin'
+import LinkToolbar from '@/components/lexical/LinkToolbar.vue'
 import { shallowRef, toRef, useCssModule, type ComponentInstance } from 'vue'
 
 const markdown = defineModel<string>({ required: true })
 const props = defineProps<{
   transformImageUrl?: UrlTransformer | undefined
+  toolbarContainer: HTMLElement | undefined
 }>()
 
 const contentElement = shallowRef<ComponentInstance<typeof LexicalContent>>()
@@ -25,21 +28,26 @@ const contentElement = shallowRef<ComponentInstance<typeof LexicalContent>>()
 provideLexicalImageUrlTransformer(toRef(props, 'transformImageUrl'))
 
 const theme = lexicalRichTextTheme(useCssModule('lexicalTheme'))
-const { editor } = useLexical(
-  contentElement,
-  'MarkdownEditor',
-  theme,
-  markdownPlugin(markdown, [listPlugin, imagePlugin]),
-)
+const { editor } = useLexical(contentElement, 'MarkdownEditor', theme, [
+  ...markdownPlugin(markdown, [listPlugin, imagePlugin, linkPlugin]),
+  autoLinkPlugin,
+])
 const formatting = useFormatting(editor)
+
+const { urlUnderCursor } = useLinkNode(editor)
 </script>
 
 <template>
   <div class="MarkdownEditor fullHeight">
-    <FormattingToolbar :formatting="formatting" @pointerdown.prevent />
-    <LexicalContent ref="contentElement" class="fullHeight" @wheel.stop @contextmenu.stop />
+    <Teleport :to="toolbarContainer">
+      <FormattingToolbar :formatting="formatting" @pointerdown.prevent />
+    </Teleport>
+    <LexicalContent ref="contentElement" @wheel.stop.passive @contextmenu.stop @pointerdown.stop />
     <FloatingSelectionMenu :selectionElement="contentElement">
-      <SelectionFormattingToolbar :formatting="formatting" />
+      <template #default="{ collapsed }">
+        <SelectionFormattingToolbar v-if="!collapsed" :formatting="formatting" />
+        <LinkToolbar v-else-if="urlUnderCursor" :url="urlUnderCursor" />
+      </template>
     </FloatingSelectionMenu>
     <LexicalDecorators :editor="editor" />
   </div>
@@ -47,6 +55,8 @@ const formatting = useFormatting(editor)
 
 <style scoped>
 .fullHeight {
+  display: flex;
+  flex-direction: column;
   height: 100%;
 }
 

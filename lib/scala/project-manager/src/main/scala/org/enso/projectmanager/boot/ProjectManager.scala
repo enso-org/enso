@@ -12,6 +12,7 @@ import org.enso.projectmanager.boot.Globals.{
 import org.enso.projectmanager.boot.command.filesystem.{
   FileSystemCreateDirectoryCommand,
   FileSystemDeleteCommand,
+  FileSystemExistsCommand,
   FileSystemListCommand,
   FileSystemMoveDirectoryCommand,
   FileSystemWritePathCommand
@@ -218,6 +219,11 @@ object ProjectManager extends ZIOAppDefault with LazyLogging {
       ZIO.succeed(SuccessExitCode)
     } else if (options.hasOption(Cli.VERSION_OPTION)) {
       displayVersion(options.hasOption(Cli.JSON_OPTION))
+    } else if (options.hasOption(Cli.FILESYSTEM_EXISTS)) {
+      val path = Paths.get(options.getOptionValue(Cli.FILESYSTEM_EXISTS))
+      val fileSystemExistsCommand =
+        FileSystemExistsCommand[ZIO[ZAny, +*, +*]](config, path.toFile)
+      commandHandler.printJson(fileSystemExistsCommand.run)
     } else if (options.hasOption(Cli.FILESYSTEM_LIST)) {
       val directory = Paths.get(options.getOptionValue(Cli.FILESYSTEM_LIST))
       val fileSystemListCommand =

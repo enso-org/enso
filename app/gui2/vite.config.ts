@@ -8,6 +8,7 @@ import postcssNesting from 'postcss-nesting'
 import tailwindcss from 'tailwindcss'
 import tailwindcssNesting from 'tailwindcss/nesting'
 import { defineConfig, type Plugin } from 'vite'
+import VueDevTools from 'vite-plugin-vue-devtools'
 // @ts-expect-error
 import * as tailwindConfig from 'enso-dashboard/tailwind.config'
 import { createGatewayServer } from './ydoc-server'
@@ -27,10 +28,11 @@ export default defineConfig({
   publicDir: fileURLToPath(new URL('./public', import.meta.url)),
   envDir: fileURLToPath(new URL('.', import.meta.url)),
   plugins: [
+    VueDevTools(),
     vue(),
     react({
       include: fileURLToPath(new URL('../ide-desktop/lib/dashboard/**/*.tsx', import.meta.url)),
-      babel: { plugins: ['@babel/plugin-syntax-import-assertions'] },
+      babel: { plugins: ['@babel/plugin-syntax-import-attributes'] },
     }),
     gatewayServer(),
     ...(process.env.NODE_ENV === 'development' ? [await projectManagerShim()] : []),
@@ -87,10 +89,9 @@ export default defineConfig({
 function gatewayServer(): Plugin {
   return {
     name: 'gateway-server',
-    configureServer(server) {
-      if (POLYGLOT_YDOC_SERVER != undefined || server.httpServer == null) return
-
-      createGatewayServer(server.httpServer, undefined)
+    configureServer({ httpServer }) {
+      if (httpServer == null || POLYGLOT_YDOC_SERVER != undefined) return
+      createGatewayServer(httpServer, undefined)
     },
   }
 }
