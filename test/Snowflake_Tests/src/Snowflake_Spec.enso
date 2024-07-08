@@ -181,13 +181,14 @@ snowflake_specific_spec suite_builder default_connection db_name setup =
             i = data.t.column_info
             i.at "Column" . to_vector . should_equal ["strs", "ints", "bools", "doubles"]
             i.at "Items Count" . to_vector . should_equal [3, 1, 2, 3]
-            i.at "Value Type" . to_vector . should_equal [Value_Type.Char, Value_Type.Integer, Value_Type.Boolean, Value_Type.Float]
+            # The integer column is treated as NUMBER(38, 0) in Snowflake so the value type reflects that:
+            i.at "Value Type" . to_vector . should_equal [Value_Type.Char, Value_Type.Decimal 38 0, Value_Type.Boolean, Value_Type.Float]
 
         group_builder.specify "should return Table information, also for aggregated results" <|
             i = data.t.aggregate columns=[Aggregate_Column.Concatenate "strs", Aggregate_Column.Sum "ints", Aggregate_Column.Count_Distinct "bools"] . column_info
             i.at "Column" . to_vector . should_equal ["Concatenate strs", "Sum ints", "Count Distinct bools"]
             i.at "Items Count" . to_vector . should_equal [1, 1, 1]
-            i.at "Value Type" . to_vector . should_equal [Value_Type.Char, Value_Type.Integer, Value_Type.Integer]
+            i.at "Value Type" . to_vector . should_equal [Value_Type.Char, Value_Type.Decimal 38 0, Value_Type.Decimal 38 0]
 
         group_builder.specify "should infer standard types correctly" <|
             data.t.at "strs" . value_type . is_text . should_be_true
@@ -195,21 +196,20 @@ snowflake_specific_spec suite_builder default_connection db_name setup =
             data.t.at "bools" . value_type . is_boolean . should_be_true
             data.t.at "doubles" . value_type . is_floating_point . should_be_true
 
-        group_builder.specify "should preserve Snowflake types when table is materialized, where possible" pending="TODO" <|
-            name = Name_Generator.random_name "types-test"
-            Problems.assume_no_problems <|
-                data.connection.execute_update 'CREATE TEMPORARY TABLE "'+name+'" ("int4" int4, "int2" int2, "txt-limited" varchar(10), "txt-fixed" char(3))'
-            t1 = data.connection.query (SQL_Query.Table_Name name)
-            t1.at "int4" . value_type . should_equal (Value_Type.Integer Bits.Bits_32)
-            t1.at "int2" . value_type . should_equal (Value_Type.Integer Bits.Bits_16)
-            t1.at "txt-limited" . value_type . should_equal (Value_Type.Char size=10 variable_length=True)
-            t1.at "txt-fixed" . value_type . should_equal (Value_Type.Char size=3 variable_length=False)
+        group_builder.specify "will report true integer types but infer smartly when materialized (small numbers become Integer in-memory, not Decimal)" <|
+            t1 = table_builder [["small_ints", [1, 2, 3]], ["big_ints", [2^100, 2^110, 1]]] . sort "small_ints"
+
+            # Integer types are NUMBER(38, 0) in Snowflake so they are all mapped to decimal
+            t1.at "small_ints" . value_type . should_equal (Value_Type.Decimal 38 0)
+            t1.at "big_ints" . value_type . should_equal (Value_Type.Decimal 38 0)
 
             in_memory = t1.read
-            in_memory.at "int4" . value_type . should_equal (Value_Type.Integer Bits.Bits_32)
-            in_memory.at "int2" . value_type . should_equal (Value_Type.Integer Bits.Bits_16)
-            in_memory.at "txt-limited" . value_type . should_equal (Value_Type.Char size=10 variable_length=True)
-            in_memory.at "txt-fixed" . value_type . should_equal (Value_Type.Char size=3 variable_length=False)
+            in_memory.at "small_ints" . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
+            in_memory.at "big_ints" . value_type . should_equal (Value_Type.Decimal 38 0)
+
+            # Check correctness of values
+            in_memory.at "small_ints" . to_vector . should_equal [1, 2, 3]
+            in_memory.at "big_ints" . to_vector . should_equal [2^100, 2^110, 1]
 
     suite_builder.group "[Snowflake] Dialect-specific codegen" group_builder->
         data = Snowflake_Info_Data.setup default_connection
