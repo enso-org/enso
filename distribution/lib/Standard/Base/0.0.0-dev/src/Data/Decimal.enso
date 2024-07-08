@@ -1059,10 +1059,10 @@ handle_unsupported_argument_types ~action =
         Error.throw (Arithmetic_Error.Error "Exponent out of range 0..999999999 (inclusive)")
 
 ## PRIVATE
-Comparable.from (_ : Decimal) = Decimal_Comparator
+Comparable.from (that : Decimal) = Comparable.new that Decimal_Comparator
 
 ## PRIVATE
-Comparable.from (_ : Number) = Decimal_Comparator
+Comparable.from (that : Number) = Comparable.new that Decimal_Comparator
 
 ## PRIVATE
 Decimal.from (that : Text) = Decimal.from_string that

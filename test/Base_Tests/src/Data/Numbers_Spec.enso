@@ -43,8 +43,8 @@ type Complex_Comparator
     hash x:Complex = if x.im == 0 then Default_Comparator.hash x.re else
         7*x.re + 11*x.im
 
-Comparable.from (_:Complex) = Complex_Comparator
-Comparable.from (_:Number) = Complex_Comparator
+Comparable.from (that:Complex) = Comparable.new that Complex_Comparator
+Comparable.from (that:Number) = Comparable.new that Complex_Comparator
 
 float_id : Float -> Float
 float_id f =

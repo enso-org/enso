@@ -78,7 +78,7 @@ type Day_Of_Week_Comparator
     hash x = x.to_integer
 
 ## PRIVATE
-Comparable.from (_:Day_Of_Week) = Day_Of_Week_Comparator
+Comparable.from (that:Day_Of_Week) = Comparable.new that Day_Of_Week_Comparator
 
 ## PRIVATE
    Convert from an integer to a Day_Of_Week

@@ -16,7 +16,7 @@ type Ord_Comparator
     compare x y = (Comparable.from x.number) . compare x.number y.number
     hash x = (Comparable.from x.number) . hash x.number
 
-Comparable.from (_:Ord) = Ord_Comparator
+Comparable.from (that:Ord) = Comparable.new that Ord_Comparator
 
 type No_Ord
     Value number
@@ -30,7 +30,7 @@ type No_Ord_Comparator
         _ = x
         0
 
-Comparable.from (_:No_Ord) = No_Ord_Comparator
+Comparable.from (that:No_Ord) = Comparable.new that No_Ord_Comparator
 
 type Bad_Comparator_Type
     Value x
@@ -41,7 +41,7 @@ type Bad_Comparator
         Error.throw (Illegal_State.Error "TEST")
     hash x = x
 
-Comparable.from (_:Bad_Comparator_Type) = Bad_Comparator
+Comparable.from (that:Bad_Comparator_Type) = Comparable.new that Bad_Comparator
 
 # Tests
 

@@ -12,20 +12,20 @@ type Ord
     Value number
 
 type Ord_Comparator
-    compare x y = (Comparable.from x.number) . compare x.number y.number
-    hash x = (Comparable.from x.number) . hash x.number
+    compare x y = (Comparable.from x.number) . compare y.number
+    hash x = (Comparable.from x.number) . hash
 
-Comparable.from (_:Ord) = Ord_Comparator
+Comparable.from (that:Ord) = Comparable.new that Ord_Comparator
 
 
 type My_Type
     Value val
 
 type My_Type_Comparator
-    compare x y = (Comparable.from x.val).compare x.val y.val
-    hash x = (Comparable.from x.val).hash x.val
+    compare x y = (Comparable.from x.val).compare y.val
+    hash x = (Comparable.from x.val).hash
 
-Comparable.from (_:My_Type) = My_Type_Comparator
+Comparable.from (that:My_Type) = Comparable.new that My_Type_Comparator
 
 
 ## Unordered pair - its `compare` method returns either `Nothing` or `Ordering.Equal`.
@@ -41,9 +41,9 @@ type UPair_Comparator
     hash upair =
         x_comp = Comparable.from upair.x
         y_comp = Comparable.from upair.y
-        (x_comp.hash upair.x) + (y_comp.hash upair.y)
+        (x_comp.hash) + (y_comp.hash)
 
-Comparable.from (_ : UPair) = UPair_Comparator
+Comparable.from (that : UPair) = Comparable.new that UPair_Comparator
 
 type Parent
     Value child

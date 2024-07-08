@@ -16,7 +16,7 @@ type My_Nan_Comparator
     compare _ _ = Nothing
     hash _ = 0
 
-Comparable.from (_:My_Nan) = My_Nan_Comparator
+Comparable.from (that:My_Nan) = Comparable.new that My_Nan_Comparator
 
 type My_Key
     Value hash_code:Integer value:Text idx:Integer
@@ -29,7 +29,7 @@ type My_Key_Comparator
 
     hash x = x.hash_code
 
-Comparable.from (_:My_Key) = My_Key_Comparator
+Comparable.from (that:My_Key) = Comparable.new that My_Key_Comparator
 
 
 foreign js js_str str = """

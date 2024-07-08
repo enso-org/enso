@@ -980,7 +980,7 @@ add_specs suite_builder =
             d.unscaled_value . should_equal 123456
             d.internal_representation . should_equal [123456, 6, 3]
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter

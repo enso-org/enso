@@ -15,10 +15,10 @@ type Ord
 
 # The comparison is reverted, i.e., `x < y` gives result for `y.number < x.number`.
 type Ord_Comparator
-    compare x y = (Comparable.from y.number) . compare y.number x.number
-    hash x = (Comparable.from x.number) . hash x.number
+    compare x y = (Comparable.from y.number) . compare x.number
+    hash x = (Comparable.from x.number) . hash
 
-Comparable.from (_:Ord) = Ord_Comparator
+Comparable.from (that:Ord) = Comparable.new that Ord_Comparator
 
 type No_Ord
     Value number
@@ -32,7 +32,7 @@ type No_Ord_Comparator
         _ = x
         0
 
-Comparable.from (_:No_Ord) = No_Ord_Comparator
+Comparable.from (that:No_Ord) = Comparable.new that No_Ord_Comparator
 
 # Tests
 

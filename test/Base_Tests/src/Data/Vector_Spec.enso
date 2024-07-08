@@ -27,10 +27,10 @@ type T
     Value a b
 
 type T_Comparator
-    compare t1 t2 = Comparable.from t1.a . compare t1.a t2.a
-    hash t = Comparable.from t.a . hash t.a
+    compare t1 t2 = Comparable.from t1.a . compare t2.a
+    hash t = Comparable.from t.a . hash
 
-Comparable.from (_:T) = T_Comparator
+Comparable.from (that:T) = Comparable.new that T_Comparator
 
 ## Type that violates reflexivity
 type My_Nan
@@ -40,7 +40,7 @@ type My_Nan_Comparator
     compare _ _ = Nothing
     hash _ = 0
 
-Comparable.from (_:My_Nan) = My_Nan_Comparator
+Comparable.from (that:My_Nan) = Comparable.new that My_Nan_Comparator
 
 type My_Error
     Error a
@@ -426,7 +426,7 @@ type_spec suite_builder name alter = suite_builder.group name group_builder->
         result = Vector.build builder->
             vec.each builder.append
         result . should_equal vec
-    
+
     group_builder.specify "dataflow errors in .each should become panics" <|
         do_write x =
             Error.throw "Failed to write "+x.to_text

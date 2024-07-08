@@ -24,7 +24,7 @@ type My_Type_Comparator
 
     hash my_type = Comparable.from my_type.x . hash (my_type.x + my_type.y)
 
-Comparable.from (_:My_Type) = My_Type_Comparator
+Comparable.from (that:My_Type) = Comparable.new that My_Type_Comparator
 
 type Data
     Value ~data

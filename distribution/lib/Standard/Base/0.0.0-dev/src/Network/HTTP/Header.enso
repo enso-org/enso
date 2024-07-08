@@ -228,4 +228,4 @@ type Header_Comparator
         Comparable.from key . hash key
 
 ## PRIVATE
-Comparable.from (_:Header) = Header_Comparator
+Comparable.from (that:Header) = Comparable.new that Header_Comparator

@@ -336,7 +336,7 @@ type URI_Comparator
         Comparable.from txt . hash txt
 
 ## PRIVATE
-Comparable.from (_:URI) = URI_Comparator
+Comparable.from (that:URI) = Comparable.new that URI_Comparator
 
 ## PRIVATE
 type Invalid_Query_String

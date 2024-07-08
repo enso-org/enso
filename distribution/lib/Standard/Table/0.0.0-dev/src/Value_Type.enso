@@ -47,7 +47,7 @@ type Bits_Comparator
     hash x = Comparable.from x.to_integer . hash x.to_integer
 
 ## PRIVATE
-Comparable.from (_:Bits) = Bits_Comparator
+Comparable.from (that:Bits) = Comparable.new that Bits_Comparator
 
 ## Represents the different possible types of values within Table columns.
 
@@ -487,10 +487,10 @@ type Value_Type
 type Auto
 
 ## The type representing the column type being explicitly selected by the user.
-   Arguments: 
-   - type: The type of columns to select. 
+   Arguments:
+   - type: The type of columns to select.
 type By_Type
     ## The type representing the column type being explicitly selected by the user.
-       Arguments: 
+       Arguments:
        - type: The type of columns to select.
     By_Type type:Value_Type

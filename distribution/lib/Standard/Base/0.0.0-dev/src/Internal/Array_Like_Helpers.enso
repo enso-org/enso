@@ -150,8 +150,8 @@ check_start_valid start length function =
 
 sort vector order on by on_problems:Problem_Behavior =
     comps = case on == Nothing of
-        True -> vector.map it-> Comparable.from it
-        False -> vector.map it-> Comparable.from (on it)
+        True -> vector.map it-> Comparable.from it . comparator
+        False -> vector.map it-> Comparable.from (on it) . comparator
     compare_funcs = comps.map (it-> it.compare)
     vector.sort_builtin order.to_sign comps compare_funcs by on (on_problems_to_number on_problems)
 

@@ -37,7 +37,7 @@ type My_Comparator
         sum = my.x + my.y
         Comparable.from sum . hash sum
 
-Comparable.from (_:My) = My_Comparator
+Comparable.from (that:My) = Comparable.new that My_Comparator
 
 
 type Data
@@ -574,7 +574,7 @@ add_specs suite_builder =
             actual = t.fill_empty ["col0", "col1"] defaults
             actual.at "col0" . to_vector . should_equal ["0", "2", "4", "5", Nothing, "30"]
             actual.at "col1" . to_vector . should_equal ["1", "200", "10", "400", "500", "30"]
-        
+
         group_builder.specify "fill_empty should allow selection by regex" <|
             col0 = Column.from_vector "col0" ["0", Nothing, "4", "5", Nothing, Nothing]
             col_between = Column.from_vector "col_between" [3, 4, 5, 6, 7, 8]

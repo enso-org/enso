@@ -11,6 +11,7 @@ import project.Meta.Atom
 import project.Nothing.Nothing
 import project.Panic.Panic
 from project.Data.Boolean import Boolean, False, True
+from project.Internal.Ordering_Helpers import all
 
 ## Provides custom ordering, equality check and hash code for types that need it.
 
@@ -123,6 +124,12 @@ type Comparable
        ```
     new value:Any comparator:Any -> Comparable = Comparable.By value comparator
 
+    compare self that:Comparable = case Meta.is_same_object self.comparator that.comparator of
+        True -> self.comparator self that
+        False -> Error.throw (Incomparable_Values.Error self that)
+
+    hash self -> Integer = self.comparator.hash self
+
     ## PRIVATE
        Called as a callback from internal engine code for an atom with a custom
        comparator. It is assumed that the given atom has a custom comparator, that is
@@ -227,12 +234,4 @@ type Ordering
         if sign > 0 then Ordering.Greater else Ordering.Less
 
 ## PRIVATE
-type Ordering_Comparator
-    ## PRIVATE
-    compare x y = (Comparable.from x.to_sign).compare x.to_sign y.to_sign
-
-    ## PRIVATE
-    hash x = x.to_sign
-
-## PRIVATE
-Comparable.from (_:Ordering) = Ordering_Comparator
+Comparable.from (that:Ordering) = Comparable.new that Ordering_Comparator

@@ -17,3 +17,20 @@ assert_same_comparators this that ~action =
     case Meta.is_same_object comp_this.comparator comp_that.comparator of
         True -> action comp_this.comparator
         False -> Error.throw (Incomparable_Values.Error this that)
+
+## PRIVATE
+type Positive_Integer_Comparator
+    ## PRIVATE
+    compare x y =
+        Comparable.from x.integer . compare y.integer
+
+    ## PRIVATE
+    hash x = Comparable.from x.integer . hash
+
+## PRIVATE
+type Ordering_Comparator
+    ## PRIVATE
+    compare x y = (Comparable.from x.to_sign).compare x.to_sign y.to_sign
+
+    ## PRIVATE
+    hash x = x.to_sign

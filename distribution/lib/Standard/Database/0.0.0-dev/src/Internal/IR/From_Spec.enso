@@ -110,4 +110,4 @@ type From_Spec_Comparator
         _ -> Default_Comparator.hash x
 
 ## PRIVATE
-Comparable.from (_ : From_Spec) = From_Spec_Comparator
+Comparable.from (that : From_Spec) = Comparable.new that From_Spec_Comparator
