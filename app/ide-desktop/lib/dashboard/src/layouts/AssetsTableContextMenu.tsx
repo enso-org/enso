@@ -10,7 +10,8 @@ import type * as assetEvent from '#/events/assetEvent'
 import AssetEventType from '#/events/AssetEventType'
 import type * as assetListEvent from '#/events/assetListEvent'
 
-import Category, * as categoryModule from '#/layouts/CategorySwitcher/Category'
+import * as categoryModule from '#/layouts/CategorySwitcher/Category'
+import type Category from '#/layouts/CategorySwitcher/Category'
 import GlobalContextMenu from '#/layouts/GlobalContextMenu'
 
 import ContextMenu from '#/components/ContextMenu'
@@ -103,7 +104,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
     }
   }
 
-  if (category === Category.trash) {
+  if (category.type === categoryModule.CategoryType.trash) {
     return selectedKeys.size === 0 ? (
       <></>
     ) : (
@@ -148,7 +149,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
         </ContextMenu>
       </ContextMenus>
     )
-  } else if (category !== Category.cloud && category !== Category.local) {
+  } else if (category.type === categoryModule.CategoryType.recent) {
     return null
   } else {
     return (
