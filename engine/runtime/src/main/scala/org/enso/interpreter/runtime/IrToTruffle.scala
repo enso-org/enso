@@ -193,15 +193,11 @@ class IrToTruffle(
           "No binding analysis at the point of codegen."
         )
 
-    bindingsMap.exportedSymbols.foreach { case (_, resolvedNames) =>
-      val resolvedModules = resolvedNames.collect {
-        case ResolvedModule(module) => module
-      }
-      resolvedModules.foreach { resolvedModule =>
-        scopeBuilder.addExport(
-          new ImportExportScope(resolvedModule.unsafeAsModule())
-        )
-      }
+    bindingsMap.getDirectlyExportedModules.foreach { exportedMod =>
+      val exportedRuntimeMod = exportedMod.module.module.unsafeAsModule()
+      scopeBuilder.addExport(
+        new ImportExportScope(exportedRuntimeMod)
+      )
     }
 
     val importDefs = module.imports
@@ -214,7 +210,7 @@ class IrToTruffle(
         case _: BindingsMap.ResolvedType             =>
         case _: BindingsMap.ResolvedConstructor      =>
         case _: BindingsMap.ResolvedModuleMethod     =>
-        case _: BindingsMap.ResolvedExtensionMethod     =>
+        case _: BindingsMap.ResolvedExtensionMethod  =>
         case _: BindingsMap.ResolvedConversionMethod =>
         case ResolvedModule(module) =>
           val mod = module
