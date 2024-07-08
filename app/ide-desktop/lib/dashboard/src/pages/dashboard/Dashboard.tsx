@@ -156,14 +156,14 @@ export default function Dashboard(props: DashboardProps) {
     () => defaultCategory,
     (value): value is Category => {
       if (array.includes(Object.values(Category), value)) {
-        return categoryModule.isLocal(value) ? localBackend != null : true
+        return categoryModule.isLocalCategory(value) ? localBackend != null : true
       } else {
         return false
       }
     }
   )
 
-  const isCloud = categoryModule.isCloud(category)
+  const isCloud = categoryModule.isCloudCategory(category)
   const isUserEnabled = session.user.isEnabled
 
   if (isCloud && !isUserEnabled && localBackend != null) {

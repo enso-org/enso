@@ -71,7 +71,7 @@ export default function DriveBar(props: DriveBarProps) {
   const { getText } = textProvider.useText()
   const inputBindings = inputBindingsProvider.useInputBindings()
   const uploadFilesRef = React.useRef<HTMLInputElement>(null)
-  const isCloud = categoryModule.isCloud(category)
+  const isCloud = categoryModule.isCloudCategory(category)
   const { isOffline } = offlineHooks.useOffline()
 
   const shouldBeDisabled = isCloud && isOffline

@@ -74,7 +74,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   const self = asset.permissions?.find(
     backendModule.isUserPermissionAnd(permission => permission.user.userId === user.userId)
   )
-  const isCloud = categoryModule.isCloud(category)
+  const isCloud = categoryModule.isCloudCategory(category)
   const path =
     category !== Category.cloud && category !== Category.local
       ? null

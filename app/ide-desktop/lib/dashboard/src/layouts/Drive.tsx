@@ -106,7 +106,7 @@ export default function Drive(props: DriveProps) {
   const targetDirectoryNodeRef = React.useRef<AssetTreeNode<backendModule.DirectoryAsset> | null>(
     null
   )
-  const isCloud = categoryModule.isCloud(category)
+  const isCloud = categoryModule.isCloudCategory(category)
   const supportLocalBackend = localBackend != null
 
   const status =

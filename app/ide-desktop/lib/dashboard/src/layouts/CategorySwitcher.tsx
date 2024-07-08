@@ -1,4 +1,4 @@
-/** @file Switcher to choose the currently visible assets table category. */
+/** @file Switcher to choose the currently visible assets table categoryModule.categoryType. */
 import * as React from 'react'
 
 import CloudIcon from 'enso-assets/cloud.svg'
@@ -21,7 +21,8 @@ import * as textProvider from '#/providers/TextProvider'
 import type * as assetEvent from '#/events/assetEvent'
 import AssetEventType from '#/events/AssetEventType'
 
-import Category from '#/layouts/CategorySwitcher/Category'
+import * as categoryModule from '#/layouts/CategorySwitcher/Category'
+import type Category from '#/layouts/CategorySwitcher/Category'
 
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
@@ -36,7 +37,7 @@ import * as tailwindMerge from '#/utilities/tailwindMerge'
 // === CategoryMetadata ===
 // ========================
 
-/** Metadata for a category. */
+/** Metadata for a categoryModule.categoryType. */
 interface CategoryMetadata {
   readonly category: Category
   readonly icon: string
@@ -44,6 +45,7 @@ interface CategoryMetadata {
   readonly buttonLabel: string
   readonly dropZoneLabel: string
   readonly className?: string
+  readonly iconClassName?: string
 }
 
 // ============================
@@ -60,7 +62,7 @@ interface InternalCategorySwitcherItemProps extends CategoryMetadata {
 /** An entry in a {@link CategorySwitcher}. */
 function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
   const { currentCategory, setCategory, dispatchAssetEvent } = props
-  const { category, icon, label, buttonLabel, dropZoneLabel, className } = props
+  const { category, icon, label, buttonLabel, dropZoneLabel, className, iconClassName } = props
   const { user } = authProvider.useNonPartialUserSession()
   const { unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
@@ -68,17 +70,19 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
   const { isOffline } = offlineHooks.useOffline()
   const isCurrent = currentCategory === category
   const getCategoryError = (otherCategory: Category) => {
-    switch (otherCategory) {
-      case Category.local: {
+    switch (otherCategory.type) {
+      case categoryModule.CategoryType.local: {
         if (localBackend == null) {
           return getText('localBackendNotDetectedError')
         } else {
           return null
         }
       }
-      case Category.cloud:
-      case Category.recent:
-      case Category.trash: {
+      case categoryModule.CategoryType.cloud:
+      case categoryModule.CategoryType.recent:
+      case categoryModule.CategoryType.trash:
+      case categoryModule.CategoryType.user:
+      case categoryModule.CategoryType.team: {
         if (isOffline) {
           return getText('unavailableOffline')
         } else if (!user.isEnabled) {
@@ -93,12 +97,24 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
   const isDisabled = error != null
   const tooltip = error ?? false
 
-  const acceptedDragTypes =
-    (currentCategory === Category.trash &&
-      (category === Category.cloud || category === Category.local)) ||
-    (currentCategory !== Category.trash && category === Category.trash)
-      ? [mimeTypes.ASSETS_MIME_TYPE]
-      : []
+  const isDropTarget = (() => {
+    if (categoryModule.areCategoriesEqual(category, currentCategory)) {
+      return false
+    } else if (currentCategory.type === categoryModule.CategoryType.trash) {
+      switch (category.type) {
+        case categoryModule.CategoryType.trash:
+        case categoryModule.CategoryType.recent: {
+          return false
+        }
+        default: {
+          return true
+        }
+      }
+    } else {
+      return category.type !== categoryModule.CategoryType.recent
+    }
+  })()
+  const acceptedDragTypes = isDropTarget ? [mimeTypes.ASSETS_MIME_TYPE] : []
 
   const onPress = () => {
     if (error == null) {
@@ -127,7 +143,10 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
       })
     ).then(keys => {
       dispatchAssetEvent({
-        type: currentCategory === Category.trash ? AssetEventType.restore : AssetEventType.delete,
+        type:
+          currentCategory.type === categoryModule.CategoryType.trash
+            ? AssetEventType.restore
+            : AssetEventType.delete,
         ids: new Set(keys.flat(1)),
       })
     })
@@ -162,14 +181,7 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
             !isCurrent && !isDisabled && 'hover:bg-selected-frame'
           )}
         >
-          <SvgMask
-            src={icon}
-            className={
-              // This explicit class is a special-case due to the unusual shape of the "Recent" icon.
-              // eslint-disable-next-line no-restricted-syntax
-              category === Category.recent ? '-ml-0.5' : ''
-            }
-          />
+          <SvgMask src={icon} className={iconClassName} />
           <aria.Text slot="description">{label}</aria.Text>
         </div>
       </ariaComponents.Button>
@@ -191,7 +203,7 @@ export interface CategorySwitcherProps {
   readonly dispatchAssetEvent: (directoryEvent: assetEvent.AssetEvent) => void
 }
 
-/** A switcher to choose the currently visible assets table category. */
+/** A switcher to choose the currently visible assets table categoryModule.categoryType. */
 export default function CategorySwitcher(props: CategorySwitcherProps) {
   const { category, setCategory, dispatchAssetEvent } = props
   const { getText } = textProvider.useText()
@@ -234,7 +246,7 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
           >
             <CategorySwitcherItem
               {...itemProps}
-              category={Category.cloud}
+              category={{ type: categoryModule.CategoryType.cloud }}
               icon={CloudIcon}
               label={getText('cloudCategory')}
               buttonLabel={getText('cloudCategoryButtonLabel')}
@@ -242,16 +254,17 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
             />
             <CategorySwitcherItem
               {...itemProps}
-              category={Category.recent}
+              category={{ type: categoryModule.CategoryType.recent }}
               icon={RecentIcon}
               label={getText('recentCategory')}
               buttonLabel={getText('recentCategoryButtonLabel')}
               dropZoneLabel={getText('recentCategoryDropZoneLabel')}
               className="ml-4"
+              iconClassName="-ml-0.5"
             />
             <CategorySwitcherItem
               {...itemProps}
-              category={Category.trash}
+              category={{ type: categoryModule.CategoryType.trash }}
               icon={Trash2Icon}
               label={getText('trashCategory')}
               buttonLabel={getText('trashCategoryButtonLabel')}
@@ -262,7 +275,12 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
               <CategorySwitcherItem
                 key={userDirectory.id}
                 {...itemProps}
-                category={Category.trash}
+                category={{
+                  type: categoryModule.CategoryType.user,
+                  // This is SAFE as user directories are guaranteed to be directories.
+                  // eslint-disable-next-line no-restricted-syntax
+                  homeDirectoryId: userDirectory.id as backend.DirectoryId,
+                }}
                 icon={PersonIcon}
                 label={getText('userCategory', userDirectory.title)}
                 buttonLabel={getText('userCategoryButtonLabel', userDirectory.title)}
@@ -274,7 +292,12 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
               <CategorySwitcherItem
                 key={teamDirectory.id}
                 {...itemProps}
-                category={Category.trash}
+                category={{
+                  type: categoryModule.CategoryType.user,
+                  // This is SAFE as team directories are guaranteed to be directories.
+                  // eslint-disable-next-line no-restricted-syntax
+                  homeDirectoryId: teamDirectory.id as backend.DirectoryId,
+                }}
                 icon={PeopleIcon}
                 label={getText('teamCategory', teamDirectory.title)}
                 buttonLabel={getText('teamCategoryButtonLabel', teamDirectory.title)}
@@ -285,7 +308,7 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
             {localBackend != null && (
               <CategorySwitcherItem
                 {...itemProps}
-                category={Category.local}
+                category={{ type: categoryModule.CategoryType.local }}
                 icon={NotCloudIcon}
                 label={getText('localCategory')}
                 buttonLabel={getText('localCategoryButtonLabel')}

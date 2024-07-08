@@ -63,7 +63,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
   const { user } = authProvider.useNonPartialUserSession()
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
-  const isCloud = categoryModule.isCloud(category)
+  const isCloud = categoryModule.isCloudCategory(category)
 
   // This works because all items are mutated, ensuring their value stays
   // up to date.

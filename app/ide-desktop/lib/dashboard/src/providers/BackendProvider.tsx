@@ -93,7 +93,7 @@ export function useBackend(category: Category) {
   const remoteBackend = useRemoteBackend()
   const localBackend = useLocalBackend()
 
-  if (categoryModule.isCloud(category)) {
+  if (categoryModule.isCloudCategory(category)) {
     invariant(
       remoteBackend != null,
       `This distribution of ${common.PRODUCT_NAME} does not support the Cloud Backend.`
