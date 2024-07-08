@@ -356,10 +356,10 @@ sqlite_spec suite_builder prefix create_connection_func =
 
 
 ## PRIVATE
-supported_replace_params : Set Replace_Params
+supported_replace_params : Hashset Replace_Params
 supported_replace_params =
     e = [Replace_Params.Value Text Case_Sensitivity.Default False, Replace_Params.Value Text Case_Sensitivity.Sensitive False, Replace_Params.Value Text Case_Sensitivity.Default True, Replace_Params.Value Text Case_Sensitivity.Sensitive True, Replace_Params.Value Text Case_Sensitivity.Insensitive True]
-    Set.from_vector e
+    Hashset.from_vector e
 
 ## Reference to the database file that ensures the first test that uses it will
    clean any leftover files from earlier runs.

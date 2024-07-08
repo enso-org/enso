@@ -13,7 +13,7 @@ from project.Data.Boolean import Boolean, False, True
 from project.Data.Text.Extensions import all
 
 ## An unordered collection of unique values.
-type Set
+type Hashset
     ## PRIVATE
     Value (underling_dictionary : Dictionary Any Nothing)
 
@@ -28,18 +28,18 @@ type Set
          occurrence of each duplicated element is retained in the set. If set to
          `True` it will raise an `Illegal_Argument` if duplicate elements are
          encountered.
-    from_vector : Vector Any -> Boolean -> Set ! Illegal_Argument
+    from_vector : Vector Any -> Boolean -> Hashset ! Illegal_Argument
     from_vector (vector : Vector) (error_on_duplicates : Boolean = False) =
         pairs_array = Array_Proxy.new vector.length (i-> [vector.at i, Nothing])
         pairs = Vector.from_polyglot_array pairs_array
         dictionary = Dictionary.from_vector pairs error_on_duplicates=error_on_duplicates
-        Set.Value dictionary
+        Hashset.Value dictionary
 
     ## PRIVATE
        ADVANCED
        Constructs an empty set.
-    empty : Set
-    empty = Set.Value Dictionary.empty
+    empty : Hashset
+    empty = Hashset.Value Dictionary.empty
 
     ## GROUP Conversions
        ICON convert
@@ -103,48 +103,48 @@ type Set
        GROUP Calculations
        ICON row_add
        Adds a value to this set.
-    insert : Any -> Set
+    insert : Any -> Hashset
     insert self value =
         dictionary = self.underling_dictionary.insert value Nothing
-        Set.Value dictionary
+        Hashset.Value dictionary
 
     ## GROUP Calculations
        ICON union
        Creates a union of the two sets.
-    union : Set -> Set
-    union self (other : Set) =
+    union : Hashset -> Hashset
+    union self (other : Hashset) =
         start_dictionary = self.underling_dictionary
         dictionary = other.to_vector.fold start_dictionary m-> el-> m.insert el Nothing
-        Set.Value dictionary
+        Hashset.Value dictionary
 
     ## GROUP Calculations
        ICON join
        Creates an intersection of the two sets.
-    intersection : Set -> Set
-    intersection self (other : Set) =
+    intersection : Hashset -> Hashset
+    intersection self (other : Hashset) =
         other_dictionary = other.underling_dictionary
         dictionary = self.underling_dictionary.keys.fold Dictionary.empty m-> el->
             if other_dictionary.contains_key el then m.insert el Nothing else m
-        Set.Value dictionary
+        Hashset.Value dictionary
 
     ## ICON join
        Computes a set difference.
 
        Returns the set that contains all elements of this set that are not in
        the other set.
-    difference : Set -> Set
-    difference self (other : Set) =
+    difference : Hashset -> Hashset
+    difference self (other : Hashset) =
         other_dictionary = other.underling_dictionary
         dictionary = self.underling_dictionary.keys.fold Dictionary.empty m-> el->
             if other_dictionary.contains_key el then m else m.insert el Nothing
-        Set.Value dictionary
+        Hashset.Value dictionary
 
     ## PRIVATE
     to_text : Text
-    to_text self = self.to_vector.map .pretty . join ", " "Set{" "}"
+    to_text self = self.to_vector.map .pretty . join ", " "Hashset{" "}"
 
 ## PRIVATE
-type Set_Comparator
+type Hashset_Comparator
     ## PRIVATE
     compare x y =
         if x.size != y.size then Nothing else

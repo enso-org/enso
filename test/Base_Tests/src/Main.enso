@@ -32,6 +32,7 @@ import project.Data.Base_64_Spec
 import project.Data.Decimal_Spec
 import project.Data.Dictionary_Spec
 import project.Data.Function_Spec
+import project.Data.Hashset_Spec
 import project.Data.Interval_Spec
 import project.Data.Json_Spec
 import project.Data.List_Spec
@@ -47,7 +48,6 @@ import project.Data.Polyglot_Spec
 import project.Data.Problems_Spec
 import project.Data.Range_Spec
 import project.Data.Regression_Spec
-import project.Data.Set_Spec
 import project.Data.Statistics_Spec
 import project.Data.Time.Spec as Time_Spec
 import project.Data.Vector_Spec
@@ -130,7 +130,7 @@ main filter=Nothing =
         List_Spec.add_specs suite_builder
         Locale_Spec.add_specs suite_builder
         Dictionary_Spec.add_specs suite_builder
-        Set_Spec.add_specs suite_builder
+        Hashset_Spec.add_specs suite_builder
         Maybe_Spec.add_specs suite_builder
         Meta_Spec.add_specs suite_builder
         Instrumentor_Spec.add_specs suite_builder

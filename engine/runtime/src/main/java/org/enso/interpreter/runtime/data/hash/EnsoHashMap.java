@@ -150,7 +150,7 @@ public final class EnsoHashMap implements EnsoObject {
 
   @ExportMessage(library = TypesLibrary.class)
   Type getType(@Bind("$node") Node node) {
-    return EnsoContext.get(node).getBuiltins().map();
+    return EnsoContext.get(node).getBuiltins().dictionary();
   }
 
   @ExportMessage
@@ -160,7 +160,7 @@ public final class EnsoHashMap implements EnsoObject {
 
   @ExportMessage
   Type getMetaObject(@Bind("$node") Node node) {
-    return EnsoContext.get(node).getBuiltins().map();
+    return EnsoContext.get(node).getBuiltins().dictionary();
   }
 
   @ExportMessage
