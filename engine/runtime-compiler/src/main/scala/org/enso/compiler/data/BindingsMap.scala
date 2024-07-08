@@ -659,11 +659,8 @@ object BindingsMap {
     override def findExportedSymbolsFor(name: String): List[ResolvedName] =
       exportedSymbols.getOrElse(name, List())
 
-    override lazy val exportedSymbols: Map[String, List[ResolvedName]] = {
-      val membersMap =
-        tp.members.map(m => (m.name, List(ResolvedConstructor(this, m)))).toMap
-      membersMap + ((tp.name, List(this)))
-    }
+    override lazy val exportedSymbols: Map[String, List[ResolvedName]] =
+      tp.members.map(m => (m.name, List(ResolvedConstructor(this, m)))).toMap
   }
 
   /** A result of successful name resolution.
