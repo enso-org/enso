@@ -21,12 +21,12 @@ type Dialect_Operations
        implemented.
 
        Arguments:
-       - operation_dict: Dictionary mapping operation names to their
+       - operations_dict: Dictionary mapping operation names to their
          implementations; each implementation is a function which takes SQL
          builders for the arguments, and optionally an additional metadata
          argument, and should return a SQL builder yielding code for the whole
          operation.
-    Value (operation_dict:(Dictionary Text (Vector (SQL_Builder->SQL_Builder))))
+    Value (operations_dict:(Dictionary Text (Vector (SQL_Builder->SQL_Builder))))
 
     ## PRIVATE
        Creates a copy of the dialect that supports additional operations or
@@ -35,14 +35,14 @@ type Dialect_Operations
        # extend_with : Vector [Text, Vector SQL_Builder -> SQL_Builder] -> Dialect_Operations
     extend_with : Vector Any -> Dialect_Operations
     extend_with self mappings =
-        new_dict = mappings.fold self.operation_dict (m -> el -> m.insert (el.at 0) (el.at 1))
+        new_dict = mappings.fold self.operations_dict (m -> el -> m.insert (el.at 0) (el.at 1))
         Dialect_Operations.Value new_dict
 
     ## PRIVATE
        Checks if an operation is supported by the dialect.
     is_supported : Text -> Boolean
     is_supported self operation =
-        self.operation_dict.contains_key operation
+        self.operations_dict.contains_key operation
 
 ## PRIVATE
 
@@ -310,7 +310,7 @@ generate_expression dialect expr = case expr of
         escaped = value.replace "'" "''"
         SQL_Builder.code ("'" + escaped + "'")
     SQL_Expression.Operation kind arguments metadata ->
-        op = dialect.dialect_operations.operation_dict.get kind (Error.throw <| Unsupported_Database_Operation.Error kind)
+        op = dialect.dialect_operations.operations_dict.get kind (Error.throw <| Unsupported_Database_Operation.Error kind)
         parsed_args = arguments.map (generate_expression dialect)
         result = op parsed_args
         # If the function expects more arguments, we pass the metadata as the last argument.

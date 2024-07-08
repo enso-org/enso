@@ -96,7 +96,7 @@ type SQLite_Type_Mapping
     infer_return_type : (SQL_Expression -> SQL_Type_Reference) -> Text -> Vector -> SQL_Expression -> SQL_Type_Reference
     infer_return_type infer_from_database_callback op_name arguments expression =
         _ = [infer_from_database_callback, expression]
-        handler = operations_map.get op_name (_ -> Error.throw (Illegal_State.Error "Impossible: Unknown operation "+op_name+". This is a bug in the Database library."))
+        handler = operations_dict.get op_name (_ -> Error.throw (Illegal_State.Error "Impossible: Unknown operation "+op_name+". This is a bug in the Database library."))
         sql_type = handler arguments
         SQL_Type_Reference.from_constant sql_type
 
@@ -147,8 +147,8 @@ name_based_workarounds = Dictionary.from_vector <|
 
 ## PRIVATE
    Maps operation names to functions that infer its result type.
-operations_map : Dictionary Text (Vector -> SQL_Type)
-operations_map =
+operations_dict : Dictionary Text (Vector -> SQL_Type)
+operations_dict =
     find_type arg = case arg of
         column : DB_Column -> column.value_type
         internal_column : Internal_Column ->
