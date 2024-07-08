@@ -174,8 +174,7 @@ public final class EnsoContext {
                         },
                         res -> res));
 
-    Optional<String> languageHome =
-        OptionsHelper.getLanguageHomeOverride(environment).or(() -> Optional.ofNullable(home));
+    var languageHome = OptionsHelper.findLanguageHome(environment);
     var editionOverride = OptionsHelper.getEditionOverride(environment);
     var resourceManager = new org.enso.distribution.locking.ResourceManager(lockManager);
 

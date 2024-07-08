@@ -137,7 +137,7 @@ type Column_Naming_Helper
                         # If there is too little space, we will just pick a few parts:
                         True ->
                             mid = Math.min (texts.length-1) (remaining_space.div min_bytes_per_part)
-                            texts.take (First 1+mid) + texts.take (Last 1)
+                            texts.take (..First 1+mid) + texts.take (..Last 1)
                         False -> texts
                     new_remaining_space = max_size - (separator_size * (parts_to_include.length - 1))
                     initial_size_per_part = new_remaining_space.div parts_to_include.length

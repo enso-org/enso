@@ -1,6 +1,5 @@
 from Standard.Base import all
 import Standard.Base.Data.Array_Proxy.Array_Proxy
-import Standard.Base.Data.Index_Sub_Range as Index_Sub_Range_Module
 import Standard.Base.Data.Vector.No_Wrap
 import Standard.Base.Errors.Common.Arithmetic_Error
 import Standard.Base.Errors.Common.Incomparable_Values
@@ -12,6 +11,7 @@ import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Internal.Polyglot_Helpers
 import Standard.Base.Internal.Rounding_Helpers
 from Standard.Base.Metadata.Widget import Numeric_Input
+from Standard.Base.Data.Index_Sub_Range import drop_helper, normalize_ranges, take_helper
 from Standard.Base.Widget_Helpers import make_data_cleanse_vector_selector, make_format_chooser, make_regex_text_widget
 
 import project.Constants.Previous_Value
@@ -2404,7 +2404,7 @@ type Column
              table = Table.new [["Name", ["Alice", "Bob", "Charlie"]]]
              column = table.get "Name"
              ## The take returns "Alice"
-             first_row = column.take (First 1)
+             first_row = column.take (..First 1)
 
        > Example
          Select the last row from the "Name" Column.
@@ -2412,11 +2412,11 @@ type Column
              table = Table.new [["Name", ["Alice", "Bob", "Charlie"]]]
              column = table.get "Name"
              ## The take returns "Charlie"
-             last_row = column.take (Last 1)
+             last_row = column.take (..Last 1)
     @range Index_Sub_Range.default_widget
     take : (Index_Sub_Range | Range | Integer) -> Column
-    take self range=(First 1) =
-        Index_Sub_Range_Module.take_helper self.length (self.at _) self.slice (slice_ranges self) range
+    take self range:(Index_Sub_Range | Range | Integer)=..First =
+        take_helper self.length (self.at _) self.slice (slice_ranges self) range
 
     ## ALIAS remove, skip
        GROUP Standard.Base.Selections
@@ -2428,8 +2428,8 @@ type Column
        - range: The selection of rows from the table to remove.
     @range Index_Sub_Range.default_widget
     drop : (Index_Sub_Range | Range | Integer) -> Column
-    drop self range=(First 1) =
-        Index_Sub_Range_Module.drop_helper self.length (self.at _) self.slice (slice_ranges self) range
+    drop self range:(Index_Sub_Range | Range | Integer)=..First =
+        drop_helper self.length (self.at _) self.slice (slice_ranges self) range
 
     ## PRIVATE
        Returns a column with a continuous sub-range of rows taken.
@@ -2710,7 +2710,7 @@ normalize_text_for_display text =
 ## PRIVATE
    A helper to create a new table consisting of slices of the original table.
 slice_ranges column ranges =
-    normalized = Index_Sub_Range_Module.normalize_ranges ranges
+    normalized = normalize_ranges ranges
     Column.Value (column.java_column.slice normalized)
 
 ## PRIVATE

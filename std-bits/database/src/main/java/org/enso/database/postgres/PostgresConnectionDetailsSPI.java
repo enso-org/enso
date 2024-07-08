@@ -6,17 +6,17 @@ import org.enso.database.DatabaseConnectionDetailsSPI;
 public class PostgresConnectionDetailsSPI extends DatabaseConnectionDetailsSPI {
   @Override
   protected String getModuleName() {
-    return "Standard.Database.Connection.Postgres_Details";
+    return "Standard.Database.Connection.Postgres";
   }
 
   @Override
   protected String getTypeName() {
-    return "Postgres_Details";
+    return "Postgres";
   }
 
   @Override
   protected String getCodeForDefaultConstructor() {
-    return "(Postgres 'localhost' 5432)";
+    return "(Postgres.Server 'localhost' 5432)";
   }
 
   @Override

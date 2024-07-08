@@ -1,7 +1,6 @@
 private
 
 import project.Any.Any
-import project.Data.Index_Sub_Range.Index_Sub_Range
 import project.Data.Json.Invalid_JSON
 import project.Data.Json.JS_Object
 import project.Data.Map.Map
@@ -115,7 +114,7 @@ create_datalink_from_stream_action (destination : Enso_File) (allow_existing : B
         if existing_asset.is_nothing.not && existing_asset.asset_type != Enso_Asset_Type.Data_Link then Error.throw (Illegal_Argument.Error "The destination must be a path to a Data Link, not "+existing_asset.asset_type.to_text+".") else
             file_name = destination.name
             if file_name.ends_with data_link_extension . not then Error.throw (Illegal_Argument.Error "A datalink must have a name ending with "+data_link_extension+", but the provided name was: "+file_name) else
-                title = file_name.drop (Index_Sub_Range.Last data_link_extension.length)
+                title = file_name.drop (..Last data_link_extension.length)
                 stream_result = Output_Stream.with_memory_stream stream_action
                 raw_bytes = stream_result.first
                 action_result = stream_result.second

@@ -84,7 +84,7 @@ add_specs suite_builder setup =
             w2.to_display_text . should_contain "unexpected columns were ignored"
             w2.to_display_text . should_contain "status"
 
-            err2 = my_table.merge lookup key_columns=["code"] add_new_columns=False on_problems=Problem_Behavior.Report_Error
+            err2 = my_table.merge lookup key_columns=["code"] add_new_columns=False on_problems=..Report_Error
             err2.should_fail_with Unexpected_Extra_Columns
             err2.catch.columns . should_equal ["status"]
 

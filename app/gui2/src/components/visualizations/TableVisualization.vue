@@ -229,7 +229,7 @@ const numberFormat = new Intl.NumberFormat(undefined, {
 function formatNumber(params: ICellRendererParams) {
   const valueType = params.value?.type
   let value
-  if (valueType === 'BigInt') {
+  if (valueType === 'Integer') {
     value = BigInt(params.value?.value)
   } else if (valueType === 'Decimal') {
     value = Number(params.value?.value)

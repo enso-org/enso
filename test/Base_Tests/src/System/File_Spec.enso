@@ -283,12 +283,12 @@ add_specs suite_builder =
     suite_builder.group "read_bytes" group_builder->
         group_builder.specify "should allow reading a file to byte vector" <|
             contents = sample_file.read_bytes
-            contents.take (First 6) . should_equal [67, 117, 112, 99, 97, 107]
+            contents.take (..First 6) . should_equal [67, 117, 112, 99, 97, 107]
 
         group_builder.specify "should allow reading a file to byte vector via path" <|
             full_path = sample_file . path
             contents = File.new full_path . read_bytes
-            contents.take (First 6) . should_equal [67, 117, 112, 99, 97, 107]
+            contents.take (..First 6) . should_equal [67, 117, 112, 99, 97, 107]
 
         group_builder.specify "should allow to read last n bytes from a file" <|
             file = enso_project.data / "transient" / "bytes.txt"
@@ -312,10 +312,10 @@ add_specs suite_builder =
         group_builder.specify "should open and read the file in one shot" <|
             path_name = sample_file.path
             contents = File.new path_name . read_bytes
-            contents.take (First 6) . should_equal [67, 117, 112, 99, 97, 107]
+            contents.take (..First 6) . should_equal [67, 117, 112, 99, 97, 107]
             file = sample_file
             contents_2 = File.new file . read_bytes
-            contents_2.take (First 6) . should_equal [67, 117, 112, 99, 97, 107]
+            contents_2.take (..First 6) . should_equal [67, 117, 112, 99, 97, 107]
 
     suite_builder.group "Path Operations" group_builder->
         group_builder.specify "should allow going above the first part of a relative directory by resolving it to absolute" <|
@@ -517,8 +517,8 @@ add_specs suite_builder =
         group_builder.specify "should allow appending text to a file" <|
             f = transient / "work.txt"
             f.delete_if_exists
-            "line 1!".write f on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error . should_succeed . should_equal f
-            '\nline 2!'.write f on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error . should_succeed . should_equal f
+            "line 1!".write f on_existing_file=Existing_File_Behavior.Append on_problems=..Report_Error . should_succeed . should_equal f
+            '\nline 2!'.write f on_existing_file=Existing_File_Behavior.Append on_problems=..Report_Error . should_succeed . should_equal f
             f.read_text.should_equal 'line 1!\nline 2!'
             f.delete
             f.exists.should_be_false
@@ -526,10 +526,10 @@ add_specs suite_builder =
         group_builder.specify "should perform a dry run appending text to a file if Context.Output is disabled" <|
             f = transient / "work.txt"
             f.delete_if_exists
-            "line 1!".write f on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error . should_succeed . should_equal f
+            "line 1!".write f on_existing_file=Existing_File_Behavior.Append on_problems=..Report_Error . should_succeed . should_equal f
 
             Context.Output.with_disabled <|
-                r = '\nline 2!'.write f on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error
+                r = '\nline 2!'.write f on_existing_file=Existing_File_Behavior.Append on_problems=..Report_Error
                 Problems.expect_only_warning Dry_Run_Operation r
                 r.exists.should_be_true
                 r.read_text.should_equal 'line 1!\nline 2!'
@@ -542,11 +542,11 @@ add_specs suite_builder =
             f.delete_if_exists
 
             Context.Output.with_disabled <|
-                r = "line 1!".write f on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error
+                r = "line 1!".write f on_existing_file=Existing_File_Behavior.Append on_problems=..Report_Error
                 Problems.expect_only_warning Dry_Run_Operation r
                 r.exists.should_be_true
 
-                s = '\nline 2!'.write f on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error
+                s = '\nline 2!'.write f on_existing_file=Existing_File_Behavior.Append on_problems=..Report_Error
                 Problems.expect_only_warning Dry_Run_Operation s
                 s.exists.should_be_true
 
@@ -565,12 +565,12 @@ add_specs suite_builder =
             f.delete_if_exists
 
             Context.Output.with_disabled <|
-                dry_run_file = "line 1!".write f on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error
+                dry_run_file = "line 1!".write f on_existing_file=Existing_File_Behavior.Append on_problems=..Report_Error
                 Problems.expect_only_warning Dry_Run_Operation dry_run_file
                 dry_run_file.exists.should_be_true
 
                 # Contrary to example above, we write to the returned file, not just `f`.
-                s = '\nline 2!'.write dry_run_file on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error
+                s = '\nline 2!'.write dry_run_file on_existing_file=Existing_File_Behavior.Append on_problems=..Report_Error
                 Problems.expect_only_warning Dry_Run_Operation s
                 s.exists.should_be_true
 
@@ -587,10 +587,10 @@ add_specs suite_builder =
             f = transient / "work.txt"
             f.delete_if_exists
             f.exists.should_be_false
-            "line 1!".write f on_existing_file=Existing_File_Behavior.Overwrite on_problems=Report_Error . should_succeed . should_equal f
+            "line 1!".write f on_existing_file=Existing_File_Behavior.Overwrite on_problems=..Report_Error . should_succeed . should_equal f
             f.exists.should_be_true
             f.read_text.should_equal "line 1!"
-            "line 2!".write f on_existing_file=Existing_File_Behavior.Overwrite on_problems=Report_Error . should_succeed . should_equal f
+            "line 2!".write f on_existing_file=Existing_File_Behavior.Overwrite on_problems=..Report_Error . should_succeed . should_equal f
             f.read_text.should_equal "line 2!"
             f.delete
             f.exists.should_be_false
@@ -599,7 +599,7 @@ add_specs suite_builder =
             f = transient / "work.txt"
             f.delete_if_exists
             f.exists.should_be_false
-            "line 1!".write f on_existing_file=Existing_File_Behavior.Overwrite on_problems=Report_Error . should_succeed . should_equal f
+            "line 1!".write f on_existing_file=Existing_File_Behavior.Overwrite on_problems=..Report_Error . should_succeed . should_equal f
             f.exists.should_be_true
 
             r = Context.Output.with_disabled <|
@@ -615,7 +615,7 @@ add_specs suite_builder =
             f = transient / "work.txt"
             f.delete_if_exists
             f.exists.should_be_false
-            "line 1!".write f on_existing_file=Existing_File_Behavior.Error on_problems=Report_Error . should_succeed . should_equal f
+            "line 1!".write f on_existing_file=Existing_File_Behavior.Error on_problems=..Report_Error . should_succeed . should_equal f
             f.exists.should_be_true
             f.read_text.should_equal "line 1!"
 
@@ -637,7 +637,7 @@ add_specs suite_builder =
             f = transient / "work.txt"
             f.delete_if_exists
             f.exists.should_be_false
-            "line 1!".write f on_problems=Report_Error . should_succeed . should_equal f
+            "line 1!".write f on_problems=..Report_Error . should_succeed . should_equal f
             if f.exists.not then
                 Test.fail "The file should have been created."
             f.read_text.should_equal "line 1!"
@@ -655,7 +655,7 @@ add_specs suite_builder =
                 "new content".write n on_existing_file=Existing_File_Behavior.Overwrite
             n3.delete_if_exists
 
-            "line 2!".write f on_problems=Report_Error . should_succeed . should_equal f
+            "line 2!".write f on_problems=..Report_Error . should_succeed . should_equal f
             f.read_text.should_equal "line 2!"
             bak.read_text.should_equal "line 1!"
             if n3.exists then
@@ -668,7 +668,7 @@ add_specs suite_builder =
             f = transient / "work.txt"
             f.delete_if_exists
             f.exists.should_be_false
-            "line 1!".write f on_problems=Report_Error . should_succeed . should_equal f
+            "line 1!".write f on_problems=..Report_Error . should_succeed . should_equal f
 
             r = Context.Output.with_disabled <|
                 s = "New Content!".write f on_existing_file=Existing_File_Behavior.Backup
@@ -843,7 +843,7 @@ add_specs suite_builder =
             f.delete_if_exists
             "Initial Content".write f on_existing_file=Existing_File_Behavior.Overwrite
             big_content = "Hello " * 2000 + input_content
-            r2 = big_content.write f encoding on_problems=Problem_Behavior.Report_Error
+            r2 = big_content.write f encoding on_problems=..Report_Error
             r2.should_fail_with Encoding_Error
             f.read . should_equal "Initial Content"
             f.delete

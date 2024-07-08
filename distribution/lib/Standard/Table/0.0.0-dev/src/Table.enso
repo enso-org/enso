@@ -1,7 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Data.Array_Proxy.Array_Proxy
 import Standard.Base.Data.Filter_Condition as Filter_Condition_Module
-import Standard.Base.Data.Index_Sub_Range as Index_Sub_Range_Module
 import Standard.Base.Data.Time.Errors.Date_Time_Format_Parse_Error
 import Standard.Base.Data.Vector.No_Wrap
 import Standard.Base.Errors.Common.Additional_Warnings
@@ -16,6 +15,7 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Unimplemented.Unimplemented
 import Standard.Base.Runtime.Context
 import Standard.Base.System.File.Generic.Writable_File.Writable_File
+from Standard.Base.Data.Index_Sub_Range import drop_helper, normalize_ranges, take_helper
 from Standard.Base.Metadata import Display, make_single_choice, Widget
 from Standard.Base.Widget_Helpers import make_any_selector, make_data_cleanse_vector_selector, make_delimiter_selector, make_format_chooser
 
@@ -746,7 +746,7 @@ type Table
         problem_builder = Problem_Builder.new
         problem_builder.report_unique_name_strategy unique
         problem_builder.attach_problems_before on_problems <|
-            self.drop (First 1) . rename_columns new_names_cleaned on_problems=on_problems
+            self.drop (..First 1) . rename_columns new_names_cleaned on_problems=on_problems
 
     ## ALIAS group by, summarize
        GROUP Standard.Base.Calculations
@@ -1688,7 +1688,7 @@ type Table
        > Example
          Take first 10 rows of the table.
 
-             table.take (First 10)
+             table.take (..First 10)
 
        > Example
          Take rows from the top of the table as long as their values sum to 10.
@@ -1696,8 +1696,8 @@ type Table
              table.take (While row-> row.to_vector.compute Statistic.Sum == 10)
     @range Index_Sub_Range.default_widget
     take : (Index_Sub_Range | Range | Integer) -> Table
-    take self range:(Index_Sub_Range | Range | Integer)=(..First 1) =
-        Index_Sub_Range_Module.take_helper self.row_count (self.rows.at _) self.slice (slice_ranges self) range
+    take self range:(Index_Sub_Range | Range | Integer)=..First =
+        take_helper self.row_count (self.rows.at _) self.slice (slice_ranges self) range
 
     ## ALIAS remove, skip
        GROUP Standard.Base.Selections
@@ -1720,7 +1720,7 @@ type Table
        > Example
          Drop first 10 rows of the table.
 
-             table.drop (First 10)
+             table.drop (..First 10)
 
        > Example
          Drop rows from the top of the table as long as their values sum to 10.
@@ -1728,8 +1728,8 @@ type Table
              table.drop (While row-> row.to_vector.compute Statistic.Sum == 10)
     @range Index_Sub_Range.default_widget
     drop : (Index_Sub_Range | Range | Integer) -> Table
-    drop self range:(Index_Sub_Range | Range | Integer)=(..First 1) =
-        Index_Sub_Range_Module.drop_helper self.row_count (self.rows.at _) self.slice (slice_ranges self) range
+    drop self range:(Index_Sub_Range | Range | Integer)=..First =
+        drop_helper self.row_count (self.rows.at _) self.slice (slice_ranges self) range
 
     ## PRIVATE
        Filter out all rows.
@@ -2329,7 +2329,7 @@ type Table
          their layout in memory. Database tables may not impose a deterministic
          ordering. If the table defines a primary key, it is used to by default
          to ensure deterministic ordering. That can be overridden by specifying
-         a different ordering using `Table.order_by`. If no primary key was
+         a different ordering using `Table.sort`. If no primary key was
          defined nor any ordering was specified explicitly by the user, the
          order of columns is undefined and the operation will fail, reporting a
          `Undefined_Column_Order` problem and returning an empty table.
@@ -2481,9 +2481,9 @@ type Table
     read : Rows_To_Read -> Table
     read self (max_rows : Rows_To_Read = ..All_Rows) = case max_rows of
         Rows_To_Read.All_Rows -> self
-        Rows_To_Read.First n -> self.take (First n)
+        Rows_To_Read.First n -> self.take (..First n)
         Rows_To_Read.First_With_Warning n ->
-            truncated = self.take (First n)
+            truncated = self.take (..First n)
             if self.row_count <= n then truncated else
                 Problem_Behavior.Report_Warning.attach_problem_after truncated <|
                     Not_All_Rows_Downloaded.Warning n
@@ -3153,7 +3153,7 @@ type Table
 ## PRIVATE
    A helper to create a new table consisting of slices of the original table.
 slice_ranges table ranges =
-    normalized = Index_Sub_Range_Module.normalize_ranges ranges
+    normalized = normalize_ranges ranges
     Table.Value (table.java_table.slice normalized)
 
 ## PRIVATE
@@ -3177,7 +3177,7 @@ concat_columns column_set all_tables result_type result_row_count needs_cast on_
                     storage_builder.appendNulls null_row_count
                 _ : Integer ->
                     column = parent_table.at i
-                    converted = if needs_cast then column.cast result_type on_problems=Report_Error else column
+                    converted = if needs_cast then column.cast result_type on_problems=..Report_Error else column
                     storage = converted.java_column.getStorage
                     storage_builder.appendBulkStorage storage
         sealed_storage = storage_builder.seal

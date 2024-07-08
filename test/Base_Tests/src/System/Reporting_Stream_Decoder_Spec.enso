@@ -40,7 +40,7 @@ add_specs suite_builder =
 
             result = f.with_input_stream [File_Access.Read] stream->
                 available_bytes_counts = Vector.build available_bytes_counter->
-                    stream.with_stream_decoder Encoding.utf_8 Problem_Behavior.Report_Error decoder->
+                    stream.with_stream_decoder Encoding.utf_8 ..Report_Error decoder->
                         read_chars decoder 1 . should_equal "H".codepoints
                         read_chars decoder 2 . should_equal "el".codepoints
                         read_chars decoder 3 . should_equal "lo ".codepoints
@@ -93,12 +93,12 @@ add_specs suite_builder =
             encoding = Encoding.ascii
             expected_contents = 'Hello World! $\uFFFD\uFFFD\uFFFD'
             expected_problems = [Encoding_Error.Error "Failed to decode 3 code units (at positions: 14, 15, 16)."]
-            contents_1 = read_file_one_by_one windows_file encoding expected_contents.length on_problems=Problem_Behavior.Report_Warning
+            contents_1 = read_file_one_by_one windows_file encoding expected_contents.length on_problems=..Report_Warning
             contents_1.should_equal expected_contents
             Problems.get_attached_warnings contents_1 . should_equal expected_problems
 
             contents_2 = windows_file.with_input_stream [File_Access.Read] stream->
-                stream.with_stream_decoder encoding Problem_Behavior.Report_Warning reporting_stream_decoder->
+                stream.with_stream_decoder encoding ..Report_Warning reporting_stream_decoder->
                     codepoint_1 = reporting_stream_decoder.read
                     codepoints_1 = read_characters reporting_stream_decoder 5
                     codepoints_2 = read_characters reporting_stream_decoder 3
@@ -110,10 +110,10 @@ add_specs suite_builder =
 
         group_builder.specify "should work correctly if no data is read from it" <|
             result = windows_file.with_input_stream [File_Access.Read] stream->
-                stream.with_stream_decoder Encoding.ascii Problem_Behavior.Report_Error _->Nothing
+                stream.with_stream_decoder Encoding.ascii ..Report_Error _->Nothing
             result.should_succeed
 
-read_file_one_by_one file encoding expected_size on_problems=Problem_Behavior.Report_Error =
+read_file_one_by_one file encoding expected_size on_problems=..Report_Error =
     file.with_input_stream [File_Access.Read] stream->
         stream.with_stream_decoder encoding on_problems reporting_stream_decoder->
             codepoints = 0.up_to expected_size . map _->
