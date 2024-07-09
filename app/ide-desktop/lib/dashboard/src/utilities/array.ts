@@ -1,3 +1,3 @@
 /** @file Utilities for manipulating arrays. */
 
-export * from "enso-common/src/utilities/data/array"
+export * from 'enso-common/src/utilities/data/array'

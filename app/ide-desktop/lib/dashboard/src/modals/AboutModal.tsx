@@ -2,7 +2,6 @@
 import * as React from 'react'
 
 import LogoIcon from 'enso-assets/enso_logo.svg'
-
 import type * as text from 'enso-common/src/text'
 
 import * as backendProvider from '#/providers/BackendProvider'

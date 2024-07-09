@@ -9,6 +9,7 @@ import OpenInNewTabIcon from 'enso-assets/open.svg'
 import type * as text from 'enso-common/src/text'
 
 import * as appUtils from '#/appUtils'
+
 import * as textProvider from '#/providers/TextProvider'
 
 import * as ariaComponents from '#/components/AriaComponents'

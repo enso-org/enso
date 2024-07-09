@@ -3,7 +3,6 @@ import * as React from 'react'
 
 import BlankIcon from 'enso-assets/blank.svg'
 import * as detect from 'enso-common/src/detect'
-
 import type * as text from 'enso-common/src/text'
 
 import type * as inputBindings from '#/configurations/inputBindings'
