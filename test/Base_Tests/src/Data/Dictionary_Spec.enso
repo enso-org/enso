@@ -1,0 +1,638 @@
+from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.Errors.No_Such_Key.No_Such_Key
+
+from Standard.Test import all
+
+polyglot java import java.util.Map as JavaMap
+polyglot java import org.enso.base.file_system.File_Utils
+
+## Type that violates reflexivity
+type My_Nan
+    Value comment:Text
+
+type My_Nan_Comparator
+    compare _ _ = Nothing
+    hash _ = 0
+
+Comparable.from (that:My_Nan) = Comparable.new that My_Nan_Comparator
+
+type My_Key
+    Value hash_code:Integer value:Text idx:Integer
+
+type My_Key_Comparator
+    # Comparison ignores idx field
+    compare x y =
+        if x.hash_code != y.hash_code then Nothing else
+            if x.value == y.value then Ordering.Equal else Nothing
+
+    hash x = x.hash_code
+
+Comparable.from (that:My_Key) = Comparable.new that My_Key_Comparator
+
+
+foreign js js_str str = """
+    return new String(str)
+
+foreign js js_null = """
+    return null
+
+foreign js js_empty_dict = """
+    return new Map()
+
+foreign python py_empty_dict = """
+    return {}
+
+foreign js js_dict_from_vec vec = """
+    dict = new Map()
+    for (let i = 0; i < vec.length; i += 2) {
+        dict.set(vec[i], vec[i+1])
+    }
+    return dict
+
+foreign python py_none = """
+    return None
+
+foreign python py_dict_from_vec vec = """
+    d = {}
+    for i in range(0, len(vec), 2):
+        d[vec[i]] = vec[i + 1]
+    return d
+
+foreign python py_dict_from_map map = """
+    d = dict()
+    for key in map.__iter__():
+        d[key] = map[key]
+    return d
+
+foreign python py_vec_from_map map = """
+    vec = []
+    for key in map.__iter__():
+        value = map[key]
+        vec.append([key, value])
+    return vec
+
+# Should throw error - updating immutable map from Enso
+foreign python py_update_dict map key val = """
+    map[key] = val
+
+foreign python py_wrapper obj = """
+    class MyClass:
+        def __init__(self, obj):
+            self.data = obj
+    return MyClass(obj)
+
+pending_python_missing = if Polyglot.is_language_installed "python" then Nothing else "Can't run Python tests, Python is not installed."
+
+type Child
+    Value data
+
+type Parent
+    Value child
+
+type GrandParent
+    Value parent
+
+add_specs suite_builder =
+    languages = Vector.build builder->
+        builder . append ["Enso", _-> Dictionary.empty, Nothing]
+        builder . append ["Java", _-> JavaMap.of, Nothing]
+        builder . append ["JavaScript", _-> js_empty_dict, Nothing]
+        builder . append ["Python", _-> py_empty_dict, pending_python_missing]
+    languages.each entry->
+        lang = entry.get 0
+        empty_dict_fn = entry.get 1
+        pending = entry.get 2
+        add_common_specs suite_builder lang pending empty_dict_fn
+
+    suite_builder.group "Enso Dictionaries" group_builder->
+        group_builder.specify "should use proper hash code for keys" <|
+            single_key_dict key = Dictionary.singleton key 42
+            grand_parent_1 = GrandParent.Value (Parent.Value (Child.Value 2))
+            grand_parent_2 = GrandParent.Value (Parent.Value (Child.Value 2.0))
+
+            (single_key_dict 2 . at 2.0) . should_equal 42
+            (single_key_dict -2 . at -2.0) . should_equal 42
+            (single_key_dict 'ś' . at 's\u0301') . should_equal 42
+            (single_key_dict 's\u0301' . at 'ś') . should_equal 42
+            (single_key_dict 'éabc' . at 'e\u0301abc') . should_equal 42
+            (single_key_dict 'e\u0301abc' . at 'éabc') . should_equal 42
+            (single_key_dict grand_parent_1 . at grand_parent_2) . should_equal 42
+            (single_key_dict (Json.parse '{"a": 1}') . at (Json.parse '{"a": 1}')) . should_equal 42
+            (single_key_dict (Child.Value 1) . at (Child.Value 1.0)) . should_equal 42
+
+
+        group_builder.specify "should support another Dictionary with NaN keys as key" <|
+            Dictionary.singleton (Dictionary.singleton Number.nan 1) 42 . size . should_equal 1
+            Dictionary.singleton (Dictionary.singleton Number.nan 1) 42 . keys . at 0 . keys . to_text . should_equal "[NaN]"
+            Dictionary.singleton (Dictionary.singleton Number.nan 1) 42 . keys . at 0 . get Number.nan . should_equal 1
+            Dictionary.singleton (Dictionary.singleton Number.nan 1) 42 . at (Dictionary.singleton Number.nan 1) . should_equal 42
+
+        group_builder.specify "should support atoms with custom comparators that violate reflexivity as keys" <|
+            k = My_Nan.Value "foo"
+            k2 = My_Nan.Value "foo"
+            (k==k).should_be_true
+            (k==k2).should_be_false
+            Meta.is_same_object k k2 . should_be_false
+            Meta.is_same_object k k . should_be_true
+            m = Dictionary.singleton k 10
+            m.contains_key k . should_be_true
+            m.get k . should_equal 10
+            m.contains_key k2 . should_be_false
+
+            m2 = m.insert k2 20
+            m2.get k . should_equal 10
+            m2.get k2 . should_equal 20
+            m2.size . should_equal 2
+
+            m3 = m2.insert k 30
+            m3.size . should_equal 2
+            m3.get k . should_equal 30
+
+        group_builder.specify "should support atom with custom comparators with complicated hash method" <|
+            keys = 0.up_to 500 . map ix->
+                value = ["A", "B", "C", "D", "E"].at (ix % 5)
+                hash_code = Comparable.from value . hash
+                My_Key.Value hash_code value ix
+            distinct_keys = keys.fold Dictionary.empty acc_dict->
+                item->
+                    acc_dict.insert item True
+            distinct_keys.size . should_equal 5
+            distinct_key_values = keys.map (_.value) . fold Dictionary.empty acc_dict->
+                item->
+                    acc_dict.insert item True
+            distinct_key_values.size . should_equal 5
+
+        group_builder.specify "should not drop warnings from keys" <|
+            key = Warning.attach "my_warn" "my_key"
+            dict = Dictionary.singleton key 42
+            (Warning.get_all (dict.keys.at 0)).length . should_equal 1
+
+        group_builder.specify "should not drop warnings from values" <|
+            val = Warning.attach "my_warn" "my_val"
+            dict = Dictionary.singleton 42 val
+            (Warning.get_all (dict.values.at 0)).length . should_equal 1
+
+        group_builder.specify "should convert the whole Dictionary to a vector" <|
+            m = Dictionary.empty . insert 0 0 . insert 3 -5 . insert 1 2
+            m.to_vector.sort on=_.first . should_equal [[0, 0], [1, 2], [3, -5]]
+
+        group_builder.specify "should allow building the Dictionary from two vectors" <|
+            expected = Dictionary.empty . insert 0 0 . insert 3 -5 . insert 1 2
+            Dictionary.from_keys_and_values [0, 3, 1] [0, -5, 2] . should_equal expected
+
+        group_builder.specify "should allow building the Dictionary from vector like things" <|
+            expected = Dictionary.empty . insert 0 0 . insert 1 -5 . insert 2 2
+            Dictionary.from_keys_and_values (0.up_to 3) [0, -5, 2] . should_equal expected
+
+        group_builder.specify "should not allow building with duplicate keys unless explicitly allowed" <|
+            expected = Dictionary.empty . insert 0 0 . insert 3 -5 . insert 1 2
+            Dictionary.from_keys_and_values [0, 3, 1, 0] [3, -5, 2, 0] . should_fail_with Illegal_Argument
+            Dictionary.from_keys_and_values [0, 3, 1, 0] [3, -5, 2, 0] error_on_duplicates=False . should_equal expected
+
+        group_builder.specify "should not allow different length vectors when building" <|
+            Dictionary.from_keys_and_values [0, 3, 1] [3, -5, 2, 0] . should_fail_with Illegal_Argument
+
+        group_builder.specify "should allow building the Dictionary from a vector" <|
+            expected = Dictionary.empty . insert 0 0 . insert 3 -5 . insert 1 2
+            vec = [[0, 0], [3, -5], [1, 2]]
+            Dictionary.from_vector vec . should_equal expected
+
+        group_builder.specify "should fail when building the Dictionary from wrong vector" <|
+          Dictionary.from_vector [["A", 1, "B", 2]] . should_fail_with Illegal_Argument
+
+        group_builder.specify "should not allow duplicates when building the Dictionary from a vector, unless explicitly allowed" <|
+            vec = [[0, 0], [3, -5], [1, 2], [0, 1]]
+            d1 = Dictionary.from_vector vec
+            d1.should_fail_with Illegal_Argument
+            d1.catch.message . should_equal "`Dictionary.from_vector` encountered duplicate key: 0"
+
+            d2 = Dictionary.from_vector vec error_on_duplicates=False
+            Problems.assume_no_problems d2
+            d2.get 0 . should_equal 1
+            d2.get 3 . should_equal -5
+
+        group_builder.specify "should disallow duplicate keys when transforming the Dictionary" <|
+            d = Dictionary.from_vector [[1, 2], [11, 3]]
+            d2 = d.transform (k -> v -> [k % 10, v*2])
+            d2.should_fail_with Illegal_Argument
+            d2.catch.message . should_equal "`Dictionary.transform` encountered duplicate key: 1"
+
+        group_builder.specify "should allow mapping over values" <|
+            d = Dictionary.empty . insert 1 2 . insert 2 4
+            expected = Dictionary.empty . insert 1 4 . insert 2 8
+            d.map (v -> v*2) . should_equal expected
+
+        group_builder.specify "should allow mapping over keys" <|
+            d = Dictionary.empty . insert 1 2 . insert 2 4
+            expected = Dictionary.empty . insert 2 2 . insert 4 4
+            d.map_keys (k -> k*2) . should_equal expected
+
+        group_builder.specify "should allow mapping with keys" <|
+            d = Dictionary.empty . insert 1 2 . insert 2 4
+            expected = Dictionary.empty . insert 1 3 . insert 2 6
+            d.map_with_key (k -> v -> k + v) . should_equal expected
+
+        group_builder.specify "should allow iterating over each value" <|
+            d = Dictionary.empty . insert 1 2 . insert 2 4
+            expected_vec = [2, 4]
+            vec = Vector.build builder->
+                d.each (v -> builder.append v)
+            vec . should_equal expected_vec
+
+        group_builder.specify "should allow iterating over each key-value pair" <|
+            d = Dictionary.empty . insert 1 2 . insert 2 4
+            expected_vec = [3, 6]
+            vec = Vector.build builder->
+                d.each_with_key (k -> v -> builder.append (k+v))
+            vec . should_equal expected_vec
+
+        group_builder.specify "should allow folding over the values" <|
+            d = Dictionary.empty . insert 1 2 . insert 2 4
+            d.fold 0 (+) . should_equal 6
+
+        group_builder.specify "should allow folding over the key-value pairs" <|
+            d = Dictionary.empty . insert 1 2 . insert 2 4
+            d.fold_with_key 0 (l -> k -> v -> l + k + v) . should_equal 9
+
+        group_builder.specify "should be able to add a Nothing key to a Dictionary of Text" <|
+            m = Dictionary.empty . insert "A" 2 . insert Nothing 1 . insert "B" 3
+            m.at "A" . should_equal 2
+            m.at "B" . should_equal 3
+            m.at Nothing . should_equal 1
+
+        group_builder.specify "should be able to add a Nothing key to a Dictionary of Integer" <|
+            m = Dictionary.empty . insert 100 2 . insert Nothing 1 . insert 200 3
+            m.at 100 . should_equal 2
+            m.at 200 . should_equal 3
+            m.at Nothing . should_equal 1
+
+    suite_builder.group "Polyglot keys and values" group_builder->
+        group_builder.specify "should support polyglot keys" <|
+            dict = Dictionary.singleton (js_str "A") 42
+            dict.size.should_equal 1
+            dict.get "A" . should_equal 42
+            dict.get (js_str "A") . should_equal 42
+
+        group_builder.specify "should support host objects as keys" <|
+            # java.nio.path.Path has proper implementation of hashCode
+            dict = Dictionary.singleton (File_Utils.toPath "/home/user/file.txt") 42
+            dict.get "X" . should_equal Nothing
+            dict.get "A" . should_equal Nothing
+            dict.get (File_Utils.toPath "/home/user/file.txt") . should_equal 42
+
+        group_builder.specify "should support Python objects as keys" pending=pending_python_missing <|
+            py_obj = py_wrapper 42
+            dict = Dictionary.singleton py_obj "Value"
+            dict.get py_obj . should_equal "Value"
+
+        group_builder.specify "should support Python objects as values" pending=pending_python_missing <|
+            dict = Dictionary.singleton "A" (py_wrapper 42)
+            dict.get "A" . data . should_equal 42
+
+        group_builder.specify "should insert entries to a polyglot map" pending=pending_python_missing <|
+            dict = py_dict_from_vec ["A", 1, "B", 2]
+            dict.insert "C" 3 . keys . sort . should_equal ["A", "B", "C"]
+
+        group_builder.specify "should remove entries from a polyglot map" pending=pending_python_missing <|
+            dict = py_dict_from_vec ["A", 1, "B", 2]
+            dict.remove "B" . to_vector . should_equal [["A", 1]]
+
+    suite_builder.group "non-linear inserts" group_builder->
+        group_builder.specify "should handle inserts with different keys" <|
+            d1 = Dictionary.singleton "A" 1
+            d2 = d1.insert "B" 2
+            d3 = d1.insert "C" 3
+            d2.to_vector.sort on=_.first . should_equal [["A", 1], ["B", 2]]
+            d3.to_vector.sort on=_.first . should_equal [["A", 1], ["C", 3]]
+
+        group_builder.specify "should handle inserts with same keys (1)" <|
+            d1 = Dictionary.singleton "A" 1
+            d2 = d1.insert "A" 2
+            d3 = d1.insert "A" 3
+            d4 = d1.insert "B" 4
+            d2.to_vector.sort on=_.first . should_equal [["A", 2]]
+            d3.to_vector.sort on=_.first . should_equal [["A", 3]]
+            d4.to_vector.sort on=_.first . should_equal [["A", 1], ["B", 4]]
+
+        group_builder.specify "should handle inserts with same keys (2)" <|
+            d1 = Dictionary.singleton "foo" 1
+            d2 = d1.insert "baz" 2
+            d3 = d2.insert "foo" 3
+            d1.to_vector.sort on=_.first . should_equal [['foo', 1]]
+            d2.to_vector.sort on=_.first . should_equal [['baz', 2], ['foo', 1]]
+            d3.to_vector.sort on=_.first . should_equal [['baz', 2], ['foo', 3]]
+
+        group_builder.specify "should handle inserts with same keys (3)" <|
+            d1 = Dictionary.singleton "A" 1
+            d2 = d1.insert "B" 2
+            d3 = d2.insert "A" 3
+            d4 = d2.insert "C" 4
+            d1.to_vector.sort on=_.first . should_equal [["A", 1]]
+            d2.to_vector.sort on=_.first . should_equal [["A", 1], ["B", 2]]
+            d3.to_vector.sort on=_.first . should_equal [["A", 3], ["B", 2]]
+            d4.to_vector.sort on=_.first . should_equal [["A", 1], ["B", 2], ["C", 4]]
+
+        group_builder.specify "should handle inserts with same keys (4)" <|
+            d1 = Dictionary.singleton "A" 1
+            d2 = d1.insert "B" 2
+            d3 = d2.insert "C" 3
+            d4 = d2.insert "D" 4
+            d2.to_vector.sort on=_.first . should_equal [["A", 1], ["B", 2]]
+            d3.to_vector.sort on=_.first . should_equal [["A", 1], ["B", 2], ["C", 3]]
+            d4.to_vector.sort on=_.first . should_equal [["A", 1], ["B", 2], ["D", 4]]
+
+        group_builder.specify "should handle inserts with same keys (5)" <|
+            d1 = Dictionary.singleton "A" 1
+            d2 = d1.insert "B" 2
+            d3 = d2.insert "A" 3
+            d4 = d2.insert "A" 4
+            d2.to_vector.sort on=_.first . should_equal [["A", 1], ["B", 2]]
+            d3.to_vector.sort on=_.first . should_equal [["A", 3], ["B", 2]]
+            d4.to_vector.sort on=_.first . should_equal [["A", 4], ["B", 2]]
+
+        group_builder.specify "should handle inserts with same keys (6)" <|
+            d1 = Dictionary.singleton "A" 1
+            d2 = d1.insert "B" 2
+            d3 = d2.insert "C" 3
+            d4 = d2.insert "A" 4
+            d2.to_vector.sort on=_.first . should_equal [["A", 1], ["B", 2]]
+            d3.to_vector.sort on=_.first . should_equal [["A", 1], ["B", 2], ["C", 3]]
+            d4.to_vector.sort on=_.first . should_equal [["A", 4], ["B", 2]]
+
+        group_builder.specify "should handle inserts with same keys (7)" <|
+            d1 = Dictionary.singleton "A" 1
+            d2 = d1.insert "B" 2
+            d3 = d2.insert "C" 3
+            d4 = d3.insert "D" 4
+            d5 = d2.insert "A" 5
+            d2.to_vector.sort on=_.first . should_equal [["A", 1], ["B", 2]]
+            d3.to_vector.sort on=_.first . should_equal [["A", 1], ["B", 2], ["C", 3]]
+            d4.to_vector.sort on=_.first . should_equal [["A", 1], ["B", 2], ["C", 3], ["D", 4]]
+            d5.to_vector.sort on=_.first . should_equal [["A", 5], ["B", 2]]
+
+        group_builder.specify "should handle inserts with same keys (8)" <|
+            d1 = Dictionary.singleton "A" 1
+            d2 = d1.insert "B" 2
+            d3 = d2.insert "C" 3
+            d4 = d3.insert "A" 4
+            d5 = d2.insert "A" 5
+            d2.to_vector.sort on=_.first . should_equal [["A", 1], ["B", 2]]
+            d3.to_vector.sort on=_.first . should_equal [["A", 1], ["B", 2], ["C", 3]]
+            d4.to_vector.sort on=_.first . should_equal [["A", 4], ["B", 2], ["C", 3]]
+            d5.to_vector.sort on=_.first . should_equal [["A", 5], ["B", 2]]
+
+        group_builder.specify "should handle inserts with same keys (9)" <|
+            d1 = Dictionary.singleton "A" 1
+            d2 = d1.insert "B" 2
+            d3 = d2.insert "A" 3
+            d4 = d2.insert "B" 4
+            d5 = d2.insert "C" 5
+            d2.to_vector.sort on=_.first . should_equal [["A", 1], ["B", 2]]
+            d3.to_vector.sort on=_.first . should_equal [["A", 3], ["B", 2]]
+            d4.to_vector.sort on=_.first . should_equal [["A", 1], ["B", 4]]
+            d5.to_vector.sort on=_.first . should_equal [["A", 1], ["B", 2], ["C", 5]]
+
+        group_builder.specify "should handle inserts with same keys (10)" <|
+            d1 = Dictionary.singleton "A" 1
+            d2 = d1.insert "B" 2
+            d3 = d2.insert "C" 3
+            d4 = d2.insert "D" 4
+            d5 = d2.insert "E" 5
+            d2.to_vector.sort on=_.first . should_equal [["A", 1], ["B", 2]]
+            d3.to_vector.sort on=_.first . should_equal [["A", 1], ["B", 2], ["C", 3]]
+            d4.to_vector.sort on=_.first . should_equal [["A", 1], ["B", 2], ["D", 4]]
+            d5.to_vector.sort on=_.first . should_equal [["A", 1], ["B", 2], ["E", 5]]
+
+    suite_builder.group "Polyglot hash maps" group_builder->
+        group_builder.specify "should pass Dictionaries as immutable maps to other languages" pending=pending_python_missing <|
+            dict = Dictionary.singleton "A" 1
+            # Python's KeyError should be raised
+            Test.expect_panic_with (py_update_dict dict "A" 2) Any
+            dict.get "A" . should_equal 1
+
+        group_builder.specify "should treat JavaScript maps as Enso Dictionaries" <|
+            js_dict = js_dict_from_vec ["A", 1, "B", 2]
+            dict = js_dict.insert "C" 3
+            js_dict.to_vector.should_equal [["A", 1], ["B", 2]]
+            dict.to_vector.sort on=_.first . should_equal [["A", 1], ["B", 2], ["C", 3]]
+
+        group_builder.specify "should treat Java Map as Enso Dictionary" <|
+            sort_by_keys vec = vec.sort by=x-> y-> Ordering.compare x.first y.first
+            dict = JavaMap.of "A" 1 "B" 2
+            (sort_by_keys dict.to_vector) . should_equal [["A", 1], ["B", 2]]
+            (sort_by_keys (dict.insert "C" 3 . to_vector)) . should_equal [["A", 1], ["B", 2], ["C", 3]]
+
+        group_builder.specify "should treat Python dicts as Enso Dictionaries" pending=pending_python_missing <|
+            py_dict = py_dict_from_vec ["A", 1, "B", 2]
+            dict = py_dict.insert "C" 3
+            py_dict.not_empty . should_be_true
+            py_dict.to_vector . should_contain_the_same_elements_as [["A", 1], ["B", 2]]
+            dict.to_vector . should_contain_the_same_elements_as [["A", 1], ["B", 2], ["C", 3]]
+            py_empty_dict.is_empty.should_be_true
+            py_empty_dict.insert "A" 1 . insert "A" 2 . get "A" . should_equal 2
+
+        group_builder.specify "should be able to remove entries" pending=pending_python_missing <|
+            py_dict_from_vec ["A", 1, "B", 2] . remove "A" . size . should_equal 1
+            py_dict_from_vec ["A", 1, "B", 2] . remove "A" . get "B" . should_equal 2
+
+        group_builder.specify "should be able to remove NaN keys" pending=pending_python_missing <|
+            py_dict_from_vec [Number.nan, 1] . remove Number.nan . size . should_equal 0
+
+        group_builder.specify "should pass Dictionaries with null keys to Python and back" pending=pending_python_missing <|
+            # Python supports None as keys, Enso support Nothing as keys
+            py_dict = py_dict_from_map (Dictionary.singleton Nothing 42)
+            py_dict.get Nothing . should_equal 42
+            py_dict.insert "A" 23 . get Nothing . should_equal 42
+            py_dict.insert Nothing 23 . get Nothing . should_equal 23
+
+        group_builder.specify "should treat Enso Dictionaries as Python dicts when passed to Python" pending=pending_python_missing <|
+            dict1 = Dictionary.singleton "A" 1 . insert "B" 2
+            py_vec_from_map dict1 . should_contain_the_same_elements_as [["A", 1], ["B", 2]]
+            dict2 = Dictionary.singleton "A" 1 . insert Nothing 2
+            py_vec_from_map dict2 . should_contain_the_same_elements_as [["A", 1], [Nothing, 2]]
+
+
+add_common_specs suite_builder prefix:Text (pending : (Text | Nothing)) (empty_dict_fn : (Nothing -> Dictionary)) =
+    # Not on a single line - empty_dict is a method, not a variable
+    empty_dict =
+        empty_dict_fn Nothing
+
+    suite_builder.group prefix+": Common polyglot Dictionary operations" pending=pending group_builder->
+        group_builder.specify "should get the default comparator for polyglot maps" <|
+            assert_comparator value comparator =
+                actual = Comparable.from value
+                expected = Comparable.new value comparator
+                actual . should_equal expected
+
+            assert_comparator empty_dict Default_Comparator
+
+        group_builder.specify "should compare two hash maps" <|
+            (empty_dict.insert "a" 1).should_equal (empty_dict.insert "a" 1)
+            (empty_dict.insert "b" 2).should_not_equal (empty_dict.insert "a" 1)
+            empty_dict.should_equal empty_dict
+            empty_dict.should_not_equal (empty_dict.insert "a" 1)
+            (empty_dict.insert "a" 1 . insert "b" 2).should_equal (empty_dict.insert "b" 2 . insert "a" 1)
+
+        group_builder.specify "should allow checking for non emptiness" <|
+            non_empty = empty_dict . insert "foo" 1234
+            empty_dict.not_empty . should_be_false
+            non_empty.not_empty . should_be_true
+
+        group_builder.specify "should allow checking its size" <|
+            non_empty = empty_dict.insert "a" "b" . insert "x" "y"
+            empty_dict.size . should_equal 0
+            non_empty.size . should_equal 2
+
+        group_builder.specify "should allow checking for emptiness" <|
+            non_empty = empty_dict . insert "foo" 1234
+            empty_dict.is_empty . should_be_true
+            non_empty.is_empty . should_be_false
+
+        group_builder.specify "should handle incomparable values as keys" <|
+            empty_dict.insert Number.nan 1 . insert Number.nan 2 . get Number.nan . should_equal 2
+
+        group_builder.specify "should handle Nothing as values" <|
+            empty_dict.insert 1 Nothing . at 1 . should_equal Nothing
+            empty_dict.insert Nothing Nothing . at Nothing . should_equal Nothing
+
+        group_builder.specify "should support rewriting values with same keys" <|
+            dict = Dictionary.singleton "a" 1 . insert "a" 42
+            dict.size.should_equal 1
+            dict.get "a" . should_equal 42
+
+        group_builder.specify "should allow storing atoms as values" <|
+            json = Json.parse '{"a": 1}'
+            pair = Pair.new "first" "second"
+            dict = Dictionary.singleton 0 json . insert 1 pair
+            dict.get 0 . should_equal json
+            dict.get 1 . should_equal pair
+
+        group_builder.specify "should support NaN as keys" <|
+            empty_dict.insert Number.nan 1 . contains_key Number.nan . should_be_true
+            empty_dict.insert Number.nan 1 . values . should_equal [1]
+            empty_dict.insert Number.nan 1 . insert Number.nan 2 . contains_key Number.nan . should_be_true
+            empty_dict.insert Number.nan 1 . insert Number.nan 2 . values . should_equal [2]
+            empty_dict.insert Number.nan 1 . insert "key" 2 . insert Number.nan 3 . contains_key Number.nan . should_be_true
+            empty_dict.insert Number.nan 1 . insert "key" 2 . insert Number.nan 3 . contains_key "key" . should_be_true
+            empty_dict.insert Number.nan 1 . insert "key" 2 . insert Number.nan 3 . at Number.nan . should_equal 3
+            empty_dict.insert Number.nan 1 . insert "key" 2 . insert Number.nan 3 . at "key" . should_equal 2
+            empty_dict.insert Number.nan 1 . insert Number.nan Number.nan . at Number.nan . to_text . should_equal "NaN"
+            empty_dict.insert Number.nan 1 . insert Number.nan Number.nan . remove Number.nan . size . should_equal 0
+
+        group_builder.specify "should support arbitrary atoms as keys" <|
+            dict = empty_dict . insert (Pair.new "one" "two") 42
+            (dict.get (Pair.new "one" "two")).should_equal 42
+            (dict.get (Pair.new "A" "B")).should_equal Nothing
+            (dict.get (Pair.new "two" "two")).should_equal Nothing
+
+        group_builder.specify "should support vectors as keys" <|
+            dict = empty_dict . insert [1, "a", 2] "Value"
+            dict.size.should_equal 1
+            dict.get [1, "a", 2] . should_equal "Value"
+
+        group_builder.specify "should support dates as keys" <|
+            dict = empty_dict.insert (Date.new 1993) 1 . insert (Date.new 1993 2 5) 2 . insert (Date_Time.new 1993 2 5 13 45) 3
+            dict.size.should_equal 3
+            dict.get (Date.new 1993 6 7) . should_equal Nothing
+            dict.get (Date.new 1993) . should_equal 1
+            dict.get (Date_Time.new 1993) . should_equal Nothing
+            dict.get (Date.new 1993 2 5) . should_equal 2
+            dict.get (Date_Time.new 1993 2 5) . should_equal Nothing
+            dict.get (Date_Time.new 1993 2 5 13 45) . should_equal 3
+
+        group_builder.specify "should support another hash map as key" <|
+            keys = empty_dict.insert (Pair.new "one" "two") 42
+            dict = empty_dict.insert keys 23
+            dict.size.should_equal 1
+            (dict.get "A").should_equal Nothing
+            (dict.get keys).should_equal 23
+            (dict.get dict).should_equal Nothing
+
+        group_builder.specify "should handle keys with standard equality semantics" <|
+            dict = empty_dict.insert 2 "Hello"
+            (dict.get 2).should_equal "Hello"
+            (dict.get 2.0).should_equal "Hello"
+            (empty_dict.insert 2 "Hello").should_equal (empty_dict.insert 2.0 "Hello")
+
+        group_builder.specify "should handle Nothing as keys" <|
+            empty_dict.insert Nothing 3 . get Nothing . should_equal 3
+            empty_dict.insert Nothing 1 . insert Nothing 2 . get Nothing . should_equal 2
+            empty_dict.insert Nothing 1 . should_equal (empty_dict.insert Nothing 1)
+            empty_dict.insert Nothing 1 . insert Nothing 2 . at Nothing . should_equal 2
+
+        group_builder.specify "should handle JavaScript null as keys" <|
+            empty_dict.insert js_null 1 . at Nothing . should_equal 1
+
+        group_builder.specify "should handle Python None as keys" pending=pending_python_missing <|
+            empty_dict.insert py_none 1 . at Nothing . should_equal 1
+
+        group_builder.specify "should define a well-defined text conversion" <|
+            d = empty_dict . insert 0 0 . insert 3 -5 . insert 1 2
+            d.to_text . should_contain "0=0"
+            d.to_text . should_contain "3=-5"
+            d.to_text . should_contain "1=2"
+
+        group_builder.specify "should define structural equality" <|
+            dict_1 = empty_dict . insert "1" 2 . insert "2" "1"
+            dict_2 = empty_dict . insert "1" 2 . insert "2" "1"
+            dict_3 = empty_dict
+            dict_1==dict_2 . should_be_true
+            dict_1==dict_3 . should_be_false
+            dict_2==dict_3 . should_be_false
+
+        group_builder.specify "should allow inserting and looking up values" <|
+            m = empty_dict . insert "foo" 134 . insert "bar" 654 . insert "baz" "spam"
+            m.at "foo" . should_equal 134
+            m.at "bar" . should_equal 654
+            m.at "baz" . should_equal "spam"
+            (m.at "nope").should_fail_with No_Such_Key
+
+        group_builder.specify "should support get" <|
+            m = empty_dict . insert 2 3
+            m.get 2 0 . should_equal 3
+            m.get 1 10 . should_equal 10
+            m.get 2 (Panic.throw "missing") . should_equal 3
+
+        group_builder.specify "should allow getting a vector of the keys" <|
+            m = empty_dict . insert 1 2 . insert 2 4
+            m.keys . should_equal [1, 2]
+
+        group_builder.specify "should allow getting a vector of the values" <|
+            m = empty_dict . insert 1 2 . insert 2 4
+            m.values . should_equal [2, 4]
+
+        group_builder.specify "should support contains_key" <|
+            m = empty_dict . insert 2 3
+            m.contains_key 2 . should_be_true
+            m.contains_key 1 . should_be_false
+
+        group_builder.specify "should allow transforming the dictionary" <|
+            m = empty_dict . insert 1 2 . insert 2 4
+            expected = empty_dict . insert "1" 4 . insert "2" 8
+            m.transform (k -> v -> [k.to_text, v*2]) . should_equal expected
+
+        group_builder.specify "should be able to remove entries (1)" <|
+            m1 = empty_dict.insert "A" 1 . insert "B" 2
+            m2 = m1.remove "B"
+            m2.get "A" . should_equal 1
+            m2.remove "A" . should_equal empty_dict
+            m1.remove "foo" . should_fail_with No_Such_Key
+
+        group_builder.specify "should be able to remove entries (2)" <|
+            m1 = empty_dict.insert "A" 1
+            m2 = m1.insert "B" 2
+            m3 = m1.insert "C" 3
+            m2.remove "A" . to_vector . should_equal [["B", 2]]
+            m2.remove "B" . to_vector . should_equal [["A", 1]]
+            m3.remove "A" . to_vector . should_equal [["C", 3]]
+            m3.remove "C" . to_vector . should_equal [["A", 1]]
+
+        group_builder.specify "should be able to remove entries (3)" <|
+            m = empty_dict.insert "A" 1 . insert "B" 2 . insert "C" 3
+            m.remove "B" . should_equal (empty_dict.insert "A" 1 . insert "C" 3)
+
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter filter

@@ -2,7 +2,7 @@ import project.Any.Any
 import project.Data.Array.Array
 import project.Data.Array_Proxy.Array_Proxy
 import project.Data.Decimal.Decimal
-import project.Data.Map.Map
+import project.Data.Dictionary.Dictionary
 import project.Data.Numbers.Float
 import project.Data.Numbers.Integer
 import project.Data.Numbers.Number
@@ -252,13 +252,13 @@ type JS_Object
 
     ## GROUP Logical
        ICON metadata
-       Returns True iff the Map is empty, i.e., does not have any entries.
+       Returns True if the JS_Object is empty, i.e., does not have any entries.
     is_empty : Boolean
     is_empty self = self.length == 0
 
     ## GROUP Logical
        ICON metadata
-       Returns True iff the Map is not empty, i.e., has at least one entry.
+       Returns True if the JS_Object is not empty, i.e., has at least one entry.
     not_empty : Boolean
     not_empty self = self.is_empty.not
 
@@ -304,10 +304,10 @@ type JS_Object
        Creates an Enso object from the JS_Object.
     into : Any -> Any
     into self target_type = case target_type of
-        JS_Object -> self
-        Vector    -> self.to_vector
-        Map       -> Map.from_vector self.to_vector
-        _         ->
+        JS_Object  -> self
+        Vector     -> self.to_vector
+        Dictionary -> Dictionary.from_vector self.to_vector
+        _          ->
             ## First try a conversion
             Panic.catch No_Such_Conversion (self.to target_type) _->
                 ## If that fails, try to construct the type

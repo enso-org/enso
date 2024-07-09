@@ -256,7 +256,7 @@ add_specs suite_builder setup =
             # 6. multiple Between conditions
             xs = [0, 0, 1, 1, 1, 1, 2, 2, 3, 3, 3, 4, 4, 4]
             ys = [1, 2, 3, 1, 9, 2, 3, 2, 4, 2, 1, 1, 1, 2]
-            pts = xs.zip ys . take (Index_Sub_Range.Sample xs.length seed=42)
+            pts = xs.zip ys . take (..Sample xs.length seed=42)
             t1 = table_builder [["X", pts.map .first], ["Y", pts.map .second]]
 
             t2 = table_builder [["lx", [1]], ["ux", [3]], ["ly", [1]], ["uy", [2]]]

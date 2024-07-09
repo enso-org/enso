@@ -21,7 +21,7 @@ Comparable.from (that:My) = Comparable.new that My_Comparator
 
 vector_size = 100000
 
-create_ints = (0.up_to vector_size).to_vector.take (Index_Sub_Range.Sample vector_size 42)
+create_ints = (0.up_to vector_size).to_vector.take (..Sample vector_size 42)
 
 create_dates = create_ints.map x->
     (Date_Time.new 1990 1 1) + (Duration.new seconds=x)

@@ -283,12 +283,12 @@ add_specs suite_builder =
     suite_builder.group "read_bytes" group_builder->
         group_builder.specify "should allow reading a file to byte vector" <|
             contents = sample_file.read_bytes
-            contents.take (First 6) . should_equal [67, 117, 112, 99, 97, 107]
+            contents.take (..First 6) . should_equal [67, 117, 112, 99, 97, 107]
 
         group_builder.specify "should allow reading a file to byte vector via path" <|
             full_path = sample_file . path
             contents = File.new full_path . read_bytes
-            contents.take (First 6) . should_equal [67, 117, 112, 99, 97, 107]
+            contents.take (..First 6) . should_equal [67, 117, 112, 99, 97, 107]
 
         group_builder.specify "should allow to read last n bytes from a file" <|
             file = enso_project.data / "transient" / "bytes.txt"
@@ -312,10 +312,10 @@ add_specs suite_builder =
         group_builder.specify "should open and read the file in one shot" <|
             path_name = sample_file.path
             contents = File.new path_name . read_bytes
-            contents.take (First 6) . should_equal [67, 117, 112, 99, 97, 107]
+            contents.take (..First 6) . should_equal [67, 117, 112, 99, 97, 107]
             file = sample_file
             contents_2 = File.new file . read_bytes
-            contents_2.take (First 6) . should_equal [67, 117, 112, 99, 97, 107]
+            contents_2.take (..First 6) . should_equal [67, 117, 112, 99, 97, 107]
 
     suite_builder.group "Path Operations" group_builder->
         group_builder.specify "should allow going above the first part of a relative directory by resolving it to absolute" <|

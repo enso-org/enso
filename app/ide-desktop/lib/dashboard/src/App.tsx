@@ -158,6 +158,7 @@ export interface AppProps {
   readonly appRunner: types.EditorRunner | null
   readonly portalRoot: Element
   readonly httpClient: HttpClient
+  readonly queryClient: reactQuery.QueryClient
 }
 
 /** Component called by the parent module, returning the root React component for this

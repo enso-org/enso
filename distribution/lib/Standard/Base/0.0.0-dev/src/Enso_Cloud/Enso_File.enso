@@ -39,7 +39,6 @@ import project.System.File_Format_Metadata.File_Format_Metadata
 import project.System.Input_Stream.Input_Stream
 import project.System.Output_Stream.Output_Stream
 from project.Data.Boolean import Boolean, False, True
-from project.Data.Index_Sub_Range.Index_Sub_Range import Last
 from project.Data.Text.Extensions import all
 from project.Enso_Cloud.Internal.Enso_File_Helpers import all
 from project.Enso_Cloud.Public_Utils import get_required_field
@@ -225,7 +224,7 @@ type Enso_File
                 asset = Existing_Enso_Asset.get_asset_reference_for self
                 response = case asset.asset_type of
                     Enso_Asset_Type.File ->
-                        HTTP.fetch asset.get_download_url HTTP_Method.Get
+                        Utils.http_request HTTP_Method.Get (asset.internal_uri + "/contents")
                     Enso_Asset_Type.Data_Link ->
                         Runtime.assert (open_options.contains Data_Link_Access.No_Follow)
                         Utils.http_request HTTP_Method.Get asset.internal_uri
