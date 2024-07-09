@@ -2,7 +2,7 @@ from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 from Standard.Base.Data.Numbers import Number_Parse_Error
-from Standard.Base.Errors.Common import Arithmetic_Error, Loss_Of_Numeric_Precision, Out_Of_Range, Type_Error
+from Standard.Base.Errors.Common import Arithmetic_Error, Loss_Of_Numeric_Precision, No_Such_Conversion, Out_Of_Range, Type_Error
 
 from Standard.Test import all
 
@@ -121,13 +121,14 @@ add_specs suite_builder =
             Decimal.new Number.positive_infinity . should_fail_with Illegal_Argument
             Decimal.new Number.negative_infinity . should_fail_with Illegal_Argument
 
-        group_builder.specify "should be convertible via .from" <|
+        group_builder.specify "should be convertible via .from, for integers and strings" <|
             Decimal.from "123.45" . should_equal (Decimal.new "123.45")
             Decimal.from "123.45" . should_equal (Decimal.from_text "123.45")
-            Decimal.from 123.45 . should_equal (Decimal.new 123.45)
-            Decimal.from 123.45 . should_equal (Decimal.from_float 123.45)
             Decimal.from 12345 . should_equal (Decimal.new 12345)
             Decimal.from 12345 . should_equal (Decimal.from_integer 12345)
+
+        group_builder.specify "should not be convertible via .from for floats" <|
+            Test.expect_panic No_Such_Conversion (Decimal.from 123.45)
 
         group_builder.specify "constructor should respect Math_Context " <|
             Decimal.new 12000 (Math_Context.new 0) . should_equal 12000
@@ -379,18 +380,18 @@ add_specs suite_builder =
             ((-(d * d)) == -Float.max_value) . should_be_false
             Comparable.hash_builtin (d * d) . should_equal 2146435072
             Comparable.hash_builtin -(d * d) . should_equal -1048576
-            Comparable.hash_builtin ((d * d) + 0.1) . should_equal 2146435072
-            Comparable.hash_builtin ((-(d * d)) + 0.1) . should_equal -1048576
+            Comparable.hash_builtin ((d * d) + Decimal.new "0.1") . should_equal 2146435072
+            Comparable.hash_builtin ((-(d * d)) + Decimal.new "0.1") . should_equal -1048576
 
         group_builder.specify "from conversion supports values outside the double range" <|
-            d = Float.max_value.to Decimal
+            d = Float.max_value.to_decimal
             (d == Float.max_value) . should_be_true
             ((d * d) == Float.max_value) . should_be_false
             ((-(d * d)) == -Float.max_value) . should_be_false
             Comparable.hash_builtin (d * d) . should_equal 2146435072
             Comparable.hash_builtin -(d * d) . should_equal -1048576
-            Comparable.hash_builtin ((d * d) + 0.1) . should_equal 2146435072
-            Comparable.hash_builtin ((-(d * d)) + 0.1) . should_equal -1048576
+            Comparable.hash_builtin ((d * d) + Decimal.new "0.1") . should_equal 2146435072
+            Comparable.hash_builtin ((-(d * d)) + Decimal.new "0.1") . should_equal -1048576
 
     suite_builder.group "arithmetic" group_builder->
         group_builder.specify "should allow arithmetic with Decimals, without Math_Context" <|
@@ -614,13 +615,13 @@ add_specs suite_builder =
             Problems.expect_only_warning Loss_Of_Numeric_Precision (Decimal.new "0.1" . to_float)
 
         group_builder.specify "should convert correctly to Float using implicit conversions" <|
-            f = Float.from (Decimal.new "56.34")
+            f = Decimal.new "56.34" . to_float
             f.should_be_a Float
             f.should_equal 56.34
 
         group_builder.specify "Decimal.to_float cannot compare correctly with the original Decimal" <|
             huge_a = Decimal.new "3.4E300"
-            huge_a_float = Float.from huge_a
+            huge_a_float = huge_a.to_float
 
             (huge_a_float == huge_a) . should_be_false
             (huge_a == huge_a_float) . should_be_false
@@ -645,15 +646,13 @@ add_specs suite_builder =
             cases = []
                 + [[5, 3, 2], [5.0, 3.0, 2.0], [3.5, 2, 1.5], [10.5, 1.0, 0.5], [3, 1, 0], [3.0, 1.0, 0]]
                 + [[-5, 3, -2], [-5.0, 3.0, -2.0], [-3.5, 2, -1.5], [-10.5, 1.0, -0.5], [-3, 1, 0], [-3.0, 1.0, 0]]
-                + [[2.7, 0.5, 0.2], [2.7, 0.4, 0.3, 0.001], [-2.7, 0.5, -0.2], [-2.7, 0.4, -0.3, 0.001]]
+                + [[2.7, 0.5, 0.2], [2.7, 0.4, 0.3], [-2.7, 0.5, -0.2], [-2.7, 0.4, -0.3]]
                 + [["9223372036854775807", 10, 7], ["9223372036854775808", 10, 8], ["922337203685477580000000000008", 10, 8]]
                 + [["-9223372036854775808", 10, -8], ["-9223372036854775809", 10, -9], ["-922337203685477580000000000008", 10, -8]]
             cases.map c-> Test.with_clue ("["+c.to_text+"] ") <|
                 base = c.at 0
                 modulus = c.at 1
                 residue = c.at 2
-                epsilon = if c.length > 3 then c.at 3 else 0.0
-                (Decimal.new base % modulus) . should_equal epsilon=epsilon residue
                 (Decimal.new base % Decimal.new modulus) . should_equal residue
 
         group_builder.specify "should define remainder (example)" <|
@@ -959,12 +958,9 @@ add_specs suite_builder =
             Decimal.new "-12" . min (Decimal.new "-12.3") . should_equal (Decimal.new "-12.3")
             Decimal.new "-12.2" . min (Decimal.new "-11") . should_equal (Decimal.new "-12.2")
 
-        group_builder.specify "should calculate min and max correctly, with mixed Decimal and Int/Float" <|
+        group_builder.specify "should calculate min and max correctly, with mixed Decimal and Int" <|
             Decimal.new "12" . min 13 . should_equal (Decimal.new "12")
             12 . min (Decimal.new "13") . should_equal (Decimal.new "12")
-
-            Decimal.new "12.1" . min 12.3 . should_equal (Decimal.new "12.1")
-            12.1 . min (Decimal.new "12.3") . should_equal (Decimal.from 12.1)
 
             Decimal.new "0" . min (Decimal.new "-1") . should_equal (Decimal.new "-1")
             0 . min (Decimal.new "-1") . should_equal (Decimal.new "-1")
@@ -972,17 +968,14 @@ add_specs suite_builder =
             Decimal.new "12" . max 13 . should_equal (Decimal.new "13")
             12 . max (Decimal.new "13") . should_equal (Decimal.new "13")
 
-            Decimal.new "12.1" . max 12.3 . should_equal (Decimal.new "12.3")
-            12.1 . max (Decimal.new "12.3") . should_equal (Decimal.new "12.3")
-
             Decimal.new "0" . max -1 . should_equal (Decimal.new "0")
             0 . max (Decimal.new "-1") . should_equal (Decimal.new "0")
 
-            Decimal.new "12" . min 12.3 . should_equal (Decimal.new "12")
-            12 . min (Decimal.new "12.3") . should_equal (Decimal.new "12")
-
-            Decimal.new "12" . max 12.3 . should_equal (Decimal.new "12.3")
-            12 . max (Decimal.new "12.3") . should_equal (Decimal.new "12.3")
+        group_builder.specify "should throw on min and max with mixed Decimal and Float" <|
+            #(Decimal.new "12.1" . min 12.3) . should_fail_with Type_Error
+            #(12.3 . max Decimal.new "12.1") . should_fail_with Type_Error
+            Test.expect_panic Type_Error (Decimal.new "12.1" . min 12.3)
+            Test.expect_panic Type_Error (12.3 . max Decimal.new "12.1")
 
         group_builder.specify "should calculate min and max correctly, with Math.min/max" <|
             Math.min (Decimal.new "12") (Decimal.new "13") . should_equal (Decimal.new "12")
