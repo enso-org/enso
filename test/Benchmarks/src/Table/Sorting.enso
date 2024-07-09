@@ -9,12 +9,10 @@ type My
 
 type My_Comparator
     compare my_1 my_2 =
-        comparator = Comparable.from my_2.x
-        comparator.compare my_1.x
+        Ordering.compare my_2.x my_1.x
 
     hash my =
-        comparator = Comparable.from my.x
-        comparator.hash
+        Comparable.from my.x . hash
 
 Comparable.from (that:My) = Comparable.new that My_Comparator
 
