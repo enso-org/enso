@@ -27,7 +27,10 @@ type T
     Value a b
 
 type T_Comparator
-    compare t1 t2 = Comparable.from t1.a . compare t2.a
+    compare t1 t2 =
+        c1 = Comparable.from t1.a
+        c2 = Comparable.from t2.a
+        c1.compare c2
     hash t = Comparable.from t.a . hash
 
 Comparable.from (that:T) = Comparable.new that T_Comparator
@@ -780,7 +783,8 @@ type_spec suite_builder name alter = suite_builder.group name group_builder->
     group_builder.specify "should be stable in descending order" <|
         small_vec = alter [T.Value 1 8, T.Value 1 3, T.Value -20 0, T.Value -1 1, T.Value -1 10, T.Value 4 0]
         small_expected = alter [T.Value 4 0, T.Value 1 3, T.Value 1 8, T.Value -1 10, T.Value -1 1, T.Value -20 0]
-        small_vec.sort Sort_Direction.Descending . should_equal small_expected
+        sorted_vec = small_vec.sort Sort_Direction.Descending
+        sorted_vec . should_equal small_expected
 
     group_builder.specify "should correctly propagate state through each" <|
         v = State.run Number 77 <|
