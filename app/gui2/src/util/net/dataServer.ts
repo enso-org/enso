@@ -56,8 +56,6 @@ export class DataServer extends ObservableV2<DataServerEvents> {
   initialized: Promise<Result<void, Error>>
   private initializationScheduled = false
   resolveCallbacks = new Map<string, (data: any) => void>()
-  private hasConnected = false
-  private hasReceived = false
 
   /** `websocket.binaryType` should be `ArrayBuffer`. */
   constructor(
@@ -69,7 +67,6 @@ export class DataServer extends ObservableV2<DataServerEvents> {
     abort.handleDispose(this)
 
     websocket.addEventListener('message', ({ data: rawPayload }) => {
-      this.hasReceived = true
       if (!(rawPayload instanceof ArrayBuffer)) {
         console.warn('Data Server: Data type was invalid:', rawPayload)
         // Ignore all non-binary messages. If the messages are `Blob`s instead, this is a
@@ -94,15 +91,10 @@ export class DataServer extends ObservableV2<DataServerEvents> {
         this.emit(`${payloadType}`, [payload, uuid])
       }
     })
-    websocket.addEventListener('error', (error) => {
-      console.error('Language Server Binary socket error:', error)
-      if (!this.hasReceived) {
-        console.error('Failed before receiving anything from the server')
-        this.websocket.close()
-      }
-    })
+    websocket.addEventListener('error', (error) =>
+      console.error('Language Server Binary socket error:', error),
+    )
     websocket.addEventListener('close', () => {
-      console.error('Websocket Closed.', this.hasConnected, this.hasReceived)
       this.scheduleInitializationAfterConnect()
     })
 
@@ -119,9 +111,6 @@ export class DataServer extends ObservableV2<DataServerEvents> {
     this.initializationScheduled = true
     this.initialized = new Promise((resolve) => {
       const cb = () => {
-        console.error('Websocket Opened')
-        this.hasConnected = true
-        this.hasReceived = false
         this.websocket.removeEventListener('open', cb)
         this.initializationScheduled = false
         resolve(this.initialize())
@@ -144,7 +133,6 @@ export class DataServer extends ObservableV2<DataServerEvents> {
       result.error.log('Error initializing Language Server Binary Protocol')
       return result
     } else {
-      this.hasConnected = true
       return Ok()
     }
   }
