@@ -80,6 +80,7 @@ registerAutoBlurHandler()
     v-bind="$attrs"
     class="App"
     :class="[...classSet.keys()]"
+    :projectId="props.projectId"
     :renameProject="renameProject"
   />
   <Teleport to="body">

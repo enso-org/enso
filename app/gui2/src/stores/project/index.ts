@@ -102,7 +102,8 @@ export type ProjectStore = ReturnType<typeof useProjectStore>
  */
 export const { provideFn: provideProjectStore, injectFn: useProjectStore } = createContextStore(
   'project',
-  (renameProjectBackend: (newName: string) => void) => {
+  (props: { projectId: string; renameProject: (newName: string) => void }) => {
+    const { projectId, renameProject: renameProjectBackend } = props
     const abort = useAbortScope()
 
     const observedFileName = ref<string>()
@@ -385,6 +386,7 @@ export const { provideFn: provideProjectStore, injectFn: useProjectStore } = cre
       get observedFileName() {
         return observedFileName.value
       },
+      id: projectId,
       name: readonly(projectName),
       displayName: readonly(projectDisplayName),
       isOnLocalBackend,

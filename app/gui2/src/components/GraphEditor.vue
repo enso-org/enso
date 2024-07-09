@@ -133,7 +133,7 @@ useSyncLocalStorage<GraphStoredState>({
     // Client graph state needs to be stored separately for:
     // - each project
     // - each function within the project
-    encoding.writeVarString(enc, projectStore.name)
+    encoding.writeVarString(enc, projectStore.id)
     const methodPtr = graphStore.currentMethodPointer()
     if (methodPtr != null) encodeMethodPointer(enc, methodPtr)
   },

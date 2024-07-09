@@ -2,9 +2,9 @@
 import GraphEditor from '@/components/GraphEditor.vue'
 import { provideProjectStore } from '@/stores/project'
 
-const props = defineProps<{ renameProject: (newName: string) => void }>()
+const props = defineProps<{ projectId: string; renameProject: (newName: string) => void }>()
 
-provideProjectStore(props.renameProject)
+provideProjectStore(props)
 </script>
 
 <template>
