@@ -7,18 +7,16 @@ import com.sun.jna.platform.FileUtils;
 
 final class JnaTrash implements Trash {
 
-  private static final FileUtils fileUtils = FileUtils.getInstance();
-
   @Override
   public boolean isSupported() {
-    return fileUtils.hasTrash();
+    return FileUtils.getInstance().hasTrash();
   }
 
   @Override
   public boolean moveToTrash(Path path) {
     if (Files.exists(path) && isSupported()) {
       try {
-        fileUtils.moveToTrash(path.toFile());
+        FileUtils.getInstance().moveToTrash(path.toFile());
 
         return true;
       } catch (IOException ignored) {

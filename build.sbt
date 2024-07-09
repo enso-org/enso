@@ -1107,13 +1107,14 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
         staticOnLinux = true,
         initializeAtRuntime = Seq(
           "scala.util.Random",
-          "sun.awt",
-          "sun.java2d",
-          "sun.font",
-          "java.awt",
+          "com.sun.jna",
           "zio.internal.ZScheduler$$anon$4",
           "zio.Runtime$",
           "zio.FiberRef$"
+        ),
+        additionalOptions = Seq(
+          "-H:+AddAllCharsets",
+          "-H:+IncludeAllLocales"
         )
       )
       .dependsOn(VerifyReflectionSetup.run)
