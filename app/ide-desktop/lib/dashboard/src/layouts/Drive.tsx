@@ -75,6 +75,7 @@ export interface DriveProps {
   readonly doOpenEditor: (id: dashboard.ProjectId) => void
   readonly doOpenProject: (project: dashboard.Project) => void
   readonly doCloseProject: (project: dashboard.Project) => void
+  readonly renameProject: (name: string, project: dashboard.Project) => Promise<void>
   readonly assetsManagementApiRef: React.Ref<assetsTable.AssetManagementApi>
 }
 
@@ -94,6 +95,7 @@ export default function Drive(props: DriveProps) {
     assetEvents,
     dispatchAssetEvent,
     assetsManagementApiRef,
+    renameProject,
   } = props
 
   const { isOffline } = offlineHooks.useOffline()
@@ -357,6 +359,7 @@ export default function Drive(props: DriveProps) {
                   doOpenEditor={doOpenEditor}
                   doOpenProject={doOpenProject}
                   doCloseProject={doCloseProject}
+                  renameProject={renameProject}
                 />
               )}
             </div>

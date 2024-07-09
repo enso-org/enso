@@ -58,7 +58,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
     isOpened,
   } = props
   const { backend, selectedKeys, assetEvents, dispatchAssetListEvent } = state
-  const { nodeMap, doOpenEditor } = state
+  const { nodeMap, doOpenEditor, renameProject } = state
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { user } = authProvider.useNonPartialUserSession()
   const { getText } = textProvider.useText()
@@ -91,7 +91,6 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
     isCloud && projectState.openedBy != null && projectState.openedBy !== user.email
 
   const createProjectMutation = backendHooks.useBackendMutation(backend, 'createProject')
-  const updateProjectMutation = backendHooks.useBackendMutation(backend, 'updateProject')
   const duplicateProjectMutation = backendHooks.useBackendMutation(backend, 'duplicateProject')
   const getProjectDetailsMutation = backendHooks.useBackendMutation(backend, 'getProjectDetails')
   const uploadFileMutation = backendHooks.useBackendMutation(backend, 'uploadFile')
@@ -111,11 +110,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
       const oldTitle = asset.title
       setAsset(object.merger({ title: newTitle }))
       try {
-        await updateProjectMutation.mutateAsync([
-          asset.id,
-          { ami: null, ideVersion: null, projectName: newTitle, parentId: asset.parentId },
-          asset.title,
-        ])
+        await renameProject(newTitle, { ...asset, type: backend.type })
       } catch (error) {
         toastAndLog('renameProjectError', error)
         setAsset(object.merger({ title: oldTitle }))

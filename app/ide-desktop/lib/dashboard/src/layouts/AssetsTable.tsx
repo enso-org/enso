@@ -331,6 +331,7 @@ export interface AssetsTableState {
     override?: boolean
   ) => void
   readonly doOpenEditor: (id: backendModule.ProjectId) => void
+  readonly renameProject: (name: string, project: dashboard.Project) => Promise<void>
   readonly doCopy: () => void
   readonly doCut: () => void
   readonly doPaste: (
@@ -372,6 +373,7 @@ export interface AssetsTableProps {
     options?: dashboard.OpenProjectOptions
   ) => void
   readonly doCloseProject: (project: dashboard.Project) => void
+  readonly renameProject: (name: string, project: dashboard.Project) => Promise<void>
   readonly assetManagementApiRef: React.Ref<AssetManagementApi>
 }
 
@@ -385,18 +387,10 @@ export interface AssetManagementApi {
 
 /** The table of project assets. */
 export default function AssetsTable(props: AssetsTableProps) {
-  const {
-    hidden,
-    query,
-    setQuery,
-    setCanDownload,
-    category,
-    openedProjects,
-    assetManagementApiRef,
-  } = props
-  const { setSuggestions, initialProjectName } = props
+  const { hidden, query, setQuery, setCanDownload, category, openedProjects } = props
+  const { assetManagementApiRef, setSuggestions, initialProjectName } = props
   const { assetListEvents, dispatchAssetListEvent, assetEvents, dispatchAssetEvent } = props
-  const { doOpenEditor, doOpenProject, doCloseProject } = props
+  const { doOpenEditor, doOpenProject, doCloseProject, renameProject } = props
   const { setAssetPanelProps, targetDirectoryNodeRef, setIsAssetPanelTemporarilyVisible } = props
 
   const { user } = authProvider.useNonPartialUserSession()
@@ -1955,6 +1949,7 @@ export default function AssetsTable(props: AssetsTableProps) {
       hideColumn,
       doToggleDirectoryExpansion,
       doOpenEditor,
+      renameProject,
       doCopy,
       doCut,
       doPaste,
@@ -1970,6 +1965,7 @@ export default function AssetsTable(props: AssetsTableProps) {
       query,
       doToggleDirectoryExpansion,
       doOpenEditor,
+      renameProject,
       doCopy,
       doCut,
       doPaste,

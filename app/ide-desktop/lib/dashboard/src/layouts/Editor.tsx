@@ -104,13 +104,13 @@ export default function Editor(props: EditorProps) {
 // ======================
 
 /** Props for an {@link EditorInternal}. */
-interface EditorInternalProps extends EditorProps {
+interface EditorInternalProps extends Omit<EditorProps, 'project'> {
   readonly openedProject: backendModule.Project
 }
 
 /** An internal editor. */
 function EditorInternal(props: EditorInternalProps) {
-  const { hidden, ydocUrl, appRunner: AppRunner, renameProject, project, openedProject } = props
+  const { hidden, ydocUrl, appRunner: AppRunner, renameProject, openedProject } = props
 
   const { getText } = textProvider.useText()
   const gtagEvent = gtagHooks.useGtagEvent()
@@ -147,7 +147,7 @@ function EditorInternal(props: EditorInternalProps) {
       return {
         config: {
           engine: { rpcUrl: jsonAddress, dataUrl: binaryAddress, ydocUrl: ydocAddress },
-          startup: { project: openedProject.packageName, displayedProjectName: project.title },
+          startup: { project: openedProject.packageName, displayedProjectName: openedProject.name },
           window: { topBarOffset: '0' },
         },
         projectId: openedProject.projectId,
@@ -157,7 +157,7 @@ function EditorInternal(props: EditorInternalProps) {
         renameProject,
       }
     }
-  }, [project, openedProject, ydocUrl, getText, hidden, logEvent, renameProject])
+  }, [openedProject, ydocUrl, getText, hidden, logEvent, renameProject])
 
   // Currently the GUI component needs to be fully rerendered whenever the project is changed. Once
   // this is no longer necessary, the `key` could be removed.

@@ -396,7 +396,14 @@ export default class ProjectManager {
 
   /** Rename a project. */
   async renameProject(params: RenameProjectParams): Promise<void> {
-    return this.sendRequest('project/rename', params)
+    await this.sendRequest('project/rename', params)
+    const state = this.internalProjects.get(params.projectId)
+    if (state?.state === backend.ProjectState.opened) {
+      this.internalProjects.set(params.projectId, {
+        state: state.state,
+        data: { ...state.data, projectName: params.name },
+      })
+    }
   }
 
   /** Delete a project. */

@@ -87,7 +87,7 @@ const LAUNCHED_PROJECT_SCHEMA = z.array(PROJECT_SCHEMA)
 /**
  * Launched project information.
  */
-export type Project = z.infer<typeof PROJECT_SCHEMA>
+export interface Project extends z.infer<typeof PROJECT_SCHEMA> {}
 /**
  * Launched project ID.
  */
@@ -645,6 +645,9 @@ export default function Dashboard(props: DashboardProps) {
             doOpenProject={doOpenProject}
             doOpenEditor={doOpenEditor}
             doCloseProject={doCloseProject}
+            renameProject={async (newName, project) => {
+              await renameProjectMutation.mutateAsync({ newName, project })
+            }}
           />
 
           {launchedProjects.map(project => (
