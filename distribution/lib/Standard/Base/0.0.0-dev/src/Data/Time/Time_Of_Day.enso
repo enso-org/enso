@@ -20,6 +20,7 @@ import project.Nothing.Nothing
 import project.Panic.Panic
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Text.Extensions import all
+from project.Metadata import Display, Widget
 from project.Widget_Helpers import make_time_format_selector
 
 polyglot java import java.lang.Exception as JException
@@ -92,6 +93,12 @@ type Time_Of_Day
              from Standard.Base import Time_Of_Day
 
              example_epoch = Time_Of_Day.new hour=9 minute=30
+    @hour (Widget.Numeric_Input minimum=0 maximum=23 display=Display.Always)
+    @minute (Widget.Numeric_Input minimum=0 maximum=59 display=Display.Always)
+    @second (Widget.Numeric_Input minimum=0 maximum=59 display=Display.When_Modified)
+    @millisecond (Widget.Numeric_Input minimum=0 maximum=999 display=Display.When_Modified)
+    @microsecond (Widget.Numeric_Input minimum=0 maximum=999 display=Display.When_Modified)
+    @nanosecond (Widget.Numeric_Input minimum=0 maximum=999 display=Display.When_Modified)
     new : Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Time_Of_Day ! Time_Error
     new (hour = 0) (minute = 0) (second = 0) (millisecond = 0) (microsecond = 0) (nanosecond = 0) =
         total_nanoseconds = nanosecond + microsecond * 1000 + millisecond * 1000000
