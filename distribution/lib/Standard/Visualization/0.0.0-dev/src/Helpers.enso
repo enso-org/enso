@@ -213,7 +213,7 @@ Table.to_default_visualization_data self =
     row_count = ['number_of_rows', self.row_count]
     cols = self.columns.map c->
         name = c.name
-        items = c.to_vector.take (First max_size)
+        items = c.to_vector.take (..First max_size)
         JS_Object.from_pairs [['name', name], ['data', items]]
     JS_Object.from_pairs [row_count, ['columns', cols]] . to_text
 
@@ -272,7 +272,7 @@ Column.to_default_visualization_data self =
     size = ['length', self.length]
     name = ['name', self.name]
     max_data = 100
-    data = ['data', self.to_vector.take (First max_data)]
+    data = ['data', self.to_vector.take (..First max_data)]
     JS_Object.from_pairs [size, name, data] . to_text
 
 ## PRIVATE

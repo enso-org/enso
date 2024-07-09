@@ -74,6 +74,15 @@ export interface Position {
   character: number
 }
 
+interface IdMapSpan {
+  index: { value: number }
+  size: { value: number }
+}
+
+export type IdMapTuple = [IdMapSpan, string]
+
+export type IdMapTriple = [number, number, string]
+
 export type RegisterOptions = { path: Path } | { contextId: ContextId } | {}
 
 export interface CapabilityRegistration {

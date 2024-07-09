@@ -1,4 +1,4 @@
-from Standard.Base import all hiding First, Last
+from Standard.Base import all
 import Standard.Base.Data.Vector.No_Wrap
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 from Standard.Base.Runtime import assert

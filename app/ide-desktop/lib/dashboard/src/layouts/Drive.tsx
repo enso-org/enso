@@ -231,9 +231,8 @@ export default function Drive(props: DriveProps) {
 
             {!supportLocalBackend && (
               <ariaComponents.Button
-                variant="primary"
-                size="medium"
                 data-testid="download-free-edition"
+                size="medium"
                 onPress={async () => {
                   const downloadUrl = await github.getDownloadUrl()
                   if (downloadUrl == null) {

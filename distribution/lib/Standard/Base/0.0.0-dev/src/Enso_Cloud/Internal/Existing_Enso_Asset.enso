@@ -3,7 +3,6 @@ private
 import project.Data.Json.JS_Object
 import project.Data.Map.Map
 import project.Data.Text.Text
-import project.Data.Text.Text_Sub_Range.Text_Sub_Range
 import project.Data.Time.Date_Time.Date_Time
 import project.Data.Time.Date_Time_Formatter.Date_Time_Formatter
 import project.Data.Vector.Vector
@@ -112,7 +111,7 @@ type Existing_Enso_Asset
 
     ## PRIVATE
     from_id_and_title id:Text title:Text -> Existing_Enso_Asset =
-        asset_type = Enso_Asset_Type.from (id.take (Text_Sub_Range.Before "-"))
+        asset_type = Enso_Asset_Type.from (id.take (..Before "-"))
         Existing_Enso_Asset.Value title id asset_type
 
 

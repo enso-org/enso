@@ -14,7 +14,6 @@ import * as textProvider from '#/providers/TextProvider'
 
 import UserMenu from '#/layouts/UserMenu'
 
-import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 import * as paywall from '#/components/Paywall'
 import Button from '#/components/styled/Button'
@@ -133,7 +132,7 @@ export default function UserBar(props: UserBarProps) {
                   )
                 }}
               >
-                <aria.Text slot="label">{getText('share')}</aria.Text>
+                {getText('share')}
               </ariaComponents.Button>
             )}
             <Button

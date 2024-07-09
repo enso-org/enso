@@ -9,7 +9,6 @@ import * as textProvider from '#/providers/TextProvider'
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 import Modal from '#/components/Modal'
-import ButtonRow from '#/components/styled/ButtonRow'
 
 // ==============================
 // === ConfirmDeleteUserModal ===
@@ -59,7 +58,7 @@ export default function ConfirmDeleteUserModal(props: ConfirmDeleteUserModalProp
         <aria.Text className="relative mb-2 text-balance text-center">
           {getText('confirmDeleteUserAccountWarning')}
         </aria.Text>
-        <ButtonRow position="center">
+        <ariaComponents.ButtonGroup className="self-center">
           <ariaComponents.Button
             size="custom"
             variant="custom"
@@ -68,7 +67,7 @@ export default function ConfirmDeleteUserModal(props: ConfirmDeleteUserModalProp
           >
             <aria.Text className="text">{getText('confirmDeleteUserAccountButtonLabel')}</aria.Text>
           </ariaComponents.Button>
-        </ButtonRow>
+        </ariaComponents.ButtonGroup>
       </form>
     </Modal>
   )
