@@ -113,7 +113,6 @@ export default function AssetRow(props: AssetRowProps) {
   const { backend, visibilities, assetEvents, dispatchAssetEvent, dispatchAssetListEvent } = state
   const { nodeMap, setAssetPanelProps, doToggleDirectoryExpansion, doCopy, doCut, doPaste } = state
   const { setIsAssetPanelTemporarilyVisible, scrollContainerRef, rootDirectoryId } = state
-  const { setProjectStartupInfo } = state
 
   const draggableProps = dragAndDropHooks.useDraggable()
   const { user } = authProvider.useNonPartialUserSession()
@@ -168,19 +167,6 @@ export default function AssetRow(props: AssetRowProps) {
     rawItem.item = asset
   }, [asset, rawItem])
   const setAsset = setAssetHooks.useSetAsset(asset, setItem)
-
-  React.useEffect(() => {
-    setProjectStartupInfo(info =>
-      info?.projectAsset.id === asset.id && asset.type === backendModule.AssetType.project
-        ? object.merge(info, {
-            projectAsset: asset,
-            project: info.project.then(project =>
-              asset.title === project.name ? project : object.merge(project, { name: asset.title })
-            ),
-          })
-        : info
-    )
-  }, [asset, setProjectStartupInfo])
 
   React.useEffect(() => {
     if (selected && insertionVisibility !== Visibility.visible) {
