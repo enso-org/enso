@@ -46,7 +46,7 @@ export function useEvent<T extends KnownEvent>(): [events: T[], dispatchEvent: (
 
 /** A wrapper around `useEffect` that has `event` as its sole dependency. */
 export function useEventHandler<T extends KnownEvent>(
-  events: T[],
+  events: readonly T[],
   effect: (event: T) => Promise<void> | void,
   params: UseEventHandlerOptions = {}
 ) {

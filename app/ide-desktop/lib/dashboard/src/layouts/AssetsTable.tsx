@@ -316,7 +316,7 @@ export interface AssetsTableState {
   readonly query: AssetQuery
   readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
   readonly dispatchAssetListEvent: (event: assetListEvent.AssetListEvent) => void
-  readonly assetEvents: assetEvent.AssetEvent[]
+  readonly assetEvents: readonly assetEvent.AssetEvent[]
   readonly dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
   readonly setAssetPanelProps: (props: assetPanel.AssetPanelRequiredProps | null) => void
   readonly setIsAssetPanelTemporarilyVisible: (visible: boolean) => void
@@ -350,7 +350,7 @@ export interface AssetRowState {
 
 /** Props for a {@link AssetsTable}. */
 export interface AssetsTableProps {
-  readonly openedProjects: dashboard.Project[]
+  readonly openedProjects: readonly dashboard.Project[]
   readonly hidden: boolean
   readonly query: AssetQuery
   readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>

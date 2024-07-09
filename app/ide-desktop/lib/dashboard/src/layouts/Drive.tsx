@@ -63,7 +63,7 @@ enum DriveStatus {
 
 /** Props for a {@link Drive}. */
 export interface DriveProps {
-  readonly openedProjects: dashboard.Project[]
+  readonly openedProjects: readonly dashboard.Project[]
   readonly category: Category
   readonly setCategory: (category: Category) => void
   readonly hidden: boolean

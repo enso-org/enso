@@ -237,7 +237,7 @@ export function Tab(props: InternalTabProps) {
         onPress={onPress}
       >
         <ariaComponents.Text truncate="1" className="max-w-32">
-          {children}
+          {data?.name ?? children}
         </ariaComponents.Text>
       </ariaComponents.Button>
 

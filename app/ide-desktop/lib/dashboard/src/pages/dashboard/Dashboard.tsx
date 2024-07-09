@@ -82,7 +82,7 @@ const PROJECT_SCHEMA = z.object({
   title: z.string(),
   type: z.nativeEnum(backendModule.BackendType),
 })
-const LAUNCHED_PROJECT_SCHEMA = z.array(PROJECT_SCHEMA)
+const LAUNCHED_PROJECT_SCHEMA = z.array(PROJECT_SCHEMA).readonly()
 
 /**
  * Launched project information.
@@ -237,7 +237,7 @@ export default function Dashboard(props: DashboardProps) {
     }
   )
 
-  const [launchedProjects, privateSetLaunchedProjects] = React.useState<Project[]>(
+  const [launchedProjects, privateSetLaunchedProjects] = React.useState<readonly Project[]>(
     () => localStorage.get('launchedProjects') ?? []
   )
 
@@ -253,7 +253,7 @@ export default function Dashboard(props: DashboardProps) {
   )
 
   const setLaunchedProjects = eventCallbacks.useEventCallback(
-    (fn: (currentState: Project[]) => Project[]) => {
+    (fn: (currentState: readonly Project[]) => readonly Project[]) => {
       React.startTransition(() => {
         privateSetLaunchedProjects(currentState => {
           const nextState = fn(currentState)
@@ -268,7 +268,7 @@ export default function Dashboard(props: DashboardProps) {
     setLaunchedProjects(currentState => [...currentState, project])
   })
 
-  const removeLaunchedProject = eventCallbacks.useEventCallback((projectId: Project['id']) => {
+  const removeLaunchedProject = eventCallbacks.useEventCallback((projectId: ProjectId) => {
     setLaunchedProjects(currentState => currentState.filter(({ id }) => id !== projectId))
   })
 
@@ -276,7 +276,7 @@ export default function Dashboard(props: DashboardProps) {
     setLaunchedProjects(() => [])
   })
 
-  const setPage = eventCallbacks.useEventCallback((nextPage: Project['id'] | TabType) => {
+  const setPage = eventCallbacks.useEventCallback((nextPage: ProjectId | TabType) => {
     privateSetPage(nextPage)
     localStorage.set('page', nextPage)
   })
