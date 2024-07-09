@@ -86,6 +86,8 @@ registerAutoBlurHandler()
 </template>
 
 <style scoped>
+@import '@/assets/main.css';
+
 .App {
   flex: 1;
   color: var(--color-text);

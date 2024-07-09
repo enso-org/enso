@@ -68,13 +68,9 @@
   margin: 0;
 }
 
-.icon {
+:deep(.icon) {
   width: 16px;
   height: 16px;
-}
-
-.hidden {
-  display: none;
 }
 
 /* Scrollbar style definitions for textual visualizations which need support for scrolling.
@@ -83,45 +79,45 @@
  * is set so that it resembles macOS default scrollbar.
  */
 
-.scrollable {
+:deep(.scrollable) {
   scrollbar-color: rgba(190 190 190 / 50%) transparent;
 }
 
-.scrollable::-webkit-scrollbar {
+:deep(.scrollable)::-webkit-scrollbar {
   -webkit-appearance: none;
 }
 
-.scrollable::-webkit-scrollbar-track {
+:deep(.scrollable)::-webkit-scrollbar-track {
   -webkit-box-shadow: none;
 }
 
-.scrollable::-webkit-scrollbar:vertical {
+:deep(.scrollable)::-webkit-scrollbar:vertical {
   width: 11px;
 }
 
-.scrollable::-webkit-scrollbar:horizontal {
+:deep(.scrollable)::-webkit-scrollbar:horizontal {
   height: 11px;
 }
 
-.scrollable::-webkit-scrollbar-thumb {
+:deep(.scrollable)::-webkit-scrollbar-thumb {
   border-radius: 8px;
   border: 1px solid rgba(220, 220, 220, 0.5);
   background-color: rgba(190, 190, 190, 0.5);
 }
 
-.scrollable::-webkit-scrollbar-corner {
+:deep(.scrollable)::-webkit-scrollbar-corner {
   background: rgba(0, 0, 0, 0);
 }
 
-.scrollable::-webkit-scrollbar-button {
+:deep(.scrollable)::-webkit-scrollbar-button {
   height: 8px;
   width: 8px;
 }
 
-.draggable {
+:deep(.draggable) {
   cursor: grab;
 }
 
-.clickable {
+:deep(.clickable) {
   cursor: pointer;
 }
