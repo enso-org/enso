@@ -1,4 +1,6 @@
 /** @file Entry point into the cloud dashboard. */
+import * as commonQuery from 'enso-common/src/queryClient'
+
 import '#/tailwind.css'
 
 import * as main from '#/index'
@@ -27,4 +29,5 @@ main.run({
   projectManagerUrl: null,
   ydocUrl: null,
   appRunner: testAppRunner.TestAppRunner,
+  queryClient: commonQuery.createQueryClient(),
 })
