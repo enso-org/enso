@@ -1,10 +1,15 @@
 package org.enso.desktopenvironment;
 
+import com.sun.jna.platform.FileUtils;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import com.sun.jna.platform.FileUtils;
 
+/**
+ * JNA trash implementation calling native platform-dependent APIs.
+ *
+ * <p>Native {@link FileUtils} are implemented for Windows and macOS platforms.
+ */
 final class JnaTrash implements Trash {
 
   @Override
