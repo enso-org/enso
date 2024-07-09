@@ -13,7 +13,10 @@ type Ord
     Value number
 
 type Ord_Comparator
-    compare x y = (Comparable.from x.number) . compare x.number y.number
+    compare x y =
+        cx = Comparable.from x.number
+        cy = Comparable.from y.number
+        cx.compare cy
     hash x = (Comparable.from x.number) . hash x.number
 
 Comparable.from (that:Ord) = Comparable.new that Ord_Comparator
