@@ -3,13 +3,11 @@ import project.Data.Numbers.Integer
 import project.Data.Numbers.Number
 import project.Error.Error
 import project.Errors.Common.Incomparable_Values
-import project.Errors.Common.Type_Error
 import project.Errors.Illegal_State.Illegal_State
 import project.Errors.Unimplemented.Unimplemented
 import project.Meta
 import project.Meta.Atom
 import project.Nothing.Nothing
-import project.Panic.Panic
 from project.Data.Boolean import Boolean, False, True
 from project.Internal.Ordering_Helpers import all
 
@@ -124,11 +122,11 @@ type Comparable
        ```
     new value:Any comparator:Any -> Comparable = Comparable.By value comparator
 
-    compare self that:Comparable = case Meta.is_same_object self.comparator that.comparator of
-        True -> self.comparator.compare self.value that.value
-        False -> Error.throw (Incomparable_Values.Error self that)
+    compare self that -> Ordering ! Incomparable_Values =
+        Ordering.compare self that
 
-    hash self -> Integer = self.comparator.hash self.value
+    hash self -> Integer =
+        self.comparator.hash self.value
 
 ## PRIVATE
    Default implementation of a _comparator_.
@@ -158,7 +156,8 @@ type Default_Comparator
        comparator. It is assumed that the given atom has a custom comparator, that is
        a comparator different than `Default_Comparator`.
     hash_callback : Atom -> Integer
-    hash_callback atom = (Comparable.from atom).hash atom
+    hash_callback atom =
+        Comparable.from atom . hash
 
     ## PRIVATE
        A callback allowing to compare two atoms with a custom comparator.
@@ -182,17 +181,8 @@ type Ordering
     ## A representation that the first value orders as greater than the second.
     Greater
 
-    ## PRIVATE
-       ADVANCED
-       Compares values and returns an Ordering.
-    compare : Any -> Any -> Ordering ! Incomparable_Values
-    compare x y =
-        safe_predicate ~action -> Boolean = Panic.catch Type_Error action=action (_-> False)
-
-        if safe_predicate x<y then Ordering.Less else
-            if safe_predicate x==y then Ordering.Equal else
-                if safe_predicate x>y then Ordering.Greater else
-                    Error.throw (Incomparable_Values.Error x y)
+    ## Compares values and returns an Ordering.
+    compare x y -> Ordering ! Incomparable_Values = compare_with_comparators x y
 
     ## GROUP Conversions
        ICON convert

@@ -40,7 +40,7 @@ type Bits
 type Bits_Comparator
     ## PRIVATE
     compare : Bits -> Bits -> Ordering
-    compare x y = Comparable.from x.to_integer . compare x.to_integer y.to_integer
+    compare x y = Ordering.compare x.to_integer y.to_integer
 
     ## PRIVATE
     hash : Bits -> Integer

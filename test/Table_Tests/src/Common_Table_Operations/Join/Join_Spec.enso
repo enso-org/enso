@@ -19,10 +19,9 @@ type My_Type
 
 type My_Type_Comparator
     compare my_1 my_2 =
-        comp = Comparable.from my_1.x
-        comp.compare (my_1.x + my_1.y) (my_2.x + my_2.y)
+        Ordering.compare (my_1.x + my_1.y) (my_2.x + my_2.y)
 
-    hash my_type = Comparable.from my_type.x . hash (my_type.x + my_type.y)
+    hash my_type = Comparable.from (my_type.x + my_type.y) . hash
 
 Comparable.from (that:My_Type) = Comparable.new that My_Type_Comparator
 

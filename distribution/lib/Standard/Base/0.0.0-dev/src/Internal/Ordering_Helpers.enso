@@ -3,9 +3,12 @@ private
 import project.Any.Any
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Ordering import all
+import project.Errors.Common.Type_Error
 import project.Errors.Common.Incomparable_Values
 import project.Error.Error
+import project.Panic.Panic
 import project.Meta
+from project.Function import identity
 
 ## PRIVATE
    Checks if the comparators for the given objects are both of the same type. If so,
@@ -17,6 +20,18 @@ assert_same_comparators this that ~action =
     case Meta.is_same_object comp_this.comparator comp_that.comparator of
         True -> action comp_this.comparator
         False -> Error.throw (Incomparable_Values.Error this that)
+
+compare_with_comparators this that -> Ordering ! Incomparable_Values =
+    any_result = Panic.catch Type_Error handler=identity <|
+        comp_this = Comparable.from this
+        comp_that = Comparable.from that
+
+        if Meta.is_same_object comp_this.comparator comp_that.comparator then
+            comp_this.comparator.compare comp_this.value comp_that.value
+
+    case any_result of
+        result:Ordering -> result
+        _ -> Error.throw (Incomparable_Values.Error this that)
 
 ## PRIVATE
 type Positive_Integer_Comparator
@@ -30,7 +45,7 @@ type Positive_Integer_Comparator
 ## PRIVATE
 type Ordering_Comparator
     ## PRIVATE
-    compare x y = (Comparable.from x.to_sign).compare y.to_sign
+    compare x:Ordering y:Ordering = Ordering.compare x.to_sign y.to_sign
 
     ## PRIVATE
-    hash x = x.to_sign
+    hash x:Ordering = x.to_sign

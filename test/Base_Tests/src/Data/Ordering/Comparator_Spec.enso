@@ -16,9 +16,7 @@ type Ord
 # The comparison is reverted, i.e., `x < y` gives result for `y.number < x.number`.
 type Ord_Comparator
     compare x:Ord y:Ord =
-        cx = Comparable.from x.number
-        cy = Comparable.from y.number
-        cx.compare cy
+        Ordering.compare x.number y.number
     hash x = (Comparable.from x.number) . hash
 
 Comparable.from (that:Ord) = Comparable.new that Ord_Comparator
