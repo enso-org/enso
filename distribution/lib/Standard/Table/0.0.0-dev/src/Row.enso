@@ -53,11 +53,11 @@ type Row
 
     ## GROUP Standard.Base.Conversions
        ICON convert
-       Gets the row as a Map.
-    to_map : Map
-    to_map self =
+       Gets the row as a Dictionary.
+    to_dictionary : Dictionary
+    to_dictionary self =
         pairs = self.table.column_names.map n-> [n, self.get n]
-        Map.from_vector pairs
+        Dictionary.from_vector pairs
 
     ## PRIVATE
        Converts this row into a JS_Object.

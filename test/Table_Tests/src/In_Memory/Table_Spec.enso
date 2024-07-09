@@ -905,7 +905,7 @@ add_specs suite_builder =
                             if has_nulls then builder.append Nothing
                             if has_true then builder.append True
                             if has_false then builder.append False
-                        in_vector_set = Set.from_vector in_vector
+                        in_vector_set = Hashset.from_vector in_vector
 
                         vectors = [[True, False, Nothing], [Nothing, Nothing, Nothing], [False, False, True], [True, True, True], [False, False, False], [Nothing, True, True], [False, Nothing, False]]
                         vectors.each column_vector->

@@ -85,13 +85,13 @@ add_specs suite_builder =
             Json.parse '{"constructor": "Skew", "population": true}' . into Statistic . should_equal (Statistic.Skew True)
             Json.parse '{"constructor": "NotARealOne", "population": true}' . into Statistic . should_fail_with Illegal_Argument
 
-        group_builder.specify "should be able to convert a JS_Object into a Map using into" <|
-            Json.parse '{"a": 15, "b": 20, "c": "X", "d": null}' . into Map . should_equal (Map.from_vector [["a", 15], ["b", 20], ["c", "X"], ["d", Nothing]])
-            Json.parse '{}' . into Map . should_equal Map.empty
+        group_builder.specify "should be able to convert a JS_Object into a Dictionary using into" <|
+            Json.parse '{"a": 15, "b": 20, "c": "X", "d": null}' . into Dictionary . should_equal (Dictionary.from_vector [["a", 15], ["b", 20], ["c", "X"], ["d", Nothing]])
+            Json.parse '{}' . into Dictionary . should_equal Dictionary.empty
 
             # [] parses as a vector/array which does not have the `into` method, that only works for {} objects:
             Test.expect_panic No_Such_Method <|
-                Json.parse '[]' . into Map
+                Json.parse '[]' . into Dictionary
 
         group_builder.specify "should be able to deserialize Date" <|
             '{"type": "Date", "constructor": "new", "year": 2018, "month": 7, "day": 3}'.should_parse_as (Date.new 2018 7 3)

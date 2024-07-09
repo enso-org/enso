@@ -598,9 +598,6 @@ inset 0 -36px 51px -51px #00000014`,
           '.text-subheading': {
             '@apply text-xl leading-snug py-0.5': '',
           },
-          '.settings-value': {
-            '@apply leading-cozy h-text py-px px-2': '',
-          },
         },
         {
           respectPrefix: true,
