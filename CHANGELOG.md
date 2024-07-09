@@ -1,5 +1,11 @@
 # Next Release
 
+#### Enso Language & Runtime
+
+- [Enforce conversion method return type][10468]
+
+[10468]: https://github.com/enso-org/enso/pull/10468
+
 #### Enso IDE
 
 - ["Add node" button is not obscured by output port][10433]
@@ -68,10 +74,8 @@
 #### Enso Language & Runtime
 
 - Support for [explicit --jvm option][10374] when launching `enso` CLI
-- [Enforce conversion method return type][10468]
 
 [10374]: https://github.com/enso-org/enso/pull/10374
-[10468]: https://github.com/enso-org/enso/pull/10468
 
 #### Enso Standard Library
 
