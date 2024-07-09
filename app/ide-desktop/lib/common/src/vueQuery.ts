@@ -24,16 +24,16 @@ export class QueryClient extends vueQuery.QueryClient {
         if (filtersValue.refetchType === 'none') {
             return Promise.resolve()
         } else {
-          const refetchType = filtersValue.refetchType
-          return vue.nextTick(() =>
-            queryCore.notifyManager.batch(() => {
-              const refetchFilters: queryCore.RefetchQueryFilters = {
-                ...filtersValue,
-                type: refetchType ?? filtersValue.type ?? 'active',
-              }
-              return this.refetchQueries(refetchFilters, optionsValue)
-            })
-          )
+            const refetchType = filtersValue.refetchType
+            return vue.nextTick(() =>
+                queryCore.notifyManager.batch(() => {
+                    const refetchFilters: queryCore.RefetchQueryFilters = {
+                        ...filtersValue,
+                        type: refetchType ?? filtersValue.type ?? 'active',
+                    }
+                    return this.refetchQueries(refetchFilters, optionsValue)
+                })
+            )
         }
     }
 }
