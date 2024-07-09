@@ -126,7 +126,7 @@ final class SuggestionsHandler(
       tryInitialize(init.copy(project = Some(name)))
 
     case InitializedEvent.SuggestionsRepoInitialized =>
-      logger.info("Initializing: suggestions repo initialized.")
+      logger.debug("Initializing: suggestions repo initialized.")
       tryInitialize(
         init.copy(suggestions =
           Some(InitializedEvent.SuggestionsRepoInitialized)
@@ -134,7 +134,7 @@ final class SuggestionsHandler(
       )
 
     case InitializedEvent.TruffleContextInitialized =>
-      logger.info("Initializing: Truffle context initialized.")
+      logger.debug("Initializing: Truffle context initialized.")
       PackageManager.Default
         .loadPackage(config.projectContentRoot.file)
         .fold(
@@ -150,7 +150,7 @@ final class SuggestionsHandler(
       runtimeConnector ! Api.Request(requestId, Api.GetTypeGraphRequest())
 
     case Api.Response(_, Api.GetTypeGraphResponse(g)) =>
-      logger.info("Initializing: got type graph response.")
+      logger.trace("Initializing: got type graph response.")
       tryInitialize(init.copy(typeGraph = Some(g)))
 
     case Status.Failure(ex) =>

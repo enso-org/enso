@@ -74,7 +74,7 @@ import scala.concurrent.duration._
 class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
 
   private val log = LoggerFactory.getLogger(this.getClass)
-  log.info(
+  log.debug(
     "Initializing main module of the Language Server from [{}, {}, {}]",
     Info.currentEdition,
     serverConfig,
