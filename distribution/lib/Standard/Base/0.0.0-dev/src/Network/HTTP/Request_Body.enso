@@ -1,5 +1,5 @@
 import project.Any.Any
-import project.Data.Map.Map
+import project.Data.Dictionary.Dictionary
 import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Text
 import project.Network.HTTP.Header.Header
@@ -36,7 +36,7 @@ type Request_Body
        - form_data: the form fields (text or file) to be sent
        - url_encoded: if true, use a URL-encoded form; otherwise, use a
          multi-part encoding.
-    Form_Data (form_data:(Map Text (Text | File))) (url_encoded:Boolean=False)
+    Form_Data (form_data:(Dictionary Text (Text | File))) (url_encoded:Boolean=False)
 
     ## Empty request body; used for GET
     Empty

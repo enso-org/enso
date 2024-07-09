@@ -1,7 +1,7 @@
 import project.Any.Any
+import project.Data.Hashset.Hashset
 import project.Data.Locale.Locale
 import project.Data.Numbers.Number
-import project.Data.Set.Set
 import project.Data.Text.Case_Sensitivity.Case_Sensitivity
 import project.Data.Text.Regex.Regex
 import project.Data.Text.Text
@@ -198,9 +198,7 @@ type Filter_Condition
             Like sql_pattern _ ->
                 regex = sql_like_to_regex sql_pattern
                 handle_nothing <| regex.matches
-            Is_In values _ ->
-                set = Set.from_vector values
-                set.contains
+            Is_In values _ -> Hashset.from_vector values . contains
         if self.action == Filter_Action.Keep then base else v -> (base v).not
 
     ## PRIVATE

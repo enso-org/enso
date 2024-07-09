@@ -1297,7 +1297,7 @@ add_specs suite_builder setup =
                 input_type = Meta.type_of term
                 params = Replace_Params.Value input_type case_sensitivity only_first
                 supported_replace_params = setup.test_selection.supported_replace_params
-                supported_replace_params . should_be_a Set
+                supported_replace_params . should_be_a Hashset
                 are_params_supported = supported_replace_params.contains params
                 case are_params_supported of
                     True -> column.text_replace term new_text case_sensitivity only_first . to_vector . should_equal expected
