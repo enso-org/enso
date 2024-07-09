@@ -26,6 +26,8 @@ import AssetEventType from '#/events/AssetEventType'
 import type * as assetListEvent from '#/events/assetListEvent'
 import AssetListEventType from '#/events/AssetListEventType'
 
+import type * as dashboard from '#/pages/dashboard/Dashboard'
+
 import type * as assetPanel from '#/layouts/AssetPanel'
 import type * as assetSearchBar from '#/layouts/AssetSearchBar'
 import AssetsTableContextMenu from '#/layouts/AssetsTableContextMenu'
@@ -318,7 +320,6 @@ export interface AssetsTableState {
   readonly setSortInfo: (sortInfo: sorting.SortInfo<columnUtils.SortableColumn> | null) => void
   readonly query: AssetQuery
   readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
-  readonly setProjectStartupInfo: (projectStartupInfo: backendModule.ProjectStartupInfo) => void
   readonly dispatchAssetListEvent: (event: assetListEvent.AssetListEvent) => void
   readonly assetEvents: assetEvent.AssetEvent[]
   readonly dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
@@ -334,8 +335,7 @@ export interface AssetsTableState {
     title?: string | null,
     override?: boolean
   ) => void
-  readonly doOpenEditor: () => void
-  readonly doCloseEditor: (projectId: backendModule.ProjectId) => void
+  readonly doOpenEditor: (id: backendModule.ProjectId) => void
   readonly doCopy: () => void
   readonly doCut: () => void
   readonly doPaste: (
@@ -354,13 +354,13 @@ export interface AssetRowState {
 
 /** Props for a {@link AssetsTable}. */
 export interface AssetsTableProps {
+  readonly openedProjects: dashboard.Project[]
   readonly hidden: boolean
   readonly query: AssetQuery
   readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
   readonly setSuggestions: React.Dispatch<
     React.SetStateAction<readonly assetSearchBar.Suggestion[]>
   >
-  readonly setProjectStartupInfo: (projectStartupInfo: backendModule.ProjectStartupInfo) => void
   readonly setCanDownload: (canDownload: boolean) => void
   readonly category: Category
   readonly initialProjectName: string | null
@@ -371,16 +371,37 @@ export interface AssetsTableProps {
   readonly setAssetPanelProps: (props: assetPanel.AssetPanelRequiredProps | null) => void
   readonly setIsAssetPanelTemporarilyVisible: (visible: boolean) => void
   readonly targetDirectoryNodeRef: React.MutableRefObject<assetTreeNode.AnyAssetTreeNode<backendModule.DirectoryAsset> | null>
-  readonly doOpenEditor: () => void
-  readonly doCloseEditor: (projectId: backendModule.ProjectId) => void
+  readonly doOpenEditor: (id: dashboard.ProjectId) => void
+  readonly doOpenProject: (
+    project: dashboard.Project,
+    options?: dashboard.OpenProjectOptions
+  ) => void
+  readonly doCloseProject: (project: dashboard.Project) => void
+  readonly assetManagementApiRef: React.Ref<AssetManagementApi>
+}
+
+/**
+ * The API for managing assets in the table.
+ */
+export interface AssetManagementApi {
+  readonly getAsset: (id: backendModule.AssetId) => backendModule.AnyAsset | null
+  readonly setAsset: (id: backendModule.AssetId, asset: backendModule.AnyAsset) => void
 }
 
 /** The table of project assets. */
 export default function AssetsTable(props: AssetsTableProps) {
-  const { hidden, query, setQuery, setProjectStartupInfo, setCanDownload, category } = props
+  const {
+    hidden,
+    query,
+    setQuery,
+    setCanDownload,
+    category,
+    openedProjects,
+    assetManagementApiRef,
+  } = props
   const { setSuggestions, initialProjectName } = props
   const { assetListEvents, dispatchAssetListEvent, assetEvents, dispatchAssetEvent } = props
-  const { doOpenEditor, doCloseEditor } = props
+  const { doOpenEditor, doOpenProject, doCloseProject } = props
   const { setAssetPanelProps, targetDirectoryNodeRef, setIsAssetPanelTemporarilyVisible } = props
 
   const { user } = authProvider.useNonPartialUserSession()
@@ -403,6 +424,9 @@ export default function AssetsTable(props: AssetsTableProps) {
     () => new Set()
   )
   const selectedKeysRef = React.useRef(selectedKeys)
+  const updateAssetRef = React.useRef<
+    Record<backendModule.AnyAsset['id'], (asset: backendModule.AnyAsset) => void>
+  >({})
   const [pasteData, setPasteData] = React.useState<pasteDataModule.PasteData<
     ReadonlySet<backendModule.AssetId>
   > | null>(null)
@@ -890,12 +914,11 @@ export default function AssetsTable(props: AssetsTableProps) {
         .filter(backendModule.assetIsProject)
         .find(isInitialProject)
       if (projectToLoad != null) {
-        window.setTimeout(() => {
-          dispatchAssetEvent({
-            type: AssetEventType.openProject,
-            id: projectToLoad.id,
-            runInBackground: false,
-          })
+        doOpenProject({
+          type: backendModule.BackendType.local,
+          id: projectToLoad.id,
+          title: projectToLoad.title,
+          parentId: projectToLoad.parentId,
         })
       } else if (initialProjectName != null) {
         toastAndLog('findProjectError', null, initialProjectName)
@@ -978,13 +1001,15 @@ export default function AssetsTable(props: AssetsTableProps) {
             .filter(backendModule.assetIsProject)
             .find(isInitialProject)
           if (projectToLoad != null) {
-            window.setTimeout(() => {
-              dispatchAssetEvent({
-                type: AssetEventType.openProject,
+            doOpenProject(
+              {
+                type: backendModule.BackendType.local,
                 id: projectToLoad.id,
-                runInBackground: false,
-              })
-            })
+                title: projectToLoad.title,
+                parentId: projectToLoad.parentId,
+              },
+              { openInBackground: false }
+            )
           } else {
             toastAndLog('findProjectError', null, oldNameOfProjectToImmediatelyOpen)
           }
@@ -1002,7 +1027,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         return null
       })
     },
-    [rootDirectoryId, backend.rootPath, category, dispatchAssetEvent, toastAndLog]
+    [doOpenProject, rootDirectoryId, backend.rootPath, category, dispatchAssetEvent, toastAndLog]
   )
   const overwriteNodesRef = React.useRef(overwriteNodes)
   overwriteNodesRef.current = overwriteNodes
@@ -1229,11 +1254,14 @@ export default function AssetsTable(props: AssetsTableProps) {
               case backendModule.AssetType.project: {
                 event.preventDefault()
                 event.stopPropagation()
-                dispatchAssetEvent({
-                  type: AssetEventType.openProject,
+
+                doOpenProject({
+                  type: backend.type,
                   id: item.item.id,
-                  runInBackground: false,
+                  title: item.item.title,
+                  parentId: item.item.parentId,
                 })
+
                 break
               }
               case backendModule.AssetType.datalink: {
@@ -1927,7 +1955,6 @@ export default function AssetsTable(props: AssetsTableProps) {
       setSortInfo,
       query,
       setQuery,
-      setProjectStartupInfo,
       assetEvents,
       dispatchAssetEvent,
       dispatchAssetListEvent,
@@ -1937,7 +1964,6 @@ export default function AssetsTable(props: AssetsTableProps) {
       hideColumn,
       doToggleDirectoryExpansion,
       doOpenEditor,
-      doCloseEditor,
       doCopy,
       doCut,
       doPaste,
@@ -1953,7 +1979,6 @@ export default function AssetsTable(props: AssetsTableProps) {
       query,
       doToggleDirectoryExpansion,
       doOpenEditor,
-      doCloseEditor,
       doCopy,
       doCut,
       doPaste,
@@ -1961,7 +1986,6 @@ export default function AssetsTable(props: AssetsTableProps) {
       setAssetPanelProps,
       setIsAssetPanelTemporarilyVisible,
       setQuery,
-      setProjectStartupInfo,
       dispatchAssetEvent,
       dispatchAssetListEvent,
     ]
@@ -2189,6 +2213,26 @@ export default function AssetsTable(props: AssetsTableProps) {
     [visibleItems, calculateNewKeys, setSelectedKeys, setMostRecentlySelectedIndex]
   )
 
+  const getAsset = React.useCallback(
+    (key: backendModule.AssetId) => nodeMapRef.current.get(key)?.item ?? null,
+    [nodeMapRef]
+  )
+
+  const setAsset = React.useCallback(
+    (key: backendModule.AssetId, asset: backendModule.AnyAsset) => {
+      setAssetTree(oldAssetTree =>
+        oldAssetTree.map(item => (item.key === key ? item.with({ item: asset }) : item))
+      )
+      updateAssetRef.current[asset.id]?.(asset)
+    },
+    []
+  )
+
+  React.useImperativeHandle(assetManagementApiRef, () => ({
+    getAsset,
+    setAsset,
+  }))
+
   const columns = columnUtils.getColumnList(backend.type, enabledColumns)
 
   const headerRow = (
@@ -2219,13 +2263,27 @@ export default function AssetsTable(props: AssetsTableProps) {
       const key = AssetTreeNode.getKey(item)
       const isSelected = (visuallySelectedKeysOverride ?? selectedKeys).has(key)
       const isSoleSelected = selectedKeys.size === 1 && isSelected
+
       return (
         <AssetRow
           key={key}
+          updateAssetRef={instance => {
+            if (instance != null) {
+              updateAssetRef.current[item.item.id] = instance
+            } else {
+              // Hacky way to clear the reference to the asset on unmount.
+              // eventually once we pull the assets up in the tree, we can remove this.
+              // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+              delete updateAssetRef.current[item.item.id]
+            }
+          }}
+          isOpened={openedProjects.some(({ id }) => item.item.id === id)}
           columns={columns}
           item={item}
           state={state}
           hidden={hidden || visibilities.get(item.key) === Visibility.hidden}
+          doOpenProject={doOpenProject}
+          doCloseProject={doCloseProject}
           selected={isSelected}
           setSelected={selected => {
             setSelectedKeys(set.withPresence(selectedKeysRef.current, key, selected))
@@ -2281,8 +2339,10 @@ export default function AssetsTable(props: AssetsTableProps) {
                 {nodes.map(node => (
                   <NameColumn
                     key={node.key}
+                    isOpened={false}
                     keyProp={node.key}
                     item={node.with({ depth: 0 })}
+                    backendType={backend.type}
                     state={state}
                     // Default states.
                     isSoleSelected={false}
@@ -2293,6 +2353,8 @@ export default function AssetsTable(props: AssetsTableProps) {
                     setItem={() => {}}
                     setRowState={() => {}}
                     isEditable={false}
+                    doCloseProject={doCloseProject}
+                    doOpenProject={doOpenProject}
                   />
                 ))}
               </DragModal>

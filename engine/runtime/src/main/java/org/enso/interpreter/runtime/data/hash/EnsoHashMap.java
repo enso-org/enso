@@ -35,7 +35,7 @@ import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
  */
 @ExportLibrary(TypesLibrary.class)
 @ExportLibrary(InteropLibrary.class)
-@Builtin(stdlibName = "Standard.Base.Data.Map.Map", name = "Map")
+@Builtin(stdlibName = "Standard.Base.Data.Dictionary.Dictionary", name = "Dictionary")
 public final class EnsoHashMap implements EnsoObject {
   private final EnsoHashMapBuilder mapBuilder;
   private final int generation;
@@ -150,7 +150,7 @@ public final class EnsoHashMap implements EnsoObject {
 
   @ExportMessage(library = TypesLibrary.class)
   Type getType(@Bind("$node") Node node) {
-    return EnsoContext.get(node).getBuiltins().map();
+    return EnsoContext.get(node).getBuiltins().dictionary();
   }
 
   @ExportMessage
@@ -160,7 +160,7 @@ public final class EnsoHashMap implements EnsoObject {
 
   @ExportMessage
   Type getMetaObject(@Bind("$node") Node node) {
-    return EnsoContext.get(node).getBuiltins().map();
+    return EnsoContext.get(node).getBuiltins().dictionary();
   }
 
   @ExportMessage

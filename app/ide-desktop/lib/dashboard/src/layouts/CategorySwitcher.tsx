@@ -2,7 +2,7 @@
 import * as React from 'react'
 
 import CloudIcon from 'enso-assets/cloud.svg'
-import NotCloudIcon from 'enso-assets/not_cloud.svg'
+import ComputerIcon from 'enso-assets/computer.svg'
 import PeopleIcon from 'enso-assets/people.svg'
 import PersonIcon from 'enso-assets/person.svg'
 import RecentIcon from 'enso-assets/recent.svg'
@@ -330,7 +330,7 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
               <CategorySwitcherItem
                 {...itemProps}
                 category={{ type: categoryModule.CategoryType.local }}
-                icon={NotCloudIcon}
+                icon={ComputerIcon}
                 label={getText('localCategory')}
                 buttonLabel={getText('localCategoryButtonLabel')}
                 dropZoneLabel={getText('localCategoryDropZoneLabel')}

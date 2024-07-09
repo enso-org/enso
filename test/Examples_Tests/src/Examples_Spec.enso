@@ -49,8 +49,8 @@ add_specs suite_builder = suite_builder.group "Examples" group_builder->
     group_builder.specify "should provide a basic cons list" <|
         Examples.list.length . should_equal 3
 
-    group_builder.specify "should provide a basic KV map" <|
-        Examples.map.size . should_equal 3
+    group_builder.specify "should provide a basic KV dictionary" <|
+        Examples.dictionary.size . should_equal 3
 
     group_builder.specify "should provide a type with no methods" <|
         Examples.No_Methods.should_be_a Examples.No_Methods
