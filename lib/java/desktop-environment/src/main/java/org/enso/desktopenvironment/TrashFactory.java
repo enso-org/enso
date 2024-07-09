@@ -13,7 +13,7 @@ final class TrashFactory {
         Instance =
             switch (Platform.getOperatingSystem()) {
               case Platform.OS.LINUX -> new LinuxTrash();
-              case Platform.OS.MACOS, Platform.OS.WINDOWS -> new AwtTrash();
+              case Platform.OS.MACOS, Platform.OS.WINDOWS -> new JnaTrash();
             };
       }
       return Instance;

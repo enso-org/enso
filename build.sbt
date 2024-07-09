@@ -536,6 +536,7 @@ val directoryWatcherVersion = "0.18.0"
 val flatbuffersVersion      = "24.3.25"
 val guavaVersion            = "32.0.0-jre"
 val jlineVersion            = "3.23.0"
+val jnaVersion              = "5.14.0"
 val jgitVersion             = "6.7.0.202309050840-r"
 val kindProjectorVersion    = "0.13.2"
 val mockitoScalaVersion     = "1.17.14"
@@ -2817,9 +2818,10 @@ lazy val `desktop-environment` =
     .settings(
       frgaalJavaCompilerSetting,
       libraryDependencies ++= Seq(
-        "commons-io"     % "commons-io"      % commonsIoVersion,
-        "junit"          % "junit"           % junitVersion   % Test,
-        "com.github.sbt" % "junit-interface" % junitIfVersion % Test
+        "commons-io"       % "commons-io"      % commonsIoVersion,
+        "net.java.dev.jna" % "jna-platform"    % jnaVersion,
+        "junit"            % "junit"           % junitVersion   % Test,
+        "com.github.sbt"   % "junit-interface" % junitIfVersion % Test
       )
     )
 

@@ -2,7 +2,7 @@ package org.enso.desktopenvironment;
 
 import java.nio.file.Path;
 
-public sealed interface Trash permits AwtTrash, LinuxTrash {
+public sealed interface Trash permits JnaTrash, LinuxTrash {
 
   /**
    * @return {@code true} if the trash functionality is supported on this platform.
