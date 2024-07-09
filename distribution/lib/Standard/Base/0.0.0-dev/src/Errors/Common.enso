@@ -1,4 +1,6 @@
+import project.Data.Decimal.Decimal
 import project.Data.Numbers.Integer
+import project.Data.Numbers.Float
 import project.Data.Text.Extensions
 import project.Data.Text.Text
 import project.Error.Error
@@ -81,7 +83,7 @@ type Type_Error
 
         got = if type_of_actual.is_a Text then type_of_actual else "<ERR>"
         exp = self.expected.to_display_text
-        msg = self.comment
+        msg = (self.customized_comment exp got)
             . replace "{exp}" exp
             . replace "{got}" got
         "Type error: "+msg+"."
@@ -90,6 +92,13 @@ type Type_Error
        Render the error as text.
     to_text : Text
     to_text self = self.to_display_text
+
+    ## PRIVATE
+       Add additional information for particular type mismatches.
+    customized_comment self (exp : Text) (got : Text) -> Text =
+        case (exp == 'Float' && got == 'Decimal') || (exp == 'Decimal' && got == 'Float') of
+            True -> self.comment + ": you must convert the Decimal to a Float, or the Float to a Decimal"
+            False -> self.comment
 
 @Builtin_Type
 type Compile_Error
@@ -550,21 +559,3 @@ type Out_Of_Range
     to_text self =
         extra = if self.message.is_nothing then "" else ": "+self.message.to_text
         "(Out_Of_Range (value = "+self.value.to_text+")" + extra + ")"
-
-## Indicates that an operation cannot be performed unless one or both of the arguments are converted to another type.
-type Conversion_Required
-    ## PRIVATE
-    Error value_a value_b (message : Text)
-
-    ## PRIVATE
-       Create a human-readable version of the error.
-    to_display_text : Text
-    to_display_text self =
-        tsa = Meta.get_simple_type_name self.value_a . to_text
-        tsb = Meta.get_simple_type_name self.value_b . to_text
-        "Conversion required for operation with arguments of types "+tsa+" and "+tsb+": "+self.message
-
-    ## PRIVATE
-    to_text : Text
-    to_text self =
-        "(Conversion_Required (value_a = "+self.value_a.to_text+") (value_b = "+self.value_b.to_text+"): "+self.message

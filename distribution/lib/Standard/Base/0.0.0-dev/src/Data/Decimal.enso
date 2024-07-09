@@ -1119,13 +1119,3 @@ Decimal.from (that : Text) = Decimal.from_text that
 
 ## PRIVATE
 Decimal.from (that : Integer) = Decimal.new that
-
-## PRIVATE
-Decimal.from (that : Float) =
-    is_exceptional = that.is_nan || that.is_infinite
-    if is_exceptional then Error.throw (Illegal_Argument.Error "Cannot convert "+that.to_text+" to a Decimal") else
-        handle_java_exception <| attach_loss_of_numeric_precision that <|
-            Decimal.Value <| Decimal_Utils.fromFloatExact that
-
-## PRIVATE
-Float.from (that : Decimal) = that.to_float

@@ -1,10 +1,8 @@
 from Standard.Base import all
-import Standard.Base.Errors.Common.Arithmetic_Error
-import Standard.Base.Errors.Common.Conversion_Required
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 from Standard.Base.Data.Numbers import Number_Parse_Error
-from Standard.Base.Errors.Common import Loss_Of_Numeric_Precision, Out_Of_Range
+from Standard.Base.Errors.Common import Arithmetic_Error, Loss_Of_Numeric_Precision, Out_Of_Range, Type_Error
 
 from Standard.Test import all
 
@@ -501,15 +499,23 @@ add_specs suite_builder =
             (3 / Decimal.new 4) . should_equal 0.75
 
         group_builder.specify "mixed arithmetic with Float should result in an error" <|
-            (Decimal.new 1 + 2.0) . should_fail_with Conversion_Required
-            (Decimal.new 1 - 2.0) . should_fail_with Conversion_Required
-            (Decimal.new 3 * 4.0) . should_fail_with Conversion_Required
-            (Decimal.new 3 / 4.0) . should_fail_with Conversion_Required
+            Test.expect_panic Type_Error (Decimal.new 1 + 2.0)
+            Test.expect_panic Type_Error (Decimal.new 1 - 2.0)
+            Test.expect_panic Type_Error (Decimal.new 3 * 4.0)
+            Test.expect_panic Type_Error (Decimal.new 3 / 4.0)
 
-            (1 + Decimal.new 2.0) . should_fail_with Conversion_Required
-            (1 - Decimal.new 2.0) . should_fail_with Conversion_Required
-            (3 * Decimal.new 4.0) . should_fail_with Conversion_Required
-            (3 / Decimal.new 4.0) . should_fail_with Conversion_Required
+            Test.expect_panic Type_Error (1.0 + Decimal.new 2.0)
+            Test.expect_panic Type_Error (1.0 - Decimal.new 2.0)
+            Test.expect_panic Type_Error (3.0 * Decimal.new 4.0)
+            Test.expect_panic Type_Error (3.0 / Decimal.new 4.0)
+
+            Panic.catch Type_Error (Decimal.new 1 + 2.0) caught_panic->
+                expected = "Type error: expected `that` to be Decimal, but got Float: you must convert the Decimal to a Float, or the Float to a Decimal."
+                caught_panic.payload.to_text . should_equal expected
+            ## TODO: https://github.com/enso-org/enso/issues/10498
+                Panic.catch Type_Error (2.0 + Decimal.new 1) caught_panic->
+                    expected = "Type error: expected `that` to be Decimal, but got Float: you must convert the Decimal to a Float, or the Float to a Decimal."
+                    caught_panic.payload.comment . should_equal expected
 
         group_builder.specify "Decimal mixed arithmetic should result in Decimal" <|
             (Decimal.new 1 + 2) . should_be_a Decimal
@@ -1005,7 +1011,7 @@ add_specs suite_builder =
             d.unscaled_value . should_equal 123456
             d.internal_representation . should_equal [123456, 6, 3]
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
