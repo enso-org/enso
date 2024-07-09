@@ -105,9 +105,9 @@ registerAutoBlurHandler()
   top: calc(var(--row-height) + var(--top-level-gap, 0px) + var(--top-bar-margin, 0px) + 16px);
 }
 
-*,
-*::before,
-*::after {
+:deep(*),
+:deep(*)::before,
+:deep(*)::after {
   box-sizing: border-box;
   margin: 0;
 }

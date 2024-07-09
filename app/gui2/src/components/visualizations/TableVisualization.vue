@@ -684,6 +684,9 @@ onUnmounted(() => {
   border-radius: 0 0 var(--radius-default) var(--radius-default);
 }
 
+/* Tag selectors are inefficient to compute, and should be replaced with a class selector
+ * if possible.
+ * See https://vuejs.org/api/sfc-css-features.html#scoped-style-tips */
 :deep(a) {
   color: blue;
   text-decoration: underline;
