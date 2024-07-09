@@ -7,6 +7,7 @@ import plugin from 'tailwindcss/plugin.js'
 /* eslint-disable no-restricted-syntax, @typescript-eslint/naming-convention, @typescript-eslint/no-magic-numbers */
 export default /** @satisfies {import('tailwindcss').Config} */ ({
   content: ['./src/**/*.tsx', './src/**/*.ts'],
+  important: `:is(.enso-dashboard, .enso-chat, .enso-portal-root)`,
   theme: {
     extend: {
       cursor: {
