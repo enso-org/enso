@@ -172,7 +172,7 @@ fan_out_to_rows_and_columns_fixed input_storage function at_least_one_row:Boolea
 fan_out_to_rows_and_columns_dynamic : Any -> (Any -> Vector (Vector Any)) -> Boolean -> (Any -> Text) -> (Integer -> Any) -> Problem_Builder -> Vector
 fan_out_to_rows_and_columns_dynamic input_storage function at_least_one_row column_names_for_row column_builder problem_builder =
     # Accumulates the outputs of the function.
-    column_map = Ref.new Map.empty
+    column_dict = Ref.new Dictionary.empty
     output_column_builders = Builder.new
 
     # Guess that most of the time, we'll get at least one value for each input.
@@ -180,7 +180,7 @@ fan_out_to_rows_and_columns_dynamic input_storage function at_least_one_row colu
 
     # Column Builder add function
     add_column n current_length =
-        column_map.put (column_map.get.insert n output_column_builders.length)
+        column_dict.put (column_dict.get.insert n output_column_builders.length)
         builder = column_builder num_input_rows
         builder.appendNulls current_length
         output_column_builders.append builder
@@ -200,11 +200,11 @@ fan_out_to_rows_and_columns_dynamic input_storage function at_least_one_row colu
 
         # Add any missing columns.
         row_column_names.each n->
-            if column_map.get.contains_key n . not then 
+            if column_dict.get.contains_key n . not then
                 add_column n order_mask_positions.length
 
         # Append each group of values to the builder.
-        current_columns = column_map.get
+        current_columns = column_dict.get
         output_values.each row_unchecked->
             row = uniform_length row_column_names.length row_unchecked problem_builder
             row_column_names.each_with_index i->n->
@@ -220,7 +220,7 @@ fan_out_to_rows_and_columns_dynamic input_storage function at_least_one_row colu
         repeat_each output_values.length <| order_mask_positions.append i
 
     # Build the output column
-    output_columns = column_map.get.to_vector.sort on=_.second . map pair->
+    output_columns = column_dict.get.to_vector.sort on=_.second . map pair->
         Column.from_storage pair.first (output_column_builders.at pair.second . seal)
 
     [output_columns, order_mask_positions]

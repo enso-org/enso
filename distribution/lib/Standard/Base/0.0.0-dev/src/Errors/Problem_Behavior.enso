@@ -148,11 +148,3 @@ type Problem_Behavior
         warnings = Warning.get_all result . map .value
         cleared_result = Warning.set result []
         self.attach_problems_after cleared_result warnings
-
-    ## PRIVATE
-       Returns a mapping of Problem_Behavior constructors to an integer.
-       Used for sending the number to Java, rather than sending the atom.
-    to_number self = case self of
-        Problem_Behavior.Ignore -> 0
-        Problem_Behavior.Report_Warning -> 1
-        Problem_Behavior.Report_Error -> 2

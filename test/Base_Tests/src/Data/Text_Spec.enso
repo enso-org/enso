@@ -1,4 +1,4 @@
-from Standard.Base import all hiding First, Last
+from Standard.Base import all
 import Standard.Base.Data.Text.Regex.No_Such_Group
 import Standard.Base.Data.Text.Regex.Regex_Syntax_Error
 import Standard.Base.Data.Text.Span.Span
@@ -9,11 +9,7 @@ import Standard.Base.Errors.Common.Missing_Argument
 import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
-from Standard.Base.Data.Text.Text_Sub_Range.Text_Sub_Range import all
-from Standard.Base.Data.Index_Sub_Range.Index_Sub_Range import all
-
 from Standard.Test import all
-
 
 type Auto
     Value a
@@ -374,144 +370,144 @@ add_specs suite_builder =
             text_2.to_text.should_equal text_2
 
         group_builder.specify "should allow taking or dropping every other character" <|
-            "ABCDE".take (Every 1) . should_equal "ABCDE"
-            "ABCDE".take (Every 2) . should_equal "ACE"
-            "ABCD".take (Every 2) . should_equal "AC"
-            "ABCD".take (Every 2 first=1) . should_equal "BD"
-            "ABCDE".take (Every 2 first=1) . should_equal "BD"
-            "ABCDE".take (Every 3) . should_equal "AD"
-            "ABCDEFG".take (Every 3) . should_equal "ADG"
-            "ABCDEFG".take (Every 3 first=1) . should_equal "BE"
-            "ABCDEFG".take (Every 3 first=6) . should_equal "G"
-            "ABCDEFG".take (Every 10) . should_equal "A"
+            "ABCDE".take (..Every 1) . should_equal "ABCDE"
+            "ABCDE".take (..Every 2) . should_equal "ACE"
+            "ABCD".take (..Every 2) . should_equal "AC"
+            "ABCD".take (..Every 2 first=1) . should_equal "BD"
+            "ABCDE".take (..Every 2 first=1) . should_equal "BD"
+            "ABCDE".take (..Every 3) . should_equal "AD"
+            "ABCDEFG".take (..Every 3) . should_equal "ADG"
+            "ABCDEFG".take (..Every 3 first=1) . should_equal "BE"
+            "ABCDEFG".take (..Every 3 first=6) . should_equal "G"
+            "ABCDEFG".take (..Every 10) . should_equal "A"
 
-            "ABCDE".drop (Every 1) . should_equal ""
-            "ABCDE".drop (Every 2) . should_equal "BD"
-            "ABCD".drop (Every 2) . should_equal "BD"
-            "ABCD".drop (Every 2 first=1) . should_equal "AC"
-            "ABCDE".drop (Every 2 first=1) . should_equal "ACE"
-            "ABCDE".drop (Every 3) . should_equal "BCE"
-            "ABCDEFG".drop (Every 3) . should_equal "BCEF"
-            "ABCDEFG".drop (Every 3 first=1) . should_equal "ACDFG"
-            "ABCDEFGH".drop (Every 3 first=1) . should_equal "ACDFG"
-            "ABCDEFGHI".drop (Every 3 first=1) . should_equal "ACDFGI"
+            "ABCDE".drop (..Every 1) . should_equal ""
+            "ABCDE".drop (..Every 2) . should_equal "BD"
+            "ABCD".drop (..Every 2) . should_equal "BD"
+            "ABCD".drop (..Every 2 first=1) . should_equal "AC"
+            "ABCDE".drop (..Every 2 first=1) . should_equal "ACE"
+            "ABCDE".drop (..Every 3) . should_equal "BCE"
+            "ABCDEFG".drop (..Every 3) . should_equal "BCEF"
+            "ABCDEFG".drop (..Every 3 first=1) . should_equal "ACDFG"
+            "ABCDEFGH".drop (..Every 3 first=1) . should_equal "ACDFG"
+            "ABCDEFGHI".drop (..Every 3 first=1) . should_equal "ACDFGI"
 
         group_builder.specify "should allow taking or dropping a random sample of a substring" <|
-            "AAAAA".take (Sample 3) . should_equal "AAA"
-            "AAAAA".drop (Sample 3) . should_equal "AA"
+            "AAAAA".take (..Sample 3) . should_equal "AAA"
+            "AAAAA".drop (..Sample 3) . should_equal "AA"
 
             ## These tests are very brittle and can be invalidated by a valid
                implementation modification, so they may need to be updated.
-            "ABCDEFGH".take (Sample 0) . should_equal ""
-            "ABCDEFGH".take (Sample 8 seed=42) . should_equal "FGCHABED"
-            "ABCDEFGH".take (Sample 4 seed=42) . should_equal "FGCH"
-            "ABCDEFGH".take (Sample 2 seed=42) . should_equal "FG"
-            "ABCDEFGH".take (Sample 1 seed=42) . should_equal "F"
-            "ABCDEFGH".take (Sample 100 seed=42) . should_equal "FGCHABED"
+            "ABCDEFGH".take (..Sample 0) . should_equal ""
+            "ABCDEFGH".take (..Sample 8 seed=42) . should_equal "FGCHABED"
+            "ABCDEFGH".take (..Sample 4 seed=42) . should_equal "FGCH"
+            "ABCDEFGH".take (..Sample 2 seed=42) . should_equal "FG"
+            "ABCDEFGH".take (..Sample 1 seed=42) . should_equal "F"
+            "ABCDEFGH".take (..Sample 100 seed=42) . should_equal "FGCHABED"
 
             samples_1 = 0.up_to 10000 . map seed->
-                "ABCD".take (Sample 2 seed)
+                "ABCD".take (..Sample 2 seed)
             samples_1.should_contain_the_same_elements_as ["AB", "BA", "AC", "CA", "AD", "DA", "BC", "CB", "BD", "DB", "CD", "DC"]
 
-            "ABCDEFGH".drop (Sample 0) . should_equal "ABCDEFGH"
-            "ABCDEFGH".drop (Sample 1 seed=42) . should_equal "ABCDEGH"
-            "ABCDEFGH".drop (Sample 2 seed=42) . should_equal "ABCDEH"
-            "ABCDEFGH".drop (Sample 4 seed=42) . should_equal "ABDE"
-            "ABCDEFGH".drop (Sample 8 seed=42) . should_equal ""
-            "ABCDEFGH".drop (Sample 100 seed=42) . should_equal ""
+            "ABCDEFGH".drop (..Sample 0) . should_equal "ABCDEFGH"
+            "ABCDEFGH".drop (..Sample 1 seed=42) . should_equal "ABCDEGH"
+            "ABCDEFGH".drop (..Sample 2 seed=42) . should_equal "ABCDEH"
+            "ABCDEFGH".drop (..Sample 4 seed=42) . should_equal "ABDE"
+            "ABCDEFGH".drop (..Sample 8 seed=42) . should_equal ""
+            "ABCDEFGH".drop (..Sample 100 seed=42) . should_equal ""
 
             samples_2 = 0.up_to 10000 . map seed->
-                "ABCD".drop (Sample 2 seed)
+                "ABCD".drop (..Sample 2 seed)
             samples_2.should_contain_the_same_elements_as ["AB", "AC", "AD", "BC", "CD", "BD"]
 
         group_builder.specify "should allow taking or dropping many indices or subranges (possibly overlapping)" <|
-            "123"*1000 . take (By_Index (Vector.new 3000 ix-> 2999-ix)) . should_equal "321"*1000
-            "123"*1000 . take (By_Index (Vector.new 3000 _-> 0)) . should_equal "1"*3000
-            "123456"*1000 . take (By_Index (Vector.new 100 ix-> Range.Between 6*ix+1 6*ix+3)) . should_equal "23"*100
-            "AB"*1000 . take (By_Index (Vector.new 100 ix-> Range.Between ix+1 ix+5)) . should_equal "BABAABAB"*50
+            "123"*1000 . take (..By_Index (Vector.new 3000 ix-> 2999-ix)) . should_equal "321"*1000
+            "123"*1000 . take (..By_Index (Vector.new 3000 _-> 0)) . should_equal "1"*3000
+            "123456"*1000 . take (..By_Index (Vector.new 100 ix-> Range.Between 6*ix+1 6*ix+3)) . should_equal "23"*100
+            "AB"*1000 . take (..By_Index (Vector.new 100 ix-> Range.Between ix+1 ix+5)) . should_equal "BABAABAB"*50
 
-            "123"*1000 . drop (By_Index (Vector.new 300 ix-> 2999-ix)) . should_equal "123"*900
-            "123"*1000 . drop (By_Index (Vector.new 3000 _-> 0)) . should_equal "23"+"123"*999
-            "123456"*1000 . drop (By_Index (Vector.new 1000 ix-> Range.Between 6*ix+1 6*ix+3)) . should_equal "1456"*1000
-            "ABCD"*25 . drop (By_Index (Vector.new 90 ix-> Range.Between ix+1 ix+5)) . should_equal "ACDABCD"
+            "123"*1000 . drop (..By_Index (Vector.new 300 ix-> 2999-ix)) . should_equal "123"*900
+            "123"*1000 . drop (..By_Index (Vector.new 3000 _-> 0)) . should_equal "23"+"123"*999
+            "123456"*1000 . drop (..By_Index (Vector.new 1000 ix-> Range.Between 6*ix+1 6*ix+3)) . should_equal "1456"*1000
+            "ABCD"*25 . drop (..By_Index (Vector.new 90 ix-> Range.Between ix+1 ix+5)) . should_equal "ACDABCD"
 
             "ABCD"*1000 . take (0.up_to 4000 . with_step 4) . should_equal "A"*1000
-            "ABCD"*1000 . take (Every 4) . should_equal "A"*1000
-            "ABCD"*1000 . take (By_Index [0.up_to 4000 . with_step 4, 1.up_to 4000 . with_step 4]) . should_equal ("A"*1000 + "B"*1000)
-            "ABCD"*1000 . take (By_Index [0.up_to 4000 . with_step 4, 2.up_to 4000 . with_step 4]) . should_equal ("A"*1000 + "C"*1000)
+            "ABCD"*1000 . take (..Every 4) . should_equal "A"*1000
+            "ABCD"*1000 . take (..By_Index [0.up_to 4000 . with_step 4, 1.up_to 4000 . with_step 4]) . should_equal ("A"*1000 + "B"*1000)
+            "ABCD"*1000 . take (..By_Index [0.up_to 4000 . with_step 4, 2.up_to 4000 . with_step 4]) . should_equal ("A"*1000 + "C"*1000)
 
             "ABCD"*1000 . drop (0.up_to 4000 . with_step 4) . should_equal "BCD"*1000
-            "ABCD"*1000 . drop (Every 4) . should_equal "BCD"*1000
-            "ABCD"*1000 . drop (By_Index [0.up_to 4000 . with_step 4, 1.up_to 4000 . with_step 4]) . should_equal "CD"*1000
-            "ABCD"*1000 . drop (By_Index [0.up_to 4000 . with_step 4, 2.up_to 4000 . with_step 4]) . should_equal "BD"*1000
+            "ABCD"*1000 . drop (..Every 4) . should_equal "BCD"*1000
+            "ABCD"*1000 . drop (..By_Index [0.up_to 4000 . with_step 4, 1.up_to 4000 . with_step 4]) . should_equal "CD"*1000
+            "ABCD"*1000 . drop (..By_Index [0.up_to 4000 . with_step 4, 2.up_to 4000 . with_step 4]) . should_equal "BD"*1000
 
-            "0123456789".take (By_Index [0.up_to 4, 4.up_to 6, 8.up_to 9]) . should_equal "0123458"
-            "0123456789".take (By_Index [4.up_to 6, 0.up_to 4, 0, 0]) . should_equal "45012300"
-            "0123456789".drop (By_Index [0.up_to 4, 4.up_to 6, 8.up_to 9]) . should_equal "679"
-            "0123456789".drop (By_Index [4.up_to 6, 0.up_to 4, 0, 0]) . should_equal "6789"
-            "0123456789".drop (By_Index [2.up_to 5, 0.up_to 3, 0, 0]) . should_equal "56789"
+            "0123456789".take (..By_Index [0.up_to 4, 4.up_to 6, 8.up_to 9]) . should_equal "0123458"
+            "0123456789".take (..By_Index [4.up_to 6, 0.up_to 4, 0, 0]) . should_equal "45012300"
+            "0123456789".drop (..By_Index [0.up_to 4, 4.up_to 6, 8.up_to 9]) . should_equal "679"
+            "0123456789".drop (..By_Index [4.up_to 6, 0.up_to 4, 0, 0]) . should_equal "6789"
+            "0123456789".drop (..By_Index [2.up_to 5, 0.up_to 3, 0, 0]) . should_equal "56789"
 
         group_builder.specify "should allow selecting substrings by characters" <|
             txt = kshi + facepalm + accent_1 + accent_2
-            txt.take (First 2) . should_equal (kshi + facepalm)
-            txt.drop (First 2) . should_equal (accent_1 + accent_2)
+            txt.take (..First 2) . should_equal (kshi + facepalm)
+            txt.drop (..First 2) . should_equal (accent_1 + accent_2)
             txt.take 2 . should_equal (kshi + facepalm)
             txt.drop 2 . should_equal (accent_1 + accent_2)
-            txt.take (Last 2) . should_equal (accent_1 + accent_2)
-            txt.drop (Last 2) . should_equal (kshi + facepalm)
+            txt.take (..Last 2) . should_equal (accent_1 + accent_2)
+            txt.drop (..Last 2) . should_equal (kshi + facepalm)
             txt.take (0.up_to 2) . should_equal (kshi + facepalm)
-            txt.take (By_Index (0.up_to 2)) . should_equal (kshi + facepalm)
+            txt.take (..By_Index (0.up_to 2)) . should_equal (kshi + facepalm)
             txt.drop (0.up_to 2) . should_equal (accent_1 + accent_2)
             txt.take (2.up_to 4) . should_equal (accent_1 + accent_2)
             txt.drop (2.up_to 4) . should_equal (kshi + facepalm)
-            txt.take (Every 2) . should_equal (kshi + accent_1)
-            txt.take (Every 2 first=1) . should_equal (facepalm + accent_2)
-            txt.drop (Every 2) . should_equal (facepalm + accent_2)
+            txt.take (..Every 2) . should_equal (kshi + accent_1)
+            txt.take (..Every 2 first=1) . should_equal (facepalm + accent_2)
+            txt.drop (..Every 2) . should_equal (facepalm + accent_2)
             txt.take (0.up_to 4 . with_step 2) . should_equal (kshi + accent_1)
-            txt.take (By_Index [0, 3]) . should_equal (kshi + accent_2)
-            txt.take (By_Index 0) . should_equal kshi
-            txt.take (By_Index 1) . should_equal facepalm
-            txt.take (By_Index 2) . should_equal accent_1
-            txt.take (By_Index 3) . should_equal accent_2
-            txt.drop (By_Index [0, 3]) . should_equal (facepalm + accent_1)
-            txt.drop (By_Index [0, 3, 0]) . should_equal (facepalm + accent_1)
-            txt.drop (By_Index [0, 3, 0, 2, 1]) . should_equal ""
-            txt.take (By_Index [0, 3, 0, 2, 1]) . should_equal (kshi + accent_2 + kshi + accent_1 + facepalm)
-            txt.take (By_Index [0, 0, 0.up_to 2]) . should_equal (kshi + kshi + kshi + facepalm)
-            txt.drop (By_Index [2.up_to 4, 0.up_to 2]) . should_equal ""
+            txt.take (..By_Index [0, 3]) . should_equal (kshi + accent_2)
+            txt.take (..By_Index 0) . should_equal kshi
+            txt.take (..By_Index 1) . should_equal facepalm
+            txt.take (..By_Index 2) . should_equal accent_1
+            txt.take (..By_Index 3) . should_equal accent_2
+            txt.drop (..By_Index [0, 3]) . should_equal (facepalm + accent_1)
+            txt.drop (..By_Index [0, 3, 0]) . should_equal (facepalm + accent_1)
+            txt.drop (..By_Index [0, 3, 0, 2, 1]) . should_equal ""
+            txt.take (..By_Index [0, 3, 0, 2, 1]) . should_equal (kshi + accent_2 + kshi + accent_1 + facepalm)
+            txt.take (..By_Index [0, 0, 0.up_to 2]) . should_equal (kshi + kshi + kshi + facepalm)
+            txt.drop (..By_Index [2.up_to 4, 0.up_to 2]) . should_equal ""
 
         group_builder.specify "take should work as in the examples" <|
-            "Hello World!".take First . should_equal "H"
-            "Hello World!".take (First 5) . should_equal "Hello"
-            "Hello World!".take (First 100) . should_equal "Hello World!"
-            "Hello World!".take (First 0) . should_equal ""
+            "Hello World!".take ..First . should_equal "H"
+            "Hello World!".take (..First 5) . should_equal "Hello"
+            "Hello World!".take (..First 100) . should_equal "Hello World!"
+            "Hello World!".take (..First 0) . should_equal ""
             "Hello World!".take . should_equal "H"
             "Hello World!".take 5 . should_equal "Hello"
             "Hello World!".take 100 . should_equal "Hello World!"
             "Hello World!".take 0 . should_equal ""
-            "Hello World!".take Last . should_equal "!"
-            "Hello World!".take (Last 6) . should_equal "World!"
-            "Hello World!".take (Last 0) . should_equal ""
-            "Hello World!".take (Last 100) . should_equal "Hello World!"
-            "Hello World!".take (Before " ") . should_equal "Hello"
-            "Hello World!".take (Before "z") . should_equal "Hello World!"
-            "Hello World!".take (Before_Last "o") . should_equal "Hello W"
-            "Hello World!".take (Before_Last "z") . should_equal "Hello World!"
-            "Hello World!".take (After " ") . should_equal "World!"
-            "Hello World!".take (After "z") . should_equal ""
-            "Hello World!".take (After_Last "o") . should_equal "rld!"
-            "Hello World!".take (After_Last "z") . should_equal ""
-            "Hello World!".take (While c->c!=" ") . should_equal "Hello"
-            "Hello World!".take (While c->c!="z") . should_equal "Hello World!"
+            "Hello World!".take ..Last . should_equal "!"
+            "Hello World!".take (..Last 6) . should_equal "World!"
+            "Hello World!".take (..Last 0) . should_equal ""
+            "Hello World!".take (..Last 100) . should_equal "Hello World!"
+            "Hello World!".take (..Before " ") . should_equal "Hello"
+            "Hello World!".take (..Before "z") . should_equal "Hello World!"
+            "Hello World!".take (..Before_Last "o") . should_equal "Hello W"
+            "Hello World!".take (..Before_Last "z") . should_equal "Hello World!"
+            "Hello World!".take (..After " ") . should_equal "World!"
+            "Hello World!".take (..After "z") . should_equal ""
+            "Hello World!".take (..After_Last "o") . should_equal "rld!"
+            "Hello World!".take (..After_Last "z") . should_equal ""
+            "Hello World!".take (..While c->c!=" ") . should_equal "Hello"
+            "Hello World!".take (..While c->c!="z") . should_equal "Hello World!"
             "Hello World!".take (3.up_to 5) . should_equal "lo"
             "Hello World!".take (5.up_to 12) . should_equal " World!"
             "Hello World!".take (6.up_to 12 . with_step 2) . should_equal "Wrd"
-            "Hello World!".take (Every 2 first=6) . should_equal "Wrd"
-            "Hello World!".take (Every 3) . should_equal "HlWl"
-            "Hello World!".take (By_Index 0) . should_equal "H"
-            "Hello World!".take (By_Index [1, 0, 0, 6, 0]) . should_equal "eHHWH"
-            "Hello World!".take (By_Index [0.up_to 3, 6, 6.up_to 12 . with_step 2]) . should_equal "HelWWrd"
-            "Hello World!".take (Sample 3 seed=42) . should_equal "l d"
+            "Hello World!".take (..Every 2 first=6) . should_equal "Wrd"
+            "Hello World!".take (..Every 3) . should_equal "HlWl"
+            "Hello World!".take (..By_Index 0) . should_equal "H"
+            "Hello World!".take (..By_Index [1, 0, 0, 6, 0]) . should_equal "eHHWH"
+            "Hello World!".take (..By_Index [0.up_to 3, 6, 6.up_to 12 . with_step 2]) . should_equal "HelWWrd"
+            "Hello World!".take (..Sample 3 seed=42) . should_equal "l d"
 
         group_builder.specify "take should report errors for start indices out of bounds but just go till the end if the end index is OOB" <|
             txt = "Hello World!"
@@ -521,248 +517,248 @@ add_specs suite_builder =
             txt.take (Range.Between txt.length txt.length) . should_fail_with Index_Out_Of_Bounds
             txt.take (Range.Between txt.length txt.length) . catch . should_equal (Index_Out_Of_Bounds.Error txt.length txt.length)
             txt.take (Range.Between txt.length 100) . should_fail_with Index_Out_Of_Bounds
-            txt.take (First 100) . should_equal txt
+            txt.take (..First 100) . should_equal txt
             txt.take 100 . should_equal txt
-            txt.take (Last 100) . should_equal txt
-            txt.take (By_Index 100) . should_fail_with Index_Out_Of_Bounds
-            txt.take (By_Index 13) . should_fail_with Index_Out_Of_Bounds
-            txt.take (By_Index [0, 1, 13]) . should_fail_with Index_Out_Of_Bounds
-            txt.take (By_Index [0, 14.up_to 15, 1]) . should_fail_with Index_Out_Of_Bounds
-            txt.take (By_Index [0, 1, 6.up_to 100]) . should_equal "HeWorld!"
-            txt.take (By_Index [0, 1, 6.up_to 100 . with_step 2]) . should_equal "HeWrd"
+            txt.take (..Last 100) . should_equal txt
+            txt.take (..By_Index 100) . should_fail_with Index_Out_Of_Bounds
+            txt.take (..By_Index 13) . should_fail_with Index_Out_Of_Bounds
+            txt.take (..By_Index [0, 1, 13]) . should_fail_with Index_Out_Of_Bounds
+            txt.take (..By_Index [0, 14.up_to 15, 1]) . should_fail_with Index_Out_Of_Bounds
+            txt.take (..By_Index [0, 1, 6.up_to 100]) . should_equal "HeWorld!"
+            txt.take (..By_Index [0, 1, 6.up_to 100 . with_step 2]) . should_equal "HeWrd"
             txt.take (13.up_to 12) . should_fail_with Index_Out_Of_Bounds
             "".take (0.up_to 0) . should_fail_with Index_Out_Of_Bounds
             "".take (0.up_to 0) . catch . should_equal (Index_Out_Of_Bounds.Error 0 0)
-            "".take (By_Index 0) . should_fail_with Index_Out_Of_Bounds
-            "ABC".take (By_Index 3) . should_fail_with Index_Out_Of_Bounds
+            "".take (..By_Index 0) . should_fail_with Index_Out_Of_Bounds
+            "ABC".take (..By_Index 3) . should_fail_with Index_Out_Of_Bounds
             txt.take (13.up_to 20) . should_fail_with Index_Out_Of_Bounds
             txt.take (13.up_to 20 . with_step 2) . should_fail_with Index_Out_Of_Bounds
-            txt.take (By_Index [0.up_to 2, 13.up_to 20]) . should_fail_with Index_Out_Of_Bounds
-            txt.take (By_Index [0.up_to 0, 13.up_to 10, 2.up_to 2 . with_step 2]) . should_equal ""
-            txt.take (By_Index [0.up_to 2 . with_step 2, 13.up_to 20 . with_step 2]) . should_fail_with Index_Out_Of_Bounds
-            txt.take (By_Index [0.up_to 2 . with_step 2, 13.up_to 20 . with_step 2]) . catch . should_equal (Index_Out_Of_Bounds.Error 13 12)
-            txt.take (By_Index [0.up_to 2 . with_step 2, txt.length.up_to 100 . with_step 2]) . should_fail_with Index_Out_Of_Bounds
-            "".take (By_Index 0) . should_fail_with Index_Out_Of_Bounds
+            txt.take (..By_Index [0.up_to 2, 13.up_to 20]) . should_fail_with Index_Out_Of_Bounds
+            txt.take (..By_Index [0.up_to 0, 13.up_to 10, 2.up_to 2 . with_step 2]) . should_equal ""
+            txt.take (..By_Index [0.up_to 2 . with_step 2, 13.up_to 20 . with_step 2]) . should_fail_with Index_Out_Of_Bounds
+            txt.take (..By_Index [0.up_to 2 . with_step 2, 13.up_to 20 . with_step 2]) . catch . should_equal (Index_Out_Of_Bounds.Error 13 12)
+            txt.take (..By_Index [0.up_to 2 . with_step 2, txt.length.up_to 100 . with_step 2]) . should_fail_with Index_Out_Of_Bounds
+            "".take (..By_Index 0) . should_fail_with Index_Out_Of_Bounds
 
         group_builder.specify "take should work on grapheme clusters" <|
             txt_1 = 'He\u0302llo\u0308 Wo\u0301rld!'
             txt_2 = 'He\u0302llo\u0308 Wo\u0308rld!'
-            txt_1.take (Every 2) . should_equal 'Hlo\u0308Wrd'
-            txt_1.take (First 2) . should_equal 'He\u{302}'
-            txt_1.take (First 5) . should_equal 'He\u{302}llo\u{308}'
+            txt_1.take (..Every 2) . should_equal 'Hlo\u0308Wrd'
+            txt_1.take (..First 2) . should_equal 'He\u{302}'
+            txt_1.take (..First 5) . should_equal 'He\u{302}llo\u{308}'
             txt_1.take 2 . should_equal 'He\u{302}'
             txt_1.take 5 . should_equal 'He\u{302}llo\u{308}'
-            txt_1.take (Last 6) . should_equal 'Wo\u{301}rld!'
-            txt_1.take (Last 5) . should_equal 'o\u{301}rld!'
-            txt_1.take (Before 'e\u{302}') . should_equal 'H'
-            txt_1.take (Before 'ê') . should_equal 'H'
-            txt_1.take (Before 'e') . should_equal txt_1
-            txt_2.take (Before_Last 'o\u{308}') . should_equal 'He\u{302}llo\u{308} W'
-            txt_2.take (Before_Last 'ö') . should_equal 'He\u{302}llo\u{308} W'
-            txt_2.take (Before_Last 'o') . should_equal txt_2
-            txt_1.take (After 'e\u{302}') . should_equal 'llo\u{308} Wo\u{301}rld!'
-            txt_1.take (After 'ê') . should_equal 'llo\u{308} Wo\u{301}rld!'
-            txt_1.take (After 'e\u{308}') . should_equal ''
-            txt_1.take (After 'e') . should_equal ''
-            txt_2.take (After_Last 'o\u{308}') . should_equal 'rld!'
-            txt_2.take (After_Last 'ö') . should_equal 'rld!'
-            txt_2.take (After_Last 'o') . should_equal ''
-            txt_2.take (While c->c!='e\u{302}') . should_equal 'H'
-            txt_2.take (While c->c!='ê') . should_equal 'H'
-            txt_2.take (While c->c!='e') . should_equal txt_2
+            txt_1.take (..Last 6) . should_equal 'Wo\u{301}rld!'
+            txt_1.take (..Last 5) . should_equal 'o\u{301}rld!'
+            txt_1.take (..Before 'e\u{302}') . should_equal 'H'
+            txt_1.take (..Before 'ê') . should_equal 'H'
+            txt_1.take (..Before 'e') . should_equal txt_1
+            txt_2.take (..Before_Last 'o\u{308}') . should_equal 'He\u{302}llo\u{308} W'
+            txt_2.take (..Before_Last 'ö') . should_equal 'He\u{302}llo\u{308} W'
+            txt_2.take (..Before_Last 'o') . should_equal txt_2
+            txt_1.take (..After 'e\u{302}') . should_equal 'llo\u{308} Wo\u{301}rld!'
+            txt_1.take (..After 'ê') . should_equal 'llo\u{308} Wo\u{301}rld!'
+            txt_1.take (..After 'e\u{308}') . should_equal ''
+            txt_1.take (..After 'e') . should_equal ''
+            txt_2.take (..After_Last 'o\u{308}') . should_equal 'rld!'
+            txt_2.take (..After_Last 'ö') . should_equal 'rld!'
+            txt_2.take (..After_Last 'o') . should_equal ''
+            txt_2.take (..While c->c!='e\u{302}') . should_equal 'H'
+            txt_2.take (..While c->c!='ê') . should_equal 'H'
+            txt_2.take (..While c->c!='e') . should_equal txt_2
             txt_2.take (3.up_to 5) . should_equal 'lo\u{308}'
             txt_2.take (5.up_to 12) . should_equal ' Wo\u{308}rld!'
 
         group_builder.specify "take should work on emojis" <|
-            '✨🚀🚧😍😃😎😙😉☺'.take First . should_equal '✨'
-            '✨🚀🚧😍😃😎😙😉☺'.take (First 2) . should_equal '✨🚀'
+            '✨🚀🚧😍😃😎😙😉☺'.take ..First . should_equal '✨'
+            '✨🚀🚧😍😃😎😙😉☺'.take (..First 2) . should_equal '✨🚀'
             '✨🚀🚧😍😃😎😙😉☺'.take . should_equal '✨'
             '✨🚀🚧😍😃😎😙😉☺'.take 2 . should_equal '✨🚀'
-            '✨🚀🚧😍😃😎😙😉☺'.take Last . should_equal '☺'
-            '✨🚀🚧😍😃😎😙😉☺'.take (Last 0) . should_equal ''
-            '✨🚀🚧😍😃😎😙😉☺'.take (Last 3) . should_equal '😙😉☺'
-            '✨🚀🚧😍😃😍😎😙😉☺'.take (Before '😍') . should_equal '✨🚀🚧'
-            '✨🚀🚧😍😃😍😎😙😉☺'.take (Before_Last '😍') . should_equal '✨🚀🚧😍😃'
-            '✨🚀🚧😍😃😍😎😙😉☺'.take (After '😍') . should_equal '😃😍😎😙😉☺'
-            '✨🚀🚧😍😃😍😎😙😉☺'.take (After_Last '😍') . should_equal '😎😙😉☺'
-            '✨🚀🚧😍😃😍😎😙😉☺'.take (While c->c!="😃") . should_equal '✨🚀🚧😍'
+            '✨🚀🚧😍😃😎😙😉☺'.take ..Last . should_equal '☺'
+            '✨🚀🚧😍😃😎😙😉☺'.take (..Last 0) . should_equal ''
+            '✨🚀🚧😍😃😎😙😉☺'.take (..Last 3) . should_equal '😙😉☺'
+            '✨🚀🚧😍😃😍😎😙😉☺'.take (..Before '😍') . should_equal '✨🚀🚧'
+            '✨🚀🚧😍😃😍😎😙😉☺'.take (..Before_Last '😍') . should_equal '✨🚀🚧😍😃'
+            '✨🚀🚧😍😃😍😎😙😉☺'.take (..After '😍') . should_equal '😃😍😎😙😉☺'
+            '✨🚀🚧😍😃😍😎😙😉☺'.take (..After_Last '😍') . should_equal '😎😙😉☺'
+            '✨🚀🚧😍😃😍😎😙😉☺'.take (..While c->c!="😃") . should_equal '✨🚀🚧😍'
             '✨🚀🚧😍😃😍😎😙😉☺'.take (3.up_to 6) . should_equal '😍😃😍'
 
         group_builder.specify "take should correctly handle edge cases" <|
             "ABC".take . should_equal "A"
 
-            "".take First . should_equal ""
-            "".take Last . should_equal ""
+            "".take ..First . should_equal ""
+            "".take ..Last . should_equal ""
 
-            "".take (After "a") . should_equal ""
-            "".take (After_Last "a") . should_equal ""
-            "".take (Before "a") . should_equal ""
-            "".take (Before_Last "a") . should_equal ""
+            "".take (..After "a") . should_equal ""
+            "".take (..After_Last "a") . should_equal ""
+            "".take (..Before "a") . should_equal ""
+            "".take (..Before_Last "a") . should_equal ""
 
-            "".take (After "") . should_equal ""
-            "".take (After_Last "") . should_equal ""
-            "".take (Before "") . should_equal ""
-            "".take (Before_Last "") . should_equal ""
+            "".take (..After "") . should_equal ""
+            "".take (..After_Last "") . should_equal ""
+            "".take (..Before "") . should_equal ""
+            "".take (..Before_Last "") . should_equal ""
 
-            "".take (While _->True) . should_equal ""
+            "".take (..While _->True) . should_equal ""
 
             'ABC\u{301}'.take (0.up_to 0) . should_equal ""
 
-            'ABC\u{301}'.take (After "") . should_equal 'ABC\u{301}'
-            'ABC\u{301}'.take (After_Last "") . should_equal ""
-            'ABC\u{301}'.take (Before "") . should_equal ""
-            'ABC\u{301}'.take (Before_Last "") . should_equal 'ABC\u{301}'
+            'ABC\u{301}'.take (..After "") . should_equal 'ABC\u{301}'
+            'ABC\u{301}'.take (..After_Last "") . should_equal ""
+            'ABC\u{301}'.take (..Before "") . should_equal ""
+            'ABC\u{301}'.take (..Before_Last "") . should_equal 'ABC\u{301}'
 
-            "ABC".take (By_Index -1) . should_equal "C"
-            "ABC".take (By_Index [-1, -1, -1, -3, 2]) . should_equal "CCCAC"
-            "ABC".take (By_Index []) . should_equal ""
-            "ABC".take (By_Index ((-2).up_to -1)) . should_fail_with Illegal_Argument
-            "".take (Every 2) . should_equal ""
-            "".take (Every 2 first=1) . should_equal ""
-            "ABC".take (Every 5) . should_equal "A"
-            "A".take (Every 5) . should_equal "A"
-            "ABC".take (Every 5 first=4) . should_equal ""
-            "".take (Sample 0) . should_equal ""
-            "".take (Sample 100) . should_equal ""
+            "ABC".take (..By_Index -1) . should_equal "C"
+            "ABC".take (..By_Index [-1, -1, -1, -3, 2]) . should_equal "CCCAC"
+            "ABC".take (..By_Index []) . should_equal ""
+            "ABC".take (..By_Index ((-2).up_to -1)) . should_fail_with Illegal_Argument
+            "".take (..Every 2) . should_equal ""
+            "".take (..Every 2 first=1) . should_equal ""
+            "ABC".take (..Every 5) . should_equal "A"
+            "A".take (..Every 5) . should_equal "A"
+            "ABC".take (..Every 5 first=4) . should_equal ""
+            "".take (..Sample 0) . should_equal ""
+            "".take (..Sample 100) . should_equal ""
 
         group_builder.specify "drop should work as in the examples" <|
-            "Hello World!".drop First . should_equal "ello World!"
-            "Hello World!".drop (First 5) . should_equal " World!"
-            "Hello World!".drop (First 100) . should_equal ""
-            "Hello World!".drop (First 0) . should_equal "Hello World!"
+            "Hello World!".drop ..First . should_equal "ello World!"
+            "Hello World!".drop (..First 5) . should_equal " World!"
+            "Hello World!".drop (..First 100) . should_equal ""
+            "Hello World!".drop (..First 0) . should_equal "Hello World!"
             "Hello World!".drop . should_equal "ello World!"
             "Hello World!".drop 5 . should_equal " World!"
             "Hello World!".drop 100 . should_equal ""
             "Hello World!".drop 0 . should_equal "Hello World!"
-            "Hello World!".drop Last . should_equal "Hello World"
-            "Hello World!".drop (Last 6) . should_equal "Hello "
-            "Hello World!".drop (Last 100) . should_equal ""
-            "Hello World!".drop (Before " ") . should_equal " World!"
-            "Hello World!".drop (Before "z") . should_equal ""
-            "Hello World!".drop (Before_Last "o") . should_equal "orld!"
-            "Hello World!".drop (Before_Last "z") . should_equal ""
-            "Hello World!".drop (After " ") . should_equal "Hello "
-            "Hello World!".drop (After "z") . should_equal "Hello World!"
-            "Hello World!".drop (After_Last "o") . should_equal "Hello Wo"
-            "Hello World!".drop (After_Last "z") . should_equal "Hello World!"
-            "Hello World!".drop (While c->c!=" ") . should_equal " World!"
-            "Hello World!".drop (While c->c!="z") . should_equal ""
+            "Hello World!".drop ..Last . should_equal "Hello World"
+            "Hello World!".drop (..Last 6) . should_equal "Hello "
+            "Hello World!".drop (..Last 100) . should_equal ""
+            "Hello World!".drop (..Before " ") . should_equal " World!"
+            "Hello World!".drop (..Before "z") . should_equal ""
+            "Hello World!".drop (..Before_Last "o") . should_equal "orld!"
+            "Hello World!".drop (..Before_Last "z") . should_equal ""
+            "Hello World!".drop (..After " ") . should_equal "Hello "
+            "Hello World!".drop (..After "z") . should_equal "Hello World!"
+            "Hello World!".drop (..After_Last "o") . should_equal "Hello Wo"
+            "Hello World!".drop (..After_Last "z") . should_equal "Hello World!"
+            "Hello World!".drop (..While c->c!=" ") . should_equal " World!"
+            "Hello World!".drop (..While c->c!="z") . should_equal ""
             "Hello World!".drop (3.up_to 5) . should_equal "Hel World!"
             "Hello World!".drop (5.up_to 12) . should_equal "Hello"
             "Hello World!".drop (6.up_to 12 . with_step 2) . should_equal "Hello ol!"
-            "Hello World!".drop (Every 2 first=6) . should_equal "Hello ol!"
-            "Hello World!".drop (Every 3) . should_equal "elo ord!"
-            "Hello World!".drop (By_Index 0) . should_equal "ello World!"
-            "Hello World!".drop (By_Index [1, 0, 0, 6, 0]) . should_equal "llo orld!"
-            "Hello World!".drop (By_Index [0.up_to 3, 6, 6.up_to 12 . with_step 2]) . should_equal "lo ol!"
-            "Hello World!".drop (Sample 3 seed=42) . should_equal "HeloWorl!"
+            "Hello World!".drop (..Every 2 first=6) . should_equal "Hello ol!"
+            "Hello World!".drop (..Every 3) . should_equal "elo ord!"
+            "Hello World!".drop (..By_Index 0) . should_equal "ello World!"
+            "Hello World!".drop (..By_Index [1, 0, 0, 6, 0]) . should_equal "llo orld!"
+            "Hello World!".drop (..By_Index [0.up_to 3, 6, 6.up_to 12 . with_step 2]) . should_equal "lo ol!"
+            "Hello World!".drop (..Sample 3 seed=42) . should_equal "HeloWorl!"
 
         group_builder.specify "drop should report errors for start indices out of bounds but just go till the end if the end index is OOB" <|
             txt = "Hello World!"
             txt.drop (0.up_to 14) . should_equal ""
-            txt.drop (First 100) . should_equal ""
+            txt.drop (..First 100) . should_equal ""
             txt.drop 100 . should_equal ""
-            txt.drop (Last 100) . should_equal ""
-            txt.drop (By_Index 100) . should_fail_with Index_Out_Of_Bounds
-            txt.drop (By_Index 100) . catch . should_equal (Index_Out_Of_Bounds.Error 100 12)
-            txt.drop (By_Index 13) . should_fail_with Index_Out_Of_Bounds
-            txt.drop (By_Index [0, 1, 13]) . should_fail_with Index_Out_Of_Bounds
-            txt.drop (By_Index [0, 14.up_to 15, 1]) . should_fail_with Index_Out_Of_Bounds
-            txt.drop (By_Index [0, 1, 6.up_to 100]) . should_equal "llo "
+            txt.drop (..Last 100) . should_equal ""
+            txt.drop (..By_Index 100) . should_fail_with Index_Out_Of_Bounds
+            txt.drop (..By_Index 100) . catch . should_equal (Index_Out_Of_Bounds.Error 100 12)
+            txt.drop (..By_Index 13) . should_fail_with Index_Out_Of_Bounds
+            txt.drop (..By_Index [0, 1, 13]) . should_fail_with Index_Out_Of_Bounds
+            txt.drop (..By_Index [0, 14.up_to 15, 1]) . should_fail_with Index_Out_Of_Bounds
+            txt.drop (..By_Index [0, 1, 6.up_to 100]) . should_equal "llo "
             txt.drop (13.up_to 12) . should_fail_with Index_Out_Of_Bounds
             txt.drop (14.up_to 15) . should_fail_with Index_Out_Of_Bounds
-            "".drop (By_Index 0) . should_fail_with Index_Out_Of_Bounds
+            "".drop (..By_Index 0) . should_fail_with Index_Out_Of_Bounds
             "".drop (0.up_to 0) . should_fail_with Index_Out_Of_Bounds
             "".drop (0.up_to 0) . catch . should_equal (Index_Out_Of_Bounds.Error 0 0)
             txt.drop (0.up_to 0) . should_equal txt
             txt.drop (5.up_to 100) . should_equal "Hello"
             txt.drop (5.up_to 100 . with_step 2) . should_equal "HelloWrd"
-            txt.drop (By_Index [0, 1, 0, 5.up_to 100 . with_step 2]) . should_equal "lloWrd"
+            txt.drop (..By_Index [0, 1, 0, 5.up_to 100 . with_step 2]) . should_equal "lloWrd"
 
         group_builder.specify "drop should work on grapheme clusters" <|
             txt_1 = 'He\u0302llo\u0308 Wo\u0301rld!'
             txt_2 = 'He\u0302llo\u0308 Wo\u0308rld!'
-            txt_1.drop (Every 2) . should_equal 'e\u0302l o\u0301l!'
-            txt_1.drop (First 2) . should_equal 'llo\u{308} Wo\u{301}rld!'
-            txt_1.drop (First 5) . should_equal ' Wo\u{301}rld!'
+            txt_1.drop (..Every 2) . should_equal 'e\u0302l o\u0301l!'
+            txt_1.drop (..First 2) . should_equal 'llo\u{308} Wo\u{301}rld!'
+            txt_1.drop (..First 5) . should_equal ' Wo\u{301}rld!'
             txt_1.drop 2 . should_equal 'llo\u{308} Wo\u{301}rld!'
             txt_1.drop 5 . should_equal ' Wo\u{301}rld!'
-            txt_1.drop (Last 6) . should_equal 'He\u{302}llo\u{308} '
-            txt_1.drop (Last 5) . should_equal 'He\u{302}llo\u{308} W'
-            txt_1.drop (Before 'e\u{302}') . should_equal 'e\u{302}llo\u{308} Wo\u{301}rld!'
-            txt_1.drop (Before 'ê') . should_equal 'e\u{302}llo\u{308} Wo\u{301}rld!'
-            txt_1.drop (Before 'e') . should_equal ''
-            txt_2.drop (Before_Last 'o\u{308}') . should_equal 'o\u{308}rld!'
-            txt_2.drop (Before_Last 'ö') . should_equal 'o\u{308}rld!'
-            txt_2.drop (Before_Last 'o') . should_equal ''
-            txt_1.drop (After 'e\u{302}') . should_equal 'He\u{302}'
-            txt_1.drop (After 'ê') . should_equal 'He\u{302}'
-            txt_1.drop (After 'e\u{308}') . should_equal txt_1
-            txt_1.drop (After 'e') . should_equal txt_1
-            txt_2.drop (After_Last 'o\u{308}') . should_equal 'He\u{302}llo\u{308} Wo\u{308}'
-            txt_2.drop (After_Last 'ö') . should_equal 'He\u{302}llo\u{308} Wo\u{308}'
-            txt_2.drop (After_Last 'o') . should_equal txt_2
-            txt_2.drop (While c->c!='e\u{302}') . should_equal 'e\u{302}llo\u{308} Wo\u{308}rld!'
-            txt_2.drop (While c->c!='ê') . should_equal 'e\u{302}llo\u{308} Wo\u{308}rld!'
-            txt_2.drop (While c->c!='e') . should_equal ''
+            txt_1.drop (..Last 6) . should_equal 'He\u{302}llo\u{308} '
+            txt_1.drop (..Last 5) . should_equal 'He\u{302}llo\u{308} W'
+            txt_1.drop (..Before 'e\u{302}') . should_equal 'e\u{302}llo\u{308} Wo\u{301}rld!'
+            txt_1.drop (..Before 'ê') . should_equal 'e\u{302}llo\u{308} Wo\u{301}rld!'
+            txt_1.drop (..Before 'e') . should_equal ''
+            txt_2.drop (..Before_Last 'o\u{308}') . should_equal 'o\u{308}rld!'
+            txt_2.drop (..Before_Last 'ö') . should_equal 'o\u{308}rld!'
+            txt_2.drop (..Before_Last 'o') . should_equal ''
+            txt_1.drop (..After 'e\u{302}') . should_equal 'He\u{302}'
+            txt_1.drop (..After 'ê') . should_equal 'He\u{302}'
+            txt_1.drop (..After 'e\u{308}') . should_equal txt_1
+            txt_1.drop (..After 'e') . should_equal txt_1
+            txt_2.drop (..After_Last 'o\u{308}') . should_equal 'He\u{302}llo\u{308} Wo\u{308}'
+            txt_2.drop (..After_Last 'ö') . should_equal 'He\u{302}llo\u{308} Wo\u{308}'
+            txt_2.drop (..After_Last 'o') . should_equal txt_2
+            txt_2.drop (..While c->c!='e\u{302}') . should_equal 'e\u{302}llo\u{308} Wo\u{308}rld!'
+            txt_2.drop (..While c->c!='ê') . should_equal 'e\u{302}llo\u{308} Wo\u{308}rld!'
+            txt_2.drop (..While c->c!='e') . should_equal ''
             txt_2.drop (3.up_to 5) . should_equal 'He\u{302}l Wo\u{308}rld!'
             txt_2.drop (5.up_to 12) . should_equal 'He\u{302}llo\u{308}'
 
         group_builder.specify "drop should work on emojis" <|
-            '✨🚀🚧😍😃😎😙😉☺'.drop First . should_equal '🚀🚧😍😃😎😙😉☺'
-            '✨🚀🚧😍😃😎😙😉☺'.drop (First 2) . should_equal '🚧😍😃😎😙😉☺'
+            '✨🚀🚧😍😃😎😙😉☺'.drop ..First . should_equal '🚀🚧😍😃😎😙😉☺'
+            '✨🚀🚧😍😃😎😙😉☺'.drop (..First 2) . should_equal '🚧😍😃😎😙😉☺'
             '✨🚀🚧😍😃😎😙😉☺'.drop . should_equal '🚀🚧😍😃😎😙😉☺'
             '✨🚀🚧😍😃😎😙😉☺'.drop 2 . should_equal '🚧😍😃😎😙😉☺'
-            '✨🚀🚧😍😃😎😙😉☺'.drop Last . should_equal '✨🚀🚧😍😃😎😙😉'
-            '✨🚀🚧😍😃😎😙😉☺'.drop (Last 3) . should_equal '✨🚀🚧😍😃😎'
-            '✨🚀🚧😍😃😍😎😙😉☺'.drop (Before '😍') . should_equal '😍😃😍😎😙😉☺'
-            '✨🚀🚧😍😃😍😎😙😉☺'.drop (Before_Last '😍') . should_equal '😍😎😙😉☺'
-            '✨🚀🚧😍😃😍😎😙😉☺'.drop (After '😍') . should_equal '✨🚀🚧😍'
-            '✨🚀🚧😍😃😍😎😙😉☺'.drop (After_Last '😍') . should_equal '✨🚀🚧😍😃😍'
-            '✨🚀🚧😍😃😍😎😙😉☺'.drop (While c->c!="😃") . should_equal '😃😍😎😙😉☺'
+            '✨🚀🚧😍😃😎😙😉☺'.drop ..Last . should_equal '✨🚀🚧😍😃😎😙😉'
+            '✨🚀🚧😍😃😎😙😉☺'.drop (..Last 3) . should_equal '✨🚀🚧😍😃😎'
+            '✨🚀🚧😍😃😍😎😙😉☺'.drop (..Before '😍') . should_equal '😍😃😍😎😙😉☺'
+            '✨🚀🚧😍😃😍😎😙😉☺'.drop (..Before_Last '😍') . should_equal '😍😎😙😉☺'
+            '✨🚀🚧😍😃😍😎😙😉☺'.drop (..After '😍') . should_equal '✨🚀🚧😍'
+            '✨🚀🚧😍😃😍😎😙😉☺'.drop (..After_Last '😍') . should_equal '✨🚀🚧😍😃😍'
+            '✨🚀🚧😍😃😍😎😙😉☺'.drop (..While c->c!="😃") . should_equal '😃😍😎😙😉☺'
             '✨🚀🚧😍😃😍😎😙😉☺'.drop (3.up_to 6) . should_equal '✨🚀🚧😎😙😉☺'
 
         group_builder.specify "drop should correctly handle edge cases" <|
             "ABC".drop . should_equal "BC"
 
-            "".drop First . should_equal ""
-            "".drop Last . should_equal ""
+            "".drop ..First . should_equal ""
+            "".drop ..Last . should_equal ""
 
-            "".drop (After "a") . should_equal ""
-            "".drop (After_Last "a") . should_equal ""
-            "".drop (Before "a") . should_equal ""
-            "".drop (Before_Last "a") . should_equal ""
+            "".drop (..After "a") . should_equal ""
+            "".drop (..After_Last "a") . should_equal ""
+            "".drop (..Before "a") . should_equal ""
+            "".drop (..Before_Last "a") . should_equal ""
 
-            "".drop (After "") . should_equal ""
-            "".drop (After_Last "") . should_equal ""
-            "".drop (Before "") . should_equal ""
-            "".drop (Before_Last "") . should_equal ""
+            "".drop (..After "") . should_equal ""
+            "".drop (..After_Last "") . should_equal ""
+            "".drop (..Before "") . should_equal ""
+            "".drop (..Before_Last "") . should_equal ""
 
-            "".drop (While _->True) . should_equal ""
+            "".drop (..While _->True) . should_equal ""
 
             "".drop (0.up_to 0) . should_fail_with Index_Out_Of_Bounds
             'ABC\u{301}'.drop (0.up_to 0) . should_equal 'ABC\u{301}'
 
-            'ABC\u{301}'.drop (After "") . should_equal ''
-            'ABC\u{301}'.drop (After_Last "") . should_equal 'ABC\u{301}'
-            'ABC\u{301}'.drop (Before "") . should_equal 'ABC\u{301}'
-            'ABC\u{301}'.drop (Before_Last "") . should_equal ''
+            'ABC\u{301}'.drop (..After "") . should_equal ''
+            'ABC\u{301}'.drop (..After_Last "") . should_equal 'ABC\u{301}'
+            'ABC\u{301}'.drop (..Before "") . should_equal 'ABC\u{301}'
+            'ABC\u{301}'.drop (..Before_Last "") . should_equal ''
 
-            "ABC".drop (By_Index -1) . should_equal "AB"
-            "ABC".drop (By_Index [-1, -1, -1, -3, 2]) . should_equal "B"
-            "ABC".drop (By_Index []) . should_equal "ABC"
-            "".drop (Every 2) . should_equal ""
-            "".drop (Every 2 first=1) . should_equal ""
-            "ABC".drop (Every 5) . should_equal "BC"
-            "ABC".drop (Every 5 first=4) . should_equal "ABC"
-            "".drop (Sample 0) . should_equal ""
-            "".drop (Sample 100) . should_equal ""
+            "ABC".drop (..By_Index -1) . should_equal "AB"
+            "ABC".drop (..By_Index [-1, -1, -1, -3, 2]) . should_equal "B"
+            "ABC".drop (..By_Index []) . should_equal "ABC"
+            "".drop (..Every 2) . should_equal ""
+            "".drop (..Every 2 first=1) . should_equal ""
+            "ABC".drop (..Every 5) . should_equal "BC"
+            "ABC".drop (..Every 5 first=4) . should_equal "ABC"
+            "".drop (..Sample 0) . should_equal ""
+            "".drop (..Sample 100) . should_equal ""
 
         group_builder.specify "take and drop should gracefully handle missing constructor arguments" <|
             Test.expect_panic Type_Error <| "".take "FOO"
             Test.expect_panic Type_Error <| "".drop "FOO"
 
-            r1 = "".take (Index_Sub_Range.While)
+            r1 = "".take (..While)
             r1.should_fail_with Missing_Argument
             r1.catch.to_display_text . should_contain "Provide a value for the argument `predicate`."
 

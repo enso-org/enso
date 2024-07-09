@@ -689,7 +689,7 @@ type Vector a
          Errors that are thrown when executing the supplied function are wrapped
          in `Map_Error`, which contains the index at which the error occurred.
 
-         In the `Problem_Behavior.Report_Warning` case, only `MAX_MAP_WARNINGS`
+         In the `Report_Warning` case, only `MAX_MAP_WARNINGS`
          warnings are attached to result values. After that, the warnings are
          dropped, but a count of the additional warnings is attached in an
          `Additional_Warnings` warning.
@@ -728,7 +728,7 @@ type Vector a
          Errors that are thrown when executing the supplied function are wrapped
          in `Map_Error`, which contains the index at which the error occurred.
 
-         In the `Problem_Behavior.Report_Warning` case, only `MAX_MAP_WARNINGS`
+         In the `Report_Warning` case, only `MAX_MAP_WARNINGS`
          warnings are attached to result values. After that, the warnings are
          dropped, but a count of the additional warnings is attached in an
          `Additional_Warnings` warning.
@@ -782,7 +782,7 @@ type Vector a
          Errors that are thrown when executing the supplied function are wrapped
          in `Map_Error`, which contains the index at which the error occurred.
 
-         In the `Problem_Behavior.Report_Warning` case, only `MAX_MAP_WARNINGS`
+         In the `Report_Warning` case, only `MAX_MAP_WARNINGS`
          warnings are attached to result values. After that, the warnings are
          dropped, but a count of the additional warnings is attached in an
          `Additional_Warnings` warning.
@@ -974,7 +974,7 @@ type Vector a
          If a `Range`, the selection is specified by two indices, from and to.
     @range Index_Sub_Range.default_widget
     take : (Index_Sub_Range | Range | Integer) -> Vector Any
-    take self range=(Index_Sub_Range.First 1) =
+    take self range:(Index_Sub_Range | Range | Integer)=..First =
         Array_Like_Helpers.take self range
 
     ## ALIAS skip, remove
@@ -989,7 +989,7 @@ type Vector a
          If a `Range`, the selection is specified by two indices, from and to.
     @range Index_Sub_Range.default_widget
     drop : (Index_Sub_Range | Range | Integer) -> Vector Any
-    drop self range=(Index_Sub_Range.First 1) =
+    drop self range:(Index_Sub_Range | Range | Integer)=..First =
         Array_Like_Helpers.drop self range
 
     ## ALIAS combine, join by row position, merge
@@ -1024,7 +1024,7 @@ type Vector a
          Errors that are thrown when executing the supplied function are wrapped
          in `Map_Error`, which contains the index at which the error occurred.
 
-         In the `Problem_Behavior.Report_Warning` case, only `MAX_MAP_WARNINGS`
+         In the `Report_Warning` case, only `MAX_MAP_WARNINGS`
          warnings are attached to result values. After that, the warnings are
          dropped, but a count of the additional warnings is attached in an
          `Additional_Warnings` warning.
@@ -1121,8 +1121,8 @@ type Vector a
          elements, returning an an `Ordering` if the two elements are comparable
          or `Nothing` if they are not. If set to `Nothing` (the default argument),
          `Ordering.compare _ _` method will be used.
-       - on_incomparable: A `Problem_Behavior` specifying what should happen if
-         two incomparable values are encountered.
+       - on_problems: A `Problem_Behavior` specifying what should happen if two
+         incomparable values are encountered.
 
        By default, elements are sorted in ascending order.
 
@@ -1157,10 +1157,9 @@ type Vector a
          for the default comparator, which is always the first group.
 
          Additionally, an `Incomparable_Values` dataflow error will be returned
-         if the `on_incomparable` parameter is set to `Problem_Behavior.Report_Error`,
-         or a warning attached if the `on_incomparable` parameter is set to
-         `Problem_Behavior.Report_Warning` in case of encountering incomparable
-         values.
+         if the `on_problems` parameter is set to `Report_Error`, or a warning
+         attached if the `on_problems` parameter is set to `Report_Warning` in
+         case of encountering incomparable values.
 
          It takes equal advantage of ascending and descending runs in the array,
          making it much simpler to merge two or more sorted arrays: simply
@@ -1183,8 +1182,8 @@ type Vector a
 
              [My_Type.Value 'hello', 1].sort == [1, My_Type.Value 'hello']
     sort : Sort_Direction -> (Any -> Any)|Nothing -> (Any -> Any -> (Ordering|Nothing))|Nothing -> Problem_Behavior -> Vector Any ! Incomparable_Values
-    sort self (order = Sort_Direction.Ascending) on=Nothing by=Nothing on_incomparable:Problem_Behavior=..Ignore =
-        Array_Like_Helpers.sort self order on by on_incomparable
+    sort self (order = Sort_Direction.Ascending) on=Nothing by=Nothing on_problems:Problem_Behavior=..Ignore =
+        Array_Like_Helpers.sort self order on by on_problems
 
     ## ALIAS deduplicate, unique
        GROUP Selections

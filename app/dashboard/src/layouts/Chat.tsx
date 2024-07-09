@@ -413,16 +413,14 @@ export default function Chat(props: ChatProps) {
     },
   })
   const gtagEvent = gtagHooks.useGtagEvent()
-  const gtagEventRef = React.useRef(gtagEvent)
-  gtagEventRef.current = gtagEvent
 
   React.useEffect(() => {
     if (!isOpen) {
       return
     } else {
-      return gtagHooks.gtagOpenCloseCallback(gtagEventRef, 'cloud_open_chat', 'cloud_close_chat')
+      return gtagHooks.gtagOpenCloseCallback(gtagEvent, 'cloud_open_chat', 'cloud_close_chat')
     }
-  }, [isOpen])
+  }, [isOpen, gtagEvent])
 
   /** This is SAFE, because this component is only rendered when `accessToken` is present.
    * See `dashboard.tsx` for its sole usage. */

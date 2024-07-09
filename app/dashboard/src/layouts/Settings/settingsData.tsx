@@ -3,9 +3,9 @@ import * as React from 'react'
 
 import isEmail from 'validator/lib/isEmail'
 
+import ComputerIcon from '#/assets/computer.svg'
 import KeyboardShortcutsIcon from '#/assets/keyboard_shortcuts.svg'
 import LogIcon from '#/assets/log.svg'
-import NotCloudIcon from '#/assets/not_cloud.svg'
 import PeopleSettingsIcon from '#/assets/people_settings.svg'
 import PeopleIcon from '#/assets/people.svg'
 import SettingsIcon from '#/assets/settings.svg'
@@ -230,7 +230,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
   [SettingsTabType.local]: {
     nameId: 'localSettingsTab',
     settingsTab: SettingsTabType.organization,
-    icon: NotCloudIcon,
+    icon: ComputerIcon,
     visible: context => context.localBackend != null,
     sections: [
       {

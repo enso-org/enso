@@ -10,6 +10,17 @@
     "./src/buildUtils": "./src/buildUtils.js",
     "./src/detect": "./src/detect.ts",
     "./src/gtag": "./src/gtag.ts",
-    "./src/load": "./src/load.ts"
+    "./src/load": "./src/load.ts",
+    "./src/queryClient": "./src/queryClient.ts"
+  },
+  "peerDependencies": {
+    "@tanstack/query-core": "5.45.0",
+    "@tanstack/vue-query": ">= 5.45.0 < 5.46.0"
+  },
+  "dependencies": {
+    "idb-keyval": "^6.2.1",
+    "@tanstack/query-persist-client-core": "^5.45.0",
+    "@tanstack/vue-query": ">= 5.45.0 < 5.46.0",
+    "vue": "^3.4.19"
   }
 }

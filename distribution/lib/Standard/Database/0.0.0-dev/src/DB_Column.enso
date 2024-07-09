@@ -1208,7 +1208,7 @@ type DB_Column
        - range: The selection of rows from the table to return.
     @range Index_Sub_Range.default_widget
     take : (Index_Sub_Range | Range | Integer) -> DB_Column
-    take self range=(First 1) = self.to_table.take range . at 0
+    take self range:(Index_Sub_Range | Range | Integer)=..First = self.to_table.take range . at 0
 
     ## ALIAS remove, skip
        GROUP Standard.Base.Selections
@@ -1220,7 +1220,7 @@ type DB_Column
        - range: The selection of rows from the table to remove.
     @range Index_Sub_Range.default_widget
     drop : (Index_Sub_Range | Range | Integer) -> DB_Column
-    drop self range=(First 1) = self.to_table.drop range . at 0
+    drop self range:(Index_Sub_Range | Range | Integer)=..First = self.to_table.drop range . at 0
 
     ## GROUP Standard.Base.Text
        ICON preparation

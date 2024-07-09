@@ -97,6 +97,7 @@ export default function UserRow(props: UserRowProps) {
           <ariaComponents.Button
             size="custom"
             variant="custom"
+            className="absolute right-full mr-4 size-4 -translate-y-1/2"
             onPress={event => {
               const rect = event.target.getBoundingClientRect()
               const position = { pageX: rect.left, pageY: rect.top }
@@ -110,7 +111,6 @@ export default function UserRow(props: UserRowProps) {
                 />
               )
             }}
-            className="absolute right-full mr-4 size-4 -translate-y-1/2"
           >
             <img src={Cross2} className="size-4" />
           </ariaComponents.Button>

@@ -58,8 +58,8 @@ print_table header rows indices_count format_term =
     divider = content_lengths . map (l -> "-".repeat l+2) . join '+'
     row_lines = rows.map r->
         x = r.zip content_lengths pad
-        ixes = x.take (First indices_count) . map (ansi_bold format_term)
-        with_bold_ix = ixes + x.drop (First indices_count)
+        ixes = x.take (..First indices_count) . map (ansi_bold format_term)
+        with_bold_ix = ixes + x.drop (..First indices_count)
         y = with_bold_ix . join ' | '
         " " + y
     ([" " + header_line, divider] + row_lines).join '\n'

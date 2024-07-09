@@ -392,8 +392,8 @@ type Any
              from Standard.Examples import Example_Error_Type
 
              example_map_error =
-                my_map = Map.empty
-                error = my_map.at "x"
+                my_dictionary = Dictionary.empty
+                error = my_dictionary.at "x"
                 error.map_error (_ -> Example_Error_Type "x is missing")
     map_error : (Error -> Error) -> Any
     map_error self ~f =

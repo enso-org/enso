@@ -19,7 +19,6 @@ import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 import KeyboardShortcut from '#/components/dashboard/KeyboardShortcut'
 import FocusArea from '#/components/styled/FocusArea'
-import HorizontalMenuBar from '#/components/styled/HorizontalMenuBar'
 import SvgMask from '#/components/SvgMask'
 
 import CaptureKeyboardShortcutModal from '#/modals/CaptureKeyboardShortcutModal'
@@ -54,7 +53,7 @@ export default function KeyboardShortcutsSettingsSection() {
 
   return (
     <>
-      <HorizontalMenuBar>
+      <ariaComponents.ButtonGroup>
         <ariaComponents.Button
           variant="bar"
           onPress={() => {
@@ -75,7 +74,7 @@ export default function KeyboardShortcutsSettingsSection() {
         >
           {getText('resetAll')}
         </ariaComponents.Button>
-      </HorizontalMenuBar>
+      </ariaComponents.ButtonGroup>
       <FocusArea direction="vertical" focusChildClass="focus-default" focusDefaultClass="">
         {innerProps => (
           <div
