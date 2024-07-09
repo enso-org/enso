@@ -69,7 +69,11 @@ export default function Editor(props: EditorProps) {
   }
 
   return (
-    <div className={twMerge.twJoin('contents', hidden && 'hidden')}>
+    <div
+      className={twMerge.twJoin('contents', hidden && 'hidden')}
+      data-testid="gui-editor-root"
+      data-testvalue={project.id}
+    >
       {(() => {
         if (projectQuery.isError) {
           return (
@@ -84,7 +88,11 @@ export default function Editor(props: EditorProps) {
         ) {
           return <suspense.Loader loaderProps={{ minHeight: 'full' }} />
         } else {
-          return <EditorInternal {...props} openedProject={projectQuery.data} />
+          return (
+            <suspense.Suspense>
+              <EditorInternal {...props} openedProject={projectQuery.data} />{' '}
+            </suspense.Suspense>
+          )
         }
       })()}
     </div>

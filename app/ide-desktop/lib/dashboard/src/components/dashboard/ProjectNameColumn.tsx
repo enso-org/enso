@@ -57,7 +57,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
     backendType,
     isOpened,
   } = props
-  const { backend, selectedKeys, assetEvents, dispatchAssetEvent, dispatchAssetListEvent } = state
+  const { backend, selectedKeys, assetEvents, dispatchAssetListEvent } = state
   const { nodeMap, doOpenEditor } = state
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { user } = authProvider.useNonPartialUserSession()
@@ -188,10 +188,11 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                   }),
                 })
               )
-              dispatchAssetEvent({
-                type: AssetEventType.openProject,
+              doOpenProject({
                 id: createdProject.projectId,
-                runInBackground: false,
+                type: backendType,
+                parentId: asset.parentId,
+                title: asset.title,
               })
             } catch (error) {
               dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
@@ -311,10 +312,11 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
         ) {
           setIsEditing(true)
         } else if (eventModule.isDoubleClick(event)) {
-          dispatchAssetEvent({
-            type: AssetEventType.openProject,
+          doOpenProject({
             id: asset.id,
-            runInBackground: false,
+            type: backendType,
+            parentId: asset.parentId,
+            title: asset.title,
           })
         }
       }}

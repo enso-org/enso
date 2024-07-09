@@ -36,13 +36,9 @@ test.test('create project', ({ page }) =>
     async ({ pageActions }) =>
       await pageActions
         .newEmptyProject()
-        .do(async thePage => {
-          await test.expect(actions.locateEditor(thePage)).toBeVisible()
-        })
+        .do(thePage => test.expect(actions.locateEditor(thePage)).toBeAttached())
         .goToPage.drive()
-        .driveTable.withRows(async rows => {
-          await test.expect(rows).toHaveCount(1)
-        })
+        .driveTable.withRows(rows => test.expect(rows).toHaveCount(1))
   )
 )
 

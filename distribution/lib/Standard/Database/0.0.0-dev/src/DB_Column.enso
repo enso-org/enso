@@ -1732,7 +1732,7 @@ type DB_Column
     @type (Widget_Helpers.parse_type_selector include_auto=False)
     @format (make_format_chooser include_number=False)
     parse : Value_Type | Auto -> Text | Data_Formatter -> Problem_Behavior -> DB_Column
-    parse self type:(Value_Type | Auto) format:(Text | Data_Formatter)="" on_problems=Report_Warning =
+    parse self type:(Value_Type | Auto) format:(Text | Data_Formatter)="" on_problems:Problem_Behavior=..Report_Warning =
         if type == Auto then Error.throw (Unsupported_Database_Operation.Error "The `Auto` parse type is not supported by the Database backend. Either pick a specific type or materialize the table to memory using `.read`.") else
             if format != "" then Error.throw (Unsupported_Database_Operation.Error "Custom formatting is not supported by the Database backend. Please set the format to `''` to use the default settings, or if custom formatting is needed, materialize the table to memory using `.read` first.") else
                 Value_Type.expect_text self <|
@@ -1800,7 +1800,7 @@ type DB_Column
          types. Due to this, a Mixed column containing values `[2, "3"]` will
          actually be converted into `[2, Nothing]` when casting to Integer type.
     cast : Value_Type -> Problem_Behavior -> DB_Column ! Illegal_Argument | Inexact_Type_Coercion | Conversion_Failure
-    cast self value_type on_problems=Problem_Behavior.Report_Warning =
+    cast self value_type on_problems:Problem_Behavior=..Report_Warning =
         check_cast_compatibility self.value_type value_type <|
             self.internal_do_cast value_type on_problems
 
@@ -1819,7 +1819,7 @@ type DB_Column
     ## PRIVATE
        Shares the core CAST logic between `cast` and `parse`.
     internal_do_cast : Value_Type -> Problem_Behavior -> DB_Column
-    internal_do_cast self value_type on_problems =
+    internal_do_cast self value_type on_problems:Problem_Behavior =
         dialect = self.connection.dialect
         type_mapping = dialect.get_type_mapping
         target_sql_type = type_mapping.value_type_to_sql value_type on_problems

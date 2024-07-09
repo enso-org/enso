@@ -101,7 +101,6 @@ from project.Data.Range.Extensions export all
 from project.Data.Statistics.Extensions export all
 from project.Data.Text.Extensions export all
 from project.Data.Text.Regex export regex
-from project.Errors.Problem_Behavior.Problem_Behavior export all
 from project.Function export all
 from project.Meta.Enso_Project export enso_project
 from project.Network.Extensions export all

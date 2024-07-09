@@ -4,6 +4,7 @@ import * as React from 'react'
 
 import * as reactQuery from '@tanstack/react-query'
 import invariant from 'tiny-invariant'
+import * as validator from 'validator'
 import * as z from 'zod'
 
 import DriveIcon from 'enso-assets/drive.svg'
@@ -44,6 +45,8 @@ import ManagePermissionsModal from '#/modals/ManagePermissionsModal'
 
 import * as backendModule from '#/services/Backend'
 import type LocalBackend from '#/services/LocalBackend'
+import * as localBackendModule from '#/services/LocalBackend'
+import * as projectManager from '#/services/ProjectManager'
 import type RemoteBackend from '#/services/RemoteBackend'
 
 import * as array from '#/utilities/array'
@@ -117,6 +120,18 @@ export interface DashboardProps {
 /**
  *
  */
+export interface OpenProjectOptions {
+  /**
+   * Whether to open the project in the background.
+   * Set to `false` to navigate to the project tab.
+   * @default true
+   */
+  readonly openInBackground?: boolean
+}
+
+/**
+ *
+ */
 export interface CreateOpenedProjectQueryOptions {
   readonly type: backendModule.BackendType
   readonly assetId: backendModule.Asset<backendModule.AssetType.project>['id']
@@ -132,29 +147,47 @@ export interface CreateOpenedProjectQueryOptions {
 export function createGetProjectDetailsQuery(options: CreateOpenedProjectQueryOptions) {
   const { assetId, parentId, title, remoteBackend, localBackend, type } = options
 
+  const backend = type === backendModule.BackendType.remote ? remoteBackend : localBackend
+  const isLocal = type === backendModule.BackendType.local
+
   return reactQuery.queryOptions({
     queryKey: createGetProjectDetailsQuery.getQueryKey(assetId),
     meta: { persist: false },
     refetchInterval: ({ state }) => {
+      /**
+       * Default interval for refetching project status when the project is opened.
+       */
+      const openedIntervalMS = 30_000
+      /**
+       * Interval when we open a cloud project.
+       * Since opening a cloud project is a long operation, we want to check the status less often.
+       */
+      const cloudOpeningIntervalMS = 5_000
+      /**
+       * Interval when we open a local project or when we want to sync the project status as soon as possible.
+       */
+      const activeSyncIntervalMS = 100
       const states = [backendModule.ProjectState.opened, backendModule.ProjectState.closed]
 
-      if (state.data == null) {
-        // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-        return 30_000
+      if (isLocal) {
+        if (state.data?.state.type === backendModule.ProjectState.opened) {
+          return openedIntervalMS
+        } else {
+          return activeSyncIntervalMS
+        }
+      } else if (state.data == null) {
+        return activeSyncIntervalMS
       } else if (states.includes(state.data.state.type)) {
-        // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-        return 30_000
+        return openedIntervalMS
       } else {
-        // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-        return 5_000
+        return cloudOpeningIntervalMS
       }
     },
     refetchIntervalInBackground: true,
     refetchOnWindowFocus: true,
     refetchOnMount: true,
-    queryFn: async () => {
-      const backend = type === backendModule.BackendType.remote ? remoteBackend : localBackend
-
+    gcTime: 0,
+    queryFn: () => {
       invariant(backend != null, 'Backend is null')
 
       return backend.getProjectDetails(assetId, parentId, title)
@@ -169,7 +202,7 @@ createGetProjectDetailsQuery.createPassiveListener = (id: Project['id']) =>
 
 /** The component that contains the entire UI. */
 export default function Dashboard(props: DashboardProps) {
-  const { appRunner, initialProjectName, ydocUrl } = props
+  const { appRunner, initialProjectName: initialProjectNameRaw, ydocUrl } = props
 
   const { user, ...session } = authProvider.useFullUserSession()
 
@@ -184,7 +217,14 @@ export default function Dashboard(props: DashboardProps) {
 
   const assetManagementApiRef = React.useRef<assetTable.AssetManagementApi | null>(null)
 
-  const defaultCategory = Category.cloud
+  const initialLocalProjectId =
+    initialProjectNameRaw != null && validator.isUUID(initialProjectNameRaw)
+      ? localBackendModule.newProjectId(projectManager.UUID(initialProjectNameRaw))
+      : null
+  const initialProjectName = initialLocalProjectId ?? initialProjectNameRaw
+
+  const defaultCategory = initialLocalProjectId == null ? Category.cloud : Category.local
+
   const [category, setCategory] = searchParamsState.useSearchParamsState(
     'driveCategory',
     () => defaultCategory,
@@ -214,10 +254,12 @@ export default function Dashboard(props: DashboardProps) {
 
   const setLaunchedProjects = eventCallbacks.useEventCallback(
     (fn: (currentState: Project[]) => Project[]) => {
-      privateSetLaunchedProjects(currentState => {
-        const nextState = fn(currentState)
-        localStorage.set('launchedProjects', nextState)
-        return nextState
+      React.startTransition(() => {
+        privateSetLaunchedProjects(currentState => {
+          const nextState = fn(currentState)
+          localStorage.set('launchedProjects', nextState)
+          return nextState
+        })
       })
     }
   )
@@ -256,6 +298,7 @@ export default function Dashboard(props: DashboardProps) {
   }
 
   const openProjectMutation = reactQuery.useMutation({
+    mutationKey: ['openProject'],
     networkMode: 'always',
     mutationFn: ({ title, id, type, parentId }: Project) => {
       const backend = type === backendModule.BackendType.remote ? remoteBackend : localBackend
@@ -278,14 +321,13 @@ export default function Dashboard(props: DashboardProps) {
         title
       )
     },
-    onMutate: async ({ id }) => {
+    onMutate: ({ id }) => {
       const queryKey = createGetProjectDetailsQuery.getQueryKey(id)
 
-      client.setQueryData(queryKey, {
-        state: { type: backendModule.ProjectState.openInProgress },
-      })
+      client.setQueryData(queryKey, { state: { type: backendModule.ProjectState.openInProgress } })
 
-      await client.cancelQueries({ queryKey: queryKey })
+      void client.cancelQueries({ queryKey })
+      void client.invalidateQueries({ queryKey })
     },
     onError: async (_, { id }) => {
       await client.invalidateQueries({ queryKey: createGetProjectDetailsQuery.getQueryKey(id) })
@@ -293,16 +335,25 @@ export default function Dashboard(props: DashboardProps) {
   })
 
   const closeProjectMutation = reactQuery.useMutation({
+    mutationKey: ['closeProject'],
     mutationFn: async ({ type, id, title }: Project) => {
       const backend = type === backendModule.BackendType.remote ? remoteBackend : localBackend
 
-      if (backend == null) {
-        throw new Error('Backend is null')
-      } else {
-        return backend.closeProject(id, title)
-      }
+      invariant(backend != null, 'Backend is null')
+
+      return backend.closeProject(id, title)
+    },
+    onMutate: ({ id }) => {
+      const queryKey = createGetProjectDetailsQuery.getQueryKey(id)
+
+      client.setQueryData(queryKey, { state: { type: backendModule.ProjectState.closing } })
+
+      void client.cancelQueries({ queryKey })
+      void client.invalidateQueries({ queryKey })
     },
     onSuccess: (_, { id }) =>
+      client.resetQueries({ queryKey: createGetProjectDetailsQuery.getQueryKey(id) }),
+    onError: (_, { id }) =>
       client.invalidateQueries({ queryKey: createGetProjectDetailsQuery.getQueryKey(id) }),
   })
 
@@ -325,6 +376,30 @@ export default function Dashboard(props: DashboardProps) {
       client.invalidateQueries({
         queryKey: createGetProjectDetailsQuery.getQueryKey(project.id),
       }),
+  })
+
+  eventHooks.useEventHandler(assetEvents, event => {
+    switch (event.type) {
+      case AssetEventType.openProject: {
+        const { title, parentId, backendType, id, runInBackground } = event
+        doOpenProject(
+          { title, parentId, type: backendType, id },
+          { openInBackground: runInBackground }
+        )
+        break
+      }
+      case AssetEventType.closeProject: {
+        const { title, parentId, backendType, id } = event
+        doCloseProject({ title, parentId, type: backendType, id })
+        break
+      }
+      default: {
+        // Ignored. Any missing project-related events should be handled by `ProjectNameColumn`.
+        // `delete`, `deleteForever`, `restore`, `download`, and `downloadSelected`
+        // are handled by`AssetRow`.
+        break
+      }
+    }
   })
 
   React.useEffect(
@@ -365,34 +440,86 @@ export default function Dashboard(props: DashboardProps) {
     }
   }, [inputBindings])
 
+  const doOpenProject = eventCallbacks.useEventCallback(
+    (project: Project, options: OpenProjectOptions = {}) => {
+      const { openInBackground = true } = options
+
+      // since we don't support multitabs, we need to close opened project first
+      if (launchedProjects.length > 0) {
+        doCloseAllProjects()
+      }
+
+      const isOpeningTheSameProject =
+        client.getMutationCache().find({
+          mutationKey: ['openProject'],
+          predicate: mutation => mutation.options.scope?.id === project.id,
+        })?.state.status === 'pending'
+
+      if (!isOpeningTheSameProject) {
+        openProjectMutation.mutate(project)
+
+        const openingProjectMutation = client.getMutationCache().find({
+          mutationKey: ['openProject'],
+          // this is unsafe, but we can't do anything about it
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          predicate: mutation => mutation.state.variables?.id === project.id,
+        })
+
+        openingProjectMutation?.setOptions({
+          ...openingProjectMutation.options,
+          scope: { id: project.id },
+        })
+
+        addLaunchedProject(project)
+
+        if (!openInBackground) {
+          doOpenEditor(project.id)
+        }
+      }
+    }
+  )
+
+  const doOpenEditor = eventCallbacks.useEventCallback((projectId: Project['id']) => {
+    React.startTransition(() => {
+      setPage(projectId)
+    })
+  })
+
+  const doCloseProject = eventCallbacks.useEventCallback((project: Project) => {
+    client
+      .getMutationCache()
+      .findAll({
+        mutationKey: ['openProject'],
+        predicate: mutation => mutation.options.scope?.id === project.id,
+      })
+      .forEach(mutation => {
+        mutation.setOptions({ ...mutation.options, retry: false })
+        mutation.destroy()
+      })
+
+    closeProjectMutation.mutate(project)
+
+    client
+      .getMutationCache()
+      .findAll({
+        mutationKey: ['closeProject'],
+        // this is unsafe, but we can't do anything about it
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        predicate: mutation => mutation.state.variables?.id === project.id,
+      })
+      .forEach(mutation => {
+        mutation.setOptions({ ...mutation.options, scope: { id: project.id } })
+      })
+
+    removeLaunchedProject(project.id)
+
+    setPage(TabType.drive)
+  })
+
   const doCloseAllProjects = eventCallbacks.useEventCallback(() => {
     for (const launchedProject of launchedProjects) {
       doCloseProject(launchedProject)
     }
-  })
-
-  const doOpenProject = eventCallbacks.useEventCallback((project: Project) => {
-    // since we don't support multitabs, we need to close opened project first
-    if (launchedProjects.length > 0) {
-      doCloseAllProjects()
-    }
-
-    openProjectMutation.mutate(project)
-    addLaunchedProject(project)
-  })
-
-  const doOpenEditor = eventCallbacks.useEventCallback((projectId: Project['id']) => {
-    setPage(projectId)
-  })
-
-  const doCloseProject = eventCallbacks.useEventCallback((project: Project) => {
-    const { id } = project
-
-    closeProjectMutation.mutate(project)
-    dispatchAssetEvent({ type: AssetEventType.closeProject, id })
-    removeLaunchedProject(project.id)
-
-    setPage(TabType.drive)
   })
 
   const doRemoveSelf = eventCallbacks.useEventCallback((project: Project) => {

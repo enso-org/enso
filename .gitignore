@@ -133,7 +133,6 @@ build-cache/
 ##################
 
 *.build_artifacts.txt
-/runner
 
 ######################
 ## Enso-Development ##

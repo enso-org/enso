@@ -28,4 +28,6 @@ export const TAILWIND_MERGE_CONFIG = {
 // This is a function, even though it does not contain function syntax.
 // eslint-disable-next-line no-restricted-syntax
 export const twMerge = tailwindMerge.extendTailwindMerge(TAILWIND_MERGE_CONFIG)
+// reexporting twJoin from the original library for convenience.
+// eslint-disable-next-line no-restricted-syntax
 export const twJoin = tailwindMerge.twJoin

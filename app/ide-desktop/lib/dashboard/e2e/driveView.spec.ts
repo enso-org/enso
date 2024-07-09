@@ -13,7 +13,7 @@ test.test('drive view', ({ page }) =>
         .driveTable.expectPlaceholderRow()
         .newEmptyProject()
         .do(async () => {
-          await test.expect(actions.locateEditor(page)).toBeVisible()
+          await test.expect(actions.locateEditor(page)).toBeAttached()
         })
         .goToPage.drive()
         .driveTable.withRows(async rows => {
@@ -24,7 +24,7 @@ test.test('drive view', ({ page }) =>
         })
         .newEmptyProject()
         .do(async () => {
-          await test.expect(actions.locateEditor(page)).toBeVisible()
+          await test.expect(actions.locateEditor(page)).toBeAttached()
         })
         .goToPage.drive()
         .driveTable.withRows(async rows => {

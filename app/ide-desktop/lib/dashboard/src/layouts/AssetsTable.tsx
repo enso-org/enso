@@ -367,7 +367,10 @@ export interface AssetsTableProps {
   readonly setIsAssetPanelTemporarilyVisible: (visible: boolean) => void
   readonly targetDirectoryNodeRef: React.MutableRefObject<assetTreeNode.AnyAssetTreeNode<backendModule.DirectoryAsset> | null>
   readonly doOpenEditor: (id: dashboard.ProjectId) => void
-  readonly doOpenProject: (project: dashboard.Project) => void
+  readonly doOpenProject: (
+    project: dashboard.Project,
+    options?: dashboard.OpenProjectOptions
+  ) => void
   readonly doCloseProject: (project: dashboard.Project) => void
   readonly assetManagementApiRef: React.Ref<AssetManagementApi>
 }
@@ -903,12 +906,11 @@ export default function AssetsTable(props: AssetsTableProps) {
         .filter(backendModule.assetIsProject)
         .find(isInitialProject)
       if (projectToLoad != null) {
-        window.setTimeout(() => {
-          dispatchAssetEvent({
-            type: AssetEventType.openProject,
-            id: projectToLoad.id,
-            runInBackground: false,
-          })
+        doOpenProject({
+          type: backendModule.BackendType.local,
+          id: projectToLoad.id,
+          title: projectToLoad.title,
+          parentId: projectToLoad.parentId,
         })
       } else if (initialProjectName != null) {
         toastAndLog('findProjectError', null, initialProjectName)
@@ -990,13 +992,15 @@ export default function AssetsTable(props: AssetsTableProps) {
             .filter(backendModule.assetIsProject)
             .find(isInitialProject)
           if (projectToLoad != null) {
-            window.setTimeout(() => {
-              dispatchAssetEvent({
-                type: AssetEventType.openProject,
+            doOpenProject(
+              {
+                type: backendModule.BackendType.local,
                 id: projectToLoad.id,
-                runInBackground: false,
-              })
-            })
+                title: projectToLoad.title,
+                parentId: projectToLoad.parentId,
+              },
+              { openInBackground: false }
+            )
           } else {
             toastAndLog('findProjectError', null, oldNameOfProjectToImmediatelyOpen)
           }
@@ -1014,7 +1018,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         return null
       })
     },
-    [rootDirectoryId, backend.rootPath, dispatchAssetEvent, toastAndLog]
+    [doOpenProject, rootDirectoryId, backend.rootPath, dispatchAssetEvent, toastAndLog]
   )
   const overwriteNodesRef = React.useRef(overwriteNodes)
   overwriteNodesRef.current = overwriteNodes
@@ -1241,11 +1245,14 @@ export default function AssetsTable(props: AssetsTableProps) {
               case backendModule.AssetType.project: {
                 event.preventDefault()
                 event.stopPropagation()
-                dispatchAssetEvent({
-                  type: AssetEventType.openProject,
+
+                doOpenProject({
+                  type: backend.type,
                   id: item.item.id,
-                  runInBackground: false,
+                  title: item.item.title,
+                  parentId: item.item.parentId,
                 })
+
                 break
               }
               case backendModule.AssetType.datalink: {
