@@ -3,6 +3,7 @@
 import * as React from 'react'
 
 import * as reactQuery from '@tanstack/react-query'
+import invariant from 'tiny-invariant'
 
 import * as eventCallback from '#/hooks/eventCallbackHooks'
 
@@ -106,6 +107,8 @@ export default function SessionProvider(props: SessionProviderProps) {
   reactQuery.useQuery({
     queryKey: ['refreshUserSession'],
     queryFn: () => refreshUserSessionMutation.mutateAsync(),
+    meta: { persist: false },
+    networkMode: 'online',
     initialData: null,
     initialDataUpdatedAt: Date.now(),
     refetchOnWindowFocus: true,
@@ -172,9 +175,23 @@ export default function SessionProvider(props: SessionProviderProps) {
  * @throws {Error} when used outside a {@link SessionProvider}. */
 export function useSession() {
   const context = React.useContext(SessionContext)
-  if (context == null) {
-    throw new Error('`useSession` can only be used inside an `<SessionProvider />`.')
-  } else {
-    return context
-  }
+
+  invariant(context != null, '`useSession` can only be used inside an `<SessionProvider />`.')
+
+  return context
+}
+
+/**
+ * React context hook returning the session of the authenticated user.
+ * @throws {invariant} if the session is not defined.
+ */
+export function useSessionStrict() {
+  const { session, sessionQueryKey } = useSession()
+
+  invariant(session != null, 'Session must be defined')
+
+  return {
+    session,
+    sessionQueryKey,
+  } as const
 }

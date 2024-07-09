@@ -48,13 +48,9 @@ export enum UserSessionType {
 }
 
 /** Properties common to all {@link UserSession}s. */
-interface BaseUserSession {
+interface BaseUserSession extends cognitoModule.UserSession {
   /** A discriminator for TypeScript to be able to disambiguate between `UserSession` variants. */
   readonly type: UserSessionType
-  /** User's JSON Web Token (JWT), used for authenticating and authorizing requests to the API. */
-  readonly accessToken: string
-  /** User's email address. */
-  readonly email: string
 }
 
 /** Object containing the currently signed-in user's session data, if the user has not yet set their
@@ -519,7 +515,7 @@ export default function AuthProvider(props: AuthProviderProps) {
 
   React.useEffect(() => {
     gtag.gtag('set', { platform: detect.platform(), architecture: detect.architecture() })
-    return gtagHooks.gtagOpenCloseCallback({ current: gtagEvent }, 'open_app', 'close_app')
+    return gtagHooks.gtagOpenCloseCallback(gtagEvent, 'open_app', 'close_app')
   }, [gtagEvent])
 
   React.useEffect(() => {
