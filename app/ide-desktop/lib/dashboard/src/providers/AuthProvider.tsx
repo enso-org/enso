@@ -422,8 +422,6 @@ export default function AuthProvider(props: AuthProviderProps) {
       const nextUserData: backendModule.User = Object.assign(currentUserData, user)
 
       queryClient.setQueryData(usersMeQuery.queryKey, { ...currentUser, user: nextUserData })
-
-      void queryClient.invalidateQueries({ queryKey: usersMeQuery.queryKey })
     }
   }
 
@@ -599,11 +597,10 @@ export default function AuthProvider(props: AuthProviderProps) {
  * @throws {Error} when used outside a {@link AuthProvider}. */
 export function useAuth() {
   const context = React.useContext(AuthContext)
-  if (context == null) {
-    throw new Error('`useAuth` can only be used inside an `<AuthProvider />`.')
-  } else {
-    return context
-  }
+
+  invariant(context != null, 'useAuth must be used within an AuthProvider.')
+
+  return context
 }
 
 // =======================
@@ -735,9 +732,9 @@ export function useUserSession() {
  * A React context hook returning the user session for a user that is fully logged in.
  */
 export function useFullUserSession(): FullUserSession {
-  const session = router.useOutletContext<UserSession>()
+  const { session } = useAuth()
 
-  invariant(session.type === UserSessionType.full, 'Expected a full user session.')
+  invariant(session?.type === UserSessionType.full, 'Expected a full user session.')
 
   return session
 }

@@ -41,7 +41,7 @@ export function usePaywall(props: UsePaywallProps) {
       const paywallLevel = getPaywallLevel()
 
       if (isForceEnabled == null) {
-        return paywallLevel >= level
+        return level > paywallLevel
       } else {
         return !isForceEnabled
       }
