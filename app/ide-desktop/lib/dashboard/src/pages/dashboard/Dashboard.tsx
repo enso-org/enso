@@ -9,7 +9,6 @@ import EditorIcon from 'enso-assets/network.svg'
 import SettingsIcon from 'enso-assets/settings.svg'
 import * as detect from 'enso-common/src/detect'
 
-import * as eventHooks from '#/hooks/eventHooks'
 import * as searchParamsState from '#/hooks/searchParamsStateHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
@@ -19,11 +18,10 @@ import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
-import type * as assetEvent from '#/events/assetEvent'
 import AssetEventType from '#/events/AssetEventType'
-import type * as assetListEvent from '#/events/assetListEvent'
 import AssetListEventType from '#/events/AssetListEventType'
 
+import EventListProvider, * as eventListProvider from '#/layouts/AssetsTable/EventListProvider'
 import Category, * as categoryModule from '#/layouts/CategorySwitcher/Category'
 import Chat from '#/layouts/Chat'
 import ChatPlaceholder from '#/layouts/ChatPlaceholder'
@@ -118,6 +116,15 @@ export interface DashboardProps {
 
 /** The component that contains the entire UI. */
 export default function Dashboard(props: DashboardProps) {
+  return (
+    <EventListProvider>
+      <DashboardInner {...props} />
+    </EventListProvider>
+  )
+}
+
+/** The component that contains the entire UI. */
+function DashboardInner(props: DashboardProps) {
   const { appRunner, ydocUrl, initialProjectName: initialProjectNameRaw } = props
   const session = authProvider.useNonPartialUserSession()
   const remoteBackend = backendProvider.useRemoteBackend()
@@ -141,9 +148,8 @@ export default function Dashboard(props: DashboardProps) {
   const [projectStartupInfo, setProjectStartupInfo] =
     React.useState<backendModule.ProjectStartupInfo | null>(null)
   const openProjectAbortControllerRef = React.useRef<AbortController | null>(null)
-  const [assetListEvents, dispatchAssetListEvent] =
-    eventHooks.useEvent<assetListEvent.AssetListEvent>()
-  const [assetEvents, dispatchAssetEvent] = eventHooks.useEvent<assetEvent.AssetEvent>()
+  const dispatchAssetEvent = eventListProvider.useDispatchAssetEvent()
+  const dispatchAssetListEvent = eventListProvider.useDispatchAssetListEvent()
   const initialLocalProjectId =
     initialProjectNameRaw != null && validator.isUUID(initialProjectNameRaw)
       ? localBackendModule.newProjectId(projectManager.UUID(initialProjectNameRaw))
@@ -251,17 +257,10 @@ export default function Dashboard(props: DashboardProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  eventHooks.useEventHandler(assetEvents, event => {
-    switch (event.type) {
-      case AssetEventType.openProject: {
-        openProjectAbortControllerRef.current?.abort()
-        openProjectAbortControllerRef.current = null
-        break
-      }
-      default: {
-        // Ignored.
-        break
-      }
+  eventListProvider.useAssetEventListener(event => {
+    if (event.type === AssetEventType.openProject) {
+      openProjectAbortControllerRef.current?.abort()
+      openProjectAbortControllerRef.current = null
     }
   })
 
@@ -437,10 +436,6 @@ export default function Dashboard(props: DashboardProps) {
             hidden={page !== TabType.drive}
             initialProjectName={initialProjectName}
             setProjectStartupInfo={setProjectStartupInfo}
-            assetListEvents={assetListEvents}
-            dispatchAssetListEvent={dispatchAssetListEvent}
-            assetEvents={assetEvents}
-            dispatchAssetEvent={dispatchAssetEvent}
             doOpenEditor={doOpenEditor}
             doCloseEditor={doCloseEditor}
           />

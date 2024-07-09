@@ -3,15 +3,6 @@ import type AssetEventType from '#/events/AssetEventType'
 
 import type * as backend from '#/services/Backend'
 
-// This is required, to whitelist this event.
-// eslint-disable-next-line no-restricted-syntax
-declare module '#/hooks/eventHooks' {
-  /** A map containing all known event types. */
-  export interface KnownEventsMap {
-    readonly assetEvent: AssetEvent
-  }
-}
-
 // ==================
 // === AssetEvent ===
 // ==================

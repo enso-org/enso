@@ -8,15 +8,15 @@ import PlayIcon from 'enso-assets/play.svg'
 import StopIcon from 'enso-assets/stop.svg'
 
 import * as backendHooks from '#/hooks/backendHooks'
-import * as eventHooks from '#/hooks/eventHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
 import * as sessionProvider from '#/providers/SessionProvider'
 import * as textProvider from '#/providers/TextProvider'
 
-import type * as assetEvent from '#/events/assetEvent'
 import AssetEventType from '#/events/AssetEventType'
+
+import * as eventListProvider from '#/layouts/AssetsTable/EventListProvider'
 
 import * as ariaComponents from '#/components/AriaComponents'
 import Spinner, * as spinner from '#/components/Spinner'
@@ -67,8 +67,6 @@ export interface ProjectIconProps {
   readonly backend: Backend
   readonly item: backendModule.ProjectAsset
   readonly setItem: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>>
-  readonly assetEvents: assetEvent.AssetEvent[]
-  readonly dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
   readonly setProjectStartupInfo: (projectStartupInfo: backendModule.ProjectStartupInfo) => void
   readonly doCloseEditor: (id: backendModule.ProjectId) => void
   readonly doOpenEditor: () => void
@@ -76,12 +74,13 @@ export interface ProjectIconProps {
 
 /** An interactive icon indicating the status of a project. */
 export default function ProjectIcon(props: ProjectIconProps) {
-  const { backend, item, setItem, assetEvents, setProjectStartupInfo, dispatchAssetEvent } = props
+  const { backend, item, setItem, setProjectStartupInfo } = props
   const { doCloseEditor, doOpenEditor } = props
   const { session } = sessionProvider.useSession()
   const { user } = authProvider.useNonPartialUserSession()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { getText } = textProvider.useText()
+  const dispatchAssetEvent = eventListProvider.useDispatchAssetEvent()
   const state = item.projectState.type
   const setState = React.useCallback(
     (stateOrUpdater: React.SetStateAction<backendModule.ProjectState>) => {
@@ -222,7 +221,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
     })
   }, [state, backend.type])
 
-  eventHooks.useEventHandler(assetEvents, event => {
+  eventListProvider.useAssetEventListener(event => {
     switch (event.type) {
       case AssetEventType.openProject: {
         if (event.id !== item.id) {

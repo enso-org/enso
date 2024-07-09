@@ -15,11 +15,11 @@ import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
-import type * as assetEvent from '#/events/assetEvent'
 import AssetEventType from '#/events/AssetEventType'
 
 import type * as assetSearchBar from '#/layouts/AssetSearchBar'
 import AssetSearchBar from '#/layouts/AssetSearchBar'
+import * as eventListProvider from '#/layouts/AssetsTable/EventListProvider'
 import Category, * as categoryModule from '#/layouts/CategorySwitcher/Category'
 import StartModal from '#/layouts/StartModal'
 
@@ -56,7 +56,6 @@ export interface DriveBarProps {
   readonly doCreateSecret: (name: string, value: string) => void
   readonly doCreateDatalink: (name: string, value: unknown) => void
   readonly doUploadFiles: (files: File[]) => void
-  readonly dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
 }
 
 /** Displays the current directory path and permissions, upload and download buttons,
@@ -64,11 +63,12 @@ export interface DriveBarProps {
 export default function DriveBar(props: DriveBarProps) {
   const { backend, query, setQuery, suggestions, category, canDownload } = props
   const { doEmptyTrash, doCreateProject, doCreateDirectory } = props
-  const { doCreateSecret, doCreateDatalink, doUploadFiles, dispatchAssetEvent } = props
+  const { doCreateSecret, doCreateDatalink, doUploadFiles } = props
   const { isAssetPanelOpen, setIsAssetPanelOpen } = props
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
   const inputBindings = inputBindingsProvider.useInputBindings()
+  const dispatchAssetEvent = eventListProvider.useDispatchAssetEvent()
   const uploadFilesRef = React.useRef<HTMLInputElement>(null)
   const isCloud = categoryModule.isCloud(category)
   const { isOffline } = offlineHooks.useOffline()

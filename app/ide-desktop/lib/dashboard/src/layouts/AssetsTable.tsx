@@ -8,7 +8,6 @@ import DropFilesImage from 'enso-assets/drop_files.svg'
 import * as mimeTypes from '#/data/mimeTypes'
 
 import * as backendHooks from '#/hooks/backendHooks'
-import * as eventHooks from '#/hooks/eventHooks'
 import * as intersectionHooks from '#/hooks/intersectionHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 import useOnScroll from '#/hooks/useOnScroll'
@@ -28,6 +27,7 @@ import AssetListEventType from '#/events/AssetListEventType'
 
 import type * as assetPanel from '#/layouts/AssetPanel'
 import type * as assetSearchBar from '#/layouts/AssetSearchBar'
+import * as eventListProvider from '#/layouts/AssetsTable/EventListProvider'
 import AssetsTableContextMenu from '#/layouts/AssetsTableContextMenu'
 import Category from '#/layouts/CategorySwitcher/Category'
 
@@ -314,9 +314,6 @@ export interface AssetsTableState {
   readonly query: AssetQuery
   readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
   readonly setProjectStartupInfo: (projectStartupInfo: backendModule.ProjectStartupInfo) => void
-  readonly dispatchAssetListEvent: (event: assetListEvent.AssetListEvent) => void
-  readonly assetEvents: assetEvent.AssetEvent[]
-  readonly dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
   readonly setAssetPanelProps: (props: assetPanel.AssetPanelRequiredProps | null) => void
   readonly setIsAssetPanelTemporarilyVisible: (visible: boolean) => void
   readonly nodeMap: Readonly<
@@ -359,10 +356,6 @@ export interface AssetsTableProps {
   readonly setCanDownload: (canDownload: boolean) => void
   readonly category: Category
   readonly initialProjectName: string | null
-  readonly assetListEvents: assetListEvent.AssetListEvent[]
-  readonly dispatchAssetListEvent: (event: assetListEvent.AssetListEvent) => void
-  readonly assetEvents: assetEvent.AssetEvent[]
-  readonly dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
   readonly setAssetPanelProps: (props: assetPanel.AssetPanelRequiredProps | null) => void
   readonly setIsAssetPanelTemporarilyVisible: (visible: boolean) => void
   readonly targetDirectoryNodeRef: React.MutableRefObject<assetTreeNode.AnyAssetTreeNode<backendModule.DirectoryAsset> | null>
@@ -374,7 +367,6 @@ export interface AssetsTableProps {
 export default function AssetsTable(props: AssetsTableProps) {
   const { hidden, query, setQuery, setProjectStartupInfo, setCanDownload, category } = props
   const { setSuggestions, initialProjectName } = props
-  const { assetListEvents, dispatchAssetListEvent, assetEvents, dispatchAssetEvent } = props
   const { doOpenEditor, doCloseEditor } = props
   const { setAssetPanelProps, targetDirectoryNodeRef, setIsAssetPanelTemporarilyVisible } = props
 
@@ -387,6 +379,8 @@ export default function AssetsTable(props: AssetsTableProps) {
   const inputBindings = inputBindingsProvider.useInputBindings()
   const navigator2D = navigator2DProvider.useNavigator2D()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
+  const dispatchAssetEvent = eventListProvider.useDispatchAssetEvent()
+  const dispatchAssetListEvent = eventListProvider.useDispatchAssetListEvent()
   const [initialized, setInitialized] = React.useState(false)
   const initializedRef = React.useRef(initialized)
   initializedRef.current = initialized
@@ -1602,8 +1596,6 @@ export default function AssetsTable(props: AssetsTableProps) {
               parentId={event.parentId}
               conflictingFiles={conflictingFiles}
               conflictingProjects={conflictingProjects}
-              dispatchAssetEvent={dispatchAssetEvent}
-              dispatchAssetListEvent={dispatchAssetListEvent}
               siblingFileNames={siblingFilesByName.keys()}
               siblingProjectNames={siblingProjectsByName.keys()}
               nonConflictingFileCount={files.length - conflictingFiles.length}
@@ -1792,7 +1784,7 @@ export default function AssetsTable(props: AssetsTableProps) {
   }
   const onAssetListEventRef = React.useRef(onAssetListEvent)
   onAssetListEventRef.current = onAssetListEvent
-  eventHooks.useEventHandler(assetListEvents, event => {
+  eventListProvider.useAssetListEventListener(event => {
     if (!isLoading) {
       onAssetListEvent(event)
     } else {
@@ -1864,8 +1856,6 @@ export default function AssetsTable(props: AssetsTableProps) {
         nodeMapRef={nodeMapRef}
         rootDirectoryId={rootDirectoryId}
         event={{ pageX: 0, pageY: 0 }}
-        dispatchAssetEvent={dispatchAssetEvent}
-        dispatchAssetListEvent={dispatchAssetListEvent}
         doCopy={doCopy}
         doCut={doCut}
         doPaste={doPaste}
@@ -1881,8 +1871,6 @@ export default function AssetsTable(props: AssetsTableProps) {
       doCut,
       doPaste,
       clearSelectedKeys,
-      dispatchAssetEvent,
-      dispatchAssetListEvent,
     ]
   )
 
@@ -1919,9 +1907,6 @@ export default function AssetsTable(props: AssetsTableProps) {
       query,
       setQuery,
       setProjectStartupInfo,
-      assetEvents,
-      dispatchAssetEvent,
-      dispatchAssetListEvent,
       setAssetPanelProps,
       setIsAssetPanelTemporarilyVisible,
       nodeMap: nodeMapRef,
@@ -1940,7 +1925,6 @@ export default function AssetsTable(props: AssetsTableProps) {
       category,
       pasteData,
       sortInfo,
-      assetEvents,
       query,
       doToggleDirectoryExpansion,
       doOpenEditor,
@@ -1953,8 +1937,6 @@ export default function AssetsTable(props: AssetsTableProps) {
       setIsAssetPanelTemporarilyVisible,
       setQuery,
       setProjectStartupInfo,
-      dispatchAssetEvent,
-      dispatchAssetListEvent,
     ]
   )
 
@@ -2390,8 +2372,6 @@ export default function AssetsTable(props: AssetsTableProps) {
             nodeMapRef={nodeMapRef}
             event={event}
             rootDirectoryId={rootDirectoryId}
-            dispatchAssetEvent={dispatchAssetEvent}
-            dispatchAssetListEvent={dispatchAssetListEvent}
             doCopy={doCopy}
             doCut={doCut}
             doPaste={doPaste}
