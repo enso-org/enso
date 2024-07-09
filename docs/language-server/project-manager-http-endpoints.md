@@ -17,7 +17,7 @@ JSONRPC protocol.
 
 <!-- /MarkdownTOC -->
 
-## `/projects/{project_id}/enso-project?subdirectory={subdirectory_path}`
+## `/projects/{project_id}/enso-project?projectsDirectory={projects_path}`
 
 HTTP endpoint that returns the project structure in `.enso-project` format.
 The subdirectory path to the project is optional.

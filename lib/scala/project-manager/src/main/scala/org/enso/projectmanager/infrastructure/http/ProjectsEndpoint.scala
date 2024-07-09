@@ -36,7 +36,7 @@ final class ProjectsEndpoint[
 
   private val projectsEndpoint = {
     path("projects" / JavaUUID / "enso-project") { projectId =>
-      parameters("subdirectory".optional) { directory =>
+      parameters("projectsDirectory".optional) { directory =>
         get {
           getEnsoProject(projectId, directory)
         }
@@ -76,11 +76,11 @@ final class ProjectsEndpoint[
 
   private def buildEnsoArchive(
     projectId: UUID,
-    subdirectory: Option[String]
+    projectsDirectory: Option[String]
   ): Future[Either[ProjectRepositoryFailure, Option[EnsoProjectArchive]]] =
     Exec[F].exec {
       projectRepositoryFactory
-        .getProjectRepository(None, subdirectory.map(new File(_)))
+        .getProjectRepository(projectsDirectory.map(new File(_)))
         .findById(projectId)
         .map(projectOpt =>
           projectOpt.map(project =>
