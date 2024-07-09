@@ -1,7 +1,7 @@
 import project.Any.Any
+import project.Data.Dictionary.Dictionary
 import project.Data.Json.Extensions
 import project.Data.Json.JS_Object
-import project.Data.Map.Map
 import project.Data.Numbers.Integer
 import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Text
@@ -305,9 +305,9 @@ type XML_Document
 
     ## GROUP Selections
        ICON array_new
-       Gets a map containing of the attributes of an XML document.
-    attributes : Map Text Text ! XML_Error
-    attributes self = Map.empty
+       Gets a Dictionary containing of the attributes of an XML document.
+    attributes : Dictionary Text Text ! XML_Error
+    attributes self = Dictionary.empty
 
     ## GROUP Selections
        ICON metadata
@@ -508,19 +508,19 @@ type XML_Element
 
     ## GROUP Selections
        ICON array_new
-       Gets a map containing of the attributes of an XML element.
+       Gets a Dictionary containing of the attributes of an XML element.
 
        > Example
            XML_Document.from_text '<foo bar="one">hello</foo>' . root_element . attributes
-           # => Map.from_vector [["bar", "one"]]
-    attributes : Map Text Text ! XML_Error
+           # => Dictionary.from_vector [["bar", "one"]]
+    attributes : Dictionary Text Text ! XML_Error
     attributes self =
         XML_Error.handle_java_exceptions <|
             named_node_map = self.java_element.getAttributes
             keys_and_values = 0.up_to named_node_map.getLength . map i->
                 node = named_node_map.item i
                 [node.getNodeName, node.getNodeValue]
-            Map.from_vector keys_and_values
+            Dictionary.from_vector keys_and_values
 
     ## GROUP Selections
        ICON metadata

@@ -464,20 +464,20 @@ add_specs suite_builder =
             c_3 = ['col3', [False, True, Nothing]]
             t_1 = Table.new [i_1, c_1, c_2, c_3]
 
-            t_1.take (First 10) . at 'col' . to_vector . should_equal (t_1.at 'col' . to_vector)
+            t_1.take (..First 10) . at 'col' . to_vector . should_equal (t_1.at 'col' . to_vector)
             t_1.take 10 . at 'col' . to_vector . should_equal (t_1.at 'col' . to_vector)
 
-            t_2 = t_1.take (First 2)
-            t_2.at 'col' . to_vector . should_equal (t_1.at 'col' . to_vector . take (First 2))
-            t_2.at 'col2' . to_vector . should_equal (t_1.at 'col2' . to_vector . take (First 2))
-            t_2.at 'col3' . to_vector . should_equal (t_1.at 'col3' . to_vector . take (First 2))
+            t_2 = t_1.take (..First 2)
+            t_2.at 'col' . to_vector . should_equal (t_1.at 'col' . to_vector . take (..First 2))
+            t_2.at 'col2' . to_vector . should_equal (t_1.at 'col2' . to_vector . take (..First 2))
+            t_2.at 'col3' . to_vector . should_equal (t_1.at 'col3' . to_vector . take (..First 2))
 
             t_3 = t_1.take 2
             t_3.at 'col' . to_vector . should_equal (t_1.at 'col' . to_vector . take 2)
             t_3.at 'col2' . to_vector . should_equal (t_1.at 'col2' . to_vector . take 2)
             t_3.at 'col3' . to_vector . should_equal (t_1.at 'col3' . to_vector . take 2)
 
-            t_1.at 'col' . take (First 2) . to_vector . should_equal (t_1.at 'col' . to_vector . take (First 2))
+            t_1.at 'col' . take (..First 2) . to_vector . should_equal (t_1.at 'col' . to_vector . take (..First 2))
             t_1.at 'col' . take 2 . to_vector . should_equal (t_1.at 'col' . to_vector . take 2)
 
         group_builder.specify "should allow taking the last n rows" <|
@@ -487,35 +487,35 @@ add_specs suite_builder =
             c_3 = ['col3', [False, True, Nothing]]
             t_1 = Table.new [i_1, c_1, c_2, c_3]
 
-            t_1.take (Last 10) . at 'col1' . to_vector . should_equal (t_1.at 'col1' . to_vector)
+            t_1.take (..Last 10) . at 'col1' . to_vector . should_equal (t_1.at 'col1' . to_vector)
 
-            t_2 = t_1.take (Last 2)
-            t_2.at 'col1' . to_vector . should_equal (t_1.at 'col1' . to_vector . take (Last 2))
-            t_2.at 'col2' . to_vector . should_equal (t_1.at 'col2' . to_vector . take (Last 2))
-            t_2.at 'col3' . to_vector . should_equal (t_1.at 'col3' . to_vector . take (Last 2))
+            t_2 = t_1.take (..Last 2)
+            t_2.at 'col1' . to_vector . should_equal (t_1.at 'col1' . to_vector . take (..Last 2))
+            t_2.at 'col2' . to_vector . should_equal (t_1.at 'col2' . to_vector . take (..Last 2))
+            t_2.at 'col3' . to_vector . should_equal (t_1.at 'col3' . to_vector . take (..Last 2))
 
-            t_1.at 'col1' . take (Last 2) . to_vector . should_equal (t_1.at 'col1' . to_vector . take (Last 2))
+            t_1.at 'col1' . take (..Last 2) . to_vector . should_equal (t_1.at 'col1' . to_vector . take (..Last 2))
 
         group_builder.specify "should allow taking/dropping a prefix of rows that satisfy a predicate" <|
             t1 = Table.new [["X", [1, 2, 3, 4, 5, 5]], ["Y", [9, 8, 7, 2, 10, 5]]]
 
-            t2 = t1.take (Index_Sub_Range.While row-> row.to_vector.compute Statistic.Sum == 10)
+            t2 = t1.take (..While row-> row.to_vector.compute Statistic.Sum == 10)
             t2.at "X" . to_vector . should_equal [1, 2, 3]
             t2.at "Y" . to_vector . should_equal [9, 8, 7]
 
-            t3 = t1.drop (Index_Sub_Range.While row-> row.to_vector.compute Statistic.Sum == 10)
+            t3 = t1.drop (..While row-> row.to_vector.compute Statistic.Sum == 10)
             t3.at "X" . to_vector . should_equal [4, 5, 5]
             t3.at "Y" . to_vector . should_equal [2, 10, 5]
 
-            t4 = t1.take (Index_Sub_Range.While row-> row.at "X" < 3)
+            t4 = t1.take (..While row-> row.at "X" < 3)
             t4.at "X" . to_vector . should_equal [1, 2]
             t4.at "Y" . to_vector . should_equal [9, 8]
 
-            t5 = t1.drop (Index_Sub_Range.While row-> row.at 1 > 3)
+            t5 = t1.drop (..While row-> row.at 1 > 3)
             t5.at "X" . to_vector . should_equal [4, 5, 5]
             t5.at "Y" . to_vector . should_equal [2, 10, 5]
 
-            t6 = t1.take (Index_Sub_Range.While row-> row.at "X" > 1)
+            t6 = t1.take (..While row-> row.at "X" > 1)
             t6.at "X" . to_vector . should_equal []
             t6.at "Y" . to_vector . should_equal []
 
@@ -905,7 +905,7 @@ add_specs suite_builder =
                             if has_nulls then builder.append Nothing
                             if has_true then builder.append True
                             if has_false then builder.append False
-                        in_vector_set = Set.from_vector in_vector
+                        in_vector_set = Hashset.from_vector in_vector
 
                         vectors = [[True, False, Nothing], [Nothing, Nothing, Nothing], [False, False, True], [True, True, True], [False, False, False], [Nothing, True, True], [False, Nothing, False]]
                         vectors.each column_vector->

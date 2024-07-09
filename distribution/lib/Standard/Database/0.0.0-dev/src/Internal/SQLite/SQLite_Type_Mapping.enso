@@ -96,7 +96,7 @@ type SQLite_Type_Mapping
     infer_return_type : (SQL_Expression -> SQL_Type_Reference) -> Text -> Vector -> SQL_Expression -> SQL_Type_Reference
     infer_return_type infer_from_database_callback op_name arguments expression =
         _ = [infer_from_database_callback, expression]
-        handler = operations_map.get op_name (_ -> Error.throw (Illegal_State.Error "Impossible: Unknown operation "+op_name+". This is a bug in the Database library."))
+        handler = operations_dict.get op_name (_ -> Error.throw (Illegal_State.Error "Impossible: Unknown operation "+op_name+". This is a bug in the Database library."))
         sql_type = handler arguments
         SQL_Type_Reference.from_constant sql_type
 
@@ -127,7 +127,7 @@ type SQLite_Type_Mapping
 
    For types like dates - we map them to unsupported type, because date
    operations in SQLite are currently not supported due to their weird storage.
-simple_types_map = Map.from_vector <|
+simple_types_map = Dictionary.from_vector <|
     ints = [Types.TINYINT, Types.SMALLINT, Types.BIGINT, Types.INTEGER] . map x-> [x, default_integer]
     floats = [Types.DOUBLE, Types.REAL, Types.FLOAT] . map x-> [x, default_float]
     # We treat numeric as a float, since that is what really sits in SQLite under the hood.
@@ -142,13 +142,13 @@ simple_types_map = Map.from_vector <|
    https://www.sqlite.org/datatype3.html#affinity_name_examples
    However, with this the date-time columns will be mapped to the numeric type.
    Instead, we want to treat such columns as Text, so we override the mapping.
-name_based_workarounds = Map.from_vector <|
+name_based_workarounds = Dictionary.from_vector <|
     ["TIME", "DATE", "DATETIME", "TIMESTAMP"] . map x-> [x, default_text]
 
 ## PRIVATE
    Maps operation names to functions that infer its result type.
-operations_map : Map Text (Vector -> SQL_Type)
-operations_map =
+operations_dict : Dictionary Text (Vector -> SQL_Type)
+operations_dict =
     find_type arg = case arg of
         column : DB_Column -> column.value_type
         internal_column : Internal_Column ->
@@ -175,12 +175,12 @@ operations_map =
 
     handle_case arguments =
         fallback = arguments.last
-        cases = arguments.drop (Last 1)
+        cases = arguments.drop (..Last 1)
         if cases.length % 2 != 0 then
             Panic.throw (Illegal_State.Error "Impossible: constructed a CASE with an odd number of case arguments.")
         if cases.is_empty then
             Panic.throw (Illegal_State.Error "Impossible: too few cases provided for a CASE statement.")
-        case_results = cases.take (Index_Sub_Range.Every 2 first=1)
+        case_results = cases.take (..Every 2 first=1)
         possible_results = case_results + [fallback]
         find_a_common_type possible_results
 
@@ -198,7 +198,7 @@ operations_map =
     arithmetic_ops = ["ADD_NUMBER", "-", "*", "^", "%", "SUM"]
     merge_input_types_ops = ["ROW_MAX", "ROW_MIN", "MAX", "MIN", "FILL_NULL", "COALESCE"]
     others = [["IIF", handle_iif], ["CAST", handle_cast], ["CASE", handle_case], ["RUNTIME_ERROR", handle_runtime_error]]
-    Map.from_vector <|
+    Dictionary.from_vector <|
         v1 = always_boolean_ops.map [_, const SQLite_Types.boolean]
         v2 = always_floating_ops.map [_, const SQLite_Types.real]
         v3 = always_integer_ops.map [_, const SQLite_Types.integer]

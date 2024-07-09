@@ -27,12 +27,14 @@ type Arithmetic_Data
 
     x self = self.data.at 0
     y self = self.data.at 1
+    z self = self.data.at 2
 
     setup table_builder = Arithmetic_Data.Value <|
-        t2 = table_builder [["x", [1, 4, 5, Nothing]], ["y", [2.0, 3.25, 5.0, Nothing]], ["row_id", [1, 2, 3, 4]]] . order_by "row_id"
+        t2 = table_builder [["x", [1, 4, 5, Nothing]], ["y", [2.0, 3.25, 5.0, Nothing]], ["z", [Decimal.new 2, Decimal.new 4.5, Decimal.new 5.0, Nothing]], ["row_id", [1, 2, 3, 4]]] . order_by "row_id"
         x = t2.at "x"
         y = t2.at "y"
-        [x, y]
+        z = t2.at "z"
+        [x, y, z]
 
 type Min_Max_Data
     Value ~data
@@ -739,6 +741,9 @@ add_specs suite_builder setup =
             (data.x + data.y).to_vector . should_equal [3, 7.25, 10, Nothing]
             (data.x - data.y).to_vector . should_equal [-1.0, 0.75, 0.0, Nothing]
             (data.x * data.y).to_vector . should_equal [2.0, 13.0, 25.0, Nothing]
+            (data.y + data.z).to_vector . should_equal [4.0, 7.75, 10, Nothing]
+            (data.y - data.z).to_vector . should_equal [0.0, -1.25, 0.0, Nothing]
+            (data.y * data.z).to_vector . should_equal [4.0, 14.625, 25.0, Nothing]
 
         group_builder.specify "should allow combining a column with a scalar" <|
             (data.x + 100).to_vector . should_equal [101, 104, 105, Nothing]
@@ -773,6 +778,16 @@ add_specs suite_builder setup =
             (data.x * 1.5).value_type . is_floating_point . should_be_true
 
             (data.x ^ data.x).value_type . is_numeric . should_be_true
+
+        if setup.test_selection.supports_decimal_type then
+            divide_in_memory_pending = if setup.is_database.not then "TODO: https://github.com/enso-org/enso/issues/10429"
+            group_builder.specify "should correctly infer the types (for decimal division)" pending=divide_in_memory_pending <|
+                (data.x / data.x).value_type . is_floating_point . should_be_true
+                (data.x / data.y).value_type . is_floating_point . should_be_true
+                (data.x / data.z).value_type . is_decimal . should_be_true
+                (data.y / data.z).value_type . is_decimal . should_be_true
+                (data.x / 2).value_type . is_floating_point  . should_be_true
+                (data.x / 1.5).value_type . is_floating_point . should_be_true
 
         group_builder.specify "should check types" <|
             t = table_builder [["X", [1, 2]], ["Y", ["a", "b"]], ["Z", [True, False]]]
@@ -1297,7 +1312,7 @@ add_specs suite_builder setup =
                 input_type = Meta.type_of term
                 params = Replace_Params.Value input_type case_sensitivity only_first
                 supported_replace_params = setup.test_selection.supported_replace_params
-                supported_replace_params . should_be_a Set
+                supported_replace_params . should_be_a Hashset
                 are_params_supported = supported_replace_params.contains params
                 case are_params_supported of
                     True -> column.text_replace term new_text case_sensitivity only_first . to_vector . should_equal expected

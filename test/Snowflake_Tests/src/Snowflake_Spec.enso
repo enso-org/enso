@@ -575,7 +575,7 @@ add_snowflake_specs suite_builder create_connection_fn db_name =
         agg_in_memory_table.select_into_database_table default_connection.get (Name_Generator.random_name "Agg1") primary_key=Nothing temporary=True
 
     empty_agg_table_fn = _->
-        (agg_in_memory_table.take (First 0)).select_into_database_table default_connection.get (Name_Generator.random_name "Agg_Empty") primary_key=Nothing temporary=True
+        (agg_in_memory_table.take (..First 0)).select_into_database_table default_connection.get (Name_Generator.random_name "Agg_Empty") primary_key=Nothing temporary=True
 
     setup = Common_Table_Operations.Main.Test_Setup.Config prefix agg_table_fn empty_agg_table_fn table_builder materialize is_database=True test_selection=common_selection aggregate_test_selection=aggregate_selection create_connection_func=create_connection_fn light_table_builder=light_table_builder
 
@@ -583,14 +583,14 @@ add_snowflake_specs suite_builder create_connection_fn db_name =
     Common_Table_Operations.Main.add_specs suite_builder setup
 
 ## PRIVATE
-supported_replace_params : Set Replace_Params
+supported_replace_params : Hashset Replace_Params
 supported_replace_params =
     e0 = [Replace_Params.Value Text Case_Sensitivity.Default False, Replace_Params.Value Text Case_Sensitivity.Default True, Replace_Params.Value Text Case_Sensitivity.Sensitive False]
     e1 = [Replace_Params.Value Text Case_Sensitivity.Sensitive True, Replace_Params.Value Text Case_Sensitivity.Insensitive False, Replace_Params.Value Text Case_Sensitivity.Insensitive True]
     e2 = [Replace_Params.Value Regex Case_Sensitivity.Default False, Replace_Params.Value Regex Case_Sensitivity.Default True, Replace_Params.Value Regex Case_Sensitivity.Sensitive False]
     e3 = [Replace_Params.Value Regex Case_Sensitivity.Sensitive True, Replace_Params.Value Regex Case_Sensitivity.Insensitive False, Replace_Params.Value Regex Case_Sensitivity.Insensitive True]
     e4 = [Replace_Params.Value DB_Column Case_Sensitivity.Default False, Replace_Params.Value DB_Column Case_Sensitivity.Sensitive False]
-    Set.from_vector <| e0 + e1 + e2 + e3 + e4
+    Hashset.from_vector <| e0 + e1 + e2 + e3 + e4
 
 add_table_specs suite_builder =
     case create_connection_builder of
