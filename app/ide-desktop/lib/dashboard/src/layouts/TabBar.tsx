@@ -213,7 +213,7 @@ export function Tab(props: InternalTabProps) {
     <div
       ref={ref}
       className={tailwindMerge.twMerge(
-        'group relative h-full',
+        'group relative flex h-full items-center gap-3',
         !isActive && 'hover:enabled:bg-frame'
       )}
     >
@@ -221,25 +221,26 @@ export function Tab(props: InternalTabProps) {
         size="custom"
         variant="custom"
         loaderPosition="icon"
-        icon={({ isFocusVisible, isHovered }) =>
-          (isFocusVisible || isHovered) && onClose ? (
-            <div className="mt-[1px] flex h-4 w-4 items-center justify-center">
-              <ariaComponents.CloseButton onPress={onClose} />
-            </div>
-          ) : (
-            icon
-          )
-        }
+        icon={icon}
         isDisabled={false}
         isActive={isActive}
         loading={isActive ? false : isLoading}
         aria-label={getText(labelId)}
+        className={tailwindMerge.twMerge('h-full', onClose ? 'pl-4' : 'px-4')}
+        contentClassName="gap-3"
         tooltip={false}
-        className={tailwindMerge.twMerge('relative flex h-full items-center gap-3 px-4')}
         onPress={onPress}
       >
-        {children}
+        <ariaComponents.Text truncate="1" className="max-w-32">
+          {children}
+        </ariaComponents.Text>
       </ariaComponents.Button>
+
+      {onClose && (
+        <div className="flex pr-4">
+          <ariaComponents.CloseButton onPress={onClose} />
+        </div>
+      )}
     </div>
   )
 }

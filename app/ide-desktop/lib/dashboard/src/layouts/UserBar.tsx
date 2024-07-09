@@ -25,6 +25,13 @@ import ManagePermissionsModal from '#/modals/ManagePermissionsModal'
 import * as backendModule from '#/services/Backend'
 import type Backend from '#/services/Backend'
 
+// =================
+// === Constants ===
+// =================
+
+/** Whether the chat button should be visible. Temporarily disabled. */
+const SHOULD_SHOW_CHAT_BUTTON: boolean = false
+
 // ===============
 // === UserBar ===
 // ===============
@@ -74,16 +81,18 @@ export default function UserBar(props: UserBarProps) {
             className="flex h-[46px] shrink-0 cursor-default items-center gap-user-bar pl-icons-x pr-3"
             {...innerProps}
           >
-            <ariaComponents.Button
-              variant="icon"
-              size="custom"
-              className="mr-1"
-              icon={ChatIcon}
-              aria-label={getText('openHelpChat')}
-              onPress={() => {
-                setIsHelpChatOpen(true)
-              }}
-            />
+            {SHOULD_SHOW_CHAT_BUTTON && (
+              <ariaComponents.Button
+                variant="icon"
+                size="custom"
+                className="mr-1"
+                icon={ChatIcon}
+                aria-label={getText('openHelpChat')}
+                onPress={() => {
+                  setIsHelpChatOpen(true)
+                }}
+              />
+            )}
 
             {shouldShowUpgradeButton && (
               <paywall.PaywallDialogButton feature={'inviteUser'} size="medium" variant="tertiary">

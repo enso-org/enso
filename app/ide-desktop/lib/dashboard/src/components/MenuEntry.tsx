@@ -11,6 +11,7 @@ import type * as inputBindings from '#/configurations/inputBindings'
 import * as focusHooks from '#/hooks/focusHooks'
 
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
+import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
@@ -113,6 +114,7 @@ export default function MenuEntry(props: MenuEntryProps) {
     ...variantProps
   } = props
   const { getText } = textProvider.useText()
+  const { unsetModal } = modalProvider.useSetModal()
   const inputBindings = inputBindingsProvider.useInputBindings()
   const focusChildProps = focusHooks.useFocusChild()
   const info = inputBindings.metadata[action]
@@ -146,7 +148,10 @@ export default function MenuEntry(props: MenuEntryProps) {
         {...aria.mergeProps<aria.ButtonProps>()(focusChildProps, {
           isDisabled,
           className: 'group flex w-full rounded-menu-entry',
-          onPress: doAction,
+          onPress: () => {
+            unsetModal()
+            doAction()
+          },
         })}
       >
         <div className={MENU_ENTRY_VARIANTS(variantProps)}>
