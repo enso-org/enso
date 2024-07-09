@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import HelpScreen from '@/components/HelpScreen.vue'
 import { provideAppClassSet } from '@/providers/appClass'
+import { provideBackend } from '@/providers/backend'
 import { provideEventLogger } from '@/providers/eventLogging'
 import { provideGuiConfig } from '@/providers/guiConfig'
 import { registerAutoBlurHandler } from '@/util/autoBlur'
@@ -13,7 +14,8 @@ import {
 } from '@/util/config'
 import ProjectView from '@/views/ProjectView.vue'
 import { useEventListener } from '@vueuse/core'
-import { computed, toRef, watch } from 'vue'
+import Backend from 'enso-common/src/services/Backend'
+import { computed, markRaw, toRaw, toRef, watch } from 'vue'
 import TooltipDisplayer from './components/TooltipDisplayer.vue'
 import { provideTooltipRegistry } from './providers/tooltipState'
 import { initializePrefixes } from './util/ast/node'
@@ -26,7 +28,10 @@ const props = defineProps<{
   hidden: boolean
   ignoreParamsRegex?: RegExp
   renameProject: (newName: string) => void
+  backend: Backend
 }>()
+
+provideBackend(() => markRaw(toRaw(props.backend)))
 
 const classSet = provideAppClassSet()
 const appTooltips = provideTooltipRegistry()
