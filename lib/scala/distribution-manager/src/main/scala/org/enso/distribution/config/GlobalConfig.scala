@@ -1,8 +1,10 @@
 package org.enso.distribution.config
 
-import io.circe.syntax._
-import io.circe.{Decoder, Encoder, Json}
-import org.enso.distribution.config
+import org.enso.yaml.{YamlDecoder, YamlEncoder}
+import org.yaml.snakeyaml.error.YAMLException
+import org.yaml.snakeyaml.nodes.{MappingNode, Node}
+
+import java.util
 
 /** Global user configuration.
   *
@@ -25,20 +27,18 @@ case class GlobalConfig(
   editionProviders: Seq[String]
 ) {
   def findByKey(key: String): Option[String] = {
-    val jsonValue: Option[Json] = key match {
+    key match {
       case GlobalConfig.Fields.DefaultVersion =>
-        Option(defaultVersion).map(_.asJson)
+        Option(defaultVersion).map(_.toString)
       case GlobalConfig.Fields.AuthorName =>
-        authorName.map(_.asJson)
+        authorName
       case GlobalConfig.Fields.AuthorEmail =>
-        authorEmail.map(_.asJson)
+        authorEmail
       case GlobalConfig.Fields.EditionProviders =>
-        Option(editionProviders).map(_.asJson)
+        Option(editionProviders).map(_.toString())
       case _ =>
         None
     }
-
-    jsonValue.map(j => j.asString.getOrElse(j.toString()))
   }
 }
 
@@ -66,36 +66,103 @@ object GlobalConfig {
     val EditionProviders = "edition-providers"
   }
 
-  /** [[Decoder]] instance for [[GlobalConfig]].
-    */
-  implicit val decoder: Decoder[GlobalConfig] = { json =>
-    for {
-      defaultVersion <- json.getOrElse[DefaultVersion](Fields.DefaultVersion)(
-        DefaultVersion.LatestInstalled
-      )
-      authorName  <- json.getOrElse[Option[String]](Fields.AuthorName)(None)
-      authorEmail <- json.getOrElse[Option[String]](Fields.AuthorEmail)(None)
-      editionProviders <- json.getOrElse[Seq[String]](Fields.EditionProviders)(
-        defaultEditionProviders
-      )
-    } yield config.GlobalConfig(
-      defaultVersion   = defaultVersion,
-      authorName       = authorName,
-      authorEmail      = authorEmail,
-      editionProviders = editionProviders
-    )
-  }
+  implicit val yamlDecoder: YamlDecoder[GlobalConfig] =
+    new YamlDecoder[GlobalConfig] {
+      override def decode(node: Node) = node match {
+        case node: MappingNode =>
+          val bindings = mappingKV(node)
+          val defaultVersionDecoder =
+            implicitly[YamlDecoder[DefaultVersion]]
+          val stringDecoder    = implicitly[YamlDecoder[String]]
+          val seqStringDecoder = implicitly[YamlDecoder[Seq[String]]]
 
-  /** [[Encoder]] instance for [[GlobalConfig]].
-    */
-  implicit val encoder: Encoder[GlobalConfig] = { config =>
-    val overrides =
-      Json.obj(
-        Fields.DefaultVersion   -> config.defaultVersion.asJson,
-        Fields.AuthorName       -> config.authorName.asJson,
-        Fields.AuthorEmail      -> config.authorEmail.asJson,
-        Fields.EditionProviders -> config.editionProviders.asJson
-      )
-    overrides.dropNullValues.asJson
-  }
+          val defaultVersionOpt = bindings.get("default") match {
+            case Some(versionNode: MappingNode) =>
+              val versionBindings = mappingKV(versionNode)
+              versionBindings
+                .get("enso-version")
+                .toRight(
+                  new YAMLException(s"missing '${Fields.DefaultVersion}' field")
+                )
+                .flatMap(defaultVersionDecoder.decode)
+            case _ =>
+              // Fallback
+              bindings
+                .get(Fields.DefaultVersion)
+                .map(defaultVersionDecoder.decode)
+                .getOrElse(Right(DefaultVersion.LatestInstalled))
+          }
+          val (nameOpt, emailOpt) = bindings.get("author") match {
+            case Some(authorNode: MappingNode) =>
+              val authorBindings = mappingKV(authorNode)
+              (
+                authorBindings
+                  .get("name")
+                  .map(stringDecoder.decode)
+                  .getOrElse(Right(None))
+                  .asInstanceOf[Either[Throwable, Option[String]]],
+                authorBindings
+                  .get("email")
+                  .map(stringDecoder.decode)
+                  .getOrElse(Right(None))
+                  .asInstanceOf[Either[Throwable, Option[String]]]
+              )
+            case _ =>
+              // Fallback
+              (
+                bindings
+                  .get(Fields.AuthorName)
+                  .map(stringDecoder.decode(_).map(Some(_)))
+                  .getOrElse(Right(None)),
+                bindings
+                  .get(Fields.AuthorEmail)
+                  .map(stringDecoder.decode(_).map(Some(_)))
+                  .getOrElse(Right(None))
+              )
+          }
+          val editionProviderOpt = bindings
+            .get(Fields.EditionProviders)
+            .map(seqStringDecoder.decode)
+            .getOrElse(Right(Seq.empty))
+          for {
+            defaultVersion  <- defaultVersionOpt
+            name            <- nameOpt
+            email           <- emailOpt
+            editionProvider <- editionProviderOpt
+          } yield GlobalConfig(defaultVersion, name, email, editionProvider)
+      }
+    }
+
+  implicit val yamlEncoder: YamlEncoder[GlobalConfig] =
+    new YamlEncoder[GlobalConfig] {
+      override def encode(value: GlobalConfig): AnyRef = {
+        val defaultVersionEncoder = implicitly[YamlEncoder[DefaultVersion]]
+        val editionProviders      = implicitly[YamlEncoder[Seq[String]]]
+        val elements              = new util.ArrayList[(String, AnyRef)]()
+        elements.add(
+          (
+            "default",
+            toMap(
+              "enso-version",
+              defaultVersionEncoder.encode(value.defaultVersion)
+            )
+          )
+        )
+        if (value.authorName.nonEmpty || value.authorEmail.nonEmpty) {
+          val authorElements = new util.ArrayList[(String, AnyRef)]()
+          value.authorName.foreach(v => authorElements.add(("name", v)))
+          value.authorEmail.foreach(v => authorElements.add(("email", v)))
+          elements.add(("author", toMap(authorElements)))
+        }
+        if (value.editionProviders.nonEmpty) {
+          elements.add(
+            (
+              Fields.EditionProviders,
+              editionProviders.encode(value.editionProviders)
+            )
+          )
+        }
+        toMap(elements)
+      }
+    }
 }

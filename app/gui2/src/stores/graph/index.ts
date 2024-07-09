@@ -240,8 +240,9 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
       // FIXME: This implementation is not robust in the context of a synchronized document,
       // as the same name can likely be assigned by multiple clients.
       // Consider implementing a mechanism to repair the document in case of name clashes.
+      const identPrefix = prefix && isIdentifier(prefix + 1) ? prefix : FALLBACK_BINDING_PREFIX
       for (let i = 1; ; i++) {
-        const ident = (prefix ?? FALLBACK_BINDING_PREFIX) + i
+        const ident = identPrefix + i
         assert(isIdentifier(ident))
         if (!db.identifierUsed(ident) && !ignore.has(ident)) return ident
       }

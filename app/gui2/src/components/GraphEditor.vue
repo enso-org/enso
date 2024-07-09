@@ -6,6 +6,7 @@ import {
   interactionBindings,
   undoBindings,
 } from '@/bindings'
+import BottomPanel from '@/components/BottomPanel.vue'
 import CodeEditor from '@/components/CodeEditor.vue'
 import ComponentBrowser from '@/components/ComponentBrowser.vue'
 import { type Usage } from '@/components/ComponentBrowser/input'
@@ -69,6 +70,8 @@ import {
   type ComponentInstance,
 } from 'vue'
 
+import { builtinWidgets } from '@/components/widgets'
+
 const keyboard = provideKeyboard()
 const projectStore = useProjectStore()
 const suggestionDb = provideSuggestionDbStore(projectStore)
@@ -76,9 +79,8 @@ const graphStore = provideGraphStore(projectStore, suggestionDb)
 const widgetRegistry = provideWidgetRegistry(graphStore.db)
 const _visualizationStore = provideVisualizationStore(projectStore)
 
-widgetRegistry.loadBuiltins()
-
 onMounted(() => {
+  widgetRegistry.loadWidgets(Object.entries(builtinWidgets))
   if (isDevMode) {
     ;(window as any).suggestionDb = toRaw(suggestionDb.entries)
   }
@@ -391,7 +393,8 @@ function deleteSelected() {
 
 // === Code Editor ===
 
-const codeEditorArea = ref<HTMLElement>()
+const codeEditor = shallowRef<ComponentInstance<typeof CodeEditor>>()
+const codeEditorArea = computed(() => unrefElement(codeEditor))
 const showCodeEditor = ref(false)
 const codeEditorHandler = codeEditorBindings.handler({
   toggle() {
@@ -401,8 +404,8 @@ const codeEditorHandler = codeEditorBindings.handler({
 
 // === Documentation Editor ===
 
-const rightDock = shallowRef<ComponentInstance<typeof DockPanel>>()
-const documentationEditorArea = computed(() => unrefElement(rightDock))
+const docEditor = shallowRef<ComponentInstance<typeof DocumentationEditor>>()
+const documentationEditorArea = computed(() => unrefElement(docEditor))
 const showDocumentationEditor = computedFallback(
   storedShowDocumentationEditor,
   // Show documentation editor when documentation exists on first graph visit.
@@ -508,14 +511,6 @@ watch(
 interface NewNodeOptions {
   placement: PlacementStrategy
   sourcePort?: AstId | undefined
-}
-
-/**
- * Start creating a node, basing its inputs and position on the current selection, if any;
- * or the current viewport, otherwise.
- */
-function addNodeAuto() {
-  createWithComponentBrowser(fromSelection() ?? { placement: { type: 'viewport' } })
 }
 
 function addNodeDisconnected() {
@@ -680,90 +675,122 @@ const groupColors = computed(() => {
 </script>
 
 <template>
-  <div
-    ref="viewportNode"
-    class="GraphEditor viewport"
-    :class="{ draggingEdge: graphStore.mouseEditedEdge != null }"
-    :style="groupColors"
-    v-on.="graphNavigator.pointerEvents"
-    v-on..="nodeSelection.events"
-    @click="handleClick"
-    @dragover.prevent
-    @drop.prevent="handleFileDrop($event)"
-    @pointermove.capture="graphNavigator.pointerEventsCapture.pointermove"
-    @wheel.capture="graphNavigator.pointerEventsCapture.wheel"
-  >
-    <div class="layer" :style="{ transform: graphNavigator.transform }">
-      <GraphNodes
-        :graphNodeSelections="graphNodeSelections"
-        @nodeOutputPortDoubleClick="handleNodeOutputPortDoubleClick"
-        @nodeDoubleClick="(id) => stackNavigator.enterNode(id)"
-        @createNodes="createNodesFromSource"
-        @setNodeColor="setSelectedNodesColor"
-      />
+  <div class="GraphEditor" @dragover.prevent @drop.prevent="handleFileDrop($event)">
+    <div class="vertical">
+      <div
+        ref="viewportNode"
+        class="viewport"
+        :class="{ draggingEdge: graphStore.mouseEditedEdge != null }"
+        :style="groupColors"
+        v-on.="graphNavigator.pointerEvents"
+        v-on..="nodeSelection.events"
+        @click="handleClick"
+        @pointermove.capture="graphNavigator.pointerEventsCapture.pointermove"
+        @wheel.capture="graphNavigator.pointerEventsCapture.wheel"
+      >
+        <div class="layer" :style="{ transform: graphNavigator.transform }">
+          <GraphNodes
+            :graphNodeSelections="graphNodeSelections"
+            @nodeOutputPortDoubleClick="handleNodeOutputPortDoubleClick"
+            @nodeDoubleClick="(id) => stackNavigator.enterNode(id)"
+            @createNodes="createNodesFromSource"
+            @setNodeColor="setSelectedNodesColor"
+          />
+        </div>
+        <div
+          ref="graphNodeSelections"
+          class="layer"
+          :style="{ transform: graphNavigator.transform, 'z-index': -1 }"
+        />
+        <GraphEdges :navigator="graphNavigator" @createNodeFromEdge="handleEdgeDrop" />
+        <ComponentBrowser
+          v-if="componentBrowserVisible"
+          ref="componentBrowser"
+          :navigator="graphNavigator"
+          :nodePosition="componentBrowserNodePosition"
+          :usage="componentBrowserUsage"
+          @accepted="commitComponentBrowser"
+          @canceled="hideComponentBrowser"
+        />
+        <TopBar
+          v-model:recordMode="projectStore.recordMode"
+          v-model:showColorPicker="showColorPicker"
+          v-model:showCodeEditor="showCodeEditor"
+          v-model:showDocumentationEditor="showDocumentationEditor"
+          :zoomLevel="100.0 * graphNavigator.targetScale"
+          :componentsSelected="nodeSelection.selected.size"
+          :class="{ extraRightSpace: !showDocumentationEditor }"
+          @recordOnce="onRecordOnceButtonPress()"
+          @fitToAllClicked="zoomToSelected"
+          @zoomIn="graphNavigator.stepZoom(+1)"
+          @zoomOut="graphNavigator.stepZoom(-1)"
+          @collapseNodes="collapseNodes"
+          @removeNodes="deleteSelected"
+        />
+        <PlusButton title="Add Component" @click.stop="addNodeDisconnected()" />
+        <SceneScroller
+          :navigator="graphNavigator"
+          :scrollableArea="Rect.Bounding(...graphStore.visibleNodeAreas)"
+        />
+        <GraphMouse />
+      </div>
+      <BottomPanel v-model:show="showCodeEditor">
+        <Suspense>
+          <CodeEditor ref="codeEditor" />
+        </Suspense>
+      </BottomPanel>
     </div>
-    <div
-      ref="graphNodeSelections"
-      class="layer"
-      :style="{ transform: graphNavigator.transform, 'z-index': -1 }"
-    />
-    <GraphEdges :navigator="graphNavigator" @createNodeFromEdge="handleEdgeDrop" />
-    <DockPanel
-      ref="rightDock"
-      v-model:show="showDocumentationEditor"
-      v-model:size="rightDockWidth"
-      data-testid="rightDock"
-    >
-      <DocumentationEditor
-        :modelValue="documentation.state.value"
-        @update:modelValue="documentation.set"
-      />
+    <DockPanel v-model:show="showDocumentationEditor" v-model:size="rightDockWidth">
+      <template #default="{ toolbar }">
+        <DocumentationEditor
+          ref="docEditor"
+          :modelValue="documentation.state.value"
+          :toolbarContainer="toolbar"
+          @update:modelValue="documentation.set"
+        />
+      </template>
     </DockPanel>
-    <ComponentBrowser
-      v-if="componentBrowserVisible"
-      ref="componentBrowser"
-      :navigator="graphNavigator"
-      :nodePosition="componentBrowserNodePosition"
-      :usage="componentBrowserUsage"
-      @accepted="commitComponentBrowser"
-      @canceled="hideComponentBrowser"
-    />
-    <TopBar
-      v-model:recordMode="projectStore.recordMode"
-      v-model:showColorPicker="showColorPicker"
-      v-model:showCodeEditor="showCodeEditor"
-      v-model:showDocumentationEditor="showDocumentationEditor"
-      :zoomLevel="100.0 * graphNavigator.targetScale"
-      :componentsSelected="nodeSelection.selected.size"
-      @recordOnce="onRecordOnceButtonPress()"
-      @fitToAllClicked="zoomToSelected"
-      @zoomIn="graphNavigator.stepZoom(+1)"
-      @zoomOut="graphNavigator.stepZoom(-1)"
-      @collapseNodes="collapseNodes"
-      @removeNodes="deleteSelected"
-    />
-    <PlusButton title="Add Component" @click.stop="addNodeDisconnected()" />
-    <Transition>
-      <Suspense ref="codeEditorArea">
-        <CodeEditor v-if="showCodeEditor" @close="showCodeEditor = false" />
-      </Suspense>
-    </Transition>
-    <SceneScroller
-      :navigator="graphNavigator"
-      :scrollableArea="Rect.Bounding(...graphStore.visibleNodeAreas)"
-    />
-    <GraphMouse />
   </div>
 </template>
 
 <style scoped>
 .GraphEditor {
-  position: relative;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
   contain: layout;
-  overflow: clip;
   user-select: none;
   /* Prevent touchpad back gesture, which can be triggered while panning. */
   overscroll-behavior-x: none;
+
+  display: flex;
+  flex-direction: row;
+  & :deep(.DockPanel) {
+    flex: none;
+  }
+  & .vertical {
+    flex: auto;
+    min-width: 0;
+  }
+}
+
+.vertical {
+  display: flex;
+  flex-direction: column;
+  & :deep(.BottomPanel) {
+    flex: none;
+  }
+  & .viewport {
+    flex: auto;
+    min-height: 0;
+  }
+}
+
+.viewport {
+  contain: layout;
+  overflow: clip;
   --group-color-fallback: #006b8a;
   --node-color-no-type: #596b81;
 }
@@ -774,5 +801,11 @@ const groupColors = computed(() => {
   left: 0;
   width: 0;
   height: 0;
+  contain: layout size style;
+  will-change: transform;
+}
+
+::selection {
+  background-color: rgba(255, 255, 255, 20%);
 }
 </style>

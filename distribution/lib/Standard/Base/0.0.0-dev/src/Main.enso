@@ -2,8 +2,10 @@ export project.Any.Any
 export project.Data
 export project.Data.Array.Array
 export project.Data.Decimal.Decimal
+export project.Data.Dictionary.Dictionary
 export project.Data.Filter_Condition.Filter_Action
 export project.Data.Filter_Condition.Filter_Condition
+export project.Data.Hashset.Hashset
 export project.Data.Index_Sub_Range.Index_Sub_Range
 export project.Data.Interval.Bound
 export project.Data.Interval.Interval
@@ -25,7 +27,6 @@ export project.Data.Pair.Pair
 export project.Data.Range.Range
 export project.Data.Raw_Response
 export project.Data.Regression
-export project.Data.Set.Set
 export project.Data.Sort_Direction.Sort_Direction
 export project.Data.Statistics.Rank_Method
 export project.Data.Statistics.Statistic
@@ -94,14 +95,12 @@ export project.System.Process
 export project.System.Process.Exit_Code.Exit_Code
 export project.Warning.Warning
 from project.Data.Boolean export Boolean, False, True
-from project.Data.Index_Sub_Range.Index_Sub_Range export First, Last
 from project.Data.Json.Extensions export all
 from project.Data.Numbers export Float, Integer, Number
 from project.Data.Range.Extensions export all
 from project.Data.Statistics.Extensions export all
 from project.Data.Text.Extensions export all
 from project.Data.Text.Regex export regex
-from project.Errors.Problem_Behavior.Problem_Behavior export all
 from project.Function export all
 from project.Meta.Enso_Project export enso_project
 from project.Network.Extensions export all

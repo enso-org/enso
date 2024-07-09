@@ -191,6 +191,7 @@ export default function Autocomplete<T>(props: AutocompleteProps<T>) {
               autoFocus={autoFocus}
               size={1}
               value={text ?? ''}
+              autoComplete="off"
               placeholder={placeholder == null ? placeholder : placeholder}
               className="text grow rounded-full bg-transparent px-button-x"
               onFocus={() => {

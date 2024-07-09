@@ -9,7 +9,6 @@ import * as textProvider from '#/providers/TextProvider'
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 import Modal from '#/components/Modal'
-import ButtonRow from '#/components/styled/ButtonRow'
 
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 
@@ -68,25 +67,25 @@ export default function ConfirmDeleteModal(props: ConfirmDeleteModalProps) {
         }}
       >
         <aria.Text className="relative">{getText('confirmPrompt', actionText)}</aria.Text>
-        <ButtonRow>
+        <ariaComponents.ButtonGroup>
           <ariaComponents.Button
-            size="custom"
-            variant="custom"
-            className="button bg-delete text-white active"
+            size="medium"
+            variant="delete"
+            className="relative"
             onPress={doSubmit}
           >
             {actionButtonLabel}
           </ariaComponents.Button>
           <ariaComponents.Button
-            size="custom"
-            variant="custom"
+            size="medium"
+            variant="cancel"
             autoFocus
-            className="button bg-selected-frame active"
+            className="relative"
             onPress={unsetModal}
           >
             {getText('cancel')}
           </ariaComponents.Button>
-        </ButtonRow>
+        </ariaComponents.ButtonGroup>
       </form>
     </Modal>
   )

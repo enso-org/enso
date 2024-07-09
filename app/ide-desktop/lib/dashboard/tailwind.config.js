@@ -7,7 +7,6 @@ import plugin from 'tailwindcss/plugin.js'
 /* eslint-disable no-restricted-syntax, @typescript-eslint/naming-convention, @typescript-eslint/no-magic-numbers */
 export default /** @satisfies {import('tailwindcss').Config} */ ({
   content: ['./src/**/*.tsx', './src/**/*.ts'],
-  important: `:is(.enso-dashboard, .enso-chat, .enso-portal-root)`,
   theme: {
     extend: {
       cursor: {
@@ -598,9 +597,6 @@ inset 0 -36px 51px -51px #00000014`,
           },
           '.text-subheading': {
             '@apply text-xl leading-snug py-0.5': '',
-          },
-          '.settings-value': {
-            '@apply leading-cozy h-text py-px px-2': '',
           },
         },
         {

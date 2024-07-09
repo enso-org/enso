@@ -112,9 +112,9 @@ json_object = json.first
 list : List
 list = List.Cons 1 (List.Cons 2 (List.Cons 3 List.Nil))
 
-## A simple map that contains some numbers mapped to their word equivalents.
-map : Map
-map = Map.empty . insert 1 "one" . insert 3 "three" . insert 5 "five"
+## A simple dictionary that contains some numbers mapped to their word equivalents.
+dictionary : Dictionary
+dictionary = Dictionary.empty . insert 1 "one" . insert 3 "three" . insert 5 "five"
 
 ## A dummy type that is used for example purposes.
 type No_Methods

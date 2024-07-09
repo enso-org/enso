@@ -222,6 +222,7 @@ const contentStyle = computed(() => {
 
 .content {
   overflow: auto;
+  contain: strict;
 }
 
 .content.overflow {

@@ -176,7 +176,7 @@ add_specs suite_builder setup =
             err2.catch.expression_error . should_be_a Expression_Error.Syntax_Error
 
         group_builder.specify "should not allow Group_By for values" <|
-            err1 = data.table.cross_tab [] "Key" values=[Aggregate_Column.Count, Aggregate_Column.Group_By "Value"] on_problems=Problem_Behavior.Ignore
+            err1 = data.table.cross_tab [] "Key" values=[Aggregate_Column.Count, Aggregate_Column.Group_By "Value"] on_problems=..Ignore
             err1.should_fail_with Illegal_Argument
 
         group_builder.specify "should gracefully handle duplicate aggregate names" <|
@@ -186,7 +186,7 @@ add_specs suite_builder setup =
             problems = [Duplicate_Output_Column_Names.Error ["x Agg1", "y Agg1", "z Agg1"]]
             Problems.test_problem_handling action problems tester
 
-            table3 = data.table2.rename_columns (Map.from_vector [["Group", "x"]])
+            table3 = data.table2.rename_columns (Dictionary.from_vector [["Group", "x"]])
             action3 = table3.cross_tab ["x"] "Key" on_problems=_
             tester3 table =
                 table.column_names . should_equal ["x", "x 1", "y", "z"]

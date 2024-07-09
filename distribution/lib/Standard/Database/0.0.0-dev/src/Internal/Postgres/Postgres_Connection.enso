@@ -227,7 +227,7 @@ type Postgres_Connection
          a `Dry_Run_Operation` warning attached.
     @structure make_structure_creator
     create_table : Text  -> Vector Column_Description | DB_Table | Table -> Vector Text | Nothing -> Boolean -> Boolean -> Problem_Behavior -> DB_Table ! Table_Already_Exists
-    create_table self (table_name : Text) (structure : Vector Column_Description | DB_Table | Table) (primary_key : (Vector Text | Nothing) = [first_column_name_in_structure structure]) (temporary : Boolean = False) (allow_existing : Boolean = False) (on_problems:Problem_Behavior = Problem_Behavior.Report_Warning) =
+    create_table self (table_name : Text) (structure : Vector Column_Description | DB_Table | Table) (primary_key : (Vector Text | Nothing) = [first_column_name_in_structure structure]) (temporary : Boolean = False) (allow_existing : Boolean = False) (on_problems:Problem_Behavior = ..Report_Warning) =
         self.connection.create_table table_name structure primary_key temporary allow_existing on_problems
 
     ## ADVANCED
@@ -287,7 +287,7 @@ type Postgres_Connection
         self.data_link_setup.save_as_data_link destination on_existing_file
 
     ## PRIVATE
-      Converts this value to a JSON serializable object.
+       Converts this value to a JSON serializable object.
     to_js_object : JS_Object
     to_js_object self =
         JS_Object.from_pairs [["type", "Postgres_Connection"], ["links", self.connection.tables.at "Name" . to_vector]]    

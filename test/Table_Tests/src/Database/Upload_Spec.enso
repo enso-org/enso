@@ -259,7 +259,7 @@ add_specs suite_builder make_new_connection prefix persistent_connector=True =
 
             logs = log_file.read ..Plain_Text . lines
             deletes = logs.filter (_.contains "DROP")
-            wrapped_name = data.connection.dialect.wrap_identifier original_table_name
+            wrapped_name = data.connection.dialect.wrap_identifier original_table_name . build . unsafe_to_raw_sql
             deletes.each line->
                 if line.contains wrapped_name then
                     Test.fail "The log file contains a dangerous DELETE statement for the original table: "+line
@@ -562,7 +562,7 @@ add_specs suite_builder make_new_connection prefix persistent_connector=True =
                 e2.clashing_example_key_values.length . should_equal 1
                 x = e2.clashing_example_key_values.first
                 [1, 2, 3].should_contain x
-                counts = Map.from_vector [[1, 2], [2, 4], [3, 2]]
+                counts = Dictionary.from_vector [[1, 2], [2, 4], [3, 2]]
                 e2.clashing_example_row_count . should_equal (counts.at x)
 
             # Will not find clashes if they are not in the first 1000 rows, in Output disabled mode.
@@ -1201,14 +1201,14 @@ test_table_append group_builder (data : Data) source_table_builder target_table_
 
         ## If there are some additional tables, we add some timeout to allow
            the database to do the cleaning up.
-        additional_tables = (Set.from_vector tables_immediately_after).difference (Set.from_vector existing_tables)
+        additional_tables = (Hashset.from_vector tables_immediately_after).difference (Hashset.from_vector existing_tables)
         if additional_tables.is_empty then Nothing else
             additional_table = additional_tables.to_vector.first
 
             wait_until_temporary_table_is_deleted_after_closing_connection data.connection additional_table
             # After the wait we check again and now there should be no additional tables.
             tables_after_wait = data.connection.base_connection.get_tables_advanced types=Nothing include_hidden=True . at "Name" . to_vector
-            additional_tables_2 = (Set.from_vector tables_after_wait).difference (Set.from_vector existing_tables)
+            additional_tables_2 = (Hashset.from_vector tables_after_wait).difference (Hashset.from_vector existing_tables)
             additional_tables_2.to_vector . should_equal []
 
 

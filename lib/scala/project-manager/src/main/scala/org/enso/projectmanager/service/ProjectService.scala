@@ -108,7 +108,7 @@ class ProjectService[
       id        = projectId,
       name      = name,
       module    = moduleName,
-      namespace = Config.defaultNamespace,
+      namespace = Config.DefaultNamespace,
       kind      = UserProject,
       created   = creationTime,
       edition   = None,

@@ -20,7 +20,7 @@ polyglot java import org.enso.table.operations.AddRunning
 
 ## PRIVATE
 add_running : Table -> Statistic -> (Text|Integer) -> Text -> Vector (Text | Integer | Regex) | Text | Integer | Regex -> Vector (Text | Sort_Column) | Text -> Problem_Behavior -> Table
-add_running table (statistic:Statistic=Statistic.Count) (of:Text|Integer=0) (as:Text='') (group_by:(Vector | Text | Integer | Regex)=[]) (order_by:(Vector | Text)=[]) (on_problems:Problem_Behavior=Problem_Behavior.Report_Warning) =
+add_running table (statistic:Statistic=Statistic.Count) (of:Text|Integer=0) (as:Text='') (group_by:(Vector | Text | Integer | Regex)=[]) (order_by:(Vector | Text)=[]) (on_problems:Problem_Behavior=..Report_Warning) =
     check_running_support [statistic] <|
         of_col = table.at of
         new_name = if as.is_empty then 'Running ' + statistic.to_text + ' of ' + of_col.name else as   

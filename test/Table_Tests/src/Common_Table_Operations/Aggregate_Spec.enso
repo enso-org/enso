@@ -1,4 +1,4 @@
-from Standard.Base import all hiding First, Last
+from Standard.Base import all
 
 from Standard.Table import Table, Sort_Column, expr
 from Standard.Table.Aggregate_Column.Aggregate_Column import all
@@ -1454,9 +1454,9 @@ add_specs suite_builder setup =
             problems1 = [Invalid_Aggregate_Column.Error "[MISSING]*[MISSING]" (No_Such_Column.Error "MISSING")]
             Problems.test_problem_handling action1 problems1 tester1
 
-            t2 = data.table.aggregate ["Index"] [Sum "Value", Sum (expr "[[[")] on_problems=Problem_Behavior.Ignore
+            t2 = data.table.aggregate ["Index"] [Sum "Value", Sum (expr "[[[")] on_problems=..Ignore
             expect_column_names ["Index", "Sum Value"] t2
-            err3 = data.table.aggregate ["Index"] [Sum "Value", Sum (expr "[[[")] on_problems=Problem_Behavior.Report_Error
+            err3 = data.table.aggregate ["Index"] [Sum "Value", Sum (expr "[[[")] on_problems=..Report_Error
             err3.should_fail_with Invalid_Aggregate_Column
             err3.catch.name . should_equal "[[["
             err3.catch.expression_error . should_be_a Expression_Error.Syntax_Error
@@ -1495,11 +1495,11 @@ add_specs suite_builder setup =
             t3.catch.criteria.should_equal [42]
 
         group_builder.specify "should raise a warning when can't find a column by name, but a hard error if the missing column is in group_by" <|
-            err1 = table.aggregate ["Missing", "Index", "Other_Missing"] on_problems=Problem_Behavior.Ignore
+            err1 = table.aggregate ["Missing", "Index", "Other_Missing"] on_problems=..Ignore
             err1.should_fail_with Invalid_Aggregate_Column
             err1.catch.name . should_equal "Missing"
 
-            t1 = table.aggregate ["Index"] [Sum "Value", Sum "Missing"] on_problems=Problem_Behavior.Report_Warning
+            t1 = table.aggregate ["Index"] [Sum "Value", Sum "Missing"] on_problems=..Report_Warning
             t1.column_names . should_equal ["Index", "Sum Value"]
             warnings = Problems.get_attached_warnings t1
             warnings.not_empty . should_be_true
@@ -1508,15 +1508,15 @@ add_specs suite_builder setup =
 
             ## Even if there are missing columns both for group-by and
                aggregations, the groupby errors are reported separately.
-            err2 = table.aggregate ["Index", "Unknown", "Other Missing"] [Sum "Value", Sum "Missing"] on_problems=Problem_Behavior.Report_Error
+            err2 = table.aggregate ["Index", "Unknown", "Other Missing"] [Sum "Value", Sum "Missing"] on_problems=..Report_Error
             err2.should_fail_with Invalid_Aggregate_Column
             err2.catch.name.should_equal "Unknown"
 
-            err3 = table.aggregate ["Index"] [Sum "Value", Sum "Missing"] on_problems=Problem_Behavior.Ignore error_on_missing_columns=True
+            err3 = table.aggregate ["Index"] [Sum "Value", Sum "Missing"] on_problems=..Ignore error_on_missing_columns=True
             err3.should_fail_with Invalid_Aggregate_Column
             err3.catch.name.should_equal "Missing"
 
-            err4 = table.aggregate [100, "Index", -42] on_problems=Problem_Behavior.Ignore
+            err4 = table.aggregate [100, "Index", -42] on_problems=..Ignore
             err4.should_fail_with Missing_Input_Columns
             err4.catch.criteria.should_equal [100, -42]
 
@@ -1526,11 +1526,11 @@ add_specs suite_builder setup =
             Problems.test_problem_handling action2 problems2 tester2
 
             # As above, missing errors from group-by take precedence over aggregates.
-            err5 = table.aggregate ["Index", 55, -33] [Sum "Value", Sum 144] on_problems=Problem_Behavior.Report_Error
+            err5 = table.aggregate ["Index", 55, -33] [Sum "Value", Sum 144] on_problems=..Report_Error
             err5.should_fail_with Missing_Input_Columns
             err5.catch.criteria.should_equal [55, -33]
 
-            err6 = table.aggregate ["Index"] [Sum "Value", Sum 42] on_problems=Problem_Behavior.Ignore error_on_missing_columns=True
+            err6 = table.aggregate ["Index"] [Sum "Value", Sum 42] on_problems=..Ignore error_on_missing_columns=True
             err6.catch . should_equal (Missing_Input_Columns.Error [42])
 
         group_builder.specify "should raise a warning when a duplicate column name" <|
@@ -1590,7 +1590,7 @@ add_specs suite_builder setup =
             False ->
                 group_builder.specify "should error if unsupported operations are selected" <|
                     t1 = table_builder [["X", [1.5, 2.0, 1.5, 1.0]]]
-                    t2 = t1.aggregate columns=[Mode "X"] on_problems=Problem_Behavior.Ignore
+                    t2 = t1.aggregate columns=[Mode "X"] on_problems=..Ignore
                     t2.should_fail_with No_Output_Columns
 
         group_builder.specify "should check types" <|
@@ -1643,7 +1643,7 @@ add_specs suite_builder setup =
         group_builder.specify "should not fail if trying concatenate unquoted delimiters with no separator" <|
             column = Concatenate "Text" separator=""
             t = table_builder [["Text", ["A", "BC", "def"]]]
-            result = t.aggregate columns=[column] on_problems=Report_Error
+            result = t.aggregate columns=[column] on_problems=..Report_Error
             Problems.assume_no_problems result
             result.column_names . should_equal ["Concatenate Text"]
             result.at "Concatenate Text" . to_vector . should_equal ["ABCdef"]
