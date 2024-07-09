@@ -36,17 +36,17 @@ test.test('drive view', ({ page }) =>
         .driveTable.withRows(async rows => {
           await actions.locateStopProjectButton(rows.nth(0)).click()
         })
-        // FIXME(#10488): This test fails because the mock endpoint returns the project is opened,
-        //                but it must be stopped first to delete the project.
-        // Project context menu
-        // .driveTable.rightClickRow(0)
-        // .withContextMenus(async menus => {
-        //   // actions.locateContextMenus(page)
-        //   await test.expect(menus).toBeVisible()
-        // })
-        // .contextMenu.moveToTrash()
-        // .driveTable.withRows(async rows => {
-        //   await test.expect(rows).toHaveCount(1)
-        // })
+    // FIXME(#10488): This test fails because the mock endpoint returns the project is opened,
+    //                but it must be stopped first to delete the project.
+    // Project context menu
+    // .driveTable.rightClickRow(0)
+    // .withContextMenus(async menus => {
+    //   // actions.locateContextMenus(page)
+    //   await test.expect(menus).toBeVisible()
+    // })
+    // .contextMenu.moveToTrash()
+    // .driveTable.withRows(async rows => {
+    //   await test.expect(rows).toHaveCount(1)
+    // })
   )
 )
