@@ -318,6 +318,14 @@ main = Nothing
           return true;
         }
       }
+      if (v.hasMembers() && v.getMember("__proto__") != null) {
+        if (v.hasHashEntries()) {
+          assertEquals("JavaScript hash map is called Map", "Map", metaName);
+          assertEquals(
+              "JavaScript hash map is seen as Dictionary by Enso", "Dictionary", simpleName);
+          return true;
+        }
+      }
       if (v.isString()) {
         assertEquals("Text", simpleName);
         return true;
