@@ -1,15 +1,20 @@
 /** @file Switcher to choose the currently visible full-screen page. */
 import * as React from 'react'
 
+import * as reactQuery from '@tanstack/react-query'
 import invariant from 'tiny-invariant'
 
 import type * as text from '#/text'
 
 import * as textProvider from '#/providers/TextProvider'
 
+import * as dashboard from '#/pages/dashboard/Dashboard'
+
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 import FocusArea from '#/components/styled/FocusArea'
+
+import * as backend from '#/services/Backend'
 
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 
@@ -162,22 +167,22 @@ const Tabs = React.forwardRef(TabsInternal)
 
 /** Props for a {@link Tab}. */
 interface InternalTabProps extends Readonly<React.PropsWithChildren> {
+  readonly project?: dashboard.Project
   readonly isActive: boolean
   readonly icon: string
   readonly labelId: text.TextId
-  /** When the promise is in flight, the tab icon will instead be a loading spinner. */
-  readonly loadingPromise?: Promise<unknown>
   readonly onPress: () => void
   readonly onClose?: () => void
+  readonly onLoadEnd?: () => void
 }
 
 /** A tab in a {@link TabBar}. */
 export function Tab(props: InternalTabProps) {
-  const { isActive, icon, labelId, loadingPromise, children, onPress, onClose } = props
+  const { isActive, icon, labelId, children, onPress, onClose, project, onLoadEnd } = props
   const { updateClipPath, observeElement } = useTabBarContext()
   const ref = React.useRef<HTMLDivElement | null>(null)
+  const isLoadingRef = React.useRef(true)
   const { getText } = textProvider.useText()
-  const [isLoading, setIsLoading] = React.useState(loadingPromise != null)
 
   React.useLayoutEffect(() => {
     if (isActive) {
@@ -193,21 +198,21 @@ export function Tab(props: InternalTabProps) {
     }
   }, [observeElement])
 
+  const { isLoading, data } = reactQuery.useQuery<backend.Project>(
+    project?.id
+      ? dashboard.createGetProjectDetailsQuery.createPassiveListener(project.id)
+      : { queryKey: ['__IGNORE__'], queryFn: reactQuery.skipToken }
+  )
+
+  const isFetching =
+    (isLoading || (data && data.state.type !== backend.ProjectState.opened)) ?? false
+
   React.useEffect(() => {
-    if (loadingPromise) {
-      setIsLoading(true)
-      loadingPromise.then(
-        () => {
-          setIsLoading(false)
-        },
-        () => {
-          setIsLoading(false)
-        }
-      )
-    } else {
-      setIsLoading(false)
+    if (!isFetching && isLoadingRef.current) {
+      isLoadingRef.current = false
+      onLoadEnd?.()
     }
-  }, [loadingPromise])
+  }, [isFetching, onLoadEnd])
 
   return (
     <div
@@ -224,7 +229,7 @@ export function Tab(props: InternalTabProps) {
         icon={icon}
         isDisabled={false}
         isActive={isActive}
-        loading={isActive ? false : isLoading}
+        loading={isActive ? false : isFetching}
         aria-label={getText(labelId)}
         className={tailwindMerge.twMerge('h-full', onClose ? 'pl-4' : 'px-4')}
         contentClassName="gap-3"

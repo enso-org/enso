@@ -41,7 +41,7 @@ interface PropsWithoutHref {
 export interface BaseButtonProps<Render>
   extends Omit<twv.VariantProps<typeof BUTTON_STYLES>, 'iconOnly'> {
   /** Falls back to `aria-label`. Pass `false` to explicitly disable the tooltip. */
-  readonly tooltip?: React.ReactElement | string | false
+  readonly tooltip?: React.ReactElement | string | false | null
   readonly tooltipPlacement?: aria.Placement
   /**
    * The icon to display in the button
@@ -219,6 +219,12 @@ export const BUTTON_STYLES = twv.tv({
       },
       false: {
         extraClickZone: '',
+      },
+      xxsmall: {
+        extraClickZone: 'after:inset-[-2px]',
+      },
+      xsmall: {
+        extraClickZone: 'after:inset-[-4px]',
       },
       small: {
         extraClickZone: 'after:inset-[-6px]',

@@ -308,6 +308,7 @@
   "openInfoMenu": "Open info menu",
   "noProjectIsCurrentlyOpen": "No project is currently open.",
   "offlineTitle": "You are offline",
+  "offlineErrorMessage": "It seems like you are offline. Please make sure you are connected to the internet and try again",
   "offlineToastMessage": "You are offline. Some features may be unavailable.",
   "onlineToastMessage": "You are back online.",
   "unavailableOffline": "This feature is unavailable offline.",

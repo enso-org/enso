@@ -200,7 +200,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
             </form>
           )}
         </div>
-      </div>
+      </div>{' '}
       {!isCloud && (
         <div className="pointer-events-auto flex flex-col items-start gap-side-panel-section">
           <aria.Heading
@@ -237,23 +237,23 @@ export default function AssetProperties(props: AssetPropertiesProps) {
           <table>
             <tbody>
               <tr data-testid="asset-panel-permissions" className="h-row">
-                <td className="text my-auto min-w-side-panel-label p-0">
+                <td className="text my-auto min-w-side-panel-label p">
                   <aria.Label className="text inline-block">{getText('sharedWith')}</aria.Label>
                 </td>
-                <td className="w-full p-0">
+                <td className="w-full p">
                   <SharedWithColumn
                     isReadonly={isReadonly}
                     item={item}
                     setItem={setItem}
-                    state={{ backend, category, dispatchAssetEvent, setQuery: () => {} }}
+                    state={{ category, dispatchAssetEvent, setQuery: () => {} }}
                   />
                 </td>
               </tr>
               <tr data-testid="asset-panel-labels" className="h-row">
-                <td className="text my-auto min-w-side-panel-label p-0">
+                <td className="text my-auto min-w-side-panel-label p">
                   <aria.Label className="text inline-block">{getText('labels')}</aria.Label>
                 </td>
-                <td className="w-full p-0">
+                <td className="w-full p">
                   {item.item.labels?.map(value => {
                     const label = labels.find(otherLabel => otherLabel.value === value)
                     return label == null ? null : (

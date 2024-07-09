@@ -20,6 +20,7 @@ export interface AssetNameColumnProps extends column.AssetColumnProps {}
 /** The icon and name of an {@link backendModule.Asset}. */
 export default function AssetNameColumn(props: AssetNameColumnProps) {
   const { item } = props
+
   switch (item.item.type) {
     case backendModule.AssetType.directory: {
       return <DirectoryNameColumn {...props} />
