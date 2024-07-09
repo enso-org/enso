@@ -74,12 +74,11 @@ type Redshift_Dialect
     wrap_identifier self identifier =
         Base_Generator.wrap_in_quotes identifier
 
-   ## PRIVATE
-      Generates a SQL expression for a table literal.
-   make_table_literal : Vector (Vector Text) -> Vector Text -> Text -> SQL_Builder
-   make_table_literal self vecs column_names as_name =
-       Base_Generator.default_make_table_literal self.wrap_identifier vecs column_names as_name
-
+    ## PRIVATE
+       Generates a SQL expression for a table literal.
+    make_table_literal : Vector (Vector Text) -> Vector Text -> Text -> SQL_Builder
+    make_table_literal self vecs column_names as_name =
+        Base_Generator.default_make_table_literal self.wrap_identifier vecs column_names as_name
 
     ## PRIVATE
        Prepares an ordering descriptor.

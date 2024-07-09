@@ -18,7 +18,7 @@ import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.PanicException;
 
 @BuiltinMethod(
-    type = "Map",
+    type = "Dictionary",
     name = "insert",
     description =
         """

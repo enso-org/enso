@@ -1,4 +1,4 @@
-from Standard.Base import all hiding First, Last
+from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Runtime.Ref.Ref
@@ -64,6 +64,8 @@ type SQLite_Dialect
     generate_sql self query =
         Base_Generator.generate_query self query . build
 
+    ## PRIVATE
+       Generates SQL to truncate a table.
     generate_truncate_table_sql : Text -> SQL_Builder
     generate_truncate_table_sql self table_name =
         Base_Generator.truncate_table_delete_from_style self table_name
@@ -123,7 +125,7 @@ type SQLite_Dialect
         inner_table_alias = table_name_deduplicator.make_unique table.name+"_inner"
         setup = table.context.as_subquery inner_table_alias [table.internal_columns]
         new_columns = setup.new_columns.first
-        column_mapping = Map.from_vector <| new_columns.map c-> [c.name, c]
+        column_mapping = Dictionary.from_vector <| new_columns.map c-> [c.name, c]
         new_key_columns = key_columns.map c-> column_mapping.at c.name
         type_mapping = self.get_type_mapping
         distinct_expressions = new_key_columns.map column->
@@ -445,10 +447,10 @@ mod_op = Base_Generator.lift_binary_op "MOD" x-> y->
     x ++ " - FLOOR(CAST(" ++ x ++ " AS REAL) / CAST(" ++ y ++ " AS REAL)) * " ++ y
 
 ## PRIVATE
-supported_replace_params : Set Replace_Params
+supported_replace_params : Hashset Replace_Params
 supported_replace_params =
     e = [Replace_Params.Value Text Case_Sensitivity.Default False, Replace_Params.Value Text Case_Sensitivity.Sensitive False, Replace_Params.Value Text Case_Sensitivity.Default True, Replace_Params.Value Text Case_Sensitivity.Sensitive True, Replace_Params.Value Text Case_Sensitivity.Insensitive True]
-    Set.from_vector e
+    Hashset.from_vector e
 
 ## PRIVATE
 replace : Vector SQL_Builder -> Any -> SQL_Builder

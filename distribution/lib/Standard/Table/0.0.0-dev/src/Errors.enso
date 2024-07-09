@@ -755,7 +755,7 @@ type Truncated_Column_Names
     ## PRIVATE
        Indicates that some column names were truncated to fit the maximum length
        supported by the backend.
-    Warning (names_map : Map Text Text)
+    Warning (names_map : Dictionary Text Text)
 
     ## PRIVATE
        Get the original column names.

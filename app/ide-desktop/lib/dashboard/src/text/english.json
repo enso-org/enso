@@ -222,6 +222,8 @@
   "resetAll": "Reset All",
   "openHelpChat": "Open Help Chat",
   "organization": "Organization",
+  "metadata": "Metadata",
+  "path": "Path",
 
   "enterSecretPath": "Enter secret path",
   "enterText": "Enter text",
@@ -268,7 +270,7 @@
   "newFolder": "New Folder",
   "newProject": "New Project",
   "uploadFiles": "Import",
-  "downloadFiles": "Export",
+  "downloadFiles": "Download",
   "newDatalink": "New Datalink",
   "newSecret": "New Secret",
   "newLabel": "New Label",

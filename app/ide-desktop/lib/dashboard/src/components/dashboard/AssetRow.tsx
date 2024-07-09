@@ -511,7 +511,7 @@ export default function AssetRow(props: AssetRowProps) {
         }
         case AssetEventType.download:
         case AssetEventType.downloadSelected: {
-          if (event.type === AssetEventType.downloadSelected ? selected : event.ids.has(item.key)) {
+          if (event.type === AssetEventType.downloadSelected ? selected : event.ids.has(asset.id)) {
             if (isCloud) {
               switch (asset.type) {
                 case backendModule.AssetType.project: {
