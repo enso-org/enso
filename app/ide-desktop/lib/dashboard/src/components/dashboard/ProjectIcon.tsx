@@ -13,6 +13,7 @@ import * as textProvider from '#/providers/TextProvider'
 import * as dashboard from '#/pages/dashboard/Dashboard'
 
 import * as ariaComponents from '#/components/AriaComponents'
+import Spinner from '#/components/Spinner'
 import StatelessSpinner, * as spinner from '#/components/StatelessSpinner'
 
 import * as backendModule from '#/services/Backend'
@@ -150,7 +151,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
       return (
         <div className="relative flex">
           <ariaComponents.Button
-            size="custom"
+            size="large"
             variant="icon"
             extraClickZone="xsmall"
             isDisabled={isOtherUserUsingProject}
@@ -166,7 +167,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
           <StatelessSpinner
             state={spinnerState}
             className={tailwindMerge.twMerge(
-              'pointer-events-none absolute top-0 size-project-icon',
+              'pointer-events-none absolute inset-0',
               isRunningInBackground && 'text-green'
             )}
           />
@@ -177,7 +178,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
         <div className="flex flex-row gap-0.5">
           <div className="relative flex">
             <ariaComponents.Button
-              size="custom"
+              size="large"
               variant="icon"
               extraClickZone="xsmall"
               isDisabled={isOtherUserUsingProject}
@@ -190,11 +191,18 @@ export default function ProjectIcon(props: ProjectIconProps) {
                 doCloseProject(item.id)
               }}
             />
+            <Spinner
+              state={spinner.SpinnerState.done}
+              className={tailwindMerge.twMerge(
+                'pointer-events-none absolute inset-0',
+                isRunningInBackground && 'text-green'
+              )}
+            />
           </div>
 
           {!isOtherUserUsingProject && !isRunningInBackground && (
             <ariaComponents.Button
-              size="custom"
+              size="large"
               variant="icon"
               extraClickZone="xsmall"
               icon={ArrowUpIcon}

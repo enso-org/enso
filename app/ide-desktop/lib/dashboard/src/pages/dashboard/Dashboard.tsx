@@ -596,6 +596,9 @@ export default function Dashboard(props: DashboardProps) {
                   onClose={() => {
                     doCloseProject(project)
                   }}
+                  onLoadEnd={() => {
+                    doOpenEditor(project.id)
+                  }}
                 >
                   {project.title}
                 </tabBar.Tab>

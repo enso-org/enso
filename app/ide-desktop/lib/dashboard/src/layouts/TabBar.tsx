@@ -173,13 +173,15 @@ interface InternalTabProps extends Readonly<React.PropsWithChildren> {
   readonly labelId: text.TextId
   readonly onPress: () => void
   readonly onClose?: () => void
+  readonly onLoadEnd?: () => void
 }
 
 /** A tab in a {@link TabBar}. */
 export function Tab(props: InternalTabProps) {
-  const { isActive, icon, labelId, children, onPress, onClose, project } = props
+  const { isActive, icon, labelId, children, onPress, onClose, project, onLoadEnd } = props
   const { updateClipPath, observeElement } = useTabBarContext()
   const ref = React.useRef<HTMLDivElement | null>(null)
+  const isLoadingRef = React.useRef(true)
   const { getText } = textProvider.useText()
 
   React.useLayoutEffect(() => {
@@ -202,7 +204,15 @@ export function Tab(props: InternalTabProps) {
       : { queryKey: ['__IGNORE__'], queryFn: reactQuery.skipToken }
   )
 
-  const isFetching = isLoading || (data && data.state.type !== backend.ProjectState.opened)
+  const isFetching =
+    (isLoading || (data && data.state.type !== backend.ProjectState.opened)) ?? false
+
+  React.useEffect(() => {
+    if (!isFetching && isLoadingRef.current) {
+      isLoadingRef.current = false
+      onLoadEnd?.()
+    }
+  }, [isFetching, onLoadEnd])
 
   return (
     <div
