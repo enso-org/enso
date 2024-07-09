@@ -52,8 +52,16 @@ export default function EventListProvider(props: EventListProviderProps) {
     }))
   )
 
-  React.useLayoutEffect(() => {
-    store.setState({ assetEvents: [], assetListEvents: [] })
+  store.subscribe(state => {
+    // Run after the next render.
+    setTimeout(() => {
+      if (state.assetEvents.length) {
+        store.setState({ assetEvents: [] })
+      }
+      if (state.assetListEvents.length) {
+        store.setState({ assetListEvents: [] })
+      }
+    })
   })
 
   return <EventListContext.Provider value={store}>{children}</EventListContext.Provider>
@@ -78,7 +86,8 @@ function useEventList() {
 
 /** A function to add a new reactive event. */
 export function useDispatchAssetEvent() {
-  return zustand.useStore(useEventList(), state => state.dispatchAssetEvent)
+  const store = useEventList()
+  return zustand.useStore(store, state => state.dispatchAssetEvent)
 }
 
 // =================================
@@ -87,7 +96,8 @@ export function useDispatchAssetEvent() {
 
 /** A function to add a new reactive event. */
 export function useDispatchAssetListEvent() {
-  return zustand.useStore(useEventList(), state => state.dispatchAssetListEvent)
+  const store = useEventList()
+  return zustand.useStore(store, state => state.dispatchAssetListEvent)
 }
 
 // =============================
@@ -98,9 +108,16 @@ export function useDispatchAssetListEvent() {
 export function useAssetEventListener(
   callback: (event: assetEvent.AssetEvent) => Promise<void> | void
 ) {
-  useEventList().subscribe(state => {
-    for (const event of state.assetEvents) {
-      void callback(event)
+  const store = useEventList()
+  const [seen] = React.useState(new WeakSet())
+  store.subscribe((state, prevState) => {
+    if (state.assetEvents !== prevState.assetEvents) {
+      for (const event of state.assetEvents) {
+        if (!seen.has(event)) {
+          seen.add(event)
+          void callback(event)
+        }
+      }
     }
   })
 }
@@ -113,9 +130,16 @@ export function useAssetEventListener(
 export function useAssetListEventListener(
   callback: (event: assetListEvent.AssetListEvent) => Promise<void> | void
 ) {
-  useEventList().subscribe(state => {
-    for (const event of state.assetListEvents) {
-      void callback(event)
+  const store = useEventList()
+  const [seen] = React.useState(new WeakSet())
+  store.subscribe((state, prevState) => {
+    if (state.assetListEvents !== prevState.assetListEvents) {
+      for (const event of state.assetListEvents) {
+        if (!seen.has(event)) {
+          seen.add(event)
+          void callback(event)
+        }
+      }
     }
   })
 }
