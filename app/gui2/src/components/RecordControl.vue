@@ -11,7 +11,7 @@ const emit = defineEmits<{ recordOnce: []; 'update:recordMode': [enabled: boolea
     <div class="control left-end">
       <ToggleIcon
         icon="record"
-        class="iconButton"
+        class="iconButton record"
         title="Record"
         :modelValue="props.recordMode"
         @update:modelValue="emit('update:recordMode', $event)"
@@ -20,7 +20,7 @@ const emit = defineEmits<{ recordOnce: []; 'update:recordMode': [enabled: boolea
     <div class="control right-end">
       <SvgButton
         title="Record Once"
-        class="iconButton"
+        class="iconButton record"
         name="record_once"
         draggable="false"
         @click.stop="() => emit('recordOnce')"
@@ -60,10 +60,6 @@ const emit = defineEmits<{ recordOnce: []; 'update:recordMode': [enabled: boolea
     margin: 0 auto 0 0;
     --icon-width: 24px;
   }
-}
-
-.toggledOn {
-  color: #ba4c40;
 }
 
 .iconButton:active {

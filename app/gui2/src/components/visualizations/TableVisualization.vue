@@ -39,7 +39,7 @@ export const defaultPreprocessor = [
   '1000',
 ] as const
 
-type Data = Error | Matrix | ObjectMatrix | UnknownTable | Excel_Workbook
+type Data = number | string | Error | Matrix | ObjectMatrix | UnknownTable | Excel_Workbook
 
 interface Error {
   type: undefined

@@ -211,8 +211,6 @@ const nodeSelection = provideGraphSelection(
   graphStore.isPortEnabled,
   {
     isValid: (id) => graphStore.db.nodeIdToNode.has(id),
-    pack: (id) => graphStore.db.nodeIdToNode.get(id)?.rootExpr.externalId,
-    unpack: (eid) => asNodeId(graphStore.db.idFromExternal(eid)),
     onSelected: (id) => graphStore.db.moveNodeToTop(id),
   },
 )
@@ -586,21 +584,21 @@ function collapseNodes() {
     }
     const selectedNodeRects = filterDefined(Array.from(selected, graphStore.visibleArea))
     graphStore.edit((edit) => {
-      const { refactoredNodeId, collapsedNodeIds, outputNodeId } = performCollapse(
+      const { refactoredExpressionAstId, collapsedNodeIds, outputNodeId } = performCollapse(
         info.value,
         edit.getVersion(topLevel),
         graphStore.db,
         currentMethodName,
       )
       const position = collapsedNodePlacement(selectedNodeRects)
-      edit.get(refactoredNodeId).mutableNodeMetadata().set('position', position.xy())
+      edit.get(refactoredExpressionAstId).mutableNodeMetadata().set('position', position.xy())
       if (outputNodeId != null) {
         const collapsedNodeRects = filterDefined(
           Array.from(collapsedNodeIds, graphStore.visibleArea),
         )
         const { place } = usePlacement(collapsedNodeRects, graphNavigator.viewport)
         const position = place(collapsedNodeRects)
-        edit.get(outputNodeId).mutableNodeMetadata().set('position', position.xy())
+        edit.get(refactoredExpressionAstId).mutableNodeMetadata().set('position', position.xy())
       }
     })
   } catch (err) {
@@ -805,7 +803,7 @@ const groupColors = computed(() => {
   will-change: transform;
 }
 
-::selection {
+.layer.nodes:deep(::selection) {
   background-color: rgba(255, 255, 255, 20%);
 }
 </style>

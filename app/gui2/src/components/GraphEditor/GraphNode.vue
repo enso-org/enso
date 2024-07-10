@@ -20,10 +20,10 @@ import SmallPlusButton from '@/components/SmallPlusButton.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import { useDoubleClick } from '@/composables/doubleClick'
 import { usePointer, useResizeObserver } from '@/composables/events'
-import { useKeyboard } from '@/composables/keyboard'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
 import { injectNodeColors } from '@/providers/graphNodeColors'
 import { injectGraphSelection } from '@/providers/graphSelection'
+import { injectKeyboard } from '@/providers/keyboard'
 import { useGraphStore, type Node } from '@/stores/graph'
 import { asNodeId } from '@/stores/graph/graphDatabase'
 import { useProjectStore } from '@/stores/project'
@@ -36,7 +36,16 @@ import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import { displayedIconOf } from '@/util/getIconName'
 import type { ExternalId, VisualizationIdentifier } from 'shared/yjsModel'
-import { computed, onUnmounted, ref, shallowRef, watch, watchEffect } from 'vue'
+import {
+  computed,
+  getCurrentInstance,
+  onBeforeUnmount,
+  onUnmounted,
+  ref,
+  shallowRef,
+  watch,
+  watchEffect,
+} from 'vue'
 
 const MAXIMUM_CLICK_LENGTH_MS = 300
 const MAXIMUM_CLICK_DISTANCE_SQ = 50
@@ -56,6 +65,12 @@ const props = defineProps<{
   edited: boolean
   graphNodeSelections: HTMLElement | undefined
 }>()
+
+const i = getCurrentInstance()
+console.log('node setup', i?.vnode.key, props.node.outerExpr.id)
+onBeforeUnmount(() => {
+  console.log('node unmount', i?.vnode.key, props.node.outerExpr.id)
+})
 
 const emit = defineEmits<{
   dragging: [offset: Vec2]
@@ -83,7 +98,7 @@ const projectStore = useProjectStore()
 const graph = useGraphStore()
 const navigator = injectGraphNavigator(true)
 
-const nodeId = computed(() => asNodeId(props.node.rootExpr.id))
+const nodeId = computed(() => asNodeId(props.node.rootExpr.externalId))
 const potentialSelfArgumentId = computed(() => props.node.primarySubject)
 const connectedSelfArgumentId = computed(() =>
   potentialSelfArgumentId.value && graph.isConnectedTarget(potentialSelfArgumentId.value) ?
@@ -100,9 +115,8 @@ const nodeSize = useResizeObserver(rootNode)
 function inputExternalIds() {
   const externalIds = new Array<ExternalId>()
   for (const inputId of graph.db.nodeDependents.reverseLookup(nodeId.value)) {
-    const externalId = graph.db.idToExternal(inputId)
-    if (externalId) {
-      externalIds.push(externalId)
+    if (inputId) {
+      externalIds.push(inputId)
     }
   }
   return externalIds
@@ -123,7 +137,7 @@ interface Message {
   alwaysShow: boolean
 }
 const availableMessage = computed<Message | undefined>(() => {
-  const externalId = graph.db.idToExternal(nodeId.value)
+  const externalId = nodeId.value
   if (!externalId) return undefined
   const info = projectStore.computedValueRegistry.db.get(externalId)
   switch (info?.payload.type) {
@@ -224,7 +238,7 @@ function openFullMenu() {
 
 const isDocsVisible = ref(false)
 const outputHovered = ref(false)
-const keyboard = useKeyboard()
+const keyboard = injectKeyboard()
 const visualizationWidth = computed(() => props.node.vis?.width ?? null)
 const visualizationHeight = computed(() => props.node.vis?.height ?? null)
 const isVisualizationEnabled = computed(() => props.node.vis?.visible ?? false)
@@ -445,7 +459,6 @@ watchEffect(() => {
         :nodeSize="graphSelectionSize"
         :class="{ draggable: true, dragged: isDragged }"
         :selected
-        :nodeId
         :color
         :externalHovered="nodeHovered"
         @visible="selectionVisible = $event"

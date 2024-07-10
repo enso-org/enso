@@ -380,7 +380,7 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
     }
 
     function setNodePosition(nodeId: NodeId, position: Vec2) {
-      const nodeAst = syncModule.value?.tryGet(nodeId)
+      const nodeAst = syncModule.value?.tryGet(db.idFromExternal(nodeId))
       if (!nodeAst) return
       const oldPos = nodeAst.nodeMetadata.get('position')
       if (oldPos?.x !== position.x || oldPos?.y !== position.y) {
@@ -391,7 +391,7 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
     }
 
     function overrideNodeColor(nodeId: NodeId, color: string | undefined) {
-      const nodeAst = syncModule.value?.tryGet(nodeId)
+      const nodeAst = syncModule.value?.tryGet(db.idFromExternal(nodeId))
       if (!nodeAst) return
       editNodeMetadata(nodeAst, (metadata) => {
         metadata.set('colorOverride', color)
@@ -418,7 +418,7 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
     }
 
     function setNodeVisualization(nodeId: NodeId, vis: Partial<VisualizationMetadata>) {
-      const nodeAst = syncModule.value?.tryGet(nodeId)
+      const nodeAst = syncModule.value?.tryGet(db.idFromExternal(nodeId))
       if (!nodeAst) return
       editNodeMetadata(nodeAst, (metadata) => {
         const data: Partial<VisualizationMetadata> = {
@@ -452,7 +452,7 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
       nodesToPlace.length = 0
       batchEdits(() => {
         for (const nodeId of nodesToProcess) {
-          const nodeAst = syncModule.value?.get(nodeId)
+          const nodeAst = syncModule.value?.get(db.idFromExternal(nodeId))
           const rect = nodeRects.get(nodeId)
           if (!rect || !nodeAst || nodeAst.nodeMetadata.get('position') != null) continue
           const position = placeNode([], rect.size)
@@ -615,7 +615,7 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
           }
         })
       } else {
-        exprId = nodeId
+        exprId = db.idFromExternal(nodeId)
       }
 
       if (exprId == null) {

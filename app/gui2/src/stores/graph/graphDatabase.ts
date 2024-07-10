@@ -182,7 +182,7 @@ export class GraphDb {
   private *connectionsFromBindings(
     info: BindingInfo,
     alias: AstId,
-    srcNode: AstId | undefined,
+    srcNode: NodeId | undefined,
   ): Generator<[AstId, AstId]> {
     for (const usage of info.usages) {
       const targetNode = this.getExpressionNodeId(usage)
@@ -224,7 +224,7 @@ export class GraphDb {
   })
 
   getNodeFirstOutputPort(id: NodeId): AstId {
-    return set.first(this.nodeOutputPorts.lookup(id)) ?? id
+    return set.first(this.nodeOutputPorts.lookup(id)) ?? this.idFromExternal(id)
   }
 
   *getNodeUsages(id: NodeId): IterableIterator<AstId> {
@@ -270,6 +270,10 @@ export class GraphDb {
 
   nodeIds(): IterableIterator<NodeId> {
     return this.nodeIdToNode.keys()
+  }
+
+  isNodeId(externalId: ExternalId): boolean {
+    return this.nodeIdToNode.has(asNodeId(externalId))
   }
 
   isKnownFunctionCall(id: AstId): boolean {
@@ -344,7 +348,7 @@ export class GraphDb {
     for (const nodeAst of functionAst_.bodyExpressions()) {
       const newNode = nodeFromAst(nodeAst)
       if (!newNode) continue
-      const nodeId = asNodeId(newNode.rootExpr.id)
+      const nodeId = asNodeId(newNode.rootExpr.externalId)
       const node = this.nodeIdToNode.get(nodeId)
       currentNodeIds.add(nodeId)
       if (node == null) {
@@ -419,8 +423,8 @@ export class GraphDb {
     updateMap(this.idFromExternalMap, idFromExternalNew)
   }
 
-  updateMetadata(id: Ast.AstId, changes: NodeMetadata) {
-    const node = this.nodeIdToNode.get(id as NodeId)
+  updateMetadata(astId: Ast.AstId, changes: NodeMetadata) {
+    const node = this.nodeByRootAstId(astId)
     if (!node) return
     const newPos = changes.get('position')
     const newPosVec = newPos && new Vec2(newPos.x, newPos.y)
@@ -432,6 +436,11 @@ export class GraphDb {
     if (changes.has('colorOverride')) {
       node.colorOverride = changes.get('colorOverride')
     }
+  }
+
+  nodeByRootAstId(astId: Ast.AstId): Node | undefined {
+    const nodeId = asNodeId(this.idToExternal(astId))
+    return nodeId != null ? this.nodeIdToNode.get(nodeId) : undefined
   }
 
   /** Get the ID of the `Ast` corresponding to the given `ExternalId` as of the last synchronization. */
@@ -460,7 +469,7 @@ export class GraphDb {
     return new GraphDb(db, ref([]), registry)
   }
 
-  mockNode(binding: string, id: Ast.AstId, code?: string): Node {
+  mockNode(binding: string, id: NodeId, code?: string): Node {
     const edit = MutableModule.Transient()
     const pattern = Ast.parse(binding, edit)
     const expression = Ast.parse(code ?? '0', edit)
@@ -480,17 +489,19 @@ export class GraphDb {
       zIndex: this.highestZIndex,
     }
     const bindingId = pattern.id
-    this.nodeIdToNode.set(asNodeId(id), node)
+    this.nodeIdToNode.set(id, node)
     this.bindings.bindings.set(bindingId, { identifier: binding, usages: new Set() })
     return node
   }
 }
 
 declare const brandNodeId: unique symbol
-export type NodeId = AstId & { [brandNodeId]: never }
-export function asNodeId(id: Ast.AstId): NodeId
-export function asNodeId(id: Ast.AstId | undefined): NodeId | undefined
-export function asNodeId(id: Ast.AstId | undefined): NodeId | undefined {
+
+/** An unique node identifier, shared across all clients. It is the ExternalId of node's root expression. */
+export type NodeId = string & ExternalId & { [brandNodeId]: never }
+export function asNodeId(id: ExternalId): NodeId
+export function asNodeId(id: ExternalId | undefined): NodeId | undefined
+export function asNodeId(id: ExternalId | undefined): NodeId | undefined {
   return id != null ? (id as NodeId) : undefined
 }
 
