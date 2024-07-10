@@ -328,9 +328,9 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
       help = "The environment for program execution. Defaults to `design`.")
   public static final OptionKey<ExecutionEnvironment> EXECUTION_ENVIRONMENT =
       new OptionKey<>(
-        // If you change the default, remember to update DEFAULT_ENVIRONMENT in 
-        // app/gui2/src/stores/project/executionContext.ts
-          ExecutionEnvironment.DESIGN, 
+          // If you change the default, remember to update DEFAULT_ENVIRONMENT in
+          // app/gui2/src/stores/project/executionContext.ts
+          ExecutionEnvironment.DESIGN,
           new OptionType<>("ExecutionEnvironment", ExecutionEnvironment::forName));
 
   private static final OptionDescriptors OPTIONS =
