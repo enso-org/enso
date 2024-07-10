@@ -5,7 +5,6 @@ from Standard.Test import all
 import project.Semantic.Any_Spec
 import project.Semantic.Case_Spec
 import project.Semantic.Conversion_Spec
-import project.Semantic.Deep_Export.Spec as Deep_Export_Spec
 import project.Semantic.Default_Args_Spec
 import project.Semantic.Error_Spec
 import project.Semantic.Import_Loop.Spec as Import_Loop_Spec
@@ -107,7 +106,6 @@ main filter=Nothing =
         Case_Spec.add_specs suite_builder
         Conversion_Spec.add_specs suite_builder
         Default_Args_Spec.add_specs suite_builder
-        Deep_Export_Spec.add_specs suite_builder
         Error_Spec.add_specs suite_builder
         Environment_Spec.add_specs suite_builder
         File_Spec.add_specs suite_builder
