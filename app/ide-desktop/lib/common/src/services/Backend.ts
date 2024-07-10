@@ -294,16 +294,6 @@ export interface BackendProject extends Project {
     readonly ideVersion: VersionNumber
 }
 
-/** Information required to open a project. */
-export interface ProjectStartupInfo {
-    readonly project: Promise<Project>
-    readonly projectAsset: ProjectAsset
-    // This MUST BE optional because it is lost when `JSON.stringify`ing to put in `localStorage`.
-    readonly setProjectAsset?: React.Dispatch<React.SetStateAction<ProjectAsset>>
-    readonly backendType: BackendType
-    readonly accessToken: string | null
-}
-
 /** A specific session of a project being opened and used. */
 export interface ProjectSession {
     readonly projectId: ProjectId
