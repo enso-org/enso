@@ -48,7 +48,7 @@ interface BaseFormProps<
    * This is a known limitation and we are working on a solution.
    */
   readonly defaultValues?: components.UseFormProps<Schema, TFieldValues>['defaultValues']
-  readonly onSubmit: (
+  readonly onSubmit?: (
     values: TFieldValues,
     form: components.UseFormReturn<Schema, TFieldValues, TTransformedValues>
   ) => unknown
@@ -105,7 +105,7 @@ interface FormPropsWithOptions<
   Schema extends components.TSchema,
   TFieldValues extends components.FieldValues<Schema>,
 > {
-  readonly schema: Schema
+  readonly schema: Schema | ((schema: typeof components.schema) => Schema)
   readonly form?: never
   readonly formOptions?: Omit<components.UseFormProps<Schema, TFieldValues>, 'resolver' | 'schema'>
 }

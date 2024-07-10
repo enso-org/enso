@@ -71,7 +71,7 @@ export default function MembersSettingsSection() {
         </ariaComponents.DialogTrigger>
 
         {seatsLeft != null && (
-          <div className="flex gap-1">
+          <div className="flex items-center gap-1">
             <ariaComponents.Text>
               {seatsLeft <= 0
                 ? getText('noSeatsLeft')

@@ -64,7 +64,7 @@ export function Card(props: CardProps) {
         <div className="mt-4 text-sm">
           <ul className="flex flex-col gap-2">
             {features.map((feature, index) => (
-              <li key={index} className="flex gap-1">
+              <li key={index} className="flex items-center gap-1">
                 <span className="mt-0.5 flex h-4 flex-none place-items-center rounded-full bg-green/30">
                   <SvgMask src={Check} className="text-green" />
                 </span>
