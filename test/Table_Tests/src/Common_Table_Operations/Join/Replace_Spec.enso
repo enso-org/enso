@@ -168,13 +168,13 @@ add_specs suite_builder setup =
         if setup.test_selection.date_time then group_builder.specify "should correctly infer types of columns (Date/Time)" <|
             my_table = table_builder [["X", [1, 2, 3, 2]]]
 
-            t1 = my_table.replace (Map.from_vector [[1, Date.new 2021], [2, Date.new 2022], [3, Date.new 2023]]) "X" allow_unmatched_rows=False
+            t1 = my_table.replace (Dictionary.from_vector [[1, Date.new 2021], [2, Date.new 2022], [3, Date.new 2023]]) "X" allow_unmatched_rows=False
             t1.at "X" . value_type . should_equal Value_Type.Date
             t1.at "X" . to_vector . should_equal [Date.new 2021, Date.new 2022, Date.new 2023, Date.new 2022]
 
-            t2 = my_table.replace (Map.from_vector [[1, Time_Of_Day.new 1 2 3], [2, Time_Of_Day.new 4 5 6], [3, Time_Of_Day.new 7 8 9]]) "X" allow_unmatched_rows=False
+            t2 = my_table.replace (Dictionary.from_vector [[1, Time_Of_Day.new 1 2 3], [2, Time_Of_Day.new 4 5 6], [3, Time_Of_Day.new 7 8 9]]) "X" allow_unmatched_rows=False
             t2.at "X" . value_type . should_equal Value_Type.Time
             t2.at "X" . to_vector . should_equal [Time_Of_Day.new 1 2 3, Time_Of_Day.new 4 5 6, Time_Of_Day.new 7 8 9, Time_Of_Day.new 4 5 6]
 
-            t3 = my_table.replace (Map.from_vector [[1, Date_Time.new 2021 1 1 1 1 1], [2, Date_Time.new 2022 2 2 2 2 2], [3, Date_Time.new 2023 3 3 3 3 3]]) "X" allow_unmatched_rows=False
+            t3 = my_table.replace (Dictionary.from_vector [[1, Date_Time.new 2021 1 1 1 1 1], [2, Date_Time.new 2022 2 2 2 2 2], [3, Date_Time.new 2023 3 3 3 3 3]]) "X" allow_unmatched_rows=False
             t3.at "X" . value_type . should_be_a (Value_Type.Date_Time ...)
