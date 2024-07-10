@@ -347,6 +347,16 @@ add_specs suite_builder =
                     (d <= d) . should_be_true
                     (d >= d) . should_be_true
 
+                    Problems.expect_only_warning Loss_Of_Numeric_Precision (d <= v)
+                    Problems.expect_only_warning Loss_Of_Numeric_Precision (d >= v)
+                    Problems.expect_only_warning Loss_Of_Numeric_Precision (v <= d)
+                    Problems.expect_only_warning Loss_Of_Numeric_Precision (v >= d)
+
+                    Problems.expect_only_warning Loss_Of_Numeric_Precision (d < d)
+                    Problems.expect_only_warning Loss_Of_Numeric_Precision (d > d)
+                    Problems.expect_only_warning Loss_Of_Numeric_Precision (d <= d)
+                    Problems.expect_only_warning Loss_Of_Numeric_Precision (d >= d)
+
                     if greater.is_infinite.not then
                         (d < greater) . should_be_true
                         (d <= greater) . should_be_true
