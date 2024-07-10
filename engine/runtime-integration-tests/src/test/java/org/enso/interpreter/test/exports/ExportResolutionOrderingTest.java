@@ -112,7 +112,7 @@ public class ExportResolutionOrderingTest {
     }
   }
 
-  // TODO: Should multilevel synthetic modules be supported?
+  // TODO: Tracked by https://github.com/enso-org/enso/issues/10505
   @Ignore
   @Test
   public void testOrderingWithTwoSyntheticModules() throws IOException {
