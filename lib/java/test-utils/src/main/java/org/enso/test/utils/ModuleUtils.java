@@ -39,6 +39,22 @@ public class ModuleUtils {
     return CollectionConverters.asJava(mod.getBindingsMap().definedEntities());
   }
 
+  /**
+   * Returns the loaded module with the given name, or null if no such module exist.
+   * @param modName Fully qualified name of the module
+   * @return module with the given name, or null if no such module exist
+   */
+  public static org.enso.interpreter.runtime.Module getLoadedModule(Context ctx, String modName) {
+    assert modName.contains(".") : "Module name must be fully qualified";
+    var ensoCtx = ContextUtils.leakContext(ctx);
+    var loadedModuleOpt = ensoCtx.getPackageRepository().getLoadedModule(modName);
+    if (loadedModuleOpt.isDefined()) {
+      return org.enso.interpreter.runtime.Module.fromCompilerModule(loadedModuleOpt.get());
+    } else {
+      return null;
+    }
+  }
+
   private static Map<String, List<ResolvedName>> getExportedSymbols(Module module) {
     var bindings = new HashMap<String, List<ResolvedName>>();
     var bindingsScala = module.getBindingsMap().exportedSymbols();
