@@ -29,6 +29,8 @@ import { exponentialBackoff } from 'shared/util/net'
 import type { ExternalId } from 'shared/yjsModel'
 import { reactive } from 'vue'
 
+// This constant should be synchronized with EXECUTION_ENVIRONMENT constant in
+// engine/runtime/src/main/java/org/enso/interpreter/EnsoLanguage.java
 const DEFAULT_ENVIRONMENT: ExecutionEnvironment = 'Design'
 
 export type NodeVisualizationConfiguration = Omit<
