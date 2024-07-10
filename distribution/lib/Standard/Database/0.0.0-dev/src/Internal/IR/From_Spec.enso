@@ -101,13 +101,13 @@ type From_Spec_Comparator
             From_Spec.Table other_table_name _ _ ->
                 if table_name == other_table_name then Ordering.Equal else Nothing
             _ -> Nothing
-        _ -> Default_Comparator.compare x y
+        _ -> Ordering.compare x y
 
     ## PRIVATE
     hash x = case x of
         From_Spec.Table table_name _ _ ->
-            Default_Comparator.hash table_name
-        _ -> Default_Comparator.hash x
+            Ordering.hash table_name
+        _ -> Ordering.hash x
 
 ## PRIVATE
 Comparable.from (that : From_Spec) = Comparable.new that From_Spec_Comparator

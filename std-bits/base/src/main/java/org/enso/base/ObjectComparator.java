@@ -22,7 +22,7 @@ public final class ObjectComparator implements Comparator<Object> {
       var module =
           Context.getCurrent()
               .getBindings("enso")
-              .invokeMember("get_module", "Standard.Base.Data.Ordering");
+              .invokeMember("get_module", "Standard.Base.Internal.Ordering_Helpers");
       var type = module.invokeMember("get_type", "Default_Comparator");
 
       var hash_callback = module.invokeMember("get_method", type, "hash_callback");

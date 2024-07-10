@@ -123,7 +123,7 @@ public class EqualsConversionsTest {
     boolean intNumConversion;
     boolean numComparator;
     boolean intComparator;
-    String hashFn = "Default_Comparator.hash x.n";
+    String hashFn = "Ordering.hash x.n";
     String extraBlock = "";
 
     boolean evaluate() {

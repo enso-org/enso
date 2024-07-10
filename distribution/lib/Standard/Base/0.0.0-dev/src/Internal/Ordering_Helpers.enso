@@ -2,13 +2,56 @@ private
 
 import project.Any.Any
 from project.Data.Boolean import Boolean, False, True
+import project.Data.Numbers.Integer
+import project.Data.Numbers.Number
 from project.Data.Ordering import all
 import project.Errors.Common.Type_Error
 import project.Errors.Common.Incomparable_Values
 import project.Error.Error
 import project.Panic.Panic
 import project.Meta
+import project.Meta.Atom
+import project.Nothing.Nothing
 from project.Function import identity
+
+## PRIVATE
+   Default implementation of a _comparator_.
+@Builtin_Type
+type Default_Comparator
+    ## PRIVATE
+    compare : Any -> Any -> (Ordering|Nothing)
+    compare x y =
+        case Any.== x y of
+            True -> Ordering.Equal
+            False ->
+                case Comparable.less_than_builtin x y of
+                    Nothing -> Nothing
+                    True -> Ordering.Less
+                    False ->
+                        case Comparable.less_than_builtin y x of
+                            Nothing -> Nothing
+                            True -> Ordering.Greater
+                            False -> Nothing
+
+    ## PRIVATE
+    hash : Number -> Integer
+    hash x = Comparable.hash_builtin x
+
+    ## PRIVATE
+       Called as a callback from internal engine code for an atom with a custom
+       comparator. It is assumed that the given atom has a custom comparator, that is
+       a comparator different than `Default_Comparator`.
+    hash_callback : Atom -> Integer
+    hash_callback atom =
+        Comparable.from atom . hash
+
+    ## PRIVATE
+       A callback allowing to compare two atoms with a custom comparator.
+    compare_callback : Atom -> Atom -> Integer | Nothing
+    compare_callback atom that =
+        ordering = Ordering.compare atom that
+        if ordering.is_error then Nothing else ordering.to_sign
+
 
 ## PRIVATE
    Checks if the comparators for the given objects are both of the same type. If so,

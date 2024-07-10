@@ -12,7 +12,7 @@ import project.Warning.Warning
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Numbers import Float, Integer, Number, Number_Parse_Error
 from project.Data.Numeric.Internal.Decimal_Internal import Decimal_Comparator
-from project.Data.Ordering import Comparable, Default_Comparator, Ordering
+from project.Data.Ordering import Comparable, Ordering
 from project.Errors.Common import Arithmetic_Error, Loss_Of_Numeric_Precision, Out_Of_Range, Unsupported_Argument_Types
 from project.Widget_Helpers import make_number_format_selector
 

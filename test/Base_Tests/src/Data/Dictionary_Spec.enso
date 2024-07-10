@@ -84,6 +84,8 @@ foreign python py_wrapper obj = """
 
 pending_python_missing = if Polyglot.is_language_installed "python" then Nothing else "Can't run Python tests, Python is not installed."
 
+def_comp = Standard.Base.Internal.Ordering_Helpers.Default_Comparator
+
 type Child
     Value data
 
@@ -465,7 +467,7 @@ add_common_specs suite_builder prefix:Text (pending : (Text | Nothing)) (empty_d
                 expected = Comparable.new value comparator
                 actual . should_equal expected
 
-            assert_comparator empty_dict Default_Comparator
+            assert_comparator empty_dict def_comp
 
         group_builder.specify "should compare two hash maps" <|
             (empty_dict.insert "a" 1).should_equal (empty_dict.insert "a" 1)

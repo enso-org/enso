@@ -112,7 +112,7 @@ type Comparable
 
     ##
        Creates new comparable instance for given `value` and
-       a `comparator` with two static methods what work on the
+       a `Comparator` with two static methods what work on the
        type `T` of the provided `value`:
 
        ```
@@ -127,44 +127,6 @@ type Comparable
 
     hash self -> Integer =
         self.comparator.hash self.value
-
-## PRIVATE
-   Default implementation of a _comparator_.
-@Builtin_Type
-type Default_Comparator
-    ## PRIVATE
-    compare : Any -> Any -> (Ordering|Nothing)
-    compare x y =
-        case Any.== x y of
-            True -> Ordering.Equal
-            False ->
-                case Comparable.less_than_builtin x y of
-                    Nothing -> Nothing
-                    True -> Ordering.Less
-                    False ->
-                        case Comparable.less_than_builtin y x of
-                            Nothing -> Nothing
-                            True -> Ordering.Greater
-                            False -> Nothing
-
-    ## PRIVATE
-    hash : Number -> Integer
-    hash x = Comparable.hash_builtin x
-
-    ## PRIVATE
-       Called as a callback from internal engine code for an atom with a custom
-       comparator. It is assumed that the given atom has a custom comparator, that is
-       a comparator different than `Default_Comparator`.
-    hash_callback : Atom -> Integer
-    hash_callback atom =
-        Comparable.from atom . hash
-
-    ## PRIVATE
-       A callback allowing to compare two atoms with a custom comparator.
-    compare_callback : Atom -> Atom -> Integer | Nothing
-    compare_callback atom that =
-        ordering = Ordering.compare atom that
-        if ordering.is_error then Nothing else ordering.to_sign
 
 ## PRIVATE
 Comparable.from (that:Any) = Comparable.new that Default_Comparator
@@ -183,6 +145,9 @@ type Ordering
 
     ## Compares values and returns an Ordering.
     compare x y -> Ordering ! Incomparable_Values = compare_with_comparators x y
+
+    ## Computes a hash number for a given value
+    hash x = Comparable.from x . comparator . hash x
 
     ## GROUP Conversions
        ICON convert

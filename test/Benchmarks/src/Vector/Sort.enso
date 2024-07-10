@@ -53,7 +53,7 @@ type Int
 
 type Int_Comparator
     compare a:Int b:Int = Ordering.compare a.v b.v
-    hash i:Int = 3721 + Default_Comparator.hash_builtin i.v
+    hash i:Int = 3721 + Ordering.hash_builtin i.v
 
 Comparable.from(that:Int) = Comparable.new that Int_Comparator
 
