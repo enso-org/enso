@@ -34,6 +34,8 @@ const IGNORE_PARAMS_REGEX = new RegExp(`^${appUtils.SEARCH_PARAMS_PREFIX}(.+)$`)
 /** Props for an {@link Editor}. */
 export interface EditorProps {
   readonly isOpening: boolean
+  readonly isOpeningFailed: boolean
+  readonly openingError: Error | null
   readonly startProject: (project: dashboard.Project) => void
   readonly project: dashboard.Project
   readonly hidden: boolean
@@ -45,7 +47,7 @@ export interface EditorProps {
 
 /** The container that launches the IDE. */
 export default function Editor(props: EditorProps) {
-  const { project, hidden, isOpening, startProject } = props
+  const { project, hidden, isOpening, startProject, isOpeningFailed, openingError } = props
 
   const remoteBackend = backendProvider.useRemoteBackendStrict()
   const localBackend = backendProvider.useLocalBackend()
@@ -64,7 +66,22 @@ export default function Editor(props: EditorProps) {
     networkMode: project.type === backendModule.BackendType.remote ? 'online' : 'always',
   })
 
-  if (!isOpening && projectQuery.data?.state.type === backendModule.ProjectState.closed) {
+  if (isOpeningFailed) {
+    // eslint-disable-next-line no-restricted-syntax
+    return (
+      <errorBoundary.ErrorDisplay
+        error={openingError}
+        resetErrorBoundary={() => {
+          startProject(project)
+        }}
+      />
+    )
+  }
+
+  const isProjectClosed = projectQuery.data?.state.type === backendModule.ProjectState.closed
+  const shouldRefetch = !(projectQuery.isError || projectQuery.isLoading)
+
+  if (!isOpening && isProjectClosed && shouldRefetch) {
     startProject(project)
   }
 
@@ -89,9 +106,11 @@ export default function Editor(props: EditorProps) {
           return <suspense.Loader loaderProps={{ minHeight: 'full' }} />
         } else {
           return (
-            <suspense.Suspense>
-              <EditorInternal {...props} openedProject={projectQuery.data} />{' '}
-            </suspense.Suspense>
+            <errorBoundary.ErrorBoundary>
+              <suspense.Suspense>
+                <EditorInternal {...props} openedProject={projectQuery.data} />
+              </suspense.Suspense>
+            </errorBoundary.ErrorBoundary>
           )
         }
       })()}

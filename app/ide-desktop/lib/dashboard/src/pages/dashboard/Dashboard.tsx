@@ -656,6 +656,8 @@ export default function Dashboard(props: DashboardProps) {
               projectId={project.id}
               appRunner={appRunner}
               isOpening={openProjectMutation.isPending}
+              isOpeningFailed={openProjectMutation.isError}
+              openingError={openProjectMutation.error}
               startProject={openProjectMutation.mutate}
               renameProject={newName => {
                 renameProjectMutation.mutate({ newName, project })
