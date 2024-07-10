@@ -335,7 +335,7 @@ function toField(name: string, valueType?: ValueType | null | undefined): ColDef
     `
   const template =
     icon ?
-      `<span><span ref="eLabel" class="ag-header-cell-label" role="presentation" style='display:flex; flex-direction:row; justify-content:space-between; width:inherit;'> ${name} ${menu}</san> ${sort} ${svgTemplate}</span>`
+      `<span style='display:flex; flex-direction:row; justify-content:space-between; width:inherit;'><span ref="eLabel" class="ag-header-cell-label" role="presentation" style='display:flex; flex-direction:row; justify-content:space-between; width:inherit;'> ${name} ${menu}</span> ${sort} ${svgTemplate}</span>`
     : `<span ref="eLabel" style='display:flex; flex-direction:row; justify-content:space-between; width:inherit;'>${name} ${menu} ${sort}</span>`
   return {
     field: name,
