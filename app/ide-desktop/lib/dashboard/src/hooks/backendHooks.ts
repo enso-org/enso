@@ -87,9 +87,7 @@ export function useObserveBackend(backend: Backend | null) {
       >
     ) => void
   ) => {
-    const states = reactQuery.useMutationState<
-      Parameters<Backend[Method]>
-    >({
+    const states = reactQuery.useMutationState<Parameters<Backend[Method]>>({
       // Errored mutations can be safely ignored as they should not change the state.
       filters: { mutationKey: [backend?.type, method], status: 'success' },
       // eslint-disable-next-line no-restricted-syntax
@@ -110,9 +108,9 @@ export function useObserveBackend(backend: Backend | null) {
       variable: Awaited<ReturnType<Backend[Method]>>
     ) => Awaited<ReturnType<Backend[Method]>>
   ) => {
-    queryClient.setQueryData<
-      Awaited<ReturnType<Backend[Method]>>
-    >([backend?.type, method], data => (data == null ? data : updater(data)))
+    queryClient.setQueryData<Awaited<ReturnType<Backend[Method]>>>([backend?.type, method], data =>
+      data == null ? data : updater(data)
+    )
   }
   useObserveMutations('uploadUserPicture', state => {
     revokeUserPictureUrl(backend)
@@ -177,9 +175,7 @@ export function useBackendQuery<Method extends backendQuery.BackendMethods>(
     >,
     'queryFn'
   >
-): reactQuery.UseQueryResult<
-  Awaited<ReturnType<Backend[Method]>>
->
+): reactQuery.UseQueryResult<Awaited<ReturnType<Backend[Method]>>>
 export function useBackendQuery<Method extends backendQuery.BackendMethods>(
   backend: Backend | null,
   method: Method,
@@ -298,9 +294,7 @@ export function useBackendMutationVariables<Method extends backendQuery.BackendM
   method: Method,
   mutationKey?: readonly unknown[]
 ) {
-  return reactQuery.useMutationState<
-    Parameters<Backend[Method]>
-  >({
+  return reactQuery.useMutationState<Parameters<Backend[Method]>>({
     filters: {
       mutationKey: [backend?.type, method, ...(mutationKey ?? [])],
       status: 'pending',
