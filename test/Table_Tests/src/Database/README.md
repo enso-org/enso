@@ -39,6 +39,14 @@ docker pull postgres:latest
 docker run -it -e POSTGRES_PASSWORD=pwd -p 5432:5432 postgres
 ```
 
+then you need to set the following environment variables to use it
+
+```
+ENSO_POSTGRES_DATABASE=postgres
+ENSO_POSTGRES_USER=postgres
+ENSO_POSTGRES_PASSWORD=pwd
+```
+
 ### Testing SSL connectivity
 
 The SSL connection by providing a root certificate file. The path to this is

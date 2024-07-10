@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import ExtendedMenu from '@/components/ExtendedMenu.vue'
-import NavBar from '@/components/NavBar.vue'
+import NavBreadcrumbs from '@/components/NavBreadcrumbs.vue'
 import RecordControl from '@/components/RecordControl.vue'
 import SelectionMenu from '@/components/SelectionMenu.vue'
 import { injectGuiConfig } from '@/providers/guiConfig'
@@ -35,7 +35,7 @@ const barStyle = computed(() => {
 
 <template>
   <div class="TopBar" :style="barStyle">
-    <NavBar />
+    <NavBreadcrumbs />
     <RecordControl />
     <Transition name="selection-menu">
       <SelectionMenu
