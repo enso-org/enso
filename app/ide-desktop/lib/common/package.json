@@ -11,7 +11,14 @@
     "./src/detect": "./src/detect.ts",
     "./src/gtag": "./src/gtag.ts",
     "./src/load": "./src/load.ts",
-    "./src/queryClient": "./src/queryClient.ts"
+    "./src/queryClient": "./src/queryClient.ts",
+    "./src/utilities/data/array": "./src/utilities/data/array.ts",
+    "./src/utilities/data/dateTime": "./src/utilities/data/dateTime.ts",
+    "./src/utilities/data/newtype": "./src/utilities/data/newtype.ts",
+    "./src/utilities/uniqueString": "./src/utilities/uniqueString.ts",
+    "./src/text": "./src/text/index.ts",
+    "./src/utilities/permissions": "./src/utilities/permissions.ts",
+    "./src/services/Backend": "./src/services/Backend.ts"
   },
   "peerDependencies": {
     "@tanstack/query-core": "5.45.0",
