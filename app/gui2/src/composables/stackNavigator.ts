@@ -45,10 +45,6 @@ export function useStackNavigator(projectStore: ProjectStore, graphStore: GraphS
   }
 
   function enterNode(id: NodeId) {
-    if (id == null) {
-      console.debug("Cannot enter node that hasn't been committed yet.")
-      return
-    }
     const expressionInfo = graphStore.db.getExpressionInfo(id)
     if (expressionInfo == null || expressionInfo.methodCall == null) {
       console.debug('Cannot enter node that has no method call.')

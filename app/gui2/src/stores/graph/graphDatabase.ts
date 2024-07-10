@@ -224,7 +224,7 @@ export class GraphDb {
     )
   })
 
-  getNodeFirstOutputPort(id: NodeId): AstId {
+  getNodeFirstOutputPort(id: NodeId): AstId | undefined {
     return set.first(this.nodeOutputPorts.lookup(id)) ?? this.idFromExternal(id)
   }
 
