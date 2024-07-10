@@ -34,7 +34,6 @@ import type Backend from '#/services/Backend'
 
 import type AssetQuery from '#/utilities/AssetQuery'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
-import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 // ================
 // === DriveBar ===
@@ -106,13 +105,8 @@ export default function DriveBar(props: DriveBarProps) {
   const assetPanelToggle = (
     <>
       {/* Spacing. */}
-      <div
-        className={tailwindMerge.twMerge(
-          'transition-width duration-side-panel',
-          !isAssetPanelOpen && 'w-8'
-        )}
-      />
-      <div className="absolute right-[15px] top-[25px] z-1">
+      <div className={!isAssetPanelOpen ? 'w-5' : 'hidden'} />
+      <div className="absolute right-[15px] top-[27px] z-1">
         <ariaComponents.Button
           size="medium"
           variant="custom"

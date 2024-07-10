@@ -119,7 +119,7 @@ export default function AssetPanel(props: AssetPanelProps) {
         event.stopPropagation()
       }}
     >
-      <ariaComponents.ButtonGroup className="grow-0 basis-8">
+      <ariaComponents.ButtonGroup className="mt-0.5 grow-0 basis-8">
         {isCloud &&
           item != null &&
           item.item.type !== backendModule.AssetType.secret &&
