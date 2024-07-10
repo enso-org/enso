@@ -25,7 +25,7 @@ from project.Internal.Ordering_Helpers import all
 
    ```
    type T_Comparator T
-       compare : T -> T -> (Ordering|Nothing ! Incomparable_Values)
+       compare : T -> T -> (Ordering|Nothing) ! Incomparable_Values
        hash : T -> Integer
 
    Comparable.from (that:T) = Comparable.new that T_Comparator
