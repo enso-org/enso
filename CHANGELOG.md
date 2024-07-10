@@ -3,8 +3,11 @@
 #### Enso IDE
 
 - ["Add node" button is not obscured by output port][10433]
+- [Redesigned "record control" panel][10509]. Now it contains more intuitive
+  "refresh" and "run workflow" buttons.
 
 [10433]: https://github.com/enso-org/enso/pull/10443
+[10509]: https://github.com/enso-org/enso/pull/10509
 
 #### Enso Enso Standard Library
 
