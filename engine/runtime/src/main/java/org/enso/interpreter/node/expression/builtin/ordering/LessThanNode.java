@@ -7,6 +7,7 @@ import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.GenerateUncached;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
@@ -16,7 +17,9 @@ import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import org.enso.interpreter.dsl.AcceptsError;
 import org.enso.interpreter.dsl.BuiltinMethod;
+import org.enso.interpreter.node.expression.builtin.number.utils.ToEnsoNumberNode;
 import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.WarningsLibrary;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
@@ -123,6 +126,40 @@ public abstract class LessThanNode extends Node {
     return self.getValue().compareTo(BigInteger.valueOf(other)) < 0;
   }
 
+  static boolean nonEnsoBigInt(Object obj, InteropLibrary iop) {
+    if (obj instanceof TruffleObject) {
+      if (obj instanceof EnsoObject) {
+        return false;
+      }
+      return iop.fitsInBigInteger(obj);
+    }
+    return false;
+  }
+
+  @Specialization(guards = "nonEnsoBigInt(self, iop) || nonEnsoBigInt(other, iop)")
+  Object lessBigIntegerInterop(
+      Object self,
+      Object other,
+      @CachedLibrary(limit = "3") InteropLibrary iop,
+      @Cached ToEnsoNumberNode numberNode,
+      @Cached @Cached.Shared("next") LessThanNode nextNode) {
+    if (nonEnsoBigInt(self, iop)) {
+      try {
+        var bigInt = iop.asBigInteger(self);
+        self = numberNode.execute(bigInt);
+      } catch (UnsupportedMessageException ex) {
+      }
+    }
+    if (nonEnsoBigInt(other, iop)) {
+      try {
+        var bigInt = iop.asBigInteger(other);
+        other = numberNode.execute(bigInt);
+      } catch (UnsupportedMessageException ex) {
+      }
+    }
+    return nextNode.execute(self, other);
+  }
+
   /**
    * If one of the objects has warnings attached, just treat it as an object without any warnings.
    */
@@ -136,7 +173,7 @@ public abstract class LessThanNode extends Node {
       Object otherWithWarnings,
       @CachedLibrary("selfWithWarnings") WarningsLibrary selfWarnLib,
       @CachedLibrary("otherWithWarnings") WarningsLibrary otherWarnLib,
-      @Cached LessThanNode lessThanNode) {
+      @Cached @Cached.Shared("next") LessThanNode nextNode) {
     try {
       Object self =
           selfWarnLib.hasWarnings(selfWithWarnings)
@@ -146,7 +183,7 @@ public abstract class LessThanNode extends Node {
           otherWarnLib.hasWarnings(otherWithWarnings)
               ? otherWarnLib.removeWarnings(otherWithWarnings)
               : otherWithWarnings;
-      return lessThanNode.execute(self, other);
+      return nextNode.execute(self, other);
     } catch (UnsupportedMessageException e) {
       throw EnsoContext.get(this).raiseAssertionPanic(this, null, e);
     }

@@ -770,13 +770,35 @@ add_specs suite_builder =
                     v -> Test.fail "Expecting Integer, but got: "+(Meta.type_of v).to_text
                 sum.div two_hundred.length . should_equal expected_value
 
-            group_builder.specify name+" BigInteger to BigDecimal test" <|
-                    h = 2^70
-                    bd1 = BigDecimal.new h 0
-                    bd2 = BigDecimal.new h
-                    bd1.to_text . should_equal bd2.to_text
-                    bd1 . should_equal bd2
-                    bd1.toBigIntegerExact . should_equal h
+            group_builder.specify name+" Ordering.compare BigInteger" <|
+                    bd1 = create 5
+                    bd2 = create 13
+                    Ordering.compare bd1 bd2 . should_equal Ordering.Less
+                    Ordering.compare bd2 bd1 . should_equal Ordering.Greater
+
+            group_builder.specify name+" < BigInteger" <|
+                    bd1 = create 5
+                    bd2 = create 13
+                    (bd1 < bd2) . should_be_true
+                    (bd2 < bd1) . should_be_false
+
+            group_builder.specify name+" <= BigInteger" <|
+                    bd1 = create 5
+                    bd2 = create 13
+                    (bd1 <= bd2) . should_be_true
+                    (bd2 <= bd1) . should_be_false
+
+            group_builder.specify name+" > BigInteger" <|
+                    bd1 = create 5
+                    bd2 = create 13
+                    (bd1 > bd2) . should_be_false
+                    (bd2 > bd1) . should_be_true
+
+            group_builder.specify name+" >= BigInteger" <|
+                    bd1 = create 5
+                    bd2 = create 13
+                    (bd1 >= bd2) . should_be_false
+                    (bd2 >= bd1) . should_be_true
 
         to_java_bigint n = BigInteger.new n.to_text
         java_bigint_mul a b =
@@ -797,6 +819,14 @@ add_specs suite_builder =
             [x, y, z, w].each a->
                 [x, y, z, w].each b->
                     a+b . should_equal 20
+
+        group_builder.specify "BigInteger to BigDecimal test" <|
+            h = 2^70
+            bd1 = BigDecimal.new h 0
+            bd2 = BigDecimal.new h
+            bd1.to_text . should_equal bd2.to_text
+            bd1 . should_equal bd2
+            bd1.toBigIntegerExact . should_equal h
 
     suite_builder.group "arithmetic" group_builder->
         group_builder.specify "should be able to pass a Float to Java" <|
