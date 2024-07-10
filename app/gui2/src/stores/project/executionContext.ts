@@ -29,6 +29,8 @@ import { exponentialBackoff } from 'shared/util/net'
 import type { ExternalId } from 'shared/yjsModel'
 import { reactive } from 'vue'
 
+const DEFAULT_ENVIRONMENT: ExecutionEnvironment = 'Design'
+
 export type NodeVisualizationConfiguration = Omit<
   VisualizationConfiguration,
   'executionContextId'
@@ -60,7 +62,7 @@ type ExecutionContextState =
       status: 'created'
       visualizations: Map<Uuid, NodeVisualizationConfiguration>
       stack: StackItem[]
-      environment?: ExecutionEnvironment
+      environment: ExecutionEnvironment
     }
 
 type EntryPoint = Omit<ExplicitCall, 'type'>
@@ -326,7 +328,12 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
           if (result.value.contextId !== this.id) {
             return Err('Unexpected Context ID returned by the language server.')
           }
-          newState = { status: 'created', visualizations: new Map(), stack: [] }
+          newState = {
+            status: 'created',
+            visualizations: new Map(),
+            stack: [],
+            environment: DEFAULT_ENVIRONMENT,
+          }
           return Ok()
         }, 'Failed to create execution context')
       }
