@@ -206,8 +206,8 @@ snowflake_specific_spec suite_builder default_connection db_name setup =
             in_memory = t1.read
             # But when read back to in-memory, they are inferred as Integer type to avoid the BigInteger overhead
             in_memory.at "small_ints" . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
-            # Unless the values are actually big, then the Decimal type is kept
-            in_memory.at "big_ints" . value_type . should_equal (Value_Type.Decimal 38 0)
+            # Unless the values are actually big, then the Decimal type is kept, but its precision is lost, as in-memory BigInteger does not store it.
+            in_memory.at "big_ints" . value_type . should_equal (Value_Type.Decimal Nothing 0)
 
             # Check correctness of values
             in_memory.at "small_ints" . to_vector . should_equal [1, 2, 3]
