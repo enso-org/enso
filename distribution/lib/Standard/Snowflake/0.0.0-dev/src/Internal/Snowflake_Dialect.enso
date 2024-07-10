@@ -280,7 +280,7 @@ type Snowflake_Dialect
             case base_type of
                 Value_Type.Decimal precision scale ->
                     used_scale = scale.if_nothing 12
-                    used_precision = Math.min 38 precision.if_nothing 38
+                    used_precision = Math.min 38 (precision.if_nothing 38)
                     new_type = Value_Type.Decimal used_precision used_scale
                     if used_scale==scale && used_precision==precision then new_type else
                         Warning.attach (Inexact_Type_Coercion.Warning base_type new_type unavailable=False) new_type
