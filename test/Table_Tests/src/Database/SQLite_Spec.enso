@@ -310,7 +310,7 @@ sqlite_specific_spec suite_builder prefix create_connection_func setup =
 type Lazy_Ref
    Value ~get
 
-sqlite_spec suite_builder prefix create_connection_func =
+sqlite_spec suite_builder prefix create_connection_func persistent_connector =
     name_counter = Ref.new 0
     # We keep a default connection to avoid creating connections each time.
     default_connection = Lazy_Ref.Value (create_connection_func Nothing)
@@ -353,6 +353,7 @@ sqlite_spec suite_builder prefix create_connection_func =
     setup = Common_Table_Operations.Main.Test_Setup.Config prefix agg_table_fn empty_agg_table_fn table_builder materialize is_database=True test_selection=common_selection aggregate_test_selection=aggregate_selection create_connection_func=create_connection_func light_table_builder=light_table_builder
     sqlite_specific_spec suite_builder prefix create_connection_func setup
     Common_Table_Operations.Main.add_specs suite_builder setup
+    Upload_Spec.add_specs suite_builder setup create_connection_func persistent_connector=persistent_connector
 
 
 ## PRIVATE
@@ -403,14 +404,12 @@ add_specs suite_builder =
     # https://github.com/enso-org/enso/issues/9437
     database_file = Database_File.create
 
-    sqlite_spec suite_builder in_file_prefix (_ -> create_file_connection database_file.file)
+    sqlite_spec suite_builder in_file_prefix (_ -> create_file_connection database_file.file) persistent_connector=True
     Transaction_Spec.add_specs suite_builder (_ -> create_file_connection database_file.file) in_file_prefix
-    Upload_Spec.add_specs suite_builder (_ -> create_file_connection database_file.file) in_file_prefix
 
     in_memory_prefix = "[SQLite In-Memory] "
-    sqlite_spec suite_builder in_memory_prefix (_ -> create_inmem_connection)
+    sqlite_spec suite_builder in_memory_prefix (_ -> create_inmem_connection) persistent_connector=False
     Transaction_Spec.add_specs suite_builder (_ -> create_inmem_connection) in_memory_prefix
-    Upload_Spec.add_specs suite_builder (_ -> create_inmem_connection) in_memory_prefix persistent_connector=False
 
     SQLite_Type_Mapping_Spec.add_specs suite_builder
 
