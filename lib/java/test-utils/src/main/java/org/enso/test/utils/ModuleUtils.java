@@ -41,6 +41,7 @@ public class ModuleUtils {
 
   /**
    * Returns the loaded module with the given name, or null if no such module exist.
+   *
    * @param modName Fully qualified name of the module
    * @return module with the given name, or null if no such module exist
    */

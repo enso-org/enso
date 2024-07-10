@@ -1,5 +1,9 @@
 package org.enso.interpreter.test.exports;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.anyOf;
+import static org.hamcrest.Matchers.contains;
+
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
@@ -20,26 +24,27 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import scala.jdk.javaapi.CollectionConverters;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.anyOf;
-import static org.hamcrest.Matchers.contains;
-
-
 /**
- * Tests ordering of modules from {@link org.enso.compiler.phase.exports.ExportsResolution#runSort(scala.collection.immutable.List)}.
- * Some tests are already in {@link org.enso.compiler.test.semantic.ImportExportTest}, but there are some
+ * Tests ordering of modules from {@link
+ * org.enso.compiler.phase.exports.ExportsResolution#runSort(scala.collection.immutable.List)}. Some
+ * tests are already in {@link org.enso.compiler.test.semantic.ImportExportTest}, but there are some
  * limitations, like no ability to create (and test) ordering of synthetic modules.
  */
 public class ExportResolutionOrderingTest {
-  @Rule
-  public TemporaryFolder tempFolder = new TemporaryFolder();
+  @Rule public TemporaryFolder tempFolder = new TemporaryFolder();
 
   @Test
   public void testOrderingWithSubmoduleOfSyntheticModule() throws IOException {
-    var aMod = new SourceModule(QualifiedName.fromString("Synthetic_Module.A_Module"), """
+    var aMod =
+        new SourceModule(
+            QualifiedName.fromString("Synthetic_Module.A_Module"),
+            """
         type A_Type
         """);
-    var mainMod = new SourceModule(QualifiedName.fromString("Main"), """
+    var mainMod =
+        new SourceModule(
+            QualifiedName.fromString("Main"),
+            """
         export project.Synthetic_Module.A_Module.A_Type
         """);
     var projDir = tempFolder.newFolder().toPath();
@@ -50,31 +55,33 @@ public class ExportResolutionOrderingTest {
       var mainRuntimeMod = getLoadedModule(ctx, "local.Proj.Main");
       var aRuntimeMod = getLoadedModule(ctx, "local.Proj.Synthetic_Module.A_Module");
       var syntheticRuntimeMod = getLoadedModule(ctx, "local.Proj.Synthetic_Module");
-      var sortedModules = runExportsResolutionSort(
-          List.of(mainRuntimeMod, aRuntimeMod, syntheticRuntimeMod),
-          ctx
-      );
+      var sortedModules =
+          runExportsResolutionSort(List.of(mainRuntimeMod, aRuntimeMod, syntheticRuntimeMod), ctx);
       assertThat(
           "Export relations should be: mainMod --> syntheticMod --> aMod",
           sortedModules,
-          contains(
-              aRuntimeMod,
-              syntheticRuntimeMod,
-              mainRuntimeMod
-          )
-      );
+          contains(aRuntimeMod, syntheticRuntimeMod, mainRuntimeMod));
     }
   }
 
   @Test
   public void testOrderingWithTwoSubmodulesOfSyntheticModule() throws IOException {
-    var aMod = new SourceModule(QualifiedName.fromString("Synthetic_Module.A_Module"), """
+    var aMod =
+        new SourceModule(
+            QualifiedName.fromString("Synthetic_Module.A_Module"),
+            """
         type A_Type
         """);
-    var bMod = new SourceModule(QualifiedName.fromString("Synthetic_Module.B_Module"), """
+    var bMod =
+        new SourceModule(
+            QualifiedName.fromString("Synthetic_Module.B_Module"),
+            """
         type B_Type
         """);
-    var mainMod = new SourceModule(QualifiedName.fromString("Main"), """
+    var mainMod =
+        new SourceModule(
+            QualifiedName.fromString("Main"),
+            """
         export project.Synthetic_Module.A_Module.A_Type
         export project.Synthetic_Module.B_Module.B_Type
         """);
@@ -87,28 +94,16 @@ public class ExportResolutionOrderingTest {
       var aRuntimeMod = getLoadedModule(ctx, "local.Proj.Synthetic_Module.A_Module");
       var bRuntimeMod = getLoadedModule(ctx, "local.Proj.Synthetic_Module.B_Module");
       var syntheticRuntimeMod = getLoadedModule(ctx, "local.Proj.Synthetic_Module");
-      var sortedModules = runExportsResolutionSort(
-          List.of(mainRuntimeMod, aRuntimeMod, bRuntimeMod, syntheticRuntimeMod),
-          ctx
-      );
+      var sortedModules =
+          runExportsResolutionSort(
+              List.of(mainRuntimeMod, aRuntimeMod, bRuntimeMod, syntheticRuntimeMod), ctx);
       assertThat(
-          "Export relations should be: mainMod --> syntheticMod --> aMod; mainMod --> syntheticMod --> bMod",
+          "Export relations should be: mainMod --> syntheticMod --> aMod; mainMod --> syntheticMod"
+              + " --> bMod",
           sortedModules,
           anyOf(
-              contains(
-                  bRuntimeMod,
-                  aRuntimeMod,
-                  syntheticRuntimeMod,
-                  mainRuntimeMod
-              ),
-              contains(
-                  aRuntimeMod,
-                  bRuntimeMod,
-                  syntheticRuntimeMod,
-                  mainRuntimeMod
-              )
-          )
-      );
+              contains(bRuntimeMod, aRuntimeMod, syntheticRuntimeMod, mainRuntimeMod),
+              contains(aRuntimeMod, bRuntimeMod, syntheticRuntimeMod, mainRuntimeMod)));
     }
   }
 
@@ -116,10 +111,15 @@ public class ExportResolutionOrderingTest {
   @Ignore
   @Test
   public void testOrderingWithTwoSyntheticModules() throws IOException {
-    var aMod = new SourceModule(QualifiedName.fromString("Syn_1.Syn_2.A_Module"), """
+    var aMod =
+        new SourceModule(
+            QualifiedName.fromString("Syn_1.Syn_2.A_Module"), """
         type A_Type
         """);
-    var mainMod = new SourceModule(QualifiedName.fromString("Main"), """
+    var mainMod =
+        new SourceModule(
+            QualifiedName.fromString("Main"),
+            """
         export project.Syn_1.Syn_2.A_Module.A_Type
         """);
     var projDir = tempFolder.newFolder().toPath();
@@ -131,21 +131,15 @@ public class ExportResolutionOrderingTest {
       var aRuntimeMod = getLoadedModule(ctx, "local.Proj.Syn_1.Syn_2.A_Module");
       var syn1RuntimeMod = getLoadedModule(ctx, "local.Proj.Syn_1");
       var syn2RuntimeMod = getLoadedModule(ctx, "local.Proj.Syn_1.Syn_2");
-      var sortedModules = runExportsResolutionSort(
-          List.of(mainRuntimeMod, aRuntimeMod, syn1RuntimeMod, syn2RuntimeMod),
-          ctx
-      );
+      var sortedModules =
+          runExportsResolutionSort(
+              List.of(mainRuntimeMod, aRuntimeMod, syn1RuntimeMod, syn2RuntimeMod), ctx);
       var sortedModNames = sortedModules.stream().map(m -> m.getName().toString()).toList();
       assertThat(
-          "Export relations should be: mainMod --> syn1Mod --> syn2Mod --> aMod, but was: " + sortedModNames,
+          "Export relations should be: mainMod --> syn1Mod --> syn2Mod --> aMod, but was: "
+              + sortedModNames,
           sortedModules,
-          contains(
-              aRuntimeMod,
-              syn2RuntimeMod,
-              syn1RuntimeMod,
-              mainRuntimeMod
-          )
-      );
+          contains(aRuntimeMod, syn2RuntimeMod, syn1RuntimeMod, mainRuntimeMod));
     }
   }
 
@@ -171,11 +165,9 @@ public class ExportResolutionOrderingTest {
     var compilerCtx = ensoCtx.getCompiler().context();
     var exportsResolution = new ExportsResolution(compilerCtx);
     var compilerModules = modules.stream().map(Module::asCompilerModule).toList();
-    var sortedCompilerModules = exportsResolution.runSort(
-        CollectionConverters.asScala(compilerModules).toList()
-    );
-    return CollectionConverters.asJava(sortedCompilerModules)
-        .stream()
+    var sortedCompilerModules =
+        exportsResolution.runSort(CollectionConverters.asScala(compilerModules).toList());
+    return CollectionConverters.asJava(sortedCompilerModules).stream()
         .map(Module::fromCompilerModule)
         .toList();
   }

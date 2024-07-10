@@ -111,7 +111,10 @@ case object ImportSymbolAnalysis extends IRPass {
                     method.name
                   )
                   Some(err)
-                case BindingsMap.ResolvedExtensionMethod(module, staticMethod) =>
+                case BindingsMap.ResolvedExtensionMethod(
+                      module,
+                      staticMethod
+                    ) =>
                   val err = createImportFromMethodError(
                     imp,
                     module.getName.createChild(staticMethod.tpName).toString,

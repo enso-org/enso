@@ -23,8 +23,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-
-
 public class ImportSymbolsTest {
   @Rule public TemporaryFolder tempFolder = new TemporaryFolder();
 
@@ -102,26 +100,28 @@ public class ImportSymbolsTest {
   @Ignore
   @Test
   public void importEntityFromModuleThatExportsItFromOtherModule() throws IOException {
-    var aMod = new SourceModule(
-        QualifiedName.fromString("A_Module"),
-        """
+    var aMod =
+        new SourceModule(QualifiedName.fromString("A_Module"), """
         type A_Type
         """);
-    var bMod = new SourceModule(
-        QualifiedName.fromString("B_Module"),
-        """
+    var bMod =
+        new SourceModule(
+            QualifiedName.fromString("B_Module"),
+            """
         export project.A_Module.A_Type
         """);
-    var mainMod = new SourceModule(
-        QualifiedName.fromString("Main"),
-        """
+    var mainMod =
+        new SourceModule(
+            QualifiedName.fromString("Main"),
+            """
         import project.B_Module.A_Type
         """);
     var projDir = tempFolder.newFolder().toPath();
     ProjectUtils.createProject("Proj", Set.of(aMod, bMod, mainMod), projDir);
-    try (var ctx = ContextUtils.defaultContextBuilder()
-        .option(RuntimeOptions.PROJECT_ROOT, projDir.toAbsolutePath().toString())
-        .build()) {
+    try (var ctx =
+        ContextUtils.defaultContextBuilder()
+            .option(RuntimeOptions.PROJECT_ROOT, projDir.toAbsolutePath().toString())
+            .build()) {
       var polyCtx = new PolyglotContext(ctx);
       polyCtx.getTopScope().compile(true);
       var mainModResolvedImps = ModuleUtils.getResolvedImports(ctx, "local.Proj.Main");

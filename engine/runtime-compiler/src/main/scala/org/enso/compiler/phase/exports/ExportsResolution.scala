@@ -6,11 +6,11 @@ import org.enso.compiler.data.BindingsMap.{
   ExportedModule,
   ImportTarget,
   ResolvedConversionMethod,
+  ResolvedExtensionMethod,
   ResolvedImport,
   ResolvedModule,
   ResolvedModuleMethod,
-  ResolvedName,
-  ResolvedExtensionMethod
+  ResolvedName
 }
 import org.enso.compiler.context.CompilerContext
 import org.enso.compiler.context.CompilerContext.Module
@@ -194,8 +194,8 @@ class ExportsResolution(private val context: CompilerContext) {
     if (resolvedNames.size > 1) {
       val allStaticOrModuleMethods = resolvedNames.forall {
         case _: ResolvedExtensionMethod => true
-        case _: ResolvedModuleMethod => true
-        case _                       => false
+        case _: ResolvedModuleMethod    => true
+        case _                          => false
       }
       val allConversionMethods =
         resolvedNames.forall(_.isInstanceOf[ResolvedConversionMethod])

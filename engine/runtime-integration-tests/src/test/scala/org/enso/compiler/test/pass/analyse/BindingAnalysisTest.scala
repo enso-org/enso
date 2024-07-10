@@ -9,10 +9,10 @@ import org.enso.compiler.data.BindingsMap.{
   Argument,
   Cons,
   ConversionMethod,
+  ExtensionMethod,
   ModuleMethod,
   PolyglotSymbol,
   ResolvedExtensionMethod,
-  ExtensionMethod,
   Type
 }
 import org.enso.compiler.pass.analyse.BindingAnalysis

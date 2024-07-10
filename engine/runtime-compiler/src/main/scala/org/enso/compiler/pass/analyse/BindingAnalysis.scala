@@ -10,8 +10,8 @@ import org.enso.compiler.core.ir.MetadataStorage.MetadataPair
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.data.BindingsMap.{
   ConversionMethod,
-  ModuleMethod,
-  ExtensionMethod
+  ExtensionMethod,
+  ModuleMethod
 }
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.desugar.{
