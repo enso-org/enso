@@ -207,7 +207,8 @@ function insertAssetTreeNodeChildren(
   item: assetTreeNode.AnyAssetTreeNode,
   children: backendModule.AnyAsset[],
   directoryKey: backendModule.DirectoryId,
-  directoryId: backendModule.DirectoryId
+  directoryId: backendModule.DirectoryId,
+  isPlaceholder: boolean
 ): assetTreeNode.AnyAssetTreeNode {
   const depth = item.depth + 1
   const typeOrder = children[0] != null ? backendModule.ASSET_TYPE_ORDER[children[0].type] : 0
@@ -215,7 +216,14 @@ function insertAssetTreeNodeChildren(
     node => node.item.type !== backendModule.AssetType.specialEmpty
   )
   const nodesToInsert = children.map(asset =>
-    AssetTreeNode.fromAsset(asset, directoryKey, directoryId, depth, `${item.path}/${asset.title}`)
+    AssetTreeNode.fromAsset(
+      asset,
+      directoryKey,
+      directoryId,
+      depth,
+      `${item.path}/${asset.title}`,
+      isPlaceholder
+    )
   )
   const newNodes = array.splicedBefore(
     nodes,
@@ -262,6 +270,7 @@ function insertArbitraryAssetTreeNodeChildren(
           directoryId,
           depth,
           `${item.path}/${asset.title}`,
+          false,
           getKey?.(asset) ?? asset.id
         )
       )
@@ -432,7 +441,8 @@ export default function AssetsTable(props: AssetsTableProps) {
       rootParentDirectoryId,
       rootParentDirectoryId,
       -1,
-      backend.rootPath
+      backend.rootPath,
+      false
     )
   })
   const [isDraggingFiles, setIsDraggingFiles] = React.useState(false)
@@ -967,11 +977,13 @@ export default function AssetsTable(props: AssetsTableProps) {
               rootDirectory.id,
               rootDirectory.id,
               0,
-              `${backend.rootPath}/${asset.title}`
+              `${backend.rootPath}/${asset.title}`,
+              false
             )
           ),
           -1,
           backend.rootPath,
+          false,
           rootDirectory.id,
           true
         )
@@ -1109,7 +1121,8 @@ export default function AssetsTable(props: AssetsTableProps) {
                         key,
                         directoryId,
                         item.depth + 1,
-                        ''
+                        '',
+                        false
                       ),
                     ],
                   })
@@ -1156,7 +1169,8 @@ export default function AssetsTable(props: AssetsTableProps) {
                       key,
                       directoryId,
                       item.depth + 1,
-                      `${item.path}/${child.title}`
+                      `${item.path}/${child.title}`,
+                      false
                     )
                   )
                   const specialEmptyAsset: backendModule.SpecialEmptyAsset | null =
@@ -1172,7 +1186,8 @@ export default function AssetsTable(props: AssetsTableProps) {
                             key,
                             directoryId,
                             item.depth + 1,
-                            ''
+                            '',
+                            false
                           ),
                         ]
                       : initialChildren == null || initialChildren.length === 0
@@ -1433,7 +1448,8 @@ export default function AssetsTable(props: AssetsTableProps) {
     (
       assets: backendModule.AnyAsset[],
       parentKey: backendModule.DirectoryId | null,
-      parentId: backendModule.DirectoryId | null
+      parentId: backendModule.DirectoryId | null,
+      isPlaceholder: boolean
     ) => {
       const actualParentKey = parentKey ?? rootDirectoryId
       const actualParentId = parentId ?? rootDirectoryId
@@ -1441,7 +1457,13 @@ export default function AssetsTable(props: AssetsTableProps) {
         oldAssetTree.map(item =>
           item.key !== actualParentKey
             ? item
-            : insertAssetTreeNodeChildren(item, assets, actualParentKey, actualParentId)
+            : insertAssetTreeNodeChildren(
+                item,
+                assets,
+                actualParentKey,
+                actualParentId,
+                isPlaceholder
+              )
         )
       )
     },
@@ -1499,11 +1521,7 @@ export default function AssetsTable(props: AssetsTableProps) {
           description: null,
         }
         doToggleDirectoryExpansion(event.parentId, event.parentKey, null, true)
-        insertAssets([placeholderItem], event.parentKey, event.parentId)
-        dispatchAssetEvent({
-          type: AssetEventType.newFolder,
-          placeholderId: placeholderItem.id,
-        })
+        insertAssets([placeholderItem], event.parentKey, event.parentId, true)
         break
       }
       case AssetListEventType.newProject: {

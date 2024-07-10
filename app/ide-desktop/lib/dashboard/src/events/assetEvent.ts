@@ -15,7 +15,6 @@ interface AssetBaseEvent<Type extends AssetEventType> {
 /** All possible events. */
 interface AssetEvents {
   readonly newProject: AssetNewProjectEvent
-  readonly newFolder: AssetNewFolderEvent
   readonly uploadFiles: AssetUploadFilesEvent
   readonly updateFiles: AssetUpdateFilesEvent
   readonly newDatalink: AssetNewDatalinkEvent
@@ -55,11 +54,6 @@ export interface AssetNewProjectEvent extends AssetBaseEvent<AssetEventType.newP
   readonly datalinkId: backend.DatalinkId | null
   readonly originalId: backend.ProjectId | null
   readonly versionId: backend.S3ObjectVersionId | null
-}
-
-/** A signal to create a directory. */
-export interface AssetNewFolderEvent extends AssetBaseEvent<AssetEventType.newFolder> {
-  readonly placeholderId: backend.DirectoryId
 }
 
 /** A signal to upload files. */
