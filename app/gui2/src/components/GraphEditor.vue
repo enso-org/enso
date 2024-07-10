@@ -71,6 +71,7 @@ import {
 } from 'vue'
 
 import { builtinWidgets } from '@/components/widgets'
+import { injectVisibility } from '@/providers/visibility'
 
 const keyboard = provideKeyboard()
 const projectStore = useProjectStore()
@@ -78,6 +79,7 @@ const suggestionDb = provideSuggestionDbStore(projectStore)
 const graphStore = provideGraphStore(projectStore, suggestionDb)
 const widgetRegistry = provideWidgetRegistry(graphStore.db)
 const _visualizationStore = provideVisualizationStore(projectStore)
+const visible = injectVisibility()
 
 onMounted(() => {
   widgetRegistry.loadWidgets(Object.entries(builtinWidgets))
@@ -156,6 +158,7 @@ useSyncLocalStorage<GraphStoredState>({
       rightDockWidth.value = restored.rwidth ?? undefined
     } else {
       await until(visibleAreasReady).toBe(true)
+      await until(visible).toBe(true)
       if (!abort.aborted) zoomToAll(true)
     }
   },

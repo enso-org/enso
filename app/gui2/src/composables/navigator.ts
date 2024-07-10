@@ -99,8 +99,7 @@ export function useNavigator(
     maxScale = PAN_AND_ZOOM_DEFAULT_SCALE_RANGE[1],
     skipAnimation = false,
   ) {
-    if (!viewportNode.value || !viewportNode.value.clientHeight || !viewportNode.value.clientWidth)
-      return
+    if (!viewportNode.value) return
     targetScale.value = Math.max(
       minScale,
       Math.min(

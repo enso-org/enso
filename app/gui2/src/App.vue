@@ -16,6 +16,7 @@ import { useEventListener } from '@vueuse/core'
 import { computed, toRef, watch } from 'vue'
 import TooltipDisplayer from './components/TooltipDisplayer.vue'
 import { provideTooltipRegistry } from './providers/tooltipState'
+import { provideVisibility } from './providers/visibility'
 import { initializePrefixes } from './util/ast/node'
 import { urlParams } from './util/urlParams'
 
@@ -45,8 +46,6 @@ watch(
 
 useEventListener(window, 'beforeunload', () => logger.send('ide_project_closed'))
 
-const config = toRef(props, 'config')
-
 const appConfig = computed(() => {
   const unrecognizedOptions: string[] = []
   const intermediateConfig = mergeConfig(
@@ -58,11 +57,12 @@ const appConfig = computed(() => {
   )
   return {
     unrecognizedOptions,
-    config: mergeConfig(intermediateConfig, config.value ?? {}),
+    config: mergeConfig(intermediateConfig, props.config ?? {}),
   }
 })
 
 provideGuiConfig(computed((): ApplicationConfigValue => configValue(appConfig.value.config)))
+provideVisibility(computed(() => !props.hidden))
 
 registerAutoBlurHandler()
 </script>
