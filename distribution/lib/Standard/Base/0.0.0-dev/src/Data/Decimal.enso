@@ -353,7 +353,7 @@ type Decimal
              c = a + b
              # => Decimal.new 30.55
     + : Decimal -> Decimal
-    + self (that : Decimal) = self.add that
+    + self (that : Decimal) -> Decimal ! Arithmetic_Error = self.add that
 
     ## ALIAS minus
        GROUP Operators
@@ -412,7 +412,7 @@ type Decimal
              c = a - b
              # => Decimal.new 10.11
     - : Decimal -> Decimal
-    - self (that : Decimal) = self.subtract that
+    - self (that : Decimal) -> Decimal ! Arithmetic_Error = self.subtract that
 
     ## ALIAS times
        GROUP Operators
@@ -470,7 +470,7 @@ type Decimal
              c = a * b
              # => Decimal.new 207.7726
     * : Decimal -> Decimal
-    * self (that : Decimal) = self.multiply that
+    * self (that : Decimal) -> Decimal ! Arithmetic_Error = self.multiply that
 
     ## GROUP Operators
        ICON math
@@ -534,7 +534,7 @@ type Decimal
              c = a / b
              # => Decimal.new 45.67
     / : Decimal -> Decimal
-    / self (that : Decimal) = self.divide that
+    / self (that : Decimal) -> Decimal ! Arithmetic_Error = self.divide that
 
     ## ALIAS modulo, modulus
        GROUP Operators
@@ -564,7 +564,7 @@ type Decimal
              remainder = Decimal.new -5 . remainder 3
              # => -2
     remainder : Decimal -> Decimal
-    remainder self (that : Decimal) =
+    remainder self (that : Decimal) -> Decimal =
         handle_java_exception <|
             Decimal.Value (self.big_decimal.remainder that.big_decimal)
 
@@ -596,7 +596,7 @@ type Decimal
              remainder = Decimal.new -5 % 3
              # => -2
     % : Decimal -> Decimal
-    % self (that : Decimal) = self.remainder that
+    % self (that : Decimal) -> Decimal = self.remainder that
 
     ## GROUP Math
        ICON math
@@ -650,7 +650,7 @@ type Decimal
              Decimal.new "2.25" . pow (Decimal.new "5")
              # => 57.6650390625
     pow : Integer -> Decimal
-    pow self exp:Integer =
+    pow self exp:Integer -> Decimal =
         ## If `exp` is an integer that does not fit in a Java Integer,
            UnsuppUnsupported_Argument_Types is raised, so we convert that to an
            Arithmetic_Error.
@@ -677,7 +677,7 @@ type Decimal
              Decimal.new "2.25" ^ Decimal.new "5"
              # => 57.6650390625
     ^ : Integer -> Decimal
-    ^ self exp:Integer = self.pow exp
+    ^ self exp:Integer -> Decimal = self.pow exp
 
     ## GROUP Operators
        ICON operators
@@ -689,7 +689,7 @@ type Decimal
              5.1.negate
              # => Decimal.new -5.1
     negate : Decimal
-    negate self = Decimal.Value self.big_decimal.negate
+    negate self -> Decimal = Decimal.Value self.big_decimal.negate
 
     ## GROUP Math
        ICON math
@@ -764,7 +764,7 @@ type Decimal
              d.to_integer
              # => 2345
     to_integer : Integer
-    to_integer self =
+    to_integer self -> Integer =
         i = self.big_decimal.toBigInteger
         if self == i then i else
             Warning.attach (Loss_Of_Numeric_Precision.Warning self i) i
@@ -801,8 +801,8 @@ type Decimal
              d = Decimal.new "23.45"
              d.to_float
              # => 23.45
-    to_float : Integer
-    to_float self =
+    to_float : Float
+    to_float self -> Float =
         f = self.big_decimal.doubleValue
         if f.is_finite then attach_loss_of_numeric_precision self f else
             message = "Outside representable Float range (approximately (-1.8E308, 1.8E308))"
@@ -952,7 +952,7 @@ type Decimal
     @format make_number_format_selector
     @locale Locale.default_widget
     format : Text -> Locale -> Text
-    format self format:Text="" locale:Locale=Locale.default =
+    format self format:Text="" locale:Locale=Locale.default -> Text =
         symbols = DecimalFormatSymbols.new locale.java_locale
         formatter = DecimalFormat.new format symbols
         formatter.format self.big_decimal
@@ -996,50 +996,50 @@ type Decimal
              Decimal.parse "123.456.789,87654" locale=Locale.italy
              # => 123456789.87654
     parse : Text -> Locale | Nothing -> Decimal ! Number_Parse_Error
-    parse text locale:(Locale | Nothing)=Nothing = case locale of
+    parse text locale:(Locale | Nothing)=Nothing -> Decimal ! Number_Parse_Error = case locale of
         Nothing -> Decimal.from_text text
         Locale.Value java_locale -> Panic.catch ParseException ((NumberFormat.getInstance java_locale).parse text) _->
             Error.throw (Number_Parse_Error.Error text)
 
     ## PRIVATE
     precision : Integer
-    precision self = self.big_decimal.precision
+    precision self -> Integer = self.big_decimal.precision
 
     ## PRIVATE
     scale : Integer
-    scale self = self.big_decimal.scale
+    scale self -> Integer = self.big_decimal.scale
 
     ## PRIVATE
     with_scale : Integer -> Decimal
-    private with_scale self new_scale:Integer =
+    private with_scale self new_scale:Integer -> Decimal =
         if self.scale == new_scale then self else
             Decimal.Value (self.big_decimal.setScale new_scale)
 
     ## PRIVATE
     unscaled_value : Integer
-    unscaled_value self = self.big_decimal.unscaledValue
+    unscaled_value self -> Integer = self.big_decimal.unscaledValue
 
     ## PRIVATE
     internal_representation : [Integer]
-    internal_representation self = [self.unscaled_value, self.precision, self.scale]
+    internal_representation self -> [Integer] = [self.unscaled_value, self.precision, self.scale]
 
     ## PRIVATE
        Note: the underlying Java `BigDecimal` implementation is not affected by
        locale.
     to_text : Text
-    to_text self = self.big_decimal.toString
+    to_text self -> Text = self.big_decimal.toString
 
     ## PRIVATE
        Note: the underlying Java `BigDecimal` implementation is not affected by
        locale.
     to_display_text : Text
-    to_display_text self = self.big_decimal.toString
+    to_display_text self -> Text = self.big_decimal.toString
 
     ## PRIVATE
        Note: the underlying Java `BigDecimal` implementation is not affected by
        locale.
     to_text_without_scientific_notation : Text
-    to_text_without_scientific_notation  self = self.big_decimal.toPlainString
+    to_text_without_scientific_notation self -> Text = self.big_decimal.toPlainString
 
 ## ICON input_number
     Construct a `Decimal` from a string, integer or float.
