@@ -1,7 +1,9 @@
 /** @file Table displaying a list of projects. */
 import * as React from 'react'
 
+import * as reactQuery from '@tanstack/react-query'
 import * as toast from 'react-toastify'
+import invariant from 'tiny-invariant'
 
 import DropFilesImage from 'enso-assets/drop_files.svg'
 
@@ -432,12 +434,16 @@ export default function AssetsTable(props: AssetsTableProps) {
   > | null>(null)
   const [, setQueuedAssetEvents] = React.useState<assetEvent.AssetEvent[]>([])
   const [, setNameOfProjectToImmediatelyOpen] = React.useState(initialProjectName)
-  const organizationQuery = backendHooks.useBackendQuery(backend, 'getOrganization', [])
-  const organization = organizationQuery.data ?? null
-  const rootDirectoryId = React.useMemo(
-    () => backend.rootDirectoryId(user, organization) ?? backendModule.DirectoryId(''),
-    [backend, user, organization]
-  )
+  const organizationQuery = reactQuery.useSuspenseQuery({
+    queryKey: [backend.type, 'getOrganization'],
+    queryFn: () => backend.getOrganization(),
+  })
+  const organization = organizationQuery.data
+  const rootDirectoryId = React.useMemo(() => {
+    const id = backend.rootDirectoryId(user, organization)
+    invariant(id, 'Missing root directory')
+    return id
+  }, [backend, user, organization])
   const [assetTree, setAssetTree] = React.useState<assetTreeNode.AnyAssetTreeNode>(() => {
     const rootParentDirectoryId = backendModule.DirectoryId('')
     const rootPath = 'rootPath' in category ? category.rootPath : backend.rootPath
