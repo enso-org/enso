@@ -27,7 +27,6 @@ export interface PaywallDevtoolsFeatureConfiguration {
   readonly isForceEnabled: boolean | null
 }
 
-// eslint-disable-next-line no-restricted-syntax
 const PaywallDevtoolsContext = React.createContext<{
   features: Record<billing.PaywallFeatureName, PaywallDevtoolsFeatureConfiguration>
 }>({
@@ -42,14 +41,14 @@ const PaywallDevtoolsContext = React.createContext<{
 })
 
 /**
- * Props for the {@link PaywallDevtools} component.
+ * Props for the {@link EnsoDevtools} component.
  */
-interface PaywallDevtoolsProps extends React.PropsWithChildren {}
+interface EnsoDevtoolsProps extends React.PropsWithChildren {}
 
 /**
  * A component that provides a UI for toggling paywall features.
  */
-export function PaywallDevtools(props: PaywallDevtoolsProps) {
+export function EnsoDevtools(props: EnsoDevtoolsProps) {
   const { children } = props
 
   const { getText } = textProvider.useText()
