@@ -22,7 +22,7 @@ import org.enso.interpreter.runtime.error.WarningsLibrary;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
 @BuiltinMethod(
-    type = "Comparable",
+    type = "Default_Comparator",
     name = "less_than_builtin",
     description =
         """
