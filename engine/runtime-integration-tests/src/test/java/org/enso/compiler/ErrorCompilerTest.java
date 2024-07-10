@@ -408,19 +408,22 @@ public class ErrorCompilerTest extends CompilerTest {
   @Test
   public void malformedExport9() throws Exception {
     var ir = parse("from export all");
-    assertSingleSyntaxError(ir, invalidExport("`all` not allowed in `export` statement"), null, 0, 15);
+    assertSingleSyntaxError(
+        ir, invalidExport("`all` not allowed in `export` statement"), null, 0, 15);
   }
 
   @Test
   public void malformedExport10() throws Exception {
     var ir = parse("from Foo export all hiding");
-    assertSingleSyntaxError(ir, invalidExport("`hiding` not allowed in `export` statement"), null, 0, 26);
+    assertSingleSyntaxError(
+        ir, invalidExport("`hiding` not allowed in `export` statement"), null, 0, 26);
   }
 
   @Test
   public void malformedExport11() throws Exception {
     var ir = parse("from Foo export all hiding X.Y");
-    assertSingleSyntaxError(ir, invalidExport("`hiding` not allowed in `export` statement"), null, 0, 30);
+    assertSingleSyntaxError(
+        ir, invalidExport("`hiding` not allowed in `export` statement"), null, 0, 30);
   }
 
   @Test
