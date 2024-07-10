@@ -130,6 +130,9 @@ add_specs suite_builder =
             Decimal.from 12345 . should_equal (Decimal.new 12345)
             Decimal.from 12345 . should_equal (Decimal.from_integer 12345)
 
+        group_builder.specify "should attach a Loss_Of_Numeric_Precision warning when converting float to decimal with .from" <|
+            Problems.expect_only_warning Loss_Of_Numeric_Precision (Decimal.from 123.45)
+
         group_builder.specify "constructor should respect Math_Context " <|
             Decimal.new 12000 (Math_Context.new 0) . should_equal 12000
             Decimal.new 12000 (Math_Context.new 1) . should_equal 10000
@@ -609,6 +612,9 @@ add_specs suite_builder =
             f = Float.from (Decimal.new "56.34")
             f.should_be_a Float
             f.should_equal 56.34
+
+        group_builder.specify "should attach a Loss_Of_Numeric_Precision warning when converting decimal to float with .from" <|
+            Problems.expect_only_warning Loss_Of_Numeric_Precision (Float.from (Decimal.new "56.34"))
 
         group_builder.specify "Decimal.to_float cannot compare correctly with the original Decimal" <|
             huge_a = Decimal.new "3.4E300"
