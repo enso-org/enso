@@ -34,8 +34,13 @@ type Snowflake_Type_Mapping
             Value_Type.Decimal precision scale -> case precision of
                 # If precision is not set, scale is also lost because SQL is unable to express a scale without a precision.
                 Nothing -> SQL_Type.Value Types.DECIMAL "NUMBER" Nothing Nothing
-                # Scale can be set or not, if precision is given, so no check needed.
-                _       -> SQL_Type.Value Types.DECIMAL "NUMBER" precision scale
+                # Scale can be set or not, but if it is set, it must be in range 0-37.
+                # If scale or precision is out of range, we fall back to Nothing.
+                _       -> if (precision < 1) || (precision > 38) then SQL_Type.Value Types.DECIMAL "NUMBER" Nothing Nothing else
+                    if scale.is_nothing then SQL_Type.Value Types.DECIMAL "NUMBER" precision Nothing else
+                        if (scale < 0) || (scale > 37) then SQL_Type.Value Types.DECIMAL "NUMBER" Nothing Nothing else
+                            SQL_Type.Value Types.DECIMAL "NUMBER" precision scale
+
             Value_Type.Char size _ ->
                 # Snowflake does not support fixed length strings, so we use VARCHAR.
                 is_unbounded = case size of
