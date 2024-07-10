@@ -10,7 +10,7 @@ import project.Value_Type.By_Type
 from project.Errors import Missing_Input_Columns, No_Such_Column, Non_Unique_Key, Unmatched_Rows_In_Lookup
 
 ## PRIVATE
-replace : Table -> (Table | Map) -> (Text | Integer | By_Type | Vector (Text | Integer | By_Type)) -> (Text | Integer | Nothing) -> (Text | Integer | Nothing) -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns | Non_Unique_Key | Unmatched_Rows_In_Lookup
+replace : Table -> (Table | Dictionary) -> (Text | Integer | By_Type | Vector (Text | Integer | By_Type)) -> (Text | Integer | Nothing) -> (Text | Integer | Nothing) -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns | Non_Unique_Key | Unmatched_Rows_In_Lookup
 replace base_table lookup_table columns:(Text | Integer | By_Type | Vector (Text | Integer | By_Type)) from_column:(Text | Integer | Nothing)=Nothing to_column:(Text | Integer | Nothing)=Nothing allow_unmatched_rows:Boolean=True on_problems:Problem_Behavior=..Report_Warning =
     case columns of
         _ : Vector ->
@@ -20,8 +20,8 @@ replace base_table lookup_table columns:(Text | Integer | By_Type | Vector (Text
         _ ->
             column = columns
             case lookup_table of
-                _ : Map ->
-                    if from_column.is_nothing.not || to_column.is_nothing.not then Error.throw (Illegal_Argument.Error "If a Map is provided as the lookup_table, then from_column and to_column should not also be specified.") else 
+                _ : Dictionary ->
+                    if from_column.is_nothing.not || to_column.is_nothing.not then Error.throw (Illegal_Argument.Error "If a Dictionary is provided as the lookup_table, then from_column and to_column should not also be specified.") else
                         handle_empty_lookup_table ~action =
                             if lookup_table.is_empty.not then action else
                                 ## If the lookup table is empty but the base table is
@@ -33,7 +33,7 @@ replace base_table lookup_table columns:(Text | Integer | By_Type | Vector (Text
                                         a_key_value = base_table.at column . at 0
                                         Error.throw (Unmatched_Rows_In_Lookup.Error [a_key_value])
                         handle_empty_lookup_table <|
-                            base_table.replace (base_table.make_table_from_map lookup_table 'from' 'to') column 'from' 'to' allow_unmatched_rows=allow_unmatched_rows on_problems=on_problems
+                            base_table.replace (base_table.make_table_from_dictionary lookup_table 'from' 'to') column 'from' 'to' allow_unmatched_rows=allow_unmatched_rows on_problems=on_problems
                 _ ->
                     from_column_resolved = from_column.if_nothing 0
                     to_column_resolved = to_column.if_nothing 1
@@ -52,7 +52,7 @@ replace base_table lookup_table columns:(Text | Integer | By_Type | Vector (Text
                         ## Create a lookup table with just `to_column` and `from_column`,
                            renamed to match the base table's `column` and its duplicate,
                            respectively.
-                        lookup_table_renamed = selected_lookup_columns . rename_columns (Map.from_vector [[from_column_resolved, duplicate_key_column_name], [to_column_resolved, column]])
+                        lookup_table_renamed = selected_lookup_columns . rename_columns (Dictionary.from_vector [[from_column_resolved, duplicate_key_column_name], [to_column_resolved, column]])
 
                         warn_if_empty result_table = if lookup_table_renamed.row_count != 0 then result_table else Warning.attach (Empty_Error.Error "lookup_table") result_table
 

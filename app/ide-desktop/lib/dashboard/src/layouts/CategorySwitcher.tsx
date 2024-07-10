@@ -2,7 +2,7 @@
 import * as React from 'react'
 
 import CloudIcon from 'enso-assets/cloud.svg'
-import NotCloudIcon from 'enso-assets/not_cloud.svg'
+import ComputerIcon from 'enso-assets/computer.svg'
 import RecentIcon from 'enso-assets/recent.svg'
 import Trash2Icon from 'enso-assets/trash2.svg'
 
@@ -75,7 +75,7 @@ const CATEGORY_DATA: readonly CategoryMetadata[] = [
   },
   {
     category: Category.local,
-    icon: NotCloudIcon,
+    icon: ComputerIcon,
     textId: 'localCategory',
     buttonTextId: 'localCategoryButtonLabel',
     dropZoneTextId: 'localCategoryDropZoneLabel',

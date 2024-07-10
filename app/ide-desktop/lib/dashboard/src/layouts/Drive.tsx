@@ -13,9 +13,12 @@ import * as textProvider from '#/providers/TextProvider'
 
 import AssetListEventType from '#/events/AssetListEventType'
 
+import type * as dashboard from '#/pages/dashboard/Dashboard'
+
 import type * as assetPanel from '#/layouts/AssetPanel'
 import AssetPanel from '#/layouts/AssetPanel'
 import type * as assetSearchBar from '#/layouts/AssetSearchBar'
+import type * as assetsTable from '#/layouts/AssetsTable'
 import AssetsTable from '#/layouts/AssetsTable'
 import * as eventListProvider from '#/layouts/AssetsTable/EventListProvider'
 import CategorySwitcher from '#/layouts/CategorySwitcher'
@@ -59,19 +62,30 @@ enum DriveStatus {
 
 /** Props for a {@link Drive}. */
 export interface DriveProps {
+  readonly openedProjects: dashboard.Project[]
   readonly category: Category
   readonly setCategory: (category: Category) => void
   readonly hidden: boolean
   readonly initialProjectName: string | null
-  readonly setProjectStartupInfo: (projectStartupInfo: backendModule.ProjectStartupInfo) => void
-  readonly doOpenEditor: () => void
-  readonly doCloseEditor: (projectId: backendModule.ProjectId) => void
+  readonly doOpenEditor: (id: dashboard.ProjectId) => void
+  readonly doOpenProject: (project: dashboard.Project) => void
+  readonly doCloseProject: (project: dashboard.Project) => void
+  readonly assetsManagementApiRef: React.Ref<assetsTable.AssetManagementApi>
 }
 
 /** Contains directory path and directory contents (projects, folders, secrets and files). */
 export default function Drive(props: DriveProps) {
-  const { hidden, initialProjectName } = props
-  const { setProjectStartupInfo, doOpenEditor, doCloseEditor, category, setCategory } = props
+  const {
+    openedProjects,
+    doOpenEditor,
+    doCloseProject,
+    category,
+    setCategory,
+    hidden,
+    initialProjectName,
+    doOpenProject,
+    assetsManagementApiRef,
+  } = props
 
   const { isOffline } = offlineHooks.useOffline()
   const { localStorage } = localStorageProvider.useLocalStorage()
@@ -311,11 +325,12 @@ export default function Drive(props: DriveProps) {
                 </result.Result>
               ) : (
                 <AssetsTable
+                  assetManagementApiRef={assetsManagementApiRef}
+                  openedProjects={openedProjects}
                   hidden={hidden}
                   query={query}
                   setQuery={setQuery}
                   setCanDownload={setCanDownload}
-                  setProjectStartupInfo={setProjectStartupInfo}
                   category={category}
                   setSuggestions={setSuggestions}
                   initialProjectName={initialProjectName}
@@ -323,7 +338,8 @@ export default function Drive(props: DriveProps) {
                   setIsAssetPanelTemporarilyVisible={setIsAssetPanelTemporarilyVisible}
                   targetDirectoryNodeRef={targetDirectoryNodeRef}
                   doOpenEditor={doOpenEditor}
-                  doCloseEditor={doCloseEditor}
+                  doOpenProject={doOpenProject}
+                  doCloseProject={doCloseProject}
                 />
               )}
             </div>

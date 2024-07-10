@@ -5,7 +5,8 @@
 // ===============
 
 /** An interface specifying the variant of a newtype. */
-interface NewtypeVariant<TypeName extends string> {
+// eslint-disable-next-line @typescript-eslint/consistent-type-definitions
+type NewtypeVariant<TypeName extends string> = {
   // eslint-disable-next-line @typescript-eslint/naming-convention
   readonly _$type: TypeName
 }
@@ -13,8 +14,8 @@ interface NewtypeVariant<TypeName extends string> {
 /** An interface specifying the variant of a newtype, where the discriminator is mutable.
  * This is safe, as the discriminator should be a string literal type anyway. */
 // This is required for compatibility with the dependency `enso-chat`.
-// eslint-disable-next-line no-restricted-syntax
-interface MutableNewtypeVariant<TypeName extends string> {
+// eslint-disable-next-line no-restricted-syntax, @typescript-eslint/consistent-type-definitions
+type MutableNewtypeVariant<TypeName extends string> = {
   // eslint-disable-next-line @typescript-eslint/naming-convention
   _$type: TypeName
 }
@@ -43,7 +44,8 @@ type UnNewtype<T extends Newtype<unknown, string>> = T extends infer U & Newtype
   : NotNewtype & Omit<T, '_$type'>
 
 /** An interface that matches a type if and only if it is not a newtype. */
-export interface NotNewtype {
+// eslint-disable-next-line @typescript-eslint/consistent-type-definitions
+type NotNewtype = {
   // eslint-disable-next-line @typescript-eslint/naming-convention
   readonly _$type?: never
 }

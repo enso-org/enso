@@ -20,10 +20,13 @@ import Button from '#/components/styled/Button'
 import FocusArea from '#/components/styled/FocusArea'
 
 import InviteUsersModal from '#/modals/InviteUsersModal'
-import ManagePermissionsModal from '#/modals/ManagePermissionsModal'
 
-import * as backendModule from '#/services/Backend'
-import type Backend from '#/services/Backend'
+// =================
+// === Constants ===
+// =================
+
+/** Whether the chat button should be visible. Temporarily disabled. */
+const SHOULD_SHOW_CHAT_BUTTON: boolean = false
 
 // ===============
 // === UserBar ===
@@ -31,40 +34,27 @@ import type Backend from '#/services/Backend'
 
 /** Props for a {@link UserBar}. */
 export interface UserBarProps {
-  readonly backend: Backend | null
   /** When `true`, the element occupies space in the layout but is not visible.
    * Defaults to `false`. */
   readonly invisible?: boolean
-  readonly isOnEditorPage: boolean
   readonly setIsHelpChatOpen: (isHelpChatOpen: boolean) => void
-  readonly projectAsset: backendModule.ProjectAsset | null
-  readonly setProjectAsset: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>> | null
-  readonly doRemoveSelf: () => void
   readonly goToSettingsPage: () => void
   readonly onSignOut: () => void
+  readonly onShareClick?: (() => void) | null | undefined
 }
 
 /** A toolbar containing chat and the user menu. */
 export default function UserBar(props: UserBarProps) {
-  const { backend, invisible = false, isOnEditorPage, setIsHelpChatOpen } = props
-  const { projectAsset, setProjectAsset, doRemoveSelf, goToSettingsPage, onSignOut } = props
+  const { invisible = false, setIsHelpChatOpen, onShareClick, goToSettingsPage, onSignOut } = props
+
   const { user } = authProvider.useNonPartialUserSession()
   const { setModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
   const { isFeatureUnderPaywall } = billing.usePaywall({ plan: user.plan })
-  const self =
-    projectAsset?.permissions?.find(
-      backendModule.isUserPermissionAnd(permissions => permissions.user.userId === user.userId)
-    ) ?? null
-  const shouldShowShareButton =
-    backend?.type === backendModule.BackendType.remote &&
-    isOnEditorPage &&
-    projectAsset != null &&
-    setProjectAsset != null &&
-    self != null
+
   const shouldShowUpgradeButton = isFeatureUnderPaywall('inviteUser')
-  const shouldShowInviteButton =
-    backend != null && !shouldShowShareButton && !shouldShowUpgradeButton
+  const shouldShowShareButton = onShareClick != null
+  const shouldShowInviteButton = !shouldShowShareButton && !shouldShowUpgradeButton
 
   return (
     <FocusArea active={!invisible} direction="horizontal">
@@ -74,16 +64,18 @@ export default function UserBar(props: UserBarProps) {
             className="flex h-[46px] shrink-0 cursor-default items-center gap-user-bar pl-icons-x pr-3"
             {...innerProps}
           >
-            <ariaComponents.Button
-              variant="icon"
-              size="custom"
-              className="mr-1"
-              icon={ChatIcon}
-              aria-label={getText('openHelpChat')}
-              onPress={() => {
-                setIsHelpChatOpen(true)
-              }}
-            />
+            {SHOULD_SHOW_CHAT_BUTTON && (
+              <ariaComponents.Button
+                variant="icon"
+                size="custom"
+                className="mr-1"
+                icon={ChatIcon}
+                aria-label={getText('openHelpChat')}
+                onPress={() => {
+                  setIsHelpChatOpen(true)
+                }}
+              />
+            )}
 
             {shouldShowUpgradeButton && (
               <paywall.PaywallDialogButton feature={'inviteUser'} size="medium" variant="tertiary">
@@ -110,18 +102,7 @@ export default function UserBar(props: UserBarProps) {
                 size="medium"
                 variant="tertiary"
                 aria-label={getText('shareButtonAltText')}
-                onPress={() => {
-                  setModal(
-                    <ManagePermissionsModal
-                      backend={backend}
-                      item={projectAsset}
-                      setItem={setProjectAsset}
-                      self={self}
-                      doRemoveSelf={doRemoveSelf}
-                      eventTarget={null}
-                    />
-                  )
-                }}
+                onPress={onShareClick}
               >
                 {getText('share')}
               </ariaComponents.Button>

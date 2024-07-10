@@ -7,24 +7,18 @@ import ArrowUpIcon from 'enso-assets/arrow_up.svg'
 import PlayIcon from 'enso-assets/play.svg'
 import StopIcon from 'enso-assets/stop.svg'
 
-import * as backendHooks from '#/hooks/backendHooks'
-import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
-
 import * as authProvider from '#/providers/AuthProvider'
-import * as sessionProvider from '#/providers/SessionProvider'
 import * as textProvider from '#/providers/TextProvider'
 
-import AssetEventType from '#/events/AssetEventType'
-
-import * as eventListProvider from '#/layouts/AssetsTable/EventListProvider'
+import * as dashboard from '#/pages/dashboard/Dashboard'
 
 import * as ariaComponents from '#/components/AriaComponents'
-import Spinner, * as spinner from '#/components/Spinner'
+import Spinner from '#/components/Spinner'
+import StatelessSpinner, * as spinner from '#/components/StatelessSpinner'
 
 import * as backendModule from '#/services/Backend'
 import type Backend from '#/services/Backend'
 
-import * as object from '#/utilities/object'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 // =================
@@ -34,10 +28,10 @@ import * as tailwindMerge from '#/utilities/tailwindMerge'
 /** The corresponding {@link spinner.SpinnerState} for each {@link backendModule.ProjectState},
  * when using the remote backend. */
 const REMOTE_SPINNER_STATE: Readonly<Record<backendModule.ProjectState, spinner.SpinnerState>> = {
-  [backendModule.ProjectState.closed]: spinner.SpinnerState.initial,
-  [backendModule.ProjectState.closing]: spinner.SpinnerState.initial,
-  [backendModule.ProjectState.created]: spinner.SpinnerState.initial,
-  [backendModule.ProjectState.new]: spinner.SpinnerState.initial,
+  [backendModule.ProjectState.closed]: spinner.SpinnerState.loadingSlow,
+  [backendModule.ProjectState.closing]: spinner.SpinnerState.loadingMedium,
+  [backendModule.ProjectState.created]: spinner.SpinnerState.loadingSlow,
+  [backendModule.ProjectState.new]: spinner.SpinnerState.loadingSlow,
   [backendModule.ProjectState.placeholder]: spinner.SpinnerState.loadingSlow,
   [backendModule.ProjectState.openInProgress]: spinner.SpinnerState.loadingSlow,
   [backendModule.ProjectState.provisioned]: spinner.SpinnerState.loadingSlow,
@@ -47,12 +41,12 @@ const REMOTE_SPINNER_STATE: Readonly<Record<backendModule.ProjectState, spinner.
 /** The corresponding {@link spinner.SpinnerState} for each {@link backendModule.ProjectState},
  * when using the local backend. */
 const LOCAL_SPINNER_STATE: Readonly<Record<backendModule.ProjectState, spinner.SpinnerState>> = {
-  [backendModule.ProjectState.closed]: spinner.SpinnerState.initial,
-  [backendModule.ProjectState.closing]: spinner.SpinnerState.initial,
-  [backendModule.ProjectState.created]: spinner.SpinnerState.initial,
-  [backendModule.ProjectState.new]: spinner.SpinnerState.initial,
+  [backendModule.ProjectState.closed]: spinner.SpinnerState.loadingSlow,
+  [backendModule.ProjectState.closing]: spinner.SpinnerState.loadingMedium,
+  [backendModule.ProjectState.created]: spinner.SpinnerState.loadingSlow,
+  [backendModule.ProjectState.new]: spinner.SpinnerState.loadingSlow,
   [backendModule.ProjectState.placeholder]: spinner.SpinnerState.loadingMedium,
-  [backendModule.ProjectState.openInProgress]: spinner.SpinnerState.loadingMedium,
+  [backendModule.ProjectState.openInProgress]: spinner.SpinnerState.loadingSlow,
   [backendModule.ProjectState.provisioned]: spinner.SpinnerState.loadingMedium,
   [backendModule.ProjectState.scheduled]: spinner.SpinnerState.loadingMedium,
   [backendModule.ProjectState.opened]: spinner.SpinnerState.done,
@@ -65,226 +59,71 @@ const LOCAL_SPINNER_STATE: Readonly<Record<backendModule.ProjectState, spinner.S
 /** Props for a {@link ProjectIcon}. */
 export interface ProjectIconProps {
   readonly backend: Backend
+  readonly isOpened: boolean
   readonly item: backendModule.ProjectAsset
-  readonly setItem: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>>
-  readonly setProjectStartupInfo: (projectStartupInfo: backendModule.ProjectStartupInfo) => void
-  readonly doCloseEditor: (id: backendModule.ProjectId) => void
-  readonly doOpenEditor: () => void
+  readonly doOpenProject: (id: backendModule.ProjectId, runInBackground: boolean) => void
+  readonly doCloseProject: (id: backendModule.ProjectId) => void
+  readonly openProjectTab: (projectId: backendModule.ProjectId) => void
 }
 
 /** An interactive icon indicating the status of a project. */
 export default function ProjectIcon(props: ProjectIconProps) {
-  const { backend, item, setItem, setProjectStartupInfo } = props
-  const { doCloseEditor, doOpenEditor } = props
-  const { session } = sessionProvider.useSession()
+  const { backend, item, isOpened } = props
+  const { openProjectTab, doOpenProject, doCloseProject } = props
+
   const { user } = authProvider.useNonPartialUserSession()
-  const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { getText } = textProvider.useText()
-  const dispatchAssetEvent = eventListProvider.useDispatchAssetEvent()
-  const state = item.projectState.type
-  const setState = React.useCallback(
-    (stateOrUpdater: React.SetStateAction<backendModule.ProjectState>) => {
-      setItem(oldItem => {
-        let newState: backendModule.ProjectState
-        if (typeof stateOrUpdater === 'function') {
-          newState = stateOrUpdater(oldItem.projectState.type)
-        } else {
-          newState = stateOrUpdater
-        }
-        let newProjectState: backendModule.ProjectStateType = object.merge(oldItem.projectState, {
-          type: newState,
-        })
-        if (!backendModule.IS_OPENING_OR_OPENED[newState]) {
-          newProjectState = object.omit(newProjectState, 'openedBy')
-        } else {
-          newProjectState = object.merge(newProjectState, {
-            openedBy: user.email,
-          })
-        }
-        return object.merge(oldItem, { projectState: newProjectState })
-      })
-    },
-    [user, setItem]
-  )
-  const [spinnerState, setSpinnerState] = React.useState(spinner.SpinnerState.initial)
-  const shouldOpenWhenReadyRef = React.useRef(false)
-  const [isRunningInBackground, setIsRunningInBackground] = React.useState(
-    item.projectState.executeAsync ?? false
-  )
-  const doAbortOpeningRef = React.useRef(() => {})
-  const doOpenEditorRef = React.useRef(doOpenEditor)
-  doOpenEditorRef.current = doOpenEditor
+
+  const isRunningInBackground = item.projectState.executeAsync ?? false
+  const {
+    data: status,
+    isLoading,
+    isError,
+  } = reactQuery.useQuery({
+    ...dashboard.createGetProjectDetailsQuery.createPassiveListener(item.id),
+    select: data => data.state.type,
+    enabled: isOpened,
+  })
+
   const isCloud = backend.type === backendModule.BackendType.remote
+
   const isOtherUserUsingProject =
     isCloud && item.projectState.openedBy != null && item.projectState.openedBy !== user.email
 
-  const openProjectMutation = backendHooks.useBackendMutation(backend, 'openProject')
-  const closeProjectMutation = backendHooks.useBackendMutation(backend, 'closeProject')
-  const getProjectDetailsMutation = backendHooks.useBackendMutation(backend, 'getProjectDetails')
-  const waitUntilProjectIsReadyMutation = backendHooks.useBackendMutation(
-    backend,
-    'waitUntilProjectIsReady'
-  )
-  const openProjectMutate = openProjectMutation.mutateAsync
-  const getProjectDetailsMutate = getProjectDetailsMutation.mutateAsync
-
-  const openEditorMutation = reactQuery.useMutation({
-    mutationKey: ['openEditor'],
-    networkMode: 'always',
-    mutationFn: async (item2: backendModule.ProjectAsset) => {
-      const abortController = new AbortController()
-      doAbortOpeningRef.current = () => {
-        abortController.abort()
-      }
-      const projectPromise = openProjectMutation
-        .mutateAsync([
-          item2.id,
-          { executeAsync: false, parentId: item2.parentId, cognitoCredentials: session },
-          item2.title,
-        ])
-        .then(async () => {
-          const proj = await waitUntilProjectIsReadyMutation.mutateAsync([
-            item2.id,
-            item2.parentId,
-            item2.title,
-            abortController.signal,
-          ])
-          return proj
-        })
-      setProjectStartupInfo({
-        project: projectPromise,
-        projectAsset: item2,
-        setProjectAsset: setItem,
-        backendType: backend.type,
-        accessToken: session?.accessToken ?? null,
-      })
-      await projectPromise
-      if (!abortController.signal.aborted) {
-        setState(backendModule.ProjectState.opened)
-        if (shouldOpenWhenReadyRef.current) {
-          doOpenEditor()
-        }
-      }
-    },
-  })
-  const openEditorMutate = openEditorMutation.mutate
-
-  const openProject = React.useCallback(
-    async (shouldRunInBackground: boolean) => {
-      if (state !== backendModule.ProjectState.opened) {
-        try {
-          if (!shouldRunInBackground) {
-            setState(backendModule.ProjectState.openInProgress)
-            openEditorMutate(item)
-          } else {
-            setState(backendModule.ProjectState.opened)
-            await openProjectMutate([
-              item.id,
-              {
-                executeAsync: shouldRunInBackground,
-                parentId: item.parentId,
-                cognitoCredentials: session,
-              },
-              item.title,
-            ])
-          }
-        } catch (error) {
-          const project = await getProjectDetailsMutate([item.id, item.parentId, item.title])
-          // `setState` is not used here as `project` contains the full state information,
-          // not just the state type.
-          setItem(object.merger({ projectState: project.state }))
-          toastAndLog('openProjectError', error, item.title)
-        }
-      }
-    },
-    [
-      state,
-      item,
-      session,
-      toastAndLog,
-      openProjectMutate,
-      openEditorMutate,
-      getProjectDetailsMutate,
-      setState,
-      setItem,
-    ]
-  )
-
-  React.useEffect(() => {
-    // Ensure that the previous spinner state is visible for at least one frame.
-    requestAnimationFrame(() => {
-      const newSpinnerState =
-        backend.type === backendModule.BackendType.remote
-          ? REMOTE_SPINNER_STATE[state]
-          : LOCAL_SPINNER_STATE[state]
-      setSpinnerState(newSpinnerState)
-    })
-  }, [state, backend.type])
-
-  eventListProvider.useAssetEventListener(event => {
-    switch (event.type) {
-      case AssetEventType.openProject: {
-        if (event.id !== item.id) {
-          if (!event.runInBackground && !isRunningInBackground) {
-            shouldOpenWhenReadyRef.current = false
-            if (!isOtherUserUsingProject && backendModule.IS_OPENING_OR_OPENED[state]) {
-              doAbortOpeningRef.current()
-              void closeProject()
-            }
-          }
-        } else {
-          if (
-            backendModule.IS_OPENING_OR_OPENED[state] &&
-            state !== backendModule.ProjectState.placeholder
-          ) {
-            const projectPromise = waitUntilProjectIsReadyMutation.mutateAsync([
-              item.id,
-              item.parentId,
-              item.title,
-            ])
-            setProjectStartupInfo({
-              project: projectPromise,
-              projectAsset: item,
-              setProjectAsset: setItem,
-              backendType: backend.type,
-              accessToken: session?.accessToken ?? null,
-            })
-            if (!isRunningInBackground) {
-              doOpenEditor()
-            }
-          } else {
-            shouldOpenWhenReadyRef.current = !event.runInBackground
-            setIsRunningInBackground(event.runInBackground)
-            void openProject(event.runInBackground)
-          }
-        }
-        break
-      }
-      case AssetEventType.closeProject: {
-        if (event.id === item.id) {
-          shouldOpenWhenReadyRef.current = false
-          void closeProject()
-        }
-        break
-      }
-      default: {
-        // Ignored. Any missing project-related events should be handled by `ProjectNameColumn`.
-        // `delete`, `deleteForever`, `restore`, `download`, and `downloadSelected`
-        // are handled by`AssetRow`.
-        break
-      }
+  const state = (() => {
+    // Project is closed, show open button
+    if (!isOpened) {
+      return backendModule.ProjectState.closed
+    } else if (!isLoading && status == null) {
+      // Project is opened, but not yet queried.
+      return backendModule.ProjectState.openInProgress
+    } else if (isLoading) {
+      return backendModule.ProjectState.openInProgress
+    } else if (status == null) {
+      return backendModule.ProjectState.openInProgress
+    } else if (status === backendModule.ProjectState.closed) {
+      // Project is opened locally, but not on the backend yet.
+      return backendModule.ProjectState.openInProgress
+    } else {
+      return status
     }
-  })
+  })()
 
-  const closeProject = async () => {
-    if (!isRunningInBackground) {
-      doCloseEditor(item.id)
+  const spinnerState = (() => {
+    if (!isOpened) {
+      return spinner.SpinnerState.initial
+    } else if (isLoading) {
+      return spinner.SpinnerState.loadingSlow
+    } else if (isError) {
+      return spinner.SpinnerState.initial
+    } else if (status == null) {
+      return spinner.SpinnerState.loadingSlow
+    } else {
+      return backend.type === backendModule.BackendType.remote
+        ? REMOTE_SPINNER_STATE[status]
+        : LOCAL_SPINNER_STATE[status]
     }
-    shouldOpenWhenReadyRef.current = false
-    setState(backendModule.ProjectState.closing)
-    await closeProjectMutation.mutateAsync([item.id, item.title])
-    setState(backendModule.ProjectState.closed)
-  }
+  })()
 
   switch (state) {
     case null:
@@ -299,13 +138,9 @@ export default function ProjectIcon(props: ProjectIconProps) {
           icon={PlayIcon}
           aria-label={getText('openInEditor')}
           tooltipPlacement="left"
-          className="h-6 border-0"
+          extraClickZone="xsmall"
           onPress={() => {
-            dispatchAssetEvent({
-              type: AssetEventType.openProject,
-              id: item.id,
-              runInBackground: false,
-            })
+            doOpenProject(item.id, false)
           }}
         />
       )
@@ -316,21 +151,23 @@ export default function ProjectIcon(props: ProjectIconProps) {
       return (
         <div className="relative flex">
           <ariaComponents.Button
-            size="custom"
+            size="large"
             variant="icon"
+            extraClickZone="xsmall"
             isDisabled={isOtherUserUsingProject}
-            isActive={!isOtherUserUsingProject}
             icon={StopIcon}
             aria-label={getText('stopExecution')}
             tooltipPlacement="left"
+            className={tailwindMerge.twJoin(isRunningInBackground && 'text-green')}
             {...(isOtherUserUsingProject ? { title: getText('otherUserIsUsingProjectError') } : {})}
-            className={tailwindMerge.twMerge('h-6 border-0', isRunningInBackground && 'text-green')}
-            onPress={closeProject}
+            onPress={() => {
+              doCloseProject(item.id)
+            }}
           />
-          <Spinner
+          <StatelessSpinner
             state={spinnerState}
             className={tailwindMerge.twMerge(
-              'pointer-events-none absolute top-0 size-project-icon',
+              'pointer-events-none absolute inset-0',
               isRunningInBackground && 'text-green'
             )}
           />
@@ -341,40 +178,38 @@ export default function ProjectIcon(props: ProjectIconProps) {
         <div className="flex flex-row gap-0.5">
           <div className="relative flex">
             <ariaComponents.Button
-              size="custom"
+              size="large"
               variant="icon"
+              extraClickZone="xsmall"
               isDisabled={isOtherUserUsingProject}
-              isActive={!isOtherUserUsingProject}
               icon={StopIcon}
               aria-label={getText('stopExecution')}
               tooltipPlacement="left"
-              {...(isOtherUserUsingProject
-                ? { title: getText('otherUserIsUsingProjectError') }
-                : {})}
-              className={tailwindMerge.twMerge(
-                'h-6 border-0',
-                isRunningInBackground && 'text-green'
-              )}
-              onPress={closeProject}
+              tooltip={isOtherUserUsingProject ? getText('otherUserIsUsingProjectError') : null}
+              className={tailwindMerge.twMerge(isRunningInBackground && 'text-green')}
+              onPress={() => {
+                doCloseProject(item.id)
+              }}
             />
             <Spinner
-              state={spinnerState}
+              state={spinner.SpinnerState.done}
               className={tailwindMerge.twMerge(
-                'pointer-events-none absolute top-0 size-project-icon',
+                'pointer-events-none absolute inset-0',
                 isRunningInBackground && 'text-green'
               )}
             />
           </div>
+
           {!isOtherUserUsingProject && !isRunningInBackground && (
             <ariaComponents.Button
-              size="custom"
+              size="large"
               variant="icon"
+              extraClickZone="xsmall"
               icon={ArrowUpIcon}
               aria-label={getText('openInEditor')}
               tooltipPlacement="right"
-              className="h-6 border-0"
               onPress={() => {
-                doOpenEditor()
+                openProjectTab(item.id)
               }}
             />
           )}

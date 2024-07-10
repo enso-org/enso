@@ -45,15 +45,27 @@ export interface ProjectNameColumnProps extends column.AssetColumnProps {}
  * @throws {Error} when the asset is not a {@link backendModule.ProjectAsset}.
  * This should never happen. */
 export default function ProjectNameColumn(props: ProjectNameColumnProps) {
-  const { item, setItem, selected, rowState, setRowState, state, isEditable } = props
+  const {
+    item,
+    setItem,
+    selected,
+    rowState,
+    setRowState,
+    state,
+    isEditable,
+    doCloseProject,
+    doOpenProject,
+    backendType,
+    isOpened,
+  } = props
   const { backend, selectedKeys } = state
-  const { nodeMap, setProjectStartupInfo, doOpenEditor, doCloseEditor } = state
+  const { nodeMap, doOpenEditor } = state
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { user } = authProvider.useNonPartialUserSession()
   const { getText } = textProvider.useText()
   const inputBindings = inputBindingsProvider.useInputBindings()
-  const dispatchAssetEvent = eventListProvider.useDispatchAssetEvent()
   const dispatchAssetListEvent = eventListProvider.useDispatchAssetListEvent()
+
   if (item.type !== backendModule.AssetType.project) {
     // eslint-disable-next-line no-restricted-syntax
     throw new Error('`ProjectNameColumn` can only display projects.')
@@ -177,10 +189,11 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                   }),
                 })
               )
-              dispatchAssetEvent({
-                type: AssetEventType.openProject,
+              doOpenProject({
                 id: createdProject.projectId,
-                runInBackground: false,
+                type: backendType,
+                parentId: asset.parentId,
+                title: asset.title,
               })
             } catch (error) {
               dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
@@ -303,10 +316,11 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
         ) {
           setIsEditing(true)
         } else if (eventModule.isDoubleClick(event)) {
-          dispatchAssetEvent({
-            type: AssetEventType.openProject,
+          doOpenProject({
             id: asset.id,
-            runInBackground: false,
+            type: backendType,
+            parentId: asset.parentId,
+            title: asset.title,
           })
         }
       }}
@@ -315,14 +329,18 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
         <SvgMask src={NetworkIcon} className="m-name-column-icon size-4" />
       ) : (
         <ProjectIcon
+          isOpened={isOpened}
           backend={backend}
           // This is a workaround for a temporary bad state in the backend causing the
           // `projectState` key to be absent.
           item={object.merge(asset, { projectState })}
-          setItem={setAsset}
-          setProjectStartupInfo={setProjectStartupInfo}
-          doOpenEditor={doOpenEditor}
-          doCloseEditor={doCloseEditor}
+          doCloseProject={id => {
+            doCloseProject({ id, parentId: asset.parentId, title: asset.title, type: backendType })
+          }}
+          doOpenProject={id => {
+            doOpenProject({ id, type: backendType, parentId: asset.parentId, title: asset.title })
+          }}
+          openProjectTab={doOpenEditor}
         />
       )}
       <EditableSpan
