@@ -185,8 +185,6 @@ export function createGetProjectDetailsQuery(options: CreateOpenedProjectQueryOp
     },
     refetchIntervalInBackground: true,
     refetchOnWindowFocus: true,
-    refetchOnMount: true,
-    gcTime: 0,
     queryFn: () => {
       invariant(backend != null, 'Backend is null')
 

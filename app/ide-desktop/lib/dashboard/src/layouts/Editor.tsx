@@ -96,7 +96,7 @@ export default function Editor(props: EditorProps) {
           return (
             <errorBoundary.ErrorDisplay
               error={projectQuery.error}
-              resetErrorBoundary={projectQuery.refetch}
+              resetErrorBoundary={() => projectQuery.refetch()}
             />
           )
         } else if (
