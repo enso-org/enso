@@ -66,12 +66,6 @@ const props = defineProps<{
   graphNodeSelections: HTMLElement | undefined
 }>()
 
-const i = getCurrentInstance()
-console.log('node setup', i?.vnode.key, props.node.outerExpr.id)
-onBeforeUnmount(() => {
-  console.log('node unmount', i?.vnode.key, props.node.outerExpr.id)
-})
-
 const emit = defineEmits<{
   dragging: [offset: Vec2]
   draggingCommited: []

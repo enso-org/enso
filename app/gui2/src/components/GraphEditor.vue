@@ -602,7 +602,7 @@ function collapseNodes() {
       }
     })
   } catch (err) {
-    console.log('Error while collapsing, this is not normal.', err)
+    console.error('Error while collapsing, this is not normal.', err)
   }
 }
 
