@@ -22,6 +22,7 @@ import { reactive, ref, type Ref } from 'vue'
 
 export interface MethodCallInfo {
   methodCall: MethodCall
+  methodCallSource: Ast.AstId
   suggestion: SuggestionEntry
 }
 
@@ -299,7 +300,7 @@ export class GraphDb {
     if (suggestionId == null) return
     const suggestion = this.suggestionDb.get(suggestionId)
     if (suggestion == null) return
-    return { methodCall, suggestion }
+    return { methodCall, methodCallSource: id, suggestion }
   }
 
   getNodeColorStyle(id: NodeId): string {

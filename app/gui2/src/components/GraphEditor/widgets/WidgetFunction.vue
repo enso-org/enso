@@ -114,13 +114,18 @@ function handleArgUpdate(update: WidgetUpdate): boolean {
       // Proper fix would involve adding a proper "optimistic response" mechanism that can also be
       // saved in the undo transaction.
       const deletedArgIdx = argApp.argument.index
-      if (deletedArgIdx != null) {
-        const notAppliedArguments = methodCallInfo.value?.methodCall.notAppliedArguments
+      if (deletedArgIdx != null && methodCallInfo.value) {
+        // Grab original expression info data straight from DB, so we modify the original state.
+        const notAppliedArguments = graph.db.getExpressionInfo(
+          methodCallInfo.value.methodCallSource,
+        )?.methodCall?.notAppliedArguments
         if (notAppliedArguments != null) {
           const insertAt = partitionPoint(notAppliedArguments, (i) => i < deletedArgIdx)
-          // Insert the deleted argument back to the method info. This directly modifies observable
-          // data in `ComputedValueRegistry`. That's on purpose.
-          notAppliedArguments.splice(insertAt, 0, deletedArgIdx)
+          if (notAppliedArguments[insertAt] != deletedArgIdx) {
+            // Insert the deleted argument back to the method info. This directly modifies observable
+            // data in `ComputedValueRegistry`. That's on purpose.
+            notAppliedArguments.splice(insertAt, 0, deletedArgIdx)
+          }
         }
       }
 
