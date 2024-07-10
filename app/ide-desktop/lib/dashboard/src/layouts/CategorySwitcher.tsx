@@ -280,7 +280,7 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
                 />
               )
               return data.nested ? (
-                <div className="flex">
+                <div key={data.category} className="flex">
                   <div className="ml-[15px] mr-1 border-r border-primary/20" />
                   {element}
                 </div>
