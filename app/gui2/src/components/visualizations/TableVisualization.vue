@@ -128,6 +128,7 @@ const rowLimit = ref(0)
 const page = ref(0)
 const pageLimit = ref(0)
 const rowCount = ref(0)
+const showRowCount = ref(true)
 const isTruncated = ref(false)
 const tableNode = ref<HTMLElement>()
 const dataGroupingMap = shallowRef<Map<string, boolean>>()
@@ -159,6 +160,7 @@ const agGridOptions: Ref<GridOptions & Required<Pick<GridOptions, 'defaultColDef
 })
 
 const isRowCountSelectorVisible = computed(() => rowCount.value >= 1000)
+
 const selectableRowLimits = computed(() => {
   const defaults = [1000, 2500, 5000, 10000, 25000, 50000, 100000].filter(
     (r) => r <= rowCount.value,
@@ -503,6 +505,7 @@ watchEffect(() => {
 
   // Update paging
   const newRowCount = data_.all_rows_count == null ? 1 : data_.all_rows_count
+  showRowCount.value = !(data_.all_rows_count == null)
   rowCount.value = newRowCount
   const newPageLimit = Math.ceil(newRowCount / rowLimit.value)
   pageLimit.value = newPageLimit
@@ -644,13 +647,15 @@ onUnmounted(() => {
             v-text="limit"
           ></option>
         </select>
-        <span
-          v-if="isRowCountSelectorVisible && isTruncated"
-          v-text="` of ${rowCount} rows (Sorting/Filtering disabled).`"
-        ></span>
-        <span v-else-if="isRowCountSelectorVisible" v-text="' rows.'"></span>
-        <span v-else-if="rowCount === 1" v-text="'1 row.'"></span>
-        <span v-else v-text="`${rowCount} rows.`"></span>
+        <div v-if="showRowCount">
+          <span
+            v-if="isRowCountSelectorVisible && isTruncated"
+            v-text="` of ${rowCount} rows (Sorting/Filtering disabled).`"
+          ></span>
+          <span v-else-if="isRowCountSelectorVisible" v-text="' rows.'"></span>
+          <span v-else-if="rowCount === 1" v-text="'1 row.'"></span>
+          <span v-else v-text="`${rowCount} rows.`"></span>
+        </div>
       </div>
       <div ref="tableNode" class="scrollable ag-theme-alpine"></div>
     </div>
