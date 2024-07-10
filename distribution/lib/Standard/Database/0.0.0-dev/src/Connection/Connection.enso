@@ -318,18 +318,26 @@ type Connection
 
        Arguments:
        - statement: SQL_Statement to execute.
-       - column_type_suggestions: A vector of SQL type references that can act
-         as suggested column types. By default, the overrides are respected and
-         types that should be computed by the database are passed as `Nothing`
-         to ensure that default `ResultSet` metadata is used for these columns.
+       - column_types: A vector of SQL type references that can act as suggested
+         column types. Only `Override` references override the type. Other kinds
+         of references do not influence the result. `Computed_By_Database`
+         references may get updated to cache the types fetched from the Database.
        - last_row_only: If set true, only the last row of the query is fetched.
          Defaults to false.
     read_statement : SQL_Statement -> (Nothing | Vector SQL_Type_Reference) -> Boolean -> Table
-    read_statement self statement column_type_suggestions=Nothing last_row_only=False =
-        type_overrides = self.dialect.get_type_mapping.prepare_type_overrides column_type_suggestions
+    read_statement self statement column_types=Nothing last_row_only=False =
+        type_overrides = self.dialect.get_type_mapping.prepare_type_overrides column_types
         statement_setter = self.dialect.get_statement_setter
         self.jdbc_connection.with_prepared_statement statement statement_setter stmt->
             rs = stmt.executeQuery
+
+            # If column types were provided, we will cache the types that were not yet cached.
+            column_types.if_not_nothing <|
+                metadata = rs.getMetaData
+                column_types.each_with_index ix-> sql_type_reference->
+                    sql_type_reference.cache_computed_type <| SQL_Type.from_metadata metadata ix+1
+
+            # And finally, materialize the results.
             SQL_Warning_Helper.process_warnings stmt <|
                 result_set_to_table rs self.dialect.get_type_mapping.make_column_fetcher type_overrides last_row_only
 
@@ -338,7 +346,7 @@ type Connection
        result set.
     fetch_columns : Text | SQL_Statement -> Statement_Setter -> Any
     fetch_columns self statement statement_setter =
-        needs_execute_query = self.dialect.needs_execute_query_for_type_inference
+        needs_execute_query = self.dialect.needs_execute_query_for_type_inference statement
         self.jdbc_connection.raw_fetch_columns statement needs_execute_query statement_setter
 
     ## PRIVATE

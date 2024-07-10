@@ -39,6 +39,7 @@ import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 /** Metadata for a categoryModule.categoryType. */
 interface CategoryMetadata {
+  readonly isNested?: boolean
   readonly category: Category
   readonly icon: string
   readonly label: string
@@ -62,7 +63,8 @@ interface InternalCategorySwitcherItemProps extends CategoryMetadata {
 /** An entry in a {@link CategorySwitcher}. */
 function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
   const { currentCategory, setCategory, dispatchAssetEvent } = props
-  const { category, icon, label, buttonLabel, dropZoneLabel, className, iconClassName } = props
+  const { isNested = false, category, icon, label, buttonLabel, dropZoneLabel } = props
+  const { iconClassName } = props
   const { user } = authProvider.useNonPartialUserSession()
   const { unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
@@ -152,7 +154,7 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
     })
   }
 
-  return (
+  const element = (
     <aria.DropZone
       aria-label={dropZoneLabel}
       getDropOperation={types =>
@@ -168,8 +170,7 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
         tooltipPlacement="right"
         className={tailwindMerge.twMerge(
           isCurrent && 'focus-default',
-          isDisabled && 'cursor-not-allowed hover:bg-transparent',
-          className
+          isDisabled && 'cursor-not-allowed hover:bg-transparent'
         )}
         aria-label={buttonLabel}
         onPress={onPress}
@@ -189,6 +190,15 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
         {getText('drop')}
       </div>
     </aria.DropZone>
+  )
+
+  return isNested ? (
+    <div className="flex">
+      <div className="ml-[15px] mr-1 border-r border-primary/20" />
+      {element}
+    </div>
+  ) : (
+    element
   )
 }
 
@@ -257,6 +267,7 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
             {(user.plan === backend.Plan.team || user.plan === backend.Plan.enterprise) && (
               <CategorySwitcherItem
                 {...itemProps}
+                isNested
                 category={{
                   type: categoryModule.CategoryType.user,
                   rootPath: backend.Path(`enso://Users/${user.name}`),
@@ -266,33 +277,33 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
                 label={getText('myFilesCategory')}
                 buttonLabel={getText('myFilesCategoryButtonLabel')}
                 dropZoneLabel={getText('myFilesCategoryDropZoneLabel')}
-                className="ml-4"
               />
             )}
             <CategorySwitcherItem
               {...itemProps}
+              isNested
               category={{ type: categoryModule.CategoryType.recent }}
               icon={RecentIcon}
               label={getText('recentCategory')}
               buttonLabel={getText('recentCategoryButtonLabel')}
               dropZoneLabel={getText('recentCategoryDropZoneLabel')}
-              className="ml-4"
               iconClassName="-ml-0.5"
             />
             <CategorySwitcherItem
               {...itemProps}
+              isNested
               category={{ type: categoryModule.CategoryType.trash }}
               icon={Trash2Icon}
               label={getText('trashCategory')}
               buttonLabel={getText('trashCategoryButtonLabel')}
               dropZoneLabel={getText('trashCategoryDropZoneLabel')}
-              className="ml-4"
             />
             {usersDirectoryQuery.data?.map(userDirectory =>
               userDirectory.id === selfDirectoryId ? null : (
                 <CategorySwitcherItem
                   key={userDirectory.id}
                   {...itemProps}
+                  isNested
                   category={{
                     type: categoryModule.CategoryType.user,
                     rootPath: backend.Path(`enso://Users/${userDirectory.title}`),
@@ -304,7 +315,6 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
                   label={getText('userCategory', userDirectory.title)}
                   buttonLabel={getText('userCategoryButtonLabel', userDirectory.title)}
                   dropZoneLabel={getText('userCategoryDropZoneLabel', userDirectory.title)}
-                  className="ml-4"
                 />
               )
             )}
@@ -312,6 +322,7 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
               <CategorySwitcherItem
                 key={teamDirectory.id}
                 {...itemProps}
+                isNested
                 category={{
                   type: categoryModule.CategoryType.team,
                   rootPath: backend.Path(`enso://Teams/${teamDirectory.title}`),
@@ -323,7 +334,6 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
                 label={getText('teamCategory', teamDirectory.title)}
                 buttonLabel={getText('teamCategoryButtonLabel', teamDirectory.title)}
                 dropZoneLabel={getText('teamCategoryDropZoneLabel', teamDirectory.title)}
-                className="ml-4"
               />
             ))}
             {localBackend != null && (
