@@ -548,7 +548,6 @@ watchEffect(() => {
 
   // If data is truncated, we cannot rely on sorting/filtering so will disable.
   options.defaultColDef.filter = !isTruncated.value
-  // options.defaultColDef.sortable = !isTruncated.value
   options.api.setColumnDefs(mergedColumnDefs)
   options.api.setRowData(rowData)
 })
