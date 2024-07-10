@@ -33,8 +33,7 @@ code from modules.
 ## Qualified Names
 
 In the following text, **entity** shall denote a module, a method (instance,
-static, extension, conversion, foreign), type, or a type constructor. In other
-words, an _entity_ is anything that can be assigned to a variable.
+static, extension, conversion or foreign), type, or a type constructor.
 
 Both imports and exports require the use of qualified entity names. A qualified
 name consists of the library namespace (usually organization under which its

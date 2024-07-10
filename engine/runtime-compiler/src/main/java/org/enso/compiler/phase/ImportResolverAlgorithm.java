@@ -228,8 +228,8 @@ public abstract class ImportResolverAlgorithm<
   }
 
   /**
-   * Tries to resolve the given import as a list of extension methods. Note that it is possible that
-   * a single symbol resolves to multiple extension methods.
+   * Tries to resolve the given import as a list of conversion methods. Note that it is possible
+   * that a single symbol resolves to multiple extension methods.
    *
    * @return List of at least one element. null if there are no conversion methods in the imported
    *     module scope.
