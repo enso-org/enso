@@ -52,19 +52,21 @@ export default function EventListProvider(props: EventListProviderProps) {
     }))
   )
 
-  store.subscribe(state => {
-    // Run after the next render.
-    setTimeout(() => {
-      if (state.assetEvents.length) {
-        console.log('e', state.assetEvents)
-        store.setState({ assetEvents: [] })
-      }
-      if (state.assetListEvents.length) {
-        console.log('e2', state.assetListEvents)
-        store.setState({ assetListEvents: [] })
-      }
-    })
-  })
+  React.useEffect(
+    () =>
+      store.subscribe(state => {
+        // Run after the next render.
+        setTimeout(() => {
+          if (state.assetEvents.length) {
+            store.setState({ assetEvents: [] })
+          }
+          if (state.assetListEvents.length) {
+            store.setState({ assetListEvents: [] })
+          }
+        })
+      }),
+    [store]
+  )
 
   return <EventListContext.Provider value={store}>{children}</EventListContext.Provider>
 }
@@ -111,17 +113,21 @@ export function useAssetEventListener(
   callback: (event: assetEvent.AssetEvent) => Promise<void> | void
 ) {
   const store = useEventList()
-  const [seen] = React.useState(new WeakSet())
-  store.subscribe((state, prevState) => {
-    if (state.assetEvents !== prevState.assetEvents) {
-      for (const event of state.assetEvents) {
-        if (!seen.has(event)) {
-          seen.add(event)
-          void callback(event)
+  const seen = React.useRef(new WeakSet())
+  React.useEffect(
+    () =>
+      store.subscribe((state, prevState) => {
+        if (state.assetEvents !== prevState.assetEvents) {
+          for (const event of state.assetEvents) {
+            if (!seen.current.has(event)) {
+              seen.current.add(event)
+              void callback(event)
+            }
+          }
         }
-      }
-    }
-  })
+      }),
+    [callback, store]
+  )
 }
 
 // =================================
@@ -133,15 +139,19 @@ export function useAssetListEventListener(
   callback: (event: assetListEvent.AssetListEvent) => Promise<void> | void
 ) {
   const store = useEventList()
-  const [seen] = React.useState(new WeakSet())
-  store.subscribe((state, prevState) => {
-    if (state.assetListEvents !== prevState.assetListEvents) {
-      for (const event of state.assetListEvents) {
-        if (!seen.has(event)) {
-          seen.add(event)
-          void callback(event)
+  const seen = React.useRef(new WeakSet())
+  React.useEffect(
+    () =>
+      store.subscribe((state, prevState) => {
+        if (state.assetListEvents !== prevState.assetListEvents) {
+          for (const event of state.assetListEvents) {
+            if (!seen.current.has(event)) {
+              seen.current.add(event)
+              void callback(event)
+            }
+          }
         }
-      }
-    }
-  })
+      }),
+    [callback, store]
+  )
 }

@@ -437,7 +437,6 @@ export default function AssetRow(props: AssetRowProps) {
   }, [setModal, asset.description, setAsset, backend, item.item.id, item.item.title])
 
   eventListProvider.useAssetEventListener(async event => {
-    console.log(':D', event)
     if (state.category === Category.trash) {
       switch (event.type) {
         case AssetEventType.deleteForever: {
@@ -639,10 +638,6 @@ export default function AssetRow(props: AssetRowProps) {
               : object.merge(oldRowState, { temporarilyAddedLabels: set.EMPTY })
           )
           const labels = asset.labels
-          console.log(event.ids, item.key)
-          if (event.ids.has(item.key)) {
-            console.log(':)', labels, event.labelNames)
-          }
           if (
             event.ids.has(item.key) &&
             (labels == null || [...event.labelNames].some(label => !labels.includes(label)))
@@ -668,11 +663,6 @@ export default function AssetRow(props: AssetRowProps) {
               : object.merge(oldRowState, { temporarilyAddedLabels: set.EMPTY })
           )
           const labels = asset.labels
-          console.log(
-            event.ids.has(item.key),
-            labels,
-            labels != null && [...event.labelNames].some(label => labels.includes(label))
-          )
           if (
             event.ids.has(item.key) &&
             labels != null &&
