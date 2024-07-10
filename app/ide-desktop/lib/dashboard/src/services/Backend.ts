@@ -174,7 +174,7 @@ export interface User extends UserInfo {
   readonly profilePicture?: HttpsUrl
   readonly userGroups: readonly UserGroupId[] | null
   readonly removeAt?: dateTime.Rfc3339DateTime | null
-  readonly plan?: Plan
+  readonly plan?: Plan | undefined
 }
 
 /** A `Directory` returned by `createDirectory`. */

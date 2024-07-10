@@ -169,8 +169,10 @@ type SQLite_Dialect
         SQL_Expression.Operation "CAST" [column.expression, SQL_Expression.Literal sql_type_text]
 
     ## PRIVATE
-    needs_execute_query_for_type_inference : Boolean
-    needs_execute_query_for_type_inference self = True
+    needs_execute_query_for_type_inference : Text | SQL_Statement -> Boolean
+    needs_execute_query_for_type_inference self statement =
+        _ = statement
+        True
 
     ## PRIVATE
     supports_separate_nan : Boolean
@@ -296,6 +298,12 @@ type SQLite_Dialect
     ## PRIVATE
     value_type_for_upload_of_existing_column : DB_Column -> Value_Type
     value_type_for_upload_of_existing_column self column = column.value_type
+
+    ## PRIVATE
+    needs_literal_table_cast : Value_Type -> Boolean
+    needs_literal_table_cast self value_type =
+        _ = value_type
+        False
 
 ## PRIVATE
 make_dialect_operations =

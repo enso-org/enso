@@ -244,9 +244,9 @@ raise_duplicated_primary_key_error source_table primary_key original_panic =
 ## PRIVATE
 align_structure : Connection | Any -> DB_Table | Table | Vector Column_Description -> Vector Column_Description
 align_structure connection table_or_columns = case table_or_columns of
-    vector : Vector         -> align_vector_structure vector
+    vector : Vector   -> align_vector_structure vector
     table : DB_Table  -> structure_from_existing_table connection table
-    table : Table -> structure_from_existing_table connection table
+    table : Table     -> structure_from_existing_table connection table
 
 ## PRIVATE
 align_vector_structure vector =
@@ -336,7 +336,8 @@ common_update_table (source_table : DB_Table | Table) (target_table : DB_Table) 
                     check_for_null_keys_if_any_keys_set source_table effective_key_columns <| Context.Output.with_enabled <|
                         structure_hint = target_table.select_columns source_table.column_names reorder=True . columns . map c->
                             Column_Description.Value c.name c.value_type
-                        tmp_table = internal_upload_table source_table connection tmp_table_name primary_key=effective_key_columns structure_hint=structure_hint temporary=True on_problems=Problem_Behavior.Report_Error row_limit=row_limit
+                        # We ignore non-critical problems in `internal_upload_table` because we already checked the structure.
+                        tmp_table = internal_upload_table source_table connection tmp_table_name primary_key=effective_key_columns structure_hint=structure_hint temporary=True on_problems=Problem_Behavior.Ignore row_limit=row_limit
                         tmp_table.if_not_error <|
                             resulting_table = append_to_existing_table tmp_table target_table update_action effective_key_columns dry_run=dry_run
                             ## We don't need to drop the table if append panics, because
@@ -467,8 +468,9 @@ check_update_arguments_structure_match source_table target_table key_columns upd
         source_type = source_column.value_type
         target_type = target_column.value_type
         if source_type == target_type then [] else
-            if source_type.can_be_widened_to target_type then [Inexact_Type_Coercion.Warning source_type target_type unavailable=False] else
-                Error.throw (Column_Type_Mismatch.Error source_column.name target_type source_type)
+            if target_table.connection.dialect.get_type_mapping.is_implicit_conversion source_type target_type then [] else
+                if source_type.can_be_widened_to target_type then [Inexact_Type_Coercion.Warning source_type target_type unavailable=False] else
+                    Error.throw (Column_Type_Mismatch.Error source_column.name target_type source_type)
 
     source_columns = Hashset.from_vector source_table.column_names
     target_columns = Hashset.from_vector target_table.column_names

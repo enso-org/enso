@@ -16,12 +16,11 @@ import App from '#/App'
 
 import LoadingScreen from '#/pages/authentication/LoadingScreen'
 
+import * as devtools from '#/components/Devtools'
 import * as errorBoundary from '#/components/ErrorBoundary'
 import * as suspense from '#/components/Suspense'
 
 import HttpClient from '#/utilities/HttpClient'
-
-import * as reactQueryDevtools from './ReactQueryDevtools'
 
 // =================
 // === Constants ===
@@ -108,7 +107,7 @@ function run(props: Omit<app.AppProps, 'httpClient' | 'portalRoot'>) {
             </suspense.Suspense>
           </errorBoundary.ErrorBoundary>
 
-          <reactQueryDevtools.ReactQueryDevtools />
+          <devtools.ReactQueryDevtools />
         </reactQuery.QueryClientProvider>
       </React.StrictMode>
     )

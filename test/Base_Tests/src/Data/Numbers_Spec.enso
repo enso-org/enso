@@ -604,7 +604,7 @@ add_specs suite_builder =
             ((99999999999998 * 1000).div 1000) . round . should_equal 99999999999998
 
     suite_builder.group "Rounding" group_builder->
-        Round_Spec.add_specs group_builder (.round)
+        Round_Spec.add_specs group_builder (Round_Spec.Batch_Runner.from_function .round) run_advanced=True
 
         group_builder.specify "Decimal places out of range" <|
             3.1 . round 16 . should_fail_with Illegal_Argument

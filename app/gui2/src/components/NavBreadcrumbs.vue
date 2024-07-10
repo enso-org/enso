@@ -28,29 +28,45 @@ async function renameBreadcrumb(index: number, newName: string) {
 </script>
 
 <template>
-  <div class="NavBreadcrumbs">
-    <SvgButton name="edit" title="Edit Project Name" @click.stop="projectNameEdited = true" />
-    <template v-for="(breadcrumb, index) in stackNavigator.breadcrumbLabels.value" :key="index">
-      <SvgButton
-        v-if="index > 0"
-        name="arrow_right_head_only"
-        :disabled="!breadcrumb.active"
-        class="arrow"
-      />
-      <NavBreadcrumb
-        :modelValue="breadcrumb.label"
-        :active="breadcrumb.active"
-        :editing="index === 0 && projectNameEdited"
-        :title="index === 0 ? 'Project Name' : ''"
-        class="clickable"
-        @click.stop="stackNavigator.handleBreadcrumbClick(index)"
-        @update:modelValue="renameBreadcrumb(index, $event)"
-      />
-    </template>
+  <div class="NavBar">
+    <div class="NavBreadcrumbs">
+      <SvgButton name="edit" title="Edit Project Name" @click.stop="projectNameEdited = true" />
+      <template v-for="(breadcrumb, index) in stackNavigator.breadcrumbLabels.value" :key="index">
+        <SvgButton
+          v-if="index > 0"
+          name="arrow_right_head_only"
+          :disabled="!breadcrumb.active"
+          class="arrow"
+        />
+        <NavBreadcrumb
+          :modelValue="breadcrumb.label"
+          :active="breadcrumb.active"
+          :editing="index === 0 && projectNameEdited"
+          :title="index === 0 ? 'Project Name' : ''"
+          class="clickable"
+          @click.stop="stackNavigator.handleBreadcrumbClick(index)"
+          @update:modelValue="renameBreadcrumb(index, $event)"
+        />
+      </template>
+    </div>
   </div>
 </template>
 
 <style scoped>
+.NavBar {
+  user-select: none;
+  display: flex;
+  border-radius: var(--radius-full);
+  background: var(--color-frame-bg);
+  backdrop-filter: var(--blur-app-bg);
+  place-items: center;
+  gap: 12px;
+  padding-left: 8px;
+  padding-right: 10px;
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+
 .NavBreadcrumbs {
   display: flex;
   align-items: center;
