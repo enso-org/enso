@@ -30,7 +30,7 @@ export type DirectoryId = newtype.Newtype<string, 'DirectoryId'>
 export const DirectoryId = newtype.newtypeConstructor<DirectoryId>()
 
 /** Unique identifier for an asset representing the items inside a directory for which the
- * request to retrive the items has not yet completed. */
+* request to retrive the items has not yet completed. */
 export type LoadingAssetId = newtype.Newtype<string, 'LoadingAssetId'>
 export const LoadingAssetId = newtype.newtypeConstructor<LoadingAssetId>()
 
@@ -70,8 +70,8 @@ export type CheckoutSessionId = newtype.Newtype<string, 'CheckoutSessionId'>
 export const CheckoutSessionId = newtype.newtypeConstructor<CheckoutSessionId>()
 
 /**
- * Unique identifier for a subscription.
- */
+* Unique identifier for a subscription.
+*/
 export type SubscriptionId = newtype.Newtype<string, 'SubscriptionId'>
 export const SubscriptionId = newtype.newtypeConstructor<SubscriptionId>()
 
@@ -114,26 +114,26 @@ export const Path = newtype.newtypeConstructor<Path>()
 
 /** Whether a given {@link string} is an {@link UserId}. */
 export function isUserId(id: string): id is UserId {
-    return id.startsWith('user-')
+  return id.startsWith('user-')
 }
 
 /** Whether a given {@link string} is an {@link UserGroupId}. */
 export function isUserGroupId(id: string): id is UserGroupId {
-    return id.startsWith('usergroup-')
+  return id.startsWith('usergroup-')
 }
 
 const PLACEHOLDER_USER_GROUP_PREFIX = 'usergroup-placeholder-'
 
 /** Whether a given {@link UserGroupId} represents a user group that does not yet exist on the
- * server. */
+* server. */
 export function isPlaceholderUserGroupId(id: string) {
-    return id.startsWith(PLACEHOLDER_USER_GROUP_PREFIX)
+  return id.startsWith(PLACEHOLDER_USER_GROUP_PREFIX)
 }
 
 /** Return a new {@link UserGroupId} that represents a placeholder user group that is yet to finish
- * being created on the backend. */
+* being created on the backend. */
 export function newPlaceholderUserGroupId() {
-    return UserGroupId(`${PLACEHOLDER_USER_GROUP_PREFIX}${uniqueString.uniqueString()}`)
+  return UserGroupId(`${PLACEHOLDER_USER_GROUP_PREFIX}${uniqueString.uniqueString()}`)
 }
 
 // =============
@@ -142,26 +142,26 @@ export function newPlaceholderUserGroupId() {
 
 /** The {@link Backend} variant. If a new variant is created, it should be added to this enum. */
 export enum BackendType {
-    local = 'local',
-    remote = 'remote',
+  local = 'local',
+  remote = 'remote',
 }
 
 /** Metadata uniquely identifying a user inside an organization. */
 export interface UserInfo {
-    /** The ID of the parent organization. If this is a sole user, they are implicitly in an
-     * organization consisting of only themselves. */
-    readonly organizationId: OrganizationId
-    /** The name of the parent organization. */
-    readonly organizationName?: string
-    /** The ID of this user.
-     *
-     * The user ID is globally unique. Thus, the user ID is always sufficient to uniquely identify a
-     * user. The user ID is guaranteed to never change, once assigned. For these reasons, the user ID
-     * should be the preferred way to uniquely refer to a user. That is, when referring to a user,
-     * prefer this field over `name`, `email`, `subject`, or any other mechanism, where possible. */
-    readonly userId: UserId
-    readonly name: string
-    readonly email: EmailAddress
+  /** The ID of the parent organization. If this is a sole user, they are implicitly in an
+   * organization consisting of only themselves. */
+  readonly organizationId: OrganizationId
+  /** The name of the parent organization. */
+  readonly organizationName?: string
+  /** The ID of this user.
+   *
+   * The user ID is globally unique. Thus, the user ID is always sufficient to uniquely identify a
+   * user. The user ID is guaranteed to never change, once assigned. For these reasons, the user ID
+   * should be the preferred way to uniquely refer to a user. That is, when referring to a user,
+   * prefer this field over `name`, `email`, `subject`, or any other mechanism, where possible. */
+  readonly userId: UserId
+  readonly name: string
+  readonly email: EmailAddress
 }
 
 /** A user in the application. These are the primary owners of a project. */
@@ -173,7 +173,7 @@ export interface User extends UserInfo {
     readonly profilePicture?: HttpsUrl
     readonly userGroups: readonly UserGroupId[] | null
     readonly removeAt?: dateTime.Rfc3339DateTime | null
-    readonly plan?: Plan
+    readonly plan?: Plan | undefined
 }
 
 /** A `Directory` returned by `createDirectory`. */
@@ -292,6 +292,16 @@ export interface Project extends ListedProject {
 export interface BackendProject extends Project {
     /** This must not be null as it is required to determine the base URL for backend assets. */
     readonly ideVersion: VersionNumber
+}
+
+/** Information required to open a project. */
+export interface ProjectStartupInfo {
+    readonly project: Promise<Project>
+    readonly projectAsset: ProjectAsset
+    // This MUST BE optional because it is lost when `JSON.stringify`ing to put in `localStorage`.
+    readonly setProjectAsset?: React.Dispatch<React.SetStateAction<ProjectAsset>>
+    readonly backendType: BackendType
+    readonly accessToken: string | null
 }
 
 /** A specific session of a project being opened and used. */
