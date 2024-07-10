@@ -214,8 +214,13 @@ public final class EnsoFile implements EnsoObject {
     }
 
     @TruffleBoundary(allowInlining = true)
-    private byte[] readAllBytes() throws IOException {
-      return delegate.readAllBytes();
+    private ByteBuffer readNByteBuffer(int limit) throws IOException {
+      return ByteBuffer.wrap(delegate.readNBytes(limit));
+    }
+
+    @TruffleBoundary(allowInlining = true)
+    private ByteBuffer readAllBytes() throws IOException {
+      return ByteBuffer.wrap(delegate.readAllBytes());
     }
 
     @TruffleBoundary(allowInlining = true)
@@ -284,8 +289,7 @@ public final class EnsoFile implements EnsoObject {
             if (args.length != 0) {
               throw ArityException.create(0, 0, args.length);
             }
-            var arr = is.readAllBytes();
-            var buf = ByteBuffer.wrap(arr);
+            var buf = is.readAllBytes();
             yield ArrayLikeHelpers.wrapBuffer(buf);
           }
           case "readNBytes" -> {
@@ -293,8 +297,7 @@ public final class EnsoFile implements EnsoObject {
               throw ArityException.create(1, 1, args.length);
             }
             var len = iop.asInt(args[0]);
-            var arr = is.readNBytes(len);
-            var buf = ByteBuffer.wrap(arr);
+            var buf = is.readNByteBuffer(len);
             yield ArrayLikeHelpers.wrapBuffer(buf);
           }
           case "skipNBytes" -> {
