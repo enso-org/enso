@@ -296,10 +296,7 @@ export default class LocalBackend extends Backend {
           organizationId: '',
           packageName: project.name,
           projectId,
-          state: {
-            type: this.projectManager.projects.get(id)?.state ?? backend.ProjectState.closed,
-            volumeId: '',
-          },
+          state: { type: backend.ProjectState.closed, volumeId: '' },
         }
       }
     } else {

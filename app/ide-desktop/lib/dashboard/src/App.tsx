@@ -73,9 +73,9 @@ import * as subscribeSuccess from '#/pages/subscribe/SubscribeSuccess'
 
 import * as openAppWatcher from '#/layouts/OpenAppWatcher'
 
+import * as devtools from '#/components/Devtools'
 import * as errorBoundary from '#/components/ErrorBoundary'
 import * as offlineNotificationManager from '#/components/OfflineNotificationManager'
-import * as paywall from '#/components/Paywall'
 import * as rootComponent from '#/components/Root'
 import * as suspense from '#/components/Suspense'
 
@@ -501,7 +501,7 @@ function AppRouter(props: AppRouterProps) {
   let result = routes
 
   if (detect.IS_DEV_MODE) {
-    result = <paywall.PaywallDevtools>{result}</paywall.PaywallDevtools>
+    result = <devtools.EnsoDevtools>{result}</devtools.EnsoDevtools>
   }
 
   result = <errorBoundary.ErrorBoundary>{result}</errorBoundary.ErrorBoundary>

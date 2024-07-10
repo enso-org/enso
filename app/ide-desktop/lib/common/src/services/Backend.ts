@@ -173,7 +173,7 @@ export interface User extends UserInfo {
     readonly profilePicture?: HttpsUrl
     readonly userGroups: readonly UserGroupId[] | null
     readonly removeAt?: dateTime.Rfc3339DateTime | null
-    readonly plan?: Plan
+    readonly plan?: Plan | undefined
 }
 
 /** A `Directory` returned by `createDirectory`. */
@@ -292,16 +292,6 @@ export interface Project extends ListedProject {
 export interface BackendProject extends Project {
     /** This must not be null as it is required to determine the base URL for backend assets. */
     readonly ideVersion: VersionNumber
-}
-
-/** Information required to open a project. */
-export interface ProjectStartupInfo {
-    readonly project: Promise<Project>
-    readonly projectAsset: ProjectAsset
-    // This MUST BE optional because it is lost when `JSON.stringify`ing to put in `localStorage`.
-    readonly setProjectAsset?: React.Dispatch<React.SetStateAction<ProjectAsset>>
-    readonly backendType: BackendType
-    readonly accessToken: string | null
 }
 
 /** A specific session of a project being opened and used. */
