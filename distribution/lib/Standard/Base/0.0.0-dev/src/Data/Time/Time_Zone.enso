@@ -3,11 +3,14 @@ import project.Data.Json.JS_Object
 import project.Data.Numbers.Integer
 import project.Data.Text.Text
 import project.Data.Time.Date_Time.Date_Time
+import project.Data.Vector.Vector
 import project.Error.Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Time_Error.Time_Error
 import project.Panic.Panic
 from project.Data.Boolean import Boolean, False, True
+from project.Metadata import Display, make_single_choice, Widget
+from project.Metadata.Choice import Option
 
 polyglot java import java.lang.Exception as JException
 polyglot java import java.time.ZoneId
@@ -107,8 +110,11 @@ type Time_Zone
              from Standard.Base.Time.Time_Zone import Time_Zone
 
              example_new = Time_Zone.new 1 1 50
+    @hours (Widget.Numeric_Input minimum=-18 maximum=18 display=Display.Always)
+    @minutes (Widget.Numeric_Input minimum=-59 maximum=59 display=Display.When_Modified)
+    @seconds (Widget.Numeric_Input minimum=-59 maximum=59 display=Display.When_Modified)
     new : Integer -> Integer -> Integer -> Time_Zone
-    new (hours = 0) (minutes = 0) (seconds = 0) =
+    new (hours:Integer = 0) (minutes:Integer = 0) (seconds:Integer = 0) =
         new_builtin hours minutes seconds
 
     ## ALIAS time zone from text
@@ -147,8 +153,9 @@ type Time_Zone
              from Standard.Base import Time_Zone
 
              example_parse = Time_Zone.parse "+03:02:01"
+    @id (make_single_choice Time_Zone.zone_names Display.Always)
     parse : Text -> Time_Zone ! Time_Error
-    parse id =
+    parse id:Text =
         Panic.catch JException handler=(catch -> Error.throw (Time_Error.Error catch.payload.getMessage)) <|
             parse_builtin id
 
@@ -193,6 +200,17 @@ type Time_Zone
        Convert to a display representation of this Time_Zone.
     to_display_text : Text
     to_display_text self = self.to_text
+
+    ## PRIVATE
+       Gets the default drop down option for Time_Zone.
+    default_widget : Widget
+    default_widget =
+        options = [Option "System" "Time_Zone.system", Option "Local" "Time_Zone.local", Option "UTC" "Time_Zone.utc", Option "Named" "(Time_Zone.parse 'UTC')", Option "custom" "(Time_Zone.new 1 0 0)"]
+        Widget.Single_Choice values=options display=Display.When_Modified
+
+    ## Gets a list of all the time zone names that are predefined.
+    zone_names : Vector Text
+    zone_names = Time_Utils.getZoneNames
 
 ## PRIVATE
 Time_Zone.from (that:JS_Object) =

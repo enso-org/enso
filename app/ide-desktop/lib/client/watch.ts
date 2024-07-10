@@ -41,7 +41,7 @@ process.env.ELECTRON_DEV_MODE = 'true'
 console.log('Cleaning IDE dist directory.')
 await fs.rm(IDE_DIR_PATH, { recursive: true, force: true })
 await fs.mkdir(IDE_DIR_PATH, { recursive: true })
-const NODE_MODULES_PATH = path.resolve('../../../../node_modules')
+const NODE_MODULES_PATH = path.resolve('./node_modules')
 
 const ALL_BUNDLES_READY = new Promise<Watches>((resolve, reject) => {
     void (async () => {
