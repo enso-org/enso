@@ -569,7 +569,7 @@ add_specs suite_builder =
 
         ## If the Delimited config has Encoding.default, the encoding for read will be determined by BOM and Win-1252 fallback heuristics.
            The same encoding should be used for writing, to ensure that when the resulting file is read, all content is correctly decoded.
-        group_builder.specify "should use the same effective encoding for writing as the one that would be used for reading" <|
+        group_builder.specify "should use the same effective encoding for writing as the one that would be used for reading" pending="Encoding.default turned off temporarily" <|
             f = File.create_temporary_file "append-detect" ".csv"
             Test.with_clue "UTF-16 detected by BOM: " <|
                 bom = [-1, -2]

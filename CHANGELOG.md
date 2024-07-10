@@ -9,8 +9,11 @@
 #### Enso IDE
 
 - ["Add node" button is not obscured by output port][10433]
+- [Numeric Widget does not accept non-numeric input][10457]. This is to prevent
+  node being completely altered by accidental code put to the widget.
 
 [10433]: https://github.com/enso-org/enso/pull/10443
+[10457]: https://github.com/enso-org/enso/pull/10457
 
 #### Enso Enso Standard Library
 
