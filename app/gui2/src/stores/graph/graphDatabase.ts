@@ -405,6 +405,7 @@ export class GraphDb {
         this.nodeIdToNode.delete(nodeId)
       }
     }
+    this.updateExternalIds(functionAst_)
     this.bindings.readFunctionAst(functionAst_, rawFunction, moduleCode, getSpan)
     return currentNodeIds
   }
