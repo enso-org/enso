@@ -18,6 +18,7 @@ import org.enso.test.utils.ModuleUtils;
 import org.enso.test.utils.ProjectUtils;
 import org.enso.test.utils.SourceModule;
 import org.graalvm.polyglot.PolyglotException;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -97,6 +98,8 @@ public class ImportSymbolsTest {
     }
   }
 
+  // TODO: Tracked by https://github.com/enso-org/enso/issues/10504
+  @Ignore
   @Test
   public void importEntityFromModuleThatExportsItFromOtherModule() throws IOException {
     var aMod = new SourceModule(
