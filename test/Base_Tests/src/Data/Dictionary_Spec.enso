@@ -154,7 +154,7 @@ add_specs suite_builder =
         group_builder.specify "should support atom with custom comparators with complicated hash method" <|
             keys = 0.up_to 500 . map ix->
                 value = ["A", "B", "C", "D", "E"].at (ix % 5)
-                hash_code = Comparable.from value . hash
+                hash_code = Ordering.hash value
                 My_Key.Value hash_code value ix
             distinct_keys = keys.fold Dictionary.empty acc_dict->
                 item->

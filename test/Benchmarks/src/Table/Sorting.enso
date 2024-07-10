@@ -12,7 +12,7 @@ type My_Comparator
         Ordering.compare my_2.x my_1.x
 
     hash my =
-        Comparable.from my.x . hash
+        Ordering.hash my.x
 
 Comparable.from (that:My) = Comparable.new that My_Comparator
 

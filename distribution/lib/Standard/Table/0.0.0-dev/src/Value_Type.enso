@@ -44,7 +44,7 @@ type Bits_Comparator
 
     ## PRIVATE
     hash : Bits -> Integer
-    hash x = Comparable.from x.to_integer . hash x.to_integer
+    hash x = Ordering.hash x.to_integer
 
 ## PRIVATE
 Comparable.from (that:Bits) = Comparable.new that Bits_Comparator

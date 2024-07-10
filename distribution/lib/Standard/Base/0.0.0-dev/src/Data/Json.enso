@@ -367,7 +367,7 @@ type JS_Object_Comparator
     hash obj =
         values_hashes = obj.field_names.map field_name->
             val = obj.get field_name
-            Comparable.from val . hash
+            Ordering.hash val
         # Return sum, as we don't care about ordering of field names
         values_hashes.fold 0 (+)
 

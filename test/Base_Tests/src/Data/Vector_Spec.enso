@@ -27,10 +27,9 @@ type T
 
 type T_Comparator
     compare t1 t2 =
-        c1 = Comparable.from t1.a
-        c2 = Comparable.from t2.a
-        c1.compare c2
-    hash t = Comparable.from t.a . hash
+        Ordering.compare t1.a t2.a
+    hash t =
+        Ordering.hash t.a
 
 Comparable.from (that:T) = Comparable.new that T_Comparator
 

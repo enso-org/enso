@@ -21,6 +21,8 @@
 - [Renamed `Postgres_Details.Postgres` to `Postgres.Server`.][10466]
 - [Remove `First` and `Last` from namespace, use auto-scoped.][10467]
 - [Rename `Map` to `Dictionary` and `Set` to `Hashset`.][10474]
+- [Compare two objects with `Ordering.compare` and define comparator with
+  `Comparable.new`][10468]
 
 [10434]: https://github.com/enso-org/enso/pull/10434
 [10445]: https://github.com/enso-org/enso/pull/10445

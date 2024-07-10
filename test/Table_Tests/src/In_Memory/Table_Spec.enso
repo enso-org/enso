@@ -35,7 +35,7 @@ type My_Comparator
 
     hash my =
         sum = my.x + my.y
-        Comparable.from sum . hash
+        Ordering.hash sum
 
 Comparable.from (that:My) = Comparable.new that My_Comparator
 

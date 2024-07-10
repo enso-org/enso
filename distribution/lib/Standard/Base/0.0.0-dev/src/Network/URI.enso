@@ -332,8 +332,7 @@ type URI_Comparator
 
     ## PRIVATE
     hash x =
-        txt = x.text
-        Comparable.from txt . hash txt
+        Ordering.hash x.text
 
 ## PRIVATE
 Comparable.from (that:URI) = Comparable.new that URI_Comparator

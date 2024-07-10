@@ -17,7 +17,8 @@ type Ord
 type Ord_Comparator
     compare x:Ord y:Ord =
         Ordering.compare x.number y.number
-    hash x = (Comparable.from x.number) . hash
+    hash x =
+        Ordering.hash x.number
 
 Comparable.from (that:Ord) = Comparable.new that Ord_Comparator
 

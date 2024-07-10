@@ -2,8 +2,9 @@ private
 
 import project.Any.Any
 from project.Data.Boolean import Boolean, False, True
-import project.Data.Numbers.Integer
 import project.Data.Numbers.Number
+import project.Data.Numbers.Integer
+import project.Data.Numbers.Positive_Integer
 from project.Data.Ordering import all
 import project.Errors.Common.Type_Error
 import project.Errors.Common.Incomparable_Values
@@ -35,15 +36,17 @@ type Default_Comparator
 
     ## PRIVATE
     hash : Number -> Integer
-    hash x = Comparable.hash_builtin x
+    hash x = Default_Comparator.hash_builtin x
+
+    ## PRIVATE
+    hash_builtin x = @Builtin_Method "Default_Comparator.hash_builtin"
 
     ## PRIVATE
        Called as a callback from internal engine code for an atom with a custom
        comparator. It is assumed that the given atom has a custom comparator, that is
        a comparator different than `Default_Comparator`.
     hash_callback : Atom -> Integer
-    hash_callback atom =
-        Comparable.from atom . hash
+    hash_callback atom = Ordering.hash atom
 
     ## PRIVATE
        A callback allowing to compare two atoms with a custom comparator.
@@ -79,11 +82,11 @@ compare_with_comparators this that -> Ordering ! Incomparable_Values =
 ## PRIVATE
 type Positive_Integer_Comparator
     ## PRIVATE
-    compare x y =
-        Comparable.from x.integer . compare y.integer
+    compare x:Positive_Integer y:Positive_Integer =
+        Ordering.compare x.integer y.integer
 
     ## PRIVATE
-    hash x = Comparable.from x.integer . hash
+    hash x:Positive_Integer = Ordering.hash x.integer
 
 ## PRIVATE
 type Ordering_Comparator

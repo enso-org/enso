@@ -111,22 +111,16 @@ type Comparable
     private By value:Any comparator:Any
 
     ##
-       Creates new comparable instance for given `value` and
+       Creates new opaque `Comparable` instance for given `value` and
        a `Comparator` with two static methods what work on the
        type `T` of the provided `value`:
 
        ```
        type Comparator T
-           compare : T -> T -> (Ordering|Nothing)
+           compare : T -> T -> (Ordering|Nothing ! Incomparable_Values)
            hash : T -> Integer
        ```
     new value:Any comparator:Any -> Comparable = Comparable.By value comparator
-
-    compare self that -> Ordering ! Incomparable_Values =
-        Ordering.compare self that
-
-    hash self -> Integer =
-        self.comparator.hash self.value
 
 ## PRIVATE
 Comparable.from (that:Any) = Comparable.new that Default_Comparator

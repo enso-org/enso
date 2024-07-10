@@ -198,7 +198,7 @@ add_specs suite_builder =
                 (x0 != x1) . should_be_false
                 (x1 != x0) . should_be_false
 
-                (Comparable.hash_builtin x0) . should_equal (Comparable.hash_builtin x1)
+                (Ordering.hash x0) . should_equal (Ordering.hash x1)
 
         group_builder.specify "should compare correctly to Integer and Float" <|
             values = []
@@ -370,20 +370,20 @@ add_specs suite_builder =
             (d == Float.max_value) . should_be_false
             ((d * d) == Float.max_value) . should_be_false
             ((-(d * d)) == -Float.max_value) . should_be_false
-            Comparable.hash_builtin (d * d) . should_equal 2146435072
-            Comparable.hash_builtin -(d * d) . should_equal -1048576
-            Comparable.hash_builtin ((d * d) + 0.1) . should_equal 2146435072
-            Comparable.hash_builtin ((-(d * d)) + 0.1) . should_equal -1048576
+            Ordering.hash (d * d) . should_equal 2146435072
+            Ordering.hash -(d * d) . should_equal -1048576
+            Ordering.hash ((d * d) + 0.1) . should_equal 2146435072
+            Ordering.hash ((-(d * d)) + 0.1) . should_equal -1048576
 
         group_builder.specify "from conversion supports values outside the double range" <|
             d = Float.max_value.to Decimal
             (d == Float.max_value) . should_be_true
             ((d * d) == Float.max_value) . should_be_false
             ((-(d * d)) == -Float.max_value) . should_be_false
-            Comparable.hash_builtin (d * d) . should_equal 2146435072
-            Comparable.hash_builtin -(d * d) . should_equal -1048576
-            Comparable.hash_builtin ((d * d) + 0.1) . should_equal 2146435072
-            Comparable.hash_builtin ((-(d * d)) + 0.1) . should_equal -1048576
+            Ordering.hash (d * d) . should_equal 2146435072
+            Ordering.hash -(d * d) . should_equal -1048576
+            Ordering.hash ((d * d) + 0.1) . should_equal 2146435072
+            Ordering.hash ((-(d * d)) + 0.1) . should_equal -1048576
 
     suite_builder.group "arithmetic" group_builder->
         group_builder.specify "should allow arithmetic with Decimals, without Math_Context" <|

@@ -12,11 +12,10 @@ type Ord
     Value number
 
 type Ord_Comparator
-    compare x y =
-        cx = Comparable.from x.number
-        cy = Comparable.from y.number
-        cx.compare cy
-    hash x = (Comparable.from x.number) . hash
+    compare x:Ord y:Ord =
+        Ordering.compare x.number y.number
+    hash x:Ord =
+        Ordering.hash x.number
 
 Comparable.from (that:Ord) = Comparable.new that Ord_Comparator
 
@@ -25,11 +24,10 @@ type My_Type
     Value val
 
 type My_Type_Comparator
-    compare x y =
-        cx = Comparable.from x.val
-        cy = Comparable.from y.val
-        cx.compare cy
-    hash x = (Comparable.from x.val).hash
+    compare x:My_Type y:My_Type =
+        Ordering.compare x.val y.val
+    hash x:My_Type =
+        Ordering.hash x.val
 
 Comparable.from (that:My_Type) = Comparable.new that My_Type_Comparator
 
