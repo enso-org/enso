@@ -55,9 +55,7 @@ const project = useProjectStore()
   border-radius: 0 var(--radius-full) var(--radius-full) 0;
 
   .iconButton {
-    position: relative;
     margin: 0 auto 0 0;
-    --icon-width: 24px;
   }
 }
 
