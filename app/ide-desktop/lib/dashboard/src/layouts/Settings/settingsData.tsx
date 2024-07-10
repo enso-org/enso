@@ -3,9 +3,9 @@ import * as React from 'react'
 
 import isEmail from 'validator/lib/isEmail'
 
+import ComputerIcon from 'enso-assets/computer.svg'
 import KeyboardShortcutsIcon from 'enso-assets/keyboard_shortcuts.svg'
 import LogIcon from 'enso-assets/log.svg'
-import NotCloudIcon from 'enso-assets/not_cloud.svg'
 import PeopleSettingsIcon from 'enso-assets/people_settings.svg'
 import PeopleIcon from 'enso-assets/people.svg'
 import SettingsIcon from 'enso-assets/settings.svg'
@@ -230,7 +230,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
   [SettingsTabType.local]: {
     nameId: 'localSettingsTab',
     settingsTab: SettingsTabType.organization,
-    icon: NotCloudIcon,
+    icon: ComputerIcon,
     visible: context => context.localBackend != null,
     sections: [
       {

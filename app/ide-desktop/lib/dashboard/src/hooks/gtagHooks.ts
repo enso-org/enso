@@ -24,18 +24,19 @@ export function useGtagEvent() {
  *
  * Also sends the close event when the window is unloaded. */
 export function gtagOpenCloseCallback(
-  gtagEventRef: React.MutableRefObject<ReturnType<typeof useGtagEvent>>,
+  gtagEvent: ReturnType<typeof useGtagEvent>,
   openEvent: string,
   closeEvent: string
 ) {
-  const gtagEventCurrent = gtagEventRef.current
-  gtagEventCurrent(openEvent)
+  gtagEvent(openEvent)
+
   const onBeforeUnload = () => {
-    gtagEventCurrent(closeEvent)
+    gtagEvent(closeEvent)
   }
   window.addEventListener('beforeunload', onBeforeUnload)
+
   return () => {
     window.removeEventListener('beforeunload', onBeforeUnload)
-    gtagEventCurrent(closeEvent)
+    gtagEvent(closeEvent)
   }
 }

@@ -358,7 +358,10 @@ public abstract class InvokeConversionNode extends BaseNode {
       @Shared("conversionResolverNode") @Cached ConversionResolverNode conversionResolverNode) {
     Function function =
         conversionResolverNode.expectNonNull(
-            thatMap, extractType(self), EnsoContext.get(this).getBuiltins().map(), conversion);
+            thatMap,
+            extractType(self),
+            EnsoContext.get(this).getBuiltins().dictionary(),
+            conversion);
     return invokeFunctionNode.execute(function, frame, state, arguments);
   }
 

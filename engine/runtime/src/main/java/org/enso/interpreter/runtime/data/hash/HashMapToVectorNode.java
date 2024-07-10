@@ -18,7 +18,7 @@ import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 import org.enso.interpreter.runtime.error.PanicException;
 
 @BuiltinMethod(
-    type = "Map",
+    type = "Dictionary",
     name = "to_vector",
     description =
         """

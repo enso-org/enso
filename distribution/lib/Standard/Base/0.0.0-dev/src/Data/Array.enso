@@ -162,7 +162,7 @@ type Array
          If a `Range`, the selection is specified by two indices, from and to.
     @range Index_Sub_Range.default_widget
     take : (Index_Sub_Range | Range | Integer) -> Vector Any
-    take self range=(Index_Sub_Range.First 1) =
+    take self range:(Index_Sub_Range | Range | Integer)=..First =
         Array_Like_Helpers.take self range
 
     ## ALIAS skip, remove
@@ -177,7 +177,7 @@ type Array
          If a `Range`, the selection is specified by two indices, from and to.
     @range Index_Sub_Range.default_widget
     drop : (Index_Sub_Range | Range | Integer) -> Vector Any
-    drop self range=(Index_Sub_Range.First 1) =
+    drop self range:(Index_Sub_Range | Range | Integer)=..First =
         Array_Like_Helpers.drop self range
 
     ## GROUP Calculations

@@ -50,7 +50,7 @@ run_default_backend add_specs filter=Nothing =
     create_connection_func _ =
         Dummy_Connection.Value
 
-    setup = Test_Setup.Config "[In-Memory] " table_fn empty_table_fn table_builder materialize is_database=False test_selection=selection aggregate_test_selection=aggregate_selection create_connection_func
+    setup = Test_Setup.Config "[In-Memory] " table_fn empty_table_fn table_builder materialize is_database=False test_selection=selection aggregate_test_selection=aggregate_selection create_connection_func table_builder
     suite = Test.build suite_builder->
         add_specs suite_builder setup
     suite.run_with_filter filter

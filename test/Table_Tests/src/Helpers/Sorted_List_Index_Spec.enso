@@ -21,7 +21,7 @@ type Data
 
     setup =
         v1 = [0, 0, 1, 1, 1, 1, 2, 2, 2, 3, 3, 4, 5, 6, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 8, 10, 10, 10, 10, 11, 14, 17, 19]
-        v1_shuffled = v1.take (Index_Sub_Range.Sample v1.length)
+        v1_shuffled = v1.take (..Sample v1.length)
         Data.Value (make_index v1_shuffled)
 
 

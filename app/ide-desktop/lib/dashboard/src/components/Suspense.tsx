@@ -39,7 +39,7 @@ const OFFLINE_FETCHING_TOGGLE_DELAY_MS = 250
 export function Suspense(props: SuspenseProps) {
   const { children } = props
 
-  return <React.Suspense fallback={<FallbackElement {...props} />}>{children}</React.Suspense>
+  return <React.Suspense fallback={<Loader {...props} />}>{children}</React.Suspense>
 }
 
 /**
@@ -53,7 +53,7 @@ export function Suspense(props: SuspenseProps) {
  * We check the fetching status in fallback component because
  * we want to know if there are ongoing requests once React renders the fallback in suspense
  */
-function FallbackElement(props: SuspenseProps) {
+export function Loader(props: SuspenseProps) {
   const { loaderProps, fallback, offlineFallbackProps, offlineFallback } = props
 
   const { getText } = textProvider.useText()
