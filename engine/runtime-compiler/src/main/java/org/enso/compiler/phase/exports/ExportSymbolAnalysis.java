@@ -188,9 +188,15 @@ public final class ExportSymbolAnalysis {
    */
   private static List<ImportExport> analyseSymbolsFromModule(
       CompilerContext.Module module, List<Name> symbols) {
+    var bindingsMap = module.getBindingsMap();
+    if (bindingsMap == null) {
+      // This can happen if the module was not yet compiled. Which may happen.
+      // In that case, just skip the check.
+      return List.of();
+    }
     var errors = new ArrayList<ImportExport>();
     for (var symbol : symbols) {
-      var resolvedNamesOpt = module.getBindingsMap().exportedSymbols().get(symbol.name());
+      var resolvedNamesOpt = bindingsMap.exportedSymbols().get(symbol.name());
       if (resolvedNamesOpt.isEmpty()) {
         errors.add(
             createSymbolDoesNotExistError(symbol, symbol.name(), module.getName().toString()));
