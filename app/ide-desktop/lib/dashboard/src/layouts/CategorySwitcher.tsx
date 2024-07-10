@@ -42,7 +42,7 @@ interface CategoryMetadata {
   readonly textId: Extract<text.TextId, `${Category}Category`>
   readonly buttonTextId: Extract<text.TextId, `${Category}CategoryButtonLabel`>
   readonly dropZoneTextId: Extract<text.TextId, `${Category}CategoryDropZoneLabel`>
-  readonly className?: string
+  readonly nested?: true
 }
 
 // =================
@@ -63,7 +63,7 @@ const CATEGORY_DATA: readonly CategoryMetadata[] = [
     textId: 'recentCategory',
     buttonTextId: 'recentCategoryButtonLabel',
     dropZoneTextId: 'recentCategoryDropZoneLabel',
-    className: 'ml-4',
+    nested: true,
   },
   {
     category: Category.trash,
@@ -71,7 +71,7 @@ const CATEGORY_DATA: readonly CategoryMetadata[] = [
     textId: 'trashCategory',
     buttonTextId: 'trashCategoryButtonLabel',
     dropZoneTextId: 'trashCategoryDropZoneLabel',
-    className: 'ml-4',
+    nested: true,
   },
   {
     category: Category.local,
@@ -120,8 +120,7 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
         tooltipPlacement="right"
         className={tailwindMerge.twMerge(
           isCurrent && 'focus-default',
-          isDisabled && 'cursor-not-allowed hover:bg-transparent',
-          data.className
+          isDisabled && 'cursor-not-allowed hover:bg-transparent'
         )}
         aria-label={getText(buttonTextId)}
         onPress={onPress}
@@ -229,7 +228,7 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
             {categoryData.map(data => {
               const error = getCategoryError(data.category)
 
-              return (
+              const element = (
                 <CategorySwitcherItem
                   key={data.category}
                   id={data.category}
@@ -279,6 +278,14 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
                     })
                   }}
                 />
+              )
+              return data.nested ? (
+                <div className="flex">
+                  <div className="ml-[15px] mr-1 border-r border-primary/20" />
+                  {element}
+                </div>
+              ) : (
+                element
               )
             })}
           </div>
