@@ -136,29 +136,27 @@ function renderRegularInterpolation(value: string, fgColor: RGBA, bgColor: RGBA)
 .SQLVisualization {
   padding: 4px;
 }
-</style>
 
-<style>
-.SQLVisualization .sql {
+:deep(.sql) {
   font-family: var(--font-mono);
   font-size: 12px;
   margin-left: 7px;
   margin-top: 5px;
 }
 
-.SQLVisualization .interpolation {
+:deep(.interpolation) {
   border-radius: 6px;
   padding: 1px 2px 1px 2px;
   display: inline;
 }
 
-.SQLVisualization .mismatch-parent {
+:deep(.mismatch-parent) {
   position: relative;
   display: inline-flex;
   justify-content: center;
 }
 
-.SQLVisualization .mismatch-mouse-area {
+:deep(.mismatch-mouse-area) {
   display: inline;
   position: absolute;
   width: 150%;
@@ -167,15 +165,15 @@ function renderRegularInterpolation(value: string, fgColor: RGBA, bgColor: RGBA)
   z-index: 0;
 }
 
-.SQLVisualization .mismatch {
+:deep(.mismatch) {
   z-index: 1;
 }
 
-.SQLVisualization .modulepath {
+:deep(.modulepath) {
   color: rgba(150, 150, 150, 0.9);
 }
 
-.SQLVisualization .tooltip {
+:deep(.tooltip) {
   font-family: DejaVuSansMonoBook, sans-serif;
   font-size: 12px;
   opacity: 0;
