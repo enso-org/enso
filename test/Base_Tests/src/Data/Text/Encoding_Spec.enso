@@ -68,7 +68,7 @@ add_specs suite_builder =
             default_warning.should_equal invalid_ascii_out
             Problems.get_attached_warnings default_warning . should_contain_the_same_elements_as problems
 
-    suite_builder.group "Default Encoding" group_builder->
+    suite_builder.group "Default Encoding" pending="Encoding.default turned off temporarily" group_builder->
         group_builder.specify "should try reading as UTF-8 by default" <|
             bytes = [65, -60, -123, -60, -103]
             #        A   ą          ę

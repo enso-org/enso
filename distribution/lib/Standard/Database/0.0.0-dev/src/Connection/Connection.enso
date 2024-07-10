@@ -168,11 +168,11 @@ type Connection
             Nothing -> Nothing
             _ : Vector -> types
             _ -> [types]
-        name_map = Map.from_vector [["TABLE_CAT", "Database"], ["TABLE_SCHEM", "Schema"], ["TABLE_NAME", "Name"], ["TABLE_TYPE", "Type"], ["REMARKS", "Description"], ["TYPE_CAT", "Type Database"], ["TYPE_SCHEM", "Type Schema"], ["TYPE_NAME", "Type Name"]]
+        name_dict = Dictionary.from_vector [["TABLE_CAT", "Database"], ["TABLE_SCHEM", "Schema"], ["TABLE_NAME", "Name"], ["TABLE_TYPE", "Type"], ["REMARKS", "Description"], ["TYPE_CAT", "Type Database"], ["TYPE_SCHEM", "Type Schema"], ["TYPE_NAME", "Type Name"]]
         result = self.jdbc_connection.with_metadata metadata->
             table = Managed_Resource.bracket (metadata.getTables database schema name_like types_vector) .close result_set->
                 result_set_to_table result_set self.dialect.get_type_mapping.make_column_fetcher
-            renamed = table.rename_columns name_map
+            renamed = table.rename_columns name_dict
             if all_fields then renamed else
                 renamed.select_columns ["Database", "Schema", "Name", "Type", "Description"]
         case include_hidden of

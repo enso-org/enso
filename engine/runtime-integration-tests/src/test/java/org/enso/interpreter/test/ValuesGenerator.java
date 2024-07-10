@@ -303,9 +303,13 @@ public final class ValuesGenerator {
   }
 
   public Value typeMap() {
-    return v("typeMap", """
-    import Standard.Base.Data.Map.Map
-    """, "Map").type();
+    return v(
+            "typeMap",
+            """
+    import Standard.Base.Data.Dictionary.Dictionary
+    """,
+            "Dictionary")
+        .type();
   }
 
   public Value typeWarning() {
@@ -679,28 +683,28 @@ public final class ValuesGenerator {
     if (languages.contains(Language.ENSO)) {
       var imports =
           """
-          import Standard.Base.Data.Map.Map
+          import Standard.Base.Data.Dictionary.Dictionary
           import Standard.Base.Nothing.Nothing
           """;
       for (var expr :
           List.of(
-              "Map.empty",
-              "Map.singleton Nothing Nothing",
-              "Map.singleton Nothing 'my_value'",
-              "Map.singleton 'my_value' Nothing",
-              "Map.singleton 1 1",
-              "Map.singleton 'C' 3",
-              "Map.singleton 'C' 43",
-              "Map.empty.insert 'A' 10 . insert 'B' 20",
+              "Dictionary.empty",
+              "Dictionary.singleton Nothing Nothing",
+              "Dictionary.singleton Nothing 'my_value'",
+              "Dictionary.singleton 'my_value' Nothing",
+              "Dictionary.singleton 1 1",
+              "Dictionary.singleton 'C' 3",
+              "Dictionary.singleton 'C' 43",
+              "Dictionary.empty.insert 'A' 10 . insert 'B' 20",
               // ((int) 'A') + ((int) 'B') = 131 ; codePoint(131) = \203
-              "Map.singleton '\203' 30",
-              "Map.singleton Map.empty 1",
-              "Map.singleton Map.empty Map.empty",
-              "Map.empty.insert 1 1 . insert 2 2",
-              "Map.empty.insert Nothing 'val' . insert 'key' 42",
-              "Map.empty.insert 'A' 1 . insert 'B' 2 . insert 'C' 3",
-              "Map.empty.insert 'C' 3 . insert 'B' 2 . insert 'A' 1")) {
-        collect.add(v("maps-" + expr, imports, expr, "Map").type());
+              "Dictionary.singleton '\203' 30",
+              "Dictionary.singleton Dictionary.empty 1",
+              "Dictionary.singleton Dictionary.empty Dictionary.empty",
+              "Dictionary.empty.insert 1 1 . insert 2 2",
+              "Dictionary.empty.insert Nothing 'val' . insert 'key' 42",
+              "Dictionary.empty.insert 'A' 1 . insert 'B' 2 . insert 'C' 3",
+              "Dictionary.empty.insert 'C' 3 . insert 'B' 2 . insert 'A' 1")) {
+        collect.add(v("maps-" + expr, imports, expr, "Dictionary").type());
       }
     }
     if (languages.contains(Language.JAVA)) {

@@ -1,8 +1,8 @@
 import project.Any.Any
 import project.Data.Array.Array
+import project.Data.Dictionary.Dictionary
 import project.Data.Filter_Condition.Filter_Condition
 import project.Data.Json.JS_Object
-import project.Data.Map.Map
 import project.Data.Numbers.Integer
 import project.Data.Range.Range
 import project.Data.Text.Case_Sensitivity.Case_Sensitivity
@@ -379,15 +379,16 @@ type Regex
        Return a vector of all named group names.
     named_groups : Vector Text
     named_groups self =
-        map = polyglot_map_to_map self.internal_regex_object.groups
-        map.keys
+        dictionary = polyglot_map_to_dictionary self.internal_regex_object.groups
+        dictionary.keys
 
     ## ICON metadata
-       Return a map from group number to group name. Only includes named groups.
-    group_nums_to_names : Map Integer Text
+       Return a Dictionary from group number to group name. Only includes named
+       groups.
+    group_nums_to_names : Dictionary Integer Text
     group_nums_to_names self =
-        map = polyglot_map_to_map self.internal_regex_object.groups
-        map.transform k-> v-> [v.at 0, k]
+        dictionary = polyglot_map_to_dictionary self.internal_regex_object.groups
+        dictionary.transform k-> v-> [v.at 0, k]
 
     ## ICON text
        Escape the special characters in `expression` such that the result is a
@@ -419,20 +420,20 @@ type Regex
                 Regex.compile self.pattern case_insensitive
 
 ## PRIVATE
-   Convert the polyglot map to a Map.
-polyglot_map_to_map : Any -> Map Any Any
-polyglot_map_to_map map =
+   Convert the polyglot map to a Dictionary.
+polyglot_map_to_dictionary : Any -> Dictionary Any Any
+polyglot_map_to_dictionary map =
     polyglot_keys = Polyglot.get_members map
     keys = Vector.from_polyglot_array polyglot_keys
     pairs = keys.map key-> [key, Polyglot.get_member map key]
-    Map.from_vector pairs
+    Dictionary.from_vector pairs
 
 ## PRIVATE
    Get the named group from the polyglot map.
 read_group_map : Any -> Text -> Integer | Nothing
 read_group_map polyglot_map name =
-    map = polyglot_map_to_map polyglot_map
-    map.get name
+    dictionary = polyglot_map_to_dictionary polyglot_map
+    dictionary.get name
 
 ## PRIVATE
 match_to_group_maybe : Match | Nothing -> Text | Nothing
