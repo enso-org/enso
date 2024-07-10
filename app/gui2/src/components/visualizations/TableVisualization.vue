@@ -684,18 +684,20 @@ onUnmounted(() => {
   padding: 0 5px;
   overflow: hidden;
 }
-</style>
 
-<style>
-.TableVisualization > .ag-theme-alpine > .ag-root-wrapper.ag-layout-normal {
+.TableVisualization > .ag-theme-alpine > :deep(.ag-root-wrapper.ag-layout-normal) {
   border-radius: 0 0 var(--radius-default) var(--radius-default);
 }
 
-a {
+/* Tag selectors are inefficient to compute, and should be replaced with a class selector
+ * if possible.
+ * See https://vuejs.org/api/sfc-css-features.html#scoped-style-tips */
+:deep(a) {
   color: blue;
   text-decoration: underline;
 }
-a:hover {
+
+:deep(a):hover {
   color: darkblue;
 }
 </style>
