@@ -136,7 +136,7 @@ useAutoBlur(tableNode)
 const widths = reactive(new Map<string, number>())
 const defaultColDef = {
   editable: false,
-  sortable: true as boolean,
+  sortable: true,
   filter: true,
   resizable: true,
   minWidth: 25,
@@ -327,14 +327,24 @@ function toField(name: string, valueType?: ValueType | null | undefined): ColDef
       icon = 'mixed'
   }
   const svgTemplate = `<svg viewBox="0 0 16 16" width="16" height="16"> <use xlink:href="${icons}#${icon}"/> </svg>`
+  const menu = `<span ref="eMenu" class="ag-header-icon ag-header-cell-menu-button"> </span>`
+  const sort = `
+      <span ref="eFilter" class="ag-header-icon ag-header-label-icon ag-filter-icon" aria-hidden="true"></span>
+      <span ref="eSortOrder" class="ag-header-icon ag-sort-order" aria-hidden="true">1</span>
+      <span ref="eSortAsc" class="ag-header-icon ag-sort-ascending-icon" aria-hidden="true"></span>
+      <span ref="eSortDesc" class="ag-header-icon ag-sort-descending-icon" aria-hidden="true"></span>
+      <span ref="eSortNone" class="ag-header-icon ag-sort-none-icon" aria-hidden="true"></span>
+    `
   const template =
     icon ?
-      `<div style='display:flex; flex-direction:row; justify-content:space-between; width:inherit;'> ${name} <span ref="eMenu" class="ag-header-icon ag-header-cell-menu-button"> </span> ${svgTemplate}</div>`
-    : `<div>${name}</div>`
+      `<span style='display:flex; flex-direction:row; justify-content:space-between; width:inherit;'><span ref="eLabel" class="ag-header-cell-label" role="presentation" style='display:flex; flex-direction:row; justify-content:space-between; width:inherit;'> ${name} ${menu}</span> ${sort} ${svgTemplate}</span>`
+    : `<span ref="eLabel" style='display:flex; flex-direction:row; justify-content:space-between; width:inherit;'>${name} ${menu} ${sort}</span>`
   return {
     field: name,
     headerComponentParams: {
       template,
+      enableSorting: true,
+      setAriaSort: () => {},
     },
     headerTooltip: displayValue ? displayValue : '',
   }
@@ -541,7 +551,6 @@ watchEffect(() => {
 
   // If data is truncated, we cannot rely on sorting/filtering so will disable.
   options.defaultColDef.filter = !isTruncated.value
-  options.defaultColDef.sortable = !isTruncated.value
   options.api.setColumnDefs(mergedColumnDefs)
   options.api.setRowData(rowData)
 })
