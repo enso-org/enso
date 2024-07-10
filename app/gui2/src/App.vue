@@ -14,7 +14,7 @@ import {
 } from '@/util/config'
 import ProjectView from '@/views/ProjectView.vue'
 import { useEventListener } from '@vueuse/core'
-import Backend from 'enso-common/src/services/Backend'
+import type Backend from 'enso-common/src/services/Backend'
 import { computed, markRaw, toRaw, toRef, watch } from 'vue'
 import TooltipDisplayer from './components/TooltipDisplayer.vue'
 import { provideTooltipRegistry } from './providers/tooltipState'
