@@ -56,9 +56,11 @@ export default function EventListProvider(props: EventListProviderProps) {
     // Run after the next render.
     setTimeout(() => {
       if (state.assetEvents.length) {
+        console.log('e', state.assetEvents)
         store.setState({ assetEvents: [] })
       }
       if (state.assetListEvents.length) {
+        console.log('e2', state.assetListEvents)
         store.setState({ assetListEvents: [] })
       }
     })

@@ -2379,6 +2379,7 @@ export default function AssetsTable(props: AssetsTableProps) {
           onDrop={event => {
             const ids = new Set(selectedKeysRef.current.has(key) ? selectedKeysRef.current : [key])
             const payload = drag.LABELS.lookup(event)
+            console.log('pl', payload)
             if (payload != null) {
               event.preventDefault()
               event.stopPropagation()
@@ -2394,6 +2395,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                 }
               }
               const shouldAdd = labelsPresent * 2 < ids.size * payload.size
+              console.log(labelsPresent, payload.size, shouldAdd, ids, payload)
               dispatchAssetEvent({
                 type: shouldAdd ? AssetEventType.addLabels : AssetEventType.removeLabels,
                 ids,
