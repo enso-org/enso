@@ -140,13 +140,13 @@ type Snowflake_Type_Mapping
         (value_type1.is_same_type value_type2) || (Snowflake_Type_Mapping.is_integer_type value_type1 && Snowflake_Type_Mapping.is_integer_type value_type2)
 
 ## PRIVATE
-simple_types_map = Map.from_vector <|
+simple_types_map = Dictionary.from_vector <|
     floats = [[Types.DOUBLE, Value_Type.Float Bits.Bits_64], [Types.REAL, Value_Type.Float Bits.Bits_64]]
     other = [[Types.DATE, Value_Type.Date], [Types.TIME, Value_Type.Time], [Types.BOOLEAN, Value_Type.Boolean]]
     floats + other
 
 ## PRIVATE
-complex_types_map = Map.from_vector <|
+complex_types_map = Dictionary.from_vector <|
     make_decimal sql_type =
         Value_Type.Decimal sql_type.precision sql_type.scale
     make_varchar sql_type =

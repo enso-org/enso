@@ -20,7 +20,7 @@ import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.error.DataflowError;
 
 @BuiltinMethod(
-    type = "Map",
+    type = "Dictionary",
     name = "remove_builtin",
     description = """
         Removes an entry from this map specified with the key.

@@ -104,7 +104,7 @@ type Suite
         succ_tests = all_results.filter (r-> r.is_success) . length
         failed_tests = all_results.filter (r-> r.is_fail)
         failed_tests_number = failed_tests.length
-        failed_tests_names = failed_tests.map (t-> t.spec_name)
+        failed_tests_names = failed_tests.map (t-> t.spec_name.replace ' ' '.')
             . distinct
             . take 10
             . map Regex.escape

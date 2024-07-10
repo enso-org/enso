@@ -3,9 +3,9 @@ private
 import project.Any.Any
 import project.Data.Array.Array
 import project.Data.Array_Proxy.Array_Proxy
+import project.Data.Dictionary.Dictionary
 import project.Data.Index_Sub_Range.Index_Sub_Range
 import project.Data.List.List
-import project.Data.Map.Map
 import project.Data.Maybe.Maybe
 import project.Data.Numbers.Integer
 import project.Data.Pair.Pair
@@ -166,7 +166,7 @@ private on_problems_to_number on_problems:Problem_Behavior = case on_problems of
 
 distinct vector on =
     Vector.build builder->
-        vector.fold Map.empty existing->
+        vector.fold Dictionary.empty existing->
             item->
                 key = on item
                 if (existing.get key False) then existing else
@@ -174,7 +174,7 @@ distinct vector on =
                     existing.insert key True
 
 duplicates vector on = Vector.build builder->
-    counts = vector.fold Map.empty current-> item->
+    counts = vector.fold Dictionary.empty current-> item->
         key = on item
         count = current.get key 0
         current.insert key count+1

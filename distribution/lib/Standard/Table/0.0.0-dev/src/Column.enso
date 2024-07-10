@@ -1718,7 +1718,7 @@ type Column
             True ->
                 run_vectorized_binary_op self op_name as_vector expected_result_type=Value_Type.Boolean skip_nulls=False new_name=result_name
             False ->
-                set = Set.from_vector as_vector error_on_duplicates=False
+                set = Hashset.from_vector as_vector error_on_duplicates=False
                 apply_unary_map self result_name set.contains_relational Value_Type.Boolean nothing_unchanged=False
 
     ## GROUP Standard.Base.Conversions

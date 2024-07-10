@@ -26,9 +26,6 @@
     "test:e2e": "cross-env NODE_ENV=production playwright test",
     "test:e2e:debug": "cross-env NODE_ENV=production playwright test --ui"
   },
-  "//": [
-    "@fortawesome/fontawesome-svg-core is required as a peer dependency for @fortawesome/react-fontawesome"
-  ],
   "dependencies": {
     "@aws-amplify/auth": "5.6.5",
     "@aws-amplify/core": "5.8.5",
@@ -36,12 +33,11 @@
     "@monaco-editor/react": "4.6.0",
     "@sentry/react": "^7.74.0",
     "@tanstack/react-query": "5.45.1",
-    "@tanstack/query-persist-client-core": "5.45.0",
+    "@tanstack/vue-query": ">= 5.45.0 < 5.46.0",
     "ajv": "^8.12.0",
     "clsx": "^2.1.1",
     "enso-assets": "workspace:*",
     "enso-common": "workspace:*",
-    "idb-keyval": "6.2.1",
     "is-network-error": "^1.0.1",
     "monaco-editor": "0.48.0",
     "react": "^18.3.1",

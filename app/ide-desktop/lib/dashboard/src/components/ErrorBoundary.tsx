@@ -7,6 +7,8 @@ import * as errorBoundary from 'react-error-boundary'
 
 import * as detect from 'enso-common/src/detect'
 
+import * as offlineHooks from '#/hooks/offlineHooks'
+
 import * as textProvider from '#/providers/TextProvider'
 
 import * as ariaComponents from '#/components/AriaComponents'
@@ -64,14 +66,16 @@ export function ErrorDisplay(props: ErrorDisplayProps): React.JSX.Element {
 
   const { getText } = textProvider.useText()
 
+  const { isOffline } = offlineHooks.useOffline()
+
   const stack = errorUtils.tryGetStack(error)
 
   return (
     <result.Result
       className="h-full"
-      status="error"
+      status={isOffline ? 'info' : 'error'}
       title={getText('arbitraryErrorTitle')}
-      subtitle={getText('arbitraryErrorSubtitle')}
+      subtitle={isOffline ? getText('offlineErrorMessage') : getText('arbitraryErrorSubtitle')}
     >
       <ariaComponents.ButtonGroup align="center">
         <ariaComponents.Button
@@ -79,7 +83,9 @@ export function ErrorDisplay(props: ErrorDisplayProps): React.JSX.Element {
           size="small"
           rounded="full"
           className="w-24"
-          onPress={resetErrorBoundary}
+          onPress={() => {
+            resetErrorBoundary()
+          }}
         >
           {getText('tryAgain')}
         </ariaComponents.Button>

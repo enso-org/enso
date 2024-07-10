@@ -173,7 +173,7 @@ add_specs suite_builder setup =
             problems = [Duplicate_Output_Column_Names.Error ["x Agg1", "y Agg1", "z Agg1"]]
             Problems.test_problem_handling action problems tester
 
-            table3 = data.table2.rename_columns (Map.from_vector [["Group", "x"]])
+            table3 = data.table2.rename_columns (Dictionary.from_vector [["Group", "x"]])
             action3 = table3.cross_tab ["x"] "Key" on_problems=_
             tester3 table =
                 table.column_names . should_equal ["x", "x 1", "y", "z"]

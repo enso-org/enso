@@ -20,7 +20,7 @@ sum_recur n = if n == 0 then 0 else 1 + sum_recur n-1
 
 build_map size =
     rand = Java_Random.new
-    0.up_to size . fold Map.empty (m -> i -> m.insert (rand.nextInt 10000) i)
+    0.up_to size . fold Dictionary.empty (m -> i -> m.insert (rand.nextInt 10000) i)
 
 type Data
     Value ~list ~vec ~vec_float

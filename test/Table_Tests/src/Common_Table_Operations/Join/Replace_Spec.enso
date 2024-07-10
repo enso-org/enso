@@ -40,7 +40,7 @@ add_specs suite_builder setup =
 
         group_builder.specify "should be able to replace values via a lookup table provided as a Map" <|
             table = table_builder [['x', [1, 2, 3, 4, 2]], ['y', ['a', 'b', 'c', 'd', 'e']]]
-            lookup_table = Map.from_vector [[2, 20], [1, 10], [4, 40], [3, 30]]
+            lookup_table = Dictionary.from_vector [[2, 20], [1, 10], [4, 40], [3, 30]]
             expected = table_builder [['x', [10, 20, 20, 30, 40]], ['y', ['a', 'b', 'e', 'c', 'd']]]
             result = table.replace lookup_table 'x' . sort ["x", "y"]
             result . should_equal expected
@@ -142,25 +142,25 @@ add_specs suite_builder setup =
 
         group_builder.specify "should accept an empty lookup map, if allow_unmatched_rows=True, but expect a warning" <|
             table = table_builder [['x', [1, 2, 3, 4, 2]], ['y', ['a', 'b', 'c', 'd', 'e']]]
-            t = table.replace Map.empty 'x'
+            t = table.replace Dictionary.empty 'x'
             t . should_equal table
             Problems.expect_warning (Empty_Error.Error "lookup_table") t
 
         group_builder.specify "should throw an error on an empty lookup map and non-empty base table if allow_unmatched_rows=False" <|
             table = table_builder [['x', [1, 2, 3, 4, 2]], ['y', ['a', 'b', 'c', 'd', 'e']]] . sort ['x']
-            t = table.replace Map.empty 'x' allow_unmatched_rows=False
+            t = table.replace Dictionary.empty 'x' allow_unmatched_rows=False
             t . should_fail_with Unmatched_Rows_In_Lookup
             t.catch.example_key_values . should_equal [1]
 
         group_builder.specify "should accept an empty lookup map if the base table is also empty, but expect a warning" <|
             table = table_builder_typed [['x', []], ['z', []]] Value_Type.Integer
-            t = table.replace Map.empty 'x'
+            t = table.replace Dictionary.empty 'x'
             t . should_equal table
             Problems.expect_warning (Empty_Error.Error "lookup_table") t
 
         group_builder.specify "should not allow from/to_coumn to specified if the argument is a Map" <|
             table = table_builder [['x', [1, 2, 3, 4, 2]], ['y', ['a', 'b', 'c', 'd', 'e']]]
-            lookup_table = Map.from_vector [[2, 20], [1, 10], [4, 40], [3, 30]]
+            lookup_table = Dictionary.from_vector [[2, 20], [1, 10], [4, 40], [3, 30]]
             table.replace lookup_table 'x' from_column=8 . should_fail_with Illegal_Argument
             table.replace lookup_table 'x' to_column=9 . should_fail_with Illegal_Argument
             table.replace lookup_table 'x' from_column=8 to_column=9 . should_fail_with Illegal_Argument

@@ -5,10 +5,11 @@ from Standard.Test import all
 
 
 add_specs suite_builder =
-    suite_builder.group "Enso Set" group_builder->
+    suite_builder.group "Enso Hashset" group_builder->
         group_builder.specify "should allow checking for emptiness" <|
-            empty_map = Set.empty
-            non_empty = Set.empty . insert "foo"
+            empty_map =
+                Hashset.empty
+            non_empty = Hashset.empty . insert "foo"
             empty_map.is_empty . should_be_true
             non_empty.is_empty . should_be_false
 
@@ -16,34 +17,34 @@ add_specs suite_builder =
             non_empty.not_empty . should_be_true
 
         group_builder.specify "should be constructed from a vector" <|
-            s1 = Set.from_vector [1, 2, 3, 2]
+            s1 = Hashset.from_vector [1, 2, 3, 2]
             s1.size . should_equal 3
             s1.to_vector.sort . should_equal [1, 2, 3]
 
-            r2 = Set.from_vector [1, 2, 2] error_on_duplicates=True
+            r2 = Hashset.from_vector [1, 2, 2] error_on_duplicates=True
             r2.should_fail_with Illegal_Argument
 
         group_builder.specify "should allow checking contains" <|
-            s1 = Set.from_vector [1, 2, 3, 2]
+            s1 = Hashset.from_vector [1, 2, 3, 2]
             s1.contains 1 . should_be_true
             s1.contains 2 . should_be_true
             s1.contains 3 . should_be_true
             s1.contains 4 . should_be_false
 
         group_builder.specify "should allow checking contains with relational NULL logic" <|
-            Set.from_vector [1, 2] . contains_relational 1 . should_be_true
-            Set.from_vector [1, 2] . contains_relational 3 . should_be_false
-            Set.from_vector [1, 2, Nothing] . contains_relational 1 . should_be_true
-            Set.from_vector [1, 2, Nothing] . contains_relational 3 . should_equal Nothing
-            Set.from_vector [1, 2, Nothing] . contains_relational Nothing . should_equal Nothing
-            Set.from_vector [1, 2] . contains_relational Nothing . should_equal Nothing
-            Set.from_vector [Nothing] . contains_relational Nothing . should_equal Nothing
-            Set.from_vector [] . contains_relational Nothing . should_be_false
+            Hashset.from_vector [1, 2] . contains_relational 1 . should_be_true
+            Hashset.from_vector [1, 2] . contains_relational 3 . should_be_false
+            Hashset.from_vector [1, 2, Nothing] . contains_relational 1 . should_be_true
+            Hashset.from_vector [1, 2, Nothing] . contains_relational 3 . should_equal Nothing
+            Hashset.from_vector [1, 2, Nothing] . contains_relational Nothing . should_equal Nothing
+            Hashset.from_vector [1, 2] . contains_relational Nothing . should_equal Nothing
+            Hashset.from_vector [Nothing] . contains_relational Nothing . should_equal Nothing
+            Hashset.from_vector [] . contains_relational Nothing . should_be_false
 
         group_builder.specify "should allow to compute a union, intersection and difference" <|
-            s1 = Set.from_vector [1, 2]
-            s2 = Set.from_vector [2, 3]
-            s3 = Set.from_vector [3, 4]
+            s1 = Hashset.from_vector [1, 2]
+            s2 = Hashset.from_vector [2, 3]
+            s3 = Hashset.from_vector [3, 4]
 
             (s1.union s2).to_vector.sort . should_equal [1, 2, 3]
             (s1.union s3).to_vector.sort . should_equal [1, 2, 3, 4]
@@ -54,19 +55,19 @@ add_specs suite_builder =
             (s1.difference s1).to_vector . should_equal []
 
         group_builder.specify "should allow to check for equality of two sets" <|
-            s1 = Set.from_vector [1, 2]
-            s2 = Set.from_vector [2, 1, 1]
-            s3 = Set.from_vector [1, 2, 3]
+            s1 = Hashset.from_vector [1, 2]
+            s2 = Hashset.from_vector [2, 1, 1]
+            s3 = Hashset.from_vector [1, 2, 3]
 
             (s1 == s2) . should_be_true
             (s1 == s1) . should_be_true
             (s1 == s3) . should_be_false
 
         group_builder.specify "should be able to convert to text" <|
-            s1 = Set.from_vector ["1", "2", "3"]
-            s2 = Set.from_vector [1, 2, 3]
-            s1.to_text.should_equal "Set{'1', '2', '3'}"
-            s2.to_text.should_equal "Set{1, 2, 3}"
+            s1 = Hashset.from_vector ["1", "2", "3"]
+            s2 = Hashset.from_vector [1, 2, 3]
+            s1.to_text.should_equal "Hashset{'1', '2', '3'}"
+            s2.to_text.should_equal "Hashset{1, 2, 3}"
 
 main filter=Nothing =
     suite = Test.build suite_builder->

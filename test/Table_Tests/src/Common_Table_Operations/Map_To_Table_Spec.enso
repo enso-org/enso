@@ -21,7 +21,7 @@ type Data
 
 add_specs suite_builder setup =
     prefix = setup.prefix
-    suite_builder.group prefix+"Table.make_table_from_map/vectors" group_builder->
+    suite_builder.group prefix+"Table.make_table_from_dictionary/vectors" group_builder->
         data = Data.setup setup.table_builder
         group_builder.specify "should be able to create a literal table with one row" <|
             vecs = [[0], [3.5], ['ABC']]
@@ -92,21 +92,21 @@ add_specs suite_builder setup =
                 m2.at 'date-like-text' . to_vector . should_equal ['2001-01-01']
                 m2.at 'time-like-text' . to_vector . should_equal ['01:01:01']
 
-        group_builder.specify "should be able to create a literal table from a map" <|
-            map = Map.from_vector [['x', 1], ['y', 2], ['z', 3]]
-            t = data.dummy_table.make_table_from_map map 'k' 'v' . sort 'v'
+        group_builder.specify "should be able to create a literal table from a dictionary" <|
+            map = Dictionary.from_vector [['x', 1], ['y', 2], ['z', 3]]
+            t = data.dummy_table.make_table_from_dictionary map 'k' 'v' . sort 'v'
             t.at 'k' . to_vector . should_equal ['x', 'y', 'z']
             t.at 'v' . to_vector . should_equal [1, 2, 3]
 
         if setup.is_database then
-            group_builder.specify "should not be able to create a literal table from an empty map" <|
-                map = Map.empty
-                data.dummy_table.make_table_from_map map 'k' 'v' . should_fail_with Illegal_Argument
+            group_builder.specify "should not be able to create a literal table from an empty dictionary" <|
+                map = Dictionary.empty
+                data.dummy_table.make_table_from_dictionary map 'k' 'v' . should_fail_with Illegal_Argument
 
         if setup.is_database.not then
-            group_builder.specify "should be able to create a literal table from an empty map" <|
-                map = Map.empty
-                t = data.dummy_table.make_table_from_map map 'k' 'v'
+            group_builder.specify "should be able to create a literal table from an empty dictionary" <|
+                map = Dictionary.empty
+                t = data.dummy_table.make_table_from_dictionary map 'k' 'v'
                 t.row_count . should_equal 0
 
         if setup.is_database then

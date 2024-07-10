@@ -407,10 +407,10 @@ add_specs suite_builder setup =
 
             t1 = table_builder [["alpha", [1]], ["name=123", [2]], ["name= foo bar", [3]]]
             expect_column_names ["alpha", "key:123", "key: foo bar"] <|
-                t1.rename_columns (Map.from_vector [["name=(.*)".to_regex, "key:$1"]])
+                t1.rename_columns (Dictionary.from_vector [["name=(.*)".to_regex, "key:$1"]])
 
         group_builder.specify "should work by index" <|
-            map = Map.from_vector [[0, "FirstColumn"], [-2, "Another"]]
+            map = Dictionary.from_vector [[0, "FirstColumn"], [-2, "Another"]]
             expect_column_names ["FirstColumn", "beta", "Another", "delta"] <|
                 data.table.rename_columns map
 
@@ -430,12 +430,12 @@ add_specs suite_builder setup =
                 data.table.rename_columns vec
 
         group_builder.specify "should work by name" <|
-            map = Map.from_vector [["alpha", "FirstColumn"], ["delta", "Another"]]
+            map = Dictionary.from_vector [["alpha", "FirstColumn"], ["delta", "Another"]]
             expect_column_names ["FirstColumn", "beta", "gamma", "Another"] <|
                 data.table.rename_columns map
 
         group_builder.specify "should work by mixed Map" <|
-            map = Map.from_vector [["alpha", "FirstColumn"], [-1, "Another"]]
+            map = Dictionary.from_vector [["alpha", "FirstColumn"], [-1, "Another"]]
             expect_column_names ["FirstColumn", "beta", "gamma", "Another"] <|
                 data.table.rename_columns map
 
@@ -478,17 +478,17 @@ add_specs suite_builder setup =
             fail_2.catch.message.should_contain "materialize"
 
         group_builder.specify "should work by name case-insensitively" <|
-            map = Map.from_vector [["ALPHA", "FirstColumn"], ["DELTA", "Another"]]
+            map = Dictionary.from_vector [["ALPHA", "FirstColumn"], ["DELTA", "Another"]]
             expect_column_names ["FirstColumn", "beta", "gamma", "Another"] <|
                 data.table.rename_columns map Case_Sensitivity.Insensitive
 
         group_builder.specify "should work by name using regex" <|
-            map = Map.from_vector [["a.*".to_regex, "FirstColumn"]]
+            map = Dictionary.from_vector [["a.*".to_regex, "FirstColumn"]]
             expect_column_names ["FirstColumn", "beta", "gamma", "delta"] <|
                 data.table.rename_columns map
 
         group_builder.specify "should work by name using regex substitution" <|
-            map = Map.from_vector [["a(.*)".to_regex, "$1"]]
+            map = Dictionary.from_vector [["a(.*)".to_regex, "$1"]]
             expect_column_names ["lpha", "beta", "gamma", "delta"] <|
                 data.table.rename_columns map
 
@@ -517,7 +517,7 @@ add_specs suite_builder setup =
 
         group_builder.specify "should correctly handle problems: unmatched names" <|
             weird_name = '.*?-!@#!"'
-            map = Map.from_vector [["alpha", "FirstColumn"], ["omicron", "Another"], [weird_name, "Fixed"]]
+            map = Dictionary.from_vector [["alpha", "FirstColumn"], ["omicron", "Another"], [weird_name, "Fixed"]]
             action = data.table.rename_columns map error_on_missing_columns=False on_problems=_
             tester = expect_column_names ["FirstColumn", "beta", "gamma", "delta"]
             err_checker err =
@@ -529,7 +529,7 @@ add_specs suite_builder setup =
             err.should_fail_with Missing_Input_Columns
 
         group_builder.specify "should correctly handle problems: out of bounds indices" <|
-            map = Map.from_vector [[0, "FirstColumn"], [-1, "Another"], [100, "Boo"], [-200, "Nothing"], [300, "Here"]]
+            map = Dictionary.from_vector [[0, "FirstColumn"], [-1, "Another"], [100, "Boo"], [-200, "Nothing"], [300, "Here"]]
             action = data.table.rename_columns map error_on_missing_columns=False on_problems=_
             tester = expect_column_names ["FirstColumn", "beta", "gamma", "Another"]
             err_checker err =
@@ -541,12 +541,12 @@ add_specs suite_builder setup =
             err.should_fail_with Missing_Input_Columns
 
         group_builder.specify "should correctly handle edge-cases: aliased indices" <|
-            map1 = Map.from_vector [[1, "FirstColumn"], [-3, "FirstColumn"]]
+            map1 = Dictionary.from_vector [[1, "FirstColumn"], [-3, "FirstColumn"]]
             t1 = data.table.rename_columns map1 on_problems=..Report_Error
             Problems.assume_no_problems t1
             expect_column_names ["alpha", "FirstColumn", "gamma", "delta"] t1
 
-            map2 = Map.from_vector [[1, "FirstColumn"], [-3, "DifferentName!"]]
+            map2 = Dictionary.from_vector [[1, "FirstColumn"], [-3, "DifferentName!"]]
             t2 = data.table.rename_columns map2 on_problems=..Report_Error
             t2.should_fail_with Ambiguous_Column_Rename
             err = t2.catch . inner_error
@@ -555,12 +555,12 @@ add_specs suite_builder setup =
 
         group_builder.specify "should correctly handle edge-cases: aliased selectors" <|
             t = table_builder [["alpha", [1,2,3]], ["bet", [4,5,6]]]
-            map1 = Map.from_vector [["a.*".to_regex, "AA"], [".*a".to_regex, "AA"]]
+            map1 = Dictionary.from_vector [["a.*".to_regex, "AA"], [".*a".to_regex, "AA"]]
             t1 = t.rename_columns map1 on_problems=..Report_Error
             Problems.assume_no_problems t1
             expect_column_names ["AA", "bet"] t1
 
-            map2 = Map.from_vector [["a.*".to_regex, "StartsWithA"], [".*a".to_regex, "EndsWithA"]]
+            map2 = Dictionary.from_vector [["a.*".to_regex, "StartsWithA"], [".*a".to_regex, "EndsWithA"]]
             t2 = t.rename_columns map2 on_problems=..Report_Error
             t2.should_fail_with Ambiguous_Column_Rename
             err = t2.catch . inner_error
@@ -573,13 +573,13 @@ add_specs suite_builder setup =
                This is to show that even if distinct rename patterns match the
                same column, if the resulting rename is unambiguous, no error is
                raised.
-            map3 = Map.from_vector [["a(.*)".to_regex, "$1A"], ["(.*)aa".to_regex, "$1aA"]]
+            map3 = Dictionary.from_vector [["a(.*)".to_regex, "$1A"], ["(.*)aa".to_regex, "$1aA"]]
             t4 = t3.rename_columns map3 on_problems=..Report_Error
             Problems.assume_no_problems t4
             expect_column_names ["aaA", "bbb"] t4
 
         group_builder.specify "should correctly handle problems: invalid names ''" <|
-            map = Map.from_vector [[1, ""]]
+            map = Dictionary.from_vector [[1, ""]]
             [Problem_Behavior.Ignore, Problem_Behavior.Report_Warning, Problem_Behavior.Report_Error].each pb->
                 r = data.table.rename_columns map on_problems=pb
                 r.should_fail_with Invalid_Column_Names
@@ -604,13 +604,13 @@ add_specs suite_builder setup =
             Problems.test_problem_handling action problems tester
 
         group_builder.specify "should correctly handle problems: new name is clashing with existing name of existing column" <|
-            map = Map.from_vector [["alpha", "beta"]]
+            map = Dictionary.from_vector [["alpha", "beta"]]
             action = data.table.rename_columns map on_problems=_
             tester = expect_column_names ["beta", "beta 1", "gamma", "delta"]
             problems = [Duplicate_Output_Column_Names.Error ["beta"]]
             Problems.test_problem_handling action problems tester
 
-            map2 = Map.from_vector [["beta", "alpha"]]
+            map2 = Dictionary.from_vector [["beta", "alpha"]]
             action2 = data.table.rename_columns map2 on_problems=_
             tester2 = expect_column_names ["alpha 1", "alpha", "gamma", "delta"]
             problems2 = [Duplicate_Output_Column_Names.Error ["alpha"]]
