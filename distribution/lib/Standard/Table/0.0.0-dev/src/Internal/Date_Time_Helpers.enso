@@ -9,7 +9,7 @@ import project.Column.Column
 import project.Value_Type.Value_Type
 
 ## PRIVATE
-align_period_with_value_type value_type period = case value_type of
+align_period_with_value_type value_type (period : Date_Period | Time_Period) = case value_type of
     Value_Type.Date ->
         if period.is_a Date_Period then period else
             ## We don't 'officially' allow `Time_Period` for Date, but since
