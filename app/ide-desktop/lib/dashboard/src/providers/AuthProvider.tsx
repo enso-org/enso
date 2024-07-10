@@ -598,7 +598,7 @@ export default function AuthProvider(props: AuthProviderProps) {
 export function useAuth() {
   const context = React.useContext(AuthContext)
 
-  invariant(context != null, 'useAuth must be used within an AuthProvider.')
+  invariant(context != null, '`useAuth` must be used within an `<AuthProvider />`.')
 
   return context
 }

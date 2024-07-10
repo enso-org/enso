@@ -87,7 +87,7 @@ export async function mockApi({ page, setupAPI }: MockParams) {
   let currentUser: backend.User | null = defaultUser
   let currentProfilePicture: string | null = null
   let currentPassword = defaultPassword
-  let currentOrganization: backend.OrganizationInfo | null = null
+  let currentOrganization: backend.OrganizationInfo | null = defaultOrganization
   let currentOrganizationProfilePicture: string | null = null
 
   const assetMap = new Map<backend.AssetId, backend.AnyAsset>()
