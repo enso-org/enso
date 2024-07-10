@@ -14,7 +14,7 @@ import { computed, h } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
 
-const item = computed<CustomDropdownItem>(() => ({
+const item: CustomDropdownItem = {
   label: 'Choose file from cloud...',
   onClick: ({ setActivity, close }) => {
     setActivity(
@@ -28,13 +28,13 @@ const item = computed<CustomDropdownItem>(() => ({
       }),
     )
   },
-}))
+}
 
 const innerWidgetInput = computed(() => {
   const existingItems = props.input[CustomDropdownItemsKey] ?? []
   return {
     ...props.input,
-    [CustomDropdownItemsKey]: [...existingItems, item.value],
+    [CustomDropdownItemsKey]: [...existingItems, item],
   }
 })
 </script>
