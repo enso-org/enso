@@ -80,7 +80,7 @@ public interface IR {
     List<IR> ordered = children().flatMap(c -> c.preorder());
     IR element = this;
     return $colon$colon$.MODULE$.apply(
-        element, ordered); // ordered.prepended(element) is reporeted as ambiguous
+        element, ordered); // ordered.prepended(element) is reported as ambiguous
   }
 
   /**
