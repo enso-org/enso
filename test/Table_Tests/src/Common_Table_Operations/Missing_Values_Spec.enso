@@ -8,7 +8,7 @@ from Standard.Database.Errors import Unsupported_Database_Operation
 from Standard.Test import all
 
 
-from project.Common_Table_Operations.Util import run_default_backend
+from project.Common_Table_Operations.Util import run_default_backend, build_sorted_table
 
 main filter=Nothing = run_default_backend add_specs filter
 
@@ -18,7 +18,7 @@ type Lazy_Ref
 add_specs suite_builder setup =
     prefix = setup.prefix
     test_selection = setup.test_selection
-    table_builder = setup.table_builder
+    table_builder = build_sorted_table setup
 
     t0 = Lazy_Ref.Value <|
         table_builder [["a", [0, 1, Nothing, 42, Nothing, 5]], ["b", [True, Nothing, True, False, Nothing, False]], ["c", ["", "foo", "bar", Nothing, Nothing, " "]]]
@@ -171,44 +171,36 @@ add_specs suite_builder setup =
             ints = table.at "X"
             ints_filled = ints.fill_nothing 0.5
             ints_filled.to_vector . should_equal [1.0, 0.5, 2.0, 0.5]
-            ints_filled.value_type.is_floating_point.should_be_true
+            ints_filled.value_type.should_be_a (Value_Type.Float ...)
 
             decimals = table.at "Y"
             decimals_filled = decimals.fill_nothing 42
             decimals_filled.to_vector . should_equal [0.5, 42.0, 42.0, 0.25]
-            decimals_filled.value_type.is_floating_point.should_be_true
+            decimals_filled.value_type.should_be_a (Value_Type.Float ...)
 
             r1 = ints.fill_nothing decimals
             r1.to_vector . should_equal [1.0, Nothing, 2.0, 0.25]
-            vt1 = r1.value_type
-            Test.with_clue "r1.value_type="+vt1.to_display_text+": " <|
-                vt1.is_floating_point.should_be_true
+            r1.value_type.should_be_a (Value_Type.Float ...)
 
             r2 = ints.coalesce [decimals, 133]
             r2.to_vector . should_equal [1.0, 133, 2.0, 0.25]
-            vt2 = r2.value_type
-            Test.with_clue "r2.value_type="+vt2.to_display_text+": " <|
-                vt2.is_floating_point.should_be_true
+            r2.value_type.should_be_a (Value_Type.Float ...)
 
             t2 = table_builder [["X", [1, Nothing]], ["Y", [0.5, Nothing]]]
             r3 = (t2.at "X").fill_nothing (t2.at "Y")
             r3.to_vector . should_equal [1.0, Nothing]
-            vt3 = r3.value_type
-            Test.with_clue "r3.value_type="+vt3.to_display_text+": " <|
-                vt3.is_floating_point.should_be_true
+            r3.value_type.should_be_a (Value_Type.Float ...)
 
             r4 = ints.fill_nothing 100.0
             r4.to_vector . should_equal [1, 100, 2, 100]
-            vt4 = r4.value_type
-            Test.with_clue "r4.value_type="+vt4.to_display_text+": " <|
-                vt4.is_floating_point.should_be_true
+            r4.value_type.should_be_a (Value_Type.Float ...)
 
         group_builder.specify "should keep String, Boolean, Long and Double type" <|
             table = table_builder [["X", ["a", Nothing, "b", Nothing]], ["Y", [True, False, Nothing, Nothing]], ["Z", [1, Nothing, 2, Nothing]], ["W", [0.5, Nothing, Nothing, 0.25]]]
             strs = table.at "X"
             strs_filled = strs.fill_nothing "X"
             strs_filled.to_vector . should_equal ["a", "X", "b", "X"]
-            strs_filled.value_type.is_text.should_be_true
+            strs_filled.value_type.should_be_a (Value_Type.Char ...)
 
             bools = table.at "Y"
             bools_filled = bools.fill_nothing False
@@ -218,12 +210,12 @@ add_specs suite_builder setup =
             ints = table.at "Z"
             ints_filled = ints.fill_nothing 42
             ints_filled.to_vector . should_equal [1, 42, 2, 42]
-            ints_filled.value_type.is_integer.should_be_true
+            setup.expect_integer_type <| ints_filled
 
             decimals = table.at "W"
             decimals_filled = decimals.fill_nothing 1.0
             decimals_filled.to_vector . should_equal [0.5, 1.0, 1.0, 0.25]
-            decimals_filled.value_type.is_floating_point.should_be_true
+            decimals_filled.value_type.should_be_a (Value_Type.Float ...)
 
         group_builder.specify "should not allow mixing types by default" <|
             table = table_builder [["X", [1, Nothing, 2, Nothing]], ["Y", [True, False, Nothing, Nothing]], ["Z", [0.5, Nothing, Nothing, 0.25]]]
@@ -278,6 +270,7 @@ add_specs suite_builder setup =
 
             e = a.fill_nothing c
             e.to_vector . should_equal ["a", "abc", "c"]
+            e.value_type.should_be_a (Value_Type.Char ...)
             Test.with_clue "e.value_type="+e.value_type.to_display_text+": " <|
                 e.value_type.variable_length.should_be_true
 
