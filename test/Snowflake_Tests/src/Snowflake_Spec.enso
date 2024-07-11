@@ -197,21 +197,38 @@ snowflake_specific_spec suite_builder default_connection db_name setup =
             data.t.at "doubles" . value_type . is_floating_point . should_be_true
 
         group_builder.specify "will report true integer types but infer smartly when materialized (small numbers become Integer in-memory, not Decimal)" <|
-            t1 = table_builder [["small_ints", [1, 2, 3]], ["big_ints", [2^100, 2^110, 1]]] . sort "small_ints"
+            t1 = table_builder [["small_ints", [1, 2, 3]]]
 
             # Integer types are NUMBER(38, 0) in Snowflake so they are all mapped to decimal
             t1.at "small_ints" . value_type . should_equal (Value_Type.Decimal 38 0)
-            t1.at "big_ints" . value_type . should_equal (Value_Type.Decimal 38 0)
+            # The fact that Integer is coerced to Decimal is an expected thing in Snowflake, so we don't warn about this.
+            Problems.assume_no_problems t1
 
-            in_memory = t1.read
+            in_memory1 = t1.read
             # But when read back to in-memory, they are inferred as Integer type to avoid the BigInteger overhead
-            in_memory.at "small_ints" . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
+            in_memory1.at "small_ints" . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
+
+            # Again, when materialized the conversion Decimal->Integer is a feature, so it should not cause warning.
+            Problems.assume_no_problems in_memory1
+            in_memory1.at "small_ints" . to_vector . should_contain_the_same_elements_as [1, 2, 3]
+
+            t2 = table_builder [["big_ints", [2^100, 2^110, 1]]]
+            t2.at "big_ints" . value_type . should_equal (Value_Type.Decimal 38 0)
+            # For the decimal column we get a warning because the type changed:
+            w = Problems.expect_only_warning Inexact_Type_Coercion t2
+            w.requested_type . should_equal (Value_Type.Decimal Nothing Nothing)
+            w.actual_type . should_equal (Value_Type.Decimal 38 0)
+
+            in_memory2 = t2.remove_warnings.read
             # Unless the values are actually big, then the Decimal type is kept, but its precision is lost, as in-memory BigInteger does not store it.
-            in_memory.at "big_ints" . value_type . should_equal (Value_Type.Decimal Nothing 0)
+            in_memory2.at "big_ints" . value_type . should_equal (Value_Type.Decimal Nothing 0)
+            # The same coercion warning but the other way around is reported when materialized:
+            w2 = Problems.expect_only_warning Inexact_Type_Coercion in_memory2
+            w2.requested_type . should_equal (Value_Type.Decimal 38 0)
+            w2.actual_type . should_equal (Value_Type.Decimal Nothing 0)
 
             # Check correctness of values
-            in_memory.at "small_ints" . to_vector . should_equal [1, 2, 3]
-            in_memory.at "big_ints" . to_vector . should_equal [2^100, 2^110, 1]
+            in_memory2.at "big_ints" . to_vector . should_contain_the_same_elements_as [2^100, 2^110, 1]
 
         group_builder.specify "correctly handles Decimal and Float types" <|
             table_name = Name_Generator.random_name "DecimalFloat"
@@ -221,6 +238,11 @@ snowflake_specific_spec suite_builder default_connection db_name setup =
             # Negative scale is not supported so we fallback to defaults:
             t1.at "d3" . value_type . should_equal (Value_Type.Decimal 38 0)
             t1.at "f" . value_type . should_equal Value_Type.Float
+
+            # We expect warnings about coercing Decimal types
+            w1 = Problems.expect_warning Inexact_Type_Coercion t1
+            w1.requested_type . should_equal (Value_Type.Decimal 24 -3)
+            w1.actual_type . should_equal (Value_Type.Decimal 38 0)
 
             t1.update_rows (Table.new [["d1", [1.2345678910]], ["d2", [12.3456]], ["d3", [1234567.8910]], ["f", [1.5]]]) update_action=Update_Action.Insert . should_succeed
 
