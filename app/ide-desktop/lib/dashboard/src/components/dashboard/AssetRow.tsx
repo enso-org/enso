@@ -576,7 +576,7 @@ export default function AssetRow(props: AssetRowProps) {
                 const projectsDirectory = localBackend.extractTypeAndId(asset.parentId).id
                 const uuid = localBackend.extractTypeAndId(asset.id).id
                 const queryString = new URLSearchParams({ projectsDirectory }).toString()
-                download.download(
+                await backend.download(
                   `./api/project-manager/projects/${uuid}/enso-project?${queryString}`,
                   `${asset.title}.enso-project`
                 )
