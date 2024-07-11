@@ -16,6 +16,7 @@ import type {
   CellClickedEvent,
   ColumnResizedEvent,
   ICellRendererParams,
+  RowHeightParams,
 } from 'ag-grid-community'
 import type { ColDef, GridOptions } from 'ag-grid-enterprise'
 import {
@@ -123,6 +124,7 @@ const SQLITE_CONNECTIONS_NODE_TYPE =
   'Standard.Database.Internal.SQLite.SQLite_Connection.SQLite_Connection'
 const POSTGRES_CONNECTIONS_NODE_TYPE =
   'Standard.Database.Internal.Postgres.Postgres_Connection.Postgres_Connection'
+const DEFAULT_ROW_HEIGHT = 22
 
 const rowLimit = ref(0)
 const page = ref(0)
@@ -145,7 +147,7 @@ const defaultColDef = {
 }
 const agGridOptions: Ref<GridOptions & Required<Pick<GridOptions, 'defaultColDef'>>> = ref({
   headerHeight: 26,
-  rowHeight: 22,
+  getRowHeight: getRowHeight,
   rowData: [],
   columnDefs: [],
   defaultColDef: defaultColDef as typeof defaultColDef & { manuallySized: boolean },
@@ -245,10 +247,14 @@ function formatNumber(params: ICellRendererParams) {
 function formatText(params: ICellRendererParams) {
   let newString
   const string = params.value
-  console.log({ string })
+  // console.log({ string })
   newString = string.replaceAll(' ', `<span style="color: grey">&#183;</span>`)
-  newString = newString.replaceAll('\n', ` <span style="color: grey">&#9226;</span> \n`)
-  newString = newString.replaceAll('\r', `<span style="color: grey">&#9229;</span>`)
+  newString = newString.replaceAll(
+    '\r\n',
+    `<span style="color: grey">&#9229;</span><span style="color: grey">&#9226;</span> <br>`,
+  )
+  newString = newString.replaceAll('\n', `<span style="color: grey">&#9226;</span> <br>`)
+  newString = newString.replaceAll('\r', `<span style="color: grey">&#9229;</span> <br>`)
   newString = newString.replaceAll('\t', `<span style="color: grey">&#8594;</span>`)
   return `<span class="text-cell"> ${newString}</span>`
 }
@@ -274,6 +280,23 @@ function escapeHTML(str: string) {
     '>': '&gt;',
   }
   return str.replace(/[&<>"']/g, (m) => mapping[m]!)
+}
+
+function getRowHeight(params: RowHeightParams) {
+  const rowData = Object.values(params.data)
+  const textValues = rowData.filter((r) => typeof r === 'string')
+  if (!textValues.length) return DEFAULT_ROW_HEIGHT
+  const containsReturnChars = textValues.filter(
+    (text: any) => text.match(/\r/g)?.length || text.match(/\r/g)?.length,
+  )
+  if (!containsReturnChars.length) return DEFAULT_ROW_HEIGHT
+  const returnCharsCount = containsReturnChars.map((text: any) => {
+    const r = text.match(/\r/g).length
+    const n = text.match(/\n/g).length
+    const rn = text.match(/\r\n/g).length
+    return r + n - rn
+  })
+  return (Math.max(...returnCharsCount) + 1) * 22
 }
 
 function cellClass(params: CellClassParams) {
@@ -723,6 +746,5 @@ onUnmounted(() => {
 }
 .text-cell {
   font-family: monospace;
-  white-space: 'pre';
 }
 </style>
