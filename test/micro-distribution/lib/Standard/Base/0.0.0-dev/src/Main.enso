@@ -3,6 +3,7 @@ export project.Panic.Panic
 export project.Error.Error
 export project.Any.Any
 export project.Data.Array.Array
+export project.Data.Boolean.Boolean
 export project.Data.Boolean.Boolean.True
 export project.Data.Boolean.Boolean.False
 export project.Data.Text.Text
