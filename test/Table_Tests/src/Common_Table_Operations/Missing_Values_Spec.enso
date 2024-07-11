@@ -21,7 +21,7 @@ type Data
     t3 self = self.data.at 3
     t4 self = self.data.at 4
 
-    setup create_connection_fn table_builder =
+    setup create_connection_fn table_builder = Data.Value <|
         connection = create_connection_fn Nothing
         t0 = table_builder [["a", [0, 1, Nothing, 42, Nothing, 5]], ["b", [True, Nothing, True, False, Nothing, False]], ["c", ["", "foo", "bar", Nothing, Nothing, " "]]] connection=connection
         t1 =
@@ -38,7 +38,7 @@ type Data
             g = ["g", [Number.nan, 1, 2, 3.4]]
             h = ["h", [Number.nan, Nothing, Number.nan, Nothing]]
             table_builder [c, g, h]
-        Data.Value [connection, t0, t1, t3, t4]
+        [connection, t0, t1, t3, t4]
 
     teardown self =
         self.connection.close
