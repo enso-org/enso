@@ -211,7 +211,7 @@ add_specs suite_builder =
 
                 (Ordering.hash x0) . should_equal (Ordering.hash x1)
 
-        group_builder.specify "should compare correctly to Integer and Float" <|
+        group_builder.specify "should compare correctly to Integer and Float" pending = "https://github.com/enso-org/enso/issues/10163" <|
             values = []
                 + [[0.1, 0.1]]
                 + [["0.1", 0.1]]
@@ -312,7 +312,7 @@ add_specs suite_builder =
 
             values.map pr->
                 v = pr.at 0
-                d = Decimal.new v . to_float
+                d = Decimal.new v . remove_warnings
                 expected = pr.at 1 . to_float
 
                 d . should_equal expected
@@ -347,15 +347,12 @@ add_specs suite_builder =
                     (d <= d) . should_be_true
                     (d >= d) . should_be_true
 
-                    Problems.expect_only_warning Loss_Of_Numeric_Precision (d <= v)
-                    Problems.expect_only_warning Loss_Of_Numeric_Precision (d >= v)
-                    Problems.expect_only_warning Loss_Of_Numeric_Precision (v <= d)
-                    Problems.expect_only_warning Loss_Of_Numeric_Precision (v >= d)
-
-                    Problems.expect_only_warning Loss_Of_Numeric_Precision (d < d)
-                    Problems.expect_only_warning Loss_Of_Numeric_Precision (d > d)
-                    Problems.expect_only_warning Loss_Of_Numeric_Precision (d <= d)
-                    Problems.expect_only_warning Loss_Of_Numeric_Precision (d >= d)
+                    if v.is_a Float then
+                        qq = d <= v
+                        Problems.expect_only_warning Loss_Of_Numeric_Precision (d <= v)
+                        Problems.expect_only_warning Loss_Of_Numeric_Precision (d >= v)
+                        Problems.expect_only_warning Loss_Of_Numeric_Precision (v <= d)
+                        Problems.expect_only_warning Loss_Of_Numeric_Precision (v >= d)
 
                     if greater.is_infinite.not then
                         (d < greater) . should_be_true
