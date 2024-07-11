@@ -31,6 +31,21 @@ csv = data_dir / "food_shop_inventory.csv"
 csv_path : Text
 csv_path = csv.path
 
+## An example CSV file with 2,500 rows.
+
+   ! Downloading
+     Calling this method will result in the CSV file being downloaded from the
+     internet if it is not already present on your disk. If you do not
+     want this to happen, please place the spreadsheet in the
+     `lib/Standard/Examples/<version>/data` folder for your Enso distribution.
+csv_2500_rows : File
+csv_2500_rows =
+    url = "https://enso-data-samples.s3.us-west-1.amazonaws.com/data_2500_rows.csv"
+    file = data_dir / 'data_2500_rows.csv'
+    if file.exists.not then
+        Context.Output.with_enabled <| HTTP.fetch url . body . write file
+    file
+
 ## An example XLS file for experimenting with Table and its APIs.
 
    ! Downloading

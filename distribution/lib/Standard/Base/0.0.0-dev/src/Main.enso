@@ -93,14 +93,88 @@ export project.System.Platform
 export project.System.Process
 export project.System.Process.Exit_Code.Exit_Code
 export project.Warning.Warning
-from project.Data.Boolean export Boolean, False, True
-from project.Data.Json.Extensions export all
-from project.Data.Numbers export Float, Integer, Number
-from project.Data.Range.Extensions export all
-from project.Data.Statistics.Extensions export all
-from project.Data.Text.Extensions export all
-from project.Data.Text.Regex export regex
-from project.Function export all
-from project.Meta.Enso_Project export enso_project
-from project.Network.Extensions export all
-from project.System.File_Format export Auto_Detect, Bytes, File_Format, Infer, JSON_Format, Plain_Text_Format
+export project.Data.Boolean.Boolean
+export project.Data.Boolean.Boolean.False
+export project.Data.Boolean.Boolean.True
+export project.Data.Json.Extensions.to_json
+export project.Data.Json.Extensions.to_js_object
+export project.Data.Numbers.Float
+export project.Data.Numbers.Integer
+export project.Data.Numbers.Number
+export project.Data.Range.Extensions.up_to
+export project.Data.Range.Extensions.down_to
+export project.Data.Statistics.Extensions.compute
+export project.Data.Statistics.Extensions.compute_bulk
+export project.Data.Statistics.Extensions.running
+export project.Data.Statistics.Extensions.running_bulk
+export project.Data.Statistics.Extensions.rank_data
+export project.Data.Text.Extensions.reverse
+export project.Data.Text.Extensions.each
+export project.Data.Text.Extensions.at
+export project.Data.Text.Extensions.get
+export project.Data.Text.Extensions.first
+export project.Data.Text.Extensions.second
+export project.Data.Text.Extensions.last
+export project.Data.Text.Extensions.characters
+export project.Data.Text.Extensions.find
+export project.Data.Text.Extensions.find_all
+export project.Data.Text.Extensions.match
+export project.Data.Text.Extensions.to_regex
+export project.Data.Text.Extensions.split
+export project.Data.Text.Extensions.tokenize
+export project.Data.Text.Extensions.replace
+export project.Data.Text.Extensions.cleanse
+export project.Data.Text.Extensions.words
+export project.Data.Text.Extensions.lines
+export project.Data.Text.Extensions.insert
+export project.Data.Text.Extensions.from
+export project.Data.Text.Extensions.is_digit
+export project.Data.Text.Extensions.is_whitespace
+export project.Data.Text.Extensions.bytes
+export project.Data.Text.Extensions.from_bytes
+export project.Data.Text.Extensions.utf_8
+export project.Data.Text.Extensions.from_utf_8
+export project.Data.Text.Extensions.char_vector
+export project.Data.Text.Extensions.from_char_vector
+export project.Data.Text.Extensions.codepoints
+export project.Data.Text.Extensions.from_codepoints
+export project.Data.Text.Extensions.starts_with
+export project.Data.Text.Extensions.ends_with
+export project.Data.Text.Extensions.contains
+export project.Data.Text.Extensions.repeat
+export project.Data.Text.Extensions.take
+export project.Data.Text.Extensions.drop
+export project.Data.Text.Extensions.to_case
+export project.Data.Text.Extensions.pad
+export project.Data.Text.Extensions.trim
+export project.Data.Text.Extensions.locate
+export project.Data.Text.Extensions.locate_all
+export project.Data.Text.Extensions.index_of
+export project.Data.Text.Extensions.last_index_of
+export project.Data.Text.Extensions.parse_float
+export project.Data.Text.Extensions.parse_integer
+export project.Data.Text.Extensions.parse_json
+export project.Data.Text.Extensions.parse_date
+export project.Data.Text.Extensions.parse_date_time
+export project.Data.Text.Extensions.parse_time_of_day
+export project.Data.Text.Extensions.parse_time_zone
+export project.Data.Text.Extensions.substring
+export project.Data.Text.Extensions.slice_text
+export project.Data.Text.Extensions.split_find_delimiters
+export project.Data.Text.Regex.regex
+export project.Function.Function
+export project.Function.identity
+export project.Function.flip
+export project.Function.const
+export project.Function.curry
+export project.Function.uncurry
+export project.Meta.Enso_Project.enso_project
+export project.Network.Extensions.to_uri
+export project.Network.Extensions.fetch
+export project.Network.Extensions.post
+export project.System.File_Format.Auto_Detect
+export project.System.File_Format.Bytes
+export project.System.File_Format.File_Format
+export project.System.File_Format.Infer
+export project.System.File_Format.JSON_Format
+export project.System.File_Format.Plain_Text_Format

@@ -9,10 +9,10 @@ import org.enso.compiler.data.BindingsMap.{
   Argument,
   Cons,
   ConversionMethod,
+  ExtensionMethod,
   ModuleMethod,
   PolyglotSymbol,
-  ResolvedStaticMethod,
-  StaticMethod,
+  ResolvedExtensionMethod,
   Type
 }
 import org.enso.compiler.pass.analyse.BindingAnalysis
@@ -68,14 +68,14 @@ class BindingAnalysisTest extends CompilerTest {
 
       metadata.definedEntities should contain theSameElementsAs List(
         Type("My_Type", List(), List(), false),
-        StaticMethod("extension_method", "My_Type")
+        ExtensionMethod("extension_method", "My_Type")
       )
 
       metadata.resolveName("extension_method") shouldEqual Right(
         List(
-          ResolvedStaticMethod(
+          ResolvedExtensionMethod(
             ctx.moduleReference(),
-            StaticMethod("extension_method", "My_Type")
+            ExtensionMethod("extension_method", "My_Type")
           )
         )
       )
@@ -95,19 +95,19 @@ class BindingAnalysisTest extends CompilerTest {
       metadata.definedEntities should contain theSameElementsAs List(
         Type("My_Type", List(), List(), false),
         Type("Other_Type", List(), List(), false),
-        StaticMethod("extension_method", "My_Type"),
-        StaticMethod("extension_method", "Other_Type")
+        ExtensionMethod("extension_method", "My_Type"),
+        ExtensionMethod("extension_method", "Other_Type")
       )
 
       metadata.resolveName("extension_method") shouldBe Right(
         List(
-          ResolvedStaticMethod(
+          ResolvedExtensionMethod(
             ctx.moduleReference(),
-            StaticMethod("extension_method", "My_Type")
+            ExtensionMethod("extension_method", "My_Type")
           ),
-          ResolvedStaticMethod(
+          ResolvedExtensionMethod(
             ctx.moduleReference(),
-            StaticMethod("extension_method", "Other_Type")
+            ExtensionMethod("extension_method", "Other_Type")
           )
         )
       )
@@ -189,8 +189,8 @@ class BindingAnalysisTest extends CompilerTest {
         ),
         Type("Bar", List(), List(), builtinType         = false),
         Type("Baz", List("x", "y"), List(), builtinType = false),
-        StaticMethod("foo", "Baz"),
-        StaticMethod("baz", "Bar"),
+        ExtensionMethod("foo", "Baz"),
+        ExtensionMethod("baz", "Bar"),
         ConversionMethod("from", "Bar", "Foo"),
         ModuleMethod("foo")
       )
@@ -216,9 +216,9 @@ class BindingAnalysisTest extends CompilerTest {
         .filter(
           _.isInstanceOf[BindingsMap.Method]
         ) should contain theSameElementsAs List(
-        StaticMethod("foo", moduleName),
+        ExtensionMethod("foo", moduleName),
         ModuleMethod("bar"),
-        StaticMethod("baz", moduleName)
+        ExtensionMethod("baz", moduleName)
       )
 
     }
