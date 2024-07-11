@@ -23,6 +23,8 @@ Shortcuts are designed to work well with both the mouse and the touchpad.
 | <kbd>Escape</kbd>                                                                 | Cancel current interaction     |
 | <kbd>Meta</kbd>+<kbd>`</kbd>                                                      | Show/hide Code Editor          |
 | <kbd>Meta</kbd>+<kbd>D</kbd>                                                      | Show/hide Documentation Editor |
+| <kbd>Meta</kbd>+<kbd>,</kbd>                                                      | Show Settings                  |
+| <kbd>Meta</kbd>+<kbd>/</kbd>                                                      | Show About Window              |
 | <kbd>Meta</kbd>+<kbd>Z</kbd>                                                      | Undo last action               |
 | <kbd>Meta</kbd>+<kbd>Y</kbd> or <kbd>Meta</kbd> + <kbd>Shift</kbd> + <kbd>Z</kbd> | Redo last undone action        |
 
