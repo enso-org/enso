@@ -39,10 +39,6 @@ case class BindingsMap(
     */
   var resolvedImports: List[ResolvedImport] = List()
 
-  /** Modules exported by [[currentModule]].
-    */
-  var resolvedExports: List[ExportedModule] = List()
-
   /** Symbols exported by [[currentModule]].
     */
   var exportedSymbols: Map[String, List[ResolvedName]] = Map()
@@ -69,7 +65,6 @@ case class BindingsMap(
   def toAbstract: BindingsMap = {
     val copy = this.copy(currentModule = currentModule.toAbstract)
     copy.resolvedImports = this.resolvedImports.map(_.toAbstract)
-    copy.resolvedExports = this.resolvedExports.map(_.toAbstract)
     copy.exportedSymbols = this.exportedSymbols.map { case (key, value) =>
       key -> value.map(name => name.toAbstract)
     }
@@ -97,17 +92,7 @@ case class BindingsMap(
       }
     }
 
-    val withExports: Option[BindingsMap] = withImports.flatMap { bindings =>
-      val newExports = this.resolvedExports.map(_.toConcrete(moduleMap))
-      if (newExports.exists(_.isEmpty)) {
-        None
-      } else {
-        bindings.resolvedExports = newExports.map(_.get)
-        Some(bindings)
-      }
-    }
-
-    val withSymbols: Option[BindingsMap] = withExports.flatMap { bindings =>
+    val withSymbols: Option[BindingsMap] = withImports.flatMap { bindings =>
       val newSymbols = this.exportedSymbols.map { case (key, value) =>
         val newValue = value.map(_.toConcrete(moduleMap))
         if (newValue.exists(_.isEmpty)) {
@@ -143,7 +128,7 @@ case class BindingsMap(
   ): List[ResolvedName] = {
     resolvedImports
       .filter(i => importMatchesName(i, name) && !i.isSynthetic())
-      .map(_.target)
+      .flatMap(_.targets)
   }
 
   private def importMatchesName(imp: ResolvedImport, name: String): Boolean = {
@@ -161,9 +146,9 @@ case class BindingsMap(
     val resolvedNames = resolvedImports
       .flatMap { imp =>
         if (imp.importDef.allowsAccess(name)) {
-          imp.target
+          imp
             .findExportedSymbolsFor(name)
-            .map((_, imp.isSynthetic(), imp.target))
+            .map((_, imp.isSynthetic(), imp.targets))
         } else { List() }
       }
     // synthetic imports should not be reported in the ambiguity reports
@@ -305,49 +290,47 @@ case class BindingsMap(
   }
 
   /** Dumps the export statements from this module into a structure ready for
-    * further analysis.
+    * further analysis. It uses only [[resolvedImports]] field, as
+    *  [[exportedSymbols]] fields are expected to be filled later.
+    *
+    * For every symbol that is exported from this bindings map, gathers the module
+    * in which the symbol is defined and returns it in the list. For example, if there
+    * is an export `export project.Module.method`, there will be `Module` in the returned list.
     *
     * @return a list of triples of the exported module, the name it is exported
     *         as and any further symbol restrictions.
     */
   def getDirectlyExportedModules: List[ExportedModule] =
-    resolvedImports.collect { case ResolvedImport(_, exports, mod) =>
-      exports.map { exp =>
-        val restriction = if (exp.isAll) {
-          if (exp.onlyNames.isDefined) {
-            SymbolRestriction.Only(
-              exp.onlyNames.get
-                .map(name =>
-                  SymbolRestriction
-                    .AllowedResolution(name.name.toLowerCase, None)
-                )
-                .toSet
-            )
-          } else if (exp.hiddenNames.isDefined) {
-            SymbolRestriction.Hiding(
-              exp.hiddenNames.get.map(_.name.toLowerCase).toSet
-            )
-          } else {
-            SymbolRestriction.All
+    resolvedImports
+      .collect { case ResolvedImport(_, exports, targets) =>
+        exports.flatMap { exp =>
+          val exportAs = exp.rename match {
+            case Some(rename) => Some(rename.name)
+            case None         => None
           }
-        } else {
-          SymbolRestriction.Only(
-            Set(
-              SymbolRestriction.AllowedResolution(
-                exp.getSimpleName.name.toLowerCase,
-                Some(mod)
-              )
-            )
-          )
+          val symbols = exp.onlyNames match {
+            case Some(onlyNames) =>
+              onlyNames.map(_.name)
+            case None =>
+              List(exp.name.parts.last.name)
+          }
+          targets.map {
+            case m: ResolvedModule => ExportedModule(m, exportAs, symbols)
+            case ResolvedType(modRef, _) =>
+              ExportedModule(ResolvedModule(modRef), exportAs, symbols)
+            case ResolvedConstructor(ResolvedType(modRef, _), _) =>
+              ExportedModule(ResolvedModule(modRef), exportAs, symbols)
+            case ResolvedModuleMethod(modRef, _) =>
+              ExportedModule(ResolvedModule(modRef), exportAs, symbols)
+            case ResolvedExtensionMethod(modRef, _) =>
+              ExportedModule(ResolvedModule(modRef), exportAs, symbols)
+            case ResolvedConversionMethod(modRef, _) =>
+              ExportedModule(ResolvedModule(modRef), exportAs, symbols)
+          }
         }
-        val rename = if (!exp.isAll) {
-          Some(exp.getSimpleName.name)
-        } else {
-          None
-        }
-        ExportedModule(mod, rename, restriction)
       }
-    }.flatten
+      .flatten
+      .distinct
 }
 
 object BindingsMap {
@@ -376,328 +359,36 @@ object BindingsMap {
     }
   }
 
-  /** Represents a symbol restriction on symbols exported from a module. */
-  sealed trait SymbolRestriction {
-
-    /** Whether the export statement allows accessing the given name.
-      *
-      * @param symbol the name to check
-      * @param resolution the particular resolution of `symbol`
-      * @return whether access to the symbol is permitted by this restriction.
-      */
-    def canAccess(symbol: String, resolution: ResolvedName): Boolean
-
-    /** Performs static optimizations on the restriction, simplifying
-      * common patterns.
-      *
-      * @return a possibly simpler version of the restriction, describing
-      *         the same set of names.
-      */
-    def optimize: SymbolRestriction
-
-    /** Convert any internal [[ModuleReference]]s to abstract references.
-      *
-      * @return `this` with any module references made abstract
-      */
-    def toAbstract: SymbolRestriction
-
-    /** Convert any internal [[ModuleReference]]s to concrete references.
-      *
-      * @param moduleMap the mapping from qualified names to modules
-      * @return `this` with its module reference made concrete
-      */
-    def toConcrete(moduleMap: ModuleMap): Option[SymbolRestriction]
-  }
-
-  object SymbolRestriction {
-
-    /** A representation of allowed symbol. An allowed symbol consists of
-      * a name and an optional resolution refinement.
-      *
-      * @param symbol the symbol name
-      * @param resolution the only allowed resolution of `symbol`
-      */
-    case class AllowedResolution(
-      symbol: String,
-      resolution: Option[ResolvedName]
-    ) {
-
-      /** Checks if the `symbol` is visible under this restriction, with
-        * a given resolution.
-        *
-        * @param symbol the symbol
-        * @param resolution `symbol`'s resolution
-        * @return `true` if the symbol is visible, `false` otherwise
-        */
-      def allows(symbol: String, resolution: ResolvedName): Boolean = {
-        val symbolMatch = this.symbol == symbol.toLowerCase
-        val resolutionMatch =
-          this.resolution.isEmpty || this.resolution.get == resolution
-        symbolMatch && resolutionMatch
-      }
-
-      /** Convert the internal resolution to abstract form.
-        *
-        * @return `this` with its resolution converted to abstract form
-        */
-      def toAbstract: AllowedResolution = {
-        this.copy(resolution = resolution.map(_.toAbstract))
-      }
-
-      /** Convert the internal resolution to concrete form.
-        *
-        * @param moduleMap the mapping from qualified names to modules
-        * @return `this` with its resolution made concrete
-        */
-      def toConcrete(moduleMap: ModuleMap): Option[AllowedResolution] = {
-        resolution match {
-          case None => Some(this)
-          case Some(res) =>
-            res.toConcrete(moduleMap).map(r => this.copy(resolution = Some(r)))
-        }
-      }
-    }
-
-    /** A restriction representing a set of allowed symbols.
-      *
-      * @param symbols the allowed symbols.
-      */
-    case class Only(symbols: Set[AllowedResolution]) extends SymbolRestriction {
-
-      /** @inheritdoc */
-      override def canAccess(
-        symbol: String,
-        resolution: ResolvedName
-      ): Boolean = symbols.exists(_.allows(symbol, resolution))
-
-      /** @inheritdoc */
-      override def optimize: SymbolRestriction = this
-
-      /** @inheritdoc */
-      override def toAbstract: Only = {
-        this.copy(symbols = symbols.map(_.toAbstract))
-      }
-
-      /** @inheritdoc */
-      //noinspection DuplicatedCode
-      override def toConcrete(moduleMap: ModuleMap): Option[Only] = {
-        val newSymbols = symbols.map(_.toConcrete(moduleMap))
-        if (!newSymbols.exists(_.isEmpty)) {
-          Some(this.copy(symbols = newSymbols.map(_.get)))
-        } else None
-      }
-    }
-
-    /** A restriction representing a set of excluded symbols.
-      *
-      * @param symbols the excluded symbols.
-      */
-    case class Hiding(symbols: Set[String]) extends SymbolRestriction {
-
-      /** @inheritdoc */
-      override def canAccess(
-        symbol: String,
-        resolution: ResolvedName
-      ): Boolean = !symbols.contains(symbol.toLowerCase)
-
-      /** @inheritdoc */
-      override def optimize: Hiding = this
-
-      /** @inheritdoc */
-      override def toAbstract: Hiding = this
-
-      /** @inheritdoc */
-      override def toConcrete(moduleMap: ModuleMap): Option[Hiding] = Some(this)
-    }
-
-    /** A restriction meaning there's no restriction at all.
-      */
-    case object All extends SymbolRestriction {
-
-      /** @inheritdoc */
-      override def canAccess(
-        symbol: String,
-        resolution: ResolvedName
-      ): Boolean = true
-
-      /** @inheritdoc */
-      override def optimize: SymbolRestriction = this
-
-      /** @inheritdoc */
-      override def toAbstract: All.type = this
-
-      /** @inheritdoc */
-      override def toConcrete(moduleMap: ModuleMap): Option[All.type] = Some(
-        this
-      )
-    }
-
-    /** A complete restriction – no symbols are permitted
-      */
-    case object Empty extends SymbolRestriction {
-
-      /** @inheritdoc */
-      override def canAccess(
-        symbol: String,
-        resolution: ResolvedName
-      ): Boolean = false
-
-      /** @inheritdoc */
-      override def optimize: SymbolRestriction = this
-
-      /** @inheritdoc */
-      override def toAbstract: Empty.type = this
-
-      /** @inheritdoc */
-      override def toConcrete(moduleMap: ModuleMap): Option[Empty.type] = Some(
-        this
-      )
-    }
-
-    /** An intersection of restrictions – a symbol is allowed if all components
-      * allow it.
-      *
-      * @param restrictions the intersected restrictions.
-      */
-    case class Intersect(restrictions: List[SymbolRestriction])
-        extends SymbolRestriction {
-
-      /** @inheritdoc */
-      override def canAccess(
-        symbol: String,
-        resolution: ResolvedName
-      ): Boolean = restrictions.forall(_.canAccess(symbol, resolution))
-
-      /** @inheritdoc */
-      //noinspection DuplicatedCode
-      override def optimize: SymbolRestriction = {
-        val optimizedTerms = restrictions.map(_.optimize)
-        val (intersects, otherTerms) =
-          optimizedTerms.partition(_.isInstanceOf[Intersect])
-        val allTerms = intersects.flatMap(
-          _.asInstanceOf[Intersect].restrictions
-        ) ++ otherTerms
-        if (allTerms.contains(Empty)) {
-          return Empty
-        }
-        val unions = allTerms.filter(_.isInstanceOf[Union])
-        val onlys  = allTerms.collect { case only: Only => only }
-        val hides  = allTerms.collect { case hiding: Hiding => hiding }
-        val combinedOnlys = onlys match {
-          case List() => None
-          case items =>
-            Some(Only(items.map(_.symbols).reduce(_.intersect(_))))
-        }
-        val combinedHiding = hides match {
-          case List() => None
-          case items =>
-            Some(Hiding(items.map(_.symbols).reduce(_.union(_))))
-        }
-        val newTerms = combinedHiding.toList ++ combinedOnlys.toList ++ unions
-        newTerms match {
-          case List()   => All
-          case List(it) => it
-          case items    => Intersect(items)
-        }
-      }
-
-      /** @inheritdoc */
-      override def toAbstract: Intersect = {
-        this.copy(restrictions = restrictions.map(_.toAbstract))
-      }
-
-      /** @inheritdoc */
-      //noinspection DuplicatedCode
-      override def toConcrete(moduleMap: ModuleMap): Option[Intersect] = {
-        val newRestrictions = restrictions.map(_.toConcrete(moduleMap))
-        if (!newRestrictions.exists(_.isEmpty)) {
-          Some(this.copy(restrictions = newRestrictions.map(_.get)))
-        } else None
-      }
-    }
-
-    /** A union of restrictions – a symbol is allowed if any component allows
-      * it.
-      *
-      * @param restrictions the component restricitons.
-      */
-    case class Union(restrictions: List[SymbolRestriction])
-        extends SymbolRestriction {
-
-      /** @inheritdoc */
-      override def canAccess(
-        symbol: String,
-        resolution: ResolvedName
-      ): Boolean = restrictions.exists(_.canAccess(symbol, resolution))
-
-      /** @inheritdoc */
-      //noinspection DuplicatedCode
-      override def optimize: SymbolRestriction = {
-        val optimizedTerms = restrictions.map(_.optimize)
-        val (unions, otherTerms) =
-          optimizedTerms.partition(_.isInstanceOf[Union])
-        val allTerms = unions.flatMap(
-          _.asInstanceOf[Union].restrictions
-        ) ++ otherTerms
-        if (allTerms.contains(All)) {
-          return All
-        }
-        val intersects = allTerms.filter(_.isInstanceOf[Intersect])
-        val onlys      = allTerms.collect { case only: Only => only }
-        val hides      = allTerms.collect { case hiding: Hiding => hiding }
-        val combinedOnlys = onlys match {
-          case List() => None
-          case items =>
-            Some(Only(items.map(_.symbols).reduce(_.union(_))))
-        }
-        val combinedHiding = hides match {
-          case List() => None
-          case items =>
-            Some(Hiding(items.map(_.symbols).reduce(_.intersect(_))))
-        }
-        val newTerms =
-          combinedHiding.toList ++ combinedOnlys.toList ++ intersects
-        newTerms match {
-          case List()   => Empty
-          case List(it) => it
-          case items    => Union(items)
-        }
-      }
-
-      /** @inheritdoc */
-      override def toAbstract: Union = {
-        this.copy(restrictions = restrictions.map(_.toAbstract))
-      }
-
-      /** @inheritdoc */
-      //noinspection DuplicatedCode
-      override def toConcrete(moduleMap: ModuleMap): Option[Union] = {
-        val newRestrictions = restrictions.map(_.toConcrete(moduleMap))
-        if (!newRestrictions.exists(_.isEmpty)) {
-          Some(this.copy(restrictions = newRestrictions.map(_.get)))
-        } else None
-      }
-    }
-  }
-
   /** A representation of a resolved export statement.
     *
-    * @param target the module being exported.
+    * @param module the target being exported.
     * @param exportedAs the name it is exported as.
-    * @param symbols any symbol restrictions connected to the export.
+    * @param symbols List of symbols connected to the export. The symbol refers to the last part
+    *                of the physical name of the target being exported. It is not a fully qualified
+    *                name.
     */
   case class ExportedModule(
-    target: ImportTarget,
+    module: ResolvedModule,
     exportedAs: Option[String],
-    symbols: SymbolRestriction
+    symbols: List[String]
   ) {
+    assert(
+      symbols.forall(!_.contains(".")),
+      "Not expected fully qualified names as symbols"
+    )
+    if (exportedAs.isDefined) {
+      assert(
+        !exportedAs.get.contains("."),
+        "Not expected fully qualified name as `exportedAs`"
+      )
+    }
 
     /** Convert the internal [[ModuleReference]] to an abstract reference.
       *
       * @return `this` with its module reference made abstract
       */
     def toAbstract: ExportedModule = {
-      this.copy(target = target.toAbstract, symbols = symbols.toAbstract)
+      this.copy(module = module.toAbstract)
     }
 
     /** Convert the internal [[ModuleReference]] to a concrete reference.
@@ -706,10 +397,8 @@ object BindingsMap {
       * @return `this` with its module reference made concrete
       */
     def toConcrete(moduleMap: ModuleMap): Option[ExportedModule] = {
-      target.toConcrete(moduleMap).flatMap { x =>
-        symbols
-          .toConcrete(moduleMap)
-          .map(y => this.copy(target = x, symbols = y))
+      module.toConcrete(moduleMap).map { target =>
+        this.copy(module = target)
       }
     }
   }
@@ -739,20 +428,26 @@ object BindingsMap {
     *
     * @param importDef the definition of the import
     * @param exports the exports associated with the import
-    * @param target the module or type this import resolves to
+    * @param targets list of targets that this import resolves to. Note that it is valid for a single
+    *                import to resolve to multiple entities, for example, in case of extension methods.
     */
   case class ResolvedImport(
     importDef: ir.module.scope.Import.Module,
     exports: List[ir.module.scope.Export.Module],
-    target: ImportTarget
+    targets: List[ImportTarget]
   ) {
+    assert(targets.nonEmpty)
+    assert(
+      areTargetsConsistent(),
+      "All targets must be either static methods or conversion methods"
+    )
 
     /** Convert the internal [[ModuleReference]] to an abstract reference.
       *
       * @return `this` with its module reference made abstract
       */
     def toAbstract: ResolvedImport = {
-      this.copy(target = target.toAbstract)
+      this.copy(targets = targets.map(_.toAbstract))
     }
 
     /** Convert the internal [[ModuleReference]] to a concrete reference.
@@ -761,7 +456,12 @@ object BindingsMap {
       * @return `this` with its module reference made concrete
       */
     def toConcrete(moduleMap: ModuleMap): Option[ResolvedImport] = {
-      target.toConcrete(moduleMap).map(x => this.copy(target = x))
+      val newTargets = targets.map(_.toConcrete(moduleMap))
+      if (newTargets.forall(_.isDefined)) {
+        Some(this.copy(targets = newTargets.map(_.get)))
+      } else {
+        None
+      }
     }
 
     /** Determines if this resolved import statement was generated by the compiler.
@@ -771,6 +471,24 @@ object BindingsMap {
     def isSynthetic(): Boolean = {
       importDef.isSynthetic
     }
+
+    def findExportedSymbolsFor(name: String): List[ResolvedName] = {
+      targets.flatMap(_.findExportedSymbolsFor(name))
+    }
+
+    private def areTargetsConsistent(): Boolean = {
+      if (targets.size > 1) {
+        // If there are multiple targets, they can either all be static methods, or all be
+        // conversion methods.
+        val allStaticMethods =
+          targets.forall(_.isInstanceOf[ResolvedExtensionMethod])
+        val allConversionMethods =
+          targets.forall(_.isInstanceOf[ResolvedConversionMethod])
+        allStaticMethods || allConversionMethods
+      } else {
+        true
+      }
+    }
   }
 
   sealed trait DefinedEntity {
@@ -778,8 +496,8 @@ object BindingsMap {
 
     def resolvedIn(module: ModuleReference): ResolvedName = this match {
       case t: Type => ResolvedType(module, t)
-      case staticMethod: StaticMethod =>
-        ResolvedStaticMethod(module, staticMethod)
+      case staticMethod: ExtensionMethod =>
+        ResolvedExtensionMethod(module, staticMethod)
       case conversionMethod: ConversionMethod =>
         ResolvedConversionMethod(module, conversionMethod)
       case m: ModuleMethod   => ResolvedModuleMethod(module, m)
@@ -893,7 +611,7 @@ object BindingsMap {
     * My_Type.method = 42
     * ```
     */
-  case class StaticMethod(
+  case class ExtensionMethod(
     methodName: String,
     tpName: String
   ) extends Method {
@@ -973,7 +691,8 @@ object BindingsMap {
     * @param cons a representation of the constructor.
     */
   case class ResolvedConstructor(tpe: ResolvedType, cons: Cons)
-      extends ResolvedName {
+      extends ResolvedName
+      with ImportTarget {
 
     /** @inheritdoc */
     override def toAbstract: ResolvedConstructor = {
@@ -993,6 +712,18 @@ object BindingsMap {
 
     /** @inheritdoc */
     override def module: ModuleReference = tpe.module
+
+    override def findExportedSymbolsFor(name: String): List[ResolvedName] = {
+      if (name == cons.name) {
+        List(this)
+      } else {
+        List()
+      }
+    }
+
+    override def exportedSymbols: Map[String, List[ResolvedName]] = {
+      Map(cons.name -> List(this))
+    }
   }
 
   /** A representation of a name being resolved to a module.
@@ -1031,8 +762,24 @@ object BindingsMap {
         .exportedSymbols
   }
 
-  sealed trait ResolvedMethod extends ResolvedName {
+  sealed trait ResolvedMethod extends ResolvedName with ImportTarget {
     def methodName: String
+
+    override def findExportedSymbolsFor(name: String): List[ResolvedName] = {
+      if (name == methodName) {
+        List(this)
+      } else {
+        List()
+      }
+    }
+
+    override def exportedSymbols: Map[String, List[ResolvedName]] = Map(
+      methodName -> List(this)
+    )
+
+    override def qualifiedName: QualifiedName = {
+      module.getName.createChild(methodName)
+    }
   }
 
   /** A representation of a resolved method defined directly on module.
@@ -1074,34 +821,26 @@ object BindingsMap {
     def unsafeGetIr(missingMessage: String): ir.module.scope.Definition =
       getIr.getOrElse(throw new CompilerError(missingMessage))
 
-    override def qualifiedName: QualifiedName =
-      module.getName.createChild(method.name)
-
     override def methodName: String = method.name
   }
 
   /** Method resolved on a type - either static method or extension method.
     */
-  case class ResolvedStaticMethod(
+  case class ResolvedExtensionMethod(
     module: ModuleReference,
-    staticMethod: StaticMethod
+    staticMethod: ExtensionMethod
   ) extends ResolvedMethod {
-    override def toAbstract: ResolvedStaticMethod = {
+    override def toAbstract: ResolvedExtensionMethod = {
       this.copy(module = module.toAbstract)
     }
 
     override def toConcrete(
       moduleMap: ModuleMap
-    ): Option[ResolvedStaticMethod] = {
+    ): Option[ResolvedExtensionMethod] = {
       module.toConcrete(moduleMap).map { module =>
         this.copy(module = module)
       }
     }
-
-    override def qualifiedName: QualifiedName =
-      module.getName
-        .createChild(staticMethod.tpName)
-        .createChild(staticMethod.methodName)
 
     override def methodName: String = staticMethod.methodName
   }
@@ -1121,11 +860,6 @@ object BindingsMap {
         this.copy(module = module)
       }
     }
-
-    override def qualifiedName: QualifiedName =
-      module.getName
-        .createChild(conversionMethod.targetTpName)
-        .createChild(conversionMethod.methodName)
 
     override def methodName: String = conversionMethod.methodName
   }
@@ -1197,7 +931,7 @@ object BindingsMap {
           s"    The imported polyglot field ${name};"
         case BindingsMap.ResolvedModuleMethod(module, symbol) =>
           s"    The method ${symbol.name} defined in module ${module.getName}"
-        case BindingsMap.ResolvedStaticMethod(module, staticMethod) =>
+        case BindingsMap.ResolvedExtensionMethod(module, staticMethod) =>
           s"    The static method ${staticMethod.methodName} defined in module ${module.getName} for type ${staticMethod.tpName}"
         case BindingsMap.ResolvedConversionMethod(module, conversionMethod) =>
           s"    The conversion method ${conversionMethod.targetTpName}.${conversionMethod.methodName} defined in module ${module.getName}"
