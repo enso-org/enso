@@ -140,7 +140,7 @@ export default function FileNameColumn(props: FileNameColumnProps) {
         }
       }
     }
-  })
+  }, item.initialAssetEvents)
 
   const handleClick = inputBindings.handler({
     editName: () => {

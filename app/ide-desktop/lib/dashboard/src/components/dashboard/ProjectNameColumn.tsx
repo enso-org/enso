@@ -284,7 +284,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
         }
       }
     }
-  })
+  }, item.initialAssetEvents)
 
   const handleClick = inputBindings.handler({
     editName: () => {

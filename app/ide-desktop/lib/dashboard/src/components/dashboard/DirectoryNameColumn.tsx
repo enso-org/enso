@@ -140,7 +140,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
         }
       }
     }
-  })
+  }, item.initialAssetEvents)
 
   const handleClick = inputBindings.handler({
     editName: () => {

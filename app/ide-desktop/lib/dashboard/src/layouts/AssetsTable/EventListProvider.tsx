@@ -110,10 +110,28 @@ export function useDispatchAssetListEvent() {
 
 /** Execute a callback for every new asset event. */
 export function useAssetEventListener(
-  callback: (event: assetEvent.AssetEvent) => Promise<void> | void
+  callback: (event: assetEvent.AssetEvent) => Promise<void> | void,
+  initialEvents?: readonly assetEvent.AssetEvent[] | null
 ) {
+  const callbackRef = React.useRef(callback)
+  callbackRef.current = callback
   const store = useEventList()
   const seen = React.useRef(new WeakSet())
+  const initialEventsRef = React.useRef(initialEvents)
+
+  let alreadyRun = false
+  React.useEffect(() => {
+    const events = initialEventsRef.current
+    if (events && !alreadyRun) {
+      // Event handlers are not idempotent and MUST NOT be handled twice.
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      alreadyRun = true
+      for (const event of events) {
+        void callbackRef.current(event)
+      }
+    }
+  }, [])
+
   React.useEffect(
     () =>
       store.subscribe((state, prevState) => {
@@ -121,12 +139,12 @@ export function useAssetEventListener(
           for (const event of state.assetEvents) {
             if (!seen.current.has(event)) {
               seen.current.add(event)
-              void callback(event)
+              void callbackRef.current(event)
             }
           }
         }
       }),
-    [callback, store]
+    [store]
   )
 }
 
@@ -136,10 +154,28 @@ export function useAssetEventListener(
 
 /** Execute a callback for every new asset list event. */
 export function useAssetListEventListener(
-  callback: (event: assetListEvent.AssetListEvent) => Promise<void> | void
+  callback: (event: assetListEvent.AssetListEvent) => Promise<void> | void,
+  initialEvents?: readonly assetListEvent.AssetListEvent[] | null
 ) {
+  const callbackRef = React.useRef(callback)
+  callbackRef.current = callback
   const store = useEventList()
   const seen = React.useRef(new WeakSet())
+  const initialEventsRef = React.useRef(initialEvents)
+
+  let alreadyRun = false
+  React.useEffect(() => {
+    const events = initialEventsRef.current
+    if (events && !alreadyRun) {
+      // Event handlers are not idempotent and MUST NOT be handled twice.
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      alreadyRun = true
+      for (const event of events) {
+        void callbackRef.current(event)
+      }
+    }
+  }, [])
+
   React.useEffect(
     () =>
       store.subscribe((state, prevState) => {
@@ -147,11 +183,11 @@ export function useAssetListEventListener(
           for (const event of state.assetListEvents) {
             if (!seen.current.has(event)) {
               seen.current.add(event)
-              void callback(event)
+              void callbackRef.current(event)
             }
           }
         }
       }),
-    [callback, store]
+    [store]
   )
 }

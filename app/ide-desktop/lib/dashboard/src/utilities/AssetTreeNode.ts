@@ -1,4 +1,6 @@
 /** @file A node in the drive's item tree. */
+import type * as assetEvent from '#/events/assetEvent'
+
 import * as backendModule from '#/services/Backend'
 
 // =====================
@@ -14,6 +16,7 @@ export interface AssetTreeNodeData
     | 'depth'
     | 'directoryId'
     | 'directoryKey'
+    | 'initialAssetEvents'
     | 'isExpanded'
     | 'item'
     | 'key'
@@ -44,7 +47,7 @@ export default class AssetTreeNode<Item extends backendModule.AnyAsset = backend
     public readonly children: AnyAssetTreeNode[] | null,
     public readonly depth: number,
     public readonly path: string,
-    public readonly isNewlyCreated = false,
+    public readonly initialAssetEvents: readonly assetEvent.AssetEvent[] | null,
     /** The internal (to the frontend) id of the asset (or the placeholder id for new assets).
      * This must never change, otherwise the component's state is lost when receiving the real id
      * from the backend. */
@@ -75,7 +78,7 @@ export default class AssetTreeNode<Item extends backendModule.AnyAsset = backend
     directoryId: backendModule.DirectoryId,
     depth: number,
     path: string,
-    isNewlyCreated: boolean,
+    initialAssetEvents: readonly assetEvent.AssetEvent[] | null,
     key: Asset['id'] = asset.id
   ): AnyAssetTreeNode {
     return new AssetTreeNode(
@@ -85,7 +88,7 @@ export default class AssetTreeNode<Item extends backendModule.AnyAsset = backend
       null,
       depth,
       path,
-      isNewlyCreated,
+      initialAssetEvents,
       key
     ).asUnion()
   }
@@ -116,7 +119,7 @@ export default class AssetTreeNode<Item extends backendModule.AnyAsset = backend
       update.children === null ? update.children : update.children ?? this.children,
       update.depth ?? this.depth,
       update.path ?? this.path,
-      this.isNewlyCreated,
+      update.initialAssetEvents ?? this.initialAssetEvents,
       update.key ?? this.key,
       update.isExpanded ?? this.isExpanded,
       update.createdAt ?? this.createdAt

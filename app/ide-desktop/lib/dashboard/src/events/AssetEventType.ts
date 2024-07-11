@@ -7,6 +7,7 @@
 /** Possible types of asset state change. */
 enum AssetEventType {
   newProject = 'new-project',
+  newFolder = 'new-folder',
   uploadFiles = 'upload-files',
   updateFiles = 'update-files',
   newDatalink = 'new-datalink',

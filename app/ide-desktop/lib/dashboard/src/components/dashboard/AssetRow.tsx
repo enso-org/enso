@@ -698,7 +698,7 @@ export default function AssetRow(props: AssetRowProps) {
         }
       }
     }
-  })
+  }, item.initialAssetEvents)
 
   const clearDragState = React.useCallback(() => {
     setIsDraggedOver(false)

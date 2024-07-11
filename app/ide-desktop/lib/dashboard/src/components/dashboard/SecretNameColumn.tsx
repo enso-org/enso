@@ -122,7 +122,7 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
         }
       }
     }
-  })
+  }, item.initialAssetEvents)
 
   const handleClick = inputBindings.handler({
     editName: () => {

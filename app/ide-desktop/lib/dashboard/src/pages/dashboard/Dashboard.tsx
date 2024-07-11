@@ -248,7 +248,6 @@ function DashboardInner(props: DashboardProps) {
   const [launchedProjects, privateSetLaunchedProjects] = React.useState<Project[]>(
     () => localStorage.get('launchedProjects') ?? []
   )
-  const selectedProject = launchedProjects.find(p => p.id === page) ?? null
 
   // These pages MUST be ROUTER PAGES.
   const [page, privateSetPage] = searchParamsState.useSearchParamsState(
@@ -260,6 +259,8 @@ function DashboardInner(props: DashboardProps) {
       )
     }
   )
+
+  const selectedProject = launchedProjects.find(p => p.id === page) ?? null
 
   const setLaunchedProjects = eventCallbacks.useEventCallback(
     (fn: (currentState: Project[]) => Project[]) => {

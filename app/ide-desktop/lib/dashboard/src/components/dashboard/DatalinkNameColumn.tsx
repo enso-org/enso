@@ -120,7 +120,7 @@ export default function DatalinkNameColumn(props: DatalinkNameColumnProps) {
         }
       }
     }
-  })
+  }, item.initialAssetEvents)
 
   const handleClick = inputBindings.handler({
     editName: () => {
