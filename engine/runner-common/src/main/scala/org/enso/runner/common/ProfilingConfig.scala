@@ -1,4 +1,4 @@
-package org.enso.runner
+package org.enso.runner.common
 
 import org.apache.commons.io.FilenameUtils
 

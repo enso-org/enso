@@ -37,6 +37,8 @@ import org.enso.polyglot.PolyglotContext;
 import org.enso.profiling.sampler.NoopSampler;
 import org.enso.profiling.sampler.OutputStreamSampler;
 import org.enso.runner.common.LanguageServerApi;
+import org.enso.runner.common.ProfilingConfig;
+import org.enso.runner.common.WrongOption;
 import org.enso.version.VersionDescription;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.PolyglotException.StackFrame;
@@ -68,14 +70,6 @@ public final class Main {
   private static final String PROFILING_PATH = "profiling-path";
   private static final String PROFILING_TIME = "profiling-time";
   private static final String LANGUAGE_SERVER_OPTION = "server";
-  private static final String DAEMONIZE_OPTION = "daemon";
-  private static final String INTERFACE_OPTION = "interface";
-  private static final String RPC_PORT_OPTION = "rpc-port";
-  private static final String DATA_PORT_OPTION = "data-port";
-  private static final String SECURE_RPC_PORT_OPTION = "secure-rpc-port";
-  private static final String SECURE_DATA_PORT_OPTION = "secure-data-port";
-  private static final String ROOT_ID_OPTION = "root-id";
-  private static final String ROOT_PATH_OPTION = "path";
   private static final String IN_PROJECT_OPTION = "in-project";
   private static final String VERSION_OPTION = "version";
   private static final String JSON_OPTION = "json";
@@ -95,7 +89,6 @@ public final class Main {
   private static final String HIDE_PROGRESS = "hide-progress";
   private static final String AUTH_TOKEN = "auth-token";
   private static final String AUTO_PARALLELISM_OPTION = "with-auto-parallelism";
-  private static final String SKIP_GRAALVM_UPDATER = "skip-graalvm-updater";
   private static final String EXECUTION_ENVIRONMENT_OPTION = "execution-environment";
   private static final String WARNINGS_LIMIT = "warnings-limit";
 
@@ -234,10 +227,13 @@ public final class Main {
             .desc("The duration in seconds limiting the profiling time.")
             .build();
     var deamonizeOption =
-        cliOptionBuilder().longOpt(DAEMONIZE_OPTION).desc("Daemonize Language Server").build();
+        cliOptionBuilder()
+            .longOpt(LanguageServerApi.DAEMONIZE_OPTION)
+            .desc("Daemonize Language Server")
+            .build();
     var interfaceOption =
         cliOptionBuilder()
-            .longOpt(INTERFACE_OPTION)
+            .longOpt(LanguageServerApi.INTERFACE_OPTION)
             .hasArg(true)
             .numberOfArgs(1)
             .argName("interface")
@@ -245,7 +241,7 @@ public final class Main {
             .build();
     var rpcPortOption =
         cliOptionBuilder()
-            .longOpt(RPC_PORT_OPTION)
+            .longOpt(LanguageServerApi.RPC_PORT_OPTION)
             .hasArg(true)
             .numberOfArgs(1)
             .argName("rpc-port")
@@ -253,7 +249,7 @@ public final class Main {
             .build();
     var secureRpcPortOption =
         cliOptionBuilder()
-            .longOpt(SECURE_RPC_PORT_OPTION)
+            .longOpt(LanguageServerApi.SECURE_RPC_PORT_OPTION)
             .hasArg(true)
             .numberOfArgs(1)
             .argName("rpc-port")
@@ -261,7 +257,7 @@ public final class Main {
             .build();
     var dataPortOption =
         cliOptionBuilder()
-            .longOpt(DATA_PORT_OPTION)
+            .longOpt(LanguageServerApi.DATA_PORT_OPTION)
             .hasArg(true)
             .numberOfArgs(1)
             .argName("data-port")
@@ -269,7 +265,7 @@ public final class Main {
             .build();
     var secureDataPortOption =
         cliOptionBuilder()
-            .longOpt(SECURE_DATA_PORT_OPTION)
+            .longOpt(LanguageServerApi.SECURE_DATA_PORT_OPTION)
             .hasArg(true)
             .numberOfArgs(1)
             .argName("data-port")
@@ -280,7 +276,7 @@ public final class Main {
             .hasArg(true)
             .numberOfArgs(1)
             .argName("uuid")
-            .longOpt(ROOT_ID_OPTION)
+            .longOpt(LanguageServerApi.ROOT_ID_OPTION)
             .desc("Content root id.")
             .build();
     var pathOption =
@@ -288,7 +284,7 @@ public final class Main {
             .hasArg(true)
             .numberOfArgs(1)
             .argName("path")
-            .longOpt(ROOT_PATH_OPTION)
+            .longOpt(LanguageServerApi.ROOT_PATH_OPTION)
             .desc("Path to the content root.")
             .build();
     var inProjectOption =
@@ -420,7 +416,7 @@ public final class Main {
 
     var skipGraalVMUpdater =
         cliOptionBuilder()
-            .longOpt(SKIP_GRAALVM_UPDATER)
+            .longOpt(LanguageServerApi.SKIP_GRAALVM_UPDATER)
             .desc("Skips GraalVM and its components setup during bootstrapping.")
             .build();
 
@@ -1369,11 +1365,5 @@ public final class Main {
 
   protected String getLanguageId() {
     return LanguageInfo.ID;
-  }
-
-  private static final class WrongOption extends Exception {
-    WrongOption(String msg) {
-      super(msg);
-    }
   }
 }
