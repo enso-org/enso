@@ -1340,7 +1340,14 @@ public final class Main {
 
   private void launch(Options options, CommandLine line, Level logLevel, boolean logMasking) {
     if (line.hasOption(LANGUAGE_SERVER_OPTION)) {
-      LanguageServerApi.launchLanguageServer(line, logLevel);
+      try {
+        var conf = parseProfilingConfig(line);
+        LanguageServerApi.launchLanguageServer(line, conf, logLevel);
+        throw exitSuccess();
+      } catch (WrongOption e) {
+        System.err.println(e.getMessage());
+        throw exitFail();
+      }
     } else {
       try {
         var conf = parseProfilingConfig(line);

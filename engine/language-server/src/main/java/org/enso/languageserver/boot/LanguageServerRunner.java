@@ -3,6 +3,7 @@ package org.enso.languageserver.boot;
 import java.util.UUID;
 import org.apache.commons.cli.CommandLine;
 import org.enso.runner.common.LanguageServerApi;
+import org.enso.runner.common.ProfilingConfig;
 import org.enso.runner.common.WrongOption;
 import org.openide.util.lookup.ServiceProvider;
 import org.slf4j.event.Level;
@@ -16,20 +17,17 @@ public final class LanguageServerRunner extends LanguageServerApi {
    * Handles `--server` CLI option
    *
    * @param line a CLI line
+   * @param prof profiling config
    * @param logLevel log level to set for the engine runtime
    */
-  protected final void runLanguageServer(CommandLine line, Level logLevel) {
-    try {
-      var config = parseServerOptions(line);
-      LanguageServerApp.run(config, logLevel, line.hasOption(LanguageServerApi.DAEMONIZE_OPTION));
-      throw exitSuccess();
-    } catch (WrongOption e) {
-      System.err.println(e.getMessage());
-      throw exitFail();
-    }
+  protected final void runLanguageServer(CommandLine line, ProfilingConfig prof, Level logLevel)
+      throws WrongOption {
+    var config = parseServerOptions(line, prof);
+    LanguageServerApp.run(config, logLevel, line.hasOption(LanguageServerApi.DAEMONIZE_OPTION));
   }
 
-  private static LanguageServerConfig parseServerOptions(CommandLine line) throws WrongOption {
+  private static LanguageServerConfig parseServerOptions(
+      CommandLine line, ProfilingConfig profilingConfig) throws WrongOption {
     UUID rootId;
     try {
       var id = line.getOptionValue(LanguageServerApi.ROOT_ID_OPTION);
@@ -71,7 +69,6 @@ public final class LanguageServerRunner extends LanguageServerApi {
     } catch (NumberFormatException e) {
       throw new WrongOption("Port must be integer");
     }
-    var profilingConfig = parseProfilingConfig(line);
     var graalVMUpdater = line.hasOption(LanguageServerApi.SKIP_GRAALVM_UPDATER);
 
     var config =

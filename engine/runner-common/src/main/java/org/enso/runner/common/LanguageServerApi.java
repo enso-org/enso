@@ -15,11 +15,13 @@ public abstract class LanguageServerApi {
   public static final String SECURE_DATA_PORT_OPTION = "secure-data-port";
   public static final String SKIP_GRAALVM_UPDATER = "skip-graalvm-updater";
 
-  public static void launchLanguageServer(CommandLine line, Level logLevel) {
+  public static void launchLanguageServer(CommandLine line, ProfilingConfig config, Level logLevel)
+      throws WrongOption {
     var it = ServiceLoader.load(LanguageServerApi.class).iterator();
     var impl = it.next();
-    impl.runLanguageServer(line, logLevel);
+    impl.runLanguageServer(line, config, logLevel);
   }
 
-  protected abstract void runLanguageServer(CommandLine line, Level logLevel);
+  protected abstract void runLanguageServer(
+      CommandLine line, ProfilingConfig config, Level logLevel) throws WrongOption;
 }
