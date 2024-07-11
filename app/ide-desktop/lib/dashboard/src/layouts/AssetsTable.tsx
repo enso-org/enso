@@ -408,10 +408,10 @@ export default function AssetsTable(props: AssetsTableProps) {
   const inputBindings = inputBindingsProvider.useInputBindings()
   const navigator2D = navigator2DProvider.useNavigator2D()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
+  const previousCategoryRef = React.useRef(category)
   const [initialized, setInitialized] = React.useState(false)
   const initializedRef = React.useRef(initialized)
   initializedRef.current = initialized
-  const [isLoading, setIsLoading] = React.useState(true)
   const [enabledColumns, setEnabledColumns] = React.useState(columnUtils.DEFAULT_ENABLED_COLUMNS)
   const [sortInfo, setSortInfo] =
     React.useState<sorting.SortInfo<columnUtils.SortableColumn> | null>(null)
@@ -426,7 +426,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     ReadonlySet<backendModule.AssetId>
   > | null>(null)
   const [, setQueuedAssetEvents] = React.useState<assetEvent.AssetEvent[]>([])
-  const [, setNameOfProjectToImmediatelyOpen] = React.useState(initialProjectName)
+  const nameOfProjectToImmediatelyOpenRef = React.useRef(initialProjectName)
   const rootDirectoryId = React.useMemo(
     () => backend.rootDirectoryId(user) ?? backendModule.DirectoryId(''),
     [backend, user]
@@ -642,6 +642,9 @@ export default function AssetsTable(props: AssetsTableProps) {
   )
 
   const updateSecretMutation = backendHooks.useBackendMutation(backend, 'updateSecret')
+  React.useEffect(() => {
+    previousCategoryRef.current = category
+  })
 
   React.useEffect(() => {
     if (selectedKeys.size === 0) {
@@ -862,10 +865,6 @@ export default function AssetsTable(props: AssetsTableProps) {
   }, [isCloud, assetTree, query, visibilities, labels, setSuggestions])
 
   React.useEffect(() => {
-    setIsLoading(true)
-  }, [backend, category])
-
-  React.useEffect(() => {
     assetTreeRef.current = assetTree
     const newNodeMap = new Map(assetTree.preorderTraversal().map(asset => [asset.key, asset]))
     newNodeMap.set(assetTree.key, assetTree)
@@ -891,34 +890,6 @@ export default function AssetsTable(props: AssetsTableProps) {
       })
     }
   }, [hidden, inputBindings, dispatchAssetEvent])
-
-  React.useEffect(() => {
-    if (isLoading) {
-      setNameOfProjectToImmediatelyOpen(initialProjectName)
-    } else {
-      // The project name here might also be a string with project id, e.g. when opening
-      // a project file from explorer on Windows.
-      const isInitialProject = (asset: backendModule.AnyAsset) =>
-        asset.title === initialProjectName || asset.id === initialProjectName
-      const projectToLoad = assetTree
-        .preorderTraversal()
-        .map(node => node.item)
-        .filter(backendModule.assetIsProject)
-        .find(isInitialProject)
-      if (projectToLoad != null) {
-        doOpenProject({
-          type: backendModule.BackendType.local,
-          id: projectToLoad.id,
-          title: projectToLoad.title,
-          parentId: projectToLoad.parentId,
-        })
-      } else if (initialProjectName != null) {
-        toastAndLog('findProjectError', null, initialProjectName)
-      }
-    }
-    // This effect MUST only run when `initialProjectName` is changed.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialProjectName])
 
   const setSelectedKeys = React.useCallback(
     (newSelectedKeys: ReadonlySet<backendModule.AssetId>) => {
@@ -955,68 +926,55 @@ export default function AssetsTable(props: AssetsTableProps) {
 
   const overwriteNodes = React.useCallback(
     (newAssets: backendModule.AnyAsset[]) => {
+      setInitialized(true)
       mostRecentlySelectedIndexRef.current = null
       selectionStartIndexRef.current = null
       // This is required, otherwise we are using an outdated
       // `nameOfProjectToImmediatelyOpen`.
-      setNameOfProjectToImmediatelyOpen(oldNameOfProjectToImmediatelyOpen => {
-        setInitialized(true)
-        const rootParentDirectoryId = backendModule.DirectoryId('')
-        const rootDirectory = backendModule.createRootDirectoryAsset(rootDirectoryId)
-        const newRootNode = new AssetTreeNode(
-          rootDirectory,
-          rootParentDirectoryId,
-          rootParentDirectoryId,
-          newAssets.map(asset =>
-            AssetTreeNode.fromAsset(
-              asset,
-              rootDirectory.id,
-              rootDirectory.id,
-              0,
-              `${backend.rootPath}/${asset.title}`
-            )
-          ),
-          -1,
-          backend.rootPath,
-          rootDirectory.id,
-          true
-        )
-        setAssetTree(newRootNode)
-        // The project name here might also be a string with project id, e.g.
-        // when opening a project file from explorer on Windows.
-        const isInitialProject = (asset: backendModule.AnyAsset) =>
-          asset.title === oldNameOfProjectToImmediatelyOpen ||
-          asset.id === oldNameOfProjectToImmediatelyOpen
-        if (oldNameOfProjectToImmediatelyOpen != null) {
-          const projectToLoad = newAssets
-            .filter(backendModule.assetIsProject)
-            .find(isInitialProject)
-          if (projectToLoad != null) {
-            doOpenProject(
-              {
-                type: backendModule.BackendType.local,
-                id: projectToLoad.id,
-                title: projectToLoad.title,
-                parentId: projectToLoad.parentId,
-              },
-              { openInBackground: false }
-            )
-          } else {
-            toastAndLog('findProjectError', null, oldNameOfProjectToImmediatelyOpen)
-          }
+      const nameOfProjectToImmediatelyOpen = nameOfProjectToImmediatelyOpenRef.current
+      const rootParentDirectoryId = backendModule.DirectoryId('')
+      const rootDirectory = backendModule.createRootDirectoryAsset(rootDirectoryId)
+      const rootId = rootDirectory.id
+      const children = newAssets.map(asset =>
+        AssetTreeNode.fromAsset(asset, rootId, rootId, 0, `${backend.rootPath}/${asset.title}`)
+      )
+      const newRootNode = new AssetTreeNode(
+        rootDirectory,
+        rootParentDirectoryId,
+        rootParentDirectoryId,
+        children,
+        -1,
+        backend.rootPath,
+        rootId,
+        true
+      )
+      setAssetTree(newRootNode)
+      // The project name here might also be a string with project id, e.g.
+      // when opening a project file from explorer on Windows.
+      const isInitialProject = (asset: backendModule.AnyAsset) =>
+        asset.title === nameOfProjectToImmediatelyOpen ||
+        asset.id === nameOfProjectToImmediatelyOpen
+      if (nameOfProjectToImmediatelyOpen != null) {
+        const projectToLoad = newAssets.filter(backendModule.assetIsProject).find(isInitialProject)
+        if (projectToLoad != null) {
+          const backendType = backendModule.BackendType.local
+          const { id, title, parentId } = projectToLoad
+          doOpenProject({ type: backendType, id, title, parentId }, { openInBackground: false })
+        } else {
+          toastAndLog('findProjectError', null, nameOfProjectToImmediatelyOpen)
         }
-        setQueuedAssetEvents(oldQueuedAssetEvents => {
-          if (oldQueuedAssetEvents.length !== 0) {
-            queueMicrotask(() => {
-              for (const event of oldQueuedAssetEvents) {
-                dispatchAssetEvent(event)
-              }
-            })
-          }
-          return []
-        })
-        return null
+      }
+      setQueuedAssetEvents(oldQueuedAssetEvents => {
+        if (oldQueuedAssetEvents.length !== 0) {
+          queueMicrotask(() => {
+            for (const event of oldQueuedAssetEvents) {
+              dispatchAssetEvent(event)
+            }
+          })
+        }
+        return []
       })
+      nameOfProjectToImmediatelyOpenRef.current = null
     },
     [doOpenProject, rootDirectoryId, backend.rootPath, dispatchAssetEvent, toastAndLog]
   )
@@ -1045,10 +1003,39 @@ export default function AssetsTable(props: AssetsTableProps) {
     ],
     { queryKey: [], staleTime: 0, meta: { persist: false } }
   )
+  const isLoading =
+    rootDirectoryQuery.isLoading || rootDirectoryQuery.isPending || rootDirectoryQuery.isFetching
+
+  React.useEffect(() => {
+    if (isLoading) {
+      nameOfProjectToImmediatelyOpenRef.current = initialProjectName
+    } else {
+      // The project name here might also be a string with project id, e.g. when opening
+      // a project file from explorer on Windows.
+      const isInitialProject = (asset: backendModule.AnyAsset) =>
+        asset.title === initialProjectName || asset.id === initialProjectName
+      const projectToLoad = assetTree
+        .preorderTraversal()
+        .map(node => node.item)
+        .filter(backendModule.assetIsProject)
+        .find(isInitialProject)
+      if (projectToLoad != null) {
+        doOpenProject({
+          type: backendModule.BackendType.local,
+          id: projectToLoad.id,
+          title: projectToLoad.title,
+          parentId: projectToLoad.parentId,
+        })
+      } else if (initialProjectName != null) {
+        toastAndLog('findProjectError', null, initialProjectName)
+      }
+    }
+    // This effect MUST only run when `initialProjectName` is changed.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialProjectName])
 
   React.useEffect(() => {
     if (rootDirectoryQuery.data) {
-      setIsLoading(false)
       overwriteNodes(rootDirectoryQuery.data)
     }
   }, [rootDirectoryQuery.data, overwriteNodes])
@@ -2253,7 +2240,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     displayItems.map((item, i) => {
       const key = AssetTreeNode.getKey(item)
       const isSelected = (visuallySelectedKeysOverride ?? selectedKeys).has(key)
-      const isSoleSelected = selectedKeys.size === 1 && isSelected
+      const isSoleSelected = isSelected && selectedKeys.size === 1
 
       return (
         <AssetRow

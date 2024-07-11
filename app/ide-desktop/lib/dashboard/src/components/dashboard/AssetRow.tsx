@@ -162,8 +162,8 @@ export default function AssetRow(props: AssetRowProps) {
   }, [rawItem])
 
   React.useEffect(() => {
-    // Mutation is HIGHLY INADVISABLE in React, however it is useful here as we want to avoid
-    // re-rendering the parent.
+    // Mutation is HIGHLY INADVISABLE in React, however it is useful here as we want to update the
+    // parent's state while avoiding re-rendering the parent.
     rawItem.item = asset
   }, [asset, rawItem])
   const setAsset = setAssetHooks.useSetAsset(asset, setItem)

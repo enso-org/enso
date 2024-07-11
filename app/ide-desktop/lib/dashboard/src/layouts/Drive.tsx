@@ -107,8 +107,10 @@ export default function Drive(props: DriveProps) {
   const [suggestions, setSuggestions] = React.useState<readonly assetSearchBar.Suggestion[]>([])
   const [canDownload, setCanDownload] = React.useState(false)
   const [didLoadingProjectManagerFail, setDidLoadingProjectManagerFail] = React.useState(false)
-  const [assetPanelProps, setAssetPanelProps] =
+  const [assetPanelPropsRaw, setAssetPanelProps] =
     React.useState<assetPanel.AssetPanelRequiredProps | null>(null)
+  const assetPanelProps =
+    backend.type === assetPanelPropsRaw?.backend?.type ? assetPanelPropsRaw : null
   const [isAssetPanelEnabled, setIsAssetPanelEnabled] = React.useState(
     () => localStorage.get('isAssetPanelVisible') ?? false
   )
