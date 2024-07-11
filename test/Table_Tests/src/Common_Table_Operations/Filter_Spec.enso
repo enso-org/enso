@@ -103,7 +103,8 @@ add_specs suite_builder setup =
             t.filter "X" (Filter_Condition.Greater than=10.0) . at "ix" . to_vector . should_equal <|
                 if nan_is_greater_than_all then [1, 4, 5] else [1, 5]
 
-            # Similarly, PostgreSQL treats NaN==NaN
+            # Similarly, PostgreSQL and Snowflake treats NaN==NaN, we assume `nan_is_greater_than_all` implies that.
+            # If needed, this may become a separate flag in the future.
             t.filter "X" (Filter_Condition.Equal to=Number.nan) . at "ix" . to_vector . should_equal <|
                 if nan_is_greater_than_all then [4] else []
             t.filter "X" (Filter_Condition.Equal to=Number.positive_infinity) . at "ix" . to_vector . should_equal [5]
