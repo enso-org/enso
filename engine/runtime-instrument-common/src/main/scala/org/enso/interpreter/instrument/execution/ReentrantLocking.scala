@@ -61,7 +61,7 @@ class ReentrantLocking(logger: TruffleLogger) extends Locking {
     }
   }
 
-  private def acquireWriteCompilationLock(): Long = {
+  private def acquireWriteCompilationLock(where: Class[_]): Long = {
     assertNotLocked(
       compilationLock,
       true,
@@ -72,7 +72,7 @@ class ReentrantLocking(logger: TruffleLogger) extends Locking {
       s"Cannot acquire compilation write lock when having pending edits lock"
     )
     assertNoFileLock("Cannot acquire write compilation lock")
-    logLockAcquisition(compilationLock.writeLock(), "write compilation")
+    logLockAcquisition(compilationLock.writeLock(), "write compilation for " + where.getSimpleName)
   }
 
   private def releaseWriteCompilationLock(): Unit =
@@ -87,7 +87,7 @@ class ReentrantLocking(logger: TruffleLogger) extends Locking {
   def withWriteCompilationLock[T](where: Class[_], callable: Callable[T]): T = {
     var lockTimestamp: Long = 0
     try {
-      lockTimestamp = acquireWriteCompilationLock();
+      lockTimestamp = acquireWriteCompilationLock(where);
       callable.call();
     } catch {
       case ie: InterruptedException =>
@@ -98,7 +98,7 @@ class ReentrantLocking(logger: TruffleLogger) extends Locking {
         releaseWriteCompilationLock()
         logger.log(
           Level.FINEST,
-          s"Kept write compilation lock [{0}] for {1} milliseconds",
+          s"Kept write compilation lock [{0}] for {1}ms",
           Array[Any](
             where.getSimpleName,
             System.currentTimeMillis - lockTimestamp
@@ -108,7 +108,7 @@ class ReentrantLocking(logger: TruffleLogger) extends Locking {
     }
   }
 
-  private def acquireReadCompilationLock(): Long = {
+  private def acquireReadCompilationLock(where: Class[_]): Long = {
     // CloseFileCmd does:
     //   ctx.locking.acquireReadCompilationLock()
     //   ctx.locking.acquireFileLock(request.path)
@@ -119,7 +119,7 @@ class ReentrantLocking(logger: TruffleLogger) extends Locking {
       pendingEditsLock,
       s"Cannot acquire compilation read lock when having pending edits lock"
     )
-    logLockAcquisition(compilationLock.readLock(), "read compilation")
+    logLockAcquisition(compilationLock.readLock(), "read compilation for " + where.getSimpleName)
   }
 
   private def releaseReadCompilationLock(): Unit =
@@ -128,7 +128,7 @@ class ReentrantLocking(logger: TruffleLogger) extends Locking {
   def withReadCompilationLock[T](where: Class[_], callable: Callable[T]): T = {
     var lockTimestamp: Long = 0
     try {
-      lockTimestamp = acquireReadCompilationLock();
+      lockTimestamp = acquireReadCompilationLock(where);
       callable.call();
     } catch {
       case ie: InterruptedException =>
@@ -139,7 +139,7 @@ class ReentrantLocking(logger: TruffleLogger) extends Locking {
         releaseReadCompilationLock()
         logger.log(
           Level.FINEST,
-          s"Kept read compilation lock [{0}] for {1} milliseconds",
+          s"Kept read compilation lock [{0}] for {1}ms",
           Array[Any](
             where.getSimpleName,
             System.currentTimeMillis - lockTimestamp
@@ -174,7 +174,7 @@ class ReentrantLocking(logger: TruffleLogger) extends Locking {
         releasePendingEditsLock()
         logger.log(
           Level.FINEST,
-          s"Kept pending edits lock [{0}] for {1} milliseconds",
+          s"Kept pending edits lock [{0}] for {1}ms",
           Array[Any](
             where.getSimpleName,
             System.currentTimeMillis - lockTimestamp
@@ -233,7 +233,7 @@ class ReentrantLocking(logger: TruffleLogger) extends Locking {
         releaseContextLock(contextId)
         logger.log(
           Level.FINEST,
-          s"Kept context lock [{0}] for {1} milliseconds",
+          s"Kept context lock [{0}] for {1}ms",
           Array[Any](
             where.getSimpleName,
             System.currentTimeMillis - contextLockTimestamp
@@ -287,7 +287,7 @@ class ReentrantLocking(logger: TruffleLogger) extends Locking {
         releaseFileLock(file)
         logger.log(
           Level.FINEST,
-          s"Kept file lock [{0}] for {1} milliseconds",
+          s"Kept file lock [{0}] for {1}ms",
           Array[Any](
             where.getSimpleName,
             System.currentTimeMillis - lockTimestamp
@@ -301,7 +301,7 @@ class ReentrantLocking(logger: TruffleLogger) extends Locking {
     val now = System.currentTimeMillis()
     lock.lockInterruptibly()
     val now2 = System.currentTimeMillis()
-    logger.log(Level.FINEST, s"Waited ${now2 - now} for the $msg lock")
+    logger.log(Level.FINEST, s"Waited ${now2 - now}ms for the $msg lock")
     now2
   }
 

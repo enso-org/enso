@@ -47,8 +47,8 @@ public class SetExecutionEnvironmentCommand extends AsynchronousCommand {
             contextId,
             this.getClass(),
             () -> {
-              var oldEnvironment = ctx.executionService().getContext().getExecutionEnvironment();
-              if (!oldEnvironment.getName().equals(executionEnvironment.name())) {
+              var oldEnvironmentName = ctx.executionService().getContext().getExecutionEnvironment().getName();
+              if (!oldEnvironmentName.equals(executionEnvironment.name())) {
                 ctx.jobControlPlane().abortJobs(contextId);
                 ctx.locking()
                     .withWriteCompilationLock(
@@ -66,8 +66,8 @@ public class SetExecutionEnvironmentCommand extends AsynchronousCommand {
                         });
               } else {
                 logger.log(
-                    Level.FINEST,
-                    "Requested environment is the same as the current one. Request has no effect");
+                    Level.FINE,
+                    "Requested environment '{}' is the same as the current one. Request has no effect", oldEnvironmentName);
                 reply(new Runtime$Api$SetExecutionEnvironmentResponse(contextId), ctx);
               }
               return null;

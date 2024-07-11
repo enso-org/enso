@@ -43,12 +43,12 @@ class LanguageServerComponent(config: LanguageServerConfig, logLevel: Level)
   override def start(): Future[ComponentStarted.type] = {
     logger.info("Starting Language Server...")
     val sampler = startSampling(config)
-    logger.debug("Started [{}].", sampler.getClass.getName)
+    logger.debug("Started [{}]", sampler.getClass.getName)
     val module = new MainModule(config, logLevel)
     val bindJsonServer =
       for {
         binding <- module.jsonRpcServer.bind(config.interface, config.rpcPort)
-        _       <- Future { logger.debug("Json RPC server initialized.") }
+        _       <- Future { logger.debug("Server for JSON RPC is initialized") }
       } yield binding
     val bindSecureJsonServer: Future[Option[Http.ServerBinding]] = {
       config.secureRpcPort match {
@@ -63,7 +63,7 @@ class LanguageServerComponent(config: LanguageServerConfig, logLevel: Level)
     val bindBinaryServer =
       for {
         binding <- module.binaryServer.bind(config.interface, config.dataPort)
-        _       <- Future { logger.debug("Binary server initialized.") }
+        _       <- Future { logger.debug("Server for Binary WebSocket is initialized") }
       } yield binding
 
     val bindSecureBinaryServer: Future[Option[Http.ServerBinding]] = {
@@ -144,17 +144,17 @@ class LanguageServerComponent(config: LanguageServerConfig, logLevel: Level)
   private def releaseResources(serverContext: ServerContext): Future[Unit] =
     for {
       _ <- Future(serverContext.mainModule.close()).recover(logError)
-      _ <- Future { logger.info("Terminated main module.") }
+      _ <- Future { logger.debug("Terminated main module") }
     } yield ()
 
   private def terminateAkka(serverContext: ServerContext): Future[Unit] = {
     for {
       _ <- serverContext.jsonBinding.terminate(2.seconds).recover[Any](logError)
-      _ <- Future { logger.info("Terminated json connections.") }
+      _ <- Future { logger.info("Terminated JSON connections") }
       _ <- serverContext.binaryBinding
         .terminate(2.seconds)
         .recover[Any](logError)
-      _ <- Future { logger.info("Terminated binary connections.") }
+      _ <- Future { logger.info("Terminated binary connections") }
       _ <-
         Await
           .ready(
@@ -162,7 +162,7 @@ class LanguageServerComponent(config: LanguageServerConfig, logLevel: Level)
             2.seconds
           )
           .recover(logError)
-      _ <- Future { logger.info("Terminated actor system.") }
+      _ <- Future { logger.debug("Terminated actor system") }
     } yield ()
   }
 
@@ -174,7 +174,7 @@ class LanguageServerComponent(config: LanguageServerConfig, logLevel: Level)
 
     for {
       _ <- killFiber.recover[Any](logError)
-      _ <- Future { logger.info("Terminated truffle context.") }
+      _ <- Future { logger.debug("Terminated Truffle context") }
     } yield ()
   }
 
@@ -186,7 +186,7 @@ class LanguageServerComponent(config: LanguageServerConfig, logLevel: Level)
     } yield ComponentRestarted
 
   private val logError: PartialFunction[Throwable, Unit] = { case th =>
-    logger.error("An error occurred during stopping the server.", th)
+    logger.error("An error occurred when shutting down the server", th)
   }
 
 }
