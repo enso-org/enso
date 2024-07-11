@@ -234,6 +234,16 @@ public final class EnsoFile implements EnsoObject {
     }
 
     @TruffleBoundary(allowInlining = true)
+    private void mark(int readlimit) throws IOException {
+      delegate.mark(readlimit);
+    }
+
+    @TruffleBoundary(allowInlining = true)
+    private void reset() throws IOException {
+      delegate.reset();
+    }
+
+    @TruffleBoundary(allowInlining = true)
     private int available() throws IOException {
       return delegate.available();
     }
@@ -313,6 +323,21 @@ public final class EnsoFile implements EnsoObject {
               throw ArityException.create(0, 0, args.length);
             }
             yield is.markSupported();
+          }
+          case "mark" -> {
+            if (args.length != 1) {
+              throw ArityException.create(1, 1, args.length);
+            }
+            var readlimit = iop.asInt(args[0]);
+            is.mark(readlimit);
+            yield is;
+          }
+          case "reset" -> {
+            if (args.length != 0) {
+              throw ArityException.create(0, 0, args.length);
+            }
+            is.reset();
+            yield is;
           }
           case "available" -> {
             if (args.length != 0) {
