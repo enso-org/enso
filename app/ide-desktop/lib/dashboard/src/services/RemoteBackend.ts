@@ -12,6 +12,7 @@ import type * as textProvider from '#/providers/TextProvider'
 import Backend, * as backend from '#/services/Backend'
 import * as remoteBackendPaths from '#/services/remoteBackendPaths'
 
+import * as download from '#/utilities/download'
 import type HttpClient from '#/utilities/HttpClient'
 import * as object from '#/utilities/object'
 
@@ -1125,6 +1126,11 @@ export default class RemoteBackend extends Backend {
     }
 
     return project
+  }
+
+  /** Download from an arbitrary URL that is assumed to originate from this backend. */
+  override async download(url: string, name?: string) {
+    await download.downloadWithHeaders(url, this.client.defaultHeaders, name)
   }
 
   /** Get the default version given the type of version (IDE or backend). */

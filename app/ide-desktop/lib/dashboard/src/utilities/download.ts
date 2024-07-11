@@ -1,6 +1,10 @@
 /** @file A function to initiate a download. */
 
-/** Initiates a download for the specified url. */
+// ================
+// === download ===
+// ================
+
+/** Initiate a download for the specified url. */
 export function download(url: string, name?: string | null) {
   const link = document.createElement('a')
   link.href = url
@@ -8,4 +12,24 @@ export function download(url: string, name?: string | null) {
   document.body.appendChild(link)
   link.click()
   document.body.removeChild(link)
+}
+
+// ===========================
+// === downloadWithHeaders ===
+// ===========================
+
+/** Initiate a download with the specified headers, for the specified url. */
+export async function downloadWithHeaders(
+  url: string,
+  headers: Record<string, string>,
+  name?: string
+) {
+  if ('systemApi' in window) {
+    window.systemApi.downloadURL(url, headers)
+  } else {
+    const response = await fetch(url, { headers })
+    const body = await response.blob()
+    const objectUrl = URL.createObjectURL(body)
+    download(objectUrl, name ?? url.match(/[^/]+$/)?.[0] ?? '')
+  }
 }

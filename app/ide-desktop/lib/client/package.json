@@ -36,7 +36,7 @@
     "@babel/plugin-syntax-import-attributes": "^7.24.7",
     "@electron/notarize": "2.1.0",
     "@types/node": "^20.11.21",
-    "electron": "25.7.0",
+    "electron": "31.2.0",
     "electron-builder": "^24.13.3",
     "enso-common": "workspace:*",
     "enso-gui2": "workspace:*",

@@ -522,7 +522,7 @@ export default function AssetRow(props: AssetRowProps) {
                       asset.title,
                     ])
                     if (details.url != null) {
-                      download.download(details.url, asset.title)
+                      await backend.download(details.url, asset.title)
                     } else {
                       const error: unknown = getText('projectHasNoSourceFilesPhrase')
                       toastAndLog('downloadProjectError', error, asset.title)
@@ -539,7 +539,7 @@ export default function AssetRow(props: AssetRowProps) {
                       asset.title,
                     ])
                     if (details.url != null) {
-                      download.download(details.url, asset.title)
+                      await backend.download(details.url, asset.title)
                     } else {
                       const error: unknown = getText('fileNotFoundPhrase')
                       toastAndLog('downloadFileError', error, asset.title)
@@ -573,9 +573,11 @@ export default function AssetRow(props: AssetRowProps) {
               }
             } else {
               if (asset.type === backendModule.AssetType.project) {
+                const projectsDirectory = localBackend.extractTypeAndId(asset.parentId).id
                 const uuid = localBackend.extractTypeAndId(asset.id).id
+                const queryString = new URLSearchParams({ projectsDirectory }).toString()
                 download.download(
-                  `./api/project-manager/projects/${uuid}/enso-project`,
+                  `./api/project-manager/projects/${uuid}/enso-project?${queryString}`,
                   `${asset.title}.enso-project`
                 )
               }

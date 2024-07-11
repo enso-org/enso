@@ -1470,4 +1470,6 @@ export default abstract class Backend {
         title: string,
         abortSignal?: AbortSignal
     ): Promise<Project>
+    /** Download from an arbitrary URL that is assumed to originate from this backend. */
+    abstract download(url: string, name?: string): Promise<void>
 }

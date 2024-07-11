@@ -451,6 +451,15 @@ class App {
                 event.reply(ipc.Channel.importProjectFromPath, path, info)
             }
         )
+        electron.ipcMain.on(
+            ipc.Channel.downloadURL,
+            (_event, url: string, headers?: Record<string, string>) => {
+                electron.BrowserWindow.getFocusedWindow()?.webContents.downloadURL(
+                    url,
+                    headers ? { headers } : {}
+                )
+            }
+        )
         electron.ipcMain.on(ipc.Channel.showItemInFolder, (_event, fullPath: string) => {
             electron.shell.showItemInFolder(fullPath)
         })

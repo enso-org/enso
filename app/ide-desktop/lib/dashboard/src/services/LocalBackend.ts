@@ -9,6 +9,7 @@ import type ProjectManager from '#/services/ProjectManager'
 
 import * as appBaseUrl from '#/utilities/appBaseUrl'
 import * as dateTime from '#/utilities/dateTime'
+import * as download from '#/utilities/download'
 import * as errorModule from '#/utilities/error'
 import * as fileInfo from '#/utilities/fileInfo'
 
@@ -632,6 +633,12 @@ export default class LocalBackend extends Backend {
       parentId: newDirectoryId(folderPath),
       title: body.title,
     }
+  }
+
+  /** Download from an arbitrary URL that is assumed to originate from this backend. */
+  override async download(url: string, name?: string) {
+    download.download(url, name)
+    return Promise.resolve()
   }
 
   /** Invalid operation. */
