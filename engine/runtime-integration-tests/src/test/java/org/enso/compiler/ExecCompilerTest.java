@@ -1,20 +1,27 @@
 package org.enso.compiler;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.io.ByteArrayOutputStream;
 import java.net.URI;
 import java.nio.file.Paths;
 import java.util.logging.Level;
+import org.enso.common.LanguageInfo;
 import org.enso.common.MethodNames;
+import org.enso.common.MethodNames.Module;
+import org.enso.compiler.core.ir.expression.errors.Conversion.DeclaredAsPrivate$;
 import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.io.IOAccess;
+import org.hamcrest.core.AllOf;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
@@ -22,9 +29,11 @@ import org.junit.Test;
 
 public class ExecCompilerTest {
   private static Context ctx;
+  private static ByteArrayOutputStream out;
 
   @BeforeClass
   public static void initEnsoContext() {
+    out = new ByteArrayOutputStream();
     ctx =
         Context.newBuilder()
             .allowExperimentalOptions(true)
@@ -34,22 +43,26 @@ public class ExecCompilerTest {
                 Paths.get("../../distribution/component").toFile().getAbsolutePath())
             .option(RuntimeOptions.STRICT_ERRORS, "false")
             .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())
-            .logHandler(System.err)
+            .logHandler(out)
+            .out(out)
+            .err(out)
             .allowAllAccess(true)
             .build();
-    assertNotNull("Enso language is supported", ctx.getEngine().getLanguages().get("enso"));
+    assertNotNull(
+        "Enso language is supported", ctx.getEngine().getLanguages().get(LanguageInfo.ID));
   }
 
   @AfterClass
   public static void closeEnsoContext() throws Exception {
     ctx.close();
+    out.reset();
   }
 
   @Test
   public void testCaseOfWithNegativeConstant() throws Exception {
     var module =
         ctx.eval(
-            "enso",
+            LanguageInfo.ID,
             """
     run value =
         case value of
@@ -65,7 +78,7 @@ public class ExecCompilerTest {
 
   @Test
   public void testDesugarOperators() throws Exception {
-    var module = ctx.eval("enso", """
+    var module = ctx.eval(LanguageInfo.ID, """
     main =
       ma ==ums==
     """);
@@ -79,7 +92,7 @@ public class ExecCompilerTest {
 
   @Test
   public void testDesugarOperatorsLeftRight() throws Exception {
-    var module = ctx.eval("enso", """
+    var module = ctx.eval(LanguageInfo.ID, """
     main = (+ (2 *))
     """);
     try {
@@ -92,14 +105,19 @@ public class ExecCompilerTest {
 
   @Test
   public void testDesugarOperatorsRightLeft() throws Exception {
-    var module = ctx.eval("enso", """
+    var module = ctx.eval(LanguageInfo.ID, """
     main = ((* 2) +)
     """);
     try {
       var run = module.invokeMember("eval_expression", "main");
       fail("Unexpected result: " + run);
     } catch (PolyglotException ex) {
-      assertEquals("Method `+` of type Function could not be found.", ex.getMessage());
+      assertThat(
+          ex.getMessage(),
+          AllOf.allOf(
+              containsString("Method `+` of"),
+              containsString("Unnamed.main.Unnamed.main"),
+              containsString("could not be found.")));
     }
   }
 
@@ -107,7 +125,7 @@ public class ExecCompilerTest {
   public void testHalfAssignment() throws Exception {
     var module =
         ctx.eval(
-            "enso",
+            LanguageInfo.ID,
             """
     from Standard.Base.Errors.Common import all
     run value =
@@ -126,7 +144,7 @@ public class ExecCompilerTest {
 
   @Test
   public void redefinedArgument() throws Exception {
-    var module = ctx.eval("enso", """
+    var module = ctx.eval(LanguageInfo.ID, """
     type My_Type
         Value a b c a
     """);
@@ -147,7 +165,7 @@ public class ExecCompilerTest {
   public void testSelfAssignment() throws Exception {
     var module =
         ctx.eval(
-            "enso",
+            LanguageInfo.ID,
             """
     from Standard.Base.Errors.Common import all
     run value =
@@ -165,7 +183,7 @@ public class ExecCompilerTest {
   public void testRecursiveDefinition() throws Exception {
     var module =
         ctx.eval(
-            "enso",
+            LanguageInfo.ID,
             """
     from Standard.Base import all
 
@@ -184,7 +202,8 @@ public class ExecCompilerTest {
   @Test
   public void testDefault() throws Exception {
     var module =
-        ctx.eval("enso", """
+        ctx.eval(
+            LanguageInfo.ID, """
     f x=1 = x
     value_from_default =
       f default
@@ -197,7 +216,7 @@ public class ExecCompilerTest {
   public void testIdentCalledDefault() throws Exception {
     var module =
         ctx.eval(
-            "enso",
+            LanguageInfo.ID,
             """
     f x=1 = x
     value_from_binding =
@@ -210,7 +229,7 @@ public class ExecCompilerTest {
 
   @Test
   public void dotUnderscore() throws Exception {
-    var module = ctx.eval("enso", """
+    var module = ctx.eval(LanguageInfo.ID, """
     run op =
       op._
     """);
@@ -231,7 +250,7 @@ public class ExecCompilerTest {
   public void chainedSyntax() throws Exception {
     var module =
         ctx.eval(
-            "enso",
+            LanguageInfo.ID,
             """
     from Standard.Base import all
 
@@ -249,7 +268,7 @@ public class ExecCompilerTest {
 
   @Test
   public void chainedSyntaxOperator() throws Exception {
-    var module = ctx.eval("enso", """
+    var module = ctx.eval(LanguageInfo.ID, """
     nums n = n
         * 2
         % 3
@@ -262,7 +281,8 @@ public class ExecCompilerTest {
   @Test
   public void inlineReturnSignature() throws Exception {
     var module =
-        ctx.eval("enso", """
+        ctx.eval(
+            LanguageInfo.ID, """
     foo (x : Integer) (y : Integer) -> Integer = 10*x + y
     """);
     var foo = module.invokeMember("eval_expression", "foo");
@@ -274,7 +294,7 @@ public class ExecCompilerTest {
   public void inlineReturnSignatureOnMemberMethod() throws Exception {
     var module =
         ctx.eval(
-            "enso",
+            LanguageInfo.ID,
             """
             import Standard.Base.Data.Numbers
             type My_Type
@@ -291,7 +311,7 @@ public class ExecCompilerTest {
   public void inlineReturnSignatureOnLocalFunction() throws Exception {
     var module =
         ctx.eval(
-            "enso",
+            LanguageInfo.ID,
             """
     foo x y =
         inner_foo (z : Integer) -> Integer = 100*z + 10*y + x
@@ -306,7 +326,7 @@ public class ExecCompilerTest {
 
   @Test
   public void inlineReturnSignatureWithoutArguments() throws Exception {
-    var module = ctx.eval("enso", """
+    var module = ctx.eval(LanguageInfo.ID, """
     the_number -> Integer = 23
     """);
     var result = module.invokeMember("eval_expression", "the_number");
@@ -324,7 +344,7 @@ public class ExecCompilerTest {
     final URI uri = new URI("memory://rts.enso");
     final Source src =
         Source.newBuilder(
-                "enso",
+                LanguageInfo.ID,
                 """
     from Standard.Base import Integer
     foo a:Integer -> Integer = a+10
@@ -343,7 +363,7 @@ public class ExecCompilerTest {
     final URI uri = new URI("memory://rts.enso");
     final Source src =
         Source.newBuilder(
-                "enso",
+                LanguageInfo.ID,
                 """
     from Standard.Base import Integer
     foo a : Integer -> Integer = a+10
@@ -365,7 +385,7 @@ public class ExecCompilerTest {
   public void testInvalidEnsoProjectRef() throws Exception {
     var module =
         ctx.eval(
-            "enso",
+            LanguageInfo.ID,
             """
     from Standard.Base.Errors.Common import all
     from Standard.Base.Meta.Enso_Project import enso_project
@@ -382,7 +402,7 @@ public class ExecCompilerTest {
   public void testDoubledRandom() throws Exception {
     var module =
         ctx.eval(
-            "enso",
+            LanguageInfo.ID,
             """
           from Standard.Base import all
           polyglot java import java.util.Random
@@ -405,7 +425,7 @@ public class ExecCompilerTest {
   public void testUnknownStaticField() throws Exception {
     var module =
         ctx.eval(
-            "enso",
+            LanguageInfo.ID,
             """
           from Standard.Base import all
           polyglot java import java.util.Random as R
@@ -420,6 +440,73 @@ public class ExecCompilerTest {
       fail("Not expecting any result: " + err);
     } catch (PolyglotException ex) {
       assertEquals("Compile error: NO_FIELD is not visible in this scope.", ex.getMessage());
+    }
+  }
+
+  @Test
+  public void testPropertlyIdentifyNameOfJavaClassInError() throws Exception {
+    var module =
+        ctx.eval(
+            LanguageInfo.ID,
+            """
+    from Standard.Base.Errors.Common import all
+    polyglot java import java.lang.Runnable
+
+    run value =
+        Runnable.invoke value
+    """);
+    var run = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "run");
+    try {
+      var never = run.execute(-1);
+      fail("Unexpected result: " + never);
+    } catch (PolyglotException ex) {
+      assertEquals(
+          "Method `invoke` of type java.lang.Runnable could not be found.", ex.getMessage());
+    }
+  }
+
+  // Conversion methods cannot be specified as private
+  @Test
+  public void illegalPrivateConversion() throws Exception {
+    var module =
+        ctx.eval(
+            LanguageInfo.ID,
+            """
+        type My_Type
+        type Other_Type
+        private My_Type.from (other:Other_Type) =
+            42
+        run value =
+            42
+        """);
+    var expectedErrMsg = DeclaredAsPrivate$.MODULE$.explain();
+    var runMethod = module.invokeMember(Module.EVAL_EXPRESSION, "run");
+    runMethod.execute(0);
+    assertThat(out.toString(), containsString(expectedErrMsg));
+  }
+
+  @Test
+  public void resultOfConversionIsTypeChecked() throws Exception {
+    var code =
+        """
+        type First_Type
+        type Other_Type
+
+        First_Type.from (that:Other_Type) = 42
+        run value -> First_Type = Other_Type
+        """;
+    var module = ctx.eval(LanguageInfo.ID, code);
+    var runMethod = module.invokeMember(Module.EVAL_EXPRESSION, "run");
+    try {
+      var r = runMethod.execute(0);
+      fail("We don't expect any result, but exception: " + r);
+    } catch (PolyglotException ex) {
+      assertThat(
+          ex.getMessage().toLowerCase(),
+          AllOf.allOf(containsString("type"), containsString("error")));
+      var typeError = ex.getGuestObject();
+      assertEquals("Expected type", "First_Type", typeError.getMember("expected").toString());
+      assertEquals("Got wrong value", 42, typeError.getMember("actual").asInt());
     }
   }
 }

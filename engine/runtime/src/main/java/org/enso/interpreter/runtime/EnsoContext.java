@@ -28,7 +28,6 @@ import java.net.MalformedURLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -78,6 +77,7 @@ public final class EnsoContext {
   private final HostClassLoader hostClassLoader = new HostClassLoader();
   private final boolean assertionsEnabled;
   private final boolean isPrivateCheckDisabled;
+  private final boolean isStaticTypeAnalysisEnabled;
   private @CompilationFinal Compiler compiler;
   private final PrintStream out;
   private final PrintStream err;
@@ -136,6 +136,7 @@ public final class EnsoContext {
     this.isIrCachingDisabled =
         getOption(RuntimeOptions.DISABLE_IR_CACHES_KEY) || isParallelismEnabled;
     this.isPrivateCheckDisabled = getOption(RuntimeOptions.DISABLE_PRIVATE_CHECK_KEY);
+    this.isStaticTypeAnalysisEnabled = getOption(RuntimeOptions.ENABLE_STATIC_ANALYSIS_KEY);
     this.executionEnvironment = getOption(EnsoLanguage.EXECUTION_ENVIRONMENT);
     this.assertionsEnabled = shouldAssertionsBeEnabled();
     this.shouldWaitForPendingSerializationJobs =
@@ -145,6 +146,7 @@ public final class EnsoContext {
             isParallelismEnabled,
             true,
             !isPrivateCheckDisabled,
+            isStaticTypeAnalysisEnabled,
             getOption(RuntimeOptions.STRICT_ERRORS_KEY),
             scala.Option.empty());
     this.home = home;
@@ -172,8 +174,7 @@ public final class EnsoContext {
                         },
                         res -> res));
 
-    Optional<String> languageHome =
-        OptionsHelper.getLanguageHomeOverride(environment).or(() -> Optional.ofNullable(home));
+    var languageHome = OptionsHelper.findLanguageHome(environment);
     var editionOverride = OptionsHelper.getEditionOverride(environment);
     var resourceManager = new org.enso.distribution.locking.ResourceManager(lockManager);
 
@@ -522,34 +523,35 @@ public final class EnsoContext {
    */
   @TruffleBoundary
   public Object lookupJavaClass(String className) {
-    var items = Arrays.asList(className.split("\\."));
+    var binaryName = new StringBuilder(className);
     var collectedExceptions = new ArrayList<Exception>();
-    for (int i = items.size() - 1; i >= 0; i--) {
-      String pkgName = String.join(".", items.subList(0, i));
-      String curClassName = items.get(i);
-      List<String> nestedClassPart =
-          i < items.size() - 1 ? items.subList(i + 1, items.size()) : List.of();
+    for (; ; ) {
+      var fqn = binaryName.toString();
       try {
-        var hostSymbol = lookupHostSymbol(pkgName, curClassName);
-        if (nestedClassPart.isEmpty()) {
+        var hostSymbol = lookupHostSymbol(fqn);
+        if (hostSymbol != null) {
           return hostSymbol;
-        } else {
-          var fullInnerClassName = curClassName + "$" + String.join("$", nestedClassPart);
-          return lookupHostSymbol(pkgName, fullInnerClassName);
         }
       } catch (ClassNotFoundException | RuntimeException | InteropException ex) {
         collectedExceptions.add(ex);
       }
+      var at = fqn.lastIndexOf('.');
+      if (at < 0) {
+        break;
+      }
+      binaryName.setCharAt(at, '$');
     }
+    var level = Level.WARNING;
     for (var ex : collectedExceptions) {
-      logger.log(Level.WARNING, null, ex);
+      logger.log(level, ex.getMessage());
+      level = Level.FINE;
+      logger.log(Level.FINE, null, ex);
     }
     return null;
   }
 
-  private Object lookupHostSymbol(String pkgName, String curClassName)
+  private Object lookupHostSymbol(String fqn)
       throws ClassNotFoundException, UnknownIdentifierException, UnsupportedMessageException {
-    var fqn = pkgName + "." + curClassName;
     try {
       if (findGuestJava() == null) {
         return environment.asHostSymbol(hostClassLoader.loadClass(fqn));

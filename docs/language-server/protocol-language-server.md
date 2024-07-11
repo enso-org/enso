@@ -2834,10 +2834,20 @@ that some edits are applied and others are not.
 interface TextApplyEditParameters {
   /** The file edit. */
   edit: FileEdit;
-  /** A flag indicating whether we should re-execute the program after applying
+
+  /**
+   * A flag indicating whether we should re-execute the program after applying
    * the edit. Default value is `true`, indicating the program should be
-   * re-executed. */
+   * re-executed.
+   */
   execute?: boolean;
+
+  /**
+   * An identifiers map associated with this file as an array of
+   * index, length, uuid triples. The old id map format that was used in the
+   * source file is also supported.
+   */
+  idMap?: [number, number, UUID][];
 }
 ```
 

@@ -1,7 +1,5 @@
 <script setup lang="ts">
 import type { ChangeSet, Diagnostic, Highlighter } from '@/components/CodeEditor/codemirror'
-import SvgIcon from '@/components/SvgIcon.vue'
-import { usePointer } from '@/composables/events'
 import { useGraphStore, type NodeId } from '@/stores/graph'
 import { useProjectStore } from '@/stores/project'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
@@ -9,7 +7,6 @@ import { useAutoBlur } from '@/util/autoBlur'
 import { chain } from '@/util/data/iterable'
 import { unwrap } from '@/util/data/result'
 import { qnJoin, tryQualifiedName } from '@/util/qualifiedName'
-import { useLocalStorage } from '@vueuse/core'
 import { createDebouncer } from 'lib0/eventloop'
 import { MutableModule } from 'shared/ast'
 import { textChangeToEdits, type SourceRangeEdit } from 'shared/util/data/text'
@@ -38,8 +35,6 @@ const {
   hoverTooltip,
   textEditToChangeSpec,
 } = await import('@/components/CodeEditor/codemirror')
-
-const emit = defineEmits<{ close: [] }>()
 
 const projectStore = useProjectStore()
 const graphStore = useGraphStore()
@@ -299,132 +294,41 @@ onMounted(() => {
   editorView.focus()
   rootElement.value?.prepend(editorView.dom)
 })
-
-const editorSize = useLocalStorage<{ width: number | null; height: number | null }>(
-  'code-editor-size',
-  { width: null, height: null },
-)
-
-let initSize = { width: 0, height: 0 }
-const resize = usePointer((pos, _, type) => {
-  if (rootElement.value == null) return
-  if (type == 'start') initSize = rootElement.value.getBoundingClientRect()
-  editorSize.value.width = initSize.width + pos.relative.x
-  editorSize.value.height = initSize.height - pos.relative.y
-})
-
-function resetSize() {
-  editorSize.value.width = null
-  editorSize.value.height = null
-}
-
-const editorStyle = computed(() => {
-  return {
-    width: editorSize.value.width ? `${editorSize.value.width}px` : '50%',
-    height: editorSize.value.height ? `${editorSize.value.height}px` : '30%',
-  }
-})
 </script>
 
 <template>
   <div
     ref="rootElement"
     class="CodeEditor"
-    :style="editorStyle"
+    @keydown.arrow-left.stop
+    @keydown.arrow-right.stop
+    @keydown.arrow-up.stop
+    @keydown.arrow-down.stop
     @keydown.enter.stop
     @keydown.backspace.stop
     @keydown.delete.stop
     @wheel.stop.passive
     @contextmenu.stop
-  >
-    <div class="resize-handle" v-on="resize.events" @dblclick="resetSize">
-      <svg viewBox="0 0 16 16">
-        <circle cx="2" cy="2" r="1.5" />
-        <circle cx="8" cy="2" r="1.5" />
-        <circle cx="8" cy="8" r="1.5" />
-        <circle cx="14" cy="2" r="1.5" />
-        <circle cx="14" cy="8" r="1.5" />
-        <circle cx="14" cy="14" r="1.5" />
-      </svg>
-    </div>
-    <SvgIcon name="close" class="closeButton button" @click="emit('close')" />
-  </div>
+  ></div>
 </template>
 
 <style scoped>
 .CodeEditor {
-  position: absolute;
-  bottom: 5px;
-  left: 5px;
-  width: 50%;
-  height: 30%;
-  max-width: calc(100% - 10px);
-  max-height: calc(100% - 10px);
-  backdrop-filter: var(--blur-app-bg);
-  border-radius: 7px;
+  width: 100%;
+  height: 100%;
   font-family: var(--font-mono);
-
-  &.v-enter-active,
-  &.v-leave-active {
-    transition:
-      transform 0.2s ease,
-      opacity 0.2s ease;
-  }
-
-  &.v-enter-from,
-  &.v-leave-to {
-    transform: scale(95%);
-    opacity: 0;
-  }
 }
 
 :deep(.ͼ1 .cm-scroller) {
   font-family: var(--font-mono);
-}
-
-.resize-handle {
-  position: absolute;
-  top: -3px;
-  right: -3px;
-  width: 20px;
-  height: 20px;
-  padding: 5px;
-  cursor: nesw-resize;
-
-  svg {
-    fill: black;
-    width: 100%;
-    height: 100%;
-    opacity: 0.1;
-    transition: opacity 0.1s ease-in-out;
-  }
-
-  &:hover svg {
-    opacity: 0.9;
-  }
-}
-
-.closeButton {
-  position: absolute;
-  top: 4px;
-  left: 6px;
-  color: red;
-  opacity: 0.3;
-
-  &:hover {
-    opacity: 0.6;
-  }
+  /* Prevent touchpad back gesture, which can be triggered while panning. */
+  overscroll-behavior: none;
 }
 
 .CodeEditor :deep(.cm-editor) {
   position: relative;
-  color: white;
   width: 100%;
   height: 100%;
-  background-color: rgba(255, 255, 255, 0.35);
-  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.4);
-  border-radius: 5px;
   opacity: 1;
   color: black;
   text-shadow: 0 0 2px rgba(255, 255, 255, 0.4);
@@ -445,7 +349,7 @@ const editorStyle = computed(() => {
 
   &::before {
     content: '';
-    background-color: rgba(255, 255, 255, 0.35);
+    background-color: rgba(255, 255, 255, 0.9);
     backdrop-filter: blur(64px);
     border-radius: 4px;
   }
@@ -453,5 +357,6 @@ const editorStyle = computed(() => {
 
 .CodeEditor :deep(.cm-gutters) {
   border-radius: 3px 0 0 3px;
+  min-width: 32px;
 }
 </style>

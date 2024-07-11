@@ -142,7 +142,7 @@ object Expression {
       )
     }
 
-    /** @inheritdoc */
+    /** String representation. */
     override def toString: String =
       s"""
          |Expression.Block(
@@ -254,7 +254,7 @@ object Expression {
       copy(name = name.mapExpressions(fn), expression = fn(expression))
     }
 
-    /** @inheritdoc */
+    /** String representation. */
     override def toString: String =
       s"""
          |Expression.Binding(

@@ -6,6 +6,7 @@ import project.Semantic.Any_Spec
 import project.Semantic.Case_Spec
 import project.Semantic.Conversion_Spec
 import project.Semantic.Deep_Export.Spec as Deep_Export_Spec
+import project.Semantic.Default_Args_Spec
 import project.Semantic.Error_Spec
 import project.Semantic.Import_Loop.Spec as Import_Loop_Spec
 import project.Semantic.Meta_Spec
@@ -29,12 +30,13 @@ import project.Data.Array_Proxy_Spec
 import project.Data.Bool_Spec
 import project.Data.Base_64_Spec
 import project.Data.Decimal_Spec
+import project.Data.Dictionary_Spec
 import project.Data.Function_Spec
+import project.Data.Hashset_Spec
 import project.Data.Interval_Spec
 import project.Data.Json_Spec
 import project.Data.List_Spec
 import project.Data.Locale_Spec
-import project.Data.Map_Spec
 import project.Data.Maybe_Spec
 import project.Data.Numbers_Spec
 import project.Data.Ordering_Spec
@@ -46,7 +48,6 @@ import project.Data.Polyglot_Spec
 import project.Data.Problems_Spec
 import project.Data.Range_Spec
 import project.Data.Regression_Spec
-import project.Data.Set_Spec
 import project.Data.Statistics_Spec
 import project.Data.Time.Spec as Time_Spec
 import project.Data.Vector_Spec
@@ -84,6 +85,7 @@ import project.Runtime.Stack_Traces_Spec
 import project.System.Environment_Spec
 import project.System.File_Spec
 import project.System.File_Read_Spec
+import project.System.Input_Stream_Spec
 import project.System.Process_Spec
 import project.System.Reporting_Stream_Decoder_Spec
 import project.System.Reporting_Stream_Encoder_Spec
@@ -91,6 +93,7 @@ import project.System.System_Spec
 import project.System.Temporary_File_Spec
 
 import project.Random_Spec
+import project.Widget_Helpers_Spec
 
 main filter=Nothing =
     suite = Test.build suite_builder->
@@ -103,12 +106,14 @@ main filter=Nothing =
         Function_Spec.add_specs suite_builder
         Case_Spec.add_specs suite_builder
         Conversion_Spec.add_specs suite_builder
+        Default_Args_Spec.add_specs suite_builder
         Deep_Export_Spec.add_specs suite_builder
         Error_Spec.add_specs suite_builder
         Environment_Spec.add_specs suite_builder
         File_Spec.add_specs suite_builder
         Temporary_File_Spec.add_specs suite_builder
         File_Read_Spec.add_specs suite_builder
+        Input_Stream_Spec.add_specs suite_builder
         Reporting_Stream_Decoder_Spec.add_specs suite_builder
         Reporting_Stream_Encoder_Spec.add_specs suite_builder
         Http_Header_Spec.add_specs suite_builder
@@ -124,8 +129,8 @@ main filter=Nothing =
         Json_Spec.add_specs suite_builder
         List_Spec.add_specs suite_builder
         Locale_Spec.add_specs suite_builder
-        Map_Spec.add_specs suite_builder
-        Set_Spec.add_specs suite_builder
+        Dictionary_Spec.add_specs suite_builder
+        Hashset_Spec.add_specs suite_builder
         Maybe_Spec.add_specs suite_builder
         Meta_Spec.add_specs suite_builder
         Instrumentor_Spec.add_specs suite_builder
@@ -174,5 +179,6 @@ main filter=Nothing =
         Random_Spec.add_specs suite_builder
         XML_Spec.add_specs suite_builder
         Decimal_Spec.add_specs suite_builder
+        Widget_Helpers_Spec.add_specs suite_builder
 
     suite.run_with_filter filter

@@ -1,17 +1,19 @@
 import project.Any.Any
+import project.Data.Hashset.Hashset
 import project.Data.Locale.Locale
 import project.Data.Numbers.Number
-import project.Data.Set.Set
 import project.Data.Text.Case_Sensitivity.Case_Sensitivity
 import project.Data.Text.Regex.Regex
 import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Error.Error
 import project.Errors.Common.Incomparable_Values
+import project.Errors.Common.Missing_Argument
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Function.Function
 import project.Meta
 import project.Nothing.Nothing
+import project.Panic.Panic
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Filter_Condition.Filter_Condition import all
 from project.Data.Text.Extensions import all
@@ -22,25 +24,25 @@ polyglot java import org.enso.base.Regex_Utils
 
 type Filter_Condition
     ## Is less than a value (or another column, in case of Table operations)?
-    Less than:Any action:Filter_Action=Filter_Action.Keep
+    Less than=(Missing_Argument.throw "than") action:Filter_Action=Filter_Action.Keep
 
     ## Is less than or equal to a value (or another column, in case of Table operations)?
-    Equal_Or_Less than:Any action:Filter_Action=Filter_Action.Keep
+    Equal_Or_Less than=(Missing_Argument.throw "than") action:Filter_Action=Filter_Action.Keep
 
     ## Is equal to a value (or another column, in case of Table operations)?
-    Equal to:Any action:Filter_Action=Filter_Action.Keep
+    Equal to=(Missing_Argument.throw "to") action:Filter_Action=Filter_Action.Keep
 
     ## Is greater than or equal to a value (or another column, in case of Table operations)?
-    Equal_Or_Greater than:Any action:Filter_Action=Filter_Action.Keep
+    Equal_Or_Greater than=(Missing_Argument.throw "than") action:Filter_Action=Filter_Action.Keep
 
     ## Is greater than a value (or another column, in case of Table operations)?
-    Greater than:Any action:Filter_Action=Filter_Action.Keep
+    Greater than=(Missing_Argument.throw "than") action:Filter_Action=Filter_Action.Keep
 
     ## Is not equal to a value (or another column, in case of Table operations)?
-    Not_Equal to:Any action:Filter_Action=Filter_Action.Keep
+    Not_Equal to=(Missing_Argument.throw "to") action:Filter_Action=Filter_Action.Keep
 
     ## Is between (inclusive) two values (or columns, in case of Table operations)?
-    Between lower:Any upper:Any action:Filter_Action=Filter_Action.Keep
+    Between lower=(Missing_Argument.throw "lower") upper=(Missing_Argument.throw "upper") action:Filter_Action=Filter_Action.Keep
 
     ## Is equal to another value, ignoring case (Text only)?
 
@@ -55,7 +57,7 @@ type Filter_Condition
          This ensures that different ways of expressing the same character in
          the underlying binary representation are considered equal.
     @locale Locale.default_widget
-    Equal_Ignore_Case (to : Text | Any) (locale:Locale=Locale.default) action:Filter_Action=Filter_Action.Keep
+    Equal_Ignore_Case (to = (Missing_Argument.throw "to")) (locale:Locale=Locale.default) action:Filter_Action=Filter_Action.Keep
 
     ## Does the value start with a prefix (Text only)?
 
@@ -63,7 +65,7 @@ type Filter_Condition
          It accepts a Text value to check if the value contains it. In case of
          Table operations, it can accept another column - then the corresponding
          values from the source column and the provided column are checked.
-    Starts_With (prefix : Text | Any) (case_sensitivity:Case_Sensitivity=Case_Sensitivity.Default) action:Filter_Action=Filter_Action.Keep
+    Starts_With (prefix = (Missing_Argument.throw "prefix")) (case_sensitivity:Case_Sensitivity=Case_Sensitivity.Default) action:Filter_Action=Filter_Action.Keep
 
     ## Does the value end with a suffix (Text only)?
 
@@ -71,7 +73,7 @@ type Filter_Condition
          It accepts a Text value to check if the value contains it. In case of
          Table operations, it can accept another column - then the corresponding
          values from the source column and the provided column are checked.
-    Ends_With (suffix : Text | Any) (case_sensitivity:Case_Sensitivity=Case_Sensitivity.Default) action:Filter_Action=Filter_Action.Keep
+    Ends_With (suffix = (Missing_Argument.throw "suffix")) (case_sensitivity:Case_Sensitivity=Case_Sensitivity.Default) action:Filter_Action=Filter_Action.Keep
 
     ## Does the value contain the substring (Text only)?
 
@@ -79,7 +81,7 @@ type Filter_Condition
          It accepts a Text value to check if the value contains it. In case of
          Table operations, it can accept another column - then the corresponding
          values from the source column and the provided column are checked.
-    Contains (substring : Text | Any) (case_sensitivity:Case_Sensitivity=Case_Sensitivity.Default) action:Filter_Action=Filter_Action.Keep
+    Contains (substring = (Missing_Argument.throw "substring")) (case_sensitivity:Case_Sensitivity=Case_Sensitivity.Default) action:Filter_Action=Filter_Action.Keep
 
     ## Is equal to Nothing?
     Is_Nothing action:Filter_Action=Filter_Action.Keep
@@ -127,7 +129,7 @@ type Filter_Condition
          Due to this limitation, Unicode normalization has been disabled for
          this function, so beware that some equivalent graphemes like 'ś' and
          's\u0301' will not be matched.
-    Like (pattern : Text | Any) action:Filter_Action=Filter_Action.Keep
+    Like (pattern = (Missing_Argument.throw "pattern")) action:Filter_Action=Filter_Action.Keep
 
     ## Is the value contained in `values`?
 
@@ -141,7 +143,17 @@ type Filter_Condition
          Using Columns can be particularly useful for Database operations, as
          uploading a temporary table and using its column for an `Is_In` check
          will likely be faster than using the vector directly.
-    Is_In values:Vector|Any action:Filter_Action=Filter_Action.Keep
+    Is_In values=[] action:Filter_Action=Filter_Action.Keep
+
+    ## PRIVATE
+       Resolves a possibly auto-scoped value to a concrete value.
+    resolve_auto_scoped : Any -> Any
+    resolve_auto_scoped filter =
+        resolve filter:Filter_Condition = filter
+        case filter of
+            _ : Function -> Panic.catch Any (resolve filter) _->filter
+            _ : Filter_Condition -> filter
+            _ -> Panic.throw (Illegal_Argument.Error "The filter condition can either be a Function or a Filter_Condition, but got: "+filter.to_display_text)
 
     ## ICON convert
        Converts a `Filter_Condition` condition into a predicate taking an
@@ -186,9 +198,7 @@ type Filter_Condition
             Like sql_pattern _ ->
                 regex = sql_like_to_regex sql_pattern
                 handle_nothing <| regex.matches
-            Is_In values _ ->
-                set = Set.from_vector values
-                set.contains
+            Is_In values _ -> Hashset.from_vector values . contains
         if self.action == Filter_Action.Keep then base else v -> (base v).not
 
     ## PRIVATE
@@ -295,42 +305,14 @@ unify_condition_or_predicate : Filter_Condition | (Any -> Boolean) -> (Any -> Bo
 unify_condition_or_predicate (condition_or_predicate : Filter_Condition | (Any -> Boolean)) =
     case condition_or_predicate of
         condition : Filter_Condition -> condition.to_predicate
-        predicate -> handle_constructor_missing_arguments predicate predicate
+        predicate -> predicate
 
 ## PRIVATE
 unify_condition_predicate_or_element condition =
     case condition of
         condition : Filter_Condition -> condition.to_predicate
-        predicate : Function -> handle_constructor_missing_arguments predicate predicate
+        predicate : Function -> predicate
         element -> (== element)
-
-## PRIVATE
-   Checks if the given `function` is actually a `Filter_Condition` constructor
-   that is just missing arguments. If so, it will report a more friendly error.
-   Otherwise it will run the `continuation`.
-handle_constructor_missing_arguments function ~continuation =
-    is_filter_condition_constructor = case Meta.meta function of
-        constructor : Meta.Constructor ->
-            constructor.declaring_type == Meta.meta Filter_Condition
-        ## Special case for multi-argument constructors with some but not all
-           arguments applied.
-
-           For example, `Meta.meta (Filter_Condition.Between 10)` will return a `Meta.Primitive`.
-           We rely on its text representation being of the form `Filter_Condition.Between[Filter_Condition.enso:41-343]`.
-        _ : Meta.Primitive ->
-            text = function.to_text
-            prefix = "Filter_Condition."
-            if (text.starts_with prefix && text.contains "[Filter_Condition.enso:") . not then False else
-                ## The additional check for capital letter is needed, because otherwise, we get false positives:
-                   `(Filter_Condition.Greater 1).to_predicate` evaluates to function whose text representation
-                   may start with `Filter_Condition.handle_nothing`. Such functions are not constructors.
-                constructor_letter = text.get prefix.length ""
-                constructor_letter >= "A" && constructor_letter <= "Z"
-
-        _ -> False
-    if is_filter_condition_constructor.not then continuation else
-        message = "Got a Filter_Condition constructor without all required arguments provided. Please provide the missing arguments."
-        Error.throw (Illegal_Argument.Error message)
 
 ## PRIVATE
    Extends the provided predicate to handle `Nothing` values without error.

@@ -5,6 +5,7 @@ from Standard.Table import all
 from Standard.Test import all
 
 import enso_dev.Base_Tests.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
+import enso_dev.Base_Tests.Network.Enso_Cloud.Cloud_Tests_Setup.Temporary_Directory
 
 import project.Util
 
@@ -20,7 +21,7 @@ add_specs suite_builder =
         group_builder.specify "writing Excel" <|
             t = Table.new [["X", [1, 2, 3]], ["Y", ["a", "b", "c"]]]
 
-            f = Enso_File.root / "write-test-"+(Date_Time.now.format "yyyy-MM-dd_HHmmss.fV" . replace "/" "|")+".xlsx"
+            f = Enso_File.root / "write-test-"+Temporary_Directory.timestamp_text+".xlsx"
             t.write f . should_equal f
             Panic.with_finalizer f.delete_if_exists <|
                 workbook = f.read

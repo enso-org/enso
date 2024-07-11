@@ -13,6 +13,7 @@ from project.Data.Boolean import Boolean, False, True
 from project.Data.Ordering import all
 from project.Data.Range.Extensions import all
 from project.Function import const
+from project.Internal.Ordering_Helpers import assert_same_comparators
 
 ## Any is the universal top-type, with all other types being subsumed by it.
 
@@ -77,7 +78,8 @@ type Any
     to_text : Text
     to_text self = @Builtin_Method "Any.to_text"
 
-    ## Generic conversion of an arbitrary Enso value to a corresponding human-readable
+    ## ICON convert
+       Generic conversion of an arbitrary Enso value to a corresponding human-readable
        representation.
 
        > Example
@@ -194,8 +196,8 @@ type Any
                  a > 147
     > : Any -> Boolean ! Incomparable_Values
     > self that =
-        assert_same_comparators self that <|
-            case (Comparable.from self).compare self that of
+        assert_same_comparators self that comparator->
+            case comparator.compare self that of
                 Ordering.Greater -> True
                 Nothing -> Error.throw (Incomparable_Values.Error self that)
                 _ -> False
@@ -224,8 +226,8 @@ type Any
                  a >= 147
     >= : Any -> Boolean ! Incomparable_Values
     >= self that =
-        assert_same_comparators self that <|
-            case (Comparable.from self).compare self that of
+        assert_same_comparators self that comparator->
+            case comparator.compare self that of
                 Ordering.Equal -> True
                 Ordering.Greater -> True
                 Nothing -> Error.throw (Incomparable_Values.Error self that)
@@ -254,8 +256,8 @@ type Any
                  a < 147
     < : Any -> Boolean ! Incomparable_Values
     < self that =
-        assert_same_comparators self that <|
-            case (Comparable.from self).compare self that of
+        assert_same_comparators self that comparator->
+            case comparator.compare self that of
                 Ordering.Less -> True
                 Nothing -> Error.throw (Incomparable_Values.Error self that)
                 _ -> False
@@ -286,8 +288,8 @@ type Any
                  a < 147
     <= : Any -> Boolean ! Incomparable_Values
     <= self that =
-        assert_same_comparators self that <|
-            case (Comparable.from self).compare self that of
+        assert_same_comparators self that comparator->
+            case comparator.compare self that of
                 Ordering.Equal -> True
                 Ordering.Less -> True
                 Nothing -> Error.throw (Incomparable_Values.Error self that)
@@ -332,6 +334,7 @@ type Any
     if_not_nothing self ~action = action
 
     ## GROUP Errors
+       ICON error
        Executes the provided handler on an error, or returns the value unchanged.
 
        Arguments:
@@ -374,7 +377,7 @@ type Any
     catch_primitive : (Error -> Any) -> Any
     catch_primitive self handler = @Builtin_Method "Any.catch_primitive"
 
-    ## ICON dataframe_map_column
+    ## ICON column_add
        Transforms an error.
 
        Arguments:
@@ -390,14 +393,15 @@ type Any
              from Standard.Examples import Example_Error_Type
 
              example_map_error =
-                my_map = Map.empty
-                error = my_map.at "x"
+                my_dictionary = Dictionary.empty
+                error = my_dictionary.at "x"
                 error.map_error (_ -> Example_Error_Type "x is missing")
     map_error : (Error -> Error) -> Any
     map_error self ~f =
         const self f
 
     ## GROUP Errors
+       ICON error
        Checks if `self` is an error.
 
        > Example
@@ -429,7 +433,7 @@ type Any
     if_not_error : Any -> Any
     if_not_error self ~other = other
 
-    ## ICON dataframe_map_column
+    ## ICON column_add
        Applies the provided function to `self` unless `self` is `Nothing`, which is
        returned unchanged.
 
@@ -450,7 +454,7 @@ type Any
        GROUP Operators
        Applies the function on the right hand side to the argument on the left.
 
-       Arguments
+       Arguments:
        - function: The function to apply to `self`.
 
        ? `|>` or `.`?
@@ -481,6 +485,7 @@ type Any
         False
 
     ## GROUP Errors
+       ICON warning
        Remove the warnings (either all or of a specified type) attached to the value.
 
        Arguments:
@@ -491,6 +496,7 @@ type Any
         self
 
     ## GROUP Errors
+       ICON error
        Throws the first matching warning (either all or of a specified type) as a data flow error.
 
        Arguments:
@@ -500,13 +506,3 @@ type Any
         _ = warning_type
         self
 
-## PRIVATE
-   Checks if the comparators for the given objects are both of the same type. If so,
-   proceeds with the given action, and if not, throws `Incomparable_Values` error.
-assert_same_comparators : Any -> Any -> (Any -> Any) -> Any ! Incomparable_Values
-assert_same_comparators this that ~action =
-    comp_this = Comparable.from this
-    comp_that = Comparable.from that
-    case Meta.is_same_object comp_this comp_that of
-        True -> action
-        False -> Error.throw (Incomparable_Values.Error this that)

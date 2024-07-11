@@ -1,7 +1,10 @@
 /** @file Entry point into the cloud dashboard. */
+import * as commonQuery from 'enso-common/src/queryClient'
+
 import '#/tailwind.css'
 
 import * as main from '#/index'
+import * as testAppRunner from '#/TestAppRunner'
 
 // ===================
 // === Entry point ===
@@ -25,14 +28,6 @@ main.run({
   /** The cloud frontend is not capable of running a Project Manager. */
   projectManagerUrl: null,
   ydocUrl: null,
-  // This cannot be `appRunner: window.enso` as `window.enso` is set to a new value
-  // every time a new project is opened.
-  appRunner: {
-    stopApp: () => {
-      window.enso?.stopApp()
-    },
-    runApp: async (config, accessToken) => {
-      await window.enso?.runApp(config, accessToken)
-    },
-  },
+  appRunner: testAppRunner.TestAppRunner,
+  queryClient: commonQuery.createQueryClient(),
 })

@@ -3,12 +3,12 @@ import * as React from 'react'
 
 import PenIcon from 'enso-assets/pen.svg'
 
-import * as dataLinkValidator from '#/data/dataLinkValidator'
+import * as datalinkValidator from '#/data/datalinkValidator'
 
+import * as backendHooks from '#/hooks/backendHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
-import * as backendProvider from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import type * as assetEvent from '#/events/assetEvent'
@@ -16,16 +16,16 @@ import type * as assetEvent from '#/events/assetEvent'
 import type Category from '#/layouts/CategorySwitcher/Category'
 
 import * as aria from '#/components/aria'
+import * as ariaComponents from '#/components/AriaComponents'
 import SharedWithColumn from '#/components/dashboard/column/SharedWithColumn'
-import DataLinkInput from '#/components/dashboard/DataLinkInput'
+import DatalinkInput from '#/components/dashboard/DatalinkInput'
 import Label from '#/components/dashboard/Label'
 import StatelessSpinner, * as statelessSpinner from '#/components/StatelessSpinner'
-import Button from '#/components/styled/Button'
-import UnstyledButton from '#/components/UnstyledButton'
 
 import * as backendModule from '#/services/Backend'
+import type Backend from '#/services/Backend'
+import * as localBackend from '#/services/LocalBackend'
 
-import type AssetQuery from '#/utilities/AssetQuery'
 import type * as assetTreeNode from '#/utilities/AssetTreeNode'
 import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
@@ -36,61 +36,64 @@ import * as permissions from '#/utilities/permissions'
 
 /** Props for an {@link AssetPropertiesProps}. */
 export interface AssetPropertiesProps {
+  readonly backend: Backend
   readonly item: assetTreeNode.AnyAssetTreeNode
   readonly setItem: React.Dispatch<React.SetStateAction<assetTreeNode.AnyAssetTreeNode>>
   readonly category: Category
-  readonly labels: backendModule.Label[]
-  readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
   readonly dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
   readonly isReadonly?: boolean
 }
 
 /** Display and modify the properties of an asset. */
 export default function AssetProperties(props: AssetPropertiesProps) {
-  const {
-    item: itemRaw,
-    setItem: setItemRaw,
-    category,
-    labels,
-    setQuery,
-    isReadonly = false,
-  } = props
-  const { dispatchAssetEvent } = props
+  const { backend, item: itemRaw, setItem: setItemRaw, category } = props
+  const { isReadonly = false, dispatchAssetEvent } = props
 
   const { user } = authProvider.useNonPartialUserSession()
-  const { backend } = backendProvider.useBackend()
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const [item, setItemInner] = React.useState(itemRaw)
   const [isEditingDescription, setIsEditingDescription] = React.useState(false)
   const [queuedDescription, setQueuedDescripion] = React.useState<string | null>(null)
   const [description, setDescription] = React.useState('')
-  const [dataLinkValue, setDataLinkValue] = React.useState<NonNullable<unknown> | null>(null)
-  const [editedDataLinkValue, setEditedDataLinkValue] = React.useState<NonNullable<unknown> | null>(
-    dataLinkValue
+  const [datalinkValue, setDatalinkValue] = React.useState<NonNullable<unknown> | null>(null)
+  const [editedDatalinkValue, setEditedDatalinkValue] = React.useState<NonNullable<unknown> | null>(
+    datalinkValue
   )
-  const [isDataLinkFetched, setIsDataLinkFetched] = React.useState(false)
-  const isDataLinkSubmittable = React.useMemo(
-    () => dataLinkValidator.validateDataLink(dataLinkValue),
-    [dataLinkValue]
+  const [isDatalinkFetched, setIsDatalinkFetched] = React.useState(false)
+  const isDatalinkSubmittable = React.useMemo(
+    () => datalinkValidator.validateDatalink(datalinkValue),
+    [datalinkValue]
   )
   const setItem = React.useCallback(
     (valueOrUpdater: React.SetStateAction<assetTreeNode.AnyAssetTreeNode>) => {
       setItemInner(valueOrUpdater)
       setItemRaw(valueOrUpdater)
     },
-    [/* should never change */ setItemRaw]
+    [setItemRaw]
   )
+  const labels = backendHooks.useBackendListTags(backend) ?? []
   const self = item.item.permissions?.find(
-    backendModule.isUserPermissionAnd(permission => permission.user.userId === user?.userId)
+    backendModule.isUserPermissionAnd(permission => permission.user.userId === user.userId)
   )
   const ownsThisAsset = self?.permission === permissions.PermissionAction.own
   const canEditThisAsset =
     ownsThisAsset ||
     self?.permission === permissions.PermissionAction.admin ||
     self?.permission === permissions.PermissionAction.edit
-  const isDataLink = item.item.type === backendModule.AssetType.dataLink
-  const isDataLinkDisabled = dataLinkValue === editedDataLinkValue || !isDataLinkSubmittable
+  const isDatalink = item.item.type === backendModule.AssetType.datalink
+  const isDatalinkDisabled = datalinkValue === editedDatalinkValue || !isDatalinkSubmittable
+  const isCloud = backend.type === backendModule.BackendType.remote
+  const path = isCloud
+    ? null
+    : item.item.type === backendModule.AssetType.project
+      ? item.item.projectState.path ?? null
+      : localBackend.extractTypeAndId(item.item.id).id
+
+  const createDatalinkMutation = backendHooks.useBackendMutation(backend, 'createDatalink')
+  const getDatalinkMutation = backendHooks.useBackendMutation(backend, 'getDatalink')
+  const updateAssetMutation = backendHooks.useBackendMutation(backend, 'updateAsset')
+  const getDatalinkMutate = getDatalinkMutation.mutateAsync
 
   React.useEffect(() => {
     setDescription(item.item.description ?? '')
@@ -98,14 +101,14 @@ export default function AssetProperties(props: AssetPropertiesProps) {
 
   React.useEffect(() => {
     void (async () => {
-      if (item.item.type === backendModule.AssetType.dataLink) {
-        const value = await backend.getConnector(item.item.id, item.item.title)
-        setDataLinkValue(value)
-        setEditedDataLinkValue(value)
-        setIsDataLinkFetched(true)
+      if (item.item.type === backendModule.AssetType.datalink) {
+        const value = await getDatalinkMutate([item.item.id, item.item.title])
+        setDatalinkValue(value)
+        setEditedDatalinkValue(value)
+        setIsDatalinkFetched(true)
       }
     })()
-  }, [backend, item.item])
+  }, [backend, item.item, getDatalinkMutate])
 
   const doEditDescription = async () => {
     setIsEditingDescription(false)
@@ -114,15 +117,15 @@ export default function AssetProperties(props: AssetPropertiesProps) {
       setItem(oldItem => oldItem.with({ item: object.merge(oldItem.item, { description }) }))
       try {
         const projectPath = item.item.projectState?.path
-        await backend.updateAsset(
+        await updateAssetMutation.mutateAsync([
           item.item.id,
           {
             parentDirectoryId: null,
             description,
             ...(projectPath == null ? {} : { projectPath }),
           },
-          item.item.title
-        )
+          item.item.title,
+        ])
       } catch (error) {
         toastAndLog('editDescriptionError')
         setItem(oldItem =>
@@ -141,8 +144,10 @@ export default function AssetProperties(props: AssetPropertiesProps) {
         >
           {getText('description')}
           {!isReadonly && ownsThisAsset && !isEditingDescription && (
-            <Button
-              image={PenIcon}
+            <ariaComponents.Button
+              size="icon"
+              variant="icon"
+              icon={PenIcon}
               onPress={() => {
                 setIsEditingDescription(true)
                 setQueuedDescripion(item.item.description)
@@ -157,7 +162,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
           {!isEditingDescription ? (
             <aria.Text className="text">{item.item.description}</aria.Text>
           ) : (
-            <form className="flex flex-col gap-modal" onSubmit={doEditDescription}>
+            <form className="flex flex-col gap-modal pr-4" onSubmit={doEditDescription}>
               <textarea
                 ref={element => {
                   if (element != null && queuedDescription != null) {
@@ -165,8 +170,12 @@ export default function AssetProperties(props: AssetPropertiesProps) {
                     setQueuedDescripion(null)
                   }
                 }}
-                onBlur={doEditDescription}
                 value={description}
+                className="w-full resize-none rounded-default border-0.5 border-primary/20 p-2"
+                onBlur={doEditDescription}
+                onChange={event => {
+                  setDescription(event.currentTarget.value)
+                }}
                 onKeyDown={event => {
                   event.stopPropagation()
                   switch (event.key) {
@@ -182,124 +191,148 @@ export default function AssetProperties(props: AssetPropertiesProps) {
                     }
                   }
                 }}
-                onChange={event => {
-                  setDescription(event.currentTarget.value)
-                }}
-                className="-m-multiline-input-p w-full resize-none rounded-input bg-frame p-multiline-input"
               />
-              <div className="flex gap-buttons">
-                <UnstyledButton
-                  className="button self-start bg-selected-frame"
-                  onPress={doEditDescription}
-                >
+              <ariaComponents.ButtonGroup>
+                <ariaComponents.Button size="medium" variant="bar" onPress={doEditDescription}>
                   {getText('update')}
-                </UnstyledButton>
-              </div>
+                </ariaComponents.Button>
+              </ariaComponents.ButtonGroup>
             </form>
           )}
         </div>
-      </div>
-      <div className="pointer-events-auto flex flex-col items-start gap-side-panel-section">
-        <aria.Heading
-          level={2}
-          className="h-side-panel-heading py-side-panel-heading-y text-lg leading-snug"
-        >
-          {getText('settings')}
-        </aria.Heading>
-        <table>
-          <tbody>
-            <tr data-testid="asset-panel-permissions" className="h-row">
-              <td className="text my-auto min-w-side-panel-label p">
-                <aria.Label className="text inline-block">{getText('sharedWith')}</aria.Label>
-              </td>
-              <td className="w-full p">
-                <SharedWithColumn
-                  isReadonly={isReadonly}
-                  item={item}
-                  setItem={setItem}
-                  state={{ category, dispatchAssetEvent, setQuery }}
-                />
-              </td>
-            </tr>
-            <tr data-testid="asset-panel-labels" className="h-row">
-              <td className="text my-auto min-w-side-panel-label p">
-                <aria.Label className="text inline-block">{getText('labels')}</aria.Label>
-              </td>
-              <td className="w-full p">
-                {item.item.labels?.map(value => {
-                  const label = labels.find(otherLabel => otherLabel.value === value)
-                  return label == null ? null : (
-                    <Label key={value} active isDisabled color={label.color} onPress={() => {}}>
-                      {value}
-                    </Label>
-                  )
-                })}
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-      {isDataLink && (
+      </div>{' '}
+      {!isCloud && (
         <div className="pointer-events-auto flex flex-col items-start gap-side-panel-section">
           <aria.Heading
             level={2}
             className="h-side-panel-heading py-side-panel-heading-y text-lg leading-snug"
           >
-            {getText('dataLink')}
+            {getText('metadata')}
           </aria.Heading>
-          {!isDataLinkFetched ? (
+          <table>
+            <tbody>
+              <tr data-testid="asset-panel-permissions" className="h-row">
+                <td className="text my-auto min-w-side-panel-label p-0">
+                  <aria.Label className="text inline-block">{getText('path')}</aria.Label>
+                </td>
+                <td className="w-full p-0">
+                  <div className="flex gap-2">
+                    <span className="grow">{path}</span>
+                    <ariaComponents.CopyButton copyText={path ?? ''} />
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      )}
+      {isCloud && (
+        <div className="pointer-events-auto flex flex-col items-start gap-side-panel-section">
+          <aria.Heading
+            level={2}
+            className="h-side-panel-heading py-side-panel-heading-y text-lg leading-snug"
+          >
+            {getText('settings')}
+          </aria.Heading>
+          <table>
+            <tbody>
+              <tr data-testid="asset-panel-permissions" className="h-row">
+                <td className="text my-auto min-w-side-panel-label p">
+                  <aria.Label className="text inline-block">{getText('sharedWith')}</aria.Label>
+                </td>
+                <td className="w-full p">
+                  <SharedWithColumn
+                    isReadonly={isReadonly}
+                    item={item}
+                    setItem={setItem}
+                    state={{ category, dispatchAssetEvent, setQuery: () => {} }}
+                  />
+                </td>
+              </tr>
+              <tr data-testid="asset-panel-labels" className="h-row">
+                <td className="text my-auto min-w-side-panel-label p">
+                  <aria.Label className="text inline-block">{getText('labels')}</aria.Label>
+                </td>
+                <td className="w-full p">
+                  {item.item.labels?.map(value => {
+                    const label = labels.find(otherLabel => otherLabel.value === value)
+                    return label == null ? null : (
+                      <Label key={value} active isDisabled color={label.color} onPress={() => {}}>
+                        {value}
+                      </Label>
+                    )
+                  })}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      )}
+      {isDatalink && (
+        <div className="pointer-events-auto flex flex-col items-start gap-side-panel-section">
+          <aria.Heading
+            level={2}
+            className="h-side-panel-heading py-side-panel-heading-y text-lg leading-snug"
+          >
+            {getText('datalink')}
+          </aria.Heading>
+          {!isDatalinkFetched ? (
             <div className="grid place-items-center self-stretch">
               <StatelessSpinner size={48} state={statelessSpinner.SpinnerState.loadingMedium} />
             </div>
           ) : (
             <>
-              <DataLinkInput
+              <DatalinkInput
                 readOnly={!canEditThisAsset}
                 dropdownTitle="Type"
-                value={editedDataLinkValue}
-                setValue={setEditedDataLinkValue}
+                value={editedDatalinkValue}
+                setValue={setEditedDatalinkValue}
               />
               {canEditThisAsset && (
-                <div className="flex gap-buttons">
-                  <UnstyledButton
-                    isDisabled={isDataLinkDisabled}
-                    {...(isDataLinkDisabled
-                      ? { title: 'Edit the Data Link before updating it.' }
+                <ariaComponents.ButtonGroup>
+                  <ariaComponents.Button
+                    size="medium"
+                    variant="submit"
+                    isDisabled={isDatalinkDisabled}
+                    {...(isDatalinkDisabled
+                      ? { title: 'Edit the Datalink before updating it.' }
                       : {})}
-                    className="button bg-invite text-white enabled:active"
                     onPress={() => {
                       void (async () => {
-                        if (item.item.type === backendModule.AssetType.dataLink) {
-                          const oldDataLinkValue = dataLinkValue
+                        if (item.item.type === backendModule.AssetType.datalink) {
+                          const oldDatalinkValue = datalinkValue
                           try {
-                            setDataLinkValue(editedDataLinkValue)
-                            await backend.createConnector({
-                              connectorId: item.item.id,
-                              name: item.item.title,
-                              parentDirectoryId: null,
-                              value: editedDataLinkValue,
-                            })
+                            setDatalinkValue(editedDatalinkValue)
+                            await createDatalinkMutation.mutateAsync([
+                              {
+                                datalinkId: item.item.id,
+                                name: item.item.title,
+                                parentDirectoryId: null,
+                                value: editedDatalinkValue,
+                              },
+                            ])
                           } catch (error) {
                             toastAndLog(null, error)
-                            setDataLinkValue(oldDataLinkValue)
-                            setEditedDataLinkValue(oldDataLinkValue)
+                            setDatalinkValue(oldDatalinkValue)
+                            setEditedDatalinkValue(oldDatalinkValue)
                           }
                         }
                       })()
                     }}
                   >
                     {getText('update')}
-                  </UnstyledButton>
-                  <UnstyledButton
-                    isDisabled={isDataLinkDisabled}
-                    className="button bg-selected-frame enabled:active"
+                  </ariaComponents.Button>
+                  <ariaComponents.Button
+                    size="medium"
+                    variant="bar"
+                    isDisabled={isDatalinkDisabled}
                     onPress={() => {
-                      setEditedDataLinkValue(dataLinkValue)
+                      setEditedDatalinkValue(datalinkValue)
                     }}
                   >
                     {getText('cancel')}
-                  </UnstyledButton>
-                </div>
+                  </ariaComponents.Button>
+                </ariaComponents.ButtonGroup>
               )}
             </>
           )}

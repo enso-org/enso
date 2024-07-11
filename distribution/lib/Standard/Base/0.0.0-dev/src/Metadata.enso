@@ -1,11 +1,14 @@
+import project.Data.Json.JS_Object
 import project.Data.Numbers.Integer
 import project.Data.Numbers.Number
 import project.Data.Pair.Pair
 import project.Data.Text.Text
 import project.Data.Vector.Vector
+import project.Meta
 import project.Nothing.Nothing
-
 from project.Data.Boolean import Boolean, False, True
+from project.Data.Json.Extensions import all
+from project.Data.Range.Extensions import all
 
 type Display
     ## Parameter is always shown on the collapsed view.
@@ -27,7 +30,7 @@ type File_Action
 type Choice
     ## Describes an entry in a Single_Choice or Multiple_Choice widget.
 
-       Fields:
+       Arguments:
        - label: The text to display for the entry.
        - value: The code to insert for the entry. By default, the `label` is used.
        - parameters: A list of parameters for the arguments for the `value`.
@@ -38,7 +41,7 @@ type Choice
 type Widget
     ## Describes a single value widget (dropdown).
 
-       Fields:
+       Arguments:
        - values: A list of choices to display.
        - label: The placeholder text value.
          By default, the parameter name is used.
@@ -49,7 +52,7 @@ type Widget
     ## Describes a list editor widget producing a Vector.
        Items can be dragged around to change the order, or dragged out to be deleted from the Vector.
 
-       Fields:
+       Arguments:
        - item_editor: The widget to use for editing the items.
        - item_default: The default value for new items inserted when the user clicks the `+` button.
        - label: The placeholder text value.
@@ -76,7 +79,24 @@ type Widget
     Folder_Browse label:(Nothing | Text)=Nothing display:Display=Display.When_Modified
 
     ## Describes a file chooser.
-    File_Browse label:(Nothing | Text)=Nothing display:Display=Display.When_Modified action:File_Action=File_Action.Open file_types:(Vector Pair)=[Pair.new "All Files" "*.*"]
+    File_Browse existing_only:Boolean=True label:(Nothing | Text)=Nothing display:Display=Display.When_Modified action:File_Action=File_Action.Open file_types:(Vector Pair)=[Pair.new "All Files" "*.*"]
+
+    ## PRIVATE
+       Override the to_js_object and don't include Nothing.
+    to_js_object : JS_Object
+    to_js_object self =
+        type_pair = [["type", Meta.type_of self . to_text]]
+
+        m = Meta.meta self
+        cons = m.constructor
+        cons_pair = [["constructor", cons.name]]
+
+        fs = m.fields
+        field_names = cons.fields
+        field_pairs = 0.up_to field_names.length . filter (i-> (field_names.at i == "label") || (fs.at i . is_nothing . not)) . map i->
+            [field_names.at i, fs.at i . to_js_object]
+
+        JS_Object.from_pairs (type_pair + cons_pair + field_pairs)
 
 ## PRIVATE
 make_single_choice : Vector -> Display -> Widget

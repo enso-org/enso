@@ -76,7 +76,7 @@ sealed case class Syntax(
     fn: java.util.function.Function[Expression, Expression]
   ): Syntax = this
 
-  /** @inheritdoc */
+  /** String representation. */
   override def toString: String =
     s"""
        |Error.Syntax(

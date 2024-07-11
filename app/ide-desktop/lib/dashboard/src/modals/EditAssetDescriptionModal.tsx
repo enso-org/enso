@@ -1,9 +1,4 @@
-/**
- * @file
- *
- * Modal for editing an asset's description.
- */
-
+/** @file Modal for editing the description of an asset. */
 import * as React from 'react'
 
 import * as reactQuery from '@tanstack/react-query'
@@ -14,21 +9,19 @@ import * as textProvider from '#/providers/TextProvider'
 import * as ariaComponents from '#/components/AriaComponents'
 import Modal from '#/components/Modal'
 
-/**
- *
- */
+// =================================
+// === EditAssetDescriptionModal ===
+// =================================
+
+/** Props for a {@link EditAssetDescriptionModal}. */
 export interface EditAssetDescriptionModalProps {
   readonly actionButtonLabel?: string
   readonly initialDescription: string | null
-  /**
-   * Callback to change the asset's description.
-   */
+  /** Callback to change the asset's description. */
   readonly doChangeDescription: (newDescription: string) => Promise<void>
 }
 
-/**
- * Modal for editing an asset's description.
- */
+/** Modal for editing the description of an asset. */
 export default function EditAssetDescriptionModal(props: EditAssetDescriptionModalProps) {
   const { getText } = textProvider.useText()
   const {
@@ -93,7 +86,7 @@ export default function EditAssetDescriptionModal(props: EditAssetDescriptionMod
 
         {error && <div className="relative text-sm text-red-500">{error.message}</div>}
 
-        <div className="relative flex gap-buttons">
+        <div className="relative flex gap-2">
           <ariaComponents.Button variant="submit" type="submit" loading={isPending}>
             {actionButtonLabel}
           </ariaComponents.Button>

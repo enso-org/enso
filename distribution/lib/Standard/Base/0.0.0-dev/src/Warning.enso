@@ -1,10 +1,9 @@
 import project.Any.Any
 import project.Data.Array.Array
-import project.Data.Index_Sub_Range.Index_Sub_Range
+import project.Data.Hashset.Hashset
 import project.Data.Maybe.Maybe
 import project.Data.Numbers.Integer
 import project.Data.Pair.Pair
-import project.Data.Set.Set
 import project.Data.Vector.Map_Error
 import project.Data.Vector.No_Wrap
 import project.Data.Vector.Vector
@@ -27,7 +26,7 @@ type Warning
     attach : Any -> Any -> Any
     attach warning value =
         origin = Runtime.get_stack_trace
-        attach_with_stacktrace value warning (origin.drop (Index_Sub_Range.First 1))
+        attach_with_stacktrace value warning (origin.drop (..First 1))
 
     ## PRIVATE
        ADVANCED
@@ -53,6 +52,7 @@ type Warning
         Warning.detach_selected_warnings value (w-> w.is_a warning_type) . first
 
     ## GROUP Errors
+       ICON error
        Throws the first matching warning (either all or of a specified type) as a data flow error.
 
        Arguments:
@@ -73,7 +73,7 @@ type Warning
        - wrap_errors: If true, warnings attached to elements in array-likes are
          wrapped in Map_Error.
     get_all : Any -> Boolean -> Vector Warning
-    get_all value wrap_errors:Boolean=False = Vector.from_polyglot_array (get_all_array value wrap_errors)
+    get_all value wrap_errors:Boolean=False = get_all_vector value wrap_errors
 
     ## PRIVATE
        ADVANCED
@@ -242,11 +242,14 @@ type Warning
                 Warning.attach warning acc
 
     ## GROUP Metadata
+       ICON metadata
        Returns the warning value – usually its explanation or other contents.
     value : Any
     value self = @Builtin_Method "Warning.value"
 
     ## ADVANCED
+       GROUP Metadata
+       ICON metadata
 
        A stack trace for the original warning creation.
     origin : Vector Stack_Trace_Element
@@ -302,8 +305,8 @@ attach_with_stacktrace value warning origin = @Builtin_Method "Warning.attach_wi
 ## PRIVATE
 
    Builtin function that gets all the warnings attached to the given value.
-get_all_array : Any -> Boolean -> Array Warning
-get_all_array value should_wrap = @Builtin_Method "Warning.get_all_array"
+get_all_vector : Any -> Boolean -> Vector Warning
+get_all_vector value should_wrap = @Builtin_Method "Warning.get_all_vector"
 
 ## PRIVATE
 
@@ -328,8 +331,8 @@ map_attached_warnings_helper mapper value frames_to_drop =
             Maybe.Some new_payload ->
                 self_call_name = "Warning.map_attached_warnings_helper"
                 stack_trace = Runtime.get_stack_trace
-                stack_trace_up_to_this_function = stack_trace.drop (Index_Sub_Range.While element-> element.name != self_call_name)
-                new_origin = stack_trace_up_to_this_function.drop (Index_Sub_Range.First 1+frames_to_drop)
+                stack_trace_up_to_this_function = stack_trace.drop (..While element-> element.name != self_call_name)
+                new_origin = stack_trace_up_to_this_function.drop (..First 1+frames_to_drop)
                 create new_payload new_origin
             ## If the mapper did not want to affect this warning, we return the
                original (unwrapped) warning instance.

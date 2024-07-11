@@ -1,88 +1,252 @@
-/**
- * @file
- * A dialog is an overlay shown above other content in an application.
- * Can be used to display alerts, confirmations, or other content.
- */
+/** @file A dialog is an overlay shown above other content in an application.
+ * Can be used to display alerts, confirmations, or other content. */
 import * as React from 'react'
-
-import * as tailwindMerge from 'tailwind-merge'
-
-import Dismiss from 'enso-assets/dismiss.svg'
 
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
+import * as errorBoundary from '#/components/ErrorBoundary'
 import * as portal from '#/components/Portal'
+import * as suspense from '#/components/Suspense'
 
+import * as mergeRefs from '#/utilities/mergeRefs'
+import * as twv from '#/utilities/tailwindVariants'
+
+import * as dialogProvider from './DialogProvider'
+import * as dialogStackProvider from './DialogStackProvider'
 import type * as types from './types'
+import * as utlities from './utilities'
+import * as variants from './variants'
 
-const MODAL_CLASSES =
-  'fixed z-1 top-0 left-0 right-0 bottom-0 bg-black/[15%] flex items-center justify-center text-center'
-const DIALOG_CLASSES =
-  'relative flex flex-col overflow-hidden rounded-xl text-left align-middle text-slate-700 shadow-2xl bg-clip-padding border border-black/10 before:absolute before:inset before:h-full before:w-full before:rounded-default before:bg-selected-frame before:backdrop-blur-default'
-
-const MODAL_CLASSES_BY_TYPE = {
-  modal: 'p-4',
-  popover: '',
-  fullscreen: 'p-4',
-} satisfies Record<types.DialogType, string>
-
-const DIALOG_CLASSES_BY_TYPE = {
-  modal: 'w-full max-w-md min-h-[200px] h-[90vh] max-h-[90vh]',
-  popover: 'rounded-lg',
-  fullscreen: 'w-full h-full max-w-full max-h-full bg-clip-border',
-} satisfies Record<types.DialogType, string>
-
+// =================
+// === Constants ===
+// =================
 /**
- * A dialog is an overlay shown above other content in an application.
- * Can be used to display alerts, confirmations, or other content.
+ * Props for the {@link Dialog} component.
  */
-export function Dialog(props: types.DialogProps) {
+export interface DialogProps
+  extends types.DialogProps,
+    Omit<twv.VariantProps<typeof DIALOG_STYLES>, 'scrolledToTop'> {}
+
+const OVERLAY_STYLES = twv.tv({
+  base: 'fixed inset-0 isolate flex items-center justify-center bg-black/[25%]',
+  variants: {
+    isEntering: { true: 'animate-in fade-in duration-200 ease-out' },
+    isExiting: { true: 'animate-out fade-out duration-200 ease-in' },
+  },
+})
+
+const MODAL_STYLES = twv.tv({
+  base: 'fixed inset-0 flex items-center justify-center text-center text-xs text-primary p-4',
+  variants: {
+    isEntering: { true: 'animate-in slide-in-from-top-1 ease-out duration-200' },
+    isExiting: { true: 'animate-out slide-out-to-top-1 ease-in duration-200' },
+  },
+})
+
+const DIALOG_STYLES = twv.tv({
+  extend: variants.DIALOG_STYLES,
+  base: '',
+  variants: {
+    type: {
+      modal: {
+        base: 'w-full max-w-md min-h-[100px] max-h-[90vh]',
+        header: 'px-3.5 pt-[3px] pb-0.5 min-h-[42px]',
+      },
+      fullscreen: {
+        base: 'w-full h-full max-w-full max-h-full bg-clip-border',
+        header: 'px-4 pt-[5px] pb-1.5 min-h-12',
+      },
+    },
+    hideCloseButton: { true: { closeButton: 'hidden' } },
+    closeButton: {
+      normal: { base: '', closeButton: '' },
+      floating: {
+        base: '',
+        closeButton: 'absolute left-4 top-4 visible z-1 transition-all duration-150',
+        header: 'invisible p-0 h-0 border-0 z-1',
+        content: 'isolate',
+      },
+    },
+    scrolledToTop: { true: { header: 'border-transparent' } },
+  },
+  slots: {
+    header:
+      'sticky grid grid-cols-[1fr_auto_1fr] items-center border-b border-primary/10 transition-[border-color] duration-150',
+    closeButton: 'col-start-1 col-end-1 mr-auto',
+    heading: 'col-start-2 col-end-2 my-0 text-center',
+    content: 'relative flex-auto overflow-y-auto p-3.5',
+  },
+})
+
+// ==============
+// === Dialog ===
+// ==============
+
+/** A dialog is an overlay shown above other content in an application.
+ * Can be used to display alerts, confirmations, or other content. */
+export function Dialog(props: DialogProps) {
   const {
     children,
     title,
     type = 'modal',
-    isDismissible = true,
+    closeButton = 'normal',
+    isDismissable = true,
     isKeyboardDismissDisabled = false,
+    hideCloseButton = false,
     className,
+    onOpenChange = () => {},
+    modalProps = {},
+    testId = 'dialog',
+    rounded,
     ...ariaDialogProps
   } = props
 
+  const [isScrolledToTop, setIsScrolledToTop] = React.useState(true)
+
+  /**
+   * Handles the scroll event on the dialog content.
+   */
+  const handleScroll = (scrollTop: number) => {
+    if (scrollTop > 0) {
+      setIsScrolledToTop(false)
+    } else {
+      setIsScrolledToTop(true)
+    }
+  }
+
+  const dialogId = aria.useId()
+  const dialogRef = React.useRef<HTMLDivElement>(null)
+  const overlayState = React.useRef<aria.OverlayTriggerState | null>(null)
   const root = portal.useStrictPortalContext()
 
+  const dialogSlots = DIALOG_STYLES({
+    className,
+    type,
+    rounded,
+    hideCloseButton,
+    closeButton,
+    scrolledToTop: isScrolledToTop,
+  })
+
+  utlities.useInteractOutside({
+    ref: dialogRef,
+    id: dialogId,
+    onInteractOutside: () => {
+      if (isDismissable) {
+        overlayState.current?.close()
+      } else {
+        const duration = 200 // 200ms
+        dialogRef.current?.animate(
+          [{ transform: 'scale(1)' }, { transform: 'scale(1.015)' }, { transform: 'scale(1)' }],
+          { duration, iterations: 1, direction: 'alternate' }
+        )
+      }
+    },
+  })
+
   return (
-    <aria.Modal
-      className={tailwindMerge.twMerge(MODAL_CLASSES, [MODAL_CLASSES_BY_TYPE[type]])}
-      isDismissable={isDismissible}
+    <aria.ModalOverlay
+      className={OVERLAY_STYLES}
+      isDismissable={isDismissable}
       isKeyboardDismissDisabled={isKeyboardDismissDisabled}
-      UNSTABLE_portalContainer={root.current}
+      UNSTABLE_portalContainer={root}
+      onOpenChange={onOpenChange}
+      shouldCloseOnInteractOutside={() => false}
+      {...modalProps}
     >
-      <aria.Dialog
-        className={tailwindMerge.twMerge(DIALOG_CLASSES, [DIALOG_CLASSES_BY_TYPE[type]], className)}
-        {...ariaDialogProps}
-      >
-        {opts => (
-          <>
-            {typeof title === 'string' && (
-              <aria.Header className="center sticky flex flex-none border-b px-3.5 py-2.5 text-primary shadow">
-                <aria.Heading level={2} className="text-l my-0 font-semibold leading-6">
-                  {title}
-                </aria.Heading>
+      {values => {
+        overlayState.current = values.state
 
-                <ariaComponents.Button
-                  variant="icon"
-                  className="my-auto ml-auto"
-                  onPress={opts.close}
-                  icon={Dismiss}
-                />
-              </aria.Header>
-            )}
+        return (
+          <aria.Modal
+            className={MODAL_STYLES}
+            isDismissable={isDismissable}
+            isKeyboardDismissDisabled={isKeyboardDismissDisabled}
+            UNSTABLE_portalContainer={root}
+            onOpenChange={onOpenChange}
+            shouldCloseOnInteractOutside={() => false}
+            {...modalProps}
+          >
+            <dialogStackProvider.DialogStackRegistrar
+              id={dialogId}
+              type={TYPE_TO_DIALOG_TYPE[type]}
+            >
+              <aria.Dialog
+                id={dialogId}
+                ref={mergeRefs.mergeRefs(dialogRef, element => {
+                  if (element) {
+                    // This is a workaround for the `data-testid` attribute not being
+                    // supported by the 'react-aria-components' library.
+                    // We need to set the `data-testid` attribute on the dialog element
+                    // so that we can use it in our tests.
+                    // This is a temporary solution until we refactor the Dialog component
+                    // to use `useDialog` hook from the 'react-aria-components' library.
+                    // this will allow us to set the `data-testid` attribute on the dialog
+                    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+                    element.dataset.testId = testId
+                  }
+                })}
+                className={dialogSlots.base()}
+                {...ariaDialogProps}
+              >
+                {opts => {
+                  return (
+                    <dialogProvider.DialogProvider value={{ close: opts.close, dialogId }}>
+                      <aria.Header
+                        className={dialogSlots.header({ scrolledToTop: isScrolledToTop })}
+                      >
+                        <ariaComponents.CloseButton
+                          className={dialogSlots.closeButton()}
+                          onPress={opts.close}
+                        />
 
-            <div className="flex-1 shrink-0">
-              {typeof children === 'function' ? children(opts) : children}
-            </div>
-          </>
-        )}
-      </aria.Dialog>
-    </aria.Modal>
+                        {title != null && (
+                          <ariaComponents.Text.Heading
+                            slot="title"
+                            level={2}
+                            className={dialogSlots.heading()}
+                            weight="semibold"
+                          >
+                            {title}
+                          </ariaComponents.Text.Heading>
+                        )}
+                      </aria.Header>
+
+                      <div
+                        ref={ref => {
+                          if (ref) {
+                            handleScroll(ref.scrollTop)
+                          }
+                        }}
+                        className={dialogSlots.content()}
+                        onScroll={event => {
+                          handleScroll(event.currentTarget.scrollTop)
+                        }}
+                      >
+                        <errorBoundary.ErrorBoundary>
+                          <suspense.Suspense
+                            loaderProps={{ minHeight: type === 'fullscreen' ? 'full' : 'h32' }}
+                          >
+                            {typeof children === 'function' ? children(opts) : children}
+                          </suspense.Suspense>
+                        </errorBoundary.ErrorBoundary>
+                      </div>
+                    </dialogProvider.DialogProvider>
+                  )
+                }}
+              </aria.Dialog>
+            </dialogStackProvider.DialogStackRegistrar>
+          </aria.Modal>
+        )
+      }}
+    </aria.ModalOverlay>
   )
+}
+
+const TYPE_TO_DIALOG_TYPE: Record<
+  NonNullable<DialogProps['type']>,
+  dialogStackProvider.DialogStackItem['type']
+> = {
+  modal: 'dialog',
+  fullscreen: 'dialog-fullscreen',
 }

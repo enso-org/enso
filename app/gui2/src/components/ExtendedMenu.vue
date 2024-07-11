@@ -1,99 +1,111 @@
 <script setup lang="ts">
-import { codeEditorBindings } from '@/bindings'
+import { codeEditorBindings, documentationEditorBindings } from '@/bindings'
+import DropdownMenu from '@/components/DropdownMenu.vue'
+import MenuButton from '@/components/MenuButton.vue'
+import SvgButton from '@/components/SvgButton.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import { ref } from 'vue'
 
-const isDropdownOpen = ref(false)
-
+const showCodeEditor = defineModel<boolean>('showCodeEditor', { required: true })
+const showDocumentationEditor = defineModel<boolean>('showDocumentationEditor', { required: true })
 const props = defineProps<{
   zoomLevel: number
 }>()
-const emit = defineEmits<{ zoomIn: []; zoomOut: []; fitToAllClicked: []; toggleCodeEditor: [] }>()
+const emit = defineEmits<{
+  zoomIn: []
+  zoomOut: []
+  fitToAllClicked: []
+}>()
+
+const open = ref(false)
+
 const toggleCodeEditorShortcut = codeEditorBindings.bindings.toggle.humanReadable
+const toggleDocumentationEditorShortcut = documentationEditorBindings.bindings.toggle.humanReadable
 </script>
 
 <template>
-  <div class="ExtendedMenu" @click.stop="isDropdownOpen = !isDropdownOpen">
-    <SvgIcon name="3_dot_menu" class="moreIcon" />
-  </div>
-  <Transition name="dropdown">
-    <div v-show="isDropdownOpen" class="ExtendedMenuPane">
-      <div class="row">
-        <div class="label">Zoom</div>
-        <div class="zoomControl">
-          <div class="zoomButtonHighlight">
-            <SvgIcon :scale="12 / 16" name="minus" title="Decrease zoom" @click="emit('zoomOut')" />
-          </div>
+  <DropdownMenu v-model:open="open" placement="bottom-end" class="ExtendedMenu">
+    <template #button
+      ><SvgIcon name="3_dot_menu" class="moreIcon" title="Additional Options"
+    /></template>
+    <template #entries>
+      <div>
+        <div class="nonInteractive"><SvgIcon name="zoom" class="rowIcon" />Zoom</div>
+        <div class="zoomControl rightSide">
+          <SvgButton
+            class="zoomButton"
+            name="minus"
+            title="Decrease Zoom"
+            @click="emit('zoomOut')"
+          />
           <span
             class="zoomScaleLabel"
             v-text="props.zoomLevel ? props.zoomLevel.toFixed(0) + '%' : '?'"
           ></span>
-          <div class="zoomButtonHighlight">
-            <SvgIcon :scale="12 / 16" name="add" title="increase zoom" @click="emit('zoomIn')" />
-          </div>
+          <SvgButton class="zoomButton" name="add" title="Increase Zoom" @click="emit('zoomIn')" />
           <div class="divider"></div>
-          <div class="showAllIconHighlight">
-            <SvgIcon name="show_all" class="showAllIcon" @click="emit('fitToAllClicked')" />
-          </div>
+          <SvgButton
+            name="show_all"
+            class="showAllIcon"
+            title="Show All Components"
+            @click="emit('fitToAllClicked')"
+          />
         </div>
       </div>
-      <div class="row clickableRow" @click="emit('toggleCodeEditor')">
-        <div class="label">Code Editor</div>
-        <div>{{ toggleCodeEditorShortcut }}</div>
-      </div>
-    </div>
-  </Transition>
+      <MenuButton v-model="showCodeEditor" @click="open = false">
+        <SvgIcon name="bottom_panel" class="rowIcon" />
+        Code Editor
+        <div class="rightSide" v-text="toggleCodeEditorShortcut" />
+      </MenuButton>
+      <MenuButton v-model="showDocumentationEditor" @click="open = false">
+        <SvgIcon name="right_panel" class="rowIcon" />
+        Documentation Editor
+        <div class="rightSide" v-text="toggleDocumentationEditorShortcut" />
+      </MenuButton>
+    </template>
+  </DropdownMenu>
 </template>
 
 <style scoped>
 .ExtendedMenu {
-  display: flex;
-  place-items: center;
-  gap: 12px;
-  width: 32px;
-  height: 32px;
-  margin-left: auto;
-  margin-right: 125px;
+  background: var(--color-frame-bg);
   border-radius: var(--radius-full);
-  background: var(--color-frame-bg);
-  backdrop-filter: var(--blur-app-bg);
-  cursor: pointer;
+  margin: 0 12px 0 auto;
 }
 
-.ExtendedMenuPane {
-  position: fixed;
-  display: flex;
-  flex-direction: column;
+.moreIcon {
+  margin: 4px;
+}
+
+:deep(.DropdownMenuContent) {
   width: 250px;
-  top: 40px;
-  margin-top: 6px;
+  margin-top: 2px;
   padding: 4px;
-  right: 8px;
-  border-radius: 12px;
-  background: var(--color-frame-bg);
-  backdrop-filter: var(--blur-app-bg);
-}
 
-.clickableRow {
-  cursor: pointer;
-  transition: background-color 0.3s;
-  &:hover {
-    background-color: var(--color-menu-entry-hover-bg);
+  > * {
+    display: flex;
+    align-items: center;
+    padding-left: 8px;
+    padding-right: 8px;
   }
 }
 
-.label {
-  user-select: none;
-  pointer-events: none;
+.toggledOn {
+  background-color: var(--color-menu-entry-selected-bg);
 }
 
-.row {
-  width: 100%;
-  display: flex;
-  padding: 0 8px 0 8px;
-  justify-content: space-between;
-  align-items: center;
-  border-radius: 12px;
+.rowIcon {
+  display: inline-block;
+  margin-right: 4px;
+}
+
+.rightSide {
+  margin-left: auto;
+}
+
+.nonInteractive {
+  user-select: none;
+  pointer-events: none;
 }
 
 .divider {
@@ -111,56 +123,8 @@ const toggleCodeEditorShortcut = codeEditorBindings.bindings.toggle.humanReadabl
   align-items: center;
 }
 
-.showAllIconHighlight {
-  display: flex;
-  justify-items: center;
-  align-items: center;
-  padding-left: 4px;
-  cursor: pointer;
-  width: 24px;
-  height: 24px;
-  margin: -4px -4px;
-  border-radius: var(--radius-full);
-  transition: background-color 0.3s;
-  &:hover {
-    background-color: var(--color-menu-entry-hover-bg);
-  }
-}
-
 .zoomScaleLabel {
   width: 4em;
   text-align: center;
-}
-
-.moreIcon {
-  position: relative;
-  left: 8px;
-}
-
-.zoomButtonHighlight {
-  width: 16px;
-  height: 16px;
-  border-radius: var(--radius-full);
-  position: relative;
-  margin: 0px;
-  padding: 2px;
-  display: inline-block;
-  vertical-align: middle;
-  cursor: pointer;
-  transition: background-color 0.3s;
-}
-
-.zoomButtonHighlight:hover {
-  background-color: var(--color-menu-entry-hover-bg);
-}
-
-.dropdown-enter-active,
-.dropdown-leave-active {
-  transition: opacity 0.25s ease;
-}
-
-.dropdown-enter-from,
-.dropdown-leave-to {
-  opacity: 0;
 }
 </style>

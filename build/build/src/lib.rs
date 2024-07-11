@@ -33,7 +33,6 @@ pub mod prelude {
 }
 
 pub mod aws;
-pub mod bump_version;
 pub mod changelog;
 pub mod ci;
 pub mod ci_gen;

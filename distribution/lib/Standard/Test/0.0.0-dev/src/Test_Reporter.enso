@@ -76,15 +76,16 @@ print_single_result (test_result : Test_Result) (config : Suite_Config) =
                 txt = "    - " + test_result.spec_name + " " + times_suffix
                 IO.println (maybe_green_text txt config)
         Spec_Result.Failure msg details ->
+            IO.println ""
             txt = "    - [FAILED] " + test_result.spec_name + " " + times_suffix
             IO.println (maybe_red_text txt config)
             IO.println ("        Reason: " + msg)
             if details.is_nothing.not then
                 IO.println (decorate_stack_trace details)
+            IO.println ""
         Spec_Result.Pending reason ->
-            if config.print_only_failures.not then
-                IO.println (maybe_grey_text ("    - [PENDING] " + test_result.spec_name) config)
-                IO.println ("        Reason: " + reason)
+            IO.println (maybe_grey_text ("    - [PENDING] " + test_result.spec_name) config)
+            IO.println ("        Reason: " + reason)
 
 
 ## Prints all the results, optionally writing them to a jUnit XML output.
@@ -97,7 +98,7 @@ print_single_result (test_result : Test_Result) (config : Suite_Config) =
 print_report : Vector Test_Result -> Suite_Config -> (StringBuilder | Nothing) -> Nothing
 print_report (test_results : Vector Test_Result) (config : Suite_Config) (builder : (StringBuilder | Nothing)) =
     distinct_group_names = test_results.map (_.group_name) . distinct
-    results_per_group = distinct_group_names.fold Map.empty acc-> group_name->
+    results_per_group = distinct_group_names.fold Dictionary.empty acc-> group_name->
         group_results = test_results.filter res->
             res.group_name == group_name
         assert (group_results.length > 0)
@@ -156,7 +157,7 @@ print_group_report group_name test_results config builder =
             builder.append '        </testcase>\n'
         builder.append '    </testsuite>\n'
 
-    should_print_behavior = config.print_only_failures.not || test_results.any (r -> r.is_fail)
+    should_print_behavior = config.print_only_failures.not || test_results.any (r -> r.is_fail) || test_results.any (r -> r.is_pending)
     if should_print_behavior then
         tests_succeeded = test_results.fold 0 acc-> res->
             if res.is_success then acc + 1 else acc
@@ -188,7 +189,7 @@ progress_width = 70
 print_progress current_progress total_count status_text =
     total_count_as_text = total_count.to_text
     counter_width = total_count_as_text.length
-    current_progress_as_text = current_progress.to_text.pad counter_width at=Location.Start
+    current_progress_as_text = current_progress.to_text.pad counter_width at=..Left
     line = " ("+ current_progress_as_text + " / " + total_count_as_text + ") " + status_text
     truncated_line = if line.length <= progress_width then line else
         line.take (progress_width - 3) + '...'

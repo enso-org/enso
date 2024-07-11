@@ -25,14 +25,12 @@ const emits = defineEmits<{
 const MIN_DRAG_MOVE = 10
 
 const editingEdge: Interaction = {
-  cancel() {
-    graph.clearUnconnected()
-  },
-  pointerdown(_e: PointerEvent, graphNavigator: GraphNavigator): boolean {
-    return edgeInteractionClick(graphNavigator)
-  },
-  pointerup(e: PointerEvent, graphNavigator: GraphNavigator): boolean {
-    const originEvent = graph.unconnectedEdge?.event
+  cancel: () => (graph.mouseEditedEdge = undefined),
+  end: () => (graph.mouseEditedEdge = undefined),
+  pointerdown: (_e: PointerEvent, graphNavigator: GraphNavigator) =>
+    edgeInteractionClick(graphNavigator),
+  pointerup: (e: PointerEvent, graphNavigator: GraphNavigator) => {
+    const originEvent = graph.mouseEditedEdge?.event
     if (originEvent?.type === 'pointerdown') {
       const delta = new Vec2(e.screenX, e.screenY).sub(
         new Vec2(originEvent.screenX, originEvent.screenY),
@@ -44,23 +42,23 @@ const editingEdge: Interaction = {
 }
 
 function edgeInteractionClick(graphNavigator: GraphNavigator) {
-  if (graph.unconnectedEdge == null) return false
+  if (graph.mouseEditedEdge == null) return false
   let source: AstId | undefined
   let sourceNode: NodeId | undefined
-  if (graph.unconnectedEdge.source) {
-    source = graph.unconnectedEdge.source
+  if (graph.mouseEditedEdge.source) {
+    source = graph.mouseEditedEdge.source
     sourceNode = graph.db.getPatternExpressionNodeId(source)
   } else if (selection?.hoveredNode) {
     sourceNode = selection.hoveredNode
     source = graph.db.getNodeFirstOutputPort(sourceNode)
   }
-  const target = graph.unconnectedEdge.target ?? selection?.hoveredPort
+  const target = graph.mouseEditedEdge.target ?? selection?.hoveredPort
   const targetNode = target && graph.getPortNodeId(target)
   graph.transact(() => {
     if (source != null && sourceNode != targetNode) {
       if (target == null) {
-        if (graph.unconnectedEdge?.disconnectedEdgeTarget != null)
-          disconnectEdge(graph.unconnectedEdge.disconnectedEdgeTarget)
+        if (graph.mouseEditedEdge?.disconnectedEdgeTarget != null)
+          disconnectEdge(graph.mouseEditedEdge.disconnectedEdgeTarget)
         emits('createNodeFromEdge', source, graphNavigator.sceneMousePos ?? Vec2.Zero)
       } else {
         createEdge(source, target)
@@ -68,12 +66,12 @@ function edgeInteractionClick(graphNavigator: GraphNavigator) {
     } else if (source == null && target != null) {
       disconnectEdge(target)
     }
-    graph.clearUnconnected()
+    graph.mouseEditedEdge = undefined
   })
   return true
 }
 
-interaction.setWhen(() => graph.unconnectedEdge != null, editingEdge)
+interaction.setWhen(() => graph.mouseEditedEdge != null, editingEdge)
 
 function disconnectEdge(target: PortId) {
   graph.edit((edit) => {
@@ -122,13 +120,15 @@ function createEdge(source: AstId, target: PortId) {
   <div>
     <svg :viewBox="props.navigator.viewBox" class="overlay behindNodes">
       <GraphEdge v-for="edge in graph.connectedEdges" :key="edge.target" :edge="edge" />
+      <GraphEdge v-if="graph.cbEditedEdge" :edge="graph.cbEditedEdge" />
+      <GraphEdge
+        v-if="graph.outputSuggestedEdge"
+        :edge="graph.outputSuggestedEdge"
+        animateFromSourceHover
+      />
     </svg>
-    <svg
-      v-if="graph.unconnectedEdge"
-      :viewBox="props.navigator.viewBox"
-      class="overlay aboveNodes nonInteractive"
-    >
-      <GraphEdge :edge="graph.unconnectedEdge" maskSource />
+    <svg v-if="graph.mouseEditedEdge" :viewBox="props.navigator.viewBox" class="overlay aboveNodes">
+      <GraphEdge :edge="graph.mouseEditedEdge" maskSource />
     </svg>
   </div>
 </template>

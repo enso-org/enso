@@ -5,6 +5,7 @@
 
 import * as electron from 'electron'
 
+import * as debug from 'debug'
 import * as ipc from 'ipc'
 
 // =================
@@ -22,6 +23,12 @@ const AUTHENTICATION_API_KEY = 'authenticationApi'
 const FILE_BROWSER_API_KEY = 'fileBrowserApi'
 
 const NAVIGATION_API_KEY = 'navigationApi'
+
+const MENU_API_KEY = 'menuApi'
+
+const SYSTEM_API_KEY = 'systemApi'
+
+const VERSION_INFO_KEY = 'versionInfo'
 
 // =============================
 // === importProjectFromPath ===
@@ -168,7 +175,43 @@ const AUTHENTICATION_API = {
 electron.contextBridge.exposeInMainWorld(AUTHENTICATION_API_KEY, AUTHENTICATION_API)
 
 const FILE_BROWSER_API = {
-    openFileBrowser: (kind: 'any' | 'directory' | 'file') =>
-        electron.ipcRenderer.invoke(ipc.Channel.openFileBrowser, kind),
+    openFileBrowser: (kind: 'any' | 'directory' | 'file' | 'filePath', defaultPath?: string) =>
+        electron.ipcRenderer.invoke(ipc.Channel.openFileBrowser, kind, defaultPath),
 }
 electron.contextBridge.exposeInMainWorld(FILE_BROWSER_API_KEY, FILE_BROWSER_API)
+
+// ================
+// === Menu API ===
+// ================
+
+let showAboutModalHandler: (() => void) | null = null
+
+electron.ipcRenderer.on(ipc.Channel.showAboutModal, () => {
+    showAboutModalHandler?.()
+})
+
+const MENU_API = {
+    setShowAboutModalHandler: (callback: () => void) => {
+        showAboutModalHandler = callback
+    },
+}
+
+electron.contextBridge.exposeInMainWorld(MENU_API_KEY, MENU_API)
+
+// ==================
+// === System API ===
+// ==================
+
+const SYSTEM_API = {
+    showItemInFolder: (fullPath: string) => {
+        electron.ipcRenderer.send(ipc.Channel.showItemInFolder, fullPath)
+    },
+}
+
+electron.contextBridge.exposeInMainWorld(SYSTEM_API_KEY, SYSTEM_API)
+
+// ====================
+// === Version info ===
+// ====================
+
+electron.contextBridge.exposeInMainWorld(VERSION_INFO_KEY, debug.VERSION_INFO)

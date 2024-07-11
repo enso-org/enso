@@ -1,172 +1,184 @@
 /** @file The container that launches the IDE. */
 import * as React from 'react'
 
-import * as load from 'enso-common/src/load'
+import * as reactQuery from '@tanstack/react-query'
 
 import * as appUtils from '#/appUtils'
 
 import * as gtagHooks from '#/hooks/gtagHooks'
-import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
+
+import * as backendProvider from '#/providers/BackendProvider'
+import * as textProvider from '#/providers/TextProvider'
+
+import * as dashboard from '#/pages/dashboard/Dashboard'
+
+import * as errorBoundary from '#/components/ErrorBoundary'
+import * as suspense from '#/components/Suspense'
 
 import * as backendModule from '#/services/Backend'
+
+import * as twMerge from '#/utilities/tailwindMerge'
+
+import type * as types from '../../../types/types'
 
 // =================
 // === Constants ===
 // =================
 
-/** The horizontal offset of the editor's top bar from the left edge of the window. */
-const TOP_BAR_X_OFFSET_PX = 96
-/** The `id` attribute of the element into which the IDE will be rendered. */
-const IDE_ELEMENT_ID = 'app'
-const IDE_CDN_BASE_URL = 'https://cdn.enso.org/ide'
-const JS_EXTENSION: Readonly<Record<backendModule.BackendType, string>> = {
-  [backendModule.BackendType.remote]: '.js.gz',
-  [backendModule.BackendType.local]: '.js',
-}
+const IGNORE_PARAMS_REGEX = new RegExp(`^${appUtils.SEARCH_PARAMS_PREFIX}(.+)$`)
 
-// =================
-// === Component ===
-// =================
+// ==============
+// === Editor ===
+// ==============
 
 /** Props for an {@link Editor}. */
 export interface EditorProps {
+  readonly isOpening: boolean
+  readonly isOpeningFailed: boolean
+  readonly openingError: Error | null
+  readonly startProject: (project: dashboard.Project) => void
+  readonly project: dashboard.Project
   readonly hidden: boolean
-  readonly supportsLocalBackend: boolean
   readonly ydocUrl: string | null
-  readonly projectStartupInfo: backendModule.ProjectStartupInfo | null
-  readonly appRunner: AppRunner
+  readonly appRunner: types.EditorRunner | null
+  readonly renameProject: (newName: string) => void
+  readonly projectId: backendModule.ProjectAsset['id']
 }
 
 /** The container that launches the IDE. */
 export default function Editor(props: EditorProps) {
-  const { hidden, supportsLocalBackend, ydocUrl, projectStartupInfo, appRunner } = props
-  const toastAndLog = toastAndLogHooks.useToastAndLog()
-  const gtagEvent = gtagHooks.useGtagEvent()
-  const gtagEventRef = React.useRef(gtagEvent)
-  gtagEventRef.current = gtagEvent
-  const [initialized, setInitialized] = React.useState(supportsLocalBackend)
+  const { project, hidden, isOpening, startProject, isOpeningFailed, openingError } = props
 
-  React.useEffect(() => {
-    const ideElement = document.getElementById(IDE_ELEMENT_ID)
-    if (ideElement != null) {
-      ideElement.style.display = hidden ? 'none' : ''
-    }
-  }, [hidden])
+  const remoteBackend = backendProvider.useRemoteBackendStrict()
+  const localBackend = backendProvider.useLocalBackend()
+
+  const projectStatusQuery = dashboard.createGetProjectDetailsQuery({
+    type: project.type,
+    assetId: project.id,
+    parentId: project.parentId,
+    title: project.title,
+    remoteBackend,
+    localBackend,
+  })
+
+  const projectQuery = reactQuery.useQuery({
+    ...projectStatusQuery,
+    networkMode: project.type === backendModule.BackendType.remote ? 'online' : 'always',
+  })
+
+  if (isOpeningFailed) {
+    // eslint-disable-next-line no-restricted-syntax
+    return (
+      <errorBoundary.ErrorDisplay
+        error={openingError}
+        resetErrorBoundary={() => {
+          startProject(project)
+        }}
+      />
+    )
+  }
+
+  const isProjectClosed = projectQuery.data?.state.type === backendModule.ProjectState.closed
+  const shouldRefetch = !(projectQuery.isError || projectQuery.isLoading)
+
+  if (!isOpening && isProjectClosed && shouldRefetch) {
+    startProject(project)
+  }
+
+  return (
+    <div
+      className={twMerge.twJoin('contents', hidden && 'hidden')}
+      data-testid="gui-editor-root"
+      data-testvalue={project.id}
+    >
+      {(() => {
+        if (projectQuery.isError) {
+          return (
+            <errorBoundary.ErrorDisplay
+              error={projectQuery.error}
+              resetErrorBoundary={() => projectQuery.refetch()}
+            />
+          )
+        } else if (
+          projectQuery.isLoading ||
+          projectQuery.data?.state.type !== backendModule.ProjectState.opened
+        ) {
+          return <suspense.Loader loaderProps={{ minHeight: 'full' }} />
+        } else {
+          return (
+            <errorBoundary.ErrorBoundary>
+              <suspense.Suspense>
+                <EditorInternal {...props} openedProject={projectQuery.data} />
+              </suspense.Suspense>
+            </errorBoundary.ErrorBoundary>
+          )
+        }
+      })()}
+    </div>
+  )
+}
+
+// ======================
+// === EditorInternal ===
+// ======================
+
+/** Props for an {@link EditorInternal}. */
+interface EditorInternalProps extends Omit<EditorProps, 'project'> {
+  readonly openedProject: backendModule.Project
+}
+
+/** An internal editor. */
+function EditorInternal(props: EditorInternalProps) {
+  const { hidden, ydocUrl, appRunner: AppRunner, renameProject, openedProject } = props
+
+  const { getText } = textProvider.useText()
+  const gtagEvent = gtagHooks.useGtagEvent()
+
+  const remoteBackend = backendProvider.useRemoteBackend()
+
+  const logEvent = React.useCallback(
+    (message: string, projectId?: string | null, metadata?: object | null) => {
+      if (remoteBackend) {
+        void remoteBackend.logEvent(message, projectId, metadata)
+      }
+    },
+    [remoteBackend]
+  )
 
   React.useEffect(() => {
     if (hidden) {
       return
     } else {
-      return gtagHooks.gtagOpenCloseCallback(gtagEventRef, 'open_workflow', 'close_workflow')
+      return gtagHooks.gtagOpenCloseCallback(gtagEvent, 'open_workflow', 'close_workflow')
     }
-  }, [projectStartupInfo, hidden])
+  }, [hidden, gtagEvent])
 
-  let hasEffectRun = false
+  const appProps: types.EditorProps | null = React.useMemo(() => {
+    const jsonAddress = openedProject.jsonAddress
+    const binaryAddress = openedProject.binaryAddress
+    const ydocAddress = ydocUrl ?? ''
 
-  React.useEffect(() => {
-    // This is a hack to work around the IDE WASM not playing nicely with React Strict Mode.
-    // This is unavoidable as the WASM must fully set up to be able to properly drop its assets,
-    // but React re-executes this side-effect faster tha the WASM can do so.
-    if (hasEffectRun) {
-      // eslint-disable-next-line no-restricted-syntax
-      return
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    hasEffectRun = true
-    if (projectStartupInfo != null) {
-      const { project, backendType, accessToken } = projectStartupInfo
-      void (async () => {
-        const jsonAddress = project.jsonAddress
-        const binaryAddress = project.binaryAddress
-        const ydocAddress = ydocUrl ?? ''
-        if (jsonAddress == null) {
-          toastAndLog('noJSONEndpointError')
-        } else if (binaryAddress == null) {
-          toastAndLog('noBinaryEndpointError')
-        } else {
-          let assetsRoot: string
-          switch (backendType) {
-            case backendModule.BackendType.remote: {
-              if (project.ideVersion == null) {
-                toastAndLog('noIdeVersionError')
-                // This is too deeply nested to easily return from
-                // eslint-disable-next-line no-restricted-syntax
-                return
-              }
-              assetsRoot = `${IDE_CDN_BASE_URL}/${project.ideVersion.value}/`
-              break
-            }
-            case backendModule.BackendType.local: {
-              assetsRoot = ''
-              break
-            }
-          }
-          const runNewProject = async () => {
-            const engineConfig = {
-              rpcUrl: jsonAddress,
-              dataUrl: binaryAddress,
-              ydocUrl: ydocAddress,
-            }
-            const originalUrl = window.location.href
-            if (backendType === backendModule.BackendType.remote) {
-              // The URL query contains commandline options when running in the desktop,
-              // which will break the entrypoint for opening a fresh IDE instance.
-              history.replaceState(null, '', new URL('.', originalUrl))
-            }
-            try {
-              await appRunner.runApp(
-                {
-                  loader: {
-                    assetsUrl: `${assetsRoot}dynamic-assets`,
-                    wasmUrl: `${assetsRoot}pkg-opt.wasm`,
-                    jsUrl: `${assetsRoot}pkg${JS_EXTENSION[backendType]}`,
-                  },
-                  engine: engineConfig,
-                  startup: {
-                    project: project.packageName,
-                    displayedProjectName: project.name,
-                  },
-                  window: {
-                    topBarOffset: `${TOP_BAR_X_OFFSET_PX}`,
-                  },
-                },
-                accessToken,
-                {
-                  projectId: project.projectId,
-                  ignoreParamsRegex: new RegExp(`^${appUtils.SEARCH_PARAMS_PREFIX}(.+)$`),
-                }
-              )
-            } catch (error) {
-              toastAndLog('openEditorError', error)
-            }
-            if (backendType === backendModule.BackendType.remote) {
-              // Restore original URL so that initialization works correctly on refresh.
-              history.replaceState(null, '', originalUrl)
-            }
-          }
-          if (supportsLocalBackend) {
-            await runNewProject()
-          } else {
-            if (!initialized) {
-              await Promise.all([
-                load.loadStyle(`${assetsRoot}style.css`),
-                load
-                  .loadScript(`${assetsRoot}entrypoint.js.gz`)
-                  .catch(() => load.loadScript(`${assetsRoot}index.js.gz`)),
-              ])
-              setInitialized(true)
-            }
-            await runNewProject()
-          }
-        }
-      })()
-      return () => {
-        appRunner.stopApp()
-      }
+    if (jsonAddress == null) {
+      throw new Error(getText('noJSONEndpointError'))
+    } else if (binaryAddress == null) {
+      throw new Error(getText('noBinaryEndpointError'))
     } else {
-      return
+      return {
+        config: {
+          engine: { rpcUrl: jsonAddress, dataUrl: binaryAddress, ydocUrl: ydocAddress },
+          startup: { project: openedProject.packageName, displayedProjectName: openedProject.name },
+          window: { topBarOffset: '0' },
+        },
+        projectId: openedProject.projectId,
+        hidden,
+        ignoreParamsRegex: IGNORE_PARAMS_REGEX,
+        logEvent,
+        renameProject,
+      }
     }
-  }, [projectStartupInfo, toastAndLog, /* should never change */ appRunner])
+  }, [openedProject, ydocUrl, getText, hidden, logEvent, renameProject])
 
-  return <></>
+  // Currently the GUI component needs to be fully rerendered whenever the project is changed. Once
+  // this is no longer necessary, the `key` could be removed.
+  return AppRunner == null ? null : <AppRunner key={appProps.projectId} {...appProps} />
 }

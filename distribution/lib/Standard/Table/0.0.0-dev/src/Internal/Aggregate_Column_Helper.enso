@@ -1,4 +1,4 @@
-from Standard.Base import all hiding First, Last
+from Standard.Base import all
 import Standard.Base.Data.Vector.No_Wrap
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 from Standard.Base.Runtime import assert
@@ -188,7 +188,7 @@ resolve_aggregate table problem_builder aggregate_column:Aggregate_Column =
         Value_Type.expect_text col <|
             internal_column
 
-    result = case aggregate_column of
+    result = case aggregate_column:Aggregate_Column of
         Group_By c as -> Group_By (resolve c) as
         Count as -> Count as
         Count_Distinct c as ignore_nothing -> if c == [] then Count as else

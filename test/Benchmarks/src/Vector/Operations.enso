@@ -50,10 +50,10 @@ collect_benches = Bench.build builder->
             random_vec.reduce (+)
 
         group_builder.specify "Drop_First_20_and_Sum" <|
-            (random_vec.drop (First 20)).reduce (+)
+            (random_vec.drop (..First 20)).reduce (+)
 
         group_builder.specify "Drop_Last_20_and_Sum" <|
-            (random_vec.drop (Last 20)).reduce (+)
+            (random_vec.drop (..Last 20)).reduce (+)
 
         group_builder.specify "Filter" <|
             random_vec.filter (x -> x % 3 == 1)
@@ -66,6 +66,9 @@ collect_benches = Bench.build builder->
 
         group_builder.specify "Sum_Stats" <|
             random_vec.compute Statistic.Sum
+
+        group_builder.specify "Product_Stats" <|
+            random_vec.compute Statistic.Product
 
         group_builder.specify "Variance_Stats" <|
             random_vec.compute Statistic.Variance

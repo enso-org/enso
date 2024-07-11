@@ -37,7 +37,7 @@ test('Selecting nodes by click', async ({ page }) => {
   await expect(selectionMenu).not.toBeVisible()
 
   // Check that clicking the background deselects all nodes.
-  await page.mouse.click(600, 200)
+  await locate.graphEditor(page).click({ position: { x: 600, y: 200 } })
   await expect(node1).not.toBeSelected()
   await expect(node2).not.toBeSelected()
   await expect(selectionMenu).not.toBeVisible()
@@ -66,4 +66,46 @@ test('Selecting nodes by area drag', async ({ page }) => {
   await page.mouse.up()
   await expect(node1).toBeSelected()
   await expect(node2).toBeSelected()
+})
+
+test('Deleting selected node with backspace key', async ({ page }) => {
+  await actions.goToGraph(page)
+
+  const nodesCount = await locate.graphNode(page).count()
+  const deletedNode = locate.graphNodeByBinding(page, 'final')
+  await deletedNode.click()
+  await page.keyboard.press('Backspace')
+  await expect(locate.graphNode(page)).toHaveCount(nodesCount - 1)
+})
+
+test('Deleting selected node with delete key', async ({ page }) => {
+  await actions.goToGraph(page)
+
+  const nodesCount = await locate.graphNode(page).count()
+  const deletedNode = locate.graphNodeByBinding(page, 'final')
+  await deletedNode.click()
+  await page.keyboard.press('Delete')
+  await expect(locate.graphNode(page)).toHaveCount(nodesCount - 1)
+})
+
+test('Moving selected nodes', async ({ page }) => {
+  await actions.goToGraph(page)
+  const movedNode = locate.graphNodeByBinding(page, 'final')
+  const notMovedNode = locate.graphNodeByBinding(page, 'sum')
+  await locate.graphNodeIcon(movedNode).click()
+  // Selection may affect bounding box: wait until it's actually selected.
+  await expect(movedNode).toBeSelected()
+  const initialBBox = await movedNode.boundingBox()
+  const initialNotMovedBBox = await notMovedNode.boundingBox()
+  assert(initialBBox)
+  assert(initialNotMovedBBox)
+  await page.keyboard.press('ArrowLeft', { delay: 500 })
+  const bbox = await movedNode.boundingBox()
+  const notMovedBBox = await notMovedNode.boundingBox()
+  assert(bbox)
+  assert(notMovedBBox)
+  await expect(bbox.x).not.toBeCloseTo(initialBBox.x)
+  await expect(bbox.y).toBeCloseTo(initialBBox.y)
+  await expect(notMovedBBox.x).toBeCloseTo(initialNotMovedBBox.x)
+  await expect(notMovedBBox.y).toBeCloseTo(initialNotMovedBBox.y)
 })

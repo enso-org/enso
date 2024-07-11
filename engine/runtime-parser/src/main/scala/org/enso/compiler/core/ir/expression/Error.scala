@@ -98,7 +98,7 @@ object Error {
     ): InvalidIR =
       this
 
-    /** @inheritdoc */
+    /** String representation. */
     override def toString: String =
       s"""
          |Error.InvalidIR(

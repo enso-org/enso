@@ -22,12 +22,11 @@ import enso_dev.Base_Tests.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setu
 import enso_dev.Base_Tests.System.File_Spec as Local_File_Spec
 
 test_credentials -> AWS_Credential ! Illegal_State =
-    access_key_id = Environment.get "ENSO_LIB_S3_AWS_ACCESS_KEY_ID"
-    secret_access_key = Environment.get "ENSO_LIB_S3_AWS_SECRET_ACCESS_KEY"
-    credentials = access_key_id.if_not_nothing <|
-        secret_access_key.if_not_nothing <|
-            AWS_Credential.Key access_key_id secret_access_key
-    credentials.if_nothing (Error.throw (Illegal_State.Error "No AWS credentials found in the environment."))
+    access_key_id = Environment.get "ENSO_LIB_S3_AWS_ACCESS_KEY_ID" ""
+    secret_access_key = Environment.get "ENSO_LIB_S3_AWS_SECRET_ACCESS_KEY" ""
+    credentials_set = access_key_id.not_empty && secret_access_key.not_empty
+    if credentials_set then AWS_Credential.Key access_key_id secret_access_key else
+        Error.throw (Illegal_State.Error "No AWS credentials found in the environment.")
 
 ## Runs the action, overriding `AWS_Credential.Default` to point to `test_credentials`.
 with_default_credentials ~action =
@@ -170,7 +169,7 @@ add_specs suite_builder =
 
     suite_builder.group "S3.head (bucket)" pending=api_pending group_builder->
         group_builder.specify "should be able to head a bucket" <|
-            S3.head bucket_name credentials=test_credentials . should_be_a Map
+            S3.head bucket_name credentials=test_credentials . should_be_a Dictionary
             S3.head not_a_bucket_name credentials=test_credentials . should_fail_with S3_Bucket_Not_Found
 
     suite_builder.group "S3.read_bucket" pending=api_pending group_builder->
@@ -329,7 +328,7 @@ add_specs suite_builder =
                 # But the file cannot be listed:
                 err = new_file.list
                 err.should_fail_with S3_Error
-                err.catch.to_display_text . should_contain "Only folders can be listed"
+                err.catch.to_display_text . should_contain "Cannot `list` a non-directory."
 
             new_file.delete . should_succeed
 
@@ -421,12 +420,12 @@ add_specs suite_builder =
                     my_file.read . should_equal "version2"
 
                     # ensure correct format is used for reading the .bak file - Auto_Detect fails because it does not know the `.bak` extension
-                    bak_file.read Plain_Text . should_equal "version1"
+                    bak_file.read ..Plain_Text . should_equal "version1"
 
                     "version3".write my_file . should_succeed
 
                     my_file.read . should_equal "version3"
-                    bak_file.read Plain_Text . should_equal "version2"
+                    bak_file.read ..Plain_Text . should_equal "version2"
 
                     # No new file was created
                     parent_dir = my_file.parent
@@ -461,7 +460,7 @@ add_specs suite_builder =
 
                 # And should be able to add another sheet
                 table2 = Table.new [["A", [9, 10, 11, 12]], ["B", ["i", "j", "k", "l"]]]
-                table2.write file (Excel_Format.Sheet "MySheet2") . should_succeed
+                table2.write file (..Sheet "MySheet2") . should_succeed
 
                 workbook2 = file.read
                 workbook2.sheet_names . should_equal ['EnsoSheet', 'MySheet2']
@@ -558,7 +557,7 @@ add_specs suite_builder =
             raw_content = Data_Link.read_raw_config (enso_project.data / "simple.datalink")
             Data_Link.write_raw_config s3_link raw_content replace_existing=True . should_succeed
             Panic.with_finalizer s3_link.delete <|
-                r = s3_link.read (Delimited_Format.Delimited " " headers=False)
+                r = s3_link.read (..Delimited " " headers=False)
                 r.should_be_a Table
                 r.column_names . should_equal ["Column 1", "Column 2"]
                 r.rows.at 0 . to_vector . should_equal ["Hello", "WORLD!"]

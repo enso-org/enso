@@ -112,7 +112,7 @@ add_specs suite_builder prefix create_connection_func =
                 src = Table.new [["X", [1, 2, 3]]]
                 t1 = src.select_into_database_table data.connection long_name temporary=True
                 Problems.assume_no_problems t1
-                data.connection.query long_name . at "X" . to_vector . should_equal [1, 2, 3]
+                data.connection.query long_name . at "X" . to_vector . should_contain_the_same_elements_as [1, 2, 3]
 
                 longer_name_with_same_prefix = long_name + ("z" * 10)
                 data.connection.query longer_name_with_same_prefix . should_fail_with Table_Not_Found
@@ -416,7 +416,7 @@ add_specs suite_builder prefix create_connection_func =
                     w.original_names . should_equal ["RIGHT_" + name_a, "RIGHT_" + name_b]
                     t2.row_count . should_equal 3
 
-                    m2 = t2.read . order_by name_a
+                    m2 = t2.read . sort name_a
                     m2.column_names . should_equal [name_a, name_b]+w.truncated_names
                     m2.at name_a . to_vector . should_equal [1, 2, 3]
                     m2.at name_b . to_vector . should_equal [4, 5, 6]
@@ -429,7 +429,7 @@ add_specs suite_builder prefix create_connection_func =
                     w.original_names . should_equal ["RIGHT_" + name_a, "RIGHT_" + name_b]
                     t2.row_count . should_equal 9
 
-                    m2 = t2.read . order_by [name_a, name_b]
+                    m2 = t2.read . sort [name_a, name_b]
                     m2.column_names . should_equal [name_a, name_b]+w.truncated_names
                     m2.at name_a . to_vector . should_contain_the_same_elements_as [1, 2, 3]
                     m2.at name_b . to_vector . should_contain_the_same_elements_as [4, 5, 6]
@@ -480,4 +480,3 @@ main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder "[SQLite]" (_-> Database.connect (SQLite.In_Memory))
     suite.run_with_filter filter
-

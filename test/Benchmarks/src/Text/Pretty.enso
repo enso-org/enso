@@ -26,12 +26,12 @@ create_template length =
 
 create_very_short_random faker =
     very_short_template = create_template 40
-    faker.string_value very_short_template
+    faker.text_value very_short_template
 
 
 create_big_random faker =
     big_template = create_template 100000
-    faker.string_value big_template
+    faker.text_value big_template
 
 
 ## The `Text.pretty` benchmarks check both scenarios where the Texts are

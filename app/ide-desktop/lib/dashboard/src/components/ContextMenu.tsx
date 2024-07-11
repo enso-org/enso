@@ -5,6 +5,8 @@ import * as detect from 'enso-common/src/detect'
 
 import FocusArea from '#/components/styled/FocusArea'
 
+import * as tailwindMerge from '#/utilities/tailwindMerge'
+
 // ===================
 // === ContextMenu ===
 // ===================
@@ -31,9 +33,10 @@ export default function ContextMenu(props: ContextMenuProps) {
         >
           <div
             aria-label={props['aria-label']}
-            className={`relative flex flex-col rounded-default ${
+            className={tailwindMerge.twMerge(
+              'relative flex flex-col rounded-default p-context-menu',
               detect.isOnMacOS() ? 'w-context-menu-macos' : 'w-context-menu'
-            } p-context-menu`}
+            )}
           >
             {children}
           </div>

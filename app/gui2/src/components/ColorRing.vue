@@ -5,8 +5,8 @@ import {
   rangesForInputs,
 } from '@/components/ColorRing/gradient'
 import { injectInteractionHandler } from '@/providers/interactionHandler'
-import { targetIsOutside } from '@/util/autoBlur'
-import { cssSupported, ensoColor, formatCssColor, parseCssColor } from '@/util/colors'
+import { endOnClickOutside } from '@/util/autoBlur'
+import { cssSupported, ensoColor, formatCssColor, normalizeHue, parseCssColor } from '@/util/colors'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import { computed, onMounted, ref } from 'vue'
@@ -35,10 +35,27 @@ const FIXED_RANGE_WIDTH = 1 / 16
 const selectedColor = defineModel<string | undefined>()
 const props = defineProps<{
   matchableColors: Set<string>
+  /** Angle, measured in degrees from the positive Y-axis, where the initially-selected color should be placed. */
+  initialColorAngle?: number
 }>()
 const emit = defineEmits<{
   close: []
 }>()
+
+const initialColor = selectedColor.value
+const selectedHue = computed(() => {
+  if (!selectedColor.value) return undefined
+  const color = parseCssColor(selectedColor.value)
+  if (color?.h != null) return color.h / 360
+  return undefined
+})
+const rotation: number = (selectedHue.value ?? 0) - (props.initialColorAngle ?? 0) / 360
+function hueToAngle(hue: number): number {
+  return normalizeHue(hue - rotation)
+}
+function angleToHue(angle: number): number {
+  return normalizeHue(angle + rotation)
+}
 
 const browserSupportsOklchInterpolation = cssSupported(
   'background-image: conic-gradient(in oklch increasing hue, red, blue)',
@@ -49,25 +66,24 @@ const svgElement = ref<HTMLElement>()
 const interaction = injectInteractionHandler()
 
 onMounted(() => {
-  interaction.setCurrent({
-    cancel: () => emit('close'),
-    pointerdown: (e: PointerEvent) => {
-      if (targetIsOutside(e, svgElement.value)) emit('close')
-      return false
-    },
-  })
+  interaction.setCurrent(
+    endOnClickOutside(svgElement, {
+      cancel: () => {
+        selectedColor.value = initialColor
+        emit('close')
+      },
+      end: () => emit('close'),
+    }),
+  )
 })
 
-const mouseSelectedAngle = ref<number>()
+const mouseAngle = ref<number>()
 
-const triangleAngle = computed(() => {
-  if (mouseSelectedAngle.value) return mouseSelectedAngle.value
-  if (selectedColor.value) {
-    const color = parseCssColor(selectedColor.value)
-    if (color?.h) return color.h / 360
-  }
-  return undefined
-})
+const triangleAngle = computed(() =>
+  mouseAngle.value != null ? mouseAngle.value
+  : selectedHue.value != null ? hueToAngle(selectedHue.value)
+  : undefined,
+)
 
 function cssColor(hue: number) {
   return formatCssColor(ensoColor(hue))
@@ -79,15 +95,16 @@ function eventAngle(event: MouseEvent) {
   if (!svgElement.value) return 0
   const origin = Rect.FromDomRect(svgElement.value.getBoundingClientRect()).center()
   const offset = Vec2.FromXY(event).sub(origin)
-  return Math.atan2(offset.y, offset.x) / (2 * Math.PI) + 0.25
+  return normalizeHue(Math.atan2(offset.y, offset.x) / (2 * Math.PI) + 0.25)
 }
 
-function ringHover(event: MouseEvent) {
-  mouseSelectedAngle.value = eventAngle(event)
+function setColorForEvent(event: MouseEvent) {
+  mouseAngle.value = eventAngle(event)
+  if (triangleStyle.value?.fill !== selectedColor.value)
+    selectedColor.value = triangleStyle.value?.fill
 }
 function ringClick(event: MouseEvent) {
-  mouseSelectedAngle.value = eventAngle(event)
-  if (triangleHue.value != null) selectedColor.value = cssColor(triangleHue.value)
+  setColorForEvent(event)
   emit('close')
 }
 
@@ -96,25 +113,21 @@ function ringClick(event: MouseEvent) {
 const fixedRanges = computed(() => {
   const inputHues = new Set<number>()
   for (const rawColor of props.matchableColors) {
-    if (rawColor === selectedColor.value) continue
     const color = parseCssColor(rawColor)
     const hueDeg = color?.h
     if (hueDeg == null) continue
-    const hue = hueDeg / 360
-    inputHues.add(hue < 0 ? hue + 1 : hue)
+    inputHues.add(hueToAngle(hueDeg / 360))
   }
   return rangesForInputs(inputHues, FIXED_RANGE_WIDTH / 2)
 })
 
-const triangleHue = computed(() => {
-  const target = triangleAngle.value
-  if (target == null) return undefined
+function snapAngle(angle: number) {
   for (const range of fixedRanges.value) {
-    if (target < range.start) break
-    if (target <= range.end) return range.hue
+    if (angle < range.start) break
+    if (angle <= range.end) return range.hue
   }
-  return target
-})
+  return angle
+}
 
 // === CSS ===
 
@@ -123,30 +136,36 @@ const cssGradient = computed(() => {
     fixedRanges.value,
     browserSupportsOklchInterpolation ? undefined : NONNATIVE_OKLCH_INTERPOLATION_STEPS,
   )
-  const angularColorStopList = Array.from(points, cssAngularColorStop)
+  const angularColorStopList = points.map((point) =>
+    cssAngularColorStop({ ...point, hue: angleToHue(point.hue) }),
+  )
   const colorStops = angularColorStopList.join(',')
   return browserSupportsOklchInterpolation ?
       `conic-gradient(in oklch increasing hue,${colorStops})`
     : `conic-gradient(${colorStops})`
 })
-const cssTriangleAngle = computed(() =>
-  triangleAngle.value != null ? `${triangleAngle.value}turn` : undefined,
-)
-const cssTriangleColor = computed(() =>
-  triangleHue.value != null ? cssColor(triangleHue.value) : undefined,
+
+const triangleStyle = computed(() =>
+  triangleAngle.value != null ?
+    {
+      transform: `rotate(${triangleAngle.value}turn)`,
+      fill: cssColor(angleToHue(snapAngle(triangleAngle.value))),
+    }
+  : undefined,
 )
 </script>
 
 <template>
   <div class="ColorRing">
-    <svg v-if="cssTriangleAngle != null" class="svg" viewBox="-2 -2 4 4">
-      <polygon class="triangle" points="0,-1 -0.4,-1.35 0.4,-1.35" />
+    <svg v-if="triangleStyle != null" class="svg" viewBox="-2 -2 4 4">
+      <polygon :style="triangleStyle" points="0,-1 -0.4,-1.35 0.4,-1.35" />
     </svg>
     <div
       ref="svgElement"
       class="gradient"
-      @pointerleave="mouseSelectedAngle = undefined"
-      @pointermove="ringHover"
+      :style="{ background: cssGradient }"
+      @pointerleave="mouseAngle = undefined"
+      @pointermove="setColorForEvent"
       @click.stop="ringClick"
     />
   </div>
@@ -170,7 +189,6 @@ const cssTriangleColor = computed(() =>
   inset: 0;
   pointer-events: auto;
   margin-top: auto;
-  background: v-bind('cssGradient');
   cursor: crosshair;
   border-radius: var(--radius-full);
   animation: grow 0.1s forwards;
@@ -182,10 +200,5 @@ const cssTriangleColor = computed(() =>
   to {
     transform: scale(1);
   }
-}
-
-.triangle {
-  transform: rotate(v-bind('cssTriangleAngle'));
-  fill: v-bind('cssTriangleColor');
 }
 </style>

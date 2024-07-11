@@ -4,6 +4,7 @@ import Standard.Base.Metadata.Display
 from Standard.Base.Metadata.Choice import Option
 from Standard.Base.Metadata.Widget import Single_Choice
 
+import Standard.Table.Rows_To_Read.Rows_To_Read
 from Standard.Table import Table, Value_Type
 
 import project.Column_Description.Column_Description
@@ -154,9 +155,6 @@ type SQLite_Connection
          If supplied as `Text`, the name is checked against the `tables` list to
          determine if it is a table or a query.
        - limit: the maximum number of rows to read.
-         If set to `Nothing`, all rows will be returned.
-       - warn_if_more_rows: if set to `True`, a warning is attached to the
-         result if the number of rows returned by the query exceeds `limit`.
 
        ? Side Effects
 
@@ -166,9 +164,10 @@ type SQLite_Connection
          `execute_update` for DML queries, or if they are supposed to return
          results, the `read` should be wrapped in an execution context check.
     @query make_table_name_selector
-    read : Text | SQL_Query -> Integer | Nothing -> Boolean -> Table ! Table_Not_Found
-    read self query (limit : Integer | Nothing = 1000) (warn_if_more_rows : Boolean = True) =
-        self.connection.read query limit warn_if_more_rows
+    @limit Rows_To_Read.default_widget
+    read : Text | SQL_Query -> Rows_To_Read -> Table ! Table_Not_Found
+    read self query (limit : Rows_To_Read = ..First_With_Warning 1000) =
+        self.connection.read query limit
 
     ## GROUP Standard.Base.Output
        ICON data_output
@@ -214,7 +213,7 @@ type SQLite_Connection
          a `Dry_Run_Operation` warning attached.
     @structure make_structure_creator
     create_table : Text  -> Vector Column_Description | DB_Table | Table -> Vector Text | Nothing -> Boolean -> Boolean -> Problem_Behavior -> DB_Table ! Table_Already_Exists
-    create_table self (table_name : Text) (structure : Vector Column_Description | DB_Table | Table) (primary_key : (Vector Text | Nothing) = [first_column_name_in_structure structure]) (temporary : Boolean = False) (allow_existing : Boolean = False) (on_problems:Problem_Behavior = Problem_Behavior.Report_Warning) =
+    create_table self (table_name : Text) (structure : Vector Column_Description | DB_Table | Table) (primary_key : (Vector Text | Nothing) = [first_column_name_in_structure structure]) (temporary : Boolean = False) (allow_existing : Boolean = False) (on_problems:Problem_Behavior = ..Report_Warning) =
         self.connection.create_table table_name structure primary_key temporary allow_existing on_problems
 
     ## ADVANCED
@@ -267,3 +266,9 @@ type SQLite_Connection
        on the 'subclasses'.
     base_connection : Connection
     base_connection self = self.connection
+
+    ## PRIVATE
+       Converts this value to a JSON serializable object.
+    to_js_object : JS_Object
+    to_js_object self =
+        JS_Object.from_pairs [["type", "SQLite_Connection"], ["links", self.connection.tables.at "Name" . to_vector]]

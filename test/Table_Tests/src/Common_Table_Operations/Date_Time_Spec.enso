@@ -1,54 +1,51 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
-from Standard.Table import Value_Type
+from Standard.Table import Table, Value_Type
 from Standard.Table.Errors import Inexact_Type_Coercion, Invalid_Value_Type
 
 from Standard.Database.Errors import Unsupported_Database_Operation
+import Standard.Database.Column_Description.Column_Description
+import Standard.Database.Internal.Internals_Access
+# Import the `update_rows` extension method.
+import Standard.Database.Extensions.Upload_Database_Table
 
 from Standard.Test import all
 
 from project.Common_Table_Operations.Util import all
+import project.Common_Table_Operations.Util
 
 main filter=Nothing = run_default_backend add_specs filter
 
 type Data
     Value ~data
 
-    connection self = self.data.at 0
-    dates self = self.data.at 1
-    times self = self.data.at 2
-    datetimes self = self.data.at 3
+    dates self = self.data.at 0
+    times self = self.data.at 1
+    datetimes self = self.data.at 2
 
-    setup create_connection_fn table_builder = Data.Value <|
-        connection = create_connection_fn Nothing
-        dates = table_builder [["A", [Date.new 2020 12 31, Date.new 2024 2 29, Date.new 1990 1 1, Nothing]], ["X", [2020, 29, 1, 100]]] connection=connection
-        times = table_builder [["A", [Time_Of_Day.new 23 59 59 millisecond=567 nanosecond=123, Time_Of_Day.new 2 30 44 nanosecond=1002000, Time_Of_Day.new 0 0 0, Nothing]], ["X", [2020, 29, 1, 100]]] connection=connection
-        datetimes = table_builder [["A", [Date_Time.new 2020 12 31 23 59 59 millisecond=567 nanosecond=123, Date_Time.new 2024 2 29 2 30 44 nanosecond=1002000, Date_Time.new 1990 1 1 0 0 0, Nothing]], ["X", [2020, 29, 1, 100]]] connection=connection
-        [connection, dates, times, datetimes]
+    setup table_builder = Data.Value <|
+        dates = table_builder [["A", [Date.new 2020 12 31, Date.new 2024 2 29, Date.new 1990 1 1, Nothing, Date.new 2024 5 26]], ["X", [2020, 29, 1, 100, 99]]]
+        times = table_builder [["A", [Time_Of_Day.new 23 59 59 millisecond=567 nanosecond=123, Time_Of_Day.new 2 30 44 nanosecond=1002000, Time_Of_Day.new 0 0 0, Nothing]], ["X", [2020, 29, 1, 100]]]
+        datetimes = table_builder [["A", [Date_Time.new 2020 12 31 23 59 59 millisecond=567 nanosecond=123, Date_Time.new 2024 2 29 2 30 44 nanosecond=1002000, Date_Time.new 1990 1 1 0 0 0, Nothing, Date_Time.new 2024 5 26 11 43 22]], ["X", [2020, 29, 1, 100, 99]]]
+        [dates, times, datetimes]
 
     teardown self =
         self.connection.close
 
+type Lazy_Ref
+    Value ~get
 
 add_specs suite_builder setup =
     prefix = setup.prefix
-    create_connection_fn = setup.create_connection_func
-
+    table_builder = Util.build_sorted_table setup
+    data = Data.setup table_builder
     pending_datetime = if setup.test_selection.date_time.not then "Date/Time operations are not supported by this backend."
 
     suite_builder.group prefix+"Date-Time support" pending=pending_datetime group_builder->
-        data = Data.setup create_connection_fn setup.table_builder
-
-        group_builder.teardown <|
-            data.teardown
-
-        table_builder cols =
-            setup.table_builder cols connection=data.connection
-
         group_builder.specify "should allow to create Table with Date columns and round-trip them back to Enso" <|
             d = Date.new 2020 10 24
-            table = table_builder [["A", [d]], ["X", [123]]]
+            table = setup.table_builder [["A", [d]], ["X", [123]]]
             table.at "A" . value_type . should_equal Value_Type.Date
             table.at "A" . to_vector . should_equal [d]
             table.at "X" . to_vector . should_equal [123]
@@ -56,7 +53,7 @@ add_specs suite_builder setup =
         group_builder.specify "should allow to create Table with Time Of Day columns and round-trip them back to Enso" <|
             # We do not check nanoseconds, as nano support may be optional.
             t = Time_Of_Day.new hour=12 minute=3 second=5 millisecond=6 microsecond=7
-            table = table_builder [["B", [t]], ["X", [123]]]
+            table = setup.table_builder [["B", [t]], ["X", [123]]]
             table.at "B" . value_type . should_equal Value_Type.Time
             table.at "B" . to_vector . should_equal [t]
             table.at "X" . to_vector . should_equal [123]
@@ -75,49 +72,70 @@ add_specs suite_builder setup =
             table.at "C" . to_vector . should_equal_tz_agnostic dates
             table.at "X" . to_vector . should_equal xs
 
+        # Currently we support Value_Type.Date_Time with_timezone=False in Database backends, not in-memory.
+        # In this test we create the table using the connection, so it only can run on Database.
+        # This is the only way to enforce uploading Date Times without TZ without relying on Casting (which works on another level so it would not be a good test of the upload mechanism).
+        if setup.is_database && setup.test_selection.supports_date_time_without_timezone then group_builder.specify "should allow to create Table with Date Time (without timezone) columns and round-trip them back to Enso, preserving the date/time parts, possibly losing the timezone/offset" <|
+            dt1 = Date_Time.new 2020 10 24 1 2 3 millisecond=4 microsecond=5
+            offset_zone = Time_Zone.new hours=(-11) minutes=(-30)
+            dt2 = Date_Time.new 2021 11 23 1 2 3 zone=offset_zone
+            named_zone = Time_Zone.parse "US/Hawaii"
+            dt3 = Date_Time.new 2019 11 23 4 5 6 zone=named_zone
+
+            connection = Internals_Access.get_connection data.dates
+            db_table = connection.create_table "dates-test-"+Date_Time.now.to_text [Column_Description.Value "C" (Value_Type.Date_Time with_timezone=False), Column_Description.Value "X" Value_Type.Integer] temporary=True on_problems=Problem_Behavior.Ignore
+            Problems.assume_no_problems db_table
+
+            dates = [dt1, dt2, dt3]
+            xs = [1, 2, 3]
+            local_table_with_tz = Table.new [["C", dates], ["X", xs]]
+            db_table.update_rows local_table_with_tz key_columns=["X"] . should_succeed
+            ordered = db_table.sort "X"
+
+            ordered.at "X" . to_vector . should_equal xs
+            ordered.at "C" . value_type . should_equal (Value_Type.Date_Time with_timezone=False)
+            # We now look at the values ignoring the time zone / offset - only from local time perspective.
+            ordered.at "C" . to_vector . map as_local_date_time_repr . should_equal ["2020-10-24 01:02:03.004005", "2021-11-23 01:02:03.0", "2019-11-23 04:05:06.0"]
+
     suite_builder.group prefix+"Date-Time operations" pending=pending_datetime group_builder->
-        data = Data.setup create_connection_fn setup.table_builder
-
-        group_builder.teardown <|
-            data.teardown
-
-        table_builder cols =
-            setup.table_builder cols connection=data.connection
-
-        group_builder.specify "should allow to get the year/month/day of a Date" <|
+        group_builder.specify "should allow to get the year/month/day/day_of_year/day_of_week of a Date" <|
             t = data.dates
             a = t.at "A"
-            a.year . to_vector . should_equal [2020, 2024, 1990, Nothing]
-            a.month . to_vector . should_equal [12, 2, 1, Nothing]
-            a.day . to_vector . should_equal [31, 29, 1, Nothing]
-            [a.year, a.month, a.day].each c->
+            a.year . to_vector . should_equal [2020, 2024, 1990, Nothing, 2024]
+            a.month . to_vector . should_equal [12, 2, 1, Nothing, 5]
+            a.day . to_vector . should_equal [31, 29, 1, Nothing, 26]
+            a.day_of_year . to_vector . should_equal [366, 60, 1, Nothing, 147]
+            a.day_of_week . to_vector . should_equal [4, 4, 1, Nothing, 7]
+            [a.year, a.month, a.day, a.day_of_year, a.day_of_week].each c->
                 Test.with_clue "The column "+c.name+" value type ("+c.value_type.to_display_text+") should be an integer: " <|
-                    c.value_type.is_integer.should_be_true
-                c.value_type.is_integer.should_be_true
+                    setup.expect_integer_type c
+                setup.expect_integer_type c
 
-            ((a.year) == (t.at "X")).to_vector . should_equal [True, False, False, Nothing]
-            ((a.month) == (t.at "X")).to_vector . should_equal [False, False, True, Nothing]
-            ((a.day) == (t.at "X")).to_vector . should_equal [False, True, True, Nothing]
+            ((a.year) == (t.at "X")).to_vector . should_equal [True, False, False, Nothing, False]
+            ((a.month) == (t.at "X")).to_vector . should_equal [False, False, True, Nothing, False]
+            ((a.day) == (t.at "X")).to_vector . should_equal [False, True, True, Nothing, False]
 
-        group_builder.specify "should allow to get the year/month/day of a Date_Time" <|
+        group_builder.specify "should allow to get the year/month/day/day_of_year/day_of_week of a Date_Time" <|
             t = data.datetimes
             a = t.at "A"
-            a.year . to_vector . should_equal [2020, 2024, 1990, Nothing]
-            a.month . to_vector . should_equal [12, 2, 1, Nothing]
-            a.day . to_vector . should_equal [31, 29, 1, Nothing]
-            [a.year, a.month, a.day].each c->
+            a.year . to_vector . should_equal [2020, 2024, 1990, Nothing, 2024]
+            a.month . to_vector . should_equal [12, 2, 1, Nothing, 5]
+            a.day . to_vector . should_equal [31, 29, 1, Nothing, 26]
+            a.day_of_year . to_vector . should_equal [366, 60, 1, Nothing, 147]
+            a.day_of_week . to_vector . should_equal [4, 4, 1, Nothing, 7]
+            [a.year, a.month, a.day, a.day_of_year, a.day_of_week].each c->
                 Test.with_clue "The column "+c.name+" value type ("+c.value_type.to_display_text+") should be an integer: " <|
-                    c.value_type.is_integer.should_be_true
+                    setup.expect_integer_type c
 
-            ((a.year) == (t.at "X")).to_vector . should_equal [True, False, False, Nothing]
-            ((a.month) == (t.at "X")).to_vector . should_equal [False, False, True, Nothing]
-            ((a.day) == (t.at "X")).to_vector . should_equal [False, True, True, Nothing]
+            ((a.year) == (t.at "X")).to_vector . should_equal [True, False, False, Nothing, False]
+            ((a.month) == (t.at "X")).to_vector . should_equal [False, False, True, Nothing, False]
+            ((a.day) == (t.at "X")).to_vector . should_equal [False, True, True, Nothing, False]
 
         group_builder.specify "should allow to evaluate expressions with year/month/day" <|
             t = table_builder [["A", [Date.new 2020 12 31, Date.new 2024 2 29, Date.new 1990 1 1, Nothing]], ["X", [0, 2, 1, 100]], ["B", [Date_Time.new 2020 10 31 23 59 59, Date_Time.new 2024 4 29 2 30 44, Date_Time.new 1990 10 1 0 0 0, Nothing]]]
             c = t.evaluate_expression "year([A]) + [X] + day([A]) * month([B])"
             Test.with_clue "The column "+c.name+" value type ("+c.value_type.to_display_text+") should be an integer: " <|
-                c.value_type.is_integer.should_be_true
+                setup.expect_integer_type c
             c.to_vector . should_equal [(2020 + 0 + 31 * 10), (2024 + 2 + 29 * 4), (1990 + 1 + 1 * 10), Nothing]
 
         group_builder.specify "should allow to get hour/minute/second of a Time_Of_Day" <|
@@ -132,21 +150,21 @@ add_specs suite_builder setup =
 
             [a.hour, a.minute, a.second, a.date_part Time_Period.Hour, a.date_part Time_Period.Minute, a.date_part Time_Period.Second].each c->
                 Test.with_clue "The column "+c.name+" value type ("+c.value_type.to_display_text+") should be an integer: " <|
-                    c.value_type.is_integer.should_be_true
+                    setup.expect_integer_type c
 
         group_builder.specify "should allow to get hour/minute/second of a Date_Time" <|
             a = data.datetimes.at "A"
-            a.hour . to_vector . should_equal [23, 2, 0, Nothing]
-            a.minute . to_vector . should_equal [59, 30, 0, Nothing]
-            a.second . to_vector . should_equal [59, 44, 0, Nothing]
+            a.hour . to_vector . should_equal [23, 2, 0, Nothing, 11]
+            a.minute . to_vector . should_equal [59, 30, 0, Nothing, 43]
+            a.second . to_vector . should_equal [59, 44, 0, Nothing, 22]
 
-            a.date_part Time_Period.Hour . to_vector . should_equal [23, 2, 0, Nothing]
-            a.date_part Time_Period.Minute . to_vector . should_equal [59, 30, 0, Nothing]
-            a.date_part Time_Period.Second . to_vector . should_equal [59, 44, 0, Nothing]
+            a.date_part Time_Period.Hour . to_vector . should_equal [23, 2, 0, Nothing, 11]
+            a.date_part Time_Period.Minute . to_vector . should_equal [59, 30, 0, Nothing, 43]
+            a.date_part Time_Period.Second . to_vector . should_equal [59, 44, 0, Nothing, 22]
 
             [a.hour, a.minute, a.second, a.date_part Time_Period.Hour, a.date_part Time_Period.Minute, a.date_part Time_Period.Second].each c->
                 Test.with_clue "The column "+c.name+" value type ("+c.value_type.to_display_text+") should be an integer: " <|
-                    c.value_type.is_integer.should_be_true
+                    setup.expect_integer_type c
 
         group_builder.specify "should allow to get millisecond/nanosecond of Time_Of_Day through date_part" <|
             a = data.times.at "A"
@@ -164,26 +182,26 @@ add_specs suite_builder setup =
                 testCases = testCases + (a.date_part Time_Period.Nanosecond)
             testCases.each c->
                 Test.with_clue "The column "+c.name+" value type ("+c.value_type.to_display_text+") should be an integer: " <|
-                    c.value_type.is_integer.should_be_true
+                    setup.expect_integer_type c
 
         group_builder.specify "should allow to get week/quarter of Date through date_part" <|
             a = data.dates.at "A"
-            a.date_part Date_Period.Quarter . to_vector . should_equal [4, 1, 1, Nothing]
-            a.date_part Date_Period.Week . to_vector . should_equal [53, 9, 1, Nothing]
+            a.date_part Date_Period.Quarter . to_vector . should_equal [4, 1, 1, Nothing, 2]
+            a.date_part Date_Period.Week . to_vector . should_equal [53, 9, 1, Nothing, 21]
 
             [a.date_part Date_Period.Quarter, a.date_part Date_Period.Week].each c->
                 Test.with_clue "The column "+c.name+" value type ("+c.value_type.to_display_text+") should be an integer: " <|
-                    c.value_type.is_integer.should_be_true
+                    setup.expect_integer_type c
 
         group_builder.specify "should allow to get various date_part of Date_Time" <|
             a = data.datetimes.at "A"
-            a.date_part Date_Period.Quarter . to_vector . should_equal [4, 1, 1, Nothing]
-            a.date_part Date_Period.Week . to_vector . should_equal [53, 9, 1, Nothing]
-            a.date_part Time_Period.Millisecond . to_vector . should_equal [567, 1, 0, Nothing]
-            a.date_part Time_Period.Microsecond . to_vector . should_equal [0,   2, 0, Nothing]
+            a.date_part Date_Period.Quarter . to_vector . should_equal [4, 1, 1, Nothing, 2]
+            a.date_part Date_Period.Week . to_vector . should_equal [53, 9, 1, Nothing, 21]
+            a.date_part Time_Period.Millisecond . to_vector . should_equal [567, 1, 0, Nothing, 0]
+            a.date_part Time_Period.Microsecond . to_vector . should_equal [0,   2, 0, Nothing, 0]
             case setup.test_selection.supports_nanoseconds_in_time of
                 True ->
-                    a.date_part Time_Period.Nanosecond . to_vector . should_equal  [123, 0, 0, Nothing]
+                    a.date_part Time_Period.Nanosecond . to_vector . should_equal  [123, 0, 0, Nothing, 0]
                 False ->
                     a.date_part Time_Period.Nanosecond . should_fail_with Unsupported_Database_Operation
 
@@ -192,7 +210,7 @@ add_specs suite_builder setup =
                 testCases = testCases + (a.date_part Time_Period.Nanosecond)
             testCases.each c->
                 Test.with_clue "The column "+c.name+" value type ("+c.value_type.to_display_text+") should be an integer: " <|
-                    c.value_type.is_integer.should_be_true
+                    setup.expect_integer_type c
 
 
         group_builder.specify "should allow to compare dates" <|
@@ -271,45 +289,44 @@ add_specs suite_builder setup =
             ((t.at "Z") - (t.at "Y")) . should_fail_with Invalid_Value_Type
             ((t.at "Z") - (Date.new 2021 11 3)) . should_fail_with Invalid_Value_Type
 
-        group_builder.specify "should allow computing a SQL-like difference" <|
-            t1 = table_builder [["X", [Date.new 2021 11 3]], ["Y", [Date.new 2021 12 5]]]
-
+        zone = Time_Zone.parse "Europe/Warsaw"
+        dates1 = Lazy_Ref.Value <|
+            dates = [["d_X", [Date.new 2021 11 3]], ["d_Y", [Date.new 2021 12 5]], ["X1", [Date.new 2021 01 02]]]
+            date_times = [["dt_X", [Date_Time.new 2021 11 3 10 15 0 zone=zone]], ["dt_Y", [Date_Time.new 2021 12 5 12 30 20 zone=zone]]]
+            times = [["t_X", [Time_Of_Day.new 10 15 0]], ["t_Y", [Time_Of_Day.new 12 30 20]]]
+            table_builder (dates + date_times + times)
+        group_builder.specify "should allow computing a SQL-like difference (date_diff)" <|
+            t1 = dates1.get.select_columns ["d_X", "d_Y", "X1"] reorder=True . rename_columns ["X", "Y", "X1"]
             (t1.at "X").date_diff (t1.at "Y") Date_Period.Day . to_vector . should_equal [32]
             (t1.at "Y").date_diff (t1.at "X") Date_Period.Day . to_vector . should_equal [-32]
             (t1.at "X").date_diff (Date.new 2021 11 3) Date_Period.Day . to_vector . should_equal [0]
 
             (t1.at "X").date_diff (t1.at "Y") Date_Period.Month . to_vector . should_equal [1]
-            (t1.at "X").date_diff (Date.new 2021 12 1) Date_Period.Month . to_vector . should_equal [0]
             (t1.at "X").date_diff (Date.new 2020 12 1) Date_Period.Month . to_vector . should_equal [-11]
 
             (t1.at "X").date_diff (t1.at "Y") Date_Period.Quarter . to_vector . should_equal [0]
             (t1.at "X").date_diff (Date.new 2021 5 1) Date_Period.Quarter . to_vector . should_equal [-2]
-            (t1.at "X").date_diff (Date.new 2023 7 1) Date_Period.Quarter . to_vector . should_equal [6]
 
             (t1.at "X").date_diff (t1.at "Y") Date_Period.Year . to_vector . should_equal [0]
             (t1.at "X").date_diff (Date.new 2021 12 1) Date_Period.Year . to_vector . should_equal [0]
             (t1.at "X").date_diff (Date.new 2020 10 1) Date_Period.Year . to_vector . should_equal [-1]
 
             # Ensure months of varying length (e.g. February) are still counted right.
-            t1_2 = table_builder [["X", [Date.new 2021 01 02]]]
-            (t1_2 . at "X").date_diff (Date.new 2021 03 02) Date_Period.Day . to_vector . should_equal [59]
-            (t1_2 . at "X").date_diff (Date.new 2021 03 02) Date_Period.Month . to_vector . should_equal [2]
-            (t1_2 . at "X").date_diff (Date.new 2021 03 01) Date_Period.Day . to_vector . should_equal [58]
-            (t1_2 . at "X").date_diff (Date.new 2021 03 01) Date_Period.Month . to_vector . should_equal [1]
+            (t1.at "X1").date_diff (Date.new 2021 03 02) Date_Period.Day . to_vector . should_equal [59]
+            (t1.at "X1").date_diff (Date.new 2021 03 02) Date_Period.Month . to_vector . should_equal [2]
+            (t1.at "X1").date_diff (Date.new 2021 03 01) Date_Period.Day . to_vector . should_equal [58]
 
             # We do allow the `Time_Period.Day` as a kind of alias for `Date_Period.Day` here.
             (t1.at "X").date_diff (t1.at "Y") Time_Period.Day . to_vector . should_equal [32]
             (t1.at "X").date_diff (t1.at "Y") Time_Period.Hour . should_fail_with Illegal_Argument
 
-            zone = Time_Zone.parse "Europe/Warsaw"
-            t2 = table_builder [["X", [Date_Time.new 2021 11 3 10 15 0 zone=zone]], ["Y", [Date_Time.new 2021 12 5 12 30 20 zone=zone]]]
+            t2 = dates1.get.select_columns ["dt_X", "dt_Y"] reorder=True . rename_columns ["X", "Y"]
 
             (t2.at "X").date_diff (t2.at "Y") Date_Period.Day . to_vector . should_equal [32]
             (t2.at "Y").date_diff (t2.at "X") Date_Period.Day . to_vector . should_equal [-32]
             (t2.at "X").date_diff (Date_Time.new 2021 11 3 10 15 0 zone=zone) Date_Period.Day . to_vector . should_equal [0]
 
             (t2.at "X").date_diff (t2.at "Y") Date_Period.Month . to_vector . should_equal [1]
-            (t2.at "X").date_diff (Date_Time.new 2021 12 1 10 15 0 zone=zone) Date_Period.Month . to_vector . should_equal [0]
 
             (t2.at "X").date_diff (t2.at "Y") Date_Period.Year . to_vector . should_equal [0]
             (t2.at "X").date_diff (Date_Time.new 2031 12 1 10 15 0 zone=zone) Date_Period.Year . to_vector . should_equal [10]
@@ -339,7 +356,7 @@ add_specs suite_builder setup =
                     (t2.at "X").date_diff (t2.at "Y") Time_Period.Nanosecond . should_fail_with Unsupported_Database_Operation
                     (t2.at "X").date_diff (Date_Time.new 2021 11 3 10 15 30 123 456 789 zone=zone) Time_Period.Nanosecond . should_fail_with Unsupported_Database_Operation
 
-            t3 = table_builder [["X", [Time_Of_Day.new 10 15 0]], ["Y", [Time_Of_Day.new 12 30 20]]]
+            t3 = dates1.get.select_columns ["t_X", "t_Y"] reorder=True . rename_columns ["X", "Y"]
 
             # There is no default period:
             (t3.at "X").date_diff (t3.at "Y") Date_Period.Month . should_fail_with Illegal_Argument
@@ -370,6 +387,19 @@ add_specs suite_builder setup =
                     (t3.at "X").date_diff (t3.at "Y") Time_Period.Nanosecond . should_fail_with Unsupported_Database_Operation
                     (t3.at "X").date_diff (Time_Of_Day.new 10 15 12 34 56 78) Time_Period.Nanosecond . should_fail_with Unsupported_Database_Operation
 
+        ## TODO these were extracted from the test above, they may later be merged again, or we may keep them separate depending on resolution of
+           https://github.com/enso-org/enso/issues/10438
+        group_builder.specify "date_diff edge cases" pending=(if setup.prefix.contains "Snowflake" then "TODO: https://github.com/enso-org/enso/issues/10438") <|
+            t1 = dates1.get.select_columns ["d_X", "d_Y", "X1"] reorder=True . rename_columns ["X", "Y", "X1"]
+            ## TODO Snowflake just looks at year and month, but Postgres/in-memory look if it was a full month or not by looking at days
+            (t1.at "X").date_diff (Date.new 2021 12 1) Date_Period.Month . to_vector . should_equal [0]
+            (t1.at "X").date_diff (Date.new 2023 7 1) Date_Period.Quarter . to_vector . should_equal [6]
+
+            (t1.at "X1").date_diff (Date.new 2021 03 01) Date_Period.Month . to_vector . should_equal [1]
+
+            t2 = dates1.get.select_columns ["dt_X", "dt_Y"] reorder=True . rename_columns ["X", "Y"]
+            (t2.at "X").date_diff (Date_Time.new 2021 12 1 10 15 0 zone=zone) Date_Period.Month . to_vector . should_equal [0]
+
         group_builder.specify "date_diff should return integers" <|
             t = table_builder [["X", [Date.new 2021 01 31]], ["Y", [Time_Of_Day.new 12 30 20]], ["Z", [Date_Time.new 2021 12 5 12 30 20]]]
 
@@ -377,13 +407,13 @@ add_specs suite_builder setup =
             date_periods = [Date_Period.Day, Date_Period.Week, Date_Period.Month, Date_Period.Quarter, Date_Period.Year]
 
             date_periods.each p->
-                (t.at "X").date_diff (Date.new 2021 12 05) p . value_type . is_integer . should_be_true
+                setup.expect_integer_type <| (t.at "X").date_diff (Date.new 2021 12 05) p
 
             time_periods.each p->
-                (t.at "Y").date_diff (Time_Of_Day.new 01 02) p . value_type . is_integer . should_be_true
+                setup.expect_integer_type <| (t.at "Y").date_diff (Time_Of_Day.new 01 02) p
 
             (date_periods+time_periods).each p->
-                (t.at "Z").date_diff (Date_Time.new 2021 12 05 01 02) p . value_type . is_integer . should_be_true
+                setup.expect_integer_type <| (t.at "Z").date_diff (Date_Time.new 2021 12 05 01 02) p
 
         group_builder.specify "should not allow mixing types in date_diff" <|
             t = table_builder [["X", [Date.new 2021 01 31]], ["Y", [Time_Of_Day.new 12 30 20]], ["Z", [Date_Time.new 2021 12 5 12 30 20]]]
@@ -399,6 +429,7 @@ add_specs suite_builder setup =
 
         group_builder.specify "should allow an SQL-like shift" <|
             t1 = table_builder [["X", [Date.new 2021 01 31, Date.new 2021 01 01, Date.new 2021 12 31]], ["Y", [5, -1, 0]]]
+            t1.at "X" . value_type . should_equal Value_Type.Date
             (t1.at "X").date_add (t1.at "Y") Date_Period.Day . to_vector . should_equal [Date.new 2021 02 05, Date.new 2020 12 31, Date.new 2021 12 31]
             (t1.at "X").date_add -1 Date_Period.Day . to_vector . should_equal [Date.new 2021 01 30, Date.new 2020 12 31, Date.new 2021 12 30]
             (t1.at "X").date_add (t1.at "Y") Date_Period.Month . to_vector . should_equal [Date.new 2021 06 30, Date.new 2020 12 01, Date.new 2021 12 31]
@@ -413,27 +444,29 @@ add_specs suite_builder setup =
 
             (t1.at "X").date_add 1 Time_Period.Hour . should_fail_with Illegal_Argument
             # Will accept Time_Period.Day as alias of Date_Period.Day
-            (t1.at "X").date_add 1 Time_Period.Day . to_vector . should_equal [Date.new 2021 02 01, Date.new 2021 01 02, Date.new 2022 01 01]
+            r1 = (t1.at "X").date_add 1 Time_Period.Day
+            r1.value_type . should_equal Value_Type.Date
+            r1.to_vector . should_equal [Date.new 2021 02 01, Date.new 2021 01 02, Date.new 2022 01 01]
 
-            t2 = table_builder [["X", [Date_Time.new 2021 01 31 12 30 0, Date_Time.new 2021 01 01 12 30 0, Date_Time.new 2021 12 31 12 30 0]], ["Y", [5, -1, 0]]]
-            (t2.at "X").date_add (t2.at "Y") Date_Period.Day . to_vector . should_equal_tz_agnostic [Date_Time.new 2021 02 05 12 30 0, Date_Time.new 2020 12 31 12 30 0, Date_Time.new 2021 12 31 12 30 0]
+            t2 = table_builder [["X", [Date_Time.new 2021 01 31 12 30 0, Date_Time.new 2021 01 01 12 30 0, Date_Time.new 2021 12 31 12 30 0]], ["Y", [11, -1, 0]]]
+            (t2.at "X").date_add (t2.at "Y") Date_Period.Day . to_vector . should_equal_tz_agnostic [Date_Time.new 2021 02 11 12 30 0, Date_Time.new 2020 12 31 12 30 0, Date_Time.new 2021 12 31 12 30 0]
             (t2.at "X").date_add -1 Time_Period.Day . to_vector . should_equal_tz_agnostic [Date_Time.new 2021 01 30 12 30 0, Date_Time.new 2020 12 31 12 30 0, Date_Time.new 2021 12 30 12 30 0]
-            (t2.at "X").date_add (t2.at "Y") Date_Period.Month . to_vector . should_equal_tz_agnostic [Date_Time.new 2021 06 30 12 30 0, Date_Time.new 2020 12 01 12 30 0, Date_Time.new 2021 12 31 12 30 0]
+            (t2.at "X").date_add (t2.at "Y") Date_Period.Month . to_vector . should_equal_tz_agnostic [Date_Time.new 2021 12 31 12 30 0, Date_Time.new 2020 12 01 12 30 0, Date_Time.new 2021 12 31 12 30 0]
             (t2.at "X").date_add 1 Date_Period.Month . to_vector . should_equal_tz_agnostic [Date_Time.new 2021 02 28 12 30 0, Date_Time.new 2021 02 01 12 30 0, Date_Time.new 2022 01 31 12 30 0]
-            (t2.at "X").date_add (t2.at "Y") Date_Period.Year . to_vector . should_equal_tz_agnostic [Date_Time.new 2026 01 31 12 30 0, Date_Time.new 2020 01 01 12 30 0, Date_Time.new 2021 12 31 12 30 0]
+            (t2.at "X").date_add (t2.at "Y") Date_Period.Year . to_vector . should_equal_tz_agnostic [Date_Time.new 2032 01 31 12 30 0, Date_Time.new 2020 01 01 12 30 0, Date_Time.new 2021 12 31 12 30 0]
             (t2.at "X").date_add 1 Date_Period.Year . to_vector . should_equal_tz_agnostic [Date_Time.new 2022 01 31 12 30 0, Date_Time.new 2022 01 01 12 30 0, Date_Time.new 2022 12 31 12 30 0]
 
-            (t2.at "X").date_add (t2.at "Y") Time_Period.Hour . to_vector . should_equal_tz_agnostic [Date_Time.new 2021 01 31 17 30 0, Date_Time.new 2021 01 01 11 30 0, Date_Time.new 2021 12 31 12 30 0]
+            (t2.at "X").date_add (t2.at "Y") Time_Period.Hour . to_vector . should_equal_tz_agnostic [Date_Time.new 2021 01 31 23 30 0, Date_Time.new 2021 01 01 11 30 0, Date_Time.new 2021 12 31 12 30 0]
             (t2.at "X").date_add 1 Time_Period.Hour . to_vector . should_equal_tz_agnostic [Date_Time.new 2021 01 31 13 30 0, Date_Time.new 2021 01 01 13 30 0, Date_Time.new 2021 12 31 13 30 0]
-            (t2.at "X").date_add (t2.at "Y") Time_Period.Minute . to_vector . should_equal_tz_agnostic [Date_Time.new 2021 01 31 12 35 0, Date_Time.new 2021 01 01 12 29 0, Date_Time.new 2021 12 31 12 30 0]
+            (t2.at "X").date_add (t2.at "Y") Time_Period.Minute . to_vector . should_equal_tz_agnostic [Date_Time.new 2021 01 31 12 41 0, Date_Time.new 2021 01 01 12 29 0, Date_Time.new 2021 12 31 12 30 0]
             (t2.at "X").date_add 1 Time_Period.Minute . to_vector . should_equal_tz_agnostic [Date_Time.new 2021 01 31 12 31 0, Date_Time.new 2021 01 01 12 31 0, Date_Time.new 2021 12 31 12 31 0]
-            (t2.at "X").date_add (t2.at "Y") Time_Period.Second . to_vector . should_equal_tz_agnostic [Date_Time.new 2021 01 31 12 30 5, Date_Time.new 2021 01 01 12 29 59, Date_Time.new 2021 12 31 12 30 0]
+            (t2.at "X").date_add (t2.at "Y") Time_Period.Second . to_vector . should_equal_tz_agnostic [Date_Time.new 2021 01 31 12 30 11, Date_Time.new 2021 01 01 12 29 59, Date_Time.new 2021 12 31 12 30 0]
             (t2.at "X").date_add 1 Time_Period.Second . to_vector . should_equal_tz_agnostic [Date_Time.new 2021 01 31 12 30 1, Date_Time.new 2021 01 01 12 30 1, Date_Time.new 2021 12 31 12 30 1]
             (t2.at "X").date_add 1 Time_Period.Millisecond . to_vector . should_equal_tz_agnostic [Date_Time.new 2021 01 31 12 30 millisecond=1, Date_Time.new 2021 01 01 12 30 millisecond=1, Date_Time.new 2021 12 31 12 30 millisecond=1]
             (t2.at "X").date_add 1 Time_Period.Microsecond . to_vector . should_equal_tz_agnostic [Date_Time.new 2021 01 31 12 30 microsecond=1, Date_Time.new 2021 01 01 12 30 microsecond=1, Date_Time.new 2021 12 31 12 30 microsecond=1]
             case setup.test_selection.supports_nanoseconds_in_time of
                 True ->
-                    (t2.at "X").date_add 1 Time_Period.Nanosecond . to_vector . should_equal [Date_Time.new 2021 01 31 12 30 nanosecond=1, Date_Time.new 2021 01 01 12 30 nanosecond=1, Date_Time.new 2021 12 31 12 30 nanosecond=1]
+                    (t2.at "X").date_add 1 Time_Period.Nanosecond . to_vector . should_equal_tz_agnostic [Date_Time.new 2021 01 31 12 30 nanosecond=1, Date_Time.new 2021 01 01 12 30 nanosecond=1, Date_Time.new 2021 12 31 12 30 nanosecond=1]
                 False ->
                     (t2.at "X").date_add 1 Time_Period.Nanosecond . should_fail_with Unsupported_Database_Operation
 
@@ -459,27 +492,38 @@ add_specs suite_builder setup =
 
             # Date period defaults to Day for date/date-time
             (t1.at "X").date_add (t1.at "Y") . to_vector . should_equal [Date.new 2021 02 05, Date.new 2020 12 31, Date.new 2021 12 31]
-            (t2.at "X").date_add (t2.at "Y") . to_vector . should_equal_tz_agnostic [Date_Time.new 2021 02 05 12 30 0, Date_Time.new 2020 12 31 12 30 0, Date_Time.new 2021 12 31 12 30 0]
+            (t2.at "X").date_add (t2.at "Y") . to_vector . should_equal_tz_agnostic [Date_Time.new 2021 02 11 12 30 0, Date_Time.new 2020 12 31 12 30 0, Date_Time.new 2021 12 31 12 30 0]
             # and defaults to Hour for time-of-day
             (t3.at "X").date_add (t3.at "Y") . to_vector . should_equal [Time_Of_Day.new 17 30 0, Time_Of_Day.new 22 45 0, Time_Of_Day.new 1 30 0]
 
         group_builder.specify "should check shift_amount type in date_add" <|
-            t = table_builder [["X", [Date.new 2021 01 31]]]
-            t.at "X" . date_add "text" Date_Period.Day . should_fail_with Invalid_Value_Type
+            t = dates1.get
+            t.at "d_X" . date_add "text" Date_Period.Day . should_fail_with Invalid_Value_Type
 
         group_builder.specify "date_diff and date_add should work correctly with DST" pending="May be failing on some Database configurations. ToDo: investigate - https://github.com/enso-org/enso/issues/7326" <|
-            zone = Time_Zone.parse "Europe/Warsaw"
+            # TODO the behaviour here may differ between backends.
+            # Postgres will store time in UTC and Snowflake remembers the offset but discards the timezone, so each of them have some trouble around DST.
             dt1 = Date_Time.new 2023 03 26 00 30 00 zone=zone
-            t = table_builder [["X", [dt1]]]
+            dt3 = Date_Time.new 2023 03 28 01 30 00 zone=zone
+            t = table_builder [["X", [dt1]], ["Y", [dt3]]]
             x = t.at "X"
 
             # +24h will shift 1 day and 1 hour, because they 26th of March has only 23 hours within it
             x.date_add 24 Time_Period.Hour . to_vector . should_equal_tz_agnostic [Date_Time.new 2023 03 27 01 30 00 zone=zone]
 
             # But 1 day date shift will shift 1 day, keeping the time, even if that particular day is only 23 hours.
-            x.date_add 1 Date_Period.Day . to_vector . should_equal_tz_agnostic [Date_Time.new 2023 03 27 00 30 00 zone=zone]
+            plus_1_calendar_day = x.date_add 1 Date_Period.Day
+            # plus_1_calendar_day.to_vector . should_equal_tz_agnostic [Date_Time.new 2023 03 27 00 30 00 zone=zone]
+            # but `should_equal_tz_agnostic` because after conversion to UTC this will actually be a different hour!
+            # instead let's compare as local timestamps:
+            plus_1_calendar_day.to_vector . map as_local_date_time_repr . should_equal ["2023-03-27 00:30:00.0"]
+
             # Time_Period.Day will shift by 24 hours.
             x.date_add 1 Time_Period.Day . to_vector . should_equal_tz_agnostic [Date_Time.new 2023 03 27 01 30 00 zone=zone]
+
+            # Once we add 3 months, we should get the same hour back.
+            plus_3_months = x.date_add 3 Date_Period.Month
+            plus_3_months.to_vector.map as_local_date_time_repr . should_equal ["2023-06-26 00:30:00.0"]
 
             dt2 = Date_Time.new 2023 03 27 00 30 00 zone=zone
             x.date_diff dt2 Time_Period.Hour . to_vector . should_equal [23]
@@ -496,24 +540,16 @@ add_specs suite_builder setup =
             # Again consistent for both backends, when counting in hours - 23 hours is not a full 24-hour day.
             x.date_diff dt2 Time_Period.Day . to_vector . should_equal [0]
 
-            dt3 = Date_Time.new 2023 03 28 01 30 00 zone=zone
             dt4 = Date_Time.new 2023 03 29 00 30 00 zone=zone
-            t2 = table_builder [["X", [dt3]]]
+            y = t.at "Y"
             # No DST switch here, so all backends agree that 0 days elapsed in the 23 hours.
-            (t2.at "X").date_diff dt4 Date_Period.Day . to_vector . should_equal [0]
-            (t2.at "X").date_diff dt4 Time_Period.Day . to_vector . should_equal [0]
-            (t2.at "X").date_diff dt4 Time_Period.Hour . to_vector . should_equal [23]
+            # Snowflake returns 1...
+            y.date_diff dt4 Date_Period.Day . to_vector . should_equal [0]
+            y.date_diff dt4 Time_Period.Day . to_vector . should_equal [0]
+            y.date_diff dt4 Time_Period.Hour . to_vector . should_equal [23]
 
     if setup.test_selection.date_time.not then
         suite_builder.group prefix+"partial Date-Time support" group_builder->
-            data = Data.setup create_connection_fn setup.table_builder
-
-            group_builder.teardown <|
-                data.teardown
-
-            table_builder cols =
-                setup.table_builder cols connection=data.connection
-
             group_builder.specify "will fail when uploading a Table containing Dates" <|
                 d = Date.new 2020 10 24
                 table = table_builder [["A", [d]], ["X", [123]]]
@@ -529,3 +565,5 @@ add_specs suite_builder setup =
 
                 t.at "A" . date_diff (t.at "B") Date_Period.Day . should_fail_with Invalid_Value_Type
                 t.at "A" . date_add 42 Date_Period.Day . should_fail_with Invalid_Value_Type
+
+as_local_date_time_repr dt = dt.format "YYYY-MM-DD HH:mm:ss.f"

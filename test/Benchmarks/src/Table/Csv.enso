@@ -1,0 +1,17 @@
+from Standard.Base import all
+from Standard.Base.Runtime import assert
+from Standard.Table import all
+from Standard.Test import Bench
+import Standard.Examples
+
+options = Bench.options . set_warmup (Bench.phase_conf 2 5) . set_measure (Bench.phase_conf 2 5)
+
+collect_benches = Bench.build builder->
+    assert Examples.csv_2500_rows.exists "Expecting the file to exist at "+Examples.csv_2500_rows.path
+
+    builder.group ("Read_csv_file") options group_builder->
+        group_builder.specify "data_csv" <|
+            table = Examples.csv_2500_rows . read
+            assert (table.row_count == 2500) "Expecting two and half thousand rows, but got "+table.row_count.to_text
+
+main = collect_benches . run_main

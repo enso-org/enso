@@ -7,9 +7,10 @@ import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
+import * as ariaComponents from '#/components/AriaComponents'
 import Modal from '#/components/Modal'
-import ButtonRow from '#/components/styled/ButtonRow'
-import UnstyledButton from '#/components/UnstyledButton'
+
+import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 // ==========================
 // === ConfirmDeleteModal ===
@@ -44,7 +45,10 @@ export default function ConfirmDeleteModal(props: ConfirmDeleteModalProps) {
   return (
     <Modal
       centered={positionEvent == null}
-      className={`bg-dim ${positionEvent == null ? '' : 'absolute size-full overflow-hidden'}`}
+      className={tailwindMerge.twMerge(
+        'bg-dim',
+        positionEvent != null && 'absolute size-full overflow-hidden'
+      )}
     >
       <form
         data-testid="confirm-delete-modal"
@@ -63,18 +67,25 @@ export default function ConfirmDeleteModal(props: ConfirmDeleteModalProps) {
         }}
       >
         <aria.Text className="relative">{getText('confirmPrompt', actionText)}</aria.Text>
-        <ButtonRow>
-          <UnstyledButton className="button bg-delete text-white active" onPress={doSubmit}>
+        <ariaComponents.ButtonGroup>
+          <ariaComponents.Button
+            size="medium"
+            variant="delete"
+            className="relative"
+            onPress={doSubmit}
+          >
             {actionButtonLabel}
-          </UnstyledButton>
-          <UnstyledButton
+          </ariaComponents.Button>
+          <ariaComponents.Button
+            size="medium"
+            variant="cancel"
             autoFocus
-            className="button bg-selected-frame active"
+            className="relative"
             onPress={unsetModal}
           >
             {getText('cancel')}
-          </UnstyledButton>
-        </ButtonRow>
+          </ariaComponents.Button>
+        </ariaComponents.ButtonGroup>
       </form>
     </Modal>
   )

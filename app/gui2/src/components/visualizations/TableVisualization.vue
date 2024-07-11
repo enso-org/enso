@@ -1,11 +1,33 @@
 <script lang="ts">
+import icons from '@/assets/icons.svg'
+import {
+  clipboardNodeData,
+  tsvTableToEnsoExpression,
+  writeClipboard,
+} from '@/components/GraphEditor/clipboard'
+import { Ast } from '@/util/ast'
+import { Pattern } from '@/util/ast/match'
 import { useAutoBlur } from '@/util/autoBlur'
-import { VisualizationContainer } from '@/util/visualizationBuiltins'
+import { VisualizationContainer, useVisualizationConfig } from '@/util/visualizationBuiltins'
 import '@ag-grid-community/styles/ag-grid.css'
 import '@ag-grid-community/styles/ag-theme-alpine.css'
-import type { ColumnResizedEvent, ICellRendererParams } from 'ag-grid-community'
-import type { ColDef, GridOptions, HeaderValueGetterParams } from 'ag-grid-enterprise'
-import { computed, onMounted, onUnmounted, reactive, ref, watchEffect, type Ref } from 'vue'
+import type {
+  CellClassParams,
+  CellClickedEvent,
+  ColumnResizedEvent,
+  ICellRendererParams,
+} from 'ag-grid-community'
+import type { ColDef, GridOptions } from 'ag-grid-enterprise'
+import {
+  computed,
+  onMounted,
+  onUnmounted,
+  reactive,
+  ref,
+  shallowRef,
+  watchEffect,
+  type Ref,
+} from 'vue'
 
 export const name = 'Table'
 export const icon = 'table'
@@ -17,7 +39,7 @@ export const defaultPreprocessor = [
   '1000',
 ] as const
 
-type Data = Error | Matrix | ObjectMatrix | LegacyMatrix | LegacyObjectMatrix | UnknownTable
+type Data = Error | Matrix | ObjectMatrix | UnknownTable | Excel_Workbook
 
 interface Error {
   type: undefined
@@ -25,10 +47,24 @@ interface Error {
   all_rows_count?: undefined
 }
 
+interface ValueType {
+  constructor: string
+  display_text: string
+}
+
 interface Matrix {
   type: 'Matrix'
   column_count: number
   all_rows_count: number
+  json: unknown[][]
+  value_type: ValueType[]
+}
+
+interface Excel_Workbook {
+  type: 'Excel_Workbook'
+  column_count: number
+  all_rows_count: number
+  sheet_names: string[]
   json: unknown[][]
 }
 
@@ -37,20 +73,7 @@ interface ObjectMatrix {
   column_count: number
   all_rows_count: number
   json: object[]
-}
-
-interface LegacyMatrix {
-  type: undefined
-  column_count: number
-  all_rows_count: number
-  json: unknown[][]
-}
-
-interface LegacyObjectMatrix {
-  type: undefined
-  column_count: number
-  all_rows_count: number
-  json: object[]
+  value_type: ValueType[]
 }
 
 interface UnknownTable {
@@ -61,9 +84,10 @@ interface UnknownTable {
   json: unknown
   all_rows_count?: number
   header: string[] | undefined
-  indices_header?: string[]
   data: unknown[][] | undefined
-  indices: unknown[][] | undefined
+  value_type: ValueType[]
+  has_index_col: boolean | undefined
+  links: string[] | undefined
 }
 
 declare module 'ag-grid-enterprise' {
@@ -86,25 +110,38 @@ const props = defineProps<{ data: Data }>()
 const emit = defineEmits<{
   'update:preprocessor': [module: string, method: string, ...args: string[]]
 }>()
+const config = useVisualizationConfig()
 
 const INDEX_FIELD_NAME = '#'
+const TABLE_NODE_TYPE = 'Standard.Table.Table.Table'
+const DB_TABLE_NODE_TYPE = 'Standard.Database.DB_Table.DB_Table'
+const VECTOR_NODE_TYPE = 'Standard.Base.Data.Vector.Vector'
+const COLUMN_NODE_TYPE = 'Standard.Table.Column.Column'
+const EXCEL_WORKBOOK_NODE_TYPE = 'Standard.Table.Excel.Excel_Workbook.Excel_Workbook'
+const ROW_NODE_TYPE = 'Standard.Table.Row.Row'
+const SQLITE_CONNECTIONS_NODE_TYPE =
+  'Standard.Database.Internal.SQLite.SQLite_Connection.SQLite_Connection'
+const POSTGRES_CONNECTIONS_NODE_TYPE =
+  'Standard.Database.Internal.Postgres.Postgres_Connection.Postgres_Connection'
 
 const rowLimit = ref(0)
 const page = ref(0)
 const pageLimit = ref(0)
 const rowCount = ref(0)
+const showRowCount = ref(true)
 const isTruncated = ref(false)
 const tableNode = ref<HTMLElement>()
+const dataGroupingMap = shallowRef<Map<string, boolean>>()
 useAutoBlur(tableNode)
 const widths = reactive(new Map<string, number>())
 const defaultColDef = {
   editable: false,
-  sortable: true as boolean,
+  sortable: true,
   filter: true,
   resizable: true,
   minWidth: 25,
-  headerValueGetter: (params: HeaderValueGetterParams) => params.colDef.field,
   cellRenderer: cellRenderer,
+  cellClass: cellClass,
 }
 const agGridOptions: Ref<GridOptions & Required<Pick<GridOptions, 'defaultColDef'>>> = ref({
   headerHeight: 26,
@@ -115,12 +152,15 @@ const agGridOptions: Ref<GridOptions & Required<Pick<GridOptions, 'defaultColDef
   onFirstDataRendered: updateColumnWidths,
   onRowDataUpdated: updateColumnWidths,
   onColumnResized: lockColumnSize,
+  copyHeadersToClipboard: true,
+  sendToClipboard: ({ data }: { data: string }) => sendToClipboard(data),
   suppressFieldDotNotation: true,
   enableRangeSelection: true,
   popupParent: document.body,
 })
 
 const isRowCountSelectorVisible = computed(() => rowCount.value >= 1000)
+
 const selectableRowLimits = computed(() => {
   const defaults = [1000, 2500, 5000, 10000, 25000, 50000, 100000].filter(
     (r) => r <= rowCount.value,
@@ -133,13 +173,74 @@ const selectableRowLimits = computed(() => {
   }
   return defaults
 })
-const wasAutomaticallyAutosized = ref(false)
+
+const newNodeSelectorValues = computed(() => {
+  let selector
+  let identifierAction
+  let tooltipValue
+  let headerName
+  switch (config.nodeType) {
+    case COLUMN_NODE_TYPE:
+    case VECTOR_NODE_TYPE:
+      selector = INDEX_FIELD_NAME
+      identifierAction = 'at'
+      tooltipValue = 'value'
+      break
+    case ROW_NODE_TYPE:
+      selector = 'column'
+      identifierAction = 'at'
+      tooltipValue = 'value'
+      break
+    case EXCEL_WORKBOOK_NODE_TYPE:
+      selector = 'Value'
+      identifierAction = 'read'
+      tooltipValue = 'sheet'
+      headerName = 'Sheets'
+      break
+    case SQLITE_CONNECTIONS_NODE_TYPE:
+    case POSTGRES_CONNECTIONS_NODE_TYPE:
+      selector = 'Value'
+      identifierAction = 'query'
+      tooltipValue = 'table'
+      headerName = 'Tables'
+      break
+    case TABLE_NODE_TYPE:
+    case DB_TABLE_NODE_TYPE:
+      tooltipValue = 'row'
+  }
+  return {
+    selector,
+    identifierAction,
+    tooltipValue,
+    headerName,
+  }
+})
+
+const numberFormatGroupped = new Intl.NumberFormat(undefined, {
+  style: 'decimal',
+  maximumFractionDigits: 12,
+  useGrouping: true,
+})
 
 const numberFormat = new Intl.NumberFormat(undefined, {
   style: 'decimal',
   maximumFractionDigits: 12,
-  useGrouping: 'min2' as any,
+  useGrouping: false,
 })
+
+function formatNumber(params: ICellRendererParams) {
+  const valueType = params.value?.type
+  let value
+  if (valueType === 'Integer') {
+    value = BigInt(params.value?.value)
+  } else if (valueType === 'Decimal') {
+    value = Number(params.value?.value)
+  } else {
+    value = params.value
+  }
+  const needsGrouping = dataGroupingMap.value?.get(params.colDef?.field || '')
+  return needsGrouping ? numberFormatGroupped.format(value) : numberFormat.format(value)
+}
 
 function setRowLimit(newRowLimit: number) {
   if (newRowLimit !== rowLimit.value) {
@@ -164,24 +265,28 @@ function escapeHTML(str: string) {
   return str.replace(/[&<>"']/g, (m) => mapping[m]!)
 }
 
+function cellClass(params: CellClassParams) {
+  if (params.colDef.field === '#') return null
+  if (typeof params.value === 'number' || params.value === null) return 'ag-right-aligned-cell'
+  if (typeof params.value === 'object') {
+    const valueType = params.value?.type
+    if (valueType === 'BigInt' || valueType === 'Float' || valueType === 'Decimal')
+      return 'ag-right-aligned-cell'
+  }
+  return null
+}
+
 function cellRenderer(params: ICellRendererParams) {
   // Convert's the value into a display string.
   if (params.value === null) return '<span style="color:grey; font-style: italic;">Nothing</span>'
   else if (params.value === undefined) return ''
   else if (params.value === '') return '<span style="color:grey; font-style: italic;">Empty</span>'
-  else if (typeof params.value === 'number') return numberFormat.format(params.value)
-  else if (Array.isArray(params.value)) {
-    const content = params.value
-    if (isMatrix({ json: content })) {
-      return `[Vector ${content.length} rows x ${content[0].length} cols]`
-    } else if (isObjectMatrix({ json: content })) {
-      return `[Table ${content.length} rows x ${Object.keys(content[0]).length} cols]`
-    } else {
-      return `[Vector ${content.length} items]`
-    }
-  } else if (typeof params.value === 'object') {
+  else if (typeof params.value === 'number') return formatNumber(params)
+  else if (Array.isArray(params.value)) return `[Vector ${params.value.length} items]`
+  else if (typeof params.value === 'object') {
     const valueType = params.value?.type
-    if (valueType === 'BigInt') return numberFormat.format(BigInt(params.value?.value))
+    if (valueType === 'BigInt') return formatNumber(params)
+    else if (valueType === 'Decimal') return formatNumber(params)
     else if (valueType === 'Float')
       return `<span style="color:grey; font-style: italic;">${params.value?.value ?? 'Unknown'}</span>`
     else if ('_display_text_' in params.value && params.value['_display_text_'])
@@ -194,49 +299,117 @@ function addRowIndex(data: object[]): object[] {
   return data.map((row, i) => ({ [INDEX_FIELD_NAME]: i, ...row }))
 }
 
-function hasExactlyKeys(keys: string[], obj: object) {
-  return (
-    Object.keys(obj).length === keys.length &&
-    keys.every((k) => Object.prototype.hasOwnProperty.call(obj, k))
+function toField(name: string, valueType?: ValueType | null | undefined): ColDef {
+  const valType = valueType ? valueType.constructor : null
+  const displayValue = valueType ? valueType.display_text : null
+  let icon
+  switch (valType) {
+    case 'Char':
+      icon = 'text3'
+      break
+    case 'Boolean':
+      icon = 'check'
+      break
+    case 'Integer':
+    case 'Float':
+    case 'Decimal':
+    case 'Byte':
+      icon = 'math'
+      break
+    case 'Date':
+    case 'Date_Time':
+      icon = 'calendar'
+      break
+    case 'Time':
+      icon = 'time'
+      break
+    case 'Mixed':
+      icon = 'mixed'
+  }
+  const svgTemplate = `<svg viewBox="0 0 16 16" width="16" height="16"> <use xlink:href="${icons}#${icon}"/> </svg>`
+  const menu = `<span ref="eMenu" class="ag-header-icon ag-header-cell-menu-button"> </span>`
+  const sort = `
+      <span ref="eFilter" class="ag-header-icon ag-header-label-icon ag-filter-icon" aria-hidden="true"></span>
+      <span ref="eSortOrder" class="ag-header-icon ag-sort-order" aria-hidden="true">1</span>
+      <span ref="eSortAsc" class="ag-header-icon ag-sort-ascending-icon" aria-hidden="true"></span>
+      <span ref="eSortDesc" class="ag-header-icon ag-sort-descending-icon" aria-hidden="true"></span>
+      <span ref="eSortNone" class="ag-header-icon ag-sort-none-icon" aria-hidden="true"></span>
+    `
+  const template =
+    icon ?
+      `<span style='display:flex; flex-direction:row; justify-content:space-between; width:inherit;'><span ref="eLabel" class="ag-header-cell-label" role="presentation" style='display:flex; flex-direction:row; justify-content:space-between; width:inherit;'> ${name} ${menu}</span> ${sort} ${svgTemplate}</span>`
+    : `<span ref="eLabel" style='display:flex; flex-direction:row; justify-content:space-between; width:inherit;'>${name} ${menu} ${sort}</span>`
+  return {
+    field: name,
+    headerComponentParams: {
+      template,
+      enableSorting: true,
+      setAriaSort: () => {},
+    },
+    headerTooltip: displayValue ? displayValue : '',
+  }
+}
+
+function getAstPattern(selector: string | number, action: string) {
+  return Pattern.new((ast) =>
+    Ast.App.positional(
+      Ast.PropertyAccess.new(ast.module, ast, Ast.identifier(action)!),
+      typeof selector === 'number' ?
+        Ast.tryNumberToEnso(selector, ast.module)!
+      : Ast.TextLiteral.new(selector, ast.module),
+    ),
   )
 }
 
-function isObjectMatrix(data: object): data is LegacyObjectMatrix {
-  if (!('json' in data)) {
-    return false
+const getTablePattern = (index: number) =>
+  Pattern.new((ast) =>
+    Ast.OprApp.new(
+      ast.module,
+      Ast.App.positional(
+        Ast.PropertyAccess.new(ast.module, ast, Ast.identifier('rows')!),
+        Ast.parse('(..All_Rows)'),
+      ),
+      '.',
+      Ast.App.positional(
+        Ast.Ident.new(ast.module, Ast.identifier('get')!),
+        Ast.tryNumberToEnso(index, ast.module)!,
+      ),
+    ),
+  )
+
+function createNode(params: CellClickedEvent) {
+  if (config.nodeType === TABLE_NODE_TYPE || config.nodeType === DB_TABLE_NODE_TYPE) {
+    config.createNodes({
+      content: getTablePattern(params.data[INDEX_FIELD_NAME]),
+      commit: true,
+    })
   }
-  const json = data.json
-  const isList = Array.isArray(json) && json[0] != null
-  if (!isList || !(typeof json[0] === 'object')) {
-    return false
+  if (
+    newNodeSelectorValues.value.selector !== undefined &&
+    newNodeSelectorValues.value.selector !== null &&
+    newNodeSelectorValues.value.identifierAction
+  ) {
+    config.createNodes({
+      content: getAstPattern(
+        params.data[newNodeSelectorValues.value.selector],
+        newNodeSelectorValues.value.identifierAction,
+      ),
+      commit: true,
+    })
   }
-  const firstKeys = Object.keys(json[0])
-  return json.every((obj) => hasExactlyKeys(firstKeys, obj))
 }
 
-function isMatrix(data: object): data is LegacyMatrix {
-  if (!('json' in data)) {
-    return false
+function toLinkField(fieldName: string): ColDef {
+  return {
+    headerName:
+      newNodeSelectorValues.value.headerName ? newNodeSelectorValues.value.headerName : fieldName,
+    field: fieldName,
+    onCellDoubleClicked: (params) => createNode(params),
+    tooltipValueGetter: () => {
+      return `Double click to view this ${newNodeSelectorValues.value.tooltipValue} in a separate node`
+    },
+    cellRenderer: (params: any) => `<a href='#'> ${params.value} </a>`,
   }
-  const json = data.json
-  const isList = Array.isArray(json) && json[0] != null
-  if (!isList) {
-    return false
-  }
-  const firstIsArray = Array.isArray(json[0])
-  if (!firstIsArray) {
-    return false
-  }
-  const firstLen = json[0].length
-  return json.every((d) => d.length === firstLen)
-}
-
-function toField(name: string): ColDef {
-  return { field: name }
-}
-
-function indexField(): ColDef {
-  return toField(INDEX_FIELD_NAME)
 }
 
 /** Return a human-readable representation of an object. */
@@ -255,7 +428,11 @@ watchEffect(() => {
         // eslint-disable-next-line camelcase
         all_rows_count: 1,
         data: undefined,
-        indices: undefined,
+        // eslint-disable-next-line camelcase
+        value_type: undefined,
+        // eslint-disable-next-line camelcase
+        has_index_col: false,
+        links: undefined,
       }
   const options = agGridOptions.value
   if (options.api == null) {
@@ -274,14 +451,14 @@ watchEffect(() => {
     ]
     rowData = [{ Error: data_.error }]
   } else if (data_.type === 'Matrix') {
-    columnDefs.push(indexField())
+    columnDefs.push(toLinkField(INDEX_FIELD_NAME))
     for (let i = 0; i < data_.column_count; i++) {
       columnDefs.push(toField(i.toString()))
     }
     rowData = addRowIndex(data_.json)
     isTruncated.value = data_.all_rows_count !== data_.json.length
   } else if (data_.type === 'Object_Matrix') {
-    columnDefs.push(indexField())
+    columnDefs.push(toLinkField(INDEX_FIELD_NAME))
     let keys = new Set<string>()
     for (const val of data_.json) {
       if (val != null) {
@@ -295,38 +472,42 @@ watchEffect(() => {
     }
     rowData = addRowIndex(data_.json)
     isTruncated.value = data_.all_rows_count !== data_.json.length
-  } else if (isMatrix(data_)) {
-    // Kept to allow visualization from older versions of the backend.
-    columnDefs = [indexField(), ...data_.json[0]!.map((_, i) => toField(i.toString()))]
-    rowData = addRowIndex(data_.json)
-    isTruncated.value = data_.all_rows_count !== data_.json.length
-  } else if (isObjectMatrix(data_)) {
-    // Kept to allow visualization from older versions of the backend.
-    columnDefs = [INDEX_FIELD_NAME, ...Object.keys(data_.json[0]!)].map(toField)
-    rowData = addRowIndex(data_.json)
-    isTruncated.value = data_.all_rows_count !== data_.json.length
+  } else if (data_.type === 'Excel_Workbook') {
+    columnDefs = [toLinkField('Value')]
+    rowData = data_.sheet_names.map((name) => ({ Value: name }))
   } else if (Array.isArray(data_.json)) {
-    columnDefs = [indexField(), toField('Value')]
+    columnDefs = [toLinkField(INDEX_FIELD_NAME), toField('Value')]
     rowData = data_.json.map((row, i) => ({ [INDEX_FIELD_NAME]: i, Value: toRender(row) }))
     isTruncated.value = data_.all_rows_count ? data_.all_rows_count !== data_.json.length : false
   } else if (data_.json !== undefined) {
-    columnDefs = [toField('Value')]
-    rowData = [{ Value: toRender(data_.json) }]
+    columnDefs = data_.links ? [toLinkField('Value')] : [toField('Value')]
+    rowData =
+      data_.links ?
+        data_.links.map((link) => ({
+          Value: link,
+        }))
+      : [{ Value: toRender(data_.json) }]
   } else {
-    const indicesHeader = ('indices_header' in data_ ? data_.indices_header : []).map(toField)
-    const dataHeader = ('header' in data_ ? data_.header : [])?.map(toField) ?? []
-    columnDefs = [...indicesHeader, ...dataHeader]
-    const rows =
-      data_.data && data_.data.length > 0 ? data_.data[0]?.length ?? 0
-      : data_.indices && data_.indices.length > 0 ? data_.indices[0]?.length ?? 0
-      : 0
+    const dataHeader =
+      ('header' in data_ ? data_.header : [])?.map((v, i) => {
+        const valueType = data_.value_type ? data_.value_type[i] : null
+        if (config.nodeType === ROW_NODE_TYPE && v === 'column') {
+          return toLinkField(v)
+        }
+        return toField(v, valueType)
+      }) ?? []
+
+    columnDefs = data_.has_index_col ? [toLinkField(INDEX_FIELD_NAME), ...dataHeader] : dataHeader
+    const rows = data_.data && data_.data.length > 0 ? data_.data[0]?.length ?? 0 : 0
     rowData = Array.from({ length: rows }, (_, i) => {
-      const shift = data_.indices ? data_.indices.length : 0
+      const shift = data_.has_index_col ? 1 : 0
       return Object.fromEntries(
-        columnDefs.map((h, j) => [
-          h.field,
-          toRender(j < shift ? data_.indices?.[j]?.[i] : data_.data?.[j - shift]?.[i]),
-        ]),
+        columnDefs.map((h, j) => {
+          return [
+            h.field,
+            toRender(h.field === INDEX_FIELD_NAME ? i : data_.data?.[j - shift]?.[i]),
+          ]
+        }),
       )
     })
     isTruncated.value = data_.all_rows_count !== rowData.length
@@ -334,11 +515,27 @@ watchEffect(() => {
 
   // Update paging
   const newRowCount = data_.all_rows_count == null ? 1 : data_.all_rows_count
+  showRowCount.value = !(data_.all_rows_count == null)
   rowCount.value = newRowCount
   const newPageLimit = Math.ceil(newRowCount / rowLimit.value)
   pageLimit.value = newPageLimit
   if (page.value > newPageLimit) {
     page.value = newPageLimit
+  }
+
+  if (rowData.length) {
+    const headers = Object.keys(rowData[0] as object)
+    const headerGroupingMap = new Map()
+    headers.forEach((header) => {
+      const needsGrouping = rowData.some((row: any) => {
+        if (header in row && row[header] != null) {
+          const value = typeof row[header] === 'object' ? row[header].value : row[header]
+          return value > 9999
+        }
+      })
+      headerGroupingMap.set(header, needsGrouping)
+    })
+    dataGroupingMap.value = headerGroupingMap
   }
 
   // If an existing grid, merge width from manually sized columns.
@@ -354,7 +551,6 @@ watchEffect(() => {
 
   // If data is truncated, we cannot rely on sorting/filtering so will disable.
   options.defaultColDef.filter = !isTruncated.value
-  options.defaultColDef.sortable = !isTruncated.value
   options.api.setColumnDefs(mergedColumnDefs)
   options.api.setRowData(rowData)
 })
@@ -377,12 +573,36 @@ function lockColumnSize(e: ColumnResizedEvent) {
   if (!e.finished || e.source === 'api') return
   // If the user manually resized (or manually autosized) a column, we don't want to auto-size it
   // on a resize.
-  const manuallySized = e.source !== 'autosizeColumns' || !wasAutomaticallyAutosized.value
-  wasAutomaticallyAutosized.value = false
+  const manuallySized = e.source !== 'autosizeColumns'
   for (const column of e.columns ?? []) {
     const field = column.getColDef().field
     if (field && manuallySized) widths.set(field, column.getActualWidth())
   }
+}
+
+/** Copy the provided TSV-formatted table data to the clipboard.
+ *
+ * The data will be copied as `text/plain` TSV data for spreadsheet applications, and an Enso-specific MIME section for
+ * pasting as a new table node.
+ *
+ * By default, AG Grid writes only `text/plain` TSV data to the clipboard. This is sufficient to paste into spreadsheet
+ * applications, which are liberal in what they try to interpret as tabular data; however, when pasting into Enso, the
+ * application needs to be able to distinguish tabular clipboard contents to choose the correct paste action.
+ *
+ * Our heuristic to identify clipboard data from applications like Excel and Google Sheets is to check for a <table> tag
+ * in the clipboard `text/html` data. If we were to add a `text/html` section to the data so that it could be recognized
+ * like other spreadsheets, when pasting into other applications some applications might use the `text/html` data in
+ * preference to the `text/plain` content--so we would need to construct an HTML table that fully represents the
+ * content.
+ *
+ * To avoid that complexity, we bypass our table-data detection by including application-specific data in the clipboard
+ * content. This data contains a ready-to-paste node that constructs an Enso table from the provided TSV.
+ */
+function sendToClipboard(tsvData: string) {
+  return writeClipboard({
+    ...clipboardNodeData([{ expression: tsvTableToEnsoExpression(tsvData) }]),
+    'text/plain': tsvData,
+  })
 }
 
 // ===============
@@ -436,13 +656,15 @@ onUnmounted(() => {
             v-text="limit"
           ></option>
         </select>
-        <span
-          v-if="isRowCountSelectorVisible && isTruncated"
-          v-text="` of ${rowCount} rows (Sorting/Filtering disabled).`"
-        ></span>
-        <span v-else-if="isRowCountSelectorVisible" v-text="' rows.'"></span>
-        <span v-else-if="rowCount === 1" v-text="'1 row.'"></span>
-        <span v-else v-text="`${rowCount} rows.`"></span>
+        <div v-if="showRowCount">
+          <span
+            v-if="isRowCountSelectorVisible && isTruncated"
+            v-text="` of ${rowCount} rows (Sorting/Filtering disabled).`"
+          ></span>
+          <span v-else-if="isRowCountSelectorVisible" v-text="' rows.'"></span>
+          <span v-else-if="rowCount === 1" v-text="'1 row.'"></span>
+          <span v-else v-text="`${rowCount} rows.`"></span>
+        </div>
       </div>
       <div ref="tableNode" class="scrollable ag-theme-alpine"></div>
     </div>
@@ -471,10 +693,20 @@ onUnmounted(() => {
   padding: 0 5px;
   overflow: hidden;
 }
-</style>
 
-<style>
-.TableVisualization > .ag-theme-alpine > .ag-root-wrapper.ag-layout-normal {
+.TableVisualization > .ag-theme-alpine > :deep(.ag-root-wrapper.ag-layout-normal) {
   border-radius: 0 0 var(--radius-default) var(--radius-default);
+}
+
+/* Tag selectors are inefficient to compute, and should be replaced with a class selector
+ * if possible.
+ * See https://vuejs.org/api/sfc-css-features.html#scoped-style-tips */
+:deep(a) {
+  color: blue;
+  text-decoration: underline;
+}
+
+:deep(a):hover {
+  color: darkblue;
 }
 </style>

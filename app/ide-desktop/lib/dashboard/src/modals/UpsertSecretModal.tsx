@@ -10,12 +10,11 @@ import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
+import * as ariaComponents from '#/components/AriaComponents'
 import Modal from '#/components/Modal'
-import ButtonRow from '#/components/styled/ButtonRow'
+import Button from '#/components/styled/Button'
 import FocusArea from '#/components/styled/FocusArea'
 import FocusRing from '#/components/styled/FocusRing'
-import SvgMask from '#/components/SvgMask'
-import UnstyledButton from '#/components/UnstyledButton'
 
 import type * as backend from '#/services/Backend'
 
@@ -110,10 +109,11 @@ export default function UpsertSecretModal(props: UpsertSecretModalProps) {
                       }}
                     />
                   </FocusRing>
-                  <SvgMask
-                    src={isShowingValue ? EyeIcon : EyeCrossedIcon}
-                    className="absolute right-2 top-1 cursor-pointer rounded-full"
-                    onClick={() => {
+                  <Button
+                    image={isShowingValue ? EyeIcon : EyeCrossedIcon}
+                    className="cursor-pointer rounded-full"
+                    buttonClassName="absolute right-2 top-1"
+                    onPress={() => {
                       setIsShowingValue(show => !show)
                     }}
                   />
@@ -122,18 +122,14 @@ export default function UpsertSecretModal(props: UpsertSecretModalProps) {
             )}
           </FocusArea>
         </div>
-        <ButtonRow>
-          <UnstyledButton
-            isDisabled={!canSubmit}
-            className="button bg-invite text-white enabled:active"
-            onPress={doSubmit}
-          >
+        <ariaComponents.ButtonGroup>
+          <ariaComponents.Button variant="submit" isDisabled={!canSubmit} onPress={doSubmit}>
             {isCreatingSecret ? getText('create') : getText('update')}
-          </UnstyledButton>
-          <UnstyledButton className="button bg-selected-frame enabled:active" onPress={unsetModal}>
+          </ariaComponents.Button>
+          <ariaComponents.Button variant="cancel" onPress={unsetModal}>
             {getText('cancel')}
-          </UnstyledButton>
-        </ButtonRow>
+          </ariaComponents.Button>
+        </ariaComponents.ButtonGroup>
       </form>
     </Modal>
   )

@@ -1,8 +1,6 @@
 /** @file Events related to changes in the asset list. */
 import type AssetListEventType from '#/events/AssetListEventType'
 
-import type * as spinner from '#/components/Spinner'
-
 import type * as backend from '#/services/Backend'
 
 // This is required, to whitelist this event.
@@ -29,8 +27,9 @@ interface AssetListEvents {
   readonly newProject: AssetListNewProjectEvent
   readonly uploadFiles: AssetListUploadFilesEvent
   readonly newSecret: AssetListNewSecretEvent
-  readonly newDataLink: AssetListNewDataLinkEvent
+  readonly newDatalink: AssetListNewDatalinkEvent
   readonly insertAssets: AssetListInsertAssetsEvent
+  readonly duplicateProject: AssetListDuplicateProjectEvent
   readonly closeFolder: AssetListCloseFolderEvent
   readonly copy: AssetListCopyEvent
   readonly move: AssetListMoveEvent
@@ -62,9 +61,8 @@ interface AssetListNewProjectEvent extends AssetListBaseEvent<AssetListEventType
   readonly parentKey: backend.DirectoryId
   readonly parentId: backend.DirectoryId
   readonly templateId: string | null
-  readonly datalinkId: backend.ConnectorId | null
+  readonly datalinkId: backend.DatalinkId | null
   readonly preferredName: string | null
-  readonly onSpinnerStateChange: ((state: spinner.SpinnerState) => void) | null
 }
 
 /** A signal to upload files. */
@@ -75,7 +73,7 @@ interface AssetListUploadFilesEvent extends AssetListBaseEvent<AssetListEventTyp
 }
 
 /** A signal to create a new secret. */
-interface AssetListNewDataLinkEvent extends AssetListBaseEvent<AssetListEventType.newDataLink> {
+interface AssetListNewDatalinkEvent extends AssetListBaseEvent<AssetListEventType.newDatalink> {
   readonly parentKey: backend.DirectoryId
   readonly parentId: backend.DirectoryId
   readonly name: string
@@ -95,6 +93,15 @@ interface AssetListInsertAssetsEvent extends AssetListBaseEvent<AssetListEventTy
   readonly parentKey: backend.DirectoryId
   readonly parentId: backend.DirectoryId
   readonly assets: backend.AnyAsset[]
+}
+
+/** A signal to duplicate a project. */
+interface AssetListDuplicateProjectEvent
+  extends AssetListBaseEvent<AssetListEventType.duplicateProject> {
+  readonly parentKey: backend.DirectoryId
+  readonly parentId: backend.DirectoryId
+  readonly original: backend.ProjectAsset
+  readonly versionId: backend.S3ObjectVersionId
 }
 
 /** A signal to close (collapse) a folder. */

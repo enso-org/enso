@@ -51,12 +51,12 @@ public class ExecStrictCompilerTest {
   }
 
   @AfterClass
-  public static void closeEnsoContext() throws Exception {
+  public static void closeEnsoContext() {
     ctx.close();
   }
 
   @Test
-  public void redefinedArgument() throws Exception {
+  public void redefinedArgument() {
     try {
       var module = ctx.eval("enso", """
       type My_Type
@@ -108,6 +108,23 @@ public class ExecStrictCompilerTest {
           -1,
           errors.indexOf("The name `Index_Sub_Range.Sample` could not be found"));
       assertNotEquals("Location defined " + errors, -1, errors.indexOf("wrong_cons:2:5"));
+    }
+  }
+
+  @Test
+  public void testUnknownTypeExtensionMethod() throws Exception {
+    var code = """
+    Unknown_Type.foo = 42
+
+    main = 42
+    """;
+    var src = Source.newBuilder("enso", code, "extension.enso").build();
+    try {
+      var module = ctx.eval(src);
+      fail("Unexpected result: " + module);
+    } catch (PolyglotException ex) {
+      var firstLine = ex.getMessage().split("\n")[0];
+      assertEquals("extension:1:1: error: The name `Unknown_Type` could not be found.", firstLine);
     }
   }
 }

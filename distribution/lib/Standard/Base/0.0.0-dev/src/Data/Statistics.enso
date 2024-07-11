@@ -18,11 +18,13 @@ import project.Runtime.Ref.Ref
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Range.Extensions import all
 from project.Errors.Common import Unsupported_Argument_Types
+from project.Metadata import Choice, Widget
 
 polyglot java import java.lang.NullPointerException
 polyglot java import org.enso.base.CompareException
 polyglot java import org.enso.base.statistics.CorrelationStatistics
 polyglot java import org.enso.base.statistics.Rank
+polyglot java import org.enso.base.statistics.Rank.Method
 polyglot java import org.enso.base.statistics.Statistic as Java_Statistic
 
 ## Specifies how to handle ranking of equal values.
@@ -44,7 +46,7 @@ type Rank_Method
     Ordinal
 
     ## GROUP Statistics
-       ICON sigma
+       ICON transform4
        Assigns a rank to each value of data, dealing with equal values according to the method.
 
        Arguments:
@@ -52,11 +54,11 @@ type Rank_Method
     compute : Vector -> Vector
     compute self input =
         java_method = case self of
-            Rank_Method.Minimum -> Rank.Method.MINIMUM
-            Rank_Method.Maximum -> Rank.Method.MAXIMUM
-            Rank_Method.Average -> Rank.Method.AVERAGE
-            Rank_Method.Ordinal -> Rank.Method.ORDINAL
-            Rank_Method.Dense -> Rank.Method.DENSE
+            Rank_Method.Minimum -> Method.MINIMUM
+            Rank_Method.Maximum -> Method.MAXIMUM
+            Rank_Method.Average -> Method.AVERAGE
+            Rank_Method.Ordinal -> Method.ORDINAL
+            Rank_Method.Dense -> Method.DENSE
 
         report_nullpointer caught_panic = Error.throw (Illegal_Argument.Error caught_panic.payload.getMessage)
         handle_nullpointer = Panic.catch NullPointerException handler=report_nullpointer
@@ -79,6 +81,9 @@ type Statistic
 
     ## Sum the non-Nothing and non-NaN values.
     Sum
+
+    ## The product of the non-Nothing and non-NaN values.
+    Product
 
     ## The sample mean of the values.
     Mean
@@ -127,6 +132,14 @@ type Statistic
     R_Squared (predicted:Vector)
 
     ## PRIVATE
+       Bulk widget for Statistic.
+    bulk_widget : Widget
+    bulk_widget =
+        options = ["Count", "Minimum", "Maximum", "Sum", "Product", "Mean", "Variance", "Standard_Deviation", "Skew", "Kurtosis", "Covariance", "Pearson", "Spearman", "R_Squared"].map n-> Choice.Option n ".."+n
+        items = Widget.Single_Choice options
+        Widget.Vector_Editor items "..Count"
+
+    ## PRIVATE
        Gets the order needed to compute a statistic for a moment based statistic.
     order : Integer | Nothing
     order self = case self of
@@ -144,6 +157,7 @@ type Statistic
         Statistic.Minimum -> Java_Statistic.Minimum
         Statistic.Maximum -> Java_Statistic.Maximum
         Statistic.Sum -> Java_Statistic.Sum
+        Statistic.Product -> Java_Statistic.Product
         Statistic.Mean -> Java_Statistic.Mean
         Statistic.Variance True -> Java_Statistic.VariancePopulation
         Statistic.Variance False -> Java_Statistic.VarianceSample
@@ -164,7 +178,7 @@ type Statistic
        - data: Vector like object which has a `to_array` method.
        - statistic: Statistic to calculate.
     compute : Vector -> Statistic -> Any
-    compute data statistic=Statistic.Count =
+    compute data statistic:Statistic=..Count =
         Statistic.compute_bulk data [statistic] . first
 
     ## PRIVATE
@@ -174,19 +188,21 @@ type Statistic
        - data: Vector like object which has a `to_array` method.
        - statistics: Set of statistics to calculate.
     compute_bulk : Vector -> Vector Statistic -> Vector Any
-    compute_bulk data statistics=[Statistic.Count, Statistic.Sum] =
-        moment_order = statistics.map on_problems=No_Wrap .order
-        has_min_max = statistics.any (s-> s == Statistic.Minimum || s == Statistic.Maximum)
+    compute_bulk data statistics:Vector=[Statistic.Count, Statistic.Sum] =
+        resolved_stats = statistics.map (r-> r:Statistic)
+        moment_order = resolved_stats.map on_problems=No_Wrap .order
+        has_min_max = resolved_stats.any (s-> s == Statistic.Minimum || s == Statistic.Maximum)
+        has_product = resolved_stats.any (s-> s == Statistic.Product)
         max_moment_order = moment_order.filter (v-> v != Nothing) . fold 0 .max
-        counter = data.fold (Accumulator.new has_min_max max_moment_order) current-> value-> compute_fold current value
+        counter = data.fold (Accumulator.new has_min_max max_moment_order has_product) current-> value-> compute_fold current value
 
         report_error stats =
             first = 0.up_to stats.length . find i-> (moment_order.at i . is_nothing . not)
             stat = stats.at first
             Error.throw (Illegal_Argument.Error ("Can only compute " + stat.to_text + " on numerical data sets."))
 
-        if max_moment_order > 0 && counter.moments.is_nothing then report_error statistics else
-            statistics.map on_problems=No_Wrap statistic-> case statistic of
+        if max_moment_order > 0 && counter.moments.is_nothing then report_error resolved_stats else
+            resolved_stats.map on_problems=No_Wrap statistic-> case statistic of
                 Statistic.Covariance series -> check_if_empty counter.count <| calculate_correlation_statistics data series . covariance
                 Statistic.Pearson series -> check_if_empty counter.count <| calculate_correlation_statistics data series . pearsonCorrelation
                 Statistic.R_Squared series -> check_if_empty counter.count <| calculate_correlation_statistics data series . rSquared
@@ -200,7 +216,7 @@ type Statistic
        - data: Vector like object which has a `to_array` method.
        - statistics: Set of statistics to calculate.
     running : Vector -> Statistic -> Vector Any
-    running data statistic=Statistic.Sum =
+    running data statistic:Statistic=..Sum =
         Statistic.running_bulk data [statistic] . map .first
 
     ## PRIVATE
@@ -211,19 +227,21 @@ type Statistic
        - statistics: Set of statistics to calculate.
     running_bulk : Vector -> Vector Statistic -> Vector Any
     running_bulk data statistics=[Statistic.Count, Statistic.Sum] =
-        check_running_support statistics <|
-            moment_order = statistics.map on_problems=No_Wrap .order
-            has_min_max = statistics.any (s-> s == Statistic.Minimum || s == Statistic.Maximum)
+        resolved_stats = statistics.map (r-> r:Statistic)
+        check_running_support resolved_stats <|
+            moment_order = resolved_stats.map on_problems=No_Wrap .order
+            has_min_max = resolved_stats.any (s-> s == Statistic.Minimum || s == Statistic.Maximum)
+            has_product = resolved_stats.any (s-> s == Statistic.Product)
             max_moment_order = moment_order.filter (v-> v != Nothing) . fold 0 .max
 
             Panic.handle_wrapped_dataflow_error <|
                 Vector.build initial_capacity=data.length builder->
 
-                    counter = Accumulator.new has_min_max max_moment_order
+                    counter = Accumulator.new has_min_max max_moment_order has_product
                     data.fold counter current->value->
                         result = compute_fold current value
 
-                        row = Panic.rethrow_wrapped_if_error <| statistics.map on_problems=No_Wrap s-> case s of
+                        row = Panic.rethrow_wrapped_if_error <| resolved_stats.map on_problems=No_Wrap s-> case s of
                             Statistic.Maximum -> if result.count == 0 then Nothing else result.maximum
                             Statistic.Minimum -> if result.count == 0 then Nothing else result.minimum
                             _ -> result.compute s
@@ -321,57 +339,6 @@ calculate_correlation_statistics_matrix data =
     stats_array = wrap_java_call <| CorrelationStatistics.computeMatrix data_array
     Vector.new stats_array.length i->(Vector.from_polyglot_array (stats_array.at i))
 
-## GROUP Statistics
-   ICON sigma
-   Compute a single statistic on the vector (ignoring Nothing and NaN values).
-
-   Arguments:
-   - statistic: Statistic to calculate.
-Vector.compute : Statistic -> Any
-Vector.compute self statistic=Statistic.Count =
-    self.compute_bulk [statistic] . first
-
-## ICON dataframe_map_column
-   Compute statistics on the vector (ignoring Nothing and NaN values).
-
-   Arguments:
-   - statistics: Set of statistics to calculate.
-Vector.compute_bulk : Vector Statistic -> Vector Any
-Vector.compute_bulk self statistics=[Statistic.Count, Statistic.Sum] =
-    Statistic.compute_bulk self statistics
-
-## GROUP Statistics
-   ICON math
-   Compute a single running statistic on the vector (ignoring Nothing and NaN
-   values).
-
-   Arguments:
-   - statistic: Statistic to calculate.
-Vector.running : Statistic -> Vector Any
-Vector.running self statistic=Statistic.Count =
-    Statistic.running self statistic
-
-## ICON math
-   Compute a set running statistics on the vector (ignoring Nothing and NaN
-   values).
-
-   Arguments:
-   - statistics: Set of statistics to calculate.
-Vector.running_bulk : Vector Statistic -> Vector Any
-Vector.running_bulk self statistics=[Statistic.Count, Statistic.Sum] =
-    Statistic.running_bulk self statistics
-
-## GROUP Statistics
-   ICON dataframe_map_column
-   Assigns a rank to each value of data, dealing with equal values according to
-   the method.
-
-   Arguments:
-   - method: Method used to deal with equal values.
-Vector.rank_data : Rank_Method -> Vector
-Vector.rank_data self method=Rank_Method.Average =
-    Statistic.rank_data self method
-
 ## PRIVATE
 compute_fold current value = if is_valid value then current.increment value else current
 
@@ -382,6 +349,7 @@ check_if_empty count ~action = if count == 0 then Number.nan else action
 empty_value statistic = case statistic of
     Statistic.Count -> 0
     Statistic.Sum -> 0
+    Statistic.Product -> 0
     Statistic.Minimum -> Error.throw (Empty_Error.Error Vector)
     Statistic.Maximum -> Error.throw (Empty_Error.Error Vector)
     _ -> Number.nan
@@ -395,22 +363,24 @@ is_valid v = case v of
 ## PRIVATE
 type Accumulator
     ## PRIVATE
-    new : Boolean -> Integer -> Accumulator
-    new min_max=True moments=0 = Accumulator.Value 0 min_max Nothing Nothing (Vector.fill moments 0)
+    new : Boolean -> Integer -> Boolean -> Accumulator
+    new min_max=True moments=0 calc_product=False = Accumulator.Value 0 min_max Nothing Nothing (Vector.fill moments 0) calc_product Nothing
 
     ## PRIVATE
-    Value count:Integer min_max:Boolean minimum:Any maximum:Any (moments:Vector|Nothing)
+    Value count:Integer min_max:Boolean minimum:Any maximum:Any (moments:Vector|Nothing) calc_product:Boolean product:Any
 
     ## PRIVATE
        Add a single value to the accumulator.
     increment self value = case self.count of
-        0 -> if self.min_max then Accumulator.Value 1 True value value (self.update_moments value) else
-            Accumulator.Value 1 False value value (self.update_moments value)
+        0 -> Accumulator.Value 1 self.min_max value value (self.update_moments value) self.calc_product value
         _ ->
-            if self.min_max.not then Accumulator.Value self.count+1 False Nothing Nothing (self.update_moments value) else
-                minimum = Accumulator.perform_comparison self.minimum value Ordering.Less
-                maximum = Accumulator.perform_comparison self.maximum value Ordering.Greater
-                Accumulator.Value self.count+1 True minimum maximum (self.update_moments value)
+            minimum = if self.min_max then Accumulator.perform_comparison self.minimum value Ordering.Less else Nothing
+            maximum = if self.min_max then Accumulator.perform_comparison self.maximum value Ordering.Greater else Nothing
+            product = if self.calc_product.not then Nothing else
+                case value of
+                    _ : Number -> self.product * value
+                    _ -> Nothing
+            Accumulator.Value self.count+1 self.min_max minimum maximum (self.update_moments value) self.calc_product product
 
     ## PRIVATE
     perform_comparison current value bound =
@@ -431,6 +401,7 @@ type Accumulator
             Statistic.Minimum -> self.minimum
             Statistic.Maximum -> self.maximum
             Statistic.Sum -> self.check_moments statistic self.moments.first
+            Statistic.Product -> self.check_product
             Statistic.Mean -> self.check_moments statistic (self.moments.first / self.count)
             Statistic.Variance p -> self.check_moments statistic (self.variance p)
             Statistic.Standard_Deviation p -> (self.compute (Statistic.Variance p)) . sqrt
@@ -467,3 +438,8 @@ type Accumulator
     check_moments self statistic ~action =
         if self.moments.is_nothing.not && self.moments.length >= statistic.order then action else
             Error.throw (Illegal_Argument.Error ("Can't compute " + statistic.to_text + " on this Accumulator."))
+    
+    ## PRIVATE
+    check_product self =
+        if is_valid self.product then self.product else
+            Error.throw (Illegal_Argument.Error ("Can't compute " + Statistic.Product.to_text + " on this Accumulator."))

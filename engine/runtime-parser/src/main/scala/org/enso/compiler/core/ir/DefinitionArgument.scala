@@ -158,7 +158,7 @@ object DefinitionArgument {
       )
     }
 
-    /** @inheritdoc */
+    /** String representation. */
     override def toString: String =
       s"""
          |DefinitionArgument.Specified(

@@ -287,10 +287,7 @@ public final class Cache<T, M> {
             return Optional.empty();
           }
         } catch (ClassNotFoundException | IOException ex) {
-          logger.log(
-              Level.WARNING,
-              "`" + logName + "` in " + dataPath + " failed to load: " + ex.getMessage());
-          logger.log(logLevel, "`" + logName + "` failed to load.", ex);
+          logger.log(Level.WARNING, "`" + logName + "` in " + dataPath + " failed to load: ", ex);
           invalidateCache(cacheRoot, logger);
           return Optional.empty();
         }

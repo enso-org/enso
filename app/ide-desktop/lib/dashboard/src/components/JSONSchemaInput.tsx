@@ -1,19 +1,20 @@
-/** @file A dynamic wizard for creating an arbitrary type of Data Link. */
+/** @file A dynamic wizard for creating an arbitrary type of Datalink. */
 import * as React from 'react'
 
 import * as backendProvider from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
+import * as ariaComponents from '#/components/AriaComponents'
 import Autocomplete from '#/components/Autocomplete'
 import Dropdown from '#/components/Dropdown'
 import Checkbox from '#/components/styled/Checkbox'
 import FocusArea from '#/components/styled/FocusArea'
 import FocusRing from '#/components/styled/FocusRing'
-import UnstyledButton from '#/components/UnstyledButton'
 
 import * as jsonSchema from '#/utilities/jsonSchema'
 import * as object from '#/utilities/object'
+import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 // =======================
 // === JSONSchemaInput ===
@@ -31,39 +32,26 @@ export interface JSONSchemaInputProps {
   readonly setValue: React.Dispatch<React.SetStateAction<NonNullable<unknown> | null>>
 }
 
-/** A dynamic wizard for creating an arbitrary type of Data Link. */
+/** A dynamic wizard for creating an arbitrary type of Datalink. */
 export default function JSONSchemaInput(props: JSONSchemaInputProps) {
   const { dropdownTitle, readOnly = false, defs, schema, path, getValidator } = props
-  const { value: valueRaw, setValue: setValueRaw } = props
+  const { value, setValue } = props
   // The functionality for inputting `enso-secret`s SHOULD be injected using a plugin,
   // but it is more convenient to avoid having plugin infrastructure.
-  const { backend } = backendProvider.useBackend()
+  const remoteBackend = backendProvider.useRemoteBackend()
   const { getText } = textProvider.useText()
-  const [value, setValue] = React.useState(valueRaw)
   const [autocompleteText, setAutocompleteText] = React.useState(() =>
     typeof value === 'string' ? value : null
   )
   const [selectedChildIndex, setSelectedChildIndex] = React.useState<number | null>(null)
   const [autocompleteItems, setAutocompleteItems] = React.useState<string[] | null>(null)
 
-  React.useEffect(() => {
-    setValue(valueRaw)
-    // `initializing` is not a dependency.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [valueRaw])
-
-  React.useEffect(() => {
-    setValueRaw(value)
-    // `setStateRaw` is a callback, not a dependency.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [value])
-
   // NOTE: `enum` schemas omitted for now as they are not yet used.
   if ('const' in schema) {
     // This value cannot change.
     return null
   } else {
-    const children: JSX.Element[] = []
+    const children: React.JSX.Element[] = []
     if ('type' in schema) {
       switch (schema.type) {
         case 'string': {
@@ -72,15 +60,16 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
             if (autocompleteItems == null) {
               setAutocompleteItems([])
               void (async () => {
-                const secrets = await backend.listSecrets()
+                const secrets = (await remoteBackend?.listSecrets()) ?? []
                 setAutocompleteItems(secrets.map(secret => secret.path))
               })()
             }
             children.push(
               <div
-                className={`grow rounded-default border ${
+                className={tailwindMerge.twMerge(
+                  'grow rounded-default border',
                   isValid ? 'border-primary/10' : 'border-red-700/60'
-                }`}
+                )}
               >
                 <Autocomplete
                   items={autocompleteItems ?? []}
@@ -107,9 +96,10 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
                       readOnly={readOnly}
                       value={typeof value === 'string' ? value : ''}
                       size={1}
-                      className={`focus-child w-data-link-text-input text grow rounded-input border bg-transparent px-input-x read-only:read-only ${
+                      className={tailwindMerge.twMerge(
+                        'focus-child w-data-link-text-input text grow rounded-input border bg-transparent px-input-x read-only:read-only',
                         getValidator(path)(value) ? 'border-primary/10' : 'border-red-700/60'
-                      }`}
+                      )}
                       placeholder={getText('enterText')}
                       onChange={event => {
                         const newValue: string = event.currentTarget.value
@@ -134,9 +124,10 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
                     readOnly={readOnly}
                     value={typeof value === 'number' ? value : ''}
                     size={1}
-                    className={`focus-child w-data-link-text-input text grow rounded-input border bg-transparent px-input-x read-only:read-only ${
+                    className={tailwindMerge.twMerge(
+                      'focus-child w-data-link-text-input text grow rounded-input border bg-transparent px-input-x read-only:read-only',
                       getValidator(path)(value) ? 'border-primary/10' : 'border-red-700/60'
-                    }`}
+                    )}
                     placeholder={getText('enterNumber')}
                     onChange={event => {
                       const newValue: number = event.currentTarget.valueAsNumber
@@ -162,9 +153,10 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
                     readOnly={readOnly}
                     value={typeof value === 'number' ? value : ''}
                     size={1}
-                    className={`focus-child w-data-link-text-input text grow rounded-input border bg-transparent px-input-x read-only:read-only ${
+                    className={tailwindMerge.twMerge(
+                      'focus-child w-data-link-text-input text grow rounded-input border bg-transparent px-input-x read-only:read-only',
                       getValidator(path)(value) ? 'border-primary/10' : 'border-red-700/60'
-                    }`}
+                    )}
                     placeholder={getText('enterInteger')}
                     onChange={event => {
                       const newValue: number = Math.floor(event.currentTarget.valueAsNumber)
@@ -210,50 +202,51 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
                   return jsonSchema.constantValue(defs, childSchema).length === 1 ? null : (
                     <div
                       key={key}
-                      className="flex flex-wrap items-center gap-buttons"
+                      className="flex flex-wrap items-center gap-2"
                       {...('description' in childSchema
                         ? { title: String(childSchema.description) }
                         : {})}
                     >
                       <FocusArea active={isOptional} direction="horizontal">
-                        {innerProps => (
-                          <UnstyledButton
-                            isDisabled={!isOptional}
-                            className={`text inline-block w-json-schema-object-key whitespace-nowrap rounded-full px-button-x text-left ${
-                              isOptional ? 'hover:bg-hover-bg' : ''
-                            }`}
-                            onPress={() => {
-                              if (isOptional) {
-                                setValue(oldValue => {
-                                  if (oldValue != null && key in oldValue) {
-                                    // This is SAFE, as `value` is an untyped object.
-                                    // The removed key is intentionally unused.
-                                    // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/no-unused-vars
-                                    const { [key]: removed, ...newValue } = oldValue as Record<
-                                      string,
-                                      NonNullable<unknown> | null
-                                    >
-                                    return newValue
-                                  } else {
-                                    return {
-                                      ...oldValue,
-                                      [key]: jsonSchema.constantValue(defs, childSchema, true)[0],
+                        {innerProps => {
+                          const isPresent = value != null && key in value
+                          return (
+                            <ariaComponents.Button
+                              size="custom"
+                              variant="custom"
+                              isDisabled={!isOptional}
+                              isActive={!isOptional || isPresent}
+                              className={tailwindMerge.twMerge(
+                                'text inline-block w-json-schema-object-key whitespace-nowrap rounded-full px-button-x text-left',
+                                isOptional && 'hover:bg-hover-bg'
+                              )}
+                              onPress={() => {
+                                if (isOptional) {
+                                  setValue(oldValue => {
+                                    if (oldValue != null && key in oldValue) {
+                                      // This is SAFE, as `value` is an untyped object.
+                                      // The removed key is intentionally unused.
+                                      // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/no-unused-vars
+                                      const { [key]: removed, ...newValue } = oldValue as Record<
+                                        string,
+                                        NonNullable<unknown> | null
+                                      >
+                                      return newValue
+                                    } else {
+                                      return {
+                                        ...oldValue,
+                                        [key]: jsonSchema.constantValue(defs, childSchema, true)[0],
+                                      }
                                     }
-                                  }
-                                })
-                              }
-                            }}
-                            {...innerProps}
-                          >
-                            <aria.Text
-                              className={`selectable ${
-                                value != null && key in value ? 'active' : ''
-                              }`}
+                                  })
+                                }
+                              }}
+                              {...innerProps}
                             >
                               {'title' in childSchema ? String(childSchema.title) : key}
-                            </aria.Text>
-                          </UnstyledButton>
-                        )}
+                            </ariaComponents.Button>
+                          )
+                        }}
                       </FocusArea>
                       {value != null && key in value && (
                         <JSONSchemaInput
@@ -328,7 +321,9 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
               readOnly={readOnly}
               items={childSchemas}
               selectedIndex={selectedChildIndex}
-              render={childProps => jsonSchema.getSchemaName(defs, childProps.item)}
+              render={childProps => (
+                <aria.Text>{jsonSchema.getSchemaName(defs, childProps.item)}</aria.Text>
+              )}
               className="self-start"
               onClick={(childSchema, index) => {
                 setSelectedChildIndex(index)
@@ -341,7 +336,12 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
         </FocusArea>
       )
       children.push(
-        <div className={`flex flex-col gap-json-schema ${childValue.length === 0 ? 'w-full' : ''}`}>
+        <div
+          className={tailwindMerge.twMerge(
+            'flex flex-col gap-json-schema',
+            childValue.length === 0 && 'w-full'
+          )}
+        >
           {dropdownTitle != null ? (
             <div className="flex h-row items-center">
               <div className="h-text w-json-schema-dropdown-title">{dropdownTitle}</div>

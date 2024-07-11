@@ -111,7 +111,7 @@ object Section {
         operator = operator.mapExpressions(fn)
       )
 
-    /** @inheritdoc */
+    /** String representation. */
     override def toString: String =
       s"""
          |Section.Left(
@@ -203,7 +203,7 @@ object Section {
     ): Section =
       copy(operator = operator.mapExpressions(fn))
 
-    /** @inheritdoc */
+    /** String representation. */
     override def toString: String =
       s"""
          |Section.Sides(
@@ -308,7 +308,7 @@ object Section {
       )
     }
 
-    /** @inheritdoc */
+    /** String representation. */
     override def toString: String =
       s"""
          |Section.Right(

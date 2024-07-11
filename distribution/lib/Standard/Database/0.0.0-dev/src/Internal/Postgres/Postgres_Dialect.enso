@@ -1,4 +1,4 @@
-from Standard.Base import all hiding First, Last
+from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Errors.Unimplemented.Unimplemented
@@ -39,53 +39,57 @@ import project.SQL_Type.SQL_Type
 from project.Errors import SQL_Error, Unsupported_Database_Operation
 from project.Internal.IR.Operation_Metadata import Date_Period_Metadata
 
+polyglot java import java.sql.Types
+
 ## PRIVATE
 
    The dialect of PostgreSQL databases.
 postgres : Postgres_Dialect
 postgres =
-    Postgres_Dialect.Value make_internal_generator_dialect
+    Postgres_Dialect.Value make_dialect_operations
 
 ## PRIVATE
-
    The dialect of PostgreSQL databases.
 type Postgres_Dialect
     ## PRIVATE
-
        The dialect of PostgreSQL databases.
-    Value internal_generator_dialect dialect_name:Text="PostgreSQL" dialect_to_text:Text="Postgres_Dialect" type_mapping=Postgres_Type_Mapping
+    Value dialect_operations
 
     ## PRIVATE
        Name of the dialect.
     name : Text
-    name self = self.dialect_name
+    name self = postgres_dialect_name
 
     ## PRIVATE
     to_text : Text
-    to_text self = self.dialect_to_text
+    to_text self = "Postgres_Dialect"
 
     ## PRIVATE
        A function which generates SQL code from the internal representation
        according to the specific dialect.
     generate_sql : Query -> SQL_Statement
     generate_sql self query =
-        case query of
-            # Special handling to use TRUNCATE TABLE instead of the default (since being more portable) DELETE FROM.
-            Query.Truncate_Table name ->
-                wrapped_name = self.internal_generator_dialect.wrap_identifier name
-                # ONLY is used to avoid truncating other tables that inherit from this table, which is the default behaviour on Postgres.
-                (SQL_Builder.code "TRUNCATE TABLE ONLY " ++ wrapped_name) . build
-            _ ->
-                # Rely on the base generator for most queries.
-                Base_Generator.generate_query self.internal_generator_dialect query . build
+        Base_Generator.generate_query self query . build
+
+    ## PRIVATE
+       Generates SQL to truncate a table.
+    generate_truncate_table_sql : Text -> SQL_Builder
+    generate_truncate_table_sql self table_name =
+        Base_Generator.truncate_table_truncate_table_style self table_name
 
     ## PRIVATE
        Wraps and possibly escapes the identifier so that it can be used in a
        generated query regardless of what characters it contains.
        The quotes used will depend on the dialect.
-    wrap_identifier : Text -> Text
+    wrap_identifier : Text -> SQL_Builder
     wrap_identifier self identifier =
-        self.internal_generator_dialect.wrap_identifier_raw identifier
+        Base_Generator.wrap_in_quotes identifier
+
+    ## PRIVATE
+       Generates a SQL expression for a table literal.
+    make_table_literal : Vector (Vector Text) -> Vector Text -> Text -> SQL_Builder
+    make_table_literal self vecs column_names as_name =
+        Base_Generator.default_make_table_literal self.wrap_identifier vecs column_names as_name
 
     ## PRIVATE
        Prepares an ordering descriptor.
@@ -112,7 +116,7 @@ type Postgres_Dialect
         inner_table_alias = table_name_deduplicator.make_unique table.name+"_inner"
         setup = table.context.as_subquery inner_table_alias [table.internal_columns]
         new_columns = setup.new_columns.first
-        column_mapping = Map.from_vector <| new_columns.map c-> [c.name, c]
+        column_mapping = Dictionary.from_vector <| new_columns.map c-> [c.name, c]
         new_key_columns = key_columns.map c-> column_mapping.at c.name
         type_mapping = self.get_type_mapping
         distinct_expressions = new_key_columns.map column->
@@ -125,22 +129,21 @@ type Postgres_Dialect
        A heuristic used by `Connection.query` to determine if a given text looks
        like a SQL query for the given dialect or is rather a table name.
     is_probably_a_query : Text -> Boolean
-    is_probably_a_query self text =
-        (text.contains "SELECT ") || (text.contains "EXEC ")
+    is_probably_a_query self text = Base_Generator.is_probably_a_query text
 
     ## PRIVATE
        Returns the mapping between SQL types of this dialect and Enso
        `Value_Type`.
     get_type_mapping : SQL_Type_Mapping
-    get_type_mapping self = self.type_mapping
+    get_type_mapping self = Postgres_Type_Mapping
 
     ## PRIVATE
     get_statement_setter : Statement_Setter
-    get_statement_setter self = postgres_statement_setter
+    get_statement_setter self = Statement_Setter.default
 
     ## PRIVATE
     make_cast : Internal_Column -> SQL_Type -> (SQL_Expression -> SQL_Type_Reference) -> Internal_Column
-    make_cast self column target_type infer_result_type_from_database_callback =
+    make_cast self (column : Internal_Column) (target_type : SQL_Type) (infer_result_type_from_database_callback : SQL_Expression -> SQL_Type_Reference) =
         mapping = self.get_type_mapping
         source_type = mapping.sql_type_to_value_type column.sql_type_reference.get
         target_value_type = mapping.sql_type_to_value_type target_type
@@ -155,8 +158,10 @@ type Postgres_Dialect
         Internal_Column.Value column.name new_sql_type_reference new_expression
 
     ## PRIVATE
-    needs_execute_query_for_type_inference : Boolean
-    needs_execute_query_for_type_inference self = False
+    needs_execute_query_for_type_inference : Text | SQL_Statement -> Boolean
+    needs_execute_query_for_type_inference self statement =
+        _ = statement
+        False
 
     ## PRIVATE
     supports_separate_nan : Boolean
@@ -167,8 +172,8 @@ type Postgres_Dialect
     supports_negative_round_decimal_places self = True
 
     ## PRIVATE
-    rounding_decimal_places_not_allowed_for_floats : Boolean
-    rounding_decimal_places_not_allowed_for_floats self = True
+    supports_float_round_decimal_places : Boolean
+    supports_float_round_decimal_places self = False
 
     ## PRIVATE
        There is a bug in Postgres type inference, where if we unify two
@@ -199,6 +204,36 @@ type Postgres_Dialect
             False -> column
 
     ## PRIVATE
+       Add an extra cast to adjust the output type of certain operations with
+       certain arguments.
+
+       It is used when the normal type inference provided by the database engine
+       needs to be adjusted.
+
+       In most cases this method will just return the expression unchanged, it
+       is used only to override the type in cases where the default one that the
+       database uses is not what we want.
+    cast_op_type self (op_kind:Text) (args:(Vector Internal_Column)) (expression:SQL_Expression) =
+        is_int8 ic = ic.sql_type_reference.get.typeid == Types.BIGINT
+        is_int ic =
+            typeid = ic.sql_type_reference.get.typeid
+            typeid == Types.SMALLINT || typeid == Types.INTEGER || typeid == Types.BIGINT
+
+        cast_to = case op_kind of
+            "SUM" ->
+                if is_int8 (args.at 0) then "numeric(1000,0)" else Nothing
+            "AVG" ->
+                if is_int (args.at 0) then "float8" else Nothing
+            "STDDEV_POP" ->
+                if is_int (args.at 0) then "float8" else Nothing
+            "STDDEV_SAMP" ->
+                if is_int (args.at 0) then "float8" else Nothing
+            _ -> Nothing
+
+        if cast_to.is_nothing then expression else
+            SQL_Expression.Operation "CAST" [expression, SQL_Expression.Literal cast_to]
+
+    ## PRIVATE
     prepare_fetch_types_query : SQL_Expression -> Context -> SQL_Statement
     prepare_fetch_types_query self expression context =
         Dialect.default_fetch_types_query self expression context
@@ -213,7 +248,7 @@ type Postgres_Dialect
        Checks if an operation is supported by the dialect.
     is_supported : Text -> Boolean
     is_supported self operation =
-        self.internal_generator_dialect.is_supported operation
+        self.dialect_operations.is_supported operation
 
     ## PRIVATE
        The default table types to use when listing tables.
@@ -238,14 +273,14 @@ type Postgres_Dialect
        if the given period is supported.
     prepare_metadata_for_period : Date_Period | Time_Period -> Value_Type -> Any
     prepare_metadata_for_period self period operation_input_type =
-        if period == Time_Period.Nanosecond && self.name == "PostgreSQL" then Error.throw (Unsupported_Database_Operation.Error "Postgres backend does not support nanosecond precision in date/time operations.") else
+        if period == Time_Period.Nanosecond then Error.throw (Unsupported_Database_Operation.Error "Postgres does not support nanosecond precision date/times.") else
             Date_Period_Metadata.Value period operation_input_type
 
     ## PRIVATE
        Returns true if the `replace` parameters are supported by this backend.
     if_replace_params_supports : Replace_Params -> Any -> Any
     if_replace_params_supports self replace_params ~action =
-        if supported_replace_params.contains replace_params then action else replace_params.throw_unsupported self.name
+        if supported_replace_params.contains replace_params then action else replace_params.throw_unsupported postgres_dialect_name
 
     ## PRIVATE
     value_type_for_upload_of_existing_column : DB_Column -> Value_Type
@@ -269,8 +304,14 @@ type Postgres_Dialect
                         False -> base_type
                 _ -> base_type
 
+    ## PRIVATE
+    needs_literal_table_cast : Value_Type -> Boolean
+    needs_literal_table_cast self value_type =
+        _ = value_type
+        False
+
 ## PRIVATE
-make_internal_generator_dialect =
+make_dialect_operations =
     cases = [["LOWER", Base_Generator.make_function "LOWER"], ["UPPER", Base_Generator.make_function "UPPER"]]
     text = [starts_with, contains, ends_with, agg_shortest, agg_longest, make_case_sensitive, ["REPLACE", replace], left, right]+concat_ops+cases+trim_ops
     counts = [agg_count_is_null, agg_count_empty, agg_count_not_empty, ["COUNT_DISTINCT", agg_count_distinct], ["COUNT_DISTINCT_INCLUDE_NULL", agg_count_distinct_include_null]]
@@ -280,11 +321,11 @@ make_internal_generator_dialect =
     stddev_pop = ["STDDEV_POP", Base_Generator.make_function "stddev_pop"]
     stddev_samp = ["STDDEV_SAMP", Base_Generator.make_function "stddev_samp"]
     stats = [agg_median, agg_mode, agg_percentile, stddev_pop, stddev_samp]
-    date_ops = [make_extract_as_int "year", make_extract_as_int "quarter", make_extract_as_int "month", make_extract_as_int "week", make_extract_as_int "day", make_extract_as_int "hour", make_extract_as_int "minute", make_extract_fractional_as_int "second", make_extract_fractional_as_int "millisecond" modulus=1000, make_extract_fractional_as_int "microsecond" modulus=1000, ["date_add", make_date_add], ["date_diff", make_date_diff], ["date_trunc_to_day", make_date_trunc_to_day]]
+    date_ops = [make_extract_as_int "year", make_extract_as_int "quarter", make_extract_as_int "month", make_extract_as_int "week", make_extract_as_int "day", make_extract_as_int "day_of_week" "isodow", make_extract_as_int "day_of_year" "doy", make_extract_as_int "hour", make_extract_as_int "minute", make_extract_fractional_as_int "second", make_extract_fractional_as_int "millisecond" modulus=1000, make_extract_fractional_as_int "microsecond" modulus=1000, ["date_add", make_date_add], ["date_diff", make_date_diff], ["date_trunc_to_day", make_date_trunc_to_day]]
     special_overrides = [is_null, is_empty]
     other = [["RUNTIME_ERROR", make_runtime_error_op]]
     my_mappings = text + counts + stats + first_last_aggregators + arith_extensions + bool + date_ops + special_overrides + other
-    Base_Generator.base_dialect . extend_with my_mappings
+    Base_Generator.base_dialect_operations . extend_with my_mappings
 
 ## PRIVATE
    This overrides the default behaviour, due to a weird behaviour of Postgres -
@@ -451,12 +492,10 @@ agg_count_distinct_include_null args =
     SQL_Builder.code "COUNT(DISTINCT (" ++ SQL_Builder.join ", " args ++ ", 0))"
 
 ## PRIVATE
-starts_with = Base_Generator.lift_binary_op "starts_with" str-> sub->
-    res = SQL_Builder.code "starts_with(" ++ str ++ "," ++ sub ++ ")"
-    res.paren
+starts_with = Base_Generator.lift_binary_sql_function "STARTS_WITH" "starts_with"
 
 ## PRIVATE
-ends_with = Base_Generator.lift_binary_op "ends_with" str-> sub->
+ends_with = Base_Generator.lift_binary_op "ENDS_WITH" str-> sub->
     res = str ++ " LIKE CONCAT('%', " ++ sub ++ ")"
     res.paren
 
@@ -469,7 +508,7 @@ make_contains_expr expr substring =
     SQL_Builder.code "position(" ++ substring ++ " in " ++ expr ++ ") > 0"
 
 ## PRIVATE
-contains = Base_Generator.lift_binary_op "contains" make_contains_expr
+contains = Base_Generator.lift_binary_op "CONTAINS" make_contains_expr
 
 ## PRIVATE
 left = Base_Generator.lift_binary_op "LEFT" str-> n->
@@ -520,7 +559,7 @@ floating_point_div = Base_Generator.lift_binary_op "/" x-> y->
     SQL_Builder.code "CAST(" ++ x ++ " AS double precision) / CAST(" ++ y ++ " AS double precision)"
 
 ## PRIVATE
-mod_op = Base_Generator.lift_binary_op "mod" x-> y->
+mod_op = Base_Generator.lift_binary_op "MOD" x-> y->
     x ++ " - FLOOR(CAST(" ++ x ++ " AS double precision) / CAST(" ++ y ++ " AS double precision)) * " ++ y
 
 ## PRIVATE
@@ -532,14 +571,14 @@ decimal_mod = Base_Generator.lift_binary_op "DECIMAL_MOD" x-> y->
     x ++ " - FLOOR(CAST(" ++ x ++ " AS decimal) / CAST(" ++ y ++ " AS decimal)) * " ++ y
 
 ## PRIVATE
-supported_replace_params : Set Replace_Params
+supported_replace_params : Hashset Replace_Params
 supported_replace_params =
     e0 = [Replace_Params.Value Text Case_Sensitivity.Default False, Replace_Params.Value Text Case_Sensitivity.Default True, Replace_Params.Value Text Case_Sensitivity.Sensitive False]
     e1 = [Replace_Params.Value Text Case_Sensitivity.Sensitive True, Replace_Params.Value Text Case_Sensitivity.Insensitive False, Replace_Params.Value Text Case_Sensitivity.Insensitive True]
     e2 = [Replace_Params.Value Regex Case_Sensitivity.Default False, Replace_Params.Value Regex Case_Sensitivity.Default True, Replace_Params.Value Regex Case_Sensitivity.Sensitive False]
     e3 = [Replace_Params.Value Regex Case_Sensitivity.Sensitive True, Replace_Params.Value Regex Case_Sensitivity.Insensitive False, Replace_Params.Value Regex Case_Sensitivity.Insensitive True]
     e4 = [Replace_Params.Value DB_Column Case_Sensitivity.Default False, Replace_Params.Value DB_Column Case_Sensitivity.Sensitive False]
-    Set.from_vector <| e0 + e1 + e2 + e3 + e4
+    Hashset.from_vector <| e0 + e1 + e2 + e3 + e4
 
 ## PRIVATE
 replace : Vector SQL_Builder -> Any -> SQL_Builder
@@ -569,18 +608,18 @@ replace args metadata =
                     _ ->
                         SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ escaped_pattern ++ ", " ++ replacement ++ ")"
         Regex ->
-            pattern_string = SQL_Builder.interpolation raw_pattern.pattern_string
+            pattern_text = SQL_Builder.interpolation raw_pattern.pattern
             case replace_params.only_first of
                 False -> case replace_params.case_sensitivity of
                     Case_Sensitivity.Insensitive _ ->
-                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_string ++ ", " ++ replacement ++ ", 'ig')"
+                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_text ++ ", " ++ replacement ++ ", 'ig')"
                     _ ->
-                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_string ++ ", " ++ replacement ++ ", 'g')"
+                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_text ++ ", " ++ replacement ++ ", 'g')"
                 True -> case replace_params.case_sensitivity of
                     Case_Sensitivity.Insensitive _ ->
-                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_string ++ ", " ++ replacement ++ ", 'i')"
+                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_text ++ ", " ++ replacement ++ ", 'i')"
                     _ ->
-                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_string ++ ", " ++ replacement ++ ")"
+                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_text ++ ", " ++ replacement ++ ")"
         DB_Column ->
             case replace_params.only_first of
                 False -> case replace_params.case_sensitivity of
@@ -589,9 +628,7 @@ replace args metadata =
                     _ ->
                         SQL_Builder.code "REPLACE(" ++ input ++ ", " ++ pattern ++ ", " ++ replacement ++ ")"
                 True -> Nothing
-    case expression of
-        Nothing -> replace_params.throw_unsupported "PostgreSQL"
-       _ -> expression
+    expression.if_nothing (replace_params.throw_unsupported postgres_dialect_name)
 
 ## PRIVATE
 make_extract_as_int enso_name sql_name=enso_name =
@@ -635,6 +672,8 @@ make_date_add arguments (metadata : Date_Period_Metadata) =
                 "secs=>0.001"
             Time_Period.Microsecond ->
                 "secs=>0.000001"
+            Time_Period.Nanosecond ->
+                Panic.throw (Illegal_State.Error "Nanosecond precision is not supported by Postgres.")
         interval_expression = SQL_Builder.code "make_interval(" ++ interval_arg ++ ")"
         shifted = SQL_Builder.code "(" ++ expr ++ " + (" ++ amount ++ " * " ++ interval_expression ++ "))"
         case metadata.input_value_type of
@@ -726,9 +765,6 @@ as_int32 expr =
     SQL_Builder.code "(" ++ expr ++ "::int4)"
 
 ## PRIVATE
-postgres_statement_setter = Statement_Setter.default
-
-## PRIVATE
    The RUNTIME_ERROR operation should allow the query to compile fine and it
    will not prevent it from running if the branch including this operation is
    not taken. But if the branch is computed, it should ensure the query fails.
@@ -750,3 +786,6 @@ make_runtime_error_op arguments =
     variable_to_defer = arguments.at 1
 
     SQL_Builder.code "CAST('[ENSO INVARIANT VIOLATED: '||" ++ error_message ++ "||'] '||COALESCE(" ++ variable_to_defer ++ "::TEXT,'NULL') AS BOOLEAN)"
+
+## PRIVATE
+postgres_dialect_name = "PostgreSQL"

@@ -20,6 +20,7 @@ import tsEslintParser from '@typescript-eslint/parser'
 // === Constants ===
 // =================
 
+const DEBUG_STATEMENTS_MESSAGE = 'Avoid leaving debugging statements when committing code'
 const DIR_NAME = path.dirname(url.fileURLToPath(import.meta.url))
 const NAME = 'enso'
 /** An explicit whitelist of CommonJS modules, which do not support namespace imports.
@@ -33,10 +34,9 @@ const DEFAULT_IMPORT_ONLY_MODULES =
     '@vitejs\\u002Fplugin-react|node:process|chalk|string-length|yargs|yargs\\u002Fyargs|sharp|to-ico|connect|morgan|serve-static|tiny-invariant|clsx|create-servers|electron-is-dev|fast-glob|esbuild-plugin-.+|opener|tailwindcss.*|enso-assets.*|@modyfi\\u002Fvite-plugin-yaml|is-network-error|validator.+|.*[.]json$'
 const OUR_MODULES = 'enso-.*'
 const RELATIVE_MODULES =
-    'bin\\u002Fproject-manager|bin\\u002Fserver|config\\u002Fparser|authentication|config|debug|detect|file-associations|index|ipc|log|naming|paths|preload|project-management|security|url-associations|#\\u002F.*'
+    'bin\\u002Fproject-manager|bin\\u002Fserver|config\\u002Fparser|authentication|config|debug|desktop-environment|detect|file-associations|index|ipc|log|naming|paths|preload|project-management|security|url-associations|#\\u002F.*'
 const ALLOWED_DEFAULT_IMPORT_MODULES = `${DEFAULT_IMPORT_ONLY_MODULES}|postcss|ajv\\u002Fdist\\u002F2020|${RELATIVE_MODULES}`
 const STRING_LITERAL = ':matches(Literal[raw=/^["\']/], TemplateLiteral)'
-const JSX = ':matches(JSXElement, JSXFragment)'
 const NOT_CAMEL_CASE = '/^(?!_?[a-z][a-z0-9*]*([A-Z0-9][a-z0-9]*)*$)(?!React$)/'
 const WHITELISTED_CONSTANTS = 'logger|.+Context|interpolationFunction.+'
 const NOT_CONSTANT_CASE = `/^(?!${WHITELISTED_CONSTANTS}$|_?[A-Z][A-Z0-9]*(_[A-Z0-9]+)*$)/`
@@ -51,8 +51,7 @@ const NOT_CONSTANT_CASE = `/^(?!${WHITELISTED_CONSTANTS}$|_?[A-Z][A-Z0-9]*(_[A-Z
 /** @type {{ selector: string; message: string; }[]} */
 const RESTRICTED_SYNTAXES = [
     {
-        selector:
-            ':matches(ImportDeclaration:has(ImportSpecifier), ExportDeclaration, ExportSpecifier)',
+        selector: ':matches(ImportDeclaration:has(ImportSpecifier))',
         message: 'No {} imports and exports',
     },
     {
@@ -89,10 +88,6 @@ const RESTRICTED_SYNTAXES = [
         message: `Don't prefix modules with \`${NAME}\``,
     },
     {
-        selector: 'TSTypeLiteral',
-        message: 'No object types - use interfaces instead',
-    },
-    {
         selector: 'ForOfStatement > .left[kind=let]',
         message: 'Use `for (const x of xs)`, not `for (let x of xs)`',
     },
@@ -117,11 +112,6 @@ const RESTRICTED_SYNTAXES = [
             'No aliases to primitives - consider using brands instead: `string & { _brand: "BrandName"; }`',
     },
     {
-        // Matches other functions, non-consts, and consts not at the top level.
-        selector: `:matches(FunctionDeclaration[id.name=${NOT_CAMEL_CASE}]:not(:has(${JSX})), VariableDeclarator[id.name=${NOT_CAMEL_CASE}]:has(ArrowFunctionExpression.init:not(:has(${JSX}))), :matches(VariableDeclaration[kind^=const], Program :not(ExportNamedDeclaration, TSModuleBlock) > VariableDeclaration[kind=const], ExportNamedDeclaration > * VariableDeclaration[kind=const]) > VariableDeclarator[id.name=${NOT_CAMEL_CASE}]:not(:has(ArrowFunctionExpression)))`,
-        message: 'Use `camelCase` for everything but React components',
-    },
-    {
         // Matches non-functions.
         selector: `:matches(Program, ExportNamedDeclaration, TSModuleBlock) > VariableDeclaration[kind=const] > VariableDeclarator[id.name=${NOT_CONSTANT_CASE}]:not(:matches([init.callee.object.name=React][init.callee.property.name=forwardRef], :has(ArrowFunctionExpression), :has(CallExpression[callee.object.name=newtype][callee.property.name=newtypeConstructor])))`,
         message: 'Use `CONSTANT_CASE` for top-level constants that are not functions',
@@ -142,14 +132,6 @@ const RESTRICTED_SYNTAXES = [
     {
         selector: `TSAsExpression:not(:has(TSTypeReference > Identifier[name=const]))`,
         message: 'Avoid `as T`. Consider using a type annotation instead.',
-    },
-    {
-        selector: `:matches(\
-            TSUndefinedKeyword,\
-            Identifier[name=undefined],\
-            UnaryExpression[operator=void]:not(:has(CallExpression.argument)), BinaryExpression[operator=/^===?$/]:has(UnaryExpression.left[operator=typeof]):has(Literal.right[value=undefined])\
-        )`,
-        message: 'Use `null` instead of `undefined`, `void 0`, or `typeof x === "undefined"`',
     },
     {
         selector: 'ExportNamedDeclaration > VariableDeclaration[kind=let]',
@@ -202,15 +184,6 @@ const RESTRICTED_SYNTAXES = [
         message: 'Use arrow functions for nested functions',
     },
     {
-        selector:
-            ':not(ExportNamedDeclaration) > TSInterfaceDeclaration[id.name=/^(?!Internal).+Props$/]',
-        message: 'All React component `Props` types must be exported',
-    },
-    {
-        selector: 'FunctionDeclaration:has(:matches(ObjectPattern.params, ArrayPattern.params))',
-        message: 'Destructure function parameters in the body, instead of in the parameter list',
-    },
-    {
         selector: 'IfStatement > ExpressionStatement',
         message: 'Wrap `if` branches in `{}`',
     },
@@ -230,16 +203,13 @@ const RESTRICTED_SYNTAXES = [
         message: 'Use a `getText()` from `useText` instead of a literal string',
     },
     {
+        selector: `JSXAttribute[name.name=/^(?:className)$/] TemplateLiteral`,
+        message:
+            'Use `tv` from `#/utilities/tailwindVariants` or `twMerge` from `tailwind-merge` instead of template strings for classes',
+    },
+    {
         selector: 'JSXOpeningElement[name.name=button] > JSXIdentifier',
         message: 'Use `Button` or `UnstyledButton` instead of `button`',
-    },
-    {
-        selector: 'JSXOpeningElement[name.name=label] > JSXIdentifier',
-        message: 'Use `aria.Label` instead of `label`',
-    },
-    {
-        selector: 'JSXOpeningElement[name.name=input] > JSXIdentifier',
-        message: 'Use `aria.Input` instead of `input`',
     },
     {
         selector: 'JSXOpeningElement[name.name=/^h[123456]$/] > JSXIdentifier',
@@ -255,8 +225,8 @@ const RESTRICTED_SYNTAXES = [
 export default [
     eslintJs.configs.recommended,
     {
-        // Playwright build cache.
-        ignores: ['**/.cache/**', '**/playwright-report'],
+        // Playwright build cache and Vite build directory.
+        ignores: ['**/.cache/**', '**/playwright-report', '**/dist'],
     },
     {
         settings: {
@@ -313,13 +283,19 @@ export default [
             ],
             'no-constant-condition': ['error', { checkLoops: false }],
             'no-restricted-syntax': ['error', ...RESTRICTED_SYNTAXES],
-            'prefer-arrow-callback': 'error',
             'prefer-const': 'error',
+            'react/forbid-elements': [
+                'error',
+                { forbid: [{ element: 'Debug', message: DEBUG_STATEMENTS_MESSAGE }] },
+            ],
             // Not relevant because TypeScript checks types.
             'react/prop-types': 'off',
             'react/self-closing-comp': 'error',
             'react-hooks/rules-of-hooks': 'error',
-            'react-hooks/exhaustive-deps': 'error',
+            'react-hooks/exhaustive-deps': [
+                'error',
+                { additionalHooks: 'useOnScroll|useStickyTableHeaderOnScroll' },
+            ],
             'react/jsx-pascal-case': ['error', { allowNamespace: true }],
             // Prefer `interface` over `type`.
             '@typescript-eslint/consistent-type-definitions': 'error',
@@ -350,7 +326,7 @@ export default [
                     format: ['camelCase', 'PascalCase'],
                 },
                 {
-                    selector: ['parameter', 'property', 'method'],
+                    selector: ['parameter', 'method'],
                     format: ['camelCase'],
                 },
                 {
@@ -358,6 +334,14 @@ export default [
                     modifiers: ['unused'],
                     format: ['camelCase'],
                     leadingUnderscore: 'require',
+                },
+                {
+                    selector: ['property'],
+                    format: ['camelCase'],
+                    filter: {
+                        regex: '^(?:data-testid)$',
+                        match: false,
+                    },
                 },
             ],
             '@typescript-eslint/no-confusing-void-expression': 'error',
@@ -469,11 +453,6 @@ export default [
                     selector: ':not(TSModuleDeclaration)[declare=true]',
                     message: 'No ambient declarations',
                 },
-                {
-                    selector: 'ExportDefaultDeclaration:has(Identifier.declaration)',
-                    message:
-                        'Use `export default` on the declaration, instead of as a separate statement',
-                },
             ],
             // This rule does not work with TypeScript, and TypeScript already does this.
             'no-undef': 'off',
@@ -497,31 +476,11 @@ export default [
         rules: {
             'no-restricted-properties': [
                 'error',
-                {
-                    object: 'router',
-                    property: 'useNavigate',
-                    message: 'Use `hooks.useNavigate` instead.',
-                },
-                {
-                    object: 'console',
-                    message: 'Avoid leaving debugging statements when committing code',
-                },
-                {
-                    property: 'useDebugState',
-                    message: 'Avoid leaving debugging statements when committing code',
-                },
-                {
-                    property: 'useDebugEffect',
-                    message: 'Avoid leaving debugging statements when committing code',
-                },
-                {
-                    property: 'useDebugMemo',
-                    message: 'Avoid leaving debugging statements when committing code',
-                },
-                {
-                    property: 'useDebugCallback',
-                    message: 'Avoid leaving debugging statements when committing code',
-                },
+                { object: 'console', message: DEBUG_STATEMENTS_MESSAGE },
+                { property: 'useDebugState', message: DEBUG_STATEMENTS_MESSAGE },
+                { property: 'useDebugEffect', message: DEBUG_STATEMENTS_MESSAGE },
+                { property: 'useDebugMemo', message: DEBUG_STATEMENTS_MESSAGE },
+                { property: 'useDebugCallback', message: DEBUG_STATEMENTS_MESSAGE },
             ],
         },
     },

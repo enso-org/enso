@@ -1,36 +1,37 @@
 import type { GraphNavigator } from '@/providers/graphNavigator'
 import { InteractionHandler } from '@/providers/interactionHandler'
 import type { PortId } from '@/providers/portInfo'
+import { useCurrentEdit, type CurrentEdit } from '@/providers/widgetTree'
 import { assert } from 'shared/util/assert'
 import { expect, test, vi, type Mock } from 'vitest'
-import { PortEditInitiatorOrResumer, WidgetEditHandler, type WidgetId } from '../editHandler'
+import { proxyRefs } from 'vue'
+import { WidgetEditHandler, type WidgetEditHooks } from '../editHandler'
 
 // If widget's name is a prefix of another widget's name, then it is its ancestor.
 // The ancestor with longest name is a direct parent.
 function editHandlerTree(
   widgets: string[],
   interactionHandler: InteractionHandler,
-  createInteraction: (name: WidgetId) => Record<string, Mock>,
-  widgetTree: { currentEdit: WidgetEditHandler | undefined },
-): Map<string, { handler: WidgetEditHandler; interaction: Record<string, Mock> }> {
+  createInteraction: (name: PortId) => WidgetEditHooks & Record<string, Mock>,
+  widgetTree: CurrentEdit,
+): Map<
+  string,
+  { handler: WidgetEditHandler; interaction: WidgetEditHooks & Record<string, Mock> }
+> {
   const handlers = new Map()
   for (const id of widgets) {
     let parent: string | undefined
     for (const [otherId] of handlers) {
       if (id.startsWith(otherId) && otherId.length > (parent?.length ?? -1)) parent = otherId
     }
-    const widgetId = id as WidgetId
-    const interaction = createInteraction(widgetId)
+    const portId = id as PortId
+    const interaction = createInteraction(portId)
     const handler = new WidgetEditHandler(
-      widgetId,
+      portId,
       interaction,
       parent ? handlers.get(parent)?.handler : undefined,
-      new PortEditInitiatorOrResumer(
-        `Port${id.slice(0, 1)}` as PortId,
-        undefined,
-        interactionHandler,
-      ),
       widgetTree,
+      interactionHandler,
     )
     handlers.set(id, { handler, interaction })
   }
@@ -49,7 +50,7 @@ test.each`
   'Edit interaction propagation starting from $edited in $widgets tree',
   ({ widgets, edited, expectedPropagation }) => {
     const interactionHandler = new InteractionHandler()
-    const widgetTree = { currentEdit: undefined }
+    const widgetTree = proxyRefs(useCurrentEdit())
     const handlers = editHandlerTree(
       widgets,
       interactionHandler,
@@ -112,7 +113,7 @@ test.each`
     expect(editedHandler.handler.isActive()).toBeTruthy()
     interactionHandler.setCurrent(undefined)
     expect(widgetTree.currentEdit).toBeUndefined()
-    checkCallbackCall('cancel')
+    checkCallbackCall('end', undefined)
     expect(editedHandler.handler.isActive()).toBeFalsy()
   },
 )
@@ -131,7 +132,7 @@ test.each`
     const event = new MouseEvent('pointerdown') as PointerEvent
     const navigator = {} as GraphNavigator
     const interactionHandler = new InteractionHandler()
-    const widgetTree = { currentEdit: undefined }
+    const widgetTree = proxyRefs(useCurrentEdit())
 
     const propagatingHandlersSet = new Set(propagatingHandlers)
     const nonPropagatingHandlersSet = new Set(nonPropagatingHandlers)
@@ -163,7 +164,7 @@ test.each`
     interactionHandler.handlePointerEvent(event, 'pointerdown', navigator)
     const handlersCalled = new Set<string>()
     for (const [id, { interaction }] of handlers)
-      if (interaction.pointerdown?.mock.lastCall) handlersCalled.add(id)
+      if ((interaction.pointerdown as Mock | undefined)?.mock.lastCall) handlersCalled.add(id)
     expect([...handlersCalled].sort()).toEqual([...expectedHandlerCallsSet].sort())
   },
 )

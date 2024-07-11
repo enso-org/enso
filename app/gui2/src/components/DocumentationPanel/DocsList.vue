@@ -48,7 +48,11 @@ const annotations = computed<Array<string | undefined>>(() => {
 <template>
   <ul v-if="props.items.items.length > 0">
     <li v-for="(item, index) in props.items.items" :key="index" :class="props.items.kind">
-      <a :class="['link', props.items.kind]" @click.stop="emit('linkClicked', item.id)">
+      <a
+        :class="props.items.kind"
+        class="link clickable"
+        @click.stop="emit('linkClicked', item.id)"
+      >
         <span class="entryName">{{ qnSplit(item.name)[1] }}</span>
         <span class="arguments">{{ ' ' + argumentsList(item.arguments) }}</span>
       </a>
@@ -61,7 +65,6 @@ const annotations = computed<Array<string | undefined>>(() => {
 
 <style scoped>
 .link {
-  cursor: pointer;
   font-weight: 600;
 
   &:hover {

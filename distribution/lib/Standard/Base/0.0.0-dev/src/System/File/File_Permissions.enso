@@ -3,6 +3,8 @@ import project.Data.Text.Text
 import project.Data.Vector.Vector
 
 polyglot java import java.nio.file.attribute.PosixFilePermission
+polyglot java import java.nio.file.attribute.PosixFilePermissions
+polyglot java import java.util.Set
 
 type Permission
     ## Permission for read access for a given entity.
@@ -74,7 +76,9 @@ type File_Permissions
     group_write : Boolean
     group_write self = self.group.contains Permission.Write
 
-    ## Checks if the given file can be executed by the group.
+    ## GROUP Metadata
+       ICON metadata
+       Checks if the given file can be executed by the group.
     group_execute : Boolean
     group_execute self = self.group.contains Permission.Execute
 
@@ -99,7 +103,8 @@ type File_Permissions
     ## PRIVATE
        ADVANCED
        Converts a Java `Set` of Java `PosixFilePermission` to `File_Permissions`.
-    from_java_set java_set =
+    from_java_set permissions:Text =
+        java_set = PosixFilePermissions.fromString permissions
         vecs = Vector.build_multiple 3 builders->
             owner = builders.at 0
             group = builders.at 1

@@ -5,16 +5,29 @@ import * as modalProvider from '#/providers/ModalProvider'
 
 import FocusRoot from '#/components/styled/FocusRoot'
 
+import * as tailwindVariants from '#/utilities/tailwindVariants'
+
+// =================
+// === Constants ===
+// =================
+
+const MODAL_VARIANTS = tailwindVariants.tv({
+  base: 'inset z-1',
+  variants: {
+    centered: { true: 'size-screen fixed grid place-items-center' },
+  },
+})
+
 // =================
 // === Component ===
 // =================
 
 /** Props for a {@link Modal}. */
-export interface ModalProps extends Readonly<React.PropsWithChildren> {
+export interface ModalProps
+  extends Readonly<React.PropsWithChildren>,
+    Readonly<tailwindVariants.VariantProps<typeof MODAL_VARIANTS>> {
   /** If `true`, disables `data-testid` because it will not be visible. */
   readonly hidden?: boolean
-  // This can intentionally be `undefined`, in order to simplify consumers of this component.
-  // eslint-disable-next-line no-restricted-syntax
   readonly centered?: boolean | undefined
   readonly style?: React.CSSProperties
   readonly className?: string
@@ -26,21 +39,16 @@ export interface ModalProps extends Readonly<React.PropsWithChildren> {
  * background transparency can be enabled with Tailwind's `bg-opacity` classes, like
  * `className="bg-opacity-50"`. */
 export default function Modal(props: ModalProps) {
-  const { hidden = false, children, centered = false, style, className } = props
-  const { onClick, onContextMenu } = props
+  const { hidden = false, children, style, onClick, onContextMenu, ...variantProps } = props
   const { unsetModal } = modalProvider.useSetModal()
 
   return (
     <FocusRoot active={!hidden}>
       {innerProps => (
         <div
-          // The name comes from a third-party API and cannot be changed.
-          // eslint-disable-next-line @typescript-eslint/naming-convention
           {...(!hidden ? { 'data-testid': 'modal-background' } : {})}
           style={style}
-          className={`inset z-1 ${centered ? 'size-screen fixed grid place-items-center' : ''} ${
-            className ?? ''
-          }`}
+          className={MODAL_VARIANTS(variantProps)}
           onClick={
             onClick ??
             (event => {

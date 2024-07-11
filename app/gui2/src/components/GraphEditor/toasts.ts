@@ -1,10 +1,8 @@
 import { useEvent } from '@/composables/events'
-import { useProjectStore } from '@/stores/project'
+import { type ProjectStore } from '@/stores/project'
 import { useToast } from '@/util/toast'
-import { ProjectManagerEvents } from '../../../../ide-desktop/lib/dashboard/src/services/ProjectManager'
 
-export function useGraphEditorToasts() {
-  const projectStore = useProjectStore()
+export function useGraphEditorToasts(projectStore: ProjectStore) {
   const toastStartup = useToast.info({ autoClose: false })
   const toastConnectionLost = useToast.error({ autoClose: false })
   const toastLspError = useToast.error()
@@ -14,7 +12,7 @@ export function useGraphEditorToasts() {
   toastStartup.show('Initializing the project. This can take up to one minute.')
   projectStore.firstExecution.then(toastStartup.dismiss)
 
-  useEvent(document, ProjectManagerEvents.loadingFailed, () =>
+  useEvent(document, 'project-manager-loading-failed', () =>
     toastConnectionLost.show('Lost connection to Language Server.'),
   )
 

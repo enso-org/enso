@@ -1,20 +1,30 @@
 /** @file A modal for creating a new label. */
 import * as React from 'react'
 
+import * as backendHooks from '#/hooks/backendHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
+import * as ariaComponents from '#/components/AriaComponents'
 import ColorPicker from '#/components/ColorPicker'
 import Modal from '#/components/Modal'
-import ButtonRow from '#/components/styled/ButtonRow'
 import FocusArea from '#/components/styled/FocusArea'
 import FocusRing from '#/components/styled/FocusRing'
-import UnstyledButton from '#/components/UnstyledButton'
 
-import * as backend from '#/services/Backend'
+import * as backendModule from '#/services/Backend'
+import type Backend from '#/services/Backend'
+
+import * as tailwindMerge from '#/utilities/tailwindMerge'
+
+// =================
+// === Constants ===
+// =================
+
+/** The maximum lightness at which a color is still considered dark. */
+const MAXIMUM_DARK_LIGHTNESS = 50
 
 // =====================
 // === NewLabelModal ===
@@ -22,32 +32,35 @@ import * as backend from '#/services/Backend'
 
 /** Props for a {@link NewLabelModal}. */
 export interface NewLabelModalProps {
-  readonly labels: backend.Label[]
+  readonly backend: Backend
   readonly eventTarget: HTMLElement
-  readonly doCreate: (value: string, color: backend.LChColor) => void
 }
 
 /** A modal for creating a new label. */
 export default function NewLabelModal(props: NewLabelModalProps) {
-  const { labels, eventTarget, doCreate } = props
+  const { backend, eventTarget } = props
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
   const [value, setValue] = React.useState('')
-  const [color, setColor] = React.useState<backend.LChColor | null>(null)
+  const [color, setColor] = React.useState<backendModule.LChColor | null>(null)
+  const position = React.useMemo(() => eventTarget.getBoundingClientRect(), [eventTarget])
+  const labelsRaw = backendHooks.useBackendListTags(backend)
+  const labels = React.useMemo(() => labelsRaw ?? [], [labelsRaw])
   const labelNames = React.useMemo(
     () => new Set<string>(labels.map(label => label.value)),
     [labels]
   )
-  const position = React.useMemo(() => eventTarget.getBoundingClientRect(), [eventTarget])
-  const leastUsedColor = React.useMemo(() => backend.leastUsedColor(labels), [labels])
+  const leastUsedColor = React.useMemo(() => backendModule.leastUsedColor(labels), [labels])
   const canSubmit = Boolean(value && !labelNames.has(value))
 
-  const doSubmit = () => {
+  const createTagMutation = backendHooks.useBackendMutation(backend, 'createTag')
+
+  const doSubmit = async () => {
     if (value !== '') {
       unsetModal()
       try {
-        doCreate(value, color ?? leastUsedColor)
+        await createTagMutation.mutateAsync([{ value, color: color ?? leastUsedColor }])
       } catch (error) {
         toastAndLog(null, error)
       }
@@ -71,7 +84,7 @@ export default function NewLabelModal(props: NewLabelModalProps) {
           event.preventDefault()
           // Consider not calling `onSubmit()` here to make it harder to accidentally
           // delete an important asset.
-          doSubmit()
+          void doSubmit()
         }}
       >
         <aria.Heading level={2} className="relative text-sm font-semibold">
@@ -86,18 +99,16 @@ export default function NewLabelModal(props: NewLabelModalProps) {
                   autoFocus
                   size={1}
                   placeholder={getText('labelNamePlaceholder')}
-                  className={`focus-child text grow rounded-full border border-primary/10 bg-transparent px-input-x ${
-                    // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-                    color != null && color.lightness <= 50
+                  className={tailwindMerge.twMerge(
+                    'focus-child text grow rounded-full border border-primary/10 bg-transparent px-input-x',
+                    color != null && color.lightness <= MAXIMUM_DARK_LIGHTNESS
                       ? 'text-tag-text placeholder-selected-frame'
                       : 'text-primary'
-                  }`}
+                  )}
                   style={
                     color == null
                       ? {}
-                      : {
-                          backgroundColor: backend.lChColorToCssColor(color),
-                        }
+                      : { backgroundColor: backendModule.lChColorToCssColor(color) }
                   }
                   onInput={event => {
                     setValue(event.currentTarget.value)
@@ -119,18 +130,14 @@ export default function NewLabelModal(props: NewLabelModalProps) {
             </ColorPicker>
           )}
         </FocusArea>
-        <ButtonRow>
-          <UnstyledButton
-            isDisabled={!canSubmit}
-            className="button bg-invite text-white enabled:active"
-            onPress={doSubmit}
-          >
+        <ariaComponents.ButtonGroup>
+          <ariaComponents.Button variant="submit" isDisabled={!canSubmit} onPress={doSubmit}>
             {getText('create')}
-          </UnstyledButton>
-          <UnstyledButton className="button bg-selected-frame active" onPress={unsetModal}>
+          </ariaComponents.Button>
+          <ariaComponents.Button variant="cancel" onPress={unsetModal}>
             {getText('cancel')}
-          </UnstyledButton>
-        </ButtonRow>
+          </ariaComponents.Button>
+        </ariaComponents.ButtonGroup>
       </form>
     </Modal>
   )

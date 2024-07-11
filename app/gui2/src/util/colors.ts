@@ -25,10 +25,15 @@ export function colorFromString(s: string) {
 export function ensoColor(hue: number): Oklch {
   return {
     mode: 'oklch',
-    l: 0.545,
+    l: 0.464,
     c: 0.14,
-    h: hue * 360,
+    h: normalizeHue(hue) * 360,
   }
+}
+
+/* Normalize a value to the range 0-1, as used for hues. */
+export function normalizeHue(value: number) {
+  return ((value % 1) + 1) % 1
 }
 
 /** Format an OKLCH color in CSS. */

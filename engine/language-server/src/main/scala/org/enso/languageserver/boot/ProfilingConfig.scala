@@ -23,19 +23,44 @@ case class ProfilingConfig(
     * @return the path to the runtime events log file
     */
   def profilingEventsLogPath: Option[Path] =
-    profilingPath.map { path =>
-      val profilingDirectory     = path.getParent
-      val profilingFileName      = path.getFileName.toString
-      val profilingFileExtension = FilenameUtils.getExtension(profilingFileName)
-      val eventsLogFileName =
-        profilingFileName.stripSuffix(
-          profilingFileExtension
-        ) + ProfilingConfig.EventsLogExtension
-
-      profilingDirectory.resolve(eventsLogFileName)
-    }
+    profilingPath.map(
+      ProfilingConfig.modifyPath(
+        _,
+        ProfilingConfig.EventsLogSuffix,
+        ProfilingConfig.EventsLogExtension
+      )
+    )
 }
+
 object ProfilingConfig {
 
+  private val EventsLogSuffix    = ""
   private val EventsLogExtension = "log"
+
+  /** Modify the path by adding a suffix and changing the file extension.
+    *
+    * @param path the path to modify
+    * @param suffix the suffix to add
+    * @param extension the new file extension
+    * @return the modified path
+    */
+  private def modifyPath(
+    path: Path,
+    suffix: String,
+    extension: String
+  ): Path = {
+    val directory     = path.getParent
+    val fileName      = path.getFileName.toString
+    val fileExtension = FilenameUtils.getExtension(fileName)
+    val modifiedFileName =
+      if (fileExtension.isEmpty) {
+        s"$fileName$suffix.$extension"
+      } else {
+        val fileNameWithoutExtension = fileName.stripSuffix(s".$fileExtension")
+        s"$fileNameWithoutExtension$suffix.$extension"
+      }
+
+    directory.resolve(modifiedFileName)
+  }
+
 }

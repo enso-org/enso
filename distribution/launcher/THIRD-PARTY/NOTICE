@@ -21,21 +21,6 @@ The license file can be found at `licenses/APACHE2.0`.
 Copyright notices related to this dependency can be found in the directory `com.chuusai.shapeless_2.13-2.3.10`.
 
 
-'jackson-annotations', licensed under the The Apache Software License, Version 2.0, is distributed with the launcher.
-The license information can be found along with the copyright notices.
-Copyright notices related to this dependency can be found in the directory `com.fasterxml.jackson.core.jackson-annotations-2.15.2`.
-
-
-'jackson-core', licensed under the The Apache Software License, Version 2.0, is distributed with the launcher.
-The license information can be found along with the copyright notices.
-Copyright notices related to this dependency can be found in the directory `com.fasterxml.jackson.core.jackson-core-2.15.2`.
-
-
-'jackson-databind', licensed under the The Apache Software License, Version 2.0, is distributed with the launcher.
-The license information can be found along with the copyright notices.
-Copyright notices related to this dependency can be found in the directory `com.fasterxml.jackson.core.jackson-databind-2.15.2`.
-
-
 'akka-actor_2.13', licensed under the Apache-2.0, is distributed with the launcher.
 The license file can be found at `licenses/APACHE2.0`.
 Copyright notices related to this dependency can be found in the directory `com.typesafe.akka.akka-actor_2.13-2.6.20`.
@@ -71,74 +56,39 @@ The license file can be found at `licenses/APACHE2.0`.
 Copyright notices related to this dependency can be found in the directory `com.typesafe.scala-logging.scala-logging_2.13-3.9.4`.
 
 
-'commons-codec', licensed under the The Apache Software License, Version 2.0, is distributed with the launcher.
-The license information can be found along with the copyright notices.
-Copyright notices related to this dependency can be found in the directory `commons-codec.commons-codec-1.9`.
-
-
 'commons-io', licensed under the Apache-2.0, is distributed with the launcher.
 The license information can be found along with the copyright notices.
 Copyright notices related to this dependency can be found in the directory `commons-io.commons-io-2.12.0`.
 
 
-'commons-logging', licensed under the The Apache Software License, Version 2.0, is distributed with the launcher.
-The license information can be found along with the copyright notices.
-Copyright notices related to this dependency can be found in the directory `commons-logging.commons-logging-1.2`.
-
-
-'circe-core_2.13', licensed under the Apache 2.0, is distributed with the launcher.
+'circe-core_2.13', licensed under the Apache-2.0, is distributed with the launcher.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `io.circe.circe-core_2.13-0.14.5`.
+Copyright notices related to this dependency can be found in the directory `io.circe.circe-core_2.13-0.14.7`.
 
 
-'circe-generic_2.13', licensed under the Apache 2.0, is distributed with the launcher.
+'circe-generic_2.13', licensed under the Apache-2.0, is distributed with the launcher.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `io.circe.circe-generic_2.13-0.14.5`.
+Copyright notices related to this dependency can be found in the directory `io.circe.circe-generic_2.13-0.14.7`.
 
 
-'circe-jawn_2.13', licensed under the Apache 2.0, is distributed with the launcher.
+'circe-jawn_2.13', licensed under the Apache-2.0, is distributed with the launcher.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `io.circe.circe-jawn_2.13-0.14.5`.
+Copyright notices related to this dependency can be found in the directory `io.circe.circe-jawn_2.13-0.14.7`.
 
 
-'circe-numbers_2.13', licensed under the Apache 2.0, is distributed with the launcher.
+'circe-numbers_2.13', licensed under the Apache-2.0, is distributed with the launcher.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `io.circe.circe-numbers_2.13-0.14.5`.
+Copyright notices related to this dependency can be found in the directory `io.circe.circe-numbers_2.13-0.14.7`.
 
 
-'circe-parser_2.13', licensed under the Apache 2.0, is distributed with the launcher.
+'circe-parser_2.13', licensed under the Apache-2.0, is distributed with the launcher.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `io.circe.circe-parser_2.13-0.14.5`.
-
-
-'circe-yaml_2.13', licensed under the Apache 2.0, is distributed with the launcher.
-The license information can be found along with the copyright notices.
-Copyright notices related to this dependency can be found in the directory `io.circe.circe-yaml_2.13-0.14.2`.
+Copyright notices related to this dependency can be found in the directory `io.circe.circe-parser_2.13-0.14.7`.
 
 
 'commons-compress', licensed under the Apache-2.0, is distributed with the launcher.
 The license file can be found at `licenses/APACHE2.0`.
 Copyright notices related to this dependency can be found in the directory `org.apache.commons.commons-compress-1.23.0`.
-
-
-'commons-lang3', licensed under the Apache License, Version 2.0, is distributed with the launcher.
-The license information can be found along with the copyright notices.
-Copyright notices related to this dependency can be found in the directory `org.apache.commons.commons-lang3-3.12.0`.
-
-
-'commons-text', licensed under the Apache License, Version 2.0, is distributed with the launcher.
-The license information can be found along with the copyright notices.
-Copyright notices related to this dependency can be found in the directory `org.apache.commons.commons-text-1.10.0`.
-
-
-'httpclient', licensed under the Apache License, Version 2.0, is distributed with the launcher.
-The license information can be found along with the copyright notices.
-Copyright notices related to this dependency can be found in the directory `org.apache.httpcomponents.httpclient-4.4.1`.
-
-
-'httpcore', licensed under the Apache License, Version 2.0, is distributed with the launcher.
-The license information can be found along with the copyright notices.
-Copyright notices related to this dependency can be found in the directory `org.apache.httpcomponents.httpcore-4.4.1`.
 
 
 'scala-java8-compat_2.13', licensed under the Apache-2.0, is distributed with the launcher.
@@ -163,20 +113,20 @@ Copyright notices related to this dependency can be found in the directory `org.
 
 'cats-core_2.13', licensed under the MIT, is distributed with the launcher.
 The license file can be found at `licenses/MIT`.
-Copyright notices related to this dependency can be found in the directory `org.typelevel.cats-core_2.13-2.9.0`.
+Copyright notices related to this dependency can be found in the directory `org.typelevel.cats-core_2.13-2.10.0`.
 
 
 'cats-kernel_2.13', licensed under the MIT, is distributed with the launcher.
 The license file can be found at `licenses/MIT`.
-Copyright notices related to this dependency can be found in the directory `org.typelevel.cats-kernel_2.13-2.9.0`.
+Copyright notices related to this dependency can be found in the directory `org.typelevel.cats-kernel_2.13-2.10.0`.
 
 
 'jawn-parser_2.13', licensed under the MIT, is distributed with the launcher.
 The license file can be found at `licenses/MIT`.
-Copyright notices related to this dependency can be found in the directory `org.typelevel.jawn-parser_2.13-1.4.0`.
+Copyright notices related to this dependency can be found in the directory `org.typelevel.jawn-parser_2.13-1.5.1`.
 
 
 'snakeyaml', licensed under the Apache License, Version 2.0, is distributed with the launcher.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `org.yaml.snakeyaml-1.33`.
+Copyright notices related to this dependency can be found in the directory `org.yaml.snakeyaml-2.2`.
 

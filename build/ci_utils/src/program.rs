@@ -12,7 +12,6 @@ pub mod location;
 pub mod resolver;
 pub mod shell;
 pub mod version;
-pub mod with_cwd;
 
 pub use command::Command;
 pub use resolver::Resolver;
@@ -56,8 +55,8 @@ pub trait Program: Sized + 'static {
         Vec::new()
     }
 
-    fn pretty_name(&self) -> &str {
-        self.executable_name()
+    fn pretty_name() -> Option<&'static str> {
+        None
     }
 
     /// Locate the program executable.

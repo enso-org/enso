@@ -4,23 +4,29 @@ import * as React from 'react'
 import ChatIcon from 'enso-assets/chat.svg'
 import DefaultUserIcon from 'enso-assets/default_user.svg'
 
+import * as appUtils from '#/appUtils'
+
+import * as billing from '#/hooks/billing'
+
 import * as authProvider from '#/providers/AuthProvider'
-import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
-import * as pageSwitcher from '#/layouts/PageSwitcher'
 import UserMenu from '#/layouts/UserMenu'
 
-import * as aria from '#/components/aria'
+import * as ariaComponents from '#/components/AriaComponents'
+import * as paywall from '#/components/Paywall'
 import Button from '#/components/styled/Button'
 import FocusArea from '#/components/styled/FocusArea'
-import UnstyledButton from '#/components/UnstyledButton'
 
 import InviteUsersModal from '#/modals/InviteUsersModal'
-import ManagePermissionsModal from '#/modals/ManagePermissionsModal'
 
-import * as backendModule from '#/services/Backend'
+// =================
+// === Constants ===
+// =================
+
+/** Whether the chat button should be visible. Temporarily disabled. */
+const SHOULD_SHOW_CHAT_BUTTON: boolean = false
 
 // ===============
 // === UserBar ===
@@ -31,112 +37,91 @@ export interface UserBarProps {
   /** When `true`, the element occupies space in the layout but is not visible.
    * Defaults to `false`. */
   readonly invisible?: boolean
-  readonly supportsLocalBackend: boolean
-  readonly page: pageSwitcher.Page
-  readonly setPage: (page: pageSwitcher.Page) => void
-  readonly isHelpChatOpen: boolean
   readonly setIsHelpChatOpen: (isHelpChatOpen: boolean) => void
-  readonly projectAsset: backendModule.ProjectAsset | null
-  readonly setProjectAsset: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>> | null
-  readonly doRemoveSelf: () => void
+  readonly goToSettingsPage: () => void
   readonly onSignOut: () => void
+  readonly onShareClick?: (() => void) | null | undefined
 }
 
 /** A toolbar containing chat and the user menu. */
 export default function UserBar(props: UserBarProps) {
-  const { invisible = false, page, setPage, isHelpChatOpen, setIsHelpChatOpen } = props
-  const { supportsLocalBackend, projectAsset, setProjectAsset, doRemoveSelf, onSignOut } = props
-  const { type: sessionType, user } = authProvider.useNonPartialUserSession()
-  const { setModal, updateModal } = modalProvider.useSetModal()
-  const { backend } = backendProvider.useBackend()
+  const { invisible = false, setIsHelpChatOpen, onShareClick, goToSettingsPage, onSignOut } = props
+
+  const { user } = authProvider.useNonPartialUserSession()
+  const { setModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
-  const self =
-    user != null
-      ? projectAsset?.permissions?.find(
-          backendModule.isUserPermissionAnd(permissions => permissions.user.userId === user.userId)
-        ) ?? null
-      : null
-  const shouldShowShareButton =
-    backend.type === backendModule.BackendType.remote &&
-    page === pageSwitcher.Page.editor &&
-    projectAsset != null &&
-    setProjectAsset != null &&
-    self != null
-  const shouldShowInviteButton =
-    sessionType === authProvider.UserSessionType.full && !shouldShowShareButton
+  const { isFeatureUnderPaywall } = billing.usePaywall({ plan: user.plan })
+
+  const shouldShowUpgradeButton = isFeatureUnderPaywall('inviteUser')
+  const shouldShowShareButton = onShareClick != null
+  const shouldShowInviteButton = !shouldShowShareButton && !shouldShowUpgradeButton
 
   return (
     <FocusArea active={!invisible} direction="horizontal">
       {innerProps => (
-        <div
-          className="pointer-events-auto flex h-row shrink-0 cursor-default items-center gap-user-bar rounded-full bg-frame px-icons-x pr-profile-picture backdrop-blur-default"
-          {...innerProps}
-        >
-          <Button
-            active={isHelpChatOpen}
-            image={ChatIcon}
-            onPress={() => {
-              setIsHelpChatOpen(!isHelpChatOpen)
-            }}
-          />
-          {shouldShowInviteButton && (
-            <UnstyledButton
-              className="text my-auto rounded-full bg-share px-button-x text-inversed"
-              onPress={() => {
-                setModal(<InviteUsersModal />)
-              }}
-            >
-              <aria.Text slot="label">{getText('invite')}</aria.Text>
-            </UnstyledButton>
-          )}
-          {shouldShowShareButton && (
-            <UnstyledButton
-              className="text my-auto rounded-full bg-share px-button-x text-inversed"
-              onPress={() => {
-                setModal(
-                  <ManagePermissionsModal
-                    item={projectAsset}
-                    setItem={setProjectAsset}
-                    self={self}
-                    doRemoveSelf={doRemoveSelf}
-                    eventTarget={null}
-                  />
-                )
-              }}
-            >
-              <aria.Text slot="label">{getText('share')}</aria.Text>
-            </UnstyledButton>
-          )}
-          <UnstyledButton
-            className="flex size-profile-picture select-none items-center overflow-clip rounded-full"
-            onPress={() => {
-              updateModal(oldModal =>
-                oldModal?.type === UserMenu ? null : (
-                  <UserMenu
-                    setPage={setPage}
-                    supportsLocalBackend={supportsLocalBackend}
-                    onSignOut={onSignOut}
-                  />
-                )
-              )
-            }}
+        <div className="bg-primary/5 pt-0.5">
+          <div
+            className="flex h-[46px] shrink-0 cursor-default items-center gap-user-bar pl-icons-x pr-3"
+            {...innerProps}
           >
-            <img
-              src={user?.profilePicture ?? DefaultUserIcon}
-              alt={getText('openUserMenu')}
-              className="pointer-events-none"
-              height={28}
-              width={28}
+            {SHOULD_SHOW_CHAT_BUTTON && (
+              <ariaComponents.Button
+                variant="icon"
+                size="custom"
+                className="mr-1"
+                icon={ChatIcon}
+                aria-label={getText('openHelpChat')}
+                onPress={() => {
+                  setIsHelpChatOpen(true)
+                }}
+              />
+            )}
+
+            {shouldShowUpgradeButton && (
+              <paywall.PaywallDialogButton feature={'inviteUser'} size="medium" variant="tertiary">
+                {getText('invite')}
+              </paywall.PaywallDialogButton>
+            )}
+
+            {shouldShowInviteButton && (
+              <ariaComponents.DialogTrigger>
+                <ariaComponents.Button size="medium" variant="tertiary">
+                  {getText('invite')}
+                </ariaComponents.Button>
+
+                <InviteUsersModal />
+              </ariaComponents.DialogTrigger>
+            )}
+
+            <ariaComponents.Button variant="primary" size="medium" href={appUtils.SUBSCRIBE_PATH}>
+              {getText('upgrade')}
+            </ariaComponents.Button>
+
+            {shouldShowShareButton && (
+              <ariaComponents.Button
+                size="medium"
+                variant="tertiary"
+                aria-label={getText('shareButtonAltText')}
+                onPress={onShareClick}
+              >
+                {getText('share')}
+              </ariaComponents.Button>
+            )}
+            <Button
+              active
+              mask={false}
+              alt={getText('userMenuAltText')}
+              image={user.profilePicture ?? DefaultUserIcon}
+              buttonClassName="rounded-full after:rounded-full"
+              className="h-row-h w-row-h rounded-full"
+              onPress={() => {
+                setModal(<UserMenu goToSettingsPage={goToSettingsPage} onSignOut={onSignOut} />)
+              }}
             />
-          </UnstyledButton>
-          {/* Required for shortcuts to work. */}
-          <div className="hidden">
-            <UserMenu
-              hidden
-              setPage={setPage}
-              supportsLocalBackend={supportsLocalBackend}
-              onSignOut={onSignOut}
-            />
+            {/* Required for shortcuts to work. */}
+            <div className="hidden">
+              <UserMenu hidden goToSettingsPage={goToSettingsPage} onSignOut={onSignOut} />
+            </div>
           </div>
         </div>
       )}

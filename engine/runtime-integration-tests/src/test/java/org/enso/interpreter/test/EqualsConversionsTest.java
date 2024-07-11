@@ -5,18 +5,19 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.util.List;
+import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-public class EqualsConversionsTest extends TestBase {
+public class EqualsConversionsTest {
   private static Context context;
 
   @BeforeClass
   public static void initContextAndData() {
-    context = createDefaultContext();
+    context = ContextUtils.createDefaultContext();
   }
 
   @AfterClass
@@ -27,7 +28,7 @@ public class EqualsConversionsTest extends TestBase {
   @Test
   public void testBasicInequalities() {
     var results =
-        TestBase.evalModule(
+        ContextUtils.evalModule(
                 context,
                 """
     from Standard.Base import all
@@ -95,7 +96,7 @@ public class EqualsConversionsTest extends TestBase {
         compare a:Num b:Num = Num_Comparator.compare a b
         hash a:Num = Num_Comparator.hash a
 
-    Comparable.from (_:Num) = Second_Comparator
+    Comparable.from (that:Num) = Comparable.new that Second_Comparator
     """;
     assertFalse("Num.Value not equal to Integer: ", gen.evaluate());
   }
@@ -122,7 +123,7 @@ public class EqualsConversionsTest extends TestBase {
     boolean intNumConversion;
     boolean numComparator;
     boolean intComparator;
-    String hashFn = "Default_Comparator.hash x.n";
+    String hashFn = "Ordering.hash x.n";
     String extraBlock = "";
 
     boolean evaluate() {
@@ -150,12 +151,14 @@ public class EqualsConversionsTest extends TestBase {
           !numComparator
               ? ""
               : """
-          Comparable.from (_:Num) = Num_Comparator
+          Comparable.from (that:Num) = Comparable.new that Num_Comparator
           """;
 
       var block3 =
-          !intComparator ? "" : """
-      Comparable.from (_:Integer) = Num_Comparator
+          !intComparator
+              ? ""
+              : """
+      Comparable.from (that:Integer) = Comparable.new that Num_Comparator
       """;
 
       var mainBlock =
@@ -167,7 +170,8 @@ public class EqualsConversionsTest extends TestBase {
           r0
       """;
       var res =
-          TestBase.evalModule(context, block0 + block1 + block2 + block3 + mainBlock + extraBlock);
+          ContextUtils.evalModule(
+              context, block0 + block1 + block2 + block3 + mainBlock + extraBlock);
       return res.asBoolean();
     }
   }

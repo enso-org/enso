@@ -4,8 +4,7 @@
  * an API endpoint. The functions are asynchronous and return a {@link Promise} that resolves to
  * the response from the API. */
 import * as detect from 'enso-common/src/detect'
-
-import type * as text from '#/text'
+import type * as text from 'enso-common/src/text'
 
 import type * as loggerProvider from '#/providers/LoggerProvider'
 import type * as textProvider from '#/providers/TextProvider'
@@ -28,9 +27,16 @@ const STATUS_SUCCESS_LAST = 299
 const STATUS_NOT_FOUND = 404
 /** HTTP status indicating that the server encountered a fatal exception. */
 const STATUS_SERVER_ERROR = 500
+/**
+ * HTTP status indicating that the request was successful, but the user is not authorized to access
+ */
+const STATUS_NOT_AUTHORIZED = 401
 
 /** The number of milliseconds in one day. */
 const ONE_DAY_MS = 86_400_000
+
+/** The interval between requests checking whether a project is ready to be opened in the IDE. */
+const CHECK_STATUS_INTERVAL_MS = 5000
 
 // =============
 // === Types ===
@@ -51,35 +57,6 @@ interface RemoteBackendError {
 /** Whether a response has a success HTTP status code (200-299). */
 function responseIsSuccessful(response: Response) {
   return response.status >= STATUS_SUCCESS_FIRST && response.status <= STATUS_SUCCESS_LAST
-}
-
-// ===============================
-// === waitUntilProjectIsReady ===
-// ===============================
-
-/** The interval between requests checking whether the IDE is ready. */
-const CHECK_STATUS_INTERVAL_MS = 5000
-
-/** Return a {@link Promise} that resolves only when a project is ready to open. */
-export async function waitUntilProjectIsReady(
-  remoteBackend: Backend,
-  item: backend.ProjectAsset,
-  abortController: AbortController = new AbortController()
-) {
-  let project = await remoteBackend.getProjectDetails(item.id, item.parentId, item.title)
-  if (!backend.IS_OPENING_OR_OPENED[project.state.type]) {
-    await remoteBackend.openProject(item.id, null, item.title)
-  }
-  let nextCheckTimestamp = 0
-  while (!abortController.signal.aborted && project.state.type !== backend.ProjectState.opened) {
-    await new Promise<void>(resolve => {
-      const delayMs = nextCheckTimestamp - Number(new Date())
-      setTimeout(resolve, Math.max(0, delayMs))
-    })
-    nextCheckTimestamp = Number(new Date()) + CHECK_STATUS_INTERVAL_MS
-    project = await remoteBackend.getProjectDetails(item.id, item.parentId, item.title)
-  }
-  return project
 }
 
 // =============
@@ -135,10 +112,17 @@ interface DefaultVersionInfo {
   readonly lastUpdatedEpochMs: number
 }
 
+/** Options for {@link RemoteBackend.post} private method. */
+interface RemoteBackendPostOptions {
+  readonly keepalive?: boolean
+}
+
 /** Class for sending requests to the Cloud backend API endpoints. */
 export default class RemoteBackend extends Backend {
   readonly type = backend.BackendType.remote
+  readonly rootPath = 'enso://'
   private defaultVersions: Partial<Record<backend.VersionType, DefaultVersionInfo>> = {}
+  private user: object.Mutable<backend.User> | null = null
 
   /** Create a new instance of the {@link RemoteBackend} API client.
    * @throws An error if the `Authorization` header is not set on the given `client`. */
@@ -148,20 +132,6 @@ export default class RemoteBackend extends Backend {
     private getText: ReturnType<typeof textProvider.useText>['getText']
   ) {
     super()
-    // All of our API endpoints are authenticated, so we expect the `Authorization` header to be
-    // set.
-    if (!new Headers(this.client.defaultHeaders).has('Authorization')) {
-      const message = 'Authorization header not set.'
-      this.logger.error(message)
-      throw new Error(message)
-    } else {
-      if (detect.IS_DEV_MODE) {
-        // @ts-expect-error This exists only for debugging purposes. It does not have types
-        // because it MUST NOT be used in this codebase.
-        window.remoteBackend = this
-      }
-      return
-    }
   }
 
   /** Set `this.getText`. This function is exposed rather than the property itself to make it clear
@@ -174,18 +144,27 @@ export default class RemoteBackend extends Backend {
    * @throws {Error} Always. */
   async throw<K extends Extract<text.TextId, `${string}BackendError`>>(
     response: Response | null,
-    textId: K,
+    textId: backend.NetworkError | K,
     ...replacements: text.Replacements[K]
   ): Promise<never> {
-    const error =
-      response == null
-        ? { message: 'unknown error' }
-        : // This is SAFE only when the response has been confirmed to have an erroring status code.
-          // eslint-disable-next-line no-restricted-syntax
-          ((await response.json()) as RemoteBackendError)
-    const message = `${this.getText(textId, ...replacements)}: ${error.message}.`
-    this.logger.error(message)
-    throw new Error(message)
+    if (textId instanceof backend.NetworkError) {
+      this.logger.error(textId.message)
+
+      throw textId
+    } else {
+      const error =
+        response == null
+          ? { message: 'unknown error' }
+          : // This is SAFE only when the response has been confirmed to have an erroring status code.
+            // eslint-disable-next-line no-restricted-syntax
+            ((await response.json()) as RemoteBackendError)
+      const message = `${this.getText(textId, ...replacements)}: ${error.message}.`
+      this.logger.error(message)
+
+      const status = response?.status
+
+      throw new backend.NetworkError(message, status)
+    }
   }
 
   /** Return the ID of the root directory. */
@@ -194,7 +173,7 @@ export default class RemoteBackend extends Backend {
   }
 
   /** Return a list of all users in the same organization. */
-  override async listUsers(): Promise<backend.User[]> {
+  override async listUsers(): Promise<readonly backend.User[]> {
     const path = remoteBackendPaths.LIST_USERS_PATH
     const response = await this.get<ListUsersResponseBody>(path)
     if (!responseIsSuccessful(response)) {
@@ -224,13 +203,14 @@ export default class RemoteBackend extends Backend {
         ? await this.throw(response, 'updateUsernameBackendError')
         : await this.throw(response, 'updateUserBackendError')
     } else {
+      if (this.user != null && body.username != null) {
+        this.user.name = body.username
+      }
       return
     }
   }
 
-  /**
-   * Restore a user that has been soft-deleted.
-   */
+  /** Restore a user that has been soft-deleted. */
   async restoreUser(): Promise<void> {
     const response = await this.put(remoteBackendPaths.UPDATE_CURRENT_USER_PATH, {
       clearRemoveAt: true,
@@ -252,12 +232,54 @@ export default class RemoteBackend extends Backend {
     }
   }
 
+  /** Delete a user.
+   * FIXME: Not implemented on backend yet. */
+  override async removeUser(): Promise<void> {
+    return await this.throw(null, 'removeUserBackendError')
+  }
+
   /** Invite a new user to the organization by email. */
   override async inviteUser(body: backend.InviteUserRequestBody): Promise<void> {
-    const path = remoteBackendPaths.INVITE_USER_PATH
-    const response = await this.post(path, body)
+    const response = await this.post(remoteBackendPaths.INVITE_USER_PATH, body)
     if (!responseIsSuccessful(response)) {
       return await this.throw(response, 'inviteUserBackendError', body.userEmail)
+    } else {
+      return
+    }
+  }
+
+  /** List all invitations. */
+  override async listInvitations(): Promise<readonly backend.Invitation[]> {
+    const response = await this.get<backend.ListInvitationsResponseBody>(
+      remoteBackendPaths.INVITATION_PATH
+    )
+
+    if (!responseIsSuccessful(response)) {
+      return await this.throw(response, 'listInvitationsBackendError')
+    } else {
+      return await response.json().then(data => data.invitations)
+    }
+  }
+
+  /** Delete an invitation. */
+  override async deleteInvitation(userEmail: backend.EmailAddress): Promise<void> {
+    const response = await this.delete(remoteBackendPaths.INVITATION_PATH, { userEmail })
+
+    if (!responseIsSuccessful(response)) {
+      return await this.throw(response, 'deleteInvitationBackendError')
+    } else {
+      return
+    }
+  }
+
+  /** Resend an invitation to a user. */
+  override async resendInvitation(userEmail: backend.EmailAddress): Promise<void> {
+    const response = await this.post(remoteBackendPaths.INVITATION_PATH, {
+      userEmail,
+      resend: true,
+    })
+    if (!responseIsSuccessful(response)) {
+      return await this.throw(response, 'resendInvitationBackendError')
     } else {
       return
     }
@@ -362,12 +384,25 @@ export default class RemoteBackend extends Backend {
   /** Return details for the current user.
    * @returns `null` if a non-successful status code (not 200-299) was received. */
   override async usersMe(): Promise<backend.User | null> {
-    const path = remoteBackendPaths.USERS_ME_PATH
-    const response = await this.get<backend.User>(path)
-    if (!responseIsSuccessful(response)) {
+    const response = await this.get<backend.User>(remoteBackendPaths.USERS_ME_PATH)
+
+    if (response.status === STATUS_NOT_FOUND) {
+      // User info has not yet been created, we should redirect to the onboarding page.
       return null
+    } else if (response.status === STATUS_NOT_AUTHORIZED) {
+      // User is not authorized, we should redirect to the login page.
+      return await this.throw(
+        response,
+        new backend.NotAuthorizedError(this.getText('notAuthorizedBackendError'))
+      )
+    } else if (!responseIsSuccessful(response)) {
+      // Arbitrary error, might be a server error or a network error.
+      return this.throw(response, 'usersMeBackendError')
     } else {
-      return await response.json()
+      const user = await response.json()
+      this.user = { ...user }
+
+      return user
     }
   }
 
@@ -418,6 +453,7 @@ export default class RemoteBackend extends Backend {
             permissions: [...(asset.permissions ?? [])].sort(backend.compareAssetPermissions),
           })
         )
+        .map(asset => this.dynamicAssetUser(asset))
     }
   }
 
@@ -576,6 +612,37 @@ export default class RemoteBackend extends Backend {
     }
   }
 
+  /** Restore a project from a different version. */
+  override async restoreProject(
+    projectId: backend.ProjectId,
+    versionId: backend.S3ObjectVersionId,
+    title: string
+  ): Promise<void> {
+    const path = remoteBackendPaths.restoreProjectPath(projectId)
+    const response = await this.post(path, { versionId })
+    if (!responseIsSuccessful(response)) {
+      return await this.throw(response, 'restoreProjectBackendError', title)
+    } else {
+      return
+    }
+  }
+
+  /** Duplicate a specific version of a project. */
+  override async duplicateProject(
+    projectId: backend.ProjectId,
+    versionId: backend.S3ObjectVersionId,
+    title: string
+  ): Promise<backend.CreatedProject> {
+    const path = remoteBackendPaths.duplicateProjectPath(projectId)
+    const response = await this.post<backend.CreatedProject>(path, { versionId })
+    if (!responseIsSuccessful(response)) {
+      return await this.throw(response, 'duplicateProjectBackendError', title)
+    } else {
+      const json = await response.json()
+      return json
+    }
+  }
+
   /** Close a project.
    * @throws An error if a non-successful status code (not 200-299) was received. */
   override async closeProject(projectId: backend.ProjectId, title: string): Promise<void> {
@@ -585,6 +652,22 @@ export default class RemoteBackend extends Backend {
       return await this.throw(response, 'closeProjectBackendError', title)
     } else {
       return
+    }
+  }
+
+  /** List project sessions for a specific project.
+   * @throws An error if a non-successful status code (not 200-299) was received. */
+  override async listProjectSessions(
+    projectId: backend.ProjectId,
+    title: string
+  ): Promise<backend.ProjectSession[]> {
+    const paramsString = new URLSearchParams({ projectId }).toString()
+    const path = `${remoteBackendPaths.LIST_PROJECT_SESSIONS_PATH}?${paramsString}`
+    const response = await this.get<backend.ProjectSession[]>(path)
+    if (!responseIsSuccessful(response)) {
+      return await this.throw(response, 'listProjectSessionsBackendError', title)
+    } else {
+      return await response.json()
     }
   }
 
@@ -613,6 +696,21 @@ export default class RemoteBackend extends Backend {
     }
   }
 
+  /** Return Language Server logs for a project session.
+   * @throws An error if a non-successful status code (not 200-299) was received. */
+  override async getProjectSessionLogs(
+    projectSessionId: backend.ProjectSessionId,
+    title: string
+  ): Promise<string[]> {
+    const path = remoteBackendPaths.getProjectSessionLogsPath(projectSessionId)
+    const response = await this.get<string[]>(path)
+    if (!responseIsSuccessful(response)) {
+      return await this.throw(response, 'getProjectLogsBackendError', title)
+    } else {
+      return await response.json()
+    }
+  }
+
   /** Prepare a project for execution.
    * @throws An error if a non-successful status code (not 200-299) was received. */
   override async openProject(
@@ -638,6 +736,7 @@ export default class RemoteBackend extends Backend {
         cognitoCredentials: exactCredentials,
       }
       const response = await this.post(path, filteredBody)
+
       if (!responseIsSuccessful(response)) {
         return this.throw(response, 'openProjectBackendError', title)
       } else {
@@ -732,42 +831,42 @@ export default class RemoteBackend extends Backend {
     }
   }
 
-  /** Return a Data Link.
+  /** Return a Datalink.
    * @throws An error if a non-successful status code (not 200-299) was received. */
-  override async createConnector(
-    body: backend.CreateConnectorRequestBody
-  ): Promise<backend.ConnectorInfo> {
-    const path = remoteBackendPaths.CREATE_CONNECTOR_PATH
-    const response = await this.post<backend.ConnectorInfo>(path, body)
+  override async createDatalink(
+    body: backend.CreateDatalinkRequestBody
+  ): Promise<backend.DatalinkInfo> {
+    const path = remoteBackendPaths.CREATE_DATALINK_PATH
+    const response = await this.post<backend.DatalinkInfo>(path, body)
     if (!responseIsSuccessful(response)) {
-      return await this.throw(response, 'createConnectorBackendError', body.name)
+      return await this.throw(response, 'createDatalinkBackendError', body.name)
     } else {
       return await response.json()
     }
   }
 
-  /** Return a Data Link.
+  /** Return a Datalink.
    * @throws An error if a non-successful status code (not 200-299) was received. */
-  override async getConnector(
-    connectorId: backend.ConnectorId,
+  override async getDatalink(
+    datalinkId: backend.DatalinkId,
     title: string
-  ): Promise<backend.Connector> {
-    const path = remoteBackendPaths.getConnectorPath(connectorId)
-    const response = await this.get<backend.Connector>(path)
+  ): Promise<backend.Datalink> {
+    const path = remoteBackendPaths.getDatalinkPath(datalinkId)
+    const response = await this.get<backend.Datalink>(path)
     if (!responseIsSuccessful(response)) {
-      return await this.throw(response, 'getConnectorBackendError', title)
+      return await this.throw(response, 'getDatalinkBackendError', title)
     } else {
       return await response.json()
     }
   }
 
-  /** Delete a Data Link.
+  /** Delete a Datalink.
    * @throws An error if a non-successful status code (not 200-299) was received. */
-  override async deleteConnector(connectorId: backend.ConnectorId, title: string): Promise<void> {
-    const path = remoteBackendPaths.getConnectorPath(connectorId)
+  override async deleteDatalink(datalinkId: backend.DatalinkId, title: string): Promise<void> {
+    const path = remoteBackendPaths.getDatalinkPath(datalinkId)
     const response = await this.delete(path)
     if (!responseIsSuccessful(response)) {
-      return await this.throw(response, 'deleteConnectorBackendError', title)
+      return await this.throw(response, 'deleteDatalinkBackendError', title)
     } else {
       return
     }
@@ -934,10 +1033,14 @@ export default class RemoteBackend extends Backend {
 
   /** Create a payment checkout session.
    * @throws An error if a non-successful status code (not 200-299) was received. */
-  override async createCheckoutSession(plan: backend.Plan): Promise<backend.CheckoutSession> {
+  override async createCheckoutSession(
+    params: backend.CreateCheckoutSessionRequestParams
+  ): Promise<backend.CheckoutSession> {
+    const { plan, paymentMethodId } = params
+
     const response = await this.post<backend.CheckoutSession>(
       remoteBackendPaths.CREATE_CHECKOUT_SESSION_PATH,
-      { plan } satisfies backend.CreateCheckoutSessionRequestBody
+      { plan, paymentMethodId } satisfies backend.CreateCheckoutSessionRequestBody
     )
     if (!responseIsSuccessful(response)) {
       return await this.throw(response, 'createCheckoutSessionBackendError', plan)
@@ -977,8 +1080,55 @@ export default class RemoteBackend extends Backend {
     }
   }
 
+  /** Log an event that will be visible in the organization audit log. */
+  async logEvent(message: string, projectId?: string | null, metadata?: object | null) {
+    // Prevent events from being logged in dev mode, since we are often using production environment
+    // and are polluting real logs.
+    if (detect.IS_DEV_MODE && process.env.ENSO_CLOUD_ENVIRONMENT === 'production') {
+      // eslint-disable-next-line no-restricted-syntax
+      return
+    }
+
+    const path = remoteBackendPaths.POST_LOG_EVENT_PATH
+    const response = await this.post(
+      path,
+      {
+        message,
+        projectId,
+        metadata: {
+          timestamp: new Date().toISOString(),
+          ...(metadata ?? {}),
+        },
+      },
+      {
+        keepalive: true,
+      }
+    )
+    if (!responseIsSuccessful(response)) {
+      // eslint-disable-next-line no-restricted-syntax
+      return this.throw(response, 'logEventBackendError', message)
+    }
+  }
+
+  /** Return a {@link Promise} that resolves only when a project is ready to open. */
+  override async waitUntilProjectIsReady(
+    projectId: backend.ProjectId,
+    directory: backend.DirectoryId | null,
+    title: string,
+    abortSignal?: AbortSignal
+  ) {
+    let project = await this.getProjectDetails(projectId, directory, title)
+
+    while (project.state.type !== backend.ProjectState.opened && abortSignal?.aborted !== true) {
+      await new Promise<void>(resolve => setTimeout(resolve, CHECK_STATUS_INTERVAL_MS))
+      project = await this.getProjectDetails(projectId, directory, title)
+    }
+
+    return project
+  }
+
   /** Get the default version given the type of version (IDE or backend). */
-  protected async getDefaultVersion(versionType: backend.VersionType) {
+  private async getDefaultVersion(versionType: backend.VersionType) {
     const cached = this.defaultVersions[versionType]
     const nowEpochMs = Number(new Date())
     if (cached != null && nowEpochMs - cached.lastUpdatedEpochMs < ONE_DAY_MS) {
@@ -995,14 +1145,37 @@ export default class RemoteBackend extends Backend {
     }
   }
 
+  /** Replaces the `user` of all permissions for the current user on an asset, so that they always
+   * return the up-to-date user. */
+  private dynamicAssetUser<Asset extends backend.AnyAsset>(asset: Asset) {
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
+    const self = this
+    let foundSelfPermission = (() => false)()
+    const permissions = asset.permissions?.map(permission => {
+      if (!('user' in permission) || permission.user.userId !== this.user?.userId) {
+        return permission
+      } else {
+        foundSelfPermission = true
+        return {
+          ...permission,
+          /** Return a dynamic reference to the current user. */
+          get user() {
+            return self.user
+          },
+        }
+      }
+    })
+    return !foundSelfPermission ? asset : { ...asset, permissions }
+  }
+
   /** Send an HTTP GET request to the given path. */
   private get<T = void>(path: string) {
     return this.client.get<T>(`${process.env.ENSO_CLOUD_API_URL}/${path}`)
   }
 
   /** Send a JSON HTTP POST request to the given path. */
-  private post<T = void>(path: string, payload: object) {
-    return this.client.post<T>(`${process.env.ENSO_CLOUD_API_URL}/${path}`, payload)
+  private post<T = void>(path: string, payload: object, options?: RemoteBackendPostOptions) {
+    return this.client.post<T>(`${process.env.ENSO_CLOUD_API_URL}/${path}`, payload, options)
   }
 
   /** Send a binary HTTP POST request to the given path. */
@@ -1026,7 +1199,7 @@ export default class RemoteBackend extends Backend {
   }
 
   /** Send an HTTP DELETE request to the given path. */
-  private delete<T = void>(path: string) {
-    return this.client.delete<T>(`${process.env.ENSO_CLOUD_API_URL}/${path}`)
+  private delete<T = void>(path: string, payload?: Record<string, unknown>) {
+    return this.client.delete<T>(`${process.env.ENSO_CLOUD_API_URL}/${path}`, payload)
   }
 }

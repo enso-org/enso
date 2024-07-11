@@ -1,28 +1,12 @@
 package org.enso.polyglot.data
-import com.fasterxml.jackson.annotation.{JsonIgnore, JsonSubTypes, JsonTypeInfo}
+
+import com.github.plokhotnyuk.jsoniter_scala.macros.named
 
 import scala.collection.mutable
 
 /** A rose-tree like data structure that distinguishes between root and node
   * elements.
   */
-@JsonTypeInfo(
-  use      = JsonTypeInfo.Id.NAME,
-  include  = JsonTypeInfo.As.EXTERNAL_PROPERTY,
-  property = "type"
-)
-@JsonSubTypes(
-  Array(
-    new JsonSubTypes.Type(
-      value = classOf[Tree.Root[_]],
-      name  = "treeRoot"
-    ),
-    new JsonSubTypes.Type(
-      value = classOf[Tree.Node[_]],
-      name  = "treeNode"
-    )
-  )
-)
 sealed trait Tree[+A] {
 
   /** Build a new tree by applying a function to all elements of this tree.
@@ -30,7 +14,6 @@ sealed trait Tree[+A] {
     * @param f the function to apply to each element
     * @return the new tree after applying the function `f` to elements
     */
-  @JsonIgnore
   final def map[B](f: A => B): Tree[B] =
     Tree.map(this)(f)
 
@@ -40,7 +23,6 @@ sealed trait Tree[+A] {
     * @param f the partial function to apply
     * @return the result of running `f` on the first element it's defined for.
     */
-  @JsonIgnore
   final def collectFirst[B](f: PartialFunction[A, B]): Option[B] =
     Tree.collectFirst(this)(f)
 
@@ -50,7 +32,6 @@ sealed trait Tree[+A] {
     * @return a new tree consisting of all elements of this tree that satisfy
     * the given predicate p.
     */
-  @JsonIgnore
   final def filter(p: A => Boolean): Tree[A] =
     Tree.filter(this)(p)
 
@@ -61,7 +42,6 @@ sealed trait Tree[+A] {
     * @return the result of applying the fold operator f between all the
     * elements and `acc`
     */
-  @JsonIgnore
   final def fold[B](acc: B)(f: (B, A) => B): B =
     Tree.fold(this, acc)(f)
 
@@ -70,7 +50,6 @@ sealed trait Tree[+A] {
     * @param that the tree to join with
     * @return the result of joining this and that trees
     */
-  @JsonIgnore
   final def zip[B](that: Tree[B]): Tree[These[A, B]] =
     Tree.zip(this, that)
 
@@ -87,46 +66,32 @@ sealed trait Tree[+A] {
     * @param p the predicate comparing the elements
     * @return the result of joining this and that trees
     */
-  @JsonIgnore
   final def zipBy[B](that: Tree[B])(p: (A, B) => Boolean): Tree[These[A, B]] =
     Tree.zipBy(this, that)(p)
 
   /** Check whether the tree is empty. */
-  @JsonIgnore
   final def isEmpty: Boolean =
     Tree.isEmpty(this)
 
   /** Check whether the tree is not empty. */
-  @JsonIgnore
   final def nonEmpty: Boolean =
     !isEmpty
 
   /** Convert tree to vector. */
-  @JsonIgnore
   final def toVector: Vector[A] =
     Tree.toVector(this)
 }
 
 object Tree {
 
+  @named("treeRoot")
   case class Root[+A](
-    @JsonTypeInfo(
-      use     = JsonTypeInfo.Id.CLASS,
-      include = JsonTypeInfo.As.PROPERTY
-    )
     children: Vector[Node[A]]
   ) extends Tree[A]
 
+  @named("treeNode")
   case class Node[+A](
-    @JsonTypeInfo(
-      use     = JsonTypeInfo.Id.CLASS,
-      include = JsonTypeInfo.As.PROPERTY
-    )
     element: A,
-    @JsonTypeInfo(
-      use     = JsonTypeInfo.Id.CLASS,
-      include = JsonTypeInfo.As.PROPERTY
-    )
     children: Vector[Node[A]]
   ) extends Tree[A]
 

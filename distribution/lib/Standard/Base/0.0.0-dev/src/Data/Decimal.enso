@@ -12,7 +12,7 @@ import project.Warning.Warning
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Numbers import Float, Integer, Number, Number_Parse_Error
 from project.Data.Numeric.Internal.Decimal_Internal import Decimal_Comparator
-from project.Data.Ordering import Comparable, Default_Comparator, Ordering
+from project.Data.Ordering import Comparable, Ordering
 from project.Errors.Common import Arithmetic_Error, Loss_Of_Numeric_Precision, Out_Of_Range, Unsupported_Argument_Types
 from project.Widget_Helpers import make_number_format_selector
 
@@ -88,7 +88,7 @@ type Decimal
     ## PRIVATE
     Value (big_decimal : BigDecimal)
 
-    ## ICON number_input
+    ## ICON input_number
        Construct a `Decimal` from a string or integer.
 
        Arguments:
@@ -122,7 +122,7 @@ type Decimal
                 _ : Integer -> Decimal.from_integer x mc
                 _ : Float -> Decimal.from_float x mc
 
-    ## GROUP conversions
+    ## GROUP Conversions
        ICON convert
        Construct a `Decimal` from a `Text`.
 
@@ -499,7 +499,8 @@ type Decimal
              # => Decimal.new 45.7
     divide : Decimal -> Math_Context | Nothing -> Decimal ! Arithmetic_Error
     divide self (that : Decimal) (math_context : Math_Context | Nothing = Nothing) -> Decimal ! Arithmetic_Error =
-        handle_java_exception <|
+        extra_message = " Please use `.divide` with an explicit `Math_Context` to limit the numeric precision."
+        handle_java_exception extra_message=extra_message <|
             case math_context of
                 Nothing -> Decimal.Value (self.big_decimal.divide that.big_decimal)
                 _ -> Decimal.Value (self.big_decimal.divide that.big_decimal math_context.math_context)
@@ -708,7 +709,7 @@ type Decimal
     signum self -> Integer = self.big_decimal.signum
 
     ## GROUP Math
-       ICON sigma
+       ICON transform4
        Returns the smaller value of `self` and `that`.
 
        Arguments:
@@ -723,7 +724,7 @@ type Decimal
     min self (that : Decimal) -> Decimal = if self < that then self else that
 
     ## GROUP Math
-       ICON math
+       ICON transform4
        Returns the larger value of `self` and `that`.
 
        Arguments:
@@ -737,7 +738,8 @@ type Decimal
     max : Decimal -> Decimal
     max self (that : Decimal) -> Decimal = if self > that then self else that
 
-    ## GROUP CONVERSIONS
+    ## GROUP Conversions
+       ICON convert
        Convert this to an `Integer`.
 
        Conversion to `Integer` uses truncation: the fractional portion is
@@ -757,7 +759,8 @@ type Decimal
         if self == i then i else
             Warning.attach (Loss_Of_Numeric_Precision.Warning self i) i
 
-    ## GROUP CONVERSIONS
+    ## GROUP Conversions
+       ICON convert
        Convert this to a `Float`.
 
        ? Precision Loss
@@ -997,6 +1000,12 @@ type Decimal
     scale self = self.big_decimal.scale
 
     ## PRIVATE
+    with_scale : Integer -> Decimal
+    private with_scale self new_scale:Integer =
+        if self.scale == new_scale then self else
+            Decimal.Value (self.big_decimal.setScale new_scale)
+
+    ## PRIVATE
     unscaled_value : Integer
     unscaled_value self = self.big_decimal.unscaledValue
 
@@ -1040,9 +1049,9 @@ attach_loss_of_numeric_precision x value =
     Warning.attach (Loss_Of_Numeric_Precision.Warning x value) value
 
 ## PRIVATE
-handle_java_exception ~action =
+handle_java_exception ~action (extra_message : Text = "") =
     Panic.catch ArithmeticException action caught_panic->
-        Error.throw (Arithmetic_Error.Error caught_panic.payload.getMessage)
+        Error.throw (Arithmetic_Error.Error caught_panic.payload.getMessage+extra_message)
 
 ## PRIVATE
 handle_unsupported_argument_types ~action =
@@ -1050,10 +1059,10 @@ handle_unsupported_argument_types ~action =
         Error.throw (Arithmetic_Error.Error "Exponent out of range 0..999999999 (inclusive)")
 
 ## PRIVATE
-Comparable.from (_ : Decimal) = Decimal_Comparator
+Comparable.from (that : Decimal) = Comparable.new that Decimal_Comparator
 
 ## PRIVATE
-Comparable.from (_ : Number) = Decimal_Comparator
+Comparable.from (that : Number) = Comparable.new that Decimal_Comparator
 
 ## PRIVATE
 Decimal.from (that : Text) = Decimal.from_string that

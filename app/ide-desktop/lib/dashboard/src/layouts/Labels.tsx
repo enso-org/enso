@@ -4,26 +4,26 @@ import * as React from 'react'
 import PlusIcon from 'enso-assets/plus.svg'
 import Trash2Icon from 'enso-assets/trash2.svg'
 
+import * as backendHooks from '#/hooks/backendHooks'
+
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
-import * as aria from '#/components/aria'
+import * as ariaComponents from '#/components/AriaComponents'
 import Label from '#/components/dashboard/Label'
-import * as labelUtils from '#/components/dashboard/Label/labelUtils'
+import Button from '#/components/styled/Button'
 import FocusArea from '#/components/styled/FocusArea'
 import FocusRing from '#/components/styled/FocusRing'
-import SvgMask from '#/components/SvgMask'
 
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import DragModal from '#/modals/DragModal'
 import NewLabelModal from '#/modals/NewLabelModal'
 
-import type * as backend from '#/services/Backend'
+import type Backend from '#/services/Backend'
 
 import * as array from '#/utilities/array'
 import type AssetQuery from '#/utilities/AssetQuery'
 import * as drag from '#/utilities/drag'
-import * as string from '#/utilities/string'
 
 // ==============
 // === Labels ===
@@ -31,57 +31,40 @@ import * as string from '#/utilities/string'
 
 /** Props for a {@link Labels}. */
 export interface LabelsProps {
+  readonly backend: Backend
   readonly draggable: boolean
-  readonly labels: backend.Label[]
   readonly query: AssetQuery
   readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
-  readonly doCreateLabel: (name: string, color: backend.LChColor) => void
-  readonly doDeleteLabel: (id: backend.TagId, name: backend.LabelName) => void
-  readonly newLabelNames: Set<backend.LabelName>
-  readonly deletedLabelNames: Set<backend.LabelName>
 }
 
 /** A list of selectable labels. */
 export default function Labels(props: LabelsProps) {
-  const {
-    labels,
-    query,
-    setQuery,
-    doCreateLabel,
-    doDeleteLabel,
-    newLabelNames,
-    draggable = true,
-    deletedLabelNames,
-  } = props
+  const { backend, query, setQuery, draggable = true } = props
   const currentLabels = query.labels
   const currentNegativeLabels = query.negativeLabels
   const { setModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
-  const displayLabels = React.useMemo(
-    () =>
-      labels
-        .filter(label => !deletedLabelNames.has(label.value))
-        .sort((a, b) => string.compareCaseInsensitive(a.value, b.value)),
-    [deletedLabelNames, labels]
-  )
+  const labels = backendHooks.useBackendListTags(backend) ?? []
+
+  const deleteTagMutation = backendHooks.useBackendMutation(backend, 'deleteTag')
 
   return (
     <FocusArea direction="vertical">
       {innerProps => (
         <div
           data-testid="labels"
-          className="gap-sidebar-section-heading flex w-full flex-col items-start"
+          className="flex w-full flex-col items-start gap-4"
           {...innerProps}
         >
-          <div className="text-header px-sidebar-section-heading-x text-sm font-bold">
+          <ariaComponents.Text variant="subtitle" className="px-2 font-bold">
             {getText('labels')}
-          </div>
+          </ariaComponents.Text>
           <div
             data-testid="labels-list"
             aria-label={getText('labelsListLabel')}
             className="flex flex-col items-start gap-labels"
           >
-            {displayLabels.map(label => {
+            {labels.map(label => {
               const negated = currentNegativeLabels.some(term =>
                 array.shallowEqual(term, [label.value])
               )
@@ -94,7 +77,6 @@ export default function Labels(props: LabelsProps) {
                       negated || currentLabels.some(term => array.shallowEqual(term, [label.value]))
                     }
                     negated={negated}
-                    isDisabled={newLabelNames.has(label.value)}
                     onPress={event => {
                       setQuery(oldQuery =>
                         oldQuery.withToggled(
@@ -112,7 +94,7 @@ export default function Labels(props: LabelsProps) {
                       setModal(
                         <DragModal
                           event={event}
-                          doCleanup={() => {
+                          onDragEnd={() => {
                             drag.LABELS.unbind(payload)
                           }}
                         >
@@ -125,52 +107,43 @@ export default function Labels(props: LabelsProps) {
                   >
                     {label.value}
                   </Label>
-                  {!newLabelNames.has(label.value) && (
+                  {!label.isPlaceholder && (
                     <FocusRing placement="after">
-                      <aria.Button
-                        className="relative flex after:absolute after:inset-button-focus-ring-inset after:rounded-button-focus-ring"
+                      <Button
+                        active
+                        image={Trash2Icon}
+                        alt={getText('delete')}
+                        className="relative flex size-4 text-delete opacity-0 transition-all after:absolute after:-inset-1 after:rounded-button-focus-ring group-has-[[data-focus-visible]]:active group-hover:active"
                         onPress={() => {
                           setModal(
                             <ConfirmDeleteModal
                               actionText={getText('deleteLabelActionText', label.value)}
                               doDelete={() => {
-                                doDeleteLabel(label.id, label.value)
+                                deleteTagMutation.mutate([label.id, label.value])
                               }}
                             />
                           )
                         }}
-                      >
-                        <SvgMask
-                          src={Trash2Icon}
-                          alt={getText('delete')}
-                          className="size-icon text-delete transition-all transparent group-has-[[data-focus-visible]]:active group-hover:active"
-                        />
-                      </aria.Button>
+                      />
                     </FocusRing>
                   )}
                 </div>
               )
             })}
-            <Label
-              color={labelUtils.DEFAULT_LABEL_COLOR}
-              className="bg-selected-frame"
+            <ariaComponents.Button
+              size="xsmall"
+              variant="outline"
+              className="pl-1 pr-2"
+              /* eslint-disable-next-line no-restricted-syntax */
+              icon={<img src={PlusIcon} alt="" className="ml-auto mt-[1px] size-[8px]" />}
               onPress={event => {
                 if (event.target instanceof HTMLElement) {
-                  setModal(
-                    <NewLabelModal
-                      labels={labels}
-                      eventTarget={event.target}
-                      doCreate={doCreateLabel}
-                    />
-                  )
+                  setModal(<NewLabelModal backend={backend} eventTarget={event.target} />)
                 }
               }}
             >
-              {/* This is a non-standard-sized icon. */}
-              {/* eslint-disable-next-line no-restricted-syntax */}
-              <img src={PlusIcon} className="mr-[6px] size-[6px]" />
-              <aria.Text className="text-header">{getText('newLabelButtonLabel')}</aria.Text>
-            </Label>
+              {getText('newLabelButtonLabel')}
+            </ariaComponents.Button>
           </div>
         </div>
       )}

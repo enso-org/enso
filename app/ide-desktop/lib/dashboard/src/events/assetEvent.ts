@@ -1,8 +1,6 @@
 /** @file Events related to changes in asset state. */
 import type AssetEventType from '#/events/AssetEventType'
 
-import type * as spinner from '#/components/Spinner'
-
 import type * as backend from '#/services/Backend'
 
 // This is required, to whitelist this event.
@@ -29,7 +27,7 @@ interface AssetEvents {
   readonly newFolder: AssetNewFolderEvent
   readonly uploadFiles: AssetUploadFilesEvent
   readonly updateFiles: AssetUpdateFilesEvent
-  readonly newDataLink: AssetNewDataLinkEvent
+  readonly newDatalink: AssetNewDatalinkEvent
   readonly newSecret: AssetNewSecretEvent
   readonly openProject: AssetOpenProjectEvent
   readonly closeProject: AssetCloseProjectEvent
@@ -63,8 +61,9 @@ type SanityCheck<
 export interface AssetNewProjectEvent extends AssetBaseEvent<AssetEventType.newProject> {
   readonly placeholderId: backend.ProjectId
   readonly templateId: string | null
-  readonly datalinkId: backend.ConnectorId | null
-  readonly onSpinnerStateChange: ((state: spinner.SpinnerState) => void) | null
+  readonly datalinkId: backend.DatalinkId | null
+  readonly originalId: backend.ProjectId | null
+  readonly versionId: backend.S3ObjectVersionId | null
 }
 
 /** A signal to create a directory. */
@@ -82,9 +81,9 @@ export interface AssetUpdateFilesEvent extends AssetBaseEvent<AssetEventType.upd
   readonly files: ReadonlyMap<backend.AssetId, File>
 }
 
-/** A signal to create a Data Link. */
-export interface AssetNewDataLinkEvent extends AssetBaseEvent<AssetEventType.newDataLink> {
-  readonly placeholderId: backend.ConnectorId
+/** A signal to create a Datalink. */
+export interface AssetNewDatalinkEvent extends AssetBaseEvent<AssetEventType.newDatalink> {
+  readonly placeholderId: backend.DatalinkId
   readonly value: unknown
 }
 
@@ -97,13 +96,18 @@ export interface AssetNewSecretEvent extends AssetBaseEvent<AssetEventType.newSe
 /** A signal to open the specified project. */
 export interface AssetOpenProjectEvent extends AssetBaseEvent<AssetEventType.openProject> {
   readonly id: backend.ProjectId
-  readonly shouldAutomaticallySwitchPage: boolean
+  readonly backendType: backend.BackendType
+  readonly title: string
+  readonly parentId: backend.DirectoryId
   readonly runInBackground: boolean
 }
 
 /** A signal to close the specified project. */
 export interface AssetCloseProjectEvent extends AssetBaseEvent<AssetEventType.closeProject> {
   readonly id: backend.ProjectId
+  readonly backendType: backend.BackendType
+  readonly title: string
+  readonly parentId: backend.DirectoryId
 }
 
 /** A signal that multiple assets should be copied. `ids` are the `Id`s of the newly created

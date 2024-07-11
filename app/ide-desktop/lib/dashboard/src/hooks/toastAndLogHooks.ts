@@ -3,12 +3,19 @@ import * as React from 'react'
 
 import * as toastify from 'react-toastify'
 
-import type * as text from '#/text'
+import type * as text from 'enso-common/src/text'
 
 import * as loggerProvider from '#/providers/LoggerProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import * as errorModule from '#/utilities/error'
+
+// ===========================
+// === ToastAndLogCallback ===
+// ===========================
+
+/** The type of the `toastAndLog` function returned by {@link useToastAndLog}. */
+export type ToastAndLogCallback = ReturnType<typeof useToastAndLog>
 
 // ======================
 // === useToastAndLog ===
@@ -19,12 +26,16 @@ import * as errorModule from '#/utilities/error'
 export function useToastAndLog() {
   const { getText } = textProvider.useText()
   const logger = loggerProvider.useLogger()
+
   return React.useCallback(
     <K extends text.TextId, T>(
       textId: K | null,
       ...[error, ...replacements]: text.Replacements[K] extends readonly []
-        ? [error?: errorModule.MustNotBeKnown<T>]
-        : [error: errorModule.MustNotBeKnown<T> | null, ...replacements: text.Replacements[K]]
+        ? [error?: Error | errorModule.MustNotBeKnown<T>]
+        : [
+            error: Error | errorModule.MustNotBeKnown<T> | null,
+            ...replacements: text.Replacements[K],
+          ]
     ) => {
       const messagePrefix =
         textId == null
@@ -46,6 +57,6 @@ export function useToastAndLog() {
       logger.error(message)
       return id
     },
-    [getText, /* should never change */ logger]
+    [getText, logger]
   )
 }

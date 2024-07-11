@@ -6,7 +6,6 @@ use anyhow::Context;
 
 pub trait OutputExt {
     fn single_line_stdout(&self) -> Result<String>;
-    //fn run_ok(&self) -> Result;
     fn describe(&self) -> String;
 
     fn stdout_as_str(&self) -> Result<&str>;
@@ -23,9 +22,6 @@ impl OutputExt for std::process::Output {
         }
     }
 
-    // fn run_ok(&self) -> Result {
-    //     self.status.exit_ok().with_context(|| self.describe())
-    // }
     fn describe(&self) -> String {
         format!(
             "Stdout:\n{:?}\n\nStderr:\n{:?}\n",

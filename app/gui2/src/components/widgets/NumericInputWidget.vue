@@ -1,43 +1,62 @@
 <script setup lang="ts">
-import { PointerButtonMask, usePointer } from '@/composables/events'
-import { computed, ref, watch, type ComponentInstance, type StyleValue } from 'vue'
+import { usePointer } from '@/composables/events'
+import { isNumericLiteral } from 'shared/ast/tree'
+import { computed, ref, watch, type CSSProperties, type ComponentInstance } from 'vue'
 import AutoSizedInput from './AutoSizedInput.vue'
 
 const props = defineProps<{
-  modelValue: number | string
+  modelValue: number | undefined
+  placeholder?: string | undefined
   limits?: { min: number; max: number } | undefined
 }>()
 const emit = defineEmits<{
-  'update:modelValue': [modelValue: number | string]
+  'update:modelValue': [modelValue: string | undefined]
   blur: []
   focus: []
   input: [content: string]
 }>()
 
-const inputFieldActive = ref(false)
-// Edited value reflects the `modelValue`, but does not update it until the user defocuses the field.
-const editedValue = ref(`${props.modelValue}`)
-watch(
-  () => props.modelValue,
-  (newValue) => {
-    editedValue.value = `${newValue}`
-  },
-)
+const DEFAULT_PLACEHOLDER = ''
 const SLIDER_INPUT_THRESHOLD = 4.0
+const MIN_CONTENT_WIDTH = 56
 
+// Edited value reflects the `modelValue`, but does not update it until the user defocuses the field.
+const editedValue = ref('')
+// Last value which is a parseable number. It's a string, because the Enso number literals differ from js
+// representations.
+const lastValidValue = ref<string>()
+watch(editedValue, (newValue) => {
+  if (newValue == '' || isNumericLiteral(newValue)) {
+    lastValidValue.value = newValue
+  }
+})
+const valueString = computed(() => (props.modelValue != null ? props.modelValue.toString() : ''))
+watch(valueString, (newValue) => (editedValue.value = newValue), { immediate: true })
+const inputFieldActive = ref(false)
+
+let dragState: { thresholdMet: boolean } | undefined = undefined
 const dragPointer = usePointer(
   (position, event, eventType) => {
     const slider = event.target
     if (!(slider instanceof HTMLElement)) return false
 
-    if (eventType === 'stop' && Math.abs(position.relative.x) < SLIDER_INPUT_THRESHOLD) {
+    if (dragState) {
+      dragState.thresholdMet ||= Math.abs(position.relative.x) >= SLIDER_INPUT_THRESHOLD
+    }
+
+    if (eventType === 'stop' && !dragState?.thresholdMet) {
       inputComponent.value?.focus()
       return
     }
 
-    if (eventType === 'start') return
-
     if (inputFieldActive.value || props.limits == null) return false
+
+    if (eventType === 'start') {
+      // Prevent selecting the input's text content.
+      event.preventDefault()
+      dragState = { thresholdMet: false }
+      return
+    }
 
     const { min, max } = props.limits
     const rect = slider.getBoundingClientRect()
@@ -58,9 +77,8 @@ const sliderWidth = computed(() => {
 })
 
 const inputComponent = ref<ComponentInstance<typeof AutoSizedInput>>()
-const MIN_CONTENT_WIDTH = 56
 
-const inputStyle = computed<StyleValue>(() => {
+const inputStyle = computed<CSSProperties>(() => {
   const value = `${editedValue.value}`
   const dotIdx = value.indexOf('.')
   let indent = 0
@@ -82,13 +100,14 @@ const inputStyle = computed<StyleValue>(() => {
 })
 
 function emitUpdate() {
-  if (`${props.modelValue}` !== editedValue.value) {
-    emit('update:modelValue', editedValue.value)
+  if (valueString.value !== lastValidValue.value) {
+    emit('update:modelValue', lastValidValue.value == '' ? undefined : lastValidValue.value)
   }
 }
 
 function blurred() {
   inputFieldActive.value = false
+  editedValue.value = lastValidValue.value?.toString() ?? ''
   emit('blur')
   emitUpdate()
 }
@@ -100,7 +119,7 @@ function focused() {
 
 defineExpose({
   cancel: () => {
-    editedValue.value = `${props.modelValue}`
+    editedValue.value = valueString.value
     inputComponent.value?.blur()
   },
   blur: () => inputComponent.value?.blur(),
@@ -109,20 +128,20 @@ defineExpose({
 </script>
 
 <template>
-  <label class="NumericInputWidget">
-    <div v-if="props.limits != null" class="slider" :style="{ width: sliderWidth }"></div>
-    <AutoSizedInput
-      ref="inputComponent"
-      v-model="editedValue"
-      autoSelect
-      :style="inputStyle"
-      v-on="dragPointer.events"
-      @click.stop
-      @blur="blurred"
-      @focus="focused"
-      @input="emit('input', editedValue)"
-    />
-  </label>
+  <AutoSizedInput
+    ref="inputComponent"
+    v-model="editedValue"
+    autoSelect
+    class="NumericInputWidget"
+    :class="{ slider: sliderWidth != null }"
+    :style="{ ...inputStyle, '--slider-width': sliderWidth }"
+    :placeholder="placeholder ?? DEFAULT_PLACEHOLDER"
+    v-on="dragPointer.events"
+    @click.stop
+    @blur="blurred"
+    @focus="focused"
+    @input="emit('input', editedValue)"
+  />
 </template>
 
 <style scoped>
@@ -130,22 +149,24 @@ defineExpose({
   position: relative;
   overflow: clip;
   border-radius: var(--radius-full);
-}
-.AutoSizedInput {
   user-select: none;
+  padding: 0 4px;
   background: var(--color-widget);
-  border-radius: var(--radius-full);
-  overflow: clip;
-  padding: 0px 4px;
   &:focus {
     background: var(--color-widget-focus);
   }
 }
 
-.slider {
-  position: absolute;
-  height: 100%;
-  left: 0;
-  background: var(--color-widget);
+.NumericInputWidget.slider {
+  &:focus {
+    /* Color will be blended with background defined below. */
+    background-color: var(--color-widget);
+  }
+  background: linear-gradient(
+    to right,
+    var(--color-widget-focus) 0 calc(var(--slider-width) - 1px),
+    var(--color-widget-slight) calc(var(--slider-width) - 1px) var(--slider-width),
+    var(--color-widget) var(--slider-width) 100%
+  );
 }
 </style>

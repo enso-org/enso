@@ -1,7 +1,7 @@
 import project.Any.Any
+import project.Data.Dictionary.Dictionary
 import project.Data.Json.Extensions
 import project.Data.Json.JS_Object
-import project.Data.Map.Map
 import project.Data.Numbers.Integer
 import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Text
@@ -25,19 +25,18 @@ from project.Data.Range.Extensions import all
 from project.Data.Text.Extensions import all
 from project.Metadata import Display, make_single_choice, Widget
 
-polyglot java import java.io.StringReader
 polyglot java import java.lang.Exception as JException
-polyglot java import javax.xml.parsers.DocumentBuilder
-polyglot java import javax.xml.parsers.DocumentBuilderFactory
+polyglot java import javax.xml.xpath.XPath
 polyglot java import javax.xml.xpath.XPathConstants
 polyglot java import javax.xml.xpath.XPathFactory
 polyglot java import org.enso.base.XML_Utils
+polyglot java import org.w3c.dom.Attr
 polyglot java import org.w3c.dom.Document
 polyglot java import org.w3c.dom.Element
+polyglot java import org.w3c.dom.NamedNodeMap
 polyglot java import org.w3c.dom.Node
 polyglot java import org.w3c.dom.NodeList
 polyglot java import org.w3c.dom.Text as Java_Text
-polyglot java import org.xml.sax.InputSource
 polyglot java import org.xml.sax.SAXException
 polyglot java import org.xml.sax.SAXParseException
 
@@ -75,7 +74,8 @@ type XML_Document
     from_stream : Input_Stream -> XML_Document ! XML_Error
     from_stream input_stream:Input_Stream =
         XML_Error.handle_java_exceptions <|
-           input_stream.with_java_stream java_stream-> XML_Document.from_source java_stream
+           input_stream.with_java_stream java_stream->
+                XML_Document.Value (XML_Utils.parseStream java_stream)
 
     ## GROUP Conversions
        ICON convert
@@ -93,21 +93,14 @@ type XML_Document
     from_text : Text -> XML_Document ! XML_Error
     from_text xml_string:Text =
         XML_Error.handle_java_exceptions <|
-            string_reader = StringReader.new xml_string
-            XML_Document.from_source (InputSource.new string_reader)
+            XML_Document.Value (XML_Utils.parseString xml_string)
 
     ## PRIVATE
-       Read XML from an input source.
-    from_source : Any -> XML_Document ! XML_Error
-    from_source input_source =
-        document_builder_factory = DocumentBuilderFactory.newInstance
-        document_builder = document_builder_factory.newDocumentBuilder
-        XML_Utils.setCustomErrorHandler document_builder
-        XML_Document.Value (document_builder.parse input_source)
+       Wrap Java's Document to XML_Document
+    new doc:Document = XML_Document.Value doc
 
     ## PRIVATE
-    Value (java_document:Document)
-
+    private Value (java_document:Document)
 
     ## GROUP Metadata
        ICON metadata
@@ -258,7 +251,7 @@ type XML_Document
     @path (Widget.Text_Input display=Display.Always)
     @encoding Encoding.default_widget
     write : Writable_File -> Encoding -> Existing_File_Behavior -> Boolean -> Problem_Behavior -> File
-    write self path:Writable_File (encoding : Encoding = Encoding.utf_8) (on_existing_file : Existing_File_Behavior = Existing_File_Behavior.Backup) (include_xml_declaration : Boolean = Boolean.True) (on_problems : Problem_Behavior = Problem_Behavior.Report_Warning) =
+    write self path:Writable_File (encoding : Encoding = Encoding.utf_8) (on_existing_file : Existing_File_Behavior = Existing_File_Behavior.Backup) (include_xml_declaration : Boolean = Boolean.True) (on_problems : Problem_Behavior = ..Report_Warning) =
         write_impl self.java_document path encoding on_existing_file include_xml_declaration on_problems
 
     ## GROUP Selections
@@ -312,9 +305,9 @@ type XML_Document
 
     ## GROUP Selections
        ICON array_new
-       Gets a map containing of the attributes of an XML document.
-    attributes : Map Text Text ! XML_Error
-    attributes self = Map.empty
+       Gets a Dictionary containing of the attributes of an XML document.
+    attributes : Dictionary Text Text ! XML_Error
+    attributes self = Dictionary.empty
 
     ## GROUP Selections
        ICON metadata
@@ -515,19 +508,19 @@ type XML_Element
 
     ## GROUP Selections
        ICON array_new
-       Gets a map containing of the attributes of an XML element.
+       Gets a Dictionary containing of the attributes of an XML element.
 
        > Example
            XML_Document.from_text '<foo bar="one">hello</foo>' . root_element . attributes
-           # => Map.from_vector [["bar", "one"]]
-    attributes : Map Text Text ! XML_Error
+           # => Dictionary.from_vector [["bar", "one"]]
+    attributes : Dictionary Text Text ! XML_Error
     attributes self =
         XML_Error.handle_java_exceptions <|
             named_node_map = self.java_element.getAttributes
             keys_and_values = 0.up_to named_node_map.getLength . map i->
                 node = named_node_map.item i
                 [node.getNodeName, node.getNodeValue]
-            Map.from_vector keys_and_values
+            Dictionary.from_vector keys_and_values
 
     ## GROUP Selections
        ICON metadata
@@ -610,7 +603,7 @@ type XML_Element
     @path (Widget.Text_Input display=Display.Always)
     @encoding Encoding.default_widget
     write : Writable_File -> Encoding -> Existing_File_Behavior -> Boolean -> Problem_Behavior -> File
-    write self path:Writable_File (encoding : Encoding = Encoding.utf_8) (on_existing_file : Existing_File_Behavior = Existing_File_Behavior.Backup) (include_xml_declaration : Boolean = Boolean.True) (on_problems : Problem_Behavior = Problem_Behavior.Report_Warning) =
+    write self path:Writable_File (encoding : Encoding = Encoding.utf_8) (on_existing_file : Existing_File_Behavior = Existing_File_Behavior.Backup) (include_xml_declaration : Boolean = Boolean.True) (on_problems : Problem_Behavior = ..Report_Warning) =
         write_impl self.java_element path encoding on_existing_file include_xml_declaration on_problems
 
     ## ICON parse3
@@ -760,7 +753,7 @@ child_selector node:(XML_Element | XML_Document) =
 
 ## PRIVATE
    write an XML document or element to a file.
-write_impl node:Node path:Writable_File (encoding : Encoding = Encoding.utf_8) (on_existing_file : Existing_File_Behavior = Existing_File_Behavior.Backup) (include_xml_declaration : Boolean = Boolean.True) (on_problems : Problem_Behavior = Problem_Behavior.Report_Warning) =
-    declaration = if include_xml_declaration then '<?xml version=\"1.0\" encoding=\"' + encoding.character_set + '\"?>\n' else ""
+write_impl node:Node path:Writable_File (encoding : Encoding = Encoding.utf_8) (on_existing_file : Existing_File_Behavior = Existing_File_Behavior.Backup) (include_xml_declaration : Boolean = Boolean.True) (on_problems : Problem_Behavior = ..Report_Warning) =
+    declaration = if include_xml_declaration then '<?xml version=\"1.0\" encoding=\"' + encoding.character_set_name + '\"?>\n' else ""
     XML_Error.handle_java_exceptions <|
         (declaration + XML_Utils.outerXML node True).write path encoding on_existing_file on_problems

@@ -1,13 +1,12 @@
 package org.enso.languageserver.runtime
 
 import java.util.UUID
-
 import akka.actor.{Actor, ActorRef, Cancellable, Props}
 import com.typesafe.scalalogging.LazyLogging
+import org.enso.languageserver.boot.ComponentSupervisor
 import org.enso.languageserver.runtime.RuntimeKiller._
 import org.enso.languageserver.util.UnhandledLogging
 import org.enso.polyglot.runtime.Runtime.Api
-import org.graalvm.polyglot.Context
 
 import scala.concurrent.duration._
 import scala.util.control.NonFatal
@@ -19,8 +18,10 @@ import scala.util.control.NonFatal
   * @param runtimeConnector a proxy to the runtime
   * @param truffleContext a Truffle context
   */
-class RuntimeKiller(runtimeConnector: ActorRef, truffleContext: Context)
-    extends Actor
+class RuntimeKiller(
+  runtimeConnector: ActorRef,
+  truffleContextSupervisor: ComponentSupervisor
+) extends Actor
     with LazyLogging
     with UnhandledLogging {
 
@@ -63,19 +64,16 @@ class RuntimeKiller(runtimeConnector: ActorRef, truffleContext: Context)
   private def shutDownTruffle(replyTo: ActorRef, retryCount: Int = 0): Unit = {
     try {
       logger.info(
-        "Shutting down the Truffle context [{}]. " +
-        "Attempt #{}.",
-        truffleContext,
+        "Shutting down the Truffle context. Attempt #{}.",
         retryCount + 1
       )
-      truffleContext.close()
+      truffleContextSupervisor.close()
       replyTo ! RuntimeGracefullyStopped
       context.stop(self)
     } catch {
       case NonFatal(ex) =>
         logger.error(
-          s"An error occurred during stopping Truffle context [{}]. {}",
-          truffleContext,
+          s"An error occurred during stopping Truffle context. {}",
           ex.getMessage
         )
         if (retryCount < MaxRetries) {
@@ -123,7 +121,10 @@ object RuntimeKiller {
     * @param truffleContext a Truffle context
     * @return a configuration object
     */
-  def props(runtimeConnector: ActorRef, truffleContext: Context): Props =
-    Props(new RuntimeKiller(runtimeConnector, truffleContext))
+  def props(
+    runtimeConnector: ActorRef,
+    truffleContextSupervisor: ComponentSupervisor
+  ): Props =
+    Props(new RuntimeKiller(runtimeConnector, truffleContextSupervisor))
 
 }

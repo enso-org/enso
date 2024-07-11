@@ -15,7 +15,7 @@ import { LazySyncEffectSet } from '@/util/reactivity'
 import * as map from 'lib0/map'
 import { ObservableV2 } from 'lib0/observable'
 import * as set from 'lib0/set'
-import { computed, effectScope, reactive, type ComputedRef, type DebuggerOptions } from 'vue'
+import { computed, effectScope, reactive, toRaw, type ComputedRef, type DebuggerOptions } from 'vue'
 
 export type OnDelete = (cleanupFn: () => void) => void
 
@@ -244,7 +244,19 @@ export class ReactiveIndex<K, V, IK, IV> {
    */
   removeFromIndex(key: IK, value: IV): void {
     const remove = <K, V>(map: Map<K, Set<V>>, key: K, value: V) => {
-      map.get(key)?.delete(value)
+      // Removing reactivity from `map` is extremely important to avoid spurious reactive updates.
+      // The bug was introduced because `values.size` access in `onCleanup` callback registered `onCleanup`
+      // to be called again after any change in `values`, causing and infinite loop.
+      // We have a dedicated regression test for the possible issues related to this method.
+      // (`Indexing does not cause spurious reactive updates`)
+      const rawMap = toRaw(map)
+      const values = rawMap.get(key)
+      values?.delete(value)
+      if (values?.size === 0) {
+        // Important: deleting a key must be visible for dependent reactive values,
+        // so we use `map` here instead of `rawMap`.
+        map.delete(key)
+      }
     }
     remove(this.forward, key, value)
     remove(this.reverse, value, key)

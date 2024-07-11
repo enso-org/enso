@@ -1,5 +1,7 @@
 package org.enso.persist;
 
+import static org.enso.persist.PerGenerator.INLINED_REFERENCE_ID;
+import static org.enso.persist.PerGenerator.NULL_REFERENCE_ID;
 import static org.enso.persist.PerUtils.raise;
 
 import java.io.DataInputStream;
@@ -23,7 +25,7 @@ final class PerInputImpl implements Input {
     this.at = at;
   }
 
-  static <T> Reference<T> readObject(ByteBuffer buf, Function<Object, Object> readResolve)
+  static Reference<?> readObject(ByteBuffer buf, Function<Object, Object> readResolve)
       throws IOException {
     for (var i = 0; i < PerGenerator.HEADER.length; i++) {
       if (buf.get(i) != PerGenerator.HEADER[i]) {
@@ -31,24 +33,39 @@ final class PerInputImpl implements Input {
       }
     }
     var version = buf.getInt(4);
-    var cache = new InputCache(buf, readResolve);
-    if (version != cache.map().versionStamp) {
+    var map = PerMap.create();
+    if (version != map.versionStamp) {
       throw new IOException(
           "Incompatible version "
               + Integer.toHexString(version)
               + " != "
-              + Integer.toHexString(cache.map().versionStamp));
+              + Integer.toHexString(map.versionStamp));
     }
-    var at = buf.getInt(8);
 
-    return PerBufferReference.from(cache, at);
+    var tableAt = buf.getInt(8);
+    buf.position(tableAt);
+    var rawRefMap = InputCache.RawReferenceMap.readFromBuffer(buf);
+    var cache = new InputCache(buf, readResolve, map, rawRefMap);
+    return cache.getRef(0);
+  }
+
+  static Persistance.Reference<?> findReference(Persistance.Input input, int refId) {
+    if (refId == NULL_REFERENCE_ID) {
+      return Persistance.Reference.none();
+    }
+    if (refId != INLINED_REFERENCE_ID) {
+      var impl = (PerInputImpl) input;
+      var ref = impl.cache.getRef(refId);
+      return ref;
+    }
+    return null;
   }
 
   @Override
-  public <T> T readInline(Class<T> clazz) {
+  public <T> T readInline(Class<T> clazz) throws IOException {
     Persistance<T> p = cache.map().forType(clazz);
     T res = p.readWith(this);
-    var resolve = cache.readResolve().apply(res);
+    var resolve = cache.resolveObject(res);
     return clazz.cast(resolve);
   }
 
@@ -193,14 +210,14 @@ final class PerInputImpl implements Input {
     var id = in.readInt();
     var p = map.forId(id);
 
-    if (cache.cache().get(at) instanceof Object res) {
+    if (cache.getObjectAt(at) instanceof Object res) {
       return p.clazz.cast(res);
     }
 
     var inData = new PerInputImpl(cache, at);
     var res = p.readWith(inData);
-    res = cache.readResolve().apply(res);
-    var prev = cache.cache().put(at, res);
+    res = cache.resolveObject(res);
+    var prev = cache.putObjectAt(at, res);
     if (prev != null) {
       var bothObjectsAreTheSame = Objects.equals(res, prev);
       var sb = new StringBuilder();
@@ -230,7 +247,7 @@ final class PerInputImpl implements Input {
       InputCache buffer, PerMap map, Input in, Class<T> clazz) throws IOException {
     var at = in.readInt();
     if (at < 0) {
-      return null;
+      return Reference.none();
     }
     var id = in.readInt();
     var p = map.forId(id);
@@ -241,17 +258,92 @@ final class PerInputImpl implements Input {
     }
   }
 
-  static final record InputCache(
-      ByteBuffer buf,
-      Function<Object, Object> readResolve,
-      Map<Integer, Object> cache,
-      PerMap map) {
-    InputCache(ByteBuffer buf, Function<Object, Object> readResolve) {
-      this(
-          buf,
-          readResolve == null ? Function.identity() : readResolve,
-          new HashMap<>(),
-          PerMap.create());
+  static final class InputCache {
+    static class RawReferenceMap {
+      private final int[] refIds;
+      private final int[] refPerIds;
+
+      private RawReferenceMap(int[] refIds, int[] refPerIds) {
+        this.refIds = refIds;
+        this.refPerIds = refPerIds;
+      }
+
+      static RawReferenceMap readFromBuffer(ByteBuffer buf) {
+        var count = buf.getInt();
+        assert count > 0 : "There is always the main object in the reference table: " + count;
+        var refPerIds = new int[count];
+        var refIds = new int[count];
+        for (var i = 0; i < count; i++) {
+          int refId = buf.getInt();
+          if (refId == NULL_REFERENCE_ID) {
+            // If this was a null reference, we don't read another integer - as its type id was not
+            // stored.
+            refIds[i] = NULL_REFERENCE_ID;
+          } else {
+            refIds[i] = refId;
+            refPerIds[i] = buf.getInt();
+          }
+        }
+        return new RawReferenceMap(refIds, refPerIds);
+      }
+
+      Reference<?>[] intoReferences(PerMap map, InputCache inputCache) {
+        var refs = new Reference[refIds.length];
+        for (var i = 0; i < refIds.length; i++) {
+          if (refIds[i] == NULL_REFERENCE_ID) {
+            refs[i] = Persistance.Reference.none();
+          } else {
+            var p = map.forId(refPerIds[i]);
+            refs[i] = PerBufferReference.cached(p, inputCache, refIds[i]);
+          }
+        }
+        return refs;
+      }
+    }
+
+    private final Map<Integer, Object> cache = new HashMap<>();
+    private final Function<Object, Object> readResolve;
+    private final PerMap map;
+    private final ByteBuffer buf;
+    private final Reference<?>[] refs;
+
+    private InputCache(
+        ByteBuffer buf,
+        Function<Object, Object> readResolve,
+        PerMap map,
+        RawReferenceMap rawReferenceMap) {
+      this.buf = buf;
+      this.readResolve = readResolve;
+      this.map = map;
+      this.refs = rawReferenceMap.intoReferences(map, this);
+    }
+
+    final Object resolveObject(Object res) {
+      if (readResolve != null) {
+        return readResolve.apply(res);
+      } else {
+        return res;
+      }
+    }
+
+    final Object getObjectAt(int at) {
+      return cache.get(at);
+    }
+
+    final Object putObjectAt(int at, Object obj) {
+      return cache.put(at, obj);
+    }
+
+    final PerMap map() {
+      return map;
+    }
+
+    final ByteBuffer buf() {
+      return buf;
+    }
+
+    final Reference<?> getRef(int index) {
+      return refs[index];
     }
   }
 }

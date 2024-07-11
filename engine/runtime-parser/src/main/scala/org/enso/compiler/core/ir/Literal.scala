@@ -92,7 +92,7 @@ object Literal {
       fn: java.util.function.Function[Expression, Expression]
     ): Number = this
 
-    /** @inheritdoc */
+    /** String representation. */
     override def toString: String =
       s"""Literal.Number(
          |base = $base,
@@ -217,7 +217,7 @@ object Literal {
       fn: java.util.function.Function[Expression, Expression]
     ): Text = this
 
-    /** @inheritdoc */
+    /** String representation. */
     override def toString: String =
       s"""
          |Literal.Text(

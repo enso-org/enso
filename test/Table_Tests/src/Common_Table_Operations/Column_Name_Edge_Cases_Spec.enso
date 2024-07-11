@@ -43,7 +43,7 @@ add_specs suite_builder setup =
                 False ->
                     t2.should_fail_with Clashing_Column_Name
                 True ->
-                    Test.with_clue "The columns should be correctly distinguished." <|
+                    Test.with_clue "The columns should be correctly distinguished. " <|
                         t2.at "X" . to_vector . should_equal [1]
                         t2.at "x" . to_vector . should_equal [101]
 
@@ -183,7 +183,7 @@ add_specs suite_builder setup =
 
             t3 = t1.join t2 on='ś'
             t3.column_names . should_equal ['ś', 'X', 'Right ś', 'Y']
-            m3 = materialize t3 . order_by 'ś'
+            m3 = materialize t3 . sort 'ś'
             m3.at 'ś' . to_vector . should_equal [1, 2]
             m3.at 'X' . to_vector . should_equal ['a', 'b']
             m3.at 'Right ś' . to_vector . should_equal [1, 2]

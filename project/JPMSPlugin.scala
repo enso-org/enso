@@ -1,5 +1,5 @@
-import sbt.*
-import sbt.Keys.*
+import sbt._
+import sbt.Keys._
 
 import java.io.File
 
@@ -47,7 +47,7 @@ object JPMSPlugin extends AutoPlugin {
     val compileModuleInfo = taskKey[Unit]("Compile module-info.java")
   }
 
-  import autoImport.*
+  import autoImport._
 
   override lazy val projectSettings: Seq[Setting[_]] = Seq(
     addModules := Seq.empty,

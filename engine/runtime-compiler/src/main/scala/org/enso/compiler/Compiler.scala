@@ -36,7 +36,7 @@ import org.enso.pkg.QualifiedName
 import org.enso.common.CompilationStage
 import org.enso.syntax2.Tree
 
-import java.io.{PrintStream}
+import java.io.PrintStream
 import java.util.concurrent.{
   CompletableFuture,
   ExecutorService,
@@ -289,8 +289,8 @@ class Compiler(
         parseModule(module, irCachingEnabled && !context.isInteractive(module))
         importedModules
           .filter(isLoadedFromSource)
-          .map(m => {
-            if (m.getBindingsMap() == null) {
+          .foreach(m => {
+            if (m.getBindingsMap == null) {
               parseModule(m, irCachingEnabled && !context.isInteractive(module))
             }
           })
@@ -360,7 +360,7 @@ class Compiler(
 
     runErrorHandling(requiredModules)
 
-    requiredModules.foreach { module =>
+    val requiredModulesWithScope = requiredModules.map { module =>
       if (
         !context
           .getCompilationStage(module)
@@ -368,16 +368,21 @@ class Compiler(
             CompilationStage.AFTER_RUNTIME_STUBS
           )
       ) {
-        context.runStubsGenerator(module)
+        val moduleScopeBuilder = module.getScopeBuilder()
+        context.runStubsGenerator(module, moduleScopeBuilder)
         context.updateModule(
           module,
           { u =>
             u.compilationStage(CompilationStage.AFTER_RUNTIME_STUBS)
           }
         )
+        (module, moduleScopeBuilder)
+      } else {
+        (module, module.getScopeBuilder)
       }
     }
-    requiredModules.foreach { module =>
+
+    requiredModulesWithScope.foreach { case (module, moduleScopeBuilder) =>
       if (
         !context
           .getCompilationStage(module)
@@ -393,7 +398,7 @@ class Compiler(
             context.getModuleName(module)
           )
 
-          context.truffleRunCodegen(module, config)
+          context.truffleRunCodegen(module, moduleScopeBuilder, config)
         }
         context.updateModule(
           module,
@@ -580,9 +585,10 @@ class Compiler(
       isGeneratingDocs = isGenDocs
     )
 
-    val src  = context.getCharacters(module)
-    val tree = ensoCompiler.parse(src)
-    val expr = ensoCompiler.generateIR(tree)
+    val src   = context.getCharacters(module)
+    val idMap = context.getIdMap(module)
+    val tree  = ensoCompiler.parse(src)
+    val expr  = ensoCompiler.generateModuleIr(tree, idMap.values)
 
     val exprWithModuleExports =
       if (context.isSynthetic(module))

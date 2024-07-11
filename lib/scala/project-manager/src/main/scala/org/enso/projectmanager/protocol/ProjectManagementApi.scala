@@ -8,7 +8,7 @@ import org.enso.editions.EnsoVersion
 import org.enso.jsonrpc.{Error, HasParams, HasResult, Method, Unused}
 import org.enso.projectmanager.data.{
   EngineVersion,
-  MissingComponentAction,
+  MissingComponentActions,
   ProjectMetadata,
   RunningStatus,
   Socket
@@ -26,7 +26,9 @@ object ProjectManagementApi {
       name: String,
       version: Option[EnsoVersion],
       projectTemplate: Option[String],
-      missingComponentAction: Option[MissingComponentAction],
+      missingComponentAction: Option[
+        MissingComponentActions.MissingComponentAction
+      ],
       projectsDirectory: Option[String]
     )
 
@@ -81,12 +83,35 @@ object ProjectManagementApi {
       }
   }
 
+  case object ProjectDuplicate extends Method("project/duplicate") {
+
+    case class Params(projectId: UUID, projectsDirectory: Option[String])
+
+    case class Result(
+      projectId: UUID,
+      projectName: String,
+      projectNormalizedName: String
+    )
+
+    implicit val hasParams: HasParams.Aux[this.type, ProjectDuplicate.Params] =
+      new HasParams[this.type] {
+        type Params = ProjectDuplicate.Params
+      }
+
+    implicit val hasResult: HasResult.Aux[this.type, ProjectDuplicate.Result] =
+      new HasResult[this.type] {
+        type Result = ProjectDuplicate.Result
+      }
+  }
+
   case object ProjectOpen extends Method("project/open") {
 
     case class Params(
       projectId: UUID,
       projectsDirectory: Option[String],
-      missingComponentAction: Option[MissingComponentAction]
+      missingComponentAction: Option[
+        MissingComponentActions.MissingComponentAction
+      ]
     )
 
     case class Result(

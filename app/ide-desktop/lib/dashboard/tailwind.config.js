@@ -1,4 +1,5 @@
 /** @file Configuration for Tailwind. */
+import animate from 'tailwindcss-animate'
 import reactAriaComponents from 'tailwindcss-react-aria-components'
 import plugin from 'tailwindcss/plugin.js'
 
@@ -6,7 +7,6 @@ import plugin from 'tailwindcss/plugin.js'
 /* eslint-disable no-restricted-syntax, @typescript-eslint/naming-convention, @typescript-eslint/no-magic-numbers */
 export default /** @satisfies {import('tailwindcss').Config} */ ({
   content: ['./src/**/*.tsx', './src/**/*.ts'],
-  important: `:is(.enso-dashboard, .enso-chat)`,
   theme: {
     extend: {
       cursor: {
@@ -18,51 +18,56 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         /** The default color of all text. */
         // This should be named "regular".
         primary: 'rgb(0 0 0 / 60%)',
+        accent: '#499f4b',
+        'accent-dark': '#3e9152',
         'hover-bg': 'rgb(0 0 0 / 10%)',
-        frame: 'var(--frame-color)',
-        'selected-frame': 'var(--selected-frame-color)',
+        frame: 'rgb(255 255 255 / 40%)',
+        'selected-frame': 'rgb(255 255 255 / 70%)',
         'ide-bg': '#ebeef1',
         selected: 'rgb(255 255 255 / 40%)',
+        'not-selected': 'rgb(0 0 0 / 30%)',
         // Should be `#3e515f14`, but `bg-opacity` does not work with RGBA.
         label: '#f0f1f3',
         help: '#3f68ce',
         invite: '#0e81d4',
-        cloud: '#0666be',
         share: '#64b526',
         inversed: '#ffffff',
         green: '#3e8b29',
-        delete: 'rgba(243 24 10 / 87%)',
+        delete: 'rgb(243 24 10 / 87%)',
         v3: '#252423',
         youtube: '#c62421',
         discord: '#404796',
         danger: '#d33b0b',
-        // Equivalent to `lch(70% 0 0 / 0.5)`
-        'selection-brush': 'var(--selection-brush-color)',
-        dim: 'rgba(0, 0, 0, 0.25)',
-        'dim-darker': 'rgba(0, 0, 0, 0.40)',
-        'tag-text': 'rgba(255, 255, 255, 0.90)',
-        'tag-text-2': 'rgba(0, 0, 0, 0.60)',
-        'permission-owner': 'rgba(236, 2, 2, 0.70)',
-        'permission-admin': 'rgba(252, 60, 0, 0.70)',
-        'permission-edit': 'rgba(255, 138, 0, 0.90)',
-        'permission-read': 'rgba(152, 174, 18, 0.80)',
-        'permission-docs': 'rgba(91, 8, 226, 0.64)',
-        'permission-exec': 'rgba(236, 2, 2, 0.70)',
-        'permission-view': 'rgba(0, 0, 0, 0.10)',
+        'selection-brush': 'lch(70% 0 0 / 50%)',
+        dim: 'rgb(0 0 0 / 25%)',
+        'dim-darker': 'rgb(0 0 0 / 40%)',
+        'tag-text': 'rgb(255 255 255 / 90%)',
+        'tag-text-2': 'rgb(0 0 0 / 60%)',
+        'permission-owner': 'rgb(236 2 2 / 70%)',
+        'permission-admin': 'rgb(252 60 0 / 70%)',
+        'permission-edit': 'rgb(255 138 0 / 90%)',
+        'permission-read': 'rgb(152 174 18 / 80%)',
+        'permission-docs': 'rgb(91 8 226 / 64%)',
+        'permission-exec': 'rgb(236 2 2 / 70%)',
+        'permission-view': 'rgb(0 0 0 / 10%)',
         'label-running-project': '#257fd2',
         'label-low-resources': '#ff6b18',
-        'call-to-action': '#fa6c08',
-        'black-a5': 'rgba(0, 0, 0, 0.05)',
-        'black-a10': 'rgba(0, 0, 0, 0.10)',
-        'black-a16': 'rgba(0, 0, 0, 0.16)',
-        'black-a30': 'rgba(0, 0, 0, 0.30)',
-        'black-a50': 'rgba(0, 0, 0, 0.50)',
+        'call-to-action': 'rgb(250 108 8)',
+        'black-a5': 'rgb(0 0 0 / 5%)',
+        'black-a10': 'rgb(0 0 0 / 10%)',
+        'black-a16': 'rgb(0 0 0 / 16%)',
+        'black-a30': 'rgb(0 0 0 / 30%)',
+        'black-a50': 'rgb(0 0 0 / 50%)',
         'gray-350': '#b7bcc5',
+      },
+      fontFamily: {
+        naming: ['"Enso Naming"', '"Enso"', '"M PLUS 1"'],
       },
       fontSize: {
         xs: '0.71875rem',
         sm: '0.8125rem',
         xl: '1.1875rem',
+        '3xl': '2rem',
         '4xl': '2.375rem',
         'auth-heading': 'var(--auth-heading-font-size)',
       },
@@ -82,9 +87,7 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
       },
       spacing: {
         DEFAULT: '0',
-        icon: 'var(--icon-size)',
         'project-icon': 'var(--project-icon-size)',
-        'profile-picture': 'var(--profile-picture-size)',
         'profile-picture-large': 'var(--profile-picture-large-size)',
         'radio-button': 'var(--radio-button-size)',
         'radio-button-dot': 'var(--radio-button-dot-size)',
@@ -92,10 +95,8 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         'plus-icon': 'var(--plus-icon-size)',
         'chat-profile-picture': 'var(--chat-profile-picture-size)',
         'selection-brush-border': 'var(--selection-brush-border-width)',
-        'button-focus-ring-inset': 'var(--button-focus-ring-inset)',
         'row-h': 'var(--row-height)',
         'text-h': 'var(--text-height)',
-        'top-bar-margin': 'var(--top-bar-margin)',
         'asset-panel-w': 'var(--asset-panel-width)',
         'indent-1': 'var(--indent-1-size)',
         'indent-2': 'var(--indent-2-size)',
@@ -124,7 +125,6 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         'json-schema-dropdown-title': 'var(--json-schema-dropdown-title-width)',
         'asset-search-bar': 'var(--asset-search-bar-width)',
         'asset-search-bar-wide': 'var(--asset-search-bar-wide-width)',
-        'permission-display': 'var(--permission-display-width)',
         chat: 'var(--chat-width)',
         'chat-indicator': 'var(--chat-indicator-width)',
         'user-menu': 'var(--user-menu-width)',
@@ -155,10 +155,8 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         'members-email-column': 'var(--members-email-column-width)',
         'keyboard-shortcuts-icon-column': 'var(--keyboard-shortcuts-icon-column-width)',
         'keyboard-shortcuts-name-column': 'var(--keyboard-shortcuts-name-column-width)',
-        'activity-log-icon-column': 'var(--activity-log-icon-column-width)',
-        'activity-log-type-column': 'var(--activity-log-type-column-width)',
-        'activity-log-email-column': 'var(--activity-log-email-column-width)',
-        'activity-log-timestamp-column': 'var(--activity-log-timestamp-column-width)',
+        'keyboard-shortcuts-description-column':
+          'var(--keyboard-shortcuts-description-column-width)',
         'drive-name-column': 'var(--drive-name-column-width)',
         'drive-modified-column': 'var(--drive-modified-column-width)',
         'drive-shared-with-column': 'var(--drive-shared-with-column-width)',
@@ -171,6 +169,7 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
       maxWidth: ({ theme }) => ({ .../** @type {{}}*/ (theme('width')) }),
       height: {
         row: 'var(--row-height)',
+        'table-row': 'var(--table-row-height)',
         text: 'var(--text-height)',
         heading: 'var(--heading-height)',
         'news-item': 'var(--news-item-height)',
@@ -180,7 +179,6 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         'side-panel-heading': 'var(--side-panel-heading-height)',
         'chat-thread-list': 'var(--chat-thread-list-height)',
         'payment-form': 'var(--payment-form-height)',
-        'drive-table-heading': 'var(--drive-table-heading-height)',
         'paragraph-input': 'var(--paragraph-input-height)',
         'autocomplete-suggestions': 'var(--autocomplete-suggestions-height)',
         'dropdown-items': 'var(--dropdown-items-height)',
@@ -198,22 +196,18 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
       gap: {
         modal: 'var(--modal-gap)',
         subheading: 'var(--subheading-gap)',
-        buttons: 'var(--buttons-gap)',
         icons: 'var(--icons-gap)',
         colors: 'var(--colors-gap)',
         'samples-icon-with-text': 'var(--samples-icon-with-text-gap)',
         'icon-with-text': 'var(--icon-with-text-gap)',
         'input-with-button': 'var(--input-with-button-gap)',
         'user-bar': 'var(--user-bar-gap)',
-        'top-level': 'var(--top-level-gap)',
         'top-bar': 'var(--top-bar-gap)',
         'top-bar-right': 'var(--top-bar-right-gap)',
-        pages: 'var(--pages-gap)',
         auth: 'var(--auth-gap)',
         'auth-link': 'var(--auth-link-gap)',
         'drive-sidebar': 'var(--drive-sidebar-gap)',
         home: 'var(--home-gap)',
-        'drive-heading': 'var(--drive-heading-gap)',
         drive: 'var(--drive-gap)',
         'status-page': 'var(--status-page-gap)',
         'menu-entry': 'var(--menu-entry-gap)',
@@ -227,7 +221,6 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         'settings-section-header': 'var(--settings-section-header-gap)',
         'settings-entry': 'var(--settings-entry-gap)',
         'settings-sidebar': 'var(--settings-sidebar-gap)',
-        banner: 'var(--banner-gap)',
         'new-empty-project': 'var(--new-empty-project-gap)',
         modifiers: 'var(--modifiers-gap)',
         'modifiers-macos': 'var(--modifiers-macos-gap)',
@@ -249,11 +242,10 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         'asset-panel': 'var(--asset-panel-gap)',
         'search-suggestions': 'var(--search-suggestions-gap)',
         'keyboard-shortcuts-button': 'var(--keyboard-shortcuts-button-gap)',
-        'activity-log-filters': 'var(--activity-log-filters-gap)',
-        'activity-log-filter': 'var(--activity-log-filter-gap)',
         'chat-buttons': 'var(--chat-buttons-gap)',
       },
       padding: {
+        'top-bar': 'var(--top-bar-padding)',
         modal: 'var(--modal-padding)',
         'modal-wide': 'var(--modal-wide-padding)',
         auth: 'var(--auth-padding)',
@@ -272,22 +264,16 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         'button-x': 'var(--button-padding-x)',
         'icons-x': 'var(--icons-padding-x)',
         'drive-bar-y': 'var(--drive-bar-padding-y)',
-        'drive-bar-icons-x': 'var(--drive-bar-icons-padding-x)',
         'selector-x': 'var(--selector-padding-x)',
         'selector-y': 'var(--selector-padding-y)',
         'menu-entry': 'var(--menu-entry-padding)',
         'context-menu-entry-x': 'var(--context-menu-entry-padding-x)',
-        'profile-picture': 'var(--profile-picture-padding)',
-        'banner-x': 'var(--banner-padding-x)',
-        'banner-y': 'var(--banner-padding-y)',
-        'banner-item': 'var(--banner-item-padding)',
         'profile-picture-caption-y': 'var(--profile-picture-caption-padding-y)',
         'delete-user-account-button-x': 'var(--delete-user-account-button-padding-x)',
         'context-menu': 'var(--context-menu-padding)',
         'input-x': 'var(--input-padding-x)',
         'multiline-input': 'var(--multiline-input-padding)',
         'json-schema-object-input': 'var(--json-schema-object-input-padding)',
-        'new-project-button-x': 'var(--new-project-button-padding-x)',
         'name-column-x': 'var(--name-column-padding-x)',
         'name-column-y': 'var(--name-column-padding-y)',
         'home-page-b': 'var(--home-page-padding-b)',
@@ -296,13 +282,9 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         'sidebar-section-heading-x': 'var(--sidebar-section-heading-padding-x)',
         'sidebar-section-heading-y': 'var(--sidebar-section-heading-padding-y)',
         'user-menu': 'var(--user-menu-padding)',
-        'extra-columns-panel-x': 'var(--extra-columns-panel-padding-x)',
-        'extra-columns-panel-y': 'var(--extra-columns-panel-padding-y)',
         'permission-type-selector': 'var(--permission-type-selector-padding)',
         'permission-type-button': 'var(--permission-type-button-padding)',
         'permission-type-y': 'var(--permission-type-padding-y)',
-        'permission-mini-button-x': 'var(--permission-mini-button-padding-x)',
-        'permission-mini-button-y': 'var(--permission-mini-button-padding-y)',
         'modal-tab-bar-x': 'var(--modal-tab-bar-padding-x)',
         'manage-permissions-modal-input': 'var(--manage-permissions-modal-input-padding)',
         'modal-invite-button-text-y': 'var(--modal-invite-button-text-padding-y)',
@@ -313,7 +295,6 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         'news-item-description': 'var(--news-item-description-padding)',
         'news-item-subtitle-y': 'var(--news-item-subtitle-padding-y)',
         'font-awesome-icon-x': 'var(--font-awesome-icon-padding-x)',
-        'page-switcher-x': 'var(--page-switcher-padding-x)',
         'search-suggestions': 'var(--search-suggestions-padding)',
         'search-suggestion-y': 'var(--search-suggestion-padding-y)',
         'side-panel-heading-y': 'var(--side-panel-heading-padding-y)',
@@ -332,18 +313,14 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         'missing-functionality-text-x': 'var(--missing-functionality-text-padding-x)',
       },
       margin: {
-        'top-bar': 'var(--top-bar-margin)',
         'name-column-icon': 'var(--name-column-icon-margin)',
         'button-px': 'var(--button-padding-x)',
-        'permission-with-border': 'var(--permission-with-border-margin)',
         'tick-cross-button': 'var(--tick-cross-button-margin)',
         'search-suggestion': 'var(--search-suggestion-margin)',
         'multiline-input-p': 'var(--multiline-input-padding)',
         'close-icon': 'var(--close-icon-margin)',
         'date-input-gap': 'var(--date-input-gap)',
         'date-input-calendar-gap': 'var(--date-input-calendar-gap)',
-        'context-menu-macos-half-x': 'var(--context-menu-macos-half-width)',
-        'context-menu-half-x': 'var(--context-menu-half-width)',
         'chat-header-x': 'var(--chat-header-margin-x)',
         'chat-header-t': 'var(--chat-header-margin-top)',
         'chat-form-x': 'var(--chat-form-margin-x)',
@@ -374,12 +351,16 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         default: 'var(--default-backdrop-blur)',
       },
       borderWidth: {
+        0.5: '0.5px',
         'selection-brush': 'var(--selection-brush-border-width)',
       },
       boxShadow: {
         soft: `0 0.5px 2.2px 0px #00000008, 0 1.2px 5.3px 0px #0000000b, \
 0 2.3px 10px 0 #0000000e, 0 4px 18px 0 #00000011, 0 7.5px 33.4px 0 #00000014, \
 0 18px 80px 0 #0000001c`,
+        softer: `0 0.5px 2.2px 0px rgb(0 0 0 / 0.84%), 0 1.2px 5.65px 0px rgb(0 0 0 / 1.21%), \
+0 2.25px 10.64px 0 rgb(0 0 0 / 1.5%), 0 4px 19px 0 rgb(0 0 0 / 1.79%), 0 7.5px 35.5px 0 rgb(0 0 0 / 2.16%), \
+0 18px 85px 0 rgb(0 0 0 / 3%)`,
         'inset-t-lg': `inset 0 1px 1.4px -1.4px #00000002, \
 inset 0 2.4px 3.4px -3.4px #00000003, inset 0 4.5px 6.4px -6.4px #00000004, \
 inset 0 8px 11.4px -11.4px #00000005, inset 0 15px 21.3px -21.3px #00000006, \
@@ -398,6 +379,7 @@ inset 0 -36px 51px -51px #00000014`,
       },
       animation: {
         'spin-ease': 'spin cubic-bezier(0.67, 0.33, 0.33, 0.67) 1.5s infinite',
+        'appear-delayed': 'appear-delayed 0.5s ease-in-out',
       },
       transitionProperty: {
         width: 'width',
@@ -426,19 +408,23 @@ inset 0 -36px 51px -51px #00000014`,
         'fill-news-items': 'repeat(auto-fill, minmax(var(--news-items-column-width), 1fr))',
         'fill-samples': 'repeat(auto-fill, minmax(var(--samples-column-width), 1fr))',
       },
-      translate: {
-        'context-menu-half-x': 'var(--context-menu-half-width)',
-        'context-menu-macos-half-x': 'var(--context-menu-macos-half-width)',
-      },
       dashArray: {
         5: '5-12',
         75: '75-12',
         100: '100-12',
       },
+      keyframes: {
+        'appear-delayed': {
+          '0%': { opacity: '0' },
+          '99%': { opacity: '0' },
+          '100%': { opacity: '1' },
+        },
+      },
     },
   },
   plugins: [
     reactAriaComponents,
+    animate,
     plugin(({ addVariant, addUtilities, matchUtilities, addComponents, theme }) => {
       addVariant('group-hover-2', ['.group:where([data-hovered]) &', '.group:where(:hover) &'])
 
@@ -451,6 +437,9 @@ inset 0 -36px 51px -51px #00000014`,
             pointerEvents: 'none',
             '*': { pointerEvents: 'none' },
           },
+          '.clip-path-0': {
+            clipPath: 'inset(0)',
+          },
           '.clip-path-top': {
             clipPath: 'polygon(0 0, 100% 0, 100% calc(50% - 1px), 0 calc(50% - 1px))',
           },
@@ -459,6 +448,9 @@ inset 0 -36px 51px -51px #00000014`,
           },
           '.clip-path-bottom-shadow': {
             clipPath: `polygon(0 0, 100% 0, 100% calc(100% + 100vh), 0 calc(100% + 100vh))`,
+          },
+          '.clip-path-left-shadow': {
+            clipPath: `polygon(-100vw 0, 100% 0, 100% 100%, -100vw 100%)`,
           },
           '.scroll-hidden': {
             MsOverflowStyle: 'none' /* Internet Explorer 10+ */,
@@ -470,10 +462,9 @@ inset 0 -36px 51px -51px #00000014`,
 
           // === States ===
 
-          '.focus-ring, .focus-ring:focus, .focus-ring-outset, .focus-ring-outset:focus, .focus-ring-within[data-focus-visible=true]':
-            {
-              '@apply outline outline-2 -outline-offset-2 outline-primary transition-all': '',
-            },
+          '.focus-ring, .focus-ring:focus, .focus-ring-outset, .focus-ring-outset:focus': {
+            '@apply outline outline-2 -outline-offset-2 outline-primary transition-all': '',
+          },
           '.focus-ring.checkbox, .focus-ring-outset, .focus-ring-outset:focus': {
             '@apply outline-offset-0': '',
           },
@@ -497,9 +488,6 @@ inset 0 -36px 51px -51px #00000014`,
           },
           '.read-only': {
             '@apply opacity-75 cursor-not-allowed': '',
-          },
-          '.transparent': {
-            '@apply opacity-0': '',
           },
 
           // === Visbility classes ===
@@ -525,7 +513,7 @@ inset 0 -36px 51px -51px #00000014`,
               & > tbody > tr.rounded-rows-child.selected > td:not(.rounded-rows-skip-level),
               & > tbody > tr.rounded-rows-child.selected > td.rounded-rows-skip-level > *
             )`]: {
-              backgroundColor: 'rgb(255 255 255 / 40%)',
+              backgroundColor: 'rgb(255 255 255 / 90%)',
             },
             [`:where(
               & > tbody > tr.rounded-rows-child[data-drop-target] > td:not(.rounded-rows-skip-level),
@@ -603,9 +591,6 @@ inset 0 -36px 51px -51px #00000014`,
           },
           '.text-subheading': {
             '@apply text-xl leading-snug py-0.5': '',
-          },
-          '.settings-value': {
-            '@apply leading-cozy h-text py-px px-2': '',
           },
         },
         {

@@ -126,7 +126,7 @@ object Set {
       )
     }
 
-    /** @inheritdoc */
+    /** String representation. */
     override def toString: String =
       s"""
          |`type`.Set.Member(
@@ -236,7 +236,7 @@ object Set {
       copy(left = fn(left), right = fn(right))
     }
 
-    /** @inheritdoc */
+    /** String representation. */
     override def toString: String =
       s"""
          |`type`.Set.Subsumption(
@@ -341,7 +341,7 @@ object Set {
       copy(left = fn(left), right = fn(right))
     }
 
-    /** @inheritdoc */
+    /** String representation. */
     override def toString: String =
       s"""
          |`type`.Set.Equality(
@@ -445,7 +445,7 @@ object Set {
       copy(left = fn(left), right = fn(right))
     }
 
-    /** @inheritdoc */
+    /** String representation. */
     override def toString: String =
       s"""
          |`type`.Set.Concat(
@@ -542,7 +542,7 @@ object Set {
       copy(operands = operands.map(fn.asScala))
     }
 
-    /** @inheritdoc */
+    /** String representation. */
     override def toString: String =
       s"""
          |`type`.Set.Union(
@@ -646,7 +646,7 @@ object Set {
       copy(left = fn(left), right = fn(right))
     }
 
-    /** @inheritdoc */
+    /** String representation. */
     override def toString: String =
       s"""
          |`type`.Set.Intersection(

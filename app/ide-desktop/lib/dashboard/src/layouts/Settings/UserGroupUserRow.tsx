@@ -3,8 +3,8 @@ import * as React from 'react'
 
 import Cross2 from 'enso-assets/cross2.svg'
 
+import type * as backendHooks from '#/hooks/backendHooks'
 import * as contextMenuHooks from '#/hooks/contextMenuHooks'
-import * as tooltipHooks from '#/hooks/tooltipHooks'
 
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
@@ -12,12 +12,12 @@ import * as textProvider from '#/providers/TextProvider'
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 import ContextMenuEntry from '#/components/ContextMenuEntry'
-import FocusableText from '#/components/FocusableText'
-import UnstyledButton from '#/components/UnstyledButton'
 
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 
 import type * as backend from '#/services/Backend'
+
+import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 // ========================
 // === UserGroupUserRow ===
@@ -25,7 +25,7 @@ import type * as backend from '#/services/Backend'
 
 /** Props for a {@link UserGroupUserRow}. */
 export interface UserGroupUserRowProps {
-  readonly user: backend.User
+  readonly user: backendHooks.WithPlaceholder<backend.User>
   readonly userGroup: backend.UserGroupInfo
   readonly doRemoveUserFromUserGroup: (user: backend.User, userGroup: backend.UserGroupInfo) => void
 }
@@ -35,7 +35,6 @@ export default function UserGroupUserRow(props: UserGroupUserRowProps) {
   const { user, userGroup, doRemoveUserFromUserGroup } = props
   const { setModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
-  const { needsTooltip, tooltipTargetRef } = tooltipHooks.useNeedsTooltip()
   const contextMenuRef = contextMenuHooks.useContextMenuRef(
     user.userId,
     getText('userGroupUserContextMenuLabel'),
@@ -64,24 +63,23 @@ export default function UserGroupUserRow(props: UserGroupUserRowProps) {
   return (
     <aria.Row
       id={`_key-${userGroup.id}-${user.userId}`}
-      className="group h-row rounded-rows-child"
+      className={tailwindMerge.twMerge(
+        'group h-row select-none rounded-rows-child',
+        user.isPlaceholder && 'pointer-events-none placeholder'
+      )}
       ref={contextMenuRef}
     >
-      <aria.Cell className="text border-x-2 border-transparent bg-clip-padding rounded-rows-skip-level last:border-r-0">
-        <aria.TooltipTrigger>
-          <div className="ml-indent-1 flex h-row w-[calc(100%_-_var(--indent-1-size))] cursor-default items-center whitespace-nowrap rounded-full px-cell-x">
-            <FocusableText
-              ref={tooltipTargetRef}
-              className="block cursor-unset overflow-hidden text-ellipsis whitespace-nowrap"
-            >
-              {user.name}
-            </FocusableText>
-          </div>
-          {needsTooltip && <ariaComponents.Tooltip>{user.name}</ariaComponents.Tooltip>}
-        </aria.TooltipTrigger>
+      <aria.Cell className="border-x-2 border-transparent bg-clip-padding py-0 rounded-rows-skip-level last:border-r-0">
+        <div className="ml-6 flex h-row items-center justify-center rounded-full px-cell-x">
+          <ariaComponents.Text nowrap truncate="1" weight="semibold">
+            {user.name}
+          </ariaComponents.Text>
+        </div>
       </aria.Cell>
-      <aria.Cell className="relative bg-transparent p transparent group-hover-2:opacity-100">
-        <UnstyledButton
+      <aria.Cell className="relative bg-transparent p-0 opacity-0 group-hover-2:opacity-100">
+        <ariaComponents.Button
+          size="custom"
+          variant="custom"
           onPress={() => {
             setModal(
               <ConfirmDeleteModal
@@ -97,10 +95,10 @@ export default function UserGroupUserRow(props: UserGroupUserRowProps) {
               />
             )
           }}
-          className="absolute right-full mr-4 size-icon -translate-y-1/2"
+          className="absolute right-full mr-4 size-4 -translate-y-1/2"
         >
-          <img src={Cross2} className="size-icon" />
-        </UnstyledButton>
+          <img src={Cross2} className="size-4" />
+        </ariaComponents.Button>
       </aria.Cell>
     </aria.Row>
   )

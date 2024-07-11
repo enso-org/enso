@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Errors.Common.Missing_Argument
 import Standard.Base.Errors.Deprecated.Deprecated
 import Standard.Base.Metadata.Display
 import Standard.Base.Metadata.Widget
@@ -14,8 +15,13 @@ from project.Internal.Filter_Condition_Helpers import make_filter_column
 
 ## Defines a simple expression based off an input column and an operation to perform.
 type Simple_Expression
-    ## A simple expression based off an input column and an operation to perform.
-    From (input : Column_Ref|Expression|Any = (Column_Ref.Index 0)) (operation : Simple_Calculation = Simple_Calculation.Copy)
+    ## PRIVATE
+       A simple expression based off an input column and an operation to perform.
+    Simple_Expr (input : Column_Ref|Expression|Any = (..Index 0)) (operation : Simple_Calculation = ..Copy)
+
+    ## PRIVATE
+       A simple expression based off an input column and an operation to perform.
+    From (input : Column_Ref|Expression|Any = (..Index 0)) (operation : Simple_Calculation = ..Copy)
 
     ## PRIVATE
        Interprets the `Simple_Expression` as operation on columns of a provided
@@ -74,35 +80,33 @@ type Simple_Expression
         filter_cond = Widget_Helpers.make_filter_condition_selector table
 
         options = Vector.build builder->
-            fqn = Meta.get_qualified_type_name Simple_Calculation
-            builder.append (Option "copy" fqn+".Copy")
-            builder.append (Option "add" fqn+".Add" [["rhs", with_number_text]])
-            builder.append (Option "subtract" fqn+".Subtract" [["rhs", with_number]])
-            builder.append (Option "multiply" fqn+".Multiply" [["rhs", with_number]])
-            builder.append (Option "divide" fqn+".Divide" [["rhs", with_number]])
-            builder.append (Option "mod" fqn+".Mod" [["rhs", with_number]])
-            builder.append (Option "power" fqn+".Power" [["rhs", with_number]])
-            builder.append (Option "round" fqn+".Round")
-            builder.append (Option "ceil" fqn+".Ceil")
-            builder.append (Option "floor" fqn+".Floor")
-            builder.append (Option "truncate" fqn+".Truncate")
-            builder.append (Option "min" fqn+".Min" [["rhs", with_number_text]])
-            builder.append (Option "max" fqn+".Max" [["rhs", with_number_text]])
-            builder.append (Option "date add" fqn+".Date_Add" [["length", with_number]])
-            builder.append (Option "date part" fqn+".Date_Part")
-            builder.append (Option "date diff" fqn+".Date_Diff" [["end", col_names]])
-            builder.append (Option "not" fqn+".Not")
-            builder.append (Option "and" fqn+".And" [["rhs", with_boolean]])
-            builder.append (Option "or" fqn+".Or" [["rhs", with_boolean]])
-            builder.append (Option "if" fqn+".If" [["condition", filter_cond], ["true_value", with_all_types], ["false_value", with_all_types]])
-            builder.append (Option "trim" fqn+".Trim" [["what", with_text]])
-            builder.append (Option "text_left" fqn+".Text_Left" [["length", with_number]])
-            builder.append (Option "text_right" fqn+".Text_Right" [["length", with_number]])
-            builder.append (Option "text_length" fqn+".Text_Length")
-            builder.append (Option "format" fqn+".Format" [["format", make_format_chooser include_number=True]])
+            builder.append (Option "copy" "..Copy")
+            builder.append (Option "add" "..Add" [["rhs", with_number_text]])
+            builder.append (Option "subtract" "..Subtract" [["rhs", with_number]])
+            builder.append (Option "multiply" "..Multiply" [["rhs", with_number]])
+            builder.append (Option "divide" "..Divide" [["rhs", with_number]])
+            builder.append (Option "mod" "..Mod" [["rhs", with_number]])
+            builder.append (Option "power" "..Power" [["rhs", with_number]])
+            builder.append (Option "round" "..Round")
+            builder.append (Option "ceil" "..Ceil")
+            builder.append (Option "floor" "..Floor")
+            builder.append (Option "truncate" "..Truncate")
+            builder.append (Option "min" "..Min" [["rhs", with_number_text]])
+            builder.append (Option "max" "..Max" [["rhs", with_number_text]])
+            builder.append (Option "date add" "..Date_Add" [["length", with_number]])
+            builder.append (Option "date part" "..Date_Part")
+            builder.append (Option "date diff" "..Date_Diff" [["end", col_names]])
+            builder.append (Option "not" "..Not")
+            builder.append (Option "and" "..And" [["rhs", with_boolean]])
+            builder.append (Option "or" "..Or" [["rhs", with_boolean]])
+            builder.append (Option "if" "..If" [["condition", filter_cond], ["true_value", with_all_types], ["false_value", with_all_types]])
+            builder.append (Option "trim" "..Trim" [["what", with_text]])
+            builder.append (Option "text_left" "..Text_Left" [["length", with_number]])
+            builder.append (Option "text_right" "..Text_Right" [["length", with_number]])
+            builder.append (Option "text_length" "..Text_Length")
+            builder.append (Option "format" "..Format" [["format", make_format_chooser include_number=True]])
 
-        fqn_column = Meta.get_qualified_type_name Simple_Expression
-        derived = Option "<Simple Expression>" fqn_column+".From" [["input", with_all_types], ["operation", Single_Choice options]]
+        derived = Option "<Simple Expression>" "..Simple_Expr" [["input", with_all_types], ["operation", Single_Choice options]]
 
         Single_Choice [text, number, boolean, expression, derived] display=display
 
@@ -112,7 +116,7 @@ type Simple_Calculation
     Copy
 
     ## Add two values/columns.
-    Add (rhs : Column_Ref|Expression|Number|Text)
+    Add (rhs : Column_Ref|Expression|Number|Text = Missing_Argument.throw "rhs")
 
     ## Subtract two values/columns.
     Subtract (rhs : Column_Ref|Expression|Number = 0)
@@ -144,10 +148,10 @@ type Simple_Calculation
     Truncate
 
     ## Returns the minimum value of two columns.
-    Min (rhs : Column_Ref|Expression|Any)
+    Min (rhs : Column_Ref|Expression|Any = Missing_Argument.throw "rhs")
 
     ## Returns the maximum value of two columns.
-    Max (rhs : Column_Ref|Expression|Any)
+    Max (rhs : Column_Ref|Expression|Any = Missing_Argument.throw "rhs")
 
     ## Adds a period to a date/time column.
     Date_Add (length : Column_Ref|Expression|Integer = 1) (period : Date_Period|Time_Period = Date_Period.Day)
@@ -156,7 +160,7 @@ type Simple_Calculation
     Date_Part (period : Date_Period|Time_Period = Date_Period.Day)
 
     ## Returns the difference between two date/time columns.
-    Date_Diff (end : Column_Ref|Expression|Date_Time|Date|Time_Of_Day) (period:Date_Period|Time_Period = Date_Period.Day)
+    Date_Diff (end : Column_Ref|Expression|Date_Time|Date|Time_Of_Day = Missing_Argument.throw "end") (period:Date_Period|Time_Period = Date_Period.Day)
 
     ## Negate a boolean column.
     Not
@@ -170,11 +174,11 @@ type Simple_Calculation
     ## If input meets a condition return true value, otherwise false value.
 
        The `true_value` and `false_value` can be either a constant or a column.
-    If (condition:Filter_Condition=(Filter_Condition.Equal True)) (true_value:Column_Ref|Expression|Any = True) (false_value:Column_Ref|Expression|Any = False)
+    If (condition:Filter_Condition=(..Equal True)) (true_value:Column_Ref|Expression|Any = True) (false_value:Column_Ref|Expression|Any = False)
 
     ## Removes the specified characters, by default any whitespace, from the
        start, the end, or both ends of the input.
-    Trim (where:Location = Location.Both) (what:Column_Ref|Expression|Text = "")
+    Trim (where:Location=..Both) (what:Column_Ref|Expression|Text = "")
 
     ## Takes the first characters from the input column.
     Text_Left (length : Column_Ref|Expression|Integer = 1)

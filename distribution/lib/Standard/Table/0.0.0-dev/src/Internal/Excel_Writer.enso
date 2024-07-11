@@ -124,15 +124,17 @@ prepare_file_modification_strategy table section on_existing_file match_columns 
     case section of
         Excel_Section.Worksheet sheet headers skip_rows row_limit ->
             java_headers = Excel_Reader.make_java_headers headers
+            java_limit = row_limit.rows_to_write
             workbook_to_modify->
-                ExcelWriter.writeTableToSheet workbook_to_modify sheet existing_data_mode skip_rows table.java_table row_limit java_headers
+                ExcelWriter.writeTableToSheet workbook_to_modify sheet existing_data_mode skip_rows table.java_table java_limit java_headers
         Excel_Section.Cell_Range address headers skip_rows row_limit ->
             java_headers = Excel_Reader.make_java_headers headers
+            java_limit = row_limit.rows_to_write
             java_range = case address of
                 Excel_Range.Value java_range -> java_range
                 text : Text -> text
             workbook_to_modify->
-                ExcelWriter.writeTableToRange workbook_to_modify java_range existing_data_mode skip_rows table.java_table row_limit java_headers
+                ExcelWriter.writeTableToRange workbook_to_modify java_range existing_data_mode skip_rows table.java_table java_limit java_headers
 
 ## PRIVATE
    Handle and map the Java errors when writing an Excel file

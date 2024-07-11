@@ -37,13 +37,17 @@ polyglot java import org.enso.table.write.WriteQuoteBehavior
      If set to `Report_Error`, the operation fails with a dataflow error.
      If set to `Ignore`, the operation proceeds without errors or warnings.
 write_file : Table -> Delimited_Format -> Writable_File -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> Any
-write_file table format (file : Writable_File) on_existing_file match_columns on_problems =
+write_file table format (file : Writable_File) on_existing_file match_columns on_problems:Problem_Behavior =
     case on_existing_file of
         Existing_File_Behavior.Append ->
+            # The default encoding may be used for detecting the effective encoding in append mode.
             append_to_file table format file match_columns on_problems
         _ ->
+            # Override Encoding.default to be just UTF-8 for writing a new file.
+            amended_format = if format.encoding != Encoding.default then format else
+                format.clone encoding=Encoding.utf_8
             file.write_handling_dry_run on_existing_file effective_file-> stream->
-                r = write_to_stream table format stream on_problems related_file=effective_file
+                r = write_to_stream table amended_format stream on_problems related_file=effective_file
                 r.if_not_error effective_file
 
 ## PRIVATE
@@ -52,7 +56,7 @@ write_file table format (file : Writable_File) on_existing_file match_columns on
 
    If the file does not exist or is empty, it acts like a regular overwrite.
 append_to_file : Table -> Delimited_Format -> Writable_File -> Match_Columns -> Problem_Behavior -> Any
-append_to_file table format (file : Writable_File) match_columns on_problems =
+append_to_file table format (file : Writable_File) match_columns on_problems:Problem_Behavior =
     if file.is_local then append_to_local_file table format file.file match_columns on_problems else
         ## TODO in the future, if we have remote backends that _do support_ proper append, we could avoid downloading
            the full file here - we only need to read the first few first and last bytes (to infer the headers and newline at EOF).
@@ -61,7 +65,7 @@ append_to_file table format (file : Writable_File) match_columns on_problems =
             append_to_local_file table format local_temp_file match_columns on_problems . if_not_error file.file_for_return
 
 ## PRIVATE
-append_to_local_file table format (file : File) match_columns on_problems =
+append_to_local_file table format (file : File) match_columns on_problems:Problem_Behavior =
     Column_Name_Mismatch.handle_java_exception <| Column_Count_Mismatch.handle_java_exception <| Panic.recover Illegal_Argument <|
         inferring_format = format.with_line_endings Infer
         metadata = Delimited_Reader.detect_metadata file inferring_format
@@ -92,13 +96,14 @@ append_to_local_file table format (file : File) match_columns on_problems =
                     ColumnMapper.mapColumnsByPosition table.java_table column_count
         reordered_table = Table.Value reordered_java_table
         writing_new_file = preexisting_headers == Nothing
-        amended_format = case writing_new_file && (should_write_headers format.headers) of
+        amended_format_1 = case writing_new_file && (should_write_headers format.headers) of
             True -> format.with_headers
             False -> format.without_headers
+        amended_format_2 = amended_format_1.clone encoding=metadata.detected_encoding
         needs_leading_newline =
             metadata.has_any_content && metadata.ends_with_newline.not
         (file : Writable_File).write_handling_dry_run Existing_File_Behavior.Append effective_file-> stream->
-            r = write_to_stream reordered_table amended_format stream on_problems related_file=effective_file separator_override=effective_line_separator needs_leading_newline=needs_leading_newline
+            r = write_to_stream reordered_table amended_format_2 stream on_problems related_file=effective_file separator_override=effective_line_separator needs_leading_newline=needs_leading_newline
             r.if_not_error effective_file
 
 ## PRIVATE
@@ -125,7 +130,7 @@ write_text table format =
    - separator_override: An optional override for the line separator to use
      instead of the one from `format`.
 write_to_stream : Table -> Delimited_Format -> Output_Stream -> Problem_Behavior -> File | Nothing -> Text | Nothing -> Boolean -> Any
-write_to_stream table format stream on_problems related_file=Nothing separator_override=Nothing needs_leading_newline=False =
+write_to_stream table format stream on_problems:Problem_Behavior related_file=Nothing separator_override=Nothing needs_leading_newline=False =
     handle_io_exception ~action = Panic.catch IOException action caught_panic->
         File_Error.wrap_io_exception related_file caught_panic.payload
 

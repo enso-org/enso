@@ -12,6 +12,8 @@ import RadioGroup from '#/components/styled/RadioGroup'
 
 import * as backend from '#/services/Backend'
 
+import * as tailwindMerge from '#/utilities/tailwindMerge'
+
 /** Props for a {@link ColorPickerItem}. */
 export interface InternalColorPickerItemProps {
   readonly color: backend.LChColor
@@ -69,7 +71,7 @@ function ColorPicker(props: ColorPickerProps, ref: React.ForwardedRef<HTMLDivEle
       }}
     >
       {children}
-      <div className={`flex items-center gap-colors ${pickerClassName}`}>
+      <div className={tailwindMerge.twMerge('flex items-center gap-colors', pickerClassName)}>
         {backend.COLORS.map((currentColor, i) => (
           <ColorPickerItem key={i} color={currentColor} />
         ))}

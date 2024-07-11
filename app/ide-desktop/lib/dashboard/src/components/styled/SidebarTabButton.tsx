@@ -1,9 +1,8 @@
 /** @file A styled button representing a tab on a sidebar. */
 import * as React from 'react'
 
-import * as aria from '#/components/aria'
-import SvgMask from '#/components/SvgMask'
-import UnstyledButton from '#/components/UnstyledButton'
+import type * as aria from '#/components/aria'
+import * as ariaComponent from '#/components/AriaComponents'
 
 // ========================
 // === SidebarTabButton ===
@@ -23,21 +22,19 @@ export interface SidebarTabButtonProps {
 
 /** A styled button representing a tab on a sidebar. */
 export default function SidebarTabButton(props: SidebarTabButtonProps) {
-  const { isDisabled = false, autoFocus = false, active = false, icon, label, onPress } = props
+  const { isDisabled = false, active = false, icon, label, onPress } = props
 
   return (
-    <UnstyledButton
-      autoFocus={autoFocus}
+    <ariaComponent.Button
+      variant="ghost"
+      size="medium"
       onPress={onPress}
       isDisabled={isDisabled}
-      className={`relative rounded-full ${active ? 'focus-default' : ''}`}
+      icon={icon}
+      rounded="full"
+      className={active ? 'bg-white opacity-100' : ''}
     >
-      <div
-        className={`button icon-with-text h-row px-button-x transition-colors selectable hover:bg-selected-frame ${active ? 'disabled bg-selected-frame active' : ''}`}
-      >
-        <SvgMask src={icon} />
-        <aria.Text className="text">{label}</aria.Text>
-      </div>
-    </UnstyledButton>
+      {label}
+    </ariaComponent.Button>
   )
 }

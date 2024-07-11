@@ -1,4 +1,13 @@
-/** @file Immutably shallowly merge an object with a partial update. */
+/** @file Functions related to manipulating objects. */
+
+// ===============
+// === Mutable ===
+// ===============
+
+/** Remove the `readonly` modifier from all fields in a type. */
+export type Mutable<T> = {
+  -readonly [K in keyof T]: T[K]
+}
 
 // =============
 // === merge ===
@@ -10,12 +19,20 @@ type NoInfer<T> = [T][T extends T ? 0 : never]
 /** Immutably shallowly merge an object with a partial update.
  * Does not preserve classes. Useful for preserving order of properties. */
 export function merge<T extends object>(object: T, update: Partial<T>): T {
-  return Object.assign({ ...object }, update)
+  for (const [key, value] of Object.entries(update)) {
+    // eslint-disable-next-line no-restricted-syntax
+    if (!Object.is(value, (object as Record<string, unknown>)[key])) {
+      // This is FINE, as the matching `return` is below this `return`.
+      // eslint-disable-next-line no-restricted-syntax
+      return Object.assign({ ...object }, update)
+    }
+  }
+  return object
 }
 
 /** Return a function to update an object with the given partial update. */
 export function merger<T extends object>(update: Partial<NoInfer<T>>): (object: T) => T {
-  return object => Object.assign({ ...object }, update)
+  return object => merge(object, update)
 }
 
 // ================

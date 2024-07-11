@@ -1,4 +1,5 @@
 /** @file Contains useful error types common across the module. */
+import isNetworkErrorLib from 'is-network-error'
 import type * as toastify from 'react-toastify'
 
 // =====================
@@ -21,14 +22,18 @@ export type MustNotBeKnown<T> =
 
 /** Extracts the `message` property of a value if it is a string. Intended to be used on
  * {@link Error}s. */
-export function tryGetMessage<T>(error: MustNotBeKnown<T>): string | null {
+export function tryGetMessage<T, DefaultMessage extends string | null = null>(
+  error: MustNotBeKnown<T>,
+  // eslint-disable-next-line no-restricted-syntax
+  defaultMessage: DefaultMessage = null as DefaultMessage
+): DefaultMessage | string {
   const unknownError: unknown = error
   return unknownError != null &&
     typeof unknownError === 'object' &&
     'message' in unknownError &&
     typeof unknownError.message === 'string'
     ? unknownError.message
-    : null
+    : defaultMessage
 }
 
 /** Extracts the `error` property of a value if it is a string. */
@@ -40,6 +45,23 @@ export function tryGetError<T>(error: MustNotBeKnown<T>): string | null {
     typeof unknownError.error === 'string'
     ? unknownError.error
     : null
+}
+
+/**
+ * Extracts the `stack` property of a value if it is a string. Intended to be used on {@link Error}s.
+ */
+export function tryGetStack<T, DefaultMessage extends string | null = null>(
+  error: MustNotBeKnown<T>,
+  // eslint-disable-next-line no-restricted-syntax
+  defaultMessage: DefaultMessage = null as DefaultMessage
+): DefaultMessage | string {
+  const unknownError: unknown = error
+  return unknownError != null &&
+    typeof unknownError === 'object' &&
+    'stack' in unknownError &&
+    typeof unknownError.stack === 'string'
+    ? unknownError.stack
+    : defaultMessage
 }
 
 /** Like {@link tryGetMessage} but return the string representation of the value if it is not an
@@ -99,5 +121,47 @@ export function assert<T>(makeValue: () => T | '' | 0 | 0n | false | null | unde
     )
   } else {
     return result
+  }
+}
+
+/**
+ * Checks if the given error is a JavaScript execution error.
+ */
+export function isJSError(error: unknown): boolean {
+  if (error instanceof TypeError) {
+    return true
+  } else if (error instanceof ReferenceError) {
+    return true
+  } else if (error instanceof SyntaxError) {
+    return true
+  } else if (error instanceof RangeError) {
+    return true
+  } else if (error instanceof URIError) {
+    return true
+  } else if (error instanceof EvalError) {
+    return true
+  } else {
+    return false
+  }
+}
+
+/**
+ * Checks if the given error is a network error.
+ * Wraps the `is-network-error` library to add additional network errors to the check.
+ */
+export function isNetworkError(error: unknown): boolean {
+  const customNetworkErrors = new Set([
+    // aws amplify network error
+    'Network error',
+  ])
+
+  if (error instanceof Error) {
+    if (customNetworkErrors.has(error.message)) {
+      return true
+    } else {
+      return isNetworkErrorLib(error)
+    }
+  } else {
+    return false
   }
 }

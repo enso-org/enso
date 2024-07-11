@@ -8,7 +8,7 @@ import * as textProvider from '#/providers/TextProvider'
 import * as aria from '#/components/aria'
 import type * as column from '#/components/dashboard/column'
 import * as columnUtils from '#/components/dashboard/column/columnUtils'
-import SvgMask from '#/components/SvgMask'
+import Button from '#/components/styled/Button'
 
 /** A heading for the "Docs" column. */
 export default function DocsColumnHeading(props: column.AssetColumnHeadingProps) {
@@ -17,13 +17,13 @@ export default function DocsColumnHeading(props: column.AssetColumnHeadingProps)
   const { getText } = textProvider.useText()
 
   return (
-    <div className="flex h-drive-table-heading w-full items-center gap-icon-with-text">
-      <SvgMask
-        src={DocsIcon}
-        className="size-icon"
-        title={getText('docsColumnHide')}
-        onClick={event => {
-          event.stopPropagation()
+    <div className="flex h-table-row w-full items-center gap-icon-with-text">
+      <Button
+        active
+        image={DocsIcon}
+        className="size-4"
+        alt={getText('docsColumnHide')}
+        onPress={() => {
           hideColumn(columnUtils.Column.docs)
         }}
       />

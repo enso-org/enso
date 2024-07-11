@@ -167,10 +167,11 @@ function loadAmplifyConfig(
     // needs to be registered.
     setDeepLinkHandler(logger, navigate)
   }
+
+  const redirectUrl = process.env.ENSO_CLOUD_REDIRECT ?? window.location.origin
+
   /** Load the platform-specific Amplify configuration. */
-  const signInOutRedirect = supportsDeepLinks
-    ? `${common.DEEP_LINK_SCHEME}://auth`
-    : process.env.ENSO_CLOUD_REDIRECT
+  const signInOutRedirect = supportsDeepLinks ? `${common.DEEP_LINK_SCHEME}://auth` : redirectUrl
   return process.env.ENSO_CLOUD_COGNITO_USER_POOL_ID == null ||
     process.env.ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID == null ||
     process.env.ENSO_CLOUD_COGNITO_DOMAIN == null ||
@@ -241,6 +242,8 @@ function setDeepLinkHandler(logger: loggerProvider.Logger, navigate: (url: strin
               // @ts-expect-error `_handleAuthResponse` is a private method without typings.
               // eslint-disable-next-line @typescript-eslint/no-unsafe-call
               await amplify.Auth._handleAuthResponse(url.toString())
+
+              navigate(appUtils.DASHBOARD_PATH)
             } finally {
               // Restore the original `history.replaceState` function.
               history.replaceState = replaceState

@@ -37,7 +37,12 @@ import {
   type ShallowRef,
 } from 'vue'
 
-const TOP_WITHOUT_TOOLBAR_PX = 36
+/** The minimum width must be at least the total width of:
+ * - both of toolbars that are always visible (32px + 60px), and
+ * - the 4px flex gap between the toolbars. */
+const MIN_WIDTH_PX = 200
+const MIN_CONTENT_HEIGHT_PX = 32
+const DEFAULT_CONTENT_HEIGHT_PX = 150
 const TOP_WITH_TOOLBAR_PX = 72
 
 // Used for testing.
@@ -46,9 +51,11 @@ type RawDataSource = { type: 'raw'; data: any }
 const props = defineProps<{
   currentType?: Opt<VisualizationIdentifier>
   isCircularMenuVisible: boolean
+  isPreview?: boolean
   nodePosition: Vec2
   nodeSize: Vec2
   width: Opt<number>
+  height: Opt<number>
   scale: number
   isFocused: boolean
   isFullscreen: boolean
@@ -58,9 +65,10 @@ const props = defineProps<{
 const emit = defineEmits<{
   'update:rect': [rect: Rect | undefined]
   'update:id': [id: VisualizationIdentifier]
-  'update:visible': [visible: boolean]
+  'update:enabled': [visible: boolean]
   'update:fullscreen': [fullscreen: boolean]
   'update:width': [width: number]
+  'update:height': [height: number]
   'update:nodePosition': [pos: Vec2]
   createNodes: [options: NodeCreationOptions[]]
 }>()
@@ -90,7 +98,7 @@ const defaultVisualizationRaw = projectStore.useVisualizationData(
 const defaultVisualizationForCurrentNodeSource = computed<VisualizationIdentifier | undefined>(
   () => {
     const raw = defaultVisualizationRaw.value
-    if (!raw?.ok || !raw.value) return
+    if (!raw?.ok || !raw.value || !raw.value.name) return
     return {
       name: raw.value.name,
       module:
@@ -228,23 +236,23 @@ watchEffect(async () => {
 })
 
 const isBelowToolbar = ref(false)
-let userSetHeight = ref(150)
+
+const toolbarHeight = computed(() => (isBelowToolbar.value ? TOP_WITH_TOOLBAR_PX : 0))
 
 const rect = computed(
   () =>
     new Rect(
       props.nodePosition,
       new Vec2(
-        Math.max(props.width ?? 0, props.nodeSize.x),
-        userSetHeight.value + (isBelowToolbar.value ? TOP_WITH_TOOLBAR_PX : TOP_WITHOUT_TOOLBAR_PX),
+        Math.max(props.width ?? MIN_WIDTH_PX, props.nodeSize.x),
+        Math.max(props.height ?? DEFAULT_CONTENT_HEIGHT_PX, MIN_CONTENT_HEIGHT_PX) +
+          toolbarHeight.value,
       ),
     ),
 )
 
 watchEffect(() => emit('update:rect', rect.value))
-onUnmounted(() => {
-  emit('update:rect', undefined)
-})
+onUnmounted(() => emit('update:rect', undefined))
 
 const allTypes = computed(() => Array.from(visualizationStore.types(props.typename)))
 
@@ -268,10 +276,10 @@ provideVisualizationConfig({
     emit('update:width', value)
   },
   get height() {
-    return userSetHeight.value
+    return rect.value.height - toolbarHeight.value
   },
   set height(value) {
-    userSetHeight.value = value
+    emit('update:height', value)
   },
   get nodePosition() {
     return props.nodePosition
@@ -303,7 +311,10 @@ provideVisualizationConfig({
   get nodeType() {
     return props.typename
   },
-  hide: () => emit('update:visible', false),
+  get isPreview() {
+    return props.isPreview ?? false
+  },
+  hide: () => emit('update:enabled', false),
   updateType: (id) => emit('update:id', id),
   createNodes: (...options) => emit('createNodes', options),
 })
@@ -374,3 +385,10 @@ watch(
     </Suspense>
   </div>
 </template>
+
+<style scoped>
+.GraphVisualization {
+  /** Prevent drawing on top of other UI elements (e.g. dropdown widgets). */
+  isolation: isolate;
+}
+</style>

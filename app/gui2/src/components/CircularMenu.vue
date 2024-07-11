@@ -1,8 +1,9 @@
 <script setup lang="ts">
+import { graphBindings } from '@/bindings'
 import ColorRing from '@/components/ColorRing.vue'
 import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
 import SmallPlusButton from '@/components/SmallPlusButton.vue'
-import SvgIcon from '@/components/SvgIcon.vue'
+import SvgButton from '@/components/SvgButton.vue'
 import ToggleIcon from '@/components/ToggleIcon.vue'
 import { ref } from 'vue'
 
@@ -11,14 +12,15 @@ const props = defineProps<{
   isRecordingEnabledGlobally: boolean
   isRecordingOverridden: boolean
   isDocsVisible: boolean
-  isVisualizationVisible: boolean
+  isVisualizationEnabled: boolean
   isFullMenuVisible: boolean
-  visibleNodeColors: Set<string>
+  matchableNodeColors: Set<string>
+  documentationUrl: string | undefined
 }>()
 const emit = defineEmits<{
   'update:isRecordingOverridden': [isRecordingOverridden: boolean]
   'update:isDocsVisible': [isDocsVisible: boolean]
-  'update:isVisualizationVisible': [isVisualizationVisible: boolean]
+  'update:isVisualizationEnabled': [isVisualizationEnabled: boolean]
   startEditing: []
   startEditingComment: []
   openFullMenu: []
@@ -27,6 +29,14 @@ const emit = defineEmits<{
 }>()
 
 const showColorPicker = ref(false)
+
+function openDocs(url: string) {
+  window.open(url, '_blank')
+}
+
+function readableBinding(binding: keyof (typeof graphBindings)['bindings']) {
+  return graphBindings.bindings[binding].humanReadable
+}
 </script>
 
 <template>
@@ -36,47 +46,53 @@ const showColorPicker = ref(false)
       class="circle menu"
       :class="`${props.isFullMenuVisible ? 'full' : 'partial'}`"
     >
-      <div v-if="!isFullMenuVisible" class="More" @pointerdown.stop="emit('openFullMenu')"></div>
-      <SvgIcon
-        v-if="isFullMenuVisible"
-        name="comment"
-        class="icon-container button slot2"
-        :alt="`Edit comment`"
-        @click.stop="emit('startEditingComment')"
-      />
-      <SvgIcon
-        v-if="isFullMenuVisible"
-        name="paint_palette"
-        class="icon-container button slot3"
-        :alt="`Choose color`"
-        @click.stop="showColorPicker = true"
-      />
-      <SvgIcon
-        v-if="isFullMenuVisible"
-        name="trash2"
-        class="icon-container button slot4"
-        :alt="`Delete component`"
-        @click.stop="emit('delete')"
-      />
+      <template v-if="isFullMenuVisible">
+        <SvgButton
+          v-if="documentationUrl"
+          name="help"
+          class="slot1"
+          :title="`Open Documentation (${readableBinding('openDocumentation')})`"
+          @click.stop="openDocs(documentationUrl)"
+        />
+        <SvgButton
+          name="comment"
+          class="slot2"
+          title="Comment"
+          @click.stop="emit('startEditingComment')"
+        />
+        <SvgButton
+          name="paint_palette"
+          class="slot3"
+          title="Color"
+          @click.stop="showColorPicker = true"
+        />
+        <SvgButton
+          name="trash2"
+          class="slot4"
+          :title="`Delete (${readableBinding('deleteSelected')})`"
+          @click.stop="emit('delete')"
+        />
+      </template>
+      <div v-else class="More" @pointerdown.stop="emit('openFullMenu')"></div>
       <ToggleIcon
         icon="eye"
-        class="icon-container button slot5"
-        :alt="`${props.isVisualizationVisible ? 'Hide' : 'Show'} visualization`"
-        :modelValue="props.isVisualizationVisible"
-        @update:modelValue="emit('update:isVisualizationVisible', $event)"
+        class="slot5"
+        title="Visualization"
+        :modelValue="props.isVisualizationEnabled"
+        @update:modelValue="emit('update:isVisualizationEnabled', $event)"
       />
-      <SvgIcon
+      <SvgButton
         name="edit"
-        class="icon-container button slot6"
+        class="slot6"
+        title="Code Edit"
         data-testid="edit-button"
         @click.stop="emit('startEditing')"
       />
       <ToggleIcon
         icon="record"
-        class="icon-container button slot7"
+        class="overrideRecordingButton slot7"
         data-testid="overrideRecordingButton"
-        :class="{ 'recording-overridden': props.isRecordingOverridden }"
-        :alt="`${props.isRecordingOverridden ? 'Disable' : 'Enable'} recording`"
+        title="Record"
         :modelValue="props.isRecordingOverridden"
         @update:modelValue="emit('update:isRecordingOverridden', $event)"
       />
@@ -84,12 +100,13 @@ const showColorPicker = ref(false)
     <div v-if="showColorPicker" class="circle">
       <ColorRing
         v-model="nodeColor"
-        :matchableColors="visibleNodeColors"
+        :matchableColors="matchableNodeColors"
+        :initialColorAngle="90"
         @close="showColorPicker = false"
       />
     </div>
     <SmallPlusButton
-      v-if="!isVisualizationVisible"
+      v-if="!isVisualizationEnabled"
       class="below-slot5"
       @createNodes="emit('createNodes', $event)"
     />
@@ -179,27 +196,19 @@ const showColorPicker = ref(false)
   clip-path: var(--full-ring-path);
 }
 
-.icon-container {
-  display: inline-flex;
-  background: none;
-  padding: 0;
-  border: none;
-  opacity: 30%;
-  pointer-events: all;
-}
-
-.toggledOn {
-  opacity: unset;
-}
-
 .inactive {
   pointer-events: none;
   opacity: 10%;
 }
 
-.recording-overridden {
-  opacity: 100%;
-  color: red;
+.overrideRecordingButton {
+  &.toggledOn {
+    opacity: 100%;
+    color: red;
+  }
+  &.toggledOff {
+    opacity: unset;
+  }
 }
 
 /**

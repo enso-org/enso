@@ -29,7 +29,7 @@ import org.enso.compiler.core.ir.module.scope.definition.Method;
 import org.enso.compiler.core.ir.module.scope.imports.Polyglot;
 import org.enso.compiler.data.BindingsMap;
 import org.enso.compiler.data.BindingsMap.ResolvedConstructor;
-import org.enso.compiler.data.BindingsMap.ResolvedMethod;
+import org.enso.compiler.data.BindingsMap.ResolvedModuleMethod;
 import org.enso.compiler.data.BindingsMap.ResolvedPolyglotField;
 import org.enso.compiler.data.BindingsMap.ResolvedPolyglotSymbol;
 import org.enso.compiler.data.BindingsMap.ResolvedType;
@@ -162,6 +162,9 @@ public class IRDumper {
         var body = explicitMethodIr.body();
         createIRGraph(body);
         createEdge(explicitMethodIr, body, "body");
+        var methodRef = explicitMethodIr.methodReference();
+        createIRGraph(methodRef);
+        createEdge(explicitMethodIr, methodRef, "methodReference");
       }
       case Method.Conversion conversionMethod -> {
         var bldr =
@@ -171,6 +174,9 @@ public class IRDumper {
         var body = conversionMethod.body();
         createIRGraph(body);
         createEdge(conversionMethod, body, "body");
+        var methodRef = conversionMethod.methodReference();
+        createIRGraph(methodRef);
+        createEdge(conversionMethod, methodRef, "methodReference");
       }
       case Method.Binding binding -> {
         var bldr = GraphVizNode.Builder.fromIr(binding);
@@ -183,6 +189,9 @@ public class IRDumper {
         var body = binding.body();
         createIRGraph(body);
         createEdge(binding, body, "body");
+        var methodRef = binding.methodReference();
+        createIRGraph(methodRef);
+        createEdge(binding, methodRef, "methodReference");
       }
       case Definition.Type type -> {
         var typeNode =
@@ -330,6 +339,17 @@ public class IRDumper {
         }
         var literalNode = bldr.build();
         addNode(literalNode);
+      }
+      case Name.MethodReference methodRef -> {
+        var bldr = GraphVizNode.Builder.fromIr(methodRef);
+        bldr.addLabelLine("methodName: " + methodRef.methodName().name());
+        if (methodRef.typePointer().isDefined()) {
+          bldr.addLabelLine("typePointer: " + methodRef.typePointer().get().name());
+        } else {
+          bldr.addLabelLine("typePointer: null");
+        }
+        var methodRefNode = bldr.build();
+        addNode(methodRefNode);
       }
       default -> {
         var node = GraphVizNode.Builder.fromIr(expression).build();
@@ -493,9 +513,9 @@ public class IRDumper {
                   bldr.addLabelLine(
                       "target: ResolvedConstructor(" + resolvedConstructor.cons().name() + ")");
                 }
-                case ResolvedMethod resolvedMethod -> {
+                case ResolvedModuleMethod resolvedModuleMethod -> {
                   bldr.addLabelLine(
-                      "target: ResolvedMethod(" + resolvedMethod.method().name() + ")");
+                      "target: ResolvedMethod(" + resolvedModuleMethod.method().name() + ")");
                 }
                 case ResolvedPolyglotField resolvedPolyglotField -> {
                   bldr.addLabelLine(
@@ -543,7 +563,7 @@ public class IRDumper {
                   switch (entity) {
                     case BindingsMap.Type tp -> bldr.addLabelLine("  - Type(" + tp.name() + ")");
                     case BindingsMap.ModuleMethod method -> bldr.addLabelLine(
-                        "  - Method(" + method.name() + ")");
+                        "  - ModuleMethod(" + method.name() + ")");
                     case BindingsMap.PolyglotSymbol polySym -> bldr.addLabelLine(
                         "  - PolyglotSymbol(" + polySym.name() + ")");
                     default -> throw unimpl(entity);

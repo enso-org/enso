@@ -2,6 +2,7 @@ from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.System.File.Generic.Writable_File.Writable_File
 import Standard.Base.System.File_Format_Metadata.File_Format_Metadata
+import Standard.Base.System.Input_Stream.Input_Stream
 from Standard.Base.Metadata.Choice import Option
 
 import project.Connection.Database
@@ -9,8 +10,18 @@ import project.Connection.SQLite.SQLite
 
 ## Read the file to a `SQLite_Connection` from a `.db` or `.sqlite` file
 type SQLite_Format
-    ## Read SQLite files
+    ## PRIVATE
+       Read SQLite files (kept for backwards compatibility)
     For_File
+
+    ## Read SQLite files
+    SQLite
+
+    ## PRIVATE
+       Resolve an unresolved constructor to the actual type.
+    resolve : Function -> SQLite_Format | Nothing
+    resolve constructor =
+        Panic.catch Any (constructor:SQLite_Format) _->Nothing
 
     ## PRIVATE
        If the File_Format supports reading from the file, return a configured instance.
@@ -18,14 +29,14 @@ type SQLite_Format
     for_read file:File_Format_Metadata =
         expected_header = magic_header_string
         got_header = file.read_first_bytes expected_header.length
-        if got_header == expected_header then SQLite_Format.For_File else
+        if got_header == expected_header then SQLite_Format.SQLite else
             ## To allow for reading a SQLite file by extension if we cannot read the file header.
                If we were able to read the header and it is invalid - we do not try the extension,
                because later the read will fail anyway due to bad format.
             if got_header.is_nothing.not then Nothing else
                 case file.guess_extension of
-                    ".db" -> SQLite_Format.For_File
-                    ".sqlite" -> SQLite_Format.For_File
+                    ".db" -> SQLite_Format.SQLite
+                    ".sqlite" -> SQLite_Format.SQLite
                     _ -> Nothing
 
     ## PRIVATE
@@ -33,22 +44,28 @@ type SQLite_Format
     for_file_write : Writable_File -> SQLite_Format | Nothing
     for_file_write file:Writable_File =
         case (file:File_Format_Metadata).extension of
-            ".db" -> SQLite_Format.For_File
-            ".sqlite" -> SQLite_Format.For_File
+            ".db" -> SQLite_Format.SQLite
+            ".sqlite" -> SQLite_Format.SQLite
             _ -> Nothing
 
     ## PRIVATE
     get_dropdown_options : Vector Option
-    get_dropdown_options = [Option "SQLite" (Meta.get_qualified_type_name SQLite_Format)+".For_File"]
+    get_dropdown_options = [Option "SQLite" "..SQLite"]
 
     ## PRIVATE
        Implements the `File.read` for this `File_Format`
     read : File -> Problem_Behavior -> Any
-    read self file on_problems =
+    read self file on_problems:Problem_Behavior =
         _ = [on_problems]
         Database.connect (SQLite.From_File file)
 
+    ## PRIVATE
+    read_stream : Input_Stream -> File_Format_Metadata -> Any
+    read_stream self stream metadata =
+        _ = [stream, metadata]
+        Error.throw (Illegal_Argument.Error "Cannot connect to a SQLite database backed by a stream. Save it to a local file first.")
+
 ## PRIVATE
    Based on the File Format definition at: https://www.sqlite.org/fileformat.html
-magic_header_string =
+private magic_header_string =
     "SQLite format 3".utf_8 + [0]

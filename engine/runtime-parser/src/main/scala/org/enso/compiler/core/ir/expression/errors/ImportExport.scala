@@ -78,7 +78,7 @@ sealed case class ImportExport(
   ): ImportExport =
     this
 
-  /** @inheritdoc */
+  /** String representation. */
   override def toString: String =
     s"""
        |Error.ImportExport(
@@ -162,7 +162,7 @@ object ImportExport {
     moduleOrTypeName: String
   ) extends Reason {
     override def message(source: (IdentifiedLocation => String)): String =
-      s"The symbol $symbolName (module, type, or constructor) does not exist in $moduleOrTypeName."
+      s"The symbol $symbolName (module, type, method, or constructor) does not exist in $moduleOrTypeName."
   }
 
   case class NoSuchConstructor(

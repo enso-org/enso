@@ -21,7 +21,9 @@ const editing = WidgetEditHandler.New('WidgetText', props.input, {
     input.value?.blur()
   },
   pointerdown(event) {
-    if (targetIsOutside(event, unrefElement(input))) accepted()
+    if (targetIsOutside(event, unrefElement(input))) {
+      accepted()
+    }
     return false
   },
   end() {
@@ -77,7 +79,7 @@ watch(textContents, (value) => (editedContents.value = value))
 
 <script lang="ts">
 export const widgetDefinition = defineWidget(
-  WidgetInput.isAstOrPlaceholder,
+  WidgetInput.placeholderOrAstMatcher(Ast.TextLiteral),
   {
     priority: 1001,
     score: (props) => {
@@ -99,8 +101,6 @@ export const widgetDefinition = defineWidget(
       ref="input"
       v-model="editedContents"
       autoSelect
-      @pointerdown.stop
-      @click.stop
       @keydown.enter.stop="accepted"
       @focusin="editing.start()"
       @input="editing.edit(makeLiteralFromUserInput($event ?? ''))"

@@ -2,6 +2,12 @@ import { findIndexOpt } from '@/util/data/array'
 import { isSome, type Opt } from '@/util/data/opt'
 import { Err, Ok, type Result } from '@/util/data/result'
 import { AsyncQueue, type AbortScope } from '@/util/net'
+import {
+  qnReplaceProjectName,
+  tryIdentifier,
+  tryQualifiedName,
+  type Identifier,
+} from '@/util/qualifiedName'
 import * as array from 'lib0/array'
 import * as object from 'lib0/object'
 import { ObservableV2 } from 'lib0/observable'
@@ -22,6 +28,10 @@ import {
 import { exponentialBackoff } from 'shared/util/net'
 import type { ExternalId } from 'shared/yjsModel'
 import { reactive } from 'vue'
+
+// This constant should be synchronized with EXECUTION_ENVIRONMENT constant in
+// engine/runtime/src/main/java/org/enso/interpreter/EnsoLanguage.java
+const DEFAULT_ENVIRONMENT: ExecutionEnvironment = 'Design'
 
 export type NodeVisualizationConfiguration = Omit<
   VisualizationConfiguration,
@@ -54,8 +64,8 @@ type ExecutionContextState =
       status: 'created'
       visualizations: Map<Uuid, NodeVisualizationConfiguration>
       stack: StackItem[]
-      environment?: ExecutionEnvironment
-    } // | { status: 'broken'} TODO[ao] think about it
+      environment: ExecutionEnvironment
+    }
 
 type EntryPoint = Omit<ExplicitCall, 'type'>
 
@@ -74,6 +84,13 @@ type ExecutionContextNotification = {
   'visualizationsConfigured'(configs: Set<Uuid>): void
 }
 
+enum SyncStatus {
+  NOT_SYNCED,
+  QUEUED,
+  SYNCING,
+  SYNCED,
+}
+
 /**
  * Execution Context
  *
@@ -86,7 +103,7 @@ type ExecutionContextNotification = {
 export class ExecutionContext extends ObservableV2<ExecutionContextNotification> {
   readonly id: ContextId = random.uuidv4() as ContextId
   private queue: AsyncQueue<ExecutionContextState>
-  private syncScheduled = false
+  private syncStatus = SyncStatus.NOT_SYNCED
   private clearScheduled = false
   private _desiredStack: StackItem[] = reactive([])
   private visualizationConfigs: Map<Uuid, NodeVisualizationConfiguration> = new Map()
@@ -135,13 +152,39 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
       // Connection closed: the created execution context is no longer available
       // There is no point in any scheduled action until resynchronization
       this.queue.clear()
-      this.syncScheduled = false
+      this.syncStatus = SyncStatus.NOT_SYNCED
       this.queue.pushTask(() => {
         this.clearScheduled = false
         this.sync()
         return Promise.resolve({ status: 'not-created' })
       })
       this.clearScheduled = true
+    })
+    this.lsRpc.on('refactoring/projectRenamed', ({ oldNormalizedName, newNormalizedName }) => {
+      const newIdent = tryIdentifier(newNormalizedName)
+      if (!newIdent.ok) {
+        console.error(
+          `Cannot update project name in execution stack: new name ${newNormalizedName} is not a valid identifier!`,
+        )
+        return
+      }
+      ExecutionContext.replaceProjectNameInStack(
+        this._desiredStack,
+        oldNormalizedName,
+        newIdent.value,
+      )
+      if (this.syncStatus === SyncStatus.SYNCED) {
+        this.queue.pushTask((state) => {
+          if (state.status !== 'created') return Promise.resolve(state)
+          ExecutionContext.replaceProjectNameInStack(state.stack, oldNormalizedName, newIdent.value)
+          return Promise.resolve(state)
+        })
+      } else {
+        // Engine updates project name in its execution context frames by itself. But if we are out
+        // of sync, we have no guarantee if the stack wasn't set with old name after project rename.
+        // It's safer to just re-sync the stack.
+        this.sync()
+      }
     })
   }
 
@@ -150,12 +193,35 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
     this.sync()
   }
 
+  private static replaceProjectNameInStack(
+    stack: StackItem[],
+    oldName: string,
+    newName: Identifier,
+  ) {
+    const updatedField = (value: string) => {
+      const qn = tryQualifiedName(value)
+      if (qn.ok) {
+        return qnReplaceProjectName(qn.value, oldName, newName)
+      } else {
+        console.warn(`Invalid qualified name in execution context stack: ${value}`)
+        return value
+      }
+    }
+    for (const item of stack) {
+      if (item.type === 'ExplicitCall') {
+        item.methodPointer.module = updatedField(item.methodPointer.module)
+        item.methodPointer.definedOnType = updatedField(item.methodPointer.definedOnType)
+      }
+    }
+  }
+
   get desiredStack() {
     return this._desiredStack
   }
 
   set desiredStack(stack: StackItem[]) {
-    this._desiredStack = stack
+    this._desiredStack.length = 0
+    this._desiredStack.push(...stack)
     this.sync()
   }
 
@@ -188,7 +254,6 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
     this.queue.pushTask(async (state) => {
       if (state.status !== 'created') {
         this.sync()
-        return state
       }
       await this.lsRpc.recomputeExecutionContext(this.id, expressionIds, executionEnvironment)
       return state
@@ -219,18 +284,20 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
           () => this.lsRpc.destroyExecutionContext(this.id),
           'Destroying execution context',
         )
-        if (!result.ok) {
+        if (!result.ok && !this.lsRpc.isDisposed) {
           result.error.log('Failed to destroy execution context')
         }
       }
-      this.lsRpc.release()
+      if (!this.lsRpc.isDisposed) {
+        this.lsRpc.release()
+      }
       return { status: 'not-created' }
     })
   }
 
   private sync() {
-    if (this.syncScheduled || this.abort.signal.aborted) return
-    this.syncScheduled = true
+    if (this.syncStatus === SyncStatus.QUEUED || this.abort.signal.aborted) return
+    this.syncStatus = SyncStatus.QUEUED
     this.queue.pushTask(this.syncTask())
   }
 
@@ -248,7 +315,7 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
 
   private syncTask() {
     return async (state: ExecutionContextState) => {
-      this.syncScheduled = false
+      this.syncStatus = SyncStatus.SYNCING
       if (this.abort.signal.aborted) return state
       let newState = { ...state }
 
@@ -263,7 +330,12 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
           if (result.value.contextId !== this.id) {
             return Err('Unexpected Context ID returned by the language server.')
           }
-          newState = { status: 'created', visualizations: new Map(), stack: [] }
+          newState = {
+            status: 'created',
+            visualizations: new Map(),
+            stack: [],
+            environment: DEFAULT_ENVIRONMENT,
+          }
           return Ok()
         }, 'Failed to create execution context')
       }
@@ -399,6 +471,9 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
       this.emit('visualizationsConfigured', [
         new Set(state.status === 'created' ? state.visualizations.keys() : []),
       ])
+      if (this.syncStatus === SyncStatus.SYNCING) {
+        this.syncStatus = SyncStatus.SYNCED
+      }
       return newState
     }
   }

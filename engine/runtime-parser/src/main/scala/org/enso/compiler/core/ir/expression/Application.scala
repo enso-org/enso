@@ -108,7 +108,7 @@ object Application {
       copy(function = fn(function), arguments.map(_.mapExpressions(fn)))
     }
 
-    /** @inheritdoc */
+    /** String representation. */
     override def toString: String =
       s"""
          |Application.Prefix(
@@ -203,7 +203,7 @@ object Application {
       copy(target = fn(target))
     }
 
-    /** @inheritdoc */
+    /** String representation. */
     override def toString: String =
       s"""
          |Application.Force(
@@ -316,7 +316,7 @@ object Application {
       location: Option[IdentifiedLocation]
     ): Typeset = copy(location = location)
 
-    /** @inheritdoc */
+    /** String representation. */
     override def toString: String =
       s"""Application.Typeset(
          |expression = $expression,
@@ -412,7 +412,7 @@ object Application {
       location: Option[IdentifiedLocation]
     ): Sequence = copy(location = location)
 
-    /** @inheritdoc */
+    /** String representation. */
     override def toString: String =
       s"""
          |Application.Vector(

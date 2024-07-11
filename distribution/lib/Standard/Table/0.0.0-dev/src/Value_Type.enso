@@ -40,14 +40,14 @@ type Bits
 type Bits_Comparator
     ## PRIVATE
     compare : Bits -> Bits -> Ordering
-    compare x y = Comparable.from x.to_integer . compare x.to_integer y.to_integer
+    compare x y = Ordering.compare x.to_integer y.to_integer
 
     ## PRIVATE
     hash : Bits -> Integer
-    hash x = Comparable.from x.to_integer . hash x.to_integer
+    hash x = Ordering.hash x.to_integer
 
 ## PRIVATE
-Comparable.from (_:Bits) = Bits_Comparator
+Comparable.from (that:Bits) = Comparable.new that Bits_Comparator
 
 ## Represents the different possible types of values within Table columns.
 
@@ -445,6 +445,7 @@ type Value_Type
     to_js_object : JS_Object
     to_js_object self =
         constructor_name = Meta.meta self . constructor . name
+        display_text_value = self . to_display_text
         additional_fields = case self of
             Value_Type.Integer size ->
                 [["bits", size.to_integer]]
@@ -460,7 +461,7 @@ type Value_Type
                 [["type_name", type_name]]
             _ -> []
         JS_Object.from_pairs <|
-            [["type", "Value_Type"], ["constructor", constructor_name]] + additional_fields
+            [["type", "Value_Type"], ["constructor", constructor_name], ["display_text", display_text_value]] + additional_fields
 
     ## GROUP Standard.Base.Metadata
        ICON metadata
@@ -484,3 +485,12 @@ type Value_Type
    - otherwise, `Text` is chosen as a fallback and the column is kept as-is
      without parsing.
 type Auto
+
+## The type representing the column type being explicitly selected by the user.
+   Arguments:
+   - type: The type of columns to select.
+type By_Type
+    ## The type representing the column type being explicitly selected by the user.
+       Arguments:
+       - type: The type of columns to select.
+    By_Type type:Value_Type

@@ -1,5 +1,6 @@
+import { computeNodeColor } from '@/composables/nodeColors'
 import { ComputedValueRegistry, type ExpressionInfo } from '@/stores/project/computedValueRegistry'
-import { SuggestionDb, groupColorStyle, type Group } from '@/stores/suggestionDatabase'
+import { SuggestionDb, type Group } from '@/stores/suggestionDatabase'
 import type { SuggestionEntry } from '@/stores/suggestionDatabase/entry'
 import { assert } from '@/util/assert'
 import { Ast, RawAst } from '@/util/ast'
@@ -7,7 +8,6 @@ import type { AstId, NodeMetadata } from '@/util/ast/abstract'
 import { MutableModule, autospaced, subtrees } from '@/util/ast/abstract'
 import { AliasAnalyzer } from '@/util/ast/aliasAnalysis'
 import { nodeFromAst } from '@/util/ast/node'
-import { colorFromString } from '@/util/colors'
 import { MappedKeyMap, MappedSet } from '@/util/containers'
 import { arrayEquals, tryGetIndex } from '@/util/data/array'
 import { Vec2 } from '@/util/data/vec2'
@@ -138,6 +138,10 @@ export class GraphDb {
     private valuesRegistry: ComputedValueRegistry,
   ) {}
 
+  private nodeIdToOuterExprIds = new ReactiveIndex(this.nodeIdToNode, (id, entry) => {
+    return [[id, entry.outerExpr.id]]
+  })
+
   private nodeIdToPatternExprIds = new ReactiveIndex(this.nodeIdToNode, (id, entry) => {
     const exprs: AstId[] = []
     if (entry.pattern) entry.pattern.visitRecursiveAst((ast) => void exprs.push(ast.id))
@@ -202,7 +206,7 @@ export class GraphDb {
     return Array.from(ports, (port) => [id, port])
   })
 
-  nodeMainSuggestion = new ReactiveMapping(this.nodeIdToNode, (id, entry) => {
+  nodeMainSuggestion = new ReactiveMapping(this.nodeIdToNode, (_id, entry) => {
     const expressionInfo = this.getExpressionInfo(entry.innerExpr.id)
     const method = expressionInfo?.methodCall?.methodPointer
     if (method == null) return
@@ -213,13 +217,10 @@ export class GraphDb {
 
   nodeColor = new ReactiveMapping(this.nodeIdToNode, (id, entry) => {
     if (entry.colorOverride != null) return entry.colorOverride
-    const index = this.nodeMainSuggestion.lookup(id)?.groupIndex
-    const group = tryGetIndex(this.groups.value, index)
-    if (group == null) {
-      const typename = this.getExpressionInfo(id)?.typename
-      return typename ? colorFromString(typename) : 'var(--node-color-no-type)'
-    }
-    return groupColorStyle(group)
+    return computeNodeColor(
+      () => tryGetIndex(this.groups.value, this.nodeMainSuggestion.lookup(id)?.groupIndex),
+      () => this.getExpressionInfo(id)?.typename,
+    )
   })
 
   getNodeFirstOutputPort(id: NodeId): AstId {
@@ -231,6 +232,10 @@ export class GraphDb {
     for (const outputPort of outputPorts) {
       yield* this.connections.lookup(outputPort)
     }
+  }
+
+  getOuterExpressionNodeId(exprId: AstId | undefined): NodeId | undefined {
+    return exprId && set.first(this.nodeIdToOuterExprIds.reverseLookup(exprId))
   }
 
   getExpressionNodeId(exprId: AstId | undefined): NodeId | undefined {
@@ -483,8 +488,10 @@ export class GraphDb {
 
 declare const brandNodeId: unique symbol
 export type NodeId = AstId & { [brandNodeId]: never }
-export function asNodeId(id: Ast.AstId): NodeId {
-  return id as NodeId
+export function asNodeId(id: Ast.AstId): NodeId
+export function asNodeId(id: Ast.AstId | undefined): NodeId | undefined
+export function asNodeId(id: Ast.AstId | undefined): NodeId | undefined {
+  return id != null ? (id as NodeId) : undefined
 }
 
 export interface NodeDataFromAst {

@@ -64,49 +64,60 @@ type Function
     >> self ~that = x -> that (self x)
 
 
-## An identity function which returns the provided argument.
+## ICON braces
+   An identity function which returns the provided argument.
 
    Arguments:
    - x: the value to return.
 
    > Example
-     five = Function.identity 5 # returns number 5
+     Create a function always returning the provided argument and apply it to 5.
+
+         five = Function.identity 5
 identity : Any -> Any
 identity x = x
 
-## Flips the first two arguments of a function. Returns function that
+## ICON braces
+   Flips the first two arguments of a function. Returns function that
    takes two arguments, but in opposite order.
 
    Arguments:
    - f function that takes two arguments
 
    > Example
-    IO.println <| Function.flip (+) "world" "hello" # Prints 'helloworld'
+     Create a function that concatenates two strings in reverse order and print the result.
+
+       # Prints 'helloworld'
+       IO.println <| Function.flip (+) "world" "hello"
 flip : (Any -> Any -> Any) -> (Any -> Any -> Any)
 flip f = (x -> y -> f y x)
 
-## Creates a function which drops its input and returns the provided value instead.
+## ICON braces
+   Creates a function which drops its input and returns the provided value instead.
    The expression const a is the same as \_ -> a.
 
    Arguments:
    - x constant value to return
 
    > Example
-    IO.println <| [1, 2, 3].map (Function.const 7) # Prints '[7, 7, 7]'
+
+       IO.println <| [1, 2, 3].map (Function.const 7) # Prints '[7, 7, 7]'
 const : Any -> Any -> Any
 const x ~f =
     black_hole ~_ = Nothing
     black_hole f
     x
 
-## Converts a single-argument function accepting a pair of elements into a multi-argument one.
+## ICON braces
+   Converts a single-argument function accepting a pair of elements into a multi-argument one.
 
    Arguments:
    - f function accepting pair of values
 curry : (Vector Any -> Any) -> (Any -> Any -> Any)
 curry f = x -> y -> f [x, y]
 
-## Converts a multi-argument function into a single-argument one accepting a pair of elements.
+## ICON braces
+   Converts a multi-argument function into a single-argument one accepting a pair of elements.
 
    Arguments:
    - f function accepting multiple arguments

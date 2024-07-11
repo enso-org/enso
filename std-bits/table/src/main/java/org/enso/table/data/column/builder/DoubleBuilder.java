@@ -11,6 +11,7 @@ import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
 import org.enso.table.data.column.storage.numeric.BigIntegerStorage;
 import org.enso.table.data.column.storage.numeric.DoubleStorage;
+import org.enso.table.data.column.storage.type.BigDecimalType;
 import org.enso.table.data.column.storage.type.BigIntegerType;
 import org.enso.table.data.column.storage.type.BooleanType;
 import org.enso.table.data.column.storage.type.FloatType;
@@ -39,12 +40,26 @@ public class DoubleBuilder extends NumericBuilder {
 
   @Override
   public boolean canRetypeTo(StorageType type) {
-    return false;
+    return type instanceof BigDecimalType;
   }
 
   @Override
   public TypedBuilder retypeTo(StorageType type) {
-    throw new UnsupportedOperationException();
+    if (type instanceof BigDecimalType) {
+      BigDecimalBuilder res = new BigDecimalBuilder(currentSize);
+      for (int i = 0; i < currentSize; i++) {
+        if (isNothing.get(i)) {
+          res.appendNulls(1);
+        } else {
+          double d = Double.longBitsToDouble(data[i]);
+          BigDecimal bigDecimal = BigDecimal.valueOf(d);
+          res.appendNoGrow(bigDecimal);
+        }
+      }
+      return res;
+    } else {
+      throw new UnsupportedOperationException();
+    }
   }
 
   @Override
@@ -181,6 +196,15 @@ public class DoubleBuilder extends NumericBuilder {
     appendRawNoGrow(Double.doubleToRawLongBits(converted));
   }
 
+  public void appendBigDecimal(BigDecimal integer) {
+    if (currentSize >= this.data.length) {
+      grow();
+    }
+
+    double converted = convertBigDecimalToDouble(integer);
+    appendRawNoGrow(Double.doubleToRawLongBits(converted));
+  }
+
   @Override
   public Storage<Double> seal() {
     return new DoubleStorage(data, currentSize, isNothing);
@@ -196,7 +220,7 @@ public class DoubleBuilder extends NumericBuilder {
     double floatingPointValue = (double) integer;
     boolean isLosingPrecision = (long) floatingPointValue != integer;
     if (isLosingPrecision) {
-      precisionLossAggregator.reportPrecisionLoss(integer, floatingPointValue);
+      precisionLossAggregator.reportIntegerPrecisionLoss(integer, floatingPointValue);
     }
     return floatingPointValue;
   }
@@ -206,7 +230,21 @@ public class DoubleBuilder extends NumericBuilder {
     BigInteger reconstructed = BigDecimal.valueOf(floatingPointValue).toBigInteger();
     boolean isLosingPrecision = !bigInteger.equals(reconstructed);
     if (isLosingPrecision) {
-      precisionLossAggregator.reportPrecisionLoss(bigInteger, floatingPointValue);
+      precisionLossAggregator.reportIntegerPrecisionLoss(bigInteger, floatingPointValue);
+    }
+    return floatingPointValue;
+  }
+
+  protected double convertBigDecimalToDouble(BigDecimal bigDecimal) {
+    double floatingPointValue = bigDecimal.doubleValue();
+    if (Double.isInfinite(floatingPointValue)) {
+      precisionLossAggregator.reportBigDecimalPrecisionLoss(bigDecimal, floatingPointValue);
+    } else {
+      BigDecimal reconstructed = BigDecimal.valueOf(floatingPointValue);
+      boolean isLosingPrecision = !bigDecimal.equals(reconstructed);
+      if (isLosingPrecision) {
+        precisionLossAggregator.reportBigDecimalPrecisionLoss(bigDecimal, floatingPointValue);
+      }
     }
     return floatingPointValue;
   }
@@ -216,22 +254,34 @@ public class DoubleBuilder extends NumericBuilder {
       super(parent);
     }
 
-    private LossOfIntegerPrecision instance = null;
+    private LossOfIntegerPrecision integerInstance = null;
+    private LossOfBigDecimalPrecision bigDecimalInstance = null;
 
     @Override
     public ProblemSummary summarize() {
       ProblemSummary summary = super.summarize();
-      if (instance != null) {
-        summary.add(instance);
+      if (integerInstance != null) {
+        summary.add(integerInstance);
+      }
+      if (bigDecimalInstance != null) {
+        summary.add(bigDecimalInstance);
       }
       return summary;
     }
 
-    final void reportPrecisionLoss(Number number, double approximation) {
-      if (instance == null) {
-        instance = new LossOfIntegerPrecision(number, approximation);
+    final void reportIntegerPrecisionLoss(Number number, double approximation) {
+      if (integerInstance == null) {
+        integerInstance = new LossOfIntegerPrecision(number, approximation);
       } else {
-        instance.incrementAffectedRows();
+        integerInstance.incrementAffectedRows();
+      }
+    }
+
+    final void reportBigDecimalPrecisionLoss(BigDecimal number, double approximation) {
+      if (bigDecimalInstance == null) {
+        bigDecimalInstance = new LossOfBigDecimalPrecision(number, approximation);
+      } else {
+        bigDecimalInstance.incrementAffectedRows();
       }
     }
   }

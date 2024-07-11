@@ -1,7 +1,4 @@
-/**
- * @file
- * This file is the page for restoring an account that has been deleted.
- */
+/** @file Restore an account that has been deleted. */
 import * as React from 'react'
 
 import * as reactQuery from '@tanstack/react-query'
@@ -9,26 +6,24 @@ import * as reactQuery from '@tanstack/react-query'
 import UntrashIcon from 'enso-assets/untrash.svg'
 
 import * as authProvider from '#/providers/AuthProvider'
-import * as backendProvider from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 import SvgMask from '#/components/SvgMask'
 
-/**
- * This component is the page for restoring an account that has been deleted.
- */
+// ======================
+// === RestoreAccount ===
+// ======================
+
+/** Restore an account that has been deleted. */
 export default function RestoreAccount() {
   const { getText } = textProvider.useText()
   const { signOut, restoreUser } = authProvider.useAuth()
-  const { backend } = backendProvider.useBackend()
 
-  const signOutMutation = reactQuery.useMutation({
-    mutationFn: signOut,
-  })
+  const signOutMutation = reactQuery.useMutation({ mutationFn: signOut })
   const restoreAccountMutation = reactQuery.useMutation({
-    mutationFn: () => restoreUser(backend),
+    mutationFn: () => restoreUser(),
   })
 
   return (

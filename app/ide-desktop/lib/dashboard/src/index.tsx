@@ -4,13 +4,23 @@
 import * as React from 'react'
 
 import * as sentry from '@sentry/react'
+import * as reactQuery from '@tanstack/react-query'
 import * as reactDOM from 'react-dom/client'
 import * as reactRouter from 'react-router-dom'
+import invariant from 'tiny-invariant'
 
 import * as detect from 'enso-common/src/detect'
 
 import type * as app from '#/App'
 import App from '#/App'
+
+import LoadingScreen from '#/pages/authentication/LoadingScreen'
+
+import * as devtools from '#/components/Devtools'
+import * as errorBoundary from '#/components/ErrorBoundary'
+import * as suspense from '#/components/Suspense'
+
+import HttpClient from '#/utilities/HttpClient'
 
 // =================
 // === Constants ===
@@ -33,9 +43,8 @@ const SENTRY_SAMPLE_RATE = 0.005
 export // This export declaration must be broken up to satisfy the `require-jsdoc` rule.
 // This is not a React component even though it contains JSX.
 // eslint-disable-next-line no-restricted-syntax
-function run(props: app.AppProps) {
-  const { logger, vibrancy, supportsDeepLinks } = props
-  logger.log('Starting authentication/dashboard UI.')
+function run(props: Omit<app.AppProps, 'httpClient' | 'portalRoot'>) {
+  const { vibrancy, supportsDeepLinks, queryClient } = props
   if (
     !detect.IS_DEV_MODE &&
     process.env.ENSO_CLOUD_SENTRY_DSN != null &&
@@ -69,26 +78,40 @@ function run(props: app.AppProps) {
     document.body.classList.add('vibrancy')
   }
 
-  /** The root element into which the authentication/dashboard app will be rendered. */
   const root = document.getElementById(ROOT_ELEMENT_ID)
-  if (root == null) {
-    logger.error(`Could not find root element with ID '${ROOT_ELEMENT_ID}'.`)
-  } else {
-    // `supportsDeepLinks` will be incorrect when accessing the installed Electron app's pages
-    // via the browser.
-    const actuallySupportsDeepLinks = supportsDeepLinks && detect.isOnElectron()
+  const portalRoot = document.querySelector('#enso-portal-root')
+
+  invariant(root, 'Root element not found')
+  invariant(portalRoot, 'PortalRoot element not found')
+
+  // `supportsDeepLinks` will be incorrect when accessing the installed Electron app's pages
+  // via the browser.
+  const actuallySupportsDeepLinks = detect.IS_DEV_MODE
+    ? supportsDeepLinks
+    : supportsDeepLinks && detect.isOnElectron()
+
+  const httpClient = new HttpClient()
+
+  React.startTransition(() => {
     reactDOM.createRoot(root).render(
-      <sentry.ErrorBoundary>
-        {detect.IS_DEV_MODE ? (
-          <React.StrictMode>
-            <App {...props} />
-          </React.StrictMode>
-        ) : (
-          <App {...props} supportsDeepLinks={actuallySupportsDeepLinks} />
-        )}
-      </sentry.ErrorBoundary>
+      <React.StrictMode>
+        <reactQuery.QueryClientProvider client={queryClient}>
+          <errorBoundary.ErrorBoundary>
+            <suspense.Suspense fallback={<LoadingScreen />}>
+              <App
+                {...props}
+                supportsDeepLinks={actuallySupportsDeepLinks}
+                portalRoot={portalRoot}
+                httpClient={httpClient}
+              />
+            </suspense.Suspense>
+          </errorBoundary.ErrorBoundary>
+
+          <devtools.ReactQueryDevtools />
+        </reactQuery.QueryClientProvider>
+      </React.StrictMode>
     )
-  }
+  })
 }
 
 /** Global configuration for the {@link App} component. */

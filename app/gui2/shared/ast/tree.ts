@@ -32,6 +32,7 @@ import type { SourceRangeEdit } from '../util/data/text'
 import { allKeys } from '../util/types'
 import type { ExternalId, VisualizationMetadata } from '../yjsModel'
 import { visMetadataEquals } from '../yjsModel'
+import { is_numeric_literal } from './ffi'
 import * as RawAst from './generated/ast'
 import {
   applyTextEditsToAst,
@@ -117,8 +118,33 @@ export abstract class Ast {
   }
 
   innerExpression(): Ast {
-    // TODO: Override this in `Documented`, `Annotated`, `AnnotatedBuiltin`
-    return this
+    return this.wrappedExpression()?.innerExpression() ?? this
+  }
+
+  wrappedExpression(): Ast | undefined {
+    return undefined
+  }
+
+  wrappingExpression(): Ast | undefined {
+    const parent = this.parent()
+    return parent?.wrappedExpression()?.is(this) ? parent : undefined
+  }
+
+  wrappingExpressionRoot(): Ast {
+    return this.wrappingExpression()?.wrappingExpressionRoot() ?? this
+  }
+
+  documentingAncestor(): Documented | undefined {
+    return this.wrappingExpression()?.documentingAncestor()
+  }
+
+  get isBindingStatement(): boolean {
+    const inner = this.wrappedExpression()
+    if (inner) {
+      return inner.isBindingStatement
+    } else {
+      return false
+    }
   }
 
   code(): string {
@@ -328,6 +354,14 @@ export abstract class MutableAst extends Ast {
     applyTextEditsToAst(this, textEdits, metadataSource ?? this.module)
   }
 
+  getOrInitDocumentation(): MutableDocumented {
+    const existing = this.documentingAncestor()
+    if (existing) return this.module.getVersion(existing)
+    return this.module
+      .getVersion(this.wrappingExpressionRoot())
+      .updateValue((ast) => Documented.new('', ast))
+  }
+
   ///////////////////
 
   /** @internal */
@@ -351,9 +385,10 @@ export abstract class MutableAst extends Ast {
     assertEqual(changes, 1)
   }
 
-  protected claimChild<T extends MutableAst>(child: Owned<T>): AstId
-  protected claimChild<T extends MutableAst>(child: Owned<T> | undefined): AstId | undefined
-  protected claimChild<T extends MutableAst>(child: Owned<T> | undefined): AstId | undefined {
+  /** @internal */
+  claimChild<T extends MutableAst>(child: Owned<T>): AstId
+  claimChild<T extends MutableAst>(child: Owned<T> | undefined): AstId | undefined
+  claimChild<T extends MutableAst>(child: Owned<T> | undefined): AstId | undefined {
     return child ? claimChild(this.module, child, this.id) : undefined
   }
 }
@@ -772,6 +807,10 @@ export class AutoscopedIdentifier extends Ast {
   declare fields: FixedMapView<AstFields & AutoscopedIdentifierFields>
   constructor(module: Module, fields: FixedMapView<AstFields & AutoscopedIdentifierFields>) {
     super(module, fields)
+  }
+
+  get identifier(): Token {
+    return this.module.getToken(this.fields.get('identifier').node)
   }
 
   static tryParse(
@@ -1575,6 +1614,14 @@ export class Documented extends Ast {
     return raw.startsWith(' ') ? raw.slice(1) : raw
   }
 
+  wrappedExpression(): Ast | undefined {
+    return this.expression
+  }
+
+  documentingAncestor(): Documented | undefined {
+    return this
+  }
+
   *concreteChildren(_verbatim?: boolean): IterableIterator<RawNodeChild> {
     const { open, elements, newlines, expression } = getAll(this.fields)
     yield open
@@ -1721,6 +1768,10 @@ export class Group extends Ast {
     return this.module.get(this.fields.get('expression')?.node)
   }
 
+  wrappedExpression(): Ast | undefined {
+    return this.expression
+  }
+
   *concreteChildren(_verbatim?: boolean): IterableIterator<RawNodeChild> {
     const { open, expression, close } = getAll(this.fields)
     if (open) yield open
@@ -1775,11 +1826,15 @@ export class MutableNumericLiteral extends NumericLiteral implements MutableAst 
 export interface MutableNumericLiteral extends NumericLiteral, MutableAst {}
 applyMixins(MutableNumericLiteral, [MutableAst])
 
+export function isNumericLiteral(code: string) {
+  return is_numeric_literal(code)
+}
+
 /** The actual contents of an `ArgumentDefinition` are complex, but probably of more interest to the compiler than the
  *  GUI. We just need to represent them faithfully and create the simple cases. */
 type ArgumentDefinition<T extends TreeRefs = RawRefs> = (T['ast'] | T['token'])[]
 
-interface FunctionFields {
+export interface FunctionFields {
   name: NodeChild<AstId>
   argumentDefinitions: ArgumentDefinition[]
   equals: NodeChild<SyncTokenId>
@@ -1868,6 +1923,10 @@ export class Function extends Ast {
     }
   }
 
+  get isBindingStatement(): boolean {
+    return true
+  }
+
   *concreteChildren(_verbatim?: boolean): IterableIterator<RawNodeChild> {
     const { name, argumentDefinitions, equals, body } = getAll(this.fields)
     yield name
@@ -1954,6 +2013,10 @@ export class Assignment extends Ast {
   }
   get expression(): Ast {
     return this.module.get(this.fields.get('expression').node)
+  }
+
+  get isBindingStatement(): boolean {
+    return true
   }
 
   *concreteChildren(verbatim?: boolean): IterableIterator<RawNodeChild> {

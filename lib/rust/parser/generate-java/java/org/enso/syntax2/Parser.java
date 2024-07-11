@@ -7,7 +7,13 @@ import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
 
 public final class Parser implements AutoCloseable {
-  static {
+  private static void initializeLibraries() {
+    try {
+      System.loadLibrary("enso_parser");
+      return;
+    } catch (LinkageError err) {
+      // try harder to find the library
+    }
     String os = System.getProperty("os.name");
     String name;
     if (os.startsWith("Mac")) {
@@ -18,17 +24,33 @@ public final class Parser implements AutoCloseable {
       name = "libenso_parser.so";
     }
 
-    File parser = null;
+    var whereAmI = Parser.class.getProtectionDomain().getCodeSource().getLocation();
+    File root;
     try {
-      var whereAmI = Parser.class.getProtectionDomain().getCodeSource().getLocation();
-      File dir = new File(whereAmI.toURI()).getParentFile();
-      parser = new File(dir, name);
-      System.load(parser.getAbsolutePath());
-    } catch (URISyntaxException | LinkageError e) {
-      File root = new File(".").getAbsoluteFile();
-      if (!searchFromDirToTop(e, root, "target", "rust", "debug", name)) {
-        throw new IllegalStateException("Cannot load parser from " + parser, e);
+      root = new File(whereAmI.toURI()).getParentFile();
+    } catch (URISyntaxException ex) {
+      root = new File(".").getAbsoluteFile();
+    }
+    try {
+      var d = root;
+      File path = null;
+      while (d != null) {
+        path = new File(new File(d, "component"), name);
+        if (path.exists()) break;
+        d = d.getParentFile();
       }
+      if (d == null || path == null) {
+        throw new LinkageError("Cannot find parser in " + root);
+      }
+      System.load(path.getAbsolutePath());
+    } catch (NullPointerException | IllegalArgumentException | LinkageError e) {
+      if (searchFromDirToTop(e, root, "target", "rust", "debug", name)) {
+        return;
+      }
+      if (searchFromDirToTop(e, new File(".").getAbsoluteFile(), "target", "rust", "debug", name)) {
+        return;
+      }
+      throw new IllegalStateException("Cannot load parser from " + root, e);
     }
   }
 
@@ -77,6 +99,7 @@ public final class Parser implements AutoCloseable {
   static native long getUuidLow(long metadata, long codeOffset, long codeLength);
 
   public static Parser create() {
+    initializeLibraries();
     var state = allocState();
     return new Parser(state);
   }

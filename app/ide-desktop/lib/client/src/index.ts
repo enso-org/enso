@@ -39,6 +39,7 @@ const logger = contentConfig.logger
 
 if (process.env.ELECTRON_DEV_MODE === 'true' && process.env.NODE_MODULES_PATH != null) {
     require.main?.paths.unshift(process.env.NODE_MODULES_PATH)
+    console.log(require.main?.paths)
 }
 
 // ===========
@@ -63,6 +64,20 @@ class App {
         fileAssociations.setOpenFileEventHandler(id => {
             this.setProjectToOpenOnStartup(id)
         })
+
+        electron.app.commandLine.appendSwitch('allow-insecure-localhost', 'true')
+        electron.app.commandLine.appendSwitch('ignore-certificate-errors', 'true')
+        electron.app.commandLine.appendSwitch('ignore-ssl-errors', 'true')
+        electron.app.commandLine.appendSwitch('ignore-certificate-errors-spki-list', 'true')
+        electron.app.on(
+            'certificate-error',
+            (event, _webContents, _url, _error, _certificate, callback) => {
+                // Prevent having error
+                event.preventDefault()
+                // and continue
+                callback(true)
+            }
+        )
 
         const { windowSize, chromeOptions, fileToOpen, urlToOpen } = this.processArguments()
         this.handleItemOpening(fileToOpen, urlToOpen)
@@ -169,10 +184,17 @@ class App {
             }
         }
         const add = (option: string, value?: string) => {
+            const chromeOption = new configParser.ChromeOption(option, value)
+            const chromeOptionStr = chromeOption.display()
+            logger.log(`Setting '${chromeOptionStr}'`)
             chromeOptions.push(new configParser.ChromeOption(option, value))
         }
         logger.groupMeasured('Setting Chrome options', () => {
             const perfOpts = this.args.groups.performance.options
+            add('ignore-certificate-errors-spki-list')
+            add('allow-insecure-localhost')
+            add('ignore-certificate-errors')
+            add('ignore-ssl-errors')
             addIf(perfOpts.disableGpuSandbox, 'disable-gpu-sandbox')
             addIf(perfOpts.disableGpuVsync, 'disable-gpu-vsync')
             addIf(perfOpts.disableSandbox, 'no-sandbox')
@@ -202,8 +224,8 @@ class App {
             await logger.asyncGroupMeasured('Starting the application', async () => {
                 // Note that we want to do all the actions synchronously, so when the window
                 // appears, it serves the website immediately.
-                await this.startBackendIfEnabled()
                 await this.startContentServerIfEnabled()
+                await this.startBackendIfEnabled()
                 await this.createWindowIfEnabled(windowSize)
                 this.initIpc()
                 await this.loadWindowContent()
@@ -215,8 +237,10 @@ class App {
                 authentication.initModule(() => this.window!)
             })
         } catch (err) {
-            console.error('Failed to initialize the application, shutting down. Error:', err)
+            logger.error('Failed to initialize the application, shutting down. Error: ', err)
             electron.app.quit()
+        } finally {
+            logger.groupEnd()
         }
     }
 
@@ -245,7 +269,14 @@ class App {
             })
             const projectManagerUrl = `ws://${this.projectManagerHost}:${this.projectManagerPort}`
             this.args.groups.engine.options.projectManagerUrl.value = projectManagerUrl
-            const backendOpts = this.args.groups.debug.options.verbose.value ? ['-vv'] : []
+            const backendVerboseOpts = this.args.groups.debug.options.verbose.value ? ['-vv'] : []
+            const backendProfileTime = this.args.groups.debug.options.profileTime.value
+                ? ['--profiling-time', String(this.args.groups.debug.options.profileTime.value)]
+                : ['--profiling-time', '120']
+            const backendProfileOpts = this.args.groups.debug.options.profile.value
+                ? ['--profiling-path', 'profiling.npss', ...backendProfileTime]
+                : []
+            const backendOpts = [...backendVerboseOpts, ...backendProfileOpts]
             const backendEnv = Object.assign({}, process.env, {
                 // These are environment variables, and MUST be in CONSTANT_CASE.
                 // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -260,18 +291,24 @@ class App {
     /** Start the content server, which will serve the application content (HTML) to the window. */
     async startContentServerIfEnabled() {
         await this.runIfEnabled(this.args.options.server, async () => {
-            await logger.asyncGroupMeasured('Starting the content server.', async () => {
-                const serverCfg = new server.Config({
-                    dir: paths.ASSETS_PATH,
-                    port: this.args.groups.server.options.port.value,
-                    externalFunctions: {
-                        uploadProjectBundle: projectManagement.uploadBundle,
-                        runProjectManagerCommand: (cliArguments, body?: NodeJS.ReadableStream) =>
-                            projectManager.runCommand(this.args, cliArguments, body),
-                    },
+            await logger
+                .asyncGroupMeasured('Starting the content server.', async () => {
+                    const serverCfg = new server.Config({
+                        dir: paths.ASSETS_PATH,
+                        port: this.args.groups.server.options.port.value,
+                        externalFunctions: {
+                            uploadProjectBundle: projectManagement.uploadBundle,
+                            runProjectManagerCommand: (
+                                cliArguments,
+                                body?: NodeJS.ReadableStream
+                            ) => projectManager.runCommand(this.args, cliArguments, body),
+                        },
+                    })
+                    this.server = await server.Server.create(serverCfg)
                 })
-                this.server = await server.Server.create(serverCfg)
-            })
+                .finally(() => {
+                    logger.groupEnd()
+                })
         })
     }
 
@@ -311,6 +348,32 @@ class App {
                 }
                 const window = new electron.BrowserWindow(windowPreferences)
                 window.setMenuBarVisibility(false)
+                const oldMenu = electron.Menu.getApplicationMenu()
+                if (oldMenu != null) {
+                    const items = oldMenu.items.map(item => {
+                        if (item.role !== 'help') {
+                            return item
+                        } else {
+                            // `click` is a property that is intentionally removed from this
+                            // destructured object, in order to satisfy TypeScript.
+                            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                            const { click, ...passthrough } = item
+                            return new electron.MenuItem({
+                                ...passthrough,
+                                submenu: electron.Menu.buildFromTemplate([
+                                    new electron.MenuItem({
+                                        label: `About ${common.PRODUCT_NAME}`,
+                                        click: () => {
+                                            window.webContents.send(ipc.Channel.showAboutModal)
+                                        },
+                                    }),
+                                ]),
+                            })
+                        }
+                    })
+                    const newMenu = electron.Menu.buildFromTemplate(items)
+                    electron.Menu.setApplicationMenu(newMenu)
+                }
 
                 if (this.args.groups.debug.options.devTools.value) {
                     window.webContents.openDevTools()
@@ -388,26 +451,47 @@ class App {
                 event.reply(ipc.Channel.importProjectFromPath, path, info)
             }
         )
+        electron.ipcMain.on(ipc.Channel.showItemInFolder, (_event, fullPath: string) => {
+            electron.shell.showItemInFolder(fullPath)
+        })
         electron.ipcMain.handle(
             ipc.Channel.openFileBrowser,
-            async (_event, kind: 'default' | 'directory' | 'file') => {
-                logger.log('Request for opening browser for ', kind)
-                /** Helper for `showOpenDialog`, which has weird types by default. */
-                type Properties = ('openDirectory' | 'openFile')[]
-                const properties: Properties =
-                    kind === 'file'
-                        ? ['openFile']
-                        : kind === 'directory'
-                          ? ['openDirectory']
-                          : process.platform === 'darwin'
-                            ? ['openFile', 'openDirectory']
-                            : ['openFile']
-                const { canceled, filePaths } = await electron.dialog.showOpenDialog({ properties })
-                if (!canceled) {
-                    return filePaths
+            async (
+                _event,
+                kind: 'default' | 'directory' | 'file' | 'filePath',
+                defaultPath?: string
+            ) => {
+                logger.log('Request for opening browser for ', kind, defaultPath)
+                let retval = null
+                if (kind === 'filePath') {
+                    // "Accept", as the file won't be created immediately.
+                    const { canceled, filePath } = await electron.dialog.showSaveDialog({
+                        buttonLabel: 'Accept',
+                        ...(defaultPath != null ? { defaultPath } : {}),
+                    })
+                    if (!canceled) {
+                        retval = [filePath]
+                    }
                 } else {
-                    return null
+                    /** Helper for `showOpenDialog`, which has weird types by default. */
+                    type Properties = ('openDirectory' | 'openFile')[]
+                    const properties: Properties =
+                        kind === 'file'
+                            ? ['openFile']
+                            : kind === 'directory'
+                              ? ['openDirectory']
+                              : process.platform === 'darwin'
+                                ? ['openFile', 'openDirectory']
+                                : ['openFile']
+                    const { canceled, filePaths } = await electron.dialog.showOpenDialog({
+                        properties,
+                        ...(defaultPath != null ? { defaultPath } : {}),
+                    })
+                    if (!canceled) {
+                        retval = filePaths
+                    }
                 }
+                return retval
             }
         )
 
@@ -437,7 +521,7 @@ class App {
                     searchParams[option.qualifiedName()] = option.value.toString()
                 }
             }
-            const address = new URL('http://localhost')
+            const address = new URL('https://localhost')
             address.port = this.serverPort().toString()
             address.search = new URLSearchParams(searchParams).toString()
             logger.log(`Loading the window address '${address.toString()}'.`)

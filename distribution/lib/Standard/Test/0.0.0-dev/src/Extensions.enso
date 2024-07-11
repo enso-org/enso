@@ -415,7 +415,7 @@ Error.should_be_false self = Test.fail_match_on_unexpected_error self 1
    Arguments:
    - typ: The type to assert that `self` is a value of.
 
-   > Examples
+   > Example
      Assert that 1 is of type Boolean.
 
          from Standard.Test import Test
@@ -431,19 +431,19 @@ Any.should_be_a self typ =
         c : Meta.Constructor -> case Meta.meta self of
                 a : Meta.Atom ->
                     if a.constructor == c then Spec_Result.Success else
-                        expected_type = Meta.get_qualified_type_name typ
+                        expected_type = c.declaring_type.qualified_name
                         actual_type = Meta.get_qualified_type_name self
                         message = "Expected a value of type "+expected_type+", built with constructor "+c.name+", but got a value of type "+actual_type+", built with constructor "+a.constructor.name+" instead (at "+loc+")."
                         Test.fail message
                 _ ->
-                    expected_type = Meta.get_qualified_type_name typ
+                    expected_type = c.declaring_type.qualified_name
                     actual_type = Meta.get_qualified_type_name self
                     message = "Expected a value of type "+expected_type+", built with constructor "+c.name+", but got a value of type "+actual_type+" instead (at "+loc+")."
                     Test.fail message
-        _ : Meta.Type ->
+        meta_type : Meta.Type ->
             ok = self.is_a typ || self==typ
             if ok then Spec_Result.Success else
-                expected_type = Meta.get_qualified_type_name typ
+                expected_type = meta_type.qualified_name
                 actual_type = Meta.get_qualified_type_name self
                 message = "Expected a value of type "+expected_type+" but got a value of type "+actual_type+" instead (at "+loc+")."
                 Test.fail message

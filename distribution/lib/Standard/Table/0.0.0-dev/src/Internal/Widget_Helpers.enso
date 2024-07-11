@@ -4,7 +4,7 @@ import Standard.Base.Metadata.Widget
 from Standard.Base.Metadata.Choice import Option
 from Standard.Base.Metadata.Widget import Multiple_Choice, Numeric_Input, Single_Choice, Text_Input, Vector_Editor
 from Standard.Base.System.File_Format import format_types
-from Standard.Base.Widget_Helpers import make_format_chooser
+from Standard.Base.Widget_Helpers import make_any_selector, make_format_chooser
 
 import project.Aggregate_Column.Aggregate_Column
 import project.Internal.Parse_Values_Helper
@@ -13,6 +13,7 @@ import project.Join_Kind.Join_Kind
 import project.Sort_Column.Sort_Column
 import project.Table.Table
 import project.Value_Type.Auto
+import project.Value_Type.By_Type
 import project.Value_Type.Value_Type
 from project.Extensions.Table_Conversions import all
 
@@ -23,41 +24,40 @@ make_aggregate_column_selector table display=Display.Always =
     col_names_selector = make_column_name_selector table display=Display.Always add_expression=True
     column_widget = ["column", col_names_selector]
 
-    fqn = Meta.get_qualified_type_name Aggregate_Column
-    count = Option "Count" fqn+".Count"
+    count = Option "Count" "..Count"
 
     ## Currently can't support nested vector editors so using single picker
     col_list_selector = make_column_name_multi_selector table display=Display.Always
-    count_distinct = Option "Count Distinct" fqn+".Count_Distinct" [["columns", col_list_selector]]
+    count_distinct = Option "Count Distinct" "..Count_Distinct" [["columns", col_list_selector]]
 
     ## Currently can't support nested vector editors so using single order by picker
     order_by_selector = make_order_by_selector table Display.When_Modified name_only=True
-    first = Option "First" fqn+".First" [column_widget, ["order_by" , order_by_selector]]
-    last = Option "Last" fqn+".Last" [column_widget, ["order_by" , order_by_selector]]
+    first = Option "First" "..First" [column_widget, ["order_by" , order_by_selector]]
+    last = Option "Last" "..Last" [column_widget, ["order_by" , order_by_selector]]
 
-    count_not_nothing = Option "Count Not Nothing" fqn+".Count_Not_Nothing" [column_widget]
-    count_nothing = Option "Count Nothing" fqn+".Count_Nothing" [column_widget]
+    count_not_nothing = Option "Count Not Nothing" "..Count_Not_Nothing" [column_widget]
+    count_nothing = Option "Count Nothing" "..Count_Nothing" [column_widget]
 
     ## Should be a list of Text columns only
-    count_not_empty = Option "Count Not Empty" fqn+".Count_Not_Empty" [column_widget]
-    count_empty = Option "Count Empty" fqn+".Count_Empty" [column_widget]
-    concatenate = Option "Concatenate" fqn+".Concatenate" [column_widget]
-    shortest = Option "Shortest" fqn+".Shortest" [column_widget]
-    longest = Option "Longest" fqn+".Longest" [column_widget]
+    count_not_empty = Option "Count Not Empty" "..Count_Not_Empty" [column_widget]
+    count_empty = Option "Count Empty" "..Count_Empty" [column_widget]
+    concatenate = Option "Concatenate" "..Concatenate" [column_widget]
+    shortest = Option "Shortest" "..Shortest" [column_widget]
+    longest = Option "Longest" "..Longest" [column_widget]
 
     ## Should be a list of Numeric columns only
-    sum = Option "Sum" fqn+".Sum" [column_widget]
-    average = Option "Average" fqn+".Average" [column_widget]
-    median = Option "Median" fqn+".Median" [column_widget]
-    percentile = Option "Percentile" fqn+".Percentile" [column_widget]
-    mode = Option "Mode" fqn+".Mode" [column_widget]
-    standard_deviation = Option "Standard Deviation" fqn+".Standard_Deviation" [column_widget]
+    sum = Option "Sum" "..Sum" [column_widget]
+    average = Option "Average" "..Average" [column_widget]
+    median = Option "Median" "..Median" [column_widget]
+    percentile = Option "Percentile" "..Percentile" [column_widget]
+    mode = Option "Mode" "..Mode" [column_widget]
+    standard_deviation = Option "Standard Deviation" "..Standard_Deviation" [column_widget]
 
     # Should be a list of comparable columns only
-    maximum = Option "Maximum" fqn+".Maximum" [column_widget]
-    minimum = Option "Minimum" fqn+".Minimum" [column_widget]
+    maximum = Option "Maximum" "..Maximum" [column_widget]
+    minimum = Option "Minimum" "..Minimum" [column_widget]
 
-    Single_Choice display=display values=[count, count_distinct, first, last, count_not_nothing, count_nothing, count_not_empty, count_empty, concatenate, shortest, longest, sum, average, median, percentile, mode, standard_deviation, maximum, minimum]
+    Single_Choice display=display values=[count, sum, average, maximum, minimum, count_distinct, first, last, count_not_nothing, count_nothing, count_not_empty, count_empty, concatenate, shortest, longest, median, percentile, mode, standard_deviation]
 
 ## PRIVATE
    Make an Aggregate_Column list editor
@@ -65,7 +65,7 @@ make_aggregate_column_vector_selector : Table -> Display -> Widget
 make_aggregate_column_vector_selector table display=Display.Always =
     item_editor = make_aggregate_column_selector table display=Display.Always
     # TODO this is a workaround for a dropdown issue
-    Vector_Editor item_editor=item_editor item_default="(Aggregate_Column.Count)" display=display
+    Vector_Editor item_editor=item_editor item_default="..Count" display=display
 
 ## PRIVATE
    Make a column name selector.
@@ -85,23 +85,28 @@ make_column_name_vector_selector table display=Display.Always =
 
 ## PRIVATE
    Make a multiple column-name selector that allows each value to be selected at most once.
-make_column_name_multi_selector : Table -> Display -> Boolean -> Widget
-make_column_name_multi_selector table display:Display=Display.Always add_regex:Boolean=False =
+make_column_name_multi_selector : Table -> Display -> Boolean -> Boolean -> Widget
+make_column_name_multi_selector table display:Display=Display.Always add_regex:Boolean=False add_by_type:Boolean=False =
     names = table.column_names.map n-> Option n n.pretty
     regex = if add_regex then [Option "<Regular Expression>" "(regex '')"] else []
-    Multiple_Choice values=regex+names display=display
+    by_type = if add_by_type then [Option "<By Type>" "(..By_Type ..Integer)"] else []
+    Multiple_Choice values=regex+by_type+names display=display
 
 ## PRIVATE
    Make a column reference by name selector.
-make_column_ref_by_name_selector : Table -> Display -> Boolean -> Boolean -> Boolean -> Boolean -> Widget
-make_column_ref_by_name_selector table display:Display=Display.Always add_text:Boolean=False add_regex:Boolean=False add_number:Boolean=False add_boolean:Boolean=False =
+make_column_ref_by_name_selector : Table -> Display -> Boolean -> Boolean -> Boolean -> Boolean -> Boolean -> Widget
+make_column_ref_by_name_selector table display:Display=..Always add_text:Boolean=False add_regex:Boolean=False add_number:Boolean=False add_boolean:Boolean=False add_named_pattern:Boolean=False =
     text = if add_text then [Option "<Text Value>" "''"] else []
     regex = if add_regex then [Option "<Regular Expression>" "(regex '')"] else []
     number = if add_number then [Option "<Number Value>" "0"] else []
     boolean = if add_boolean then [Option "<True/False>" "True"] else []
+    named_pattern = if add_named_pattern.not then [] else
+        patterns = ["Leading_Whitespace", "Trailing_Whitespace", "All_Whitespace", "Leading_Numbers", "Trailing_Numbers", "Non_ASCII", "Tabs", "Letters", "Numbers", "Punctuation", "Symbols"]
+        ## Can't use auto-scoping as Named_Patterns are materialised into Regex.
+        patterns.map p-> Option "<"+p+">" "Named_Pattern."+p
     expression = if table.is_nothing then [] else [Option "<Expression>" "(expr '["+table.column_names.first+"]')"]
-    col_names = if table.is_nothing then [] else table.column_names.map (name -> Option name "(Column_Ref.Name "+name.pretty+")")
-    values = text + regex + number + boolean + expression + col_names
+    col_names = if table.is_nothing then [] else table.column_names.map (name -> Option name "(..Name "+name.pretty+")")
+    values = text + regex + number + boolean + named_pattern + expression + col_names
     Single_Choice values=values display=display
 
 ## PRIVATE
@@ -121,37 +126,35 @@ make_filter_condition_selector table display=Display.Always =
     with_text = make_column_ref_by_name_selector table add_text=True
 
     options = Vector.build builder->
-        fqn = Meta.get_qualified_type_name Filter_Condition
-        builder.append (Option "Equals" fqn+".Equal" [["to", with_all_types]])
-        builder.append (Option "Not Equals" fqn+".Not_Equal" [["to", with_all_types]])
-        builder.append (Option "Less Than" fqn+".Less" [["than", with_number_text]])
-        builder.append (Option "Less Than Or Equal" fqn+".Equal_Or_Less" [["than", with_number_text]])
-        builder.append (Option "Greater Than" fqn+".Greater" [["than", with_number_text]])
-        builder.append (Option "Greater Than Or Equal" fqn+".Equal_Or_Greater" [["than", with_number_text]])
-        builder.append (Option "Between" fqn+".Between" [["lower", with_number_text], ["upper", with_number_text]])
-        builder.append (Option "Equals Ignore Case" fqn+".Equal_Ignore_Case" [["to", with_text]])
-        builder.append (Option "Starts With" fqn+".Starts_With" [["prefix", with_text]])
-        builder.append (Option "Ends With" fqn+".Ends_With" [["suffix", with_text]])
-        builder.append (Option "Contains" fqn+".Contains" [["substring", with_text]])
-        builder.append (Option "Is Nothing" fqn+".Is_Nothing")
-        builder.append (Option "Is Not Nothing" fqn+".Not_Nothing")
-        builder.append (Option "Is Finite" fqn+".Is_Finite")
-        builder.append (Option "Is Infinite" fqn+".Is_Infinite")
-        builder.append (Option "Is NaN" fqn+".Is_Nan")
-        builder.append (Option "Is True" fqn+".Is_True")
-        builder.append (Option "Is False" fqn+".Is_False")
-        builder.append (Option "Is Empty" fqn+".Is_Empty")
-        builder.append (Option "Is Not Empty" fqn+".Not_Empty")
-        builder.append (Option "Like" fqn+".Like" [["pattern", with_text]])
-        builder.append (Option "Is In" fqn+".Is_In")
+        builder.append (Option "Equals" "..Equal" [["to", with_all_types]])
+        builder.append (Option "Not Equals" "..Not_Equal" [["to", with_all_types]])
+        builder.append (Option "Less Than" "..Less" [["than", with_number_text]])
+        builder.append (Option "Less Than Or Equal" "..Equal_Or_Less" [["than", with_number_text]])
+        builder.append (Option "Greater Than" "..Greater" [["than", with_number_text]])
+        builder.append (Option "Greater Than Or Equal" "..Equal_Or_Greater" [["than", with_number_text]])
+        builder.append (Option "Between" "..Between" [["lower", with_number_text], ["upper", with_number_text]])
+        builder.append (Option "Equals Ignore Case" "..Equal_Ignore_Case" [["to", with_text]])
+        builder.append (Option "Starts With" "..Starts_With" [["prefix", with_text]])
+        builder.append (Option "Ends With" "..Ends_With" [["suffix", with_text]])
+        builder.append (Option "Contains" "..Contains" [["substring", with_text]])
+        builder.append (Option "Is Nothing" "..Is_Nothing")
+        builder.append (Option "Is Not Nothing" "..Not_Nothing")
+        builder.append (Option "Is Finite" "..Is_Finite")
+        builder.append (Option "Is Infinite" "..Is_Infinite")
+        builder.append (Option "Is NaN" "..Is_Nan")
+        builder.append (Option "Is True" "..Is_True")
+        builder.append (Option "Is False" "..Is_False")
+        builder.append (Option "Is Empty" "..Is_Empty")
+        builder.append (Option "Is Not Empty" "..Not_Empty")
+        builder.append (Option "Like" "..Like" [["pattern", with_text]])
+        builder.append (Option "Is In" "..Is_In")
     Single_Choice options display=display
 
 ## PRIVATE
    Make a join kind selector - Needed to override display.
 make_join_kind_selector : Display -> Widget
 make_join_kind_selector display=Display.Always =
-    fqn = Meta.get_qualified_type_name Join_Kind
-    options = ["Inner", "Left_Outer", "Right_Outer", "Full", "Left_Exclusive", "Right_Exclusive"].map n-> Option n fqn+"."+n
+    options = ["Inner", "Left_Outer", "Right_Outer", "Full", "Left_Exclusive", "Right_Exclusive"].map n-> Option n ".."+n
     Single_Choice display=display values=options
 
 ## PRIVATE
@@ -163,27 +166,25 @@ make_join_condition_selector table display=Display.Always cache=Nothing =
     right_selector = if right.is_nothing then Text_Input else
         make_column_name_selector right display=Display.Always
 
-    fqn = Meta.get_qualified_type_name Join_Condition
-    equals = Option "Equals" fqn+".Equals" [["left", self_selector], ["right", right_selector]]
-    equals_ci = Option "Equals (Ignore Case)" fqn+".Equals_Ignore_Case" [["left", self_selector], ["right", right_selector]]
-    between = Option "Between" fqn+".Between" [["left", self_selector], ["right_lower", right_selector], ["right_upper", right_selector]]
+    equals = Option "Equals" "..Equals" [["left", self_selector], ["right", right_selector]]
+    equals_ci = Option "Equals (Ignore Case)" "..Equals_Ignore_Case" [["left", self_selector], ["right", right_selector]]
+    between = Option "Between" "..Between" [["left", self_selector], ["right_lower", right_selector], ["right_upper", right_selector]]
     names=[equals, equals_ci, between]
 
     item_editor = Single_Choice display=display values=names
-    Vector_Editor item_editor=item_editor item_default="(Join_Condition.Equals "+table.column_names.first.pretty+")" display=display
+    Vector_Editor item_editor=item_editor item_default="(..Equals "+table.column_names.first.pretty+")" display=display
 
 ## PRIVATE
    Make a column name selector.
 make_order_by_selector : Table -> Display -> Boolean -> Widget
 make_order_by_selector table display=Display.Always name_only:Boolean=False =
-    fqn = Meta.get_qualified_type_name Sort_Column
-    values = if name_only then table.column_names.map n-> Option n "(Sort_Column.Name "+n.pretty+")" else
-        name = Option "Name" fqn+".Name" [["name", make_column_name_selector table display=Display.Always]]
-        index = Option "Index" fqn+".Index" [["index", Numeric_Input display=Display.Always minimum=0 maximum=table.column_count-1]]
+    values = if name_only then table.column_names.map n-> Option n "(..Name "+n.pretty+")" else
+        name = Option "Name" "..Name" [["name", make_column_name_selector table display=Display.Always]]
+        index = Option "Index" "..Index" [["index", Numeric_Input display=Display.Always minimum=0 maximum=table.column_count-1]]
         [name, index]
 
     item_editor = Single_Choice display=Display.Always values=values
-    Vector_Editor item_editor=item_editor item_default="(Sort_Column.Name "+table.column_names.first.pretty+")" display=display
+    Vector_Editor item_editor=item_editor item_default="(..Name "+table.column_names.first.pretty+")" display=display
 
 ## PRIVATE
    Make a column rename name selector.
@@ -205,8 +206,7 @@ parse_type_selector include_auto=True =
     prefix = if include_auto then ['Auto'] else []
     names = prefix + valid_parse_targets
 
-    fqn = Meta.get_qualified_type_name Value_Type
-    choice = names.map n-> if n=='Auto' then (Meta.get_qualified_type_name Auto) else fqn+'.'+n
+    choice = names.map n-> if n=='Auto' then (Meta.get_qualified_type_name Auto) else '..'+n
 
     options = names.zip choice . map pair-> Option pair.first pair.second
     Single_Choice display=Display.Always values=options
@@ -239,3 +239,14 @@ make_value_type_vector_selector =
     options = meta.constructors.map c-> Option c.name meta.qualified_name+"."+c.name
     item_editor = Single_Choice display=Display.Always values=options
     Vector_Editor item_editor=item_editor item_default="Value_Type.Boolean" display=Display.Always
+
+## PRIVATE
+   Make a replace builder.
+make_replace_selector : Display -> Widget
+make_replace_selector display=Display.Always =
+    key_selector = make_any_selector add_text=True add_regex=True add_number=True add_boolean=True add_named_pattern=True add_nothing=False
+    value_selector = make_any_selector add_text=True add_regex=True add_number=True add_boolean=True add_named_pattern=True add_nothing=True
+    fqn = Meta.get_qualified_type_name Pair
+    name = Option "Pair" fqn+".Value" [["first", key_selector], ["second", value_selector]]
+    item_editor = Single_Choice display=Display.Always values=[name]
+    Vector_Editor item_editor=item_editor item_default="(Pair.Value 'Current' 'New')" display=display

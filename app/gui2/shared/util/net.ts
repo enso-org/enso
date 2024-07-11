@@ -1,8 +1,9 @@
 import { Transport } from '@open-rpc/client-js/build/transports/Transport'
-import type { ObservableV2 } from 'lib0/observable'
+import { type ObservableV2 } from 'lib0/observable'
 import { wait } from 'lib0/promise'
 import { type WebSocketEventMap } from 'partysocket/ws'
 import { type Result, type ResultError } from './data/result'
+import { type AddEventListenerOptions } from './net/ReconnectingWSTransport'
 
 interface Disposable {
   dispose(): void
@@ -23,9 +24,19 @@ export class AbortScope {
     this.onAbort(disposable.dispose.bind(disposable))
   }
 
+  /**
+   * Create a new abort scope with lifetime limited by this scope. It can be aborted earlier on its
+   * own, but it is guaranteed to be aborted whenever the parent scope aborts.
+   */
+  child(): AbortScope {
+    const child = new AbortScope()
+    this.handleDispose(child)
+    return child
+  }
+
   onAbort(listener: () => void) {
     if (this.signal.aborted) {
-      setTimeout(listener, 0)
+      queueMicrotask(listener)
     } else {
       this.signal.addEventListener('abort', listener, { once: true })
     }
@@ -161,7 +172,15 @@ export function printingCallbacks(successDescription: string, errorDescription: 
 }
 
 export type ReconnectingTransportWithWebsocketEvents = Transport & {
-  on<K extends keyof WebSocketEventMap>(type: K, cb: (event: WebSocketEventMap[K]) => void): void
-  off<K extends keyof WebSocketEventMap>(type: K, cb: (event: WebSocketEventMap[K]) => void): void
+  on<K extends keyof WebSocketEventMap>(
+    type: K,
+    cb: (event: WebSocketEventMap[K]) => void,
+    options?: AddEventListenerOptions,
+  ): void
+  off<K extends keyof WebSocketEventMap>(
+    type: K,
+    cb: (event: WebSocketEventMap[K]) => void,
+    options?: AddEventListenerOptions,
+  ): void
   reconnect(): void
 }

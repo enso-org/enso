@@ -29,6 +29,7 @@ import org.enso.compiler.core.ir.Diagnostic;
 import org.enso.compiler.core.ir.IdentifiedLocation;
 import org.enso.compiler.data.BindingsMap;
 import org.enso.compiler.data.CompilerConfig;
+import org.enso.compiler.data.IdMap;
 import org.enso.compiler.pass.analyse.BindingAnalysis$;
 import org.enso.compiler.suggestions.ExportsBuilder;
 import org.enso.compiler.suggestions.ExportsMap;
@@ -137,10 +138,16 @@ final class TruffleCompilerContext implements CompilerContext {
   }
 
   @Override
-  public void truffleRunCodegen(CompilerContext.Module module, CompilerConfig config)
+  public void truffleRunCodegen(
+      CompilerContext.Module module,
+      CompilerContext.ModuleScopeBuilder scopeBuilder,
+      CompilerConfig config)
       throws IOException {
     var m = org.enso.interpreter.runtime.Module.fromCompilerModule(module);
-    new IrToTruffle(context, m.getSource(), m.getScope(), config).run(module.getIr());
+    var s =
+        org.enso.interpreter.runtime.scope.ModuleScope.Builder.fromCompilerModuleScopeBuilder(
+            scopeBuilder);
+    new IrToTruffle(context, m.getSource(), s, config).run(module.getIr());
   }
 
   // module related
@@ -152,6 +159,12 @@ final class TruffleCompilerContext implements CompilerContext {
   @Override
   public CharSequence getCharacters(CompilerContext.Module module) throws IOException {
     return module.getCharacters();
+  }
+
+  @Override
+  public IdMap getIdMap(CompilerContext.Module module) {
+    var moduleIdMap = module.getIdMap();
+    return moduleIdMap == null ? IdMap.empty() : moduleIdMap;
   }
 
   @Override
@@ -241,8 +254,13 @@ final class TruffleCompilerContext implements CompilerContext {
   }
 
   @Override
-  public void runStubsGenerator(CompilerContext.Module module) {
-    stubsGenerator.run(((Module) module).unsafeModule());
+  public void runStubsGenerator(
+      CompilerContext.Module module, CompilerContext.ModuleScopeBuilder scopeBuilder) {
+    var m = ((Module) module).unsafeModule();
+    var s =
+        ((org.enso.interpreter.runtime.scope.TruffleCompilerModuleScopeBuilder) scopeBuilder)
+            .unsafeScopeBuilder();
+    stubsGenerator.run(m.getIr(), s);
   }
 
   @Override
@@ -579,14 +597,7 @@ final class TruffleCompilerContext implements CompilerContext {
               })
           .foreach(suggestions::add);
 
-      var cachedSuggestions =
-          new SuggestionsCache.CachedSuggestions(
-              libraryName,
-              new SuggestionsCache.Suggestions(suggestions),
-              context
-                  .getPackageRepository()
-                  .getPackageForLibraryJava(libraryName)
-                  .map(Package::listSourcesJava));
+      var cachedSuggestions = new SuggestionsCache.CachedSuggestions(libraryName, suggestions);
       var cache = SuggestionsCache.create(libraryName);
       var file = saveCache(cache, cachedSuggestions, useGlobalCacheLocations);
       return file != null;
@@ -603,7 +614,7 @@ final class TruffleCompilerContext implements CompilerContext {
   public scala.Option<Object> deserializeSuggestions(LibraryName libraryName)
       throws InterruptedException {
     var option = deserializeSuggestionsImpl(libraryName);
-    return option.map(s -> s.getSuggestions());
+    return option.map(s -> s.suggestions());
   }
 
   private scala.Option<SuggestionsCache.CachedSuggestions> deserializeSuggestionsImpl(
@@ -665,6 +676,7 @@ final class TruffleCompilerContext implements CompilerContext {
   private final class ModuleUpdater implements Updater, AutoCloseable {
     private final Module module;
     private BindingsMap[] map;
+    private IdMap idMap;
     private org.enso.compiler.core.ir.Module[] ir;
     private CompilationStage stage;
     private Boolean loadedFromCache;
@@ -678,6 +690,11 @@ final class TruffleCompilerContext implements CompilerContext {
     @Override
     public void bindingsMap(BindingsMap map) {
       this.map = new BindingsMap[] {map};
+    }
+
+    @Override
+    public void idMap(IdMap idMap) {
+      this.idMap = idMap;
     }
 
     @Override
@@ -709,12 +726,15 @@ final class TruffleCompilerContext implements CompilerContext {
     public void close() {
       if (map != null) {
         if (module.bindings != null && map[0] != null) {
-          loggerCompiler.log(Level.FINEST, "Reassigining bindings to {0}", module);
+          loggerCompiler.log(Level.FINEST, "Reassigning bindings to {0}", module);
         }
         module.bindings = map[0];
       }
       if (ir != null) {
         module.module.unsafeSetIr(ir[0]);
+      }
+      if (idMap != null) {
+        module.module.unsafeSetIdMap(idMap);
       }
       if (stage != null) {
         module.module.unsafeSetCompilationStage(stage);
@@ -723,8 +743,7 @@ final class TruffleCompilerContext implements CompilerContext {
         module.module.setLoadedFromCache(loadedFromCache);
       }
       if (resetScope) {
-        module.module.ensureScopeExists();
-        module.module.getScope().reset();
+        module.module.newScopeBuilder(true);
       }
       if (invalidateCache) {
         module.module.getCache().invalidate(context);
@@ -733,6 +752,7 @@ final class TruffleCompilerContext implements CompilerContext {
   }
 
   public static final class Module extends CompilerContext.Module {
+
     private final org.enso.interpreter.runtime.Module module;
     private BindingsMap bindings;
 
@@ -756,7 +776,7 @@ final class TruffleCompilerContext implements CompilerContext {
     }
 
     /** Intentionally not public. */
-    final org.enso.interpreter.runtime.Module unsafeModule() {
+    org.enso.interpreter.runtime.Module unsafeModule() {
       return module;
     }
 
@@ -784,7 +804,12 @@ final class TruffleCompilerContext implements CompilerContext {
       return bindings;
     }
 
-    final TruffleFile getSourceFile() {
+    @Override
+    public IdMap getIdMap() {
+      return module.getIdMap();
+    }
+
+    TruffleFile getSourceFile() {
       return module.getSourceFile();
     }
 
@@ -815,6 +840,18 @@ final class TruffleCompilerContext implements CompilerContext {
     @Override
     public boolean isPrivate() {
       return module.isPrivate();
+    }
+
+    @Override
+    public CompilerContext.ModuleScopeBuilder getScopeBuilder() {
+      return new org.enso.interpreter.runtime.scope.TruffleCompilerModuleScopeBuilder(
+          module.getScopeBuilder());
+    }
+
+    @Override
+    public ModuleScopeBuilder newScopeBuilder() {
+      return new org.enso.interpreter.runtime.scope.TruffleCompilerModuleScopeBuilder(
+          module.newScopeBuilder(false));
     }
 
     @Override

@@ -2,12 +2,13 @@
 import * as React from 'react'
 
 import * as aria from '#/components/aria'
+import * as ariaComponents from '#/components/AriaComponents'
 import FocusArea from '#/components/styled/FocusArea'
-import UnstyledButton from '#/components/UnstyledButton'
 
 import * as backend from '#/services/Backend'
 
 import * as permissions from '#/utilities/permissions'
+import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 // =================
 // === Constants ===
@@ -17,7 +18,7 @@ const CAPITALIZED_ASSET_TYPE: Readonly<Record<backend.AssetType, string>> = {
   [backend.AssetType.directory]: 'Folder',
   [backend.AssetType.project]: 'Project',
   [backend.AssetType.file]: 'File',
-  [backend.AssetType.dataLink]: 'Data Link',
+  [backend.AssetType.datalink]: 'Datalink',
   [backend.AssetType.secret]: 'Secret',
   // These assets should never be visible, since they don't have columns.
   [backend.AssetType.specialEmpty]: 'Empty asset',
@@ -105,21 +106,23 @@ export default function PermissionTypeSelector(props: PermissionTypeSelectorProp
                   ? true
                   : data.type !== permissions.Permission.owner)
             ).map(data => (
-              <UnstyledButton
+              <ariaComponents.Button
+                size="custom"
+                variant="custom"
                 key={data.type}
-                className={`flex h-row items-start gap-permission-type-button rounded-full p-permission-type-button hover:bg-black/5 ${
-                  type === data.type
-                    ? 'bg-black/5 hover:!bg-black/5 group-hover:bg-transparent'
-                    : ''
-                }`}
+                className={tailwindMerge.twMerge(
+                  'flex h-row items-start justify-stretch gap-permission-type-button rounded-full p-permission-type-button hover:bg-black/5',
+                  type === data.type && 'bg-black/5 hover:!bg-black/5 group-hover:bg-transparent'
+                )}
                 onPress={() => {
                   onChange(data.type)
                 }}
               >
                 <div
-                  className={`h-full w-permission-type rounded-full py-permission-type-y ${
+                  className={tailwindMerge.twMerge(
+                    'h-text w-permission-type rounded-full py-permission-type-y',
                     permissions.PERMISSION_CLASS_NAME[data.type]
-                  }`}
+                  )}
                 >
                   {data.type}
                 </div>
@@ -130,9 +133,10 @@ export default function PermissionTypeSelector(props: PermissionTypeSelectorProp
                 {data.previous != null && (
                   <>
                     <div
-                      className={`h-full w-permission-type rounded-full py-permission-type-y text-center ${
+                      className={tailwindMerge.twMerge(
+                        'h-text w-permission-type rounded-full py-permission-type-y text-center',
                         permissions.PERMISSION_CLASS_NAME[data.previous]
-                      }`}
+                      )}
                     >
                       {data.previous}
                     </div>
@@ -143,7 +147,7 @@ export default function PermissionTypeSelector(props: PermissionTypeSelectorProp
                   </>
                 )}
                 <aria.Label className="text">{data.description(assetType)}</aria.Label>
-              </UnstyledButton>
+              </ariaComponents.Button>
             ))}
           </div>
         </div>

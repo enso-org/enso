@@ -1,23 +1,22 @@
 from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
-from Standard.Table import Position, Value_Type, Bits
+from Standard.Table import Position, Value_Type, Bits, Table
 from Standard.Table.Errors import all
 
 from Standard.Test import all
 
-
 from project.Common_Table_Operations.Util import expect_column_names, run_default_backend
+import project.Common_Table_Operations.Util
 
 main filter=Nothing = run_default_backend add_specs filter
 
 type Select_Columns_Data
     Value ~data
 
-    connection self = self.data.at 0
-    table self = self.data.at 1
+    table self = self.data.at 0
 
-    setup create_connection_fn table_builder = Select_Columns_Data.Value <|
-        connection = create_connection_fn Nothing
+    setup table_builder = Select_Columns_Data.Value <|
         table =
             col1 = ["foo", [1,2,3]]
             col2 = ["bar", [4,5,6]]
@@ -26,39 +25,29 @@ type Select_Columns_Data
             col5 = ["foo 2", [13,14,15]]
             col6 = ["ab.+123", [16,17,18]]
             col7 = ["abcd123", [19,20,21]]
-            table_builder [col1, col2, col3, col4, col5, col6, col7] connection=connection
-        [connection, table]
-
-    teardown self =
-        self.connection.close
+            table_builder [col1, col2, col3, col4, col5, col6, col7]
+        [table]
 
 type Mixed_Columns_Data
     Value ~data
 
-    connection self = self.data.at 0
-    table self = self.data.at 1
+    table self = self.data.at 0
 
-    setup create_connection_fn table_builder = Mixed_Columns_Data.Value <|
-        connection = create_connection_fn Nothing
+    setup table_builder = Mixed_Columns_Data.Value <|
         table =
             col1 = ["int", [1, 2, 3]]
             col2 = ["float", [4.1, 5.2, 6.3]]
             col3 = ["text", ["A", "B", "C"]]
             col4 = ["bool", [True, False, True]]
-            table_builder [col1, col2, col3, col4] connection=connection
-        [connection, table]
-
-    teardown self =
-        self.connection.close
+            table_builder [col1, col2, col3, col4]
+        [table]
 
 type Sort_Columns_Data
     Value ~data
 
-    connection self = self.data.at 0
-    table self = self.data.at 1
+    table self = self.data.at 0
 
-    setup create_connection_fn table_builder = Sort_Columns_Data.Value <|
-        connection = create_connection_fn Nothing
+    setup table_builder = Sort_Columns_Data.Value <|
         table =
             col1 = ["foo 21", [1,2,3]]
             col2 = ["foo 100", [4,5,6]]
@@ -67,44 +56,30 @@ type Sort_Columns_Data
             col5 = ["foo 3", [13,14,15]]
             col6 = ["foo 001", [16,17,18]]
             col7 = ["bar", [19,20,21]]
-            table_builder [col1, col2, col3, col4, col5, col6, col7] connection=connection
-        [connection, table]
-
-    teardown self =
-        self.connection.close
-
+            table_builder [col1, col2, col3, col4, col5, col6, col7]
+        [table]
 
 type Rename_Columns_Data
     Value ~data
 
-    connection self = self.data.at 0
-    table self = self.data.at 1
+    table self = self.data.at 0
 
-    setup create_connection_fn table_builder = Rename_Columns_Data.Value <|
-        connection = create_connection_fn Nothing
+    setup table_builder = Rename_Columns_Data.Value <|
         table =
             col1 = ["alpha", [1,2,3]]
             col2 = ["beta", [4,5,6]]
             col3 = ["gamma", [16,17,18]]
             col4 = ["delta", [19,20,21]]
-            table_builder [col1, col2, col3, col4] connection=connection
-        [connection, table]
-
-    teardown self =
-        self.connection.close
-
+            table_builder [col1, col2, col3, col4]
+        [table]
 
 add_specs suite_builder setup =
     prefix = setup.prefix
-    table_builder = setup.table_builder
-    create_connection_fn = setup.create_connection_func
+    table_builder = Util.build_sorted_table setup
     test_selection = setup.test_selection
 
     suite_builder.group prefix+"Table.select_columns" group_builder->
-        data = Select_Columns_Data.setup create_connection_fn table_builder
-
-        group_builder.teardown <|
-            data.teardown
+        data = Select_Columns_Data.setup table_builder
 
         group_builder.specify "should work as shown in the doc examples" <|
             expect_column_names ["foo", "bar"] <| data.table.select_columns ["bar", "foo"]
@@ -158,7 +133,7 @@ add_specs suite_builder setup =
 
         group_builder.specify "should correctly handle edge-cases: duplicate indices" <|
             selector = [0, 0, 0]
-            t = data.table.select_columns selector on_problems=Problem_Behavior.Report_Error
+            t = data.table.select_columns selector on_problems=..Report_Error
             expect_column_names ["foo"] t
 
             expect_column_names ["foo", "bar"] <|
@@ -166,12 +141,12 @@ add_specs suite_builder setup =
 
         group_builder.specify "should correctly handle edge-cases: aliased indices" <|
             selector = [0, -6, 1, -7]
-            t = data.table.select_columns selector on_problems=Problem_Behavior.Report_Error
+            t = data.table.select_columns selector on_problems=..Report_Error
             expect_column_names ["foo", "bar"] t
 
         group_builder.specify "should correctly handle edge-cases: duplicate names" <|
             selector = ["foo", "foo"]
-            t = data.table.select_columns selector on_problems=Problem_Behavior.Report_Error
+            t = data.table.select_columns selector on_problems=..Report_Error
             expect_column_names ["foo"] t
 
             expect_column_names ["foo", "bar"] <|
@@ -185,7 +160,7 @@ add_specs suite_builder setup =
 
         group_builder.specify "should correctly handle edge-cases: duplicate matches due to case insensitivity" <|
             selector = ["FOO", "foo"]
-            t = data.table.select_columns selector case_sensitivity=Case_Sensitivity.Insensitive on_problems=Problem_Behavior.Report_Error
+            t = data.table.select_columns selector case_sensitivity=Case_Sensitivity.Insensitive on_problems=..Report_Error
             expect_column_names ["foo"] t
 
             expect_column_names ["bar", "foo"] <|
@@ -199,12 +174,12 @@ add_specs suite_builder setup =
             problems = [Missing_Input_Columns.Error ["hmm", weird_name]]
             Problems.test_problem_handling action problems tester
 
-            err = data.table.select_columns selector on_problems=Problem_Behavior.Ignore
+            err = data.table.select_columns selector on_problems=..Ignore
             err.should_fail_with Missing_Input_Columns
             err.catch.criteria . should_equal ["hmm", weird_name]
 
         group_builder.specify "should correctly handle problems in mixed case" <|
-            err = data.table.select_columns ["foo", "hmm", 99] on_problems=Problem_Behavior.Ignore
+            err = data.table.select_columns ["foo", "hmm", 99] on_problems=..Ignore
             err.should_fail_with Missing_Input_Columns
             err.catch.criteria . should_equal ["hmm", 99]
 
@@ -222,47 +197,25 @@ add_specs suite_builder setup =
             r2.catch.cause . should_be_a Missing_Input_Columns
             r2.catch.to_display_text . should_equal "No columns in the result, because of another problem: The criteria 'hmmm' did not match any columns."
 
-    suite_builder.group prefix+"Table.select_columns_by_type and Table.remove_columns_by_type" group_builder->
-        data = Mixed_Columns_Data.setup create_connection_fn table_builder
-
-        group_builder.teardown <|
-            data.teardown
+    suite_builder.group prefix+"Table.select_columns By_Type and Table.remove_columns By_Type" group_builder->
+        data = Mixed_Columns_Data.setup table_builder
 
         group_builder.specify "should be able to select by type of columns" <|
-            expect_column_names ["int"] <| data.table.select_columns_by_type [Value_Type.Integer]
-            expect_column_names ["float"] <| data.table.select_columns_by_type [Value_Type.Float]
-            expect_column_names ["int", "float"] <| data.table.select_columns_by_type [Value_Type.Integer, Value_Type.Float]
-            expect_column_names ["text"] <| data.table.select_columns_by_type [Value_Type.Char]
-            expect_column_names ["bool"] <| data.table.select_columns_by_type [Value_Type.Boolean]
+            expect_column_names ["int"] <| data.table.select_columns [..By_Type ..Integer]
+            expect_column_names ["float"] <| data.table.select_columns [..By_Type ..Float]
+            expect_column_names ["int", "float"] <| data.table.select_columns [..By_Type ..Integer, ..By_Type ..Float]
+            expect_column_names ["text"] <| data.table.select_columns [..By_Type ..Char]
+            expect_column_names ["bool"] <| data.table.select_columns [..By_Type ..Boolean]
 
         group_builder.specify "should be able to drop by type of columns" <|
-            expect_column_names ["float", "text", "bool"] <| data.table.remove_columns_by_type [Value_Type.Integer]
-            expect_column_names ["int", "text", "bool"] <| data.table.remove_columns_by_type [Value_Type.Float]
-            expect_column_names ["text", "bool"] <| data.table.remove_columns_by_type [Value_Type.Integer, Value_Type.Float]
-            expect_column_names ["int", "float", "bool"] <| data.table.remove_columns_by_type [Value_Type.Char]
-            expect_column_names ["int", "float", "text"] <| data.table.remove_columns_by_type [Value_Type.Boolean]
-
-        group_builder.specify "should be able to select by strict type" <|
-            expect_column_names ["int"] <| data.table.select_columns_by_type [Value_Type.Integer] strict=True
-            data.table.select_columns_by_type [Value_Type.Integer Bits.Bits_16] strict=True . should_fail_with No_Output_Columns
-            expect_column_names ["float"] <| data.table.select_columns_by_type [Value_Type.Float] strict=True
-            data.table.select_columns_by_type [Value_Type.Float Bits.Bits_32] strict=True . should_fail_with No_Output_Columns
-            expect_column_names ["text"] <| data.table.select_columns_by_type [Value_Type.Char] strict=True
-            data.table.select_columns_by_type [Value_Type.Char 3 False] strict=True . should_fail_with No_Output_Columns
-
-        group_builder.specify "should be able to remove by strict type" <|
-            expect_column_names ["float", "text", "bool"] <| data.table.remove_columns_by_type [Value_Type.Integer] strict=True
-            expect_column_names ["int", "float", "text", "bool"] <| data.table.remove_columns_by_type [Value_Type.Integer Bits.Bits_16] strict=True
-            expect_column_names ["int", "text", "bool"] <| data.table.remove_columns_by_type [Value_Type.Float] strict=True
-            expect_column_names ["int", "float", "text", "bool"] <| data.table.remove_columns_by_type [Value_Type.Float Bits.Bits_32] strict=True
-            expect_column_names ["int", "float", "bool"] <| data.table.remove_columns_by_type [Value_Type.Char] strict=True
-            expect_column_names ["int", "float", "text", "bool"] <| data.table.remove_columns_by_type [Value_Type.Char 3 False] strict=True
+            expect_column_names ["float", "text", "bool"] <| data.table.remove_columns [..By_Type ..Integer]
+            expect_column_names ["int", "text", "bool"] <| data.table.remove_columns [..By_Type ..Float]
+            expect_column_names ["text", "bool"] <| data.table.remove_columns [..By_Type ..Integer, ..By_Type ..Float]
+            expect_column_names ["int", "float", "bool"] <| data.table.remove_columns [..By_Type ..Char]
+            expect_column_names ["int", "float", "text"] <| data.table.remove_columns [..By_Type ..Boolean]
 
     suite_builder.group prefix+"Table.remove_columns" group_builder->
-        data = Select_Columns_Data.setup create_connection_fn table_builder
-
-        group_builder.teardown <|
-            data.teardown
+        data = Select_Columns_Data.setup table_builder
 
         group_builder.specify "should work as shown in the doc examples" <|
             expect_column_names ["Baz", "foo 1", "foo 2", "ab.+123", "abcd123"] <| data.table.remove_columns ["bar", "foo"]
@@ -305,22 +258,22 @@ add_specs suite_builder setup =
 
         group_builder.specify "should correctly handle edge-cases: duplicate indices" <|
             selector = [0, 0, 0]
-            t = data.table.remove_columns selector on_problems=Problem_Behavior.Report_Error
+            t = data.table.remove_columns selector on_problems=..Report_Error
             expect_column_names ["bar", "Baz", "foo 1", "foo 2", "ab.+123", "abcd123"] t
 
         group_builder.specify "should correctly handle edge-cases: aliased indices" <|
             selector = [0, -7, -6, 1]
-            t = data.table.remove_columns selector on_problems=Problem_Behavior.Report_Error
+            t = data.table.remove_columns selector on_problems=..Report_Error
             expect_column_names ["Baz", "foo 1", "foo 2", "ab.+123", "abcd123"]  t
 
         group_builder.specify "should correctly handle edge-cases: duplicate names" <|
             selector = ["foo", "foo"]
-            t = data.table.remove_columns selector on_problems=Problem_Behavior.Report_Error
+            t = data.table.remove_columns selector on_problems=..Report_Error
             expect_column_names ["bar", "Baz", "foo 1", "foo 2", "ab.+123", "abcd123"] t
 
         group_builder.specify "should correctly handle edge-cases: duplicate matches due to case insensitivity" <|
             selector = ["FOO", "foo"]
-            t = data.table.remove_columns selector Case_Sensitivity.Insensitive on_problems=Problem_Behavior.Report_Error
+            t = data.table.remove_columns selector Case_Sensitivity.Insensitive on_problems=..Report_Error
             expect_column_names ["bar", "Baz", "foo 1", "foo 2", "ab.+123", "abcd123"] t
 
         group_builder.specify "should correctly handle problems: unmatched names" <|
@@ -331,7 +284,7 @@ add_specs suite_builder setup =
             problems = [Missing_Input_Columns.Error ["hmm", weird_name]]
             Problems.test_problem_handling action problems tester
 
-            err = data.table.remove_columns selector error_on_missing_columns=True on_problems=Problem_Behavior.Ignore
+            err = data.table.remove_columns selector error_on_missing_columns=True on_problems=..Ignore
             err.should_fail_with Missing_Input_Columns
 
         group_builder.specify "should correctly handle problems: no columns in the output" <|
@@ -347,10 +300,7 @@ add_specs suite_builder setup =
             t1.catch.cause . should_equal Nothing
 
     suite_builder.group prefix+"Table.reorder_columns" group_builder->
-        data = Select_Columns_Data.setup create_connection_fn table_builder
-
-        group_builder.teardown <|
-            data.teardown
+        data = Select_Columns_Data.setup table_builder
 
         group_builder.specify "should work as shown in the doc examples" <|
             expect_column_names ["bar", "Baz", "foo 1", "foo 2", "ab.+123", "abcd123", "foo"] <| data.table.reorder_columns "foo" Position.After_Other_Columns
@@ -394,17 +344,17 @@ add_specs suite_builder setup =
 
         group_builder.specify "should correctly handle edge-cases: duplicate indices" <|
             selector = [0, 0, 0]
-            t = data.table.reorder_columns selector Position.After_Other_Columns on_problems=Problem_Behavior.Report_Error
+            t = data.table.reorder_columns selector Position.After_Other_Columns on_problems=..Report_Error
             expect_column_names ["bar", "Baz", "foo 1", "foo 2", "ab.+123", "abcd123", "foo"] t
 
         group_builder.specify "should correctly handle edge-cases: aliased indices" <|
             selector = [0, -7, -6, 1]
-            t = data.table.reorder_columns selector Position.After_Other_Columns on_problems=Problem_Behavior.Report_Error
+            t = data.table.reorder_columns selector Position.After_Other_Columns on_problems=..Report_Error
             expect_column_names ["Baz", "foo 1", "foo 2", "ab.+123", "abcd123", "foo", "bar"] t
 
         group_builder.specify "should correctly handle edge-cases: duplicate names" <|
             selector = ["foo", "foo"]
-            t = data.table.reorder_columns selector Position.After_Other_Columns on_problems=Problem_Behavior.Report_Error
+            t = data.table.reorder_columns selector Position.After_Other_Columns on_problems=..Report_Error
             expect_column_names ["bar", "Baz", "foo 1", "foo 2", "ab.+123", "abcd123", "foo"] t
 
         group_builder.specify "should correctly handle problems: unmatched names" <|
@@ -418,11 +368,15 @@ add_specs suite_builder setup =
             err = data.table.reorder_columns selector Position.After_Other_Columns error_on_missing_columns=True
             err.should_fail_with Missing_Input_Columns
 
-    suite_builder.group prefix+"Table.sort_columns" group_builder->
-        data = Sort_Columns_Data.setup create_connection_fn table_builder
+    suite_builder.group prefix+"Table.reorder_columns by type" group_builder->
+        data = Mixed_Columns_Data.setup table_builder
 
-        group_builder.teardown <|
-            data.teardown
+        group_builder.specify "should correctly handle By_Type matching" <|
+            expect_column_names ["float", "text", "bool", "int"] <| data.table.reorder_columns [..By_Type ..Integer] Position.After_Other_Columns
+            expect_column_names ["float", "text", "int", "bool"] <| data.table.reorder_columns [..By_Type ..Integer, ..By_Type ..Boolean] Position.After_Other_Columns
+
+    suite_builder.group prefix+"Table.sort_columns" group_builder->
+        data = Sort_Columns_Data.setup table_builder
 
         group_builder.specify "should work as shown in the doc examples" <|
             sorted = data.table.sort_columns
@@ -442,10 +396,7 @@ add_specs suite_builder setup =
             expect_column_names ["foo 100", "foo 21", "foo 3", "Foo 2", "foo 1", "foo 001", "bar"] <| data.table.sort_columns Sort_Direction.Descending text_ordering=(Text_Ordering.Case_Insensitive sort_digits_as_numbers=True)
 
     suite_builder.group prefix+"Table.rename_columns" group_builder->
-        data = Rename_Columns_Data.setup create_connection_fn table_builder
-
-        group_builder.teardown <|
-            data.teardown
+        data = Rename_Columns_Data.setup table_builder
 
         group_builder.specify "should work as shown in the doc examples" <|
             expect_column_names ["FirstColumn", "beta", "gamma", "delta"] <|
@@ -456,10 +407,10 @@ add_specs suite_builder setup =
 
             t1 = table_builder [["alpha", [1]], ["name=123", [2]], ["name= foo bar", [3]]]
             expect_column_names ["alpha", "key:123", "key: foo bar"] <|
-                t1.rename_columns (Map.from_vector [["name=(.*)".to_regex, "key:$1"]])
+                t1.rename_columns (Dictionary.from_vector [["name=(.*)".to_regex, "key:$1"]])
 
         group_builder.specify "should work by index" <|
-            map = Map.from_vector [[0, "FirstColumn"], [-2, "Another"]]
+            map = Dictionary.from_vector [[0, "FirstColumn"], [-2, "Another"]]
             expect_column_names ["FirstColumn", "beta", "Another", "delta"] <|
                 data.table.rename_columns map
 
@@ -479,33 +430,94 @@ add_specs suite_builder setup =
                 data.table.rename_columns vec
 
         group_builder.specify "should work by name" <|
-            map = Map.from_vector [["alpha", "FirstColumn"], ["delta", "Another"]]
+            map = Dictionary.from_vector [["alpha", "FirstColumn"], ["delta", "Another"]]
             expect_column_names ["FirstColumn", "beta", "gamma", "Another"] <|
                 data.table.rename_columns map
 
         group_builder.specify "should work by mixed Map" <|
-            map = Map.from_vector [["alpha", "FirstColumn"], [-1, "Another"]]
+            map = Dictionary.from_vector [["alpha", "FirstColumn"], [-1, "Another"]]
             expect_column_names ["FirstColumn", "beta", "gamma", "Another"] <|
                 data.table.rename_columns map
 
+        group_builder.specify "should work by single column Table of names" <|
+            table_1 = Table.new [["Name", ["one", "two", "three"]]]
+            expect_column_names ["one", "two", "three", "delta"] <|
+                data.table.rename_columns table_1
+
+        group_builder.specify "should work by two column Table of old name, new name" <|
+            table_2 = Table.from_rows ["Old", "New"] [["beta", "one"], ["delta", "two"], ["alpha", "three"]]
+            expect_column_names ["three", "one", "gamma", "two"] <|
+                data.table.rename_columns table_2
+
+        group_builder.specify "should error if not correct table structure" <|
+            table_1 = Table.new [["Name", [1, 2, 3]]]
+            fail_1 = data.table.rename_columns table_1
+            fail_1 . should_fail_with Illegal_Argument
+            fail_1.catch.message.should_equal "Expected a table with one or two columns of text values."
+
+            table_2 = Table.from_rows ["Old", "New"] [["beta", 1], ["delta", 2], ["alpha", 3]]
+            fail_2 = data.table.rename_columns table_2
+            fail_2 . should_fail_with Illegal_Argument
+            fail_2.catch.message.should_equal "Expected a table with one or two columns of text values."
+
+            table_3 = Table.new [["Name", ["A", "B", "C"]], ["NewName", ["AA", "BB", "CC"]], ["Another", ["a", "b", "c"]]]
+            fail_3 = data.table.rename_columns table_3
+            fail_3 . should_fail_with Illegal_Argument
+            fail_3.catch.message.should_equal "Expected a table with one or two columns of text values."
+
+        if setup.is_database then group_builder.specify "should error if renaming by Database table (it must be materialized)" <|
+            db_source_table = data.table
+            db_rename_table = data.table.select_columns [0, 1] . cast [0, 1] Value_Type.Char
+            fail_1 = db_source_table.rename_columns db_rename_table
+            fail_1.should_fail_with Illegal_Argument
+            fail_1.catch.message.should_contain "materialize"
+
+            # We also check that renaming an in-memory table with a database table as mapping also fails.
+            fail_2 = (Table.new [["X", [1, 2]]]).rename_columns db_rename_table
+            fail_2.should_fail_with Illegal_Argument
+            fail_2.catch.message.should_contain "materialize"
+
         group_builder.specify "should work by name case-insensitively" <|
-            map = Map.from_vector [["ALPHA", "FirstColumn"], ["DELTA", "Another"]]
+            map = Dictionary.from_vector [["ALPHA", "FirstColumn"], ["DELTA", "Another"]]
             expect_column_names ["FirstColumn", "beta", "gamma", "Another"] <|
                 data.table.rename_columns map Case_Sensitivity.Insensitive
 
         group_builder.specify "should work by name using regex" <|
-            map = Map.from_vector [["a.*".to_regex, "FirstColumn"]]
+            map = Dictionary.from_vector [["a.*".to_regex, "FirstColumn"]]
             expect_column_names ["FirstColumn", "beta", "gamma", "delta"] <|
                 data.table.rename_columns map
 
         group_builder.specify "should work by name using regex substitution" <|
-            map = Map.from_vector [["a(.*)".to_regex, "$1"]]
+            map = Dictionary.from_vector [["a(.*)".to_regex, "$1"]]
             expect_column_names ["lpha", "beta", "gamma", "delta"] <|
                 data.table.rename_columns map
 
+        group_builder.specify "should report invalid input map nicely" <|
+            test_invalid_map map =
+                result = data.table.rename_columns map
+                result.should_fail_with Illegal_Argument
+                result.catch Any . message . should_equal "mapping is not a Vector of old name to new name."
+
+            test_invalid_map [["Alpha"]]
+            test_invalid_map [["Alpha", 1]]
+            test_invalid_map [["Alpha", "Beta", "Delta"]]
+            test_invalid_map [[True, "Beta"]]
+
+        group_builder.specify "should report duplicates in input map nicely" <|
+            test_duplicate_names map message =
+                result = data.table.rename_columns map
+                result.should_fail_with Illegal_Argument
+                result.catch Any . message . should_equal message
+
+            test_duplicate_names [["Alpha", "1"], ["Alpha", "2"]] "duplicate old name mappings (Alpha)."
+            test_duplicate_names [["Alpha", "1"], ["Beta", "2"], ["Gamma", "3"], ["Beta", "4"], ["Alpha", "5"]] "duplicate old name mappings (Alpha, Beta)."
+            test_duplicate_names [["Alpha", "1"], ["Alpha", "2"], ["Alpha", "3"]] "duplicate old name mappings (Alpha)."
+            test_duplicate_names [["Alpha", "1"], ["Beta", "2"], ["Gamma", "3"], ["Beta", "4"], ["Alpha", "5"], ["Gamma","6"], ["Delta","7"], ["Delta","8"]] "duplicate old name mappings (Alpha, Beta, Gamma, Delta)."
+            test_duplicate_names [["Alpha", "1"], ["Beta", "2"], ["Gamma", "3"], ["Beta", "4"], ["Alpha", "5"], ["Gamma","6"], ["Delta","7"], ["Delta","8"], ["Echo","9"], ["Echo","10"]] "duplicate old name mappings (Alpha, Beta, Gamma, ... 2 others)."
+
         group_builder.specify "should correctly handle problems: unmatched names" <|
             weird_name = '.*?-!@#!"'
-            map = Map.from_vector [["alpha", "FirstColumn"], ["omicron", "Another"], [weird_name, "Fixed"]]
+            map = Dictionary.from_vector [["alpha", "FirstColumn"], ["omicron", "Another"], [weird_name, "Fixed"]]
             action = data.table.rename_columns map error_on_missing_columns=False on_problems=_
             tester = expect_column_names ["FirstColumn", "beta", "gamma", "delta"]
             err_checker err =
@@ -517,7 +529,7 @@ add_specs suite_builder setup =
             err.should_fail_with Missing_Input_Columns
 
         group_builder.specify "should correctly handle problems: out of bounds indices" <|
-            map = Map.from_vector [[0, "FirstColumn"], [-1, "Another"], [100, "Boo"], [-200, "Nothing"], [300, "Here"]]
+            map = Dictionary.from_vector [[0, "FirstColumn"], [-1, "Another"], [100, "Boo"], [-200, "Nothing"], [300, "Here"]]
             action = data.table.rename_columns map error_on_missing_columns=False on_problems=_
             tester = expect_column_names ["FirstColumn", "beta", "gamma", "Another"]
             err_checker err =
@@ -529,13 +541,13 @@ add_specs suite_builder setup =
             err.should_fail_with Missing_Input_Columns
 
         group_builder.specify "should correctly handle edge-cases: aliased indices" <|
-            map1 = Map.from_vector [[1, "FirstColumn"], [-3, "FirstColumn"]]
-            t1 = data.table.rename_columns map1 on_problems=Problem_Behavior.Report_Error
+            map1 = Dictionary.from_vector [[1, "FirstColumn"], [-3, "FirstColumn"]]
+            t1 = data.table.rename_columns map1 on_problems=..Report_Error
             Problems.assume_no_problems t1
             expect_column_names ["alpha", "FirstColumn", "gamma", "delta"] t1
 
-            map2 = Map.from_vector [[1, "FirstColumn"], [-3, "DifferentName!"]]
-            t2 = data.table.rename_columns map2 on_problems=Problem_Behavior.Report_Error
+            map2 = Dictionary.from_vector [[1, "FirstColumn"], [-3, "DifferentName!"]]
+            t2 = data.table.rename_columns map2 on_problems=..Report_Error
             t2.should_fail_with Ambiguous_Column_Rename
             err = t2.catch . inner_error
             err.column_name . should_equal "beta"
@@ -543,13 +555,13 @@ add_specs suite_builder setup =
 
         group_builder.specify "should correctly handle edge-cases: aliased selectors" <|
             t = table_builder [["alpha", [1,2,3]], ["bet", [4,5,6]]]
-            map1 = Map.from_vector [["a.*".to_regex, "AA"], [".*a".to_regex, "AA"]]
-            t1 = t.rename_columns map1 on_problems=Problem_Behavior.Report_Error
+            map1 = Dictionary.from_vector [["a.*".to_regex, "AA"], [".*a".to_regex, "AA"]]
+            t1 = t.rename_columns map1 on_problems=..Report_Error
             Problems.assume_no_problems t1
             expect_column_names ["AA", "bet"] t1
 
-            map2 = Map.from_vector [["a.*".to_regex, "StartsWithA"], [".*a".to_regex, "EndsWithA"]]
-            t2 = t.rename_columns map2 on_problems=Problem_Behavior.Report_Error
+            map2 = Dictionary.from_vector [["a.*".to_regex, "StartsWithA"], [".*a".to_regex, "EndsWithA"]]
+            t2 = t.rename_columns map2 on_problems=..Report_Error
             t2.should_fail_with Ambiguous_Column_Rename
             err = t2.catch . inner_error
             err.column_name . should_equal "alpha"
@@ -561,13 +573,13 @@ add_specs suite_builder setup =
                This is to show that even if distinct rename patterns match the
                same column, if the resulting rename is unambiguous, no error is
                raised.
-            map3 = Map.from_vector [["a(.*)".to_regex, "$1A"], ["(.*)aa".to_regex, "$1aA"]]
-            t4 = t3.rename_columns map3 on_problems=Problem_Behavior.Report_Error
+            map3 = Dictionary.from_vector [["a(.*)".to_regex, "$1A"], ["(.*)aa".to_regex, "$1aA"]]
+            t4 = t3.rename_columns map3 on_problems=..Report_Error
             Problems.assume_no_problems t4
             expect_column_names ["aaA", "bbb"] t4
 
         group_builder.specify "should correctly handle problems: invalid names ''" <|
-            map = Map.from_vector [[1, ""]]
+            map = Dictionary.from_vector [[1, ""]]
             [Problem_Behavior.Ignore, Problem_Behavior.Report_Warning, Problem_Behavior.Report_Error].each pb->
                 r = data.table.rename_columns map on_problems=pb
                 r.should_fail_with Invalid_Column_Names
@@ -592,13 +604,13 @@ add_specs suite_builder setup =
             Problems.test_problem_handling action problems tester
 
         group_builder.specify "should correctly handle problems: new name is clashing with existing name of existing column" <|
-            map = Map.from_vector [["alpha", "beta"]]
+            map = Dictionary.from_vector [["alpha", "beta"]]
             action = data.table.rename_columns map on_problems=_
             tester = expect_column_names ["beta", "beta 1", "gamma", "delta"]
             problems = [Duplicate_Output_Column_Names.Error ["beta"]]
             Problems.test_problem_handling action problems tester
 
-            map2 = Map.from_vector [["beta", "alpha"]]
+            map2 = Dictionary.from_vector [["beta", "alpha"]]
             action2 = data.table.rename_columns map2 on_problems=_
             tester2 = expect_column_names ["alpha 1", "alpha", "gamma", "delta"]
             problems2 = [Duplicate_Output_Column_Names.Error ["alpha"]]

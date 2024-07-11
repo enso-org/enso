@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Data.Time.Errors.Date_Time_Format_Parse_Error
 
@@ -317,7 +318,7 @@ add_specs suite_builder =
 
         group_builder.specify "should correctly handle problems: missing input columns" <|
             t1 = Table.new [["A", ["1", "2", "3"]]]
-            r1 = t1.parse columns=["A", "B", "C", "E"] on_problems=Problem_Behavior.Ignore
+            r1 = t1.parse columns=["A", "B", "C", "E"] on_problems=..Ignore
             r1.should_fail_with Missing_Input_Columns
             r1.catch.criteria . should_equal ["B", "C", "E"]
 
@@ -362,7 +363,7 @@ add_specs suite_builder =
 
         group_builder.specify "should error if invalid target type is provided" <|
             t1 = Table.new [["A", ["1", "2", "3"]]]
-            t1.parse type=Nothing . should_fail_with Illegal_Argument
+            Test.expect_panic Type_Error (t1.parse type=Nothing)
 
         group_builder.specify "should error if the input column is not text" <|
             t1 = Table.new [["A", [1, 2, 3]], ["B", ["4", "5", "6"]], ["C", [7, 8, 9]], ["D", ["10", "11", "12"]]]
@@ -380,11 +381,11 @@ add_specs suite_builder =
             r2 . should_equal t1
             Problems.expect_warning No_Input_Columns_Selected r2
 
-            r3 = t1.parse columns=[] error_on_missing_columns=False on_problems=Problem_Behavior.Ignore
+            r3 = t1.parse columns=[] error_on_missing_columns=False on_problems=..Ignore
             r3 . should_equal t1
             Problems.assume_no_problems r3
 
-            r4 = t1.parse columns=["nonexistent column :D", -42] error_on_missing_columns=False on_problems=Problem_Behavior.Report_Warning
+            r4 = t1.parse columns=["nonexistent column :D", -42] error_on_missing_columns=False on_problems=..Report_Warning
             r4 . should_equal t1
             Problems.expect_warning No_Input_Columns_Selected r4
             Problems.expect_warning (Missing_Input_Columns.Error ["nonexistent column :D", -42]) r4
@@ -627,7 +628,7 @@ add_specs suite_builder =
 
         group_builder.specify "should error if invalid target type is provided" <|
             c1 = Column.from_vector "A" ["1", "2", "3"]
-            c1.parse type=Nothing . should_fail_with Illegal_Argument
+            Test.expect_panic Type_Error (c1.parse type=Nothing)
 
         group_builder.specify "should return unchanged if all are Nothing or no rows" <|
             c1 = Column.from_vector "A" [Nothing, Nothing, Nothing] Value_Type.Char
