@@ -225,7 +225,7 @@ type Header_Comparator
     hash : Header -> Integer
     hash x =
         key = x.name.to_case_insensitive_key + x.value
-        Comparable.from key . hash key
+        Ordering.hash key
 
 ## PRIVATE
-Comparable.from (_:Header) = Header_Comparator
+Comparable.from (that:Header) = Comparable.new that Header_Comparator
