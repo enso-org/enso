@@ -38,8 +38,7 @@ import * as urlAssociations from 'url-associations'
 const logger = contentConfig.logger
 
 if (process.env.ELECTRON_DEV_MODE === 'true' && process.env.NODE_MODULES_PATH != null) {
-    require.main?.paths.unshift(process.env.NODE_MODULES_PATH)
-    console.log(require.main?.paths)
+    module.paths.unshift(process.env.NODE_MODULES_PATH)
 }
 
 // ===========
