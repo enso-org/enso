@@ -1,5 +1,6 @@
 import type { LexicalPlugin } from '@/components/lexical'
 import { useLexicalStringSync } from '@/components/lexical/sync'
+import { $setSelection } from 'lexical'
 import { CodeHighlightNode, CodeNode } from '@lexical/code'
 import { AutoLinkNode, LinkNode } from '@lexical/link'
 import { ListItemNode, ListNode } from '@lexical/list'
@@ -55,7 +56,10 @@ const markdownSyncPlugin = (model: Ref<string>, transformers: Transformer[]): Le
     const { content } = useLexicalStringSync(
       editor,
       () => $convertToMarkdownString(transformers),
-      (value) => $convertFromMarkdownString(value, transformers),
+      (value) => {
+        $convertFromMarkdownString(value, transformers)
+        $setSelection(null)
+      }
     )
     watch(model, (newContent) => content.set(newContent), { immediate: true })
     watch(content.state, (newContent) => (model.value = newContent))
