@@ -49,7 +49,12 @@ export default function FileNameColumn(props: FileNameColumnProps) {
   const isCloud = backend.type === backendModule.BackendType.remote
 
   const updateFileMutation = backendHooks.useBackendMutation(backend, 'updateFile')
-  const uploadFileMutation = backendHooks.useBackendMutation(backend, 'uploadFile')
+  const uploadFileMutation = backendHooks.useBackendMutation(backend, 'uploadFile', {
+    meta: {
+      invalidates: [['assetVersions', item.item.id, item.item.title]],
+      awaitInvalidates: true,
+    },
+  })
 
   const setIsEditing = (isEditingName: boolean) => {
     if (isEditable) {

@@ -94,7 +94,12 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
   const updateProjectMutation = backendHooks.useBackendMutation(backend, 'updateProject')
   const duplicateProjectMutation = backendHooks.useBackendMutation(backend, 'duplicateProject')
   const getProjectDetailsMutation = backendHooks.useBackendMutation(backend, 'getProjectDetails')
-  const uploadFileMutation = backendHooks.useBackendMutation(backend, 'uploadFile')
+  const uploadFileMutation = backendHooks.useBackendMutation(backend, 'uploadFile', {
+    meta: {
+      invalidates: [['assetVersions', item.item.id, item.item.title]],
+      awaitInvalidates: true,
+    },
+  })
 
   const setIsEditing = (isEditingName: boolean) => {
     if (isEditable) {
@@ -243,7 +248,11 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                 setAsset(object.merge(asset, { title: listedProject.packageName, id: projectId }))
               } else {
                 const createdFile = await uploadFileMutation.mutateAsync([
-                  { fileId, fileName: `${title}.${extension}`, parentDirectoryId: asset.parentId },
+                  {
+                    fileId,
+                    fileName: `${title}.${extension}`,
+                    parentDirectoryId: asset.parentId,
+                  },
                   file,
                 ])
                 const project = createdFile.project
