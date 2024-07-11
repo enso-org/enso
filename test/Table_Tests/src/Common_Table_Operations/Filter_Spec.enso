@@ -20,15 +20,6 @@ from project.Common_Table_Operations.Util import run_default_backend
 
 main filter=Nothing = run_default_backend add_specs filter
 
-type Data
-    Value ~connection
-
-    setup create_connection_fn =
-        Data.Value (create_connection_fn Nothing)
-
-    teardown self =
-        self.connection.close
-
 
 ## Currently these tests rely on filtering preserving the insertion ordering
    within tables. This is not necessarily guaranteed by RDBMS, so we may adapt
@@ -37,17 +28,9 @@ type Data
 add_specs suite_builder setup =
     prefix = setup.prefix
     test_selection = setup.test_selection
-    create_connection_fn = setup.create_connection_func
+    table_builder = setup.light_table_builder
 
     suite_builder.group prefix+"Table.filter" group_builder->
-        data = Data.setup create_connection_fn
-
-        group_builder.teardown <|
-            data.teardown
-
-        table_builder cols =
-            setup.table_builder cols connection=data.connection
-
         group_builder.specify "by integer comparisons" <|
             t = table_builder [["ix", [1, 2, 3, 4, 5]], ["X", [100, 3, Nothing, 4, 12]], ["Y", [100, 4, 2, Nothing, 11]]]
             t.filter "X" (Filter_Condition.Less than=10) . at "X" . to_vector . should_equal [3, 4]
@@ -115,13 +98,14 @@ add_specs suite_builder setup =
 
             t.filter "X" (Filter_Condition.Less than=10.0) . at "X" . to_vector . should_equal [2.5, Number.negative_infinity]
 
-            # In PostgreSQL, NaN is greater than any other value, so it is > 10.0; in other implementations it is usually not greater nor smaller, so it gets filtered out.
+            # In some backends, NaN is greater than any other value, so it is > 10.0; in other implementations it is usually not greater nor smaller, so it gets filtered out.
+            nan_is_greater_than_all = setup.test_selection.nan_treated_as_greater_than_all_numbers
             t.filter "X" (Filter_Condition.Greater than=10.0) . at "ix" . to_vector . should_equal <|
-                if prefix.contains "PostgreSQL" . not then [1, 5] else [1, 4, 5]
+                if nan_is_greater_than_all then [1, 4, 5] else [1, 5]
 
             # Similarly, PostgreSQL treats NaN==NaN
             t.filter "X" (Filter_Condition.Equal to=Number.nan) . at "ix" . to_vector . should_equal <|
-                if prefix.contains "PostgreSQL" . not then [] else [4]
+                if nan_is_greater_than_all then [4] else []
             t.filter "X" (Filter_Condition.Equal to=Number.positive_infinity) . at "ix" . to_vector . should_equal [5]
 
             t.filter "X" Filter_Condition.Is_Infinite . at "ix" . to_vector . should_equal [5, 6]
@@ -473,14 +457,6 @@ add_specs suite_builder setup =
             Problems.assume_no_problems (t.filter "x" (Filter_Condition.Is_In [[Nothing, Nothing]]))
 
     suite_builder.group prefix+"Table.filter by an expression" group_builder->
-        data = Data.setup create_connection_fn
-
-        group_builder.teardown <|
-            data.teardown
-
-        table_builder cols =
-            setup.table_builder cols connection=data.connection
-
         group_builder.specify "by a boolean column" <|
             t = table_builder [["ix", [1, 2, 3, 4, 5]], ["b", [True, False, Nothing, True, True]]]
             t.filter (expr "[b]") . at "ix" . to_vector . should_equal [1, 4, 5]
