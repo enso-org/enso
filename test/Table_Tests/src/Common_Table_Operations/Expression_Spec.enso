@@ -13,30 +13,32 @@ from Standard.Test import all
 
 
 from project.Util import all
-from project.Common_Table_Operations.Util import run_default_backend
+from project.Common_Table_Operations.Util import run_default_backend, build_sorted_table
 
 main filter=Nothing = run_default_backend (add_specs detailed=True) filter
 
+type Lazy_Ref
+    Value ~get
+
 add_specs suite_builder detailed setup =
     prefix = setup.prefix
-    table_builder = setup.table_builder
-
-    # Create Test Table
-    column_a = ["A", [1, 2, 3, 4, 5]]
-    column_b = ["B", [1.0, 1.5, 2.5, 4, 6]]
-    column_c = ["C", ["Hello", "World", "Hello World!", "", Nothing]]
-    column_odd = ["Bad] Name", [True, False, True, False, True]]
-    test_table = table_builder [column_a, column_b, column_c, column_odd]
+    table_builder = build_sorted_table setup
+    column_a_description = ["A", [1, 2, 3, 4, 5]]
+    column_odd_description = ["Bad] Name", [True, False, True, False, True]]
+    test_table = Lazy_Ref.Value <|
+        column_b = ["B", [1.0, 1.5, 2.5, 4, 6]]
+        column_c = ["C", ["Hello", "World", "Hello World!", "", Nothing]]
+        table_builder [column_a_description, column_b, column_c, column_odd_description]
 
     pending_datetime = if setup.test_selection.date_time.not then "Date/Time operations are not supported by this backend."
 
     epsilon=0.0000000001
 
     tester expression value = Test.with_clue "{expr = {"+expression+"}}: " <|
-        new_column = test_table.evaluate_expression expression
+        new_column = test_table.get.evaluate_expression expression
         expected = case value of
             _ : Vector -> value
-            _ -> Vector.new test_table.row_count _->value
+            _ -> Vector.new test_table.get.row_count _->value
 
         values = new_column.to_vector
         values . each_with_index i->v->
@@ -96,8 +98,8 @@ add_specs suite_builder detailed setup =
 
     suite_builder.group prefix+"Expression Text literals" group_builder->
         specify_test "should be able to get a Column" group_builder expression_test->
-            expression_test "[A]" (column_a.at 1)
-            expression_test "[Bad]] Name]" (column_odd.at 1)
+            expression_test "[A]" column_a_description.second
+            expression_test "[Bad]] Name]" column_odd_description.second
 
         group_builder.specify "should sanitize names" <|
             t = table_builder [["X", ['\0', 'x', '']]]
@@ -349,8 +351,8 @@ add_specs suite_builder detailed setup =
 
     suite_builder.group prefix+"Expression Errors should be handled" group_builder->
         error_tester expression fail_ctor =
-            test_table.set (expr expression) as="NEW_COL" . should_fail_with Expression_Error
-            test_table.set (expr expression) as="NEW_COL" . catch . should_be_a fail_ctor
+            test_table.get.set (expr expression) as="NEW_COL" . should_fail_with Expression_Error
+            test_table.get.set (expr expression) as="NEW_COL" . catch . should_be_a fail_ctor
 
         specify_test "should fail with Syntax_Error if badly formed" group_builder expression_test=error_tester expression_test->
             expression_test "IIF [A] THEN 1 ELSE 2" Expression_Error.Syntax_Error
