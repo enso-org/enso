@@ -247,16 +247,15 @@ function formatNumber(params: ICellRendererParams) {
 function formatText(params: ICellRendererParams) {
   let newString
   const string = params.value
-  // console.log({ string })
-  newString = string.replaceAll(' ', `<span style="color: grey">&#183;</span>`)
-  newString = newString.replaceAll(
+  const spacesReplaced = string.replaceAll(' ', `<span style="color: grey">&#183;</span>`)
+  const returns = spacesReplaced.replaceAll(
     '\r\n',
     `<span style="color: grey">&#9229;</span><span style="color: grey">&#9226;</span> <br>`,
   )
-  newString = newString.replaceAll('\n', `<span style="color: grey">&#9226;</span> <br>`)
+  newString = returns.replaceAll('\n', `<span style="color: grey">&#9226;</span> <br>`)
   newString = newString.replaceAll('\r', `<span style="color: grey">&#9229;</span> <br>`)
   newString = newString.replaceAll('\t', `<span style="color: grey">&#8594;</span>`)
-  return `<span class="text-cell"> ${newString}</span>`
+  return `<span style="font-family: monospace;"> ${newString}</span>`
 }
 
 function setRowLimit(newRowLimit: number) {
@@ -287,16 +286,16 @@ function getRowHeight(params: RowHeightParams) {
   const textValues = rowData.filter((r) => typeof r === 'string')
   if (!textValues.length) return DEFAULT_ROW_HEIGHT
   const containsReturnChars = textValues.filter(
-    (text: any) => text.match(/\r/g)?.length || text.match(/\r/g)?.length,
+    (text: any) => text.match(/\r/g)?.length || text.match(/\n/g)?.length,
   )
   if (!containsReturnChars.length) return DEFAULT_ROW_HEIGHT
   const returnCharsCount = containsReturnChars.map((text: any) => {
-    const r = text.match(/\r/g).length
-    const n = text.match(/\n/g).length
-    const rn = text.match(/\r\n/g).length
+    const r = text.match(/\r/g)?.length
+    const n = text.match(/\n/g)?.length
+    const rn = text.match(/\r\n/g)?.length
     return r + n - rn
   })
-  return (Math.max(...returnCharsCount) + 1) * 22
+  return (Math.max(...returnCharsCount) + 1) * DEFAULT_ROW_HEIGHT
 }
 
 function cellClass(params: CellClassParams) {
@@ -743,8 +742,5 @@ onUnmounted(() => {
 
 :deep(a):hover {
   color: darkblue;
-}
-.text-cell {
-  font-family: monospace;
 }
 </style>
