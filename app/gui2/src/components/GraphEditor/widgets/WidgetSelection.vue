@@ -43,6 +43,7 @@ const activityElement = ref<HTMLElement>()
 const editedWidget = ref<string>()
 const editedValue = ref<Ast.Owned | string | undefined>()
 const isHovered = ref(false)
+/** See @{link Actions.setActivity} */
 const activity = shallowRef<VNode>()
 
 // How much wider a dropdown can be than a port it is attached to, when a long text is present.
@@ -429,7 +430,14 @@ export interface CustomDropdownItem {
   onClick: (dropdownActions: Actions) => void
 }
 
+/** Actions a {@link CustomDropdownItem} may perform when clicked. */
 export interface Actions {
+  /**
+   * Provide an alternative dialog to be rendered in place of the dropdown.
+   *
+   * For example, the {@link WidgetCloudBrowser} installs a custom entry that, when clicked,
+   * opens a file browser where the dropdown was.
+   */
   setActivity: (activity: VNode) => void
   close: () => void
 }

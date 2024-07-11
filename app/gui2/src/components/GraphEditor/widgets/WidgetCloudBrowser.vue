@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import FileBrowserWidget from '@/components/FileBrowserWidget.vue'
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import {
   CustomDropdownItemsKey,
   type CustomDropdownItem,
 } from '@/components/GraphEditor/widgets/WidgetSelection.vue'
+import FileBrowserWidget from '@/components/widgets/FileBrowserWidget.vue'
 import { injectBackend } from '@/providers/backend'
 import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { Ast } from '@/util/ast'
