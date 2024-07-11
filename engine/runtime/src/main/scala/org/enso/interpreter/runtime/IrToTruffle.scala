@@ -510,6 +510,7 @@ class IrToTruffle(
                             m.getFunction.getName,
                             fn.arguments,
                             fn.body,
+                            null,
                             effectContext,
                             true
                           )
@@ -542,6 +543,7 @@ class IrToTruffle(
                     fullMethodDefName,
                     fn.arguments,
                     fn.body,
+                    null,
                     effectContext,
                     true
                   )
@@ -718,6 +720,7 @@ class IrToTruffle(
                 methodDef.methodName.name,
                 fn.arguments,
                 fn.body,
+                ReadArgumentCheckNode.build(context, "conversion", toType),
                 None,
                 true
               )
@@ -2053,6 +2056,7 @@ class IrToTruffle(
       val initialName: String,
       val arguments: List[DefinitionArgument],
       val body: Expression,
+      val typeCheck: ReadArgumentCheckNode,
       val effectContext: Option[String],
       val subjectToInstrumentation: Boolean
     ) {
@@ -2081,7 +2085,13 @@ class IrToTruffle(
           case _ =>
             ExpressionProcessor.this.run(body, false, subjectToInstrumentation)
         }
-        (argExpressions.toArray, bodyExpr)
+
+        if (typeCheck == null) {
+          (argExpressions.toArray, bodyExpr)
+        } else {
+          val bodyWithCheck = ReadArgumentCheckNode.wrap(bodyExpr, typeCheck)
+          (argExpressions.toArray, bodyWithCheck)
+        }
       }
 
       private def computeSlots(): (
@@ -2171,7 +2181,7 @@ class IrToTruffle(
       binding: Boolean = false
     ): CreateFunctionNode = {
       val bodyBuilder =
-        new BuildFunctionBody(scopeName, arguments, body, None, false)
+        new BuildFunctionBody(scopeName, arguments, body, null, None, false)
       val fnRootNode = ClosureRootNode.build(
         language,
         scope,

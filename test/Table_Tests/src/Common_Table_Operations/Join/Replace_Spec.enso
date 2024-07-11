@@ -9,36 +9,20 @@ from Standard.Database import all
 
 from Standard.Test import all
 
-from project.Common_Table_Operations.Util import run_default_backend
+from project.Common_Table_Operations.Util import run_default_backend, build_sorted_table
 import project.Util
 
 main filter=Nothing = run_default_backend add_specs filter
 
-type Data
-    Value ~connection
-
-    setup create_connection_fn =
-        Data.Value (create_connection_fn Nothing)
-
-    teardown self = self.connection.close
-
 
 add_specs suite_builder setup =
     prefix = setup.prefix
-    create_connection_fn = setup.create_connection_func
     suite_builder.group prefix+"Table.replace" group_builder->
-        data = Data.setup create_connection_fn
-
-        group_builder.teardown <|
-            data.teardown
-
-        table_builder cols =
-            setup.table_builder cols connection=data.connection
-
+        table_builder = build_sorted_table setup
         table_builder_typed columns value_type =
             cast_columns = columns.map c->
                 Column.from_vector (c.at 0) (c.at 1) . cast value_type
-            setup.table_builder cast_columns connection=data.connection
+            build_sorted_table setup cast_columns
 
         group_builder.specify "should be able to replace values via a lookup table, using from/to column defaults" <|
             table = table_builder [['x', [1, 2, 3, 4, 2]], ['y', ['a', 'b', 'c', 'd', 'e']]]
@@ -180,3 +164,17 @@ add_specs suite_builder setup =
             table.replace lookup_table 'x' from_column=8 . should_fail_with Illegal_Argument
             table.replace lookup_table 'x' to_column=9 . should_fail_with Illegal_Argument
             table.replace lookup_table 'x' from_column=8 to_column=9 . should_fail_with Illegal_Argument
+
+        if setup.test_selection.date_time then group_builder.specify "should correctly infer types of columns (Date/Time)" <|
+            my_table = table_builder [["X", [1, 2, 3, 2]]]
+
+            t1 = my_table.replace (Dictionary.from_vector [[1, Date.new 2021], [2, Date.new 2022], [3, Date.new 2023]]) "X" allow_unmatched_rows=False
+            t1.at "X" . value_type . should_equal Value_Type.Date
+            t1.at "X" . to_vector . should_equal [Date.new 2021, Date.new 2022, Date.new 2023, Date.new 2022]
+
+            t2 = my_table.replace (Dictionary.from_vector [[1, Time_Of_Day.new 1 2 3], [2, Time_Of_Day.new 4 5 6], [3, Time_Of_Day.new 7 8 9]]) "X" allow_unmatched_rows=False
+            t2.at "X" . value_type . should_equal Value_Type.Time
+            t2.at "X" . to_vector . should_equal [Time_Of_Day.new 1 2 3, Time_Of_Day.new 4 5 6, Time_Of_Day.new 7 8 9, Time_Of_Day.new 4 5 6]
+
+            t3 = my_table.replace (Dictionary.from_vector [[1, Date_Time.new 2021 1 1 1 1 1], [2, Date_Time.new 2022 2 2 2 2 2], [3, Date_Time.new 2023 3 3 3 3 3]]) "X" allow_unmatched_rows=False
+            t3.at "X" . value_type . should_be_a (Value_Type.Date_Time ...)

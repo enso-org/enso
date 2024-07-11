@@ -153,4 +153,4 @@ type Hashset_Comparator
     ## PRIVATE
     hash x =
         vec = x.to_vector.sort . remove_warnings
-        Comparable.from vec . hash vec
+        Ordering.hash vec

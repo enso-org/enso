@@ -1,7 +1,7 @@
 /** @file Permissions for a specific user or user group on a specific asset. */
 import * as React from 'react'
 
-import type * as text from '#/text'
+import type * as text from 'enso-common/src/text'
 
 import * as backendHooks from '#/hooks/backendHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'

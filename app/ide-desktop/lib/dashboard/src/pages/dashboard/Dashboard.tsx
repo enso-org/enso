@@ -151,6 +151,7 @@ export function createGetProjectDetailsQuery(options: CreateOpenedProjectQueryOp
   return reactQuery.queryOptions({
     queryKey: createGetProjectDetailsQuery.getQueryKey(assetId),
     meta: { persist: false },
+    gcTime: 0,
     refetchInterval: ({ state }) => {
       /**
        * Default interval for refetching project status when the project is opened.
@@ -167,24 +168,30 @@ export function createGetProjectDetailsQuery(options: CreateOpenedProjectQueryOp
       const activeSyncIntervalMS = 100
       const states = [backendModule.ProjectState.opened, backendModule.ProjectState.closed]
 
+      if (state.status === 'error') {
+        // eslint-disable-next-line no-restricted-syntax
+        return false
+      }
+
       if (isLocal) {
         if (state.data?.state.type === backendModule.ProjectState.opened) {
           return openedIntervalMS
         } else {
           return activeSyncIntervalMS
         }
-      } else if (state.data == null) {
-        return activeSyncIntervalMS
-      } else if (states.includes(state.data.state.type)) {
-        return openedIntervalMS
       } else {
-        return cloudOpeningIntervalMS
+        if (state.data == null) {
+          return activeSyncIntervalMS
+        } else if (states.includes(state.data.state.type)) {
+          return openedIntervalMS
+        } else {
+          return cloudOpeningIntervalMS
+        }
       }
     },
     refetchIntervalInBackground: true,
     refetchOnWindowFocus: true,
     refetchOnMount: true,
-    gcTime: 0,
     queryFn: () => {
       invariant(backend != null, 'Backend is null')
 
@@ -653,6 +660,8 @@ function DashboardInner(props: DashboardProps) {
               projectId={project.id}
               appRunner={appRunner}
               isOpening={openProjectMutation.isPending}
+              isOpeningFailed={openProjectMutation.isError}
+              openingError={openProjectMutation.error}
               startProject={openProjectMutation.mutate}
               renameProject={newName => {
                 renameProjectMutation.mutate({ newName, project })
