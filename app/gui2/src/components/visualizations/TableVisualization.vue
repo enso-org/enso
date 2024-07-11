@@ -656,15 +656,13 @@ onUnmounted(() => {
             v-text="limit"
           ></option>
         </select>
-        <div v-if="showRowCount">
-          <span
-            v-if="isRowCountSelectorVisible && isTruncated"
-            v-text="` of ${rowCount} rows (Sorting/Filtering disabled).`"
-          ></span>
-          <span v-else-if="isRowCountSelectorVisible" v-text="' rows.'"></span>
-          <span v-else-if="rowCount === 1" v-text="'1 row.'"></span>
-          <span v-else v-text="`${rowCount} rows.`"></span>
-        </div>
+        <span
+          v-if="isRowCountSelectorVisible && isTruncated && showRowCount"
+          v-text="` of ${rowCount} rows (Sorting/Filtering disabled).`"
+        ></span>
+        <span v-else-if="isRowCountSelectorVisible && showRowCount" v-text="' rows.'"></span>
+        <span v-else-if="rowCount === 1 && showRowCount" v-text="'1 row.'"></span>
+        <span v-else-if="showRowCount" v-text="`${rowCount} rows.`"></span>
       </div>
       <div ref="tableNode" class="scrollable ag-theme-alpine"></div>
     </div>
