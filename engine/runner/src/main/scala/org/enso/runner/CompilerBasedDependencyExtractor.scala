@@ -1,4 +1,4 @@
-package org.enso.languageserver.libraries
+package org.enso.runner
 
 import org.enso.editions.LibraryName
 import org.enso.libraryupload.DependencyExtractor
