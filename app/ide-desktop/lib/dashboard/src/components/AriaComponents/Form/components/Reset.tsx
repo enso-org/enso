@@ -47,7 +47,6 @@ export function Reset(props: ResetProps): React.JSX.Element {
       variant={variant}
       size={size}
       isDisabled={formState.isSubmitting || !formState.isDirty}
-      onPress={form.reset}
       testId={testId}
     />
   )

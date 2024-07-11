@@ -419,27 +419,6 @@ const { documentation } = useAstDocumentation(graphStore, () =>
   unwrapOr(graphStore.methodAst, undefined),
 )
 
-// === Execution Mode ===
-
-/** Handle record-once button presses. */
-function onRecordOnceButtonPress() {
-  projectStore.lsRpcConnection.initialized.then(async () => {
-    const modeValue = projectStore.executionMode
-    if (modeValue == undefined) {
-      return
-    }
-    projectStore.executionContext.recompute('all', 'Live')
-  })
-}
-
-// Watch for changes in the execution mode.
-watch(
-  () => projectStore.executionMode,
-  (modeValue) => {
-    projectStore.executionContext.executionEnvironment = modeValue === 'live' ? 'Live' : 'Design'
-  },
-)
-
 // === Component Browser ===
 
 const componentBrowserVisible = ref(false)
@@ -718,7 +697,6 @@ const groupColors = computed(() => {
           :zoomLevel="100.0 * graphNavigator.targetScale"
           :componentsSelected="nodeSelection.selected.size"
           :class="{ extraRightSpace: !showDocumentationEditor }"
-          @recordOnce="onRecordOnceButtonPress()"
           @fitToAllClicked="zoomToSelected"
           @zoomIn="graphNavigator.stepZoom(+1)"
           @zoomOut="graphNavigator.stepZoom(-1)"

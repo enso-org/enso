@@ -68,4 +68,4 @@ type Group_Comparator
         text_comp = Comparable.from g.name
         text_comp.hash g.name
 
-Comparable.from (_:Group) = Group_Comparator
+Comparable.from (that:Group) = Comparable.new that Group_Comparator

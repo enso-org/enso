@@ -1,29 +1,28 @@
 <script setup lang="ts">
 import SvgButton from '@/components/SvgButton.vue'
-import ToggleIcon from '@/components/ToggleIcon.vue'
+import { useProjectStore } from '@/stores/project'
 
-const props = defineProps<{ recordMode: boolean }>()
-const emit = defineEmits<{ recordOnce: []; 'update:recordMode': [enabled: boolean] }>()
+const project = useProjectStore()
 </script>
 
 <template>
   <div class="RecordControl">
     <div class="control left-end">
-      <ToggleIcon
-        icon="record"
-        class="iconButton record"
-        title="Record"
-        :modelValue="props.recordMode"
-        @update:modelValue="emit('update:recordMode', $event)"
+      <SvgButton
+        title="Refresh"
+        class="iconButton"
+        name="refresh"
+        draggable="false"
+        @click.stop="project.executionContext.recompute()"
       />
     </div>
     <div class="control right-end">
       <SvgButton
-        title="Record Once"
-        class="iconButton record"
-        name="record_once"
+        title="Run Workflow"
+        class="iconButton"
+        name="workflow_play"
         draggable="false"
-        @click.stop="() => emit('recordOnce')"
+        @click.stop="project.executionContext.recompute('all', 'Live')"
       />
     </div>
   </div>
@@ -56,9 +55,7 @@ const emit = defineEmits<{ recordOnce: []; 'update:recordMode': [enabled: boolea
   border-radius: 0 var(--radius-full) var(--radius-full) 0;
 
   .iconButton {
-    position: relative;
     margin: 0 auto 0 0;
-    --icon-width: 24px;
   }
 }
 
