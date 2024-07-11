@@ -332,11 +332,10 @@ type URI_Comparator
 
     ## PRIVATE
     hash x =
-        txt = x.text
-        Comparable.from txt . hash txt
+        Ordering.hash x.text
 
 ## PRIVATE
-Comparable.from (_:URI) = URI_Comparator
+Comparable.from (that:URI) = Comparable.new that URI_Comparator
 
 ## PRIVATE
 type Invalid_Query_String

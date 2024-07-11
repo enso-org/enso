@@ -1,5 +1,11 @@
 # Next Release
 
+#### Enso Language & Runtime
+
+- [Enforce conversion method return type][10468]
+
+[10468]: https://github.com/enso-org/enso/pull/10468
+
 #### Enso IDE
 
 - ["Add node" button is not obscured by output port][10433]
@@ -21,6 +27,8 @@
 - [Renamed `Postgres_Details.Postgres` to `Postgres.Server`.][10466]
 - [Remove `First` and `Last` from namespace, use auto-scoped.][10467]
 - [Rename `Map` to `Dictionary` and `Set` to `Hashset`.][10474]
+- [Compare two objects with `Ordering.compare` and define comparator with
+  `Comparable.new`][10468]
 
 [10434]: https://github.com/enso-org/enso/pull/10434
 [10445]: https://github.com/enso-org/enso/pull/10445

@@ -19,7 +19,7 @@ type Unordered_Multi_Value_Key
         arr = Array_Proxy.new columns.length column_ix->
             columns . at column_ix . at row_index
         vector = Vector.from_polyglot_array arr
-        hash_code = Comparable.from vector . hash vector
+        hash_code = Ordering.hash vector
         Unordered_Multi_Value_Key.Key hash_code columns row_index
 
     ## PRIVATE
@@ -52,7 +52,7 @@ type Unordered_Multi_Value_Key_Comparator
     hash x = x.hash_code
 
 ## PRIVATE
-Comparable.from (_:Unordered_Multi_Value_Key) = Unordered_Multi_Value_Key_Comparator
+Comparable.from (that:Unordered_Multi_Value_Key) = Comparable.new that Unordered_Multi_Value_Key_Comparator
 
 ## PRIVATE
    An Enso implementation mirroring `OrderedMultiValueKey` from the Java
@@ -83,7 +83,7 @@ type Ordered_Multi_Value_Key_Comparator
                 if ix >= n then Ordering.Equal else
                     vx = x.columns.at ix . at x.row_index
                     vy = y.columns.at ix . at y.row_index
-                    cmp = (Comparable.from vx).compare vx vy
+                    cmp = Ordering.compare vx vy
                     if cmp != Ordering.Equal then adapt_direction ix cmp else
                         @Tail_Call go (ix + 1)
             go 0
@@ -94,4 +94,4 @@ type Ordered_Multi_Value_Key_Comparator
         Error.throw (Illegal_State.new "Ordered_Multi_Value_Key is not intended for usage in unordered collections.")
 
 ## PRIVATE
-Comparable.from (_:Ordered_Multi_Value_Key) = Ordered_Multi_Value_Key_Comparator
+Comparable.from (that:Ordered_Multi_Value_Key) = Comparable.new that Ordered_Multi_Value_Key_Comparator
