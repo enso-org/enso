@@ -2713,7 +2713,7 @@ lazy val launcher = project
     NativeImage.additionalCp := Seq.empty,
     rebuildNativeImage := NativeImage
       .buildNativeImage(
-        "enso",
+        "ensoup",
         staticOnLinux = true,
         additionalOptions = Seq(
           "-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.NoOpLog",
@@ -2728,7 +2728,7 @@ lazy val launcher = project
     buildNativeImage := NativeImage
       .incrementalNativeImageBuild(
         rebuildNativeImage,
-        "enso"
+        "ensoup"
       )
       .value,
     assembly / test := {},
