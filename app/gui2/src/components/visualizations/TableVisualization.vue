@@ -136,7 +136,7 @@ useAutoBlur(tableNode)
 const widths = reactive(new Map<string, number>())
 const defaultColDef = {
   editable: false,
-  sortable: true,
+  sortable: true as boolean,
   filter: true,
   resizable: true,
   minWidth: 25,
@@ -343,7 +343,6 @@ function toField(name: string, valueType?: ValueType | null | undefined): ColDef
     field: name,
     headerComponentParams: {
       template,
-      enableSorting: true,
       setAriaSort: () => {},
     },
     headerTooltip: displayValue ? displayValue : '',
