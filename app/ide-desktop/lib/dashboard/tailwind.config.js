@@ -6,7 +6,7 @@ import plugin from 'tailwindcss/plugin.js'
 // The names come from a third-party API and cannot be changed.
 /* eslint-disable no-restricted-syntax, @typescript-eslint/naming-convention, @typescript-eslint/no-magic-numbers */
 export default /** @satisfies {import('tailwindcss').Config} */ ({
-  content: ['./src/**/*.tsx', './src/**/*.ts'],
+  content: ['./src/**/*.tsx', './src/**/*.ts', '../common/src/**/*.ts'],
   theme: {
     extend: {
       cursor: {
