@@ -34,15 +34,13 @@ add_specs suite_builder detailed setup =
 
     epsilon=0.0000000001
 
-    tester expression value = Test.with_clue "{expr = {"+expression+"}}: " <|
-        new_column = test_table.get.evaluate_expression expression
-        expected = case value of
-            _ : Vector -> value
-            _ -> Vector.new test_table.get.row_count _->value
+    check_results got_values expected =
+        expected_vec = case expected of
+            _ : Vector -> expected
+            _ -> Vector.new test_table.get.row_count _->expected
 
-        values = new_column.to_vector
-        values . each_with_index i->v->
-            e = expected.at i
+        got_values . each_with_index i->v->
+            e = expected_vec.at i
             match = case e of
                 _ : Number -> case v of
                     _ : Number -> e.equals v epsilon
@@ -50,20 +48,46 @@ add_specs suite_builder detailed setup =
                     _ : Decimal -> e.equals v.to_float epsilon
                     _ -> Test.fail "Expected cell to be a number "+e.pretty+" but got a value of non-numeric type: "+v.pretty
                 _ -> e == v
-            if match.not then values.should_equal expected
+            if match.not then got_values.should_equal expected_vec
 
+    tester expression value = Test.with_clue "{expr = {"+expression+"}}: " <|
+        new_column = test_table.get.evaluate_expression expression
         new_column.name . should_equal expression
+        check_results new_column.to_vector value
 
-    specify_test label group_builder action expression_test=tester pending=Nothing = case pending of
+    specify_test label group_builder action pending=Nothing = case pending of
         Nothing ->
             case detailed of
                 True ->
                     specify_tester expression value =
                         group_builder.specify (label + ": " + expression) <|
-                            expression_test expression value
+                            tester expression value
                     action specify_tester
                 False ->
-                    group_builder.specify label (action expression_test)
+                    # We will batch the operation for better performance.
+                    group_builder.specify label <|
+                        batch = Vector.build batch_builder->
+                            add_to_batch expression value =
+                                new_column = test_table.get.evaluate_expression expression
+                                new_column.name . should_equal expression
+                                batch_builder.append [batch_builder.length, new_column, value]
+                            action add_to_batch
+
+                        expr_column_name ix = "expr_"+ix.to_text
+                        batched_expression = batch.fold test_table.get acc-> entry->
+                            ix = entry.at 0
+                            new_column = entry.at 1
+                            acc.set new_column as=(expr_column_name ix) set_mode=..Add
+                        batched_expression_without_columns = batched_expression.select_columns "expr_.*".to_regex
+                        materialized = batched_expression_without_columns.read
+                        batch.each entry->
+                            ix = entry.at 0
+                            new_column = entry.at 1
+                            expected = entry.at 2
+                            Test.with_clue "{expr = {"+new_column.name+"}}: " <|
+                                got_vector = materialized.at (expr_column_name ix) . to_vector
+                                check_results got_vector expected
+
         _ -> group_builder.specify label Nothing pending
 
     suite_builder.group prefix+"Expression Integer literals" group_builder->
@@ -352,23 +376,23 @@ add_specs suite_builder detailed setup =
             expression_test "max([A], [B], 3)" [3, 3, 3, 4, 6]
 
     suite_builder.group prefix+"Expression Errors should be handled" group_builder->
-        error_tester expression fail_ctor =
-            test_table.get.set (expr expression) as="NEW_COL" . should_fail_with Expression_Error
-            test_table.get.set (expr expression) as="NEW_COL" . catch . should_be_a fail_ctor
+        expect_error ctor expr =
+            expr.should_fail_with Expression_Error
+            expr.catch.should_be_a ctor
 
-        specify_test "should fail with Syntax_Error if badly formed" group_builder expression_test=error_tester expression_test->
-            expression_test "IIF [A] THEN 1 ELSE 2" Expression_Error.Syntax_Error
-            expression_test "A + B" Expression_Error.Syntax_Error
-            expression_test "#2022-31-21#" Expression_Error.Syntax_Error
+        group_builder.specify "should fail with Syntax_Error if badly formed" <|
+            expect_error Expression_Error.Syntax_Error <| test_table.get.evaluate_expression "IIF [A] THEN 1 ELSE 2"
+            expect_error Expression_Error.Syntax_Error <| test_table.get.evaluate_expression "A + B"
+            expect_error Expression_Error.Syntax_Error <| test_table.get.evaluate_expression "#2022-31-21#"
 
-        specify_test "should fail with Unsupported_Operation if not sufficient arguments" group_builder expression_test=error_tester expression_test->
-            expression_test "unknown([C])" Expression_Error.Unsupported_Operation
+        group_builder.specify "should fail with Unsupported_Operation if not sufficient arguments" <|
+            expect_error Expression_Error.Unsupported_Operation <| test_table.get.evaluate_expression "unknown([C])"
 
-        specify_test "should fail with Argument_Mismatch if not sufficient arguments" group_builder expression_test=error_tester expression_test->
-            expression_test "starts_with([C])" Expression_Error.Argument_Mismatch
+        group_builder.specify "should fail with Argument_Mismatch if not sufficient arguments" <|
+            expect_error Expression_Error.Argument_Mismatch <| test_table.get.evaluate_expression "starts_with([C])"
 
-        specify_test "should fail with Argument_Mismatch if too many arguments" group_builder expression_test=error_tester expression_test->
-            expression_test "is_empty([C], 'Hello')" Expression_Error.Argument_Mismatch
+        group_builder.specify "should fail with Argument_Mismatch if too many arguments" <|
+            expect_error Expression_Error.Argument_Mismatch <| test_table.get.evaluate_expression "is_empty([C], 'Hello')"
 
     suite_builder.group prefix+"Expression Warnings should be reported" group_builder->
         group_builder.specify "should report floating point equality" <|
