@@ -224,8 +224,8 @@ export class GraphDb {
     )
   })
 
-  getNodeFirstOutputPort(id: NodeId): AstId | undefined {
-    return set.first(this.nodeOutputPorts.lookup(id)) ?? this.idFromExternal(id)
+  getNodeFirstOutputPort(id: NodeId | undefined): AstId | undefined {
+    return id ? set.first(this.nodeOutputPorts.lookup(id)) ?? this.idFromExternal(id) : undefined
   }
 
   *getNodeUsages(id: NodeId): IterableIterator<AstId> {
@@ -252,13 +252,13 @@ export class GraphDb {
     return this.getPatternExpressionNodeId(binding)
   }
 
-  getExpressionInfo(id: AstId | ExternalId): ExpressionInfo | undefined {
+  getExpressionInfo(id: AstId | ExternalId | undefined): ExpressionInfo | undefined {
     const externalId = isUuid(id) ? id : this.idToExternal(id)
     return externalId && this.valuesRegistry.getExpressionInfo(externalId)
   }
 
-  getOutputPortIdentifier(source: AstId): string | undefined {
-    return this.bindings.bindings.get(source)?.identifier
+  getOutputPortIdentifier(source: AstId | undefined): string | undefined {
+    return source ? this.bindings.bindings.get(source)?.identifier : undefined
   }
 
   allIdentifiers(): string[] {
@@ -446,8 +446,8 @@ export class GraphDb {
   }
 
   /** Get the ID of the `Ast` corresponding to the given `ExternalId` as of the last synchronization. */
-  idFromExternal(id: ExternalId): AstId | undefined {
-    return this.idFromExternalMap.get(id)
+  idFromExternal(id: ExternalId | undefined): AstId | undefined {
+    return id ? this.idFromExternalMap.get(id) : id
   }
   /** Get the external ID corresponding to the given `AstId` as of the last synchronization.
    *
@@ -463,8 +463,8 @@ export class GraphDb {
    *  - If the data should be associated with the `Ast` that the engine was referring to, use `idToExternal`.
    *  Either choice is an approximation that will be used until the engine provides an update after processing the edit.
    */
-  idToExternal(id: AstId): ExternalId | undefined {
-    return this.idToExternalMap.get(id)
+  idToExternal(id: AstId | undefined): ExternalId | undefined {
+    return id ? this.idToExternalMap.get(id) : undefined
   }
 
   static Mock(registry = ComputedValueRegistry.Mock(), db = new SuggestionDb()): GraphDb {

@@ -189,7 +189,7 @@ watchEffect(() => {
   const sourceIdent = input.selfArgument.value
   const sourceNode =
     sourceIdent != null ? graphStore.db.getIdentDefiningNode(sourceIdent) : undefined
-  const source = sourceNode != null ? graphStore.db.getNodeFirstOutputPort(sourceNode) : undefined
+  const source = graphStore.db.getNodeFirstOutputPort(sourceNode)
   if (!source) {
     graphStore.cbEditedEdge = undefined
     return

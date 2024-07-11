@@ -18,7 +18,7 @@ import { type SuggestionDbStore } from '@/stores/suggestionDatabase'
 import { assert, bail } from '@/util/assert'
 import { Ast } from '@/util/ast'
 import type { AstId } from '@/util/ast/abstract'
-import { MutableModule, isIdentifier, type Identifier } from '@/util/ast/abstract'
+import { MutableModule, isAstId, isIdentifier, type Identifier } from '@/util/ast/abstract'
 import { RawAst, visitRecursive } from '@/util/ast/raw'
 import { partition } from '@/util/data/array'
 import { Rect } from '@/util/data/rect'
@@ -515,7 +515,7 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
     }
 
     function getPortNodeId(id: PortId): NodeId | undefined {
-      return db.getExpressionNodeId(id as string as Ast.AstId) ?? getPortPrimaryInstance(id)?.nodeId
+      return (isAstId(id) && db.getExpressionNodeId(id)) || getPortPrimaryInstance(id)?.nodeId
     }
 
     /**
@@ -709,7 +709,7 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
     }
 
     function isConnectedTarget(portId: PortId): boolean {
-      return db.connections.reverseLookup(portId as AstId).size > 0
+      return isAstId(portId) && db.connections.reverseLookup(portId).size > 0
     }
 
     const modulePath: Ref<LsPath | undefined> = computedAsync(async () => {

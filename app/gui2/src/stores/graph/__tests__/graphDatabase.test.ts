@@ -90,7 +90,6 @@ test('Reading graph from definition', () => {
   expect(db.getOutputPortIdentifier(db.getNodeFirstOutputPort(asNodeId(eid('node2Content'))))).toBe(
     'node2',
   )
-  console.log('=======', db.getNodeFirstOutputPort(asNodeId(eid('node1Id'))))
   expect(db.getOutputPortIdentifier(db.getNodeFirstOutputPort(asNodeId(eid('node1Id'))))).toBe(
     'node1',
   )

@@ -36,16 +36,7 @@ import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import { displayedIconOf } from '@/util/getIconName'
 import type { ExternalId, VisualizationIdentifier } from 'shared/yjsModel'
-import {
-  computed,
-  getCurrentInstance,
-  onBeforeUnmount,
-  onUnmounted,
-  ref,
-  shallowRef,
-  watch,
-  watchEffect,
-} from 'vue'
+import { computed, onUnmounted, ref, shallowRef, watch, watchEffect } from 'vue'
 
 const MAXIMUM_CLICK_LENGTH_MS = 300
 const MAXIMUM_CLICK_DISTANCE_SQ = 50
@@ -449,6 +440,7 @@ watchEffect(() => {
     <Teleport :to="graphNodeSelections">
       <GraphNodeSelection
         v-if="navigator && !edited"
+        :data-node-id="nodeId"
         :nodePosition="props.node.position"
         :nodeSize="graphSelectionSize"
         :class="{ draggable: true, dragged: isDragged }"

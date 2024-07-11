@@ -64,7 +64,7 @@ function handleWidgetUpdates(update: WidgetUpdate) {
         : value == null ? Ast.Wildcard.new(edit)
         : undefined
       if (ast) {
-        edit.replaceValue(origin as Ast.AstId, ast)
+        edit.replaceValue(origin, ast)
       } else if (typeof value === 'string') {
         edit.tryGet(origin)?.syncToCode(value)
       }
