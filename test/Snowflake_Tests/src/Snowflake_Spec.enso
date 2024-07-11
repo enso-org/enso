@@ -216,16 +216,14 @@ snowflake_specific_spec suite_builder default_connection db_name setup =
             t2.at "big_ints" . value_type . should_equal (Value_Type.Decimal 38 0)
             # For the decimal column we get a warning because the type changed:
             w = Problems.expect_only_warning Inexact_Type_Coercion t2
-            w.requested_type . should_equal (Value_Type.Decimal Nothing Nothing)
+            w.requested_type . should_equal (Value_Type.Decimal Nothing 0)
             w.actual_type . should_equal (Value_Type.Decimal 38 0)
 
             in_memory2 = t2.remove_warnings.read
             # Unless the values are actually big, then the Decimal type is kept, but its precision is lost, as in-memory BigInteger does not store it.
             in_memory2.at "big_ints" . value_type . should_equal (Value_Type.Decimal Nothing 0)
-            # The same coercion warning but the other way around is reported when materialized:
-            w2 = Problems.expect_only_warning Inexact_Type_Coercion in_memory2
-            w2.requested_type . should_equal (Value_Type.Decimal 38 0)
-            w2.actual_type . should_equal (Value_Type.Decimal Nothing 0)
+            # The Decimal type loses 'precision' but that is no reason to warn, so we should not see any warnings here:
+            Problems.assume_no_problems in_memory2
 
             # Check correctness of values
             in_memory2.at "big_ints" . to_vector . should_contain_the_same_elements_as [2^100, 2^110, 1]
