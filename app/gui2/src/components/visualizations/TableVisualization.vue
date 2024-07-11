@@ -330,7 +330,7 @@ function toField(name: string, valueType?: ValueType | null | undefined): ColDef
   const menu = `<span ref="eMenu" class="ag-header-icon ag-header-cell-menu-button"> </span>`
   const sort = `
       <span ref="eFilter" class="ag-header-icon ag-header-label-icon ag-filter-icon" aria-hidden="true"></span>
-      <span ref="eSortOrder" class="ag-header-icon ag-sort-order" aria-hidden="true">1</span>
+      <span ref="eSortOrder" class="ag-header-icon ag-sort-order" aria-hidden="true"></span>
       <span ref="eSortAsc" class="ag-header-icon ag-sort-ascending-icon" aria-hidden="true"></span>
       <span ref="eSortDesc" class="ag-header-icon ag-sort-descending-icon" aria-hidden="true"></span>
       <span ref="eSortNone" class="ag-header-icon ag-sort-none-icon" aria-hidden="true"></span>
