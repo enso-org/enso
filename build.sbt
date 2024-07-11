@@ -306,6 +306,7 @@ lazy val enso = (project in file("."))
     `akka-native`,
     `version-output`,
     `refactoring-utils`,
+    `engine-runner-common`,
     `engine-runner`,
     runtime,
     searcher,
@@ -2459,6 +2460,21 @@ lazy val `runtime-fat-jar` =
  * recompilation but still convince the IDE that it is a .jar dependency.
  */
 
+lazy val `engine-runner-common` = project
+  .in(file("engine/runner-common"))
+  .settings(
+    frgaalJavaCompilerSetting,
+    Test / fork := true,
+    commands += WithDebugCommand.withDebug,
+    Test / envVars ++= distributionEnvironmentOverrides,
+    libraryDependencies ++= Seq(
+      "org.graalvm.polyglot" % "polyglot"    % graalMavenPackagesVersion % "provided",
+      "commons-cli"          % "commons-cli" % commonsCliVersion
+    )
+  )
+  .dependsOn(cli)
+  .dependsOn(testkit % Test)
+
 lazy val `engine-runner` = project
   .in(file("engine/runner"))
   .settings(
@@ -2690,6 +2706,7 @@ lazy val `engine-runner` = project
   .dependsOn(`runtime-parser`)
   .dependsOn(`logging-service`)
   .dependsOn(`logging-service-logback` % Runtime)
+  .dependsOn(`engine-runner-common`)
   .dependsOn(`polyglot-api`)
   .dependsOn(`enso-test-java-helpers`)
 
