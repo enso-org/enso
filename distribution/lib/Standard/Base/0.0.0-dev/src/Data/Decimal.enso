@@ -4,6 +4,7 @@ import project.Data.Numeric.Internal.Decimal_Internal
 import project.Data.Numeric.Math_Context.Math_Context
 import project.Data.Numeric.Rounding_Mode.Rounding_Mode
 import project.Data.Text.Text
+import project.Data.Vector.Vector
 import project.Error.Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Nothing.Nothing
@@ -89,7 +90,7 @@ type Decimal
     Value (big_decimal : BigDecimal)
 
     ## ICON input_number
-       Construct a `Decimal` from a string, integer or float.
+       Construct a `Decimal` from a `Text`, `Integer` or `Float`.
 
        Arguments:
        - x: The `Text`, `Integer`, or `Float` to construct a `Decimal` from.
@@ -111,17 +112,17 @@ type Decimal
            if a `Math_Context` value is explicitly passed.
 
         ^ Example
-          Create a `Decimal` from a string.
+          Create a `Decimal` from a `Text`.
 
               c = Decimal.new "12.345"
 
         ^ Example
-          Create a `Decimal` from an integer.
+          Create a `Decimal` from an `Integer`.
 
               c = Decimal.new 12345
 
         ^ Example
-          Create a `Decimal` from a float.
+          Create a `Decimal` from a `Float`.
 
               c = Decimal.new 12.345
     new : Text | Integer | Float -> Math_Context | Nothing -> Decimal ! Arithmetic_Error | Number_Parse_Error
@@ -155,7 +156,7 @@ type Decimal
            if a `Math_Context` value is explicitly passed.
 
         ^ Example
-          Create a `Decimal` from a string.
+          Create a `Decimal` from a `Text`.
 
               d = Decimal.from_text "12.345"
     from_text : Text -> Math_Context | Nothing -> Decimal ! Number_Parse_Error
@@ -182,7 +183,7 @@ type Decimal
            if a `Math_Context` value is explicitly passed.
 
         ^ Example
-          Create a `Decimal` from an integer.
+          Create a `Decimal` from an `Integer`.
 
               d = Decimal.from_integer 12
     from_integer : Integer -> Math_Context | Nothing -> Decimal
@@ -217,7 +218,7 @@ type Decimal
          - If `f` is NaN or +/-Inf, an Illegal_Argument error is thrown.
 
         ^ Example
-          Create a `Decimal` from a float.
+          Create a `Decimal` from a `Float`.
 
               d = Decimal.from_integer 12.345
     from_float : Float -> Math_Context | Nothing -> Decimal ! Arithmetic_Error | Illegal_Argument
@@ -865,7 +866,7 @@ type Decimal
 
     ## GROUP Rounding
        ICON math
-       Computes the nearest integer equal to or above this number.
+       Computes the nearest `Integer` equal to or above this number.
 
        > Example
          Compute the ceiling of 12.34.
@@ -883,7 +884,7 @@ type Decimal
 
     ## GROUP Rounding
        ICON math
-       Computes the nearest integer equal to or below this number.
+       Computes the nearest `Integer` equal to or below this number.
 
        > Example
          Compute the floor of 12.34.
@@ -903,8 +904,8 @@ type Decimal
        GROUP Rounding
        ICON math
 
-       Truncate a number to an integer to by dropping the fractional part. This
-       is equivalent to "round-toward-zero".
+       Truncate a number to an `Integer` to by dropping the fractional part.
+       This is equivalent to "round-toward-zero".
 
        > Example
          Compute the truncation of 12.34
@@ -1020,8 +1021,8 @@ type Decimal
     unscaled_value self -> Integer = self.big_decimal.unscaledValue
 
     ## PRIVATE
-    internal_representation : [Integer]
-    internal_representation self -> [Integer] = [self.unscaled_value, self.precision, self.scale]
+    internal_representation : Vector Integer
+    internal_representation self -> Vector Integer = [self.unscaled_value, self.precision, self.scale]
 
     ## PRIVATE
        Note: the underlying Java `BigDecimal` implementation is not affected by
@@ -1042,7 +1043,7 @@ type Decimal
     to_text_without_scientific_notation self -> Text = self.big_decimal.toPlainString
 
 ## ICON input_number
-    Construct a `Decimal` from a string, integer or float.
+    Construct a `Decimal` from a `Text`, `Integer` or `Float`.
 
     Arguments:
     - x: The `Text`, `Integer`, or `Float` to construct a `Decimal` from.
@@ -1064,17 +1065,17 @@ type Decimal
         if a `Math_Context` value is explicitly passed.
 
     ^ Example
-        Create a `Decimal` from a string.
+        Create a `Decimal` from a `Text`.
 
             c = dec "12.345"
 
     ^ Example
-        Create a `Decimal` from an integer.
+        Create a `Decimal` from an `Integer`.
 
             c = dec 12345
 
     ^ Example
-        Create a `Decimal` from a float.
+        Create a `Decimal` from a `Float`.
 
             c = dec 12.345
 dec : Text | Integer | Float -> Math_Context | Nothing -> Decimal ! Arithmetic_Error | Number_Parse_Error

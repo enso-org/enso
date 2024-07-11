@@ -105,7 +105,7 @@ add_specs suite_builder =
             mc4 = Math_Context.new 4
             mc5 = Math_Context.new 5
 
-            Problems.not_expect_warning Any (Decimal.new "123.25")
+            Problems.assume_no_problems (Decimal.new "123.25")
             Problems.expect_warning Loss_Of_Numeric_Precision (Decimal.new "123.25" mc4)
             Problems.not_expect_warning Loss_Of_Numeric_Precision (Decimal.new "123.25" mc5)
 
@@ -113,7 +113,7 @@ add_specs suite_builder =
             Problems.expect_warning Loss_Of_Numeric_Precision (Decimal.new 123.25 mc4)
             Problems.expect_warning Loss_Of_Numeric_Precision (Decimal.new 123.25 mc5)
 
-            Problems.not_expect_warning Any (Decimal.new 12325)
+            Problems.assume_no_problems (Decimal.new 12325)
             Problems.expect_warning Loss_Of_Numeric_Precision (Decimal.new 12325 mc4)
             Problems.not_expect_warning Loss_Of_Numeric_Precision (Decimal.new 12325 mc5)
 
@@ -551,8 +551,8 @@ add_specs suite_builder =
             nd2 . should_equal 5
 
         group_builder.specify "Mixed Decimal/Integer arithmetic should not attach warnings" <|
-            Problems.not_expect_warning Any (Decimal.new 1 + 2)
-            Problems.not_expect_warning Any (1 + Decimal.new 2)
+            Problems.assume_no_problems (Decimal.new 1 + 2)
+            Problems.assume_no_problems (1 + Decimal.new 2)
 
     suite_builder.group "(Decimal_Spec) conversions" group_builder->
         group_builder.specify "should convert correctly to and from Integer" <|
