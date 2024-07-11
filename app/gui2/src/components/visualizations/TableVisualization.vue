@@ -406,7 +406,7 @@ function toLinkField(fieldName: string): ColDef {
     field: fieldName,
     onCellDoubleClicked: (params) => createNode(params),
     tooltipValueGetter: () => {
-      return `Double click to view this ${newNodeSelectorValues.value.tooltipValue} in a separate node`
+      return `Double click to view this ${newNodeSelectorValues.value.tooltipValue} in a separate component`
     },
     cellRenderer: (params: any) => `<a href='#'> ${params.value} </a>`,
   }
