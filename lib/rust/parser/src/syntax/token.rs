@@ -305,6 +305,11 @@ impl Variant {
             | Variant::Invalid(_)
         )
     }
+
+    /// Return a token variant for an identifier composed of operator characters.
+    pub fn operator_ident() -> variant::Ident {
+        variant::Ident(false, 0, false, true, false)
+    }
 }
 
 impl Default for Variant {
