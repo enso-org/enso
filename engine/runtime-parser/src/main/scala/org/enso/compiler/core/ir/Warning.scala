@@ -86,10 +86,15 @@ object Warning {
   case class NoSuchMethod(
     override val location: Option[IdentifiedLocation],
     typeRepresentation: String,
+    isStatic: Boolean,
     methodName: String
   ) extends Warning {
-    override def message(source: (IdentifiedLocation => String)): String =
-      s"Calling method `$methodName` on type $typeRepresentation will result in a No_Such_Method error in runtime, because that type does not define such a method."
+    override def message(source: (IdentifiedLocation => String)): String = {
+      if (isStatic)
+        s"Calling static method `$methodName` on $typeRepresentation will result in a No_Such_Method error in runtime, because that type does not define such a method."
+      else
+        s"Calling method `$methodName` on type $typeRepresentation will result in a No_Such_Method error in runtime, because that type does not define such a method."
+    }
 
     override def diagnosticKeys(): Array[Any] = Array()
   }
