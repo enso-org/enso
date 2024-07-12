@@ -1,5 +1,5 @@
 import project.Any.Any
-from project.Data.Boolean import True
+import project.Data.Boolean.Boolean.True
 
 @Builtin_Type
 type Error
