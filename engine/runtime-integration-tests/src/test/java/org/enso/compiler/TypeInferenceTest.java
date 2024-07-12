@@ -1126,7 +1126,7 @@ public class TypeInferenceTest extends StaticAnalysisTest {
                         x3 = inst.to_text
                         x4 = inst.is_error
                         x5 = inst.static_method
-                        [x1, x2, x3, x4]
+                        [x1, x2, x3, x4, x5]
                     """,
                 uri.getAuthority())
             .uri(uri)
