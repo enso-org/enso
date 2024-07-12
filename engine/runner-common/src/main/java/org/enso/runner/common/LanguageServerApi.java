@@ -17,7 +17,9 @@ public abstract class LanguageServerApi {
 
   public static void launchLanguageServer(CommandLine line, ProfilingConfig config, Level logLevel)
       throws WrongOption {
-    var it = ServiceLoader.load(LanguageServerApi.class).iterator();
+    var it =
+        ServiceLoader.load(LanguageServerApi.class, LanguageServerApi.class.getClassLoader())
+            .iterator();
     var impl = it.next();
     impl.runLanguageServer(line, config, logLevel);
   }
