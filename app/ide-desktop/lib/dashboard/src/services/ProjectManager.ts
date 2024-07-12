@@ -6,7 +6,7 @@ import * as detect from 'enso-common/src/detect'
 import * as backend from '#/services/Backend'
 
 import * as appBaseUrl from '#/utilities/appBaseUrl'
-import type * as dateTime from '#/utilities/dateTime'
+import * as dateTime from '#/utilities/dateTime'
 import * as newtype from '#/utilities/newtype'
 
 // =================
@@ -279,6 +279,16 @@ function normalizeSlashes(path: string): Path {
   }
 }
 
+// ===========================
+// === getDirectoryAndName ===
+// ===========================
+
+/** Split a {@link Path} inito the path of its parent directory, and its file name. */
+export function getDirectoryAndName(path: Path) {
+  const [, directoryPath = '', fileName = ''] = path.match(/^(.+)[/]([^/]+)$/) ?? []
+  return { directoryPath: Path(directoryPath), fileName }
+}
+
 // =======================
 // === Project Manager ===
 // =======================
@@ -293,7 +303,13 @@ export enum ProjectManagerEvents {
  * It should always be in sync with the Rust interface at
  * `app/gui/controller/engine-protocol/src/project_manager.rs`. */
 export default class ProjectManager {
+  // This is required so that projects get recursively updated (deleted, renamed or moved).
+  private readonly internalDirectories = new Map<Path, readonly FileSystemEntry[]>()
   private readonly internalProjects = new Map<UUID, ProjectState>()
+  private readonly internalProjectPaths = new Map<UUID, Path>()
+  // This MUST be declared after `internalDirectories` because it depends on `internalDirectories`.
+  // eslint-disable-next-line @typescript-eslint/member-ordering
+  readonly directories: ReadonlyMap<UUID, ProjectState> = this.internalProjects
   // This MUST be declared after `internalProjects` because it depends on `internalProjects`.
   // eslint-disable-next-line @typescript-eslint/member-ordering
   readonly projects: ReadonlyMap<UUID, ProjectState> = this.internalProjects
@@ -368,6 +384,12 @@ export default class ProjectManager {
     socket.close()
   }
 
+  /** Get the directory path of a project. */
+  getProjectDirectoryPath(projectId: UUID) {
+    const projectPath = this.internalProjectPaths.get(projectId)
+    return projectPath == null ? this.rootDirectory : getDirectoryAndName(projectPath).directoryPath
+  }
+
   /** Open an existing project. */
   async openProject(params: OpenProjectParams): Promise<OpenProject> {
     const cached = this.internalProjects.get(params.projectId)
@@ -401,26 +423,64 @@ export default class ProjectManager {
 
   /** Create a new project. */
   async createProject(params: CreateProjectParams): Promise<CreateProject> {
-    return this.sendRequest<CreateProject>('project/create', {
+    const result = await this.sendRequest<CreateProject>('project/create', {
       missingComponentAction: MissingComponentAction.install,
       ...params,
     })
+    const directoryPath = params.projectsDirectory ?? this.rootDirectory
+    // Update `internalDirectories` by listing the project's parent directory, because the
+    // directory name of the project is unknown. Deleting the directory is not an option because
+    // that will prevent ALL descendants of the parent directory from being updated.
+    await this.listDirectory(directoryPath)
+    return result
   }
 
   /** Rename a project. */
-  async renameProject(params: RenameProjectParams): Promise<void> {
-    return this.sendRequest('project/rename', params)
+  async renameProject(params: Omit<RenameProjectParams, 'projectsDirectory'>): Promise<void> {
+    const path = this.internalProjectPaths.get(params.projectId)
+    const directoryPath =
+      path == null ? this.rootDirectory : getDirectoryAndName(path).directoryPath
+    const fullParams: RenameProjectParams = { ...params, projectsDirectory: directoryPath }
+    await this.sendRequest('project/rename', fullParams)
+    // Update `internalDirectories` by listing the project's parent directory, because the new
+    // directory name of the project is unknown. Deleting the directory is not an option because
+    // that will prevent ALL descendants of the parent directory from being updated.
+    await this.listDirectory(directoryPath)
   }
 
   /** Duplicate a project. */
-  async duplicateProject(params: DuplicateProjectParams): Promise<DuplicatedProject> {
-    return this.sendRequest('project/duplicate', params)
+  async duplicateProject(
+    params: Omit<DuplicateProjectParams, 'projectsDirectory'>
+  ): Promise<DuplicatedProject> {
+    const path = this.internalProjectPaths.get(params.projectId)
+    const directoryPath =
+      path == null ? this.rootDirectory : getDirectoryAndName(path).directoryPath
+    const fullParams: DuplicateProjectParams = { ...params, projectsDirectory: directoryPath }
+    const result = this.sendRequest<DuplicatedProject>('project/duplicate', fullParams)
+    // Update `internalDirectories` by listing the project's parent directory, because the
+    // directory name of the project is unknown. Deleting the directory is not an option because
+    // that will prevent ALL descendants of the parent directory from being updated.
+    await this.listDirectory(directoryPath)
+    return result
   }
 
   /** Delete a project. */
   async deleteProject(params: DeleteProjectParams): Promise<void> {
+    await this.sendRequest('project/delete', params)
+    this.internalProjectPaths.delete(params.projectId)
     this.internalProjects.delete(params.projectId)
-    return this.sendRequest('project/delete', params)
+    const directoryId = params.projectsDirectory ?? this.rootDirectory
+    const siblings = this.internalDirectories.get(directoryId)
+    if (siblings != null) {
+      this.internalDirectories.set(
+        directoryId,
+        siblings.filter(
+          entry =>
+            entry.type !== FileSystemEntryType.ProjectEntry ||
+            entry.metadata.id !== params.projectId
+        )
+      )
+    }
   }
 
   /** List installed engine versions. */
@@ -448,37 +508,161 @@ export default class ProjectManager {
   }
 
   /** List directories, projects and files in the given folder. */
-  async listDirectory(parentId: Path | null) {
+  async listDirectory(parentId: Path | null): Promise<readonly FileSystemEntry[]> {
     /** The type of the response body of this endpoint. */
     interface ResponseBody {
       readonly entries: FileSystemEntry[]
     }
+    parentId ??= this.rootDirectory
     const response = await this.runStandaloneCommand<ResponseBody>(
       null,
       'filesystem-list',
-      parentId ?? this.rootDirectory
+      parentId
     )
-    return response.entries.map(entry => ({ ...entry, path: normalizeSlashes(entry.path) }))
+    const result = response.entries.map(entry => ({ ...entry, path: normalizeSlashes(entry.path) }))
+    this.internalDirectories.set(parentId, result)
+    for (const entry of result) {
+      if (entry.type === FileSystemEntryType.ProjectEntry) {
+        this.internalProjectPaths.set(entry.metadata.id, entry.path)
+      }
+    }
+    return result
   }
 
   /** Create a directory. */
   async createDirectory(path: Path) {
-    return this.runStandaloneCommand(null, 'filesystem-create-directory', path)
+    await this.runStandaloneCommand(null, 'filesystem-create-directory', path)
+    this.internalDirectories.set(path, [])
+    const directoryPath = getDirectoryAndName(path).directoryPath
+    const siblings = this.internalDirectories.get(directoryPath)
+    if (siblings) {
+      const now = dateTime.toRfc3339(new Date())
+      this.internalDirectories.set(directoryPath, [
+        ...siblings.filter(sibling => sibling.type === FileSystemEntryType.DirectoryEntry),
+        {
+          type: FileSystemEntryType.DirectoryEntry,
+          attributes: {
+            byteSize: 0,
+            creationTime: now,
+            lastAccessTime: now,
+            lastModifiedTime: now,
+          },
+          path,
+        },
+        ...siblings.filter(sibling => sibling.type !== FileSystemEntryType.DirectoryEntry),
+      ])
+    }
   }
 
   /** Create a file. */
   async createFile(path: Path, file: Blob) {
     await this.runStandaloneCommand(file, 'filesystem-write-path', path)
+    const directoryPath = getDirectoryAndName(path).directoryPath
+    const siblings = this.internalDirectories.get(directoryPath)
+    if (siblings) {
+      const now = dateTime.toRfc3339(new Date())
+      this.internalDirectories.set(directoryPath, [
+        ...siblings.filter(sibling => sibling.type !== FileSystemEntryType.FileEntry),
+        {
+          type: FileSystemEntryType.FileEntry,
+          attributes: {
+            byteSize: file.size,
+            creationTime: now,
+            lastAccessTime: now,
+            lastModifiedTime: now,
+          },
+          path,
+        },
+        ...siblings.filter(sibling => sibling.type === FileSystemEntryType.FileEntry),
+      ])
+    }
   }
 
   /** Move a file or directory. */
   async moveFile(from: Path, to: Path) {
     await this.runStandaloneCommand(null, 'filesystem-move-from', from, '--filesystem-move-to', to)
+    const children = this.internalDirectories.get(from)
+    // Assume a directory needs to be loaded for its children to be loaded.
+    if (children) {
+      const moveChildren = (directoryChildren: readonly FileSystemEntry[]) => {
+        for (const child of directoryChildren) {
+          switch (child.type) {
+            case FileSystemEntryType.DirectoryEntry: {
+              const childChildren = this.internalDirectories.get(child.path)
+              if (childChildren) {
+                moveChildren(childChildren)
+              }
+              break
+            }
+            case FileSystemEntryType.ProjectEntry: {
+              const path = this.internalProjectPaths.get(child.metadata.id)
+              if (path != null) {
+                this.internalProjectPaths.set(child.metadata.id, Path(path.replace(from, to)))
+              }
+              break
+            }
+            case FileSystemEntryType.FileEntry: {
+              // No special extra metadata is stored for files.
+              break
+            }
+          }
+        }
+        this.internalDirectories.set(
+          from,
+          children.map(child => ({ ...child, path: Path(child.path.replace(from, to)) }))
+        )
+      }
+      moveChildren(children)
+    }
+    const directoryPath = getDirectoryAndName(from).directoryPath
+    const siblings = this.internalDirectories.get(directoryPath)
+    if (siblings) {
+      this.internalDirectories.set(
+        directoryPath,
+        siblings.filter(entry => entry.path !== from)
+      )
+    }
   }
 
   /** Delete a file or directory. */
   async deleteFile(path: Path) {
     await this.runStandaloneCommand(null, 'filesystem-delete', path)
+    const children = this.internalDirectories.get(path)
+    // Assume a directory needs to be loaded for its children to be loaded.
+    if (children) {
+      const removeChildren = (directoryChildren: readonly FileSystemEntry[]) => {
+        for (const child of directoryChildren) {
+          switch (child.type) {
+            case FileSystemEntryType.DirectoryEntry: {
+              const childChildren = this.internalDirectories.get(child.path)
+              if (childChildren) {
+                removeChildren(childChildren)
+              }
+              break
+            }
+            case FileSystemEntryType.ProjectEntry: {
+              this.internalProjects.delete(child.metadata.id)
+              this.internalProjectPaths.delete(child.metadata.id)
+              break
+            }
+            case FileSystemEntryType.FileEntry: {
+              // No special extra metadata is stored for files.
+              break
+            }
+          }
+        }
+      }
+      removeChildren(children)
+      this.internalDirectories.delete(path)
+    }
+    const directoryPath = getDirectoryAndName(path).directoryPath
+    const siblings = this.internalDirectories.get(directoryPath)
+    if (siblings) {
+      this.internalDirectories.set(
+        directoryPath,
+        siblings.filter(entry => entry.path !== path)
+      )
+    }
   }
 
   /** Remove all handlers for a specified request ID. */
