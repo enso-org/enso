@@ -278,8 +278,15 @@ function formatText(params: ICellRendererParams) {
 
   const replaceReturns = replaceSpaces.replace(/\r\n/g, '<span style="color: grey">␍␊</span> <br>')
 
+  const renderOtherWhitespace = (match: string) => {
+    textFormatterSelected.value === TextFormatOptions.On ?
+      '<span style="color: grey">&#9744;</span>'
+    : match
+  }
   const newString = replaceReturns.replace(/[\s]/g, function (match: string) {
-    return whitespaceMapping[match as keyof typeof whitespaceMapping] || match
+    return (
+      whitespaceMapping[match as keyof typeof whitespaceMapping] || renderOtherWhitespace(match)
+    )
   })
   return `<span style="font-family: monospace;"> ${newString}</span>`
 }
