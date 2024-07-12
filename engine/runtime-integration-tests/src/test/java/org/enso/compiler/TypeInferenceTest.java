@@ -1209,6 +1209,65 @@ public class TypeInferenceTest extends StaticAnalysisTest {
         getImmediateDiagnostics(x5.expression()));
   }
 
+  @Test
+  public void callingMethodDefinedElsewhere() throws Exception {
+    final URI uriA = new URI("memory://modA.enso");
+    final Source srcA =
+        Source.newBuilder(
+                "enso",
+                """
+                    type My_Type
+                        Value v
+                    """,
+                uriA.getAuthority())
+            .uri(uriA)
+            .buildLiteral();
+    compile(srcA);
+
+    final URI uriB = new URI("memory://modB.enso");
+    final Source srcB =
+        Source.newBuilder(
+                "enso",
+                """
+                    import modA.My_Type
+                    
+                    type Typ_X
+                        Value a
+                    type Typ_Y
+                        Value a
+
+                    My_Type.member self -> Typ_X = Typ_X.Value self
+                    My_Type.static -> Typ_Y = Typ_Y.Value 32
+                    """,
+                uriB.getAuthority())
+            .uri(uriB)
+            .buildLiteral();
+    compile(srcB);
+
+    final URI uriC = new URI("memory://modC.enso");
+    final Source srcC =
+        Source.newBuilder(
+                "enso",
+                """
+                    import modA.My_Type
+                    from modB import all
+
+                    foo =
+                        inst = My_Type.Value 23
+                        x1 = inst.member
+                        x2 = My_Type.static
+                        [x1, x2]
+                    """,
+                uriC.getAuthority())
+            .uri(uriC)
+            .buildLiteral();
+    var modC = compile(srcC);
+    var foo = findStaticMethod(modC, "foo");
+
+    assertAtomType("modB.Typ_X", findAssignment(foo, "x1"));
+    assertAtomType("modB.Typ_Y", findAssignment(foo, "x2"));
+  }
+
   private TypeRepresentation getInferredType(IR ir) {
     var option = getInferredTypeOption(ir);
     assertTrue(
