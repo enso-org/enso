@@ -9,9 +9,12 @@ import * as reactQuery from '@tanstack/react-query'
 
 import DevtoolsLogo from '#/assets/enso_logo.svg'
 
+import { SETUP_PATH } from '#/appUtils'
+
 import * as billing from '#/hooks/billing'
 
 import * as authProvider from '#/providers/AuthProvider'
+import { UserSessionType } from '#/providers/AuthProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
@@ -52,8 +55,7 @@ export function EnsoDevtools(props: EnsoDevtoolsProps) {
   const { children } = props
 
   const { getText } = textProvider.useText()
-  const { authQueryKey } = authProvider.useAuth()
-  const session = authProvider.useFullUserSession()
+  const { authQueryKey, session } = authProvider.useAuth()
 
   const [features, setFeatures] = React.useState<
     Record<billing.PaywallFeatureName, PaywallDevtoolsFeatureConfiguration>
@@ -100,51 +102,63 @@ export function EnsoDevtools(props: EnsoDevtoolsProps) {
 
             <ariaComponents.Separator orientation="horizontal" className="my-3" />
 
-            <ariaComponents.Text variant="subtitle">
-              {getText('paywallDevtoolsPlanSelectSubtitle')}
-            </ariaComponents.Text>
+            {session?.type === UserSessionType.full && (
+              <>
+                <ariaComponents.Text variant="subtitle">
+                  {getText('paywallDevtoolsPlanSelectSubtitle')}
+                </ariaComponents.Text>
 
-            <ariaComponents.Form
-              gap="small"
-              schema={schema => schema.object({ plan: schema.string() })}
-              defaultValues={{ plan: session.user.plan ?? 'free' }}
-            >
-              {({ form }) => (
-                <>
-                  <ariaComponents.RadioGroup
-                    form={form}
-                    name="plan"
-                    onChange={value => {
-                      queryClient.setQueryData(authQueryKey, {
-                        ...session,
-                        user: { ...session.user, plan: value },
-                      })
-                    }}
-                  >
-                    <ariaComponents.Radio label={getText('free')} value="free" />
-                    <ariaComponents.Radio label={getText('solo')} value={backend.Plan.solo} />
-                    <ariaComponents.Radio label={getText('team')} value={backend.Plan.team} />
-                    <ariaComponents.Radio
-                      label={getText('enterprise')}
-                      value={backend.Plan.enterprise}
-                    />
-                  </ariaComponents.RadioGroup>
+                <ariaComponents.Form
+                  gap="small"
+                  schema={schema => schema.object({ plan: schema.string() })}
+                  defaultValues={{ plan: session.user.plan ?? 'free' }}
+                >
+                  {({ form }) => (
+                    <>
+                      <ariaComponents.RadioGroup
+                        form={form}
+                        name="plan"
+                        onChange={value => {
+                          queryClient.setQueryData(authQueryKey, {
+                            ...session,
+                            user: { ...session.user, plan: value },
+                          })
+                        }}
+                      >
+                        <ariaComponents.Radio label={getText('free')} value={'free'} />
+                        <ariaComponents.Radio label={getText('solo')} value={backend.Plan.solo} />
+                        <ariaComponents.Radio label={getText('team')} value={backend.Plan.team} />
+                        <ariaComponents.Radio
+                          label={getText('enterprise')}
+                          value={backend.Plan.enterprise}
+                        />
+                      </ariaComponents.RadioGroup>
 
-                  <ariaComponents.Button
-                    variant="outline"
-                    onPress={() =>
-                      queryClient.invalidateQueries({ queryKey: authQueryKey }).then(() => {
-                        form.reset()
-                      })
-                    }
-                  >
-                    {getText('reset')}
-                  </ariaComponents.Button>
-                </>
-              )}
-            </ariaComponents.Form>
+                      <ariaComponents.Button
+                        size="small"
+                        variant="outline"
+                        onPress={() =>
+                          queryClient.invalidateQueries({ queryKey: authQueryKey }).then(() => {
+                            form.reset()
+                          })
+                        }
+                      >
+                        {getText('reset')}
+                      </ariaComponents.Button>
+                    </>
+                  )}
+                </ariaComponents.Form>
 
-            <ariaComponents.Separator orientation="horizontal" className="my-3" />
+                <ariaComponents.Separator orientation="horizontal" className="my-3" />
+
+                {/* eslint-disable-next-line no-restricted-syntax */}
+                <ariaComponents.Button variant="link" href={SETUP_PATH + '?__qd-debg__=true'}>
+                  Open setup page
+                </ariaComponents.Button>
+
+                <ariaComponents.Separator orientation="horizontal" className="my-3" />
+              </>
+            )}
 
             <ariaComponents.Text variant="subtitle" className="mb-2">
               {getText('paywallDevtoolsPaywallFeaturesToggles')}
@@ -155,6 +169,7 @@ export function EnsoDevtools(props: EnsoDevtoolsProps) {
                 // eslint-disable-next-line no-restricted-syntax
                 const featureName = feature as billing.PaywallFeatureName
                 const { label, descriptionTextId } = getFeature(featureName)
+
                 return (
                   <div key={feature} className="flex flex-col">
                     <aria.Switch

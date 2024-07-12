@@ -45,47 +45,46 @@ export default function AboutModal() {
   )
 
   return (
-    <ariaComponents.DialogTrigger defaultOpen>
-      <ariaComponents.Button aria-hidden className="sr-only" />
+    <ariaComponents.Dialog
+      title={getText('aboutThisAppShortcut')}
+      modalProps={{ defaultOpen: true }}
+    >
+      <div className="relative flex items-center gap-4">
+        <SvgMask src={LogoIcon} className="size-16 shrink-0 self-start" />
 
-      <ariaComponents.Dialog title={getText('aboutThisAppShortcut')}>
-        <div className="relative flex items-center gap-4">
-          <SvgMask src={LogoIcon} className="size-16 shrink-0 self-start" />
+        <div className="flex flex-col">
+          <ariaComponents.Text variant="subtitle">
+            {localBackend != null
+              ? getText('appNameDesktopEdition')
+              : getText('appNameCloudEdition')}
+          </ariaComponents.Text>
 
-          <div className="flex flex-col">
-            <ariaComponents.Text variant="subtitle">
-              {localBackend != null
-                ? getText('appNameDesktopEdition')
-                : getText('appNameCloudEdition')}
-            </ariaComponents.Text>
+          <table>
+            <tbody>
+              {versionsEntries.map(entry => {
+                const [textId, version] = entry
 
-            <table>
-              <tbody>
-                {versionsEntries.map(entry => {
-                  const [textId, version] = entry
+                return (
+                  <tr key={textId}>
+                    <td className="pr-cell-x align-text-top">
+                      <ariaComponents.Text nowrap>{getText(textId)}</ariaComponents.Text>
+                    </td>
+                    <td>
+                      <ariaComponents.Text>{version}</ariaComponents.Text>
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
 
-                  return (
-                    <tr key={textId}>
-                      <td className="pr-cell-x align-text-top">
-                        <ariaComponents.Text nowrap>{getText(textId)}</ariaComponents.Text>
-                      </td>
-                      <td>
-                        <ariaComponents.Text>{version}</ariaComponents.Text>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-
-            <ariaComponents.ButtonGroup className="mt-4">
-              <ariaComponents.CopyButton copyText={copyText} size="medium" variant="submit">
-                {getText('copy')}
-              </ariaComponents.CopyButton>
-            </ariaComponents.ButtonGroup>
-          </div>
+          <ariaComponents.ButtonGroup className="mt-4">
+            <ariaComponents.CopyButton copyText={copyText} size="medium" variant="submit">
+              {getText('copy')}
+            </ariaComponents.CopyButton>
+          </ariaComponents.ButtonGroup>
         </div>
-      </ariaComponents.Dialog>
-    </ariaComponents.DialogTrigger>
+      </div>
+    </ariaComponents.Dialog>
   )
 }

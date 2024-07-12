@@ -120,6 +120,13 @@ interface PlaceholderOverrides {
     readonly inviteFormSeatsLeftError: [exceedBy: number]
     readonly inviteFormSeatsLeft: [seatsLeft: number]
     readonly seatsLeft: [seatsLeft: number, seatsTotal: number]
+    readonly upgradeCTA: [plan: string]
+    readonly priceTemplate: [price: string, interval: string]
+    readonly months: [months: number]
+    readonly teamPlanSeatsDescription: [seats: number]
+    readonly tryFree: [days: number]
+    readonly organizationNameSettingsInputDescription: [howLong: number]
+    readonly trialDescription: [days: number]
 }
 
 /** An tuple of `string` for placeholders for each {@link TextId}. */

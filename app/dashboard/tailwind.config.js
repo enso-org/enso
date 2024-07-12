@@ -18,6 +18,7 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         /** The default color of all text. */
         // This should be named "regular".
         primary: 'rgb(0 0 0 / 60%)',
+        invert: 'rgb(255 255 255 / 80%)',
         accent: '#499f4b',
         'accent-dark': '#3e9152',
         'hover-bg': 'rgb(0 0 0 / 10%)',

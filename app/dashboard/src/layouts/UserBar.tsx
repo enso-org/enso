@@ -47,10 +47,11 @@ export interface UserBarProps {
 export default function UserBar(props: UserBarProps) {
   const { invisible = false, setIsHelpChatOpen, onShareClick, goToSettingsPage, onSignOut } = props
 
-  const { user } = authProvider.useNonPartialUserSession()
+  const { user } = authProvider.useFullUserSession()
   const { setModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
   const { isFeatureUnderPaywall } = billing.usePaywall({ plan: user.plan })
+
   const shouldShowUpgradeButton = isFeatureUnderPaywall('inviteUser')
   const shouldShowShareButton = onShareClick != null
   const shouldShowInviteButton = !shouldShowShareButton && !shouldShowUpgradeButton

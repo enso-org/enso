@@ -22,29 +22,72 @@ export interface SeparatorProps
  * The styles for the {@link Separator} component.
  */
 export const SEPARATOR_STYLES = twv.tv({
-  base: 'isolate rounded-full',
+  base: 'rounded-full border-none',
   variants: {
+    size: {
+      thin: '',
+      medium: '',
+      thick: '',
+    },
     orientation: {
-      horizontal: 'border-t',
-      vertical: 'border-l',
+      horizontal: 'w-full',
+      vertical: 'h-full',
     },
     variant: {
-      primary: 'border-primary/30',
-      inverted: 'border-white/30',
+      current: 'bg-current',
+      primary: 'bg-primary/30',
+      inverted: 'bg-white/30',
     },
   },
+  defaultVariants: {
+    size: 'thin',
+    orientation: 'horizontal',
+    variant: 'primary',
+  },
+  compoundVariants: [
+    {
+      size: 'thin',
+      orientation: 'horizontal',
+      class: 'h-[0.5px]',
+    },
+    {
+      size: 'thin',
+      orientation: 'vertical',
+      class: 'w-[0.5px]',
+    },
+    {
+      size: 'medium',
+      orientation: 'horizontal',
+      class: 'h-[1px]',
+    },
+    {
+      size: 'medium',
+      orientation: 'vertical',
+      class: 'w-[1px]',
+    },
+    {
+      size: 'thick',
+      orientation: 'horizontal',
+      class: 'h-1',
+    },
+    {
+      size: 'thick',
+      orientation: 'vertical',
+      class: 'w-1',
+    },
+  ],
 })
 
 /**
  * A separator component.
  */
 export function Separator(props: SeparatorProps) {
-  const { orientation = 'horizontal', variant = 'primary', className, ...rest } = props
+  const { orientation = 'horizontal', variant, className, size, ...rest } = props
 
   return (
     <aria.Separator
       orientation={orientation}
-      className={SEPARATOR_STYLES({ orientation, variant, className })}
+      className={SEPARATOR_STYLES({ orientation, variant, size, className })}
       {...rest}
     />
   )

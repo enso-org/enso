@@ -109,7 +109,6 @@ export const Form = React.forwardRef(function Form<
     },
     onError: onSubmitFailed,
     onSuccess: onSubmitSuccess,
-    onMutate: onSubmitted,
     onSettled: onSubmitted,
   })
 

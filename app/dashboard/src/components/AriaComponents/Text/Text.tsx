@@ -33,6 +33,7 @@ export const TEXT_STYLE = twv.tv({
       disabled: 'text-primary/30',
       invert: 'text-white',
       inherit: 'text-inherit',
+      current: 'text-current',
     },
     font: {
       default: '',
@@ -61,9 +62,9 @@ export const TEXT_STYLE = twv.tv({
     },
     transform: {
       none: '',
-      capitalize: 'text-capitalize',
-      lowercase: 'text-lowercase',
-      uppercase: 'text-uppercase',
+      capitalize: 'capitalize',
+      lowercase: 'lowercase',
+      uppercase: 'uppercase',
     },
     truncate: {
       /* eslint-disable @typescript-eslint/naming-convention */
@@ -91,7 +92,9 @@ export const TEXT_STYLE = twv.tv({
     disableLineHeightCompensation: {
       true: 'before:hidden after:hidden before:w-0 after:w-0',
       false:
-        'inline-block flex-col before:block after:block before:flex-none after:flex-none before:w-full after:w-full',
+        'flex-col before:block after:block before:flex-none after:flex-none before:w-full after:w-full',
+      top: 'flex-col before:hidden before:w-0 after:block after:flex-none after:w-full',
+      bottom: 'flex-col before:block before:flex-none before:w-full after:hidden after:w-0',
     },
   },
   defaultVariants: {
@@ -154,11 +157,13 @@ export const Text = React.forwardRef(function Text(
     balance,
     textSelection,
     disableLineHeightCompensation:
-      disableLineHeightCompensation || textContext.isInsideTextComponent,
+      disableLineHeightCompensation === false
+        ? textContext.isInsideTextComponent
+        : disableLineHeightCompensation,
     className,
   })
 
-  const isToolipDisabled = () => {
+  const isTooltipDisabled = () => {
     if (tooltipDisplay === 'whenOverflowing') {
       return !truncate
     } else if (tooltipDisplay === 'always') {
@@ -169,7 +174,7 @@ export const Text = React.forwardRef(function Text(
   }
 
   const { tooltip, targetProps } = visualTooltip.useVisualTooltip({
-    isDisabled: isToolipDisabled(),
+    isDisabled: isTooltipDisabled(),
     targetRef: textElementRef,
     display: tooltipDisplay,
     children: tooltipElement,

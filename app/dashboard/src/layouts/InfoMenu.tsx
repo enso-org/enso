@@ -31,8 +31,7 @@ export interface InfoMenuProps {
 /** A menu containing info about the app. */
 export default function InfoMenu(props: InfoMenuProps) {
   const { hidden = false } = props
-  const session = authProvider.useUserSession()
-  const { signOut } = authProvider.useAuth()
+  const { signOut, session } = authProvider.useAuth()
   const { setModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
   const [initialized, setInitialized] = React.useState(false)

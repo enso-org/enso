@@ -67,8 +67,9 @@ function run(props: Omit<app.AppProps, 'httpClient' | 'portalRoot'>) {
             reactRouter.matchRoutes
           ),
         }),
+        sentry.extraErrorDataIntegration({ captureErrorCause: true }),
+        sentry.replayIntegration(),
         new sentry.BrowserProfilingIntegration(),
-        new sentry.Replay(),
       ],
       profilesSampleRate: SENTRY_SAMPLE_RATE,
       tracesSampleRate: SENTRY_SAMPLE_RATE,

@@ -28,8 +28,7 @@ import type * as types from './types'
  */
 export function useForm<
   Schema extends types.TSchema,
-  TFieldValues extends types.FieldValues<Schema>,
-  // eslint-disable-next-line no-restricted-syntax
+  TFieldValues extends types.FieldValues<Schema> = types.FieldValues<Schema>,
   TTransformedValues extends types.FieldValues<Schema> | undefined = undefined,
 >(
   optionsOrFormInstance:
@@ -53,7 +52,6 @@ export function useForm<
   } else {
     const { schema, ...options } = optionsOrFormInstance
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const computedSchema = typeof schema === 'function' ? schema(schemaModule.schema) : schema
 
     return reactHookForm.useForm<TFieldValues, unknown, TTransformedValues>({
@@ -69,7 +67,6 @@ export function useForm<
 function getArgsType<
   Schema extends types.TSchema,
   TFieldValues extends types.FieldValues<Schema>,
-  // eslint-disable-next-line no-restricted-syntax
   TTransformedValues extends types.FieldValues<Schema> | undefined = undefined,
 >(
   args:

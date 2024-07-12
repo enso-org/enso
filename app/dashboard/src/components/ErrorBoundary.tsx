@@ -35,6 +35,7 @@ export function ErrorBoundary(props: ErrorBoundaryProps) {
     onReset = () => {},
     ...rest
   } = props
+
   return (
     <reactQuery.QueryErrorResetBoundary>
       {({ reset }) => (
@@ -57,26 +58,29 @@ export function ErrorBoundary(props: ErrorBoundaryProps) {
 
 /** Props for a {@link ErrorDisplay}. */
 export interface ErrorDisplayProps extends errorBoundary.FallbackProps {
+  readonly status?: result.ResultProps['status']
+  readonly title?: string
+  readonly subtitle?: string
   readonly error: unknown
 }
 
 /** Default fallback component to show when there is an error. */
 export function ErrorDisplay(props: ErrorDisplayProps): React.JSX.Element {
-  const { resetErrorBoundary, error } = props
-
   const { getText } = textProvider.useText()
-
   const { isOffline } = offlineHooks.useOffline()
+
+  const {
+    resetErrorBoundary,
+    error,
+    title = getText('appErroredMessage'),
+    subtitle = isOffline ? getText('offlineErrorMessage') : getText('arbitraryErrorSubtitle'),
+    status = isOffline ? 'info' : 'error',
+  } = props
 
   const stack = errorUtils.tryGetStack(error)
 
   return (
-    <result.Result
-      className="h-full"
-      status={isOffline ? 'info' : 'error'}
-      title={getText('arbitraryErrorTitle')}
-      subtitle={isOffline ? getText('offlineErrorMessage') : getText('arbitraryErrorSubtitle')}
-    >
+    <result.Result className="h-full" status={status} title={title} subtitle={subtitle}>
       <ariaComponents.ButtonGroup align="center">
         <ariaComponents.Button
           variant="submit"
