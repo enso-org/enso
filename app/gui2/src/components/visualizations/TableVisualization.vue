@@ -257,31 +257,31 @@ function formatNumber(params: ICellRendererParams) {
 }
 
 function formatText(params: ICellRendererParams) {
-  const whitespaceMapping = {
+  if (textFormatterSelected.value === TextFormatOptions.Off) {
+    return params.value
+  }
+  const commonMappings = {
     '\r': '<span style="color: grey">␍</span> <br>',
     '\n': '<span style="color: grey">␊</span> <br>',
   }
-  if (textFormatterSelected.value === TextFormatOptions.Off) {
-    return params.value
-  } else if (textFormatterSelected.value === TextFormatOptions.On) {
-    const fullWhitespaceMapping = {
-      ...whitespaceMapping,
-      ' ': '<span style="color: grey">&#183;</span>',
-      '\t': '<span style="color: grey">&#8594;   </span>',
-    }
-    const newString = params.value.replace(/[\s]/g, function (match: string) {
-      return fullWhitespaceMapping[match as keyof typeof fullWhitespaceMapping] || match
-    })
-    return `<span style="font-family: monospace;"> ${newString}</span>`
-  } else if (textFormatterSelected.value === TextFormatOptions.Special) {
-    const newString = params.value.replace(/[\s]/g, function (match: string) {
-      return whitespaceMapping[match as keyof typeof whitespaceMapping] || match
-    })
-    const replacedWhitespace = newString.replace(/ {2,}/g, function (match: string) {
-      return `<span style="color: grey">${'&#183;'.repeat(match.length)}</span>`
-    })
-    return `<span style="font-family: monospace;"> ${replacedWhitespace}</span>`
+  const whitespaceMapping = {
+    ...commonMappings,
+    ...(TextFormatOptions.On ? {} : { '\t': '<span style="color: grey">&#8594;   </span>' }),
   }
+
+  const replaceSpaces =
+    textFormatterSelected.value === TextFormatOptions.On ?
+      params.value.replaceAll(' ', '<span style="color: grey">&#183;</span>')
+    : params.value.replace(/ {2,}/g, function (match: string) {
+        return `<span style="color: grey">${'&#183;'.repeat(match.length)}</span>`
+      })
+
+  const replaceReturns = replaceSpaces.replace(/\r\n/g, '<span style="color: grey">␍␊</span> <br>')
+
+  const newString = replaceReturns.replace(/[\s]/g, function (match: string) {
+    return whitespaceMapping[match as keyof typeof whitespaceMapping] || match
+  })
+  return `<span style="font-family: monospace;"> ${newString}</span>`
 }
 
 function setRowLimit(newRowLimit: number) {
