@@ -16,13 +16,14 @@ import * as loggerProvider from '#/providers/LoggerProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
+import * as ariaComponents from '#/components/AriaComponents'
 import SvgMask from '#/components/SvgMask'
 import Twemoji from '#/components/Twemoji'
-import UnstyledButton from '#/components/UnstyledButton'
 
 import * as dateTime from '#/utilities/dateTime'
 import * as newtype from '#/utilities/newtype'
 import * as object from '#/utilities/object'
+import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 // ================
 // === Newtypes ===
@@ -110,10 +111,22 @@ function ReactionBar(props: ReactionBarProps) {
   const { selectedReactions, doReact, doRemoveReaction, className } = props
 
   return (
-    <div className={`m-chat-reaction-bar inline-block rounded-full bg-frame ${className ?? ''}`}>
+    <div
+      className={tailwindMerge.twMerge(
+        'm-chat-reaction-bar inline-block rounded-full bg-frame',
+        className
+      )}
+    >
       {REACTION_EMOJIS.map(emoji => (
-        <UnstyledButton
+        <ariaComponents.Button
+          size="custom"
+          variant="custom"
           key={emoji}
+          isActive={selectedReactions.has(emoji)}
+          className={tailwindMerge.twMerge(
+            'm-chat-reaction rounded-full p-chat-reaction hover:bg-hover-bg hover:grayscale-0',
+            !selectedReactions.has(emoji) && 'grayscale'
+          )}
           onPress={() => {
             if (selectedReactions.has(emoji)) {
               doRemoveReaction(emoji)
@@ -121,12 +134,9 @@ function ReactionBar(props: ReactionBarProps) {
               doReact(emoji)
             }
           }}
-          className={`m-chat-reaction rounded-full p-chat-reaction selectable hover:bg-hover-bg hover:grayscale-0 ${
-            selectedReactions.has(emoji) ? 'active' : 'grayscale'
-          }`}
         >
           <Twemoji key={emoji} emoji={emoji} size={REACTION_BUTTON_SIZE} />
-        </UnstyledButton>
+        </ariaComponents.Button>
       ))}
     </div>
   )
@@ -265,16 +275,19 @@ function ChatHeader(props: InternalChatHeaderProps) {
   return (
     <>
       <div className="mx-chat-header-x mt-chat-header-t flex text-sm font-semibold">
-        <UnstyledButton
+        <ariaComponents.Button
+          size="custom"
+          variant="custom"
           className="flex grow items-center gap-icon-with-text"
           onPress={() => {
             setIsThreadListVisible(visible => !visible)
           }}
         >
           <SvgMask
-            className={`shrink-0 transition-transform duration-arrow ${
+            className={tailwindMerge.twMerge(
+              'shrink-0 transition-transform duration-arrow',
               isThreadListVisible ? '-rotate-90' : 'rotate-90'
-            }`}
+            )}
             src={FolderArrowIcon}
           />
           <div className="grow">
@@ -316,26 +329,33 @@ function ChatHeader(props: InternalChatHeaderProps) {
               }}
             />
           </div>
-        </UnstyledButton>
-        <UnstyledButton className="mx-close-icon" onPress={doClose}>
+        </ariaComponents.Button>
+        <ariaComponents.Button
+          size="custom"
+          variant="custom"
+          className="mx-close-icon"
+          onPress={doClose}
+        >
           <img src={CloseLargeIcon} />
-        </UnstyledButton>
+        </ariaComponents.Button>
       </div>
       <div className="relative text-sm font-semibold">
         <div
-          className={`absolute z-1 grid w-full overflow-hidden bg-frame shadow-soft backdrop-blur-default transition-grid-template-rows clip-path-bottom-shadow ${
+          className={tailwindMerge.twMerge(
+            'absolute z-1 grid w-full overflow-hidden bg-frame shadow-soft backdrop-blur-default transition-grid-template-rows clip-path-bottom-shadow',
             isThreadListVisible ? 'grid-rows-1fr' : 'grid-rows-0fr'
-          }`}
+          )}
         >
           <div className="max-h-chat-thread-list min-h overflow-y-auto">
             {threads.map(thread => (
               <div
                 key={thread.id}
-                className={`flex p-chat-thread-button ${
+                className={tailwindMerge.twMerge(
+                  'flex p-chat-thread-button',
                   thread.id === threadId
                     ? 'cursor-default bg-selected-frame'
                     : 'cursor-pointer hover:bg-frame'
-                }`}
+                )}
                 onClick={event => {
                   event.stopPropagation()
                   if (thread.id !== threadId) {
@@ -392,21 +412,19 @@ export default function Chat(props: ChatProps) {
     },
   })
   const gtagEvent = gtagHooks.useGtagEvent()
-  const gtagEventRef = React.useRef(gtagEvent)
-  gtagEventRef.current = gtagEvent
 
   React.useEffect(() => {
     if (!isOpen) {
       return
     } else {
-      return gtagHooks.gtagOpenCloseCallback(gtagEventRef, 'cloud_open_chat', 'cloud_close_chat')
+      return gtagHooks.gtagOpenCloseCallback(gtagEvent, 'cloud_open_chat', 'cloud_close_chat')
     }
-  }, [isOpen])
+  }, [isOpen, gtagEvent])
 
   /** This is SAFE, because this component is only rendered when `accessToken` is present.
    * See `dashboard.tsx` for its sole usage. */
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-  const accessToken = rawAccessToken!
+  const accessToken = rawAccessToken
 
   const [isPaidUser, setIsPaidUser] = React.useState(true)
   const [isReplyEnabled, setIsReplyEnabled] = React.useState(false)
@@ -445,7 +463,7 @@ export default function Chat(props: ChatProps) {
     } else {
       return
     }
-  }, [isOpen, /* should never change */ endpoint])
+  }, [isOpen, endpoint])
 
   React.useLayoutEffect(() => {
     const element = messagesRef.current
@@ -610,7 +628,7 @@ export default function Chat(props: ChatProps) {
         })
       }
     },
-    [threads, toastAndLog, /* should never change */ sendMessage]
+    [threads, toastAndLog, sendMessage]
   )
 
   const sendCurrentMessage = React.useCallback(
@@ -660,14 +678,7 @@ export default function Chat(props: ChatProps) {
         }
       }
     },
-    [
-      threads,
-      threadId,
-      threadTitle,
-      shouldIgnoreMessageLimit,
-      getText,
-      /* should never change */ sendMessage,
-    ]
+    [threads, threadId, threadTitle, shouldIgnoreMessageLimit, getText, sendMessage]
   )
 
   const upgradeToPro = () => {
@@ -683,7 +694,10 @@ export default function Chat(props: ChatProps) {
 
     return reactDom.createPortal(
       <div
-        className={`fixed right top z-1 flex h-screen w-chat flex-col py-chat-y text-xs text-primary shadow-soft backdrop-blur-default transition-[transform,opacity] ${isOpen ? 'opacity-1' : 'translate-x-full opacity-0'}`}
+        className={tailwindMerge.twMerge(
+          'fixed right top z-1 flex h-screen w-chat flex-col py-chat-y text-xs text-primary shadow-soft backdrop-blur-default transition-[transform,opacity]',
+          isOpen ? 'opacity-1' : 'translate-x-full opacity-0'
+        )}
         {...focusWithinProps}
       >
         <ChatHeader
@@ -800,18 +814,23 @@ export default function Chat(props: ChatProps) {
             }}
           />
           <div className="flex gap-chat-buttons">
-            <UnstyledButton
+            <ariaComponents.Button
+              size="custom"
+              variant="custom"
               isDisabled={!isReplyEnabled}
-              className={`text-xxs grow rounded-full px-chat-button-x py-chat-button-y text-left text-white ${
+              className={tailwindMerge.twMerge(
+                'text-xxs grow rounded-full px-chat-button-x py-chat-button-y text-left text-white',
                 isReplyEnabled ? 'bg-gray-400' : 'bg-gray-300'
-              }`}
+              )}
               onPress={() => {
                 sendCurrentMessage(true)
               }}
             >
               {getText('clickForNewQuestion')}
-            </UnstyledButton>
-            <UnstyledButton
+            </ariaComponents.Button>
+            <ariaComponents.Button
+              size="custom"
+              variant="custom"
               isDisabled={!isReplyEnabled}
               className="rounded-full bg-blue-600/90 px-chat-button-x py-chat-button-y text-white selectable enabled:active"
               onPress={() => {
@@ -819,18 +838,20 @@ export default function Chat(props: ChatProps) {
               }}
             >
               {getText('replyExclamation')}
-            </UnstyledButton>
+            </ariaComponents.Button>
           </div>
         </form>
         {!isPaidUser && (
-          <UnstyledButton
+          <ariaComponents.Button
+            size="custom"
+            variant="custom"
             // This UI element does not appear anywhere else.
             // eslint-disable-next-line no-restricted-syntax
-            className="bg-call-to-action/90 mx-2 my-1 rounded-default p-2 text-center leading-cozy text-white"
+            className="mx-2 my-1 text-wrap rounded-2xl bg-call-to-action/90 p-2 text-center leading-cozy text-white hover:bg-call-to-action"
             onPress={upgradeToPro}
           >
             {getText('upgradeToProNag')}
-          </UnstyledButton>
+          </ariaComponents.Button>
         )}
       </div>,
       container

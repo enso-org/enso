@@ -1,11 +1,10 @@
 package org.enso.compiler;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.notNullValue;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -79,58 +78,142 @@ public class ExportedSymbolsTest {
   }
 
   @Test
-  public void testExportedSymbolWithHiding() throws IOException {
+  public void exportSymbolFromDifferentModule() throws IOException {
+    var mainMod =
+        new SourceModule(
+            QualifiedName.fromString("Main"),
+            """
+        export project.B_Module.B_Type
+        type A_Type
+        """);
+    var bMod =
+        new SourceModule(QualifiedName.fromString("B_Module"), """
+        type B_Type
+        """);
+    ProjectUtils.createProject("Proj", Set.of(mainMod, bMod), projDir);
+    var ctx = createCtx(projDir);
+    compile(ctx);
+    var mainExportedSymbols = getExportedSymbolsFromModule(ctx, "local.Proj.Main");
+    assertThat(mainExportedSymbols.size(), is(2));
+    assertThat(mainExportedSymbols.keySet(), containsInAnyOrder("A_Type", "B_Type"));
+  }
+
+  @Test
+  public void exportRenamedSymbol() throws IOException {
+    var aMod =
+        new SourceModule(QualifiedName.fromString("A_Module"), """
+        type A_Type
+        """);
+    var mainSrcMod =
+        new SourceModule(
+            QualifiedName.fromString("Main"),
+            """
+        export project.A_Module.A_Type as Foo
+        """);
+    ProjectUtils.createProject("Proj", Set.of(aMod, mainSrcMod), projDir);
+    var ctx = createCtx(projDir);
+    compile(ctx);
+    var mainExportedSymbols = getExportedSymbolsFromModule(ctx, "local.Proj.Main");
+    assertThat(mainExportedSymbols.size(), is(1));
+    assertThat(mainExportedSymbols.keySet(), containsInAnyOrder("Foo"));
+  }
+
+  @Test
+  public void exportedSymbolsFromSubModule() throws IOException {
     var aMod =
         new SourceModule(
-            QualifiedName.fromString("A_Module"),
+            QualifiedName.fromString("Synthetic_Module.A_Module"),
             """
-        type A_Type
-        type B_Type
+        type A_Module
         """);
     var mainMod =
         new SourceModule(
             QualifiedName.fromString("Main"),
             """
-        from project.A_Module export all hiding B_Type
+        import project.Synthetic_Module
+        """);
+    ProjectUtils.createProject("Proj", Set.of(aMod, mainMod), projDir);
+    var ctx = createCtx(projDir);
+    compile(ctx);
+    var syntheticModExpSymbols = getExportedSymbolsFromModule(ctx, "local.Proj.Synthetic_Module");
+    assertThat(
+        "Just a A_Module submodule should be exported", syntheticModExpSymbols.size(), is(1));
+    assertThat(
+        "Just a A_Module submodule should be exported", syntheticModExpSymbols, hasKey("A_Module"));
+  }
+
+  @Test
+  public void exportTypeFromModuleWithSameName() throws IOException {
+    var aMod =
+        new SourceModule(
+            QualifiedName.fromString("A_Module"), """
+        type A_Module
+        """);
+    var mainMod =
+        new SourceModule(
+            QualifiedName.fromString("Main"),
+            """
+        export project.A_Module.A_Module
         """);
     ProjectUtils.createProject("Proj", Set.of(aMod, mainMod), projDir);
     var ctx = createCtx(projDir);
     compile(ctx);
     var mainExportedSymbols = getExportedSymbolsFromModule(ctx, "local.Proj.Main");
     assertThat(mainExportedSymbols.size(), is(1));
-    assertThat(mainExportedSymbols.keySet(), contains("A_Type"));
+    assertThat(mainExportedSymbols.keySet(), containsInAnyOrder("A_Module"));
+    assertThat(mainExportedSymbols.get("A_Module").size(), is(1));
+    assertThat(
+        mainExportedSymbols.get("A_Module").get(0), is(instanceOf(BindingsMap.ResolvedType.class)));
   }
 
   @Test
-  public void submodulesAreIncludedInExportedSymbols() throws IOException {
+  public void exportModuleWithTypeWithSameName() throws IOException {
     var aMod =
         new SourceModule(
-            QualifiedName.fromString("A_Module"),
-            """
-        from project.A_Module.B_Module export B_Type
-        type A_Type
+            QualifiedName.fromString("A_Module"), """
+        type A_Module
         """);
-    var bMod =
+    var mainMod =
         new SourceModule(
-            QualifiedName.fromString("A_Module.B_Module"), """
-        type B_Type
+            QualifiedName.fromString("Main"), """
+        export project.A_Module
+        """);
+    ProjectUtils.createProject("Proj", Set.of(aMod, mainMod), projDir);
+    var ctx = createCtx(projDir);
+    compile(ctx);
+    var mainExportedSymbols = getExportedSymbolsFromModule(ctx, "local.Proj.Main");
+    assertThat(mainExportedSymbols.size(), is(1));
+    assertThat(mainExportedSymbols.keySet(), containsInAnyOrder("A_Module"));
+    assertThat(mainExportedSymbols.get("A_Module").size(), is(1));
+    assertThat(
+        mainExportedSymbols.get("A_Module").get(0),
+        is(instanceOf(BindingsMap.ResolvedModule.class)));
+  }
+
+  @Test
+  public void exportSyntheticModule() throws IOException {
+    var aMod =
+        new SourceModule(
+            QualifiedName.fromString("Synthetic_Module.A_Module"),
+            """
+        type A_Type
         """);
     var mainMod =
         new SourceModule(
             QualifiedName.fromString("Main"),
             """
-        from project.A_Module export all
+        export project.Synthetic_Module
         """);
-    ProjectUtils.createProject("Proj", Set.of(aMod, bMod, mainMod), projDir);
+    ProjectUtils.createProject("Proj", Set.of(aMod, mainMod), projDir);
     var ctx = createCtx(projDir);
     compile(ctx);
-    var aModSyms = getExportedSymbolsFromModule(ctx, "local.Proj.A_Module");
-    assertThat(aModSyms.size(), is(3));
-    assertThat(aModSyms.keySet(), containsInAnyOrder("A_Type", "B_Module", "B_Type"));
-
-    var mainModSyms = getExportedSymbolsFromModule(ctx, "local.Proj.Main");
-    assertThat(mainModSyms.size(), is(3));
-    assertThat(mainModSyms.keySet(), containsInAnyOrder("A_Type", "B_Module", "B_Type"));
+    var mainExportedSymbols = getExportedSymbolsFromModule(ctx, "local.Proj.Main");
+    assertThat(mainExportedSymbols.size(), is(1));
+    assertThat(mainExportedSymbols.keySet(), containsInAnyOrder("Synthetic_Module"));
+    assertThat(mainExportedSymbols.get("Synthetic_Module").size(), is(1));
+    assertThat(
+        mainExportedSymbols.get("Synthetic_Module").get(0),
+        is(instanceOf(BindingsMap.ResolvedModule.class)));
   }
 
   private static Context createCtx(Path projDir) {

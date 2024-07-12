@@ -114,7 +114,7 @@ public abstract class TypeOfNode extends Node {
 
     @Specialization(guards = {"type.isMap()"})
     Type doPolygotMap(Interop type, Object value) {
-      return EnsoContext.get(this).getBuiltins().map();
+      return EnsoContext.get(this).getBuiltins().dictionary();
     }
 
     @Specialization(guards = {"type.isString()"})

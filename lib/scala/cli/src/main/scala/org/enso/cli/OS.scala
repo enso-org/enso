@@ -2,6 +2,9 @@ package org.enso.cli
 
 import com.typesafe.scalalogging.Logger
 import io.circe.{Decoder, DecodingFailure}
+import org.enso.yaml.YamlDecoder
+import org.yaml.snakeyaml.nodes.{Node, ScalarNode}
+import org.yaml.snakeyaml.error.YAMLException
 
 /** Represents one of the supported platforms (operating systems).
   */
@@ -29,7 +32,7 @@ object OS {
 
     /** @inheritdoc
       */
-    def configName: String = "linux"
+    val configName: String = "linux"
   }
 
   /** Represents the macOS operating system.
@@ -38,7 +41,7 @@ object OS {
 
     /** @inheritdoc
       */
-    def configName: String = "macos"
+    val configName: String = "macos"
 
     /** @inheritdoc
       */
@@ -52,7 +55,7 @@ object OS {
 
     /** @inheritdoc
       */
-    def configName: String = "windows"
+    val configName: String = "windows"
   }
 
   /** Checks if the application is being run on Windows.
@@ -141,6 +144,20 @@ object OS {
           json.history
         )
       }
+    }
+  }
+
+  implicit val yamlDecoder: YamlDecoder[OS] = (node: Node) => {
+    node match {
+      case s: ScalarNode =>
+        s.getValue match {
+          case Linux.configName   => Right(Linux)
+          case Windows.configName => Right(Windows)
+          case MacOS.configName   => Right(MacOS)
+          case os                 => Left(new YAMLException(s"Unsupported os `$os`"))
+        }
+      case _ =>
+        Left(new YAMLException("Expected a plain string value"))
     }
   }
 }

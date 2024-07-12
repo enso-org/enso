@@ -1,13 +1,11 @@
-/**
- * @file
- *
- * Form component
- */
+/** @file Form component. */
 import * as React from 'react'
 
 import * as sentry from '@sentry/react'
 import * as reactQuery from '@tanstack/react-query'
 import * as reactHookForm from 'react-hook-form'
+
+import * as offlineHooks from '#/hooks/offlineHooks'
 
 import * as textProvider from '#/providers/TextProvider'
 
@@ -20,20 +18,16 @@ import * as components from './components'
 import * as styles from './styles'
 import type * as types from './types'
 
-/**
- * Form component. It wraps the form and provides the form context.
- * It also handles the form submission.
- * Provides better error handling and form state management.
- * And serves a better UX out of the box.
+/** Form component. It wraps a `form` and provides form context.
+ * It also handles form submission.
+ * Provides better error handling and form state management and better UX out of the box.
  *
- * ## Component is in BETA and will be improved in the future.
- */
+ * ## Component is in BETA and will be improved in the future. */
 // There is no way to avoid type casting here
 // eslint-disable-next-line no-restricted-syntax
 export const Form = React.forwardRef(function Form<
   Schema extends components.TSchema,
   TFieldValues extends components.FieldValues<Schema>,
-  // eslint-disable-next-line no-restricted-syntax
   TTransformedValues extends components.FieldValues<Schema> | undefined = undefined,
 >(
   props: types.FormProps<Schema, TFieldValues, TTransformedValues>,
@@ -58,6 +52,7 @@ export const Form = React.forwardRef(function Form<
     defaultValues,
     gap,
     method,
+    canSubmitOffline = false,
     ...formProps
   } = props
 
@@ -70,8 +65,8 @@ export const Form = React.forwardRef(function Form<
   const innerForm = components.useForm(
     form ?? {
       shouldFocusError: true,
-      ...formOptions,
       schema,
+      ...formOptions,
     }
   )
 
@@ -87,7 +82,7 @@ export const Form = React.forwardRef(function Form<
     mutationKey: ['Form submission', `testId: ${testId}`, `id: ${id}`],
     mutationFn: async (fieldValues: TFieldValues) => {
       try {
-        await onSubmit(fieldValues, innerForm)
+        await onSubmit?.(fieldValues, innerForm)
 
         if (method === 'dialog') {
           dialogContext?.close()
@@ -121,6 +116,20 @@ export const Form = React.forwardRef(function Form<
   // There is no way to avoid type casting here
   // eslint-disable-next-line @typescript-eslint/no-explicit-any,no-restricted-syntax,@typescript-eslint/no-unsafe-argument
   const formOnSubmit = innerForm.handleSubmit(formMutation.mutateAsync as any)
+
+  const { isOffline } = offlineHooks.useOffline()
+
+  offlineHooks.useOfflineChange(
+    offline => {
+      if (offline) {
+        innerForm.setError('root.offline', { message: getText('unavailableOffline') })
+      } else {
+        innerForm.clearErrors('root.offline')
+      }
+    },
+    { isDisabled: canSubmitOffline }
+  )
+
   const {
     formState,
     clearErrors,
@@ -196,7 +205,16 @@ export const Form = React.forwardRef(function Form<
     <form
       id={id}
       ref={ref}
-      onSubmit={formOnSubmit}
+      onSubmit={event => {
+        event.preventDefault()
+        event.stopPropagation()
+
+        if (isOffline && !canSubmitOffline) {
+          setError('root.offline', { message: getText('unavailableOffline') })
+        } else {
+          void formOnSubmit(event)
+        }
+      }}
       className={base}
       style={typeof style === 'function' ? style(formStateRenderProps) : style}
       noValidate
@@ -213,7 +231,6 @@ export const Form = React.forwardRef(function Form<
 }) as unknown as (<
   Schema extends components.TSchema,
   TFieldValues extends components.FieldValues<Schema>,
-  // eslint-disable-next-line no-restricted-syntax
   TTransformedValues extends components.FieldValues<Schema> | undefined = undefined,
 >(
   props: React.RefAttributes<HTMLFormElement> &

@@ -21,6 +21,7 @@ import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.io.IOAccess;
+import org.hamcrest.core.AllOf;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
@@ -111,7 +112,12 @@ public class ExecCompilerTest {
       var run = module.invokeMember("eval_expression", "main");
       fail("Unexpected result: " + run);
     } catch (PolyglotException ex) {
-      assertEquals("Method `+` of type Function could not be found.", ex.getMessage());
+      assertThat(
+          ex.getMessage(),
+          AllOf.allOf(
+              containsString("Method `+` of"),
+              containsString("Unnamed.main.Unnamed.main"),
+              containsString("could not be found.")));
     }
   }
 
@@ -477,5 +483,30 @@ public class ExecCompilerTest {
     var runMethod = module.invokeMember(Module.EVAL_EXPRESSION, "run");
     runMethod.execute(0);
     assertThat(out.toString(), containsString(expectedErrMsg));
+  }
+
+  @Test
+  public void resultOfConversionIsTypeChecked() throws Exception {
+    var code =
+        """
+        type First_Type
+        type Other_Type
+
+        First_Type.from (that:Other_Type) = 42
+        run value -> First_Type = Other_Type
+        """;
+    var module = ctx.eval(LanguageInfo.ID, code);
+    var runMethod = module.invokeMember(Module.EVAL_EXPRESSION, "run");
+    try {
+      var r = runMethod.execute(0);
+      fail("We don't expect any result, but exception: " + r);
+    } catch (PolyglotException ex) {
+      assertThat(
+          ex.getMessage().toLowerCase(),
+          AllOf.allOf(containsString("type"), containsString("error")));
+      var typeError = ex.getGuestObject();
+      assertEquals("Expected type", "First_Type", typeError.getMember("expected").toString());
+      assertEquals("Got wrong value", 42, typeError.getMember("actual").asInt());
+    }
   }
 }

@@ -12,15 +12,15 @@ import {
   type Import,
   type RequiredImport,
 } from '@/stores/graph/imports'
+import { useUnconnectedEdges, type UnconnectedEdge } from '@/stores/graph/unconnectedEdges'
 import { type ProjectStore } from '@/stores/project'
 import { type SuggestionDbStore } from '@/stores/suggestionDatabase'
 import { assert, bail } from '@/util/assert'
 import { Ast } from '@/util/ast'
 import type { AstId } from '@/util/ast/abstract'
-import { MutableModule, isIdentifier } from '@/util/ast/abstract'
+import { MutableModule, isAstId, isIdentifier, type Identifier } from '@/util/ast/abstract'
 import { RawAst, visitRecursive } from '@/util/ast/raw'
 import { partition } from '@/util/data/array'
-import { filterDefined } from '@/util/data/iterable'
 import { Rect } from '@/util/data/rect'
 import { Err, Ok, mapOk, unwrap, type Result } from '@/util/data/result'
 import { Vec2 } from '@/util/data/vec2'
@@ -107,27 +107,22 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
     const editedNodeInfo = ref<NodeEditInfo>()
     const methodAst = ref<Result<Ast.Function>>(Err('AST not yet initialized'))
 
-    const mouseEditedEdge = ref<UnconnectedEdge & MouseEditedEdge>()
-    const cbEditedEdge = ref<UnconnectedTarget>()
-
     const moduleSource = reactive(SourceDocument.Empty())
     const moduleRoot = ref<Ast.Ast>()
     const topLevel = ref<Ast.BodyBlock>()
 
-    let disconnectSyncModule: undefined | (() => void)
-    watch(syncModule, (syncModule) => {
+    watch(syncModule, (syncModule, _, onCleanup) => {
       if (!syncModule) return
       let moduleChanged = true
-      disconnectSyncModule?.()
       const handle = syncModule.observe((update) => {
         moduleSource.applyUpdate(syncModule, update)
         handleModuleUpdate(syncModule, moduleChanged, update)
         moduleChanged = false
       })
-      disconnectSyncModule = () => {
+      onCleanup(() => {
         syncModule.unobserve(handle)
         moduleSource.clear()
-      }
+      })
     })
 
     let toRaw = new Map<SourceRangeKey, RawAst.Tree.Function>()
@@ -234,71 +229,46 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
       return Ok(method)
     }
 
-    function generateLocallyUniqueIdent(prefix?: string | undefined) {
+    /** Generate unique identifier from `prefix` and some numeric suffix.
+     * @param prefix - of the identifier
+     * @param ignore - a list of identifiers to consider as unavailable. Useful when creating multiple identifiers in a batch.
+     * */
+    function generateLocallyUniqueIdent(
+      prefix?: string | undefined,
+      ignore: Set<Identifier> = new Set(),
+    ): Identifier {
       // FIXME: This implementation is not robust in the context of a synchronized document,
       // as the same name can likely be assigned by multiple clients.
       // Consider implementing a mechanism to repair the document in case of name clashes.
+      const identPrefix = prefix && isIdentifier(prefix + 1) ? prefix : FALLBACK_BINDING_PREFIX
       for (let i = 1; ; i++) {
-        const ident = (prefix ?? FALLBACK_BINDING_PREFIX) + i
+        const ident = identPrefix + i
         assert(isIdentifier(ident))
-        if (!db.identifierUsed(ident)) return ident
+        if (!db.identifierUsed(ident) && !ignore.has(ident)) return ident
       }
     }
 
-    const unconnectedEdges = computed(
-      () => new Set(filterDefined([cbEditedEdge.value, mouseEditedEdge.value])),
-    )
+    const unconnectedEdges = useUnconnectedEdges()
 
-    const disconnectedEdgePorts = computed(() => {
-      const ports = new Set<PortId>()
-      for (const edge of unconnectedEdges.value) {
-        if (edge.disconnectedEdgeTarget) ports.add(edge.disconnectedEdgeTarget)
-        if (edge.source) ports.add(edge.source)
-      }
-      if (editedNodeInfo.value) {
-        const primarySubject = db.nodeIdToNode.get(editedNodeInfo.value.id)?.primarySubject
-        if (primarySubject) ports.add(primarySubject)
-      }
-      return ports
-    })
+    const editedNodeDisconnectedTarget = computed(() =>
+      editedNodeInfo.value ?
+        db.nodeIdToNode.get(editedNodeInfo.value.id)?.primarySubject
+      : undefined,
+    )
 
     const connectedEdges = computed(() => {
       const edges = new Array<ConnectedEdge>()
       for (const [target, sources] of db.connections.allReverse()) {
-        if (!disconnectedEdgePorts.value.has(target)) {
-          for (const source of sources) {
-            edges.push({ source, target })
+        if (target === editedNodeDisconnectedTarget.value) continue
+        for (const source of sources) {
+          const edge = { source, target }
+          if (!unconnectedEdges.isDisconnected(edge)) {
+            edges.push(edge)
           }
         }
       }
       return edges
     })
-
-    function createEdgeFromOutput(source: Ast.AstId, event: PointerEvent | undefined) {
-      mouseEditedEdge.value = { source, target: undefined, event, anchor: { type: 'mouse' } }
-    }
-
-    function disconnectSource(edge: Edge, event: PointerEvent | undefined) {
-      if (!edge.target) return
-      mouseEditedEdge.value = {
-        source: undefined,
-        target: edge.target,
-        disconnectedEdgeTarget: edge.target,
-        event,
-        anchor: { type: 'mouse' },
-      }
-    }
-
-    function disconnectTarget(edge: Edge, event: PointerEvent | undefined) {
-      if (!edge.source || !edge.target) return
-      mouseEditedEdge.value = {
-        source: edge.source,
-        target: undefined,
-        disconnectedEdgeTarget: edge.target,
-        event,
-        anchor: { type: 'mouse' },
-      }
-    }
 
     /* Try adding imports. Does nothing if conflict is detected, and returns `DectedConflict` in such case. */
     function addMissingImports(
@@ -387,7 +357,7 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
           for (const _conflict of conflicts) {
             // TODO: Substitution does not work, because we interpret imports wrongly. To be fixed in
             // https://github.com/enso-org/enso/issues/9356
-            // substituteQualifiedName(edit, wholeAssignment, conflict.pattern, conflict.fullyQualified)
+            // substituteQualifiedName(wholeAssignment, conflict.pattern, conflict.fullyQualified)
           }
         }
       })
@@ -410,7 +380,7 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
     }
 
     function setNodePosition(nodeId: NodeId, position: Vec2) {
-      const nodeAst = syncModule.value?.tryGet(nodeId)
+      const nodeAst = syncModule.value?.tryGet(db.idFromExternal(nodeId))
       if (!nodeAst) return
       const oldPos = nodeAst.nodeMetadata.get('position')
       if (oldPos?.x !== position.x || oldPos?.y !== position.y) {
@@ -421,7 +391,7 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
     }
 
     function overrideNodeColor(nodeId: NodeId, color: string | undefined) {
-      const nodeAst = syncModule.value?.tryGet(nodeId)
+      const nodeAst = syncModule.value?.tryGet(db.idFromExternal(nodeId))
       if (!nodeAst) return
       editNodeMetadata(nodeAst, (metadata) => {
         metadata.set('colorOverride', color)
@@ -448,7 +418,7 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
     }
 
     function setNodeVisualization(nodeId: NodeId, vis: Partial<VisualizationMetadata>) {
-      const nodeAst = syncModule.value?.tryGet(nodeId)
+      const nodeAst = syncModule.value?.tryGet(db.idFromExternal(nodeId))
       if (!nodeAst) return
       editNodeMetadata(nodeAst, (metadata) => {
         const data: Partial<VisualizationMetadata> = {
@@ -482,7 +452,7 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
       nodesToPlace.length = 0
       batchEdits(() => {
         for (const nodeId of nodesToProcess) {
-          const nodeAst = syncModule.value?.get(nodeId)
+          const nodeAst = syncModule.value?.get(db.idFromExternal(nodeId))
           const rect = nodeRects.get(nodeId)
           if (!rect || !nodeAst || nodeAst.nodeMetadata.get('position') != null) continue
           const position = placeNode([], rect.size)
@@ -545,7 +515,7 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
     }
 
     function getPortNodeId(id: PortId): NodeId | undefined {
-      return db.getExpressionNodeId(id as string as Ast.AstId) ?? getPortPrimaryInstance(id)?.nodeId
+      return (isAstId(id) && db.getExpressionNodeId(id)) || getPortPrimaryInstance(id)?.nodeId
     }
 
     /**
@@ -645,7 +615,7 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
           }
         })
       } else {
-        exprId = nodeId
+        exprId = db.idFromExternal(nodeId)
       }
 
       if (exprId == null) {
@@ -663,6 +633,20 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
         ...(update.methodCall ? { methodCall: update.methodCall } : {}),
       }
       proj.computedValueRegistry.processUpdates([update_])
+    }
+
+    /** Iterate over code lines, return node IDs from `ids` set in the order of code positions. */
+    function pickInCodeOrder(ids: Set<NodeId>): NodeId[] {
+      assert(syncModule.value != null)
+      const func = unwrap(getExecutedMethodAst(syncModule.value))
+      const body = func.bodyExpressions()
+      const result: NodeId[] = []
+      for (const expr of body) {
+        const id = expr?.id
+        const nodeId = db.getOuterExpressionNodeId(id)
+        if (nodeId && ids.has(nodeId)) result.push(nodeId)
+      }
+      return result
     }
 
     /**
@@ -725,7 +709,7 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
     }
 
     function isConnectedTarget(portId: PortId): boolean {
-      return db.connections.reverseLookup(portId as AstId).size > 0
+      return isAstId(portId) && db.connections.reverseLookup(portId).size > 0
     }
 
     const modulePath: Ref<LsPath | undefined> = computedAsync(async () => {
@@ -739,10 +723,6 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
       db: markRaw(db),
       mockExpressionUpdate,
       editedNodeInfo,
-      mouseEditedEdge,
-      cbEditedEdge,
-      disconnectedEdgePorts,
-      connectedEdges,
       moduleSource,
       nodeRects,
       nodeHoverAnimations,
@@ -753,11 +733,9 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
       methodAst,
       getMethodAst,
       generateLocallyUniqueIdent,
-      createEdgeFromOutput,
-      disconnectSource,
-      disconnectTarget,
       moduleRoot,
       deleteNodes,
+      pickInCodeOrder,
       ensureCorrectNodeOrder,
       batchEdits,
       overrideNodeColor,
@@ -791,57 +769,20 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
         return db.getExpressionInfo(currentMethod.expressionId)?.methodCall?.methodPointer
       },
       modulePath,
+      connectedEdges,
+      ...unconnectedEdges,
     })
   },
 )
 
-interface AnyEdge {
-  source: AstId | undefined
-  target: PortId | undefined
-}
-
 /** An edge, which may be connected or unconnected. */
 export type Edge = ConnectedEdge | UnconnectedEdge
 
-export interface ConnectedEdge extends AnyEdge {
+export interface ConnectedEdge {
   source: AstId
   target: PortId
 }
 
 export function isConnected(edge: Edge): edge is ConnectedEdge {
   return edge.source != null && edge.target != null
-}
-
-type UnconnectedEdgeAnchor =
-  | {
-      type: 'mouse'
-    }
-  | {
-      type: 'fixed'
-      scenePos: Vec2
-    }
-
-interface AnyUnconnectedEdge extends AnyEdge {
-  /** If this edge represents an in-progress edit of a connected edge, it is identified by its target expression. */
-  disconnectedEdgeTarget?: PortId
-  /** Identifies what the disconnected end should be attached to. */
-  anchor: UnconnectedEdgeAnchor
-  /** CSS value; if provided, overrides any color calculation. */
-  color?: string
-}
-interface UnconnectedSource extends AnyUnconnectedEdge {
-  source: undefined
-  target: PortId
-}
-interface UnconnectedTarget extends AnyUnconnectedEdge {
-  source: AstId
-  target: undefined
-  /** If true, the target end should be drawn as with a self-argument arrow. */
-  targetIsSelfArgument?: boolean
-}
-export type UnconnectedEdge = UnconnectedSource | UnconnectedTarget
-
-interface MouseEditedEdge {
-  /** A pointer event which caused the unconnected edge */
-  event: PointerEvent | undefined
 }

@@ -1,8 +1,6 @@
 /** @file Events related to changes in the asset list. */
 import type AssetListEventType from '#/events/AssetListEventType'
 
-import type * as spinner from '#/components/Spinner'
-
 import type * as backend from '#/services/Backend'
 
 // This is required, to whitelist this event.
@@ -65,7 +63,6 @@ interface AssetListNewProjectEvent extends AssetListBaseEvent<AssetListEventType
   readonly templateId: string | null
   readonly datalinkId: backend.DatalinkId | null
   readonly preferredName: string | null
-  readonly onSpinnerStateChange: ((state: spinner.SpinnerState) => void) | null
 }
 
 /** A signal to upload files. */

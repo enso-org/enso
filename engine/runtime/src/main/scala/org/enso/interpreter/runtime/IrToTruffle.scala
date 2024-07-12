@@ -2,9 +2,12 @@ package org.enso.interpreter.runtime
 
 import com.oracle.truffle.api.source.{Source, SourceSection}
 import com.oracle.truffle.api.interop.InteropLibrary
-import org.enso.compiler.context.CompilerContext
-import org.enso.compiler.context.FramePointer
-import org.enso.compiler.context.LocalScope
+import org.enso.compiler.context.{
+  CompilerContext,
+  FramePointer,
+  LocalScope,
+  NameResolutionAlgorithm
+}
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.core.ConstantsNames
 import org.enso.compiler.core.Implicits.AsMetadata
@@ -38,11 +41,7 @@ import org.enso.compiler.core.ir.expression.{
   Operator,
   Section
 }
-import org.enso.compiler.data.BindingsMap.{
-  ExportedModule,
-  ResolvedConstructor,
-  ResolvedModule
-}
+import org.enso.compiler.data.BindingsMap.{ResolvedConstructor, ResolvedModule}
 import org.enso.compiler.data.{BindingsMap, CompilerConfig}
 import org.enso.compiler.exception.BadPatternMatch
 import org.enso.compiler.pass.analyse.alias.Graph.{Scope => AliasScope}
@@ -91,8 +90,6 @@ import org.enso.interpreter.node.{
   MethodRootNode,
   ExpressionNode => RuntimeExpression
 }
-import org.enso.interpreter.runtime.EnsoContext
-import org.enso.interpreter.runtime.callable
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition
 import org.enso.interpreter.runtime.data.atom.{Atom, AtomConstructor}
 import org.enso.interpreter.runtime.callable.function.{
@@ -196,19 +193,25 @@ class IrToTruffle(
           "No binding analysis at the point of codegen."
         )
 
-    bindingsMap.resolvedExports
-      .collect { case ExportedModule(ResolvedModule(module), _, _) => module }
-      .foreach(exp =>
-        scopeBuilder.addExport(new ImportExportScope(exp.unsafeAsModule()))
+    bindingsMap.getDirectlyExportedModules.foreach { exportedMod =>
+      val exportedRuntimeMod = exportedMod.module.module.unsafeAsModule()
+      scopeBuilder.addExport(
+        new ImportExportScope(exportedRuntimeMod)
       )
+    }
+
     val importDefs = module.imports
     val methodDefs = module.bindings.collect {
       case method: definition.Method.Explicit => method
     }
 
     bindingsMap.resolvedImports.foreach { imp =>
-      imp.target match {
-        case BindingsMap.ResolvedType(_, _) =>
+      imp.targets.foreach {
+        case _: BindingsMap.ResolvedType             =>
+        case _: BindingsMap.ResolvedConstructor      =>
+        case _: BindingsMap.ResolvedModuleMethod     =>
+        case _: BindingsMap.ResolvedExtensionMethod  =>
+        case _: BindingsMap.ResolvedConversionMethod =>
         case ResolvedModule(module) =>
           val mod = module
             .unsafeAsModule()
@@ -401,9 +404,17 @@ class IrToTruffle(
                     throw new CompilerError(
                       "Impossible polyglot field, should be caught by MethodDefinitions pass."
                     )
-                  case _: BindingsMap.ResolvedMethod =>
+                  case _: BindingsMap.ResolvedModuleMethod =>
                     throw new CompilerError(
-                      "Impossible here, should be caught by MethodDefinitions pass."
+                      "Impossible module method here, should be caught by MethodDefinitions pass."
+                    )
+                  case _: BindingsMap.ResolvedExtensionMethod =>
+                    throw new CompilerError(
+                      "Impossible static method here, should be caught by MethodDefinitions pass."
+                    )
+                  case _: BindingsMap.ResolvedConversionMethod =>
+                    throw new CompilerError(
+                      "Impossible conversion method here, should be caught by MethodDefinitions pass."
                     )
                 }
               }
@@ -501,6 +512,7 @@ class IrToTruffle(
                             m.getFunction.getName,
                             fn.arguments,
                             fn.body,
+                            null,
                             effectContext,
                             true
                           )
@@ -533,6 +545,7 @@ class IrToTruffle(
                     fullMethodDefName,
                     fn.arguments,
                     fn.body,
+                    null,
                     effectContext,
                     true
                   )
@@ -709,6 +722,7 @@ class IrToTruffle(
                 methodDef.methodName.name,
                 fn.arguments,
                 fn.body,
+                ReadArgumentCheckNode.build(context, "conversion", toType),
                 None,
                 true
               )
@@ -752,10 +766,15 @@ class IrToTruffle(
     t: Expression
   ): ReadArgumentCheckNode = t match {
     case u: `type`.Set.Union =>
-      ReadArgumentCheckNode.oneOf(
-        comment,
-        u.operands.map(extractAscribedType(comment, _)).asJava
-      )
+      val oneOf = u.operands.map(extractAscribedType(comment, _))
+      if (oneOf.contains(null)) {
+        null
+      } else {
+        ReadArgumentCheckNode.oneOf(
+          comment,
+          oneOf.asJava
+        )
+      }
     case i: `type`.Set.Intersection =>
       ReadArgumentCheckNode.allOf(
         comment,
@@ -765,19 +784,28 @@ class IrToTruffle(
     case p: Application.Prefix => extractAscribedType(comment, p.function)
     case _: Tpe.Function =>
       ReadArgumentCheckNode.build(
+        context,
         comment,
         context.getTopScope().getBuiltins().function()
       )
+    case typeWithError: Tpe.Error =>
+      // When checking a `a ! b` type, we ignore the error part as it is only used for documentation purposes and is not checked.
+      extractAscribedType(comment, typeWithError.typed)
+    case typeInContext: Tpe.Context =>
+      // Type contexts aren't currently really used. But we should still check the base type.
+      extractAscribedType(comment, typeInContext.typed)
     case t => {
       t.getMetadata(TypeNames) match {
         case Some(
               BindingsMap
                 .Resolution(binding @ BindingsMap.ResolvedType(_, _))
             ) =>
-          ReadArgumentCheckNode.build(
-            comment,
-            asType(binding)
-          )
+          val typeOrAny = asType(binding)
+          if (context.getBuiltins().any() == typeOrAny) {
+            null
+          } else {
+            ReadArgumentCheckNode.build(context, comment, typeOrAny)
+          }
         case Some(
               BindingsMap
                 .Resolution(BindingsMap.ResolvedPolyglotSymbol(mod, symbol))
@@ -854,9 +882,17 @@ class IrToTruffle(
           throw new CompilerError(
             "Impossible polyglot field, should be caught by MethodDefinitions pass."
           )
-        case _: BindingsMap.ResolvedMethod =>
+        case _: BindingsMap.ResolvedModuleMethod =>
           throw new CompilerError(
-            "Impossible here, should be caught by MethodDefinitions pass."
+            "Impossible module method here, should be caught by MethodDefinitions pass."
+          )
+        case _: BindingsMap.ResolvedExtensionMethod =>
+          throw new CompilerError(
+            "Impossible static method here, should be caught by MethodDefinitions pass."
+          )
+        case _: BindingsMap.ResolvedConversionMethod =>
+          throw new CompilerError(
+            "Impossible conversion method here, should be caught by MethodDefinitions pass."
           )
       }
     }
@@ -962,7 +998,7 @@ class IrToTruffle(
                 name,
                 fun
               )
-            case BindingsMap.ResolvedMethod(module, method) =>
+            case BindingsMap.ResolvedModuleMethod(module, method) =>
               val actualModule = module.unsafeAsModule()
               val fun = asScope(actualModule)
                 .getMethodForType(
@@ -978,6 +1014,100 @@ class IrToTruffle(
                 name,
                 fun
               )
+            case BindingsMap.ResolvedExtensionMethod(module, staticMethod) =>
+              val actualModule = module.unsafeAsModule()
+              val currentScope = asScope(actualModule)
+              actualModule.getBindingsMap.resolveName(
+                staticMethod.tpName
+              ) match {
+                case Right(List(BindingsMap.ResolvedType(modWithTp, _))) =>
+                  val tpScope = asScope(modWithTp.unsafeAsModule())
+                  val tp      = tpScope.getType(staticMethod.tpName, true)
+                  assert(
+                    tp != null,
+                    s"Type should be defined in module ${modWithTp.getName}"
+                  )
+                  // We have to search for the method on eigen type, because it is a static method.
+                  // Static methods are always defined on eigen types
+                  val eigenTp = tp.getEigentype
+                  val fun =
+                    currentScope.getMethodForType(
+                      eigenTp,
+                      staticMethod.methodName
+                    )
+                  assert(
+                    fun != null,
+                    s"exported symbol (static method) `${staticMethod.name}` needs to be registered first in the module "
+                  )
+                  scopeBuilder.registerMethod(
+                    scopeAssociatedType,
+                    name,
+                    fun
+                  )
+                case _ =>
+                  throw new CompilerError(
+                    s"Type ${staticMethod.tpName} should be resolvable in module ${module.getName}"
+                  )
+              }
+            case BindingsMap.ResolvedConversionMethod(
+                  module,
+                  conversionMethod
+                ) =>
+              val actualModule = module.unsafeAsModule()
+              val actualScope  = asScope(actualModule)
+              actualModule.getBindingsMap.resolveName(
+                conversionMethod.targetTpName
+              ) match {
+                case Right(
+                      List(BindingsMap.ResolvedType(modWithTargetTp, _))
+                    ) =>
+                  val targetTpScope = asScope(modWithTargetTp.unsafeAsModule())
+                  val targetTp =
+                    targetTpScope.getType(conversionMethod.targetTpName, true)
+                  assert(
+                    targetTp != null,
+                    s"Target type should be defined in module ${module.getName}"
+                  )
+                  actualModule.getBindingsMap.resolveName(
+                    conversionMethod.sourceTpName
+                  ) match {
+                    case Right(
+                          List(BindingsMap.ResolvedType(modWithSourceTp, _))
+                        ) =>
+                      val sourceTpScope =
+                        asScope(modWithSourceTp.unsafeAsModule())
+                      val sourceTp = sourceTpScope.getType(
+                        conversionMethod.sourceTpName,
+                        true
+                      )
+                      assert(
+                        sourceTp != null,
+                        s"Source type should be defined in module ${module.getName}"
+                      )
+                      val conversionFun =
+                        actualScope.lookupConversionDefinition(
+                          sourceTp,
+                          targetTp
+                        )
+                      assert(
+                        conversionFun != null,
+                        s"Conversion method `$conversionMethod` should be defined in module ${module.getName}"
+                      )
+                      scopeBuilder.registerConversionMethod(
+                        targetTp,
+                        sourceTp,
+                        conversionFun
+                      )
+                    case _ =>
+                      throw new CompilerError(
+                        s"Source type ${conversionMethod.sourceTpName} should be resolvable in module ${module.getName}"
+                      )
+                  }
+                case _ =>
+                  throw new CompilerError(
+                    s"Target type ${conversionMethod.targetTpName} should be resolvable in module ${module.getName}"
+                  )
+              }
             case BindingsMap.ResolvedPolyglotSymbol(_, _) =>
             case BindingsMap.ResolvedPolyglotField(_, _)  =>
           }
@@ -1411,11 +1541,27 @@ class IrToTruffle(
                   })
                 case Some(
                       BindingsMap.Resolution(
-                        BindingsMap.ResolvedMethod(_, _)
+                        BindingsMap.ResolvedModuleMethod(_, _)
                       )
                     ) =>
                   throw new CompilerError(
-                    "Impossible method here, should be caught by Patterns resolution pass."
+                    "Impossible module method here, should be caught by Patterns resolution pass."
+                  )
+                case Some(
+                      BindingsMap.Resolution(
+                        BindingsMap.ResolvedExtensionMethod(_, _)
+                      )
+                    ) =>
+                  throw new CompilerError(
+                    "Impossible static method here, should be caught by Patterns resolution pass."
+                  )
+                case Some(
+                      BindingsMap.Resolution(
+                        BindingsMap.ResolvedConversionMethod(_, _)
+                      )
+                    ) =>
+                  throw new CompilerError(
+                    "Impossible conversion method here, should be caught by Patterns resolution pass."
                   )
               }
           }
@@ -1660,30 +1806,9 @@ class IrToTruffle(
       */
     def processName(name: Name): RuntimeExpression = {
       val nameExpr = name match {
-        case Name.Literal(nameStr, _, _, _, _, _) =>
-          val useInfo = name
-            .unsafeGetMetadata(
-              AliasAnalysis,
-              "No occurrence on variable usage."
-            )
-            .unsafeAs[AliasInfo.Occurrence]
-
-          val framePointer = scope.getFramePointer(useInfo.id)
-          val global       = name.getMetadata(GlobalNames)
-          if (framePointer.isDefined) {
-            ReadLocalVariableNode.build(framePointer.get)
-          } else if (global.isDefined) {
-            val resolution = global.get.target
-            nodeForResolution(resolution)
-          } else if (nameStr == ConstantsNames.FROM_MEMBER) {
-            ConstantObjectNode.build(
-              UnresolvedConversion.build(scopeBuilder.asModuleScope())
-            )
-          } else {
-            DynamicSymbolNode.build(
-              UnresolvedSymbol.build(nameStr, scopeBuilder.asModuleScope())
-            )
-          }
+        case literalName: Name.Literal =>
+          val resolver = new RuntimeNameResolution()
+          resolver.resolveName(literalName)
         case Name.MethodReference(
               None,
               Name.Literal(nameStr, _, _, _, _, _),
@@ -1738,6 +1863,36 @@ class IrToTruffle(
       setLocation(nameExpr, name.location)
     }
 
+    private class RuntimeNameResolution
+        extends NameResolutionAlgorithm[RuntimeExpression, FramePointer] {
+      override protected def findLocalLink(
+        occurrenceMetadata: org.enso.compiler.pass.analyse.alias.Info.Occurrence
+      ): Option[FramePointer] =
+        scope.getFramePointer(occurrenceMetadata.id)
+
+      override protected def resolveLocalName(
+        localLink: FramePointer
+      ): RuntimeExpression =
+        ReadLocalVariableNode.build(localLink)
+
+      override protected def resolveGlobalName(
+        resolvedName: BindingsMap.ResolvedName
+      ): RuntimeExpression =
+        nodeForResolution(resolvedName)
+
+      override protected def resolveFromConversion(): RuntimeExpression =
+        ConstantObjectNode.build(
+          UnresolvedConversion.build(scopeBuilder.asModuleScope())
+        )
+
+      override protected def resolveUnresolvedSymbol(
+        symbolName: String
+      ): RuntimeExpression =
+        DynamicSymbolNode.build(
+          UnresolvedSymbol.build(symbolName, scopeBuilder.asModuleScope())
+        )
+    }
+
     private def nodeForResolution(
       resolution: BindingsMap.ResolvedName
     ): RuntimeExpression = {
@@ -1774,9 +1929,17 @@ class IrToTruffle(
           }
 
           ConstantObjectNode.build(s)
-        case BindingsMap.ResolvedMethod(_, method) =>
+        case BindingsMap.ResolvedModuleMethod(_, method) =>
           throw new CompilerError(
-            s"Impossible here, ${method.name} should be caught when translating application"
+            s"Impossible here, module method ${method.name} should be caught when translating application"
+          )
+        case BindingsMap.ResolvedExtensionMethod(_, staticMethod) =>
+          throw new CompilerError(
+            s"Impossible here, static method ${staticMethod.name} should be caught when translating application"
+          )
+        case BindingsMap.ResolvedConversionMethod(_, conversionMethod) =>
+          throw new CompilerError(
+            s"Impossible here, conversion method ${conversionMethod.targetTpName}.${conversionMethod.methodName} should be caught when translating application"
           )
       }
     }
@@ -1895,6 +2058,7 @@ class IrToTruffle(
       val initialName: String,
       val arguments: List[DefinitionArgument],
       val body: Expression,
+      val typeCheck: ReadArgumentCheckNode,
       val effectContext: Option[String],
       val subjectToInstrumentation: Boolean
     ) {
@@ -1923,7 +2087,13 @@ class IrToTruffle(
           case _ =>
             ExpressionProcessor.this.run(body, false, subjectToInstrumentation)
         }
-        (argExpressions.toArray, bodyExpr)
+
+        if (typeCheck == null) {
+          (argExpressions.toArray, bodyExpr)
+        } else {
+          val bodyWithCheck = ReadArgumentCheckNode.wrap(bodyExpr, typeCheck)
+          (argExpressions.toArray, bodyWithCheck)
+        }
       }
 
       private def computeSlots(): (
@@ -2013,7 +2183,7 @@ class IrToTruffle(
       binding: Boolean = false
     ): CreateFunctionNode = {
       val bodyBuilder =
-        new BuildFunctionBody(scopeName, arguments, body, None, false)
+        new BuildFunctionBody(scopeName, arguments, body, null, None, false)
       val fnRootNode = ClosureRootNode.build(
         language,
         scope,
@@ -2181,10 +2351,13 @@ class IrToTruffle(
             )
             .unsafeAs[AliasInfo.Scope.Child]
 
+          def valueHasSomeTypeCheck() =
+            value.getMetadata(TypeSignatures).isDefined
+
           val shouldCreateClosureRootNode = value match {
-            case _: Name           => false
-            case _: Literal.Text   => false
-            case _: Literal.Number => false
+            case _: Name           => valueHasSomeTypeCheck()
+            case _: Literal.Text   => valueHasSomeTypeCheck()
+            case _: Literal.Number => valueHasSomeTypeCheck()
             case _                 => true
           }
 

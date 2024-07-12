@@ -22,6 +22,7 @@ import { reactive, ref, type Ref } from 'vue'
 
 export interface MethodCallInfo {
   methodCall: MethodCall
+  methodCallSource: Ast.AstId
   suggestion: SuggestionEntry
 }
 
@@ -138,6 +139,10 @@ export class GraphDb {
     private valuesRegistry: ComputedValueRegistry,
   ) {}
 
+  private nodeIdToOuterExprIds = new ReactiveIndex(this.nodeIdToNode, (id, entry) => {
+    return [[id, entry.outerExpr.id]]
+  })
+
   private nodeIdToPatternExprIds = new ReactiveIndex(this.nodeIdToNode, (id, entry) => {
     const exprs: AstId[] = []
     if (entry.pattern) entry.pattern.visitRecursiveAst((ast) => void exprs.push(ast.id))
@@ -178,7 +183,7 @@ export class GraphDb {
   private *connectionsFromBindings(
     info: BindingInfo,
     alias: AstId,
-    srcNode: AstId | undefined,
+    srcNode: NodeId | undefined,
   ): Generator<[AstId, AstId]> {
     for (const usage of info.usages) {
       const targetNode = this.getExpressionNodeId(usage)
@@ -202,7 +207,7 @@ export class GraphDb {
     return Array.from(ports, (port) => [id, port])
   })
 
-  nodeMainSuggestion = new ReactiveMapping(this.nodeIdToNode, (id, entry) => {
+  nodeMainSuggestion = new ReactiveMapping(this.nodeIdToNode, (_id, entry) => {
     const expressionInfo = this.getExpressionInfo(entry.innerExpr.id)
     const method = expressionInfo?.methodCall?.methodPointer
     if (method == null) return
@@ -219,8 +224,8 @@ export class GraphDb {
     )
   })
 
-  getNodeFirstOutputPort(id: NodeId): AstId {
-    return set.first(this.nodeOutputPorts.lookup(id)) ?? id
+  getNodeFirstOutputPort(id: NodeId | undefined): AstId | undefined {
+    return id ? set.first(this.nodeOutputPorts.lookup(id)) ?? this.idFromExternal(id) : undefined
   }
 
   *getNodeUsages(id: NodeId): IterableIterator<AstId> {
@@ -228,6 +233,10 @@ export class GraphDb {
     for (const outputPort of outputPorts) {
       yield* this.connections.lookup(outputPort)
     }
+  }
+
+  getOuterExpressionNodeId(exprId: AstId | undefined): NodeId | undefined {
+    return exprId && set.first(this.nodeIdToOuterExprIds.reverseLookup(exprId))
   }
 
   getExpressionNodeId(exprId: AstId | undefined): NodeId | undefined {
@@ -243,13 +252,13 @@ export class GraphDb {
     return this.getPatternExpressionNodeId(binding)
   }
 
-  getExpressionInfo(id: AstId | ExternalId): ExpressionInfo | undefined {
+  getExpressionInfo(id: AstId | ExternalId | undefined): ExpressionInfo | undefined {
     const externalId = isUuid(id) ? id : this.idToExternal(id)
     return externalId && this.valuesRegistry.getExpressionInfo(externalId)
   }
 
-  getOutputPortIdentifier(source: AstId): string | undefined {
-    return this.bindings.bindings.get(source)?.identifier
+  getOutputPortIdentifier(source: AstId | undefined): string | undefined {
+    return source ? this.bindings.bindings.get(source)?.identifier : undefined
   }
 
   allIdentifiers(): string[] {
@@ -262,6 +271,10 @@ export class GraphDb {
 
   nodeIds(): IterableIterator<NodeId> {
     return this.nodeIdToNode.keys()
+  }
+
+  isNodeId(externalId: ExternalId): boolean {
+    return this.nodeIdToNode.has(asNodeId(externalId))
   }
 
   isKnownFunctionCall(id: AstId): boolean {
@@ -287,7 +300,7 @@ export class GraphDb {
     if (suggestionId == null) return
     const suggestion = this.suggestionDb.get(suggestionId)
     if (suggestion == null) return
-    return { methodCall, suggestion }
+    return { methodCall, methodCallSource: id, suggestion }
   }
 
   getNodeColorStyle(id: NodeId): string {
@@ -336,7 +349,7 @@ export class GraphDb {
     for (const nodeAst of functionAst_.bodyExpressions()) {
       const newNode = nodeFromAst(nodeAst)
       if (!newNode) continue
-      const nodeId = asNodeId(newNode.rootExpr.id)
+      const nodeId = asNodeId(newNode.rootExpr.externalId)
       const node = this.nodeIdToNode.get(nodeId)
       currentNodeIds.add(nodeId)
       if (node == null) {
@@ -392,6 +405,7 @@ export class GraphDb {
         this.nodeIdToNode.delete(nodeId)
       }
     }
+    this.updateExternalIds(functionAst_)
     this.bindings.readFunctionAst(functionAst_, rawFunction, moduleCode, getSpan)
     return currentNodeIds
   }
@@ -411,8 +425,8 @@ export class GraphDb {
     updateMap(this.idFromExternalMap, idFromExternalNew)
   }
 
-  updateMetadata(id: Ast.AstId, changes: NodeMetadata) {
-    const node = this.nodeIdToNode.get(id as NodeId)
+  updateMetadata(astId: Ast.AstId, changes: NodeMetadata) {
+    const node = this.nodeByRootAstId(astId)
     if (!node) return
     const newPos = changes.get('position')
     const newPosVec = newPos && new Vec2(newPos.x, newPos.y)
@@ -426,9 +440,14 @@ export class GraphDb {
     }
   }
 
+  nodeByRootAstId(astId: Ast.AstId): Node | undefined {
+    const nodeId = asNodeId(this.idToExternal(astId))
+    return nodeId != null ? this.nodeIdToNode.get(nodeId) : undefined
+  }
+
   /** Get the ID of the `Ast` corresponding to the given `ExternalId` as of the last synchronization. */
-  idFromExternal(id: ExternalId): AstId | undefined {
-    return this.idFromExternalMap.get(id)
+  idFromExternal(id: ExternalId | undefined): AstId | undefined {
+    return id ? this.idFromExternalMap.get(id) : id
   }
   /** Get the external ID corresponding to the given `AstId` as of the last synchronization.
    *
@@ -444,15 +463,15 @@ export class GraphDb {
    *  - If the data should be associated with the `Ast` that the engine was referring to, use `idToExternal`.
    *  Either choice is an approximation that will be used until the engine provides an update after processing the edit.
    */
-  idToExternal(id: AstId): ExternalId | undefined {
-    return this.idToExternalMap.get(id)
+  idToExternal(id: AstId | undefined): ExternalId | undefined {
+    return id ? this.idToExternalMap.get(id) : undefined
   }
 
   static Mock(registry = ComputedValueRegistry.Mock(), db = new SuggestionDb()): GraphDb {
     return new GraphDb(db, ref([]), registry)
   }
 
-  mockNode(binding: string, id: Ast.AstId, code?: string): Node {
+  mockNode(binding: string, id: NodeId, code?: string): Node {
     const edit = MutableModule.Transient()
     const pattern = Ast.parse(binding, edit)
     const expression = Ast.parse(code ?? '0', edit)
@@ -472,16 +491,20 @@ export class GraphDb {
       zIndex: this.highestZIndex,
     }
     const bindingId = pattern.id
-    this.nodeIdToNode.set(asNodeId(id), node)
+    this.nodeIdToNode.set(id, node)
     this.bindings.bindings.set(bindingId, { identifier: binding, usages: new Set() })
     return node
   }
 }
 
 declare const brandNodeId: unique symbol
-export type NodeId = AstId & { [brandNodeId]: never }
-export function asNodeId(id: Ast.AstId): NodeId {
-  return id as NodeId
+
+/** An unique node identifier, shared across all clients. It is the ExternalId of node's root expression. */
+export type NodeId = string & ExternalId & { [brandNodeId]: never }
+export function asNodeId(id: ExternalId): NodeId
+export function asNodeId(id: ExternalId | undefined): NodeId | undefined
+export function asNodeId(id: ExternalId | undefined): NodeId | undefined {
+  return id != null ? (id as NodeId) : undefined
 }
 
 export interface NodeDataFromAst {

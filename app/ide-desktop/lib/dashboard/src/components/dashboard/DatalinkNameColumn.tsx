@@ -3,11 +3,11 @@ import * as React from 'react'
 
 import DatalinkIcon from 'enso-assets/datalink.svg'
 
+import * as backendHooks from '#/hooks/backendHooks'
 import * as eventHooks from '#/hooks/eventHooks'
 import * as setAssetHooks from '#/hooks/setAssetHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
-import * as backendProvider from '#/providers/BackendProvider'
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 
 import AssetEventType from '#/events/AssetEventType'
@@ -21,6 +21,7 @@ import * as backendModule from '#/services/Backend'
 import * as eventModule from '#/utilities/event'
 import * as indent from '#/utilities/indent'
 import * as object from '#/utilities/object'
+import * as tailwindMerge from '#/utilities/tailwindMerge'
 import Visibility from '#/utilities/Visibility'
 
 // ====================
@@ -35,9 +36,8 @@ export interface DatalinkNameColumnProps extends column.AssetColumnProps {}
  * This should never happen. */
 export default function DatalinkNameColumn(props: DatalinkNameColumnProps) {
   const { item, setItem, selected, state, rowState, setRowState, isEditable } = props
-  const { assetEvents, dispatchAssetListEvent, setIsAssetPanelTemporarilyVisible } = state
+  const { backend, assetEvents, dispatchAssetListEvent, setIsAssetPanelTemporarilyVisible } = state
   const toastAndLog = toastAndLogHooks.useToastAndLog()
-  const { backend } = backendProvider.useStrictBackend()
   const inputBindings = inputBindingsProvider.useInputBindings()
   if (item.type !== backendModule.AssetType.datalink) {
     // eslint-disable-next-line no-restricted-syntax
@@ -45,6 +45,8 @@ export default function DatalinkNameColumn(props: DatalinkNameColumnProps) {
   }
   const asset = item.item
   const setAsset = setAssetHooks.useSetAsset(asset, setItem)
+
+  const createDatalinkMutation = backendHooks.useBackendMutation(backend, 'createDatalink')
 
   const setIsEditing = (isEditingName: boolean) => {
     if (isEditable) {
@@ -97,12 +99,14 @@ export default function DatalinkNameColumn(props: DatalinkNameColumnProps) {
             } else {
               rowState.setVisibility(Visibility.faded)
               try {
-                const { id } = await backend.createDatalink({
-                  parentDirectoryId: asset.parentId,
-                  datalinkId: null,
-                  name: asset.title,
-                  value: event.value,
-                })
+                const { id } = await createDatalinkMutation.mutateAsync([
+                  {
+                    parentDirectoryId: asset.parentId,
+                    datalinkId: null,
+                    name: asset.title,
+                    value: event.value,
+                  },
+                ])
                 rowState.setVisibility(Visibility.visible)
                 setAsset(object.merger({ id }))
               } catch (error) {
@@ -126,9 +130,10 @@ export default function DatalinkNameColumn(props: DatalinkNameColumnProps) {
 
   return (
     <div
-      className={`flex h-full min-w-max items-center gap-name-column-icon whitespace-nowrap rounded-l-full px-name-column-x py-name-column-y ${indent.indentClass(
-        item.depth
-      )}`}
+      className={tailwindMerge.twMerge(
+        'flex h-table-row min-w-max items-center gap-name-column-icon whitespace-nowrap rounded-l-full px-name-column-x py-name-column-y',
+        indent.indentClass(item.depth)
+      )}
       onKeyDown={event => {
         if (rowState.isEditingName && event.key === 'Enter') {
           event.stopPropagation()
@@ -145,7 +150,7 @@ export default function DatalinkNameColumn(props: DatalinkNameColumnProps) {
         }
       }}
     >
-      <img src={DatalinkIcon} className="m-name-column-icon size-icon" />
+      <img src={DatalinkIcon} className="m-name-column-icon size-4" />
       <EditableSpan
         editable={false}
         onSubmit={async newTitle => {
@@ -164,7 +169,7 @@ export default function DatalinkNameColumn(props: DatalinkNameColumnProps) {
         onCancel={() => {
           setIsEditing(false)
         }}
-        className="text grow bg-transparent"
+        className="text grow bg-transparent font-naming"
       >
         {asset.title}
       </EditableSpan>

@@ -2,25 +2,13 @@
 import * as React from 'react'
 
 import LogoIcon from 'enso-assets/enso_logo.svg'
+import type * as text from 'enso-common/src/text'
 
-import type * as text from '#/text'
-
-import * as supportsLocalBackendProvider from '#/providers/SupportsLocalBackendProvider'
+import * as backendProvider from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
 
-import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
-import ButtonRow from '#/components/styled/ButtonRow'
 import SvgMask from '#/components/SvgMask'
-import UnstyledButton from '#/components/UnstyledButton'
-
-// =================
-// === Constants ===
-// =================
-
-/** The duration of time for which the "copy" button indicates that the text has
- * successfully been copied. */
-const CLEAR_COPIED_STATE_TIMEOUT_MS = 2_500
 
 // ==================
 // === AboutModal ===
@@ -28,10 +16,8 @@ const CLEAR_COPIED_STATE_TIMEOUT_MS = 2_500
 
 /** A modal for confirming the deletion of an asset. */
 export default function AboutModal() {
-  const supportsLocalBackend = supportsLocalBackendProvider.useSupportsLocalBackend()
+  const localBackend = backendProvider.useLocalBackend()
   const { getText } = textProvider.useText()
-  const [isCopied, setIsCopied] = React.useState(false)
-  const textContainerRef = React.useRef<HTMLTableSectionElement | null>(null)
 
   const versionsEntries = [
     ...(window.versionInfo != null
@@ -52,58 +38,50 @@ export default function AboutModal() {
     ['userAgent', navigator.userAgent],
   ] satisfies readonly (readonly [text.TextId, string])[]
 
-  const doCopy = () => {
-    const lines = versionsEntries.map(entry => {
-      const [textId, version] = entry
-      return `${getText(textId)} ${version}`
-    })
-    void navigator.clipboard.writeText(lines.join('\n'))
-    if (!isCopied) {
-      setIsCopied(true)
-      setTimeout(() => {
-        setIsCopied(false)
-      }, CLEAR_COPIED_STATE_TIMEOUT_MS)
-    }
-  }
+  const copyText = React.useMemo(
+    () => versionsEntries.map(([textId, version]) => `${getText(textId)} ${version}`).join('\n'),
+    [getText, versionsEntries]
+  )
 
   return (
     <ariaComponents.DialogTrigger defaultOpen>
-      {/* This button is not visible - it is only to provide the button for this `DialogTrigger`. */}
-      <aria.Button className="h-0 w-0" />
-      <ariaComponents.Dialog className="w-[30rem]">
+      <ariaComponents.Button aria-hidden className="sr-only" />
+
+      <ariaComponents.Dialog title={getText('aboutThisAppShortcut')}>
         <div className="relative flex items-center gap-4">
-          <SvgMask src={LogoIcon} className="size-16 shrink-0" />
-          <div className="flex flex-col gap-3">
-            <div className="text-base font-semibold">
-              {supportsLocalBackend
+          <SvgMask src={LogoIcon} className="size-16 shrink-0 self-start" />
+
+          <div className="flex flex-col">
+            <ariaComponents.Text variant="subtitle">
+              {localBackend != null
                 ? getText('appNameDesktopEdition')
                 : getText('appNameCloudEdition')}
-            </div>
+            </ariaComponents.Text>
+
             <table>
-              <tbody ref={textContainerRef}>
+              <tbody>
                 {versionsEntries.map(entry => {
                   const [textId, version] = entry
+
                   return (
                     <tr key={textId}>
-                      <td className="whitespace-nowrap pr-cell-x align-text-top">
-                        {getText(textId)}
+                      <td className="pr-cell-x align-text-top">
+                        <ariaComponents.Text nowrap>{getText(textId)}</ariaComponents.Text>
                       </td>
-                      <td>{version}</td>
+                      <td>
+                        <ariaComponents.Text>{version}</ariaComponents.Text>
+                      </td>
                     </tr>
                   )
                 })}
               </tbody>
             </table>
-            <ButtonRow>
-              <UnstyledButton
-                className="button relative bg-invite text-inversed active"
-                onPress={doCopy}
-              >
-                <aria.Text className="text">
-                  {isCopied ? getText('copied') : getText('copy')}
-                </aria.Text>
-              </UnstyledButton>
-            </ButtonRow>
+
+            <ariaComponents.ButtonGroup className="mt-4">
+              <ariaComponents.CopyButton copyText={copyText} size="medium" variant="submit">
+                {getText('copy')}
+              </ariaComponents.CopyButton>
+            </ariaComponents.ButtonGroup>
           </div>
         </div>
       </ariaComponents.Dialog>

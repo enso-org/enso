@@ -12,6 +12,7 @@ import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.Node;
 import java.util.Objects;
 import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
@@ -24,7 +25,7 @@ import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
  */
 @ExportLibrary(InteropLibrary.class)
 @ExportLibrary(TypesLibrary.class)
-public final class DataflowError extends AbstractTruffleException {
+public final class DataflowError extends AbstractTruffleException implements EnsoObject {
   /** Signals (local) values that haven't yet been initialized */
   public static final DataflowError UNINITIALIZED = new DataflowError(null, (Node) null);
 

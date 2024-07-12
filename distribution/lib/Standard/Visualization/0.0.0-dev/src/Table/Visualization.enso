@@ -2,7 +2,7 @@ from Standard.Base import all
 import Standard.Base.Data.Vector.Builder
 
 import Standard.Table.Row.Row
-from Standard.Table import Column, Table
+from Standard.Table import Column, Excel_Workbook, Table
 
 import Standard.Database.DB_Column.DB_Column
 import Standard.Database.DB_Table.DB_Table
@@ -27,32 +27,30 @@ prepare_visualization y max_rows=1000 =
     result = case x of
         _ : Vector -> make_json_for_vector x max_rows
         _ : Array -> prepare_visualization x.to_vector max_rows
-        _ : Map -> make_json_for_map x max_rows
+        _ : Dictionary -> make_json_for_dictionary x max_rows
         _ : JS_Object -> make_json_for_js_object x max_rows
-        _ : Row -> make_json_for_map x.to_map max_rows "column"
+        _ : Row -> make_json_for_dictionary x.to_dictionary max_rows "column"
         _ : Column -> prepare_visualization x.to_table max_rows
         _ : Table ->
             dataframe = x.take max_rows
             all_rows_count = x.row_count
-            index = Column.from_vector "#" (Vector.new dataframe.row_count i->i)
-            make_json_for_table dataframe [index] all_rows_count
+            make_json_for_table dataframe all_rows_count True
         _ : DB_Column -> prepare_visualization x.to_table max_rows
         _ : DB_Table ->
             dataframe = x.read (..First max_rows)
             all_rows_count = x.row_count
-            make_json_for_table dataframe [] all_rows_count
+            make_json_for_table dataframe all_rows_count True
         _ : Function ->
             pairs = [['_display_text_', '[Function '+x.to_text+']']]
             value = JS_Object.from_pairs pairs
             JS_Object.from_pairs [["json", value]]
         _ : Number ->
             JS_Object.from_pairs [["json", make_json_for_value x]]
-        _ ->
+        _ : Excel_Workbook ->
             js_value = x.to_js_object
-            value = if js_value.is_a JS_Object . not then js_value else
-                pairs = [['_display_text_', x.to_display_text]] + js_value.field_names.map f-> [f, make_json_for_value (js_value.get f)]
-                JS_Object.from_pairs pairs
-            JS_Object.from_pairs [["json", value]]
+            JS_Object.from_pairs [["json", js_value], ["sheet_names", x . sheet_names], ["type", "Excel_Workbook"]]
+        _ ->
+            make_json_for_other x
 
     result.to_text
 
@@ -100,7 +98,7 @@ make_json_for_object_matrix current vector idx=0 = if idx == vector.length then 
         _ : Date_Time -> False
         _ : Duration -> False
         _ : Period -> False
-        _ : Map ->
+        _ : Dictionary ->
             pairs = row.keys.map k-> [k.to_text, make_json_for_value (row.get k)]
             JS_Object.from_pairs pairs
         _ : Row ->
@@ -117,13 +115,13 @@ make_json_for_object_matrix current vector idx=0 = if idx == vector.length then 
         @Tail_Call make_json_for_object_matrix current vector idx+1
 
 ## PRIVATE
-   Render Map to JSON
-make_json_for_map : Map -> Integer -> Text -> JS_Object
-make_json_for_map map max_items key_name="key" =
+   Render Dictionary to JSON
+make_json_for_dictionary : Dictionary -> Integer -> Text -> JS_Object
+make_json_for_dictionary dict max_items key_name="key" =
     header = ["header", [key_name, "value"]]
-    all_rows = ["all_rows_count", map.size]
-    map_vector = Warning.clear (map.to_vector.take max_items)
-    mapped = map_vector . map p-> [p.first.to_text, make_json_for_value p.second]
+    all_rows = ["all_rows_count", dict.size]
+    as_vector = Warning.clear (dict.to_vector.take max_items)
+    mapped = as_vector . map p-> [p.first.to_text, make_json_for_value p.second]
     data = ["data", [mapped.map .first, mapped.map .second]]
     JS_Object.from_pairs [header, data, all_rows, ["type", "Map"]]
 
@@ -145,22 +143,31 @@ make_json_for_js_object js_object max_items =
    Arguments:
    - dataframe: the dataframe containing (possibly just a fragment of) the data
      to display.
-   - indices: a vector of dataframe columns that should be displayed as indices;
-     it can be empty, they should have the same amount of rows as the
-     `dataframe`.
    - all_rows_count: the number of all rows in the underlying data, useful if
      only a fragment is displayed.
-make_json_for_table : Table -> Vector Column -> Integer -> JS_Object
-make_json_for_table dataframe indices all_rows_count =
+make_json_for_table : Table -> Integer -> Boolean -> JS_Object
+make_json_for_table dataframe all_rows_count include_index_col =
     get_vector c = Warning.set (c.to_vector.map v-> make_json_for_value v) []
     columns     = dataframe.columns
     header      = ["header", columns.map .name]
+    value_type  = ["value_type", columns.map .value_type]
     data        = ["data",   columns.map get_vector]
     all_rows    = ["all_rows_count", all_rows_count]
-    ixes        = ["indices", indices.map get_vector]
-    ixes_header = ["indices_header", indices.map .name]
-    pairs       = [header, data, all_rows, ixes, ixes_header, ["type", "Table"]]
+    has_index_col = ["has_index_col", include_index_col]
+    pairs       = [header, value_type, data, all_rows, has_index_col, ["type", "Table"]]
     JS_Object.from_pairs pairs
+
+## PRIVATE
+   Create JSON serialization of values.
+make_json_for_other : Any -> JS_Object
+make_json_for_other x =
+    js_value = x.to_js_object
+    value = if js_value.is_a JS_Object . not then js_value else
+        pairs = [['_display_text_', x.to_display_text]] + js_value.field_names.map f-> [f, make_json_for_value (js_value.get f)]
+        JS_Object.from_pairs pairs
+    additional_fields = if js_value.is_a JS_Object . not then [] else
+        if js_value.contains_key 'links' then [["links", js_value.get 'links']] else []
+    JS_Object.from_pairs <| [["json", value]] + additional_fields
 
 ## PRIVATE
    Create JSON serialization of values for the table.
@@ -180,7 +187,7 @@ make_json_for_value val level=0 = case val of
             prepared = if val.length > 5 then truncated + ["… " + (val.length - 5).to_text+ " items"] else truncated
             "[" + (prepared.join ", ") + "]"
     _ : Array -> make_json_for_value val.to_vector level
-    _ : Map ->
+    _ : Dictionary ->
         if level != 0 then "{… "+val.size.to_text+" items}" else
             truncated = val.keys.take 5 . map k-> k.to_text + ": " + (make_json_for_value (val.get k) level+1).to_text
             prepared = if val.length > 5 then truncated + ["… " + (val.length - 5).to_text+ " items"] else truncated

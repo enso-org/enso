@@ -39,6 +39,7 @@ const logger = contentConfig.logger
 
 if (process.env.ELECTRON_DEV_MODE === 'true' && process.env.NODE_MODULES_PATH != null) {
     require.main?.paths.unshift(process.env.NODE_MODULES_PATH)
+    console.log(require.main?.paths)
 }
 
 // ===========
@@ -268,7 +269,14 @@ class App {
             })
             const projectManagerUrl = `ws://${this.projectManagerHost}:${this.projectManagerPort}`
             this.args.groups.engine.options.projectManagerUrl.value = projectManagerUrl
-            const backendOpts = this.args.groups.debug.options.verbose.value ? ['-vv'] : []
+            const backendVerboseOpts = this.args.groups.debug.options.verbose.value ? ['-vv'] : []
+            const backendProfileTime = this.args.groups.debug.options.profileTime.value
+                ? ['--profiling-time', String(this.args.groups.debug.options.profileTime.value)]
+                : ['--profiling-time', '120']
+            const backendProfileOpts = this.args.groups.debug.options.profile.value
+                ? ['--profiling-path', 'profiling.npss', ...backendProfileTime]
+                : []
+            const backendOpts = [...backendVerboseOpts, ...backendProfileOpts]
             const backendEnv = Object.assign({}, process.env, {
                 // These are environment variables, and MUST be in CONSTANT_CASE.
                 // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -443,6 +451,9 @@ class App {
                 event.reply(ipc.Channel.importProjectFromPath, path, info)
             }
         )
+        electron.ipcMain.on(ipc.Channel.showItemInFolder, (_event, fullPath: string) => {
+            electron.shell.showItemInFolder(fullPath)
+        })
         electron.ipcMain.handle(
             ipc.Channel.openFileBrowser,
             async (

@@ -182,7 +182,8 @@ class RuntimeTypesTest
               ".id"
             )
           ),
-          execute = true
+          execute = true,
+          idMap   = None
         )
       )
     )
@@ -262,7 +263,8 @@ class RuntimeTypesTest
               " . id"
             )
           ),
-          execute = true
+          execute = true,
+          idMap   = None
         )
       )
     )
@@ -345,7 +347,8 @@ class RuntimeTypesTest
               "S"
             )
           ),
-          execute = true
+          execute = true,
+          idMap   = None
         )
       )
     )
@@ -391,7 +394,8 @@ class RuntimeTypesTest
               "T"
             )
           ),
-          execute = true
+          execute = true,
+          idMap   = None
         )
       )
     )
@@ -479,7 +483,8 @@ class RuntimeTypesTest
               "S"
             )
           ),
-          execute = true
+          execute = true,
+          idMap   = None
         )
       )
     )
@@ -518,7 +523,8 @@ class RuntimeTypesTest
               "S"
             )
           ),
-          execute = true
+          execute = true,
+          idMap   = None
         )
       )
     )

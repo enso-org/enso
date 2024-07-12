@@ -25,7 +25,6 @@ type Data
 
 add_specs suite_builder setup =
     prefix = setup.prefix
-    create_connection_fn = setup.create_connection_func
 
     # We cannot create a column of Nothing/NULL in the database without casting it to a non-mixed type.
     type_for_nothing_column = if setup.is_database then Value_Type.Char else Value_Type.Mixed
@@ -39,27 +38,29 @@ add_specs suite_builder setup =
         [[Date.new 2024 1 3, Date.new 2024 1 4, Value_Type.Date]]
             + [[Date_Time.new 2024 1 3 2 30 10 zone=zone, Date_Time.new 2024 1 3 2 30 11 zone=zone, Value_Type.Date_Time]]
             + [[Time_Of_Day.new 2 30 10, Time_Of_Day.new 2 30 11, Value_Type.Time]]
-    values_without_nothing = [[False, True, Value_Type.Boolean]]
-            + [["abcd", "efgh", Value_Type.Char]]
-            + [[12, 13, Value_Type.Integer]]
-            + [[9223372036854775806, 9223372036854775807, Value_Type.Integer]]
-            + [[12.3, 23.4, Value_Type.Float]]
-            + date_time_values
-            + mixed_values
+    basic_values_without_nothing = [[False, True, Value_Type.Boolean]]
+        + [["abcd", "efgh", Value_Type.Char]]
+    advanced_values_without_nothing = [[12, 13, Value_Type.Integer]]
+        + [[9223372036854775806, 9223372036854775807, Value_Type.Integer]]
+        + [[12.3, 23.4, Value_Type.Float]]
+        + date_time_values
+        + mixed_values
+    values_without_nothing = if setup.test_selection.run_advanced_edge_case_tests then basic_values_without_nothing + advanced_values_without_nothing else basic_values_without_nothing
     values_with_nothing = values_without_nothing + [[Nothing, Nothing, type_for_nothing_column]]
 
-    suite_builder.group prefix+"Comparisons" group_builder->
-        data = Data.setup create_connection_fn
+    table_builder = setup.light_table_builder
+    table_builder_typed columns value_type =
+        ## TODO light_table_builder fails here with
+           Cannot cast Unsupported_Data_Type (NULL) type into ...
+        #raw_table = setup.light_table_builder columns
+        #raw_table.cast raw_table.column_names value_type
+        # TODO maybe use different builder depending on DB??
+        cast_columns = columns.map c->
+            Column.from_vector (c.at 0) (c.at 1) . cast value_type
+        setup.table_builder cast_columns
 
-        group_builder.teardown <|
-            data.teardown
-
-        table_builder_typed columns value_type =
-            cast_columns = columns.map c->
-                Column.from_vector (c.at 0) (c.at 1) . cast value_type
-            setup.table_builder cast_columns connection=data.connection
-
-        comparisons = [["==", ==], ["!=", !=], ["<", <], ["<=", <=], [">", >], [">=", >=]]
+    suite_builder.group prefix+"(Nothing_Spec) Comparisons" group_builder->
+        comparisons = [["==", ==], ["!=", !=], ["<", <]] + (if setup.test_selection.run_advanced_edge_case_tests then [["<=", <=], [">", >], [">=", >=]] else [])
 
         comparisons.map pair->
             comparison_name = pair.at 0
@@ -69,32 +70,24 @@ add_specs suite_builder setup =
                 value = triple.at 0
                 value_type = triple.at 2
 
-                group_builder.specify "Correctly handle Nothing in: "+value_type.to_text+" "+comparison_name+" Nothing value" <|
+                # TODO reuse tables between tests, here and later
+                group_builder.specify "Correctly handle Nothing in: "+value.to_text+" ("+value_type.to_text+") "+comparison_name+" Nothing value" <|
                     table = table_builder_typed [["x", [value]], ["n", [Nothing]]] value_type
                     co = comparison (table.at "x") Nothing
                     co.to_vector . should_equal [Nothing]
 
-                group_builder.specify "Correctly handle Nothing in: "+value_type.to_text+" "+comparison_name+" Nothing column" <|
-                    table = table_builder_typed [["x", [value]], ["n", [Nothing]]] value_type
-                    co = comparison (table.at "x") (table.at "n")
-                    co.to_vector . should_equal [Nothing]
+                if setup.test_selection.run_advanced_edge_case_tests then
+                    group_builder.specify "Correctly handle Nothing in: "+value.to_text+" ("+value_type.to_text+") "+comparison_name+" Nothing column" <|
+                        table = table_builder_typed [["x", [value]], ["n", [Nothing]]] value_type
+                        co = comparison (table.at "x") (table.at "n")
+                        co.to_vector . should_equal [Nothing]
 
-                group_builder.specify "Correctly handle Nothing in: Nothing column "+comparison_name+" "+value_type.to_text <|
-                    table = table_builder_typed [["x", [value]], ["n", [Nothing]]] value_type
-                    co = comparison (table.at "n") (table.at "x")
-                    co.to_vector . should_equal [Nothing]
+                    group_builder.specify "Correctly handle Nothing in: Nothing column "+comparison_name+" "+value.to_text+" ("+value_type.to_text+")" <|
+                        table = table_builder_typed [["x", [value]], ["n", [Nothing]]] value_type
+                        co = comparison (table.at "n") (table.at "x")
+                        co.to_vector . should_equal [Nothing]
 
-    suite_builder.group prefix+"between" group_builder->
-        data = Data.setup create_connection_fn
-
-        group_builder.teardown <|
-            data.teardown
-
-        table_builder_typed columns value_type =
-            cast_columns = columns.map c->
-                Column.from_vector (c.at 0) (c.at 1) . cast value_type
-            setup.table_builder cast_columns connection=data.connection
-
+    suite_builder.group prefix+"(Nothing_Spec) between" group_builder->
         values_with_nothing.map triple->
             value = triple.at 0
             value_type = triple.at 2
@@ -104,37 +97,28 @@ add_specs suite_builder setup =
                 co = table.at "n" . between (table.at "x") (table.at "y")
                 co.to_vector . should_equal [Nothing]
 
-            group_builder.specify "Correctly handle Nothing in: "+value_type.to_text+" between Nothing column and "+value_type.to_text <|
-                table = table_builder_typed [["x", [value]], ["y", [value]], ["n", [Nothing]]] value_type
-                co = table.at "x" . between (table.at "n") (table.at "y")
-                co.to_vector . should_equal [Nothing]
+            if setup.test_selection.run_advanced_edge_case_tests then
+                group_builder.specify "Correctly handle Nothing in: "+value_type.to_text+" between Nothing column and "+value_type.to_text <|
+                    table = table_builder_typed [["x", [value]], ["y", [value]], ["n", [Nothing]]] value_type
+                    co = table.at "x" . between (table.at "n") (table.at "y")
+                    co.to_vector . should_equal [Nothing]
 
-            group_builder.specify "Correctly handle Nothing in: "+value_type.to_text+" between "+value_type.to_text+" and Nothing column" <|
-                table = table_builder_typed [["x", [value]], ["y", [value]], ["n", [Nothing]]] value_type
-                co = table.at "x" . between (table.at "y") (table.at "n")
-                co.to_vector . should_equal [Nothing]
+                group_builder.specify "Correctly handle Nothing in: "+value_type.to_text+" between "+value_type.to_text+" and Nothing column" <|
+                    table = table_builder_typed [["x", [value]], ["y", [value]], ["n", [Nothing]]] value_type
+                    co = table.at "x" . between (table.at "y") (table.at "n")
+                    co.to_vector . should_equal [Nothing]
 
-            group_builder.specify "Correctly handle Nothing in: "+value_type.to_text+" between Nothing value and "+value_type.to_text <|
-                table = table_builder_typed [["x", [value]], ["y", [value]], ["n", [Nothing]]] value_type
-                co = table.at "x" . between Nothing (table.at "y")
-                co.to_vector . should_equal [Nothing]
+                group_builder.specify "Correctly handle Nothing in: "+value_type.to_text+" between Nothing value and "+value_type.to_text <|
+                    table = table_builder_typed [["x", [value]], ["y", [value]], ["n", [Nothing]]] value_type
+                    co = table.at "x" . between Nothing (table.at "y")
+                    co.to_vector . should_equal [Nothing]
 
-            group_builder.specify "Correctly handle Nothing in: "+value_type.to_text+" between "+value_type.to_text+" and Nothing value" <|
-                table = table_builder_typed [["x", [value]], ["y", [value]], ["n", [Nothing]]] value_type
-                co = table.at "x" . between (table.at "y") Nothing
-                co.to_vector . should_equal [Nothing]
+                group_builder.specify "Correctly handle Nothing in: "+value_type.to_text+" between "+value_type.to_text+" and Nothing value" <|
+                    table = table_builder_typed [["x", [value]], ["y", [value]], ["n", [Nothing]]] value_type
+                    co = table.at "x" . between (table.at "y") Nothing
+                    co.to_vector . should_equal [Nothing]
 
-    suite_builder.group prefix+"is_nothing" group_builder->
-        data = Data.setup create_connection_fn
-
-        group_builder.teardown <|
-            data.teardown
-
-        table_builder_typed columns value_type =
-            cast_columns = columns.map c->
-                Column.from_vector (c.at 0) (c.at 1) . cast value_type
-            setup.table_builder cast_columns connection=data.connection
-
+    suite_builder.group prefix+"(Nothing_Spec) is_nothing" group_builder->
         values_with_nothing.map triple->
             value = triple.at 0
             value_type = triple.at 2
@@ -144,30 +128,12 @@ add_specs suite_builder setup =
                 co = table.at "x" . is_nothing
                 co.to_vector . should_equal [value == Nothing]
 
-    suite_builder.group prefix+"not" group_builder->
-        data = Data.setup create_connection_fn
-
-        group_builder.teardown <|
-            data.teardown
-
-        table_builder columns =
-            setup.table_builder columns connection=data.connection
-
+    suite_builder.group prefix+"(Nothing_Spec) not" group_builder->
         group_builder.specify "Correctly handle Nothing in .not" <|
-            table = table_builder [["x", [True, False, Nothing]]]
+            table = setup.light_table_builder [["x", [True, False, Nothing]]]
             table.at "x" . not . to_vector . should_equal [False, True, Nothing]
 
-    suite_builder.group prefix+"is_in" group_builder->
-        data = Data.setup create_connection_fn
-
-        group_builder.teardown <|
-            data.teardown
-
-        table_builder_typed columns value_type =
-            cast_columns = columns.map c->
-                Column.from_vector (c.at 0) (c.at 1) . cast value_type
-            setup.table_builder cast_columns connection=data.connection
-
+    suite_builder.group prefix+"(Nothing_Spec) is_in" group_builder->
         values_with_nothing.map triple->
             value = triple.at 0
             other_value = triple.at 1
@@ -187,41 +153,32 @@ add_specs suite_builder setup =
                 table = table_builder_typed [["x", [value, Nothing]], ["y", [other_value, Nothing]], ["z", [value, other_value]], ["n", [Nothing, Nothing]]] value_type
                 table.at "x" . is_in (table.at "y") . to_vector . should_equal [Nothing, Nothing]
 
-            group_builder.specify "Correctly handle Nothing in: Nothing.is_in Column with Nothings (returning Nothing)" <|
-                table = table_builder_typed [["x", [value, Nothing]], ["y", [other_value, Nothing]], ["z", [value, other_value]], ["n", [Nothing, Nothing]]] value_type
-                table.at "n" . is_in (table.at "x") . to_vector . should_equal [Nothing, Nothing]
+            if setup.test_selection.run_advanced_edge_case_tests then
+                group_builder.specify "Correctly handle Nothing in: Nothing.is_in Column with Nothings (returning Nothing)" <|
+                    table = table_builder_typed [["x", [value, Nothing]], ["y", [other_value, Nothing]], ["z", [value, other_value]], ["n", [Nothing, Nothing]]] value_type
+                    table.at "n" . is_in (table.at "x") . to_vector . should_equal [Nothing, Nothing]
 
-            group_builder.specify "Correctly handle Nothing in: "+value_type.to_text+".is_in Vector (returning True)" <|
-                table = table_builder_typed [["x", [value, Nothing]], ["y", [other_value, Nothing]], ["z", [value, other_value]], ["n", [Nothing, Nothing]]] value_type
-                table.at "x" . is_in (table.at "z" . to_vector) . to_vector . should_equal [true_if_not_nothing, Nothing]
+                group_builder.specify "Correctly handle Nothing in: "+value_type.to_text+".is_in Vector (returning True)" <|
+                    table = table_builder_typed [["x", [value, Nothing]], ["y", [other_value, Nothing]], ["z", [value, other_value]], ["n", [Nothing, Nothing]]] value_type
+                    table.at "x" . is_in (table.at "z" . to_vector) . to_vector . should_equal [true_if_not_nothing, Nothing]
 
-            group_builder.specify "Correctly handle Nothing in: "+value_type.to_text+".is_in Vector with Nothings (returning True)" <|
-                table = table_builder_typed [["x", [value, Nothing]], ["y", [other_value, Nothing]], ["z", [value, other_value]], ["n", [Nothing, Nothing]]] value_type
-                table.at "x" . is_in (table.at "x" . to_vector) . to_vector . should_equal [true_if_not_nothing, Nothing]
+                group_builder.specify "Correctly handle Nothing in: "+value_type.to_text+".is_in Vector with Nothings (returning True)" <|
+                    table = table_builder_typed [["x", [value, Nothing]], ["y", [other_value, Nothing]], ["z", [value, other_value]], ["n", [Nothing, Nothing]]] value_type
+                    table.at "x" . is_in (table.at "x" . to_vector) . to_vector . should_equal [true_if_not_nothing, Nothing]
 
-            group_builder.specify "Correctly handle Nothing in: "+value_type.to_text+".is_in Vector with Nothings (returning Nothing)" <|
-                table = table_builder_typed [["x", [value, Nothing]], ["y", [other_value, Nothing]], ["z", [value, other_value]], ["n", [Nothing, Nothing]]] value_type
-                table.at "x" . is_in (table.at "y" . to_vector) . to_vector . should_equal [Nothing, Nothing]
+                group_builder.specify "Correctly handle Nothing in: "+value_type.to_text+".is_in Vector with Nothings (returning Nothing)" <|
+                    table = table_builder_typed [["x", [value, Nothing]], ["y", [other_value, Nothing]], ["z", [value, other_value]], ["n", [Nothing, Nothing]]] value_type
+                    table.at "x" . is_in (table.at "y" . to_vector) . to_vector . should_equal [Nothing, Nothing]
 
-            group_builder.specify "Correctly handle Nothing in: Nothing.is_in Vector with Nothings (returning Nothing)" <|
-                table = table_builder_typed [["x", [value, Nothing]], ["y", [other_value, Nothing]], ["z", [value, other_value]], ["n", [Nothing, Nothing]]] value_type
-                table.at "n" . is_in (table.at "x" . to_vector) . to_vector . should_equal [Nothing, Nothing]
+                group_builder.specify "Correctly handle Nothing in: Nothing.is_in Vector with Nothings (returning Nothing)" <|
+                    table = table_builder_typed [["x", [value, Nothing]], ["y", [other_value, Nothing]], ["z", [value, other_value]], ["n", [Nothing, Nothing]]] value_type
+                    table.at "n" . is_in (table.at "x" . to_vector) . to_vector . should_equal [Nothing, Nothing]
 
-            group_builder.specify "Correctly handle Nothing in: "+value_type.to_text+".is_in empty Vector (returning False)" <|
-                table = table_builder_typed [["x", [value, Nothing]], ["y", [other_value, Nothing]], ["z", [value, other_value]], ["n", [Nothing, Nothing]]] value_type
-                table.at "x" . is_in [] . to_vector . should_equal [False, False]
+                group_builder.specify "Correctly handle Nothing in: "+value_type.to_text+".is_in empty Vector (returning False)" <|
+                    table = table_builder_typed [["x", [value, Nothing]], ["y", [other_value, Nothing]], ["z", [value, other_value]], ["n", [Nothing, Nothing]]] value_type
+                    table.at "x" . is_in [] . to_vector . should_equal [False, False]
 
-    suite_builder.group prefix+"Boolean is_in" group_builder->
-        data = Data.setup create_connection_fn
-
-        group_builder.teardown <|
-            data.teardown
-
-        table_builder_typed columns value_type =
-            cast_columns = columns.map c->
-                Column.from_vector (c.at 0) (c.at 1) . cast value_type
-            setup.table_builder cast_columns connection=data.connection
-
+    if setup.test_selection.run_advanced_edge_case_tests then suite_builder.group prefix+"(Nothing_Spec) is_in: Boolean+Nothing edge cases" group_builder->
         make_containing_values had_null had_true had_false =
             null_maybe = if had_null then [Nothing] else []
             true_maybe = if had_true then [True] else []
@@ -259,7 +216,7 @@ add_specs suite_builder setup =
                 output = cs.at 4
                 containing_values = make_containing_values (cs.at 1) (cs.at 2) (cs.at 3)
 
-                group_builder.specify "Boolean is_in: (Vector), "+negation_desc+" "+cs.to_text <|
+                group_builder.specify "Boolean is_in: edge cases (Vector), "+negation_desc+" "+cs.to_text <|
                     input_column = transform_input [input]
                     t = table_builder_typed [["input", input_column]] Value_Type.Boolean
 
@@ -267,7 +224,7 @@ add_specs suite_builder setup =
 
                     c.to_vector . should_equal [output]
 
-                group_builder.specify "Boolean is_in: (Column), "+negation_desc+" "+cs.to_text <|
+                group_builder.specify "Boolean is_in: edge cases (Column), "+negation_desc+" "+cs.to_text <|
                     input_column = transform_input (Vector.fill containing_values.length input)
                     t = table_builder_typed [["input", input_column], ["containing", transform_argument containing_values]] Value_Type.Boolean
                     expected_output = if input_column.is_empty then [] else [output]
@@ -277,20 +234,7 @@ add_specs suite_builder setup =
                     c.to_vector . length . should_equal input_column.length
                     c.to_vector.distinct . should_equal expected_output
 
-    suite_builder.group prefix+"distinct" group_builder->
-        data = Data.setup create_connection_fn
-
-        group_builder.teardown <|
-            data.teardown
-
-        table_builder columns =
-            setup.table_builder columns connection=data.connection
-
-        table_builder_typed columns value_type =
-            cast_columns = columns.map c->
-                Column.from_vector (c.at 0) (c.at 1) . cast value_type
-            setup.table_builder cast_columns connection=data.connection
-
+    suite_builder.group prefix+"(Nothing_Spec) distinct" group_builder->
         values_without_nothing.map triple->
             value = triple.at 0
             other_value = triple.at 1
@@ -309,31 +253,23 @@ add_specs suite_builder setup =
             v = t1.at "x" . to_vector
             v . should_equal [Nothing]
 
-    suite_builder.group prefix+"order_by" group_builder->
-        data = Data.setup create_connection_fn
-
-        group_builder.teardown <|
-            data.teardown
-
-        table_builder_typed columns value_type =
-            cast_columns = columns.map c->
-                Column.from_vector (c.at 0) (c.at 1) . cast value_type
-            setup.table_builder cast_columns connection=data.connection
-
+    suite_builder.group prefix+"(Nothing_Spec) sort" group_builder->
         values_with_nothing.map triple->
             value = triple.at 0
             other_value = triple.at 1
             value_type = triple.at 2
 
-            is_comparable = Default_Comparator.compare value other_value != Nothing
+            is_comparable = case Ordering.compare value other_value of
+                _:Ordering -> True
+                _ -> False
 
             if is_comparable then
                 table = table_builder_typed [["x", [value, Nothing, other_value, other_value, Nothing, value, Nothing]]] value_type
 
-                group_builder.specify "Correctly handle Nothing in .order_by (asc) for "+value_type.to_text <|
-                    t1 = table . order_by [Sort_Column.Name "x" Sort_Direction.Ascending]
+                group_builder.specify "Correctly handle Nothing in .sort (asc) for "+value_type.to_text <|
+                    t1 = table . sort [..Name "x" ..Ascending]
                     t1.at "x" . to_vector . should_equal [Nothing, Nothing, Nothing, value, value, other_value, other_value]
 
-                group_builder.specify "Correctly handle Nothing in .order_by (desc) for "+value_type.to_text <|
-                    t1 = table . order_by [Sort_Column.Name "x" Sort_Direction.Descending]
+                group_builder.specify "Correctly handle Nothing in .sort (desc) for "+value_type.to_text <|
+                    t1 = table . sort [..Name "x" ..Descending]
                     t1.at "x" . to_vector . should_equal [other_value, other_value, value, value, Nothing, Nothing, Nothing]

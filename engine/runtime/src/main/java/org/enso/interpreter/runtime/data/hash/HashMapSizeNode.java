@@ -12,7 +12,7 @@ import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.PanicException;
 
 @BuiltinMethod(
-    type = "Map",
+    type = "Dictionary",
     name = "size",
     description = "Returns the number of entries in this hash map",
     autoRegister = false)

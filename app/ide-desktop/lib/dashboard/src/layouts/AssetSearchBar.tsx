@@ -4,20 +4,25 @@ import * as React from 'react'
 import FindIcon from 'enso-assets/find.svg'
 import * as detect from 'enso-common/src/detect'
 
+import * as backendHooks from '#/hooks/backendHooks'
+
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
+import * as ariaComponents from '#/components/AriaComponents'
 import Label from '#/components/dashboard/Label'
 import FocusArea from '#/components/styled/FocusArea'
 import FocusRing from '#/components/styled/FocusRing'
+import SvgMask from '#/components/SvgMask'
 
-import type * as backend from '#/services/Backend'
+import type Backend from '#/services/Backend'
 
 import * as array from '#/utilities/array'
 import AssetQuery from '#/utilities/AssetQuery'
 import * as eventModule from '#/utilities/event'
 import * as string from '#/utilities/string'
+import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 // =============
 // === Types ===
@@ -78,7 +83,7 @@ function Tags(props: InternalTagsProps) {
   return (
     <div
       data-testid="asset-search-tag-names"
-      className="pointer-events-auto flex flex-wrap gap-buttons whitespace-nowrap px-search-suggestions"
+      className="pointer-events-auto flex flex-wrap gap-2 whitespace-nowrap px-1.5"
     >
       {(isCloud ? AssetQuery.tagNames : AssetQuery.localTagNames).flatMap(entry => {
         const [key, tag] = entry
@@ -86,15 +91,17 @@ function Tags(props: InternalTagsProps) {
           ? []
           : [
               <FocusRing key={key}>
-                <aria.Button
-                  className="h-text rounded-full bg-frame px-button-x transition-all hover:bg-selected-frame"
+                <ariaComponents.Button
+                  variant="bar"
+                  size="xsmall"
+                  className="min-w-12"
                   onPress={() => {
                     querySource.current = QuerySource.internal
                     setQuery(query.add({ [key]: [[]] }))
                   }}
                 >
                   {tag + ':'}
-                </aria.Button>
+                </ariaComponents.Button>
               </FocusRing>,
             ]
       })}
@@ -108,16 +115,16 @@ function Tags(props: InternalTagsProps) {
 
 /** Props for a {@link AssetSearchBar}. */
 export interface AssetSearchBarProps {
+  readonly backend: Backend | null
   readonly isCloud: boolean
   readonly query: AssetQuery
   readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
-  readonly labels: backend.Label[]
-  readonly suggestions: Suggestion[]
+  readonly suggestions: readonly Suggestion[]
 }
 
 /** A search bar containing a text input, and a list of suggestions. */
 export default function AssetSearchBar(props: AssetSearchBarProps) {
-  const { isCloud, query, setQuery, labels, suggestions: rawSuggestions } = props
+  const { backend, isCloud, query, setQuery, suggestions: rawSuggestions } = props
   const { getText } = textProvider.useText()
   const { modalRef } = modalProvider.useModalRef()
   /** A cached query as of the start of tabbing. */
@@ -133,6 +140,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
   const querySource = React.useRef(QuerySource.external)
   const rootRef = React.useRef<HTMLLabelElement | null>(null)
   const searchRef = React.useRef<HTMLInputElement | null>(null)
+  const labels = backendHooks.useBackendListTags(backend) ?? []
   areSuggestionsVisibleRef.current = areSuggestionsVisible
 
   React.useEffect(() => {
@@ -255,7 +263,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
       root?.removeEventListener('keydown', onSearchKeyDown)
       document.removeEventListener('keydown', onKeyDown)
     }
-  }, [setQuery, /* should never change */ modalRef])
+  }, [setQuery, modalRef])
 
   // Reset `querySource` after all other effects have run.
   React.useEffect(() => {
@@ -266,7 +274,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
       baseQuery.current = query
       querySource.current = QuerySource.external
     }
-  }, [query, /* should never change */ setQuery])
+  }, [query, setQuery])
 
   return (
     <FocusArea direction="horizontal">
@@ -275,7 +283,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
           data-testid="asset-search-bar"
           {...aria.mergeProps<aria.LabelProps>()(innerProps, {
             className:
-              'search-bar group relative flex h-row max-w-asset-search-bar grow items-center gap-asset-search-bar rounded-full px-input-x text-primary xl:max-w-asset-search-bar-wide',
+              'z-1 group relative flex grow max-w-[60em] items-center gap-asset-search-bar rounded-full px-1.5 py-1 text-primary',
             ref: rootRef,
             onFocus: () => {
               setAreSuggestionsVisible(true)
@@ -290,11 +298,19 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
             },
           })}
         >
-          <img src={FindIcon} className="relative z-1 placeholder" />
-          <div className="pointer-events-none absolute left top flex w-full flex-col overflow-hidden rounded-default before:absolute before:inset before:bg-frame before:backdrop-blur-default">
-            <div className="padding relative h-row" />
+          <div className="relative size-4 placeholder" />
+          <div
+            className={ariaComponents.DIALOG_BACKGROUND({
+              className: tailwindMerge.twMerge(
+                'absolute left-0 top-0 z-1 flex w-full flex-col overflow-hidden rounded-default border-0.5 border-primary/20 -outline-offset-1 outline-primary transition-colors',
+                areSuggestionsVisible ? '' : 'bg-transparent'
+              ),
+            })}
+          >
+            <div className="h-[32px]" />
+
             {areSuggestionsVisible && (
-              <div className="relative flex flex-col gap-search-suggestions">
+              <div className="relative mt-3 flex flex-col gap-3">
                 {/* Tags (`name:`, `modified:`, etc.) */}
                 <Tags
                   isCloud={isCloud}
@@ -306,9 +322,9 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
                 {isCloud && labels.length !== 0 && (
                   <div
                     data-testid="asset-search-labels"
-                    className="pointer-events-auto flex gap-buttons p-search-suggestions"
+                    className="pointer-events-auto flex gap-2 px-1.5"
                   >
-                    {labels
+                    {[...labels]
                       .sort((a, b) => string.compareCaseInsensitive(a.value, b.value))
                       .map(label => {
                         const negated = query.negativeLabels.some(term =>
@@ -344,7 +360,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
                   </div>
                 )}
                 {/* Suggestions */}
-                <div className="flex max-h-search-suggestions-list flex-col overflow-y-auto">
+                <div className="flex max-h-search-suggestions-list flex-col overflow-y-auto overflow-x-hidden pb-0.5 pl-0.5">
                   {suggestions.map((suggestion, index) => (
                     // This should not be a `<button>`, since `render()` may output a
                     // tree containing a button.
@@ -356,13 +372,11 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
                           el?.focus()
                         }
                       }}
-                      className={`pointer-events-auto mx-search-suggestion cursor-pointer rounded-default px-search-suggestions py-search-suggestion-y text-left transition-colors last:mb-search-suggestion hover:bg-selected-frame ${
-                        index === selectedIndex
-                          ? 'bg-selected-frame'
-                          : selectedIndices.has(index)
-                            ? 'bg-frame'
-                            : ''
-                      }`}
+                      className={tailwindMerge.twMerge(
+                        'flex cursor-pointer rounded-l-default rounded-r-sm px-[7px] py-0.5 text-left transition-[background-color] hover:bg-primary/5',
+                        selectedIndices.has(index) && 'bg-primary/10',
+                        index === selectedIndex && 'bg-selected-frame'
+                      )}
                       onPress={event => {
                         querySource.current = QuerySource.internal
                         setQuery(
@@ -383,17 +397,23 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
                         }
                       }}
                     >
-                      {suggestion.render()}
+                      <ariaComponents.Text variant="body" truncate="1" className="w-full">
+                        {suggestion.render()}
+                      </ariaComponents.Text>
                     </aria.Button>
                   ))}
                 </div>
               </div>
             )}
           </div>
+          <SvgMask
+            src={FindIcon}
+            className="absolute left-2 top-[50%] z-1 mt-[1px] -translate-y-1/2 text-primary/40"
+          />
           <FocusRing placement="before">
             <aria.SearchField
               aria-label={getText('assetSearchFieldLabel')}
-              className="relative grow before:text before:absolute before:inset-x-button-focus-ring-inset before:my-auto before:rounded-full before:transition-all"
+              className="relative grow before:text before:absolute before:-inset-x-1 before:my-auto before:rounded-full before:transition-all"
               value={query.query}
               onKeyDown={event => {
                 event.continuePropagation()
@@ -405,10 +425,12 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
                 size={1}
                 placeholder={
                   isCloud
-                    ? getText('remoteBackendSearchPlaceholder')
+                    ? detect.isOnMacOS()
+                      ? getText('remoteBackendSearchPlaceholderMacOs')
+                      : getText('remoteBackendSearchPlaceholder')
                     : getText('localBackendSearchPlaceholder')
                 }
-                className="focus-child peer text relative z-1 w-full bg-transparent placeholder:text-center"
+                className="focus-child peer text relative z-1 w-full bg-transparent placeholder-primary/40"
                 onChange={event => {
                   if (querySource.current !== QuerySource.internal) {
                     querySource.current = QuerySource.typing

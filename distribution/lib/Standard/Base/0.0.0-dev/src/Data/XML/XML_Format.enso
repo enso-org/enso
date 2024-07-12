@@ -3,6 +3,7 @@ import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Data.XML.XML_Document
 import project.Errors.Problem_Behavior.Problem_Behavior
+import project.Function.Function
 import project.Meta
 import project.Network.URI.URI
 import project.Nothing.Nothing
@@ -15,6 +16,13 @@ from project.Metadata.Choice import Option
 
 ## A `File_Format` for reading and writing XML files.
 type XML_Format
+    ## PRIVATE
+       Resolve an unresolved constructor to the actual type.
+    resolve : Function -> XML_Format | Nothing
+    resolve constructor =
+        _ = constructor
+        Nothing
+
     ## PRIVATE
        If the File_Format supports reading from the file, return a configured instance.
     for_read : File_Format_Metadata -> XML_Format | Nothing
@@ -37,7 +45,6 @@ type XML_Format
     for_file_write file:Writable_File =
         _ = [file]
         Nothing
-
 
     ## PRIVATE
     get_dropdown_options : Vector Option

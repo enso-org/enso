@@ -9,12 +9,12 @@ const blockType = defineModel<BlockType>({ required: true })
 const TODO: Icon = 'text'
 const blockTypeIcon: Record<keyof typeof blockTypeToBlockName, Icon> = {
   paragraph: 'text',
-  bullet: TODO,
+  bullet: 'bullet-list',
   code: TODO,
   h1: TODO,
   h2: TODO,
   h3: TODO,
-  number: TODO,
+  number: 'numbered-list',
   quote: TODO,
 }
 const blockTypesOrdered: BlockType[] = [

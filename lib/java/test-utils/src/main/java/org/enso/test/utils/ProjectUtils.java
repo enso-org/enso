@@ -66,7 +66,7 @@ prefer-local-libraries: true
     var srcDir = Files.createDirectory(projDir.resolve("src"));
     assert srcDir.toFile().exists();
     for (var module : modules) {
-      var relativePath = String.join(File.pathSeparator, module.name().pathAsJava());
+      var relativePath = String.join(File.separator, module.name().pathAsJava());
       var modDirPath = srcDir.resolve(relativePath);
       Files.createDirectories(modDirPath);
       var modPath = modDirPath.resolve(module.name().item() + ".enso");
@@ -123,7 +123,7 @@ prefer-local-libraries: true
   public static void deleteRecursively(Path rootDir) throws IOException {
     Files.walkFileTree(
         rootDir,
-        new SimpleFileVisitor<Path>() {
+        new SimpleFileVisitor<>() {
           @Override
           public FileVisitResult visitFile(Path file, BasicFileAttributes attrs)
               throws IOException {

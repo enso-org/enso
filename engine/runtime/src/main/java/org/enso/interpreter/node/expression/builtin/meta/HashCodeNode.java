@@ -69,7 +69,7 @@ import org.enso.polyglot.common_utils.Core_Text_Utils;
  */
 @GenerateUncached
 @BuiltinMethod(
-    type = "Comparable",
+    type = "Default_Comparator",
     name = "hash_builtin",
     description =
         """

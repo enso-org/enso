@@ -12,6 +12,7 @@ import org.enso.projectmanager.boot.Globals.{
 import org.enso.projectmanager.boot.command.filesystem.{
   FileSystemCreateDirectoryCommand,
   FileSystemDeleteCommand,
+  FileSystemExistsCommand,
   FileSystemListCommand,
   FileSystemMoveDirectoryCommand,
   FileSystemWritePathCommand
@@ -21,6 +22,7 @@ import org.enso.projectmanager.boot.configuration.{
   MainProcessConfig,
   ProjectManagerConfig
 }
+import org.enso.projectmanager.infrastructure.migration.ProjectsMigration
 import org.enso.projectmanager.protocol.JsonRpcProtocolFactory
 import org.enso.version.VersionDescription
 import org.slf4j.event.Level
@@ -53,11 +55,11 @@ object ProjectManager extends ZIOAppDefault with LazyLogging {
     new JsonRpcProtocolFactory().getProtocol()
   )
 
-  val computeThreadPool = new ScheduledThreadPoolExecutor(
+  private val computeThreadPool = new ScheduledThreadPoolExecutor(
     java.lang.Runtime.getRuntime.availableProcessors()
   )
 
-  val computeExecutionContext: ExecutionContextExecutor =
+  private val computeExecutionContext: ExecutionContextExecutor =
     ExecutionContext.fromExecutor(
       computeThreadPool,
       th => logger.error("An expected error occurred.", th)
@@ -77,6 +79,7 @@ object ProjectManager extends ZIOAppDefault with LazyLogging {
   private def mainProcess(
     processConfig: MainProcessConfig
   ): ZIO[ZAny, IOException, Unit] = {
+    ProjectsMigration.migrate(config.storage)
     val mainModule =
       new MainModule[ZIO[ZAny, +*, +*]](
         config,
@@ -216,6 +219,11 @@ object ProjectManager extends ZIOAppDefault with LazyLogging {
       ZIO.succeed(SuccessExitCode)
     } else if (options.hasOption(Cli.VERSION_OPTION)) {
       displayVersion(options.hasOption(Cli.JSON_OPTION))
+    } else if (options.hasOption(Cli.FILESYSTEM_EXISTS)) {
+      val path = Paths.get(options.getOptionValue(Cli.FILESYSTEM_EXISTS))
+      val fileSystemExistsCommand =
+        FileSystemExistsCommand[ZIO[ZAny, +*, +*]](config, path.toFile)
+      commandHandler.printJson(fileSystemExistsCommand.run)
     } else if (options.hasOption(Cli.FILESYSTEM_LIST)) {
       val directory = Paths.get(options.getOptionValue(Cli.FILESYSTEM_LIST))
       val fileSystemListCommand =

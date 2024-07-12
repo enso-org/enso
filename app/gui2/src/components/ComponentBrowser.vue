@@ -187,12 +187,13 @@ onUnmounted(() => {
 // Compute edge, except for the color. The color is set in a separate watch, as it changes more often.
 watchEffect(() => {
   const sourceIdent = input.selfArgument.value
-  const sourceNode = sourceIdent != null && graphStore.db.getIdentDefiningNode(sourceIdent)
-  if (!sourceNode) {
+  const sourceNode =
+    sourceIdent != null ? graphStore.db.getIdentDefiningNode(sourceIdent) : undefined
+  const source = graphStore.db.getNodeFirstOutputPort(sourceNode)
+  if (!source) {
     graphStore.cbEditedEdge = undefined
     return
   }
-  const source = graphStore.db.getNodeFirstOutputPort(sourceNode)
   const scenePos = originScenePos.value.add(
     new Vec2(COMPONENT_EDITOR_PADDING + ICON_WIDTH / 2, 0).scale(clientToSceneFactor.value),
   )
@@ -481,6 +482,8 @@ const handler = componentBrowserBindings.handler({
     @keydown.enter.stop
     @keydown.backspace.stop
     @keydown.delete.stop
+    @keydown.arrow-left.stop
+    @keydown.arrow-right.stop
   >
     <div class="panels">
       <div class="panel components">

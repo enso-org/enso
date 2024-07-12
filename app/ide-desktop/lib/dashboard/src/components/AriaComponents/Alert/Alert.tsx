@@ -1,21 +1,12 @@
-/**
- * @file Alert component.
- */
+/** @file Alert component. */
 import * as React from 'react'
 
-import * as twv from 'tailwind-variants'
-
 import * as mergeRefs from '#/utilities/mergeRefs'
+import * as twv from '#/utilities/tailwindVariants'
 
-import * as text from '../Text'
-
-/**
- * Props for the Alert component.
- */
-export interface AlertProps
-  extends React.PropsWithChildren,
-    twv.VariantProps<typeof ALERT_STYLES>,
-    React.HTMLAttributes<HTMLDivElement> {}
+// =================
+// === Constants ===
+// =================
 
 export const ALERT_STYLES = twv.tv({
   base: 'flex flex-col items-stretch',
@@ -41,21 +32,9 @@ export const ALERT_STYLES = twv.tv({
     },
     size: {
       custom: '',
-      small: text.TEXT_STYLE({
-        color: 'custom',
-        variant: 'body',
-        class: 'px-1.5 pt-1 pb-1',
-      }),
-      medium: text.TEXT_STYLE({
-        color: 'custom',
-        variant: 'body',
-        class: 'px-3 pt-1 pb-1',
-      }),
-      large: text.TEXT_STYLE({
-        color: 'custom',
-        variant: 'subtitle',
-        class: 'px-4 pt-2 pb-2',
-      }),
+      small: 'px-1.5 pt-1 pb-1',
+      medium: 'px-3 pt-1 pb-1',
+      large: 'px-4 pt-2 pb-2',
     },
   },
   defaultVariants: {
@@ -66,9 +45,17 @@ export const ALERT_STYLES = twv.tv({
   },
 })
 
-/**
- * Alert component.
- */
+// =============
+// === Alert ===
+// =============
+
+/** Props for an {@link Alert}. */
+export interface AlertProps
+  extends React.PropsWithChildren,
+    twv.VariantProps<typeof ALERT_STYLES>,
+    React.HTMLAttributes<HTMLDivElement> {}
+
+/** Alert component. */
 export const Alert = React.forwardRef(function Alert(
   props: AlertProps,
   ref: React.ForwardedRef<HTMLDivElement>

@@ -42,7 +42,7 @@ public final class MetadataStorage {
   /**
    * Adds a metadata pair to the node metadata.
    *
-   * <p>This will overwrite any entry whose key matches [[MetadataPair#pass]].
+   * <p>This will overwrite any entry whose key matches {@code MetadataPair.pass}.
    *
    * @param <K> the concrete type of the pass
    * @param metadataPair the pair to add to the storage

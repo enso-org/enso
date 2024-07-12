@@ -13,7 +13,7 @@ import org.enso.projectmanager.control.effect.syntax._
 import org.enso.projectmanager.control.effect.{ErrorChannel, Semaphore, Sync}
 import org.enso.projectmanager.data.{
   LanguageServerStatus,
-  MissingComponentAction,
+  MissingComponentActions,
   ProjectMetadata,
   RunningLanguageServerInfo
 }
@@ -33,8 +33,9 @@ import org.enso.projectmanager.infrastructure.repository.{
   ProjectRepositoryFailure
 }
 import org.enso.projectmanager.infrastructure.time.Clock
+import org.enso.projectmanager.model
 import org.enso.projectmanager.model.Project
-import org.enso.projectmanager.model.ProjectKind.UserProject
+import org.enso.projectmanager.model.ProjectKinds.UserProject
 import org.enso.projectmanager.service.ProjectServiceFailure._
 import org.enso.projectmanager.service.config.GlobalConfigServiceApi
 import org.enso.projectmanager.service.validation.ProjectNameValidator
@@ -84,7 +85,7 @@ class ProjectService[
     projectName: String,
     engineVersion: SemVer,
     projectTemplate: Option[String],
-    missingComponentAction: MissingComponentAction,
+    missingComponentAction: MissingComponentActions.MissingComponentAction,
     projectsDirectory: Option[File]
   ): F[ProjectServiceFailure, Project] = for {
     projectId <- gen.randomUUID()
@@ -96,7 +97,7 @@ class ProjectService[
       projectsDirectory
     )
     repo = projectRepositoryFactory.getProjectRepository(projectsDirectory)
-    name         <- getNameForNewProject(projectName, projectTemplate, repo)
+    name         <- getNameForNewProject(projectName, repo)
     _            <- log.info("Created project with actual name [{}].", name)
     _            <- validateProjectName(name)
     _            <- checkIfNameExists(name, repo)
@@ -107,7 +108,7 @@ class ProjectService[
       id        = projectId,
       name      = name,
       module    = moduleName,
-      namespace = Config.defaultNamespace,
+      namespace = Config.DefaultNamespace,
       kind      = UserProject,
       created   = creationTime,
       edition   = None,
@@ -285,7 +286,7 @@ class ProjectService[
     progressTracker: ActorRef,
     clientId: UUID,
     projectId: UUID,
-    missingComponentAction: MissingComponentAction,
+    missingComponentAction: MissingComponentActions.MissingComponentAction,
     projectsDirectory: Option[File]
   ): F[ProjectServiceFailure, RunningLanguageServerInfo] = {
     for {
@@ -309,7 +310,7 @@ class ProjectService[
   private def preinstallEngine(
     progressTracker: ActorRef,
     version: SemVer,
-    missingComponentAction: MissingComponentAction
+    missingComponentAction: MissingComponentActions.MissingComponentAction
   ): F[ProjectServiceFailure, Unit] =
     Sync[F]
       .blockingOp {
@@ -330,7 +331,7 @@ class ProjectService[
     progressTracker: ActorRef,
     clientId: UUID,
     project: Project,
-    missingComponentAction: MissingComponentAction
+    missingComponentAction: MissingComponentActions.MissingComponentAction
   ): F[ProjectServiceFailure, RunningLanguageServerInfo] = for {
     _       <- log.debug("Preparing to start the Language Server for [{}].", project)
     version <- resolveProjectVersion(project)
@@ -372,6 +373,33 @@ class ProjectService[
       case CannotDisconnectOtherClients => ProjectOpenByOtherPeers
     }
   }
+
+  /** @inheritdoc */
+  override def duplicateUserProject(
+    projectId: UUID,
+    projectsDirectory: Option[File]
+  ): F[ProjectServiceFailure, Project] =
+    for {
+      _ <- log.debug("Duplicating project [{}].", projectId)
+      repo = projectRepositoryFactory.getProjectRepository(projectsDirectory)
+      project <- getUserProject(projectId, repo)
+      suggestedProjectName = getNameForDuplicatedProject(project.name)
+      newName <- getNameForNewProject(suggestedProjectName, repo)
+      _       <- validateProjectName(newName)
+      _       <- log.debug("Validated new project name [{}]", newName)
+      repo = projectRepositoryFactory.getProjectRepository(projectsDirectory)
+      createdTime <- clock.nowInUtc()
+      newMetadata = model.ProjectMetadata(
+        id         = UUID.randomUUID(),
+        kind       = project.kind,
+        created    = createdTime,
+        lastOpened = None
+      )
+      newProject <- repo
+        .copyProject(project, newName, newMetadata)
+        .mapError(toServiceFailure)
+      _ <- log.info("Project copied [{}].", newProject)
+    } yield newProject
 
   /** @inheritdoc */
   override def listProjects(
@@ -474,7 +502,6 @@ class ProjectService[
 
   private def getNameForNewProject(
     projectName: String,
-    projectTemplate: Option[String],
     projectRepository: ProjectRepository[F]
   ): F[ProjectServiceFailure, String] = {
     def mkName(name: String, suffix: Int): String =
@@ -490,19 +517,16 @@ class ProjectService[
       )
     }
 
-    projectTemplate match {
-      case Some(_) =>
-        CovariantFlatMap[F]
-          .ifM(projectRepository.exists(projectName))(
-            ifTrue  = findAvailableName(projectName, 1),
-            ifFalse = CovariantFlatMap[F].pure(projectName)
-          )
-          .mapError(toServiceFailure)
-      case None =>
-        CovariantFlatMap[F].pure(projectName)
-    }
-
+    CovariantFlatMap[F]
+      .ifM(projectRepository.exists(projectName))(
+        ifTrue  = findAvailableName(projectName, 1),
+        ifFalse = CovariantFlatMap[F].pure(projectName)
+      )
+      .mapError(toServiceFailure)
   }
+
+  private def getNameForDuplicatedProject(projectName: String): String =
+    s"$projectName (copy)"
 
   /** Retrieve project info.
     *

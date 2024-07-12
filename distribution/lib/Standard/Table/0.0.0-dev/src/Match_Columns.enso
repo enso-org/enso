@@ -142,7 +142,7 @@ type Column_Set
 ## PRIVATE
    Returns a map indicating in how many tables did a column with a given name appear.
 find_column_counts tables =
-    tables.fold Map.empty current->table->
+    tables.fold Dictionary.empty current->table->
         table.columns.fold current counts-> column->
             name=column.name
             new_count = counts.get name 0 + 1
@@ -153,7 +153,7 @@ find_column_counts tables =
    starting from the first table.
 distinct_columns_in_appearance_order tables =
     Vector.build names_builder->
-        tables.fold Map.empty current-> table->
+        tables.fold Dictionary.empty current-> table->
             table.columns.fold current seen_names-> column->
                 name = column.name
                 if seen_names.contains_key name then seen_names else

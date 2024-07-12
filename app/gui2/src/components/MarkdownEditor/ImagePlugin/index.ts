@@ -18,8 +18,8 @@ const IMAGE: TextMatchTransformer = {
     }
     return `![${node.getAltText()}](${node.getSrc()})`
   },
-  importRegExp: /!\[([^[]+)]\(([^()\s]+)\)/,
-  regExp: /!\[([^[]+)]\(([^()\s]+)\)$/,
+  importRegExp: /!\[([^[]+)]\(([^()\n]+)\)/,
+  regExp: /!\[([^[]+)]\(([^()\n]+)\)$/,
   replace: (textNode, match) => {
     const [, altText, src] = match
     assertDefined(altText)

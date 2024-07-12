@@ -62,6 +62,12 @@ type Delimited_Format
     Delimited (delimiter:Text=',') (encoding:Encoding=Encoding.default) (skip_rows:Integer=0) (row_limit:Rows_To_Read=..All_Rows) (quote_style:Quote_Style=Quote_Style.With_Quotes) (headers:Headers=Headers.Detect_Headers) (value_formatter:Data_Formatter|Nothing=Data_Formatter.Value) (keep_invalid_rows:Boolean=True) (line_endings:Line_Ending_Style|Infer=Infer) (comment_character:Text|Nothing=Nothing)
 
     ## PRIVATE
+       Resolve an unresolved constructor to the actual type.
+    resolve : Function -> Delimited_Format | Nothing
+    resolve constructor =
+        Panic.catch Any (constructor:Delimited_Format) _->Nothing
+
+    ## PRIVATE
        ADVANCED
        If the File_Format supports reading from the file, return a configured instance.
     for_read : File_Format_Metadata -> Delimited_Format | Nothing
@@ -87,13 +93,13 @@ type Delimited_Format
 
     ## PRIVATE
     get_dropdown_options : Vector Option
-    get_dropdown_options = [Option "Delimited" (Meta.get_qualified_type_name Delimited_Format)+".Delimited"]
+    get_dropdown_options = [Option "Delimited" "..Delimited"]
 
     ## PRIVATE
        ADVANCED
        Implements the `File.read` for this `File_Format`
     read : File -> Problem_Behavior -> Any
-    read self file on_problems =
+    read self file on_problems:Problem_Behavior =
         Delimited_Reader.read_file self file on_problems
 
     ## PRIVATE
@@ -101,19 +107,19 @@ type Delimited_Format
     read_stream : Input_Stream -> File_Format_Metadata -> Any
     read_stream self stream:Input_Stream (metadata : File_Format_Metadata = File_Format_Metadata.no_information) =
         _ = metadata
-        Delimited_Reader.read_stream self stream on_problems=Report_Warning
+        Delimited_Reader.read_stream self stream on_problems=..Report_Warning
 
     ## PRIVATE
        ADVANCED
        Implements the `Table.write` for this `File_Format`.
     write_table : File -> Table -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> File
-    write_table self file table on_existing_file match_columns on_problems =
+    write_table self file table on_existing_file match_columns on_problems:Problem_Behavior =
         Delimited_Writer.write_file table self file on_existing_file match_columns on_problems
 
     ## PRIVATE
        Clone the instance with some properties overridden.
-    clone : Quote_Style -> Headers -> (Data_Formatter|Nothing) -> Boolean -> (Text|Nothing) -> (Text|Nothing) -> Delimited_Format
-    clone self (encoding:Encoding = self.encoding) (quote_style=self.quote_style) (headers:Headers=self.headers) (value_formatter=self.value_formatter) (keep_invalid_rows=self.keep_invalid_rows) (line_endings=self.line_endings) (comment_character=self.comment_character) =
+    clone : Encoding -> Quote_Style -> Headers -> (Data_Formatter|Nothing) -> Boolean -> (Text|Nothing) -> (Text|Nothing) -> Delimited_Format
+    clone self (encoding:Encoding = self.encoding) (quote_style:Quote_Style=self.quote_style) (headers:Headers=self.headers) (value_formatter=self.value_formatter) (keep_invalid_rows:Boolean=self.keep_invalid_rows) (line_endings=self.line_endings) (comment_character=self.comment_character) =
         Delimited_Format.Delimited self.delimiter encoding self.skip_rows self.row_limit quote_style headers value_formatter keep_invalid_rows line_endings comment_character
 
     ## ICON data_input

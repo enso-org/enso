@@ -7,23 +7,27 @@ import GraphNodeMessage, {
   iconForMessageType,
   type MessageType,
 } from '@/components/GraphEditor/GraphNodeMessage.vue'
+import GraphNodeOutputPorts from '@/components/GraphEditor/GraphNodeOutputPorts.vue'
 import GraphNodeSelection from '@/components/GraphEditor/GraphNodeSelection.vue'
 import GraphVisualization from '@/components/GraphEditor/GraphVisualization.vue'
 import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
 import NodeWidgetTree, {
-  GRAB_HANDLE_X_MARGIN,
+  GRAB_HANDLE_X_MARGIN_L,
+  GRAB_HANDLE_X_MARGIN_R,
   ICON_WIDTH,
 } from '@/components/GraphEditor/NodeWidgetTree.vue'
+import SmallPlusButton from '@/components/SmallPlusButton.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
-import { useApproach } from '@/composables/animation'
 import { useDoubleClick } from '@/composables/doubleClick'
 import { usePointer, useResizeObserver } from '@/composables/events'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
 import { injectNodeColors } from '@/providers/graphNodeColors'
 import { injectGraphSelection } from '@/providers/graphSelection'
+import { injectKeyboard } from '@/providers/keyboard'
 import { useGraphStore, type Node } from '@/stores/graph'
 import { asNodeId } from '@/stores/graph/graphDatabase'
 import { useProjectStore } from '@/stores/project'
+import { suggestionDocumentationUrl } from '@/stores/suggestionDatabase/entry'
 import { Ast } from '@/util/ast'
 import type { AstId } from '@/util/ast/abstract'
 import { prefixes } from '@/util/ast/node'
@@ -31,19 +35,8 @@ import type { Opt } from '@/util/data/opt'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import { displayedIconOf } from '@/util/getIconName'
-import { setIfUndefined } from 'lib0/map'
 import type { ExternalId, VisualizationIdentifier } from 'shared/yjsModel'
-import type { EffectScope } from 'vue'
-import {
-  computed,
-  effectScope,
-  onScopeDispose,
-  onUnmounted,
-  ref,
-  shallowRef,
-  watch,
-  watchEffect,
-} from 'vue'
+import { computed, onUnmounted, ref, shallowRef, watch, watchEffect } from 'vue'
 
 const MAXIMUM_CLICK_LENGTH_MS = 300
 const MAXIMUM_CLICK_DISTANCE_SQ = 50
@@ -79,7 +72,7 @@ const emit = defineEmits<{
   'update:hoverAnim': [progress: number]
   'update:visualizationId': [id: Opt<VisualizationIdentifier>]
   'update:visualizationRect': [rect: Rect | undefined]
-  'update:visualizationVisible': [visible: boolean]
+  'update:visualizationEnabled': [enabled: boolean]
   'update:visualizationFullscreen': [fullscreen: boolean]
   'update:visualizationWidth': [width: number]
   'update:visualizationHeight': [height: number]
@@ -90,13 +83,7 @@ const projectStore = useProjectStore()
 const graph = useGraphStore()
 const navigator = injectGraphNavigator(true)
 
-const outputPortsSet = computed(() => {
-  const bindings = graph.db.nodeOutputPorts.lookup(nodeId.value)
-  if (bindings.size === 0) return new Set([nodeId.value])
-  return bindings
-})
-
-const nodeId = computed(() => asNodeId(props.node.rootExpr.id))
+const nodeId = computed(() => asNodeId(props.node.rootExpr.externalId))
 const potentialSelfArgumentId = computed(() => props.node.primarySubject)
 const connectedSelfArgumentId = computed(() =>
   potentialSelfArgumentId.value && graph.isConnectedTarget(potentialSelfArgumentId.value) ?
@@ -113,9 +100,8 @@ const nodeSize = useResizeObserver(rootNode)
 function inputExternalIds() {
   const externalIds = new Array<ExternalId>()
   for (const inputId of graph.db.nodeDependents.reverseLookup(nodeId.value)) {
-    const externalId = graph.db.idToExternal(inputId)
-    if (externalId) {
-      externalIds.push(externalId)
+    if (inputId) {
+      externalIds.push(inputId)
     }
   }
   return externalIds
@@ -136,7 +122,7 @@ interface Message {
   alwaysShow: boolean
 }
 const availableMessage = computed<Message | undefined>(() => {
-  const externalId = graph.db.idToExternal(nodeId.value)
+  const externalId = nodeId.value
   if (!externalId) return undefined
   const info = projectStore.computedValueRegistry.db.get(externalId)
   switch (info?.payload.type) {
@@ -210,7 +196,8 @@ watchEffect(() => {
   }
   const inZone = (pos: Vec2 | undefined) =>
     pos != null &&
-    pos.sub(props.node.position).x < CONTENT_PADDING + ICON_WIDTH + GRAB_HANDLE_X_MARGIN * 2
+    pos.sub(props.node.position).x <
+      CONTENT_PADDING + ICON_WIDTH + GRAB_HANDLE_X_MARGIN_L + GRAB_HANDLE_X_MARGIN_R
   const hovered =
     menuHovered.value ||
     inZone(nodeHoverPos.value) ||
@@ -235,9 +222,23 @@ function openFullMenu() {
 }
 
 const isDocsVisible = ref(false)
+const outputHovered = ref(false)
+const keyboard = injectKeyboard()
 const visualizationWidth = computed(() => props.node.vis?.width ?? null)
 const visualizationHeight = computed(() => props.node.vis?.height ?? null)
-const isVisualizationVisible = computed(() => props.node.vis?.visible ?? false)
+const isVisualizationEnabled = computed(() => props.node.vis?.visible ?? false)
+const isVisualizationPreviewed = computed(
+  () => keyboard.mod && outputHovered.value && !isVisualizationEnabled.value,
+)
+const isVisualizationVisible = computed(
+  () => isVisualizationEnabled.value || isVisualizationPreviewed.value,
+)
+watch(isVisualizationPreviewed, (newVal, oldVal) => {
+  if (newVal && !oldVal) {
+    graph.db.moveNodeToTop(nodeId.value)
+  }
+})
+
 const isVisualizationFullscreen = computed(() => props.node.vis?.fullscreen ?? false)
 
 const bgStyleVariables = computed(() => {
@@ -317,6 +318,9 @@ const icon = computed(() => {
     outputPortLabel.value,
   )
 })
+const documentationUrl = computed(
+  () => suggestionEntry.value && suggestionDocumentationUrl(suggestionEntry.value),
+)
 
 const nodeEditHandler = nodeEditBindings.handler({
   cancel(e) {
@@ -330,7 +334,7 @@ const nodeEditHandler = nodeEditBindings.handler({
   },
 })
 
-function startEditingNode(position: Vec2 | undefined) {
+function startEditingNode(position?: Vec2 | undefined) {
   let sourceOffset = props.node.rootExpr.code().length
   if (position != null) {
     let domNode, domOffset
@@ -373,11 +377,6 @@ function getRelatedSpanOffset(domNode: globalThis.Node, domOffset: number): numb
   return domOffset
 }
 
-const handlePortClick = useDoubleClick(
-  (event: PointerEvent, portId: AstId) => emit('outputPortClick', event, portId),
-  (event: PointerEvent, portId: AstId) => emit('outputPortDoubleClick', event, portId),
-).handleClick
-
 const handleNodeClick = useDoubleClick(
   (e: MouseEvent) => {
     if (!significantMove.value) {
@@ -389,78 +388,6 @@ const handleNodeClick = useDoubleClick(
     if (!significantMove.value) emit('doubleClick')
   },
 ).handleClick
-
-interface PortData {
-  clipRange: [number, number]
-  label: string | undefined
-  portId: AstId
-}
-
-const outputPorts = computed((): PortData[] => {
-  const ports = outputPortsSet.value
-  const numPorts = ports.size
-  return Array.from(ports, (portId, index): PortData => {
-    return {
-      clipRange: [index / numPorts, (index + 1) / numPorts],
-      label: numPorts > 1 ? graph.db.getOutputPortIdentifier(portId) : undefined,
-      portId,
-    }
-  })
-})
-
-const outputHovered = ref<AstId>()
-const anyPortDisconnected = computed(() => {
-  for (const port of outputPortsSet.value) {
-    if (graph.disconnectedEdgePorts.has(port)) return true
-  }
-  return false
-})
-const portsVisible = computed(
-  () =>
-    selectionVisible.value ||
-    (outputHovered.value && outputPortsSet.value.has(outputHovered.value)) ||
-    anyPortDisconnected.value,
-)
-
-const portsHoverAnimation = useApproach(() => (portsVisible.value ? 1 : 0), 50, 0.01)
-
-watchEffect(() => emit('update:hoverAnim', portsHoverAnimation.value))
-
-const hoverAnimations = new Map<AstId, [ReturnType<typeof useApproach>, EffectScope]>()
-watchEffect(() => {
-  const ports = outputPortsSet.value
-  for (const key of hoverAnimations.keys())
-    if (!ports.has(key)) {
-      hoverAnimations.get(key)?.[1].stop()
-      hoverAnimations.delete(key)
-    }
-  for (const port of outputPortsSet.value) {
-    setIfUndefined(hoverAnimations, port, () => {
-      // Because `useApproach` uses `onScopeDispose` and we are calling it dynamically (i.e. not at
-      // the setup top-level), we need to create a detached scope for each invocation.
-      const scope = effectScope(true)
-      const approach = scope.run(() =>
-        useApproach(() => (outputHovered.value === port ? 1 : 0), 50, 0.01),
-      )!
-      return [approach, scope]
-    })
-  }
-})
-
-// Clean up dynamically created detached scopes.
-onScopeDispose(() => hoverAnimations.forEach(([_, scope]) => scope.stop()))
-
-function portGroupStyle(port: PortData) {
-  const [start, end] = port.clipRange
-  const visBelowNode = graphSelectionSize.value.y - nodeSize.value.y
-  return {
-    '--hover-animation': portsHoverAnimation.value,
-    '--direct-hover-animation': hoverAnimations.get(port.portId)?.[0].value ?? 0,
-    '--port-clip-start': start,
-    '--port-clip-end': end,
-    transform: `translateY(${visBelowNode}px`,
-  }
-}
 
 const visRect = shallowRef<Rect>()
 function updateVisualizationRect(rect: Rect | undefined) {
@@ -474,12 +401,12 @@ const { getNodeColor, getNodeColors } = injectNodeColors()
 const matchableNodeColors = getNodeColors((node) => node !== nodeId.value)
 
 const graphSelectionSize = computed(() =>
-  isVisualizationVisible.value && visRect.value ? visRect.value.size : nodeSize.value,
+  isVisualizationEnabled.value && visRect.value ? visRect.value.size : nodeSize.value,
 )
 
 const nodeRect = computed(() => new Rect(props.node.position, nodeSize.value))
 const nodeOuterRect = computed(() =>
-  isVisualizationVisible.value && visRect.value ? visRect.value : nodeRect.value,
+  isVisualizationEnabled.value && visRect.value ? visRect.value : nodeRect.value,
 )
 watchEffect(() => {
   if (!nodeOuterRect.value.size.isZero()) {
@@ -495,14 +422,14 @@ watchEffect(() => {
     class="GraphNode"
     :style="{
       transform,
-      minWidth: isVisualizationVisible ? `${visualizationWidth ?? 200}px` : undefined,
+      minWidth: isVisualizationEnabled ? `${visualizationWidth ?? 200}px` : undefined,
       '--node-group-color': color,
       ...(node.zIndex ? { 'z-index': node.zIndex } : {}),
+      '--viz-below-node': `${graphSelectionSize.y - nodeSize.y}px`,
     }"
     :class="{
       selected,
       selectionVisible,
-      visualizationVisible: isVisualizationVisible,
       ['executionState-' + executionState]: true,
     }"
     :data-node-id="nodeId"
@@ -513,11 +440,11 @@ watchEffect(() => {
     <Teleport :to="graphNodeSelections">
       <GraphNodeSelection
         v-if="navigator && !edited"
-        :class="{ dragged: isDragged }"
+        :data-node-id="nodeId"
         :nodePosition="props.node.position"
         :nodeSize="graphSelectionSize"
+        :class="{ draggable: true, dragged: isDragged }"
         :selected
-        :nodeId
         :color
         :externalHovered="nodeHovered"
         @visible="selectionVisible = $event"
@@ -531,7 +458,7 @@ watchEffect(() => {
     <div class="binding" v-text="node.pattern?.code()" />
     <button
       v-if="!menuVisible && isRecordingOverridden"
-      class="overrideRecordButton"
+      class="overrideRecordButton clickable"
       data-testid="recordingOverriddenButton"
       @click="isRecordingOverridden = false"
     >
@@ -542,11 +469,12 @@ watchEffect(() => {
       v-model:isRecordingOverridden="isRecordingOverridden"
       v-model:isDocsVisible="isDocsVisible"
       :isRecordingEnabledGlobally="projectStore.isRecordingEnabled"
-      :isVisualizationVisible="isVisualizationVisible"
+      :isVisualizationEnabled="isVisualizationEnabled"
       :isFullMenuVisible="menuVisible && menuFull"
       :nodeColor="getNodeColor(nodeId)"
       :matchableNodeColors="matchableNodeColors"
-      @update:isVisualizationVisible="emit('update:visualizationVisible', $event)"
+      :documentationUrl="documentationUrl"
+      @update:isVisualizationEnabled="emit('update:visualizationEnabled', $event)"
       @startEditing="startEditingNode"
       @startEditingComment="editingComment = true"
       @openFullMenu="openFullMenu"
@@ -569,9 +497,10 @@ watchEffect(() => {
       :width="visualizationWidth"
       :height="visualizationHeight"
       :isFocused="isOnlyOneSelected"
+      :isPreview="isVisualizationPreviewed"
       @update:rect="updateVisualizationRect"
       @update:id="emit('update:visualizationId', $event)"
-      @update:visible="emit('update:visualizationVisible', $event)"
+      @update:enabled="emit('update:visualizationEnabled', $event)"
       @update:fullscreen="emit('update:visualizationFullscreen', $event)"
       @update:width="emit('update:visualizationWidth', $event)"
       @update:height="emit('update:visualizationHeight', $event)"
@@ -615,21 +544,20 @@ watchEffect(() => {
     />
     <svg class="bgPaths" :style="bgStyleVariables">
       <rect class="bgFill" />
-      <template v-for="port of outputPorts" :key="port.portId">
-        <g :style="portGroupStyle(port)">
-          <g class="portClip">
-            <rect
-              class="outputPortHoverArea"
-              @pointerenter="outputHovered = port.portId"
-              @pointerleave="outputHovered = undefined"
-              @pointerdown.stop.prevent="handlePortClick($event, port.portId)"
-            />
-            <rect class="outputPort" />
-          </g>
-          <text class="outputPortLabel">{{ port.label }}</text>
-        </g>
-      </template>
+      <GraphNodeOutputPorts
+        :nodeId="nodeId"
+        :forceVisible="selectionVisible"
+        @portClick="(...args) => emit('outputPortClick', ...args)"
+        @portDoubleClick="(...args) => emit('outputPortDoubleClick', ...args)"
+        @update:hoverAnim="emit('update:hoverAnim', $event)"
+        @update:nodeHovered="outputHovered = $event"
+      />
     </svg>
+    <SmallPlusButton
+      v-if="menuVisible && isVisualizationVisible"
+      class="below-viz"
+      @createNodes="emit('createNodes', $event)"
+    />
   </div>
 </template>
 
@@ -643,72 +571,11 @@ watchEffect(() => {
   left: 0;
   display: flex;
 
+  --output-port-transform: translateY(var(--viz-below-node));
   --output-port-max-width: 4px;
   --output-port-hovered-extra-width: 2px;
   --output-port-overlap: -8px;
   --output-port-hover-width: 20px;
-}
-
-.outputPort,
-.outputPortHoverArea {
-  x: calc(0px - var(--output-port-width) / 2);
-  y: calc(0px - var(--output-port-width) / 2);
-  height: calc(var(--node-height) + var(--output-port-width));
-  width: calc(var(--node-width) + var(--output-port-width));
-  rx: calc(var(--node-border-radius) + var(--output-port-width) / 2);
-
-  fill: none;
-  stroke: var(--node-color-port);
-  stroke-width: calc(var(--output-port-width) + var(--output-port-overlap-anim));
-  transition: stroke 0.2s ease;
-  --horizontal-line: calc(var(--node-width) - var(--node-border-radius) * 2);
-  --vertical-line: calc(var(--node-height) - var(--node-border-radius) * 2);
-  --radius-arclength: calc(
-    (var(--node-border-radius) + var(--output-port-width) * 0.5) * 2 * 3.141592653589793
-  );
-
-  stroke-dasharray: calc(var(--horizontal-line) + var(--radius-arclength) * 0.5) 10000%;
-  stroke-dashoffset: calc(
-    0px - var(--horizontal-line) - var(--vertical-line) - var(--radius-arclength) * 0.25
-  );
-  stroke-linecap: round;
-}
-
-.outputPort {
-  --output-port-overlap-anim: calc(var(--hover-animation) * var(--output-port-overlap));
-  --output-port-width: calc(
-    var(--output-port-max-width) * var(--hover-animation) + var(--output-port-hovered-extra-width) *
-      var(--direct-hover-animation) - var(--output-port-overlap-anim)
-  );
-  pointer-events: none;
-}
-
-.outputPortHoverArea {
-  --output-port-width: var(--output-port-hover-width);
-  stroke-width: var(--output-port-hover-width);
-  stroke: transparent;
-  /* Make stroke visible to debug the active area: */
-  /* stroke: red; */
-  stroke-linecap: butt;
-  pointer-events: stroke;
-  cursor: pointer;
-}
-
-.portClip {
-  clip-path: inset(
-    0 calc((1 - var(--port-clip-end)) * (100% + 1px) - 0.5px) 0
-      calc(var(--port-clip-start) * (100% + 1px) + 0.5px)
-  );
-}
-
-.outputPortLabel {
-  user-select: none;
-  pointer-events: none;
-  z-index: 10;
-  text-anchor: middle;
-  opacity: calc(var(--hover-animation) * var(--hover-animation));
-  fill: var(--node-color-primary);
-  transform: translate(50%, calc(var(--node-height) + var(--output-port-max-width) + 16px));
 }
 
 .bgFill {
@@ -740,9 +607,6 @@ watchEffect(() => {
   border-radius: var(--node-border-radius);
   transition: box-shadow 0.2s ease-in-out;
   box-sizing: border-box;
-  ::selection {
-    background-color: rgba(255, 255, 255, 20%);
-  }
 }
 
 .content {
@@ -757,7 +621,7 @@ watchEffect(() => {
   flex-direction: row;
   align-items: center;
   white-space: nowrap;
-  z-index: 2;
+  z-index: 24;
   transition: outline 0.2s ease;
   outline: 0px solid transparent;
 }
@@ -779,12 +643,6 @@ watchEffect(() => {
 
 .selectionVisible .binding {
   opacity: 1;
-}
-
-.container {
-  position: relative;
-  display: flex;
-  gap: 4px;
 }
 
 .CircularMenu {
@@ -832,7 +690,6 @@ watchEffect(() => {
 
 .overrideRecordButton {
   position: absolute;
-  cursor: pointer;
   display: flex;
   align-items: center;
   backdrop-filter: var(--blur-app-bg);
@@ -845,11 +702,14 @@ watchEffect(() => {
   margin-right: 4px;
 }
 
-.draggable {
-  cursor: grab;
+.dragged {
+  cursor: grabbing !important;
 }
 
-.dragged {
-  cursor: grabbing;
+.below-viz {
+  position: absolute;
+  top: 100%;
+  transform: translateY(var(--viz-below-node));
+  margin-top: 4px;
 }
 </style>

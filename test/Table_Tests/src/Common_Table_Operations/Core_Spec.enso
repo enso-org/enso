@@ -7,80 +7,52 @@ from Standard.Table.Errors import all
 import Standard.Table.Expression.Expression_Error
 
 from Standard.Database import all
+import Standard.Database.Internal.Internals_Access
 from Standard.Database.Errors import Integrity_Error
 
 from Standard.Test import all
 
 
 from project.Common_Table_Operations.Util import run_default_backend
+import project.Common_Table_Operations.Util
 
 main filter=Nothing = run_default_backend add_specs filter
 
 type Data
-    Value ~data
+    Value ~table
 
-    connection self = self.data.at 0
-    table self = self.data.at 1
-
-    setup create_connection_fn table_builder = Data.Value <|
-        connection = create_connection_fn Nothing
-        table =
-            col1 = ["foo", [1,2,3]]
-            col2 = ["bar", [4,5,6]]
-            col3 = ["Baz", [7,8,9]]
-            col4 = ["foo 1", [10,11,12]]
-            col5 = ["foo 2", [13,14,15]]
-            col6 = ["ab.+123", [16,17,18]]
-            col7 = ["abcd123", [19,20,21]]
-            table_builder [col1, col2, col3, col4, col5, col6, col7] connection=connection
-        [connection, table]
-
-    teardown self =
-        self.connection.close
-
+    setup table_builder = Data.Value <|
+        col1 = ["foo", [1,2,3]]
+        col2 = ["bar", [4,5,6]]
+        col3 = ["Baz", [7,8,9]]
+        col4 = ["foo 1", [10,11,12]]
+        col5 = ["foo 2", [13,14,15]]
+        col6 = ["ab.+123", [16,17,18]]
+        col7 = ["abcd123", [19,20,21]]
+        table_builder [col1, col2, col3, col4, col5, col6, col7]
 
 type Rows_Data
-    Value ~data
+    Value ~table
 
-    connection self = self.data.at 0
-    table self = self.data.at 1
-
-    setup create_connection_fn table_builder = Rows_Data.Value <|
-        connection = create_connection_fn Nothing
-        table = table_builder [["X", [1, 2, 3, 4]], ["Y", [5, 6, 7, 8]], ["Z", ["A", "B", "C", "D"]]] connection=connection
-        [connection, table]
-
-    teardown self =
-        self.connection.close
-
+    setup table_builder = Rows_Data.Value <|
+        table_builder [["X", [1, 2, 3, 4]], ["Y", [5, 6, 7, 8]], ["Z", ["A", "B", "C", "D"]]]
 
 type Read_Data
     Value ~data
 
-    connection self = self.data.at 0
-    t_big self = self.data.at 1
-    t_small self = self.data.at 2
+    t_big self = self.data.at 0
+    t_small self = self.data.at 1
 
-    setup create_connection_fn table_builder = Read_Data.Value <|
-        connection = create_connection_fn Nothing
-        t_big = table_builder [["X", (0.up_to 1500)]] connection=connection
-        t_small = table_builder [["X", (0.up_to 10)]] connection=connection
-        [connection, t_big, t_small]
-
-    teardown self =
-        self.connection.close
-
+    setup table_builder = Read_Data.Value <|
+        t_big = table_builder [["X", (0.up_to 1500)]]
+        t_small = table_builder [["X", (0.up_to 10)]]
+        [t_big, t_small]
 
 add_specs suite_builder setup =
     prefix = setup.prefix
-    create_connection_fn = setup.create_connection_func
-
-    suite_builder.group prefix+"Table.at" group_builder->
-        data = Data.setup create_connection_fn setup.table_builder
-
-        group_builder.teardown <|
-            data.teardown
-
+    build_sorted_table = Util.build_sorted_table setup
+    data = Data.setup build_sorted_table
+    suite_builder.group prefix+"(Core_Spec) Table.at" group_builder->
         group_builder.specify "should allow selecting columns by name" <|
             column_1 = data.table.at "bar"
             column_1.name . should_equal "bar"
@@ -105,10 +77,6 @@ add_specs suite_builder setup =
             column_4.name . should_equal "foo"
             column_4.to_vector . should_equal [1, 2, 3]
 
-            column_5 = data.table.second_column
-            column_5.name . should_equal "bar"
-            column_5.to_vector . should_equal [4, 5, 6]
-
             column_6 = data.table.last_column
             column_6.name . should_equal "abcd123"
             column_6.to_vector . should_equal [19, 20, 21]
@@ -118,12 +86,7 @@ add_specs suite_builder setup =
         group_builder.specify "should fail with Type Error is not an Integer or Text" <|
             Test.expect_panic_with (data.table.at (Pair.new 1 2)) Type_Error
 
-    suite_builder.group prefix+"Table.get" group_builder->
-        data = Data.setup create_connection_fn setup.table_builder
-
-        group_builder.teardown <|
-            data.teardown
-
+    suite_builder.group prefix+"(Core_Spec) Table.get" group_builder->
         group_builder.specify "should allow selecting columns by name" <|
             column_1 = data.table.get "bar"
             column_1.name . should_equal "bar"
@@ -151,15 +114,7 @@ add_specs suite_builder setup =
         group_builder.specify "should fail with Type Error is not an Integer or Text" <|
             Test.expect_panic_with (data.table.at (Pair.new 1 2)) Type_Error
 
-    suite_builder.group prefix+"Table.set" group_builder->
-        data = Data.setup create_connection_fn setup.table_builder
-
-        group_builder.teardown <|
-            data.teardown
-
-        table_builder cols =
-            setup.table_builder cols connection=data.connection
-
+    suite_builder.group prefix+"(Core_Spec) Table.set" group_builder->
         group_builder.specify "should allow adding a column" <|
             bar2 = data.table.get "bar" . rename "bar2"
             t2 = data.table.set bar2
@@ -189,33 +144,33 @@ add_specs suite_builder setup =
             data.table.set foo set_mode=Set_Mode.Add . should_fail_with Existing_Column
 
         group_builder.specify "should not affect existing columns that depended on the old column being replaced" <|
-            t1 = table_builder [["X", [1,2,3]]]
+            t1 = build_sorted_table [["X", [1,2,3]]]
             t2 = t1.set (t1.at "X" * 100) as="Y"
             t3 = t2.set (expr "[X] + 10") as="Z"
-            t4 = t3.set (Simple_Expression.From (Column_Ref.Name "X") (Simple_Calculation.Add 1000)) as="X"
+            t4 = t3.set (Simple_Expression.Simple_Expr (Column_Ref.Name "X") (Simple_Calculation.Add 1000)) as="X"
 
             t4.at "X" . to_vector . should_equal [1001, 1002, 1003]
             t4.at "Y" . to_vector . should_equal [100, 200, 300]
             t4.at "Z" . to_vector . should_equal [11, 12, 13]
 
         group_builder.specify "should gracefully handle expression failures" <|
-            t1 = table_builder [["X", [1,2,3]]]
+            t1 = build_sorted_table [["X", [1,2,3]]]
             t1.set (expr "[unknown] + 10") as="Z" . should_fail_with No_Such_Column
             t1.set (expr "[[[[") . should_fail_with Expression_Error
             t1.set (expr "[[[[") . catch . should_be_a Expression_Error.Syntax_Error
 
         group_builder.specify "should forward expression problems" <|
-            t1 = table_builder [["X", [1.5, 2.0, 0.0]]]
+            t1 = build_sorted_table [["X", [1.5, 2.0, 0.0]]]
 
-            r1 = t1.set (expr "([X] == 2) || ([X] + 0.5 == 2)") on_problems=Problem_Behavior.Ignore
+            r1 = t1.set (expr "([X] == 2) || ([X] + 0.5 == 2)") on_problems=..Ignore
             Problems.assume_no_problems r1
             r1.at -1 . to_vector . should_equal [True, True, False]
 
-            r2 = t1.set (expr "([X] == 2) || ([X] + 0.5 == 2)") on_problems=Problem_Behavior.Report_Warning
+            r2 = t1.set (expr "([X] == 2) || ([X] + 0.5 == 2)") on_problems=..Report_Warning
             Problems.expect_warning Floating_Point_Equality r2
             r2.at -1 . to_vector . should_equal [True, True, False]
 
-            err3 = t1.set (expr "([X] == 2) || ([X] + 0.5 == 2)") on_problems=Problem_Behavior.Report_Error
+            err3 = t1.set (expr "([X] == 2) || ([X] + 0.5 == 2)") on_problems=..Report_Error
             err3.should_fail_with Floating_Point_Equality
 
             # These errors currently only work in in-memory.
@@ -227,7 +182,7 @@ add_specs suite_builder setup =
                 Problems.test_problem_handling action2 problems2 tester2
 
         group_builder.specify "should gracefully handle columns from different backends" <|
-            t1 = table_builder [["A", [1, 2, 3]]]
+            t1 = build_sorted_table [["A", [1, 2, 3]]]
             alternative_connection = Database.connect (SQLite.In_Memory)
             t0 = (Table.new [["X", [3, 2, 1]]]).select_into_database_table alternative_connection "T0" temporary=True
             c0 = t0.at "X"
@@ -237,42 +192,25 @@ add_specs suite_builder setup =
                 True ->  r1.should_fail_with Integrity_Error
                 False -> r1.should_fail_with Illegal_Argument
 
-    suite_builder.group prefix+"Table.column_names" group_builder->
-        data = Data.setup create_connection_fn setup.table_builder
-
-        group_builder.teardown <|
-            data.teardown
-
-        table_builder cols =
-            setup.table_builder cols connection=data.connection
-
+    suite_builder.group prefix+"(Core_Spec) Table.column_names" group_builder->
         group_builder.specify "should return the names of all columns" <|
             data.table.column_names . should_equal ["foo", "bar", "Baz", "foo 1", "foo 2", "ab.+123", "abcd123"]
 
         group_builder.specify "should allow weird column names in all backends" <|
             columns = weird_names.map_with_index ix-> name->
                 [name, [100+ix, 2, 3]]
-            table = table_builder columns
+            table = build_sorted_table columns
             table.column_names . should_equal weird_names
 
             weird_names.map_with_index ix-> name->
                 table.at name . to_vector . should_equal [100+ix, 2, 3]
 
-    suite_builder.group prefix+"Table.column_count" group_builder->
-        data = Data.setup create_connection_fn setup.table_builder
-
-        group_builder.teardown <|
-            data.teardown
-
+    suite_builder.group prefix+"(Core_Spec) Table.column_count" group_builder->
         group_builder.specify "should allow getting the column count" <|
             data.table.column_count . should_equal 7
 
-    suite_builder.group prefix+"Table.rows" group_builder->
-        data = Rows_Data.setup create_connection_fn setup.table_builder
-
-        group_builder.teardown <|
-            data.teardown
-
+    suite_builder.group prefix+"(Core_Spec) Table.rows" group_builder->
+        data = Rows_Data.setup build_sorted_table
         group_builder.specify "should allow to get a Vector of Table rows" <|
             rows = data.table.rows
             rows.length . should_equal 4
@@ -312,13 +250,6 @@ add_specs suite_builder setup =
             first_row.at "Y" . should_equal 5
             first_row.at "Z" . should_equal "A"
 
-        group_builder.specify "should let you get the second row" <|
-            second_row = data.table.second_row
-            second_row . length . should_equal 3
-            second_row.at "X" . should_equal 2
-            second_row.at "Y" . should_equal 6
-            second_row.at "Z" . should_equal "B"
-
         group_builder.specify "should let you get the last row" <|
             last_row = data.table.last_row
             last_row . length . should_equal 3
@@ -340,12 +271,8 @@ add_specs suite_builder setup =
             data.table.rows . at 0 . at "unknown" . should_fail_with No_Such_Column
 
 
-    suite_builder.group prefix+"Table.read" group_builder->
-        data = Read_Data.setup create_connection_fn setup.table_builder
-
-        group_builder.teardown <|
-            data.teardown
-
+    suite_builder.group prefix+"(Core_Spec) Table.read" group_builder->
+        data = Read_Data.setup build_sorted_table
         has_default_row_limit = setup.is_database
 
         group_builder.specify "should have a row limit by default and warn about it" <|
@@ -430,23 +357,24 @@ add_specs suite_builder setup =
             Problems.assume_no_problems r5
 
         if setup.is_database then group_builder.specify "should allow similar API on Connection.read" <|
-            data.connection.query data.t_big.name . row_count . should_equal 1500
+            connection = Internals_Access.get_connection data.t_big
+            connection.query data.t_big.name . row_count . should_equal 1500
 
-            t1 = data.connection.read data.t_big.name
+            t1 = connection.read data.t_big.name
             t1.row_count . should_equal 1000
             w1 = Problems.expect_only_warning Not_All_Rows_Downloaded t1
             w1.max_rows . should_equal 1000
 
-            t2 = data.connection.read data.t_big.name (..First_With_Warning 42)
+            t2 = connection.read data.t_big.name (..First_With_Warning 42)
             t2.row_count . should_equal 42
             w2 = Problems.expect_only_warning Not_All_Rows_Downloaded t2
             w2.max_rows . should_equal 42
 
-            t3 = data.connection.read data.t_big.name (..All_Rows)
+            t3 = connection.read data.t_big.name (..All_Rows)
             t3.row_count . should_equal 1500
             Problems.assume_no_problems t3
 
-            t4 = data.connection.read data.t_big.name (..First 1000)
+            t4 = connection.read data.t_big.name (..First 1000)
             t4.row_count . should_equal 1000
             Problems.assume_no_problems t4
 

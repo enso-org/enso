@@ -3,7 +3,6 @@ package org.enso.compiler;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
-import com.oracle.truffle.api.source.Source;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -29,11 +28,8 @@ public abstract class CompilerTest {
     ensoCompiler.close();
   }
 
-  protected static Module parse(String code) throws IOException {
-    var src =
-        Source.newBuilder("enso", code, "test-" + Integer.toHexString(code.hashCode()) + ".enso")
-            .build();
-    Module ir = ensoCompiler.compile(src.getCharacters());
+  protected static Module parse(CharSequence code) {
+    Module ir = ensoCompiler.compile(code);
     assertNotNull("IR was generated", ir);
     return ir;
   }

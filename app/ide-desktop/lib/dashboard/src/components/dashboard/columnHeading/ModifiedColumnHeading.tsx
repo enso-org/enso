@@ -7,15 +7,18 @@ import TimeIcon from 'enso-assets/time.svg'
 import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
+import * as ariaComponents from '#/components/AriaComponents'
 import type * as column from '#/components/dashboard/column'
 import * as columnUtils from '#/components/dashboard/column/columnUtils'
 import Button from '#/components/styled/Button'
-import UnstyledButton from '#/components/UnstyledButton'
 
 import * as sorting from '#/utilities/sorting'
+import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 /** A heading for the "Modified" column. */
-export default function ModifiedColumnHeading(props: column.AssetColumnHeadingProps): JSX.Element {
+export default function ModifiedColumnHeading(
+  props: column.AssetColumnHeadingProps
+): React.JSX.Element {
   const { state } = props
   const { sortInfo, setSortInfo, hideColumn } = state
   const { getText } = textProvider.useText()
@@ -31,19 +34,21 @@ export default function ModifiedColumnHeading(props: column.AssetColumnHeadingPr
             ? getText('stopSortingByModificationDate')
             : getText('sortByModificationDateDescending')
       }
-      className="group flex h-drive-table-heading w-full cursor-pointer items-center gap-icon-with-text"
+      className="group flex h-table-row w-full cursor-pointer items-center gap-icon-with-text"
     >
       <Button
         active
         image={TimeIcon}
-        className="size-icon"
+        className="size-4"
         alt={getText('modifiedColumnHide')}
         onPress={() => {
           hideColumn(columnUtils.Column.modified)
         }}
       />
-      <UnstyledButton
-        className="flex grow gap-icon-with-text"
+      <ariaComponents.Button
+        size="custom"
+        variant="custom"
+        className="flex grow justify-start gap-icon-with-text"
         onPress={() => {
           const nextDirection = isSortActive
             ? sorting.nextSortDirection(sortInfo.direction)
@@ -59,11 +64,13 @@ export default function ModifiedColumnHeading(props: column.AssetColumnHeadingPr
         <img
           alt={isDescending ? getText('sortDescending') : getText('sortAscending')}
           src={SortAscendingIcon}
-          className={`transition-all duration-arrow ${
-            isSortActive ? 'selectable active' : 'transparent group-hover:selectable'
-          } ${isDescending ? 'rotate-180' : ''}`}
+          className={tailwindMerge.twMerge(
+            'transition-all duration-arrow',
+            isSortActive ? 'selectable active' : 'opacity-0 group-hover:selectable',
+            isDescending && 'rotate-180'
+          )}
         />
-      </UnstyledButton>
+      </ariaComponents.Button>
     </div>
   )
 }

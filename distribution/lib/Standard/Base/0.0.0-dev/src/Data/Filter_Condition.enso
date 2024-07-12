@@ -1,7 +1,7 @@
 import project.Any.Any
+import project.Data.Hashset.Hashset
 import project.Data.Locale.Locale
 import project.Data.Numbers.Number
-import project.Data.Set.Set
 import project.Data.Text.Case_Sensitivity.Case_Sensitivity
 import project.Data.Text.Regex.Regex
 import project.Data.Text.Text
@@ -151,8 +151,9 @@ type Filter_Condition
     resolve_auto_scoped filter =
         resolve filter:Filter_Condition = filter
         case filter of
-            _ : Function -> Panic.catch Any  (resolve filter) _->filter
-            _ -> filter
+            _ : Function -> Panic.catch Any (resolve filter) _->filter
+            _ : Filter_Condition -> filter
+            _ -> Panic.throw (Illegal_Argument.Error "The filter condition can either be a Function or a Filter_Condition, but got: "+filter.to_display_text)
 
     ## ICON convert
        Converts a `Filter_Condition` condition into a predicate taking an
@@ -197,9 +198,7 @@ type Filter_Condition
             Like sql_pattern _ ->
                 regex = sql_like_to_regex sql_pattern
                 handle_nothing <| regex.matches
-            Is_In values _ ->
-                set = Set.from_vector values
-                set.contains
+            Is_In values _ -> Hashset.from_vector values . contains
         if self.action == Filter_Action.Keep then base else v -> (base v).not
 
     ## PRIVATE

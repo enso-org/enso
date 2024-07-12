@@ -8,7 +8,7 @@ from Standard.Database.Errors import Unsupported_Database_Operation
 
 from Standard.Test import all
 
-from project.Common_Table_Operations.Util import run_default_backend
+from project.Common_Table_Operations.Util import run_default_backend, build_sorted_table
 
 polyglot java import java.lang.Long as Java_Long
 
@@ -20,32 +20,13 @@ type My_Type
     to_text : Text
     to_text self = "{{{MY Type [x="+self.x.to_text+"] }}}"
 
-
-type Data
-    Value ~connection
-
-    setup create_connection_fn = Data.Value <|
-        create_connection_fn Nothing
-
-    teardown self =
-        self.connection.close
-
-
 add_specs suite_builder setup =
     prefix = setup.prefix
     materialize = setup.materialize
     supports_dates = setup.test_selection.date_time
-    create_connection_fn = setup.create_connection_func
     supports_conversion_failure_reporting = setup.is_database.not
-    suite_builder.group prefix+"Table/Column.cast - to text" group_builder->
-        data = Data.setup create_connection_fn
-
-        group_builder.teardown <|
-            data.teardown
-
-        table_builder cols =
-            setup.table_builder cols connection=data.connection
-
+    table_builder = build_sorted_table setup
+    suite_builder.group prefix+"(Conversion_Spec) Table/Column.cast - to text" group_builder->
         group_builder.specify "should allow to cast columns of various basic types to text" <|
             t = table_builder [["X", [1, 2, 3000]], ["Y", [True, False, True]], ["Z", [1.5, 0.125, -2.5]], ["W", ["a", "DEF", "a slightly longer text"]]]
             t2 = t.cast t.column_names Value_Type.Char
@@ -63,10 +44,10 @@ add_specs suite_builder setup =
         group_builder.specify "should allow to cast columns selecting columns by type" <|
             t = table_builder [["X", [1, 2, 3000]], ["Y", [True, False, True]], ["Z", [1.5, 0.125, -2.5]], ["W", ["a", "DEF", "a slightly longer text"]]]
             t2 = t.cast [..By_Type ..Integer] Value_Type.Char
-            t2.at "X" . value_type . is_text . should_be_true
+            t2.at "X" . value_type . should_be_a (Value_Type.Char ...)
             t2.at "Y" . value_type . is_text . should_be_false
             t2.at "Z" . value_type . is_text . should_be_false
-            t2.at "W" . value_type . is_text . should_be_true
+            t2.at "W" . value_type . should_be_a (Value_Type.Char ...)
 
         if supports_dates then
             group_builder.specify "should allow to cast date/time columns to text" <|
@@ -76,10 +57,15 @@ add_specs suite_builder setup =
                 t2.at "Y" . value_type . is_text . should_be_true
                 t2.at "Z" . value_type . is_text . should_be_true
 
-                t2.at "X" . to_vector . should_equal ["2015-01-01", "2023-12-31"]
-                t2.at "Y" . to_vector . should_equal ["01:02:03", "23:57:59"]
+                m2 = t2.read
+                m2.at "X" . to_vector . should_equal ["2015-01-01", "2023-12-31"]
+
+                # The nanoseconds suffix is optional - we strip it for the comparison.
+                strip_ns s = s.replace "\.\d+$".to_regex ""
+                m2.at "Y" . to_vector . map strip_ns . should_equal ["01:02:03", "23:57:59"]
+
                 # The particular format depends on the backend.
-                vz = t2.at "Z" . to_vector
+                vz = m2.at "Z" . to_vector
                 vz.first . should_contain "2015-01-01"
                 vz.first . should_contain "01:02:03"
                 vz.second . should_contain "2023-11-30"
@@ -149,21 +135,11 @@ add_specs suite_builder setup =
                 r2 = c1.cast (Value_Type.Char size=0 variable_length=True)
                 r2.should_fail_with Illegal_Argument
 
-    suite_builder.group prefix+"Table/Column.cast - numeric" group_builder->
-        data = Data.setup create_connection_fn
-
-        group_builder.teardown <|
-            data.teardown
-
-        table_builder cols =
-            setup.table_builder cols connection=data.connection
-
+    suite_builder.group prefix+"(Conversion_Spec) Table/Column.cast - numeric" group_builder->
         group_builder.specify "should allow to cast a boolean column to integer" <|
             t = table_builder [["X", [True, False, True]]]
             c = t.at "X" . cast Value_Type.Integer
-            vt = c.value_type
-            Test.with_clue "Expecting "+vt.to_display_text+" to be Integer. " <|
-                vt.is_integer . should_be_true
+            setup.expect_integer_type c
             c.to_vector . should_equal [1, 0, 1]
 
         group_builder.specify "should allow to cast an integer column to floating point" <|
@@ -190,7 +166,7 @@ add_specs suite_builder setup =
                     w2.affected_rows_count . should_equal 1
                     w2.to_display_text . should_contain "out of the range of the target type"
 
-                    r3 = t2.at "X" . cast (Value_Type.Integer Bits.Bits_16) on_problems=Problem_Behavior.Report_Error
+                    r3 = t2.at "X" . cast (Value_Type.Integer Bits.Bits_16) on_problems=..Report_Error
                     r3.should_fail_with Conversion_Failure
 
                 # Now converting the 16-bit column `c` into 32 bits.
@@ -230,9 +206,7 @@ add_specs suite_builder setup =
         group_builder.specify "should allow to cast a floating point column to integer" <|
             t = table_builder [["X", [1.0001, 2.25, 4.0]]]
             c = t.at "X" . cast Value_Type.Integer
-            vt = c.value_type
-            Test.with_clue "Expecting "+vt.to_display_text+" to be Integer. " <|
-                vt.is_integer . should_be_true
+            setup.expect_integer_type c
             c.to_vector . should_equal [1, 2, 4]
             # Not reporting Lossy Conversion as converting floats to integers obviously truncates the value.
             Problems.assume_no_problems c
@@ -334,15 +308,7 @@ add_specs suite_builder setup =
                 warning.to_display_text . should_contain too_big_double.to_text
 
     if supports_dates then
-        suite_builder.group prefix+"Table/Column.cast - date/time" group_builder->
-            data = Data.setup create_connection_fn
-
-            group_builder.teardown <|
-                data.teardown
-
-            table_builder cols =
-                setup.table_builder cols connection=data.connection
-
+        suite_builder.group prefix+"(Conversion_Spec) Table/Column.cast - date/time" group_builder->
             group_builder.specify "should allow to get the Date part from a Date_Time" <|
                 t = table_builder [["X", [Date_Time.new 2015 1 2 3 4 5, Date_Time.new 2023 12 31 23 56 59]]]
                 c = t.at "X" . cast Value_Type.Date
@@ -367,15 +333,7 @@ add_specs suite_builder setup =
                 expected_diff = Duration.between day1.to_date_time day2.to_date_time
                 diff . should_equal expected_diff
 
-    suite_builder.group prefix+"Table/Column.cast - checking invariants" group_builder->
-        data = Data.setup create_connection_fn
-
-        group_builder.teardown <|
-            data.teardown
-
-        table_builder cols =
-            setup.table_builder cols connection=data.connection
-
+    suite_builder.group prefix+"(Conversion_Spec) Table/Column.cast - checking invariants" group_builder->
         group_builder.specify "should report an error for unsupported conversions" <|
             t = table_builder [["X", [1, 2, 3]]]
             r1 = t.at "X" . cast Value_Type.Boolean
@@ -408,11 +366,11 @@ add_specs suite_builder setup =
             t = table_builder [["X", [Nothing, 1, 2, 3000]], ["Y", [Nothing, True, False, True]]]
 
             c1 = t.at "X" . cast Value_Type.Char
-            c1.value_type.is_text . should_be_true
+            c1.value_type . should_be_a (Value_Type.Char ...)
             c1.to_vector . should_equal [Nothing, "1", "2", "3000"]
 
             c2 = t.at "Y" . cast Value_Type.Integer
-            c2.value_type . should_equal Value_Type.Integer
+            setup.expect_integer_type c2
             c2.to_vector . should_equal [Nothing, 1, 0, 1]
 
         group_builder.specify "should not lose the type after further operations were performed on the result" <|
@@ -421,13 +379,11 @@ add_specs suite_builder setup =
             c2 = t.at "Y" . cast Value_Type.Integer
 
             c3 = c1 + '_suffix'
-            c3.value_type.is_text . should_be_true
+            c3.value_type . should_be_a (Value_Type.Char ...)
             c3.to_vector . should_equal ["1_suffix", "2_suffix", "3000_suffix"]
 
             c4 = c2 + 1000
-            vt4 = c4.value_type
-            Test.with_clue "Expecting "+vt4.to_display_text+" to be Integer. " <|
-                vt4.is_integer . should_be_true
+            setup.expect_integer_type c4
             c4.to_vector . should_equal [1001, 1000, 1001]
 
         group_builder.specify "should not lose the type after further operations were performed on the result, even if the first row is NULL" <|
@@ -436,13 +392,11 @@ add_specs suite_builder setup =
             c2 = t.at "Y" . cast Value_Type.Integer
 
             c3 = c1 + '_suffix'
-            c3.value_type.is_text . should_be_true
+            c3.value_type.should_be_a (Value_Type.Char ...)
             c3.to_vector . should_equal [Nothing, "1_suffix", "2_suffix", "3000_suffix"]
 
             c4 = c2 + 1000
-            vt4 = c4.value_type
-            Test.with_clue "Expecting "+vt4.to_display_text+" to be Integer. " <|
-                vt4.is_integer . should_be_true
+            setup.expect_integer_type c4
             c4.to_vector . should_equal [Nothing, 1001, 1000, 1001]
 
         group_builder.specify 'Table.cast should cast the columns "in-place" and not reorder them' <|
@@ -450,7 +404,7 @@ add_specs suite_builder setup =
             t2 = t.cast ["Z", "Y"] Value_Type.Char
             t2.column_names . should_equal ["X", "Y", "Z", "A"]
 
-            t2.at "X" . value_type . is_integer . should_be_true
+            setup.expect_integer_type <| t2.at "X"
             t2.at "Y" . value_type . is_text . should_be_true
             t2.at "Z" . value_type . is_text . should_be_true
             t2.at "A" . value_type . is_boolean . should_be_true
@@ -587,24 +541,16 @@ add_specs suite_builder setup =
                 r3 = t.cast "X" (Value_Type.Unsupported_Data_Type "foobar" "foobar")
                 r3.should_fail_with Illegal_Argument
 
-    suite_builder.group prefix+"Simple variant of Table/Column.parse in all backends" group_builder->
-        data = Data.setup create_connection_fn
-
-        group_builder.teardown <|
-            data.teardown
-
-        table_builder cols =
-            setup.table_builder cols connection=data.connection
-
+    suite_builder.group prefix+"(Conversion_Spec) Simple variant of Table/Column.parse in all backends" group_builder->
         group_builder.specify "should be able to parse simple integers" <|
             t = table_builder [["X", ["42", "0", "-1"]]]
 
             c1 = t.at "X" . parse Value_Type.Integer
-            c1.value_type.is_integer . should_be_true
+            setup.expect_integer_type c1
             c1.to_vector . should_equal [42, 0, -1]
 
             c2 = t.parse ["X"] Value_Type.Integer . at "X"
-            c2.value_type.is_integer . should_be_true
+            setup.expect_integer_type c2
             c2.to_vector . should_equal [42, 0, -1]
 
         group_builder.specify "should be able to parse simple floats" <|
@@ -655,7 +601,7 @@ add_specs suite_builder setup =
 
             t1 = t.parse ["X", "Y"] Value_Type.Integer error_on_missing_columns=False
             t1.at "X" . to_vector . should_equal [42, 0, -1]
-            t1.at "X" . value_type . is_integer . should_be_true
+            setup.expect_integer_type <| t1.at "X"
             Problems.expect_warning Missing_Input_Columns t1
 
             t2 = t.parse ["Y"] Value_Type.Integer error_on_missing_columns=False
@@ -666,57 +612,25 @@ add_specs suite_builder setup =
             r3.should_fail_with Missing_Input_Columns
             r3.catch.criteria . should_equal ["Y"]
 
-    if setup.is_database then suite_builder.group prefix+"Table/Column auto value type" group_builder->
-        data = Data.setup create_connection_fn
-
-        group_builder.teardown <|
-            data.teardown
-
-        table_builder cols =
-            setup.table_builder cols connection=data.connection
-
+    if setup.is_database then suite_builder.group prefix+"(Conversion_Spec) Table/Column auto value type" group_builder->
         group_builder.specify "should report unsupported" <|
             t = table_builder [["X", [1, 2, 3]]]
-            t.auto_value_types . should_fail_with Unsupported_Database_Operation
-            t.at "X" . auto_value_type . should_fail_with Unsupported_Database_Operation
+            t.auto_cast . should_fail_with Unsupported_Database_Operation
+            t.at "X" . auto_cast . should_fail_with Unsupported_Database_Operation
 
     # The in-memory functionality of `expand_column` is tested in test/Table_Tests/src/In_Memory/Table_Conversion_Spec.enso
-    if setup.is_database then suite_builder.group prefix+"Table.expand_column" group_builder->
-        data = Data.setup create_connection_fn
-
-        group_builder.teardown <|
-            data.teardown
-
-        table_builder cols =
-            setup.table_builder cols connection=data.connection
-
+    if setup.is_database then suite_builder.group prefix+"(Conversion_Spec) Table.expand_column" group_builder->
         group_builder.specify "should report unsupported" <|
             table = table_builder [["aaa", [1, 2]], ["bbb", [3, 4]], ["ccc", [5, 6]]]
             table.expand_column "bbb" . should_fail_with Unsupported_Database_Operation
 
     # The in-memory functionality of `expand_to_rows` is tested in test/Table_Tests/src/In_Memory/Table_Conversion_Spec.enso
-    if setup.is_database then suite_builder.group prefix+"Table.expand_to_rows" group_builder->
-        data = Data.setup create_connection_fn
-
-        group_builder.teardown <|
-            data.teardown
-
-        table_builder cols =
-            setup.table_builder cols connection=data.connection
-
+    if setup.is_database then suite_builder.group prefix+"(Conversion_Spec) Table.expand_to_rows" group_builder->
         group_builder.specify "should report unsupported" <|
             table = table_builder [["aaa", [1, 2]], ["bbb", [3, 4]], ["ccc", [5, 6]]]
             table.expand_to_rows "bbb" . should_fail_with Unsupported_Database_Operation
 
-    if setup.is_database.not then suite_builder.group prefix+"Table/Column auto value type" group_builder->
-        data = Data.setup create_connection_fn
-
-        group_builder.teardown <|
-            data.teardown
-
-        table_builder cols =
-            setup.table_builder cols connection=data.connection
-
+    if setup.is_database.not then suite_builder.group prefix+"(Conversion_Spec) Table/Column auto value type" group_builder->
         group_builder.specify "should allow to narrow down types of a Mixed column" <|
             [True, False].each shrink_types->
                 mixer = My_Type.Value 1
@@ -733,10 +647,10 @@ add_specs suite_builder setup =
                 t1.at "mixed_time" . value_type . should_equal Value_Type.Mixed
                 t1.at "bools" . value_type . should_equal Value_Type.Mixed
 
-                t2 = t1.auto_value_types shrink_types=shrink_types
+                t2 = t1.auto_cast shrink_types=shrink_types
                 # Depending on shrink_types value the size of the Char/Integer types may vary - exact details tested elsewhere.
                 t2.at "strs" . value_type . should_be_a (Value_Type.Char ...)
-                t2.at "ints" . value_type . should_be_a (Value_Type.Integer ...)
+                setup.expect_integer_type <| t2.at "ints"
                 t2.at "floats" . value_type . should_equal Value_Type.Float
                 t2.at "mix" . value_type . should_equal Value_Type.Mixed
                 t2.at "dates" . value_type . should_equal Value_Type.Date
@@ -750,18 +664,18 @@ add_specs suite_builder setup =
             t0 = table_builder [["strs", [mixer, "a", "b"]], ["ints", [mixer, 2, 3]], ["floats", [mixer, 1.5, 2.5]]]
             t1 = t0.drop 1
 
-            t2 = t1.auto_value_types []
+            t2 = t1.auto_cast []
             t2.at "strs" . value_type . should_equal Value_Type.Mixed
             t2.at "ints" . value_type . should_equal Value_Type.Mixed
             t2.at "floats" . value_type . should_equal Value_Type.Mixed
 
-            t3 = t1.auto_value_types ["strs"]
+            t3 = t1.auto_cast ["strs"]
             t3.at "strs" . value_type . should_equal Value_Type.Char
             t3.at "ints" . value_type . should_equal Value_Type.Mixed
             t3.at "floats" . value_type . should_equal Value_Type.Mixed
 
             # should match ints and floats but not strs
-            t4 = t1.auto_value_types "[if].*".to_regex
+            t4 = t1.auto_cast "[if].*".to_regex
             t4.at "strs" . value_type . should_equal Value_Type.Mixed
             t4.at "ints" . value_type . should_equal Value_Type.Integer
             t4.at "floats" . value_type . should_equal Value_Type.Float
@@ -771,7 +685,7 @@ add_specs suite_builder setup =
             t0 = table_builder [["X", [1.0, 2.0, 3.0]], ["Y", [mixer, 2.5, 3.0]]]
             t1 = t0.drop 1
 
-            t2 = t1.auto_value_types [..By_Type ..Float]
+            t2 = t1.auto_cast [..By_Type ..Float]
             t2.at "X" . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
             t2.at "Y" . value_type . should_equal Value_Type.Mixed
 
@@ -781,7 +695,7 @@ add_specs suite_builder setup =
             t1.at "Y" . value_type . should_equal Value_Type.Float
             t1.at "Z" . value_type . should_equal Value_Type.Float
 
-            t2 = t1.auto_value_types shrink_types=False
+            t2 = t1.auto_cast shrink_types=False
             t2.at "X" . to_vector . should_equal [1, 2, 3]
             t2.at "X" . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
             t2.at "Y" . value_type . should_equal Value_Type.Float
@@ -795,7 +709,7 @@ add_specs suite_builder setup =
 
         group_builder.specify "will not parse text columns" <|
             t1 = table_builder [["X", ["1", "2", "3"]]]
-            c2 = t1.at "X" . auto_value_type
+            c2 = t1.at "X" . auto_cast
             c2.value_type . should_equal Value_Type.Char
 
         group_builder.specify "will 'undo' a cast to Mixed" <|
@@ -804,7 +718,7 @@ add_specs suite_builder setup =
             t2.at "X" . value_type . should_equal Value_Type.Mixed
             t2.at "Y" . value_type . should_equal Value_Type.Mixed
 
-            t3 = t2.auto_value_types
+            t3 = t2.auto_cast
             t3.at "X" . value_type . should_equal Value_Type.Integer
             t3.at "Y" . value_type . should_equal Value_Type.Char
 
@@ -813,7 +727,7 @@ add_specs suite_builder setup =
             c1 = c0.drop 1
 
             c1.value_type . should_equal Value_Type.Mixed
-            c2 = c1.auto_value_type
+            c2 = c1.auto_cast
             c2.value_type . should_be_a (Value_Type.Decimal ...)
             c2.to_vector . should_equal [1, 2, (2^100)+1]
 
@@ -831,13 +745,13 @@ add_specs suite_builder setup =
                     True  -> t1.at "F" . value_type . should_equal Value_Type.Mixed
                     False -> t1.at "F" . value_type . should_equal Value_Type.Float
 
-                t2 = t1.auto_value_types shrink_types=False
+                t2 = t1.auto_cast shrink_types=False
                 t2.at "X" . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
                 t2.at "Y" . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
                 t2.at "Z" . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
                 t2.at "F" . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
 
-                t3 = t1.auto_value_types shrink_types=True
+                t3 = t1.auto_cast shrink_types=True
                 # Even though X's values are small enough to fit in a Byte, we stick to 16-bit Integers.
                 t3.at "X" . value_type . should_equal (Value_Type.Integer Bits.Bits_16)
                 t3.at "Y" . value_type . should_equal (Value_Type.Integer Bits.Bits_32)
@@ -850,7 +764,7 @@ add_specs suite_builder setup =
             c1.value_type . should_equal Value_Type.Byte
 
             [True, False].each shrink_types->
-                c2 = c1.auto_value_type shrink_types=shrink_types
+                c2 = c1.auto_cast shrink_types=shrink_types
                 c2.value_type . should_equal Value_Type.Byte
 
         group_builder.specify "Decimal (scale=0, i.e. integer) columns should also be shrinked if possible and shrink_types=True" <|
@@ -861,7 +775,7 @@ add_specs suite_builder setup =
             t1.at "Y" . value_type . should_equal (Value_Type.Decimal scale=0)
             t1.at "Z" . value_type . should_equal (Value_Type.Decimal scale=0)
 
-            t2 = t1.auto_value_types shrink_types=False
+            t2 = t1.auto_cast shrink_types=False
 
             # Without shrinking we get an integer type, but not the smallest one - just the default 64-bit.
             t2.at "X" . to_vector . should_equal [1, 2, 3]
@@ -869,7 +783,7 @@ add_specs suite_builder setup =
             t2.at "Y" . value_type . should_equal (Value_Type.Decimal scale=0)
             t2.at "Z" . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
 
-            t3 = t1.auto_value_types shrink_types=True
+            t3 = t1.auto_cast shrink_types=True
             t3.at "X" . value_type . should_equal (Value_Type.Integer Bits.Bits_16)
             t3.at "Y" . value_type . should_equal (Value_Type.Decimal scale=0)
             t3.at "Z" . value_type . should_equal (Value_Type.Integer Bits.Bits_16)
@@ -885,20 +799,20 @@ add_specs suite_builder setup =
                     True  -> c1.value_type . should_equal Value_Type.Mixed
                     False -> c1.value_type . should_equal (Value_Type.Char size=Nothing variable_length=True)
 
-                c2 = c1.auto_value_type shrink_types=False
+                c2 = c1.auto_cast shrink_types=False
                 c2.value_type . should_equal (Value_Type.Char size=Nothing variable_length=True)
 
-                c3 = c1.auto_value_type shrink_types=True
+                c3 = c1.auto_cast shrink_types=True
                 c3.value_type . should_equal (Value_Type.Char size=2 variable_length=False)
 
             c4 = table_builder [["X", ["a", "x", "y"]]] . at "X" . cast (Value_Type.Char size=100 variable_length=True)
             c4.to_vector . should_equal ["a", "x", "y"]
             c4.value_type . should_equal (Value_Type.Char size=100 variable_length=True)
 
-            c5 = c4.auto_value_type shrink_types=False
+            c5 = c4.auto_cast shrink_types=False
             c5.value_type . should_equal (Value_Type.Char size=100 variable_length=True)
 
-            c6 = c4.auto_value_type shrink_types=True
+            c6 = c4.auto_cast shrink_types=True
             c6.value_type . should_equal (Value_Type.Char size=1 variable_length=False)
 
         group_builder.specify "if all text values are empty string, the type will remain unchanged" <|
@@ -909,10 +823,10 @@ add_specs suite_builder setup =
             c2.value_type . should_equal (Value_Type.Char size=100 variable_length=True)
 
             [True, False].each shrink_types->
-                c1_b = c1.auto_value_type shrink_types=shrink_types
+                c1_b = c1.auto_cast shrink_types=shrink_types
                 c1_b.value_type . should_equal (Value_Type.Char size=Nothing variable_length=True)
 
-                c2_b = c2.auto_value_type shrink_types=shrink_types
+                c2_b = c2.auto_cast shrink_types=shrink_types
                 c2_b.value_type . should_equal (Value_Type.Char size=100 variable_length=True)
 
         group_builder.specify "if all text values fit under 255 characters, will add a 255 length limit (if shrink_types=True)" <|
@@ -921,7 +835,7 @@ add_specs suite_builder setup =
             t2 = t1 . set (t1.at "short_unbounded" . cast (Value_Type.Char size=1000)) "short_1000" . set (t1.at "short_unbounded" . cast (Value_Type.Char size=10)) "short_10" . set (t1.at "long_unbounded" . cast (Value_Type.Char size=400)) "long_400" . set (t1.at "short_unbounded" . cast Value_Type.Mixed) "short_mixed"
             t2.at "short_mixed" . value_type . should_equal Value_Type.Mixed
 
-            t3 = t2.auto_value_types shrink_types=False
+            t3 = t2.auto_cast shrink_types=False
             t3.at "short_unbounded" . value_type . should_equal (Value_Type.Char size=Nothing variable_length=True)
             t3.at "short_1000" . value_type . should_equal (Value_Type.Char size=1000 variable_length=True)
             t3.at "short_10" . value_type . should_equal (Value_Type.Char size=10 variable_length=True)
@@ -930,7 +844,7 @@ add_specs suite_builder setup =
             t3.at "long_unbounded" . value_type . should_equal (Value_Type.Char size=Nothing variable_length=True)
             t3.at "long_400" . value_type . should_equal (Value_Type.Char size=400 variable_length=True)
 
-            t4 = t2.auto_value_types shrink_types=True
+            t4 = t2.auto_cast shrink_types=True
             # Short ones get shortened to 255 unless they were shorter already.
             t4.at "short_unbounded" . value_type . should_equal (Value_Type.Char size=255 variable_length=True)
             t4.at "short_1000" . value_type . should_equal (Value_Type.Char size=255 variable_length=True)
@@ -950,7 +864,7 @@ add_specs suite_builder setup =
             t1.at "str" . value_type . should_equal Value_Type.Char
             t1.at "decimal" . value_type . should_equal (Value_Type.Decimal scale=0)
 
-            t2 = t1.auto_value_types shrink_types=False
+            t2 = t1.auto_cast shrink_types=False
             t2.at "mix" . value_type . should_equal Value_Type.Mixed
             t2.at "int" . value_type . should_equal Value_Type.Integer
             ## Technically, if there are no elements, "all of elements" are
@@ -961,7 +875,7 @@ add_specs suite_builder setup =
             t1.at "decimal" . value_type . should_equal (Value_Type.Decimal scale=0)
             t2.at "str" . value_type . should_equal Value_Type.Char
 
-            t3 = t1.auto_value_types shrink_types=True
+            t3 = t1.auto_cast shrink_types=True
             t3.at "mix" . value_type . should_equal Value_Type.Mixed
             # Technically, if there are no elements, then they can be fit inside of the smallest types available:
             t3.at "int" . value_type . should_equal (Value_Type.Integer Bits.Bits_16)

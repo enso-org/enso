@@ -4,6 +4,7 @@ import * as React from 'react'
 import LogoIcon from 'enso-assets/enso_logo.svg'
 import * as common from 'enso-common'
 
+import * as authProvider from '#/providers/AuthProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
@@ -11,8 +12,11 @@ import * as aria from '#/components/aria'
 import MenuEntry from '#/components/MenuEntry'
 import Modal from '#/components/Modal'
 import FocusArea from '#/components/styled/FocusArea'
+import SvgMask from '#/components/SvgMask'
 
 import AboutModal from '#/modals/AboutModal'
+
+import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 // ================
 // === InfoMenu ===
@@ -26,6 +30,8 @@ export interface InfoMenuProps {
 /** A menu containing info about the app. */
 export default function InfoMenu(props: InfoMenuProps) {
   const { hidden = false } = props
+  const session = authProvider.useUserSession()
+  const { signOut } = authProvider.useAuth()
   const { setModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
   const [initialized, setInitialized] = React.useState(false)
@@ -40,21 +46,28 @@ export default function InfoMenu(props: InfoMenuProps) {
     <Modal hidden={hidden} className="absolute size-full overflow-hidden bg-dim">
       <div
         {...(!hidden ? { 'data-testid': 'info-menu' } : {})}
-        className={`absolute right-top-bar-margin top-top-bar-margin flex flex-col gap-user-menu rounded-default bg-selected-frame backdrop-blur-default transition-all duration-user-menu ${initialized ? 'w-user-menu p-user-menu' : 'size-row-h p-profile-picture'}`}
+        className={tailwindMerge.twMerge(
+          'absolute right-2.5 top-2.5 flex flex-col gap-user-menu rounded-default bg-selected-frame backdrop-blur-default transition-all duration-user-menu',
+          initialized ? 'w-user-menu p-user-menu' : 'size-row-h'
+        )}
         onClick={event => {
           event.stopPropagation()
         }}
       >
         <div
-          className={`flex items-center gap-icons overflow-hidden transition-all duration-user-menu ${initialized ? 'px-menu-entry' : ''}`}
+          className={tailwindMerge.twMerge(
+            'flex items-center gap-icons overflow-hidden transition-all duration-user-menu',
+            initialized && 'px-menu-entry'
+          )}
         >
-          <div className="flex size-profile-picture shrink-0 items-center overflow-clip rounded-full">
-            <img src={LogoIcon} className="pointer-events-none size-profile-picture" />
-          </div>
+          <SvgMask src={LogoIcon} className="pointer-events-none h-7 w-7" />
           <aria.Text className="text">{common.PRODUCT_NAME}</aria.Text>
         </div>
         <div
-          className={`grid transition-all duration-user-menu ${initialized ? 'grid-rows-1fr' : 'grid-rows-0fr'}`}
+          className={tailwindMerge.twMerge(
+            'grid transition-all duration-user-menu',
+            initialized ? 'grid-rows-1fr' : 'grid-rows-0fr'
+          )}
         >
           <FocusArea direction="vertical">
             {innerProps => (
@@ -69,6 +82,7 @@ export default function InfoMenu(props: InfoMenuProps) {
                     setModal(<AboutModal />)
                   }}
                 />
+                {session && <MenuEntry action="signOut" doAction={signOut} />}
               </div>
             )}
           </FocusArea>

@@ -25,18 +25,18 @@ import org.enso.compiler.core.EnsoParser
 import org.enso.compiler.data.CompilerConfig
 import org.enso.compiler.pass.PassManager
 import org.enso.compiler.pass.analyse._
-import org.enso.compiler.phase.{
-  ExportCycleException,
-  ExportsResolution,
-  ImportResolver,
-  ImportResolverAlgorithm
-}
+import org.enso.compiler.phase.{ImportResolver, ImportResolverAlgorithm}
 import org.enso.editions.LibraryName
 import org.enso.pkg.QualifiedName
 import org.enso.common.CompilationStage
+import org.enso.compiler.phase.exports.{
+  ExportCycleException,
+  ExportSymbolAnalysis,
+  ExportsResolution
+}
 import org.enso.syntax2.Tree
 
-import java.io.{PrintStream}
+import java.io.PrintStream
 import java.util.concurrent.{
   CompletableFuture,
   ExecutorService,
@@ -289,8 +289,8 @@ class Compiler(
         parseModule(module, irCachingEnabled && !context.isInteractive(module))
         importedModules
           .filter(isLoadedFromSource)
-          .map(m => {
-            if (m.getBindingsMap() == null) {
+          .foreach(m => {
+            if (m.getBindingsMap == null) {
               parseModule(m, irCachingEnabled && !context.isInteractive(module))
             }
           })
@@ -479,7 +479,18 @@ class Compiler(
     // the symbol brought to the scope has not been properly resolved yet.
     val sortedCachedModules =
       new ExportsResolution(context).runSort(modulesImportedWithCachedBindings)
-    sortedCachedModules ++ requiredModules
+    val allSortedModules = sortedCachedModules ++ requiredModules
+    allSortedModules.foreach { mod =>
+      val newModIr =
+        ExportSymbolAnalysis.analyseModule(mod.getIr, packageRepository)
+      context.updateModule(
+        mod,
+        updater => {
+          updater.ir(newModIr)
+        }
+      )
+    }
+    allSortedModules
   }
 
   private def ensureParsedAndAnalyzed(module: Module): Unit = {
@@ -585,9 +596,10 @@ class Compiler(
       isGeneratingDocs = isGenDocs
     )
 
-    val src  = context.getCharacters(module)
-    val tree = ensoCompiler.parse(src)
-    val expr = ensoCompiler.generateIR(tree)
+    val src   = context.getCharacters(module)
+    val idMap = context.getIdMap(module)
+    val tree  = ensoCompiler.parse(src)
+    val expr  = ensoCompiler.generateModuleIr(tree, idMap.values)
 
     val exprWithModuleExports =
       if (context.isSynthetic(module))
@@ -748,9 +760,7 @@ class Compiler(
         Export.Module(
           m,
           rename      = None,
-          isAll       = false,
           onlyNames   = None,
-          hiddenNames = None,
           location    = None,
           isSynthetic = true
         )

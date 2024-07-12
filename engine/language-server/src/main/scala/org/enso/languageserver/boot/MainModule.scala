@@ -50,13 +50,10 @@ import org.enso.logger.masking.Masking
 import org.enso.logger.JulHandler
 import org.enso.logger.akka.AkkaConverter
 import org.enso.common.HostAccessFactory
-import org.enso.languageserver.boot.config.ApplicationConfig
 import org.enso.polyglot.{RuntimeOptions, RuntimeServerInfo}
 import org.enso.profiling.events.NoopEventsMonitor
 import org.enso.searcher.memory.InMemorySuggestionsRepo
 import org.enso.text.{ContentBasedVersioning, Sha3_224VersionCalculator}
-import org.enso.ydoc.Ydoc
-import org.graalvm.polyglot.Engine
 import org.graalvm.polyglot.Context
 import org.graalvm.polyglot.io.MessageEndpoint
 import org.slf4j.event.Level
@@ -67,7 +64,7 @@ import java.net.URI
 import java.nio.charset.StandardCharsets
 import java.time.Clock
 
-import scala.concurrent.duration._
+import scala.concurrent.duration.DurationInt
 
 /** A main module containing all components of the server.
   *
@@ -84,9 +81,9 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     logLevel
   )
 
-  private val applicationConfig = ApplicationConfig.load()
-
-  private val utcClock = Clock.systemUTC()
+  private val ydocSupervisor    = new ComponentSupervisor()
+  private val contextSupervisor = new ComponentSupervisor()
+  private val utcClock          = Clock.systemUTC()
 
   val directoriesConfig = ProjectDirectoriesConfig(serverConfig.contentRootPath)
   private val contentRoot = ContentRootWithFile(
@@ -94,7 +91,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     new File(serverConfig.contentRootPath)
   )
 
-  private val openAiKey = sys.env.get("OPENAI_API_KEY")
+  private val openAiKey = Option(java.lang.System.getenv("OPENAI_API_KEY"))
   private val openAiCfg = openAiKey.map(AICompletionConfig)
 
   val languageServerConfig = Config(
@@ -158,7 +155,11 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
   val distributionManager = new DistributionManager(environment)
 
   val editionProvider =
-    EditionManager.makeEditionProvider(distributionManager, Some(languageHome))
+    EditionManager.makeEditionProvider(
+      distributionManager,
+      Some(languageHome),
+      false
+    )
   val editionResolver = EditionResolver(editionProvider)
   val editionReferenceResolver = new EditionReferenceResolver(
     contentRoot.file,
@@ -339,30 +340,13 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
         connection
       } else null
     })
-  if (
-    Engine
-      .newBuilder()
-      .allowExperimentalOptions(true)
-      .build
-      .getLanguages()
-      .containsKey("java")
-  ) {
-    builder
-      .option("java.ExposeNativeJavaVM", "true")
-      .option("java.Polyglot", "true")
-      .option("java.UseBindingsLoader", "true")
-      .allowCreateThread(true)
-  }
-
-  val context = builder.build()
-  log.trace("Created Runtime context [{}].", context)
 
   system.eventStream.setLogLevel(AkkaConverter.toAkka(logLevel))
   log.trace("Set akka log level to [{}].", logLevel)
 
   val runtimeKiller =
     system.actorOf(
-      RuntimeKiller.props(runtimeConnector, context),
+      RuntimeKiller.props(runtimeConnector, contextSupervisor),
       "runtime-context"
     )
 
@@ -446,8 +430,10 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
       directoriesConfig,
       jsonRpcProtocolFactory,
       suggestionsRepo,
-      context,
-      zioRuntime
+      builder,
+      contextSupervisor,
+      zioRuntime,
+      ydocSupervisor
     )(system.dispatcher)
 
   private val jsonRpcControllerFactory = new JsonConnectionControllerFactory(
@@ -510,14 +496,6 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     )
   log.trace("Created Binary WebSocket Server [{}].", binaryServer)
 
-  private val ydoc = Ydoc
-    .builder()
-    .hostname(applicationConfig.ydoc.hostname)
-    .port(applicationConfig.ydoc.port)
-    .build()
-  ydoc.start()
-  log.debug("Started Ydoc server.")
-
   log.info(
     "Main module of the Language Server initialized with config [{}].",
     languageServerConfig
@@ -526,9 +504,9 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
   /** Close the main module releasing all resources. */
   def close(): Unit = {
     suggestionsRepo.close()
-    context.close()
+    contextSupervisor.close()
     runtimeEventsMonitor.close()
-    ydoc.close()
+    ydocSupervisor.close()
     log.info("Closed Language Server main module.")
   }
 

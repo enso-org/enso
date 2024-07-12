@@ -19,6 +19,7 @@ const targetMaybePort = computed(() => {
   const target = application.value.target
   if (target instanceof Ast.Ast) {
     const input = WidgetInput.FromAst(target)
+    input.forcePort = true
     if (!application.value.calledFunction) return input
     const ptr = entryMethodPointer(application.value.calledFunction)
     if (!ptr) return input

@@ -56,8 +56,8 @@ export function attachProvider(
 ) {
   const ProviderClass = params.ls.startsWith('mock://') ? MockYdocProvider : WebsocketProvider
   const provider = new ProviderClass(url, room, doc, { awareness, params })
-  const onSync = () => doc.emit('sync', [true])
-  const onDrop = () => doc.emit('sync', [false])
+  const onSync = () => doc.emit('sync', [true, doc])
+  const onDrop = () => doc.emit('sync', [false, doc])
 
   const attachedSubdocs = new Map<Y.Doc, ReturnType<typeof attachProvider>>()
 

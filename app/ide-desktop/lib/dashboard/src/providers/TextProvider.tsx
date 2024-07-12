@@ -2,7 +2,7 @@
  * React context. */
 import * as React from 'react'
 
-import * as text from '#/text'
+import * as text from 'enso-common/src/text'
 
 import * as object from '#/utilities/object'
 
@@ -17,11 +17,11 @@ export interface TextContextType {
   readonly setLanguage: (newLanguage: text.Language) => void
 }
 
-/**
- * A function that gets localized text for a given key, with optional replacements.
+/** A function that gets localized text for a given key, with optional replacements.
  * @param key - The key of the text to get.
- * @param replacements - The replacements to insert into the text. If the text contains placeholders like `$0`, `$1`, etc., they will be replaced with the corresponding replacement.
- */
+ * @param replacements - The replacements to insert into the text.
+ * If the text contains placeholders like `$0`, `$1`, etc.,
+ * they will be replaced with the corresponding replacement. */
 export type GetText = <K extends text.TextId>(
   key: K,
   ...replacements: text.Replacements[K]

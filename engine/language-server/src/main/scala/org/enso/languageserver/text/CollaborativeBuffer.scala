@@ -1,7 +1,6 @@
 package org.enso.languageserver.text
 
 import akka.actor.{Actor, ActorRef, Cancellable, Props, Stash, Status}
-import cats.implicits._
 import com.typesafe.scalalogging.LazyLogging
 import org.enso.languageserver.boot.TimingsConfig
 import org.enso.languageserver.capability.CapabilityProtocol._
@@ -14,7 +13,7 @@ import org.enso.languageserver.event.{
 import org.enso.languageserver.filemanager.{
   FileAttributes,
   FileEvent,
-  FileEventKind,
+  FileEventKinds,
   FileManagerProtocol,
   FileNotFound,
   GenericFileSystemFailure,
@@ -36,7 +35,7 @@ import org.enso.languageserver.util.UnhandledLogging
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.text.{ContentBasedVersioning, ContentVersion}
 import org.enso.text.editing._
-import org.enso.text.editing.model.TextEdit
+import org.enso.text.editing.model.{IdMap, TextEdit}
 
 import java.util.UUID
 
@@ -153,12 +152,36 @@ class CollaborativeBuffer(
     buffer: Buffer,
     rpcSession: JsonSession,
     replyTo: ActorRef,
-    timeout: Cancellable
+    timeout: Cancellable,
+    retries: Int
   ): Receive = {
     case ServerConfirmationTimeout =>
-      logger.warn("Timeout reached when awaiting response from the server")
-      replyTo ! OpenFileResponse(Left(OperationTimeout))
-      stop(Map.empty)
+      if (retries > 0) {
+        logger.warn(
+          "Timeout reached when awaiting response from the server. Retries left {}",
+          retries
+        )
+        val timeoutCancellable = context.system.scheduler
+          .scheduleOnce(
+            timingsConfig.runtimeRequestTimeout,
+            self,
+            ServerConfirmationTimeout
+          )
+        context.become(
+          waitingOnServerConfirmation(
+            requestId,
+            buffer,
+            rpcSession,
+            replyTo,
+            timeoutCancellable,
+            retries - 1
+          )
+        )
+      } else {
+        logger.warn("Timeout reached when awaiting response from the server")
+        replyTo ! OpenFileResponse(Left(OperationTimeout))
+        stop(Map.empty)
+      }
     case Api.Response(Some(id), Api.OpenFileResponse) if id == requestId =>
       timeout.cancel()
       val cap = CapabilityRegistration(CanEdit(bufferPath))
@@ -236,8 +259,17 @@ class CollaborativeBuffer(
         sender() ! FileNotOpened
       }
 
-    case ApplyEdit(clientId, change, execute) =>
-      edit(buffer, clients, lockHolder, clientId, change, execute, autoSave)
+    case ApplyEdit(clientId, change, execute, idMap) =>
+      edit(
+        buffer,
+        clients,
+        lockHolder,
+        clientId,
+        change,
+        execute,
+        idMap,
+        autoSave
+      )
 
     case ApplyExpressionValue(
           clientId,
@@ -389,7 +421,7 @@ class CollaborativeBuffer(
         buffer.version.toHexString
       )
       runtimeConnector ! Api.Request(
-        Api.EditFileNotification(file.path, edits, execute = true)
+        Api.EditFileNotification(file.path, edits, execute = true, None)
       )
       clients.values.foreach { _.rpcController ! TextDidChange(List(change)) }
       unstashAll()
@@ -407,7 +439,7 @@ class CollaborativeBuffer(
       clients.values.foreach {
         _.rpcController ! TextProtocol.FileEvent(
           path,
-          FileEventKind.Removed,
+          FileEventKinds.Removed,
           None
         )
       }
@@ -704,6 +736,7 @@ class CollaborativeBuffer(
     clientId: Option[ClientId],
     change: FileEdit,
     execute: Boolean,
+    idMap: Option[IdMap],
     autoSave: Map[ClientId, (ContentVersion, Cancellable)]
   ): Unit = {
     applyEdits(buffer, lockHolder, clientId, change) match {
@@ -720,7 +753,8 @@ class CollaborativeBuffer(
             Api.EditFileNotification(
               buffer.fileWithMetadata.file,
               change.edits,
-              execute
+              execute,
+              idMap
             )
           )
         }
@@ -786,7 +820,8 @@ class CollaborativeBuffer(
   ): Either[ApplyEditFailure, Buffer] = {
     EditorOps
       .applyEdits(buffer.contents, edits)
-      .leftMap(toEditFailure)
+      .left
+      .map(toEditFailure)
       .map(rope => buffer.withContents(rope))
   }
 
@@ -865,7 +900,8 @@ class CollaborativeBuffer(
         buffer,
         rpcSession,
         replyTo,
-        timeoutCancellable
+        timeoutCancellable,
+        5
       )
     )
   }

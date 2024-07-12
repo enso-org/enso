@@ -3,10 +3,8 @@
 import * as fs from 'node:fs/promises'
 import * as fsSync from 'node:fs'
 import * as http from 'node:http'
-import * as os from 'node:os'
 import * as path from 'node:path'
 
-import * as isHiddenFile from 'is-hidden-file'
 import * as tar from 'tar'
 import * as yaml from 'yaml'
 
@@ -22,7 +20,7 @@ import * as projectManagement from './projectManagement'
 const HTTP_STATUS_OK = 200
 const HTTP_STATUS_BAD_REQUEST = 400
 const HTTP_STATUS_NOT_FOUND = 404
-const PROJECTS_ROOT_DIRECTORY = path.join(os.homedir(), 'enso/projects')
+const PROJECTS_ROOT_DIRECTORY = projectManagement.getProjectsDirectory()
 
 // =============
 // === Types ===
@@ -215,6 +213,17 @@ export default function projectManagerShimMiddleware(
                         })
                         try {
                             switch (cliArguments[0]) {
+                                case '--filesystem-exists': {
+                                    const directoryPath = cliArguments[1]
+                                    if (directoryPath != null) {
+                                        const exists = await fs
+                                            .access(directoryPath)
+                                            .then(() => true)
+                                            .catch(() => false)
+                                        result = toJSONRPCResult({ exists })
+                                    }
+                                    break
+                                }
                                 case '--filesystem-list': {
                                     const directoryPath = cliArguments[1]
                                     if (directoryPath != null) {
@@ -222,13 +231,7 @@ export default function projectManagerShimMiddleware(
                                         const entries: FileSystemEntry[] = []
                                         for (const entryName of entryNames) {
                                             const entryPath = path.join(directoryPath, entryName)
-                                            try {
-                                                if (isHiddenFile.isHiddenFile(entryPath)) continue
-                                            } catch {
-                                                // Ignore errors from this library, it occasionally
-                                                // fails on windows due to native library loading
-                                                // issues.
-                                            }
+                                            if (isHidden(entryPath)) continue
                                             const stat = await fs.stat(entryPath)
                                             const attributes: Attributes = {
                                                 byteSize: stat.size,
@@ -470,4 +473,13 @@ function extractProjectMetadata(yamlObj: unknown, jsonObj: unknown): ProjectMeta
             return null
         }
     }
+}
+
+/**
+ * Checks if files that start with the dot.
+ * Note on Windows does not check the hidden property.
+ */
+function isHidden(filePath: string): boolean {
+    const dotfile = /(^|[\\/])\.[^\\/]+$/g
+    return dotfile.test(filePath)
 }

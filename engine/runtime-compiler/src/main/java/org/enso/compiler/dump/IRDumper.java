@@ -29,7 +29,7 @@ import org.enso.compiler.core.ir.module.scope.definition.Method;
 import org.enso.compiler.core.ir.module.scope.imports.Polyglot;
 import org.enso.compiler.data.BindingsMap;
 import org.enso.compiler.data.BindingsMap.ResolvedConstructor;
-import org.enso.compiler.data.BindingsMap.ResolvedMethod;
+import org.enso.compiler.data.BindingsMap.ResolvedModuleMethod;
 import org.enso.compiler.data.BindingsMap.ResolvedPolyglotField;
 import org.enso.compiler.data.BindingsMap.ResolvedPolyglotSymbol;
 import org.enso.compiler.data.BindingsMap.ResolvedType;
@@ -484,7 +484,6 @@ public class IRDumper {
             GraphVizNode.Builder.fromIr(exportIr)
                 .addLabelLine("isSynthetic: " + exportModIr.isSynthetic())
                 .addLabelLine("name: " + exportModIr.name().name())
-                .addLabelLine("isAll: " + exportModIr.isAll())
                 .build();
         addNode(node);
       }
@@ -513,9 +512,9 @@ public class IRDumper {
                   bldr.addLabelLine(
                       "target: ResolvedConstructor(" + resolvedConstructor.cons().name() + ")");
                 }
-                case ResolvedMethod resolvedMethod -> {
+                case ResolvedModuleMethod resolvedModuleMethod -> {
                   bldr.addLabelLine(
-                      "target: ResolvedMethod(" + resolvedMethod.method().name() + ")");
+                      "target: ResolvedMethod(" + resolvedModuleMethod.method().name() + ")");
                 }
                 case ResolvedPolyglotField resolvedPolyglotField -> {
                   bldr.addLabelLine(
@@ -563,7 +562,7 @@ public class IRDumper {
                   switch (entity) {
                     case BindingsMap.Type tp -> bldr.addLabelLine("  - Type(" + tp.name() + ")");
                     case BindingsMap.ModuleMethod method -> bldr.addLabelLine(
-                        "  - Method(" + method.name() + ")");
+                        "  - ModuleMethod(" + method.name() + ")");
                     case BindingsMap.PolyglotSymbol polySym -> bldr.addLabelLine(
                         "  - PolyglotSymbol(" + polySym.name() + ")");
                     default -> throw unimpl(entity);
@@ -577,28 +576,13 @@ public class IRDumper {
                 bldr.addLabelLine("resolvedImports: ");
                 for (int i = 0; i < bindingsMap.resolvedImports().size(); i++) {
                   var resolvedImport = bindingsMap.resolvedImports().apply(i);
-                  switch (resolvedImport.target()) {
+                  var firstImpTarget = resolvedImport.targets().head();
+                  switch (firstImpTarget) {
                     case ResolvedType resolvedType -> bldr.addLabelLine(
                         "  - ResolvedType(" + resolvedType.tp().name() + ")");
                     case BindingsMap.ResolvedModule resolvedModule -> bldr.addLabelLine(
                         "  - ResolvedModule(" + resolvedModule.qualifiedName() + ")");
-                    default -> throw unimpl(resolvedImport.target());
-                  }
-                }
-              }
-
-              if (bindingsMap.resolvedExports().isEmpty()) {
-                bldr.addLabelLine("resolvedExports: []");
-              } else {
-                bldr.addLabelLine("resolvedExports: ");
-                for (int i = 0; i < bindingsMap.resolvedExports().size(); i++) {
-                  var resolvedExport = bindingsMap.resolvedExports().apply(i);
-                  switch (resolvedExport.target()) {
-                    case ResolvedType resolvedType -> bldr.addLabelLine(
-                        "  - ResolvedType(" + resolvedType.tp().name() + ")");
-                    case BindingsMap.ResolvedModule resolvedModule -> bldr.addLabelLine(
-                        "  - ResolvedModule(" + resolvedModule.qualifiedName() + ")");
-                    default -> throw unimpl(resolvedExport.target());
+                    default -> throw unimpl(firstImpTarget);
                   }
                 }
               }

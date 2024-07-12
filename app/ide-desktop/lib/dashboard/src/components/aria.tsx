@@ -5,9 +5,11 @@ export type * from '@react-types/shared'
 export * from 'react-aria'
 // @ts-expect-error The conflicting exports are props types ONLY.
 export * from 'react-aria-components'
-// @ts-expect-error The conflicting exports are props types ONLY.
-export * from '@react-stately/overlays'
-export * from '@react-stately/tooltip'
+export { useTooltipTriggerState, type OverlayTriggerState } from 'react-stately'
+
+// ==================
+// === mergeProps ===
+// ==================
 
 /** Merges multiple props objects together.
  * Event handlers are chained, classNames are combined, and ids are deduplicated -
@@ -16,7 +18,6 @@ export * from '@react-stately/tooltip'
  *
  * The constraint is defaulted to `never` to make an explicit constraint mandatory. */
 export function mergeProps<Constraint extends object = never>() {
-  // eslint-disable-next-line no-restricted-syntax
   return <T extends (Partial<Constraint> | null | undefined)[]>(...args: T) =>
     aria.mergeProps(...args)
 }

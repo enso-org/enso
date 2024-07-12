@@ -11,6 +11,11 @@ import AssetIcon from '#/components/dashboard/AssetIcon'
 import type * as backend from '#/services/Backend'
 
 import * as dateTime from '#/utilities/dateTime'
+import * as tailwindMerge from '#/utilities/tailwindMerge'
+
+// ====================
+// === AssetSummary ===
+// ====================
 
 /** Props for an {@link AssetSummary}. */
 export interface AssetSummaryProps {
@@ -27,9 +32,12 @@ export default function AssetSummary(props: AssetSummaryProps) {
   const { getText } = textProvider.useText()
   return (
     <div
-      className={`flex min-h-row items-center gap-icon-with-text rounded-default bg-frame px-button-x ${className}`}
+      className={tailwindMerge.twMerge(
+        'flex min-h-row items-center gap-icon-with-text rounded-default bg-frame px-button-x',
+        className
+      )}
     >
-      <div className="grid size-icon place-items-center">
+      <div className="grid size-4 place-items-center">
         <AssetIcon asset={asset} />
       </div>
       <div className="flex flex-col">

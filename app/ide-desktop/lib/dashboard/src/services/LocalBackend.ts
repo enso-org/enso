@@ -3,11 +3,9 @@
  * Each exported function in the {@link LocalBackend} in this module corresponds to an API endpoint.
  * The functions are asynchronous and return a {@link Promise} that resolves to the response from
  * the API. */
-import * as detect from 'enso-common/src/detect'
-
 import Backend, * as backend from '#/services/Backend'
 import * as projectManager from '#/services/ProjectManager'
-import ProjectManager from '#/services/ProjectManager'
+import type ProjectManager from '#/services/ProjectManager'
 
 import * as appBaseUrl from '#/utilities/appBaseUrl'
 import * as dateTime from '#/utilities/dateTime'
@@ -98,14 +96,20 @@ export default class LocalBackend extends Backend {
   private readonly projectManager: ProjectManager
 
   /** Create a {@link LocalBackend}. */
-  constructor(projectManagerUrl: string, rootDirectory: projectManager.Path) {
+  constructor(projectManagerInstance: ProjectManager) {
     super()
-    this.projectManager = new ProjectManager(projectManagerUrl, rootDirectory)
-    if (detect.IS_DEV_MODE) {
-      // @ts-expect-error This exists only for debugging purposes. It does not have types
-      // because it MUST NOT be used in this codebase.
-      window.localBackend = this
-    }
+
+    this.projectManager = projectManagerInstance
+  }
+
+  /** Get the root directory of this Backend as a path. */
+  get rootPath() {
+    return this.projectManager.rootDirectory
+  }
+
+  /** Set the root directory of this Backend as a path. */
+  set rootPath(value) {
+    this.projectManager.rootDirectory = value
   }
 
   /** Return the ID of the root directory. */
@@ -120,58 +124,67 @@ export default class LocalBackend extends Backend {
   ): Promise<backend.AnyAsset[]> {
     const parentIdRaw = query.parentId == null ? null : extractTypeAndId(query.parentId).id
     const parentId = query.parentId ?? newDirectoryId(this.projectManager.rootDirectory)
-    const entries = await this.projectManager.listDirectory(parentIdRaw)
-    return entries
-      .map(entry => {
-        switch (entry.type) {
-          case projectManager.FileSystemEntryType.DirectoryEntry: {
-            return {
-              type: backend.AssetType.directory,
-              id: newDirectoryId(entry.path),
-              modifiedAt: entry.attributes.lastModifiedTime,
-              parentId,
-              title: fileInfo.fileName(entry.path),
-              permissions: [],
-              projectState: null,
-              labels: [],
-              description: null,
-            } satisfies backend.DirectoryAsset
+    // Check if Root Directory Exists
+    if (
+      parentIdRaw == null &&
+      !(await this.projectManager.exists(this.projectManager.rootDirectory))
+    ) {
+      await this.projectManager.createDirectory(this.projectManager.rootDirectory)
+      return []
+    } else {
+      const entries = await this.projectManager.listDirectory(parentIdRaw)
+      return entries
+        .map(entry => {
+          switch (entry.type) {
+            case projectManager.FileSystemEntryType.DirectoryEntry: {
+              return {
+                type: backend.AssetType.directory,
+                id: newDirectoryId(entry.path),
+                modifiedAt: entry.attributes.lastModifiedTime,
+                parentId,
+                title: fileInfo.fileName(entry.path),
+                permissions: [],
+                projectState: null,
+                labels: [],
+                description: null,
+              } satisfies backend.DirectoryAsset
+            }
+            case projectManager.FileSystemEntryType.ProjectEntry: {
+              return {
+                type: backend.AssetType.project,
+                id: newProjectId(entry.metadata.id),
+                title: entry.metadata.name,
+                modifiedAt: entry.metadata.lastOpened ?? entry.metadata.created,
+                parentId,
+                permissions: [],
+                projectState: {
+                  type:
+                    this.projectManager.projects.get(entry.metadata.id)?.state ??
+                    backend.ProjectState.closed,
+                  volumeId: '',
+                  path: entry.path,
+                },
+                labels: [],
+                description: null,
+              } satisfies backend.ProjectAsset
+            }
+            case projectManager.FileSystemEntryType.FileEntry: {
+              return {
+                type: backend.AssetType.file,
+                id: newFileId(entry.path),
+                title: fileInfo.fileName(entry.path),
+                modifiedAt: entry.attributes.lastModifiedTime,
+                parentId,
+                permissions: [],
+                projectState: null,
+                labels: [],
+                description: null,
+              } satisfies backend.FileAsset
+            }
           }
-          case projectManager.FileSystemEntryType.ProjectEntry: {
-            return {
-              type: backend.AssetType.project,
-              id: newProjectId(entry.metadata.id),
-              title: entry.metadata.name,
-              modifiedAt: entry.metadata.lastOpened ?? entry.metadata.created,
-              parentId,
-              permissions: [],
-              projectState: {
-                type:
-                  this.projectManager.projects.get(entry.metadata.id)?.state ??
-                  backend.ProjectState.closed,
-                volumeId: '',
-                path: entry.path,
-              },
-              labels: [],
-              description: null,
-            } satisfies backend.ProjectAsset
-          }
-          case projectManager.FileSystemEntryType.FileEntry: {
-            return {
-              type: backend.AssetType.file,
-              id: newFileId(entry.path),
-              title: fileInfo.fileName(entry.path),
-              modifiedAt: entry.attributes.lastModifiedTime,
-              parentId,
-              permissions: [],
-              projectState: null,
-              labels: [],
-              description: null,
-            } satisfies backend.FileAsset
-          }
-        }
-      })
-      .sort(backend.compareAssets)
+        })
+        .sort(backend.compareAssets)
+    }
   }
 
   /** Return a list of projects belonging to the current user.
@@ -227,6 +240,15 @@ export default class LocalBackend extends Backend {
   override async closeProject(projectId: backend.ProjectId, title: string | null): Promise<void> {
     const { id } = extractTypeAndId(projectId)
     try {
+      const state = this.projectManager.projects.get(id)
+      if (state?.state === backend.ProjectState.openInProgress) {
+        // Projects that are not opened cannot be closed.
+        // This is the only way to wait until the project is open.
+        await this.projectManager.openProject({
+          projectId: id,
+          missingComponentAction: projectManager.MissingComponentAction.install,
+        })
+      }
       await this.projectManager.closeProject({ projectId: id })
       return
     } catch (error) {
@@ -243,7 +265,7 @@ export default class LocalBackend extends Backend {
   override async getProjectDetails(
     projectId: backend.ProjectId,
     directory: backend.DirectoryId | null,
-    title: string | null
+    title: string
   ): Promise<backend.Project> {
     const { id } = extractTypeAndId(projectId)
     const state = this.projectManager.projects.get(id)
@@ -256,9 +278,7 @@ export default class LocalBackend extends Backend {
         )
         .find(metadata => metadata.id === id)
       if (project == null) {
-        throw new Error(
-          `Could not get details of project ${title != null ? `'${title}'` : `with ID '${id}'`}.`
-        )
+        throw new Error(`Could not get details of project '${title}'.`)
       } else {
         const version =
           project.engineVersion == null
@@ -276,10 +296,7 @@ export default class LocalBackend extends Backend {
           organizationId: '',
           packageName: project.name,
           projectId,
-          state: {
-            type: this.projectManager.projects.get(id)?.state ?? backend.ProjectState.closed,
-            volumeId: '',
-          },
+          state: { type: backend.ProjectState.closed, volumeId: '' },
         }
       }
     } else {
@@ -315,23 +332,21 @@ export default class LocalBackend extends Backend {
     title: string | null
   ): Promise<void> {
     const { id } = extractTypeAndId(projectId)
-    if (!this.projectManager.projects.has(id)) {
-      try {
-        await this.projectManager.openProject({
-          projectId: id,
-          missingComponentAction: projectManager.MissingComponentAction.install,
-          ...(body?.parentId != null
-            ? { projectsDirectory: extractTypeAndId(body.parentId).id }
-            : {}),
-        })
-        return
-      } catch (error) {
-        throw new Error(
-          `Could not open project ${title != null ? `'${title}'` : `with ID '${projectId}'`}: ${
-            errorModule.tryGetMessage(error) ?? 'unknown error'
-          }.`
-        )
-      }
+    try {
+      await this.projectManager.openProject({
+        projectId: id,
+        missingComponentAction: projectManager.MissingComponentAction.install,
+        ...(body?.parentId != null
+          ? { projectsDirectory: extractTypeAndId(body.parentId).id }
+          : {}),
+      })
+      return
+    } catch (error) {
+      throw new Error(
+        `Could not open project ${title != null ? `'${title}'` : `with ID '${projectId}'`}: ${
+          errorModule.tryGetMessage(error) ?? 'unknown error'
+        }.`
+      )
     }
   }
 
@@ -477,6 +492,11 @@ export default class LocalBackend extends Backend {
   }
 
   /** Invalid operation. */
+  override removeUser() {
+    return this.invalidOperation()
+  }
+
+  /** Invalid operation. */
   override uploadUserPicture() {
     return this.invalidOperation()
   }
@@ -513,7 +533,7 @@ export default class LocalBackend extends Backend {
 
   /** Return `null`. This function should never need to be called. */
   override usersMe() {
-    return Promise.resolve(null)
+    return this.invalidOperation()
   }
 
   /** Create a directory. */
@@ -584,15 +604,34 @@ export default class LocalBackend extends Backend {
     const to = projectManager.joinPath(projectManager.Path(folderPath), body.title)
     await this.projectManager.moveFile(from, to)
   }
+  /** Return a {@link Promise} that resolves only when a project is ready to open. */
+  override async waitUntilProjectIsReady(
+    projectId: backend.ProjectId,
+    directory: backend.DirectoryId | null,
+    title: string
+  ) {
+    return await this.getProjectDetails(projectId, directory, title)
+  }
 
   /** Construct a new path using the given parent directory and a file name. */
   joinPath(parentId: backend.DirectoryId, fileName: string) {
     return projectManager.joinPath(extractTypeAndId(parentId).id, fileName)
   }
 
-  /** Invalid operation. */
-  override updateDirectory() {
-    return this.invalidOperation()
+  /** Change the name of a directory. */
+  override async updateDirectory(
+    directoryId: backend.DirectoryId,
+    body: backend.UpdateDirectoryRequestBody
+  ): Promise<backend.UpdatedDirectory> {
+    const from = extractTypeAndId(directoryId).id
+    const folderPath = projectManager.Path(fileInfo.folderPath(from))
+    const to = projectManager.joinPath(folderPath, body.title)
+    await this.projectManager.moveFile(from, to)
+    return {
+      id: newDirectoryId(to),
+      parentId: newDirectoryId(folderPath),
+      title: body.title,
+    }
   }
 
   /** Invalid operation. */
@@ -622,6 +661,16 @@ export default class LocalBackend extends Backend {
 
   /** Invalid operation. */
   override getFileDetails() {
+    return this.invalidOperation()
+  }
+
+  /** Invalid operation. */
+  override listProjectSessions() {
+    return this.invalidOperation()
+  }
+
+  /** Invalid operation. */
+  override getProjectSessionLogs() {
     return this.invalidOperation()
   }
 
@@ -670,7 +719,8 @@ export default class LocalBackend extends Backend {
     return this.invalidOperation()
   }
 
-  /** Return an empty array. This function should never need to be called. */
+  /** Return an empty array. This function is required to be implemented as it is unconditionally
+   * called, but its result should never need to be used. */
   override listTags() {
     return Promise.resolve([])
   }
@@ -710,27 +760,28 @@ export default class LocalBackend extends Backend {
     return this.invalidOperation()
   }
 
-  /**
-   * Invalid operation.
-   */
+  /** Invalid operation. */
   override listInvitations() {
     return this.invalidOperation()
   }
-  /**
-   * Invalid operation.
-   */
-  override deleteInvitation(): Promise<void> {
+
+  /** Invalid operation. */
+  override deleteInvitation() {
     return this.invalidOperation()
   }
-  /**
-   * Invalid operation.
-   */
-  override resendInvitation(): Promise<void> {
+
+  /** Invalid operation. */
+  override resendInvitation() {
     return this.invalidOperation()
   }
 
   /** Invalid operation. */
   override getLogEvents() {
+    return this.invalidOperation()
+  }
+
+  /** Invalid operation. */
+  override logEvent() {
     return this.invalidOperation()
   }
 }

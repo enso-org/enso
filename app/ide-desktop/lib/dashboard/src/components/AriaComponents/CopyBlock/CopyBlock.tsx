@@ -1,24 +1,14 @@
-/**
- * @file
- *
- * CopyBlock component.
- */
+/** @file A block of text with a copy button. */
 
 import * as React from 'react'
 
-import * as twv from 'tailwind-variants'
-
 import * as ariaComponents from '#/components/AriaComponents'
 
-/**
- *
- */
-export interface CopyBlockProps {
-  readonly title?: React.ReactNode
-  readonly copyText: string
-  readonly className?: string
-  readonly onCopy?: () => void
-}
+import * as twv from '#/utilities/tailwindVariants'
+
+// =================
+// === Constants ===
+// =================
 
 const COPY_BLOCK_STYLES = twv.tv({
   base: 'relative grid grid-cols-[minmax(0,_1fr)_auto] max-w-full bg-primary/10 items-center',
@@ -47,18 +37,26 @@ const COPY_BLOCK_STYLES = twv.tv({
   },
 })
 
-/**
- * A block of text with a copy button.
- */
+// =================
+// === CopyBlock ===
+// =================
+
+/** Props for a {@link CopyBlock}. */
+export interface CopyBlockProps {
+  readonly title?: React.ReactNode
+  readonly copyText: string
+  readonly className?: string
+  readonly onCopy?: () => void
+}
+
+/** A block of text with a copy button. */
 export function CopyBlock(props: CopyBlockProps) {
   const { copyText, className, onCopy = () => {} } = props
-
   const { copyTextBlock, base, copyButton } = COPY_BLOCK_STYLES()
 
   return (
     <div className={base({ className })}>
       <div className={copyTextBlock()}>{copyText}</div>
-
       <ariaComponents.CopyButton copyText={copyText} onCopy={onCopy} className={copyButton()} />
     </div>
   )

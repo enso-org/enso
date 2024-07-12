@@ -2,6 +2,7 @@
   "extends": "@vue/tsconfig/tsconfig.dom.json",
   "include": [
     "env.d.ts",
+    "lib0-ext.d.ts",
     "src/**/*",
     "src/**/*.vue",
     "shared/**/*",
@@ -9,7 +10,8 @@
     "src/util/theme.json",
     "stories/mockSuggestions.json",
     "mock/**/*",
-    "mock/**/*.vue"
+    "mock/**/*.vue",
+    "src/**/__tests__/*.json"
   ],
   "exclude": ["src/**/__tests__/*", "shared/**/__tests__/*", "public/**/__tests__/*"],
   "compilerOptions": {

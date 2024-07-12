@@ -31,10 +31,10 @@ pub mod env {
     }
     pub mod tests {
         ide_ci::define_env_var! {
-            ENSO_DATABASE_TEST_DB_NAME, String;
-            ENSO_DATABASE_TEST_HOST, String;
-            ENSO_DATABASE_TEST_DB_USER, String;
-            ENSO_DATABASE_TEST_DB_PASSWORD, String;
+            ENSO_POSTGRES_DATABASE, String;
+            ENSO_POSTGRES_HOST, String;
+            ENSO_POSTGRES_USER, String;
+            ENSO_POSTGRES_PASSWORD, String;
         }
     }
 }
@@ -85,22 +85,22 @@ impl Configuration {
     }
 
     pub fn set_enso_test_env(&self) -> Result {
-        env::tests::ENSO_DATABASE_TEST_DB_NAME.set(&self.database_name)?;
-        env::tests::ENSO_DATABASE_TEST_HOST.set(&match &self.endpoint {
+        env::tests::ENSO_POSTGRES_DATABASE.set(&self.database_name)?;
+        env::tests::ENSO_POSTGRES_HOST.set(&match &self.endpoint {
             EndpointConfiguration::Host { port } => format!("localhost:{port}"),
             EndpointConfiguration::Container { .. } =>
                 format!("localhost:{POSTGRES_CONTAINER_DEFAULT_PORT}"),
         })?;
-        env::tests::ENSO_DATABASE_TEST_DB_USER.set(&self.user)?;
-        env::tests::ENSO_DATABASE_TEST_DB_PASSWORD.set(&self.password)?;
+        env::tests::ENSO_POSTGRES_USER.set(&self.user)?;
+        env::tests::ENSO_POSTGRES_PASSWORD.set(&self.password)?;
         Ok(())
     }
 
     pub fn clear_enso_test_env(&self) {
-        env::tests::ENSO_DATABASE_TEST_DB_NAME.remove();
-        env::tests::ENSO_DATABASE_TEST_HOST.remove();
-        env::tests::ENSO_DATABASE_TEST_DB_USER.remove();
-        env::tests::ENSO_DATABASE_TEST_DB_PASSWORD.remove();
+        env::tests::ENSO_POSTGRES_DATABASE.remove();
+        env::tests::ENSO_POSTGRES_HOST.remove();
+        env::tests::ENSO_POSTGRES_USER.remove();
+        env::tests::ENSO_POSTGRES_PASSWORD.remove();
     }
 
     pub async fn cleanup(&self) -> Result {

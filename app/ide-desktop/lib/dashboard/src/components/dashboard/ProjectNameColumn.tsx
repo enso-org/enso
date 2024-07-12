@@ -3,12 +3,12 @@ import * as React from 'react'
 
 import NetworkIcon from 'enso-assets/network.svg'
 
+import * as backendHooks from '#/hooks/backendHooks'
 import * as eventHooks from '#/hooks/eventHooks'
 import * as setAssetHooks from '#/hooks/setAssetHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
-import * as backendProvider from '#/providers/BackendProvider'
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as textProvider from '#/providers/TextProvider'
 
@@ -29,6 +29,7 @@ import * as indent from '#/utilities/indent'
 import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
 import * as string from '#/utilities/string'
+import * as tailwindMerge from '#/utilities/tailwindMerge'
 import * as validation from '#/utilities/validation'
 import Visibility from '#/utilities/Visibility'
 
@@ -43,14 +44,26 @@ export interface ProjectNameColumnProps extends column.AssetColumnProps {}
  * @throws {Error} when the asset is not a {@link backendModule.ProjectAsset}.
  * This should never happen. */
 export default function ProjectNameColumn(props: ProjectNameColumnProps) {
-  const { item, setItem, selected, rowState, setRowState, state, isEditable } = props
-  const { selectedKeys, assetEvents, dispatchAssetEvent, dispatchAssetListEvent } = state
-  const { nodeMap, doOpenManually, doOpenEditor, doCloseEditor } = state
+  const {
+    item,
+    setItem,
+    selected,
+    rowState,
+    setRowState,
+    state,
+    isEditable,
+    doCloseProject,
+    doOpenProject,
+    backendType,
+    isOpened,
+  } = props
+  const { backend, selectedKeys, assetEvents, dispatchAssetListEvent } = state
+  const { nodeMap, doOpenEditor } = state
   const toastAndLog = toastAndLogHooks.useToastAndLog()
-  const { backend } = backendProvider.useStrictBackend()
   const { user } = authProvider.useNonPartialUserSession()
   const { getText } = textProvider.useText()
   const inputBindings = inputBindingsProvider.useInputBindings()
+
   if (item.type !== backendModule.AssetType.project) {
     // eslint-disable-next-line no-restricted-syntax
     throw new Error('`ProjectNameColumn` can only display projects.')
@@ -59,7 +72,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
   const setAsset = setAssetHooks.useSetAsset(asset, setItem)
   const ownPermission =
     asset.permissions?.find(
-      backendModule.isUserPermissionAnd(permission => permission.user.userId === user?.userId)
+      backendModule.isUserPermissionAnd(permission => permission.user.userId === user.userId)
     ) ?? null
   // This is a workaround for a temporary bad state in the backend causing the `projectState` key
   // to be absent.
@@ -73,10 +86,15 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
     (backend.type === backendModule.BackendType.local ||
       (ownPermission != null &&
         permissions.PERMISSION_ACTION_CAN_EXECUTE[ownPermission.permission]))
+  const isCloud = backend.type === backendModule.BackendType.remote
   const isOtherUserUsingProject =
-    backend.type !== backendModule.BackendType.local &&
-    projectState.openedBy != null &&
-    projectState.openedBy !== user?.email
+    isCloud && projectState.openedBy != null && projectState.openedBy !== user.email
+
+  const createProjectMutation = backendHooks.useBackendMutation(backend, 'createProject')
+  const updateProjectMutation = backendHooks.useBackendMutation(backend, 'updateProject')
+  const duplicateProjectMutation = backendHooks.useBackendMutation(backend, 'duplicateProject')
+  const getProjectDetailsMutation = backendHooks.useBackendMutation(backend, 'getProjectDetails')
+  const uploadFileMutation = backendHooks.useBackendMutation(backend, 'uploadFile')
 
   const setIsEditing = (isEditingName: boolean) => {
     if (isEditable) {
@@ -93,11 +111,11 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
       const oldTitle = asset.title
       setAsset(object.merger({ title: newTitle }))
       try {
-        await backend.updateProject(
+        await updateProjectMutation.mutateAsync([
           asset.id,
           { ami: null, ideVersion: null, projectName: newTitle, parentId: asset.parentId },
-          asset.title
-        )
+          asset.title,
+        ])
       } catch (error) {
         toastAndLog('renameProjectError', error)
         setAsset(object.merger({ title: oldTitle }))
@@ -143,15 +161,21 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
             try {
               const createdProject =
                 event.originalId == null || event.versionId == null
-                  ? await backend.createProject({
-                      parentDirectoryId: asset.parentId,
-                      projectName: asset.title,
-                      ...(event.templateId == null
-                        ? {}
-                        : { projectTemplateName: event.templateId }),
-                      ...(event.datalinkId == null ? {} : { datalinkId: event.datalinkId }),
-                    })
-                  : await backend.duplicateProject(event.originalId, event.versionId, asset.title)
+                  ? await createProjectMutation.mutateAsync([
+                      {
+                        parentDirectoryId: asset.parentId,
+                        projectName: asset.title,
+                        ...(event.templateId == null
+                          ? {}
+                          : { projectTemplateName: event.templateId }),
+                        ...(event.datalinkId == null ? {} : { datalinkId: event.datalinkId }),
+                      },
+                    ])
+                  : await duplicateProjectMutation.mutateAsync([
+                      event.originalId,
+                      event.versionId,
+                      asset.title,
+                    ])
               rowState.setVisibility(Visibility.visible)
               setAsset(
                 object.merge(asset, {
@@ -164,11 +188,11 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                   }),
                 })
               )
-              dispatchAssetEvent({
-                type: AssetEventType.openProject,
+              doOpenProject({
                 id: createdProject.projectId,
-                shouldAutomaticallySwitchPage: true,
-                runInBackground: false,
+                type: backendType,
+                parentId: asset.parentId,
+                title: asset.title,
               })
             } catch (error) {
               dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
@@ -210,18 +234,18 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                   id = await response.text()
                 }
                 const projectId = localBackend.newProjectId(projectManager.UUID(id))
-                const listedProject = await backend.getProjectDetails(
+                const listedProject = await getProjectDetailsMutation.mutateAsync([
                   projectId,
                   asset.parentId,
-                  file.name
-                )
+                  file.name,
+                ])
                 rowState.setVisibility(Visibility.visible)
                 setAsset(object.merge(asset, { title: listedProject.packageName, id: projectId }))
               } else {
-                const createdFile = await backend.uploadFile(
+                const createdFile = await uploadFileMutation.mutateAsync([
                   { fileId, fileName: `${title}.${extension}`, parentDirectoryId: asset.parentId },
-                  file
-                )
+                  file,
+                ])
                 const project = createdFile.project
                 if (project == null) {
                   throw new Error('The uploaded file was not a project.')
@@ -259,22 +283,6 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
   )
 
   const handleClick = inputBindings.handler({
-    open: () => {
-      dispatchAssetEvent({
-        type: AssetEventType.openProject,
-        id: asset.id,
-        shouldAutomaticallySwitchPage: true,
-        runInBackground: false,
-      })
-    },
-    run: () => {
-      dispatchAssetEvent({
-        type: AssetEventType.openProject,
-        id: asset.id,
-        shouldAutomaticallySwitchPage: false,
-        runInBackground: true,
-      })
-    },
     editName: () => {
       setIsEditing(true)
     },
@@ -282,9 +290,10 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
 
   return (
     <div
-      className={`flex h-full min-w-max items-center gap-name-column-icon whitespace-nowrap rounded-l-full px-name-column-x py-name-column-y ${indent.indentClass(
-        item.depth
-      )}`}
+      className={tailwindMerge.twMerge(
+        'flex h-table-row min-w-max items-center gap-name-column-icon whitespace-nowrap rounded-l-full px-name-column-x py-name-column-y',
+        indent.indentClass(item.depth)
+      )}
       onKeyDown={event => {
         if (rowState.isEditingName && event.key === 'Enter') {
           event.stopPropagation()
@@ -302,49 +311,44 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
           selectedKeys.current.size === 1
         ) {
           setIsEditing(true)
+        } else if (eventModule.isDoubleClick(event)) {
+          doOpenProject({
+            id: asset.id,
+            type: backendType,
+            parentId: asset.parentId,
+            title: asset.title,
+          })
         }
       }}
     >
       {!canExecute ? (
-        <SvgMask src={NetworkIcon} className="m-name-column-icon size-icon" />
+        <SvgMask src={NetworkIcon} className="m-name-column-icon size-4" />
       ) : (
         <ProjectIcon
-          keyProp={item.key}
+          isOpened={isOpened}
+          backend={backend}
           // This is a workaround for a temporary bad state in the backend causing the
           // `projectState` key to be absent.
           item={object.merge(asset, { projectState })}
-          setItem={setAsset}
-          assetEvents={assetEvents}
-          doOpenManually={doOpenManually}
-          doOpenEditor={switchPage => {
-            doOpenEditor(asset, setAsset, switchPage)
+          doCloseProject={id => {
+            doCloseProject({ id, parentId: asset.parentId, title: asset.title, type: backendType })
           }}
-          doCloseEditor={() => {
-            doCloseEditor(asset)
+          doOpenProject={id => {
+            doOpenProject({ id, type: backendType, parentId: asset.parentId, title: asset.title })
           }}
+          openProjectTab={doOpenEditor}
         />
       )}
       <EditableSpan
         data-testid="asset-row-name"
         editable={rowState.isEditingName}
-        className={`text grow bg-transparent ${
-          rowState.isEditingName
-            ? 'cursor-text'
-            : canExecute && !isOtherUserUsingProject
-              ? 'cursor-pointer'
-              : ''
-        }`}
+        className={tailwindMerge.twMerge(
+          'text grow bg-transparent font-naming',
+          canExecute && !isOtherUserUsingProject && 'cursor-pointer',
+          rowState.isEditingName && 'cursor-text'
+        )}
         checkSubmittable={newTitle =>
-          newTitle !== item.item.title &&
-          (nodeMap.current.get(item.directoryKey)?.children ?? []).every(
-            child =>
-              // All siblings,
-              child.key === item.key ||
-              // that are not directories,
-              backendModule.assetIsDirectory(child.item) ||
-              // must have a different name.
-              child.item.title !== newTitle
-          )
+          item.isNewTitleValid(newTitle, nodeMap.current.get(item.directoryKey)?.children)
         }
         onSubmit={doRename}
         onCancel={() => {

@@ -9,13 +9,15 @@ import type * as z from 'zod'
 
 import type * as aria from '#/components/aria'
 
+import type * as schemaModule from './schema'
+
 /**
  * Field values type.
  */
 // eslint-disable-next-line no-restricted-syntax
-export type FieldValues<Schema extends TSchema | undefined> =
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  Schema extends z.ZodObject<any> ? z.infer<Schema> : reactHookForm.FieldValues
+export type FieldValues<Schema extends TSchema | undefined> = Schema extends z.AnyZodObject
+  ? z.infer<Schema>
+  : reactHookForm.FieldValues
 
 /**
  * Field path type.
@@ -29,8 +31,7 @@ export type FieldPath<
 /**
  * Schema type
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type TSchema = z.ZodObject<any>
+export type TSchema = z.AnyZodObject
 
 /**
  * Props for the useForm hook.
@@ -40,7 +41,7 @@ export interface UseFormProps<Schema extends TSchema, TFieldValues extends Field
     reactHookForm.UseFormProps<TFieldValues>,
     'handleSubmit' | 'resetOptions' | 'resolver'
   > {
-  readonly schema: Schema
+  readonly schema: Schema | ((schema: typeof schemaModule.schema) => Schema)
 }
 
 /**
@@ -50,7 +51,6 @@ export interface UseFormProps<Schema extends TSchema, TFieldValues extends Field
 export type UseFormReturn<
   Schema extends TSchema,
   TFieldValues extends FieldValues<Schema>,
-  // eslint-disable-next-line no-restricted-syntax
   TTransformedValues extends Record<string, unknown> | undefined = undefined,
 > = reactHookForm.UseFormReturn<TFieldValues, unknown, TTransformedValues>
 
@@ -70,7 +70,6 @@ export type FormState<
 export type FormInstance<
   Schema extends TSchema,
   TFieldValues extends FieldValues<Schema>,
-  // eslint-disable-next-line no-restricted-syntax
   TTransformedValues extends Record<string, unknown> | undefined = undefined,
 > = UseFormReturn<Schema, TFieldValues, TTransformedValues>
 
@@ -82,14 +81,12 @@ export interface FormWithValueValidation<
   Schema extends TSchema,
   TFieldValues extends FieldValues<Schema>,
   TFieldName extends FieldPath<Schema, TFieldValues>,
-  // eslint-disable-next-line no-restricted-syntax
   TTransformedValues extends FieldValues<Schema> | undefined = undefined,
 > {
   readonly form?:
     | (BaseValueType extends TFieldValues[TFieldName]
         ? FormInstance<Schema, TFieldValues, TTransformedValues>
         : 'Type mismatch: Field with this name has a different type than the value of the component.')
-    // eslint-disable-next-line no-restricted-syntax
     | undefined
 }
 

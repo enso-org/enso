@@ -19,16 +19,16 @@
 
 package org.enso.interpreter.arrow.runtime;
 
-class RoundingUtil {
+final class RoundingUtil {
 
   /** The mask for rounding an integer to a multiple of 8. (i.e. clear the lowest 3 bits) */
-  static int ROUND_8_MASK_INT = 0xFFFFFFF8;
+  static final int ROUND_8_MASK_INT = 0xFFFFFFF8;
 
   /** The mask for rounding a long integer to a multiple of 8. (i.e. clear the lowest 3 bits) */
-  static long ROUND_8_MASK_LONG = 0xFFFFFFFFFFFFFFF8L;
+  static final long ROUND_8_MASK_LONG = 0xFFFFFFFFFFFFFFF8L;
 
   /** The number of bits to shift for dividing by 8. */
-  static int DIVIDE_BY_8_SHIFT_BITS = 3;
+  static final int DIVIDE_BY_8_SHIFT_BITS = 3;
 
   private RoundingUtil() {}
 
@@ -91,13 +91,15 @@ class RoundingUtil {
       return (int) (dataBufferSize + validityBitmapSize);
     }
 
-    private long validityBitmapSize;
-    private long dataBufferSize;
+    private final long validityBitmapSize;
+    private final long dataBufferSize;
 
     private PaddedSize(int valueCount, SizeInBytes unit) {
       this.valueCount = valueCount;
       this.unit = unit;
-      computeBufferSize(valueCount, unit);
+      var pair = computeBufferSize(valueCount, unit);
+      this.validityBitmapSize = pair[0];
+      this.dataBufferSize = pair[1];
     }
 
     private long defaultRoundedSize(long val) {
@@ -127,7 +129,7 @@ class RoundingUtil {
       return defaultRoundedSize(bufferSize);
     }
 
-    private void computeBufferSize(int valueCount, SizeInBytes unit) {
+    private long[] computeBufferSize(int valueCount, SizeInBytes unit) {
       var typeWidth = unit.sizeInBytes();
       long bufferSize = computeCombinedBufferSize(valueCount, typeWidth);
       assert bufferSize <= Long.MAX_VALUE;
@@ -149,8 +151,7 @@ class RoundingUtil {
           --actualCount;
         } while (true);
       }
-      this.validityBitmapSize = validityBufferSize;
-      this.dataBufferSize = dataBufferSize;
+      return new long[] {validityBufferSize, dataBufferSize};
     }
   }
 }

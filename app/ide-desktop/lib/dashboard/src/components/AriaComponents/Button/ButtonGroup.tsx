@@ -1,14 +1,11 @@
-/** @file A styled button. */
+/** @file A group of buttons. */
 import * as React from 'react'
 
-import * as twv from 'tailwind-variants'
+import * as twv from '#/utilities/tailwindVariants'
 
-/**
- * Props for a {@link ButtonGroup}.
- */
-interface ButtonGroupProps extends React.PropsWithChildren, twv.VariantProps<typeof STYLES> {
-  readonly className?: string
-}
+// =================
+// === Constants ===
+// =================
 
 const STYLES = twv.tv({
   base: 'flex w-full flex-1 shrink-0',
@@ -32,17 +29,32 @@ const STYLES = twv.tv({
       around: 'justify-around',
       evenly: 'justify-evenly',
     },
+    verticalAlign: {
+      start: 'items-start',
+      center: 'items-center',
+      end: 'items-end',
+    },
   },
   compoundVariants: [
     { direction: 'column', align: 'start', class: 'items-start' },
     { direction: 'column', align: 'center', class: 'items-center' },
     { direction: 'column', align: 'end', class: 'items-end' },
+    { direction: 'column', verticalAlign: 'start', class: 'justify-start' },
+    { direction: 'column', verticalAlign: 'center', class: 'justify-center' },
+    { direction: 'column', verticalAlign: 'end', class: 'justify-end' },
   ],
 })
 
-/**
- * A group of buttons.
- */
+// ===================
+// === ButtonGroup ===
+// ===================
+
+/** Props for a {@link ButtonGroup}. */
+interface ButtonGroupProps extends React.PropsWithChildren, twv.VariantProps<typeof STYLES> {
+  readonly className?: string
+}
+
+/** A group of buttons. */
 export function ButtonGroup(props: ButtonGroupProps) {
   const {
     children,
@@ -51,7 +63,8 @@ export function ButtonGroup(props: ButtonGroupProps) {
     wrap = false,
     direction = 'row',
     align,
-    ...rest
+    verticalAlign,
+    ...passthrough
   } = props
 
   return (
@@ -61,9 +74,10 @@ export function ButtonGroup(props: ButtonGroupProps) {
         wrap,
         direction,
         align,
+        verticalAlign,
         className,
       })}
-      {...rest}
+      {...passthrough}
     >
       {children}
     </div>

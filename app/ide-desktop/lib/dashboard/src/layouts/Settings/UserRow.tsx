@@ -12,11 +12,12 @@ import * as textProvider from '#/providers/TextProvider'
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 import ContextMenuEntry from '#/components/ContextMenuEntry'
-import UnstyledButton from '#/components/UnstyledButton'
 
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 
 import type * as backend from '#/services/Backend'
+
+import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 // ===============
 // === UserRow ===
@@ -36,7 +37,7 @@ export default function UserRow(props: UserRowProps) {
   const { user: self } = authProvider.useNonPartialUserSession()
   const { setModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
-  const isSelf = user.userId === self?.userId
+  const isSelf = user.userId === self.userId
   const doDeleteUser = isSelf ? null : doDeleteUserRaw
 
   const contextMenuRef = contextMenuHooks.useContextMenuRef(
@@ -64,7 +65,10 @@ export default function UserRow(props: UserRowProps) {
   return (
     <aria.Row
       id={user.userId}
-      className={`group h-row rounded-rows-child ${draggable ? 'cursor-grab' : ''}`}
+      className={tailwindMerge.twMerge(
+        'group h-row rounded-rows-child',
+        draggable && 'cursor-grab'
+      )}
       ref={contextMenuRef}
     >
       <aria.Cell className="text relative overflow-hidden whitespace-nowrap border-x-2 border-transparent bg-clip-padding px-cell-x first:rounded-l-full last:rounded-r-full last:border-r-0 group-selected:bg-selected-frame">
@@ -89,8 +93,11 @@ export default function UserRow(props: UserRowProps) {
       {doDeleteUserRaw == null ? null : doDeleteUser == null ? (
         <></>
       ) : (
-        <aria.Cell className="relative bg-transparent p transparent group-hover-2:opacity-100">
-          <UnstyledButton
+        <aria.Cell className="relative bg-transparent p-0 opacity-0 group-hover-2:opacity-100">
+          <ariaComponents.Button
+            size="custom"
+            variant="custom"
+            className="absolute right-full mr-4 size-4 -translate-y-1/2"
             onPress={event => {
               const rect = event.target.getBoundingClientRect()
               const position = { pageX: rect.left, pageY: rect.top }
@@ -104,10 +111,9 @@ export default function UserRow(props: UserRowProps) {
                 />
               )
             }}
-            className="absolute right-full mr-4 size-icon -translate-y-1/2"
           >
-            <img src={Cross2} className="size-icon" />
-          </UnstyledButton>
+            <img src={Cross2} className="size-4" />
+          </ariaComponents.Button>
         </aria.Cell>
       )}
     </aria.Row>

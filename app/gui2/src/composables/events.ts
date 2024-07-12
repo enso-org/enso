@@ -1,5 +1,6 @@
 /** @file Vue composables for listening to DOM events. */
 
+import type { KeyboardComposable } from '@/composables/keyboard.ts'
 import type { Opt } from '@/util/data/opt'
 import { Vec2 } from '@/util/data/vec2'
 import { type VueInstance } from '@vueuse/core'
@@ -114,8 +115,20 @@ export function useEventConditional(
 }
 
 /** Whether any element currently has keyboard focus. */
-export function keyboardBusy() {
-  return document.activeElement != document.body
+export function keyboardBusy(): boolean {
+  return (
+    document.activeElement !== document.body &&
+    document.activeElement instanceof HTMLElement &&
+    isEditable(document.activeElement)
+  )
+}
+
+function isEditable(element: HTMLElement) {
+  return (
+    element.isContentEditable ||
+    element instanceof HTMLInputElement ||
+    element instanceof HTMLTextAreaElement
+  )
 }
 
 /** Whether focused element is within given element's subtree. */
@@ -139,12 +152,32 @@ export function modKey(e: KeyboardEvent | MouseEvent): boolean {
   return isMacLike ? e.metaKey : e.ctrlKey
 }
 
-/** A helper for getting Element out of VueInstance, it allows using `useResizeObserver` with Vue components. */
+/** A helper for getting Element out of VueInstance, it allows using `useResizeObserver` with Vue components.
+ *
+ * Note that this function is only shallowly reactive: It will trigger its reactive scope if the value of `element`
+ * changes, but not if the root `Element` of the provided `VueInstance` changes. This is because a
+ * `ComponentPublicInstance` is implicitly treated as if `markRaw` were applied[^1]. As a result, this function should
+ * not be used for any component that may have a dynamic root element; rather, the component can use `defineExpose` to
+ * provide access to a `ref`.
+ *
+ * [^1]: https://github.com/vuejs/core/blob/ae97e5053895eeaaa443306e72cd8f45da001179/packages/runtime-core/src/componentPublicInstance.ts#L312
+ */
 export function unrefElement(
   element: Ref<Element | undefined | null | VueInstance>,
 ): Element | undefined | null {
   const plain = toValue(element)
-  return (plain as VueInstance)?.$el ?? plain
+  const result = (plain as VueInstance)?.$el ?? plain
+  // A component's root can be a Node (if it's a fragment), TextNode, or Comment (if its root uses a v-if).
+  if (result != null && !(result instanceof Element)) {
+    if (result instanceof Comment && result.data.includes('v-if')) {
+      console.warn(
+        "unrefElement: Component root is a v-if, but a root element can't be watched reactively.",
+        result,
+      )
+    }
+    return undefined
+  }
+  return result
 }
 
 interface ResizeObserverData {
@@ -527,4 +560,86 @@ export function useArrows(
   )
 
   return { events, moving }
+}
+
+/** Supports panning or zooming "capturing" wheel events.
+ *
+ * While events are captured, further events of the same type will continue the pan/zoom action.
+ * The capture expires if no events are received within the specified `captureDurationMs`.
+ * A trackpad capture also expires if any pointer movement occurs.
+ */
+export function useWheelActions(
+  keyboard: KeyboardComposable,
+  captureDurationMs: number,
+  onZoom: (e: WheelEvent, inputType: 'trackpad' | 'wheel') => boolean | void,
+  onPan: (e: WheelEvent) => boolean | void,
+) {
+  let prevEventPanInfo:
+    | ({ expiration: number } & (
+        | { type: 'trackpad-zoom' }
+        | { type: 'wheel-zoom' }
+        | { type: 'pan'; trackpad: boolean }
+      ))
+    | undefined = undefined
+
+  type WheelEventType = 'trackpad-zoom' | 'wheel-zoom' | 'pan'
+  function classifyEvent(e: WheelEvent): WheelEventType {
+    if (e.ctrlKey) {
+      // A pinch gesture is represented by setting `e.ctrlKey`. It can be distinguished from an actual Ctrl+wheel
+      // combination because the real Ctrl key emits keyup/keydown events.
+      const isGesture = !keyboard.ctrl
+      return isGesture ? 'trackpad-zoom' : 'wheel-zoom'
+    } else {
+      return 'pan'
+    }
+  }
+
+  function handleWheel(e: WheelEvent) {
+    const newType = classifyEvent(e)
+    if (e.eventPhase === e.CAPTURING_PHASE) {
+      if (newType !== prevEventPanInfo?.type || e.timeStamp > prevEventPanInfo.expiration) {
+        prevEventPanInfo = undefined
+        return
+      }
+    }
+    const expiration = e.timeStamp + captureDurationMs
+    if (newType === 'wheel-zoom') {
+      prevEventPanInfo = { expiration, type: newType }
+      onZoom(e, 'wheel')
+    } else if (newType === 'trackpad-zoom') {
+      prevEventPanInfo = { expiration, type: newType }
+      onZoom(e, 'trackpad')
+    } else if (newType === 'pan') {
+      const alreadyKnownTrackpad = prevEventPanInfo?.type === 'pan' && prevEventPanInfo.trackpad
+      prevEventPanInfo = {
+        expiration,
+        type: newType,
+        // Heuristic: Trackpad panning is usually multi-axis; wheel panning is not.
+        trackpad: alreadyKnownTrackpad || (e.deltaX !== 0 && e.deltaY !== 0),
+      }
+      onPan(e)
+    }
+    e.preventDefault()
+    e.stopPropagation()
+  }
+
+  function pointermove() {
+    // If a `pointermove` event occurs, any trackpad action has ended.
+    if (
+      prevEventPanInfo?.type === 'trackpad-zoom' ||
+      (prevEventPanInfo?.type === 'pan' && prevEventPanInfo.trackpad)
+    ) {
+      prevEventPanInfo = undefined
+    }
+  }
+
+  return {
+    events: {
+      wheel: handleWheel,
+    },
+    captureEvents: {
+      pointermove,
+      wheel: handleWheel,
+    },
+  }
 }

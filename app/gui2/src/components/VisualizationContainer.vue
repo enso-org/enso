@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import ResizeHandles from '@/components/ResizeHandles.vue'
-import SmallPlusButton from '@/components/SmallPlusButton.vue'
 import SvgButton from '@/components/SvgButton.vue'
 import VisualizationSelector from '@/components/VisualizationSelector.vue'
 import { isTriggeredByKeyboard } from '@/composables/events'
@@ -103,6 +102,7 @@ const contentStyle = computed(() => {
       :style="{
         '--color-visualization-bg': config.background,
         '--node-height': `${config.nodeSize.y}px`,
+        ...(config.isPreview ? { pointerEvents: 'none' } : {}),
       }"
     >
       <div
@@ -115,19 +115,16 @@ const contentStyle = computed(() => {
         <slot></slot>
       </div>
       <ResizeHandles
+        v-if="!config.isPreview"
         v-model="clientBounds"
         left
         right
         bottom
         @update:resizing="resizing = $event"
       />
-      <SmallPlusButton
-        v-if="config.isCircularMenuVisible"
-        class="below-viz"
-        @createNodes="config.createNodes(...$event)"
-      />
       <div class="toolbars">
         <div
+          v-if="!config.isPreview"
           :class="{
             toolbar: true,
             invisible: config.isCircularMenuVisible,
@@ -136,7 +133,7 @@ const contentStyle = computed(() => {
         >
           <SvgButton name="eye" alt="Hide visualization" @click.stop="config.hide()" />
         </div>
-        <div class="toolbar">
+        <div v-if="!config.isPreview" class="toolbar">
           <SvgButton
             :name="config.fullscreen ? 'exit_fullscreen' : 'fullscreen'"
             :title="config.fullscreen ? 'Exit Fullscreen' : 'Fullscreen'"
@@ -162,7 +159,7 @@ const contentStyle = computed(() => {
             </Suspense>
           </div>
         </div>
-        <div v-if="$slots.toolbar" class="visualization-defined-toolbars">
+        <div v-if="$slots.toolbar && !config.isPreview" class="visualization-defined-toolbars">
           <div class="toolbar"><slot name="toolbar"></slot></div>
         </div>
         <div
@@ -181,6 +178,7 @@ const contentStyle = computed(() => {
   --permanent-toolbar-width: 200px;
   --resize-handle-inside: var(--visualization-resize-handle-inside);
   --resize-handle-outside: var(--visualization-resize-handle-outside);
+  --resize-handle-radius: var(--radius-default);
   color: var(--color-text);
   background: var(--color-visualization-bg);
   position: absolute;
@@ -224,6 +222,7 @@ const contentStyle = computed(() => {
 
 .content {
   overflow: auto;
+  contain: strict;
 }
 
 .content.overflow {
@@ -254,12 +253,6 @@ const contentStyle = computed(() => {
 
 .VisualizationContainer.fullscreen .toolbars {
   top: 4px;
-}
-
-.below-viz {
-  position: absolute;
-  top: 100%;
-  margin-top: 4px;
 }
 
 .toolbar {

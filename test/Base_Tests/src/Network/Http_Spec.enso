@@ -212,7 +212,7 @@ add_specs suite_builder =
             auto_response = Data.read url_get
             auto_response.should_be_a JS_Object
 
-            plain_response = Data.read url_get format=Plain_Text
+            plain_response = Data.read url_get format=..Plain_Text
             plain_response.should_be_a Text
 
     suite_builder.group "post" pending=pending_has_url group_builder->
@@ -288,14 +288,14 @@ add_specs suite_builder =
 
         group_builder.specify "Can perform a url-encoded form POST" <| Test.with_retries <|
             test_file = enso_project.data / "sample.txt"
-            form_data = Map.from_vector [["key", "val"], ["a_file", test_file]]
+            form_data = Dictionary.from_vector [["key", "val"], ["a_file", test_file]]
             response = Data.post url_post (Request_Body.Form_Data form_data url_encoded=True)
             response.at "headers" . at "Content-Type" . should_equal "application/x-www-form-urlencoded"
             response.at "data" . replace "%0D%" "%" . should_equal 'key=val&a_file=Cupcake+ipsum+dolor+sit+amet.+Caramels+tootsie+roll+cake+ice+cream.+Carrot+cake+apple+pie+gingerbread+chocolate+cake+pudding+tart+souffl%C3%A9+jelly+beans+gummies.%0A%0ATootsie+roll+chupa+chups+muffin+croissant+fruitcake+jujubes+danish+cotton+candy+danish.+Oat+cake+chocolate+fruitcake+halvah+icing+oat+cake+toffee+powder.+Pastry+drag%C3%A9e+croissant.+Ice+cream+candy+canes+dessert+muffin+sugar+plum+tart+jujubes.%0A'
 
         group_builder.specify "Can perform a multipart form POST" <| Test.with_retries <|
             test_file = enso_project.data / "sample.png"
-            form_data = Map.from_vector [["key", "val"], ["a_file", test_file]]
+            form_data = Dictionary.from_vector [["key", "val"], ["a_file", test_file]]
             response = Data.post url_post (Request_Body.Form_Data form_data)
             response_json = response
             response_json.at "headers" . at "Content-Type" . should_start_with "multipart/form-data; boundary="

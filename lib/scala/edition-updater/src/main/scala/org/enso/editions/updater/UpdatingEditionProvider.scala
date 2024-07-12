@@ -38,12 +38,8 @@ class UpdatingEditionProvider(
       case Right(value)     => Right(value)
     }
 
-  /** Finds all editions available on the [[searchPaths]]. */
-  override def findAvailableEditions(): Seq[String] =
-    provider.findAvailableEditions()
-
   /** Finds all available editions, performing an update if asked to. */
-  def findAvailableEditions(update: Boolean): Seq[String] = {
+  override def findAvailableEditions(update: Boolean): Seq[String] = {
     if (update) {
       updater.updateEditions()
     }

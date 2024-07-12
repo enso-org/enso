@@ -1,13 +1,11 @@
 import project.Any.Any
 import project.Data.Array.Array
-import project.Data.Index_Sub_Range.Index_Sub_Range
 import project.Data.Json.JS_Object
 import project.Data.Numbers.Integer
 import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Extensions
 import project.Data.Text.Matching_Mode.Matching_Mode
 import project.Data.Text.Text
-import project.Data.Text.Text_Sub_Range.Text_Sub_Range
 import project.Data.Time.Date_Time.Date_Time
 import project.Data.Vector.Vector
 import project.Enso_Cloud.Data_Link.Data_Link
@@ -18,6 +16,7 @@ import project.Errors.Common.Type_Error
 import project.Errors.File_Error.File_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Problem_Behavior.Problem_Behavior
+import project.Function.Function
 import project.Meta
 import project.Metadata.Display
 import project.Metadata.Widget
@@ -42,12 +41,11 @@ from project.System.File_Format import Auto_Detect, File_Format
 polyglot java import java.io.File as Java_File
 polyglot java import java.io.InputStream as Java_Input_Stream
 polyglot java import java.io.OutputStream as Java_Output_Stream
-polyglot java import java.nio.file.FileSystems
-polyglot java import java.nio.file.Path
 polyglot java import java.nio.file.StandardCopyOption
 polyglot java import java.nio.file.StandardOpenOption
 polyglot java import java.time.ZonedDateTime
 polyglot java import org.enso.base.DryRunFileManager
+polyglot java import org.enso.base.file_system.File_Utils
 polyglot java import org.enso.base.file_system.FileSystemSPI
 
 ## PRIVATE
@@ -123,7 +121,7 @@ type File
                         temp.delete_if_exists
 
             ## Attach a warning to the file that it is a dry run
-            warning = Dry_Run_Operation.Warning "Only a dry run has occurred, with data written to a temporary file.  Press the Record Once button ❙⬤❙ to write the actual file."
+            warning = Dry_Run_Operation.Warning "Only a dry run has occurred, with data written to a temporary file.  Press the Run Workflow button ▶ to write the actual file."
             Warning.attach warning temp
 
     ## ALIAS current directory
@@ -289,14 +287,15 @@ type File
              from Standard.Table import all
              import Standard.Examples
 
-             example_xls_to_table = Examples.xls.read (Excel_Format.Sheet 'Dates')
+             example_xls_to_table = Examples.xls.read (..Sheet 'Dates')
     @format File_Format.default_widget
     read : File_Format -> Problem_Behavior -> Any ! File_Error
-    read self format=Auto_Detect (on_problems : Problem_Behavior = Problem_Behavior.Report_Warning) =
+    read self format=Auto_Detect (on_problems : Problem_Behavior = ..Report_Warning) =
         if self.exists.not then Error.throw (File_Error.Not_Found self) else
-            if Data_Link.is_data_link self then Data_Link_Helpers.read_data_link self format on_problems else
-                File_Format.handle_format_missing_arguments format <|
-                    format.read self on_problems
+            if self.is_directory then Error.throw (Illegal_Argument.Error "Cannot `read` a directory, use `list`.") else
+                if Data_Link.is_data_link self then Data_Link_Helpers.read_data_link self format on_problems else
+                    resolved_format = File_Format.resolve format
+                    resolved_format.read self on_problems
 
     ## ALIAS load bytes, open bytes
        ICON data_input
@@ -333,7 +332,7 @@ type File
              example_read = Examples.csv.read
     @encoding Encoding.default_widget
     read_text : Encoding -> Problem_Behavior -> Text ! File_Error
-    read_text self (encoding : Encoding = Encoding.default) (on_problems : Problem_Behavior = Problem_Behavior.Report_Warning) =
+    read_text self (encoding : Encoding = Encoding.default) (on_problems : Problem_Behavior = ..Report_Warning) =
         bytes = self.read_bytes
         Text.from_bytes bytes encoding on_problems
 
@@ -789,17 +788,17 @@ type File
                  Examples.data_dir.list name_filter="**.{txt,md}" recursive=True
     list : Text -> Boolean -> Vector File
     list self name_filter:Text="" recursive:Boolean=False =
-        all_files = if recursive then list_descendants self else self.list_immediate_children
-        case name_filter of
-            "" -> all_files
-            _ ->
-                used_filter = if recursive.not || name_filter.contains "**" then name_filter else
-                    (if name_filter.starts_with "*" then "*" else "**/") + name_filter
-                fs = FileSystems.getDefault
-                matcher = fs.getPathMatcher "glob:"+used_filter
-                all_files.filter file->
-                    pathStr = self.relativize file . path
-                    matcher.matches (Path.of pathStr)
+        if self.is_directory.not then Error.throw (Illegal_Argument.Error "Cannot `list` a non-directory.") else
+            all_files = if recursive then list_descendants self else self.list_immediate_children
+            case name_filter of
+                "" -> all_files
+                _ ->
+                    used_filter = if recursive.not || name_filter.contains "**" then name_filter else
+                        (if name_filter.starts_with "*" then "*" else "**/") + name_filter
+                    matcher = File_Utils.matchPath "glob:"+used_filter
+                    all_files.filter file->
+                        pathStr = self.relativize file . path
+                        File_Utils.matches matcher pathStr
 
     ## GROUP Metadata
        ICON metadata
@@ -873,7 +872,7 @@ get_child_widget file =
 ## PRIVATE
 find_extension_from_name : Text -> Text
 find_extension_from_name name =
-    extension = name.drop (Text_Sub_Range.Before_Last ".")
+    extension = name.drop (..Before_Last ".")
     if extension == "." then "" else extension
 
 ## PRIVATE
@@ -894,11 +893,11 @@ Writable_File.from (that : File) = if Data_Link.is_data_link that then Data_Link
 ## PRIVATE
 local_file_copy (source : File) (destination : File) (replace_existing : Boolean) -> Nothing =
     File_Error.handle_java_exceptions source <|
-        copy_options = if replace_existing then [StandardCopyOption.REPLACE_EXISTING] else []
+        copy_options = if replace_existing then [StandardCopyOption.REPLACE_EXISTING.to_text] else []
         source.copy_builtin destination copy_options
 
 ## PRIVATE
 local_file_move (source : File) (destination : File) (replace_existing : Boolean) -> Nothing =
     File_Error.handle_java_exceptions source <|
-        copy_options = if replace_existing then [StandardCopyOption.REPLACE_EXISTING] else []
+        copy_options = if replace_existing then [StandardCopyOption.REPLACE_EXISTING.to_text] else []
         source.move_builtin destination copy_options

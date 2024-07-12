@@ -11,8 +11,10 @@ import java.util.List;
 import java.util.stream.Collectors;
 import org.enso.common.LanguageInfo;
 import org.enso.compiler.core.ir.module.scope.Definition;
-import org.enso.compiler.core.ir.module.scope.Export;
 import org.enso.compiler.core.ir.module.scope.definition.Method;
+import org.enso.compiler.data.BindingsMap.ResolvedConstructor;
+import org.enso.compiler.data.BindingsMap.ResolvedModule;
+import org.enso.compiler.data.BindingsMap.ResolvedType;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.polyglot.RuntimeOptions;
 import org.enso.test.utils.ContextUtils;
@@ -27,6 +29,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 import org.junit.runners.model.Statement;
+import scala.jdk.javaapi.CollectionConverters;
 
 /**
  * If a symbol is importable by an import statement, then it should also be accessible via FQN
@@ -218,16 +221,21 @@ main = 42
   private static List<String> gatherExportedSymbols(String moduleName, EnsoContext ensoCtx) {
     var mod = ensoCtx.getPackageRepository().getLoadedModule(moduleName);
     assertThat(mod.isDefined(), is(true));
-    var exports = mod.get().getIr().exports();
-    assertThat(exports.size(), greaterThan(1));
+    var bmExpSymbols = CollectionConverters.asJava(mod.get().getBindingsMap().exportedSymbols());
     List<String> exportedSymbols = new ArrayList<>();
-    exports.foreach(
-        export -> {
-          if (export instanceof Export.Module moduleExport) {
-            exportedSymbols.add(moduleExport.name().name());
-          }
-          return null;
-        });
+    for (var entry : bmExpSymbols.entrySet()) {
+      var resolvedNames = entry.getValue();
+      // We are not interested in exported symbols that resolve to multiple targets.
+      // We are interested only in ResolvedModule, ResolvedType, and ResolvedConstructor.
+      if (resolvedNames.size() == 1) {
+        var exportSymTarget = resolvedNames.apply(0);
+        if (exportSymTarget instanceof ResolvedType
+            || exportSymTarget instanceof ResolvedModule
+            || exportSymTarget instanceof ResolvedConstructor) {
+          exportedSymbols.add(exportSymTarget.qualifiedName().toString());
+        }
+      }
+    }
     return exportedSymbols;
   }
 

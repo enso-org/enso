@@ -9,7 +9,15 @@ import * as backendModule from '#/services/Backend'
 export interface AssetTreeNodeData
   extends Pick<
     AssetTreeNode,
-    'children' | 'depth' | 'directoryId' | 'directoryKey' | 'item' | 'key'
+    | 'children'
+    | 'createdAt'
+    | 'depth'
+    | 'directoryId'
+    | 'directoryKey'
+    | 'isExpanded'
+    | 'item'
+    | 'key'
+    | 'path'
   > {}
 
 /** All possible variants of {@link AssetTreeNode}s. */
@@ -31,14 +39,17 @@ export default class AssetTreeNode<Item extends backendModule.AnyAsset = backend
     public readonly directoryKey: backendModule.DirectoryId,
     /** The actual id of the asset's parent directory (or the placeholder id for new assets). */
     public readonly directoryId: backendModule.DirectoryId,
-    /** This is `null` if the asset is not a directory asset, OR if it is a collapsed directory
-     * asset. */
+    /** This is `null` if the asset is not a directory asset, OR a directory asset whose contents
+     * have not yet been fetched. */
     public readonly children: AnyAssetTreeNode[] | null,
     public readonly depth: number,
+    public readonly path: string,
     /** The internal (to the frontend) id of the asset (or the placeholder id for new assets).
      * This must never change, otherwise the component's state is lost when receiving the real id
      * from the backend. */
-    public readonly key: Item['id'] = item.id
+    public readonly key: Item['id'] = item.id,
+    public readonly isExpanded = false,
+    public readonly createdAt = new Date()
   ) {
     this.type = item.type
   }
@@ -62,9 +73,10 @@ export default class AssetTreeNode<Item extends backendModule.AnyAsset = backend
     directoryKey: backendModule.DirectoryId,
     directoryId: backendModule.DirectoryId,
     depth: number,
+    path: string,
     key: Asset['id'] = asset.id
   ): AnyAssetTreeNode {
-    return new AssetTreeNode(asset, directoryKey, directoryId, null, depth, key).asUnion()
+    return new AssetTreeNode(asset, directoryKey, directoryId, null, depth, path, key).asUnion()
   }
 
   /** Return `this`, coerced into an {@link AnyAssetTreeNode}. */
@@ -92,7 +104,10 @@ export default class AssetTreeNode<Item extends backendModule.AnyAsset = backend
       // eslint-disable-next-line eqeqeq
       update.children === null ? update.children : update.children ?? this.children,
       update.depth ?? this.depth,
-      update.key ?? this.key
+      update.path ?? this.path,
+      update.key ?? this.key,
+      update.isExpanded ?? this.isExpanded,
+      update.createdAt ?? this.createdAt
     ).asUnion()
   }
 
@@ -160,8 +175,24 @@ export default class AssetTreeNode<Item extends backendModule.AnyAsset = backend
   preorderTraversal(
     preprocess: ((tree: AnyAssetTreeNode[]) => AnyAssetTreeNode[]) | null = null
   ): AnyAssetTreeNode[] {
-    return (preprocess?.(this.children ?? []) ?? this.children ?? []).flatMap(node =>
+    const children = !this.isExpanded ? [] : this.children ?? []
+    return (preprocess?.(children) ?? children).flatMap(node =>
       node.children == null ? [node] : [node, ...node.preorderTraversal(preprocess)]
+    )
+  }
+
+  /** Check whether a pending rename is valid. */
+  isNewTitleValid(newTitle: string, siblings?: readonly AssetTreeNode[] | null) {
+    siblings ??= []
+    return (
+      newTitle !== '' &&
+      newTitle !== this.item.title &&
+      siblings.every(sibling => {
+        const isSelf = sibling.key === this.key
+        const hasSameType = sibling.item.type === this.item.type
+        const hasSameTitle = sibling.item.title === newTitle
+        return !(!isSelf && hasSameType && hasSameTitle)
+      })
     )
   }
 }

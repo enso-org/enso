@@ -15,7 +15,12 @@ from project.Internal.Filter_Condition_Helpers import make_filter_column
 
 ## Defines a simple expression based off an input column and an operation to perform.
 type Simple_Expression
-    ## A simple expression based off an input column and an operation to perform.
+    ## PRIVATE
+       A simple expression based off an input column and an operation to perform.
+    Simple_Expr (input : Column_Ref|Expression|Any = (..Index 0)) (operation : Simple_Calculation = ..Copy)
+
+    ## PRIVATE
+       A simple expression based off an input column and an operation to perform.
     From (input : Column_Ref|Expression|Any = (..Index 0)) (operation : Simple_Calculation = ..Copy)
 
     ## PRIVATE
@@ -101,7 +106,7 @@ type Simple_Expression
             builder.append (Option "text_length" "..Text_Length")
             builder.append (Option "format" "..Format" [["format", make_format_chooser include_number=True]])
 
-        derived = Option "<Simple Expression>" "..From" [["input", with_all_types], ["operation", Single_Choice options]]
+        derived = Option "<Simple Expression>" "..Simple_Expr" [["input", with_all_types], ["operation", Single_Choice options]]
 
         Single_Choice [text, number, boolean, expression, derived] display=display
 
@@ -173,7 +178,7 @@ type Simple_Calculation
 
     ## Removes the specified characters, by default any whitespace, from the
        start, the end, or both ends of the input.
-    Trim (where:Location = ..Both) (what:Column_Ref|Expression|Text = "")
+    Trim (where:Location=..Both) (what:Column_Ref|Expression|Text = "")
 
     ## Takes the first characters from the input column.
     Text_Left (length : Column_Ref|Expression|Integer = 1)

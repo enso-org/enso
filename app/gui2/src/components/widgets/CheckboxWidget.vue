@@ -4,14 +4,13 @@ const emit = defineEmits<{ 'update:modelValue': [modelValue: boolean] }>()
 </script>
 
 <template>
-  <div class="Checkbox r-24" @click.stop="emit('update:modelValue', !props.modelValue)">
+  <div class="Checkbox r-24 clickable" @click.stop="emit('update:modelValue', !props.modelValue)">
     <div :class="{ hidden: !props.modelValue }"></div>
   </div>
 </template>
 
 <style scoped>
 .Checkbox {
-  cursor: pointer;
   width: 24px;
   height: 24px;
   padding: 6px;
@@ -24,5 +23,9 @@ const emit = defineEmits<{ 'update:modelValue': [modelValue: boolean] }>()
   height: 12px;
   border-radius: var(--radius-full);
   background: var(--color-widget-selected);
+}
+
+.hidden {
+  display: none;
 }
 </style>

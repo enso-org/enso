@@ -45,7 +45,7 @@ type Project_Description
        Arguments:
        - prim_root_file: The primitive root file of the project.
        - prim_config: The primitive config of the project.
-    Value prim_root_file prim_config
+    private Value prim_root_file ns:Text n:Text
 
     ## GROUP Metadata
        ICON folder
@@ -78,7 +78,7 @@ type Project_Description
 
              enso_project.name
     name : Text
-    name self = self.prim_config.name
+    name self = self.n
 
     ## GROUP Metadata
        ICON metadata
@@ -89,7 +89,7 @@ type Project_Description
 
              enso_project.namespace
     namespace : Text
-    namespace self = self.prim_config.namespace
+    namespace self = self.ns
 
 ## ICON enso_icon
    Returns the Enso project description for the project that the engine was

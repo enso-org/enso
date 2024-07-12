@@ -83,6 +83,15 @@ interface MenuApi {
     readonly setShowAboutModalHandler: (callback: () => void) => void
 }
 
+// ==================
+// === System API ===
+// ==================
+
+/** `window.systemApi` exposes functionality related to the operating system. */
+interface SystemApi {
+    readonly showItemInFolder: (fullPath: string) => void
+}
+
 // ====================
 // === Version Info ===
 // ====================
@@ -109,31 +118,9 @@ declare global {
         readonly authenticationApi: AuthenticationApi
         readonly navigationApi: NavigationApi
         readonly menuApi: MenuApi
+        readonly systemApi?: SystemApi
         readonly versionInfo?: VersionInfo
         toggleDevtools: () => void
-    }
-
-    /**
-     * Highlight a range of text.
-     */
-    class Highlight {
-        type: string
-        /**
-         * @param ranges - The range to highlight.
-         */
-        constructor(...ranges: Range[])
-    }
-
-    /**
-     *
-     */
-    namespace CSS {
-        // eslint-disable-next-line no-restricted-syntax
-        export const highlights: {
-            set: (key: string, value: Highlight) => void
-            delete: (key: string) => void
-            clear: () => void
-        }
     }
 
     namespace NodeJS {
@@ -151,6 +138,8 @@ declare global {
             TZ?: string
             // @ts-expect-error The index signature is intentional to disallow unknown env vars.
             readonly CI?: string
+            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
+            readonly PROD?: string
             // @ts-expect-error The index signature is intentional to disallow unknown env vars.
             readonly CSC_LINK?: string
             // @ts-expect-error The index signature is intentional to disallow unknown env vars.
@@ -200,6 +189,13 @@ declare global {
             readonly ENSO_SUPPORTS_VIBRANCY?: string
             // @ts-expect-error The index signature is intentional to disallow unknown env vars.
             readonly ENSO_CLOUD_ENSO_HOST?: string
+
+            // === E2E test variables ===
+
+            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
+            readonly IS_IN_PLAYWRIGHT_TEST?: `${boolean}`
+            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
+            readonly PWDEBUG?: '1'
 
             // === Electron watch script variables ===
 

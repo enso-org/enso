@@ -3,18 +3,18 @@ import * as React from 'react'
 
 import KeyIcon from 'enso-assets/key.svg'
 
+import * as backendHooks from '#/hooks/backendHooks'
 import * as eventHooks from '#/hooks/eventHooks'
 import * as setAssetHooks from '#/hooks/setAssetHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
-import * as backendProvider from '#/providers/BackendProvider'
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 
 import AssetEventType from '#/events/AssetEventType'
 import AssetListEventType from '#/events/AssetListEventType'
 
-import * as aria from '#/components/aria'
+import * as ariaComponents from '#/components/AriaComponents'
 import type * as column from '#/components/dashboard/column'
 import SvgMask from '#/components/SvgMask'
 
@@ -25,6 +25,7 @@ import * as backendModule from '#/services/Backend'
 import * as eventModule from '#/utilities/event'
 import * as indent from '#/utilities/indent'
 import * as object from '#/utilities/object'
+import * as tailwindMerge from '#/utilities/tailwindMerge'
 import Visibility from '#/utilities/Visibility'
 
 // =====================
@@ -39,16 +40,18 @@ export interface SecretNameColumnProps extends column.AssetColumnProps {}
  * This should never happen. */
 export default function SecretNameColumn(props: SecretNameColumnProps) {
   const { item, setItem, selected, state, rowState, setRowState, isEditable } = props
-  const { assetEvents, dispatchAssetListEvent } = state
+  const { backend, assetEvents, dispatchAssetListEvent } = state
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { setModal } = modalProvider.useSetModal()
-  const { backend } = backendProvider.useStrictBackend()
   const inputBindings = inputBindingsProvider.useInputBindings()
   if (item.type !== backendModule.AssetType.secret) {
     // eslint-disable-next-line no-restricted-syntax
     throw new Error('`SecretNameColumn` can only display secrets.')
   }
   const asset = item.item
+
+  const createSecretMutation = backendHooks.useBackendMutation(backend, 'createSecret')
+  const updateSecretMutation = backendHooks.useBackendMutation(backend, 'updateSecret')
 
   const setIsEditing = (isEditingName: boolean) => {
     if (isEditable) {
@@ -96,11 +99,13 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
             } else {
               rowState.setVisibility(Visibility.faded)
               try {
-                const id = await backend.createSecret({
-                  parentDirectoryId: asset.parentId,
-                  name: asset.title,
-                  value: event.value,
-                })
+                const id = await createSecretMutation.mutateAsync([
+                  {
+                    parentDirectoryId: asset.parentId,
+                    name: asset.title,
+                    value: event.value,
+                  },
+                ])
                 rowState.setVisibility(Visibility.visible)
                 setAsset(object.merger({ id }))
               } catch (error) {
@@ -127,9 +132,10 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
 
   return (
     <div
-      className={`flex h-full min-w-max items-center gap-name-column-icon whitespace-nowrap rounded-l-full px-name-column-x py-name-column-y ${indent.indentClass(
-        item.depth
-      )}`}
+      className={tailwindMerge.twMerge(
+        'flex h-table-row min-w-max items-center gap-name-column-icon whitespace-nowrap rounded-l-full px-name-column-x py-name-column-y',
+        indent.indentClass(item.depth)
+      )}
       onKeyDown={event => {
         if (rowState.isEditingName && event.key === 'Enter') {
           event.stopPropagation()
@@ -148,7 +154,7 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
               name={asset.title}
               doCreate={async (_name, value) => {
                 try {
-                  await backend.updateSecret(asset.id, { value }, asset.title)
+                  await updateSecretMutation.mutateAsync([asset.id, { value }, asset.title])
                 } catch (error) {
                   toastAndLog(null, error)
                 }
@@ -158,11 +164,15 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
         }
       }}
     >
-      <SvgMask src={KeyIcon} className="m-name-column-icon size-icon" />
+      <SvgMask src={KeyIcon} className="m-name-column-icon size-4" />
       {/* Secrets cannot be renamed. */}
-      <aria.Text data-testid="asset-row-name" className="text grow bg-transparent">
+      <ariaComponents.Text
+        data-testid="asset-row-name"
+        font="naming"
+        className="grow bg-transparent"
+      >
         {asset.title}
-      </aria.Text>
+      </ariaComponents.Text>
     </div>
   )
 }

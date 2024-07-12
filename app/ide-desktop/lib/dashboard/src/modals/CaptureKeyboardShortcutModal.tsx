@@ -7,12 +7,12 @@ import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
+import * as ariaComponents from '#/components/AriaComponents'
 import KeyboardShortcut from '#/components/dashboard/KeyboardShortcut'
 import Modal from '#/components/Modal'
-import ButtonRow from '#/components/styled/ButtonRow'
-import UnstyledButton from '#/components/UnstyledButton'
 
 import * as inputBindings from '#/utilities/inputBindings'
+import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 // ==============================
 // === eventToPartialShortcut ===
@@ -107,9 +107,10 @@ export default function CaptureKeyboardShortcutModal(props: CaptureKeyboardShort
       >
         <div className="relative">{getText('enterTheNewKeyboardShortcutFor', description)}</div>
         <div
-          className={`relative flex scale-150 items-center justify-center ${
-            doesAlreadyExist ? 'text-red-600' : ''
-          }`}
+          className={tailwindMerge.twMerge(
+            'relative flex scale-150 items-center justify-center',
+            doesAlreadyExist && 'text-red-600'
+          )}
         >
           {shortcut === '' ? (
             <aria.Text className="text text-primary/30">{getText('noShortcutEntered')}</aria.Text>
@@ -120,21 +121,21 @@ export default function CaptureKeyboardShortcutModal(props: CaptureKeyboardShort
         <aria.Text className="relative text-red-600">
           {doesAlreadyExist ? 'This shortcut already exists.' : ''}
         </aria.Text>
-        <ButtonRow>
-          <UnstyledButton
+        <ariaComponents.ButtonGroup>
+          <ariaComponents.Button
+            variant="submit"
             isDisabled={!canSubmit}
-            className="button bg-invite text-white enabled:active"
             onPress={() => {
               unsetModal()
               onSubmit(shortcut)
             }}
           >
             {getText('confirm')}
-          </UnstyledButton>
-          <UnstyledButton className="button bg-selected-frame active" onPress={unsetModal}>
+          </ariaComponents.Button>
+          <ariaComponents.Button variant="cancel" onPress={unsetModal}>
             {getText('cancel')}
-          </UnstyledButton>
-        </ButtonRow>
+          </ariaComponents.Button>
+        </ariaComponents.ButtonGroup>
       </form>
     </Modal>
   )

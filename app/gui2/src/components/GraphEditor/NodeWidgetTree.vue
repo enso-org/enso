@@ -4,13 +4,12 @@ import SvgIcon from '@/components/SvgIcon.vue'
 import { useTransitioning } from '@/composables/animation'
 import { injectGraphSelection } from '@/providers/graphSelection'
 import { WidgetInput, type WidgetUpdate } from '@/providers/widgetRegistry'
-import { WidgetEditHandler } from '@/providers/widgetRegistry/editHandler'
 import { provideWidgetTree } from '@/providers/widgetTree'
 import { useGraphStore, type NodeId } from '@/stores/graph'
 import { Ast } from '@/util/ast'
 import type { Vec2 } from '@/util/data/vec2'
 import type { Icon } from '@/util/iconName'
-import { computed, ref, toRef, watch } from 'vue'
+import { computed, toRef, watch } from 'vue'
 
 const props = defineProps<{
   ast: Ast.Ast
@@ -65,7 +64,7 @@ function handleWidgetUpdates(update: WidgetUpdate) {
         : value == null ? Ast.Wildcard.new(edit)
         : undefined
       if (ast) {
-        edit.replaceValue(origin as Ast.AstId, ast)
+        edit.replaceValue(origin, ast)
       } else if (typeof value === 'string') {
         edit.tryGet(origin)?.syncToCode(value)
       }
@@ -78,11 +77,8 @@ function handleWidgetUpdates(update: WidgetUpdate) {
   return true
 }
 
-const currentEdit = ref<WidgetEditHandler>()
-watch(currentEdit, (edit) => edit && selectNode())
-
 const layoutTransitions = useTransitioning(observedLayoutTransitions)
-provideWidgetTree(
+const widgetTree = provideWidgetTree(
   toRef(props, 'ast'),
   toRef(props, 'nodeId'),
   toRef(props, 'nodeElement'),
@@ -93,12 +89,14 @@ provideWidgetTree(
   toRef(props, 'conditionalPorts'),
   toRef(props, 'extended'),
   layoutTransitions.active,
-  currentEdit,
   () => emit('openFullMenu'),
 )
+
+watch(toRef(widgetTree, 'currentEdit'), (edit) => edit && selectNode())
 </script>
 <script lang="ts">
-export const GRAB_HANDLE_X_MARGIN = 4
+export const GRAB_HANDLE_X_MARGIN_L = 4
+export const GRAB_HANDLE_X_MARGIN_R = 8
 export const ICON_WIDTH = 16
 </script>
 
@@ -107,8 +105,8 @@ export const ICON_WIDTH = 16
     <!-- Display an icon for the node if no widget in the tree provides one. -->
     <SvgIcon
       v-if="!props.connectedSelfArgumentId"
-      class="icon grab-handle nodeCategoryIcon"
-      :style="{ margin: `0 ${GRAB_HANDLE_X_MARGIN}px` }"
+      class="icon grab-handle nodeCategoryIcon draggable"
+      :style="{ margin: `0 ${GRAB_HANDLE_X_MARGIN_R}px 0 ${GRAB_HANDLE_X_MARGIN_L}px` }"
       :name="props.icon"
       @click.right.stop.prevent="emit('openFullMenu')"
     />

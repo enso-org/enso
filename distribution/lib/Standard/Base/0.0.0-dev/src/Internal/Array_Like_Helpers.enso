@@ -3,8 +3,9 @@ private
 import project.Any.Any
 import project.Data.Array.Array
 import project.Data.Array_Proxy.Array_Proxy
+import project.Data.Dictionary.Dictionary
+import project.Data.Index_Sub_Range.Index_Sub_Range
 import project.Data.List.List
-import project.Data.Map.Map
 import project.Data.Maybe.Maybe
 import project.Data.Numbers.Integer
 import project.Data.Pair.Pair
@@ -25,7 +26,7 @@ import project.Runtime.Ref.Ref
 import project.Warning.Warning
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Filter_Condition import unify_condition_or_predicate, unify_condition_predicate_or_element
-from project.Data.Index_Sub_Range import drop_helper, Index_Sub_Range, take_helper
+from project.Data.Index_Sub_Range import drop_helper, take_helper
 from project.Data.Ordering import Comparable
 from project.Data.Range.Extensions import all
 
@@ -78,12 +79,12 @@ slice vector start end = @Builtin_Method "Array_Like_Helpers.slice"
        `Map_Error`.
      - No_Wrap: The first error is thrown, and is not wrapped in
        `Map_Error`.
-     - Report_Warning: The result for that element is `Nothing`, 
+     - Report_Warning: The result for that element is `Nothing`,
        the error is attached as a warning. Currently unimplemented.
      - Ignore: The result is `Nothing`, and the error is
        ignored.
 vector_from_function : Integer -> (Integer -> Any) -> Problem_Behavior | No_Wrap -> Vector Any
-vector_from_function length function on_problems=Problem_Behavior.Report_Error =
+vector_from_function length function on_problems:(Problem_Behavior | No_Wrap)=..Report_Error =
     num_errors = Ref.new 0
     wrapped_function i =
         result = function i
@@ -148,16 +149,24 @@ check_start_valid start length function =
     if used_start < 0 || used_start > length then Error.throw (Index_Out_Of_Bounds.Error start length+1) else
         function used_start
 
-sort vector order on by on_incomparable =
+sort vector order on by on_problems:Problem_Behavior =
     comps = case on == Nothing of
-        True -> vector.map it-> Comparable.from it
-        False -> vector.map it-> Comparable.from (on it)
+        True -> vector.map it-> Comparable.from it . comparator
+        False -> vector.map it-> Comparable.from (on it) . comparator
     compare_funcs = comps.map (it-> it.compare)
-    vector.sort_builtin order.to_sign comps compare_funcs by on on_incomparable.to_number
+    vector.sort_builtin order.to_sign comps compare_funcs by on (on_problems_to_number on_problems)
+
+## PRIVATE
+   Returns a mapping of Problem_Behavior constructors to an integer.
+   Used for sending the number to Java, rather than sending the atom.
+private on_problems_to_number on_problems:Problem_Behavior = case on_problems of
+    Problem_Behavior.Ignore -> 0
+    Problem_Behavior.Report_Warning -> 1
+    Problem_Behavior.Report_Error -> 2
 
 distinct vector on =
     Vector.build builder->
-        vector.fold Map.empty existing->
+        vector.fold Dictionary.empty existing->
             item->
                 key = on item
                 if (existing.get key False) then existing else
@@ -165,11 +174,14 @@ distinct vector on =
                     existing.insert key True
 
 duplicates vector on = Vector.build builder->
-    vector.fold Map.empty current-> item->
+    counts = vector.fold Dictionary.empty current-> item->
         key = on item
         count = current.get key 0
-        if count == 1 then builder.append item
         current.insert key count+1
+    vector.map item->
+        key = on item
+        count = counts.get key 0
+        if count != 1 then builder.append item
 
 take vector range = case range of
     ## We are using a specialized implementation for `take Sample`, because
@@ -299,7 +311,7 @@ to_list vector =
 
 short_display_text vector max_entries =
     if max_entries < 1 then Error.throw <| Illegal_Argument.Error "The `max_entries` parameter must be positive." else
-        prefix = vector.take (Index_Sub_Range.First max_entries)
+        prefix = vector.take (..First max_entries)
         if prefix.length == vector.length then vector.to_text else
             remaining_count = vector.length - prefix.length
             remaining_text = if remaining_count == 1 then "and 1 more element" else

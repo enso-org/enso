@@ -3,11 +3,10 @@
  */
 import * as React from 'react'
 
-import * as twv from 'tailwind-variants'
-
 import * as aria from '#/components/aria'
 
 import * as mergeRefs from '#/utilities/mergeRefs'
+import * as twv from '#/utilities/tailwindVariants'
 
 import * as textProvider from './TextProvider'
 import * as visualTooltip from './useVisualTooltip'
@@ -24,24 +23,29 @@ export interface TextProps
 }
 
 export const TEXT_STYLE = twv.tv({
-  base: 'inline-block flex-col before:block after:block before:flex-none after:flex-none before:w-full after:w-full',
+  base: '',
   variants: {
     color: {
       custom: '',
-      primary: 'text-primary/60',
+      primary: 'text-primary',
       danger: 'text-danger',
       success: 'text-share',
       disabled: 'text-primary/30',
       invert: 'text-white',
+      inherit: 'text-inherit',
+    },
+    font: {
+      default: '',
+      naming: 'font-naming',
     },
     // we use custom padding for the text variants to make sure the text is aligned with the grid
     // leading is also adjusted to make sure the text is aligned with the grid
     // leading should always be after the text size to make sure it is not stripped by twMerge
     variant: {
       custom: '',
-      body: 'text-xs leading-[20px] before:h-[1px] after:h-[3px]',
-      h1: 'text-xl leading-[29px] before:h-0.5 after:h-[5px]',
-      subtitle: 'text-[13.5px] leading-[20px] before:h-[1px] after:h-[3px]',
+      body: 'text-xs leading-[20px] before:h-[1px] after:h-[3px] font-medium',
+      h1: 'text-xl leading-[29px] before:h-0.5 after:h-[5px] font-bold',
+      subtitle: 'text-[13.5px] leading-[19px] before:h-[1px] after:h-[3px] font-bold',
     },
     weight: {
       custom: '',
@@ -63,16 +67,16 @@ export const TEXT_STYLE = twv.tv({
     },
     truncate: {
       /* eslint-disable @typescript-eslint/naming-convention */
-      '1': 'truncate ellipsis w-full',
-      '2': 'line-clamp-2 ellipsis w-full',
-      '3': 'line-clamp-3 ellipsis w-full',
-      '4': 'line-clamp-4 ellipsis w-full',
-      '5': 'line-clamp-5 ellipsis w-full',
-      '6': 'line-clamp-6 ellipsis w-full',
-      '7': 'line-clamp-7 ellipsis w-full',
-      '8': 'line-clamp-8 ellipsis w-full',
-      '9': 'line-clamp-9 ellipsis w-full',
-      custom: 'line-clamp-[var(--line-clamp)] ellipsis w-full',
+      '1': 'truncate ellipsis',
+      '2': 'line-clamp-2 ellipsis',
+      '3': 'line-clamp-3 ellipsis',
+      '4': 'line-clamp-4 ellipsis',
+      '5': 'line-clamp-5 ellipsis',
+      '6': 'line-clamp-6 ellipsis',
+      '7': 'line-clamp-7 ellipsis',
+      '8': 'line-clamp-8 ellipsis',
+      '9': 'line-clamp-9 ellipsis',
+      custom: 'line-clamp-[var(--line-clamp)] ellipsis',
       /* eslint-enable @typescript-eslint/naming-convention */
     },
     monospace: { true: 'font-mono' },
@@ -84,10 +88,15 @@ export const TEXT_STYLE = twv.tv({
       word: 'select-text',
       all: 'select-all',
     },
-    disableLineHeightCompensation: { true: '' },
+    disableLineHeightCompensation: {
+      true: 'before:hidden after:hidden before:w-0 after:w-0',
+      false:
+        'inline-block flex-col before:block after:block before:flex-none after:flex-none before:w-full after:w-full',
+    },
   },
   defaultVariants: {
     variant: 'body',
+    font: 'default',
     weight: 'medium',
     transform: 'none',
     color: 'primary',
@@ -97,24 +106,6 @@ export const TEXT_STYLE = twv.tv({
     disableLineHeightCompensation: false,
     textSelection: 'auto',
   },
-  compoundVariants: [
-    { variant: 'h1', class: 'font-bold' },
-    {
-      variant: 'h1',
-      disableLineHeightCompensation: true,
-      class: 'before:h-[unset] after:h-[unset]',
-    },
-    {
-      variant: 'body',
-      disableLineHeightCompensation: true,
-      class: 'before:h-[unset] after:h-[unset]',
-    },
-    {
-      variant: 'subtitle',
-      disableLineHeightCompensation: true,
-      class: 'before:h-[unset] after:h-[unset]',
-    },
-  ],
 })
 
 /**
@@ -127,16 +118,17 @@ export const Text = React.forwardRef(function Text(
 ) {
   const {
     className,
-    variant = 'body',
-    italic = false,
-    weight = 'medium',
-    nowrap = false,
-    monospace = false,
-    transform = 'none',
+    variant,
+    font,
+    italic,
+    weight,
+    nowrap,
+    monospace,
+    transform,
     truncate,
     lineClamp = 1,
     children,
-    color = 'primary',
+    color,
     balance,
     elementType: ElementType = 'span',
     tooltip: tooltipElement = children,
@@ -151,6 +143,7 @@ export const Text = React.forwardRef(function Text(
 
   const textClasses = TEXT_STYLE({
     variant,
+    font,
     weight,
     transform,
     monospace,

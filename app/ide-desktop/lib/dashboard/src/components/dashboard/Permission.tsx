@@ -1,11 +1,11 @@
 /** @file Permissions for a specific user or user group on a specific asset. */
 import * as React from 'react'
 
-import type * as text from '#/text'
+import type * as text from 'enso-common/src/text'
 
+import * as backendHooks from '#/hooks/backendHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
-import * as backendProvider from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
@@ -13,6 +13,7 @@ import PermissionSelector from '#/components/dashboard/PermissionSelector'
 import FocusArea from '#/components/styled/FocusArea'
 
 import * as backendModule from '#/services/Backend'
+import type Backend from '#/services/Backend'
 
 import * as object from '#/utilities/object'
 
@@ -36,7 +37,9 @@ const ASSET_TYPE_TO_TEXT_ID: Readonly<Record<backendModule.AssetType, text.TextI
 
 /** Props for a {@link Permission}. */
 export interface PermissionProps {
-  readonly asset: backendModule.Asset
+  readonly backend: Backend
+  readonly asset: Pick<backendModule.Asset, 'id' | 'permissions' | 'type'>
+
   readonly self: backendModule.UserPermission
   readonly isOnlyOwner: boolean
   readonly permission: backendModule.AssetPermission
@@ -46,15 +49,16 @@ export interface PermissionProps {
 
 /** A user or group, and their permissions for a specific asset. */
 export default function Permission(props: PermissionProps) {
-  const { asset, self, isOnlyOwner, doDelete } = props
+  const { backend, asset, self, isOnlyOwner, doDelete } = props
   const { permission: initialPermission, setPermission: outerSetPermission } = props
-  const { backend } = backendProvider.useStrictBackend()
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const [permission, setPermission] = React.useState(initialPermission)
   const permissionId = backendModule.getAssetPermissionId(permission)
   const isDisabled = isOnlyOwner && permissionId === self.user.userId
   const assetTypeName = getText(ASSET_TYPE_TO_TEXT_ID[asset.type])
+
+  const createPermissionMutation = backendHooks.useBackendMutation(backend, 'createPermission')
 
   React.useEffect(() => {
     setPermission(initialPermission)
@@ -64,11 +68,13 @@ export default function Permission(props: PermissionProps) {
     try {
       setPermission(newPermission)
       outerSetPermission(newPermission)
-      await backend.createPermission({
-        actorsIds: [backendModule.getAssetPermissionId(newPermission)],
-        resourceId: asset.id,
-        action: newPermission.permission,
-      })
+      await createPermissionMutation.mutateAsync([
+        {
+          actorsIds: [backendModule.getAssetPermissionId(newPermission)],
+          resourceId: asset.id,
+          action: newPermission.permission,
+        },
+      ])
     } catch (error) {
       setPermission(permission)
       outerSetPermission(permission)

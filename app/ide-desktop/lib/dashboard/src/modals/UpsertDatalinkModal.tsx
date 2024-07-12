@@ -1,21 +1,21 @@
 /** @file A modal for creating a Datalink. */
 import * as React from 'react'
 
-import SCHEMA from '#/data/datalinkSchema.json' assert { type: 'json' }
+import SCHEMA from '#/data/datalinkSchema.json' with { type: 'json' }
 import * as datalinkValidator from '#/data/datalinkValidator'
 
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
+import * as ariaComponents from '#/components/AriaComponents'
 import DatalinkInput from '#/components/dashboard/DatalinkInput'
 import Modal from '#/components/Modal'
-import ButtonRow from '#/components/styled/ButtonRow'
 import FocusArea from '#/components/styled/FocusArea'
 import FocusRing from '#/components/styled/FocusRing'
-import UnstyledButton from '#/components/UnstyledButton'
 
 import * as jsonSchema from '#/utilities/jsonSchema'
+import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 // =================
 // === Constants ===
@@ -76,9 +76,10 @@ export default function UpsertDatalinkModal(props: UpsertDatalinkModalProps) {
                 <aria.Input
                   autoFocus
                   placeholder={getText('datalinkNamePlaceholder')}
-                  className={`focus-child text grow rounded-full border bg-transparent px-input-x ${
+                  className={tailwindMerge.twMerge(
+                    'focus-child text grow rounded-full border bg-transparent px-input-x',
                     name !== '' ? 'border-primary/10' : 'border-red-700/60'
-                  }`}
+                  )}
                   value={name}
                   onInput={event => {
                     setName(event.currentTarget.value)
@@ -91,18 +92,14 @@ export default function UpsertDatalinkModal(props: UpsertDatalinkModalProps) {
         <div className="relative">
           <DatalinkInput dropdownTitle="Type" value={value} setValue={setValue} />
         </div>
-        <ButtonRow>
-          <UnstyledButton
-            isDisabled={!isSubmittable}
-            className="button bg-invite text-white enabled:active"
-            onPress={doSubmit}
-          >
+        <ariaComponents.ButtonGroup>
+          <ariaComponents.Button variant="submit" isDisabled={!isSubmittable} onPress={doSubmit}>
             {getText('create')}
-          </UnstyledButton>
-          <UnstyledButton className="button bg-selected-frame active" onPress={unsetModal}>
+          </ariaComponents.Button>
+          <ariaComponents.Button variant="cancel" onPress={unsetModal}>
             {getText('cancel')}
-          </UnstyledButton>
-        </ButtonRow>
+          </ariaComponents.Button>
+        </ariaComponents.ButtonGroup>
       </form>
     </Modal>
   )

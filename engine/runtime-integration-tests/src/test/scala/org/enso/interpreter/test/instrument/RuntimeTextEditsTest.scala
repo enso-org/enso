@@ -221,7 +221,8 @@ class RuntimeTextEditsTest
               "Meh"
             )
           ),
-          execute = false
+          execute = false,
+          idMap   = None
         )
       )
     )
@@ -236,7 +237,8 @@ class RuntimeTextEditsTest
               "Welcome!"
             )
           ),
-          execute = true
+          execute = true,
+          idMap   = None
         )
       )
     )

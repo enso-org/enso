@@ -5,6 +5,8 @@ import * as modalProvider from '#/providers/ModalProvider'
 
 import Modal from '#/components/Modal'
 
+import * as tailwindMerge from '#/utilities/tailwindMerge'
+
 // =================
 // === Constants ===
 // =================
@@ -21,7 +23,7 @@ export interface DragModalProps
   extends Readonly<React.PropsWithChildren>,
     Readonly<JSX.IntrinsicElements['div']> {
   readonly event: React.DragEvent
-  readonly doCleanup: () => void
+  readonly onDragEnd: () => void
   readonly offsetPx?: number
   readonly offsetXPx?: number
   readonly offsetYPx?: number
@@ -37,22 +39,24 @@ export default function DragModal(props: DragModalProps) {
     children,
     style,
     className,
-    doCleanup,
+    onDragEnd: onDragEndRaw,
     ...passthrough
   } = props
   const { unsetModal } = modalProvider.useSetModal()
   const [left, setLeft] = React.useState(event.pageX - (offsetPx ?? offsetXPx))
   const [top, setTop] = React.useState(event.pageY - (offsetPx ?? offsetYPx))
+  const onDragEndRef = React.useRef(onDragEndRaw)
+  onDragEndRef.current = onDragEndRaw
 
   React.useEffect(() => {
-    const onDrag = (moveEvent: MouseEvent) => {
-      if (moveEvent.pageX !== 0 || moveEvent.pageY !== 0) {
-        setLeft(moveEvent.pageX - (offsetPx ?? offsetXPx))
-        setTop(moveEvent.pageY - (offsetPx ?? offsetYPx))
+    const onDrag = (dragEvent: MouseEvent) => {
+      if (dragEvent.pageX !== 0 || dragEvent.pageY !== 0) {
+        setLeft(dragEvent.pageX - (offsetPx ?? offsetXPx))
+        setTop(dragEvent.pageY - (offsetPx ?? offsetYPx))
       }
     }
     const onDragEnd = () => {
-      doCleanup()
+      onDragEndRef.current()
       unsetModal()
     }
     // Update position (non-FF)
@@ -65,21 +69,14 @@ export default function DragModal(props: DragModalProps) {
       document.removeEventListener('dragover', onDrag, { capture: true })
       document.removeEventListener('dragend', onDragEnd, { capture: true })
     }
-    // `doCleanup` is a callback, not a dependency.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    /* should never change */ offsetPx,
-    /* should never change */ offsetXPx,
-    /* should never change */ offsetYPx,
-    /* should never change */ unsetModal,
-  ])
+  }, [offsetPx, offsetXPx, offsetYPx, unsetModal])
 
   return (
     <Modal className="pointer-events-none absolute size-full overflow-hidden">
       <div
         {...passthrough}
         style={{ left, top, ...style }}
-        className={`relative w-min ${className ?? ''}`}
+        className={tailwindMerge.twMerge('relative w-min', className)}
       >
         {children}
       </div>

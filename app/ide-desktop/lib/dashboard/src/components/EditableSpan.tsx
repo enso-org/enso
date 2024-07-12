@@ -4,18 +4,17 @@ import * as React from 'react'
 import CrossIcon from 'enso-assets/cross.svg'
 import TickIcon from 'enso-assets/tick.svg'
 
-import * as eventCalback from '#/hooks/eventCallbackHooks'
+import * as eventCallback from '#/hooks/eventCallbackHooks'
 
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
-import FocusRing from '#/components/styled/FocusRing'
-import SvgMask from '#/components/SvgMask'
-import UnstyledButton from '#/components/UnstyledButton'
+import * as ariaComponents from '#/components/AriaComponents'
 
 import * as eventModule from '#/utilities/event'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
+import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 // ====================
 // === EditableSpan ===
@@ -36,19 +35,18 @@ export interface EditableSpanProps {
 
 /** A `<span>` that can turn into an `<input type="text">`. */
 export default function EditableSpan(props: EditableSpanProps) {
-  const { className, editable = false, children } = props
+  const { className = '', editable = false, children } = props
   const { checkSubmittable, onSubmit, onCancel, inputPattern, inputTitle } = props
   const { getText } = textProvider.useText()
   const inputBindings = inputBindingsProvider.useInputBindings()
   const [isSubmittable, setIsSubmittable] = React.useState(false)
-  const inputRef = React.useRef<HTMLInputElement>(null)
+  const inputRef = React.useRef<HTMLInputElement | null>(null)
   const cancelledRef = React.useRef(false)
   const checkSubmittableRef = React.useRef(checkSubmittable)
   checkSubmittableRef.current = checkSubmittable
 
-  // Making sure that the event callback is stable.
-  // to prevent the effect from re-running.
-  const onCancelEventCallback = eventCalback.useEventCallback(onCancel)
+  // Make sure that the event callback is stable to prevent the effect from re-running.
+  const onCancelEventCallback = eventCallback.useEventCallback(onCancel)
 
   React.useEffect(() => {
     if (editable) {
@@ -68,7 +66,7 @@ export default function EditableSpan(props: EditableSpanProps) {
     } else {
       return
     }
-  }, [editable, /* should never change */ inputBindings, onCancelEventCallback])
+  }, [editable, inputBindings, onCancelEventCallback])
 
   React.useEffect(() => {
     cancelledRef.current = false
@@ -77,39 +75,53 @@ export default function EditableSpan(props: EditableSpanProps) {
   if (editable) {
     return (
       <form
-        className="flex grow"
+        className="flex grow gap-1.5"
+        onBlur={event => {
+          const currentTarget = event.currentTarget
+          if (!currentTarget.contains(event.relatedTarget)) {
+            // This must run AFTER the cancel button's event handler runs.
+            setTimeout(() => {
+              if (!cancelledRef.current) {
+                currentTarget.requestSubmit()
+              }
+            })
+          }
+        }}
         onSubmit={event => {
           event.preventDefault()
-          if (isSubmittable) {
-            if (inputRef.current != null) {
+          if (inputRef.current != null) {
+            if (isSubmittable) {
               onSubmit(inputRef.current.value)
+            } else {
+              onCancel()
             }
           }
         }}
       >
         <aria.Input
           data-testid={props['data-testid']}
-          className={className ?? ''}
-          ref={inputRef}
+          className={tailwindMerge.twMerge('rounded-lg', className)}
+          ref={element => {
+            inputRef.current = element
+            if (element) {
+              element.style.width = '0'
+              element.style.width = `${element.scrollWidth}px`
+            }
+          }}
           autoFocus
           type="text"
           size={1}
           defaultValue={children}
-          onBlur={event => {
-            const currentTarget = event.currentTarget
-            // This must run AFTER the cancel button's event handler runs.
-            setTimeout(() => {
-              if (!cancelledRef.current) {
-                currentTarget.form?.requestSubmit()
-              }
-            })
-          }}
           onContextMenu={event => {
             event.stopPropagation()
           }}
           onKeyDown={event => {
             if (event.key !== 'Escape') {
               event.stopPropagation()
+            }
+            if (event.target instanceof HTMLElement) {
+              event.target.style.width = '0'
+              event.target.style.width = `${event.target.scrollWidth}px`
             }
           }}
           {...(inputPattern == null ? {} : { pattern: inputPattern })}
@@ -122,17 +134,21 @@ export default function EditableSpan(props: EditableSpanProps) {
                 },
               })}
         />
-        {isSubmittable && (
-          <UnstyledButton
-            className="mx-tick-cross-button my-auto flex rounded-full transition-colors hover:bg-hover-bg"
-            onPress={eventModule.submitForm}
-          >
-            <SvgMask src={TickIcon} alt={getText('confirmEdit')} className="size-icon" />
-          </UnstyledButton>
-        )}
-        <FocusRing>
-          <UnstyledButton
-            className="mx-tick-cross-button my-auto flex rounded-full transition-colors hover:bg-hover-bg"
+        <ariaComponents.ButtonGroup gap="xsmall" className="grow-0 items-center">
+          {isSubmittable && (
+            <ariaComponents.Button
+              size="icon"
+              variant="ghost"
+              icon={TickIcon}
+              aria-label={getText('confirmEdit')}
+              onPress={eventModule.submitForm}
+            />
+          )}
+          <ariaComponents.Button
+            size="icon"
+            variant="ghost"
+            icon={CrossIcon}
+            aria-label={getText('cancelEdit')}
             onPress={() => {
               cancelledRef.current = true
               onCancel()
@@ -140,17 +156,15 @@ export default function EditableSpan(props: EditableSpanProps) {
                 cancelledRef.current = false
               })
             }}
-          >
-            <SvgMask src={CrossIcon} alt={getText('cancelEdit')} className="size-icon" />
-          </UnstyledButton>
-        </FocusRing>
+          />
+        </ariaComponents.ButtonGroup>
       </form>
     )
   } else {
     return (
-      <aria.Text data-testid={props['data-testid']} className={className}>
+      <ariaComponents.Text data-testid={props['data-testid']} className={className}>
         {children}
-      </aria.Text>
+      </ariaComponents.Text>
     )
   }
 }

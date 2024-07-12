@@ -1,12 +1,13 @@
 /** @file Login component responsible for rendering and interactions in sign in flow. */
 import * as React from 'react'
 
-import * as fontawesomeIcons from '@fortawesome/free-brands-svg-icons'
 import * as router from 'react-router-dom'
 
 import ArrowRightIcon from 'enso-assets/arrow_right.svg'
 import AtIcon from 'enso-assets/at.svg'
 import CreateAccountIcon from 'enso-assets/create_account.svg'
+import GithubIcon from 'enso-assets/github.svg'
+import GoogleIcon from 'enso-assets/google.svg'
 import LockIcon from 'enso-assets/lock.svg'
 import * as common from 'enso-common'
 import * as detect from 'enso-common/src/detect'
@@ -14,16 +15,16 @@ import * as detect from 'enso-common/src/detect'
 import * as appUtils from '#/appUtils'
 
 import * as authProvider from '#/providers/AuthProvider'
+import * as backendProvider from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import AuthenticationPage from '#/pages/authentication/AuthenticationPage'
 
-import FontAwesomeIcon from '#/components/FontAwesomeIcon'
+import * as ariaComponents from '#/components/AriaComponents'
 import Input from '#/components/Input'
 import Link from '#/components/Link'
 import SubmitButton from '#/components/SubmitButton'
 import TextLink from '#/components/TextLink'
-import UnstyledButton from '#/components/UnstyledButton'
 
 import * as eventModule from '#/utilities/event'
 
@@ -34,6 +35,7 @@ import * as eventModule from '#/utilities/event'
 /** A form for users to log in. */
 export default function Login() {
   const location = router.useLocation()
+  const navigate = router.useNavigate()
   const { signInWithGoogle, signInWithGitHub, signInWithPassword } = authProvider.useAuth()
   const { getText } = textProvider.useText()
 
@@ -46,10 +48,14 @@ export default function Login() {
   const shouldReportValidityRef = React.useRef(true)
   const formRef = React.useRef<HTMLFormElement>(null)
 
+  const localBackend = backendProvider.useLocalBackend()
+  const supportsOffline = localBackend != null
+
   return (
     <AuthenticationPage
       isNotForm
       title={getText('loginToYourAccount')}
+      supportsOffline={supportsOffline}
       footer={
         <>
           <Link
@@ -66,26 +72,34 @@ export default function Login() {
       }
     >
       <div className="flex flex-col gap-auth">
-        <UnstyledButton
+        <ariaComponents.Button
+          size="custom"
+          variant="custom"
+          fullWidthText
+          icon={GoogleIcon}
+          className="bg-primary/5 px-3 py-2 hover:bg-primary/10 focus:bg-primary/10"
           onPress={() => {
             shouldReportValidityRef.current = false
             void signInWithGoogle()
+            setIsSubmitting(true)
           }}
-          className="relative rounded-full bg-primary/5 py-auth-input-y transition-all duration-auth hover:bg-primary/10 focus:bg-primary/10"
         >
-          <FontAwesomeIcon icon={fontawesomeIcons.faGoogle} />
           {getText('signUpOrLoginWithGoogle')}
-        </UnstyledButton>
-        <UnstyledButton
+        </ariaComponents.Button>
+        <ariaComponents.Button
+          size="custom"
+          variant="custom"
+          fullWidthText
+          icon={GithubIcon}
+          className="bg-primary/5 px-3 py-2 hover:bg-primary/10 focus:bg-primary/10"
           onPress={() => {
             shouldReportValidityRef.current = false
             void signInWithGitHub()
+            setIsSubmitting(true)
           }}
-          className="relative rounded-full bg-primary/5 py-auth-input-y transition-all duration-auth hover:bg-primary/10 focus:bg-primary/10"
         >
-          <FontAwesomeIcon icon={fontawesomeIcons.faGithub} />
           {getText('signUpOrLoginWithGitHub')}
-        </UnstyledButton>
+        </ariaComponents.Button>
       </div>
       <div />
       <form
@@ -97,6 +111,7 @@ export default function Login() {
           await signInWithPassword(email, password)
           shouldReportValidityRef.current = true
           setIsSubmitting(false)
+          navigate(appUtils.DASHBOARD_PATH)
         }}
       >
         <Input
@@ -127,8 +142,10 @@ export default function Login() {
           />
           <TextLink to={appUtils.FORGOT_PASSWORD_PATH} text={getText('forgotYourPassword')} />
         </div>
+
         <SubmitButton
           isDisabled={isSubmitting}
+          isLoading={isSubmitting}
           text={getText('login')}
           icon={ArrowRightIcon}
           onPress={eventModule.submitForm}

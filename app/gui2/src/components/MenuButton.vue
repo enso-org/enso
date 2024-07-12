@@ -23,7 +23,7 @@ function onClick() {
   <TooltipTrigger>
     <template #default="triggerProps">
       <button
-        class="MenuButton"
+        class="MenuButton clickable"
         :aria-label="props.title ?? ''"
         :class="{ toggledOn, toggledOff: toggledOn === false, disabled }"
         :disabled="disabled ?? false"
@@ -48,13 +48,11 @@ function onClick() {
   padding: 4px;
   border-radius: var(--radius-full);
   border: none;
-  cursor: pointer;
   transition: background-color 0.3s;
-  &:hover {
-    background-color: var(--color-menu-entry-hover-bg);
-  }
+  &:hover,
+  &:focus,
   &:active {
-    background-color: var(--color-menu-entry-active-bg);
+    background-color: var(--color-menu-entry-hover-bg);
   }
   &.disabled {
     cursor: default;

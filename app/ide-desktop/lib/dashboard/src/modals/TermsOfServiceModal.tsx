@@ -1,14 +1,9 @@
-/**
- * @file
- *
- * Modal for accepting the terms of service.
- */
+/** @file Modal for accepting the terms of service. */
 
 import * as React from 'react'
 
 import * as reactQuery from '@tanstack/react-query'
 import * as router from 'react-router'
-import * as twMerge from 'tailwind-merge'
 import * as z from 'zod'
 
 import * as authProvider from '#/providers/AuthProvider'
@@ -19,17 +14,26 @@ import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 
 import LocalStorage from '#/utilities/LocalStorage'
+import * as tailwindMerge from '#/utilities/tailwindMerge'
+
+// =================
+// === Constants ===
+// =================
+
+const TEN_MINUTES_MS = 600_000
+const TERMS_OF_SERVICE_SCHEMA = z.object({ versionHash: z.string() })
+
+// ============================
+// === Global configuration ===
+// ============================
 
 declare module '#/utilities/LocalStorage' {
-  /**
-   * Contains the latest terms of service version hash that the user has accepted.
-   */
+  /** Metadata containing the version hash of the terms of service that the user has accepted. */
   interface LocalStorageData {
     readonly termsOfService: z.infer<typeof TERMS_OF_SERVICE_SCHEMA> | null
   }
 }
 
-const TERMS_OF_SERVICE_SCHEMA = z.object({ versionHash: z.string() })
 LocalStorage.registerKey('termsOfService', { schema: TERMS_OF_SERVICE_SCHEMA })
 
 export const latestTermsOfService = reactQuery.queryOptions({
@@ -49,13 +53,14 @@ export const latestTermsOfService = reactQuery.queryOptions({
       }),
   refetchOnWindowFocus: true,
   refetchIntervalInBackground: true,
-  // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-  refetchInterval: 1000 * 60 * 10, // 10 minutes
+  refetchInterval: TEN_MINUTES_MS,
 })
 
-/**
- * Modal for accepting the terms of service.
- */
+// ===========================
+// === TermsOfServiceModal ===
+// ===========================
+
+/** Modal for accepting the terms of service. */
 export function TermsOfServiceModal() {
   const { getText } = textProvider.useText()
   const { localStorage } = localStorageProvider.useLocalStorage()
@@ -71,7 +76,6 @@ export function TermsOfServiceModal() {
     // and refetch in the background to check for updates.
     ...(localVersionHash != null && {
       initialData: { hash: localVersionHash },
-      initialDataUpdatedAt: 0,
     }),
     select: data => data.hash,
   })
@@ -119,8 +123,8 @@ export function TermsOfServiceModal() {
                       <div className="flex w-full items-center gap-1">
                         <aria.Input
                           type="checkbox"
-                          className={twMerge.twMerge(
-                            `flex size-4 cursor-pointer overflow-clip rounded-lg border border-primary outline-primary focus-visible:outline focus-visible:outline-2`,
+                          className={tailwindMerge.twMerge(
+                            'flex size-4 cursor-pointer overflow-clip rounded-lg border border-primary outline-primary focus-visible:outline focus-visible:outline-2',
                             isInvalid && 'border-red-700 text-red-500 outline-red-500'
                           )}
                           id={checkboxId}

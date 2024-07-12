@@ -5,18 +5,18 @@ import * as reactQuery from '@tanstack/react-query'
 
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
-import * as backendProvider from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import type * as assetListEvent from '#/events/assetListEvent'
 
-import AssetVersion from '#/layouts/AssetVersion'
+import AssetVersion from '#/layouts/AssetVersions/AssetVersion'
 import * as useAssetVersions from '#/layouts/AssetVersions/useAssetVersions'
 
 import Spinner from '#/components/Spinner'
 import * as spinnerModule from '#/components/Spinner'
 
 import * as backendService from '#/services/Backend'
+import type Backend from '#/services/Backend'
 
 import type AssetTreeNode from '#/utilities/AssetTreeNode'
 import * as dateTime from '#/utilities/dateTime'
@@ -38,14 +38,14 @@ interface AddNewVersionVariables {
 
 /** Props for a {@link AssetVersions}. */
 export interface AssetVersionsProps {
+  readonly backend: Backend
   readonly item: AssetTreeNode
   readonly dispatchAssetListEvent: (event: assetListEvent.AssetListEvent) => void
 }
 
 /** A list of previous versions of an asset. */
 export default function AssetVersions(props: AssetVersionsProps) {
-  const { item, dispatchAssetListEvent } = props
-  const { backend } = backendProvider.useStrictBackend()
+  const { backend, item, dispatchAssetListEvent } = props
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const [placeholderVersions, setPlaceholderVersions] = React.useState<

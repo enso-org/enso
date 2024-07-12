@@ -5,11 +5,10 @@
  */
 import * as React from 'react'
 
-import * as twv from 'tailwind-variants'
-
 import * as aria from '#/components/aria'
 
 import * as mergeRefs from '#/utilities/mergeRefs'
+import * as twv from '#/utilities/tailwindVariants'
 
 import * as formComponent from '../Form'
 import * as radioGroupContext from './RadioGroupContext'
@@ -21,7 +20,6 @@ export interface RadioGroupProps<
   Schema extends formComponent.TSchema,
   TFieldValues extends formComponent.FieldValues<Schema>,
   TFieldName extends formComponent.FieldPath<Schema, TFieldValues>,
-  // eslint-disable-next-line no-restricted-syntax
   TTransformedValues extends formComponent.FieldValues<Schema> | undefined = undefined,
 > extends formComponent.FieldStateProps<
       Omit<aria.AriaRadioGroupProps, 'description' | 'label'>,
@@ -49,7 +47,6 @@ export const RadioGroup = React.forwardRef(function RadioGroup<
   Schema extends formComponent.TSchema,
   TFieldName extends formComponent.FieldPath<Schema, TFieldValues>,
   TFieldValues extends formComponent.FieldValues<Schema> = formComponent.FieldValues<Schema>,
-  // eslint-disable-next-line no-restricted-syntax
   TTransformedValues extends formComponent.FieldValues<Schema> | undefined = undefined,
 >(
   props: RadioGroupProps<Schema, TFieldValues, TFieldName, TTransformedValues>,
@@ -85,20 +82,21 @@ export const RadioGroup = React.forwardRef(function RadioGroup<
   return (
     <aria.RadioGroup
       ref={mergeRefs.mergeRefs(ref, field.ref)}
-      {...radioGroupProps}
-      className={base}
-      name={field.name}
-      value={field.value}
-      isDisabled={field.disabled ?? isDisabled}
-      isRequired={isRequired}
-      isReadOnly={isReadOnly}
-      isInvalid={invalid}
-      onChange={field.onChange}
-      onBlur={field.onBlur}
+      {...aria.mergeProps<aria.RadioGroupProps>()(radioGroupProps, {
+        name: field.name,
+        value: field.value,
+        isDisabled: field.disabled ?? isDisabled,
+        onChange: field.onChange,
+        onBlur: field.onBlur,
+        className: base,
+        isRequired,
+        isReadOnly,
+        isInvalid: invalid,
+      })}
     >
       <radioGroupContext.RadioGroupProvider>
         <formComponent.Form.Field
-          name={field.name}
+          name={name}
           form={formInstance}
           label={label}
           description={description}

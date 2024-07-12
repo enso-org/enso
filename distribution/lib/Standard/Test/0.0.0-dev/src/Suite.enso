@@ -31,7 +31,7 @@ type Suite_Builder
          is not ignored.
     group : Text -> (Group_Builder -> Any) -> (Text | Nothing) -> Nothing
     group self (name:Text) (fn : (Group_Builder -> Any)) (pending : (Text | Nothing) = Nothing) =
-        group_builder = Group_Builder.Impl
+        group_builder = Group_Builder.Impl name
         case pending of
             Nothing ->
                 fn group_builder
@@ -102,21 +102,32 @@ type Suite
 
         all_results = all_results_bldr.to_vector
         succ_tests = all_results.filter (r-> r.is_success) . length
-        failed_tests = all_results.filter (r-> r.is_fail) . length
+        failed_tests = all_results.filter (r-> r.is_fail)
+        failed_tests_number = failed_tests.length
+        failed_tests_names = failed_tests.map .spec_name
+            . distinct
+            . take 10
+            . map Regex.escape
+            . map (t-> t.replace ' ' '.')
+            . join "|"
         skipped_tests = all_results.filter (r-> r.is_pending) . length
         pending_groups = matching_specs.filter (p-> p.first.is_pending) . length
         case should_exit of
             True ->
                 IO.println ""
                 IO.println <| succ_tests.to_text + " tests succeeded."
-                IO.println <| failed_tests.to_text + " tests failed."
+                IO.println <| failed_tests_number.to_text + " tests failed."
                 IO.println <| skipped_tests.to_text + " tests skipped."
                 IO.println <| pending_groups.to_text + " groups skipped."
                 IO.println ""
-                exit_code = if failed_tests > 0 then 1 else 0
+                if failed_tests_number > 0 then
+                    IO.println <| "Failed tests: '" + failed_tests_names + "'"
+                    if failed_tests_number > 10 then IO.println "(Displaying only first 10 failed tests)"
+                    IO.println ""
+                exit_code = if failed_tests_number > 0 then 1 else 0
                 System.exit exit_code
             False ->
-                failed_tests == 0
+                failed_tests_number == 0
 
     ## Gets the names of all the groups in this suite.
     group_names self =
@@ -137,5 +148,5 @@ name_matches (name : Text) (filter : (Text | Nothing)) -> Boolean =
         text : Text ->
             regex = Regex.compile text
             if regex.is_error.not then regex.match name != Nothing else
-                Panic.throw (Illegal_Argument.Error ("Filter '" + text + "' cannot be converted to regex"))
+                Panic.throw (Illegal_Argument.Error ("Filter " + text.pretty + " cannot be converted to regex"))
         Nothing -> True

@@ -3,8 +3,6 @@ import * as React from 'react'
 
 import * as gtag from 'enso-common/src/gtag'
 
-import * as authProvider from '#/providers/AuthProvider'
-
 // ====================
 // === useGtagEvent ===
 // ====================
@@ -12,15 +10,9 @@ import * as authProvider from '#/providers/AuthProvider'
 /** A hook that returns a no-op if the user is offline, otherwise it returns
  * a transparent wrapper around `gtag.event`. */
 export function useGtagEvent() {
-  const { type: sessionType } = authProvider.useNonPartialUserSession()
-  return React.useCallback(
-    (name: string, params?: object) => {
-      if (sessionType !== authProvider.UserSessionType.offline) {
-        gtag.event(name, params)
-      }
-    },
-    [sessionType]
-  )
+  return React.useCallback((name: string, params?: object) => {
+    gtag.event(name, params)
+  }, [])
 }
 
 // =============================
@@ -32,18 +24,19 @@ export function useGtagEvent() {
  *
  * Also sends the close event when the window is unloaded. */
 export function gtagOpenCloseCallback(
-  gtagEventRef: React.MutableRefObject<ReturnType<typeof useGtagEvent>>,
+  gtagEvent: ReturnType<typeof useGtagEvent>,
   openEvent: string,
   closeEvent: string
 ) {
-  const gtagEventCurrent = gtagEventRef.current
-  gtagEventCurrent(openEvent)
+  gtagEvent(openEvent)
+
   const onBeforeUnload = () => {
-    gtagEventCurrent(closeEvent)
+    gtagEvent(closeEvent)
   }
   window.addEventListener('beforeunload', onBeforeUnload)
+
   return () => {
     window.removeEventListener('beforeunload', onBeforeUnload)
-    gtagEventCurrent(closeEvent)
+    gtagEvent(closeEvent)
   }
 }

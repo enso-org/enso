@@ -130,7 +130,7 @@ object Case {
       )
     }
 
-    /** @inheritdoc */
+    /** String representation. */
     override def toString: String =
       s"""
          |Case.Expr(
@@ -283,7 +283,7 @@ object Case {
       copy(pattern = pattern.mapExpressions(fn), expression = fn(expression))
     }
 
-    /** @inheritdoc */
+    /** String representation. */
     override def toString: String =
       s"""
          |Case.Branch(
