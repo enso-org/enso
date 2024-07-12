@@ -41,11 +41,7 @@ import org.enso.compiler.core.ir.expression.{
   Operator,
   Section
 }
-import org.enso.compiler.data.BindingsMap.{
-  ExportedModule,
-  ResolvedConstructor,
-  ResolvedModule
-}
+import org.enso.compiler.data.BindingsMap.{ResolvedConstructor, ResolvedModule}
 import org.enso.compiler.data.{BindingsMap, CompilerConfig}
 import org.enso.compiler.exception.BadPatternMatch
 import org.enso.compiler.pass.analyse.alias.Graph.{Scope => AliasScope}
@@ -197,19 +193,25 @@ class IrToTruffle(
           "No binding analysis at the point of codegen."
         )
 
-    bindingsMap.resolvedExports
-      .collect { case ExportedModule(ResolvedModule(module), _, _) => module }
-      .foreach(exp =>
-        scopeBuilder.addExport(new ImportExportScope(exp.unsafeAsModule()))
+    bindingsMap.getDirectlyExportedModules.foreach { exportedMod =>
+      val exportedRuntimeMod = exportedMod.module.module.unsafeAsModule()
+      scopeBuilder.addExport(
+        new ImportExportScope(exportedRuntimeMod)
       )
+    }
+
     val importDefs = module.imports
     val methodDefs = module.bindings.collect {
       case method: definition.Method.Explicit => method
     }
 
     bindingsMap.resolvedImports.foreach { imp =>
-      imp.target match {
-        case BindingsMap.ResolvedType(_, _) =>
+      imp.targets.foreach {
+        case _: BindingsMap.ResolvedType             =>
+        case _: BindingsMap.ResolvedConstructor      =>
+        case _: BindingsMap.ResolvedModuleMethod     =>
+        case _: BindingsMap.ResolvedExtensionMethod  =>
+        case _: BindingsMap.ResolvedConversionMethod =>
         case ResolvedModule(module) =>
           val mod = module
             .unsafeAsModule()
@@ -406,7 +408,7 @@ class IrToTruffle(
                     throw new CompilerError(
                       "Impossible module method here, should be caught by MethodDefinitions pass."
                     )
-                  case _: BindingsMap.ResolvedStaticMethod =>
+                  case _: BindingsMap.ResolvedExtensionMethod =>
                     throw new CompilerError(
                       "Impossible static method here, should be caught by MethodDefinitions pass."
                     )
@@ -510,6 +512,7 @@ class IrToTruffle(
                             m.getFunction.getName,
                             fn.arguments,
                             fn.body,
+                            null,
                             effectContext,
                             true
                           )
@@ -542,6 +545,7 @@ class IrToTruffle(
                     fullMethodDefName,
                     fn.arguments,
                     fn.body,
+                    null,
                     effectContext,
                     true
                   )
@@ -718,6 +722,7 @@ class IrToTruffle(
                 methodDef.methodName.name,
                 fn.arguments,
                 fn.body,
+                ReadArgumentCheckNode.build(context, "conversion", toType),
                 None,
                 true
               )
@@ -881,7 +886,7 @@ class IrToTruffle(
           throw new CompilerError(
             "Impossible module method here, should be caught by MethodDefinitions pass."
           )
-        case _: BindingsMap.ResolvedStaticMethod =>
+        case _: BindingsMap.ResolvedExtensionMethod =>
           throw new CompilerError(
             "Impossible static method here, should be caught by MethodDefinitions pass."
           )
@@ -1009,7 +1014,7 @@ class IrToTruffle(
                 name,
                 fun
               )
-            case BindingsMap.ResolvedStaticMethod(module, staticMethod) =>
+            case BindingsMap.ResolvedExtensionMethod(module, staticMethod) =>
               val actualModule = module.unsafeAsModule()
               val currentScope = asScope(actualModule)
               actualModule.getBindingsMap.resolveName(
@@ -1544,7 +1549,7 @@ class IrToTruffle(
                   )
                 case Some(
                       BindingsMap.Resolution(
-                        BindingsMap.ResolvedStaticMethod(_, _)
+                        BindingsMap.ResolvedExtensionMethod(_, _)
                       )
                     ) =>
                   throw new CompilerError(
@@ -1928,7 +1933,7 @@ class IrToTruffle(
           throw new CompilerError(
             s"Impossible here, module method ${method.name} should be caught when translating application"
           )
-        case BindingsMap.ResolvedStaticMethod(_, staticMethod) =>
+        case BindingsMap.ResolvedExtensionMethod(_, staticMethod) =>
           throw new CompilerError(
             s"Impossible here, static method ${staticMethod.name} should be caught when translating application"
           )
@@ -2053,6 +2058,7 @@ class IrToTruffle(
       val initialName: String,
       val arguments: List[DefinitionArgument],
       val body: Expression,
+      val typeCheck: ReadArgumentCheckNode,
       val effectContext: Option[String],
       val subjectToInstrumentation: Boolean
     ) {
@@ -2081,7 +2087,13 @@ class IrToTruffle(
           case _ =>
             ExpressionProcessor.this.run(body, false, subjectToInstrumentation)
         }
-        (argExpressions.toArray, bodyExpr)
+
+        if (typeCheck == null) {
+          (argExpressions.toArray, bodyExpr)
+        } else {
+          val bodyWithCheck = ReadArgumentCheckNode.wrap(bodyExpr, typeCheck)
+          (argExpressions.toArray, bodyWithCheck)
+        }
       }
 
       private def computeSlots(): (
@@ -2171,7 +2183,7 @@ class IrToTruffle(
       binding: Boolean = false
     ): CreateFunctionNode = {
       val bodyBuilder =
-        new BuildFunctionBody(scopeName, arguments, body, None, false)
+        new BuildFunctionBody(scopeName, arguments, body, null, None, false)
       val fnRootNode = ClosureRootNode.build(
         language,
         scope,

@@ -72,9 +72,9 @@ import * as subscribeSuccess from '#/pages/subscribe/SubscribeSuccess'
 
 import * as openAppWatcher from '#/layouts/OpenAppWatcher'
 
+import * as devtools from '#/components/Devtools'
 import * as errorBoundary from '#/components/ErrorBoundary'
 import * as offlineNotificationManager from '#/components/OfflineNotificationManager'
-import * as paywall from '#/components/Paywall'
 import * as rootComponent from '#/components/Root'
 import * as suspense from '#/components/Suspense'
 
@@ -438,6 +438,8 @@ function AppRouter(props: AppRouterProps) {
       {/* Protected pages are visible to authenticated users. */}
       <router.Route element={<authProvider.NotDeletedUserLayout />}>
         <router.Route element={<authProvider.ProtectedLayout />}>
+          {detect.IS_DEV_MODE && <router.Route element={<devtools.EnsoDevtools />} />}
+
           <router.Route element={<termsOfServiceModal.TermsOfServiceModal />}>
             <router.Route element={<setOrganizationNameModal.SetOrganizationNameModal />}>
               <router.Route element={<openAppWatcher.OpenAppWatcher />}>
@@ -500,10 +502,6 @@ function AppRouter(props: AppRouterProps) {
   )
 
   let result = routes
-
-  if (detect.IS_DEV_MODE) {
-    result = <paywall.PaywallDevtools>{result}</paywall.PaywallDevtools>
-  }
 
   result = <errorBoundary.ErrorBoundary>{result}</errorBoundary.ErrorBoundary>
   result = <InputBindingsProvider inputBindings={inputBindings}>{result}</InputBindingsProvider>

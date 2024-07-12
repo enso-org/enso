@@ -96,7 +96,7 @@ public class EqualsConversionsTest {
         compare a:Num b:Num = Num_Comparator.compare a b
         hash a:Num = Num_Comparator.hash a
 
-    Comparable.from (_:Num) = Second_Comparator
+    Comparable.from (that:Num) = Comparable.new that Second_Comparator
     """;
     assertFalse("Num.Value not equal to Integer: ", gen.evaluate());
   }
@@ -123,7 +123,7 @@ public class EqualsConversionsTest {
     boolean intNumConversion;
     boolean numComparator;
     boolean intComparator;
-    String hashFn = "Default_Comparator.hash x.n";
+    String hashFn = "Ordering.hash x.n";
     String extraBlock = "";
 
     boolean evaluate() {
@@ -151,12 +151,14 @@ public class EqualsConversionsTest {
           !numComparator
               ? ""
               : """
-          Comparable.from (_:Num) = Num_Comparator
+          Comparable.from (that:Num) = Comparable.new that Num_Comparator
           """;
 
       var block3 =
-          !intComparator ? "" : """
-      Comparable.from (_:Integer) = Num_Comparator
+          !intComparator
+              ? ""
+              : """
+      Comparable.from (that:Integer) = Comparable.new that Num_Comparator
       """;
 
       var mainBlock =

@@ -4,7 +4,7 @@
  * Paywall configuration for different plans.
  */
 
-import type * as text from '#/text'
+import type * as text from 'enso-common/src/text'
 
 import * as backend from '#/services/Backend'
 

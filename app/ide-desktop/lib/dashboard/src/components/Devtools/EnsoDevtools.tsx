@@ -5,15 +5,20 @@
  */
 import * as React from 'react'
 
+import * as reactQuery from '@tanstack/react-query'
+
 import DevtoolsLogo from 'enso-assets/enso_logo.svg'
 
 import * as billing from '#/hooks/billing'
 
+import * as authProvider from '#/providers/AuthProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 import Portal from '#/components/Portal'
+
+import * as backend from '#/services/Backend'
 
 /**
  * Configuration for a paywall feature.
@@ -22,7 +27,6 @@ export interface PaywallDevtoolsFeatureConfiguration {
   readonly isForceEnabled: boolean | null
 }
 
-// eslint-disable-next-line no-restricted-syntax
 const PaywallDevtoolsContext = React.createContext<{
   features: Record<billing.PaywallFeatureName, PaywallDevtoolsFeatureConfiguration>
 }>({
@@ -37,17 +41,19 @@ const PaywallDevtoolsContext = React.createContext<{
 })
 
 /**
- * Props for the {@link PaywallDevtools} component.
+ * Props for the {@link EnsoDevtools} component.
  */
-interface PaywallDevtoolsProps extends React.PropsWithChildren {}
+interface EnsoDevtoolsProps extends React.PropsWithChildren {}
 
 /**
  * A component that provides a UI for toggling paywall features.
  */
-export function PaywallDevtools(props: PaywallDevtoolsProps) {
+export function EnsoDevtools(props: EnsoDevtoolsProps) {
   const { children } = props
 
   const { getText } = textProvider.useText()
+  const { authQueryKey } = authProvider.useAuth()
+  const session = authProvider.useFullUserSession()
 
   const [features, setFeatures] = React.useState<
     Record<billing.PaywallFeatureName, PaywallDevtoolsFeatureConfiguration>
@@ -61,6 +67,8 @@ export function PaywallDevtools(props: PaywallDevtoolsProps) {
   })
 
   const { getFeature } = billing.usePaywallFeatures()
+
+  const queryClient = reactQuery.useQueryClient()
 
   const onConfigurationChange = React.useCallback(
     (feature: billing.PaywallFeatureName, configuration: PaywallDevtoolsFeatureConfiguration) => {
@@ -91,6 +99,56 @@ export function PaywallDevtools(props: PaywallDevtoolsProps) {
             </ariaComponents.Text.Heading>
 
             <ariaComponents.Separator orientation="horizontal" className="my-3" />
+
+            <ariaComponents.Text variant="subtitle">
+              {getText('paywallDevtoolsPlanSelectSubtitle')}
+            </ariaComponents.Text>
+
+            <ariaComponents.Form
+              gap="small"
+              schema={schema => schema.object({ plan: schema.string() })}
+              defaultValues={{ plan: session.user.plan ?? 'free' }}
+            >
+              {({ form }) => (
+                <>
+                  <ariaComponents.RadioGroup
+                    form={form}
+                    name="plan"
+                    onChange={value => {
+                      queryClient.setQueryData(authQueryKey, {
+                        ...session,
+                        user: { ...session.user, plan: value },
+                      })
+                    }}
+                  >
+                    <ariaComponents.Radio label={getText('free')} value="free" />
+                    <ariaComponents.Radio label={getText('solo')} value={backend.Plan.solo} />
+                    <ariaComponents.Radio label={getText('team')} value={backend.Plan.team} />
+                    <ariaComponents.Radio
+                      label={getText('enterprise')}
+                      value={backend.Plan.enterprise}
+                    />
+                  </ariaComponents.RadioGroup>
+
+                  <ariaComponents.Button
+                    variant="outline"
+                    onPress={() =>
+                      queryClient.invalidateQueries({ queryKey: authQueryKey }).then(() => {
+                        form.reset()
+                      })
+                    }
+                  >
+                    {getText('reset')}
+                  </ariaComponents.Button>
+                </>
+              )}
+            </ariaComponents.Form>
+
+            <ariaComponents.Separator orientation="horizontal" className="my-3" />
+
+            <ariaComponents.Text variant="subtitle" className="mb-2">
+              {getText('paywallDevtoolsPaywallFeaturesToggles')}
+            </ariaComponents.Text>
 
             <div className="flex flex-col gap-1">
               {Object.entries(features).map(([feature, configuration]) => {

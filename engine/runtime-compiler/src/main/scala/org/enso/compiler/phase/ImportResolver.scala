@@ -98,9 +98,12 @@ final class ImportResolver(compiler: Compiler) extends ImportResolverForIR {
           }
         )
       }
-      currentLocal.resolvedImports
-        .map(_.target.module.unsafeAsModule())
-        .distinct
+      currentLocal.resolvedImports.flatMap { resolvedImport =>
+        val targetModules = resolvedImport.targets.map { target =>
+          target.module.unsafeAsModule()
+        }
+        targetModules
+      }.distinct
     }
 
     @scala.annotation.tailrec
@@ -129,17 +132,18 @@ final class ImportResolver(compiler: Compiler) extends ImportResolverForIR {
                     u.loadedFromCache(true)
                   }
                 )
-                val converted = Option(current.getBindingsMap())
-                (
-                  converted
-                    .map(
-                      _.resolvedImports
-                        .map(_.target.module.unsafeAsModule())
-                        .distinct
-                    )
-                    .getOrElse(Nil),
-                  false
-                )
+                val bm = current.getBindingsMap
+                if (bm != null) {
+                  val modulesFromResolvedImps = bm.resolvedImports.flatMap {
+                    resolvedImp =>
+                      resolvedImp.targets.map { target =>
+                        target.module.unsafeAsModule()
+                      }
+                  }
+                  (modulesFromResolvedImps.distinct, false)
+                } else {
+                  (Nil, false)
+                }
               case None =>
                 compiler.ensureParsed(current)
                 (analyzeModule(current), true)
@@ -180,9 +184,7 @@ final class ImportResolver(compiler: Compiler) extends ImportResolverForIR {
       case Export.Module(
             expName,
             rename,
-            isAll,
             onlyNames,
-            hiddenNames,
             _,
             isSynthetic,
             _,
@@ -194,9 +196,9 @@ final class ImportResolver(compiler: Compiler) extends ImportResolverForIR {
           val syntheticImport = Import.Module(
             expName,
             rename,
-            isAll,
+            false,
             onlyNames,
-            hiddenNames,
+            None,
             location    = None,
             isSynthetic = true,
             passData    = new MetadataStorage(),

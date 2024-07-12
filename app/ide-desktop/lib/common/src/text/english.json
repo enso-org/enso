@@ -758,5 +758,7 @@
   "shareFullPaywallMessage": "You can share assets only with single user group. Upgrade to share assets with multiple user groups and users.",
 
   "paywallDevtoolsButtonLabel": "Open Enso Devtools",
-  "paywallDevtoolsPopoverHeading": "Enso Devtools"
+  "paywallDevtoolsPopoverHeading": "Enso Devtools",
+  "paywallDevtoolsPlanSelectSubtitle": "User Plan",
+  "paywallDevtoolsPaywallFeaturesToggles": "Paywall Features"
 }

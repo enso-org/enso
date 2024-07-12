@@ -130,7 +130,7 @@ export default function UserGroupsSettingsSection(props: UserGroupsSettingsSecti
 
   return (
     <>
-      <ariaComponents.ButtonGroup>
+      <ariaComponents.ButtonGroup verticalAlign="center">
         {shouldDisplayPaywall && (
           <paywallComponents.PaywallDialogButton
             feature="userGroupsFull"

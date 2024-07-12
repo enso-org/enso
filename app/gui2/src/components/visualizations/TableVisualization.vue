@@ -136,7 +136,7 @@ useAutoBlur(tableNode)
 const widths = reactive(new Map<string, number>())
 const defaultColDef = {
   editable: false,
-  sortable: true as boolean,
+  sortable: true,
   filter: true,
   resizable: true,
   minWidth: 25,
@@ -327,14 +327,23 @@ function toField(name: string, valueType?: ValueType | null | undefined): ColDef
       icon = 'mixed'
   }
   const svgTemplate = `<svg viewBox="0 0 16 16" width="16" height="16"> <use xlink:href="${icons}#${icon}"/> </svg>`
+  const menu = `<span ref="eMenu" class="ag-header-icon ag-header-cell-menu-button"> </span>`
+  const sort = `
+      <span ref="eFilter" class="ag-header-icon ag-header-label-icon ag-filter-icon" aria-hidden="true"></span>
+      <span ref="eSortOrder" class="ag-header-icon ag-sort-order" aria-hidden="true"></span>
+      <span ref="eSortAsc" class="ag-header-icon ag-sort-ascending-icon" aria-hidden="true"></span>
+      <span ref="eSortDesc" class="ag-header-icon ag-sort-descending-icon" aria-hidden="true"></span>
+      <span ref="eSortNone" class="ag-header-icon ag-sort-none-icon" aria-hidden="true"></span>
+    `
   const template =
     icon ?
-      `<div style='display:flex; flex-direction:row; justify-content:space-between; width:inherit;'> ${name} <span ref="eMenu" class="ag-header-icon ag-header-cell-menu-button"> </span> ${svgTemplate}</div>`
-    : `<div>${name}</div>`
+      `<span style='display:flex; flex-direction:row; justify-content:space-between; width:inherit;'><span ref="eLabel" class="ag-header-cell-label" role="presentation" style='display:flex; flex-direction:row; justify-content:space-between; width:inherit;'> ${name} ${menu}</span> ${sort} ${svgTemplate}</span>`
+    : `<span ref="eLabel" style='display:flex; flex-direction:row; justify-content:space-between; width:inherit;'>${name} ${menu} ${sort}</span>`
   return {
     field: name,
     headerComponentParams: {
       template,
+      setAriaSort: () => {},
     },
     headerTooltip: displayValue ? displayValue : '',
   }
@@ -396,7 +405,7 @@ function toLinkField(fieldName: string): ColDef {
     field: fieldName,
     onCellDoubleClicked: (params) => createNode(params),
     tooltipValueGetter: () => {
-      return `Double click to view this ${newNodeSelectorValues.value.tooltipValue} in a separate node`
+      return `Double click to view this ${newNodeSelectorValues.value.tooltipValue} in a separate component`
     },
     cellRenderer: (params: any) => `<a href='#'> ${params.value} </a>`,
   }
@@ -647,7 +656,7 @@ onUnmounted(() => {
             v-text="limit"
           ></option>
         </select>
-        <div v-if="showRowCount">
+        <template v-if="showRowCount">
           <span
             v-if="isRowCountSelectorVisible && isTruncated"
             v-text="` of ${rowCount} rows (Sorting/Filtering disabled).`"
@@ -655,7 +664,7 @@ onUnmounted(() => {
           <span v-else-if="isRowCountSelectorVisible" v-text="' rows.'"></span>
           <span v-else-if="rowCount === 1" v-text="'1 row.'"></span>
           <span v-else v-text="`${rowCount} rows.`"></span>
-        </div>
+        </template>
       </div>
       <div ref="tableNode" class="scrollable ag-theme-alpine"></div>
     </div>

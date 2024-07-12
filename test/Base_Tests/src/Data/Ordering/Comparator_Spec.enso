@@ -15,10 +15,12 @@ type Ord
 
 # The comparison is reverted, i.e., `x < y` gives result for `y.number < x.number`.
 type Ord_Comparator
-    compare x y = (Comparable.from y.number) . compare y.number x.number
-    hash x = (Comparable.from x.number) . hash x.number
+    compare x:Ord y:Ord =
+        Ordering.compare x.number y.number
+    hash x =
+        Ordering.hash x.number
 
-Comparable.from (_:Ord) = Ord_Comparator
+Comparable.from (that:Ord) = Comparable.new that Ord_Comparator
 
 type No_Ord
     Value number
@@ -32,7 +34,7 @@ type No_Ord_Comparator
         _ = x
         0
 
-Comparable.from (_:No_Ord) = No_Ord_Comparator
+Comparable.from (that:No_Ord) = Comparable.new that No_Ord_Comparator
 
 # Tests
 
@@ -71,7 +73,8 @@ add_specs suite_builder = suite_builder.group "Object Comparator" group_builder-
         ((case_insensitive '\u00E9' '\u0065\u{301}') == 0) . should_equal True
 
     group_builder.specify "can compare custom types" <|
-        ((default_comparator (Ord.Value 1) (Ord.Value 0)) < 0) . should_equal True
+        ((default_comparator (Ord.Value 1) (Ord.Value 0)) < 0) . should_equal False
+        ((default_comparator (Ord.Value 1) (Ord.Value 0)) > 0) . should_equal True
         ((default_comparator (Ord.Value 1) (Ord.Value 1)) == 0) . should_equal True
 
     group_builder.specify "should fail gracefully for incomparable items" <|

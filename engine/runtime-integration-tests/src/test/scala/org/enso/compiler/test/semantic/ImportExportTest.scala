@@ -5,6 +5,7 @@ import org.enso.compiler.core.ir.{Module, ProcessingPass, Warning}
 import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.core.ir.module.scope.Import
 import org.enso.compiler.data.BindingsMap
+import org.enso.compiler.phase.exports.ExportsResolution
 import org.enso.compiler.pass.analyse.{BindingAnalysis, GatherDiagnostics}
 import org.enso.interpreter.runtime
 import org.enso.interpreter.runtime.EnsoContext
@@ -12,6 +13,7 @@ import org.enso.persist.Persistance
 import org.enso.pkg.QualifiedName
 import org.enso.common.LanguageInfo
 import org.enso.common.MethodNames
+import org.enso.compiler.phase.exports.Node
 import org.enso.polyglot.RuntimeOptions
 import org.graalvm.polyglot.{Context, Engine}
 import org.scalatest.BeforeAndAfter
@@ -89,6 +91,29 @@ class ImportExportTest
     }
   }
 
+  private def buildExportsGraph(
+    modules: List[org.enso.interpreter.runtime.Module]
+  ): List[Node] = {
+    val compilerCtx       = langCtx.getCompiler.context
+    val exportsResolution = new ExportsResolution(compilerCtx)
+    val compilerModules   = modules.map(_.asCompilerModule())
+    exportsResolution.buildModuleGraph(compilerModules)
+  }
+
+  /** Just delegates to [[ExportsResolution.runSort()]]
+    */
+  private def runExportsResolutionSort(
+    modules: List[org.enso.interpreter.runtime.Module]
+  ): List[org.enso.interpreter.runtime.Module] = {
+    val compilerCtx           = langCtx.getCompiler.context
+    val exportsResolution     = new ExportsResolution(compilerCtx)
+    val compilerModules       = modules.map(_.asCompilerModule())
+    val sortedCompilerModules = exportsResolution.runSort(compilerModules)
+    sortedCompilerModules.map(
+      org.enso.interpreter.runtime.Module.fromCompilerModule
+    )
+  }
+
   before {
     ctx.enter()
   }
@@ -139,7 +164,8 @@ class ImportExportTest
       mainBindingsMap.resolvedImports.size shouldEqual 1
       mainBindingsMap
         .resolvedImports(0)
-        .target
+        .targets
+        .head
         .isInstanceOf[BindingsMap.ResolvedModule] shouldBe true
     }
 
@@ -168,7 +194,8 @@ class ImportExportTest
       mainIr.unwrapBindingMap.resolvedImports.size shouldEqual 1
       mainIr.unwrapBindingMap
         .resolvedImports(0)
-        .target
+        .targets
+        .head
         .isInstanceOf[BindingsMap.ResolvedModule] shouldBe true
     }
 
@@ -230,53 +257,130 @@ class ImportExportTest
       )
     }
 
-    // TODO[pm]: will be addressed in https://github.com/enso-org/enso/issues/6729
-    "resolve static method from a module" ignore {
+    "resolve module method" in {
       """
-        |static_method =
+        |module_method =
         |    42
         |""".stripMargin
         .createModule(packageQualifiedName.createChild("A_Module"))
-      val bIr =
-        s"""
-           |import $namespace.$packageName.A_Module.static_method
-           |""".stripMargin
-          .createModule(packageQualifiedName.createChild("B_Module"))
-          .getIr
       val mainIr =
         s"""
-           |from $namespace.$packageName.A_Module import static_method
+           |import $namespace.$packageName.A_Module.module_method
            |""".stripMargin
           .createModule(packageQualifiedName.createChild("Main"))
           .getIr
-
       mainIr.imports.head.isInstanceOf[errors.ImportExport] shouldBe false
-      bIr.imports.head.isInstanceOf[errors.ImportExport] shouldBe false
       val mainBindingMap = mainIr.unwrapBindingMap
-      val bBindingMap    = bIr.unwrapBindingMap
-      mainBindingMap.resolvedImports.size shouldEqual 2
-      mainBindingMap
-        .resolvedImports(0)
-        .target
-        .asInstanceOf[BindingsMap.ResolvedModule]
-        .module
-        .getName
-        .item shouldEqual "A_Module"
-      mainBindingMap
-        .resolvedImports(1)
-        .target
+      mainBindingMap.resolvedImports.size shouldEqual 1
+      mainBindingMap.resolvedImports.head.targets.head
         .asInstanceOf[BindingsMap.ResolvedModuleMethod]
         .method
-        .name shouldEqual "static_method"
-      // In B_Module, we only have ResolvedMethod in the resolvedImports, there is no ResolvedModule
-      // But that does not matter.
-      bBindingMap.resolvedImports.size shouldEqual 1
-      bBindingMap
-        .resolvedImports(0)
-        .target
-        .asInstanceOf[BindingsMap.ResolvedModuleMethod]
-        .method
-        .name shouldEqual "static_method"
+        .name shouldEqual "module_method"
+    }
+
+    "be able to import constructor from type" in {
+      """
+        |type My_Type
+        |    Constructor
+        |""".stripMargin
+        .createModule(packageQualifiedName.createChild("My_Module"))
+
+      val mainIr =
+        s"""
+           |import $namespace.$packageName.My_Module.My_Type.Constructor
+           |""".stripMargin
+          .createModule(packageQualifiedName.createChild("Main"))
+          .getIr
+      val bindingMap = mainIr.unwrapBindingMap
+      bindingMap.resolvedImports.size shouldBe 1
+      bindingMap.resolvedImports.head.targets.head shouldBe a[
+        BindingsMap.ResolvedConstructor
+      ]
+
+      bindingMap.resolvedImports.head.targets.head
+        .asInstanceOf[BindingsMap.ResolvedConstructor]
+        .qualifiedName
+        .item shouldBe "Constructor"
+    }
+
+    "be able to export constructor from type" in {
+      """
+        |type Boolean
+        |    True
+        |    False
+        |""".stripMargin
+        .createModule(packageQualifiedName.createChild("Boolean"))
+
+      val mainIr =
+        s"""
+           |export $namespace.$packageName.Boolean.Boolean.True
+           |export $namespace.$packageName.Boolean.Boolean.False
+           |""".stripMargin
+          .createModule(packageQualifiedName.createChild("Main"))
+          .getIr
+      val bindingMap = mainIr.unwrapBindingMap
+      bindingMap.exportedSymbols.keys should contain theSameElementsAs List(
+        "True",
+        "False"
+      )
+      bindingMap
+        .exportedSymbols("True")
+        .head
+        .isInstanceOf[BindingsMap.ResolvedConstructor] shouldBe true
+      bindingMap
+        .exportedSymbols("False")
+        .head
+        .isInstanceOf[BindingsMap.ResolvedConstructor] shouldBe true
+    }
+
+    "import single static method with one symbol" in {
+      """
+        |type My_Type
+        |My_Type.extension_method x = x
+        |""".stripMargin
+        .createModule(packageQualifiedName.createChild("Module"))
+
+      val mainIr = s"""
+                      |import $namespace.$packageName.Module.extension_method
+                      |""".stripMargin
+        .createModule(packageQualifiedName.createChild("Main"))
+        .getIr
+      mainIr.imports.head
+        .isInstanceOf[errors.ImportExport] shouldBe false
+
+      val bindingsMap = mainIr.unwrapBindingMap
+      bindingsMap.resolvedImports.size shouldBe 1
+      val resolvedImport = bindingsMap.resolvedImports.head
+      resolvedImport.targets.head shouldBe a[
+        BindingsMap.ResolvedExtensionMethod
+      ]
+      resolvedImport.targets.head
+        .asInstanceOf[BindingsMap.ResolvedExtensionMethod]
+        .staticMethod
+        .methodName shouldBe "extension_method"
+    }
+
+    "export multiple static methods with one symbol" in {
+      """
+        |type My_Type
+        |type Other_Type
+        |
+        |My_Type.extension_method x = x
+        |Other_Type.extension_method y = y
+        |""".stripMargin
+        .createModule(packageQualifiedName.createChild("Module"))
+
+      val mainIr = s"""
+                      |export $namespace.$packageName.Module.extension_method
+                      |""".stripMargin
+        .createModule(packageQualifiedName.createChild("Main"))
+        .getIr
+      mainIr.imports.head
+        .isInstanceOf[errors.ImportExport] shouldBe false
+      val bm = mainIr.unwrapBindingMap
+      bm.exportedSymbols.size shouldBe 1
+      bm.exportedSymbols.get("extension_method") shouldBe defined
+      bm.exportedSymbols("extension_method").size shouldBe 2
     }
 
     "result in error when trying to import mix of constructors and methods from a type" in {
@@ -317,8 +421,8 @@ class ImportExportTest
       mainIr.imports.head
         .asInstanceOf[errors.ImportExport]
         .reason
-        .asInstanceOf[errors.ImportExport.ModuleDoesNotExist]
-        .name should include("static_method")
+        .asInstanceOf[errors.ImportExport.IllegalImportFromMethod]
+        .methodName should include("static_method")
     }
 
     "result in error when trying to import anything from a non-existing symbol" in {
@@ -337,63 +441,6 @@ class ImportExportTest
         .reason
         .asInstanceOf[errors.ImportExport.ModuleDoesNotExist]
         .name should include("Non_Existing_Symbol")
-    }
-
-    // TODO[pm]: Fix in https://github.com/enso-org/enso/issues/6669
-    "resolve all symbols from transitively exported type" ignore {
-      """
-        |type A_Type
-        |    A_Constructor
-        |    a_method self = 1
-        |""".stripMargin
-        .createModule(packageQualifiedName.createChild("A_Module"))
-      s"""
-         |import $namespace.$packageName.A_Module.A_Type
-         |export $namespace.$packageName.A_Module.A_Type
-         |""".stripMargin
-        .createModule(packageQualifiedName.createChild("B_Module"))
-      val mainIr =
-        s"""
-           |from $namespace.$packageName.B_Module.A_Type import all
-           |""".stripMargin
-          .createModule(packageQualifiedName.createChild("Main"))
-          .getIr
-      mainIr.imports.size shouldEqual 1
-      mainIr.imports.head.isInstanceOf[errors.ImportExport] shouldBe false
-      val mainBindingMap = mainIr.unwrapBindingMap
-      val resolvedImportTargets =
-        mainBindingMap.resolvedImports.map(_.target)
-      resolvedImportTargets
-        .collect { case c: BindingsMap.ResolvedConstructor => c }
-        .map(_.cons.name) should contain theSameElementsAs List("A_Constructor")
-    }
-
-    // TODO[pm]: Fix in https://github.com/enso-org/enso/issues/6669
-    "resolve constructor from transitively exported type" ignore {
-      """
-        |type A_Type
-        |    A_Constructor
-        |""".stripMargin
-        .createModule(packageQualifiedName.createChild("A_Module"))
-      s"""
-         |import $namespace.$packageName.A_Module.A_Type
-         |export $namespace.$packageName.A_Module.A_Type
-         |""".stripMargin
-        .createModule(packageQualifiedName.createChild("B_Module"))
-      val mainIr =
-        s"""
-           |from $namespace.$packageName.B_Module.A_Type import A_Constructor
-           |""".stripMargin
-          .createModule(packageQualifiedName.createChild("Main"))
-          .getIr
-      mainIr.imports.size shouldEqual 1
-      mainIr.imports.head.isInstanceOf[errors.ImportExport] shouldBe false
-      val mainBindingMap = mainIr.unwrapBindingMap
-      val resolvedImportTargets =
-        mainBindingMap.resolvedImports.map(_.target)
-      resolvedImportTargets
-        .collect { case c: BindingsMap.ResolvedConstructor => c }
-        .map(_.cons.name) should contain theSameElementsAs List("A_Constructor")
     }
 
     "export is not transitive" in {
@@ -442,10 +489,6 @@ class ImportExportTest
       mainModule.getIr.imports.head
         .asInstanceOf[Import.Module]
         .isSynthetic shouldBe true
-
-      val resolvedExports = mainModule.getIr.unwrapBindingMap.resolvedExports
-      resolvedExports.size shouldBe 1
-      resolvedExports.head.target.qualifiedName.item shouldBe "A_Type"
     }
 
     "(from) export type without import should insert synthetic import" in {
@@ -463,9 +506,6 @@ class ImportExportTest
       mainModule.getIr.imports.head
         .asInstanceOf[Import.Module]
         .isSynthetic shouldBe true
-
-      val resolvedExports = mainModule.getIr.unwrapBindingMap.resolvedExports
-      resolvedExports.size shouldBe 1
     }
 
     "export module without import should insert synthetic import" in {
@@ -483,10 +523,6 @@ class ImportExportTest
       mainModule.getIr.imports.head
         .asInstanceOf[Import.Module]
         .isSynthetic shouldBe true
-
-      val resolvedExports = mainModule.getIr.unwrapBindingMap.resolvedExports
-      resolvedExports.size shouldBe 1
-      resolvedExports.head.target.qualifiedName.item shouldBe "A_Module"
     }
 
     "export unknown type without import should result in error" in {
@@ -525,12 +561,12 @@ class ImportExportTest
       mainIr.exports.head
         .asInstanceOf[errors.ImportExport]
         .reason
-        .isInstanceOf[errors.ImportExport.SymbolDoesNotExist] shouldBe true
+        .isInstanceOf[errors.ImportExport.NoSuchConstructor] shouldBe true
       mainIr.exports.head
         .asInstanceOf[errors.ImportExport]
         .reason
-        .asInstanceOf[errors.ImportExport.SymbolDoesNotExist]
-        .symbolName shouldEqual "Non_Existing_Ctor"
+        .asInstanceOf[errors.ImportExport.NoSuchConstructor]
+        .constructorName shouldEqual "Non_Existing_Ctor"
     }
 
     "fail when exporting from other module" in {
@@ -547,8 +583,6 @@ class ImportExportTest
           .createModule(packageQualifiedName.createChild("Main"))
           .getIr
 
-      val bindingsMap = mainIr.unwrapBindingMap
-      bindingsMap shouldNot be(null)
       mainIr.exports.size shouldEqual 1
       mainIr.exports.head.isInstanceOf[errors.ImportExport] shouldBe true
       mainIr.exports.head
@@ -582,12 +616,12 @@ class ImportExportTest
       mainIr.exports.head
         .asInstanceOf[errors.ImportExport]
         .reason
-        .isInstanceOf[errors.ImportExport.SymbolDoesNotExist] shouldBe true
+        .isInstanceOf[errors.ImportExport.NoSuchConstructor] shouldBe true
       mainIr.exports.head
         .asInstanceOf[errors.ImportExport]
         .reason
-        .asInstanceOf[errors.ImportExport.SymbolDoesNotExist]
-        .symbolName shouldEqual "Non_Existing_Ctor"
+        .asInstanceOf[errors.ImportExport.NoSuchConstructor]
+        .constructorName shouldEqual "Non_Existing_Ctor"
     }
 
     "fail when exporting from type" in {
@@ -610,12 +644,12 @@ class ImportExportTest
       mainIr.exports.head
         .asInstanceOf[errors.ImportExport]
         .reason
-        .isInstanceOf[errors.ImportExport.SymbolDoesNotExist] shouldBe true
+        .isInstanceOf[errors.ImportExport.NoSuchConstructor] shouldBe true
       mainIr.exports.head
         .asInstanceOf[errors.ImportExport]
         .reason
-        .asInstanceOf[errors.ImportExport.SymbolDoesNotExist]
-        .symbolName shouldEqual "FOO"
+        .asInstanceOf[errors.ImportExport.NoSuchConstructor]
+        .constructorName shouldEqual "FOO"
     }
 
     "fail when exporting from module with `from`" in {
@@ -1064,21 +1098,23 @@ class ImportExportTest
         |# it is also considered a static module method
         |glob_var = 42
         |
-        |# This is also a static method
-        |foreign js js_function = \"\"\"
-        |    return 42
         |""".stripMargin
         .createModule(packageQualifiedName.createChild("A_Module"))
 
-      s"""
-         |from $namespace.$packageName.A_Module import all
-         |from $namespace.$packageName.A_Module export static_method
-         |
-         |type B_Type
-         |    B_Constructor val
-         |""".stripMargin
+      val bIr = s"""
+                   |from $namespace.$packageName.A_Module import all
+                   |from $namespace.$packageName.A_Module export static_method
+                   |
+                   |type B_Type
+                   |    B_Constructor val
+                   |""".stripMargin
         .createModule(packageQualifiedName.createChild("B_Module"))
         .getIr
+      val bBindingMap = bIr.unwrapBindingMap
+      bBindingMap.exportedSymbols.keys should contain theSameElementsAs List(
+        "static_method",
+        "B_Type"
+      )
 
       val mainIr =
         s"""
@@ -1328,6 +1364,310 @@ class ImportExportTest
         .unsafeGetMetadata(GatherDiagnostics, "Should be included")
         .diagnostics
       diags.size shouldEqual 0
+    }
+  }
+
+  "Exports graph building" should {
+    def assertAModExportedByBMod(graph: List[Node]): Unit = {
+      val aModNode = graph.find(node =>
+        node.module match {
+          case BindingsMap.ResolvedModule(modRef) =>
+            modRef.getName.item == "A_Module"
+          case _ => false
+        }
+      )
+      aModNode shouldBe defined
+      val aModNodeExporter =
+        aModNode.get.exportedBy.head.exporter
+      withClue("A_Module should be exported by B_Module") {
+        aModNodeExporter.module
+          .isInstanceOf[BindingsMap.ResolvedModule] shouldBe true
+        aModNodeExporter.module
+          .asInstanceOf[BindingsMap.ResolvedModule]
+          .qualifiedName
+          .item shouldBe "B_Module"
+      }
+    }
+
+    // Directly export a single module
+    "build exports graph for a module" in {
+      val aModule =
+        """
+          |# Blank on purpose
+          |""".stripMargin
+          .createModule(packageQualifiedName.createChild("A_Module"))
+
+      val bModule =
+        s"""
+           |export $namespace.$packageName.A_Module
+           |""".stripMargin
+          .createModule(packageQualifiedName.createChild("B_Module"))
+      val graph = buildExportsGraph(List(aModule, bModule))
+      withClue("There should be only A_Module and B_Module nodes") {
+        graph.size shouldBe 2
+      }
+      assertAModExportedByBMod(graph)
+    }
+
+    "build exports graph for module method with `from ... export ...` syntax" in {
+      val aModule =
+        """
+          |type A_Type
+          |    A_Constructor
+          |    instance_method self = 42
+          |
+          |module_method =
+          |    local_var = 42
+          |    local_var
+          |""".stripMargin
+          .createModule(packageQualifiedName.createChild("A_Module"))
+
+      val bModule =
+        s"""
+           |from $namespace.$packageName.A_Module export module_method
+           |
+           |type B_Type
+           |    B_Constructor val
+           |""".stripMargin
+          .createModule(packageQualifiedName.createChild("B_Module"))
+      val graph = buildExportsGraph(List(aModule, bModule))
+      withClue("There should be only A_Module and B_Module nodes") {
+        graph.size shouldBe 2
+      }
+      assertAModExportedByBMod(graph)
+    }
+
+    "build exports graph for module method with `export ...` syntax" in {
+      val aModule =
+        """
+          |type A_Type
+          |    A_Constructor
+          |    instance_method self = 42
+          |
+          |module_method =
+          |    local_var = 42
+          |    local_var
+          |""".stripMargin
+          .createModule(packageQualifiedName.createChild("A_Module"))
+
+      val bModule =
+        s"""
+           |export $namespace.$packageName.A_Module.module_method
+           |
+           |type B_Type
+           |    B_Constructor val
+           |""".stripMargin
+          .createModule(packageQualifiedName.createChild("B_Module"))
+      val graph = buildExportsGraph(List(aModule, bModule))
+      withClue("There should be only A_Module and B_Module nodes") {
+        graph.size shouldBe 2
+      }
+      assertAModExportedByBMod(graph)
+    }
+
+    "build exports graph for type" in {
+      val aModule =
+        """
+          |type A_Type
+          |    A_Constructor
+          |    instance_method self = 42
+          |
+          |static_method =
+          |    local_var = 42
+          |    local_var
+          |""".stripMargin
+          .createModule(packageQualifiedName.createChild("A_Module"))
+
+      val bModule =
+        s"""
+           |from $namespace.$packageName.A_Module export A_Type
+           |
+           |type B_Type
+           |    B_Constructor val
+           |""".stripMargin
+          .createModule(packageQualifiedName.createChild("B_Module"))
+      val graph = buildExportsGraph(List(aModule, bModule))
+      withClue("There should be only A_Module and B_Module nodes") {
+        graph.size shouldBe 2
+      }
+      assertAModExportedByBMod(graph)
+    }
+
+    "build exports graph for constructors" in {
+      val boolModule =
+        """
+          |type Boolean
+          |    True
+          |    False
+          |""".stripMargin
+          .createModule(packageQualifiedName.createChild("Boolean"))
+
+      val mainModule =
+        s"""
+           |export $namespace.$packageName.Boolean.Boolean.True
+           |export $namespace.$packageName.Boolean.Boolean.False
+           |""".stripMargin
+          .createModule(packageQualifiedName.createChild("Main"))
+
+      val graph = buildExportsGraph(List(boolModule, mainModule))
+      withClue(
+        "graph should contains node for: [Boolean, Main]"
+      ) {
+        graph.size shouldBe 2
+      }
+      val boolNode = graph.find(_.module.qualifiedName.item == "Boolean")
+      boolNode shouldBe defined
+      val boolExporter = boolNode.get.exportedBy.head.exporter
+      boolExporter.module.qualifiedName.item shouldBe "Main"
+    }
+
+    "No exports graph is constructed when only import is used" in {
+      val aModule =
+        """
+          |type A_Type
+          |    A_Constructor
+          |""".stripMargin
+          .createModule(packageQualifiedName.createChild("A_Module"))
+
+      val bModule =
+        s"""
+           |from $namespace.$packageName.A_Module import A_Type
+           |
+           |main =
+           |    A_Type.A_Constructor
+           |""".stripMargin
+          .createModule(packageQualifiedName.createChild("B_Module"))
+      val graph = buildExportsGraph(List(aModule, bModule))
+      withClue("Only two modules are defined") {
+        graph.size shouldBe 2
+      }
+      withClue("There should be no exports") {
+        graph.forall(node => node.exports.isEmpty) shouldBe true
+      }
+    }
+  }
+
+  "Export resolution sorting" should {
+    "correctly sort two modules" in {
+      val aModule =
+        """
+          |type A_Type
+          |""".stripMargin
+          .createModule(packageQualifiedName.createChild("A_Module"))
+
+      val bModule =
+        s"""
+           |export $namespace.$packageName.A_Module.A_Type
+           |""".stripMargin
+          .createModule(packageQualifiedName.createChild("B_Module"))
+      val sortedMods = runExportsResolutionSort(List(aModule, bModule))
+      sortedMods should contain theSameElementsInOrderAs List(
+        aModule,
+        bModule
+      )
+    }
+
+    "correctly sort three modules with two independent modules" in {
+      val aModule =
+        """
+          |type A_Type
+          |""".stripMargin
+          .createModule(packageQualifiedName.createChild("A_Module"))
+
+      val bModule =
+        s"""
+           |type B_Type
+           |""".stripMargin
+          .createModule(packageQualifiedName.createChild("B_Module"))
+
+      val cModule =
+        s"""
+           |export $namespace.$packageName.A_Module.A_Type
+           |export $namespace.$packageName.B_Module.B_Type
+           |""".stripMargin
+          .createModule(packageQualifiedName.createChild("C_Module"))
+      val sortedMods = runExportsResolutionSort(List(aModule, bModule, cModule))
+      sortedMods.last shouldBe cModule
+      sortedMods.take(2) should contain theSameElementsAs List(
+        aModule,
+        bModule
+      )
+    }
+
+    "correctly sort three modules with transitive exports" in {
+      val aModule =
+        """
+          |# blank on purpose
+          |""".stripMargin
+          .createModule(packageQualifiedName.createChild("A_Module"))
+
+      val bModule =
+        s"""
+           |export $namespace.$packageName.A_Module
+           |""".stripMargin
+          .createModule(packageQualifiedName.createChild("B_Module"))
+
+      val cModule =
+        s"""
+           |export $namespace.$packageName.B_Module
+           |""".stripMargin
+          .createModule(packageQualifiedName.createChild("C_Module"))
+      val sortedMods = runExportsResolutionSort(List(aModule, bModule, cModule))
+      sortedMods should contain theSameElementsInOrderAs List(
+        aModule,
+        bModule,
+        cModule
+      )
+    }
+
+    "correctly sort two modules with exported module method" in {
+      val aModule =
+        """
+          |module_method =
+          |    42
+          |""".stripMargin
+          .createModule(packageQualifiedName.createChild("A_Module"))
+
+      val bModule =
+        s"""
+           |export $namespace.$packageName.A_Module.module_method
+           |""".stripMargin
+          .createModule(packageQualifiedName.createChild("B_Module"))
+      val sortedMods = runExportsResolutionSort(List(aModule, bModule))
+      sortedMods should contain theSameElementsInOrderAs List(
+        aModule,
+        bModule
+      )
+    }
+
+    "correctly sort three modules with exported module method and import" in {
+      val aModule =
+        """
+          |module_method =
+          |    42
+          |""".stripMargin
+          .createModule(packageQualifiedName.createChild("A_Module"))
+
+      val bModule =
+        s"""
+           |export $namespace.$packageName.A_Module.module_method
+           |""".stripMargin
+          .createModule(packageQualifiedName.createChild("B_Module"))
+
+      val cModule =
+        s"""
+           |from $namespace.$packageName.B_Module import all
+           |""".stripMargin
+          .createModule(packageQualifiedName.createChild("C_Module"))
+
+      val sortedMods = runExportsResolutionSort(List(aModule, bModule, cModule))
+      withClue(
+        "A_Module should always be before B_Module.C_Module can be anywhere"
+      ) {
+        val aModIdx = sortedMods.indexOf(aModule)
+        val bModIdx = sortedMods.indexOf(bModule)
+        aModIdx should be < bModIdx
+      }
     }
   }
 }

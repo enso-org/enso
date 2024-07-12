@@ -9,6 +9,7 @@ import * as zodResolver from '@hookform/resolvers/zod'
 import * as reactHookForm from 'react-hook-form'
 import invariant from 'tiny-invariant'
 
+import * as schemaModule from './schema'
 import type * as types from './types'
 
 /**
@@ -52,9 +53,12 @@ export function useForm<
   } else {
     const { schema, ...options } = optionsOrFormInstance
 
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const computedSchema = typeof schema === 'function' ? schema(schemaModule.schema) : schema
+
     return reactHookForm.useForm<TFieldValues, unknown, TTransformedValues>({
       ...options,
-      resolver: zodResolver.zodResolver(schema, { async: true }),
+      resolver: zodResolver.zodResolver(computedSchema, { async: true }),
     })
   }
 }

@@ -65,8 +65,8 @@ export const Form = React.forwardRef(function Form<
   const innerForm = components.useForm(
     form ?? {
       shouldFocusError: true,
-      ...formOptions,
       schema,
+      ...formOptions,
     }
   )
 
@@ -82,7 +82,7 @@ export const Form = React.forwardRef(function Form<
     mutationKey: ['Form submission', `testId: ${testId}`, `id: ${id}`],
     mutationFn: async (fieldValues: TFieldValues) => {
       try {
-        await onSubmit(fieldValues, innerForm)
+        await onSubmit?.(fieldValues, innerForm)
 
         if (method === 'dialog') {
           dialogContext?.close()
