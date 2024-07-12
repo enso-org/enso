@@ -4,8 +4,7 @@
  * an API endpoint. The functions are asynchronous and return a {@link Promise} that resolves to
  * the response from the API. */
 import * as detect from 'enso-common/src/detect'
-
-import type * as text from '#/text'
+import type * as text from 'enso-common/src/text'
 
 import type * as loggerProvider from '#/providers/LoggerProvider'
 import type * as textProvider from '#/providers/TextProvider'

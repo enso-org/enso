@@ -11,18 +11,18 @@ test('Selecting nodes by click', async ({ page }) => {
   const selectionMenu = page.locator('.SelectionMenu')
   await expect(node1).not.toBeSelected()
   await expect(node2).not.toBeSelected()
-  await expect(selectionMenu).not.toBeVisible()
+  await expect(selectionMenu).toBeHidden()
 
   await locate.graphNodeIcon(node1).click()
   await expect(node1).toBeSelected()
   await expect(node2).not.toBeSelected()
-  await expect(selectionMenu).not.toBeVisible()
+  await expect(selectionMenu).toBeHidden()
 
   // Check that clicking an unselected node deselects replaces the previous selection.
   await locate.graphNodeIcon(node2).click()
   await expect(node1).not.toBeSelected()
   await expect(node2).toBeSelected()
-  await expect(selectionMenu).not.toBeVisible()
+  await expect(selectionMenu).toBeHidden()
 
   await page.waitForTimeout(300) // Avoid double clicks
   await locate.graphNodeIcon(node1).click({ modifiers: ['Shift'] })
@@ -34,13 +34,13 @@ test('Selecting nodes by click', async ({ page }) => {
   await locate.graphNodeIcon(node2).click()
   await expect(node1).not.toBeSelected()
   await expect(node2).toBeSelected()
-  await expect(selectionMenu).not.toBeVisible()
+  await expect(selectionMenu).toBeHidden()
 
   // Check that clicking the background deselects all nodes.
   await locate.graphEditor(page).click({ position: { x: 600, y: 200 } })
   await expect(node1).not.toBeSelected()
   await expect(node2).not.toBeSelected()
-  await expect(selectionMenu).not.toBeVisible()
+  await expect(selectionMenu).toBeHidden()
 })
 
 test('Selecting nodes by area drag', async ({ page }) => {

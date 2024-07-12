@@ -2,7 +2,7 @@ import { fileURLToPath } from 'node:url'
 import { configDefaults, defineConfig, mergeConfig } from 'vitest/config'
 import viteConfig from './vite.config'
 
-export default mergeConfig(
+const config = mergeConfig(
   viteConfig,
   defineConfig({
     test: {
@@ -17,3 +17,5 @@ export default mergeConfig(
     },
   }),
 )
+config.esbuild.dropLabels = config.esbuild.dropLabels.filter((label: string) => label != 'DEV')
+export default config

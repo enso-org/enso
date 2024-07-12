@@ -5,8 +5,7 @@ import CloudIcon from 'enso-assets/cloud.svg'
 import ComputerIcon from 'enso-assets/computer.svg'
 import RecentIcon from 'enso-assets/recent.svg'
 import Trash2Icon from 'enso-assets/trash2.svg'
-
-import type * as text from '#/text'
+import type * as text from 'enso-common/src/text'
 
 import * as mimeTypes from '#/data/mimeTypes'
 
@@ -281,7 +280,7 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
                 />
               )
               return data.nested ? (
-                <div className="flex">
+                <div key={data.category} className="flex">
                   <div className="ml-[15px] mr-1 border-r border-primary/20" />
                   {element}
                 </div>

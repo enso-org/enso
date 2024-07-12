@@ -438,38 +438,48 @@ function AppRouter(props: AppRouterProps) {
       {/* Protected pages are visible to authenticated users. */}
       <router.Route element={<authProvider.NotDeletedUserLayout />}>
         <router.Route element={<authProvider.ProtectedLayout />}>
-          <router.Route element={<termsOfServiceModal.TermsOfServiceModal />}>
-            <router.Route element={<setOrganizationNameModal.SetOrganizationNameModal />}>
-              <router.Route element={<openAppWatcher.OpenAppWatcher />}>
-                <router.Route
-                  path={appUtils.DASHBOARD_PATH}
-                  element={shouldShowDashboard && <Dashboard {...props} />}
-                />
+          <router.Route
+            element={
+              detect.IS_DEV_MODE ? (
+                <devtools.EnsoDevtools>
+                  <router.Outlet />
+                </devtools.EnsoDevtools>
+              ) : null
+            }
+          >
+            <router.Route element={<termsOfServiceModal.TermsOfServiceModal />}>
+              <router.Route element={<setOrganizationNameModal.SetOrganizationNameModal />}>
+                <router.Route element={<openAppWatcher.OpenAppWatcher />}>
+                  <router.Route
+                    path={appUtils.DASHBOARD_PATH}
+                    element={shouldShowDashboard && <Dashboard {...props} />}
+                  />
 
-                <router.Route
-                  path={appUtils.SUBSCRIBE_PATH}
-                  element={
-                    <errorBoundary.ErrorBoundary>
-                      <suspense.Suspense>
-                        <subscribe.Subscribe />
-                      </suspense.Suspense>
-                    </errorBoundary.ErrorBoundary>
-                  }
-                />
+                  <router.Route
+                    path={appUtils.SUBSCRIBE_PATH}
+                    element={
+                      <errorBoundary.ErrorBoundary>
+                        <suspense.Suspense>
+                          <subscribe.Subscribe />
+                        </suspense.Suspense>
+                      </errorBoundary.ErrorBoundary>
+                    }
+                  />
+                </router.Route>
               </router.Route>
             </router.Route>
-          </router.Route>
 
-          <router.Route
-            path={appUtils.SUBSCRIBE_SUCCESS_PATH}
-            element={
-              <errorBoundary.ErrorBoundary>
-                <suspense.Suspense>
-                  <subscribeSuccess.SubscribeSuccess />
-                </suspense.Suspense>
-              </errorBoundary.ErrorBoundary>
-            }
-          />
+            <router.Route
+              path={appUtils.SUBSCRIBE_SUCCESS_PATH}
+              element={
+                <errorBoundary.ErrorBoundary>
+                  <suspense.Suspense>
+                    <subscribeSuccess.SubscribeSuccess />
+                  </suspense.Suspense>
+                </errorBoundary.ErrorBoundary>
+              }
+            />
+          </router.Route>
         </router.Route>
       </router.Route>
 
@@ -500,10 +510,6 @@ function AppRouter(props: AppRouterProps) {
   )
 
   let result = routes
-
-  if (detect.IS_DEV_MODE) {
-    result = <devtools.EnsoDevtools>{result}</devtools.EnsoDevtools>
-  }
 
   result = <errorBoundary.ErrorBoundary>{result}</errorBoundary.ErrorBoundary>
   result = <InputBindingsProvider inputBindings={inputBindings}>{result}</InputBindingsProvider>

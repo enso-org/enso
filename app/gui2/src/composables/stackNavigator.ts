@@ -1,5 +1,5 @@
 import type { BreadcrumbItem } from '@/components/NavBreadcrumbs.vue'
-import { type GraphStore } from '@/stores/graph'
+import { type GraphStore, type NodeId } from '@/stores/graph'
 import { type ProjectStore } from '@/stores/project'
 import type { AstId } from '@/util/ast/abstract.ts'
 import { qnLastSegment, tryQualifiedName } from '@/util/qualifiedName'
@@ -44,13 +44,8 @@ export function useStackNavigator(projectStore: ProjectStore, graphStore: GraphS
     graphStore.updateState()
   }
 
-  function enterNode(id: AstId) {
-    const externalId = graphStore.db.idToExternal(id)
-    if (externalId == null) {
-      console.debug("Cannot enter node that hasn't been committed yet.")
-      return
-    }
-    const expressionInfo = graphStore.db.getExpressionInfo(externalId)
+  function enterNode(id: NodeId) {
+    const expressionInfo = graphStore.db.getExpressionInfo(id)
     if (expressionInfo == null || expressionInfo.methodCall == null) {
       console.debug('Cannot enter node that has no method call.')
       return
@@ -65,7 +60,7 @@ export function useStackNavigator(projectStore: ProjectStore, graphStore: GraphS
       console.debug('Cannot enter node that is not defined on current module.')
       return
     }
-    projectStore.executionContext.push(externalId)
+    projectStore.executionContext.push(id)
     graphStore.updateState()
     breadcrumbs.value = projectStore.executionContext.desiredStack.slice()
   }

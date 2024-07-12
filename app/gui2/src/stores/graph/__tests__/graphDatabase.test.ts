@@ -56,7 +56,7 @@ test('Reading graph from definition', () => {
     node3Content: [65, 74] as [number, number],
   }
 
-  const { ast, id, toRaw, getSpan } = parseWithSpans(code, spans)
+  const { ast, id, eid, toRaw, getSpan } = parseWithSpans(code, spans)
 
   const db = GraphDb.Mock()
   const expressions = Array.from(ast.statements())
@@ -67,30 +67,30 @@ test('Reading graph from definition', () => {
   db.readFunctionAst(func, rawFunc, code, getSpan, new Set())
 
   expect(Array.from(db.nodeIdToNode.keys())).toEqual([
-    id('node1Content'),
-    id('node2Content'),
-    id('node3Content'),
+    eid('node1Content'),
+    eid('node2Content'),
+    eid('node3Content'),
   ])
-  expect(db.getExpressionNodeId(id('node1Content'))).toBe(id('node1Content'))
-  expect(db.getExpressionNodeId(id('node1LParam'))).toBe(id('node1Content'))
-  expect(db.getExpressionNodeId(id('node1RParam'))).toBe(id('node1Content'))
+  expect(db.getExpressionNodeId(id('node1Content'))).toBe(eid('node1Content'))
+  expect(db.getExpressionNodeId(id('node1LParam'))).toBe(eid('node1Content'))
+  expect(db.getExpressionNodeId(id('node1RParam'))).toBe(eid('node1Content'))
   expect(db.getExpressionNodeId(id('node2Id'))).toBeUndefined()
-  expect(db.getExpressionNodeId(id('node2LParam'))).toBe(id('node2Content'))
-  expect(db.getExpressionNodeId(id('node2RParam'))).toBe(id('node2Content'))
-  expect(db.getPatternExpressionNodeId(id('node1Id'))).toBe(id('node1Content'))
+  expect(db.getExpressionNodeId(id('node2LParam'))).toBe(eid('node2Content'))
+  expect(db.getExpressionNodeId(id('node2RParam'))).toBe(eid('node2Content'))
+  expect(db.getPatternExpressionNodeId(id('node1Id'))).toBe(eid('node1Content'))
   expect(db.getPatternExpressionNodeId(id('node1Content'))).toBeUndefined()
-  expect(db.getPatternExpressionNodeId(id('node2Id'))).toBe(id('node2Content'))
+  expect(db.getPatternExpressionNodeId(id('node2Id'))).toBe(eid('node2Content'))
   expect(db.getPatternExpressionNodeId(id('node2RParam'))).toBeUndefined()
-  expect(db.getIdentDefiningNode('node1')).toBe(id('node1Content'))
-  expect(db.getIdentDefiningNode('node2')).toBe(id('node2Content'))
+  expect(db.getIdentDefiningNode('node1')).toBe(eid('node1Content'))
+  expect(db.getIdentDefiningNode('node2')).toBe(eid('node2Content'))
   expect(db.getIdentDefiningNode('function')).toBeUndefined()
-  expect(db.getOutputPortIdentifier(db.getNodeFirstOutputPort(asNodeId(id('node1Content'))))).toBe(
+  expect(db.getOutputPortIdentifier(db.getNodeFirstOutputPort(asNodeId(eid('node1Content'))))).toBe(
     'node1',
   )
-  expect(db.getOutputPortIdentifier(db.getNodeFirstOutputPort(asNodeId(id('node2Content'))))).toBe(
+  expect(db.getOutputPortIdentifier(db.getNodeFirstOutputPort(asNodeId(eid('node2Content'))))).toBe(
     'node2',
   )
-  expect(db.getOutputPortIdentifier(db.getNodeFirstOutputPort(asNodeId(id('node1Id'))))).toBe(
+  expect(db.getOutputPortIdentifier(db.getNodeFirstOutputPort(asNodeId(eid('node1Id'))))).toBe(
     'node1',
   )
 
@@ -103,11 +103,11 @@ test('Reading graph from definition', () => {
   expect(Array.from(db.connections.lookup(id('node1Id')))).toEqual([id('node2LParam')])
   // expect(db.getOutputPortIdentifier(id('parameter'))).toBe('a')
   expect(db.getOutputPortIdentifier(id('node1Id'))).toBe('node1')
-  expect(Array.from(db.nodeDependents.lookup(asNodeId(id('node1Content'))))).toEqual([
-    id('node2Content'),
+  expect(Array.from(db.nodeDependents.lookup(asNodeId(eid('node1Content'))))).toEqual([
+    eid('node2Content'),
   ])
-  expect(Array.from(db.nodeDependents.lookup(asNodeId(id('node2Content'))))).toEqual([
-    id('node3Content'),
+  expect(Array.from(db.nodeDependents.lookup(asNodeId(eid('node2Content'))))).toEqual([
+    eid('node3Content'),
   ])
-  expect(Array.from(db.nodeDependents.lookup(asNodeId(id('node3Content'))))).toEqual([])
+  expect(Array.from(db.nodeDependents.lookup(asNodeId(eid('node3Content'))))).toEqual([])
 })

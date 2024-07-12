@@ -16,7 +16,6 @@ import org.enso.table.error.ValueTypeMismatchException;
 import org.enso.table.problems.ProblemAggregator;
 import org.graalvm.polyglot.Context;
 
-// For now the BigInteger builder is just a stub, reusing the ObjectBuilder and adding a warning.
 public class BigIntegerBuilder extends TypedBuilderImpl<BigInteger> {
   // The problem aggregator is only used so that when we are retyping, we can pass it on.
   private final ProblemAggregator problemAggregator;

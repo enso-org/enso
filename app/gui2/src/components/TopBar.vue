@@ -10,13 +10,10 @@ const showColorPicker = defineModel<boolean>('showColorPicker', { required: true
 const showCodeEditor = defineModel<boolean>('showCodeEditor', { required: true })
 const showDocumentationEditor = defineModel<boolean>('showDocumentationEditor', { required: true })
 const props = defineProps<{
-  recordMode: boolean
   zoomLevel: number
   componentsSelected: number
 }>()
 const emit = defineEmits<{
-  recordOnce: []
-  'update:recordMode': [enabled: boolean]
   fitToAllClicked: []
   zoomIn: []
   zoomOut: []
@@ -38,12 +35,8 @@ const barStyle = computed(() => {
 
 <template>
   <div class="TopBar" :style="barStyle">
-    <RecordControl
-      :recordMode="props.recordMode"
-      @update:recordMode="emit('update:recordMode', $event)"
-      @recordOnce="emit('recordOnce')"
-    />
     <NavBreadcrumbs />
+    <RecordControl />
     <Transition name="selection-menu">
       <SelectionMenu
         v-if="componentsSelected > 1"

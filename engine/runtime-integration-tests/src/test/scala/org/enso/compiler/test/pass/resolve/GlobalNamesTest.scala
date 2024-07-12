@@ -13,7 +13,7 @@ import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.data.BindingsMap.{Resolution, ResolvedModule}
 import org.enso.compiler.pass.resolve.GlobalNames
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
-import org.enso.compiler.phase.ExportsResolution
+import org.enso.compiler.phase.exports.ExportsResolution
 import org.enso.compiler.test.CompilerTest
 import org.enso.interpreter.runtime
 import org.enso.interpreter.runtime.ModuleTestUtils

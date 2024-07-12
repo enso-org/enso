@@ -19,8 +19,8 @@ import org.enso.projectmanager.infrastructure.repository.{
   ProjectRepositoryFailure
 }
 
+import java.io.File
 import java.util.UUID
-
 import scala.concurrent.Future
 import scala.util.{Failure, Success}
 
@@ -30,23 +30,25 @@ final class ProjectsEndpoint[
     extends Endpoint
     with LazyLogging {
 
-  private val projectRepository =
-    projectRepositoryFactory.getProjectRepository(None)
-
   /** @inheritdoc */
   override def route: Route =
     projectsEndpoint
 
   private val projectsEndpoint = {
     path("projects" / JavaUUID / "enso-project") { projectId =>
-      get {
-        getEnsoProject(projectId)
+      parameters("projectsDirectory".optional) { directory =>
+        get {
+          getEnsoProject(projectId, directory)
+        }
       }
     }
   }
 
-  private def getEnsoProject(projectId: UUID): Route = {
-    onComplete(buildEnsoArchive(projectId)) {
+  private def getEnsoProject(
+    projectId: UUID,
+    directory: Option[String]
+  ): Route =
+    onComplete(buildEnsoArchive(projectId, directory)) {
       case Failure(err) =>
         logger.error(
           "Failure when building an enso-project archive [{}].",
@@ -71,13 +73,14 @@ final class ProjectsEndpoint[
           )
         )
     }
-  }
 
   private def buildEnsoArchive(
-    projectId: UUID
+    projectId: UUID,
+    projectsDirectory: Option[String]
   ): Future[Either[ProjectRepositoryFailure, Option[EnsoProjectArchive]]] =
     Exec[F].exec {
-      projectRepository
+      projectRepositoryFactory
+        .getProjectRepository(projectsDirectory.map(new File(_)))
         .findById(projectId)
         .map(projectOpt =>
           projectOpt.map(project =>

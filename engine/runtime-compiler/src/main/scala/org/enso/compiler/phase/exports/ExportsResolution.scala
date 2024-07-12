@@ -1,17 +1,22 @@
-package org.enso.compiler.phase
+package org.enso.compiler.phase.exports
 
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.data.BindingsMap.ModuleReference.Concrete
 import org.enso.compiler.data.BindingsMap.{
   ExportedModule,
   ImportTarget,
+  ResolvedConversionMethod,
+  ResolvedExtensionMethod,
+  ResolvedImport,
   ResolvedModule,
-  SymbolRestriction
+  ResolvedModuleMethod,
+  ResolvedName
 }
 import org.enso.compiler.context.CompilerContext
 import org.enso.compiler.context.CompilerContext.Module
 
 import scala.collection.mutable
+import scala.jdk.CollectionConverters._
 
 /** An exception signaling a loop in the export statements.
   * @param modules the modules forming the cycle.
@@ -23,23 +28,9 @@ case class ExportCycleException(modules: List[Module])
 
 class ExportsResolution(private val context: CompilerContext) {
 
-  private case class Edge(
-    exporter: Node,
-    symbols: SymbolRestriction,
-    exportsAs: Option[String],
-    exportee: Node
-  )
-
-  private case class Node(
-    module: ImportTarget
-  ) {
-    var exports: List[Edge]    = List()
-    var exportedBy: List[Edge] = List()
-  }
-
   private def getBindings(module: Module): BindingsMap = module.getBindingsMap()
 
-  private def buildGraph(modules: List[Module]): List[Node] = {
+  def buildModuleGraph(modules: List[Module]): List[Node] = {
     val moduleTargets = modules.map(m => ResolvedModule(Concrete(m)))
     val nodes = mutable.Map[ImportTarget, Node](
       moduleTargets.map(mod => (mod, Node(mod))): _*
@@ -61,9 +52,21 @@ class ExportsResolution(private val context: CompilerContext) {
         Nil
       }
       val node = nodes(module)
-      node.exports = exports.map {
-        case ExportedModule(mod, rename, restriction) =>
-          Edge(node, restriction, rename, nodes.getOrElseUpdate(mod, Node(mod)))
+      node.exports = exports.flatMap {
+        case ExportedModule(exportedMod, rename, symbols) =>
+          // Don't create edges for self-exports
+          if (exportedMod.qualifiedName != module.qualifiedName) {
+            Some(
+              Edge(
+                node,
+                symbols,
+                rename,
+                nodes.getOrElseUpdate(exportedMod, Node(exportedMod))
+              )
+            )
+          } else {
+            None
+          }
       }
       node.exports.foreach { edge => edge.exportee.exportedBy ::= edge }
     }
@@ -127,88 +130,84 @@ class ExportsResolution(private val context: CompilerContext) {
     result.reverse
   }
 
-  private def resolveExports(nodes: List[Node]): Unit = {
-    val exports = mutable.Map[ImportTarget, List[ExportedModule]]()
-    nodes.foreach { node =>
-      val explicitlyExported =
-        node.exports.map(edge =>
-          ExportedModule(
-            edge.exportee.module,
-            edge.exportsAs,
-            edge.symbols
-          )
-        )
-      val transitivelyExported: List[ExportedModule] =
-        explicitlyExported.flatMap {
-          case ExportedModule(module, _, restriction) =>
-            exports(module).map {
-              case ExportedModule(export, _, parentRestriction) =>
-                ExportedModule(
-                  export,
-                  None,
-                  SymbolRestriction.Intersect(
-                    List(restriction, parentRestriction)
-                  )
-                )
-            }
-        }
-      val allExported = explicitlyExported ++ transitivelyExported
-      val unified = allExported
-        .groupBy(_.target)
-        .map { case (mod, items) =>
-          val name = items.collectFirst { case ExportedModule(_, Some(n), _) =>
-            n
-          }
-          val itemsUnion = SymbolRestriction.Union(items.map(_.symbols))
-          ExportedModule(mod, name, itemsUnion)
-        }
-        .toList
-      exports(node.module) = unified
-    }
-    exports.foreach { case (module, exports) =>
-      module match {
-        case _: BindingsMap.ResolvedType =>
-        case ResolvedModule(module) =>
-          getBindings(module.unsafeAsModule()).resolvedExports =
-            exports.map(ex => ex.copy(symbols = ex.symbols.optimize))
-      }
-    }
-  }
-
+  /** Fills in the [[BindingsMap.exportedSymbols]] field for every given module.
+    * This field is only filled with the symbols that are resolved. The symbols
+    * that are not resolved are ignored at this staged.
+    */
   private def resolveExportedSymbols(modules: List[Module]): Unit = {
     modules.foreach { module =>
       val bindings = getBindings(module)
       val ownEntities =
         bindings.definedEntities
           .filter(_.canExport)
-          .map(e => (e.name, List(e.resolvedIn(module))))
-      val exportedModules = bindings.resolvedExports.collect {
-        case ExportedModule(mod, Some(name), _)
-            if mod.module.unsafeAsModule() != module =>
-          (name, List(mod))
-      }
-      val reExportedSymbols = bindings.resolvedExports.flatMap { export =>
-        export.target.exportedSymbols
-          .flatMap { case (sym, resolutions) =>
-            val allowedResolutions =
-              resolutions.filter(res => export.symbols.canAccess(sym, res))
-            if (allowedResolutions.isEmpty) None
-            else Some((sym, allowedResolutions))
+          .map(e => (e.name, e.resolvedIn(module)))
+      val expSymbolsFromResolvedImps: List[(String, ResolvedName)] =
+        bindings.resolvedImports
+          .collect { case ResolvedImport(_, exports, targets) =>
+            exports.flatMap { export =>
+              targets.flatMap { target =>
+                val symbols = export.onlyNames match {
+                  case Some(onlyNames) =>
+                    onlyNames.map(_.name)
+                  case None =>
+                    List(export.name.parts.last.name)
+                }
+                symbols.flatMap { symbol =>
+                  export.rename match {
+                    case Some(rename) =>
+                      Some((rename.name, target))
+                    case None =>
+                      Some((symbol, target))
+                  }
+                }
+              }
+            }
           }
-      }
+          .flatten
+          .distinct
+
       bindings.exportedSymbols = List(
         ownEntities,
-        exportedModules,
-        reExportedSymbols
-      ).flatten.groupBy(_._1).map { case (m, names) =>
-        (m, names.flatMap(_._2).distinct)
+        expSymbolsFromResolvedImps
+      ).flatten.distinct
+        .groupBy(_._1)
+        .map { case (symbolName, duplicateResolutions) =>
+          val resolvedNames = duplicateResolutions.map(_._2)
+          if (!areResolvedNamesConsistent(resolvedNames)) {
+            throw ConflictingResolutionsError
+              .create(module.getName, resolvedNames.asJava)
+          }
+          (symbolName, resolvedNames)
+        }
+    }
+  }
+
+  /** If there are multiple resolved names for one exported symbol, they must be consistent.
+    * I.e., either they are all static (extension) and module methods, or all conversion methods.
+    * We cannot, for example, export type and a module for one symbol - that would result
+    * in a collision.
+    * @return true if they are consistent, false otherwise.
+    */
+  private def areResolvedNamesConsistent(
+    resolvedNames: List[ResolvedName]
+  ): Boolean = {
+    if (resolvedNames.size > 1) {
+      val allStaticOrModuleMethods = resolvedNames.forall {
+        case _: ResolvedExtensionMethod => true
+        case _: ResolvedModuleMethod    => true
+        case _                          => false
       }
+      val allConversionMethods =
+        resolvedNames.forall(_.isInstanceOf[ResolvedConversionMethod])
+      allStaticOrModuleMethods || allConversionMethods
+    } else {
+      true
     }
   }
 
   /** Performs exports resolution on a selected set of modules.
     *
-    * The exports graph is validated and stored in the individual modules,
+    * The exports graph is validated and stored in the individual modules' binding maps,
     * allowing further use.
     *
     * The method returns a list containing the original modules, in
@@ -221,18 +220,17 @@ class ExportsResolution(private val context: CompilerContext) {
     */
   @throws[ExportCycleException]
   def run(modules: List[Module]): List[Module] = {
-    val graph  = buildGraph(modules)
+    val graph  = buildModuleGraph(modules)
     val cycles = findCycles(graph)
     if (cycles.nonEmpty) {
       throw ExportCycleException(
         cycles.head.map(_.module.module.unsafeAsModule())
       )
     }
-    val tops = topsort(graph)
-    resolveExports(tops)
+    val tops       = topsort(graph)
     val topModules = tops.map(_.module)
-    resolveExportedSymbols(tops.map(_.module).collect {
-      case m: ResolvedModule => m.module.unsafeAsModule()
+    resolveExportedSymbols(topModules.collect { case m: ResolvedModule =>
+      m.module.unsafeAsModule()
     })
     // Take _last_ occurrence of each module
     topModules.map(_.module.unsafeAsModule()).reverse.distinct.reverse
@@ -242,7 +240,7 @@ class ExportsResolution(private val context: CompilerContext) {
     * neither performs cycle checks nor resolves exports.
     */
   def runSort(modules: List[Module]): List[Module] = {
-    val graph      = buildGraph(modules)
+    val graph      = buildModuleGraph(modules)
     val tops       = topsort(graph)
     val topModules = tops.map(_.module)
     topModules.map(_.module.unsafeAsModule()).reverse.distinct.reverse

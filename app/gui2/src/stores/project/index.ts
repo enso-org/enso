@@ -343,6 +343,10 @@ export const { provideFn: provideProjectStore, injectFn: useProjectStore } = cre
       },
     })
 
+    watch(executionMode, (modeValue) => {
+      executionContext.executionEnvironment = modeValue === 'live' ? 'Live' : 'Design'
+    })
+
     function renameProject(newDisplayedName: string) {
       try {
         renameProjectBackend(newDisplayedName)
