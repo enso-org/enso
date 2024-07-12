@@ -13,7 +13,7 @@
   node being completely altered by accidental code put to the widget.
 - [Redesigned "record control" panel][10509]. Now it contains more intuitive
   "refresh" and "run workflow" buttons.
-- [Warning messages does not obscure visualization buttons][10546].
+- [Warning messages do not obscure visualization buttons][10546].
 
 [10433]: https://github.com/enso-org/enso/pull/10443
 [10457]: https://github.com/enso-org/enso/pull/10457
