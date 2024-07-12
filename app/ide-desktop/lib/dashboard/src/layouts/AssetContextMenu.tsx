@@ -404,20 +404,21 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
           />
         )}
         {isCloud && managesThisAsset && self != null && <Separator hidden={hidden} />}
-        <ContextMenuEntry
-          hidden={hidden}
-          isDisabled={!isCloud}
-          action="duplicate"
-          doAction={() => {
-            unsetModal()
-            dispatchAssetListEvent({
-              type: AssetListEventType.copy,
-              newParentId: item.directoryId,
-              newParentKey: item.directoryKey,
-              items: [asset],
-            })
-          }}
-        />
+        {asset.type === backendModule.AssetType.project && (
+          <ContextMenuEntry
+            hidden={hidden}
+            action="duplicate"
+            doAction={() => {
+              unsetModal()
+              dispatchAssetListEvent({
+                type: AssetListEventType.copy,
+                newParentId: item.directoryId,
+                newParentKey: item.directoryKey,
+                items: [asset],
+              })
+            }}
+          />
+        )}
         {isCloud && <ContextMenuEntry hidden={hidden} action="copy" doAction={doCopy} />}
         {path != null && (
           <ContextMenuEntry
