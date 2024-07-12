@@ -63,6 +63,9 @@ export default defineConfig({
     // Single hardcoded usage of `global` in aws-amplify.
     'global.TYPED_ARRAY_SUPPORT': true,
   },
+  esbuild: {
+    dropLabels: process.env.NODE_ENV === 'development' ? [] : ['DEV'],
+  },
   assetsInclude: ['**/*.yaml', '**/*.svg'],
   css: {
     postcss: {

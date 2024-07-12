@@ -59,10 +59,6 @@ const project = useProjectStore()
   }
 }
 
-.toggledOn {
-  color: #ba4c40;
-}
-
 .iconButton:active {
   color: #ba4c40;
 }
