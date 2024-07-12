@@ -47,8 +47,7 @@ public class TypeInferenceTest extends StaticAnalysisTest {
 
     Module module = compile(src);
     Method foo = findStaticMethod(module, "foo");
-    var x = findAssignment(foo.body(), "x");
-    assertAtomType("zeroAryModuleMethodCheck.My_Type", x.expression());
+    assertAtomType("zeroAryModuleMethodCheck.My_Type", findAssignment(foo.body(), "x"));
   }
 
   @Test
@@ -74,11 +73,10 @@ public class TypeInferenceTest extends StaticAnalysisTest {
 
     var module = compile(src);
     var foo = findStaticMethod(module, "foo");
-    var b = findAssignment(foo.body(), "b");
     String myType = "functionReturnCheck.My_Type";
 
     // The result of `add a z` should be `My_Type` as guaranteed by the return type check of `add`.
-    assertAtomType(myType, b.expression());
+    assertAtomType(myType, findAssignment(foo.body(), "b"));
   }
 
   @Test
