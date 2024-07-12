@@ -212,8 +212,6 @@ export interface ProjectStateType {
     readonly ec2PublicIpAddress?: string
     readonly currentSessionId?: string
     readonly openedBy?: EmailAddress
-    /** Only present on the Local backend. */
-    readonly path?: Path
 }
 
 export const IS_OPENING: Readonly<Record<ProjectState, boolean>> = {
@@ -1053,15 +1051,11 @@ export interface UpdateFileRequestBody {
 export interface UpdateAssetRequestBody {
     readonly parentDirectoryId: DirectoryId | null
     readonly description: string | null
-    /** Only present on the Local backend. */
-    readonly projectPath?: Path
 }
 
 /** HTTP request body for the "delete asset" endpoint. */
 export interface DeleteAssetRequestBody {
     readonly force: boolean
-    /** Only used by the Local backend. */
-    readonly parentId: DirectoryId
 }
 
 /** HTTP request body for the "create project" endpoint. */
@@ -1078,8 +1072,6 @@ export interface UpdateProjectRequestBody {
     readonly projectName: string | null
     readonly ami: Ami | null
     readonly ideVersion: VersionNumber | null
-    /** Only used by the Local backend. */
-    readonly parentId: DirectoryId
 }
 
 /** HTTP request body for the "open project" endpoint. */

@@ -465,15 +465,18 @@ export default class ProjectManager {
   }
 
   /** Delete a project. */
-  async deleteProject(params: DeleteProjectParams): Promise<void> {
-    await this.sendRequest('project/delete', params)
+  async deleteProject(params: Omit<DeleteProjectParams, 'projectsDirectory'>): Promise<void> {
+    const path = this.internalProjectPaths.get(params.projectId)
+    const directoryPath =
+      path == null ? this.rootDirectory : getDirectoryAndName(path).directoryPath
+    const fullParams: DeleteProjectParams = { ...params, projectsDirectory: directoryPath }
+    await this.sendRequest('project/delete', fullParams)
     this.internalProjectPaths.delete(params.projectId)
     this.internalProjects.delete(params.projectId)
-    const directoryId = params.projectsDirectory ?? this.rootDirectory
-    const siblings = this.internalDirectories.get(directoryId)
+    const siblings = this.internalDirectories.get(directoryPath)
     if (siblings != null) {
       this.internalDirectories.set(
-        directoryId,
+        directoryPath,
         siblings.filter(
           entry =>
             entry.type !== FileSystemEntryType.ProjectEntry ||

@@ -373,11 +373,7 @@ export default function Dashboard(props: DashboardProps) {
 
       invariant(backend != null, 'Backend is null')
 
-      return backend.updateProject(
-        id,
-        { projectName: newName, ami: null, ideVersion: null, parentId },
-        title
-      )
+      return backend.updateProject(id, { projectName: newName, ami: null, ideVersion: null }, title)
     },
     onSuccess: (_, { project }) =>
       client.invalidateQueries({

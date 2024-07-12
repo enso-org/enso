@@ -118,7 +118,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
       try {
         await updateProjectMutation.mutateAsync([
           asset.id,
-          { ami: null, ideVersion: null, projectName: newTitle, parentId: asset.parentId },
+          { ami: null, ideVersion: null, projectName: newTitle },
           asset.title,
         ])
       } catch (error) {
@@ -187,9 +187,6 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                   id: createdProject.projectId,
                   projectState: object.merge(projectState, {
                     type: backendModule.ProjectState.placeholder,
-                    ...(backend.type === backendModule.BackendType.remote
-                      ? {}
-                      : { path: createdProject.state.path }),
                   }),
                 })
               )

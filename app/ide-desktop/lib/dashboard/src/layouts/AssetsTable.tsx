@@ -1732,9 +1732,6 @@ export default function AssetsTable(props: AssetsTableProps) {
             type: backendModule.ProjectState.placeholder,
             volumeId: '',
             openedBy: user.email,
-            ...(event.original.projectState.path != null
-              ? { path: event.original.projectState.path }
-              : {}),
           },
           labels: [],
           description: null,

@@ -240,20 +240,6 @@ export default function AssetRow(props: AssetRowProps) {
           oldItem.with({ directoryKey: nonNullNewParentKey, directoryId: nonNullNewParentId })
         )
         const newParentPath = localBackend.extractTypeAndId(nonNullNewParentId).id
-        const newProjectState =
-          asset.projectState == null
-            ? null
-            : object.merge(
-                asset.projectState,
-                asset.projectState.path == null
-                  ? {}
-                  : {
-                      path: projectManager.joinPath(
-                        newParentPath,
-                        fileInfo.fileName(asset.projectState.path)
-                      ),
-                    }
-              )
         let newId = asset.id
         if (!isCloud) {
           const oldPath = localBackend.extractTypeAndId(asset.id).id
@@ -280,13 +266,9 @@ export default function AssetRow(props: AssetRowProps) {
             }
           }
         }
-        const newAsset = object.merge(asset, {
-          // This is SAFE as the type of `newId` is not changed from its original type.
-          // eslint-disable-next-line no-restricted-syntax
-          id: newId as never,
-          parentId: nonNullNewParentId,
-          projectState: newProjectState,
-        })
+        // This is SAFE as the type of `newId` is not changed from its original type.
+        // eslint-disable-next-line no-restricted-syntax
+        const newAsset = object.merge(asset, { id: newId as never, parentId: nonNullNewParentId })
         dispatchAssetListEvent({
           type: AssetListEventType.move,
           newParentKey: nonNullNewParentKey,
@@ -297,11 +279,7 @@ export default function AssetRow(props: AssetRowProps) {
         setAsset(newAsset)
         await updateAssetMutate([
           asset.id,
-          {
-            parentDirectoryId: newParentId ?? rootDirectoryId,
-            description: null,
-            ...(asset.projectState?.path == null ? {} : { projectPath: asset.projectState.path }),
-          },
+          { parentDirectoryId: newParentId ?? rootDirectoryId, description: null },
           asset.title,
         ])
       } catch (error) {
@@ -379,11 +357,7 @@ export default function AssetRow(props: AssetRowProps) {
             // Ignored. The project was already closed.
           }
         }
-        await deleteAssetMutate([
-          asset.id,
-          { force: forever, parentId: asset.parentId },
-          asset.title,
-        ])
+        await deleteAssetMutate([asset.id, { force: forever }, asset.title])
         dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
       } catch (error) {
         setInsertionVisibility(Visibility.visible)
