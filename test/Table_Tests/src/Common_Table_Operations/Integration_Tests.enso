@@ -113,7 +113,7 @@ add_specs suite_builder setup =
                 c = ["C", [0.1, 0.2, 0.3, 0.4, 0.5, 0.6]]
                 t = (table_builder [a, b, c]) . sort ([(..Name "C" ..Descending)])
 
-                t2 = t.distinct ["A", "B"] on_problems=Report_Error
+                t2 = t.distinct ["A", "B"] on_problems=..Report_Error
                 # Now, reverse the order!
                 ## But the distinct was taken under descending order, so that
                    should be preserved - we will still have _last_ rows from
@@ -136,7 +136,7 @@ add_specs suite_builder setup =
                 c = ["C", [0.1, 0.2, 0.3, 0.4, 0.5]]
                 t = table_builder [a, b, c] . sort "C"
 
-                t2 = t.distinct ["A"] on_problems=Report_Error
+                t2 = t.distinct ["A"] on_problems=..Report_Error
                 r2 = t2 |> materialize
                 r2.at "A" . to_vector . should_equal ["a", "b"]
                 r2.at "B" . to_vector . should_equal [1, 5]
@@ -147,7 +147,7 @@ add_specs suite_builder setup =
                 r3.at "B" . to_vector . should_equal [5]
 
                 t4 = t.filter "B" (Filter_Condition.Equal 5)
-                t5 = t4.distinct ["A"] on_problems=Report_Error
+                t5 = t4.distinct ["A"] on_problems=..Report_Error
                 r5 = t5 |> materialize
                 r5.at "A" . to_vector . should_contain_the_same_elements_as ["b", "a"]
                 r5.at "B" . to_vector . should_equal [5, 5]
@@ -224,3 +224,11 @@ add_specs suite_builder setup =
                 Test.with_clue "t3[C].value_type="+vt.to_display_text+": " <|
                     vt.should_be_a (Value_Type.Char ...)
                     vt.variable_length.should_be_true
+
+        # Literal tables only make sense in the DB.
+        if setup.is_database then group_builder.specify "iif should work with literal tables" <|
+            literal_table = setup.light_table_builder [["X", [True, False, Nothing]], ["row_id", [1, 2, 3]]] . sort "row_id"
+            literal_table.at "X" . value_type . should_equal Value_Type.Boolean
+            c = literal_table.at "X" . iif 10 20
+            c.to_vector . should_equal [10, 20, Nothing]
+            setup.expect_integer_type <| c

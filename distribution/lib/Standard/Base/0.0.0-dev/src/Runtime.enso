@@ -15,7 +15,6 @@ import project.Polyglot.Polyglot
 import project.Runtime.Source_Location.Source_Location
 import project.System
 from project.Data.Boolean import Boolean, False, True
-from project.Data.Index_Sub_Range.Index_Sub_Range import First, Last
 from project.Data.Text.Extensions import all
 from project.Runtime.Context import Input, Output
 
@@ -37,7 +36,7 @@ get_stack_trace : Vector Stack_Trace_Element
 get_stack_trace =
     prim_stack = primitive_get_stack_trace
     stack_with_own_frame = Vector.from_polyglot_array prim_stack
-    stack = stack_with_own_frame.drop (First 1)
+    stack = stack_with_own_frame.drop (..First 1)
     stack.map wrap_primitive_stack_trace_element
 
 ## PRIVATE

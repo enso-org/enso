@@ -75,9 +75,9 @@ type S3_Path
        without the trailing delimiter.
     file_name self -> Text =
         if self.is_root then S3_Path.delimiter else
-            trimmed = if self.key.ends_with S3_Path.delimiter then self.key.drop (Last 1) else self.key
+            trimmed = if self.key.ends_with S3_Path.delimiter then self.key.drop (..Last 1) else self.key
             last_index = trimmed.last_index_of S3_Path.delimiter
-            if last_index == Nothing then trimmed else trimmed.drop (First last_index+1)
+            if last_index == Nothing then trimmed else trimmed.drop (..First last_index+1)
 
     ## PRIVATE
        Checks if the given other path is inside of this path.
@@ -126,7 +126,7 @@ type Decomposed_S3_Path
             True -> parts.map Path_Entry.Directory
             False ->
                 if parts.is_empty then [] else
-                    (parts.drop (Last 1) . map Path_Entry.Directory) + [Path_Entry.File parts.last]
+                    (parts.drop (..Last 1) . map Path_Entry.Directory) + [Path_Entry.File parts.last]
         Decomposed_S3_Path.Value entries has_root_prefix
 
     ## PRIVATE
@@ -152,5 +152,5 @@ type Decomposed_S3_Path
     ## PRIVATE
     parent self -> Decomposed_S3_Path | Nothing =
         if self.parts.is_empty then Nothing else
-            new_parts = self.parts.drop (Last 1)
+            new_parts = self.parts.drop (..Last 1)
             Decomposed_S3_Path.Value new_parts self.go_to_root

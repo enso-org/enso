@@ -30,7 +30,7 @@ create_alpha_template character_template length =
 
 create_big_random character_template faker =
     big_template = create_alpha_template character_template 10000
-    Vector.new 200 _-> faker.string_value big_template
+    Vector.new 200 _-> faker.text_value big_template
 
 
 collect_benches = Bench.build builder->

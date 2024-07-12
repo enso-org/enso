@@ -35,7 +35,7 @@ public final class Parser implements AutoCloseable {
       var d = root;
       File path = null;
       while (d != null) {
-        path = new File(d, name);
+        path = new File(new File(d, "component"), name);
         if (path.exists()) break;
         d = d.getParentFile();
       }
@@ -44,12 +44,13 @@ public final class Parser implements AutoCloseable {
       }
       System.load(path.getAbsolutePath());
     } catch (NullPointerException | IllegalArgumentException | LinkageError e) {
-      if (!searchFromDirToTop(e, root, "target", "rust", "debug", name)) {
-        if (!searchFromDirToTop(
-            e, new File(".").getAbsoluteFile(), "target", "rust", "debug", name)) {
-          throw new IllegalStateException("Cannot load parser from " + root, e);
-        }
+      if (searchFromDirToTop(e, root, "target", "rust", "debug", name)) {
+        return;
       }
+      if (searchFromDirToTop(e, new File(".").getAbsoluteFile(), "target", "rust", "debug", name)) {
+        return;
+      }
+      throw new IllegalStateException("Cannot load parser from " + root, e);
     }
   }
 

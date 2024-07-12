@@ -1,10 +1,12 @@
 package org.enso.librarymanager.published.repository
 
-import io.circe.{Decoder, Encoder, Json}
-import io.circe.syntax.EncoderOps
-import io.circe.yaml
 import org.enso.editions.LibraryName
+import org.enso.yaml.{YamlDecoder, YamlEncoder}
+import org.yaml.snakeyaml.error.YAMLException
+import org.yaml.snakeyaml.nodes.{MappingNode, Node}
 
+import java.io.StringReader
+import java.util
 import scala.util.Try
 
 /** The manifest file containing metadata related to a published library.
@@ -41,40 +43,73 @@ object LibraryManifest {
     val description  = "description"
   }
 
-  /** A [[Decoder]] instance for parsing [[LibraryManifest]]. */
-  implicit val decoder: Decoder[LibraryManifest] = { json =>
-    for {
-      archives <- json.get[Seq[String]](Fields.archives)
-      dependencies <- json.getOrElse[Seq[LibraryName]](Fields.dependencies)(
-        Seq()
-      )
-      tagLine     <- json.get[Option[String]](Fields.tagLine)
-      description <- json.get[Option[String]](Fields.description)
-    } yield LibraryManifest(
-      archives     = archives,
-      dependencies = dependencies,
-      tagLine      = tagLine,
-      description  = description
-    )
-  }
+  implicit val yamlDecoder: YamlDecoder[LibraryManifest] =
+    new YamlDecoder[LibraryManifest] {
+      override def decode(node: Node): Either[Throwable, LibraryManifest] =
+        node match {
+          case mappingNode: MappingNode =>
+            val archivesDecoder = implicitly[YamlDecoder[Seq[String]]]
+            val dependenciesDecoder =
+              implicitly[YamlDecoder[Seq[LibraryName]]]
+            val optStringDecoder = implicitly[YamlDecoder[Option[String]]]
+            val kv               = mappingKV(mappingNode)
+            for {
+              archives <- kv
+                .get(Fields.archives)
+                .map(archivesDecoder.decode(_))
+                .getOrElse(Right(Seq.empty))
+              dependencies <- kv
+                .get(Fields.dependencies)
+                .map(dependenciesDecoder.decode(_))
+                .getOrElse(Right(Seq.empty))
+              tagLine <- kv
+                .get(Fields.tagLine)
+                .map(optStringDecoder.decode(_))
+                .getOrElse(Right(None))
+              description <- kv
+                .get(Fields.description)
+                .map(optStringDecoder.decode(_))
+                .getOrElse(Right(None))
+            } yield LibraryManifest(
+              archives,
+              dependencies,
+              tagLine,
+              description
+            )
+          case _ =>
+            Left(new YAMLException("Unexpected library manifest definition"))
+        }
+    }
 
-  /** An [[Encoder]] instance for parsing [[LibraryManifest]]. */
-  implicit val encoder: Encoder[LibraryManifest] = { manifest =>
-    val baseFields = Seq(
-      Fields.archives     -> manifest.archives.asJson,
-      Fields.dependencies -> manifest.dependencies.asJson
-    )
-
-    val allFields = baseFields ++
-      manifest.tagLine.map(Fields.tagLine -> _.asJson).toSeq ++
-      manifest.description.map(Fields.description -> _.asJson).toSeq
-
-    Json.obj(allFields: _*)
-  }
+  implicit val yamlEncoder: YamlEncoder[LibraryManifest] =
+    new YamlEncoder[LibraryManifest] {
+      override def encode(value: LibraryManifest): AnyRef = {
+        val archivesEncoder     = implicitly[YamlEncoder[Seq[String]]]
+        val dependenciesEncoder = implicitly[YamlEncoder[Seq[LibraryName]]]
+        val elements            = new util.ArrayList[(String, Object)]()
+        if (value.archives.nonEmpty)
+          elements.add(
+            (Fields.archives, archivesEncoder.encode(value.archives))
+          )
+        if (value.dependencies.nonEmpty)
+          elements.add(
+            (
+              Fields.dependencies,
+              dependenciesEncoder.encode(value.dependencies)
+            )
+          )
+        value.tagLine.foreach(v => elements.add((Fields.tagLine, v)))
+        value.description.foreach(v => elements.add((Fields.description, v)))
+        toMap(elements)
+      }
+    }
 
   /** Parser the provided string and returns a LibraryManifest, if valid */
   def fromYaml(yamlString: String): Try[LibraryManifest] = {
-    yaml.parser.parse(yamlString).flatMap(_.as[LibraryManifest]).toTry
+    val snakeYaml = new org.yaml.snakeyaml.Yaml()
+    Try(snakeYaml.compose(new StringReader(yamlString))).toEither
+      .flatMap(implicitly[YamlDecoder[LibraryManifest]].decode(_))
+      .toTry
   }
 
   /** The name of the manifest file as included in the directory associated with

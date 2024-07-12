@@ -7,7 +7,6 @@ import project.Error.Error
 import project.Errors.File_Error.File_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Illegal_State.Illegal_State
-import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Meta
 import project.Nothing.Nothing
 import project.Panic.Panic
@@ -115,7 +114,7 @@ type Data_Link
         options = [File_Access.Read, Data_Link_Access.No_Follow]
         bytes = file.underlying.with_input_stream options input_stream->
             input_stream.read_all_bytes
-        Text.from_bytes bytes data_link_encoding on_problems=Problem_Behavior.Report_Error
+        Text.from_bytes bytes data_link_encoding on_problems=..Report_Error
 
     ## PRIVATE
        Writes raw data as the data-link configuration.
@@ -134,7 +133,7 @@ type Data_Link
         exist_options = if replace_existing then [File_Access.Create, File_Access.Truncate_Existing] else [File_Access.Create_New]
         options = exist_options + [File_Access.Write, Data_Link_Access.No_Follow]
 
-        bytes = raw_content.bytes data_link_encoding on_problems=Problem_Behavior.Report_Error
+        bytes = raw_content.bytes data_link_encoding on_problems=..Report_Error
         r = bytes.if_not_error <| file.underlying.with_output_stream options output_stream->
             output_stream.write_bytes bytes
         r.if_not_error file.underlying

@@ -123,8 +123,8 @@ add_specs suite_builder =
 
         group_builder.specify "should be able to infer types for all supported operations" <|
             dialect = Dialect.sqlite
-            internal_mapping = dialect.internal_generator_dialect.operation_map
-            operation_type_mapping = SQLite_Type_Mapping.operations_map
+            internal_mapping = dialect.dialect_operations.operations_dict
+            operation_type_mapping = SQLite_Type_Mapping.operations_dict
 
             operation_type_mapping.keys.sort . should_equal internal_mapping.keys.sort
 

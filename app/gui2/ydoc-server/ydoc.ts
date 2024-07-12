@@ -200,6 +200,7 @@ class YjsConnection extends ObservableV2<{ close(): void }> {
       }
     } catch (err) {
       console.error(err)
+      // @ts-ignore
       this.wsDoc.doc.emit('error', [err])
     }
   }
@@ -213,6 +214,7 @@ class YjsConnection extends ObservableV2<{ close(): void }> {
     this.ws.close()
     this.emit('close', [])
     if (this.wsDoc.conns.size === 0) {
+      // @ts-ignore
       this.wsDoc.doc.emit('unload', [])
     }
   }

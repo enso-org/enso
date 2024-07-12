@@ -173,10 +173,10 @@ limit_data limit data = case limit of
         bounds = case data.fold_with_index (Extreme.Value first first first first) update_extreme of
             Extreme.Value min_x max_x min_y max_y ->  [min_x, max_x, min_y, max_y]
             _ -> []
-        extreme = Map.from_vector bounds error_on_duplicates=False . values
+        extreme = Dictionary.from_vector bounds error_on_duplicates=False . values
 
-        if limit <= extreme.length then extreme.take (First limit) else
-            extreme + data.take (Index_Sub_Range.Sample (limit - extreme.length))
+        if limit <= extreme.length then extreme.take (..First limit) else
+            extreme + data.take (..Sample (limit - extreme.length))
 
 ## PRIVATE
 json_from_table : Table -> Vector Integer | Nothing -> Integer | Nothing -> Text

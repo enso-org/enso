@@ -162,7 +162,7 @@ add_specs suite_builder = suite_builder.group "Dataflow Warnings" group_builder-
         current = Runtime.get_stack_trace
         warned = foo "value"
         warning_stack = Warning.get_all warned . first . origin
-        relevant = warning_stack . drop (Last current.length)
+        relevant = warning_stack . drop (..Last current.length)
         relevant.map .name . should_equal (['baz', 'bar', 'foo'].map ('Warnings_Spec.'+))
 
     group_builder.specify "should attach reassignment info in the last-reassigned-first order" <|

@@ -1,12 +1,11 @@
 package org.enso.pkg
 
-import cats.Show
-import io.circe.{DecodingFailure, Json}
 import org.enso.semver.SemVer
 import org.enso.editions.LibraryName
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.{Inside, OptionValues}
+import org.yaml.snakeyaml.error.YAMLException
 
 import scala.util.Failure
 
@@ -17,22 +16,6 @@ class ConfigSpec
     with OptionValues {
 
   "Config" should {
-    "preserve unknown keys when deserialized and serialized again" ignore {
-      val original = Json.obj(
-        "name"        -> Json.fromString("name"),
-        "unknown-key" -> Json.fromString("value")
-      )
-
-      inside(original.as[Config]) { case Right(config) =>
-        val serialized = Config.encoder(config)
-        serialized.asObject
-          .value("unknown-key")
-          .value
-          .asString
-          .value shouldEqual "value"
-      }
-    }
-
     "deserialize the serialized representation to the original value" in {
       val config = Config(
         name           = "placeholder",
@@ -194,8 +177,8 @@ class ConfigSpec
       val parsed = Config.fromYaml(config)
 
       parsed match {
-        case Failure(f: DecodingFailure) =>
-          Show[DecodingFailure].show(f) should include(
+        case Failure(failure: YAMLException) =>
+          failure.getMessage should include(
             "Failed to decode 'Group 1' as a module reference"
           )
         case unexpected =>
@@ -254,9 +237,9 @@ class ConfigSpec
           |""".stripMargin
       val parsed = Config.fromYaml(config)
       parsed match {
-        case Failure(f: DecodingFailure) =>
-          Show[DecodingFailure].show(f) should include(
-            "Failed to decode shortcut"
+        case Failure(failure: YAMLException) =>
+          failure.getMessage should equal(
+            "Failed to decode shortcut. Expected a string value, got a sequence"
           )
         case unexpected =>
           fail(s"Unexpected result: $unexpected")
@@ -273,9 +256,9 @@ class ConfigSpec
           |""".stripMargin
       val parsed = Config.fromYaml(config)
       parsed match {
-        case Failure(f: DecodingFailure) =>
-          Show[DecodingFailure].show(f) should include(
-            "Failed to decode component group"
+        case Failure(failure: YAMLException) =>
+          failure.getMessage should equal(
+            "Failed to decode component group. Expected a mapping, got a sequence"
           )
         case unexpected =>
           fail(s"Unexpected result: $unexpected")
@@ -293,9 +276,9 @@ class ConfigSpec
           |""".stripMargin
       val parsed = Config.fromYaml(config)
       parsed match {
-        case Failure(f: DecodingFailure) =>
-          Show[DecodingFailure].show(f) should include(
-            "Failed to decode exported component"
+        case Failure(failure: YAMLException) =>
+          failure.getMessage should equal(
+            "Failed to decode exported component 'one'"
           )
         case unexpected =>
           fail(s"Unexpected result: $unexpected")

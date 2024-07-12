@@ -39,7 +39,6 @@ import project.System.File_Format_Metadata.File_Format_Metadata
 import project.System.Input_Stream.Input_Stream
 import project.System.Output_Stream.Output_Stream
 from project.Data.Boolean import Boolean, False, True
-from project.Data.Index_Sub_Range.Index_Sub_Range import Last
 from project.Data.Text.Extensions import all
 from project.Enso_Cloud.Internal.Enso_File_Helpers import all
 from project.Enso_Cloud.Public_Utils import get_required_field
@@ -225,7 +224,7 @@ type Enso_File
                 asset = Existing_Enso_Asset.get_asset_reference_for self
                 response = case asset.asset_type of
                     Enso_Asset_Type.File ->
-                        HTTP.fetch asset.get_download_url HTTP_Method.Get
+                        Utils.http_request HTTP_Method.Get (asset.internal_uri + "/contents")
                     Enso_Asset_Type.Data_Link ->
                         Runtime.assert (open_options.contains Data_Link_Access.No_Follow)
                         Utils.http_request HTTP_Method.Get asset.internal_uri
@@ -250,7 +249,7 @@ type Enso_File
          If set to `Ignore`, the operation proceeds without errors or warnings.
     @format File_Format.default_widget
     read : File_Format -> Problem_Behavior -> Any ! Illegal_Argument | File_Error
-    read self format=Auto_Detect (on_problems : Problem_Behavior = Problem_Behavior.Report_Warning) =
+    read self format=Auto_Detect (on_problems : Problem_Behavior = ..Report_Warning) =
         asset = Existing_Enso_Asset.get_asset_reference_for self
         case asset.asset_type of
             Enso_Asset_Type.Project -> Error.throw (Illegal_Argument.Error "Projects cannot be read within Enso code. Open using the IDE.")
@@ -259,7 +258,7 @@ type Enso_File
                 json = Utils.http_request_as_json HTTP_Method.Get asset.internal_uri
                 datalink = Data_Link_Helpers.interpret_json_as_data_link json
                 datalink.read format on_problems
-            Enso_Asset_Type.Directory -> if format == Auto_Detect then self.list else Error.throw (Illegal_Argument.Error "Directories can only be read using the Auto_Detect format.")
+            Enso_Asset_Type.Directory -> Error.throw (Illegal_Argument.Error "Cannot `read` a directory, use `list`.")
             Enso_Asset_Type.File ->
                 read_with_format effective_format =
                     metadata = File_Format_Metadata.from self
@@ -290,7 +289,7 @@ type Enso_File
          If set to `Ignore`, the operation proceeds without errors or warnings.
     @encoding Encoding.default_widget
     read_text : Encoding -> Problem_Behavior -> Text ! File_Error
-    read_text self (encoding : Encoding = Encoding.default) (on_problems : Problem_Behavior = Problem_Behavior.Report_Warning) =
+    read_text self (encoding : Encoding = Encoding.default) (on_problems : Problem_Behavior = ..Report_Warning) =
         self.read (Plain_Text_Format.Plain_Text encoding) on_problems
 
     ## GROUP Metadata
@@ -310,7 +309,7 @@ type Enso_File
        ICON data_input
        Gets a list of assets within self.
     list : Vector Enso_File
-    list self =
+    list self = if self.is_directory.not then Error.throw (Illegal_Argument.Error "Cannot `list` a non-directory.") else
         # Remove secrets from the list - they are handled separately in `Enso_Secret.list`.
         assets = list_assets self . filter f-> f.asset_type != Enso_Asset_Type.Secret
         assets.map asset->

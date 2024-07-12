@@ -152,6 +152,7 @@ const COLLAPSED_FUNCTION_NAME = 'collapsed' as IdentifierOrOperatorIdentifier
 interface CollapsingResult {
   /** The ID of the node refactored to the collapsed function call. */
   refactoredNodeId: NodeId
+  refactoredExpressionAstId: Ast.AstId
   /** IDs of nodes inside the collapsed function, except the output node.
    * The order of these IDs is reversed comparing to the order of nodes in the source code.
    */
@@ -177,11 +178,11 @@ export function performCollapse(
     [...info.extracted.ids].map((nodeId) => db.nodeIdToNode.get(nodeId)?.outerExpr.id),
   )
   const astIdToReplace = db.nodeIdToNode.get(info.refactored.id)?.outerExpr.id
-  const { ast: refactoredAst, nodeId: refactoredNodeId } = collapsedCallAst(
-    info,
-    collapsedName,
-    edit,
-  )
+  const {
+    ast: refactoredAst,
+    nodeId: refactoredNodeId,
+    expressionAstId: refactoredExpressionAstId,
+  } = collapsedCallAst(info, collapsedName, edit)
   const collapsed: Ast.Owned[] = []
   // Update the definition of the refactored function.
   functionBlock.updateLines((lines) => {
@@ -203,20 +204,20 @@ export function performCollapse(
 
   // Insert a new function.
   const collapsedNodeIds = collapsed
-    .map((ast) => asNodeId(nodeFromAst(ast)?.rootExpr.id ?? ast.id))
+    .map((ast) => asNodeId(nodeFromAst(ast)?.rootExpr.externalId ?? ast.externalId))
     .reverse()
   let outputNodeId: NodeId | undefined
   const outputIdentifier = info.extracted.output?.identifier
   if (outputIdentifier != null) {
     const ident = Ast.Ident.new(edit, outputIdentifier)
     collapsed.push(ident)
-    outputNodeId = asNodeId(ident.id)
+    outputNodeId = asNodeId(ident.externalId)
   }
   const argNames = info.extracted.inputs
   const collapsedFunction = Ast.Function.fromStatements(edit, collapsedName, argNames, collapsed)
   const collapsedFunctionWithIcon = Ast.Documented.new('ICON group', collapsedFunction)
   topLevel.insert(posToInsert, collapsedFunctionWithIcon, undefined)
-  return { refactoredNodeId, collapsedNodeIds, outputNodeId }
+  return { refactoredNodeId, refactoredExpressionAstId, collapsedNodeIds, outputNodeId }
 }
 
 /** Prepare a method call expression for collapsed method. */
@@ -224,14 +225,14 @@ function collapsedCallAst(
   info: CollapsedInfo,
   collapsedName: IdentifierOrOperatorIdentifier,
   edit: Ast.MutableModule,
-): { ast: Ast.Owned; nodeId: NodeId } {
+): { ast: Ast.Owned; expressionAstId: Ast.AstId; nodeId: NodeId } {
   const pattern = info.refactored.pattern
   const args = info.refactored.arguments
   const functionName = `${MODULE_NAME}.${collapsedName}`
   const expression = functionName + (args.length > 0 ? ' ' : '') + args.join(' ')
   const expressionAst = Ast.parse(expression, edit)
   const ast = Ast.Assignment.new(edit, pattern, expressionAst)
-  return { ast, nodeId: asNodeId(expressionAst.id) }
+  return { ast, expressionAstId: expressionAst.id, nodeId: asNodeId(expressionAst.externalId) }
 }
 
 /** Find the position before the current method to insert a collapsed one. */

@@ -73,11 +73,21 @@ impl BuiltEnso {
     }
 
     pub async fn run_benchmarks(&self, opt: BenchmarkOptions) -> Result {
-        self.cmd()?
-            .with_args(["--run", self.paths.repo_root.test.benchmarks.as_str()])
+        let filename = format!("enso{}", if TARGET_OS == OS::Windows { ".exe" } else { "" });
+        let enso = self
+            .paths
+            .repo_root
+            .built_distribution
+            .enso_engine_triple
+            .engine_package
+            .bin
+            .join(filename);
+        let benchmarks = Command::new(&enso)
+            .args(["--jvm", "--run", self.paths.repo_root.test.benchmarks.as_str()])
             .set_env(ENSO_BENCHMARK_TEST_DRY_RUN, &Boolean::from(opt.dry_run))?
             .run_ok()
-            .await
+            .await;
+        benchmarks
     }
 
     pub fn run_test(&self, test_path: impl AsRef<Path>, ir_caches: IrCaches) -> Result<Command> {

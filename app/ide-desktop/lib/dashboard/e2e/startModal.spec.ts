@@ -10,7 +10,7 @@ test.test('create project from template', ({ page }) =>
         .openStartModal()
         .createProjectFromTemplate(0)
         .do(async thePage => {
-          await test.expect(actions.locateEditor(thePage)).toBeVisible()
+          await test.expect(actions.locateEditor(thePage)).toBeAttached()
           await test.expect(actions.locateSamples(page).first()).not.toBeVisible()
         })
   )

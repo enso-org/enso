@@ -42,6 +42,7 @@ pub use java::Java;
 pub use javac::Javac;
 pub use node::Node;
 pub use node::Npm;
+pub use node::Pnpm;
 pub use npx::Npx;
 pub use pwsh::PwSh;
 pub use sbt::Sbt;

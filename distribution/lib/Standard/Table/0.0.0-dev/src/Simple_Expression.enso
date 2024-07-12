@@ -178,7 +178,7 @@ type Simple_Calculation
 
     ## Removes the specified characters, by default any whitespace, from the
        start, the end, or both ends of the input.
-    Trim (where:Location = ..Both) (what:Column_Ref|Expression|Text = "")
+    Trim (where:Location=..Both) (what:Column_Ref|Expression|Text = "")
 
     ## Takes the first characters from the input column.
     Text_Left (length : Column_Ref|Expression|Integer = 1)

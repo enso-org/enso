@@ -502,6 +502,7 @@ export function getMethodCallInfoRecursively(
           ...info.methodCall,
           notAppliedArguments: withoutNamed.sort().slice(appliedArgs),
         },
+        methodCallSource: ast.id,
         suggestion: info.suggestion,
       }
     }

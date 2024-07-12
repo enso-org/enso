@@ -1,20 +1,16 @@
 package org.enso.pkg
 
-import io.circe._
-import io.circe.syntax._
-import io.circe.yaml.{Parser, Printer}
+import org.yaml.snakeyaml.nodes.Tag
 import org.enso.semver.SemVer
-import org.enso.editions.EditionSerialization._
-import org.enso.editions.{
-  DefaultEnsoVersion,
-  EditionName,
-  Editions,
-  EnsoVersion,
-  SemVerEnsoVersion
-}
+import org.enso.editions.{EditionName, Editions}
 import org.enso.pkg.validation.NameValidation
+import org.enso.yaml.{YamlDecoder, YamlEncoder}
+import org.yaml.snakeyaml.{DumperOptions, Yaml}
+import org.yaml.snakeyaml.error.YAMLException
+import org.yaml.snakeyaml.nodes.{MappingNode, Node}
 
-import java.io.Reader
+import java.io.{Reader, StringReader}
+import java.util
 import scala.util.Try
 
 /** Contact information to a user.
@@ -46,35 +42,38 @@ object Contact {
     val Email = "email"
   }
 
-  /** [[Encoder]] instance for the [[Contact]]. */
-  implicit val encoder: Encoder[Contact] = { contact =>
-    val name  = contact.name.map(Fields.Name -> _.asJson)
-    val email = contact.email.map(Fields.Email -> _.asJson)
-    Json.obj((name.toSeq ++ email.toSeq): _*)
-  }
+  implicit val decoderSnake: YamlDecoder[Contact] =
+    new YamlDecoder[Contact] {
+      override def decode(node: Node): Either[Throwable, Contact] = node match {
+        case mappingNode: MappingNode =>
+          val optString = implicitly[YamlDecoder[Option[String]]]
+          val bindings  = mappingKV(mappingNode)
+          for {
+            name <- bindings
+              .get(Fields.Name)
+              .map(optString.decode)
+              .getOrElse(Right(None))
+            email <- bindings
+              .get(Fields.Email)
+              .map(optString.decode)
+              .getOrElse(Right(None))
+          } yield Contact(name, email)
+      }
+    }
 
-  /** [[Decoder]] instance for the [[Contact]].
-    */
-  implicit val decoder: Decoder[Contact] = { json =>
-    def verifyAtLeastOneDefined(
-      name: Option[String],
-      email: Option[String]
-    ): Either[DecodingFailure, Unit] =
-      if (name.isEmpty && email.isEmpty)
-        Left(
-          DecodingFailure(
-            "At least one of the fields `name`, `email` must be defined.",
-            json.history
-          )
-        )
-      else Right(())
-
-    for {
-      name  <- json.getOrElse[Option[String]](Fields.Name)(None)
-      email <- json.getOrElse[Option[String]](Fields.Email)(None)
-      _     <- verifyAtLeastOneDefined(name, email)
-    } yield Contact(name, email)
-  }
+  implicit val encoderSnake: YamlEncoder[Contact] =
+    new YamlEncoder[Contact] {
+      override def encode(value: Contact) = {
+        val elements = new util.ArrayList[(String, Object)]()
+        value.name
+          .map((Fields.Name, _))
+          .foreach(elements.add)
+        value.email
+          .map((Fields.Email, _))
+          .foreach(elements.add)
+        toMap(elements)
+      }
+    }
 }
 
 /** Represents a package configuration stored in the `package.yaml` file.
@@ -114,8 +113,14 @@ case class Config(
 ) {
 
   /** Converts the configuration into a YAML representation. */
-  def toYaml: String =
-    Printer.spaces2.copy(preserveOrder = true).pretty(Config.encoder(this))
+  def toYaml: String = {
+    val node          = implicitly[YamlEncoder[Config]].encode(this)
+    val dumperOptions = new DumperOptions()
+    dumperOptions.setIndent(2)
+    dumperOptions.setPrettyFlow(true)
+    val yaml = new Yaml(dumperOptions)
+    yaml.dumpAs(node, Tag.MAP, DumperOptions.FlowStyle.BLOCK)
+  }
 
   /** @return the module of name. */
   def moduleName: String =
@@ -125,121 +130,182 @@ case class Config(
 
 object Config {
 
-  val defaultNamespace: String = "local"
+  val DefaultNamespace: String    = "local"
+  val DefaultVersion: String      = "dev"
+  val DefaultLicense: String      = ""
+  val DefaultPreferLocalLibraries = false
 
   private object JsonFields {
-    val name: String           = "name"
-    val normalizedName: String = "normalized-name"
-    val version: String        = "version"
-    val ensoVersion: String    = "enso-version"
-    val license: String        = "license"
-    val author: String         = "authors"
-    val namespace: String      = "namespace"
-    val maintainer: String     = "maintainers"
-    val edition: String        = "edition"
-    val preferLocalLibraries   = "prefer-local-libraries"
-    val componentGroups        = "component-groups"
+    val Name: String           = "name"
+    val NormalizedName: String = "normalized-name"
+    val Version: String        = "version"
+    val EnsoVersion: String    = "enso-version"
+    val License: String        = "license"
+    val Author: String         = "authors"
+    val Namespace: String      = "namespace"
+    val Maintainer: String     = "maintainers"
+    val Edition: String        = "edition"
+    val PreferLocalLibraries   = "prefer-local-libraries"
+    val ComponentGroups        = "component-groups"
   }
 
-  implicit val decoder: Decoder[Config] = { json =>
-    for {
-      name           <- json.get[String](JsonFields.name)
-      normalizedName <- json.get[Option[String]](JsonFields.normalizedName)
-      namespace <- json.getOrElse[String](JsonFields.namespace)(
-        defaultNamespace
-      )
-      version     <- json.getOrElse[String](JsonFields.version)("dev")
-      ensoVersion <- json.get[Option[EnsoVersion]](JsonFields.ensoVersion)
-      rawEdition <- json
-        .get[EditionName](JsonFields.edition)
-        .map(x => Left(x.name))
-        .orElse(
-          json
-            .get[Option[Editions.RawEdition]](JsonFields.edition)
-            .map(Right(_))
-        )
-      edition = rawEdition.fold(
-        editionName => Some(Editions.Raw.Edition(parent = Some(editionName))),
-        identity
-      )
-      license    <- json.getOrElse(JsonFields.license)("")
-      author     <- json.getOrElse[List[Contact]](JsonFields.author)(List())
-      maintainer <- json.getOrElse[List[Contact]](JsonFields.maintainer)(List())
-      preferLocal <-
-        json.getOrElse[Boolean](JsonFields.preferLocalLibraries)(false)
-      finalEdition <-
-        editionOrVersionBackwardsCompatibility(edition, ensoVersion).left.map {
-          error => DecodingFailure(error, json.history)
-        }
-      componentGroups <- json.getOrElse[Option[ComponentGroups]](
-        JsonFields.componentGroups
-      )(None)
-    } yield {
-
-      Config(
-        name                 = name,
-        normalizedName       = normalizedName,
-        namespace            = namespace,
-        version              = version,
-        license              = license,
-        authors              = author,
-        maintainers          = maintainer,
-        edition              = finalEdition,
-        preferLocalLibraries = preferLocal,
-        componentGroups      = componentGroups
-      )
-    }
-  }
-
-  implicit val encoder: Encoder[Config] = { config =>
-    val edition = config.edition
-      .map { edition =>
-        if (edition.isDerivingWithoutOverrides) edition.parent.get.asJson
-        else edition.asJson
+  implicit val yamlDecoder: YamlDecoder[Config] =
+    new YamlDecoder[Config] {
+      override def decode(node: Node): Either[Throwable, Config] = node match {
+        case mappingNode: MappingNode =>
+          val clazzMap      = mappingKV(mappingNode)
+          val stringDecoder = implicitly[YamlDecoder[String]]
+          val normalizedNameDecoder =
+            implicitly[YamlDecoder[Option[String]]]
+          val contactDecoder     = implicitly[YamlDecoder[List[Contact]]]
+          val editionNameDecoder = implicitly[YamlDecoder[EditionName]]
+          val editionDecoder =
+            implicitly[YamlDecoder[Option[Editions.RawEdition]]]
+          val booleanDecoder = implicitly[YamlDecoder[Boolean]]
+          val componentGroups =
+            implicitly[YamlDecoder[Option[ComponentGroups]]]
+          for {
+            name <- clazzMap
+              .get(JsonFields.Name)
+              .toRight(
+                new YAMLException(s"Missing '${JsonFields.Name}' field")
+              )
+              .flatMap(stringDecoder.decode)
+            normalizedName <- clazzMap
+              .get(JsonFields.NormalizedName)
+              .map(normalizedNameDecoder.decode)
+              .getOrElse(Right(None))
+            namespace <- clazzMap
+              .get(JsonFields.Namespace)
+              .map(stringDecoder.decode)
+              .getOrElse(Right(DefaultNamespace))
+            version <- clazzMap
+              .get(JsonFields.Version)
+              .map(stringDecoder.decode)
+              .getOrElse(Right(DefaultVersion))
+            license <- clazzMap
+              .get(JsonFields.License)
+              .map(stringDecoder.decode)
+              .getOrElse(Right(DefaultLicense))
+            authors <- clazzMap
+              .get(JsonFields.Author)
+              .map(contactDecoder.decode)
+              .getOrElse(Right(Nil))
+            maintainers <- clazzMap
+              .get(JsonFields.Maintainer)
+              .map(contactDecoder.decode)
+              .getOrElse(Right(Nil))
+            rawEdition = clazzMap
+              .get(JsonFields.Edition)
+              .flatMap(x => editionNameDecoder.decode(x).toOption.map(Left(_)))
+              .getOrElse(
+                clazzMap
+                  .get(JsonFields.Edition)
+                  .map(editionDecoder.decode)
+                  .getOrElse(Right(None))
+              )
+              .asInstanceOf[Either[EditionName, Option[Editions.RawEdition]]]
+            edition <- rawEdition.fold(
+              editionName =>
+                Right(
+                  Some(Editions.Raw.Edition(parent = Some(editionName.name)))
+                ),
+              r => Right(r)
+            )
+            preferLocalLibraries <- clazzMap
+              .get(JsonFields.PreferLocalLibraries)
+              .map(booleanDecoder.decode)
+              .getOrElse(Right(DefaultPreferLocalLibraries))
+            componentGroups <- clazzMap
+              .get(JsonFields.ComponentGroups)
+              .map(componentGroups.decode)
+              .getOrElse(Right(None))
+          } yield Config(
+            name,
+            normalizedName,
+            namespace,
+            version,
+            license,
+            authors,
+            maintainers,
+            edition,
+            preferLocalLibraries,
+            componentGroups
+          )
       }
-      .map(JsonFields.edition -> _)
+    }
 
-    val componentGroups =
-      Option.unless(
-        config.componentGroups.isEmpty
-      )(
-        JsonFields.componentGroups -> config.componentGroups.asJson
-      )
+  implicit val encoderSnake: YamlEncoder[Config] =
+    new YamlEncoder[Config] {
+      override def encode(value: Config) = {
+        val contactsEncoder = implicitly[YamlEncoder[List[Contact]]]
+        val editionEncoder  = implicitly[YamlEncoder[Editions.RawEdition]]
+        val booleanEncoder  = implicitly[YamlEncoder[Boolean]]
+        val componentGroupsEncoder =
+          implicitly[YamlEncoder[ComponentGroups]]
 
-    val normalizedName = config.normalizedName.map(value =>
-      JsonFields.normalizedName -> value.asJson
-    )
+        val elements = new util.ArrayList[(String, Object)]()
+        elements.add((JsonFields.Name, value.name))
+        value.normalizedName.foreach(v =>
+          elements.add((JsonFields.NormalizedName, v))
+        )
+        if (value.namespace != DefaultNamespace)
+          elements.add((JsonFields.Namespace, value.namespace))
+        if (value.version != DefaultVersion)
+          elements.add(
+            (JsonFields.Version, value.version)
+          )
+        if (value.license != DefaultLicense)
+          elements.add(
+            (JsonFields.License, value.license)
+          )
+        if (value.authors.nonEmpty) {
+          elements.add(
+            (JsonFields.Author, contactsEncoder.encode(value.authors))
+          )
+        }
+        if (value.maintainers.nonEmpty) {
+          elements.add(
+            (JsonFields.Maintainer, contactsEncoder.encode(value.maintainers))
+          )
+        }
 
-    val overrides =
-      Seq(JsonFields.name -> config.name.asJson) ++
-      normalizedName.toSeq ++
-      Seq(
-        JsonFields.namespace  -> config.namespace.asJson,
-        JsonFields.version    -> config.version.asJson,
-        JsonFields.license    -> config.license.asJson,
-        JsonFields.author     -> config.authors.asJson,
-        JsonFields.maintainer -> config.maintainers.asJson
-      ) ++ edition.toSeq ++ componentGroups.toSeq
+        value.edition.foreach { edition =>
+          if (edition.isDerivingWithoutOverrides)
+            elements.add((JsonFields.Edition, edition.parent.get))
+          else
+            elements.add((JsonFields.Edition, editionEncoder.encode(edition)))
+        }
+        if (value.preferLocalLibraries != DefaultPreferLocalLibraries)
+          elements.add(
+            (
+              JsonFields.PreferLocalLibraries,
+              booleanEncoder.encode(value.preferLocalLibraries)
+            )
+          )
+        value.componentGroups.foreach(v =>
+          elements.add(
+            (JsonFields.ComponentGroups, componentGroupsEncoder.encode(v))
+          )
+        )
 
-    val preferLocalOverride =
-      if (config.preferLocalLibraries)
-        Seq(JsonFields.preferLocalLibraries -> true.asJson)
-      else Seq()
-    val overridesObject = JsonObject(
-      overrides ++ preferLocalOverride: _*
-    )
-
-    overridesObject.asJson
-  }
-
-  /** Tries to parse the [[Config]] from a YAML string. */
-  def fromYaml(yamlString: String): Try[Config] = {
-    yaml.parser.parse(yamlString).flatMap(_.as[Config]).toTry
-  }
+        toMap(elements)
+      }
+    }
 
   /** Tries to parse the [[Config]] directly from the Reader */
   def fromYaml(reader: Reader): Try[Config] = {
-    Parser.default.parse(reader).flatMap(_.as[Config]).toTry
+    val snakeYaml = new org.yaml.snakeyaml.Yaml()
+    Try(snakeYaml.compose(reader)).toEither
+      .flatMap(implicitly[YamlDecoder[Config]].decode(_))
+      .toTry
+  }
+
+  def fromYaml(yamlString: String): Try[Config] = {
+    val snakeYaml = new org.yaml.snakeyaml.Yaml()
+    Try(snakeYaml.compose(new StringReader(yamlString))).toEither
+      .flatMap(implicitly[YamlDecoder[Config]].decode(_))
+      .toTry
   }
 
   /** Creates a simple edition that just defines the provided engine version.
@@ -262,37 +328,4 @@ object Config {
     repositories  = Map(),
     libraries     = Map()
   )
-
-  /** A helper method that reconciles the old and new fields of the config
-    * related to the edition.
-    *
-    * If an edition is present, it is just returned as-is. If the engine version
-    * is specified, a special edition is created that specifies this particular
-    * engine version and nothing else.
-    *
-    * If both fields are defined, an error is raised as the configuration may be
-    * inconsistent - the `engine-version` field should only be present in old
-    * configs and after migration to the edition format it should be removed.
-    */
-  private def editionOrVersionBackwardsCompatibility(
-    edition: Option[Editions.RawEdition],
-    ensoVersion: Option[EnsoVersion]
-  ): Either[String, Option[Editions.RawEdition]] =
-    (edition, ensoVersion) match {
-      case (Some(_), Some(_)) =>
-        Left(
-          s"The deprecated `${JsonFields.ensoVersion}` should not be defined " +
-          s"if the `${JsonFields.edition}` that replaces it is already defined."
-        )
-      case (Some(edition), _) =>
-        Right(Some(edition))
-      case (_, Some(SemVerEnsoVersion(version))) =>
-        Right(Some(makeCompatibilityEditionFromVersion(version)))
-      case (_, Some(DefaultEnsoVersion)) =>
-        // If the `default` version is specified, we return None, so that later
-        // on, it will fallback to the default edition.
-        Right(None)
-      case (None, None) =>
-        Right(None)
-    }
 }

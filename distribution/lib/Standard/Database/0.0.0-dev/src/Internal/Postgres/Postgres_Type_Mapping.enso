@@ -19,7 +19,7 @@ polyglot java import java.sql.Types
 type Postgres_Type_Mapping
     ## PRIVATE
     value_type_to_sql : Value_Type -> Problem_Behavior -> SQL_Type
-    value_type_to_sql value_type on_problems =
+    value_type_to_sql value_type on_problems:Problem_Behavior =
         result = case value_type of
             Value_Type.Boolean ->
                 SQL_Type.Value Types.BIT "bool" precision=1
@@ -125,15 +125,28 @@ type Postgres_Type_Mapping
         value_type = self.sql_type_to_value_type sql_type
         Column_Fetcher_Module.default_fetcher_for_value_type value_type
 
+    ## PRIVATE
+    is_implicit_conversion (source_type : Value_Type) (target_type : Value_Type) -> Boolean =
+        # Currently, we do not have any implicit conversions.
+        _ = [source_type, target_type]
+        False
+
+    ## PRIVATE
+    is_integer_type (value_type : Value_Type) -> Boolean = value_type.is_integer
+
+    ## PRIVATE
+    is_same_type (value_type1 : Value_Type) (value_type2 : Value_Type) -> Boolean =
+        value_type1.is_same_type value_type2
+
 ## PRIVATE
-simple_types_map = Map.from_vector <|
+simple_types_map = Dictionary.from_vector <|
     ints = [[Types.SMALLINT, Value_Type.Integer Bits.Bits_16], [Types.BIGINT, Value_Type.Integer Bits.Bits_64], [Types.INTEGER, Value_Type.Integer Bits.Bits_32]]
     floats = [[Types.DOUBLE, Value_Type.Float Bits.Bits_64], [Types.REAL, Value_Type.Float Bits.Bits_32]]
     other = [[Types.DATE, Value_Type.Date], [Types.TIME, Value_Type.Time]]
     ints + floats + other
 
 ## PRIVATE
-complex_types_map = Map.from_vector <|
+complex_types_map = Dictionary.from_vector <|
     make_decimal sql_type =
         Value_Type.Decimal sql_type.precision sql_type.scale
     make_varchar sql_type =

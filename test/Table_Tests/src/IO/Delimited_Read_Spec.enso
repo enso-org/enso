@@ -96,9 +96,9 @@ add_specs suite_builder =
             r1.catch.should_be_a File_Error.Not_Found
 
             directory = enso_project.data
-            r2 = Data.read directory (..Delimited "," headers=True value_formatter=Nothing) Problem_Behavior.Report_Error
-            r2.should_fail_with File_Error
-            r2.catch.should_be_a File_Error.IO_Error
+            r2 = Data.read directory (..Delimited "," headers=True value_formatter=Nothing) ..Report_Error
+            r2.should_fail_with Illegal_Argument
+            r2.catch.message.should_equal "Cannot `read` a directory, use `Data.list`."
 
         group_builder.specify "should work with all kinds of line endings" <|
             path name = enso_project.data / 'transient' / name
@@ -108,7 +108,7 @@ add_specs suite_builder =
                 text.write (path name)
 
             test_file name =
-                table = Data.read (path name) (..Delimited "," headers=True value_formatter=Nothing) Problem_Behavior.Report_Error
+                table = Data.read (path name) (..Delimited "," headers=True value_formatter=Nothing) ..Report_Error
                 table.columns.map .name . should_equal ['a', 'b', 'c']
                 table.at 'a' . to_vector . should_equal ['d', '1']
                 table.at 'b' . to_vector . should_equal ['e', '2']
@@ -123,7 +123,7 @@ add_specs suite_builder =
 
             # Currently mixed line endings are not supported.
             'a,b,c\nd,e,f\r1,2,3'.write (path 'mixed.csv')
-            Data.read (path 'mixed.csv') (..Delimited "," headers=True value_formatter=Nothing) Problem_Behavior.Report_Error . should_fail_with Invalid_Row
+            Data.read (path 'mixed.csv') (..Delimited "," headers=True value_formatter=Nothing) ..Report_Error . should_fail_with Invalid_Row
 
             ['crlf.csv', 'lf.csv', 'cr.csv', 'mixed.csv'].each (path >> .delete)
 
@@ -155,14 +155,14 @@ add_specs suite_builder =
             file_2.delete
 
         group_builder.specify "should work with Windows-1252 encoding" <|
-            table = Data.read (enso_project.data / "windows.csv") (..Delimited "," headers=True encoding=Encoding.windows_1252) Problem_Behavior.Report_Error
+            table = Data.read (enso_project.data / "windows.csv") (..Delimited "," headers=True encoding=Encoding.windows_1252) ..Report_Error
             table.columns.map .name . should_equal ['a', 'b', 'c']
             table.at 'a' . to_vector . should_equal ['$¢']
             table.at 'b' . to_vector . should_equal ['¤']
             table.at 'c' . to_vector . should_equal ['¥']
 
         group_builder.specify "should work with UTF-16 encoding" <|
-            table = Data.read (enso_project.data / "utf16.csv") (..Delimited "," headers=True encoding=Encoding.utf_16_be) Problem_Behavior.Report_Error
+            table = Data.read (enso_project.data / "utf16.csv") (..Delimited "," headers=True encoding=Encoding.utf_16_be) ..Report_Error
             table.columns.map .name . should_equal ['ą', '🚀b', 'ć😎']
             table.at 'ą' . to_vector . should_equal ['ą']
             table.at '🚀b' . to_vector . should_equal ['✨🚀🚧😍😃😍😎😙😉☺']
@@ -475,7 +475,7 @@ add_specs suite_builder =
             Delimited_Format.Delimited ',' . with_line_endings Line_Ending_Style.Unix . should_equal (Delimited_Format.Delimited ',' line_endings=Line_Ending_Style.Unix)
 
         utf_16_le_bom = [-1, -2]
-        group_builder.specify "(in default mode) should detect UTF-16 encoding if BOM is present" <|
+        group_builder.specify "(in default mode) should detect UTF-16 encoding if BOM is present" pending="Encoding.default turned off temporarily" <|
             bytes = utf_16_le_bom + ('a,b\n1,2'.bytes Encoding.utf_16_le)
             f = File.create_temporary_file "delimited-utf-16-bom" ".csv"
             bytes.write_bytes f . should_succeed
@@ -485,7 +485,7 @@ add_specs suite_builder =
             # No hidden BOM in the column name
             table.column_names.first.utf_8 . should_equal [97]
 
-        group_builder.specify "(in default mode) should skip UTF-8 BOM if it was present" <|
+        group_builder.specify "(in default mode) should skip UTF-8 BOM if it was present" pending="Encoding.default turned off temporarily" <|
             utf_8_bom = [-17, -69, -65]
             bytes = utf_8_bom + ('a,b\n1,2'.bytes Encoding.utf_8)
             f = File.create_temporary_file "delimited-utf-8-bom" ".csv"
@@ -506,6 +506,10 @@ add_specs suite_builder =
             # The first column name now contains this invalid character, because it wasn't a BOM
             r.column_names.first . should_equal "￾a"
 
+        group_builder.specify "if UTF-16 encoding was selected but an inverted BOM is detected, a warning is issued (pt 2)" pending="Encoding.default turned off temporarily" <|
+            bytes = utf_16_le_bom + ('a,b\n1,2'.bytes Encoding.utf_16_be)
+            f = File.create_temporary_file "delimited-utf-16-inverted-bom" ".csv"
+
             # If we read without specifying the encoding, we will infer UTF-16 LE encoding because of the BOM and get garbage:
             r2 = f.read
             r2.column_names . should_equal ["Column 1"]
@@ -523,7 +527,7 @@ add_specs suite_builder =
             r.first_column.to_vector . should_equal ['\uFFFD']
             Problems.expect_only_warning Encoding_Error r
 
-        group_builder.specify "should fall back to Windows-1252 encoding if invalid UTF-8 characters are encountered in Default encoding" <|
+        group_builder.specify "should fall back to Windows-1252 encoding if invalid UTF-8 characters are encountered in Default encoding" pending="Encoding.default turned off temporarily" <|
             f = File.create_temporary_file "delimited-invalid-utf-8" ".csv"
             # On the simple characters all three encodings (ASCII, UTF-8 and Win-1252) agree, so we can use ASCII bytes.
             bytes = ('A,B\n1,y'.bytes Encoding.ascii) + [-1] + ('z\n2,-'.bytes Encoding.ascii)

@@ -12,18 +12,21 @@ export async function goToGraph(page: Page, closeDocPanel: boolean = true) {
   await page.goto('/')
   // Initial load through vite can take a while. Make sure that the first locator has enough time.
   await expect(page.locator('.GraphEditor')).toBeVisible({ timeout: 100000 })
-  if (closeDocPanel) {
-    await page.locator('.rightDock > .closeButton').click()
-  }
   // Wait until nodes are loaded.
   await expect(locate.graphNode(page)).toExist()
+  if (closeDocPanel) {
+    await expect(page.getByTestId('rightDock')).toExist()
+    await page.getByRole('button', { name: 'Documentation Panel' }).click()
+    // Wait for the closing animation.
+    await expect(page.getByTestId('rightDock')).toBeHidden()
+  }
   // Wait for position initialization
   await expectNodePositionsInitialized(page, 72)
 }
 
 export async function expectNodePositionsInitialized(page: Page, yPos: number) {
   // Wait until edges are initialized and displayed correctly.
-  await expect(page.getByTestId('broken-edge')).toHaveCount(0)
+  await expect(page.getByTestId('broken-edge')).toBeHidden()
   // Wait until node sizes are initialized.
   await expect(locate.graphNode(page).first().locator('.bgFill')).toBeVisible()
   // TODO: The yPos should not need to be a variable. Instead, first automatically positioned nodes
@@ -46,9 +49,15 @@ export async function exitFunction(page: Page, x = 300, y = 300) {
 /// Move node defined by the given binding  by the given x and y.
 export async function dragNodeByBinding(page: Page, nodeBinding: string, x: number, y: number) {
   const node = graphNodeByBinding(page, nodeBinding)
-  const grabHandle = await node.locator('.grab-handle')
+  const grabHandle = node.locator('.grab-handle')
   await grabHandle.dragTo(grabHandle, {
     targetPosition: { x, y },
     force: true,
   })
+}
+
+/// Move mouse away to avoid random hover events and wait for any circular menus to disappear.
+export async function ensureNoCircularMenusVisible(page: Page) {
+  await page.mouse.move(-1000, 0)
+  await expect(locate.circularMenu(page)).toBeHidden()
 }

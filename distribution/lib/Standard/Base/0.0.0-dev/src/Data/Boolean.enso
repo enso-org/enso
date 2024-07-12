@@ -1,7 +1,8 @@
 import project.Any.Any
 import project.Nothing.Nothing
 
-from project.Data.Boolean.Boolean export False, True
+export project.Data.Boolean.Boolean.False
+export project.Data.Boolean.Boolean.True
 
 ## A type with only two possible values.
 

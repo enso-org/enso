@@ -15,6 +15,7 @@ import project.Panic.Panic
 from project.Data.Boolean import Boolean, False, True
 from project.Internal.Number_Builtins import all
 from project.Widget_Helpers import make_number_format_selector
+from project.Internal.Ordering_Helpers import Positive_Integer_Comparator
 
 polyglot java import java.lang.Double
 polyglot java import java.lang.Long
@@ -1288,13 +1289,4 @@ Positive_Integer.from (that : Integer) = Positive_Integer.new that
 Integer.from (that : Positive_Integer) = that.integer
 
 ## PRIVATE
-type Positive_Integer_Comparator
-    ## PRIVATE
-    compare x y =
-        Comparable.from x.integer . compare x.integer y.integer
-
-    ## PRIVATE
-    hash x = Comparable.from x.integer . hash x.integer
-
-## PRIVATE
-Comparable.from (_:Positive_Integer) = Positive_Integer_Comparator
+Comparable.from (that:Positive_Integer) = Comparable.new that Positive_Integer_Comparator
