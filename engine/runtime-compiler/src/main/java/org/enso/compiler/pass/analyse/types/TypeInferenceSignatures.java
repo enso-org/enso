@@ -94,16 +94,15 @@ public class TypeInferenceSignatures implements IRPass {
             (def) ->
                 switch (def) {
                   case Method.Explicit b -> {
-                    TypeRepresentation resolvedType = resolveTopLevelTypeSignature(b.body());
+                    boolean keepSelfArgument = b.isStaticWrapperForInstanceMethod();
+                    TypeRepresentation resolvedType =
+                        resolveTopLevelTypeSignature(b.body(), keepSelfArgument);
                     if (resolvedType != null) {
                       System.out.println(
                           "Resolved "
                               + b.methodReference().showCode()
                               + " to type "
                               + resolvedType);
-                      // TODO maybe different metadata class?
-                      // TODO use this in TypeInferencePropagation if its own metadata is not yet
-                      // available
                       b.passData().update(INSTANCE, new InferredType(resolvedType));
                     }
                     yield b;
@@ -123,8 +122,18 @@ public class TypeInferenceSignatures implements IRPass {
     return ir;
   }
 
-  private TypeRepresentation resolveTopLevelTypeSignature(Expression expression) {
-    return switch (expression) {
+  /**
+   * Constructs the type signature for a given method body.
+   *
+   * @param body the method body
+   * @param keepSelfArgument whether to keep the self argument. For regular static methods, the self
+   *     argument is synthetic and does not take part in type inference. For member methods, it is
+   *     provided implicitly when resolving the call, so again it is ignored for type inference. It
+   *     should only be kept for such static methods that are wrappers for instance methods.
+   */
+  private TypeRepresentation resolveTopLevelTypeSignature(
+      Expression body, boolean keepSelfArgument) {
+    return switch (body) {
         // Combine argument types with ascribed type (if available) for a function type signature
       case Function.Lambda lambda -> {
         boolean hasAnyDefaults =
@@ -137,7 +146,21 @@ public class TypeInferenceSignatures implements IRPass {
         scala.collection.immutable.List<TypeRepresentation> argTypesScala =
             lambda
                 .arguments()
-                .filter((arg) -> !(arg.name() instanceof Name.Self))
+                // Filter out the self argument, unless it should be kept.
+                .filter(
+                    (arg) -> {
+                      if (arg.name() instanceof Name.Self selfArg) {
+                        if (selfArg.synthetic()) {
+                          // The 'synthetic' self is always dropped.
+                          return false;
+                        } else {
+                          return keepSelfArgument;
+                        }
+                      } else {
+                        // We keep all other args.
+                        return true;
+                      }
+                    })
                 .map(
                     (arg) -> {
                       if (arg.ascribedType().isDefined()) {
@@ -167,7 +190,7 @@ public class TypeInferenceSignatures implements IRPass {
 
         // Otherwise, we encountered a 0-argument method, so its type is just its return type (if
         // its known).
-      default -> findReturnTypeAscription(expression);
+      default -> findReturnTypeAscription(body);
     };
   }
 

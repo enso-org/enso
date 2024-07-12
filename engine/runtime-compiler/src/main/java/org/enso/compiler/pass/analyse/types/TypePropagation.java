@@ -335,21 +335,14 @@ abstract class TypePropagation {
         if (ctorCandidate.isPresent()) {
           return typeResolver.buildAtomConstructorType(typeObject, ctorCandidate.get());
         } else {
-          System.out.println("TODO: static calling " + function.name() + " on " + typeObject);
+          // We resolve static calls on the eigen type. It should also contain registrations of the
+          // static variants of member methods, so we don't need to inspect member scope.
           var staticScope = TypeScopeReference.atomEigenType(typeObject.name());
           var resolvedStaticMethod = methodTypeResolver.resolveMethod(staticScope, function.name());
-          if (resolvedStaticMethod != null) {
-            return resolvedStaticMethod;
+          if (resolvedStaticMethod == null) {
+            encounteredNoSuchMethod(relatedWholeApplicationIR, argumentType, function.name());
           }
-
-          var memberScope = TypeScopeReference.atomType(typeObject.name());
-          var resolvedMemberMethod = methodTypeResolver.resolveMethod(memberScope, function.name());
-          if (resolvedMemberMethod != null) {
-            return adaptMemberMethodForStaticCall(typeObject, resolvedMemberMethod);
-          }
-
-          encounteredNoSuchMethod(relatedWholeApplicationIR, argumentType, function.name());
-          return null;
+          return resolvedStaticMethod;
         }
       }
 
@@ -382,17 +375,6 @@ abstract class TypePropagation {
         return null;
       }
     }
-  }
-
-  /**
-   * Adapts a member method of a type for calling it using the static call syntax.
-   *
-   * <p>It adds the self type as an additional first argument.
-   */
-  private TypeRepresentation adaptMemberMethodForStaticCall(
-      TypeRepresentation.TypeObject type, TypeRepresentation memberMethodSignature) {
-    // TODO possibly move this into MethodTypeResolver
-    return new TypeRepresentation.ArrowType(type.instanceType(), memberMethodSignature);
   }
 
   private class CompilerNameResolution
