@@ -1069,13 +1069,47 @@ public class TypeInferenceTest extends StaticAnalysisTest {
     assertEquals("My_Type -> My_Type", getInferredType(findAssignment(foo, "x6")).toString());
   }
 
+  @Ignore("TODO: error can only be reported when we can rule out there is no Other_Type -> My_Type conversion")
   @Test
-  public void noSuchMethodStaticCheck() throws Exception {
-    final URI uri = new URI("memory://noSuchMethodStaticCheck.enso");
+  public void staticCallWithWrongType() throws Exception {
+    final URI uri = new URI("memory://staticCallWithWrongType.enso");
     final Source src =
         Source.newBuilder(
-                "enso",
-                """
+            "enso",
+            """
+                type My_Type
+                    Value v
+                  
+                    member_method self = [self.v]
+                    
+                type Other_Type
+                    Constructor v
+                    
+                    member_method = [self.v, self.v]
+                    
+                foo =
+                    other = Other_Type.Constructor 44
+                    x1 = My_Type.member_method other
+                    x1
+            """,
+            uri.getAuthority()
+        ).uri(uri).buildLiteral();
+
+    var module = compile(src);
+    var foo = findStaticMethod(module, "foo");
+
+    var x1 = findAssignment(foo, "x1");
+    var typeError = new Warning.TypeMismatch(x1.expression().location(), "My_Type", "Other_Type");
+    assertEquals(List.of(typeError), getDescendantsDiagnostics(x1.expression()));
+}
+
+@Test
+public void noSuchMethodStaticCheck() throws Exception {
+final URI uri = new URI("memory://noSuchMethodStaticCheck.enso");
+final Source src =
+    Source.newBuilder(
+            "enso",
+            """
                     import Standard.Base.Any.Any
 
                     type My_Type
