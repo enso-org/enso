@@ -269,15 +269,18 @@ function formatText(params: ICellRendererParams) {
       ' ': '<span style="color: grey">&#183;</span>',
       '\t': '<span style="color: grey">&#8594;   </span>',
     }
-    const newString = params.value.replace(/[\s]/g, function (match: any) {
+    const newString = params.value.replace(/[\s]/g, function (match: string) {
       return fullWhitespaceMapping[match as keyof typeof fullWhitespaceMapping] || match
     })
     return `<span style="font-family: monospace;"> ${newString}</span>`
   } else if (textFormatterSelected.value === TextFormatOptions.Special) {
-    const newString = params.value.replace(/[\s]/g, function (match: any) {
+    const newString = params.value.replace(/[\s]/g, function (match: string) {
       return whitespaceMapping[match as keyof typeof whitespaceMapping] || match
     })
-    return `<span style="font-family: monospace;"> ${newString}</span>`
+    const replacedWhitespace = newString.replace(/ {2,}/g, function (match: string) {
+      return `<span style="color: grey">${'&#183;'.repeat(match.length)}</span>`
+    })
+    return `<span style="font-family: monospace;"> ${replacedWhitespace}</span>`
   }
 }
 
