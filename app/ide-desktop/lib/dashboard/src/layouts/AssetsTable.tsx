@@ -440,10 +440,13 @@ export default function AssetsTable(props: AssetsTableProps) {
   })
   const organization = organizationQuery.data
   const rootDirectoryId = React.useMemo(() => {
-    const id = backend.rootDirectoryId(user, organization)
+    const id =
+      'homeDirectoryId' in category
+        ? category.homeDirectoryId
+        : backend.rootDirectoryId(user, organization)
     invariant(id, 'Missing root directory')
     return id
-  }, [backend, user, organization])
+  }, [backend, category, user, organization])
   const [assetTree, setAssetTree] = React.useState<assetTreeNode.AnyAssetTreeNode>(() => {
     const rootParentDirectoryId = backendModule.DirectoryId('')
     const rootPath = 'rootPath' in category ? category.rootPath : backend.rootPath
