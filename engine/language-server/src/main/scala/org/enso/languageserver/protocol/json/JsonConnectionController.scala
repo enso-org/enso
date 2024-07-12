@@ -89,7 +89,6 @@ import org.enso.languageserver.session.JsonSession
 import org.enso.languageserver.session.SessionApi.{
   InitProtocolConnection,
   ResourcesInitializationError,
-  SessionAlreadyInitialisedError,
   SessionNotInitialisedError
 }
 import org.enso.languageserver.text.TextApi._
@@ -275,7 +274,7 @@ class JsonConnectionController(
     rootsSoFar: List[ContentRootWithFile]
   ): Receive = LoggingReceive {
     case ContentRootManagerProtocol.ContentRootsAddedNotification(roots) =>
-      val allRoots = roots ++ rootsSoFar
+      val allRoots = (roots ++ rootsSoFar).map(_.toContentRoot).toSet
       val hasProject = roots.exists {
         case ContentRootWithFile(ContentRoot.Project(_), _) => true
         case _                                              => false
@@ -290,11 +289,11 @@ class JsonConnectionController(
           InitProtocolConnection.Result(
             buildinfo.Info.ensoVersion,
             buildinfo.Info.currentEdition,
-            allRoots.map(_.toContentRoot).toSet
+            allRoots
           )
         )
 
-        initialize(webActor, rpcSession)
+        initialize(webActor, rpcSession, allRoots)
       } else {
         context.become(
           waitingForContentRoots(
@@ -319,10 +318,11 @@ class JsonConnectionController(
 
   private def initialize(
     webActor: ActorRef,
-    rpcSession: JsonSession
+    rpcSession: JsonSession,
+    roots: Set[ContentRoot]
   ): Unit = {
     val requestHandlers = createRequestHandlers(rpcSession)
-    context.become(initialised(webActor, rpcSession, requestHandlers))
+    context.become(initialised(webActor, rpcSession, requestHandlers, roots))
 
     context.system.eventStream
       .subscribe(self, classOf[Api.ProgressNotification])
@@ -331,10 +331,19 @@ class JsonConnectionController(
   private def initialised(
     webActor: ActorRef,
     rpcSession: JsonSession,
-    requestHandlers: Map[Method, Props]
+    requestHandlers: Map[Method, Props],
+    roots: Set[ContentRoot]
   ): Receive = LoggingReceive {
     case Request(InitProtocolConnection, id, _) =>
-      sender() ! ResponseError(Some(id), SessionAlreadyInitialisedError)
+      sender() ! ResponseResult(
+        InitProtocolConnection,
+        id,
+        InitProtocolConnection.Result(
+          buildinfo.Info.ensoVersion,
+          buildinfo.Info.currentEdition,
+          roots
+        )
+      )
 
     case MessageHandler.Disconnected(_) =>
       logger.info("Json session terminated [{}].", rpcSession.clientId)
