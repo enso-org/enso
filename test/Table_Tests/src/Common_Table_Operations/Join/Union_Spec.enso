@@ -285,7 +285,7 @@ run_union_tests group_builder setup call_union =
         t1 = table_builder [["A", [0, 1, 2]]]
         t2 = table_builder [["A", [1.0, 2.0, 2.5]]]
 
-        t1.at "A" . value_type . is_integer . should_be_true
+        setup.expect_integer_type <| t1.at "A"
         t2.at "A" . value_type . is_floating_point . should_be_true
 
         t3 = call_union [t1, t2]
@@ -298,13 +298,13 @@ run_union_tests group_builder setup call_union =
         t1 = table_builder [["A", [0, 1, 20]]]
         t2 = table_builder [["A", [True, False, True]]]
 
-        t1.at "A" . value_type . is_integer . should_be_true
+        setup.expect_integer_type <| t1.at "A"
         t2.at "A" . value_type . should_equal Value_Type.Boolean
 
         t3 = call_union [t1, t2]
         expect_column_names ["A"] t3
         Problems.assume_no_problems t3
-        t3.at "A" . value_type . is_integer . should_be_true
+        setup.expect_integer_type <| t3.at "A"
         t3.at "A" . to_vector . should_equal [0, 1, 20, 1, 0, 1]
 
         t4 = table_builder [["A", [1.5, 0.0, 2.0]]]
@@ -388,7 +388,7 @@ run_union_tests group_builder setup call_union =
         t1 = table_builder [["A", [1, 2, 3]], ["B", ["a", "b", "c"]], ["C", [True, False, Nothing]]]
         t2 = table_builder [["C", ["x", "Y", "Z"]], ["A", [4, 5, 6]], ["B", [1, 2, 3]]]
 
-        r1 = call_union [t1, t2] on_problems=Problem_Behavior.Report_Error
+        r1 = call_union [t1, t2] on_problems=..Report_Error
         r1.should_fail_with No_Common_Type
         r1.catch.to_display_text . should_contain "converted to text"
 
@@ -397,7 +397,7 @@ run_union_tests group_builder setup call_union =
             expect_column_names ["A", "B", "C"] table
             # If type was matched - the columns are merged as is:
             table.at "A" . to_vector . should_equal [1, 2, 3, 4, 5, 6]
-            table.at "A" . value_type . is_integer . should_be_true
+            setup.expect_integer_type <| table.at "A"
             # If mixed, they are converted to text representation:
             table.at "B" . to_vector . should_equal ["a", "b", "c", "1", "2", "3"]
             table.at "B" . value_type . is_text . should_be_true

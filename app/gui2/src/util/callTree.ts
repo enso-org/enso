@@ -157,8 +157,8 @@ interface FoundApplication {
   argName: string | undefined
 }
 
-export function interpretCall(callRoot: Ast.Ast, allowInterpretAsInfix: boolean): InterpretedCall {
-  if (allowInterpretAsInfix && callRoot instanceof Ast.OprApp) {
+export function interpretCall(callRoot: Ast.Ast): InterpretedCall {
+  if (callRoot instanceof Ast.OprApp) {
     // Infix chains are handled one level at a time. Each application may have at most 2 arguments.
     return {
       kind: 'infix',
@@ -502,6 +502,7 @@ export function getMethodCallInfoRecursively(
           ...info.methodCall,
           notAppliedArguments: withoutNamed.sort().slice(appliedArgs),
         },
+        methodCallSource: ast.id,
         suggestion: info.suggestion,
       }
     }

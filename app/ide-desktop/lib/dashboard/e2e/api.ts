@@ -40,12 +40,21 @@ const BASE_URL = 'https://mock/'
 /** Parameters for {@link mockApi}. */
 interface MockParams {
   readonly page: test.Page
+  readonly setupAPI?: SetupAPI | null | undefined
+}
+
+/**
+ * Setup function for the mock API.
+ * use it to setup the mock API with custom handlers.
+ */
+export interface SetupAPI {
+  (api: Awaited<ReturnType<typeof mockApi>>): Promise<void> | void
 }
 
 /** Add route handlers for the mock API to a page. */
 // This syntax is required for Playwright to work properly.
 // eslint-disable-next-line no-restricted-syntax
-export async function mockApi({ page }: MockParams) {
+export async function mockApi({ page, setupAPI }: MockParams) {
   // eslint-disable-next-line no-restricted-syntax
   const defaultEmail = 'email@example.com' as backend.EmailAddress
   const defaultUsername = 'user name'
@@ -62,6 +71,7 @@ export async function mockApi({ page }: MockParams) {
     isEnabled: true,
     rootDirectoryId: defaultDirectoryId,
     userGroups: null,
+    plan: backend.Plan.enterprise,
   }
   const defaultOrganization: backend.OrganizationInfo = {
     id: defaultOrganizationId,
@@ -77,7 +87,7 @@ export async function mockApi({ page }: MockParams) {
   let currentUser: backend.User | null = defaultUser
   let currentProfilePicture: string | null = null
   let currentPassword = defaultPassword
-  let currentOrganization: backend.OrganizationInfo | null = null
+  let currentOrganization: backend.OrganizationInfo | null = defaultOrganization
   let currentOrganizationProfilePicture: string | null = null
 
   const assetMap = new Map<backend.AssetId, backend.AnyAsset>()
@@ -241,6 +251,7 @@ export async function mockApi({ page }: MockParams) {
       rootDirectoryId: backend.DirectoryId(organizationId.replace(/^organization-/, 'directory-')),
       isEnabled: true,
       userGroups: null,
+      plan: backend.Plan.enterprise,
       ...rest,
     }
     users.push(user)
@@ -703,6 +714,7 @@ export async function mockApi({ page }: MockParams) {
         isEnabled: false,
         rootDirectoryId,
         userGroups: null,
+        plan: backend.Plan.enterprise,
       }
       await route.fulfill({ json: currentUser })
     })
@@ -822,7 +834,7 @@ export async function mockApi({ page }: MockParams) {
     })
   })
 
-  return {
+  const api = {
     defaultEmail,
     defaultName: defaultUsername,
     defaultOrganization,
@@ -871,5 +883,11 @@ export async function mockApi({ page }: MockParams) {
     // deletePermission,
     addUserGroupToUser,
     removeUserGroupFromUser,
+  } as const
+
+  if (setupAPI) {
+    await setupAPI(api)
   }
+
+  return api
 }

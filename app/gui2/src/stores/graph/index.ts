@@ -18,7 +18,7 @@ import { type SuggestionDbStore } from '@/stores/suggestionDatabase'
 import { assert, bail } from '@/util/assert'
 import { Ast } from '@/util/ast'
 import type { AstId } from '@/util/ast/abstract'
-import { MutableModule, isIdentifier, type Identifier } from '@/util/ast/abstract'
+import { MutableModule, isAstId, isIdentifier, type Identifier } from '@/util/ast/abstract'
 import { RawAst, visitRecursive } from '@/util/ast/raw'
 import { partition } from '@/util/data/array'
 import { Rect } from '@/util/data/rect'
@@ -111,20 +111,18 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
     const moduleRoot = ref<Ast.Ast>()
     const topLevel = ref<Ast.BodyBlock>()
 
-    let disconnectSyncModule: undefined | (() => void)
-    watch(syncModule, (syncModule) => {
+    watch(syncModule, (syncModule, _, onCleanup) => {
       if (!syncModule) return
       let moduleChanged = true
-      disconnectSyncModule?.()
       const handle = syncModule.observe((update) => {
         moduleSource.applyUpdate(syncModule, update)
         handleModuleUpdate(syncModule, moduleChanged, update)
         moduleChanged = false
       })
-      disconnectSyncModule = () => {
+      onCleanup(() => {
         syncModule.unobserve(handle)
         moduleSource.clear()
-      }
+      })
     })
 
     let toRaw = new Map<SourceRangeKey, RawAst.Tree.Function>()
@@ -242,8 +240,9 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
       // FIXME: This implementation is not robust in the context of a synchronized document,
       // as the same name can likely be assigned by multiple clients.
       // Consider implementing a mechanism to repair the document in case of name clashes.
+      const identPrefix = prefix && isIdentifier(prefix + 1) ? prefix : FALLBACK_BINDING_PREFIX
       for (let i = 1; ; i++) {
-        const ident = (prefix ?? FALLBACK_BINDING_PREFIX) + i
+        const ident = identPrefix + i
         assert(isIdentifier(ident))
         if (!db.identifierUsed(ident) && !ignore.has(ident)) return ident
       }
@@ -381,7 +380,7 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
     }
 
     function setNodePosition(nodeId: NodeId, position: Vec2) {
-      const nodeAst = syncModule.value?.tryGet(nodeId)
+      const nodeAst = syncModule.value?.tryGet(db.idFromExternal(nodeId))
       if (!nodeAst) return
       const oldPos = nodeAst.nodeMetadata.get('position')
       if (oldPos?.x !== position.x || oldPos?.y !== position.y) {
@@ -392,7 +391,7 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
     }
 
     function overrideNodeColor(nodeId: NodeId, color: string | undefined) {
-      const nodeAst = syncModule.value?.tryGet(nodeId)
+      const nodeAst = syncModule.value?.tryGet(db.idFromExternal(nodeId))
       if (!nodeAst) return
       editNodeMetadata(nodeAst, (metadata) => {
         metadata.set('colorOverride', color)
@@ -419,7 +418,7 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
     }
 
     function setNodeVisualization(nodeId: NodeId, vis: Partial<VisualizationMetadata>) {
-      const nodeAst = syncModule.value?.tryGet(nodeId)
+      const nodeAst = syncModule.value?.tryGet(db.idFromExternal(nodeId))
       if (!nodeAst) return
       editNodeMetadata(nodeAst, (metadata) => {
         const data: Partial<VisualizationMetadata> = {
@@ -453,7 +452,7 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
       nodesToPlace.length = 0
       batchEdits(() => {
         for (const nodeId of nodesToProcess) {
-          const nodeAst = syncModule.value?.get(nodeId)
+          const nodeAst = syncModule.value?.get(db.idFromExternal(nodeId))
           const rect = nodeRects.get(nodeId)
           if (!rect || !nodeAst || nodeAst.nodeMetadata.get('position') != null) continue
           const position = placeNode([], rect.size)
@@ -516,7 +515,7 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
     }
 
     function getPortNodeId(id: PortId): NodeId | undefined {
-      return db.getExpressionNodeId(id as string as Ast.AstId) ?? getPortPrimaryInstance(id)?.nodeId
+      return (isAstId(id) && db.getExpressionNodeId(id)) || getPortPrimaryInstance(id)?.nodeId
     }
 
     /**
@@ -616,7 +615,7 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
           }
         })
       } else {
-        exprId = nodeId
+        exprId = db.idFromExternal(nodeId)
       }
 
       if (exprId == null) {
@@ -710,7 +709,7 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
     }
 
     function isConnectedTarget(portId: PortId): boolean {
-      return db.connections.reverseLookup(portId as AstId).size > 0
+      return isAstId(portId) && db.connections.reverseLookup(portId).size > 0
     }
 
     const modulePath: Ref<LsPath | undefined> = computedAsync(async () => {

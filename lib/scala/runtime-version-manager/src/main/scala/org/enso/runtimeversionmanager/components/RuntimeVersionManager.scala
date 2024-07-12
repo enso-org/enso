@@ -524,7 +524,7 @@ class RuntimeVersionManager(
             )
           ) { writer =>
             writer.newLine()
-            writer.write(s"${Manifest.Fields.brokenMark}: true\n")
+            writer.write(s"${Manifest.Fields.NrokenMark}: true\n")
           }.get
         } catch {
           case ex: Exception =>
@@ -733,7 +733,8 @@ class RuntimeVersionManager(
   private def loadAndCheckEngineManifest(
     path: Path
   ): Try[Manifest] = {
-    Manifest.load(path / Manifest.DEFAULT_MANIFEST_NAME).flatMap { manifest =>
+    val manifestPath = path / Manifest.DEFAULT_MANIFEST_NAME
+    Manifest.load(manifestPath).flatMap { manifest =>
       if (!isEngineVersionCompatibleWithThisInstaller(manifest)) {
         Failure(
           UpgradeRequiredError(

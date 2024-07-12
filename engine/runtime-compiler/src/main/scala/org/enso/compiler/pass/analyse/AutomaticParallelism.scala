@@ -12,7 +12,7 @@ import org.enso.compiler.core.ir.{
   Name
 }
 import org.enso.compiler.core.ir.module.scope.definition
-import org.enso.compiler.data.BindingsMap.{Resolution, ResolvedMethod}
+import org.enso.compiler.data.BindingsMap.{Resolution, ResolvedModuleMethod}
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.core.ir.expression.{Application, Operator}
 import org.enso.compiler.pass.IRPass
@@ -486,7 +486,7 @@ object AutomaticParallelism extends IRPass {
         // the called function. It is then sequenced with statuses of the
         // arguments.
         app.function.getMetadata(MethodCalls) match {
-          case Some(Resolution(method: ResolvedMethod)) =>
+          case Some(Resolution(method: ResolvedModuleMethod)) =>
             val methodIr = method.unsafeGetIr("Invalid method call resolution.")
             val isParallelize = methodIr
               .getMetadata(ModuleAnnotations)

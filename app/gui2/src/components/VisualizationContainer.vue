@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import ResizeHandles from '@/components/ResizeHandles.vue'
-import SmallPlusButton from '@/components/SmallPlusButton.vue'
 import SvgButton from '@/components/SvgButton.vue'
 import VisualizationSelector from '@/components/VisualizationSelector.vue'
 import { isTriggeredByKeyboard } from '@/composables/events'
@@ -123,11 +122,6 @@ const contentStyle = computed(() => {
         bottom
         @update:resizing="resizing = $event"
       />
-      <SmallPlusButton
-        v-if="config.isCircularMenuVisible"
-        class="below-viz"
-        @createNodes="config.createNodes(...$event)"
-      />
       <div class="toolbars">
         <div
           v-if="!config.isPreview"
@@ -184,6 +178,7 @@ const contentStyle = computed(() => {
   --permanent-toolbar-width: 200px;
   --resize-handle-inside: var(--visualization-resize-handle-inside);
   --resize-handle-outside: var(--visualization-resize-handle-outside);
+  --resize-handle-radius: var(--radius-default);
   color: var(--color-text);
   background: var(--color-visualization-bg);
   position: absolute;
@@ -227,6 +222,7 @@ const contentStyle = computed(() => {
 
 .content {
   overflow: auto;
+  contain: strict;
 }
 
 .content.overflow {
@@ -257,12 +253,6 @@ const contentStyle = computed(() => {
 
 .VisualizationContainer.fullscreen .toolbars {
   top: 4px;
-}
-
-.below-viz {
-  position: absolute;
-  top: 100%;
-  margin-top: 4px;
 }
 
 .toolbar {

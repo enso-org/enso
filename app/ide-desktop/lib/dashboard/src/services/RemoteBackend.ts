@@ -4,8 +4,7 @@
  * an API endpoint. The functions are asynchronous and return a {@link Promise} that resolves to
  * the response from the API. */
 import * as detect from 'enso-common/src/detect'
-
-import type * as text from '#/text'
+import type * as text from 'enso-common/src/text'
 
 import type * as loggerProvider from '#/providers/LoggerProvider'
 import type * as textProvider from '#/providers/TextProvider'
@@ -28,6 +27,10 @@ const STATUS_SUCCESS_LAST = 299
 const STATUS_NOT_FOUND = 404
 /** HTTP status indicating that the server encountered a fatal exception. */
 const STATUS_SERVER_ERROR = 500
+/**
+ * HTTP status indicating that the request was successful, but the user is not authorized to access
+ */
+const STATUS_NOT_AUTHORIZED = 401
 
 /** The number of milliseconds in one day. */
 const ONE_DAY_MS = 86_400_000
@@ -117,6 +120,7 @@ interface RemoteBackendPostOptions {
 /** Class for sending requests to the Cloud backend API endpoints. */
 export default class RemoteBackend extends Backend {
   readonly type = backend.BackendType.remote
+  readonly rootPath = 'enso://'
   private defaultVersions: Partial<Record<backend.VersionType, DefaultVersionInfo>> = {}
   private user: object.Mutable<backend.User> | null = null
 
@@ -140,26 +144,27 @@ export default class RemoteBackend extends Backend {
    * @throws {Error} Always. */
   async throw<K extends Extract<text.TextId, `${string}BackendError`>>(
     response: Response | null,
-    textId: K,
+    textId: backend.NetworkError | K,
     ...replacements: text.Replacements[K]
   ): Promise<never> {
-    const error =
-      response == null
-        ? { message: 'unknown error' }
-        : // This is SAFE only when the response has been confirmed to have an erroring status code.
-          // eslint-disable-next-line no-restricted-syntax
-          ((await response.json()) as RemoteBackendError)
-    const message = `${this.getText(textId, ...replacements)}: ${error.message}.`
-    this.logger.error(message)
-    const status = response?.status
-    const errorObject = new Error(message)
+    if (textId instanceof backend.NetworkError) {
+      this.logger.error(textId.message)
 
-    if (status != null) {
-      // @ts-expect-error This is a custom property.
-      errorObject.status = status
+      throw textId
+    } else {
+      const error =
+        response == null
+          ? { message: 'unknown error' }
+          : // This is SAFE only when the response has been confirmed to have an erroring status code.
+            // eslint-disable-next-line no-restricted-syntax
+            ((await response.json()) as RemoteBackendError)
+      const message = `${this.getText(textId, ...replacements)}: ${error.message}.`
+      this.logger.error(message)
+
+      const status = response?.status
+
+      throw new backend.NetworkError(message, status)
     }
-
-    throw error
   }
 
   /** Return the ID of the root directory. */
@@ -379,13 +384,24 @@ export default class RemoteBackend extends Backend {
   /** Return details for the current user.
    * @returns `null` if a non-successful status code (not 200-299) was received. */
   override async usersMe(): Promise<backend.User | null> {
-    const path = remoteBackendPaths.USERS_ME_PATH
-    const response = await this.get<backend.User>(path)
-    if (!responseIsSuccessful(response)) {
+    const response = await this.get<backend.User>(remoteBackendPaths.USERS_ME_PATH)
+
+    if (response.status === STATUS_NOT_FOUND) {
+      // User info has not yet been created, we should redirect to the onboarding page.
       return null
+    } else if (response.status === STATUS_NOT_AUTHORIZED) {
+      // User is not authorized, we should redirect to the login page.
+      return await this.throw(
+        response,
+        new backend.NotAuthorizedError(this.getText('notAuthorizedBackendError'))
+      )
+    } else if (!responseIsSuccessful(response)) {
+      // Arbitrary error, might be a server error or a network error.
+      return this.throw(response, 'usersMeBackendError')
     } else {
       const user = await response.json()
       this.user = { ...user }
+
       return user
     }
   }
@@ -639,6 +655,22 @@ export default class RemoteBackend extends Backend {
     }
   }
 
+  /** List project sessions for a specific project.
+   * @throws An error if a non-successful status code (not 200-299) was received. */
+  override async listProjectSessions(
+    projectId: backend.ProjectId,
+    title: string
+  ): Promise<backend.ProjectSession[]> {
+    const paramsString = new URLSearchParams({ projectId }).toString()
+    const path = `${remoteBackendPaths.LIST_PROJECT_SESSIONS_PATH}?${paramsString}`
+    const response = await this.get<backend.ProjectSession[]>(path)
+    if (!responseIsSuccessful(response)) {
+      return await this.throw(response, 'listProjectSessionsBackendError', title)
+    } else {
+      return await response.json()
+    }
+  }
+
   /** Return details for a project.
    * @throws An error if a non-successful status code (not 200-299) was received. */
   override async getProjectDetails(
@@ -661,6 +693,21 @@ export default class RemoteBackend extends Backend {
         jsonAddress: project.address != null ? backend.Address(`${project.address}json`) : null,
         binaryAddress: project.address != null ? backend.Address(`${project.address}binary`) : null,
       }
+    }
+  }
+
+  /** Return Language Server logs for a project session.
+   * @throws An error if a non-successful status code (not 200-299) was received. */
+  override async getProjectSessionLogs(
+    projectSessionId: backend.ProjectSessionId,
+    title: string
+  ): Promise<string[]> {
+    const path = remoteBackendPaths.getProjectSessionLogsPath(projectSessionId)
+    const response = await this.get<string[]>(path)
+    if (!responseIsSuccessful(response)) {
+      return await this.throw(response, 'getProjectLogsBackendError', title)
+    } else {
+      return await response.json()
     }
   }
 
@@ -689,6 +736,7 @@ export default class RemoteBackend extends Backend {
         cognitoCredentials: exactCredentials,
       }
       const response = await this.post(path, filteredBody)
+
       if (!responseIsSuccessful(response)) {
         return this.throw(response, 'openProjectBackendError', title)
       } else {
@@ -1067,19 +1115,15 @@ export default class RemoteBackend extends Backend {
     projectId: backend.ProjectId,
     directory: backend.DirectoryId | null,
     title: string,
-    abortController: AbortController = new AbortController()
+    abortSignal?: AbortSignal
   ) {
     let project = await this.getProjectDetails(projectId, directory, title)
-    while (project.state.type !== backend.ProjectState.opened) {
-      if (abortController.signal.aborted) {
-        // eslint-disable-next-line no-restricted-syntax
-        throw new Error()
-      }
-      await new Promise<void>(resolve => {
-        setTimeout(resolve, CHECK_STATUS_INTERVAL_MS)
-      })
+
+    while (project.state.type !== backend.ProjectState.opened && abortSignal?.aborted !== true) {
+      await new Promise<void>(resolve => setTimeout(resolve, CHECK_STATUS_INTERVAL_MS))
       project = await this.getProjectDetails(projectId, directory, title)
     }
+
     return project
   }
 

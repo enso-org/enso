@@ -42,6 +42,7 @@ import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeAtNode;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeLengthNode;
+import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 
@@ -181,10 +182,10 @@ public final class EnsoFile implements EnsoObject {
         new String[] {
           "read", "readAllBytes", "readNBytes", "skipNBytes", "markSupported", "available", "close"
         };
-    private final InputStream is;
+    private final InputStream delegate;
 
     EnsoInputStream(InputStream is) {
-      this.is = is;
+      this.delegate = is;
     }
 
     @ExportMessage
@@ -203,9 +204,62 @@ public final class EnsoFile implements EnsoObject {
       return ArrayLikeHelpers.wrapStrings(MEMBERS);
     }
 
-    @TruffleBoundary
+    @TruffleBoundary(allowInlining = true)
+    private int read() throws IOException {
+      return delegate.read();
+    }
+
+    @TruffleBoundary(allowInlining = true)
+    private byte[] readNBytes(int limit) throws IOException {
+      return delegate.readNBytes(limit);
+    }
+
+    @TruffleBoundary(allowInlining = true)
+    private ByteBuffer readNByteBuffer(int limit) throws IOException {
+      return ByteBuffer.wrap(delegate.readNBytes(limit));
+    }
+
+    @TruffleBoundary(allowInlining = true)
+    private ByteBuffer readAllBytes() throws IOException {
+      return ByteBuffer.wrap(delegate.readAllBytes());
+    }
+
+    @TruffleBoundary(allowInlining = true)
+    private void skipNBytes(long n) throws IOException {
+      delegate.skipNBytes(n);
+    }
+
+    @TruffleBoundary(allowInlining = true)
+    private boolean markSupported() throws IOException {
+      return delegate.markSupported();
+    }
+
+    @TruffleBoundary(allowInlining = true)
+    private void mark(int readlimit) throws IOException {
+      delegate.mark(readlimit);
+    }
+
+    @TruffleBoundary(allowInlining = true)
+    private void reset() throws IOException {
+      delegate.reset();
+    }
+
+    @TruffleBoundary(allowInlining = true)
+    private int available() throws IOException {
+      return delegate.available();
+    }
+
+    @TruffleBoundary(allowInlining = true)
+    private void close() throws IOException {
+      delegate.close();
+    }
+
     @ExportMessage
-    Object invokeMember(String name, Object[] args, @CachedLibrary(limit = "3") InteropLibrary iop)
+    static Object invokeMember(
+        EnsoInputStream is,
+        String name,
+        Object[] args,
+        @CachedLibrary(limit = "3") InteropLibrary iop)
         throws UnknownIdentifierException,
             UnsupportedMessageException,
             ArityException,
@@ -229,13 +283,16 @@ public final class EnsoFile implements EnsoObject {
               }
               default -> throw ArityException.create(0, 3, args.length);
             }
-            for (var i = from; i < to; i++) {
-              var b = is.read();
-              if (b == -1) {
+            for (var i = from; i < to; ) {
+              var size = (int) Math.min(to - i, 8192);
+              var arr = is.readNBytes(size);
+              if (arr.length == 0) {
                 var count = i - from;
                 yield count > 0 ? count : -1;
               }
-              iop.writeArrayElement(args[0], i, (byte) b);
+              for (var j = 0; j < arr.length; j++) {
+                iop.writeArrayElement(args[0], i++, arr[j]);
+              }
             }
             yield to - from;
           }
@@ -243,8 +300,7 @@ public final class EnsoFile implements EnsoObject {
             if (args.length != 0) {
               throw ArityException.create(0, 0, args.length);
             }
-            var arr = is.readAllBytes();
-            var buf = ByteBuffer.wrap(arr);
+            var buf = is.readAllBytes();
             yield ArrayLikeHelpers.wrapBuffer(buf);
           }
           case "readNBytes" -> {
@@ -252,23 +308,37 @@ public final class EnsoFile implements EnsoObject {
               throw ArityException.create(1, 1, args.length);
             }
             var len = iop.asInt(args[0]);
-            var arr = is.readNBytes(len);
-            var buf = ByteBuffer.wrap(arr);
+            var buf = is.readNByteBuffer(len);
             yield ArrayLikeHelpers.wrapBuffer(buf);
           }
           case "skipNBytes" -> {
             if (args.length != 1) {
               throw ArityException.create(1, 1, args.length);
             }
-            var len = iop.asInt(args[0]);
+            var len = iop.asLong(args[0]);
             is.skipNBytes(len);
-            yield this;
+            yield is;
           }
           case "markSupported" -> {
             if (args.length != 0) {
               throw ArityException.create(0, 0, args.length);
             }
             yield is.markSupported();
+          }
+          case "mark" -> {
+            if (args.length != 1) {
+              throw ArityException.create(1, 1, args.length);
+            }
+            var readlimit = iop.asInt(args[0]);
+            is.mark(readlimit);
+            yield is;
+          }
+          case "reset" -> {
+            if (args.length != 0) {
+              throw ArityException.create(0, 0, args.length);
+            }
+            is.reset();
+            yield is;
           }
           case "available" -> {
             if (args.length != 0) {
@@ -281,7 +351,7 @@ public final class EnsoFile implements EnsoObject {
               throw ArityException.create(0, 0, args.length);
             }
             is.close();
-            yield this;
+            yield is;
           }
           default -> throw UnknownIdentifierException.create(name);
         };
@@ -451,7 +521,12 @@ public final class EnsoFile implements EnsoObject {
       return noSuchFileException;
     }
 
-    var parent = fromString(EnsoContext.get(null), path).truffleFile.getParent();
+    var parent =
+        switch (fromString(EnsoContext.get(null), path)) {
+          case EnsoFile f -> f.truffleFile.getParent();
+          case null -> null;
+          default -> null;
+        };
     // Unknown parent, so the heuristic cannot be applied - return the original.
     if (parent == null) {
       return noSuchFileException;
@@ -486,7 +561,12 @@ public final class EnsoFile implements EnsoObject {
       // On Linux, when creating a directory tree `foo/my-file.txt/a/b/c`, the operation fails with
       // `FileSystemException` with the full path (`foo/my-file.txt/a/b/c`). So we need to traverse
       // this path to find the actually problematic part.
-      var file = fromString(EnsoContext.get(null), path).truffleFile;
+      var file =
+          switch (fromString(EnsoContext.get(null), path)) {
+            case EnsoFile f -> f.truffleFile;
+            case null -> null;
+            default -> null;
+          };
       // We try to find the first file that exists on the path.
       while (file != null && !file.exists()) {
         file = file.getParent();
@@ -630,9 +710,19 @@ public final class EnsoFile implements EnsoObject {
       autoRegister = false)
   @Builtin.Specialize
   @TruffleBoundary
-  public static EnsoFile fromString(EnsoContext context, String path) {
-    TruffleFile file = context.getPublicTruffleFile(path);
-    return new EnsoFile(file);
+  public static EnsoObject fromString(EnsoContext context, String path)
+      throws IllegalArgumentException {
+    try {
+      TruffleFile file = context.getPublicTruffleFile(path);
+      return new EnsoFile(file);
+    } catch (IllegalArgumentException | UnsupportedOperationException ex) {
+      var err =
+          context
+              .getBuiltins()
+              .error()
+              .makeUnsupportedArgumentsError(new Object[] {Text.create(path)}, ex.getMessage());
+      return DataflowError.withoutTrace(err, null);
+    }
   }
 
   @Builtin.Method(
@@ -652,7 +742,7 @@ public final class EnsoFile implements EnsoObject {
       autoRegister = false)
   @Builtin.Specialize
   @TruffleBoundary
-  public static EnsoFile userHome(EnsoContext context) {
+  public static EnsoObject userHome(EnsoContext context) {
     return fromString(context, System.getProperty("user.home"));
   }
 

@@ -16,7 +16,7 @@ import * as common from 'enso-common'
 import GLOBAL_CONFIG from 'enso-common/src/config.json' assert { type: 'json' }
 import * as contentConfig from 'enso-content-config'
 import * as ydocServer from 'enso-gui2/ydoc-server'
-import * as projectManagement from 'enso-project-manager-shim/src/projectManagement'
+import * as projectManagement from 'project-management'
 
 import * as paths from '../paths'
 
@@ -145,14 +145,17 @@ export class Server {
                         const bundledFiles = fsSync.existsSync(assets)
                             ? await fs.readdir(assets)
                             : []
-                        const rustFFIWasm = bundledFiles.find(name =>
+                        const rustFFIWasmName = bundledFiles.find(name =>
                             /rust_ffi_bg-.*\.wasm/.test(name)
                         )
-                        if (server && rustFFIWasm != null) {
-                            await ydocServer.createGatewayServer(
-                                server,
-                                path.join(assets, rustFFIWasm)
-                            )
+                        const rustFFIWasmPath =
+                            process.env.ELECTRON_DEV_MODE === 'true'
+                                ? path.resolve('../../../gui2/rust-ffi/pkg/rust_ffi_bg.wasm')
+                                : rustFFIWasmName == null
+                                  ? null
+                                  : path.join(assets, rustFFIWasmName)
+                        if (server && rustFFIWasmPath != null) {
+                            await ydocServer.createGatewayServer(server, rustFFIWasmPath)
                         } else {
                             logger.warn('YDocs server is not run, new GUI may not work properly!')
                         }

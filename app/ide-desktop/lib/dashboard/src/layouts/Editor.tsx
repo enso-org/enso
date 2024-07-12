@@ -6,51 +6,115 @@ import * as reactQuery from '@tanstack/react-query'
 import * as appUtils from '#/appUtils'
 
 import * as gtagHooks from '#/hooks/gtagHooks'
-import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as backendProvider from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
 
+import * as dashboard from '#/pages/dashboard/Dashboard'
+
 import * as errorBoundary from '#/components/ErrorBoundary'
 import * as suspense from '#/components/Suspense'
 
-import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
 
-import * as object from '#/utilities/object'
+import * as twMerge from '#/utilities/tailwindMerge'
 
 import type * as types from '../../../types/types'
 
 // =================
-// === Component ===
+// === Constants ===
 // =================
+
+const IGNORE_PARAMS_REGEX = new RegExp(`^${appUtils.SEARCH_PARAMS_PREFIX}(.+)$`)
+
+// ==============
+// === Editor ===
+// ==============
 
 /** Props for an {@link Editor}. */
 export interface EditorProps {
+  readonly isOpening: boolean
+  readonly isOpeningFailed: boolean
+  readonly openingError: Error | null
+  readonly startProject: (project: dashboard.Project) => void
+  readonly project: dashboard.Project
   readonly hidden: boolean
   readonly ydocUrl: string | null
-  readonly projectStartupInfo: backendModule.ProjectStartupInfo | null
   readonly appRunner: types.EditorRunner | null
+  readonly renameProject: (newName: string) => void
+  readonly projectId: backendModule.ProjectAsset['id']
 }
 
 /** The container that launches the IDE. */
 export default function Editor(props: EditorProps) {
-  const { hidden, projectStartupInfo } = props
+  const { project, hidden, isOpening, startProject, isOpeningFailed, openingError } = props
 
-  const editor = projectStartupInfo && (
-    <EditorInternal {...props} projectStartupInfo={projectStartupInfo} />
-  )
+  const remoteBackend = backendProvider.useRemoteBackendStrict()
+  const localBackend = backendProvider.useLocalBackend()
 
-  return hidden ? (
-    <React.Suspense>
-      <errorBoundary.ErrorBoundary FallbackComponent={() => null}>
-        {editor}
-      </errorBoundary.ErrorBoundary>
-    </React.Suspense>
-  ) : (
-    <suspense.Suspense loaderProps={{ minHeight: 'full' }}>
-      <errorBoundary.ErrorBoundary>{editor}</errorBoundary.ErrorBoundary>
-    </suspense.Suspense>
+  const projectStatusQuery = dashboard.createGetProjectDetailsQuery({
+    type: project.type,
+    assetId: project.id,
+    parentId: project.parentId,
+    title: project.title,
+    remoteBackend,
+    localBackend,
+  })
+
+  const projectQuery = reactQuery.useQuery({
+    ...projectStatusQuery,
+    networkMode: project.type === backendModule.BackendType.remote ? 'online' : 'always',
+  })
+
+  if (isOpeningFailed) {
+    // eslint-disable-next-line no-restricted-syntax
+    return (
+      <errorBoundary.ErrorDisplay
+        error={openingError}
+        resetErrorBoundary={() => {
+          startProject(project)
+        }}
+      />
+    )
+  }
+
+  const isProjectClosed = projectQuery.data?.state.type === backendModule.ProjectState.closed
+  const shouldRefetch = !(projectQuery.isError || projectQuery.isLoading)
+
+  if (!isOpening && isProjectClosed && shouldRefetch) {
+    startProject(project)
+  }
+
+  return (
+    <div
+      className={twMerge.twJoin('contents', hidden && 'hidden')}
+      data-testid="gui-editor-root"
+      data-testvalue={project.id}
+    >
+      {(() => {
+        if (projectQuery.isError) {
+          return (
+            <errorBoundary.ErrorDisplay
+              error={projectQuery.error}
+              resetErrorBoundary={() => projectQuery.refetch()}
+            />
+          )
+        } else if (
+          projectQuery.isLoading ||
+          projectQuery.data?.state.type !== backendModule.ProjectState.opened
+        ) {
+          return <suspense.Loader loaderProps={{ minHeight: 'full' }} />
+        } else {
+          return (
+            <errorBoundary.ErrorBoundary>
+              <suspense.Suspense>
+                <EditorInternal {...props} openedProject={projectQuery.data} />
+              </suspense.Suspense>
+            </errorBoundary.ErrorBoundary>
+          )
+        }
+      })()}
+    </div>
   )
 }
 
@@ -59,28 +123,18 @@ export default function Editor(props: EditorProps) {
 // ======================
 
 /** Props for an {@link EditorInternal}. */
-interface EditorInternalProps extends EditorProps {
-  readonly projectStartupInfo: backendModule.ProjectStartupInfo
+interface EditorInternalProps extends Omit<EditorProps, 'project'> {
+  readonly openedProject: backendModule.Project
 }
 
 /** An internal editor. */
 function EditorInternal(props: EditorInternalProps) {
-  const { hidden, ydocUrl, projectStartupInfo, appRunner: AppRunner } = props
-  const toastAndLog = toastAndLogHooks.useToastAndLog()
+  const { hidden, ydocUrl, appRunner: AppRunner, renameProject, openedProject } = props
+
   const { getText } = textProvider.useText()
   const gtagEvent = gtagHooks.useGtagEvent()
-  const gtagEventRef = React.useRef(gtagEvent)
-  gtagEventRef.current = gtagEvent
-  const remoteBackend = backendProvider.useRemoteBackend()
-  const localBackend = backendProvider.useLocalBackend()
 
-  const projectQuery = reactQuery.useSuspenseQuery({
-    queryKey: ['editorProject'],
-    queryFn: () => projectStartupInfo.project,
-    staleTime: 0,
-    meta: { persist: false },
-  })
-  const project = projectQuery.data
+  const remoteBackend = backendProvider.useRemoteBackend()
 
   const logEvent = React.useCallback(
     (message: string, projectId?: string | null, metadata?: object | null) => {
@@ -91,47 +145,19 @@ function EditorInternal(props: EditorInternalProps) {
     [remoteBackend]
   )
 
-  const renameProject = React.useCallback(
-    (newName: string) => {
-      let backend: Backend | null
-      switch (projectStartupInfo.backendType) {
-        case backendModule.BackendType.local:
-          backend = localBackend
-          break
-        case backendModule.BackendType.remote:
-          backend = remoteBackend
-          break
-      }
-      const { id: projectId, parentId, title } = projectStartupInfo.projectAsset
-      backend
-        ?.updateProject(
-          projectId,
-          { projectName: newName, ami: null, ideVersion: null, parentId },
-          title
-        )
-        .then(
-          () => {
-            projectStartupInfo.setProjectAsset?.(object.merger({ title: newName }))
-          },
-          e => toastAndLog('renameProjectError', e)
-        )
-    },
-    [remoteBackend, localBackend, projectStartupInfo, toastAndLog]
-  )
-
   React.useEffect(() => {
     if (hidden) {
       return
     } else {
-      return gtagHooks.gtagOpenCloseCallback(gtagEventRef, 'open_workflow', 'close_workflow')
+      return gtagHooks.gtagOpenCloseCallback(gtagEvent, 'open_workflow', 'close_workflow')
     }
-  }, [projectStartupInfo, hidden])
+  }, [hidden, gtagEvent])
 
   const appProps: types.EditorProps | null = React.useMemo(() => {
-    const projectId = projectStartupInfo.projectAsset.id
-    const jsonAddress = project.jsonAddress
-    const binaryAddress = project.binaryAddress
+    const jsonAddress = openedProject.jsonAddress
+    const binaryAddress = openedProject.binaryAddress
     const ydocAddress = ydocUrl ?? ''
+
     if (jsonAddress == null) {
       throw new Error(getText('noJSONEndpointError'))
     } else if (binaryAddress == null) {
@@ -139,44 +165,20 @@ function EditorInternal(props: EditorInternalProps) {
     } else {
       return {
         config: {
-          engine: {
-            rpcUrl: jsonAddress,
-            dataUrl: binaryAddress,
-            ydocUrl: ydocAddress,
-          },
-          startup: {
-            project: project.packageName,
-            displayedProjectName: project.name,
-          },
-          window: {
-            topBarOffset: '0',
-          },
+          engine: { rpcUrl: jsonAddress, dataUrl: binaryAddress, ydocUrl: ydocAddress },
+          startup: { project: openedProject.packageName, displayedProjectName: openedProject.name },
+          window: { topBarOffset: '0' },
         },
-        projectId,
+        projectId: openedProject.projectId,
         hidden,
-        ignoreParamsRegex: new RegExp(`^${appUtils.SEARCH_PARAMS_PREFIX}(.+)$`),
+        ignoreParamsRegex: IGNORE_PARAMS_REGEX,
         logEvent,
         renameProject,
       }
     }
-  }, [
-    projectStartupInfo.projectAsset.id,
-    project.jsonAddress,
-    project.binaryAddress,
-    project.packageName,
-    project.name,
-    ydocUrl,
-    getText,
-    hidden,
-    logEvent,
-    renameProject,
-  ])
+  }, [openedProject, ydocUrl, getText, hidden, logEvent, renameProject])
 
-  if (AppRunner == null) {
-    return <></>
-  } else {
-    // Currently the GUI component needs to be fully rerendered whenever the project is changed. Once
-    // this is no longer necessary, the `key` could be removed.
-    return <AppRunner key={appProps.projectId} {...appProps} />
-  }
+  // Currently the GUI component needs to be fully rerendered whenever the project is changed. Once
+  // this is no longer necessary, the `key` could be removed.
+  return AppRunner == null ? null : <AppRunner key={appProps.projectId} {...appProps} />
 }

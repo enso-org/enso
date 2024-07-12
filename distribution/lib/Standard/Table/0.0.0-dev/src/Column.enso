@@ -1,6 +1,5 @@
 from Standard.Base import all
 import Standard.Base.Data.Array_Proxy.Array_Proxy
-import Standard.Base.Data.Index_Sub_Range as Index_Sub_Range_Module
 import Standard.Base.Data.Vector.No_Wrap
 import Standard.Base.Errors.Common.Arithmetic_Error
 import Standard.Base.Errors.Common.Incomparable_Values
@@ -12,6 +11,7 @@ import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Internal.Polyglot_Helpers
 import Standard.Base.Internal.Rounding_Helpers
 from Standard.Base.Metadata.Widget import Numeric_Input
+from Standard.Base.Data.Index_Sub_Range import drop_helper, normalize_ranges, take_helper
 from Standard.Base.Widget_Helpers import make_data_cleanse_vector_selector, make_format_chooser, make_regex_text_widget
 
 import project.Constants.Previous_Value
@@ -1402,7 +1402,7 @@ type Column
        - what: A `Text` (or text `Column`) containing characters that should be
          removed. By default, all whitespace is removed.
     trim : Location -> Column | Text -> Column
-    trim self where=Location.Both what='' = Value_Type.expect_text self <|
+    trim self where:Location=..Both what='' = Value_Type.expect_text self <|
         new_name = naming_helper.function_name "trim" [self]
 
         trim_get = wrap_text_argument_as_value_provider what
@@ -1639,9 +1639,10 @@ type Column
         Value_Type.expect_type self .is_date_or_time "date/time" <|
             my_type = self.inferred_precise_value_type
             Value_Type.expect_type end (== my_type) my_type.to_display_text <|
-                Date_Time_Helpers.check_period_aligned_with_value_type my_type period <|
+                aligned_period = Date_Time_Helpers.align_period_with_value_type my_type period
+                aligned_period.if_not_error <|
                     new_name = naming_helper.function_name "date_diff" [self, end, period.to_display_text]
-                    java_unit = period.to_java_unit
+                    java_unit = aligned_period.to_java_unit
                     fn = case my_type of
                         Value_Type.Date_Time _ ->
                             start-> end-> Time_Utils.unit_datetime_difference java_unit start end
@@ -1677,9 +1678,10 @@ type Column
         Value_Type.expect_type self .is_date_or_time "date/time" <|
             my_type = self.inferred_precise_value_type
             Value_Type.expect_integer amount <|
-                Date_Time_Helpers.check_period_aligned_with_value_type my_type period <|
+                aligned_period = Date_Time_Helpers.align_period_with_value_type my_type period
+                aligned_period.if_not_error <|
                     new_name = naming_helper.function_name "date_add" [self, amount, period.to_display_text]
-                    java_unit = period.to_java_unit
+                    java_unit = aligned_period.to_java_unit
                     ## Here we do not need a Time_Utils helper like in scalar
                        implementations of `date_add`, because the date coming
                        from the column will always be already converted into a
@@ -1716,7 +1718,7 @@ type Column
             True ->
                 run_vectorized_binary_op self op_name as_vector expected_result_type=Value_Type.Boolean skip_nulls=False new_name=result_name
             False ->
-                set = Set.from_vector as_vector error_on_duplicates=False
+                set = Hashset.from_vector as_vector error_on_duplicates=False
                 apply_unary_map self result_name set.contains_relational Value_Type.Boolean nothing_unchanged=False
 
     ## GROUP Standard.Base.Conversions
@@ -1800,7 +1802,7 @@ type Column
     @type Widget_Helpers.parse_type_selector
     @format (make_format_chooser include_number=False)
     parse : Value_Type | Auto -> Text | Data_Formatter -> Problem_Behavior -> Column
-    parse self type:(Value_Type | Auto)=Auto format:(Text | Data_Formatter)="" on_problems=Report_Warning =
+    parse self type:(Value_Type | Auto)=Auto format:(Text | Data_Formatter)="" on_problems:Problem_Behavior=..Report_Warning =
         Value_Type.expect_text self <|
             formatter = case format of
                 _ : Text -> if format == "" then Data_Formatter.Value else Data_Formatter.Value.with_format type format
@@ -1953,7 +1955,7 @@ type Column
          types. Due to this, a Mixed column containing values `[2, "3"]` will
          actually be converted into `[2, Nothing]` when casting to Integer type.
     cast : Value_Type -> Problem_Behavior -> Column ! Illegal_Argument | Inexact_Type_Coercion | Conversion_Failure
-    cast self value_type on_problems=Problem_Behavior.Report_Warning =
+    cast self value_type on_problems:Problem_Behavior=..Report_Warning =
         Cast_Helpers.check_cast_compatibility self.value_type value_type <|
             target_storage_type = Storage.from_value_type value_type on_problems
             Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
@@ -1961,9 +1963,9 @@ type Column
                 new_storage = self.java_column.getStorage.cast target_storage_type cast_problem_builder
                 Column.from_storage self.name new_storage
 
-    ## GROUP Standard.Base.Conversions
+    ## ALIAS auto_value_type
+       GROUP Standard.Base.Conversions
        ICON convert
-       ALIAS auto_value_type
        Change the value type of the column to a more specific one, based on its
        contents.
 
@@ -2287,6 +2289,12 @@ type Column
         Storage.to_value_type storage_type
 
     ## PRIVATE
+       Internal hook that says if a given column should be selected by a
+       specific type in a `By_Type` selection.
+    should_be_selected_by_type self (value_type : Value_Type) -> Boolean =
+        self.value_type.is_same_type value_type
+
+    ## PRIVATE
        Converts this column to JS_Object representation.
 
        > Example
@@ -2383,7 +2391,7 @@ type Column
             sorted = self.to_vector.sort order by=wrapped
             Column.from_vector self.name sorted
 
-    ## ALIAS first, head, last, limit, sample, slice, tail, top, keep
+    ## ALIAS first, head, keep, last, limit, sample, slice, tail, top
        GROUP Standard.Base.Selections
        ICON parse3
        Creates a new Column with the specified range of rows from the input
@@ -2404,7 +2412,7 @@ type Column
              table = Table.new [["Name", ["Alice", "Bob", "Charlie"]]]
              column = table.get "Name"
              ## The take returns "Alice"
-             first_row = column.take (First 1)
+             first_row = column.take (..First 1)
 
        > Example
          Select the last row from the "Name" Column.
@@ -2412,13 +2420,13 @@ type Column
              table = Table.new [["Name", ["Alice", "Bob", "Charlie"]]]
              column = table.get "Name"
              ## The take returns "Charlie"
-             last_row = column.take (Last 1)
+             last_row = column.take (..Last 1)
     @range Index_Sub_Range.default_widget
     take : (Index_Sub_Range | Range | Integer) -> Column
-    take self range=(First 1) =
-        Index_Sub_Range_Module.take_helper self.length (self.at _) self.slice (slice_ranges self) range
+    take self range:(Index_Sub_Range | Range | Integer)=..First =
+        take_helper self.length (self.at _) self.slice (slice_ranges self) range
 
-    ## ALIAS skip, remove
+    ## ALIAS remove, skip
        GROUP Standard.Base.Selections
        ICON parse3
        Creates a new Column from the input with the specified range of rows
@@ -2428,8 +2436,8 @@ type Column
        - range: The selection of rows from the table to remove.
     @range Index_Sub_Range.default_widget
     drop : (Index_Sub_Range | Range | Integer) -> Column
-    drop self range=(First 1) =
-        Index_Sub_Range_Module.drop_helper self.length (self.at _) self.slice (slice_ranges self) range
+    drop self range:(Index_Sub_Range | Range | Integer)=..First =
+        drop_helper self.length (self.at _) self.slice (slice_ranges self) range
 
     ## PRIVATE
        Returns a column with a continuous sub-range of rows taken.
@@ -2686,31 +2694,31 @@ run_vectorized_binary_op_with_fallback_problem_handling column name operand fall
    Arguments:
    - column: The column to get the item from.
    - ix: The index in the column from which to get the item.
-get_item_string : Column -> Integer -> Text
-get_item_string column ix =
+get_item_as_text : Column -> Integer -> Text
+get_item_as_text column ix =
     item = column.getItem ix
     ## TODO This special handling of `Text` is because `"a".to_text` evaluates
        to "'a'" and not just "a". The code can be simplified once the following
        task is implemented:
        https://www.pivotaltracker.com/story/show/181499256
     case item of
-        _ : Text -> normalize_string_for_display item
+        _ : Text -> normalize_text_for_display item
         _ -> item.pretty
 
 ## PRIVATE
-   Ensures that the string can be safely displayed in a terminal.
+   Ensures that the text can be safely displayed in a terminal.
 
    If the string contains special characters, it will be wrapped in quotes and
    the characters escaped. Otherwise, the string is returned as-is.
-normalize_string_for_display string =
-    prettified = string.pretty
-    just_quoted = "'" + string + "'"
-    if prettified == just_quoted then string else prettified
+normalize_text_for_display text =
+    prettified = text.pretty
+    just_quoted = "'" + text + "'"
+    if prettified == just_quoted then text else prettified
 
 ## PRIVATE
    A helper to create a new table consisting of slices of the original table.
 slice_ranges column ranges =
-    normalized = Index_Sub_Range_Module.normalize_ranges ranges
+    normalized = normalize_ranges ranges
     Column.Value (column.java_column.slice normalized)
 
 ## PRIVATE

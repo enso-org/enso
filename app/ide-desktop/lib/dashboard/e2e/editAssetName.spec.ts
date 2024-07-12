@@ -3,7 +3,7 @@ import * as test from '@playwright/test'
 
 import * as actions from './actions'
 
-test.test.beforeEach(actions.mockAllAndLogin)
+test.test.beforeEach(({ page }) => actions.mockAllAndLogin({ page }))
 
 test.test('edit name', async ({ page }) => {
   const assetRows = actions.locateAssetRows(page)

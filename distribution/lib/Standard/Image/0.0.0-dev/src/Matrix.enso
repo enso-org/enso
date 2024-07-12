@@ -450,4 +450,4 @@ type Matrix_Comparator
     hash x = x.opencv_mat.hashCode
 
 ## PRIVATE
-Comparable.from (_:Matrix) = Matrix_Comparator
+Comparable.from (that:Matrix) = Comparable.new that Matrix_Comparator

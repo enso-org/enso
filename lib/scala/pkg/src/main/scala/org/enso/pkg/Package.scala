@@ -1,6 +1,5 @@
 package org.enso.pkg
 
-import cats.Show
 import org.enso.editions.{Editions, LibraryName}
 import org.enso.filesystem.FileSystem
 import org.enso.pkg.validation.NameValidation
@@ -350,15 +349,6 @@ class PackageManager[F](implicit val fileSystem: FileSystem[F]) {
     result.recoverWith {
       case packageLoadingException: PackageManager.PackageLoadingException =>
         Failure(packageLoadingException)
-      case decodingError: io.circe.Error =>
-        val errorMessage =
-          implicitly[Show[io.circe.Error]].show(decodingError)
-        Failure(
-          PackageManager.PackageLoadingFailure(
-            s"Cannot decode the package config: $errorMessage",
-            decodingError
-          )
-        )
       case otherError =>
         Failure(
           PackageManager.PackageLoadingFailure(

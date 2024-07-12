@@ -72,9 +72,9 @@ import * as subscribeSuccess from '#/pages/subscribe/SubscribeSuccess'
 
 import * as openAppWatcher from '#/layouts/OpenAppWatcher'
 
+import * as devtools from '#/components/Devtools'
 import * as errorBoundary from '#/components/ErrorBoundary'
 import * as offlineNotificationManager from '#/components/OfflineNotificationManager'
-import * as paywall from '#/components/Paywall'
 import * as rootComponent from '#/components/Root'
 import * as suspense from '#/components/Suspense'
 
@@ -84,6 +84,7 @@ import * as termsOfServiceModal from '#/modals/TermsOfServiceModal'
 
 import LocalBackend from '#/services/LocalBackend'
 import * as projectManager from '#/services/ProjectManager'
+import ProjectManager from '#/services/ProjectManager'
 import RemoteBackend from '#/services/RemoteBackend'
 
 import * as appBaseUrl from '#/utilities/appBaseUrl'
@@ -157,6 +158,7 @@ export interface AppProps {
   readonly appRunner: types.EditorRunner | null
   readonly portalRoot: Element
   readonly httpClient: HttpClient
+  readonly queryClient: reactQuery.QueryClient
 }
 
 /** Component called by the parent module, returning the root React component for this
@@ -165,19 +167,51 @@ export interface AppProps {
  * This component handles all the initialization and rendering of the app, and manages the app's
  * routes. It also initializes an `AuthProvider` that will be used by the rest of the app. */
 export default function App(props: AppProps) {
-  const { supportsLocalBackend } = props
-
-  const { data: rootDirectoryPath } = reactQuery.useSuspenseQuery({
-    queryKey: ['root-directory', supportsLocalBackend],
+  const {
+    data: { projectManagerRootDirectory, projectManagerInstance },
+  } = reactQuery.useSuspenseQuery<{
+    projectManagerInstance: ProjectManager | null
+    projectManagerRootDirectory: projectManager.Path | null
+  }>({
+    queryKey: [
+      'root-directory',
+      {
+        projectManagerUrl: props.projectManagerUrl,
+        supportsLocalBackend: props.supportsLocalBackend,
+      },
+    ] as const,
     meta: { persist: false },
     networkMode: 'always',
+    staleTime: Infinity,
+    gcTime: Infinity,
+    refetchOnMount: false,
+    refetchInterval: false,
+    refetchOnReconnect: false,
+    refetchIntervalInBackground: false,
+    behavior: {
+      onFetch: ({ state }) => {
+        const instance = state.data?.projectManagerInstance ?? null
+
+        if (instance != null) {
+          void instance.dispose()
+        }
+      },
+    },
     queryFn: async () => {
-      if (supportsLocalBackend) {
+      if (props.supportsLocalBackend && props.projectManagerUrl != null) {
         const response = await fetch(`${appBaseUrl.APP_BASE_URL}/api/root-directory`)
         const text = await response.text()
-        return projectManager.Path(text)
+        const rootDirectory = projectManager.Path(text)
+
+        return {
+          projectManagerInstance: new ProjectManager(props.projectManagerUrl, rootDirectory),
+          projectManagerRootDirectory: rootDirectory,
+        }
       } else {
-        return null
+        return {
+          projectManagerInstance: null,
+          projectManagerRootDirectory: null,
+        }
       }
     },
   })
@@ -199,7 +233,11 @@ export default function App(props: AppProps) {
       <router.BrowserRouter basename={getMainPageUrl().pathname}>
         <LocalStorageProvider>
           <ModalProvider>
-            <AppRouter {...props} projectManagerRootDirectory={rootDirectoryPath} />
+            <AppRouter
+              {...props}
+              projectManagerInstance={projectManagerInstance}
+              projectManagerRootDirectory={projectManagerRootDirectory}
+            />
           </ModalProvider>
         </LocalStorageProvider>
       </router.BrowserRouter>
@@ -214,6 +252,7 @@ export default function App(props: AppProps) {
 /** Props for an {@link AppRouter}. */
 export interface AppRouterProps extends AppProps {
   readonly projectManagerRootDirectory: projectManager.Path | null
+  readonly projectManagerInstance: ProjectManager | null
 }
 
 /** Router definition for the app.
@@ -223,7 +262,7 @@ export interface AppRouterProps extends AppProps {
  * component as the component that defines the provider. */
 function AppRouter(props: AppRouterProps) {
   const { logger, isAuthenticationDisabled, shouldShowDashboard, httpClient } = props
-  const { onAuthenticated, projectManagerUrl, projectManagerRootDirectory } = props
+  const { onAuthenticated, projectManagerInstance } = props
   const { portalRoot } = props
   // `navigateHooks.useNavigate` cannot be used here as it relies on `AuthProvider`, which has not
   // yet been initialized at this point.
@@ -235,11 +274,8 @@ function AppRouter(props: AppRouterProps) {
   const navigator2D = navigator2DProvider.useNavigator2D()
 
   const localBackend = React.useMemo(
-    () =>
-      projectManagerUrl != null && projectManagerRootDirectory != null
-        ? new LocalBackend(projectManagerUrl, projectManagerRootDirectory)
-        : null,
-    [projectManagerUrl, projectManagerRootDirectory]
+    () => (projectManagerInstance != null ? new LocalBackend(projectManagerInstance) : null),
+    [projectManagerInstance]
   )
 
   const remoteBackend = React.useMemo(
@@ -402,6 +438,8 @@ function AppRouter(props: AppRouterProps) {
       {/* Protected pages are visible to authenticated users. */}
       <router.Route element={<authProvider.NotDeletedUserLayout />}>
         <router.Route element={<authProvider.ProtectedLayout />}>
+          {detect.IS_DEV_MODE && <router.Route element={<devtools.EnsoDevtools />} />}
+
           <router.Route element={<termsOfServiceModal.TermsOfServiceModal />}>
             <router.Route element={<setOrganizationNameModal.SetOrganizationNameModal />}>
               <router.Route element={<openAppWatcher.OpenAppWatcher />}>
@@ -464,10 +502,6 @@ function AppRouter(props: AppRouterProps) {
   )
 
   let result = routes
-
-  if (detect.IS_DEV_MODE) {
-    result = <paywall.PaywallDevtools>{result}</paywall.PaywallDevtools>
-  }
 
   result = <errorBoundary.ErrorBoundary>{result}</errorBoundary.ErrorBoundary>
   result = <InputBindingsProvider inputBindings={inputBindings}>{result}</InputBindingsProvider>

@@ -33,12 +33,15 @@ type Snowflake_Connection
     create : Text -> Vector -> (Text -> Text -> Snowflake_Connection) -> Snowflake_Connection
     create url properties make_new =
         jdbc_connection = JDBC_Connection.create url properties
-        entity_naming_properties = Entity_Naming_Properties.from_jdbc_connection jdbc_connection is_case_sensitive=False
+        ## As long as names are quoted, the Snowflake SQL dialect is case sensitive.
+           Our generator always quotes identifiers, so we can rely on the case sensitivity.
+           This is the same as in Postgres.
+        entity_naming_properties = Entity_Naming_Properties.from_jdbc_connection jdbc_connection is_case_sensitive=True
         Snowflake_Connection.Value (Connection.new jdbc_connection Snowflake_Dialect.snowflake entity_naming_properties) make_new
 
     ## PRIVATE
 
-       A Postgres database connection.
+       A Snowflake database connection.
 
        Arguments:
        - connection: the underlying connection.
@@ -244,7 +247,7 @@ type Snowflake_Connection
          a `Dry_Run_Operation` warning attached.
     @structure make_structure_creator
     create_table : Text  -> Vector Column_Description | DB_Table | Table -> Vector Text | Nothing -> Boolean -> Boolean -> Problem_Behavior -> DB_Table ! Table_Already_Exists
-    create_table self (table_name : Text) (structure : Vector Column_Description | DB_Table | Table) (primary_key : (Vector Text | Nothing) = [first_column_name_in_structure structure]) (temporary : Boolean = False) (allow_existing : Boolean = False) (on_problems:Problem_Behavior = Problem_Behavior.Report_Warning) =
+    create_table self (table_name : Text) (structure : Vector Column_Description | DB_Table | Table) (primary_key : (Vector Text | Nothing) = [first_column_name_in_structure structure]) (temporary : Boolean = False) (allow_existing : Boolean = False) (on_problems:Problem_Behavior = ..Report_Warning) =
         self.connection.create_table table_name structure primary_key temporary allow_existing on_problems
 
     ## ADVANCED

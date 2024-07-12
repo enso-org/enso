@@ -7,6 +7,7 @@ import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
 import org.enso.table.data.column.storage.numeric.BigIntegerStorage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
+import org.enso.table.data.column.storage.type.BigDecimalType;
 import org.enso.table.data.column.storage.type.BigIntegerType;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.IntegerType;
@@ -15,7 +16,6 @@ import org.enso.table.error.ValueTypeMismatchException;
 import org.enso.table.problems.ProblemAggregator;
 import org.graalvm.polyglot.Context;
 
-// For now the BigInteger builder is just a stub, reusing the ObjectBuilder and adding a warning.
 public class BigIntegerBuilder extends TypedBuilderImpl<BigInteger> {
   // The problem aggregator is only used so that when we are retyping, we can pass it on.
   private final ProblemAggregator problemAggregator;
@@ -37,7 +37,9 @@ public class BigIntegerBuilder extends TypedBuilderImpl<BigInteger> {
 
   @Override
   public boolean canRetypeTo(StorageType type) {
-    return type instanceof FloatType || type instanceof AnyObjectType;
+    return type instanceof FloatType
+        || type instanceof BigDecimalType
+        || type instanceof AnyObjectType;
   }
 
   @Override
@@ -50,6 +52,16 @@ public class BigIntegerBuilder extends TypedBuilderImpl<BigInteger> {
           res.appendNulls(1);
         } else {
           res.appendBigInteger(data[i]);
+        }
+      }
+      return res;
+    } else if (type instanceof BigDecimalType) {
+      BigDecimalBuilder res = new BigDecimalBuilder(currentSize);
+      for (int i = 0; i < currentSize; i++) {
+        if (data[i] == null) {
+          res.appendNulls(1);
+        } else {
+          res.appendNoGrow(data[i]);
         }
       }
       return res;

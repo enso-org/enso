@@ -83,6 +83,15 @@ interface MenuApi {
     readonly setShowAboutModalHandler: (callback: () => void) => void
 }
 
+// ==================
+// === System API ===
+// ==================
+
+/** `window.systemApi` exposes functionality related to the operating system. */
+interface SystemApi {
+    readonly showItemInFolder: (fullPath: string) => void
+}
+
 // ====================
 // === Version Info ===
 // ====================
@@ -109,31 +118,9 @@ declare global {
         readonly authenticationApi: AuthenticationApi
         readonly navigationApi: NavigationApi
         readonly menuApi: MenuApi
+        readonly systemApi?: SystemApi
         readonly versionInfo?: VersionInfo
         toggleDevtools: () => void
-    }
-
-    /**
-     * Highlight a range of text.
-     */
-    class Highlight {
-        type: string
-        /**
-         * @param ranges - The range to highlight.
-         */
-        constructor(...ranges: Range[])
-    }
-
-    /**
-     *
-     */
-    namespace CSS {
-        // eslint-disable-next-line no-restricted-syntax
-        export const highlights: {
-            set: (key: string, value: Highlight) => void
-            delete: (key: string) => void
-            clear: () => void
-        }
     }
 
     namespace NodeJS {

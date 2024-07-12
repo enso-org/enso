@@ -2,11 +2,10 @@
 import * as React from 'react'
 
 import CloudIcon from 'enso-assets/cloud.svg'
-import NotCloudIcon from 'enso-assets/not_cloud.svg'
+import ComputerIcon from 'enso-assets/computer.svg'
 import RecentIcon from 'enso-assets/recent.svg'
 import Trash2Icon from 'enso-assets/trash2.svg'
-
-import type * as text from '#/text'
+import type * as text from 'enso-common/src/text'
 
 import * as mimeTypes from '#/data/mimeTypes'
 
@@ -42,6 +41,7 @@ interface CategoryMetadata {
   readonly textId: Extract<text.TextId, `${Category}Category`>
   readonly buttonTextId: Extract<text.TextId, `${Category}CategoryButtonLabel`>
   readonly dropZoneTextId: Extract<text.TextId, `${Category}CategoryDropZoneLabel`>
+  readonly nested?: true
 }
 
 // =================
@@ -57,18 +57,12 @@ const CATEGORY_DATA: readonly CategoryMetadata[] = [
     dropZoneTextId: 'cloudCategoryDropZoneLabel',
   },
   {
-    category: Category.local,
-    icon: NotCloudIcon,
-    textId: 'localCategory',
-    buttonTextId: 'localCategoryButtonLabel',
-    dropZoneTextId: 'localCategoryDropZoneLabel',
-  },
-  {
     category: Category.recent,
     icon: RecentIcon,
     textId: 'recentCategory',
     buttonTextId: 'recentCategoryButtonLabel',
     dropZoneTextId: 'recentCategoryDropZoneLabel',
+    nested: true,
   },
   {
     category: Category.trash,
@@ -76,6 +70,14 @@ const CATEGORY_DATA: readonly CategoryMetadata[] = [
     textId: 'trashCategory',
     buttonTextId: 'trashCategoryButtonLabel',
     dropZoneTextId: 'trashCategoryDropZoneLabel',
+    nested: true,
+  },
+  {
+    category: Category.local,
+    icon: ComputerIcon,
+    textId: 'localCategory',
+    buttonTextId: 'localCategoryButtonLabel',
+    dropZoneTextId: 'localCategoryDropZoneLabel',
   },
 ]
 
@@ -226,7 +228,7 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
             {categoryData.map(data => {
               const error = getCategoryError(data.category)
 
-              return (
+              const element = (
                 <CategorySwitcherItem
                   key={data.category}
                   id={data.category}
@@ -276,6 +278,14 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
                     })
                   }}
                 />
+              )
+              return data.nested ? (
+                <div className="flex">
+                  <div className="ml-[15px] mr-1 border-r border-primary/20" />
+                  {element}
+                </div>
+              ) : (
+                element
               )
             })}
           </div>

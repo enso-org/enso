@@ -1,6 +1,5 @@
 private
 
-import project.Data.Index_Sub_Range.Index_Sub_Range
 import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Enso_Cloud.Enso_File.Enso_File
@@ -42,7 +41,7 @@ type Enso_Path
     ## PRIVATE
     parent self -> Enso_Path =
         if self.is_root then Error.throw (Illegal_Argument.Error "Cannot get parent of the root directory.") else
-            Enso_Path.Value self.organization_name (self.path_segments.drop (Index_Sub_Range.Last 1))
+            Enso_Path.Value self.organization_name (self.path_segments.drop (..Last 1))
 
     ## PRIVATE
     resolve self (subpath : Text) -> Enso_Path =

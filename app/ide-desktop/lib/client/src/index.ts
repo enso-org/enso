@@ -39,6 +39,7 @@ const logger = contentConfig.logger
 
 if (process.env.ELECTRON_DEV_MODE === 'true' && process.env.NODE_MODULES_PATH != null) {
     require.main?.paths.unshift(process.env.NODE_MODULES_PATH)
+    console.log(require.main?.paths)
 }
 
 // ===========
@@ -450,6 +451,9 @@ class App {
                 event.reply(ipc.Channel.importProjectFromPath, path, info)
             }
         )
+        electron.ipcMain.on(ipc.Channel.showItemInFolder, (_event, fullPath: string) => {
+            electron.shell.showItemInFolder(fullPath)
+        })
         electron.ipcMain.handle(
             ipc.Channel.openFileBrowser,
             async (

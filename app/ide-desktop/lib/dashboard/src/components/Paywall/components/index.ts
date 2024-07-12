@@ -6,4 +6,3 @@
 export * from './PaywallLock'
 export * from './PaywallBulletPoints'
 export * from './PaywallButton'
-export * from './PaywallDevtools'
