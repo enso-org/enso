@@ -52,6 +52,7 @@ const conf = [
           argsIgnorePattern: '^_',
         },
       ],
+      'no-unused-labels': 0,
     },
   },
   {
