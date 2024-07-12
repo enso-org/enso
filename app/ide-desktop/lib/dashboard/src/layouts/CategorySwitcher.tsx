@@ -1,4 +1,4 @@
-/** @file Switcher to choose the currently visible assets table categoryModule.categoryType. */
+/** @file Switcher to choose the currently visible assets table category. */
 import * as React from 'react'
 
 import CloudIcon from 'enso-assets/cloud.svg'
