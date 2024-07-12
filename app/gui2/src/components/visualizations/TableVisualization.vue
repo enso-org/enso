@@ -5,6 +5,7 @@ import {
   tsvTableToEnsoExpression,
   writeClipboard,
 } from '@/components/GraphEditor/clipboard'
+import TextFormattingSelector from '@/components/TextFormattingSelector.vue'
 import { Ast } from '@/util/ast'
 import { Pattern } from '@/util/ast/match'
 import { useAutoBlur } from '@/util/autoBlur'
@@ -91,6 +92,12 @@ interface UnknownTable {
   links: string[] | undefined
 }
 
+export enum TextFormatOptions {
+  Special,
+  On,
+  Off,
+}
+
 declare module 'ag-grid-enterprise' {
   // These type parameters are defined on the original interface.
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -133,6 +140,7 @@ const rowCount = ref(0)
 const showRowCount = ref(true)
 const isTruncated = ref(false)
 const tableNode = ref<HTMLElement>()
+const showTextFormatOptions = ref(true)
 const dataGroupingMap = shallowRef<Map<string, boolean>>()
 useAutoBlur(tableNode)
 const widths = reactive(new Map<string, number>())
@@ -160,6 +168,10 @@ const agGridOptions: Ref<GridOptions & Required<Pick<GridOptions, 'defaultColDef
   enableRangeSelection: true,
   popupParent: document.body,
 })
+const textFormatterSelected = ref<TextFormatOptions>(TextFormatOptions.Special)
+const updateTextFormat = (option: TextFormatOptions) => {
+  textFormatterSelected.value = option
+}
 
 const isRowCountSelectorVisible = computed(() => rowCount.value >= 1000)
 
@@ -245,17 +257,28 @@ function formatNumber(params: ICellRendererParams) {
 }
 
 function formatText(params: ICellRendererParams) {
-  let newString
-  const string = params.value
-  const spacesReplaced = string.replaceAll(' ', `<span style="color: grey">&#183;</span>`)
-  const returns = spacesReplaced.replaceAll(
-    '\r\n',
-    `<span style="color: grey">&#9229;</span><span style="color: grey">&#9226;</span> <br>`,
-  )
-  newString = returns.replaceAll('\n', `<span style="color: grey">&#9226;</span> <br>`)
-  newString = newString.replaceAll('\r', `<span style="color: grey">&#9229;</span> <br>`)
-  newString = newString.replaceAll('\t', `<span style="color: grey">&#8594;</span>`)
-  return `<span style="font-family: monospace;"> ${newString}</span>`
+  const whitespaceMapping = {
+    '\r': '<span style="color: grey">␍</span> <br>',
+    '\n': '<span style="color: grey">␊</span> <br>',
+  }
+  if (textFormatterSelected.value === TextFormatOptions.Off) {
+    return params.value
+  } else if (textFormatterSelected.value === TextFormatOptions.On) {
+    const fullWhitespaceMapping = {
+      ...whitespaceMapping,
+      ' ': '<span style="color: grey">&#183;</span>',
+      '\t': '<span style="color: grey">&#8594;   </span>',
+    }
+    const newString = params.value.replace(/[\s]/g, function (match: any) {
+      return fullWhitespaceMapping[match as keyof typeof fullWhitespaceMapping] || match
+    })
+    return `<span style="font-family: monospace;"> ${newString}</span>`
+  } else if (textFormatterSelected.value === TextFormatOptions.Special) {
+    const newString = params.value.replace(/[\s]/g, function (match: any) {
+      return whitespaceMapping[match as keyof typeof whitespaceMapping] || match
+    })
+    return `<span style="font-family: monospace;"> ${newString}</span>`
+  }
 }
 
 function setRowLimit(newRowLimit: number) {
@@ -282,6 +305,7 @@ function escapeHTML(str: string) {
 }
 
 function getRowHeight(params: RowHeightParams) {
+  if (textFormatterSelected.value === TextFormatOptions.Off) return DEFAULT_ROW_HEIGHT
   const rowData = Object.values(params.data)
   const textValues = rowData.filter((r) => typeof r === 'string')
   if (!textValues.length) return DEFAULT_ROW_HEIGHT
@@ -677,6 +701,11 @@ onUnmounted(() => {
 
 <template>
   <VisualizationContainer :belowToolbar="true" :overflow="true">
+    <template v-if="showTextFormatOptions" #toolbar>
+      <Suspense>
+        <TextFormattingSelector @changeFormat="(i) => updateTextFormat(i)" />
+      </Suspense>
+    </template>
     <div ref="rootNode" class="TableVisualization" @wheel.stop @pointerdown.stop>
       <div class="table-visualization-status-bar">
         <select
