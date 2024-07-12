@@ -1105,6 +1105,55 @@ public class TypeInferenceTest extends StaticAnalysisTest {
   }
 
   @Test
+  public void callingFieldGetters() throws Exception {
+    final URI uri = new URI("memory://callingFieldGetters.enso");
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
+                type My_Type
+                    Constructor_1 (field_a : Typ_X) (field_b : Typ_Y)
+                    Constructor_2 (field_b : Typ_Z)
+                    Constructor_3 (field_c : Typ_Z)
+                    Constructor_4 (field_c : Typ_Z)
+                    Constructor_5 field_d
+
+                type Typ_X
+                type Typ_Y
+                type Typ_Z
+
+                foo (instance : My_Type) =
+                    x_a = instance.field_a
+                    x_b = instance.field_b
+                    x_c = instance.field_c
+                    x_d = instance.field_d
+                    [x_a, x_b, x_c, x_d]
+            """,
+                uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = compile(src);
+    var foo = findStaticMethod(module, "foo");
+
+    assertAtomType("Typ_X", findAssignment(foo, "x_a"));
+    // We don't know which constructor was used, so if the field appears in many constructors, it
+    // resolves to a sum type
+    assertSumType(findAssignment(foo, "x_b"), "Typ_Y", "Typ_Z");
+
+    // We have two constructors with field `field_c`, but they have the same type so the sum type
+    // should have been simplified
+    assertAtomType("Typ_Z", findAssignment(foo, "x_c"));
+
+    var x_d = findAssignment(foo, "x_d");
+    // No type is inferred if no ascription was present for `field_d`.
+    assertNoInferredType(x_d);
+    // But we shouldn't get a No_Such_Method error, because the field itself exists:
+    assertEquals(
+        "Field access should not yield any warnings", List.of(), getDescendantsDiagnostics(x_d));
+  }
+
+  @Test
   public void noSuchMethodStaticCheck() throws Exception {
     final URI uri = new URI("memory://noSuchMethodStaticCheck.enso");
     final Source src =
