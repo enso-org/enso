@@ -2462,6 +2462,19 @@ lazy val `runtime-fat-jar` =
  * recompilation but still convince the IDE that it is a .jar dependency.
  */
 
+/* The purpose of the `engine-runner-common` project is to contain everything
+ * that's needed for the `engine-runner` project to invoke `language-server` when
+ * `--server` option is used.
+ *
+ * As such this project contains (primarily) the `LanguageServerApi`
+ * API & SPI class. `engine-runner` project call the `LanguageServerApi` class static method
+ * and that method then delegates to an implementation which is supposed to be provided
+ * by the `language-server` project.
+ *
+ * `engine-runner` and `language-server` projects shall be "loosely coupled" - they shouldn't
+ * have compile time dependency between each other. All that's needed for them to
+ * communicate belongs into `engine-runner-common` project.
+ */
 lazy val `engine-runner-common` = project
   .in(file("engine/runner-common"))
   .settings(
