@@ -64,7 +64,6 @@ public abstract class StaticAnalysisTest {
       if (!langCtx.getPackageRepository().isPackageLoaded(libraryName)) {
         langCtx.getPackageRepository().registerSyntheticPackage(libraryName.namespace(), libraryName.name());
         assert langCtx.getPackageRepository().isPackageLoaded(libraryName);
-        System.out.println("Registered synthetic package " + libraryName);
       }
     }
 
