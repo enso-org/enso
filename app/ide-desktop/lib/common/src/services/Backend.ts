@@ -242,7 +242,7 @@ export const IS_OPENING_OR_OPENED: Readonly<Record<ProjectState, boolean>> = {
 
 /** Common `Project` fields returned by all `Project`-related endpoints. */
 export interface BaseProject {
-    readonly organizationId: string
+    readonly organizationId: OrganizationId
     readonly projectId: ProjectId
     readonly name: string
 }

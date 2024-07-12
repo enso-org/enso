@@ -194,7 +194,7 @@ export default class LocalBackend extends Backend {
     const result = await this.projectManager.listProjects({})
     return result.projects.map(project => ({
       name: project.name,
-      organizationId: '',
+      organizationId: backend.OrganizationId(''),
       projectId: newProjectId(project.id),
       packageName: project.name,
       state: {
@@ -225,7 +225,7 @@ export default class LocalBackend extends Backend {
     )
     return {
       name: project.projectName,
-      organizationId: '',
+      organizationId: backend.OrganizationId(''),
       projectId: newProjectId(project.projectId),
       packageName: project.projectName,
       state: {
@@ -294,7 +294,7 @@ export default class LocalBackend extends Backend {
           ideVersion: version,
           jsonAddress: null,
           binaryAddress: null,
-          organizationId: '',
+          organizationId: backend.OrganizationId(''),
           packageName: project.name,
           projectId,
           state: { type: backend.ProjectState.closed, volumeId: '' },
@@ -314,7 +314,7 @@ export default class LocalBackend extends Backend {
         },
         jsonAddress: ipWithSocketToAddress(cachedProject.languageServerJsonAddress),
         binaryAddress: ipWithSocketToAddress(cachedProject.languageServerBinaryAddress),
-        organizationId: '',
+        organizationId: backend.OrganizationId(''),
         packageName: cachedProject.projectNormalizedName,
         projectId,
         state: {
@@ -391,10 +391,26 @@ export default class LocalBackend extends Backend {
           engineVersion: version,
           ideVersion: version,
           name: project.name,
-          organizationId: '',
+          organizationId: backend.OrganizationId(''),
           projectId,
         }
       }
+    }
+  }
+
+  /** Invalid operation. */
+  override async duplicateProject(projectId: backend.ProjectId): Promise<backend.CreatedProject> {
+    const id = extractTypeAndId(projectId).id
+    const project = await this.projectManager.duplicateProject({
+      projectId: id,
+      projectsDirectory: extractTypeAndId(body.parentId).id,
+    })
+    return {
+      projectId: newProjectId(project.projectId),
+      name: project.projectName,
+      packageName: project.projectNormalizedName,
+      organizationId: backend.OrganizationId(''),
+      state: { type: backend.ProjectState.closed, volumeId: '' },
     }
   }
 
@@ -639,11 +655,6 @@ export default class LocalBackend extends Backend {
   override async download(url: string, name?: string) {
     download.download(url, name)
     return Promise.resolve()
-  }
-
-  /** Invalid operation. */
-  override duplicateProject() {
-    return this.invalidOperation()
   }
 
   /** Invalid operation. */

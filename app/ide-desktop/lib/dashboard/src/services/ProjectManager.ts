@@ -178,7 +178,14 @@ export interface EngineVersion {
 
 /** The return value of the "list available engine versions" endpoint. */
 export interface VersionList {
-  readonly versions: EngineVersion[]
+  readonly versions: readonly EngineVersion[]
+}
+
+/** The return value of the "duplicate project" endpoint. */
+export interface DuplicatedProject {
+  readonly projectId: UUID
+  readonly projectName: string
+  readonly projectNormalizedName: string
 }
 
 // ====================
@@ -231,10 +238,16 @@ export interface CreateProjectParams {
   readonly projectsDirectory?: Path
 }
 
-/** Parameters for the "list samples" endpoint. */
+/** Parameters for the "rename project" endpoint. */
 export interface RenameProjectParams {
   readonly projectId: UUID
   readonly name: ProjectName
+  readonly projectsDirectory?: Path
+}
+
+/** Parameters for the "duplicate project" endpoint. */
+export interface DuplicateProjectParams {
+  readonly projectId: UUID
   readonly projectsDirectory?: Path
 }
 
@@ -397,6 +410,11 @@ export default class ProjectManager {
   /** Rename a project. */
   async renameProject(params: RenameProjectParams): Promise<void> {
     return this.sendRequest('project/rename', params)
+  }
+
+  /** Duplicate a project. */
+  async duplicateProject(params: DuplicateProjectParams): Promise<DuplicatedProject> {
+    return this.sendRequest('project/duplicate', params)
   }
 
   /** Delete a project. */
