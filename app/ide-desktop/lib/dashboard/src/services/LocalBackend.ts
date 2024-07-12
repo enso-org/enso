@@ -392,7 +392,7 @@ export default class LocalBackend extends Backend {
     }
   }
 
-  /** Invalid operation. */
+  /** Duplicate a specific version of a project. */
   override async duplicateProject(projectId: backend.ProjectId): Promise<backend.CreatedProject> {
     const id = extractTypeAndId(projectId).id
     const project = await this.projectManager.duplicateProject({ projectId: id })
@@ -434,10 +434,31 @@ export default class LocalBackend extends Backend {
     }
   }
 
-  /** Copy an arbitrary asset to another directory. Not yet implemented in the backend.
-   * @throws {Error} Always. */
-  override copyAsset(): Promise<backend.CopyAssetResponse> {
-    throw new Error('Cannot copy assets in local backend yet.')
+  /** Copy an arbitrary asset to another directory. */
+  override async copyAsset(
+    assetId: backend.AssetId,
+    parentDirectoryId: backend.DirectoryId
+  ): Promise<backend.CopyAssetResponse> {
+    const typeAndId = extractTypeAndId(assetId)
+    if (typeAndId.type !== backend.AssetType.project) {
+      throw new Error('Only projects can be copied on the Local Backend.')
+    } else {
+      const project = await this.projectManager.duplicateProject({ projectId: typeAndId.id })
+      const projectPath = this.projectManager.projectPaths.get(typeAndId.id)
+      const parentPath =
+        projectPath == null ? null : projectManager.getDirectoryAndName(projectPath).directoryPath
+      if (parentPath !== extractTypeAndId(parentDirectoryId).id) {
+        console.log(parentPath, extractTypeAndId(parentDirectoryId).id)
+        throw new Error('Cannot duplicate project to a different directory on the Local Backend.')
+      } else {
+        const asset = {
+          id: newProjectId(project.projectId),
+          parentId: parentDirectoryId,
+          title: project.projectName,
+        }
+        return { asset }
+      }
+    }
   }
 
   /** Return a list of engine versions. */

@@ -313,6 +313,9 @@ export default class ProjectManager {
   // This MUST be declared after `internalProjects` because it depends on `internalProjects`.
   // eslint-disable-next-line @typescript-eslint/member-ordering
   readonly projects: ReadonlyMap<UUID, ProjectState> = this.internalProjects
+  // This MUST be declared after `internalProjectPaths` because it depends on `internalProjectPaths`.
+  // eslint-disable-next-line @typescript-eslint/member-ordering
+  readonly projectPaths: ReadonlyMap<UUID, Path> = this.internalProjectPaths
   private id = 0
   private resolvers = new Map<number, (value: never) => void>()
   private rejecters = new Map<number, (reason?: JSONRPCError) => void>()
