@@ -81,7 +81,13 @@ abstract class TypePropagation {
    * method.
    */
   protected abstract void encounteredNoSuchMethod(
-      IR relatedIr, TypeRepresentation type, String methodName);
+      IR relatedIr, TypeRepresentation type, String methodName, MethodCallKind kind);
+
+  enum MethodCallKind {
+    MEMBER,
+    STATIC,
+    MODULE
+  }
 
   void checkTypeCompatibility(
       IR relatedIr, TypeRepresentation expected, TypeRepresentation provided) {
@@ -340,7 +346,7 @@ abstract class TypePropagation {
           var staticScope = TypeScopeReference.atomEigenType(typeObject.name());
           var resolvedStaticMethod = methodTypeResolver.resolveMethod(staticScope, function.name());
           if (resolvedStaticMethod == null) {
-            encounteredNoSuchMethod(relatedWholeApplicationIR, argumentType, function.name());
+            encounteredNoSuchMethod(relatedWholeApplicationIR, argumentType, function.name(), MethodCallKind.STATIC);
           }
           return resolvedStaticMethod;
         }
@@ -350,7 +356,7 @@ abstract class TypePropagation {
         var typeScope = TypeScopeReference.moduleAssociatedType(moduleReference.name());
         var resolvedModuleMethod = methodTypeResolver.resolveMethod(typeScope, function.name());
         if (resolvedModuleMethod == null) {
-          encounteredNoSuchMethod(relatedWholeApplicationIR, argumentType, function.name());
+          encounteredNoSuchMethod(relatedWholeApplicationIR, argumentType, function.name(), MethodCallKind.MODULE);
         }
         return resolvedModuleMethod;
       }
@@ -359,7 +365,7 @@ abstract class TypePropagation {
         var typeScope = TypeScopeReference.atomType(atomInstanceType.fqn());
         var resolvedMemberMethod = methodTypeResolver.resolveMethod(typeScope, function.name());
         if (resolvedMemberMethod == null) {
-          encounteredNoSuchMethod(relatedWholeApplicationIR, argumentType, function.name());
+          encounteredNoSuchMethod(relatedWholeApplicationIR, argumentType, function.name(), MethodCallKind.MEMBER);
         }
         return resolvedMemberMethod;
       }

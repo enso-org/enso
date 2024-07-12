@@ -1194,7 +1194,7 @@ public class TypeInferenceTest extends StaticAnalysisTest {
 
     // this method is not found
     assertEquals(
-        List.of(new Warning.NoSuchMethod(x2.expression().location(), "My_Type", "method_two")),
+        List.of(new Warning.NoSuchMethod(x2.expression().location(), "member method `method_two` on type My_Type")),
         getImmediateDiagnostics(x2.expression()));
 
     // delegating to Any
@@ -1205,13 +1205,13 @@ public class TypeInferenceTest extends StaticAnalysisTest {
     // TODO this error may be confusing as no way to distinguish a method missing from static-member
     // mismatch - shall we improve the error message?
     assertEquals(
-        List.of(new Warning.NoSuchMethod(x5.expression().location(), "My_Type", "static_method")),
+        List.of(new Warning.NoSuchMethod(x5.expression().location(), "static method `static_method` on (type My_Type)")),
         getImmediateDiagnostics(x5.expression()));
   }
 
   @Test
   public void callingMethodDefinedElsewhere() throws Exception {
-    final URI uriA = new URI("memory://modA.enso");
+    final URI uriA = new URI("memory://local.Project1.modA.enso");
     final Source srcA =
         Source.newBuilder(
                 "enso",
@@ -1224,12 +1224,12 @@ public class TypeInferenceTest extends StaticAnalysisTest {
             .buildLiteral();
     compile(srcA);
 
-    final URI uriB = new URI("memory://modB.enso");
+    final URI uriB = new URI("memory://local.Project1.modB.enso");
     final Source srcB =
         Source.newBuilder(
                 "enso",
                 """
-                    import modA.My_Type
+                    import local.Project1.modA.My_Type
                     
                     type Typ_X
                         Value a
@@ -1244,13 +1244,13 @@ public class TypeInferenceTest extends StaticAnalysisTest {
             .buildLiteral();
     compile(srcB);
 
-    final URI uriC = new URI("memory://modC.enso");
+    final URI uriC = new URI("memory://local.Project1.modC.enso");
     final Source srcC =
         Source.newBuilder(
                 "enso",
                 """
-                    import modA.My_Type
-                    from modB import all
+                    import local.Project1.modA.My_Type
+                    from local.Project1.modB import all
 
                     foo =
                         inst = My_Type.Value 23

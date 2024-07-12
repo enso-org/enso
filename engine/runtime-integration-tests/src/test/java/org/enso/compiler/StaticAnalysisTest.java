@@ -13,6 +13,7 @@ import org.enso.compiler.core.ir.Diagnostic;
 import org.enso.compiler.core.ir.Expression;
 import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.core.ir.module.scope.definition.Method;
+import org.enso.editions.LibraryName;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.test.InterpreterContext;
 import org.enso.pkg.QualifiedName;
@@ -56,6 +57,17 @@ public abstract class StaticAnalysisTest {
     }
     QualifiedName qualifiedName =
         QualifiedName.fromString(name.substring(0, name.length() - suffix.length()));
+
+    // If the module name is supposed to be put in a project, we register a synthetic project entry for it
+    if (qualifiedName.path().length() >= 2) {
+      LibraryName libraryName = new LibraryName(qualifiedName.path().apply(0), qualifiedName.path().apply(1));
+      if (!langCtx.getPackageRepository().isPackageLoaded(libraryName)) {
+        langCtx.getPackageRepository().registerSyntheticPackage(libraryName.namespace(), libraryName.name());
+        assert langCtx.getPackageRepository().isPackageLoaded(libraryName);
+        System.out.println("Registered synthetic package " + libraryName);
+      }
+    }
+
     // This creates the module and also registers it in the scope, so that import resolution will
     // see it.
     var module =
