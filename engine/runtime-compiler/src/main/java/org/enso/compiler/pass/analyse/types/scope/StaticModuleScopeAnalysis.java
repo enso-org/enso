@@ -114,6 +114,10 @@ public class StaticModuleScopeAnalysis implements IRPass {
 
   private void processMethod(StaticModuleScope scope, Method.Explicit method) {
     var typeScope = getTypeAssociatedWithMethod(scope, method);
+    if (typeScope == null) {
+      System.out.println("Failed to process method " + method.methodReference() + ", because its type scope could not be resolved.");
+      return;
+    }
     var typeFromSignature =
         MetadataInteropHelpers.getMetadataOrNull(
             method, TypeInferenceSignatures.INSTANCE, InferredType.class);
@@ -137,9 +141,10 @@ public class StaticModuleScopeAnalysis implements IRPass {
           MetadataInteropHelpers.getMetadataOrNull(
               typePointerOpt.get(), MethodDefinitions$.MODULE$, BindingsMap.Resolution.class);
       if (metadata == null) {
-        throw new IllegalStateException(
-            "Method type pointer does not have MethodDefinition metadata. Should this be compiler"
+        System.out.println(
+            "Method type pointer " + method.methodReference().typePointer() + " does not have MethodDefinition metadata. Should this be compiler"
                 + " error?");
+        return null;
       }
 
       return switch (metadata.target()) {
