@@ -218,10 +218,6 @@ export default class LocalBackend extends Backend {
       missingComponentAction: projectManager.MissingComponentAction.install,
       ...(projectsDirectory == null ? {} : { projectsDirectory }),
     })
-    const path = projectManager.joinPath(
-      projectsDirectory ?? this.projectManager.rootDirectory,
-      project.projectNormalizedName
-    )
     return {
       name: project.projectName,
       organizationId: backend.OrganizationId(''),
@@ -409,7 +405,7 @@ export default class LocalBackend extends Backend {
    * @throws An error if the JSON-RPC call fails. */
   override async deleteAsset(
     assetId: backend.AssetId,
-    body: backend.DeleteAssetRequestBody,
+    _body: backend.DeleteAssetRequestBody,
     title: string | null
   ): Promise<void> {
     const typeAndId = extractTypeAndId(assetId)
@@ -448,7 +444,6 @@ export default class LocalBackend extends Backend {
       const parentPath =
         projectPath == null ? null : projectManager.getDirectoryAndName(projectPath).directoryPath
       if (parentPath !== extractTypeAndId(parentDirectoryId).id) {
-        console.log(parentPath, extractTypeAndId(parentDirectoryId).id)
         throw new Error('Cannot duplicate project to a different directory on the Local Backend.')
       } else {
         const asset = {
@@ -589,14 +584,9 @@ export default class LocalBackend extends Backend {
         typeAndId.type !== backend.AssetType.project
           ? typeAndId.id
           : this.projectManager.getProjectDirectoryPath(typeAndId.id)
-      if (from == null) {
-        throw new Error('Could not move project: project has no `projectPath`.')
-      } else {
-        const fileName = fileInfo.fileName(from)
-        const to = projectManager.joinPath(extractTypeAndId(body.parentDirectoryId).id, fileName)
-        await this.projectManager.moveFile(from, to)
-        return
-      }
+      const fileName = fileInfo.fileName(from)
+      const to = projectManager.joinPath(extractTypeAndId(body.parentDirectoryId).id, fileName)
+      await this.projectManager.moveFile(from, to)
     }
   }
 

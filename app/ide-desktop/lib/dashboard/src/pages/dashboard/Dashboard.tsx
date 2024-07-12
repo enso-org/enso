@@ -368,7 +368,7 @@ export default function Dashboard(props: DashboardProps) {
 
   const renameProjectMutation = reactQuery.useMutation({
     mutationFn: ({ newName, project }: { newName: string; project: Project }) => {
-      const { parentId, type, id, title } = project
+      const { type, id, title } = project
       const backend = type === backendModule.BackendType.remote ? remoteBackend : localBackend
 
       invariant(backend != null, 'Backend is null')
