@@ -38,6 +38,13 @@ const ONE_DAY_MS = 86_400_000
 /** The interval between requests checking whether a project is ready to be opened in the IDE. */
 const CHECK_STATUS_INTERVAL_MS = 5000
 
+/** The internal port of the JSON WebSocket server in a Cloud VM. */
+const JSON_WS_SERVER_PORT = 30001
+/** The `ls` parameter for the YDoc server in a Cloud VM. */
+const YDOC_QUERY_STRING = new URLSearchParams({
+  ls: `ws://localhost:${JSON_WS_SERVER_PORT}`,
+}).toString()
+
 // =============
 // === Types ===
 // =============
@@ -594,7 +601,10 @@ export default class RemoteBackend extends Backend {
         ...project,
         jsonAddress: project.address != null ? backend.Address(`${project.address}json`) : null,
         binaryAddress: project.address != null ? backend.Address(`${project.address}binary`) : null,
-        ydocAddress: project.address != null ? backend.Address(`${project.address}ydoc`) : null,
+        ydocAddress:
+          project.address != null
+            ? backend.Address(`${project.address}ydoc?${YDOC_QUERY_STRING}`)
+            : null,
       }))
     }
   }
@@ -693,7 +703,10 @@ export default class RemoteBackend extends Backend {
         engineVersion: project.engine_version,
         jsonAddress: project.address != null ? backend.Address(`${project.address}json`) : null,
         binaryAddress: project.address != null ? backend.Address(`${project.address}binary`) : null,
-        ydocAddress: project.address != null ? backend.Address(`${project.address}ydoc`) : null,
+        ydocAddress:
+          project.address != null
+            ? backend.Address(`${project.address}ydoc?${YDOC_QUERY_STRING}`)
+            : null,
       }
     }
   }

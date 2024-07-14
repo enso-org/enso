@@ -153,14 +153,9 @@ export const { provideFn: provideProjectStore, injectFn: useProjectStore } = cre
     let yDocsProvider: ReturnType<typeof attachProvider> | undefined
     watchEffect((onCleanup) => {
       const [, serverUrl = lsUrls.ydocUrl, roomName = ''] =
-        lsUrls.ydocUrl.match(/^(.+)[/](.+?)$/) ?? []
-      yDocsProvider = attachProvider(
-        serverUrl,
-        roomName,
-        { ls: lsUrls.rpcUrl },
-        doc,
-        awareness.internal,
-      )
+        lsUrls.ydocUrl.match(/^(.+)[/]([^?]+).+?$/) ?? []
+      const rpcUrl = new URL(lsUrls.ydocUrl).searchParams.get('ls') ?? lsUrls.rpcUrl
+      yDocsProvider = attachProvider(serverUrl, roomName, { ls: rpcUrl }, doc, awareness.internal)
       onCleanup(disposeYDocsProvider)
     })
 
