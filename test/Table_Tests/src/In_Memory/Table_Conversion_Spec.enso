@@ -399,6 +399,19 @@ add_specs suite_builder =
                 t.at "Children" . at 0 . at 4 . name . should_equal "Magazine"
                 t.column_names . should_not_contain "Value"
 
+        group_builder.specify "Can convert XML_Document and XML_Element to a table using to_table" <|
+            [data.library_document, data.library_root].map x->
+                t = x.to_table
+                t.at "Name" . to_vector . should_equal ["Library"]
+                t.at "@catalog" . to_vector . should_equal ["Fiction"]
+                t.at "@letter" . to_vector . should_equal ["A"]
+                t.at "Children" . at 0 . at 0 . trim . should_equal "Hello"
+                t.at "Children" . at 0 . at 1 . name . should_equal "Book"
+                t.at "Children" . at 0 . at 2 . trim . should_equal "World"
+                t.at "Children" . at 0 . at 3 . name . should_equal "Book"
+                t.at "Children" . at 0 . at 4 . name . should_equal "Magazine"
+                t.column_names . should_not_contain "Value"
+
         group_builder.specify "Can expand the Children column to rows" <|
             t = data.library_root.to Table . expand_to_rows "Children"
             t.at "Name" . to_vector . should_equal (Vector.fill 5 "Library")

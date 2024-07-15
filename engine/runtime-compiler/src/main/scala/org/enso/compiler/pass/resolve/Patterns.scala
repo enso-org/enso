@@ -194,7 +194,7 @@ object Patterns extends IRPass {
                     )
                   )
                   r.setLocation(consName.location)
-                case Right(_: BindingsMap.ResolvedStaticMethod) =>
+                case Right(_: BindingsMap.ResolvedExtensionMethod) =>
                   val r = errors.Resolution(
                     consName,
                     errors.Resolution.UnexpectedMethod(
@@ -228,7 +228,7 @@ object Patterns extends IRPass {
                   throw new CompilerError(
                     "Impossible, should be transformed into an error before."
                   )
-                case BindingsMap.ResolvedStaticMethod(_, _) =>
+                case BindingsMap.ResolvedExtensionMethod(_, _) =>
                   throw new CompilerError(
                     "Impossible, should be transformed into an error before."
                   )
@@ -303,7 +303,7 @@ object Patterns extends IRPass {
                     errors.Resolution
                       .UnexpectedMethod(s"method type pattern case")
                   )
-                case Right(_: BindingsMap.ResolvedStaticMethod) =>
+                case Right(_: BindingsMap.ResolvedExtensionMethod) =>
                   errors.Resolution(
                     tpeName,
                     errors.Resolution.UnexpectedMethod(

@@ -3,7 +3,7 @@ package org.enso.runner
 import com.typesafe.scalalogging.Logger
 import org.enso.cli.ProgressBar
 import org.enso.cli.task.{ProgressReporter, TaskProgress}
-import org.enso.languageserver.libraries.CompilerBasedDependencyExtractor
+import org.enso.runner.common.CompilerBasedDependencyExtractor
 import org.enso.libraryupload.{auth, LibraryUploader}
 import org.enso.pkg.PackageManager
 import org.slf4j.event.Level

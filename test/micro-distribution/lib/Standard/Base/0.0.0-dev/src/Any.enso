@@ -1,4 +1,4 @@
-from project.Data.Boolean import False
+import project.Data.Boolean.Boolean.False
 
 @Builtin_Type
 type Any

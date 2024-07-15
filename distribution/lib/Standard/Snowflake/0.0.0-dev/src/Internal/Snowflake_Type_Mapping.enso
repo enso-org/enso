@@ -17,6 +17,7 @@ import Standard.Database.SQL_Type.SQL_Type
 from Standard.Database.Errors import Unsupported_Database_Operation
 
 polyglot java import java.sql.Types
+polyglot java import org.enso.snowflake.SnowflakeIntegerColumnMaterializer
 
 ## PRIVATE
 type Snowflake_Type_Mapping
@@ -33,8 +34,13 @@ type Snowflake_Type_Mapping
             Value_Type.Decimal precision scale -> case precision of
                 # If precision is not set, scale is also lost because SQL is unable to express a scale without a precision.
                 Nothing -> SQL_Type.Value Types.DECIMAL "NUMBER" Nothing Nothing
-                # Scale can be set or not, if precision is given, so no check needed.
-                _       -> SQL_Type.Value Types.DECIMAL "NUMBER" precision scale
+                # Scale can be set or not, but if it is set, it must be in range 0-37.
+                # If scale or precision is out of range, we fall back to Nothing.
+                _       -> if (precision < 1) || (precision > 38) then SQL_Type.Value Types.DECIMAL "NUMBER" Nothing Nothing else
+                    if scale.is_nothing then SQL_Type.Value Types.DECIMAL "NUMBER" precision Nothing else
+                        if (scale < 0) || (scale > 37) then SQL_Type.Value Types.DECIMAL "NUMBER" Nothing Nothing else
+                            SQL_Type.Value Types.DECIMAL "NUMBER" precision scale
+
             Value_Type.Char size _ ->
                 # Snowflake does not support fixed length strings, so we use VARCHAR.
                 is_unbounded = case size of
@@ -118,6 +124,9 @@ type Snowflake_Type_Mapping
         case value_type of
             Value_Type.Time -> time_fetcher
             Value_Type.Date_Time _ -> date_time_fetcher
+            # If we encounter a Decimal column with scale 0 we will try to fetch it as Integer if the values fit.
+            Value_Type.Decimal _ 0 -> smart_integer_fetcher
+            # Other Decimal columns get the default behaviour - fetched as BigInteger or BigDecimal.
             _ -> Column_Fetcher_Module.default_fetcher_for_value_type value_type
 
     ## PRIVATE
@@ -211,6 +220,20 @@ date_time_fetcher =
         java_builder = Java_Exports.make_date_time_builder initial_size
         Column_Fetcher_Module.make_builder_from_java_object_builder java_builder
     Column_Fetcher.Value fetch_value make_builder
+
+## PRIVATE
+   A fetcher for Snowflake Decimal integer columns.
+   Integer columns in Snowflake are represented as `NUMBER(38, 0)`, meaning
+   there is no separate Integer type.
+
+   In Enso, using `Decimal` values incurs a significant overhead. Thus, when
+   fetching such an integer column from Snowflake, we try to first fetch it as
+   lightweight `Integer` and only fall back to `Decimal` if needed.
+smart_integer_fetcher =
+    make_builder initial_size _ =
+        java_builder = SnowflakeIntegerColumnMaterializer.new initial_size
+        Column_Fetcher_Module.make_builder_from_java_object_builder java_builder
+    Column_Fetcher.Value Column_Fetcher_Module.fetch_big_integer make_builder
 
 ## PRIVATE
    The actual SQL type that Snowflake uses for all integer types.

@@ -13,7 +13,7 @@ import org.enso.distribution.locking.{
 import org.enso.distribution.{DistributionManager, Environment, LanguageHome}
 import org.enso.editions.updater.EditionManager
 import org.enso.editions.{DefaultEdition, EditionResolver}
-import org.enso.languageserver.libraries.CompilerBasedDependencyExtractor
+import org.enso.runner.common.CompilerBasedDependencyExtractor
 import org.enso.librarymanager.dependencies.DependencyResolver
 import org.enso.librarymanager.{DefaultLibraryProvider, LibraryResolver}
 import org.enso.pkg.PackageManager
