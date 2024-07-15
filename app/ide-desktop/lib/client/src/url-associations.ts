@@ -47,7 +47,7 @@ export function registerAssociations() {
  * @param clientArgs - A list of arguments passed to the application, stripped from the initial
  * executable name and any electron dev mode arguments.
  * @returns The URL to open, or `null` if no file was specified. */
-export function argsDenoteUrlOpenAttempt(clientArgs: string[]): URL | null {
+export function argsDenoteUrlOpenAttempt(clientArgs: readonly string[]): URL | null {
     const arg = clientArgs[0]
     let result: URL | null = null
     logger.log(`Checking if '${clientArgs.toString()}' denotes a URL to open.`)
@@ -100,7 +100,13 @@ export function registerUrlCallback(callback: (url: URL) => void) {
     // Second, register the callback for the `second-instance` event. This is used on Windows.
     electron.app.on('second-instance', (event, _argv, _workingDir, additionalData) => {
         // Check if additional data is an object that contains the URL.
-        const url = additionalData != null && typeof additionalData === 'object' && 'urlToOpen' in additionalData && additionalData.urlToOpen instanceof URL ? additionalData.urlToOpen : null
+        const url =
+            additionalData != null &&
+            typeof additionalData === 'object' &&
+            'urlToOpen' in additionalData &&
+            additionalData.urlToOpen instanceof URL
+                ? additionalData.urlToOpen
+                : null
         if (url) {
             logger.log(`Got URL from second instance: '${url.toString()}'.`)
             event.preventDefault()

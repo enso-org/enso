@@ -415,7 +415,7 @@ export default function Dashboard(props: DashboardProps) {
       dispatchAssetListEvent({
         type: AssetListEventType.openProject,
         backendType: backendModule.BackendType.local,
-        id: backendModule.ProjectId(project.id),
+        id: localBackendModule.newProjectId(projectManager.UUID(project.id)),
         title: project.name,
         parentId: localBackendModule.newDirectoryId(backendModule.Path(project.parentDirectory)),
       })

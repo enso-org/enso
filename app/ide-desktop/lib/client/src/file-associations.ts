@@ -47,7 +47,7 @@ export const SOURCE_FILE_SUFFIX = fileAssociations.SOURCE_FILE_SUFFIX
  * @param clientArgs - A list of arguments passed to the application, stripped from the initial
  * executable name and any electron dev mode arguments.
  * @returns The path to the file to open, or `null` if no file was specified. */
-export function argsDenoteFileOpenAttempt(clientArgs: string[]): string | null {
+export function argsDenoteFileOpenAttempt(clientArgs: readonly string[]): string | null {
     const arg = clientArgs[0]
     let result: string | null = null
     // If the application is invoked with exactly one argument and this argument is a file, we
@@ -68,21 +68,21 @@ export function argsDenoteFileOpenAttempt(clientArgs: string[]): string | null {
 export const CLIENT_ARGUMENTS = getClientArguments()
 
 /** Decide what are client arguments, @see {@link CLIENT_ARGUMENTS}. */
-function getClientArguments(): string[] {
+function getClientArguments(args = process.argv): readonly string[] {
     if (electronIsDev) {
         // Client arguments are separated from the electron dev mode arguments by a '--' argument.
         const separator = '--'
-        const separatorIndex = process.argv.indexOf(separator)
+        const separatorIndex = args.indexOf(separator)
         if (separatorIndex === NOT_FOUND) {
             // If there is no separator, client gets no arguments.
             return []
         } else {
             // Drop everything before the separator.
-            return process.argv.slice(separatorIndex + 1)
+            return args.slice(separatorIndex + 1)
         }
     } else {
         // Drop the leading executable name.
-        return process.argv.slice(1)
+        return args.slice(1)
     }
 }
 

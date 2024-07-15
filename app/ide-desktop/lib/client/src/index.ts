@@ -100,8 +100,16 @@ class App {
                 security.enableAll()
                 electron.app.on('before-quit', () => (this.isQuitting = true))
                 electron.app.on('second-instance', (_event, argv) => {
+                    const { fileToOpen, urlToOpen } = this.processArguments(argv)
                     logger.log(`Got data from 'second-instance' event: '${argv.toString()}'.`)
-                    // The second instances will close themselves, but our Window likely is not in the
+                    if (fileToOpen != null) {
+                        const projectInfo = fileAssociations.handleOpenFile(fileToOpen)
+                        this.window?.webContents.send(ipc.Channel.openProject, projectInfo)
+                    }
+                    if (urlToOpen != null) {
+                        urlAssociations.handleOpenUrl(urlToOpen)
+                    }
+                    // The second instances will close themselves, but our window likely is not in the
                     // foreground - the focus went to the "second instance" of the application.
                     const primaryWindow = electron.BrowserWindow.getAllWindows()[0]
                     if (primaryWindow) {
@@ -133,20 +141,15 @@ class App {
     }
 
     /** Process the command line arguments. */
-    processArguments() {
+    processArguments(args = fileAssociations.CLIENT_ARGUMENTS) {
         // We parse only "client arguments", so we don't have to worry about the Electron-Dev vs
         // Electron-Proper distinction.
-        const fileToOpen = fileAssociations.argsDenoteFileOpenAttempt(
-            fileAssociations.CLIENT_ARGUMENTS
-        )
-        const urlToOpen = urlAssociations.argsDenoteUrlOpenAttempt(
-            fileAssociations.CLIENT_ARGUMENTS
-        )
+        const fileToOpen = fileAssociations.argsDenoteFileOpenAttempt(args)
+        const urlToOpen = urlAssociations.argsDenoteUrlOpenAttempt(args)
         // If we are opening a file (i.e. we were spawned with just a path of the file to open as
         // the argument) or URL, it means that effectively we don't have any non-standard arguments.
         // We just need to let caller know that we are opening a file.
-        const argsToParse =
-            fileToOpen != null || urlToOpen != null ? [] : fileAssociations.CLIENT_ARGUMENTS
+        const argsToParse = fileToOpen != null || urlToOpen != null ? [] : args
         return { ...configParser.parseArgs(argsToParse), fileToOpen, urlToOpen }
     }
 

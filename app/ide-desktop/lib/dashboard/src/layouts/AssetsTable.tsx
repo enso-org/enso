@@ -1,6 +1,7 @@
 /** @file Table displaying a list of projects. */
 import * as React from 'react'
 
+import * as reactQuery from '@tanstack/react-query'
 import * as toast from 'react-toastify'
 
 import DropFilesImage from 'enso-assets/drop_files.svg'
@@ -399,6 +400,7 @@ export default function AssetsTable(props: AssetsTableProps) {
   const { doOpenEditor, doOpenProject, doCloseProject } = props
   const { setAssetPanelProps, targetDirectoryNodeRef, setIsAssetPanelTemporarilyVisible } = props
 
+  const queryClient = reactQuery.useQueryClient()
   const { user } = authProvider.useNonPartialUserSession()
   const backend = backendProvider.useBackend(category)
   const labels = backendHooks.useBackendListTags(backend)
@@ -1727,6 +1729,7 @@ export default function AssetsTable(props: AssetsTableProps) {
       }
       case AssetListEventType.openProject: {
         dispatchAssetEvent({ ...event, type: AssetEventType.openProject, runInBackground: false })
+        queryClient.invalidateQueries({ queryKey: [event.type, event.id] })
         break
       }
       case AssetListEventType.duplicateProject: {
