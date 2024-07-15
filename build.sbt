@@ -2700,7 +2700,9 @@ lazy val launcher = project
   .in(file("engine/launcher"))
   .configs(Test)
   .settings(
+    frgaalJavaCompilerSetting,
     resolvers += Resolver.bintrayRepo("gn0s1s", "releases"),
+    commands += WithDebugCommand.withDebug,
     libraryDependencies ++= Seq(
       "com.typesafe.scala-logging" %% "scala-logging"    % scalaLoggingVersion,
       "org.apache.commons"          % "commons-compress" % commonsCompressVersion,
