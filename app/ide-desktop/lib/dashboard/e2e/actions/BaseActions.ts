@@ -1,6 +1,10 @@
 /** @file The base class from which all `Actions` classes are derived. */
 import * as test from '@playwright/test'
 
+import type * as inputBindings from '#/utilities/inputBindings'
+
+import * as actions from '../actions'
+
 // ====================
 // === PageCallback ===
 // ====================
@@ -98,13 +102,24 @@ export default class BaseActions implements PromiseLike<void> {
   }
 
   /** Perform an action on the current page. */
-  step(name: string, callback: PageCallback): this {
+  step(name: string, callback: PageCallback) {
     return this.do(() => test.test.step(name, () => callback(this.page)))
   }
 
   /** Press a key, replacing the text `Mod` with `Meta` (`Cmd`) on macOS, and `Control`
    * on all other platforms. */
-  press(keyOrShortcut: string): this {
+  press<Key extends string>(keyOrShortcut: inputBindings.AutocompleteKeybind<Key>) {
     return this.do(page => BaseActions.press(page, keyOrShortcut))
+  }
+
+  /** Perform actions with the "Mod" modifier key pressed. */
+  withModPressed<R extends BaseActions>(callback: (actions: this) => R) {
+    return callback(
+      this.step('Press "Mod"', async page => {
+        await page.keyboard.down(await actions.modModifier(page))
+      })
+    ).step('Release "Mod"', async page => {
+      await page.keyboard.up(await actions.modModifier(page))
+    })
   }
 }

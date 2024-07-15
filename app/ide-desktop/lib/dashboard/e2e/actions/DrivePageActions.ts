@@ -10,6 +10,22 @@ import NewDataLinkModalActions from './NewDataLinkModalActions'
 import PageActions from './PageActions'
 import StartModalActions from './StartModalActions'
 
+// =================
+// === Constants ===
+// =================
+
+// eslint-disable-next-line @typescript-eslint/no-magic-numbers
+const ASSET_ROW_SAFE_POSITION = { x: 300, y: 16 }
+
+// =======================
+// === locateAssetRows ===
+// =======================
+
+/** Find all assets table rows (if any). */
+function locateAssetRows(page: test.Page) {
+  return actions.locateAssetsTable(page).locator('tbody').getByRole('row')
+}
+
 // ========================
 // === DrivePageActions ===
 // ========================
@@ -80,19 +96,15 @@ export default class DrivePageActions extends PageActions {
       },
       /** Click to select a specific row. */
       clickRow(index: number) {
-        return self.step('Click drive table row', page =>
-          actions
-            .locateAssetRows(page)
-            .nth(index)
-            .click({ position: actions.ASSET_ROW_SAFE_POSITION })
+        return self.step(`Click drive table row #${index}`, page =>
+          locateAssetRows(page).nth(index).click({ position: actions.ASSET_ROW_SAFE_POSITION })
         )
       },
       /** Right click a specific row to bring up its context menu, or the context menu for multiple
        * assets when right clicking on a selected asset when multiple assets are selected. */
       rightClickRow(index: number) {
-        return self.step('Click drive table row', page =>
-          actions
-            .locateAssetRows(page)
+        return self.step(`Click drive table row #${index}`, page =>
+          locateAssetRows(page)
             .nth(index)
             .click({ button: 'right', position: actions.ASSET_ROW_SAFE_POSITION })
         )
@@ -100,25 +112,41 @@ export default class DrivePageActions extends PageActions {
       /** Interact with the set of all rows in the Drive table. */
       withRows(callback: baseActions.LocatorCallback) {
         return self.step('Interact with drive table rows', async page => {
-          await callback(actions.locateAssetRows(page))
+          await callback(locateAssetRows(page))
         })
+      },
+      /** Drag a row onto another row. */
+      dragRowToRow(from: number, to: number) {
+        return self.step(`Drag drive table row #${from} to row #${to}`, async page => {
+          const rows = locateAssetRows(page)
+          await rows.nth(from).dragTo(rows.nth(to), {
+            sourcePosition: ASSET_ROW_SAFE_POSITION,
+            targetPosition: ASSET_ROW_SAFE_POSITION,
+          })
+        })
+      },
+      /** Drag a row onto another row. */
+      dragRow(from: number, to: test.Locator) {
+        return self.step(`Drag drive table row #${from} to custom locator`, page =>
+          locateAssetRows(page).nth(from).dragTo(to, { sourcePosition: ASSET_ROW_SAFE_POSITION })
+        )
       },
       /** A test assertion to confirm that there is only one row visible, and that row is the
        * placeholder row displayed when there are no assets to show. */
       expectPlaceholderRow() {
         return self.step('Expect placeholder row', async page => {
-          const assetRows = actions.locateAssetRows(page)
-          await test.expect(assetRows).toHaveCount(1)
-          await test.expect(assetRows).toHaveText(/You have no files/)
+          const rows = locateAssetRows(page)
+          await test.expect(rows).toHaveCount(1)
+          await test.expect(rows).toHaveText(/You have no files/)
         })
       },
       /** A test assertion to confirm that there is only one row visible, and that row is the
        * placeholder row displayed when there are no assets in Trash. */
       expectTrashPlaceholderRow() {
         return self.step('Expect trash placeholder row', async page => {
-          const assetRows = actions.locateAssetRows(page)
-          await test.expect(assetRows).toHaveCount(1)
-          await test.expect(assetRows).toHaveText(/Your trash is empty/)
+          const rows = locateAssetRows(page)
+          await test.expect(rows).toHaveCount(1)
+          await test.expect(rows).toHaveText(/Your trash is empty/)
         })
       },
     }
