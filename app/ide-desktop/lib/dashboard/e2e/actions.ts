@@ -876,11 +876,10 @@ export const mockApi = apiModule.mockApi
 /** Set up all mocks, without logging in. */
 // This syntax is required for Playwright to work properly.
 // eslint-disable-next-line no-restricted-syntax
-export async function mockAll({ page, setupAPI }: MockParams) {
-  return await test.test.step('Execute all mocks', async () => {
-    const api = await mockApi({ page, setupAPI })
+export function mockAll({ page, setupAPI }: MockParams) {
+  return new LoginPageActions(page).step('Execute all mocks', async () => {
+    await mockApi({ page, setupAPI })
     await mockDate({ page, setupAPI })
-    return { api, pageActions: new LoginPageActions(page) }
   })
 }
 
@@ -891,10 +890,28 @@ export async function mockAll({ page, setupAPI }: MockParams) {
 /** Set up all mocks, and log in with dummy credentials. */
 // This syntax is required for Playwright to work properly.
 // eslint-disable-next-line no-restricted-syntax
-export async function mockAllAndLogin({ page, setupAPI }: MockParams) {
+export function mockAllAndLogin({ page, setupAPI }: MockParams) {
+  return new DrivePageActions(page)
+    .step('Execute all mocks', async () => {
+      await mockApi({ page, setupAPI })
+      await mockDate({ page, setupAPI })
+    })
+    .do(thePage => login({ page: thePage, setupAPI }))
+}
+
+// ===================================
+// === mockAllAndLoginAndExposeAPI ===
+// ===================================
+
+/** Set up all mocks, and log in with dummy credentials.
+ * @deprecated Prefer {@link mockAllAndLogin}. */
+// This syntax is required for Playwright to work properly.
+// eslint-disable-next-line no-restricted-syntax
+export async function mockAllAndLoginAndExposeAPI({ page, setupAPI }: MockParams) {
   return await test.test.step('Execute all mocks and login', async () => {
-    const mocks = await mockAll({ page, setupAPI })
+    const api = await mockApi({ page, setupAPI })
+    await mockDate({ page, setupAPI })
     await login({ page, setupAPI })
-    return { ...mocks, pageActions: new DrivePageActions(page) }
+    return api
   })
 }

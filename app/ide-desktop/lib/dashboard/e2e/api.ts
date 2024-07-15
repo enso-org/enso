@@ -38,7 +38,7 @@ const BASE_URL = 'https://mock/'
 // ===============
 
 /** Parameters for {@link mockApi}. */
-interface MockParams {
+export interface MockParams {
   readonly page: test.Page
   readonly setupAPI?: SetupAPI | null | undefined
 }
@@ -51,10 +51,17 @@ export interface SetupAPI {
   (api: Awaited<ReturnType<typeof mockApi>>): Promise<void> | void
 }
 
+/** The return type of {@link mockApi}. */
+export interface MockApi extends Awaited<ReturnType<typeof mockApiInternal>> {}
+
+// This is a function, even though it does not contain function syntax.
+// eslint-disable-next-line no-restricted-syntax
+export const mockApi: (params: MockParams) => Promise<MockApi> = mockApiInternal
+
 /** Add route handlers for the mock API to a page. */
 // This syntax is required for Playwright to work properly.
 // eslint-disable-next-line no-restricted-syntax
-export async function mockApi({ page, setupAPI }: MockParams) {
+async function mockApiInternal({ page, setupAPI }: MockParams) {
   // eslint-disable-next-line no-restricted-syntax
   const defaultEmail = 'email@example.com' as backend.EmailAddress
   const defaultUsername = 'user name'

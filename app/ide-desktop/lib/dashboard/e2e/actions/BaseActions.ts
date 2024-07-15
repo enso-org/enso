@@ -33,12 +33,18 @@ export interface LocatorCallback {
  *
  * [`thenable`]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise#thenables
  */
-export default class BaseActions implements PromiseLike<void> {
+export default class BaseActions implements Promise<void> {
   /** Create a {@link BaseActions}. */
   constructor(
     protected readonly page: test.Page,
     private readonly promise = Promise.resolve()
   ) {}
+
+  /** Get the string name of the class of this instance. Required for this class to implement
+   * {@link Promise}. */
+  get [Symbol.toStringTag]() {
+    return this.constructor.name
+  }
 
   /** Press a key, replacing the text `Mod` with `Meta` (`Cmd`) on macOS, and `Control`
    * on all other platforms. */
@@ -59,7 +65,6 @@ export default class BaseActions implements PromiseLike<void> {
       }
     })
   }
-
   /** Proxies the `then` method of the internal {@link Promise}. */
   async then<T, E>(
     // The following types are copied almost verbatim from the type definitions for `Promise`.
@@ -76,8 +81,15 @@ export default class BaseActions implements PromiseLike<void> {
    * to treat this class as a {@link Promise}. */
   // The following types are copied almost verbatim from the type definitions for `Promise`.
   // eslint-disable-next-line no-restricted-syntax
-  async catch<T>(onrejected?: ((reason: unknown) => T) | null | undefined) {
+  async catch<T>(onrejected?: ((reason: unknown) => PromiseLike<T> | T) | null | undefined) {
     return await this.promise.catch(onrejected)
+  }
+
+  /** Proxies the `catch` method of the internal {@link Promise}.
+   * This method is not required for this to be a `thenable`, but it is still useful
+   * to treat this class as a {@link Promise}. */
+  async finally(onfinally?: (() => void) | null | undefined): Promise<void> {
+    await this.promise.finally(onfinally)
   }
 
   /** Return a {@link BaseActions} with the same {@link Promise} but a different type. */

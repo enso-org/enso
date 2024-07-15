@@ -6,39 +6,38 @@ import * as actions from './actions'
 const PASS_TIMEOUT = 5_000
 
 test.test('extra columns should stick to right side of assets table', ({ page }) =>
-  actions.mockAllAndLogin({ page }).then(async ({ pageActions }) =>
-    pageActions.driveTable.toggleColumn
-      .accessedByProjects()
-      .driveTable.toggleColumn.accessedData()
-      .withAssetsTable(async table => {
-        await table.evaluate(element => {
-          let scrollableParent: HTMLElement | SVGElement | null = element
-          while (
-            scrollableParent != null &&
-            scrollableParent.scrollWidth <= scrollableParent.clientWidth
-          ) {
-            scrollableParent = scrollableParent.parentElement
-          }
-          // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-          scrollableParent?.scrollTo({ left: 999999, behavior: 'instant' })
+  actions
+    .mockAllAndLogin({ page })
+    .driveTable.toggleColumn.accessedByProjects()
+    .driveTable.toggleColumn.accessedData()
+    .withAssetsTable(async table => {
+      await table.evaluate(element => {
+        let scrollableParent: HTMLElement | SVGElement | null = element
+        while (
+          scrollableParent != null &&
+          scrollableParent.scrollWidth <= scrollableParent.clientWidth
+        ) {
+          scrollableParent = scrollableParent.parentElement
+        }
+        // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+        scrollableParent?.scrollTo({ left: 999999, behavior: 'instant' })
+      })
+    })
+    .do(async thePage => {
+      const extraColumns = actions.locateExtraColumns(thePage)
+      const assetsTable = actions.locateAssetsTable(thePage)
+      await test
+        .expect(async () => {
+          const extraColumnsRight = await extraColumns.evaluate(
+            element => element.getBoundingClientRect().right
+          )
+          const assetsTableRight = await assetsTable.evaluate(
+            element => element.getBoundingClientRect().right
+          )
+          test.expect(extraColumnsRight).toEqual(assetsTableRight)
         })
-      })
-      .do(async thePage => {
-        const extraColumns = actions.locateExtraColumns(thePage)
-        const assetsTable = actions.locateAssetsTable(thePage)
-        await test
-          .expect(async () => {
-            const extraColumnsRight = await extraColumns.evaluate(
-              element => element.getBoundingClientRect().right
-            )
-            const assetsTableRight = await assetsTable.evaluate(
-              element => element.getBoundingClientRect().right
-            )
-            test.expect(extraColumnsRight).toEqual(assetsTableRight)
-          })
-          .toPass({ timeout: PASS_TIMEOUT })
-      })
-  )
+        .toPass({ timeout: PASS_TIMEOUT })
+    })
 )
 
 test.test('extra columns should stick to top of scroll container', async ({ page }) => {
@@ -89,21 +88,20 @@ test.test('extra columns should stick to top of scroll container', async ({ page
 })
 
 test.test('can drop onto root directory dropzone', ({ page }) =>
-  actions.mockAllAndLogin({ page }).then(async ({ pageActions }) =>
-    pageActions
-      .createFolder()
-      .uploadFile('b', 'testing')
-      .driveTable.doubleClickRow(0)
-      .driveTable.withRows(async rows => {
-        const parentLeft = await actions.getAssetRowLeftPx(rows.nth(0))
-        const childLeft = await actions.getAssetRowLeftPx(rows.nth(1))
-        test.expect(childLeft, 'Child is indented further than parent').toBeGreaterThan(parentLeft)
-      })
-      .driveTable.dragRow(1, actions.locateRootDirectoryDropzone(page))
-      .driveTable.withRows(async rows => {
-        const firstLeft = await actions.getAssetRowLeftPx(rows.nth(0))
-        const secondLeft = await actions.getAssetRowLeftPx(rows.nth(1))
-        test.expect(firstLeft, 'Siblings have same indentation').toEqual(secondLeft)
-      })
-  )
+  actions
+    .mockAllAndLogin({ page })
+    .createFolder()
+    .uploadFile('b', 'testing')
+    .driveTable.doubleClickRow(0)
+    .driveTable.withRows(async rows => {
+      const parentLeft = await actions.getAssetRowLeftPx(rows.nth(0))
+      const childLeft = await actions.getAssetRowLeftPx(rows.nth(1))
+      test.expect(childLeft, 'Child is indented further than parent').toBeGreaterThan(parentLeft)
+    })
+    .driveTable.dragRow(1, actions.locateRootDirectoryDropzone(page))
+    .driveTable.withRows(async rows => {
+      const firstLeft = await actions.getAssetRowLeftPx(rows.nth(0))
+      const secondLeft = await actions.getAssetRowLeftPx(rows.nth(1))
+      test.expect(firstLeft, 'Siblings have same indentation').toEqual(secondLeft)
+    })
 )
