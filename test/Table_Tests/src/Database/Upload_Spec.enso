@@ -342,9 +342,12 @@ add_specs suite_builder setup make_new_connection persistent_connector=True =
             exploding_table = Table.new [normal_column, exploding_column]
             name = Name_Generator.random_name "rolling-back-table"
             data.connection.query (SQL_Query.Table_Name name) . should_fail_with Table_Not_Found
-            Test.expect_panic_with matcher=ExplodingStoragePayload <|
-                exploding_table.select_into_database_table data.connection name temporary=False primary_key=Nothing
-            data.connection.query (SQL_Query.Table_Name name) . should_fail_with Table_Not_Found
+
+            # We ensure that we try to clean-up the table even if the test failed.
+            Panic.with_finalizer (data.connection.drop_table name if_exists=True) <|
+                Test.expect_panic_with matcher=ExplodingStoragePayload <|
+                    exploding_table.select_into_database_table data.connection name temporary=False primary_key=Nothing
+                data.connection.query (SQL_Query.Table_Name name) . should_fail_with Table_Not_Found
 
         group_builder.specify "should set a primary key for the table" <|
             t1 = Table.new [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']], ["Z", [1.0, 2.0, 3.0]]]
