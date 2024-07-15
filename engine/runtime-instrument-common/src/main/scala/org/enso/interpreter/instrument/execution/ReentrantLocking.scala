@@ -23,7 +23,7 @@ class ReentrantLocking(logger: TruffleLogger) extends Locking {
   private val compilationLock = new ReentrantReadWriteLock(true)
 
   /** The highest lock. Always obtain first. Guarded by contextMapLock. */
-  private var contextLocks = Map.empty[UUID, ReentrantLock]
+  private var contextLocks = Map.empty[UUID, ContextLock]
 
   /** Guards contextLocks */
   private val contextMapLock = new ReentrantLock()
@@ -31,13 +31,13 @@ class ReentrantLocking(logger: TruffleLogger) extends Locking {
   /** Guards fileLocks */
   private val fileMapLock = new ReentrantLock()
 
-  private def getContextLock(contextId: UUID): Lock = {
+  private def getContextLock(contextId: UUID): ContextLock = {
     contextMapLock.lock()
     try {
       if (contextLocks.contains(contextId)) {
         contextLocks(contextId)
       } else {
-        val lock = new ReentrantLock(true)
+        val lock = new ContextLock(new ReentrantLock(true), contextId)
         contextLocks += (contextId -> lock)
         lock
       }
@@ -184,45 +184,18 @@ class ReentrantLocking(logger: TruffleLogger) extends Locking {
     }
   }
 
-  private def acquireContextLock(contextId: UUID): Long = {
-    assertNotLocked(
-      compilationLock,
-      true,
-      s"Cannot acquire context ${contextId} lock when having compilation read lock"
-    )
-    assertNotLocked(
-      compilationLock,
-      false,
-      s"Cannot acquire context ${contextId} lock when having compilation write lock"
-    )
-    assertNoFileLock(s"Cannot acquire context ${contextId}")
-    assertNotLocked(
-      pendingEditsLock,
-      s"Cannot acquire context ${contextId} lock when having pending edits lock"
-    )
-    logLockAcquisition(getContextLock(contextId), s"$contextId context")
-  }
-
-  private def releaseContextLock(contextId: UUID): Unit = {
-    contextMapLock.lock()
-    try {
-      if (contextLocks.contains(contextId)) {
-        contextLocks(contextId).unlock()
-      }
-    } finally {
-      contextMapLock.unlock()
-    }
-  }
-
   /** @inheritdoc */
   override def withContextLock[T](
-    contextId: UUID,
+    contextLock: ContextLock,
     where: Class[_],
     callable: Callable[T]
   ): T = {
     var contextLockTimestamp: Long = 0
     try {
-      contextLockTimestamp = acquireContextLock(contextId);
+      contextLockTimestamp = logLockAcquisition(
+        contextLock.lock,
+        "context lock"
+      ) //acquireContextLock(contextId);
       callable.call()
     } catch {
       case ie: InterruptedException =>
@@ -230,7 +203,7 @@ class ReentrantLocking(logger: TruffleLogger) extends Locking {
         null.asInstanceOf[T]
     } finally {
       if (contextLockTimestamp != 0) {
-        releaseContextLock(contextId)
+        contextLock.lock.unlock()
         logger.log(
           Level.FINEST,
           s"Kept context lock [{0}] for {1} milliseconds",
@@ -244,15 +217,15 @@ class ReentrantLocking(logger: TruffleLogger) extends Locking {
   }
 
   /** @inheritdoc */
-  override def removeContextLock(contextId: UUID): Unit = {
+  override def removeContextLock(contextLock: ContextLock): Unit = {
     contextMapLock.lock()
     try {
-      if (contextLocks.contains(contextId)) {
+      if (contextLocks.contains(contextLock.uuid)) {
         assertNotLocked(
-          contextLocks(contextId),
-          s"Cannot remove context ${contextId} lock when having a lock on it"
+          contextLock.lock,
+          s"Cannot remove context ${contextLock.uuid} lock when having a lock on it"
         )
-        contextLocks -= contextId
+        contextLocks -= contextLock.uuid
       }
     } finally {
       contextMapLock.unlock()
@@ -342,12 +315,31 @@ class ReentrantLocking(logger: TruffleLogger) extends Locking {
     try {
       for (ctx <- contextLocks) {
         assertNotLocked(
-          ctx._2,
+          ctx._2.lock,
           msg + s" lock when having context ${ctx._1} lock"
         )
       }
     } finally {
       contextMapLock.unlock()
     }
+  }
+
+  override def getOrCreateContextLock(contextId: UUID): ContextLock = {
+    assertNotLocked(
+      compilationLock,
+      true,
+      s"Cannot acquire context ${contextId} lock when having compilation read lock"
+    )
+    assertNotLocked(
+      compilationLock,
+      false,
+      s"Cannot acquire context ${contextId} lock when having compilation write lock"
+    )
+    assertNoFileLock(s"Cannot acquire context ${contextId}")
+    assertNotLocked(
+      pendingEditsLock,
+      s"Cannot acquire context ${contextId} lock when having pending edits lock"
+    )
+    getContextLock(contextId)
   }
 }
