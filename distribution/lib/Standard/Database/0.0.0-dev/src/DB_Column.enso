@@ -960,7 +960,7 @@ type DB_Column
     decimal_div : DB_Column -> DB_Column ! Invalid_Value_Type
     decimal_div self other =
         Value_Type.expect_numeric self <| Value_Type.expect_numeric other <|
-            new_name = self.naming_helper.function_name "decimal_div" [self, other]
+            new_name = self.naming_helper.binary_operation_name "/" self other
             self.make_binary_op "DECIMAL_DIV" other new_name
 
     ## PRIVATE
@@ -968,7 +968,7 @@ type DB_Column
     decimal_mod : DB_Column -> DB_Column ! Invalid_Value_Type
     decimal_mod self other =
         Value_Type.expect_numeric self <| Value_Type.expect_numeric other <|
-            new_name = self.naming_helper.function_name "decimal_mod" [self, other]
+            new_name = self.naming_helper.binary_operation_name "%" self other
             self.make_binary_op "DECIMAL_MOD" other new_name
 
     ## GROUP Standard.Base.Logical

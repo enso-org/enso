@@ -788,6 +788,7 @@ add_specs suite_builder setup =
             setup.expect_integer_type <| (data.x + data.x)
             (data.x + data.y).value_type . should_be_a (Value_Type.Float ...)
             setup.expect_integer_type <| (data.x + 2)
+            # TODO
             (data.x + 1.5).value_type . should_be_a (Value_Type.Float ...)
 
             setup.expect_integer_type <| (data.x - data.x)
@@ -1260,8 +1261,8 @@ add_specs suite_builder setup =
 
             s1.is_empty . value_type . should_equal Value_Type.Boolean
             s1.is_blank . value_type . should_equal Value_Type.Boolean
-            s1.fill_empty "<>" . value_type . is_text . should_be_true
-            s1.fill_empty s2 . value_type . is_text . should_be_true
+            s1.fill_empty "<>" . value_type . should_be_a (Value_Type.Char ...)
+            s1.fill_empty s2 . value_type . should_be_a (Value_Type.Char ...)
 
         group_builder.specify "should support text concatenation with the + operator" <|
             with_mixed_columns_if_supported [["s1", ["foobar", "bar", "baz", "BAB", Nothing]], ["s2", ["foo", "ar", "a", "b", Nothing]]] t3->
@@ -1269,60 +1270,58 @@ add_specs suite_builder setup =
                 s2 = t3.at "s2"
                 c1 = s1 + s2
                 c1.to_vector . should_equal ["foobarfoo", "barar", "baza", "BABb", Nothing]
-                c1.value_type.is_text . should_be_true
+                c1.value_type.should_be_a (Value_Type.Char ...)
 
                 c2 = s1 + "_SUF"
                 c2.to_vector . should_equal ["foobar_SUF", "bar_SUF", "baz_SUF", "BAB_SUF", Nothing]
-                c2.value_type.is_text . should_be_true
+                c2.value_type.should_be_a (Value_Type.Char ...)
 
                 c3 = s1 + Nothing
                 c3.to_vector . should_equal [Nothing, Nothing, Nothing, Nothing, Nothing]
-                c3.value_type.is_text . should_be_true
+                c3.value_type.should_be_a (Value_Type.Char ...)
 
     suite_builder.group prefix+"(Column_Operations_Spec) Min/Max Operations" group_builder->
         data = Min_Max_Data.setup setup.table_builder
         group_builder.specify "should allow one or more args and return the correct type" <|
             c1 = data.a.min 2
             c1.to_vector . should_equal [1, 2, 2]
-            c1.value_type.is_integer . should_be_true
+            setup.expect_integer_type c1
 
             c2 = data.a.max 2
             c2.to_vector . should_equal [2, 2, 3]
-            c2.value_type.is_integer . should_be_true
+            setup.expect_integer_type c2
 
             c3 = data.a.min [2.5, 2]
             c3.to_vector . should_equal [1, 2, 2]
-            Test.with_clue "c3.value_type="+c3.value_type.to_display_text <|
-                c3.value_type.is_floating_point . should_be_true
+            c3.value_type.should_be_a (Value_Type.Float ...)
 
             c4 = data.a.max [2.5, 2]
             c4.to_vector . should_equal [2.5, 2.5, 3]
-            c4.value_type.is_floating_point . should_be_true
+            c4.value_type.should_be_a (Value_Type.Float ...)
 
             c5 = data.a.min data.b
             c5.to_vector . should_equal [1, 2, 3]
-            Test.with_clue "c5.value_type="+c5.value_type.to_display_text+": " <|
-                c5.value_type.is_floating_point . should_be_true
+            c5.value_type.should_be_a (Value_Type.Float ...)
 
             c6 = data.a.max data.b
             c6.to_vector . should_equal [4.5, 5.5, 6.5]
-            c6.value_type.is_floating_point . should_be_true
+            c6.value_type.should_be_a (Value_Type.Float ...)
 
             c7 = data.a.min [data.a, data.b, 1]
             c7.to_vector . should_equal [1, 1, 1]
-            c7.value_type.is_floating_point . should_be_true
+            c7.value_type.should_be_a (Value_Type.Float ...)
 
             c8 = data.a.max [data.a, data.b, 1]
             c8.to_vector . should_equal [4.5, 5.5, 6.5]
-            c8.value_type.is_floating_point . should_be_true
+            c8.value_type.should_be_a (Value_Type.Float ...)
 
             c9 = (data.t.at "d").min False
             c9.to_vector . should_equal [False, False, False]
-            c9.value_type.is_boolean . should_be_true
+            c9.value_type.should_equal Value_Type.Boolean
 
             c10 = (data.t.at "d").max False
             c10.to_vector . should_equal [True, False, True]
-            c10.value_type.is_boolean . should_be_true
+            c10.value_type.should_equal Value_Type.Boolean
 
         group_builder.specify "should check types" <|
             [(.min), (.max)].each op->
@@ -1687,12 +1686,19 @@ add_specs suite_builder setup =
         group_builder.specify "Should create a column of the correct type on a table with no rows" <|
             t = table_builder [["x", ["1", "2", "3"]]]
             empty = t.take 0
-            [[False, .is_boolean], [42,  .is_integer], ["42",  .is_text], ["foo", .is_text], [1.1, .is_floating_point]].map pair->
-                value = pair.at 0
-                pred = pair.at 1
+
+            check value expected_type =
                 c = empty.make_constant_column value
-                pred c.value_type . should_be_true
-                pred ((empty.set c).at c.name . value_type) . should_be_true
+                c.value_type.should_be_a expected_type
+                (empty.set c).at c.name . value_type . should_be_a expected_type
+
+            check False Value_Type.Boolean
+            check "42" (Value_Type.Char ...)
+            check "foo" (Value_Type.Char ...)
+            check 1.1 (Value_Type.Float ...)
+
+            c = empty.make_constant_column 42
+            setup.expect_integer_type c
 
         nulls_db_pending = if setup.is_database then "Empty NULL columns are unsupported in the database backends"
         group_builder.specify "Should create a column of the correct type on a table with no rows" pending=nulls_db_pending <|
