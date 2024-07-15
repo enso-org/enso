@@ -43,10 +43,6 @@ type Data
         in_memory_table = Table.new [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]]
         [connection, in_memory_table]
 
-    teardown self =
-        self.connection.close
-
-
 in_memory_table_builder args primary_key=[] connection =
     _ = [primary_key, connection]
     case args of
@@ -69,12 +65,9 @@ database_table_builder name_prefix args primary_key=[] connection =
      database, so features relying on persistence cannot really be tested.
 add_specs suite_builder setup make_new_connection persistent_connector=True =
     prefix = setup.prefix
+
+    data = Data.setup make_new_connection
     suite_builder.group prefix+"(Upload_Spec) Creating an empty table" group_builder->
-        data = Data.setup make_new_connection
-
-        group_builder.teardown <|
-            data.teardown
-
         group_builder.specify "should allow to specify the column names and types" <|
             t = data.connection.create_table (Name_Generator.random_name "creating-table") structure=[Column_Description.Value "X" Value_Type.Integer, Column_Description.Value "Y" Value_Type.Char] temporary=True
             t.column_names . should_equal ["X", "Y"]
@@ -298,11 +291,6 @@ add_specs suite_builder setup make_new_connection persistent_connector=True =
 
 
     suite_builder.group prefix+"(Upload_Spec) Uploading an in-memory Table" group_builder->
-        data = Data.setup make_new_connection
-
-        group_builder.teardown <|
-            data.teardown
-
         group_builder.specify "should create a database table with the same contents as the source" <|
             db_table = data.in_memory_table.select_into_database_table data.connection (Name_Generator.random_name "creating-table") temporary=True
             db_table.column_names . should_equal ["X", "Y"]
@@ -458,11 +446,6 @@ add_specs suite_builder setup make_new_connection persistent_connector=True =
                 t1.at "X" . to_vector . should_fail_with SQL_Error
 
     suite_builder.group prefix+"(Upload_Spec) Persisting a Database Table (query)" group_builder->
-        data = Data.setup make_new_connection
-
-        group_builder.teardown <|
-            data.teardown
-
         group_builder.specify "should be able to create a persistent copy of a DB table" <|
             t = Table.new [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']], ["Z", [1.0, 2.0, 3.0]]]
             tmp_connection = make_new_connection Nothing
@@ -606,11 +589,6 @@ add_specs suite_builder setup make_new_connection persistent_connector=True =
             preexisting2.at "X" . to_vector . should_equal [42]
 
     suite_builder.group prefix+"(Upload_Spec) Appending an in-memory table to a Database table" group_builder->
-        data = Data.setup make_new_connection
-
-        group_builder.teardown <|
-            data.teardown
-
         test_table_append group_builder data in_memory_table_builder (database_table_builder "target-table")
 
         group_builder.specify "will issue a friendly error if using in-memory table as target" <|
@@ -621,35 +599,15 @@ add_specs suite_builder setup make_new_connection persistent_connector=True =
             r1.to_display_text.should_contain "in-memory tables are immutable"
 
     suite_builder.group prefix+"(Upload_Spec) Appending a Database table to a Database table" group_builder->
-        data = Data.setup make_new_connection
-
-        group_builder.teardown <|
-            data.teardown
-
         test_table_append group_builder data (database_table_builder "source-table") (database_table_builder "target-table")
 
     suite_builder.group prefix+"(Upload_Spec) Deleting rows from a Database table (source=in-memory)" group_builder->
-        data = Data.setup make_new_connection
-
-        group_builder.teardown <|
-            data.teardown
-
         test_table_delete group_builder data in_memory_table_builder (database_table_builder "target-table")
 
     suite_builder.group prefix+"(Upload_Spec) Deleting rows from a Database table (source=Database)" group_builder->
-        data = Data.setup make_new_connection
-
-        group_builder.teardown <|
-            data.teardown
-
         test_table_delete group_builder data (database_table_builder "source-table") (database_table_builder "target-table")
 
     suite_builder.group prefix+"(Upload_Spec) Deleting rows from a Database table" group_builder->
-        data = Data.setup make_new_connection
-
-        group_builder.teardown <|
-            data.teardown
-
         group_builder.specify "[ADVANCED] it should be possible to truncate the whole table" <|
             name = Name_Generator.random_name "table-to-truncate"
             t = (Table.new [["X", [1, 2, 3]]]).select_into_database_table data.connection name temporary=True primary_key=[]
@@ -682,11 +640,6 @@ add_specs suite_builder setup make_new_connection persistent_connector=True =
 
     execution_context_group_name = prefix+"(Upload_Spec) Output Execution Context for Database operations"
     suite_builder.group execution_context_group_name group_builder->
-        data = Data.setup make_new_connection
-
-        group_builder.teardown <|
-            data.teardown
-
         group_builder.specify "should forbid executing updates" <|
             Context.Output.with_disabled <|
                 r1 = data.connection.execute_update "CREATE TEMPORARY TABLE foo (x INTEGER)"
