@@ -498,6 +498,8 @@ Any.should_contain_the_same_elements_as self that frames_to_skip=0 =
         if that.contains element . not then
             msg = "The collection contained an element ("+element.to_text+") which was not expected (at " + loc + ")."
             Test.fail msg
+    Test.with_clue "Duplicate elements in either collection should have the same counts - checked by comparing sorted collections: " <|
+        self.sort . should_equal that.sort frames_to_skip=frames_to_skip+3
     Spec_Result.Success
 
 ## Asserts that `self` value contains the same elements as `that`.
