@@ -24,6 +24,7 @@ export interface ContextMenuActions<T extends BaseActions> {
   readonly copy: () => T
   readonly cut: () => T
   readonly paste: () => T
+  readonly copyAsPath: () => T
   readonly download: () => T
   readonly uploadFiles: () => T
   readonly newFolder: () => T
@@ -99,7 +100,7 @@ export function contextMenuActions<T extends BaseActions>(
       ).into(EditorPageActions),
     copy: () =>
       step('Copy (context menu)', page =>
-        page.getByRole('button', { name: 'Copy' }).getByText('Copy').click()
+        page.getByRole('button', { name: 'Copy' }).getByText('Copy', { exact: true }).click()
       ),
     cut: () =>
       step('Cut (context menu)', page =>
@@ -108,6 +109,10 @@ export function contextMenuActions<T extends BaseActions>(
     paste: () =>
       step('Paste (context menu)', page =>
         page.getByRole('button', { name: 'Paste' }).getByText('Paste').click()
+      ),
+    copyAsPath: () =>
+      step('Copy as path (context menu)', page =>
+        page.getByRole('button', { name: 'Copy As Path' }).getByText('Copy As Path').click()
       ),
     download: () =>
       step('Download (context menu)', page =>

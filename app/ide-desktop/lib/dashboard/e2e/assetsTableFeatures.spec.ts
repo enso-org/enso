@@ -101,7 +101,9 @@ test.test('can drop onto root directory dropzone', ({ page }) =>
     .driveTable.dragRow(1, actions.locateRootDirectoryDropzone(page))
     .driveTable.withRows(async rows => {
       const firstLeft = await actions.getAssetRowLeftPx(rows.nth(0))
-      const secondLeft = await actions.getAssetRowLeftPx(rows.nth(1))
+      // The second row is the indented child of the directory
+      // (the "this folder is empty" row).
+      const secondLeft = await actions.getAssetRowLeftPx(rows.nth(2))
       test.expect(firstLeft, 'Siblings have same indentation').toEqual(secondLeft)
     })
 )

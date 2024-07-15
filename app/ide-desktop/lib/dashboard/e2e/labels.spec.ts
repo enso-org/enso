@@ -6,6 +6,7 @@ import * as backend from '#/services/Backend'
 import * as actions from './actions'
 
 test.test('drag labels onto single row', async ({ page }) => {
+  const label = 'aaaa'
   await actions.mockAllAndLogin({
     page,
     setupAPI: api => {
@@ -23,7 +24,6 @@ test.test('drag labels onto single row', async ({ page }) => {
     },
   })
   const assetRows = actions.locateAssetRows(page)
-  const label = 'aaaa'
   const labelEl = actions.locateLabelsPanelLabels(page, label)
   await actions.relog({ page })
 
