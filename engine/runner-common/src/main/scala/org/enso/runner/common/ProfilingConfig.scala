@@ -1,4 +1,4 @@
-package org.enso.languageserver.boot
+package org.enso.runner.common
 
 import org.apache.commons.io.FilenameUtils
 

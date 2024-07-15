@@ -55,6 +55,16 @@ to 0, and to run `withDebug` command like this:
 withDebug --debugger benchOnly -- <fully qualified benchmark name>
 ```
 
+Another option that does not require changing the source code is to run
+something like
+
+```
+sbt:runtime-benchmarks> run -w 1 -i 1 -f 1 -jvmArgs -agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=localhost:8000 org.enso.compiler.benchmarks.module.ImportStandardLibrariesBenchmark.importStandardLibraries
+```
+
+This command will run the `importStandardLibraries` benchmark in fork waiting
+for the debugger to attach.
+
 ## Standard library benchmarks
 
 Unlike the Engine micro benchmarks, these benchmarks are written entirely in

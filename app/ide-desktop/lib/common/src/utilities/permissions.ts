@@ -47,16 +47,6 @@ export enum Permission {
     delete = 'delete',
 }
 
-/** CSS classes for each permission. */
-export const PERMISSION_CLASS_NAME: Readonly<Record<Permission, string>> = {
-    [Permission.owner]: 'text-tag-text bg-permission-owner',
-    [Permission.admin]: 'text-tag-text bg-permission-admin',
-    [Permission.edit]: 'text-tag-text bg-permission-edit',
-    [Permission.read]: 'text-tag-text bg-permission-read',
-    [Permission.view]: 'text-tag-text-2 bg-permission-view',
-    [Permission.delete]: 'text-tag-text bg-delete',
-}
-
 /** Precedences for each permission. A lower number means a higher priority. */
 export const PERMISSION_PRECEDENCE: Readonly<Record<Permission, number>> = {
     // These are not magic numbers - they are just a sequence of numbers.
@@ -85,11 +75,6 @@ export const PERMISSION_ACTION_PRECEDENCE: Readonly<Record<PermissionAction, num
     [PermissionAction.viewAndExec]: 8,
     /* eslint-enable @typescript-eslint/no-magic-numbers */
 }
-
-/** CSS classes for the docs permission. */
-export const DOCS_CLASS_NAME = 'text-tag-text bg-permission-docs'
-/** CSS classes for the execute permission. */
-export const EXEC_CLASS_NAME = 'text-tag-text bg-permission-exec'
 
 /** The corresponding {@link Permissions} for each {@link PermissionAction}. */
 export const FROM_PERMISSION_ACTION: Readonly<Record<PermissionAction, Permissions>> = {

@@ -90,8 +90,8 @@ function readableBinding(binding: keyof (typeof graphBindings)['bindings']) {
       />
       <ToggleIcon
         icon="record"
-        class="overrideRecordingButton slot7"
-        data-testid="overrideRecordingButton"
+        class="slot7 record"
+        data-testid="toggleRecord"
         title="Record"
         :modelValue="props.isRecordingOverridden"
         @update:modelValue="emit('update:isRecordingOverridden', $event)"
@@ -199,16 +199,6 @@ function readableBinding(binding: keyof (typeof graphBindings)['bindings']) {
 .inactive {
   pointer-events: none;
   opacity: 10%;
-}
-
-.overrideRecordingButton {
-  &.toggledOn {
-    opacity: 100%;
-    color: red;
-  }
-  &.toggledOff {
-    opacity: unset;
-  }
 }
 
 /**

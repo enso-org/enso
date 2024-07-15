@@ -41,9 +41,7 @@ object Export {
     *
     * @param name        the full path representing the export
     * @param rename      the name this export is visible as
-    * @param isAll       is this an unqualified export
     * @param onlyNames   exported names selected from the exported module
-    * @param hiddenNames exported names hidden from the exported module
     * @param location    the source location that the node corresponds to
     * @param isSynthetic is this export compiler-generated
     * @param passData    the pass metadata associated with this node
@@ -52,9 +50,7 @@ object Export {
   sealed case class Module(
     name: Name.Qualified,
     rename: Option[Name.Literal],
-    isAll: Boolean,
     onlyNames: Option[List[Name.Literal]],
-    hiddenNames: Option[List[Name.Literal]],
     override val location: Option[IdentifiedLocation],
     isSynthetic: Boolean                        = false,
     override val passData: MetadataStorage      = new MetadataStorage(),
@@ -68,9 +64,7 @@ object Export {
       *
       * @param name        the full path representing the export
       * @param rename      the name this export is visible as
-      * @param isAll       is this an unqualified export
       * @param onlyNames   exported names selected from the exported module
-      * @param hiddenNames exported names hidden from the exported module
       * @param location    the source location that the node corresponds to
       * @param isSynthetic is this import compiler-generated
       * @param passData    the pass metadata associated with this node
@@ -79,23 +73,19 @@ object Export {
       * @return a copy of `this`, updated with the specified values
       */
     def copy(
-      name: Name.Qualified                    = name,
-      rename: Option[Name.Literal]            = rename,
-      isAll: Boolean                          = isAll,
-      onlyNames: Option[List[Name.Literal]]   = onlyNames,
-      hiddenNames: Option[List[Name.Literal]] = hiddenNames,
-      location: Option[IdentifiedLocation]    = location,
-      isSynthetic: Boolean                    = isSynthetic,
-      passData: MetadataStorage               = passData,
-      diagnostics: DiagnosticStorage          = diagnostics,
-      id: UUID @Identifier                    = id
+      name: Name.Qualified                  = name,
+      rename: Option[Name.Literal]          = rename,
+      onlyNames: Option[List[Name.Literal]] = onlyNames,
+      location: Option[IdentifiedLocation]  = location,
+      isSynthetic: Boolean                  = isSynthetic,
+      passData: MetadataStorage             = passData,
+      diagnostics: DiagnosticStorage        = diagnostics,
+      id: UUID @Identifier                  = id
     ): Module = {
       val res = Module(
         name,
         rename,
-        isAll,
         onlyNames,
-        hiddenNames,
         location,
         isSynthetic,
         passData,
@@ -138,9 +128,7 @@ object Export {
          |Module.Scope.Export.Module(
          |name = $name,
          |rename = $rename,
-         |isAll = $isAll,
          |onlyNames = $onlyNames,
-         |hidingNames = $hiddenNames,
          |location = $location,
          |passData = ${this.showPassData},
          |diagnostics = $diagnostics,
@@ -152,24 +140,17 @@ object Export {
     override def children: List[IR] =
       name :: List(
         rename.toList,
-        onlyNames.getOrElse(List()),
-        hiddenNames.getOrElse(List())
+        onlyNames.getOrElse(List())
       ).flatten
 
     /** @inheritdoc */
     override def showCode(indent: Int): String = {
       val renameCode = rename.map(n => s" as ${n.name}").getOrElse("")
-      if (isAll) {
-        val onlyPart = onlyNames
-          .map(names => " " + names.map(_.name).mkString(", "))
-          .getOrElse("")
-        val hidingPart = hiddenNames
-          .map(names => s" hiding ${names.map(_.name).mkString(", ")}")
-          .getOrElse("")
-        val all = if (onlyNames.isDefined) "" else " all"
-        s"from ${name.name}$renameCode export$onlyPart$all$hidingPart"
-      } else {
-        s"export ${name.name}$renameCode"
+      onlyNames match {
+        case Some(names) =>
+          s"from ${name.name} export ${names.map(_.name).mkString(", ")}$renameCode"
+        case None =>
+          s"export ${name.name}$renameCode"
       }
     }
 
@@ -190,11 +171,8 @@ object Export {
       * @return whether the name could be accessed or not
       */
     def allowsAccess(name: String): Boolean = {
-      if (!isAll) return false;
       if (onlyNames.isDefined) {
         onlyNames.get.exists(_.name.toLowerCase == name.toLowerCase)
-      } else if (hiddenNames.isDefined) {
-        !hiddenNames.get.exists(_.name.toLowerCase == name.toLowerCase)
       } else {
         true
       }

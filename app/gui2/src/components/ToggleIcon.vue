@@ -11,13 +11,13 @@ import SvgIcon from '@/components/SvgIcon.vue'
 import type { Icon } from '@/util/iconName'
 
 const toggledOn = defineModel<boolean>({ default: false })
-const _props = defineProps<{ icon: Icon; label?: string }>()
+const props = defineProps<{ icon: Icon; label?: string }>()
 </script>
 
 <template>
   <MenuButton v-model="toggledOn" class="ToggleIcon">
     <SvgIcon :name="icon" />
-    <div v-if="label" v-text="label" />
+    <div v-if="props.label" v-text="props.label" />
   </MenuButton>
 </template>
 
@@ -27,7 +27,20 @@ const _props = defineProps<{ icon: Icon; label?: string }>()
   gap: 4px;
 }
 
-.toggledOff {
+.toggledOff svg {
   opacity: 0.4;
+}
+
+:is(.toggledOff, .toggledOn):active svg {
+  opacity: 0.7;
+}
+
+.record {
+  &.toggledOn {
+    color: red;
+  }
+  &.toggledOff svg {
+    opacity: unset;
+  }
 }
 </style>
