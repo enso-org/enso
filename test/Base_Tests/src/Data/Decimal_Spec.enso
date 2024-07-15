@@ -107,7 +107,7 @@ add_specs suite_builder =
 
             Problems.assume_no_problems (Decimal.new "123.25")
             Problems.expect_warning Loss_Of_Numeric_Precision (Decimal.new "123.25" mc4)
-            Problems.not_expect_warning Loss_Of_Numeric_Precision (Decimal.new "123.25" mc5)
+            Problems.assume_no_problems (Decimal.new "123.25" mc5)
 
             Problems.expect_warning Loss_Of_Numeric_Precision (Decimal.new 123.25)
             Problems.expect_warning Loss_Of_Numeric_Precision (Decimal.new 123.25 mc4)
@@ -115,7 +115,7 @@ add_specs suite_builder =
 
             Problems.assume_no_problems (Decimal.new 12325)
             Problems.expect_warning Loss_Of_Numeric_Precision (Decimal.new 12325 mc4)
-            Problems.not_expect_warning Loss_Of_Numeric_Precision (Decimal.new 12325 mc5)
+            Problems.assume_no_problems (Decimal.new 12325 mc5)
 
         group_builder.specify "should throw Illegal_Argument for NaN/Inf" <|
             Decimal.new Number.nan . should_fail_with Illegal_Argument
@@ -211,7 +211,7 @@ add_specs suite_builder =
 
                 (Ordering.hash x0) . should_equal (Ordering.hash x1)
 
-        group_builder.specify "should compare correctly to Integer and Float" pending = "https://github.com/enso-org/enso/issues/10163" <|
+        group_builder.specify "should compare correctly to Integer and Float" pending="https://github.com/enso-org/enso/issues/10163" <|
             values = []
                 + [[0.1, 0.1]]
                 + [["0.1", 0.1]]
@@ -348,7 +348,6 @@ add_specs suite_builder =
                     (d >= d) . should_be_true
 
                     if v.is_a Float then
-                        qq = d <= v
                         Problems.expect_only_warning Loss_Of_Numeric_Precision (d <= v)
                         Problems.expect_only_warning Loss_Of_Numeric_Precision (d >= v)
                         Problems.expect_only_warning Loss_Of_Numeric_Precision (v <= d)
@@ -639,7 +638,7 @@ add_specs suite_builder =
 
         group_builder.specify "should attach a warning on loss of precision in integer conversion" <|
             Problems.expect_only_warning Loss_Of_Numeric_Precision (Decimal.new "125.2" . to_integer)
-            Problems.not_expect_warning Loss_Of_Numeric_Precision (Decimal.new "125" . to_integer)
+            Problems.assume_no_problems (Decimal.new "125" . to_integer)
             huge_int = Decimal.new "125E90"
             huge_fraction = Decimal.new "125E90" + Decimal.new "0.2"
             Problems.expect_only_warning Loss_Of_Numeric_Precision (huge_fraction . to_integer)
