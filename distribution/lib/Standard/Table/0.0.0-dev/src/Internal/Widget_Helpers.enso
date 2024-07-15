@@ -94,45 +94,35 @@ make_column_name_multi_selector table display:Display=Display.Always add_regex:B
 
 ## PRIVATE
    Make a column reference by name selector.
-make_column_ref_by_name_selector : Table -> Display -> Boolean -> Boolean -> Boolean -> Boolean -> Boolean -> Widget
-make_column_ref_by_name_selector table display:Display=..Always add_text:Boolean=False add_regex:Boolean=False add_number:Boolean=False add_boolean:Boolean=False add_named_pattern:Boolean=False =
-    text = if add_text then [Option "<Text Value>" "''"] else []
-    regex = if add_regex then [Option "<Regular Expression>" "(regex '')"] else []
-    number = if add_number then [Option "<Number Value>" "0"] else []
-    boolean = if add_boolean then [Option "<True/False>" "True"] else []
-    named_pattern = if add_named_pattern.not then [] else
-        patterns = ["Leading_Whitespace", "Trailing_Whitespace", "All_Whitespace", "Leading_Numbers", "Trailing_Numbers", "Non_ASCII", "Tabs", "Letters", "Numbers", "Punctuation", "Symbols"]
-        ## Can't use auto-scoping as Named_Patterns are materialised into Regex.
-        patterns.map p-> Option "<"+p+">" "Named_Pattern."+p
+make_column_ref_by_name_selector table display:Display=..Always add_text:Boolean=False add_regex:Boolean=False add_number:Boolean=False add_boolean:Boolean=False add_named_pattern:Boolean=False add_date:Boolean=False add_time:Boolean=False add_date_time:Boolean=False add_nothing:Boolean=False =
+    constants = make_any_selector add_text=add_text add_regex=add_regex add_named_pattern=add_named_pattern add_number=add_number add_boolean=add_boolean add_date=add_date add_time=add_time add_date_time=add_date_time add_nothing=add_nothing. values
     expression = if table.is_nothing then [] else [Option "<Expression>" "(expr '["+table.column_names.first+"]')"]
     col_names = if table.is_nothing then [] else table.column_names.map (name -> Option name "(..Name "+name.pretty+")")
-    values = text + regex + number + boolean + named_pattern + expression + col_names
+    values = constants + expression + col_names
     Single_Choice values=values display=display
 
 ## PRIVATE
    If `column_source` is Nothing, `Column_Ref` options will not be added.
-make_fill_default_value_selector : Table | Nothing -> Display -> Boolean -> Boolean -> Boolean -> Widget
-make_fill_default_value_selector column_source=Nothing display=Display.Always add_text:Boolean=False add_number:Boolean=False add_boolean:Boolean=False =
-    column_ref = make_column_ref_by_name_selector column_source display add_text add_regex=False add_number=add_number add_boolean=add_boolean
+make_fill_default_value_selector column_source=Nothing display=Display.Always for_text:Boolean=False =
+    column_ref = make_column_ref_by_name_selector column_source display add_text=True add_number=for_text.not add_boolean=for_text.not add_date=for_text.not add_time=for_text.not add_date_time=for_text.not add_nothing=for_text
     previous_value = [Option 'Previous Value' 'Previous_Value']
     Single_Choice values=(previous_value+column_ref.values) display=display
 
 ## PRIVATE
    Make a filter condition selector.
-make_filter_condition_selector : Table -> Display -> Widget
 make_filter_condition_selector table display=Display.Always =
-    with_all_types = make_column_ref_by_name_selector table add_text=True add_number=True add_boolean=True
-    with_number_text = make_column_ref_by_name_selector table add_text=True add_number=True
+    equatable_types = make_column_ref_by_name_selector table add_text=True add_number=True add_boolean=True add_date=True add_time=True add_date_time=True
+    comparable_types = make_column_ref_by_name_selector table add_text=True add_number=True add_date=True add_time=True add_date_time=True
     with_text = make_column_ref_by_name_selector table add_text=True
 
     options = Vector.build builder->
-        builder.append (Option "Equals" "..Equal" [["to", with_all_types]])
-        builder.append (Option "Not Equals" "..Not_Equal" [["to", with_all_types]])
-        builder.append (Option "Less Than" "..Less" [["than", with_number_text]])
-        builder.append (Option "Less Than Or Equal" "..Equal_Or_Less" [["than", with_number_text]])
-        builder.append (Option "Greater Than" "..Greater" [["than", with_number_text]])
-        builder.append (Option "Greater Than Or Equal" "..Equal_Or_Greater" [["than", with_number_text]])
-        builder.append (Option "Between" "..Between" [["lower", with_number_text], ["upper", with_number_text]])
+        builder.append (Option "Equals" "..Equal" [["to", equatable_types]])
+        builder.append (Option "Not Equals" "..Not_Equal" [["to", equatable_types]])
+        builder.append (Option "Less Than" "..Less" [["than", comparable_types]])
+        builder.append (Option "Less Than Or Equal" "..Equal_Or_Less" [["than", comparable_types]])
+        builder.append (Option "Greater Than" "..Greater" [["than", comparable_types]])
+        builder.append (Option "Greater Than Or Equal" "..Equal_Or_Greater" [["than", comparable_types]])
+        builder.append (Option "Between" "..Between" [["lower", comparable_types], ["upper", comparable_types]])
         builder.append (Option "Equals Ignore Case" "..Equal_Ignore_Case" [["to", with_text]])
         builder.append (Option "Starts With" "..Starts_With" [["prefix", with_text]])
         builder.append (Option "Ends With" "..Ends_With" [["suffix", with_text]])
