@@ -16,6 +16,7 @@ import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.atom.Atom;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeCoerceToArrayNode;
+import org.enso.interpreter.service.error.ExitException;
 
 public class System {
 
@@ -51,7 +52,15 @@ public class System {
   @CompilerDirectives.TruffleBoundary
   public static void exit(long code) {
     var ctx = EnsoContext.get(null);
-    ctx.exit((int) code);
+    if (ctx.isInteractiveMode()) {
+      // In interactive mode, the ExitException should be caught and handled by one of
+      // the instruments that should take care of proper context disposal.
+      throw new ExitException((int) code);
+    } else {
+      // While not in interactive mode, it is safe to directly call
+      // TruffleCOntext.exitContext
+      ctx.exit((int) code);
+    }
   }
 
   @Builtin.Specialize
