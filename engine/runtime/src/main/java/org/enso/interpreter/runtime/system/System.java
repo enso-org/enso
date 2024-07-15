@@ -58,7 +58,7 @@ public class System {
       throw new ExitException((int) code);
     } else {
       // While not in interactive mode, it is safe to directly call
-      // TruffleCOntext.exitContext
+      // TruffleContext.exitContext
       ctx.exit((int) code);
     }
   }
