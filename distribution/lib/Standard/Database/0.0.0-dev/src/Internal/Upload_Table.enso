@@ -524,8 +524,9 @@ check_transaction_ddl_support connection =
             Panic.throw (Illegal_State.Error "The connection "+connection.to_text+" does not support transactional DDL statements. Our current implementation of table updates relies on transactional DDL. To support this driver, the logic needs to be amended.")
         ddl_causes_commit = metadata.dataDefinitionCausesTransactionCommit
         if ddl_causes_commit then
-            connection.log_message "TODO: DDL in transactions problem"
+            # TODO fix for Snowflake support
             #Panic.throw (Illegal_State.Error "The connection "+connection.to_text+" does not fully support DDL statements as part of complex transactions - DDL causes a commit, so we cannot compose it. To support this driver, the logic needs to be amended.")
+            Nothing
 
 ## PRIVATE
 common_delete_rows target_table key_values_to_delete key_columns allow_duplicate_matches =
