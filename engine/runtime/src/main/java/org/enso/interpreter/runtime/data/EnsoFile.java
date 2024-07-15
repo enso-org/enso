@@ -137,6 +137,7 @@ public final class EnsoFile implements EnsoObject {
               buf[at++] = iop.asByte(elem);
               if (at == buf.length) {
                 os.write(buf, 0, buf.length);
+                at = 0;
               }
             }
             if (at > 0) {
