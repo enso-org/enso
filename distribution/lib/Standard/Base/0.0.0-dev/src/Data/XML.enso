@@ -370,11 +370,11 @@ type XML_Document
     to_display_text self = "XML_Document (" + self.root_element.to_display_text + ")"
 
     ## PRIVATE
-       Transform the vector into text for displaying as part of its default
-       visualization.
+       Transform the XML document into text for displaying as part of its
+       default visualization.
     to_default_visualization_data : Text
     to_default_visualization_data self =
-        outer_vec = Vector.build initial_capacity=4 builder->
+        outer_vec = Vector.build initial_capacity=2 builder->
             builder.append ["type", "XML_Document"]
             builder.append ["root_element", self.root_element.to_default_visualization_data as_js_object=True]
         JS_Object.from_pairs outer_vec . to_json
@@ -701,7 +701,7 @@ type XML_Element
                         _ -> c
 
                 ## Limit to 50 children to avoid excessive rendering.
-                builder.append ["children", self.children_cache.take 50 . map inner_render]
+                builder.append ["children", self.children_cache.take 50 . map inner_render + (if self.children_cache.length > 50 then ["..."] else [])]
                 builder.append ["children_count", self.children_cache.length]
         js_object = JS_Object.from_pairs vec
         if as_js_object then js_object else js_object.to_json
