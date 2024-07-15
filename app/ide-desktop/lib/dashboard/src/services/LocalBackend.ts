@@ -624,15 +624,6 @@ export default class LocalBackend extends Backend {
     await this.projectManager.moveFile(from, to)
   }
 
-  /** Return a {@link Promise} that resolves only when a project is ready to open. */
-  override async waitUntilProjectIsReady(
-    projectId: backend.ProjectId,
-    directory: backend.DirectoryId | null,
-    title: string
-  ) {
-    return await this.getProjectDetails(projectId, directory, title)
-  }
-
   /** Construct a new path using the given parent directory and a file name. */
   getProjectDirectoryPath(id: backend.ProjectId) {
     return this.projectManager.getProjectDirectoryPath(extractTypeAndId(id).id)

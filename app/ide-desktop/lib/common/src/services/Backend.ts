@@ -1455,13 +1455,6 @@ export default abstract class Backend {
         projectId?: string | null,
         metadata?: object | null
     ): Promise<void>
-    /** Return a {@link Promise} that resolves only when a project is ready to open. */
-    abstract waitUntilProjectIsReady(
-        projectId: ProjectId,
-        directory: DirectoryId | null,
-        title: string,
-        abortSignal?: AbortSignal
-    ): Promise<Project>
     /** Download from an arbitrary URL that is assumed to originate from this backend. */
     abstract download(url: string, name?: string): Promise<void>
 }

@@ -1,6 +1,7 @@
 /** @file Actions for the context menu. */
 import type * as baseActions from './BaseActions'
 import type BaseActions from './BaseActions'
+import EditorPageActions from './EditorPageActions'
 
 // ==========================
 // === ContextMenuActions ===
@@ -19,6 +20,7 @@ export interface ContextMenuActions<T extends BaseActions> {
   readonly share: () => T
   readonly label: () => T
   readonly duplicate: () => T
+  readonly duplicateProject: () => EditorPageActions
   readonly copy: () => T
   readonly cut: () => T
   readonly paste: () => T
@@ -91,6 +93,10 @@ export function contextMenuActions<T extends BaseActions>(
       step('Duplicate (context menu)', page =>
         page.getByRole('button', { name: 'Duplicate' }).getByText('Duplicate').click()
       ),
+    duplicateProject: () =>
+      step('Duplicate project (context menu)', page =>
+        page.getByRole('button', { name: 'Duplicate' }).getByText('Duplicate').click()
+      ).into(EditorPageActions),
     copy: () =>
       step('Copy (context menu)', page =>
         page.getByRole('button', { name: 'Copy' }).getByText('Copy').click()

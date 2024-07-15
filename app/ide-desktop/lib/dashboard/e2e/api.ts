@@ -148,7 +148,7 @@ export async function mockApi({ page, setupAPI }: MockParams) {
         type: backend.AssetType.project,
         id: backend.ProjectId('project-' + uniqueString.uniqueString()),
         projectState: {
-          type: backend.ProjectState.opened,
+          type: backend.ProjectState.closed,
           volumeId: '',
         },
         title,
@@ -479,26 +479,27 @@ export async function mockApi({ page, setupAPI }: MockParams) {
     // === Endpoints with dummy implementations ===
 
     await get(remoteBackendPaths.getProjectDetailsPath(GLOB_PROJECT_ID), (_route, request) => {
-      const projectId = request.url().match(/[/]projects[/](.+?)[/]copy/)?.[1] ?? ''
-      return {
-        organizationId: defaultOrganizationId,
-        projectId: backend.ProjectId(projectId),
-        name: 'example project name',
-        state: {
-          type: backend.ProjectState.opened,
-          volumeId: '',
-          openedBy: defaultEmail,
-        },
-        packageName: 'Project_root',
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        ide_version: null,
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        engine_version: {
-          value: '2023.2.1-nightly.2023.9.29',
-          lifecycle: backend.VersionLifecycle.development,
-        },
-        address: backend.Address('ws://example.com/'),
-      } satisfies backend.ProjectRaw
+      const projectId = backend.ProjectId(request.url().match(/[/]projects[/]([^?/]+)/)?.[1] ?? '')
+      const project = assetMap.get(projectId)
+      if (!project?.projectState) {
+        throw new Error('Attempting to get a project that does not exist.')
+      } else {
+        return {
+          organizationId: defaultOrganizationId,
+          projectId: projectId,
+          name: 'example project name',
+          state: project.projectState,
+          packageName: 'Project_root',
+          // eslint-disable-next-line @typescript-eslint/naming-convention
+          ide_version: null,
+          // eslint-disable-next-line @typescript-eslint/naming-convention
+          engine_version: {
+            value: '2023.2.1-nightly.2023.9.29',
+            lifecycle: backend.VersionLifecycle.development,
+          },
+          address: backend.Address('ws://localhost/'),
+        } satisfies backend.ProjectRaw
+      }
     })
 
     // === Endpoints returning `void` ===
@@ -508,7 +509,7 @@ export async function mockApi({ page, setupAPI }: MockParams) {
       interface Body {
         readonly parentDirectoryId: backend.DirectoryId
       }
-      const assetId = request.url().match(/[/]assets[/](.+?)[/]copy/)?.[1]
+      const assetId = request.url().match(/[/]assets[/]([^?/]+)/)?.[1]
       // eslint-disable-next-line no-restricted-syntax
       const asset = assetId != null ? assetMap.get(assetId as backend.AssetId) : null
       if (asset == null) {
@@ -559,10 +560,20 @@ export async function mockApi({ page, setupAPI }: MockParams) {
     await delete_(remoteBackendPaths.deleteAssetPath(GLOB_ASSET_ID), async route => {
       await route.fulfill()
     })
-    await post(remoteBackendPaths.closeProjectPath(GLOB_PROJECT_ID), async route => {
+    await post(remoteBackendPaths.closeProjectPath(GLOB_PROJECT_ID), async (route, request) => {
+      const projectId = backend.ProjectId(request.url().match(/[/]projects[/]([^?/]+)/)?.[1] ?? '')
+      const project = assetMap.get(projectId)
+      if (project?.projectState) {
+        object.unsafeMutable(project.projectState).type = backend.ProjectState.closed
+      }
       await route.fulfill()
     })
-    await post(remoteBackendPaths.openProjectPath(GLOB_PROJECT_ID), async route => {
+    await post(remoteBackendPaths.openProjectPath(GLOB_PROJECT_ID), async (route, request) => {
+      const projectId = backend.ProjectId(request.url().match(/[/]projects[/]([^?/]+)/)?.[1] ?? '')
+      const project = assetMap.get(projectId)
+      if (project?.projectState) {
+        object.unsafeMutable(project.projectState).type = backend.ProjectState.opened
+      }
       await route.fulfill()
     })
     await delete_(remoteBackendPaths.deleteTagPath(GLOB_TAG_ID), async route => {
@@ -774,7 +785,7 @@ export async function mockApi({ page, setupAPI }: MockParams) {
         organizationId: defaultOrganizationId,
         packageName: 'Project_root',
         projectId: id,
-        state: { type: backend.ProjectState.opened, volumeId: '' },
+        state: { type: backend.ProjectState.closed, volumeId: '' },
       }
       addProject(title, {
         description: null,

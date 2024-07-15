@@ -2,6 +2,7 @@
 import * as test from '@playwright/test'
 
 import * as actions from './actions'
+import EditorPageActions from './actions/EditorPageActions'
 
 // =====================
 // === Local actions ===
@@ -44,11 +45,8 @@ export async function expectPlaceholderRow(page: test.Page) {
 // === Tests ===
 // =============
 
-test.test.beforeEach(({ page }) => {
-  return actions.mockAllAndLogin({ page })
-})
-
 test.test('copy', async ({ page }) => {
+  await actions.mockAllAndLogin({ page })
   const assetRows = actions.locateAssetRows(page)
 
   await actions.locateNewFolderIcon(page).click()
@@ -73,6 +71,7 @@ test.test('copy', async ({ page }) => {
 })
 
 test.test('copy (keyboard)', async ({ page }) => {
+  await actions.mockAllAndLogin({ page })
   const assetRows = actions.locateAssetRows(page)
 
   await actions.locateNewFolderIcon(page).click()
@@ -94,6 +93,7 @@ test.test('copy (keyboard)', async ({ page }) => {
 })
 
 test.test('move', async ({ page }) => {
+  await actions.mockAllAndLogin({ page })
   const assetRows = actions.locateAssetRows(page)
 
   await actions.locateNewFolderIcon(page).click()
@@ -118,6 +118,7 @@ test.test('move', async ({ page }) => {
 })
 
 test.test('move (drag)', async ({ page }) => {
+  await actions.mockAllAndLogin({ page })
   const assetRows = actions.locateAssetRows(page)
 
   await actions.locateNewFolderIcon(page).click()
@@ -135,6 +136,7 @@ test.test('move (drag)', async ({ page }) => {
 })
 
 test.test('move to trash', async ({ page }) => {
+  await actions.mockAllAndLogin({ page })
   const assetRows = actions.locateAssetRows(page)
 
   await actions.locateNewFolderIcon(page).click()
@@ -156,6 +158,7 @@ test.test('move to trash', async ({ page }) => {
 })
 
 test.test('move (keyboard)', async ({ page }) => {
+  await actions.mockAllAndLogin({ page })
   const assetRows = actions.locateAssetRows(page)
 
   await actions.locateNewFolderIcon(page).click()
@@ -177,6 +180,7 @@ test.test('move (keyboard)', async ({ page }) => {
 })
 
 test.test('cut (keyboard)', async ({ page }) => {
+  await actions.mockAllAndLogin({ page })
   const assetRows = actions.locateAssetRows(page)
 
   await actions.locateNewFolderIcon(page).click()
@@ -192,30 +196,40 @@ test.test('cut (keyboard)', async ({ page }) => {
     .toPass()
 })
 
-test.test('duplicate', async ({ page }) => {
-  const assetRows = actions.locateAssetRows(page)
+test.test('duplicate', ({ page }) =>
+  actions.mockAllAndLogin({ page }).then(async ({ pageActions }) =>
+    pageActions
+      // Assets: [0: New Project 1]
+      .newEmptyProject()
+      .goToPage.drive()
+      .driveTable.rightClickRow(0)
+      .contextMenu.duplicateProject()
+      .goToPage.drive()
+      .driveTable.withRows(async rows => {
+        // Assets: [0: New Project 1 (copy), 1: New Project 1]
+        await test.expect(rows).toHaveCount(2)
+        await test.expect(actions.locateContextMenus(page)).not.toBeVisible()
+        await test.expect(rows.nth(0)).toBeVisible()
+        await test.expect(rows.nth(0)).toHaveText(/^New Project 1 [(]copy[)]/)
+      })
+  )
+)
 
-  await actions.locateNewFolderIcon(page).click()
-  // Assets: [0: Folder 1]
-  await assetRows.nth(0).click({ button: 'right' })
-  await test.expect(actions.locateContextMenus(page)).toBeVisible()
-  await locateDuplicateButton(page).click()
-  // Assets: [0: Folder 1 (copy), 1: Folder 1]
-  await test.expect(assetRows).toHaveCount(2)
-  await test.expect(actions.locateContextMenus(page)).not.toBeVisible()
-  await test.expect(assetRows.nth(0)).toBeVisible()
-  await test.expect(assetRows.nth(0)).toHaveText(/^New Folder 1 [(]copy[)]/)
-})
-
-test.test('duplicate (keyboard)', async ({ page }) => {
-  const assetRows = actions.locateAssetRows(page)
-
-  await actions.locateNewFolderIcon(page).click()
-  // Assets: [0: Folder 1]
-  await actions.clickAssetRow(assetRows.nth(0))
-  await actions.press(page, 'Mod+D')
-  // Assets: [0: Folder 1 (copy), 1: Folder 1]
-  await test.expect(assetRows).toHaveCount(2)
-  await test.expect(assetRows.nth(0)).toBeVisible()
-  await test.expect(assetRows.nth(0)).toHaveText(/^New Folder 1 [(]copy[)]/)
-})
+test.test('duplicate (keyboard)', ({ page }) =>
+  actions.mockAllAndLogin({ page }).then(async ({ pageActions }) =>
+    pageActions
+      // Assets: [0: New Project 1]
+      .newEmptyProject()
+      .goToPage.drive()
+      .driveTable.clickRow(0)
+      .press('Mod+D')
+      .into(EditorPageActions)
+      .goToPage.drive()
+      .driveTable.withRows(async rows => {
+        // Assets: [0: New Project 1 (copy), 1: New Project 1]
+        await test.expect(rows).toHaveCount(2)
+        await test.expect(rows.nth(0)).toBeVisible()
+        await test.expect(rows.nth(0)).toHaveText(/^New Project 1 [(]copy[)]/)
+      })
+  )
+)

@@ -36,9 +36,6 @@ const STATUS_NOT_AUTHORIZED = 401
 /** The number of milliseconds in one day. */
 const ONE_DAY_MS = 86_400_000
 
-/** The interval between requests checking whether a project is ready to be opened in the IDE. */
-const CHECK_STATUS_INTERVAL_MS = 5000
-
 // =============
 // === Types ===
 // =============
@@ -1107,23 +1104,6 @@ export default class RemoteBackend extends Backend {
       // eslint-disable-next-line no-restricted-syntax
       return this.throw(response, 'logEventBackendError', message)
     }
-  }
-
-  /** Return a {@link Promise} that resolves only when a project is ready to open. */
-  override async waitUntilProjectIsReady(
-    projectId: backend.ProjectId,
-    directory: backend.DirectoryId | null,
-    title: string,
-    abortSignal?: AbortSignal
-  ) {
-    let project = await this.getProjectDetails(projectId, directory, title)
-
-    while (project.state.type !== backend.ProjectState.opened && abortSignal?.aborted !== true) {
-      await new Promise<void>(resolve => setTimeout(resolve, CHECK_STATUS_INTERVAL_MS))
-      project = await this.getProjectDetails(projectId, directory, title)
-    }
-
-    return project
   }
 
   /** Download from an arbitrary URL that is assumed to originate from this backend. */

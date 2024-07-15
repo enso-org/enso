@@ -76,13 +76,15 @@ declare module '#/utilities/LocalStorage' {
 
 LocalStorage.registerKey('isAssetPanelVisible', { schema: z.boolean() })
 
-const PROJECT_SCHEMA = z.object({
-  id: z.custom<backendModule.ProjectId>(),
-  parentId: z.custom<backendModule.DirectoryId>(),
-  title: z.string(),
-  type: z.nativeEnum(backendModule.BackendType),
-})
-const LAUNCHED_PROJECT_SCHEMA = z.array(PROJECT_SCHEMA)
+const PROJECT_SCHEMA = z
+  .object({
+    id: z.custom<backendModule.ProjectId>(x => typeof x === 'string'),
+    parentId: z.custom<backendModule.DirectoryId>(x => typeof x === 'string'),
+    title: z.string(),
+    type: z.nativeEnum(backendModule.BackendType),
+  })
+  .readonly()
+const LAUNCHED_PROJECT_SCHEMA = z.array(PROJECT_SCHEMA).readonly()
 
 /**
  * Launched project information.
@@ -91,18 +93,16 @@ export type Project = z.infer<typeof PROJECT_SCHEMA>
 /**
  * Launched project ID.
  */
-export type ProjectId = Project['id']
+export type ProjectId = backendModule.ProjectId
 
 LocalStorage.registerKey('launchedProjects', {
   isUserSpecific: true,
   schema: LAUNCHED_PROJECT_SCHEMA,
 })
 
-const PAGES_SCHEMA = z.nativeEnum(TabType).or(z.custom<backendModule.ProjectId>())
+const PAGES_SCHEMA = z.nativeEnum(TabType).or(z.custom<ProjectId>())
 
-LocalStorage.registerKey('page', {
-  schema: PAGES_SCHEMA,
-})
+LocalStorage.registerKey('page', { schema: PAGES_SCHEMA })
 
 // =================
 // === Dashboard ===
@@ -174,7 +174,6 @@ export function createGetProjectDetailsQuery(options: CreateOpenedProjectQueryOp
         // eslint-disable-next-line no-restricted-syntax
         return false
       }
-
       if (isLocal) {
         if (state.data?.state.type === backendModule.ProjectState.opened) {
           return openedIntervalMS
@@ -194,15 +193,15 @@ export function createGetProjectDetailsQuery(options: CreateOpenedProjectQueryOp
     refetchIntervalInBackground: true,
     refetchOnWindowFocus: true,
     refetchOnMount: true,
-    queryFn: () => {
+    queryFn: async () => {
       invariant(backend != null, 'Backend is null')
 
-      return backend.getProjectDetails(assetId, parentId, title)
+      return await backend.getProjectDetails(assetId, parentId, title)
     },
   })
 }
-createGetProjectDetailsQuery.getQueryKey = (id: Project['id']) => ['project', id] as const
-createGetProjectDetailsQuery.createPassiveListener = (id: Project['id']) =>
+createGetProjectDetailsQuery.getQueryKey = (id: ProjectId) => ['project', id] as const
+createGetProjectDetailsQuery.createPassiveListener = (id: ProjectId) =>
   reactQuery.queryOptions<backendModule.Project>({
     queryKey: createGetProjectDetailsQuery.getQueryKey(id),
   })
@@ -244,7 +243,7 @@ export default function Dashboard(props: DashboardProps) {
     }
   )
 
-  const [launchedProjects, privateSetLaunchedProjects] = React.useState<Project[]>(
+  const [launchedProjects, privateSetLaunchedProjects] = React.useState<readonly Project[]>(
     () => localStorage.get('launchedProjects') ?? []
   )
 
@@ -252,7 +251,7 @@ export default function Dashboard(props: DashboardProps) {
   const [page, privateSetPage] = searchParamsState.useSearchParamsState(
     'page',
     () => localStorage.get('page') ?? TabType.drive,
-    (value: unknown): value is Project['id'] | TabType => {
+    (value: unknown): value is ProjectId | TabType => {
       return (
         array.includes(Object.values(TabType), value) || launchedProjects.some(p => p.id === value)
       )
@@ -260,7 +259,7 @@ export default function Dashboard(props: DashboardProps) {
   )
 
   const setLaunchedProjects = eventCallbacks.useEventCallback(
-    (fn: (currentState: Project[]) => Project[]) => {
+    (fn: (currentState: readonly Project[]) => readonly Project[]) => {
       React.startTransition(() => {
         privateSetLaunchedProjects(currentState => {
           const nextState = fn(currentState)
@@ -275,7 +274,7 @@ export default function Dashboard(props: DashboardProps) {
     setLaunchedProjects(currentState => [...currentState, project])
   })
 
-  const removeLaunchedProject = eventCallbacks.useEventCallback((projectId: Project['id']) => {
+  const removeLaunchedProject = eventCallbacks.useEventCallback((projectId: ProjectId) => {
     setLaunchedProjects(currentState => currentState.filter(({ id }) => id !== projectId))
   })
 
@@ -283,7 +282,7 @@ export default function Dashboard(props: DashboardProps) {
     setLaunchedProjects(() => [])
   })
 
-  const setPage = eventCallbacks.useEventCallback((nextPage: Project['id'] | TabType) => {
+  const setPage = eventCallbacks.useEventCallback((nextPage: ProjectId | TabType) => {
     privateSetPage(nextPage)
     localStorage.set('page', nextPage)
   })
@@ -482,7 +481,7 @@ export default function Dashboard(props: DashboardProps) {
     }
   )
 
-  const doOpenEditor = eventCallbacks.useEventCallback((projectId: Project['id']) => {
+  const doOpenEditor = eventCallbacks.useEventCallback((projectId: ProjectId) => {
     React.startTransition(() => {
       setPage(projectId)
     })
