@@ -46,7 +46,6 @@ test.test('labels', async ({ page }) => {
   })
   const searchBarInput = actions.locateSearchBarInput(page)
   const labels = actions.locateSearchBarLabels(page)
-  await actions.reload({ page })
 
   await searchBarInput.click()
   for (const label of await labels.all()) {

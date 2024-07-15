@@ -5,42 +5,52 @@ import * as actions from './actions'
 
 const PASS_TIMEOUT = 5_000
 
-test.test('extra columns should stick to right side of assets table', async ({ page }) => {
-  await actions.mockAllAndLogin({ page })
-  await actions.locateAccessedByProjectsColumnToggle(page).click()
-  await actions.locateAccessedDataColumnToggle(page).click()
-  await actions.locateAssetsTable(page).evaluate(element => {
-    let scrollableParent: HTMLElement | SVGElement | null = element
-    while (
-      scrollableParent != null &&
-      scrollableParent.scrollWidth <= scrollableParent.clientWidth
-    ) {
-      scrollableParent = scrollableParent.parentElement
-    }
-    // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-    scrollableParent?.scrollTo({ left: 999999, behavior: 'instant' })
-  })
-  const extraColumns = actions.locateExtraColumns(page)
-  const assetsTable = actions.locateAssetsTable(page)
-  await test
-    .expect(async () => {
-      const extraColumnsRight = await extraColumns.evaluate(
-        element => element.getBoundingClientRect().right
-      )
-      const assetsTableRight = await assetsTable.evaluate(
-        element => element.getBoundingClientRect().right
-      )
-      test.expect(extraColumnsRight).toEqual(assetsTableRight)
-    })
-    .toPass({ timeout: PASS_TIMEOUT })
-})
+test.test('extra columns should stick to right side of assets table', ({ page }) =>
+  actions.mockAllAndLogin({ page }).then(async ({ pageActions }) =>
+    pageActions.driveTable.toggleColumn
+      .accessedByProjects()
+      .driveTable.toggleColumn.accessedData()
+      .withAssetsTable(async table => {
+        await table.evaluate(element => {
+          let scrollableParent: HTMLElement | SVGElement | null = element
+          while (
+            scrollableParent != null &&
+            scrollableParent.scrollWidth <= scrollableParent.clientWidth
+          ) {
+            scrollableParent = scrollableParent.parentElement
+          }
+          // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+          scrollableParent?.scrollTo({ left: 999999, behavior: 'instant' })
+        })
+      })
+      .do(async thePage => {
+        const extraColumns = actions.locateExtraColumns(thePage)
+        const assetsTable = actions.locateAssetsTable(thePage)
+        await test
+          .expect(async () => {
+            const extraColumnsRight = await extraColumns.evaluate(
+              element => element.getBoundingClientRect().right
+            )
+            const assetsTableRight = await assetsTable.evaluate(
+              element => element.getBoundingClientRect().right
+            )
+            test.expect(extraColumnsRight).toEqual(assetsTableRight)
+          })
+          .toPass({ timeout: PASS_TIMEOUT })
+      })
+  )
+)
 
 test.test('extra columns should stick to top of scroll container', async ({ page }) => {
-  const { api } = await actions.mockAllAndLogin({ page })
-  // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-  for (let i = 0; i < 100; i += 1) {
-    api.addFile('a')
-  }
+  await actions.mockAllAndLogin({
+    page,
+    setupAPI: api => {
+      // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+      for (let i = 0; i < 100; i += 1) {
+        api.addFile('a')
+      }
+    },
+  })
   await actions.reload({ page })
 
   await actions.locateAccessedByProjectsColumnToggle(page).click()
@@ -78,19 +88,22 @@ test.test('extra columns should stick to top of scroll container', async ({ page
     .toPass({ timeout: PASS_TIMEOUT })
 })
 
-test.test('can drop onto root directory dropzone', async ({ page }) => {
-  const { api } = await actions.mockAllAndLogin({ page })
-  const assetRows = actions.locateAssetRows(page)
-  const asset = api.addDirectory('a')
-  api.addFile('b', { parentId: asset.id })
-  await actions.reload({ page })
-
-  await assetRows.nth(0).dblclick()
-  const parentLeft = await actions.getAssetRowLeftPx(assetRows.nth(0))
-  const childLeft = await actions.getAssetRowLeftPx(assetRows.nth(1))
-  test.expect(childLeft, 'child is indented further than parent').toBeGreaterThan(parentLeft)
-  await assetRows.nth(1).dragTo(actions.locateRootDirectoryDropzone(page), { force: true })
-  const firstLeft = await actions.getAssetRowLeftPx(assetRows.nth(0))
-  const secondLeft = await actions.getAssetRowLeftPx(assetRows.nth(1))
-  test.expect(firstLeft, 'siblings have same indentation').toEqual(secondLeft)
-})
+test.test('can drop onto root directory dropzone', ({ page }) =>
+  actions.mockAllAndLogin({ page }).then(async ({ pageActions }) =>
+    pageActions
+      .createFolder()
+      .uploadFile('b', 'testing')
+      .driveTable.doubleClickRow(0)
+      .driveTable.withRows(async rows => {
+        const parentLeft = await actions.getAssetRowLeftPx(rows.nth(0))
+        const childLeft = await actions.getAssetRowLeftPx(rows.nth(1))
+        test.expect(childLeft, 'Child is indented further than parent').toBeGreaterThan(parentLeft)
+      })
+      .driveTable.dragRow(1, actions.locateRootDirectoryDropzone(page))
+      .driveTable.withRows(async rows => {
+        const firstLeft = await actions.getAssetRowLeftPx(rows.nth(0))
+        const secondLeft = await actions.getAssetRowLeftPx(rows.nth(1))
+        test.expect(firstLeft, 'Siblings have same indentation').toEqual(secondLeft)
+      })
+  )
+)
