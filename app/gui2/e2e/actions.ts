@@ -18,7 +18,7 @@ export async function goToGraph(page: Page, closeDocPanel: boolean = true) {
     await expect(page.getByTestId('rightDock')).toExist()
     await page.getByRole('button', { name: 'Documentation Panel' }).click()
     // Wait for the closing animation.
-    await expect(page.getByTestId('rightDock')).not.toBeVisible()
+    await expect(page.getByTestId('rightDock')).toBeHidden()
   }
   // Wait for position initialization
   await expectNodePositionsInitialized(page, 72)
@@ -26,7 +26,7 @@ export async function goToGraph(page: Page, closeDocPanel: boolean = true) {
 
 export async function expectNodePositionsInitialized(page: Page, yPos: number) {
   // Wait until edges are initialized and displayed correctly.
-  await expect(page.getByTestId('broken-edge')).toHaveCount(0)
+  await expect(page.getByTestId('broken-edge')).toBeHidden()
   // Wait until node sizes are initialized.
   await expect(locate.graphNode(page).first().locator('.bgFill')).toBeVisible()
   // TODO: The yPos should not need to be a variable. Instead, first automatically positioned nodes
@@ -54,4 +54,10 @@ export async function dragNodeByBinding(page: Page, nodeBinding: string, x: numb
     targetPosition: { x, y },
     force: true,
   })
+}
+
+/// Move mouse away to avoid random hover events and wait for any circular menus to disappear.
+export async function ensureNoCircularMenusVisible(page: Page) {
+  await page.mouse.move(-1000, 0)
+  await expect(locate.circularMenu(page)).toBeHidden()
 }
