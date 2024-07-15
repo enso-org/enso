@@ -7,6 +7,7 @@ import { useAutoBlur } from '@/util/autoBlur'
 import { chain } from '@/util/data/iterable'
 import { unwrap } from '@/util/data/result'
 import { qnJoin, tryQualifiedName } from '@/util/qualifiedName'
+import { EditorSelection } from '@codemirror/state'
 import { createDebouncer } from 'lib0/eventloop'
 import { MutableModule } from 'shared/ast'
 import { textChangeToEdits, type SourceRangeEdit } from 'shared/util/data/text'
@@ -293,6 +294,30 @@ watch([executionContextDiagnostics, expressionUpdatesDiagnostics], () => {
 onMounted(() => {
   editorView.focus()
   rootElement.value?.prepend(editorView.dom)
+
+  // API for e2e tests.
+  ;(window as any).__codeEditorApi = {
+    textContent: () => editorView.state.doc.toString(),
+    textLength: () => editorView.state.doc.length,
+    indexOf: (substring: string, position?: number) =>
+      editorView.state.doc.toString().indexOf(substring, position),
+    placeCursor: (at: number) => {
+      editorView.dispatch({ selection: EditorSelection.create([EditorSelection.cursor(at)]) })
+    },
+    select: (from, to) => {
+      editorView.dispatch({ selection: EditorSelection.create([EditorSelection.range(from, to)]) })
+    },
+    selectAndReplace: (from: number, to: number, replaceWith: string) => {
+      editorView.dispatch({ selection: EditorSelection.create([EditorSelection.range(from, to)]) })
+      editorView.dispatch(editorView.state.update(editorView.state.replaceSelection(replaceWith)))
+    },
+    writeText: (text: string, from: number) => {
+      editorView.dispatch({
+        changes: [{ from: from, insert: text }],
+        selection: { anchor: from + text.length },
+      })
+    },
+  }
 })
 </script>
 

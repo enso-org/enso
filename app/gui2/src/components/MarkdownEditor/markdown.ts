@@ -1,6 +1,5 @@
 import type { LexicalPlugin } from '@/components/lexical'
 import { useLexicalStringSync } from '@/components/lexical/sync'
-import { $setSelection } from 'lexical'
 import { CodeHighlightNode, CodeNode } from '@lexical/code'
 import { AutoLinkNode, LinkNode } from '@lexical/link'
 import { ListItemNode, ListNode } from '@lexical/list'
@@ -13,6 +12,7 @@ import {
 } from '@lexical/markdown'
 import { HeadingNode, QuoteNode, registerRichText } from '@lexical/rich-text'
 import { TableCellNode, TableNode, TableRowNode } from '@lexical/table'
+import { $setSelection } from 'lexical'
 import { watch, type Ref } from 'vue'
 
 export interface LexicalMarkdownPlugin extends LexicalPlugin {
@@ -59,7 +59,7 @@ const markdownSyncPlugin = (model: Ref<string>, transformers: Transformer[]): Le
       (value) => {
         $convertFromMarkdownString(value, transformers)
         $setSelection(null)
-      }
+      },
     )
     watch(model, (newContent) => content.set(newContent), { immediate: true })
     watch(content.state, (newContent) => (model.value = newContent))
