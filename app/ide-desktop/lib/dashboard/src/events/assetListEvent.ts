@@ -100,6 +100,9 @@ interface AssetListInsertAssetsEvent extends AssetListBaseEvent<AssetListEventTy
 export interface AssetListOpenProjectEvent
   extends AssetListBaseEvent<AssetListEventType.openProject> {
   readonly id: backend.ProjectId
+  readonly backendType: backend.BackendType
+  readonly title: string
+  readonly parentId: backend.DirectoryId
 }
 
 /** A signal to duplicate a project. */

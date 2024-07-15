@@ -410,11 +410,14 @@ export default function Dashboard(props: DashboardProps) {
   })
 
   React.useEffect(() => {
-    window.projectManagementApi?.setOpenProjectHandler(id => {
+    window.projectManagementApi?.setOpenProjectHandler(project => {
       setCategory(Category.local)
       dispatchAssetListEvent({
         type: AssetListEventType.openProject,
-        id: backendModule.ProjectId(id),
+        backendType: backendModule.BackendType.local,
+        id: backendModule.ProjectId(project.id),
+        title: project.name,
+        parentId: localBackendModule.newDirectoryId(backendModule.Path(project.parentDirectory)),
       })
     })
     return () => {

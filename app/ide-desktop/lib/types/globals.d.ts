@@ -108,10 +108,16 @@ interface FileBrowserApi {
 // === Project Management API ===
 // ==============================
 
+interface ProjectInfo {
+    readonly id: string
+    readonly name: string
+    readonly parentDirectory: string
+}
+
 /** `window.projectManagementApi` exposes functionality related to system events related to
  * project management. */
 interface ProjectManagementApi {
-    readonly setOpenProjectHandler: (handler: (id: string) => void) => void
+    readonly setOpenProjectHandler: (handler: (projectInfo: ProjectInfo) => void) => void
 }
 
 // ====================

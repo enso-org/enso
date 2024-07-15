@@ -61,11 +61,11 @@ class App {
         log.addFileLog()
         urlAssociations.registerAssociations()
         // Register file associations for macOS.
-        fileAssociations.setOpenFileEventHandler(id => {
+        fileAssociations.setOpenFileEventHandler(project => {
             if (electron.app.isReady()) {
-                this.window?.webContents.send(ipc.Channel.openProject, id)
+                this.window?.webContents.send(ipc.Channel.openProject, project)
             } else {
-                this.setProjectToOpenOnStartup(id)
+                this.setProjectToOpenOnStartup(project.id)
             }
         })
 
@@ -180,8 +180,8 @@ class App {
                 // This makes the IDE open the relevant project. Also, this prevents us from using
                 // this method after the IDE has been fully set up, as the initializing code
                 // would have already read the value of this argument.
-                const projectId = fileAssociations.handleOpenFile(fileToOpen)
-                this.setProjectToOpenOnStartup(projectId)
+                const projectInfo = fileAssociations.handleOpenFile(fileToOpen)
+                this.setProjectToOpenOnStartup(projectInfo.id)
             }
 
             if (urlToOpen != null) {

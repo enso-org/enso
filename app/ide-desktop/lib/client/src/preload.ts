@@ -7,6 +7,7 @@ import * as electron from 'electron'
 
 import * as debug from 'debug'
 import * as ipc from 'ipc'
+import * as projectManagement from 'project-management'
 
 // =================
 // === Constants ===
@@ -76,7 +77,7 @@ type OpenDeepLinkHandler = (url: string) => void
 let deepLinkHandler: OpenDeepLinkHandler | null = null
 
 electron.ipcRenderer.on(
-    ipc.Channel.openProject,
+    ipc.Channel.openDeepLink,
     (_event: Electron.IpcRendererEvent, ...args: Parameters<OpenDeepLinkHandler>) => {
         deepLinkHandler?.(...args)
     }
@@ -133,7 +134,7 @@ exposeInMainWorld(FILE_BROWSER_API_KEY, {
 // ==============================
 
 /** A callback when a project is opened by opening a fileusing the system's default method. */
-type OpenProjectHandler = (id: string) => void
+type OpenProjectHandler = (projectInfo: projectManagement.ProjectInfo) => void
 let openProjectHandler: OpenProjectHandler | undefined
 
 electron.ipcRenderer.on(
@@ -144,7 +145,7 @@ electron.ipcRenderer.on(
 )
 
 exposeInMainWorld(PROJECT_MANAGEMENT_API_KEY, {
-    setOpenProjectHandler: (handler: (id: string) => void) => {
+    setOpenProjectHandler: (handler: (projectInfo: projectManagement.ProjectInfo) => void) => {
         openProjectHandler = handler
     },
 })

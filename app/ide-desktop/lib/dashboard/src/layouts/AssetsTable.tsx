@@ -1726,11 +1726,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         break
       }
       case AssetListEventType.openProject: {
-        dispatchAssetEvent({
-          type: AssetEventType.openProject,
-          id: event.id,
-          runInBackground: false,
-        })
+        dispatchAssetEvent({ ...event, type: AssetEventType.openProject, runInBackground: false })
         break
       }
       case AssetListEventType.duplicateProject: {
