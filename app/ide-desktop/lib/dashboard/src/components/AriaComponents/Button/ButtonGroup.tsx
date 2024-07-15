@@ -8,7 +8,7 @@ import * as twv from '#/utilities/tailwindVariants'
 // =================
 
 const STYLES = twv.tv({
-  base: 'flex w-full flex-1 shrink-0',
+  base: 'relative flex w-full flex-1 shrink-0',
   variants: {
     wrap: { true: 'flex-wrap' },
     direction: { column: 'flex-col', row: 'flex-row' },
