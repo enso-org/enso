@@ -78,9 +78,11 @@ function handleArgUpdate(update: WidgetUpdate): boolean {
     // Find the updated argument by matching origin port/expression with the appropriate argument.
     // We are interested only in updates at the top level of the argument AST. Updates from nested
     // widgets do not need to be processed at the function application level.
-    const argApp = [...app.iterApplications()].find(
+    const applications = [...app.iterApplications()]
+    const argAppIndex = applications.findIndex(
       (app) => 'portId' in app.argument && app.argument.portId === origin,
     )
+    const argApp = applications[argAppIndex]
 
     // Perform appropriate AST update, either insertion or deletion.
     if (value != null && argApp?.argument instanceof ArgumentPlaceholder) {
@@ -112,13 +114,18 @@ function handleArgUpdate(update: WidgetUpdate): boolean {
       // Proper fix would involve adding a proper "optimistic response" mechanism that can also be
       // saved in the undo transaction.
       const deletedArgIdx = argApp.argument.index
-      if (deletedArgIdx != null) {
-        const notAppliedArguments = methodCallInfo.value?.methodCall.notAppliedArguments
+      if (deletedArgIdx != null && methodCallInfo.value) {
+        // Grab original expression info data straight from DB, so we modify the original state.
+        const notAppliedArguments = graph.db.getExpressionInfo(
+          methodCallInfo.value.methodCallSource,
+        )?.methodCall?.notAppliedArguments
         if (notAppliedArguments != null) {
           const insertAt = partitionPoint(notAppliedArguments, (i) => i < deletedArgIdx)
-          // Insert the deleted argument back to the method info. This directly modifies observable
-          // data in `ComputedValueRegistry`. That's on purpose.
-          notAppliedArguments.splice(insertAt, 0, deletedArgIdx)
+          if (notAppliedArguments[insertAt] != deletedArgIdx) {
+            // Insert the deleted argument back to the method info. This directly modifies observable
+            // data in `ComputedValueRegistry`. That's on purpose.
+            notAppliedArguments.splice(insertAt, 0, deletedArgIdx)
+          }
         }
       }
 
@@ -137,7 +144,7 @@ function handleArgUpdate(update: WidgetUpdate): boolean {
           },
         })
         return true
-      } else if (value == null && argApp.appTree instanceof Ast.OprApp) {
+      } else if (argApp.appTree instanceof Ast.OprApp) {
         /* Case: Removing infix application. */
 
         // Infix application is removed as a whole. Only the target is kept.
@@ -160,12 +167,17 @@ function handleArgUpdate(update: WidgetUpdate): boolean {
 
         // Traverse the application chain, starting from the outermost application and going
         // towards the innermost target.
-        for (let innerApp of [...app.iterApplications()]) {
+        for (let innerApp of applications) {
           if (innerApp.appTree.id === argApp.appTree.id) {
             // Found the application with the argument to remove. Skip the argument and use the
             // application target's code. This is the final iteration of the loop.
             const appTree = edit.getVersion(argApp.appTree)
-            appTree.replace(appTree.function.take())
+            if (graph.db.isNodeId(appTree.externalId)) {
+              // If the modified application is a node root, preserve its identity and metadata.
+              appTree.replaceValue(appTree.function.take())
+            } else {
+              appTree.replace(appTree.function.take())
+            }
             props.onUpdate({ edit })
             return true
           } else {

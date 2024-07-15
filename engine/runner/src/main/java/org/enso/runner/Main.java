@@ -12,7 +12,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -28,9 +27,6 @@ import org.enso.common.LanguageInfo;
 import org.enso.distribution.DistributionManager;
 import org.enso.distribution.Environment;
 import org.enso.editions.DefaultEdition;
-import org.enso.languageserver.boot.LanguageServerConfig;
-import org.enso.languageserver.boot.ProfilingConfig;
-import org.enso.languageserver.boot.StartupConfig;
 import org.enso.libraryupload.LibraryUploader.UploadFailedError;
 import org.enso.pkg.Contact;
 import org.enso.pkg.PackageManager;
@@ -40,6 +36,9 @@ import org.enso.polyglot.Module;
 import org.enso.polyglot.PolyglotContext;
 import org.enso.profiling.sampler.NoopSampler;
 import org.enso.profiling.sampler.OutputStreamSampler;
+import org.enso.runner.common.LanguageServerApi;
+import org.enso.runner.common.ProfilingConfig;
+import org.enso.runner.common.WrongOption;
 import org.enso.version.VersionDescription;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.PolyglotException.StackFrame;
@@ -71,14 +70,6 @@ public final class Main {
   private static final String PROFILING_PATH = "profiling-path";
   private static final String PROFILING_TIME = "profiling-time";
   private static final String LANGUAGE_SERVER_OPTION = "server";
-  private static final String DAEMONIZE_OPTION = "daemon";
-  private static final String INTERFACE_OPTION = "interface";
-  private static final String RPC_PORT_OPTION = "rpc-port";
-  private static final String DATA_PORT_OPTION = "data-port";
-  private static final String SECURE_RPC_PORT_OPTION = "secure-rpc-port";
-  private static final String SECURE_DATA_PORT_OPTION = "secure-data-port";
-  private static final String ROOT_ID_OPTION = "root-id";
-  private static final String ROOT_PATH_OPTION = "path";
   private static final String IN_PROJECT_OPTION = "in-project";
   private static final String VERSION_OPTION = "version";
   private static final String JSON_OPTION = "json";
@@ -98,7 +89,6 @@ public final class Main {
   private static final String HIDE_PROGRESS = "hide-progress";
   private static final String AUTH_TOKEN = "auth-token";
   private static final String AUTO_PARALLELISM_OPTION = "with-auto-parallelism";
-  private static final String SKIP_GRAALVM_UPDATER = "skip-graalvm-updater";
   private static final String EXECUTION_ENVIRONMENT_OPTION = "execution-environment";
   private static final String WARNINGS_LIMIT = "warnings-limit";
 
@@ -237,10 +227,13 @@ public final class Main {
             .desc("The duration in seconds limiting the profiling time.")
             .build();
     var deamonizeOption =
-        cliOptionBuilder().longOpt(DAEMONIZE_OPTION).desc("Daemonize Language Server").build();
+        cliOptionBuilder()
+            .longOpt(LanguageServerApi.DAEMONIZE_OPTION)
+            .desc("Daemonize Language Server")
+            .build();
     var interfaceOption =
         cliOptionBuilder()
-            .longOpt(INTERFACE_OPTION)
+            .longOpt(LanguageServerApi.INTERFACE_OPTION)
             .hasArg(true)
             .numberOfArgs(1)
             .argName("interface")
@@ -248,7 +241,7 @@ public final class Main {
             .build();
     var rpcPortOption =
         cliOptionBuilder()
-            .longOpt(RPC_PORT_OPTION)
+            .longOpt(LanguageServerApi.RPC_PORT_OPTION)
             .hasArg(true)
             .numberOfArgs(1)
             .argName("rpc-port")
@@ -256,7 +249,7 @@ public final class Main {
             .build();
     var secureRpcPortOption =
         cliOptionBuilder()
-            .longOpt(SECURE_RPC_PORT_OPTION)
+            .longOpt(LanguageServerApi.SECURE_RPC_PORT_OPTION)
             .hasArg(true)
             .numberOfArgs(1)
             .argName("rpc-port")
@@ -264,7 +257,7 @@ public final class Main {
             .build();
     var dataPortOption =
         cliOptionBuilder()
-            .longOpt(DATA_PORT_OPTION)
+            .longOpt(LanguageServerApi.DATA_PORT_OPTION)
             .hasArg(true)
             .numberOfArgs(1)
             .argName("data-port")
@@ -272,7 +265,7 @@ public final class Main {
             .build();
     var secureDataPortOption =
         cliOptionBuilder()
-            .longOpt(SECURE_DATA_PORT_OPTION)
+            .longOpt(LanguageServerApi.SECURE_DATA_PORT_OPTION)
             .hasArg(true)
             .numberOfArgs(1)
             .argName("data-port")
@@ -283,7 +276,7 @@ public final class Main {
             .hasArg(true)
             .numberOfArgs(1)
             .argName("uuid")
-            .longOpt(ROOT_ID_OPTION)
+            .longOpt(LanguageServerApi.ROOT_ID_OPTION)
             .desc("Content root id.")
             .build();
     var pathOption =
@@ -291,7 +284,7 @@ public final class Main {
             .hasArg(true)
             .numberOfArgs(1)
             .argName("path")
-            .longOpt(ROOT_PATH_OPTION)
+            .longOpt(LanguageServerApi.ROOT_PATH_OPTION)
             .desc("Path to the content root.")
             .build();
     var inProjectOption =
@@ -423,7 +416,7 @@ public final class Main {
 
     var skipGraalVMUpdater =
         cliOptionBuilder()
-            .longOpt(SKIP_GRAALVM_UPDATER)
+            .longOpt(LanguageServerApi.SKIP_GRAALVM_UPDATER)
             .desc("Skips GraalVM and its components setup during bootstrapping.")
             .build();
 
@@ -1173,84 +1166,6 @@ public final class Main {
     }
   }
 
-  /**
-   * Handles `--server` CLI option
-   *
-   * @param line a CLI line
-   * @param logLevel log level to set for the engine runtime
-   */
-  private void runLanguageServer(CommandLine line, Level logLevel) {
-    try {
-      var config = parseServerOptions(line);
-      LanguageServerApp.run(config, logLevel, line.hasOption(Main.DAEMONIZE_OPTION));
-      throw exitSuccess();
-    } catch (WrongOption e) {
-      System.err.println(e.getMessage());
-      throw exitFail();
-    }
-  }
-
-  private static LanguageServerConfig parseServerOptions(CommandLine line) throws WrongOption {
-    UUID rootId;
-    try {
-      var id = line.getOptionValue(ROOT_ID_OPTION);
-      if (id == null) {
-        throw new WrongOption("Root id must be provided");
-      }
-      rootId = UUID.fromString(id);
-    } catch (IllegalArgumentException e) {
-      throw new WrongOption("Root must be UUID");
-    }
-    var rootPath = line.getOptionValue(ROOT_PATH_OPTION);
-    if (rootPath == null) {
-      throw new WrongOption("Root path must be provided");
-    }
-    var interfac = line.getOptionValue(INTERFACE_OPTION, "127.0.0.1");
-    int rpcPort;
-    try {
-      rpcPort = Integer.parseInt(line.getOptionValue(RPC_PORT_OPTION, "8080"));
-    } catch (NumberFormatException e) {
-      throw new WrongOption("Port must be integer");
-    }
-    int dataPort;
-    try {
-      dataPort = Integer.parseInt(line.getOptionValue(DATA_PORT_OPTION, "8081"));
-    } catch (NumberFormatException e) {
-      throw new WrongOption("Port must be integer");
-    }
-    Integer secureRpcPort;
-    try {
-      var port = line.getOptionValue(SECURE_RPC_PORT_OPTION);
-      secureRpcPort = port == null ? null : Integer.valueOf(port);
-    } catch (NumberFormatException e) {
-      throw new WrongOption("Port must be integer");
-    }
-    Integer secureDataPort;
-    try {
-      var port = line.getOptionValue(SECURE_DATA_PORT_OPTION);
-      secureDataPort = port == null ? null : Integer.valueOf(port);
-    } catch (NumberFormatException e) {
-      throw new WrongOption("Port must be integer");
-    }
-    var profilingConfig = parseProfilingConfig(line);
-    var graalVMUpdater = line.hasOption(SKIP_GRAALVM_UPDATER);
-
-    var config =
-        new LanguageServerConfig(
-            interfac,
-            rpcPort,
-            scala.Option.apply(secureRpcPort),
-            dataPort,
-            scala.Option.apply(secureDataPort),
-            rootId,
-            rootPath,
-            profilingConfig,
-            new StartupConfig(graalVMUpdater),
-            "language-server",
-            ExecutionContext.global());
-    return config;
-  }
-
   private static ProfilingConfig parseProfilingConfig(CommandLine line) throws WrongOption {
     Path profilingPath = null;
     try {
@@ -1293,7 +1208,7 @@ public final class Main {
   }
 
   @SuppressWarnings("unchecked")
-  private static final <T> scala.collection.immutable.List<T> nil() {
+  private static <T> scala.collection.immutable.List<T> nil() {
     return (scala.collection.immutable.List<T>) scala.collection.immutable.Nil$.MODULE$;
   }
 
@@ -1425,7 +1340,14 @@ public final class Main {
 
   private void launch(Options options, CommandLine line, Level logLevel, boolean logMasking) {
     if (line.hasOption(LANGUAGE_SERVER_OPTION)) {
-      runLanguageServer(line, logLevel);
+      try {
+        var conf = parseProfilingConfig(line);
+        LanguageServerApi.launchLanguageServer(line, conf, logLevel);
+        throw exitSuccess();
+      } catch (WrongOption e) {
+        System.err.println(e.getMessage());
+        throw exitFail();
+      }
     } else {
       try {
         var conf = parseProfilingConfig(line);
@@ -1450,11 +1372,5 @@ public final class Main {
 
   protected String getLanguageId() {
     return LanguageInfo.ID;
-  }
-
-  private static final class WrongOption extends Exception {
-    WrongOption(String msg) {
-      super(msg);
-    }
   }
 }

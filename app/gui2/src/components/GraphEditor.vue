@@ -39,7 +39,6 @@ import { provideInteractionHandler } from '@/providers/interactionHandler'
 import { provideKeyboard } from '@/providers/keyboard'
 import { provideWidgetRegistry } from '@/providers/widgetRegistry'
 import { provideGraphStore, type NodeId } from '@/stores/graph'
-import { asNodeId } from '@/stores/graph/graphDatabase'
 import type { RequiredImport } from '@/stores/graph/imports'
 import { useProjectStore } from '@/stores/project'
 import { provideSuggestionDbStore } from '@/stores/suggestionDatabase'
@@ -211,8 +210,6 @@ const nodeSelection = provideGraphSelection(
   graphStore.isPortEnabled,
   {
     isValid: (id) => graphStore.db.nodeIdToNode.has(id),
-    pack: (id) => graphStore.db.nodeIdToNode.get(id)?.rootExpr.externalId,
-    unpack: (eid) => asNodeId(graphStore.db.idFromExternal(eid)),
     onSelected: (id) => graphStore.db.moveNodeToTop(id),
   },
 )
@@ -518,6 +515,7 @@ function clearFocus() {
 
 function createNodesFromSource(sourceNode: NodeId, options: NodeCreationOptions[]) {
   const sourcePort = graphStore.db.getNodeFirstOutputPort(sourceNode)
+  if (sourcePort == null) return
   const sourcePortAst = graphStore.viewModule.get(sourcePort)
   const [toCommit, toEdit] = partition(options, (opts) => opts.commit)
   createNodes(
@@ -565,25 +563,25 @@ function collapseNodes() {
     }
     const selectedNodeRects = filterDefined(Array.from(selected, graphStore.visibleArea))
     graphStore.edit((edit) => {
-      const { refactoredNodeId, collapsedNodeIds, outputNodeId } = performCollapse(
+      const { refactoredExpressionAstId, collapsedNodeIds, outputNodeId } = performCollapse(
         info.value,
         edit.getVersion(topLevel),
         graphStore.db,
         currentMethodName,
       )
       const position = collapsedNodePlacement(selectedNodeRects)
-      edit.get(refactoredNodeId).mutableNodeMetadata().set('position', position.xy())
+      edit.get(refactoredExpressionAstId).mutableNodeMetadata().set('position', position.xy())
       if (outputNodeId != null) {
         const collapsedNodeRects = filterDefined(
           Array.from(collapsedNodeIds, graphStore.visibleArea),
         )
         const { place } = usePlacement(collapsedNodeRects, graphNavigator.viewport)
         const position = place(collapsedNodeRects)
-        edit.get(outputNodeId).mutableNodeMetadata().set('position', position.xy())
+        edit.get(refactoredExpressionAstId).mutableNodeMetadata().set('position', position.xy())
       }
     })
   } catch (err) {
-    console.log('Error while collapsing, this is not normal.', err)
+    console.error('Error while collapsing, this is not normal.', err)
   }
 }
 
@@ -783,7 +781,7 @@ const groupColors = computed(() => {
   will-change: transform;
 }
 
-::selection {
+.layer.nodes:deep(::selection) {
   background-color: rgba(255, 255, 255, 20%);
 }
 </style>
