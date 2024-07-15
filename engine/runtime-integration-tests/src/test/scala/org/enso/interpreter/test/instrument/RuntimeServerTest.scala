@@ -5820,7 +5820,8 @@ class RuntimeServerTest
       Api.Response(
         Api.ExecutionFailed(
           contextId,
-          Api.ExecutionResult.Failure("Exit was called with exit code 42.", None)
+          Api.ExecutionResult
+            .Failure("Exit was called with exit code 42.", None)
         )
       )
     )
