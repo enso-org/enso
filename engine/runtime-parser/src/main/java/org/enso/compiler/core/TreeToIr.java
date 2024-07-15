@@ -1823,32 +1823,30 @@ final class TreeToIr {
   @SuppressWarnings("unchecked")
   Export translateExport(Tree.Export exp) {
     try {
+      if (exp.getHiding() != null) {
+        return translateSyntaxError(exp, invalidExportReason("`hiding` not allowed in `export` statement"));
+      }
+      if (exp.getAll() != null) {
+        return translateSyntaxError(exp, invalidExportReason("`all` not allowed in `export` statement"));
+      }
       Option<Name.Literal> rename;
       if (exp.getAs() == null) {
         rename = Option.empty();
       } else {
         rename = Option.apply(buildName(exp.getAs().getBody(), true));
       }
-      Option<List<Name.Literal>> hidingNames;
-      if (exp.getHiding() == null) {
-        hidingNames = Option.empty();
-      } else {
-        hidingNames = Option.apply(buildNameSequence(exp.getHiding().getBody()));
-      }
       Name.Qualified qualifiedName;
       Option<List<Name.Literal>> onlyNames = Option.empty();
       if (exp.getFrom() != null) {
         qualifiedName = buildQualifiedName(exp.getFrom().getBody(), Option.empty(), true);
         var onlyBodies = exp.getExport().getBody();
-        if (exp.getAll() == null) {
-          onlyNames = Option.apply(buildNameSequence(onlyBodies));
-        }
+        onlyNames = Option.apply(buildNameSequence(onlyBodies));
       } else {
         qualifiedName = buildQualifiedName(exp.getExport().getBody(), Option.empty(), true);
       }
       return new Export.Module(
-          qualifiedName, rename, (exp.getFrom() != null), onlyNames,
-          hidingNames, getIdentifiedLocation(exp), false,
+          qualifiedName, rename, onlyNames,
+          getIdentifiedLocation(exp), false,
           meta(), diag()
       );
     } catch (SyntaxException err) {

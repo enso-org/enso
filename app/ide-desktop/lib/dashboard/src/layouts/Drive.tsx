@@ -11,8 +11,6 @@ import * as backendProvider from '#/providers/BackendProvider'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as textProvider from '#/providers/TextProvider'
 
-import type * as assetEvent from '#/events/assetEvent'
-import type * as assetListEvent from '#/events/assetListEvent'
 import AssetListEventType from '#/events/AssetListEventType'
 
 import type * as dashboard from '#/pages/dashboard/Dashboard'
@@ -22,6 +20,7 @@ import AssetPanel from '#/layouts/AssetPanel'
 import type * as assetSearchBar from '#/layouts/AssetSearchBar'
 import type * as assetsTable from '#/layouts/AssetsTable'
 import AssetsTable from '#/layouts/AssetsTable'
+import * as eventListProvider from '#/layouts/AssetsTable/EventListProvider'
 import CategorySwitcher from '#/layouts/CategorySwitcher'
 import Category, * as categoryModule from '#/layouts/CategorySwitcher/Category'
 import DriveBar from '#/layouts/DriveBar'
@@ -68,10 +67,6 @@ export interface DriveProps {
   readonly setCategory: (category: Category) => void
   readonly hidden: boolean
   readonly initialProjectName: string | null
-  readonly assetListEvents: assetListEvent.AssetListEvent[]
-  readonly dispatchAssetListEvent: (directoryEvent: assetListEvent.AssetListEvent) => void
-  readonly assetEvents: assetEvent.AssetEvent[]
-  readonly dispatchAssetEvent: (directoryEvent: assetEvent.AssetEvent) => void
   readonly doOpenEditor: (id: dashboard.ProjectId) => void
   readonly doOpenProject: (project: dashboard.Project) => void
   readonly doCloseProject: (project: dashboard.Project) => void
@@ -89,10 +84,6 @@ export default function Drive(props: DriveProps) {
     hidden,
     initialProjectName,
     doOpenProject,
-    assetListEvents,
-    dispatchAssetListEvent,
-    assetEvents,
-    dispatchAssetEvent,
     assetsManagementApiRef,
   } = props
 
@@ -103,6 +94,7 @@ export default function Drive(props: DriveProps) {
   const localBackend = backendProvider.useLocalBackend()
   const backend = backendProvider.useBackend(category)
   const { getText } = textProvider.useText()
+  const dispatchAssetListEvent = eventListProvider.useDispatchAssetListEvent()
   const [query, setQuery] = React.useState(() => AssetQuery.fromString(''))
   const [suggestions, setSuggestions] = React.useState<readonly assetSearchBar.Suggestion[]>([])
   const [canDownload, setCanDownload] = React.useState(false)
@@ -296,16 +288,11 @@ export default function Drive(props: DriveProps) {
               doCreateDirectory={doCreateDirectory}
               doCreateSecret={doCreateSecret}
               doCreateDatalink={doCreateDatalink}
-              dispatchAssetEvent={dispatchAssetEvent}
             />
 
             <div className="flex flex-1 gap-drive overflow-hidden">
               <div className="flex w-drive-sidebar flex-col gap-drive-sidebar py-drive-sidebar-y">
-                <CategorySwitcher
-                  category={category}
-                  setCategory={setCategory}
-                  dispatchAssetEvent={dispatchAssetEvent}
-                />
+                <CategorySwitcher category={category} setCategory={setCategory} />
                 {isCloud && (
                   <Labels
                     backend={backend}
@@ -347,10 +334,6 @@ export default function Drive(props: DriveProps) {
                   category={category}
                   setSuggestions={setSuggestions}
                   initialProjectName={initialProjectName}
-                  assetEvents={assetEvents}
-                  dispatchAssetEvent={dispatchAssetEvent}
-                  assetListEvents={assetListEvents}
-                  dispatchAssetListEvent={dispatchAssetListEvent}
                   setAssetPanelProps={setAssetPanelProps}
                   setIsAssetPanelTemporarilyVisible={setIsAssetPanelTemporarilyVisible}
                   targetDirectoryNodeRef={targetDirectoryNodeRef}
@@ -374,8 +357,6 @@ export default function Drive(props: DriveProps) {
               item={assetPanelProps?.item ?? null}
               setItem={assetPanelProps?.setItem ?? null}
               category={category}
-              dispatchAssetEvent={dispatchAssetEvent}
-              dispatchAssetListEvent={dispatchAssetListEvent}
               isReadonly={category === Category.trash}
             />
           </div>

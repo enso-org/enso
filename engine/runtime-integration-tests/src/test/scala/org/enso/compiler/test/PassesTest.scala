@@ -9,7 +9,6 @@ import org.enso.compiler.pass.analyse.{
   AliasAnalysis,
   AmbiguousImportsAnalysis,
   BindingAnalysis,
-  ExportSymbolAnalysis,
   ImportSymbolAnalysis,
   PrivateConstructorAnalysis,
   PrivateModuleAnalysis
@@ -65,7 +64,6 @@ class PassesTest extends CompilerTest {
           AmbiguousImportsAnalysis,
           PrivateModuleAnalysis.INSTANCE,
           PrivateConstructorAnalysis.INSTANCE,
-          ExportSymbolAnalysis.INSTANCE,
           ShadowedPatternFields,
           UnreachableMatchBranches,
           NestedPatternMatch,

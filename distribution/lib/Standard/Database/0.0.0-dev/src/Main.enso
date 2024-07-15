@@ -1,4 +1,5 @@
 export project.Column_Description.Column_Description
+import project.Connection
 export project.Connection.Client_Certificate.Client_Certificate
 export project.Connection.Connection_Options.Connection_Options
 export project.Connection.Credentials.Credentials
@@ -9,5 +10,9 @@ export project.Connection.SQLite_Format.SQLite_Format
 export project.Connection.SSL_Mode.SSL_Mode
 export project.SQL_Query.SQL_Query
 export project.Update_Action.Update_Action
-from project.Extensions.Upload_Database_Table export all
-from project.Extensions.Upload_In_Memory_Table export all
+export project.Extensions.Upload_Database_Table.update_rows
+export project.Extensions.Upload_Database_Table.select_into_database_table
+export project.Extensions.Upload_Database_Table.delete_rows
+export project.Extensions.Upload_In_Memory_Table.update_rows
+export project.Extensions.Upload_In_Memory_Table.select_into_database_table
+export project.Extensions.Upload_In_Memory_Table.delete_rows

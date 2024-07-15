@@ -4,10 +4,10 @@ import * as React from 'react'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
-import type * as assetEvent from '#/events/assetEvent'
 import AssetEventType from '#/events/AssetEventType'
-import type * as assetListEvent from '#/events/assetListEvent'
 import AssetListEventType from '#/events/AssetListEventType'
+
+import * as eventListProvider from '#/layouts/AssetsTable/EventListProvider'
 
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
@@ -45,8 +45,6 @@ export interface DuplicateAssetsModalProps {
   readonly parentId: backendModule.DirectoryId
   readonly conflictingFiles: readonly ConflictingAsset<backendModule.FileAsset>[]
   readonly conflictingProjects: readonly ConflictingAsset<backendModule.ProjectAsset>[]
-  readonly dispatchAssetEvent: (assetEvent: assetEvent.AssetEvent) => void
-  readonly dispatchAssetListEvent: (assetListEvent: assetListEvent.AssetListEvent) => void
   readonly siblingFileNames: Iterable<string>
   readonly siblingProjectNames: Iterable<string>
   readonly nonConflictingFileCount: number
@@ -58,12 +56,13 @@ export interface DuplicateAssetsModalProps {
 export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
   const { parentKey, parentId, conflictingFiles: conflictingFilesRaw } = props
   const { conflictingProjects: conflictingProjectsRaw } = props
-  const { dispatchAssetEvent, dispatchAssetListEvent } = props
   const { siblingFileNames: siblingFileNamesRaw } = props
   const { siblingProjectNames: siblingProjectNamesRaw } = props
   const { nonConflictingFileCount, nonConflictingProjectCount, doUploadNonConflicting } = props
   const { unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
+  const dispatchAssetEvent = eventListProvider.useDispatchAssetEvent()
+  const dispatchAssetListEvent = eventListProvider.useDispatchAssetListEvent()
   const [conflictingFiles, setConflictingFiles] = React.useState(conflictingFilesRaw)
   const [conflictingProjects, setConflictingProjects] = React.useState(conflictingProjectsRaw)
   const [didUploadNonConflicting, setDidUploadNonConflicting] = React.useState(false)

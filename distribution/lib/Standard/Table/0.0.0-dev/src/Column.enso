@@ -10,8 +10,8 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Internal.Polyglot_Helpers
 import Standard.Base.Internal.Rounding_Helpers
-from Standard.Base.Metadata.Widget import Numeric_Input
 from Standard.Base.Data.Index_Sub_Range import drop_helper, normalize_ranges, take_helper
+from Standard.Base.Metadata.Widget import Numeric_Input
 from Standard.Base.Widget_Helpers import make_data_cleanse_vector_selector, make_format_chooser, make_regex_text_widget
 
 import project.Constants.Previous_Value

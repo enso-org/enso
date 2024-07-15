@@ -14,11 +14,9 @@ import org.enso.filewatcher.{NoopWatcherFactory, WatcherAdapterFactory}
 import org.enso.jsonrpc.test.JsonRpcServerTestKit
 import org.enso.jsonrpc.{ClientControllerFactory, ProtocolFactory}
 import org.enso.languageserver.TestClock
-import org.enso.languageserver.boot.{
-  ProfilingConfig,
-  StartupConfig,
-  TimingsConfig
-}
+import org.enso.runner.common.ProfilingConfig
+import org.enso.runner.common.CompilerBasedDependencyExtractor
+import org.enso.languageserver.boot.{StartupConfig, TimingsConfig}
 import org.enso.languageserver.boot.resource.{
   DirectoriesInitialization,
   InitializationComponent,

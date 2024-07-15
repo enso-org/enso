@@ -5,7 +5,6 @@ import BlankIcon from 'enso-assets/blank.svg'
 
 import * as backendHooks from '#/hooks/backendHooks'
 import * as dragAndDropHooks from '#/hooks/dragAndDropHooks'
-import * as eventHooks from '#/hooks/eventHooks'
 import * as setAssetHooks from '#/hooks/setAssetHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
@@ -20,6 +19,7 @@ import type * as dashboard from '#/pages/dashboard/Dashboard'
 
 import AssetContextMenu from '#/layouts/AssetContextMenu'
 import type * as assetsTable from '#/layouts/AssetsTable'
+import * as eventListProvider from '#/layouts/AssetsTable/EventListProvider'
 import Category from '#/layouts/CategorySwitcher/Category'
 
 import * as aria from '#/components/aria'
@@ -110,15 +110,17 @@ export default function AssetRow(props: AssetRowProps) {
   } = props
   const { setSelected, allowContextMenu, onContextMenu, state, columns, onClick } = props
   const { grabKeyboardFocus, doOpenProject, doCloseProject } = props
-  const { backend, visibilities, assetEvents, dispatchAssetEvent, dispatchAssetListEvent } = state
   const { nodeMap, setAssetPanelProps, doToggleDirectoryExpansion, doCopy, doCut, doPaste } = state
-  const { setIsAssetPanelTemporarilyVisible, scrollContainerRef, rootDirectoryId } = state
+  const { setIsAssetPanelTemporarilyVisible, scrollContainerRef, rootDirectoryId, backend } = state
+  const { visibilities } = state
 
   const draggableProps = dragAndDropHooks.useDraggable()
   const { user } = authProvider.useNonPartialUserSession()
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
+  const dispatchAssetEvent = eventListProvider.useDispatchAssetEvent()
+  const dispatchAssetListEvent = eventListProvider.useDispatchAssetListEvent()
   const [isDraggedOver, setIsDraggedOver] = React.useState(false)
   const [item, setItem] = React.useState(rawItem)
   const rootRef = React.useRef<HTMLElement | null>(null)
@@ -434,7 +436,7 @@ export default function AssetRow(props: AssetRowProps) {
     )
   }, [setModal, asset.description, setAsset, backend, item.item.id, item.item.title])
 
-  eventHooks.useEventHandler(assetEvents, async event => {
+  eventListProvider.useAssetEventListener(async event => {
     if (state.category === Category.trash) {
       switch (event.type) {
         case AssetEventType.deleteForever: {
@@ -696,7 +698,7 @@ export default function AssetRow(props: AssetRowProps) {
         }
       }
     }
-  })
+  }, item.initialAssetEvents)
 
   const clearDragState = React.useCallback(() => {
     setIsDraggedOver(false)

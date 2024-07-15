@@ -4,8 +4,9 @@ import * as React from 'react'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
-import type * as assetListEventModule from '#/events/assetListEvent'
 import AssetListEventType from '#/events/AssetListEventType'
+
+import * as eventListProvider from '#/layouts/AssetsTable/EventListProvider'
 
 import * as aria from '#/components/aria'
 import ContextMenu from '#/components/ContextMenu'
@@ -25,7 +26,6 @@ export interface GlobalContextMenuProps {
   readonly rootDirectoryId: backendModule.DirectoryId
   readonly directoryKey: backendModule.DirectoryId | null
   readonly directoryId: backendModule.DirectoryId | null
-  readonly dispatchAssetListEvent: (event: assetListEventModule.AssetListEvent) => void
   readonly doPaste: (
     newParentKey: backendModule.DirectoryId,
     newParentId: backendModule.DirectoryId
@@ -35,10 +35,10 @@ export interface GlobalContextMenuProps {
 /** A context menu available everywhere in the directory. */
 export default function GlobalContextMenu(props: GlobalContextMenuProps) {
   const { hidden = false, backend, hasPasteData, directoryKey, directoryId } = props
-  const { rootDirectoryId, dispatchAssetListEvent } = props
-  const { doPaste } = props
+  const { rootDirectoryId, doPaste } = props
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
+  const dispatchAssetListEvent = eventListProvider.useDispatchAssetListEvent()
   const filesInputRef = React.useRef<HTMLInputElement>(null)
   const isCloud = backend.type === backendModule.BackendType.remote
 
