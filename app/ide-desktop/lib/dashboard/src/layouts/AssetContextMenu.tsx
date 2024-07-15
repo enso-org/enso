@@ -19,6 +19,7 @@ import AssetListEventType from '#/events/AssetListEventType'
 
 import * as dashboard from '#/pages/dashboard/Dashboard'
 
+import * as eventListProvider from '#/layouts/AssetsTable/EventListProvider'
 import Category, * as categoryModule from '#/layouts/CategorySwitcher/Category'
 import GlobalContextMenu from '#/layouts/GlobalContextMenu'
 
@@ -66,13 +67,15 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   const { innerProps, rootDirectoryId, event, eventTarget, hidden = false } = props
   const { doTriggerDescriptionEdit, doCopy, doCut, doPaste, doDelete } = props
   const { item, setItem, state, setRowState } = innerProps
-  const { backend, category, hasPasteData, dispatchAssetEvent, dispatchAssetListEvent } = state
+  const { backend, category, hasPasteData } = state
 
   const { user } = authProvider.useNonPartialUserSession()
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const remoteBackend = backendProvider.useRemoteBackend()
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
+  const dispatchAssetEvent = eventListProvider.useDispatchAssetEvent()
+  const dispatchAssetListEvent = eventListProvider.useDispatchAssetListEvent()
   const asset = item.item
   const self = asset.permissions?.find(
     backendModule.isUserPermissionAnd(permission => permission.user.userId === user.userId)
@@ -474,7 +477,6 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
               item.key as backendModule.DirectoryId
             }
             directoryId={asset.id}
-            dispatchAssetListEvent={dispatchAssetListEvent}
             doPaste={doPaste}
           />
         )}
