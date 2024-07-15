@@ -230,7 +230,7 @@ snowflake_specific_spec suite_builder default_connection db_name setup =
 
         group_builder.specify "correctly handles Decimal and Float types" <|
             table_name = Name_Generator.random_name "DecimalFloat"
-            t1 = default_connection.get.create_table table_name [Column_Description.Value "d1" (Value_Type.Decimal 38 6), Column_Description.Value "d2" (Value_Type.Decimal 10 2), Column_Description.Value "d3" (Value_Type.Decimal 24 -3), Column_Description.Value "f" (Value_Type.Float)] primary_key=[]
+            t1 = default_connection.get.create_table table_name [Column_Description.Value "d1" (Value_Type.Decimal 38 6), Column_Description.Value "d2" (Value_Type.Decimal 10 2), Column_Description.Value "d3" (Value_Type.Decimal 24 -3), Column_Description.Value "f" (Value_Type.Float)] primary_key=[] temporary=True
             t1.at "d1" . value_type . should_equal (Value_Type.Decimal 38 6)
             t1.at "d2" . value_type . should_equal (Value_Type.Decimal 10 2)
             # Negative scale is not supported so we fallback to defaults:
