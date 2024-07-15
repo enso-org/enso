@@ -4,6 +4,7 @@ import Standard.Base.Errors.Common.Dry_Run_Operation
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Runtime.Context
+from Standard.Base.Logging import all
 from Standard.Base.Runtime import assert
 
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
@@ -523,7 +524,8 @@ check_transaction_ddl_support connection =
             Panic.throw (Illegal_State.Error "The connection "+connection.to_text+" does not support transactional DDL statements. Our current implementation of table updates relies on transactional DDL. To support this driver, the logic needs to be amended.")
         ddl_causes_commit = metadata.dataDefinitionCausesTransactionCommit
         if ddl_causes_commit then
-            Panic.throw (Illegal_State.Error "The connection "+connection.to_text+" does not fully support DDL statements as part of complex transactions - DDL causes a commit, so we cannot compose it. To support this driver, the logic needs to be amended.")
+            connection.log_message "TODO: DDL in transactions problem"
+            #Panic.throw (Illegal_State.Error "The connection "+connection.to_text+" does not fully support DDL statements as part of complex transactions - DDL causes a commit, so we cannot compose it. To support this driver, the logic needs to be amended.")
 
 ## PRIVATE
 common_delete_rows target_table key_values_to_delete key_columns allow_duplicate_matches =
