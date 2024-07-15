@@ -25,7 +25,7 @@ export function colorFromString(s: string) {
 export function ensoColor(hue: number): Oklch {
   return {
     mode: 'oklch',
-    l: 0.545,
+    l: 0.464,
     c: 0.14,
     h: normalizeHue(hue) * 360,
   }

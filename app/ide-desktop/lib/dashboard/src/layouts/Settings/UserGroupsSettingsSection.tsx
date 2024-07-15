@@ -19,7 +19,6 @@ import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 import * as paywallComponents from '#/components/Paywall'
 import StatelessSpinner, * as statelessSpinner from '#/components/StatelessSpinner'
-import HorizontalMenuBar from '#/components/styled/HorizontalMenuBar'
 
 import NewUserGroupModal from '#/modals/NewUserGroupModal'
 
@@ -131,43 +130,41 @@ export default function UserGroupsSettingsSection(props: UserGroupsSettingsSecti
 
   return (
     <>
-      <HorizontalMenuBar>
-        <div className="flex items-center gap-2">
-          {shouldDisplayPaywall && (
-            <paywallComponents.PaywallDialogButton
-              feature="userGroupsFull"
-              variant="bar"
-              size="medium"
-              rounded="full"
-              iconPosition="end"
-              tooltip={getText('userGroupsPaywallMessage')}
-            >
-              {getText('newUserGroup')}
-            </paywallComponents.PaywallDialogButton>
-          )}
-          {!shouldDisplayPaywall && (
-            <ariaComponents.Button
-              size="medium"
-              variant="bar"
-              onPress={event => {
-                const rect = event.target.getBoundingClientRect()
-                const position = { pageX: rect.left, pageY: rect.top }
-                setModal(<NewUserGroupModal backend={backend} event={position} />)
-              }}
-            >
-              {getText('newUserGroup')}
-            </ariaComponents.Button>
-          )}
+      <ariaComponents.ButtonGroup verticalAlign="center">
+        {shouldDisplayPaywall && (
+          <paywallComponents.PaywallDialogButton
+            feature="userGroupsFull"
+            variant="bar"
+            size="medium"
+            rounded="full"
+            iconPosition="end"
+            tooltip={getText('userGroupsPaywallMessage')}
+          >
+            {getText('newUserGroup')}
+          </paywallComponents.PaywallDialogButton>
+        )}
+        {!shouldDisplayPaywall && (
+          <ariaComponents.Button
+            size="medium"
+            variant="bar"
+            onPress={event => {
+              const rect = event.target.getBoundingClientRect()
+              const position = { pageX: rect.left, pageY: rect.top }
+              setModal(<NewUserGroupModal backend={backend} event={position} />)
+            }}
+          >
+            {getText('newUserGroup')}
+          </ariaComponents.Button>
+        )}
 
-          {isUnderPaywall && (
-            <span className="text-xs">
-              {userGroupsLeft <= 0
-                ? getText('userGroupsPaywallMessage')
-                : getText('userGroupsLimitMessage', userGroupsLeft)}
-            </span>
-          )}
-        </div>
-      </HorizontalMenuBar>
+        {isUnderPaywall && (
+          <span className="text-xs">
+            {userGroupsLeft <= 0
+              ? getText('userGroupsPaywallMessage')
+              : getText('userGroupsLimitMessage', userGroupsLeft)}
+          </span>
+        )}
+      </ariaComponents.ButtonGroup>
       <div
         ref={rootRef}
         className={tailwindMerge.twMerge(

@@ -3,6 +3,11 @@ package org.enso.pkg
 import io.circe._
 import io.circe.syntax._
 import org.enso.editions.LibraryName
+import org.yaml.snakeyaml.error.YAMLException
+import org.yaml.snakeyaml.nodes.{MappingNode, Node, ScalarNode, SequenceNode}
+import org.enso.yaml.{YamlDecoder, YamlEncoder}
+
+import java.util
 
 /** The description of component groups provided by the package.
   *
@@ -45,6 +50,54 @@ object ComponentGroups {
         json.getOrElse[List[ExtendedComponentGroup]](Fields.Extends)(List())
     } yield ComponentGroups(newGroups, extendsGroups)
   }
+
+  implicit val yamlDecoder: YamlDecoder[ComponentGroups] =
+    new YamlDecoder[ComponentGroups] {
+      override def decode(node: Node): Either[Throwable, ComponentGroups] =
+        node match {
+          case mappingNode: MappingNode =>
+            val clazzMap = mappingKV(mappingNode)
+            val newGroupsDecoder =
+              implicitly[YamlDecoder[List[ComponentGroup]]]
+            val extendedGroupsDecoder =
+              implicitly[YamlDecoder[List[ExtendedComponentGroup]]]
+            for {
+              newGroups <- clazzMap
+                .get(Fields.New)
+                .map(newGroupsDecoder.decode)
+                .getOrElse(Right(Nil))
+              extendedGroups <- clazzMap
+                .get(Fields.Extends)
+                .map(extendedGroupsDecoder.decode)
+                .getOrElse(Right(Nil))
+            } yield ComponentGroups(newGroups, extendedGroups)
+        }
+    }
+
+  implicit val yamlEncoder: YamlEncoder[ComponentGroups] =
+    new YamlEncoder[ComponentGroups] {
+      override def encode(value: ComponentGroups) = {
+        val componentGroupEncoder =
+          implicitly[YamlEncoder[List[ComponentGroup]]]
+        val extendedComponentGoupEncoder =
+          implicitly[YamlEncoder[List[ExtendedComponentGroup]]]
+        val elements = new util.ArrayList[(String, Object)](0)
+        if (value.newGroups.nonEmpty) {
+          elements.add(
+            (Fields.New, componentGroupEncoder.encode(value.newGroups))
+          )
+        }
+        if (value.extendedGroups.nonEmpty) {
+          elements.add(
+            (
+              Fields.Extends,
+              extendedComponentGoupEncoder.encode(value.extendedGroups)
+            )
+          )
+        }
+        toMap(elements)
+      }
+    }
 }
 
 /** The definition of a single component group.
@@ -64,10 +117,87 @@ object ComponentGroup {
 
   /** Fields for use when serializing the [[ComponentGroup]]. */
   private object Fields {
+    val Group   = "group"
     val Color   = "color"
     val Icon    = "icon"
     val Exports = "exports"
   }
+
+  implicit val yamlDecoder: YamlDecoder[ComponentGroup] =
+    new YamlDecoder[ComponentGroup] {
+      override def decode(node: Node): Either[Throwable, ComponentGroup] =
+        node match {
+          case mappingNode: MappingNode =>
+            if (mappingNode.getValue.size() == 1) {
+              val groupNode = mappingNode.getValue.get(0)
+              (groupNode.getKeyNode, groupNode.getValueNode) match {
+                case (scalarNode: ScalarNode, mappingNode: MappingNode) =>
+                  val clazzMap     = mappingKV(mappingNode)
+                  val groupDecoder = implicitly[YamlDecoder[GroupName]]
+                  val colorDecoder =
+                    implicitly[YamlDecoder[Option[String]]]
+                  val iconDecoder =
+                    implicitly[YamlDecoder[Option[String]]]
+                  val exportDecoder =
+                    implicitly[YamlDecoder[Seq[Component]]]
+
+                  for {
+                    group <- groupDecoder.decode(scalarNode)
+                    color <- clazzMap
+                      .get(Fields.Color)
+                      .map(colorDecoder.decode)
+                      .getOrElse(Right(None))
+                    icon <- clazzMap
+                      .get(Fields.Icon)
+                      .map(iconDecoder.decode)
+                      .getOrElse(Right(None))
+                    exports <- clazzMap
+                      .get(Fields.Exports)
+                      .map(exportDecoder.decode)
+                      .getOrElse(Right(Seq.empty))
+                  } yield ComponentGroup(group, color, icon, exports)
+                case (_: ScalarNode, value: ScalarNode) =>
+                  Left(
+                    new YAMLException(
+                      "Failed to decode component group. Expected a map field, got a value:" + value.getValue
+                    )
+                  )
+                case (_: ScalarNode, _: SequenceNode) =>
+                  Left(
+                    new YAMLException(
+                      "Failed to decode component group. Expected a mapping, got a sequence"
+                    )
+                  )
+                case _ =>
+                  Left(
+                    new YAMLException(
+                      "Failed to decode component group"
+                    )
+                  )
+              }
+            } else {
+              Left(
+                new YAMLException("Failed to decode component group")
+              )
+            }
+        }
+    }
+
+  implicit val yamlEncoder: YamlEncoder[ComponentGroup] =
+    new YamlEncoder[ComponentGroup] {
+      override def encode(value: ComponentGroup) = {
+        val fields     = new util.ArrayList[(String, Object)](3)
+        val seqEncoder = implicitly[YamlEncoder[Seq[Component]]]
+        value.color.foreach(v => fields.add((Fields.Color, v)))
+        value.icon.foreach(v => fields.add((Fields.Icon, v)))
+        if (value.exports.nonEmpty) {
+          val exportsNode = seqEncoder.encode(value.exports)
+          fields.add((Fields.Exports, exportsNode))
+        }
+        val componentElementsGroupNode = toMap(fields)
+        toMap(value.group.name, componentElementsGroupNode)
+      }
+    }
 
   /** [[Encoder]] instance for the [[ComponentGroup]]. */
   implicit val encoder: Encoder[ComponentGroup] = { componentGroup =>
@@ -131,8 +261,93 @@ object ExtendedComponentGroup {
 
   /** Fields for use when serializing the [[ExtendedComponentGroup]]. */
   private object Fields {
+    val Group   = "group"
     val Exports = "exports"
   }
+
+  implicit val yamlDecoder: YamlDecoder[ExtendedComponentGroup] =
+    new YamlDecoder[ExtendedComponentGroup] {
+      override def decode(
+        node: Node
+      ): Either[Throwable, ExtendedComponentGroup] = node match {
+        case mappingNode: MappingNode =>
+          if (mappingNode.getValue.size() == 1) {
+            val groupDecoder   = implicitly[YamlDecoder[GroupReference]]
+            val exportsDecoder = implicitly[YamlDecoder[Seq[Component]]]
+            val groupNode      = mappingNode.getValue.get(0)
+            (groupNode.getKeyNode, groupNode.getValueNode) match {
+              case (scalarNode: ScalarNode, seqNode: SequenceNode) =>
+                for {
+                  group   <- groupDecoder.decode(scalarNode)
+                  exports <- exportsDecoder.decode(seqNode)
+                } yield ExtendedComponentGroup(group, exports)
+              case (groupNode: ScalarNode, componentExportsNode: MappingNode) =>
+                val values      = componentExportsNode.getValue
+                val valuesCount = values.size()
+                if (valuesCount == 0) {
+                  groupDecoder
+                    .decode(groupNode)
+                    .map(ExtendedComponentGroup(_, Seq.empty))
+                } else if (valuesCount == 1) {
+                  val exportsNode = values.get(0)
+                  (exportsNode.getKeyNode, exportsNode.getValueNode) match {
+                    case (exportsKeyNode: ScalarNode, seqNode: SequenceNode)
+                        if exportsKeyNode.getValue == Fields.Exports =>
+                      for {
+                        group   <- groupDecoder.decode(groupNode)
+                        exports <- exportsDecoder.decode(seqNode)
+                      } yield ExtendedComponentGroup(group, exports)
+                    case _ =>
+                      Left(
+                        new YAMLException(
+                          "Failed to decode Extended ComponentGroup"
+                        )
+                      )
+                  }
+                } else {
+                  Left(
+                    new YAMLException(
+                      "Failed to decode Extended Component Group"
+                    )
+                  )
+                }
+              case _ =>
+                Left(
+                  new YAMLException(
+                    "Failed to decode Component Group's name in " + groupNode
+                  )
+                )
+            }
+          } else {
+            Left(
+              new YAMLException("Failed to decode Component Group's name")
+            )
+          }
+        case scalarNode: ScalarNode =>
+          val groupDecoder = implicitly[YamlDecoder[GroupReference]]
+          groupDecoder
+            .decode(scalarNode)
+            .map(ExtendedComponentGroup(_, Seq.empty))
+      }
+    }
+
+  implicit val yamlEncoder: YamlEncoder[ExtendedComponentGroup] =
+    new YamlEncoder[ExtendedComponentGroup] {
+      override def encode(value: ExtendedComponentGroup): Object = {
+        val groupReferenceEncoder = implicitly[YamlEncoder[GroupReference]]
+        val componentsEncoder     = implicitly[YamlEncoder[Seq[Component]]]
+
+        val groupReferenceNode =
+          groupReferenceEncoder.encode(value.group).asInstanceOf[String]
+        if (value.exports.nonEmpty)
+          toMap(
+            groupReferenceNode,
+            toMap("exports", componentsEncoder.encode(value.exports))
+          )
+        else
+          groupReferenceNode
+      }
+    }
 
   /** [[Encoder]] instance for the [[ExtendedComponentGroup]]. */
   implicit val encoder: Encoder[ExtendedComponentGroup] = {
@@ -200,8 +415,62 @@ case class Component(name: String, shortcut: Option[Shortcut])
 object Component {
 
   object Fields {
+    val Name     = "name"
     val Shortcut = "shortcut"
   }
+
+  implicit val yamlDecoder: YamlDecoder[Component] =
+    new YamlDecoder[Component] {
+      override def decode(node: Node): Either[Throwable, Component] =
+        node match {
+          case mappingNode: MappingNode =>
+            if (mappingNode.getValue.size() == 1) {
+              val componentNode = mappingNode.getValue.get(0)
+              (componentNode.getKeyNode, componentNode.getValueNode) match {
+                case (scalarNode: ScalarNode, mappingNode: MappingNode) =>
+                  val stringDecoder = implicitly[YamlDecoder[String]]
+                  val shortcutDecoder =
+                    implicitly[YamlDecoder[Option[Shortcut]]]
+                  for {
+                    name <- stringDecoder.decode(scalarNode)
+                    shortcut <- shortcutDecoder
+                      .decode(mappingNode)
+                      .map(_.filter(_.key.nonEmpty))
+                  } yield Component(name, shortcut)
+                case (keyNode: ScalarNode, _: ScalarNode) =>
+                  Left(
+                    new YAMLException(
+                      "Failed to decode exported component '" + keyNode.getValue + "'"
+                    )
+                  )
+                case _ =>
+                  Left(
+                    new YAMLException(
+                      "Failed to decode Component"
+                    )
+                  )
+              }
+            } else {
+              Left(new YAMLException("Failed to decode Component"))
+            }
+          case scalarNode: ScalarNode =>
+            val stringDecoder = implicitly[YamlDecoder[String]]
+            stringDecoder.decode(scalarNode).map(Component(_, None))
+        }
+    }
+
+  implicit val yamlEncoder: YamlEncoder[Component] =
+    new YamlEncoder[Component] {
+      override def encode(value: Component) = {
+        if (value.shortcut.isEmpty) {
+          value.name
+        } else {
+          val shortcutEncoder = implicitly[YamlEncoder[Shortcut]]
+          val shortcutNode    = value.shortcut.map(shortcutEncoder.encode(_)).get
+          toMap(value.name, shortcutNode)
+        }
+      }
+    }
 
   /** [[Encoder]] instance for the [[Component]]. */
   implicit val encoder: Encoder[Component] = { component =>
@@ -256,6 +525,44 @@ object Component {
 case class Shortcut(key: String)
 object Shortcut {
 
+  object Fields {
+    val Key = "shortcut"
+  }
+
+  implicit val yamlDecoder: YamlDecoder[Shortcut] =
+    new YamlDecoder[Shortcut] {
+      override def decode(node: Node): Either[Throwable, Shortcut] =
+        node match {
+          case mappingNode: MappingNode =>
+            val stringDecoder = implicitly[YamlDecoder[String]]
+            val shortcutNode  = mappingNode.getValue.get(0)
+            (shortcutNode.getKeyNode, shortcutNode.getValueNode) match {
+              case (key: ScalarNode, valueNode) if key.getValue == Fields.Key =>
+                valueNode match {
+                  case valueNode: ScalarNode =>
+                    stringDecoder.decode(valueNode).map(Shortcut(_))
+                  case _: SequenceNode =>
+                    Left(
+                      new YAMLException(
+                        "Failed to decode shortcut. Expected a string value, got a sequence"
+                      )
+                    )
+                  case _ =>
+                    Left(new YAMLException("Failed to decode Shortcut"))
+                }
+              case _ =>
+                Left(new YAMLException("Failed to decode Shortcut"))
+            }
+        }
+    }
+
+  implicit val yamlEncoder: YamlEncoder[Shortcut] =
+    new YamlEncoder[Shortcut] {
+      override def encode(value: Shortcut) = {
+        toMap(Fields.Key, value.key)
+      }
+    }
+
   /** [[Encoder]] instance for the [[Shortcut]]. */
   implicit val encoder: Encoder[Shortcut] = { shortcut =>
     shortcut.key.asJson
@@ -307,6 +614,31 @@ object GroupReference {
       case _ =>
         None
     }
+
+  object Fields {
+    val LibraryName = "library-name"
+    val GroupName   = "group-name"
+  }
+
+  implicit val yamlDecoder: YamlDecoder[GroupReference] =
+    new YamlDecoder[GroupReference] {
+      override def decode(node: Node): Either[Throwable, GroupReference] =
+        node match {
+          case scalarNode: ScalarNode =>
+            fromModuleName(scalarNode.getValue).toRight(
+              new YAMLException(
+                s"Failed to decode '${scalarNode.getValue}' as a module reference"
+              )
+            )
+        }
+    }
+
+  implicit val yamlEncoder: YamlEncoder[GroupReference] =
+    new YamlEncoder[GroupReference] {
+      override def encode(value: GroupReference) = {
+        value.libraryName.qualifiedName + LibraryName.separator + value.groupName.name
+      }
+    }
 }
 
 /** The module name.
@@ -315,6 +647,20 @@ object GroupReference {
   */
 case class GroupName(name: String)
 object GroupName {
+
+  object Fields {
+    val Name = "name"
+  }
+
+  implicit val yamlDecoder: YamlDecoder[GroupName] =
+    new YamlDecoder[GroupName] {
+      override def decode(node: Node): Either[Throwable, GroupName] =
+        node match {
+          case scalarNode: ScalarNode =>
+            val stringDecoder = implicitly[YamlDecoder[String]]
+            stringDecoder.decode(scalarNode).map(GroupName(_))
+        }
+    }
 
   /** Create a [[GroupName]] from its components. */
   def fromComponents(item: String, items: List[String]): GroupName =

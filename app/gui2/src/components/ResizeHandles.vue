@@ -10,11 +10,12 @@ const emit = defineEmits<{
 }>()
 
 let initialBounds: Rect | undefined = undefined
-function resizeHandler(resizeX: 'left' | 'right' | false, resizeY: boolean) {
+function resizeHandler(resizeX: 'left' | 'right' | false, resizeY: 'top' | 'bottom' | false) {
   const resizing = {
     left: resizeX === 'left',
     right: resizeX === 'right',
-    bottom: resizeY,
+    top: resizeY === 'top',
+    bottom: resizeY === 'bottom',
   }
   return usePointer((pos, _, type) => {
     switch (type) {
@@ -43,15 +44,17 @@ function resizeHandler(resizeX: 'left' | 'right' | false, resizeY: boolean) {
 const handler = {
   left: resizeHandler('left', false).events,
   right: resizeHandler('right', false).events,
-  bottom: resizeHandler(false, true).events,
-  bottomLeft: resizeHandler('left', true).events,
-  bottomRight: resizeHandler('right', true).events,
+  top: resizeHandler(false, 'top').events,
+  bottom: resizeHandler(false, 'bottom').events,
+  bottomLeft: resizeHandler('left', 'bottom').events,
+  bottomRight: resizeHandler('right', 'bottom').events,
 }
 </script>
 
 <template>
   <div v-if="props.left" class="left" v-on="handler.left" />
   <div v-if="props.right" class="right" v-on="handler.right" />
+  <div v-if="props.top" class="top" v-on="handler.top" />
   <div v-if="props.bottom" class="bottom" v-on="handler.bottom" />
   <svg v-if="props.bottom && props.left" class="corner bottom left" v-on="handler.bottomLeft">
     <circle />
@@ -62,18 +65,14 @@ const handler = {
 </template>
 
 <style scoped>
-.left {
-  position: absolute;
-  cursor: ew-resize;
-  top: 0;
-  height: 100%;
-}
+.left,
 .right {
   position: absolute;
   cursor: ew-resize;
   top: 0;
   height: 100%;
 }
+.top,
 .bottom {
   position: absolute;
   cursor: ns-resize;
@@ -87,6 +86,10 @@ const handler = {
 .right {
   right: calc(0px - var(--resize-handle-outside));
   width: calc(var(--resize-handle-inside) + var(--resize-handle-outside));
+}
+.top {
+  top: calc(0px - var(--resize-handle-inside));
+  height: calc(var(--resize-handle-inside) + var(--resize-handle-outside));
 }
 .bottom {
   top: unset;
@@ -126,6 +129,7 @@ const handler = {
 
 .left,
 .right,
+.top,
 .bottom {
   z-index: 1;
 }

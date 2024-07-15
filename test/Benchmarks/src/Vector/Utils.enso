@@ -46,6 +46,6 @@ type Rational_Comparator
         n.p*37 + n.q*51
 
 
-Comparable.from (_ : Rational) = Rational_Comparator
+Comparable.from (that : Rational) = Comparable.new that Rational_Comparator
 
 main = Standard.Base.Runtime.Debug.breakpoint

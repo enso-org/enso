@@ -234,10 +234,8 @@ watchPostEffect(() => {
   font-family: var(--font-mono);
   font-size: 10px;
 }
-</style>
 
-<style>
-.HeatmapVisualization .label .domain {
+.label :deep(.domain) {
   display: none;
 }
 </style>

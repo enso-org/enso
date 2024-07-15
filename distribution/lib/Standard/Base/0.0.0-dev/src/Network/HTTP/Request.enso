@@ -1,5 +1,5 @@
 import project.Any.Any
-import project.Data.Map.Map
+import project.Data.Dictionary.Dictionary
 import project.Data.Pair.Pair
 import project.Data.Text.Text
 import project.Data.Vector.Vector
@@ -249,10 +249,10 @@ type Request
 
              example_delete =
                 Request.delete (URI.parse "http://example.com") . with_form []
-    with_form : (Vector | Map) -> Request
+    with_form : (Vector | Dictionary) -> Request
     with_form self parts =
         form_data = case parts of
-            _ : Vector -> Map.from_vector parts
-            _ : Map -> parts
+            _ : Vector -> Dictionary.from_vector parts
+            _ : Dictionary -> parts
         new_body = Request_Body.Form_Data form_data
         Request.Value self.method self.uri self.headers new_body . with_headers [Header.application_x_www_form_urlencoded]

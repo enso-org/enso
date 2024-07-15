@@ -72,6 +72,11 @@ function entryTitle(key: string) {
   content: ',';
 }
 .key {
+  color: blue;
+  text-decoration: underline;
+}
+.viewonly .key {
   color: darkred;
+  text-decoration: none;
 }
 </style>

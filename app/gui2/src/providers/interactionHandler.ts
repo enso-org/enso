@@ -28,7 +28,7 @@ export class InteractionHandler {
 
   setCurrent(interaction: Interaction | undefined) {
     if (!this.isActive(interaction)) {
-      this.currentInteraction.value?.end()
+      this.currentInteraction.value?.end?.()
       this.currentInteraction.value = interaction
     }
   }
@@ -46,7 +46,7 @@ export class InteractionHandler {
   end(interaction: Interaction) {
     if (this.isActive(interaction)) {
       this.currentInteraction.value = undefined
-      interaction.end()
+      interaction.end?.()
     }
   }
 
@@ -54,13 +54,13 @@ export class InteractionHandler {
   cancel(interaction: Interaction) {
     if (this.isActive(interaction)) {
       this.currentInteraction.value = undefined
-      interaction.cancel()
+      interaction.cancel?.()
     }
   }
 
   handleCancel(): boolean {
     const hasCurrent = this.currentInteraction.value != null
-    this.currentInteraction.value?.cancel()
+    this.currentInteraction.value?.cancel?.()
     this.currentInteraction.value = undefined
     return hasCurrent
   }
@@ -87,9 +87,9 @@ type InteractionEventHandler = (event: PointerEvent, navigator: GraphNavigator) 
 
 export interface Interaction {
   /** Called when the interaction is explicitly canceled, e.g. with the `Esc` key. */
-  cancel(): void
+  cancel?(): void
   /** Called when the interaction is ended due to activity elsewhere. */
-  end(): void
+  end?(): void
   /** Uses a `capture` event handler to allow an interaction to respond to clicks over any element. */
   pointerdown?: InteractionEventHandler
   /** Uses a `capture` event handler to allow an interaction to respond to mouse button release

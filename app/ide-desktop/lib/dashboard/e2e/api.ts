@@ -71,6 +71,7 @@ export async function mockApi({ page, setupAPI }: MockParams) {
     isEnabled: true,
     rootDirectoryId: defaultDirectoryId,
     userGroups: null,
+    plan: backend.Plan.enterprise,
   }
   const defaultOrganization: backend.OrganizationInfo = {
     id: defaultOrganizationId,
@@ -86,7 +87,7 @@ export async function mockApi({ page, setupAPI }: MockParams) {
   let currentUser: backend.User | null = defaultUser
   let currentProfilePicture: string | null = null
   let currentPassword = defaultPassword
-  let currentOrganization: backend.OrganizationInfo | null = null
+  let currentOrganization: backend.OrganizationInfo | null = defaultOrganization
   let currentOrganizationProfilePicture: string | null = null
 
   const assetMap = new Map<backend.AssetId, backend.AnyAsset>()
@@ -250,6 +251,7 @@ export async function mockApi({ page, setupAPI }: MockParams) {
       rootDirectoryId: backend.DirectoryId(organizationId.replace(/^organization-/, 'directory-')),
       isEnabled: true,
       userGroups: null,
+      plan: backend.Plan.enterprise,
       ...rest,
     }
     users.push(user)
@@ -712,6 +714,7 @@ export async function mockApi({ page, setupAPI }: MockParams) {
         isEnabled: false,
         rootDirectoryId,
         userGroups: null,
+        plan: backend.Plan.enterprise,
       }
       await route.fulfill({ json: currentUser })
     })

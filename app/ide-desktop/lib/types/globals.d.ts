@@ -147,29 +147,6 @@ declare global {
         toggleDevtools: () => void
     }
 
-    /**
-     * Highlight a range of text.
-     */
-    class Highlight {
-        type: string
-        /**
-         * @param ranges - The range to highlight.
-         */
-        constructor(...ranges: Range[])
-    }
-
-    /**
-     *
-     */
-    namespace CSS {
-        // eslint-disable-next-line no-restricted-syntax
-        export const highlights: {
-            set: (key: string, value: Highlight) => void
-            delete: (key: string) => void
-            clear: () => void
-        }
-    }
-
     namespace NodeJS {
         /** Environment variables. */
         // `TZ` MUST NOT be `readonly`, or else `@types/node` will error.

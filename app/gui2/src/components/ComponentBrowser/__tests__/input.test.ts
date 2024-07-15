@@ -1,5 +1,5 @@
 import { useComponentBrowserInput } from '@/components/ComponentBrowser/input'
-import { asNodeId, GraphDb } from '@/stores/graph/graphDatabase'
+import { asNodeId, GraphDb, type NodeId } from '@/stores/graph/graphDatabase'
 import type { RequiredImport } from '@/stores/graph/imports'
 import { ComputedValueRegistry } from '@/stores/project/computedValueRegistry'
 import { SuggestionDb } from '@/stores/suggestionDatabase'
@@ -14,24 +14,21 @@ import {
   makeType,
   type SuggestionEntry,
 } from '@/stores/suggestionDatabase/entry'
-import type { AstId } from '@/util/ast/abstract'
 import { unwrap } from '@/util/data/result'
 import { tryIdentifier, tryQualifiedName } from '@/util/qualifiedName'
 import { initializeFFI } from 'shared/ast/ffi'
 import { assertUnreachable } from 'shared/util/assert'
-import type { ExternalId, Uuid } from 'shared/yjsModel'
 import { expect, test } from 'vitest'
 
 await initializeFFI()
 
 const aiMock = { query: assertUnreachable }
-const operator1Id = '3d0e9b96-3ca0-4c35-a820-7d3a1649de55' as AstId
-const operator1ExternalId = operator1Id as Uuid as ExternalId
-const operator2Id = '5eb16101-dd2b-4034-a6e2-476e8bfa1f2b' as AstId
+const operator1Id = '3d0e9b96-3ca0-4c35-a820-7d3a1649de55' as NodeId
+const operator2Id = '5eb16101-dd2b-4034-a6e2-476e8bfa1f2b' as NodeId
 
 function mockGraphDb() {
   const computedValueRegistryMock = ComputedValueRegistry.Mock()
-  computedValueRegistryMock.db.set(operator1ExternalId, {
+  computedValueRegistryMock.db.set(operator1Id, {
     typename: 'Standard.Base.Number',
     methodCall: undefined,
     payload: { type: 'Value' },

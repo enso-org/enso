@@ -48,13 +48,9 @@ export enum UserSessionType {
 }
 
 /** Properties common to all {@link UserSession}s. */
-interface BaseUserSession {
+interface BaseUserSession extends cognitoModule.UserSession {
   /** A discriminator for TypeScript to be able to disambiguate between `UserSession` variants. */
   readonly type: UserSessionType
-  /** User's JSON Web Token (JWT), used for authenticating and authorizing requests to the API. */
-  readonly accessToken: string
-  /** User's email address. */
-  readonly email: string
 }
 
 /** Object containing the currently signed-in user's session data, if the user has not yet set their
@@ -426,8 +422,6 @@ export default function AuthProvider(props: AuthProviderProps) {
       const nextUserData: backendModule.User = Object.assign(currentUserData, user)
 
       queryClient.setQueryData(usersMeQuery.queryKey, { ...currentUser, user: nextUserData })
-
-      void queryClient.invalidateQueries({ queryKey: usersMeQuery.queryKey })
     }
   }
 
@@ -519,7 +513,7 @@ export default function AuthProvider(props: AuthProviderProps) {
 
   React.useEffect(() => {
     gtag.gtag('set', { platform: detect.platform(), architecture: detect.architecture() })
-    return gtagHooks.gtagOpenCloseCallback({ current: gtagEvent }, 'open_app', 'close_app')
+    return gtagHooks.gtagOpenCloseCallback(gtagEvent, 'open_app', 'close_app')
   }, [gtagEvent])
 
   React.useEffect(() => {
@@ -603,11 +597,10 @@ export default function AuthProvider(props: AuthProviderProps) {
  * @throws {Error} when used outside a {@link AuthProvider}. */
 export function useAuth() {
   const context = React.useContext(AuthContext)
-  if (context == null) {
-    throw new Error('`useAuth` can only be used inside an `<AuthProvider />`.')
-  } else {
-    return context
-  }
+
+  invariant(context != null, '`useAuth` must be used within an `<AuthProvider />`.')
+
+  return context
 }
 
 // =======================
@@ -739,9 +732,9 @@ export function useUserSession() {
  * A React context hook returning the user session for a user that is fully logged in.
  */
 export function useFullUserSession(): FullUserSession {
-  const session = router.useOutletContext<UserSession>()
+  const { session } = useAuth()
 
-  invariant(session.type === UserSessionType.full, 'Expected a full user session.')
+  invariant(session?.type === UserSessionType.full, 'Expected a full user session.')
 
   return session
 }

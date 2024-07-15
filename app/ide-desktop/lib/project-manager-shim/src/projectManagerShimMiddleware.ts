@@ -5,7 +5,6 @@ import * as fsSync from 'node:fs'
 import * as http from 'node:http'
 import * as path from 'node:path'
 
-import * as isHiddenFile from 'is-hidden-file'
 import * as tar from 'tar'
 import * as yaml from 'yaml'
 
@@ -214,6 +213,17 @@ export default function projectManagerShimMiddleware(
                         })
                         try {
                             switch (cliArguments[0]) {
+                                case '--filesystem-exists': {
+                                    const directoryPath = cliArguments[1]
+                                    if (directoryPath != null) {
+                                        const exists = await fs
+                                            .access(directoryPath)
+                                            .then(() => true)
+                                            .catch(() => false)
+                                        result = toJSONRPCResult({ exists })
+                                    }
+                                    break
+                                }
                                 case '--filesystem-list': {
                                     const directoryPath = cliArguments[1]
                                     if (directoryPath != null) {
@@ -466,19 +476,10 @@ function extractProjectMetadata(yamlObj: unknown, jsonObj: unknown): ProjectMeta
 }
 
 /**
- * Checks if the provided path should be hidden.
- *
- * On Windows, files that start with the dot but don't have the hidden property
- * should also be hidden.
+ * Checks if files that start with the dot.
+ * Note on Windows does not check the hidden property.
  */
 function isHidden(filePath: string): boolean {
-    const dotfile = /(^|\/)\.[^/.]/g
-    try {
-        return isHiddenFile.isHiddenFile(filePath) || dotfile.test(filePath)
-    } catch {
-        // is-hidden-file library occasionally
-        // fails on Windows due to native library loading
-        // issues. Fallback to the filename check.
-        return dotfile.test(filePath)
-    }
+    const dotfile = /(^|[\\/])\.[^\\/]+$/g
+    return dotfile.test(filePath)
 }

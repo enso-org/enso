@@ -61,7 +61,7 @@ export default class LocalStorage {
   /** Create a {@link LocalStorage}. */
   constructor(private readonly triggerRerender: () => void) {
     const savedValues: unknown = JSON.parse(localStorage.getItem(this.localStorageKey) ?? '{}')
-    this.values = {}
+    const newValues: Partial<Record<LocalStorageKey, LocalStorageData[LocalStorageKey]>> = {}
     if (typeof savedValues === 'object' && savedValues != null) {
       for (const [key, metadata] of object.unsafeEntries(LocalStorage.keyMetadata)) {
         if (key in savedValues) {
@@ -72,14 +72,15 @@ export default class LocalStorage {
             ? metadata.schema.safeParse(savedValue).data
             : metadata.tryParse(savedValue)
           if (value != null) {
-            // This is SAFE, as the `tryParse` function is required by definition to
-            // return a value of the correct type.
-            // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment
-            object.unsafeMutable(this.values)[key] = value as any
+            newValues[key] = value
           }
         }
       }
     }
+    // This is SAFE, as the `tryParse` function is required by definition to return a value of the
+    // correct type for each corresponding key.
+    // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment
+    this.values = newValues as any
   }
 
   /** Register runtime behavior associated with a {@link LocalStorageKey}. */

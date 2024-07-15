@@ -19,12 +19,11 @@ type My_Type
 
 type My_Type_Comparator
     compare my_1 my_2 =
-        comp = Comparable.from my_1.x
-        comp.compare (my_1.x + my_1.y) (my_2.x + my_2.y)
+        Ordering.compare (my_1.x + my_1.y) (my_2.x + my_2.y)
 
-    hash my_type = Comparable.from my_type.x . hash (my_type.x + my_type.y)
+    hash my_type = Ordering.hash (my_type.x + my_type.y)
 
-Comparable.from (_:My_Type) = My_Type_Comparator
+Comparable.from (that:My_Type) = Comparable.new that My_Type_Comparator
 
 type Data
     Value ~data
@@ -257,7 +256,7 @@ add_specs suite_builder setup =
             # 6. multiple Between conditions
             xs = [0, 0, 1, 1, 1, 1, 2, 2, 3, 3, 3, 4, 4, 4]
             ys = [1, 2, 3, 1, 9, 2, 3, 2, 4, 2, 1, 1, 1, 2]
-            pts = xs.zip ys . take (Index_Sub_Range.Sample xs.length seed=42)
+            pts = xs.zip ys . take (..Sample xs.length seed=42)
             t1 = table_builder [["X", pts.map .first], ["Y", pts.map .second]]
 
             t2 = table_builder [["lx", [1]], ["ux", [3]], ["ly", [1]], ["uy", [2]]]
@@ -413,13 +412,13 @@ add_specs suite_builder setup =
             r1.catch.to_display_text.should_equal "The criteria 'X' did not match any columns in the right table."
 
             conditions2 = [Join_Condition.Equals "foo" 42, Join_Condition.Equals "X" -3, Join_Condition.Equals -1 "baz"]
-            r2 = t1.join t2 on=conditions2 on_problems=Problem_Behavior.Ignore
+            r2 = t1.join t2 on=conditions2 on_problems=..Ignore
             r2.should_fail_with Missing_Input_Columns
             r2.catch.criteria.should_equal ["foo"]
             r2.catch.to_display_text.should_equal "The criteria 'foo' did not match any columns in the left table."
 
             conditions3 = [Join_Condition.Equals "Y" 42, Join_Condition.Equals "X" -3, Join_Condition.Equals -1 "baz"]
-            r3 = t1.join t2 on=conditions3 on_problems=Problem_Behavior.Ignore
+            r3 = t1.join t2 on=conditions3 on_problems=..Ignore
             r3.should_fail_with Missing_Input_Columns
             r3.catch.criteria.should_equal ["baz", 42, -3]
             r3.catch.to_display_text.should_equal "The criteria 'baz', 42 (index), -3 (index) did not match any columns in the right table."
@@ -433,15 +432,15 @@ add_specs suite_builder setup =
                 result.catch.expected.should_equal "Char"
 
             test <|
-                t1.join t2 on=(Join_Condition.Equals_Ignore_Case "X" "W") on_problems=Problem_Behavior.Ignore
+                t1.join t2 on=(Join_Condition.Equals_Ignore_Case "X" "W") on_problems=..Ignore
             test <|
-                t1.join t2 on=(Join_Condition.Equals_Ignore_Case "Y" "Z") on_problems=Problem_Behavior.Ignore
+                t1.join t2 on=(Join_Condition.Equals_Ignore_Case "Y" "Z") on_problems=..Ignore
 
         group_builder.specify "should report Invalid_Value_Type if incompatible types are correlated" <|
             t1 = table_builder [["X", ["1", "2", "c"]]]
             t2 = table_builder [["X", [1, 2, 3]]]
 
-            r1 = t1.join t2 on_problems=Problem_Behavior.Ignore
+            r1 = t1.join t2 on_problems=..Ignore
             r1.should_fail_with Invalid_Value_Type
 
         group_builder.specify "should report Invalid_Value_Type if incompatible columns types are correlated in Between" <|
@@ -485,7 +484,7 @@ add_specs suite_builder setup =
             if setup.supports_custom_objects then
                 t1 = table_builder [["X", [My_Type.Value 1 2, 2.0, 2]], ["Y", [10, 20, 30]]]
                 t2 = table_builder [["Z", [2.0, 1.5, 2.0]], ["W", [1, 2, 3]]]
-                r3 = t1.join t2 join_kind=Join_Kind.Inner on=(Join_Condition.Equals "X" "Z") on_problems=Problem_Behavior.Report_Warning
+                r3 = t1.join t2 join_kind=Join_Kind.Inner on=(Join_Condition.Equals "X" "Z") on_problems=..Report_Warning
                 r3.column_names.should_equal ["X", "Y", "Z", "W"]
                 r4 = r3.sort ["Y", "W"]
                 r4.at "X" . to_vector . should_equal [2.0, 2.0, 2, 2]
@@ -614,7 +613,7 @@ add_specs suite_builder setup =
             t3.at "Right X" . to_vector . should_equal [1, 2]
             t3.at "Right Y 1" . to_vector . should_equal [2, 2]
 
-            err1 = t1.join t2 join_kind=Join_Kind.Inner on=(Join_Condition.Equals "X" "Y") on_problems=Problem_Behavior.Report_Error
+            err1 = t1.join t2 join_kind=Join_Kind.Inner on=(Join_Condition.Equals "X" "Y") on_problems=..Report_Error
             err1.should_fail_with Duplicate_Output_Column_Names
             err1.catch.column_names . should_equal ["Right Y"]
 

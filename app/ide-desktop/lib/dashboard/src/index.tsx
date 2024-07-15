@@ -13,16 +13,14 @@ import * as detect from 'enso-common/src/detect'
 
 import type * as app from '#/App'
 import App from '#/App'
-import * as reactQueryClientModule from '#/reactQueryClient'
 
 import LoadingScreen from '#/pages/authentication/LoadingScreen'
 
+import * as devtools from '#/components/Devtools'
 import * as errorBoundary from '#/components/ErrorBoundary'
 import * as suspense from '#/components/Suspense'
 
 import HttpClient from '#/utilities/HttpClient'
-
-import * as reactQueryDevtools from './ReactQueryDevtools'
 
 // =================
 // === Constants ===
@@ -46,7 +44,7 @@ export // This export declaration must be broken up to satisfy the `require-jsdo
 // This is not a React component even though it contains JSX.
 // eslint-disable-next-line no-restricted-syntax
 function run(props: Omit<app.AppProps, 'httpClient' | 'portalRoot'>) {
-  const { vibrancy, supportsDeepLinks } = props
+  const { vibrancy, supportsDeepLinks, queryClient } = props
   if (
     !detect.IS_DEV_MODE &&
     process.env.ENSO_CLOUD_SENTRY_DSN != null &&
@@ -93,7 +91,6 @@ function run(props: Omit<app.AppProps, 'httpClient' | 'portalRoot'>) {
     : supportsDeepLinks && detect.isOnElectron()
 
   const httpClient = new HttpClient()
-  const queryClient = reactQueryClientModule.createReactQueryClient()
 
   React.startTransition(() => {
     reactDOM.createRoot(root).render(
@@ -110,7 +107,7 @@ function run(props: Omit<app.AppProps, 'httpClient' | 'portalRoot'>) {
             </suspense.Suspense>
           </errorBoundary.ErrorBoundary>
 
-          <reactQueryDevtools.ReactQueryDevtools />
+          <devtools.ReactQueryDevtools />
         </reactQuery.QueryClientProvider>
       </React.StrictMode>
     )

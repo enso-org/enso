@@ -85,8 +85,8 @@ type Array
          elements, returning an an `Ordering` if the two elements are comparable
          or `Nothing` if they are not. If set to `Nothing` (the default argument),
          `Ordering.compare _ _` method will be used.
-       - on_incomparable: A `Problem_Behavior` specifying what should happen if
-         two incomparable values are encountered.
+       - on_problems: A `Problem_Behavior` specifying what should happen if two
+         incomparable values are encountered.
 
        By default, elements are sorted in ascending order.
 
@@ -121,10 +121,9 @@ type Array
          for the default comparator, which is always the first group.
 
          Additionally, an `Incomparable_Values` dataflow error will be returned
-         if the `on_incomparable` parameter is set to `Problem_Behavior.Report_Error`,
-         or a warning attached if the `on_incomparable` parameter is set to
-         `Problem_Behavior.Report_Warning` in case of encountering incomparable
-         values.
+         if the `on_problems` parameter is set to `Report_Error`, or a warning
+         attached if the `on_problems` parameter is set to `Report_Warning` in
+         case of encountering incomparable values.
 
          It takes equal advantage of ascending and descending runs in the array,
          making it much simpler to merge two or more sorted arrays: simply
@@ -147,8 +146,8 @@ type Array
 
              [My_Type.Value 'hello', 1].to_array.sort == [1, My_Type.Value 'hello'].to_array
     sort : Sort_Direction -> (Any -> Any)|Nothing -> (Any -> Any -> (Ordering|Nothing))|Nothing -> Problem_Behavior -> Vector Any ! Incomparable_Values
-    sort self (order = Sort_Direction.Ascending) on=Nothing by=Nothing on_incomparable=Problem_Behavior.Ignore =
-        Array_Like_Helpers.sort self order on by on_incomparable
+    sort self (order = Sort_Direction.Ascending) on=Nothing by=Nothing on_problems:Problem_Behavior=..Ignore =
+        Array_Like_Helpers.sort self order on by on_problems
 
     ## ALIAS first, head, last, limit, sample, slice, tail, top, keep
        GROUP Selections
@@ -163,7 +162,7 @@ type Array
          If a `Range`, the selection is specified by two indices, from and to.
     @range Index_Sub_Range.default_widget
     take : (Index_Sub_Range | Range | Integer) -> Vector Any
-    take self range=(Index_Sub_Range.First 1) =
+    take self range:(Index_Sub_Range | Range | Integer)=..First =
         Array_Like_Helpers.take self range
 
     ## ALIAS skip, remove
@@ -178,7 +177,7 @@ type Array
          If a `Range`, the selection is specified by two indices, from and to.
     @range Index_Sub_Range.default_widget
     drop : (Index_Sub_Range | Range | Integer) -> Vector Any
-    drop self range=(Index_Sub_Range.First 1) =
+    drop self range:(Index_Sub_Range | Range | Integer)=..First =
         Array_Like_Helpers.drop self range
 
     ## GROUP Calculations
@@ -390,7 +389,7 @@ type Array
          Errors that are thrown when executing the supplied function are wrapped
          in `Map_Error`, which contains the index at which the error occurred.
 
-         In the `Problem_Behavior.Report_Warning` case, only `MAX_MAP_WARNINGS`
+         In the `Report_Warning` case, only `MAX_MAP_WARNINGS`
          warnings are attached to result values. After that, the warnings are
          dropped, but a count of the additional warnings is attached in an
          `Additional_Warnings` warning.
@@ -400,7 +399,7 @@ type Array
 
              [1, 2, 3].to_array . map +1
     map : (Any -> Any) -> Problem_Behavior | No_Wrap -> Vector Any
-    map self function on_problems=Problem_Behavior.Report_Error =
+    map self function on_problems:(Problem_Behavior | No_Wrap)=..Report_Error =
         Array_Like_Helpers.map self function on_problems
 
     ## ICON union
@@ -429,7 +428,7 @@ type Array
          Errors that are thrown when executing the supplied function are wrapped
          in `Map_Error`, which contains the index at which the error occurred.
 
-         In the `Problem_Behavior.Report_Warning` case, only `MAX_MAP_WARNINGS`
+         In the `Report_Warning` case, only `MAX_MAP_WARNINGS`
          warnings are attached to result values. After that, the warnings are
          dropped, but a count of the additional warnings is attached in an
          `Additional_Warnings` warning.
@@ -439,7 +438,7 @@ type Array
 
             [0, 1, 2].to_array . flat_map (n -> Vector.fill n n)
     flat_map : (Any -> Vector Any) -> Problem_Behavior | No_Wrap -> Vector Any
-    flat_map self function on_problems=Problem_Behavior.Report_Error =
+    flat_map self function on_problems:(Problem_Behavior | No_Wrap)=..Report_Error =
         Array_Like_Helpers.flat_map self function on_problems
 
     ## GROUP Selections
@@ -676,7 +675,7 @@ type Array
          Errors that are thrown when executing the supplied function are wrapped
          in `Map_Error`, which contains the index at which the error occurred.
 
-         In the `Problem_Behavior.Report_Warning` case, only `MAX_MAP_WARNINGS`
+         In the `Report_Warning` case, only `MAX_MAP_WARNINGS`
          warnings are attached to result values. After that, the warnings are
          dropped, but a count of the additional warnings is attached in an
          `Additional_Warnings` warning.
@@ -686,7 +685,7 @@ type Array
 
              [1, 2, 3].to_array.map_with_index (+)
     map_with_index : (Integer -> Any -> Any) -> Problem_Behavior | No_Wrap -> Vector Any
-    map_with_index self function on_problems=Problem_Behavior.Report_Error =
+    map_with_index self function on_problems:(Problem_Behavior | No_Wrap)=..Report_Error =
         Array_Like_Helpers.map_with_index self function on_problems
 
     ## PRIVATE
@@ -899,7 +898,7 @@ type Array
          Errors that are thrown when executing the supplied function are wrapped
          in `Map_Error`, which contains the index at which the error occurred.
 
-         In the `Problem_Behavior.Report_Warning` case, only `MAX_MAP_WARNINGS`
+         In the `Report_Warning` case, only `MAX_MAP_WARNINGS`
          warnings are attached to result values. After that, the warnings are
          dropped, but a count of the additional warnings is attached in an
          `Additional_Warnings` warning.
@@ -915,7 +914,7 @@ type Array
 
              [1, 2, 3].to_array.zip [4, 5, 6].to_array == [[1, 4].to_array, [2, 5].to_array, [3, 6].to_array].to_array
     zip : Vector Any -> (Any -> Any -> Any) -> Problem_Behavior | No_Wrap -> Vector Any
-    zip self that function=[_,_] on_problems=Problem_Behavior.Report_Error =
+    zip self that function=[_,_] on_problems:(Problem_Behavior | No_Wrap)=..Report_Error =
         len = self.length.min that.length
         Array_Like_Helpers.vector_from_function len (i-> function (self.at i) (that.at i)) on_problems
 

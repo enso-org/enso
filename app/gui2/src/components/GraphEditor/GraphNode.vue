@@ -16,16 +16,18 @@ import NodeWidgetTree, {
   GRAB_HANDLE_X_MARGIN_R,
   ICON_WIDTH,
 } from '@/components/GraphEditor/NodeWidgetTree.vue'
+import SmallPlusButton from '@/components/SmallPlusButton.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import { useDoubleClick } from '@/composables/doubleClick'
 import { usePointer, useResizeObserver } from '@/composables/events'
-import { useKeyboard } from '@/composables/keyboard'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
 import { injectNodeColors } from '@/providers/graphNodeColors'
 import { injectGraphSelection } from '@/providers/graphSelection'
+import { injectKeyboard } from '@/providers/keyboard'
 import { useGraphStore, type Node } from '@/stores/graph'
 import { asNodeId } from '@/stores/graph/graphDatabase'
 import { useProjectStore } from '@/stores/project'
+import { suggestionDocumentationUrl } from '@/stores/suggestionDatabase/entry'
 import { Ast } from '@/util/ast'
 import type { AstId } from '@/util/ast/abstract'
 import { prefixes } from '@/util/ast/node'
@@ -81,7 +83,7 @@ const projectStore = useProjectStore()
 const graph = useGraphStore()
 const navigator = injectGraphNavigator(true)
 
-const nodeId = computed(() => asNodeId(props.node.rootExpr.id))
+const nodeId = computed(() => asNodeId(props.node.rootExpr.externalId))
 const potentialSelfArgumentId = computed(() => props.node.primarySubject)
 const connectedSelfArgumentId = computed(() =>
   potentialSelfArgumentId.value && graph.isConnectedTarget(potentialSelfArgumentId.value) ?
@@ -98,9 +100,8 @@ const nodeSize = useResizeObserver(rootNode)
 function inputExternalIds() {
   const externalIds = new Array<ExternalId>()
   for (const inputId of graph.db.nodeDependents.reverseLookup(nodeId.value)) {
-    const externalId = graph.db.idToExternal(inputId)
-    if (externalId) {
-      externalIds.push(externalId)
+    if (inputId) {
+      externalIds.push(inputId)
     }
   }
   return externalIds
@@ -121,7 +122,7 @@ interface Message {
   alwaysShow: boolean
 }
 const availableMessage = computed<Message | undefined>(() => {
-  const externalId = graph.db.idToExternal(nodeId.value)
+  const externalId = nodeId.value
   if (!externalId) return undefined
   const info = projectStore.computedValueRegistry.db.get(externalId)
   switch (info?.payload.type) {
@@ -222,7 +223,7 @@ function openFullMenu() {
 
 const isDocsVisible = ref(false)
 const outputHovered = ref(false)
-const keyboard = useKeyboard()
+const keyboard = injectKeyboard()
 const visualizationWidth = computed(() => props.node.vis?.width ?? null)
 const visualizationHeight = computed(() => props.node.vis?.height ?? null)
 const isVisualizationEnabled = computed(() => props.node.vis?.visible ?? false)
@@ -242,11 +243,9 @@ const isVisualizationFullscreen = computed(() => props.node.vis?.fullscreen ?? f
 
 const bgStyleVariables = computed(() => {
   const { x: width, y: height } = nodeSize.value
-  const visBelowNode = graphSelectionSize.value.y - nodeSize.value.y
   return {
     '--node-width': `${width}px`,
     '--node-height': `${height}px`,
-    '--output-port-transform': `translateY(${visBelowNode}px)`,
   }
 })
 
@@ -319,6 +318,9 @@ const icon = computed(() => {
     outputPortLabel.value,
   )
 })
+const documentationUrl = computed(
+  () => suggestionEntry.value && suggestionDocumentationUrl(suggestionEntry.value),
+)
 
 const nodeEditHandler = nodeEditBindings.handler({
   cancel(e) {
@@ -332,7 +334,7 @@ const nodeEditHandler = nodeEditBindings.handler({
   },
 })
 
-function startEditingNode(position: Vec2 | undefined) {
+function startEditingNode(position?: Vec2 | undefined) {
   let sourceOffset = props.node.rootExpr.code().length
   if (position != null) {
     let domNode, domOffset
@@ -423,6 +425,7 @@ watchEffect(() => {
       minWidth: isVisualizationEnabled ? `${visualizationWidth ?? 200}px` : undefined,
       '--node-group-color': color,
       ...(node.zIndex ? { 'z-index': node.zIndex } : {}),
+      '--viz-below-node': `${graphSelectionSize.y - nodeSize.y}px`,
     }"
     :class="{
       selected,
@@ -437,11 +440,11 @@ watchEffect(() => {
     <Teleport :to="graphNodeSelections">
       <GraphNodeSelection
         v-if="navigator && !edited"
+        :data-node-id="nodeId"
         :nodePosition="props.node.position"
         :nodeSize="graphSelectionSize"
         :class="{ draggable: true, dragged: isDragged }"
         :selected
-        :nodeId
         :color
         :externalHovered="nodeHovered"
         @visible="selectionVisible = $event"
@@ -470,6 +473,7 @@ watchEffect(() => {
       :isFullMenuVisible="menuVisible && menuFull"
       :nodeColor="getNodeColor(nodeId)"
       :matchableNodeColors="matchableNodeColors"
+      :documentationUrl="documentationUrl"
       @update:isVisualizationEnabled="emit('update:visualizationEnabled', $event)"
       @startEditing="startEditingNode"
       @startEditingComment="editingComment = true"
@@ -549,6 +553,11 @@ watchEffect(() => {
         @update:nodeHovered="outputHovered = $event"
       />
     </svg>
+    <SmallPlusButton
+      v-if="menuVisible && isVisualizationVisible"
+      class="afterNode"
+      @createNodes="emit('createNodes', $event)"
+    />
   </div>
 </template>
 
@@ -562,6 +571,7 @@ watchEffect(() => {
   left: 0;
   display: flex;
 
+  --output-port-transform: translateY(var(--viz-below-node));
   --output-port-max-width: 4px;
   --output-port-hovered-extra-width: 2px;
   --output-port-overlap: -8px;
@@ -597,9 +607,6 @@ watchEffect(() => {
   border-radius: var(--node-border-radius);
   transition: box-shadow 0.2s ease-in-out;
   box-sizing: border-box;
-  ::selection {
-    background-color: rgba(255, 255, 255, 20%);
-  }
 }
 
 .content {
@@ -658,6 +665,7 @@ watchEffect(() => {
   position: absolute;
   top: 100%;
   margin-top: 4px;
+  transform: translateY(var(--viz-below-node));
 }
 
 .messageWithMenu {

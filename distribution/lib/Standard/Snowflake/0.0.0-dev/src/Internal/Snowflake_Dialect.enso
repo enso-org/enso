@@ -1,6 +1,6 @@
 private
 
-from Standard.Base import all hiding First, Last
+from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Errors.Unimplemented.Unimplemented
@@ -45,18 +45,21 @@ from Standard.Database.Internal.Statement_Setter import fill_hole_default
 
 import project.Internal.Snowflake_Type_Mapping.Snowflake_Type_Mapping
 
+polyglot java import org.enso.database.JDBCUtils
+polyglot java import org.enso.snowflake.SnowflakeJDBCUtils
+
 ## PRIVATE
    The dialect of Snowflake databases.
 snowflake : Snowflake_Dialect
 snowflake =
-    Snowflake_Dialect.Value make_internal_generator_dialect
+    Snowflake_Dialect.Value make_dialect_operations
 
 ## PRIVATE
    The dialect of Snowflake databases.
 type Snowflake_Dialect
     ## PRIVATE
        The dialect of Snowflake databases.
-    Value internal_generator_dialect
+    Value dialect_operations
 
     ## PRIVATE
        Name of the dialect.
@@ -71,22 +74,28 @@ type Snowflake_Dialect
        A function which generates SQL code from the internal representation
        according to the specific dialect.
     generate_sql : Query -> SQL_Statement
-    generate_sql self query = case query of
-        Query.Truncate_Table name ->
-            # Special handling to use TRUNCATE TABLE instead of the default DELETE FROM.
-            wrapped_name = self.internal_generator_dialect.wrap_identifier name
-            (SQL_Builder.code "TRUNCATE TABLE " ++ wrapped_name) . build
-        _ ->
-            # Rely on the base generator for most queries.
-            Base_Generator.generate_query self.internal_generator_dialect query . build
+    generate_sql self query =
+        Base_Generator.generate_query self query . build
+
+    ## PRIVATE
+       Generates SQL to truncate a table.
+    generate_truncate_table_sql : Text -> SQL_Builder
+    generate_truncate_table_sql self table_name =
+        Base_Generator.truncate_table_truncate_table_style self table_name
 
     ## PRIVATE
        Wraps and possibly escapes the identifier so that it can be used in a
        generated query regardless of what characters it contains.
        The quotes used will depend on the dialect.
-    wrap_identifier : Text -> Text
+    wrap_identifier : Text -> SQL_Builder
     wrap_identifier self identifier =
-        self.internal_generator_dialect.wrap_identifier_raw identifier
+        Base_Generator.wrap_in_quotes identifier
+
+    ## PRIVATE
+       Generates a SQL expression for a table literal.
+    make_table_literal : Vector (Vector Text) -> Vector Text -> Text -> SQL_Builder
+    make_table_literal self vecs column_names as_name =
+        Base_Generator.default_make_table_literal self.wrap_identifier vecs column_names as_name
 
     ## PRIVATE
        Prepares an ordering descriptor.
@@ -113,7 +122,7 @@ type Snowflake_Dialect
         inner_table_alias = table_name_deduplicator.make_unique table.name+"_inner"
         setup = (Internals_Access.get_context table).as_subquery inner_table_alias [Internals_Access.internal_columns table]
         new_columns = setup.new_columns.first
-        column_mapping = Map.from_vector <| new_columns.map c-> [c.name, c]
+        column_mapping = Dictionary.from_vector <| new_columns.map c-> [c.name, c]
         new_key_columns = key_columns.map c-> column_mapping.at c.name
         type_mapping = self.get_type_mapping
         distinct_expressions = new_key_columns.map column->
@@ -138,10 +147,13 @@ type Snowflake_Dialect
     get_statement_setter : Statement_Setter
     get_statement_setter self =
         custom_fill_hole stmt i type_hint value = case value of
-            # TODO some Special handling for Date/Time
-            _ : Date -> stmt.setObject i value
-            _ : Date_Time -> stmt.setObject i value
-            _ : Time_Of_Day -> stmt.setObject i value
+            _ : Date_Time ->
+                keep_offset = case type_hint of
+                    Value_Type.Date_Time with_timezone -> with_timezone
+                    _ -> True
+                SnowflakeJDBCUtils.setDateTime stmt i value keep_offset
+            _ : Time_Of_Day -> SnowflakeJDBCUtils.setTimeOfDay stmt i value
+            _ : Date        -> SnowflakeJDBCUtils.setDate stmt i value
             # Fallback to default logic for everything else
             _ -> fill_hole_default stmt i type_hint value
         Statement_Setter.Value custom_fill_hole
@@ -163,8 +175,15 @@ type Snowflake_Dialect
         Internal_Column.Value column.name new_sql_type_reference new_expression
 
     ## PRIVATE
-    needs_execute_query_for_type_inference : Boolean
-    needs_execute_query_for_type_inference self = False
+    needs_execute_query_for_type_inference : Text | SQL_Statement -> Boolean
+    needs_execute_query_for_type_inference self statement =
+        query_text = case statement of
+            text : Text -> text
+            _ : SQL_Statement -> statement.prepare.first
+        keywords_that_need_execute = ["VALUES", "DECODE"]
+        regex = keywords_that_need_execute.join "|"
+        needs_execute = query_text.find regex . is_nothing . not
+        needs_execute
 
     ## PRIVATE
     supports_separate_nan : Boolean
@@ -185,6 +204,20 @@ type Snowflake_Dialect
         column
 
     ## PRIVATE
+       Add an extra cast to adjust the output type of certain operations with
+       certain arguments.
+
+       It is used when the normal type inference provided by the database engine
+       needs to be adjusted.
+
+       In most cases this method will just return the expression unchanged, it
+       is used only to override the type in cases where the default one that the
+       database uses is not what we want.
+    cast_op_type self (op_kind:Text) (args:(Vector Internal_Column)) (expression:SQL_Expression) =
+        _ = [op_kind, args]
+        expression
+
+    ## PRIVATE
     prepare_fetch_types_query : SQL_Expression -> Context -> SQL_Statement
     prepare_fetch_types_query self expression context =
         Dialect.default_fetch_types_query self expression context
@@ -192,14 +225,19 @@ type Snowflake_Dialect
     ## PRIVATE
     check_aggregate_support : Aggregate_Column -> Boolean ! Unsupported_Database_Operation
     check_aggregate_support self aggregate =
-        _ = aggregate
-        True
+        unsupported name =
+            Error.throw (Unsupported_Database_Operation.Error name+" is currently not supported by Snowflake backend. You may need to materialize the table and perform the operation in-memory.")
+        case aggregate of
+            First _ _ _ _ -> unsupported "First"
+            Last _ _ _ _ -> unsupported "Last"
+            # All other aggregates are supported.
+            _ -> True
 
     ## PRIVATE
        Checks if an operation is supported by the dialect.
     is_supported : Text -> Boolean
     is_supported self operation =
-        self.internal_generator_dialect.is_supported operation
+        self.dialect_operations.is_supported operation
 
     ## PRIVATE
        The default table types to use when listing tables.
@@ -242,14 +280,21 @@ type Snowflake_Dialect
             case base_type of
                 Value_Type.Decimal precision scale ->
                     used_scale = scale.if_nothing 12
-                    used_precision = Math.min 38 precision.if_nothing 38
+                    used_precision = Math.min 38 (precision.if_nothing 38)
                     new_type = Value_Type.Decimal used_precision used_scale
                     if used_scale==scale && used_precision==precision then new_type else
                         Warning.attach (Inexact_Type_Coercion.Warning base_type new_type unavailable=False) new_type
                 _ -> base_type
 
+    ## PRIVATE
+    needs_literal_table_cast : Value_Type -> Boolean
+    needs_literal_table_cast self value_type = case value_type of
+        Value_Type.Time        -> True
+        Value_Type.Date_Time _ -> True
+        _                      -> False
+
 ## PRIVATE
-make_internal_generator_dialect =
+make_dialect_operations =
     cases = [["LOWER", Base_Generator.make_function "LOWER"], ["UPPER", Base_Generator.make_function "UPPER"]]
     text = [starts_with, contains, ends_with, agg_shortest, agg_longest, make_case_sensitive, ["REPLACE", replace], left, right]+concat_ops+cases+trim_ops
     counts = [agg_count_is_null, agg_count_empty, agg_count_not_empty, ["COUNT_DISTINCT", agg_count_distinct], ["COUNT_DISTINCT_INCLUDE_NULL", agg_count_distinct_include_null]]
@@ -259,23 +304,37 @@ make_internal_generator_dialect =
     stddev_pop = ["STDDEV_POP", Base_Generator.make_function "stddev_pop"]
     stddev_samp = ["STDDEV_SAMP", Base_Generator.make_function "stddev_samp"]
     stats = [agg_median, agg_mode, agg_percentile, stddev_pop, stddev_samp]
-    date_ops = [make_extract_as_int "year", make_extract_as_int "quarter", make_extract_as_int "month", make_extract_as_int "week", make_extract_as_int "day", make_extract_as_int "hour", make_extract_as_int "minute", make_extract_fractional_as_int "second", make_extract_fractional_as_int "millisecond" modulus=1000, make_extract_fractional_as_int "microsecond" modulus=1000, ["date_add", make_date_add], ["date_diff", make_date_diff], ["date_trunc_to_day", make_date_trunc_to_day]]
-    special_overrides = []
-    other = [["RUNTIME_ERROR", make_runtime_error_op]]
-    my_mappings = text + counts + stats + first_last_aggregators + arith_extensions + bool + date_ops + special_overrides + other
-    Base_Generator.base_dialect . extend_with my_mappings
+    date_ops =
+        trivial = ["year", "quarter", "month", "week", "day", "hour", "minute", "second"]
+            . map name-> [name, Base_Generator.make_function name]
+        fractional = [extract_just_milliseconds, extract_just_microseconds, extract_just_nanoseconds]
+        other = [["day_of_year", Base_Generator.make_function "DAYOFYEAR"], ["day_of_week", Base_Generator.make_function "DAYOFWEEKISO"]]
+        operations = [["date_add", make_date_add], ["date_diff", make_date_diff], ["date_trunc_to_day", make_date_trunc_to_day]]
+        trivial + fractional + other + operations
+    other = [["IIF", make_iif], ["RUNTIME_ERROR", make_runtime_error_op]]
+    my_mappings = text + counts + stats + arith_extensions + bool + date_ops + other
+    Base_Generator.base_dialect_operations . extend_with my_mappings
 
 ## PRIVATE
 agg_count_is_null = Base_Generator.lift_unary_op "COUNT_IS_NULL" arg->
-    SQL_Builder.code "COUNT_IF(" ++ arg.paren ++ " IS NULL)"
+    replace_with_zero_if_null <|
+        SQL_Builder.code "COUNT_IF(" ++ arg.paren ++ " IS NULL)"
 
 ## PRIVATE
 agg_count_empty = Base_Generator.lift_unary_op "COUNT_EMPTY" arg->
-    SQL_Builder.code "COUNT_IF(" ++ arg.paren ++ " IS NULL OR " ++ arg.paren ++ " = '')"
+    replace_with_zero_if_null <|
+        SQL_Builder.code "COUNT_IF(" ++ arg.paren ++ " IS NULL OR " ++ arg.paren ++ " = '')"
 
 ## PRIVATE
 agg_count_not_empty = Base_Generator.lift_unary_op "COUNT_NOT_EMPTY" arg->
-    SQL_Builder.code "COUNT_IF(" ++ arg.paren ++ " IS NOT NULL AND " ++ arg.paren ++ " != '')"
+    replace_with_zero_if_null <|
+        SQL_Builder.code "COUNT_IF(" ++ arg.paren ++ " IS NOT NULL AND " ++ arg.paren ++ " != '')"
+
+## PRIVATE
+   A helper needed because Snowflake's aggregators return NULL if there were no
+   rows. But for aggregators like COUNT we prefer to return 0 in such cases.
+replace_with_zero_if_null expr =
+    SQL_Builder.code "COALESCE(" ++ expr ++ ", 0)"
 
 ## PRIVATE
 agg_median = Base_Generator.lift_unary_op "MEDIAN" arg->
@@ -294,9 +353,6 @@ agg_percentile = Base_Generator.lift_binary_op "PERCENTILE" p-> expr->
     SQL_Builder.code "CASE WHEN " ++ has_nan ++ " THEN 'NaN' ELSE " ++ percentile ++ " END"
 
 ## PRIVATE
-   These are written in a not most-efficient way, but a way that makes them
-   compatible with other group-by aggregations out-of-the-box. In the future, we
-   may want to consider some alternative solutions.
 first_last_aggregators =
     first = make_first_aggregator reverse=False ignore_null=False
     first_not_null = make_first_aggregator reverse=False ignore_null=True
@@ -311,17 +367,17 @@ make_first_aggregator reverse ignore_null args =
         order_bys = args.drop 1
 
         method_name = if reverse then "LAST_VALUE" else "FIRST_VALUE"
-        filter_clause = if ignore_null then ") IGNORE NULLS OVER" else ") OVER"
-        order_clause = SQL_Builder.code " ORDER BY " ++ SQL_Builder.join "," order_bys
+        filter_clause = if ignore_null then ") IGNORE NULLS" else ")"
+        order_clause = SQL_Builder.code " OVER (ORDER BY " ++ SQL_Builder.join "," order_bys ++ ")"
         SQL_Builder.code (method_name + "(") ++ result_expr ++ filter_clause ++ order_clause
 
 ## PRIVATE
 agg_shortest = Base_Generator.lift_unary_op "SHORTEST" arg->
-     SQL_Builder.code "FIRST_VALUE(" ++ arg ++ ") IGNORE NULLS OVER (ORDER BY LENGTH(" ++ arg ++ "))"
+     SQL_Builder.code "MIN_BY(" ++ arg ++ ", LENGTH(" ++ arg ++ "))"
 
 ## PRIVATE
 agg_longest = Base_Generator.lift_unary_op "LONGEST" arg->
-     SQL_Builder.code "FIRST_VALUE(" ++ arg ++ ") IGNORE NULLS OVER (ORDER BY LENGTH(" ++ arg ++ ") DESC)"
+     SQL_Builder.code "MAX_BY(" ++ arg ++ ", LENGTH(" ++ arg ++ "))"
 
 ## PRIVATE
 concat_ops =
@@ -352,20 +408,26 @@ agg_count_distinct args = if args.is_empty then (Error.throw (Illegal_Argument.E
             ## A single null value will be skipped.
             SQL_Builder.code "COUNT(DISTINCT " ++ args.first ++ ")"
         False ->
-            ## A tuple of nulls is not a null, so it will not be skipped - but
-               we want to ignore all-null columns. So we manually filter them
-               out.
-            count = SQL_Builder.code "COUNT(DISTINCT (" ++ SQL_Builder.join ", " args ++ "))"
-            are_nulls = args.map arg-> arg.paren ++ " IS NULL"
-            all_nulls_filter = SQL_Builder.code " FILTER (WHERE NOT (" ++ SQL_Builder.join " AND " are_nulls ++ "))"
-            (count ++ all_nulls_filter).paren
+            ## We do not want to ignore a row where only some values are NULL - so we coalesce them.
+            coalesced_args = args.map replace_null_with_marker
+            # But we want to ignore all-null tuples. So we include an additional indicator column which is NULL if all cells in the given row were NULL - excluding such rows.
+            are_all_nulls = SQL_Builder.join " AND " (args.map arg-> arg.paren ++ " IS NULL")
+            all_null_indicator = SQL_Builder.code "CASE WHEN " ++ are_all_nulls ++ " THEN NULL ELSE 1 END"
+            SQL_Builder.code "COUNT(DISTINCT " ++ SQL_Builder.join ", " (coalesced_args + [all_null_indicator]) ++ ")"
 
 ## PRIVATE
 agg_count_distinct_include_null args =
-    ## If we always count as tuples, then even null fields are counted.
-    ## But Snowflake seems to not like tuples?
-    #SQL_Builder.code "COUNT(DISTINCT (" ++ SQL_Builder.join ", " args ++ ", 0))"
-    SQL_Builder.code "COUNT(DISTINCT (" ++ SQL_Builder.join ", " args ++ "))"
+    # As with `agg_count_distinct`, we do want to handle columns that contain NULLs, so we need to apply the ugly coalesce.
+    coalesced_args = args.map replace_null_with_marker
+    SQL_Builder.code "COUNT(DISTINCT " ++ SQL_Builder.join ", " coalesced_args ++ ")"
+
+## PRIVATE
+   A helper function that coalesces a NULL column replacing it with a marker value that is expected to not be present in real world data.
+   It is sometimes needed when we want to count distinct values in a column that contains NULLs and still include the rows containing NULLs.
+   The columns are converted to VARIANT type because of that, which may incur some overhead.
+   But there seems to be no other reliable way to handle this for columns like numeric where no non-NULL value exists that can be guaranteed to be unused.
+replace_null_with_marker expr =
+    SQL_Builder.code "COALESCE(" ++ expr ++ ", {'enso-null-replacement-marker':'"+Random.uuid+"'}::variant)"
 
 ## PRIVATE
 starts_with = Base_Generator.lift_binary_sql_function "STARTS_WITH" "STARTSWITH"
@@ -444,14 +506,14 @@ decimal_mod = Base_Generator.lift_binary_op "DECIMAL_MOD" x-> y->
     x ++ " - FLOOR(CAST(" ++ x ++ " AS decimal) / CAST(" ++ y ++ " AS decimal)) * " ++ y
 
 ## PRIVATE
-supported_replace_params : Set Replace_Params
+supported_replace_params : Hashset Replace_Params
 supported_replace_params =
     e0 = [Replace_Params.Value Text Case_Sensitivity.Default False, Replace_Params.Value Text Case_Sensitivity.Default True, Replace_Params.Value Text Case_Sensitivity.Sensitive False]
     e1 = [Replace_Params.Value Text Case_Sensitivity.Sensitive True, Replace_Params.Value Text Case_Sensitivity.Insensitive False, Replace_Params.Value Text Case_Sensitivity.Insensitive True]
     e2 = [Replace_Params.Value Regex Case_Sensitivity.Default False, Replace_Params.Value Regex Case_Sensitivity.Default True, Replace_Params.Value Regex Case_Sensitivity.Sensitive False]
     e3 = [Replace_Params.Value Regex Case_Sensitivity.Sensitive True, Replace_Params.Value Regex Case_Sensitivity.Insensitive False, Replace_Params.Value Regex Case_Sensitivity.Insensitive True]
     e4 = [Replace_Params.Value DB_Column Case_Sensitivity.Default False, Replace_Params.Value DB_Column Case_Sensitivity.Sensitive False]
-    Set.from_vector <| e0 + e1 + e2 + e3 + e4
+    Hashset.from_vector <| e0 + e1 + e2 + e3 + e4
 
 ## PRIVATE
 replace : Vector SQL_Builder -> Any -> SQL_Builder
@@ -487,18 +549,18 @@ replace args metadata =
                     _ ->
                         SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ escaped_pattern ++ ", " ++ replacement ++ ", 1, 1)"
         Regex ->
-            pattern_string = SQL_Builder.interpolation raw_pattern.pattern_string
+            pattern_text = SQL_Builder.interpolation raw_pattern.pattern
             case replace_params.only_first of
                 False -> case replace_params.case_sensitivity of
                     Case_Sensitivity.Insensitive _ ->
-                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_string ++ ", " ++ replacement ++ ", 1, 0, 'i')"
+                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_text ++ ", " ++ replacement ++ ", 1, 0, 'i')"
                     _ ->
-                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_string ++ ", " ++ replacement ++ ")"
+                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_text ++ ", " ++ replacement ++ ")"
                 True -> case replace_params.case_sensitivity of
                     Case_Sensitivity.Insensitive _ ->
-                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_string ++ ", " ++ replacement ++ ", 1, 1, 'i')"
+                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_text ++ ", " ++ replacement ++ ", 1, 1, 'i')"
                     _ ->
-                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_string ++ ", " ++ replacement ++ ", 1, 1)"
+                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_text ++ ", " ++ replacement ++ ", 1, 1)"
         DB_Column ->
             case replace_params.only_first of
                 False -> case replace_params.case_sensitivity of
@@ -509,121 +571,60 @@ replace args metadata =
                 True -> Nothing
     expression.if_nothing (replace_params.throw_unsupported snowflake_dialect_name)
 
-## PRIVATE
-make_extract_as_int enso_name sql_name=enso_name =
-    Base_Generator.lift_unary_op enso_name arg->
-        as_int32 <| SQL_Builder.code "EXTRACT(" ++ sql_name ++ " FROM " ++ arg ++ ")"
+extract_just_nanoseconds = Base_Generator.lift_unary_op "nanosecond" arg->
+    SQL_Builder.code "(EXTRACT(NANOSECOND FROM " ++ arg ++ ") % 1000)"
+
+extract_just_microseconds = Base_Generator.lift_unary_op "microsecond" arg->
+    SQL_Builder.code "(TRUNC(EXTRACT(NANOSECOND FROM " ++ arg ++ ") / 1000) % 1000)"
+
+extract_just_milliseconds = Base_Generator.lift_unary_op "millisecond" arg->
+    # No modulo is needed, as the milliseconds are the last part of the nanoseconds.
+    SQL_Builder.code "TRUNC(EXTRACT(NANOSECOND FROM " ++ arg ++ ") / 1000000)"
 
 ## PRIVATE
-make_extract_fractional_as_int enso_name sql_name=enso_name modulus=Nothing =
-    Base_Generator.lift_unary_op enso_name arg->
-        result = as_int32 <| SQL_Builder.code "TRUNC(EXTRACT(" ++ sql_name ++ " FROM " ++ arg ++ "))"
-        case modulus of
-            Nothing -> result
-            _ : Integer ->
-                (result ++ (" % "+modulus.to_text)).paren
+date_period_to_part_with_multiplier period =
+    case period of
+        Date_Period.Year    -> ["year", 1]
+        Date_Period.Quarter -> ["quarter", 1]
+        Date_Period.Month   -> ["month", 1]
+        Date_Period.Week _  -> ["week", 1]
+        Date_Period.Day     -> ["day", 1]
+        Time_Period.Day     -> ["hour", 24]
+        Time_Period.Hour    -> ["hour", 1]
+        Time_Period.Minute  -> ["minute", 1]
+        Time_Period.Second  -> ["second", 1]
+        Time_Period.Millisecond -> ["millisecond", 1]
+        Time_Period.Microsecond -> ["microsecond", 1]
+        Time_Period.Nanosecond  -> ["nanosecond", 1]
 
 ## PRIVATE
 make_date_add arguments (metadata : Date_Period_Metadata) =
     if arguments.length != 2 then Error.throw (Illegal_State.Error "date_add expects exactly 2 sub expressions. This is a bug in Database library.") else
         expr = arguments.at 0
         amount = arguments.at 1
-        interval_arg = case metadata.period of
-            Date_Period.Year ->
-                "years=>1"
-            Date_Period.Quarter ->
-                "months=>3"
-            Date_Period.Month ->
-                "months=>1"
-            Date_Period.Week _ ->
-                "weeks=>1"
-            Date_Period.Day ->
-                "days=>1"
-            Time_Period.Day ->
-                "hours=>24"
-            Time_Period.Hour ->
-                "hours=>1"
-            Time_Period.Minute ->
-                "mins=>1"
-            Time_Period.Second ->
-                "secs=>1"
-            Time_Period.Millisecond ->
-                "secs=>0.001"
-            Time_Period.Microsecond ->
-                "secs=>0.000001"
-        interval_expression = SQL_Builder.code "make_interval(" ++ interval_arg ++ ")"
-        shifted = SQL_Builder.code "(" ++ expr ++ " + (" ++ amount ++ " * " ++ interval_expression ++ "))"
-        case metadata.input_value_type of
-            Value_Type.Date ->
-                SQL_Builder.code "(" ++ shifted ++ "::date)"
-            _ -> shifted
+        part_with_multiplier = date_period_to_part_with_multiplier metadata.period
+        date_part = part_with_multiplier.first
+        multiplier = part_with_multiplier.second
+        scaled_amount = if multiplier == 1 then amount else
+            amount ++ " * " ++ multiplier.to_text
+        sql_typ = sql_type_string_for_date_time metadata.input_value_type
+        SQL_Builder.code "DATEADD('"+date_part+"', (" ++ scaled_amount ++ ")::NUMBER, (" ++ expr ++ ")::" ++ sql_typ ++ ")"
 
 ## PRIVATE
 make_date_diff arguments (metadata : Date_Period_Metadata) =
     if arguments.length != 2 then Error.throw (Illegal_State.Error "date_diff expects exactly 2 sub expressions. This is a bug in Database library.") else
         start = arguments.at 0
         end = arguments.at 1
-
-        truncate expr =
-            SQL_Builder.code "TRUNC(" ++ expr ++ ")"
-
-        # `age` computes a 'symbolic' difference expressed in years, months and days.
-        extract_years =
-            as_int32 <| SQL_Builder.code "EXTRACT(YEARS FROM age(" ++ end ++ ", " ++ start ++ "))"
-        # To get total months, we need to sum up with whole years.
-        extract_months =
-            months = as_int32 <|
-                SQL_Builder.code "EXTRACT(MONTHS FROM age(" ++ end ++ ", " ++ start ++ "))"
-            SQL_Builder.code "(" ++ extract_years ++ " * 12 + " ++ months ++ ")"
-        ## To get total days, we cannot use `age`, because we cannot convert an
-           amount of months to days (month lengths vary). Instead we rely on `-`
-           returning an interval based in 'raw' days.
-        extract_days =
-            as_int32 <| case metadata.input_value_type of
-                ## For pure 'date' datatype, the difference is a simple integer
-                   count of days.
-                Value_Type.Date -> (end ++ " - " ++ start).paren
-                # For others, it is an interval, so we need to extract.
-                _ -> SQL_Builder.code "EXTRACT(DAYS FROM (" ++ end ++ " - " ++ start ++ "))"
-        ## We round the amount of seconds towards zero, as we only count full
-           elapsed seconds in the interval.
-           Note that it is important the interval is computed using `-`. The
-           symbolic `age` has no clear mapping to the count of days, skewing the
-           result.
-        extract_seconds =
-            seconds_numeric = SQL_Builder.code "EXTRACT(EPOCH FROM (" ++ end ++ " - " ++ start ++ "))"
-            as_int64 (truncate seconds_numeric)
-        case metadata.period of
-            Date_Period.Year    -> extract_years
-            Date_Period.Month   -> extract_months
-            Date_Period.Quarter -> (extract_months ++ " / 3").paren
-            Date_Period.Week _  -> (extract_days ++ " / 7").paren
-            Date_Period.Day     -> extract_days
-            ## EXTRACT HOURS/MINUTES would yield only a date part, but we need
-               the total which is easiest achieved by EPOCH
-            Time_Period.Hour    -> (extract_seconds ++ " / 3600").paren
-            Time_Period.Minute  -> (extract_seconds ++ " / 60").paren
-            Time_Period.Second  -> extract_seconds
-            Time_Period.Day     -> case metadata.input_value_type of
-                Value_Type.Date -> extract_days
-                # Time_Period.Day is treated as 24 hours, so for types that support time we use the same algorithm like for hours, but divide by 24.
-                _ -> (extract_seconds ++ " / (3600 * 24)").paren
-            ## The EPOCH gives back just the integer amount of seconds, without
-               the fractional part. So we get the fractional part using
-               MILLISECONDS - but that does not give the _total_ just the
-               'seconds of minute' part, expressed in milliseconds. So we need
-               to merge both - but then seconds of minute appear twice, so we %
-               the milliseconds to get just the fractional part from it and sum
-               both.
-            Time_Period.Millisecond ->
-                millis = truncate <|
-                    SQL_Builder.code "EXTRACT(MILLISECONDS FROM (" ++ end ++ " - " ++ start ++ "))"
-                as_int64 <|
-                    ((extract_seconds ++ " * 1000").paren ++ " + " ++ (millis ++ " % 1000").paren).paren
-            Time_Period.Microsecond ->
-                micros = SQL_Builder.code "EXTRACT(MICROSECONDS FROM (" ++ end ++ " - " ++ start ++ "))"
-                as_int64 <|
-                    ((extract_seconds ++ " * 1000000").paren ++ " + " ++ (micros ++ " % 1000000").paren).paren
+        part_with_multiplier = date_period_to_part_with_multiplier metadata.period
+        date_part = part_with_multiplier.first
+        multiplier = part_with_multiplier.second
+        ## The SQL type to add as a cast. This is needed, because otherwise this operation is losing type information,
+           especially if given NULL (Nothing). It would tell that it returns a VARCHAR which is not true.
+        sql_typ = sql_type_string_for_date_time metadata.input_value_type
+        diff = SQL_Builder.code "DATEDIFF('" ++ date_part ++ "', (" ++ start ++ ")::" ++ sql_typ ++ ", (" ++ end ++ ")::" ++ sql_typ ++ ")"
+        if multiplier == 1 then diff else
+            # We want to return integer, so we truncate any fractional part that did not constitute a full unit.
+            SQL_Builder.code "TRUNC(" ++ diff ++ " / " ++ multiplier.to_text ++ ")"
 
 ## PRIVATE
 make_date_trunc_to_day arguments =
@@ -632,16 +633,11 @@ make_date_trunc_to_day arguments =
         SQL_Builder.code "(DATE_TRUNC('day'," ++ expr ++ ") :: DATE)"
 
 ## PRIVATE
-   Alters the expression casting the value to a 64-bit integer.
-   TODO probably remove
-as_int64 expr =
-    SQL_Builder.code "(" ++ expr ++ "::int8)"
-
-## PRIVATE
-   Alters the expression casting the value to a 32-bit integer.
-   TODO probably remove
-as_int32 expr =
-    SQL_Builder.code "(" ++ expr ++ "::int4)"
+sql_type_string_for_date_time value_type = case value_type of
+    Value_Type.Date -> "DATE"
+    Value_Type.Date_Time with_tz -> if with_tz then "TIMESTAMP_TZ" else "TIMESTAMP_NTZ"
+    Value_Type.Time -> "TIME"
+    _ -> Panic.throw (Illegal_State.Error "Expects a date or time type. This is a bug in Database library.")
 
 ## PRIVATE
    The RUNTIME_ERROR operation should allow the query to compile fine and it
@@ -665,6 +661,19 @@ make_runtime_error_op arguments =
     variable_to_defer = arguments.at 1
 
     SQL_Builder.code "CAST('[ENSO INVARIANT VIOLATED: '||" ++ error_message ++ "||'] '||COALESCE(" ++ variable_to_defer ++ "::TEXT,'NULL') AS BOOLEAN)"
+
+## PRIVATE
+make_iif : Vector SQL_Builder -> SQL_Builder
+make_iif arguments = case arguments.length of
+    3 ->
+        expr = arguments.at 0
+        when_true = arguments.at 1
+        when_false = arguments.at 2
+        # We can rely on Snowflake's decode to avoid duplicating `expr` in the SQL code:
+        # (if no default fallback is provided, NULL will be returned - meaning that NULL is mapped to NULL as expected)
+        SQL_Builder.code "DECODE(" ++ expr ++ ", TRUE, " ++ when_true ++ ", FALSE, " ++ when_false ++ ")"
+    _ ->
+        Error.throw <| Illegal_State.Error ("Invalid amount of arguments for operation IIF")
 
 ## PRIVATE
 snowflake_dialect_name = "Snowflake"

@@ -5,5 +5,5 @@ export project.AI
 export project.Helpers
 export project.Id.Id
 export project.Preprocessor
-from project.File_Upload export file_uploading
+export project.File_Upload.file_uploading
 
