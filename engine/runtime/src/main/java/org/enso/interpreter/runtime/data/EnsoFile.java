@@ -103,9 +103,9 @@ public final class EnsoFile implements EnsoObject {
       return ArrayLikeHelpers.wrapStrings(MEMBERS);
     }
 
-    @TruffleBoundary
     @ExportMessage
-    Object invokeMember(
+    static Object invokeMember(
+        EnsoOutputStream os,
         String name,
         Object[] args,
         @Cached ArrayLikeLengthNode lengthNode,
@@ -130,20 +130,27 @@ public final class EnsoFile implements EnsoObject {
                 throw ArityException.create(1, 3, args.length);
               }
             }
+            var buf = new byte[8192];
+            var at = 0;
             for (long i = from; i < to; i++) {
               var elem = atNode.executeAt(args[0], i);
-              var byt = iop.asInt(elem);
-              os.write(byt);
+              buf[at++] = iop.asByte(elem);
+              if (at == buf.length) {
+                os.write(buf, 0, buf.length);
+              }
             }
-            yield this;
+            if (at > 0) {
+              os.write(buf, 0, at);
+            }
+            yield os;
           }
           case "flush" -> {
             os.flush();
-            yield this;
+            yield os;
           }
           case "close" -> {
             os.close();
-            yield this;
+            yield os;
           }
           default -> throw UnknownIdentifierException.create(name);
         };
@@ -153,6 +160,21 @@ public final class EnsoFile implements EnsoObject {
         var ctx = EnsoContext.get(iop);
         throw ctx.raiseAssertionPanic(iop, name, ex);
       }
+    }
+
+    @TruffleBoundary
+    final void write(byte[] buf, int offset, int length) throws IOException {
+      os.write(buf, offset, length);
+    }
+
+    @TruffleBoundary
+    final void flush() throws IOException {
+      os.flush();
+    }
+
+    @TruffleBoundary
+    final void close() throws IOException {
+      os.close();
     }
 
     @Override
