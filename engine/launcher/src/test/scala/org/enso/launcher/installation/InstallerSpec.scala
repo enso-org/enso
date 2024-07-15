@@ -11,7 +11,7 @@ import org.enso.testkit.WithTemporaryDirectory
 class InstallerSpec extends NativeTest with WithTemporaryDirectory {
   def portableRoot = getTestDirectory / "portable"
   def portableLauncher =
-    portableRoot / "bin" / OS.executableName("enso")
+    portableRoot / "bin" / OS.executableName(Constants.name)
 
   def preparePortableDistribution(): Unit = {
     copyLauncherTo(portableLauncher)
