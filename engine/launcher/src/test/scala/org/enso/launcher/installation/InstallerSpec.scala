@@ -66,9 +66,9 @@ class InstallerSpec extends NativeTest with WithTemporaryDirectory {
         env
       )
 
-      (installedRoot / "bin" / OS.executableName("enso")).toFile should exist
+      (installedRoot / "bin" / OS.executableName("ensoup")).toFile should exist
       assert(
-        Files.isExecutable(installedRoot / "bin" / OS.executableName("enso")),
+        Files.isExecutable(installedRoot / "bin" / OS.executableName("ensoup")),
         "The installed file should be executable."
       )
 
@@ -97,7 +97,7 @@ class InstallerSpec extends NativeTest with WithTemporaryDirectory {
         env
       )
 
-      (installedRoot / "bin" / OS.executableName("enso")).toFile should exist
+      (installedRoot / "bin" / OS.executableName("ensoup")).toFile should exist
       portableLauncher.toFile should exist
     }
 
