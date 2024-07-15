@@ -1915,6 +1915,19 @@ export default function AssetsTable(props: AssetsTableProps) {
     }
   }
 
+  const handleFileDrop = (event: React.DragEvent) => {
+    if (event.dataTransfer.types.includes('Files')) {
+      event.preventDefault()
+      event.stopPropagation()
+      dispatchAssetListEvent({
+        type: AssetListEventType.uploadFiles,
+        parentKey: rootDirectoryId,
+        parentId: rootDirectoryId,
+        files: Array.from(event.dataTransfer.files),
+      })
+    }
+  }
+
   const state = React.useMemo<AssetsTableState>(
     // The type MUST be here to trigger excess property errors at typecheck time.
     () => ({
@@ -2517,6 +2530,7 @@ export default function AssetsTable(props: AssetsTableProps) {
               ids: new Set(filtered.map(dragItem => dragItem.asset.id)),
             })
           }
+          handleFileDrop(event)
         }}
         onClick={() => {
           setSelectedKeys(new Set())
@@ -2654,16 +2668,7 @@ export default function AssetsTable(props: AssetsTableProps) {
             onDragOver={onDropzoneDragOver}
             onDrop={event => {
               setIsDraggingFiles(false)
-              if (event.dataTransfer.types.includes('Files')) {
-                event.preventDefault()
-                event.stopPropagation()
-                dispatchAssetListEvent({
-                  type: AssetListEventType.uploadFiles,
-                  parentKey: rootDirectoryId,
-                  parentId: rootDirectoryId,
-                  files: Array.from(event.dataTransfer.files),
-                })
-              }
+              handleFileDrop(event)
             }}
           >
             <SvgMask src={DropFilesImage} className="size-8" />
