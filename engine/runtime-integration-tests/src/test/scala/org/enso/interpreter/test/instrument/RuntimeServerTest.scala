@@ -5773,7 +5773,7 @@ class RuntimeServerTest
     )
   }
 
-  it should "XX return error when invoking System.exit" in {
+  it should "return error when invoking System.exit" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
     val moduleName = "Enso_Test.Test.Main"
@@ -5815,13 +5815,14 @@ class RuntimeServerTest
         )
       )
     )
-    val recved = context.receiveNIgnoreStdLib(2)
-    recved should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(2) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      Api.Response(requestId, Api.ExecutionFailed(
-        contextId,
-        Api.ExecutionResult.Failure("Exit was called with exit code 42.", None)
-      ))
+      Api.Response(
+        Api.ExecutionFailed(
+          contextId,
+          Api.ExecutionResult.Failure("Exit was called with exit code 42.", None)
+        )
+      )
     )
   }
 
