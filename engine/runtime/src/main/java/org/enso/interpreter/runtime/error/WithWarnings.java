@@ -196,8 +196,8 @@ public final class WithWarnings implements EnsoObject {
   }
 
   public static WithWarnings appendTo(EnsoContext ctx, Object target, ArrayRope<Warning> warnings) {
-    if (target instanceof WithWarnings) {
-      return ((WithWarnings) target).append(ctx, warnings.toArray(Warning[]::new));
+    if (target instanceof WithWarnings withWarn) {
+      return withWarn.append(ctx, warnings.toArray(Warning[]::new));
     } else {
       return new WithWarnings(target, ctx.getWarningsLimit(), warnings.toArray(Warning[]::new));
     }
@@ -209,8 +209,8 @@ public final class WithWarnings implements EnsoObject {
 
   public static WithWarnings appendTo(
       EnsoContext ctx, Object target, boolean reachedMaxCount, Warning... warnings) {
-    if (target instanceof WithWarnings) {
-      return ((WithWarnings) target).append(ctx, reachedMaxCount, warnings);
+    if (target instanceof WithWarnings withWarn) {
+      return withWarn.append(ctx, reachedMaxCount, warnings);
     } else {
       return new WithWarnings(target, ctx.getWarningsLimit(), reachedMaxCount, warnings);
     }
