@@ -1,4 +1,4 @@
-package org.enso.runner
+package org.enso.languageserver.boot
 
 import com.typesafe.scalalogging.Logger
 import org.enso.languageserver.boot.{

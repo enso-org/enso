@@ -306,6 +306,7 @@ lazy val enso = (project in file("."))
     `akka-native`,
     `version-output`,
     `refactoring-utils`,
+    `engine-runner-common`,
     `engine-runner`,
     runtime,
     searcher,
@@ -1508,25 +1509,26 @@ lazy val `language-server` = (project in file("engine/language-server"))
     commands += WithDebugCommand.withDebug,
     frgaalJavaCompilerSetting,
     libraryDependencies ++= akka ++ circe ++ Seq(
-      "org.slf4j"                   % "slf4j-api"            % slf4jVersion,
-      "com.typesafe.scala-logging" %% "scala-logging"        % scalaLoggingVersion,
-      "io.circe"                   %% "circe-generic-extras" % circeGenericExtrasVersion,
-      "io.circe"                   %% "circe-literal"        % circeVersion,
-      "dev.zio"                    %% "zio"                  % zioVersion,
-      "com.google.flatbuffers"      % "flatbuffers-java"     % flatbuffersVersion,
-      "commons-io"                  % "commons-io"           % commonsIoVersion,
-      "com.github.pureconfig"      %% "pureconfig"           % pureconfigVersion,
+      "org.slf4j"                   % "slf4j-api"               % slf4jVersion,
+      "com.typesafe.scala-logging" %% "scala-logging"           % scalaLoggingVersion,
+      "io.circe"                   %% "circe-generic-extras"    % circeGenericExtrasVersion,
+      "io.circe"                   %% "circe-literal"           % circeVersion,
+      "dev.zio"                    %% "zio"                     % zioVersion,
+      "com.google.flatbuffers"      % "flatbuffers-java"        % flatbuffersVersion,
+      "commons-io"                  % "commons-io"              % commonsIoVersion,
+      "com.github.pureconfig"      %% "pureconfig"              % pureconfigVersion,
       akkaTestkit                   % Test,
-      "com.typesafe.akka"          %% "akka-http-testkit"    % akkaHTTPVersion           % Test,
-      "org.scalatest"              %% "scalatest"            % scalatestVersion          % Test,
-      "org.scalacheck"             %% "scalacheck"           % scalacheckVersion         % Test,
-      "org.graalvm.truffle"         % "truffle-api"          % graalMavenPackagesVersion % "provided",
-      "org.graalvm.sdk"             % "polyglot-tck"         % graalMavenPackagesVersion % "provided",
-      "org.eclipse.jgit"            % "org.eclipse.jgit"     % jgitVersion,
-      "org.bouncycastle"            % "bcutil-jdk18on"       % "1.76"                    % Test,
-      "org.bouncycastle"            % "bcpkix-jdk18on"       % "1.76"                    % Test,
-      "org.bouncycastle"            % "bcprov-jdk18on"       % "1.76"                    % Test,
-      "org.apache.tika"             % "tika-core"            % tikaVersion               % Test
+      "com.typesafe.akka"          %% "akka-http-testkit"       % akkaHTTPVersion           % Test,
+      "org.scalatest"              %% "scalatest"               % scalatestVersion          % Test,
+      "org.scalacheck"             %% "scalacheck"              % scalacheckVersion         % Test,
+      "org.graalvm.truffle"         % "truffle-api"             % graalMavenPackagesVersion % "provided",
+      "org.graalvm.sdk"             % "polyglot-tck"            % graalMavenPackagesVersion % "provided",
+      "org.netbeans.api"            % "org-openide-util-lookup" % netbeansApiVersion        % "provided",
+      "org.eclipse.jgit"            % "org.eclipse.jgit"        % jgitVersion,
+      "org.bouncycastle"            % "bcutil-jdk18on"          % "1.76"                    % Test,
+      "org.bouncycastle"            % "bcpkix-jdk18on"          % "1.76"                    % Test,
+      "org.bouncycastle"            % "bcprov-jdk18on"          % "1.76"                    % Test,
+      "org.apache.tika"             % "tika-core"               % tikaVersion               % Test
     ),
     Test / testOptions += Tests
       .Argument(TestFrameworks.ScalaCheck, "-minSuccessfulTests", "1000"),
@@ -1660,6 +1662,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
   .dependsOn(`library-manager`)
   .dependsOn(`connected-lock-manager-server`)
   .dependsOn(`edition-updater`)
+  .dependsOn(`engine-runner-common`)
   .dependsOn(`logging-utils-akka`)
   .dependsOn(`logging-service`)
   .dependsOn(`polyglot-api`)
@@ -2459,6 +2462,37 @@ lazy val `runtime-fat-jar` =
  * recompilation but still convince the IDE that it is a .jar dependency.
  */
 
+/* The purpose of the `engine-runner-common` project is to contain everything
+ * that's needed for the `engine-runner` project to invoke `language-server` when
+ * `--server` option is used.
+ *
+ * As such this project contains (primarily) the `LanguageServerApi`
+ * API & SPI class. `engine-runner` project call the `LanguageServerApi` class static method
+ * and that method then delegates to an implementation which is supposed to be provided
+ * by the `language-server` project.
+ *
+ * `engine-runner` and `language-server` projects shall be "loosely coupled" - they shouldn't
+ * have compile time dependency between each other. All that's needed for them to
+ * communicate belongs into `engine-runner-common` project.
+ */
+lazy val `engine-runner-common` = project
+  .in(file("engine/runner-common"))
+  .settings(
+    frgaalJavaCompilerSetting,
+    Test / fork := true,
+    commands += WithDebugCommand.withDebug,
+    Test / envVars ++= distributionEnvironmentOverrides,
+    libraryDependencies ++= Seq(
+      "org.graalvm.polyglot" % "polyglot"    % graalMavenPackagesVersion % "provided",
+      "commons-io"           % "commons-io"  % commonsIoVersion,
+      "commons-cli"          % "commons-cli" % commonsCliVersion
+    )
+  )
+  .dependsOn(`polyglot-api`)
+  .dependsOn(`library-manager`)
+  .dependsOn(`edition-updater`)
+  .dependsOn(testkit % Test)
+
 lazy val `engine-runner` = project
   .in(file("engine/runner"))
   .settings(
@@ -2684,14 +2718,16 @@ lazy val `engine-runner` = project
   .dependsOn(yaml)
   .dependsOn(pkg)
   .dependsOn(cli)
+  .dependsOn(`profiling-utils`)
   .dependsOn(`library-manager`)
-  .dependsOn(`language-server`)
   .dependsOn(`edition-updater`)
   .dependsOn(`runtime-parser`)
   .dependsOn(`logging-service`)
   .dependsOn(`logging-service-logback` % Runtime)
+  .dependsOn(`engine-runner-common`)
   .dependsOn(`polyglot-api`)
   .dependsOn(`enso-test-java-helpers`)
+  .dependsOn(`language-server` % Runtime)
 
 lazy val buildSmallJdk =
   taskKey[File]("Build a minimal JDK used for native image generation")
