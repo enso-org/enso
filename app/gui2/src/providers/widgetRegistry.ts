@@ -330,19 +330,10 @@ export class WidgetRegistry {
   })
   constructor(private db: GraphDb) {}
 
-  loadBuiltins() {
-    const bulitinWidgets = import.meta.glob('@/components/GraphEditor/widgets/*.vue')
-    this.loadAndCheckWidgetModules(Object.entries(bulitinWidgets))
-  }
-
-  async loadAndCheckWidgetModules(
-    asyncModules: [path: string, asyncModule: () => Promise<unknown>][],
-  ) {
-    for (const [path, mod] of asyncModules) {
-      mod().then((mod) => {
-        if (isWidgetModule(mod)) this.registerWidgetModule(mod)
-        else console.error('Invalid widget module:', path, mod)
-      })
+  loadWidgets(modules: [path: string, module: unknown][]) {
+    for (const [path, mod] of modules) {
+      if (isWidgetModule(mod)) this.registerWidgetModule(mod)
+      else console.error('Invalid widget module:', path, mod)
     }
   }
 

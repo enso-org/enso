@@ -5,7 +5,6 @@ import BlankIcon from 'enso-assets/blank.svg'
 
 import * as backendHooks from '#/hooks/backendHooks'
 import * as dragAndDropHooks from '#/hooks/dragAndDropHooks'
-import * as eventHooks from '#/hooks/eventHooks'
 import * as setAssetHooks from '#/hooks/setAssetHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
@@ -16,8 +15,11 @@ import * as textProvider from '#/providers/TextProvider'
 import AssetEventType from '#/events/AssetEventType'
 import AssetListEventType from '#/events/AssetListEventType'
 
+import type * as dashboard from '#/pages/dashboard/Dashboard'
+
 import AssetContextMenu from '#/layouts/AssetContextMenu'
 import type * as assetsTable from '#/layouts/AssetsTable'
+import * as eventListProvider from '#/layouts/AssetsTable/EventListProvider'
 import Category from '#/layouts/CategorySwitcher/Category'
 
 import * as aria from '#/components/aria'
@@ -74,6 +76,7 @@ export interface AssetRowInnerProps {
 /** Props for an {@link AssetRow}. */
 export interface AssetRowProps
   extends Readonly<Omit<JSX.IntrinsicElements['tr'], 'onClick' | 'onContextMenu'>> {
+  readonly isOpened: boolean
   readonly item: assetTreeNode.AnyAssetTreeNode
   readonly state: assetsTable.AssetsTableState
   readonly hidden: boolean
@@ -89,22 +92,35 @@ export interface AssetRowProps
     props: AssetRowInnerProps,
     event: React.MouseEvent<HTMLTableRowElement>
   ) => void
+  readonly doOpenProject: (project: dashboard.Project) => void
+  readonly doCloseProject: (project: dashboard.Project) => void
+  readonly updateAssetRef: React.Ref<(asset: backendModule.AnyAsset) => void>
 }
 
 /** A row containing an {@link backendModule.AnyAsset}. */
 export default function AssetRow(props: AssetRowProps) {
-  const { item: rawItem, hidden: hiddenRaw, selected, isSoleSelected, isKeyboardSelected } = props
+  const {
+    item: rawItem,
+    hidden: hiddenRaw,
+    selected,
+    isSoleSelected,
+    isKeyboardSelected,
+    isOpened,
+    updateAssetRef,
+  } = props
   const { setSelected, allowContextMenu, onContextMenu, state, columns, onClick } = props
-  const { grabKeyboardFocus } = props
-  const { backend, visibilities, assetEvents, dispatchAssetEvent, dispatchAssetListEvent } = state
+  const { grabKeyboardFocus, doOpenProject, doCloseProject } = props
   const { nodeMap, setAssetPanelProps, doToggleDirectoryExpansion, doCopy, doCut, doPaste } = state
-  const { setIsAssetPanelTemporarilyVisible, scrollContainerRef, rootDirectoryId } = state
+  const { setIsAssetPanelTemporarilyVisible, scrollContainerRef, rootDirectoryId, backend } = state
+  const { visibilities } = state
 
   const draggableProps = dragAndDropHooks.useDraggable()
   const { user } = authProvider.useNonPartialUserSession()
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
+  const dispatchAssetEvent = eventListProvider.useDispatchAssetEvent()
+  const dispatchAssetListEvent = eventListProvider.useDispatchAssetListEvent()
   const [isDraggedOver, setIsDraggedOver] = React.useState(false)
   const [item, setItem] = React.useState(rawItem)
   const rootRef = React.useRef<HTMLElement | null>(null)
@@ -166,6 +182,10 @@ export default function AssetRow(props: AssetRowProps) {
       grabKeyboardFocusRef.current()
     }
   }, [isKeyboardSelected])
+
+  React.useImperativeHandle(updateAssetRef, () => newItem => {
+    setAsset(newItem)
+  })
 
   const doCopyOnBackend = React.useCallback(
     async (newParentId: backendModule.DirectoryId | null) => {
@@ -416,7 +436,7 @@ export default function AssetRow(props: AssetRowProps) {
     )
   }, [setModal, asset.description, setAsset, backend, item.item.id, item.item.title])
 
-  eventHooks.useEventHandler(assetEvents, async event => {
+  eventListProvider.useAssetEventListener(async event => {
     if (state.category === Category.trash) {
       switch (event.type) {
         case AssetEventType.deleteForever: {
@@ -493,7 +513,7 @@ export default function AssetRow(props: AssetRowProps) {
         }
         case AssetEventType.download:
         case AssetEventType.downloadSelected: {
-          if (event.type === AssetEventType.downloadSelected ? selected : event.ids.has(item.key)) {
+          if (event.type === AssetEventType.downloadSelected ? selected : event.ids.has(asset.id)) {
             if (isCloud) {
               switch (asset.type) {
                 case backendModule.AssetType.project: {
@@ -678,7 +698,7 @@ export default function AssetRow(props: AssetRowProps) {
         }
       }
     }
-  })
+  }, item.initialAssetEvents)
 
   const clearDragState = React.useCallback(() => {
     setIsDraggedOver(false)
@@ -879,6 +899,8 @@ export default function AssetRow(props: AssetRowProps) {
                     <td key={column} className={columnUtils.COLUMN_CSS_CLASS[column]}>
                       <Render
                         keyProp={key}
+                        isOpened={isOpened}
+                        backendType={backend.type}
                         item={item}
                         setItem={setItem}
                         selected={selected}
@@ -888,6 +910,8 @@ export default function AssetRow(props: AssetRowProps) {
                         rowState={rowState}
                         setRowState={setRowState}
                         isEditable={state.category !== Category.trash}
+                        doOpenProject={doOpenProject}
+                        doCloseProject={doCloseProject}
                       />
                     </td>
                   )

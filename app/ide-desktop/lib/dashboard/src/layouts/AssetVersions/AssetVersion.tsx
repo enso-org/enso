@@ -7,13 +7,12 @@ import RestoreIcon from 'enso-assets/restore.svg'
 
 import * as textProvider from '#/providers/TextProvider'
 
-import type * as assetListEvent from '#/events/assetListEvent'
 import AssetListEventType from '#/events/AssetListEventType'
 
 import * as assetDiffView from '#/layouts/AssetDiffView'
+import * as eventListProvider from '#/layouts/AssetsTable/EventListProvider'
 
 import * as ariaComponents from '#/components/AriaComponents'
-import ButtonRow from '#/components/styled/ButtonRow'
 
 import type Backend from '#/services/Backend'
 import * as backendService from '#/services/Backend'
@@ -34,15 +33,14 @@ export interface AssetVersionProps {
   readonly version: backendService.S3ObjectVersion
   readonly latestVersion: backendService.S3ObjectVersion
   readonly backend: Backend
-  readonly dispatchAssetListEvent: (event: assetListEvent.AssetListEvent) => void
   readonly doRestore: () => Promise<void> | void
 }
 
 /** Displays information describing a specific version of an asset. */
 export default function AssetVersion(props: AssetVersionProps) {
-  const { placeholder = false, number, version, item, backend, latestVersion } = props
-  const { dispatchAssetListEvent, doRestore } = props
+  const { placeholder = false, number, version, item, backend, latestVersion, doRestore } = props
   const { getText } = textProvider.useText()
+  const dispatchAssetListEvent = eventListProvider.useDispatchAssetListEvent()
   const asset = item.item
   const isProject = asset.type === backendService.AssetType.project
 
@@ -93,7 +91,7 @@ export default function AssetVersion(props: AssetVersionProps) {
             >
               {opts => (
                 <div className="flex h-full flex-col gap-3">
-                  <ButtonRow>
+                  <ariaComponents.ButtonGroup>
                     <ariaComponents.TooltipTrigger>
                       <ariaComponents.Button
                         variant="icon"
@@ -124,7 +122,7 @@ export default function AssetVersion(props: AssetVersionProps) {
                         {getText('duplicateThisVersion')}
                       </ariaComponents.Tooltip>
                     </ariaComponents.TooltipTrigger>
-                  </ButtonRow>
+                  </ariaComponents.ButtonGroup>
                   <assetDiffView.AssetDiffView
                     latestVersionId={latestVersion.versionId}
                     versionId={version.versionId}

@@ -9,7 +9,7 @@ import { useGraphStore, type NodeId } from '@/stores/graph'
 import { Ast } from '@/util/ast'
 import type { Vec2 } from '@/util/data/vec2'
 import type { Icon } from '@/util/iconName'
-import { computed, ref, toRef, watch } from 'vue'
+import { computed, toRef, watch } from 'vue'
 
 const props = defineProps<{
   ast: Ast.Ast
@@ -64,7 +64,7 @@ function handleWidgetUpdates(update: WidgetUpdate) {
         : value == null ? Ast.Wildcard.new(edit)
         : undefined
       if (ast) {
-        edit.replaceValue(origin as Ast.AstId, ast)
+        edit.replaceValue(origin, ast)
       } else if (typeof value === 'string') {
         edit.tryGet(origin)?.syncToCode(value)
       }

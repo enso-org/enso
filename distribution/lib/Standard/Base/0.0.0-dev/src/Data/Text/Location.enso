@@ -1,9 +1,9 @@
 type Location
     ## Indicates the beginning of a text.
-    Start
+    Left
 
     ## Indicates the end of a text.
-    End
+    Right
 
     ## Indicates both the beginning and end of a text.
     Both

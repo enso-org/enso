@@ -1,9 +1,8 @@
-from Standard.Base import all hiding First, Last
+from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
 from Standard.Table import Aggregate_Column
-from Standard.Table.Aggregate_Column.Aggregate_Column import all
 from Standard.Table.Errors import Floating_Point_Equality
 
 import project.DB_Table.DB_Table
@@ -42,49 +41,49 @@ make_aggregate_column table aggregate as dialect infer_return_type problem_build
         Internal_Column.Value as sql_type_ref expression
 
     dialect.check_aggregate_support aggregate . if_not_error <| case aggregate of
-        Group_By c _ ->
+        Aggregate_Column.Group_By c _ ->
             Internal_Column.Value as c.sql_type_reference c.expression
-        Count _ -> simple_aggregate "COUNT_ROWS" []
-        Count_Distinct columns _ ignore_nothing -> if columns.is_empty then Error.throw (Illegal_Argument.Error "Count_Distinct must have at least one column.") else
+        Aggregate_Column.Count _ -> simple_aggregate "COUNT_ROWS" []
+        Aggregate_Column.Count_Distinct columns _ ignore_nothing -> if columns.is_empty then Error.throw (Illegal_Argument.Error "Count_Distinct must have at least one column.") else
             case ignore_nothing of
                 True -> simple_aggregate "COUNT_DISTINCT" columns
                 False -> simple_aggregate "COUNT_DISTINCT_INCLUDE_NULL" columns
-        Count_Not_Nothing c _ -> simple_aggregate "COUNT" [c]
-        Count_Nothing c _ -> simple_aggregate "COUNT_IS_NULL" [c]
-        Count_Not_Empty c _ -> simple_aggregate "COUNT_NOT_EMPTY" [c]
-        Count_Empty c _ -> simple_aggregate "COUNT_EMPTY" [c]
-        Percentile p c _ ->
+        Aggregate_Column.Count_Not_Nothing c _ -> simple_aggregate "COUNT" [c]
+        Aggregate_Column.Count_Nothing c _ -> simple_aggregate "COUNT_IS_NULL" [c]
+        Aggregate_Column.Count_Not_Empty c _ -> simple_aggregate "COUNT_NOT_EMPTY" [c]
+        Aggregate_Column.Count_Empty c _ -> simple_aggregate "COUNT_EMPTY" [c]
+        Aggregate_Column.Percentile p c _ ->
             op_kind = "PERCENTILE"
             expression = SQL_Expression.Operation op_kind [SQL_Expression.Literal p.to_text, c.expression]
             sql_type_ref = infer_return_type op_kind [c] expression
             Internal_Column.Value as sql_type_ref expression
-        Mode c _ ->
+        Aggregate_Column.Mode c _ ->
             col = table.make_column c
             if col.value_type.is_floating_point then
                 problem_builder.report_other_warning (Floating_Point_Equality.Error as)
             simple_aggregate "MODE" [c]
-        First c _ ignore_nothing order_by -> case is_non_empty_selector order_by of
+        Aggregate_Column.First c _ ignore_nothing order_by -> case is_non_empty_selector order_by of
             False -> Error.throw (Unsupported_Database_Operation.Error "`First` aggregation requires at least one `order_by` column.")
             True ->
                 op = case ignore_nothing of
                     False -> "FIRST"
                     True -> "FIRST_NOT_NULL"
                 aggregate_with_order_by op c order_by
-        Last c _ ignore_nothing order_by -> case is_non_empty_selector order_by of
+        Aggregate_Column.Last c _ ignore_nothing order_by -> case is_non_empty_selector order_by of
             False -> Error.throw (Unsupported_Database_Operation.Error "`Last` aggregation requires at least one `order_by` column.")
             True ->
                 op = case ignore_nothing of
                     False -> "LAST"
                     True -> "LAST_NOT_NULL"
                 aggregate_with_order_by op c order_by
-        Maximum c _ -> simple_aggregate "MAX" [c]
-        Minimum c _ -> simple_aggregate "MIN" [c]
-        Shortest c _ -> simple_aggregate "SHORTEST" [c]
-        Longest c _ -> simple_aggregate "LONGEST" [c]
-        Standard_Deviation c _ population -> case population of
+        Aggregate_Column.Maximum c _ -> simple_aggregate "MAX" [c]
+        Aggregate_Column.Minimum c _ -> simple_aggregate "MIN" [c]
+        Aggregate_Column.Shortest c _ -> simple_aggregate "SHORTEST" [c]
+        Aggregate_Column.Longest c _ -> simple_aggregate "LONGEST" [c]
+        Aggregate_Column.Standard_Deviation c _ population -> case population of
             True -> simple_aggregate "STDDEV_POP" [c]
             False -> simple_aggregate "STDDEV_SAMP" [c]
-        Concatenate c _ separator prefix suffix quote_char ->
+        Aggregate_Column.Concatenate c _ separator prefix suffix quote_char ->
             base_args = [c.expression, SQL_Expression.Constant separator, SQL_Expression.Constant prefix, SQL_Expression.Constant suffix]
             op_kind = case quote_char.is_empty of
                 True -> "CONCAT"
@@ -96,6 +95,6 @@ make_aggregate_column table aggregate as dialect infer_return_type problem_build
             expression = SQL_Expression.Operation op_kind effective_args
             sql_type_ref = infer_return_type op_kind [c] expression
             Internal_Column.Value as sql_type_ref expression
-        Sum c _ -> simple_aggregate "SUM" [c]
-        Average c _ -> simple_aggregate "AVG" [c]
-        Median c _ -> simple_aggregate "MEDIAN" [c]
+        Aggregate_Column.Sum c _ -> simple_aggregate "SUM" [c]
+        Aggregate_Column.Average c _ -> simple_aggregate "AVG" [c]
+        Aggregate_Column.Median c _ -> simple_aggregate "MEDIAN" [c]

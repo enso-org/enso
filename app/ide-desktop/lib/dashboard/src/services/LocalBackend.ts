@@ -124,58 +124,67 @@ export default class LocalBackend extends Backend {
   ): Promise<backend.AnyAsset[]> {
     const parentIdRaw = query.parentId == null ? null : extractTypeAndId(query.parentId).id
     const parentId = query.parentId ?? newDirectoryId(this.projectManager.rootDirectory)
-    const entries = await this.projectManager.listDirectory(parentIdRaw)
-    return entries
-      .map(entry => {
-        switch (entry.type) {
-          case projectManager.FileSystemEntryType.DirectoryEntry: {
-            return {
-              type: backend.AssetType.directory,
-              id: newDirectoryId(entry.path),
-              modifiedAt: entry.attributes.lastModifiedTime,
-              parentId,
-              title: fileInfo.fileName(entry.path),
-              permissions: [],
-              projectState: null,
-              labels: [],
-              description: null,
-            } satisfies backend.DirectoryAsset
+    // Check if Root Directory Exists
+    if (
+      parentIdRaw == null &&
+      !(await this.projectManager.exists(this.projectManager.rootDirectory))
+    ) {
+      await this.projectManager.createDirectory(this.projectManager.rootDirectory)
+      return []
+    } else {
+      const entries = await this.projectManager.listDirectory(parentIdRaw)
+      return entries
+        .map(entry => {
+          switch (entry.type) {
+            case projectManager.FileSystemEntryType.DirectoryEntry: {
+              return {
+                type: backend.AssetType.directory,
+                id: newDirectoryId(entry.path),
+                modifiedAt: entry.attributes.lastModifiedTime,
+                parentId,
+                title: fileInfo.fileName(entry.path),
+                permissions: [],
+                projectState: null,
+                labels: [],
+                description: null,
+              } satisfies backend.DirectoryAsset
+            }
+            case projectManager.FileSystemEntryType.ProjectEntry: {
+              return {
+                type: backend.AssetType.project,
+                id: newProjectId(entry.metadata.id),
+                title: entry.metadata.name,
+                modifiedAt: entry.metadata.lastOpened ?? entry.metadata.created,
+                parentId,
+                permissions: [],
+                projectState: {
+                  type:
+                    this.projectManager.projects.get(entry.metadata.id)?.state ??
+                    backend.ProjectState.closed,
+                  volumeId: '',
+                  path: entry.path,
+                },
+                labels: [],
+                description: null,
+              } satisfies backend.ProjectAsset
+            }
+            case projectManager.FileSystemEntryType.FileEntry: {
+              return {
+                type: backend.AssetType.file,
+                id: newFileId(entry.path),
+                title: fileInfo.fileName(entry.path),
+                modifiedAt: entry.attributes.lastModifiedTime,
+                parentId,
+                permissions: [],
+                projectState: null,
+                labels: [],
+                description: null,
+              } satisfies backend.FileAsset
+            }
           }
-          case projectManager.FileSystemEntryType.ProjectEntry: {
-            return {
-              type: backend.AssetType.project,
-              id: newProjectId(entry.metadata.id),
-              title: entry.metadata.name,
-              modifiedAt: entry.metadata.lastOpened ?? entry.metadata.created,
-              parentId,
-              permissions: [],
-              projectState: {
-                type:
-                  this.projectManager.projects.get(entry.metadata.id)?.state ??
-                  backend.ProjectState.closed,
-                volumeId: '',
-                path: entry.path,
-              },
-              labels: [],
-              description: null,
-            } satisfies backend.ProjectAsset
-          }
-          case projectManager.FileSystemEntryType.FileEntry: {
-            return {
-              type: backend.AssetType.file,
-              id: newFileId(entry.path),
-              title: fileInfo.fileName(entry.path),
-              modifiedAt: entry.attributes.lastModifiedTime,
-              parentId,
-              permissions: [],
-              projectState: null,
-              labels: [],
-              description: null,
-            } satisfies backend.FileAsset
-          }
-        }
-      })
-      .sort(backend.compareAssets)
+        })
+        .sort(backend.compareAssets)
+    }
   }
 
   /** Return a list of projects belonging to the current user.
@@ -287,10 +296,7 @@ export default class LocalBackend extends Backend {
           organizationId: '',
           packageName: project.name,
           projectId,
-          state: {
-            type: this.projectManager.projects.get(id)?.state ?? backend.ProjectState.closed,
-            volumeId: '',
-          },
+          state: { type: backend.ProjectState.closed, volumeId: '' },
         }
       }
     } else {

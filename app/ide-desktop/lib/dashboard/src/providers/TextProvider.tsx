@@ -2,7 +2,7 @@
  * React context. */
 import * as React from 'react'
 
-import * as text from '#/text'
+import * as text from 'enso-common/src/text'
 
 import * as object from '#/utilities/object'
 

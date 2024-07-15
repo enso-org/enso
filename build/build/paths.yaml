@@ -123,7 +123,6 @@
       bench-report.xml:
   build.sbt:
   run:
-  runner: # The runner native image (Linux only).
   CHANGELOG.md:
 
 # Launcher Package

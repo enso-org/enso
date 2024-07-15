@@ -83,8 +83,6 @@
   --context-menus-gap: 0.125rem;
   --context-menu-padding: 0.5rem;
   --context-menu-width: 16rem;
-  --context-menu-half-width: calc(var(--context-menu-width) / 2);
-  --context-menu-macos-half-width: calc(var(--context-menu-macos-width) / 2);
   --context-menu-macos-width: 14.375rem;
   --context-menu-entry-padding-x: 0.75rem;
   --separator-margin-y: 0.125rem;
@@ -438,7 +436,7 @@
 
 /* These styles MUST still be copied
  * as `.enso-dashboard body` and `.enso-dashboard html` make no sense. */
-:where(:is(.enso-dashboard, .enso-chat, .enso-portal-root)) {
+:where(.enso-dashboard, .enso-chat, .enso-portal-root) {
   line-height: 1.5;
   -webkit-text-size-adjust: 100%;
   -moz-tab-size: 4;

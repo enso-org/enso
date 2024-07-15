@@ -23,7 +23,7 @@ export default vite.defineConfig({
   plugins: [
     vitePluginReact({
       include: '**/*.tsx',
-      babel: { plugins: ['@babel/plugin-syntax-import-assertions'] },
+      babel: { plugins: ['@babel/plugin-syntax-import-attributes'] },
     }),
     vitePluginYaml(),
     serveFavicon(),

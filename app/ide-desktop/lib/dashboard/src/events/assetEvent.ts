@@ -3,15 +3,6 @@ import type AssetEventType from '#/events/AssetEventType'
 
 import type * as backend from '#/services/Backend'
 
-// This is required, to whitelist this event.
-// eslint-disable-next-line no-restricted-syntax
-declare module '#/hooks/eventHooks' {
-  /** A map containing all known event types. */
-  export interface KnownEventsMap {
-    readonly assetEvent: AssetEvent
-  }
-}
-
 // ==================
 // === AssetEvent ===
 // ==================
@@ -96,12 +87,18 @@ export interface AssetNewSecretEvent extends AssetBaseEvent<AssetEventType.newSe
 /** A signal to open the specified project. */
 export interface AssetOpenProjectEvent extends AssetBaseEvent<AssetEventType.openProject> {
   readonly id: backend.ProjectId
+  readonly backendType: backend.BackendType
+  readonly title: string
+  readonly parentId: backend.DirectoryId
   readonly runInBackground: boolean
 }
 
 /** A signal to close the specified project. */
 export interface AssetCloseProjectEvent extends AssetBaseEvent<AssetEventType.closeProject> {
   readonly id: backend.ProjectId
+  readonly backendType: backend.BackendType
+  readonly title: string
+  readonly parentId: backend.DirectoryId
 }
 
 /** A signal that multiple assets should be copied. `ids` are the `Id`s of the newly created

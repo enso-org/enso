@@ -4,16 +4,15 @@ import * as React from 'react'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
-import type * as assetEvent from '#/events/assetEvent'
 import AssetEventType from '#/events/AssetEventType'
-import type * as assetListEvent from '#/events/assetListEvent'
 import AssetListEventType from '#/events/AssetListEventType'
+
+import * as eventListProvider from '#/layouts/AssetsTable/EventListProvider'
 
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 import AssetSummary from '#/components/dashboard/AssetSummary'
 import Modal from '#/components/Modal'
-import ButtonRow from '#/components/styled/ButtonRow'
 
 import * as backendModule from '#/services/Backend'
 
@@ -46,8 +45,6 @@ export interface DuplicateAssetsModalProps {
   readonly parentId: backendModule.DirectoryId
   readonly conflictingFiles: readonly ConflictingAsset<backendModule.FileAsset>[]
   readonly conflictingProjects: readonly ConflictingAsset<backendModule.ProjectAsset>[]
-  readonly dispatchAssetEvent: (assetEvent: assetEvent.AssetEvent) => void
-  readonly dispatchAssetListEvent: (assetListEvent: assetListEvent.AssetListEvent) => void
   readonly siblingFileNames: Iterable<string>
   readonly siblingProjectNames: Iterable<string>
   readonly nonConflictingFileCount: number
@@ -59,12 +56,13 @@ export interface DuplicateAssetsModalProps {
 export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
   const { parentKey, parentId, conflictingFiles: conflictingFilesRaw } = props
   const { conflictingProjects: conflictingProjectsRaw } = props
-  const { dispatchAssetEvent, dispatchAssetListEvent } = props
   const { siblingFileNames: siblingFileNamesRaw } = props
   const { siblingProjectNames: siblingProjectNamesRaw } = props
   const { nonConflictingFileCount, nonConflictingProjectCount, doUploadNonConflicting } = props
   const { unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
+  const dispatchAssetEvent = eventListProvider.useDispatchAssetEvent()
+  const dispatchAssetListEvent = eventListProvider.useDispatchAssetListEvent()
   const [conflictingFiles, setConflictingFiles] = React.useState(conflictingFilesRaw)
   const [conflictingProjects, setConflictingProjects] = React.useState(conflictingProjectsRaw)
   const [didUploadNonConflicting, setDidUploadNonConflicting] = React.useState(false)
@@ -190,7 +188,6 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
                 </aria.Text>
               )}
               <ariaComponents.Button
-                size="small"
                 variant="cancel"
                 isDisabled={didUploadNonConflicting}
                 onPress={() => {
@@ -218,9 +215,8 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
               />
             </div>
             {count > 1 && (
-              <ButtonRow>
+              <ariaComponents.ButtonGroup>
                 <ariaComponents.Button
-                  size="small"
                   variant="cancel"
                   onPress={() => {
                     doUpdate([firstConflict])
@@ -239,7 +235,6 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
                   {getText('update')}
                 </ariaComponents.Button>
                 <ariaComponents.Button
-                  size="small"
                   variant="cancel"
                   onPress={() => {
                     doRename([firstConflict])
@@ -259,7 +254,7 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
                     ? getText('renameNewFile')
                     : getText('renameNewProject')}
                 </ariaComponents.Button>
-              </ButtonRow>
+              </ariaComponents.ButtonGroup>
             )}
           </>
         )}
@@ -277,9 +272,8 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
               : getText('andOtherProjects', otherProjectsCount)}
           </aria.Text>
         )}
-        <ButtonRow>
+        <ariaComponents.ButtonGroup>
           <ariaComponents.Button
-            size="small"
             variant="submit"
             onPress={() => {
               unsetModal()
@@ -290,7 +284,6 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
             {count === 1 ? getText('update') : getText('updateAll')}
           </ariaComponents.Button>
           <ariaComponents.Button
-            size="small"
             variant="submit"
             onPress={() => {
               unsetModal()
@@ -306,10 +299,10 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
                 ? getText('renameNewFiles')
                 : getText('renameNewProjects')}
           </ariaComponents.Button>
-          <ariaComponents.Button size="small" variant="cancel" onPress={unsetModal}>
+          <ariaComponents.Button variant="cancel" onPress={unsetModal}>
             {getText('cancel')}
           </ariaComponents.Button>
-        </ButtonRow>
+        </ariaComponents.ButtonGroup>
       </form>
     </Modal>
   )

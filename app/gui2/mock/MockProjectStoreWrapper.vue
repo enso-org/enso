@@ -14,7 +14,7 @@ const emit = defineEmits<{ 'update:modelValue': [modelValue: string] }>()
 const projectStore = useProjectStore()
 const mod = projectStore.projectModel.createNewModule('Main.enso')
 projectStore.setObservedFileName('Main.enso')
-mod.doc.ydoc.emit('load', [])
+mod.doc.ydoc.emit('load', [mod.doc.ydoc])
 let syncedCode: string | undefined
 watch(
   () => projectStore.module,

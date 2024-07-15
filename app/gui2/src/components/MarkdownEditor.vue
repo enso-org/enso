@@ -5,6 +5,7 @@ import { defineAsyncComponent } from 'vue'
 const text = defineModel<string>({ required: true })
 const props = defineProps<{
   transformImageUrl?: UrlTransformer
+  toolbarContainer: HTMLElement | undefined
 }>()
 
 const LazyMarkdownEditor = defineAsyncComponent(

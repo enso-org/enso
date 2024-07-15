@@ -7,6 +7,9 @@
     "./src/projectManagement": "./src/projectManagement.ts"
   },
   "dependencies": {
+    "@types/tar": "^6.1.4",
+    "enso-common": "workspace:*",
+    "tar": "^6.2.0",
     "yaml": "^2.4.1"
   }
 }

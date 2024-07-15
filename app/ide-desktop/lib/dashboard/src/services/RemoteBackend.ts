@@ -4,8 +4,7 @@
  * an API endpoint. The functions are asynchronous and return a {@link Promise} that resolves to
  * the response from the API. */
 import * as detect from 'enso-common/src/detect'
-
-import type * as text from '#/text'
+import type * as text from 'enso-common/src/text'
 
 import type * as loggerProvider from '#/providers/LoggerProvider'
 import type * as textProvider from '#/providers/TextProvider'
@@ -737,6 +736,7 @@ export default class RemoteBackend extends Backend {
         cognitoCredentials: exactCredentials,
       }
       const response = await this.post(path, filteredBody)
+
       if (!responseIsSuccessful(response)) {
         return this.throw(response, 'openProjectBackendError', title)
       } else {
@@ -1118,17 +1118,12 @@ export default class RemoteBackend extends Backend {
     abortSignal?: AbortSignal
   ) {
     let project = await this.getProjectDetails(projectId, directory, title)
-    while (project.state.type !== backend.ProjectState.opened) {
-      if (abortSignal?.aborted === true) {
-        // The operation was cancelled, do not return.
-        // eslint-disable-next-line no-restricted-syntax
-        throw new Error()
-      }
-      await new Promise<void>(resolve => {
-        setTimeout(resolve, CHECK_STATUS_INTERVAL_MS)
-      })
+
+    while (project.state.type !== backend.ProjectState.opened && abortSignal?.aborted !== true) {
+      await new Promise<void>(resolve => setTimeout(resolve, CHECK_STATUS_INTERVAL_MS))
       project = await this.getProjectDetails(projectId, directory, title)
     }
+
     return project
   }
 

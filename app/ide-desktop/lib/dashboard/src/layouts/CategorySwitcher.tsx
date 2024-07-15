@@ -2,11 +2,10 @@
 import * as React from 'react'
 
 import CloudIcon from 'enso-assets/cloud.svg'
-import NotCloudIcon from 'enso-assets/not_cloud.svg'
+import ComputerIcon from 'enso-assets/computer.svg'
 import RecentIcon from 'enso-assets/recent.svg'
 import Trash2Icon from 'enso-assets/trash2.svg'
-
-import type * as text from '#/text'
+import type * as text from 'enso-common/src/text'
 
 import * as mimeTypes from '#/data/mimeTypes'
 
@@ -17,9 +16,9 @@ import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
-import type * as assetEvent from '#/events/assetEvent'
 import AssetEventType from '#/events/AssetEventType'
 
+import * as eventListProvider from '#/layouts/AssetsTable/EventListProvider'
 import Category from '#/layouts/CategorySwitcher/Category'
 
 import * as aria from '#/components/aria'
@@ -42,7 +41,7 @@ interface CategoryMetadata {
   readonly textId: Extract<text.TextId, `${Category}Category`>
   readonly buttonTextId: Extract<text.TextId, `${Category}CategoryButtonLabel`>
   readonly dropZoneTextId: Extract<text.TextId, `${Category}CategoryDropZoneLabel`>
-  readonly className?: string
+  readonly nested?: true
 }
 
 // =================
@@ -63,7 +62,7 @@ const CATEGORY_DATA: readonly CategoryMetadata[] = [
     textId: 'recentCategory',
     buttonTextId: 'recentCategoryButtonLabel',
     dropZoneTextId: 'recentCategoryDropZoneLabel',
-    className: 'ml-4',
+    nested: true,
   },
   {
     category: Category.trash,
@@ -71,11 +70,11 @@ const CATEGORY_DATA: readonly CategoryMetadata[] = [
     textId: 'trashCategory',
     buttonTextId: 'trashCategoryButtonLabel',
     dropZoneTextId: 'trashCategoryDropZoneLabel',
-    className: 'ml-4',
+    nested: true,
   },
   {
     category: Category.local,
-    icon: NotCloudIcon,
+    icon: ComputerIcon,
     textId: 'localCategory',
     buttonTextId: 'localCategoryButtonLabel',
     dropZoneTextId: 'localCategoryDropZoneLabel',
@@ -120,8 +119,7 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
         tooltipPlacement="right"
         className={tailwindMerge.twMerge(
           isCurrent && 'focus-default',
-          isDisabled && 'cursor-not-allowed hover:bg-transparent',
-          data.className
+          isDisabled && 'cursor-not-allowed hover:bg-transparent'
         )}
         aria-label={getText(buttonTextId)}
         onPress={onPress}
@@ -159,17 +157,16 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
 export interface CategorySwitcherProps {
   readonly category: Category
   readonly setCategory: (category: Category) => void
-  readonly dispatchAssetEvent: (directoryEvent: assetEvent.AssetEvent) => void
 }
 
 /** A switcher to choose the currently visible assets table category. */
 export default function CategorySwitcher(props: CategorySwitcherProps) {
   const { category, setCategory } = props
-  const { dispatchAssetEvent } = props
   const { user } = authProvider.useNonPartialUserSession()
   const { unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
   const { isOffline } = offlineHooks.useOffline()
+  const dispatchAssetEvent = eventListProvider.useDispatchAssetEvent()
 
   const localBackend = backendProvider.useLocalBackend()
   /** The list of *visible* categories. */
@@ -230,7 +227,7 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
             {categoryData.map(data => {
               const error = getCategoryError(data.category)
 
-              return (
+              const element = (
                 <CategorySwitcherItem
                   key={data.category}
                   id={data.category}
@@ -280,6 +277,14 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
                     })
                   }}
                 />
+              )
+              return data.nested ? (
+                <div key={data.category} className="flex">
+                  <div className="ml-[15px] mr-1 border-r border-primary/20" />
+                  {element}
+                </div>
+              ) : (
+                element
               )
             })}
           </div>

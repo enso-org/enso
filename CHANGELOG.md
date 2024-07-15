@@ -1,13 +1,42 @@
 # Next Release
 
+#### Enso Language & Runtime
+
+- [Enforce conversion method return type][10468]
+
+[10468]: https://github.com/enso-org/enso/pull/10468
+
 #### Enso IDE
+
+- ["Add node" button is not obscured by output port][10433]
+- [Numeric Widget does not accept non-numeric input][10457]. This is to prevent
+  node being completely altered by accidental code put to the widget.
+- [Redesigned "record control" panel][10509]. Now it contains more intuitive
+  "refresh" and "run workflow" buttons.
+- [Warning messages do not obscure visualization buttons][10546].
+
+[10433]: https://github.com/enso-org/enso/pull/10443
+[10457]: https://github.com/enso-org/enso/pull/10457
+[10509]: https://github.com/enso-org/enso/pull/10509
+[10546]: https://github.com/enso-org/enso/pull/10546
 
 #### Enso Enso Standard Library
 
-- [Reamed `Data.list_directory` to `Data.list`. Removed list support from read
+- [Renamed `Data.list_directory` to `Data.list`. Removed list support from read
   methods.][10434]
+- [Renamed `Location.Start` to `Location.Left` and `Location.End` to
+  `Location.Right`.][10445]
+- [Renamed `Postgres_Details.Postgres` to `Postgres.Server`.][10466]
+- [Remove `First` and `Last` from namespace, use auto-scoped.][10467]
+- [Rename `Map` to `Dictionary` and `Set` to `Hashset`.][10474]
+- [Compare two objects with `Ordering.compare` and define comparator with
+  `Comparable.new`][10468]
 
 [10434]: https://github.com/enso-org/enso/pull/10434
+[10445]: https://github.com/enso-org/enso/pull/10445
+[10466]: https://github.com/enso-org/enso/pull/10466
+[10467]: https://github.com/enso-org/enso/pull/10467
+[10474]: https://github.com/enso-org/enso/pull/10474
 
 # Enso 2024.2
 
@@ -35,6 +64,7 @@
   index column will select row or value in seperate node
 - [Copied table-viz range pastes as Table component][10352]
 - [Added support for links in documentation panels][10353].
+- [Added support for opening documentation in an external browser][10396].
 
 [10064]: https://github.com/enso-org/enso/pull/10064
 [10179]: https://github.com/enso-org/enso/pull/10179
@@ -49,6 +79,13 @@
 [10340]: https://github.com/enso-org/enso/pull/10340
 [10352]: https://github.com/enso-org/enso/pull/10352
 [10353]: https://github.com/enso-org/enso/pull/10353
+[10396]: https://github.com/enso-org/enso/pull/10396
+
+#### Enso Language & Runtime
+
+- Support for [explicit --jvm option][10374] when launching `enso` CLI
+
+[10374]: https://github.com/enso-org/enso/pull/10374
 
 #### Enso Standard Library
 

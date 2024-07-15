@@ -24,4 +24,8 @@ const emit = defineEmits<{ 'update:modelValue': [modelValue: boolean] }>()
   border-radius: var(--radius-full);
   background: var(--color-widget-selected);
 }
+
+.hidden {
+  display: none;
+}
 </style>

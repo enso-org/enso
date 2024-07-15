@@ -229,7 +229,7 @@ case object MethodDefinitions extends IRPass {
                     "a method definition target"
                   )
                 )
-              case _: BindingsMap.ResolvedStaticMethod =>
+              case _: BindingsMap.ResolvedExtensionMethod =>
                 errors.Resolution(
                   typePointer,
                   errors.Resolution.UnexpectedMethod(

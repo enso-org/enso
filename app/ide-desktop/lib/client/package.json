@@ -24,34 +24,39 @@
     "chalk": "^5.2.0",
     "create-servers": "3.2.0",
     "electron-is-dev": "^2.0.0",
+    "enso-content-config": "workspace:*",
     "mime-types": "^2.1.35",
+    "mkcert": "3.2.0",
     "opener": "^1.5.2",
     "string-length": "^5.0.1",
-    "tar": "^6.1.13",
-    "yargs": "17.6.2",
-    "mkcert": "3.2.0"
+    "tar": "^6.2.0",
+    "yargs": "17.6.2"
   },
   "devDependencies": {
+    "@babel/plugin-syntax-import-attributes": "^7.24.7",
     "@electron/notarize": "2.1.0",
-    "@types/node": "^20.10.5",
+    "@types/node": "^20.11.21",
     "electron": "25.7.0",
     "electron-builder": "^24.13.3",
-    "enso-common": "^1.0.0",
+    "enso-common": "workspace:*",
+    "enso-gui2": "workspace:*",
+    "enso-runner": "workspace:*",
     "esbuild": "^0.19.3",
+    "esbuild-plugin-yaml": "^0.0.1",
     "fast-glob": "^3.2.12",
     "lightningcss": "^1.24.0",
     "portfinder": "^1.0.32",
+    "rollup": "^4.18.1",
     "sharp": "^0.31.2",
     "to-ico": "^1.1.5",
     "tsx": "^4.7.1",
-    "vite": "^5.3.1"
+    "vite": "^5.3.3"
   },
-  "optionalDependencies": {
-    "@esbuild/darwin-x64": "^0.17.15",
-    "@esbuild/linux-x64": "^0.17.15",
-    "@esbuild/windows-x64": "^0.17.15",
-    "dmg-license": "^1.0.11"
-  },
+  "//": [
+    "vite is required for the watch script",
+    "rollup is required for vite",
+    "@babel/plugin-syntax-import-attributes is a dependency of the dashboard"
+  ],
   "scripts": {
     "typecheck": "npm run --workspace=enso-gui2 compile-server && tsc --build",
     "start": "tsx start.ts",

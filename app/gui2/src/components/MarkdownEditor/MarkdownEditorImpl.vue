@@ -20,6 +20,7 @@ import { shallowRef, toRef, useCssModule, type ComponentInstance } from 'vue'
 const markdown = defineModel<string>({ required: true })
 const props = defineProps<{
   transformImageUrl?: UrlTransformer | undefined
+  toolbarContainer: HTMLElement | undefined
 }>()
 
 const contentElement = shallowRef<ComponentInstance<typeof LexicalContent>>()
@@ -38,7 +39,9 @@ const { urlUnderCursor } = useLinkNode(editor)
 
 <template>
   <div class="MarkdownEditor fullHeight">
-    <FormattingToolbar :formatting="formatting" @pointerdown.prevent />
+    <Teleport :to="toolbarContainer">
+      <FormattingToolbar :formatting="formatting" @pointerdown.prevent />
+    </Teleport>
     <LexicalContent ref="contentElement" @wheel.stop.passive @contextmenu.stop @pointerdown.stop />
     <FloatingSelectionMenu :selectionElement="contentElement">
       <template #default="{ collapsed }">

@@ -31,13 +31,13 @@ type My_Comparator
     compare left right =
         left_sum = left.x + left.y
         right_sum = right.x + right.y
-        (Comparable.from left_sum) . compare left_sum right_sum
+        Ordering.compare left_sum right_sum
 
     hash my =
         sum = my.x + my.y
-        Comparable.from sum . hash sum
+        Ordering.hash sum
 
-Comparable.from (_:My) = My_Comparator
+Comparable.from (that:My) = Comparable.new that My_Comparator
 
 
 type Data
@@ -187,6 +187,7 @@ add_specs suite_builder =
                  0 | 10  | False
                  1 | 20  | True
                  2 | 30  | False
+            ## """
             expected_text = raw_expected_text.lines.map .trim . join '\n'
             raw_got_text = t.display
             got_text = raw_got_text.lines.map .trim . join '\n'
@@ -463,20 +464,20 @@ add_specs suite_builder =
             c_3 = ['col3', [False, True, Nothing]]
             t_1 = Table.new [i_1, c_1, c_2, c_3]
 
-            t_1.take (First 10) . at 'col' . to_vector . should_equal (t_1.at 'col' . to_vector)
+            t_1.take (..First 10) . at 'col' . to_vector . should_equal (t_1.at 'col' . to_vector)
             t_1.take 10 . at 'col' . to_vector . should_equal (t_1.at 'col' . to_vector)
 
-            t_2 = t_1.take (First 2)
-            t_2.at 'col' . to_vector . should_equal (t_1.at 'col' . to_vector . take (First 2))
-            t_2.at 'col2' . to_vector . should_equal (t_1.at 'col2' . to_vector . take (First 2))
-            t_2.at 'col3' . to_vector . should_equal (t_1.at 'col3' . to_vector . take (First 2))
+            t_2 = t_1.take (..First 2)
+            t_2.at 'col' . to_vector . should_equal (t_1.at 'col' . to_vector . take (..First 2))
+            t_2.at 'col2' . to_vector . should_equal (t_1.at 'col2' . to_vector . take (..First 2))
+            t_2.at 'col3' . to_vector . should_equal (t_1.at 'col3' . to_vector . take (..First 2))
 
             t_3 = t_1.take 2
             t_3.at 'col' . to_vector . should_equal (t_1.at 'col' . to_vector . take 2)
             t_3.at 'col2' . to_vector . should_equal (t_1.at 'col2' . to_vector . take 2)
             t_3.at 'col3' . to_vector . should_equal (t_1.at 'col3' . to_vector . take 2)
 
-            t_1.at 'col' . take (First 2) . to_vector . should_equal (t_1.at 'col' . to_vector . take (First 2))
+            t_1.at 'col' . take (..First 2) . to_vector . should_equal (t_1.at 'col' . to_vector . take (..First 2))
             t_1.at 'col' . take 2 . to_vector . should_equal (t_1.at 'col' . to_vector . take 2)
 
         group_builder.specify "should allow taking the last n rows" <|
@@ -486,35 +487,35 @@ add_specs suite_builder =
             c_3 = ['col3', [False, True, Nothing]]
             t_1 = Table.new [i_1, c_1, c_2, c_3]
 
-            t_1.take (Last 10) . at 'col1' . to_vector . should_equal (t_1.at 'col1' . to_vector)
+            t_1.take (..Last 10) . at 'col1' . to_vector . should_equal (t_1.at 'col1' . to_vector)
 
-            t_2 = t_1.take (Last 2)
-            t_2.at 'col1' . to_vector . should_equal (t_1.at 'col1' . to_vector . take (Last 2))
-            t_2.at 'col2' . to_vector . should_equal (t_1.at 'col2' . to_vector . take (Last 2))
-            t_2.at 'col3' . to_vector . should_equal (t_1.at 'col3' . to_vector . take (Last 2))
+            t_2 = t_1.take (..Last 2)
+            t_2.at 'col1' . to_vector . should_equal (t_1.at 'col1' . to_vector . take (..Last 2))
+            t_2.at 'col2' . to_vector . should_equal (t_1.at 'col2' . to_vector . take (..Last 2))
+            t_2.at 'col3' . to_vector . should_equal (t_1.at 'col3' . to_vector . take (..Last 2))
 
-            t_1.at 'col1' . take (Last 2) . to_vector . should_equal (t_1.at 'col1' . to_vector . take (Last 2))
+            t_1.at 'col1' . take (..Last 2) . to_vector . should_equal (t_1.at 'col1' . to_vector . take (..Last 2))
 
         group_builder.specify "should allow taking/dropping a prefix of rows that satisfy a predicate" <|
             t1 = Table.new [["X", [1, 2, 3, 4, 5, 5]], ["Y", [9, 8, 7, 2, 10, 5]]]
 
-            t2 = t1.take (Index_Sub_Range.While row-> row.to_vector.compute Statistic.Sum == 10)
+            t2 = t1.take (..While row-> row.to_vector.compute Statistic.Sum == 10)
             t2.at "X" . to_vector . should_equal [1, 2, 3]
             t2.at "Y" . to_vector . should_equal [9, 8, 7]
 
-            t3 = t1.drop (Index_Sub_Range.While row-> row.to_vector.compute Statistic.Sum == 10)
+            t3 = t1.drop (..While row-> row.to_vector.compute Statistic.Sum == 10)
             t3.at "X" . to_vector . should_equal [4, 5, 5]
             t3.at "Y" . to_vector . should_equal [2, 10, 5]
 
-            t4 = t1.take (Index_Sub_Range.While row-> row.at "X" < 3)
+            t4 = t1.take (..While row-> row.at "X" < 3)
             t4.at "X" . to_vector . should_equal [1, 2]
             t4.at "Y" . to_vector . should_equal [9, 8]
 
-            t5 = t1.drop (Index_Sub_Range.While row-> row.at 1 > 3)
+            t5 = t1.drop (..While row-> row.at 1 > 3)
             t5.at "X" . to_vector . should_equal [4, 5, 5]
             t5.at "Y" . to_vector . should_equal [2, 10, 5]
 
-            t6 = t1.take (Index_Sub_Range.While row-> row.at "X" > 1)
+            t6 = t1.take (..While row-> row.at "X" > 1)
             t6.at "X" . to_vector . should_equal []
             t6.at "Y" . to_vector . should_equal []
 
@@ -573,7 +574,7 @@ add_specs suite_builder =
             actual = t.fill_empty ["col0", "col1"] defaults
             actual.at "col0" . to_vector . should_equal ["0", "2", "4", "5", Nothing, "30"]
             actual.at "col1" . to_vector . should_equal ["1", "200", "10", "400", "500", "30"]
-        
+
         group_builder.specify "fill_empty should allow selection by regex" <|
             col0 = Column.from_vector "col0" ["0", Nothing, "4", "5", Nothing, Nothing]
             col_between = Column.from_vector "col_between" [3, 4, 5, 6, 7, 8]
@@ -741,7 +742,7 @@ add_specs suite_builder =
             c = ["C", [0.1, 0.2, 0.3, 0.4, 0.5, 0.6]]
             t = Table.new [a, b, c]
 
-            r2 = t.distinct ["A", "B"] on_problems=Report_Error
+            r2 = t.distinct ["A", "B"] on_problems=..Report_Error
             r2.at "A" . to_vector . should_equal ["a", "a"]
             r2.at "B" . to_vector . should_equal [1, 2]
             r2.at "C" . to_vector . should_equal [0.1, 0.3]
@@ -750,7 +751,7 @@ add_specs suite_builder =
             a = ["A", ["a", Nothing, "b", "a", "b", Nothing, "a", "b"]]
             b = ["B", [1, 2, 3, 4, 5, 6, 7, 8]]
             t = Table.new [a, b]
-            r = t.distinct ["A"] on_problems=Report_Error
+            r = t.distinct ["A"] on_problems=..Report_Error
             r.at "A" . to_vector . should_equal ["a", Nothing, "b"]
             r.at "B" . to_vector . should_equal [1, 2, 3]
 
@@ -762,11 +763,11 @@ add_specs suite_builder =
             x = ["X", ['A', 'a', 'enso', 'śledź', 'Enso', 'A', 's\u0301ledz\u0301']]
             y = ["Y", [1, 2, 3, 4, 5, 6, 7]]
             t1 = Table.new [x, y]
-            d1 = t1.distinct ["X"] on_problems=Report_Error
+            d1 = t1.distinct ["X"] on_problems=..Report_Error
             d1.at "X" . to_vector . should_equal ['A', 'a', 'enso', 'śledź', 'Enso']
             d1.at "Y" . to_vector . should_equal [1, 2, 3, 4, 5]
 
-            d2 = t1.distinct ["X"] case_sensitivity=Case_Sensitivity.Insensitive on_problems=Report_Error
+            d2 = t1.distinct ["X"] case_sensitivity=Case_Sensitivity.Insensitive on_problems=..Report_Error
             d2.at "X" . to_vector . should_equal ['A', 'enso', 'śledź']
             d2.at "Y" . to_vector . should_equal [1, 3, 4]
 
@@ -904,7 +905,7 @@ add_specs suite_builder =
                             if has_nulls then builder.append Nothing
                             if has_true then builder.append True
                             if has_false then builder.append False
-                        in_vector_set = Set.from_vector in_vector
+                        in_vector_set = Hashset.from_vector in_vector
 
                         vectors = [[True, False, Nothing], [Nothing, Nothing, Nothing], [False, False, True], [True, True, True], [False, False, False], [Nothing, True, True], [False, Nothing, False]]
                         vectors.each column_vector->

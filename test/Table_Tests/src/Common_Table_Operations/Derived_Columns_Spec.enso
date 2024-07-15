@@ -13,29 +13,11 @@ from project.Common_Table_Operations.Util import all
 
 main filter=Nothing = run_default_backend add_specs filter
 
-type Data
-    Value ~connection
-
-    setup create_connection_fn =
-        Data.Value (create_connection_fn Nothing)
-
-    teardown self =
-        self.connection.close
-
-
 add_specs suite_builder setup =
     prefix = setup.prefix
-    create_connection_fn = setup.create_connection_func
+    table_builder = setup.light_table_builder
     pending_datetime = if setup.test_selection.date_time.not then "Date/Time operations are not supported by this backend."
-    suite_builder.group prefix+"Table.set with Simple_Expression" group_builder->
-        data = Data.setup create_connection_fn
-
-        group_builder.teardown <|
-            data.teardown
-
-        table_builder cols =
-            setup.table_builder cols connection=data.connection
-
+    suite_builder.group prefix+"(Derived_Columns_Spec) Table.set with Simple_Expression" group_builder->
         group_builder.specify "arithmetics" <|
             t = table_builder [["A", [1, 2]], ["B", [10, 40]]]
             t.set (Simple_Expression.Simple_Expr (Column_Ref.Name "A") Simple_Calculation.Copy) "C" . at "C" . to_vector . should_equal [1, 2]
@@ -113,7 +95,6 @@ add_specs suite_builder setup =
             t2.set (Simple_Expression.Simple_Expr (Column_Ref.Name "C") (Simple_Calculation.Date_Add 5 Date_Period.Month)) "Z" . at "Z" . to_vector . should_equal [Date.new 2003 5 10, Date.new 2005 6 01]
             t2.set (Simple_Expression.Simple_Expr (Column_Ref.Name "D") (Simple_Calculation.Date_Add 15 Time_Period.Hour)) "Z" . at "Z" . to_vector . should_equal [Time_Of_Day.new 03 45, Time_Of_Day.new 16 01]
 
-            t2.set (Simple_Expression.Simple_Expr (Column_Ref.Name "C") (Simple_Calculation.Date_Diff (Date.new 2003) Date_Period.Year)) "Z" . at "Z" . to_vector . should_equal [0, -2]
             t2.set (Simple_Expression.Simple_Expr (Column_Ref.Name "D") (Simple_Calculation.Date_Diff (Time_Of_Day.new 13) Time_Period.Minute)) "Z" . at "Z" . to_vector . should_equal [15, 59+(60*11)]
 
             t2.set (Simple_Expression.Simple_Expr (Column_Ref.Name "C") (Simple_Calculation.Date_Part Date_Period.Year)) "Z" . at "Z" . to_vector . should_equal [2002, 2005]
@@ -124,6 +105,10 @@ add_specs suite_builder setup =
             t2.set (Simple_Expression.Simple_Expr (Column_Ref.Name "D") (Simple_Calculation.Date_Add 5 Date_Period.Year)) . should_fail_with Illegal_Argument
             t.set (Simple_Expression.Simple_Expr (Column_Ref.Name "x") (Simple_Calculation.Date_Part Date_Period.Year)) . should_fail_with Invalid_Value_Type
             Test.expect_panic Type_Error <| t2.set (Simple_Expression.Simple_Expr 42 (Simple_Calculation.Date_Diff "x" Date_Period.Year))
+
+        group_builder.specify "date/time (edge case)" pending=(pending_datetime.if_nothing (if setup.prefix.contains "Snowflake" then "TODO: https://github.com/enso-org/enso/issues/10438")) <|
+            t2 = table_builder [["C", [Date.new 2002 12 10, Date.new 2005 01 01]], ["D", [Time_Of_Day.new 12 45, Time_Of_Day.new 01 01]]]
+            t2.set (Simple_Expression.Simple_Expr (Column_Ref.Name "C") (Simple_Calculation.Date_Diff (Date.new 2003 01 01) Date_Period.Year)) "Z" . at "Z" . to_vector . should_equal [0, -2]
 
         group_builder.specify "boolean" <|
             t = table_builder [["A", [True, False]], ["T", [True, True]]]
@@ -172,10 +157,10 @@ add_specs suite_builder setup =
             t = table_builder [["A", ["  a ", "b"]], ["B", ["c", " d    "]]]
 
             t.set (Simple_Expression.Simple_Expr (Column_Ref.Name "A") Simple_Calculation.Trim) "Z" . at "Z" . to_vector . should_equal ["a", "b"]
-            t.set (Simple_Expression.Simple_Expr (Column_Ref.Name "A") (Simple_Calculation.Trim Location.End)) "Z" . at "Z" . to_vector . should_equal ["  a", "b"]
-            t.set (Simple_Expression.Simple_Expr (Column_Ref.Name "A") (Simple_Calculation.Trim Location.Start)) "Z" . at "Z" . to_vector . should_equal ["a ", "b"]
-            t.set (Simple_Expression.Simple_Expr (Column_Ref.Name "A") (Simple_Calculation.Trim Location.Both "abc")) "Z" . at "Z" . to_vector . should_equal ["  a ", ""]
-            t.set (Simple_Expression.Simple_Expr "bb aaaa" (Simple_Calculation.Trim Location.Both (Column_Ref.Name "A"))) "Z" . at "Z" . to_vector . should_equal ["bb", " aaaa"]
+            t.set (Simple_Expression.Simple_Expr (Column_Ref.Name "A") (Simple_Calculation.Trim ..Right)) "Z" . at "Z" . to_vector . should_equal ["  a", "b"]
+            t.set (Simple_Expression.Simple_Expr (Column_Ref.Name "A") (Simple_Calculation.Trim ..Left)) "Z" . at "Z" . to_vector . should_equal ["a ", "b"]
+            t.set (Simple_Expression.Simple_Expr (Column_Ref.Name "A") (Simple_Calculation.Trim ..Both "abc")) "Z" . at "Z" . to_vector . should_equal ["  a ", ""]
+            t.set (Simple_Expression.Simple_Expr "bb aaaa" (Simple_Calculation.Trim ..Both (Column_Ref.Name "A"))) "Z" . at "Z" . to_vector . should_equal ["bb", " aaaa"]
 
             t.set (Simple_Expression.Simple_Expr (Column_Ref.Name "A") (Simple_Calculation.Add (Column_Ref.Name "B"))) "Z" . at "Z" . to_vector . should_equal ["  a c", "b d    "]
             t.set (Simple_Expression.Simple_Expr "prefix_" (Simple_Calculation.Add (Column_Ref.Name "B"))) "Z" . at "Z" . to_vector . should_equal ["prefix_c", "prefix_ d    "]
@@ -223,15 +208,7 @@ add_specs suite_builder setup =
             t.set (Simple_Expression.Simple_Expr (Column_Ref.Name "zzz") Simple_Calculation.Not) . should_fail_with No_Such_Column
             t.set (Simple_Expression.Simple_Expr (Column_Ref.Index 42) Simple_Calculation.Not) . should_fail_with Index_Out_Of_Bounds
 
-    suite_builder.group prefix+"Unique derived column names" group_builder->
-        data = Data.setup create_connection_fn
-
-        group_builder.teardown <|
-            data.teardown
-
-        table_builder cols =
-            setup.table_builder cols connection=data.connection
-
+    suite_builder.group prefix+"(Derived_Columns_Spec) Unique derived column names" group_builder->
         group_builder.specify "Should not disambiguate two derived columns that would otherwise have had the same name, with Set_Mode.Add_Or_Update" <|
             t = table_builder [["X", [1, 2, 3]]]
             column_op = Simple_Expression.Simple_Expr 2 (Simple_Calculation.Power (Column_Ref.Name "X"))

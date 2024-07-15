@@ -7,7 +7,6 @@ import plugin from 'tailwindcss/plugin.js'
 /* eslint-disable no-restricted-syntax, @typescript-eslint/naming-convention, @typescript-eslint/no-magic-numbers */
 export default /** @satisfies {import('tailwindcss').Config} */ ({
   content: ['./src/**/*.tsx', './src/**/*.ts'],
-  important: `:is(.enso-dashboard, .enso-chat, .enso-portal-root)`,
   theme: {
     extend: {
       cursor: {
@@ -322,8 +321,6 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         'close-icon': 'var(--close-icon-margin)',
         'date-input-gap': 'var(--date-input-gap)',
         'date-input-calendar-gap': 'var(--date-input-calendar-gap)',
-        'context-menu-macos-half-x': 'var(--context-menu-macos-half-width)',
-        'context-menu-half-x': 'var(--context-menu-half-width)',
         'chat-header-x': 'var(--chat-header-margin-x)',
         'chat-header-t': 'var(--chat-header-margin-top)',
         'chat-form-x': 'var(--chat-form-margin-x)',
@@ -410,10 +407,6 @@ inset 0 -36px 51px -51px #00000014`,
         '1fr': '1fr',
         'fill-news-items': 'repeat(auto-fill, minmax(var(--news-items-column-width), 1fr))',
         'fill-samples': 'repeat(auto-fill, minmax(var(--samples-column-width), 1fr))',
-      },
-      translate: {
-        'context-menu-half-x': 'var(--context-menu-half-width)',
-        'context-menu-macos-half-x': 'var(--context-menu-macos-half-width)',
       },
       dashArray: {
         5: '5-12',
@@ -598,9 +591,6 @@ inset 0 -36px 51px -51px #00000014`,
           },
           '.text-subheading': {
             '@apply text-xl leading-snug py-0.5': '',
-          },
-          '.settings-value': {
-            '@apply leading-cozy h-text py-px px-2': '',
           },
         },
         {

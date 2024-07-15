@@ -1,3 +1,0 @@
-export project.F1
-from project.F1 export all
-from project.F1 export all hiding bar
