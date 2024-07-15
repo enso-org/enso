@@ -1729,7 +1729,18 @@ export default function AssetsTable(props: AssetsTableProps) {
       }
       case AssetListEventType.openProject: {
         dispatchAssetEvent({ ...event, type: AssetEventType.openProject, runInBackground: false })
-        queryClient.invalidateQueries({ queryKey: [event.type, event.id] })
+        void queryClient.invalidateQueries({
+          queryKey: [
+            event.backendType,
+            'listDirectory',
+            {
+              parentId: null,
+              filterBy: backendModule.FilterBy.active,
+              recentProjects: false,
+              labels: null,
+            },
+          ],
+        })
         break
       }
       case AssetListEventType.duplicateProject: {

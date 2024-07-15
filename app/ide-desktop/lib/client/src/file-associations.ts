@@ -117,6 +117,7 @@ export function onFileOpened(event: electron.Event, path: string): project.Proje
  * @param setProjectToOpen - A function that will be called with the ID of the project to open. */
 export function setOpenFileEventHandler(setProjectToOpen: (info: project.ProjectInfo) => void) {
     electron.app.on('open-file', (event, path) => {
+        logger.log(`Opening file '${path}'.`)
         const projectInfo = onFileOpened(event, path)
         if (projectInfo) {
             setProjectToOpen(projectInfo)
@@ -134,7 +135,7 @@ export function setOpenFileEventHandler(setProjectToOpen: (info: project.Project
                 ? additionalData.fileToOpen
                 : null
         if (path) {
-            logger.log(`Got path from second instance: '${path.toString()}'.`)
+            logger.log(`Got path '${path.toString()}' from second instance.`)
             event.preventDefault()
             const projectInfo = onFileOpened(event, path)
             if (projectInfo) {

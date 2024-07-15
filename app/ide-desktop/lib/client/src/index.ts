@@ -93,43 +93,37 @@ class App {
                 electron.app.quit()
             })
         } else {
-            const instanceLock = electron.app.requestSingleInstanceLock({ fileToOpen, urlToOpen })
-            if (instanceLock) {
+            const isOriginalInstance = electron.app.requestSingleInstanceLock({
+                fileToOpen,
+                urlToOpen,
+            })
+            if (isOriginalInstance) {
                 this.handleItemOpening(fileToOpen, urlToOpen)
                 this.setChromeOptions(chromeOptions)
                 security.enableAll()
-                electron.app.on('before-quit', () => (this.isQuitting = true))
+                electron.app.on('before-quit', () => {
+                    this.isQuitting = true
+                })
                 electron.app.on('second-instance', (_event, argv) => {
-                    const { fileToOpen, urlToOpen } = this.processArguments(argv)
                     logger.log(`Got data from 'second-instance' event: '${argv.toString()}'.`)
-                    if (fileToOpen != null) {
-                        const projectInfo = fileAssociations.handleOpenFile(fileToOpen)
-                        this.window?.webContents.send(ipc.Channel.openProject, projectInfo)
-                    }
-                    if (urlToOpen != null) {
-                        urlAssociations.handleOpenUrl(urlToOpen)
-                    }
                     // The second instances will close themselves, but our window likely is not in the
                     // foreground - the focus went to the "second instance" of the application.
-                    const primaryWindow = electron.BrowserWindow.getAllWindows()[0]
-                    if (primaryWindow) {
-                        if (primaryWindow.isMinimized()) {
-                            primaryWindow.restore()
+                    if (this.window) {
+                        if (this.window.isMinimized()) {
+                            this.window.restore()
                         }
-                        primaryWindow.focus()
+                        this.window.focus()
                     } else {
-                        logger.error(
-                            'No primary window found after receiving URL from second instance.'
-                        )
+                        logger.error('No window found after receiving URL from second instance.')
                     }
                 })
                 electron.app.whenReady().then(
-                    () => {
+                    async () => {
                         logger.log('Electron application is ready.')
-                        void this.main(windowSize)
+                        await this.main(windowSize)
                     },
-                    err => {
-                        logger.error('Failed to initialize electron.', err)
+                    error => {
+                        logger.error('Failed to initialize Electron.', error)
                     }
                 )
                 this.registerShortcuts()
@@ -200,14 +194,14 @@ class App {
      * Chrome options refer to: https://peter.sh/experiments/chromium-command-line-switches. */
     setChromeOptions(chromeOptions: configParser.ChromeOption[]) {
         const addIf = (
-            opt: contentConfig.Option<boolean>,
+            option: contentConfig.Option<boolean>,
             chromeOptName: string,
             value?: string
         ) => {
-            if (opt.value) {
+            if (option.value) {
                 const chromeOption = new configParser.ChromeOption(chromeOptName, value)
                 const chromeOptionStr = chromeOption.display()
-                const optionName = opt.qualifiedName()
+                const optionName = option.qualifiedName()
                 logger.log(`Setting '${chromeOptionStr}' because '${optionName}' was enabled.`)
                 chromeOptions.push(chromeOption)
             }
@@ -263,7 +257,7 @@ class App {
                  * not yet created at this point, but it will be created by the time the
                  * authentication module uses the lambda providing the window. */
                 // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                authentication.initModule(() => this.window!)
+                authentication.initAuthentication(() => this.window!)
             })
         } catch (err) {
             logger.error('Failed to initialize the application, shutting down. Error: ', err)
@@ -420,9 +414,9 @@ class App {
                     }
                 )
 
-                window.on('close', evt => {
+                window.on('close', event => {
                     if (!this.isQuitting && !this.args.groups.window.options.closeToQuit.value) {
-                        evt.preventDefault()
+                        event.preventDefault()
                         window.hide()
                     }
                 })
