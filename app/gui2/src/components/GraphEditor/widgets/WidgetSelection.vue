@@ -281,6 +281,7 @@ const dropDownInteraction = WidgetEditHandler.New('WidgetSelection', props.input
   pointerdown: (e, _) => {
     if (
       targetIsOutside(e, unrefElement(dropdownElement)) &&
+      targetIsOutside(e, unrefElement(activityElement)) &&
       targetIsOutside(e, unrefElement(widgetRoot))
     ) {
       dropDownInteraction.end()
