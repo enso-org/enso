@@ -15,7 +15,7 @@ type My_Nan_Comparator
     compare _ _ = Nothing
     hash _ = 0
 
-Comparable.from (_:My_Nan) = My_Nan_Comparator
+Comparable.from (that:My_Nan) = Comparable.new that My_Nan_Comparator
 
 type My_Key
     Value hash_code:Integer value:Text idx:Integer
@@ -28,7 +28,7 @@ type My_Key_Comparator
 
     hash x = x.hash_code
 
-Comparable.from (_:My_Key) = My_Key_Comparator
+Comparable.from (that:My_Key) = Comparable.new that My_Key_Comparator
 
 
 foreign js js_str str = """
@@ -83,6 +83,8 @@ foreign python py_wrapper obj = """
     return MyClass(obj)
 
 pending_python_missing = if Polyglot.is_language_installed "python" then Nothing else "Can't run Python tests, Python is not installed."
+
+def_comp = Standard.Base.Internal.Ordering_Helpers.Default_Comparator
 
 type Child
     Value data
@@ -152,7 +154,7 @@ add_specs suite_builder =
         group_builder.specify "should support atom with custom comparators with complicated hash method" <|
             keys = 0.up_to 500 . map ix->
                 value = ["A", "B", "C", "D", "E"].at (ix % 5)
-                hash_code = Comparable.from value . hash value
+                hash_code = Ordering.hash value
                 My_Key.Value hash_code value ix
             distinct_keys = keys.fold Dictionary.empty acc_dict->
                 item->
@@ -460,7 +462,12 @@ add_common_specs suite_builder prefix:Text (pending : (Text | Nothing)) (empty_d
 
     suite_builder.group prefix+": Common polyglot Dictionary operations" pending=pending group_builder->
         group_builder.specify "should get the default comparator for polyglot maps" <|
-            Comparable.from empty_dict . should_equal Default_Comparator
+            assert_comparator value comparator =
+                actual = Comparable.from value
+                expected = Comparable.new value comparator
+                actual . should_equal expected
+
+            assert_comparator empty_dict def_comp
 
         group_builder.specify "should compare two hash maps" <|
             (empty_dict.insert "a" 1).should_equal (empty_dict.insert "a" 1)

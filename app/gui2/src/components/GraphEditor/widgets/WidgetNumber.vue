@@ -84,6 +84,7 @@ export const widgetDefinition = defineWidget(
     @update:modelValue="setValue"
     @click.stop
     @focus="editHandler.start()"
+    @blur="editHandler.end()"
     @input="editHandler.edit($event)"
   />
 </template>

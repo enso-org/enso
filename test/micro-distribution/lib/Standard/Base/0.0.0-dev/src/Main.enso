@@ -3,11 +3,14 @@ export project.Panic.Panic
 export project.Error.Error
 export project.Any.Any
 export project.Data.Array.Array
-from project.Data.Boolean export Boolean, True, False
+export project.Data.Boolean.Boolean
+export project.Data.Boolean.Boolean.True
+export project.Data.Boolean.Boolean.False
 export project.Data.Text.Text
 export project.Data.Time.Date.Date
 export project.Data.List.List
-from project.Data.Numbers export Number, Integer
+export project.Data.Numbers.Number
+export project.Data.Numbers.Integer
 export project.Data.Vector.Vector
 export project.Function.Function
 export project.Polyglot.Java

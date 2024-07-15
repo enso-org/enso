@@ -4,7 +4,6 @@ import * as React from 'react'
 import NetworkIcon from 'enso-assets/network.svg'
 
 import * as backendHooks from '#/hooks/backendHooks'
-import * as eventHooks from '#/hooks/eventHooks'
 import * as setAssetHooks from '#/hooks/setAssetHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
@@ -14,6 +13,8 @@ import * as textProvider from '#/providers/TextProvider'
 
 import AssetEventType from '#/events/AssetEventType'
 import AssetListEventType from '#/events/AssetListEventType'
+
+import * as eventListProvider from '#/layouts/AssetsTable/EventListProvider'
 
 import type * as column from '#/components/dashboard/column'
 import ProjectIcon from '#/components/dashboard/ProjectIcon'
@@ -57,12 +58,12 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
     backendType,
     isOpened,
   } = props
-  const { backend, selectedKeys, assetEvents, dispatchAssetListEvent } = state
-  const { nodeMap, doOpenEditor, renameProject } = state
+  const { backend, selectedKeys, nodeMap, doOpenEditor, renameProject } = state
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { user } = authProvider.useNonPartialUserSession()
   const { getText } = textProvider.useText()
   const inputBindings = inputBindingsProvider.useInputBindings()
+  const dispatchAssetListEvent = eventListProvider.useDispatchAssetListEvent()
 
   if (item.type !== backendModule.AssetType.project) {
     // eslint-disable-next-line no-restricted-syntax
@@ -118,9 +119,8 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
     }
   }
 
-  eventHooks.useEventHandler(
-    assetEvents,
-    async event => {
+  eventListProvider.useAssetEventListener(async event => {
+    if (isEditable) {
       switch (event.type) {
         case AssetEventType.newFolder:
         case AssetEventType.newDatalink:
@@ -240,7 +240,11 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                 setAsset(object.merge(asset, { title: listedProject.packageName, id: projectId }))
               } else {
                 const createdFile = await uploadFileMutation.mutateAsync([
-                  { fileId, fileName: `${title}.${extension}`, parentDirectoryId: asset.parentId },
+                  {
+                    fileId,
+                    fileName: `${title}.${extension}`,
+                    parentDirectoryId: asset.parentId,
+                  },
                   file,
                 ])
                 const project = createdFile.project
@@ -275,9 +279,8 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
           break
         }
       }
-    },
-    { isDisabled: !isEditable }
-  )
+    }
+  }, item.initialAssetEvents)
 
   const handleClick = inputBindings.handler({
     editName: () => {

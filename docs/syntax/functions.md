@@ -132,17 +132,25 @@ Number.floor self = case self of
     ...
 ```
 
-3. **As a Function with an Explicit `self` Argument:** A function defined with
-   the type of the `self` argument specified to be a type.
+3. **As a module method:** A function defined outside the body of a type and
+   without explicit `self` argument, is considered a _module method_.
 
 ```ruby
-floor (self : Number) = case self of
-    Integer -> ...
+module_method x y = x + y
 ```
 
-If the user does not explicitly specify the `this` argument by name when
+If the user does not explicitly specify the `self` argument by name when
 defining a method (e.g. they use the `Type.name` syntax), it is implicitly added
 to the start of the argument list.
+
+Note that the following methods defined in the body of type and as an extension
+method are equivalent:
+
+```
+type My_Type
+    method self = 42
+My_Type.method self = 42
+```
 
 ## Calling Functions and Methods
 
