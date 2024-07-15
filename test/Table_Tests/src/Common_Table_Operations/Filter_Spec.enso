@@ -99,14 +99,14 @@ add_specs suite_builder setup =
             t.filter "X" (Filter_Condition.Less than=10.0) . at "X" . to_vector . should_equal [2.5, Number.negative_infinity]
 
             # In some backends, NaN is greater than any other value, so it is > 10.0; in other implementations it is usually not greater nor smaller, so it gets filtered out.
-            nan_is_greater_than_all = setup.test_selection.nan_treated_as_greater_than_all_numbers
+            nan_is_comparable = setup.test_selection.is_nan_comparable
             t.filter "X" (Filter_Condition.Greater than=10.0) . at "ix" . to_vector . should_equal <|
-                if nan_is_greater_than_all then [1, 4, 5] else [1, 5]
+                if nan_is_comparable then [1, 4, 5] else [1, 5]
 
-            # Similarly, PostgreSQL and Snowflake treats NaN==NaN, we assume `nan_is_greater_than_all` implies that.
+            # Similarly, PostgreSQL and Snowflake treats NaN==NaN, we assume `nan_is_comparable` implies that.
             # If needed, this may become a separate flag in the future.
             t.filter "X" (Filter_Condition.Equal to=Number.nan) . at "ix" . to_vector . should_equal <|
-                if nan_is_greater_than_all then [4] else []
+                if nan_is_comparable then [4] else []
             t.filter "X" (Filter_Condition.Equal to=Number.positive_infinity) . at "ix" . to_vector . should_equal [5]
 
             t.filter "X" Filter_Condition.Is_Infinite . at "ix" . to_vector . should_equal [5, 6]
