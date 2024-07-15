@@ -348,7 +348,6 @@ add_specs suite_builder =
                     (d >= d) . should_be_true
 
                     if v.is_a Float then
-                        qq = d <= v
                         Problems.expect_only_warning Loss_Of_Numeric_Precision (d <= v)
                         Problems.expect_only_warning Loss_Of_Numeric_Precision (d >= v)
                         Problems.expect_only_warning Loss_Of_Numeric_Precision (v <= d)
