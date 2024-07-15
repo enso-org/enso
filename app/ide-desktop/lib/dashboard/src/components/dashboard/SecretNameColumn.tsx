@@ -4,7 +4,6 @@ import * as React from 'react'
 import KeyIcon from 'enso-assets/key.svg'
 
 import * as backendHooks from '#/hooks/backendHooks'
-import * as eventHooks from '#/hooks/eventHooks'
 import * as setAssetHooks from '#/hooks/setAssetHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
@@ -13,6 +12,8 @@ import * as modalProvider from '#/providers/ModalProvider'
 
 import AssetEventType from '#/events/AssetEventType'
 import AssetListEventType from '#/events/AssetListEventType'
+
+import * as eventListProvider from '#/layouts/AssetsTable/EventListProvider'
 
 import * as ariaComponents from '#/components/AriaComponents'
 import type * as column from '#/components/dashboard/column'
@@ -40,10 +41,11 @@ export interface SecretNameColumnProps extends column.AssetColumnProps {}
  * This should never happen. */
 export default function SecretNameColumn(props: SecretNameColumnProps) {
   const { item, setItem, selected, state, rowState, setRowState, isEditable } = props
-  const { backend, assetEvents, dispatchAssetListEvent } = state
+  const { backend } = state
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { setModal } = modalProvider.useSetModal()
   const inputBindings = inputBindingsProvider.useInputBindings()
+  const dispatchAssetListEvent = eventListProvider.useDispatchAssetListEvent()
   if (item.type !== backendModule.AssetType.secret) {
     // eslint-disable-next-line no-restricted-syntax
     throw new Error('`SecretNameColumn` can only display secrets.')
@@ -61,9 +63,8 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
 
   const setAsset = setAssetHooks.useSetAsset(asset, setItem)
 
-  eventHooks.useEventHandler(
-    assetEvents,
-    async event => {
+  eventListProvider.useAssetEventListener(async event => {
+    if (isEditable) {
       switch (event.type) {
         case AssetEventType.newProject:
         case AssetEventType.newFolder:
@@ -120,9 +121,8 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
           break
         }
       }
-    },
-    { isDisabled: !isEditable }
-  )
+    }
+  }, item.initialAssetEvents)
 
   const handleClick = inputBindings.handler({
     editName: () => {
