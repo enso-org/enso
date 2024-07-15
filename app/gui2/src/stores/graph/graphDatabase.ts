@@ -346,9 +346,10 @@ export class GraphDb {
     const subtreeDirty = (id: AstId) => !knownDirtySubtrees || knownDirtySubtrees.has(id)
     this.currentFunction = functionAst_.id
     const currentNodeIds = new Set<NodeId>()
-    for (const nodeAst of functionAst_.bodyExpressions()) {
-      const newNode = nodeFromAst(nodeAst)
-      if (!newNode) continue
+    const lines = [...functionAst_.bodyExpressions()]
+    lines.forEach((nodeAst, lineIndex) => {
+      const newNode = nodeFromAst(nodeAst, lineIndex === lines.length - 1)
+      if (!newNode) return
       const nodeId = asNodeId(newNode.rootExpr.externalId)
       const node = this.nodeIdToNode.get(nodeId)
       currentNodeIds.add(nodeId)
@@ -360,9 +361,14 @@ export class GraphDb {
           vis: nodeMeta.get('visualization'),
           colorOverride: nodeMeta.get('colorOverride'),
         }
-        this.nodeIdToNode.set(nodeId, { ...newNode, ...metadataFields, zIndex: this.highestZIndex })
+        this.nodeIdToNode.set(nodeId, {
+          ...newNode,
+          ...metadataFields,
+          zIndex: this.highestZIndex,
+        })
       } else {
         const {
+          type,
           outerExpr,
           pattern,
           rootExpr,
@@ -374,6 +380,7 @@ export class GraphDb {
         } = newNode
         const differentOrDirty = (a: Ast.Ast | undefined, b: Ast.Ast | undefined) =>
           a?.id !== b?.id || (a && subtreeDirty(a.id))
+        if (node.type != type) node.type = type
         if (differentOrDirty(node.outerExpr, outerExpr)) node.outerExpr = outerExpr
         if (differentOrDirty(node.pattern, pattern)) node.pattern = pattern
         if (differentOrDirty(node.rootExpr, rootExpr)) node.rootExpr = rootExpr
@@ -389,6 +396,7 @@ export class GraphDb {
         syncSet(node.conditionalPorts, conditionalPorts)
         // Ensure new fields can't be added to `NodeAstData` without this code being updated.
         const _allFieldsHandled = {
+          type,
           outerExpr,
           pattern,
           rootExpr,
@@ -399,7 +407,7 @@ export class GraphDb {
           conditionalPorts,
         } satisfies NodeDataFromAst
       }
-    }
+    })
     for (const nodeId of this.nodeIdToNode.keys()) {
       if (!currentNodeIds.has(nodeId)) {
         this.nodeIdToNode.delete(nodeId)
@@ -501,6 +509,7 @@ declare const brandNodeId: unique symbol
 
 /** An unique node identifier, shared across all clients. It is the ExternalId of node's root expression. */
 export type NodeId = string & ExternalId & { [brandNodeId]: never }
+export type NodeType = 'component' | 'output'
 export function asNodeId(id: ExternalId): NodeId
 export function asNodeId(id: ExternalId | undefined): NodeId | undefined
 export function asNodeId(id: ExternalId | undefined): NodeId | undefined {
@@ -508,6 +517,7 @@ export function asNodeId(id: ExternalId | undefined): NodeId | undefined {
 }
 
 export interface NodeDataFromAst {
+  type: NodeType
   /** The outer expression, usually an assignment expression (`a = b`). */
   outerExpr: Ast.Ast
   /** The left side of the assignment experssion, if `outerExpr` is an assignment expression. */

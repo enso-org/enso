@@ -16,7 +16,7 @@ export function initializePrefixes() {
   prefixes = prefixes ?? makePrefixes()
 }
 
-export function nodeFromAst(ast: Ast.Ast): NodeDataFromAst | undefined {
+export function nodeFromAst(ast: Ast.Ast, isLastLine: boolean): NodeDataFromAst | undefined {
   const { nodeCode, documentation } =
     ast instanceof Ast.Documented ?
       { nodeCode: ast.expression, documentation: ast.documentation() }
@@ -27,6 +27,7 @@ export function nodeFromAst(ast: Ast.Ast): NodeDataFromAst | undefined {
   const { innerExpr, matches } = prefixes.extractMatches(rootExpr)
   const primaryApplication = primaryApplicationSubject(innerExpr)
   return {
+    type: pattern == null && isLastLine ? 'output' : 'component',
     outerExpr: ast,
     pattern,
     rootExpr,

@@ -312,11 +312,17 @@ const executionState = computed(() => expressionInfo.value?.payload.type ?? 'Unk
 const suggestionEntry = computed(() => graph.db.nodeMainSuggestion.lookup(nodeId.value))
 const color = computed(() => graph.db.getNodeColorStyle(nodeId.value))
 const icon = computed(() => {
-  return displayedIconOf(
-    suggestionEntry.value,
-    expressionInfo.value?.methodCall?.methodPointer,
-    outputPortLabel.value,
-  )
+  switch (props.node.type) {
+    default:
+    case 'component':
+      return displayedIconOf(
+        suggestionEntry.value,
+        expressionInfo.value?.methodCall?.methodPointer,
+        outputPortLabel.value,
+      )
+    case 'output':
+      return 'data_output'
+  }
 })
 const documentationUrl = computed(
   () => suggestionEntry.value && suggestionDocumentationUrl(suggestionEntry.value),
@@ -474,6 +480,7 @@ watchEffect(() => {
       :nodeColor="getNodeColor(nodeId)"
       :matchableNodeColors="matchableNodeColors"
       :documentationUrl="documentationUrl"
+      :isRemovable="props.node.type === 'component'"
       @update:isVisualizationEnabled="emit('update:visualizationEnabled', $event)"
       @startEditing="startEditingNode"
       @startEditingComment="editingComment = true"
