@@ -3,12 +3,25 @@ private
 import project.Data.Decimal.Decimal
 import project.Data.Numbers.Number
 import project.Data.Text.Text
+import project.Errors.Illegal_Argument.Illegal_Argument
+import project.Warning.Warning
 from project.Data.Ordering import Comparable, Ordering
 
 polyglot java import org.enso.base.numeric.Decimal_Utils
 
 ## PRIVATE
 type Decimal_Comparator
-    compare (x : Decimal) (y : Decimal) =
+    compare (x : Decimal) (y : Decimal) = warning_if_from_float x y <|
         Ordering.from_sign (x.big_decimal.compareTo y.big_decimal)
+
     hash x:Decimal = Decimal_Utils.hashCodeOf x.big_decimal
+
+## PRIVATE
+warning_if_from_float left right ~action =
+    result = action
+    case left of
+        Decimal.From_Float _ -> Warning.attach (Illegal_Argument.Error "Cannot perform operation on Float and Decimal.") result
+        _ -> case right of
+            Decimal.From_Float _ -> Warning.attach (Illegal_Argument.Error "Cannot perform operation on Decimal and Float.") result
+            _ -> result
+
