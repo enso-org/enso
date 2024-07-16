@@ -130,6 +130,7 @@ export default function ProjectsProvider(props: ProjectsProviderProps) {
 /** A component to synchronize React state with search parmas state. */
 function PageSynchronizer() {
   const { localStorage } = localStorageProvider.useLocalStorage()
+  const launchedProjects = useLaunchedProjects()
   const store = useProjectsStore()
   const providerPage = usePage()
   const providerSetPage = useSetPage()
@@ -152,6 +153,10 @@ function PageSynchronizer() {
     privateSetPage(providerPage)
     localStorage.set('page', providerPage)
   }, [localStorage, privateSetPage, providerPage])
+
+  React.useEffect(() => {
+    localStorage.set('launchedProjects', launchedProjects)
+  }, [launchedProjects, localStorage])
 
   return null
 }

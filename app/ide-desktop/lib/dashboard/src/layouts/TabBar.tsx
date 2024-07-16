@@ -167,6 +167,7 @@ const Tabs = React.forwardRef(TabsInternal)
 
 /** Props for a {@link Tab}. */
 interface InternalTabProps extends Readonly<React.PropsWithChildren> {
+  readonly 'data-testid'?: string
   readonly project?: projectHooks.Project
   readonly isActive: boolean
   readonly icon: string
@@ -223,6 +224,7 @@ export function Tab(props: InternalTabProps) {
       )}
     >
       <ariaComponents.Button
+        data-testid={props['data-testid']}
         size="custom"
         variant="custom"
         loaderPosition="icon"

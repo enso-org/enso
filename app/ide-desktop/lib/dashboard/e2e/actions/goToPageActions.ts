@@ -34,7 +34,7 @@ export function goToPageActions(
       ).into(DrivePageActions),
     editor: () =>
       step('Go to "Spatial Analysis" page', page =>
-        page.getByRole('button').and(page.getByLabel('Spatial Analysis')).click()
+        page.getByTestId('editor-tab-button').click()
       ).into(EditorPageActions),
     settings: () =>
       step('Go to "settings" page', page => BaseActions.press(page, 'Mod+,')).into(

@@ -269,6 +269,7 @@ function DashboardInner(props: DashboardProps) {
 
               {launchedProjects.map(project => (
                 <tabBar.Tab
+                  data-testid="editor-tab-button"
                   project={project}
                   key={project.id}
                   isActive={page === project.id}

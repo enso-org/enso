@@ -124,6 +124,27 @@ export default class BaseActions implements Promise<void> {
     return this.do(page => BaseActions.press(page, keyOrShortcut))
   }
 
+  /** Perform actions until a predicate passes. */
+  retry(
+    callback: (actions: this) => this,
+    predicate: (page: test.Page) => Promise<boolean>,
+    options: { retries?: number; delay?: number } = {}
+  ) {
+    // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+    const { retries = 3, delay = 1_000 } = options
+    return this.step('Perform actions with retries', async thePage => {
+      for (let i = 0; i < retries; i += 1) {
+        await callback(this)
+        if (await predicate(thePage)) {
+          // eslint-disable-next-line no-restricted-syntax
+          return
+        }
+        await thePage.waitForTimeout(delay)
+      }
+      throw new Error('This action did not succeed.')
+    })
+  }
+
   /** Perform actions with the "Mod" modifier key pressed. */
   withModPressed<R extends BaseActions>(callback: (actions: this) => R) {
     return callback(
