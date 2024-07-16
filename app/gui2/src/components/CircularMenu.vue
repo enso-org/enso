@@ -92,7 +92,7 @@ function readableBinding(binding: keyof (typeof graphBindings)['bindings']) {
         icon="record"
         class="slot7 record"
         data-testid="toggleRecord"
-        title="Record"
+        title="Write Always"
         :modelValue="props.isRecordingOverridden"
         @update:modelValue="emit('update:isRecordingOverridden', $event)"
       />

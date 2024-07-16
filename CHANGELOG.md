@@ -14,7 +14,7 @@
 - [Numeric Widget does not accept non-numeric input][10457]. This is to prevent
   node being completely altered by accidental code put to the widget.
 - [Redesigned "record control" panel][10509]. Now it contains more intuitive
-  "refresh" and "run workflow" buttons.
+  "refresh" and "write all" buttons.
 - [Warning messages do not obscure visualization buttons][10546].
 
 [10433]: https://github.com/enso-org/enso/pull/10443
