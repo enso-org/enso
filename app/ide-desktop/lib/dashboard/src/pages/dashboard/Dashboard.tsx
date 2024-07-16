@@ -9,6 +9,7 @@ import DriveIcon from 'enso-assets/drive.svg'
 import EditorIcon from 'enso-assets/network.svg'
 import SettingsIcon from 'enso-assets/settings.svg'
 import * as detect from 'enso-common/src/detect'
+import type * as types from 'enso-common/src/types'
 
 import * as eventCallbacks from '#/hooks/eventCallbackHooks'
 import * as projectHooks from '#/hooks/projectHooks'
@@ -48,8 +49,6 @@ import * as projectManager from '#/services/ProjectManager'
 import * as array from '#/utilities/array'
 import LocalStorage from '#/utilities/LocalStorage'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
-
-import type * as types from '../../../../types/types'
 
 // ============================
 // === Global configuration ===

@@ -3,6 +3,8 @@ import * as React from 'react'
 
 import * as reactQuery from '@tanstack/react-query'
 
+import * as backendQuery from 'enso-common/src/backendQuery'
+
 import * as authProvider from '#/providers/AuthProvider'
 
 import type Backend from '#/services/Backend'
@@ -75,19 +77,17 @@ function revokeOrganizationPictureUrl(backend: Backend | null) {
 export function useObserveBackend(backend: Backend | null) {
   const queryClient = reactQuery.useQueryClient()
   const [seen] = React.useState(new WeakSet())
-  const useObserveMutations = <Method extends keyof Backend>(
+  const useObserveMutations = <Method extends backendQuery.BackendMethods>(
     method: Method,
     onSuccess: (
       state: reactQuery.MutationState<
-        Awaited<ReturnType<Extract<Backend[Method], (...args: never) => unknown>>>,
+        Awaited<ReturnType<Backend[Method]>>,
         Error,
-        Parameters<Extract<Backend[Method], (...args: never) => unknown>>
+        Parameters<Backend[Method]>
       >
     ) => void
   ) => {
-    const states = reactQuery.useMutationState<
-      Parameters<Extract<Backend[Method], (...args: never) => unknown>>
-    >({
+    const states = reactQuery.useMutationState<Parameters<Backend[Method]>>({
       // Errored mutations can be safely ignored as they should not change the state.
       filters: { mutationKey: [backend?.type, method], status: 'success' },
       // eslint-disable-next-line no-restricted-syntax
@@ -102,15 +102,15 @@ export function useObserveBackend(backend: Backend | null) {
       }
     }
   }
-  const setQueryData = <Method extends keyof Backend>(
+  const setQueryData = <Method extends backendQuery.BackendMethods>(
     method: Method,
     updater: (
-      variable: Awaited<ReturnType<Extract<Backend[Method], (...args: never) => unknown>>>
-    ) => Awaited<ReturnType<Extract<Backend[Method], (...args: never) => unknown>>>
+      variable: Awaited<ReturnType<Backend[Method]>>
+    ) => Awaited<ReturnType<Backend[Method]>>
   ) => {
-    queryClient.setQueryData<
-      Awaited<ReturnType<Extract<Backend[Method], (...args: never) => unknown>>>
-    >([backend?.type, method], data => (data == null ? data : updater(data)))
+    queryClient.setQueryData<Awaited<ReturnType<Backend[Method]>>>([backend?.type, method], data =>
+      data == null ? data : updater(data)
+    )
   }
   useObserveMutations('uploadUserPicture', state => {
     revokeUserPictureUrl(backend)
@@ -162,65 +162,62 @@ export function useObserveBackend(backend: Backend | null) {
 // === useBackendQuery ===
 // =======================
 
-export function useBackendQuery<Method extends keyof Backend>(
+export function useBackendQuery<Method extends backendQuery.BackendMethods>(
   backend: Backend,
   method: Method,
-  args: Parameters<Extract<Backend[Method], (...args: never) => unknown>>,
+  args: Parameters<Backend[Method]>,
   options?: Omit<
     reactQuery.UseQueryOptions<
-      Awaited<ReturnType<Extract<Backend[Method], (...args: never) => unknown>>>,
+      Awaited<ReturnType<Backend[Method]>>,
       Error,
-      Awaited<ReturnType<Extract<Backend[Method], (...args: never) => unknown>>>,
+      Awaited<ReturnType<Backend[Method]>>,
       readonly unknown[]
     >,
     'queryFn'
   >
-): reactQuery.UseQueryResult<
-  Awaited<ReturnType<Extract<Backend[Method], (...args: never) => unknown>>>
->
-export function useBackendQuery<Method extends keyof Backend>(
+): reactQuery.UseQueryResult<Awaited<ReturnType<Backend[Method]>>>
+export function useBackendQuery<Method extends backendQuery.BackendMethods>(
   backend: Backend | null,
   method: Method,
-  args: Parameters<Extract<Backend[Method], (...args: never) => unknown>>,
+  args: Parameters<Backend[Method]>,
   options?: Omit<
     reactQuery.UseQueryOptions<
-      Awaited<ReturnType<Extract<Backend[Method], (...args: never) => unknown>>>,
+      Awaited<ReturnType<Backend[Method]>>,
       Error,
-      Awaited<ReturnType<Extract<Backend[Method], (...args: never) => unknown>>>,
+      Awaited<ReturnType<Backend[Method]>>,
       readonly unknown[]
     >,
     'queryFn'
   >
 ): reactQuery.UseQueryResult<
   // eslint-disable-next-line no-restricted-syntax
-  Awaited<ReturnType<Extract<Backend[Method], (...args: never) => unknown>>> | undefined
+  Awaited<ReturnType<Backend[Method]>> | undefined
 >
 /** Wrap a backend method call in a React Query. */
-export function useBackendQuery<Method extends keyof Backend>(
+export function useBackendQuery<Method extends backendQuery.BackendMethods>(
   backend: Backend | null,
   method: Method,
-  args: Parameters<Extract<Backend[Method], (...args: never) => unknown>>,
+  args: Parameters<Backend[Method]>,
   options?: Omit<
     reactQuery.UseQueryOptions<
-      Awaited<ReturnType<Extract<Backend[Method], (...args: never) => unknown>>>,
+      Awaited<ReturnType<Backend[Method]>>,
       Error,
-      Awaited<ReturnType<Extract<Backend[Method], (...args: never) => unknown>>>,
+      Awaited<ReturnType<Backend[Method]>>,
       readonly unknown[]
     >,
     'queryFn'
   >
 ) {
   return reactQuery.useQuery<
-    Awaited<ReturnType<Extract<Backend[Method], (...args: never) => unknown>>>,
+    Awaited<ReturnType<Backend[Method]>>,
     Error,
-    Awaited<ReturnType<Extract<Backend[Method], (...args: never) => unknown>>>,
+    Awaited<ReturnType<Backend[Method]>>,
     readonly unknown[]
   >({
     ...options,
-    queryKey: [backend?.type, method, ...args, ...(options?.queryKey ?? [])],
+    ...backendQuery.backendQueryOptions(backend, method, args, options?.queryKey),
     // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-return
     queryFn: () => (backend?.[method] as any)?.(...args),
-    networkMode: backend?.type === backendModule.BackendType.local ? 'always' : 'online',
   })
 }
 
@@ -228,56 +225,56 @@ export function useBackendQuery<Method extends keyof Backend>(
 // === useBackendMutation ===
 // ==========================
 
-export function useBackendMutation<Method extends keyof Backend>(
+export function useBackendMutation<Method extends backendQuery.BackendMethods>(
   backend: Backend,
   method: Method,
   options?: Omit<
     reactQuery.UseMutationOptions<
-      Awaited<ReturnType<Extract<Backend[Method], (...args: never) => unknown>>>,
+      Awaited<ReturnType<Backend[Method]>>,
       Error,
-      Parameters<Extract<Backend[Method], (...args: never) => unknown>>
+      Parameters<Backend[Method]>
     >,
     'mutationFn'
   >
 ): reactQuery.UseMutationResult<
-  Awaited<ReturnType<Extract<Backend[Method], (...args: never) => unknown>>>,
+  Awaited<ReturnType<Backend[Method]>>,
   Error,
-  Parameters<Extract<Backend[Method], (...args: never) => unknown>>
+  Parameters<Backend[Method]>
 >
-export function useBackendMutation<Method extends keyof Backend>(
+export function useBackendMutation<Method extends backendQuery.BackendMethods>(
   backend: Backend | null,
   method: Method,
   options?: Omit<
     reactQuery.UseMutationOptions<
-      Awaited<ReturnType<Extract<Backend[Method], (...args: never) => unknown>>>,
+      Awaited<ReturnType<Backend[Method]>>,
       Error,
-      Parameters<Extract<Backend[Method], (...args: never) => unknown>>
+      Parameters<Backend[Method]>
     >,
     'mutationFn'
   >
 ): reactQuery.UseMutationResult<
   // eslint-disable-next-line no-restricted-syntax
-  Awaited<ReturnType<Extract<Backend[Method], (...args: never) => unknown>>> | undefined,
+  Awaited<ReturnType<Backend[Method]>> | undefined,
   Error,
-  Parameters<Extract<Backend[Method], (...args: never) => unknown>>
+  Parameters<Backend[Method]>
 >
 /** Wrap a backend method call in a React Query Mutation. */
-export function useBackendMutation<Method extends keyof Backend>(
+export function useBackendMutation<Method extends backendQuery.BackendMethods>(
   backend: Backend | null,
   method: Method,
   options?: Omit<
     reactQuery.UseMutationOptions<
-      Awaited<ReturnType<Extract<Backend[Method], (...args: never) => unknown>>>,
+      Awaited<ReturnType<Backend[Method]>>,
       Error,
-      Parameters<Extract<Backend[Method], (...args: never) => unknown>>
+      Parameters<Backend[Method]>
     >,
     'mutationFn'
   >
 ) {
   return reactQuery.useMutation<
-    Awaited<ReturnType<Extract<Backend[Method], (...args: never) => unknown>>>,
+    Awaited<ReturnType<Backend[Method]>>,
     Error,
-    Parameters<Extract<Backend[Method], (...args: never) => unknown>>
+    Parameters<Backend[Method]>
   >({
     ...options,
     mutationKey: [backend?.type, method, ...(options?.mutationKey ?? [])],
@@ -292,14 +289,12 @@ export function useBackendMutation<Method extends keyof Backend>(
 // ===================================
 
 /** Access mutation variables from a React Query Mutation. */
-export function useBackendMutationVariables<Method extends keyof Backend>(
+export function useBackendMutationVariables<Method extends backendQuery.BackendMethods>(
   backend: Backend | null,
   method: Method,
   mutationKey?: readonly unknown[]
 ) {
-  return reactQuery.useMutationState<
-    Parameters<Extract<Backend[Method], (...args: never) => unknown>>
-  >({
+  return reactQuery.useMutationState<Parameters<Backend[Method]>>({
     filters: {
       mutationKey: [backend?.type, method, ...(mutationKey ?? [])],
       status: 'pending',
@@ -314,14 +309,14 @@ export function useBackendMutationVariables<Method extends keyof Backend>(
 // =======================================
 
 /** Wrap a backend method call in a React Query Mutation, and access its variables. */
-export function useBackendMutationWithVariables<Method extends keyof Backend>(
+export function useBackendMutationWithVariables<Method extends backendQuery.BackendMethods>(
   backend: Backend,
   method: Method,
   options?: Omit<
     reactQuery.UseMutationOptions<
-      Awaited<ReturnType<Extract<Backend[Method], (...args: never) => unknown>>>,
+      Awaited<ReturnType<Backend[Method]>>,
       Error,
-      Parameters<Extract<Backend[Method], (...args: never) => unknown>>
+      Parameters<Backend[Method]>
     >,
     'mutationFn'
   >
