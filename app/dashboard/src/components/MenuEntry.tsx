@@ -2,10 +2,9 @@
 import * as React from 'react'
 
 import * as detect from 'enso-common/src/detect'
+import type * as text from 'enso-common/src/text'
 
 import BlankIcon from '#/assets/blank.svg'
-
-import type * as text from '#/text'
 
 import type * as inputBindings from '#/configurations/inputBindings'
 

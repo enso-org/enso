@@ -8,6 +8,7 @@ import { isDevMode } from 'shared/util/detect'
 import { lazyVueInReact } from 'veaury'
 import { type App } from 'vue'
 
+import type { EditorRunner } from 'enso-common/src/types'
 import 'enso-dashboard/src/tailwind.css'
 import { AsyncApp } from './asyncApp'
 

@@ -3,14 +3,14 @@ import * as React from 'react'
 
 import isEmail from 'validator/lib/isEmail'
 
+import type * as text from 'enso-common/src/text'
+
 import ComputerIcon from '#/assets/computer.svg'
 import KeyboardShortcutsIcon from '#/assets/keyboard_shortcuts.svg'
 import LogIcon from '#/assets/log.svg'
 import PeopleSettingsIcon from '#/assets/people_settings.svg'
 import PeopleIcon from '#/assets/people.svg'
 import SettingsIcon from '#/assets/settings.svg'
-
-import type * as text from '#/text'
 
 import * as inputBindings from '#/configurations/inputBindings'
 

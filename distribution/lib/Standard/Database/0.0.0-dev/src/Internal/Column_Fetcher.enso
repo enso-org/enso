@@ -88,14 +88,16 @@ long_fetcher bits =
 ## PRIVATE
 big_integer_fetcher : Column_Fetcher
 big_integer_fetcher =
-    fetch_value rs i =
-        big_decimal = rs.getBigDecimal i
-        if rs.wasNull then Nothing else
-            big_decimal.toBigIntegerExact
     make_builder initial_size java_problem_aggregator =
         java_builder = Java_Exports.make_biginteger_builder initial_size java_problem_aggregator
         make_builder_from_java_object_builder java_builder
-    Column_Fetcher.Value fetch_value make_builder
+    Column_Fetcher.Value fetch_big_integer make_builder
+
+## PRIVATE
+fetch_big_integer rs i =
+    big_decimal = rs.getBigDecimal i
+    if rs.wasNull then Nothing else
+        big_decimal.toBigIntegerExact
 
 ## PRIVATE
 big_decimal_fetcher : Column_Fetcher

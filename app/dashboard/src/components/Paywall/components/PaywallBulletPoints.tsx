@@ -7,9 +7,9 @@ import * as React from 'react'
 
 import * as tw from 'tailwind-merge'
 
-import Check from '#/assets/check_mark.svg'
+import type * as text from 'enso-common/src/text'
 
-import type * as text from '#/text'
+import Check from '#/assets/check_mark.svg'
 
 import * as textProvider from '#/providers/TextProvider'
 

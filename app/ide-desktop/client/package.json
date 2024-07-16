@@ -29,6 +29,7 @@
     "yargs": "17.6.2"
   },
   "devDependencies": {
+    "@babel/plugin-syntax-import-attributes": "^7.24.7",
     "@electron/notarize": "2.1.0",
     "@types/mime-types": "^2.1.1",
     "@types/node": "^20.11.21",
@@ -47,11 +48,17 @@
     "fast-glob": "^3.2.12",
     "lightningcss": "^1.24.0",
     "portfinder": "^1.0.32",
+    "rollup": "^4.18.1",
     "sharp": "^0.31.2",
     "to-ico": "^1.1.5",
     "tsx": "^4.7.1",
     "vite": "^5.3.3"
   },
+  "//": [
+    "vite is required for the watch script",
+    "rollup is required for vite",
+    "@babel/plugin-syntax-import-attributes is a dependency of the dashboard"
+  ],
   "scripts": {
     "typecheck": "npm run --workspace=enso-gui2 compile-server && tsc --build",
     "build": "tsx bundle.ts",

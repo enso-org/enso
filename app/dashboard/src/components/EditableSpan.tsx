@@ -16,6 +16,12 @@ import * as eventModule from '#/utilities/event'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 
+// =================
+// === Constants ===
+// =================
+
+const WIDTH_CLASS_NAME = 'max-w-60'
+
 // ====================
 // === EditableSpan ===
 // ====================
@@ -75,7 +81,7 @@ export default function EditableSpan(props: EditableSpanProps) {
   if (editable) {
     return (
       <form
-        className="flex grow gap-1.5"
+        className={tailwindMerge.twMerge('flex grow gap-1.5', WIDTH_CLASS_NAME)}
         onBlur={event => {
           const currentTarget = event.currentTarget
           if (!currentTarget.contains(event.relatedTarget)) {
@@ -162,7 +168,11 @@ export default function EditableSpan(props: EditableSpanProps) {
     )
   } else {
     return (
-      <ariaComponents.Text data-testid={props['data-testid']} className={className}>
+      <ariaComponents.Text
+        data-testid={props['data-testid']}
+        truncate="1"
+        className={tailwindMerge.twMerge(WIDTH_CLASS_NAME, className)}
+      >
         {children}
       </ariaComponents.Text>
     )

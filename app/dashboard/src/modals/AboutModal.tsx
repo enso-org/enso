@@ -1,9 +1,9 @@
 /** @file Modal for confirming delete of any type of asset. */
 import * as React from 'react'
 
-import LogoIcon from '#/assets/enso_logo.svg'
+import type * as text from 'enso-common/src/text'
 
-import type * as text from '#/text'
+import LogoIcon from '#/assets/enso_logo.svg'
 
 import * as backendProvider from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'

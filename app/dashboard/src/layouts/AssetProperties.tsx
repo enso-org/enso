@@ -11,8 +11,6 @@ import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 import * as authProvider from '#/providers/AuthProvider'
 import * as textProvider from '#/providers/TextProvider'
 
-import type * as assetEvent from '#/events/assetEvent'
-
 import type Category from '#/layouts/CategorySwitcher/Category'
 
 import * as aria from '#/components/aria'
@@ -40,14 +38,13 @@ export interface AssetPropertiesProps {
   readonly item: assetTreeNode.AnyAssetTreeNode
   readonly setItem: React.Dispatch<React.SetStateAction<assetTreeNode.AnyAssetTreeNode>>
   readonly category: Category
-  readonly dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
   readonly isReadonly?: boolean
 }
 
 /** Display and modify the properties of an asset. */
 export default function AssetProperties(props: AssetPropertiesProps) {
   const { backend, item: itemRaw, setItem: setItemRaw, category } = props
-  const { isReadonly = false, dispatchAssetEvent } = props
+  const { isReadonly = false } = props
 
   const { user } = authProvider.useNonPartialUserSession()
   const { getText } = textProvider.useText()
@@ -200,7 +197,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
             </form>
           )}
         </div>
-      </div>{' '}
+      </div>
       {!isCloud && (
         <div className="pointer-events-auto flex flex-col items-start gap-side-panel-section">
           <aria.Heading
@@ -245,7 +242,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
                     isReadonly={isReadonly}
                     item={item}
                     setItem={setItem}
-                    state={{ category, dispatchAssetEvent, setQuery: () => {} }}
+                    state={{ category, setQuery: () => {} }}
                   />
                 </td>
               </tr>

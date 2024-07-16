@@ -17,6 +17,7 @@ import Standard.Database.SQL_Type.SQL_Type
 from Standard.Database.Errors import Unsupported_Database_Operation
 
 polyglot java import java.sql.Types
+polyglot java import org.enso.snowflake.SnowflakeIntegerColumnMaterializer
 
 ## PRIVATE
 type Snowflake_Type_Mapping
@@ -26,15 +27,20 @@ type Snowflake_Type_Mapping
         result = case value_type of
             Value_Type.Boolean -> SQL_Type.Value Types.BOOLEAN "boolean"
             # All integer types in Snowflake become NUMERIC(38,0).
-            Value_Type.Byte -> SQL_Type.Value Types.BIGINT "bigint"
-            Value_Type.Integer _ -> SQL_Type.Value Types.BIGINT "bigint"
+            Value_Type.Byte -> integer_type
+            Value_Type.Integer _ -> integer_type
             # All float types in Snowflake become double
-            Value_Type.Float _ -> SQL_Type.Value Types.DOUBLE "float8"
+            Value_Type.Float _ -> SQL_Type.Value Types.DOUBLE "FLOAT"
             Value_Type.Decimal precision scale -> case precision of
                 # If precision is not set, scale is also lost because SQL is unable to express a scale without a precision.
-                Nothing -> SQL_Type.Value Types.DECIMAL "decimal" Nothing Nothing
-                # Scale can be set or not, if precision is given, so no check needed.
-                _       -> SQL_Type.Value Types.DECIMAL "decimal" precision scale
+                Nothing -> SQL_Type.Value Types.DECIMAL "NUMBER" Nothing Nothing
+                # Scale can be set or not, but if it is set, it must be in range 0-37.
+                # If scale or precision is out of range, we fall back to Nothing.
+                _       -> if (precision < 1) || (precision > 38) then SQL_Type.Value Types.DECIMAL "NUMBER" Nothing Nothing else
+                    if scale.is_nothing then SQL_Type.Value Types.DECIMAL "NUMBER" precision Nothing else
+                        if (scale < 0) || (scale > 37) then SQL_Type.Value Types.DECIMAL "NUMBER" Nothing Nothing else
+                            SQL_Type.Value Types.DECIMAL "NUMBER" precision scale
+
             Value_Type.Char size _ ->
                 # Snowflake does not support fixed length strings, so we use VARCHAR.
                 is_unbounded = case size of
@@ -62,7 +68,10 @@ type Snowflake_Type_Mapping
                     "An unsupported SQL type ["+type_name.to_text+"] cannot be converted into an SQL type because it did not contain the SQL metadata needed to reconstruct it."
 
         approximated_value_type = Snowflake_Type_Mapping.sql_type_to_value_type result
-        problems = if approximated_value_type == value_type then [] else [Inexact_Type_Coercion.Warning value_type approximated_value_type]
+        problems = if approximated_value_type == value_type then [] else
+            # We skip the inexact coercion warning if the conversion is an implicit one.
+            if Snowflake_Type_Mapping.is_implicit_conversion value_type approximated_value_type then [] else
+                [Inexact_Type_Coercion.Warning value_type approximated_value_type]
         on_problems.attach_problems_before problems result
 
     ## PRIVATE
@@ -115,14 +124,35 @@ type Snowflake_Type_Mapping
         case value_type of
             Value_Type.Time -> time_fetcher
             Value_Type.Date_Time _ -> date_time_fetcher
+            # If we encounter a Decimal column with scale 0 we will try to fetch it as Integer if the values fit.
+            Value_Type.Decimal _ 0 -> smart_integer_fetcher
+            # Other Decimal columns get the default behaviour - fetched as BigInteger or BigDecimal.
             _ -> Column_Fetcher_Module.default_fetcher_for_value_type value_type
+
+    ## PRIVATE
+    is_implicit_conversion (source_type : Value_Type) (target_type : Value_Type) -> Boolean =
+        # Currently only implicit conversion is Integer -> Decimal
+        case source_type of
+            Value_Type.Integer _ ->
+                 target_type == integer_value_type
+            _ -> False
+
+    ## PRIVATE
+    is_integer_type (value_type : Value_Type) -> Boolean = case value_type of
+        Value_Type.Integer _ -> True
+        Value_Type.Decimal _ scale -> scale == 0
+        _ -> False
+
+    ## PRIVATE
+    is_same_type (value_type1 : Value_Type) (value_type2 : Value_Type) -> Boolean =
+        # Types are considered the same by original semantics, or additionally if both of them are an integer-like type as denoted by `is_integer_type`.
+        (value_type1.is_same_type value_type2) || (Snowflake_Type_Mapping.is_integer_type value_type1 && Snowflake_Type_Mapping.is_integer_type value_type2)
 
 ## PRIVATE
 simple_types_map = Dictionary.from_vector <|
-    ints = [[Types.TINYINT, Value_Type.Byte], [Types.SMALLINT, Value_Type.Integer Bits.Bits_16], [Types.BIGINT, Value_Type.Integer Bits.Bits_64], [Types.INTEGER, Value_Type.Integer Bits.Bits_32]]
-    floats = [[Types.DOUBLE, Value_Type.Float Bits.Bits_64], [Types.REAL, Value_Type.Float Bits.Bits_32]]
+    floats = [[Types.DOUBLE, Value_Type.Float Bits.Bits_64], [Types.REAL, Value_Type.Float Bits.Bits_64]]
     other = [[Types.DATE, Value_Type.Date], [Types.TIME, Value_Type.Time], [Types.BOOLEAN, Value_Type.Boolean]]
-    ints + floats + other
+    floats + other
 
 ## PRIVATE
 complex_types_map = Dictionary.from_vector <|
@@ -139,7 +169,7 @@ complex_types_map = Dictionary.from_vector <|
         if sql_type.name == "BOOLEAN" then Value_Type.Boolean else
             # We currently do not support bit types.
             on_unknown_type sql_type
-    handle_timestamp sql_type = case sql_type.name of
+    handle_timestamp sql_type = case sql_type.name.to_case Case.Upper of
         "TIMESTAMPTZ" -> Value_Type.Date_Time with_timezone=True
         "TIMESTAMP_TZ" -> Value_Type.Date_Time with_timezone=True
         "TIMESTAMPLTZ" -> Value_Type.Date_Time with_timezone=False
@@ -148,10 +178,11 @@ complex_types_map = Dictionary.from_vector <|
         "TIMESTAMP_NTZ"   -> Value_Type.Date_Time with_timezone=False
         _             -> on_unknown_type sql_type
 
-    numerics = [[Types.DECIMAL, make_decimal], [Types.NUMERIC, make_decimal]]
+    # All integer types in Snowflake are Decimal
+    numerics = [[Types.DECIMAL, make_decimal], [Types.NUMERIC, make_decimal], [Types.BIGINT, make_decimal]]
     strings = [[Types.VARCHAR, make_varchar], [Types.CHAR, make_char], [Types.CLOB, make_varchar]]
     binaries = [[Types.BINARY, make_binary True], [Types.BIT, handle_bit]]
-    others = [[Types.TIMESTAMP, handle_timestamp]]
+    others = [[Types.TIMESTAMP, handle_timestamp], [Types.TIMESTAMP_WITH_TIMEZONE, handle_timestamp]]
     numerics + strings + binaries + others
 
 ## PRIVATE
@@ -179,8 +210,37 @@ date_time_fetcher =
     fetch_value rs i =
         ## Read the time as a string to get the nanosecond precision.
         sf_string = rs.getString i
-        if sf_string == Nothing then Nothing else Date_Time.parse sf_string
+        if sf_string == Nothing then Nothing else
+            normalized = if sf_string.at 10 != 'T' then sf_string else
+                (sf_string.take 10) + ' ' + (sf_string.drop 11)
+            # The offset is optional - if we were fetching TIMESTAMP_NTZ it could be missing.
+            # The two variants of offset are needed - to handle both `+0200` and `+02:00` formats.
+            Date_Time.parse normalized "yyyy-MM-dd HH:mm:ss.f[ ZZ][ ZZZZZ]"
     make_builder initial_size _ =
         java_builder = Java_Exports.make_date_time_builder initial_size
         Column_Fetcher_Module.make_builder_from_java_object_builder java_builder
     Column_Fetcher.Value fetch_value make_builder
+
+## PRIVATE
+   A fetcher for Snowflake Decimal integer columns.
+   Integer columns in Snowflake are represented as `NUMBER(38, 0)`, meaning
+   there is no separate Integer type.
+
+   In Enso, using `Decimal` values incurs a significant overhead. Thus, when
+   fetching such an integer column from Snowflake, we try to first fetch it as
+   lightweight `Integer` and only fall back to `Decimal` if needed.
+smart_integer_fetcher =
+    make_builder initial_size _ =
+        java_builder = SnowflakeIntegerColumnMaterializer.new initial_size
+        Column_Fetcher_Module.make_builder_from_java_object_builder java_builder
+    Column_Fetcher.Value Column_Fetcher_Module.fetch_big_integer make_builder
+
+## PRIVATE
+   The actual SQL type that Snowflake uses for all integer types.
+integer_type = SQL_Type.Value Types.DECIMAL "NUMERIC" 38 0
+
+## PRIVATE
+integer_value_type = Value_Type.Decimal 38 0
+
+## PRIVATE
+float_value_type = Value_Type.Float Bits.Bits_64

@@ -1103,7 +1103,7 @@ Text.take self range:(Text_Sub_Range | Index_Sub_Range | Range | Integer)=..Firs
          "Hello World!".drop (..By_Index [Range 0 3, 6, Range 6 12 2]) == "lo ol!"
          "Hello World!".drop (..Sample 3 seed=42) == "HeloWorl!"
 @range Text_Sub_Range.default_widget
-Text.drop : (Text_Sub_Range | Index_Sub_Range | Range) -> Text ! Index_Out_Of_Bounds
+Text.drop : (Text_Sub_Range | Index_Sub_Range | Range | Integer) -> Text ! Index_Out_Of_Bounds
 Text.drop self range:(Text_Sub_Range | Index_Sub_Range | Range | Integer)=..First =
     ranges = Codepoint_Ranges.resolve self range
     case ranges of

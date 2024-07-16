@@ -6,10 +6,9 @@ import * as authProvider from '#/providers/AuthProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
-import type * as assetEvent from '#/events/assetEvent'
 import AssetEventType from '#/events/AssetEventType'
-import type * as assetListEvent from '#/events/assetListEvent'
 
+import * as eventListProvider from '#/layouts/AssetsTable/EventListProvider'
 import Category, * as categoryModule from '#/layouts/CategorySwitcher/Category'
 import GlobalContextMenu from '#/layouts/GlobalContextMenu'
 
@@ -44,8 +43,6 @@ export interface AssetsTableContextMenuProps {
     ReadonlyMap<backendModule.AssetId, assetTreeNode.AnyAssetTreeNode>
   >
   readonly event: Pick<React.MouseEvent<Element, MouseEvent>, 'pageX' | 'pageY'>
-  readonly dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
-  readonly dispatchAssetListEvent: (event: assetListEvent.AssetListEvent) => void
   readonly doCopy: () => void
   readonly doCut: () => void
   readonly doPaste: (
@@ -58,11 +55,12 @@ export interface AssetsTableContextMenuProps {
  * are selected. */
 export default function AssetsTableContextMenu(props: AssetsTableContextMenuProps) {
   const { hidden = false, backend, category, pasteData, selectedKeys, clearSelectedKeys } = props
-  const { nodeMapRef, event, dispatchAssetEvent, dispatchAssetListEvent, rootDirectoryId } = props
+  const { nodeMapRef, event, rootDirectoryId } = props
   const { doCopy, doCut, doPaste } = props
   const { user } = authProvider.useNonPartialUserSession()
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
+  const dispatchAssetEvent = eventListProvider.useDispatchAssetEvent()
   const isCloud = categoryModule.isCloud(category)
 
   // This works because all items are mutated, ensuring their value stays
@@ -207,7 +205,6 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
           rootDirectoryId={rootDirectoryId}
           directoryKey={null}
           directoryId={null}
-          dispatchAssetListEvent={dispatchAssetListEvent}
           doPaste={doPaste}
         />
       </ContextMenus>

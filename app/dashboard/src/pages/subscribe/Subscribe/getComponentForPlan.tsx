@@ -5,10 +5,11 @@
  */
 import * as React from 'react'
 
+import type * as text from 'enso-common/src/text'
+
 import OpenInNewTabIcon from '#/assets/open.svg'
 
 import * as appUtils from '#/appUtils'
-import type * as text from '#/text'
 
 import * as textProvider from '#/providers/TextProvider'
 

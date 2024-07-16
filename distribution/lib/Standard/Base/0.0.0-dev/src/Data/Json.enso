@@ -367,12 +367,12 @@ type JS_Object_Comparator
     hash obj =
         values_hashes = obj.field_names.map field_name->
             val = obj.get field_name
-            Comparable.from val . hash val
+            Ordering.hash val
         # Return sum, as we don't care about ordering of field names
         values_hashes.fold 0 (+)
 
 ## PRIVATE
-Comparable.from (_:JS_Object) = JS_Object_Comparator
+Comparable.from (that:JS_Object) = Comparable.new that JS_Object_Comparator
 
 ## PRIVATE
    Render the JS_Object to Text with truncated depth.

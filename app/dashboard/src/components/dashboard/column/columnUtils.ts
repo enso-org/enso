@@ -1,4 +1,6 @@
 /** @file Types and constants related to `Column`s. */
+import type * as text from 'enso-common/src/text'
+
 import AccessedByProjectsIcon from '#/assets/accessed_by_projects.svg'
 import AccessedDataIcon from '#/assets/accessed_data.svg'
 import BlankIcon from '#/assets/blank.svg'
@@ -6,8 +8,6 @@ import DocsIcon from '#/assets/docs.svg'
 import PeopleIcon from '#/assets/people.svg'
 import TagIcon from '#/assets/tag.svg'
 import TimeIcon from '#/assets/time.svg'
-
-import type * as text from '#/text'
 
 import * as backend from '#/services/Backend'
 

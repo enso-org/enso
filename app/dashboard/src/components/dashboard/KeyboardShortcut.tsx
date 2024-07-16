@@ -2,14 +2,13 @@
 import * as React from 'react'
 
 import * as detect from 'enso-common/src/detect'
+import type * as text from 'enso-common/src/text'
 
 import CommandKeyIcon from '#/assets/command_key.svg'
 import CtrlKeyIcon from '#/assets/ctrl_key.svg'
 import OptionKeyIcon from '#/assets/option_key.svg'
 import ShiftKeyIcon from '#/assets/shift_key.svg'
 import WindowsKeyIcon from '#/assets/windows_key.svg'
-
-import type * as text from '#/text'
 
 import type * as dashboardInputBindings from '#/configurations/inputBindings'
 
