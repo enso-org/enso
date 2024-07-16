@@ -5,8 +5,8 @@
 mod application;
 mod arity;
 mod operand;
-mod types;
 mod reducer;
+mod types;
 
 use crate::prelude::*;
 
@@ -14,11 +14,11 @@ use crate::syntax;
 use crate::syntax::operator::application::InsertApps;
 use crate::syntax::operator::arity::ClassifyArity;
 use crate::syntax::operator::operand::Operand;
+use crate::syntax::operator::reducer::Reduce;
 use crate::syntax::operator::types::Arity;
 use crate::syntax::operator::types::BinaryOperand;
 use crate::syntax::operator::types::ModifiedPrecedence;
 use crate::syntax::operator::types::Operator;
-use crate::syntax::operator::reducer::Reduce;
 use crate::syntax::token;
 use crate::syntax::treebuilding;
 use crate::syntax::treebuilding::Finish;

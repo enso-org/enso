@@ -101,7 +101,6 @@ impl<'s, T: TreeConsumer<'s>> TreeConsumer<'s> for AssembleCompoundTokens<'s, T>
                     newline: None,
                     elements: rhs_elements,
                     close: None,
-                    closed: _,
                 }),
             ) => {
                 match rhs_elements.first_mut() {
@@ -154,7 +153,7 @@ impl<'s> TextLiteralBuilder<'s> {
             let doc = syntax::tree::DocComment { open, elements, newlines: default() };
             syntax::Tree::documented(doc, default())
         } else {
-            syntax::Tree::text_literal(Some(open), newline, elements, close, default())
+            syntax::Tree::text_literal(Some(open), newline, elements, close)
         }
     }
 }

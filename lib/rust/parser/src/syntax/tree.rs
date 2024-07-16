@@ -131,9 +131,6 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
             pub newline:  Option<token::Newline<'s>>,
             pub elements: Vec<TextElement<'s>>,
             pub close:    Option<token::TextEnd<'s>>,
-            #[serde(skip)]
-            #[reflect(skip)]
-            pub closed:   bool,
         },
         /// A simple application, like `print "hello"`.
         App {

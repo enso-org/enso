@@ -2,7 +2,6 @@
 
 // === Features ===
 #![feature(cell_update)]
-
 // === Non-Standard Linter Configuration ===
 #![allow(clippy::option_map_unit_fn)]
 #![allow(clippy::precedence)]

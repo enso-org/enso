@@ -1,12 +1,10 @@
 //! Enso documentation parser.
 
 #![recursion_limit = "256"]
-
 // === Features ===
 #![feature(assert_matches)]
 #![feature(let_chains)]
 #![feature(if_let_guard)]
-
 // === Non-Standard Linter Configuration ===
 #![allow(clippy::option_map_unit_fn)]
 #![allow(clippy::precedence)]
