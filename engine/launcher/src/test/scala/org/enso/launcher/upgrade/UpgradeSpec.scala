@@ -36,7 +36,11 @@ class UpgradeSpec
   /** Location of the actual launcher executable that is wrapped by the shims.
     */
   private val realLauncherLocation =
-    Path.of(".").resolve(OS.executableName("enso")).toAbsolutePath.normalize
+    Path
+      .of(".")
+      .resolve(OS.executableName(Constants.name))
+      .toAbsolutePath
+      .normalize
 
   /** Path to a launcher shim that pretends to be `version`.
     */
@@ -57,7 +61,7 @@ class UpgradeSpec
     Files.createDirectories(destinationDirectory)
     Files.copy(
       builtLauncherBinary(version),
-      destinationDirectory / OS.executableName("enso"),
+      destinationDirectory / OS.executableName(Constants.name),
       StandardCopyOption.REPLACE_EXISTING
     )
   }
@@ -103,7 +107,7 @@ class UpgradeSpec
   /** Path to the launcher executable in the temporary distribution.
     */
   private def launcherPath =
-    getTestDirectory / "enso" / "bin" / OS.executableName("enso")
+    getTestDirectory / "enso" / "bin" / OS.executableName(Constants.name)
 
   /** Runs `enso version` to inspect the version reported by the launcher.
     * @return the reported version
@@ -274,7 +278,7 @@ class UpgradeSpec
             .listDirectory(binDirectory)
             .map(_.getFileName.toString)
             .filter(_.startsWith("enso"))
-          leftOverExecutables shouldEqual Seq(OS.executableName("enso"))
+          leftOverExecutables shouldEqual Seq(OS.executableName(Constants.name))
         }
       } finally {
         if (process.isAlive) {

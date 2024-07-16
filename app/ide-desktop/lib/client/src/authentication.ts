@@ -39,10 +39,9 @@
  * credentials.
  *
  * To redirect the user from the IDE to an external source:
- * 1. Call the {@link initIpc} function to register a listener for
- * {@link ipc.Channel.openUrlInSystemBrowser} IPC events.
- * 2. Emit an {@link ipc.Channel.openUrlInSystemBrowser} event. The listener registered in the
- * {@link initIpc} function will use the {@link opener} library to open the event's {@link URL}
+ * 1. Register a listener for {@link ipc.Channel.openUrlInSystemBrowser} IPC events.
+ * 2. Emit an {@link ipc.Channel.openUrlInSystemBrowser} event. The listener registered in step
+ * 1 will use the {@link opener} library to open the event's {@link URL}
  * argument in the system web browser, in a cross-platform way.
  *
  * ## Redirect To IDE
@@ -57,7 +56,7 @@
  *
  * To prepare the application to handle deep links:
  * - Register a custom URL protocol scheme with the OS (c.f., `electron-builder-config.ts`).
- * - Define a listener for Electron `OPEN_URL_EVENT`s (c.f., {@link initOpenUrlListener}).
+ * - Define a listener for Electron `OPEN_URL_EVENT`s.
  * - Define a listener for {@link ipc.Channel.openDeepLink} events (c.f., `preload.ts`).
  *
  * Then when the user clicks on a deep link from an external source to the IDE:
@@ -71,7 +70,6 @@
  * Then it parses the {@link URL} from the event's {@link URL} argument. Then it uses the
  * {@link URL} to redirect the user to the dashboard, to the page specified in the {@link URL}'s
  * `pathname`. */
-
 import * as fs from 'node:fs'
 import * as os from 'node:os'
 import * as path from 'node:path'
@@ -97,65 +95,27 @@ const logger = contentConfig.logger
  * not a variable because the main window is not available when this function is called. This module
  * does not use the `window` until after it is initialized, so while the lambda may return `null` in
  * theory, it never will in practice. */
-export function initModule(window: () => electron.BrowserWindow) {
-    initIpc()
-    initOpenUrlListener(window)
-    initSaveAccessTokenListener()
-}
-
-/** Register an Inter-Process Communication (IPC) channel between the Electron application and the
- * served website.
- *
- * This channel listens for {@link ipc.Channel.openUrlInSystemBrowser} events. When this kind of
- * event is fired, this listener will assume that the first and only argument of the event is a URL.
- * This listener will then attempt to open the URL in a cross-platform way. The intent is to open
- * the URL in the system browser.
- *
- * This functionality is necessary because we don't want to run the OAuth flow in the app. Users
- * don't trust Electron apps to handle their credentials. */
-function initIpc() {
+export function initAuthentication(window: () => electron.BrowserWindow) {
+    // Listen for events to open a URL externally in a browser the user trusts. This is used for
+    // OAuth authentication, both for trustworthiness and for convenience (the ability to use the
+    // browser's saved passwords).
     electron.ipcMain.on(ipc.Channel.openUrlInSystemBrowser, (_event, url: string) => {
-        logger.log(`Opening URL in system browser: '${url}'.`)
-        urlAssociations.setAsUrlHandler()
+        logger.log(`Opening URL '${url}' in the default browser.`)
         opener(url)
     })
-}
 
-/** Register a listener that fires a callback for `open-url` events, when the URL is a deep link.
- *
- * This listener is used to open a page in *this* application window, when the user is
- * redirected to a URL with a protocol supported by this application.
- *
- * All URLs that aren't deep links (i.e., URLs that don't use the {@link common.DEEP_LINK_SCHEME}
- * protocol) will be ignored by this handler. Non-deep link URLs will be handled by Electron. */
-function initOpenUrlListener(window: () => electron.BrowserWindow) {
+    // Listen for events to handle deep links.
     urlAssociations.registerUrlCallback(url => {
-        onOpenUrl(url, window)
+        logger.log(`Received 'open-url' event for '${url.toString()}'.`)
+        if (url.protocol !== `${common.DEEP_LINK_SCHEME}:`) {
+            logger.error(`'${url.toString()}' is not a deep link, ignoring.`)
+        } else {
+            logger.log(`'${url.toString()}' is a deep link, sending to renderer.`)
+            window().webContents.send(ipc.Channel.openDeepLink, url.toString())
+        }
     })
-}
 
-/** Handle the 'open-url' event by parsing the received URL, checking if it is a deep link, and
- * sending it to the appropriate BrowserWindow via IPC.
- * @param url - The URL to handle.
- * @param window - A function that returns the BrowserWindow to send the parsed URL to. */
-export function onOpenUrl(url: URL, window: () => electron.BrowserWindow) {
-    logger.log(`Received 'open-url' event for '${url.toString()}'.`)
-    if (url.protocol !== `${common.DEEP_LINK_SCHEME}:`) {
-        logger.error(`'${url.toString()}' is not a deep link, ignoring.`)
-    } else {
-        logger.log(`'${url.toString()}' is a deep link, sending to renderer.`)
-        window().webContents.send(ipc.Channel.openDeepLink, url.toString())
-    }
-}
-
-/** Register a listener that fires a callback for `save-access-token` events.
- *
- * This listener is used to save given access token to credentials file to be later used by
- * the backend.
- *
- * The credentials file is placed in the user's home directory in the `.enso` subdirectory
- * in the `credentials` file. */
-function initSaveAccessTokenListener() {
+    // Listen for events to save the given user credentials to `~/.enso/credentials`.
     electron.ipcMain.on(
         ipc.Channel.saveAccessToken,
         (event, accessTokenPayload: SaveAccessTokenPayload | null) => {
