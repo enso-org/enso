@@ -135,7 +135,7 @@ run_union_tests group_builder setup call_union =
     group_builder.specify "should drop unmatched columns and warn, if In_All is selected" <|
         t1 = table1.get
         t2 = table2.get
-        t3 = table3.get
+        t3 = table3.get.rename_columns ["A", "C"]
 
         t4 = call_union [t1, t2, t3] columns_to_keep=..In_All
         w = Problems.expect_only_warning Unmatched_Columns t4
@@ -270,7 +270,7 @@ run_union_tests group_builder setup call_union =
 
     group_builder.specify "should allow to merge a table with itself" <|
         t1 = table1.get
-        t2 = call_union [t1, t1, t1]
+        t2 = call_union [t1, t1, t1] . remove_columns "rowid"
         expect_column_names ["A", "B"] t2
         case setup.is_database of
             False ->
@@ -298,7 +298,7 @@ run_union_tests group_builder setup call_union =
                 sorted.at "B" . to_vector . should_equal ["a", "a", "a", "b", "b", "c"]
 
     group_builder.specify "should gracefully handle the case where no tables to union were provided" <|
-        t1 = table1.get
+        t1 = table1.get.remove_columns "rowid"
 
         check_same table =
             expect_column_names ["A", "B"] table
@@ -480,7 +480,7 @@ run_union_tests group_builder setup call_union =
                 types = w.types.map value_type->
                     Meta.meta value_type . constructor . name
                 Test.with_clue "(should be one of...) " <|
-                    [["Char", "Integer"], ["Boolean", "Char"]].should_contain types
+                    [["Char", "Decimal"], ["Char", "Integer"], ["Boolean", "Char"]].should_contain types
         Problems.test_advanced_problem_handling action error_checker warnings_checker result_checker
 
     group_builder.specify "if no common type can be found, will fall back to converting all types to text and warn (Date+Time)" pending=date_time_pending <|
