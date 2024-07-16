@@ -299,7 +299,7 @@ type Table
              example_at = Examples.inventory_table.get_value "item_name" 4
     @selector Widget_Helpers.make_column_name_selector
     @index (t-> Widget.Numeric_Input minimum=0 maximum=t.row_count-1)
-    @if_missing (make_any_selector add_text=True add_regex=True add_number=True add_boolean=True add_named_pattern=True add_nothing=True)
+    @if_missing (make_any_selector add_text=True add_regex=True add_number=True add_boolean=True add_named_pattern=True add_date=True add_time=True add_date_time=True add_nothing=True)
     get_value : Text | Integer -> Integer -> Any -> Any
     get_value self selector:(Text | Integer)=0 index:Integer=0 ~if_missing=Nothing =
         col = self.get selector if_missing=Nothing
