@@ -1248,6 +1248,10 @@ type Integer
             Integer.parse "20220216"
     parse text:Text (radix=10:Integer) -> Integer ! Number_Parse_Error = integer_parse text radix
 
+    ## PRIVATE
+    fits_in_long self -> Boolean =
+        self >= Long.MIN_VALUE && self <= Long.MAX_VALUE
+
 ## A syntax error when parsing a double.
 @Builtin_Type
 type Number_Parse_Error

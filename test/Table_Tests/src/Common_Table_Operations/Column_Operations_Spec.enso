@@ -18,6 +18,7 @@ from Standard.Test import all
 
 import enso_dev.Base_Tests.Data.Round_Spec
 
+import project.Common_Table_Operations.Main.Char_Max_Size_After_Substring_Behavior
 from project.Common_Table_Operations.Util import run_default_backend, within_table
 
 main filter=Nothing = run_default_backend add_specs filter
@@ -788,18 +789,17 @@ add_specs suite_builder setup =
             setup.expect_integer_type <| (data.x + data.x)
             (data.x + data.y).value_type . should_be_a (Value_Type.Float ...)
             setup.expect_integer_type <| (data.x + 2)
-            # TODO
-            (data.x + 1.5).value_type . should_be_a (Value_Type.Float ...)
+            is_float_or_decimal (data.x + 1.5)
 
             setup.expect_integer_type <| (data.x - data.x)
             (data.x - data.y).value_type . should_be_a (Value_Type.Float ...)
             setup.expect_integer_type <| (data.x - 2)
-            (data.x - 1.5).value_type . should_be_a (Value_Type.Float ...)
+            is_float_or_decimal (data.x - 1.5)
 
             setup.expect_integer_type <| (data.x * data.x)
             (data.x * data.y).value_type . should_be_a (Value_Type.Float ...)
             setup.expect_integer_type <| (data.x * 2)
-            (data.x * 1.5).value_type . should_be_a (Value_Type.Float ...)
+            is_float_or_decimal <| (data.x * 1.5)
 
             (data.x ^ data.x).value_type . is_numeric . should_be_true
 
@@ -890,11 +890,11 @@ add_specs suite_builder setup =
 
             r2 = (t.at "A") / (t.at "B")
             r2 . to_vector . should_equal r
-            r2.value_type . should_be_a (Value_Type.Float ...)
+            is_float_or_decimal r2
 
             r3 = (t.at "A") / 2
             r3 . to_vector . should_equal [0.5, 2.5, 5.0, 50.0]
-            r3.value_type . should_be_a (Value_Type.Float ...)
+            is_float_or_decimal r3
 
             a2 = [1.2, 5, 10.2, 100]
             b2 = [1.2, 2, 2, 5]
@@ -907,11 +907,11 @@ add_specs suite_builder setup =
 
             r5 = (t2.at "A") / (t2.at "B")
             r5 . to_vector . should_equal r4
-            r5.value_type . should_be_a (Value_Type.Float ...)
+            is_float_or_decimal r5
 
             r6 = (t2.at "A") / 2
             r6 . to_vector . should_equal [0.6, 2.5, 5.1, 50.0]
-            r6.value_type . should_be_a (Value_Type.Float ...)
+            is_float_or_decimal r6
 
         db_pending = if setup.is_database then "Arithmetic error handling is currently not implemented for the Database backend."
         group_builder.specify "should allow division by 0 and report warnings" pending=db_pending <|
@@ -992,9 +992,6 @@ add_specs suite_builder setup =
             group_builder.specify "should allow round on a "+type.to_text+" column (to >0 decimal places)" <|
                 table = table_builder [["x", [0.51, 0.59, 3.51, 3.59, -0.51, -0.59, -3.51, -3.59]]]
                 result = table.at "x" . cast type . round 1
-                # TODO why it's becoming an Int?
-                IO.println (result.value_type)
-                IO.println (result.cast Value_Type.Char . to_vector)
                 result.to_vector.should_equal [0.5, 0.6, 3.5, 3.6, -0.5, -0.6, -3.5, -3.6]
                 result.name . should_equal "round([x])"
 
@@ -1153,12 +1150,15 @@ add_specs suite_builder setup =
                 resRight.name . should_equal "text_right([strings], 1)"
                 resLeft . to_vector . should_equal ["a", "f", "", Nothing, "c", "I"]
                 resRight . to_vector . should_equal ["a", "r", "", Nothing, "é", "."]
-                case setup.is_database of
-                    False -> resLeft . value_type . should_equal (Value_Type.Char size=286 variable_length=True)
-                    True -> resLeft . value_type . should_equal (Value_Type.Char variable_length=True)
-                case setup.is_database of
-                    False -> resRight . value_type . should_equal (Value_Type.Char size=286 variable_length=True)
-                    True -> resRight . value_type . should_equal (Value_Type.Char variable_length=True)
+
+                expected_new_size = case setup.test_selection.char_max_size_after_substring of
+                    Char_Max_Size_After_Substring_Behavior.Reset   -> Nothing
+                    Char_Max_Size_After_Substring_Behavior.Kept    -> 286
+                    Char_Max_Size_After_Substring_Behavior.Reduced -> 1
+
+                Test.with_clue "(Expected behaviour for substring size = "+setup.test_selection.char_max_size_after_substring.to_text+".) " <|
+                    resLeft.value_type . should_equal (Value_Type.Char size=expected_new_size variable_length=True)
+                    resRight.value_type . should_equal (Value_Type.Char size=expected_new_size variable_length=True)
 
         group_builder.specify "should handle operation text_left and text_right of grapheme and non-grapheme" <|
             with_mixed_columns_if_supported [["strings", ["a", "foobar", "", Nothing, "👩‍🔬👩‍🔬V👩‍🔬👩‍🔬", "café", "It was the best of times, it was the worst of times, it was the age of wisdom, it was the age of foolishness, it was the epoch of belief, it was the epoch of incredulity, it was the season of light, it was the season of darkness, it was the spring of hope, it was the winter of despair."]]] t->
@@ -1804,3 +1804,8 @@ drop_table connection table =
         _ : DB_Table ->
             connection.drop_table table.name
         _ -> Nothing
+
+is_float_or_decimal ~column = case column.value_type of
+    Value_Type.Float _ -> Nothing
+    Value_Type.Decimal _ _ -> Nothing
+    other -> Test.fail "Expected "+column.name+" to be a float or decimal, but got "+other.to_display_text
