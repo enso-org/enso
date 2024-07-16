@@ -33,8 +33,7 @@ const TAB_RADIUS_PX = 24
 
 /** Context for a {@link TabBarContext}. */
 interface TabBarContextValue {
-  readonly updateTabRef: (id: string, element: HTMLElement | null) => void
-  readonly setSelectedTab: (id: string) => void
+  readonly setSelectedTab: (element: HTMLElement) => void
 }
 
 const TabBarContext = React.createContext<TabBarContextValue | null>(null)
@@ -57,34 +56,21 @@ export interface TabBarProps extends Readonly<React.PropsWithChildren> {}
 export default function TabBar(props: TabBarProps) {
   const { children } = props
   const cleanupResizeObserverRef = React.useRef(() => {})
-  const tabsByIdRef = React.useRef(new Map<string, HTMLElement>())
-  const backgroundRefs = React.useRef(new Set<HTMLDivElement>())
+  const backgroundRef = React.useRef<HTMLDivElement | null>()
   const selectedTabRef = React.useRef<HTMLElement | null>(null)
   const [resizeObserver] = React.useState(
     () =>
       new ResizeObserver(() => {
-        if (selectedTabRef.current) {
-          updateClipPath(selectedTabRef.current)
-        }
+        updateClipPath(selectedTabRef.current)
       })
   )
 
-  const updateTabRef = React.useCallback((id: string, element: HTMLElement | null) => {
-    if (element) {
-      tabsByIdRef.current.set(id, element)
-    } else {
-      tabsByIdRef.current.delete(id)
-    }
-  }, [])
-
-  const [clipPath, setClipPath] = React.useState('')
-
   const [updateClipPath] = React.useState(() => {
     return (element: HTMLElement | null) => {
-      const [backgroundElement] = backgroundRefs.current
+      const backgroundElement = backgroundRef.current
       if (backgroundElement != null) {
         if (element == null) {
-          setClipPath('')
+          backgroundElement.style.clipPath = ''
         } else {
           selectedTabRef.current = element
           const bounds = element.getBoundingClientRect()
@@ -106,34 +92,26 @@ export default function TabBar(props: TabBarProps) {
             `L 0 ${rootBounds.height}`,
             'Z',
           ]
-          setClipPath(`path("${segments.join(' ')}")`)
+          backgroundElement.style.clipPath = `path("${segments.join(' ')}")`
         }
       }
     }
   })
 
-  const [selectedTab, setSelectedTab] = React.useState('')
-
-  React.useEffect(() => {
-    for (const element of backgroundRefs.current) {
-      if (!element.isConnected) {
-        backgroundRefs.current.delete(element)
+  const setSelectedTab = React.useCallback(
+    (element: HTMLElement | null) => {
+      if (element) {
+        updateClipPath(element)
+        resizeObserver.observe(element)
+        return () => {
+          resizeObserver.unobserve(element)
+        }
+      } else {
+        return
       }
-    }
-  }, [])
-
-  React.useEffect(() => {
-    const element = tabsByIdRef.current.get(selectedTab)
-    if (element) {
-      updateClipPath(element)
-      resizeObserver.observe(element)
-      return () => {
-        resizeObserver.unobserve(element)
-      }
-    } else {
-      return
-    }
-  }, [resizeObserver, selectedTab, updateClipPath])
+    },
+    [resizeObserver, updateClipPath]
+  )
 
   const updateResizeObserver = (element: HTMLElement | null) => {
     cleanupResizeObserverRef.current()
@@ -149,7 +127,7 @@ export default function TabBar(props: TabBarProps) {
 
   return (
     <div className="relative flex grow">
-      <TabBarContext.Provider value={{ updateTabRef, setSelectedTab }}>
+      <TabBarContext.Provider value={{ setSelectedTab }}>
         <FocusArea direction="horizontal">
           {innerProps => (
             <aria.TabList
@@ -157,14 +135,14 @@ export default function TabBar(props: TabBarProps) {
               {...innerProps}
             >
               <aria.Tab>
+                {/* Putting the background in a `Tab` is a hack, but it is required otherwise there
+                 * are issues with the ref to the background being detached, resulting in the clip
+                 * path cutout for the current tab not applying at all. */}
                 <div
                   ref={element => {
-                    if (element) {
-                      backgroundRefs.current.add(element)
-                    }
+                    backgroundRef.current = element
                     updateResizeObserver(element)
                   }}
-                  style={{ clipPath }}
                   className="pointer-events-none absolute inset-0 bg-primary/5"
                 />
               </aria.Tab>
@@ -197,14 +175,15 @@ interface InternalTabProps extends Readonly<React.PropsWithChildren> {
 export function Tab(props: InternalTabProps) {
   const { id, project, isActive, isHidden = false, icon, labelId, children, onClose } = props
   const { onLoadEnd } = props
-  const { updateTabRef, setSelectedTab } = useTabBarContext()
+  const { setSelectedTab } = useTabBarContext()
+  const ref = React.useRef<HTMLDivElement | null>(null)
   const isLoadingRef = React.useRef(true)
   const { getText } = textProvider.useText()
   const actuallyActive = isActive && !isHidden
 
   React.useLayoutEffect(() => {
-    if (actuallyActive) {
-      setSelectedTab(id)
+    if (actuallyActive && ref.current) {
+      setSelectedTab(ref.current)
     }
   }, [actuallyActive, id, setSelectedTab])
 
@@ -226,8 +205,11 @@ export function Tab(props: InternalTabProps) {
 
   return (
     <aria.Tab
-      ref={newElement => {
-        updateTabRef(id, newElement)
+      ref={element => {
+        ref.current = element
+        if (actuallyActive && element) {
+          setSelectedTab(element)
+        }
       }}
       id={id}
       isDisabled={isActive}
@@ -253,7 +235,7 @@ export function Tab(props: InternalTabProps) {
       )}
       {children}
       {onClose && (
-        <div className="flex pr-4">
+        <div className="flex">
           <ariaComponents.CloseButton onPress={onClose} />
         </div>
       )}
