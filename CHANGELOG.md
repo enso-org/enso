@@ -3,8 +3,10 @@
 #### Enso Language & Runtime
 
 - [Enforce conversion method return type][10468]
+- [Renaming launcher executable to ensoup][10535]
 
 [10468]: https://github.com/enso-org/enso/pull/10468
+[10535]: https://github.com/enso-org/enso/pull/10535
 
 #### Enso IDE
 
