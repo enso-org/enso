@@ -28,7 +28,7 @@ export function goToPageActions(
     drive: () =>
       step('Go to "Data Catalog" page', page =>
         page
-          .getByRole('button')
+          .getByRole('tab')
           .filter({ has: page.getByText('Data Catalog') })
           .click()
       ).into(DrivePageActions),

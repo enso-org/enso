@@ -140,8 +140,8 @@ environmental variable but it depends on which component we are executing.
   server that collects logs (as defined in `logging-service.server` config key)
   and the logs output can be overwritten by `ENSO_LOGSERVER_APPENDER` env
   variable
-- `launcher` or `runner` - the default log output can be overwritten by defining
-  the `ENSO_APPENDER_DEFAULT` env variable
+- `ensoup` or `enso` - the default log output can be overwritten by defining the
+  `ENSO_APPENDER_DEFAULT` env variable
 
 For example, for the project manager to output to `console` one simply executes
 
