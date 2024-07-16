@@ -33,12 +33,14 @@
 - [Rename `Map` to `Dictionary` and `Set` to `Hashset`.][10474]
 - [Compare two objects with `Ordering.compare` and define comparator with
   `Comparable.new`][10468]
+- [Added `dec` construction function for creating `Decimal`s.][10517]
 
 [10434]: https://github.com/enso-org/enso/pull/10434
 [10445]: https://github.com/enso-org/enso/pull/10445
 [10466]: https://github.com/enso-org/enso/pull/10466
 [10467]: https://github.com/enso-org/enso/pull/10467
 [10474]: https://github.com/enso-org/enso/pull/10474
+[10517]: https://github.com/enso-org/enso/pull/10517
 
 # Enso 2024.2
 
