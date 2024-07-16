@@ -546,6 +546,9 @@ importers:
       idb-keyval:
         specifier: ^6.2.1
         version: 6.2.1
+      react:
+        specifier: ^18.3.1
+        version: 18.3.1
       vue:
         specifier: ^3.4.19
         version: 3.4.31(typescript@5.5.3)

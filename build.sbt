@@ -316,6 +316,7 @@ lazy val enso = (project in file("."))
     `runtime-benchmarks`,
     `runtime-parser`,
     `runtime-compiler`,
+    `runtime-fat-jar`,
     `runtime-suggestions`,
     `runtime-language-epb`,
     `runtime-language-arrow`,

@@ -40,6 +40,7 @@ import * as router from 'react-router-dom'
 import * as toastify from 'react-toastify'
 
 import * as detect from 'enso-common/src/detect'
+import type * as types from 'enso-common/src/types'
 
 import * as appUtils from '#/appUtils'
 
@@ -94,8 +95,6 @@ import LocalStorage from '#/utilities/LocalStorage'
 import * as object from '#/utilities/object'
 
 import * as authServiceModule from '#/authentication/service'
-
-import type * as types from '../../types/types'
 
 // ============================
 // === Global configuration ===
