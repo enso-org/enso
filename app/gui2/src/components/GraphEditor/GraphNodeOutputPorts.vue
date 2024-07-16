@@ -2,6 +2,7 @@
 import { useApproach } from '@/composables/animation'
 import { useDoubleClick } from '@/composables/doubleClick'
 import { useGraphStore, type NodeId } from '@/stores/graph'
+import { isDef } from '@vueuse/core'
 import { setIfUndefined } from 'lib0/map'
 import type { AstId } from 'shared/ast'
 import {
@@ -35,7 +36,10 @@ interface PortData {
 
 const outputPortsSet = computed(() => {
   const bindings = graph.db.nodeOutputPorts.lookup(props.nodeId)
-  if (bindings.size === 0) return new Set([props.nodeId])
+  if (bindings.size === 0) {
+    const astId = graph.db.idFromExternal(props.nodeId)
+    return new Set([astId].filter(isDef))
+  }
   return bindings
 })
 

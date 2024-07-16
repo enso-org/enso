@@ -5,7 +5,6 @@ import FolderArrowIcon from 'enso-assets/folder_arrow.svg'
 import FolderIcon from 'enso-assets/folder.svg'
 
 import * as backendHooks from '#/hooks/backendHooks'
-import * as eventHooks from '#/hooks/eventHooks'
 import * as setAssetHooks from '#/hooks/setAssetHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
@@ -14,6 +13,8 @@ import * as textProvider from '#/providers/TextProvider'
 
 import AssetEventType from '#/events/AssetEventType'
 import AssetListEventType from '#/events/AssetListEventType'
+
+import * as eventListProvider from '#/layouts/AssetsTable/EventListProvider'
 
 import * as ariaComponents from '#/components/AriaComponents'
 import type * as column from '#/components/dashboard/column'
@@ -42,11 +43,12 @@ export interface DirectoryNameColumnProps extends column.AssetColumnProps {}
  * This should never happen. */
 export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
   const { item, setItem, selected, state, rowState, setRowState, isEditable } = props
-  const { backend, selectedKeys, assetEvents, dispatchAssetListEvent, nodeMap } = state
+  const { backend, selectedKeys, nodeMap } = state
   const { doToggleDirectoryExpansion } = state
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { getText } = textProvider.useText()
   const inputBindings = inputBindingsProvider.useInputBindings()
+  const dispatchAssetListEvent = eventListProvider.useDispatchAssetListEvent()
   if (item.type !== backendModule.AssetType.directory) {
     // eslint-disable-next-line no-restricted-syntax
     throw new Error('`DirectoryNameColumn` can only display folders.')
@@ -87,9 +89,8 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
     }
   }
 
-  eventHooks.useEventHandler(
-    assetEvents,
-    async event => {
+  eventListProvider.useAssetEventListener(async event => {
+    if (isEditable) {
       switch (event.type) {
         case AssetEventType.newProject:
         case AssetEventType.uploadFiles:
@@ -138,9 +139,8 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
           break
         }
       }
-    },
-    { isDisabled: !isEditable }
-  )
+    }
+  }, item.initialAssetEvents)
 
   const handleClick = inputBindings.handler({
     editName: () => {

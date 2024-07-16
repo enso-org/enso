@@ -26,7 +26,7 @@ const toggleDocumentationEditorShortcut = documentationEditorBindings.bindings.t
 <template>
   <DropdownMenu v-model:open="open" placement="bottom-end" class="ExtendedMenu">
     <template #button
-      ><SvgIcon name="3_dot_menu" class="moreIcon" title="Additional Options"
+      ><SvgButton name="3_dot_menu" class="moreIcon" title="Additional Options"
     /></template>
     <template #entries>
       <div>

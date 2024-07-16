@@ -16,7 +16,6 @@ compilation. The build configuration is defined in
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 
 - [Incremental Compilation](#incremental-compilation)
-- [Bootstrapping](#bootstrapping)
 - [Compile Hooks](#compile-hooks)
 - [Helper Tasks](#helper-tasks)
   - [Graal and Flatc Version Check](#graal-and-flatc-version-check)

@@ -44,7 +44,7 @@ public class SetExecutionEnvironmentCommand extends AsynchronousCommand {
     var logger = ctx.executionService().getLogger();
     ctx.locking()
         .withContextLock(
-            contextId,
+            ctx.locking().getOrCreateContextLock(contextId),
             this.getClass(),
             () -> {
               var oldEnvironmentName = ctx.executionService().getContext().getExecutionEnvironment().getName();

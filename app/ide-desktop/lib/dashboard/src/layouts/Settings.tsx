@@ -232,7 +232,9 @@ export default function Settings() {
           context={context}
           data={data}
           onInteracted={() => {
-            setTab(effectiveTab)
+            if (effectiveTab !== tab) {
+              setTab(effectiveTab)
+            }
           }}
         />
       </div>

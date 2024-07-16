@@ -5,8 +5,7 @@ import CloudIcon from 'enso-assets/cloud.svg'
 import ComputerIcon from 'enso-assets/computer.svg'
 import RecentIcon from 'enso-assets/recent.svg'
 import Trash2Icon from 'enso-assets/trash2.svg'
-
-import type * as text from '#/text'
+import type * as text from 'enso-common/src/text'
 
 import * as mimeTypes from '#/data/mimeTypes'
 
@@ -17,9 +16,9 @@ import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
-import type * as assetEvent from '#/events/assetEvent'
 import AssetEventType from '#/events/AssetEventType'
 
+import * as eventListProvider from '#/layouts/AssetsTable/EventListProvider'
 import Category from '#/layouts/CategorySwitcher/Category'
 
 import * as aria from '#/components/aria'
@@ -158,17 +157,16 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
 export interface CategorySwitcherProps {
   readonly category: Category
   readonly setCategory: (category: Category) => void
-  readonly dispatchAssetEvent: (directoryEvent: assetEvent.AssetEvent) => void
 }
 
 /** A switcher to choose the currently visible assets table category. */
 export default function CategorySwitcher(props: CategorySwitcherProps) {
   const { category, setCategory } = props
-  const { dispatchAssetEvent } = props
   const { user } = authProvider.useNonPartialUserSession()
   const { unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
   const { isOffline } = offlineHooks.useOffline()
+  const dispatchAssetEvent = eventListProvider.useDispatchAssetEvent()
 
   const localBackend = backendProvider.useLocalBackend()
   /** The list of *visible* categories. */
@@ -281,7 +279,7 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
                 />
               )
               return data.nested ? (
-                <div className="flex">
+                <div key={data.category} className="flex">
                   <div className="ml-[15px] mr-1 border-r border-primary/20" />
                   {element}
                 </div>

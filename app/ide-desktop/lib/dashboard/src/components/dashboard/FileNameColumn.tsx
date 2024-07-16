@@ -2,7 +2,6 @@
 import * as React from 'react'
 
 import * as backendHooks from '#/hooks/backendHooks'
-import * as eventHooks from '#/hooks/eventHooks'
 import * as setAssetHooks from '#/hooks/setAssetHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
@@ -10,6 +9,8 @@ import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 
 import AssetEventType from '#/events/AssetEventType'
 import AssetListEventType from '#/events/AssetListEventType'
+
+import * as eventListProvider from '#/layouts/AssetsTable/EventListProvider'
 
 import type * as column from '#/components/dashboard/column'
 import EditableSpan from '#/components/EditableSpan'
@@ -37,9 +38,10 @@ export interface FileNameColumnProps extends column.AssetColumnProps {}
  * This should never happen. */
 export default function FileNameColumn(props: FileNameColumnProps) {
   const { item, setItem, selected, state, rowState, setRowState, isEditable } = props
-  const { backend, nodeMap, assetEvents, dispatchAssetListEvent } = state
+  const { backend, nodeMap } = state
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const inputBindings = inputBindingsProvider.useInputBindings()
+  const dispatchAssetListEvent = eventListProvider.useDispatchAssetListEvent()
   if (item.type !== backendModule.AssetType.file) {
     // eslint-disable-next-line no-restricted-syntax
     throw new Error('`FileNameColumn` can only display files.')
@@ -78,9 +80,8 @@ export default function FileNameColumn(props: FileNameColumnProps) {
     }
   }
 
-  eventHooks.useEventHandler(
-    assetEvents,
-    async event => {
+  eventListProvider.useAssetEventListener(async event => {
+    if (isEditable) {
       switch (event.type) {
         case AssetEventType.newProject:
         case AssetEventType.newFolder:
@@ -138,9 +139,8 @@ export default function FileNameColumn(props: FileNameColumnProps) {
           break
         }
       }
-    },
-    { isDisabled: !isEditable }
-  )
+    }
+  }, item.initialAssetEvents)
 
   const handleClick = inputBindings.handler({
     editName: () => {

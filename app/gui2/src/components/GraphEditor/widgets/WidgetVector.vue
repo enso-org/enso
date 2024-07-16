@@ -6,6 +6,7 @@ import type { PortId } from '@/providers/portInfo'
 import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { WidgetEditHandler } from '@/providers/widgetRegistry/editHandler'
 import { Ast } from '@/util/ast'
+import { isAstId } from 'shared/ast'
 import { computed, shallowRef, toRef, toValue, watchEffect, type WatchSource } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
@@ -46,7 +47,7 @@ const navigator = injectGraphNavigator(true)
 
 function useChildEditForwarding(input: WatchSource<Ast.Ast | unknown>) {
   let editStarted = false
-  const childEdit = shallowRef<{ astId: Ast.AstId; editedValue: Ast.Owned | string }>()
+  const childEdit = shallowRef<{ origin: PortId; editedValue: Ast.Owned | string }>()
 
   watchEffect(() => {
     if (!editStarted && !childEdit.value) return
@@ -55,7 +56,8 @@ function useChildEditForwarding(input: WatchSource<Ast.Ast | unknown>) {
     const editedAst = Ast.copyIntoNewModule(inputValue)
     if (childEdit.value) {
       const module = editedAst.module
-      const ast = module.tryGet(childEdit.value.astId)
+      const origin = childEdit.value.origin
+      const ast = isAstId(origin) ? module.tryGet(origin) : undefined
       if (ast) {
         const replacement = childEdit.value.editedValue
         ast.replace(typeof replacement === 'string' ? Ast.parse(replacement, module) : replacement)
@@ -67,12 +69,11 @@ function useChildEditForwarding(input: WatchSource<Ast.Ast | unknown>) {
 
   return {
     childEnded: (origin: PortId) => {
-      if (childEdit.value?.astId === origin) childEdit.value = undefined
+      if (childEdit.value?.origin === origin) childEdit.value = undefined
     },
     edit: (origin: PortId, value: Ast.Owned | string) => {
       // The ID is used to locate a subtree; if the port isn't identified by an AstId, the lookup will simply fail.
-      const astId = origin as Ast.AstId
-      childEdit.value = { astId, editedValue: value }
+      childEdit.value = { origin, editedValue: value }
     },
   }
 }

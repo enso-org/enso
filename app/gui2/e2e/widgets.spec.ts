@@ -37,11 +37,11 @@ class DropDownLocator {
   }
 
   async expectNotVisible(): Promise<void> {
-    await expect(this.dropDown).not.toBeVisible()
+    await expect(this.dropDown).toBeHidden()
   }
 
   async clickOption(option: string): Promise<void> {
-    const item = await this.item(option)
+    const item = this.item(option)
     await item.click()
   }
 
@@ -49,12 +49,12 @@ class DropDownLocator {
     await this.rootWidget.click()
   }
 
-  async selectedItem(text: string): Promise<Locator> {
+  selectedItem(text: string): Locator {
     const page = this.dropDown.page()
     return this.selectedItems.filter({ has: page.getByText(text) })
   }
 
-  async item(text: string): Promise<Locator> {
+  item(text: string): Locator {
     const page = this.dropDown.page()
     return this.items.filter({ has: page.getByText(text) })
   }
@@ -107,7 +107,7 @@ test('Multi-selection widget', async ({ page }) => {
 
   // Enable an item.
   await dropDown.clickOption('Column A')
-  await expect(await dropDown.selectedItem('Column A')).toExist()
+  await expect(dropDown.selectedItem('Column A')).toExist()
   await expect(vector).toBeVisible()
   await expect(vectorItems).toHaveCount(1)
   await expect(vectorItems.first()).toHaveValue('Column A')
@@ -182,12 +182,12 @@ test('Multi-selection widget: Item edits', async ({ page }) => {
   await dropDown.clickOption('Column B')
 
   // Edit an item
-  await expect(await dropDown.selectedItem('Column A')).toExist()
-  await expect(await dropDown.selectedItem('Column B')).toExist()
+  await expect(dropDown.selectedItem('Column A')).toExist()
+  await expect(dropDown.selectedItem('Column B')).toExist()
   await expect(vectorItems.first()).toHaveValue('Column A')
   await vectorItems.first().fill('Something Else')
-  await expect(await dropDown.selectedItem('Column A')).not.toExist()
-  await expect(await dropDown.selectedItem('Column B')).toExist()
+  await expect(dropDown.selectedItem('Column A')).toBeHidden()
+  await expect(dropDown.selectedItem('Column B')).toExist()
 })
 
 async function dataReadNodeWithMethodCallInfo(page: Page): Promise<Locator> {
