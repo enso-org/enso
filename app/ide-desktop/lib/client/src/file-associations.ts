@@ -99,6 +99,7 @@ export function isFileOpenable(path: string): boolean {
     )
 }
 
+/** Callback called when a file is opened via the `open-file` event. */
 export function onFileOpened(event: electron.Event, path: string): project.ProjectInfo | null {
     logger.log(`Received 'open-file' event for path '${path}'.`)
     if (isFileOpenable(path)) {

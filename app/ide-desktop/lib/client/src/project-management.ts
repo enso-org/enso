@@ -34,6 +34,7 @@ const BUNDLED_PROJECT_SUFFIX = '.enso-project'
 // === ProjectInfo ===
 // ===================
 
+/** Metadata for a newly imported project. */
 export interface ProjectInfo {
     readonly id: string
     readonly name: string

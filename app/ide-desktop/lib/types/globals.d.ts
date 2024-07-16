@@ -108,6 +108,7 @@ interface FileBrowserApi {
 // === Project Management API ===
 // ==============================
 
+/** Metadata for a newly imported project. */
 interface ProjectInfo {
     readonly id: string
     readonly name: string

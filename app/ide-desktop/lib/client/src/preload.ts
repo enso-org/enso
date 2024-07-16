@@ -7,7 +7,7 @@ import * as electron from 'electron'
 
 import * as debug from 'debug'
 import * as ipc from 'ipc'
-import * as projectManagement from 'project-management'
+import type * as projectManagement from 'project-management'
 
 // =================
 // === Constants ===
