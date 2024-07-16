@@ -39,10 +39,9 @@
  * credentials.
  *
  * To redirect the user from the IDE to an external source:
- * 1. Call the {@link initIpc} function to register a listener for
- * {@link ipc.Channel.openUrlInSystemBrowser} IPC events.
- * 2. Emit an {@link ipc.Channel.openUrlInSystemBrowser} event. The listener registered in the
- * {@link initIpc} function will use the {@link opener} library to open the event's {@link URL}
+ * 1. Register a listener for {@link ipc.Channel.openUrlInSystemBrowser} IPC events.
+ * 2. Emit an {@link ipc.Channel.openUrlInSystemBrowser} event. The listener registered in step
+ * 1 will use the {@link opener} library to open the event's {@link URL}
  * argument in the system web browser, in a cross-platform way.
  *
  * ## Redirect To IDE
@@ -57,7 +56,7 @@
  *
  * To prepare the application to handle deep links:
  * - Register a custom URL protocol scheme with the OS (c.f., `electron-builder-config.ts`).
- * - Define a listener for Electron `OPEN_URL_EVENT`s (c.f., {@link initOpenUrlListener}).
+ * - Define a listener for Electron `OPEN_URL_EVENT`s.
  * - Define a listener for {@link ipc.Channel.openDeepLink} events (c.f., `preload.ts`).
  *
  * Then when the user clicks on a deep link from an external source to the IDE:
