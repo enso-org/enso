@@ -2,7 +2,6 @@
 import * as React from 'react'
 
 import invariant from 'tiny-invariant'
-import * as useZustand from 'use-zustand'
 import * as z from 'zod'
 import * as zustand from 'zustand'
 
@@ -79,17 +78,19 @@ export default function ProjectsProvider(props: ProjectsProviderProps) {
   const { children } = props
   const { localStorage } = localStorageProvider.useLocalStorage()
   const [store] = React.useState(() =>
-    zustand.createStore<ProjectsStore>((set, get) => ({
+    zustand.createStore<ProjectsStore>(set => ({
       page: localStorage.get('page') ?? TabType.drive,
       setPage: page => {
         localStorage.set('page', page)
       },
       launchedProjects: localStorage.get('launchedProjects') ?? [],
       addLaunchedProject: project => {
-        set({ launchedProjects: [...get().launchedProjects, project] })
+        set(({ launchedProjects }) => ({ launchedProjects: [...launchedProjects, project] }))
       },
       removeLaunchedProject: projectId => {
-        set({ launchedProjects: get().launchedProjects.filter(({ id }) => id !== projectId) })
+        set(({ launchedProjects }) => ({
+          launchedProjects: launchedProjects.filter(({ id }) => id !== projectId),
+        }))
       },
       clearLaunchedProjects: () => {
         set({ launchedProjects: [] })
@@ -181,7 +182,7 @@ export function useProjectsStore() {
 /** A function to retrieve all launched projects. */
 export function useLaunchedProjects() {
   const store = useProjectsStore()
-  return useZustand.useZustand(store, state => state.launchedProjects)
+  return zustand.useStore(store, state => state.launchedProjects)
 }
 
 // =============================
@@ -191,7 +192,7 @@ export function useLaunchedProjects() {
 /** A function to add a new launched projoect. */
 export function useAddLaunchedProject() {
   const store = useProjectsStore()
-  const addLaunchedProject = useZustand.useZustand(store, state => state.addLaunchedProject)
+  const addLaunchedProject = zustand.useStore(store, state => state.addLaunchedProject)
   return eventCallbacks.useEventCallback((project: projectHooks.Project) => {
     React.startTransition(() => {
       addLaunchedProject(project)
@@ -206,7 +207,7 @@ export function useAddLaunchedProject() {
 /** A function to remove a launched project. */
 export function useRemoveLaunchedProject() {
   const store = useProjectsStore()
-  const removeLaunchedProject = useZustand.useZustand(store, state => state.removeLaunchedProject)
+  const removeLaunchedProject = zustand.useStore(store, state => state.removeLaunchedProject)
   return eventCallbacks.useEventCallback((projectId: projectHooks.ProjectId) => {
     React.startTransition(() => {
       removeLaunchedProject(projectId)
@@ -221,7 +222,7 @@ export function useRemoveLaunchedProject() {
 /** A function to remove all launched projects. */
 export function useClearLaunchedProjects() {
   const store = useProjectsStore()
-  const clearLaunchedProjects = useZustand.useZustand(store, state => state.clearLaunchedProjects)
+  const clearLaunchedProjects = zustand.useStore(store, state => state.clearLaunchedProjects)
   return eventCallbacks.useEventCallback(() => {
     React.startTransition(() => {
       clearLaunchedProjects()
@@ -236,7 +237,7 @@ export function useClearLaunchedProjects() {
 /** A function to get the current page. */
 export function usePage() {
   const store = useProjectsStore()
-  return useZustand.useZustand(store, state => state.page)
+  return zustand.useStore(store, state => state.page)
 }
 // ==================
 // === useSetPage ===
@@ -245,7 +246,7 @@ export function usePage() {
 /** A function to set the current page. */
 export function useSetPage() {
   const store = useProjectsStore()
-  const setPage = useZustand.useZustand(store, state => state.setPage)
+  const setPage = zustand.useStore(store, state => state.setPage)
   return eventCallbacks.useEventCallback((page: projectHooks.ProjectId | TabType) => {
     React.startTransition(() => {
       setPage(page)

@@ -35,10 +35,6 @@ test.test('drive view', ({ page }) =>
     .driveTable.withRows(async rows => {
       await actions.locateStopProjectButton(rows.nth(0)).click()
     })
-    .retry(
-      self => self.press('Escape').driveTable.rightClickRow(0),
-      thePage => thePage.getByRole('button', { name: 'Move To Trash' }).isVisible()
-    )
     // Project context menu
     .driveTable.rightClickRow(0)
     .contextMenu.moveToTrash()
