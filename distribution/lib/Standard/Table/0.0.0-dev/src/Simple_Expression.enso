@@ -5,7 +5,7 @@ import Standard.Base.Metadata.Display
 import Standard.Base.Metadata.Widget
 from Standard.Base.Metadata.Choice import Option
 from Standard.Base.Metadata.Widget import Single_Choice
-from Standard.Base.Widget_Helpers import make_format_chooser
+from Standard.Base.Widget_Helpers import make_any_selector, make_format_chooser
 
 import project.Column_Ref.Column_Ref
 import project.Expression.Expression
@@ -85,15 +85,10 @@ type Simple_Expression
             builder.append (Option "Logical" "..Logical" [["operation", Logical_Operation.create_widget table]])
 
         ## Constants
-        text = Option "<Text Value>" "''"
-        number = Option "<Number Value>" "0"
-        boolean = Option "<True/False>" "True"
-        date = Option "<Date Value>" "(Date.new "+(Date.today.format "yyyy M d")+")"
-        time = Option "<Time Value>" "(Time_Of_Day.new "+(Time_Of_Day.now.format "H m s")+")"
-        date_time = Option "<Date Time Value>" "(Date_Time.new "+(Date_Time.now.format "yyyy M d H m s")+")"
+        constants = make_any_selector add_text=True add_number=True add_boolean=True add_date=True add_time=True add_date_time=True . values
         expression = Option "<Expression>" "(expr '["+table.column_names.first+"]')"
         derived = Option "<Simple Expression>" "..Simple_Expr" [["input", with_all_types], ["operation", Single_Choice options]]
-        Single_Choice [text, number, boolean, date, time, date_time, expression, derived] display=display
+        Single_Choice constants+[expression, derived] display=display
 
 ## Defines a set of Text based operations.
 type Text_Operation
