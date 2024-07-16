@@ -4,6 +4,7 @@ import * as React from 'react'
 import NetworkIcon from '#/assets/network.svg'
 
 import * as backendHooks from '#/hooks/backendHooks'
+import * as projectHooks from '#/hooks/projectHooks'
 import * as setAssetHooks from '#/hooks/setAssetHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
@@ -53,18 +54,16 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
     setRowState,
     state,
     isEditable,
-    doCloseProject,
-    doOpenProject,
     backendType,
     isOpened,
   } = props
-  const { backend, selectedKeys } = state
-  const { nodeMap, doOpenEditor } = state
+  const { backend, selectedKeys, nodeMap } = state
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { user } = authProvider.useNonPartialUserSession()
   const { getText } = textProvider.useText()
   const inputBindings = inputBindingsProvider.useInputBindings()
   const dispatchAssetListEvent = eventListProvider.useDispatchAssetListEvent()
+  const doOpenProject = projectHooks.useOpenProject()
 
   if (item.type !== backendModule.AssetType.project) {
     // eslint-disable-next-line no-restricted-syntax
@@ -96,7 +95,12 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
   const updateProjectMutation = backendHooks.useBackendMutation(backend, 'updateProject')
   const duplicateProjectMutation = backendHooks.useBackendMutation(backend, 'duplicateProject')
   const getProjectDetailsMutation = backendHooks.useBackendMutation(backend, 'getProjectDetails')
-  const uploadFileMutation = backendHooks.useBackendMutation(backend, 'uploadFile')
+  const uploadFileMutation = backendHooks.useBackendMutation(backend, 'uploadFile', {
+    meta: {
+      invalidates: [['assetVersions', item.item.id, item.item.title]],
+      awaitInvalidates: true,
+    },
+  })
 
   const setIsEditing = (isEditingName: boolean) => {
     if (isEditable) {
@@ -115,7 +119,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
       try {
         await updateProjectMutation.mutateAsync([
           asset.id,
-          { ami: null, ideVersion: null, projectName: newTitle, parentId: asset.parentId },
+          { ami: null, ideVersion: null, projectName: newTitle },
           asset.title,
         ])
       } catch (error) {
@@ -183,9 +187,6 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                   id: createdProject.projectId,
                   projectState: object.merge(projectState, {
                     type: backendModule.ProjectState.placeholder,
-                    ...(backend.type === backendModule.BackendType.remote
-                      ? {}
-                      : { path: createdProject.state.path }),
                   }),
                 })
               )
@@ -334,13 +335,6 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
           // This is a workaround for a temporary bad state in the backend causing the
           // `projectState` key to be absent.
           item={object.merge(asset, { projectState })}
-          doCloseProject={id => {
-            doCloseProject({ id, parentId: asset.parentId, title: asset.title, type: backendType })
-          }}
-          doOpenProject={id => {
-            doOpenProject({ id, type: backendType, parentId: asset.parentId, title: asset.title })
-          }}
-          openProjectTab={doOpenEditor}
         />
       )}
       <EditableSpan

@@ -130,7 +130,7 @@ export default function NewLabelModal(props: NewLabelModalProps) {
             </ColorPicker>
           )}
         </FocusArea>
-        <ariaComponents.ButtonGroup>
+        <ariaComponents.ButtonGroup className="relative">
           <ariaComponents.Button variant="submit" isDisabled={!canSubmit} onPress={doSubmit}>
             {getText('create')}
           </ariaComponents.Button>

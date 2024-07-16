@@ -20,35 +20,39 @@ const MIN_MS = 60_000
 // =============
 
 test.test('sort', async ({ page }) => {
-  const { api } = await actions.mockAll({ page })
+  await actions.mockAll({
+    page,
+    setupAPI: api => {
+      const date1 = dateTime.toRfc3339(new Date(START_DATE_EPOCH_MS))
+      const date2 = dateTime.toRfc3339(new Date(START_DATE_EPOCH_MS + 1 * MIN_MS))
+      const date3 = dateTime.toRfc3339(new Date(START_DATE_EPOCH_MS + 2 * MIN_MS))
+      const date4 = dateTime.toRfc3339(new Date(START_DATE_EPOCH_MS + 3 * MIN_MS))
+      const date5 = dateTime.toRfc3339(new Date(START_DATE_EPOCH_MS + 4 * MIN_MS))
+      const date6 = dateTime.toRfc3339(new Date(START_DATE_EPOCH_MS + 5 * MIN_MS))
+      const date7 = dateTime.toRfc3339(new Date(START_DATE_EPOCH_MS + 6 * MIN_MS))
+      const date8 = dateTime.toRfc3339(new Date(START_DATE_EPOCH_MS + 7 * MIN_MS))
+      api.addDirectory('a directory', { modifiedAt: date4 })
+      api.addDirectory('G directory', { modifiedAt: date6 })
+      api.addProject('C project', { modifiedAt: date7 })
+      api.addSecret('H secret', { modifiedAt: date2 })
+      api.addProject('b project', { modifiedAt: date1 })
+      api.addFile('d file', { modifiedAt: date8 })
+      api.addSecret('f secret', { modifiedAt: date3 })
+      api.addFile('e file', { modifiedAt: date5 })
+      // By date:
+      // b project
+      // h secret
+      // f secret
+      // a directory
+      // e file
+      // g directory
+      // c project
+      // d file
+    },
+  })
   const assetRows = actions.locateAssetRows(page)
   const nameHeading = actions.locateNameColumnHeading(page)
   const modifiedHeading = actions.locateModifiedColumnHeading(page)
-  const date1 = dateTime.toRfc3339(new Date(START_DATE_EPOCH_MS))
-  const date2 = dateTime.toRfc3339(new Date(START_DATE_EPOCH_MS + 1 * MIN_MS))
-  const date3 = dateTime.toRfc3339(new Date(START_DATE_EPOCH_MS + 2 * MIN_MS))
-  const date4 = dateTime.toRfc3339(new Date(START_DATE_EPOCH_MS + 3 * MIN_MS))
-  const date5 = dateTime.toRfc3339(new Date(START_DATE_EPOCH_MS + 4 * MIN_MS))
-  const date6 = dateTime.toRfc3339(new Date(START_DATE_EPOCH_MS + 5 * MIN_MS))
-  const date7 = dateTime.toRfc3339(new Date(START_DATE_EPOCH_MS + 6 * MIN_MS))
-  const date8 = dateTime.toRfc3339(new Date(START_DATE_EPOCH_MS + 7 * MIN_MS))
-  api.addDirectory('a directory', { modifiedAt: date4 })
-  api.addDirectory('G directory', { modifiedAt: date6 })
-  api.addProject('C project', { modifiedAt: date7 })
-  api.addSecret('H secret', { modifiedAt: date2 })
-  api.addProject('b project', { modifiedAt: date1 })
-  api.addFile('d file', { modifiedAt: date8 })
-  api.addSecret('f secret', { modifiedAt: date3 })
-  api.addFile('e file', { modifiedAt: date5 })
-  // By date:
-  // b project
-  // h secret
-  // f secret
-  // a directory
-  // e file
-  // g directory
-  // c project
-  // d file
   await actions.login({ page })
 
   // By default, assets should be grouped by type.

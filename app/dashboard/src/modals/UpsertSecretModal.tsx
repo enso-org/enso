@@ -122,7 +122,7 @@ export default function UpsertSecretModal(props: UpsertSecretModalProps) {
             )}
           </FocusArea>
         </div>
-        <ariaComponents.ButtonGroup>
+        <ariaComponents.ButtonGroup className="relative">
           <ariaComponents.Button variant="submit" isDisabled={!canSubmit} onPress={doSubmit}>
             {isCreatingSecret ? getText('create') : getText('update')}
           </ariaComponents.Button>

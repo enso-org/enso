@@ -4,7 +4,7 @@ import * as test from '@playwright/test'
 import * as actions from './actions'
 
 test.test('user settings', async ({ page }) => {
-  const { api } = await actions.mockAllAndLogin({ page })
+  const api = await actions.mockAllAndLoginAndExposeAPI({ page })
   const localActions = actions.settings.userAccount
   test.expect(api.currentUser()?.name).toBe(api.defaultName)
 
@@ -18,7 +18,7 @@ test.test('user settings', async ({ page }) => {
 })
 
 test.test('change password form', async ({ page }) => {
-  const { api } = await actions.mockAllAndLogin({ page })
+  const api = await actions.mockAllAndLoginAndExposeAPI({ page })
   const localActions = actions.settings.changePassword
 
   await localActions.go(page)
@@ -79,7 +79,7 @@ test.test('change password form', async ({ page }) => {
 })
 
 test.test('upload profile picture', async ({ page }) => {
-  const { api } = await actions.mockAllAndLogin({ page })
+  const api = await actions.mockAllAndLoginAndExposeAPI({ page })
   const localActions = actions.settings.profilePicture
 
   await localActions.go(page)

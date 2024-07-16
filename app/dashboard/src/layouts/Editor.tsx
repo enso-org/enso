@@ -6,11 +6,10 @@ import * as reactQuery from '@tanstack/react-query'
 import * as appUtils from '#/appUtils'
 
 import * as gtagHooks from '#/hooks/gtagHooks'
+import * as projectHooks from '#/hooks/projectHooks'
 
 import * as backendProvider from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
-
-import * as dashboard from '#/pages/dashboard/Dashboard'
 
 import * as errorBoundary from '#/components/ErrorBoundary'
 import * as suspense from '#/components/Suspense'
@@ -67,8 +66,8 @@ export interface EditorProps {
   readonly isOpening: boolean
   readonly isOpeningFailed: boolean
   readonly openingError: Error | null
-  readonly startProject: (project: dashboard.Project) => void
-  readonly project: dashboard.Project
+  readonly startProject: (project: projectHooks.Project) => void
+  readonly project: projectHooks.Project
   readonly hidden: boolean
   readonly ydocUrl: string | null
   readonly appRunner: GraphEditorRunner | null
@@ -83,7 +82,7 @@ export default function Editor(props: EditorProps) {
   const remoteBackend = backendProvider.useRemoteBackendStrict()
   const localBackend = backendProvider.useLocalBackend()
 
-  const projectStatusQuery = dashboard.createGetProjectDetailsQuery({
+  const projectStatusQuery = projectHooks.createGetProjectDetailsQuery({
     type: project.type,
     assetId: project.id,
     parentId: project.parentId,
@@ -117,11 +116,7 @@ export default function Editor(props: EditorProps) {
   }
 
   return (
-    <div
-      className={twMerge.twJoin('contents', hidden && 'hidden')}
-      data-testid="gui-editor-root"
-      data-testvalue={project.id}
-    >
+    <div className={twMerge.twJoin('contents', hidden && 'hidden')} data-testvalue={project.id}>
       {(() => {
         if (projectQuery.isError) {
           return (

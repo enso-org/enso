@@ -88,6 +88,7 @@ interface MenuApi {
 
 /** `window.systemApi` exposes functionality related to the operating system. */
 interface SystemApi {
+    readonly downloadURL: (url: string, headers?: Record<string, string>) => void
     readonly showItemInFolder: (fullPath: string) => void
 }
 
