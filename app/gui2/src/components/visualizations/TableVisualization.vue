@@ -1,5 +1,6 @@
 <script lang="ts">
 import icons from '@/assets/icons.svg'
+import CreateNewNode from '@/components/CreateNewNode.vue'
 import {
   clipboardNodeData,
   tsvTableToEnsoExpression,
@@ -756,7 +757,7 @@ onUnmounted(() => {
     <template #toolbar>
       <TextFormattingSelector @changeFormat="(i) => updateTextFormat(i)" />
       <div v-if="isCreateNodeVisible">
-        <button>CREATE COMPONENT</button>
+        <CreateNewNode />
       </div>
     </template>
     <div ref="rootNode" class="TableVisualization" @wheel.stop @pointerdown.stop>
