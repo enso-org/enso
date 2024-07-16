@@ -492,11 +492,11 @@ Any.should_contain_the_same_elements_as self that frames_to_skip=0 =
     loc = Meta.get_source_location 1+frames_to_skip
     that.each element->
         if self.contains element . not then
-            msg = "The collection (" + self.to_text + ") did not contain "+element.to_text+" (at " + loc + ")."
+            msg = "The collection (" + self.to_text + ") did not contain " + element.to_text + " (at " + loc + ")."
             Test.fail msg
     self.each element->
         if that.contains element . not then
-            msg = "The collection contained an element ("+element.to_text+") which was not expected (at " + loc + ")."
+            msg = "The collection contained an element (" + element.to_text + ") which was not expected (at " + loc + ")."
             Test.fail msg
     Spec_Result.Success
 

@@ -531,7 +531,7 @@ type Loss_Of_Numeric_Precision
     ## PRIVATE
     to_text : Text
     to_text self =
-        "(Loss_Of_Numeric_Precision.Warning (original_value = "+self.original_value.to_text+") (new_value = " + self.new_value.to_text+"))"
+        "(Loss_Of_Numeric_Precision.Warning (original_value = "+self.original_value.to_text+") (new_value = "+self.new_value.to_text+"))"
 
 ## Indicates that a computed or provided value is outside the allowable range.
 type Out_Of_Range

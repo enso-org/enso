@@ -4,9 +4,11 @@
 
 - [Enforce conversion method return type][10468]
 - [Renaming launcher executable to ensoup][10535]
+- [Space-precedence does not apply to value-level operators][10597]
 
 [10468]: https://github.com/enso-org/enso/pull/10468
 [10535]: https://github.com/enso-org/enso/pull/10535
+[10597]: https://github.com/enso-org/enso/pull/10597
 
 #### Enso IDE
 

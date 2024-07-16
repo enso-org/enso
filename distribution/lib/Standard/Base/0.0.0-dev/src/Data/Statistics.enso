@@ -390,7 +390,7 @@ type Accumulator
     ## PRIVATE
     update_moments self value = if self.moments.is_nothing then Nothing else
         case value of
-            _ : Number -> self.moments.map_with_index i->v-> v + (value ^ i+1)
+            _ : Number -> self.moments.map_with_index i->v-> v + value^(i+1)
             _ -> Nothing
 
     ## PRIVATE
