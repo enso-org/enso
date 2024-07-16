@@ -264,9 +264,10 @@ function formatText(params: ICellRendererParams) {
     '\r': '<span style="color: grey">␍</span> <br>',
     '\n': '<span style="color: grey">␊</span> <br>',
   }
-  const whitespaceMapping = {
-    ...commonMappings,
-    ...(TextFormatOptions.On ? {} : { '\t': '<span style="color: grey">&#8594;   </span>' }),
+  const mappingWithTab = {
+    '\r': '<span style="color: grey">␍</span> <br>',
+    '\n': '<span style="color: grey">␊</span> <br>',
+    '\t': '<span style="color: grey">&#8594;   </span>',
   }
 
   const replaceSpaces =
@@ -279,14 +280,14 @@ function formatText(params: ICellRendererParams) {
   const replaceReturns = replaceSpaces.replace(/\r\n/g, '<span style="color: grey">␍␊</span> <br>')
 
   const renderOtherWhitespace = (match: string) => {
-    textFormatterSelected.value === TextFormatOptions.On ?
-      '<span style="color: grey">&#9744;</span>'
-    : match
+    return textFormatterSelected.value === TextFormatOptions.On && match != ' ' ?
+        '<span style="color: grey">&#9744;</span>'
+      : match
   }
   const newString = replaceReturns.replace(/[\s]/g, function (match: string) {
-    return (
-      whitespaceMapping[match as keyof typeof whitespaceMapping] || renderOtherWhitespace(match)
-    )
+    const mapping =
+      textFormatterSelected.value === TextFormatOptions.On ? mappingWithTab : commonMappings
+    return mapping[match as keyof typeof mapping] || renderOtherWhitespace(match)
   })
   return `<span style="font-family: monospace;"> ${newString}</span>`
 }
