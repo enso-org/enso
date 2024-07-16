@@ -211,7 +211,7 @@ add_specs suite_builder =
 
                 (Ordering.hash x0) . should_equal (Ordering.hash x1)
 
-        group_builder.specify "should compare correctly to Integer and Float" pending="https://github.com/enso-org/enso/issues/10163" <|
+        group_builder.specify "should compare correctly to Integer and Float" <|
             values = []
                 + [[0.1, 0.1]]
                 + [["0.1", 0.1]]
@@ -313,7 +313,7 @@ add_specs suite_builder =
             values.map pr->
                 v = pr.at 0
                 d = Decimal.new v . remove_warnings
-                expected = pr.at 1 . to_float
+                expected = pr.at 1
 
                 d . should_equal expected
                 expected . should_equal d
