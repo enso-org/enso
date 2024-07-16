@@ -448,7 +448,7 @@ function extractProjectMetadata(yamlObj: unknown, jsonObj: unknown): ProjectMeta
         const namespace =
             'namespace' in yamlObj && typeof yamlObj.namespace === 'string'
                 ? yamlObj.namespace
-                : null
+                : 'local'
         const engineVersion =
             'edition' in yamlObj && typeof yamlObj.edition === 'string' ? yamlObj.edition : null
         const id = 'id' in jsonObj && typeof jsonObj.id === 'string' ? jsonObj.id : null
