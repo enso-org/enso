@@ -463,7 +463,7 @@ export namespace settings {
     /** Navigate so that the "user account" settings section is visible. */
     export async function go(page: test.Page) {
       await test.test.step('Go to "user account" settings section', async () => {
-        await press(page, 'Mod+,')
+        await page.getByRole('button', { name: 'Settings' }).getByText('Settings').click()
       })
     }
 
@@ -482,7 +482,7 @@ export namespace settings {
     /** Navigate so that the "change password" settings section is visible. */
     export async function go(page: test.Page) {
       await test.test.step('Go to "change password" settings section', async () => {
-        await press(page, 'Mod+,')
+        await page.getByRole('button', { name: 'Settings' }).getByText('Settings').click()
       })
     }
 
@@ -516,7 +516,7 @@ export namespace settings {
     /** Navigate so that the "profile picture" settings section is visible. */
     export async function go(page: test.Page) {
       await test.test.step('Go to "profile picture" settings section', async () => {
-        await press(page, 'Mod+,')
+        await page.getByRole('button', { name: 'Settings' }).getByText('Settings').click()
       })
     }
 
@@ -535,7 +535,7 @@ export namespace settings {
     /** Navigate so that the "organization" settings section is visible. */
     export async function go(page: test.Page) {
       await test.test.step('Go to "organization" settings section', async () => {
-        await press(page, 'Mod+,')
+        await page.getByRole('button', { name: 'Settings' }).getByText('Settings').click()
         await settings.tab.organization.locate(page).click()
       })
     }
@@ -571,7 +571,7 @@ export namespace settings {
     /** Navigate so that the "organization profile picture" settings section is visible. */
     export async function go(page: test.Page) {
       await test.test.step('Go to "organization profile picture" settings section', async () => {
-        await press(page, 'Mod+,')
+        await page.getByRole('button', { name: 'Settings' }).getByText('Settings').click()
         await settings.tab.organization.locate(page).click()
       })
     }
@@ -591,7 +591,8 @@ export namespace settings {
     /** Navigate so that the "members" settings section is visible. */
     export async function go(page: test.Page, force = false) {
       await test.test.step('Go to "members" settings section', async () => {
-        await press(page, 'Mod+,')
+        await locateUserMenu(page).click()
+        await page.getByRole('button', { name: 'Settings' }).getByText('Settings').click()
         await settings.tab.members.locate(page).click({ force })
       })
     }
