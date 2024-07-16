@@ -140,6 +140,7 @@ const rowCount = ref(0)
 const showRowCount = ref(true)
 const isTruncated = ref(false)
 const tableNode = ref<HTMLElement>()
+const isCreateNodeVisible = ref(false)
 const dataGroupingMap = shallowRef<Map<string, boolean>>()
 useAutoBlur(tableNode)
 const widths = reactive(new Map<string, number>())
@@ -161,6 +162,9 @@ const agGridOptions: Ref<GridOptions & Required<Pick<GridOptions, 'defaultColDef
   onFirstDataRendered: updateColumnWidths,
   onRowDataUpdated: updateColumnWidths,
   onColumnResized: lockColumnSize,
+  onFilterChanged: checkSortAndFilter,
+  onSortChanged: checkSortAndFilter,
+  copyHeadersToClipboard: true,
   sendToClipboard: ({ data }: { data: string }) => sendToClipboard(data),
   suppressFieldDotNotation: true,
   enableRangeSelection: true,
@@ -638,6 +642,29 @@ watchEffect(() => {
   options.api.setRowData(rowData)
 })
 
+function checkSortAndFilter() {
+  const columnApi = agGridOptions.value.api
+  if (columnApi == null) {
+    console.warn('AG Grid column API does not exist.')
+    isCreateNodeVisible.value = false
+    return
+  }
+  const colState =
+    agGridOptions.value.columnApi ? agGridOptions.value.columnApi.getColumnState() : []
+  const filterModel = columnApi.getFilterModel()
+  const sortModel = new Map<string, string>()
+  colState.map((cs) => {
+    if (cs.sort) {
+      sortModel.set(cs.colId, cs.sort)
+    }
+  })
+  if (sortModel.size || Object.keys(filterModel).length) {
+    isCreateNodeVisible.value = true
+  } else {
+    isCreateNodeVisible.value = false
+  }
+}
+
 function updateColumnWidths() {
   const columnApi = agGridOptions.value.columnApi
   if (columnApi == null) {
@@ -728,6 +755,9 @@ onUnmounted(() => {
   <VisualizationContainer :belowToolbar="true" :overflow="true" :toolbarOverflow="true">
     <template #toolbar>
       <TextFormattingSelector @changeFormat="(i) => updateTextFormat(i)" />
+      <div v-if="isCreateNodeVisible">
+        <button>CREATE COMPONENT</button>
+      </div>
     </template>
     <div ref="rootNode" class="TableVisualization" @wheel.stop @pointerdown.stop>
       <div class="table-visualization-status-bar">
