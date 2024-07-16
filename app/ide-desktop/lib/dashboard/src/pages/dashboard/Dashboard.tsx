@@ -48,6 +48,7 @@ import * as projectManager from '#/services/ProjectManager'
 
 import * as array from '#/utilities/array'
 import LocalStorage from '#/utilities/LocalStorage'
+import * as object from '#/utilities/object'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 
 // ============================
@@ -99,6 +100,7 @@ function DashboardInner(props: DashboardProps) {
   const inputBindings = inputBindingsProvider.useInputBindings()
   const [isHelpChatOpen, setIsHelpChatOpen] = React.useState(false)
 
+  const dispatchAssetEvent = eventListProvider.useDispatchAssetEvent()
   const dispatchAssetListEvent = eventListProvider.useDispatchAssetListEvent()
   const assetManagementApiRef = React.useRef<assetTable.AssetManagementApi | null>(null)
 
@@ -336,8 +338,21 @@ function DashboardInner(props: DashboardProps) {
               isOpeningFailed={openProjectMutation.isError}
               openingError={openProjectMutation.error}
               startProject={openProjectMutation.mutate}
-              renameProject={newName => {
-                renameProjectMutation.mutate({ newName, project })
+              renameProject={async newName => {
+                try {
+                  await renameProjectMutation.mutateAsync({ newName, project })
+                  dispatchAssetEvent({
+                    type: AssetEventType.setItem,
+                    id: project.id,
+                    valueOrUpdater: object.merger({ title: newName }),
+                  })
+                } catch {
+                  dispatchAssetEvent({
+                    type: AssetEventType.setItem,
+                    id: project.id,
+                    valueOrUpdater: object.merger({ title: project.title }),
+                  })
+                }
               }}
             />
           ))}
