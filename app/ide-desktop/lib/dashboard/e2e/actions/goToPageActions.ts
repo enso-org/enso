@@ -28,13 +28,13 @@ export function goToPageActions(
     drive: () =>
       step('Go to "Data Catalog" page', page =>
         page
-          .getByRole('button')
+          .getByRole('tab')
           .filter({ has: page.getByText('Data Catalog') })
           .click()
       ).into(DrivePageActions),
     editor: () =>
       step('Go to "Spatial Analysis" page', page =>
-        page.getByTestId('editor-tab-button').click()
+        page.getByRole('tab').getByTestId('editor-tab-button').click()
       ).into(EditorPageActions),
     settings: () =>
       step('Go to "settings" page', page => BaseActions.press(page, 'Mod+,')).into(
