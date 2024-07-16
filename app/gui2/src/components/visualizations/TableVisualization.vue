@@ -140,7 +140,6 @@ const rowCount = ref(0)
 const showRowCount = ref(true)
 const isTruncated = ref(false)
 const tableNode = ref<HTMLElement>()
-const showTextFormatOptions = ref(true)
 const dataGroupingMap = shallowRef<Map<string, boolean>>()
 useAutoBlur(tableNode)
 const widths = reactive(new Map<string, number>())
@@ -712,7 +711,7 @@ onUnmounted(() => {
 
 <template>
   <VisualizationContainer :belowToolbar="true" :overflow="true">
-    <template v-if="showTextFormatOptions" #toolbar>
+    <template #toolbar>
       <Suspense>
         <TextFormattingSelector @changeFormat="(i) => updateTextFormat(i)" />
       </Suspense>
