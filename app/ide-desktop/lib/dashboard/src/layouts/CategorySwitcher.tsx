@@ -226,7 +226,7 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
 
   const usersDirectoryQuery = backendHooks.useBackendQuery(remoteBackend, 'listDirectory', [
     {
-      parentId: backend.DirectoryId('users'),
+      parentId: backend.DirectoryId('directory-0000000000000000000000users'),
       filterBy: backend.FilterBy.active,
       labels: [],
       recentProjects: false,
@@ -235,7 +235,7 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
   ])
   const teamsDirectoryQuery = backendHooks.useBackendQuery(remoteBackend, 'listDirectory', [
     {
-      parentId: backend.DirectoryId('teams'),
+      parentId: backend.DirectoryId('directory-0000000000000000000000teams'),
       filterBy: backend.FilterBy.active,
       labels: [],
       recentProjects: false,
