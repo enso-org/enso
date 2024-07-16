@@ -219,7 +219,7 @@ class JsonConnectionController(
     receiver: ActorRef
   ): Receive = LoggingReceive {
     case _: InitializationComponentInitialized =>
-      logger.info("RPC session initialized for client [{}].", clientId)
+      logger.debug("RPC session initialized for client [{}]", clientId)
       val session = JsonSession(clientId, self)
       context.system.eventStream.publish(JsonSessionInitialized(session))
       context.system.eventStream.publish(

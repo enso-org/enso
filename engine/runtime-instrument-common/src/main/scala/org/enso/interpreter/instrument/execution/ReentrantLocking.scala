@@ -72,7 +72,10 @@ class ReentrantLocking(logger: TruffleLogger) extends Locking {
       s"Cannot acquire compilation write lock when having pending edits lock"
     )
     assertNoFileLock("Cannot acquire write compilation lock")
-    logLockAcquisition(compilationLock.writeLock(), "write compilation for " + where.getSimpleName)
+    logLockAcquisition(
+      compilationLock.writeLock(),
+      "write compilation for " + where.getSimpleName
+    )
   }
 
   private def releaseWriteCompilationLock(): Unit =
@@ -119,7 +122,10 @@ class ReentrantLocking(logger: TruffleLogger) extends Locking {
       pendingEditsLock,
       s"Cannot acquire compilation read lock when having pending edits lock"
     )
-    logLockAcquisition(compilationLock.readLock(), "read compilation for " + where.getSimpleName)
+    logLockAcquisition(
+      compilationLock.readLock(),
+      "read compilation for " + where.getSimpleName
+    )
   }
 
   private def releaseReadCompilationLock(): Unit =

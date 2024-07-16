@@ -63,7 +63,9 @@ class LanguageServerComponent(config: LanguageServerConfig, logLevel: Level)
     val bindBinaryServer =
       for {
         binding <- module.binaryServer.bind(config.interface, config.dataPort)
-        _       <- Future { logger.debug("Server for Binary WebSocket is initialized") }
+        _ <- Future {
+          logger.debug("Server for Binary WebSocket is initialized")
+        }
       } yield binding
 
     val bindSecureBinaryServer: Future[Option[Http.ServerBinding]] = {
@@ -96,11 +98,11 @@ class LanguageServerComponent(config: LanguageServerConfig, logLevel: Level)
       _ <- Future {
         logger.info(
           s"Started server at json:${config.interface}:${config.rpcPort}, ${config.secureRpcPort
-            .map(p => s"secure-jsons:${config.interface}$p")
-            .getOrElse("")}, " +
+            .map(p => s"secure-json:${config.interface}$p")
+            .getOrElse("<secure-json-not-configured>")}, " +
           s"binary:${config.interface}:${config.dataPort}${config.secureDataPort
             .map(p => s", secure-binary:${config.interface}$p")
-            .getOrElse("")}"
+            .getOrElse(", <secure-binary-not-configured>")}"
         )
       }
     } yield ComponentStarted
