@@ -13,10 +13,12 @@
   node being completely altered by accidental code put to the widget.
 - [Redesigned "record control" panel][10509]. Now it contains more intuitive
   "refresh" and "run workflow" buttons.
+- [Warning messages do not obscure visualization buttons][10546].
 
 [10433]: https://github.com/enso-org/enso/pull/10443
 [10457]: https://github.com/enso-org/enso/pull/10457
 [10509]: https://github.com/enso-org/enso/pull/10509
+[10546]: https://github.com/enso-org/enso/pull/10546
 
 #### Enso Enso Standard Library
 
@@ -63,6 +65,7 @@
 - [Copied table-viz range pastes as Table component][10352]
 - [Added support for links in documentation panels][10353].
 - [Added support for opening documentation in an external browser][10396].
+- Added a [cloud file browser][10513].
 
 [10064]: https://github.com/enso-org/enso/pull/10064
 [10179]: https://github.com/enso-org/enso/pull/10179
@@ -78,6 +81,7 @@
 [10352]: https://github.com/enso-org/enso/pull/10352
 [10353]: https://github.com/enso-org/enso/pull/10353
 [10396]: https://github.com/enso-org/enso/pull/10396
+[10513]: https://github.com/enso-org/enso/pull/10513
 
 #### Enso Language & Runtime
 

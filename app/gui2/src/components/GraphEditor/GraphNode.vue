@@ -555,7 +555,7 @@ watchEffect(() => {
     </svg>
     <SmallPlusButton
       v-if="menuVisible && isVisualizationVisible"
-      class="below-viz"
+      class="afterNode"
       @createNodes="emit('createNodes', $event)"
     />
   </div>
@@ -665,6 +665,7 @@ watchEffect(() => {
   position: absolute;
   top: 100%;
   margin-top: 4px;
+  transform: translateY(var(--viz-below-node));
 }
 
 .messageWithMenu {
@@ -704,12 +705,5 @@ watchEffect(() => {
 
 .dragged {
   cursor: grabbing !important;
-}
-
-.below-viz {
-  position: absolute;
-  top: 100%;
-  transform: translateY(var(--viz-below-node));
-  margin-top: 4px;
 }
 </style>

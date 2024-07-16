@@ -8,8 +8,8 @@ import { isDevMode } from 'shared/util/detect'
 import { lazyVueInReact } from 'veaury'
 import { type App } from 'vue'
 
+import type { EditorRunner } from 'enso-common/src/types'
 import 'enso-dashboard/src/tailwind.css'
-import type { EditorRunner } from '../../ide-desktop/lib/types/types'
 import { AsyncApp } from './asyncApp'
 
 const INITIAL_URL_KEY = `Enso-initial-url`

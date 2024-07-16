@@ -6,6 +6,7 @@ import * as toast from 'react-toastify'
 
 import * as billingHooks from '#/hooks/billing'
 import * as copyHooks from '#/hooks/copyHooks'
+import * as projectHooks from '#/hooks/projectHooks'
 import * as setAssetHooks from '#/hooks/setAssetHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
@@ -17,8 +18,7 @@ import * as textProvider from '#/providers/TextProvider'
 import AssetEventType from '#/events/AssetEventType'
 import AssetListEventType from '#/events/AssetListEventType'
 
-import * as dashboard from '#/pages/dashboard/Dashboard'
-
+import * as eventListProvider from '#/layouts/AssetsTable/EventListProvider'
 import Category, * as categoryModule from '#/layouts/CategorySwitcher/Category'
 import GlobalContextMenu from '#/layouts/GlobalContextMenu'
 
@@ -35,7 +35,7 @@ import ManagePermissionsModal from '#/modals/ManagePermissionsModal'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
 
 import * as backendModule from '#/services/Backend'
-import * as localBackend from '#/services/LocalBackend'
+import * as localBackendModule from '#/services/LocalBackend'
 
 import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
@@ -66,13 +66,16 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   const { innerProps, rootDirectoryId, event, eventTarget, hidden = false } = props
   const { doTriggerDescriptionEdit, doCopy, doCut, doPaste, doDelete } = props
   const { item, setItem, state, setRowState } = innerProps
-  const { backend, category, hasPasteData, dispatchAssetEvent, dispatchAssetListEvent } = state
+  const { backend, category, hasPasteData } = state
 
   const { user } = authProvider.useNonPartialUserSession()
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const remoteBackend = backendProvider.useRemoteBackend()
+  const localBackend = backendProvider.useLocalBackend()
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
+  const dispatchAssetEvent = eventListProvider.useDispatchAssetEvent()
+  const dispatchAssetListEvent = eventListProvider.useDispatchAssetListEvent()
   const asset = item.item
   const self = asset.permissions?.find(
     backendModule.isUserPermissionAnd(permission => permission.user.userId === user.userId)
@@ -84,8 +87,8 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
       : isCloud
         ? `${item.path}${item.type === backendModule.AssetType.datalink ? '.datalink' : ''}`
         : asset.type === backendModule.AssetType.project
-          ? asset.projectState.path ?? null
-          : localBackend.extractTypeAndId(asset.id).id
+          ? localBackend?.getProjectDirectoryPath(asset.id) ?? null
+          : localBackendModule.extractTypeAndId(asset.id).id
   const copyMutation = copyHooks.useCopy({ copyText: path ?? '' })
 
   const { isFeatureUnderPaywall } = billingHooks.usePaywall({ plan: user.plan })
@@ -100,7 +103,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
 
   const { data } = reactQuery.useQuery(
     item.item.type === backendModule.AssetType.project
-      ? dashboard.createGetProjectDetailsQuery.createPassiveListener(item.item.id)
+      ? projectHooks.createGetProjectDetailsQuery.createPassiveListener(item.item.id)
       : { queryKey: ['__IGNORED__'] }
   )
 
@@ -251,7 +254,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
               } else {
                 try {
                   const projectResponse = await fetch(
-                    `./api/project-manager/projects/${localBackend.extractTypeAndId(asset.id).id}/enso-project`
+                    `./api/project-manager/projects/${localBackendModule.extractTypeAndId(asset.id).id}/enso-project`
                   )
                   // This DOES NOT update the cloud assets list when it
                   // completes, as the current backend is not the remote
@@ -403,20 +406,21 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
           />
         )}
         {isCloud && managesThisAsset && self != null && <Separator hidden={hidden} />}
-        <ContextMenuEntry
-          hidden={hidden}
-          isDisabled={!isCloud}
-          action="duplicate"
-          doAction={() => {
-            unsetModal()
-            dispatchAssetListEvent({
-              type: AssetListEventType.copy,
-              newParentId: item.directoryId,
-              newParentKey: item.directoryKey,
-              items: [asset],
-            })
-          }}
-        />
+        {asset.type === backendModule.AssetType.project && (
+          <ContextMenuEntry
+            hidden={hidden}
+            action="duplicate"
+            doAction={() => {
+              unsetModal()
+              dispatchAssetListEvent({
+                type: AssetListEventType.copy,
+                newParentId: item.directoryId,
+                newParentKey: item.directoryKey,
+                items: [asset],
+              })
+            }}
+          />
+        )}
         {isCloud && <ContextMenuEntry hidden={hidden} action="copy" doAction={doCopy} />}
         {path != null && (
           <ContextMenuEntry
@@ -474,7 +478,6 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
               item.key as backendModule.DirectoryId
             }
             directoryId={asset.id}
-            dispatchAssetListEvent={dispatchAssetListEvent}
             doPaste={doPaste}
           />
         )}

@@ -67,7 +67,7 @@ export default function ConfirmDeleteModal(props: ConfirmDeleteModalProps) {
         }}
       >
         <aria.Text className="relative">{getText('confirmPrompt', actionText)}</aria.Text>
-        <ariaComponents.ButtonGroup>
+        <ariaComponents.ButtonGroup className="relative">
           <ariaComponents.Button
             size="medium"
             variant="delete"

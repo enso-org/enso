@@ -6,9 +6,9 @@ import invariant from 'tiny-invariant'
 
 import type * as text from 'enso-common/src/text'
 
-import * as textProvider from '#/providers/TextProvider'
+import * as projectHooks from '#/hooks/projectHooks'
 
-import * as dashboard from '#/pages/dashboard/Dashboard'
+import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
@@ -167,7 +167,8 @@ const Tabs = React.forwardRef(TabsInternal)
 
 /** Props for a {@link Tab}. */
 interface InternalTabProps extends Readonly<React.PropsWithChildren> {
-  readonly project?: dashboard.Project
+  readonly 'data-testid'?: string
+  readonly project?: projectHooks.Project
   readonly isActive: boolean
   readonly icon: string
   readonly labelId: text.TextId
@@ -200,7 +201,7 @@ export function Tab(props: InternalTabProps) {
 
   const { isLoading, data } = reactQuery.useQuery<backend.Project>(
     project?.id
-      ? dashboard.createGetProjectDetailsQuery.createPassiveListener(project.id)
+      ? projectHooks.createGetProjectDetailsQuery.createPassiveListener(project.id)
       : { queryKey: ['__IGNORE__'], queryFn: reactQuery.skipToken }
   )
 
@@ -223,6 +224,7 @@ export function Tab(props: InternalTabProps) {
       )}
     >
       <ariaComponents.Button
+        data-testid={props['data-testid']}
         size="custom"
         variant="custom"
         loaderPosition="icon"

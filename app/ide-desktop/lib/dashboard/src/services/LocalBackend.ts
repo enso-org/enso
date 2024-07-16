@@ -9,6 +9,7 @@ import type ProjectManager from '#/services/ProjectManager'
 
 import * as appBaseUrl from '#/utilities/appBaseUrl'
 import * as dateTime from '#/utilities/dateTime'
+import * as download from '#/utilities/download'
 import * as errorModule from '#/utilities/error'
 import * as fileInfo from '#/utilities/fileInfo'
 
@@ -162,7 +163,6 @@ export default class LocalBackend extends Backend {
                     this.projectManager.projects.get(entry.metadata.id)?.state ??
                     backend.ProjectState.closed,
                   volumeId: '',
-                  path: entry.path,
                 },
                 labels: [],
                 description: null,
@@ -193,7 +193,7 @@ export default class LocalBackend extends Backend {
     const result = await this.projectManager.listProjects({})
     return result.projects.map(project => ({
       name: project.name,
-      organizationId: '',
+      organizationId: backend.OrganizationId(''),
       projectId: newProjectId(project.id),
       packageName: project.name,
       state: {
@@ -219,20 +219,12 @@ export default class LocalBackend extends Backend {
       missingComponentAction: projectManager.MissingComponentAction.install,
       ...(projectsDirectory == null ? {} : { projectsDirectory }),
     })
-    const path = projectManager.joinPath(
-      projectsDirectory ?? this.projectManager.rootDirectory,
-      project.projectNormalizedName
-    )
     return {
       name: project.projectName,
-      organizationId: '',
+      organizationId: backend.OrganizationId(''),
       projectId: newProjectId(project.projectId),
       packageName: project.projectName,
-      state: {
-        type: backend.ProjectState.closed,
-        volumeId: '',
-        path,
-      },
+      state: { type: backend.ProjectState.closed, volumeId: '' },
     }
   }
 
@@ -295,7 +287,7 @@ export default class LocalBackend extends Backend {
           jsonAddress: null,
           binaryAddress: null,
           ydocAddress: null,
-          organizationId: '',
+          organizationId: backend.OrganizationId(''),
           packageName: project.name,
           projectId,
           state: { type: backend.ProjectState.closed, volumeId: '' },
@@ -316,7 +308,7 @@ export default class LocalBackend extends Backend {
         jsonAddress: ipWithSocketToAddress(cachedProject.languageServerJsonAddress),
         binaryAddress: ipWithSocketToAddress(cachedProject.languageServerBinaryAddress),
         ydocAddress: null,
-        organizationId: '',
+        organizationId: backend.OrganizationId(''),
         packageName: cachedProject.projectNormalizedName,
         projectId,
         state: {
@@ -367,10 +359,9 @@ export default class LocalBackend extends Backend {
         await this.projectManager.renameProject({
           projectId: id,
           name: projectManager.ProjectName(body.projectName),
-          projectsDirectory: extractTypeAndId(body.parentId).id,
         })
       }
-      const parentId = extractTypeAndId(body.parentId).id
+      const parentId = this.projectManager.getProjectDirectoryPath(id)
       const result = await this.projectManager.listDirectory(parentId)
       const project = result.flatMap(listedProject =>
         listedProject.type === projectManager.FileSystemEntryType.ProjectEntry &&
@@ -393,10 +384,23 @@ export default class LocalBackend extends Backend {
           engineVersion: version,
           ideVersion: version,
           name: project.name,
-          organizationId: '',
+          organizationId: backend.OrganizationId(''),
           projectId,
         }
       }
+    }
+  }
+
+  /** Duplicate a specific version of a project. */
+  override async duplicateProject(projectId: backend.ProjectId): Promise<backend.CreatedProject> {
+    const id = extractTypeAndId(projectId).id
+    const project = await this.projectManager.duplicateProject({ projectId: id })
+    return {
+      projectId: newProjectId(project.projectId),
+      name: project.projectName,
+      packageName: project.projectNormalizedName,
+      organizationId: backend.OrganizationId(''),
+      state: { type: backend.ProjectState.closed, volumeId: '' },
     }
   }
 
@@ -404,7 +408,7 @@ export default class LocalBackend extends Backend {
    * @throws An error if the JSON-RPC call fails. */
   override async deleteAsset(
     assetId: backend.AssetId,
-    body: backend.DeleteAssetRequestBody,
+    _body: backend.DeleteAssetRequestBody,
     title: string | null
   ): Promise<void> {
     const typeAndId = extractTypeAndId(assetId)
@@ -416,10 +420,7 @@ export default class LocalBackend extends Backend {
       }
       case backend.AssetType.project: {
         try {
-          await this.projectManager.deleteProject({
-            projectId: typeAndId.id,
-            projectsDirectory: extractTypeAndId(body.parentId).id,
-          })
+          await this.projectManager.deleteProject({ projectId: typeAndId.id })
           return
         } catch (error) {
           throw new Error(
@@ -432,10 +433,30 @@ export default class LocalBackend extends Backend {
     }
   }
 
-  /** Copy an arbitrary asset to another directory. Not yet implemented in the backend.
-   * @throws {Error} Always. */
-  override copyAsset(): Promise<backend.CopyAssetResponse> {
-    throw new Error('Cannot copy assets in local backend yet.')
+  /** Copy an arbitrary asset to another directory. */
+  override async copyAsset(
+    assetId: backend.AssetId,
+    parentDirectoryId: backend.DirectoryId
+  ): Promise<backend.CopyAssetResponse> {
+    const typeAndId = extractTypeAndId(assetId)
+    if (typeAndId.type !== backend.AssetType.project) {
+      throw new Error('Only projects can be copied on the Local Backend.')
+    } else {
+      const project = await this.projectManager.duplicateProject({ projectId: typeAndId.id })
+      const projectPath = this.projectManager.projectPaths.get(typeAndId.id)
+      const parentPath =
+        projectPath == null ? null : projectManager.getDirectoryAndName(projectPath).directoryPath
+      if (parentPath !== extractTypeAndId(parentDirectoryId).id) {
+        throw new Error('Cannot duplicate project to a different directory on the Local Backend.')
+      } else {
+        const asset = {
+          id: newProjectId(project.projectId),
+          parentId: parentDirectoryId,
+          title: project.projectName,
+        }
+        return { asset }
+      }
+    }
   }
 
   /** Return a list of engine versions. */
@@ -562,15 +583,13 @@ export default class LocalBackend extends Backend {
   ): Promise<void> {
     if (body.parentDirectoryId != null) {
       const typeAndId = extractTypeAndId(assetId)
-      const from = typeAndId.type === backend.AssetType.project ? body.projectPath : typeAndId.id
-      if (from == null) {
-        throw new Error('Could not move project: project has no `projectPath`.')
-      } else {
-        const fileName = fileInfo.fileName(from)
-        const to = projectManager.joinPath(extractTypeAndId(body.parentDirectoryId).id, fileName)
-        await this.projectManager.moveFile(from, to)
-        return
-      }
+      const from =
+        typeAndId.type !== backend.AssetType.project
+          ? typeAndId.id
+          : this.projectManager.getProjectDirectoryPath(typeAndId.id)
+      const fileName = fileInfo.fileName(from)
+      const to = projectManager.joinPath(extractTypeAndId(body.parentDirectoryId).id, fileName)
+      await this.projectManager.moveFile(from, to)
     }
   }
 
@@ -607,13 +626,10 @@ export default class LocalBackend extends Backend {
     const to = projectManager.joinPath(projectManager.Path(folderPath), body.title)
     await this.projectManager.moveFile(from, to)
   }
-  /** Return a {@link Promise} that resolves only when a project is ready to open. */
-  override async waitUntilProjectIsReady(
-    projectId: backend.ProjectId,
-    directory: backend.DirectoryId | null,
-    title: string
-  ) {
-    return await this.getProjectDetails(projectId, directory, title)
+
+  /** Construct a new path using the given parent directory and a file name. */
+  getProjectDirectoryPath(id: backend.ProjectId) {
+    return this.projectManager.getProjectDirectoryPath(extractTypeAndId(id).id)
   }
 
   /** Construct a new path using the given parent directory and a file name. */
@@ -637,9 +653,10 @@ export default class LocalBackend extends Backend {
     }
   }
 
-  /** Invalid operation. */
-  override duplicateProject() {
-    return this.invalidOperation()
+  /** Download from an arbitrary URL that is assumed to originate from this backend. */
+  override async download(url: string, name?: string) {
+    download.download(url, name)
+    return Promise.resolve()
   }
 
   /** Invalid operation. */
