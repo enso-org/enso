@@ -46,21 +46,15 @@ public class System {
     return java.lang.System.nanoTime();
   }
 
+  @Builtin.Specialize
   @Builtin.Method(
       description = "Exits the process, returning the provided code.",
       autoRegister = false)
   @CompilerDirectives.TruffleBoundary
-  public static void exit(long code) {
-    var ctx = EnsoContext.get(null);
-    if (ctx.isInteractiveMode()) {
-      // In interactive mode, the ExitException should be caught and handled by one of
-      // the instruments that should take care of proper context disposal.
-      throw new ExitException((int) code);
-    } else {
-      // While not in interactive mode, it is safe to directly call
-      // TruffleContext.exitContext
-      ctx.exit((int) code);
-    }
+  public static void exit(long code, @Cached ExpectStringNode expectStringNode) {
+    // expectStringNode is an artificial Node just to provide a location for
+    // the exception
+    throw new ExitException((int) code, expectStringNode);
   }
 
   @Builtin.Specialize

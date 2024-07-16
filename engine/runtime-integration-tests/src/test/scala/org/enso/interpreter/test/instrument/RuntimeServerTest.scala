@@ -5820,8 +5820,20 @@ class RuntimeServerTest
       Api.Response(
         Api.ExecutionFailed(
           contextId,
-          Api.ExecutionResult
-            .Failure("Exit was called with exit code 42.", None)
+          Api.ExecutionResult.Diagnostic.error(
+            "Exit was called with exit code 42.",
+            Some(mainFile),
+            Some(model.Range(model.Position(3, 4), model.Position(3, 18))),
+            None,
+            Vector(
+              Api.StackTraceElement(
+                "Main.main",
+                Some(mainFile),
+                Some(model.Range(model.Position(3, 4), model.Position(3, 18))),
+                None
+              )
+            )
+          )
         )
       )
     )
