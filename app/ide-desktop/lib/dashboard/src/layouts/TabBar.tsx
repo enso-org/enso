@@ -6,9 +6,9 @@ import invariant from 'tiny-invariant'
 
 import type * as text from 'enso-common/src/text'
 
-import * as textProvider from '#/providers/TextProvider'
+import * as projectHooks from '#/hooks/projectHooks'
 
-import * as dashboard from '#/pages/dashboard/Dashboard'
+import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
@@ -161,8 +161,9 @@ export default function TabBar(props: TabBarProps) {
 
 /** Props for a {@link Tab}. */
 interface InternalTabProps extends Readonly<React.PropsWithChildren> {
+  readonly 'data-testid'?: string
   readonly id: string
-  readonly project?: dashboard.Project
+  readonly project?: projectHooks.Project
   readonly isActive: boolean
   readonly isHidden?: boolean
   readonly icon: string
@@ -189,7 +190,7 @@ export function Tab(props: InternalTabProps) {
 
   const { isLoading, data } = reactQuery.useQuery<backend.Project>(
     project?.id
-      ? dashboard.createGetProjectDetailsQuery.createPassiveListener(project.id)
+      ? projectHooks.createGetProjectDetailsQuery.createPassiveListener(project.id)
       : { queryKey: ['__IGNORE__'], queryFn: reactQuery.skipToken }
   )
 
@@ -205,6 +206,7 @@ export function Tab(props: InternalTabProps) {
 
   return (
     <aria.Tab
+      data-testid={props['data-testid']}
       ref={element => {
         ref.current = element
         if (actuallyActive && element) {

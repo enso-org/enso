@@ -116,6 +116,8 @@ type Names_Data
         t = table_builder [["a", [1, 2, 3]], ["b", ['x', 'y', 'z']], ["c", [1.0, 2.0, 3.0]], ["d", [True, False, True]]] . sort "a"
         [t]
 
+type Lazy_Ref
+    Value ~get
 
 add_specs suite_builder setup =
     prefix = setup.prefix
@@ -845,14 +847,17 @@ add_specs suite_builder setup =
 
         case setup.test_selection.is_nan_and_nothing_distinct of
             True ->
-                t = build_sorted_table [["X", [1.5, 3.0, Number.positive_infinity, Number.negative_infinity, Number.nan, Nothing]], ["Y", [1, 2, 3, 4, 5, Nothing]], ["Z", ["1", "2", "3", "4", "5", Nothing]]]
+                table = Lazy_Ref.Value <|
+                    build_sorted_table [["X", [1.5, 3.0, Number.positive_infinity, Number.negative_infinity, Number.nan, Nothing]], ["Y", [1, 2, 3, 4, 5, Nothing]], ["Z", ["1", "2", "3", "4", "5", Nothing]]]
 
                 group_builder.specify "should support is_nan" <|
+                    t = table.get
                     t.at "X" . is_nan . to_vector . should_equal [False, False, False, False, True, Nothing]
                     t.at "Y" . is_nan . to_vector . should_equal [False, False, False, False, False, Nothing]
                     t.at "Z" . is_nan . to_vector . should_fail_with Invalid_Value_Type
 
                 group_builder.specify "should support is_infinite" <|
+                    t = table.get
                     t.at "X" . is_infinite . to_vector . should_equal [False, False, True, True, False, Nothing]
                     t.at "Y" . is_infinite . to_vector . should_equal [False, False, False, False, False, Nothing]
                     t.at "Z" . is_infinite . to_vector . should_fail_with Invalid_Value_Type

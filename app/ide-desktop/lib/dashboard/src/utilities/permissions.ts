@@ -1,5 +1,4 @@
 /** @file Utilities for working with permissions. */
-
 import * as permissions from 'enso-common/src/utilities/permissions'
 
 export * from 'enso-common/src/utilities/permissions'
