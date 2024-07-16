@@ -157,27 +157,27 @@ export interface AssetRemoveSelfEvent extends AssetBaseEvent<AssetEventType.remo
   readonly id: backend.AssetId
 }
 
-/** A signal to temporarily add labels to the selected assetss. */
+/** A signal to temporarily add labels to the selected assets. */
 export interface AssetTemporarilyAddLabelsEvent
   extends AssetBaseEvent<AssetEventType.temporarilyAddLabels> {
   readonly ids: ReadonlySet<backend.AssetId>
   readonly labelNames: ReadonlySet<backend.LabelName>
 }
 
-/** A signal to temporarily remove labels from the selected assetss. */
+/** A signal to temporarily remove labels from the selected assets. */
 export interface AssetTemporarilyRemoveLabelsEvent
   extends AssetBaseEvent<AssetEventType.temporarilyRemoveLabels> {
   readonly ids: ReadonlySet<backend.AssetId>
   readonly labelNames: ReadonlySet<backend.LabelName>
 }
 
-/** A signal to add labels to the selected assetss. */
+/** A signal to add labels to the selected assets. */
 export interface AssetAddLabelsEvent extends AssetBaseEvent<AssetEventType.addLabels> {
   readonly ids: ReadonlySet<backend.AssetId>
   readonly labelNames: ReadonlySet<backend.LabelName>
 }
 
-/** A signal to remove labels from the selected assetss. */
+/** A signal to remove labels from the selected assets. */
 export interface AssetRemoveLabelsEvent extends AssetBaseEvent<AssetEventType.removeLabels> {
   readonly ids: ReadonlySet<backend.AssetId>
   readonly labelNames: ReadonlySet<backend.LabelName>

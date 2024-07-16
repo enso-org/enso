@@ -36,7 +36,7 @@ declare module '#/utilities/LocalStorage' {
   }
 }
 
-const PAGES_SCHEMA = z
+export const PAGES_SCHEMA = z
   .nativeEnum(TabType)
   .or(z.custom<projectHooks.ProjectId>(value => typeof value === 'string'))
 

@@ -171,9 +171,7 @@ export default function AssetRow(props: AssetRowProps) {
     }
   }, [isKeyboardSelected])
 
-  React.useImperativeHandle(updateAssetRef, () => newItem => {
-    setAsset(newItem)
-  })
+  React.useImperativeHandle(updateAssetRef, () => setAsset)
 
   const doCopyOnBackend = React.useCallback(
     async (newParentId: backendModule.DirectoryId | null) => {
@@ -197,7 +195,10 @@ export default function AssetRow(props: AssetRowProps) {
           // This is SAFE, as the type of the copied asset is guaranteed to be the same
           // as the type of the original asset.
           // eslint-disable-next-line no-restricted-syntax
-          object.merger(copiedAsset.asset as Partial<backendModule.AnyAsset>)
+          object.merger({
+            ...copiedAsset.asset,
+            state: { type: backendModule.ProjectState.new },
+          } as Partial<backendModule.AnyAsset>)
         )
       } catch (error) {
         toastAndLog('copyAssetError', error, asset.title)
