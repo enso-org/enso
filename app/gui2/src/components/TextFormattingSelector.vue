@@ -22,6 +22,7 @@ const iconPathOff = `${icons}#text2`
     <button
       :class="`${textFormatterSelected === TextFormatOptions.On && 'selected'}`"
       :onclick="() => setTextFormatterSelected(TextFormatOptions.On)"
+      title="Text displayed in monaspace font and all whitespace characters displayed as a symbol"
     >
       <svg viewBox="0 0 16 16" width="16" height="16" style="stroke: black; fill: #808080">
         <use :href="`${iconPathOn}`" />
@@ -31,6 +32,7 @@ const iconPathOff = `${icons}#text2`
     <button
       :onclick="() => setTextFormatterSelected(TextFormatOptions.Special)"
       :class="`${textFormatterSelected === TextFormatOptions.Special && 'selected'}`"
+      title="Text displayed in monaspace font, only multiple spaces displayed with &#183;"
     >
       <svg viewBox="0 0 16 16" width="16" height="16" style="stroke: grey; fill: #808080">
         <use :href="`${iconPathOn}`" />
@@ -40,6 +42,7 @@ const iconPathOff = `${icons}#text2`
     <button
       :onclick="() => setTextFormatterSelected(TextFormatOptions.Off)"
       :class="`${textFormatterSelected === TextFormatOptions.Off && 'selected'}`"
+      title="No formatting applied to text"
     >
       <svg viewBox="0 0 16 16" width="16" height="16">
         <use :href="`${iconPathOff}`" />
