@@ -4,7 +4,6 @@ import * as React from 'react'
 import * as appUtils from '#/appUtils'
 
 import * as offlineHooks from '#/hooks/offlineHooks'
-import type * as projectHooks from '#/hooks/projectHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
@@ -61,30 +60,16 @@ enum DriveStatus {
 
 /** Props for a {@link Drive}. */
 export interface DriveProps {
-  readonly openedProjects: readonly projectHooks.Project[]
   readonly category: Category
   readonly setCategory: (category: Category) => void
   readonly hidden: boolean
   readonly initialProjectName: string | null
-  readonly doOpenEditor: (id: projectHooks.ProjectId) => void
-  readonly doOpenProject: (project: projectHooks.Project) => void
-  readonly doCloseProject: (project: projectHooks.Project) => void
   readonly assetsManagementApiRef: React.Ref<assetsTable.AssetManagementApi>
 }
 
 /** Contains directory path and directory contents (projects, folders, secrets and files). */
 export default function Drive(props: DriveProps) {
-  const {
-    openedProjects,
-    doOpenEditor,
-    doCloseProject,
-    category,
-    setCategory,
-    hidden,
-    initialProjectName,
-    doOpenProject,
-    assetsManagementApiRef,
-  } = props
+  const { category, setCategory, hidden, initialProjectName, assetsManagementApiRef } = props
 
   const { isOffline } = offlineHooks.useOffline()
   const { localStorage } = localStorageProvider.useLocalStorage()
@@ -327,7 +312,6 @@ export default function Drive(props: DriveProps) {
               ) : (
                 <AssetsTable
                   assetManagementApiRef={assetsManagementApiRef}
-                  openedProjects={openedProjects}
                   hidden={hidden}
                   query={query}
                   setQuery={setQuery}
@@ -338,9 +322,6 @@ export default function Drive(props: DriveProps) {
                   setAssetPanelProps={setAssetPanelProps}
                   setIsAssetPanelTemporarilyVisible={setIsAssetPanelTemporarilyVisible}
                   targetDirectoryNodeRef={targetDirectoryNodeRef}
-                  doOpenEditor={doOpenEditor}
-                  doOpenProject={doOpenProject}
-                  doCloseProject={doCloseProject}
                 />
               )}
             </div>

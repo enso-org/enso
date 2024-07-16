@@ -7,6 +7,8 @@ import ArrowUpIcon from 'enso-assets/arrow_up.svg'
 import PlayIcon from 'enso-assets/play.svg'
 import StopIcon from 'enso-assets/stop.svg'
 
+import * as projectHooks from '#/hooks/projectHooks'
+
 import * as authProvider from '#/providers/AuthProvider'
 import * as textProvider from '#/providers/TextProvider'
 
@@ -18,7 +20,6 @@ import * as backendModule from '#/services/Backend'
 import type Backend from '#/services/Backend'
 
 import * as tailwindMerge from '#/utilities/tailwindMerge'
-import * as projectHooks from '#/hooks/projectHooks'
 
 // =================
 // === Constants ===
@@ -60,15 +61,15 @@ export interface ProjectIconProps {
   readonly backend: Backend
   readonly isOpened: boolean
   readonly item: backendModule.ProjectAsset
-  readonly doOpenProject: (id: backendModule.ProjectId, runInBackground: boolean) => void
-  readonly doCloseProject: (id: backendModule.ProjectId) => void
-  readonly openProjectTab: (projectId: backendModule.ProjectId) => void
 }
 
 /** An interactive icon indicating the status of a project. */
 export default function ProjectIcon(props: ProjectIconProps) {
   const { backend, item, isOpened } = props
-  const { openProjectTab, doOpenProject, doCloseProject } = props
+
+  const openProject = projectHooks.useOpenProject()
+  const closeProject = projectHooks.useCloseProject()
+  const openProjectTab = projectHooks.useOpenEditor()
 
   const { user } = authProvider.useNonPartialUserSession()
   const { getText } = textProvider.useText()
@@ -124,6 +125,16 @@ export default function ProjectIcon(props: ProjectIconProps) {
     }
   })()
 
+  const doOpenProject = () => {
+    openProject({ ...item, type: backend.type })
+  }
+  const doCloseProject = () => {
+    closeProject({ ...item, type: backend.type })
+  }
+  const doOpenProjectTab = () => {
+    openProjectTab(item.id)
+  }
+
   switch (state) {
     case null:
     case backendModule.ProjectState.created:
@@ -138,9 +149,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
           aria-label={getText('openInEditor')}
           tooltipPlacement="left"
           extraClickZone="xsmall"
-          onPress={() => {
-            doOpenProject(item.id, false)
-          }}
+          onPress={doOpenProject}
         />
       )
     case backendModule.ProjectState.openInProgress:
@@ -159,9 +168,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
             tooltipPlacement="left"
             className={tailwindMerge.twJoin(isRunningInBackground && 'text-green')}
             {...(isOtherUserUsingProject ? { title: getText('otherUserIsUsingProjectError') } : {})}
-            onPress={() => {
-              doCloseProject(item.id)
-            }}
+            onPress={doCloseProject}
           />
           <StatelessSpinner
             state={spinnerState}
@@ -186,9 +193,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
               tooltipPlacement="left"
               tooltip={isOtherUserUsingProject ? getText('otherUserIsUsingProjectError') : null}
               className={tailwindMerge.twMerge(isRunningInBackground && 'text-green')}
-              onPress={() => {
-                doCloseProject(item.id)
-              }}
+              onPress={doCloseProject}
             />
             <Spinner
               state={spinner.SpinnerState.done}
@@ -207,9 +212,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
               icon={ArrowUpIcon}
               aria-label={getText('openInEditor')}
               tooltipPlacement="right"
-              onPress={() => {
-                openProjectTab(item.id)
-              }}
+              onPress={doOpenProjectTab}
             />
           )}
         </div>

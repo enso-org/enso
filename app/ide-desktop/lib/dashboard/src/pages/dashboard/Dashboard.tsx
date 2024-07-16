@@ -318,14 +318,10 @@ function DashboardInner(props: DashboardProps) {
 
           <Drive
             assetsManagementApiRef={assetManagementApiRef}
-            openedProjects={launchedProjects}
             category={category}
             setCategory={setCategory}
             hidden={page !== projectsProvider.TabType.drive}
             initialProjectName={initialProjectName}
-            doOpenProject={openProject}
-            doOpenEditor={openEditor}
-            doCloseProject={closeProject}
           />
 
           {launchedProjects.map(project => (

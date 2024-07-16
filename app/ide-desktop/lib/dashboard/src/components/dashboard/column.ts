@@ -1,8 +1,6 @@
 /** @file Column types and column display modes. */
 import type * as React from 'react'
 
-import type * as projectHooks from '#/hooks/projectHooks'
-
 import type * as assetsTable from '#/layouts/AssetsTable'
 
 import * as columnUtils from '#/components/dashboard/column/columnUtils'
@@ -35,8 +33,6 @@ export interface AssetColumnProps {
   readonly rowState: assetsTable.AssetRowState
   readonly setRowState: React.Dispatch<React.SetStateAction<assetsTable.AssetRowState>>
   readonly isEditable: boolean
-  readonly doOpenProject: (project: projectHooks.Project) => void
-  readonly doCloseProject: (project: projectHooks.Project) => void
 }
 
 /** Props for a {@link AssetColumn}. */

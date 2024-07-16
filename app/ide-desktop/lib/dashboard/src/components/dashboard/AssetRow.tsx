@@ -5,7 +5,6 @@ import BlankIcon from 'enso-assets/blank.svg'
 
 import * as backendHooks from '#/hooks/backendHooks'
 import * as dragAndDropHooks from '#/hooks/dragAndDropHooks'
-import type * as projectHooks from '#/hooks/projectHooks'
 import * as setAssetHooks from '#/hooks/setAssetHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
@@ -91,24 +90,14 @@ export interface AssetRowProps
     props: AssetRowInnerProps,
     event: React.MouseEvent<HTMLTableRowElement>
   ) => void
-  readonly doOpenProject: (project: projectHooks.Project) => void
-  readonly doCloseProject: (project: projectHooks.Project) => void
   readonly updateAssetRef: React.Ref<(asset: backendModule.AnyAsset) => void>
 }
 
 /** A row containing an {@link backendModule.AnyAsset}. */
 export default function AssetRow(props: AssetRowProps) {
-  const {
-    item: rawItem,
-    hidden: hiddenRaw,
-    selected,
-    isSoleSelected,
-    isKeyboardSelected,
-    isOpened,
-    updateAssetRef,
-  } = props
+  const { selected, isSoleSelected, isKeyboardSelected, isOpened } = props
   const { setSelected, allowContextMenu, onContextMenu, state, columns, onClick } = props
-  const { grabKeyboardFocus, doOpenProject, doCloseProject } = props
+  const { item: rawItem, hidden: hiddenRaw, updateAssetRef, grabKeyboardFocus } = props
   const { nodeMap, setAssetPanelProps, doToggleDirectoryExpansion, doCopy, doCut, doPaste } = state
   const { setIsAssetPanelTemporarilyVisible, scrollContainerRef, rootDirectoryId, backend } = state
   const { visibilities } = state
@@ -885,8 +874,6 @@ export default function AssetRow(props: AssetRowProps) {
                         rowState={rowState}
                         setRowState={setRowState}
                         isEditable={state.category !== Category.trash}
-                        doOpenProject={doOpenProject}
-                        doCloseProject={doCloseProject}
                       />
                     </td>
                   )

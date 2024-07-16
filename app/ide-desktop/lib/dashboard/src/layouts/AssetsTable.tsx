@@ -9,7 +9,7 @@ import * as mimeTypes from '#/data/mimeTypes'
 
 import * as backendHooks from '#/hooks/backendHooks'
 import * as intersectionHooks from '#/hooks/intersectionHooks'
-import type * as projectHooks from '#/hooks/projectHooks'
+import * as projectHooks from '#/hooks/projectHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 import useOnScroll from '#/hooks/useOnScroll'
 
@@ -19,6 +19,7 @@ import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as navigator2DProvider from '#/providers/Navigator2DProvider'
+import * as projectsProvider from '#/providers/ProjectsProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import type * as assetEvent from '#/events/assetEvent'
@@ -338,7 +339,6 @@ export interface AssetsTableState {
     title?: string | null,
     override?: boolean
   ) => void
-  readonly doOpenEditor: (id: backendModule.ProjectId) => void
   readonly doCopy: () => void
   readonly doCut: () => void
   readonly doPaste: (
@@ -357,7 +357,6 @@ export interface AssetRowState {
 
 /** Props for a {@link AssetsTable}. */
 export interface AssetsTableProps {
-  readonly openedProjects: readonly projectHooks.Project[]
   readonly hidden: boolean
   readonly query: AssetQuery
   readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
@@ -370,12 +369,6 @@ export interface AssetsTableProps {
   readonly setAssetPanelProps: (props: assetPanel.AssetPanelRequiredProps | null) => void
   readonly setIsAssetPanelTemporarilyVisible: (visible: boolean) => void
   readonly targetDirectoryNodeRef: React.MutableRefObject<assetTreeNode.AnyAssetTreeNode<backendModule.DirectoryAsset> | null>
-  readonly doOpenEditor: (id: projectHooks.ProjectId) => void
-  readonly doOpenProject: (
-    project: projectHooks.Project,
-    options?: projectHooks.OpenProjectOptions
-  ) => void
-  readonly doCloseProject: (project: projectHooks.Project) => void
   readonly assetManagementApiRef: React.Ref<AssetManagementApi>
 }
 
@@ -389,18 +382,12 @@ export interface AssetManagementApi {
 
 /** The table of project assets. */
 export default function AssetsTable(props: AssetsTableProps) {
-  const {
-    hidden,
-    query,
-    setQuery,
-    setCanDownload,
-    category,
-    openedProjects,
-    assetManagementApiRef,
-  } = props
+  const { hidden, query, setQuery, setCanDownload, category, assetManagementApiRef } = props
   const { setSuggestions, initialProjectName } = props
-  const { doOpenEditor, doOpenProject, doCloseProject } = props
   const { setAssetPanelProps, targetDirectoryNodeRef, setIsAssetPanelTemporarilyVisible } = props
+
+  const openedProjects = projectsProvider.useLaunchedProjects()
+  const doOpenProject = projectHooks.useOpenProject()
 
   const { user } = authProvider.useNonPartialUserSession()
   const backend = backendProvider.useBackend(category)
@@ -1976,7 +1963,6 @@ export default function AssetsTable(props: AssetsTableProps) {
       nodeMap: nodeMapRef,
       hideColumn,
       doToggleDirectoryExpansion,
-      doOpenEditor,
       doCopy,
       doCut,
       doPaste,
@@ -1990,7 +1976,6 @@ export default function AssetsTable(props: AssetsTableProps) {
       sortInfo,
       query,
       doToggleDirectoryExpansion,
-      doOpenEditor,
       doCopy,
       doCut,
       doPaste,
@@ -2292,8 +2277,6 @@ export default function AssetsTable(props: AssetsTableProps) {
           item={item}
           state={state}
           hidden={hidden || visibilities.get(item.key) === Visibility.hidden}
-          doOpenProject={doOpenProject}
-          doCloseProject={doCloseProject}
           selected={isSelected}
           setSelected={selected => {
             setSelectedKeys(set.withPresence(selectedKeysRef.current, key, selected))
@@ -2363,8 +2346,6 @@ export default function AssetsTable(props: AssetsTableProps) {
                     setItem={() => {}}
                     setRowState={() => {}}
                     isEditable={false}
-                    doCloseProject={doCloseProject}
-                    doOpenProject={doOpenProject}
                   />
                 ))}
               </DragModal>
