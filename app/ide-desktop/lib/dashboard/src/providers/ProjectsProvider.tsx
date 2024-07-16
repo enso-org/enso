@@ -77,11 +77,11 @@ export interface ProjectsProviderProps extends Readonly<React.PropsWithChildren>
 export default function ProjectsProvider(props: ProjectsProviderProps) {
   const { children } = props
   const { localStorage } = localStorageProvider.useLocalStorage()
-  const [store] = React.useState(() =>
-    zustand.createStore<ProjectsStore>(set => ({
-      page: localStorage.get('page') ?? TabType.drive,
+  const [store] = React.useState(() => {
+    return zustand.createStore<ProjectsStore>(set => ({
+      page: TabType.drive,
       setPage: page => {
-        localStorage.set('page', page)
+        set({ page })
       },
       launchedProjects: localStorage.get('launchedProjects') ?? [],
       addLaunchedProject: project => {
@@ -96,28 +96,10 @@ export default function ProjectsProvider(props: ProjectsProviderProps) {
         set({ launchedProjects: [] })
       },
     }))
-  )
-
-  const [page, privateSetPage] = searchParamsState.useSearchParamsState(
-    'page',
-    () => localStorage.get('page') ?? TabType.drive,
-    (value: unknown): value is projectHooks.ProjectId | TabType => {
-      return (
-        array.includes(Object.values(TabType), value) ||
-        store.getState().launchedProjects.some(p => p.id === value)
-      )
-    }
-  )
-
-  const setPage = eventCallbacks.useEventCallback((newPage: projectHooks.ProjectId | TabType) => {
-    privateSetPage(newPage)
-    localStorage.set('page', newPage)
   })
 
-  const contextValue = React.useMemo(() => ({ ...store, page, setPage }), [page, setPage, store])
-
   return (
-    <ProjectsContext.Provider value={contextValue}>
+    <ProjectsContext.Provider value={store}>
       <PageSynchronizer />
       {children}
     </ProjectsContext.Provider>
@@ -131,13 +113,11 @@ export default function ProjectsProvider(props: ProjectsProviderProps) {
 /** A component to synchronize React state with search parmas state. */
 function PageSynchronizer() {
   const { localStorage } = localStorageProvider.useLocalStorage()
-  const launchedProjects = useLaunchedProjects()
   const store = useProjectsStore()
-  const providerPage = usePage()
   const providerSetPage = useSetPage()
   const [page, privateSetPage] = searchParamsState.useSearchParamsState(
     'page',
-    () => providerPage,
+    () => store.getState().page,
     (value: unknown): value is projectHooks.ProjectId | TabType => {
       return (
         array.includes(Object.values(TabType), value) ||
@@ -150,14 +130,17 @@ function PageSynchronizer() {
     providerSetPage(page)
   }, [page, providerSetPage])
 
-  React.useEffect(() => {
-    privateSetPage(providerPage)
-    localStorage.set('page', providerPage)
-  }, [localStorage, privateSetPage, providerPage])
+  React.useEffect(() =>
+    store.subscribe(state => {
+      privateSetPage(state.page)
+    })
+  )
 
-  React.useEffect(() => {
-    localStorage.set('launchedProjects', launchedProjects)
-  }, [launchedProjects, localStorage])
+  React.useEffect(() =>
+    store.subscribe(state => {
+      localStorage.set('launchedProjects', state.launchedProjects)
+    })
+  )
 
   return null
 }
