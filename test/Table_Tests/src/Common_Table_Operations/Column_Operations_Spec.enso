@@ -19,7 +19,7 @@ from Standard.Test import all
 import enso_dev.Base_Tests.Data.Round_Spec
 
 import project.Common_Table_Operations.Main.Char_Max_Size_After_Substring_Behavior
-from project.Common_Table_Operations.Util import run_default_backend, within_table
+from project.Common_Table_Operations.Util import run_default_backend, within_table, is_float_or_decimal
 
 main filter=Nothing = run_default_backend add_specs filter
 
@@ -1813,8 +1813,3 @@ drop_table connection table =
         _ : DB_Table ->
             connection.drop_table table.name
         _ -> Nothing
-
-is_float_or_decimal ~column = case column.value_type of
-    Value_Type.Float _ -> Nothing
-    Value_Type.Decimal _ _ -> Nothing
-    other -> Test.fail "Expected "+column.name+" to be a float or decimal, but got "+other.to_display_text
