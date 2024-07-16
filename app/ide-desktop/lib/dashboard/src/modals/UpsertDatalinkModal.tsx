@@ -92,7 +92,7 @@ export default function UpsertDatalinkModal(props: UpsertDatalinkModalProps) {
         <div className="relative">
           <DatalinkInput dropdownTitle="Type" value={value} setValue={setValue} />
         </div>
-        <ariaComponents.ButtonGroup>
+        <ariaComponents.ButtonGroup className="relative">
           <ariaComponents.Button variant="submit" isDisabled={!isSubmittable} onPress={doSubmit}>
             {getText('create')}
           </ariaComponents.Button>

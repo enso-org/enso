@@ -375,8 +375,7 @@ export function locateNewUserGroupModal(page: test.Page) {
 
 /** Find a user menu (if any) on the current page. */
 export function locateUserMenu(page: test.Page) {
-  // This has no identifying features.
-  return page.getByTestId('user-menu')
+  return page.getByAltText('User Settings').locator('visible=true')
 }
 
 /** Find a "set username" panel (if any) on the current page. */
@@ -463,7 +462,8 @@ export namespace settings {
     /** Navigate so that the "user account" settings section is visible. */
     export async function go(page: test.Page) {
       await test.test.step('Go to "user account" settings section', async () => {
-        await press(page, 'Mod+,')
+        await locateUserMenu(page).click()
+        await page.getByRole('button', { name: 'Settings' }).getByText('Settings').click()
       })
     }
 
@@ -482,7 +482,8 @@ export namespace settings {
     /** Navigate so that the "change password" settings section is visible. */
     export async function go(page: test.Page) {
       await test.test.step('Go to "change password" settings section', async () => {
-        await press(page, 'Mod+,')
+        await locateUserMenu(page).click()
+        await page.getByRole('button', { name: 'Settings' }).getByText('Settings').click()
       })
     }
 
@@ -516,7 +517,8 @@ export namespace settings {
     /** Navigate so that the "profile picture" settings section is visible. */
     export async function go(page: test.Page) {
       await test.test.step('Go to "profile picture" settings section', async () => {
-        await press(page, 'Mod+,')
+        await locateUserMenu(page).click()
+        await page.getByRole('button', { name: 'Settings' }).getByText('Settings').click()
       })
     }
 
@@ -535,7 +537,8 @@ export namespace settings {
     /** Navigate so that the "organization" settings section is visible. */
     export async function go(page: test.Page) {
       await test.test.step('Go to "organization" settings section', async () => {
-        await press(page, 'Mod+,')
+        await locateUserMenu(page).click()
+        await page.getByRole('button', { name: 'Settings' }).getByText('Settings').click()
         await settings.tab.organization.locate(page).click()
       })
     }
@@ -571,7 +574,8 @@ export namespace settings {
     /** Navigate so that the "organization profile picture" settings section is visible. */
     export async function go(page: test.Page) {
       await test.test.step('Go to "organization profile picture" settings section', async () => {
-        await press(page, 'Mod+,')
+        await locateUserMenu(page).click()
+        await page.getByRole('button', { name: 'Settings' }).getByText('Settings').click()
         await settings.tab.organization.locate(page).click()
       })
     }
@@ -591,7 +595,8 @@ export namespace settings {
     /** Navigate so that the "members" settings section is visible. */
     export async function go(page: test.Page, force = false) {
       await test.test.step('Go to "members" settings section', async () => {
-        await press(page, 'Mod+,')
+        await locateUserMenu(page).click()
+        await page.getByRole('button', { name: 'Settings' }).getByText('Settings').click()
         await settings.tab.members.locate(page).click({ force })
       })
     }
@@ -876,11 +881,10 @@ export const mockApi = apiModule.mockApi
 /** Set up all mocks, without logging in. */
 // This syntax is required for Playwright to work properly.
 // eslint-disable-next-line no-restricted-syntax
-export async function mockAll({ page, setupAPI }: MockParams) {
-  return await test.test.step('Execute all mocks', async () => {
-    const api = await mockApi({ page, setupAPI })
+export function mockAll({ page, setupAPI }: MockParams) {
+  return new LoginPageActions(page).step('Execute all mocks', async () => {
+    await mockApi({ page, setupAPI })
     await mockDate({ page, setupAPI })
-    return { api, pageActions: new LoginPageActions(page) }
   })
 }
 
@@ -891,10 +895,28 @@ export async function mockAll({ page, setupAPI }: MockParams) {
 /** Set up all mocks, and log in with dummy credentials. */
 // This syntax is required for Playwright to work properly.
 // eslint-disable-next-line no-restricted-syntax
-export async function mockAllAndLogin({ page, setupAPI }: MockParams) {
+export function mockAllAndLogin({ page, setupAPI }: MockParams) {
+  return new DrivePageActions(page)
+    .step('Execute all mocks', async () => {
+      await mockApi({ page, setupAPI })
+      await mockDate({ page, setupAPI })
+    })
+    .do(thePage => login({ page: thePage, setupAPI }))
+}
+
+// ===================================
+// === mockAllAndLoginAndExposeAPI ===
+// ===================================
+
+/** Set up all mocks, and log in with dummy credentials.
+ * @deprecated Prefer {@link mockAllAndLogin}. */
+// This syntax is required for Playwright to work properly.
+// eslint-disable-next-line no-restricted-syntax
+export async function mockAllAndLoginAndExposeAPI({ page, setupAPI }: MockParams) {
   return await test.test.step('Execute all mocks and login', async () => {
-    const mocks = await mockAll({ page, setupAPI })
+    const api = await mockApi({ page, setupAPI })
+    await mockDate({ page, setupAPI })
     await login({ page, setupAPI })
-    return { ...mocks, pageActions: new DrivePageActions(page) }
+    return api
   })
 }

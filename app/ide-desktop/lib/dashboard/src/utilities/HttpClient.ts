@@ -52,7 +52,7 @@ export default class HttpClient {
      *
      * This is useful for setting headers that are required for every request, like
      * authentication tokens. */
-    public defaultHeaders: HeadersInit = {}
+    public defaultHeaders: Record<string, string> = {}
   ) {}
 
   /** Send an HTTP GET request to the specified URL. */

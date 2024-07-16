@@ -13,8 +13,6 @@ import * as textProvider from '#/providers/TextProvider'
 
 import AssetListEventType from '#/events/AssetListEventType'
 
-import type * as dashboard from '#/pages/dashboard/Dashboard'
-
 import type * as assetPanel from '#/layouts/AssetPanel'
 import AssetPanel from '#/layouts/AssetPanel'
 import type * as assetSearchBar from '#/layouts/AssetSearchBar'
@@ -62,30 +60,16 @@ enum DriveStatus {
 
 /** Props for a {@link Drive}. */
 export interface DriveProps {
-  readonly openedProjects: dashboard.Project[]
   readonly category: Category
   readonly setCategory: (category: Category) => void
   readonly hidden: boolean
   readonly initialProjectName: string | null
-  readonly doOpenEditor: (id: dashboard.ProjectId) => void
-  readonly doOpenProject: (project: dashboard.Project) => void
-  readonly doCloseProject: (project: dashboard.Project) => void
   readonly assetsManagementApiRef: React.Ref<assetsTable.AssetManagementApi>
 }
 
 /** Contains directory path and directory contents (projects, folders, secrets and files). */
 export default function Drive(props: DriveProps) {
-  const {
-    openedProjects,
-    doOpenEditor,
-    doCloseProject,
-    category,
-    setCategory,
-    hidden,
-    initialProjectName,
-    doOpenProject,
-    assetsManagementApiRef,
-  } = props
+  const { category, setCategory, hidden, initialProjectName, assetsManagementApiRef } = props
 
   const { isOffline } = offlineHooks.useOffline()
   const { localStorage } = localStorageProvider.useLocalStorage()
@@ -99,8 +83,10 @@ export default function Drive(props: DriveProps) {
   const [suggestions, setSuggestions] = React.useState<readonly assetSearchBar.Suggestion[]>([])
   const [canDownload, setCanDownload] = React.useState(false)
   const [didLoadingProjectManagerFail, setDidLoadingProjectManagerFail] = React.useState(false)
-  const [assetPanelProps, setAssetPanelProps] =
+  const [assetPanelPropsRaw, setAssetPanelProps] =
     React.useState<assetPanel.AssetPanelRequiredProps | null>(null)
+  const assetPanelProps =
+    backend.type === assetPanelPropsRaw?.backend?.type ? assetPanelPropsRaw : null
   const [isAssetPanelEnabled, setIsAssetPanelEnabled] = React.useState(
     () => localStorage.get('isAssetPanelVisible') ?? false
   )
@@ -326,7 +312,6 @@ export default function Drive(props: DriveProps) {
               ) : (
                 <AssetsTable
                   assetManagementApiRef={assetsManagementApiRef}
-                  openedProjects={openedProjects}
                   hidden={hidden}
                   query={query}
                   setQuery={setQuery}
@@ -337,9 +322,6 @@ export default function Drive(props: DriveProps) {
                   setAssetPanelProps={setAssetPanelProps}
                   setIsAssetPanelTemporarilyVisible={setIsAssetPanelTemporarilyVisible}
                   targetDirectoryNodeRef={targetDirectoryNodeRef}
-                  doOpenEditor={doOpenEditor}
-                  doOpenProject={doOpenProject}
-                  doCloseProject={doCloseProject}
                 />
               )}
             </div>

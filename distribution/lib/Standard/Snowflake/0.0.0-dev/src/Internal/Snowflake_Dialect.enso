@@ -495,15 +495,15 @@ floating_point_div = Base_Generator.lift_binary_op "/" x-> y->
 
 ## PRIVATE
 mod_op = Base_Generator.lift_binary_op "MOD" x-> y->
-    x ++ " - FLOOR(CAST(" ++ x ++ " AS float) / CAST(" ++ y ++ " AS float)) * " ++ y
+    x ++ " % " ++ y
 
 ## PRIVATE
 decimal_div = Base_Generator.lift_binary_op "DECIMAL_DIV" x-> y->
-    SQL_Builder.code "CAST(" ++ x ++ " AS decimal) / CAST(" ++ y ++ " AS decimal)"
+    x ++ " / " ++ y
 
 ## PRIVATE
 decimal_mod = Base_Generator.lift_binary_op "DECIMAL_MOD" x-> y->
-    x ++ " - FLOOR(CAST(" ++ x ++ " AS decimal) / CAST(" ++ y ++ " AS decimal)) * " ++ y
+    x ++ " % " ++ y
 
 ## PRIVATE
 supported_replace_params : Hashset Replace_Params
