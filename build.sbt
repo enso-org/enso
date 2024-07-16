@@ -316,6 +316,7 @@ lazy val enso = (project in file("."))
     `runtime-benchmarks`,
     `runtime-parser`,
     `runtime-compiler`,
+    `runtime-fat-jar`,
     `runtime-suggestions`,
     `runtime-language-epb`,
     `runtime-language-arrow`,
@@ -2198,6 +2199,7 @@ lazy val `runtime-benchmarks` =
     )
     .dependsOn(`runtime-fat-jar`)
     .dependsOn(`benchmarks-common`)
+    .dependsOn(`test-utils`)
 
 lazy val `runtime-parser` =
   (project in file("engine/runtime-parser"))

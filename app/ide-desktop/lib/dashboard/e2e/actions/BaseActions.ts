@@ -1,6 +1,10 @@
 /** @file The base class from which all `Actions` classes are derived. */
 import * as test from '@playwright/test'
 
+import type * as inputBindings from '#/utilities/inputBindings'
+
+import * as actions from '../actions'
+
 // ====================
 // === PageCallback ===
 // ====================
@@ -29,12 +33,18 @@ export interface LocatorCallback {
  *
  * [`thenable`]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise#thenables
  */
-export default class BaseActions implements PromiseLike<void> {
+export default class BaseActions implements Promise<void> {
   /** Create a {@link BaseActions}. */
   constructor(
     protected readonly page: test.Page,
     private readonly promise = Promise.resolve()
   ) {}
+
+  /** Get the string name of the class of this instance. Required for this class to implement
+   * {@link Promise}. */
+  get [Symbol.toStringTag]() {
+    return this.constructor.name
+  }
 
   /** Press a key, replacing the text `Mod` with `Meta` (`Cmd`) on macOS, and `Control`
    * on all other platforms. */
@@ -55,7 +65,6 @@ export default class BaseActions implements PromiseLike<void> {
       }
     })
   }
-
   /** Proxies the `then` method of the internal {@link Promise}. */
   async then<T, E>(
     // The following types are copied almost verbatim from the type definitions for `Promise`.
@@ -72,8 +81,15 @@ export default class BaseActions implements PromiseLike<void> {
    * to treat this class as a {@link Promise}. */
   // The following types are copied almost verbatim from the type definitions for `Promise`.
   // eslint-disable-next-line no-restricted-syntax
-  async catch<T>(onrejected?: ((reason: unknown) => T) | null | undefined) {
+  async catch<T>(onrejected?: ((reason: unknown) => PromiseLike<T> | T) | null | undefined) {
     return await this.promise.catch(onrejected)
+  }
+
+  /** Proxies the `catch` method of the internal {@link Promise}.
+   * This method is not required for this to be a `thenable`, but it is still useful
+   * to treat this class as a {@link Promise}. */
+  async finally(onfinally?: (() => void) | null | undefined): Promise<void> {
+    await this.promise.finally(onfinally)
   }
 
   /** Return a {@link BaseActions} with the same {@link Promise} but a different type. */
@@ -98,13 +114,45 @@ export default class BaseActions implements PromiseLike<void> {
   }
 
   /** Perform an action on the current page. */
-  step(name: string, callback: PageCallback): this {
+  step(name: string, callback: PageCallback) {
     return this.do(() => test.test.step(name, () => callback(this.page)))
   }
 
   /** Press a key, replacing the text `Mod` with `Meta` (`Cmd`) on macOS, and `Control`
    * on all other platforms. */
-  press(keyOrShortcut: string): this {
+  press<Key extends string>(keyOrShortcut: inputBindings.AutocompleteKeybind<Key>) {
     return this.do(page => BaseActions.press(page, keyOrShortcut))
+  }
+
+  /** Perform actions until a predicate passes. */
+  retry(
+    callback: (actions: this) => this,
+    predicate: (page: test.Page) => Promise<boolean>,
+    options: { retries?: number; delay?: number } = {}
+  ) {
+    // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+    const { retries = 3, delay = 1_000 } = options
+    return this.step('Perform actions with retries', async thePage => {
+      for (let i = 0; i < retries; i += 1) {
+        await callback(this)
+        if (await predicate(thePage)) {
+          // eslint-disable-next-line no-restricted-syntax
+          return
+        }
+        await thePage.waitForTimeout(delay)
+      }
+      throw new Error('This action did not succeed.')
+    })
+  }
+
+  /** Perform actions with the "Mod" modifier key pressed. */
+  withModPressed<R extends BaseActions>(callback: (actions: this) => R) {
+    return callback(
+      this.step('Press "Mod"', async page => {
+        await page.keyboard.down(await actions.modModifier(page))
+      })
+    ).step('Release "Mod"', async page => {
+      await page.keyboard.up(await actions.modModifier(page))
+    })
   }
 }

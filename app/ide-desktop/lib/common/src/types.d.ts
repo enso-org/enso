@@ -1,6 +1,8 @@
 /** @file Interfaces common to multiple modules. */
 import type * as React from 'react'
 
+import type Backend from './services/Backend'
+
 // ======================================
 // === Globally accessible interfaces ===
 // ======================================
@@ -22,6 +24,7 @@ interface EditorProps {
         metadata?: object | null
     ) => void
     readonly renameProject: (newName: string) => void
+    readonly backend: Backend | null
 }
 
 /** The value passed from the entrypoint to the dashboard, which enables the dashboard to
