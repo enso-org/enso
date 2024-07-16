@@ -37,7 +37,7 @@ class ReentrantLocking(logger: TruffleLogger) extends Locking {
       if (contextLocks.contains(contextId)) {
         contextLocks(contextId)
       } else {
-        val lock = new ContextLock(new ReentrantLock(true), contextId)
+        val lock = new ContextLockImpl(new ReentrantLock(true), contextId)
         contextLocks += (contextId -> lock)
         lock
       }
@@ -186,10 +186,11 @@ class ReentrantLocking(logger: TruffleLogger) extends Locking {
 
   /** @inheritdoc */
   override def withContextLock[T](
-    contextLock: ContextLock,
+    lock: ContextLock,
     where: Class[_],
     callable: Callable[T]
   ): T = {
+    val contextLock                = lock.asInstanceOf[ContextLockImpl]
     var contextLockTimestamp: Long = 0
     try {
       contextLockTimestamp = logLockAcquisition(
@@ -217,7 +218,8 @@ class ReentrantLocking(logger: TruffleLogger) extends Locking {
   }
 
   /** @inheritdoc */
-  override def removeContextLock(contextLock: ContextLock): Unit = {
+  override def removeContextLock(lock: ContextLock): Unit = {
+    val contextLock = lock.asInstanceOf[ContextLockImpl]
     contextMapLock.lock()
     try {
       if (contextLocks.contains(contextLock.uuid)) {
@@ -314,8 +316,9 @@ class ReentrantLocking(logger: TruffleLogger) extends Locking {
     contextMapLock.lock()
     try {
       for (ctx <- contextLocks) {
+        val contextLock = ctx._2.asInstanceOf[ContextLockImpl]
         assertNotLocked(
-          ctx._2.lock,
+          contextLock.lock,
           msg + s" lock when having context ${ctx._1} lock"
         )
       }
@@ -342,4 +345,7 @@ class ReentrantLocking(logger: TruffleLogger) extends Locking {
     )
     getContextLock(contextId)
   }
+
+  private case class ContextLockImpl(val lock: ReentrantLock, val uuid: UUID)
+      extends ContextLock {}
 }
