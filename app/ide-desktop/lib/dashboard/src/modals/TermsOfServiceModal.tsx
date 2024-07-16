@@ -14,6 +14,7 @@ import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 
 import LocalStorage from '#/utilities/LocalStorage'
+import * as object from '#/utilities/object'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 // =================
@@ -95,6 +96,9 @@ export function TermsOfServiceModal() {
   )
 
   if (shouldDisplay) {
+    // Note that this produces warnings about missing a `<Heading slot="title">`, even though
+    // all `ariaComponents.Dialog`s contain one. This is likely caused by Suspense discarding
+    // renders, and so it does not seem to be fixable.
     return (
       <>
         <ariaComponents.Dialog
@@ -129,7 +133,7 @@ export function TermsOfServiceModal() {
                           )}
                           id={checkboxId}
                           data-testid="terms-of-service-checkbox"
-                          {...register('agree')}
+                          {...object.omit(register('agree'), 'isInvalid')}
                         />
 
                         <label htmlFor={checkboxId}>
