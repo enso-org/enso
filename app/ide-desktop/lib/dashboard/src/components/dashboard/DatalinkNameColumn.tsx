@@ -4,7 +4,6 @@ import * as React from 'react'
 import DatalinkIcon from 'enso-assets/datalink.svg'
 
 import * as backendHooks from '#/hooks/backendHooks'
-import * as eventHooks from '#/hooks/eventHooks'
 import * as setAssetHooks from '#/hooks/setAssetHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
@@ -12,6 +11,8 @@ import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 
 import AssetEventType from '#/events/AssetEventType'
 import AssetListEventType from '#/events/AssetListEventType'
+
+import * as eventListProvider from '#/layouts/AssetsTable/EventListProvider'
 
 import type * as column from '#/components/dashboard/column'
 import EditableSpan from '#/components/EditableSpan'
@@ -36,9 +37,10 @@ export interface DatalinkNameColumnProps extends column.AssetColumnProps {}
  * This should never happen. */
 export default function DatalinkNameColumn(props: DatalinkNameColumnProps) {
   const { item, setItem, selected, state, rowState, setRowState, isEditable } = props
-  const { backend, assetEvents, dispatchAssetListEvent, setIsAssetPanelTemporarilyVisible } = state
+  const { backend, setIsAssetPanelTemporarilyVisible } = state
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const inputBindings = inputBindingsProvider.useInputBindings()
+  const dispatchAssetListEvent = eventListProvider.useDispatchAssetListEvent()
   if (item.type !== backendModule.AssetType.datalink) {
     // eslint-disable-next-line no-restricted-syntax
     throw new Error('`DatalinkNameColumn` can only display Datalinks.')
@@ -61,9 +63,8 @@ export default function DatalinkNameColumn(props: DatalinkNameColumnProps) {
     await Promise.resolve(null)
   }
 
-  eventHooks.useEventHandler(
-    assetEvents,
-    async event => {
+  eventListProvider.useAssetEventListener(async event => {
+    if (isEditable) {
       switch (event.type) {
         case AssetEventType.newProject:
         case AssetEventType.newFolder:
@@ -118,9 +119,8 @@ export default function DatalinkNameColumn(props: DatalinkNameColumnProps) {
           break
         }
       }
-    },
-    { isDisabled: !isEditable }
-  )
+    }
+  }, item.initialAssetEvents)
 
   const handleClick = inputBindings.handler({
     editName: () => {

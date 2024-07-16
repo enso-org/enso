@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 import org.enso.compiler.context.CompilerContext.Module;
 import org.enso.compiler.data.BindingsMap.DefinedEntity;
+import org.enso.compiler.data.BindingsMap.ResolvedImport;
 import org.enso.compiler.data.BindingsMap.ResolvedName;
 import org.graalvm.polyglot.Context;
 import scala.jdk.javaapi.CollectionConverters;
@@ -26,10 +27,33 @@ public class ModuleUtils {
     return getExportedSymbols(mod);
   }
 
+  public static List<ResolvedImport> getResolvedImports(Context ctx, String modName) {
+    var ensoCtx = ContextUtils.leakContext(ctx);
+    var mod = ensoCtx.getPackageRepository().getLoadedModule(modName).get();
+    return CollectionConverters.asJava(mod.getBindingsMap().resolvedImports());
+  }
+
   public static List<DefinedEntity> getDefinedEntities(Context ctx, String modName) {
     var ensoCtx = ContextUtils.leakContext(ctx);
     var mod = ensoCtx.getPackageRepository().getLoadedModule(modName).get();
     return CollectionConverters.asJava(mod.getBindingsMap().definedEntities());
+  }
+
+  /**
+   * Returns the loaded module with the given name, or null if no such module exist.
+   *
+   * @param modName Fully qualified name of the module
+   * @return module with the given name, or null if no such module exist
+   */
+  public static org.enso.interpreter.runtime.Module getLoadedModule(Context ctx, String modName) {
+    assert modName.contains(".") : "Module name must be fully qualified";
+    var ensoCtx = ContextUtils.leakContext(ctx);
+    var loadedModuleOpt = ensoCtx.getPackageRepository().getLoadedModule(modName);
+    if (loadedModuleOpt.isDefined()) {
+      return org.enso.interpreter.runtime.Module.fromCompilerModule(loadedModuleOpt.get());
+    } else {
+      return null;
+    }
   }
 
   private static Map<String, List<ResolvedName>> getExportedSymbols(Module module) {

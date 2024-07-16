@@ -39,8 +39,6 @@ case object ModuleNameConflicts extends IRPass {
         case mod @ Export.Module(
               _,
               _,
-              false,
-              None,
               None,
               None,
               true,

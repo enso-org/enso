@@ -56,7 +56,6 @@ class Passes(
             )
           } else List())
     ++ List(
-      ExportSymbolAnalysis.INSTANCE,
       ShadowedPatternFields,
       UnreachableMatchBranches,
       NestedPatternMatch,

@@ -7,8 +7,6 @@ import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as textProvider from '#/providers/TextProvider'
 
-import type * as assetListEvent from '#/events/assetListEvent'
-
 import AssetVersion from '#/layouts/AssetVersions/AssetVersion'
 import * as useAssetVersions from '#/layouts/AssetVersions/useAssetVersions'
 
@@ -40,12 +38,11 @@ interface AddNewVersionVariables {
 export interface AssetVersionsProps {
   readonly backend: Backend
   readonly item: AssetTreeNode
-  readonly dispatchAssetListEvent: (event: assetListEvent.AssetListEvent) => void
 }
 
 /** A list of previous versions of an asset. */
 export default function AssetVersions(props: AssetVersionsProps) {
-  const { backend, item, dispatchAssetListEvent } = props
+  const { backend, item } = props
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const [placeholderVersions, setPlaceholderVersions] = React.useState<
@@ -118,7 +115,6 @@ export default function AssetVersions(props: AssetVersionsProps) {
               item={item}
               backend={backend}
               latestVersion={latestVersion}
-              dispatchAssetListEvent={dispatchAssetListEvent}
               doRestore={() => {}}
             />
           )),
@@ -130,7 +126,6 @@ export default function AssetVersions(props: AssetVersionsProps) {
               item={item}
               backend={backend}
               latestVersion={latestVersion}
-              dispatchAssetListEvent={dispatchAssetListEvent}
               doRestore={() =>
                 restoreMutation.mutateAsync({
                   versionId: version.versionId,
