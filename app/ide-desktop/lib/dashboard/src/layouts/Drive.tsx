@@ -12,17 +12,14 @@ import * as backendProvider from '#/providers/BackendProvider'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as textProvider from '#/providers/TextProvider'
 
-import type * as assetEvent from '#/events/assetEvent'
-import type * as assetListEvent from '#/events/assetListEvent'
 import AssetListEventType from '#/events/AssetListEventType'
-
-import type * as dashboard from '#/pages/dashboard/Dashboard'
 
 import type * as assetPanel from '#/layouts/AssetPanel'
 import AssetPanel from '#/layouts/AssetPanel'
 import type * as assetSearchBar from '#/layouts/AssetSearchBar'
 import type * as assetsTable from '#/layouts/AssetsTable'
 import AssetsTable from '#/layouts/AssetsTable'
+import * as eventListProvider from '#/layouts/AssetsTable/EventListProvider'
 import CategorySwitcher from '#/layouts/CategorySwitcher'
 import * as categoryModule from '#/layouts/CategorySwitcher/Category'
 import type Category from '#/layouts/CategorySwitcher/Category'
@@ -65,38 +62,16 @@ enum DriveStatus {
 
 /** Props for a {@link Drive}. */
 export interface DriveProps {
-  readonly openedProjects: dashboard.Project[]
   readonly category: Category
   readonly setCategory: (category: Category) => void
   readonly hidden: boolean
   readonly initialProjectName: string | null
-  readonly assetListEvents: assetListEvent.AssetListEvent[]
-  readonly dispatchAssetListEvent: (directoryEvent: assetListEvent.AssetListEvent) => void
-  readonly assetEvents: assetEvent.AssetEvent[]
-  readonly dispatchAssetEvent: (directoryEvent: assetEvent.AssetEvent) => void
-  readonly doOpenEditor: (id: dashboard.ProjectId) => void
-  readonly doOpenProject: (project: dashboard.Project) => void
-  readonly doCloseProject: (project: dashboard.Project) => void
   readonly assetsManagementApiRef: React.Ref<assetsTable.AssetManagementApi>
 }
 
 /** Contains directory path and directory contents (projects, folders, secrets and files). */
 export default function Drive(props: DriveProps) {
-  const {
-    openedProjects,
-    doOpenEditor,
-    doCloseProject,
-    category,
-    setCategory,
-    hidden,
-    initialProjectName,
-    doOpenProject,
-    assetListEvents,
-    dispatchAssetListEvent,
-    assetEvents,
-    dispatchAssetEvent,
-    assetsManagementApiRef,
-  } = props
+  const { category, setCategory, hidden, initialProjectName, assetsManagementApiRef } = props
 
   const { isOffline } = offlineHooks.useOffline()
   const { localStorage } = localStorageProvider.useLocalStorage()
@@ -105,12 +80,15 @@ export default function Drive(props: DriveProps) {
   const localBackend = backendProvider.useLocalBackend()
   const backend = backendProvider.useBackend(category)
   const { getText } = textProvider.useText()
+  const dispatchAssetListEvent = eventListProvider.useDispatchAssetListEvent()
   const [query, setQuery] = React.useState(() => AssetQuery.fromString(''))
   const [suggestions, setSuggestions] = React.useState<readonly assetSearchBar.Suggestion[]>([])
   const [canDownload, setCanDownload] = React.useState(false)
   const [didLoadingProjectManagerFail, setDidLoadingProjectManagerFail] = React.useState(false)
-  const [assetPanelProps, setAssetPanelProps] =
+  const [assetPanelPropsRaw, setAssetPanelProps] =
     React.useState<assetPanel.AssetPanelRequiredProps | null>(null)
+  const assetPanelProps =
+    backend.type === assetPanelPropsRaw?.backend?.type ? assetPanelPropsRaw : null
   const [isAssetPanelEnabled, setIsAssetPanelEnabled] = React.useState(
     () => localStorage.get('isAssetPanelVisible') ?? false
   )
@@ -307,16 +285,11 @@ export default function Drive(props: DriveProps) {
               doCreateDirectory={doCreateDirectory}
               doCreateSecret={doCreateSecret}
               doCreateDatalink={doCreateDatalink}
-              dispatchAssetEvent={dispatchAssetEvent}
             />
 
             <div className="flex flex-1 gap-drive overflow-hidden">
               <div className="flex w-drive-sidebar flex-col gap-drive-sidebar py-drive-sidebar-y">
-                <CategorySwitcher
-                  category={category}
-                  setCategory={setCategory}
-                  dispatchAssetEvent={dispatchAssetEvent}
-                />
+                <CategorySwitcher category={category} setCategory={setCategory} />
                 {isCloud && (
                   <Labels
                     backend={backend}
@@ -350,7 +323,6 @@ export default function Drive(props: DriveProps) {
               ) : (
                 <AssetsTable
                   assetManagementApiRef={assetsManagementApiRef}
-                  openedProjects={openedProjects}
                   hidden={hidden}
                   query={query}
                   setQuery={setQuery}
@@ -358,16 +330,9 @@ export default function Drive(props: DriveProps) {
                   category={category}
                   setSuggestions={setSuggestions}
                   initialProjectName={initialProjectName}
-                  assetEvents={assetEvents}
-                  dispatchAssetEvent={dispatchAssetEvent}
-                  assetListEvents={assetListEvents}
-                  dispatchAssetListEvent={dispatchAssetListEvent}
                   setAssetPanelProps={setAssetPanelProps}
                   setIsAssetPanelTemporarilyVisible={setIsAssetPanelTemporarilyVisible}
                   targetDirectoryNodeRef={targetDirectoryNodeRef}
-                  doOpenEditor={doOpenEditor}
-                  doOpenProject={doOpenProject}
-                  doCloseProject={doCloseProject}
                 />
               )}
             </div>
@@ -385,8 +350,6 @@ export default function Drive(props: DriveProps) {
               item={assetPanelProps?.item ?? null}
               setItem={assetPanelProps?.setItem ?? null}
               category={category}
-              dispatchAssetEvent={dispatchAssetEvent}
-              dispatchAssetListEvent={dispatchAssetListEvent}
               isReadonly={category.type === categoryModule.CategoryType.trash}
             />
           </div>

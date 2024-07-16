@@ -4,7 +4,7 @@ import * as React from 'react'
 import NetworkIcon from 'enso-assets/network.svg'
 
 import * as backendHooks from '#/hooks/backendHooks'
-import * as eventHooks from '#/hooks/eventHooks'
+import * as projectHooks from '#/hooks/projectHooks'
 import * as setAssetHooks from '#/hooks/setAssetHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
@@ -14,6 +14,8 @@ import * as textProvider from '#/providers/TextProvider'
 
 import AssetEventType from '#/events/AssetEventType'
 import AssetListEventType from '#/events/AssetListEventType'
+
+import * as eventListProvider from '#/layouts/AssetsTable/EventListProvider'
 
 import type * as column from '#/components/dashboard/column'
 import ProjectIcon from '#/components/dashboard/ProjectIcon'
@@ -52,17 +54,16 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
     setRowState,
     state,
     isEditable,
-    doCloseProject,
-    doOpenProject,
     backendType,
     isOpened,
   } = props
-  const { backend, selectedKeys, assetEvents, dispatchAssetListEvent } = state
-  const { nodeMap, doOpenEditor } = state
+  const { backend, selectedKeys, nodeMap } = state
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { user } = authProvider.useNonPartialUserSession()
   const { getText } = textProvider.useText()
   const inputBindings = inputBindingsProvider.useInputBindings()
+  const dispatchAssetListEvent = eventListProvider.useDispatchAssetListEvent()
+  const doOpenProject = projectHooks.useOpenProject()
 
   if (item.type !== backendModule.AssetType.project) {
     // eslint-disable-next-line no-restricted-syntax
@@ -94,7 +95,12 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
   const updateProjectMutation = backendHooks.useBackendMutation(backend, 'updateProject')
   const duplicateProjectMutation = backendHooks.useBackendMutation(backend, 'duplicateProject')
   const getProjectDetailsMutation = backendHooks.useBackendMutation(backend, 'getProjectDetails')
-  const uploadFileMutation = backendHooks.useBackendMutation(backend, 'uploadFile')
+  const uploadFileMutation = backendHooks.useBackendMutation(backend, 'uploadFile', {
+    meta: {
+      invalidates: [['assetVersions', item.item.id, item.item.title]],
+      awaitInvalidates: true,
+    },
+  })
 
   const setIsEditing = (isEditingName: boolean) => {
     if (isEditable) {
@@ -113,7 +119,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
       try {
         await updateProjectMutation.mutateAsync([
           asset.id,
-          { ami: null, ideVersion: null, projectName: newTitle, parentId: asset.parentId },
+          { ami: null, ideVersion: null, projectName: newTitle },
           asset.title,
         ])
       } catch (error) {
@@ -123,9 +129,8 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
     }
   }
 
-  eventHooks.useEventHandler(
-    assetEvents,
-    async event => {
+  eventListProvider.useAssetEventListener(async event => {
+    if (isEditable) {
       switch (event.type) {
         case AssetEventType.newFolder:
         case AssetEventType.newDatalink:
@@ -182,9 +187,6 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                   id: createdProject.projectId,
                   projectState: object.merge(projectState, {
                     type: backendModule.ProjectState.placeholder,
-                    ...(backend.type === backendModule.BackendType.remote
-                      ? {}
-                      : { path: createdProject.state.path }),
                   }),
                 })
               )
@@ -243,7 +245,11 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                 setAsset(object.merge(asset, { title: listedProject.packageName, id: projectId }))
               } else {
                 const createdFile = await uploadFileMutation.mutateAsync([
-                  { fileId, fileName: `${title}.${extension}`, parentDirectoryId: asset.parentId },
+                  {
+                    fileId,
+                    fileName: `${title}.${extension}`,
+                    parentDirectoryId: asset.parentId,
+                  },
                   file,
                 ])
                 const project = createdFile.project
@@ -278,9 +284,8 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
           break
         }
       }
-    },
-    { isDisabled: !isEditable }
-  )
+    }
+  }, item.initialAssetEvents)
 
   const handleClick = inputBindings.handler({
     editName: () => {
@@ -330,13 +335,6 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
           // This is a workaround for a temporary bad state in the backend causing the
           // `projectState` key to be absent.
           item={object.merge(asset, { projectState })}
-          doCloseProject={id => {
-            doCloseProject({ id, parentId: asset.parentId, title: asset.title, type: backendType })
-          }}
-          doOpenProject={id => {
-            doOpenProject({ id, type: backendType, parentId: asset.parentId, title: asset.title })
-          }}
-          openProjectTab={doOpenEditor}
         />
       )}
       <EditableSpan

@@ -4,7 +4,7 @@ import * as test from '@playwright/test'
 import * as actions from './actions'
 
 test.test('members settings', async ({ page }) => {
-  const { api } = await actions.mockAllAndLogin({ page })
+  const api = await actions.mockAllAndLoginAndExposeAPI({ page })
   const localActions = actions.settings.members
 
   // Setup

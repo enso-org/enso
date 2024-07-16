@@ -12,6 +12,7 @@ import type * as textProvider from '#/providers/TextProvider'
 import Backend, * as backend from '#/services/Backend'
 import * as remoteBackendPaths from '#/services/remoteBackendPaths'
 
+import * as download from '#/utilities/download'
 import type HttpClient from '#/utilities/HttpClient'
 import * as object from '#/utilities/object'
 
@@ -34,9 +35,6 @@ const STATUS_NOT_AUTHORIZED = 401
 
 /** The number of milliseconds in one day. */
 const ONE_DAY_MS = 86_400_000
-
-/** The interval between requests checking whether a project is ready to be opened in the IDE. */
-const CHECK_STATUS_INTERVAL_MS = 5000
 
 // =============
 // === Types ===
@@ -551,10 +549,9 @@ export default class RemoteBackend extends Backend {
    * @throws An error if a non-successful status code (not 200-299) was received. */
   override async deleteAsset(
     assetId: backend.AssetId,
-    bodyRaw: backend.DeleteAssetRequestBody,
+    body: backend.DeleteAssetRequestBody,
     title: string
   ) {
-    const body = object.omit(bodyRaw, 'parentId')
     const paramsString = new URLSearchParams([['force', String(body.force)]]).toString()
     const path = remoteBackendPaths.deleteAssetPath(assetId) + '?' + paramsString
     const response = await this.delete(path)
@@ -763,10 +760,9 @@ export default class RemoteBackend extends Backend {
    * @throws An error if a non-successful status code (not 200-299) was received. */
   override async updateProject(
     projectId: backend.ProjectId,
-    bodyRaw: backend.UpdateProjectRequestBody,
+    body: backend.UpdateProjectRequestBody,
     title: string
   ): Promise<backend.UpdatedProject> {
-    const body = object.omit(bodyRaw, 'parentId')
     const path = remoteBackendPaths.projectUpdatePath(projectId)
     const response = await this.put<backend.UpdatedProject>(path, body)
     if (!responseIsSuccessful(response)) {
@@ -1124,21 +1120,9 @@ export default class RemoteBackend extends Backend {
     }
   }
 
-  /** Return a {@link Promise} that resolves only when a project is ready to open. */
-  override async waitUntilProjectIsReady(
-    projectId: backend.ProjectId,
-    directory: backend.DirectoryId | null,
-    title: string,
-    abortSignal?: AbortSignal
-  ) {
-    let project = await this.getProjectDetails(projectId, directory, title)
-
-    while (project.state.type !== backend.ProjectState.opened && abortSignal?.aborted !== true) {
-      await new Promise<void>(resolve => setTimeout(resolve, CHECK_STATUS_INTERVAL_MS))
-      project = await this.getProjectDetails(projectId, directory, title)
-    }
-
-    return project
+  /** Download from an arbitrary URL that is assumed to originate from this backend. */
+  override async download(url: string, name?: string) {
+    await download.downloadWithHeaders(url, this.client.defaultHeaders, name)
   }
 
   /** Get the default version given the type of version (IDE or backend). */

@@ -34,3 +34,13 @@ export function normalizeSlashes(path: string): Path {
     return Path(path)
   }
 }
+
+// ===========================
+// === getDirectoryAndName ===
+// ===========================
+
+/** Split a {@link Path} inito the path of its parent directory, and its file name. */
+export function getDirectoryAndName(path: Path) {
+  const [, directoryPath = '', fileName = ''] = path.match(/^(.+)[/]([^/]+)$/) ?? []
+  return { directoryPath: Path(directoryPath), fileName }
+}

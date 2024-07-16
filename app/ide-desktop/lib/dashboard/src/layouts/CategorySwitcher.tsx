@@ -18,9 +18,9 @@ import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
-import type * as assetEvent from '#/events/assetEvent'
 import AssetEventType from '#/events/AssetEventType'
 
+import * as eventListProvider from '#/layouts/AssetsTable/EventListProvider'
 import * as categoryModule from '#/layouts/CategorySwitcher/Category'
 import type Category from '#/layouts/CategorySwitcher/Category'
 
@@ -57,12 +57,11 @@ interface CategoryMetadata {
 interface InternalCategorySwitcherItemProps extends CategoryMetadata {
   readonly currentCategory: Category
   readonly setCategory: (category: Category) => void
-  readonly dispatchAssetEvent: (directoryEvent: assetEvent.AssetEvent) => void
 }
 
 /** An entry in a {@link CategorySwitcher}. */
 function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
-  const { currentCategory, setCategory, dispatchAssetEvent } = props
+  const { currentCategory, setCategory } = props
   const { isNested = false, category, icon, label, buttonLabel, dropZoneLabel } = props
   const { iconClassName } = props
   const { user } = authProvider.useNonPartialUserSession()
@@ -71,6 +70,7 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
   const localBackend = backendProvider.useLocalBackend()
   const { isOffline } = offlineHooks.useOffline()
   const isCurrent = categoryModule.areCategoriesEqual(currentCategory, category)
+  const dispatchAssetEvent = eventListProvider.useDispatchAssetEvent()
   const getCategoryError = (otherCategory: Category) => {
     switch (otherCategory.type) {
       case categoryModule.CategoryType.local: {
@@ -210,15 +210,16 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
 export interface CategorySwitcherProps {
   readonly category: Category
   readonly setCategory: (category: Category) => void
-  readonly dispatchAssetEvent: (directoryEvent: assetEvent.AssetEvent) => void
 }
 
 /** A switcher to choose the currently visible assets table categoryModule.categoryType. */
 export default function CategorySwitcher(props: CategorySwitcherProps) {
-  const { category, setCategory, dispatchAssetEvent } = props
+  const { category, setCategory } = props
   const { user } = authProvider.useNonPartialUserSession()
   const { getText } = textProvider.useText()
   const remoteBackend = backendProvider.useRemoteBackend()
+  const dispatchAssetEvent = eventListProvider.useDispatchAssetEvent()
+
   const localBackend = backendProvider.useLocalBackend()
   const itemProps = { currentCategory: category, setCategory, dispatchAssetEvent }
   const selfDirectoryId = backend.DirectoryId(`directory-${user.userId.replace(/^user-/, '')}`)

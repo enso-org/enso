@@ -107,7 +107,7 @@ export default function NewUserGroupModal(props: NewUserGroupModalProps) {
           </div>
           <aria.FieldError className="text-red-700/90">{nameError}</aria.FieldError>
         </aria.TextField>
-        <ariaComponents.ButtonGroup>
+        <ariaComponents.ButtonGroup className="relative">
           <ariaComponents.Button
             variant="submit"
             isDisabled={!canSubmit}

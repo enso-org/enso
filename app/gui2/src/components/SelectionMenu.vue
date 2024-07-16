@@ -56,7 +56,7 @@ const emit = defineEmits<{
   backdrop-filter: var(--blur-app-bg);
 }
 
-.toggledOff {
+.toggledOff svg {
   opacity: 0.6;
 }
 

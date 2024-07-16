@@ -212,8 +212,6 @@ export interface ProjectStateType {
     readonly ec2PublicIpAddress?: string
     readonly currentSessionId?: string
     readonly openedBy?: EmailAddress
-    /** Only present on the Local backend. */
-    readonly path?: Path
 }
 
 export const IS_OPENING: Readonly<Record<ProjectState, boolean>> = {
@@ -242,7 +240,7 @@ export const IS_OPENING_OR_OPENED: Readonly<Record<ProjectState, boolean>> = {
 
 /** Common `Project` fields returned by all `Project`-related endpoints. */
 export interface BaseProject {
-    readonly organizationId: string
+    readonly organizationId: OrganizationId
     readonly projectId: ProjectId
     readonly name: string
 }
@@ -1053,15 +1051,11 @@ export interface UpdateFileRequestBody {
 export interface UpdateAssetRequestBody {
     readonly parentDirectoryId: DirectoryId | null
     readonly description: string | null
-    /** Only present on the Local backend. */
-    readonly projectPath?: Path
 }
 
 /** HTTP request body for the "delete asset" endpoint. */
 export interface DeleteAssetRequestBody {
     readonly force: boolean
-    /** Only used by the Local backend. */
-    readonly parentId: DirectoryId
 }
 
 /** HTTP request body for the "create project" endpoint. */
@@ -1078,8 +1072,6 @@ export interface UpdateProjectRequestBody {
     readonly projectName: string | null
     readonly ami: Ami | null
     readonly ideVersion: VersionNumber | null
-    /** Only used by the Local backend. */
-    readonly parentId: DirectoryId
 }
 
 /** HTTP request body for the "open project" endpoint. */
@@ -1476,11 +1468,6 @@ export default abstract class Backend {
         projectId?: string | null,
         metadata?: object | null
     ): Promise<void>
-    /** Return a {@link Promise} that resolves only when a project is ready to open. */
-    abstract waitUntilProjectIsReady(
-        projectId: ProjectId,
-        directory: DirectoryId | null,
-        title: string,
-        abortSignal?: AbortSignal
-    ): Promise<Project>
+    /** Download from an arbitrary URL that is assumed to originate from this backend. */
+    abstract download(url: string, name?: string): Promise<void>
 }
