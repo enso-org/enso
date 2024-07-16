@@ -4,11 +4,11 @@ import * as vueQuery from '@tanstack/vue-query'
 import { isOnLinux } from 'enso-common/src/detect'
 import * as commonQuery from 'enso-common/src/queryClient'
 import * as dashboard from 'enso-dashboard'
+import 'enso-dashboard/src/tailwind.css'
 import { isDevMode } from 'shared/util/detect'
 import { lazyVueInReact } from 'veaury'
 import { type App } from 'vue'
 
-import type { EditorRunner } from 'enso-common/src/types'
 import 'enso-dashboard/src/tailwind.css'
 import { AsyncApp } from './asyncApp'
 
