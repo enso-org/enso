@@ -648,6 +648,9 @@ importers:
       ts-results:
         specifier: ^3.3.0
         version: 3.3.0
+      use-zustand:
+        specifier: ^0.1.0
+        version: 0.1.0(react@18.3.1)
       validator:
         specifier: ^13.12.0
         version: 13.12.0
@@ -6963,6 +6966,11 @@ packages:
     resolution: {integrity: sha512-PElTlVMwpblvbNqQ82d2n6RjStvdSoNe9FG28kNfz3WiXilJm4DdNkEzRhCZuIDwY8U08WVihhGR5iRqAwfDiw==}
     peerDependencies:
       react: ^16.8.0 || ^17.0.0 || ^18.0.0
+
+  use-zustand@0.1.0:
+    resolution: {integrity: sha512-6VEVB9+5wORBDtcoghoi0w9jy+IK6GkwMXrt36xCpYr0UmjAyyliPDySV1Nt8lHSlOSzpmyZv0J6elHegVArUQ==}
+    peerDependencies:
+      react: '>=18.0.0'
 
   utf8-byte-length@1.0.5:
     resolution: {integrity: sha512-Xn0w3MtiQ6zoz2vFyUVruaCL53O/DwUvkEeOvj+uulMm0BkUGYWmBYVyElqZaSLhY6ZD0ulfU3aBra2aVT4xfA==}
@@ -13813,12 +13821,6 @@ snapshots:
     dependencies:
       fast-diff: 1.3.0
 
-  prettier-plugin-organize-imports@4.0.0(prettier@3.3.2)(typescript@5.5.3):
-    dependencies:
-      prettier: 3.3.2
-      typescript: 5.5.3
-    optional: true
-
   prettier-plugin-organize-imports@4.0.0(prettier@3.3.2)(typescript@5.5.3)(vue-tsc@2.0.24(typescript@5.5.3)):
     dependencies:
       prettier: 3.3.2
@@ -13831,7 +13833,7 @@ snapshots:
       prettier: 3.3.2
     optionalDependencies:
       '@ianvs/prettier-plugin-sort-imports': 4.3.0(@vue/compiler-sfc@3.4.31)(prettier@3.3.2)
-      prettier-plugin-organize-imports: 4.0.0(prettier@3.3.2)(typescript@5.5.3)
+      prettier-plugin-organize-imports: 4.0.0(prettier@3.3.2)(typescript@5.5.3)(vue-tsc@2.0.24(typescript@5.5.3))
 
   prettier@3.3.2: {}
 
@@ -14935,6 +14937,10 @@ snapshots:
       react: 18.3.1
 
   use-sync-external-store@1.2.2(react@18.3.1):
+    dependencies:
+      react: 18.3.1
+
+  use-zustand@0.1.0(react@18.3.1):
     dependencies:
       react: 18.3.1
 
