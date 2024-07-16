@@ -72,6 +72,7 @@ test.each`
           if (astId === id('entireFunction')) {
             return {
               suggestion: callSuggestion,
+              methodCallSource: astId,
               methodCall: {
                 notAppliedArguments: [],
                 methodPointer: entryMethodPointer(callSuggestion)!,

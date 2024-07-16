@@ -32,7 +32,7 @@ export default defineConfig({
     vue(),
     react({
       include: fileURLToPath(new URL('../ide-desktop/lib/dashboard/**/*.tsx', import.meta.url)),
-      babel: { plugins: ['@babel/plugin-syntax-import-assertions'] },
+      babel: { plugins: ['@babel/plugin-syntax-import-attributes'] },
     }),
     gatewayServer(),
     ...(process.env.NODE_ENV === 'development' ? [await projectManagerShim()] : []),
@@ -63,6 +63,9 @@ export default defineConfig({
     // Single hardcoded usage of `global` in aws-amplify.
     'global.TYPED_ARRAY_SUPPORT': true,
   },
+  esbuild: {
+    dropLabels: process.env.NODE_ENV === 'development' ? [] : ['DEV'],
+  },
   assetsInclude: ['**/*.yaml', '**/*.svg'],
   css: {
     postcss: {
@@ -89,10 +92,9 @@ export default defineConfig({
 function gatewayServer(): Plugin {
   return {
     name: 'gateway-server',
-    configureServer(server) {
-      if (POLYGLOT_YDOC_SERVER != undefined || server.httpServer == null) return
-
-      createGatewayServer(server.httpServer, undefined)
+    configureServer({ httpServer }) {
+      if (httpServer == null || POLYGLOT_YDOC_SERVER != undefined) return
+      createGatewayServer(httpServer, undefined)
     },
   }
 }

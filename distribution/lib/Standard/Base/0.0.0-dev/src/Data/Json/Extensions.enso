@@ -1,18 +1,20 @@
 import project.Any.Any
 import project.Data.Array.Array
 import project.Data.Array_Proxy.Array_Proxy
+import project.Data.Decimal.Decimal
+import project.Data.Dictionary.Dictionary
 import project.Data.Json.JS_Object
 import project.Data.Json.Json
 import project.Data.Locale.Locale
-import project.Data.Map.Map
 import project.Data.Numbers.Float
 import project.Data.Numbers.Integer
 import project.Data.Numbers.Number
+import project.Data.Numeric.Math_Context.Math_Context
 import project.Data.Text.Text
-import project.Data.Text.Text_Sub_Range.Text_Sub_Range
 import project.Data.Vector.Vector
 import project.Error.Error
 import project.Errors.Deprecated.Deprecated
+import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Meta
 import project.Nothing.Nothing
 import project.Warning.Warning
@@ -56,8 +58,31 @@ Number.to_js_object self = case self of
         ## JS Safe Integer range -(2^53 - 1) to (2^53 - 1)
         js_max_integer = 9007199254740991
         if self >= -js_max_integer && self < js_max_integer then self else
-            JS_Object.from_pairs [["type", "BigInt"], ["value", self.to_text]]
+            JS_Object.from_pairs [["type", "Integer"], ["value", self.to_text]]
     _ -> self
+
+## PRIVATE
+   Converts a JS_Object to an Integer.
+Integer.from (that:JS_Object) =
+    case that.get "type" == "Integer" && ["value"].all that.contains_key of
+        True -> Integer.parse (that.at "value")
+        False -> Error.throw (Illegal_Argument.Error "Invalid JS_Object for Integer.")
+
+## PRIVATE
+   Converts the given value to a JSON serializable object.
+Decimal.to_js_object : JS_Object
+Decimal.to_js_object self =
+    JS_Object.from_pairs [["type", "Decimal"], ["value", self.to_text], ["scale", self.scale], ["precision", self.precision]]
+
+## PRIVATE
+   Converts a JS_Object to a Decimal.
+Decimal.from (that:JS_Object) =
+    case that.get "type" == "Decimal" && ["value", "scale", "precision"].all that.contains_key of
+        True ->
+            math_context = Math_Context.new (that.at "precision")
+            raw_value = Decimal.from_string (that.at "value") math_context
+            raw_value.with_scale (that.at "scale")
+        False -> Error.throw (Illegal_Argument.Error "Invalid JS_Object for Decimal.")
 
 ## PRIVATE
    Converts the given value to a JSON serializable object.
@@ -157,10 +182,10 @@ Locale.to_js_object self =
    For Map, this is serialized as a Vector of Key-Value pairs.
 
    Enso Maps support arbitrary types as map keys, so we cannot serialize them into JS Objects because there only strings are accepted as keys.
-Map.to_js_object : JS_Object
-Map.to_js_object self =
-    map_vector = self.to_vector
-    map_vector.map p-> [p.first.to_js_object, p.second.to_js_object]
+Dictionary.to_js_object : JS_Object
+Dictionary.to_js_object self =
+    as_vector = self.to_vector
+    as_vector.map p-> [p.first.to_js_object, p.second.to_js_object]
 
 ## PRIVATE
    ICON convert

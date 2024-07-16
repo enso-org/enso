@@ -59,7 +59,7 @@ abstract class JsonRpcServerTestKit
 
   def clientControllerFactory(): ClientControllerFactory
 
-  var _clientControllerFactory: ClientControllerFactory = _
+  private var _clientControllerFactory: ClientControllerFactory = _
 
   override def beforeEach(): Unit = {
     super.beforeEach()
@@ -67,7 +67,7 @@ abstract class JsonRpcServerTestKit
     factory.init()
     _clientControllerFactory = clientControllerFactory()
     server                   = new JsonRpcServer(factory, _clientControllerFactory)
-    binding                  = Await.result(server.bind(interface, port = 0), 3.seconds)
+    binding                  = Await.result(server.bind(interface, port = 0), 5.seconds.dilated)
     address                  = s"ws://$interface:${binding.localAddress.getPort}"
   }
 
@@ -174,10 +174,12 @@ abstract class JsonRpcServerTestKit
     def fuzzyExpectJson(
       json: Json,
       timeout: FiniteDuration = 5.seconds.dilated
-    )(implicit pos: Position): Assertion = {
+    )(implicit pos: Position): Json = {
       val parsed = parse(expectMessage(timeout))
 
       parsed should fuzzyMatchJson(json)
+
+      inside(parsed) { case Right(json) => json }
     }
 
     def expectNoMessage(): Unit = outActor.expectNoMessage()
@@ -191,9 +193,10 @@ abstract class JsonRpcServerTestKit
 trait FuzzyJsonMatchers { self: Matchers =>
   class JsonEquals(expected: Json)
       extends Matcher[Either[io.circe.ParsingFailure, Json]] {
-    val patch = inferPatch(expected)
 
-    def apply(left: Either[io.circe.ParsingFailure, Json]) = {
+    private val patch = inferPatch(expected)
+
+    def apply(left: Either[io.circe.ParsingFailure, Json]): MatchResult = {
       val leftFormatted     = patch[scala.util.Try](left.getOrElse(Json.Null))
       val expectedFormatted = patch[scala.util.Try](expected)
       MatchResult(

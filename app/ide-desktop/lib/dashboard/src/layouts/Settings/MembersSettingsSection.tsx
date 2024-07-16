@@ -12,7 +12,6 @@ import * as textProvider from '#/providers/TextProvider'
 
 import * as ariaComponents from '#/components/AriaComponents'
 import * as paywall from '#/components/Paywall'
-import HorizontalMenuBar from '#/components/styled/HorizontalMenuBar'
 
 import InviteUsersModal from '#/modals/InviteUsersModal'
 
@@ -62,7 +61,7 @@ export default function MembersSettingsSection() {
 
   return (
     <>
-      <HorizontalMenuBar>
+      <ariaComponents.ButtonGroup>
         <ariaComponents.DialogTrigger>
           <ariaComponents.Button variant="bar" rounded="full" size="medium">
             {getText('inviteMembers')}
@@ -72,7 +71,7 @@ export default function MembersSettingsSection() {
         </ariaComponents.DialogTrigger>
 
         {seatsLeft != null && (
-          <div className="flex gap-1">
+          <div className="flex items-center gap-1">
             <ariaComponents.Text>
               {seatsLeft <= 0
                 ? getText('noSeatsLeft')
@@ -82,7 +81,7 @@ export default function MembersSettingsSection() {
             <paywall.PaywallDialogButton feature="inviteUserFull" variant="link" showIcon={false} />
           </div>
         )}
-      </HorizontalMenuBar>
+      </ariaComponents.ButtonGroup>
 
       <table className="table-fixed self-start rounded-rows">
         <thead>

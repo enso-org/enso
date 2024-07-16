@@ -27,7 +27,8 @@ import { arrayEquals } from '@/util/data/array'
 import type { Opt } from '@/util/data/opt'
 import { qnLastSegment, tryQualifiedName } from '@/util/qualifiedName'
 import { autoUpdate, offset, shift, size, useFloating } from '@floating-ui/vue'
-import { computed, proxyRefs, ref, watch, type ComponentInstance, type RendererNode } from 'vue'
+import type { Ref, RendererNode, VNode } from 'vue'
+import { computed, proxyRefs, ref, shallowRef, watch } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
 const suggestions = useSuggestionDbStore()
@@ -36,49 +37,57 @@ const graph = useGraphStore()
 const tree = injectWidgetTree()
 
 const widgetRoot = ref<HTMLElement>()
-const dropdownElement = ref<ComponentInstance<typeof DropdownWidget>>()
+const dropdownElement = ref<HTMLElement>()
+const activityElement = ref<HTMLElement>()
 
 const editedWidget = ref<string>()
 const editedValue = ref<Ast.Owned | string | undefined>()
 const isHovered = ref(false)
+/** See @{link Actions.setActivity} */
+const activity = shallowRef<VNode>()
 
 // How much wider a dropdown can be than a port it is attached to, when a long text is present.
 // Any text beyond that limit will receive an ellipsis and sliding animation on hover.
 const MAX_DROPDOWN_OVERSIZE_PX = 150
 
-const { floatingStyles } = useFloating(widgetRoot, dropdownElement, {
-  middleware: computed(() => {
-    return [
-      offset((state) => {
-        const NODE_HEIGHT = 32
-        return {
-          mainAxis: (NODE_HEIGHT - state.rects.reference.height) / 2,
-        }
-      }),
-      size(() => ({
-        elementContext: 'reference',
-        apply({ elements, rects, availableWidth }) {
-          const PORT_PADDING_X = 8
-          const screenOverflow = Math.max(
-            (rects.floating.width - availableWidth) / 2 + PORT_PADDING_X,
-            0,
-          )
-          const portWidth = rects.reference.width + PORT_PADDING_X * 2
+function dropdownStyles(dropdownElement: Ref<HTMLElement | undefined>, limitWidth: boolean) {
+  return useFloating(widgetRoot, dropdownElement, {
+    middleware: computed(() => {
+      return [
+        offset((state) => {
+          const NODE_HEIGHT = 32
+          return {
+            mainAxis: (NODE_HEIGHT - state.rects.reference.height) / 2,
+          }
+        }),
+        size(() => ({
+          elementContext: 'reference',
+          apply({ elements, rects, availableWidth }) {
+            const PORT_PADDING_X = 8
+            const screenOverflow = Math.max(
+              (rects.floating.width - availableWidth) / 2 + PORT_PADDING_X,
+              0,
+            )
+            const portWidth = rects.reference.width + PORT_PADDING_X * 2
 
-          const minWidth = `${Math.max(portWidth - screenOverflow, 0)}px`
-          const maxWidth = `${portWidth + MAX_DROPDOWN_OVERSIZE_PX}px`
+            const minWidth = `${Math.max(portWidth - screenOverflow, 0)}px`
+            const maxWidth = limitWidth ? `${portWidth + MAX_DROPDOWN_OVERSIZE_PX}px` : null
 
-          Object.assign(elements.floating.style, { minWidth, maxWidth })
-          elements.floating.style.setProperty('--dropdown-max-width', maxWidth)
-        },
-      })),
-      // Try to keep the dropdown within node's bounds.
-      shift(() => (tree.nodeElement ? { boundary: tree.nodeElement } : {})),
-      shift(), // Always keep within screen bounds, overriding node bounds.
-    ]
-  }),
-  whileElementsMounted: autoUpdate,
-})
+            Object.assign(elements.floating.style, { minWidth, maxWidth })
+            elements.floating.style.setProperty('--dropdown-max-width', maxWidth)
+          },
+        })),
+        // Try to keep the dropdown within node's bounds.
+        shift(() => (tree.nodeElement ? { boundary: tree.nodeElement } : {})),
+        shift(), // Always keep within screen bounds, overriding node bounds.
+      ]
+    }),
+    whileElementsMounted: autoUpdate,
+  })
+}
+
+const { floatingStyles } = dropdownStyles(dropdownElement, true)
+const { floatingStyles: activityStyles } = dropdownStyles(activityElement, false)
 
 class ExpressionTag {
   private cachedExpressionAst: Ast.Ast | undefined
@@ -129,7 +138,7 @@ class ExpressionTag {
 class ActionTag {
   constructor(
     readonly label: string,
-    readonly onClick: () => void,
+    readonly onClick: (dropdownActions: Actions) => void,
   ) {}
 
   static FromItem(item: CustomDropdownItem): ActionTag {
@@ -196,7 +205,7 @@ const removeSurroundingParens = (expr?: string) => expr?.trim().replaceAll(/(^[(
 const selectedExpressions = computed(() => {
   const selected = new Set<string>()
   if (isMulti.value) {
-    for (const element of getValues(props.input.value)) {
+    for (const element of getValues(editedValue.value ?? props.input.value)) {
       const normalized = removeSurroundingParens(element.code())
       if (normalized) selected.add(normalized)
     }
@@ -261,15 +270,29 @@ watch(showArrow, (arrowShown) => {
   }
 })
 
+function onClose() {
+  activity.value = undefined
+}
+
 const isMulti = computed(() => props.input.dynamicConfig?.kind === 'Multiple_Choice')
 const dropDownInteraction = WidgetEditHandler.New('WidgetSelection', props.input, {
-  cancel: () => {},
-  end: () => {},
+  cancel: onClose,
+  end: onClose,
   pointerdown: (e, _) => {
-    if (targetIsOutside(e, unrefElement(dropdownElement))) {
+    if (
+      targetIsOutside(e, unrefElement(dropdownElement)) &&
+      targetIsOutside(e, unrefElement(activityElement)) &&
+      targetIsOutside(e, unrefElement(widgetRoot))
+    ) {
       dropDownInteraction.end()
       if (editedWidget.value)
         props.onUpdate({ portUpdate: { origin: props.input.portId, value: editedValue.value } })
+    } else if (isMulti.value) {
+      // In multi-select mode the children contain actual values; when a dropdown click occurs,
+      // we allow the event to propagate so the child widget can commit before the dropdown-toggle occurs.
+      // We don't do this in single-select mode because the value is treated as a filter in that case,
+      // so it shouldn't be committed as a value before the dropdown operation.
+      return false
     }
   },
   start: () => {
@@ -284,17 +307,27 @@ const dropDownInteraction = WidgetEditHandler.New('WidgetSelection', props.input
     dropDownInteraction.start()
     return true
   },
+  childEnded: () => {
+    if (!isMulti.value) dropDownInteraction.end()
+  },
 })
 
 function toggleDropdownWidget() {
-  if (!dropDownInteraction.active.value) dropDownInteraction.start()
+  if (!dropDownInteraction.isActive()) dropDownInteraction.start()
   else dropDownInteraction.cancel()
 }
 
+const dropdownActions: Actions = {
+  setActivity: (newActivity) => {
+    activity.value = newActivity
+  },
+  close: dropDownInteraction.end.bind(dropDownInteraction),
+}
+
 function onClick(clickedEntry: Entry, keepOpen: boolean) {
-  if (clickedEntry.tag instanceof ActionTag) clickedEntry.tag.onClick()
+  if (clickedEntry.tag instanceof ActionTag) clickedEntry.tag.onClick(dropdownActions)
   else expressionTagClicked(clickedEntry.tag, clickedEntry.selected)
-  if (!(keepOpen || isMulti.value)) {
+  if (!(keepOpen || isMulti.value || activity.value)) {
     // We cancel interaction instead of ending it to restore the old value in the inner widget;
     // if we clicked already selected entry, there would be no AST change, thus the inner
     // widget's content would not be updated.
@@ -338,7 +371,7 @@ function expressionTagClicked(tag: ExpressionTag, previousState: boolean) {
   const edit = graph.startEdit()
   const tagValue = resolveTagExpression(edit, tag)
   if (isMulti.value) {
-    const inputValue = props.input.value
+    const inputValue = editedValue.value ?? props.input.value
     if (inputValue instanceof Ast.Vector) {
       toggleVectorValue(edit.getVersion(inputValue), tagValue, previousState)
       props.onUpdate({ edit })
@@ -359,6 +392,8 @@ const arrowLocation = ref()
 </script>
 
 <script lang="ts">
+import { CustomDropdownItemsKeySymbol as CustomDropdownItemsKey } from '@/util/symbols'
+
 function isHandledByCheckboxWidget(parameter: SuggestionEntryArgument | undefined): boolean {
   return (
     parameter?.tagValues != null &&
@@ -393,10 +428,22 @@ export interface CustomDropdownItem {
   /** Displayed label. */
   label: string
   /** Action to perform when clicked. */
-  onClick: () => void
+  onClick: (dropdownActions: Actions) => void
 }
 
-export const CustomDropdownItemsKey: unique symbol = Symbol('CustomDropdownItems')
+/** Actions a {@link CustomDropdownItem} may perform when clicked. */
+export interface Actions {
+  /**
+   * Provide an alternative dialog to be rendered in place of the dropdown.
+   *
+   * For example, the {@link WidgetCloudBrowser} installs a custom entry that, when clicked,
+   * opens a file browser where the dropdown was.
+   */
+  setActivity: (activity: VNode) => void
+  close: () => void
+}
+
+export { CustomDropdownItemsKey }
 declare module '@/providers/widgetRegistry' {
   export interface WidgetInput {
     [CustomDropdownItemsKey]?: readonly CustomDropdownItem[]
@@ -422,16 +469,24 @@ declare module '@/providers/widgetRegistry' {
     </Teleport>
     <SvgIcon v-else-if="showArrow" name="arrow_right_head_only" class="arrow" />
     <Teleport v-if="tree.nodeElement" :to="tree.nodeElement">
-      <SizeTransition height :duration="100">
-        <DropdownWidget
-          v-if="dropDownInteraction.active.value"
-          ref="dropdownElement"
-          :style="floatingStyles"
-          :color="'var(--node-color-primary)'"
-          :entries="entries"
-          @clickEntry="onClick"
-        />
-      </SizeTransition>
+      <div ref="dropdownElement" :style="floatingStyles">
+        <SizeTransition height :duration="100">
+          <div v-if="dropDownInteraction.isActive() && activity == null">
+            <DropdownWidget
+              color="var(--node-color-primary)"
+              :entries="entries"
+              @clickEntry="onClick"
+            />
+          </div>
+        </SizeTransition>
+      </div>
+      <div ref="activityElement" class="activityElement" :style="activityStyles">
+        <SizeTransition height :duration="100">
+          <div v-if="dropDownInteraction.isActive() && activity">
+            <component :is="activity" />
+          </div>
+        </SizeTransition>
+      </div>
     </Teleport>
   </div>
 </template>
@@ -454,5 +509,11 @@ declare module '@/providers/widgetRegistry' {
   opacity: 0.5;
   /* Prevent the parent from receiving a pointerout event if the mouse is over the arrow, which causes flickering. */
   pointer-events: none;
+}
+
+.activityElement {
+  --background-color: var(--node-color-primary);
+  /* Above the circular menu. */
+  z-index: 26;
 }
 </style>

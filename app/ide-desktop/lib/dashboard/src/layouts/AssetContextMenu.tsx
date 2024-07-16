@@ -1,6 +1,7 @@
 /** @file The context menu for an arbitrary {@link backendModule.Asset}. */
 import * as React from 'react'
 
+import * as reactQuery from '@tanstack/react-query'
 import * as toast from 'react-toastify'
 
 import * as billingHooks from '#/hooks/billing'
@@ -16,6 +17,9 @@ import * as textProvider from '#/providers/TextProvider'
 import AssetEventType from '#/events/AssetEventType'
 import AssetListEventType from '#/events/AssetListEventType'
 
+import * as dashboard from '#/pages/dashboard/Dashboard'
+
+import * as eventListProvider from '#/layouts/AssetsTable/EventListProvider'
 import Category, * as categoryModule from '#/layouts/CategorySwitcher/Category'
 import GlobalContextMenu from '#/layouts/GlobalContextMenu'
 
@@ -63,13 +67,15 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   const { innerProps, rootDirectoryId, event, eventTarget, hidden = false } = props
   const { doTriggerDescriptionEdit, doCopy, doCut, doPaste, doDelete } = props
   const { item, setItem, state, setRowState } = innerProps
-  const { backend, category, hasPasteData, dispatchAssetEvent, dispatchAssetListEvent } = state
+  const { backend, category, hasPasteData } = state
 
   const { user } = authProvider.useNonPartialUserSession()
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const remoteBackend = backendProvider.useRemoteBackend()
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
+  const dispatchAssetEvent = eventListProvider.useDispatchAssetEvent()
+  const dispatchAssetListEvent = eventListProvider.useDispatchAssetListEvent()
   const asset = item.item
   const self = asset.permissions?.find(
     backendModule.isUserPermissionAnd(permission => permission.user.userId === user.userId)
@@ -91,19 +97,32 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   const systemApi = window.systemApi
   const ownsThisAsset = !isCloud || self?.permission === permissions.PermissionAction.own
   const managesThisAsset = ownsThisAsset || self?.permission === permissions.PermissionAction.admin
+
   const canEditThisAsset =
     managesThisAsset || self?.permission === permissions.PermissionAction.edit
+
+  const { data } = reactQuery.useQuery(
+    item.item.type === backendModule.AssetType.project
+      ? dashboard.createGetProjectDetailsQuery.createPassiveListener(item.item.id)
+      : { queryKey: ['__IGNORED__'] }
+  )
+
   const isRunningProject =
-    asset.type === backendModule.AssetType.project &&
-    backendModule.IS_OPENING_OR_OPENED[asset.projectState.type]
+    (asset.type === backendModule.AssetType.project &&
+      data &&
+      backendModule.IS_OPENING_OR_OPENED[data.state.type]) ??
+    false
+
   const canExecute =
     !isCloud ||
     (self?.permission != null && permissions.PERMISSION_ACTION_CAN_EXECUTE[self.permission])
+
   const isOtherUserUsingProject =
     isCloud &&
     backendModule.assetIsProject(asset) &&
     asset.projectState.openedBy != null &&
     asset.projectState.openedBy !== user.email
+
   const setAsset = setAssetHooks.useSetAsset(asset, setItem)
 
   return category === Category.trash ? (
@@ -170,6 +189,9 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                 dispatchAssetEvent({
                   type: AssetEventType.openProject,
                   id: asset.id,
+                  title: asset.title,
+                  parentId: item.directoryId,
+                  backendType: state.backend.type,
                   runInBackground: false,
                 })
               }}
@@ -184,6 +206,9 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
               dispatchAssetEvent({
                 type: AssetEventType.openProject,
                 id: asset.id,
+                title: asset.title,
+                parentId: item.directoryId,
+                backendType: state.backend.type,
                 runInBackground: true,
               })
             }}
@@ -211,6 +236,9 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                 dispatchAssetEvent({
                   type: AssetEventType.closeProject,
                   id: asset.id,
+                  title: asset.title,
+                  parentId: item.directoryId,
+                  backendType: state.backend.type,
                 })
               }}
             />
@@ -343,7 +371,6 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                 doAction={() => {
                   setModal(
                     <ManagePermissionsModal
-                      backend={backend}
                       item={asset}
                       setItem={setAsset}
                       self={self}
@@ -450,7 +477,6 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
               item.key as backendModule.DirectoryId
             }
             directoryId={asset.id}
-            dispatchAssetListEvent={dispatchAssetListEvent}
             doPaste={doPaste}
           />
         )}

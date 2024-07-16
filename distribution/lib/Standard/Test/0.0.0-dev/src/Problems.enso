@@ -75,7 +75,7 @@ test_advanced_problem_handling action error_checker warnings_checker result_chec
 assume_no_problems result =
     loc = Meta.get_source_location 1
     if result.is_error then
-        Test.fail "Expected the result to not be an error, but a dataflow error has been matched: "+result.catch.to_display_text+" (at "+loc+")."
+        Test.fail "Expected the result to not be an error, but a dataflow error has been matched: "+result.catch.to_display_text+" (at "+loc+")." details=result.get_stack_trace_text
     warnings = get_attached_warnings result
     if warnings.not_empty then
         Test.fail "Expected the result to not contain any warnings, but it did: "+warnings.to_text+" (at "+loc+")."

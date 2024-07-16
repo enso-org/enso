@@ -6,6 +6,7 @@ import FindIcon from 'enso-assets/find.svg'
 import * as aria from '#/components/aria'
 import FocusArea from '#/components/styled/FocusArea'
 import FocusRing from '#/components/styled/FocusRing'
+import SvgMask from '#/components/SvgMask'
 
 // =================
 // === SearchBar ===
@@ -32,13 +33,10 @@ export default function SearchBar(props: SearchBarProps) {
           data-testid={props['data-testid']}
           {...aria.mergeProps<aria.LabelProps>()(innerProps, {
             className:
-              'group relative flex grow sm:grow-0 sm:basis-[512px] h-row items-center gap-asset-search-bar rounded-full px-input-x text-primary',
+              'group relative flex grow sm:grow-0 sm:basis-[512px] h-row items-center gap-asset-search-bar rounded-full px-input-x text-primary border-0.5 border-primary/20 transition-colors focus-within:outline focus-within:outline-2 outline-primary -outline-offset-1',
           })}
         >
-          <img src={FindIcon} className="relative z-1 placeholder" />
-          <div className="pointer-events-none absolute left top flex w-full flex-col overflow-hidden rounded-default before:absolute before:inset before:bg-frame before:backdrop-blur-default">
-            <div className="padding relative h-row" />
-          </div>
+          <SvgMask src={FindIcon} className="text-primary/30" />
           <FocusRing placement="before">
             <aria.SearchField
               aria-label={label}

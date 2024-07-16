@@ -32,6 +32,7 @@ import type { SourceRangeEdit } from '../util/data/text'
 import { allKeys } from '../util/types'
 import type { ExternalId, VisualizationMetadata } from '../yjsModel'
 import { visMetadataEquals } from '../yjsModel'
+import { is_numeric_literal } from './ffi'
 import * as RawAst from './generated/ast'
 import {
   applyTextEditsToAst,
@@ -384,9 +385,10 @@ export abstract class MutableAst extends Ast {
     assertEqual(changes, 1)
   }
 
-  protected claimChild<T extends MutableAst>(child: Owned<T>): AstId
-  protected claimChild<T extends MutableAst>(child: Owned<T> | undefined): AstId | undefined
-  protected claimChild<T extends MutableAst>(child: Owned<T> | undefined): AstId | undefined {
+  /** @internal */
+  claimChild<T extends MutableAst>(child: Owned<T>): AstId
+  claimChild<T extends MutableAst>(child: Owned<T> | undefined): AstId | undefined
+  claimChild<T extends MutableAst>(child: Owned<T> | undefined): AstId | undefined {
     return child ? claimChild(this.module, child, this.id) : undefined
   }
 }
@@ -1823,6 +1825,10 @@ export class MutableNumericLiteral extends NumericLiteral implements MutableAst 
 }
 export interface MutableNumericLiteral extends NumericLiteral, MutableAst {}
 applyMixins(MutableNumericLiteral, [MutableAst])
+
+export function isNumericLiteral(code: string) {
+  return is_numeric_literal(code)
+}
 
 /** The actual contents of an `ArgumentDefinition` are complex, but probably of more interest to the compiler than the
  *  GUI. We just need to represent them faithfully and create the simple cases. */

@@ -1,17 +1,22 @@
 /** @file Switcher to choose the currently visible full-screen page. */
 import * as React from 'react'
 
+import * as reactQuery from '@tanstack/react-query'
 import invariant from 'tiny-invariant'
 
-import type * as text from '#/text'
+import type * as text from 'enso-common/src/text'
 
 import * as textProvider from '#/providers/TextProvider'
+
+import * as dashboard from '#/pages/dashboard/Dashboard'
 
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 import StatelessSpinner, * as spinnerModule from '#/components/StatelessSpinner'
 import FocusArea from '#/components/styled/FocusArea'
 import SvgMask from '#/components/SvgMask'
+
+import * as backend from '#/services/Backend'
 
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 
@@ -25,8 +30,6 @@ const TAB_RADIUS_PX = 24
 // =====================
 // === TabBarContext ===
 // =====================
-
-let i = 0
 
 /** Context for a {@link TabBarContext}. */
 interface TabBarContextValue {
@@ -59,19 +62,16 @@ export default function TabBar(props: TabBarProps) {
   const [resizeObserver] = React.useState(
     () =>
       new ResizeObserver(() => {
-        console.log('A', selectedTabRef.current)
         updateClipPath(selectedTabRef.current)
       })
   )
   const [updateClipPath] = React.useState(() => {
     return (element: HTMLDivElement | null) => {
       const backgroundElement = backgroundRef.current
-      // console.log(':0', backgroundElement, element)
       if (backgroundElement != null) {
         selectedTabRef.current = element
-        // console.log(selectedTabRef, element)
         if (element == null) {
-          backgroundElement.style.clipPath = ''
+          // backgroundElement.style.clipPath = ''
         } else {
           const bounds = element.getBoundingClientRect()
           const rootBounds = backgroundElement.getBoundingClientRect()
@@ -98,20 +98,11 @@ export default function TabBar(props: TabBarProps) {
     }
   })
 
-  const j = i++
-  React.useEffect(() => {
-    console.log(':D', j)
-    return () => {
-      console.log('D:', j)
-    }
-  }, [])
-
   const updateResizeObserver = (element: HTMLElement | null) => {
     cleanupResizeObserverRef.current()
     if (element == null) {
       cleanupResizeObserverRef.current = () => {}
     } else {
-      console.log(':0', element, selectedTabRef.current, selectedTabRef)
       resizeObserver.observe(element)
       cleanupResizeObserverRef.current = () => {
         resizeObserver.unobserve(element)
@@ -176,24 +167,25 @@ function TabList(props: TabListProps) {
 /** Props for a {@link Tab}. */
 interface InternalTabProps extends Readonly<React.PropsWithChildren> {
   readonly id: string
+  readonly project?: dashboard.Project
   readonly isActive: boolean
   readonly isHidden?: boolean
   readonly icon: string
   readonly labelId: text.TextId
-  /** When the promise is in flight, the tab icon will instead be a loading spinner. */
-  readonly loadingPromise?: Promise<unknown>
   readonly onClose?: () => void
+  readonly onLoadEnd?: () => void
 }
 
 /** A tab in a {@link TabBar}. */
 export function Tab(props: InternalTabProps) {
-  const { id, isActive, isHidden = false, icon, labelId, loadingPromise, children, onClose } = props
+  const { id, project, isActive, isHidden = false, icon, labelId, children, onClose } = props
+  const { onLoadEnd } = props
   const { onTabSelected, observeElement } = useTabBarContext()
   // This must not be a `useRef` as `react-aria-components` does not create the DOM elements
   // immediately.
   const [element, ref] = React.useState<HTMLDivElement | null>(null)
+  const isLoadingRef = React.useRef(true)
   const { getText } = textProvider.useText()
-  const [isLoading, setIsLoading] = React.useState(loadingPromise != null)
 
   React.useLayoutEffect(() => {
     if (isActive) {
@@ -209,24 +201,21 @@ export function Tab(props: InternalTabProps) {
     }
   }, [element, observeElement])
 
+  const { isLoading, data } = reactQuery.useQuery<backend.Project>(
+    project?.id
+      ? dashboard.createGetProjectDetailsQuery.createPassiveListener(project.id)
+      : { queryKey: ['__IGNORE__'], queryFn: reactQuery.skipToken }
+  )
+
+  const isFetching =
+    (isLoading || (data && data.state.type !== backend.ProjectState.opened)) ?? false
+
   React.useEffect(() => {
-    if (loadingPromise) {
-      setIsLoading(true)
-      const abortController = new AbortController()
-      const onLoaded = () => {
-        if (!abortController.signal.aborted) {
-          setIsLoading(false)
-        }
-      }
-      loadingPromise.then(onLoaded, onLoaded)
-      return () => {
-        abortController.abort()
-      }
-    } else {
-      setIsLoading(false)
-      return
+    if (!isFetching && isLoadingRef.current) {
+      isLoadingRef.current = false
+      onLoadEnd?.()
     }
-  }, [loadingPromise])
+  }, [isFetching, onLoadEnd])
 
   return (
     <aria.Tab
@@ -235,17 +224,12 @@ export function Tab(props: InternalTabProps) {
       isDisabled={isActive}
       aria-label={getText(labelId)}
       className={tailwindMerge.twMerge(
-        'group relative flex h-full items-center gap-3 rounded-t-2xl px-4',
+        'relative flex h-full items-center gap-3 rounded-t-2xl px-4',
         !isActive &&
           'cursor-pointer opacity-50 hover:bg-frame hover:opacity-75 disabled:cursor-not-allowed disabled:opacity-30 [&.disabled]:cursor-not-allowed [&.disabled]:opacity-30',
         isHidden && 'hidden'
       )}
     >
-      {onClose && (
-        <div className="mt-[1px] hidden h-4 w-4 items-center justify-center group-hover:flex focus-visible:flex">
-          <ariaComponents.CloseButton onPress={onClose} />
-        </div>
-      )}
       {isLoading ? (
         <StatelessSpinner
           state={spinnerModule.SpinnerState.loadingMedium}
@@ -259,6 +243,11 @@ export function Tab(props: InternalTabProps) {
         />
       )}
       {children}
+      {onClose && (
+        <div className="flex pr-4">
+          <ariaComponents.CloseButton onPress={onClose} />
+        </div>
+      )}
     </aria.Tab>
   )
 }

@@ -3,7 +3,7 @@ import {
   isSpreadsheetTsv,
   nodesFromClipboardContent,
   nodesToClipboardData,
-  tsvToEnsoTable,
+  tsvTableToEnsoExpression,
 } from '@/components/GraphEditor/clipboard'
 import { type Node } from '@/stores/graph'
 import { Ast } from '@/util/ast'
@@ -44,7 +44,7 @@ test.each([
       "'\\t36\\t52\\n11\\t\\t4.727272727\\n12\\t\\t4.333333333\\n13\\t2.769230769\\t4\\n14\\t2.571428571\\t3.714285714\\n15\\t2.4\\t3.466666667\\n16\\t2.25\\t3.25\\n17\\t2.117647059\\t3.058823529\\n19\\t1.894736842\\t2.736842105\\n21\\t1.714285714\\t2.476190476\\n24\\t1.5\\t2.166666667\\n27\\t1.333333333\\t1.925925926\\n30\\t1.2\\t'.to Table",
   },
 ])('Enso expression from Excel data: $description', ({ tableData, expectedEnsoExpression }) => {
-  expect(tsvToEnsoTable(tableData)).toEqual(expectedEnsoExpression)
+  expect(tsvTableToEnsoExpression(tableData)).toEqual(expectedEnsoExpression)
 })
 
 class MockClipboardItem {
@@ -83,12 +83,8 @@ const testNodes = testNodeInputs.map(({ code, visualization, colorOverride }) =>
 test.each([...testNodes.map((node) => [node]), testNodes])(
   'Copy and paste nodes',
   async (...sourceNodes) => {
-    const clipboardItems = nodesToClipboardData(
-      sourceNodes,
-      (data) => new MockClipboardItem(data as any) as any,
-      (parts, type) => new Blob(parts, { type }) as any,
-    )
-    const pastedNodes = await nodesFromClipboardContent(clipboardItems)
+    const clipboardItem = clipboardItemFromTypes(nodesToClipboardData(sourceNodes))
+    const pastedNodes = await nodesFromClipboardContent([clipboardItem])
     sourceNodes.forEach((sourceNode, i) => {
       expect(pastedNodes[i]?.documentation).toBe(sourceNode.documentation)
       expect(pastedNodes[i]?.expression).toBe(sourceNode.innerExpr.code())

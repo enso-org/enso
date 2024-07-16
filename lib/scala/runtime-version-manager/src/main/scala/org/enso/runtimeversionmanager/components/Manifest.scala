@@ -1,18 +1,19 @@
 package org.enso.runtimeversionmanager.components
 
-import java.io.FileReader
+import java.io.{FileReader, StringReader}
 import java.nio.file.Path
-import cats.Show
-import io.circe.yaml.Parser
-import io.circe.{yaml, Decoder}
+import org.enso
 import org.enso.semver.SemVer
 import org.enso.cli.OS
-import org.enso.semver.SemVerJson._
+import org.enso.semver.SemVerYaml._
 import org.enso.runtimeversionmanager.components.Manifest.{
   JVMOption,
   RequiredInstallerVersions
 }
 import org.enso.runtimeversionmanager.components
+import org.enso.yaml.{ParseError, YamlDecoder}
+import org.yaml.snakeyaml.error.YAMLException
+import org.yaml.snakeyaml.nodes.{MappingNode, Node}
 
 import scala.util.{Failure, Try, Using}
 
@@ -70,6 +71,39 @@ object Manifest {
     */
   case class RequiredInstallerVersions(launcher: SemVer, projectManager: SemVer)
 
+  object RequiredInstallerVersions {
+    implicit val yamlDecoder: YamlDecoder[RequiredInstallerVersions] =
+      new YamlDecoder[RequiredInstallerVersions] {
+        override def decode(
+          node: Node
+        ): Either[Throwable, RequiredInstallerVersions] = {
+          node match {
+            case mappingNode: MappingNode =>
+              val semverDecoder = implicitly[YamlDecoder[SemVer]]
+              val bindings      = mappingKV(mappingNode)
+              for {
+                launcher <- bindings
+                  .get(Manifest.Fields.MinimumLauncherVersion)
+                  .toRight(
+                    new YAMLException(
+                      s"Missing `${Manifest.Fields.MinimumLauncherVersion}` field"
+                    )
+                  )
+                  .flatMap(semverDecoder.decode)
+                projectManager <- bindings
+                  .get(Manifest.Fields.MinimumProjectManagerVersion)
+                  .toRight(
+                    new YAMLException(
+                      s"Missing `${Manifest.Fields.MinimumProjectManagerVersion}` field"
+                    )
+                  )
+                  .flatMap(semverDecoder.decode)
+              } yield RequiredInstallerVersions(launcher, projectManager)
+          }
+        }
+      }
+  }
+
   /** Defines the name under which the manifest is included in the releases.
     */
   val DEFAULT_MANIFEST_NAME = "manifest.yaml"
@@ -109,24 +143,31 @@ object Manifest {
 
   object JVMOption {
     private object Fields {
-      val os    = "os"
-      val value = "value"
+      val Os    = "os"
+      val Value = "value"
     }
 
-    /** [[Decoder]] instance that allows to parse the [[JVMOption]] from the
-      * YAML manifest.
-      */
-    implicit val decoder: Decoder[JVMOption] = { json =>
-      val hasOSKey = json.keys.exists { keyList: Iterable[String] =>
-        keyList.toSeq.contains(Fields.os)
+    implicit val yamlDecoder: YamlDecoder[JVMOption] =
+      new YamlDecoder[JVMOption] {
+        override def decode(node: Node): Either[Throwable, JVMOption] = {
+          node match {
+            case node: MappingNode =>
+              val bindings      = mappingKV(node)
+              val stringDecoder = implicitly[YamlDecoder[String]]
+              val OSdecoder     = implicitly[YamlDecoder[OS]]
+              for {
+                value <- bindings
+                  .get(Fields.Value)
+                  .toRight(new YAMLException(s"missing `${Fields.Value} field"))
+                  .flatMap(stringDecoder.decode)
+                osRestriction <- bindings
+                  .get(Fields.Os)
+                  .map(OSdecoder.decode(_).map(Some(_)))
+                  .getOrElse(Right(None))
+              } yield JVMOption(value, osRestriction)
+          }
+        }
       }
-
-      for {
-        value <- json.get[String](Fields.value)
-        osRestriction <-
-          if (hasOSKey) json.get[OS](Fields.os).map(Some(_)) else Right(None)
-      } yield JVMOption(value, osRestriction)
-    }
   }
 
   /** Tries to load the manifest at the given path.
@@ -135,10 +176,11 @@ object Manifest {
     */
   def load(path: Path): Try[Manifest] =
     Using(new FileReader(path.toFile)) { reader =>
-      Parser.default
-        .parse(reader)
-        .flatMap(_.as[Manifest])
-        .toTry
+      val snakeYaml = new org.yaml.snakeyaml.Yaml()
+      Try(snakeYaml.compose(reader))
+        .flatMap(
+          implicitly[enso.yaml.YamlDecoder[Manifest]].decode(_).toTry
+        )
     }.flatten.recoverWith { error =>
       Failure(ManifestLoadingError.fromThrowable(error))
     }
@@ -148,9 +190,11 @@ object Manifest {
     * Returns None if the definition cannot be parsed.
     */
   def fromYaml(yamlString: String): Try[Manifest] = {
-    yaml.parser
-      .parse(yamlString)
-      .flatMap(_.as[Manifest])
+    val snakeYaml = new org.yaml.snakeyaml.Yaml()
+    Try(snakeYaml.compose(new StringReader(yamlString))).toEither
+      .flatMap(implicitly[enso.yaml.YamlDecoder[Manifest]].decode(_))
+      .left
+      .map(ParseError(_))
       .toTry
       .recoverWith { error =>
         Failure(ManifestLoadingError.fromThrowable(error))
@@ -176,49 +220,68 @@ object Manifest {
       */
     def fromThrowable(throwable: Throwable): ManifestLoadingError =
       throwable match {
-        case decodingError: io.circe.Error =>
-          val errorMessage =
-            implicitly[Show[io.circe.Error]].show(decodingError)
-          ManifestLoadingError(
-            s"Could not parse the manifest: $errorMessage",
-            decodingError
-          )
         case other =>
           ManifestLoadingError(s"Could not load the manifest: $other", other)
       }
   }
 
   object Fields {
-    val minimumLauncherVersion       = "minimum-launcher-version"
-    val minimumProjectManagerVersion = "minimum-project-manager-version"
-    val jvmOptions                   = "jvm-options"
-    val graalVMVersion               = "graal-vm-version"
-    val graalJavaVersion             = "graal-java-version"
-    val brokenMark                   = "broken"
+    val MinimumLauncherVersion       = "minimum-launcher-version"
+    val MinimumProjectManagerVersion = "minimum-project-manager-version"
+    val JvmOptions                   = "jvm-options"
+    val GraalVMVersion               = "graal-vm-version"
+    val GraalJavaVersion             = "graal-java-version"
+    val NrokenMark                   = "broken"
   }
 
-  implicit private val decoder: Decoder[Manifest] = { json =>
-    for {
-      minimumLauncherVersion <- json.get[SemVer](Fields.minimumLauncherVersion)
-      minimumProjectManagerVersion <- json.get[SemVer](
-        Fields.minimumProjectManagerVersion
-      )
-      graalVMVersion <- json.get[String](Fields.graalVMVersion)
-      graalJavaVersion <-
-        json
-          .get[String](Fields.graalJavaVersion)
-          .orElse(json.get[Int](Fields.graalJavaVersion).map(_.toString))
-      jvmOptions <- json.getOrElse[Seq[JVMOption]](Fields.jvmOptions)(Seq())
-      broken     <- json.getOrElse[Boolean](Fields.brokenMark)(false)
-    } yield Manifest(
-      requiredInstallerVersions = RequiredInstallerVersions(
-        launcher       = minimumLauncherVersion,
-        projectManager = minimumProjectManagerVersion
-      ),
-      graalVMVersion   = graalVMVersion,
-      graalJavaVersion = graalJavaVersion,
-      jvmOptions       = jvmOptions,
-      brokenMark       = broken
-    )
-  }
+  implicit val yamlDecoder: YamlDecoder[Manifest] =
+    new YamlDecoder[Manifest] {
+      override def decode(node: Node): Either[Throwable, Manifest] = {
+        node match {
+          case node: MappingNode =>
+            val bindings = mappingKV(node)
+            val requiredInstallerVersionsDecoder =
+              implicitly[YamlDecoder[RequiredInstallerVersions]]
+            val stringDecoder = implicitly[YamlDecoder[String]]
+            val seqJVMOptionsDecoder =
+              implicitly[YamlDecoder[Seq[JVMOption]]]
+            val booleanDecoder = implicitly[YamlDecoder[Boolean]]
+
+            for {
+              requiredInstallerVersions <- requiredInstallerVersionsDecoder
+                .decode(node)
+              graalVMVersion <- bindings
+                .get(Fields.GraalVMVersion)
+                .toRight(
+                  new YAMLException(
+                    s"Required `${Fields.GraalVMVersion}`field is missing"
+                  )
+                )
+                .flatMap(stringDecoder.decode)
+              graalJavaVersion <- bindings
+                .get(Fields.GraalJavaVersion)
+                .toRight(
+                  new YAMLException(
+                    s"Required `${Fields.GraalJavaVersion}` field is missing"
+                  )
+                )
+                .flatMap(stringDecoder.decode)
+              jvmOptions <- bindings
+                .get(Fields.JvmOptions)
+                .map(seqJVMOptionsDecoder.decode)
+                .getOrElse(Right(Seq.empty))
+              brokenMark <- bindings
+                .get(Fields.NrokenMark)
+                .map(booleanDecoder.decode)
+                .getOrElse(Right(false))
+            } yield Manifest(
+              requiredInstallerVersions,
+              graalVMVersion,
+              graalJavaVersion,
+              jvmOptions,
+              brokenMark
+            )
+        }
+      }
+    }
 }

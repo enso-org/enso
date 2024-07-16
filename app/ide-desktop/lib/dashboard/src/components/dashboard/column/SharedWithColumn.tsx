@@ -10,6 +10,7 @@ import * as modalProvider from '#/providers/ModalProvider'
 
 import AssetEventType from '#/events/AssetEventType'
 
+import * as eventListProvider from '#/layouts/AssetsTable/EventListProvider'
 import Category from '#/layouts/CategorySwitcher/Category'
 
 import * as ariaComponents from '#/components/AriaComponents'
@@ -29,8 +30,7 @@ import * as uniqueString from '#/utilities/uniqueString'
 // ========================
 
 /** The type of the `state` prop of a {@link SharedWithColumn}. */
-interface SharedWithColumnStateProp
-  extends Pick<column.AssetColumnProps['state'], 'backend' | 'category' | 'dispatchAssetEvent'> {
+interface SharedWithColumnStateProp extends Pick<column.AssetColumnProps['state'], 'category'> {
   readonly setQuery: column.AssetColumnProps['state']['setQuery'] | null
 }
 
@@ -43,9 +43,10 @@ interface SharedWithColumnPropsInternal extends Pick<column.AssetColumnProps, 'i
 /** A column listing the users with which this asset is shared. */
 export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
   const { item, setItem, state, isReadonly = false } = props
-  const { backend, category, dispatchAssetEvent, setQuery } = state
+  const { category, setQuery } = state
   const asset = item.item
   const { user } = authProvider.useNonPartialUserSession()
+  const dispatchAssetEvent = eventListProvider.useDispatchAssetEvent()
 
   const { isFeatureUnderPaywall } = billingHooks.usePaywall({ plan: user.plan })
 
@@ -117,7 +118,6 @@ export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
             setModal(
               <ManagePermissionsModal
                 key={uniqueString.uniqueString()}
-                backend={backend}
                 item={asset}
                 setItem={setAsset}
                 self={self}

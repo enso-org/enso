@@ -1,7 +1,7 @@
 import project.Any.Any
+import project.Data.Dictionary.Dictionary
 import project.Data.Json.Extensions
 import project.Data.Json.JS_Object
-import project.Data.Map.Map
 import project.Data.Numbers.Integer
 import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Text
@@ -251,7 +251,7 @@ type XML_Document
     @path (Widget.Text_Input display=Display.Always)
     @encoding Encoding.default_widget
     write : Writable_File -> Encoding -> Existing_File_Behavior -> Boolean -> Problem_Behavior -> File
-    write self path:Writable_File (encoding : Encoding = Encoding.utf_8) (on_existing_file : Existing_File_Behavior = Existing_File_Behavior.Backup) (include_xml_declaration : Boolean = Boolean.True) (on_problems : Problem_Behavior = Problem_Behavior.Report_Warning) =
+    write self path:Writable_File (encoding : Encoding = Encoding.utf_8) (on_existing_file : Existing_File_Behavior = Existing_File_Behavior.Backup) (include_xml_declaration : Boolean = Boolean.True) (on_problems : Problem_Behavior = ..Report_Warning) =
         write_impl self.java_document path encoding on_existing_file include_xml_declaration on_problems
 
     ## GROUP Selections
@@ -305,9 +305,9 @@ type XML_Document
 
     ## GROUP Selections
        ICON array_new
-       Gets a map containing of the attributes of an XML document.
-    attributes : Map Text Text ! XML_Error
-    attributes self = Map.empty
+       Gets a Dictionary containing of the attributes of an XML document.
+    attributes : Dictionary Text Text ! XML_Error
+    attributes self = Dictionary.empty
 
     ## GROUP Selections
        ICON metadata
@@ -368,6 +368,16 @@ type XML_Document
        Convert to a display representation of this XML_Document.
     to_display_text : Text
     to_display_text self = "XML_Document (" + self.root_element.to_display_text + ")"
+
+    ## PRIVATE
+       Transform the XML document into text for displaying as part of its
+       default visualization.
+    to_default_visualization_data : Text
+    to_default_visualization_data self =
+        outer_vec = Vector.build initial_capacity=2 builder->
+            builder.append ["type", "XML_Document"]
+            builder.append ["root_element", self.root_element.to_default_visualization_data as_js_object=True]
+        JS_Object.from_pairs outer_vec . to_json
 
 type XML_Element
     ## GROUP Metadata
@@ -508,19 +518,19 @@ type XML_Element
 
     ## GROUP Selections
        ICON array_new
-       Gets a map containing of the attributes of an XML element.
+       Gets a Dictionary containing of the attributes of an XML element.
 
        > Example
            XML_Document.from_text '<foo bar="one">hello</foo>' . root_element . attributes
-           # => Map.from_vector [["bar", "one"]]
-    attributes : Map Text Text ! XML_Error
+           # => Dictionary.from_vector [["bar", "one"]]
+    attributes : Dictionary Text Text ! XML_Error
     attributes self =
         XML_Error.handle_java_exceptions <|
             named_node_map = self.java_element.getAttributes
             keys_and_values = 0.up_to named_node_map.getLength . map i->
                 node = named_node_map.item i
                 [node.getNodeName, node.getNodeValue]
-            Map.from_vector keys_and_values
+            Dictionary.from_vector keys_and_values
 
     ## GROUP Selections
        ICON metadata
@@ -603,7 +613,7 @@ type XML_Element
     @path (Widget.Text_Input display=Display.Always)
     @encoding Encoding.default_widget
     write : Writable_File -> Encoding -> Existing_File_Behavior -> Boolean -> Problem_Behavior -> File
-    write self path:Writable_File (encoding : Encoding = Encoding.utf_8) (on_existing_file : Existing_File_Behavior = Existing_File_Behavior.Backup) (include_xml_declaration : Boolean = Boolean.True) (on_problems : Problem_Behavior = Problem_Behavior.Report_Warning) =
+    write self path:Writable_File (encoding : Encoding = Encoding.utf_8) (on_existing_file : Existing_File_Behavior = Existing_File_Behavior.Backup) (include_xml_declaration : Boolean = Boolean.True) (on_problems : Problem_Behavior = ..Report_Warning) =
         write_impl self.java_element path encoding on_existing_file include_xml_declaration on_problems
 
     ## ICON parse3
@@ -673,7 +683,28 @@ type XML_Element
     new java_element = XML_Element.Value java_element (build_child_list java_element)
 
     ## PRIVATE
-    Value (java_element:Element) (~children_cache:(Vector (XML_Element | Text)))
+    private Value (java_element:Element) (~children_cache:(Vector (XML_Element | Text)))
+
+    ## PRIVATE
+       Transform the vector into text for displaying as part of its default
+       visualization.
+    to_default_visualization_data : Boolean -> Boolean -> Text | JS_Object
+    to_default_visualization_data self nested:Boolean=False as_js_object:Boolean=False =
+        vec = Vector.build initial_capacity=4 builder->
+            builder.append ["type", "XML_Element"]
+            builder.append ["tag", self.name]
+            if self.attributes.length > 0 then builder.append ["attributes", self.attributes.to_js_object]
+            if self.children_cache.length > 0 then
+                inner_render = if nested then _.to_display_text else
+                    c-> case c of
+                        _ : XML_Element -> c.to_default_visualization_data nested=True as_js_object=True
+                        _ -> c
+
+                ## Limit to 50 children to avoid excessive rendering.
+                builder.append ["children", self.children_cache.take 50 . map inner_render + (if self.children_cache.length > 50 then ["..."] else [])]
+                builder.append ["children_count", self.children_cache.length]
+        js_object = JS_Object.from_pairs vec
+        if as_js_object then js_object else js_object.to_json
 
 type XML_Error
     ## An error that indicates that the XML data could not be parsed.
@@ -753,7 +784,7 @@ child_selector node:(XML_Element | XML_Document) =
 
 ## PRIVATE
    write an XML document or element to a file.
-write_impl node:Node path:Writable_File (encoding : Encoding = Encoding.utf_8) (on_existing_file : Existing_File_Behavior = Existing_File_Behavior.Backup) (include_xml_declaration : Boolean = Boolean.True) (on_problems : Problem_Behavior = Problem_Behavior.Report_Warning) =
+write_impl node:Node path:Writable_File (encoding : Encoding = Encoding.utf_8) (on_existing_file : Existing_File_Behavior = Existing_File_Behavior.Backup) (include_xml_declaration : Boolean = Boolean.True) (on_problems : Problem_Behavior = ..Report_Warning) =
     declaration = if include_xml_declaration then '<?xml version=\"1.0\" encoding=\"' + encoding.character_set_name + '\"?>\n' else ""
     XML_Error.handle_java_exceptions <|
         (declaration + XML_Utils.outerXML node True).write path encoding on_existing_file on_problems

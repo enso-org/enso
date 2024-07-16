@@ -21,7 +21,9 @@ const editing = WidgetEditHandler.New('WidgetText', props.input, {
     input.value?.blur()
   },
   pointerdown(event) {
-    if (targetIsOutside(event, unrefElement(input))) accepted()
+    if (targetIsOutside(event, unrefElement(input))) {
+      accepted()
+    }
     return false
   },
   end() {
@@ -119,7 +121,7 @@ export const widgetDefinition = defineWidget(
   justify-content: center;
   align-items: center;
 
-  &:has(> .AutoSizedInput:focus) {
+  &:has(> :focus) {
     outline: none;
     background: var(--color-widget-focus);
   }

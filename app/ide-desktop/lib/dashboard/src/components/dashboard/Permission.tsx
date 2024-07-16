@@ -1,7 +1,7 @@
 /** @file Permissions for a specific user or user group on a specific asset. */
 import * as React from 'react'
 
-import type * as text from '#/text'
+import type * as text from 'enso-common/src/text'
 
 import * as backendHooks from '#/hooks/backendHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
@@ -38,7 +38,8 @@ const ASSET_TYPE_TO_TEXT_ID: Readonly<Record<backendModule.AssetType, text.TextI
 /** Props for a {@link Permission}. */
 export interface PermissionProps {
   readonly backend: Backend
-  readonly asset: backendModule.Asset
+  readonly asset: Pick<backendModule.Asset, 'id' | 'permissions' | 'type'>
+
   readonly self: backendModule.UserPermission
   readonly isOnlyOwner: boolean
   readonly permission: backendModule.AssetPermission

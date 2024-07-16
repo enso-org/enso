@@ -15,17 +15,16 @@ import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
-import type * as assetEvent from '#/events/assetEvent'
 import AssetEventType from '#/events/AssetEventType'
 
 import type * as assetSearchBar from '#/layouts/AssetSearchBar'
 import AssetSearchBar from '#/layouts/AssetSearchBar'
+import * as eventListProvider from '#/layouts/AssetsTable/EventListProvider'
 import Category, * as categoryModule from '#/layouts/CategorySwitcher/Category'
 import StartModal from '#/layouts/StartModal'
 
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
-import HorizontalMenuBar from '#/components/styled/HorizontalMenuBar'
 
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import UpsertDatalinkModal from '#/modals/UpsertDatalinkModal'
@@ -35,7 +34,6 @@ import type Backend from '#/services/Backend'
 
 import type AssetQuery from '#/utilities/AssetQuery'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
-import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 // ================
 // === DriveBar ===
@@ -57,7 +55,6 @@ export interface DriveBarProps {
   readonly doCreateSecret: (name: string, value: string) => void
   readonly doCreateDatalink: (name: string, value: unknown) => void
   readonly doUploadFiles: (files: File[]) => void
-  readonly dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
 }
 
 /** Displays the current directory path and permissions, upload and download buttons,
@@ -65,11 +62,12 @@ export interface DriveBarProps {
 export default function DriveBar(props: DriveBarProps) {
   const { backend, query, setQuery, suggestions, category, canDownload } = props
   const { doEmptyTrash, doCreateProject, doCreateDirectory } = props
-  const { doCreateSecret, doCreateDatalink, doUploadFiles, dispatchAssetEvent } = props
+  const { doCreateSecret, doCreateDatalink, doUploadFiles } = props
   const { isAssetPanelOpen, setIsAssetPanelOpen } = props
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
   const inputBindings = inputBindingsProvider.useInputBindings()
+  const dispatchAssetEvent = eventListProvider.useDispatchAssetEvent()
   const uploadFilesRef = React.useRef<HTMLInputElement>(null)
   const isCloud = categoryModule.isCloud(category)
   const { isOffline } = offlineHooks.useOffline()
@@ -107,13 +105,8 @@ export default function DriveBar(props: DriveBarProps) {
   const assetPanelToggle = (
     <>
       {/* Spacing. */}
-      <div
-        className={tailwindMerge.twMerge(
-          'transition-width duration-side-panel',
-          !isAssetPanelOpen && 'w-8'
-        )}
-      />
-      <div className="absolute right-[15px] top-[25px] z-1">
+      <div className={!isAssetPanelOpen ? 'w-5' : 'hidden'} />
+      <div className="absolute right-[15px] top-[27px] z-1">
         <ariaComponents.Button
           size="medium"
           variant="custom"
@@ -131,139 +124,131 @@ export default function DriveBar(props: DriveBarProps) {
   switch (category) {
     case Category.recent: {
       return (
-        <div className="flex h-9 items-center">
-          <HorizontalMenuBar grow>
-            {searchBar}
-            {assetPanelToggle}
-          </HorizontalMenuBar>
-        </div>
+        <ariaComponents.ButtonGroup className="my-0.5 grow-0">
+          {searchBar}
+          {assetPanelToggle}
+        </ariaComponents.ButtonGroup>
       )
     }
     case Category.trash: {
       return (
-        <div className="flex h-9 items-center">
-          <HorizontalMenuBar grow>
-            <ariaComponents.Button
-              size="medium"
-              variant="bar"
-              isDisabled={shouldBeDisabled}
-              onPress={() => {
-                setModal(
-                  <ConfirmDeleteModal
-                    actionText={getText('allTrashedItemsForever')}
-                    doDelete={doEmptyTrash}
-                  />
-                )
-              }}
-            >
-              {getText('clearTrash')}
-            </ariaComponents.Button>
-            {searchBar}
-            {assetPanelToggle}
-          </HorizontalMenuBar>
-        </div>
+        <ariaComponents.ButtonGroup className="my-0.5 grow-0">
+          <ariaComponents.Button
+            size="medium"
+            variant="bar"
+            isDisabled={shouldBeDisabled}
+            onPress={() => {
+              setModal(
+                <ConfirmDeleteModal
+                  actionText={getText('allTrashedItemsForever')}
+                  doDelete={doEmptyTrash}
+                />
+              )
+            }}
+          >
+            {getText('clearTrash')}
+          </ariaComponents.Button>
+          {searchBar}
+          {assetPanelToggle}
+        </ariaComponents.ButtonGroup>
       )
     }
     case Category.cloud:
     case Category.local: {
       return (
-        <div className="flex h-9 items-center">
-          <HorizontalMenuBar grow>
-            <aria.DialogTrigger>
-              <ariaComponents.Button size="medium" variant="tertiary" isDisabled={shouldBeDisabled}>
-                {getText('startWithATemplate')}
-              </ariaComponents.Button>
-
-              <StartModal createProject={doCreateProject} />
-            </aria.DialogTrigger>
-            <ariaComponents.Button
-              size="medium"
-              variant="bar"
-              isDisabled={shouldBeDisabled}
-              onPress={() => {
-                doCreateProject()
-              }}
-            >
-              {getText('newEmptyProject')}
+        <ariaComponents.ButtonGroup className="my-0.5 grow-0">
+          <aria.DialogTrigger>
+            <ariaComponents.Button size="medium" variant="tertiary" isDisabled={shouldBeDisabled}>
+              {getText('startWithATemplate')}
             </ariaComponents.Button>
-            <div className="flex h-row items-center gap-4 rounded-full border-0.5 border-primary/20 px-[11px] text-primary/50">
+
+            <StartModal createProject={doCreateProject} />
+          </aria.DialogTrigger>
+          <ariaComponents.Button
+            size="medium"
+            variant="bar"
+            isDisabled={shouldBeDisabled}
+            onPress={() => {
+              doCreateProject()
+            }}
+          >
+            {getText('newEmptyProject')}
+          </ariaComponents.Button>
+          <div className="flex h-row items-center gap-4 rounded-full border-0.5 border-primary/20 px-[11px] text-primary/50">
+            <ariaComponents.Button
+              variant="icon"
+              size="medium"
+              icon={AddFolderIcon}
+              isDisabled={shouldBeDisabled}
+              aria-label={getText('newFolder')}
+              onPress={() => {
+                doCreateDirectory()
+              }}
+            />
+            {isCloud && (
               <ariaComponents.Button
                 variant="icon"
                 size="medium"
-                icon={AddFolderIcon}
+                icon={AddKeyIcon}
                 isDisabled={shouldBeDisabled}
-                aria-label={getText('newFolder')}
+                aria-label={getText('newSecret')}
                 onPress={() => {
-                  doCreateDirectory()
+                  setModal(<UpsertSecretModal id={null} name={null} doCreate={doCreateSecret} />)
                 }}
               />
-              {isCloud && (
-                <ariaComponents.Button
-                  variant="icon"
-                  size="medium"
-                  icon={AddKeyIcon}
-                  isDisabled={shouldBeDisabled}
-                  aria-label={getText('newSecret')}
-                  onPress={() => {
-                    setModal(<UpsertSecretModal id={null} name={null} doCreate={doCreateSecret} />)
-                  }}
-                />
-              )}
-              {isCloud && (
-                <ariaComponents.Button
-                  variant="icon"
-                  size="medium"
-                  icon={AddDatalinkIcon}
-                  isDisabled={shouldBeDisabled}
-                  aria-label={getText('newDatalink')}
-                  onPress={() => {
-                    setModal(<UpsertDatalinkModal doCreate={doCreateDatalink} />)
-                  }}
-                />
-              )}
-              <aria.Input
-                ref={uploadFilesRef}
-                type="file"
-                multiple
-                id="upload_files_input"
-                name="upload_files_input"
-                className="hidden"
-                onInput={event => {
-                  if (event.currentTarget.files != null) {
-                    doUploadFiles(Array.from(event.currentTarget.files))
-                  }
-                  // Clear the list of selected files. Otherwise, `onInput` will not be
-                  // dispatched again if the same file is selected.
-                  event.currentTarget.value = ''
-                }}
-              />
+            )}
+            {isCloud && (
               <ariaComponents.Button
                 variant="icon"
                 size="medium"
-                icon={DataUploadIcon}
+                icon={AddDatalinkIcon}
                 isDisabled={shouldBeDisabled}
-                aria-label={getText('uploadFiles')}
+                aria-label={getText('newDatalink')}
                 onPress={() => {
-                  unsetModal()
-                  uploadFilesRef.current?.click()
+                  setModal(<UpsertDatalinkModal doCreate={doCreateDatalink} />)
                 }}
               />
-              <ariaComponents.Button
-                isDisabled={!canDownload || shouldBeDisabled}
-                variant="icon"
-                size="medium"
-                icon={DataDownloadIcon}
-                aria-label={getText('downloadFiles')}
-                onPress={() => {
-                  unsetModal()
-                  dispatchAssetEvent({ type: AssetEventType.downloadSelected })
-                }}
-              />
-            </div>
-            {searchBar}
-            {assetPanelToggle}
-          </HorizontalMenuBar>
-        </div>
+            )}
+            <aria.Input
+              ref={uploadFilesRef}
+              type="file"
+              multiple
+              className="hidden"
+              onInput={event => {
+                if (event.currentTarget.files != null) {
+                  doUploadFiles(Array.from(event.currentTarget.files))
+                }
+                // Clear the list of selected files. Otherwise, `onInput` will not be
+                // dispatched again if the same file is selected.
+                event.currentTarget.value = ''
+              }}
+            />
+            <ariaComponents.Button
+              variant="icon"
+              size="medium"
+              icon={DataUploadIcon}
+              isDisabled={shouldBeDisabled}
+              aria-label={getText('uploadFiles')}
+              onPress={() => {
+                unsetModal()
+                uploadFilesRef.current?.click()
+              }}
+            />
+            <ariaComponents.Button
+              isDisabled={!canDownload || shouldBeDisabled}
+              variant="icon"
+              size="medium"
+              icon={DataDownloadIcon}
+              aria-label={getText('downloadFiles')}
+              onPress={() => {
+                unsetModal()
+                dispatchAssetEvent({ type: AssetEventType.downloadSelected })
+              }}
+            />
+          </div>
+          {searchBar}
+          {assetPanelToggle}
+        </ariaComponents.ButtonGroup>
       )
     }
   }

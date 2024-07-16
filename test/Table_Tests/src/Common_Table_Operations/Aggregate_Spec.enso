@@ -1,4 +1,4 @@
-from Standard.Base import all hiding First, Last
+from Standard.Base import all
 
 from Standard.Table import Table, Sort_Column, expr
 from Standard.Table.Aggregate_Column.Aggregate_Column import all
@@ -11,6 +11,7 @@ from Standard.Test import all
 
 
 from project.Common_Table_Operations.Util import run_default_backend, within_table
+import project.Common_Table_Operations.Util
 
 polyglot java import java.lang.Double
 
@@ -23,29 +24,24 @@ main filter=Nothing =
 type Data
     Value ~data
 
-    connection self = self.data.at 0
-    table self = self.data.at 1
-    empty_table self = self.data.at 2
+    table self = self.data.at 0
+    empty_table self = self.data.at 1
 
-    setup create_connection_fn table_fn empty_table_fn = Data.Value <|
-        connection = create_connection_fn Nothing
+    setup table_fn empty_table_fn = Data.Value <|
         table = table_fn Nothing
         empty_table = empty_table_fn Nothing
-        [connection, table, empty_table]
-
-    teardown self =
-        self.connection.close
-
+        [table, empty_table]
 
 ## Runs the common aggregate tests.
 add_specs suite_builder setup =
     prefix = setup.prefix
-    create_connection_fn = setup.create_connection_func
     table_fn = setup.table_fn
     empty_table_fn = setup.empty_table_fn
     materialize = setup.materialize
     is_database = setup.is_database
     test_selection = setup.aggregate_test_selection
+    table_builder = setup.table_builder
+    data = Data.setup table_fn empty_table_fn
 
     expect_column_names names table =
         table.columns . map .name . should_equal names frames_to_skip=3
@@ -59,11 +55,6 @@ add_specs suite_builder setup =
         if enabled_flag.not then "Not supported." else Nothing
 
     suite_builder.group prefix+"Table.aggregate should summarize whole table" group_builder->
-        data = Data.setup create_connection_fn table_fn empty_table_fn
-
-        group_builder.teardown <|
-            data.teardown
-
         group_builder.specify "should be able to count" <|
             grouped = data.table.aggregate columns=[Count]
             materialized = materialize grouped
@@ -252,8 +243,6 @@ add_specs suite_builder setup =
             materialized.columns.at 0 . at 0 . length . should_equal 7500
 
     suite_builder.group prefix+"Table.aggregate should summarize empty table" group_builder->
-        data = Data.setup create_connection_fn table_fn empty_table_fn
-
         group_builder.specify "should be able to count" <|
             grouped = data.empty_table.aggregate columns=[Count]
             materialized = materialize grouped
@@ -379,8 +368,6 @@ add_specs suite_builder setup =
                 materialized.columns.at 0 . at 0 . should_equal Nothing
 
     suite_builder.group prefix+"Table.aggregate should not summarize empty table when grouped" group_builder->
-        data = Data.setup create_connection_fn table_fn empty_table_fn
-
         group_builder.specify "should be able to count" <|
             grouped = data.empty_table.aggregate [0] [Count]
             materialized = materialize grouped
@@ -492,8 +479,6 @@ add_specs suite_builder setup =
             materialized.columns.at 1 . name . should_equal "Concatenate Code"
 
     suite_builder.group prefix+"Table.aggregate should be able to group on single field" group_builder->
-        data = Data.setup create_connection_fn table_fn empty_table_fn
-
         group_builder.specify "should be able to count" <|
             grouped = data.table.aggregate ["Index"] [Count]
             materialized = materialize grouped
@@ -696,8 +681,6 @@ add_specs suite_builder setup =
             materialized.columns.at 1 . at idx . length . should_equal 783
 
     suite_builder.group prefix+"Table.aggregate should be able to group on multiple fields" group_builder->
-        data = Data.setup create_connection_fn table_fn empty_table_fn
-
         group_builder.specify "should be able to count" <|
             grouped = data.table.aggregate ["Flag", "Index"] [Count]
             materialized = materialize grouped
@@ -913,14 +896,6 @@ add_specs suite_builder setup =
             materialized.columns.at 2 . at idx . length . should_equal 381
 
     suite_builder.group prefix+"Table.aggregate Shortest" (pending = resolve_pending test_selection.text_shortest_longest) group_builder->
-        data = Data.setup create_connection_fn table_fn empty_table_fn
-
-        group_builder.teardown <|
-            data.teardown
-
-        table_builder cols =
-            setup.table_builder cols connection=data.connection
-
         group_builder.specify "should correctly handle empty strings versus missing (null) strings" <|
             table = table_builder [["A", ["abcd", "f", ""]], ["B", [Nothing, "f", "abc"]]]
             result = table.aggregate [] [Shortest "A", Shortest "B"]
@@ -934,22 +909,22 @@ add_specs suite_builder setup =
                 materialized.columns.at 1 . name . should_equal "Shortest B"
                 materialized.columns.at 1 . to_vector . should_equal ["f"]
 
+
+    # Special case for Snowflake until the https://github.com/enso-org/enso/issues/10412 ticket is resolved.
+    if setup.prefix.contains "Snowflake" then
+        suite_builder.group prefix+"Table.aggregate Concatenate" group_builder->
+            group_builder.specify "should be supported" <|
+                table = table_builder [["X", ["A", "B", "C"]]]
+                result = table.aggregate columns=[(Concatenate "X")]
+                result.row_count . should_equal 1
+                str = result.at 0 . at 0
+                # No assumptions about ordering
+                str . should_contain "A"
+                str . should_contain "B"
+                str . should_contain "C"
+
     suite_builder.group prefix+"Table.aggregate Concatenate" (pending = resolve_pending test_selection.text_concat) group_builder->
-        data = Data.setup create_connection_fn table_fn empty_table_fn
-
-        group_builder.teardown <|
-            data.teardown
-
-        table_builder cols =
-            setup.table_builder cols connection=data.connection
-
-        build_sorted_table table_structure =
-            # Workaround for https://github.com/enso-org/enso/issues/10321
-            if setup.prefix.contains "Snowflake" . not then table_builder table_structure else
-                row_count = table_structure.first.second.length
-                new_structure = table_structure+[["row_id", (0.up_to row_count) . to_vector]]
-                table_builder new_structure . order_by "row_id" . remove_columns ["row_id"]
-
+        build_sorted_table = Util.build_sorted_table setup
         group_builder.specify "should insert the separator, add prefix and suffix" <|
             table = build_sorted_table [["A", ["foo", "bar", "foo", "foo"]], ["B", ["a", "b", "c", "d"]]]
             result = table.aggregate ["A"] [Concatenate "B" prefix="[[" suffix="]]" separator="; "]
@@ -1018,14 +993,6 @@ add_specs suite_builder setup =
             materialized.columns.at 0 . to_vector . should_equal ["'1''0'A''''BC"]
 
     suite_builder.group prefix+"Table.aggregate Count_Distinct" group_builder->
-        data = Data.setup create_connection_fn table_fn empty_table_fn
-
-        group_builder.teardown <|
-            data.teardown
-
-        table_builder cols =
-            setup.table_builder cols connection=data.connection
-
         group_builder.specify "should correctly count missing values" <|
             get_value t =
                 columns = materialize t . columns
@@ -1095,14 +1062,6 @@ add_specs suite_builder setup =
             m1.columns.first.to_vector . should_equal [3]
 
     suite_builder.group prefix+"Table.aggregate Standard_Deviation" pending=(resolve_pending test_selection.std_dev) group_builder->
-        data = Data.setup create_connection_fn table_fn empty_table_fn
-
-        group_builder.teardown <|
-            data.teardown
-
-        table_builder cols =
-            setup.table_builder cols connection=data.connection
-
         group_builder.specify "should correctly handle single elements" <|
             r1 = table_builder [["X", [1]]] . aggregate columns=[Standard_Deviation "X" (population=False), Standard_Deviation "X" (population=True)]
             r1.row_count.should_equal 1
@@ -1112,14 +1071,6 @@ add_specs suite_builder setup =
             m1.columns.second.at 0 . should_equal 0
 
     suite_builder.group prefix+"Table.aggregate should correctly select result types" group_builder->
-        data = Data.setup create_connection_fn table_fn empty_table_fn
-
-        group_builder.teardown <|
-            data.teardown
-
-        table_builder cols =
-            setup.table_builder cols connection=data.connection
-
         group_builder.specify "widening to decimals on Average" <|
             table = table_builder [["G", ["a", "a", "b", "b"]], ["X", [0, 1, 1, Nothing]]]
             r1 = table.aggregate columns=[Average "X"]
@@ -1170,14 +1121,6 @@ add_specs suite_builder setup =
             Test.fail "Expected a Nothing or NaN but got: "+value.to_text+" (at "+loc+")."
 
     suite_builder.group prefix+"Table.aggregate should correctly handle infinities" group_builder->
-        data = Data.setup create_connection_fn table_fn empty_table_fn
-
-        group_builder.teardown <|
-            data.teardown
-
-        table_builder cols =
-            setup.table_builder cols connection=data.connection
-
         pos_inf = 1/0
         neg_inf = -1/0
 
@@ -1257,14 +1200,6 @@ add_specs suite_builder setup =
             expect_null_or_nan <| m1.columns.second.at 0
 
     suite_builder.group prefix+"Table.aggregate should correctly handle NaN" pending=(resolve_pending test_selection.nan) group_builder->
-        data = Data.setup create_connection_fn table_fn empty_table_fn
-
-        group_builder.teardown <|
-            data.teardown
-
-        table_builder cols =
-            setup.table_builder cols connection=data.connection
-
         nan = 0.log 0
         group_builder.specify "on Average" <|
             t1 = table_builder [["X", [Nothing, nan, 0, 1, 2]]]
@@ -1308,14 +1243,6 @@ add_specs suite_builder setup =
             Double.isNaN (m1.columns.second.at 0) . should_be_true
 
     suite_builder.group prefix+"Table.aggregate Mode" (pending = resolve_pending test_selection.advanced_stats) group_builder->
-        data = Data.setup create_connection_fn table_fn empty_table_fn
-
-        group_builder.teardown <|
-            data.teardown
-
-        table_builder cols =
-            setup.table_builder cols connection=data.connection
-
         group_builder.specify "should ignore missing values" <|
             t1 = table_builder [["X", [Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, 2, 2, 1]]]
             r1 = t1.aggregate columns=[Mode "X"]
@@ -1325,14 +1252,6 @@ add_specs suite_builder setup =
             m1.columns.first.at 0 . should_equal 2
 
     suite_builder.group prefix+"Table.aggregate First and Last" group_builder->
-        data = Data.setup create_connection_fn table_fn empty_table_fn
-
-        group_builder.teardown <|
-            data.teardown
-
-        table_builder cols =
-            setup.table_builder cols connection=data.connection
-
         group_builder.specify "should not return the same value for groups with different values but equal ordering keys" (pending = resolve_pending test_selection.first_last) <|
             t1 = table_builder [["G", ["a", "a"]], ["X", [1, 2]]]
             order = [Sort_Column.Name "G"]
@@ -1345,14 +1264,6 @@ add_specs suite_builder setup =
             (first != last).should_be_true
 
     suite_builder.group prefix+"Table.aggregate" group_builder->
-        data = Data.setup create_connection_fn table_fn empty_table_fn
-
-        group_builder.teardown <|
-            data.teardown
-
-        table_builder cols =
-            setup.table_builder cols connection=data.connection
-
         group_builder.specify "should work even if no aggregations apart from groupings are specified" <|
             table = table_builder [["A", [1, 1, 2, 1]], ["B", [3, 2, 2, 3]], ["C", [11, 12, 13, 14]]]
             grouped = table.aggregate ["B", "A"]
@@ -1427,14 +1338,6 @@ add_specs suite_builder setup =
                 r1.to_display_text . should_contain "`First`"
 
     suite_builder.group prefix+"Table.aggregate+Expressions" group_builder->
-        data = Data.setup create_connection_fn table_fn empty_table_fn
-
-        group_builder.teardown <|
-            data.teardown
-
-        table_builder cols =
-            setup.table_builder cols connection=data.connection
-
         ## TODO we probably should check all kinds of aggregate columns
            to verify that  all of them correctly support expressions.
         group_builder.specify "should allow expressions in aggregates" <|
@@ -1454,9 +1357,9 @@ add_specs suite_builder setup =
             problems1 = [Invalid_Aggregate_Column.Error "[MISSING]*[MISSING]" (No_Such_Column.Error "MISSING")]
             Problems.test_problem_handling action1 problems1 tester1
 
-            t2 = data.table.aggregate ["Index"] [Sum "Value", Sum (expr "[[[")] on_problems=Problem_Behavior.Ignore
+            t2 = data.table.aggregate ["Index"] [Sum "Value", Sum (expr "[[[")] on_problems=..Ignore
             expect_column_names ["Index", "Sum Value"] t2
-            err3 = data.table.aggregate ["Index"] [Sum "Value", Sum (expr "[[[")] on_problems=Problem_Behavior.Report_Error
+            err3 = data.table.aggregate ["Index"] [Sum "Value", Sum (expr "[[[")] on_problems=..Report_Error
             err3.should_fail_with Invalid_Aggregate_Column
             err3.catch.name . should_equal "[[["
             err3.catch.expression_error . should_be_a Expression_Error.Syntax_Error
@@ -1468,14 +1371,6 @@ add_specs suite_builder setup =
             err4.expression_error.should_equal (No_Such_Column.Error "MISSING")
 
     suite_builder.group prefix+"Table.aggregate should raise warnings when there are issues" group_builder->
-        data = Data.setup create_connection_fn table_fn empty_table_fn
-
-        group_builder.teardown <|
-            data.teardown
-
-        table_builder cols =
-            setup.table_builder cols connection=data.connection
-
         table =
             col1 = ["Index", [1, 2, 3]]
             col2 = ["Value", [1, 2, 3]]
@@ -1495,11 +1390,11 @@ add_specs suite_builder setup =
             t3.catch.criteria.should_equal [42]
 
         group_builder.specify "should raise a warning when can't find a column by name, but a hard error if the missing column is in group_by" <|
-            err1 = table.aggregate ["Missing", "Index", "Other_Missing"] on_problems=Problem_Behavior.Ignore
+            err1 = table.aggregate ["Missing", "Index", "Other_Missing"] on_problems=..Ignore
             err1.should_fail_with Invalid_Aggregate_Column
             err1.catch.name . should_equal "Missing"
 
-            t1 = table.aggregate ["Index"] [Sum "Value", Sum "Missing"] on_problems=Problem_Behavior.Report_Warning
+            t1 = table.aggregate ["Index"] [Sum "Value", Sum "Missing"] on_problems=..Report_Warning
             t1.column_names . should_equal ["Index", "Sum Value"]
             warnings = Problems.get_attached_warnings t1
             warnings.not_empty . should_be_true
@@ -1508,15 +1403,15 @@ add_specs suite_builder setup =
 
             ## Even if there are missing columns both for group-by and
                aggregations, the groupby errors are reported separately.
-            err2 = table.aggregate ["Index", "Unknown", "Other Missing"] [Sum "Value", Sum "Missing"] on_problems=Problem_Behavior.Report_Error
+            err2 = table.aggregate ["Index", "Unknown", "Other Missing"] [Sum "Value", Sum "Missing"] on_problems=..Report_Error
             err2.should_fail_with Invalid_Aggregate_Column
             err2.catch.name.should_equal "Unknown"
 
-            err3 = table.aggregate ["Index"] [Sum "Value", Sum "Missing"] on_problems=Problem_Behavior.Ignore error_on_missing_columns=True
+            err3 = table.aggregate ["Index"] [Sum "Value", Sum "Missing"] on_problems=..Ignore error_on_missing_columns=True
             err3.should_fail_with Invalid_Aggregate_Column
             err3.catch.name.should_equal "Missing"
 
-            err4 = table.aggregate [100, "Index", -42] on_problems=Problem_Behavior.Ignore
+            err4 = table.aggregate [100, "Index", -42] on_problems=..Ignore
             err4.should_fail_with Missing_Input_Columns
             err4.catch.criteria.should_equal [100, -42]
 
@@ -1526,11 +1421,11 @@ add_specs suite_builder setup =
             Problems.test_problem_handling action2 problems2 tester2
 
             # As above, missing errors from group-by take precedence over aggregates.
-            err5 = table.aggregate ["Index", 55, -33] [Sum "Value", Sum 144] on_problems=Problem_Behavior.Report_Error
+            err5 = table.aggregate ["Index", 55, -33] [Sum "Value", Sum 144] on_problems=..Report_Error
             err5.should_fail_with Missing_Input_Columns
             err5.catch.criteria.should_equal [55, -33]
 
-            err6 = table.aggregate ["Index"] [Sum "Value", Sum 42] on_problems=Problem_Behavior.Ignore error_on_missing_columns=True
+            err6 = table.aggregate ["Index"] [Sum "Value", Sum 42] on_problems=..Ignore error_on_missing_columns=True
             err6.catch . should_equal (Missing_Input_Columns.Error [42])
 
         group_builder.specify "should raise a warning when a duplicate column name" <|
@@ -1564,14 +1459,6 @@ add_specs suite_builder setup =
             Problems.test_problem_handling action problems tester
 
     suite_builder.group prefix+"Table.aggregate should report warnings and errors based on types" group_builder->
-        data = Data.setup create_connection_fn table_fn empty_table_fn
-
-        group_builder.teardown <|
-            data.teardown
-
-        table_builder cols =
-            setup.table_builder cols connection=data.connection
-
         group_builder.specify "should warn if grouping on a floating point" <|
             t = table_builder [["X", [1.1, 2.2, 3.3, 2.2]]]
             action = t.aggregate ["X"] on_problems=_
@@ -1590,7 +1477,7 @@ add_specs suite_builder setup =
             False ->
                 group_builder.specify "should error if unsupported operations are selected" <|
                     t1 = table_builder [["X", [1.5, 2.0, 1.5, 1.0]]]
-                    t2 = t1.aggregate columns=[Mode "X"] on_problems=Problem_Behavior.Ignore
+                    t2 = t1.aggregate columns=[Mode "X"] on_problems=..Ignore
                     t2.should_fail_with No_Output_Columns
 
         group_builder.specify "should check types" <|
@@ -1613,26 +1500,18 @@ add_specs suite_builder setup =
 
             t1 = table.aggregate ["Text", "Int", "Float"]
             t1.at "Text" . value_type . is_text . should_be_true
-            t1.at "Int" . value_type . is_integer . should_be_true
+            setup.expect_integer_type <| t1.at "Int"
             t1.at "Float" . value_type . is_floating_point . should_be_true
 
             t2 = table.aggregate columns=[Count, Count_Not_Empty "Text", Sum "Int", Sum "Float", Average "Int", Concatenate "Text"]
-            t2.at "Count" . value_type . is_integer . should_be_true
-            t2.at "Count Not Empty Text" . value_type . is_integer . should_be_true
+            setup.expect_integer_type <| t2.at "Count"
+            setup.expect_integer_type <| t2.at "Count Not Empty Text"
             t2.at "Sum Int" . value_type . is_numeric . should_be_true
             t2.at "Sum Float" . value_type . is_floating_point . should_be_true
             t2.at "Average Int" . value_type . is_numeric . should_be_true
             t2.at "Concatenate Text" . value_type . is_text . should_be_true
 
     suite_builder.group prefix+"Table.aggregate should raise warnings when there are issues computing aggregation" pending=(resolve_pending test_selection.aggregation_problems) group_builder->
-        data = Data.setup create_connection_fn table_fn empty_table_fn
-
-        group_builder.teardown <|
-            data.teardown
-
-        table_builder cols =
-            setup.table_builder cols connection=data.connection
-
         table =
             col1 = ["Index", [1, 2, 3]]
             col2 = ["Value", [1, 2, 3.1]]
@@ -1643,7 +1522,7 @@ add_specs suite_builder setup =
         group_builder.specify "should not fail if trying concatenate unquoted delimiters with no separator" <|
             column = Concatenate "Text" separator=""
             t = table_builder [["Text", ["A", "BC", "def"]]]
-            result = t.aggregate columns=[column] on_problems=Report_Error
+            result = t.aggregate columns=[column] on_problems=..Report_Error
             Problems.assume_no_problems result
             result.column_names . should_equal ["Concatenate Text"]
             result.at "Concatenate Text" . to_vector . should_equal ["ABCdef"]
@@ -1664,14 +1543,6 @@ add_specs suite_builder setup =
             Problems.test_problem_handling action problems tester
 
     suite_builder.group prefix+"Table.aggregate should merge warnings when issues computing aggregation" pending=(resolve_pending test_selection.aggregation_problems) group_builder->
-        data = Data.setup create_connection_fn table_fn empty_table_fn
-
-        group_builder.teardown <|
-            data.teardown
-
-        table_builder cols =
-            setup.table_builder cols connection=data.connection
-
         group_builder.specify "should merge Invalid Aggregation warnings" <|
             table = table_builder [["X", (0.up_to 16).map (_-> ",")]]
             new_table = table.aggregate columns=[Concatenate "X" separator=","]
@@ -1695,15 +1566,7 @@ add_specs suite_builder setup =
 
     if is_database then
         suite_builder.group prefix+"Table.aggregate should report unsupported operations but not block other aggregations in warning mode" group_builder->
-            data = Data.setup create_connection_fn table_fn empty_table_fn
-
-            group_builder.teardown <|
-                data.teardown
-
-            table_builder cols =
-                setup.table_builder cols connection=data.connection
-
-            expect_sum_and_unsupported_errors error_count result =
+            expect_sum_and_unsupported_errors error_count result = within_table result <|
                 result.column_count . should_equal 1
                 result.row_count . should_equal 1
                 result.columns.first.to_vector . should_equal [6]
@@ -1743,7 +1606,7 @@ add_specs suite_builder setup =
                     expect_sum_and_unsupported_errors 2 <|
                         table.aggregate columns=[Sum "X", Shortest "Y", Longest "Y"]
 
-            if test_selection.text_concat.not then
+            if test_selection.text_concat.not && (setup.prefix.contains "Snowflake" . not) then
                 group_builder.specify "with Concatenate" <|
                     table = table_builder [["X", [1,2,3]], ["Y", ["a", "bb", "ccc"]]]
                     expect_sum_and_unsupported_errors 1 <|
