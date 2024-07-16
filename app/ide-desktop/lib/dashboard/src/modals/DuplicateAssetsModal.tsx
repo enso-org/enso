@@ -272,7 +272,7 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
               : getText('andOtherProjects', otherProjectsCount)}
           </aria.Text>
         )}
-        <ariaComponents.ButtonGroup>
+        <ariaComponents.ButtonGroup className="relative">
           <ariaComponents.Button
             variant="submit"
             onPress={() => {
