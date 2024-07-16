@@ -9,6 +9,7 @@ import * as mimeTypes from '#/data/mimeTypes'
 
 import * as backendHooks from '#/hooks/backendHooks'
 import * as intersectionHooks from '#/hooks/intersectionHooks'
+import * as projectHooks from '#/hooks/projectHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 import useOnScroll from '#/hooks/useOnScroll'
 
@@ -18,14 +19,13 @@ import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as navigator2DProvider from '#/providers/Navigator2DProvider'
+import * as projectsProvider from '#/providers/ProjectsProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import type * as assetEvent from '#/events/assetEvent'
 import AssetEventType from '#/events/AssetEventType'
 import type * as assetListEvent from '#/events/assetListEvent'
 import AssetListEventType from '#/events/AssetListEventType'
-
-import type * as dashboard from '#/pages/dashboard/Dashboard'
 
 import type * as assetPanel from '#/layouts/AssetPanel'
 import type * as assetSearchBar from '#/layouts/AssetSearchBar'
@@ -339,7 +339,6 @@ export interface AssetsTableState {
     title?: string | null,
     override?: boolean
   ) => void
-  readonly doOpenEditor: (id: backendModule.ProjectId) => void
   readonly doCopy: () => void
   readonly doCut: () => void
   readonly doPaste: (
@@ -358,7 +357,6 @@ export interface AssetRowState {
 
 /** Props for a {@link AssetsTable}. */
 export interface AssetsTableProps {
-  readonly openedProjects: dashboard.Project[]
   readonly hidden: boolean
   readonly query: AssetQuery
   readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
@@ -371,12 +369,6 @@ export interface AssetsTableProps {
   readonly setAssetPanelProps: (props: assetPanel.AssetPanelRequiredProps | null) => void
   readonly setIsAssetPanelTemporarilyVisible: (visible: boolean) => void
   readonly targetDirectoryNodeRef: React.MutableRefObject<assetTreeNode.AnyAssetTreeNode<backendModule.DirectoryAsset> | null>
-  readonly doOpenEditor: (id: dashboard.ProjectId) => void
-  readonly doOpenProject: (
-    project: dashboard.Project,
-    options?: dashboard.OpenProjectOptions
-  ) => void
-  readonly doCloseProject: (project: dashboard.Project) => void
   readonly assetManagementApiRef: React.Ref<AssetManagementApi>
 }
 
@@ -390,18 +382,12 @@ export interface AssetManagementApi {
 
 /** The table of project assets. */
 export default function AssetsTable(props: AssetsTableProps) {
-  const {
-    hidden,
-    query,
-    setQuery,
-    setCanDownload,
-    category,
-    openedProjects,
-    assetManagementApiRef,
-  } = props
+  const { hidden, query, setQuery, setCanDownload, category, assetManagementApiRef } = props
   const { setSuggestions, initialProjectName } = props
-  const { doOpenEditor, doOpenProject, doCloseProject } = props
   const { setAssetPanelProps, targetDirectoryNodeRef, setIsAssetPanelTemporarilyVisible } = props
+
+  const openedProjects = projectsProvider.useLaunchedProjects()
+  const doOpenProject = projectHooks.useOpenProject()
 
   const { user } = authProvider.useNonPartialUserSession()
   const backend = backendProvider.useBackend(category)
@@ -412,12 +398,12 @@ export default function AssetsTable(props: AssetsTableProps) {
   const inputBindings = inputBindingsProvider.useInputBindings()
   const navigator2D = navigator2DProvider.useNavigator2D()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
+  const previousCategoryRef = React.useRef(category)
   const dispatchAssetEvent = eventListProvider.useDispatchAssetEvent()
   const dispatchAssetListEvent = eventListProvider.useDispatchAssetListEvent()
   const [initialized, setInitialized] = React.useState(false)
   const initializedRef = React.useRef(initialized)
   initializedRef.current = initialized
-  const [isLoading, setIsLoading] = React.useState(true)
   const [enabledColumns, setEnabledColumns] = React.useState(columnUtils.DEFAULT_ENABLED_COLUMNS)
   const [sortInfo, setSortInfo] =
     React.useState<sorting.SortInfo<columnUtils.SortableColumn> | null>(null)
@@ -432,7 +418,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     ReadonlySet<backendModule.AssetId>
   > | null>(null)
   const [, setQueuedAssetEvents] = React.useState<assetEvent.AssetEvent[]>([])
-  const [, setNameOfProjectToImmediatelyOpen] = React.useState(initialProjectName)
+  const nameOfProjectToImmediatelyOpenRef = React.useRef(initialProjectName)
   const rootDirectoryId = React.useMemo(
     () => backend.rootDirectoryId(user) ?? backendModule.DirectoryId(''),
     [backend, user]
@@ -649,6 +635,9 @@ export default function AssetsTable(props: AssetsTableProps) {
   )
 
   const updateSecretMutation = backendHooks.useBackendMutation(backend, 'updateSecret')
+  React.useEffect(() => {
+    previousCategoryRef.current = category
+  })
 
   React.useEffect(() => {
     if (selectedKeys.size === 0) {
@@ -869,10 +858,6 @@ export default function AssetsTable(props: AssetsTableProps) {
   }, [isCloud, assetTree, query, visibilities, labels, setSuggestions])
 
   React.useEffect(() => {
-    setIsLoading(true)
-  }, [backend, category])
-
-  React.useEffect(() => {
     assetTreeRef.current = assetTree
     const newNodeMap = new Map(assetTree.preorderTraversal().map(asset => [asset.key, asset]))
     newNodeMap.set(assetTree.key, assetTree)
@@ -898,34 +883,6 @@ export default function AssetsTable(props: AssetsTableProps) {
       })
     }
   }, [hidden, inputBindings, dispatchAssetEvent])
-
-  React.useEffect(() => {
-    if (isLoading) {
-      setNameOfProjectToImmediatelyOpen(initialProjectName)
-    } else {
-      // The project name here might also be a string with project id, e.g. when opening
-      // a project file from explorer on Windows.
-      const isInitialProject = (asset: backendModule.AnyAsset) =>
-        asset.title === initialProjectName || asset.id === initialProjectName
-      const projectToLoad = assetTree
-        .preorderTraversal()
-        .map(node => node.item)
-        .filter(backendModule.assetIsProject)
-        .find(isInitialProject)
-      if (projectToLoad != null) {
-        doOpenProject({
-          type: backendModule.BackendType.local,
-          id: projectToLoad.id,
-          title: projectToLoad.title,
-          parentId: projectToLoad.parentId,
-        })
-      } else if (initialProjectName != null) {
-        toastAndLog('findProjectError', null, initialProjectName)
-      }
-    }
-    // This effect MUST only run when `initialProjectName` is changed.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialProjectName])
 
   const setSelectedKeys = React.useCallback(
     (newSelectedKeys: ReadonlySet<backendModule.AssetId>) => {
@@ -962,70 +919,63 @@ export default function AssetsTable(props: AssetsTableProps) {
 
   const overwriteNodes = React.useCallback(
     (newAssets: backendModule.AnyAsset[]) => {
+      setInitialized(true)
       mostRecentlySelectedIndexRef.current = null
       selectionStartIndexRef.current = null
       // This is required, otherwise we are using an outdated
       // `nameOfProjectToImmediatelyOpen`.
-      setNameOfProjectToImmediatelyOpen(oldNameOfProjectToImmediatelyOpen => {
-        setInitialized(true)
-        const rootParentDirectoryId = backendModule.DirectoryId('')
-        const rootDirectory = backendModule.createRootDirectoryAsset(rootDirectoryId)
-        const newRootNode = new AssetTreeNode(
-          rootDirectory,
-          rootParentDirectoryId,
-          rootParentDirectoryId,
-          newAssets.map(asset =>
-            AssetTreeNode.fromAsset(
-              asset,
-              rootDirectory.id,
-              rootDirectory.id,
-              0,
-              `${backend.rootPath}/${asset.title}`,
-              null
-            )
-          ),
-          -1,
-          backend.rootPath,
-          null,
-          rootDirectory.id,
-          true
+      const nameOfProjectToImmediatelyOpen = nameOfProjectToImmediatelyOpenRef.current
+      const rootParentDirectoryId = backendModule.DirectoryId('')
+      const rootDirectory = backendModule.createRootDirectoryAsset(rootDirectoryId)
+      const rootId = rootDirectory.id
+      const children = newAssets.map(asset =>
+        AssetTreeNode.fromAsset(
+          asset,
+          rootId,
+          rootId,
+          0,
+          `${backend.rootPath}/${asset.title}`,
+          null
         )
-        setAssetTree(newRootNode)
-        // The project name here might also be a string with project id, e.g.
-        // when opening a project file from explorer on Windows.
-        const isInitialProject = (asset: backendModule.AnyAsset) =>
-          asset.title === oldNameOfProjectToImmediatelyOpen ||
-          asset.id === oldNameOfProjectToImmediatelyOpen
-        if (oldNameOfProjectToImmediatelyOpen != null) {
-          const projectToLoad = newAssets
-            .filter(backendModule.assetIsProject)
-            .find(isInitialProject)
-          if (projectToLoad != null) {
-            doOpenProject(
-              {
-                type: backendModule.BackendType.local,
-                id: projectToLoad.id,
-                title: projectToLoad.title,
-                parentId: projectToLoad.parentId,
-              },
-              { openInBackground: false }
-            )
-          } else {
-            toastAndLog('findProjectError', null, oldNameOfProjectToImmediatelyOpen)
-          }
+      )
+      const newRootNode = new AssetTreeNode(
+        rootDirectory,
+        rootParentDirectoryId,
+        rootParentDirectoryId,
+        children,
+        -1,
+        backend.rootPath,
+        null,
+        rootId,
+        true
+      )
+      setAssetTree(newRootNode)
+      // The project name here might also be a string with project id, e.g.
+      // when opening a project file from explorer on Windows.
+      const isInitialProject = (asset: backendModule.AnyAsset) =>
+        asset.title === nameOfProjectToImmediatelyOpen ||
+        asset.id === nameOfProjectToImmediatelyOpen
+      if (nameOfProjectToImmediatelyOpen != null) {
+        const projectToLoad = newAssets.filter(backendModule.assetIsProject).find(isInitialProject)
+        if (projectToLoad != null) {
+          const backendType = backendModule.BackendType.local
+          const { id, title, parentId } = projectToLoad
+          doOpenProject({ type: backendType, id, title, parentId }, { openInBackground: false })
+        } else {
+          toastAndLog('findProjectError', null, nameOfProjectToImmediatelyOpen)
         }
-        setQueuedAssetEvents(oldQueuedAssetEvents => {
-          if (oldQueuedAssetEvents.length !== 0) {
-            queueMicrotask(() => {
-              for (const event of oldQueuedAssetEvents) {
-                dispatchAssetEvent(event)
-              }
-            })
-          }
-          return []
-        })
-        return null
+      }
+      setQueuedAssetEvents(oldQueuedAssetEvents => {
+        if (oldQueuedAssetEvents.length !== 0) {
+          queueMicrotask(() => {
+            for (const event of oldQueuedAssetEvents) {
+              dispatchAssetEvent(event)
+            }
+          })
+        }
+        return []
       })
+      nameOfProjectToImmediatelyOpenRef.current = null
     },
     [doOpenProject, rootDirectoryId, backend.rootPath, dispatchAssetEvent, toastAndLog]
   )
@@ -1054,10 +1004,39 @@ export default function AssetsTable(props: AssetsTableProps) {
     ],
     { queryKey: [], staleTime: 0, meta: { persist: false } }
   )
+  const isLoading =
+    rootDirectoryQuery.isLoading || rootDirectoryQuery.isPending || rootDirectoryQuery.isFetching
+
+  React.useEffect(() => {
+    if (isLoading) {
+      nameOfProjectToImmediatelyOpenRef.current = initialProjectName
+    } else {
+      // The project name here might also be a string with project id, e.g. when opening
+      // a project file from explorer on Windows.
+      const isInitialProject = (asset: backendModule.AnyAsset) =>
+        asset.title === initialProjectName || asset.id === initialProjectName
+      const projectToLoad = assetTree
+        .preorderTraversal()
+        .map(node => node.item)
+        .filter(backendModule.assetIsProject)
+        .find(isInitialProject)
+      if (projectToLoad != null) {
+        doOpenProject({
+          type: backendModule.BackendType.local,
+          id: projectToLoad.id,
+          title: projectToLoad.title,
+          parentId: projectToLoad.parentId,
+        })
+      } else if (initialProjectName != null) {
+        toastAndLog('findProjectError', null, initialProjectName)
+      }
+    }
+    // This effect MUST only run when `initialProjectName` is changed.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialProjectName])
 
   React.useEffect(() => {
     if (rootDirectoryQuery.data) {
-      setIsLoading(false)
       overwriteNodes(rootDirectoryQuery.data)
     }
   }, [rootDirectoryQuery.data, overwriteNodes])
@@ -1763,9 +1742,6 @@ export default function AssetsTable(props: AssetsTableProps) {
             type: backendModule.ProjectState.placeholder,
             volumeId: '',
             openedBy: user.email,
-            ...(event.original.projectState.path != null
-              ? { path: event.original.projectState.path }
-              : {}),
           },
           labels: [],
           description: null,
@@ -1954,6 +1930,19 @@ export default function AssetsTable(props: AssetsTableProps) {
     }
   }
 
+  const handleFileDrop = (event: React.DragEvent) => {
+    if (event.dataTransfer.types.includes('Files')) {
+      event.preventDefault()
+      event.stopPropagation()
+      dispatchAssetListEvent({
+        type: AssetListEventType.uploadFiles,
+        parentKey: rootDirectoryId,
+        parentId: rootDirectoryId,
+        files: Array.from(event.dataTransfer.files),
+      })
+    }
+  }
+
   const state = React.useMemo<AssetsTableState>(
     // The type MUST be here to trigger excess property errors at typecheck time.
     () => ({
@@ -1974,7 +1963,6 @@ export default function AssetsTable(props: AssetsTableProps) {
       nodeMap: nodeMapRef,
       hideColumn,
       doToggleDirectoryExpansion,
-      doOpenEditor,
       doCopy,
       doCut,
       doPaste,
@@ -1988,7 +1976,6 @@ export default function AssetsTable(props: AssetsTableProps) {
       sortInfo,
       query,
       doToggleDirectoryExpansion,
-      doOpenEditor,
       doCopy,
       doCut,
       doPaste,
@@ -2270,7 +2257,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     displayItems.map((item, i) => {
       const key = AssetTreeNode.getKey(item)
       const isSelected = (visuallySelectedKeysOverride ?? selectedKeys).has(key)
-      const isSoleSelected = selectedKeys.size === 1 && isSelected
+      const isSoleSelected = isSelected && selectedKeys.size === 1
 
       return (
         <AssetRow
@@ -2290,8 +2277,6 @@ export default function AssetsTable(props: AssetsTableProps) {
           item={item}
           state={state}
           hidden={hidden || visibilities.get(item.key) === Visibility.hidden}
-          doOpenProject={doOpenProject}
-          doCloseProject={doCloseProject}
           selected={isSelected}
           setSelected={selected => {
             setSelectedKeys(set.withPresence(selectedKeysRef.current, key, selected))
@@ -2361,8 +2346,6 @@ export default function AssetsTable(props: AssetsTableProps) {
                     setItem={() => {}}
                     setRowState={() => {}}
                     isEditable={false}
-                    doCloseProject={doCloseProject}
-                    doOpenProject={doOpenProject}
                   />
                 ))}
               </DragModal>
@@ -2548,6 +2531,7 @@ export default function AssetsTable(props: AssetsTableProps) {
               ids: new Set(filtered.map(dragItem => dragItem.asset.id)),
             })
           }
+          handleFileDrop(event)
         }}
         onClick={() => {
           setSelectedKeys(new Set())
@@ -2685,16 +2669,7 @@ export default function AssetsTable(props: AssetsTableProps) {
             onDragOver={onDropzoneDragOver}
             onDrop={event => {
               setIsDraggingFiles(false)
-              if (event.dataTransfer.types.includes('Files')) {
-                event.preventDefault()
-                event.stopPropagation()
-                dispatchAssetListEvent({
-                  type: AssetListEventType.uploadFiles,
-                  parentKey: rootDirectoryId,
-                  parentId: rootDirectoryId,
-                  files: Array.from(event.dataTransfer.files),
-                })
-              }
+              handleFileDrop(event)
             }}
           >
             <SvgMask src={DropFilesImage} className="size-8" />

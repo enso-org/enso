@@ -163,7 +163,7 @@ export default function ManageLabelsModal<
           {
             <FocusArea direction="horizontal">
               {innerProps => (
-                <div className="flex gap-input-with-button" {...innerProps}>
+                <ariaComponents.ButtonGroup className="relative" {...innerProps}>
                   <FocusRing within>
                     <div
                       className={tailwindMerge.twMerge(
@@ -199,7 +199,7 @@ export default function ManageLabelsModal<
                   >
                     {getText('create')}
                   </ariaComponents.Button>
-                </div>
+                </ariaComponents.ButtonGroup>
               )}
             </FocusArea>
           }

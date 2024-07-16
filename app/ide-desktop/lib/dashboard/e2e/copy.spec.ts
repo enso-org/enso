@@ -2,220 +2,191 @@
 import * as test from '@playwright/test'
 
 import * as actions from './actions'
-
-// =====================
-// === Local actions ===
-// =====================
-
-// These actions have been migrated to the new API, and are included here as a temporary measure
-// until this file is also migrated to the new API.
-
-/** Find a "duplicate" button (if any) on the current page. */
-export function locateDuplicateButton(page: test.Locator | test.Page) {
-  return page.getByRole('button', { name: 'Duplicate' }).getByText('Duplicate')
-}
-
-/** Find a "copy" button (if any) on the current page. */
-function locateCopyButton(page: test.Locator | test.Page) {
-  return page.getByRole('button', { name: 'Copy' }).getByText('Copy', { exact: true })
-}
-
-/** Find a "cut" button (if any) on the current page. */
-function locateCutButton(page: test.Locator | test.Page) {
-  return page.getByRole('button', { name: 'Cut' }).getByText('Cut')
-}
-
-/** Find a "paste" button (if any) on the current page. */
-function locatePasteButton(page: test.Locator | test.Page) {
-  return page.getByRole('button', { name: 'Paste' }).getByText('Paste')
-}
-
-/** A test assertion to confirm that there is only one row visible, and that row is the
- * placeholder row displayed when there are no assets to show. */
-export async function expectPlaceholderRow(page: test.Page) {
-  const assetRows = actions.locateAssetRows(page)
-  await test.test.step('Expect placeholder row', async () => {
-    await test.expect(assetRows).toHaveCount(1)
-    await test.expect(assetRows).toHaveText(/You have no files/)
-  })
-}
+import EditorPageActions from './actions/EditorPageActions'
 
 // =============
 // === Tests ===
 // =============
 
-test.test.beforeEach(({ page }) => {
-  return actions.mockAllAndLogin({ page })
-})
-
-test.test('copy', async ({ page }) => {
-  const assetRows = actions.locateAssetRows(page)
-
-  await actions.locateNewFolderIcon(page).click()
-  // Assets: [0: Folder 1]
-  await actions.locateNewFolderIcon(page).click()
-  // Assets: [0: Folder 2, 1: Folder 1]
-  await assetRows.nth(0).click({ button: 'right' })
-  await test.expect(actions.locateContextMenus(page)).toBeVisible()
-  await locateCopyButton(page).click()
-  // Assets: [0: Folder 2 <copied>, 1: Folder 1]
-  await test.expect(actions.locateContextMenus(page)).not.toBeVisible()
-  await assetRows.nth(1).click({ button: 'right' })
-  await test.expect(actions.locateContextMenus(page)).toBeVisible()
-  await locatePasteButton(page).click()
-  // Assets: [0: Folder 2, 1: Folder 1, 2: Folder 2 (copy) <child { depth=1 }>]
-  await test.expect(assetRows).toHaveCount(3)
-  await test.expect(assetRows.nth(2)).toBeVisible()
-  await test.expect(assetRows.nth(2)).toHaveText(/^New Folder 2 [(]copy[)]/)
-  const parentLeft = await actions.getAssetRowLeftPx(assetRows.nth(1))
-  const childLeft = await actions.getAssetRowLeftPx(assetRows.nth(2))
-  test.expect(childLeft, 'child is indented further than parent').toBeGreaterThan(parentLeft)
-})
-
-test.test('copy (keyboard)', async ({ page }) => {
-  const assetRows = actions.locateAssetRows(page)
-
-  await actions.locateNewFolderIcon(page).click()
-  // Assets: [0: Folder 1]
-  await actions.locateNewFolderIcon(page).click()
-  // Assets: [0: Folder 2, 1: Folder 1]
-  await actions.clickAssetRow(assetRows.nth(0))
-  await actions.press(page, 'Mod+C')
-  // Assets: [0: Folder 2 <copied>, 1: Folder 1]
-  await actions.clickAssetRow(assetRows.nth(1))
-  await actions.press(page, 'Mod+V')
-  // Assets: [0: Folder 2, 1: Folder 1, 2: Folder 2 (copy) <child { depth=1 }>]
-  await test.expect(assetRows).toHaveCount(3)
-  await test.expect(assetRows.nth(2)).toBeVisible()
-  await test.expect(assetRows.nth(2)).toHaveText(/^New Folder 2 [(]copy[)]/)
-  const parentLeft = await actions.getAssetRowLeftPx(assetRows.nth(1))
-  const childLeft = await actions.getAssetRowLeftPx(assetRows.nth(2))
-  test.expect(childLeft, 'child is indented further than parent').toBeGreaterThan(parentLeft)
-})
-
-test.test('move', async ({ page }) => {
-  const assetRows = actions.locateAssetRows(page)
-
-  await actions.locateNewFolderIcon(page).click()
-  // Assets: [0: Folder 1]
-  await actions.locateNewFolderIcon(page).click()
-  // Assets: [0: Folder 2, 1: Folder 1]
-  await assetRows.nth(0).click({ button: 'right' })
-  await test.expect(actions.locateContextMenus(page)).toBeVisible()
-  await locateCutButton(page).click()
-  // Assets: [0: Folder 2 <cut>, 1: Folder 1]
-  await test.expect(actions.locateContextMenus(page)).not.toBeVisible()
-  await assetRows.nth(1).click({ button: 'right' })
-  await test.expect(actions.locateContextMenus(page)).toBeVisible()
-  await locatePasteButton(page).click()
-  // Assets: [0: Folder 1, 1: Folder 2 <child { depth=1 }>]
-  await test.expect(assetRows).toHaveCount(2)
-  await test.expect(assetRows.nth(1)).toBeVisible()
-  await test.expect(assetRows.nth(1)).toHaveText(/^New Folder 2/)
-  const parentLeft = await actions.getAssetRowLeftPx(assetRows.nth(0))
-  const childLeft = await actions.getAssetRowLeftPx(assetRows.nth(1))
-  test.expect(childLeft, 'child is indented further than parent').toBeGreaterThan(parentLeft)
-})
-
-test.test('move (drag)', async ({ page }) => {
-  const assetRows = actions.locateAssetRows(page)
-
-  await actions.locateNewFolderIcon(page).click()
-  // Assets: [0: Folder 1]
-  await actions.locateNewFolderIcon(page).click()
-  // Assets: [0: Folder 2, 1: Folder 1]
-  await actions.dragAssetRowToAssetRow(assetRows.nth(0), assetRows.nth(1))
-  // Assets: [0: Folder 1, 1: Folder 2 <child { depth=1 }>]
-  await test.expect(assetRows).toHaveCount(2)
-  await test.expect(assetRows.nth(1)).toBeVisible()
-  await test.expect(assetRows.nth(1)).toHaveText(/^New Folder 2/)
-  const parentLeft = await actions.getAssetRowLeftPx(assetRows.nth(0))
-  const childLeft = await actions.getAssetRowLeftPx(assetRows.nth(1))
-  test.expect(childLeft, 'child is indented further than parent').toBeGreaterThan(parentLeft)
-})
-
-test.test('move to trash', async ({ page }) => {
-  const assetRows = actions.locateAssetRows(page)
-
-  await actions.locateNewFolderIcon(page).click()
-  await actions.locateNewFolderIcon(page).click()
-  await page.keyboard.down(await actions.modModifier(page))
-  await actions.clickAssetRow(assetRows.nth(0))
-  await actions.clickAssetRow(assetRows.nth(1))
-  // NOTE: For some reason, `react-aria-components` causes drag-n-drop to break if `Mod` is still
-  // held.
-  await page.keyboard.up(await actions.modModifier(page))
-  await actions.dragAssetRow(assetRows.nth(0), actions.locateTrashCategory(page))
-  await expectPlaceholderRow(page)
-  await actions.locateTrashCategory(page).click()
-  await test.expect(assetRows).toHaveCount(2)
-  await test.expect(assetRows.nth(0)).toBeVisible()
-  await test.expect(assetRows.nth(0)).toHaveText(/^New Folder 1/)
-  await test.expect(assetRows.nth(1)).toBeVisible()
-  await test.expect(assetRows.nth(1)).toHaveText(/^New Folder 2/)
-})
-
-test.test('move (keyboard)', async ({ page }) => {
-  const assetRows = actions.locateAssetRows(page)
-
-  await actions.locateNewFolderIcon(page).click()
-  // Assets: [0: Folder 1]
-  await actions.locateNewFolderIcon(page).click()
-  // Assets: [0: Folder 2, 1: Folder 1]
-  await actions.clickAssetRow(assetRows.nth(0))
-  await actions.press(page, 'Mod+X')
-  // Assets: [0: Folder 2 <cut>, 1: Folder 1]
-  await actions.clickAssetRow(assetRows.nth(1))
-  await actions.press(page, 'Mod+V')
-  // Assets: [0: Folder 1, 1: Folder 2 <child { depth=1 }>]
-  await test.expect(assetRows).toHaveCount(2)
-  await test.expect(assetRows.nth(1)).toBeVisible()
-  await test.expect(assetRows.nth(1)).toHaveText(/^New Folder 2/)
-  const parentLeft = await actions.getAssetRowLeftPx(assetRows.nth(0))
-  const childLeft = await actions.getAssetRowLeftPx(assetRows.nth(1))
-  test.expect(childLeft, 'child is indented further than parent').toBeGreaterThan(parentLeft)
-})
-
-test.test('cut (keyboard)', async ({ page }) => {
-  const assetRows = actions.locateAssetRows(page)
-
-  await actions.locateNewFolderIcon(page).click()
-  await actions.clickAssetRow(assetRows.nth(0))
-  await actions.press(page, 'Mod+X')
-  // This action is not a builtin `expect` action, so it needs to be manually retried.
-  await test
-    .expect(async () => {
-      test
-        .expect(await assetRows.nth(0).evaluate(el => Number(getComputedStyle(el).opacity)))
-        .toBeLessThan(1)
+test.test('copy', ({ page }) =>
+  actions
+    .mockAllAndLogin({ page })
+    // Assets: [0: Folder 1]
+    .createFolder()
+    // Assets: [0: Folder 2, 1: Folder 1]
+    .createFolder()
+    .driveTable.rightClickRow(0)
+    // Assets: [0: Folder 2 <copied>, 1: Folder 1]
+    .contextMenu.copy()
+    .driveTable.rightClickRow(1)
+    // Assets: [0: Folder 2, 1: Folder 1, 2: Folder 2 (copy) <child { depth=1 }>]
+    .contextMenu.paste()
+    .driveTable.withRows(async rows => {
+      await test.expect(rows).toHaveCount(3)
+      await test.expect(rows.nth(2)).toBeVisible()
+      await test.expect(rows.nth(2)).toHaveText(/^New Folder 2 [(]copy[)]/)
+      const parentLeft = await actions.getAssetRowLeftPx(rows.nth(1))
+      const childLeft = await actions.getAssetRowLeftPx(rows.nth(2))
+      test.expect(childLeft, 'child is indented further than parent').toBeGreaterThan(parentLeft)
     })
-    .toPass()
-})
+)
 
-test.test('duplicate', async ({ page }) => {
-  const assetRows = actions.locateAssetRows(page)
+test.test('copy (keyboard)', ({ page }) =>
+  actions
+    .mockAllAndLogin({ page })
+    // Assets: [0: Folder 1]
+    .createFolder()
+    // Assets: [0: Folder 2, 1: Folder 1]
+    .createFolder()
+    .driveTable.clickRow(0)
+    // Assets: [0: Folder 2 <copied>, 1: Folder 1]
+    .press('Mod+C')
+    .driveTable.clickRow(1)
+    // Assets: [0: Folder 2, 1: Folder 1, 2: Folder 2 (copy) <child { depth=1 }>]
+    .press('Mod+V')
+    .driveTable.withRows(async rows => {
+      await test.expect(rows).toHaveCount(3)
+      await test.expect(rows.nth(2)).toBeVisible()
+      await test.expect(rows.nth(2)).toHaveText(/^New Folder 2 [(]copy[)]/)
+      const parentLeft = await actions.getAssetRowLeftPx(rows.nth(1))
+      const childLeft = await actions.getAssetRowLeftPx(rows.nth(2))
+      test.expect(childLeft, 'child is indented further than parent').toBeGreaterThan(parentLeft)
+    })
+)
 
-  await actions.locateNewFolderIcon(page).click()
-  // Assets: [0: Folder 1]
-  await assetRows.nth(0).click({ button: 'right' })
-  await test.expect(actions.locateContextMenus(page)).toBeVisible()
-  await locateDuplicateButton(page).click()
-  // Assets: [0: Folder 1 (copy), 1: Folder 1]
-  await test.expect(assetRows).toHaveCount(2)
-  await test.expect(actions.locateContextMenus(page)).not.toBeVisible()
-  await test.expect(assetRows.nth(0)).toBeVisible()
-  await test.expect(assetRows.nth(0)).toHaveText(/^New Folder 1 [(]copy[)]/)
-})
+test.test('move', ({ page }) =>
+  actions
+    .mockAllAndLogin({ page })
+    // Assets: [0: Folder 1]
+    .createFolder()
+    // Assets: [0: Folder 2, 1: Folder 1]
+    .createFolder()
+    .driveTable.rightClickRow(0)
+    // Assets: [0: Folder 2 <cut>, 1: Folder 1]
+    .contextMenu.cut()
+    .driveTable.rightClickRow(1)
+    // Assets: [0: Folder 1, 1: Folder 2 <child { depth=1 }>]
+    .contextMenu.paste()
+    .driveTable.withRows(async rows => {
+      await test.expect(rows).toHaveCount(2)
+      await test.expect(rows.nth(1)).toBeVisible()
+      await test.expect(rows.nth(1)).toHaveText(/^New Folder 2/)
+      const parentLeft = await actions.getAssetRowLeftPx(rows.nth(0))
+      const childLeft = await actions.getAssetRowLeftPx(rows.nth(1))
+      test.expect(childLeft, 'child is indented further than parent').toBeGreaterThan(parentLeft)
+    })
+)
 
-test.test('duplicate (keyboard)', async ({ page }) => {
-  const assetRows = actions.locateAssetRows(page)
+test.test('move (drag)', ({ page }) =>
+  actions
+    .mockAllAndLogin({ page })
+    // Assets: [0: Folder 1]
+    .createFolder()
+    // Assets: [0: Folder 2, 1: Folder 1]
+    .createFolder()
+    // Assets: [0: Folder 1, 1: Folder 2 <child { depth=1 }>]
+    .driveTable.dragRowToRow(0, 1)
+    .driveTable.withRows(async rows => {
+      await test.expect(rows).toHaveCount(2)
+      await test.expect(rows.nth(1)).toBeVisible()
+      await test.expect(rows.nth(1)).toHaveText(/^New Folder 2/)
+      const parentLeft = await actions.getAssetRowLeftPx(rows.nth(0))
+      const childLeft = await actions.getAssetRowLeftPx(rows.nth(1))
+      test.expect(childLeft, 'child is indented further than parent').toBeGreaterThan(parentLeft)
+    })
+)
 
-  await actions.locateNewFolderIcon(page).click()
-  // Assets: [0: Folder 1]
-  await actions.clickAssetRow(assetRows.nth(0))
-  await actions.press(page, 'Mod+D')
-  // Assets: [0: Folder 1 (copy), 1: Folder 1]
-  await test.expect(assetRows).toHaveCount(2)
-  await test.expect(assetRows.nth(0)).toBeVisible()
-  await test.expect(assetRows.nth(0)).toHaveText(/^New Folder 1 [(]copy[)]/)
-})
+test.test('move to trash', ({ page }) =>
+  actions
+    .mockAllAndLogin({ page })
+    // Assets: [0: Folder 1]
+    .createFolder()
+    // Assets: [0: Folder 2, 1: Folder 1]
+    .createFolder()
+    // NOTE: For some reason, `react-aria-components` causes drag-n-drop to break if `Mod` is still
+    // held.
+    .withModPressed(modActions => modActions.driveTable.clickRow(0).driveTable.clickRow(1))
+    .driveTable.dragRow(0, actions.locateTrashCategory(page))
+    .driveTable.expectPlaceholderRow()
+    .goToCategory.trash()
+    .driveTable.withRows(async rows => {
+      await test.expect(rows).toHaveText([/^New Folder 1/, /^New Folder 2/])
+    })
+)
+
+test.test('move (keyboard)', ({ page }) =>
+  actions
+    .mockAllAndLogin({ page })
+    // Assets: [0: Folder 1]
+    .createFolder()
+    // Assets: [0: Folder 2, 1: Folder 1]
+    .createFolder()
+    .driveTable.clickRow(0)
+    // Assets: [0: Folder 2 <cut>, 1: Folder 1]
+    .press('Mod+X')
+    .driveTable.clickRow(1)
+    // Assets: [0: Folder 1, 1: Folder 2 <child { depth=1 }>]
+    .press('Mod+V')
+    .driveTable.withRows(async rows => {
+      await test.expect(rows).toHaveCount(2)
+      await test.expect(rows.nth(1)).toBeVisible()
+      await test.expect(rows.nth(1)).toHaveText(/^New Folder 2/)
+      const parentLeft = await actions.getAssetRowLeftPx(rows.nth(0))
+      const childLeft = await actions.getAssetRowLeftPx(rows.nth(1))
+      test.expect(childLeft, 'child is indented further than parent').toBeGreaterThan(parentLeft)
+    })
+)
+
+test.test('cut (keyboard)', async ({ page }) =>
+  actions
+    .mockAllAndLogin({ page })
+    .createFolder()
+    .driveTable.clickRow(0)
+    .press('Mod+X')
+    .driveTable.withRows(async rows => {
+      // This action is not a builtin `expect` action, so it needs to be manually retried.
+      await test
+        .expect(async () => {
+          test
+            .expect(await rows.nth(0).evaluate(el => Number(getComputedStyle(el).opacity)))
+            .toBeLessThan(1)
+        })
+        .toPass()
+    })
+)
+
+test.test('duplicate', ({ page }) =>
+  actions
+    .mockAllAndLogin({ page })
+    // Assets: [0: New Project 1]
+    .newEmptyProject()
+    .goToPage.drive()
+    .driveTable.rightClickRow(0)
+    .contextMenu.duplicateProject()
+    .goToPage.drive()
+    .driveTable.withRows(async rows => {
+      // Assets: [0: New Project 1 (copy), 1: New Project 1]
+      await test.expect(rows).toHaveCount(2)
+      await test.expect(actions.locateContextMenus(page)).not.toBeVisible()
+      await test.expect(rows.nth(0)).toBeVisible()
+      await test.expect(rows.nth(0)).toHaveText(/^New Project 1 [(]copy[)]/)
+    })
+)
+
+test.test('duplicate (keyboard)', ({ page }) =>
+  actions
+    .mockAllAndLogin({ page })
+    // Assets: [0: New Project 1]
+    .newEmptyProject()
+    .goToPage.drive()
+    .driveTable.clickRow(0)
+    .press('Mod+D')
+    .into(EditorPageActions)
+    .goToPage.drive()
+    .driveTable.withRows(async rows => {
+      // Assets: [0: New Project 1 (copy), 1: New Project 1]
+      await test.expect(rows).toHaveCount(2)
+      await test.expect(rows.nth(0)).toBeVisible()
+      await test.expect(rows.nth(0)).toHaveText(/^New Project 1 [(]copy[)]/)
+    })
+)

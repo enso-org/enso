@@ -18,11 +18,22 @@
               dir = ./.;
               sha256 = "sha256-o/MRwGYjLPyD1zZQe3LX0dOynwRJpVygfF9+vSnqTOc=";
             };
+	    isOnLinux = pkgs.lib.hasInfix "linux" system;
+	    rust-jni = if isOnLinux then with fenix.packages.${system}; combine [
+              minimal.cargo
+              minimal.rustc
+              targets.x86_64-unknown-linux-musl.latest.rust-std
+            ] else fenix.packages.${system}.minimal;
           in
-          pkgs.mkShell {
+          pkgs.mkShell rec {
+            buildInputs = with pkgs; [
+	      # === Graal dependencies ===
+	      libxcrypt-legacy
+	    ];
+
             packages = with pkgs; [
               # === TypeScript dependencies ===
-              nodejs_20 # should match the Node.JS version of the lambdas
+              nodejs_20
               corepack
               # === Electron ===
               electron
@@ -32,14 +43,31 @@
               # === WASM parser dependencies ===
               rust
               wasm-pack
-              # Java and SBT omitted for now
             ];
 
             shellHook = ''
+	      SHIMS_PATH=$HOME/.local/share/enso/nix-shims
               # `sccache` can be used to speed up compile times for Rust crates.
               # `~/.cargo/bin/sccache` is provided by `cargo install sccache`.
               # `~/.cargo/bin` must be in the `PATH` for the binary to be accessible.
-              export PATH=$HOME/.cargo/bin:$PATH
+              export PATH=$SHIMS_PATH:${rust.out}:$HOME/.cargo/bin:$PATH
+	      export LD_LIBRARY_PATH="${pkgs.lib.makeLibraryPath buildInputs}:$LD_LIBRARY_PATH"
+
+	      # `rustup` shim
+	      mkdir -p $SHIMS_PATH
+	      cat <<END > $SHIMS_PATH/rustup
+              if [ "\$3" = "x86_64-unknown-linux-musl" ]; then
+	        echo 'Installing Nix Rust shims'
+	        ln -s ${rust-jni.out}/bin/rustc $SHIMS_PATH
+	        ln -s ${rust-jni.out}/bin/cargo $SHIMS_PATH
+	      else
+	        echo 'Uninstalling Nix Rust shims (if installed)'
+	        rm -f $SHIMS_PATH/{rustc,cargo}
+	      fi
+END
+	      chmod +x $SHIMS_PATH/rustup
+	      # Uninstall shims if already installed
+	      $SHIMS_PATH/rustup
             '';
           });
     };
