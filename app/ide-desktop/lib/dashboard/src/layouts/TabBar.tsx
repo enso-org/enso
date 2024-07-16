@@ -33,8 +33,8 @@ const TAB_RADIUS_PX = 24
 
 /** Context for a {@link TabBarContext}. */
 interface TabBarContextValue {
-  readonly onTabSelected: (element: HTMLDivElement | null) => void
-  readonly observeElement: (element: HTMLElement) => () => void
+  readonly updateTabRef: (id: string, element: HTMLElement | null) => void
+  readonly setSelectedTab: (id: string) => void
 }
 
 const TabBarContext = React.createContext<TabBarContextValue | null>(null)
@@ -57,22 +57,36 @@ export interface TabBarProps extends Readonly<React.PropsWithChildren> {}
 export default function TabBar(props: TabBarProps) {
   const { children } = props
   const cleanupResizeObserverRef = React.useRef(() => {})
-  const backgroundRef = React.useRef<HTMLDivElement | null>(null)
-  const selectedTabRef = React.useRef<HTMLDivElement | null>(null)
+  const tabsByIdRef = React.useRef(new Map<string, HTMLElement>())
+  const backgroundRefs = React.useRef(new Set<HTMLDivElement>())
+  const selectedTabRef = React.useRef<HTMLElement | null>(null)
   const [resizeObserver] = React.useState(
     () =>
       new ResizeObserver(() => {
-        updateClipPath(selectedTabRef.current)
+        if (selectedTabRef.current) {
+          updateClipPath(selectedTabRef.current)
+        }
       })
   )
+
+  const updateTabRef = React.useCallback((id: string, element: HTMLElement | null) => {
+    if (element) {
+      tabsByIdRef.current.set(id, element)
+    } else {
+      tabsByIdRef.current.delete(id)
+    }
+  }, [])
+
+  const [clipPath, setClipPath] = React.useState('')
+
   const [updateClipPath] = React.useState(() => {
-    return (element: HTMLDivElement | null) => {
-      const backgroundElement = backgroundRef.current
+    return (element: HTMLElement | null) => {
+      const [backgroundElement] = backgroundRefs.current
       if (backgroundElement != null) {
-        selectedTabRef.current = element
         if (element == null) {
-          // backgroundElement.style.clipPath = ''
+          setClipPath('')
         } else {
+          selectedTabRef.current = element
           const bounds = element.getBoundingClientRect()
           const rootBounds = backgroundElement.getBoundingClientRect()
           const tabLeft = bounds.left - rootBounds.left
@@ -92,15 +106,38 @@ export default function TabBar(props: TabBarProps) {
             `L 0 ${rootBounds.height}`,
             'Z',
           ]
-          backgroundElement.style.clipPath = `path("${segments.join(' ')}")`
+          setClipPath(`path("${segments.join(' ')}")`)
         }
       }
     }
   })
 
+  const [selectedTab, setSelectedTab] = React.useState('')
+
+  React.useEffect(() => {
+    for (const element of backgroundRefs.current) {
+      if (!element.isConnected) {
+        backgroundRefs.current.delete(element)
+      }
+    }
+  }, [])
+
+  React.useEffect(() => {
+    const element = tabsByIdRef.current.get(selectedTab)
+    if (element) {
+      updateClipPath(element)
+      resizeObserver.observe(element)
+      return () => {
+        resizeObserver.unobserve(element)
+      }
+    } else {
+      return
+    }
+  }, [resizeObserver, selectedTab, updateClipPath])
+
   const updateResizeObserver = (element: HTMLElement | null) => {
     cleanupResizeObserverRef.current()
-    if (element == null) {
+    if (!(element instanceof HTMLElement)) {
       cleanupResizeObserverRef.current = () => {}
     } else {
       resizeObserver.observe(element)
@@ -111,52 +148,32 @@ export default function TabBar(props: TabBarProps) {
   }
 
   return (
-    <TabBarContext.Provider
-      value={{
-        onTabSelected: updateClipPath,
-        observeElement: element => {
-          resizeObserver.observe(element)
-          return () => {
-            resizeObserver.unobserve(element)
-          }
-        },
-      }}
-    >
-      <div className="relative flex grow">
-        <div
-          ref={element => {
-            backgroundRef.current = element
-            updateResizeObserver(element)
-          }}
-          className="pointer-events-none absolute inset-0 bg-primary/5"
-        />
-        <TabList>{children}</TabList>
-      </div>
-    </TabBarContext.Provider>
-  )
-}
-
-// ===============
-// === TabList ===
-// ===============
-
-/** Props for a {@link TabList}. */
-export interface TabListProps extends Readonly<React.PropsWithChildren> {}
-
-/** A tab list in a {@link TabBar}. */
-function TabList(props: TabListProps) {
-  const { children } = props
-  return (
-    <FocusArea direction="horizontal">
-      {innerProps => (
-        <aria.TabList
-          className="flex h-12 shrink-0 grow cursor-default items-center rounded-full"
-          {...innerProps}
-        >
-          {children}
-        </aria.TabList>
-      )}
-    </FocusArea>
+    <div className="relative flex grow">
+      <TabBarContext.Provider value={{ updateTabRef, setSelectedTab }}>
+        <FocusArea direction="horizontal">
+          {innerProps => (
+            <aria.TabList
+              className="flex h-12 shrink-0 grow cursor-default items-center rounded-full"
+              {...innerProps}
+            >
+              <aria.Tab>
+                <div
+                  ref={element => {
+                    if (element) {
+                      backgroundRefs.current.add(element)
+                    }
+                    updateResizeObserver(element)
+                  }}
+                  style={{ clipPath }}
+                  className="pointer-events-none absolute inset-0 bg-primary/5"
+                />
+              </aria.Tab>
+              {children}
+            </aria.TabList>
+          )}
+        </FocusArea>
+      </TabBarContext.Provider>
+    </div>
   )
 }
 
@@ -180,26 +197,16 @@ interface InternalTabProps extends Readonly<React.PropsWithChildren> {
 export function Tab(props: InternalTabProps) {
   const { id, project, isActive, isHidden = false, icon, labelId, children, onClose } = props
   const { onLoadEnd } = props
-  const { onTabSelected, observeElement } = useTabBarContext()
-  // This must not be a `useRef` as `react-aria-components` does not create the DOM elements
-  // immediately.
-  const [element, ref] = React.useState<HTMLDivElement | null>(null)
+  const { updateTabRef, setSelectedTab } = useTabBarContext()
   const isLoadingRef = React.useRef(true)
   const { getText } = textProvider.useText()
+  const actuallyActive = isActive && !isHidden
 
   React.useLayoutEffect(() => {
-    if (isActive) {
-      onTabSelected(element)
+    if (actuallyActive) {
+      setSelectedTab(id)
     }
-  }, [isActive, element, onTabSelected])
-
-  React.useEffect(() => {
-    if (element) {
-      return observeElement(element)
-    } else {
-      return () => {}
-    }
-  }, [element, observeElement])
+  }, [actuallyActive, id, setSelectedTab])
 
   const { isLoading, data } = reactQuery.useQuery<backend.Project>(
     project?.id
@@ -219,7 +226,9 @@ export function Tab(props: InternalTabProps) {
 
   return (
     <aria.Tab
-      ref={ref}
+      ref={newElement => {
+        updateTabRef(id, newElement)
+      }}
       id={id}
       isDisabled={isActive}
       aria-label={getText(labelId)}

@@ -613,19 +613,18 @@ function DashboardInner(props: DashboardProps) {
                 </tabBar.Tab>
               ))}
 
-              {page === TabType.settings && (
-                <tabBar.Tab
-                  isActive
-                  id={TabType.settings}
-                  icon={SettingsIcon}
-                  labelId="settingsPageName"
-                  onClose={() => {
-                    setPage(TabType.drive)
-                  }}
-                >
-                  {getText('settingsPageName')}
-                </tabBar.Tab>
-              )}
+              <tabBar.Tab
+                isActive
+                id={TabType.settings}
+                isHidden={page !== TabType.settings}
+                icon={SettingsIcon}
+                labelId="settingsPageName"
+                onClose={() => {
+                  setPage(TabType.drive)
+                }}
+              >
+                {getText('settingsPageName')}
+              </tabBar.Tab>
             </TabBar>
 
             <UserBar
