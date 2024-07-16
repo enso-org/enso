@@ -135,7 +135,7 @@ export function setOpenFileEventHandler(setProjectToOpen: (info: project.Project
             typeof additionalData.fileToOpen === 'string'
                 ? additionalData.fileToOpen
                 : null
-        if (path) {
+        if (path != null) {
             logger.log(`Got path '${path.toString()}' from second instance.`)
             event.preventDefault()
             const projectInfo = onFileOpened(event, path)
