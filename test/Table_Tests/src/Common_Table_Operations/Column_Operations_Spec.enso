@@ -488,16 +488,20 @@ add_specs suite_builder setup =
                 True -> actual.at "col0" . value_type . should_equal (Value_Type.Char size=3 variable_length=True)
                 False -> actual.at "col0" . value_type . should_equal (Value_Type.Char variable_length=True)
 
-        group_builder.specify "should allow to fill_nothing a fixed width of width 1 correctly expanding ouptut types" <|
+        group_builder.specify "should allow to fill_nothing a fixed width of width 1 correctly expanding output types" <|
             t = table_builder [["col0", ["a", Nothing, " "]]] . cast "col0" (Value_Type.Char size=1 variable_length=False)
             fillBlank = t.fill_nothing ["col0"] ""
             fillOneSpace = t.fill_nothing ["col0"] " "
             fillTwoSpaces = t.fill_nothing ["col0"] "  "
             case setup.test_selection.length_restricted_text_columns of
-                True -> fillBlank.at "col0" . value_type . should_equal (Value_Type.Char size=1 variable_length=True)
-                    fillOneSpace.at "col0" . value_type . should_equal (Value_Type.Char size=1 variable_length=False)
+                True ->
+                    fillBlank.at "col0" . value_type . should_equal (Value_Type.Char size=1 variable_length=True)
+                    case setup.test_selection.fixed_length_text_columns of
+                        True  -> fillOneSpace.at "col0" . value_type . should_equal (Value_Type.Char size=1 variable_length=False)
+                        False -> fillOneSpace.at "col0" . value_type . should_equal (Value_Type.Char size=1 variable_length=True)
                     fillTwoSpaces.at "col0" . value_type . should_equal (Value_Type.Char size=2 variable_length=True)
-                False -> fillBlank.at "col0" . value_type . should_equal (Value_Type.Char variable_length=True)
+                False ->
+                    fillBlank.at "col0" . value_type . should_equal (Value_Type.Char variable_length=True)
                     fillOneSpace.at "col0" . value_type . should_equal (Value_Type.Char variable_length=True)
                     fillTwoSpaces.at "col0" . value_type . should_equal (Value_Type.Char variable_length=True)
 
@@ -515,8 +519,12 @@ add_specs suite_builder setup =
             t = table_builder [["col0", [Nothing, "200", Nothing, "400", "500", Nothing]]] . cast "col0" (Value_Type.Char size=3 variable_length=False)
             actual = t.fill_nothing ["col0"] "   "
             actual.at "col0" . to_vector . should_equal ["   ", "200", "   ", "400", "500", "   "]
-            case setup.test_selection.fixed_length_text_columns of
-                True -> actual.at "col0" . value_type . should_equal (Value_Type.Char size=3 variable_length=False)
+
+            case setup.test_selection.length_restricted_text_columns of
+                True ->
+                    case setup.test_selection.fixed_length_text_columns of
+                        True  -> actual.at "col0" . value_type . should_equal (Value_Type.Char size=3 variable_length=False)
+                        False -> actual.at "col0" . value_type . should_equal (Value_Type.Char size=3 variable_length=True)
                 False -> actual.at "col0" . value_type . should_equal (Value_Type.Char variable_length=True)
 
         group_builder.specify "should allow to fill_nothing from other columns" <|
