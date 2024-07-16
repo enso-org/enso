@@ -65,15 +65,6 @@ export default function Editor(props: EditorProps) {
     networkMode: project.type === backendModule.BackendType.remote ? 'online' : 'always',
   })
 
-  const isProjectClosed = projectQuery.data?.state.type === backendModule.ProjectState.closed
-  const shouldRefetch = !(projectQuery.isError || projectQuery.isLoading)
-
-  React.useEffect(() => {
-    if (!isOpeningFailed && !isOpening && isProjectClosed && shouldRefetch) {
-      startProject(project)
-    }
-  })
-
   if (isOpeningFailed) {
     // eslint-disable-next-line no-restricted-syntax
     return (
@@ -84,6 +75,13 @@ export default function Editor(props: EditorProps) {
         }}
       />
     )
+  }
+
+  const isProjectClosed = projectQuery.data?.state.type === backendModule.ProjectState.closed
+  const shouldRefetch = !(projectQuery.isError || projectQuery.isLoading)
+
+  if (!isOpening && isProjectClosed && shouldRefetch) {
+    startProject(project)
   }
 
   return (
