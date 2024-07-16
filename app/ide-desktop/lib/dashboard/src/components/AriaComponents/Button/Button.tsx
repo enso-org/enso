@@ -64,6 +64,9 @@ export interface BaseButtonProps<Render>
   readonly testId?: string
   readonly isDisabled?: boolean
   readonly formnovalidate?: boolean
+  /** Defaults to `full`. When `full`, the entire button will be replaced with the loader.
+   * When `icon`, only the icon will be replaced with the loader. */
+  readonly loaderPosition?: 'full' | 'icon'
 }
 
 export const BUTTON_STYLES = twv.tv({
@@ -297,6 +300,7 @@ export const Button = React.forwardRef(function Button(
     tooltip,
     tooltipPlacement,
     testId,
+    loaderPosition = 'full',
     extraClickZone: extraClickZoneProp,
     onPress = () => {},
     ...ariaProps
@@ -340,12 +344,15 @@ export const Button = React.forwardRef(function Button(
         [{ opacity: 0 }, { opacity: 0, offset: 1 }, { opacity: 1 }],
         { duration: delay, easing: 'linear', delay: 0, fill: 'forwards' }
       )
-      const contentAnimation = contentRef.current?.animate([{ opacity: 1 }, { opacity: 0 }], {
-        duration: 0,
-        easing: 'linear',
-        delay,
-        fill: 'forwards',
-      })
+      const contentAnimation =
+        loaderPosition !== 'full'
+          ? null
+          : contentRef.current?.animate([{ opacity: 1 }, { opacity: 0 }], {
+              duration: 0,
+              easing: 'linear',
+              delay,
+              fill: 'forwards',
+            })
 
       return () => {
         loaderAnimation?.cancel()
@@ -354,7 +361,7 @@ export const Button = React.forwardRef(function Button(
     } else {
       return () => {}
     }
-  }, [isLoading])
+  }, [isLoading, loaderPosition])
 
   const handlePress = (event: aria.PressEvent): void => {
     if (!isDisabled) {
@@ -398,6 +405,12 @@ export const Button = React.forwardRef(function Button(
     const iconComponent = (() => {
       if (icon == null) {
         return null
+      } else if (isLoading && loaderPosition === 'icon') {
+        return (
+          <span className={iconClasses()}>
+            <StatelessSpinner state={spinnerModule.SpinnerState.loadingMedium} size={16} />
+          </span>
+        )
       } else {
         /* @ts-expect-error any here is safe because we transparently pass it to the children, and ts infer the type outside correctly */
         const actualIcon = typeof icon === 'function' ? icon(render) : icon
@@ -448,7 +461,7 @@ export const Button = React.forwardRef(function Button(
               {childrenFactory(render)}
             </span>
 
-            {isLoading && (
+            {isLoading && loaderPosition === 'full' && (
               <span ref={loaderRef} className={loader()}>
                 <StatelessSpinner state={spinnerModule.SpinnerState.loadingMedium} size={16} />
               </span>

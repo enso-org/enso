@@ -112,10 +112,9 @@ function DashboardInner(props: DashboardProps) {
   const [category, setCategory] = searchParamsState.useSearchParamsState(
     'driveCategory',
     () => {
-      const isUserEnabled = user.isEnabled
-      const canUserAccessCloud = isUserEnabled || localBackend == null
-      const shouldDefaultToCloudCategory = initialLocalProjectId == null && canUserAccessCloud
-      return shouldDefaultToCloudCategory ? Category.cloud : Category.local
+      const shouldDefaultToCloud =
+        initialLocalProjectId == null && (user.isEnabled || localBackend == null)
+      return shouldDefaultToCloud ? Category.cloud : Category.local
     },
     (value): value is Category => {
       if (array.includes(Object.values(Category), value)) {
