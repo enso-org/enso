@@ -38,8 +38,7 @@ import * as urlAssociations from 'url-associations'
 const logger = contentConfig.logger
 
 if (process.env.ELECTRON_DEV_MODE === 'true' && process.env.NODE_MODULES_PATH != null) {
-    require.main?.paths.unshift(process.env.NODE_MODULES_PATH)
-    console.log(require.main?.paths)
+    module.paths.unshift(process.env.NODE_MODULES_PATH)
 }
 
 // ===========
@@ -472,6 +471,15 @@ class App {
                 const directoryParams = directory == null ? [] : [directory]
                 const info = projectManagement.importProjectFromPath(path, ...directoryParams)
                 event.reply(ipc.Channel.importProjectFromPath, path, info)
+            }
+        )
+        electron.ipcMain.on(
+            ipc.Channel.downloadURL,
+            (_event, url: string, headers?: Record<string, string>) => {
+                electron.BrowserWindow.getFocusedWindow()?.webContents.downloadURL(
+                    url,
+                    headers ? { headers } : {}
+                )
             }
         )
         electron.ipcMain.on(ipc.Channel.showItemInFolder, (_event, fullPath: string) => {

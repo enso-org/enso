@@ -28,7 +28,7 @@ class ExecuteJob(
   /** @inheritdoc */
   override def run(implicit ctx: RuntimeContext): Unit = {
     ctx.locking.withContextLock(
-      contextId,
+      ctx.locking.getOrCreateContextLock(contextId),
       this.getClass,
       () =>
         ctx.locking.withReadCompilationLock(

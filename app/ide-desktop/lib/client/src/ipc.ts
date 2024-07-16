@@ -29,5 +29,7 @@ export enum Channel {
     openFileBrowser = 'open-file-browser',
     /** Show a file or folder in the system file browser. */
     showItemInFolder = 'show-item-in-folder',
+    /** Download a file using its URL. */
+    downloadURL = 'download-url',
     showAboutModal = 'show-about-modal',
 }

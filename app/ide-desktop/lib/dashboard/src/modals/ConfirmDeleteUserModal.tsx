@@ -58,7 +58,7 @@ export default function ConfirmDeleteUserModal(props: ConfirmDeleteUserModalProp
         <aria.Text className="relative mb-2 text-balance text-center">
           {getText('confirmDeleteUserAccountWarning')}
         </aria.Text>
-        <ariaComponents.ButtonGroup className="self-center">
+        <ariaComponents.ButtonGroup className="relative self-center">
           <ariaComponents.Button
             size="custom"
             variant="custom"

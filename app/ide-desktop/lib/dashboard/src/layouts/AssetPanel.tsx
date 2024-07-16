@@ -4,9 +4,6 @@ import * as React from 'react'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as textProvider from '#/providers/TextProvider'
 
-import type * as assetEvent from '#/events/assetEvent'
-import type * as assetListEvent from '#/events/assetListEvent'
-
 import AssetProjectSessions from '#/layouts/AssetProjectSessions'
 import AssetProperties from '#/layouts/AssetProperties'
 import AssetVersions from '#/layouts/AssetVersions/AssetVersions'
@@ -65,14 +62,11 @@ export interface AssetPanelProps extends AssetPanelRequiredProps {
   readonly isVisible: boolean
   readonly isReadonly?: boolean
   readonly category: Category
-  readonly dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
-  readonly dispatchAssetListEvent: (event: assetListEvent.AssetListEvent) => void
 }
 
 /** A panel containing the description and settings for an asset. */
 export default function AssetPanel(props: AssetPanelProps) {
   const { isVisible, backend, isReadonly = false, item, setItem, category } = props
-  const { dispatchAssetEvent, dispatchAssetListEvent } = props
   const isCloud = backend?.type === backendModule.BackendType.remote
 
   const { getText } = textProvider.useText()
@@ -125,7 +119,7 @@ export default function AssetPanel(props: AssetPanelProps) {
         event.stopPropagation()
       }}
     >
-      <ariaComponents.ButtonGroup className="grow-0 basis-8">
+      <ariaComponents.ButtonGroup className="mt-0.5 grow-0 basis-8">
         {isCloud &&
           item != null &&
           item.item.type !== backendModule.AssetType.secret &&
@@ -184,16 +178,9 @@ export default function AssetPanel(props: AssetPanelProps) {
               item={item}
               setItem={setItem}
               category={category}
-              dispatchAssetEvent={dispatchAssetEvent}
             />
           )}
-          {tab === AssetPanelTab.versions && (
-            <AssetVersions
-              backend={backend}
-              item={item}
-              dispatchAssetListEvent={dispatchAssetListEvent}
-            />
-          )}
+          {tab === AssetPanelTab.versions && <AssetVersions backend={backend} item={item} />}
           {tab === AssetPanelTab.projectSessions &&
             item.type === backendModule.AssetType.project && (
               <AssetProjectSessions backend={backend} item={item} />

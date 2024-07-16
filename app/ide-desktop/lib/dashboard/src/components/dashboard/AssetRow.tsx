@@ -5,7 +5,6 @@ import BlankIcon from 'enso-assets/blank.svg'
 
 import * as backendHooks from '#/hooks/backendHooks'
 import * as dragAndDropHooks from '#/hooks/dragAndDropHooks'
-import * as eventHooks from '#/hooks/eventHooks'
 import * as setAssetHooks from '#/hooks/setAssetHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
@@ -16,10 +15,9 @@ import * as textProvider from '#/providers/TextProvider'
 import AssetEventType from '#/events/AssetEventType'
 import AssetListEventType from '#/events/AssetListEventType'
 
-import type * as dashboard from '#/pages/dashboard/Dashboard'
-
 import AssetContextMenu from '#/layouts/AssetContextMenu'
 import type * as assetsTable from '#/layouts/AssetsTable'
+import * as eventListProvider from '#/layouts/AssetsTable/EventListProvider'
 import Category from '#/layouts/CategorySwitcher/Category'
 
 import * as aria from '#/components/aria'
@@ -92,33 +90,25 @@ export interface AssetRowProps
     props: AssetRowInnerProps,
     event: React.MouseEvent<HTMLTableRowElement>
   ) => void
-  readonly doOpenProject: (project: dashboard.Project) => void
-  readonly doCloseProject: (project: dashboard.Project) => void
   readonly updateAssetRef: React.Ref<(asset: backendModule.AnyAsset) => void>
 }
 
 /** A row containing an {@link backendModule.AnyAsset}. */
 export default function AssetRow(props: AssetRowProps) {
-  const {
-    item: rawItem,
-    hidden: hiddenRaw,
-    selected,
-    isSoleSelected,
-    isKeyboardSelected,
-    isOpened,
-    updateAssetRef,
-  } = props
+  const { selected, isSoleSelected, isKeyboardSelected, isOpened } = props
   const { setSelected, allowContextMenu, onContextMenu, state, columns, onClick } = props
-  const { grabKeyboardFocus, doOpenProject, doCloseProject } = props
-  const { backend, visibilities, assetEvents, dispatchAssetEvent, dispatchAssetListEvent } = state
+  const { item: rawItem, hidden: hiddenRaw, updateAssetRef, grabKeyboardFocus } = props
   const { nodeMap, setAssetPanelProps, doToggleDirectoryExpansion, doCopy, doCut, doPaste } = state
-  const { setIsAssetPanelTemporarilyVisible, scrollContainerRef, rootDirectoryId } = state
+  const { setIsAssetPanelTemporarilyVisible, scrollContainerRef, rootDirectoryId, backend } = state
+  const { visibilities } = state
 
   const draggableProps = dragAndDropHooks.useDraggable()
   const { user } = authProvider.useNonPartialUserSession()
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
+  const dispatchAssetEvent = eventListProvider.useDispatchAssetEvent()
+  const dispatchAssetListEvent = eventListProvider.useDispatchAssetListEvent()
   const [isDraggedOver, setIsDraggedOver] = React.useState(false)
   const [item, setItem] = React.useState(rawItem)
   const rootRef = React.useRef<HTMLElement | null>(null)
@@ -162,8 +152,8 @@ export default function AssetRow(props: AssetRowProps) {
   }, [rawItem])
 
   React.useEffect(() => {
-    // Mutation is HIGHLY INADVISABLE in React, however it is useful here as we want to avoid
-    // re-rendering the parent.
+    // Mutation is HIGHLY INADVISABLE in React, however it is useful here as we want to update the
+    // parent's state while avoiding re-rendering the parent.
     rawItem.item = asset
   }, [asset, rawItem])
   const setAsset = setAssetHooks.useSetAsset(asset, setItem)
@@ -240,20 +230,6 @@ export default function AssetRow(props: AssetRowProps) {
           oldItem.with({ directoryKey: nonNullNewParentKey, directoryId: nonNullNewParentId })
         )
         const newParentPath = localBackend.extractTypeAndId(nonNullNewParentId).id
-        const newProjectState =
-          asset.projectState == null
-            ? null
-            : object.merge(
-                asset.projectState,
-                asset.projectState.path == null
-                  ? {}
-                  : {
-                      path: projectManager.joinPath(
-                        newParentPath,
-                        fileInfo.fileName(asset.projectState.path)
-                      ),
-                    }
-              )
         let newId = asset.id
         if (!isCloud) {
           const oldPath = localBackend.extractTypeAndId(asset.id).id
@@ -280,13 +256,9 @@ export default function AssetRow(props: AssetRowProps) {
             }
           }
         }
-        const newAsset = object.merge(asset, {
-          // This is SAFE as the type of `newId` is not changed from its original type.
-          // eslint-disable-next-line no-restricted-syntax
-          id: newId as never,
-          parentId: nonNullNewParentId,
-          projectState: newProjectState,
-        })
+        // This is SAFE as the type of `newId` is not changed from its original type.
+        // eslint-disable-next-line no-restricted-syntax
+        const newAsset = object.merge(asset, { id: newId as never, parentId: nonNullNewParentId })
         dispatchAssetListEvent({
           type: AssetListEventType.move,
           newParentKey: nonNullNewParentKey,
@@ -297,11 +269,7 @@ export default function AssetRow(props: AssetRowProps) {
         setAsset(newAsset)
         await updateAssetMutate([
           asset.id,
-          {
-            parentDirectoryId: newParentId ?? rootDirectoryId,
-            description: null,
-            ...(asset.projectState?.path == null ? {} : { projectPath: asset.projectState.path }),
-          },
+          { parentDirectoryId: newParentId ?? rootDirectoryId, description: null },
           asset.title,
         ])
       } catch (error) {
@@ -379,11 +347,7 @@ export default function AssetRow(props: AssetRowProps) {
             // Ignored. The project was already closed.
           }
         }
-        await deleteAssetMutate([
-          asset.id,
-          { force: forever, parentId: asset.parentId },
-          asset.title,
-        ])
+        await deleteAssetMutate([asset.id, { force: forever }, asset.title])
         dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
       } catch (error) {
         setInsertionVisibility(Visibility.visible)
@@ -434,7 +398,7 @@ export default function AssetRow(props: AssetRowProps) {
     )
   }, [setModal, asset.description, setAsset, backend, item.item.id, item.item.title])
 
-  eventHooks.useEventHandler(assetEvents, async event => {
+  eventListProvider.useAssetEventListener(async event => {
     if (state.category === Category.trash) {
       switch (event.type) {
         case AssetEventType.deleteForever: {
@@ -522,7 +486,7 @@ export default function AssetRow(props: AssetRowProps) {
                       asset.title,
                     ])
                     if (details.url != null) {
-                      download.download(details.url, asset.title)
+                      await backend.download(details.url, asset.title)
                     } else {
                       const error: unknown = getText('projectHasNoSourceFilesPhrase')
                       toastAndLog('downloadProjectError', error, asset.title)
@@ -539,7 +503,7 @@ export default function AssetRow(props: AssetRowProps) {
                       asset.title,
                     ])
                     if (details.url != null) {
-                      download.download(details.url, asset.title)
+                      await backend.download(details.url, asset.title)
                     } else {
                       const error: unknown = getText('fileNotFoundPhrase')
                       toastAndLog('downloadFileError', error, asset.title)
@@ -573,9 +537,11 @@ export default function AssetRow(props: AssetRowProps) {
               }
             } else {
               if (asset.type === backendModule.AssetType.project) {
+                const projectsDirectory = localBackend.extractTypeAndId(asset.parentId).id
                 const uuid = localBackend.extractTypeAndId(asset.id).id
-                download.download(
-                  `./api/project-manager/projects/${uuid}/enso-project`,
+                const queryString = new URLSearchParams({ projectsDirectory }).toString()
+                await backend.download(
+                  `./api/project-manager/projects/${uuid}/enso-project?${queryString}`,
                   `${asset.title}.enso-project`
                 )
               }
@@ -696,7 +662,7 @@ export default function AssetRow(props: AssetRowProps) {
         }
       }
     }
-  })
+  }, item.initialAssetEvents)
 
   const clearDragState = React.useCallback(() => {
     setIsDraggedOver(false)
@@ -908,8 +874,6 @@ export default function AssetRow(props: AssetRowProps) {
                         rowState={rowState}
                         setRowState={setRowState}
                         isEditable={state.category !== Category.trash}
-                        doOpenProject={doOpenProject}
-                        doCloseProject={doCloseProject}
                       />
                     </td>
                   )

@@ -171,6 +171,9 @@ exposeInMainWorld(MENU_API_KEY, {
 // ==================
 
 exposeInMainWorld(SYSTEM_API_KEY, {
+    downloadURL: (url: string, headers?: Record<string, string>) => {
+        electron.ipcRenderer.send(ipc.Channel.downloadURL, url, headers)
+    },
     showItemInFolder: (fullPath: string) => {
         electron.ipcRenderer.send(ipc.Channel.showItemInFolder, fullPath)
     },

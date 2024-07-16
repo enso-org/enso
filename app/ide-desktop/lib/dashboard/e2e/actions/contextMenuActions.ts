@@ -1,6 +1,7 @@
 /** @file Actions for the context menu. */
 import type * as baseActions from './BaseActions'
 import type BaseActions from './BaseActions'
+import EditorPageActions from './EditorPageActions'
 
 // ==========================
 // === ContextMenuActions ===
@@ -19,9 +20,11 @@ export interface ContextMenuActions<T extends BaseActions> {
   readonly share: () => T
   readonly label: () => T
   readonly duplicate: () => T
+  readonly duplicateProject: () => EditorPageActions
   readonly copy: () => T
   readonly cut: () => T
   readonly paste: () => T
+  readonly copyAsPath: () => T
   readonly download: () => T
   readonly uploadFiles: () => T
   readonly newFolder: () => T
@@ -91,9 +94,13 @@ export function contextMenuActions<T extends BaseActions>(
       step('Duplicate (context menu)', page =>
         page.getByRole('button', { name: 'Duplicate' }).getByText('Duplicate').click()
       ),
+    duplicateProject: () =>
+      step('Duplicate project (context menu)', page =>
+        page.getByRole('button', { name: 'Duplicate' }).getByText('Duplicate').click()
+      ).into(EditorPageActions),
     copy: () =>
       step('Copy (context menu)', page =>
-        page.getByRole('button', { name: 'Copy' }).getByText('Copy').click()
+        page.getByRole('button', { name: 'Copy' }).getByText('Copy', { exact: true }).click()
       ),
     cut: () =>
       step('Cut (context menu)', page =>
@@ -102,6 +109,10 @@ export function contextMenuActions<T extends BaseActions>(
     paste: () =>
       step('Paste (context menu)', page =>
         page.getByRole('button', { name: 'Paste' }).getByText('Paste').click()
+      ),
+    copyAsPath: () =>
+      step('Copy as path (context menu)', page =>
+        page.getByRole('button', { name: 'Copy As Path' }).getByText('Copy As Path').click()
       ),
     download: () =>
       step('Download (context menu)', page =>

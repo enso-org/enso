@@ -57,6 +57,20 @@ JS_Object.to_table : Vector | Nothing -> Table ! Type_Error
 JS_Object.to_table self fields=Nothing =
     self.to Table fields
 
+## GROUP Standard.Base.Conversions
+   ICON convert
+   Converts this `XML_Document` into a `Table`.
+XML_Document.to_table : Table ! Type_Error
+XML_Document.to_table self =
+    self.to Table
+
+## GROUP Standard.Base.Conversions
+   ICON convert
+   Converts this `XML_Document` into a `Table`.
+XML_Element.to_table : Table ! Type_Error
+XML_Element.to_table self =
+    self.to Table
+
 ## GROUP Standard.Base.Constants
    ICON data_input
    Converts an object or a Vector of object into a Table, by looking up the

@@ -8,20 +8,18 @@ import * as actions from './actions'
 // =============
 
 test.test('login and logout', ({ page }) =>
-  actions.mockAll({ page }).then(
-    async ({ pageActions }) =>
-      await pageActions
-        .login()
-        .do(async thePage => {
-          await actions.passTermsAndConditionsDialog({ page: thePage })
-          await test.expect(actions.locateDriveView(thePage)).toBeVisible()
-          await test.expect(actions.locateLoginButton(thePage)).not.toBeVisible()
-        })
-        .openUserMenu()
-        .userMenu.logout()
-        .do(async thePage => {
-          await test.expect(actions.locateDriveView(thePage)).not.toBeVisible()
-          await test.expect(actions.locateLoginButton(thePage)).toBeVisible()
-        })
-  )
+  actions
+    .mockAll({ page })
+    .login()
+    .do(async thePage => {
+      await actions.passTermsAndConditionsDialog({ page: thePage })
+      await test.expect(actions.locateDriveView(thePage)).toBeVisible()
+      await test.expect(actions.locateLoginButton(thePage)).not.toBeVisible()
+    })
+    .openUserMenu()
+    .userMenu.logout()
+    .do(async thePage => {
+      await test.expect(actions.locateDriveView(thePage)).not.toBeVisible()
+      await test.expect(actions.locateLoginButton(thePage)).toBeVisible()
+    })
 )

@@ -9,9 +9,8 @@ import * as backendHooks from '#/hooks/backendHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
+import * as backendProvider from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
-
-import type * as assetEvent from '#/events/assetEvent'
 
 import type Category from '#/layouts/CategorySwitcher/Category'
 
@@ -24,7 +23,7 @@ import StatelessSpinner, * as statelessSpinner from '#/components/StatelessSpinn
 
 import * as backendModule from '#/services/Backend'
 import type Backend from '#/services/Backend'
-import * as localBackend from '#/services/LocalBackend'
+import * as localBackendModule from '#/services/LocalBackend'
 
 import type * as assetTreeNode from '#/utilities/AssetTreeNode'
 import * as object from '#/utilities/object'
@@ -40,18 +39,18 @@ export interface AssetPropertiesProps {
   readonly item: assetTreeNode.AnyAssetTreeNode
   readonly setItem: React.Dispatch<React.SetStateAction<assetTreeNode.AnyAssetTreeNode>>
   readonly category: Category
-  readonly dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
   readonly isReadonly?: boolean
 }
 
 /** Display and modify the properties of an asset. */
 export default function AssetProperties(props: AssetPropertiesProps) {
   const { backend, item: itemRaw, setItem: setItemRaw, category } = props
-  const { isReadonly = false, dispatchAssetEvent } = props
+  const { isReadonly = false } = props
 
   const { user } = authProvider.useNonPartialUserSession()
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
+  const localBackend = backendProvider.useLocalBackend()
   const [item, setItemInner] = React.useState(itemRaw)
   const [isEditingDescription, setIsEditingDescription] = React.useState(false)
   const [queuedDescription, setQueuedDescripion] = React.useState<string | null>(null)
@@ -87,8 +86,8 @@ export default function AssetProperties(props: AssetPropertiesProps) {
   const path = isCloud
     ? null
     : item.item.type === backendModule.AssetType.project
-      ? item.item.projectState.path ?? null
-      : localBackend.extractTypeAndId(item.item.id).id
+      ? localBackend?.getProjectDirectoryPath(item.item.id) ?? null
+      : localBackendModule.extractTypeAndId(item.item.id).id
 
   const createDatalinkMutation = backendHooks.useBackendMutation(backend, 'createDatalink')
   const getDatalinkMutation = backendHooks.useBackendMutation(backend, 'getDatalink')
@@ -116,14 +115,9 @@ export default function AssetProperties(props: AssetPropertiesProps) {
       const oldDescription = item.item.description
       setItem(oldItem => oldItem.with({ item: object.merge(oldItem.item, { description }) }))
       try {
-        const projectPath = item.item.projectState?.path
         await updateAssetMutation.mutateAsync([
           item.item.id,
-          {
-            parentDirectoryId: null,
-            description,
-            ...(projectPath == null ? {} : { projectPath }),
-          },
+          { parentDirectoryId: null, description },
           item.item.title,
         ])
       } catch (error) {
@@ -200,7 +194,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
             </form>
           )}
         </div>
-      </div>{' '}
+      </div>
       {!isCloud && (
         <div className="pointer-events-auto flex flex-col items-start gap-side-panel-section">
           <aria.Heading
@@ -245,7 +239,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
                     isReadonly={isReadonly}
                     item={item}
                     setItem={setItem}
-                    state={{ category, dispatchAssetEvent, setQuery: () => {} }}
+                    state={{ category, setQuery: () => {} }}
                   />
                 </td>
               </tr>

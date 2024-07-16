@@ -487,8 +487,8 @@ importers:
         specifier: ^20.11.21
         version: 20.11.21
       electron:
-        specifier: 25.7.0
-        version: 25.7.0
+        specifier: 31.2.0
+        version: 31.2.0
       electron-builder:
         specifier: ^24.13.3
         version: 24.13.3(electron-builder-squirrel-windows@24.13.3(dmg-builder@24.13.3))
@@ -546,6 +546,9 @@ importers:
       idb-keyval:
         specifier: ^6.2.1
         version: 6.2.1
+      react:
+        specifier: ^18.3.1
+        version: 18.3.1
       vue:
         specifier: ^3.4.19
         version: 3.4.31(typescript@5.5.3)
@@ -651,6 +654,9 @@ importers:
       zod:
         specifier: ^3.23.8
         version: 3.23.8
+      zustand:
+        specifier: ^4.5.4
+        version: 4.5.4(@types/react@18.3.3)(react@18.3.1)
     devDependencies:
       '@esbuild-plugins/node-modules-polyfill':
         specifier: ^0.2.2
@@ -2831,9 +2837,6 @@ packages:
   '@types/node-fetch@2.6.4':
     resolution: {integrity: sha512-1ZX9fcN4Rvkvgv4E6PAY5WXUFWFcRWxZa3EW83UjycOB9ljJCedb2CupIP4RZMEwF/M3eTcCihbBRgwtGbg5Rg==}
 
-  '@types/node@18.19.39':
-    resolution: {integrity: sha512-nPwTRDKUctxw3di5b4TfT3I0sWDiWoPQCZjXhvdkINntwr8lcoVCKsTgnXeRubKIlfnV+eN/HYk6Jb40tbcEAQ==}
-
   '@types/node@20.11.21':
     resolution: {integrity: sha512-/ySDLGscFPNasfqStUuWWPfL78jompfIoVzLJPVVAHBh6rpG68+pI2Gk+fNLeI8/f1yPYL4s46EleVIc20F1Ow==}
 
@@ -4083,8 +4086,8 @@ packages:
   electron-to-chromium@1.4.815:
     resolution: {integrity: sha512-OvpTT2ItpOXJL7IGcYakRjHCt8L5GrrN/wHCQsRB4PQa1X9fe+X9oen245mIId7s14xvArCGSTIq644yPUKKLg==}
 
-  electron@25.7.0:
-    resolution: {integrity: sha512-P82EzYZ8k9J21x5syhXV7EkezDmEXwycReXnagfzS0kwepnrlWzq1aDIUWdNvzTdHobky4m/nYcL98qd73mEVA==}
+  electron@31.2.0:
+    resolution: {integrity: sha512-5w+kjOsGiTXytPSErBPNp/3znnuEMKc42RD41MqRoQkiYaR8x/Le2+qWk1cL60UwE/67oeKnOHnnol8xEuldGg==}
     engines: {node: '>= 12.20.55'}
     hasBin: true
 
@@ -6951,6 +6954,11 @@ packages:
   url@0.11.3:
     resolution: {integrity: sha512-6hxOLGfZASQK/cijlZnZJTq8OXAkt/3YGfQX45vvMYXpZoo8NdWZcY73K108Jf759lS1Bv/8wXnHDTSz17dSRw==}
 
+  use-sync-external-store@1.2.0:
+    resolution: {integrity: sha512-eEgnFxGQ1Ife9bzYs6VLi8/4X6CObHMw9Qr9tPY43iKwsPw8xE8+EFsf/2cFZ5S3esXgpWgtSCtLNS41F+sKPA==}
+    peerDependencies:
+      react: ^16.8.0 || ^17.0.0 || ^18.0.0
+
   use-sync-external-store@1.2.2:
     resolution: {integrity: sha512-PElTlVMwpblvbNqQ82d2n6RjStvdSoNe9FG28kNfz3WiXilJm4DdNkEzRhCZuIDwY8U08WVihhGR5iRqAwfDiw==}
     peerDependencies:
@@ -7360,6 +7368,21 @@ packages:
 
   zod@3.23.8:
     resolution: {integrity: sha512-XBx9AXhXktjUqnepgTiE5flcKIYWi/rme0Eaj+5Y0lftuGBq+jyRu/md4WnuxqgP1ubdpNCsYEYPxrzVHD8d6g==}
+
+  zustand@4.5.4:
+    resolution: {integrity: sha512-/BPMyLKJPtFEvVL0E9E9BTUM63MNyhPGlvxk1XjrfWTUlV+BR8jufjsovHzrtR6YNcBEcL7cMHovL1n9xHawEg==}
+    engines: {node: '>=12.7.0'}
+    peerDependencies:
+      '@types/react': ^18.0.27
+      immer: '>=9.0.6'
+      react: '>=16.8'
+    peerDependenciesMeta:
+      '@types/react':
+        optional: true
+      immer:
+        optional: true
+      react:
+        optional: true
 
 snapshots:
 
@@ -10111,10 +10134,6 @@ snapshots:
       '@types/node': 20.11.21
       form-data: 3.0.1
 
-  '@types/node@18.19.39':
-    dependencies:
-      undici-types: 5.26.5
-
   '@types/node@20.11.21':
     dependencies:
       undici-types: 5.26.5
@@ -11691,10 +11710,10 @@ snapshots:
 
   electron-to-chromium@1.4.815: {}
 
-  electron@25.7.0:
+  electron@31.2.0:
     dependencies:
       '@electron/get': 2.0.3
-      '@types/node': 18.19.39
+      '@types/node': 20.11.21
       extract-zip: 2.0.1
     transitivePeerDependencies:
       - supports-color
@@ -13794,6 +13813,12 @@ snapshots:
     dependencies:
       fast-diff: 1.3.0
 
+  prettier-plugin-organize-imports@4.0.0(prettier@3.3.2)(typescript@5.5.3):
+    dependencies:
+      prettier: 3.3.2
+      typescript: 5.5.3
+    optional: true
+
   prettier-plugin-organize-imports@4.0.0(prettier@3.3.2)(typescript@5.5.3)(vue-tsc@2.0.24(typescript@5.5.3)):
     dependencies:
       prettier: 3.3.2
@@ -13806,7 +13831,7 @@ snapshots:
       prettier: 3.3.2
     optionalDependencies:
       '@ianvs/prettier-plugin-sort-imports': 4.3.0(@vue/compiler-sfc@3.4.31)(prettier@3.3.2)
-      prettier-plugin-organize-imports: 4.0.0(prettier@3.3.2)(typescript@5.5.3)(vue-tsc@2.0.24(typescript@5.5.3))
+      prettier-plugin-organize-imports: 4.0.0(prettier@3.3.2)(typescript@5.5.3)
 
   prettier@3.3.2: {}
 
@@ -14905,6 +14930,10 @@ snapshots:
       punycode: 1.4.1
       qs: 6.12.1
 
+  use-sync-external-store@1.2.0(react@18.3.1):
+    dependencies:
+      react: 18.3.1
+
   use-sync-external-store@1.2.2(react@18.3.1):
     dependencies:
       react: 18.3.1
@@ -15345,3 +15374,10 @@ snapshots:
       readable-stream: 3.6.2
 
   zod@3.23.8: {}
+
+  zustand@4.5.4(@types/react@18.3.3)(react@18.3.1):
+    dependencies:
+      use-sync-external-store: 1.2.0(react@18.3.1)
+    optionalDependencies:
+      '@types/react': 18.3.3
+      react: 18.3.1
