@@ -2611,16 +2611,8 @@ type DB_Table
             actual_types = materialized_table.columns.map .value_type
             expected_types.zip actual_types expected_type-> actual_type->
                 if expected_type == actual_type then Nothing else
-                    expected_type_kind = Meta.meta expected_type . constructor
-                    actual_type_kind = Meta.meta actual_type . constructor
-                    ## We ignore simple approximations that our in-memory backend does - things like adding default
-                       timezone (because we do not have Date_Time without timezone in-memory),
-                       or changing Float32 to Float64 are silently ignored.
-                       However, bigger changes, like a Binary type column getting coerced to Mixed - _will_ still be reported.
-                    if expected_type_kind == actual_type_kind then Nothing else
-                        # If the reverse was an implicit conversion, undoing it also should not yield warnings:
-                        if self.connection.dialect.get_type_mapping.is_implicit_conversion actual_type expected_type then Nothing else
-                            warnings_builder.append (Inexact_Type_Coercion.Warning expected_type actual_type)
+                    if self.connection.dialect.get_type_mapping.should_warn_on_materialize expected_type actual_type then
+                        warnings_builder.append (Inexact_Type_Coercion.Warning expected_type actual_type)
 
             result = max_rows.attach_warning materialized_table
             Problem_Behavior.Report_Warning.attach_problems_before warnings_builder.to_vector result

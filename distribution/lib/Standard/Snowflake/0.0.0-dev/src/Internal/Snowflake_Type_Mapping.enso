@@ -138,6 +138,14 @@ type Snowflake_Type_Mapping
             _ -> False
 
     ## PRIVATE
+    should_warn_on_materialize (db_type : Value_Type) (in_memory_type : Value_Type) -> Boolean =
+        is_decimal_to_integer = db_type.is_decimal && db_type.scale == 0 && in_memory_type.is_integer
+        # We don't warn about the expected conversion of small integer column to Integer in-memory.
+        if is_decimal_to_integer then False else
+            # For other types, we delegate to the default behavior.
+            SQL_Type_Mapping.default_should_warn_on_materialize db_type in_memory_type
+
+    ## PRIVATE
     is_integer_type (value_type : Value_Type) -> Boolean = case value_type of
         Value_Type.Integer _ -> True
         Value_Type.Decimal _ scale -> scale == 0
