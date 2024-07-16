@@ -24,7 +24,7 @@ const iconPathOff = `${icons}#text2`
       :onclick="() => setTextFormatterSelected(TextFormatOptions.On)"
       title="Text displayed in monaspace font and all whitespace characters displayed as a symbol"
     >
-      <svg viewBox="0 0 16 16" width="16" height="16" style="stroke: black; fill: #808080">
+      <svg viewBox="0 0 16 16" width="16" height="16" style="stroke: black; fill: #000000">
         <use :href="`${iconPathOn}`" />
       </svg>
     </button>
