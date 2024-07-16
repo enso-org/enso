@@ -1,6 +1,7 @@
 import project.Any.Any
 import project.Data.Array.Array
 import project.Data.Filter_Condition.Filter_Condition
+import project.Data.Index_Sub_Range.Index_Sub_Range
 import project.Data.List.List
 import project.Data.Numbers.Integer
 import project.Data.Pair.Pair
@@ -26,8 +27,6 @@ import project.Panic.Panic
 import project.Random.Random
 import project.Warning.Warning
 from project.Data.Boolean import Boolean, False, True
-from project.Data.Filter_Condition import unify_condition_or_predicate, unify_condition_predicate_or_element
-from project.Data.Index_Sub_Range import Index_Sub_Range
 from project.Data.Ordering import all
 from project.Data.Range.Extensions import all
 from project.Metadata import Display, Widget
@@ -1508,8 +1507,7 @@ type Builder
     @condition Filter_Condition.default_widget
     any : (Filter_Condition | (Any -> Boolean)) -> Boolean
     any self (condition : Filter_Condition | (Any -> Boolean)) =
-        predicate = unify_condition_or_predicate condition
-        0.up_to self.length . any (idx -> (predicate (self.java_builder.get idx)))
+        Array_Like_Helpers.any self condition
 
     ## GROUP Conversions
        ICON convert
