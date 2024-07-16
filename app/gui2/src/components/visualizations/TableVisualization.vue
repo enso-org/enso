@@ -317,16 +317,16 @@ function escapeHTML(str: string) {
 function getRowHeight(params: RowHeightParams) {
   if (textFormatterSelected.value === TextFormatOptions.Off) return DEFAULT_ROW_HEIGHT
   const rowData = Object.values(params.data)
-  const textValues = rowData.filter((r) => typeof r === 'string')
+  const textValues = rowData.filter((r) => typeof r === 'string') as string[]
   if (!textValues.length) return DEFAULT_ROW_HEIGHT
   const containsReturnChars = textValues.filter(
-    (text: any) => text.match(/\r/g)?.length || text.match(/\n/g)?.length,
+    (text: string) => text.match(/\r/g)?.length || text.match(/\n/g)?.length,
   )
   if (!containsReturnChars.length) return DEFAULT_ROW_HEIGHT
-  const returnCharsCount = containsReturnChars.map((text: any) => {
-    const r = text.match(/\r/g)?.length
-    const n = text.match(/\n/g)?.length
-    const rn = text.match(/\r\n/g)?.length
+  const returnCharsCount = containsReturnChars.map((text: string) => {
+    const r = text.match(/\r/g)?.length as number
+    const n = text.match(/\n/g)?.length as number
+    const rn = text.match(/\r\n/g)?.length as number
     return r + n - rn
   })
   return (Math.max(...returnCharsCount) + 1) * DEFAULT_ROW_HEIGHT
