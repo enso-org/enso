@@ -5,6 +5,7 @@ import BlankIcon from 'enso-assets/blank.svg'
 
 import * as backendHooks from '#/hooks/backendHooks'
 import * as dragAndDropHooks from '#/hooks/dragAndDropHooks'
+import type * as projectHooks from '#/hooks/projectHooks'
 import * as setAssetHooks from '#/hooks/setAssetHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
@@ -14,8 +15,6 @@ import * as textProvider from '#/providers/TextProvider'
 
 import AssetEventType from '#/events/AssetEventType'
 import AssetListEventType from '#/events/AssetListEventType'
-
-import type * as dashboard from '#/pages/dashboard/Dashboard'
 
 import AssetContextMenu from '#/layouts/AssetContextMenu'
 import type * as assetsTable from '#/layouts/AssetsTable'
@@ -92,8 +91,8 @@ export interface AssetRowProps
     props: AssetRowInnerProps,
     event: React.MouseEvent<HTMLTableRowElement>
   ) => void
-  readonly doOpenProject: (project: dashboard.Project) => void
-  readonly doCloseProject: (project: dashboard.Project) => void
+  readonly doOpenProject: (project: projectHooks.Project) => void
+  readonly doCloseProject: (project: projectHooks.Project) => void
   readonly updateAssetRef: React.Ref<(asset: backendModule.AnyAsset) => void>
 }
 

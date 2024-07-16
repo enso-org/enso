@@ -2,8 +2,6 @@
  * interactive components. */
 import * as React from 'react'
 
-import * as reactQuery from '@tanstack/react-query'
-import invariant from 'tiny-invariant'
 import * as validator from 'validator'
 import * as z from 'zod'
 
@@ -13,6 +11,7 @@ import SettingsIcon from 'enso-assets/settings.svg'
 import * as detect from 'enso-common/src/detect'
 
 import * as eventCallbacks from '#/hooks/eventCallbackHooks'
+import * as projectHooks from '#/hooks/projectHooks'
 import * as searchParamsState from '#/hooks/searchParamsStateHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
@@ -20,6 +19,7 @@ import * as backendProvider from '#/providers/BackendProvider'
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as modalProvider from '#/providers/ModalProvider'
+import ProjectsProvider, * as projectsProvider from '#/providers/ProjectsProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import AssetEventType from '#/events/AssetEventType'
@@ -42,10 +42,8 @@ import Page from '#/components/Page'
 import ManagePermissionsModal from '#/modals/ManagePermissionsModal'
 
 import * as backendModule from '#/services/Backend'
-import type LocalBackend from '#/services/LocalBackend'
 import * as localBackendModule from '#/services/LocalBackend'
 import * as projectManager from '#/services/ProjectManager'
-import type RemoteBackend from '#/services/RemoteBackend'
 
 import * as array from '#/utilities/array'
 import LocalStorage from '#/utilities/LocalStorage'
@@ -57,50 +55,14 @@ import type * as types from '../../../../types/types'
 // === Global configuration ===
 // ============================
 
-/** Main content of the screen. Only one should be visible at a time. */
-enum TabType {
-  drive = 'drive',
-  settings = 'settings',
-}
-
 declare module '#/utilities/LocalStorage' {
   /** */
   interface LocalStorageData {
     readonly isAssetPanelVisible: boolean
-    readonly page: z.infer<typeof PAGES_SCHEMA>
-    readonly launchedProjects: z.infer<typeof LAUNCHED_PROJECT_SCHEMA>
   }
 }
 
 LocalStorage.registerKey('isAssetPanelVisible', { schema: z.boolean() })
-
-const PROJECT_SCHEMA = z
-  .object({
-    id: z.custom<backendModule.ProjectId>(x => typeof x === 'string'),
-    parentId: z.custom<backendModule.DirectoryId>(x => typeof x === 'string'),
-    title: z.string(),
-    type: z.nativeEnum(backendModule.BackendType),
-  })
-  .readonly()
-const LAUNCHED_PROJECT_SCHEMA = z.array(PROJECT_SCHEMA).readonly()
-
-/**
- * Launched project information.
- */
-export type Project = z.infer<typeof PROJECT_SCHEMA>
-/**
- * Launched project ID.
- */
-export type ProjectId = backendModule.ProjectId
-
-LocalStorage.registerKey('launchedProjects', {
-  isUserSpecific: true,
-  schema: LAUNCHED_PROJECT_SCHEMA,
-})
-
-const PAGES_SCHEMA = z.nativeEnum(TabType).or(z.custom<ProjectId>())
-
-LocalStorage.registerKey('page', { schema: PAGES_SCHEMA })
 
 // =================
 // === Dashboard ===
@@ -115,100 +77,13 @@ export interface DashboardProps {
   readonly ydocUrl: string | null
 }
 
-/**
- *
- */
-export interface OpenProjectOptions {
-  /**
-   * Whether to open the project in the background.
-   * Set to `false` to navigate to the project tab.
-   * @default true
-   */
-  readonly openInBackground?: boolean
-}
-
-/**
- *
- */
-export interface CreateOpenedProjectQueryOptions {
-  readonly type: backendModule.BackendType
-  readonly assetId: backendModule.Asset<backendModule.AssetType.project>['id']
-  readonly parentId: backendModule.Asset<backendModule.AssetType.project>['parentId']
-  readonly title: backendModule.Asset<backendModule.AssetType.project>['title']
-  readonly remoteBackend: RemoteBackend
-  readonly localBackend: LocalBackend | null
-}
-
-/**
- * Project status query.
- */
-export function createGetProjectDetailsQuery(options: CreateOpenedProjectQueryOptions) {
-  const { assetId, parentId, title, remoteBackend, localBackend, type } = options
-
-  const backend = type === backendModule.BackendType.remote ? remoteBackend : localBackend
-  const isLocal = type === backendModule.BackendType.local
-
-  return reactQuery.queryOptions({
-    queryKey: createGetProjectDetailsQuery.getQueryKey(assetId),
-    meta: { persist: false },
-    gcTime: 0,
-    refetchInterval: ({ state }) => {
-      /**
-       * Default interval for refetching project status when the project is opened.
-       */
-      const openedIntervalMS = 30_000
-      /**
-       * Interval when we open a cloud project.
-       * Since opening a cloud project is a long operation, we want to check the status less often.
-       */
-      const cloudOpeningIntervalMS = 5_000
-      /**
-       * Interval when we open a local project or when we want to sync the project status as soon as possible.
-       */
-      const activeSyncIntervalMS = 100
-      const states = [backendModule.ProjectState.opened, backendModule.ProjectState.closed]
-
-      if (state.status === 'error') {
-        // eslint-disable-next-line no-restricted-syntax
-        return false
-      }
-      if (isLocal) {
-        if (state.data?.state.type === backendModule.ProjectState.opened) {
-          return openedIntervalMS
-        } else {
-          return activeSyncIntervalMS
-        }
-      } else {
-        if (state.data == null) {
-          return activeSyncIntervalMS
-        } else if (states.includes(state.data.state.type)) {
-          return openedIntervalMS
-        } else {
-          return cloudOpeningIntervalMS
-        }
-      }
-    },
-    refetchIntervalInBackground: true,
-    refetchOnWindowFocus: true,
-    refetchOnMount: true,
-    queryFn: async () => {
-      invariant(backend != null, 'Backend is null')
-
-      return await backend.getProjectDetails(assetId, parentId, title)
-    },
-  })
-}
-createGetProjectDetailsQuery.getQueryKey = (id: ProjectId) => ['project', id] as const
-createGetProjectDetailsQuery.createPassiveListener = (id: ProjectId) =>
-  reactQuery.queryOptions<backendModule.Project>({
-    queryKey: createGetProjectDetailsQuery.getQueryKey(id),
-  })
-
 /** The component that contains the entire UI. */
 export default function Dashboard(props: DashboardProps) {
   return (
     <EventListProvider>
-      <DashboardInner {...props} />
+      <ProjectsProvider>
+        <DashboardInner {...props} />
+      </ProjectsProvider>
     </EventListProvider>
   )
 }
@@ -216,8 +91,7 @@ export default function Dashboard(props: DashboardProps) {
 /** The component that contains the entire UI. */
 function DashboardInner(props: DashboardProps) {
   const { appRunner, initialProjectName: initialProjectNameRaw, ydocUrl } = props
-  const { user, ...session } = authProvider.useFullUserSession()
-  const remoteBackend = backendProvider.useRemoteBackendStrict()
+  const { user } = authProvider.useFullUserSession()
   const localBackend = backendProvider.useLocalBackend()
   const { getText } = textProvider.useText()
   const { modalRef } = modalProvider.useModalRef()
@@ -251,51 +125,9 @@ function DashboardInner(props: DashboardProps) {
   )
   const isCloud = categoryModule.isCloud(category)
 
-  const [launchedProjects, privateSetLaunchedProjects] = React.useState<readonly Project[]>(
-    () => localStorage.get('launchedProjects') ?? []
-  )
-
-  // These pages MUST be ROUTER PAGES.
-  const [page, privateSetPage] = searchParamsState.useSearchParamsState(
-    'page',
-    () => localStorage.get('page') ?? TabType.drive,
-    (value: unknown): value is ProjectId | TabType => {
-      return (
-        array.includes(Object.values(TabType), value) || launchedProjects.some(p => p.id === value)
-      )
-    }
-  )
-
+  const page = projectsProvider.usePage()
+  const launchedProjects = projectsProvider.useLaunchedProjects()
   const selectedProject = launchedProjects.find(p => p.id === page) ?? null
-
-  const setLaunchedProjects = eventCallbacks.useEventCallback(
-    (fn: (currentState: readonly Project[]) => readonly Project[]) => {
-      React.startTransition(() => {
-        privateSetLaunchedProjects(currentState => {
-          const nextState = fn(currentState)
-          localStorage.set('launchedProjects', nextState)
-          return nextState
-        })
-      })
-    }
-  )
-
-  const addLaunchedProject = eventCallbacks.useEventCallback((project: Project) => {
-    setLaunchedProjects(currentState => [...currentState, project])
-  })
-
-  const removeLaunchedProject = eventCallbacks.useEventCallback((projectId: ProjectId) => {
-    setLaunchedProjects(currentState => currentState.filter(({ id }) => id !== projectId))
-  })
-
-  const clearLaunchedProjects = eventCallbacks.useEventCallback(() => {
-    setLaunchedProjects(() => [])
-  })
-
-  const setPage = eventCallbacks.useEventCallback((nextPage: ProjectId | TabType) => {
-    privateSetPage(nextPage)
-    localStorage.set('page', nextPage)
-  })
 
   if (isCloud && !isUserEnabled && localBackend != null) {
     setTimeout(() => {
@@ -304,88 +136,20 @@ function DashboardInner(props: DashboardProps) {
     })
   }
 
-  const openProjectMutation = reactQuery.useMutation({
-    mutationKey: ['openProject'],
-    networkMode: 'always',
-    mutationFn: ({ title, id, type, parentId }: Project) => {
-      const backend = type === backendModule.BackendType.remote ? remoteBackend : localBackend
-
-      invariant(backend != null, 'Backend is null')
-
-      return backend.openProject(
-        id,
-        {
-          executeAsync: false,
-          cognitoCredentials: {
-            accessToken: session.accessToken,
-            refreshToken: session.accessToken,
-            clientId: session.clientId,
-            expireAt: session.expireAt,
-            refreshUrl: session.refreshUrl,
-          },
-          parentId,
-        },
-        title
-      )
-    },
-    onMutate: ({ id }) => {
-      const queryKey = createGetProjectDetailsQuery.getQueryKey(id)
-
-      client.setQueryData(queryKey, { state: { type: backendModule.ProjectState.openInProgress } })
-
-      void client.cancelQueries({ queryKey })
-      void client.invalidateQueries({ queryKey })
-    },
-    onError: async (_, { id }) => {
-      await client.invalidateQueries({ queryKey: createGetProjectDetailsQuery.getQueryKey(id) })
-    },
-  })
-
-  const closeProjectMutation = reactQuery.useMutation({
-    mutationKey: ['closeProject'],
-    mutationFn: async ({ type, id, title }: Project) => {
-      const backend = type === backendModule.BackendType.remote ? remoteBackend : localBackend
-
-      invariant(backend != null, 'Backend is null')
-
-      return backend.closeProject(id, title)
-    },
-    onMutate: ({ id }) => {
-      const queryKey = createGetProjectDetailsQuery.getQueryKey(id)
-
-      client.setQueryData(queryKey, { state: { type: backendModule.ProjectState.closing } })
-
-      void client.cancelQueries({ queryKey })
-      void client.invalidateQueries({ queryKey })
-    },
-    onSuccess: (_, { id }) =>
-      client.resetQueries({ queryKey: createGetProjectDetailsQuery.getQueryKey(id) }),
-    onError: (_, { id }) =>
-      client.invalidateQueries({ queryKey: createGetProjectDetailsQuery.getQueryKey(id) }),
-  })
-
-  const client = reactQuery.useQueryClient()
-
-  const renameProjectMutation = reactQuery.useMutation({
-    mutationFn: ({ newName, project }: { newName: string; project: Project }) => {
-      const { type, id, title } = project
-      const backend = type === backendModule.BackendType.remote ? remoteBackend : localBackend
-
-      invariant(backend != null, 'Backend is null')
-
-      return backend.updateProject(id, { projectName: newName, ami: null, ideVersion: null }, title)
-    },
-    onSuccess: (_, { project }) =>
-      client.invalidateQueries({
-        queryKey: createGetProjectDetailsQuery.getQueryKey(project.id),
-      }),
-  })
+  const setPage = projectsProvider.useSetPage()
+  const openEditor = projectHooks.useOpenEditor()
+  const openProject = projectHooks.useOpenProject()
+  const closeProject = projectHooks.useCloseProject()
+  const closeAllProjects = projectHooks.useCloseAllProjects()
+  const clearLaunchedProjects = projectsProvider.useClearLaunchedProjects()
+  const openProjectMutation = projectHooks.useOpenProjectMutation()
+  const renameProjectMutation = projectHooks.useRenameProjectMutation()
 
   eventListProvider.useAssetEventListener(event => {
     switch (event.type) {
       case AssetEventType.openProject: {
         const { title, parentId, backendType, id, runInBackground } = event
-        doOpenProject(
+        openProject(
           { title, parentId, type: backendType, id },
           { openInBackground: runInBackground }
         )
@@ -393,7 +157,7 @@ function DashboardInner(props: DashboardProps) {
       }
       case AssetEventType.closeProject: {
         const { title, parentId, backendType, id } = event
-        doCloseProject({ title, parentId, type: backendType, id })
+        closeProject({ title, parentId, type: backendType, id })
         break
       }
       default: {
@@ -412,7 +176,7 @@ function DashboardInner(props: DashboardProps) {
           updateModal(oldModal => {
             if (oldModal == null) {
               queueMicrotask(() => {
-                setPage(localStorage.get('page') ?? TabType.drive)
+                setPage(localStorage.get('page') ?? projectsProvider.TabType.drive)
               })
               return oldModal
             } else {
@@ -443,96 +207,14 @@ function DashboardInner(props: DashboardProps) {
     }
   }, [inputBindings])
 
-  const doOpenProject = eventCallbacks.useEventCallback(
-    (project: Project, options: OpenProjectOptions = {}) => {
-      const { openInBackground = true } = options
-
-      // since we don't support multitabs, we need to close opened project first
-      if (launchedProjects.length > 0) {
-        doCloseAllProjects()
-      }
-
-      const isOpeningTheSameProject =
-        client.getMutationCache().find({
-          mutationKey: ['openProject'],
-          predicate: mutation => mutation.options.scope?.id === project.id,
-        })?.state.status === 'pending'
-
-      if (!isOpeningTheSameProject) {
-        openProjectMutation.mutate(project)
-
-        const openingProjectMutation = client.getMutationCache().find({
-          mutationKey: ['openProject'],
-          // this is unsafe, but we can't do anything about it
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-          predicate: mutation => mutation.state.variables?.id === project.id,
-        })
-
-        openingProjectMutation?.setOptions({
-          ...openingProjectMutation.options,
-          scope: { id: project.id },
-        })
-
-        addLaunchedProject(project)
-
-        if (!openInBackground) {
-          doOpenEditor(project.id)
-        }
-      }
-    }
-  )
-
-  const doOpenEditor = eventCallbacks.useEventCallback((projectId: ProjectId) => {
-    React.startTransition(() => {
-      setPage(projectId)
-    })
-  })
-
-  const doCloseProject = eventCallbacks.useEventCallback((project: Project) => {
-    client
-      .getMutationCache()
-      .findAll({
-        mutationKey: ['openProject'],
-        predicate: mutation => mutation.options.scope?.id === project.id,
-      })
-      .forEach(mutation => {
-        mutation.setOptions({ ...mutation.options, retry: false })
-        mutation.destroy()
-      })
-
-    closeProjectMutation.mutate(project)
-
-    client
-      .getMutationCache()
-      .findAll({
-        mutationKey: ['closeProject'],
-        // this is unsafe, but we can't do anything about it
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        predicate: mutation => mutation.state.variables?.id === project.id,
-      })
-      .forEach(mutation => {
-        mutation.setOptions({ ...mutation.options, scope: { id: project.id } })
-      })
-
-    removeLaunchedProject(project.id)
-
-    setPage(TabType.drive)
-  })
-
-  const doCloseAllProjects = eventCallbacks.useEventCallback(() => {
-    for (const launchedProject of launchedProjects) {
-      doCloseProject(launchedProject)
-    }
-  })
-
-  const doRemoveSelf = eventCallbacks.useEventCallback((project: Project) => {
+  const doRemoveSelf = eventCallbacks.useEventCallback((project: projectHooks.Project) => {
     dispatchAssetListEvent({ type: AssetListEventType.removeSelf, id: project.id })
-    doCloseProject(project)
+    closeProject(project)
   })
 
   const onSignOut = eventCallbacks.useEventCallback(() => {
-    setPage(TabType.drive)
-    doCloseAllProjects()
+    setPage(projectsProvider.TabType.drive)
+    closeAllProjects()
     clearLaunchedProjects()
   })
 
@@ -576,11 +258,11 @@ function DashboardInner(props: DashboardProps) {
           <div className="flex">
             <TabBar>
               <tabBar.Tab
-                isActive={page === TabType.drive}
+                isActive={page === projectsProvider.TabType.drive}
                 icon={DriveIcon}
                 labelId="drivePageName"
                 onPress={() => {
-                  setPage(TabType.drive)
+                  setPage(projectsProvider.TabType.drive)
                 }}
               >
                 {getText('drivePageName')}
@@ -597,26 +279,26 @@ function DashboardInner(props: DashboardProps) {
                     setPage(project.id)
                   }}
                   onClose={() => {
-                    doCloseProject(project)
+                    closeProject(project)
                   }}
                   onLoadEnd={() => {
-                    doOpenEditor(project.id)
+                    openEditor(project.id)
                   }}
                 >
                   {project.title}
                 </tabBar.Tab>
               ))}
 
-              {page === TabType.settings && (
+              {page === projectsProvider.TabType.settings && (
                 <tabBar.Tab
                   isActive
                   icon={SettingsIcon}
                   labelId="settingsPageName"
                   onPress={() => {
-                    setPage(TabType.settings)
+                    setPage(projectsProvider.TabType.settings)
                   }}
                   onClose={() => {
-                    setPage(TabType.drive)
+                    setPage(projectsProvider.TabType.drive)
                   }}
                 >
                   {getText('settingsPageName')}
@@ -628,7 +310,7 @@ function DashboardInner(props: DashboardProps) {
               onShareClick={selectedProject ? doOpenShareModal : undefined}
               setIsHelpChatOpen={setIsHelpChatOpen}
               goToSettingsPage={() => {
-                setPage(TabType.settings)
+                setPage(projectsProvider.TabType.settings)
               }}
               onSignOut={onSignOut}
             />
@@ -639,11 +321,11 @@ function DashboardInner(props: DashboardProps) {
             openedProjects={launchedProjects}
             category={category}
             setCategory={setCategory}
-            hidden={page !== TabType.drive}
+            hidden={page !== projectsProvider.TabType.drive}
             initialProjectName={initialProjectName}
-            doOpenProject={doOpenProject}
-            doOpenEditor={doOpenEditor}
-            doCloseProject={doCloseProject}
+            doOpenProject={openProject}
+            doOpenEditor={openEditor}
+            doCloseProject={closeProject}
           />
 
           {launchedProjects.map(project => (
@@ -664,7 +346,7 @@ function DashboardInner(props: DashboardProps) {
             />
           ))}
 
-          {page === TabType.settings && <Settings />}
+          {page === projectsProvider.TabType.settings && <Settings />}
           {process.env.ENSO_CLOUD_CHAT_URL != null ? (
             <Chat
               isOpen={isHelpChatOpen}

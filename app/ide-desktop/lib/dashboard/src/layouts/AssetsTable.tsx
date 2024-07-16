@@ -9,6 +9,7 @@ import * as mimeTypes from '#/data/mimeTypes'
 
 import * as backendHooks from '#/hooks/backendHooks'
 import * as intersectionHooks from '#/hooks/intersectionHooks'
+import type * as projectHooks from '#/hooks/projectHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 import useOnScroll from '#/hooks/useOnScroll'
 
@@ -24,8 +25,6 @@ import type * as assetEvent from '#/events/assetEvent'
 import AssetEventType from '#/events/AssetEventType'
 import type * as assetListEvent from '#/events/assetListEvent'
 import AssetListEventType from '#/events/AssetListEventType'
-
-import type * as dashboard from '#/pages/dashboard/Dashboard'
 
 import type * as assetPanel from '#/layouts/AssetPanel'
 import type * as assetSearchBar from '#/layouts/AssetSearchBar'
@@ -358,7 +357,7 @@ export interface AssetRowState {
 
 /** Props for a {@link AssetsTable}. */
 export interface AssetsTableProps {
-  readonly openedProjects: readonly dashboard.Project[]
+  readonly openedProjects: readonly projectHooks.Project[]
   readonly hidden: boolean
   readonly query: AssetQuery
   readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
@@ -371,12 +370,12 @@ export interface AssetsTableProps {
   readonly setAssetPanelProps: (props: assetPanel.AssetPanelRequiredProps | null) => void
   readonly setIsAssetPanelTemporarilyVisible: (visible: boolean) => void
   readonly targetDirectoryNodeRef: React.MutableRefObject<assetTreeNode.AnyAssetTreeNode<backendModule.DirectoryAsset> | null>
-  readonly doOpenEditor: (id: dashboard.ProjectId) => void
+  readonly doOpenEditor: (id: projectHooks.ProjectId) => void
   readonly doOpenProject: (
-    project: dashboard.Project,
-    options?: dashboard.OpenProjectOptions
+    project: projectHooks.Project,
+    options?: projectHooks.OpenProjectOptions
   ) => void
-  readonly doCloseProject: (project: dashboard.Project) => void
+  readonly doCloseProject: (project: projectHooks.Project) => void
   readonly assetManagementApiRef: React.Ref<AssetManagementApi>
 }
 

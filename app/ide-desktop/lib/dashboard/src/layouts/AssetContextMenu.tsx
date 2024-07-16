@@ -6,6 +6,7 @@ import * as toast from 'react-toastify'
 
 import * as billingHooks from '#/hooks/billing'
 import * as copyHooks from '#/hooks/copyHooks'
+import * as projectHooks from '#/hooks/projectHooks'
 import * as setAssetHooks from '#/hooks/setAssetHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
@@ -16,8 +17,6 @@ import * as textProvider from '#/providers/TextProvider'
 
 import AssetEventType from '#/events/AssetEventType'
 import AssetListEventType from '#/events/AssetListEventType'
-
-import * as dashboard from '#/pages/dashboard/Dashboard'
 
 import * as eventListProvider from '#/layouts/AssetsTable/EventListProvider'
 import Category, * as categoryModule from '#/layouts/CategorySwitcher/Category'
@@ -104,7 +103,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
 
   const { data } = reactQuery.useQuery(
     item.item.type === backendModule.AssetType.project
-      ? dashboard.createGetProjectDetailsQuery.createPassiveListener(item.item.id)
+      ? projectHooks.createGetProjectDetailsQuery.createPassiveListener(item.item.id)
       : { queryKey: ['__IGNORED__'] }
   )
 

@@ -10,8 +10,6 @@ import StopIcon from 'enso-assets/stop.svg'
 import * as authProvider from '#/providers/AuthProvider'
 import * as textProvider from '#/providers/TextProvider'
 
-import * as dashboard from '#/pages/dashboard/Dashboard'
-
 import * as ariaComponents from '#/components/AriaComponents'
 import Spinner from '#/components/Spinner'
 import StatelessSpinner, * as spinner from '#/components/StatelessSpinner'
@@ -20,6 +18,7 @@ import * as backendModule from '#/services/Backend'
 import type Backend from '#/services/Backend'
 
 import * as tailwindMerge from '#/utilities/tailwindMerge'
+import * as projectHooks from '#/hooks/projectHooks'
 
 // =================
 // === Constants ===
@@ -80,7 +79,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
     isLoading,
     isError,
   } = reactQuery.useQuery({
-    ...dashboard.createGetProjectDetailsQuery.createPassiveListener(item.id),
+    ...projectHooks.createGetProjectDetailsQuery.createPassiveListener(item.id),
     select: data => data.state.type,
     enabled: isOpened,
   })

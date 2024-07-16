@@ -4,6 +4,7 @@ import * as React from 'react'
 import * as appUtils from '#/appUtils'
 
 import * as offlineHooks from '#/hooks/offlineHooks'
+import type * as projectHooks from '#/hooks/projectHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
@@ -12,8 +13,6 @@ import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import AssetListEventType from '#/events/AssetListEventType'
-
-import type * as dashboard from '#/pages/dashboard/Dashboard'
 
 import type * as assetPanel from '#/layouts/AssetPanel'
 import AssetPanel from '#/layouts/AssetPanel'
@@ -62,14 +61,14 @@ enum DriveStatus {
 
 /** Props for a {@link Drive}. */
 export interface DriveProps {
-  readonly openedProjects: readonly dashboard.Project[]
+  readonly openedProjects: readonly projectHooks.Project[]
   readonly category: Category
   readonly setCategory: (category: Category) => void
   readonly hidden: boolean
   readonly initialProjectName: string | null
-  readonly doOpenEditor: (id: dashboard.ProjectId) => void
-  readonly doOpenProject: (project: dashboard.Project) => void
-  readonly doCloseProject: (project: dashboard.Project) => void
+  readonly doOpenEditor: (id: projectHooks.ProjectId) => void
+  readonly doOpenProject: (project: projectHooks.Project) => void
+  readonly doCloseProject: (project: projectHooks.Project) => void
   readonly assetsManagementApiRef: React.Ref<assetsTable.AssetManagementApi>
 }
 
