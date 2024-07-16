@@ -322,7 +322,10 @@ type NormalizeKeybindSegment = {
 /** A segment suggestible by autocomplete. */
 type SuggestedKeybindSegment = Key | Pointer | `${Modifier}+`
 /** A helper type used to autocomplete and validate a single keyboard shortcut in the editor. */
-type AutocompleteKeybind<T extends string, FoundKeyName extends string = never> = T extends '+'
+export type AutocompleteKeybind<
+  T extends string,
+  FoundKeyName extends string = never,
+> = T extends '+'
   ? T
   : T extends `${infer First}+${infer Rest}`
     ? Lowercase<First> extends LowercaseModifier
