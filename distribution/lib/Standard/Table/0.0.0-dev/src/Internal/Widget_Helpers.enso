@@ -95,7 +95,7 @@ make_column_name_multi_selector table display:Display=Display.Always add_regex:B
 ## PRIVATE
    Make a column reference by name selector.
 make_column_ref_by_name_selector table display:Display=..Always add_text:Boolean=False add_regex:Boolean=False add_number:Boolean=False add_boolean:Boolean=False add_named_pattern:Boolean=False add_date:Boolean=False add_time:Boolean=False add_date_time:Boolean=False add_nothing:Boolean=False =
-    constants = make_any_selector add_text=add_text add_regex=add_regex add_named_pattern=add_named_pattern add_number=add_number add_boolean=add_boolean add_date=add_date add_time=add_time add_date_time=add_date_time add_nothing=add_nothing. values
+    constants = make_any_selector add_text=add_text add_regex=add_regex add_named_pattern=add_named_pattern add_number=add_number add_boolean=add_boolean add_date=add_date add_time=add_time add_date_time=add_date_time add_nothing=add_nothing . values
     expression = if table.is_nothing then [] else [Option "<Expression>" "(expr '["+table.column_names.first+"]')"]
     col_names = if table.is_nothing then [] else table.column_names.map (name -> Option name "(..Name "+name.pretty+")")
     values = constants + expression + col_names
