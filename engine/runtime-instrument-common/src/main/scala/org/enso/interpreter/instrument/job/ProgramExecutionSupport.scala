@@ -34,6 +34,7 @@ import org.enso.interpreter.service.ExecutionService.{
   FunctionPointer
 }
 import org.enso.interpreter.service.error.{
+  ExitException,
   MethodNotFoundException,
   ModuleNotFoundForExpressionIdException,
   ServiceException,
@@ -49,7 +50,6 @@ import java.io.File
 import java.util.UUID
 import java.util.function.Consumer
 import java.util.logging.Level
-
 import scala.jdk.OptionConverters.RichOptional
 import scala.util.Try
 
@@ -324,9 +324,11 @@ object ProgramExecutionSupport {
     ctx: RuntimeContext
   ): PartialFunction[Throwable, Api.ExecutionResult.Diagnostic] = {
     case ex: AbstractTruffleException
+        // ExitException is special, and handled differently than other TruffleExceptions.
+        if !ex.isInstanceOf[ExitException] &&
         // The empty language is allowed because `getLanguage` returns null when
         // the error originates in builtin node.
-        if Option(ctx.executionService.getLanguage(ex))
+        Option(ctx.executionService.getLanguage(ex))
           .forall(_ == LanguageInfo.ID) =>
       val section = Option(ctx.executionService.getSourceLocation(ex))
       val source  = section.flatMap(sec => Option(sec.getSource))
@@ -355,6 +357,15 @@ object ProgramExecutionSupport {
       Api.ExecutionResult.Failure(
         ex.getMessage,
         findFileByModuleName(ex.getModule)
+      )
+
+    case exitEx: ExitException =>
+      val section = ctx.executionService.getSourceLocation(exitEx)
+      assert(section != null)
+      val fileOpt = findFileByModuleName(section.getSource.getName)
+      Api.ExecutionResult.Failure(
+        exitEx.getMessage,
+        fileOpt
       )
 
     case ex: ServiceException =>
