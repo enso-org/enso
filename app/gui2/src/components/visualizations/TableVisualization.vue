@@ -288,7 +288,7 @@ function formatText(params: ICellRendererParams) {
       textFormatterSelected.value === TextFormatOptions.On ? mappingWithTab : commonMappings
     return mapping[match as keyof typeof mapping] || renderOtherWhitespace(match)
   })
-  return `<span style="font-family: monospace;"> ${newString}</span>`
+  return `<span> ${newString}</span>`
 }
 
 function setRowLimit(newRowLimit: number) {
@@ -756,6 +756,7 @@ onUnmounted(() => {
   --ag-grid-size: 3px;
   --ag-list-item-height: 20px;
   flex-grow: 1;
+  font-family: monospace;
 }
 
 .table-visualization-status-bar {
