@@ -261,12 +261,16 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
                           setValue={newValue => {
                             setValue(oldValue => {
                               if (typeof newValue === 'function') {
-                                newValue = newValue(
+                                const unsafeValue: unknown = newValue(
                                   // This is SAFE; but there is no way to tell TypeScript that an object
                                   // has an index signature.
                                   // eslint-disable-next-line no-restricted-syntax
                                   (oldValue as Readonly<Record<string, unknown>>)[key] ?? null
                                 )
+                                // The value MAY be `null`, but it is better than the value being a
+                                // function (which is *never* the intended result).
+                                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                                newValue = unsafeValue!
                               }
                               return typeof oldValue === 'object' &&
                                 oldValue != null &&
