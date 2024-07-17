@@ -299,7 +299,7 @@ public final class Cache<T, M> {
 
     } else {
       logger.log(
-          logLevel,
+          Level.FINE,
           "Could not load the cache metadata at ["
               + toMaskedPath(metadataPath).applyMasking()
               + "].");
