@@ -348,7 +348,7 @@ impl Processor {
                 );
                 let dashboard_tests = run_and_upload_dir(
                     gui::dashboard_tests(&repo_root),
-                    &repo_root.app.ide_desktop.lib.dashboard.playwright_report,
+                    &repo_root.app.dashboard.playwright_report,
                     "dashboard-playwright-report",
                 );
                 try_join(gui_tests, dashboard_tests).void_ok().boxed()
