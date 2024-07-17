@@ -197,7 +197,7 @@ type Range
          Selecting all elements that are greater than 3.
 
              (0.up_to 7).filter (> 3)
-             (0.up_to 7).filter (Filter_Condition.Greater than=3)
+             (0.up_to 7).filter (..Greater than=3)
     @filter range_default_filter_condition_widget
     filter : (Filter_Condition | (Integer -> Boolean)) -> Vector Integer
     filter self (filter : Filter_Condition | (Integer -> Boolean)) =
@@ -365,7 +365,7 @@ type Range
        > Example
          Checking that all numbers in the range are greater than 5.
 
-             10.up_to 100 . all (Filter_Condition.Greater than=5)
+             10.up_to 100 . all (..Greater than=5)
 
        > Example
          Checking that all numbers in the range are even.
@@ -388,7 +388,7 @@ type Range
        > Example
          Checking that at least one number in the range is greater than 10.
 
-             1.up_to 100 . any (Filter_Condition.Greater than=10)
+             1.up_to 100 . any (..Greater than=10)
 
        > Example
          Checking that at least one number in the range is even.
@@ -419,7 +419,7 @@ type Range
        > Example
          Get the first number in the range that is greater than 10.
 
-             1.up_to 100 . find (Filter_Condition.Greater than=10)
+             1.up_to 100 . find (..Greater than=10)
     @condition range_default_filter_condition_widget
     find : (Filter_Condition | (Integer -> Boolean)) -> Integer -> Any -> Any
     find self (condition : Filter_Condition | (Integer -> Boolean)) (start : Integer = 0) ~if_missing=Nothing =

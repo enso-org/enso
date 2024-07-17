@@ -455,7 +455,7 @@ type Array
          Selecting all elements that are greater than 3.
 
              [1, 2, 3, 4, 5].to_array.filter (> 3)
-             [1, 2, 3, 4, 5].to_array.filter (Filter_Condition.Greater than=3)
+             [1, 2, 3, 4, 5].to_array.filter (..Greater than=3)
     @filter Filter_Condition.default_widget
     filter : (Filter_Condition | (Any -> Boolean)) -> Vector Any
     filter self (filter : Filter_Condition | (Any -> Boolean)) =
@@ -577,7 +577,7 @@ type Array
        > Example
          Splitting an array into elements that start with a prefix.
 
-             ["a", "b", "ax", "bx"].to_array.partition (Filter_Condition.Starts_With "a") == (Pair ["a", "ax"].to_array ["b", "bx"].to_array)
+             ["a", "b", "ax", "bx"].to_array.partition (..Starts_With "a") == (Pair ["a", "ax"].to_array ["b", "bx"].to_array)
 
        > Example
          Splitting an array into even and odd elements.
@@ -822,7 +822,7 @@ type Array
        > Example
          Checking if any element of the array is larger than 3.
 
-             [1, 2, 3, 4, 5].to_array.any (Filter_Condition.Greater than=3)
+             [1, 2, 3, 4, 5].to_array.any (..Greater than=3)
 
        > Example
          Checking if any element of the array is even.
@@ -844,7 +844,7 @@ type Array
        > Example
          Check if all elements in the array are less than zero.
 
-             [-1, 1, 5, 8].to_array.all (Filter_Condition.Less than=0)
+             [-1, 1, 5, 8].to_array.all (..Less than=0)
 
        > Example
          Check if all elements in the array are even.

@@ -256,7 +256,7 @@ type Date_Range
          Selecting all elements that are greater than 2020-10-12.
 
              (Date.new 2020 10 01).up_to (Date.new 2020 10 15) . filter (> (Date.new 2020 10 12))
-             (Date.new 2020 10 01).up_to (Date.new 2020 10 15) . filter (Filter_Condition.Greater than=(Date.new 2020 10 12))
+             (Date.new 2020 10 01).up_to (Date.new 2020 10 15) . filter (..Greater than=(Date.new 2020 10 12))
     @filter date_range_default_filter_condition_widget
     filter : (Filter_Condition | (Date -> Boolean)) -> Vector Date
     filter self (filter : Filter_Condition | (Date -> Boolean)) =
@@ -401,7 +401,7 @@ type Date_Range
        > Example
          Checking that at least one date in the range is after 2020-10-01.
 
-             (Date.new 2020 10 01).up_to (Date.new 2020 10 31) . any (Filter_Condition.Greater (Date.new 2020 10 01))
+             (Date.new 2020 10 01).up_to (Date.new 2020 10 31) . any (..Greater (Date.new 2020 10 01))
     @condition date_range_default_filter_condition_widget
     any : (Filter_Condition | (Date -> Boolean)) -> Boolean
     any self (condition : Filter_Condition | (Date -> Boolean)) =
