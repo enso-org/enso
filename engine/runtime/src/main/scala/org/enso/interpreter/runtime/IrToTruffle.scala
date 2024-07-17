@@ -193,6 +193,18 @@ class IrToTruffle(
           "No binding analysis at the point of codegen."
         )
 
+    registerModuleExports(bindingsMap)
+    registerModuleImports(bindingsMap)
+    registerPolyglotImports(module)
+
+    registerTypeDefinitions(module)
+    registerMethodDefinitions(module)
+    registerConversions(module)
+
+    scopeBuilder.build()
+  }
+
+  private def registerModuleExports(bindingsMap: BindingsMap): Unit =
     bindingsMap.getDirectlyExportedModules.foreach { exportedMod =>
       val exportedRuntimeMod = exportedMod.module.module.unsafeAsModule()
       scopeBuilder.addExport(
@@ -200,11 +212,7 @@ class IrToTruffle(
       )
     }
 
-    val importDefs = module.imports
-    val methodDefs = module.bindings.collect {
-      case method: definition.Method.Explicit => method
-    }
-
+  private def registerModuleImports(bindingsMap: BindingsMap): Unit =
     bindingsMap.resolvedImports.foreach { imp =>
       imp.targets.foreach {
         case _: BindingsMap.ResolvedType             =>
@@ -222,8 +230,8 @@ class IrToTruffle(
       }
     }
 
-    // Register the imports in scope
-    importDefs.foreach {
+  private def registerPolyglotImports(module: Module): Unit =
+    module.imports.foreach {
       case poly @ imports.Polyglot(i: imports.Polyglot.Java, _, _, _, _) =>
         var hostSymbol = context.lookupJavaClass(i.getJavaName)
         if (hostSymbol == null) {
@@ -240,6 +248,7 @@ class IrToTruffle(
       case _: Error         =>
     }
 
+  private def registerTypeDefinitions(module: Module): Unit = {
     val typeDefs = module.bindings.collect { case tp: Definition.Type => tp }
     typeDefs.foreach { tpDef =>
       // Register the atoms and their constructors in scope
@@ -348,6 +357,12 @@ class IrToTruffle(
           }
         }
       asType.generateGetters(language)
+    }
+  }
+
+  private def registerMethodDefinitions(module: Module): Unit = {
+    val methodDefs = module.bindings.collect {
+      case method: definition.Method.Explicit => method
     }
 
     // Register the method definitions in scope
@@ -678,7 +693,9 @@ class IrToTruffle(
         )
       }
     })
+  }
 
+  private def registerConversions(module: Module): Unit = {
     val conversionDefs = module.bindings.collect {
       case conversion: definition.Method.Conversion =>
         conversion
@@ -754,7 +771,6 @@ class IrToTruffle(
         scopeBuilder.registerConversionMethod(toType, fromType, function)
       }
     })
-    scopeBuilder.build()
   }
 
   // ==========================================================================
