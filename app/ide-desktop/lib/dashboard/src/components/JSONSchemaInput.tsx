@@ -259,16 +259,24 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
                           // eslint-disable-next-line no-restricted-syntax
                           value={(value as Record<string, unknown>)[key] ?? null}
                           setValue={newValue => {
-                            setValue(oldValue =>
-                              typeof oldValue === 'object' &&
-                              oldValue != null &&
-                              // This is SAFE; but there is no way to tell TypeScript that an object
-                              // has an index signature.
-                              // eslint-disable-next-line no-restricted-syntax
-                              (oldValue as Readonly<Record<string, unknown>>)[key] === newValue
+                            setValue(oldValue => {
+                              if (typeof newValue === 'function') {
+                                newValue = newValue(
+                                  // This is SAFE; but there is no way to tell TypeScript that an object
+                                  // has an index signature.
+                                  // eslint-disable-next-line no-restricted-syntax
+                                  (oldValue as Readonly<Record<string, unknown>>)[key] ?? null
+                                )
+                              }
+                              return typeof oldValue === 'object' &&
+                                oldValue != null &&
+                                // This is SAFE; but there is no way to tell TypeScript that an object
+                                // has an index signature.
+                                // eslint-disable-next-line no-restricted-syntax
+                                (oldValue as Readonly<Record<string, unknown>>)[key] === newValue
                                 ? oldValue
                                 : { ...oldValue, [key]: newValue }
-                            )
+                            })
                           }}
                         />
                       )}
@@ -299,7 +307,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
       const childSchemas = schema.anyOf.flatMap(object.singletonObjectOrNull)
       const selectedChildSchema =
         selectedChildIndex == null ? null : childSchemas[selectedChildIndex]
-      const selectedChildPath = `${path}/anyOf/${selectedChildIndex}`
+      const selectedChildPath = `${path}/anyOf/${selectedChildIndex ?? 0}`
       const childValue =
         selectedChildSchema == null ? [] : jsonSchema.constantValue(defs, selectedChildSchema)
       if (
