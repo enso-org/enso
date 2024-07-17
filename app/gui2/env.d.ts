@@ -19,7 +19,7 @@ interface Window {
  * # Safety
  *
  * We're assuming that the main process has exposed the `fileBrowserApi` context bridge (see
- * `app/ide-desktop/lib/client/src/preload.ts` for details), and that it contains the functions defined in this
+ * `app/client/src/preload.ts` for details), and that it contains the functions defined in this
  * interface.
  */
 interface FileBrowserApi {
