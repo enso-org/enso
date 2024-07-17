@@ -1,5 +1,5 @@
 packages:
-  - app/ide-desktop
-  - app/ide-desktop/lib/*
+  - app/dashboard
+  - app/ide-desktop/*
   - app/gui2
   - lib/js/runner

@@ -121,7 +121,7 @@ type File
                         temp.delete_if_exists
 
             ## Attach a warning to the file that it is a dry run
-            warning = Dry_Run_Operation.Warning "Only a dry run has occurred, with data written to a temporary file.  Press the Run Workflow button ▶ to write the actual file."
+            warning = Dry_Run_Operation.Warning "Only a dry run has occurred, with data written to a temporary file.  Press the Write button ▶ to write the actual file."
             Warning.attach warning temp
 
     ## ALIAS current directory

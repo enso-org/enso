@@ -71,8 +71,7 @@ type Encoding
     default -> Encoding =
         # This factory method is used to publicly expose the `Default` constructor.
         # The constructor itself has to be private, because we want to make `Value` constructor private, but all constructors must have the same privacy.
-        # ToDo: This is a workaround for performance issue.
-        Encoding.utf_8
+        Encoding.Default
 
     ## PRIVATE
        A default encoding that will try to guess the encoding based on some heuristics.
