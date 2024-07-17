@@ -304,7 +304,7 @@ onMounted(() => {
     placeCursor: (at: number) => {
       editorView.dispatch({ selection: EditorSelection.create([EditorSelection.cursor(at)]) })
     },
-    select: (from, to) => {
+    select: (from: number, to: number) => {
       editorView.dispatch({ selection: EditorSelection.create([EditorSelection.range(from, to)]) })
     },
     selectAndReplace: (from: number, to: number, replaceWith: string) => {
