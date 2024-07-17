@@ -94,6 +94,23 @@ interface SystemApi {
   readonly showItemInFolder: (fullPath: string) => void
 }
 
+// ==============================
+// === Project Management API ===
+// ==============================
+
+/** Metadata for a newly imported project. */
+interface ProjectInfo {
+  readonly id: string
+  readonly name: string
+  readonly parentDirectory: string
+}
+
+/** `window.projectManagementApi` exposes functionality related to system events related to
+ * project management. */
+interface ProjectManagementApi {
+  readonly setOpenProjectHandler: (handler: (projectInfo: ProjectInfo) => void) => void
+}
+
 // ====================
 // === Version Info ===
 // ====================
@@ -121,6 +138,7 @@ declare global {
     readonly navigationApi: NavigationApi
     readonly menuApi: MenuApi
     readonly systemApi?: SystemApi
+    readonly projectManagementApi?: ProjectManagementApi
     readonly versionInfo?: VersionInfo
     toggleDevtools: () => void
   }
