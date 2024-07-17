@@ -2897,7 +2897,7 @@ type Table
 
              fill_nothing = table.fill_nothing ["col0", "col1"] 20.5
     @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True add_by_type=True)
-    @default (self-> Widget_Helpers.make_fill_default_value_selector value_type=Value_Type.Mixed add_nothing=True)
+    @default make_fill_nothing_default_widget
     fill_nothing : Vector (Integer | Text | Regex | By_Type) | Text | Integer | Regex | By_Type -> Column | Column_Ref | Expression | Previous_Value | Any -> Table
     fill_nothing self (columns : Vector | Text | Integer | Regex | By_Type) default =
         resolved_default = (self:Table_Ref).resolve default
@@ -3271,3 +3271,12 @@ Table.from (that:XML_Element) =
 
    Either `Children` or `Value` will be generated, but not both.
 Table.from (that:XML_Document) = Table.from that.root_element
+
+## PRIVATE
+make_fill_nothing_default_widget table cache=Nothing =
+    columns = cache.if_not_nothing <| cache "columns"
+    types = if columns.is_nothing then [Value_Type.Mixed] else
+        ##  (selectors:(Text | Integer | Regex | By_Type | Vector)) (case_sensitivity:Case_Sensitivity) (reorder:Boolean) (error_on_missing_columns:Boolean) (on_problems:Problem_Behavior) (error_on_empty:Boolean=True) =
+        real_columns = table.columns_helper.select_columns columns case_sensitivity=..Sensitive reorder=False error_on_missing_columns=False on_problems=..Ignore
+        real_columns.map .value_type
+    Widget_Helpers.make_fill_default_value_selector table value_type=types

@@ -317,7 +317,7 @@ type Simple_Calculation
     ## Perform a Date Operation
     Date (operation : Date_Operation = ..Date_Add 1)
 
-    ## Perform a Date Operation
+    ## Perform a Logical Operation
     Logical (operation : Logical_Operation = ..Not)
 
     ## Add two values/columns.

@@ -103,14 +103,9 @@ make_column_ref_by_name_selector table display:Display=..Always add_text:Boolean
 
 ## PRIVATE
    If `column_source` is Nothing, `Column_Ref` options will not be added.
-make_fill_default_value_selector column_source=Nothing display:Display=..Always value_type:Value_Type=Value_Type.Mixed add_nothing:Boolean=False =
-    add_number = value.is_numeric || value_type==Value_Type.Mixed
-    add_boolean = value_type.is_boolean || value_type==Value_Type.Mixed
-    add_text = value_type.is_text || value_type==Value_Type.Mixed
-    add_date = value_type.is_date || self.value_type==Value_Type.Mixed
-    add_time = value_type.is_time || self.value_type==Value_Type.Mixed
-    add_date_time = value_type.is_date_time || self.value_type==Value_Type.Mixed
-    column_ref = make_column_ref_by_name_selector column_source display add_text=add_text add_number=add_number add_boolean=add_boolean add_date=add_date add_time=add_time add_date_time=add_date_time add_nothing=add_nothing
+make_fill_default_value_selector column_source=Nothing display:Display=..Always value_types=Value_Type.Mixed add_nothing:Boolean=False =
+    to_add = Types_To_Include.Value (Vector.unify_vector_or_element value_types)
+    column_ref = make_column_ref_by_name_selector column_source display add_text=to_add.text add_number=to_add.number add_boolean=to_add.boolean add_date=to_add.date add_time=to_add.time add_date_time=to_add.date_time add_nothing=add_nothing
     previous_value = [Option 'Previous Value' 'Previous_Value']
     Single_Choice values=(previous_value+column_ref.values) display=display
 
@@ -246,3 +241,26 @@ make_replace_selector display=Display.Always =
     name = Option "Pair" fqn+".Value" [["first", key_selector], ["second", value_selector]]
     item_editor = Single_Choice display=Display.Always values=[name]
     Vector_Editor item_editor=item_editor item_default="(Pair.Value 'Current' 'New')" display=display
+
+## PRIVATE
+type Types_To_Include
+    ## PRIVATE
+    private Value types:Vector
+
+    ## Are there any number columns?
+    number self = self.types.any value_type-> value_type.is_numeric || value_type==Value_Type.Mixed
+
+    ## Are there any boolean columns?
+    boolean self = self.types.any value_type-> value_type.is_boolean || value_type==Value_Type.Mixed
+
+    ## Are there any text columns?
+    text self = self.types.any value_type-> value_type.is_text || value_type==Value_Type.Mixed
+
+    ## Are there any date columns?
+    date self = self.types.any value_type-> value_type.is_date || value_type==Value_Type.Mixed
+
+    ## Are there any time columns?
+    time self = self.types.any value_type-> value_type.is_time || value_type==Value_Type.Mixed
+
+    ## Are there any date_time columns?
+    date_time self = self.types.any value_type-> value_type.is_date_time || value_type==Value_Type.Mixed
