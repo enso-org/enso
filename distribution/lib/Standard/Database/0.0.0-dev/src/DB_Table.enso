@@ -1322,9 +1322,10 @@ type DB_Table
     distinct self columns=self.column_names case_sensitivity:Case_Sensitivity=..Default on_problems:Problem_Behavior=..Report_Warning =
         key_columns = self.columns_helper.select_columns columns Case_Sensitivity.Default reorder=True error_on_missing_columns=True on_problems=on_problems . catch No_Output_Columns _->
             Error.throw No_Input_Columns_Selected
-        problem_builder = Problem_Builder.new
-        new_table = self.connection.dialect.prepare_distinct self key_columns case_sensitivity problem_builder
-        problem_builder.attach_problems_before on_problems new_table
+        key_columns.if_not_error <|
+            problem_builder = Problem_Builder.new
+            new_table = self.connection.dialect.prepare_distinct self key_columns case_sensitivity problem_builder
+            problem_builder.attach_problems_before on_problems new_table
 
     ## GROUP Standard.Base.Selections
        ICON preparation
