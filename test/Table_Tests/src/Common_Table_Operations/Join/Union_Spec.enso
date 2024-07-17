@@ -491,7 +491,9 @@ run_union_tests group_builder setup call_union =
         tester table =
             m = materialize_and_maybe_sort table
             expect_column_names ["D"] m
-            m.at "D" . to_vector . should_equal ["12:00:00", "13:00:00", "14:00:00", "2019-01-01", "2020-01-01", "2021-01-01"]
+            # The nanoseconds suffix in time of day is optional - we strip it for the comparison.
+            strip_ns s = s.replace "\.0+$".to_regex ""
+            m.at "D" . to_vector . map strip_ns . should_equal ["12:00:00", "13:00:00", "14:00:00", "2019-01-01", "2020-01-01", "2021-01-01"]
             m.at "D" . value_type . is_text . should_be_true
         problems = [No_Common_Type.Warning_Convert_To_Text [Value_Type.Time, Value_Type.Date] "D"]
         Problems.test_problem_handling action problems tester
