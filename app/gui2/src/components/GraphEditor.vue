@@ -652,12 +652,16 @@ const groupColors = computed(() => {
 </script>
 
 <template>
-  <div class="GraphEditor" @dragover.prevent @drop.prevent="handleFileDrop($event)">
+  <div
+    class="GraphEditor"
+    :class="{ draggingEdge: graphStore.mouseEditedEdge != null }"
+    @dragover.prevent
+    @drop.prevent="handleFileDrop($event)"
+  >
     <div class="vertical">
       <div
         ref="viewportNode"
         class="viewport"
-        :class="{ draggingEdge: graphStore.mouseEditedEdge != null }"
         :style="groupColors"
         v-on.="graphNavigator.pointerEvents"
         v-on..="nodeSelection.events"

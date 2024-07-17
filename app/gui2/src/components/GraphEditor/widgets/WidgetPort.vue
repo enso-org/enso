@@ -50,10 +50,6 @@ const isCurrentDisconnectedEdgeTarget = computed(
 )
 const isSelfArgument = computed(
   () =>
-    props.input.value instanceof Ast.Ast && props.input.value.id === tree.connectedSelfArgumentId,
-)
-const isPotentialSelfArgument = computed(
-  () =>
     props.input.value instanceof Ast.Ast && props.input.value.id === tree.potentialSelfArgumentId,
 )
 const connected = computed(
@@ -197,8 +193,7 @@ export const widgetDefinition = defineWidget(
       connected,
       isTarget,
       isSelfArgument,
-      isPotentialSelfArgument,
-      'r-24': connected,
+      RoundedWidget: connected,
       newToConnect: !hasConnection && isCurrentEdgeHoverTarget,
       primary: props.nesting < 2,
     }"
@@ -225,18 +220,9 @@ export const widgetDefinition = defineWidget(
   min-height: var(--node-port-height);
   min-width: var(--node-port-height);
   box-sizing: border-box;
-  padding: 0 var(--widget-port-extra-pad);
-  margin: 0 calc(0px - var(--widget-port-extra-pad));
-}
-
-.WidgetPort:has(> .r-24:only-child) {
-  padding: 0;
-  margin: 0;
-  transition: background-color 0.2s ease;
 }
 
 .WidgetPort.connected {
-  margin: 0;
   background-color: var(--node-color-port);
 }
 
@@ -253,6 +239,7 @@ export const widgetDefinition = defineWidget(
     position: absolute;
     display: block;
     inset: 4px var(--widget-port-extra-pad);
+    /* background: #00ff0023; */
   }
 
   /* Expand hover area for primary ports. */
@@ -267,7 +254,7 @@ export const widgetDefinition = defineWidget(
   }
 }
 
-.WidgetPort.isTarget:not(.isPotentialSelfArgument):after {
+.WidgetPort.isTarget:not(.isSelfArgument):after {
   content: '';
   position: absolute;
   top: -4px;
@@ -277,10 +264,5 @@ export const widgetDefinition = defineWidget(
   transform: translate(-50%, 0);
   background-color: var(--node-color-port);
   z-index: -1;
-}
-
-/* Selector specificity must be high enough to override r-24 specific styles. */
-.WidgetPort.isSelfArgument.isSelfArgument {
-  margin-right: 6px;
 }
 </style>

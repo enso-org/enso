@@ -505,7 +505,6 @@ const targetIsSelfArgument = computed(() => {
   const nodeId = graph.getPortNodeId(targetExpr.value)
   if (!nodeId) return
   const primarySubject = graph.db.nodeIdToNode.get(nodeId)?.primarySubject
-  if (!primarySubject) return
   return targetExpr.value === primarySubject
 })
 

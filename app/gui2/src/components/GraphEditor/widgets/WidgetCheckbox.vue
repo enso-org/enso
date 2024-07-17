@@ -99,7 +99,7 @@ export const widgetDefinition = defineWidget(
 </script>
 
 <template>
-  <div class="CheckboxContainer r-24" :class="{ primary }">
+  <div class="CheckboxContainer RoundedWidget" :class="{ primary }">
     <span v-if="argumentName" class="name" v-text="argumentName" />
     <CheckboxWidget v-model="value" class="WidgetCheckbox" contenteditable="false" />
   </div>

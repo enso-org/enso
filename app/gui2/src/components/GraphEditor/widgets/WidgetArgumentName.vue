@@ -55,11 +55,8 @@ export const ArgumentNameShownKey: unique symbol = Symbol('ArgumentNameShownKey'
 
 <template>
   <div class="WidgetArgumentName" :class="{ placeholder, primary }">
-    <template v-if="showArgumentValue">
-      <span class="name">{{ props.input[ArgumentInfoKey].info.name }}</span
-      ><NodeWidget :input="innerInput" allowEmpty />
-    </template>
-    <template v-else>{{ props.input[ArgumentInfoKey].info.name }}</template>
+    <span class="name TokenPadding">{{ props.input[ArgumentInfoKey].info.name }}</span>
+    <NodeWidget v-if="showArgumentValue" :input="innerInput" allowEmpty />
   </div>
 </template>
 

@@ -41,14 +41,11 @@ import { computed, onUnmounted, ref, shallowRef, watch, watchEffect } from 'vue'
 const MAXIMUM_CLICK_LENGTH_MS = 300
 const MAXIMUM_CLICK_DISTANCE_SQ = 50
 const CONTENT_PADDING = 4
-const CONTENT_PADDING_RIGHT = 8
 const CONTENT_PADDING_PX = `${CONTENT_PADDING}px`
-const CONTENT_PADDING_RIGHT_PX = `${CONTENT_PADDING_RIGHT}px`
 const MENU_CLOSE_TIMEOUT_MS = 300
 
 const contentNodeStyle = {
   padding: CONTENT_PADDING_PX,
-  paddingRight: CONTENT_PADDING_RIGHT_PX,
 }
 
 const props = defineProps<{
@@ -85,11 +82,6 @@ const navigator = injectGraphNavigator(true)
 
 const nodeId = computed(() => asNodeId(props.node.rootExpr.externalId))
 const potentialSelfArgumentId = computed(() => props.node.primarySubject)
-const connectedSelfArgumentId = computed(() =>
-  potentialSelfArgumentId.value && graph.isConnectedTarget(potentialSelfArgumentId.value) ?
-    potentialSelfArgumentId.value
-  : undefined,
-)
 
 onUnmounted(() => graph.unregisterNodeRect(nodeId.value))
 
@@ -361,6 +353,7 @@ function startEditingNode(position?: Vec2 | undefined) {
 function getRelatedSpanOffset(domNode: globalThis.Node, domOffset: number): number {
   if (domNode instanceof HTMLElement && domOffset == 1) {
     const offsetData = domNode.dataset.spanStart
+    console.log('domNode', domNode)
     const offset = (offsetData != null && parseInt(offsetData)) || 0
     const length = domNode.textContent?.length ?? 0
     return offset + length
@@ -521,7 +514,6 @@ watchEffect(() => {
         :nodeElement="rootNode"
         :nodeSize="nodeSize"
         :icon="icon"
-        :connectedSelfArgumentId="connectedSelfArgumentId"
         :potentialSelfArgumentId="potentialSelfArgumentId"
         :conditionalPorts="props.node.conditionalPorts"
         :extended="isOnlyOneSelected"
@@ -614,8 +606,6 @@ watchEffect(() => {
   position: relative;
   top: 0;
   left: 0;
-  caret-shape: bar;
-  height: var(--node-height);
   border-radius: var(--node-border-radius);
   display: flex;
   flex-direction: row;

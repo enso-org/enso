@@ -4,7 +4,7 @@ const emit = defineEmits<{ 'update:modelValue': [modelValue: boolean] }>()
 </script>
 
 <template>
-  <div class="Checkbox r-24 clickable" @click.stop="emit('update:modelValue', !props.modelValue)">
+  <div class="Checkbox clickable" @click.stop="emit('update:modelValue', !props.modelValue)">
     <div :class="{ hidden: !props.modelValue }"></div>
   </div>
 </template>

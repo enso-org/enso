@@ -15,8 +15,8 @@ export const widgetDefinition = defineWidget(
   WidgetInput.isAst,
   {
     priority: 1,
-    score: (props, _db) =>
-      props.input.value.id === injectWidgetTree().connectedSelfArgumentId ?
+    score: (props) =>
+      props.input.value.id === injectWidgetTree().potentialSelfArgumentId ?
         Score.Perfect
       : Score.Mismatch,
   },
@@ -25,9 +25,17 @@ export const widgetDefinition = defineWidget(
 </script>
 
 <template>
-  <SvgIcon
-    class="WidgetSelfIcon icon nodeCategoryIcon draggable r-24"
-    :name="icon"
-    @click.right.stop.prevent="tree.emitOpenFullMenu()"
-  />
+  <div class="WidgetSelfIcon">
+    <SvgIcon
+      class="icon nodeCategoryIcon draggable"
+      :name="icon"
+      @click.right.stop.prevent="tree.emitOpenFullMenu()"
+    />
+  </div>
 </template>
+
+<style scoped>
+.WidgetSelfIcon {
+  display: flex;
+}
+</style>

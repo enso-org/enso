@@ -20,7 +20,7 @@ export const widgetDefinition = defineWidget(
 </script>
 
 <template>
-  <span class="WidgetToken" :class="spanClass">{{ repr }}</span>
+  <span class="WidgetToken TokenPadding" :class="spanClass">{{ repr }}</span>
 </template>
 
 <style scoped>

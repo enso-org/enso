@@ -95,7 +95,7 @@ export const widgetDefinition = defineWidget(
 </script>
 
 <template>
-  <label ref="widgetRoot" class="WidgetText r-24">
+  <label ref="widgetRoot" class="WidgetText RoundedWidget">
     <NodeWidget v-if="shownLiteral.open" :input="WidgetInput.FromAst(shownLiteral.open)" />
     <AutoSizedInput
       ref="input"
@@ -116,7 +116,7 @@ export const widgetDefinition = defineWidget(
   border-radius: var(--radius-full);
   user-select: none;
   border-radius: var(--radius-full);
-  padding: 0px 4px;
+  /* padding: 0px 4px; */
   min-width: 24px;
   justify-content: center;
   align-items: center;

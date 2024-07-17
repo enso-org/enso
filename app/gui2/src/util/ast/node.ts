@@ -49,7 +49,7 @@ export function primaryApplicationSubject(
   const { subject, accessChain } = Ast.accessChain(ast)
   // Require at least one property access.
   if (accessChain.length === 0) return
-  // The leftmost element must be an identifier.
-  if (!(subject instanceof Ast.Ident)) return
+  // The leftmost element must be an identifier or a placeholder.
+  if (!(subject instanceof Ast.Ident || subject instanceof Ast.Wildcard)) return
   return { subject: subject.id, accessChain: accessChain.map((ast) => ast.id) }
 }

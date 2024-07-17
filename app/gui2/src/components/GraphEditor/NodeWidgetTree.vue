@@ -17,7 +17,6 @@ const props = defineProps<{
   nodeElement: HTMLElement | undefined
   nodeSize: Vec2
   icon: Icon
-  connectedSelfArgumentId: Ast.AstId | undefined
   potentialSelfArgumentId: Ast.AstId | undefined
   /** Ports that are not targetable by default; see {@link NodeDataFromAst}. */
   conditionalPorts: Set<Ast.AstId>
@@ -84,7 +83,6 @@ const widgetTree = provideWidgetTree(
   toRef(props, 'nodeElement'),
   toRef(props, 'nodeSize'),
   toRef(props, 'icon'),
-  toRef(props, 'connectedSelfArgumentId'),
   toRef(props, 'potentialSelfArgumentId'),
   toRef(props, 'conditionalPorts'),
   toRef(props, 'extended'),
@@ -101,10 +99,14 @@ export const ICON_WIDTH = 16
 </script>
 
 <template>
-  <div class="NodeWidgetTree" spellcheck="false" v-on="layoutTransitions.events">
+  <div
+    class="NodeWidgetTree NodeWidget RoundedWidget"
+    spellcheck="false"
+    v-on="layoutTransitions.events"
+  >
     <!-- Display an icon for the node if no widget in the tree provides one. -->
     <SvgIcon
-      v-if="!props.connectedSelfArgumentId"
+      v-if="!props.potentialSelfArgumentId"
       class="icon grab-handle nodeCategoryIcon draggable"
       :style="{ margin: `0 ${GRAB_HANDLE_X_MARGIN_R}px 0 ${GRAB_HANDLE_X_MARGIN_L}px` }"
       :name="props.icon"
@@ -118,29 +120,43 @@ export const ICON_WIDTH = 16
 .NodeWidgetTree {
   color: white;
 
+  --widget-token-pad-unit: 6px;
+
   outline: none;
   height: 24px;
   display: flex;
   align-items: center;
 
-  &:has(.WidgetPort.newToConnect) {
-    margin-left: calc(4px - var(--widget-port-extra-pad));
+  --token-pad-left: var(--widget-token-pad-unit);
+  --token-pad-right: var(--widget-token-pad-unit);
+}
+
+.NodeWidgetTree {
+  *:not(:nth-child(1 of :not(.OutOfLayout))) {
+    --token-pad-left: 0px;
+  }
+  *:not(:nth-last-child(1 of :not(.OutOfLayout))) {
+    --token-pad-right: 0px;
   }
 
-  &:has(.WidgetPort.newToConnect > .r-24:only-child) {
-    margin-left: 0px;
+  :deep(.RoundedWidget.RoundedWidget) {
+    --token-pad-left: var(--widget-token-pad-unit);
+    --token-pad-right: var(--widget-token-pad-unit);
+  }
+
+  :deep(.NoTokenPadding.NoTokenPadding) {
+    --token-pad-left: 0px;
+    --token-pad-right: 0px;
+  }
+
+  :deep(.TokenPadding) {
+    padding-left: var(--token-pad-left, 0);
+    padding-right: var(--token-pad-right, 0);
+    transition: padding 0.2s;
   }
 }
 
 .GraphEditor.draggingEdge .NodeWidgetTree {
   transition: margin 0.2s ease;
-}
-
-.icon {
-  margin-right: 4px;
-}
-
-.grab-handle {
-  color: white;
 }
 </style>
