@@ -46,6 +46,7 @@ interface ProjectLogsModalInternalProps extends ProjectLogsModalProps {}
 /** A modal for showing logs for a project. */
 function ProjectLogsModalInternal(props: ProjectLogsModalInternalProps) {
   const { backend, projectSessionId, projectTitle } = props
+  const { getText } = textProvider.useText()
   const logsQuery = reactQuery.useSuspenseQuery({
     queryKey: ['projectLogs', { projectSessionId, projectTitle }],
     queryFn: async () => {
@@ -56,11 +57,12 @@ function ProjectLogsModalInternal(props: ProjectLogsModalInternalProps) {
 
   return (
     <div className="flex flex-col">
-      <div className="flex h-row items-center gap-4 self-start rounded-full border-0.5 border-primary/20 px-[11px] text-primary/50">
+      <div className="flex items-center gap-4 self-start rounded-full border-0.5 border-primary/20 px-[11px] py-2">
         <ariaComponents.Button
           size="medium"
           variant="icon"
           icon={ReloadIcon}
+          aria-label={getText('reload')}
           onPress={async () => {
             await logsQuery.refetch()
           }}
