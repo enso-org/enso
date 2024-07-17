@@ -18,7 +18,7 @@ const project = useProjectStore()
     </div>
     <div class="control right-end">
       <SvgButton
-        title="Run Workflow"
+        title="Write All"
         class="iconButton"
         name="workflow_play"
         draggable="false"
@@ -57,10 +57,6 @@ const project = useProjectStore()
   .iconButton {
     margin: 0 auto 0 0;
   }
-}
-
-.toggledOn {
-  color: #ba4c40;
 }
 
 .iconButton:active {

@@ -103,32 +103,34 @@ case object AmbiguousImportsAnalysis extends IRPass {
             _,
             _
           ) =>
-        getImportTarget(moduleImport, bindingMap) match {
-          case Some(importTarget) =>
+        getImportTargets(moduleImport, bindingMap) match {
+          case Some(importTargets) =>
             val encounteredErrors: ListBuffer[errors.ImportExport] =
               ListBuffer()
             onlyNames.foreach { symbol =>
               val symbolName = symbol.name
-              importTarget.resolveExportedSymbol(symbolName) match {
-                case Right(resolvedNames) =>
-                  resolvedNames.foreach { resolvedName =>
-                    val symbolPath = resolvedName.qualifiedName.toString
-                    tryAddEncounteredSymbol(
-                      encounteredSymbols,
-                      moduleImport,
-                      symbolName,
-                      symbolPath,
-                      Some(resolvedName)
-                    ) match {
-                      case Left(error) =>
-                        encounteredErrors += error
-                      case Right(_) => ()
+              importTargets.foreach { importTarget =>
+                importTarget.resolveExportedSymbol(symbolName) match {
+                  case Right(resolvedNames) =>
+                    resolvedNames.foreach { resolvedName =>
+                      val symbolPath = resolvedName.qualifiedName.toString
+                      tryAddEncounteredSymbol(
+                        encounteredSymbols,
+                        moduleImport,
+                        symbolName,
+                        symbolPath,
+                        Some(resolvedName)
+                      ) match {
+                        case Left(error) =>
+                          encounteredErrors += error
+                        case Right(_) => ()
+                      }
                     }
-                  }
-                case Left(resolutionError) =>
-                  throw new CompilerError(
-                    s"Unreachable: (should have been resolved in previous passes) $resolutionError"
-                  )
+                  case Left(resolutionError) =>
+                    throw new CompilerError(
+                      s"Unreachable: (should have been resolved in previous passes) $resolutionError"
+                    )
+                }
               }
             }
             if (encounteredErrors.nonEmpty) {
@@ -153,11 +155,11 @@ case object AmbiguousImportsAnalysis extends IRPass {
             _,
             _
           ) =>
-        getImportTarget(moduleImport, bindingMap) match {
-          case Some(importTarget) =>
+        getImportTargets(moduleImport, bindingMap) match {
+          case Some(importTargets) =>
             // Names of the symbols that are exported by a module or a type referred to via importTarget
             val exportedSymbolNames: List[String] =
-              importTarget.exportedSymbols.keySet.toList
+              importTargets.flatMap(_.exportedSymbols.keySet.toList)
             val symbolsToIterate = hiddenNames match {
               case None => exportedSymbolNames
               case Some(hiddenNamesLiterals) =>
@@ -167,25 +169,27 @@ case object AmbiguousImportsAnalysis extends IRPass {
             val encounteredErrors: ListBuffer[errors.ImportExport] =
               ListBuffer()
             symbolsToIterate.foreach { symbolName =>
-              importTarget.resolveExportedSymbol(symbolName) match {
-                case Left(resolutionError) =>
-                  throw new CompilerError(
-                    s"Unreachable: (should have been resolved in previous passes) $resolutionError"
-                  )
-                case Right(List(resolvedName)) =>
-                  tryAddEncounteredSymbol(
-                    encounteredSymbols,
-                    moduleImport,
-                    symbolName,
-                    resolvedName.qualifiedName.toString,
-                    Some(resolvedName)
-                  ) match {
-                    case Left(error) =>
-                      encounteredErrors += error
-                    case Right(_) => ()
-                  }
-                // If the symbolName is resolved to multiple objects, we ignore it.
-                case Right(_) => ()
+              importTargets.foreach { importTarget =>
+                importTarget.resolveExportedSymbol(symbolName) match {
+                  case Left(resolutionError) =>
+                    throw new CompilerError(
+                      s"Unreachable: (should have been resolved in previous passes) $resolutionError"
+                    )
+                  case Right(List(resolvedName)) =>
+                    tryAddEncounteredSymbol(
+                      encounteredSymbols,
+                      moduleImport,
+                      symbolName,
+                      resolvedName.qualifiedName.toString,
+                      Some(resolvedName)
+                    ) match {
+                      case Left(error) =>
+                        encounteredErrors += error
+                      case Right(_) => ()
+                    }
+                  // If the symbolName is resolved to multiple objects, we ignore it.
+                  case Right(_) => ()
+                }
               }
             }
             if (encounteredErrors.nonEmpty) {
@@ -267,13 +271,13 @@ case object AmbiguousImportsAnalysis extends IRPass {
     }
   }
 
-  private def getImportTarget(
+  private def getImportTargets(
     imp: Import,
     bindingMap: BindingsMap
-  ): Option[BindingsMap.ImportTarget] = {
+  ): Option[List[BindingsMap.ImportTarget]] = {
     bindingMap.resolvedImports.find(_.importDef == imp) match {
       case Some(resolvedImport) =>
-        Some(resolvedImport.target)
+        Some(resolvedImport.targets)
       case None =>
         None
     }

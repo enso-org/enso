@@ -175,7 +175,7 @@ In order to build and run Enso you will need the following tools:
   should be installed by default on most distributions.
 - On Windows, the `run` command must be run in the latest version of
   `Powershell` or in `cmd`.
-- If you want to be able to build the Launcher Native Image, you will need a
+- If you want to be able to build the `ensoup` Native Image, you will need a
   native C compiler for your platform as described in the
   [Native Image Prerequisites](https://www.graalvm.org/reference-manual/native-image/#prerequisites).
   On Linux that will be `gcc`, on macOS you may need `xcode` and on Windows you
@@ -294,17 +294,9 @@ shell will execute the appropriate thing. Furthermore we have `testOnly` and
 `benchOnly` that accept a glob pattern that delineates some subset of the tests
 or benchmarks to run (e.g. `testOnly *FunctionArguments*`).
 
-#### Building the Launcher Native Binary
+#### Building the Updater Native Binary
 
-If you want to build the native launcher binary, you need to ensure that the
-Native Image component is installed in your GraalVM distribution. To install it,
-run:
-
-```bash
-<path-to-graal-home>/bin/gu install native-image
-```
-
-Then, you can build the launcher using:
+Then, you can build the updater/launcher using:
 
 ```bash
 sbt launcher/buildNativeImage

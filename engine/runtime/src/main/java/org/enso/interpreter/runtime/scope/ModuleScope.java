@@ -171,6 +171,10 @@ public final class ModuleScope implements EnsoObject {
     return tpes;
   }
 
+  public List<Type> getAllTypes() {
+    return types.values().stream().collect(Collectors.toUnmodifiableList());
+  }
+
   @ExportMessage.Ignore
   public Type getType(String name, boolean ignoreAssociatedType) {
     if (!ignoreAssociatedType && associatedType.getName().equals(name)) {

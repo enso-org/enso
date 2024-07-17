@@ -7,7 +7,7 @@ test('Main method documentation', async ({ page }) => {
   await actions.goToGraph(page)
 
   // Documentation panel hotkey opens right-dock.
-  await expect(locate.rightDock(page)).not.toBeVisible()
+  await expect(locate.rightDock(page)).toBeHidden()
   await page.keyboard.press(`${CONTROL_KEY}+D`)
   await expect(locate.rightDock(page)).toBeVisible()
 
@@ -16,5 +16,5 @@ test('Main method documentation', async ({ page }) => {
 
   // Documentation hotkey closes right-dock.p
   await page.keyboard.press(`${CONTROL_KEY}+D`)
-  await expect(locate.rightDock(page)).not.toBeVisible()
+  await expect(locate.rightDock(page)).toBeHidden()
 })

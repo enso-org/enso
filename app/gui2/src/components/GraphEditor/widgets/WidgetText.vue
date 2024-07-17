@@ -121,7 +121,7 @@ export const widgetDefinition = defineWidget(
   justify-content: center;
   align-items: center;
 
-  &:has(> .AutoSizedInput:focus) {
+  &:has(> :focus) {
     outline: none;
     background: var(--color-widget-focus);
   }

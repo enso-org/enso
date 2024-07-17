@@ -187,7 +187,7 @@ export function useNodeCreation(
     rhs.setNodeMetadata(options.metadata ?? {})
     const assignment = Ast.Assignment.new(edit, ident, rhs)
     afterCreation(edit, assignment, ident, options, identifiersRenameMap)
-    const id = asNodeId(rhs.id)
+    const id = asNodeId(rhs.externalId)
     const rootExpression =
       options.documentation != null ?
         Ast.Documented.new(options.documentation, assignment)

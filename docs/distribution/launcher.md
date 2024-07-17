@@ -6,7 +6,7 @@ tags: [distribution, launcher]
 order: 4
 ---
 
-# Enso Launcher
+# Enso Updater/Launcher
 
 The launcher is used to run Enso commands (like the REPL, language server etc.)
 and seamlessly manage Enso versions. This document describes it's features. Its

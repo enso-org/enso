@@ -729,9 +729,9 @@ object LauncherApplication {
 
   val application: Application[Config] =
     Application(
-      "enso",
+      "ensoup",
       "Enso",
-      "Enso Launcher",
+      "Enso Updater",
       topLevelOpts,
       commands,
       PluginManager

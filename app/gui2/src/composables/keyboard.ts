@@ -15,7 +15,6 @@ export function useKeyboard() {
     state.shift.value = e.shiftKey
     state.meta.value = e.metaKey
     state.ctrl.value = e.ctrlKey
-    return false
   }
   useEvent(window, 'keydown', updateState, { capture: true })
   useEvent(window, 'keyup', updateState, { capture: true })

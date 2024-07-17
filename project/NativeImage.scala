@@ -273,7 +273,7 @@ object NativeImage {
       val retCode    = process.!(processLogger)
       val targetFile = artifactFile(targetDir, name, true)
       if (retCode != 0 || !targetFile.exists()) {
-        log.error("Native Image build of $targetFile failed, with output: ")
+        log.error(s"Native Image build of $targetFile failed, with output: ")
         println(sb.toString())
         throw new RuntimeException("Native Image build failed")
       }
@@ -317,7 +317,7 @@ object NativeImage {
       Tracked.diffInputs(store, FileInfo.hash)(filesSet) {
         sourcesDiff: ChangeReport[File] =>
           if (sourcesDiff.modified.nonEmpty)
-            rebuild(s"Native Image is not up to date")
+            rebuild("Native Image is not up to date")
           else if (!artifactFile(targetDir, name).exists())
             rebuild("Native Image does not exist")
           else
