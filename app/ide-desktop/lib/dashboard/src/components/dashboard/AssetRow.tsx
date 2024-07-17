@@ -100,7 +100,7 @@ export default function AssetRow(props: AssetRowProps) {
   const { item: rawItem, hidden: hiddenRaw, updateAssetRef, grabKeyboardFocus } = props
   const { nodeMap, setAssetPanelProps, doToggleDirectoryExpansion, doCopy, doCut, doPaste } = state
   const { setIsAssetPanelTemporarilyVisible, scrollContainerRef, rootDirectoryId, backend } = state
-  const { visibilities } = state
+  const { visibilities, category } = state
 
   const draggableProps = dragAndDropHooks.useDraggable()
   const { user } = authProvider.useNonPartialUserSession()
@@ -180,7 +180,7 @@ export default function AssetRow(props: AssetRowProps) {
           object.merge(oldAsset, {
             title: oldAsset.title + ' (copy)',
             labels: [],
-            permissions: permissions.tryGetSingletonOwnerPermission(user),
+            permissions: permissions.tryGetSingletonOwnerPermission(user, category),
             modifiedAt: dateTime.toRfc3339(new Date()),
           })
         )
@@ -210,6 +210,7 @@ export default function AssetRow(props: AssetRowProps) {
       user,
       rootDirectoryId,
       asset,
+      category,
       item.key,
       toastAndLog,
       copyAssetMutate,

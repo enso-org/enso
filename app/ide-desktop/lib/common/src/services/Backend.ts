@@ -725,8 +725,8 @@ export interface BaseAsset {
     /** This is defined as a generic {@link AssetId} in the backend, however it is more convenient
      * (and currently safe) to assume it is always a {@link DirectoryId}. */
     readonly parentId: DirectoryId
-    readonly permissions: AssetPermission[] | null
-    readonly labels: LabelName[] | null
+    readonly permissions: readonly AssetPermission[] | null
+    readonly labels: readonly LabelName[] | null
     readonly description: string | null
 }
 
@@ -779,7 +779,7 @@ export function createRootDirectoryAsset(directoryId: DirectoryId): DirectoryAss
 export function createPlaceholderFileAsset(
     title: string,
     parentId: DirectoryId,
-    assetPermissions: AssetPermission[]
+    assetPermissions: readonly AssetPermission[]
 ): FileAsset {
     return {
         type: AssetType.file,
@@ -798,7 +798,7 @@ export function createPlaceholderFileAsset(
 export function createPlaceholderProjectAsset(
     title: string,
     parentId: DirectoryId,
-    assetPermissions: AssetPermission[],
+    assetPermissions: readonly AssetPermission[],
     organization: User | null,
     path: Path | null
 ): ProjectAsset {

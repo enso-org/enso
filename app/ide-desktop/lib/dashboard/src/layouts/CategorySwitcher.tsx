@@ -217,32 +217,15 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
   const { category, setCategory } = props
   const { user } = authProvider.useNonPartialUserSession()
   const { getText } = textProvider.useText()
-  const remoteBackend = backendProvider.useRemoteBackend()
+  const remoteBackend = backendProvider.useRemoteBackendStrict()
   const dispatchAssetEvent = eventListProvider.useDispatchAssetEvent()
 
   const localBackend = backendProvider.useLocalBackend()
   const itemProps = { currentCategory: category, setCategory, dispatchAssetEvent }
   const selfDirectoryId = backend.DirectoryId(`directory-${user.userId.replace(/^user-/, '')}`)
 
-  const usersDirectoryQuery = backendHooks.useBackendQuery(remoteBackend, 'listDirectory', [
-    {
-      parentId: backend.DirectoryId('directory-0000000000000000000000users'),
-      filterBy: backend.FilterBy.active,
-      labels: [],
-      recentProjects: false,
-    },
-    'Users',
-  ])
-  const teamsDirectoryQuery = backendHooks.useBackendQuery(remoteBackend, 'listDirectory', [
-    {
-      parentId: backend.DirectoryId('directory-0000000000000000000000teams'),
-      filterBy: backend.FilterBy.active,
-      labels: [],
-      recentProjects: false,
-    },
-
-    'Teams',
-  ])
+  const users = backendHooks.useBackendListUsers(remoteBackend)
+  const userGroups = backendHooks.useBackendListUserGroups(remoteBackend)
 
   return (
     <FocusArea direction="vertical">
@@ -299,42 +282,43 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
               buttonLabel={getText('trashCategoryButtonLabel')}
               dropZoneLabel={getText('trashCategoryDropZoneLabel')}
             />
-            {usersDirectoryQuery.data?.map(userDirectory =>
-              userDirectory.id === selfDirectoryId ? null : (
+            {users?.map(otherUser =>
+              otherUser.userId === user.userId ? null : (
                 <CategorySwitcherItem
-                  key={userDirectory.id}
+                  key={otherUser.userId}
                   {...itemProps}
                   isNested
                   category={{
                     type: categoryModule.CategoryType.user,
-                    rootPath: backend.Path(`enso://Users/${userDirectory.title}`),
-                    // This is SAFE as user directories are guaranteed to be directories.
-                    // eslint-disable-next-line no-restricted-syntax
-                    homeDirectoryId: userDirectory.id as backend.DirectoryId,
+                    rootPath: backend.Path(`enso://Users/${otherUser.name}`),
+                    homeDirectoryId: backend.DirectoryId(
+                      `directory-${otherUser.userId}`.replace(/^user-/, '')
+                    ),
                   }}
                   icon={PersonIcon}
-                  label={getText('userCategory', userDirectory.title)}
-                  buttonLabel={getText('userCategoryButtonLabel', userDirectory.title)}
-                  dropZoneLabel={getText('userCategoryDropZoneLabel', userDirectory.title)}
+                  label={getText('userCategory', otherUser.name)}
+                  buttonLabel={getText('userCategoryButtonLabel', otherUser.name)}
+                  dropZoneLabel={getText('userCategoryDropZoneLabel', otherUser.name)}
                 />
               )
             )}
-            {teamsDirectoryQuery.data?.map(teamDirectory => (
+            {userGroups?.map(team => (
               <CategorySwitcherItem
-                key={teamDirectory.id}
+                key={team.id}
                 {...itemProps}
                 isNested
                 category={{
                   type: categoryModule.CategoryType.team,
-                  rootPath: backend.Path(`enso://Teams/${teamDirectory.title}`),
-                  // This is SAFE as team directories are guaranteed to be directories.
-                  // eslint-disable-next-line no-restricted-syntax
-                  homeDirectoryId: teamDirectory.id as backend.DirectoryId,
+                  team,
+                  rootPath: backend.Path(`enso://Teams/${team.groupName}`),
+                  homeDirectoryId: backend.DirectoryId(
+                    `directory-${team.id}`.replace(/^usergroup-/, '')
+                  ),
                 }}
                 icon={PeopleIcon}
-                label={getText('teamCategory', teamDirectory.title)}
-                buttonLabel={getText('teamCategoryButtonLabel', teamDirectory.title)}
-                dropZoneLabel={getText('teamCategoryDropZoneLabel', teamDirectory.title)}
+                label={getText('teamCategory', team.groupName)}
+                buttonLabel={getText('teamCategoryButtonLabel', team.groupName)}
+                dropZoneLabel={getText('teamCategoryDropZoneLabel', team.groupName)}
               />
             ))}
             {localBackend != null && (

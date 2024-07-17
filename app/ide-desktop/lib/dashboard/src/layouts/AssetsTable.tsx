@@ -493,7 +493,7 @@ export default function AssetsTable(props: AssetsTableProps) {
             ? null
             : fileInfo.fileExtension(node.item.title).toLowerCase()
         const assetModifiedAt = new Date(node.item.modifiedAt)
-        const nodeLabels: string[] = node.item.labels ?? []
+        const nodeLabels: readonly string[] = node.item.labels ?? []
         const lowercaseName = node.item.title.toLowerCase()
         const lowercaseDescription = node.item.description?.toLowerCase() ?? ''
         const owners =
@@ -1505,7 +1505,7 @@ export default function AssetsTable(props: AssetsTableProps) {
           title,
           modifiedAt: dateTime.toRfc3339(new Date()),
           parentId: event.parentId,
-          permissions: permissions.tryGetSingletonOwnerPermission(user),
+          permissions: permissions.tryGetSingletonOwnerPermission(user, category),
           projectState: null,
           labels: [],
           description: null,
@@ -1527,7 +1527,7 @@ export default function AssetsTable(props: AssetsTableProps) {
           title: projectName,
           modifiedAt: dateTime.toRfc3339(new Date()),
           parentId: event.parentId,
-          permissions: permissions.tryGetSingletonOwnerPermission(user),
+          permissions: permissions.tryGetSingletonOwnerPermission(user, category),
           projectState: {
             type: backendModule.ProjectState.placeholder,
             volumeId: '',
@@ -1565,7 +1565,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         const duplicateProjects = projects.filter(project =>
           siblingProjectTitles.has(backendModule.stripProjectExtension(project.name))
         )
-        const ownerPermission = permissions.tryGetSingletonOwnerPermission(user)
+        const ownerPermission = permissions.tryGetSingletonOwnerPermission(user, category)
         const fileMap = new Map<backendModule.AssetId, File>()
         const getInitialAssetEvents = (
           id: backendModule.AssetId
@@ -1689,7 +1689,7 @@ export default function AssetsTable(props: AssetsTableProps) {
           title: event.name,
           modifiedAt: dateTime.toRfc3339(new Date()),
           parentId: event.parentId,
-          permissions: permissions.tryGetSingletonOwnerPermission(user),
+          permissions: permissions.tryGetSingletonOwnerPermission(user, category),
           projectState: null,
           labels: [],
           description: null,
@@ -1711,7 +1711,7 @@ export default function AssetsTable(props: AssetsTableProps) {
           title: event.name,
           modifiedAt: dateTime.toRfc3339(new Date()),
           parentId: event.parentId,
-          permissions: permissions.tryGetSingletonOwnerPermission(user),
+          permissions: permissions.tryGetSingletonOwnerPermission(user, category),
           projectState: null,
           labels: [],
           description: null,
@@ -1757,7 +1757,7 @@ export default function AssetsTable(props: AssetsTableProps) {
           title,
           modifiedAt: dateTime.toRfc3339(new Date()),
           parentId: event.parentId,
-          permissions: permissions.tryGetSingletonOwnerPermission(user),
+          permissions: permissions.tryGetSingletonOwnerPermission(user, category),
           projectState: {
             type: backendModule.ProjectState.placeholder,
             volumeId: '',

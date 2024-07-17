@@ -20,6 +20,7 @@ interface UserCategory {
 /** A category corresponding to the root directory of a team within an organization. */
 interface TeamCategory {
   readonly type: CategoryType.team
+  readonly team: backend.UserGroupInfo
   readonly rootPath: backend.Path
   readonly homeDirectoryId: backend.DirectoryId
 }
