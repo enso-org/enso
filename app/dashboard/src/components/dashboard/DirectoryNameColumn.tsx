@@ -174,7 +174,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
     >
       <ariaComponents.Button
         icon={FolderArrowIcon}
-        size="icon"
+        size="medium"
         variant="custom"
         aria-label={isExpanded ? getText('collapse') : getText('expand')}
         tooltipPlacement="left"

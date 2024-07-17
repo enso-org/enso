@@ -174,7 +174,7 @@ export default function DriveBar(props: DriveBarProps) {
           >
             {getText('newEmptyProject')}
           </ariaComponents.Button>
-          <div className="flex h-row items-center gap-4 rounded-full border-0.5 border-primary/20 px-[11px] text-primary/50">
+          <div className="flex h-row items-center gap-4 rounded-full border-0.5 border-primary/20 px-[11px]">
             <ariaComponents.Button
               variant="icon"
               size="medium"
