@@ -130,6 +130,7 @@ public class MethodProcessor
           "com.oracle.truffle.api.CompilerDirectives",
           "com.oracle.truffle.api.dsl.UnsupportedSpecializationException",
           "com.oracle.truffle.api.frame.VirtualFrame",
+          "com.oracle.truffle.api.interop.InteropLibrary",
           "com.oracle.truffle.api.nodes.ControlFlowException",
           "com.oracle.truffle.api.nodes.Node",
           "com.oracle.truffle.api.nodes.NodeInfo",
@@ -147,6 +148,7 @@ public class MethodProcessor
           "org.enso.interpreter.runtime.EnsoContext",
           "org.enso.interpreter.runtime.builtin.Builtins",
           "org.enso.interpreter.runtime.data.ArrayRope",
+          "org.enso.interpreter.runtime.data.hash.HashMapInsertNode",
           "org.enso.interpreter.runtime.data.text.Text",
           "org.enso.interpreter.runtime.error.DataflowError",
           "org.enso.interpreter.runtime.error.PanicException",
@@ -190,6 +192,11 @@ public class MethodProcessor
                 + " extends BuiltinRootNode implements InlineableNode.Root {");
       }
       out.println("  private @Child " + methodDefinition.getOriginalClassName() + " bodyNode;");
+      out.println();
+      out.println(
+          "  private @Child InteropLibrary interop ="
+              + " InteropLibrary.getFactory().createDispatched(3);");
+      out.println("  private @Child HashMapInsertNode insertNode = HashMapInsertNode.build();");
       out.println();
       out.println("  private static final class Internals {");
       out.println("    Internals(boolean s) {");
@@ -282,14 +289,23 @@ public class MethodProcessor
                 + " body = "
                 + methodDefinition.getConstructorExpression()
                 + ";");
+        out.println(
+            "      private @Child InteropLibrary interop ="
+                + " InteropLibrary.getFactory().createDispatched(3);");
+        out.println(
+            "      private @Child HashMapInsertNode insertNode = HashMapInsertNode.build();");
+        out.println();
         out.println("      @Override");
         out.println("      public Object call(VirtualFrame frame, Object[] args) {");
-        out.println("        return handleExecute(frame, extra, body, args);");
+        out.println("        return handleExecute(frame, extra, body, insertNode, interop, args);");
         out.println("      }");
         out.println("    }");
+        out.println();
         out.println("    return new Inlineable();");
         out.println("  }");
       }
+
+      out.println();
 
       out.println("  @Override");
       out.println("  public Object execute(VirtualFrame frame) {");
@@ -297,12 +313,14 @@ public class MethodProcessor
         out.println("    var args = frame.getArguments();");
       } else {
         out.println(
-            "    return handleExecute(frame, this.internals, bodyNode, frame.getArguments());");
+            "    return handleExecute(frame, this.internals, bodyNode, this.insertNode,"
+                + " this.interop, frame.getArguments());");
         out.println("  }");
         out.println(
             "  private static Object handleExecute(VirtualFrame frame, Internals internals, "
                 + methodDefinition.getOriginalClassName()
-                + " bodyNode, Object[] args) {");
+                + " bodyNode, HashMapInsertNode insertNode, InteropLibrary interop, Object[] args)"
+                + " {");
       }
       out.println("    var prefix = internals.staticOfInstanceMethod ? 1 : 0;");
       out.println("    State state = Function.ArgumentsHelper.getState(args);");
@@ -347,7 +365,9 @@ public class MethodProcessor
         out.println("      Object result;");
         out.println(wrapInTryCatch("result = " + executeCall + ";", 6));
         out.println("      EnsoContext ctx = EnsoContext.get(bodyNode);");
-        out.println("      return WithWarnings.appendTo(ctx, result, gatheredWarnings);");
+        out.println(
+            "      return WithWarnings.appendTo(result, ctx, insertNode, interop,"
+                + " gatheredWarnings);");
         out.println("    } else {");
         out.println(wrapInTryCatch("return " + executeCall + ";", 6));
         out.println("    }");
