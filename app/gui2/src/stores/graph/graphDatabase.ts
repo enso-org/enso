@@ -219,6 +219,7 @@ export class GraphDb {
   nodeColor = new ReactiveMapping(this.nodeIdToNode, (id, entry) => {
     if (entry.colorOverride != null) return entry.colorOverride
     return computeNodeColor(
+      () => entry.type,
       () => tryGetIndex(this.groups.value, this.nodeMainSuggestion.lookup(id)?.groupIndex),
       () => this.getExpressionInfo(id)?.typename,
     )

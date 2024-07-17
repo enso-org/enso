@@ -775,6 +775,7 @@ const groupColors = computed(() => {
   overflow: clip;
   --group-color-fallback: #006b8a;
   --node-color-no-type: #596b81;
+  --output-node-color: #006b8a;
 }
 
 .layer {
