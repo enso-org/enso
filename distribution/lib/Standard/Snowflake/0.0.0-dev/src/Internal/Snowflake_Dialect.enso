@@ -130,7 +130,8 @@ type Snowflake_Dialect
         distinct_expressions = new_key_columns.map column->
             value_type = type_mapping.sql_type_to_value_type column.sql_type_reference.get
             Database_Distinct_Helper.make_distinct_expression case_sensitivity problem_builder column value_type
-        new_context = Context.for_subquery setup.subquery . add_extension (make_distinct_extension distinct_expressions)
+        new_context = Context.for_subquery setup.subquery
+            . add_extension (make_distinct_extension distinct_expressions)
         table.updated_context_and_columns new_context new_columns subquery=True
 
     ## PRIVATE
@@ -681,6 +682,10 @@ make_iif arguments = case arguments.length of
 make_distinct_extension distinct_expressions =
     run_generator sql_expressions =
         joined = SQL_Builder.join ", " sql_expressions
+        ## We could use the ORDER BY here to ensure any previous ordering is preserved by distinct.
+           But to do so we need to have a robust way of checking such ordering, even if subqueries were taken in the meantime.
+           This may be related to #10321
+           Once fixed, should re-enable the `distinct_returns_first_row_from_group_if_ordered` flag back to `True`.
         SQL_Builder.code " QUALIFY ROW_NUMBER() OVER (PARTITION BY " ++ joined ++ " ORDER BY 1) = 1 "
     Context_Extension.Value position=550 expressions=distinct_expressions run_generator=run_generator
 
