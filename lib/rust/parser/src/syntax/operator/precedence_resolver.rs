@@ -3,10 +3,15 @@ use crate::prelude::*;
 use crate::syntax;
 use crate::syntax::operator::application::InsertApps;
 use crate::syntax::operator::arity::ClassifyArity;
+use crate::syntax::operator::group::BuildGroups;
+use crate::syntax::operator::named_app::ParseAppNames;
 use crate::syntax::operator::reducer::Reduce;
-use crate::syntax::treebuilding;
-use crate::syntax::treebuilding::Finish;
-use crate::syntax::treebuilding::ItemConsumer;
+use crate::syntax::treebuilding::CompoundTokens;
+use crate::syntax::treebuilding::FlattenBlockTrees;
+use crate::syntax::treebuilding::ParseNumbers;
+use crate::syntax::treebuilding::PeekSpacing;
+use crate::syntax::Finish;
+use crate::syntax::ItemConsumer;
 use crate::syntax::Tree;
 
 
@@ -15,23 +20,32 @@ use crate::syntax::Tree;
 // === Precedence ===
 // ==================
 
+macro_rules! compose_types {
+    ($ty:ident<'s>) => {
+        $ty<'s>
+    };
+    ($ty:ident<'s, _>, $($tail:tt)*) => {
+        $ty<'s, compose_types!($($tail)*)>
+    };
+    ($ty:ident<_>, $($tail:tt)*) => {
+        $ty<compose_types!($($tail)*)>
+    };
+}
+
 /// Operator precedence resolver.
 #[derive(Debug, Default)]
 pub struct Precedence<'s> {
-    #[rustfmt::skip]
-    resolver:
-        // Items -> Tokens/Trees
-        treebuilding::FlattenBlockTrees<'s,
-        // Tokens/Trees -> Tokens/Trees  (proper tokens only)
-        treebuilding::AssembleCompoundTokens<'s,
-        // Tokens/Trees -> Tokens/Trees + Spacing-lookahead
-        treebuilding::PeekSpacing<'s,
-        // Tokens/Trees + Spacing-lookahead -> Operators/Operands
-        ClassifyArity<'s,
-        // Operators/Operands -> Operators/Operands (balanced)
-        InsertApps<
-        // Operators/Operands -> Tree
-        Reduce<'s>>>>>>,
+    resolver: compose_types![
+        FlattenBlockTrees<'s, _>, // Items -> Tokens/Trees/Groups
+        CompoundTokens<'s, _>,
+        ParseNumbers<'s, _>,
+        PeekSpacing<'s, _>, // Tokens/Trees/Groups -> Tokens/Trees/Groups + Spacing-lookahead
+        ParseAppNames<'s, _>,
+        ClassifyArity<'s, _>, // Tokens/Trees/Groups + Spacing-lookahead -> Oper*s/Groups
+        InsertApps<_>,        // Operators/Operands/Groups -> Oper*s/Groups/Applications
+        BuildGroups<'s, _>,   // Operators/Operands/Groups/Applications -> Oper*s/Applications
+        Reduce<'s>            // Operators/Operands/Applications -> Tree
+    ],
 }
 
 impl<'s> Precedence<'s> {

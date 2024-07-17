@@ -1,5 +1,6 @@
 //! Parses Enso sources, measuring time spent in the parser.
 
+// === Features ===
 #![feature(test)]
 // === Non-Standard Linter Configuration ===
 #![allow(clippy::option_map_unit_fn)]
@@ -79,6 +80,7 @@ fn bench_std_lib(b: &mut test::Bencher) {
         }
     })
     .unwrap();
+    sources.sort_unstable();
     let parser = enso_parser::Parser::new();
     b.bytes = sources.iter().map(|s| s.len() as u64).sum();
     b.iter(|| {
