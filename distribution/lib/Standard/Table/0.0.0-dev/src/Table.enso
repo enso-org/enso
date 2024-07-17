@@ -3278,5 +3278,5 @@ make_fill_nothing_default_widget table cache=Nothing =
     types = if columns.is_nothing then [Value_Type.Mixed] else
         ##  (selectors:(Text | Integer | Regex | By_Type | Vector)) (case_sensitivity:Case_Sensitivity) (reorder:Boolean) (error_on_missing_columns:Boolean) (on_problems:Problem_Behavior) (error_on_empty:Boolean=True) =
         real_columns = table.columns_helper.select_columns columns case_sensitivity=..Sensitive reorder=False error_on_missing_columns=False on_problems=..Ignore
-        real_columns.map .value_type
-    Widget_Helpers.make_fill_default_value_selector table value_type=types
+        if real_columns.length == 0 then [Value_Type.Mixed] else real_columns.map .value_type
+    Widget_Helpers.make_fill_default_value_selector table value_types=types
