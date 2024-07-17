@@ -756,7 +756,7 @@
   "shareFullFeatureLabel": "Unlimited Sharing",
   "shareFullFeatureBulletPoints": "Share unlimited assets with other users;Manage shared assets;Assign shared assets to user groups",
   "shareFullFeatureDescription": "Share unlimited assets with other users and manage shared assets. Assign shared assets to user groups to manage their permissions.",
-  "shareFullPaywallMessage": "You can share assets only with single user group. Upgrade to share assets with multiple user groups and users.",
+  "shareFullPaywallMessage": "You can only share assets with a single user group. Upgrade to share assets with multiple user groups and users.",
 
   "paywallDevtoolsButtonLabel": "Open Enso Devtools",
   "paywallDevtoolsPopoverHeading": "Enso Devtools",
