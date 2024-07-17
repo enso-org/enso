@@ -343,6 +343,9 @@ fn type_methods() {
                    "=" (BodyBlock #((Ident self))))))
     ];
     test(&code.join("\n"), expected);
+    test!("[foo., bar.]",
+        (Array (OprSectionBoundary 1 (OprApp (Ident foo) (Ok ".") ()))
+               #(("," (OprSectionBoundary 1 (OprApp (Ident bar) (Ok ".") ()))))));
 }
 
 #[test]

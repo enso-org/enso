@@ -683,7 +683,14 @@ impl<'s> Lexer<'s> {
                 }
                 // Operator-identifiers.
                 _ if self.prev_token_is_dot_operator() => {
-                    self.submit_token(token.with_variant(token::Variant::operator_ident().into()));
+                    let properties = analyze_operator(&token.code);
+                    if properties.is_compile_time_operation() {
+                        self.submit_token(token.with_variant(token::Variant::operator(properties)));
+                    } else {
+                        self.submit_token(
+                            token.with_variant(token::Variant::operator_ident().into()),
+                        );
+                    }
                 }
                 // The unary-negation operator binds tighter to numeric literals than other
                 // expressions.
