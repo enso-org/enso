@@ -3,6 +3,7 @@ package org.enso.interpreter.runtime.error;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Bind;
 import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.Cached.Shared;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.InvalidArrayIndexException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
@@ -81,7 +82,7 @@ public final class Warning implements EnsoObject {
       WithWarnings value,
       Object warning,
       Object origin,
-      @Cached HashMapInsertNode insertNode,
+      @Shared @Cached HashMapInsertNode insertNode,
       @CachedLibrary(limit = "3") InteropLibrary interop) {
     return value.append(
         ctx, insertNode, interop, new Warning(warning, origin, ctx.nextSequenceId()));
@@ -97,7 +98,7 @@ public final class Warning implements EnsoObject {
       Object value,
       Object warning,
       Object origin,
-      @Cached HashMapInsertNode insertNode,
+      @Shared @Cached HashMapInsertNode insertNode,
       @CachedLibrary(limit = "3") InteropLibrary interop) {
     return WithWarnings.wrap(
         value, ctx, insertNode, interop, new Warning(warning, origin, ctx.nextSequenceId()));
@@ -113,7 +114,7 @@ public final class Warning implements EnsoObject {
       WithWarnings value,
       boolean shouldWrap,
       WarningsLibrary warningsLib,
-      @Cached HashMapInsertNode insertNode,
+      @Shared @Cached HashMapInsertNode insertNode,
       @CachedLibrary(limit = "3") InteropLibrary interop) {
     Warning[] warnings = value.getWarningsArray(shouldWrap, warningsLib, insertNode, interop);
     sortArray(warnings);
@@ -129,7 +130,7 @@ public final class Warning implements EnsoObject {
       Object value,
       boolean shouldWrap,
       WarningsLibrary warningsLib,
-      @Cached HashMapInsertNode insertNode,
+      @Shared @Cached HashMapInsertNode insertNode,
       @CachedLibrary(limit = "3") InteropLibrary interop) {
     if (warningsLib.hasWarnings(value)) {
       try {
@@ -200,7 +201,7 @@ public final class Warning implements EnsoObject {
       WithWarnings value,
       Object warnings,
       InteropLibrary interop,
-      @Cached HashMapInsertNode insertNode) {
+      @Shared @Cached HashMapInsertNode insertNode) {
     return setGeneric(ctx, value.getValue(), interop, warnings, insertNode);
   }
 
@@ -215,7 +216,7 @@ public final class Warning implements EnsoObject {
       Object value,
       Object warnings,
       InteropLibrary interop,
-      @Cached HashMapInsertNode insertNode) {
+      @Shared @Cached HashMapInsertNode insertNode) {
     return setGeneric(ctx, value, interop, warnings, insertNode);
   }
 
