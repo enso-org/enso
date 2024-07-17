@@ -1,0 +1,26 @@
+{
+  "name": "enso-icons",
+  "type": "module",
+  "version": "1.0.0",
+  "author": {
+    "name": "Enso Team",
+    "email": "contact@enso.org"
+  },
+  "homepage": "https://github.com/enso-org/enso/tree/develop/app/icons",
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:enso-org/enso.git"
+  },
+  "bugs": {
+    "url": "https://github.com/enso-org/enso/issues"
+  },
+  "scripts": {
+    "build": "node src/index.js"
+  },
+  "devDependencies": {
+    "sharp": "^0.31.2",
+    "to-ico": "^1.1.5",
+    "@types/sharp": "^0.31.1",
+    "@types/to-ico": "^1.1.1"
+  }
+}

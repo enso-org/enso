@@ -31,7 +31,7 @@ export default defineConfig({
     VueDevTools(),
     vue(),
     react({
-      include: fileURLToPath(new URL('../ide-desktop/lib/dashboard/**/*.tsx', import.meta.url)),
+      include: fileURLToPath(new URL('../dashboard/**/*.tsx', import.meta.url)),
       babel: { plugins: ['@babel/plugin-syntax-import-attributes'] },
     }),
     gatewayServer(),
@@ -74,10 +74,7 @@ export default defineConfig({
         tailwindcss({
           ...tailwindConfig.default,
           content: tailwindConfig.default.content.map((glob: string) =>
-            glob.replace(
-              /^[.][/]/,
-              fileURLToPath(new URL('../ide-desktop/lib/dashboard/', import.meta.url)),
-            ),
+            glob.replace(/^[.][/]/, fileURLToPath(new URL('../dashboard/', import.meta.url))),
           ),
         }),
       ],
@@ -100,9 +97,7 @@ function gatewayServer(): Plugin {
 }
 
 async function projectManagerShim(): Promise<Plugin> {
-  const module = await import(
-    '../ide-desktop/lib/project-manager-shim/src/projectManagerShimMiddleware'
-  )
+  const module = await import('./project-manager-shim-middleware')
   return {
     name: 'project-manager-shim',
     configureServer(server) {
