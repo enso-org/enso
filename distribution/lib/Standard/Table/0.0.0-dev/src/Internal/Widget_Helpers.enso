@@ -103,8 +103,14 @@ make_column_ref_by_name_selector table display:Display=..Always add_text:Boolean
 
 ## PRIVATE
    If `column_source` is Nothing, `Column_Ref` options will not be added.
-make_fill_default_value_selector column_source=Nothing display=Display.Always for_text:Boolean=False =
-    column_ref = make_column_ref_by_name_selector column_source display add_text=True add_number=for_text.not add_boolean=for_text.not add_date=for_text.not add_time=for_text.not add_date_time=for_text.not add_nothing=for_text
+make_fill_default_value_selector column_source=Nothing display:Display=..Always value_type:Value_Type=Value_Type.Mixed add_nothing:Boolean=False =
+    add_number = value.is_numeric || value_type==Value_Type.Mixed
+    add_boolean = value_type.is_boolean || value_type==Value_Type.Mixed
+    add_text = value_type.is_text || value_type==Value_Type.Mixed
+    add_date = value_type.is_date || self.value_type==Value_Type.Mixed
+    add_time = value_type.is_time || self.value_type==Value_Type.Mixed
+    add_date_time = value_type.is_date_time || self.value_type==Value_Type.Mixed
+    column_ref = make_column_ref_by_name_selector column_source display add_text=add_text add_number=add_number add_boolean=add_boolean add_date=add_date add_time=add_time add_date_time=add_date_time add_nothing=add_nothing
     previous_value = [Option 'Previous Value' 'Previous_Value']
     Single_Choice values=(previous_value+column_ref.values) display=display
 
