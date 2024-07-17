@@ -4,6 +4,9 @@ import org.enso.semver.SemVer
 
 object Constants {
 
+  /** Base name of the launcher executable */
+  val name = "ensoup"
+
   /** The engine version in which the uploads command has been introduced.
     *
     * It is used to check by the launcher if the engine can handle this command

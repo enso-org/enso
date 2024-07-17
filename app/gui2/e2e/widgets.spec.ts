@@ -33,6 +33,7 @@ class DropDownLocator {
   }
 
   async expectVisible(): Promise<void> {
+    await expect(this.dropDown).toHaveCount(1)
     await expect(this.dropDown).toBeVisible()
   }
 

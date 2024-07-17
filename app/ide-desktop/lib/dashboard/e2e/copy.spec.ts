@@ -2,7 +2,6 @@
 import * as test from '@playwright/test'
 
 import * as actions from './actions'
-import EditorPageActions from './actions/EditorPageActions'
 
 // =============
 // === Tests ===
@@ -162,8 +161,7 @@ test.test('duplicate', ({ page }) =>
     .newEmptyProject()
     .goToPage.drive()
     .driveTable.rightClickRow(0)
-    .contextMenu.duplicateProject()
-    .goToPage.drive()
+    .contextMenu.duplicate()
     .driveTable.withRows(async rows => {
       // Assets: [0: New Project 1 (copy), 1: New Project 1]
       await test.expect(rows).toHaveCount(2)
@@ -181,8 +179,6 @@ test.test('duplicate (keyboard)', ({ page }) =>
     .goToPage.drive()
     .driveTable.clickRow(0)
     .press('Mod+D')
-    .into(EditorPageActions)
-    .goToPage.drive()
     .driveTable.withRows(async rows => {
       // Assets: [0: New Project 1 (copy), 1: New Project 1]
       await test.expect(rows).toHaveCount(2)

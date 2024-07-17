@@ -2,6 +2,7 @@ export project.Any.Any
 export project.Data
 export project.Data.Array.Array
 export project.Data.Decimal.Decimal
+export project.Data.Decimal.dec
 export project.Data.Dictionary.Dictionary
 export project.Data.Filter_Condition.Filter_Action
 export project.Data.Filter_Condition.Filter_Condition

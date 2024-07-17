@@ -93,6 +93,35 @@ interface SystemApi {
     readonly showItemInFolder: (fullPath: string) => void
 }
 
+// ========================
+// === File Browser API ===
+// ========================
+
+/** `window.fileBrowserApi` exposes functionality related to the system's default file picker. */
+interface FileBrowserApi {
+    readonly openFileBrowser: (
+        kind: 'any' | 'directory' | 'file' | 'filePath',
+        defaultPath?: string
+    ) => Promise<unknown>
+}
+
+// ==============================
+// === Project Management API ===
+// ==============================
+
+/** Metadata for a newly imported project. */
+interface ProjectInfo {
+    readonly id: string
+    readonly name: string
+    readonly parentDirectory: string
+}
+
+/** `window.projectManagementApi` exposes functionality related to system events related to
+ * project management. */
+interface ProjectManagementApi {
+    readonly setOpenProjectHandler: (handler: (projectInfo: ProjectInfo) => void) => void
+}
+
 // ====================
 // === Version Info ===
 // ====================
@@ -120,6 +149,8 @@ declare global {
         readonly navigationApi: NavigationApi
         readonly menuApi: MenuApi
         readonly systemApi?: SystemApi
+        readonly fileBrowserApi?: FileBrowserApi
+        readonly projectManagementApi?: ProjectManagementApi
         readonly versionInfo?: VersionInfo
         toggleDevtools: () => void
     }
