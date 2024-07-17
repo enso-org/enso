@@ -45,6 +45,8 @@ public class BenchProcessor extends AbstractProcessor {
           "import java.util.Objects;",
           "import java.util.concurrent.TimeUnit;",
           "import java.util.logging.Level;",
+          "import java.util.logging.LogRecord;",
+          "import java.util.logging.Handler;",
           "import org.openjdk.jmh.annotations.Benchmark;",
           "import org.openjdk.jmh.annotations.BenchmarkMode;",
           "import org.openjdk.jmh.annotations.Mode;",
@@ -52,10 +54,12 @@ public class BenchProcessor extends AbstractProcessor {
           "import org.openjdk.jmh.annotations.Measurement;",
           "import org.openjdk.jmh.annotations.OutputTimeUnit;",
           "import org.openjdk.jmh.annotations.Setup;",
+          "import org.openjdk.jmh.annotations.TearDown;",
           "import org.openjdk.jmh.annotations.State;",
           "import org.openjdk.jmh.annotations.Scope;",
           "import org.openjdk.jmh.annotations.Warmup;",
           "import org.openjdk.jmh.infra.BenchmarkParams;",
+          "import org.openjdk.jmh.infra.IterationParams;",
           "import org.openjdk.jmh.infra.Blackhole;",
           "import org.graalvm.polyglot.Context;",
           "import org.graalvm.polyglot.Value;",
@@ -210,6 +214,12 @@ public class BenchProcessor extends AbstractProcessor {
     out.println("public class " + className + " {");
 
     // Field definitions
+    out.println("  private int warmupCounter = 0;");
+    out.println("  private int measurementCounter = 0;");
+    out.println("  private final StringBuilder compilationLog = new StringBuilder();");
+    out.println(
+        "  private final List<LogRecord> messages = new"
+            + " java.util.concurrent.CopyOnWriteArrayList<>();");
     out.println("  private Value groupInputArg;");
     for (var specJavaName : specJavaNames) {
       out.println("  private Value benchFunc_" + specJavaName + ";");
@@ -237,7 +247,7 @@ public class BenchProcessor extends AbstractProcessor {
     out.println("      .allowExperimentalOptions(true)");
     out.println("      .allowIO(IOAccess.ALL)");
     out.println("      .allowAllAccess(true)");
-    out.println("      .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())");
+    out.println("      .option(RuntimeOptions.LOG_LEVEL, Level.FINE.getName())");
     out.println("      .logHandler(System.err)");
     out.println("      .option(");
     out.println("        RuntimeOptions.LANGUAGE_HOME_OVERRIDE,");
@@ -247,6 +257,20 @@ public class BenchProcessor extends AbstractProcessor {
     out.println("        RuntimeOptions.PROJECT_ROOT,");
     out.println("        projectRootDir.getAbsolutePath()");
     out.println("      )");
+    out.println(
+        """
+                      .option("engine.TraceCompilation", "true")
+                      .logHandler(new java.util.logging.Handler() {
+                         @Override
+                         public void publish(LogRecord lr) {
+                           if ("engine".equals(lr.getLoggerName())) {
+                             messages.add(lr);
+                           }
+                         }
+                         @Override public void flush() {}
+                         @Override public void close() {}
+                      })
+                """);
     out.println("      .build();");
     out.println("    ");
     out.println("    Value bindings = ctx.getBindings(LanguageInfo.ID);");
@@ -278,6 +302,39 @@ public class BenchProcessor extends AbstractProcessor {
     out.println("  } "); // end of setup method
     out.println("  ");
 
+    out.println(
+        """
+                  @Setup(org.openjdk.jmh.annotations.Level.Iteration)
+                  public void clearCompilationMessages(IterationParams it) {
+                    var round = round(it);
+                    compilationLog.append("Before " + it.getType() + "#" + round + ". Cleaning " + messages.size() + " compilation messages\\n");
+                    messages.clear();
+                  }
+
+                  private int round(IterationParams it) {
+                    return switch (it.getType()) {
+                      case WARMUP -> ++warmupCounter;
+                      case MEASUREMENT -> ++measurementCounter;
+                    };
+                  }
+
+                  @TearDown
+                  public void checkNoTruffleCompilation(BenchmarkParams params, IterationParams it) {
+                    switch (it.getType()) {
+                      case MEASUREMENT -> {
+                        if (!messages.isEmpty()) {
+                          compilationLog.append("Finished " + it.getType() + "#" + measurementCounter + ". Found " + messages.size() + " compilation messages.\\n");
+                          for (var lr : messages) {
+                            compilationLog.append(lr.getMessage() + "\\n");
+                          }
+                          compilationLog.insert(0, "Compilation detected while benchmarking " + params.getBenchmark() + ".\\n");
+                          throw new AssertionError(compilationLog.toString());
+                        }
+                      }
+                    }
+                  }
+
+                """);
     // Benchmark methods
     for (var specJavaName : specJavaNames) {
       out.println();
