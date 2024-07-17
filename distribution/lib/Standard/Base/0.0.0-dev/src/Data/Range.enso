@@ -396,7 +396,8 @@ type Range
              1.up_to 100 . any (x-> x%2 == 0)
     @condition range_default_filter_condition_widget
     any : (Filter_Condition | (Integer -> Boolean)) -> Boolean
-    any self (condition : Filter_Condition | (Integer -> Boolean)) = self.find condition . is_nothing . not
+    any self (condition : Filter_Condition | (Integer -> Boolean)) =
+        self.find condition . is_nothing . not
 
     ## GROUP Selections
        ICON find
@@ -471,7 +472,8 @@ type Range
         check_start_valid start self used_start->
             case condition of
                 element : Integer -> get_index self used_start self.length-1 element
-                f : Function ->
+                _ : Function ->
+                    f = unify_condition_or_predicate condition
                     result = find_internal self used_start f
                     if result.is_nothing then Nothing else result.second
                 fc : Filter_Condition ->
@@ -500,7 +502,8 @@ type Range
             check_start_valid start self include_end=False used_start->
                 case condition of
                     element : Integer -> get_index self 0 used_start element
-                    f : Function ->
+                    _ : Function ->
+                        f = unify_condition_or_predicate condition
                         start_value = self.start + used_start*self.step
                         go current idx =
                             if f current then idx else
@@ -606,7 +609,7 @@ get_index range min max value =
 
 ## PRIVATE
 range_default_filter_condition_widget =
-    Filter_Condition.default_widget include_text=False include_boolean=False include_nullable=False
+    Filter_Condition.default_widget include_text=False include_boolean=False include_nullable=False include_date=False include_time=False include_date_time=False
 
 ## PRIVATE
 Vector.from (that:Range) = that.to_vector

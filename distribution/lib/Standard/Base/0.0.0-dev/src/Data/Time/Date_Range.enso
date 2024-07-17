@@ -404,7 +404,8 @@ type Date_Range
              (Date.new 2020 10 01).up_to (Date.new 2020 10 31) . any (Filter_Condition.Greater (Date.new 2020 10 01))
     @condition date_range_default_filter_condition_widget
     any : (Filter_Condition | (Date -> Boolean)) -> Boolean
-    any self (condition : Filter_Condition | (Date -> Boolean)) = self.find condition . is_nothing . not
+    any self (condition : Filter_Condition | (Date -> Boolean)) =
+        self.find condition . is_nothing . not
 
     ## GROUP Selections
        ICON find
@@ -605,7 +606,7 @@ unify_condition_for_index_of (condition : Date | Filter_Condition | Function) =
 
 ## PRIVATE
 date_range_default_filter_condition_widget =
-    Filter_Condition.default_widget include_text=False include_boolean=False include_numeric=False include_nullable=False
+    Filter_Condition.default_widget include_text=False include_boolean=False include_numeric=False include_nullable=False include_time=False include_date_time=False
 
 ## PRIVATE
 Vector.from (that:Date_Range) = that.to_vector
