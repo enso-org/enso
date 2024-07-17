@@ -482,6 +482,8 @@ class IrToTruffle(
         throw failure
       case Right(Some(fun)) =>
         fun
+      case x =>
+        throw new IllegalStateException("Wrong state: " + x)
     }
   }
 
