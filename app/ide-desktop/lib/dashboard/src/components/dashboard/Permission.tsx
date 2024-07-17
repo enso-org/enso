@@ -40,7 +40,7 @@ export interface PermissionProps {
   readonly backend: Backend
   readonly asset: Pick<backendModule.Asset, 'id' | 'permissions' | 'type'>
 
-  readonly self: backendModule.UserPermission
+  readonly self: backendModule.AssetPermission
   readonly isOnlyOwner: boolean
   readonly permission: backendModule.AssetPermission
   readonly setPermission: (userPermissions: backendModule.AssetPermission) => void
@@ -55,7 +55,7 @@ export default function Permission(props: PermissionProps) {
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const [permission, setPermission] = React.useState(initialPermission)
   const permissionId = backendModule.getAssetPermissionId(permission)
-  const isDisabled = isOnlyOwner && permissionId === self.user.userId
+  const isDisabled = isOnlyOwner && backendModule.getAssetPermissionId(self) === permissionId
   const assetTypeName = getText(ASSET_TYPE_TO_TEXT_ID[asset.type])
 
   const createPermissionMutation = backendHooks.useBackendMutation(backend, 'createPermission')

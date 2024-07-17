@@ -47,15 +47,10 @@ export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
   const asset = item.item
   const { user } = authProvider.useNonPartialUserSession()
   const dispatchAssetEvent = eventListProvider.useDispatchAssetEvent()
-
   const { isFeatureUnderPaywall } = billingHooks.usePaywall({ plan: user.plan })
-
   const isUnderPaywall = isFeatureUnderPaywall('share')
-
   const { setModal } = modalProvider.useSetModal()
-  const self = asset.permissions?.find(
-    backendModule.isUserPermissionAnd(permission => permission.user.userId === user.userId)
-  )
+  const self = permissions.tryFindSelfPermission(user, asset.permissions)
   const plusButtonRef = React.useRef<HTMLButtonElement>(null)
   const managesThisAsset =
     !isReadonly &&

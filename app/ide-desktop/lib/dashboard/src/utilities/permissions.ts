@@ -4,7 +4,7 @@ import * as permissions from 'enso-common/src/utilities/permissions'
 import * as categoryModule from '#/layouts/CategorySwitcher/Category'
 import type Category from '#/layouts/CategorySwitcher/Category'
 
-import type * as backend from '#/services/Backend'
+import * as backend from '#/services/Backend'
 
 export * from 'enso-common/src/utilities/permissions'
 
@@ -51,4 +51,33 @@ export function tryGetSingletonOwnerPermission(
       }
     }
   }
+}
+
+// ==========================
+// === findSelfPermission ===
+// ==========================
+
+/** Try to find a permission belonging to the user. */
+export function tryFindSelfPermission(
+  self: backend.User,
+  otherPermissions: readonly backend.AssetPermission[] | null
+) {
+  let selfPermission: backend.AssetPermission | null = null
+  for (const permission of otherPermissions ?? []) {
+    // `a >= b` means that `a` does not have more permissions than `b`.
+    if (selfPermission && backend.compareAssetPermissions(selfPermission, permission) >= 0) {
+      continue
+    }
+    if ('user' in permission && permission.user.userId !== self.userId) {
+      continue
+    }
+    if (
+      'userGroup' in permission &&
+      (self.userGroups ?? []).every(groupId => groupId !== permission.userGroup.id)
+    ) {
+      continue
+    }
+    selfPermission = permission
+  }
+  return selfPermission
 }

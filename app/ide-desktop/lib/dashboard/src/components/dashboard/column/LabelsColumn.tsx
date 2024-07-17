@@ -46,9 +46,7 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
     return new Map(labels?.map(label => [label.value, label]))
   }, [labels])
   const plusButtonRef = React.useRef<HTMLButtonElement>(null)
-  const self = asset.permissions?.find(
-    backendModule.isUserPermissionAnd(permission => permission.user.userId === user.userId)
-  )
+  const self = permissions.tryFindSelfPermission(user, asset.permissions)
   const managesThisAsset =
     category.type !== categoryModule.CategoryType.trash &&
     (self?.permission === permissions.PermissionAction.own ||
