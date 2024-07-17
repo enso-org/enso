@@ -22,6 +22,7 @@ import Standard.Database.Internal.Common.Database_Join_Helper
 import Standard.Database.Internal.Error_Mapper.Error_Mapper
 import Standard.Database.Internal.Internals_Access
 import Standard.Database.Internal.IR.Context.Context
+import Standard.Database.Internal.IR.Context.Context_Extension
 import Standard.Database.Internal.IR.From_Spec.From_Spec
 import Standard.Database.Internal.IR.Internal_Column.Internal_Column
 import Standard.Database.Internal.IR.Nulls_Order.Nulls_Order
@@ -125,10 +126,11 @@ type Snowflake_Dialect
         column_mapping = Dictionary.from_vector <| new_columns.map c-> [c.name, c]
         new_key_columns = key_columns.map c-> column_mapping.at c.name
         type_mapping = self.get_type_mapping
+        # TODO simpler distinct if distinct_expressions are all columns?
         distinct_expressions = new_key_columns.map column->
             value_type = type_mapping.sql_type_to_value_type column.sql_type_reference.get
             Database_Distinct_Helper.make_distinct_expression case_sensitivity problem_builder column value_type
-        new_context = Context.for_subquery setup.subquery . set_distinct_on distinct_expressions
+        new_context = Context.for_subquery setup.subquery . add_extension (make_distinct_extension distinct_expressions)
         table.updated_context_and_columns new_context new_columns subquery=True
 
     ## PRIVATE
@@ -674,6 +676,13 @@ make_iif arguments = case arguments.length of
         SQL_Builder.code "DECODE(" ++ expr ++ ", TRUE, " ++ when_true ++ ", FALSE, " ++ when_false ++ ")"
     _ ->
         Error.throw <| Illegal_State.Error ("Invalid amount of arguments for operation IIF")
+
+## PRIVATE
+make_distinct_extension distinct_expressions =
+    run_generator sql_expressions =
+        joined = SQL_Builder.join ", " sql_expressions
+        SQL_Builder.code " QUALIFY ROW_NUMBER() OVER (PARTITION BY " ++ joined ++ " ORDER BY 1) = 1 "
+    Context_Extension.Value position=550 expressions=distinct_expressions run_generator=run_generator
 
 ## PRIVATE
 snowflake_dialect_name = "Snowflake"
