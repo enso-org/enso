@@ -19,7 +19,7 @@ public final class YdocInitialization extends LockedInitialization {
 
   @Override
   public void initComponent() {
-    logger.info("Starting Ydoc server...");
+    logger.debug("Starting Ydoc server...");
     var applicationConfig = ApplicationConfig.load();
     var ydoc =
         Ydoc.builder()
@@ -32,6 +32,6 @@ public final class YdocInitialization extends LockedInitialization {
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
-    logger.info("Started Ydoc server.");
+    logger.debug("Started Ydoc server.");
   }
 }

@@ -73,7 +73,7 @@ public class RepoInitialization implements InitializationComponent {
 
   private CompletableFuture<Void> initSuggestionsRepo() {
     return CompletableFuture.runAsync(
-            () -> logger.info("Initializing suggestions repo [{}]...", suggestionsRepo), executor)
+            () -> logger.debug("Initializing suggestions repo [{}]...", suggestionsRepo), executor)
         .thenComposeAsync(
             v -> {
               if (!isInitialized)
@@ -83,12 +83,12 @@ public class RepoInitialization implements InitializationComponent {
             },
             executor)
         .thenRunAsync(
-            () -> logger.info("Initialized Suggestions repo [{}].", suggestionsRepo), executor)
+            () -> logger.debug("Initialized Suggestions repo [{}]", suggestionsRepo), executor)
         .whenCompleteAsync(
             (res, err) -> {
               if (err != null) {
                 logger.error(
-                    "Failed to initialize SQL suggestions repo [{}].", suggestionsRepo, err);
+                    "Failed to initialize SQL suggestions repo [{}]", suggestionsRepo, err);
               } else {
                 eventStream.publish(InitializedEvent.SuggestionsRepoInitialized$.MODULE$);
               }
@@ -99,9 +99,9 @@ public class RepoInitialization implements InitializationComponent {
     return CompletableFuture.runAsync(
             () ->
                 logger.warn(
-                    "Failed to initialize the suggestions database [{}].", suggestionsRepo, error),
+                    "Failed to initialize the suggestions database [{}]", suggestionsRepo, error),
             executor)
-        .thenRunAsync(() -> logger.info("Retrying suggestions repo initialization."), executor)
+        .thenRunAsync(() -> logger.info("Retrying suggestions repo initialization"), executor)
         .thenComposeAsync(v -> doInitSuggestionsRepo(), executor);
   }
 
@@ -109,7 +109,7 @@ public class RepoInitialization implements InitializationComponent {
     return CompletableFuture.runAsync(
             () -> {
               if (!isInitialized) {
-                logger.info("Clear database file. Attempt #{}.", retries + 1);
+                logger.debug("Clear database file. Attempt #{}", retries + 1);
                 try {
                   Files.delete(projectDirectoriesConfig.suggestionsDatabaseFile().toPath());
                 } catch (IOException e) {
@@ -126,14 +126,14 @@ public class RepoInitialization implements InitializationComponent {
       return recoverClearDatabaseFile(error.getCause(), retries);
     } else if (error instanceof NoSuchFileException) {
       logger.warn(
-          "Failed to delete the database file. Attempt #{}. File does not exist [{}].",
+          "Failed to delete the database file. Attempt #{}. File does not exist [{}]",
           retries + 1,
           new MaskedPath(projectDirectoriesConfig.suggestionsDatabaseFile().toPath()));
       return CompletableFuture.completedFuture(null);
     } else if (error instanceof FileSystemException) {
       logger.error(
           "Failed to delete the database file. Attempt #{}. The file will be removed during the"
-              + " shutdown.",
+              + " shutdown",
           retries + 1,
           error);
       Runtime.getRuntime()
@@ -143,7 +143,7 @@ public class RepoInitialization implements InitializationComponent {
                       FileUtils.deleteQuietly(projectDirectoriesConfig.suggestionsDatabaseFile())));
       return CompletableFuture.failedFuture(error);
     } else if (error instanceof IOException) {
-      logger.error("Failed to delete the database file. Attempt #{}.", retries + 1, error);
+      logger.error("Failed to delete the database file. Attempt #{}", retries + 1, error);
       if (retries < MAX_RETRIES) {
         try {
           Thread.sleep(RETRY_DELAY_MILLIS);
