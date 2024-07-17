@@ -9,6 +9,7 @@ import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.Node;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -158,20 +159,28 @@ public final class Type implements EnsoObject {
   }
 
   public final Type[] allTypes(EnsoContext ctx) {
-    if (supertype == null) {
-      if (builtin) {
-        return new Type[] {this};
+    var types = new Type[3];
+    var realCount = fillInTypes(this, types, ctx);
+    return Arrays.copyOf(types, realCount);
+  }
+
+  private static int fillInTypes(Type self, Type[] fill, EnsoContext ctx) {
+    var at = 0;
+    for (; ; ) {
+      fill[at++] = self;
+      if (self.supertype == null) {
+        if (self.builtin) {
+          return at;
+        }
+        fill[at++] = ctx.getBuiltins().any();
+        return at;
       }
-      return new Type[] {this, ctx.getBuiltins().any()};
+      if (self.supertype == ctx.getBuiltins().any()) {
+        fill[at++] = ctx.getBuiltins().any();
+        return at;
+      }
+      self = self.supertype;
     }
-    if (supertype == ctx.getBuiltins().any()) {
-      return new Type[] {this, ctx.getBuiltins().any()};
-    }
-    var superTypes = supertype.allTypes(ctx);
-    var allTypes = new Type[superTypes.length + 1];
-    System.arraycopy(superTypes, 0, allTypes, 1, superTypes.length);
-    allTypes[0] = this;
-    return allTypes;
   }
 
   public void generateGetters(EnsoLanguage language) {
