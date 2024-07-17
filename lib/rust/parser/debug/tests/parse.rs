@@ -371,11 +371,12 @@ fn type_operator_methods() {
     test!("Any.==", (OprApp (Ident Any) (Ok ".") (Ident #"==")));
     expect_invalid_node("x.-y");
     expect_invalid_node("x.-1");
-    expect_invalid_node("x.~y");
-    expect_invalid_node("x.~1");
     expect_invalid_node("x.+y");
     expect_invalid_node("x.+1");
     expect_invalid_node("x.+'a'");
+    // Compile-time operators are never operator-identifiers.
+    test!("x.~y", (OprApp (Ident x) (Ok ".") (UnaryOprApp "~" (Ident y))));
+    test!("x.~1", (OprApp (Ident x) (Ok ".") (UnaryOprApp "~" (Number () "1" ()))));
 }
 
 #[test]
