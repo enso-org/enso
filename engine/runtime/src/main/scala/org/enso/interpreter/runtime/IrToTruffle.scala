@@ -41,10 +41,12 @@ import org.enso.compiler.core.ir.expression.{
   Operator,
   Section
 }
+import org.enso.compiler.core.ir.module.scope.definition.Method
 import org.enso.compiler.data.BindingsMap.{ResolvedConstructor, ResolvedModule}
 import org.enso.compiler.data.{BindingsMap, CompilerConfig}
 import org.enso.compiler.exception.BadPatternMatch
 import org.enso.compiler.pass.analyse.alias.Graph.{Scope => AliasScope}
+import org.enso.compiler.pass.analyse.alias.Info.Scope
 import org.enso.compiler.pass.analyse.{
   AliasAnalysis,
   BindingAnalysis,
@@ -259,104 +261,112 @@ class IrToTruffle(
       atomConstructors
         .zip(atomDefs)
         .foreach { case (atomCons, atomDefn) =>
-          val scopeInfo = atomDefn
-            .unsafeGetMetadata(
-              AliasAnalysis,
-              "No root scope on an atom definition."
-            )
-            .unsafeAs[AliasInfo.Scope.Root]
-
-          val dataflowInfo = atomDefn.unsafeGetMetadata(
-            DataflowAnalysis,
-            "No dataflow information associated with an atom."
-          )
-          val localScope = new LocalScope(
-            None,
-            scopeInfo.graph,
-            scopeInfo.graph.rootScope,
-            dataflowInfo
-          )
-
-          val argFactory =
-            new DefinitionArgumentProcessor(
-              scope       = localScope,
-              initialName = "Type " + tpDef.name
-            )
-          val argDefs =
-            new Array[ArgumentDefinition](atomDefn.arguments.size)
-          val argumentExpressions =
-            new ArrayBuffer[(RuntimeExpression, RuntimeExpression)]
-
-          for (idx <- atomDefn.arguments.indices) {
-            val unprocessedArg = atomDefn.arguments(idx)
-            val checkNode      = checkAsTypes(unprocessedArg)
-            val arg            = argFactory.run(unprocessedArg, idx, checkNode)
-            val occInfo = unprocessedArg
-              .unsafeGetMetadata(
-                AliasAnalysis,
-                "No occurrence on an argument definition."
-              )
-              .unsafeAs[AliasInfo.Occurrence]
-            val slotIdx = localScope.getVarSlotIdx(occInfo.id)
-            argDefs(idx) = arg
-            val readArg =
-              ReadArgumentNode.build(
-                idx,
-                arg.getDefaultValue.orElse(null),
-                checkNode
-              )
-            val assignmentArg = AssignmentNode.build(readArg, slotIdx)
-            val argRead =
-              ReadLocalVariableNode.build(new FramePointer(0, slotIdx))
-            argumentExpressions.append((assignmentArg, argRead))
-          }
-
-          val (assignments, reads) = argumentExpressions.unzip
-          // build annotations
-          val annotations = atomDefn.annotations.map { annotation =>
-            val scopeElements = Seq(
-              tpDef.name.name,
-              atomDefn.name.name,
-              annotation.name
-            )
-            val scopeName =
-              scopeElements.mkString(Constants.SCOPE_SEPARATOR)
-            val expressionProcessor = new ExpressionProcessor(
-              scopeName,
-              scopeInfo.graph,
-              scopeInfo.graph.rootScope,
-              dataflowInfo,
-              atomDefn.name.name
-            )
-            val expressionNode =
-              expressionProcessor.run(annotation.expression, true)
-            val closureName = s"<default::$scopeName>"
-            val closureRootNode = ClosureRootNode.build(
-              language,
-              expressionProcessor.scope,
-              scopeBuilder.asModuleScope(),
-              expressionNode,
-              makeSection(scopeBuilder.getModule, annotation.location),
-              closureName,
-              true,
-              false
-            )
-            new RuntimeAnnotation(annotation.name, closureRootNode)
-          }
-          if (!atomCons.isInitialized) {
-            atomCons.initializeFields(
-              language,
-              makeSection(scopeBuilder.getModule, atomDefn.location),
-              localScope,
-              scopeBuilder,
-              assignments.toArray,
-              reads.toArray,
-              annotations.toArray,
-              argDefs: _*
-            )
-          }
+          registerAtomConstructor(tpDef, atomCons, atomDefn)
         }
       asType.generateGetters(language)
+    }
+  }
+
+  private def registerAtomConstructor(
+    tpDef: Definition.Type,
+    atomCons: AtomConstructor,
+    atomDefn: Definition.Data
+  ): Unit = {
+    val scopeInfo = atomDefn
+      .unsafeGetMetadata(
+        AliasAnalysis,
+        "No root scope on an atom definition."
+      )
+      .unsafeAs[AliasInfo.Scope.Root]
+
+    val dataflowInfo = atomDefn.unsafeGetMetadata(
+      DataflowAnalysis,
+      "No dataflow information associated with an atom."
+    )
+    val localScope = new LocalScope(
+      None,
+      scopeInfo.graph,
+      scopeInfo.graph.rootScope,
+      dataflowInfo
+    )
+
+    val argFactory =
+      new DefinitionArgumentProcessor(
+        scope       = localScope,
+        initialName = "Type " + tpDef.name
+      )
+    val argDefs =
+      new Array[ArgumentDefinition](atomDefn.arguments.size)
+    val argumentExpressions =
+      new ArrayBuffer[(RuntimeExpression, RuntimeExpression)]
+
+    for (idx <- atomDefn.arguments.indices) {
+      val unprocessedArg = atomDefn.arguments(idx)
+      val checkNode      = checkAsTypes(unprocessedArg)
+      val arg            = argFactory.run(unprocessedArg, idx, checkNode)
+      val occInfo = unprocessedArg
+        .unsafeGetMetadata(
+          AliasAnalysis,
+          "No occurrence on an argument definition."
+        )
+        .unsafeAs[AliasInfo.Occurrence]
+      val slotIdx = localScope.getVarSlotIdx(occInfo.id)
+      argDefs(idx) = arg
+      val readArg =
+        ReadArgumentNode.build(
+          idx,
+          arg.getDefaultValue.orElse(null),
+          checkNode
+        )
+      val assignmentArg = AssignmentNode.build(readArg, slotIdx)
+      val argRead =
+        ReadLocalVariableNode.build(new FramePointer(0, slotIdx))
+      argumentExpressions.append((assignmentArg, argRead))
+    }
+
+    val (assignments, reads) = argumentExpressions.unzip
+    // build annotations
+    val annotations = atomDefn.annotations.map { annotation =>
+      val scopeElements = Seq(
+        tpDef.name.name,
+        atomDefn.name.name,
+        annotation.name
+      )
+      val scopeName =
+        scopeElements.mkString(Constants.SCOPE_SEPARATOR)
+      val expressionProcessor = new ExpressionProcessor(
+        scopeName,
+        scopeInfo.graph,
+        scopeInfo.graph.rootScope,
+        dataflowInfo,
+        atomDefn.name.name
+      )
+      val expressionNode =
+        expressionProcessor.run(annotation.expression, true)
+      val closureName = s"<default::$scopeName>"
+      val closureRootNode = ClosureRootNode.build(
+        language,
+        expressionProcessor.scope,
+        scopeBuilder.asModuleScope(),
+        expressionNode,
+        makeSection(scopeBuilder.getModule, annotation.location),
+        closureName,
+        true,
+        false
+      )
+      new RuntimeAnnotation(annotation.name, closureRootNode)
+    }
+    if (!atomCons.isInitialized) {
+      atomCons.initializeFields(
+        language,
+        makeSection(scopeBuilder.getModule, atomDefn.location),
+        localScope,
+        scopeBuilder,
+        assignments.toArray,
+        reads.toArray,
+        annotations.toArray,
+        argDefs: _*
+      )
     }
   }
 
@@ -365,7 +375,6 @@ class IrToTruffle(
       case method: definition.Method.Explicit => method
     }
 
-    // Register the method definitions in scope
     methodDefs.foreach(methodDef => {
       val scopeInfo = methodDef
         .unsafeGetMetadata(
@@ -395,45 +404,7 @@ class IrToTruffle(
         .flatMap(sig => getContext(sig.signature))
 
       val declaredConsOpt =
-        methodDef.methodReference.typePointer match {
-          case None =>
-            Some(scopeAssociatedType)
-          case Some(tpePointer) =>
-            tpePointer
-              .getMetadata(MethodDefinitions)
-              .map { res =>
-                res.target match {
-                  case binding @ BindingsMap.ResolvedType(_, _) =>
-                    asType(binding)
-                  case BindingsMap.ResolvedModule(module) =>
-                    asAssociatedType(module.unsafeAsModule())
-                  case BindingsMap.ResolvedConstructor(_, _) =>
-                    throw new CompilerError(
-                      "Impossible, should be caught by MethodDefinitions pass"
-                    )
-                  case BindingsMap.ResolvedPolyglotSymbol(_, _) =>
-                    throw new CompilerError(
-                      "Impossible polyglot symbol, should be caught by MethodDefinitions pass."
-                    )
-                  case BindingsMap.ResolvedPolyglotField(_, _) =>
-                    throw new CompilerError(
-                      "Impossible polyglot field, should be caught by MethodDefinitions pass."
-                    )
-                  case _: BindingsMap.ResolvedModuleMethod =>
-                    throw new CompilerError(
-                      "Impossible module method here, should be caught by MethodDefinitions pass."
-                    )
-                  case _: BindingsMap.ResolvedExtensionMethod =>
-                    throw new CompilerError(
-                      "Impossible static method here, should be caught by MethodDefinitions pass."
-                    )
-                  case _: BindingsMap.ResolvedConversionMethod =>
-                    throw new CompilerError(
-                      "Impossible conversion method here, should be caught by MethodDefinitions pass."
-                    )
-                }
-              }
-        }
+        getTypeAssociatedWithMethodDefinition(methodDef)
 
       val consOpt = declaredConsOpt.map { c =>
         if (methodDef.isStatic) {
@@ -456,243 +427,337 @@ class IrToTruffle(
           cons,
           methodDef.methodName.name,
           () => {
-            val function = methodDef.body match {
-              case fn: Function if isBuiltinMethod(fn.body) =>
-                // For builtin types that own the builtin method we only check that
-                // the method has been registered during the initialization of builtins
-                // and not attempt to register it in the scope (can't redefined methods).
-                // For non-builtin types (or modules) that own the builtin method
-                // we have to look up the function and register it in the scope.
-                // Static wrappers for instance methods have to be registered always.
-                val fullMethodName = methodDef.body
-                  .asInstanceOf[Function.Lambda]
-                  .body
-                  .asInstanceOf[Literal.Text]
-
-                val builtinNameElements = fullMethodName.text.split('.')
-                if (builtinNameElements.length != 2) {
-                  throw new CompilerError(
-                    s"Unknown builtin method ${fullMethodName.text}, probably should be '$fullMethodDefName?'"
-                  )
-                }
-                val methodName      = builtinNameElements(1)
-                val methodOwnerName = builtinNameElements(0)
-
-                val staticWrapper = methodDef.isStaticWrapperForInstanceMethod
-
-                val builtinFunction = context.getBuiltins
-                  .getBuiltinFunction(
-                    methodOwnerName,
-                    methodName,
-                    language,
-                    staticWrapper
-                  )
-                builtinFunction.toScala
-                  .map(Some(_))
-                  .toRight(
-                    new CompilerError(
-                      s"Unable to find Truffle Node for method ${cons.getName}.${methodDef.methodName.name}"
-                    )
-                  )
-                  .left
-                  .flatMap { l =>
-                    // Builtin Types Number and Integer have methods only for documentation purposes
-                    val number = context.getBuiltins.number()
-                    val ok =
-                      staticWrapper && (cons == number.getNumber.getEigentype || cons == number.getInteger.getEigentype) ||
-                      !staticWrapper && (cons == number.getNumber             || cons == number.getInteger)
-                    if (ok) Right(None)
-                    else Left(l)
-                  }
-                  .map(fOpt =>
-                    fOpt.map { m =>
-                      if (m.isAutoRegister) {
-                        val irFunctionArgumentsCount = fn.arguments.length
-                        val builtinArgumentsCount =
-                          m.getFunction.getSchema.getArgumentsCount
-                        if (irFunctionArgumentsCount != builtinArgumentsCount) {
-                          val irFunctionArguments =
-                            fn.arguments.map(_.name.name).mkString(",")
-                          val builtinArguments =
-                            m.getFunction.getSchema.getArgumentInfos
-                              .map(_.getName)
-                              .mkString(",")
-                          throw new CompilerError(
-                            s"Wrong number of arguments provided in the definition of builtin function ${cons.getName}.${methodDef.methodName.name}. " +
-                            s"[$irFunctionArguments] vs [$builtinArguments]"
-                          )
-                        }
-                        val bodyBuilder =
-                          new expressionProcessor.BuildFunctionBody(
-                            m.getFunction.getName,
-                            fn.arguments,
-                            fn.body,
-                            null,
-                            effectContext,
-                            true
-                          )
-                        val builtinRootNode =
-                          m.getFunction.getCallTarget.getRootNode
-                            .asInstanceOf[BuiltinRootNode]
-                        builtinRootNode
-                          .setModuleName(scopeBuilder.getModule.getName)
-                        builtinRootNode.setTypeName(cons.getQualifiedName)
-                        val funcSchemaBldr = FunctionSchema
-                          .newBuilder()
-                          .argumentDefinitions(bodyBuilder.args(): _*)
-                        if (methodDef.isPrivate) {
-                          funcSchemaBldr.projectPrivate();
-                        }
-                        val funcSchema = funcSchemaBldr.build()
-                        new RuntimeFunction(
-                          m.getFunction.getCallTarget,
-                          null,
-                          funcSchema
-                        )
-                      } else {
-                        m.getFunction
-                      }
-                    }
-                  )
-              case fn: Function =>
-                val bodyBuilder =
-                  new expressionProcessor.BuildFunctionBody(
-                    fullMethodDefName,
-                    fn.arguments,
-                    fn.body,
-                    null,
-                    effectContext,
-                    true
-                  )
-
-                val operators = ".!$%&*+-/<>?^~\\="
-                def isOperator(n: Name): Boolean = {
-                  n.name
-                    .chars()
-                    .allMatch(operators.indexOf(_) >= 0)
-                }
-
-                val arguments = bodyBuilder.args()
-                val rootNode =
-                  if (arguments.size == 2 && isOperator(methodDef.methodName)) {
-                    MethodRootNode.buildOperator(
-                      language,
-                      expressionProcessor.scope,
-                      scopeBuilder.asModuleScope(),
-                      () => bodyBuilder.argsExpr._1(0),
-                      () => bodyBuilder.argsExpr._1(1),
-                      () => bodyBuilder.argsExpr._2,
-                      makeSection(scopeBuilder.getModule, methodDef.location),
-                      cons,
-                      methodDef.methodName.name
-                    )
-                  } else {
-                    MethodRootNode.build(
-                      language,
-                      expressionProcessor.scope,
-                      scopeBuilder.asModuleScope(),
-                      () => bodyBuilder.bodyNode(),
-                      makeSection(scopeBuilder.getModule, methodDef.location),
-                      cons,
-                      methodDef.methodName.name
-                    )
-                  }
-                val callTarget = rootNode.getCallTarget
-                // build annotations
-                val annotations =
-                  methodDef.getMetadata(GenericAnnotations).toVector.flatMap {
-                    meta =>
-                      meta.annotations
-                        .collect { case annotation: Name.GenericAnnotation =>
-                          val scopeElements = Seq(
-                            cons.getName,
-                            methodDef.methodName.name,
-                            annotation.name
-                          )
-                          val scopeName =
-                            scopeElements.mkString(Constants.SCOPE_SEPARATOR)
-                          val scopeInfo = annotation
-                            .unsafeGetMetadata(
-                              AliasAnalysis,
-                              s"Missing scope information for annotation " +
-                              s"${annotation.name} of method " +
-                              scopeElements.init
-                                .mkString(Constants.SCOPE_SEPARATOR)
-                            )
-                            .unsafeAs[AliasInfo.Scope.Root]
-                          val dataflowInfo = annotation.unsafeGetMetadata(
-                            DataflowAnalysis,
-                            "Missing dataflow information for annotation " +
-                            s"${annotation.name} of method " +
-                            scopeElements.init
-                              .mkString(Constants.SCOPE_SEPARATOR)
-                          )
-                          val expressionProcessor = new ExpressionProcessor(
-                            scopeName,
-                            scopeInfo.graph,
-                            scopeInfo.graph.rootScope,
-                            dataflowInfo,
-                            methodDef.methodName.name
-                          )
-                          val expressionNode =
-                            expressionProcessor.run(annotation.expression, true)
-                          val closureName =
-                            s"<default::${expressionProcessor.scopeName}>"
-                          val closureRootNode = ClosureRootNode.build(
-                            language,
-                            expressionProcessor.scope,
-                            scopeBuilder.asModuleScope(),
-                            expressionNode,
-                            makeSection(
-                              scopeBuilder.getModule,
-                              annotation.location
-                            ),
-                            closureName,
-                            true,
-                            false
-                          )
-                          new RuntimeAnnotation(
-                            annotation.name,
-                            closureRootNode
-                          )
-                        }
-                  }
-                val funcSchemaBldr = FunctionSchema
-                  .newBuilder()
-                  .annotations(annotations: _*)
-                  .argumentDefinitions(arguments: _*)
-                if (methodDef.isPrivate) {
-                  funcSchemaBldr.projectPrivate();
-                }
-                val funcSchema = funcSchemaBldr.build();
-                Right(
-                  Some(
-                    new RuntimeFunction(
-                      callTarget,
-                      null,
-                      funcSchema
-                    )
-                  )
-                )
-              case _ =>
-                Left(
-                  new CompilerError(
-                    "Method bodies must be functions at the point of codegen."
-                  )
-                )
-            }
-            function match {
-              case Left(failure) =>
-                throw failure
-              case Right(Some(fun)) =>
-                fun
-              case x =>
-                throw new IllegalStateException("Wrong state: " + x)
-            }
+            buildFunction(
+              methodDef,
+              effectContext,
+              cons,
+              fullMethodDefName,
+              expressionProcessor
+            )
           }
         )
       }
     })
+  }
+
+  private def buildFunction(
+    methodDef: Method.Explicit,
+    effectContext: Option[String],
+    cons: Type,
+    fullMethodDefName: String,
+    expressionProcessor: ExpressionProcessor
+  ): RuntimeFunction = {
+    val function = methodDef.body match {
+      case fn: Function if isBuiltinMethod(fn.body) =>
+        buildBuiltinFunction(
+          fn,
+          expressionProcessor,
+          methodDef,
+          effectContext,
+          cons,
+          fullMethodDefName
+        )
+      case fn: Function =>
+        Right(
+          Some(
+            buildRegularFunction(
+              methodDef,
+              effectContext,
+              cons,
+              fullMethodDefName,
+              expressionProcessor,
+              fn
+            )
+          )
+        )
+      case _ =>
+        Left(
+          new CompilerError(
+            "Method bodies must be functions at the point of codegen."
+          )
+        )
+    }
+    function match {
+      case Left(failure) =>
+        throw failure
+      case Right(Some(fun)) =>
+        fun
+    }
+  }
+
+  private def buildRegularFunction(
+    methodDef: Method.Explicit,
+    effectContext: Option[String],
+    cons: Type,
+    fullMethodDefName: String,
+    expressionProcessor: ExpressionProcessor,
+    fn: Function
+  ): RuntimeFunction = {
+    val bodyBuilder =
+      new expressionProcessor.BuildFunctionBody(
+        fullMethodDefName,
+        fn.arguments,
+        fn.body,
+        null,
+        effectContext,
+        true
+      )
+
+    val operators = ".!$%&*+-/<>?^~\\="
+
+    def isOperator(n: Name): Boolean = {
+      n.name
+        .chars()
+        .allMatch(operators.indexOf(_) >= 0)
+    }
+
+    val arguments = bodyBuilder.args()
+    val rootNode =
+      if (arguments.size == 2 && isOperator(methodDef.methodName)) {
+        MethodRootNode.buildOperator(
+          language,
+          expressionProcessor.scope,
+          scopeBuilder.asModuleScope(),
+          () => bodyBuilder.argsExpr._1(0),
+          () => bodyBuilder.argsExpr._1(1),
+          () => bodyBuilder.argsExpr._2,
+          makeSection(scopeBuilder.getModule, methodDef.location),
+          cons,
+          methodDef.methodName.name
+        )
+      } else {
+        MethodRootNode.build(
+          language,
+          expressionProcessor.scope,
+          scopeBuilder.asModuleScope(),
+          () => bodyBuilder.bodyNode(),
+          makeSection(scopeBuilder.getModule, methodDef.location),
+          cons,
+          methodDef.methodName.name
+        )
+      }
+    val callTarget = rootNode.getCallTarget
+    // build annotations
+    val annotations =
+      methodDef.getMetadata(GenericAnnotations).toVector.flatMap { meta =>
+        meta.annotations
+          .collect { case annotation: Name.GenericAnnotation =>
+            val scopeElements = Seq(
+              cons.getName,
+              methodDef.methodName.name,
+              annotation.name
+            )
+            val scopeName =
+              scopeElements.mkString(Constants.SCOPE_SEPARATOR)
+            val scopeInfo = annotation
+              .unsafeGetMetadata(
+                AliasAnalysis,
+                s"Missing scope information for annotation " +
+                s"${annotation.name} of method " +
+                scopeElements.init
+                  .mkString(Constants.SCOPE_SEPARATOR)
+              )
+              .unsafeAs[Scope.Root]
+            val dataflowInfo = annotation.unsafeGetMetadata(
+              DataflowAnalysis,
+              "Missing dataflow information for annotation " +
+              s"${annotation.name} of method " +
+              scopeElements.init
+                .mkString(Constants.SCOPE_SEPARATOR)
+            )
+            val expressionProcessor = new ExpressionProcessor(
+              scopeName,
+              scopeInfo.graph,
+              scopeInfo.graph.rootScope,
+              dataflowInfo,
+              methodDef.methodName.name
+            )
+            val expressionNode =
+              expressionProcessor.run(annotation.expression, true)
+            val closureName =
+              s"<default::${expressionProcessor.scopeName}>"
+            val closureRootNode = ClosureRootNode.build(
+              language,
+              expressionProcessor.scope,
+              scopeBuilder.asModuleScope(),
+              expressionNode,
+              makeSection(
+                scopeBuilder.getModule,
+                annotation.location
+              ),
+              closureName,
+              true,
+              false
+            )
+            new RuntimeAnnotation(
+              annotation.name,
+              closureRootNode
+            )
+          }
+      }
+    val funcSchemaBldr = FunctionSchema
+      .newBuilder()
+      .annotations(annotations: _*)
+      .argumentDefinitions(arguments: _*)
+    if (methodDef.isPrivate) {
+      funcSchemaBldr.projectPrivate();
+    }
+    val funcSchema = funcSchemaBldr.build();
+    new RuntimeFunction(
+      callTarget,
+      null,
+      funcSchema
+    )
+  }
+
+  private def buildBuiltinFunction(
+    fn: Function,
+    expressionProcessor: ExpressionProcessor,
+    methodDef: Method.Explicit,
+    effectContext: Option[String],
+    cons: Type,
+    fullMethodDefName: String
+  ): Either[CompilerError, Option[RuntimeFunction]] = {
+    // For builtin types that own the builtin method we only check that
+    // the method has been registered during the initialization of builtins
+    // and not attempt to register it in the scope (can't redefined methods).
+    // For non-builtin types (or modules) that own the builtin method
+    // we have to look up the function and register it in the scope.
+    // Static wrappers for instance methods have to be registered always.
+    val fullMethodName = methodDef.body
+      .asInstanceOf[Function.Lambda]
+      .body
+      .asInstanceOf[Literal.Text]
+
+    val builtinNameElements = fullMethodName.text.split('.')
+    if (builtinNameElements.length != 2) {
+      throw new CompilerError(
+        s"Unknown builtin method ${fullMethodName.text}, probably should be '$fullMethodDefName?'"
+      )
+    }
+    val methodName      = builtinNameElements(1)
+    val methodOwnerName = builtinNameElements(0)
+
+    val staticWrapper = methodDef.isStaticWrapperForInstanceMethod
+
+    val builtinFunction = context.getBuiltins
+      .getBuiltinFunction(
+        methodOwnerName,
+        methodName,
+        language,
+        staticWrapper
+      )
+    builtinFunction.toScala
+      .map(Some(_))
+      .toRight(
+        new CompilerError(
+          s"Unable to find Truffle Node for method ${cons.getName}.${methodDef.methodName.name}"
+        )
+      )
+      .left
+      .flatMap { l =>
+        // Builtin Types Number and Integer have methods only for documentation purposes
+        val number = context.getBuiltins.number()
+        val ok =
+          staticWrapper && (cons == number.getNumber.getEigentype || cons == number.getInteger.getEigentype) ||
+          !staticWrapper && (cons == number.getNumber             || cons == number.getInteger)
+        if (ok) Right(None)
+        else Left(l)
+      }
+      .map(fOpt =>
+        fOpt.map { m =>
+          if (m.isAutoRegister) {
+            val irFunctionArgumentsCount = fn.arguments.length
+            val builtinArgumentsCount =
+              m.getFunction.getSchema.getArgumentsCount
+            if (irFunctionArgumentsCount != builtinArgumentsCount) {
+              val irFunctionArguments =
+                fn.arguments.map(_.name.name).mkString(",")
+              val builtinArguments =
+                m.getFunction.getSchema.getArgumentInfos
+                  .map(_.getName)
+                  .mkString(",")
+              throw new CompilerError(
+                s"Wrong number of arguments provided in the definition of builtin function ${cons.getName}.${methodDef.methodName.name}. " +
+                s"[$irFunctionArguments] vs [$builtinArguments]"
+              )
+            }
+            val bodyBuilder =
+              new expressionProcessor.BuildFunctionBody(
+                m.getFunction.getName,
+                fn.arguments,
+                fn.body,
+                null,
+                effectContext,
+                true
+              )
+            val builtinRootNode =
+              m.getFunction.getCallTarget.getRootNode
+                .asInstanceOf[BuiltinRootNode]
+            builtinRootNode
+              .setModuleName(scopeBuilder.getModule.getName)
+            builtinRootNode.setTypeName(cons.getQualifiedName)
+            val funcSchemaBldr = FunctionSchema
+              .newBuilder()
+              .argumentDefinitions(bodyBuilder.args(): _*)
+            if (methodDef.isPrivate) {
+              funcSchemaBldr.projectPrivate();
+            }
+            val funcSchema = funcSchemaBldr.build()
+            new RuntimeFunction(
+              m.getFunction.getCallTarget,
+              null,
+              funcSchema
+            )
+          } else {
+            m.getFunction
+          }
+        }
+      )
+  }
+
+  private def getTypeAssociatedWithMethodDefinition(
+    methodDef: Method.Explicit
+  ): Option[Type] = {
+    methodDef.methodReference.typePointer match {
+      case None =>
+        Some(scopeAssociatedType)
+      case Some(tpePointer) =>
+        tpePointer
+          .getMetadata(MethodDefinitions)
+          .map { res =>
+            res.target match {
+              case binding @ BindingsMap.ResolvedType(_, _) =>
+                asType(binding)
+              case BindingsMap.ResolvedModule(module) =>
+                asAssociatedType(module.unsafeAsModule())
+              case BindingsMap.ResolvedConstructor(_, _) =>
+                throw new CompilerError(
+                  "Impossible, should be caught by MethodDefinitions pass"
+                )
+              case BindingsMap.ResolvedPolyglotSymbol(_, _) =>
+                throw new CompilerError(
+                  "Impossible polyglot symbol, should be caught by MethodDefinitions pass."
+                )
+              case BindingsMap.ResolvedPolyglotField(_, _) =>
+                throw new CompilerError(
+                  "Impossible polyglot field, should be caught by MethodDefinitions pass."
+                )
+              case _: BindingsMap.ResolvedModuleMethod =>
+                throw new CompilerError(
+                  "Impossible module method here, should be caught by MethodDefinitions pass."
+                )
+              case _: BindingsMap.ResolvedExtensionMethod =>
+                throw new CompilerError(
+                  "Impossible static method here, should be caught by MethodDefinitions pass."
+                )
+              case _: BindingsMap.ResolvedConversionMethod =>
+                throw new CompilerError(
+                  "Impossible conversion method here, should be caught by MethodDefinitions pass."
+                )
+            }
+          }
+    }
   }
 
   private def registerConversions(module: Module): Unit = {
