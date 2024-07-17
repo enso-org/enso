@@ -103,9 +103,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
   }
 
   if (category.type === categoryModule.CategoryType.trash) {
-    return selectedKeys.size === 0 ? (
-      <></>
-    ) : (
+    return selectedKeys.size === 0 ? null : (
       <ContextMenus key={uniqueString.uniqueString()} hidden={hidden} event={event}>
         <ContextMenu aria-label={getText('assetsTableContextMenuLabel')} hidden={hidden}>
           <ContextMenuEntry
@@ -199,15 +197,17 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
             )}
           </ContextMenu>
         )}
-        <GlobalContextMenu
-          hidden={hidden}
-          backend={backend}
-          hasPasteData={pasteData != null}
-          rootDirectoryId={rootDirectoryId}
-          directoryKey={null}
-          directoryId={null}
-          doPaste={doPaste}
-        />
+        {(user.plan == null || user.plan === backendModule.Plan.solo) && (
+          <GlobalContextMenu
+            hidden={hidden}
+            backend={backend}
+            hasPasteData={pasteData != null}
+            rootDirectoryId={rootDirectoryId}
+            directoryKey={null}
+            directoryId={null}
+            doPaste={doPaste}
+          />
+        )}
       </ContextMenus>
     )
   }

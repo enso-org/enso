@@ -468,6 +468,8 @@ export default function AssetsTable(props: AssetsTableProps) {
   const nodeMapRef = React.useRef<
     ReadonlyMap<backendModule.AssetId, assetTreeNode.AnyAssetTreeNode>
   >(new Map<backendModule.AssetId, assetTreeNode.AnyAssetTreeNode>())
+  const isAssetContextMenuVisible =
+    selectedKeys.size !== 0 || user.plan == null || user.plan === backendModule.Plan.solo
   const filter = React.useMemo(() => {
     const globCache: Record<string, RegExp> = {}
     if (/^\s*$/.test(query.query)) {
@@ -2460,23 +2462,25 @@ export default function AssetsTable(props: AssetsTableProps) {
     <div
       className="flex grow flex-col"
       onContextMenu={event => {
-        event.preventDefault()
-        event.stopPropagation()
-        setModal(
-          <AssetsTableContextMenu
-            backend={backend}
-            category={category}
-            pasteData={pasteData}
-            selectedKeys={selectedKeys}
-            clearSelectedKeys={clearSelectedKeys}
-            nodeMapRef={nodeMapRef}
-            event={event}
-            rootDirectoryId={rootDirectoryId}
-            doCopy={doCopy}
-            doCut={doCut}
-            doPaste={doPaste}
-          />
-        )
+        if (isAssetContextMenuVisible) {
+          event.preventDefault()
+          event.stopPropagation()
+          setModal(
+            <AssetsTableContextMenu
+              backend={backend}
+              category={category}
+              pasteData={pasteData}
+              selectedKeys={selectedKeys}
+              clearSelectedKeys={clearSelectedKeys}
+              nodeMapRef={nodeMapRef}
+              event={event}
+              rootDirectoryId={rootDirectoryId}
+              doCopy={doCopy}
+              doCut={doCut}
+              doPaste={doPaste}
+            />
+          )
+        }
       }}
       onDragLeave={event => {
         const payload = drag.LABELS.lookup(event)
