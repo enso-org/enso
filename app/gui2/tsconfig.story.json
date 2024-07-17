@@ -34,9 +34,5 @@
       "@/*": ["./src/*"]
     }
   },
-  "references": [
-    {
-      "path": "../ide-desktop/lib/dashboard/tsconfig.json"
-    }
-  ]
+  "references": [{ "path": "../dashboard" }]
 }
