@@ -98,9 +98,12 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   const systemApi = window.systemApi
   const ownsThisAsset = !isCloud || self?.permission === permissions.PermissionAction.own
   const managesThisAsset = ownsThisAsset || self?.permission === permissions.PermissionAction.admin
-
   const canEditThisAsset =
     managesThisAsset || self?.permission === permissions.PermissionAction.edit
+  const canAddToThisDirectory =
+    category.type !== categoryModule.CategoryType.recent &&
+    asset.type === backendModule.AssetType.directory &&
+    canEditThisAsset
 
   const { data } = reactQuery.useQuery(
     item.item.type === backendModule.AssetType.project
@@ -466,22 +469,21 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
           />
         )}
       </ContextMenu>
-      {category.type !== categoryModule.CategoryType.recent &&
-        asset.type === backendModule.AssetType.directory && (
-          <GlobalContextMenu
-            hidden={hidden}
-            backend={backend}
-            hasPasteData={hasPasteData}
-            rootDirectoryId={rootDirectoryId}
-            directoryKey={
-              // This is SAFE, as both branches are guaranteed to be `DirectoryId`s
-              // eslint-disable-next-line no-restricted-syntax
-              item.key as backendModule.DirectoryId
-            }
-            directoryId={asset.id}
-            doPaste={doPaste}
-          />
-        )}
+      {canAddToThisDirectory && (
+        <GlobalContextMenu
+          hidden={hidden}
+          backend={backend}
+          hasPasteData={hasPasteData}
+          rootDirectoryId={rootDirectoryId}
+          directoryKey={
+            // This is SAFE, as both branches are guaranteed to be `DirectoryId`s
+            // eslint-disable-next-line no-restricted-syntax
+            item.key as backendModule.DirectoryId
+          }
+          directoryId={asset.id}
+          doPaste={doPaste}
+        />
+      )}
     </ContextMenus>
   )
 }
