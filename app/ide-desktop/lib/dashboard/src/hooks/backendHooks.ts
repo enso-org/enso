@@ -391,7 +391,7 @@ export function useBackendListUsers(
 export function useBackendListUserGroups(
   backend: Backend
 ): readonly WithPlaceholder<backendModule.UserGroupInfo>[] | null {
-  const { user } = authProvider.useNonPartialUserSession()
+  const { user } = authProvider.useFullUserSession()
   const listUserGroupsQuery = useBackendQuery(backend, 'listUserGroups', [])
   const createUserGroupVariables = useBackendMutationVariables(backend, 'createUserGroup')
   const deleteUserGroupVariables = useBackendMutationVariables(backend, 'deleteUserGroup')

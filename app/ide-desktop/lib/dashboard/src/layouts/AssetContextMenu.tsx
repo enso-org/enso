@@ -68,7 +68,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   const { item, setItem, state, setRowState } = innerProps
   const { backend, category, hasPasteData } = state
 
-  const { user } = authProvider.useNonPartialUserSession()
+  const { user } = authProvider.useFullUserSession()
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const remoteBackend = backendProvider.useRemoteBackend()
   const localBackend = backendProvider.useLocalBackend()

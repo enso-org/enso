@@ -403,6 +403,7 @@
   "showPassword": "Show password",
   "copiedToClipboard": "Copied to clipboard",
   "noResultsFound": "No results found.",
+  "createAssetsInMyFiles": "Create assets in My Files",
 
   "deleteLabelActionText": "delete the label '$0'",
   "deleteSelectedAssetActionText": "delete '$0'",

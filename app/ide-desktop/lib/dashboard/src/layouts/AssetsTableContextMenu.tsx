@@ -58,7 +58,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
   const { hidden = false, backend, category, pasteData, selectedKeys, clearSelectedKeys } = props
   const { nodeMapRef, event, rootDirectoryId } = props
   const { doCopy, doCut, doPaste } = props
-  const { user } = authProvider.useNonPartialUserSession()
+  const { user } = authProvider.useFullUserSession()
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
   const isCloud = categoryModule.isCloudCategory(category)
@@ -197,7 +197,9 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
             )}
           </ContextMenu>
         )}
-        {(user.plan == null || user.plan === backendModule.Plan.solo) && (
+        {(category.type !== categoryModule.CategoryType.cloud ||
+          user.plan == null ||
+          user.plan === backendModule.Plan.solo) && (
           <GlobalContextMenu
             hidden={hidden}
             backend={backend}

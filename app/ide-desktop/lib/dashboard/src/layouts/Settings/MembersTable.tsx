@@ -35,7 +35,7 @@ export interface MembersTableProps {
 /** A list of members in the organization. */
 export default function MembersTable(props: MembersTableProps) {
   const { backend, populateWithSelf = false, draggable = false, allowDelete = false } = props
-  const { user } = authProvider.useNonPartialUserSession()
+  const { user } = authProvider.useFullUserSession()
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const [selectedKeys, setSelectedKeys] = React.useState<aria.Selection>(new Set())

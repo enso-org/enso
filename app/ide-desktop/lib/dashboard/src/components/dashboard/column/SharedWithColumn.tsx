@@ -45,7 +45,7 @@ export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
   const { item, setItem, state, isReadonly = false } = props
   const { category, setQuery } = state
   const asset = item.item
-  const { user } = authProvider.useNonPartialUserSession()
+  const { user } = authProvider.useFullUserSession()
   const dispatchAssetEvent = eventListProvider.useDispatchAssetEvent()
   const { isFeatureUnderPaywall } = billingHooks.usePaywall({ plan: user.plan })
   const isUnderPaywall = isFeatureUnderPaywall('share')

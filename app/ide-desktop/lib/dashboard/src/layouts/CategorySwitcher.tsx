@@ -64,7 +64,7 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
   const { currentCategory, setCategory } = props
   const { isNested = false, category, icon, label, buttonLabel, dropZoneLabel } = props
   const { iconClassName } = props
-  const { user } = authProvider.useNonPartialUserSession()
+  const { user } = authProvider.useFullUserSession()
   const { unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
   const localBackend = backendProvider.useLocalBackend()
@@ -215,7 +215,7 @@ export interface CategorySwitcherProps {
 /** A switcher to choose the currently visible assets table categoryModule.categoryType. */
 export default function CategorySwitcher(props: CategorySwitcherProps) {
   const { category, setCategory } = props
-  const { user } = authProvider.useNonPartialUserSession()
+  const { user } = authProvider.useFullUserSession()
   const { getText } = textProvider.useText()
   const remoteBackend = backendProvider.useRemoteBackendStrict()
   const dispatchAssetEvent = eventListProvider.useDispatchAssetEvent()
@@ -292,7 +292,7 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
                     type: categoryModule.CategoryType.user,
                     rootPath: backend.Path(`enso://Users/${otherUser.name}`),
                     homeDirectoryId: backend.DirectoryId(
-                      `directory-${otherUser.userId}`.replace(/^user-/, '')
+                      `directory-${otherUser.userId.replace(/^user-/, '')}`
                     ),
                   }}
                   icon={PersonIcon}
@@ -312,7 +312,7 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
                   team,
                   rootPath: backend.Path(`enso://Teams/${team.groupName}`),
                   homeDirectoryId: backend.DirectoryId(
-                    `directory-${team.id}`.replace(/^usergroup-/, '')
+                    `directory-${team.id.replace(/^usergroup-/, '')}`
                   ),
                 }}
                 icon={PeopleIcon}

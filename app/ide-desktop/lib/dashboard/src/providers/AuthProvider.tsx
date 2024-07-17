@@ -710,15 +710,6 @@ export function usePartialUserSession() {
   return router.useOutletContext<PartialUserSession>()
 }
 
-// ================================
-// === useNonPartialUserSession ===
-// ================================
-
-/** A React context hook returning the user session for a user that can perform actions. */
-export function useNonPartialUserSession() {
-  return router.useOutletContext<Exclude<UserSession, PartialUserSession>>()
-}
-
 // ======================
 // === useUserSession ===
 // ======================
@@ -728,9 +719,11 @@ export function useUserSession() {
   return router.useOutletContext<UserSession | undefined>()
 }
 
-/**
- * A React context hook returning the user session for a user that is fully logged in.
- */
+// ==========================
+// === useFullUserSession ===
+// ==========================
+
+/** A React context hook returning the user session for a user that is fully logged in. */
 export function useFullUserSession(): FullUserSession {
   const { session } = useAuth()
 

@@ -18,7 +18,7 @@ import * as validation from '#/utilities/validation'
 
 /** A form for changing the user's password. */
 export default function ChangePasswordForm() {
-  const { user } = authProvider.useNonPartialUserSession()
+  const { user } = authProvider.useFullUserSession()
   const { changePassword } = authProvider.useAuth()
   const { getText } = textProvider.useText()
   const [key, setKey] = React.useState('')

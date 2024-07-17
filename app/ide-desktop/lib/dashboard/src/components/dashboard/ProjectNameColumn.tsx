@@ -59,7 +59,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
   } = props
   const { backend, selectedKeys, nodeMap } = state
   const toastAndLog = toastAndLogHooks.useToastAndLog()
-  const { user } = authProvider.useNonPartialUserSession()
+  const { user } = authProvider.useFullUserSession()
   const { getText } = textProvider.useText()
   const inputBindings = inputBindingsProvider.useInputBindings()
   const dispatchAssetListEvent = eventListProvider.useDispatchAssetListEvent()

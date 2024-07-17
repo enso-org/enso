@@ -397,7 +397,7 @@ export default function AssetsTable(props: AssetsTableProps) {
   const openedProjects = projectsProvider.useLaunchedProjects()
   const doOpenProject = projectHooks.useOpenProject()
 
-  const { user } = authProvider.useNonPartialUserSession()
+  const { user } = authProvider.useFullUserSession()
   const backend = backendProvider.useBackend(category)
   const labels = backendHooks.useBackendListTags(backend)
   const { setModal, unsetModal } = modalProvider.useSetModal()
@@ -469,7 +469,10 @@ export default function AssetsTable(props: AssetsTableProps) {
     ReadonlyMap<backendModule.AssetId, assetTreeNode.AnyAssetTreeNode>
   >(new Map<backendModule.AssetId, assetTreeNode.AnyAssetTreeNode>())
   const isAssetContextMenuVisible =
-    selectedKeys.size !== 0 || user.plan == null || user.plan === backendModule.Plan.solo
+    category.type !== categoryModule.CategoryType.cloud ||
+    selectedKeys.size !== 0 ||
+    user.plan == null ||
+    user.plan === backendModule.Plan.solo
   const filter = React.useMemo(() => {
     const globCache: Record<string, RegExp> = {}
     if (/^\s*$/.test(query.query)) {

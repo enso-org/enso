@@ -76,7 +76,7 @@ export default function Drive(props: DriveProps) {
   const { isOffline } = offlineHooks.useOffline()
   const { localStorage } = localStorageProvider.useLocalStorage()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
-  const { user } = authProvider.useNonPartialUserSession()
+  const { user } = authProvider.useFullUserSession()
   const localBackend = backendProvider.useLocalBackend()
   const backend = backendProvider.useBackend(category)
   const { getText } = textProvider.useText()
@@ -269,6 +269,7 @@ export default function Drive(props: DriveProps) {
               setQuery={setQuery}
               suggestions={suggestions}
               category={category}
+              setCategory={setCategory}
               canDownload={canDownload}
               isAssetPanelOpen={isAssetPanelVisible}
               setIsAssetPanelOpen={valueOrUpdater => {

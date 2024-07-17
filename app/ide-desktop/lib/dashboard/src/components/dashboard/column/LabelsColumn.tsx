@@ -37,7 +37,7 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
   const { backend, category, setQuery } = state
   const { temporarilyAddedLabels, temporarilyRemovedLabels } = rowState
   const asset = item.item
-  const { user } = authProvider.useNonPartialUserSession()
+  const { user } = authProvider.useFullUserSession()
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()

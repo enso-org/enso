@@ -39,7 +39,7 @@ export default function UserMenu(props: UserMenuProps) {
   const [initialized, setInitialized] = React.useState(false)
   const localBackend = backendProvider.useLocalBackend()
   const { signOut } = authProvider.useAuth()
-  const { user } = authProvider.useNonPartialUserSession()
+  const { user } = authProvider.useFullUserSession()
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()

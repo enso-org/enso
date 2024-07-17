@@ -103,7 +103,7 @@ export default function AssetRow(props: AssetRowProps) {
   const { visibilities, category } = state
 
   const draggableProps = dragAndDropHooks.useDraggable()
-  const { user } = authProvider.useNonPartialUserSession()
+  const { user } = authProvider.useFullUserSession()
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
