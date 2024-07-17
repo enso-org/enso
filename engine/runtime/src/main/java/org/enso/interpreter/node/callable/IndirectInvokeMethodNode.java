@@ -25,6 +25,7 @@ import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.ArrayRope;
+import org.enso.interpreter.runtime.data.hash.HashMapInsertNode;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicSentinel;
@@ -129,7 +130,9 @@ public abstract class IndirectInvokeMethodNode extends Node {
       InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
       BaseNode.TailStatus isTail,
       int thisArgumentPosition,
-      @Cached IndirectInvokeMethodNode childDispatch) {
+      @Cached IndirectInvokeMethodNode childDispatch,
+      @Cached HashMapInsertNode insertNode,
+      @CachedLibrary(limit = "3") InteropLibrary interop) {
     arguments[thisArgumentPosition] = self.getValue();
     ArrayRope<Warning> warnings = self.getReassignedWarningsAsRope(this, false);
     Object result =
@@ -144,7 +147,7 @@ public abstract class IndirectInvokeMethodNode extends Node {
             argumentsExecutionMode,
             isTail,
             thisArgumentPosition);
-    return WithWarnings.appendTo(EnsoContext.get(this), result, warnings);
+    return WithWarnings.appendTo(result, EnsoContext.get(this), insertNode, interop, warnings);
   }
 
   @Specialization

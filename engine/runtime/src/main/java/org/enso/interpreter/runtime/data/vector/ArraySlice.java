@@ -15,6 +15,7 @@ import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEn
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.data.hash.HashMapInsertNode;
 import org.enso.interpreter.runtime.error.Warning;
 import org.enso.interpreter.runtime.error.WarningsLibrary;
 import org.enso.interpreter.runtime.error.WithWarnings;
@@ -91,7 +92,8 @@ final class ArraySlice implements EnsoObject {
       long index,
       @Shared("interop") @CachedLibrary(limit = "3") InteropLibrary interop,
       @CachedLibrary(limit = "3") WarningsLibrary warnings,
-      @Cached HostValueToEnsoNode toEnso)
+      @Cached HostValueToEnsoNode toEnso,
+      @Cached HashMapInsertNode insertNode)
       throws InvalidArrayIndexException, UnsupportedMessageException {
     if (index < 0 || index >= getArraySize(interop)) {
       throw InvalidArrayIndexException.create(index);
@@ -103,7 +105,8 @@ final class ArraySlice implements EnsoObject {
       if (warnings.hasWarnings(v)) {
         v = warnings.removeWarnings(v);
       }
-      return WithWarnings.wrap(EnsoContext.get(warnings), toEnso.execute(v), extracted);
+      return WithWarnings.wrap(
+          toEnso.execute(v), EnsoContext.get(warnings), insertNode, interop, extracted);
     }
     return toEnso.execute(v);
   }

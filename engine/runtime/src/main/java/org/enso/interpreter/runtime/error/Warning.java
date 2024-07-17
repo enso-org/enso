@@ -2,9 +2,11 @@ package org.enso.interpreter.runtime.error;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Bind;
+import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.InvalidArrayIndexException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
+import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.Node;
@@ -17,9 +19,10 @@ import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.ArrayRope;
 import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.data.hash.EnsoHashMap;
+import org.enso.interpreter.runtime.data.hash.HashMapInsertNode;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
-import org.graalvm.collections.EconomicSet;
 
 @Builtin(pkg = "error", stdlibName = "Standard.Base.Warning.Warning")
 @ExportLibrary(TypesLibrary.class)
@@ -74,8 +77,14 @@ public final class Warning implements EnsoObject {
       autoRegister = false)
   @Builtin.Specialize
   public static WithWarnings attach(
-      EnsoContext ctx, WithWarnings value, Object warning, Object origin) {
-    return value.append(ctx, new Warning(warning, origin, ctx.nextSequenceId()));
+      EnsoContext ctx,
+      WithWarnings value,
+      Object warning,
+      Object origin,
+      @Cached HashMapInsertNode insertNode,
+      @CachedLibrary(limit = "3") InteropLibrary interop) {
+    return value.append(
+        ctx, insertNode, interop, new Warning(warning, origin, ctx.nextSequenceId()));
   }
 
   @Builtin.Method(
@@ -83,8 +92,15 @@ public final class Warning implements EnsoObject {
       description = "Attaches the given warning to the value.",
       autoRegister = false)
   @Builtin.Specialize(fallback = true)
-  public static WithWarnings attach(EnsoContext ctx, Object value, Object warning, Object origin) {
-    return WithWarnings.wrap(ctx, value, new Warning(warning, origin, ctx.nextSequenceId()));
+  public static WithWarnings attach(
+      EnsoContext ctx,
+      Object value,
+      Object warning,
+      Object origin,
+      @Cached HashMapInsertNode insertNode,
+      @CachedLibrary(limit = "3") InteropLibrary interop) {
+    return WithWarnings.wrap(
+        value, ctx, insertNode, interop, new Warning(warning, origin, ctx.nextSequenceId()));
   }
 
   @Builtin.Method(
@@ -94,8 +110,12 @@ public final class Warning implements EnsoObject {
   @Builtin.Specialize
   @CompilerDirectives.TruffleBoundary
   public static EnsoObject getAll(
-      WithWarnings value, boolean shouldWrap, WarningsLibrary warningsLib) {
-    Warning[] warnings = value.getWarningsArray(warningsLib, shouldWrap);
+      WithWarnings value,
+      boolean shouldWrap,
+      WarningsLibrary warningsLib,
+      @Cached HashMapInsertNode insertNode,
+      @CachedLibrary(limit = "3") InteropLibrary interop) {
+    Warning[] warnings = value.getWarningsArray(shouldWrap, warningsLib, insertNode, interop);
     sortArray(warnings);
     return ArrayLikeHelpers.asVectorEnsoObjects(warnings);
   }
@@ -105,7 +125,12 @@ public final class Warning implements EnsoObject {
       description = "Gets all the warnings associated with the value.",
       autoRegister = false)
   @Builtin.Specialize(fallback = true)
-  public static EnsoObject getAll(Object value, boolean shouldWrap, WarningsLibrary warningsLib) {
+  public static EnsoObject getAll(
+      Object value,
+      boolean shouldWrap,
+      WarningsLibrary warningsLib,
+      @Cached HashMapInsertNode insertNode,
+      @CachedLibrary(limit = "3") InteropLibrary interop) {
     if (warningsLib.hasWarnings(value)) {
       try {
         Warning[] warnings = warningsLib.getWarnings(value, null, shouldWrap);
@@ -134,7 +159,7 @@ public final class Warning implements EnsoObject {
       autoRegister = false)
   @Builtin.Specialize(fallback = true)
   public static boolean limitReached(Object value, WarningsLibrary warnings) {
-    return warnings.hasWarnings(value) ? warnings.isLimitReached(value) : false;
+    return warnings.hasWarnings(value) && warnings.isLimitReached(value);
   }
 
   @CompilerDirectives.TruffleBoundary
@@ -142,10 +167,26 @@ public final class Warning implements EnsoObject {
     Arrays.sort(arr, Comparator.comparing(Warning::getSequenceId).reversed());
   }
 
-  /** Converts set to an array behing a truffle boundary. */
-  @CompilerDirectives.TruffleBoundary
-  public static Warning[] fromSetToArray(EconomicSet<Warning> set) {
-    return set.toArray(new Warning[set.size()]);
+  public static Warning[] fromSetToArray(EnsoHashMap set) {
+    return fromSetToArray(set, InteropLibrary.getUncached());
+  }
+
+  public static Warning[] fromSetToArray(EnsoHashMap set, InteropLibrary interop) {
+    var vec = set.getCachedVectorRepresentation();
+    Warning[] warns = null;
+    try {
+      var vecSize = interop.getArraySize(vec);
+      warns = new Warning[Math.toIntExact(vecSize)];
+      for (int i = 0; i < vecSize; i++) {
+        var entry = interop.readArrayElement(vec, i);
+        assert interop.getArraySize(entry) == 2;
+        var key = interop.readArrayElement(entry, 0);
+        warns[i] = (Warning) key;
+      }
+    } catch (UnsupportedMessageException | InvalidArrayIndexException e) {
+      throw new IllegalStateException(e);
+    }
+    return warns;
   }
 
   @Builtin.Method(
@@ -155,8 +196,12 @@ public final class Warning implements EnsoObject {
   @Builtin.Specialize
   @SuppressWarnings("generic-enso-builtin-type")
   public static Object set(
-      EnsoContext ctx, WithWarnings value, Object warnings, InteropLibrary interop) {
-    return setGeneric(ctx, value.getValue(), interop, warnings);
+      EnsoContext ctx,
+      WithWarnings value,
+      Object warnings,
+      InteropLibrary interop,
+      @Cached HashMapInsertNode insertNode) {
+    return setGeneric(ctx, value.getValue(), interop, warnings, insertNode);
   }
 
   @Builtin.Method(
@@ -165,12 +210,21 @@ public final class Warning implements EnsoObject {
       autoRegister = false)
   @SuppressWarnings("generic-enso-builtin-type")
   @Builtin.Specialize(fallback = true)
-  public static Object set(EnsoContext ctx, Object value, Object warnings, InteropLibrary interop) {
-    return setGeneric(ctx, value, interop, warnings);
+  public static Object set(
+      EnsoContext ctx,
+      Object value,
+      Object warnings,
+      InteropLibrary interop,
+      @Cached HashMapInsertNode insertNode) {
+    return setGeneric(ctx, value, interop, warnings, insertNode);
   }
 
   private static Object setGeneric(
-      EnsoContext ctx, Object value, InteropLibrary interop, Object warnings) {
+      EnsoContext ctx,
+      Object value,
+      InteropLibrary interop,
+      Object warnings,
+      HashMapInsertNode insertNode) {
     try {
       var size = interop.getArraySize(warnings);
       if (size == 0) {
@@ -180,7 +234,7 @@ public final class Warning implements EnsoObject {
       for (int i = 0; i < warningsCast.length; i++) {
         warningsCast[i] = (Warning) interop.readArrayElement(warnings, i);
       }
-      return WithWarnings.wrap(ctx, value, warningsCast);
+      return WithWarnings.wrap(value, ctx, insertNode, interop, warningsCast);
     } catch (UnsupportedMessageException | InvalidArrayIndexException ex) {
       throw EnsoContext.get(interop).raiseAssertionPanic(interop, null, ex);
     }

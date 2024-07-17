@@ -11,6 +11,8 @@ import com.oracle.truffle.api.frame.FrameDescriptor;
 import com.oracle.truffle.api.frame.FrameSlotKind;
 import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.LoopNode;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeInfo;
@@ -21,6 +23,7 @@ import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.control.TailCallException;
+import org.enso.interpreter.runtime.data.hash.HashMapInsertNode;
 import org.enso.interpreter.runtime.error.Warning;
 import org.enso.interpreter.runtime.error.WithWarnings;
 import org.enso.interpreter.runtime.state.State;
@@ -77,9 +80,11 @@ public abstract class LoopingCallOptimiserNode extends CallOptimiserNode {
       State state,
       Object[] arguments,
       Warning[] warnings,
-      @Shared("loopNode") @Cached(value = "createLoopNode()") LoopNode loopNode) {
+      @Shared("loopNode") @Cached(value = "createLoopNode()") LoopNode loopNode,
+      @Shared("insertNode") @Cached HashMapInsertNode insertNode,
+      @Shared("interop") @CachedLibrary(limit = "3") InteropLibrary interop) {
     Object result = dispatch(function, callerInfo, state, arguments, loopNode);
-    return WithWarnings.appendTo(EnsoContext.get(this), result, warnings);
+    return WithWarnings.appendTo(result, EnsoContext.get(this), insertNode, interop, warnings);
   }
 
   private Object dispatch(
@@ -118,10 +123,12 @@ public abstract class LoopingCallOptimiserNode extends CallOptimiserNode {
       State state,
       Object[] arguments,
       Warning[] warnings,
-      @Shared("executeCallNode") @Cached ExecuteCallNode executeCallNode) {
+      @Shared("executeCallNode") @Cached ExecuteCallNode executeCallNode,
+      @Shared("insertNode") @Cached HashMapInsertNode insertNode,
+      @Shared("interop") @CachedLibrary(limit = "3") InteropLibrary interop) {
     Object result =
         loopUntilCompletion(frame, function, callerInfo, state, arguments, executeCallNode);
-    return WithWarnings.appendTo(EnsoContext.get(this), result, warnings);
+    return WithWarnings.appendTo(result, EnsoContext.get(this), insertNode, interop, warnings);
   }
 
   private Object loopUntilCompletion(

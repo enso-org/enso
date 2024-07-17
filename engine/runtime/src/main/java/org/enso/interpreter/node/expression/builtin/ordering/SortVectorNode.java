@@ -354,7 +354,7 @@ public abstract class SortVectorNode extends Node {
             .map(text -> Warning.create(ctx, text, this))
             .limit(MAX_SORT_WARNINGS)
             .toArray(Warning[]::new);
-    return WithWarnings.appendTo(ctx, vector, warnArray.length < warnings.size(), warnArray);
+    return WithWarnings.appendTo(vector, warnArray.length < warnings.size(), warnArray);
   }
 
   private Object attachDifferentComparatorsWarning(Object vector, List<Group> groups) {
@@ -366,7 +366,7 @@ public abstract class SortVectorNode extends Node {
     var text = Text.create("Different comparators: [" + diffCompsMsg + "]");
     var ctx = EnsoContext.get(this);
     var warn = Warning.create(ctx, text, this);
-    return WithWarnings.appendTo(ctx, vector, false, warn);
+    return WithWarnings.appendTo(vector, warn);
   }
 
   private String getDefaultComparatorQualifiedName() {

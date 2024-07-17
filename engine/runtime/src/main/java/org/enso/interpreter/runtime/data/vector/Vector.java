@@ -15,6 +15,7 @@ import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEn
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.data.hash.HashMapInsertNode;
 import org.enso.interpreter.runtime.error.Warning;
 import org.enso.interpreter.runtime.error.WarningsLibrary;
 import org.enso.interpreter.runtime.error.WithWarnings;
@@ -249,7 +250,8 @@ abstract class Vector implements EnsoObject {
         long index,
         @Cached.Shared(value = "interop") @CachedLibrary(limit = "3") InteropLibrary interop,
         @CachedLibrary(limit = "3") WarningsLibrary warnings,
-        @Cached HostValueToEnsoNode toEnso)
+        @Cached HostValueToEnsoNode toEnso,
+        @Cached HashMapInsertNode insertNode)
         throws InvalidArrayIndexException, UnsupportedMessageException {
       var v = interop.readArrayElement(this.storage, index);
       if (warnings.hasWarnings(this.storage)) {
@@ -257,7 +259,8 @@ abstract class Vector implements EnsoObject {
         if (warnings.hasWarnings(v)) {
           v = warnings.removeWarnings(v);
         }
-        return WithWarnings.wrap(EnsoContext.get(interop), toEnso.execute(v), extracted);
+        return WithWarnings.wrap(
+            toEnso.execute(v), EnsoContext.get(interop), insertNode, interop, extracted);
       }
       return toEnso.execute(v);
     }

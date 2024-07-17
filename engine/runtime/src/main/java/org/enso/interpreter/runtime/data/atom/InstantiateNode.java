@@ -4,7 +4,9 @@ import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
+import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.profiles.BranchProfile;
@@ -12,6 +14,7 @@ import com.oracle.truffle.api.profiles.CountingConditionProfile;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.ArrayRope;
+import org.enso.interpreter.runtime.data.hash.HashMapInsertNode;
 import org.enso.interpreter.runtime.error.Warning;
 import org.enso.interpreter.runtime.error.WarningsLibrary;
 import org.enso.interpreter.runtime.error.WithWarnings;
@@ -66,7 +69,9 @@ abstract class InstantiateNode extends ExpressionNode {
   @ExplodeLoop
   Object doExecute(
       VirtualFrame frame,
-      @Cached(parameters = {"constructor"}) AtomConstructorInstanceNode createInstanceNode) {
+      @Cached(parameters = {"constructor"}) AtomConstructorInstanceNode createInstanceNode,
+      @Cached HashMapInsertNode insertNode,
+      @CachedLibrary(limit = "3") InteropLibrary interop) {
     Object[] argumentValues = new Object[arguments.length];
     boolean anyWarnings = false;
     ArrayRope<Warning> accumulatedWarnings = new ArrayRope<>();
@@ -95,7 +100,11 @@ abstract class InstantiateNode extends ExpressionNode {
     }
     if (anyWarningsProfile.profile(anyWarnings)) {
       return WithWarnings.appendTo(
-          EnsoContext.get(this), createInstanceNode.execute(argumentValues), accumulatedWarnings);
+          createInstanceNode.execute(argumentValues),
+          EnsoContext.get(this),
+          insertNode,
+          interop,
+          accumulatedWarnings);
     } else {
       return createInstanceNode.execute(argumentValues);
     }

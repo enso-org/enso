@@ -19,7 +19,6 @@ import java.util.UUID;
 import java.util.concurrent.locks.Lock;
 import org.enso.interpreter.Constants;
 import org.enso.interpreter.node.BaseNode;
-import org.enso.interpreter.node.BaseNode.TailStatus;
 import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
 import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
 import org.enso.interpreter.runtime.EnsoContext;
@@ -31,6 +30,7 @@ import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.control.TailCallException;
 import org.enso.interpreter.runtime.data.atom.Atom;
 import org.enso.interpreter.runtime.data.atom.AtomConstructor;
+import org.enso.interpreter.runtime.data.hash.HashMapInsertNode;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.error.PanicSentinel;
@@ -287,7 +287,9 @@ public abstract class InvokeCallableNode extends BaseNode {
       VirtualFrame callerFrame,
       State state,
       Object[] arguments,
-      @Shared("warnings") @CachedLibrary(limit = "3") WarningsLibrary warnings) {
+      @Shared("warnings") @CachedLibrary(limit = "3") WarningsLibrary warnings,
+      @Cached HashMapInsertNode insertNode,
+      @Shared("interop") @CachedLibrary(limit = "3") InteropLibrary interop) {
 
     Warning[] extracted;
     Object callable;
@@ -325,7 +327,7 @@ public abstract class InvokeCallableNode extends BaseNode {
       if (result instanceof DataflowError) {
         return result;
       } else {
-        return WithWarnings.wrap(EnsoContext.get(this), result, extracted);
+        return WithWarnings.wrap(result, EnsoContext.get(this), insertNode, interop, extracted);
       }
     } catch (TailCallException e) {
       throw new TailCallException(e, extracted);
@@ -345,7 +347,7 @@ public abstract class InvokeCallableNode extends BaseNode {
       State state,
       Object[] arguments,
       @Bind("$node") Node node,
-      @CachedLibrary(limit = "3") InteropLibrary iop,
+      @Shared("interop") @CachedLibrary(limit = "3") InteropLibrary iop,
       @Shared("warnings") @CachedLibrary(limit = "3") WarningsLibrary warnings,
       @CachedLibrary(limit = "3") TypesLibrary types,
       @Cached ThunkExecutorNode thunkNode,

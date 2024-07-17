@@ -1,10 +1,12 @@
 package org.enso.interpreter.node.controlflow.caseexpr;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Cached.Shared;
 import com.oracle.truffle.api.dsl.NodeChild;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
@@ -13,6 +15,7 @@ import com.oracle.truffle.api.profiles.CountingConditionProfile;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.data.hash.HashMapInsertNode;
 import org.enso.interpreter.runtime.error.*;
 import org.enso.interpreter.runtime.state.State;
 import org.enso.interpreter.runtime.type.TypesGen;
@@ -82,12 +85,14 @@ public abstract class CaseNode extends ExpressionNode {
   Object doWarning(
       VirtualFrame frame,
       Object object,
-      @Shared("warnsLib") @CachedLibrary(limit = "3") WarningsLibrary warnings) {
+      @Shared("warnsLib") @CachedLibrary(limit = "3") WarningsLibrary warnings,
+      @Cached HashMapInsertNode insertNode,
+      @CachedLibrary(limit = "3") InteropLibrary interop) {
     try {
       EnsoContext ctx = EnsoContext.get(this);
       Warning[] ws = warnings.getWarnings(object, this, false);
       Object result = doMatch(frame, warnings.removeWarnings(object), warnings);
-      return WithWarnings.wrap(ctx, result, ws);
+      return WithWarnings.wrap(result, ctx, insertNode, interop, ws);
     } catch (UnsupportedMessageException e) {
       throw EnsoContext.get(this).raiseAssertionPanic(this, null, e);
     }

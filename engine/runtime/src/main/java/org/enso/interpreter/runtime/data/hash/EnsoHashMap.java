@@ -66,7 +66,7 @@ public final class EnsoHashMap implements EnsoObject {
     }
   }
 
-  Object getCachedVectorRepresentation() {
+  public Object getCachedVectorRepresentation() {
     return getCachedVectorRepresentation(ConditionProfile.getUncached());
   }
 
@@ -98,7 +98,7 @@ public final class EnsoHashMap implements EnsoObject {
   }
 
   @ExportMessage
-  int getHashSize() {
+  public int getHashSize() {
     return size;
   }
 

@@ -3,6 +3,7 @@ package org.enso.interpreter.runtime.data.hash;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Cached.Shared;
+import com.oracle.truffle.api.dsl.GenerateUncached;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.interop.InteropLibrary;
@@ -25,6 +26,7 @@ import org.enso.interpreter.runtime.error.PanicException;
         Returns newly created hash map with the given key value mapping.
         """,
     autoRegister = false)
+@GenerateUncached
 public abstract class HashMapInsertNode extends Node {
 
   public static HashMapInsertNode build() {

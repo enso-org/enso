@@ -21,6 +21,7 @@ import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.ArrayRope;
 import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.data.hash.HashMapInsertNode;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
@@ -157,7 +158,9 @@ abstract class IndirectInvokeConversionNode extends Node {
       InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
       BaseNode.TailStatus isTail,
       int thatArgumentPosition,
-      @Cached IndirectInvokeConversionNode childDispatch) {
+      @Cached IndirectInvokeConversionNode childDispatch,
+      @Cached HashMapInsertNode insertNode,
+      @CachedLibrary(limit = "3") InteropLibrary interop) {
     arguments[thatArgumentPosition] = that.getValue();
     ArrayRope<Warning> warnings = that.getReassignedWarningsAsRope(this, false);
     Object result =
@@ -173,7 +176,7 @@ abstract class IndirectInvokeConversionNode extends Node {
             argumentsExecutionMode,
             isTail,
             thatArgumentPosition);
-    return WithWarnings.appendTo(EnsoContext.get(this), result, warnings);
+    return WithWarnings.appendTo(result, EnsoContext.get(this), insertNode, interop, warnings);
   }
 
   @Specialization(guards = "interop.isString(that)")

@@ -23,6 +23,7 @@ import org.enso.interpreter.runtime.control.TailCallException;
 import org.enso.interpreter.runtime.data.ArrayRope;
 import org.enso.interpreter.runtime.data.EnsoMultiValue;
 import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.data.hash.HashMapInsertNode;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
@@ -197,7 +198,9 @@ public abstract class InvokeConversionNode extends BaseNode {
       UnresolvedConversion conversion,
       Object self,
       WithWarnings that,
-      Object[] arguments) {
+      Object[] arguments,
+      @Cached HashMapInsertNode insertNode,
+      @CachedLibrary(limit = "3") InteropLibrary interop) {
     // Cannot use @Cached for childDispatch, because we need to call notifyInserted.
     if (childDispatch == null) {
       CompilerDirectives.transferToInterpreterAndInvalidate();
@@ -225,7 +228,7 @@ public abstract class InvokeConversionNode extends BaseNode {
     ArrayRope<Warning> warnings = that.getReassignedWarningsAsRope(this, false);
     try {
       Object result = childDispatch.execute(frame, state, conversion, self, value, arguments);
-      return WithWarnings.appendTo(EnsoContext.get(this), result, warnings);
+      return WithWarnings.appendTo(result, EnsoContext.get(this), insertNode, interop, warnings);
     } catch (TailCallException e) {
       throw new TailCallException(e, warnings.toArray(Warning[]::new));
     }

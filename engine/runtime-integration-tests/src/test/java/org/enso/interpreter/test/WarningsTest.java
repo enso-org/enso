@@ -10,7 +10,6 @@ import org.enso.common.LanguageInfo;
 import org.enso.common.MethodNames;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.error.Warning;
-import org.enso.interpreter.runtime.error.WarningsLibrary;
 import org.enso.interpreter.runtime.error.WithWarnings;
 import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Context;
@@ -61,15 +60,13 @@ public class WarningsTest {
     var warn2 = Warning.create(ensoContext, "w2", this);
     var value = 42L;
 
-    var with1 = WithWarnings.wrap(ensoContext, value, warn1);
-    var with2 = WithWarnings.wrap(ensoContext, with1, warn2);
+    var with1 = WithWarnings.wrap(value, warn1);
+    var with2 = WithWarnings.wrap(with1, warn2);
 
     assertEquals(value, with1.getValue());
     assertEquals(value, with2.getValue());
-    Assert.assertArrayEquals(
-        new Object[] {warn1}, with1.getWarningsArray(WarningsLibrary.getUncached(), false));
-    Assert.assertArrayEquals(
-        new Object[] {warn1, warn2}, with2.getWarningsArray(WarningsLibrary.getUncached(), false));
+    Assert.assertArrayEquals(new Object[] {warn1}, with1.getWarningsArray(false));
+    Assert.assertArrayEquals(new Object[] {warn1, warn2}, with2.getWarningsArray(false));
   }
 
   @Test
@@ -77,7 +74,7 @@ public class WarningsTest {
     var value = 42;
     WithWarnings without;
     try {
-      without = WithWarnings.wrap(ensoContext, 42, new Warning[0]);
+      without = WithWarnings.wrap(42);
     } catch (AssertionError e) {
       // OK
       return;

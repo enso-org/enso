@@ -51,6 +51,7 @@ import org.enso.interpreter.runtime.data.EnsoMultiValue;
 import org.enso.interpreter.runtime.data.EnsoTimeOfDay;
 import org.enso.interpreter.runtime.data.EnsoTimeZone;
 import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.data.hash.HashMapInsertNode;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
@@ -435,7 +436,9 @@ public abstract class InvokeMethodNode extends BaseNode {
       UnresolvedSymbol symbol,
       Object self,
       Object[] arguments,
-      @Shared("warnings") @CachedLibrary(limit = "10") WarningsLibrary warnings) {
+      @Shared("warnings") @CachedLibrary(limit = "10") WarningsLibrary warnings,
+      @CachedLibrary(limit = "3") InteropLibrary interop,
+      @Shared("insertNode") @Cached HashMapInsertNode insertNode) {
     Object selfWithoutWarnings;
     Warning[] arrOfWarnings;
     try {
@@ -474,7 +477,8 @@ public abstract class InvokeMethodNode extends BaseNode {
 
     try {
       Object result = childDispatch.execute(frame, state, symbol, selfWithoutWarnings, arguments);
-      return WithWarnings.appendTo(EnsoContext.get(this), result, arrOfWarnings);
+      return WithWarnings.appendTo(
+          result, EnsoContext.get(this), insertNode, interop, arrOfWarnings);
     } catch (TailCallException e) {
       throw new TailCallException(e, arrOfWarnings);
     }
@@ -504,7 +508,8 @@ public abstract class InvokeMethodNode extends BaseNode {
       @Cached(value = "buildProfiles()", dimensions = 1) BranchProfile[] profiles,
       @Cached(value = "buildProfiles()", dimensions = 1) BranchProfile[] warningProfiles,
       @Cached BranchProfile anyWarningsProfile,
-      @Cached HostMethodCallNode hostMethodCallNode) {
+      @Cached HostMethodCallNode hostMethodCallNode,
+      @Shared("insertNode") @Cached HashMapInsertNode insertNode) {
     Object[] args = new Object[argExecutors.length];
     boolean anyWarnings = false;
     ArrayRope<Warning> accumulatedWarnings = new ArrayRope<>();
@@ -530,7 +535,9 @@ public abstract class InvokeMethodNode extends BaseNode {
     Object res = hostMethodCallNode.execute(polyglotCallType, symbol.getName(), self, args);
     if (anyWarnings) {
       anyWarningsProfile.enter();
-      res = WithWarnings.appendTo(EnsoContext.get(this), res, accumulatedWarnings);
+      res =
+          WithWarnings.appendTo(
+              res, EnsoContext.get(this), insertNode, interop, accumulatedWarnings);
     }
     return res;
   }
