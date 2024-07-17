@@ -3,7 +3,7 @@ import * as React from 'react'
 
 import * as reactQuery from '@tanstack/react-query'
 
-import ReloadIcon from 'enso-assets/reload.svg'
+import ReloadIcon from '#/assets/reload.svg'
 
 import * as textProvider from '#/providers/TextProvider'
 
@@ -58,7 +58,7 @@ function ProjectLogsModalInternal(props: ProjectLogsModalInternalProps) {
     <div className="flex flex-col">
       <div className="flex h-row items-center gap-4 self-start rounded-full border-0.5 border-primary/20 px-[11px] text-primary/50">
         <ariaComponents.Button
-          size="icon"
+          size="medium"
           variant="icon"
           icon={ReloadIcon}
           onPress={async () => {
