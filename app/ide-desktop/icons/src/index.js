@@ -211,6 +211,7 @@ async function genIcons(outputDir) {
 
 /** Main entry function. */
 async function main() {
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     const outputDir = process.env.ENSO_BUILD_ICONS ?? process.argv[2]
     if (outputDir == null) {
         const script = process.env.npm_package_name ?? url.fileURLToPath(import.meta.url)

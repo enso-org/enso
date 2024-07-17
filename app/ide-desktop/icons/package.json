@@ -1,5 +1,6 @@
 {
   "name": "enso-icons",
+  "type": "module",
   "version": "1.0.0",
   "author": {
     "name": "Enso Team",
