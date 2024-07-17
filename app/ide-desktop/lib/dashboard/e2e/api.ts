@@ -78,7 +78,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
     isEnabled: true,
     rootDirectoryId: defaultDirectoryId,
     userGroups: null,
-    plan: backend.Plan.enterprise,
+    plan: backend.Plan.solo,
   }
   const defaultOrganization: backend.OrganizationInfo = {
     id: defaultOrganizationId,
@@ -464,6 +464,9 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
         await route.fulfill({ status: HTTP_STATUS_BAD_REQUEST })
         return
       }
+    })
+    await get(remoteBackendPaths.LIST_USER_GROUPS_PATH + '*', async route => {
+      await route.fulfill({ json: [] })
     })
     await get(remoteBackendPaths.LIST_VERSIONS_PATH + '*', (_route, request) => ({
       versions: [
