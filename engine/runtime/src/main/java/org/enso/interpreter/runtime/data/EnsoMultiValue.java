@@ -2,7 +2,10 @@ package org.enso.interpreter.runtime.data;
 
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
+import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Cached.Shared;
+import com.oracle.truffle.api.dsl.NeverDefault;
+import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.InvalidArrayIndexException;
@@ -12,6 +15,7 @@ import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
+import com.oracle.truffle.api.nodes.Node;
 import java.math.BigInteger;
 import java.time.Duration;
 import java.time.LocalDate;
@@ -413,19 +417,39 @@ public final class EnsoMultiValue implements EnsoObject {
     return Arrays.stream(types).map(t -> t.getName()).collect(Collectors.joining(" & "));
   }
 
-  /**
-   * Casts value in this multi value into specific t.
-   *
-   * @param type the requested t
-   * @return instance of the {@code t} or {@code null} if no suitable value was found
-   */
-  public final Object castTo(Type type) {
-    for (var i = 0; i < types.length; i++) {
-      if (types[i] == type) {
-        return values[i];
-      }
+  /** Casts {@link EnsoMultiValue} to requested type effectively. */
+  public abstract static class CastToNode extends Node {
+    /**
+     * Casts value in a multi value into specific type.
+     *
+     * @param type the requested t
+     * @param mv a multi value
+     * @return instance of the {@code t} or {@code null} if no suitable value was found
+     */
+    public abstract Object executeCast(Type type, EnsoMultiValue mv);
+
+    @NeverDefault
+    public static CastToNode create() {
+      return EnsoMultiValueFactory.CastToNodeGen.create();
     }
-    return null;
+
+    @NeverDefault
+    public static CastToNode getUncached() {
+      return EnsoMultiValueFactory.CastToNodeGen.getUncached();
+    }
+
+    @Specialization
+    Object castsToAType(
+        Type type,
+        EnsoMultiValue mv,
+        @Cached(value = "type", allowUncached = true, neverDefault = true) Type cachedType) {
+      for (var i = 0; i < mv.types.length; i++) {
+        if (mv.types[i] == cachedType) {
+          return mv.values[i];
+        }
+      }
+      return null;
+    }
   }
 
   /**
