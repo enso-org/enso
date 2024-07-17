@@ -3,8 +3,10 @@
 #### Enso Language & Runtime
 
 - [Enforce conversion method return type][10468]
+- [Renaming launcher executable to ensoup][10535]
 
 [10468]: https://github.com/enso-org/enso/pull/10468
+[10535]: https://github.com/enso-org/enso/pull/10535
 
 #### Enso IDE
 
@@ -12,7 +14,7 @@
 - [Numeric Widget does not accept non-numeric input][10457]. This is to prevent
   node being completely altered by accidental code put to the widget.
 - [Redesigned "record control" panel][10509]. Now it contains more intuitive
-  "refresh" and "run workflow" buttons.
+  "refresh" and "write all" buttons.
 - [Warning messages do not obscure visualization buttons][10546].
 
 [10433]: https://github.com/enso-org/enso/pull/10443
@@ -31,12 +33,14 @@
 - [Rename `Map` to `Dictionary` and `Set` to `Hashset`.][10474]
 - [Compare two objects with `Ordering.compare` and define comparator with
   `Comparable.new`][10468]
+- [Added `dec` construction function for creating `Decimal`s.][10517]
 
 [10434]: https://github.com/enso-org/enso/pull/10434
 [10445]: https://github.com/enso-org/enso/pull/10445
 [10466]: https://github.com/enso-org/enso/pull/10466
 [10467]: https://github.com/enso-org/enso/pull/10467
 [10474]: https://github.com/enso-org/enso/pull/10474
+[10517]: https://github.com/enso-org/enso/pull/10517
 
 # Enso 2024.2
 

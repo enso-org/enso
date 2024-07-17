@@ -60,8 +60,12 @@ class App {
         log.addFileLog()
         urlAssociations.registerAssociations()
         // Register file associations for macOS.
-        fileAssociations.setOpenFileEventHandler(id => {
-            this.setProjectToOpenOnStartup(id)
+        fileAssociations.setOpenFileEventHandler(project => {
+            if (electron.app.isReady()) {
+                this.window?.webContents.send(ipc.Channel.openProject, project)
+            } else {
+                this.setProjectToOpenOnStartup(project.id)
+            }
         })
 
         electron.app.commandLine.appendSwitch('allow-insecure-localhost', 'true')
@@ -79,7 +83,6 @@ class App {
         )
 
         const { windowSize, chromeOptions, fileToOpen, urlToOpen } = this.processArguments()
-        this.handleItemOpening(fileToOpen, urlToOpen)
         if (this.args.options.version.value) {
             await this.printVersion()
             electron.app.quit()
@@ -89,37 +92,57 @@ class App {
                 electron.app.quit()
             })
         } else {
-            this.setChromeOptions(chromeOptions)
-            security.enableAll()
-            electron.app.on('before-quit', () => (this.isQuitting = true))
-            electron.app.whenReady().then(
-                () => {
-                    logger.log('Electron application is ready.')
-                    void this.main(windowSize)
-                },
-                err => {
-                    logger.error('Failed to initialize electron.', err)
-                }
-            )
-            this.registerShortcuts()
+            const isOriginalInstance = electron.app.requestSingleInstanceLock({
+                fileToOpen,
+                urlToOpen,
+            })
+            if (isOriginalInstance) {
+                this.handleItemOpening(fileToOpen, urlToOpen)
+                this.setChromeOptions(chromeOptions)
+                security.enableAll()
+                electron.app.on('before-quit', () => {
+                    this.isQuitting = true
+                })
+                electron.app.on('second-instance', (_event, argv) => {
+                    logger.log(`Got data from 'second-instance' event: '${argv.toString()}'.`)
+                    // The second instances will close themselves, but our window likely is not in the
+                    // foreground - the focus went to the "second instance" of the application.
+                    if (this.window) {
+                        if (this.window.isMinimized()) {
+                            this.window.restore()
+                        }
+                        this.window.focus()
+                    } else {
+                        logger.error('No window found after receiving URL from second instance.')
+                    }
+                })
+                electron.app.whenReady().then(
+                    async () => {
+                        logger.log('Electron application is ready.')
+                        await this.main(windowSize)
+                    },
+                    error => {
+                        logger.error('Failed to initialize Electron.', error)
+                    }
+                )
+                this.registerShortcuts()
+            } else {
+                logger.log('Another instance of the application is already running, exiting.')
+                electron.app.quit()
+            }
         }
     }
 
     /** Process the command line arguments. */
-    processArguments() {
+    processArguments(args = fileAssociations.CLIENT_ARGUMENTS) {
         // We parse only "client arguments", so we don't have to worry about the Electron-Dev vs
         // Electron-Proper distinction.
-        const fileToOpen = fileAssociations.argsDenoteFileOpenAttempt(
-            fileAssociations.CLIENT_ARGUMENTS
-        )
-        const urlToOpen = urlAssociations.argsDenoteUrlOpenAttempt(
-            fileAssociations.CLIENT_ARGUMENTS
-        )
+        const fileToOpen = fileAssociations.argsDenoteFileOpenAttempt(args)
+        const urlToOpen = urlAssociations.argsDenoteUrlOpenAttempt(args)
         // If we are opening a file (i.e. we were spawned with just a path of the file to open as
         // the argument) or URL, it means that effectively we don't have any non-standard arguments.
         // We just need to let caller know that we are opening a file.
-        const argsToParse =
-            fileToOpen != null || urlToOpen != null ? [] : fileAssociations.CLIENT_ARGUMENTS
+        const argsToParse = fileToOpen != null || urlToOpen != null ? [] : args
         return { ...configParser.parseArgs(argsToParse), fileToOpen, urlToOpen }
     }
 
@@ -153,8 +176,8 @@ class App {
                 // This makes the IDE open the relevant project. Also, this prevents us from using
                 // this method after the IDE has been fully set up, as the initializing code
                 // would have already read the value of this argument.
-                const projectId = fileAssociations.handleOpenFile(fileToOpen)
-                this.setProjectToOpenOnStartup(projectId)
+                const projectInfo = fileAssociations.handleOpenFile(fileToOpen)
+                this.setProjectToOpenOnStartup(projectInfo.id)
             }
 
             if (urlToOpen != null) {
@@ -170,14 +193,14 @@ class App {
      * Chrome options refer to: https://peter.sh/experiments/chromium-command-line-switches. */
     setChromeOptions(chromeOptions: configParser.ChromeOption[]) {
         const addIf = (
-            opt: contentConfig.Option<boolean>,
+            option: contentConfig.Option<boolean>,
             chromeOptName: string,
             value?: string
         ) => {
-            if (opt.value) {
+            if (option.value) {
                 const chromeOption = new configParser.ChromeOption(chromeOptName, value)
                 const chromeOptionStr = chromeOption.display()
-                const optionName = opt.qualifiedName()
+                const optionName = option.qualifiedName()
                 logger.log(`Setting '${chromeOptionStr}' because '${optionName}' was enabled.`)
                 chromeOptions.push(chromeOption)
             }
@@ -233,7 +256,7 @@ class App {
                  * not yet created at this point, but it will be created by the time the
                  * authentication module uses the lambda providing the window. */
                 // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                authentication.initModule(() => this.window!)
+                authentication.initAuthentication(() => this.window!)
             })
         } catch (err) {
             logger.error('Failed to initialize the application, shutting down. Error: ', err)
@@ -390,9 +413,9 @@ class App {
                     }
                 )
 
-                window.on('close', evt => {
+                window.on('close', event => {
                     if (!this.isQuitting && !this.args.groups.window.options.closeToQuit.value) {
-                        evt.preventDefault()
+                        event.preventDefault()
                         window.hide()
                     }
                 })
