@@ -40,7 +40,7 @@ export interface ExternalFunctions {
         project: stream.Readable,
         directory: string | null,
         name: string | null
-    ) => Promise<string>
+    ) => Promise<projectManagement.ProjectInfo>
     readonly runProjectManagerCommand: (
         cliArguments: string[],
         body?: NodeJS.ReadableStream
@@ -269,14 +269,14 @@ export class Server {
                     const name = url.searchParams.get('name')
                     void this.config.externalFunctions
                         .uploadProjectBundle(request, directory, name)
-                        .then(id => {
+                        .then(project => {
                             response
                                 .writeHead(HTTP_STATUS_OK, [
-                                    ['Content-Length', String(id.length)],
+                                    ['Content-Length', String(project.id.length)],
                                     ['Content-Type', 'text/plain'],
                                     ...common.COOP_COEP_CORP_HEADERS,
                                 ])
-                                .end(id)
+                                .end(project.id)
                         })
                         .catch(() => {
                             response

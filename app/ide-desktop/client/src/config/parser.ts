@@ -219,7 +219,7 @@ export class ChromeOption {
 
 /** Replace `-no-...` with `--no-...`. This is a hotfix for a Yargs bug:
  * https://github.com/yargs/yargs-parser/issues/468. */
-function fixArgvNoPrefix(argv: string[]): string[] {
+function fixArgvNoPrefix(argv: readonly string[]): readonly string[] {
     const singleDashPrefix = '-no-'
     const doubleDashPrefix = '--no-'
     return argv.map(arg => {
@@ -233,13 +233,13 @@ function fixArgvNoPrefix(argv: string[]): string[] {
 
 /** Command line options, split into regular arguments and Chrome options. */
 interface ArgvAndChromeOptions {
-    readonly argv: string[]
+    readonly argv: readonly string[]
     readonly chromeOptions: ChromeOption[]
 }
 
 /** Parse the given list of arguments into two distinct sets: regular arguments and those specific
  * to Chrome. */
-function argvAndChromeOptions(processArgs: string[]): ArgvAndChromeOptions {
+function argvAndChromeOptions(processArgs: readonly string[]): ArgvAndChromeOptions {
     const chromeOptionRegex = /--?chrome.([^=]*)(?:=(.*))?/
     const argv = []
     const chromeOptions: ChromeOption[] = []
@@ -274,7 +274,7 @@ function argvAndChromeOptions(processArgs: string[]): ArgvAndChromeOptions {
 // =====================
 
 /** Parse command line arguments. */
-export function parseArgs(clientArgs: string[] = fileAssociations.CLIENT_ARGUMENTS) {
+export function parseArgs(clientArgs: readonly string[] = fileAssociations.CLIENT_ARGUMENTS) {
     const args = config.CONFIG
     const { argv, chromeOptions } = argvAndChromeOptions(fixArgvNoPrefix(clientArgs))
     const yargsOptions = args.optionsRecursive().reduce((opts: Record<string, Options>, option) => {

@@ -39,6 +39,7 @@ import * as tabBar from '#/layouts/TabBar'
 import TabBar from '#/layouts/TabBar'
 import UserBar from '#/layouts/UserBar'
 
+import * as aria from '#/components/aria'
 import Page from '#/components/Page'
 
 import ManagePermissionsModal from '#/modals/ManagePermissionsModal'
@@ -108,13 +109,14 @@ function DashboardInner(props: DashboardProps) {
       ? localBackendModule.newProjectId(projectManager.UUID(initialProjectNameRaw))
       : null
   const initialProjectName = initialLocalProjectId ?? initialProjectNameRaw
-  const isUserEnabled = user.isEnabled
-
-  const defaultCategory = initialLocalProjectId == null ? Category.cloud : Category.local
 
   const [category, setCategory] = searchParamsState.useSearchParamsState(
     'driveCategory',
-    () => defaultCategory,
+    () => {
+      const shouldDefaultToCloud =
+        initialLocalProjectId == null && (user.isEnabled || localBackend == null)
+      return shouldDefaultToCloud ? Category.cloud : Category.local
+    },
     (value): value is Category => {
       if (array.includes(Object.values(Category), value)) {
         return categoryModule.isLocal(value) ? localBackend != null : true
@@ -123,18 +125,10 @@ function DashboardInner(props: DashboardProps) {
       }
     }
   )
-  const isCloud = categoryModule.isCloud(category)
 
   const page = projectsProvider.usePage()
   const launchedProjects = projectsProvider.useLaunchedProjects()
   const selectedProject = launchedProjects.find(p => p.id === page) ?? null
-
-  if (isCloud && !isUserEnabled && localBackend != null) {
-    setTimeout(() => {
-      // This sets `BrowserRouter`, so it must not be set synchronously.
-      setCategory(Category.local)
-    })
-  }
 
   const setPage = projectsProvider.useSetPage()
   const openEditor = projectHooks.useOpenEditor()
@@ -168,6 +162,22 @@ function DashboardInner(props: DashboardProps) {
       }
     }
   })
+
+  React.useEffect(() => {
+    window.projectManagementApi?.setOpenProjectHandler(project => {
+      setCategory(Category.local)
+      dispatchAssetListEvent({
+        type: AssetListEventType.openProject,
+        backendType: backendModule.BackendType.local,
+        id: localBackendModule.newProjectId(projectManager.UUID(project.id)),
+        title: project.name,
+        parentId: localBackendModule.newDirectoryId(backendModule.Path(project.parentDirectory)),
+      })
+    })
+    return () => {
+      window.projectManagementApi?.setOpenProjectHandler(() => {})
+    }
+  }, [dispatchAssetListEvent, setCategory])
 
   React.useEffect(
     () =>
@@ -247,23 +257,30 @@ function DashboardInner(props: DashboardProps) {
 
   return (
     <Page hideInfoBar hideChat>
-      <div className="flex text-xs text-primary">
-        <div
+      <div
+        className="flex text-xs text-primary"
+        onContextMenu={event => {
+          event.preventDefault()
+          unsetModal()
+        }}
+      >
+        <aria.Tabs
           className="relative flex h-screen grow select-none flex-col container-size"
-          onContextMenu={event => {
-            event.preventDefault()
-            unsetModal()
+          selectedKey={page}
+          onSelectionChange={newPage => {
+            const validated = projectsProvider.PAGES_SCHEMA.safeParse(newPage)
+            if (validated.success) {
+              setPage(validated.data)
+            }
           }}
         >
           <div className="flex">
             <TabBar>
               <tabBar.Tab
+                id={projectsProvider.TabType.drive}
                 isActive={page === projectsProvider.TabType.drive}
                 icon={DriveIcon}
                 labelId="drivePageName"
-                onPress={() => {
-                  setPage(projectsProvider.TabType.drive)
-                }}
               >
                 {getText('drivePageName')}
               </tabBar.Tab>
@@ -271,14 +288,12 @@ function DashboardInner(props: DashboardProps) {
               {launchedProjects.map(project => (
                 <tabBar.Tab
                   data-testid="editor-tab-button"
+                  id={project.id}
                   project={project}
                   key={project.id}
                   isActive={page === project.id}
                   icon={EditorIcon}
                   labelId="editorPageName"
-                  onPress={() => {
-                    setPage(project.id)
-                  }}
                   onClose={() => {
                     closeProject(project)
                   }}
@@ -290,21 +305,18 @@ function DashboardInner(props: DashboardProps) {
                 </tabBar.Tab>
               ))}
 
-              {page === projectsProvider.TabType.settings && (
-                <tabBar.Tab
-                  isActive
-                  icon={SettingsIcon}
-                  labelId="settingsPageName"
-                  onPress={() => {
-                    setPage(projectsProvider.TabType.settings)
-                  }}
-                  onClose={() => {
-                    setPage(projectsProvider.TabType.drive)
-                  }}
-                >
-                  {getText('settingsPageName')}
-                </tabBar.Tab>
-              )}
+              <tabBar.Tab
+                isActive
+                id={projectsProvider.TabType.settings}
+                isHidden={page !== projectsProvider.TabType.settings}
+                icon={SettingsIcon}
+                labelId="settingsPageName"
+                onClose={() => {
+                  setPage(projectsProvider.TabType.drive)
+                }}
+              >
+                {getText('settingsPageName')}
+              </tabBar.Tab>
             </TabBar>
 
             <UserBar
@@ -316,51 +328,63 @@ function DashboardInner(props: DashboardProps) {
               onSignOut={onSignOut}
             />
           </div>
-
-          <Drive
-            assetsManagementApiRef={assetManagementApiRef}
-            category={category}
-            setCategory={setCategory}
-            hidden={page !== projectsProvider.TabType.drive}
-            initialProjectName={initialProjectName}
+          <aria.TabPanel
+            shouldForceMount
+            id={projectsProvider.TabType.drive}
+            className="flex grow [&[data-inert]]:hidden"
+          >
+            <Drive
+              assetsManagementApiRef={assetManagementApiRef}
+              category={category}
+              setCategory={setCategory}
+              hidden={page !== projectsProvider.TabType.drive}
+              initialProjectName={initialProjectName}
+            />
+          </aria.TabPanel>
+          {appRunner != null &&
+            launchedProjects.map(project => (
+              <aria.TabPanel
+                shouldForceMount
+                id={project.id}
+                className="flex grow [&[data-inert]]:hidden"
+              >
+                <Editor
+                  key={project.id}
+                  hidden={page !== project.id}
+                  ydocUrl={ydocUrl}
+                  project={project}
+                  projectId={project.id}
+                  appRunner={appRunner}
+                  isOpening={openProjectMutation.isPending}
+                  isOpeningFailed={openProjectMutation.isError}
+                  openingError={openProjectMutation.error}
+                  startProject={openProjectMutation.mutate}
+                  renameProject={newName => {
+                    renameProjectMutation.mutate({ newName, project })
+                  }}
+                />
+              </aria.TabPanel>
+            ))}
+          <aria.TabPanel id={projectsProvider.TabType.settings} className="flex grow">
+            <Settings />
+          </aria.TabPanel>
+        </aria.Tabs>
+        {process.env.ENSO_CLOUD_CHAT_URL != null ? (
+          <Chat
+            isOpen={isHelpChatOpen}
+            doClose={() => {
+              setIsHelpChatOpen(false)
+            }}
+            endpoint={process.env.ENSO_CLOUD_CHAT_URL}
           />
-
-          {launchedProjects.map(project => (
-            <Editor
-              key={project.id}
-              hidden={page !== project.id}
-              ydocUrl={ydocUrl}
-              project={project}
-              projectId={project.id}
-              appRunner={appRunner}
-              isOpening={openProjectMutation.isPending}
-              isOpeningFailed={openProjectMutation.isError}
-              openingError={openProjectMutation.error}
-              startProject={openProjectMutation.mutate}
-              renameProject={newName => {
-                renameProjectMutation.mutate({ newName, project })
-              }}
-            />
-          ))}
-
-          {page === projectsProvider.TabType.settings && <Settings />}
-          {process.env.ENSO_CLOUD_CHAT_URL != null ? (
-            <Chat
-              isOpen={isHelpChatOpen}
-              doClose={() => {
-                setIsHelpChatOpen(false)
-              }}
-              endpoint={process.env.ENSO_CLOUD_CHAT_URL}
-            />
-          ) : (
-            <ChatPlaceholder
-              isOpen={isHelpChatOpen}
-              doClose={() => {
-                setIsHelpChatOpen(false)
-              }}
-            />
-          )}
-        </div>
+        ) : (
+          <ChatPlaceholder
+            isOpen={isHelpChatOpen}
+            doClose={() => {
+              setIsHelpChatOpen(false)
+            }}
+          />
+        )}
       </div>
     </Page>
   )

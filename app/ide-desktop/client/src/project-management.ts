@@ -31,6 +31,17 @@ export const PROJECT_METADATA_RELATIVE_PATH = '.enso/project.json'
 /** The filename suffix for the project bundle, including the leading period character. */
 const BUNDLED_PROJECT_SUFFIX = '.enso-project'
 
+// ===================
+// === ProjectInfo ===
+// ===================
+
+/** Metadata for a newly imported project. */
+export interface ProjectInfo {
+    readonly id: string
+    readonly name: string
+    readonly parentDirectory: string
+}
+
 // ======================
 // === Project Import ===
 // ======================
@@ -44,7 +55,7 @@ export function importProjectFromPath(
     openedPath: string,
     directory?: string | null,
     name: string | null = null
-): string {
+) {
     directory ??= getProjectsDirectory()
     if (pathModule.extname(openedPath).endsWith(BUNDLED_PROJECT_SUFFIX)) {
         logger.log(`Path '${openedPath}' denotes a bundled project.`)
@@ -78,7 +89,7 @@ export function importBundle(
     bundlePath: string,
     directory?: string | null,
     name: string | null = null
-): string {
+) {
     directory ??= getProjectsDirectory()
     logger.log(
         `Importing project '${bundlePath}' from bundle${name != null ? ` as '${name}'` : ''}.`
@@ -137,7 +148,7 @@ export async function uploadBundle(
     bundle: stream.Readable,
     directory?: string | null,
     name: string | null = null
-): Promise<string> {
+) {
     directory ??= getProjectsDirectory()
     logger.log(`Uploading project from bundle${name != null ? ` as '${name}'` : ''}.`)
     const targetPath = generateDirectoryName(name ?? 'Project', directory)
@@ -168,14 +179,14 @@ export function importDirectory(
     rootPath: string,
     directory?: string | null,
     name: string | null = null
-): string {
+): ProjectInfo {
     directory ??= getProjectsDirectory()
     if (isProjectInstalled(rootPath, directory)) {
         // Project is already visible to Project Manager, so we can just return its ID.
         logger.log(`Project already installed at '${rootPath}'.`)
         const id = getProjectId(rootPath)
         if (id != null) {
-            return id
+            return { id, name: getPackageName(rootPath) ?? '', parentDirectory: directory }
         } else {
             throw new Error(`Project already installed, but missing metadata.`)
         }
@@ -411,7 +422,7 @@ export function bumpMetadata(
     projectRoot: string,
     parentDirectory: string,
     name: string | null
-): string {
+): ProjectInfo {
     if (name == null) {
         const currentName = getPackageName(projectRoot) ?? ''
         let index: number | null = null
@@ -438,9 +449,10 @@ export function bumpMetadata(
         name = index == null ? currentName : `${currentName} (${index})`
     }
     updatePackageName(projectRoot, name)
-    return updateMetadata(projectRoot, metadata => ({
+    const id = updateMetadata(projectRoot, metadata => ({
         ...metadata,
         id: generateId(),
         lastOpened: new Date().toISOString(),
     })).id
+    return { id, name, parentDirectory }
 }

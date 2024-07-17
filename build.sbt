@@ -2738,7 +2738,9 @@ lazy val launcher = project
   .in(file("engine/launcher"))
   .configs(Test)
   .settings(
+    frgaalJavaCompilerSetting,
     resolvers += Resolver.bintrayRepo("gn0s1s", "releases"),
+    commands += WithDebugCommand.withDebug,
     libraryDependencies ++= Seq(
       "com.typesafe.scala-logging" %% "scala-logging"    % scalaLoggingVersion,
       "org.apache.commons"          % "commons-compress" % commonsCompressVersion,
@@ -2751,7 +2753,7 @@ lazy val launcher = project
     NativeImage.additionalCp := Seq.empty,
     rebuildNativeImage := NativeImage
       .buildNativeImage(
-        "enso",
+        "ensoup",
         staticOnLinux = true,
         additionalOptions = Seq(
           "-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.NoOpLog",
@@ -2766,7 +2768,7 @@ lazy val launcher = project
     buildNativeImage := NativeImage
       .incrementalNativeImageBuild(
         rebuildNativeImage,
-        "enso"
+        "ensoup"
       )
       .value,
     assembly / test := {},
