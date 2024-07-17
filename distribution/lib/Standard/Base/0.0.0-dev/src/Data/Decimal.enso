@@ -353,7 +353,7 @@ type Decimal
              b = Decimal.new "20.33"
              c = a + b
              # => Decimal.new 30.55
-    + : Decimal -> Decimal
+    + : Decimal -> Decimal ! Arithmetic_Error
     + self (that : Decimal) -> Decimal ! Arithmetic_Error = self.add that
 
     ## ALIAS minus
@@ -412,7 +412,7 @@ type Decimal
              b = Decimal.new "10.22"
              c = a - b
              # => Decimal.new 10.11
-    - : Decimal -> Decimal
+    - : Decimal -> Decimal ! Arithmetic_Error
     - self (that : Decimal) -> Decimal ! Arithmetic_Error = self.subtract that
 
     ## ALIAS times
@@ -470,7 +470,7 @@ type Decimal
              b = Decimal.new "20.33"
              c = a * b
              # => Decimal.new 207.7726
-    * : Decimal -> Decimal
+    * : Decimal -> Decimal ! Arithmetic_Error
     * self (that : Decimal) -> Decimal ! Arithmetic_Error = self.multiply that
 
     ## GROUP Operators
@@ -534,7 +534,7 @@ type Decimal
              b = Decimal.new "23.34"
              c = a / b
              # => Decimal.new 45.67
-    / : Decimal -> Decimal
+    / : Decimal -> Decimal ! Arithmetic_Error
     / self (that : Decimal) -> Decimal ! Arithmetic_Error = self.divide that
 
     ## ALIAS modulo, modulus
