@@ -133,14 +133,14 @@ run_union_tests group_builder setup call_union =
         m.at "D" . to_vector . should_equal [Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, 0]
 
     group_builder.specify "should drop unmatched columns and warn, if In_All is selected" <|
-        t1 = table1.get
-        t2 = table2.get
-        t3 = table3.get.rename_columns ["A", "C"]
+        t1 = table1.get                             # A, B
+        t2 = table2.get                             # C, A
+        t3 = table3.get.rename_columns [["D", "A"]] # A, C
 
         t4 = call_union [t1, t2, t3] columns_to_keep=..In_All
         w = Problems.expect_only_warning Unmatched_Columns t4
-        m = materialize_and_maybe_sort t4
         w.column_names.should_equal ["B", "C"]
+        m = materialize_and_maybe_sort t4
         expect_column_names ["A"] m
         m.at "A" . to_vector . should_equal [1, 2, 3, 4, 5, 6, Nothing, Nothing, 0]
 
@@ -302,8 +302,9 @@ run_union_tests group_builder setup call_union =
 
         check_same table =
             expect_column_names ["A", "B"] table
-            table.at "A" . to_vector . should_equal [1, 2, 3]
-            table.at "B" . to_vector . should_equal ["a", "b", "c"]
+            m = materialize_and_maybe_sort table "A"
+            m.at "A" . to_vector . should_equal [1, 2, 3]
+            m.at "B" . to_vector . should_equal ["a", "b", "c"]
 
         check_same <| call_union [t1]
         check_same <| call_union [t1] match_columns=Match_Columns.By_Position
@@ -405,10 +406,14 @@ run_union_tests group_builder setup call_union =
         t1 = build_table_with_maybe_rowid [["D", [Date_Time.new 2024 5 16 16 48 23]]]
         t2 = build_table_with_maybe_rowid [["D", [Date.new 2019 10 23, Date.new 2020]]]
 
+        t1.print
+        t2.print
+
         action = call_union [t1, t2] on_problems=_
         tester table =
             m = materialize_and_maybe_sort table
             expect_column_names ["D"] m
+            m.print
             m.at "D" . value_type . should_equal Value_Type.Date_Time
             m.at "D" . to_vector . should_equal_tz_agnostic [Date_Time.new 2024 5 16 16 48 23, Date_Time.new 2019 10 23 0 0 0, Date_Time.new 2020 1 1 0 0 0]
         problems = [Mixing_Date_Time_Types.Date_To_Date_Time "D"]
