@@ -56,6 +56,7 @@ import { computedFallback } from '@/util/reactivity'
 import { until } from '@vueuse/core'
 import { encoding, set } from 'lib0'
 import { encodeMethodPointer } from 'shared/languageServerTypes'
+import * as iterable from 'shared/util/data/iterable'
 import { isDevMode } from 'shared/util/detect'
 import {
   computed,
@@ -544,7 +545,12 @@ function handleEdgeDrop(source: AstId, position: Vec2) {
 // === Node Collapsing ===
 
 function collapseNodes() {
-  const selected = nodeSelection.selected
+  const selected = new Set(
+    iterable.filter(
+      nodeSelection.selected,
+      (id) => graphStore.db.nodeIdToNode.get(id)?.type === 'component',
+    ),
+  )
   if (selected.size == 0) return
   try {
     const info = prepareCollapsedInfo(selected, graphStore.db)

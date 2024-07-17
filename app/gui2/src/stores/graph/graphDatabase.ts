@@ -549,6 +549,7 @@ export interface Node extends NodeDataFromAst, NodeDataFromMetadata {
 }
 
 const baseMockNode = {
+  type: 'component',
   position: Vec2.Zero,
   vis: undefined,
   prefixes: { enableRecording: undefined },

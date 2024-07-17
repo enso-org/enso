@@ -125,6 +125,26 @@ test('Output node', async ({ page }) => {
   await expect(outputNode.getByTestId('removeNode')).toHaveClass(/(?<=^| )disabled(?=$| )/)
 })
 
+test('Output node is not collapsed', async ({ page }) => {
+  await actions.goToGraph(page)
+  await enterToFunc2(page)
+
+  await locate
+    .graphNodeByBinding(page, 'r')
+    .locator('.grab-handle')
+    .click({ modifiers: ['Shift'] })
+  await locate.outputNode(page).click({ modifiers: ['Shift'] })
+
+  await page.getByLabel('Group Selected Components').click()
+  await expect(locate.graphNodeByBinding(page, 'r').locator('.WidgetToken')).toHaveText([
+    'Main',
+    '.',
+    'collapsed',
+    'a',
+  ])
+  await expect(locate.outputNode(page)).toHaveCount(1)
+})
+
 async function expectInsideMain(page: Page) {
   await actions.expectNodePositionsInitialized(page, 72)
   await expect(locate.graphNode(page)).toHaveCount(MAIN_FILE_NODES)
