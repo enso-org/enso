@@ -17,14 +17,13 @@ export async function readEnvironmentFromFile() {
     const isProduction = environment == null || environment === '' || environment === 'production'
     const fileName = isProduction ? '.env' : `.${environment}.env`
     const filePath = path.join(url.fileURLToPath(new URL('../..', import.meta.url)), fileName)
-    const expectedKeys = Object.keys(DUMMY_DEFINES).map(key => key.replace(/^process[.]env[.]/, ''))
-    /** @type {string[]} */
-    const missingKeys = []
-    for (const key of expectedKeys) {
-        if (!(key in process.env)) {
-            missingKeys.push(key)
+    const buildInfo = await (async () => {
+        try {
+            return await import('../../../../build.json', { assert: { type: 'json' } })
+        } catch {
+            return { commit: '', version: '', engineVersion: '', name: '' }
         }
-    }
+    })()
     try {
         const file = await fs.readFile(filePath, { encoding: 'utf-8' })
         // eslint-disable-next-line jsdoc/valid-types
@@ -48,18 +47,25 @@ export async function readEnvironmentFromFile() {
         if (!isProduction || entries.length > 0) {
             Object.assign(process.env, variables)
         }
-        const buildInfo = await (async () => {
-            try {
-                return await import('../../../../build.json', { assert: { type: 'json' } })
-            } catch {
-                return { commit: '', version: '', engineVersion: '', name: '' }
-            }
-        })()
         // @ts-expect-error This is the only file where `process.env` should be written to.
         process.env.ENSO_CLOUD_DASHBOARD_VERSION ??= buildInfo.version
         // @ts-expect-error This is the only file where `process.env` should be written to.
         process.env.ENSO_CLOUD_DASHBOARD_COMMIT_HASH ??= buildInfo.commit
     } catch (error) {
+        // @ts-expect-error This is the only file where `process.env` should be written to.
+        process.env.ENSO_CLOUD_DASHBOARD_VERSION ??= buildInfo.version
+        // @ts-expect-error This is the only file where `process.env` should be written to.
+        process.env.ENSO_CLOUD_DASHBOARD_COMMIT_HASH ??= buildInfo.commit
+        const expectedKeys = Object.keys(DUMMY_DEFINES)
+            .map(key => key.replace(/^process[.]env[.]/, ''))
+            .filter(key => key !== 'NODE_ENV')
+        /** @type {string[]} */
+        const missingKeys = []
+        for (const key of expectedKeys) {
+            if (!(key in process.env)) {
+                missingKeys.push(key)
+            }
+        }
         if (missingKeys.length !== 0) {
             console.warn('Could not load `.env` file; disabling cloud backend.')
             console.warn(`Missing keys: ${missingKeys.map(key => `'${key}'`).join(', ')}`)
