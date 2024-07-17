@@ -7,12 +7,14 @@ import java.nio.file.Path;
 import java.util.Comparator;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.PolyglotContext;
 import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Context.Builder;
 import org.graalvm.polyglot.Value;
+import org.slf4j.LoggerFactory;
 
 /** Utility methods for creating and running Enso projects. */
 public class ProjectUtils {
@@ -119,6 +121,19 @@ prefer-local-libraries: true
 
   /** Deletes provided directory recursively. */
   public static void deleteRecursively(Path rootDir) throws IOException {
-    Files.walk(rootDir).sorted(Comparator.reverseOrder()).map(Path::toFile).forEach(File::delete);
+    var deletedFiles =
+        Files.walk(rootDir)
+            .sorted(Comparator.reverseOrder())
+            .map(Path::toFile)
+            .map(f -> new FileDeletion(f.getPath(), f.delete()))
+            .filter(d -> !d.deleted())
+            .collect(Collectors.toList());
+    if (rootDir.toFile().exists()) {
+      var logger = LoggerFactory.getLogger(ProjectUtils.class);
+      logger.error("{} root directory failed to delete because of the following path(s):", rootDir);
+      deletedFiles.forEach(d -> logger.error(" - {}", d.filePath()));
+    }
   }
+
+  record FileDeletion(String filePath, boolean deleted) {}
 }
