@@ -246,7 +246,8 @@ const rect = computed(
       new Vec2(
         Math.max(props.width ?? MIN_WIDTH_PX, props.nodeSize.x),
         Math.max(props.height ?? DEFAULT_CONTENT_HEIGHT_PX, MIN_CONTENT_HEIGHT_PX) +
-          toolbarHeight.value,
+          toolbarHeight.value +
+          props.nodeSize.y,
       ),
     ),
 )
@@ -276,7 +277,7 @@ provideVisualizationConfig({
     emit('update:width', value)
   },
   get height() {
-    return rect.value.height - toolbarHeight.value
+    return rect.value.height - toolbarHeight.value - props.nodeSize.y
   },
   set height(value) {
     emit('update:height', value)

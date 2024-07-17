@@ -116,8 +116,6 @@ export const widgetDefinition = defineWidget(
   border-radius: var(--radius-full);
   user-select: none;
   border-radius: var(--radius-full);
-  /* padding: 0px 4px; */
-  min-width: 24px;
   justify-content: center;
   align-items: center;
 

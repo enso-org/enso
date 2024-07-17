@@ -11,6 +11,7 @@ import {
   type WidgetUpdate,
 } from '@/providers/widgetRegistry'
 import { useGraphStore } from '@/stores/graph'
+import type { MethodCallInfo } from '@/stores/graph/graphDatabase'
 import { useProjectStore } from '@/stores/project'
 import { assert, assertUnreachable } from '@/util/assert'
 import { Ast } from '@/util/ast'
@@ -24,6 +25,7 @@ import {
 } from '@/util/callTree'
 import { partitionPoint } from '@/util/data/array'
 import { isIdentifier } from '@/util/qualifiedName.ts'
+import { methodPointerEquals, type MethodPointer } from 'shared/languageServerTypes'
 import { computed, proxyRefs } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
@@ -51,19 +53,19 @@ const { methodCallInfo, application } = useWidgetFunctionCallInfo(
 )
 
 const innerInput = computed(() => {
+  let input: WidgetInput
   if (application.value instanceof ArgumentApplication) {
-    return application.value.toWidgetInput()
-  } else if (methodCallInfo.value) {
-    const definition = graph.getMethodAst(methodCallInfo.value.methodCall.methodPointer)
-    if (definition.ok)
-      return {
-        ...props.input,
-        [FunctionName]: {
-          editableName: definition.value.name.externalId,
-        },
-      }
+    input = application.value.toWidgetInput()
+  } else {
+    input = { ...props.input }
   }
-  return props.input
+  let callInfo
+  if ((callInfo = methodCallInfo.value)) {
+    input[CallInfo] = callInfo
+    const definition = graph.getMethodAst(callInfo.methodCall.methodPointer)
+    if (definition.ok) input[FunctionName] = { editableName: definition.value.name.externalId }
+  }
+  return input
 })
 
 /**
@@ -78,11 +80,9 @@ function handleArgUpdate(update: WidgetUpdate): boolean {
     // Find the updated argument by matching origin port/expression with the appropriate argument.
     // We are interested only in updates at the top level of the argument AST. Updates from nested
     // widgets do not need to be processed at the function application level.
-    const applications = [...app.iterApplications()]
-    const argAppIndex = applications.findIndex(
+    const argApp = [...app.iterApplications()].find(
       (app) => 'portId' in app.argument && app.argument.portId === origin,
     )
-    const argApp = applications[argAppIndex]
 
     // Perform appropriate AST update, either insertion or deletion.
     if (value != null && argApp?.argument instanceof ArgumentPlaceholder) {
@@ -114,18 +114,13 @@ function handleArgUpdate(update: WidgetUpdate): boolean {
       // Proper fix would involve adding a proper "optimistic response" mechanism that can also be
       // saved in the undo transaction.
       const deletedArgIdx = argApp.argument.index
-      if (deletedArgIdx != null && methodCallInfo.value) {
-        // Grab original expression info data straight from DB, so we modify the original state.
-        const notAppliedArguments = graph.db.getExpressionInfo(
-          methodCallInfo.value.methodCallSource,
-        )?.methodCall?.notAppliedArguments
+      if (deletedArgIdx != null) {
+        const notAppliedArguments = methodCallInfo.value?.methodCall.notAppliedArguments
         if (notAppliedArguments != null) {
           const insertAt = partitionPoint(notAppliedArguments, (i) => i < deletedArgIdx)
-          if (notAppliedArguments[insertAt] != deletedArgIdx) {
-            // Insert the deleted argument back to the method info. This directly modifies observable
-            // data in `ComputedValueRegistry`. That's on purpose.
-            notAppliedArguments.splice(insertAt, 0, deletedArgIdx)
-          }
+          // Insert the deleted argument back to the method info. This directly modifies observable
+          // data in `ComputedValueRegistry`. That's on purpose.
+          notAppliedArguments.splice(insertAt, 0, deletedArgIdx)
         }
       }
 
@@ -144,7 +139,7 @@ function handleArgUpdate(update: WidgetUpdate): boolean {
           },
         })
         return true
-      } else if (argApp.appTree instanceof Ast.OprApp) {
+      } else if (value == null && argApp.appTree instanceof Ast.OprApp) {
         /* Case: Removing infix application. */
 
         // Infix application is removed as a whole. Only the target is kept.
@@ -167,17 +162,12 @@ function handleArgUpdate(update: WidgetUpdate): boolean {
 
         // Traverse the application chain, starting from the outermost application and going
         // towards the innermost target.
-        for (let innerApp of applications) {
+        for (let innerApp of [...app.iterApplications()]) {
           if (innerApp.appTree.id === argApp.appTree.id) {
             // Found the application with the argument to remove. Skip the argument and use the
             // application target's code. This is the final iteration of the loop.
             const appTree = edit.getVersion(argApp.appTree)
-            if (graph.db.isNodeId(appTree.externalId)) {
-              // If the modified application is a node root, preserve its identity and metadata.
-              appTree.replaceValue(appTree.function.take())
-            } else {
-              appTree.replace(appTree.function.take())
-            }
+            appTree.replace(appTree.function.take())
             props.onUpdate({ edit })
             return true
           } else {
@@ -205,6 +195,24 @@ function handleArgUpdate(update: WidgetUpdate): boolean {
 }
 </script>
 <script lang="ts">
+const CallInfo: unique symbol = Symbol('CallInfo')
+
+export const WidgetInputIsSpecificMethodCall =
+  (methodPointer: MethodPointer) =>
+  (
+    input: WidgetInput,
+  ): input is WidgetInput & { value: Ast.App | Ast.Ident | Ast.PropertyAccess | Ast.OprApp } => {
+    const callInfo = input[CallInfo]
+    // No need to check for AST type, since CallInfo depends on WidgetFunction being matched first.
+    return callInfo != null && methodPointerEquals(callInfo.methodCall.methodPointer, methodPointer)
+  }
+
+declare module '@/providers/widgetRegistry' {
+  export interface WidgetInput {
+    [CallInfo]?: MethodCallInfo
+  }
+}
+
 export const widgetDefinition = defineWidget(
   WidgetInput.isFunctionCall,
   {

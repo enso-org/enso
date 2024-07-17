@@ -123,7 +123,7 @@ export const ICON_WIDTH = 16
   --widget-token-pad-unit: 6px;
 
   outline: none;
-  height: 24px;
+  min-height: 24px;
   display: flex;
   align-items: center;
 

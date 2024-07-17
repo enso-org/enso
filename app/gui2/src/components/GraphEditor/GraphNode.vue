@@ -236,8 +236,8 @@ const isVisualizationFullscreen = computed(() => props.node.vis?.fullscreen ?? f
 const bgStyleVariables = computed(() => {
   const { x: width, y: height } = nodeSize.value
   return {
-    '--node-width': `${width}px`,
-    '--node-height': `${height}px`,
+    '--node-size-x': `${width}px`,
+    '--node-size-y': `${height}px`,
   }
 })
 
@@ -384,6 +384,7 @@ const handleNodeClick = useDoubleClick(
 
 const visRect = shallowRef<Rect>()
 function updateVisualizationRect(rect: Rect | undefined) {
+  console.log('rect:', visRect.value)
   visRect.value = rect
   emit('update:visualizationRect', rect)
 }
@@ -571,8 +572,8 @@ watchEffect(() => {
 }
 
 .bgFill {
-  width: var(--node-width);
-  height: var(--node-height);
+  width: var(--node-size-x);
+  height: var(--node-size-y);
   rx: var(--node-border-radius);
 
   fill: var(--node-color-primary);
@@ -580,7 +581,7 @@ watchEffect(() => {
 }
 
 .GraphNode {
-  --node-height: 32px;
+  --node-base-height: 32px;
 
   --node-color-primary: color-mix(
     in oklab,

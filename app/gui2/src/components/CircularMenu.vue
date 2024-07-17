@@ -116,6 +116,7 @@ function readableBinding(binding: keyof (typeof graphBindings)['bindings']) {
 <style scoped>
 .CircularMenu {
   position: absolute;
+  bottom: -72px;
   user-select: none;
   pointer-events: none;
   /* This is a variable so that it can be referenced in computations,

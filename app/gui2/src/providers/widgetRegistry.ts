@@ -5,11 +5,13 @@ import type { GraphDb } from '@/stores/graph/graphDatabase'
 import type { Typename } from '@/stores/suggestionDatabase/entry'
 import { Ast } from '@/util/ast'
 import { MutableModule } from '@/util/ast/abstract.ts'
+import type { MethodPointer } from 'shared/languageServerTypes'
 import type { ViteHotContext } from 'vite/types/hot'
 import { computed, shallowReactive, type Component, type PropType } from 'vue'
 import type { WidgetEditHandlerParent } from './widgetRegistry/editHandler'
 
 export type WidgetComponent<T extends WidgetInput> = Component<WidgetProps<T>>
+type WidgetInputWithProp<P extends keyof WidgetInput> = Pick<Required<WidgetInput>, P>
 
 export namespace WidgetInput {
   export function FromAst<A extends Ast.Ast | Ast.Token>(ast: A): WidgetInput & { value: A } {

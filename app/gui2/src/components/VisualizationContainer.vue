@@ -101,7 +101,8 @@ const contentStyle = computed(() => {
       }"
       :style="{
         '--color-visualization-bg': config.background,
-        '--node-height': `${config.nodeSize.y}px`,
+        '--node-size-x': `${config.nodeSize.x}px`,
+        '--node-size-y': `${config.nodeSize.y}px`,
         ...(config.isPreview ? { pointerEvents: 'none' } : {}),
       }"
     >
@@ -174,7 +175,6 @@ const contentStyle = computed(() => {
 
 <style scoped>
 .VisualizationContainer {
-  --node-height: 32px;
   --permanent-toolbar-width: 200px;
   --resize-handle-inside: var(--visualization-resize-handle-inside);
   --resize-handle-outside: var(--visualization-resize-handle-outside);
@@ -188,12 +188,16 @@ const contentStyle = computed(() => {
   cursor: default;
 }
 
+.VisualizationContainer {
+  padding-top: calc(var(--node-size-y) - var(--radius-default));
+}
+
 .VisualizationContainer.below-node {
-  padding-top: var(--node-height);
+  padding-top: var(--node-size-y);
 }
 
 .VisualizationContainer.below-toolbar {
-  padding-top: calc(var(--node-height) + 40px);
+  padding-top: calc(var(--node-size-y) + 72px);
 }
 
 .VisualizationContainer.fullscreen {
@@ -239,7 +243,7 @@ const contentStyle = computed(() => {
   position: absolute;
   display: flex;
   gap: 4px;
-  top: calc(var(--node-height) + 4px);
+  top: calc(var(--node-size-y) + 4px);
 }
 
 .after-toolbars {

@@ -31,13 +31,14 @@ export const widgetDefinition = defineWidget(
   display: flex;
   flex-direction: row;
   place-items: center;
-  height: var(--node-height);
-  overflow: clip;
+  overflow-x: clip;
 
   &:before {
     content: '';
     display: block;
-    height: var(--node-height);
+    align-self: stretch;
+    margin-top: -4px;
+    margin-bottom: -4px;
     margin-right: var(--widget-token-pad-unit);
     border-left: 1px solid rgb(0 0 0 / calc(0.12 * var(--size-transition-progress, 1)));
   }
