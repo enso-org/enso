@@ -197,9 +197,6 @@ type Context_Extension
          sorted in the desired place.
        - expressions: Sub-expressions needed for the part. They will be
          generated and the results of that will be passed to `run_generator`.
-       - orderings: Ordering descriptions needed for the part. They will be
-         generated and the results of that will be passed to `run_generator`.
-       - run_generator: A function that takes 2 arguments: the generated
-         expressions and order descriptors, and returns the SQL code that will
-         be inserted at the desired position.
-    Value (position : Integer) (expressions : Vector SQL_Expression) (orderings : Vector Order_Descriptor) (run_generator : Vector SQL_Builder -> SQL_Builder)
+       - run_generator: A function that takes the generated expressions and
+         returns the SQL code that will be inserted at the desired position.
+    Value (position : Integer) (expressions : Vector SQL_Expression) (run_generator : Vector SQL_Builder -> SQL_Builder)

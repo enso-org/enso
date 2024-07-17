@@ -121,12 +121,7 @@ type Snowflake_Dialect
         table_name_deduplicator = (Internals_Access.get_connection table).base_connection.table_naming_helper.create_unique_name_strategy
         table_name_deduplicator.mark_used table.name
         inner_table_alias = table_name_deduplicator.make_unique table.name+"_inner"
-        parent_context = Internals_Access.get_context table
-        internal_columns = Internals_Access.internal_columns table
-        name_deduplicator = (Internals_Access.get_connection table).base_connection.column_naming_helper.create_unique_name_strategy
-        name_deduplicator.mark_used (internal_columns.map .name)
-        ordering_tmp_columns = parent_context.
-        setup = parent_context.as_subquery inner_table_alias []
+        setup = (Internals_Access.get_context table).as_subquery inner_table_alias [Internals_Access.internal_columns table]
         new_columns = setup.new_columns.first
         column_mapping = Dictionary.from_vector <| new_columns.map c-> [c.name, c]
         new_key_columns = key_columns.map c-> column_mapping.at c.name
@@ -135,8 +130,7 @@ type Snowflake_Dialect
         distinct_expressions = new_key_columns.map column->
             value_type = type_mapping.sql_type_to_value_type column.sql_type_reference.get
             Database_Distinct_Helper.make_distinct_expression case_sensitivity problem_builder column value_type
-        new_context = Context.for_subquery setup.subquery
-            . add_extension (make_distinct_extension distinct_expressions)
+        new_context = Context.for_subquery setup.subquery . add_extension (make_distinct_extension distinct_expressions)
         table.updated_context_and_columns new_context new_columns subquery=True
 
     ## PRIVATE
@@ -684,11 +678,11 @@ make_iif arguments = case arguments.length of
         Error.throw <| Illegal_State.Error ("Invalid amount of arguments for operation IIF")
 
 ## PRIVATE
-make_distinct_extension (distinct_expressions : Vector SQL_Expression) (orderings : Vector Order_Descriptor) =
-    run_generator sql_expressions sql_orderings =
+make_distinct_extension distinct_expressions =
+    run_generator sql_expressions =
         joined = SQL_Builder.join ", " sql_expressions
         SQL_Builder.code " QUALIFY ROW_NUMBER() OVER (PARTITION BY " ++ joined ++ " ORDER BY 1) = 1 "
-    Context_Extension.Value position=550 expressions=distinct_expressions orderings=orderings run_generator=run_generator
+    Context_Extension.Value position=550 expressions=distinct_expressions run_generator=run_generator
 
 ## PRIVATE
 snowflake_dialect_name = "Snowflake"
