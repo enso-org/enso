@@ -9,6 +9,8 @@ import org.enso.compiler.context.{
 }
 import org.enso.compiler.data.CompilerConfig
 import org.enso.common.CompilationStage
+import org.enso.compiler.phase.exports.ExportsResolution
+
 import scala.util.Using
 
 /** A phase responsible for initializing the builtins' IR from the provided

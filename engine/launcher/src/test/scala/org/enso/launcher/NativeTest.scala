@@ -113,7 +113,7 @@ trait NativeTest
     * functionality.
     */
   def baseLauncherLocation: Path =
-    rootDirectory.resolve(OS.executableName("enso"))
+    rootDirectory.resolve(OS.executableName(Constants.name))
 
   /** Creates a copy of the tested launcher binary at the specified location.
     *

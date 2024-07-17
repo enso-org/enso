@@ -1,12 +1,10 @@
 <script lang="ts" setup>
 import { Vec2 } from '@/util/data/vec2'
-import type { AstId } from 'shared/ast'
 import { computed, ref, watchEffect } from 'vue'
 
 const props = defineProps<{
   nodePosition: Vec2
   nodeSize: Vec2
-  nodeId: AstId
   selected: boolean
   externalHovered: boolean
   color: string
@@ -37,7 +35,6 @@ const rootStyle = computed(() => {
     class="GraphNodeSelection"
     :class="{ visible, selected: props.selected }"
     :style="rootStyle"
-    :data-node-id="props.nodeId"
     @pointerenter="hovered = true"
     @pointerleave="hovered = false"
   />

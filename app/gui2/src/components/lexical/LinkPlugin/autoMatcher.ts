@@ -176,7 +176,6 @@ function $createAutoLinkNode_(
   if (nodes.length === 1) {
     let remainingTextNode: TextNode | undefined = nodes[0]!
     let linkTextNode: TextNode | undefined
-    console.log('startIndex', startIndex)
     if (startIndex === 0) {
       ;[linkTextNode, remainingTextNode] = remainingTextNode.splitText(endIndex)
     } else {

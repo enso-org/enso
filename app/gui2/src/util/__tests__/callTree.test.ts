@@ -211,9 +211,9 @@ test.each([
     const { db, expectedMethodCall, expectedSuggestion, setExpressionInfo } =
       prepareMocksForGetMethodCallTest()
     const ast = Ast.parse(code)
+    db.updateExternalIds(ast)
     const subApplication = nthSubapplication(ast, subapplicationIndex)
     assert(subApplication)
-    db.updateExternalIds(ast)
     setExpressionInfo(subApplication.id, {
       typename: undefined,
       methodCall: { ...expectedMethodCall, notAppliedArguments },
@@ -360,7 +360,7 @@ test.each([
     })
 
     const info = getMethodCallInfoRecursively(ast, db)
-    const interpreted = interpretCall(ast, true)
+    const interpreted = interpretCall(ast)
     const res = ArgumentApplication.collectArgumentNamesAndUuids(interpreted, info)
 
     if (expectedSameIds) {

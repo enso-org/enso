@@ -47,7 +47,7 @@ const close = () => (menuOpen.value = false)
   />
   <ToggleIcon
     :modelValue="code.state.value"
-    :icon="TODO"
+    icon="code"
     title="Insert Code Block"
     @update:modelValue="code.set"
   />
