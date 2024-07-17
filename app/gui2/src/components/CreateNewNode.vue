@@ -3,26 +3,29 @@ import { useVisualizationConfig } from '@/providers/visualizationConfig'
 import { Ast } from '@/util/ast'
 import { Pattern } from '@/util/ast/match'
 
-const props = defineProps<{}>()
+const props = defineProps<{
+  filterModel: { [key: string]: string }
+  sortModel: Map<string, string>
+}>()
 
 const config = useVisualizationConfig()
 
-function getAstPattern(selector: string | number, action: string) {
+function getAstPattern(action: string, columnName: string | undefined) {
   return Pattern.new((ast) =>
     Ast.App.positional(
       Ast.PropertyAccess.new(ast.module, ast, Ast.identifier(action)!),
-      typeof selector === 'number' ?
-        Ast.tryNumberToEnso(selector, ast.module)!
-      : Ast.TextLiteral.new(selector, ast.module),
+      Ast.TextLiteral.new(columnName || '', ast.module),
     ),
   )
 }
 
 const createNewNode = () => {
-  config.createNodes({
-    content: getAstPattern('yes', 'filter'),
-    commit: true,
-  })
+  if (props.sortModel.size) {
+    config.createNodes({
+      content: getAstPattern('sort', props.sortModel.keys().next().value),
+      commit: true,
+    })
+  }
 }
 </script>
 

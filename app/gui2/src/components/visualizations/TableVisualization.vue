@@ -142,6 +142,8 @@ const showRowCount = ref(true)
 const isTruncated = ref(false)
 const tableNode = ref<HTMLElement>()
 const isCreateNodeVisible = ref(false)
+const filterModel = ref({})
+const sortModel = ref({})
 const dataGroupingMap = shallowRef<Map<string, boolean>>()
 useAutoBlur(tableNode)
 const widths = reactive(new Map<string, number>())
@@ -652,17 +654,21 @@ function checkSortAndFilter() {
   }
   const colState =
     agGridOptions.value.columnApi ? agGridOptions.value.columnApi.getColumnState() : []
-  const filterModel = columnApi.getFilterModel()
-  const sortModel = new Map<string, string>()
+  const filter = columnApi.getFilterModel()
+  const sort = new Map<string, string>()
   colState.map((cs) => {
     if (cs.sort) {
-      sortModel.set(cs.colId, cs.sort)
+      sort.set(cs.colId, cs.sort)
     }
   })
-  if (sortModel.size || Object.keys(filterModel).length) {
+  if (sort.size || Object.keys(filter).length) {
     isCreateNodeVisible.value = true
+    sortModel.value = sort
+    filterModel.value = filter
   } else {
     isCreateNodeVisible.value = false
+    sortModel.value = {}
+    filterModel.value = {}
   }
 }
 
@@ -757,7 +763,7 @@ onUnmounted(() => {
     <template #toolbar>
       <TextFormattingSelector @changeFormat="(i) => updateTextFormat(i)" />
       <div v-if="isCreateNodeVisible">
-        <CreateNewNode />
+        <CreateNewNode :filterModel="filterModel" :sortModel="sortModel" />
       </div>
     </template>
     <div ref="rootNode" class="TableVisualization" @wheel.stop @pointerdown.stop>
