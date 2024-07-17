@@ -257,7 +257,7 @@ function formatNumber(params: ICellRendererParams) {
 
 function formatText(params: ICellRendererParams) {
   if (textFormatterSelected.value === TextFormatOptions.Off) {
-    return params.value
+    return `<span style="white-space: pre-wrap"> ${params.value}</span>`
   }
   const commonMappings = {
     '\r': '<span style="color: grey">␍</span> <br>',
@@ -288,7 +288,7 @@ function formatText(params: ICellRendererParams) {
       textFormatterSelected.value === TextFormatOptions.On ? mappingWithTab : commonMappings
     return mapping[match as keyof typeof mapping] || renderOtherWhitespace(match)
   })
-  return `<span> ${newString}</span>`
+  return `<span style="white-space: pre-wrap"> ${newString}</span>`
 }
 
 function setRowLimit(newRowLimit: number) {
