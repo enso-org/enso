@@ -262,6 +262,7 @@ function formatText(params: ICellRendererParams) {
   const commonMappings = {
     '\r': '<span style="color: grey">␍</span> <br>',
     '\n': '<span style="color: grey">␊</span> <br>',
+    '\t': '<span>    </span>',
   }
   const mappingWithTab = {
     '\r': '<span style="color: grey">␍</span> <br>',
