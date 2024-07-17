@@ -460,7 +460,7 @@ function extractProjectMetadata(yamlObj: unknown, jsonObj: unknown): ProjectMeta
             'lastOpened' in jsonObj && typeof jsonObj.lastOpened === 'string'
                 ? validDateString(jsonObj.lastOpened)
                 : null
-        if (name != null && namespace != null && id != null && created != null) {
+        if (name != null &&  id != null && created != null) {
             return {
                 name,
                 namespace,
