@@ -4,10 +4,12 @@ import static org.enso.table.data.column.operation.map.numeric.helpers.DoubleArr
 
 import java.math.BigInteger;
 import java.util.BitSet;
+
 import org.enso.base.CompareException;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.operation.map.BinaryMapOperation;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
+import org.enso.table.data.column.operation.map.numeric.helpers.BigDecimalArrayAdapter;
 import org.enso.table.data.column.operation.map.numeric.helpers.BigIntegerArrayAdapter;
 import org.enso.table.data.column.operation.map.numeric.helpers.DoubleArrayAdapter;
 import org.enso.table.data.column.storage.BoolStorage;
@@ -47,6 +49,8 @@ public abstract class NumericComparison<T extends Number, I extends Storage<? su
             BigIntegerArrayAdapter.fromStorage(s), bigInteger, problemAggregator);
         case BigIntegerStorage s -> runBigIntegerMap(
             BigIntegerArrayAdapter.fromStorage(s), bigInteger, problemAggregator);
+        case BigDecimalStorage s -> runBigDecimalMap(
+            BigIntegerArrayAdapter.fromStorage(s), new BigDecimal(bigInteger), problemAggregator);
         case DoubleStorage s -> runDoubleMap(s, bigInteger.doubleValue(), problemAggregator);
         default -> throw new IllegalStateException(
             "Unsupported lhs storage: " + storage.getClass().getCanonicalName());
@@ -57,14 +61,21 @@ public abstract class NumericComparison<T extends Number, I extends Storage<? su
         case AbstractLongStorage s -> runLongMap(s, rhs, problemAggregator);
         case BigIntegerStorage s -> runBigIntegerMap(
             BigIntegerArrayAdapter.fromStorage(s), BigInteger.valueOf(rhs), problemAggregator);
+        case BigDecimalStorage s -> runBigDecimalMap(
+            BigDecimalArrayAdapter.fromStorage(s), BigDecimal.valueOf(rhs), problemAggregator);
         case DoubleStorage s -> runDoubleMap(s, (double) rhs, problemAggregator);
         default -> throw new IllegalStateException(
             "Unsupported lhs storage: " + storage.getClass().getCanonicalName());
       };
     } else if (NumericConverter.isCoercibleToDouble(arg)) {
-      DoubleArrayAdapter lhs = DoubleArrayAdapter.fromAnyStorage(storage);
-      double rhs = NumericConverter.coerceToDouble(arg);
-      return runDoubleMap(lhs, rhs, problemAggregator);
+      return switch (storage) {
+        case BigDecimalStorage s -> runBigDecimalMap(
+            BigDecimalArrayAdapter.fromStorage(s), BigDecimal.valueOf(arg), problemAggregator);
+        default -> {
+          DoubleArrayAdapter lhs = DoubleArrayAdapter.fromAnyStorage(storage);
+          double rhs = NumericConverter.coerceToDouble(arg);
+          yield runDoubleMap(lhs, rhs, problemAggregator);
+        }
     } else {
       int n = storage.size();
       BitSet isNothing = new BitSet();
@@ -155,15 +166,44 @@ public abstract class NumericComparison<T extends Number, I extends Storage<? su
     return new BoolStorage(comparisonResults, isNothing, n, false);
   }
 
+  protected BoolStorage runBigDecimalMap(
+      BigDecimalArrayAdapter lhs, BigDecimal rhs, MapOperationProblemAggregator problemAggregator) {
+    int n = lhs.size();
+    BitSet comparisonResults = new BitSet();
+    BitSet isNothing = new BitSet();
+    Context context = Context.getCurrent();
+    for (int i = 0; i < n; ++i) {
+      BigDecimal item = lhs.getItem(i);
+      if (item == null) {
+        isNothing.set(i);
+      } else {
+        boolean r = doBigDecimal(item, rhs);
+        if (r) {
+          comparisonResults.set(i);
+        }
+      }
+
+      context.safepoint();
+    }
+
+    return new BoolStorage(comparisonResults, isNothing, n, false);
+  }
+
   @Override
   public BoolStorage runZip(
       I storage, Storage<?> arg, MapOperationProblemAggregator problemAggregator) {
     return switch (storage) {
       case DoubleStorage lhs -> {
-        if (arg.getType() instanceof AnyObjectType) {
-          yield runMixedZip(lhs, arg, problemAggregator);
-        } else {
-          yield runDoubleZip(lhs, fromAnyStorage(arg), problemAggregator);
+        case BigDecimalStorage rhs -> runBigDecimalZip(
+          new BigDecimalArrayAdapter(lhs),
+          new BigDecimalArrayAdapter(rhs),
+          problemAggregator);
+        default -> {
+          if (arg.getType() instanceof AnyObjectType) {
+            yield runMixedZip(lhs, arg, problemAggregator);
+          } else {
+            yield runDoubleZip(lhs, fromAnyStorage(arg), problemAggregator);
+          }
         }
       }
 
@@ -174,22 +214,31 @@ public abstract class NumericComparison<T extends Number, I extends Storage<? su
           BigIntegerArrayAdapter right = BigIntegerArrayAdapter.fromStorage(rhs);
           yield runBigIntegerZip(left, right, problemAggregator);
         }
+        case BigDecimalStorage rhs -> runBigDecimalZip(
+          new BigDecimalArrayAdapter(lhs),
+          new BigDecimalArrayAdapter(rhs),
+          problemAggregator);
         case DoubleStorage rhs -> runDoubleZip(
             DoubleArrayAdapter.fromStorage(lhs), rhs, problemAggregator);
         default -> runMixedZip(lhs, arg, problemAggregator);
       };
 
       case BigIntegerStorage lhs -> {
-        BigIntegerArrayAdapter left = BigIntegerArrayAdapter.fromStorage(lhs);
         yield switch (arg) {
           case AbstractLongStorage rhs -> {
+            BigIntegerArrayAdapter left = BigIntegerArrayAdapter.fromStorage(lhs);
             BigIntegerArrayAdapter right = BigIntegerArrayAdapter.fromStorage(rhs);
             yield runBigIntegerZip(left, right, problemAggregator);
           }
           case BigIntegerStorage rhs -> {
+            BigIntegerArrayAdapter left = BigIntegerArrayAdapter.fromStorage(lhs);
             BigIntegerArrayAdapter right = BigIntegerArrayAdapter.fromStorage(rhs);
             yield runBigIntegerZip(left, right, problemAggregator);
           }
+          case BigDecimalStorage rhs -> runBigDecimalZip(
+            new BigDecimalArrayAdapter(lhs),
+            new BigDecimalArrayAdapter(rhs),
+            problemAggregator);
           case DoubleStorage rhs -> runDoubleZip(
               DoubleArrayAdapter.fromStorage(lhs), rhs, problemAggregator);
           default -> runMixedZip(lhs, arg, problemAggregator);
@@ -279,6 +328,37 @@ public abstract class NumericComparison<T extends Number, I extends Storage<? su
         isNothing.set(i);
       } else {
         boolean r = doBigInteger(x, y);
+        if (r) {
+          comparisonResults.set(i);
+        }
+      }
+
+      context.safepoint();
+    }
+
+    if (m < n) {
+      isNothing.set(m, n);
+    }
+
+    return new BoolStorage(comparisonResults, isNothing, n, false);
+  }
+
+  protected BoolStorage runBigDecimalZip(
+      BigDecimalArrayAdapter lhs,
+      BigDecimalArrayAdapter rhs,
+      MapOperationProblemAggregator problemAggregator) {
+    int n = lhs.size();
+    int m = Math.min(lhs.size(), rhs.size());
+    BitSet comparisonResults = new BitSet();
+    BitSet isNothing = new BitSet();
+    Context context = Context.getCurrent();
+    for (int i = 0; i < m; ++i) {
+      BigDecimal x = lhs.getItem(i);
+      BigDecimal y = rhs.getItem(i);
+      if (x == null || y == null) {
+        isNothing.set(i);
+      } else {
+        boolean r = doBigDecimal(x, y);
         if (r) {
           comparisonResults.set(i);
         }
