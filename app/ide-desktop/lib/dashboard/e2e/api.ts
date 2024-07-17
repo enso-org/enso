@@ -870,6 +870,11 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
     goOnline: () => {
       isOnline = true
     },
+    setPlan: (plan: backend.Plan) => {
+      if (currentUser) {
+        object.unsafeMutable(currentUser).plan = plan
+      }
+    },
     currentUser: () => currentUser,
     setCurrentUser: (user: backend.User | null) => {
       currentUser = user
