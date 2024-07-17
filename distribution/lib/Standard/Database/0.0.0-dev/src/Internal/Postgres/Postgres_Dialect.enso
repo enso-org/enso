@@ -123,7 +123,8 @@ type Postgres_Dialect
         distinct_expressions = new_key_columns.map column->
             value_type = type_mapping.sql_type_to_value_type column.sql_type_reference.get
             Database_Distinct_Helper.make_distinct_expression case_sensitivity problem_builder column value_type
-        new_context = Context.for_subquery setup.subquery . add_extension (make_distinct_extension distinct_expressions)
+        new_context = Context.for_subquery setup.subquery
+            . add_extension (make_distinct_extension distinct_expressions)
         table.updated_context_and_columns new_context new_columns subquery=True
 
     ## PRIVATE
@@ -767,9 +768,9 @@ as_int32 expr =
 
 ## PRIVATE
 make_distinct_extension expressions =
-    run_generator sql_expressions =
+    run_generator sql_expressions _ =
         SQL_Builder.code "DISTINCT ON (" ++ (SQL_Builder.join ", " sql_expressions) ++ ") "
-    Context_Extension.Value position=120 expressions=expressions run_generator=run_generator
+    Context_Extension.Value position=120 expressions=expressions orderings=[] run_generator=run_generator
 
 ## PRIVATE
    The RUNTIME_ERROR operation should allow the query to compile fine and it

@@ -446,7 +446,9 @@ generate_select dialect columns ctx =
         _ : Integer -> " LIMIT " + ctx.limit.to_text
 
     extensions = ctx.extensions.map extension->
-        part = extension.run_generator (gen_exprs extension.expressions)
+        sql_expressions = gen_exprs extension.expressions
+        sql_orderings = extension.orderings.map (generate_order dialect)
+        part = extension.run_generator sql_expressions sql_orderings
         [extension.position, part]
 
     parts = Vector.build builder->
