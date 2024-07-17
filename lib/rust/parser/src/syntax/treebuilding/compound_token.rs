@@ -153,6 +153,8 @@ impl<'s> TextLiteralBuilder<'s> {
             let doc = syntax::tree::DocComment { open, elements, newlines: default() };
             syntax::Tree::documented(doc, default())
         } else {
+            let close =
+                close.and_then(|close| if close.code.is_empty() { None } else { Some(close) });
             syntax::Tree::text_literal(Some(open), newline, elements, close)
         }
     }
