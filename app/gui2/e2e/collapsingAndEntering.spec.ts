@@ -108,6 +108,23 @@ test('Collapsing nodes', async ({ page }) => {
   await expect(locate.graphNodeByBinding(page, 'ten')).toExist()
 })
 
+test('Output node', async ({ page }) => {
+  await actions.goToGraph(page)
+  await enterToFunc2(page)
+
+  const outputNode = locate.outputNode(page)
+  await expect(outputNode).toHaveCount(1)
+  // Output node with identifier should have only icon and no displayed identifiers
+  await expect(outputNode.locator('.WidgetSelfIcon')).toHaveCount(1)
+  await expect(outputNode.locator('.WidgetToken')).toHaveCount(0)
+
+  await outputNode.click()
+  await page.keyboard.press('Delete')
+  await expect(outputNode).toHaveCount(1)
+  await outputNode.locator('.More').click({})
+  await expect(outputNode.getByTestId('removeNode')).toHaveClass(/(?<=^| )disabled(?=$| )/)
+})
+
 async function expectInsideMain(page: Page) {
   await actions.expectNodePositionsInitialized(page, 72)
   await expect(locate.graphNode(page)).toHaveCount(MAIN_FILE_NODES)
@@ -128,12 +145,14 @@ async function expectInsideFunc1(page: Page) {
   await expect(locate.graphNode(page)).toHaveCount(3)
   await expect(locate.graphNodeByBinding(page, 'f2')).toExist()
   await expect(locate.graphNodeByBinding(page, 'result')).toExist()
+  await expect(locate.outputNode(page)).toHaveCount(1)
 }
 
 async function expectInsideFunc2(page: Page) {
   await actions.expectNodePositionsInitialized(page, 144)
   await expect(locate.graphNode(page)).toHaveCount(2)
   await expect(locate.graphNodeByBinding(page, 'r')).toExist()
+  await expect(locate.outputNode(page)).toHaveCount(1)
 }
 
 async function enterToFunc2(page: Page) {

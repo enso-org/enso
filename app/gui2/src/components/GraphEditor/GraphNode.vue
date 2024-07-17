@@ -437,6 +437,7 @@ watchEffect(() => {
       selected,
       selectionVisible,
       ['executionState-' + executionState]: true,
+      outputNode: props.node.type === 'output',
     }"
     :data-node-id="nodeId"
     @pointerenter="(nodeHovered = true), updateNodeHover($event)"

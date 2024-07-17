@@ -71,6 +71,7 @@ function readableBinding(binding: keyof (typeof graphBindings)['bindings']) {
           name="trash2"
           class="slot4"
           :title="`Delete (${readableBinding('deleteSelected')})`"
+          data-testid="removeNode"
           :disabled="!isRemovable"
           @click.stop="emit('delete')"
         />
