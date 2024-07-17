@@ -148,7 +148,7 @@ export default class DrivePageActions extends PageActions {
         return self.step('Expect placeholder row', async page => {
           const rows = locateAssetRows(page)
           await test.expect(rows).toHaveCount(1)
-          await test.expect(rows).toHaveText(/You have no files/)
+          await test.expect(rows).toHaveText(/This folder is empty/)
         })
       },
       /** A test assertion to confirm that there is only one row visible, and that row is the

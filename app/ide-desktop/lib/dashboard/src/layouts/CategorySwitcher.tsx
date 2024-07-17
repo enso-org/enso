@@ -225,7 +225,50 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
   const selfDirectoryId = backend.DirectoryId(`directory-${user.userId.replace(/^user-/, '')}`)
 
   const users = backendHooks.useBackendListUsers(remoteBackend)
-  const userGroups = backendHooks.useBackendListUserGroups(remoteBackend)
+  const teams = backendHooks.useBackendListUserGroups(remoteBackend)
+  const usersById = React.useMemo<
+    ReadonlyMap<backend.DirectoryId, backendHooks.WithPlaceholder<backend.User>>
+  >(
+    () =>
+      new Map(
+        (users ?? []).map(otherUser => [
+          backend.DirectoryId(`directory-${otherUser.userId.replace(/^user-/, '')}`),
+          otherUser,
+        ])
+      ),
+    [users]
+  )
+  const teamsById = React.useMemo<
+    ReadonlyMap<backend.DirectoryId, backendHooks.WithPlaceholder<backend.UserGroupInfo>>
+  >(
+    () =>
+      new Map(
+        (teams ?? []).map(team => [
+          backend.DirectoryId(`directory-${team.id.replace(/^usergroup-/, '')}`),
+          team,
+        ])
+      ),
+    [teams]
+  )
+  const usersDirectoryQuery = backendHooks.useBackendQuery(remoteBackend, 'listDirectory', [
+    {
+      parentId: backend.DirectoryId('directory-0000000000000000000000users'),
+      filterBy: backend.FilterBy.active,
+      labels: [],
+      recentProjects: false,
+    },
+    'Users',
+  ])
+  const teamsDirectoryQuery = backendHooks.useBackendQuery(remoteBackend, 'listDirectory', [
+    {
+      parentId: backend.DirectoryId('directory-0000000000000000000000teams'),
+      filterBy: backend.FilterBy.active,
+      labels: [],
+      recentProjects: false,
+    },
+
+    'Teams',
+  ])
 
   return (
     <FocusArea direction="vertical">
@@ -282,45 +325,53 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
               buttonLabel={getText('trashCategoryButtonLabel')}
               dropZoneLabel={getText('trashCategoryDropZoneLabel')}
             />
-            {users?.map(otherUser =>
-              otherUser.userId === user.userId ? null : (
-                <CategorySwitcherItem
-                  key={otherUser.userId}
-                  {...itemProps}
-                  isNested
-                  category={{
-                    type: categoryModule.CategoryType.user,
-                    rootPath: backend.Path(`enso://Users/${otherUser.name}`),
-                    homeDirectoryId: backend.DirectoryId(
-                      `directory-${otherUser.userId.replace(/^user-/, '')}`
-                    ),
-                  }}
-                  icon={PersonIcon}
-                  label={getText('userCategory', otherUser.name)}
-                  buttonLabel={getText('userCategoryButtonLabel', otherUser.name)}
-                  dropZoneLabel={getText('userCategoryDropZoneLabel', otherUser.name)}
-                />
-              )
-            )}
-            {userGroups?.map(team => (
-              <CategorySwitcherItem
-                key={team.id}
-                {...itemProps}
-                isNested
-                category={{
-                  type: categoryModule.CategoryType.team,
-                  team,
-                  rootPath: backend.Path(`enso://Teams/${team.groupName}`),
-                  homeDirectoryId: backend.DirectoryId(
-                    `directory-${team.id.replace(/^usergroup-/, '')}`
-                  ),
-                }}
-                icon={PeopleIcon}
-                label={getText('teamCategory', team.groupName)}
-                buttonLabel={getText('teamCategoryButtonLabel', team.groupName)}
-                dropZoneLabel={getText('teamCategoryDropZoneLabel', team.groupName)}
-              />
-            ))}
+            {usersDirectoryQuery.data?.map(userDirectory => {
+              if (userDirectory.type !== backend.AssetType.directory) {
+                return null
+              } else {
+                const otherUser = usersById.get(userDirectory.id)
+                return !otherUser || otherUser.userId === user.userId ? null : (
+                  <CategorySwitcherItem
+                    key={otherUser.userId}
+                    {...itemProps}
+                    isNested
+                    category={{
+                      type: categoryModule.CategoryType.user,
+                      rootPath: backend.Path(`enso://Users/${otherUser.name}`),
+                      homeDirectoryId: userDirectory.id,
+                    }}
+                    icon={PersonIcon}
+                    label={getText('userCategory', otherUser.name)}
+                    buttonLabel={getText('userCategoryButtonLabel', otherUser.name)}
+                    dropZoneLabel={getText('userCategoryDropZoneLabel', otherUser.name)}
+                  />
+                )
+              }
+            })}
+            {teamsDirectoryQuery.data?.map(teamDirectory => {
+              if (teamDirectory.type !== backend.AssetType.directory) {
+                return null
+              } else {
+                const team = teamsById.get(teamDirectory.id)
+                return !team ? null : (
+                  <CategorySwitcherItem
+                    key={team.id}
+                    {...itemProps}
+                    isNested
+                    category={{
+                      type: categoryModule.CategoryType.team,
+                      team,
+                      rootPath: backend.Path(`enso://Teams/${team.groupName}`),
+                      homeDirectoryId: teamDirectory.id,
+                    }}
+                    icon={PeopleIcon}
+                    label={getText('teamCategory', team.groupName)}
+                    buttonLabel={getText('teamCategoryButtonLabel', team.groupName)}
+                    dropZoneLabel={getText('teamCategoryDropZoneLabel', team.groupName)}
+                  />
+                )
+              }
+            })}
             {localBackend != null && (
               <CategorySwitcherItem
                 {...itemProps}
