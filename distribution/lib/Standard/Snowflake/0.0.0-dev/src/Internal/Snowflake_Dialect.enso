@@ -314,7 +314,7 @@ make_dialect_operations =
         other = [["day_of_year", Base_Generator.make_function "DAYOFYEAR"], ["day_of_week", Base_Generator.make_function "DAYOFWEEKISO"]]
         operations = [["date_add", make_date_add], ["date_diff", make_date_diff], ["date_trunc_to_day", make_date_trunc_to_day]]
         trivial + fractional + other + operations
-    other = [["IIF", make_iif], ["RUNTIME_ERROR", make_runtime_error_op]]
+    other = [["IIF", make_iif], ["RUNTIME_ERROR", make_runtime_error_op], ["ROW_NUMBER_IN_GROUP", make_row_number_in_group]]
     my_mappings = text + counts + stats + arith_extensions + bool + date_ops + other
     Base_Generator.base_dialect_operations . extend_with my_mappings
 
@@ -431,6 +431,16 @@ agg_count_distinct_include_null args =
    But there seems to be no other reliable way to handle this for columns like numeric where no non-NULL value exists that can be guaranteed to be unused.
 replace_null_with_marker expr =
     SQL_Builder.code "COALESCE(" ++ expr ++ ", {'enso-null-replacement-marker':'"+Random.uuid+"'}::variant)"
+
+## PRIVATE
+   A helper for `lookup_and_replace`, and perhaps other operation.
+   It creates an expression that returns a row number within a group.
+   This is a specialization for Snowflake that adds a dummy ORDER BY clause to satisfy its compiler.
+make_row_number_in_group arguments =
+    if arguments.length == 0 then
+        Panic.throw <| Illegal_State.Error "The operation ROW_NUMBER_IN_GROUP requires at least one argument."
+    SQL_Builder.code "ROW_NUMBER() OVER (PARTITION BY " ++ (SQL_Builder.join ", " arguments) ++ " ORDER BY 1)"
+
 
 ## PRIVATE
 starts_with = Base_Generator.lift_binary_sql_function "STARTS_WITH" "STARTSWITH"

@@ -14,28 +14,12 @@ import project.Util
 
 main filter=Nothing = run_default_backend add_specs filter
 
-type Data
-    Value ~connection
-
-    setup create_connection_fn =
-        Data.Value (create_connection_fn Nothing)
-
-    teardown self = self.connection.close
-
 
 add_specs suite_builder setup =
     prefix = setup.prefix
-    create_connection_fn = setup.create_connection_func
     materialize = setup.materialize
+    table_builder = setup.table_builder
     suite_builder.group prefix+"Table.merge" group_builder->
-        data = Data.setup create_connection_fn
-
-        group_builder.teardown <|
-            data.teardown
-
-        table_builder cols =
-            setup.table_builder cols connection=data.connection
-
         group_builder.specify "should allow to simply update columns based on a lookup table" <|
             lookup = table_builder [["Y", ["A", "B", "A"]], ["X", [1, 2, 3]]]
             my_table = table_builder [["X", [1, 2, 3, 2]], ["Y", ["Z", "ZZ", "ZZZ", "ZZZZ"]], ["Z", [10, 20, 30, 40]]]
@@ -292,9 +276,10 @@ add_specs suite_builder setup =
 
             r2 = my_table.merge lookup key_columns="X"
             r2.should_fail_with No_Common_Type
-            r2.catch.to_display_text . should_contain "Integer"
-            r2.catch.to_display_text . should_contain "Char"
-            r2.catch.to_display_text . should_contain "when unifying column [Y]"
+            txt = r2.catch.to_display_text
+            ((txt.contains "Integer") || (txt.contains "Decimal")).should_be_true
+            txt.should_contain "Char"
+            txt.should_contain "when unifying column [Y]"
 
         group_builder.specify "will allow incompatible types if allow_unmatched_rows=False" <|
             lookup = table_builder [["X", [1, 2, 3]], ["Y", [1, 11, 111]]]
@@ -335,7 +320,7 @@ add_specs suite_builder setup =
             r2 = my_table.merge lookup key_columns=[] add_new_columns=True
             r2.should_fail_with Illegal_Argument
 
-        if setup.is_database.not then group_builder.specify "(in-memory only) will preserve the order of rows from the original table" <|
+        if setup.is_database.not then group_builder.specify "(in-memory only) will preserve the 279table_builder of rows from the original table" <|
             lookup = table_builder [["Y", [1, 0]], ["V", ["TRUE", "FALSE"]]]
             xs = 0.up_to 50 . to_vector
             ys = xs.map x-> x%2
