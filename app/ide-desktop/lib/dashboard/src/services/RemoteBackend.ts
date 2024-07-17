@@ -598,7 +598,7 @@ export default class RemoteBackend extends Backend {
         binaryAddress: project.address != null ? backend.Address(`${project.address}binary`) : null,
         ydocAddress:
           project.address != null
-            ? backend.Address(`${project.address}ydoc?${YDOC_QUERY_STRING}`)
+            ? backend.Address(`${project.address}project/index?${YDOC_QUERY_STRING}`)
             : null,
       }))
     }
@@ -700,7 +700,7 @@ export default class RemoteBackend extends Backend {
         binaryAddress: project.address != null ? backend.Address(`${project.address}binary`) : null,
         ydocAddress:
           project.address != null
-            ? backend.Address(`${project.address}ydoc?${YDOC_QUERY_STRING}`)
+            ? backend.Address(`${project.address}project/index?${YDOC_QUERY_STRING}`)
             : null,
       }
     }
