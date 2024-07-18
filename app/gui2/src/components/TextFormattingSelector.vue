@@ -25,7 +25,7 @@ const open = ref(false)
         name="paragraph"
         class="full-format"
         label="Full whitespace rendering"
-        :title="`Text displayed in monaspace font and all whitespace characters displayed as symbols`"
+        :title="`Text displayed in monospace font and all whitespace characters displayed as symbols`"
         @click.stop="() => emit('changeFormat', TextFormatOptions.On)"
       />
 
@@ -33,7 +33,7 @@ const open = ref(false)
         name="paragraph"
         class="partial"
         label="Partial whitespace rendering"
-        :title="`Text displayed in monaspace font, only multiple spaces displayed with &#183;`"
+        :title="`Text displayed in monospace font, only multiple spaces displayed with &#183;`"
         @click.stop="() => emit('changeFormat', TextFormatOptions.Partial)"
       />
       <button

@@ -283,8 +283,7 @@ const contentStyle = computed(() => {
 
 .visualization-defined-toolbars {
   min-width: calc(100% - var(--permanent-toolbar-width));
-  /* FIXME [sb]: This will cut off floating panels - consider investigating whether there's a better
-   * way to clip only the toolbar div itself. */
+  max-width: 100%;
   overflow-x: clip;
   overflow-y: visible;
 }
