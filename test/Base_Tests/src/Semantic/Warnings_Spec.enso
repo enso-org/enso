@@ -224,8 +224,11 @@ add_specs suite_builder = suite_builder.group "Dataflow Warnings" group_builder-
         warned = attach_four_warnings "foo"
         mapped = map_odd_warnings_and_errors warned
         mapped . should_equal 'foo'
-        Warning.get_all mapped . map .value . should_equal_ignoring_order [11, 2, 13, 4]
-        Warning.get_all mapped . map (w-> w.origin.first.name) . should_equal_ignoring_order ["Warnings_Spec.map_odd_warnings_and_errors", "Warnings_Spec.attach_four_warnings"]
+        Warning.get_all mapped . map .value
+            . should_equal_ignoring_order [11, 2, 13, 4]
+        Warning.get_all mapped . map (w-> w.origin.first.name)
+            . distinct
+            . should_equal_ignoring_order ["Warnings_Spec.map_odd_warnings_and_errors", "Warnings_Spec.attach_four_warnings"]
 
         errored_2 = Error.throw 7
         mapped_2 = map_odd_warnings_and_errors errored_2
