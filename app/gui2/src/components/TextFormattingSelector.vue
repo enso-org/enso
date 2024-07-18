@@ -2,7 +2,8 @@
 import icons from '@/assets/icons.svg'
 import DropdownMenu from '@/components/DropdownMenu.vue'
 import SvgButton from '@/components/SvgButton.vue'
-import { ref } from 'vue'
+import SvgIcon from '@/components/SvgIcon.vue'
+import { ref, watch } from 'vue'
 import { TextFormatOptions } from './visualizations/TableVisualization.vue'
 
 const emit = defineEmits<{
@@ -12,57 +13,35 @@ const emit = defineEmits<{
 const textFormatterSelected = ref(TextFormatOptions.Partial)
 watch(textFormatterSelected, (selected) => emit('changeFormat', selected))
 
-const iconPath = `${icons}#paragraph`
-
 const open = ref(false)
-
-const toggleMenu = () => {
-  open.value = !open.value
-}
 </script>
 
 <template>
   <DropdownMenu v-model:open="open" class="TextFormattingSelector">
-    <template #button
-      ><SvgButton name="paragraph" title="Text Display Options" @click.stop="toggleMenu()" />
-    </template>
+    <template #button><SvgIcon name="paragraph" title="Text Display Options" /> </template>
 
     <template #entries>
-      <button
-        :class="`${textFormatterSelected === TextFormatOptions.On && 'selected'}`"
-        @click="setTextFormatterSelected(TextFormatOptions.On)"
-        title="Text displayed in monospace font and all whitespace characters displayed as symbols"
-      >
-        <svg viewBox="0 0 16 16" width="16" height="16" style="stroke: black; fill: #000000">
-          <use :href="`${iconPath}`" />
-        </svg>
-        <div>All Whitespace rendering</div>
-      </button>
-
-      <button
-        :onclick="() => setTextFormatterSelected(TextFormatOptions.Partial)"
-        :class="`${textFormatterSelected === TextFormatOptions.Partial && 'selected'}`"
-        title="Text displayed in monaspace font, only multiple spaces displayed with &#183;"
-      >
-        <svg viewBox="0 0 16 16" width="16" height="16" style="stroke: grey; fill: #808080">
-          <use :href="`${iconPath}`" />
-        </svg>
-        <div>Partial whitespace rendering</div>
-      </button>
-
-      <button
-        :onclick="() => setTextFormatterSelected(TextFormatOptions.Off)"
-        :class="`${textFormatterSelected === TextFormatOptions.Off && 'selected'}`"
-        title="No formatting applied to text"
-      >
-        <div class="strikethrough">
-          <svg viewBox="0 0 16 16" width="16" height="16">
-            <use :href="`${iconPath}`" />
-          </svg>
-        </div>
-
-        <div>No whitespace rendering</div>
-      </button>
+      <SvgButton
+        name="paragraph"
+        class="on"
+        lable="Full whitespace rendering"
+        :title="`Text displayed in monaspace font and all whitespace characters displayed as symbols`"
+        @click.stop="() => emit('changeFormat', TextFormatOptions.On)"
+      />
+      <SvgButton
+        name="paragraph"
+        class="partial"
+        lable="Partial whitespace rendering"
+        :title="`Text displayed in monaspace font, only multiple spaces displayed with &#183;`"
+        @click.stop="() => emit('changeFormat', TextFormatOptions.Partial)"
+      />
+      <SvgButton
+        name="paragraph"
+        class="strikethrough"
+        lable="No whitespace rendering"
+        :title="`No formatting applied to text`"
+        @click.stop="() => emit('changeFormat', TextFormatOptions.Off)"
+      />
     </template>
   </DropdownMenu>
 </template>
@@ -125,5 +104,15 @@ button {
   -ms-transform: rotate(-20deg);
   -o-transform: rotate(-20deg);
   transform: rotate(-20deg);
+}
+
+.partial {
+  stroke: grey;
+  fill: #808080;
+}
+
+.on {
+  stroke: black;
+  fill: #000000;
 }
 </style>

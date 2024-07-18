@@ -713,9 +713,7 @@ onUnmounted(() => {
 <template>
   <VisualizationContainer :belowToolbar="true" :overflow="true">
     <template #toolbar>
-      <Suspense>
-        <TextFormattingSelector @changeFormat="(i) => updateTextFormat(i)" />
-      </Suspense>
+      <TextFormattingSelector @changeFormat="(i) => updateTextFormat(i)" />
     </template>
     <div ref="rootNode" class="TableVisualization" @wheel.stop @pointerdown.stop>
       <div class="table-visualization-status-bar">
