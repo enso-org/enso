@@ -210,7 +210,7 @@ snowflake_specific_spec suite_builder default_connection db_name setup =
 
             # Again, when materialized the conversion Decimal->Integer is a feature, so it should not cause warning.
             Problems.assume_no_problems in_memory1
-            in_memory1.at "small_ints" . to_vector . should_contain_the_same_elements_as [1, 2, 3]
+            in_memory1.at "small_ints" . to_vector . should_equal_ignoring_order [1, 2, 3]
 
             t2 = table_builder [["big_ints", [2^100, 2^110, 1]]]
             t2.at "big_ints" . value_type . should_equal (Value_Type.Decimal 38 0)
@@ -226,7 +226,7 @@ snowflake_specific_spec suite_builder default_connection db_name setup =
             Problems.assume_no_problems in_memory2
 
             # Check correctness of values
-            in_memory2.at "big_ints" . to_vector . should_contain_the_same_elements_as [2^100, 2^110, 1]
+            in_memory2.at "big_ints" . to_vector . should_equal_ignoring_order [2^100, 2^110, 1]
 
         group_builder.specify "correctly handles Decimal and Float types" <|
             table_name = Name_Generator.random_name "DecimalFloat"

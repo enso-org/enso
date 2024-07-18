@@ -371,7 +371,7 @@ add_specs suite_builder setup =
 
                         r3.row_count . should_equal 3
                         r3.at "Z" . to_vector . length . should_equal 3
-                        r3.at "Z" . to_vector . should_contain_the_same_elements_as [10, 20, 30]
+                        r3.at "Z" . to_vector . should_equal_ignoring_order [10, 20, 30]
                 m3.should_fail_with Invariant_Violation
                 r3.at "Z" . to_vector . should_fail_with Invariant_Violation
 

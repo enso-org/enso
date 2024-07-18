@@ -35,7 +35,7 @@ test_problem_handling action expected_problems result_checker unwrap_errors=True
     warnings_checker warnings =
         ## TODO [RW] we are not checking if there are no duplicate warnings, because the warnings are in fact duplicated - we should figure out how to handle that and then possibly modify the test
         Test.with_clue "The warnings were "+warnings.to_text+'.\n' <|
-            warnings . map unwrap_maybe . should_contain_the_same_elements_as expected_problems frames_to_skip=5
+            warnings . map unwrap_maybe . should_equal_ignoring_order expected_problems frames_to_skip=5
     test_advanced_problem_handling action error_checker warnings_checker result_checker frames_to_skip=1
 
 ## UNSTABLE

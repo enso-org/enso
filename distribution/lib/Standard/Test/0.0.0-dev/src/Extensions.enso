@@ -486,9 +486,9 @@ Any.should_be_a self typ =
          import Standard.Examples
          from Standard.Test import Test
 
-         example_should_equal = [1, 2] . should_contain_the_same_elements_as [2, 1]
-Any.should_contain_the_same_elements_as : Any -> Integer -> Spec_Result
-Any.should_contain_the_same_elements_as self that frames_to_skip=0 =
+         example_should_equal = [1, 2] . should_equal_ignoring_order [2, 1]
+Any.should_equal_ignoring_order : Any -> Integer -> Spec_Result
+Any.should_equal_ignoring_order self that frames_to_skip=0 =
     loc = Meta.get_source_location 1+frames_to_skip
     that.each element->
         if self.contains element . not then
@@ -526,9 +526,9 @@ Any.should_contain_the_same_elements_as self that frames_to_skip=0 =
          import Standard.Examples
          from Standard.Test import Test
 
-         example_should_equal = [1, 2] . should_contain_the_same_elements_as [2, 1]
-Error.should_contain_the_same_elements_as : Any -> Integer -> Spec_Result
-Error.should_contain_the_same_elements_as self that frames_to_skip=0 =
+         example_should_equal = [1, 2] . should_equal_ignoring_order [2, 1]
+Error.should_equal_ignoring_order : Any -> Integer -> Spec_Result
+Error.should_equal_ignoring_order self that frames_to_skip=0 =
     _ = [that]
     Test.fail_match_on_unexpected_error self 1+frames_to_skip
 
