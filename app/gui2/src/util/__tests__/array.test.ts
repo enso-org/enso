@@ -1,11 +1,11 @@
 import { partitionPoint } from '@/util/data/array'
-import { fc, test as fcTest } from '@fast-check/vitest'
+import { fc, test } from '@fast-check/vitest'
 import { expect } from 'vitest'
 
 const isEven = (n: number) => n % 2 === 0
 const isOdd = (n: number) => n % 2 === 1
 
-fcTest.prop({
+test.prop({
   evens: fc.array(fc.nat(1_000_000_000)).map((a) => a.map((n) => n * 2)),
   odds: fc.array(fc.nat(1_000_000_000)).map((a) => a.map((n) => n * 2 + 1)),
 })('partitionPoint (even/odd)', ({ evens, odds }) => {
@@ -13,7 +13,7 @@ fcTest.prop({
   expect(partitionPoint([...odds, ...evens], isOdd)).toEqual(odds.length)
 })
 
-fcTest.prop({
+test.prop({
   arr: fc.array(fc.float({ noNaN: true })).chain((a) => {
     const sorted = a.sort((a, b) => a - b)
     return fc.record({
@@ -26,7 +26,7 @@ fcTest.prop({
   expect(partitionPoint(arr, (n) => n < target)).toEqual(i)
 })
 
-fcTest.prop({
+test.prop({
   arr: fc.array(fc.float({ noNaN: true })).chain((a) => {
     const sorted = a.sort((a, b) => b - a)
     return fc.record({

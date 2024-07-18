@@ -39,7 +39,7 @@ export const defaultPreprocessor = [
   '1000',
 ] as const
 
-type Data = Error | Matrix | ObjectMatrix | UnknownTable | Excel_Workbook
+type Data = number | string | Error | Matrix | ObjectMatrix | UnknownTable | Excel_Workbook
 
 interface Error {
   type: undefined
@@ -330,7 +330,7 @@ function toField(name: string, valueType?: ValueType | null | undefined): ColDef
   const menu = `<span ref="eMenu" class="ag-header-icon ag-header-cell-menu-button"> </span>`
   const sort = `
       <span ref="eFilter" class="ag-header-icon ag-header-label-icon ag-filter-icon" aria-hidden="true"></span>
-      <span ref="eSortOrder" class="ag-header-icon ag-sort-order" aria-hidden="true">1</span>
+      <span ref="eSortOrder" class="ag-header-icon ag-sort-order" aria-hidden="true"></span>
       <span ref="eSortAsc" class="ag-header-icon ag-sort-ascending-icon" aria-hidden="true"></span>
       <span ref="eSortDesc" class="ag-header-icon ag-sort-descending-icon" aria-hidden="true"></span>
       <span ref="eSortNone" class="ag-header-icon ag-sort-none-icon" aria-hidden="true"></span>
@@ -343,7 +343,6 @@ function toField(name: string, valueType?: ValueType | null | undefined): ColDef
     field: name,
     headerComponentParams: {
       template,
-      enableSorting: true,
       setAriaSort: () => {},
     },
     headerTooltip: displayValue ? displayValue : '',
@@ -406,7 +405,7 @@ function toLinkField(fieldName: string): ColDef {
     field: fieldName,
     onCellDoubleClicked: (params) => createNode(params),
     tooltipValueGetter: () => {
-      return `Double click to view this ${newNodeSelectorValues.value.tooltipValue} in a separate node`
+      return `Double click to view this ${newNodeSelectorValues.value.tooltipValue} in a separate component`
     },
     cellRenderer: (params: any) => `<a href='#'> ${params.value} </a>`,
   }
@@ -551,6 +550,7 @@ watchEffect(() => {
 
   // If data is truncated, we cannot rely on sorting/filtering so will disable.
   options.defaultColDef.filter = !isTruncated.value
+  options.defaultColDef.sortable = !isTruncated.value
   options.api.setColumnDefs(mergedColumnDefs)
   options.api.setRowData(rowData)
 })
@@ -656,7 +656,7 @@ onUnmounted(() => {
             v-text="limit"
           ></option>
         </select>
-        <div v-if="showRowCount">
+        <template v-if="showRowCount">
           <span
             v-if="isRowCountSelectorVisible && isTruncated"
             v-text="` of ${rowCount} rows (Sorting/Filtering disabled).`"
@@ -664,7 +664,7 @@ onUnmounted(() => {
           <span v-else-if="isRowCountSelectorVisible" v-text="' rows.'"></span>
           <span v-else-if="rowCount === 1" v-text="'1 row.'"></span>
           <span v-else v-text="`${rowCount} rows.`"></span>
-        </div>
+        </template>
       </div>
       <div ref="tableNode" class="scrollable ag-theme-alpine"></div>
     </div>

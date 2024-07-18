@@ -30,7 +30,7 @@ class RuntimeKiller(
   override def receive: Receive = idle()
 
   private def idle(): Receive = { case ShutDownRuntime =>
-    logger.info("Shutting down the runtime server [{}].", runtimeConnector)
+    logger.debug("Shutting down the runtime server [{}]", runtimeConnector)
     runtimeConnector ! Api.Request(
       UUID.randomUUID(),
       Api.ShutDownRuntimeServer()
@@ -46,7 +46,7 @@ class RuntimeKiller(
     cancellable: Cancellable
   ): Receive = {
     case ResourceDisposalTimeout =>
-      logger.error("Disposal of runtime resources timed out.")
+      logger.error("Disposal of runtime resources timed out")
       shutDownTruffle(replyTo)
 
     case Api.Response(_, Api.RuntimeServerShutDown()) =>
@@ -63,8 +63,8 @@ class RuntimeKiller(
 
   private def shutDownTruffle(replyTo: ActorRef, retryCount: Int = 0): Unit = {
     try {
-      logger.info(
-        "Shutting down the Truffle context. Attempt #{}.",
+      logger.debug(
+        "Shutting down the Truffle context. Attempt #{}",
         retryCount + 1
       )
       truffleContextSupervisor.close()

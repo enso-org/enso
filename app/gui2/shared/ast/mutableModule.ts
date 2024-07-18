@@ -183,7 +183,10 @@ export class MutableModule implements Module {
 
   getStateAsUpdate(): ModuleUpdate {
     const updateBuilder = new UpdateBuilder(this, this.nodes, undefined)
-    for (const id of this.nodes.keys()) updateBuilder.addNode(id as AstId)
+    for (const id of this.nodes.keys()) {
+      DEV: assertAstId(id)
+      updateBuilder.addNode(id)
+    }
     return updateBuilder.finish()
   }
 
@@ -204,23 +207,24 @@ export class MutableModule implements Module {
       if (event.target === this.nodes) {
         // Updates to the node map.
         for (const [key, change] of event.changes.keys) {
-          const id = key as AstId
+          if (!isAstId(key)) continue
           switch (change.action) {
             case 'add':
-              updateBuilder.addNode(id)
+              updateBuilder.addNode(key)
               break
             case 'update':
-              updateBuilder.updateAllFields(id)
+              updateBuilder.updateAllFields(key)
               break
             case 'delete':
-              updateBuilder.deleteNode(id)
+              updateBuilder.deleteNode(key)
               break
           }
         }
       } else if (event.target.parent === this.nodes) {
         // Updates to a node's fields.
         assert(event.target instanceof Y.Map)
-        const id = event.target.get('id') as AstId
+        const id = event.target.get('id')
+        DEV: assertAstId(id)
         const node = this.nodes.get(id)
         if (!node) continue
         const changes: (readonly [string, unknown])[] = Array.from(event.changes.keys, ([key]) => [
@@ -230,7 +234,8 @@ export class MutableModule implements Module {
         updateBuilder.updateFields(id, changes)
       } else if (event.target.parent.parent === this.nodes) {
         // Updates to fields of a metadata object within a node.
-        const id = event.target.parent.get('id') as AstId
+        const id = event.target.parent.get('id')
+        DEV: assertAstId(id)
         const node = this.nodes.get(id)
         if (!node) continue
         const metadata = node.get('metadata') as unknown as Map<string, unknown>
@@ -352,14 +357,25 @@ export class MutableModule implements Module {
 
 type MutableRootPointer = MutableInvalid & { get expression(): MutableAst | undefined }
 
-function newAstId(type: string): AstId {
-  return `ast:${type}#${random.uint53()}` as AstId
+function newAstId(type: string, sequenceNum = random.uint53()): AstId {
+  const id = `ast:${type}#${sequenceNum}`
+  DEV: assertAstId(id)
+  return id
 }
+
+export const __TEST = { newAstId }
+
 /** Checks whether the input looks like an AstId. */
+const astIdRegex = /^ast:[A-Za-z]+#[0-9]+$/
 export function isAstId(value: string): value is AstId {
-  return /ast:[A-Za-z]*#[0-9]*/.test(value)
+  return astIdRegex.test(value)
 }
-export const ROOT_ID = `Root` as AstId
+
+export function assertAstId(value: string): asserts value is AstId {
+  assert(isAstId(value), `Incorrect AST ID: ${value}`)
+}
+
+export const ROOT_ID = newAstId('Root', 0)
 
 class UpdateBuilder {
   readonly nodesAdded = new Set<AstId>()

@@ -102,7 +102,8 @@ export type ProjectStore = ReturnType<typeof useProjectStore>
  */
 export const { provideFn: provideProjectStore, injectFn: useProjectStore } = createContextStore(
   'project',
-  (renameProjectBackend: (newName: string) => void) => {
+  (props: { projectId: string; renameProject: (newName: string) => void }) => {
+    const { projectId, renameProject: renameProjectBackend } = props
     const abort = useAbortScope()
 
     const observedFileName = ref<string>()
@@ -114,7 +115,12 @@ export const { provideFn: provideProjectStore, injectFn: useProjectStore } = cre
     const projectNameFromCfg = config.value.startup?.project
     if (projectNameFromCfg == null) throw new Error('Missing project name.')
     const projectName = ref(projectNameFromCfg)
-    const projectDisplayName = ref(config.value.startup?.displayedProjectName ?? projectName)
+    // Note that `config` is not deeply reactive. This is fine as the config is an immutable object
+    // passed in from the dashboard, so the entire object will change if any of its nested
+    // properties change.
+    const projectDisplayName = computed(
+      () => config.value.startup?.displayedProjectName ?? projectName,
+    )
 
     const clientId = random.uuidv4() as Uuid
     const lsUrls = resolveLsUrl(config.value)
@@ -355,15 +361,11 @@ export const { provideFn: provideProjectStore, injectFn: useProjectStore } = cre
         return Err(err)
       }
     }
-    lsRpcConnection.on(
-      'refactoring/projectRenamed',
-      ({ oldNormalizedName, newNormalizedName, newName }) => {
-        if (oldNormalizedName === projectName.value) {
-          projectName.value = newNormalizedName
-          projectDisplayName.value = newName
-        }
-      },
-    )
+    lsRpcConnection.on('refactoring/projectRenamed', ({ oldNormalizedName, newNormalizedName }) => {
+      if (oldNormalizedName === projectName.value) {
+        projectName.value = newNormalizedName
+      }
+    })
 
     const projectRootId = contentRoots.then(
       (roots) => roots.find((root) => root.type === 'Project')?.id,
@@ -388,6 +390,7 @@ export const { provideFn: provideProjectStore, injectFn: useProjectStore } = cre
       get observedFileName() {
         return observedFileName.value
       },
+      id: projectId,
       name: readonly(projectName),
       displayName: readonly(projectDisplayName),
       isOnLocalBackend,

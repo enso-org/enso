@@ -117,7 +117,7 @@ add_specs suite_builder =
             '{"type":"Date_Time","constructor":"new","year":2023,"month":9,"day":29,"hour":11,"second":52}'.should_parse_as (JS_Object.from_pairs [["type", "Date_Time"], ["constructor", "new"], ["year", 2023], ["month", 9], ["day", 29], ["hour", 11], ["second", 52]])
             '{"type":"Date_Time","constructor":"new","year":2023,"month":9,"day":29,"hour":11,"minute":52,"nanosecond":572104300}'.should_parse_as (JS_Object.from_pairs [["type", "Date_Time"], ["constructor", "new"], ["year", 2023], ["month", 9], ["day", 29], ["hour", 11], ["minute", 52], ["nanosecond", 572104300]])
 
-        group_builder.specify "should be able to read a JSON file with a BOM indicating UTF-16 encoding" pending="Encoding.default turned off temporarily" <|
+        group_builder.specify "should be able to read a JSON file with a BOM indicating UTF-16 encoding" <|
             utf_16_le_bom = [-1, -2]
             bytes = utf_16_le_bom + ("{}".bytes Encoding.utf_16_le)
             f = File.create_temporary_file "json-with-bom" ".json"
@@ -159,7 +159,7 @@ add_specs suite_builder =
             large_number.to_json . parse_json . should_equal large_number
 
         group_builder.specify "should serialise decimals and parse back" <|
-            decimal = Decimal.from_string "1234567890123456789012345678901234567890.1234567890123456789012345678901234567890"
+            decimal = Decimal.from_text "1234567890123456789012345678901234567890.1234567890123456789012345678901234567890"
             decimal.to_json . should_equal '{"type":"Decimal","value":"1234567890123456789012345678901234567890.1234567890123456789012345678901234567890","scale":40,"precision":80}'
             decimal.to_json . parse_json . should_equal decimal
             decimal.to_json . parse_json . scale . should_equal 40

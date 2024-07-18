@@ -71,7 +71,7 @@ class CollaborativeBuffer(
   private def uninitialized: Receive = {
     case OpenFile(client, path) =>
       context.system.eventStream.publish(BufferOpened(path))
-      logger.info(
+      logger.debug(
         "Buffer opened for [path:{}, client:{}].",
         path,
         client.clientId
@@ -80,7 +80,7 @@ class CollaborativeBuffer(
 
     case OpenBuffer(client, path) =>
       context.system.eventStream.publish(BufferOpened(path))
-      logger.info(
+      logger.debug(
         "Buffer opened in-memory for [path:{}, client:{}].",
         path,
         client.clientId

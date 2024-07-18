@@ -1,8 +1,8 @@
 package org.enso.interpreter.test.exports;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.hasItem;
-import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.is;
 
 import java.io.IOException;
@@ -36,7 +36,8 @@ public class ExportExtensionMethodTest {
         new SourceModule(
             QualifiedName.fromString("A_Module"),
             """
-        from project.T_Module export My_Type, extension_method
+        export project.T_Module.My_Type
+        export project.T_Module.extension_method
         """);
     var mainMod =
         new SourceModule(
@@ -74,7 +75,9 @@ public class ExportExtensionMethodTest {
         new SourceModule(
             QualifiedName.fromString("A_Module"),
             """
-        from project.T_Module export My_Type, My_Other_Type, extension_method
+        export project.T_Module.My_Type
+        export project.T_Module.My_Other_Type
+        export project.T_Module.extension_method
         """);
     var mainMod =
         new SourceModule(
@@ -110,7 +113,8 @@ public class ExportExtensionMethodTest {
         new SourceModule(
             QualifiedName.fromString("Main"),
             """
-        from project.T_Module export My_Type, extension_method
+        export project.T_Module.My_Type
+        export project.T_Module.extension_method
         """);
     var projDir = tempFolder.newFolder().toPath();
     ProjectUtils.createProject("Proj", Set.of(tMod, mainMod), projDir);
@@ -121,7 +125,9 @@ public class ExportExtensionMethodTest {
       var polyCtx = new PolyglotContext(ctx);
       polyCtx.getTopScope().compile(true);
       var mainModExportedSymbols = ModuleUtils.getExportedSymbolsFromModule(ctx, "local.Proj.Main");
-      assertThat(mainModExportedSymbols, hasKey("extension_method"));
+      assertThat(mainModExportedSymbols.size(), is(2));
+      assertThat(
+          mainModExportedSymbols.keySet(), containsInAnyOrder("My_Type", "extension_method"));
     }
   }
 
