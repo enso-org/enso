@@ -134,7 +134,7 @@ export default function TabBar(props: TabBarProps) {
               className="flex h-12 shrink-0 grow cursor-default items-center rounded-full"
               {...innerProps}
             >
-              <aria.Tab>
+              <aria.Tab isDisabled>
                 {/* Putting the background in a `Tab` is a hack, but it is required otherwise there
                  * are issues with the ref to the background being detached, resulting in the clip
                  * path cutout for the current tab not applying at all. */}
@@ -214,7 +214,6 @@ export function Tab(props: InternalTabProps) {
         }
       }}
       id={id}
-      isDisabled={isActive}
       aria-label={getText(labelId)}
       className={tailwindMerge.twMerge(
         'relative flex h-full items-center gap-3 rounded-t-2xl px-4',
@@ -235,7 +234,7 @@ export function Tab(props: InternalTabProps) {
           className={tailwindMerge.twMerge(onClose && 'group-hover:hidden focus-visible:hidden')}
         />
       )}
-      {children}
+      {data?.name ?? children}
       {onClose && (
         <div className="flex">
           <ariaComponents.CloseButton onPress={onClose} />
