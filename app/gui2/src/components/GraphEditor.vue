@@ -386,7 +386,6 @@ const { handleClick } = useDoubleClick(
 
 function deleteSelected() {
   graphStore.deleteNodes(nodeSelection.selected)
-  nodeSelection.deselectAll()
 }
 
 // === Code Editor ===
