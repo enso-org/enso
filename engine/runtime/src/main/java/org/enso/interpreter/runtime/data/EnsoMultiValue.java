@@ -4,6 +4,7 @@ import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Cached.Shared;
+import com.oracle.truffle.api.dsl.GenerateUncached;
 import com.oracle.truffle.api.dsl.NeverDefault;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.ArityException;
@@ -418,6 +419,7 @@ public final class EnsoMultiValue implements EnsoObject {
   }
 
   /** Casts {@link EnsoMultiValue} to requested type effectively. */
+  @GenerateUncached
   public abstract static class CastToNode extends Node {
     /**
      * Casts value in a multi value into specific type.
