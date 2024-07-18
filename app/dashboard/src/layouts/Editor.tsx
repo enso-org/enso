@@ -72,7 +72,7 @@ export interface EditorProps {
   readonly ydocUrl: string | null
   readonly appRunner: GraphEditorRunner | null
   readonly renameProject: (newName: string) => void
-  readonly projectId: backendModule.ProjectAsset['id']
+  readonly projectId: backendModule.ProjectId
 }
 
 /** The container that launches the IDE. */
