@@ -168,7 +168,7 @@ public final class Type implements EnsoObject {
   @ExplodeLoop
   private static int fillInTypes(Type self, Type[] fill, EnsoContext ctx) {
     var at = 0;
-    for (; ; ) {
+    while (at < fill.length) {
       fill[at++] = self;
       if (self.supertype == null) {
         if (self.builtin) {
@@ -181,8 +181,12 @@ public final class Type implements EnsoObject {
         fill[at++] = ctx.getBuiltins().any();
         return at;
       }
+      if (self == self.supertype) {
+        return at;
+      }
       self = self.supertype;
     }
+    throw CompilerDirectives.shouldNotReachHere("Strange type " + self);
   }
 
   public void generateGetters(EnsoLanguage language) {
