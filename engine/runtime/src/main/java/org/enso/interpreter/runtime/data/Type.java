@@ -8,6 +8,7 @@ import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
+import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.Node;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -164,6 +165,7 @@ public final class Type implements EnsoObject {
     return Arrays.copyOf(types, realCount);
   }
 
+  @ExplodeLoop
   private static int fillInTypes(Type self, Type[] fill, EnsoContext ctx) {
     var at = 0;
     for (; ; ) {
