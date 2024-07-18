@@ -25,6 +25,7 @@ import org.enso.interpreter.runtime.error.PanicSentinel;
 import org.enso.interpreter.runtime.warning.Warning;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 import org.enso.interpreter.runtime.scope.ModuleScope;
+import org.enso.interpreter.runtime.warning.WarningsLibrary;
 import org.enso.polyglot.data.TypeGraph;
 
 /**
@@ -57,6 +58,7 @@ import org.enso.polyglot.data.TypeGraph;
   PanicSentinel.class,
   EnsoHashMap.class,
   Warning.class,
+  WarningsLibrary.class,
   EnsoFile.class,
   EnsoDate.class,
   EnsoDateTime.class,
