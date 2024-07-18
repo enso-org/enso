@@ -399,10 +399,12 @@ function pushPoints(newPoints: Location[]) {
 <template>
   <VisualizationContainer :overflow="true">
     <template #toolbar>
-      <SvgButton name="find" />
-      <SvgButton name="path2" />
-      <SvgButton name="geo_map_distance" />
-      <SvgButton name="geo_map_pin" />
+      <div class="inner-toolbar">
+        <SvgButton name="find" />
+        <SvgButton name="path2" />
+        <SvgButton name="geo_map_distance" />
+        <SvgButton name="geo_map_pin" />
+      </div>
     </template>
     <div ref="mapNode" class="GeoMapVisualization" @pointerdown.stop @wheel.stop></div>
   </VisualizationContainer>
@@ -427,5 +429,27 @@ function pushPoints(newPoints: Location[]) {
 :deep(.mapboxgl-ctrl-attrib-button.mapboxgl-ctrl-attrib-button) {
   background-color: hsla(0, 0%, 100%, 0.5);
   background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg width='24' height='24' viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg' fill-rule='evenodd'%3E%3Cpath d='M4 10a6 6 0 1012 0 6 6 0 10-12 0m5-3a1 1 0 102 0 1 1 0 10-2 0m0 3a1 1 0 112 0v3a1 1 0 11-2 0'/%3E%3C/svg%3E");
+}
+
+.inner-toolbar {
+  position: relative;
+  display: flex;
+  border-radius: var(--radius-full);
+  gap: 12px;
+  padding: 8px;
+  z-index: 20;
+
+  &:before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+    border-radius: var(--radius-full);
+    background: var(--color-app-bg);
+    backdrop-filter: var(--blur-app-bg);
+  }
 }
 </style>

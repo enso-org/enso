@@ -160,7 +160,7 @@ const contentStyle = computed(() => {
           </div>
         </div>
         <div v-if="$slots.toolbar && !config.isPreview" class="visualization-defined-toolbars">
-          <div class="toolbar"><slot name="toolbar"></slot></div>
+          <div class="new-class"><slot name="toolbar"></slot></div>
         </div>
         <div
           class="after-toolbars node-type"
@@ -175,7 +175,7 @@ const contentStyle = computed(() => {
 <style scoped>
 .VisualizationContainer {
   --node-height: 32px;
-  --permanent-toolbar-width: 200px;
+  --permanent-toolbar-width: 240px;
   --resize-handle-inside: var(--visualization-resize-handle-inside);
   --resize-handle-outside: var(--visualization-resize-handle-outside);
   --resize-handle-radius: var(--radius-default);
@@ -282,10 +282,29 @@ const contentStyle = computed(() => {
 }
 
 .visualization-defined-toolbars {
-  max-width: calc(100% - var(--permanent-toolbar-width));
+  min-width: calc(100% - var(--permanent-toolbar-width));
   /* FIXME [sb]: This will cut off floating panels - consider investigating whether there's a better
    * way to clip only the toolbar div itself. */
-  overflow: visible;
+  overflow-x: clip;
+  overflow-y: visible;
+}
+
+.new-class {
+  position: relative;
+  display: flex;
+  border-radius: var(--radius-full);
+  z-index: 20;
+
+  &:before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+    border-radius: var(--radius-full);
+  }
 }
 
 .invisible {
