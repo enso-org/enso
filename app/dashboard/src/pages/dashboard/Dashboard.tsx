@@ -126,6 +126,7 @@ function DashboardInner(props: DashboardProps) {
     }
   )
 
+  const projectsStore = projectsProvider.useProjectsStore()
   const page = projectsProvider.usePage()
   const launchedProjects = projectsProvider.useLaunchedProjects()
   const selectedProject = launchedProjects.find(p => p.id === page) ?? null
@@ -185,7 +186,10 @@ function DashboardInner(props: DashboardProps) {
         closeModal: () => {
           updateModal(oldModal => {
             if (oldModal == null) {
-              setPage(projectsProvider.TabType.drive)
+              const currentPage = projectsStore.getState().page
+              if (array.includes(Object.values(projectsProvider.TabType), currentPage)) {
+                setPage(projectsProvider.TabType.drive)
+              }
             }
             return null
           })
@@ -195,7 +199,7 @@ function DashboardInner(props: DashboardProps) {
           }
         },
       }),
-    [inputBindings, modalRef, localStorage, updateModal, setPage]
+    [inputBindings, modalRef, localStorage, updateModal, setPage, projectsStore]
   )
 
   React.useEffect(() => {
