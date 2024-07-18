@@ -15,8 +15,7 @@ const setTextFormatterSelected = (option: TextFormatOptions) => {
   emit('changeFormat', textFormatterSelected.value)
 }
 
-const iconPathOn = `${icons}#paragraph`
-const iconPathOff = `${icons}#text2`
+const iconPath = `${icons}#paragraph`
 
 const open = ref(false)
 
@@ -32,37 +31,41 @@ const toggleMenu = () => {
     </template>
 
     <template #entries>
-      <div class="button-list-wrapper">
-        <button
-          :class="`${textFormatterSelected === TextFormatOptions.On && 'selected'}`"
-          :onclick="() => setTextFormatterSelected(TextFormatOptions.On)"
-          title="Text displayed in monaspace font and all whitespace characters displayed as a symbol"
-        >
-          <svg viewBox="0 0 16 16" width="16" height="16" style="stroke: black; fill: #000000">
-            <use :href="`${iconPathOn}`" />
-          </svg>
-        </button>
+      <button
+        :class="`${textFormatterSelected === TextFormatOptions.On && 'selected'}`"
+        :onclick="() => setTextFormatterSelected(TextFormatOptions.On)"
+        title="Text displayed in monaspace font and all whitespace characters displayed as a symbol"
+      >
+        <svg viewBox="0 0 16 16" width="16" height="16" style="stroke: black; fill: #000000">
+          <use :href="`${iconPath}`" />
+        </svg>
+        <div>All Whitespace rendering</div>
+      </button>
 
-        <button
-          :onclick="() => setTextFormatterSelected(TextFormatOptions.Special)"
-          :class="`${textFormatterSelected === TextFormatOptions.Special && 'selected'}`"
-          title="Text displayed in monaspace font, only multiple spaces displayed with &#183;"
-        >
-          <svg viewBox="0 0 16 16" width="16" height="16" style="stroke: grey; fill: #808080">
-            <use :href="`${iconPathOn}`" />
-          </svg>
-        </button>
+      <button
+        :onclick="() => setTextFormatterSelected(TextFormatOptions.Special)"
+        :class="`${textFormatterSelected === TextFormatOptions.Special && 'selected'}`"
+        title="Text displayed in monaspace font, only multiple spaces displayed with &#183;"
+      >
+        <svg viewBox="0 0 16 16" width="16" height="16" style="stroke: grey; fill: #808080">
+          <use :href="`${iconPath}`" />
+        </svg>
+        <div>Partial whitespace rendering</div>
+      </button>
 
-        <button
-          :onclick="() => setTextFormatterSelected(TextFormatOptions.Off)"
-          :class="`${textFormatterSelected === TextFormatOptions.Off && 'selected'}`"
-          title="No formatting applied to text"
-        >
+      <button
+        :onclick="() => setTextFormatterSelected(TextFormatOptions.Off)"
+        :class="`${textFormatterSelected === TextFormatOptions.Off && 'selected'}`"
+        title="No formatting applied to text"
+      >
+        <div class="strikethrough">
           <svg viewBox="0 0 16 16" width="16" height="16">
-            <use :href="`${iconPathOff}`" />
+            <use :href="`${iconPath}`" />
           </svg>
-        </button>
-      </div>
+        </div>
+
+        <div>No whitespace rendering</div>
+      </button>
     </template>
   </DropdownMenu>
 </template>
@@ -70,13 +73,10 @@ const toggleMenu = () => {
 <style scoped>
 .TextFormattingSelector {
   background: var(--color-frame-bg);
-  border-radius: var(--radius-full);
-  margin: 0 12px 0 auto;
-  width: inherit;
+  border-radius: 16px;
 }
 
 :deep(.DropdownMenuContent) {
-  width: 250px;
   margin-top: 2px;
   padding: 4px;
 
@@ -86,13 +86,6 @@ const toggleMenu = () => {
     padding-left: 8px;
     padding-right: 8px;
   }
-}
-
-.button-list-wrapper {
-  position: absolute;
-  display: flex;
-  flex-direction: column;
-  width: inherit;
 }
 
 button {
@@ -116,5 +109,24 @@ button {
   &:active {
     background-color: var(--color-menu-entry-active-bg);
   }
+}
+
+.strikethrough {
+  position: relative;
+}
+.strikethrough:before {
+  position: absolute;
+  content: '';
+  left: 0;
+  top: 50%;
+  right: 0;
+  border-top: 1px solid;
+  border-color: black;
+
+  -webkit-transform: rotate(-20deg);
+  -moz-transform: rotate(-20deg);
+  -ms-transform: rotate(-20deg);
+  -o-transform: rotate(-20deg);
+  transform: rotate(-20deg);
 }
 </style>
