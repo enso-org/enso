@@ -110,7 +110,7 @@ export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
       {managesThisAsset && !isUnderPaywall && (
         <ariaComponents.Button
           ref={plusButtonRef}
-          size="icon"
+          size="medium"
           variant="ghost"
           icon={Plus2Icon}
           showIconOnHover

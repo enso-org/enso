@@ -44,6 +44,7 @@ import Standard.Table.Value_Type.By_Type
 from Standard.Table import Aggregate_Column, Auto, Blank_Selector, Column_Ref, Data_Formatter, Join_Condition, Join_Kind, Match_Columns, Position, Previous_Value, Report_Unmatched, Set_Mode, Simple_Expression, Sort_Column, Table, Value_Type
 from Standard.Table.Errors import all
 from Standard.Table.Internal.Filter_Condition_Helpers import make_filter_column
+from Standard.Table.Table import make_fill_nothing_default_widget
 
 import project.Connection.Connection.Connection
 import project.DB_Column.DB_Column
@@ -167,7 +168,7 @@ type DB_Table
        - if_missing: The value to use if the selector isn't present.
     @selector Widget_Helpers.make_column_name_selector
     @index (t-> Widget.Numeric_Input minimum=0 maximum=t.row_count-1)
-    @if_missing (make_any_selector add_text=True add_regex=True add_number=True add_boolean=True add_named_pattern=True add_nothing=True)
+    @if_missing (make_any_selector add_text=True add_regex=True add_number=True add_boolean=True add_named_pattern=True add_date=True add_time=True add_date_time=True add_nothing=True)
     get_value : Text | Integer -> Integer -> Any -> Any
     get_value self selector:(Text | Integer)=0 index:Integer=0 ~if_missing=Nothing =
         col = self.get selector if_missing=Nothing
@@ -2839,7 +2840,7 @@ type DB_Table
 
              fill_nothing = table.fill_nothing ["col0", "col1"] 20.5
     @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True add_by_type=True)
-    @default (self -> Widget_Helpers.make_fill_default_value_selector column_source=self add_text=True add_number=True add_boolean=True)
+    @default make_fill_nothing_default_widget
     fill_nothing : Vector (Integer | Text | Regex | By_Type) | Text | Integer | Regex | By_Type -> DB_Column | Column_Ref | Expression | Previous_Value | Any -> DB_Table
     fill_nothing self (columns : Vector | Text | Integer | Regex | By_Type) default =
         resolved_default = (self:Table_Ref).resolve default
@@ -2867,7 +2868,7 @@ type DB_Table
 
              fill_empty = table.fill_empty ["col0", "col1"] "hello"
     @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True add_by_type=True)
-    @default (self -> Widget_Helpers.make_fill_default_value_selector column_source=self add_text=True)
+    @default (self-> Widget_Helpers.make_fill_default_value_selector value_type=Value_Type.Char add_nothing=True)
     fill_empty : Vector (Integer | Text | Regex | By_Type) | Text | Integer | Regex | By_Type -> DB_Column | Column_Ref | Expression | Previous_Value | Any -> DB_Table
     fill_empty self (columns : Vector | Text | Integer | Regex | By_Type) default =
         resolved_default = (self:Table_Ref).resolve default
