@@ -125,14 +125,14 @@ export default function ProjectIcon(props: ProjectIconProps) {
     }
   })()
 
+  const doOpenProjectTab = () => {
+    openProjectTab(item.id)
+  }
   const doOpenProject = () => {
-    openProject({ ...item, type: backend.type })
+    void openProject({ ...item, type: backend.type })?.then(doOpenProjectTab)
   }
   const doCloseProject = () => {
     closeProject({ ...item, type: backend.type })
-  }
-  const doOpenProjectTab = () => {
-    openProjectTab(item.id)
   }
 
   switch (state) {

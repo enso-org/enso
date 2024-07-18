@@ -251,14 +251,6 @@ export function useRenameProjectMutation() {
 // === useOpenProject ===
 // ======================
 
-/** Options for {@link useOpenProject}. */
-export interface OpenProjectOptions {
-  /** Whether to open the project in the background.
-   * Set to `false` to navigate to the project tab.
-   * @default true */
-  readonly openInBackground?: boolean
-}
-
 /** A callback to open a project. */
 export function useOpenProject() {
   const client = reactQuery.useQueryClient()
@@ -266,46 +258,41 @@ export function useOpenProject() {
   const addLaunchedProject = projectsProvider.useAddLaunchedProject()
   const closeAllProjects = useCloseAllProjects()
   const openProjectMutation = useOpenProjectMutation()
-  const openEditor = useOpenEditor()
-
-  return eventCallbacks.useEventCallback(
-    (project: LaunchedProject, options: OpenProjectOptions = {}) => {
-      const { openInBackground = true } = options
-
-      // Since multiple tabs cannot be opened at the sametime, the opened projects need to be closed first.
-      if (projectsStore.getState().launchedProjects.length > 0) {
-        closeAllProjects()
-      }
-
-      const isOpeningTheSameProject =
-        client.getMutationCache().find({
-          mutationKey: ['openProject'],
-          predicate: mutation => mutation.options.scope?.id === project.id,
-        })?.state.status === 'pending'
-
-      if (!isOpeningTheSameProject) {
-        openProjectMutation.mutate(project)
-
-        const openingProjectMutation = client.getMutationCache().find({
-          mutationKey: ['openProject'],
-          // this is unsafe, but we can't do anything about it
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-          predicate: mutation => mutation.state.variables?.id === project.id,
-        })
-
-        openingProjectMutation?.setOptions({
-          ...openingProjectMutation.options,
-          scope: { id: project.id },
-        })
-
-        addLaunchedProject(project)
-
-        if (!openInBackground) {
-          openEditor(project.id)
-        }
-      }
+  return eventCallbacks.useEventCallback((project: LaunchedProject) => {
+    // Since multiple tabs cannot be opened at the sametime, the opened projects need to be closed first.
+    if (projectsStore.getState().launchedProjects.length > 0) {
+      closeAllProjects()
     }
-  )
+
+    const existingMutation = client.getMutationCache().find({
+      mutationKey: ['openProject'],
+      predicate: mutation => mutation.options.scope?.id === project.id,
+    })
+
+    const isOpeningTheSameProject = existingMutation?.state.status === 'pending'
+
+    if (!isOpeningTheSameProject) {
+      const promise = openProjectMutation.mutateAsync(project)
+
+      const openingProjectMutation = client.getMutationCache().find({
+        mutationKey: ['openProject'],
+        // this is unsafe, but we can't do anything about it
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        predicate: mutation => mutation.state.variables?.id === project.id,
+      })
+
+      openingProjectMutation?.setOptions({
+        ...openingProjectMutation.options,
+        scope: { id: project.id },
+      })
+
+      addLaunchedProject(project)
+
+      return promise
+    } else {
+      return
+    }
+  })
 }
 
 // =====================
