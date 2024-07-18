@@ -23,25 +23,29 @@ const open = ref(false)
     <template #entries>
       <SvgButton
         name="paragraph"
-        class="on"
-        lable="Full whitespace rendering"
+        class="full-format"
+        label="Full whitespace rendering"
         :title="`Text displayed in monaspace font and all whitespace characters displayed as symbols`"
         @click.stop="() => emit('changeFormat', TextFormatOptions.On)"
       />
+
       <SvgButton
         name="paragraph"
         class="partial"
-        lable="Partial whitespace rendering"
+        label="Partial whitespace rendering"
         :title="`Text displayed in monaspace font, only multiple spaces displayed with &#183;`"
         @click.stop="() => emit('changeFormat', TextFormatOptions.Partial)"
       />
-      <SvgButton
-        name="paragraph"
-        class="strikethrough"
-        lable="No whitespace rendering"
-        :title="`No formatting applied to text`"
+      <button
+        class="OffButton"
+        title="`No formatting applied to text`"
         @click.stop="() => emit('changeFormat', TextFormatOptions.Off)"
-      />
+      >
+        <div class="strikethrough">
+          <SvgIcon name="paragraph" />
+        </div>
+        <div>No whitespace rendering</div>
+      </button>
     </template>
   </DropdownMenu>
 </template>
@@ -53,42 +57,41 @@ const open = ref(false)
 }
 
 :deep(.DropdownMenuContent) {
-  margin-top: 2px;
+  margin-top: 10px;
   padding: 4px;
 
   > * {
     display: flex;
-    align-items: center;
     padding-left: 8px;
     padding-right: 8px;
   }
 }
 
-button {
-  width: 100%;
-  height: 100%;
+.OffButton {
   display: flex;
-  gap: 4px;
+  justify-content: flex-start;
   align-items: center;
-  padding: 0 8px;
-  border-radius: 12px;
-  white-space: nowrap;
-
-  &.selected {
-    background: var(--color-menu-entry-selected-bg);
-  }
-
-  &:hover {
-    background: var(--color-menu-entry-hover-bg);
-  }
-
+  min-width: max-content;
+  padding: 0 4px;
+  border-radius: var(--radius-full);
+  border: none;
+  transition: background-color 0.3s;
+  &:hover,
+  &:focus,
   &:active {
-    background-color: var(--color-menu-entry-active-bg);
+    background-color: var(--color-menu-entry-hover-bg);
+  }
+  &.disabled {
+    cursor: default;
+    &:hover {
+      background-color: unset;
+    }
   }
 }
 
 .strikethrough {
   position: relative;
+  margin-right: 4px;
 }
 .strikethrough:before {
   position: absolute;
@@ -111,8 +114,9 @@ button {
   fill: #808080;
 }
 
-.on {
+.full-format {
   stroke: black;
   fill: #000000;
+  justify-content: flex-start;
 }
 </style>
