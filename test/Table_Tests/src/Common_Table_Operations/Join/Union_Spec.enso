@@ -307,7 +307,8 @@ run_union_tests group_builder setup call_union =
             m.at "A" . to_vector . should_equal [1, 2, 3]
             m.at "B" . to_vector . should_equal ["a", "b", "c"]
 
-        check_same <| call_union [t1]
+        t2 = call_union [t1]
+        check_same t2
         check_same <| call_union [t1] match_columns=Match_Columns.By_Position
 
         check_same <| call_union [t1] columns_to_keep=..In_All

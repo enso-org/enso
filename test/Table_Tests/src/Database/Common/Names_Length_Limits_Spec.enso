@@ -166,12 +166,12 @@ add_specs suite_builder prefix create_connection_func =
                 tx = t1.union [t12, t13] # 2 + 2*4 = 10 rows
                 ty = tx.union tx # 10 + 10 = 20 rows
                 ty.row_count . should_equal 20
-                ty.at "X" . to_vector . should_equal_ignoring_order [1, 2]
+                ty.at "X" . to_vector . distinct . should_equal_ignoring_order [1, 2]
                 Problems.assume_no_problems ty
 
                 t11 = t1.union t1
                 t11.row_count . should_equal 4
-                t11.at "X" . to_vector . should_equal_ignoring_order [1, 2]
+                t11.at "X" . to_vector . should_equal_ignoring_order [1, 2, 1, 2]
                 Problems.assume_no_problems t11
 
         group_builder.specify "should be fine operating on columns with long names" <|
