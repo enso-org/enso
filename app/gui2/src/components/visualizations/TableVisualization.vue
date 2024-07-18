@@ -93,7 +93,7 @@ interface UnknownTable {
 }
 
 export enum TextFormatOptions {
-  Special,
+  Partial,
   On,
   Off,
 }
@@ -257,14 +257,14 @@ function formatNumber(params: ICellRendererParams) {
 
 function formatText(params: ICellRendererParams) {
   if (textFormatterSelected.value === TextFormatOptions.Off) {
-    return `<span style="white-space: pre-wrap"> ${params.value}</span>`
+    return params.value
   }
-  const commonMappings = {
+  const partialMappings = {
     '\r': '<span style="color: grey">␍</span> <br>',
     '\n': '<span style="color: grey">␊</span> <br>',
     '\t': '<span>    </span>',
   }
-  const mappingWithTab = {
+  const fullMappings = {
     '\r': '<span style="color: grey">␍</span> <br>',
     '\n': '<span style="color: grey">␊</span> <br>',
     '\t': '<span style="color: grey">&#8594;   </span>',
@@ -286,10 +286,10 @@ function formatText(params: ICellRendererParams) {
   }
   const newString = replaceReturns.replace(/[\s]/g, function (match: string) {
     const mapping =
-      textFormatterSelected.value === TextFormatOptions.On ? mappingWithTab : commonMappings
+      textFormatterSelected.value === TextFormatOptions.On ? fullMappings : partialMappings
     return mapping[match as keyof typeof mapping] || renderOtherWhitespace(match)
   })
-  return `<span style="white-space: pre-wrap"> ${newString}</span>`
+  return `<span style="white-space: pre"> ${newString}</span>`
 }
 
 function setRowLimit(newRowLimit: number) {

@@ -9,7 +9,7 @@ const emit = defineEmits<{
   changeFormat: [formatValue: TextFormatOptions]
 }>()
 
-const textFormatterSelected = ref(TextFormatOptions.Special)
+const textFormatterSelected = ref(TextFormatOptions.Partial)
 const setTextFormatterSelected = (option: TextFormatOptions) => {
   textFormatterSelected.value = option
   emit('changeFormat', textFormatterSelected.value)
@@ -43,8 +43,8 @@ const toggleMenu = () => {
       </button>
 
       <button
-        :onclick="() => setTextFormatterSelected(TextFormatOptions.Special)"
-        :class="`${textFormatterSelected === TextFormatOptions.Special && 'selected'}`"
+        :onclick="() => setTextFormatterSelected(TextFormatOptions.Partial)"
+        :class="`${textFormatterSelected === TextFormatOptions.Partial && 'selected'}`"
         title="Text displayed in monaspace font, only multiple spaces displayed with &#183;"
       >
         <svg viewBox="0 0 16 16" width="16" height="16" style="stroke: grey; fill: #808080">
