@@ -8,7 +8,6 @@ import type { TextMatchTransformer } from '@lexical/markdown'
 import type { LexicalEditor } from 'lexical'
 import { assertDefined } from 'shared/util/assert'
 
-export const DEFAULT_ALT_TEXT = 'Image'
 
 const IMAGE: TextMatchTransformer = {
   dependencies: [ImageNode],
