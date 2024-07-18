@@ -289,7 +289,7 @@ function formatText(params: ICellRendererParams) {
       textFormatterSelected.value === TextFormatOptions.On ? fullMappings : partialMappings
     return mapping[match as keyof typeof mapping] || renderOtherWhitespace(match)
   })
-  return `<span style="white-space: pre"> ${newString}</span>`
+  return newString
 }
 
 function setRowLimit(newRowLimit: number) {
