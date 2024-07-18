@@ -891,18 +891,20 @@ test_table_append group_builder (data : Data) source_table_builder target_table_
         src = source_table_builder [["X", [1, 2, 3]]] connection=data.connection
         result = dest.update_rows src update_action=Update_Action.Insert key_columns=[]
 
-        expected = [1, 10, 100, 1, 2, 3]
         result.column_names . should_equal ["X"]
-        result.at "X" . to_vector . should_equal_ignoring_order expected
+        result.at "X" . to_vector . should_equal_ignoring_order [1, 10, 100, 1, 2, 3]
 
-        r2 = dest.update_rows src update_action=Update_Action.Insert key_columns=Nothing
+        bump table offset = table.set (table.at "X" + offset) "X"
+        src2 = bump src 20 # 21, 22, 23
+        r2 = dest.update_rows src2 update_action=Update_Action.Insert key_columns=Nothing
         r2.column_names . should_equal ["X"]
-        r2.at "X" . to_vector . should_equal_ignoring_order expected
+        r2.at "X" . to_vector . should_equal_ignoring_order [1, 10, 100, 1, 2, 3, 21, 22, 23]
 
+        src3 = bump src 30 # 31, 32, 33
         default_key_columns dest . should_equal Nothing
         r3 = dest.update_rows src update_action=Update_Action.Insert
         r3.column_names . should_equal ["X"]
-        r3.at "X" . to_vector . should_equal_ignoring_order expected
+        r3.at "X" . to_vector . should_equal_ignoring_order [1, 10, 100, 1, 2, 3, 21, 22, 23, 31, 32, 33]
 
     group_builder.specify "should fail if no key is specified in other modes" <|
         dest = target_table_builder [["X", [1, 10, 100]]] connection=data.connection

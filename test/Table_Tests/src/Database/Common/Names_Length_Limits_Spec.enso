@@ -152,12 +152,12 @@ add_specs suite_builder prefix create_connection_func =
                 t13 = t1.cross_join t3
                 t1213 = t12.cross_join t13
                 t1213.row_count . should_equal 16
-                t1213.at "X" . to_vector . should_equal_ignoring_order [1, 2]
+                t1213.at "X" . to_vector . distinct . should_equal_ignoring_order [1, 2]
                 Problems.expect_only_warning Duplicate_Output_Column_Names t1213
 
                 t11 = t1.cross_join t1
                 t11.row_count . should_equal 4
-                t11.at "X" . to_vector . should_equal_ignoring_order [1, 2]
+                t11.at "X" . to_vector . should_equal_ignoring_order [1, 2, 1, 2]
                 Problems.expect_only_warning Duplicate_Output_Column_Names t1213
 
             Test.with_clue "union: " <|
@@ -200,7 +200,7 @@ add_specs suite_builder prefix create_connection_func =
 
             t5 = t1.cross_join t4 right_prefix=""
             last_column = t5.at (-1)
-            last_column.to_vector . should_equal_ignoring_order [4, 10, 18]
+            last_column.to_vector.distinct.should_equal_ignoring_order [4, 10, 18]
 
         if has_maximum_column_name_length.not then
             group_builder.specify "should allow to create very long column names" <|

@@ -412,8 +412,15 @@ run_union_tests group_builder setup call_union =
             m = materialize_and_maybe_sort table
             expect_column_names ["D"] m
             m.at "D" . value_type . should_equal Value_Type.Date_Time
-            as_local dt = dt.format "YYYY-MM-DD HH:mm:ss"
-            m.at "D" . to_vector . map as_local . should_equal ["2024-05-16 16:48:23", "2019-10-23 00:00:00", "2020-01-01 00:00:00"]
+            ## Some backends will preserve the local time but change the offset (e.g. Snowflake)
+               and some will preserve the time instant but change the local time in the process of aligning offset (e.g. Postgres).
+            dt_vec = m.at "D" . to_vector
+            Test.with_clue <| "(D = "+dt_vec.to_display_text+") " <|
+                as_local dt = dt.format "YYYY-MM-DD HH:mm:ss"
+                preserves_local = (dt_vec.map as_local) == ["2024-05-16 16:48:23", "2019-10-23 00:00:00", "2020-01-01 00:00:00"]
+                at_utc dt = dt.at_zone utc
+                preserves_instant = (dt_vec.map at_utc) == ([Date_Time.new 2024 5 16 16 48 23, Date_Time.new 2019 10 23 0 0 0, Date_Time.new 2020 1 1 0 0 0].map at_utc)
+                (preserves_local || preserves_instant) . should_be_true
         problems = [Mixing_Date_Time_Types.Date_To_Date_Time "D"]
         problems.first.to_display_text . should_contain "[D]"
         Problems.test_problem_handling action problems tester
