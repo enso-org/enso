@@ -1,9 +1,9 @@
 import { documentationEditorBindings } from '@/bindings'
+import { IMAGE } from '@/components/MarkdownEditor/ImagePlugin'
+import { $isImageNode } from '@/components/MarkdownEditor/ImagePlugin/imageNode'
 import type { LexicalMarkdownPlugin } from '@/components/MarkdownEditor/markdown'
 import type { LexicalPlugin } from '@/components/lexical'
 import { $createLinkNode, $isLinkNode, AutoLinkNode, LinkNode } from '@lexical/link'
-import { $isImageNode } from '@/components/MarkdownEditor/ImagePlugin/imageNode'
-import { IMAGE } from '@/components/MarkdownEditor/ImagePlugin'
 import type { Transformer } from '@lexical/markdown'
 import { $getNearestNodeOfType } from '@lexical/utils'
 import {
