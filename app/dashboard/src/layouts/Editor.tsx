@@ -116,7 +116,11 @@ export default function Editor(props: EditorProps) {
   }
 
   return (
-    <div className={twMerge.twJoin('contents', hidden && 'hidden')} data-testvalue={project.id}>
+    <div
+      className={twMerge.twJoin('contents', hidden && 'hidden')}
+      data-testvalue={project.id}
+      data-testid="editor"
+    >
       {(() => {
         if (projectQuery.isError) {
           return (

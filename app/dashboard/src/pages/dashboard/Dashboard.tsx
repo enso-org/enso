@@ -258,14 +258,14 @@ function DashboardInner(props: DashboardProps) {
   return (
     <Page hideInfoBar hideChat>
       <div
-        className="flex text-xs text-primary"
+        className="flex min-h-full flex-col text-xs text-primary"
         onContextMenu={event => {
           event.preventDefault()
           unsetModal()
         }}
       >
         <aria.Tabs
-          className="relative flex h-screen grow select-none flex-col container-size"
+          className="relative flex min-h-full grow select-none flex-col container-size"
           selectedKey={page}
           onSelectionChange={newPage => {
             const validated = projectsProvider.PAGES_SCHEMA.safeParse(newPage)
@@ -331,7 +331,7 @@ function DashboardInner(props: DashboardProps) {
           <aria.TabPanel
             shouldForceMount
             id={projectsProvider.TabType.drive}
-            className="flex grow [&[data-inert]]:hidden"
+            className="flex min-h-0 grow [&[data-inert]]:hidden"
           >
             <Drive
               assetsManagementApiRef={assetManagementApiRef}
@@ -346,7 +346,7 @@ function DashboardInner(props: DashboardProps) {
               <aria.TabPanel
                 shouldForceMount
                 id={project.id}
-                className="flex grow [&[data-inert]]:hidden"
+                className="flex min-h-0 grow [&[data-inert]]:hidden"
               >
                 <Editor
                   key={project.id}
@@ -365,7 +365,7 @@ function DashboardInner(props: DashboardProps) {
                 />
               </aria.TabPanel>
             ))}
-          <aria.TabPanel id={projectsProvider.TabType.settings} className="flex grow">
+          <aria.TabPanel id={projectsProvider.TabType.settings} className="flex min-h-0 grow">
             <Settings />
           </aria.TabPanel>
         </aria.Tabs>
