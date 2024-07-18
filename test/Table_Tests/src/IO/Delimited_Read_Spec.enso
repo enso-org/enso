@@ -506,6 +506,11 @@ add_specs suite_builder =
             # The first column name now contains this invalid character, because it wasn't a BOM
             r.column_names.first . should_equal "￾a"
 
+        group_builder.specify "if UTF-16 encoding was selected but an inverted BOM is detected, a warning is issued (pt 2)" <|
+            bytes = utf_16_le_bom + ('a,b\n1,2'.bytes Encoding.utf_16_be)
+            f = File.create_temporary_file "delimited-utf-16-inverted-bom" ".csv"
+            bytes.write_bytes f . should_succeed
+
             # If we read without specifying the encoding, we will infer UTF-16 LE encoding because of the BOM and get garbage:
             r2 = f.read
             r2.column_names . should_equal ["Column 1"]

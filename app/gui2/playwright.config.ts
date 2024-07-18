@@ -47,6 +47,7 @@ export default defineConfig({
   reporter: 'html',
   use: {
     headless: !DEBUG,
+    actionTimeout: 5000,
     trace: 'retain-on-failure',
     viewport: { width: 1920, height: 1750 },
     ...(DEBUG ?

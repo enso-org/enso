@@ -19,11 +19,11 @@ import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.state.State;
 
 @BuiltinMethod(
-    type = "Map",
+    type = "Dictionary",
     name = "get_builtin",
     description =
         """
-        Gets a value from the map on the specified key, or the given default.
+        Gets a value from the dictionary on the specified key, or the given default.
         """,
     autoRegister = false,
     inlineable = true)

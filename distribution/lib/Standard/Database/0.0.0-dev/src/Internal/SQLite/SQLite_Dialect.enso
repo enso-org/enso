@@ -1,4 +1,4 @@
-from Standard.Base import all hiding First, Last
+from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Runtime.Ref.Ref
@@ -125,7 +125,7 @@ type SQLite_Dialect
         inner_table_alias = table_name_deduplicator.make_unique table.name+"_inner"
         setup = table.context.as_subquery inner_table_alias [table.internal_columns]
         new_columns = setup.new_columns.first
-        column_mapping = Map.from_vector <| new_columns.map c-> [c.name, c]
+        column_mapping = Dictionary.from_vector <| new_columns.map c-> [c.name, c]
         new_key_columns = key_columns.map c-> column_mapping.at c.name
         type_mapping = self.get_type_mapping
         distinct_expressions = new_key_columns.map column->
@@ -169,8 +169,10 @@ type SQLite_Dialect
         SQL_Expression.Operation "CAST" [column.expression, SQL_Expression.Literal sql_type_text]
 
     ## PRIVATE
-    needs_execute_query_for_type_inference : Boolean
-    needs_execute_query_for_type_inference self = True
+    needs_execute_query_for_type_inference : Text | SQL_Statement -> Boolean
+    needs_execute_query_for_type_inference self statement =
+        _ = statement
+        True
 
     ## PRIVATE
     supports_separate_nan : Boolean
@@ -296,6 +298,12 @@ type SQLite_Dialect
     ## PRIVATE
     value_type_for_upload_of_existing_column : DB_Column -> Value_Type
     value_type_for_upload_of_existing_column self column = column.value_type
+
+    ## PRIVATE
+    needs_literal_table_cast : Value_Type -> Boolean
+    needs_literal_table_cast self value_type =
+        _ = value_type
+        False
 
 ## PRIVATE
 make_dialect_operations =
@@ -447,10 +455,10 @@ mod_op = Base_Generator.lift_binary_op "MOD" x-> y->
     x ++ " - FLOOR(CAST(" ++ x ++ " AS REAL) / CAST(" ++ y ++ " AS REAL)) * " ++ y
 
 ## PRIVATE
-supported_replace_params : Set Replace_Params
+supported_replace_params : Hashset Replace_Params
 supported_replace_params =
     e = [Replace_Params.Value Text Case_Sensitivity.Default False, Replace_Params.Value Text Case_Sensitivity.Sensitive False, Replace_Params.Value Text Case_Sensitivity.Default True, Replace_Params.Value Text Case_Sensitivity.Sensitive True, Replace_Params.Value Text Case_Sensitivity.Insensitive True]
-    Set.from_vector e
+    Hashset.from_vector e
 
 ## PRIVATE
 replace : Vector SQL_Builder -> Any -> SQL_Builder

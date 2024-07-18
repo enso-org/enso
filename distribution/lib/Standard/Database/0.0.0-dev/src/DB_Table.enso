@@ -44,6 +44,7 @@ import Standard.Table.Value_Type.By_Type
 from Standard.Table import Aggregate_Column, Auto, Blank_Selector, Column_Ref, Data_Formatter, Join_Condition, Join_Kind, Match_Columns, Position, Previous_Value, Report_Unmatched, Set_Mode, Simple_Expression, Sort_Column, Table, Value_Type
 from Standard.Table.Errors import all
 from Standard.Table.Internal.Filter_Condition_Helpers import make_filter_column
+from Standard.Table.Table import make_fill_nothing_default_widget
 
 import project.Connection.Connection.Connection
 import project.DB_Column.DB_Column
@@ -167,7 +168,7 @@ type DB_Table
        - if_missing: The value to use if the selector isn't present.
     @selector Widget_Helpers.make_column_name_selector
     @index (t-> Widget.Numeric_Input minimum=0 maximum=t.row_count-1)
-    @if_missing (make_any_selector add_text=True add_regex=True add_number=True add_boolean=True add_named_pattern=True add_nothing=True)
+    @if_missing (make_any_selector add_text=True add_regex=True add_number=True add_boolean=True add_named_pattern=True add_date=True add_time=True add_date_time=True add_nothing=True)
     get_value : Text | Integer -> Integer -> Any -> Any
     get_value self selector:(Text | Integer)=0 index:Integer=0 ~if_missing=Nothing =
         col = self.get selector if_missing=Nothing
@@ -544,17 +545,17 @@ type DB_Table
        > Example
          Rename the "Alpha" column to "Beta"
 
-              table.rename_columns (Map.from_vector [["Alpha", "Beta"]])
+              table.rename_columns (Dictionary.from_vector [["Alpha", "Beta"]])
 
        > Example
          Rename the last column to "LastColumn"
 
-              table.rename_columns (Map.from_vector [[-1, "LastColumn"]])
+              table.rename_columns (Dictionary.from_vector [[-1, "LastColumn"]])
 
        > Example
          Rename the "Alpha" column to "Beta" and last column to "LastColumn"
 
-              table.rename_columns (Map.from_vector [["Alpha", "Beta"], [-1, "LastColumn"]])
+              table.rename_columns (Dictionary.from_vector [["Alpha", "Beta"], [-1, "LastColumn"]])
 
        > Example
          Rename the first column to "FirstColumn"
@@ -569,12 +570,12 @@ type DB_Table
        > Example
          For all columns starting with the prefix `name=`, replace it with `key:`.
 
-              table.rename_columns (Map.from_vector [["name=(.*)".to_regex, "key:$1"]])
+              table.rename_columns (Dictionary.from_vector [["name=(.*)".to_regex, "key:$1"]])
     @column_map Widget_Helpers.make_rename_name_vector_selector
-    rename_columns : Map (Text | Integer | Regex) Text | Vector Text | Vector Vector -> Case_Sensitivity -> Boolean -> Problem_Behavior -> DB_Table ! Missing_Input_Columns | Ambiguous_Column_Rename | Too_Many_Column_Names_Provided | Invalid_Column_Names | Duplicate_Output_Column_Names
-    rename_columns self (column_map:(Table | Map | Vector)=["Column"]) (case_sensitivity:Case_Sensitivity=..Default) (error_on_missing_columns:Boolean=True) (on_problems:Problem_Behavior=..Report_Warning) = case column_map of
+    rename_columns : Table | Dictionary (Text | Integer | Regex) Text | Vector Text | Vector Vector -> Case_Sensitivity -> Boolean -> Problem_Behavior -> DB_Table ! Missing_Input_Columns | Ambiguous_Column_Rename | Too_Many_Column_Names_Provided | Invalid_Column_Names | Duplicate_Output_Column_Names
+    rename_columns self (column_map:(Table | Dictionary | Vector)=["Column"]) (case_sensitivity:Case_Sensitivity=..Default) (error_on_missing_columns:Boolean=True) (on_problems:Problem_Behavior=..Report_Warning) = case column_map of
         _ : Table ->
-            resolved = Table_Helpers.read_name_map_from_table column_map
+            resolved = Table_Helpers.read_name_mapping_from_table column_map
             self.rename_columns resolved case_sensitivity error_on_missing_columns on_problems
         _ ->
             new_names = Table_Helpers.rename_columns self.column_naming_helper self.internal_columns column_map case_sensitivity error_on_missing_columns on_problems
@@ -757,7 +758,7 @@ type DB_Table
        > Example
          Take first 10 rows of the table.
 
-             table.take (First 10)
+             table.take (..First 10)
 
        > Example
          Take rows from the top of the table as long as their values sum to 10.
@@ -765,7 +766,7 @@ type DB_Table
              table.take (While row-> row.to_vector.compute Statistic.Sum == 10)
     @range Index_Sub_Range.default_widget
     take : (Index_Sub_Range | Range | Integer) -> DB_Table
-    take self range:(Index_Sub_Range | Range | Integer)=(..First 1) =
+    take self range:(Index_Sub_Range | Range | Integer)=..First =
         Take_Drop_Helpers.take_drop_helper Take_Drop.Take self range
 
     ## ALIAS remove, skip
@@ -789,7 +790,7 @@ type DB_Table
        > Example
          Drop first 10 rows of the table.
 
-             table.drop (First 10)
+             table.drop (..First 10)
 
        > Example
          Drop rows from the top of the table as long as their values sum to 10.
@@ -797,7 +798,7 @@ type DB_Table
              table.drop (While row-> row.to_vector.compute Statistic.Sum == 10)
     @range Index_Sub_Range.default_widget
     drop : (Index_Sub_Range | Range | Integer) -> DB_Table
-    drop self range:(Index_Sub_Range | Range | Integer)=(..First 1) =
+    drop self range:(Index_Sub_Range | Range | Integer)=..First =
         Take_Drop_Helpers.take_drop_helper Take_Drop.Drop self range
 
     ## PRIVATE
@@ -1035,26 +1036,26 @@ type DB_Table
             Warning.set result []
 
     ## PRIVATE
-       A helper that creates a two-column table from a Map.
+       A helper that creates a two-column table from a Dictionary.
 
-       The keys of the `Map` become the first column, with name
-       `key_column_name`, and the values of the `Map` become the second column,
-       with name `value_column_name`.
+       The keys of the `Dictionary` become the first column, with name
+       `key_column_name`, and the values become the second column, with name
+       `value_column_name`.
 
-       For the in-memory database, the `Map` can be empty. For the database
-       backends, it must not be empty.
+       For the in-memory database, the `Dictionary` can be empty. For the
+       database backends, it must not be empty.
 
        Arguments:
-       - map: The `Map` to create the table from.
+       - dict: The `Dictionary` to create the table from.
        - key_column_name: The name to use for the first column.
        - value_column_name: The name to use for the second column.
-    make_table_from_map : Map Any Any -> Text -> Text -> Table
-    make_table_from_map self map key_column_name value_column_name =
-        total_size = map.size * 2
+    make_table_from_dictionary : Dictionary Any Any -> Text -> Text -> Table
+    make_table_from_dictionary self dict key_column_name value_column_name =
+        total_size = dict.size * 2
 
-        if map.is_empty then Error.throw (Illegal_Argument.Error "Map argument cannot be empty") else
-            if total_size > MAX_LITERAL_ELEMENT_COUNT then Error.throw (Illegal_Argument.Error "Map argument is too large ("+map.size.to_text+" entries): materialize a table into the database instead") else
-                keys_and_values = map.to_vector
+        if dict.is_empty then Error.throw (Illegal_Argument.Error "Dictionary cannot be empty") else
+            if total_size > MAX_LITERAL_ELEMENT_COUNT then Error.throw (Illegal_Argument.Error "Dictionary is too large ("+dict.size.to_text+" entries): materialize a table into the database instead") else
+                keys_and_values = dict.to_vector
                 self.make_table_from_vectors [keys_and_values.map .first, keys_and_values.map .second] [key_column_name, value_column_name]
 
     ## PRIVATE
@@ -1085,7 +1086,13 @@ type DB_Table
                 _ -> type_mapping.value_type_to_sql argument_value_type Problem_Behavior.Ignore
             expr = SQL_Expression.Constant value
             new_type_ref = SQL_Type_Reference.from_constant sql_type
-            DB_Column.Value value.pretty self.connection new_type_ref expr self.context
+            base_column = Internal_Column.Value value.pretty new_type_ref expr
+            needs_cast = argument_value_type.is_nothing.not && self.connection.dialect.needs_literal_table_cast argument_value_type
+            result_internal_column = if needs_cast.not then base_column else
+                infer_type_from_database new_expression =
+                    SQL_Type_Reference.new self.connection self.context new_expression
+                self.connection.dialect.make_cast base_column sql_type infer_type_from_database
+            self.make_column result_internal_column
 
     ## PRIVATE
        Create a unique temporary column name.
@@ -1153,8 +1160,8 @@ type DB_Table
     last_row self =
         if self.internal_columns.is_empty then Error.throw (Illegal_Argument.Error "Cannot create a table with no columns.") else
             sql = self.to_sql
-            column_type_suggestions = self.internal_columns.map .sql_type_reference
-            table = self.connection.read_statement sql column_type_suggestions last_row_only=True
+            column_types = self.internal_columns.map .sql_type_reference
+            table = self.connection.read_statement sql column_types last_row_only=True
             table.rows.first
 
     ## ALIAS sort
@@ -1683,8 +1690,8 @@ type DB_Table
     @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True add_by_type=True)
     @from_column Widget.Text_Input
     @to_column Widget.Text_Input
-    replace : (DB_Table | Map) -> Vector (Integer | Text | Regex | By_Type) | Text | Integer | Regex | By_Type -> (Text | Integer | Nothing) -> (Text | Integer | Nothing) -> Boolean -> Problem_Behavior -> DB_Table ! Missing_Input_Columns | Non_Unique_Key | Unmatched_Rows_In_Lookup
-    replace self lookup_table:(DB_Table | Map) columns:(Vector (Integer | Text | Regex | By_Type) | Text | Integer | Regex | By_Type) from_column:(Text | Integer | Nothing)=Nothing to_column:(Text | Integer | Nothing)=Nothing allow_unmatched_rows:Boolean=True on_problems:Problem_Behavior=..Report_Warning =
+    replace : (DB_Table | Dictionary) -> Vector (Integer | Text | Regex | By_Type) | Text | Integer | Regex | By_Type -> (Text | Integer | Nothing) -> (Text | Integer | Nothing) -> Boolean -> Problem_Behavior -> DB_Table ! Missing_Input_Columns | Non_Unique_Key | Unmatched_Rows_In_Lookup
+    replace self lookup_table:(DB_Table | Dictionary) columns:(Vector (Integer | Text | Regex | By_Type) | Text | Integer | Regex | By_Type) from_column:(Text | Integer | Nothing)=Nothing to_column:(Text | Integer | Nothing)=Nothing allow_unmatched_rows:Boolean=True on_problems:Problem_Behavior=..Report_Warning =
         Replace_Helpers.replace self lookup_table columns from_column to_column allow_unmatched_rows on_problems
 
     ## ALIAS join by row position
@@ -2596,8 +2603,8 @@ type DB_Table
                 Rows_To_Read.First_With_Warning n -> self.limit n+1
 
             sql = preprocessed.to_sql
-            column_type_suggestions = preprocessed.internal_columns.map .sql_type_reference
-            materialized_table = self.connection.read_statement sql column_type_suggestions . catch SQL_Error sql_error->
+            column_types = preprocessed.internal_columns.map .sql_type_reference
+            materialized_table = self.connection.read_statement sql column_types . catch SQL_Error sql_error->
                 Error.throw (self.connection.dialect.get_error_mapper.transform_custom_errors sql_error)
 
             warnings_builder = Builder.new
@@ -2612,7 +2619,9 @@ type DB_Table
                        or changing Float32 to Float64 are silently ignored.
                        However, bigger changes, like a Binary type column getting coerced to Mixed - _will_ still be reported.
                     if expected_type_kind == actual_type_kind then Nothing else
-                        warnings_builder.append (Inexact_Type_Coercion.Warning expected_type actual_type)
+                        # If the reverse was an implicit conversion, undoing it also should not yield warnings:
+                        if self.connection.dialect.get_type_mapping.is_implicit_conversion actual_type expected_type then Nothing else
+                            warnings_builder.append (Inexact_Type_Coercion.Warning expected_type actual_type)
 
             result = max_rows.attach_warning materialized_table
             Problem_Behavior.Report_Warning.attach_problems_before warnings_builder.to_vector result
@@ -2838,7 +2847,7 @@ type DB_Table
 
              fill_nothing = table.fill_nothing ["col0", "col1"] 20.5
     @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True add_by_type=True)
-    @default (self -> Widget_Helpers.make_fill_default_value_selector column_source=self add_text=True add_number=True add_boolean=True)
+    @default make_fill_nothing_default_widget
     fill_nothing : Vector (Integer | Text | Regex | By_Type) | Text | Integer | Regex | By_Type -> DB_Column | Column_Ref | Expression | Previous_Value | Any -> DB_Table
     fill_nothing self (columns : Vector | Text | Integer | Regex | By_Type) default =
         resolved_default = (self:Table_Ref).resolve default
@@ -2866,7 +2875,7 @@ type DB_Table
 
              fill_empty = table.fill_empty ["col0", "col1"] "hello"
     @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True add_by_type=True)
-    @default (self -> Widget_Helpers.make_fill_default_value_selector column_source=self add_text=True)
+    @default (self-> Widget_Helpers.make_fill_default_value_selector value_type=Value_Type.Char add_nothing=True)
     fill_empty : Vector (Integer | Text | Regex | By_Type) | Text | Integer | Regex | By_Type -> DB_Column | Column_Ref | Expression | Previous_Value | Any -> DB_Table
     fill_empty self (columns : Vector | Text | Integer | Regex | By_Type) default =
         resolved_default = (self:Table_Ref).resolve default
@@ -3055,23 +3064,26 @@ make_literal_table connection column_vectors column_names alias =
     if total_size == 0 then Error.throw (Illegal_Argument.Error "Vectors cannot be empty") else
         if total_size > MAX_LITERAL_ELEMENT_COUNT then Error.throw (Illegal_Argument.Error "Too many elements for table literal ("+total_size.to_text+"): materialize a table into the database instead") else
             type_mapping = connection.dialect.get_type_mapping
-
-            values_to_type_ref column_vector =
-                value_type = Value_Type_Helpers.find_common_type_for_arguments column_vector
-                sql_type = case value_type of
-                    Nothing -> SQL_Type.null
-                    _ -> type_mapping.value_type_to_sql value_type Problem_Behavior.Ignore
-                SQL_Type_Reference.from_constant sql_type
-
             from_spec = From_Spec.Literal_Values column_vectors column_names alias
             context = Context.for_subquery from_spec
+
+            infer_type_from_database new_expression =
+                SQL_Type_Reference.new connection context new_expression
 
             internal_columns = 0.up_to column_vectors.length . map i->
                 column_vector = column_vectors.at i
                 column_name = column_names.at i
 
-                type_ref = values_to_type_ref column_vector.to_vector
+                value_type = Value_Type_Helpers.find_common_type_for_arguments column_vector.to_vector
+                sql_type = case value_type of
+                   Nothing -> SQL_Type.null
+                   _ -> type_mapping.value_type_to_sql value_type Problem_Behavior.Ignore
+                type_ref = SQL_Type_Reference.from_constant sql_type
                 sql_expression = SQL_Expression.Column alias column_name
-                Internal_Column.Value column_name type_ref sql_expression
+                base_column = Internal_Column.Value column_name type_ref sql_expression
+
+                needs_cast = value_type.is_nothing.not && connection.dialect.needs_literal_table_cast value_type
+                if needs_cast.not then base_column else
+                    connection.dialect.make_cast base_column sql_type infer_type_from_database
 
             DB_Table.Value alias connection internal_columns context

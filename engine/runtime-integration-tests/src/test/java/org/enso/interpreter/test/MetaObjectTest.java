@@ -285,72 +285,84 @@ main = Nothing
             .invokeMember(MethodNames.Module.EVAL_EXPRESSION, "sn");
     var sb = new StringBuilder();
     for (var v : g.allValues()) {
-      var simpleName = sn.execute(v).asString();
-      if (v.isNumber()) {
-        var ok =
-            switch (simpleName) {
-              case "Integer", "Float" -> true;
-              default -> false;
-            };
-        assertTrue("Unexpected simple name for number: " + simpleName, ok);
-        continue;
-      }
-      var meta = v.getMetaObject();
-      var metaName = meta != null ? meta.getMetaSimpleName() : "null";
-      if (!simpleName.equals(metaName)) {
-        if (v.isHostObject()) {
-          if (v.hasArrayElements()) {
-            assertEquals("Array", simpleName);
-            continue;
-          }
-          if (v.hasHashEntries()) {
-            assertEquals("Map", simpleName);
-            continue;
-          }
-        }
-        if (v.isString()) {
-          assertEquals("Text", simpleName);
-          continue;
-        }
-        if (v.isDuration()) {
-          assertEquals("Duration", simpleName);
-          continue;
-        }
-        if (v.isDate() && v.isTime()) {
-          assertEquals("Date_Time", simpleName);
-          continue;
-        }
-        if (v.isTimeZone()) {
-          assertEquals("Time_Zone", simpleName);
-          continue;
-        }
-        if (v.isDate()) {
-          assertEquals("Date", simpleName);
-          continue;
-        }
-        if (v.isTime()) {
-          assertEquals("Time_Of_Day", simpleName);
-          continue;
-        }
-        if (v.isNull()) {
-          assertEquals("Nothing", simpleName);
-          continue;
-        }
-
-        sb.append("\n")
-            .append("Simple names shall be the same for ")
-            .append(v)
-            .append(" get_simple_type_name: ")
-            .append(simpleName)
-            .append(" getMetaSimpleName: ")
-            .append(metaName);
-      }
+      compareQualifiedNameOfValue(sn, v, sb);
     }
     if (!sb.isEmpty()) {
       var lines = sb.toString().lines().count() - 1;
       sb.insert(0, "There is " + lines + " differences:");
       fail(sb.toString());
     }
+  }
+
+  private boolean compareQualifiedNameOfValue(Value sn, Value v, StringBuilder sb) {
+    var simpleName = sn.execute(v).asString();
+    if (v.isNumber()) {
+      var ok =
+          switch (simpleName) {
+            case "Integer", "Float" -> true;
+            default -> false;
+          };
+      assertTrue("Unexpected simple name for number: " + simpleName, ok);
+      return true;
+    }
+    var meta = v.getMetaObject();
+    var metaName = meta != null ? meta.getMetaSimpleName() : "null";
+    if (!simpleName.equals(metaName)) {
+      if (v.isHostObject()) {
+        if (v.hasArrayElements()) {
+          assertEquals("Array", simpleName);
+          return true;
+        }
+        if (v.hasHashEntries()) {
+          assertEquals("Dictionary", simpleName);
+          return true;
+        }
+      }
+      if (v.hasMembers() && v.getMember("__proto__") != null) {
+        if (v.hasHashEntries()) {
+          assertEquals("JavaScript hash map is called Map", "Map", metaName);
+          assertEquals(
+              "JavaScript hash map is seen as Dictionary by Enso", "Dictionary", simpleName);
+          return true;
+        }
+      }
+      if (v.isString()) {
+        assertEquals("Text", simpleName);
+        return true;
+      }
+      if (v.isDuration()) {
+        assertEquals("Duration", simpleName);
+        return true;
+      }
+      if (v.isDate() && v.isTime()) {
+        assertEquals("Date_Time", simpleName);
+        return true;
+      }
+      if (v.isTimeZone()) {
+        assertEquals("Time_Zone", simpleName);
+        return true;
+      }
+      if (v.isDate()) {
+        assertEquals("Date", simpleName);
+        return true;
+      }
+      if (v.isTime()) {
+        assertEquals("Time_Of_Day", simpleName);
+        return true;
+      }
+      if (v.isNull()) {
+        assertEquals("Nothing", simpleName);
+        return true;
+      }
+      sb.append("\n")
+          .append("Simple names shall be the same for ")
+          .append(v)
+          .append(" get_simple_type_name: ")
+          .append(simpleName)
+          .append(" getMetaSimpleName: ")
+          .append(metaName);
+    }
+    return false;
   }
 
   @Test

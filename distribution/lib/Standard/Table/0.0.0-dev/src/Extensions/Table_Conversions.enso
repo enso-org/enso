@@ -57,6 +57,20 @@ JS_Object.to_table : Vector | Nothing -> Table ! Type_Error
 JS_Object.to_table self fields=Nothing =
     self.to Table fields
 
+## GROUP Standard.Base.Conversions
+   ICON convert
+   Converts this `XML_Document` into a `Table`.
+XML_Document.to_table : Table ! Type_Error
+XML_Document.to_table self =
+    self.to Table
+
+## GROUP Standard.Base.Conversions
+   ICON convert
+   Converts this `XML_Document` into a `Table`.
+XML_Element.to_table : Table ! Type_Error
+XML_Element.to_table self =
+    self.to Table
+
 ## GROUP Standard.Base.Constants
    ICON data_input
    Converts an object or a Vector of object into a Table, by looking up the
@@ -140,7 +154,7 @@ append_to_json_table file:File table on_problems:Problem_Behavior =
     case old_text.ends_with "]" && old_text.starts_with "[" of
         True ->
             ## Here we read in the whole table. We could actually just read from the back and rely on `seek` to be more efficient for large files.
-            new_text = old_text.drop (Last 1) + "," + table.to_json.drop (First 1)
+            new_text = old_text.drop (..Last 1) + "," + table.to_json.drop (..First 1)
             new_text.write file on_existing_file=Existing_File_Behavior.Overwrite on_problems=on_problems
         False ->
             Error.throw (Invalid_JSON_Format.Error old_text "File already exists and is not a JSON array.")

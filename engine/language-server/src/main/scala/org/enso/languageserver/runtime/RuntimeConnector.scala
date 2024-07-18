@@ -30,14 +30,13 @@ final class RuntimeConnector(
     with Stash {
 
   override def preStart(): Unit = {
-    logger.info("Starting the runtime connector.")
+    logger.debug("Starting the runtime connector")
   }
 
   override def receive: Receive = {
     case RuntimeConnector.Initialize(engine) =>
-      logger.info(
-        s"Runtime connector established connection with the message endpoint [{}].",
-        engine
+      logger.debug(
+        s"Runtime connector established connection with the message endpoint"
       )
       unstashAll()
       context.become(waitingOnEndpoint(engine))
@@ -50,7 +49,7 @@ final class RuntimeConnector(
             Runtime.Api.Response(None, Api.InitializedNotification())
           ) =>
         logger.debug(
-          s"Message endpoint [{}] is initialized. Runtime connector can accept messages.",
+          s"Message endpoint [{}] is initialized. Runtime connector can accept messages",
           engine
         )
         unstashAll()
@@ -105,7 +104,7 @@ final class RuntimeConnector(
         case None =>
           logger.warn(
             s"No registered handler found for request " +
-            s"[${payload.getClass.getCanonicalName}]."
+            s"[${payload.getClass.getCanonicalName}]"
           )
       }
 
@@ -120,7 +119,7 @@ final class RuntimeConnector(
           sender ! msg
         case None =>
           logger.warn(
-            "No sender has been found associated with request id [{}], the response [{}] will be dropped.",
+            "No sender has been found associated with request id [{}], the response [{}] will be dropped",
             correlationId,
             payload.getClass.getCanonicalName
           )

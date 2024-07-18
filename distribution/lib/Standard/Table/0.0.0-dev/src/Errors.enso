@@ -468,6 +468,13 @@ type Invalid_Value_Type
             Invalid_Value_Type.Incomparable type_1 type_2 ->
                 "Types "+type_1.to_display_text+" and "+type_2.to_display_text+" cannot be compared to each other."
 
+    ## PRIVATE
+    to_text self -> Text = case self of
+        Invalid_Value_Type.Column expected actual related_column -> "Invalid_Value_Type.Column "+expected.to_text+" "+actual.to_text+" "+related_column.to_text
+        Invalid_Value_Type.Value expected actual value -> "Invalid_Value_Type.Value "+expected.to_text+" "+actual.to_text+" "+value.to_text
+        Invalid_Value_Type.Not_Ordered actual -> "Invalid_Value_Type.Not_Ordered "+actual.to_text
+        Invalid_Value_Type.Incomparable type_1 type_2 -> "Invalid_Value_Type.Incomparable "+type_1.to_text+" "+type_2.to_text
+
 ## An error representing an invalid JSON format for conversion.
 type Invalid_JSON_Format
     ## PRIVATE
@@ -755,7 +762,7 @@ type Truncated_Column_Names
     ## PRIVATE
        Indicates that some column names were truncated to fit the maximum length
        supported by the backend.
-    Warning (names_map : Map Text Text)
+    Warning (names_map : Dictionary Text Text)
 
     ## PRIVATE
        Get the original column names.

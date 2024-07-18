@@ -10,9 +10,9 @@ import { computed, ref, type ComponentInstance } from 'vue'
 const props = defineProps(widgetProps(widgetDefinition))
 const inputComponent = ref<ComponentInstance<typeof NumericInputWidget>>()
 
-function setValue(value: number | string) {
+function setValue(value: string | undefined) {
   props.onUpdate({
-    portUpdate: { value: value.toString(), origin: props.input.portId },
+    portUpdate: { value, origin: props.input.portId },
   })
 }
 
@@ -84,6 +84,7 @@ export const widgetDefinition = defineWidget(
     @update:modelValue="setValue"
     @click.stop
     @focus="editHandler.start()"
+    @blur="editHandler.end()"
     @input="editHandler.edit($event)"
   />
 </template>

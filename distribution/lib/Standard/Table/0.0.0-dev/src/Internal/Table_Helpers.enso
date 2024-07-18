@@ -83,8 +83,9 @@ type Table_Column_Helper
          specified types will also be selected (i.e. ignore size, precision).
     select_by_type : Vector Value_Type -> Boolean -> Vector
     select_by_type self types:Vector strict:Boolean=False =
-        selected_columns = if strict then self.columns.filter c-> types.contains c.value_type else
-            self.columns.filter c-> types.any t-> c.value_type.is_same_type t
+        parsed_types = types.map t->t:Value_Type
+        selected_columns = if strict then self.columns.filter c-> parsed_types.contains c.value_type else
+            self.columns.filter c-> parsed_types.any t-> c.value_type.is_same_type t
         if selected_columns.length == 0 then Error.throw (No_Output_Columns.Error "No columns of the specified types were found.") else
             selected_columns
 
@@ -112,7 +113,7 @@ type Table_Column_Helper
     remove_columns self (selectors:(Text | Integer | Regex | Vector)) (case_sensitivity:Case_Sensitivity) (error_on_missing_columns:Boolean) (on_problems:Problem_Behavior) =
         problem_builder = Problem_Builder.new error_on_missing_columns=error_on_missing_columns
         selection = self.select_columns_helper selectors case_sensitivity False problem_builder
-        selected_names = Map.from_vector (selection.map column-> [column.name, True])
+        selected_names = Dictionary.from_vector (selection.map column-> [column.name, True])
         result = self.columns.filter column->
             should_be_removed = selected_names.get column.name False
             should_be_removed.not
@@ -160,7 +161,7 @@ type Table_Column_Helper
         problem_builder = Problem_Builder.new error_on_missing_columns=error_on_missing_columns
         selection = self.select_columns_helper selectors case_sensitivity True problem_builder
         problem_builder.attach_problems_before on_problems <|
-            selected_names = Map.from_vector (selection.map column-> [column.name, True])
+            selected_names = Dictionary.from_vector (selection.map column-> [column.name, True])
             other_columns = self.columns.filter column->
                 is_selected = selected_names.get column.name False
                 is_selected.not
@@ -192,7 +193,8 @@ type Table_Column_Helper
                 ix : Integer -> if is_index_valid self.columns.length ix then [self.columns.at ix] else
                     problem_builder.report_oob_indices [ix]
                     []
-                _ : By_Type -> self.columns.filter column-> column.value_type.is_same_type selector.type
+                _ : By_Type -> self.columns.filter column->
+                    column.should_be_selected_by_type selector.type
                 _ ->
                     matches = match_columns selector case_sensitivity self.columns
                     if matches.is_empty then problem_builder.report_missing_input_columns [selector]
@@ -203,8 +205,8 @@ type Table_Column_Helper
             _ -> [selectors]
         selected_columns = vector.map resolve_selector . flatten
         if reorder then selected_columns.distinct on=_.name else
-            map = Map.from_vector (selected_columns.map column-> [column.name, True]) error_on_duplicates=False
-            self.columns.filter column-> map.contains_key column.name
+            dict = Dictionary.from_vector (selected_columns.map column-> [column.name, True]) error_on_duplicates=False
+            self.columns.filter column-> dict.contains_key column.name
 
     ## PRIVATE
        A helper function which selects a single column from the table.
@@ -289,14 +291,14 @@ type Table_Column_Helper
    A helper function which takes a Table like object and a Table for a name
    mapping and returns a new Table with the columns renamed according to the
    mapping.
-read_name_map_from_table : Table -> Vector | Map ! Illegal_Argument
-read_name_map_from_table column_map:Table = case column_map.column_count of
+read_name_mapping_from_table : Table -> Vector | Dictionary ! Illegal_Argument
+read_name_mapping_from_table column_map:Table = case column_map.column_count of
     1 ->
         col = column_map.first_column
         if col.value_type.is_text then col.to_vector else
             Error.throw (Illegal_Argument.Error "Expected a table with one or two columns of text values.")
     2 ->
-        if column_map.first_column.value_type.is_text && (column_map.at 1).value_type.is_text then Map.from_vector column_map.rows else
+        if column_map.first_column.value_type.is_text && (column_map.at 1).value_type.is_text then Dictionary.from_vector column_map.rows else
             Error.throw (Illegal_Argument.Error "Expected a table with one or two columns of text values.")
     _ -> Error.throw (Illegal_Argument.Error "Expected a table with one or two columns of text values.")
 
@@ -322,9 +324,9 @@ read_name_map_from_table column_map:Table = case column_map.column_count of
      operation. By default, a warning is issued, but the operation proceeds.
      If set to `Report_Error`, the operation fails with a dataflow error.
      If set to `Ignore`, the operation proceeds without errors or warnings.
-rename_columns : Column_Naming_Helper -> Vector -> Map (Text | Integer | Regex) Text | Vector Text -> Case_Sensitivity -> Boolean -> Problem_Behavior -> Map Text Text
-rename_columns (naming_helper : Column_Naming_Helper) (internal_columns:Vector) (mapping:(Map | Vector)) (case_sensitivity:Case_Sensitivity) (error_on_missing_columns:Boolean) (on_problems:Problem_Behavior) =
-    ## Convert Vector of Pairs to Map
+rename_columns : Column_Naming_Helper -> Vector -> Dictionary (Text | Integer | Regex) Text | Vector Text -> Case_Sensitivity -> Boolean -> Problem_Behavior -> Dictionary Text Text
+rename_columns (naming_helper : Column_Naming_Helper) (internal_columns:Vector) (mapping:(Dictionary | Vector)) (case_sensitivity:Case_Sensitivity) (error_on_missing_columns:Boolean) (on_problems:Problem_Behavior) =
+    ## Convert Vector of Pairs to Dictionary
     is_vec_pairs = mapping.is_a Vector && mapping.length > 0 && (mapping.first.is_a Text . not)
     case is_vec_pairs of
         True ->
@@ -333,8 +335,8 @@ rename_columns (naming_helper : Column_Naming_Helper) (internal_columns:Vector) 
             is_valid_key k = k.is_a Integer || k.is_a Text || k.is_a Regex
             all_pairs = mapping.all p-> (is_valid_row p) && p.length == 2 && (is_valid_key p.first) && p.second.is_a Text
             if all_pairs.not then Error.throw (Illegal_Argument.Error "mapping is not a Vector of old name to new name.") else
-                ## Attempt to treat as Map
-                map = Map.from_vector mapping error_on_duplicates=False
+                ## Attempt to treat as Dictionary
+                map = Dictionary.from_vector mapping error_on_duplicates=False
                 if map.length == mapping.length then rename_columns naming_helper internal_columns map case_sensitivity error_on_missing_columns on_problems else
                     duplicates = mapping.duplicates on=_.first . map p->p.first.to_text . distinct
                     duplicate_text = if duplicates.length < 5 then duplicates.to_vector . join ", " else
@@ -353,10 +355,10 @@ rename_columns (naming_helper : Column_Naming_Helper) (internal_columns:Vector) 
                 vec : Vector ->
                     col_count = internal_columns.length
                     good_names = if vec.length <= col_count then vec else
-                        problem_builder.report_other_warning (Too_Many_Column_Names_Provided.Error (vec.drop (First col_count)))
-                        vec.take (First col_count)
+                        problem_builder.report_other_warning (Too_Many_Column_Names_Provided.Error (vec.drop (..First col_count)))
+                        vec.take (..First col_count)
                     internal_columns.take good_names.length . zip good_names
-                _ : Map ->
+                _ : Dictionary ->
                     resolve_rename selector replacement = case selector of
                         ix : Integer -> if is_index_valid internal_columns.length ix then [Pair.new (internal_columns.at ix) replacement] else
                             problem_builder.report_oob_indices [ix]
@@ -378,7 +380,7 @@ rename_columns (naming_helper : Column_Naming_Helper) (internal_columns:Vector) 
             naming_helper.validate_many_column_names all_new_names <|
                 ## Resolves actual new names for renamed columns.
                    If a column received ambiguous new names, an error is raised.
-                name_map = columns_with_new_names.fold Map.empty current-> pair->
+                name_dict = columns_with_new_names.fold Dictionary.empty current-> pair->
                     old_name = pair.first.name
                     case current.contains_key old_name of
                         False -> current.insert old_name pair.second
@@ -387,12 +389,12 @@ rename_columns (naming_helper : Column_Naming_Helper) (internal_columns:Vector) 
                             Error.throw (Ambiguous_Column_Rename.Error old_name new_names)
 
                 ## Renamed names take precedence, so we first deduplicate those.
-                resolved_name_map = name_map.map unique.make_unique
+                resolved_name_dict = name_dict.map unique.make_unique
 
                 ## Then we ensure that the names of not-renamed columns are also unique and
                    return the effective column names for each column.
-                not_renamed = internal_columns.filter c-> resolved_name_map.contains_key c.name . not
-                new_column_names = not_renamed.fold resolved_name_map current-> column->
+                not_renamed = internal_columns.filter c-> resolved_name_dict.contains_key c.name . not
+                new_column_names = not_renamed.fold resolved_name_dict current-> column->
                     new_name = unique.make_unique column.name
                     current.insert column.name new_name
 
@@ -443,7 +445,7 @@ select_indices_reordering vector indices =
    The elements are returned in the same order as they appeared in the original
    vector.
 select_indices_preserving_order vector indices =
-    indices_to_keep = Map.from_vector (indices.map i-> [i, True])
+    indices_to_keep = Dictionary.from_vector (indices.map i-> [i, True])
     vector.filter_with_index ix-> _->
         indices_to_keep.get ix False
 

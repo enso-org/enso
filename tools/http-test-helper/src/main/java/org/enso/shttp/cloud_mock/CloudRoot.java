@@ -40,7 +40,6 @@ public class CloudRoot extends HandlerWithTokenAuth {
     boolean isValidButExpired = token.equals("TEST-EXPIRED-TOKEN-beef");
     if (isValidButExpired) {
       expiredTokensCounter.registerExpiredTokenFailure();
-      return 403;
     }
 
     return 401;

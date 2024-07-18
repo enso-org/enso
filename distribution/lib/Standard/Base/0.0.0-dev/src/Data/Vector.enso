@@ -1,6 +1,7 @@
 import project.Any.Any
 import project.Data.Array.Array
 import project.Data.Filter_Condition.Filter_Condition
+import project.Data.Index_Sub_Range.Index_Sub_Range
 import project.Data.List.List
 import project.Data.Numbers.Integer
 import project.Data.Pair.Pair
@@ -26,8 +27,6 @@ import project.Panic.Panic
 import project.Random.Random
 import project.Warning.Warning
 from project.Data.Boolean import Boolean, False, True
-from project.Data.Filter_Condition import unify_condition_or_predicate, unify_condition_predicate_or_element
-from project.Data.Index_Sub_Range import Index_Sub_Range
 from project.Data.Ordering import all
 from project.Data.Range.Extensions import all
 from project.Metadata import Display, Widget
@@ -468,7 +467,7 @@ type Vector a
        > Example
          Checking if any element of the vector is larger than 3.
 
-             [1, 2, 3, 4, 5].any (Filter_Condition.Greater than=3)
+             [1, 2, 3, 4, 5].any (..Greater than=3)
 
        > Example
          Checking if any element of the vector is even.
@@ -490,7 +489,7 @@ type Vector a
        > Example
          Check if all elements in the vector are less than zero.
 
-             [-1, 1, 5, 8].all (Filter_Condition.Less than=0)
+             [-1, 1, 5, 8].all (..Less than=0)
 
        > Example
          Check if all elements in the vector are even.
@@ -551,7 +550,7 @@ type Vector a
          Selecting all elements that are greater than 3.
 
              [1, 2, 3, 4, 5].filter (> 3)
-             [1, 2, 3, 4, 5].filter (Filter_Condition.Greater than=3)
+             [1, 2, 3, 4, 5].filter (..Greater than=3)
     @filter Filter_Condition.default_widget
     filter : (Filter_Condition | (Any -> Boolean)) -> Vector Any
     filter self (filter : Filter_Condition | (Any -> Boolean)) =
@@ -593,7 +592,7 @@ type Vector a
        > Example
          Splitting a vector into elements that start with a prefix.
 
-             ["a", "b", "ax", "bx"].partition (Filter_Condition.Starts_With "a") == (Pair ["a", "ax"] ["b", "bx"])
+             ["a", "b", "ax", "bx"].partition (..Starts_With "a") == (Pair ["a", "ax"] ["b", "bx"])
 
        > Example
          Splitting a vector into even and odd elements.
@@ -974,7 +973,7 @@ type Vector a
          If a `Range`, the selection is specified by two indices, from and to.
     @range Index_Sub_Range.default_widget
     take : (Index_Sub_Range | Range | Integer) -> Vector Any
-    take self range=(Index_Sub_Range.First 1) =
+    take self range:(Index_Sub_Range | Range | Integer)=..First =
         Array_Like_Helpers.take self range
 
     ## ALIAS skip, remove
@@ -989,7 +988,7 @@ type Vector a
          If a `Range`, the selection is specified by two indices, from and to.
     @range Index_Sub_Range.default_widget
     drop : (Index_Sub_Range | Range | Integer) -> Vector Any
-    drop self range=(Index_Sub_Range.First 1) =
+    drop self range:(Index_Sub_Range | Range | Integer)=..First =
         Array_Like_Helpers.drop self range
 
     ## ALIAS combine, join by row position, merge
@@ -1508,8 +1507,7 @@ type Builder
     @condition Filter_Condition.default_widget
     any : (Filter_Condition | (Any -> Boolean)) -> Boolean
     any self (condition : Filter_Condition | (Any -> Boolean)) =
-        predicate = unify_condition_or_predicate condition
-        0.up_to self.length . any (idx -> (predicate (self.java_builder.get idx)))
+        Array_Like_Helpers.any self condition
 
     ## GROUP Conversions
        ICON convert

@@ -27,9 +27,9 @@ prepare_visualization y max_rows=1000 =
     result = case x of
         _ : Vector -> make_json_for_vector x max_rows
         _ : Array -> prepare_visualization x.to_vector max_rows
-        _ : Map -> make_json_for_map x max_rows
+        _ : Dictionary -> make_json_for_dictionary x max_rows
         _ : JS_Object -> make_json_for_js_object x max_rows
-        _ : Row -> make_json_for_map x.to_map max_rows "column"
+        _ : Row -> make_json_for_dictionary x.to_dictionary max_rows "column"
         _ : Column -> prepare_visualization x.to_table max_rows
         _ : Table ->
             dataframe = x.take max_rows
@@ -49,8 +49,9 @@ prepare_visualization y max_rows=1000 =
         _ : Excel_Workbook ->
             js_value = x.to_js_object
             JS_Object.from_pairs [["json", js_value], ["sheet_names", x . sheet_names], ["type", "Excel_Workbook"]]
-        _ ->
-            make_json_for_other x
+        _ : XML_Document -> make_json_for_xml_element x.root_element max_rows "XML_Document"
+        _ : XML_Element -> make_json_for_xml_element x max_rows
+        _ -> make_json_for_other x
 
     result.to_text
 
@@ -98,7 +99,7 @@ make_json_for_object_matrix current vector idx=0 = if idx == vector.length then 
         _ : Date_Time -> False
         _ : Duration -> False
         _ : Period -> False
-        _ : Map ->
+        _ : Dictionary ->
             pairs = row.keys.map k-> [k.to_text, make_json_for_value (row.get k)]
             JS_Object.from_pairs pairs
         _ : Row ->
@@ -115,13 +116,13 @@ make_json_for_object_matrix current vector idx=0 = if idx == vector.length then 
         @Tail_Call make_json_for_object_matrix current vector idx+1
 
 ## PRIVATE
-   Render Map to JSON
-make_json_for_map : Map -> Integer -> Text -> JS_Object
-make_json_for_map map max_items key_name="key" =
+   Render Dictionary to JSON
+make_json_for_dictionary : Dictionary -> Integer -> Text -> JS_Object
+make_json_for_dictionary dict max_items key_name="key" =
     header = ["header", [key_name, "value"]]
-    all_rows = ["all_rows_count", map.size]
-    map_vector = Warning.clear (map.to_vector.take max_items)
-    mapped = map_vector . map p-> [p.first.to_text, make_json_for_value p.second]
+    all_rows = ["all_rows_count", dict.size]
+    as_vector = Warning.clear (dict.to_vector.take max_items)
+    mapped = as_vector . map p-> [p.first.to_text, make_json_for_value p.second]
     data = ["data", [mapped.map .first, mapped.map .second]]
     JS_Object.from_pairs [header, data, all_rows, ["type", "Map"]]
 
@@ -136,6 +137,28 @@ make_json_for_js_object js_object max_items =
     mapped = map_vector . map p-> [p, make_json_for_value (js_object.get p)]
     data = ["data", [mapped.map .first, mapped.map .second]]
     JS_Object.from_pairs [header, data, all_rows, ["type", "Map"]]
+
+## PRIVATE
+   Render XML_Element to JSON
+make_json_for_xml_element : XML_Element -> Integer -> Text -> JS_Object
+make_json_for_xml_element xml_element max_items type:Text="XML_Element" =
+    header = ["header", ["key", "type", "value"]]
+    all_rows = ["all_rows_count", xml_element.attributes.length + xml_element.children.length]
+
+    attribs = xml_element.attributes.to_vector.take max_items . map a-> ["@" + a.first, "Attribute", a.second]
+    children = xml_element.children.take (max_items - attribs.length) . map_with_index i->c-> if c.is_a Text then [i.to_text, "Text", c] else
+        render_start = "<"+c.name
+        render_attribs = if c.attributes.length == 0 then "" else
+            " " + ((c.attributes.to_vector.take 5 . map a-> a.first+'="'+a.second+'"') . join " ") + (if c.attributes.length > 5 then " ..." else "")
+        render_end = case c.child_count of
+            0 -> "/>"
+            1 -> if c.children.first.is_a Text then ">" + c.children.first + "</"+c.name+">" else "> ... 1 child element ... </"+c.name+">"
+            _ -> ">..." + c.child_count.to_text + " child elements...</"+c.name+">"
+        [i.to_text, "Element", render_start+render_attribs+render_end]
+    map_vector = Warning.clear (attribs + children)
+
+    data = ["data", [map_vector.map .first, map_vector.map .second, map_vector.map i-> i.at 2]]
+    JS_Object.from_pairs [header, data, all_rows, ["type", type]]
 
 ## PRIVATE
    Creates a JSON representation for the visualizations.
@@ -187,7 +210,7 @@ make_json_for_value val level=0 = case val of
             prepared = if val.length > 5 then truncated + ["… " + (val.length - 5).to_text+ " items"] else truncated
             "[" + (prepared.join ", ") + "]"
     _ : Array -> make_json_for_value val.to_vector level
-    _ : Map ->
+    _ : Dictionary ->
         if level != 0 then "{… "+val.size.to_text+" items}" else
             truncated = val.keys.take 5 . map k-> k.to_text + ": " + (make_json_for_value (val.get k) level+1).to_text
             prepared = if val.length > 5 then truncated + ["… " + (val.length - 5).to_text+ " items"] else truncated

@@ -12,6 +12,7 @@ import org.enso.editions.EditionResolver
 import org.enso.editions.updater.EditionManager
 import org.enso.filewatcher.WatcherAdapterFactory
 import org.enso.jsonrpc.{JsonRpcServer, SecureConnectionConfig}
+import org.enso.runner.common.CompilerBasedDependencyExtractor
 import org.enso.languageserver.capability.CapabilityRouter
 import org.enso.languageserver.data._
 import org.enso.languageserver.effect
@@ -74,7 +75,7 @@ import scala.concurrent.duration.DurationInt
 class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
 
   private val log = LoggerFactory.getLogger(this.getClass)
-  log.info(
+  log.debug(
     "Initializing main module of the Language Server from [{}, {}, {}]",
     Info.currentEdition,
     serverConfig,
@@ -109,7 +110,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     serverConfig.startupConfig,
     openAiCfg
   )
-  log.trace("Created Language Server config [{}].", languageServerConfig)
+  log.trace("Created Language Server config [{}]", languageServerConfig)
 
   implicit val system: ActorSystem =
     ActorSystem(
@@ -118,31 +119,31 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
       Some(getClass.getClassLoader),
       Some(serverConfig.computeExecutionContext)
     )
-  log.trace("Created ActorSystem [{}].", system)
+  log.trace("Created ActorSystem [{}]", system)
 
   private val zioRuntime =
     new effect.ExecutionContextRuntime(system.dispatcher)
   private val zioExec = effect.ZioExec(zioRuntime)
-  log.trace("Created ZIO executor [{}].", zioExec)
+  log.trace("Created ZIO executor [{}]", zioExec)
 
   private val fileSystem: FileSystem = new FileSystem(log)
-  log.trace("Created file system [{}].", fileSystem)
+  log.trace("Created file system [{}]", fileSystem)
 
   val git = Git.withEmptyUserConfig(
     Some(languageServerConfig.vcsManager.dataDirectory),
     languageServerConfig.vcsManager.asyncInit
   )
-  log.trace("Created git [{}].", git)
+  log.trace("Created git [{}]", git)
 
   implicit val versionCalculator: ContentBasedVersioning =
     Sha3_224VersionCalculator
-  log.trace("Created Version Calculator [{}].", versionCalculator)
+  log.trace("Created Version Calculator [{}]", versionCalculator)
 
   val suggestionsRepo =
     new InMemorySuggestionsRepo()(
       system.dispatcher
     );
-  log.trace("Created SQL suggestions repo: [{}].", suggestionsRepo)
+  log.trace("Created SQL suggestions repo: [{}]", suggestionsRepo)
 
   val idlenessMonitor =
     system.actorOf(IdlenessMonitor.props(utcClock))
@@ -186,7 +187,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
         new NoopEventsMonitor() -> None
     }
   log.trace(
-    "Started runtime events monitor [{}].",
+    "Started runtime events monitor [{}]",
     runtimeEventsMonitor.getClass.getName
   )
 
@@ -342,7 +343,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     })
 
   system.eventStream.setLogLevel(AkkaConverter.toAkka(logLevel))
-  log.trace("Set akka log level to [{}].", logLevel)
+  log.trace("Set akka log level to [{}]", logLevel)
 
   val runtimeKiller =
     system.actorOf(
@@ -456,7 +457,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     config                 = languageServerConfig
   )
   log.trace(
-    "Created JSON connection controller factory [{}].",
+    "Created JSON connection controller factory [{}]",
     jsonRpcControllerFactory
   )
 
@@ -480,7 +481,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
       List(healthCheckEndpoint, idlenessEndpoint),
       messagesCallback
     )
-  log.trace("Created JSON RPC Server [{}].", jsonRpcServer)
+  log.trace("Created JSON RPC Server [{}]", jsonRpcServer)
 
   val binaryServer =
     new BinaryWebSocketServer(
@@ -494,10 +495,10 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
       ),
       messagesCallback
     )
-  log.trace("Created Binary WebSocket Server [{}].", binaryServer)
+  log.trace("Created Binary WebSocket Server [{}]", binaryServer)
 
-  log.info(
-    "Main module of the Language Server initialized with config [{}].",
+  log.debug(
+    "Main module of the Language Server initialized with config [{}]",
     languageServerConfig
   )
 
@@ -507,7 +508,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     contextSupervisor.close()
     runtimeEventsMonitor.close()
     ydocSupervisor.close()
-    log.info("Closed Language Server main module.")
+    log.info("Stopped Language Server")
   }
 
   private def akkaHttpsConfig(): com.typesafe.config.Config = {

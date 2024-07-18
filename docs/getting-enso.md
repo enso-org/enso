@@ -14,10 +14,10 @@ Each release has an "Assets" section at the bottom. You can click on this to
 view the list of artifacts from which you can download the most appropriate
 version.
 
-These assets contain bundles that include the Enso launcher, an engine version,
-and GraalVM, allowing you to get up and running immediately. Alternatively, you
-can download just the launcher, which will handle downloading and installing the
-required components for you.
+These assets contain bundles that include the `ensoup` updater, an engine
+version, and GraalVM, allowing you to get up and running immediately.
+Alternatively, you can download just the updater, which will handle downloading
+and installing the required components for you.
 
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 

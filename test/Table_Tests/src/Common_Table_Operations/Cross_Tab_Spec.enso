@@ -17,33 +17,20 @@ main filter=Nothing = run_default_backend add_specs filter
 type Data
     Value ~data
 
-    connection self = self.data.at 0
-    table self = self.data.at 1
-    table2 self = self.data.at 2
+    table self = self.data.at 0
+    table2 self = self.data.at 1
 
-    setup create_connection_fn table_builder = Data.Value <|
-        connection = create_connection_fn Nothing
-        table = table_builder [["Key", ["x", "x", "x", "x", "y", "y", "y", "z", "z"]], ["Value", [1, 2, 3, 4, 5, 6, 7, 8, 9]]] connection=connection
-        table2 = table_builder [["Group", ["A","B","A","B","A","B","A","B","A"]], ["Key", ["x", "x", "x", "x", "y", "y", "y", "z", "z"]], ["Value", [1, 2, 3, 4, 5, 6, 7, 8, 9]]] connection=connection
-        [connection, table, table2]
-
-    teardown self =
-        self.connection.close
-
+    setup table_builder = Data.Value <|
+        table = table_builder [["Key", ["x", "x", "x", "x", "y", "y", "y", "z", "z"]], ["Value", [1, 2, 3, 4, 5, 6, 7, 8, 9]]]
+        table2 = table_builder [["Group", ["A","B","A","B","A","B","A","B","A"]], ["Key", ["x", "x", "x", "x", "y", "y", "y", "z", "z"]], ["Value", [1, 2, 3, 4, 5, 6, 7, 8, 9]]]
+        [table, table2]
 
 add_specs suite_builder setup =
     prefix = setup.prefix
-    create_connection_fn = setup.create_connection_func
     db_todo = if setup.is_database.not then Nothing else "Table.cross_tab is not implemented yet in Database."
+    table_builder = setup.table_builder
     suite_builder.group prefix+"Table.cross_tab" pending=db_todo group_builder->
-        data = Data.setup create_connection_fn setup.table_builder
-
-        group_builder.teardown <|
-            data.teardown
-
-        table_builder cols =
-            setup.table_builder cols connection=data.connection
-
+        data = Data.setup setup.table_builder
         group_builder.specify "should cross_tab counts by default using first column as names" <|
             t1 = data.table.cross_tab [] "Key"
             t1.column_names . should_equal ["x", "y", "z"]
@@ -186,7 +173,7 @@ add_specs suite_builder setup =
             problems = [Duplicate_Output_Column_Names.Error ["x Agg1", "y Agg1", "z Agg1"]]
             Problems.test_problem_handling action problems tester
 
-            table3 = data.table2.rename_columns (Map.from_vector [["Group", "x"]])
+            table3 = data.table2.rename_columns (Dictionary.from_vector [["Group", "x"]])
             action3 = table3.cross_tab ["x"] "Key" on_problems=_
             tester3 table =
                 table.column_names . should_equal ["x", "x 1", "y", "z"]
@@ -246,9 +233,9 @@ add_specs suite_builder setup =
             table = table_builder [["Text", ["a", "b"]], ["Int", [1, 2]], ["Float", [1.1, 2.2]]]
             t1 = table.cross_tab ["Int"] "Text"
             t1.column_names . should_equal ["Int", "a", "b"]
-            t1.at "Int" . value_type . is_integer . should_be_true
-            t1.at "a" . value_type . is_integer . should_be_true
-            t1.at "b" . value_type . is_integer . should_be_true
+            setup.expect_integer_type <| t1.at "Int"
+            setup.expect_integer_type <| t1.at "a"
+            setup.expect_integer_type <| t1.at "b"
 
             t2 = table.cross_tab [] "Int" values=[Aggregate_Column.Average "Float", Aggregate_Column.Concatenate "Text"] . sort_columns
             t2.column_names . should_equal ["1 Average Float", "1 Concatenate Text", "2 Average Float", "2 Concatenate Text"]

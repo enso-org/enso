@@ -63,12 +63,12 @@ database_table_builder name_prefix args primary_key=[] connection =
    Arguments:
    - make_new_connection: a function that takes `Nothing` and returns a new
      connection.
-   - prefix: a string that will be prepended to the test names.
    - persistent_connector: specifies if the database is persisted between
      connections. Should be `True` for all databases except SQLite in the
      `In_Memory` mode in which every re-connect creates a separate in-memory
      database, so features relying on persistence cannot really be tested.
-add_specs suite_builder make_new_connection prefix persistent_connector=True =
+add_specs suite_builder setup make_new_connection persistent_connector=True =
+    prefix = setup.prefix
     suite_builder.group prefix+"Creating an empty table" group_builder->
         data = Data.setup make_new_connection
 
@@ -79,7 +79,7 @@ add_specs suite_builder make_new_connection prefix persistent_connector=True =
             t = data.connection.create_table (Name_Generator.random_name "creating-table") structure=[Column_Description.Value "X" Value_Type.Integer, Column_Description.Value "Y" Value_Type.Char] temporary=True
             t.column_names . should_equal ["X", "Y"]
             t.at "X" . to_vector . should_equal []
-            t.at "X" . value_type . is_integer . should_be_true
+            setup.expect_integer_type <| t.at "X"
             t.at "Y" . to_vector . should_equal []
             t.at "Y" . value_type . is_text . should_be_true
             t.row_count . should_equal 0
@@ -90,7 +90,7 @@ add_specs suite_builder make_new_connection prefix persistent_connector=True =
             db_table = data.connection.create_table (Name_Generator.random_name "creating-table") structure=t temporary=True
             db_table.column_names . should_equal ["X", "Y"]
             db_table.at "X" . to_vector . should_equal []
-            db_table.at "X" . value_type . is_integer . should_be_true
+            setup.expect_integer_type <| db_table.at "X"
             db_table.at "Y" . to_vector . should_equal []
             db_table.at "Y" . value_type . is_text . should_be_true
             db_table.row_count . should_equal 0
@@ -103,7 +103,7 @@ add_specs suite_builder make_new_connection prefix persistent_connector=True =
             db_table = data.connection.create_table (Name_Generator.random_name "creating-table") structure=input_db_table temporary=True
             db_table.column_names . should_equal ["X", "Y"]
             db_table.at "X" . to_vector . should_equal []
-            db_table.at "X" . value_type . is_integer . should_be_true
+            setup.expect_integer_type <| db_table.at "X"
             db_table.at "Y" . to_vector . should_equal []
             db_table.at "Y" . value_type . is_text . should_be_true
             db_table.row_count . should_equal 0
@@ -221,11 +221,11 @@ add_specs suite_builder make_new_connection prefix persistent_connector=True =
                 Panic.with_finalizer (data.connection.drop_table name) <|
                     t1 = tmp_connection.query (SQL_Query.Table_Name name)
                     t1.column_names . should_equal ["X"]
-                    t1.at "X" . value_type . is_integer . should_be_true
+                    setup.expect_integer_type <| t1.at "X"
                     tmp_connection.close
                     t2 = data.connection.query (SQL_Query.Table_Name name)
                     t2.column_names . should_equal ["X"]
-                    t2.at "X" . value_type . is_integer . should_be_true
+                    setup.expect_integer_type <| t2.at "X"
 
         group_builder.specify "should be able to specify a primary key" <|
             name = Name_Generator.random_name "primary_key 1"
@@ -308,7 +308,7 @@ add_specs suite_builder make_new_connection prefix persistent_connector=True =
             db_table.column_names . should_equal ["X", "Y"]
             db_table.at "X" . to_vector . should_equal [1, 2, 3]
             db_table.at "Y" . to_vector . should_equal ['a', 'b', 'c']
-            db_table.at "X" . value_type . is_integer . should_be_true
+            setup.expect_integer_type <| db_table.at "X"
             db_table.at "Y" . value_type . is_text . should_be_true
             db_table.row_count . should_equal 3
             db_table.is_trivial_query . should_be_true
@@ -472,7 +472,7 @@ add_specs suite_builder make_new_connection prefix persistent_connector=True =
             copied_table.is_trivial_query . should_be_true
             name = copied_table.name
             Panic.with_finalizer (data.connection.drop_table name) <|
-                copied_table.at "X" . value_type . is_integer . should_be_true
+                setup.expect_integer_type <| copied_table.at "X"
                 copied_table.at "Y" . value_type . is_text . should_be_true
                 copied_table.at "Z" . value_type . is_floating_point . should_be_true
 
@@ -562,7 +562,7 @@ add_specs suite_builder make_new_connection prefix persistent_connector=True =
                 e2.clashing_example_key_values.length . should_equal 1
                 x = e2.clashing_example_key_values.first
                 [1, 2, 3].should_contain x
-                counts = Map.from_vector [[1, 2], [2, 4], [3, 2]]
+                counts = Dictionary.from_vector [[1, 2], [2, 4], [3, 2]]
                 e2.clashing_example_row_count . should_equal (counts.at x)
 
             # Will not find clashes if they are not in the first 1000 rows, in Output disabled mode.
@@ -1201,14 +1201,14 @@ test_table_append group_builder (data : Data) source_table_builder target_table_
 
         ## If there are some additional tables, we add some timeout to allow
            the database to do the cleaning up.
-        additional_tables = (Set.from_vector tables_immediately_after).difference (Set.from_vector existing_tables)
+        additional_tables = (Hashset.from_vector tables_immediately_after).difference (Hashset.from_vector existing_tables)
         if additional_tables.is_empty then Nothing else
             additional_table = additional_tables.to_vector.first
 
             wait_until_temporary_table_is_deleted_after_closing_connection data.connection additional_table
             # After the wait we check again and now there should be no additional tables.
             tables_after_wait = data.connection.base_connection.get_tables_advanced types=Nothing include_hidden=True . at "Name" . to_vector
-            additional_tables_2 = (Set.from_vector tables_after_wait).difference (Set.from_vector existing_tables)
+            additional_tables_2 = (Hashset.from_vector tables_after_wait).difference (Hashset.from_vector existing_tables)
             additional_tables_2.to_vector . should_equal []
 
 
@@ -1473,5 +1473,3 @@ wait_until_temporary_table_is_deleted_after_closing_connection connection table_
                 Thread.sleep retry_interval_ms
                 @Tail_Call go (ix + 1)
     go 0
-
-

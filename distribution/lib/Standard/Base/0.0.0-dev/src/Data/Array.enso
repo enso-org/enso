@@ -1,5 +1,6 @@
 import project.Any.Any
 import project.Data.Filter_Condition.Filter_Condition
+import project.Data.Index_Sub_Range.Index_Sub_Range
 import project.Data.List.List
 import project.Data.Numbers.Integer
 import project.Data.Ordering.Ordering
@@ -22,7 +23,6 @@ import project.Meta
 import project.Nothing.Nothing
 import project.Panic.Panic
 from project.Data.Boolean import Boolean, False, True
-from project.Data.Index_Sub_Range import Index_Sub_Range
 from project.Data.Range.Extensions import all
 from project.Metadata import Display, Widget
 
@@ -162,7 +162,7 @@ type Array
          If a `Range`, the selection is specified by two indices, from and to.
     @range Index_Sub_Range.default_widget
     take : (Index_Sub_Range | Range | Integer) -> Vector Any
-    take self range=(Index_Sub_Range.First 1) =
+    take self range:(Index_Sub_Range | Range | Integer)=..First =
         Array_Like_Helpers.take self range
 
     ## ALIAS skip, remove
@@ -177,7 +177,7 @@ type Array
          If a `Range`, the selection is specified by two indices, from and to.
     @range Index_Sub_Range.default_widget
     drop : (Index_Sub_Range | Range | Integer) -> Vector Any
-    drop self range=(Index_Sub_Range.First 1) =
+    drop self range:(Index_Sub_Range | Range | Integer)=..First =
         Array_Like_Helpers.drop self range
 
     ## GROUP Calculations
@@ -455,10 +455,11 @@ type Array
          Selecting all elements that are greater than 3.
 
              [1, 2, 3, 4, 5].to_array.filter (> 3)
-             [1, 2, 3, 4, 5].to_array.filter (Filter_Condition.Greater than=3)
+             [1, 2, 3, 4, 5].to_array.filter (..Greater than=3)
     @filter Filter_Condition.default_widget
     filter : (Filter_Condition | (Any -> Boolean)) -> Vector Any
-    filter self (filter : Filter_Condition | (Any -> Boolean)) = Array_Like_Helpers.filter self filter
+    filter self (filter : Filter_Condition | (Any -> Boolean)) =
+        Array_Like_Helpers.filter self filter
 
     ## GROUP Calculations
        ICON union
@@ -576,7 +577,7 @@ type Array
        > Example
          Splitting an array into elements that start with a prefix.
 
-             ["a", "b", "ax", "bx"].to_array.partition (Filter_Condition.Starts_With "a") == (Pair ["a", "ax"].to_array ["b", "bx"].to_array)
+             ["a", "b", "ax", "bx"].to_array.partition (..Starts_With "a") == (Pair ["a", "ax"].to_array ["b", "bx"].to_array)
 
        > Example
          Splitting an array into even and odd elements.
@@ -821,7 +822,7 @@ type Array
        > Example
          Checking if any element of the array is larger than 3.
 
-             [1, 2, 3, 4, 5].to_array.any (Filter_Condition.Greater than=3)
+             [1, 2, 3, 4, 5].to_array.any (..Greater than=3)
 
        > Example
          Checking if any element of the array is even.
@@ -829,7 +830,8 @@ type Array
              [1, 2, 3, 4, 5].to_array.any (x-> x%2 == 0)
     @condition Filter_Condition.default_widget
     any : (Filter_Condition | (Any -> Boolean)) -> Boolean
-    any self (condition : Filter_Condition | (Any -> Boolean)) = Array_Like_Helpers.any self condition
+    any self (condition : Filter_Condition | (Any -> Boolean)) =
+        Array_Like_Helpers.any self condition
 
     ## GROUP Logical
        ICON preparation
@@ -842,7 +844,7 @@ type Array
        > Example
          Check if all elements in the array are less than zero.
 
-             [-1, 1, 5, 8].to_array.all (Filter_Condition.Less than=0)
+             [-1, 1, 5, 8].to_array.all (..Less than=0)
 
        > Example
          Check if all elements in the array are even.
@@ -850,7 +852,8 @@ type Array
              [-1, 1, 5, 8].to_array.all (x-> x%2 == 0)
     @condition Filter_Condition.default_widget
     all : (Filter_Condition | (Any -> Boolean)) -> Boolean
-    all self (condition : Filter_Condition | (Any -> Boolean)) = Array_Like_Helpers.all self condition
+    all self (condition : Filter_Condition | (Any -> Boolean)) =
+        Array_Like_Helpers.all self condition
 
     ## GROUP Logical
        ICON preparation

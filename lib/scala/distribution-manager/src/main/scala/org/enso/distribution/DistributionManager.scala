@@ -411,7 +411,7 @@ class DistributionManager(val env: Environment) {
     def irCacheDirectory: Path = this.cacheDirectory / "ir"
 
     private def executableName: String =
-      OS.executableName("enso")
+      OS.executableName("ensoup")
 
     /** The path where the binary executable of the installed distribution
       * should be placed by default.

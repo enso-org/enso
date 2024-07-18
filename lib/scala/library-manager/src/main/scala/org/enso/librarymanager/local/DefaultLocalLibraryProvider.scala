@@ -146,7 +146,7 @@ class DefaultLocalLibraryProvider(searchPaths: List[Path])
       // Only one warning at warning level is emitted.
       logger.trace(warning)
     } else {
-      logger.warn(warning)
+      logger.debug(warning)
       alreadyWarned.put(path, suffix)
     }
   }

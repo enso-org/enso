@@ -1,0 +1,30 @@
+from Standard.Base import all
+from Standard.Base.Runtime import assert
+from Standard.Table import all
+from Standard.Test import Bench
+import Standard.Examples
+
+options = Bench.options . set_warmup (Bench.phase_conf 2 5) . set_measure (Bench.phase_conf 2 5)
+
+type Lazy_Data
+    private Write ~table:Table
+
+collect_benches = Bench.build builder->
+    assert Examples.csv_2500_rows.exists "Expecting the file to exist at "+Examples.csv_2500_rows.path
+
+    write_data = Lazy_Data.Write (Examples.csv_2500_rows . read)
+
+    builder.group ("Read_csv_file") options group_builder->
+        group_builder.specify "data_csv" <|
+            table = Examples.csv_2500_rows . read
+            assert (table.row_count == 2500) "Expecting two and half thousand rows, but got "+table.row_count.to_text
+
+    builder.group ("Write_csv_file") options group_builder->
+        group_builder.specify "data_csv" <|
+            file = File.create_temporary_file "data_csv"
+            Panic.with_finalizer file.delete <|
+                assert (file.size == 0) "File "+file.to_text+" shall be empty, size: "+file.size.to_text
+                write_data.table . write file (..Delimited delimiter="," headers=False)
+                assert (file.size > 111111) "File "+file.to_text+" exists now, size: "+file.size.to_text
+
+main = collect_benches . run_main

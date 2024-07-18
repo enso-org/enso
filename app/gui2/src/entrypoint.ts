@@ -1,12 +1,15 @@
 import { baseConfig, configValue, mergeConfig } from '@/util/config'
 import { urlParams } from '@/util/urlParams'
+import * as vueQuery from '@tanstack/vue-query'
 import { isOnLinux } from 'enso-common/src/detect'
+import * as commonQuery from 'enso-common/src/queryClient'
 import * as dashboard from 'enso-dashboard'
+import 'enso-dashboard/src/tailwind.css'
 import { isDevMode } from 'shared/util/detect'
 import { lazyVueInReact } from 'veaury'
+import { type App } from 'vue'
 
 import 'enso-dashboard/src/tailwind.css'
-import type { EditorRunner } from '../../ide-desktop/lib/types/types'
 import { AsyncApp } from './asyncApp'
 
 const INITIAL_URL_KEY = `Enso-initial-url`
@@ -46,8 +49,6 @@ window.addEventListener('resize', () => {
   scamWarningHandle = window.setTimeout(printScamWarning, SCAM_WARNING_TIMEOUT)
 })
 
-const appRunner = lazyVueInReact(AsyncApp as any /* async VueComponent */) as EditorRunner
-
 /** The entrypoint into the IDE. */
 function main() {
   /** Note: Signing out always redirects to `/`. It is impossible to make this work,
@@ -74,6 +75,15 @@ function main() {
   const projectManagerUrl = config.engine.projectManagerUrl || PROJECT_MANAGER_URL
   const ydocUrl = config.engine.ydocUrl === '' ? YDOC_SERVER_URL : config.engine.ydocUrl
   const initialProjectName = config.startup.project || null
+  const queryClient = commonQuery.createQueryClient()
+
+  const registerPlugins = (app: App) => {
+    app.use(vueQuery.VueQueryPlugin, { queryClient })
+  }
+
+  const appRunner = lazyVueInReact(AsyncApp as any /* async VueComponent */, {
+    beforeVueAppMount: (app) => registerPlugins(app as App),
+  }) as dashboard.GraphEditorRunner
 
   dashboard.run({
     appRunner,
@@ -96,6 +106,7 @@ function main() {
         }
       }
     },
+    queryClient,
   })
 }
 

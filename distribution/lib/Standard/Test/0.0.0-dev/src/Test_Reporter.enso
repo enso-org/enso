@@ -98,7 +98,7 @@ print_single_result (test_result : Test_Result) (config : Suite_Config) =
 print_report : Vector Test_Result -> Suite_Config -> (StringBuilder | Nothing) -> Nothing
 print_report (test_results : Vector Test_Result) (config : Suite_Config) (builder : (StringBuilder | Nothing)) =
     distinct_group_names = test_results.map (_.group_name) . distinct
-    results_per_group = distinct_group_names.fold Map.empty acc-> group_name->
+    results_per_group = distinct_group_names.fold Dictionary.empty acc-> group_name->
         group_results = test_results.filter res->
             res.group_name == group_name
         assert (group_results.length > 0)

@@ -1,4 +1,4 @@
-from Standard.Base import all hiding First, Last
+from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Errors.Unimplemented.Unimplemented
@@ -116,7 +116,7 @@ type Postgres_Dialect
         inner_table_alias = table_name_deduplicator.make_unique table.name+"_inner"
         setup = table.context.as_subquery inner_table_alias [table.internal_columns]
         new_columns = setup.new_columns.first
-        column_mapping = Map.from_vector <| new_columns.map c-> [c.name, c]
+        column_mapping = Dictionary.from_vector <| new_columns.map c-> [c.name, c]
         new_key_columns = key_columns.map c-> column_mapping.at c.name
         type_mapping = self.get_type_mapping
         distinct_expressions = new_key_columns.map column->
@@ -158,8 +158,10 @@ type Postgres_Dialect
         Internal_Column.Value column.name new_sql_type_reference new_expression
 
     ## PRIVATE
-    needs_execute_query_for_type_inference : Boolean
-    needs_execute_query_for_type_inference self = False
+    needs_execute_query_for_type_inference : Text | SQL_Statement -> Boolean
+    needs_execute_query_for_type_inference self statement =
+        _ = statement
+        False
 
     ## PRIVATE
     supports_separate_nan : Boolean
@@ -301,6 +303,12 @@ type Postgres_Dialect
                             Warning.attach (Inexact_Type_Coercion.Warning base_type new_type unavailable=False) new_type
                         False -> base_type
                 _ -> base_type
+
+    ## PRIVATE
+    needs_literal_table_cast : Value_Type -> Boolean
+    needs_literal_table_cast self value_type =
+        _ = value_type
+        False
 
 ## PRIVATE
 make_dialect_operations =
@@ -563,14 +571,14 @@ decimal_mod = Base_Generator.lift_binary_op "DECIMAL_MOD" x-> y->
     x ++ " - FLOOR(CAST(" ++ x ++ " AS decimal) / CAST(" ++ y ++ " AS decimal)) * " ++ y
 
 ## PRIVATE
-supported_replace_params : Set Replace_Params
+supported_replace_params : Hashset Replace_Params
 supported_replace_params =
     e0 = [Replace_Params.Value Text Case_Sensitivity.Default False, Replace_Params.Value Text Case_Sensitivity.Default True, Replace_Params.Value Text Case_Sensitivity.Sensitive False]
     e1 = [Replace_Params.Value Text Case_Sensitivity.Sensitive True, Replace_Params.Value Text Case_Sensitivity.Insensitive False, Replace_Params.Value Text Case_Sensitivity.Insensitive True]
     e2 = [Replace_Params.Value Regex Case_Sensitivity.Default False, Replace_Params.Value Regex Case_Sensitivity.Default True, Replace_Params.Value Regex Case_Sensitivity.Sensitive False]
     e3 = [Replace_Params.Value Regex Case_Sensitivity.Sensitive True, Replace_Params.Value Regex Case_Sensitivity.Insensitive False, Replace_Params.Value Regex Case_Sensitivity.Insensitive True]
     e4 = [Replace_Params.Value DB_Column Case_Sensitivity.Default False, Replace_Params.Value DB_Column Case_Sensitivity.Sensitive False]
-    Set.from_vector <| e0 + e1 + e2 + e3 + e4
+    Hashset.from_vector <| e0 + e1 + e2 + e3 + e4
 
 ## PRIVATE
 replace : Vector SQL_Builder -> Any -> SQL_Builder
@@ -664,6 +672,8 @@ make_date_add arguments (metadata : Date_Period_Metadata) =
                 "secs=>0.001"
             Time_Period.Microsecond ->
                 "secs=>0.000001"
+            Time_Period.Nanosecond ->
+                Panic.throw (Illegal_State.Error "Nanosecond precision is not supported by Postgres.")
         interval_expression = SQL_Builder.code "make_interval(" ++ interval_arg ++ ")"
         shifted = SQL_Builder.code "(" ++ expr ++ " + (" ++ amount ++ " * " ++ interval_expression ++ "))"
         case metadata.input_value_type of

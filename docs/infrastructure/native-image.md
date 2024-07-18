@@ -21,7 +21,7 @@ Native Image is used for building the Launcher.
 - [Static Builds](#static-builds)
 - [No Cross-Compilation](#no-cross-compilation)
 - [Configuration](#configuration)
-  - [Launcher Configuration](#launcher-configuration)
+  - [`ensoup` Configuration](#ensoup-configuration)
   - [Project Manager Configuration](#project-manager-configuration)
 
 <!-- /MarkdownTOC -->
@@ -63,7 +63,7 @@ replaced with absolute paths to the bundle location.
 The task is parametrized with `staticOnLinux` parameter which if set to `true`,
 will statically link the built binary, to ensure portability between Linux
 distributions. For Windows and MacOS, the binaries should generally be portable,
-as described in [Launcher Portability](../distribution/launcher.md#portability).
+as described in [`ensoup` Portability](../distribution/launcher.md#portability).
 
 ## No Cross-Compilation
 
@@ -105,7 +105,7 @@ java \
   <application arguments>
 ```
 
-For example, to update settings for the Launcher:
+For example, to update settings for the Launcher project:
 
 ```bash
 java -agentlib:native-image-agent=config-merge-dir=engine/launcher/src/main/resources/META-INF/native-image/org/enso/launcher -jar launcher.jar <arguments>
@@ -139,7 +139,7 @@ After updating the Native Image configuration, make sure to clean it by running
 cd tools/native-image-config-cleanup && npm install && npm start
 ```
 
-### Launcher Configuration
+### `ensoup` Configuration
 
 In case of the launcher, to gather the relevant reflective accesses one wants to
 test as many execution paths as possible, especially the ones that are likely to

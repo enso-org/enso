@@ -1033,29 +1033,29 @@ Text.repeat self count=1 =
    > Example
      Various different ways to take part of "Hello World!"
 
-         "Hello World!".take First == "H"
-         "Hello World!".take (First 5) == "Hello"
-         "Hello World!".take (First 0) == ""
-         "Hello World!".take Last == "!"
-         "Hello World!".take (Last 6) == "World!"
-         "Hello World!".take (Before " ") == "Hello"
-         "Hello World!".take (Before_Last "o") == "Hello W"
-         "Hello World!".take (After " ") == "World!"
-         "Hello World!".take (After_Last "o") == "rld!"
-         "Hello World!".take (While c->c!=" ") == "Hello"
-         "Hello World!".take (Range 3 5) == "lo"
-         "Hello World!".take (Range 5 Nothing) == " World!"
-         "Hello World!".take (Range 5 12) == " World!"
-         "Hello World!".take (Range 6 12 2) == "Wrd"
-         "Hello World!".take (Every 2 first=6) == "Wrd"
-         "Hello World!".take (Every 3) == "Hl Wl"
-         "Hello World!".take (By_Index 0) == "H"
-         "Hello World!".take (By_Index [1, 0, 0, 6, 0]) == "eHHWH"
-         "Hello World!".take (By_Index [Range 0 3, 6, Range 6 12 2]) == "HelWWrd"
-         "Hello World!".take (Sample 3 seed=42) == "l d"
+         "Hello World!".take ..First == "H"
+         "Hello World!".take (..First 5) == "Hello"
+         "Hello World!".take (..First 0) == ""
+         "Hello World!".take ..Last == "!"
+         "Hello World!".take (..Last 6) == "World!"
+         "Hello World!".take (..Before " ") == "Hello"
+         "Hello World!".take (..Before_Last "o") == "Hello W"
+         "Hello World!".take (..After " ") == "World!"
+         "Hello World!".take (..After_Last "o") == "rld!"
+         "Hello World!".take (..While c->c!=" ") == "Hello"
+         "Hello World!".take (..Range 3 5) == "lo"
+         "Hello World!".take (..Range 5 Nothing) == " World!"
+         "Hello World!".take (..Range 5 12) == " World!"
+         "Hello World!".take (..Range 6 12 2) == "Wrd"
+         "Hello World!".take (..Every 2 first=6) == "Wrd"
+         "Hello World!".take (..Every 3) == "Hl Wl"
+         "Hello World!".take (..By_Index 0) == "H"
+         "Hello World!".take (..By_Index [1, 0, 0, 6, 0]) == "eHHWH"
+         "Hello World!".take (..By_Index [Range 0 3, 6, Range 6 12 2]) == "HelWWrd"
+         "Hello World!".take (..Sample 3 seed=42) == "l d"
 @range Text_Sub_Range.default_widget
 Text.take : (Text_Sub_Range | Index_Sub_Range | Range | Integer) -> Text ! Index_Out_Of_Bounds
-Text.take self range=(Index_Sub_Range.First 1) =
+Text.take self range:(Text_Sub_Range | Index_Sub_Range | Range | Integer)=..First =
     ranges = Codepoint_Ranges.resolve self range
     case ranges of
         Range.Between start end 1 ->
@@ -1082,29 +1082,29 @@ Text.take self range=(Index_Sub_Range.First 1) =
    > Example
      Various different ways to take part of "Hello World!"
 
-         "Hello World!".drop First == "ello World!"
-         "Hello World!".drop (First 5) == " World!"
-         "Hello World!".drop (First 0) == "Hello World!"
-         "Hello World!".drop Last == "Hello World"
-         "Hello World!".drop (Last 6) == "Hello "
-         "Hello World!".drop (Before " ") == " World!"
-         "Hello World!".drop (Before_Last "o") == "orld!"
-         "Hello World!".drop (After " ") == "Hello "
-         "Hello World!".drop (After_Last "o") == "Hello Wo"
-         "Hello World!".drop (While c->c!=" ") == " World!"
-         "Hello World!".drop (Range 3 5) == "Hel World!"
-         "Hello World!".drop (Range 5 Nothing) == "Hello"
-         "Hello World!".drop (Range 5 12) == "Hello"
-         "Hello World!".drop (Range 6 12 2) == "Hello ol!"
-         "Hello World!".drop (Every 2 first=6) == "Hello ol!"
-         "Hello World!".drop (Every 3) == "elo ord!"
-         "Hello World!".drop (By_Index 0) == "ello World!"
-         "Hello World!".drop (By_Index [1, 0, 0, 6, 0]) == "llo orld!"
-         "Hello World!".drop (By_Index [Range 0 3, 6, Range 6 12 2]) == "lo ol!"
-         "Hello World!".drop (Sample 3 seed=42) == "HeloWorl!"
+         "Hello World!".drop ..First == "ello World!"
+         "Hello World!".drop (..First 5) == " World!"
+         "Hello World!".drop (..First 0) == "Hello World!"
+         "Hello World!".drop ..Last == "Hello World"
+         "Hello World!".drop (..Last 6) == "Hello "
+         "Hello World!".drop (..Before " ") == " World!"
+         "Hello World!".drop (..Before_Last "o") == "orld!"
+         "Hello World!".drop (..After " ") == "Hello "
+         "Hello World!".drop (..After_Last "o") == "Hello Wo"
+         "Hello World!".drop (..While c->c!=" ") == " World!"
+         "Hello World!".drop (..Range 3 5) == "Hel World!"
+         "Hello World!".drop (..Range 5 Nothing) == "Hello"
+         "Hello World!".drop (..Range 5 12) == "Hello"
+         "Hello World!".drop (..Range 6 12 2) == "Hello ol!"
+         "Hello World!".drop (..Every 2 first=6) == "Hello ol!"
+         "Hello World!".drop (..Every 3) == "elo ord!"
+         "Hello World!".drop (..By_Index 0) == "ello World!"
+         "Hello World!".drop (..By_Index [1, 0, 0, 6, 0]) == "llo orld!"
+         "Hello World!".drop (..By_Index [Range 0 3, 6, Range 6 12 2]) == "lo ol!"
+         "Hello World!".drop (..Sample 3 seed=42) == "HeloWorl!"
 @range Text_Sub_Range.default_widget
-Text.drop : (Text_Sub_Range | Index_Sub_Range | Range) -> Text ! Index_Out_Of_Bounds
-Text.drop self range=(Index_Sub_Range.First 1) =
+Text.drop : (Text_Sub_Range | Index_Sub_Range | Range | Integer) -> Text ! Index_Out_Of_Bounds
+Text.drop self range:(Text_Sub_Range | Index_Sub_Range | Range | Integer)=..First =
     ranges = Codepoint_Ranges.resolve self range
     case ranges of
         Range.Between start end 1 ->
@@ -1197,9 +1197,9 @@ Text.pad self length:Integer=0 with_pad:Text=' ' at:Location=..Right = case at o
                 remainder = pad_size % with_pad_length
                 case at of
                     Location.Left ->
-                        with_pad.take (Index_Sub_Range.Last remainder) + with_pad.repeat full_repetitions + self
+                        with_pad.take (..Last remainder) + with_pad.repeat full_repetitions + self
                     Location.Right ->
-                        self + with_pad.repeat full_repetitions + with_pad.take (Index_Sub_Range.First remainder)
+                        self + with_pad.repeat full_repetitions + with_pad.take (..First remainder)
 
 ## GROUP Text
    ICON text
