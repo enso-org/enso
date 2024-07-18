@@ -59,6 +59,19 @@ public abstract class NumericComparison<T extends Number, I extends Storage<? su
         default -> throw new IllegalStateException(
             "Unsupported lhs storage: " + storage.getClass().getCanonicalName());
       };
+    } else if (arg instanceof BigDecimal bigDecimal) {
+      return switch (storage) {
+        case AbstractLongStorage s -> runBigDecimalMap(
+            BigDecimalArrayAdapter.fromStorage(s), bigDecimal, problemAggregator);
+        case BigIntegerStorage s -> runBigDecimalMap(
+            BigDecimalArrayAdapter.fromStorage(s), bigDecimal, problemAggregator);
+        case BigDecimalStorage s -> runBigDecimalMap(
+            BigDecimalArrayAdapter.fromStorage(s), bigDecimal, problemAggregator);
+        case DoubleStorage s -> runBigDecimalMap(
+            BigDecimalArrayAdapter.fromStorage(s), bigDecimal, problemAggregator);
+        default -> throw new IllegalStateException(
+            "Unsupported lhs storage: " + storage.getClass().getCanonicalName());
+      };
     } else if (NumericConverter.isCoercibleToLong(arg)) {
       long rhs = NumericConverter.coerceToLong(arg);
       return switch (storage) {
@@ -250,6 +263,19 @@ public abstract class NumericComparison<T extends Number, I extends Storage<? su
               DoubleArrayAdapter.fromStorage(lhs), rhs, problemAggregator);
           default -> runMixedZip(lhs, arg, problemAggregator);
         };
+      }
+
+      case BigDecimalStorage lhs -> {
+        if (arg instanceof AbstractLongStorage ||
+            arg instanceof BigIntegerStorage ||
+            arg instanceof BigDecimalStorage ||
+            arg instanceof DoubleStorage) {
+          BigDecimalArrayAdapter left = BigDecimalArrayAdapter.fromAnyStorage(lhs);
+          BigDecimalArrayAdapter right = BigDecimalArrayAdapter.fromAnyStorage(arg);
+          yield runBigDecimalZip(left, right, problemAggregator);
+        } else {
+          yield runMixedZip(lhs, arg, problemAggregator);
+        }
       }
 
       default -> throw new IllegalStateException(

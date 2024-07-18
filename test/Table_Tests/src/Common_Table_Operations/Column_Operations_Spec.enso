@@ -668,9 +668,7 @@ add_specs suite_builder setup =
                     x = t.at "x"
                     y = t.at "y"
 
-                    clue = x.value_type.to_text+', '+y.value_type.to_text
-                    #IO.println "CLUE "+clue
-                    Test.with_clue clue <|
+                    Test.with_clue " comparison: "+x.value_type.to_text+', '+y.value_type.to_text <|
                         (x < y).to_vector . should_equal [True, False, False, Nothing]
                         (x <= y).to_vector . should_equal [True, False, True, Nothing]
                         (x > y).to_vector . should_equal (x <= y).not.to_vector
@@ -679,6 +677,7 @@ add_specs suite_builder setup =
                         [6.5, 1000.5].map const_float->
                             converters.map converter->
                                 constant = converter const_float
+                                Test.with_clue " constant: "+constant.value_type.to_text <|
                                     (x < -constant).to_vector . should_equal [False, False, False, Nothing]
                                     (x < constant).to_vector . should_equal [True, True, True, Nothing]
                                     (x < -constant).to_vector . should_equal [False, False, False, Nothing]
@@ -691,36 +690,6 @@ add_specs suite_builder setup =
                             op y 23 . to_vector . should_succeed
                             op x 1.5 . to_vector . should_succeed
                             op x (dec 1.5) . to_vector . should_succeed
-
-            ##
-                with_mixed_columns_if_supported [["x", [1, 4, 5, Nothing]], ["yf", [2.0, 3.25, 5.0, Nothing]], ["yd", [Decimal.new "2.0", Decimal.new "3.25", Decimal.new "5.0", Nothing]]] t->
-                    setup.is_integer_type (t.at "x").inferred_precise_value_type . should_be_true
-                    (t.at "yf").inferred_precise_value_type . should_be_a (Value_Type.Float ...)
-                    (t.at "yd").inferred_precise_value_type . should_be_a (Value_Type.Decimal ...)
-
-                    x = t.at "x"
-                    #q0 = (x < (t.at "yf")).to_vector
-                    #q1 = (x < (t.at "yd")).to_vector
-
-                    [t.at "yf", t.at "yd"].map y->
-                        clue = x.value_type.to_text+', '+y.value_type.to_text
-                        IO.println "CLUE "+clue
-                        Test.with_clue clue <|
-
-                            (x < y).to_vector . should_equal [True, False, False, Nothing]
-                            (x <= y).to_vector . should_equal [True, False, True, Nothing]
-                            (x > y).to_vector . should_equal (x <= y).not.to_vector
-                            (x >= y).to_vector . should_equal (x < y).not.to_vector
-
-                            (x < 1000).to_vector . should_equal [True, True, True, Nothing]
-
-                            [(<), (<=), (>), (>=)].each op->
-                                op x y . value_type . should_equal Value_Type.Boolean
-                                op x y . to_vector . should_succeed
-                                op x 23 . to_vector . should_succeed
-                                op y 23 . to_vector . should_succeed
-                                op x 1.5 . to_vector . should_succeed
-
 
         group_builder.specify "should allow to compare texts" <|
             t0 = table_builder [["X", ["a", "b", "c"]], ["Y", ["a", "b", "d"]]]
