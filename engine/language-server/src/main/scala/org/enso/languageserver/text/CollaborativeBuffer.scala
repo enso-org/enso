@@ -179,13 +179,10 @@ class CollaborativeBuffer(
         )
       } else {
         logger.warn("Timeout reached when awaiting response from the server")
-        replyTo ! OpenFileResponse(Left(OperationTimeout))
         stop(Map.empty)
       }
     case Api.Response(Some(id), Api.OpenFileResponse) if id == requestId =>
       timeout.cancel()
-      val cap = CapabilityRegistration(CanEdit(bufferPath))
-      replyTo ! OpenFileResponse(Right(OpenFileResult(buffer, Some(cap))))
       unstashAll()
       context.become(
         collaborativeEditing(
@@ -894,6 +891,8 @@ class CollaborativeBuffer(
         self,
         ServerConfirmationTimeout
       )
+    val cap = CapabilityRegistration(CanEdit(bufferPath))
+    replyTo ! OpenFileResponse(Right(OpenFileResult(buffer, Some(cap))))
     context.become(
       waitingOnServerConfirmation(
         requestId,
