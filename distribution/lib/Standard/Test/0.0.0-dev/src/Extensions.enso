@@ -501,7 +501,8 @@ Any.should_contain_the_same_elements_as self that frames_to_skip=0 =
     Test.with_clue "Duplicate elements in either collection should have the same counts - checked by comparing sorted collections: " <|
         ## If the vector contains vectors or incomparable values, they may not get sorted correctly.
            We normalize by converting to a text representation.
-        normalize = .pretty
+        normalize e =
+            Panic.catch No_Such_Method e.pretty _->e.to_text
         (self.sort on=normalize) . should_equal (that.sort on=normalize) frames_to_skip=frames_to_skip+3
     Spec_Result.Success
 
