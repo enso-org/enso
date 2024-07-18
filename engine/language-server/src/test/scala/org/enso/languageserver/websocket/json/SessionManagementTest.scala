@@ -65,7 +65,7 @@ class SessionManagementTest extends BaseServerTest with ReportLogsOnFailure {
 
     "connection is initialised" must {
 
-      "reply with an error if client tries initialise connection second time" in {
+      "reply with a standard message if client tries initialise connection second time" in {
         val client = getInitialisedWsClient()
         client.send(json"""
           { "jsonrpc": "2.0",
@@ -76,12 +76,18 @@ class SessionManagementTest extends BaseServerTest with ReportLogsOnFailure {
             }
           }
           """)
-        client.expectJson(json"""
-            { "jsonrpc":"2.0",
-              "id":1,
-              "error": { "code": 6002, "message": "Session already initialised" }
-            }
-              """)
+        val response = parse(client.expectMessage()).rightValue.asObject.value
+        response("jsonrpc") shouldEqual Some("2.0".asJson)
+        response("id") shouldEqual Some(1.asJson)
+        val result = response("result").value.asObject.value
+        result("contentRoots").value.asArray.value should contain(
+          json"""
+          {
+            "id" : $testContentRootId,
+            "type" : "Project"
+          }
+          """
+        )
       }
 
     }
