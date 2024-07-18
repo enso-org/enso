@@ -10,10 +10,7 @@ const emit = defineEmits<{
 }>()
 
 const textFormatterSelected = ref(TextFormatOptions.Partial)
-const setTextFormatterSelected = (option: TextFormatOptions) => {
-  textFormatterSelected.value = option
-  emit('changeFormat', textFormatterSelected.value)
-}
+watch(textFormatterSelected, (selected) => emit('changeFormat', selected))
 
 const iconPath = `${icons}#paragraph`
 
