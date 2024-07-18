@@ -96,6 +96,7 @@ function componentLocator<T extends string>(className: SanitizeClassName<T>) {
 }
 
 export const graphEditor = componentLocator('GraphEditor')
+export const codeEditor = componentLocator('CodeEditor')
 // @ts-expect-error
 export const anyVisualization = componentLocator('GraphVisualization > *')
 export const loadingVisualization = componentLocator('LoadingVisualization')
@@ -130,6 +131,10 @@ export function componentBrowserEntryByLabel(page: Locator | Page, label: string
 
 export function rightDock(page: Page) {
   return page.getByTestId('rightDock')
+}
+
+export function bottomDock(page: Page) {
+  return page.getByTestId('bottomDock')
 }
 
 export const navBreadcrumb = componentLocator('NavBreadcrumb')

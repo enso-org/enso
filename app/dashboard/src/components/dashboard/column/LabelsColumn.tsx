@@ -140,7 +140,7 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
       {managesThisAsset && (
         <ariaComponents.Button
           ref={plusButtonRef}
-          size="icon"
+          size="medium"
           variant="ghost"
           showIconOnHover
           icon={Plus2Icon}

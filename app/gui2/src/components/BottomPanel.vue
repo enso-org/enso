@@ -38,7 +38,13 @@ const style = computed(() =>
     class="toggleDock"
   />
   <Transition>
-    <div v-if="show" ref="rootElement" class="BottomPanel dock" :style="style">
+    <div
+      v-if="show"
+      ref="rootElement"
+      class="BottomPanel dock"
+      :style="style"
+      data-testid="bottomDock"
+    >
       <slot />
       <ResizeHandles
         top

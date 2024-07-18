@@ -139,7 +139,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
           {getText('description')}
           {!isReadonly && ownsThisAsset && !isEditingDescription && (
             <ariaComponents.Button
-              size="icon"
+              size="medium"
               variant="icon"
               icon={PenIcon}
               onPress={() => {
