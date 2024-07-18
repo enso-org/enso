@@ -318,7 +318,7 @@ function escapeHTML(str: string) {
 function getRowHeight(params: RowHeightParams) {
   if (textFormatterSelected.value === TextFormatOptions.Off) return DEFAULT_ROW_HEIGHT
   const rowData = Object.values(params.data)
-  const textValues = rowData.filter((r) => typeof r === 'string') as string[]
+  const textValues = rowData.filter<string>((r) => typeof r === 'string')
   if (!textValues.length) return DEFAULT_ROW_HEIGHT
   const containsReturnChars = textValues.filter(
     (text: string) => text.match(/\r/g)?.length || text.match(/\n/g)?.length,
