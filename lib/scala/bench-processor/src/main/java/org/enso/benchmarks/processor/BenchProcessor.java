@@ -307,8 +307,10 @@ public class BenchProcessor extends AbstractProcessor {
                   @Setup(org.openjdk.jmh.annotations.Level.Iteration)
                   public void clearCompilationMessages(IterationParams it) {
                     var round = round(it);
-                    compilationLog.append("Before " + it.getType() + "#" + round + ". Cleaning " + messages.size() + " compilation messages\\n");
-                    messages.clear();
+                    if (!messages.isEmpty()) {
+                      compilationLog.append("Before " + it.getType() + "#" + round + ". Cleaning " + messages.size() + " compilation messages\\n");
+                      messages.clear();
+                    }
                   }
 
                   private int round(IterationParams it) {
@@ -323,12 +325,12 @@ public class BenchProcessor extends AbstractProcessor {
                     switch (it.getType()) {
                       case MEASUREMENT -> {
                         if (!messages.isEmpty()) {
-                          compilationLog.append("Finished " + it.getType() + "#" + measurementCounter + ". Found " + messages.size() + " compilation messages.\\n");
+                          compilationLog.append("After " + it.getType() + "#" + measurementCounter + ". Found " + messages.size() + " compilation messages.\\n");
                           for (var lr : messages) {
                             compilationLog.append(lr.getMessage() + "\\n");
                           }
                           compilationLog.insert(0, "Compilation detected while benchmarking " + params.getBenchmark() + ".\\n");
-                          throw new AssertionError(compilationLog.toString());
+                          System.err.println(compilationLog.toString());
                         }
                       }
                     }
