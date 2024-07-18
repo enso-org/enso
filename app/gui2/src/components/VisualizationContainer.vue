@@ -285,7 +285,7 @@ const contentStyle = computed(() => {
   max-width: calc(100% - var(--permanent-toolbar-width));
   /* FIXME [sb]: This will cut off floating panels - consider investigating whether there's a better
    * way to clip only the toolbar div itself. */
-  overflow-x: hidden;
+  overflow: visible;
 }
 
 .invisible {
