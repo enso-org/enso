@@ -159,12 +159,27 @@ public final class Type implements EnsoObject {
     return supertype;
   }
 
+  /**
+   * All types this type represents including super types.
+   *
+   * @param ctx contexts to get Any type (common super class) from
+   * @return a compilation constant array with all types this type represents
+   */
   public final Type[] allTypes(EnsoContext ctx) {
     var types = new Type[3];
     var realCount = fillInTypes(this, types, ctx);
     return Arrays.copyOf(types, realCount);
   }
 
+  /**
+   * Fills the provided {@code fill} array with all types the {@code self} type can represent. E.g.
+   * including super classes.
+   *
+   * @param self the type to "enroll"
+   * @param fill the array to fill
+   * @param ctx context to obtain Any type from
+   * @return number of types put into the {@code fill} array
+   */
   @ExplodeLoop
   private static int fillInTypes(Type self, Type[] fill, EnsoContext ctx) {
     var at = 0;
@@ -186,7 +201,12 @@ public final class Type implements EnsoObject {
       }
       self = self.supertype;
     }
-    throw CompilerDirectives.shouldNotReachHere("Strange type " + self);
+    throw CompilerDirectives.shouldNotReachHere(invalidInTypes(self));
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  private static String invalidInTypes(Type self) {
+    return "Cannot compute allTypes for " + self;
   }
 
   public void generateGetters(EnsoLanguage language) {
