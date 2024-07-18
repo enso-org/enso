@@ -661,10 +661,10 @@ add_specs suite_builder setup =
             y_values = [2.0, 3.25, 5.0]
 
             converters = [.truncate, x->x, dec]
-            converters.map x_converter -> converters.map y_converter ->
+            converters.map x_converter-> converters.map y_converter->
                 x_values_converted = x_values.map x_converter
                 y_values_converted = y_values.map y_converter
-                with_mixed_columns_if_supported [['x', x_values_converted + [Nothing]], ['y', y_values_converted + [Nothing]]
+                with_mixed_columns_if_supported [['x', x_values_converted + [Nothing]], ['y', y_values_converted + [Nothing]]] <|
                     clue = x.value_type.to_text+', '+y.value_type.to_text
                     #IO.println "CLUE "+clue
                     Test.with_clue clue <|
