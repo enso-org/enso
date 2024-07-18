@@ -1,5 +1,6 @@
-package org.enso.interpreter.service.error;
+package org.enso.interpreter.runtime.system;
 
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.TruffleStackTraceElement;
 import com.oracle.truffle.api.exception.AbstractTruffleException;
 import com.oracle.truffle.api.interop.ExceptionType;
@@ -11,51 +12,57 @@ import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 
 /** Thrown when {@code System.exit} call was called during execution. */
 @ExportLibrary(InteropLibrary.class)
-public final class ExitException extends AbstractTruffleException implements ServiceException {
+final class ExitException extends AbstractTruffleException {
   private final int exitCode;
 
-  public ExitException(int code, Node location) {
-    super("Exit was called with exit code " + code + ".", location);
+  ExitException(int code, Node location) {
+    super(location);
     this.exitCode = code;
   }
 
   @ExportMessage
-  public boolean isException() {
+  boolean isException() {
     return true;
   }
 
   @ExportMessage
-  public int getExceptionExitStatus() {
+  int getExceptionExitStatus() {
     return exitCode;
   }
 
   @ExportMessage
-  public ExceptionType getExceptionType() {
+  ExceptionType getExceptionType() {
     return ExceptionType.EXIT;
   }
 
   @ExportMessage
-  public boolean hasExceptionMessage() {
+  boolean hasExceptionMessage() {
     return true;
   }
 
   @ExportMessage
-  public String getExceptionMessage() {
+  String getExceptionMessage() {
     return getMessage();
   }
 
+  @TruffleBoundary
+  @Override
+  public String getMessage() {
+    return "Exit was called with exit code " + exitCode + ".";
+  }
+
   @ExportMessage
-  public RuntimeException throwException() {
+  RuntimeException throwException() {
     return this;
   }
 
   @ExportMessage
-  public boolean hasExceptionStackTrace() {
+  boolean hasExceptionStackTrace() {
     return true;
   }
 
   @ExportMessage
-  public Object getExceptionStackTrace() {
+  Object getExceptionStackTrace() {
     var node = this.getLocation();
     var frame = TruffleStackTraceElement.create(node, node.getRootNode().getCallTarget(), null);
     return ArrayLikeHelpers.asVectorWithCheckAt(frame.getGuestObject());
