@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import icons from '@/assets/icons.svg'
 import DropdownMenu from '@/components/DropdownMenu.vue'
 import SvgButton from '@/components/SvgButton.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
