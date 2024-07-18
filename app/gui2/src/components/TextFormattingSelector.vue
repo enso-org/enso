@@ -31,7 +31,7 @@ const toggleMenu = () => {
       <button
         :class="`${textFormatterSelected === TextFormatOptions.On && 'selected'}`"
         :onclick="() => setTextFormatterSelected(TextFormatOptions.On)"
-        title="Text displayed in monaspace font and all whitespace characters displayed as a symbol"
+        title="Text displayed in monospace font and all whitespace characters displayed as symbols"
       >
         <svg viewBox="0 0 16 16" width="16" height="16" style="stroke: black; fill: #000000">
           <use :href="`${iconPath}`" />
