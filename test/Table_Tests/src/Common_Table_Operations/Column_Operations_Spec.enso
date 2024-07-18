@@ -674,14 +674,30 @@ add_specs suite_builder setup =
                         (x > y).to_vector . should_equal (x <= y).not.to_vector
                         (x >= y).to_vector . should_equal (x < y).not.to_vector
 
+                        converters.map converter->
+                            const_float = 3.25
+                            constant = converter const_float
+                            Test.with_clue " constant: "+(Meta.get_simple_type_name constant) <|
+                                (x == constant).to_vector . should_equal [False, False, False, Nothing]
+                                (x != constant).to_vector . should_equal [True, True, True, Nothing]
+                                if y != constant then
+                                    _ = 1
+                                (y == constant).to_vector . should_equal [False, True, False, Nothing]
+                                (y != constant).to_vector . should_equal [True, False, True, Nothing]
+
                         [6.5, 1000.5].map const_float->
                             converters.map converter->
                                 constant = converter const_float
-                                Test.with_clue " constant: "+constant.value_type.to_text <|
+                                Test.with_clue " constant: "+(Meta.get_simple_type_name constant) <|
                                     (x < -constant).to_vector . should_equal [False, False, False, Nothing]
                                     (x < constant).to_vector . should_equal [True, True, True, Nothing]
-                                    (x < -constant).to_vector . should_equal [False, False, False, Nothing]
-                                    (x < constant).to_vector . should_equal [True, True, True, Nothing]
+                                    (x <= -constant).to_vector . should_equal [False, False, False, Nothing]
+                                    (x <= constant).to_vector . should_equal [True, True, True, Nothing]
+
+                                    (y > -constant).to_vector . should_equal [True, True, True, Nothing]
+                                    (y > constant).to_vector . should_equal [False, False, False, Nothing]
+                                    (y >= -constant).to_vector . should_equal [True, True, True, Nothing]
+                                    (y >= constant).to_vector . should_equal [False, False, False, Nothing]
 
                         [(<), (<=), (>), (>=)].each op->
                             op x y . value_type . should_equal Value_Type.Boolean
