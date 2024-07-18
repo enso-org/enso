@@ -32,11 +32,7 @@ public class WarningsTest {
   public static void initEnsoContext() {
     ctx = ContextUtils.createDefaultContext();
     generator = ValuesGenerator.create(ctx, ValuesGenerator.Language.ENSO);
-    ensoContext =
-        (EnsoContext)
-            ctx.getBindings(LanguageInfo.ID)
-                .invokeMember(MethodNames.TopScope.LEAK_CONTEXT)
-                .asHostObject();
+    ensoContext = ContextUtils.leakContext(ctx);
     var module =
         ctx.eval(
             "enso",
