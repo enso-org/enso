@@ -101,7 +101,7 @@ public abstract class EqualsComplexNode extends Node {
    */
   @Specialization(
       guards = {
-        "selfWarnLib.hasWarnings(selfWithWarnings) || otherWarnLib.hasWarnings(otherWithWarnings)"
+        "hasWarningsNode.execute(selfWithWarnings) || hasWarningsNode.execute(otherWithWarnings)"
       },
       limit = "3")
   boolean equalsWithWarnings(

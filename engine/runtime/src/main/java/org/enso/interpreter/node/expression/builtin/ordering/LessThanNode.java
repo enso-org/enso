@@ -166,9 +166,9 @@ public abstract class LessThanNode extends Node {
    */
   @Specialization(
       guards = {
-        "selfWarnLib.hasWarnings(selfWithWarnings) || otherWarnLib.hasWarnings(otherWithWarnings)"
+        "hasWarningsNode.execute(selfWithWarnings) || hasWarningsNode.execute(otherWithWarnings)"
       },
-      limit = "3")
+      limit = "1")
   Object lessWithWarnings(
       Object selfWithWarnings,
       Object otherWithWarnings,

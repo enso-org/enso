@@ -3,7 +3,7 @@ package org.enso.interpreter.node.callable;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Cached.Exclusive;
-import com.oracle.truffle.api.dsl.Fallback;
+import com.oracle.truffle.api.dsl.Cached.Shared;
 import com.oracle.truffle.api.dsl.GenerateUncached;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.MaterializedFrame;
@@ -24,10 +24,11 @@ import org.enso.interpreter.runtime.data.hash.HashMapInsertNode;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.error.PanicSentinel;
+import org.enso.interpreter.runtime.state.State;
+import org.enso.interpreter.runtime.warning.HasWarningsNode;
 import org.enso.interpreter.runtime.warning.Warning;
 import org.enso.interpreter.runtime.warning.WarningsLibrary;
 import org.enso.interpreter.runtime.warning.WithWarnings;
-import org.enso.interpreter.runtime.state.State;
 
 /**
  * Invokes any callable with given arguments.
@@ -65,7 +66,7 @@ public abstract class IndirectInvokeCallableNode extends Node {
    * `WithWarnings` which is not a subtype of `Function` or other types from specializations below;
    * and the last specialization is a `Fallback`.
    */
-  @Specialization(guards = "warnings.hasWarnings(warning)")
+  @Specialization(guards = "hasWarningsNode.execute(warning)")
   Object invokeWithWarnings(
       Object warning,
       MaterializedFrame callerFrame,
@@ -77,6 +78,7 @@ public abstract class IndirectInvokeCallableNode extends Node {
       BaseNode.TailStatus isTail,
       @Cached IndirectInvokeCallableNode invokeCallableNode,
       @Cached HashMapInsertNode insertNode,
+      @Shared @Cached HasWarningsNode hasWarningsNode,
       @CachedLibrary(limit = "3") InteropLibrary interop,
       @CachedLibrary(limit = "3") WarningsLibrary warnings) {
     try {
@@ -208,7 +210,7 @@ public abstract class IndirectInvokeCallableNode extends Node {
     }
   }
 
-  @Fallback
+  @Specialization(guards = "!hasWarningsNode.execute(callable)")
   public Object invokeGeneric(
       Object callable,
       MaterializedFrame callerFrame,
@@ -217,7 +219,8 @@ public abstract class IndirectInvokeCallableNode extends Node {
       CallArgumentInfo[] schema,
       InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
       InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
-      BaseNode.TailStatus isTail) {
+      BaseNode.TailStatus isTail,
+      @Shared @Cached HasWarningsNode hasWarningsNode) {
     Atom error = EnsoContext.get(this).getBuiltins().error().makeNotInvokable(callable);
     throw new PanicException(error, this);
   }

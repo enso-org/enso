@@ -13,6 +13,7 @@ import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.data.atom.Atom;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.PanicException;
+import org.enso.interpreter.runtime.warning.HasWarningsNode;
 import org.enso.interpreter.runtime.warning.WarningsLibrary;
 
 public abstract class ExpectStringNode extends Node {
@@ -35,8 +36,11 @@ public abstract class ExpectStringNode extends Node {
     return str;
   }
 
-  @Specialization(guards = "warnings.hasWarnings(warning)")
-  String doWarning(Object warning, @CachedLibrary(limit = "3") WarningsLibrary warnings) {
+  @Specialization(guards = "hasWarningsNode.execute(warning)", limit = "1")
+  String doWarning(
+      Object warning,
+      @CachedLibrary(limit = "3") WarningsLibrary warnings,
+      @Cached HasWarningsNode hasWarningsNode) {
     try {
       return execute(warnings.removeWarnings(warning));
     } catch (UnsupportedMessageException e) {

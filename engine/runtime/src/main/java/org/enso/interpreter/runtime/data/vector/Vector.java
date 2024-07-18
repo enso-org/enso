@@ -175,11 +175,6 @@ abstract class Vector implements EnsoObject {
     }
 
     @ExportMessage
-    boolean hasWarnings() {
-      return false;
-    }
-
-    @ExportMessage
     Warning[] getWarnings(Node location, boolean shouldWrap) throws UnsupportedMessageException {
       return new Warning[0];
     }
@@ -286,13 +281,6 @@ abstract class Vector implements EnsoObject {
     }
 
     @ExportMessage
-    boolean hasWarnings(
-        @Cached.Shared(value = "warnsLib") @CachedLibrary(limit = "3") WarningsLibrary warnings,
-        @Cached HasWarningsNode hasWarningsNode) {
-      return hasWarningsNode.execute(this.storage);
-    }
-
-    @ExportMessage
     Warning[] getWarnings(
         Node location,
         boolean shouldWrap,
@@ -358,11 +346,6 @@ abstract class Vector implements EnsoObject {
     }
 
     @ExportMessage
-    boolean hasWarnings() {
-      return false;
-    }
-
-    @ExportMessage
     Warning[] getWarnings(Node location, boolean shouldWrap) throws UnsupportedMessageException {
       return new Warning[0];
     }
@@ -405,11 +388,6 @@ abstract class Vector implements EnsoObject {
     boolean isArrayElementReadable(long index) {
       var size = storage.length;
       return index < size && index >= 0;
-    }
-
-    @ExportMessage
-    boolean hasWarnings() {
-      return false;
     }
 
     @ExportMessage
