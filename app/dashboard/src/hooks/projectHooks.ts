@@ -5,6 +5,8 @@ import * as reactQuery from '@tanstack/react-query'
 import invariant from 'tiny-invariant'
 import * as z from 'zod'
 
+import { merge } from 'enso-common/src/utilities/data/object'
+
 import * as eventCallbacks from '#/hooks/eventCallbackHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
@@ -220,6 +222,7 @@ export function useRenameProjectMutation() {
   const client = reactQuery.useQueryClient()
   const remoteBackend = backendProvider.useRemoteBackendStrict()
   const localBackend = backendProvider.useLocalBackend()
+  const updateLaunchedProjects = projectsProvider.useUpdateLaunchedProjects()
 
   return reactQuery.useMutation({
     mutationKey: ['renameProject'],
@@ -231,10 +234,16 @@ export function useRenameProjectMutation() {
 
       return backend.updateProject(id, { projectName: newName, ami: null, ideVersion: null }, title)
     },
-    onSuccess: (_, { project }) =>
-      client.invalidateQueries({
+    onSuccess: (_, { newName, project }) => {
+      updateLaunchedProjects(projects =>
+        projects.map(otherProject =>
+          project.id !== otherProject.id ? otherProject : merge(otherProject, { title: newName })
+        )
+      )
+      return client.invalidateQueries({
         queryKey: createGetProjectDetailsQuery.getQueryKey(project.id),
-      }),
+      })
+    },
   })
 }
 

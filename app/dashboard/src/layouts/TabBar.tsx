@@ -234,7 +234,7 @@ export function Tab(props: InternalTabProps) {
           className={tailwindMerge.twMerge(onClose && 'group-hover:hidden focus-visible:hidden')}
         />
       )}
-      {children}
+      {data?.name ?? children}
       {onClose && (
         <div className="flex">
           <ariaComponents.CloseButton onPress={onClose} />
