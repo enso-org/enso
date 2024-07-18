@@ -16,7 +16,6 @@ import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.atom.Atom;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeCoerceToArrayNode;
-import org.enso.interpreter.service.error.ExitException;
 
 public class System {
 
