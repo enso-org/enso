@@ -411,8 +411,6 @@ type Column
              example_lt = Examples.integer_column < 1
     < : Column | Any -> Column
     < self other = Value_Type.expect_comparable self other <|
-        if other.is_a Column then
-            IO.println "AAA "+self.value_type.to_text+" :: "+other.value_type.to_text
         Incomparable_Values.handle_errors <|
             run_vectorized_binary_op self Java_Storage.Maps.LT fallback_fn=(<) other expected_result_type=Value_Type.Boolean
 
