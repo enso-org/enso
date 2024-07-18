@@ -335,7 +335,11 @@ class JsonConnectionController(
     requestHandlers: Map[Method, Props],
     roots: Set[ContentRoot]
   ): Receive = LoggingReceive {
-    case Request(InitProtocolConnection, id, InitProtocolConnection.Params(clientId)) =>
+    case Request(
+          InitProtocolConnection,
+          id,
+          InitProtocolConnection.Params(clientId)
+        ) =>
       if (clientId == rpcSession.clientId) {
         sender() ! ResponseResult(
           InitProtocolConnection,
