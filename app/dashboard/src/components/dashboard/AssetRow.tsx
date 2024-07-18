@@ -428,7 +428,8 @@ export default function AssetRow(props: AssetRowProps) {
         case AssetEventType.newSecret:
         case AssetEventType.updateFiles:
         case AssetEventType.openProject:
-        case AssetEventType.closeProject: {
+        case AssetEventType.closeProject:
+        case AssetEventType.projectClosed: {
           break
         }
         case AssetEventType.copy: {
@@ -659,6 +660,12 @@ export default function AssetRow(props: AssetRowProps) {
               }) ?? null
             return found ? object.merge(oldAsset, { labels }) : oldAsset
           })
+          break
+        }
+        case AssetEventType.setItem: {
+          if (asset.id === event.id) {
+            setAsset(event.valueOrUpdater)
+          }
           break
         }
       }
