@@ -1544,6 +1544,8 @@ export default function AssetsTable(props: AssetsTableProps) {
             datalinkId: event.datalinkId,
             originalId: null,
             versionId: null,
+            ...(event.onCreated ? { onCreated: event.onCreated } : {}),
+            ...(event.onError ? { onError: event.onError } : {}),
           },
         ])
         break

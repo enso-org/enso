@@ -55,6 +55,8 @@ interface AssetListNewProjectEvent extends AssetListBaseEvent<AssetListEventType
   readonly templateId: string | null
   readonly datalinkId: backend.DatalinkId | null
   readonly preferredName: string | null
+  readonly onCreated?: (project: backend.CreatedProject) => void
+  readonly onError?: () => void
 }
 
 /** A signal to upload files. */

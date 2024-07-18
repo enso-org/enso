@@ -2,14 +2,18 @@
  * the current directory and some configuration options. */
 import * as React from 'react'
 
+import { skipToken, useQuery } from '@tanstack/react-query'
+
 import AddDatalinkIcon from '#/assets/add_datalink.svg'
 import AddFolderIcon from '#/assets/add_folder.svg'
 import AddKeyIcon from '#/assets/add_key.svg'
 import DataDownloadIcon from '#/assets/data_download.svg'
 import DataUploadIcon from '#/assets/data_upload.svg'
+import Plus2Icon from '#/assets/plus2.svg'
 import RightPanelIcon from '#/assets/right_panel.svg'
 
 import * as offlineHooks from '#/hooks/offlineHooks'
+import { createGetProjectDetailsQuery } from '#/hooks/projectHooks'
 
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as modalProvider from '#/providers/ModalProvider'
@@ -31,6 +35,7 @@ import UpsertDatalinkModal from '#/modals/UpsertDatalinkModal'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
 
 import type Backend from '#/services/Backend'
+import { ProjectState, type CreatedProject, type Project, type ProjectId } from '#/services/Backend'
 
 import type AssetQuery from '#/utilities/AssetQuery'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
@@ -50,7 +55,12 @@ export interface DriveBarProps {
   readonly isAssetPanelOpen: boolean
   readonly setIsAssetPanelOpen: React.Dispatch<React.SetStateAction<boolean>>
   readonly doEmptyTrash: () => void
-  readonly doCreateProject: () => void
+  readonly doCreateProject: (
+    templateId?: string | null,
+    templateName?: string | null,
+    onCreated?: (project: CreatedProject) => void,
+    onError?: () => void
+  ) => void
   readonly doCreateDirectory: () => void
   readonly doCreateSecret: (name: string, value: string) => void
   readonly doCreateDatalink: (name: string, value: unknown) => void
@@ -71,6 +81,8 @@ export default function DriveBar(props: DriveBarProps) {
   const uploadFilesRef = React.useRef<HTMLInputElement>(null)
   const isCloud = categoryModule.isCloud(category)
   const { isOffline } = offlineHooks.useOffline()
+  const [isCreatingProject, setIsCreatingProject] = React.useState(false)
+  const [createdProjectId, setCreatedProjectId] = React.useState<ProjectId | null>(null)
 
   const shouldBeDisabled = isCloud && isOffline
 
@@ -84,13 +96,40 @@ export default function DriveBar(props: DriveBarProps) {
           }
         : {}),
       newProject: () => {
-        doCreateProject()
+        setIsCreatingProject(true)
+        doCreateProject(
+          null,
+          null,
+          project => {
+            setCreatedProjectId(project.projectId)
+          },
+          () => {
+            setIsCreatingProject(false)
+          }
+        )
       },
       uploadFiles: () => {
         uploadFilesRef.current?.click()
       },
     })
   }, [isCloud, doCreateDirectory, doCreateProject, inputBindings])
+
+  const createdProjectQuery = useQuery<Project>(
+    createdProjectId
+      ? createGetProjectDetailsQuery.createPassiveListener(createdProjectId)
+      : { queryKey: ['__IGNORE__'], queryFn: skipToken }
+  )
+
+  const isFetching =
+    (createdProjectQuery.isLoading ||
+      (createdProjectQuery.data && createdProjectQuery.data.state.type !== ProjectState.opened)) ??
+    false
+
+  React.useEffect(() => {
+    if (!isFetching) {
+      setIsCreatingProject(false)
+    }
+  }, [isFetching])
 
   const searchBar = (
     <AssetSearchBar
@@ -167,9 +206,22 @@ export default function DriveBar(props: DriveBarProps) {
           <ariaComponents.Button
             size="medium"
             variant="bar"
-            isDisabled={shouldBeDisabled}
+            isDisabled={shouldBeDisabled || isCreatingProject}
+            icon={Plus2Icon}
+            loading={isCreatingProject}
+            loaderPosition="icon"
             onPress={() => {
-              doCreateProject()
+              setIsCreatingProject(true)
+              doCreateProject(
+                null,
+                null,
+                project => {
+                  setCreatedProjectId(project.projectId)
+                },
+                () => {
+                  setIsCreatingProject(false)
+                }
+              )
             }}
           >
             {getText('newEmptyProject')}
