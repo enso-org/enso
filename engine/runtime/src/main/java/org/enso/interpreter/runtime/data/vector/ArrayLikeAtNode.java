@@ -11,7 +11,7 @@ import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEnsoNode;
 import org.enso.interpreter.runtime.data.hash.HashMapInsertNode;
-import org.enso.interpreter.runtime.error.WarningsLibrary;
+import org.enso.interpreter.runtime.warning.WarningsLibrary;
 
 public abstract class ArrayLikeAtNode extends Node {
   public abstract Object executeAt(Object arrayLike, long index) throws InvalidArrayIndexException;

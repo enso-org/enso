@@ -1,4 +1,4 @@
-package org.enso.interpreter.runtime.error;
+package org.enso.interpreter.runtime.warning;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Bind;

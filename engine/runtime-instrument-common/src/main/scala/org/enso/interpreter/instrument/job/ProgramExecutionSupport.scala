@@ -24,9 +24,7 @@ import org.enso.interpreter.runtime.callable.function.Function
 import org.enso.interpreter.runtime.control.ThreadInterruptedException
 import org.enso.interpreter.runtime.error.{
   DataflowError,
-  PanicSentinel,
-  WarningsLibrary,
-  WithWarnings
+  PanicSentinel
 }
 import org.enso.interpreter.service.ExecutionService.{
   ExpressionCall,
@@ -41,6 +39,7 @@ import org.enso.interpreter.service.error.{
   VisualizationException
 }
 import org.enso.common.LanguageInfo
+import org.enso.interpreter.runtime.warning.{WarningsLibrary, WithWarnings}
 import org.enso.polyglot.debugger.ExecutedVisualization
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.Runtime.Api.{ContextId, ExecutionResult}

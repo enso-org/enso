@@ -12,7 +12,7 @@ import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.Node;
 import java.util.Arrays;
 import org.enso.interpreter.runtime.data.EnsoObject;
-import org.enso.interpreter.runtime.error.WarningsLibrary;
+import org.enso.interpreter.runtime.warning.WarningsLibrary;
 
 @ExportLibrary(InteropLibrary.class)
 final class ArrayBuilder implements EnsoObject {

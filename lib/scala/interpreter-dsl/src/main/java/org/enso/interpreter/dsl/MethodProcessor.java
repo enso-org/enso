@@ -152,10 +152,11 @@ public class MethodProcessor
           "org.enso.interpreter.runtime.data.text.Text",
           "org.enso.interpreter.runtime.error.DataflowError",
           "org.enso.interpreter.runtime.error.PanicException",
-          "org.enso.interpreter.runtime.error.Warning",
-          "org.enso.interpreter.runtime.error.WithWarnings",
           "org.enso.interpreter.runtime.state.State",
-          "org.enso.interpreter.runtime.type.TypesGen");
+          "org.enso.interpreter.runtime.type.TypesGen",
+          "org.enso.interpreter.runtime.warning.Warning",
+          "org.enso.interpreter.runtime.warning.WithWarnings"
+          );
 
   /** List of exception types that should be caught from the builtin's execute method. */
   private static final List<String> handleExceptionTypes =
