@@ -3,6 +3,7 @@ package org.enso.table.data.column.storage;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.type.AnyObjectType;
+import org.enso.table.data.column.storage.type.BigDecimalType;
 import org.enso.table.data.column.storage.type.BigIntegerType;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.IntegerType;
@@ -52,7 +53,8 @@ public final class MixedStorage extends ObjectStorage implements ColumnStorageWi
   private boolean isNumeric(StorageType type) {
     return type instanceof IntegerType
         || type instanceof FloatType
-        || type instanceof BigIntegerType;
+        || type instanceof BigIntegerType
+        || type instanceof BigDecimalType;
   }
 
   private StorageType commonNumericType(StorageType a, StorageType b) {
