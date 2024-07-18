@@ -76,10 +76,10 @@ public abstract class HashCallbackNode extends Node {
   @NeverDefault
   @TruffleBoundary
   Function getHashCallbackFunction() {
-    var comparableType = EnsoContext.get(this).getBuiltins().comparable().getType();
+    var comparableType = EnsoContext.get(this).getBuiltins().defaultComparator().getType();
     Function hashCallback =
         comparableType.getDefinitionScope().getMethodForType(comparableType, "hash_callback");
-    assert hashCallback != null : "Comparable.hash_callback function must exist";
+    assert hashCallback != null : "Default_Comparator.hash_callback function must exist";
     return hashCallback;
   }
 }

@@ -259,7 +259,9 @@ add_specs suite_builder setup =
             other_value = triple.at 1
             value_type = triple.at 2
 
-            is_comparable = Default_Comparator.compare value other_value != Nothing
+            is_comparable = case Ordering.compare value other_value of
+                _:Ordering -> True
+                _ -> False
 
             if is_comparable then
                 table = table_builder_typed [["x", [value, Nothing, other_value, other_value, Nothing, value, Nothing]]] value_type
