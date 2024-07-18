@@ -2,7 +2,7 @@
  * the current directory and some configuration options. */
 import * as React from 'react'
 
-import { skipToken, useQuery } from '@tanstack/react-query'
+import { skipToken, useMutationState, useQuery } from '@tanstack/react-query'
 
 import AddDatalinkIcon from '#/assets/add_datalink.svg'
 import AddFolderIcon from '#/assets/add_folder.svg'
@@ -13,7 +13,7 @@ import Plus2Icon from '#/assets/plus2.svg'
 import RightPanelIcon from '#/assets/right_panel.svg'
 
 import * as offlineHooks from '#/hooks/offlineHooks'
-import { createGetProjectDetailsQuery } from '#/hooks/projectHooks'
+import { createGetProjectDetailsQuery, type LaunchedProject } from '#/hooks/projectHooks'
 
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as modalProvider from '#/providers/ModalProvider'
@@ -83,6 +83,7 @@ export default function DriveBar(props: DriveBarProps) {
   const { isOffline } = offlineHooks.useOffline()
   const [isCreatingProject, setIsCreatingProject] = React.useState(false)
   const [createdProjectId, setCreatedProjectId] = React.useState<ProjectId | null>(null)
+  const [seenMutations] = React.useState(new WeakSet())
 
   const shouldBeDisabled = isCloud && isOffline
 
@@ -124,6 +125,25 @@ export default function DriveBar(props: DriveBarProps) {
     (createdProjectQuery.isLoading ||
       (createdProjectQuery.data && createdProjectQuery.data.state.type !== ProjectState.opened)) ??
     false
+
+  const successfulCloses = useMutationState({
+    filters: {
+      mutationKey: ['closeProject'],
+      // Stop loading when the request fires, not when the request comlpetes.
+      status: 'pending',
+      // eslint-disable-next-line no-restricted-syntax
+      predicate: mutation => (mutation.state.variables as LaunchedProject).id === createdProjectId,
+    },
+    // eslint-disable-next-line no-restricted-syntax
+    select: mutation => mutation.state.variables as LaunchedProject,
+  })
+
+  for (const state of successfulCloses) {
+    if (!seenMutations.has(state)) {
+      seenMutations.add(state)
+      setIsCreatingProject(false)
+    }
+  }
 
   React.useEffect(() => {
     if (!isFetching) {

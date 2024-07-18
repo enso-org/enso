@@ -66,8 +66,8 @@ export interface EditorProps {
   readonly isOpening: boolean
   readonly isOpeningFailed: boolean
   readonly openingError: Error | null
-  readonly startProject: (project: projectHooks.Project) => void
-  readonly project: projectHooks.Project
+  readonly startProject: (project: projectHooks.LaunchedProject) => void
+  readonly project: projectHooks.LaunchedProject
   readonly hidden: boolean
   readonly ydocUrl: string | null
   readonly appRunner: GraphEditorRunner | null

@@ -163,7 +163,7 @@ export default function TabBar(props: TabBarProps) {
 interface InternalTabProps extends Readonly<React.PropsWithChildren> {
   readonly 'data-testid'?: string
   readonly id: string
-  readonly project?: projectHooks.Project
+  readonly project?: projectHooks.LaunchedProject
   readonly isActive: boolean
   readonly isHidden?: boolean
   readonly icon: string

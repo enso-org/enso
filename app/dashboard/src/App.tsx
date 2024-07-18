@@ -48,7 +48,7 @@ import * as inputBindingsModule from '#/configurations/inputBindings'
 import * as backendHooks from '#/hooks/backendHooks'
 
 import AuthProvider, * as authProvider from '#/providers/AuthProvider'
-import BackendProvider from '#/providers/BackendProvider'
+import BackendProvider, { useLocalBackend, useRemoteBackend } from '#/providers/BackendProvider'
 import * as httpClientProvider from '#/providers/HttpClientProvider'
 import InputBindingsProvider from '#/providers/InputBindingsProvider'
 import LocalStorageProvider, * as localStorageProvider from '#/providers/LocalStorageProvider'
@@ -282,9 +282,6 @@ function AppRouter(props: AppRouterProps) {
     [httpClient, logger, getText]
   )
 
-  backendHooks.useObserveBackend(remoteBackend)
-  backendHooks.useObserveBackend(localBackend)
-
   if (detect.IS_DEV_MODE) {
     // @ts-expect-error This is used exclusively for debugging.
     window.navigate = navigate
@@ -508,7 +505,12 @@ function AppRouter(props: AppRouterProps) {
     </router.Routes>
   )
 
-  let result = routes
+  let result = (
+    <>
+      <MutationListener />
+      {routes}
+    </>
+  )
 
   result = <errorBoundary.ErrorBoundary>{result}</errorBoundary.ErrorBoundary>
   result = <InputBindingsProvider inputBindings={inputBindings}>{result}</InputBindingsProvider>
@@ -559,4 +561,19 @@ function AppRouter(props: AppRouterProps) {
   result = <LoggerProvider logger={logger}>{result}</LoggerProvider>
 
   return result
+}
+
+// ========================
+// === MutationListener ===
+// ========================
+
+/** A component that applies state updates for successful mutations. */
+function MutationListener() {
+  const remoteBackend = useRemoteBackend()
+  const localBackend = useLocalBackend()
+
+  backendHooks.useObserveBackend(remoteBackend)
+  backendHooks.useObserveBackend(localBackend)
+
+  return null
 }

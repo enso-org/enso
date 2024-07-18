@@ -217,7 +217,7 @@ function DashboardInner(props: DashboardProps) {
     }
   }, [inputBindings])
 
-  const doRemoveSelf = eventCallbacks.useEventCallback((project: projectHooks.Project) => {
+  const doRemoveSelf = eventCallbacks.useEventCallback((project: projectHooks.LaunchedProject) => {
     dispatchAssetListEvent({ type: AssetListEventType.removeSelf, id: project.id })
     closeProject(project)
   })

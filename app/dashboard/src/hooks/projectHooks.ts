@@ -45,11 +45,11 @@ const LAUNCHED_PROJECT_SCHEMA = z.array(PROJECT_SCHEMA).readonly()
 /**
  * Launched project information.
  */
-export type Project = z.infer<typeof PROJECT_SCHEMA>
+export type LaunchedProject = z.infer<typeof PROJECT_SCHEMA>
 /**
  * Launched project ID.
  */
-export type ProjectId = backendModule.ProjectId
+export type LaunchedProjectId = backendModule.ProjectId
 
 LocalStorage.registerKey('launchedProjects', {
   isUserSpecific: true,
@@ -122,8 +122,8 @@ export function createGetProjectDetailsQuery(options: CreateOpenedProjectQueryOp
     },
   })
 }
-createGetProjectDetailsQuery.getQueryKey = (id: ProjectId) => ['project', id] as const
-createGetProjectDetailsQuery.createPassiveListener = (id: ProjectId) =>
+createGetProjectDetailsQuery.getQueryKey = (id: LaunchedProjectId) => ['project', id] as const
+createGetProjectDetailsQuery.createPassiveListener = (id: LaunchedProjectId) =>
   reactQuery.queryOptions<backendModule.Project>({
     queryKey: createGetProjectDetailsQuery.getQueryKey(id),
   })
@@ -142,7 +142,7 @@ export function useOpenProjectMutation() {
   return reactQuery.useMutation({
     mutationKey: ['openProject'],
     networkMode: 'always',
-    mutationFn: ({ title, id, type, parentId }: Project) => {
+    mutationFn: ({ title, id, type, parentId }: LaunchedProject) => {
       const backend = type === backendModule.BackendType.remote ? remoteBackend : localBackend
 
       invariant(backend != null, 'Backend is null')
@@ -189,7 +189,7 @@ export function useCloseProjectMutation() {
 
   return reactQuery.useMutation({
     mutationKey: ['closeProject'],
-    mutationFn: async ({ type, id, title }: Project) => {
+    mutationFn: async ({ type, id, title }: LaunchedProject) => {
       const backend = type === backendModule.BackendType.remote ? remoteBackend : localBackend
 
       invariant(backend != null, 'Backend is null')
@@ -223,7 +223,7 @@ export function useRenameProjectMutation() {
 
   return reactQuery.useMutation({
     mutationKey: ['renameProject'],
-    mutationFn: ({ newName, project }: { newName: string; project: Project }) => {
+    mutationFn: ({ newName, project }: { newName: string; project: LaunchedProject }) => {
       const { type, id, title } = project
       const backend = type === backendModule.BackendType.remote ? remoteBackend : localBackend
 
@@ -259,42 +259,44 @@ export function useOpenProject() {
   const openProjectMutation = useOpenProjectMutation()
   const openEditor = useOpenEditor()
 
-  return eventCallbacks.useEventCallback((project: Project, options: OpenProjectOptions = {}) => {
-    const { openInBackground = true } = options
+  return eventCallbacks.useEventCallback(
+    (project: LaunchedProject, options: OpenProjectOptions = {}) => {
+      const { openInBackground = true } = options
 
-    // Since multiple tabs cannot be opened at the sametime, the opened projects need to be closed first.
-    if (projectsStore.getState().launchedProjects.length > 0) {
-      closeAllProjects()
-    }
+      // Since multiple tabs cannot be opened at the sametime, the opened projects need to be closed first.
+      if (projectsStore.getState().launchedProjects.length > 0) {
+        closeAllProjects()
+      }
 
-    const isOpeningTheSameProject =
-      client.getMutationCache().find({
-        mutationKey: ['openProject'],
-        predicate: mutation => mutation.options.scope?.id === project.id,
-      })?.state.status === 'pending'
+      const isOpeningTheSameProject =
+        client.getMutationCache().find({
+          mutationKey: ['openProject'],
+          predicate: mutation => mutation.options.scope?.id === project.id,
+        })?.state.status === 'pending'
 
-    if (!isOpeningTheSameProject) {
-      openProjectMutation.mutate(project)
+      if (!isOpeningTheSameProject) {
+        openProjectMutation.mutate(project)
 
-      const openingProjectMutation = client.getMutationCache().find({
-        mutationKey: ['openProject'],
-        // this is unsafe, but we can't do anything about it
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        predicate: mutation => mutation.state.variables?.id === project.id,
-      })
+        const openingProjectMutation = client.getMutationCache().find({
+          mutationKey: ['openProject'],
+          // this is unsafe, but we can't do anything about it
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          predicate: mutation => mutation.state.variables?.id === project.id,
+        })
 
-      openingProjectMutation?.setOptions({
-        ...openingProjectMutation.options,
-        scope: { id: project.id },
-      })
+        openingProjectMutation?.setOptions({
+          ...openingProjectMutation.options,
+          scope: { id: project.id },
+        })
 
-      addLaunchedProject(project)
+        addLaunchedProject(project)
 
-      if (!openInBackground) {
-        openEditor(project.id)
+        if (!openInBackground) {
+          openEditor(project.id)
+        }
       }
     }
-  })
+  )
 }
 
 // =====================
@@ -304,7 +306,7 @@ export function useOpenProject() {
 /** A function to open the editor. */
 export function useOpenEditor() {
   const setPage = projectsProvider.useSetPage()
-  return eventCallbacks.useEventCallback((projectId: ProjectId) => {
+  return eventCallbacks.useEventCallback((projectId: LaunchedProjectId) => {
     React.startTransition(() => {
       setPage(projectId)
     })
@@ -322,7 +324,7 @@ export function useCloseProject() {
   const removeLaunchedProject = projectsProvider.useRemoveLaunchedProject()
   const setPage = projectsProvider.useSetPage()
 
-  return eventCallbacks.useEventCallback((project: Project) => {
+  return eventCallbacks.useEventCallback((project: LaunchedProject) => {
     client
       .getMutationCache()
       .findAll({

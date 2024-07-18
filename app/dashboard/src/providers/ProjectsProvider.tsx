@@ -38,7 +38,7 @@ declare module '#/utilities/LocalStorage' {
 
 export const PAGES_SCHEMA = z
   .nativeEnum(TabType)
-  .or(z.custom<projectHooks.ProjectId>(value => typeof value === 'string'))
+  .or(z.custom<projectHooks.LaunchedProjectId>(value => typeof value === 'string'))
 
 LocalStorage.registerKey('page', { schema: PAGES_SCHEMA })
 
@@ -48,11 +48,11 @@ LocalStorage.registerKey('page', { schema: PAGES_SCHEMA })
 
 /** The state of this zustand store. */
 interface ProjectsStore {
-  readonly page: projectHooks.ProjectId | TabType
-  readonly setPage: (page: projectHooks.ProjectId | TabType) => void
-  readonly launchedProjects: readonly projectHooks.Project[]
-  readonly addLaunchedProject: (project: projectHooks.Project) => void
-  readonly removeLaunchedProject: (projectId: projectHooks.ProjectId) => void
+  readonly page: projectHooks.LaunchedProjectId | TabType
+  readonly setPage: (page: projectHooks.LaunchedProjectId | TabType) => void
+  readonly launchedProjects: readonly projectHooks.LaunchedProject[]
+  readonly addLaunchedProject: (project: projectHooks.LaunchedProject) => void
+  readonly removeLaunchedProject: (projectId: projectHooks.LaunchedProjectId) => void
   readonly clearLaunchedProjects: () => void
 }
 
@@ -118,7 +118,7 @@ function PageSynchronizer() {
   const [page, privateSetPage] = searchParamsState.useSearchParamsState(
     'page',
     () => store.getState().page,
-    (value: unknown): value is projectHooks.ProjectId | TabType => {
+    (value: unknown): value is projectHooks.LaunchedProjectId | TabType => {
       return (
         array.includes(Object.values(TabType), value) ||
         store.getState().launchedProjects.some(p => p.id === value)
@@ -176,7 +176,7 @@ export function useLaunchedProjects() {
 export function useAddLaunchedProject() {
   const store = useProjectsStore()
   const addLaunchedProject = zustand.useStore(store, state => state.addLaunchedProject)
-  return eventCallbacks.useEventCallback((project: projectHooks.Project) => {
+  return eventCallbacks.useEventCallback((project: projectHooks.LaunchedProject) => {
     React.startTransition(() => {
       addLaunchedProject(project)
     })
@@ -191,7 +191,7 @@ export function useAddLaunchedProject() {
 export function useRemoveLaunchedProject() {
   const store = useProjectsStore()
   const removeLaunchedProject = zustand.useStore(store, state => state.removeLaunchedProject)
-  return eventCallbacks.useEventCallback((projectId: projectHooks.ProjectId) => {
+  return eventCallbacks.useEventCallback((projectId: projectHooks.LaunchedProjectId) => {
     React.startTransition(() => {
       removeLaunchedProject(projectId)
     })
@@ -230,7 +230,7 @@ export function usePage() {
 export function useSetPage() {
   const store = useProjectsStore()
   const setPage = zustand.useStore(store, state => state.setPage)
-  return eventCallbacks.useEventCallback((page: projectHooks.ProjectId | TabType) => {
+  return eventCallbacks.useEventCallback((page: projectHooks.LaunchedProjectId | TabType) => {
     React.startTransition(() => {
       setPage(page)
     })
