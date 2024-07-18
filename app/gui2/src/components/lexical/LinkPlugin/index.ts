@@ -2,6 +2,8 @@ import { documentationEditorBindings } from '@/bindings'
 import type { LexicalMarkdownPlugin } from '@/components/MarkdownEditor/markdown'
 import type { LexicalPlugin } from '@/components/lexical'
 import { $createLinkNode, $isLinkNode, AutoLinkNode, LinkNode } from '@lexical/link'
+import { $isImageNode } from '@/components/MarkdownEditor/ImagePlugin/imageNode'
+import { IMAGE } from '@/components/MarkdownEditor/ImagePlugin'
 import type { Transformer } from '@lexical/markdown'
 import { $getNearestNodeOfType } from '@lexical/utils'
 import {
@@ -41,6 +43,11 @@ const LINK: Transformer = {
     // then one we ignore it as markdown does not support nested styles for links
     if (node.getChildrenSize() === 1 && $isTextNode(firstChild)) {
       return exportFormat(firstChild, linkContent)
+    } else if (node.getChildrenSize() === 1 && $isImageNode(firstChild)) {
+      // Images sometimes happen to be inside links (when importing nodes from HTML).
+      // The link is not important for us (this type of layout is not supported in markdown),
+      // but we want to display the image.
+      return IMAGE.export(firstChild, exportChildren, exportFormat)
     } else {
       return linkContent
     }

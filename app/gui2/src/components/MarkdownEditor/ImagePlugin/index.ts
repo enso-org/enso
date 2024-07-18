@@ -9,7 +9,7 @@ import type { LexicalEditor } from 'lexical'
 import { assertDefined } from 'shared/util/assert'
 
 
-const IMAGE: TextMatchTransformer = {
+export const IMAGE: TextMatchTransformer = {
   dependencies: [ImageNode],
   export: (node) => {
     if (!$isImageNode(node)) {
