@@ -137,7 +137,6 @@ export default function ProjectIcon(props: ProjectIconProps) {
 
   switch (state) {
     case null:
-    case backendModule.ProjectState.created:
     case backendModule.ProjectState.new:
     case backendModule.ProjectState.closing:
     case backendModule.ProjectState.closed:
@@ -152,6 +151,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
           onPress={doOpenProject}
         />
       )
+    case backendModule.ProjectState.created:
     case backendModule.ProjectState.openInProgress:
     case backendModule.ProjectState.scheduled:
     case backendModule.ProjectState.provisioned:
