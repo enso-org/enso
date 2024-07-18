@@ -3,7 +3,6 @@ import * as React from 'react'
 
 import * as reactQuery from '@tanstack/react-query'
 import invariant from 'tiny-invariant'
-import * as z from 'zod'
 
 import { merge } from 'enso-common/src/utilities/data/object'
 
@@ -11,52 +10,20 @@ import * as eventCallbacks from '#/hooks/eventCallbackHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
-import * as projectsProvider from '#/providers/ProjectsProvider'
+import {
+  TabType,
+  useAddLaunchedProject,
+  useProjectsStore,
+  useRemoveLaunchedProject,
+  useSetPage,
+  useUpdateLaunchedProjects,
+  type LaunchedProject,
+  type LaunchedProjectId,
+} from '#/providers/ProjectsProvider'
 
 import * as backendModule from '#/services/Backend'
 import type LocalBackend from '#/services/LocalBackend'
 import type RemoteBackend from '#/services/RemoteBackend'
-
-import LocalStorage from '#/utilities/LocalStorage'
-
-// ============================
-// === Global configuration ===
-// ============================
-
-declare module '#/utilities/LocalStorage' {
-  /** */
-  interface LocalStorageData {
-    readonly launchedProjects: z.infer<typeof LAUNCHED_PROJECT_SCHEMA>
-  }
-}
-
-// =================
-// === Constants ===
-// =================
-
-const PROJECT_SCHEMA = z
-  .object({
-    id: z.custom<backendModule.ProjectId>(x => typeof x === 'string'),
-    parentId: z.custom<backendModule.DirectoryId>(x => typeof x === 'string'),
-    title: z.string(),
-    type: z.nativeEnum(backendModule.BackendType),
-  })
-  .readonly()
-const LAUNCHED_PROJECT_SCHEMA = z.array(PROJECT_SCHEMA).readonly()
-
-/**
- * Launched project information.
- */
-export type LaunchedProject = z.infer<typeof PROJECT_SCHEMA>
-/**
- * Launched project ID.
- */
-export type LaunchedProjectId = backendModule.ProjectId
-
-LocalStorage.registerKey('launchedProjects', {
-  isUserSpecific: true,
-  schema: LAUNCHED_PROJECT_SCHEMA,
-})
 
 // ====================================
 // === createGetProjectDetailsQuery ===
@@ -222,7 +189,7 @@ export function useRenameProjectMutation() {
   const client = reactQuery.useQueryClient()
   const remoteBackend = backendProvider.useRemoteBackendStrict()
   const localBackend = backendProvider.useLocalBackend()
-  const updateLaunchedProjects = projectsProvider.useUpdateLaunchedProjects()
+  const updateLaunchedProjects = useUpdateLaunchedProjects()
 
   return reactQuery.useMutation({
     mutationKey: ['renameProject'],
@@ -254,8 +221,8 @@ export function useRenameProjectMutation() {
 /** A callback to open a project. */
 export function useOpenProject() {
   const client = reactQuery.useQueryClient()
-  const projectsStore = projectsProvider.useProjectsStore()
-  const addLaunchedProject = projectsProvider.useAddLaunchedProject()
+  const projectsStore = useProjectsStore()
+  const addLaunchedProject = useAddLaunchedProject()
   const closeAllProjects = useCloseAllProjects()
   const openProjectMutation = useOpenProjectMutation()
   return eventCallbacks.useEventCallback((project: LaunchedProject) => {
@@ -301,7 +268,7 @@ export function useOpenProject() {
 
 /** A function to open the editor. */
 export function useOpenEditor() {
-  const setPage = projectsProvider.useSetPage()
+  const setPage = useSetPage()
   return eventCallbacks.useEventCallback((projectId: LaunchedProjectId) => {
     React.startTransition(() => {
       setPage(projectId)
@@ -317,8 +284,8 @@ export function useOpenEditor() {
 export function useCloseProject() {
   const client = reactQuery.useQueryClient()
   const closeProjectMutation = useCloseProjectMutation()
-  const removeLaunchedProject = projectsProvider.useRemoveLaunchedProject()
-  const setPage = projectsProvider.useSetPage()
+  const removeLaunchedProject = useRemoveLaunchedProject()
+  const setPage = useSetPage()
 
   return eventCallbacks.useEventCallback((project: LaunchedProject) => {
     client
@@ -348,7 +315,7 @@ export function useCloseProject() {
 
     removeLaunchedProject(project.id)
 
-    setPage(projectsProvider.TabType.drive)
+    setPage(TabType.drive)
   })
 }
 
@@ -358,7 +325,7 @@ export function useCloseProject() {
 
 /** A function to close all projects. */
 export function useCloseAllProjects() {
-  const projectsStore = projectsProvider.useProjectsStore()
+  const projectsStore = useProjectsStore()
   const closeProject = useCloseProject()
   return eventCallbacks.useEventCallback(() => {
     for (const launchedProject of projectsStore.getState().launchedProjects) {
