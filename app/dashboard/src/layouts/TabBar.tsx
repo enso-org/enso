@@ -79,8 +79,8 @@ export default function TabBar(props: TabBarProps) {
           selectedTabRef.current = element
           const bounds = element.getBoundingClientRect()
           const rootBounds = backgroundElement.getBoundingClientRect()
-          const tabLeft = bounds.left - rootBounds.left
-          const tabRight = bounds.right - rootBounds.left
+          const tabLeft = bounds.left - rootBounds.left + TAB_RADIUS_PX
+          const tabRight = bounds.right - rootBounds.left - TAB_RADIUS_PX
           const rightSegments = [
             'M 0 0',
             `L ${rootBounds.width} 0`,
@@ -105,9 +105,9 @@ export default function TabBar(props: TabBarProps) {
           backgroundElement.style.clipPath = `path("${segments.join(' ')}")`
           const rootSegments = [
             ...rightSegments,
-            `L ${tabRight - 1} ${rootBounds.height}`,
-            `L ${tabLeft + 1} ${rootBounds.height}`,
-            `L ${tabLeft + 1} ${rootBounds.height - TAB_RADIUS_PX}`,
+            `A ${TAB_RADIUS_PX} ${TAB_RADIUS_PX} 0 0 1 ${tabRight - TAB_RADIUS_PX} ${rootBounds.height}`,
+            `L ${tabLeft + TAB_RADIUS_PX} ${rootBounds.height}`,
+            `A ${TAB_RADIUS_PX} ${TAB_RADIUS_PX} 0 0 1 ${tabLeft} ${rootBounds.height - TAB_RADIUS_PX}`,
             ...leftSegments,
           ]
           if (rootElement) {
@@ -150,7 +150,7 @@ export default function TabBar(props: TabBarProps) {
       {innerProps => (
         <div className="relative flex grow" {...innerProps}>
           <TabBarContext.Provider value={{ setSelectedTab }}>
-            <aria.TabList className="flex h-12 shrink-0 grow cursor-default items-center rounded-full transition-[clip-path] duration-300">
+            <aria.TabList className="flex h-12 shrink-0 grow transition-[clip-path] duration-300">
               <aria.Tab isDisabled>
                 {/* Putting the background in a `Tab` is a hack, but it is required otherwise there
                  * are issues with the ref to the background being detached, resulting in the clip
@@ -198,6 +198,33 @@ export function Tab(props: InternalTabProps) {
   const isLoadingRef = React.useRef(true)
   const { getText } = textProvider.useText()
   const actuallyActive = isActive && !isHidden
+  const [resizeObserver] = React.useState(
+    () =>
+      new ResizeObserver(() => {
+        updateClipPath()
+      })
+  )
+
+  const [updateClipPath] = React.useState(() => {
+    return () => {
+      const element = ref.current
+      if (element) {
+        const bounds = element.getBoundingClientRect()
+        const segments = [
+          `M 0 ${bounds.height}`,
+          `A ${TAB_RADIUS_PX} ${TAB_RADIUS_PX} 0 0 0 ${TAB_RADIUS_PX} ${bounds.height - TAB_RADIUS_PX}`,
+          `L ${TAB_RADIUS_PX} ${TAB_RADIUS_PX}`,
+          `A ${TAB_RADIUS_PX} ${TAB_RADIUS_PX} 0 0 1 ${TAB_RADIUS_PX * 2} 0`,
+          `L ${bounds.width - TAB_RADIUS_PX * 2} 0`,
+          `A ${TAB_RADIUS_PX} ${TAB_RADIUS_PX} 0 0 1 ${bounds.width - TAB_RADIUS_PX} ${TAB_RADIUS_PX}`,
+          `L ${bounds.width - TAB_RADIUS_PX} ${bounds.height - TAB_RADIUS_PX}`,
+          `A ${TAB_RADIUS_PX} ${TAB_RADIUS_PX} 0 0 0 ${bounds.width} ${bounds.height}`,
+          'Z',
+        ]
+        element.style.clipPath = `path("${segments.join(' ')}")`
+      }
+    }
+  })
 
   React.useLayoutEffect(() => {
     if (actuallyActive && ref.current) {
@@ -226,14 +253,19 @@ export function Tab(props: InternalTabProps) {
       data-testid={props['data-testid']}
       ref={element => {
         ref.current = element
-        if (actuallyActive && element) {
-          setSelectedTab(element)
+        if (element) {
+          if (actuallyActive) {
+            setSelectedTab(element)
+          }
+          resizeObserver.disconnect()
+          resizeObserver.observe(element)
+          updateClipPath()
         }
       }}
       id={id}
       aria-label={getText(labelId)}
       className={tailwindMerge.twMerge(
-        'relative flex h-full items-center gap-3 rounded-t-3xl px-4',
+        'relative -mx-6 flex h-full items-center gap-3 rounded-t-3xl px-10',
         !isActive &&
           'cursor-pointer opacity-50 hover:bg-frame hover:opacity-75 disabled:cursor-not-allowed disabled:opacity-30 [&.disabled]:cursor-not-allowed [&.disabled]:opacity-30',
         isHidden && 'hidden'
