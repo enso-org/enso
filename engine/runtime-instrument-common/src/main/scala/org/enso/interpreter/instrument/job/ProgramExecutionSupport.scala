@@ -22,10 +22,7 @@ import org.enso.interpreter.runtime.`type`.{Types, TypesGen}
 import org.enso.interpreter.runtime.data.atom.AtomConstructor
 import org.enso.interpreter.runtime.callable.function.Function
 import org.enso.interpreter.runtime.control.ThreadInterruptedException
-import org.enso.interpreter.runtime.error.{
-  DataflowError,
-  PanicSentinel
-}
+import org.enso.interpreter.runtime.error.{DataflowError, PanicSentinel}
 import org.enso.interpreter.service.ExecutionService.{
   ExpressionCall,
   ExpressionValue,
@@ -39,7 +36,11 @@ import org.enso.interpreter.service.error.{
   VisualizationException
 }
 import org.enso.common.LanguageInfo
-import org.enso.interpreter.runtime.warning.{WarningsLibrary, WithWarnings}
+import org.enso.interpreter.runtime.warning.{
+  HasWarningsNode,
+  WarningsLibrary,
+  WithWarnings
+}
 import org.enso.polyglot.debugger.ExecutedVisualization
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.Runtime.Api.{ContextId, ExecutionResult}
@@ -48,7 +49,6 @@ import java.io.File
 import java.util.UUID
 import java.util.function.Consumer
 import java.util.logging.Level
-
 import scala.jdk.OptionConverters.RichOptional
 import scala.util.Try
 
@@ -403,7 +403,7 @@ object ProgramExecutionSupport {
         case _ =>
           val warnings =
             Option.when(
-              value.getValue != null && WarningsLibrary.getUncached.hasWarnings(
+              value.getValue != null && HasWarningsNode.getUncached.execute(
                 value.getValue
               )
             ) {

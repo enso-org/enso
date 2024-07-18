@@ -19,10 +19,11 @@ import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.hash.EnsoHashMap;
 import org.enso.interpreter.runtime.data.hash.HashMapInsertNode;
+import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
+import org.enso.interpreter.runtime.warning.HasWarningsNode;
 import org.enso.interpreter.runtime.warning.Warning;
 import org.enso.interpreter.runtime.warning.WarningsLibrary;
 import org.enso.interpreter.runtime.warning.WithWarnings;
-import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 
 /** A primitive boxed array type for use in the runtime. */
 @ExportLibrary(InteropLibrary.class)
@@ -91,6 +92,7 @@ final class Array implements EnsoObject {
   Object readArrayElement(
       long index,
       @CachedLibrary(limit = "3") WarningsLibrary warnings,
+      @Cached HasWarningsNode hasWarningsNode,
       @CachedLibrary(limit = "3") InteropLibrary interop,
       @Cached BranchProfile errProfile,
       @Cached BranchProfile hasWarningsProfile,
@@ -102,10 +104,10 @@ final class Array implements EnsoObject {
     }
 
     var v = items[(int) index];
-    if (this.hasWarnings(warnings)) {
+    if (hasWarningsNode.execute(warnings)) {
       hasWarningsProfile.enter();
-      Warning[] extracted = this.getWarnings(null, false, warnings, mapInsertNode);
-      if (warnings.hasWarnings(v)) {
+      Warning[] extracted = this.getWarnings(null, false, warnings, mapInsertNode, hasWarningsNode);
+      if (hasWarningsNode.execute(v)) {
         v = warnings.removeWarnings(v);
       }
       return WithWarnings.wrap(v, EnsoContext.get(warnings), mapInsertNode, interop, extracted);
@@ -165,9 +167,10 @@ final class Array implements EnsoObject {
     return true;
   }
 
-  private boolean hasWarningElements(Object[] items, WarningsLibrary warnings) {
+  private boolean hasWarningElements(
+      Object[] items, WarningsLibrary warnings, HasWarningsNode hasWarningsNode) {
     for (Object item : items) {
-      if (warnings.hasWarnings(item)) {
+      if (hasWarningsNode.execute(item)) {
         return true;
       }
     }
@@ -175,9 +178,11 @@ final class Array implements EnsoObject {
   }
 
   @ExportMessage
-  boolean hasWarnings(@Shared("warnsLib") @CachedLibrary(limit = "3") WarningsLibrary warnings) {
+  boolean hasWarnings(
+      @Shared("warnsLib") @CachedLibrary(limit = "3") WarningsLibrary warnings,
+      @Shared @Cached HasWarningsNode hasWarningsNode) {
     if (withWarnings == null) {
-      withWarnings = hasWarningElements(items, warnings);
+      withWarnings = hasWarningElements(items, warnings, hasWarningsNode);
     }
     return withWarnings;
   }
@@ -187,12 +192,14 @@ final class Array implements EnsoObject {
       Node location,
       boolean shouldWrap,
       @Shared("warnsLib") @CachedLibrary(limit = "3") WarningsLibrary warnings,
-      @Shared("mapInsertNode") @Cached HashMapInsertNode mapInsertNode)
+      @Shared("mapInsertNode") @Cached HashMapInsertNode mapInsertNode,
+      @Shared @Cached HasWarningsNode hasWarningsNode)
       throws UnsupportedMessageException {
     Warning[] cache = shouldWrap ? cachedWarningsWrapped : cachedWarningsUnwrapped;
     if (cache == null) {
       cache =
-          Warning.fromSetToArray(collectAllWarnings(warnings, location, mapInsertNode, shouldWrap));
+          Warning.fromSetToArray(
+              collectAllWarnings(warnings, location, mapInsertNode, hasWarningsNode, shouldWrap));
       if (shouldWrap) {
         cachedWarningsWrapped = cache;
       } else {
@@ -207,13 +214,14 @@ final class Array implements EnsoObject {
       WarningsLibrary warningsLib,
       Node location,
       HashMapInsertNode mapInsertNode,
+      HasWarningsNode hasWarningsNode,
       boolean shouldWrap)
       throws UnsupportedMessageException {
     var warnsSet = EnsoHashMap.empty();
     for (int i = 0; i < this.items.length; i++) {
       final int finalIndex = i;
       Object item = this.items[i];
-      if (warningsLib.hasWarnings(item)) {
+      if (hasWarningsNode.execute(item)) {
         Warning[] warnings = warningsLib.getWarnings(item, location, shouldWrap);
         Warning[] wrappedWarningsMaybe;
 
@@ -235,11 +243,13 @@ final class Array implements EnsoObject {
   }
 
   @ExportMessage
-  Array removeWarnings(@Shared("warnsLib") @CachedLibrary(limit = "3") WarningsLibrary warnings)
+  Array removeWarnings(
+      @Shared("warnsLib") @CachedLibrary(limit = "3") WarningsLibrary warnings,
+      @Shared @Cached HasWarningsNode hasWarningsNode)
       throws UnsupportedMessageException {
     Object[] items = new Object[this.items.length];
     for (int i = 0; i < this.items.length; i++) {
-      if (warnings.hasWarnings(this.items[i])) {
+      if (hasWarningsNode.execute(this.items[i])) {
         items[i] = warnings.removeWarnings(this.items[i]);
       } else {
         items[i] = this.items[i];
@@ -251,10 +261,11 @@ final class Array implements EnsoObject {
   @ExportMessage
   boolean isLimitReached(
       @Shared("warnsLib") @CachedLibrary(limit = "3") WarningsLibrary warnings,
-      @Shared("mapInsertNode") @Cached HashMapInsertNode mapInsertNode) {
+      @Shared("mapInsertNode") @Cached HashMapInsertNode mapInsertNode,
+      @Shared @Cached HasWarningsNode hasWarningsNode) {
     try {
       int limit = EnsoContext.get(warnings).getWarningsLimit();
-      return getWarnings(null, false, warnings, mapInsertNode).length >= limit;
+      return getWarnings(null, false, warnings, mapInsertNode, hasWarningsNode).length >= limit;
     } catch (UnsupportedMessageException e) {
       return false;
     }

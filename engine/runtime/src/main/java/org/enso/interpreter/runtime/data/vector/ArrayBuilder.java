@@ -1,6 +1,7 @@
 package org.enso.interpreter.runtime.data.vector;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.InvalidArrayIndexException;
 import com.oracle.truffle.api.interop.UnknownIdentifierException;
@@ -12,6 +13,7 @@ import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.Node;
 import java.util.Arrays;
 import org.enso.interpreter.runtime.data.EnsoObject;
+import org.enso.interpreter.runtime.warning.HasWarningsNode;
 import org.enso.interpreter.runtime.warning.WarningsLibrary;
 
 @ExportLibrary(InteropLibrary.class)
@@ -46,9 +48,9 @@ final class ArrayBuilder implements EnsoObject {
    * @param e the element to add
    * @param warnings library to check for values with warnings
    */
-  void add(Object e, WarningsLibrary warnings) {
+  void add(Object e, WarningsLibrary warnings, HasWarningsNode hasWarningsNode) {
     if (!nonTrivialEnsoValue) {
-      if (warnings.hasWarnings(e)) {
+      if (hasWarningsNode.execute(e)) {
         nonTrivialEnsoValue = true;
       } else {
         var isEnsoValue = e instanceof EnsoObject || e instanceof Long || e instanceof Double;
@@ -164,12 +166,13 @@ final class ArrayBuilder implements EnsoObject {
       String name,
       Object[] args,
       @CachedLibrary(limit = "3") InteropLibrary iop,
-      @CachedLibrary(limit = "3") WarningsLibrary warnings)
+      @CachedLibrary(limit = "3") WarningsLibrary warnings,
+      @Cached HasWarningsNode hasWarningsNode)
       throws UnknownIdentifierException, UnsupportedTypeException, UnsupportedMessageException {
     return switch (name) {
       case "isEmpty" -> isEmpty();
       case "add" -> {
-        add(args[0], warnings);
+        add(args[0], warnings, hasWarningsNode);
         yield this;
       }
       case "appendTo" -> {
@@ -177,7 +180,7 @@ final class ArrayBuilder implements EnsoObject {
         for (var i = 0; i < len; i++) {
           try {
             var e = iop.readArrayElement(args[0], i);
-            add(e, warnings);
+            add(e, warnings, hasWarningsNode);
           } catch (InvalidArrayIndexException ex) {
             throw UnsupportedTypeException.create(args);
           }

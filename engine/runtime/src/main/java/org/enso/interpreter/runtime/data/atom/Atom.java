@@ -26,9 +26,10 @@ import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 import org.enso.interpreter.runtime.error.PanicException;
-import org.enso.interpreter.runtime.warning.WarningsLibrary;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.type.TypesGen;
+import org.enso.interpreter.runtime.warning.HasWarningsNode;
+import org.enso.interpreter.runtime.warning.WarningsLibrary;
 
 /** A runtime representation of an Atom in Enso. */
 @ExportLibrary(InteropLibrary.class)
@@ -304,12 +305,13 @@ public abstract class Atom implements EnsoObject {
       @CachedLibrary("this") InteropLibrary atoms,
       @CachedLibrary(limit = "3") WarningsLibrary warnings,
       @CachedLibrary(limit = "3") InteropLibrary interop,
-      @Cached BranchProfile handleError) {
+      @Cached BranchProfile handleError,
+      @Cached HasWarningsNode hasWarningsNode) {
     Object result = null;
     String msg;
     try {
       result = atoms.invokeMember(this, "to_text");
-      if (warnings.hasWarnings(result)) {
+      if (hasWarningsNode.execute(result)) {
         result = warnings.removeWarnings(result);
       }
       if (TypesGen.isDataflowError(result)) {

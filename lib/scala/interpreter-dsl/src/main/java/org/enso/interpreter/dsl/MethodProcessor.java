@@ -155,8 +155,7 @@ public class MethodProcessor
           "org.enso.interpreter.runtime.state.State",
           "org.enso.interpreter.runtime.type.TypesGen",
           "org.enso.interpreter.runtime.warning.Warning",
-          "org.enso.interpreter.runtime.warning.WithWarnings"
-          );
+          "org.enso.interpreter.runtime.warning.WithWarnings");
 
   /** List of exception types that should be caught from the builtin's execute method. */
   private static final List<String> handleExceptionTypes =

@@ -39,12 +39,13 @@ import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeLengthNode;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
-import org.enso.interpreter.runtime.warning.Warning;
-import org.enso.interpreter.runtime.warning.WarningsLibrary;
-import org.enso.interpreter.runtime.warning.WithWarnings;
 import org.enso.interpreter.runtime.library.dispatch.TypeOfNode;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.state.State;
+import org.enso.interpreter.runtime.warning.HasWarningsNode;
+import org.enso.interpreter.runtime.warning.Warning;
+import org.enso.interpreter.runtime.warning.WarningsLibrary;
+import org.enso.interpreter.runtime.warning.WithWarnings;
 
 /**
  * Sorts a vector with elements that have only Default_Comparator, thus, only elements with a
@@ -197,13 +198,15 @@ public abstract class SortVectorNode extends Node {
       @Shared("atNode") @Cached ArrayLikeAtNode atNode,
       @Shared("anyToTextNode") @Cached AnyToTextNode toTextNode,
       @Cached MethodResolverNode methodResolverNode,
-      @Cached(value = "build()", uncached = "build()") CallOptimiserNode callNode) {
+      @Cached(value = "build()", uncached = "build()") CallOptimiserNode callNode,
+      @Cached HasWarningsNode hasWarningsNode) {
     var problemBehavior = ProblemBehavior.fromInt((int) problemBehaviorNum);
     // Split into groups
-    List<Object> elems = readInteropArray(lengthNode, atNode, warningsLib, self);
-    List<Type> comparators = readInteropArray(lengthNode, atNode, warningsLib, comparatorsArray);
+    List<Object> elems = readInteropArray(lengthNode, atNode, warningsLib, hasWarningsNode, self);
+    List<Type> comparators =
+        readInteropArray(lengthNode, atNode, warningsLib, hasWarningsNode, comparatorsArray);
     List<Function> compareFuncs =
-        readInteropArray(lengthNode, atNode, warningsLib, compareFuncsArray);
+        readInteropArray(lengthNode, atNode, warningsLib, hasWarningsNode, compareFuncsArray);
     List<Group> groups = splitByComparators(elems, comparators, compareFuncs);
 
     // Prepare input for DefaultSortComparator and GenericSortComparator and sort the elements
@@ -399,6 +402,7 @@ public abstract class SortVectorNode extends Node {
       ArrayLikeLengthNode lengthNode,
       ArrayLikeAtNode atNode,
       WarningsLibrary warningsLib,
+      HasWarningsNode hasWarningsNode,
       Object vector) {
     var longSize = 0L;
     try {
@@ -407,7 +411,7 @@ public abstract class SortVectorNode extends Node {
       List<T> res = new ArrayList<>(size);
       for (int i = 0; i < size; i++) {
         Object elem = atNode.executeAt(vector, i);
-        if (warningsLib.hasWarnings(elem)) {
+        if (hasWarningsNode.execute(elem)) {
           elem = warningsLib.removeWarnings(elem);
         }
         res.add((T) elem);

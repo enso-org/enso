@@ -15,10 +15,11 @@ import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.ArrayRope;
 import org.enso.interpreter.runtime.data.hash.HashMapInsertNode;
+import org.enso.interpreter.runtime.type.TypesGen;
+import org.enso.interpreter.runtime.warning.HasWarningsNode;
 import org.enso.interpreter.runtime.warning.Warning;
 import org.enso.interpreter.runtime.warning.WarningsLibrary;
 import org.enso.interpreter.runtime.warning.WithWarnings;
-import org.enso.interpreter.runtime.type.TypesGen;
 
 /**
  * A node instantiating a constant {@link AtomConstructor} with values computed based on the
@@ -71,7 +72,8 @@ abstract class InstantiateNode extends ExpressionNode {
       VirtualFrame frame,
       @Cached(parameters = {"constructor"}) AtomConstructorInstanceNode createInstanceNode,
       @Cached HashMapInsertNode insertNode,
-      @CachedLibrary(limit = "3") InteropLibrary interop) {
+      @CachedLibrary(limit = "3") InteropLibrary interop,
+      @Cached HasWarningsNode hasWarningsNode) {
     Object[] argumentValues = new Object[arguments.length];
     boolean anyWarnings = false;
     ArrayRope<Warning> accumulatedWarnings = new ArrayRope<>();
@@ -82,7 +84,7 @@ abstract class InstantiateNode extends ExpressionNode {
       Object argument = arguments[i].executeGeneric(frame);
       if (profile.profile(TypesGen.isDataflowError(argument))) {
         return argument;
-      } else if (warningProfile.profile(warnings.hasWarnings(argument))) {
+      } else if (warningProfile.profile(hasWarningsNode.execute(argument))) {
         anyWarnings = true;
         try {
           accumulatedWarnings =

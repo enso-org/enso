@@ -17,8 +17,9 @@ import org.enso.interpreter.node.callable.InvokeCallableNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
-import org.enso.interpreter.runtime.warning.WarningsLibrary;
 import org.enso.interpreter.runtime.state.State;
+import org.enso.interpreter.runtime.warning.HasWarningsNode;
+import org.enso.interpreter.runtime.warning.WarningsLibrary;
 
 @BuiltinMethod(
     type = "IO",
@@ -57,9 +58,10 @@ public abstract class PrintlnNode extends Node {
       @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary strings,
       @CachedLibrary(limit = "10") WarningsLibrary warnings,
       @Cached("buildSymbol()") UnresolvedSymbol symbol,
-      @Cached("buildInvokeCallableNode()") InvokeCallableNode invokeCallableNode) {
+      @Cached("buildInvokeCallableNode()") InvokeCallableNode invokeCallableNode,
+      @Cached HasWarningsNode hasWarningsNode) {
     Object probablyStr = invokeCallableNode.execute(symbol, frame, state, new Object[] {message});
-    if (warnings.hasWarnings(probablyStr)) {
+    if (hasWarningsNode.execute(probablyStr)) {
       try {
         probablyStr = warnings.removeWarnings(probablyStr);
       } catch (UnsupportedMessageException e) {
