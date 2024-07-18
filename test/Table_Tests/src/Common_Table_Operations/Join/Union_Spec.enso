@@ -418,7 +418,7 @@ run_union_tests group_builder setup call_union =
             Test.with_clue <| "(D = "+dt_vec.to_display_text+") " <|
                 as_local dt = dt.format "YYYY-MM-DD HH:mm:ss"
                 preserves_local = (dt_vec.map as_local) == ["2024-05-16 16:48:23", "2019-10-23 00:00:00", "2020-01-01 00:00:00"]
-                at_utc dt = dt.at_zone utc
+                at_utc dt = dt.at_zone Time_Zone.utc
                 preserves_instant = (dt_vec.map at_utc) == ([Date_Time.new 2024 5 16 16 48 23, Date_Time.new 2019 10 23 0 0 0, Date_Time.new 2020 1 1 0 0 0].map at_utc)
                 (preserves_local || preserves_instant) . should_be_true
         problems = [Mixing_Date_Time_Types.Date_To_Date_Time "D"]

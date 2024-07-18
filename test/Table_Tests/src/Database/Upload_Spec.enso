@@ -902,7 +902,7 @@ test_table_append group_builder (data : Data) source_table_builder target_table_
 
         src3 = bump src 30 # 31, 32, 33
         default_key_columns dest . should_equal Nothing
-        r3 = dest.update_rows src update_action=Update_Action.Insert
+        r3 = dest.update_rows src3 update_action=Update_Action.Insert
         r3.column_names . should_equal ["X"]
         r3.at "X" . to_vector . should_equal_ignoring_order [1, 10, 100, 1, 2, 3, 21, 22, 23, 31, 32, 33]
 
