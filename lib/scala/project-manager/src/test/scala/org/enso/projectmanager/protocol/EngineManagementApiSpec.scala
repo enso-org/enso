@@ -181,7 +181,7 @@ class EngineManagementApiSpec
 
       val message =
         "Installation has been cancelled by the user because the requested " +
-        "engine release is marked as broken."
+        "engine release is marked as broken"
       client.expectJson(json"""
           {
             "jsonrpc":"2.0",

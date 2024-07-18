@@ -475,7 +475,7 @@ add_specs suite_builder =
             Delimited_Format.Delimited ',' . with_line_endings Line_Ending_Style.Unix . should_equal (Delimited_Format.Delimited ',' line_endings=Line_Ending_Style.Unix)
 
         utf_16_le_bom = [-1, -2]
-        group_builder.specify "(in default mode) should detect UTF-16 encoding if BOM is present" pending="Encoding.default turned off temporarily" <|
+        group_builder.specify "(in default mode) should detect UTF-16 encoding if BOM is present" <|
             bytes = utf_16_le_bom + ('a,b\n1,2'.bytes Encoding.utf_16_le)
             f = File.create_temporary_file "delimited-utf-16-bom" ".csv"
             bytes.write_bytes f . should_succeed
@@ -485,7 +485,7 @@ add_specs suite_builder =
             # No hidden BOM in the column name
             table.column_names.first.utf_8 . should_equal [97]
 
-        group_builder.specify "(in default mode) should skip UTF-8 BOM if it was present" pending="Encoding.default turned off temporarily" <|
+        group_builder.specify "(in default mode) should skip UTF-8 BOM if it was present" <|
             utf_8_bom = [-17, -69, -65]
             bytes = utf_8_bom + ('a,b\n1,2'.bytes Encoding.utf_8)
             f = File.create_temporary_file "delimited-utf-8-bom" ".csv"
@@ -506,9 +506,10 @@ add_specs suite_builder =
             # The first column name now contains this invalid character, because it wasn't a BOM
             r.column_names.first . should_equal "￾a"
 
-        group_builder.specify "if UTF-16 encoding was selected but an inverted BOM is detected, a warning is issued (pt 2)" pending="Encoding.default turned off temporarily" <|
+        group_builder.specify "if UTF-16 encoding was selected but an inverted BOM is detected, a warning is issued (pt 2)" <|
             bytes = utf_16_le_bom + ('a,b\n1,2'.bytes Encoding.utf_16_be)
             f = File.create_temporary_file "delimited-utf-16-inverted-bom" ".csv"
+            bytes.write_bytes f . should_succeed
 
             # If we read without specifying the encoding, we will infer UTF-16 LE encoding because of the BOM and get garbage:
             r2 = f.read
@@ -527,7 +528,7 @@ add_specs suite_builder =
             r.first_column.to_vector . should_equal ['\uFFFD']
             Problems.expect_only_warning Encoding_Error r
 
-        group_builder.specify "should fall back to Windows-1252 encoding if invalid UTF-8 characters are encountered in Default encoding" pending="Encoding.default turned off temporarily" <|
+        group_builder.specify "should fall back to Windows-1252 encoding if invalid UTF-8 characters are encountered in Default encoding" <|
             f = File.create_temporary_file "delimited-invalid-utf-8" ".csv"
             # On the simple characters all three encodings (ASCII, UTF-8 and Win-1252) agree, so we can use ASCII bytes.
             bytes = ('A,B\n1,y'.bytes Encoding.ascii) + [-1] + ('z\n2,-'.bytes Encoding.ascii)

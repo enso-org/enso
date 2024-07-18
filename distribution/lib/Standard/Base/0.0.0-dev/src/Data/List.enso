@@ -171,7 +171,7 @@ type List
 
              import Standard.Examples
 
-             example_any = Examples.list.any (Filter_Condition.Greater than=5)
+             example_any = Examples.list.any (..Greater than=5)
 
        > Example
          Check if any element of the list is even.
@@ -203,7 +203,7 @@ type List
 
              import Standard.Examples
 
-             example_all = Examples.list.all (Filter_Condition.Greater than=0)
+             example_all = Examples.list.all (..Greater than=0)
 
        > Example
          Check if all elements in the list are even.
@@ -277,7 +277,7 @@ type List
              import Standard.Examples
 
              example_filter = Examples.list.filter (< 3)
-             example_filter = Examples.list.filter (Filter_Condition.Less than=3)
+             example_filter = Examples.list.filter (..Less than=3)
     @filter Filter_Condition.default_widget
     filter : (Filter_Condition | (Any -> Boolean)) -> List Any
     filter self (filter : Filter_Condition | (Any -> Boolean)) =

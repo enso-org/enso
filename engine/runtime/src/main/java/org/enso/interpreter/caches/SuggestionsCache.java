@@ -45,7 +45,7 @@ public final class SuggestionsCache
       LibraryName libraryName) {
     var impl = new SuggestionsCache(libraryName);
     var logName = "Suggestions(" + libraryName + ")";
-    return Cache.create(impl, Level.INFO, logName, true, false);
+    return Cache.create(impl, Level.FINE, logName, true, false);
   }
 
   @Override
