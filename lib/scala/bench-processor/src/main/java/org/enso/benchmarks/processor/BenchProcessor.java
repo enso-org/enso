@@ -216,6 +216,7 @@ public class BenchProcessor extends AbstractProcessor {
     // Field definitions
     out.println("  private int warmupCounter = 0;");
     out.println("  private int measurementCounter = 0;");
+    out.println("  private boolean compilationMessagesFound;");
     out.println("  private final StringBuilder compilationLog = new StringBuilder();");
     out.println(
         "  private final List<LogRecord> messages = new"
@@ -324,33 +325,29 @@ public class BenchProcessor extends AbstractProcessor {
                   private void dumpMessages() {
                     for (var lr : messages) {
                       compilationLog.append(lr.getMessage() + "\\n");
+                      compilationMessagesFound = true;
                     }
                   }
 
                   @TearDown(org.openjdk.jmh.annotations.Level.Iteration)
                   public void dumpCompilationMessages(IterationParams it) {
-                    if (!messages.isEmpty()) {
-                      switch (it.getType()) {
-                        case MEASUREMENT -> {
-                          compilationLog.append("After " + it.getType() + "#" + measurementCounter + ". ");
+                    switch (it.getType()) {
+                      case MEASUREMENT -> {
+                        compilationLog.append("After " + it.getType() + "#" + measurementCounter + ". ");
+                        if (!messages.isEmpty()) {
                           compilationLog.append("Dumping " + messages.size() + " compilation messages:\\n");
                           dumpMessages();
+                        } else {
+                          compilationLog.append("No compilation messages.\\n");
                         }
                       }
                     }
                   }
 
                   @TearDown
-                  public void checkNoTruffleCompilation(BenchmarkParams params, IterationParams it) {
-                    switch (it.getType()) {
-                      case MEASUREMENT -> {
-                        if (!messages.isEmpty()) {
-                          compilationLog.append("After " + it.getType() + "#" + measurementCounter + ". Found " + messages.size() + " compilation messages.\\n");
-                          dumpMessages();
-                          compilationLog.insert(0, "Compilation detected while benchmarking " + params.getBenchmark() + ".\\n");
-                          System.err.println(compilationLog.toString());
-                        }
-                      }
+                  public void checkNoTruffleCompilation(BenchmarkParams params) {
+                    if (compilationMessagesFound) {
+                      System.err.println(compilationLog.toString());
                     }
                   }
 
