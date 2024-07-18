@@ -114,6 +114,7 @@ export default function ProjectsProvider(props: ProjectsProviderProps) {
 function PageSynchronizer() {
   const { localStorage } = localStorageProvider.useLocalStorage()
   const store = useProjectsStore()
+  const providerPage = usePage()
   const providerSetPage = useSetPage()
   const [page, privateSetPage] = searchParamsState.useSearchParamsState(
     'page',
@@ -130,11 +131,9 @@ function PageSynchronizer() {
     providerSetPage(page)
   }, [page, providerSetPage])
 
-  React.useEffect(() =>
-    store.subscribe(state => {
-      privateSetPage(state.page)
-    })
-  )
+  React.useEffect(() => {
+    privateSetPage(providerPage)
+  }, [providerPage])
 
   React.useEffect(() =>
     store.subscribe(state => {
