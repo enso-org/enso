@@ -89,6 +89,7 @@ import org.enso.languageserver.session.JsonSession
 import org.enso.languageserver.session.SessionApi.{
   InitProtocolConnection,
   ResourcesInitializationError,
+  SessionAlreadyInitialisedError,
   SessionNotInitialisedError
 }
 import org.enso.languageserver.text.TextApi._
@@ -334,16 +335,20 @@ class JsonConnectionController(
     requestHandlers: Map[Method, Props],
     roots: Set[ContentRoot]
   ): Receive = LoggingReceive {
-    case Request(InitProtocolConnection, id, _) =>
-      sender() ! ResponseResult(
-        InitProtocolConnection,
-        id,
-        InitProtocolConnection.Result(
-          buildinfo.Info.ensoVersion,
-          buildinfo.Info.currentEdition,
-          roots
+    case Request(InitProtocolConnection, id, InitProtocolConnection.Params(clientId)) =>
+      if (clientId == rpcSession.clientId) {
+        sender() ! ResponseResult(
+          InitProtocolConnection,
+          id,
+          InitProtocolConnection.Result(
+            buildinfo.Info.ensoVersion,
+            buildinfo.Info.currentEdition,
+            roots
+          )
         )
-      )
+      } else {
+        sender() ! ResponseError(Some(id), SessionAlreadyInitialisedError)
+      }
 
     case MessageHandler.Disconnected(_) =>
       logger.info("Json session terminated [{}].", rpcSession.clientId)

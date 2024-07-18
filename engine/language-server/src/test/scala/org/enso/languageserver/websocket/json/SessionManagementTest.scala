@@ -90,6 +90,24 @@ class SessionManagementTest extends BaseServerTest with ReportLogsOnFailure {
         )
       }
 
+      "reply with an error if client tries initialise connection second time with different clientId" in {
+        val client = getInitialisedWsClient()
+        client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "session/initProtocolConnection",
+            "id": 1,
+            "params": {
+              "clientId": "f3d99192-2edc-4613-bdf4-db35e4b9b957"
+            }
+          }
+          """)
+        client.expectJson(json"""
+          { "jsonrpc":"2.0",
+            "id":1,
+            "error": { "code": 6002, "message": "Session already initialised" }
+          }
+          """)
+      }
     }
 
   }
