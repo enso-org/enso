@@ -433,8 +433,8 @@ add_specs suite_builder prefix create_connection_func =
                     m2.column_names . should_equal [name_a, name_b]+w.truncated_names
                     m2.at name_a . to_vector . distinct . should_equal_ignoring_order [1, 2, 3]
                     m2.at name_b . to_vector . distinct . should_equal_ignoring_order [4, 5, 6]
-                    m2.at (w.truncated_names.at 0) . distinct . to_vector . should_equal_ignoring_order [1, 2, 3]
-                    m2.at (w.truncated_names.at 1) . distinct . to_vector . should_equal_ignoring_order [4, 5, 6]
+                    m2.at (w.truncated_names.at 0) . to_vector . distinct . should_equal_ignoring_order [1, 2, 3]
+                    m2.at (w.truncated_names.at 1) . to_vector . distinct . should_equal_ignoring_order [4, 5, 6]
 
             group_builder.specify "should truncate new column names in other operations" <|
                 name_a = "x" * (max_column_name_length - 1) + "A"
