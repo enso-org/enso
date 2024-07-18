@@ -11,7 +11,7 @@ import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 
 /** Thrown when {@code System.exit} call was called during execution. */
 @ExportLibrary(InteropLibrary.class)
-public class ExitException extends AbstractTruffleException implements ServiceException {
+public final class ExitException extends AbstractTruffleException implements ServiceException {
   private final int exitCode;
 
   public ExitException(int code, Node location) {
