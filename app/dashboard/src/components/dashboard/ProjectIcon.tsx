@@ -74,16 +74,17 @@ export default function ProjectIcon(props: ProjectIconProps) {
   const { user } = authProvider.useNonPartialUserSession()
   const { getText } = textProvider.useText()
 
-  const isRunningInBackground = item.projectState.executeAsync ?? false
   const {
-    data: status,
+    data: projectState,
     isLoading,
     isError,
   } = reactQuery.useQuery({
     ...projectHooks.createGetProjectDetailsQuery.createPassiveListener(item.id),
-    select: data => data.state.type,
+    select: data => data.state,
     enabled: isOpened,
   })
+  const status = projectState?.type
+  const isRunningInBackground = projectState?.executeAsync ?? false
 
   const isCloud = backend.type === backendModule.BackendType.remote
 
@@ -125,14 +126,14 @@ export default function ProjectIcon(props: ProjectIconProps) {
     }
   })()
 
-  const doOpenProjectTab = () => {
-    openProjectTab(item.id)
-  }
   const doOpenProject = () => {
-    void openProject({ ...item, type: backend.type })?.then(doOpenProjectTab)
+    openProject({ ...item, type: backend.type })
   }
   const doCloseProject = () => {
     closeProject({ ...item, type: backend.type })
+  }
+  const doOpenProjectTab = () => {
+    openProjectTab(item.id)
   }
 
   switch (state) {

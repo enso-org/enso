@@ -76,9 +76,9 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const dispatchAssetEvent = eventListProvider.useDispatchAssetEvent()
   const dispatchAssetListEvent = eventListProvider.useDispatchAssetListEvent()
-  const openEditor = projectHooks.useOpenEditor()
   const openProject = projectHooks.useOpenProject()
   const closeProject = projectHooks.useCloseProject()
+  const openProjectMutation = projectHooks.useOpenProjectMutation()
   const asset = item.item
   const self = asset.permissions?.find(
     backendModule.isUserPermissionAnd(permission => permission.user.userId === user.userId)
@@ -189,13 +189,11 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
               action="open"
               doAction={() => {
                 unsetModal()
-                void openProject({
+                openProject({
                   id: asset.id,
                   title: asset.title,
                   parentId: item.directoryId,
                   type: state.backend.type,
-                })?.then(() => {
-                  openEditor(asset.id)
                 })
               }}
             />
@@ -206,11 +204,12 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             action="run"
             doAction={() => {
               unsetModal()
-              void openProject({
+              openProjectMutation.mutate({
                 id: asset.id,
                 title: asset.title,
                 parentId: item.directoryId,
                 type: state.backend.type,
+                inBackground: true,
               })
             }}
           />

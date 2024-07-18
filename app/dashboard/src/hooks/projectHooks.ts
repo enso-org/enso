@@ -111,7 +111,13 @@ export function useOpenProjectMutation() {
   return reactQuery.useMutation({
     mutationKey: ['openProject'],
     networkMode: 'always',
-    mutationFn: ({ title, id, type, parentId }: LaunchedProject) => {
+    mutationFn: ({
+      title,
+      id,
+      type,
+      parentId,
+      inBackground = false,
+    }: LaunchedProject & { inBackground?: boolean }) => {
       const backend = type === backendModule.BackendType.remote ? remoteBackend : localBackend
 
       invariant(backend != null, 'Backend is null')
@@ -119,7 +125,7 @@ export function useOpenProjectMutation() {
       return backend.openProject(
         id,
         {
-          executeAsync: false,
+          executeAsync: inBackground,
           cognitoCredentials: {
             accessToken: session.accessToken,
             refreshToken: session.accessToken,
@@ -230,34 +236,24 @@ export function useOpenProject() {
     if (projectsStore.getState().launchedProjects.length > 0) {
       closeAllProjects()
     }
-
     const existingMutation = client.getMutationCache().find({
       mutationKey: ['openProject'],
       predicate: mutation => mutation.options.scope?.id === project.id,
     })
-
     const isOpeningTheSameProject = existingMutation?.state.status === 'pending'
-
     if (!isOpeningTheSameProject) {
-      const promise = openProjectMutation.mutateAsync(project)
-
+      openProjectMutation.mutate(project)
       const openingProjectMutation = client.getMutationCache().find({
         mutationKey: ['openProject'],
         // this is unsafe, but we can't do anything about it
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         predicate: mutation => mutation.state.variables?.id === project.id,
       })
-
       openingProjectMutation?.setOptions({
         ...openingProjectMutation.options,
         scope: { id: project.id },
       })
-
       addLaunchedProject(project)
-
-      return promise
-    } else {
-      return
     }
   })
 }
@@ -298,9 +294,7 @@ export function useCloseProject() {
         mutation.setOptions({ ...mutation.options, retry: false })
         mutation.destroy()
       })
-
     closeProjectMutation.mutate(project)
-
     client
       .getMutationCache()
       .findAll({
@@ -312,9 +306,7 @@ export function useCloseProject() {
       .forEach(mutation => {
         mutation.setOptions({ ...mutation.options, scope: { id: project.id } })
       })
-
     removeLaunchedProject(project.id)
-
     setPage(TabType.drive)
   })
 }

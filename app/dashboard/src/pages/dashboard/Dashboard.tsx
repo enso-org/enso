@@ -153,13 +153,11 @@ function DashboardInner(props: DashboardProps) {
     window.projectManagementApi?.setOpenProjectHandler(project => {
       setCategory(Category.local)
       const projectId = localBackendModule.newProjectId(projectManager.UUID(project.id))
-      void openProject({
+      openProject({
         type: backendModule.BackendType.local,
         id: projectId,
         title: project.name,
         parentId: localBackendModule.newDirectoryId(backendModule.Path(project.parentDirectory)),
-      })?.then(() => {
-        openEditor(projectId)
       })
     })
     return () => {

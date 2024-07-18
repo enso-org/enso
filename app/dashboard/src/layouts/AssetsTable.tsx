@@ -387,7 +387,6 @@ export default function AssetsTable(props: AssetsTableProps) {
   const { setAssetPanelProps, targetDirectoryNodeRef, setIsAssetPanelTemporarilyVisible } = props
 
   const openedProjects = projectsProvider.useLaunchedProjects()
-  const doOpenEditor = projectHooks.useOpenEditor()
   const doOpenProject = projectHooks.useOpenProject()
 
   const { user } = authProvider.useNonPartialUserSession()
@@ -961,9 +960,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         if (projectToLoad != null) {
           const backendType = backendModule.BackendType.local
           const { id, title, parentId } = projectToLoad
-          void doOpenProject({ type: backendType, id, title, parentId })?.then(() => {
-            doOpenEditor(id)
-          })
+          doOpenProject({ type: backendType, id, title, parentId })
         } else {
           toastAndLog('findProjectError', null, nameOfProjectToImmediatelyOpen)
         }
@@ -980,14 +977,7 @@ export default function AssetsTable(props: AssetsTableProps) {
       })
       nameOfProjectToImmediatelyOpenRef.current = null
     },
-    [
-      doOpenProject,
-      doOpenEditor,
-      rootDirectoryId,
-      backend.rootPath,
-      dispatchAssetEvent,
-      toastAndLog,
-    ]
+    [doOpenProject, rootDirectoryId, backend.rootPath, dispatchAssetEvent, toastAndLog]
   )
   const overwriteNodesRef = React.useRef(overwriteNodes)
   overwriteNodesRef.current = overwriteNodes
@@ -1031,13 +1021,11 @@ export default function AssetsTable(props: AssetsTableProps) {
         .filter(backendModule.assetIsProject)
         .find(isInitialProject)
       if (projectToLoad != null) {
-        void doOpenProject({
+        doOpenProject({
           type: backendModule.BackendType.local,
           id: projectToLoad.id,
           title: projectToLoad.title,
           parentId: projectToLoad.parentId,
-        })?.then(() => {
-          doOpenEditor(projectToLoad.id)
         })
       } else if (initialProjectName != null) {
         toastAndLog('findProjectError', null, initialProjectName)
@@ -1248,13 +1236,11 @@ export default function AssetsTable(props: AssetsTableProps) {
               case backendModule.AssetType.project: {
                 event.preventDefault()
                 event.stopPropagation()
-                void doOpenProject({
+                doOpenProject({
                   type: backend.type,
                   id: item.item.id,
                   title: item.item.title,
                   parentId: item.item.parentId,
-                })?.then(() => {
-                  doOpenEditor(item.item.id)
                 })
                 break
               }
