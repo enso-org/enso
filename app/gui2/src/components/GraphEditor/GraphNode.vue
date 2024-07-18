@@ -553,6 +553,7 @@ watchEffect(() => {
     <svg class="bgPaths" :style="bgStyleVariables">
       <rect class="bgFill" />
       <GraphNodeOutputPorts
+        v-if="props.node.type !== 'output'"
         :nodeId="nodeId"
         :forceVisible="selectionVisible"
         @portClick="(...args) => emit('outputPortClick', ...args)"
