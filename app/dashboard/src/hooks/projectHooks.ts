@@ -322,6 +322,7 @@ export function useCloseProject() {
   const client = reactQuery.useQueryClient()
   const closeProjectMutation = useCloseProjectMutation()
   const removeLaunchedProject = projectsProvider.useRemoveLaunchedProject()
+  const projectsStore = projectsProvider.useProjectsStore()
   const setPage = projectsProvider.useSetPage()
 
   return eventCallbacks.useEventCallback((project: Project) => {
@@ -352,7 +353,9 @@ export function useCloseProject() {
 
     removeLaunchedProject(project.id)
 
-    setPage(projectsProvider.TabType.drive)
+    if (projectsStore.getState().page === project.id) {
+      setPage(projectsProvider.TabType.drive)
+    }
   })
 }
 
