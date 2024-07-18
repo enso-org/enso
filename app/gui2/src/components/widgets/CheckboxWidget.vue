@@ -11,16 +11,17 @@ const emit = defineEmits<{ 'update:modelValue': [modelValue: boolean] }>()
 
 <style scoped>
 .Checkbox {
-  width: 24px;
-  height: 24px;
-  padding: 6px;
-  border-radius: var(--radius-full);
+  --widget-checkbox-inner-size: 12px;
+  width: var(--widget-port-height);
+  height: var(--widget-port-height);
+  padding: calc((var(--widget-port-height) - var(--widget-checkbox-inner-size)) / 2);
+  border-radius: var(--node-port-border-radius);
   background: var(--color-widget);
 }
 
 .Checkbox > div {
-  width: 12px;
-  height: 12px;
+  width: var(--widget-checkbox-inner-size);
+  height: var(--widget-checkbox-inner-size);
   border-radius: var(--radius-full);
   background: var(--color-widget-selected);
 }

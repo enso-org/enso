@@ -1,15 +1,32 @@
 <script setup lang="ts">
-import SvgIcon from '@/components/SvgIcon.vue'
+import ResizeHandles from '@/components/ResizeHandles.vue'
+import { injectGraphNavigator } from '@/providers/graphNavigator'
 import { Score, defineWidget, widgetProps } from '@/providers/widgetRegistry'
-import { injectWidgetTree } from '@/providers/widgetTree'
-import { Ast } from '@/util/ast'
-import { computed } from 'vue'
+import { Rect } from '@/util/data/rect'
+import { Vec2 } from '@/util/data/vec2'
+import { computed, ref } from 'vue'
 import { WidgetInputIsSpecificMethodCall } from './WidgetFunction.vue'
 
-const _props = defineProps(widgetProps(widgetDefinition))
-const tree = injectWidgetTree()
+const size = ref(new Vec2(200, 50))
+const graphNav = injectGraphNavigator()
 
-const icon = computed(() => tree.icon)
+const clientBounds = computed({
+  get() {
+    return new Rect(Vec2.Zero, size.value.scale(graphNav.scale))
+  },
+  set(value) {
+    size.value = new Vec2(value.width / graphNav.scale, value.height / graphNav.scale)
+  },
+})
+
+const widgetStyle = computed(() => {
+  return {
+    width: `${size.value.x}px`,
+    height: `${size.value.y}px`,
+  }
+})
+
+const _props = defineProps(widgetProps(widgetDefinition))
 </script>
 
 <script lang="ts">
@@ -28,15 +45,19 @@ export const widgetDefinition = defineWidget(
 </script>
 
 <template>
-  <div class="WidgetTableEditor">WidgetTableEditor</div>
+  <div class="WidgetTableEditor" :style="widgetStyle">
+    <div>WidgetTableEditor</div>
+    <ResizeHandles v-model="clientBounds" bottom right />
+  </div>
 </template>
 
 <style scoped>
 .WidgetTableEditor {
   color: yellow;
   display: flex;
+  align-items: center;
+  justify-content: center;
   background: #00ff0055;
-  padding: 50px;
-  border-radius: 12px;
+  border-radius: var(--node-port-border-radius);
 }
 </style>

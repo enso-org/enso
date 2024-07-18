@@ -370,7 +370,7 @@ function addItem() {
     "
   >
     <div class="vector-literal">
-      <span class="token TokenPadding">[</span>
+      <span class="token widgetApplyPadding">[</span>
       <TransitionGroup
         tag="ul"
         name="list"
@@ -391,7 +391,7 @@ function addItem() {
             <li
               v-show="entry.index != props.modelValue.length - 1"
               :ref="patchBoundingClientRectScaling"
-              class="token TokenPadding"
+              class="token widgetApplyPadding"
             >
               ,&nbsp;
             </li>
@@ -406,10 +406,10 @@ function addItem() {
         </template>
       </TransitionGroup>
       <SvgIcon class="add-item" name="vector_add" @click.stop="addItem" />
-      <span class="token TokenPadding">]</span>
+      <span class="token widgetApplyPadding">]</span>
     </div>
     <div
-      class="drop-area OutOfLayout"
+      class="drop-area widgetOutOfLayout"
       @dragleave="areaDragLeave"
       @dragover="areaDragOver"
       @drop="areaOnDrop"

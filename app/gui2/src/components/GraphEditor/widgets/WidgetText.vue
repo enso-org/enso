@@ -95,7 +95,7 @@ export const widgetDefinition = defineWidget(
 </script>
 
 <template>
-  <label ref="widgetRoot" class="WidgetText RoundedWidget">
+  <label ref="widgetRoot" class="WidgetText widgetRounded">
     <NodeWidget v-if="shownLiteral.open" :input="WidgetInput.FromAst(shownLiteral.open)" />
     <AutoSizedInput
       ref="input"

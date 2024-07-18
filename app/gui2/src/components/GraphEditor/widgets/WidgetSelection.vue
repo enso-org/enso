@@ -466,12 +466,12 @@ declare module '@/providers/widgetRegistry' {
       must be already in the DOM when the <Teleport> component is mounted.
       So the Teleport itself can be instantiated only when `arrowLocation` is already available. -->
       <Teleport v-if="arrowLocation" :to="arrowLocation">
-        <SvgIcon name="arrow_right_head_only" class="arrow" />
+        <SvgIcon name="arrow_right_head_only" class="arrow widgetOutOfLayout" />
       </Teleport>
-      <SvgIcon v-else name="arrow_right_head_only" class="arrow" />
+      <SvgIcon v-else name="arrow_right_head_only" class="arrow widgetOutOfLayout" />
     </template>
     <Teleport v-if="tree.nodeElement" :to="tree.nodeElement">
-      <div ref="dropdownElement" :style="floatingStyles">
+      <div ref="dropdownElement" :style="floatingStyles" class="widgetOutOfLayout">
         <SizeTransition height :duration="100">
           <div v-if="dropDownInteraction.isActive() && activity == null">
             <DropdownWidget

@@ -21,7 +21,7 @@ export const widgetDefinition = defineWidget(
 </script>
 
 <template>
-  <div class="WidgetTopLevelArgument NoTokenPadding">
+  <div class="WidgetTopLevelArgument widgetResetPadding">
     <NodeWidget :input="props.input" />
   </div>
 </template>

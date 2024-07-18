@@ -233,14 +233,6 @@ watch(isVisualizationPreviewed, (newVal, oldVal) => {
 
 const isVisualizationFullscreen = computed(() => props.node.vis?.fullscreen ?? false)
 
-const bgStyleVariables = computed(() => {
-  const { x: width, y: height } = nodeSize.value
-  return {
-    '--node-size-x': `${width}px`,
-    '--node-size-y': `${height}px`,
-  }
-})
-
 const transform = computed(() => {
   const { x, y } = props.node.position
   return `translate(${x}px, ${y}px)`
@@ -384,7 +376,6 @@ const handleNodeClick = useDoubleClick(
 
 const visRect = shallowRef<Rect>()
 function updateVisualizationRect(rect: Rect | undefined) {
-  console.log('rect:', visRect.value)
   visRect.value = rect
   emit('update:visualizationRect', rect)
 }
@@ -420,6 +411,8 @@ watchEffect(() => {
       '--node-group-color': color,
       ...(node.zIndex ? { 'z-index': node.zIndex } : {}),
       '--viz-below-node': `${graphSelectionSize.y - nodeSize.y}px`,
+      '--node-size-x': `${nodeSize.x}px`,
+      '--node-size-y': `${nodeSize.y}px`,
     }"
     :class="{
       selected,
@@ -535,7 +528,7 @@ watchEffect(() => {
       :message="visibleMessage.text"
       :type="visibleMessage.type"
     />
-    <svg class="bgPaths" :style="bgStyleVariables">
+    <svg class="bgPaths">
       <rect class="bgFill" />
       <GraphNodeOutputPorts
         :nodeId="nodeId"
@@ -565,10 +558,6 @@ watchEffect(() => {
   display: flex;
 
   --output-port-transform: translateY(var(--viz-below-node));
-  --output-port-max-width: 4px;
-  --output-port-hovered-extra-width: 2px;
-  --output-port-overlap: -8px;
-  --output-port-hover-width: 20px;
 }
 
 .bgFill {
@@ -581,7 +570,10 @@ watchEffect(() => {
 }
 
 .GraphNode {
-  --node-base-height: 32px;
+  position: absolute;
+  border-radius: var(--node-border-radius);
+  transition: box-shadow 0.2s ease-in-out;
+  box-sizing: border-box;
 
   --node-color-primary: color-mix(
     in oklab,
@@ -595,11 +587,6 @@ watchEffect(() => {
   &.executionState-Pending {
     --node-color-primary: color-mix(in oklab, var(--node-group-color) 60%, #aaa 40%);
   }
-
-  position: absolute;
-  border-radius: var(--node-border-radius);
-  transition: box-shadow 0.2s ease-in-out;
-  box-sizing: border-box;
 }
 
 .content {

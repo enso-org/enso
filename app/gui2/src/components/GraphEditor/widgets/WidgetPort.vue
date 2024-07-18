@@ -193,7 +193,7 @@ export const widgetDefinition = defineWidget(
       connected,
       isTarget,
       isSelfArgument,
-      RoundedWidget: connected,
+      widgetRounded: connected,
       newToConnect: !hasConnection && isCurrentEdgeHoverTarget,
       primary: props.nesting < 2,
     }"
@@ -205,10 +205,6 @@ export const widgetDefinition = defineWidget(
 </template>
 
 <style scoped>
-:global(:root) {
-  --widget-port-extra-pad: 6px;
-}
-
 .WidgetPort {
   display: flex;
   flex-direction: row;
@@ -216,7 +212,7 @@ export const widgetDefinition = defineWidget(
   justify-content: center;
   position: relative;
   text-align: center;
-  border-radius: 12px;
+  border-radius: var(--node-port-border-radius);
   min-height: var(--node-port-height);
   min-width: var(--node-port-height);
   box-sizing: border-box;
@@ -227,6 +223,7 @@ export const widgetDefinition = defineWidget(
 }
 
 .GraphEditor.draggingEdge .WidgetPort {
+  --node-port-nonprimary-drag-shrink: 8px;
   pointer-events: none;
   transition:
     margin 0.2s ease,
@@ -238,14 +235,17 @@ export const widgetDefinition = defineWidget(
     content: '';
     position: absolute;
     display: block;
-    inset: 4px var(--widget-port-extra-pad);
-    /* background: #00ff0023; */
+    inset: calc(
+        (var(--node-port-height) - var(--node-base-height)) / 2 +
+          var(--node-port-nonprimary-drag-shrink)
+      )
+      var(--widget-token-pad-unit);
   }
 
   /* Expand hover area for primary ports. */
   &.primary::before {
-    top: -4px;
-    bottom: -4px;
+    inset: calc((var(--node-port-height) - var(--node-base-height)) / 2)
+      var(--widget-token-pad-unit);
   }
 
   &.connected::before {
