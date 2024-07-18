@@ -573,10 +573,8 @@ useEvent(document, 'scroll', endBrushing)
 <template>
   <VisualizationContainer :belowToolbar="true">
     <template #toolbar>
-      <div class="inner-toolbar">
-        <SvgButton name="show_all" title="Fit All" @click="zoomToSelected(false)" />
-        <SvgButton name="find" title="Zoom to Selected" @click="zoomToSelected(true)" />
-      </div>
+      <SvgButton name="show_all" title="Fit All" @click="zoomToSelected(false)" />
+      <SvgButton name="find" title="Zoom to Selected" @click="zoomToSelected(true)" />
     </template>
     <div ref="containerNode" class="HistogramVisualization" @pointerdown.stop>
       <svg :width="width" :height="height">
@@ -642,27 +640,5 @@ useEvent(document, 'scroll', endBrushing)
 
 .label-y {
   transform: rotate(-90deg);
-}
-
-.inner-toolbar {
-  position: relative;
-  display: flex;
-  border-radius: var(--radius-full);
-  gap: 12px;
-  padding: 8px;
-  z-index: 20;
-
-  &:before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: -1;
-    border-radius: var(--radius-full);
-    background: var(--color-app-bg);
-    backdrop-filter: var(--blur-app-bg);
-  }
 }
 </style>

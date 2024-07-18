@@ -713,9 +713,7 @@ onUnmounted(() => {
 <template>
   <VisualizationContainer :belowToolbar="true" :overflow="true">
     <template #toolbar>
-      <div class="inner-toolbar">
-        <TextFormattingSelector @changeFormat="(i) => updateTextFormat(i)" />
-      </div>
+      <TextFormattingSelector @changeFormat="(i) => updateTextFormat(i)" />
     </template>
     <div ref="rootNode" class="TableVisualization" @wheel.stop @pointerdown.stop>
       <div class="table-visualization-status-bar">
@@ -783,27 +781,5 @@ onUnmounted(() => {
 
 :deep(a):hover {
   color: darkblue;
-}
-
-.inner-toolbar {
-  position: relative;
-  display: flex;
-  border-radius: var(--radius-full);
-  gap: 12px;
-  padding: 8px;
-  z-index: 20;
-
-  &:before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: -1;
-    border-radius: var(--radius-full);
-    background: var(--color-app-bg);
-    backdrop-filter: var(--blur-app-bg);
-  }
 }
 </style>

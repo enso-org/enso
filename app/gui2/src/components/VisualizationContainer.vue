@@ -160,7 +160,9 @@ const contentStyle = computed(() => {
           </div>
         </div>
         <div v-if="$slots.toolbar && !config.isPreview" class="visualization-defined-toolbars">
-          <div class="new-class"><slot name="toolbar"></slot></div>
+          <div class="toolbar-wrapper">
+            <div class="inner-toolbar"><slot name="toolbar"></slot></div>
+          </div>
         </div>
         <div
           class="after-toolbars node-type"
@@ -288,7 +290,7 @@ const contentStyle = computed(() => {
   overflow-y: visible;
 }
 
-.new-class {
+.toolbar-wrapper {
   position: relative;
   display: flex;
   border-radius: var(--radius-full);
@@ -320,5 +322,27 @@ const contentStyle = computed(() => {
 
 .VisualizationContainer :deep(> .toolbars > .toolbar > *) {
   position: relative;
+}
+
+.inner-toolbar {
+  position: relative;
+  display: flex;
+  border-radius: var(--radius-full);
+  gap: 12px;
+  padding: 8px;
+  z-index: 20;
+
+  &:before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+    border-radius: var(--radius-full);
+    background: var(--color-app-bg);
+    backdrop-filter: var(--blur-app-bg);
+  }
 }
 </style>
