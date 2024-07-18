@@ -650,13 +650,13 @@ add_specs suite_builder setup =
     suite_builder.group prefix+"(Column_Operations_Spec) Column Comparisons" group_builder->
         table_builder = build_sorted_table table_builder=setup.light_table_builder
 
-        group_builder.specify "should infer the correct precise value type for mixed columns" <|
+        group_builder.specify "(Column_Operations_Spec) should infer the correct precise value type for mixed columns" <|
             with_mixed_columns_if_supported [["i", [1, 4, 5, Nothing]], ["f", [2.0, 3.25, 5.0, Nothing]], ["d", [dec "2.0", dec "3.25", dec "5.0", Nothing]]] t->
                 setup.is_integer_type (t.at "i").inferred_precise_value_type . should_be_true
                 (t.at "f").inferred_precise_value_type . should_be_a (Value_Type.Float ...)
                 (t.at "d").inferred_precise_value_type . should_be_a (Value_Type.Decimal ...)
 
-        group_builder.specify "should allow to compare numbers" <|
+        group_builder.specify "(Column_Operations_Spec) should allow to compare numbers (including mixed types)" <|
             x_values = [1.25, 4.5, 5.0]
             y_values = [2.0, 3.25, 5.0]
 
@@ -664,7 +664,10 @@ add_specs suite_builder setup =
             converters.map x_converter-> converters.map y_converter->
                 x_values_converted = x_values.map x_converter
                 y_values_converted = y_values.map y_converter
-                with_mixed_columns_if_supported [['x', x_values_converted + [Nothing]], ['y', y_values_converted + [Nothing]]] <|
+                with_mixed_columns_if_supported [['x', x_values_converted + [Nothing]], ['y', y_values_converted + [Nothing]]] t->
+                    x = t.at "x"
+                    y = t.at "y"
+
                     clue = x.value_type.to_text+', '+y.value_type.to_text
                     #IO.println "CLUE "+clue
                     Test.with_clue clue <|
