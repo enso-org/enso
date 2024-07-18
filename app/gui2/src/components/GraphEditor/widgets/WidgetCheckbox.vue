@@ -99,14 +99,14 @@ export const widgetDefinition = defineWidget(
 </script>
 
 <template>
-  <div class="CheckboxContainer widgetRounded" :class="{ primary }">
-    <span v-if="argumentName" class="name" v-text="argumentName" />
-    <CheckboxWidget v-model="value" class="WidgetCheckbox" contenteditable="false" />
+  <div class="WidgetCheckbox" :class="{ primary }">
+    <span v-if="argumentName" class="name widgetApplyPadding" v-text="argumentName" />
+    <CheckboxWidget v-model="value" class="widgetRounded" contenteditable="false" />
   </div>
 </template>
 
 <style scoped>
-.CheckboxContainer {
+.WidgetCheckbox {
   display: flex;
   flex-direction: row;
   align-items: center;
@@ -114,6 +114,6 @@ export const widgetDefinition = defineWidget(
 
 .name {
   color: rgb(255 255 255 / 0.5);
-  margin-right: 8px;
+  margin-right: var(--widget-token-pad-unit);
 }
 </style>

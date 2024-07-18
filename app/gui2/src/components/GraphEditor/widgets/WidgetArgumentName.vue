@@ -70,7 +70,7 @@ export const ArgumentNameShownKey: unique symbol = Symbol('ArgumentNameShownKey'
 .placeholder,
 .name {
   color: rgb(255 255 255 / 0.5);
-  margin-right: 8px;
+  margin-right: var(--widget-token-pad-unit);
 
   &:last-child {
     margin-right: 0px;
