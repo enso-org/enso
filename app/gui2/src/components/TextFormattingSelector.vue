@@ -30,7 +30,7 @@ const toggleMenu = () => {
     <template #entries>
       <button
         :class="`${textFormatterSelected === TextFormatOptions.On && 'selected'}`"
-        :onclick="() => setTextFormatterSelected(TextFormatOptions.On)"
+        @click="setTextFormatterSelected(TextFormatOptions.On)"
         title="Text displayed in monospace font and all whitespace characters displayed as symbols"
       >
         <svg viewBox="0 0 16 16" width="16" height="16" style="stroke: black; fill: #000000">
