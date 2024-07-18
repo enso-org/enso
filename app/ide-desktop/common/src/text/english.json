@@ -224,6 +224,7 @@
   "organization": "Organization",
   "metadata": "Metadata",
   "path": "Path",
+  "reload": "Reload",
 
   "enterSecretPath": "Enter secret path",
   "enterText": "Enter text",

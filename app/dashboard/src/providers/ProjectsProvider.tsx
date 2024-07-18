@@ -51,6 +51,9 @@ interface ProjectsStore {
   readonly page: projectHooks.ProjectId | TabType
   readonly setPage: (page: projectHooks.ProjectId | TabType) => void
   readonly launchedProjects: readonly projectHooks.Project[]
+  readonly updateLaunchedProjects: (
+    update: (projects: readonly projectHooks.Project[]) => readonly projectHooks.Project[]
+  ) => void
   readonly addLaunchedProject: (project: projectHooks.Project) => void
   readonly removeLaunchedProject: (projectId: projectHooks.ProjectId) => void
   readonly clearLaunchedProjects: () => void
@@ -84,6 +87,9 @@ export default function ProjectsProvider(props: ProjectsProviderProps) {
         set({ page })
       },
       launchedProjects: localStorage.get('launchedProjects') ?? [],
+      updateLaunchedProjects: update => {
+        set(({ launchedProjects }) => ({ launchedProjects: update(launchedProjects) }))
+      },
       addLaunchedProject: project => {
         set(({ launchedProjects }) => ({ launchedProjects: [...launchedProjects, project] }))
       },
@@ -168,11 +174,28 @@ export function useLaunchedProjects() {
   return zustand.useStore(store, state => state.launchedProjects)
 }
 
+// =================================
+// === useUpdateLaunchedProjects ===
+// =================================
+
+/** A function to update launched projects. */
+export function useUpdateLaunchedProjects() {
+  const store = useProjectsStore()
+  const updateLaunchedProjects = zustand.useStore(store, state => state.updateLaunchedProjects)
+  return eventCallbacks.useEventCallback(
+    (update: (projects: readonly projectHooks.Project[]) => readonly projectHooks.Project[]) => {
+      React.startTransition(() => {
+        updateLaunchedProjects(update)
+      })
+    }
+  )
+}
+
 // =============================
 // === useAddLaunchedProject ===
 // =============================
 
-/** A function to add a new launched projoect. */
+/** A function to add a new launched project. */
 export function useAddLaunchedProject() {
   const store = useProjectsStore()
   const addLaunchedProject = zustand.useStore(store, state => state.addLaunchedProject)

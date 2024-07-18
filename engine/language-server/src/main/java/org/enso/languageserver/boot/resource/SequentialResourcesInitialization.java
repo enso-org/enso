@@ -43,4 +43,9 @@ public class SequentialResourcesInitialization implements InitializationComponen
 
     return result;
   }
+
+  @Override
+  public String toString() {
+    return "Sequential-initialization of " + resources.length + " resources";
+  }
 }

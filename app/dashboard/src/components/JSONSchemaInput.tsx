@@ -259,16 +259,28 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
                           // eslint-disable-next-line no-restricted-syntax
                           value={(value as Record<string, unknown>)[key] ?? null}
                           setValue={newValue => {
-                            setValue(oldValue =>
-                              typeof oldValue === 'object' &&
-                              oldValue != null &&
-                              // This is SAFE; but there is no way to tell TypeScript that an object
-                              // has an index signature.
-                              // eslint-disable-next-line no-restricted-syntax
-                              (oldValue as Readonly<Record<string, unknown>>)[key] === newValue
+                            setValue(oldValue => {
+                              if (typeof newValue === 'function') {
+                                const unsafeValue: unknown = newValue(
+                                  // This is SAFE; but there is no way to tell TypeScript that an object
+                                  // has an index signature.
+                                  // eslint-disable-next-line no-restricted-syntax
+                                  (oldValue as Readonly<Record<string, unknown>>)[key] ?? null
+                                )
+                                // The value MAY be `null`, but it is better than the value being a
+                                // function (which is *never* the intended result).
+                                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                                newValue = unsafeValue!
+                              }
+                              return typeof oldValue === 'object' &&
+                                oldValue != null &&
+                                // This is SAFE; but there is no way to tell TypeScript that an object
+                                // has an index signature.
+                                // eslint-disable-next-line no-restricted-syntax
+                                (oldValue as Readonly<Record<string, unknown>>)[key] === newValue
                                 ? oldValue
                                 : { ...oldValue, [key]: newValue }
-                            )
+                            })
                           }}
                         />
                       )}
@@ -299,7 +311,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
       const childSchemas = schema.anyOf.flatMap(object.singletonObjectOrNull)
       const selectedChildSchema =
         selectedChildIndex == null ? null : childSchemas[selectedChildIndex]
-      const selectedChildPath = `${path}/anyOf/${selectedChildIndex}`
+      const selectedChildPath = `${path}/anyOf/${selectedChildIndex ?? 0}`
       const childValue =
         selectedChildSchema == null ? [] : jsonSchema.constantValue(defs, selectedChildSchema)
       if (
