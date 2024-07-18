@@ -185,13 +185,9 @@ function DashboardInner(props: DashboardProps) {
         closeModal: () => {
           updateModal(oldModal => {
             if (oldModal == null) {
-              queueMicrotask(() => {
-                setPage(localStorage.get('page') ?? projectsProvider.TabType.drive)
-              })
-              return oldModal
-            } else {
-              return null
+              setPage(projectsProvider.TabType.drive)
             }
+            return null
           })
           if (modalRef.current == null) {
             // eslint-disable-next-line no-restricted-syntax

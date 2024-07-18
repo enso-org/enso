@@ -146,7 +146,7 @@ export default function TabBar(props: TabBarProps) {
   }
 
   return (
-    <FocusArea direction='horizontal'>
+    <FocusArea direction="horizontal">
       {innerProps => (
         <div className="relative flex grow" {...innerProps}>
           <TabBarContext.Provider value={{ setSelectedTab }}>

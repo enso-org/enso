@@ -34,8 +34,10 @@ declare module '#/utilities/LocalStorage' {
 
 const PROJECT_SCHEMA = z
   .object({
-    id: z.custom<backendModule.ProjectId>(x => typeof x === 'string'),
-    parentId: z.custom<backendModule.DirectoryId>(x => typeof x === 'string'),
+    id: z.custom<backendModule.ProjectId>(x => typeof x === 'string' && x.startsWith('project-')),
+    parentId: z.custom<backendModule.DirectoryId>(
+      x => typeof x === 'string' && x.startsWith('directory-')
+    ),
     title: z.string(),
     type: z.nativeEnum(backendModule.BackendType),
   })
