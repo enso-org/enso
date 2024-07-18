@@ -21,6 +21,7 @@ type Map key value
         Error.throw (Deprecated.Warning "Standard.Base.Data.Map.Map" "singleton" "Deprecated: `Map.singleton` has been replaced by `Dictionary.singleton`.")
 
     ## PRIVATE
+       GROUP Constants
        ICON convert
        DEPRECATED Use Dictionary.from_keys_and_values instead.
     from_keys_and_values : Vector Any -> Vector Any -> Boolean -> Any ! Deprecated
@@ -29,6 +30,7 @@ type Map key value
         Error.throw (Deprecated.Warning "Standard.Base.Data.Map.Map" "from_keys_and_values" "Deprecated: `Map.from_keys_and_values` has been replaced by `Dictionary.from_keys_and_values`.")
 
     ## PRIVATE
+       GROUP Constants
        ICON convert
        DEPRECATED Use Dictionary.from_vector instead.
     from_vector : Vector Any -> Boolean -> Any ! Deprecated

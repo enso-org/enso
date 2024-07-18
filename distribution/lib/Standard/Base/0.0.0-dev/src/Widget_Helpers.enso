@@ -12,7 +12,6 @@ import project.Metadata.Widget
 from project.Data.Boolean import Boolean, False, True
 from project.Metadata import make_single_choice
 from project.Metadata.Choice import Option
-from project.Metadata.Widget import Multiple_Choice
 
 ## PRIVATE
    Creates a Single_Choice Widget for text or secret value.
@@ -25,22 +24,7 @@ make_text_secret_selector =
    Creates a Regex / Text Widget for search and replace.
 make_regex_text_widget : Widget
 make_regex_text_widget =
-    options = Vector.build builder->
-        builder.append (Option "<Text Value>" '""')
-        builder.append (Option "<Regular Expression>" '(regex "^$")')
-        builder.append (Option "Leading_Whitespace" "Named_Pattern.Leading_Whitespace")
-        builder.append (Option "Trailing_Whitespace" "Named_Pattern.Trailing_Whitespace")
-        builder.append (Option "Duplicate_Whitespace" "Named_Pattern.Duplicate_Whitespace")
-        builder.append (Option "All_Whitespace" "Named_Pattern.All_Whitespace")
-        builder.append (Option "Leading_Numbers" "Named_Pattern.Leading_Numbers")
-        builder.append (Option "Trailing_Numbers" "Named_Pattern.Trailing_Numbers")
-        builder.append (Option "Non_ASCII" "Named_Pattern.Non_ASCII")
-        builder.append (Option "Tabs" "Named_Pattern.Tabs")
-        builder.append (Option "Letters" "Named_Pattern.Letters")
-        builder.append (Option "Numbers" "Named_Pattern.Numbers")
-        builder.append (Option "Punctuation" "Named_Pattern.Punctuation")
-        builder.append (Option "Symbols" "Named_Pattern.Symbols")
-    make_single_choice values=options
+    make_any_selector add_text=True add_regex=True add_named_pattern=True
 
 ## PRIVATE
    Creates a Single_Choice Widget for delimiters.
@@ -145,19 +129,22 @@ make_data_cleanse_vector_selector : Display -> Widget
 make_data_cleanse_vector_selector display:Display=Display.Always =
     patterns = ['Leading_Whitespace', 'Trailing_Whitespace', 'Duplicate_Whitespace', 'All_Whitespace', 'Leading_Numbers', 'Trailing_Numbers', 'Non_ASCII', 'Tabs', 'Letters', 'Numbers', 'Punctuation', 'Symbols']
     options = patterns.map f-> Option f (".." + f)
-    Multiple_Choice values=options display=display
+    Widget.Multiple_Choice values=options display=display
 
 ## PRIVATE
-   Make a single value selector
-make_any_selector : Display -> Boolean -> Boolean -> Boolean -> Boolean -> Boolean -> Boolean -> Widget
-make_any_selector display:Display=..Always add_text:Boolean=False add_regex:Boolean=False add_number:Boolean=False add_boolean:Boolean=False add_named_pattern:Boolean=False add_nothing:Boolean=False =
-    text = if add_text then [Option "<Text Value>" "''"] else []
-    regex = if add_regex then [Option "<Regular Expression>" "(regex '')"] else []
-    number = if add_number then [Option "<Number Value>" "0"] else []
-    boolean = if add_boolean then [Option "<True/False>" "True"] else []
-    named_pattern = if add_named_pattern.not then [] else
-        patterns = ["Leading_Whitespace", "Trailing_Whitespace", "All_Whitespace", "Leading_Numbers", "Trailing_Numbers", "Non_ASCII", "Tabs", "Letters", "Numbers", "Punctuation", "Symbols"]
-        ## Can't use auto-scoping as Named_Patterns are materialised into Regex.
-        patterns.map p-> Option "<"+p+">" "Named_Pattern."+p
-    nothing = if add_nothing then [Option "<Nothing>" "Nothing"] else []
-    make_single_choice (text + regex + number + boolean + named_pattern + nothing) display=display
+   Creates a Single_Choice Widget for Any selectors.
+make_any_selector : Display -> Boolean -> Boolean -> Boolean -> Boolean -> Boolean -> Boolean -> Boolean -> Boolean -> Boolean -> Widget
+make_any_selector display:Display=..Always add_text:Boolean=False add_regex:Boolean=False add_named_pattern:Boolean=False add_number:Boolean=False add_boolean:Boolean=False add_date:Boolean=False add_time:Boolean=False add_date_time:Boolean=False add_nothing:Boolean=False =
+    options = Vector.build builder->
+        if add_text then builder.append (Option "<Text Value>" '""')
+        if add_regex then builder.append (Option "<Regular Expression>" '(regex "^$")')
+        if add_named_pattern then
+            patterns = ["Leading_Whitespace", "Trailing_Whitespace", "All_Whitespace", "Leading_Numbers", "Trailing_Numbers", "Non_ASCII", "Tabs", "Letters", "Numbers", "Punctuation", "Symbols"]
+            patterns.each p-> builder.append (Option "<"+p+">" "Named_Pattern."+p)
+        if add_number then builder.append (Option "<Number Value>" "0")
+        if add_boolean then builder.append (Option "<True/False>" "True")
+        if add_date then builder.append (Option "<Date Value>" "(Date.new "+(Date.today.format "yyyy M d")+")")
+        if add_time then builder.append (Option "<Time Value>" "(Time_Of_Day.new "+(Time_Of_Day.now.format "H m s")+")")
+        if add_date_time then builder.append (Option "<Date Time Value>" "(Date_Time.new "+(Date_Time.now.format "yyyy M d H m s")+")")
+        if add_nothing then builder.append (Option "<Nothing>" "Nothing")
+    Widget.Single_Choice values=options display=display
