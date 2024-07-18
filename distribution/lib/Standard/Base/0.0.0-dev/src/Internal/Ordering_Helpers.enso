@@ -1,18 +1,18 @@
 private
 
 import project.Any.Any
-from project.Data.Boolean import Boolean, False, True
-import project.Data.Numbers.Number
 import project.Data.Numbers.Integer
+import project.Data.Numbers.Number
 import project.Data.Numbers.Positive_Integer
-from project.Data.Ordering import all
-import project.Errors.Common.Type_Error
-import project.Errors.Common.Incomparable_Values
 import project.Error.Error
-import project.Panic.Panic
+import project.Errors.Common.Incomparable_Values
+import project.Errors.Common.Type_Error
 import project.Meta
 import project.Meta.Atom
 import project.Nothing.Nothing
+import project.Panic.Panic
+from project.Data.Boolean import Boolean, False, True
+from project.Data.Ordering import all
 from project.Function import identity
 
 ## PRIVATE
