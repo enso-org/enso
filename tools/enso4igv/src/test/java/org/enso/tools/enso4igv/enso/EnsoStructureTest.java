@@ -5,6 +5,7 @@ import javax.swing.text.PlainDocument;
 import static org.junit.Assert.assertEquals;
 import org.junit.Test;
 import org.netbeans.api.lsp.StructureElement;
+import org.netbeans.api.lsp.StructureElement.Kind;
 
 public class EnsoStructureTest {
 
@@ -42,5 +43,35 @@ public class EnsoStructureTest {
     assertEquals("One root element: " + root, 1, root.size());
     assertEquals("It is a method", StructureElement.Kind.Method, root.get(0).getKind());
     assertEquals("It is a method", "main", root.get(0).getName());
+  }
+
+  @Test
+  public void collectMethodInType() throws Exception {
+    var doc = new PlainDocument();
+    doc.insertString(0, """
+        type My_Type
+            my_method self = 42
+        """, null);
+    var s = new EnsoStructure();
+    var root = s.getStructure(doc);
+    assertEquals(1, root.size());
+    assertEquals("My_Type is class", Kind.Class, root.get(0).getKind());
+    var children = root.get(0).getChildren();
+    assertEquals("Has 1 child", 1, children.size());
+    assertEquals("my_method is method", Kind.Method, children.get(0).getKind());
+  }
+
+  @Test
+  public void collectExtensionMethod() throws Exception {
+    var doc = new PlainDocument();
+    doc.insertString(0, """
+        type My_Type
+        My_Type.extension_method self = 42
+        """, null);
+    var s = new EnsoStructure();
+    var root = s.getStructure(doc);
+    assertEquals(2, root.size());
+    assertEquals("My_Type is class", Kind.Class, root.get(0).getKind());
+    assertEquals("My_Type.extension_method is method", Kind.Method, root.get(1).getKind());
   }
 }
