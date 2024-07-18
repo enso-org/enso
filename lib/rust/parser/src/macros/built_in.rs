@@ -726,7 +726,7 @@ fn splice_body<'s>(
     let expression = segment.result.tokens();
     let expression = precedence.resolve(expression);
     let splice = syntax::tree::TextElement::Splice { open, expression, close };
-    syntax::Tree::text_literal(default(), default(), vec![splice], default(), default())
+    syntax::Tree::text_literal(default(), default(), vec![splice], default())
 }
 
 fn foreign<'s>() -> Definition<'s> {
