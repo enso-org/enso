@@ -67,6 +67,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
   const inputBindings = inputBindingsProvider.useInputBindings()
   const dispatchAssetListEvent = eventListProvider.useDispatchAssetListEvent()
   const doOpenProject = projectHooks.useOpenProject()
+  const openEditor = projectHooks.useOpenEditor()
 
   if (item.type !== backendModule.AssetType.project) {
     // eslint-disable-next-line no-restricted-syntax
@@ -141,8 +142,6 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
         case AssetEventType.newFolder:
         case AssetEventType.newDatalink:
         case AssetEventType.newSecret:
-        case AssetEventType.openProject:
-        case AssetEventType.closeProject:
         case AssetEventType.copy:
         case AssetEventType.cut:
         case AssetEventType.cancelCut:
@@ -199,11 +198,13 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                   }),
                 })
               )
-              doOpenProject({
+              void doOpenProject({
                 id: createdProject.projectId,
                 type: backendType,
                 parentId: asset.parentId,
                 title: asset.title,
+              })?.then(() => {
+                openEditor(createdProject.projectId)
               })
             } catch (error) {
               event.onError?.()
@@ -327,11 +328,13 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
         ) {
           setIsEditing(true)
         } else if (eventModule.isDoubleClick(event)) {
-          doOpenProject({
+          void doOpenProject({
             id: asset.id,
             type: backendType,
             parentId: asset.parentId,
             title: asset.title,
+          })?.then(() => {
+            openEditor(asset.id)
           })
         }
       }}

@@ -8,6 +8,7 @@ import type * as text from 'enso-common/src/text'
 
 import * as projectHooks from '#/hooks/projectHooks'
 
+import type { LaunchedProject } from '#/providers/ProjectsProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
@@ -163,7 +164,7 @@ export default function TabBar(props: TabBarProps) {
 interface InternalTabProps extends Readonly<React.PropsWithChildren> {
   readonly 'data-testid'?: string
   readonly id: string
-  readonly project?: projectHooks.LaunchedProject
+  readonly project?: LaunchedProject
   readonly isActive: boolean
   readonly isHidden?: boolean
   readonly icon: string

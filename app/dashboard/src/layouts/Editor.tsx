@@ -9,6 +9,7 @@ import * as gtagHooks from '#/hooks/gtagHooks'
 import * as projectHooks from '#/hooks/projectHooks'
 
 import * as backendProvider from '#/providers/BackendProvider'
+import type { LaunchedProject } from '#/providers/ProjectsProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import * as errorBoundary from '#/components/ErrorBoundary'
@@ -66,8 +67,8 @@ export interface EditorProps {
   readonly isOpening: boolean
   readonly isOpeningFailed: boolean
   readonly openingError: Error | null
-  readonly startProject: (project: projectHooks.LaunchedProject) => void
-  readonly project: projectHooks.LaunchedProject
+  readonly startProject: (project: LaunchedProject) => void
+  readonly project: LaunchedProject
   readonly hidden: boolean
   readonly ydocUrl: string | null
   readonly appRunner: GraphEditorRunner | null
