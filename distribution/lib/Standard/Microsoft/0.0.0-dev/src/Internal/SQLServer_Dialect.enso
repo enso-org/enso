@@ -45,7 +45,8 @@ from Standard.Database.Internal.Statement_Setter import fill_hole_default
 
 import project.Internal.SQLServer_Type_Mapping.SQLServer_Type_Mapping
 
-polyglot java import java.sql.Time as Java_Time
+polyglot java import java.sql.Types as Java_Types
+polyglot java import org.enso.database.JDBCUtils
 
 ## PRIVATE
    The dialect of SQL Server databases.
@@ -152,20 +153,20 @@ type SQLSever_Dialect
     ## PRIVATE
     get_statement_setter : Statement_Setter
     get_statement_setter self =
-        IO.println "here"
         custom_fill_hole stmt i type_hint value = case value of
-            _ : Time_Of_Day ->
-                IO.println "here2"
-                iso = value.format Date_Time_Formatter.iso_time
-                IO.println iso
-                t = Java_Time.valueOf iso
-                stmt.setTime i t
+            Nothing ->
+                java_type = case type_hint of
+                    Nothing -> Java_Types.NULL
+                    _ ->
+                        ## SQLServer needs its NULLS to be typed at least for TIME.
+                        type_mapping = self.get_type_mapping
+                        sql_type = type_mapping.value_type_to_sql type_hint Problem_Behavior.Ignore
+                        sql_type.typeid                            
+                stmt.setNull i java_type
+            _ : Time_Of_Day -> JDBCUtils.setLocalTimeViaTimeStamp stmt i value
             # Fallback to default logic for everything else
-            _ ->
-                IO.println "here3"
-                fill_hole_default stmt i type_hint value
+            _ -> fill_hole_default stmt i type_hint value
         Statement_Setter.Value custom_fill_hole
-
     ## PRIVATE
     make_cast : Internal_Column -> SQL_Type -> (SQL_Expression -> SQL_Type_Reference) -> Internal_Column
     make_cast self column target_type infer_result_type_from_database_callback =
