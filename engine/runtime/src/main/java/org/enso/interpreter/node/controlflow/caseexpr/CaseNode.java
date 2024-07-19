@@ -19,7 +19,6 @@ import org.enso.interpreter.runtime.data.hash.HashMapInsertNode;
 import org.enso.interpreter.runtime.error.*;
 import org.enso.interpreter.runtime.state.State;
 import org.enso.interpreter.runtime.type.TypesGen;
-import org.enso.interpreter.runtime.warning.HasWarningsNode;
 import org.enso.interpreter.runtime.warning.Warning;
 import org.enso.interpreter.runtime.warning.WarningsLibrary;
 import org.enso.interpreter.runtime.warning.WithWarnings;
@@ -85,18 +84,17 @@ public abstract class CaseNode extends ExpressionNode {
     throw sentinel;
   }
 
-  @Specialization(guards = {"object != null", "hasWarningsNode.execute(object)"})
+  @Specialization(guards = {"object != null", "warnings.hasWarnings(object)"})
   Object doWarning(
       VirtualFrame frame,
       Object object,
       @Shared("warnsLib") @CachedLibrary(limit = "3") WarningsLibrary warnings,
-      @Shared @Cached HasWarningsNode hasWarningsNode,
       @Cached HashMapInsertNode insertNode,
       @CachedLibrary(limit = "3") InteropLibrary interop) {
     try {
       EnsoContext ctx = EnsoContext.get(this);
       Warning[] ws = warnings.getWarnings(object, this, false);
-      Object result = doMatch(frame, warnings.removeWarnings(object), warnings, hasWarningsNode);
+      Object result = doMatch(frame, warnings.removeWarnings(object), warnings);
       return WithWarnings.wrap(result, ctx, insertNode, interop, ws);
     } catch (UnsupportedMessageException e) {
       throw EnsoContext.get(this).raiseAssertionPanic(this, null, e);
@@ -114,14 +112,13 @@ public abstract class CaseNode extends ExpressionNode {
       guards = {
         "!isDataflowError(object)",
         "!isPanicSentinel(object)",
-        "!hasWarningsNode.execute(object)"
+        "!warnings.hasWarnings(object)"
       })
   @ExplodeLoop
   public Object doMatch(
       VirtualFrame frame,
       Object object,
-      @Shared("warnsLib") @CachedLibrary(limit = "3") WarningsLibrary warnings,
-      @Shared @Cached HasWarningsNode hasWarningsNode) {
+      @Shared("warnsLib") @CachedLibrary(limit = "3") WarningsLibrary warnings) {
     State state = Function.ArgumentsHelper.getState(frame.getArguments());
     try {
       for (BranchNode branchNode : cases) {

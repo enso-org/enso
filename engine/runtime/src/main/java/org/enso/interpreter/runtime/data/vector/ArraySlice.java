@@ -155,6 +155,13 @@ final class ArraySlice implements EnsoObject {
   }
 
   @ExportMessage
+  boolean hasWarnings(
+      @Shared("warnsLib") @CachedLibrary(limit = "3") WarningsLibrary warnings,
+      @Cached HasWarningsNode hasWarningsNode) {
+    return hasWarningsNode.execute(this.storage);
+  }
+
+  @ExportMessage
   Warning[] getWarnings(
       Node location,
       boolean shouldWrap,

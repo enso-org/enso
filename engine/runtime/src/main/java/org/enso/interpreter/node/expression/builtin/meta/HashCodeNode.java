@@ -45,12 +45,11 @@ import org.enso.interpreter.runtime.data.atom.Atom;
 import org.enso.interpreter.runtime.data.atom.AtomConstructor;
 import org.enso.interpreter.runtime.data.atom.StructsLibrary;
 import org.enso.interpreter.runtime.data.text.Text;
+import org.enso.interpreter.runtime.warning.WarningsLibrary;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.state.State;
-import org.enso.interpreter.runtime.warning.HasWarningsNode;
-import org.enso.interpreter.runtime.warning.WarningsLibrary;
 import org.enso.polyglot.common_utils.Core_Text_Utils;
 
 /**
@@ -312,12 +311,11 @@ public abstract class HashCodeNode extends Node {
   }
 
   @Specialization(
-      guards = {"hasWarningsNode.execute(selfWithWarning)"},
-      limit = "1")
+      guards = {"warnLib.hasWarnings(selfWithWarning)"},
+      limit = "3")
   long hashCodeForWarning(
       Object selfWithWarning,
       @CachedLibrary("selfWithWarning") WarningsLibrary warnLib,
-      @Cached HasWarningsNode hasWarningsNode,
       @Shared("hashCodeNode") @Cached HashCodeNode hashCodeNode) {
     try {
       return hashCodeNode.execute(warnLib.removeWarnings(selfWithWarning));

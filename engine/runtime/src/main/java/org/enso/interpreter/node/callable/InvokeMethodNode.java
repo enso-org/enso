@@ -406,7 +406,7 @@ public abstract class InvokeMethodNode extends BaseNode {
 
   @Specialization(
       guards = {
-        "hasWarningsNode.execute(self)",
+        "warnings.hasWarnings(self)",
         "resolvedFunction != null",
         "resolvedFunction.getSchema() == cachedSchema"
       })
@@ -420,8 +420,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       @Shared("warnings") @CachedLibrary(limit = "10") WarningsLibrary warnings,
       @Cached("resolveWarningFunction(self, symbol, types, warnings)") Function resolvedFunction,
       @Cached("resolvedFunction.getSchema()") FunctionSchema cachedSchema,
-      @Cached("buildInvokeFunctionWithSelf()") InvokeFunctionNode warningFunctionNode,
-      @Shared @Cached HasWarningsNode hasWarningsNode) {
+      @Cached("buildInvokeFunctionWithSelf()") InvokeFunctionNode warningFunctionNode) {
     // Warning's builtin type methods are static meaning that they have a synthetic `self`
     // parameter. However, the constructed `InvokeFunctionNode` is missing that
     // information and the function, if called with `arguments`, will not be fully applied.
@@ -431,7 +430,7 @@ public abstract class InvokeMethodNode extends BaseNode {
     return warningFunctionNode.execute(resolvedFunction, frame, state, arguments1);
   }
 
-  @Specialization(guards = "hasWarningsNode.execute(self)")
+  @Specialization(guards = "warnings.hasWarnings(self)")
   Object doWarning(
       VirtualFrame frame,
       State state,
@@ -440,8 +439,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       Object[] arguments,
       @Shared("warnings") @CachedLibrary(limit = "10") WarningsLibrary warnings,
       @CachedLibrary(limit = "3") InteropLibrary interop,
-      @Shared("insertNode") @Cached HashMapInsertNode insertNode,
-      @Shared @Cached HasWarningsNode hasWarningsNode) {
+      @Shared("insertNode") @Cached HashMapInsertNode insertNode) {
     Object selfWithoutWarnings;
     Warning[] arrOfWarnings;
     try {
@@ -490,7 +488,7 @@ public abstract class InvokeMethodNode extends BaseNode {
   @ExplodeLoop
   @Specialization(
       guards = {
-        "!hasWarningsNode.execute(self)",
+        "!warnings.hasWarnings(self)",
         "!methods.hasType(self)",
         "!methods.hasSpecialDispatch(self)",
         "polyglotCallType.isInteropLibrary()",
@@ -512,7 +510,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       @Cached(value = "buildProfiles()", dimensions = 1) BranchProfile[] warningProfiles,
       @Cached BranchProfile anyWarningsProfile,
       @Cached HostMethodCallNode hostMethodCallNode,
-      @Shared @Cached HasWarningsNode hasWarningsNode,
+      @Cached HasWarningsNode hasWarningsNode,
       @Shared("insertNode") @Cached HashMapInsertNode insertNode) {
     Object[] args = new Object[argExecutors.length];
     boolean anyWarnings = false;
@@ -548,7 +546,7 @@ public abstract class InvokeMethodNode extends BaseNode {
 
   @Specialization(
       guards = {
-        "!hasWarningsNode.execute(self)",
+        "!warnings.hasWarnings(self)",
         "!types.hasType(self)",
         "!types.hasSpecialDispatch(self)",
         "getPolyglotCallType(self, symbol, interop) == CONVERT_TO_BIG_INT"
@@ -562,7 +560,6 @@ public abstract class InvokeMethodNode extends BaseNode {
       @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
       @Shared("types") @CachedLibrary(limit = "10") TypesLibrary types,
       @Shared("warnings") @CachedLibrary(limit = "10") WarningsLibrary warnings,
-      @Shared @Cached HasWarningsNode hasWarningsNode,
       @Shared("methodResolverNode") @Cached MethodResolverNode methodResolverNode,
       @Cached ToEnsoNumberNode toEnsoNumberNode) {
     try {
@@ -578,7 +575,7 @@ public abstract class InvokeMethodNode extends BaseNode {
 
   @Specialization(
       guards = {
-        "!hasWarningsNode.execute(self)",
+        "!warnings.hasWarnings(self)",
         "!types.hasType(self)",
         "!types.hasSpecialDispatch(self)",
         "getPolyglotCallType(self, symbol, interop) == CONVERT_TO_TEXT"
@@ -592,7 +589,6 @@ public abstract class InvokeMethodNode extends BaseNode {
       @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
       @Shared("types") @CachedLibrary(limit = "10") TypesLibrary types,
       @Shared("warnings") @CachedLibrary(limit = "10") WarningsLibrary warnings,
-      @Shared @Cached HasWarningsNode hasWarningsNode,
       @Shared("methodResolverNode") @Cached MethodResolverNode methodResolverNode) {
     try {
       var str = interop.asString(self);
@@ -610,7 +606,7 @@ public abstract class InvokeMethodNode extends BaseNode {
 
   @Specialization(
       guards = {
-        "!hasWarningsNode.execute(self)",
+        "!warnings.hasWarnings(self)",
         "!types.hasType(self)",
         "!types.hasSpecialDispatch(self)",
         "getPolyglotCallType(self, symbol, interop, methodResolverNode) == CONVERT_TO_ARRAY",
@@ -623,7 +619,6 @@ public abstract class InvokeMethodNode extends BaseNode {
       Object[] arguments,
       @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
       @Shared("types") @CachedLibrary(limit = "10") TypesLibrary types,
-      @Shared @Cached HasWarningsNode hasWarningsNode,
       @Shared("warnings") @CachedLibrary(limit = "10") WarningsLibrary warnings,
       @Shared("methodResolverNode") @Cached MethodResolverNode methodResolverNode) {
     var ctx = EnsoContext.get(this);
@@ -635,7 +630,7 @@ public abstract class InvokeMethodNode extends BaseNode {
 
   @Specialization(
       guards = {
-        "!hasWarningsNode.execute(self)",
+        "!warnings.hasWarnings(self)",
         "!types.hasType(self)",
         "!types.hasSpecialDispatch(self)",
         "getPolyglotCallType(self, symbol, interop, methodResolverNode) == CONVERT_TO_HASH_MAP",
@@ -648,7 +643,6 @@ public abstract class InvokeMethodNode extends BaseNode {
       Object[] arguments,
       @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
       @Shared("types") @CachedLibrary(limit = "10") TypesLibrary types,
-      @Shared @Cached HasWarningsNode hasWarningsNode,
       @Shared("warnings") @CachedLibrary(limit = "10") WarningsLibrary warnings,
       @Shared("methodResolverNode") @Cached MethodResolverNode methodResolverNode) {
     var ctx = EnsoContext.get(this);
@@ -660,7 +654,7 @@ public abstract class InvokeMethodNode extends BaseNode {
 
   @Specialization(
       guards = {
-        "!hasWarningsNode.execute(self)",
+        "!warnings.hasWarnings(self)",
         "!types.hasType(self)",
         "!types.hasSpecialDispatch(self)",
         "getPolyglotCallType(self, symbol, interop) == CONVERT_TO_DATE"
@@ -674,7 +668,6 @@ public abstract class InvokeMethodNode extends BaseNode {
       @Shared("types") @CachedLibrary(limit = "10") TypesLibrary types,
       @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
       @Shared("warnings") @CachedLibrary(limit = "10") WarningsLibrary warnings,
-      @Shared @Cached HasWarningsNode hasWarningsNode,
       @Shared("methodResolverNode") @Cached MethodResolverNode methodResolverNode) {
     var ctx = EnsoContext.get(this);
     try {
@@ -691,7 +684,7 @@ public abstract class InvokeMethodNode extends BaseNode {
 
   @Specialization(
       guards = {
-        "!hasWarningsNode.execute(self)",
+        "!warnings.hasWarnings(self)",
         "!types.hasType(self)",
         "!types.hasSpecialDispatch(self)",
         "getPolyglotCallType(self, symbol, interop) == CONVERT_TO_DATE_TIME"
@@ -705,7 +698,6 @@ public abstract class InvokeMethodNode extends BaseNode {
       @Shared("types") @CachedLibrary(limit = "10") TypesLibrary types,
       @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
       @Shared("warnings") @CachedLibrary(limit = "10") WarningsLibrary warnings,
-      @Shared @Cached HasWarningsNode hasWarningsNode,
       @Shared("methodResolverNode") @Cached MethodResolverNode methodResolverNode) {
     var ctx = EnsoContext.get(this);
     try {
@@ -724,7 +716,7 @@ public abstract class InvokeMethodNode extends BaseNode {
 
   @Specialization(
       guards = {
-        "!hasWarningsNode.execute(self)",
+        "!warnings.hasWarnings(self)",
         "!types.hasType(self)",
         "!types.hasSpecialDispatch(self)",
         "getPolyglotCallType(self, symbol, interop) == CONVERT_TO_DURATION"
@@ -738,7 +730,6 @@ public abstract class InvokeMethodNode extends BaseNode {
       @Shared("types") @CachedLibrary(limit = "10") TypesLibrary types,
       @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
       @Shared("warnings") @CachedLibrary(limit = "10") WarningsLibrary warnings,
-      @Shared @Cached HasWarningsNode hasWarningsNode,
       @Shared("methodResolverNode") @Cached MethodResolverNode methodResolverNode) {
     var ctx = EnsoContext.get(this);
     try {
@@ -765,7 +756,7 @@ public abstract class InvokeMethodNode extends BaseNode {
 
   @Specialization(
       guards = {
-        "!hasWarningsNode.execute(self)",
+        "!warnings.hasWarnings(self)",
         "!types.hasType(self)",
         "!types.hasSpecialDispatch(self)",
         "getPolyglotCallType(self, symbol, interop) == CONVERT_TO_ZONED_DATE_TIME"
@@ -779,7 +770,6 @@ public abstract class InvokeMethodNode extends BaseNode {
       @Shared("types") @CachedLibrary(limit = "10") TypesLibrary types,
       @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
       @Shared("warnings") @CachedLibrary(limit = "10") WarningsLibrary warnings,
-      @Shared @Cached HasWarningsNode hasWarningsNode,
       @Shared("methodResolverNode") @Cached MethodResolverNode methodResolverNode) {
     var ctx = EnsoContext.get(this);
     try {
@@ -798,7 +788,7 @@ public abstract class InvokeMethodNode extends BaseNode {
 
   @Specialization(
       guards = {
-        "!hasWarningsNode.execute(self)",
+        "!warnings.hasWarnings(self)",
         "!types.hasType(self)",
         "!types.hasSpecialDispatch(self)",
         "getPolyglotCallType(self, symbol, interop) == CONVERT_TO_TIME_ZONE"
@@ -811,7 +801,6 @@ public abstract class InvokeMethodNode extends BaseNode {
       Object[] arguments,
       @Shared("types") @CachedLibrary(limit = "10") TypesLibrary types,
       @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
-      @Shared @Cached HasWarningsNode hasWarningsNode,
       @Shared("warnings") @CachedLibrary(limit = "10") WarningsLibrary warnings,
       @Shared("methodResolverNode") @Cached MethodResolverNode methodResolverNode) {
     var ctx = EnsoContext.get(this);
@@ -829,7 +818,7 @@ public abstract class InvokeMethodNode extends BaseNode {
 
   @Specialization(
       guards = {
-        "!hasWarningsNode.execute(self)",
+        "!warnings.hasWarnings(self)",
         "!types.hasType(self)",
         "!types.hasSpecialDispatch(self)",
         "getPolyglotCallType(self, symbol, interop) == CONVERT_TO_TIME_OF_DAY"
@@ -843,7 +832,6 @@ public abstract class InvokeMethodNode extends BaseNode {
       @Shared("types") @CachedLibrary(limit = "10") TypesLibrary types,
       @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
       @Shared("warnings") @CachedLibrary(limit = "10") WarningsLibrary warnings,
-      @Shared @Cached HasWarningsNode hasWarningsNode,
       @Shared("methodResolverNode") @Cached MethodResolverNode methodResolverNode) {
     var ctx = EnsoContext.get(this);
     try {
@@ -860,7 +848,7 @@ public abstract class InvokeMethodNode extends BaseNode {
 
   @Specialization(
       guards = {
-        "!hasWarningsNode.execute(self)",
+        "!warnings.hasWarnings(self)",
         "!methods.hasType(self)",
         "!methods.hasSpecialDispatch(self)",
         "getPolyglotCallType(self, symbol, interop) == NOT_SUPPORTED"
@@ -874,7 +862,6 @@ public abstract class InvokeMethodNode extends BaseNode {
       @Shared("types") @CachedLibrary(limit = "10") TypesLibrary methods,
       @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
       @Shared("warnings") @CachedLibrary(limit = "10") WarningsLibrary warnings,
-      @Shared @Cached HasWarningsNode hasWarningsNode,
       @Shared("methodResolverNode") @Cached MethodResolverNode resolverNode) {
     var ctx = EnsoContext.get(this);
     Function function = resolverNode.expectNonNull(self, ctx.getBuiltins().function(), symbol);

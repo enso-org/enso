@@ -34,12 +34,11 @@ import org.enso.interpreter.runtime.data.hash.HashMapInsertNode;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.error.PanicSentinel;
-import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
-import org.enso.interpreter.runtime.state.State;
-import org.enso.interpreter.runtime.warning.HasWarningsNode;
 import org.enso.interpreter.runtime.warning.Warning;
 import org.enso.interpreter.runtime.warning.WarningsLibrary;
 import org.enso.interpreter.runtime.warning.WithWarnings;
+import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
+import org.enso.interpreter.runtime.state.State;
 
 /**
  * This class is responsible for performing the actual invocation of a given callable with its
@@ -282,7 +281,7 @@ public abstract class InvokeCallableNode extends BaseNode {
     }
   }
 
-  @Specialization(guards = "hasWarningsNode.execute(warning)")
+  @Specialization(guards = "warnings.hasWarnings(warning)")
   public Object invokeWarnings(
       Object warning,
       VirtualFrame callerFrame,
@@ -290,7 +289,6 @@ public abstract class InvokeCallableNode extends BaseNode {
       Object[] arguments,
       @Shared("warnings") @CachedLibrary(limit = "3") WarningsLibrary warnings,
       @Cached HashMapInsertNode insertNode,
-      @Shared @Cached HasWarningsNode hasWarningsNode,
       @Shared("interop") @CachedLibrary(limit = "3") InteropLibrary interop) {
 
     Warning[] extracted;
@@ -338,7 +336,7 @@ public abstract class InvokeCallableNode extends BaseNode {
 
   @Specialization(
       guards = {
-        "!hasWarningsNode.execute(self)",
+        "!warnings.hasWarnings(self)",
         "!types.hasType(self)",
         "!types.hasSpecialDispatch(self)",
         "iop.isExecutable(self)",
@@ -351,7 +349,6 @@ public abstract class InvokeCallableNode extends BaseNode {
       @Bind("$node") Node node,
       @Shared("interop") @CachedLibrary(limit = "3") InteropLibrary iop,
       @Shared("warnings") @CachedLibrary(limit = "3") WarningsLibrary warnings,
-      @Shared @Cached HasWarningsNode hasWarningsNode,
       @CachedLibrary(limit = "3") TypesLibrary types,
       @Cached ThunkExecutorNode thunkNode,
       @Cached InlinedBranchProfile errorNeedsToBeReported) {

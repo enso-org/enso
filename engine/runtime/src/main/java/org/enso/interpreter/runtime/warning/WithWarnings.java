@@ -417,6 +417,11 @@ public final class WithWarnings implements EnsoObject {
   }
 
   @ExportMessage
+  boolean hasWarnings() {
+    return true;
+  }
+
+  @ExportMessage
   Warning[] getWarnings(
       Node location,
       boolean shouldWrap,
