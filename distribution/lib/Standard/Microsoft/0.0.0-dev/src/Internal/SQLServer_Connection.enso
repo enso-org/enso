@@ -19,7 +19,7 @@ from Standard.Database.Connection.Connection import make_database_selector, make
 from Standard.Database.Errors import SQL_Error, Table_Already_Exists, Table_Not_Found
 from Standard.Database.Internal.Upload_Table import first_column_name_in_structure
 
-##import project.Internal.Snowflake_Dialect
+import project.Internal.SQLServer_Dialect
 
 type SQLServer_Connection
     ## PRIVATE
@@ -34,7 +34,7 @@ type SQLServer_Connection
     create url properties make_new =
         jdbc_connection = JDBC_Connection.create url properties
         entity_naming_properties = Entity_Naming_Properties.from_jdbc_connection jdbc_connection is_case_sensitive=False
-        SQLServer_Connection.Value (Connection.new jdbc_connection Snowflake_Dialect.snowflake entity_naming_properties) make_new
+        SQLServer_Connection.Value (Connection.new jdbc_connection SQLServer_Dialect.sqlserver entity_naming_properties) make_new
 
     ## PRIVATE
 

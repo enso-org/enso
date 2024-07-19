@@ -36,7 +36,7 @@ type SQLServer_Details
        Provides the jdbc url for the connection.
     jdbc_url : Text
     jdbc_url self =
-        'jdbc:sqlserver://' + host + ':' + port
+        'jdbc:sqlserver://' + self.host + ':' + self.port
 
     ## PRIVATE
        Provides the properties for the connection.
