@@ -175,10 +175,10 @@ on_unknown_type sql_type =
 
 ## PRIVATE
    This is the maximum size that JDBC driver reports for 'unbounded' types in
-   Snowflake.
+   SQLServer.
 max_length = 16777216
 
 ## PRIVATE
    This is the maximum size that JDBC driver reports for 'unbounded' types in
-   Postgres.
+   SQLServer.
 max_precision = 2147483647

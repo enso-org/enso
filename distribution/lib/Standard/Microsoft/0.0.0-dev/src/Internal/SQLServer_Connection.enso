@@ -24,7 +24,7 @@ import project.Internal.SQLServer_Dialect
 type SQLServer_Connection
     ## PRIVATE
 
-       Creates a Snowflake connection based on a URL and properties.
+       Creates a SQLServer connection based on a URL and properties.
 
        Arguments:
        - url: The URL to connect to.
@@ -38,7 +38,7 @@ type SQLServer_Connection
 
     ## PRIVATE
 
-       A Postgres database connection.
+       A SQLServer database connection.
 
        Arguments:
        - connection: the underlying connection.
