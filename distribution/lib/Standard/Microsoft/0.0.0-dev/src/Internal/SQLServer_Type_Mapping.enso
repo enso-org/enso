@@ -24,20 +24,20 @@ type SQLServer_Type_Mapping
     value_type_to_sql : Value_Type -> Problem_Behavior -> SQL_Type
     value_type_to_sql value_type on_problems =
         result = case value_type of
-            Value_Type.Boolean -> SQL_Type.Value Types.BIT "bit"
+            Value_Type.Boolean -> SQL_Type.Value Types.BIT "BIT"
             ## A SQLServer TinyInt is untyped with a range of 0-255, 
                so we have to use SmallInt to be able to handle the negative values in our Byte type.
-            Value_Type.Byte -> SQL_Type.Value Types.SMALLINT "smallint"
-            Value_Type.Integer Bits.Bits_16 -> SQL_Type.Value Types.SMALLINT "smallint"
-            Value_Type.Integer Bits.Bits_32 -> SQL_Type.Value Types.INTEGER "integer"
-            Value_Type.Integer Bits.Bits_64 -> SQL_Type.Value Types.BIGINT "bigint"
-            Value_Type.Float Bits.Bits_32 -> SQL_Type.Value Types.REAL "real"
-            Value_Type.Float Bits.Bits_64 -> SQL_Type.Value Types.DOUBLE "float"
+            Value_Type.Byte -> SQL_Type.Value Types.SMALLINT "SMALLINT"
+            Value_Type.Integer Bits.Bits_16 -> SQL_Type.Value Types.SMALLINT "SMALLINT"
+            Value_Type.Integer Bits.Bits_32 -> SQL_Type.Value Types.INTEGER "INTEGER"
+            Value_Type.Integer Bits.Bits_64 -> SQL_Type.Value Types.BIGINT "BIGINT"
+            Value_Type.Float Bits.Bits_32 -> SQL_Type.Value Types.REAL "REAL"
+            Value_Type.Float Bits.Bits_64 -> SQL_Type.Value Types.DOUBLE "FLOAT"
             Value_Type.Decimal precision scale -> case precision of
                 # If precision is not set, scale is also lost because SQL is unable to express a scale without a precision.
-                Nothing -> SQL_Type.Value Types.DECIMAL "decimal" Nothing Nothing
+                Nothing -> SQL_Type.Value Types.DECIMAL "DECIMAL" Nothing Nothing
                 # Scale can be set or not, if precision is given, so no check needed.
-                _       -> SQL_Type.Value Types.DECIMAL "decimal" precision scale
+                _       -> SQL_Type.Value Types.DECIMAL "DECIMAL" precision scale
             Value_Type.Char size variable ->
                 case variable of
                     True  ->
@@ -45,9 +45,9 @@ type SQLServer_Type_Mapping
                             Nothing -> True
                             Positive_Integer.Value integer -> integer == max_precision
                         case is_unbounded of
-                            True  -> SQL_Type.Value Types.VARCHAR "text"
-                            False -> SQL_Type.Value Types.VARCHAR "varchar" size
-                    False -> SQL_Type.Value Types.CHAR "char" size
+                            True  -> SQL_Type.Value Types.VARCHAR "NVARCHAR(MAX)"
+                            False -> SQL_Type.Value Types.VARCHAR "NVARCHAR" size
+                    False -> SQL_Type.Value Types.CHAR "NCHAR" size
             Value_Type.Time -> SQL_Type.Value Types.TIME "time"
             Value_Type.Date -> SQL_Type.Value Types.DATE "date"
             Value_Type.Date_Time with_timezone ->
