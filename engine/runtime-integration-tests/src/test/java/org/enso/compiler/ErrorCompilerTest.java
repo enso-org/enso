@@ -52,12 +52,7 @@ public class ErrorCompilerTest extends CompilerTest {
     main = Date.new day=-
     """);
 
-    assertSingleSyntaxError(
-        ir,
-        new Syntax.UnsupportedSyntax("Strange unary -"),
-        "Syntax is not supported yet: Strange unary -",
-        51,
-        52);
+    assertSingleSyntaxError(ir, Syntax.UnrecognizedToken$.MODULE$, "Unrecognized token", 51, 52);
   }
 
   @Test
