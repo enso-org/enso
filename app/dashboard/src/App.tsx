@@ -104,7 +104,7 @@ declare module '#/utilities/LocalStorage' {
 }
 
 LocalStorage.registerKey('inputBindings', {
-  schema: z.object({}).transform(value =>
+  schema: z.record(z.string().array().readonly()).transform(value =>
     Object.fromEntries(
       Object.entries<unknown>({ ...value }).flatMap(kv => {
         const [k, v] = kv
