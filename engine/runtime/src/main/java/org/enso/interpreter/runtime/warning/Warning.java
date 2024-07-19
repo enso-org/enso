@@ -7,7 +7,6 @@ import com.oracle.truffle.api.dsl.Cached.Shared;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.InvalidArrayIndexException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
-import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.Node;
@@ -21,7 +20,6 @@ import org.enso.interpreter.runtime.data.ArrayRope;
 import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.hash.EnsoHashMap;
-import org.enso.interpreter.runtime.data.hash.HashMapInsertNode;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeAtNode;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeAtNodeGen;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
@@ -89,47 +87,6 @@ public final class Warning implements EnsoObject {
       @Cached AppendWarningNode appendWarningNode) {
     var warn = new Warning(warning, origin, ctx.nextSequenceId());
     return appendWarningNode.execute(null, value, warn);
-  }
-
-  @Builtin.Method(
-      name = "get_all_vector",
-      description = "Gets all the warnings associated with the value.",
-      autoRegister = false)
-  @Builtin.Specialize
-  @CompilerDirectives.TruffleBoundary
-  public static EnsoObject getAll(
-      WithWarnings value,
-      boolean shouldWrap,
-      WarningsLibrary warningsLib,
-      @Shared @Cached HashMapInsertNode insertNode,
-      @CachedLibrary(limit = "3") InteropLibrary interop) {
-    Warning[] warnings = value.getWarningsArray(shouldWrap, warningsLib, insertNode, interop);
-    sortArray(warnings);
-    return ArrayLikeHelpers.asVectorEnsoObjects(warnings);
-  }
-
-  @Builtin.Method(
-      name = "get_all_vector",
-      description = "Gets all the warnings associated with the value.",
-      autoRegister = false)
-  @Builtin.Specialize(fallback = true)
-  public static EnsoObject getAll(
-      Object value,
-      boolean shouldWrap,
-      WarningsLibrary warningsLib,
-      @Shared @Cached HashMapInsertNode insertNode,
-      @CachedLibrary(limit = "3") InteropLibrary interop) {
-    if (warningsLib.hasWarnings(value)) {
-      try {
-        Warning[] warnings = warningsLib.getWarnings(value, null, shouldWrap);
-        sortArray(warnings);
-        return ArrayLikeHelpers.asVectorEnsoObjects(warnings);
-      } catch (UnsupportedMessageException e) {
-        throw EnsoContext.get(warningsLib).raiseAssertionPanic(warningsLib, null, e);
-      }
-    } else {
-      return ArrayLikeHelpers.asVectorEmpty();
-    }
   }
 
   @Builtin.Method(
