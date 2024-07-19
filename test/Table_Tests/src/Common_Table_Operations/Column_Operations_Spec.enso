@@ -654,7 +654,9 @@ add_specs suite_builder setup =
             with_mixed_columns_if_supported [["i", [1, 4, 5, Nothing]], ["f", [2.0, 3.25, 5.0, Nothing]], ["d", [dec "2.0", dec "3.25", dec "5.0", Nothing]]] t->
                 setup.is_integer_type (t.at "i").inferred_precise_value_type . should_be_true
                 (t.at "f").inferred_precise_value_type . should_be_a (Value_Type.Float ...)
-                (t.at "d").inferred_precise_value_type . should_be_a (Value_Type.Decimal ...)
+
+                expected_d_type = if setup.test_selection.supports_decimal_type then (Value_Type.Decimal ...) else Value_Type.Integer
+                (t.at "d").inferred_precise_value_type . should_be_a expected_d_type
 
         group_builder.specify "(Column_Operations_Spec) should allow to compare numbers (including mixed types)" <|
             x_values = [1.25, 4.5, 5.0]
