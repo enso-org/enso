@@ -23,15 +23,15 @@ import org.enso.interpreter.runtime.control.TailCallException;
 import org.enso.interpreter.runtime.data.ArrayRope;
 import org.enso.interpreter.runtime.data.EnsoMultiValue;
 import org.enso.interpreter.runtime.data.Type;
-import org.enso.interpreter.runtime.data.hash.HashMapInsertNode;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.error.PanicSentinel;
-import org.enso.interpreter.runtime.warning.Warning;
-import org.enso.interpreter.runtime.warning.WithWarnings;
 import org.enso.interpreter.runtime.library.dispatch.TypeOfNode;
 import org.enso.interpreter.runtime.state.State;
+import org.enso.interpreter.runtime.warning.AppendWarningNode;
+import org.enso.interpreter.runtime.warning.Warning;
+import org.enso.interpreter.runtime.warning.WithWarnings;
 
 public abstract class InvokeConversionNode extends BaseNode {
   private @Child InvokeFunctionNode invokeFunctionNode;
@@ -199,8 +199,7 @@ public abstract class InvokeConversionNode extends BaseNode {
       Object self,
       WithWarnings that,
       Object[] arguments,
-      @Cached HashMapInsertNode insertNode,
-      @CachedLibrary(limit = "3") InteropLibrary interop) {
+      @Cached AppendWarningNode appendWarningNode) {
     // Cannot use @Cached for childDispatch, because we need to call notifyInserted.
     if (childDispatch == null) {
       CompilerDirectives.transferToInterpreterAndInvalidate();
@@ -228,7 +227,7 @@ public abstract class InvokeConversionNode extends BaseNode {
     ArrayRope<Warning> warnings = that.getReassignedWarningsAsRope(this, false);
     try {
       Object result = childDispatch.execute(frame, state, conversion, self, value, arguments);
-      return WithWarnings.appendTo(result, EnsoContext.get(this), insertNode, interop, warnings);
+      return appendWarningNode.execute(null, result, warnings);
     } catch (TailCallException e) {
       throw new TailCallException(e, warnings.toArray(Warning[]::new));
     }

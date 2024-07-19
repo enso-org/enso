@@ -54,10 +54,10 @@ import org.graalvm.collections.Equivalence;
 @ExportLibrary(value = InteropLibrary.class, delegateTo = "value")
 public final class WithWarnings implements EnsoObject {
   final Object value;
-  private final EnsoHashMap warnings;
+  final EnsoHashMap warnings;
 
   private final boolean limitReached;
-  private final int maxWarnings;
+  final int maxWarnings;
 
   /**
    * Creates a new instance of value wrapped in warnings. `limitReached` parameter allows for
@@ -94,44 +94,20 @@ public final class WithWarnings implements EnsoObject {
   }
 
   /**
-   * Creates a new instance of value wrapped in warnings. `limitReached` parameter allows for
-   * indicating if some custom warnings filtering on `additionalWarnings` have already been
-   * performed.
+   * Creates a new instance of value wrapped in warnings.
    *
    * @param value value to be wrapped in warnings
    * @param maxWarnings maximal number of warnings allowed to be attached to the value
-   * @param warnings warnings originally attached to a value
+   * @param warningsMap warnings originally attached to a value
    * @param limitReached if `true`, indicates that `warnings` have already been limited for a
    *     custom-method, `false` otherwise
-   * @param insertNode hash map insert node used to insert warnings to the internal hash set
-   * @param interop Dispatched interop library, or uncached
-   * @param additionalWarnings additional warnings to be appended to the list of `warnings`
    */
-  private WithWarnings(
-      Object value,
-      int maxWarnings,
-      EnsoHashMap warnings,
-      boolean limitReached,
-      HashMapInsertNode insertNode,
-      InteropLibrary interop,
-      Warning... additionalWarnings) {
+  WithWarnings(Object value, int maxWarnings, boolean limitReached, EnsoHashMap warningsMap) {
     assert isAcceptableValue(value);
-    this.warnings =
-        cloneSetAndAppend(maxWarnings, warnings, additionalWarnings, insertNode, interop);
-    assert this.warnings.getHashSize() > 0;
     this.value = value;
-    this.limitReached = limitReached || this.warnings.getHashSize() >= maxWarnings;
     this.maxWarnings = maxWarnings;
-  }
-
-  private WithWarnings(
-      Object value,
-      int maxWarnings,
-      EnsoHashMap warnings,
-      HashMapInsertNode insertNode,
-      InteropLibrary interop,
-      Warning... additionalWarnings) {
-    this(value, maxWarnings, warnings, false, insertNode, interop, additionalWarnings);
+    this.limitReached = limitReached || warningsMap.getHashSize() >= maxWarnings;
+    this.warnings = warningsMap;
   }
 
   private static boolean isAcceptableValue(Object value) {
@@ -146,63 +122,8 @@ public final class WithWarnings implements EnsoObject {
     return goodValue;
   }
 
-  public static WithWarnings wrap(Object value, Warning... warnings) {
-    return wrap(
-        value,
-        EnsoContext.get(null),
-        HashMapInsertNodeGen.getUncached(),
-        InteropLibrary.getUncached(),
-        warnings);
-  }
-
-  public static WithWarnings wrap(
-      Object value,
-      EnsoContext ctx,
-      HashMapInsertNode insertNode,
-      InteropLibrary interop,
-      Warning... warnings) {
-    if (value instanceof WithWarnings with) {
-      return with.append(ctx, insertNode, interop, warnings);
-    } else {
-      return new WithWarnings(value, ctx.getWarningsLimit(), insertNode, interop, warnings);
-    }
-  }
-
   public Object getValue() {
     return value;
-  }
-
-  public WithWarnings append(
-      EnsoContext ctx,
-      boolean limitReached,
-      HashMapInsertNode insertNode,
-      InteropLibrary interop,
-      Warning... newWarnings) {
-    return new WithWarnings(
-        value, ctx.getWarningsLimit(), warnings, limitReached, insertNode, interop, newWarnings);
-  }
-
-  public WithWarnings append(
-      EnsoContext ctx,
-      HashMapInsertNode insertNode,
-      InteropLibrary interop,
-      Warning... newWarnings) {
-    return new WithWarnings(
-        value, ctx.getWarningsLimit(), warnings, insertNode, interop, newWarnings);
-  }
-
-  public WithWarnings append(
-      EnsoContext ctx,
-      HashMapInsertNode insertNode,
-      InteropLibrary interop,
-      ArrayRope<Warning> newWarnings) {
-    return new WithWarnings(
-        value,
-        ctx.getWarningsLimit(),
-        warnings,
-        insertNode,
-        interop,
-        newWarnings.toArray(Warning[]::new));
   }
 
   // Ignore the warnings cache in .value and re-fetch them using the WarningsLibrary.
@@ -272,106 +193,6 @@ public final class WithWarnings implements EnsoObject {
       warnings[i] = warnings[i].reassign(location);
     }
     return warnings;
-  }
-
-  /**
-   * Appends warnings to the {@code target}.
-   *
-   * <p>Slow version of {@link #appendTo(Object, ArrayRope, EnsoContext, HashMapInsertNode,
-   * InteropLibrary)}.
-   *
-   * @param target
-   * @param warnings
-   * @return
-   */
-  public static WithWarnings appendTo(Object target, ArrayRope<Warning> warnings) {
-    return appendTo(
-        target,
-        EnsoContext.get(null),
-        HashMapInsertNodeGen.getUncached(),
-        InteropLibrary.getUncached(),
-        warnings);
-  }
-
-  /**
-   * Slow version of {@link #appendTo(EnsoContext, Object, HashMapInsertNode, InteropLibrary,
-   * Warning...)}.
-   */
-  public static WithWarnings appendTo(Object target, Warning... warnings) {
-    return appendTo(
-        target,
-        EnsoContext.get(null),
-        HashMapInsertNodeGen.getUncached(),
-        InteropLibrary.getUncached(),
-        new ArrayRope<>(warnings));
-  }
-
-  public static WithWarnings appendTo(Object target, boolean reachedMaxCount, Warning... warnings) {
-    return appendTo(
-        target,
-        reachedMaxCount,
-        EnsoContext.get(null),
-        HashMapInsertNodeGen.getUncached(),
-        InteropLibrary.getUncached(),
-        warnings);
-  }
-
-  /**
-   * Appends warnings to the {@code target}.
-   *
-   * @param ctx Context
-   * @param target Target object that will have the warnings appended.
-   * @param insertNode Hash map insert node used to insert warnings to the internal hash set.
-   * @param interop Dispatched interop library, or uncached.
-   * @param warnings Warnings to be appended to the {@code target}.
-   * @return Target with appended warnings.
-   */
-  public static WithWarnings appendTo(
-      Object target,
-      EnsoContext ctx,
-      HashMapInsertNode insertNode,
-      InteropLibrary interop,
-      ArrayRope<Warning> warnings) {
-    if (target instanceof WithWarnings withWarn) {
-      return withWarn.append(ctx, insertNode, interop, warnings.toArray(Warning[]::new));
-    } else {
-      return new WithWarnings(
-          target, ctx.getWarningsLimit(), insertNode, interop, warnings.toArray(Warning[]::new));
-    }
-  }
-
-  /**
-   * Appends warnings to the {@code target}.
-   *
-   * @param target Target object that will have the warnings appended.
-   * @param ctx Context
-   * @param insertNode Hash map insert node used to insert warnings to the internal hash set.
-   * @param interop Dispatched interop library, or uncached.
-   * @param warnings Warnings to be appended to the {@code target}.
-   * @return Target with appended warnings.
-   */
-  public static WithWarnings appendTo(
-      Object target,
-      EnsoContext ctx,
-      HashMapInsertNode insertNode,
-      InteropLibrary interop,
-      Warning... warnings) {
-    return appendTo(target, false, ctx, insertNode, interop, warnings);
-  }
-
-  public static WithWarnings appendTo(
-      Object target,
-      boolean reachedMaxCount,
-      EnsoContext ctx,
-      HashMapInsertNode insertNode,
-      InteropLibrary interop,
-      Warning... warnings) {
-    if (target instanceof WithWarnings withWarn) {
-      return withWarn.append(ctx, reachedMaxCount, insertNode, interop, warnings);
-    } else {
-      return new WithWarnings(
-          target, ctx.getWarningsLimit(), reachedMaxCount, insertNode, interop, warnings);
-    }
   }
 
   @CompilerDirectives.TruffleBoundary

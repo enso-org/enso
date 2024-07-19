@@ -4,9 +4,7 @@ import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
-import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
-import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.profiles.BranchProfile;
@@ -14,11 +12,10 @@ import com.oracle.truffle.api.profiles.CountingConditionProfile;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.ArrayRope;
-import org.enso.interpreter.runtime.data.hash.HashMapInsertNode;
+import org.enso.interpreter.runtime.type.TypesGen;
+import org.enso.interpreter.runtime.warning.AppendWarningNode;
 import org.enso.interpreter.runtime.warning.Warning;
 import org.enso.interpreter.runtime.warning.WarningsLibrary;
-import org.enso.interpreter.runtime.warning.WithWarnings;
-import org.enso.interpreter.runtime.type.TypesGen;
 
 /**
  * A node instantiating a constant {@link AtomConstructor} with values computed based on the
@@ -70,8 +67,7 @@ abstract class InstantiateNode extends ExpressionNode {
   Object doExecute(
       VirtualFrame frame,
       @Cached(parameters = {"constructor"}) AtomConstructorInstanceNode createInstanceNode,
-      @Cached HashMapInsertNode insertNode,
-      @CachedLibrary(limit = "3") InteropLibrary interop) {
+      @Cached AppendWarningNode appendWarningNode) {
     Object[] argumentValues = new Object[arguments.length];
     boolean anyWarnings = false;
     ArrayRope<Warning> accumulatedWarnings = new ArrayRope<>();
@@ -99,12 +95,8 @@ abstract class InstantiateNode extends ExpressionNode {
       }
     }
     if (anyWarningsProfile.profile(anyWarnings)) {
-      return WithWarnings.appendTo(
-          createInstanceNode.execute(argumentValues),
-          EnsoContext.get(this),
-          insertNode,
-          interop,
-          accumulatedWarnings);
+      return appendWarningNode.execute(
+          frame, createInstanceNode.execute(argumentValues), accumulatedWarnings);
     } else {
       return createInstanceNode.execute(argumentValues);
     }

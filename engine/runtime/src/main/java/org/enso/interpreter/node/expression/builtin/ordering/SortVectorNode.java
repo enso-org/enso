@@ -39,12 +39,12 @@ import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeLengthNode;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
-import org.enso.interpreter.runtime.warning.Warning;
-import org.enso.interpreter.runtime.warning.WarningsLibrary;
-import org.enso.interpreter.runtime.warning.WithWarnings;
 import org.enso.interpreter.runtime.library.dispatch.TypeOfNode;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.state.State;
+import org.enso.interpreter.runtime.warning.AppendWarningNodeGen;
+import org.enso.interpreter.runtime.warning.Warning;
+import org.enso.interpreter.runtime.warning.WarningsLibrary;
 
 /**
  * Sorts a vector with elements that have only Default_Comparator, thus, only elements with a
@@ -354,7 +354,8 @@ public abstract class SortVectorNode extends Node {
             .map(text -> Warning.create(ctx, text, this))
             .limit(MAX_SORT_WARNINGS)
             .toArray(Warning[]::new);
-    return WithWarnings.appendTo(vector, warnArray.length < warnings.size(), warnArray);
+    var reachedMaxCount = warnArray.length < warnings.size();
+    return AppendWarningNodeGen.getUncached().execute(null, vector, warnArray);
   }
 
   private Object attachDifferentComparatorsWarning(Object vector, List<Group> groups) {
@@ -366,7 +367,7 @@ public abstract class SortVectorNode extends Node {
     var text = Text.create("Different comparators: [" + diffCompsMsg + "]");
     var ctx = EnsoContext.get(this);
     var warn = Warning.create(ctx, text, this);
-    return WithWarnings.appendTo(vector, warn);
+    return AppendWarningNodeGen.getUncached().execute(null, vector, warn);
   }
 
   private String getDefaultComparatorQualifiedName() {

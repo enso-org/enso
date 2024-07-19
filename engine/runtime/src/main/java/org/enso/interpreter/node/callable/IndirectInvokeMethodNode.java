@@ -25,14 +25,14 @@ import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.ArrayRope;
-import org.enso.interpreter.runtime.data.hash.HashMapInsertNode;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicSentinel;
-import org.enso.interpreter.runtime.warning.Warning;
-import org.enso.interpreter.runtime.warning.WithWarnings;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.state.State;
+import org.enso.interpreter.runtime.warning.AppendWarningNode;
+import org.enso.interpreter.runtime.warning.Warning;
+import org.enso.interpreter.runtime.warning.WithWarnings;
 
 @GenerateUncached
 @ReportPolymorphism
@@ -131,8 +131,7 @@ public abstract class IndirectInvokeMethodNode extends Node {
       BaseNode.TailStatus isTail,
       int thisArgumentPosition,
       @Cached IndirectInvokeMethodNode childDispatch,
-      @Cached HashMapInsertNode insertNode,
-      @CachedLibrary(limit = "3") InteropLibrary interop) {
+      @Cached AppendWarningNode appendWarningNode) {
     arguments[thisArgumentPosition] = self.getValue();
     ArrayRope<Warning> warnings = self.getReassignedWarningsAsRope(this, false);
     Object result =
@@ -147,7 +146,7 @@ public abstract class IndirectInvokeMethodNode extends Node {
             argumentsExecutionMode,
             isTail,
             thisArgumentPosition);
-    return WithWarnings.appendTo(result, EnsoContext.get(this), insertNode, interop, warnings);
+    return appendWarningNode.execute(null, result, warnings);
   }
 
   @Specialization

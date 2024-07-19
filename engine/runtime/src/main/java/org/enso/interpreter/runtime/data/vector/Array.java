@@ -19,10 +19,10 @@ import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.hash.EnsoHashMap;
 import org.enso.interpreter.runtime.data.hash.HashMapInsertNode;
+import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
+import org.enso.interpreter.runtime.warning.AppendWarningNode;
 import org.enso.interpreter.runtime.warning.Warning;
 import org.enso.interpreter.runtime.warning.WarningsLibrary;
-import org.enso.interpreter.runtime.warning.WithWarnings;
-import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 
 /** A primitive boxed array type for use in the runtime. */
 @ExportLibrary(InteropLibrary.class)
@@ -94,7 +94,8 @@ final class Array implements EnsoObject {
       @CachedLibrary(limit = "3") InteropLibrary interop,
       @Cached BranchProfile errProfile,
       @Cached BranchProfile hasWarningsProfile,
-      @Cached HashMapInsertNode mapInsertNode)
+      @Cached HashMapInsertNode mapInsertNode,
+      @Cached AppendWarningNode appendWarningNode)
       throws InvalidArrayIndexException, UnsupportedMessageException {
     if (index >= items.length || index < 0) {
       errProfile.enter();
@@ -108,7 +109,7 @@ final class Array implements EnsoObject {
       if (warnings.hasWarnings(v)) {
         v = warnings.removeWarnings(v);
       }
-      return WithWarnings.wrap(v, EnsoContext.get(warnings), mapInsertNode, interop, extracted);
+      return appendWarningNode.execute(null, v, extracted);
     }
 
     return v;

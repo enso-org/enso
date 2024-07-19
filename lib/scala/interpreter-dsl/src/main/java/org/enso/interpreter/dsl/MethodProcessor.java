@@ -155,8 +155,8 @@ public class MethodProcessor
           "org.enso.interpreter.runtime.state.State",
           "org.enso.interpreter.runtime.type.TypesGen",
           "org.enso.interpreter.runtime.warning.Warning",
-          "org.enso.interpreter.runtime.warning.WithWarnings"
-          );
+          "org.enso.interpreter.runtime.warning.WithWarnings",
+          "org.enso.interpreter.runtime.warning.AppendWarningNode");
 
   /** List of exception types that should be caught from the builtin's execute method. */
   private static final List<String> handleExceptionTypes =
@@ -193,11 +193,8 @@ public class MethodProcessor
                 + " extends BuiltinRootNode implements InlineableNode.Root {");
       }
       out.println("  private @Child " + methodDefinition.getOriginalClassName() + " bodyNode;");
-      out.println();
       out.println(
-          "  private @Child InteropLibrary interop ="
-              + " InteropLibrary.getFactory().createDispatched(3);");
-      out.println("  private @Child HashMapInsertNode insertNode = HashMapInsertNode.build();");
+          "  private @Child AppendWarningNode appendWarningNode = AppendWarningNode.build();");
       out.println();
       out.println("  private static final class Internals {");
       out.println("    Internals(boolean s) {");
@@ -291,14 +288,12 @@ public class MethodProcessor
                 + methodDefinition.getConstructorExpression()
                 + ";");
         out.println(
-            "      private @Child InteropLibrary interop ="
-                + " InteropLibrary.getFactory().createDispatched(3);");
-        out.println(
-            "      private @Child HashMapInsertNode insertNode = HashMapInsertNode.build();");
+            "      private @Child AppendWarningNode appendWarningNode ="
+                + " AppendWarningNode.build();");
         out.println();
         out.println("      @Override");
         out.println("      public Object call(VirtualFrame frame, Object[] args) {");
-        out.println("        return handleExecute(frame, extra, body, insertNode, interop, args);");
+        out.println("        return handleExecute(frame, extra, body, appendWarningNode, args);");
         out.println("      }");
         out.println("    }");
         out.println();
@@ -314,13 +309,13 @@ public class MethodProcessor
         out.println("    var args = frame.getArguments();");
       } else {
         out.println(
-            "    return handleExecute(frame, this.internals, bodyNode, this.insertNode,"
-                + " this.interop, frame.getArguments());");
+            "    return handleExecute(frame, this.internals, bodyNode, this.appendWarningNode,"
+                + " frame.getArguments());");
         out.println("  }");
         out.println(
             "  private static Object handleExecute(VirtualFrame frame, Internals internals, "
                 + methodDefinition.getOriginalClassName()
-                + " bodyNode, HashMapInsertNode insertNode, InteropLibrary interop, Object[] args)"
+                + " bodyNode, AppendWarningNode appendWarningNode, Object[] args)"
                 + " {");
       }
       out.println("    var prefix = internals.staticOfInstanceMethod ? 1 : 0;");
@@ -365,10 +360,7 @@ public class MethodProcessor
         out.println("      internals.anyWarningsProfile.enter();");
         out.println("      Object result;");
         out.println(wrapInTryCatch("result = " + executeCall + ";", 6));
-        out.println("      EnsoContext ctx = EnsoContext.get(bodyNode);");
-        out.println(
-            "      return WithWarnings.appendTo(result, ctx, insertNode, interop,"
-                + " gatheredWarnings);");
+        out.println("      return appendWarningNode.execute(frame, result, gatheredWarnings);");
         out.println("    } else {");
         out.println(wrapInTryCatch("return " + executeCall + ";", 6));
         out.println("    }");

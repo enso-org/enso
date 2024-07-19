@@ -8,6 +8,7 @@ import static org.junit.Assert.fail;
 
 import org.enso.common.MethodNames;
 import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.warning.AppendWarningNodeGen;
 import org.enso.interpreter.runtime.warning.Warning;
 import org.enso.interpreter.runtime.warning.WithWarnings;
 import org.enso.test.utils.ContextUtils;
@@ -55,8 +56,8 @@ public class WarningsTest {
     var warn2 = Warning.create(ensoContext, "w2", this);
     var value = 42L;
 
-    var with1 = WithWarnings.wrap(value, warn1);
-    var with2 = WithWarnings.wrap(with1, warn2);
+    var with1 = AppendWarningNodeGen.getUncached().execute(null, value, warn1);
+    var with2 = AppendWarningNodeGen.getUncached().execute(null, with1, warn2);
 
     assertEquals(value, with1.getValue());
     assertEquals(value, with2.getValue());
@@ -69,7 +70,7 @@ public class WarningsTest {
     var value = 42;
     WithWarnings without;
     try {
-      without = WithWarnings.wrap(42);
+      without = AppendWarningNodeGen.getUncached().execute(null, 42, new Warning[0]);
     } catch (AssertionError e) {
       // OK
       return;

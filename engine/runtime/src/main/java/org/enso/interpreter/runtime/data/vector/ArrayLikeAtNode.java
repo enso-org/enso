@@ -11,7 +11,7 @@ import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEnsoNode;
-import org.enso.interpreter.runtime.data.hash.HashMapInsertNode;
+import org.enso.interpreter.runtime.warning.AppendWarningNode;
 import org.enso.interpreter.runtime.warning.WarningsLibrary;
 
 @GenerateUncached
@@ -61,10 +61,10 @@ public abstract class ArrayLikeAtNode extends Node {
       @Cached.Exclusive @CachedLibrary(limit = "3") InteropLibrary interop,
       @Cached.Exclusive @CachedLibrary(limit = "3") WarningsLibrary warnings,
       @Cached.Exclusive @Cached HostValueToEnsoNode convert,
-      @Cached HashMapInsertNode insertNode)
+      @Cached AppendWarningNode appendWarningNode)
       throws InvalidArrayIndexException {
     try {
-      return self.readArrayElement(index, interop, warnings, convert, insertNode);
+      return self.readArrayElement(index, interop, warnings, convert, appendWarningNode);
     } catch (UnsupportedMessageException ex) {
       throw ArrayPanics.notAnArrayPanic(this, self);
     }

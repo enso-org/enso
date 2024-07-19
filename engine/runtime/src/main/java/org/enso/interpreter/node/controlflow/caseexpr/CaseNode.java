@@ -19,9 +19,9 @@ import org.enso.interpreter.runtime.data.hash.HashMapInsertNode;
 import org.enso.interpreter.runtime.error.*;
 import org.enso.interpreter.runtime.state.State;
 import org.enso.interpreter.runtime.type.TypesGen;
+import org.enso.interpreter.runtime.warning.AppendWarningNode;
 import org.enso.interpreter.runtime.warning.Warning;
 import org.enso.interpreter.runtime.warning.WarningsLibrary;
-import org.enso.interpreter.runtime.warning.WithWarnings;
 
 /**
  * A node representing a pattern match on an arbitrary runtime value.
@@ -90,12 +90,12 @@ public abstract class CaseNode extends ExpressionNode {
       Object object,
       @Shared("warnsLib") @CachedLibrary(limit = "3") WarningsLibrary warnings,
       @Cached HashMapInsertNode insertNode,
-      @CachedLibrary(limit = "3") InteropLibrary interop) {
+      @CachedLibrary(limit = "3") InteropLibrary interop,
+      @Cached AppendWarningNode appendWarningNode) {
     try {
-      EnsoContext ctx = EnsoContext.get(this);
       Warning[] ws = warnings.getWarnings(object, this, false);
       Object result = doMatch(frame, warnings.removeWarnings(object), warnings);
-      return WithWarnings.wrap(result, ctx, insertNode, interop, ws);
+      return appendWarningNode.execute(null, result, ws);
     } catch (UnsupportedMessageException e) {
       throw EnsoContext.get(this).raiseAssertionPanic(this, null, e);
     }

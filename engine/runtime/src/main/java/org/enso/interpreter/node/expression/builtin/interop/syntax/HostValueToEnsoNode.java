@@ -12,10 +12,9 @@ import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.profiles.CountingConditionProfile;
 import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.interpreter.runtime.data.hash.HashMapInsertNode;
 import org.enso.interpreter.runtime.data.text.Text;
+import org.enso.interpreter.runtime.warning.AppendWarningNode;
 import org.enso.interpreter.runtime.warning.WarningsLibrary;
-import org.enso.interpreter.runtime.warning.WithWarnings;
 
 /**
  * Converts a value returned by a polyglot call back to a value that can be further used within Enso
@@ -77,13 +76,13 @@ public abstract class HostValueToEnsoNode extends Node {
       @CachedLibrary(limit = "3") InteropLibrary iop,
       @CachedLibrary(limit = "3") WarningsLibrary warningsLibrary,
       @Cached CountingConditionProfile nullWarningProfile,
-      @Cached HashMapInsertNode insertNode) {
+      @Cached AppendWarningNode appendWarningNode) {
     var ctx = EnsoContext.get(this);
     var nothing = ctx.getBuiltins().nothing();
     if (nothing != value && nullWarningProfile.profile(warningsLibrary.hasWarnings(value))) {
       try {
         var attachedWarnings = warningsLibrary.getWarnings(value, null, false);
-        return WithWarnings.wrap(nothing, ctx, insertNode, iop, attachedWarnings);
+        return appendWarningNode.execute(null, nothing, attachedWarnings);
       } catch (UnsupportedMessageException e) {
         return nothing;
       }

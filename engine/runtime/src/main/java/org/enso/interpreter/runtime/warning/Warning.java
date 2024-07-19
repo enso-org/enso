@@ -33,7 +33,7 @@ public final class Warning implements EnsoObject {
   private final ArrayRope<Reassignment> reassignments;
   private final long sequenceId;
 
-  private Warning(Object value, Object origin, long sequenceId) {
+  Warning(Object value, Object origin, long sequenceId) {
     this(value, origin, sequenceId, new ArrayRope<>());
   }
 
@@ -82,26 +82,9 @@ public final class Warning implements EnsoObject {
       WithWarnings value,
       Object warning,
       Object origin,
-      @Shared @Cached HashMapInsertNode insertNode,
-      @CachedLibrary(limit = "3") InteropLibrary interop) {
-    return value.append(
-        ctx, insertNode, interop, new Warning(warning, origin, ctx.nextSequenceId()));
-  }
-
-  @Builtin.Method(
-      name = "attach_with_stacktrace",
-      description = "Attaches the given warning to the value.",
-      autoRegister = false)
-  @Builtin.Specialize(fallback = true)
-  public static WithWarnings attach(
-      EnsoContext ctx,
-      Object value,
-      Object warning,
-      Object origin,
-      @Shared @Cached HashMapInsertNode insertNode,
-      @CachedLibrary(limit = "3") InteropLibrary interop) {
-    return WithWarnings.wrap(
-        value, ctx, insertNode, interop, new Warning(warning, origin, ctx.nextSequenceId()));
+      @Cached AppendWarningNode appendWarningNode) {
+    var warn = new Warning(warning, origin, ctx.nextSequenceId());
+    return appendWarningNode.execute(null, value, warn);
   }
 
   @Builtin.Method(
@@ -201,8 +184,8 @@ public final class Warning implements EnsoObject {
       WithWarnings value,
       Object warnings,
       InteropLibrary interop,
-      @Shared @Cached HashMapInsertNode insertNode) {
-    return setGeneric(ctx, value.getValue(), interop, warnings, insertNode);
+      @Shared @Cached AppendWarningNode appendWarningNode) {
+    return setGeneric(ctx, value.getValue(), interop, warnings, appendWarningNode);
   }
 
   @Builtin.Method(
@@ -216,8 +199,8 @@ public final class Warning implements EnsoObject {
       Object value,
       Object warnings,
       InteropLibrary interop,
-      @Shared @Cached HashMapInsertNode insertNode) {
-    return setGeneric(ctx, value, interop, warnings, insertNode);
+      @Shared @Cached AppendWarningNode appendWarningNode) {
+    return setGeneric(ctx, value, interop, warnings, appendWarningNode);
   }
 
   private static Object setGeneric(
@@ -225,20 +208,8 @@ public final class Warning implements EnsoObject {
       Object value,
       InteropLibrary interop,
       Object warnings,
-      HashMapInsertNode insertNode) {
-    try {
-      var size = interop.getArraySize(warnings);
-      if (size == 0) {
-        return value;
-      }
-      Warning[] warningsCast = new Warning[(int) size];
-      for (int i = 0; i < warningsCast.length; i++) {
-        warningsCast[i] = (Warning) interop.readArrayElement(warnings, i);
-      }
-      return WithWarnings.wrap(value, ctx, insertNode, interop, warningsCast);
-    } catch (UnsupportedMessageException | InvalidArrayIndexException ex) {
-      throw EnsoContext.get(interop).raiseAssertionPanic(interop, null, ex);
-    }
+      AppendWarningNode appendWarningNode) {
+    return appendWarningNode.execute(null, value, warnings);
   }
 
   @CompilerDirectives.TruffleBoundary
