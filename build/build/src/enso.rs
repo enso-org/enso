@@ -8,6 +8,9 @@ use crate::paths::ENSO_TEST_ANSI_COLORS;
 use crate::postgres;
 use crate::postgres::EndpointConfiguration;
 use crate::postgres::Postgresql;
+use crate::sqlserver;
+use crate::sqlserver::EndpointConfiguration;
+use crate::sqlserver::SQLServer;
 
 use ide_ci::future::AsyncPolicy;
 use ide_ci::programs::docker::ContainerId;
@@ -152,6 +155,30 @@ impl BuiltEnso {
                 };
                 let postgres = Postgresql::start(config).await?;
                 Some(postgres)
+            }
+            _ => None,
+        };
+
+        let __sqlserver = match TARGET_OS {
+            OS::Linux => {
+                let runner_context_string = crate::env::ENSO_RUNNER_CONTAINER_NAME
+                    .get_raw()
+                    .or_else(|_| ide_ci::actions::env::RUNNER_NAME.get())
+                    .unwrap_or_else(|_| Uuid::new_v4().to_string());
+                // GH-hosted runners are named like "GitHub Actions 10". Spaces are not allowed in
+                // the container name.
+                let container_name =
+                    format!("sqlserver-for-{runner_context_string}").replace(' ', "_");
+                let config = sqlserver::Configuration {
+                    sqlserver_container: ContainerId(container_name),
+                    database_name:       "tempdb".to_string(),
+                    user:                "sa".to_string(),
+                    password:            "enso_test_password".to_string(),
+                    endpoint:            EndpointConfiguration::deduce()?,
+                    version:             "latest".to_string(),
+                };
+                let sqlserver = SQLServer::start(config).await?;
+                Some(sqlserver)
             }
             _ => None,
         };
