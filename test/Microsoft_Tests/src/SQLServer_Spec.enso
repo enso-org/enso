@@ -42,7 +42,7 @@ type SQLServer_Info_Data
         tinfo = Name_Generator.random_name "Tinfo"
         connection.execute_update 'Create Table "'+tinfo+'" ("strs" VARCHAR(255), "ints" INTEGER, "bools" BIT, "reals" REAL, "floats" FLOAT, "tinyints" TINYINT, "smallints" SMALLINT, "bigints" BIGINT, "times" TIME, "dates" DATE, "datetimes" DATETIME, "smalldatetimes" SMALLDATETIME, "datetime2s" DATETIME2, "datetimeoffsets" DATETIMEOFFSET)'
         t = connection.query (SQL_Query.Table_Name tinfo)
-        row1 = ["a", Nothing, False, 1.2, 1.2, 0, 0, 0, Time_Of_Day.new 12 12 12 1 1 1, Date.new 2021 1 1, Date_Time.new 2021 1 1 12 12 12 1 1 1, Date_Time.new 2021 1 1 12 12 12 1 1 1, Date_Time.new 2021 1 1 12 12 12 1 1 1, Date_Time.new 2021 1 1 12 12 12 1 1 1]
+        row1 = ["a", Nothing, False, 1.2, 1.2, 0, 0, 0, Time_Of_Day.new 12 12 12 1 1 1, Date.new 2021 1 1, Date_Time.new 2021 1 1 12 12 12 500 1 1, Date_Time.new 2021 1 1 12 12 12 1 1 1, Date_Time.new 2021 1 1 12 12 12 1 1 1, Date_Time.new 2021 1 1 12 12 12 1 1 1]
         row2 = ["abc", Nothing, Nothing, 1.3, 1.3, 255, 32767, 9223372036854775807, Time_Of_Day.new 7 12 12 1 1 1, Date.new 1999 1 1, Date_Time.new 1999 1 1 12 12 12 1 1 1, Date_Time.new 1999 1 1 12 12 12 1 1 1, Date_Time.new 1999 1 1 12 12 12 1 1 1, Date_Time.new 1999 1 1 12 12 12 1 1 1]
         row3 = ["def", 42, True, 1.4, 1.4, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing]
         table = Table.from_rows ["strs", "ints", "bools", "reals", "floats", "tinyints", "smallints", "bigints", "times", "dates", "datetimes", "smalldatetimes", "datetime2s", "datetimeoffsets"] [row1, row2, row3]
