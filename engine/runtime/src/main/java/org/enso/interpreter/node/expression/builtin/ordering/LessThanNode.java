@@ -21,9 +21,8 @@ import org.enso.interpreter.node.expression.builtin.number.utils.ToEnsoNumberNod
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.text.Text;
-import org.enso.interpreter.runtime.number.EnsoBigInteger;
-import org.enso.interpreter.runtime.warning.HasWarningsNode;
 import org.enso.interpreter.runtime.warning.WarningsLibrary;
+import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
 @BuiltinMethod(
     type = "Default_Comparator",
@@ -174,15 +173,14 @@ public abstract class LessThanNode extends Node {
       Object otherWithWarnings,
       @CachedLibrary("selfWithWarnings") WarningsLibrary selfWarnLib,
       @CachedLibrary("otherWithWarnings") WarningsLibrary otherWarnLib,
-      @Cached @Cached.Shared("next") LessThanNode nextNode,
-      @Cached HasWarningsNode hasWarningsNode) {
+      @Cached @Cached.Shared("next") LessThanNode nextNode) {
     try {
       Object self =
-          hasWarningsNode.execute(selfWithWarnings)
+          selfWarnLib.hasWarnings(selfWithWarnings)
               ? selfWarnLib.removeWarnings(selfWithWarnings)
               : selfWithWarnings;
       Object other =
-          hasWarningsNode.execute(otherWithWarnings)
+          otherWarnLib.hasWarnings(otherWithWarnings)
               ? otherWarnLib.removeWarnings(otherWithWarnings)
               : otherWithWarnings;
       return nextNode.execute(self, other);

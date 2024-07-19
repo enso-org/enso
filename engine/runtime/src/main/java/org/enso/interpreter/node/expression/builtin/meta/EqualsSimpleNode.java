@@ -21,9 +21,8 @@ import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.atom.Atom;
 import org.enso.interpreter.runtime.data.atom.AtomConstructor;
 import org.enso.interpreter.runtime.data.text.Text;
-import org.enso.interpreter.runtime.number.EnsoBigInteger;
-import org.enso.interpreter.runtime.warning.HasWarningsNode;
 import org.enso.interpreter.runtime.warning.WarningsLibrary;
+import org.enso.interpreter.runtime.number.EnsoBigInteger;
 import org.enso.polyglot.common_utils.Core_Text_Utils;
 
 @GenerateUncached
@@ -336,9 +335,7 @@ public abstract class EqualsSimpleNode extends Node {
     return reverse.execute(frame, other, self);
   }
 
-  @Specialization(
-      guards = "isNotPrimitive(self, other, interop, warnings, hasWarningsNode)",
-      limit = "3")
+  @Specialization(guards = "isNotPrimitive(self, other, interop, warnings)")
   boolean equalsComplex(
       VirtualFrame frame,
       Object self,
@@ -346,24 +343,19 @@ public abstract class EqualsSimpleNode extends Node {
       @Cached EqualsComplexNode equalsComplex,
       @Shared("isSameObjectNode") @Cached IsSameObjectNode isSameObjectNode,
       @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
-      @CachedLibrary(limit = "5") WarningsLibrary warnings,
-      @Cached HasWarningsNode hasWarningsNode) {
+      @CachedLibrary(limit = "5") WarningsLibrary warnings) {
     return isSameObjectNode.execute(self, other) || equalsComplex.execute(frame, self, other);
   }
 
   static boolean isNotPrimitive(
-      Object a,
-      Object b,
-      InteropLibrary interop,
-      WarningsLibrary warnings,
-      HasWarningsNode hasWarningsNode) {
+      Object a, Object b, InteropLibrary interop, WarningsLibrary warnings) {
     if (a instanceof AtomConstructor && b instanceof AtomConstructor) {
       return false;
     }
     if (a instanceof Atom && b instanceof Atom) {
       return false;
     }
-    if (hasWarningsNode.execute(a) || hasWarningsNode.execute(b)) {
+    if (warnings.hasWarnings(a) || warnings.hasWarnings(b)) {
       return true;
     }
     if (a instanceof EnsoMultiValue || b instanceof EnsoMultiValue) {

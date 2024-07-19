@@ -207,9 +207,8 @@ public final class WithWarnings implements EnsoObject {
 
   // Ignore the warnings cache in .value and re-fetch them using the WarningsLibrary.
   // This is only used for shouldWrap=true.
-  private Warning[] getWarningsNoCache(
-      WarningsLibrary warningsLibrary, HasWarningsNode hasWarningsNode) {
-    if (warningsLibrary != null && hasWarningsNode.execute(value)) {
+  private Warning[] getWarningsNoCache(WarningsLibrary warningsLibrary) {
+    if (warningsLibrary != null && warningsLibrary.hasWarnings(value)) {
       try {
         return warningsLibrary.getWarnings(value, null, true);
       } catch (UnsupportedMessageException e) {
@@ -228,7 +227,6 @@ public final class WithWarnings implements EnsoObject {
     return getWarningsArray(
         shouldWrap,
         WarningsLibrary.getUncached(),
-        HasWarningsNode.getUncached(),
         HashMapInsertNodeGen.getUncached(),
         InteropLibrary.getUncached());
   }
@@ -236,11 +234,10 @@ public final class WithWarnings implements EnsoObject {
   public Warning[] getWarningsArray(
       boolean shouldWrap,
       WarningsLibrary warningsLibrary,
-      HasWarningsNode hasWarningsNode,
       HashMapInsertNode insertNode,
       InteropLibrary interop) {
     Warning[] allWarnings;
-    if (warningsLibrary != null && hasWarningsNode.execute(value)) {
+    if (warningsLibrary != null && warningsLibrary.hasWarnings(value)) {
       try {
         var valueWarnings = warningsLibrary.getWarnings(value, null, shouldWrap);
         var tmp = cloneSetAndAppend(maxWarnings, warnings, valueWarnings, insertNode, interop);
@@ -261,7 +258,6 @@ public final class WithWarnings implements EnsoObject {
             shouldWrap,
             null,
             HashMapInsertNodeGen.getUncached(),
-            HasWarningsNode.getUncached(),
             InteropLibrary.getUncached()));
   }
 
@@ -270,10 +266,8 @@ public final class WithWarnings implements EnsoObject {
       boolean shouldWrap,
       WarningsLibrary warningsLibrary,
       HashMapInsertNode insertNode,
-      HasWarningsNode hasWarningsNode,
       InteropLibrary interop) {
-    Warning[] warnings =
-        getWarningsArray(shouldWrap, warningsLibrary, hasWarningsNode, insertNode, interop);
+    Warning[] warnings = getWarningsArray(shouldWrap, warningsLibrary, insertNode, interop);
     for (int i = 0; i < warnings.length; i++) {
       warnings[i] = warnings[i].reassign(location);
     }
@@ -387,7 +381,6 @@ public final class WithWarnings implements EnsoObject {
             where,
             false,
             WarningsLibrary.getUncached(),
-            HasWarningsNode.getUncached(),
             HashMapInsertNodeGen.getUncached(),
             InteropLibrary.getUncached());
     var ctx = EnsoContext.get(where);
@@ -426,17 +419,15 @@ public final class WithWarnings implements EnsoObject {
       Node location,
       boolean shouldWrap,
       @Shared("warnsLib") @CachedLibrary(limit = "3") WarningsLibrary warningsLibrary,
-      @Shared @Cached HasWarningsNode hasWarningsNode,
       @Cached HashMapInsertNode insertNode,
       @CachedLibrary(limit = "3") InteropLibrary interop) {
     if (location != null) {
-      return getReassignedWarnings(
-          location, shouldWrap, warningsLibrary, insertNode, hasWarningsNode, interop);
+      return getReassignedWarnings(location, shouldWrap, warningsLibrary, insertNode, interop);
     } else {
       if (shouldWrap) {
         // In the wrapping case, we don't use the local cache in .values, since
         // it contains unwrapped warnings. Instead, we fetch them again.
-        return getWarningsNoCache(warningsLibrary, hasWarningsNode);
+        return getWarningsNoCache(warningsLibrary);
       } else {
         return Warning.fromSetToArray(warnings);
       }
@@ -444,11 +435,9 @@ public final class WithWarnings implements EnsoObject {
   }
 
   @ExportMessage
-  Object removeWarnings(
-      @Shared("warnsLib") @CachedLibrary(limit = "3") WarningsLibrary warnings,
-      @Shared @Cached HasWarningsNode hasWarningsNode)
+  Object removeWarnings(@Shared("warnsLib") @CachedLibrary(limit = "3") WarningsLibrary warnings)
       throws UnsupportedMessageException {
-    if (hasWarningsNode.execute(value)) {
+    if (warnings.hasWarnings(value)) {
       return warnings.removeWarnings(value);
     } else {
       return value;

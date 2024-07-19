@@ -27,10 +27,9 @@ import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.data.EnsoFile;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.atom.Atom;
+import org.enso.interpreter.runtime.warning.WarningsLibrary;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.scope.ModuleScope;
-import org.enso.interpreter.runtime.warning.HasWarningsNode;
-import org.enso.interpreter.runtime.warning.WarningsLibrary;
 
 @GenerateUncached
 public abstract class EqualsComplexNode extends Node {
@@ -110,15 +109,14 @@ public abstract class EqualsComplexNode extends Node {
       Object otherWithWarnings,
       @CachedLibrary("selfWithWarnings") WarningsLibrary selfWarnLib,
       @CachedLibrary("otherWithWarnings") WarningsLibrary otherWarnLib,
-      @Shared("equalsNode") @Cached EqualsNode equalsNode,
-      @Shared @Cached HasWarningsNode hasWarningsNode) {
+      @Shared("equalsNode") @Cached EqualsNode equalsNode) {
     try {
       Object self =
-          hasWarningsNode.execute(selfWithWarnings)
+          selfWarnLib.hasWarnings(selfWithWarnings)
               ? selfWarnLib.removeWarnings(selfWithWarnings)
               : selfWithWarnings;
       Object other =
-          hasWarningsNode.execute(otherWithWarnings)
+          otherWarnLib.hasWarnings(otherWithWarnings)
               ? otherWarnLib.removeWarnings(otherWithWarnings)
               : otherWithWarnings;
       return equalsNode.execute(frame, self, other);
@@ -410,15 +408,14 @@ public abstract class EqualsComplexNode extends Node {
     return equalsNode.execute(frame, selfFuncStrRepr, otherFuncStrRepr);
   }
 
-  @Specialization(guards = "fallbackGuard(left, right, interop, warningsLib, hasWarningsNode)")
+  @Specialization(guards = "fallbackGuard(left, right, interop, warningsLib)")
   @TruffleBoundary
   boolean equalsGeneric(
       Object left,
       Object right,
       @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
       @Shared("typesLib") @CachedLibrary(limit = "10") TypesLibrary typesLib,
-      @CachedLibrary(limit = "10") WarningsLibrary warningsLib,
-      @Shared @Cached HasWarningsNode hasWarningsNode) {
+      @CachedLibrary(limit = "10") WarningsLibrary warningsLib) {
     return left == right
         || interop.isIdentical(left, right, interop)
         || left.equals(right)
@@ -429,11 +426,7 @@ public abstract class EqualsComplexNode extends Node {
   // we cannot use @Fallback here. Note that this guard is not precisely the negation of
   // all the other guards on purpose.
   boolean fallbackGuard(
-      Object left,
-      Object right,
-      InteropLibrary interop,
-      WarningsLibrary warnings,
-      HasWarningsNode hasWarningsNode) {
+      Object left, Object right, InteropLibrary interop, WarningsLibrary warnings) {
     if (EqualsSimpleNode.isPrimitive(left, interop)
         && EqualsSimpleNode.isPrimitive(right, interop)) {
       return false;
@@ -480,7 +473,7 @@ public abstract class EqualsComplexNode extends Node {
     if (interop.isDuration(left) && interop.isDuration(right)) {
       return false;
     }
-    if (hasWarningsNode.execute(left) || hasWarningsNode.execute(right)) {
+    if (warnings.hasWarnings(left) || warnings.hasWarnings(right)) {
       return false;
     }
     // For all other cases, fall through to the generic specialization

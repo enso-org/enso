@@ -14,7 +14,6 @@ import com.oracle.truffle.api.profiles.CountingConditionProfile;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.hash.HashMapInsertNode;
 import org.enso.interpreter.runtime.data.text.Text;
-import org.enso.interpreter.runtime.warning.HasWarningsNode;
 import org.enso.interpreter.runtime.warning.WarningsLibrary;
 import org.enso.interpreter.runtime.warning.WithWarnings;
 
@@ -78,11 +77,10 @@ public abstract class HostValueToEnsoNode extends Node {
       @CachedLibrary(limit = "3") InteropLibrary iop,
       @CachedLibrary(limit = "3") WarningsLibrary warningsLibrary,
       @Cached CountingConditionProfile nullWarningProfile,
-      @Cached HasWarningsNode hasWarningsNode,
       @Cached HashMapInsertNode insertNode) {
     var ctx = EnsoContext.get(this);
     var nothing = ctx.getBuiltins().nothing();
-    if (nothing != value && nullWarningProfile.profile(hasWarningsNode.execute(value))) {
+    if (nothing != value && nullWarningProfile.profile(warningsLibrary.hasWarnings(value))) {
       try {
         var attachedWarnings = warningsLibrary.getWarnings(value, null, false);
         return WithWarnings.wrap(nothing, ctx, insertNode, iop, attachedWarnings);

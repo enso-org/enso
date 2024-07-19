@@ -56,12 +56,11 @@ import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.error.PanicSentinel;
-import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
-import org.enso.interpreter.runtime.state.State;
-import org.enso.interpreter.runtime.warning.HasWarningsNode;
 import org.enso.interpreter.runtime.warning.Warning;
 import org.enso.interpreter.runtime.warning.WarningsLibrary;
 import org.enso.interpreter.runtime.warning.WithWarnings;
+import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
+import org.enso.interpreter.runtime.state.State;
 
 @ImportStatic({HostMethodCallNode.PolyglotCallType.class, HostMethodCallNode.class})
 public abstract class InvokeMethodNode extends BaseNode {
@@ -510,7 +509,6 @@ public abstract class InvokeMethodNode extends BaseNode {
       @Cached(value = "buildProfiles()", dimensions = 1) BranchProfile[] warningProfiles,
       @Cached BranchProfile anyWarningsProfile,
       @Cached HostMethodCallNode hostMethodCallNode,
-      @Cached HasWarningsNode hasWarningsNode,
       @Shared("insertNode") @Cached HashMapInsertNode insertNode) {
     Object[] args = new Object[argExecutors.length];
     boolean anyWarnings = false;
@@ -520,7 +518,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       if (r instanceof DataflowError) {
         profiles[i].enter();
         return r;
-      } else if (hasWarningsNode.execute(r)) {
+      } else if (warnings.hasWarnings(r)) {
         warningProfiles[i].enter();
         anyWarnings = true;
         try {

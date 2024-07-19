@@ -16,11 +16,10 @@ import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.hash.HashMapInsertNode;
-import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
-import org.enso.interpreter.runtime.warning.HasWarningsNode;
 import org.enso.interpreter.runtime.warning.Warning;
 import org.enso.interpreter.runtime.warning.WarningsLibrary;
 import org.enso.interpreter.runtime.warning.WithWarnings;
+import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 
 @ExportLibrary(InteropLibrary.class)
 @ExportLibrary(TypesLibrary.class)
@@ -252,13 +251,12 @@ abstract class Vector implements EnsoObject {
         @Cached.Shared(value = "interop") @CachedLibrary(limit = "3") InteropLibrary interop,
         @CachedLibrary(limit = "3") WarningsLibrary warnings,
         @Cached HostValueToEnsoNode toEnso,
-        @Cached HashMapInsertNode insertNode,
-        @Cached HasWarningsNode hasWarningsNode)
+        @Cached HashMapInsertNode insertNode)
         throws InvalidArrayIndexException, UnsupportedMessageException {
       var v = interop.readArrayElement(this.storage, index);
-      if (hasWarningsNode.execute(this.storage)) {
+      if (warnings.hasWarnings(this.storage)) {
         Warning[] extracted = warnings.getWarnings(this.storage, null, false);
-        if (hasWarningsNode.execute(v)) {
+        if (warnings.hasWarnings(v)) {
           v = warnings.removeWarnings(v);
         }
         return WithWarnings.wrap(
@@ -287,9 +285,8 @@ abstract class Vector implements EnsoObject {
 
     @ExportMessage
     boolean hasWarnings(
-        @Cached.Shared(value = "warnsLib") @CachedLibrary(limit = "3") WarningsLibrary warnings,
-        @Cached HasWarningsNode hasWarningsNode) {
-      return hasWarningsNode.execute(this.storage);
+        @Cached.Shared(value = "warnsLib") @CachedLibrary(limit = "3") WarningsLibrary warnings) {
+      return warnings.hasWarnings(this.storage);
     }
 
     @ExportMessage

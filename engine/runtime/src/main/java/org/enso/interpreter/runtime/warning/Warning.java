@@ -115,10 +115,8 @@ public final class Warning implements EnsoObject {
       boolean shouldWrap,
       WarningsLibrary warningsLib,
       @Shared @Cached HashMapInsertNode insertNode,
-      @CachedLibrary(limit = "3") InteropLibrary interop,
-      @Shared @Cached HasWarningsNode hasWarningsNode) {
-    Warning[] warnings =
-        value.getWarningsArray(shouldWrap, warningsLib, hasWarningsNode, insertNode, interop);
+      @CachedLibrary(limit = "3") InteropLibrary interop) {
+    Warning[] warnings = value.getWarningsArray(shouldWrap, warningsLib, insertNode, interop);
     sortArray(warnings);
     return ArrayLikeHelpers.asVectorEnsoObjects(warnings);
   }
@@ -133,9 +131,8 @@ public final class Warning implements EnsoObject {
       boolean shouldWrap,
       WarningsLibrary warningsLib,
       @Shared @Cached HashMapInsertNode insertNode,
-      @CachedLibrary(limit = "3") InteropLibrary interop,
-      @Shared @Cached HasWarningsNode hasWarningsNode) {
-    if (hasWarningsNode.execute(value)) {
+      @CachedLibrary(limit = "3") InteropLibrary interop) {
+    if (warningsLib.hasWarnings(value)) {
       try {
         Warning[] warnings = warningsLib.getWarnings(value, null, shouldWrap);
         sortArray(warnings);
@@ -153,10 +150,7 @@ public final class Warning implements EnsoObject {
           "Returns `true` if the maximal number of warnings has been reached, `false` otherwise.",
       autoRegister = false)
   @Builtin.Specialize
-  public static boolean limitReached(
-      WithWarnings value,
-      WarningsLibrary warnings,
-      @Shared @Cached HasWarningsNode hasWarningsNode) {
+  public static boolean limitReached(WithWarnings value, WarningsLibrary warnings) {
     return value.isLimitReached();
   }
 
@@ -165,9 +159,8 @@ public final class Warning implements EnsoObject {
           "Returns `true` if the maximal number of warnings has been reached, `false` otherwise.",
       autoRegister = false)
   @Builtin.Specialize(fallback = true)
-  public static boolean limitReached(
-      Object value, WarningsLibrary warnings, @Shared @Cached HasWarningsNode hasWarningsNode) {
-    return hasWarningsNode.execute(value) && warnings.isLimitReached(value);
+  public static boolean limitReached(Object value, WarningsLibrary warnings) {
+    return warnings.hasWarnings(value) && warnings.isLimitReached(value);
   }
 
   @CompilerDirectives.TruffleBoundary

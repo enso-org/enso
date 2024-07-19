@@ -16,11 +16,10 @@ import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.hash.HashMapInsertNode;
-import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
-import org.enso.interpreter.runtime.warning.HasWarningsNode;
 import org.enso.interpreter.runtime.warning.Warning;
 import org.enso.interpreter.runtime.warning.WarningsLibrary;
 import org.enso.interpreter.runtime.warning.WithWarnings;
+import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 
 @ExportLibrary(TypesLibrary.class)
 @ExportLibrary(InteropLibrary.class)
@@ -93,7 +92,6 @@ final class ArraySlice implements EnsoObject {
       long index,
       @Shared("interop") @CachedLibrary(limit = "3") InteropLibrary interop,
       @CachedLibrary(limit = "3") WarningsLibrary warnings,
-      @Cached HasWarningsNode hasWarningsNode,
       @Cached HostValueToEnsoNode toEnso,
       @Cached HashMapInsertNode insertNode)
       throws InvalidArrayIndexException, UnsupportedMessageException {
@@ -102,9 +100,9 @@ final class ArraySlice implements EnsoObject {
     }
 
     var v = interop.readArrayElement(storage, start + index);
-    if (hasWarningsNode.execute(this)) {
+    if (this.hasWarnings(warnings)) {
       Warning[] extracted = this.getWarnings(null, false, warnings);
-      if (hasWarningsNode.execute(v)) {
+      if (warnings.hasWarnings(v)) {
         v = warnings.removeWarnings(v);
       }
       return WithWarnings.wrap(
@@ -155,10 +153,8 @@ final class ArraySlice implements EnsoObject {
   }
 
   @ExportMessage
-  boolean hasWarnings(
-      @Shared("warnsLib") @CachedLibrary(limit = "3") WarningsLibrary warnings,
-      @Cached HasWarningsNode hasWarningsNode) {
-    return hasWarningsNode.execute(this.storage);
+  boolean hasWarnings(@Shared("warnsLib") @CachedLibrary(limit = "3") WarningsLibrary warnings) {
+    return warnings.hasWarnings(this.storage);
   }
 
   @ExportMessage

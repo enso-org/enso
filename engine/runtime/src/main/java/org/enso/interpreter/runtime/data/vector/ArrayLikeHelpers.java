@@ -11,9 +11,8 @@ import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.error.DataflowError;
-import org.enso.interpreter.runtime.state.State;
-import org.enso.interpreter.runtime.warning.HasWarningsNode;
 import org.enso.interpreter.runtime.warning.WarningsLibrary;
+import org.enso.interpreter.runtime.state.State;
 
 /** Publicly available operations on array-like classes. */
 @Builtin(pkg = "immutable", stdlibName = "Standard.Base.Internal.Array_Like_Helpers")
@@ -88,7 +87,6 @@ public final class ArrayLikeHelpers {
       Function fun,
       State state,
       @Cached("buildWithArity(1)") InvokeFunctionNode invokeFunctionNode,
-      @Cached HasWarningsNode hasWarningsNode,
       @CachedLibrary(limit = "3") WarningsLibrary warnings) {
     var len = Math.toIntExact(length);
     var target = ArrayBuilder.newBuilder(len);
@@ -97,7 +95,7 @@ public final class ArrayLikeHelpers {
       if (value instanceof DataflowError) {
         return value;
       }
-      target.add(value, warnings, hasWarningsNode);
+      target.add(value, warnings);
     }
     return target.asVector();
   }
