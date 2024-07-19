@@ -106,18 +106,10 @@ type SQLServer_Type_Mapping
 
     ## PRIVATE
     sql_type_to_text : SQL_Type -> Text
-    sql_type_to_text sql_type =
-        variable_length_types = [Types.VARCHAR, Types.BINARY]
-        ## If the type is variable length and the maximum is provided, we treat
-           it as unbounded, otherwise too big max length may be not accepted by
-           Snowflake.
-        skip_precision = (variable_length_types.contains sql_type.typeid) && (sql_type.precision == max_length)
-        case skip_precision of
-            True -> sql_type.name
-            False -> SQL_Type_Mapping.default_sql_type_to_text sql_type
+    sql_type_to_text sql_type = SQL_Type_Mapping.default_sql_type_to_text sql_type
 
     ## PRIVATE
-       The Snowflake_Type_Mapping always relies on the return type determined by
+       The SQLServer_Type_Mapping always relies on the return type determined by
        the database backend.
     infer_return_type : (SQL_Expression -> SQL_Type_Reference) -> Text -> Vector -> SQL_Expression -> SQL_Type_Reference
     infer_return_type infer_from_database_callback op_name arguments expression =
@@ -139,10 +131,7 @@ type SQLServer_Type_Mapping
     make_column_fetcher : SQL_Type -> Column_Fetcher
     make_column_fetcher self sql_type =
         value_type = self.sql_type_to_value_type sql_type
-        case value_type of
-            Value_Type.Time -> time_fetcher
-            Value_Type.Date_Time _ -> date_time_fetcher
-            _ -> Column_Fetcher_Module.default_fetcher_for_value_type value_type
+        Column_Fetcher_Module.default_fetcher_for_value_type value_type
 
     ## PRIVATE
     is_implicit_conversion (source_type : Value_Type) (target_type : Value_Type) -> Boolean =
@@ -188,28 +177,6 @@ on_unknown_type sql_type =
    This is the maximum size that JDBC driver reports for 'unbounded' types in
    Snowflake.
 max_length = 16777216
-
-## PRIVATE
-time_fetcher =
-    fetch_value rs i =
-        ## Read the time as a string to get the nanosecond precision.
-        sf_string = rs.getString i
-        if sf_string == Nothing then Nothing else Time_Of_Day.parse sf_string
-    make_builder initial_size _ =
-        java_builder = Java_Exports.make_time_of_day_builder initial_size
-        Column_Fetcher_Module.make_builder_from_java_object_builder java_builder
-    Column_Fetcher.Value fetch_value make_builder
-
-## PRIVATE
-date_time_fetcher =
-    fetch_value rs i =
-        ## Read the time as a string to get the nanosecond precision.
-        sf_string = rs.getString i
-        if sf_string == Nothing then Nothing else Date_Time.parse sf_string
-    make_builder initial_size _ =
-        java_builder = Java_Exports.make_date_time_builder initial_size
-        Column_Fetcher_Module.make_builder_from_java_object_builder java_builder
-    Column_Fetcher.Value fetch_value make_builder
 
 ## PRIVATE
    This is the maximum size that JDBC driver reports for 'unbounded' types in
