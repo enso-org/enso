@@ -6,10 +6,10 @@ use crate::paths::ENSO_META_TEST_ARGS;
 use crate::paths::ENSO_META_TEST_COMMAND;
 use crate::paths::ENSO_TEST_ANSI_COLORS;
 use crate::postgres;
-use crate::postgres::EndpointConfiguration;
+use crate::postgres::EndpointConfiguration as PostgresEndpointConfiguration;
 use crate::postgres::Postgresql;
 use crate::sqlserver;
-use crate::sqlserver::EndpointConfiguration;
+use crate::sqlserver::EndpointConfiguration as SQLServerEndpointConfiguration;
 use crate::sqlserver::SQLServer;
 
 use ide_ci::future::AsyncPolicy;
@@ -150,7 +150,7 @@ impl BuiltEnso {
                     database_name:      "enso_test_db".to_string(),
                     user:               "enso_test_user".to_string(),
                     password:           "enso_test_password".to_string(),
-                    endpoint:           EndpointConfiguration::deduce()?,
+                    endpoint:           PostgresEndpointConfiguration::deduce()?,
                     version:            "latest".to_string(),
                 };
                 let postgres = Postgresql::start(config).await?;
@@ -174,7 +174,7 @@ impl BuiltEnso {
                     database_name:       "tempdb".to_string(),
                     user:                "sa".to_string(),
                     password:            "enso_test_password".to_string(),
-                    endpoint:            EndpointConfiguration::deduce()?,
+                    endpoint:            SQLServerEndpointConfiguration::deduce()?,
                     version:             "latest".to_string(),
                 };
                 let sqlserver = SQLServer::start(config).await?;
