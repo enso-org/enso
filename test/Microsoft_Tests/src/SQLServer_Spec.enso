@@ -66,7 +66,7 @@ get_configured_connection_details =
     database = Environment.get "ENSO_SQLSERVER_DATABASE"
     resolved_password = if password.starts_with "enso://" then Enso_Secret.get password else password
     credentials = Credentials.Username_And_Password user resolved_password
-    if db_name.is_nothing then Nothing else
+    if database.is_nothing then Nothing else
         SQLServer_Details.SQLServer host port credentials database
 
 ## Returns a function that takes anything and returns a new connection.
