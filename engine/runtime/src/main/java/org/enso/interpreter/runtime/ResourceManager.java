@@ -39,10 +39,9 @@ public final class ResourceManager {
    *
    * @param resource the resource to park.
    */
-  @CompilerDirectives.TruffleBoundary
   public void park(ManagedResource resource) {
     if (resource.getPhantomReference() instanceof Item it) {
-      it.getParkedCount().incrementAndGet();
+      it.park();
     }
   }
 
@@ -52,12 +51,17 @@ public final class ResourceManager {
    *
    * @param resource the resource to unpark.
    */
-  @CompilerDirectives.TruffleBoundary
   public void unpark(ManagedResource resource) {
     if (resource.getPhantomReference() instanceof Item it) {
-      it.getParkedCount().decrementAndGet();
-      scheduleFinalizationAtSafepoint(it);
+      if (it.unpark(context)) {
+        removeFromItems(it);
+      }
     }
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  private Item removeFromItems(PhantomReference<ManagedResource> it) {
+    return items.remove(it);
   }
 
   /**
@@ -69,7 +73,7 @@ public final class ResourceManager {
   @CompilerDirectives.TruffleBoundary
   public void close(ManagedResource resource) {
     if (resource.getPhantomReference() instanceof Item it) {
-      items.remove(it);
+      removeFromItems(it);
       // Unconditional finalization – user controls the resource manually.
       it.finalizeNow(context);
     }
@@ -83,26 +87,7 @@ public final class ResourceManager {
    */
   @CompilerDirectives.TruffleBoundary
   public void take(ManagedResource resource) {
-    items.remove(resource.getPhantomReference());
-  }
-
-  private void scheduleFinalizationAtSafepoint(Item it) {
-    if (it.isFlaggedForFinalization().get()) {
-      if (it.getParkedCount().get() == 0) {
-        // We already know that isFlaggedForFinalization was true at some
-        // point and there are no other threads still parking the underlying
-        // value. Note that it is impossible for parked count to increase after
-        // the value is flagged for finalization, as parking the value requires
-        // a live reference. We need to check if another thread didn't reach
-        // here earlier to perform the finalization and reset the flag, so that
-        // no further attempts are made.
-        boolean continueFinalizing = it.isFlaggedForFinalization().compareAndSet(true, false);
-        if (continueFinalizing) {
-          it.finalizeNow(context);
-          items.remove(it);
-        }
-      }
-    }
+    removeFromItems(resource.getPhantomReference());
   }
 
   /**
@@ -152,7 +137,7 @@ public final class ResourceManager {
       }
     }
     for (PhantomReference<ManagedResource> key : items.keySet()) {
-      Item it = items.remove(key);
+      Item it = removeFromItems(key);
       if (it != null) {
         // Finalize unconditionally – all other threads are dead by now.
         it.finalizeNow(context);
@@ -200,7 +185,8 @@ public final class ResourceManager {
         }
         try {
           for (var it : toProcess) {
-            scheduleFinalizationAtSafepoint(it);
+            it.finalizeNow(context);
+            removeFromItems(it);
           }
         } finally {
           synchronized (pendingItems) {
@@ -228,7 +214,7 @@ public final class ResourceManager {
           Reference<? extends ManagedResource> ref = referenceQueue.remove();
           if (!killed) {
             if (ref instanceof Item it) {
-              it.isFlaggedForFinalization().set(true);
+              it.flaggedForFinalization.set(true);
               synchronized (pendingItems) {
                 if (pendingItems.isEmpty()) {
                   context.submitThreadLocal(null, this);
@@ -264,7 +250,23 @@ public final class ResourceManager {
   private static final class Item extends PhantomReference<ManagedResource> {
     private final Object underlying;
     private final Object finalizer;
+
+    /**
+     * Returns the counter of actions parking this object. The object can be safely finalized only
+     * if it's unreachable {@link #isFlaggedForFinalization()} and this counter is zero.
+     *
+     * @return the parking actions counter
+     */
     private final AtomicInteger parkedCount = new AtomicInteger();
+
+    /**
+     * Returns the boolean representing finalization status of this object. The object should be
+     * removed by the first thread that observes this flag to be set to true and the {@link
+     * #getParkedCount()} to be zero. If a thread intends to perform the finalization, it should set
+     * this flag to {@code false}.
+     *
+     * @return the finalization flag
+     */
     private final AtomicBoolean flaggedForFinalization = new AtomicBoolean();
 
     /**
@@ -291,6 +293,7 @@ public final class ResourceManager {
      *
      * @param context current execution context
      */
+    @CompilerDirectives.TruffleBoundary
     private void finalizeNow(EnsoContext context) {
       try {
         InteropLibrary.getUncached(finalizer).execute(finalizer, underlying);
@@ -299,26 +302,22 @@ public final class ResourceManager {
       }
     }
 
-    /**
-     * Returns the counter of actions parking this object. The object can be safely finalized only
-     * if it's unreachable {@link #isFlaggedForFinalization()} and this counter is zero.
-     *
-     * @return the parking actions counter
-     */
-    private AtomicInteger getParkedCount() {
-      return parkedCount;
+    private void park() {
+      parkedCount.incrementAndGet();
     }
 
     /**
-     * Returns the boolean representing finalization status of this object. The object should be
-     * removed by the first thread that observes this flag to be set to true and the {@link
-     * #getParkedCount()} to be zero. If a thread intends to perform the finalization, it should set
-     * this flag to {@code false}.
-     *
-     * @return the finalization flag
+     * @return {@code true} if the finalizer was run
      */
-    private AtomicBoolean isFlaggedForFinalization() {
-      return flaggedForFinalization;
+    private boolean unpark(EnsoContext context) {
+      if (parkedCount.decrementAndGet() == 0) {
+        boolean continueFinalizing = flaggedForFinalization.compareAndSet(true, false);
+        if (continueFinalizing) {
+          finalizeNow(context);
+          return true;
+        }
+      }
+      return false;
     }
   }
 }
