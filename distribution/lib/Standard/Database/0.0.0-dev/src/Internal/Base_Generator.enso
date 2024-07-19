@@ -437,28 +437,16 @@ generate_select_query_sql dialect columns ctx =
                 so we should probably fail in such cases; probably rewrite into a generic modifier? or a transform?
             generated = SQL_Builder.join ", " (expressions.map (generate_expression dialect))
             SQL_Builder.code "DISTINCT ON (" ++ generated ++ ") "
-    SQL_Builder.code "SELECT " ++ prefix ++ cols ++ generate_select_context dialect ctx
-
-## PRIVATE
-
-   Generates SQL code corresponding to a SELECT statement.
-
-   Arguments:
-   - dialect: The SQL dialect for which the code is being generated.
-   - ctx: A description of the SELECT clause.
-generate_select_context : Dialect -> Context -> SQL_Builder
-generate_select_context dialect ctx =
     gen_exprs exprs = exprs.map (generate_expression dialect)
     from_part = generate_from_part dialect ctx.from_spec
     where_part = (SQL_Builder.join " AND " (gen_exprs ctx.where_filters)) . prefix_if_present " WHERE "
     group_part = (SQL_Builder.join ", " (gen_exprs ctx.groups)) . prefix_if_present " GROUP BY "
-    limit_part = case ctx.limit of
-        Nothing -> ""
-        _ : Integer -> ""
-
     orders = ctx.orders.map (generate_order dialect)
     order_part = (SQL_Builder.join ", " orders) . prefix_if_present " ORDER BY "
-    (SQL_Builder.code " FROM ") ++ from_part ++ where_part ++ group_part ++ order_part ++ limit_part
+    postfix = case ctx.limit of
+        Nothing -> ""
+        _ : Integer -> ""
+    SQL_Builder.code "SELECT " ++ prefix ++ cols ++ " FROM " ++ from_part ++ where_part ++ group_part ++ order_part ++ postfix
 
 ## PRIVATE
 
