@@ -427,6 +427,9 @@ generate_order dialect order_descriptor =
 generate_select_query_sql : Dialect -> Vector (Pair Text SQL_Expression) -> Context -> SQL_Builder
 generate_select_query_sql dialect columns ctx =
     gen_column pair = (generate_expression dialect pair.second) ++ alias dialect pair.first
+    top_part = case ctx.limit of
+        Nothing -> SQL_Builder.code ""
+        _ : Integer -> dialect.get_top_part_sql ctx.limit
     cols = case columns of
         Nothing -> SQL_Builder.code "*"
         _ -> SQL_Builder.join ", " (columns.map gen_column)
@@ -443,10 +446,10 @@ generate_select_query_sql dialect columns ctx =
     group_part = (SQL_Builder.join ", " (gen_exprs ctx.groups)) . prefix_if_present " GROUP BY "
     orders = ctx.orders.map (generate_order dialect)
     order_part = (SQL_Builder.join ", " orders) . prefix_if_present " ORDER BY "
-    postfix = case ctx.limit of
+    limit_part = case ctx.limit of
         Nothing -> ""
-        _ : Integer -> ""
-    SQL_Builder.code "SELECT " ++ prefix ++ cols ++ " FROM " ++ from_part ++ where_part ++ group_part ++ order_part ++ postfix
+        _ : Integer -> dialect.get_limit_part_sql ctx.limit
+    SQL_Builder.code "SELECT " ++ top_part ++ prefix ++ cols ++ " FROM " ++ from_part ++ where_part ++ group_part ++ order_part ++ limit_part
 
 ## PRIVATE
 
