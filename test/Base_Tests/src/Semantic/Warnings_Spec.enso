@@ -186,7 +186,7 @@ add_specs suite_builder = suite_builder.group "Dataflow Warnings" group_builder-
         filtered = warnings.filter x-> x.value % 2 == 0
         rewarned = Warning.set warned filtered
         rewarned.should_equal 'foo'
-        Warning.get_all rewarned . map .value . should_contain_the_same_elements_as [2,4]
+        Warning.get_all rewarned . map .value . should_equal_ignoring_order [2,4]
 
     group_builder.specify "should allow checking for any warnings" <|
         Warning.has_warnings "foo" . should_be_false
@@ -212,20 +212,23 @@ add_specs suite_builder = suite_builder.group "Dataflow Warnings" group_builder-
             count = Warning.get_all x . length
             Warning.attach "BAZ" count
         y . should_equal 0
-        Warning.get_all y . map .value . should_contain_the_same_elements_as [4, 3, 2, 1, "BAZ"]
+        Warning.get_all y . map .value . should_equal_ignoring_order [4, 3, 2, 1, "BAZ"]
 
     group_builder.specify "should allow to map the warnings, selectively" <|
         warned = attach_four_warnings "foo"
         mapped = map_odd_warnings warned
         mapped . should_equal 'foo'
-        Warning.get_all mapped . map .value . should_contain_the_same_elements_as [11, 2, 13, 4]
+        Warning.get_all mapped . map .value . should_equal_ignoring_order [11, 2, 13, 4]
 
     group_builder.specify "should allow to map warnings and errors, selectively" <|
         warned = attach_four_warnings "foo"
         mapped = map_odd_warnings_and_errors warned
         mapped . should_equal 'foo'
-        Warning.get_all mapped . map .value . should_contain_the_same_elements_as [11, 2, 13, 4]
-        Warning.get_all mapped . map (w-> w.origin.first.name) . should_contain_the_same_elements_as ["Warnings_Spec.map_odd_warnings_and_errors", "Warnings_Spec.attach_four_warnings"]
+        Warning.get_all mapped . map .value
+            . should_equal_ignoring_order [11, 2, 13, 4]
+        Warning.get_all mapped . map (w-> w.origin.first.name)
+            . distinct
+            . should_equal_ignoring_order ["Warnings_Spec.map_odd_warnings_and_errors", "Warnings_Spec.attach_four_warnings"]
 
         errored_2 = Error.throw 7
         mapped_2 = map_odd_warnings_and_errors errored_2
@@ -311,7 +314,7 @@ add_specs suite_builder = suite_builder.group "Dataflow Warnings" group_builder-
         v = 0.up_to 10 . to_vector
         r = v.map x->(if x % 2 == 0 then 10*x else Warning.attach 100*x x)
         r.should_equal [0, 1, 20, 3, 40, 5, 60, 7, 80, 9]
-        Warning.get_all r wrap_errors=True . map .value . should_contain_the_same_elements_as [Map_Error.Error 1 100, Map_Error.Error 3 300, Map_Error.Error 5 500, Map_Error.Error 7 700, Map_Error.Error 9 900]
+        Warning.get_all r wrap_errors=True . map .value . should_equal_ignoring_order [Map_Error.Error 1 100, Map_Error.Error 3 300, Map_Error.Error 5 500, Map_Error.Error 7 700, Map_Error.Error 9 900]
 
     group_builder.specify "should be preserved after operations on multi-dimensional Vector" <|
         even x = (Warning.attach x x) % 2
@@ -335,9 +338,9 @@ add_specs suite_builder = suite_builder.group "Dataflow Warnings" group_builder-
 
         r = a.if_not_error b
         r.should_equal 2
-        Warning.get_all r . map .value . should_contain_the_same_elements_as ["b", "a"]
-        Warning.get_all a . map .value . should_contain_the_same_elements_as ["a"]
-        Warning.get_all b . map .value . should_contain_the_same_elements_as ["b"]
+        Warning.get_all r . map .value . should_equal_ignoring_order ["b", "a"]
+        Warning.get_all a . map .value . should_equal_ignoring_order ["a"]
+        Warning.get_all b . map .value . should_equal_ignoring_order ["b"]
 
     group_builder.specify "should be preserved around polyglot calls" <|
         x = Warning.attach "x" 1
@@ -351,11 +354,11 @@ add_specs suite_builder = suite_builder.group "Dataflow Warnings" group_builder-
 
         r1 = java_id.apply x
         r1.should_equal 1
-        Warning.get_all r1 . map .value . should_contain_the_same_elements_as ["x"]
+        Warning.get_all r1 . map .value . should_equal_ignoring_order ["x"]
 
         r2 = javaized_f.apply x
         r2.should_equal (Pair.new "A" 11)
-        Warning.get_all r2 . map .value . should_contain_the_same_elements_as ["f(1)", "x"]
+        Warning.get_all r2 . map .value . should_equal_ignoring_order ["f(1)", "x"]
 
         ## The following will not work, as if the polyglot method expects an
            `Object` it will get converted to a Java 'primitive' losing the
@@ -375,19 +378,19 @@ add_specs suite_builder = suite_builder.group "Dataflow Warnings" group_builder-
 
         r1 = CallbackHelper.runCallbackInt f x
         r1.should_equal (Pair.new "A" 11)
-        Warning.get_all r1 . map .value . should_contain_the_same_elements_as ["f(1)", "x"]
+        Warning.get_all r1 . map .value . should_equal_ignoring_order ["f(1)", "x"]
 
         r2 = CallbackHelper.runCallbackInt g x
         r2.should_equal 11
-        Warning.get_all r2 . map .value . should_contain_the_same_elements_as ["g(1)", "x"]
+        Warning.get_all r2 . map .value . should_equal_ignoring_order ["g(1)", "x"]
 
         r3 = CallbackHelper.runCallbackInt h x
         r3.should_equal "{x=1}"
-        Warning.get_all r3 . map .value . should_contain_the_same_elements_as ["h(1)", "x"]
+        Warning.get_all r3 . map .value . should_equal_ignoring_order ["h(1)", "x"]
 
         r4 = CallbackHelper.runCallbackInt i x
         r4.should_equal Nothing
-        Warning.get_all r4 . map .value . should_contain_the_same_elements_as ["i(1)", "x"]
+        Warning.get_all r4 . map .value . should_equal_ignoring_order ["i(1)", "x"]
 
     group_builder.specify "should not affect method dispatch" <|
         a = My_Fancy_Collection.Value 42
