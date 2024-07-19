@@ -40,14 +40,14 @@ type SQLServer_Info_Data
     setup default_connection = SQLServer_Info_Data.Value <|
         connection = default_connection
         tinfo = Name_Generator.random_name "Tinfo"
-        result = connection.execute_update 'Create Table "'+tinfo+'" ("strs" VARCHAR(255), "ints" BIGINT, "bools" BIT, "doubles" FLOAT)'
+        connection.execute_update 'Create Table "'+tinfo+'" ("strs" VARCHAR(255), "ints" BIGINT, "bools" BIT, "doubles" FLOAT)'
         t = connection.query (SQL_Query.Table_Name tinfo)
         row1 = ["a", Nothing, False, 1.2]
         row2 = ["abc", Nothing, Nothing, 1.3]
         row3 = ["def", 42, True, 1.4]
         Panic.rethrow <|
-            r = t.update_rows (Table.from_rows ["strs", "ints", "bools", "doubles"] [row1, row2, row3]) update_action=Update_Action.Insert
-            IO.println r
+            t.update_rows (Table.from_rows ["strs", "ints", "bools", "doubles"] [row1, row2, row3]) update_action=Update_Action.Insert
+
         [connection, tinfo, t]
 
     teardown self =
@@ -88,7 +88,6 @@ add_specs suite_builder =
 
         group_builder.specify "should return Table information, also for aggregated results" <|
             i = data.t.aggregate columns=[Aggregate_Column.Sum "ints", Aggregate_Column.Count_Distinct "bools"] . column_info
-            IO.println i.display
             i.at "Column" . to_vector . should_equal ["Sum ints", "Count Distinct bools"]
             i.at "Items Count" . to_vector . should_equal [1, 1]
             i.at "Value Type" . to_vector . should_equal [Value_Type.Integer, Value_Type.Integer ..Bits_32]
