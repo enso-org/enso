@@ -17,7 +17,7 @@ import org.enso.interpreter.runtime.data.hash.HashMapInsertNode;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 
 @BuiltinMethod(
-    type = "Standard.Base.Warning.Warning",
+    type = "Warning",
     name = "get_all_vector",
     description = "Gets all the warnings associated with the value.",
     autoRegister = false)
