@@ -362,24 +362,6 @@ export function useBackendMutationVariables<Method extends backendQuery.BackendM
   })
 }
 
-// ===================================
-// === mergeBackendMutationOptions ===
-// ===================================
-
-/** Merge mutation options. */
-function mergeBackendMutationOptions<Method extends MutationMethodInternal>(
-  options: BackendMutationOptions<Method> | undefined,
-  toMerge: Required<Pick<BackendMutationOptions<Method>, 'onSuccess'>>
-): BackendMutationOptions<Method> {
-  return {
-    ...options,
-    onSuccess: (...args) => {
-      options?.onSuccess?.(...args)
-      toMerge.onSuccess(...args)
-    },
-  }
-}
-
 // ===================
 // === Placeholder ===
 // ===================
@@ -654,15 +636,13 @@ function createRemoteBackendMutationBuilder<
     const setQueryData = useBackendSetQueryData(backend)
     // eslint-disable-next-line no-restricted-syntax
     const extraHooks = useExtraHooks?.() as ExtraHooks
-    return useBackendMutationOptionsInternal(
-      backend,
-      method,
-      mergeBackendMutationOptions(options, {
-        onSuccess: (...args) => {
-          onSuccess({ backend, setQueryData, ...extraHooks }, ...args)
-        },
-      })
-    )
+    return useBackendMutationOptionsInternal(backend, method, {
+      ...options,
+      onSuccess: (...args) => {
+        options?.onSuccess?.(...args)
+        onSuccess({ backend, setQueryData, ...extraHooks }, ...args)
+      },
+    })
   }
   return useBuilder
 }
