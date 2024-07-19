@@ -581,7 +581,6 @@ generate_create_table dialect name columns primary_key temporary =
     modifiers = if primary_key.is_nothing then [] else
         [SQL_Builder.code ", PRIMARY KEY (" ++ SQL_Builder.join ", " (primary_key.map dialect.wrap_identifier) ++ ")"]
     table_type = if temporary && dialect.suppports_temporary_table_syntax then "TEMPORARY TABLE" else "TABLE"
-    table_name = if temporary && dialect.suppports_temporary_with_hash_syntax then "#"+name else name
     create_prefix = SQL_Builder.code ("CREATE "+table_type+" ") ++ dialect.wrap_identifier name
     create_body = (SQL_Builder.join ", " column_definitions) ++ (SQL_Builder.join "" modifiers)
     create_prefix ++ " (" ++ create_body ++ ")"
