@@ -2,7 +2,6 @@
 import * as React from 'react'
 
 import * as backendHooks from '#/hooks/backendHooks'
-import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
@@ -39,7 +38,6 @@ export interface NewLabelModalProps {
 /** A modal for creating a new label. */
 export default function NewLabelModal(props: NewLabelModalProps) {
   const { backend, eventTarget } = props
-  const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
   const [value, setValue] = React.useState('')
@@ -54,16 +52,12 @@ export default function NewLabelModal(props: NewLabelModalProps) {
   const leastUsedColor = React.useMemo(() => backendModule.leastUsedColor(labels), [labels])
   const canSubmit = Boolean(value && !labelNames.has(value))
 
-  const createTagMutation = backendHooks.useBackendMutation(backend, 'createTag')
+  const createTag = backendHooks.useCreateTagMutation().mutate
 
-  const doSubmit = async () => {
+  const doSubmit = () => {
     if (value !== '') {
       unsetModal()
-      try {
-        await createTagMutation.mutateAsync([{ value, color: color ?? leastUsedColor }])
-      } catch (error) {
-        toastAndLog(null, error)
-      }
+      createTag([{ value, color: color ?? leastUsedColor }])
     }
   }
 
@@ -84,7 +78,7 @@ export default function NewLabelModal(props: NewLabelModalProps) {
           event.preventDefault()
           // Consider not calling `onSubmit()` here to make it harder to accidentally
           // delete an important asset.
-          void doSubmit()
+          doSubmit()
         }}
       >
         <aria.Heading level={2} className="relative text-sm font-semibold">

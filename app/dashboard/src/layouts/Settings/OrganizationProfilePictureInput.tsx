@@ -29,23 +29,16 @@ export default function OrganizationProfilePictureInput(
   const { backend } = props
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { getText } = textProvider.useText()
-  const organization = backendHooks.useBackendGetOrganization(backend)
+  const organization = backendHooks.useGetOrganization(backend)
 
-  const uploadOrganizationPictureMutation = backendHooks.useBackendMutation(
-    backend,
-    'uploadOrganizationPicture'
-  )
+  const uploadOrganizationPictureMutation = backendHooks.useUploadOrganizationPictureMutation()
 
-  const doUploadOrganizationPicture = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const doUploadOrganizationPicture = (event: React.ChangeEvent<HTMLInputElement>) => {
     const image = event.target.files?.[0]
     if (image == null) {
       toastAndLog('noNewProfilePictureError')
     } else {
-      try {
-        await uploadOrganizationPictureMutation.mutateAsync([{ fileName: image.name }, image])
-      } catch (error) {
-        toastAndLog(null, error)
-      }
+      uploadOrganizationPictureMutation.mutate([{ fileName: image.name }, image])
     }
     // Reset selected files, otherwise the file input will do nothing if the same file is
     // selected again. While technically not undesired behavior, it is unintuitive for the user.

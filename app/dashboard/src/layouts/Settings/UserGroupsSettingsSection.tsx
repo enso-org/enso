@@ -44,11 +44,11 @@ export default function UserGroupsSettingsSection(props: UserGroupsSettingsSecti
   const { user } = authProvider.useFullUserSession()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const users = backendHooks.useListUsers(backend)
-  const userGroups = backendHooks.useBackendListUserGroupsWithUsers(backend)
+  const userGroups = backendHooks.useListUserGroupsWithUsers(backend)
   const rootRef = React.useRef<HTMLDivElement>(null)
   const bodyRef = React.useRef<HTMLTableSectionElement>(null)
-  const changeUserGroup = backendHooks.useBackendMutation(backend, 'changeUserGroup')
-  const deleteUserGroup = backendHooks.useBackendMutation(backend, 'deleteUserGroup')
+  const changeUserGroup = backendHooks.useChangeUserGroupMutation()
+  const deleteUserGroup = backendHooks.useDeleteUserGroupMutation()
   const usersMap = React.useMemo(
     () => new Map((users ?? []).map(otherUser => [otherUser.userId, otherUser])),
     [users]

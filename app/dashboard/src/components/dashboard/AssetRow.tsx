@@ -140,12 +140,12 @@ export default function AssetRow(props: AssetRowProps) {
   const getDatalinkMutation = backendHooks.useBackendMutation(backend, 'getDatalink')
   const createPermissionMutation = backendHooks.useBackendMutation(backend, 'createPermission')
   const associateTagMutation = backendHooks.useBackendMutation(backend, 'associateTag')
-  const copyAssetMutate = copyAssetMutation.mutateAsync
-  const updateAssetMutate = updateAssetMutation.mutateAsync
-  const deleteAssetMutate = deleteAssetMutation.mutateAsync
-  const undoDeleteAssetMutate = undoDeleteAssetMutation.mutateAsync
-  const openProjectMutate = openProjectMutation.mutateAsync
-  const closeProjectMutate = closeProjectMutation.mutateAsync
+  const copyAsset = copyAssetMutation.mutateAsync
+  const updateAsset = updateAssetMutation.mutateAsync
+  const deleteAsset = deleteAssetMutation.mutateAsync
+  const undoDeleteAsset = undoDeleteAssetMutation.mutateAsync
+  const openProject = openProjectMutation.mutateAsync
+  const closeProject = closeProjectMutation.mutateAsync
 
   React.useEffect(() => {
     setItem(rawItem)
@@ -185,7 +185,7 @@ export default function AssetRow(props: AssetRowProps) {
           })
         )
         newParentId ??= rootDirectoryId
-        const copiedAsset = await copyAssetMutate([
+        const copiedAsset = await copyAsset([
           asset.id,
           newParentId,
           asset.title,
@@ -212,7 +212,7 @@ export default function AssetRow(props: AssetRowProps) {
       asset,
       item.key,
       toastAndLog,
-      copyAssetMutate,
+      copyAsset,
       nodeMap,
       setAsset,
       dispatchAssetListEvent,
@@ -268,7 +268,7 @@ export default function AssetRow(props: AssetRowProps) {
           item: newAsset,
         })
         setAsset(newAsset)
-        await updateAssetMutate([
+        await updateAsset([
           asset.id,
           { parentDirectoryId: newParentId ?? rootDirectoryId, description: null },
           asset.title,
@@ -305,7 +305,7 @@ export default function AssetRow(props: AssetRowProps) {
       item.directoryKey,
       item.key,
       toastAndLog,
-      updateAssetMutate,
+      updateAsset,
       setAsset,
       dispatchAssetListEvent,
     ]
@@ -340,15 +340,15 @@ export default function AssetRow(props: AssetRowProps) {
             asset.projectState.type !== backendModule.ProjectState.placeholder &&
             asset.projectState.type !== backendModule.ProjectState.closed
           ) {
-            await openProjectMutate([asset.id, null, asset.title])
+            await openProject([asset.id, null, asset.title])
           }
           try {
-            await closeProjectMutate([asset.id, asset.title])
+            await closeProject([asset.id, asset.title])
           } catch {
             // Ignored. The project was already closed.
           }
         }
-        await deleteAssetMutate([asset.id, { force: forever }, asset.title])
+        await deleteAsset([asset.id, { force: forever }, asset.title])
         dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
       } catch (error) {
         setInsertionVisibility(Visibility.visible)
@@ -359,9 +359,9 @@ export default function AssetRow(props: AssetRowProps) {
       backend,
       dispatchAssetListEvent,
       asset,
-      openProjectMutate,
-      closeProjectMutate,
-      deleteAssetMutate,
+      openProject,
+      closeProject,
+      deleteAsset,
       item.key,
       toastAndLog,
     ]
@@ -371,13 +371,13 @@ export default function AssetRow(props: AssetRowProps) {
     // Visually, the asset is deleted from the Trash view.
     setInsertionVisibility(Visibility.hidden)
     try {
-      await undoDeleteAssetMutate([asset.id, asset.title])
+      await undoDeleteAsset([asset.id, asset.title])
       dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
     } catch (error) {
       setInsertionVisibility(Visibility.visible)
       toastAndLog('restoreAssetError', error, asset.title)
     }
-  }, [dispatchAssetListEvent, asset, toastAndLog, undoDeleteAssetMutate, item.key])
+  }, [dispatchAssetListEvent, asset, toastAndLog, undoDeleteAsset, item.key])
 
   const doTriggerDescriptionEdit = React.useCallback(() => {
     setModal(

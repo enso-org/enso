@@ -73,7 +73,7 @@ export default function ManageLabelsModal<
   )
   const canCreateNewLabel = canSelectColor
 
-  const createTagMutation = backendHooks.useBackendMutation(backend, 'createTag')
+  const createTagMutation = backendHooks.useCreateTagMutation()
   const associateTagMutation = backendHooks.useBackendMutation(backend, 'associateTag')
 
   const setLabels = React.useCallback(

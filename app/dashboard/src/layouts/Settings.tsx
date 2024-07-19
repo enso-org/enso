@@ -41,7 +41,7 @@ export interface SettingsProps {
 
 /** Settings screen. */
 export default function Settings() {
-  const backend = backendProvider.useRemoteBackend()
+  const backend = backendProvider.useRemoteBackendStrict()
   const localBackend = backendProvider.useLocalBackend()
   const [tab, setTab] = searchParamsState.useSearchParamsState(
     'SettingsTab',
@@ -49,21 +49,16 @@ export default function Settings() {
     array.includesPredicate(Object.values(SettingsTabType))
   )
   const { user, accessToken } = authProvider.useNonPartialUserSession()
-  const { authQueryKey } = authProvider.useAuth()
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const [query, setQuery] = React.useState('')
   const root = portal.useStrictPortalContext()
   const [isSidebarPopoverOpen, setIsSidebarPopoverOpen] = React.useState(false)
-  const organization = backendHooks.useBackendGetOrganization(backend)
+  const organization = backendHooks.useGetOrganization(backend)
   const isQueryBlank = !/\S/.test(query)
 
-  const updateUserMutation = backendHooks.useBackendMutation(backend, 'updateUser', {
-    meta: { invalidates: [authQueryKey], awaitInvalidates: true },
-  })
-  const updateOrganizationMutation = backendHooks.useBackendMutation(backend, 'updateOrganization')
-  const updateUser = updateUserMutation.mutateAsync
-  const updateOrganization = updateOrganizationMutation.mutateAsync
+  const updateUser = backendHooks.useUpdateUserMutation().mutateAsync
+  const updateOrganization = backendHooks.useUpdateOrganizationMutation().mutateAsync
 
   const updateLocalRootPathMutation = reactQuery.useMutation({
     mutationKey: [localBackend?.type, 'updateRootPath'],

@@ -47,7 +47,7 @@ export default function NewUserGroupModal(props: NewUserGroupModalProps) {
     userGroupNames != null && userGroupNames.has(string.normalizeName(name))
       ? getText('duplicateUserGroupError')
       : null
-  const createUserGroupMutation = backendHooks.useBackendMutation(backend, 'createUserGroup')
+  const createUserGroupMutation = backendHooks.useCreateUserGroupMutation()
   const canSubmit = nameError == null && name !== '' && userGroupNames != null
 
   const onSubmit = async () => {

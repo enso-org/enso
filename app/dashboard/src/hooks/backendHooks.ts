@@ -6,6 +6,7 @@ import * as reactQuery from '@tanstack/react-query'
 import * as backendQuery from 'enso-common/src/backendQuery'
 
 import * as authProvider from '#/providers/AuthProvider'
+import { useRemoteBackendStrict } from '#/providers/BackendProvider'
 
 import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
@@ -131,9 +132,12 @@ export type MutationMethod = Exclude<
   MutationMethodInternal,
   DefineBackendMethods<
     | 'changeUserGroup'
+    | 'createTag'
     | 'createUserGroup'
+    | 'deleteTag'
     | 'deleteUserGroup'
     | 'updateOrganization'
+    | 'updateUser'
     | 'uploadOrganizationPicture'
     | 'uploadUserPicture'
   >
@@ -572,17 +576,33 @@ export function useGetOrganization(backend: Backend | null) {
   ])
 }
 
+// =============================
+// === useUpdateUserMutation ===
+// =============================
+
+/** A mutation to update a user's information. */
+export function useUpdateUserMutation() {
+  const backend = useRemoteBackendStrict()
+  const { authQueryKey } = authProvider.useAuth()
+  return useBackendMutationInternal(backend, 'updateUser', {
+    meta: { invalidates: [authQueryKey], awaitInvalidates: true },
+  })
+}
+
 // ====================================
 // === useUploadUserPictureMutation ===
 // ====================================
 
 /** A mutation to upload a user's profile picture. */
-export function useUploadUserPictureMutation(backend: Backend) {
+export function useUploadUserPictureMutation() {
+  const backend = useRemoteBackendStrict()
   const setQueryData = useBackendSetQueryData(backend)
+  const { setUser } = authProvider.useAuth()
   return useBackendMutationInternal(backend, 'uploadUserPicture', {
     onSuccess: data => {
       revokeUserPictureUrl(backend)
       setQueryData('usersMe', () => data)
+      setUser(data)
     },
   })
 }
@@ -592,7 +612,8 @@ export function useUploadUserPictureMutation(backend: Backend) {
 // =====================================
 
 /** A mutation to update an organization's information. */
-export function useUpdateOrganizationMutation(backend: Backend) {
+export function useUpdateOrganizationMutation() {
+  const backend = useRemoteBackendStrict()
   const setQueryData = useBackendSetQueryData(backend)
   return useBackendMutationInternal(backend, 'updateOrganization', {
     onSuccess: data => {
@@ -606,7 +627,8 @@ export function useUpdateOrganizationMutation(backend: Backend) {
 // ============================================
 
 /** A mutation to upload an organization's profile picture. */
-export function useUploadOrganizationPictureMutation(backend: Backend) {
+export function useUploadOrganizationPictureMutation() {
+  const backend = useRemoteBackendStrict()
   const setQueryData = useBackendSetQueryData(backend)
   return useBackendMutationInternal(backend, 'uploadOrganizationPicture', {
     onSuccess: data => {
@@ -621,7 +643,8 @@ export function useUploadOrganizationPictureMutation(backend: Backend) {
 // ==================================
 
 /** A mutation to create a user group. */
-export function useCreateUserGroupMutation(backend: Backend) {
+export function useCreateUserGroupMutation() {
+  const backend = useRemoteBackendStrict()
   const setQueryData = useBackendSetQueryData(backend)
   return useBackendMutationInternal(backend, 'createUserGroup', {
     onSuccess: data => {
@@ -635,7 +658,8 @@ export function useCreateUserGroupMutation(backend: Backend) {
 // ==================================
 
 /** A mutation to delete a user group. */
-export function useDeleteUserGroupMutation(backend: Backend) {
+export function useDeleteUserGroupMutation() {
+  const backend = useRemoteBackendStrict()
   const setQueryData = useBackendSetQueryData(backend)
   return useBackendMutationInternal(backend, 'deleteUserGroup', {
     onSuccess: (_data, variables) => {
@@ -651,7 +675,8 @@ export function useDeleteUserGroupMutation(backend: Backend) {
 // ==================================
 
 /** A mutation to change a user group. */
-export function useChangeUserGroupMutation(backend: Backend) {
+export function useChangeUserGroupMutation() {
+  const backend = useRemoteBackendStrict()
   const setQueryData = useBackendSetQueryData(backend)
   return useBackendMutationInternal(backend, 'changeUserGroup', {
     onSuccess: (_data, [userId, body]) => {
@@ -669,7 +694,8 @@ export function useChangeUserGroupMutation(backend: Backend) {
 // ============================
 
 /** A mutation to create a tag. */
-export function useCreateTagMutation(backend: Backend) {
+export function useCreateTagMutation() {
+  const backend = useRemoteBackendStrict()
   const setQueryData = useBackendSetQueryData(backend)
   return useBackendMutationInternal(backend, 'createTag', {
     onSuccess: data => {
@@ -683,7 +709,8 @@ export function useCreateTagMutation(backend: Backend) {
 // ============================
 
 /** A mutation to delete a tag. */
-export function useDeleteTagMutation(backend: Backend) {
+export function useDeleteTagMutation() {
+  const backend = useRemoteBackendStrict()
   const setQueryData = useBackendSetQueryData(backend)
   return useBackendMutationInternal(backend, 'deleteTag', {
     onSuccess: (_data, [tagId]) => {

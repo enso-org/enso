@@ -46,7 +46,7 @@ export default function Labels(props: LabelsProps) {
   const { getText } = textProvider.useText()
   const labels = backendHooks.useListTags(backend) ?? []
 
-  const deleteTagMutation = backendHooks.useBackendMutation(backend, 'deleteTag')
+  const deleteTag = backendHooks.useDeleteTagMutation().mutate
 
   return (
     <FocusArea direction="vertical">
@@ -119,7 +119,7 @@ export default function Labels(props: LabelsProps) {
                             <ConfirmDeleteModal
                               actionText={getText('deleteLabelActionText', label.value)}
                               doDelete={() => {
-                                deleteTagMutation.mutate([label.id, label.value])
+                                deleteTag([label.id, label.value])
                               }}
                             />
                           )
