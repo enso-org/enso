@@ -5,9 +5,9 @@ import * as common from 'enso-common'
 
 import * as object from '#/utilities/object'
 
-// ====================
-// === LocalStorage ===
-// ====================
+// ===============================
+// === LocalStorageKeyMetadata ===
+// ===============================
 
 /** Metadata describing runtime behavior associated with a {@link LocalStorageKey}. */
 export interface LocalStorageKeyMetadata<K extends LocalStorageKey> {
@@ -20,12 +20,33 @@ export interface LocalStorageKeyMetadata<K extends LocalStorageKey> {
   readonly schema: z.ZodType<LocalStorageData[K]>
 }
 
+// ========================
+// === LocalStorageData ===
+// ========================
+
 /** The data that can be stored in a {@link LocalStorage}.
  * Declaration merge into this interface to add a new key. */
 export interface LocalStorageData {}
 
+// =======================
+// === LocalStorageKey ===
+// =======================
+
 /** All possible keys of a {@link LocalStorage}. */
 type LocalStorageKey = keyof LocalStorageData
+
+// =================================
+// === LocalStorageMutateOptions ===
+// =================================
+
+/** Options for methods that mutate `localStorage` state (set, delete, and save). */
+export interface LocalStorageMutateOptions {
+  readonly triggerRerender?: boolean
+}
+
+// ====================
+// === LocalStorage ===
+// ====================
 
 /** A LocalStorage data manager. */
 export default class LocalStorage {
@@ -70,18 +91,22 @@ export default class LocalStorage {
   }
 
   /** Write an entry to the stored data, and save. */
-  set<K extends LocalStorageKey>(key: K, value: LocalStorageData[K]) {
+  set<K extends LocalStorageKey>(
+    key: K,
+    value: LocalStorageData[K],
+    options?: LocalStorageMutateOptions
+  ) {
     this.values[key] = value
-    this.save()
+    this.save(options)
   }
 
   /** Delete an entry from the stored data, and save. */
-  delete<K extends LocalStorageKey>(key: K) {
+  delete<K extends LocalStorageKey>(key: K, options?: LocalStorageMutateOptions) {
     const oldValue = this.values[key]
     // The key being deleted is one of a statically known set of keys.
     // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
     delete this.values[key]
-    this.save()
+    this.save(options)
     return oldValue
   }
 
@@ -95,8 +120,11 @@ export default class LocalStorage {
   }
 
   /** Save the current value of the stored data.. */
-  protected save() {
+  protected save(options: LocalStorageMutateOptions = {}) {
+    const { triggerRerender = false } = options
     localStorage.setItem(this.localStorageKey, JSON.stringify(this.values))
-    this.triggerRerender()
+    if (triggerRerender) {
+      this.triggerRerender()
+    }
   }
 }

@@ -116,7 +116,7 @@ export function TermsOfServiceModal() {
             testId="terms-of-service-form"
             method="dialog"
             onSubmit={({ hash }) => {
-              localStorage.set('termsOfService', { versionHash: hash })
+              localStorage.set('termsOfService', { versionHash: hash }, { triggerRerender: true })
             }}
           >
             {({ register }) => (
