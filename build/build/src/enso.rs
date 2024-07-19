@@ -149,7 +149,7 @@ impl BuiltEnso {
                     postgres_container: ContainerId(container_name),
                     database_name:      "enso_test_db".to_string(),
                     user:               "enso_test_user".to_string(),
-                    password:           "enso_test_password_<YourStrong@Passw0rd>".to_string(),
+                    password:           "enso_test_password".to_string(),
                     endpoint:           PostgresEndpointConfiguration::deduce()?,
                     version:            "latest".to_string(),
                 };
@@ -173,7 +173,7 @@ impl BuiltEnso {
                     sqlserver_container: ContainerId(container_name),
                     database_name:       "tempdb".to_string(),
                     user:                "sa".to_string(),
-                    password:            "enso_test_password".to_string(),
+                    password:            "enso_test_password_<YourStrong@Passw0rd>".to_string(),
                     endpoint:            SQLServerEndpointConfiguration::deduce()?,
                     version:             "latest".to_string(),
                 };
