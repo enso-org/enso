@@ -5,7 +5,6 @@ import static org.enso.table.data.column.operation.map.numeric.helpers.DoubleArr
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.BitSet;
-
 import org.enso.base.CompareException;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.operation.map.BinaryMapOperation;
@@ -214,9 +213,9 @@ public abstract class NumericComparison<T extends Number, I extends Storage<? su
       case DoubleStorage lhs -> {
         yield switch (arg) {
           case BigDecimalStorage rhs -> runBigDecimalZip(
-            BigDecimalArrayAdapter.fromStorage(lhs),
-            BigDecimalArrayAdapter.fromStorage(rhs),
-            problemAggregator);
+              BigDecimalArrayAdapter.fromStorage(lhs),
+              BigDecimalArrayAdapter.fromStorage(rhs),
+              problemAggregator);
           default -> {
             if (arg.getType() instanceof AnyObjectType) {
               yield runMixedZip(lhs, arg, problemAggregator);
@@ -235,9 +234,9 @@ public abstract class NumericComparison<T extends Number, I extends Storage<? su
           yield runBigIntegerZip(left, right, problemAggregator);
         }
         case BigDecimalStorage rhs -> runBigDecimalZip(
-          BigDecimalArrayAdapter.fromStorage(lhs),
-          BigDecimalArrayAdapter.fromStorage(rhs),
-          problemAggregator);
+            BigDecimalArrayAdapter.fromStorage(lhs),
+            BigDecimalArrayAdapter.fromStorage(rhs),
+            problemAggregator);
         case DoubleStorage rhs -> runDoubleZip(
             DoubleArrayAdapter.fromStorage(lhs), rhs, problemAggregator);
         default -> runMixedZip(lhs, arg, problemAggregator);
@@ -256,9 +255,9 @@ public abstract class NumericComparison<T extends Number, I extends Storage<? su
             yield runBigIntegerZip(left, right, problemAggregator);
           }
           case BigDecimalStorage rhs -> runBigDecimalZip(
-            BigDecimalArrayAdapter.fromStorage(lhs),
-            BigDecimalArrayAdapter.fromStorage(rhs),
-            problemAggregator);
+              BigDecimalArrayAdapter.fromStorage(lhs),
+              BigDecimalArrayAdapter.fromStorage(rhs),
+              problemAggregator);
           case DoubleStorage rhs -> runDoubleZip(
               DoubleArrayAdapter.fromStorage(lhs), rhs, problemAggregator);
           default -> runMixedZip(lhs, arg, problemAggregator);
@@ -266,10 +265,10 @@ public abstract class NumericComparison<T extends Number, I extends Storage<? su
       }
 
       case BigDecimalStorage lhs -> {
-        if (arg instanceof AbstractLongStorage ||
-            arg instanceof BigIntegerStorage ||
-            arg instanceof BigDecimalStorage ||
-            arg instanceof DoubleStorage) {
+        if (arg instanceof AbstractLongStorage
+            || arg instanceof BigIntegerStorage
+            || arg instanceof BigDecimalStorage
+            || arg instanceof DoubleStorage) {
           BigDecimalArrayAdapter left = BigDecimalArrayAdapter.fromAnyStorage(lhs);
           BigDecimalArrayAdapter right = BigDecimalArrayAdapter.fromAnyStorage(arg);
           yield runBigDecimalZip(left, right, problemAggregator);
