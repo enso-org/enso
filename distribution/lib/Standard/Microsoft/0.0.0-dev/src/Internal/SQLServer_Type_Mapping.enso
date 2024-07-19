@@ -31,8 +31,8 @@ type SQLServer_Type_Mapping
             Value_Type.Integer Bits.Bits_16 -> SQL_Type.Value Types.SMALLINT "smallint"
             Value_Type.Integer Bits.Bits_32 -> SQL_Type.Value Types.INTEGER "integer"
             Value_Type.Integer Bits.Bits_64 -> SQL_Type.Value Types.BIGINT "bigint"
-            # All float types in Snowflake become double
-            Value_Type.Float _ -> SQL_Type.Value Types.DOUBLE "float"
+            Value_Type.Float Bits.Bits_32 -> SQL_Type.Value Types.REAL "real"
+            Value_Type.Float Bits.Bits_64 -> SQL_Type.Value Types.DOUBLE "float"
             Value_Type.Decimal precision scale -> case precision of
                 # If precision is not set, scale is also lost because SQL is unable to express a scale without a precision.
                 Nothing -> SQL_Type.Value Types.DECIMAL "decimal" Nothing Nothing
@@ -77,7 +77,8 @@ type SQLServer_Type_Mapping
             Types.SMALLINT -> Value_Type.Integer Bits.Bits_16
             Types.INTEGER -> Value_Type.Integer Bits.Bits_32
             Types.BIGINT -> Value_Type.Integer Bits.Bits_64
-            Types.REAL -> Value_Type.Float Bits.Bits_32
+            ## SQLServer real is 32-bit, but our In Memory engine only has 64-bit floating point numbers so we have to upcast it.
+            Types.REAL -> Value_Type.Float Bits.Bits_64
             Types.DOUBLE -> Value_Type.Float Bits.Bits_64
             Types.DATE -> Value_Type.Date
             Types.TIME -> Value_Type.Time
