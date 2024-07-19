@@ -1,10 +1,14 @@
 package org.enso.interpreter.runtime.data;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.library.ExportLibrary;
+import com.oracle.truffle.api.library.ExportMessage;
 import java.util.Arrays;
 import java.util.function.Function;
 
-public final class ArrayRope<T> {
+@ExportLibrary(InteropLibrary.class)
+public final class ArrayRope<T> implements EnsoObject {
   private final ArrayRopeSegment<T> segment;
 
   private ArrayRope(ArrayRopeSegment<T> segment) {
@@ -34,11 +38,34 @@ public final class ArrayRope<T> {
     return new ArrayRope<>(new ConcatSegment<>(new ArraySegment<>(items), this.segment));
   }
 
+  // TODO: Remove TruffleBoundary?
   @CompilerDirectives.TruffleBoundary
   public T[] toArray(Function<Integer, T[]> genArray) {
     T[] res = genArray.apply(size());
     writeArray(res);
     return res;
+  }
+
+  @ExportMessage
+  boolean hasArrayElements() {
+    return true;
+  }
+
+  @ExportMessage
+  long getArraySize() {
+    return size();
+  }
+
+  @ExportMessage
+  @SuppressWarnings("unchecked")
+  T readArrayElement(long index) {
+    var arr = toArray(size -> (T[]) new Object[size]);
+    return arr[Math.toIntExact(index)];
+  }
+
+  @ExportMessage
+  boolean isArrayElementReadable(long index) {
+    return index >= 0 && index < size();
   }
 
   public void writeArray(T[] arr) {
