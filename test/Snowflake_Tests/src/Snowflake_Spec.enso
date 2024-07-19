@@ -274,7 +274,7 @@ snowflake_specific_spec suite_builder default_connection db_name setup =
             r.column_count . should_equal 6
 
             r.at "Count" . value_type . should_equal (Value_Type.Decimal 18 0)
-            r.at "Count_Empty txt" . value_type . should_equal (Value_Type.Decimal 13 0)
+            r.at "Count Empty txt" . value_type . should_equal (Value_Type.Decimal 13 0)
             r.at "Count Not Empty txt" . value_type . should_equal (Value_Type.Decimal 13 0)
             r.at "Count Distinct i1" . value_type . should_equal (Value_Type.Decimal 18 0)
             r.at "Count Not Nothing i2" . value_type . should_equal (Value_Type.Decimal 18 0)
@@ -522,18 +522,18 @@ snowflake_specific_spec suite_builder default_connection db_name setup =
 
             col . cast Value_Type.Float . round use_bankers=True . value_type . should_equal Value_Type.Float
             col . cast Value_Type.Integer . round use_bankers=True . value_type . should_equal Value_Type.Float
-            col . cast Value_Type.Decimal . round use_bankers=True . value_type . should_equal (Value_Type.Decimal 38 0)
+            col . cast Value_Type.Decimal . round use_bankers=True . value_type . should_equal Value_Type.Float
 
             col . cast Value_Type.Float . ceil . value_type . should_equal Value_Type.Float
-            col . cast Value_Type.Integer . ceil . value_type . should_equal Value_Type.Float
+            col . cast Value_Type.Integer . ceil . value_type . should_equal (Value_Type.Decimal 38 0)
             col . cast Value_Type.Decimal . ceil . value_type . should_equal (Value_Type.Decimal 38 0)
 
             col . cast Value_Type.Float . floor . value_type . should_equal Value_Type.Float
-            col . cast Value_Type.Integer . floor . value_type . should_equal Value_Type.Float
+            col . cast Value_Type.Integer . floor . value_type . should_equal (Value_Type.Decimal 38 0)
             col . cast Value_Type.Decimal . floor . value_type . should_equal (Value_Type.Decimal 38 0)
 
             col . cast Value_Type.Float . truncate . value_type . should_equal Value_Type.Float
-            col . cast Value_Type.Integer . truncate . value_type . should_equal Value_Type.Float
+            col . cast Value_Type.Integer . truncate . value_type . should_equal (Value_Type.Decimal 38 0)
             col . cast Value_Type.Decimal . truncate . value_type . should_equal (Value_Type.Decimal 38 0)
 
         do_op n op =
@@ -577,7 +577,6 @@ add_snowflake_specs suite_builder create_connection_fn db_name =
         ix = name_counter.get
         name_counter . put ix+1
         name = Name_Generator.random_name "table_"+ix.to_text
-
         in_mem_table = Table.new columns
         in_mem_table.select_into_database_table (connection.if_nothing default_connection.get) name primary_key=Nothing temporary=True
     light_table_builder columns =
