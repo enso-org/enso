@@ -25,8 +25,7 @@ type SQLServer_Type_Mapping
     value_type_to_sql value_type on_problems =
         result = case value_type of
             Value_Type.Boolean -> SQL_Type.Value Types.BIT "bit"
-            # All integer types in Snowflake become NUMERIC(38,0).
-            Value_Type.Byte -> SQL_Type.Value Types.BIGINT "bigint"
+            Value_Type.Byte -> SQL_Type.Value Types.TINYINT "tinyint"
             Value_Type.Integer _ -> SQL_Type.Value Types.BIGINT "bigint"
             # All float types in Snowflake become double
             Value_Type.Float _ -> SQL_Type.Value Types.DOUBLE "float"
