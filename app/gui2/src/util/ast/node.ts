@@ -1,4 +1,5 @@
 import type { NodeDataFromAst } from '@/stores/graph'
+import type { NodeType } from '@/stores/graph/graphDatabase'
 import { Ast } from '@/util/ast'
 import { Prefixes } from '@/util/ast/prefixes'
 
@@ -16,7 +17,7 @@ export function initializePrefixes() {
   prefixes = prefixes ?? makePrefixes()
 }
 
-export function nodeFromAst(ast: Ast.Ast): NodeDataFromAst | undefined {
+export function nodeFromAst(ast: Ast.Ast, isLastLine: boolean): NodeDataFromAst | undefined {
   const { nodeCode, documentation } =
     ast instanceof Ast.Documented ?
       { nodeCode: ast.expression, documentation: ast.documentation() }
@@ -25,8 +26,10 @@ export function nodeFromAst(ast: Ast.Ast): NodeDataFromAst | undefined {
   const pattern = nodeCode instanceof Ast.Assignment ? nodeCode.pattern : undefined
   const rootExpr = nodeCode instanceof Ast.Assignment ? nodeCode.expression : nodeCode
   const { innerExpr, matches } = prefixes.extractMatches(rootExpr)
-  const primaryApplication = primaryApplicationSubject(innerExpr)
+  const type = pattern == null && isLastLine ? 'output' : 'component'
+  const primaryApplication = primaryApplicationSubject(innerExpr, type)
   return {
+    type,
     outerExpr: ast,
     pattern,
     rootExpr,
@@ -43,12 +46,13 @@ export function nodeFromAst(ast: Ast.Ast): NodeDataFromAst | undefined {
  */
 export function primaryApplicationSubject(
   ast: Ast.Ast,
+  type: NodeType,
 ): { subject: Ast.AstId; accessChain: Ast.AstId[] } | undefined {
   // Descend into LHS of any sequence of applications.
   while (ast instanceof Ast.App) ast = ast.function
   const { subject, accessChain } = Ast.accessChain(ast)
-  // Require at least one property access.
-  if (accessChain.length === 0) return
+  // In non-output nodes, require at least one property access.
+  if (type !== 'output' && accessChain.length === 0) return
   // The leftmost element must be an identifier or a placeholder.
   if (!(subject instanceof Ast.Ident || subject instanceof Ast.Wildcard)) return
   return { subject: subject.id, accessChain: accessChain.map((ast) => ast.id) }

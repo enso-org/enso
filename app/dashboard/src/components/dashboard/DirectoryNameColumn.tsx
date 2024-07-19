@@ -113,7 +113,9 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
         case AssetEventType.temporarilyRemoveLabels:
         case AssetEventType.addLabels:
         case AssetEventType.removeLabels:
-        case AssetEventType.deleteLabel: {
+        case AssetEventType.deleteLabel:
+        case AssetEventType.setItem:
+        case AssetEventType.projectClosed: {
           // Ignored. These events should all be unrelated to directories.
           // `delete`, `deleteForever`, `restore`, `download`, and `downloadSelected`
           // are handled by`AssetRow`.
@@ -174,7 +176,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
     >
       <ariaComponents.Button
         icon={FolderArrowIcon}
-        size="icon"
+        size="medium"
         variant="custom"
         aria-label={isExpanded ? getText('collapse') : getText('expand')}
         tooltipPlacement="left"

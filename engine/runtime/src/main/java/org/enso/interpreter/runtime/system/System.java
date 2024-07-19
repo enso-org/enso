@@ -10,7 +10,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import org.apache.commons.lang3.SystemUtils;
-import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.dsl.Builtin;
 import org.enso.interpreter.node.expression.builtin.text.util.ExpectStringNode;
 import org.enso.interpreter.runtime.EnsoContext;
@@ -46,14 +45,15 @@ public class System {
     return java.lang.System.nanoTime();
   }
 
+  @Builtin.Specialize
   @Builtin.Method(
       description = "Exits the process, returning the provided code.",
       autoRegister = false)
   @CompilerDirectives.TruffleBoundary
-  public static void exit(long code) {
-    var ctx = EnsoContext.get(null);
-    EnsoLanguage.get(null).disposeContext(ctx);
-    java.lang.System.exit((int) code);
+  public static void exit(long code, @Cached ExpectStringNode expectStringNode) {
+    // expectStringNode is an artificial Node just to provide a location for
+    // the exception
+    throw new ExitException((int) code, expectStringNode);
   }
 
   @Builtin.Specialize

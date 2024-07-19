@@ -353,4 +353,8 @@ class InMemorySuggestionsRepo(implicit ec: ExecutionContext)
   }
 
   def close(): Unit = {}
+
+  override def toString(): String = {
+    "InMemorySuggestionsRepo"
+  }
 }

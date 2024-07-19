@@ -132,7 +132,7 @@ export default function KeyboardShortcutsSettingsSection() {
                                     <KeyboardShortcut shortcut={binding} />
                                     <ariaComponents.Button
                                       variant="ghost"
-                                      size="icon"
+                                      size="medium"
                                       aria-label={getText('removeShortcut')}
                                       tooltipPlacement="top left"
                                       icon={CrossIcon}
@@ -148,7 +148,7 @@ export default function KeyboardShortcutsSettingsSection() {
                                 <div className="gap-keyboard-shortcuts-buttons flex shrink-0 items-center">
                                   <ariaComponents.Button
                                     variant="ghost"
-                                    size="icon"
+                                    size="medium"
                                     aria-label={getText('addShortcut')}
                                     tooltipPlacement="top left"
                                     icon={Plus2Icon}
@@ -168,7 +168,7 @@ export default function KeyboardShortcutsSettingsSection() {
                                   />
                                   <ariaComponents.Button
                                     variant="ghost"
-                                    size="icon"
+                                    size="medium"
                                     aria-label={getText('resetShortcut')}
                                     tooltipPlacement="top left"
                                     icon={ReloadIcon}

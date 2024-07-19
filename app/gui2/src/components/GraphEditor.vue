@@ -56,6 +56,7 @@ import { computedFallback } from '@/util/reactivity'
 import { until } from '@vueuse/core'
 import { encoding, set } from 'lib0'
 import { encodeMethodPointer } from 'shared/languageServerTypes'
+import * as iterable from 'shared/util/data/iterable'
 import { isDevMode } from 'shared/util/detect'
 import {
   computed,
@@ -70,6 +71,7 @@ import {
 } from 'vue'
 
 import { builtinWidgets } from '@/components/widgets'
+import { injectVisibility } from '@/providers/visibility'
 
 const keyboard = provideKeyboard()
 const projectStore = useProjectStore()
@@ -77,6 +79,7 @@ const suggestionDb = provideSuggestionDbStore(projectStore)
 const graphStore = provideGraphStore(projectStore, suggestionDb)
 const widgetRegistry = provideWidgetRegistry(graphStore.db)
 const _visualizationStore = provideVisualizationStore(projectStore)
+const visible = injectVisibility()
 
 onMounted(() => {
   widgetRegistry.loadWidgets(Object.entries(builtinWidgets))
@@ -132,7 +135,7 @@ useSyncLocalStorage<GraphStoredState>({
     // Client graph state needs to be stored separately for:
     // - each project
     // - each function within the project
-    encoding.writeVarString(enc, projectStore.name)
+    encoding.writeVarString(enc, projectStore.id)
     const methodPtr = graphStore.currentMethodPointer()
     if (methodPtr != null) encodeMethodPointer(enc, methodPtr)
   },
@@ -155,6 +158,7 @@ useSyncLocalStorage<GraphStoredState>({
       rightDockWidth.value = restored.rwidth ?? undefined
     } else {
       await until(visibleAreasReady).toBe(true)
+      await until(visible).toBe(true)
       if (!abort.aborted) zoomToAll(true)
     }
   },
@@ -385,7 +389,6 @@ const { handleClick } = useDoubleClick(
 
 function deleteSelected() {
   graphStore.deleteNodes(nodeSelection.selected)
-  nodeSelection.deselectAll()
 }
 
 // === Code Editor ===
@@ -544,7 +547,12 @@ function handleEdgeDrop(source: AstId, position: Vec2) {
 // === Node Collapsing ===
 
 function collapseNodes() {
-  const selected = nodeSelection.selected
+  const selected = new Set(
+    iterable.filter(
+      nodeSelection.selected,
+      (id) => graphStore.db.nodeIdToNode.get(id)?.type === 'component',
+    ),
+  )
   if (selected.size == 0) return
   try {
     const info = prepareCollapsedInfo(selected, graphStore.db)
@@ -773,6 +781,7 @@ const groupColors = computed(() => {
   overflow: clip;
   --group-color-fallback: #006b8a;
   --node-color-no-type: #596b81;
+  --output-node-color: #006b8a;
 }
 
 .layer {

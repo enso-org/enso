@@ -150,7 +150,7 @@ export class Server {
                         )
                         const rustFFIWasmPath =
                             process.env.ELECTRON_DEV_MODE === 'true'
-                                ? path.resolve('../../../gui2/rust-ffi/pkg/rust_ffi_bg.wasm')
+                                ? path.resolve('../../gui2/rust-ffi/pkg/rust_ffi_bg.wasm')
                                 : rustFFIWasmName == null
                                   ? null
                                   : path.join(assets, rustFFIWasmName)

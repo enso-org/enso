@@ -296,11 +296,17 @@ const executionState = computed(() => expressionInfo.value?.payload.type ?? 'Unk
 const suggestionEntry = computed(() => graph.db.nodeMainSuggestion.lookup(nodeId.value))
 const color = computed(() => graph.db.getNodeColorStyle(nodeId.value))
 const icon = computed(() => {
-  return displayedIconOf(
-    suggestionEntry.value,
-    expressionInfo.value?.methodCall?.methodPointer,
-    outputPortLabel.value,
-  )
+  switch (props.node.type) {
+    default:
+    case 'component':
+      return displayedIconOf(
+        suggestionEntry.value,
+        expressionInfo.value?.methodCall?.methodPointer,
+        outputPortLabel.value,
+      )
+    case 'output':
+      return 'data_output'
+  }
 })
 const documentationUrl = computed(
   () => suggestionEntry.value && suggestionDocumentationUrl(suggestionEntry.value),
@@ -417,6 +423,7 @@ watchEffect(() => {
       selected,
       selectionVisible,
       ['executionState-' + executionState]: true,
+      outputNode: props.node.type === 'output',
     }"
     :data-node-id="nodeId"
     @pointerenter="(nodeHovered = true), updateNodeHover($event)"
@@ -460,6 +467,7 @@ watchEffect(() => {
       :nodeColor="getNodeColor(nodeId)"
       :matchableNodeColors="matchableNodeColors"
       :documentationUrl="documentationUrl"
+      :isRemovable="props.node.type === 'component'"
       @update:isVisualizationEnabled="emit('update:visualizationEnabled', $event)"
       @startEditing="startEditingNode"
       @startEditingComment="editingComment = true"
@@ -530,6 +538,7 @@ watchEffect(() => {
     <svg class="bgPaths">
       <rect class="bgFill" />
       <GraphNodeOutputPorts
+        v-if="props.node.type !== 'output'"
         :nodeId="nodeId"
         :forceVisible="selectionVisible"
         @portClick="(...args) => emit('outputPortClick', ...args)"

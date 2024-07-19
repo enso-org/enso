@@ -143,7 +143,7 @@ export default function EditableSpan(props: EditableSpanProps) {
         <ariaComponents.ButtonGroup gap="xsmall" className="grow-0 items-center">
           {isSubmittable && (
             <ariaComponents.Button
-              size="icon"
+              size="medium"
               variant="ghost"
               icon={TickIcon}
               aria-label={getText('confirmEdit')}
@@ -151,7 +151,7 @@ export default function EditableSpan(props: EditableSpanProps) {
             />
           )}
           <ariaComponents.Button
-            size="icon"
+            size="medium"
             variant="ghost"
             icon={CrossIcon}
             aria-label={getText('cancelEdit')}
