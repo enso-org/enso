@@ -47,11 +47,10 @@ import * as inputBindingsModule from '#/configurations/inputBindings'
 
 import AuthProvider, * as authProvider from '#/providers/AuthProvider'
 import BackendProvider from '#/providers/BackendProvider'
-import * as httpClientProvider from '#/providers/HttpClientProvider'
+import { useHttpClient } from '#/providers/HttpClientProvider'
 import InputBindingsProvider from '#/providers/InputBindingsProvider'
 import LocalStorageProvider, * as localStorageProvider from '#/providers/LocalStorageProvider'
-import LoggerProvider from '#/providers/LoggerProvider'
-import type * as loggerProvider from '#/providers/LoggerProvider'
+import { useLogger } from '#/providers/LoggerProvider'
 import ModalProvider, * as modalProvider from '#/providers/ModalProvider'
 import * as navigator2DProvider from '#/providers/Navigator2DProvider'
 import SessionProvider from '#/providers/SessionProvider'
@@ -71,10 +70,9 @@ import * as subscribeSuccess from '#/pages/subscribe/SubscribeSuccess'
 import type * as editor from '#/layouts/Editor'
 import * as openAppWatcher from '#/layouts/OpenAppWatcher'
 
+import { RouterProvider } from '#/components/aria'
 import * as devtools from '#/components/Devtools'
 import * as errorBoundary from '#/components/ErrorBoundary'
-import * as offlineNotificationManager from '#/components/OfflineNotificationManager'
-import * as rootComponent from '#/components/Root'
 import * as suspense from '#/components/Suspense'
 
 import AboutModal from '#/modals/AboutModal'
@@ -88,11 +86,10 @@ import RemoteBackend from '#/services/RemoteBackend'
 
 import * as appBaseUrl from '#/utilities/appBaseUrl'
 import * as eventModule from '#/utilities/event'
-import type HttpClient from '#/utilities/HttpClient'
 import LocalStorage from '#/utilities/LocalStorage'
 import * as object from '#/utilities/object'
 
-import * as authServiceModule from '#/authentication/service'
+import { useInitAuthService } from '#/authentication/service'
 
 // ============================
 // === Global configuration ===
@@ -137,7 +134,6 @@ function getMainPageUrl() {
 /** Global configuration for the `App` component. */
 export interface AppProps {
   readonly vibrancy: boolean
-  readonly logger: loggerProvider.Logger
   /** Whether the application may have the local backend running. */
   readonly supportsLocalBackend: boolean
   /** If true, the app can only be used in offline mode. */
@@ -153,8 +149,6 @@ export interface AppProps {
   readonly projectManagerUrl: string | null
   readonly ydocUrl: string | null
   readonly appRunner: editor.GraphEditorRunner | null
-  readonly portalRoot: Element
-  readonly httpClient: HttpClient
   readonly queryClient: reactQuery.QueryClient
 }
 
@@ -258,12 +252,10 @@ export interface AppRouterProps extends AppProps {
  * because the {@link AppRouter} relies on React hooks, which can't be used in the same React
  * component as the component that defines the provider. */
 function AppRouter(props: AppRouterProps) {
-  const { logger, isAuthenticationDisabled, shouldShowDashboard, httpClient } = props
+  const { isAuthenticationDisabled, shouldShowDashboard } = props
   const { onAuthenticated, projectManagerInstance } = props
-  const { portalRoot } = props
-  // `navigateHooks.useNavigate` cannot be used here as it relies on `AuthProvider`, which has not
-  // yet been initialized at this point.
-  // eslint-disable-next-line no-restricted-properties
+  const httpClient = useHttpClient()
+  const logger = useLogger()
   const navigate = router.useNavigate()
   const { getText } = textProvider.useText()
   const { localStorage } = localStorageProvider.useLocalStorage()
@@ -352,14 +344,8 @@ function AppRouter(props: AppRouterProps) {
       },
     }
   }, [localStorage, inputBindingsRaw])
-
   const mainPageUrl = getMainPageUrl()
-
-  const authService = React.useMemo(() => {
-    const authConfig = { navigate, ...props }
-    return authServiceModule.initAuthService(authConfig)
-  }, [props, navigate])
-
+  const authService = useInitAuthService(props)
   const userSession = authService?.cognito.userSession.bind(authService.cognito) ?? null
   const refreshUserSession =
     authService?.cognito.refreshUserSession.bind(authService.cognito) ?? null
@@ -503,55 +489,27 @@ function AppRouter(props: AppRouterProps) {
     </router.Routes>
   )
 
-  let result = routes
-
-  result = <errorBoundary.ErrorBoundary>{result}</errorBoundary.ErrorBoundary>
-  result = <InputBindingsProvider inputBindings={inputBindings}>{result}</InputBindingsProvider>
-  result = (
-    <AuthProvider
-      shouldStartInOfflineMode={isAuthenticationDisabled}
-      authService={authService}
-      onAuthenticated={onAuthenticated}
-    >
-      {result}
-    </AuthProvider>
+  return (
+    <RouterProvider navigate={navigate}>
+      <SessionProvider
+        saveAccessToken={authService?.cognito.saveAccessToken.bind(authService.cognito) ?? null}
+        mainPageUrl={mainPageUrl}
+        userSession={userSession}
+        registerAuthEventListener={registerAuthEventListener}
+        refreshUserSession={refreshUserSession}
+      >
+        <BackendProvider remoteBackend={remoteBackend} localBackend={localBackend}>
+          <AuthProvider
+            shouldStartInOfflineMode={isAuthenticationDisabled}
+            authService={authService}
+            onAuthenticated={onAuthenticated}
+          >
+            <InputBindingsProvider inputBindings={inputBindings}>
+              <errorBoundary.ErrorBoundary>{routes}</errorBoundary.ErrorBoundary>
+            </InputBindingsProvider>
+          </AuthProvider>
+        </BackendProvider>
+      </SessionProvider>
+    </RouterProvider>
   )
-
-  result = (
-    <BackendProvider remoteBackend={remoteBackend} localBackend={localBackend}>
-      {result}
-    </BackendProvider>
-  )
-
-  result = (
-    <SessionProvider
-      saveAccessToken={authService?.cognito.saveAccessToken.bind(authService.cognito) ?? null}
-      mainPageUrl={mainPageUrl}
-      userSession={userSession}
-      registerAuthEventListener={registerAuthEventListener}
-      refreshUserSession={refreshUserSession}
-    >
-      {result}
-    </SessionProvider>
-  )
-  result = <LoggerProvider logger={logger}>{result}</LoggerProvider>
-  result = (
-    <rootComponent.Root navigate={navigate} portalRoot={portalRoot}>
-      {result}
-    </rootComponent.Root>
-  )
-  result = (
-    <offlineNotificationManager.OfflineNotificationManager>
-      {result}
-    </offlineNotificationManager.OfflineNotificationManager>
-  )
-  result = (
-    <httpClientProvider.HttpClientProvider httpClient={httpClient}>
-      {result}
-    </httpClientProvider.HttpClientProvider>
-  )
-
-  result = <LoggerProvider logger={logger}>{result}</LoggerProvider>
-
-  return result
 }
