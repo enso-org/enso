@@ -51,7 +51,7 @@ type SQLServer_Type_Mapping
             Value_Type.Time -> SQL_Type.Value Types.TIME "TIME"
             Value_Type.Date -> SQL_Type.Value Types.DATE "DATE"
             Value_Type.Date_Time with_timezone ->
-                type_name = if with_timezone then "timestamp_tz" else "DATETIME2"
+                type_name = if with_timezone then "DATETIMEOFFSET" else "DATETIME2"
                 SQL_Type.Value Types.TIMESTAMP type_name
             Value_Type.Binary size _ ->
                 ## Snowflake does not support fixed length binary types, so we use BINARY.
@@ -87,7 +87,9 @@ type SQLServer_Type_Mapping
                 "datetime" -> Value_Type.Date_Time with_timezone=False
                 "datetime2" -> Value_Type.Date_Time with_timezone=False
                 _ -> on_unknown_type sql_type
-            _ -> Nothing
+            _ -> case sql_type.name of
+                "datetimeoffset" -> Value_Type.Date_Time with_timezone=True
+                _ -> Nothing
         simple_type.if_nothing <|
             ## If we didn't match any of the types from the simple mapping, we
                continue with the more complex mappings that take stuff like
