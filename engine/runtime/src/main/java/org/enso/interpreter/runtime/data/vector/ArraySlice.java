@@ -102,9 +102,11 @@ final class ArraySlice implements EnsoObject {
     }
 
     var v = interop.readArrayElement(storage, start + index);
-    if (hasWarningsNode.execute(v)) {
+    if (hasWarningsNode.execute(this)) {
       Warning[] extracted = this.getWarnings(null, false, warnings);
-      v = warnings.removeWarnings(v);
+      if (hasWarningsNode.execute(v)) {
+        v = warnings.removeWarnings(v);
+      }
       return WithWarnings.wrap(
           toEnso.execute(v), EnsoContext.get(warnings), insertNode, interop, extracted);
     }
