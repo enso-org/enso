@@ -25,8 +25,12 @@ type SQLServer_Type_Mapping
     value_type_to_sql value_type on_problems =
         result = case value_type of
             Value_Type.Boolean -> SQL_Type.Value Types.BIT "bit"
-            Value_Type.Byte -> SQL_Type.Value Types.TINYINT "tinyint"
-            Value_Type.Integer _ -> SQL_Type.Value Types.BIGINT "bigint"
+            ## A SQLServer TinyInt is untyped with a range of 0-255, 
+               so we have to use SmallInt to be able to handle the negative values in our Byte type.
+            Value_Type.Byte -> SQL_Type.Value Types.SMALLINT "smallint"
+            Value_Type.Integer Bits.Bits_16 -> SQL_Type.Value Types.SMALLINT "smallint"
+            Value_Type.Integer Bits.Bits_32 -> SQL_Type.Value Types.INTEGER "integer"
+            Value_Type.Integer Bits.Bits_64 -> SQL_Type.Value Types.BIGINT "bigint"
             # All float types in Snowflake become double
             Value_Type.Float _ -> SQL_Type.Value Types.DOUBLE "float"
             Value_Type.Decimal precision scale -> case precision of
@@ -118,7 +122,8 @@ type SQLServer_Type_Mapping
 
 ## PRIVATE
 simple_types_map = Map.from_vector <|
-    ints = [[Types.TINYINT, Value_Type.Byte], [Types.SMALLINT, Value_Type.Integer Bits.Bits_16], [Types.BIGINT, Value_Type.Integer Bits.Bits_64], [Types.INTEGER, Value_Type.Integer Bits.Bits_32]]
+    ## A SQLServer TINYINT is untyped with a range of 0-255 so we have to use a 16-bit Integer
+    ints = [[Types.TINYINT, Value_Type.Integer Bits.Bits_16], [Types.SMALLINT, Value_Type.Integer Bits.Bits_16], [Types.BIGINT, Value_Type.Integer Bits.Bits_64], [Types.INTEGER, Value_Type.Integer Bits.Bits_32]]
     floats = [[Types.DOUBLE, Value_Type.Float Bits.Bits_64], [Types.REAL, Value_Type.Float Bits.Bits_32]]
     other = [[Types.DATE, Value_Type.Date], [Types.TIME, Value_Type.Time], [Types.BIT, Value_Type.Boolean]]
     ints + floats + other

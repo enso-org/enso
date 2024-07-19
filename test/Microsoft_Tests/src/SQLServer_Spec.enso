@@ -40,15 +40,17 @@ type SQLServer_Info_Data
     setup default_connection = SQLServer_Info_Data.Value <|
         connection = default_connection
         tinfo = Name_Generator.random_name "Tinfo"
-        connection.execute_update 'Create Table "'+tinfo+'" ("strs" VARCHAR(255), "ints" BIGINT, "bools" BIT, "doubles" FLOAT, "tinyints" TINYINT)'
+        connection.execute_update 'Create Table "'+tinfo+'" ("strs" VARCHAR(255), "ints" INTEGER, "bools" BIT, "doubles" FLOAT, "tinyints" TINYINT, "smallints" SMALLINT, "bigints" BIGINT)'
         t = connection.query (SQL_Query.Table_Name tinfo)
-        row1 = ["a", Nothing, False, 1.2, 1]
-        row2 = ["abc", Nothing, Nothing, 1.3, 2]
-        row3 = ["def", 42, True, 1.4, Nothing]
-        table = Table.from_rows ["strs", "ints", "bools", "doubles", "tinyints"] [row1, row2, row3]
-        table2 = table.cast ['tinyints'] ..Byte
+        row1 = ["a", Nothing, False, 1.2, 0, 0, 0]
+        row2 = ["abc", Nothing, Nothing, 1.3, 255, 32767, 9223372036854775807]
+        row3 = ["def", 42, True, 1.4, Nothing, Nothing, Nothing]
+        table = Table.from_rows ["strs", "ints", "bools", "doubles", "tinyints", "smallints", "bigints"] [row1, row2, row3]
+        table2 = table.cast ['tinyints'] (Value_Type.Integer Bits.Bits_16)
+        table3 = table2.cast ['smallints'] (Value_Type.Integer Bits.Bits_16)
+        table4 = table3.cast ['ints'] (Value_Type.Integer Bits.Bits_32)
         Panic.rethrow <|
-            t.update_rows table2 update_action=Update_Action.Insert
+            t.update_rows table4 update_action=Update_Action.Insert
 
         [connection, tinfo, t]
 
@@ -84,15 +86,15 @@ add_specs suite_builder =
 
         group_builder.specify "should return Table information" <|
             i = data.t.column_info
-            i.at "Column" . to_vector . should_equal ["strs", "ints", "bools", "doubles", "tinyints"]
-            i.at "Items Count" . to_vector . should_equal [3, 1, 2, 3, 2]
-            i.at "Value Type" . to_vector . should_equal [Value_Type.Char 255, Value_Type.Integer, Value_Type.Boolean, Value_Type.Float, Value_Type.Byte]
+            i.at "Column" . to_vector . should_equal ["strs", "ints", "bools", "doubles", "tinyints", "smallints", "bigints"]
+            i.at "Items Count" . to_vector . should_equal [3, 1, 2, 3, 2, 2, 2]
+            i.at "Value Type" . to_vector . should_equal [Value_Type.Char 255, Value_Type.Integer ..Bits_32, Value_Type.Boolean, Value_Type.Float, Value_Type.Integer Bits.Bits_16, Value_Type.Integer Bits.Bits_16, Value_Type.Integer Bits.Bits_64]
 
         group_builder.specify "should return Table information, also for aggregated results" <|
             i = data.t.aggregate columns=[Aggregate_Column.Sum "ints", Aggregate_Column.Count_Distinct "bools"] . column_info
             i.at "Column" . to_vector . should_equal ["Sum ints", "Count Distinct bools"]
             i.at "Items Count" . to_vector . should_equal [1, 1]
-            i.at "Value Type" . to_vector . should_equal [Value_Type.Integer, Value_Type.Integer ..Bits_32]
+            i.at "Value Type" . to_vector . should_equal [Value_Type.Integer ..Bits_32, Value_Type.Integer ..Bits_32]
 
         group_builder.specify "should infer standard types correctly" <|
             data.t.at "strs" . value_type . is_text . should_be_true
