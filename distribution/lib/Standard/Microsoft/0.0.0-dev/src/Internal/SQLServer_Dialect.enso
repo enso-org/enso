@@ -224,7 +224,7 @@ type SQLSever_Dialect
     ## PRIVATE
     prepare_fetch_types_query : SQL_Expression -> Context -> SQL_Statement
     prepare_fetch_types_query self expression context =
-        Dialect.default_fetch_types_query self expression context
+        Base_Generator.default_fetch_types_query self expression context where_filter_always_false_literal="1=0"
 
     ## PRIVATE
     check_aggregate_support : Aggregate_Column -> Boolean ! Unsupported_Database_Operation
@@ -398,9 +398,13 @@ agg_count_distinct args = if args.is_empty then (Error.throw (Illegal_Argument.E
             (count ++ all_nulls_filter).paren
 
 ## PRIVATE
-agg_count_distinct_include_null args =
-    ## If we always count as tuples, then even null fields are counted.
-    SQL_Builder.code "COUNT(DISTINCT (" ++ SQL_Builder.join ", " args ++ ", 0))"
+agg_count_distinct_include_null args = case args.length == 1 of
+    True ->
+        arg = args.first
+        count = SQL_Builder.code "COUNT(DISTINCT " ++ arg ++ ")"
+        all_nulls_case = SQL_Builder.code "CASE WHEN COUNT(CASE WHEN " ++ arg ++ "IS NULL THEN 1 END) > 0 THEN 1 ELSE 0 END"
+        count ++ " + " ++ all_nulls_case
+    False -> Error.throw (Illegal_Argument.Error "COUNT_DISTINCT supports only single arguments in SQLServer.")
 
 ## PRIVATE
 starts_with = Base_Generator.lift_binary_sql_function "STARTS_WITH" "STARTSWITH"

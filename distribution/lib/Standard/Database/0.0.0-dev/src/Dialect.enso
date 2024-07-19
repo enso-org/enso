@@ -285,11 +285,6 @@ postgres : Dialect
 postgres = Postgres_Dialect.postgres
 
 ## PRIVATE
-default_fetch_types_query dialect expression context =
-    empty_context = context.add_where_filters [SQL_Expression.Literal "FALSE"]
-    dialect.generate_sql (Query.Select [["typed_column", expression]] empty_context)
-
-## PRIVATE
    Default implementation relying on DatabaseMetaData.
 default_fetch_primary_key connection table_name =
     connection.jdbc_connection.with_metadata metadata->

@@ -613,3 +613,8 @@ truncate_table_delete_from_style dialect table_name =
 truncate_table_truncate_table_style : Dialect -> Text -> SQL_Builder
 truncate_table_truncate_table_style dialect table_name =
     SQL_Builder.code "TRUNCATE TABLE " ++ dialect.wrap_identifier table_name
+
+## PRIVATE
+default_fetch_types_query dialect expression context where_filter_always_false_literal="FALSE" =
+    empty_context = context.add_where_filters [SQL_Expression.Literal where_filter_always_false_literal]
+    dialect.generate_sql (Query.Select [["typed_column", expression]] empty_context)
