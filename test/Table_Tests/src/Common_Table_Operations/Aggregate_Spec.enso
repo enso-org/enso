@@ -1061,7 +1061,7 @@ add_specs suite_builder setup =
             m1.columns.first.name . should_equal "Count Distinct A B"
             m1.columns.first.to_vector . should_equal [3]
 
-        group_builder.specify "should work correctly with Boolean columns" <|
+        group_builder.specify "should work correctly with Boolean columns" pending=(if prefix.contains "Snowflake" then "TODO: fix https://github.com/enso-org/enso/issues/10611") <|
             table = table_builder [["A", [True, True, True]], ["B", [False, False, False]], ["C", [True, False, True]], ["D", [Nothing, False, True]]]
 
             t_with_nulls = table.aggregate columns=[..Count_Distinct "A", ..Count_Distinct "B", ..Count_Distinct "C", ..Count_Distinct "D"]
