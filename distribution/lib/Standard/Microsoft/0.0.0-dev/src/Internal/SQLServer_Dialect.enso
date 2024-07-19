@@ -45,6 +45,8 @@ from Standard.Database.Internal.Statement_Setter import fill_hole_default
 
 import project.Internal.SQLServer_Type_Mapping.SQLServer_Type_Mapping
 
+polyglot java import java.sql.Time as Java_Time
+
 ## PRIVATE
    The dialect of SQL Server databases.
 sqlserver : SQLSever_Dialect
@@ -150,13 +152,18 @@ type SQLSever_Dialect
     ## PRIVATE
     get_statement_setter : Statement_Setter
     get_statement_setter self =
+        IO.println "here"
         custom_fill_hole stmt i type_hint value = case value of
-            # TODO some Special handling for Date/Time
-            _ : Date -> stmt.setObject i value
-            _ : Date_Time -> stmt.setObject i value
-            _ : Time_Of_Day -> stmt.setObject i value
+            _ : Time_Of_Day ->
+                IO.println "here2"
+                iso = value.format Date_Time_Formatter.iso_time
+                IO.println iso
+                t = Java_Time.valueOf iso
+                stmt.setTime i t
             # Fallback to default logic for everything else
-            _ -> fill_hole_default stmt i type_hint value
+            _ ->
+                IO.println "here3"
+                fill_hole_default stmt i type_hint value
         Statement_Setter.Value custom_fill_hole
 
     ## PRIVATE

@@ -48,7 +48,7 @@ type SQLServer_Type_Mapping
                             True  -> SQL_Type.Value Types.VARCHAR "NVARCHAR(MAX)"
                             False -> SQL_Type.Value Types.VARCHAR "NVARCHAR" size
                     False -> SQL_Type.Value Types.CHAR "NCHAR" size
-            Value_Type.Time -> SQL_Type.Value Types.TIME "time"
+            Value_Type.Time -> SQL_Type.Value Types.TIME "TIME"
             Value_Type.Date -> SQL_Type.Value Types.DATE "date"
             Value_Type.Date_Time with_timezone ->
                 type_name = if with_timezone then "timestamp_tz" else "timestamp_ntz"
