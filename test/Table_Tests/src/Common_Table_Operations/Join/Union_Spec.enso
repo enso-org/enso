@@ -52,7 +52,7 @@ run_union_tests group_builder setup call_union =
     materialize_and_maybe_sort table column_for_sort="rowid" =
         if setup.is_database.not then table else
             # We also remove the rowid column from the result to avoid interfering with the test.
-            materialize table . sort column_for_sort . remove_columns "rowid"
+            materialize table . sort column_for_sort . remove_columns "rowid" on_problems=..Ignore
     ## A paired builder to `materialize_and_maybe_sort`.
        In Database, it adds a rowid column to the table. In in-memory, it just delegates to `table_builder`.
        For convenience, to avoid having to specify the starting id on each call, we just use a global counter.
@@ -147,9 +147,9 @@ run_union_tests group_builder setup call_union =
 
     group_builder.specify "should fail if asked to drop unmatched columns but the set of common columns is empty" <|
         # We cannot have the rowid column here as we explicitly want to have no common columns.
-        t1 = table1.get.remove_columns "rowid"
-        t2 = table2.get.remove_columns "rowid"
-        t3 = table3.get.remove_columns "rowid"
+        t1 = table1.get.remove_columns "rowid" on_problems=..Ignore
+        t2 = table2.get.remove_columns "rowid" on_problems=..Ignore
+        t3 = table3.get.remove_columns "rowid" on_problems=..Ignore
 
         t4 = call_union [t1, t2, t3] columns_to_keep=..In_All on_problems=..Ignore
         t4.should_fail_with No_Output_Columns
@@ -271,7 +271,7 @@ run_union_tests group_builder setup call_union =
 
     group_builder.specify "should allow to merge a table with itself" <|
         t1 = table1.get
-        t2 = call_union [t1, t1, t1] . remove_columns "rowid"
+        t2 = call_union [t1, t1, t1] . remove_columns "rowid" on_problems=..Ignore
         expect_column_names ["A", "B"] t2
         case setup.is_database of
             False ->
@@ -299,7 +299,7 @@ run_union_tests group_builder setup call_union =
                 sorted.at "B" . to_vector . should_equal ["a", "a", "a", "b", "b", "c"]
 
     group_builder.specify "should gracefully handle the case where no tables to union were provided" <|
-        t1 = table1.get.remove_columns "rowid"
+        t1 = table1.get.remove_columns "rowid" on_problems=..Ignore
 
         check_same table =
             expect_column_names ["A", "B"] table
