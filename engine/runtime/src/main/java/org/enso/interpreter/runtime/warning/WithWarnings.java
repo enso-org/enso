@@ -28,7 +28,6 @@ import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.state.State;
-import org.graalvm.collections.Equivalence;
 
 /**
  * Represents a typical Enso <em>value with warnings</em>. As much of care as possible is taken to
@@ -257,36 +256,8 @@ public final class WithWarnings implements EnsoObject {
   }
 
   @ExportMessage
-  RuntimeException throwException(@Bind("$node") Node node) throws UnsupportedMessageException {
+  RuntimeException throwException(@Bind("$node") Node node) {
     throw asException(node);
-  }
-
-  public static class WarningEquivalence extends Equivalence {
-
-    @Override
-    public boolean equals(Object a, Object b) {
-      if (a instanceof Warning thisObj && b instanceof Warning thatObj) {
-        return thisObj.getSequenceId() == thatObj.getSequenceId();
-      }
-      return false;
-    }
-
-    @Override
-    public int hashCode(Object o) {
-      return (int) ((Warning) o).getSequenceId();
-    }
-  }
-
-  private EnsoHashMap createHashSetFromArray(
-      int maxWarnings, Warning[] entries, HashMapInsertNode insertNode, InteropLibrary interop) {
-    var set = EnsoHashMap.empty();
-    for (Warning entry : entries) {
-      if (set.getHashSize() == maxWarnings) {
-        return set;
-      }
-      set = insertNode.execute(null, set, entry, null);
-    }
-    return set;
   }
 
   private EnsoHashMap cloneSetAndAppend(

@@ -157,7 +157,7 @@ public final class Warning implements EnsoObject {
 
   public static Warning[] fromSetToArray(EnsoHashMap set, InteropLibrary interop) {
     var vec = set.getCachedVectorRepresentation();
-    Warning[] warns = null;
+    Warning[] warns;
     try {
       var vecSize = interop.getArraySize(vec);
       warns = new Warning[Math.toIntExact(vecSize)];
@@ -180,12 +180,10 @@ public final class Warning implements EnsoObject {
   @Builtin.Specialize
   @SuppressWarnings("generic-enso-builtin-type")
   public static Object set(
-      EnsoContext ctx,
       WithWarnings value,
       Object warnings,
-      InteropLibrary interop,
       @Shared @Cached AppendWarningNode appendWarningNode) {
-    return setGeneric(ctx, value.getValue(), interop, warnings, appendWarningNode);
+    return setGeneric(value.getValue(), warnings, appendWarningNode);
   }
 
   @Builtin.Method(
@@ -195,18 +193,14 @@ public final class Warning implements EnsoObject {
   @SuppressWarnings("generic-enso-builtin-type")
   @Builtin.Specialize(fallback = true)
   public static Object set(
-      EnsoContext ctx,
       Object value,
       Object warnings,
-      InteropLibrary interop,
       @Shared @Cached AppendWarningNode appendWarningNode) {
-    return setGeneric(ctx, value, interop, warnings, appendWarningNode);
+    return setGeneric(value, warnings, appendWarningNode);
   }
 
   private static Object setGeneric(
-      EnsoContext ctx,
       Object value,
-      InteropLibrary interop,
       Object warnings,
       AppendWarningNode appendWarningNode) {
     return appendWarningNode.execute(null, value, warnings);
@@ -278,7 +272,6 @@ public final class Warning implements EnsoObject {
     var ctx = EnsoContext.get(warningsLib);
     var error = warning.getValue();
     var wrappedError = ctx.getBuiltins().error().makeMapError(index, error);
-    var wrappedWarning = Warning.create(ctx, wrappedError, warning.getOrigin());
-    return wrappedWarning;
+    return Warning.create(ctx, wrappedError, warning.getOrigin());
   }
 }
