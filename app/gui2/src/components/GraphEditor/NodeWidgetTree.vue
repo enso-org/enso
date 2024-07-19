@@ -102,11 +102,7 @@ export const ICON_WIDTH = 16
 </script>
 
 <template>
-  <div
-    class="NodeWidgetTree NodeWidget widgetRounded"
-    spellcheck="false"
-    v-on="layoutTransitions.events"
-  >
+  <div class="NodeWidgetTree widgetRounded" spellcheck="false" v-on="layoutTransitions.events">
     <!-- Display an icon for the node if no widget in the tree provides one. -->
     <SvgIcon
       v-if="!props.potentialSelfArgumentId"
@@ -124,7 +120,7 @@ export const ICON_WIDTH = 16
   color: white;
 
   outline: none;
-  min-height: 24px;
+  min-height: var(--node-port-height);
   display: flex;
   align-items: center;
 }
@@ -190,7 +186,7 @@ export const ICON_WIDTH = 16
     --widget-token-pad-right: 0px;
   }
 
-  :deep(.widgetApplyPadding) {
+  :deep(.widgetApplyPadding.widgetApplyPadding) {
     padding-left: var(--widget-token-pad-left, 0);
     padding-right: var(--widget-token-pad-right, 0);
     transition: padding 0.2s;

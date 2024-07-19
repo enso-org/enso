@@ -59,8 +59,8 @@ const innerInput = computed(() => {
   } else {
     input = { ...props.input }
   }
-  let callInfo
-  if ((callInfo = methodCallInfo.value)) {
+  const callInfo = methodCallInfo.value
+  if (callInfo) {
     input[CallInfo] = callInfo
     const definition = graph.getMethodAst(callInfo.methodCall.methodPointer)
     if (definition.ok) input[FunctionName] = { editableName: definition.value.name.externalId }

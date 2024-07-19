@@ -95,7 +95,6 @@ const spanStart = computed(() => {
   <component
     :is="selectedWidget.default"
     v-if="selectedWidget"
-    class="NodeWidget"
     v-bind="$attrs"
     :input="props.input"
     :nesting="nesting"
