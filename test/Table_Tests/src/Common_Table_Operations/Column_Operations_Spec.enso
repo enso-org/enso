@@ -658,7 +658,7 @@ add_specs suite_builder setup =
 
         group_builder.specify "(Column_Operations_Spec) should allow to compare numbers (including mixed types)" <|
             x_values = [1.25, 4.5, 5.0]
-            y_values = [2.0, 3.25, 5.0]
+            y_values = [2.0, 3.0, 5.0]
 
             converters = [.truncate, x->x, dec]
             converters.map x_converter-> converters.map y_converter->
@@ -668,20 +668,18 @@ add_specs suite_builder setup =
                     x = t.at "x"
                     y = t.at "y"
 
-                    Test.with_clue " comparison: "+x.value_type.to_text+', '+y.value_type.to_text <|
+                    Test.with_clue " comparison: "+x.value_type.to_text+', '+y.value_type.to_text+" " <|
                         (x < y).to_vector . should_equal [True, False, False, Nothing]
                         (x <= y).to_vector . should_equal [True, False, True, Nothing]
                         (x > y).to_vector . should_equal (x <= y).not.to_vector
                         (x >= y).to_vector . should_equal (x < y).not.to_vector
 
                         converters.map converter->
-                            const_float = 3.25
+                            const_float = 3.0
                             constant = converter const_float
                             Test.with_clue " constant: "+(Meta.get_simple_type_name constant) <|
                                 (x == constant).to_vector . should_equal [False, False, False, Nothing]
                                 (x != constant).to_vector . should_equal [True, True, True, Nothing]
-                                if y != constant then
-                                    _ = 1
                                 (y == constant).to_vector . should_equal [False, True, False, Nothing]
                                 (y != constant).to_vector . should_equal [True, False, True, Nothing]
 

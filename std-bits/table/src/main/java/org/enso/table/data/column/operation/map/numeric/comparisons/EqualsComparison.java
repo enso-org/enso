@@ -46,7 +46,7 @@ public class EqualsComparison<T extends Number, I extends Storage<? super T>>
 
   @Override
   protected boolean doBigDecimal(BigDecimal a, BigDecimal b) {
-    return a.equals(b);
+    return a.compareTo(b) == 0;
   }
 
   @Override
