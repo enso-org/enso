@@ -404,7 +404,8 @@
   "showPassword": "Show password",
   "copiedToClipboard": "Copied to clipboard",
   "noResultsFound": "No results found.",
-  "createAssetsInMyFiles": "Create assets in My Files",
+  "youAreOffline": "You are offline.",
+  "cannotCreateAssetsHere": "You do not have the permissions to create assets here.",
 
   "deleteLabelActionText": "delete the label '$0'",
   "deleteSelectedAssetActionText": "delete '$0'",

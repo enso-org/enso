@@ -76,11 +76,16 @@ export default function DriveBar(props: DriveBarProps) {
   const uploadFilesRef = React.useRef<HTMLInputElement>(null)
   const isCloud = categoryModule.isCloudCategory(category)
   const { isOffline } = offlineHooks.useOffline()
-  const shouldBeDisabled = isCloud && isOffline
   const canCreateAssets =
     category.type !== categoryModule.CategoryType.cloud ||
     user.plan == null ||
     user.plan === backendModule.Plan.solo
+  const shouldBeDisabled = (isCloud && isOffline) || !canCreateAssets
+  const error = !shouldBeDisabled
+    ? null
+    : isCloud && isOffline
+      ? getText('youAreOffline')
+      : getText('cannotCreateAssetsHere')
 
   React.useEffect(() => {
     return inputBindings.attach(sanitizedEventTargets.document.body, 'keydown', {
@@ -167,119 +172,106 @@ export default function DriveBar(props: DriveBarProps) {
     case categoryModule.CategoryType.team: {
       return (
         <ariaComponents.ButtonGroup className="my-0.5 grow-0">
-          {!canCreateAssets && (
+          <aria.DialogTrigger>
             <ariaComponents.Button
               size="medium"
-              variant="bar"
+              variant="tertiary"
               isDisabled={shouldBeDisabled}
-              onPress={() => {
-                setCategory({
-                  type: categoryModule.CategoryType.user,
-                  rootPath: backendModule.Path(`enso://Users/${user.name}`),
-                  homeDirectoryId: backendModule.DirectoryId(
-                    `directory-${user.userId.replace(/^user-/, '')}`
-                  ),
-                })
-              }}
+              tooltip={error}
             >
-              {getText('createAssetsInMyFiles')}
+              {getText('startWithATemplate')}
             </ariaComponents.Button>
-          )}
-          {canCreateAssets && (
-            <aria.DialogTrigger>
-              <ariaComponents.Button size="medium" variant="tertiary" isDisabled={shouldBeDisabled}>
-                {getText('startWithATemplate')}
-              </ariaComponents.Button>
 
-              <StartModal createProject={doCreateProject} />
-            </aria.DialogTrigger>
-          )}
-          {canCreateAssets && (
+            <StartModal createProject={doCreateProject} />
+          </aria.DialogTrigger>
+          <ariaComponents.Button
+            size="medium"
+            variant="bar"
+            isDisabled={shouldBeDisabled}
+            tooltip={error}
+            onPress={() => {
+              doCreateProject()
+            }}
+          >
+            {getText('newEmptyProject')}
+          </ariaComponents.Button>
+          <div className="flex h-row items-center gap-4 rounded-full border-0.5 border-primary/20 px-[11px]">
             <ariaComponents.Button
+              variant="icon"
               size="medium"
-              variant="bar"
+              icon={AddFolderIcon}
               isDisabled={shouldBeDisabled}
+              aria-label={getText('newFolder')}
+              tooltip={error}
               onPress={() => {
-                doCreateProject()
+                doCreateDirectory()
               }}
-            >
-              {getText('newEmptyProject')}
-            </ariaComponents.Button>
-          )}
-          {canCreateAssets && (
-            <div className="flex h-row items-center gap-4 rounded-full border-0.5 border-primary/20 px-[11px]">
+            />
+            {isCloud && (
               <ariaComponents.Button
                 variant="icon"
                 size="medium"
-                icon={AddFolderIcon}
+                icon={AddKeyIcon}
                 isDisabled={shouldBeDisabled}
-                aria-label={getText('newFolder')}
+                aria-label={getText('newSecret')}
+                tooltip={error}
                 onPress={() => {
-                  doCreateDirectory()
+                  setModal(<UpsertSecretModal id={null} name={null} doCreate={doCreateSecret} />)
                 }}
               />
-              {isCloud && (
-                <ariaComponents.Button
-                  variant="icon"
-                  size="medium"
-                  icon={AddKeyIcon}
-                  isDisabled={shouldBeDisabled}
-                  aria-label={getText('newSecret')}
-                  onPress={() => {
-                    setModal(<UpsertSecretModal id={null} name={null} doCreate={doCreateSecret} />)
-                  }}
-                />
-              )}
-              {isCloud && (
-                <ariaComponents.Button
-                  variant="icon"
-                  size="medium"
-                  icon={AddDatalinkIcon}
-                  isDisabled={shouldBeDisabled}
-                  aria-label={getText('newDatalink')}
-                  onPress={() => {
-                    setModal(<UpsertDatalinkModal doCreate={doCreateDatalink} />)
-                  }}
-                />
-              )}
-              <aria.Input
-                ref={uploadFilesRef}
-                type="file"
-                multiple
-                className="hidden"
-                onInput={event => {
-                  if (event.currentTarget.files != null) {
-                    doUploadFiles(Array.from(event.currentTarget.files))
-                  }
-                  // Clear the list of selected files. Otherwise, `onInput` will not be
-                  // dispatched again if the same file is selected.
-                  event.currentTarget.value = ''
-                }}
-              />
+            )}
+            {isCloud && (
               <ariaComponents.Button
                 variant="icon"
                 size="medium"
-                icon={DataUploadIcon}
+                icon={AddDatalinkIcon}
                 isDisabled={shouldBeDisabled}
-                aria-label={getText('uploadFiles')}
+                aria-label={getText('newDatalink')}
+                tooltip={error}
                 onPress={() => {
-                  unsetModal()
-                  uploadFilesRef.current?.click()
+                  setModal(<UpsertDatalinkModal doCreate={doCreateDatalink} />)
                 }}
               />
-              <ariaComponents.Button
-                isDisabled={!canDownload || shouldBeDisabled}
-                variant="icon"
-                size="medium"
-                icon={DataDownloadIcon}
-                aria-label={getText('downloadFiles')}
-                onPress={() => {
-                  unsetModal()
-                  dispatchAssetEvent({ type: AssetEventType.downloadSelected })
-                }}
-              />
-            </div>
-          )}
+            )}
+            <aria.Input
+              ref={uploadFilesRef}
+              type="file"
+              multiple
+              className="hidden"
+              onInput={event => {
+                if (event.currentTarget.files != null) {
+                  doUploadFiles(Array.from(event.currentTarget.files))
+                }
+                // Clear the list of selected files. Otherwise, `onInput` will not be
+                // dispatched again if the same file is selected.
+                event.currentTarget.value = ''
+              }}
+            />
+            <ariaComponents.Button
+              variant="icon"
+              size="medium"
+              icon={DataUploadIcon}
+              isDisabled={shouldBeDisabled}
+              aria-label={getText('uploadFiles')}
+              tooltip={error}
+              onPress={() => {
+                unsetModal()
+                uploadFilesRef.current?.click()
+              }}
+            />
+            <ariaComponents.Button
+              isDisabled={!canDownload || shouldBeDisabled}
+              variant="icon"
+              size="medium"
+              icon={DataDownloadIcon}
+              aria-label={getText('downloadFiles')}
+              tooltip={error}
+              onPress={() => {
+                unsetModal()
+                dispatchAssetEvent({ type: AssetEventType.downloadSelected })
+              }}
+            />
+          </div>
           {searchBar}
           {assetPanelToggle}
         </ariaComponents.ButtonGroup>
