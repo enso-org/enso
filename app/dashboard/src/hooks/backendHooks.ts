@@ -160,23 +160,20 @@ export type MutationMethod = Exclude<
   >
 >
 
-// =======================
-// === useSetQueryData ===
-// =======================
+// ===========================
+// === setBackendQueryData ===
+// ===========================
 
 /** A type-safe function to set query data for backend. */
-function useBackendSetQueryData(backend: Backend | null) {
-  const queryClient = reactQuery.useQueryClient()
-  return <Method extends backendQuery.BackendMethods>(
-    method: Method,
-    updater: (
-      variable: Awaited<ReturnType<Backend[Method]>>
-    ) => Awaited<ReturnType<Backend[Method]>>
-  ) => {
-    queryClient.setQueryData<Awaited<ReturnType<Backend[Method]>>>([backend?.type, method], data =>
-      data == null ? data : updater(data)
-    )
-  }
+function setBackendQueryData<Method extends backendQuery.BackendMethods>(
+  queryClient: reactQuery.QueryClient,
+  backend: Backend | null,
+  method: Method,
+  updater: (variable: Awaited<ReturnType<Backend[Method]>>) => Awaited<ReturnType<Backend[Method]>>
+) {
+  queryClient.setQueryData<Awaited<ReturnType<Backend[Method]>>>([backend?.type, method], data =>
+    data == null ? data : updater(data)
+  )
 }
 
 // =======================
@@ -623,7 +620,12 @@ function createRemoteBackendMutationBuilder<
   onSuccess: (
     context: ExtraHooks & {
       backend: RemoteBackend
-      setQueryData: ReturnType<typeof useBackendSetQueryData>
+      setQueryData: <QueryMethod extends backendQuery.BackendMethods>(
+        method: QueryMethod,
+        updater: (
+          variable: Awaited<ReturnType<Backend[QueryMethod]>>
+        ) => Awaited<ReturnType<Backend[QueryMethod]>>
+      ) => void
     },
     ...args: Parameters<NonNullable<BackendMutationOptions<Method>['onSuccess']>>
   ) => void,
@@ -633,14 +635,23 @@ function createRemoteBackendMutationBuilder<
   // eslint-disable-next-line no-restricted-syntax
   function useBuilder(options?: BackendMutationOptions<Method>) {
     const backend = useRemoteBackendStrict()
-    const setQueryData = useBackendSetQueryData(backend)
+    const queryClient = reactQuery.useQueryClient()
     // eslint-disable-next-line no-restricted-syntax
     const extraHooks = useExtraHooks?.() as ExtraHooks
     return useBackendMutationOptionsInternal(backend, method, {
       ...options,
       onSuccess: (...args) => {
         options?.onSuccess?.(...args)
-        onSuccess({ backend, setQueryData, ...extraHooks }, ...args)
+        onSuccess(
+          {
+            backend,
+            setQueryData: (queryMethod, updater) => {
+              setBackendQueryData(queryClient, backend, queryMethod, updater)
+            },
+            ...extraHooks,
+          },
+          ...args
+        )
       },
     })
   }
