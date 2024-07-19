@@ -60,40 +60,6 @@ public final class WithWarnings implements EnsoObject {
   final int maxWarnings;
 
   /**
-   * Creates a new instance of value wrapped in warnings. `limitReached` parameter allows for
-   * indicating if some custom warnings filtering on `warnings` have already been performed.
-   *
-   * @param value value to be wrapped in warnings
-   * @param maxWarnings maximal number of warnings allowed to be attached to the value
-   * @param limitReached if `true`, indicates that `warnings` have already been limited for a
-   *     custom-method, `false` otherwise
-   * @param warnings non-empty warnings to be attached to a value
-   */
-  private WithWarnings(
-      Object value,
-      int maxWarnings,
-      boolean limitReached,
-      HashMapInsertNode insertNode,
-      InteropLibrary interop,
-      Warning... warnings) {
-    assert isAcceptableValue(value);
-    this.warnings = createHashSetFromArray(maxWarnings, warnings, insertNode, interop);
-    assert this.warnings.getHashSize() > 0;
-    this.value = value;
-    this.limitReached = limitReached || this.warnings.getHashSize() >= maxWarnings;
-    this.maxWarnings = maxWarnings;
-  }
-
-  private WithWarnings(
-      Object value,
-      int maxWarnings,
-      HashMapInsertNode insertNode,
-      InteropLibrary interop,
-      Warning... warnings) {
-    this(value, maxWarnings, false, insertNode, interop, warnings);
-  }
-
-  /**
    * Creates a new instance of value wrapped in warnings.
    *
    * @param value value to be wrapped in warnings
