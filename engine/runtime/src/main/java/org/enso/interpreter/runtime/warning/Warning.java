@@ -22,7 +22,11 @@ import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.hash.EnsoHashMap;
 import org.enso.interpreter.runtime.data.hash.HashMapInsertNode;
+import org.enso.interpreter.runtime.data.vector.ArrayLikeAtNode;
+import org.enso.interpreter.runtime.data.vector.ArrayLikeAtNodeGen;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
+import org.enso.interpreter.runtime.data.vector.ArrayLikeLengthNode;
+import org.enso.interpreter.runtime.data.vector.ArrayLikeLengthNodeGen;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 
 @Builtin(pkg = "error", stdlibName = "Standard.Base.Warning.Warning")
@@ -151,24 +155,26 @@ public final class Warning implements EnsoObject {
     Arrays.sort(arr, Comparator.comparing(Warning::getSequenceId).reversed());
   }
 
-  public static Warning[] fromSetToArray(EnsoHashMap set) {
-    return fromSetToArray(set, InteropLibrary.getUncached());
+  public static Warning[] fromMapToArray(EnsoHashMap set) {
+    return fromMapToArray(
+        set,
+        ArrayLikeLengthNodeGen.getUncached(),
+        ArrayLikeAtNodeGen.getUncached());
   }
 
-  public static Warning[] fromSetToArray(EnsoHashMap set, InteropLibrary interop) {
+  public static Warning[] fromMapToArray(EnsoHashMap set, ArrayLikeLengthNode lengthNode, ArrayLikeAtNode atNode) {
     var vec = set.getCachedVectorRepresentation();
-    Warning[] warns;
+    var vecLen = Math.toIntExact(lengthNode.executeLength(vec));
+    Warning[] warns = new Warning[vecLen];
     try {
-      var vecSize = interop.getArraySize(vec);
-      warns = new Warning[Math.toIntExact(vecSize)];
-      for (int i = 0; i < vecSize; i++) {
-        var entry = interop.readArrayElement(vec, i);
-        assert interop.getArraySize(entry) == 2;
-        var key = interop.readArrayElement(entry, 0);
+      for (int i = 0; i < vecLen; i++) {
+        var entry = atNode.executeAt(vec, i);
+        assert lengthNode.executeLength(entry) == 2;
+        var key = atNode.executeAt(entry, 0);
         warns[i] = (Warning) key;
       }
-    } catch (UnsupportedMessageException | InvalidArrayIndexException e) {
-      throw new IllegalStateException(e);
+    } catch (InvalidArrayIndexException | ClassCastException e) {
+      throw CompilerDirectives.shouldNotReachHere(e);
     }
     return warns;
   }

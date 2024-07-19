@@ -25,6 +25,10 @@ import org.enso.interpreter.runtime.data.hash.EnsoHashMap;
 import org.enso.interpreter.runtime.data.hash.HashMapInsertNode;
 import org.enso.interpreter.runtime.data.hash.HashMapInsertNodeGen;
 import org.enso.interpreter.runtime.data.text.Text;
+import org.enso.interpreter.runtime.data.vector.ArrayLikeAtNode;
+import org.enso.interpreter.runtime.data.vector.ArrayLikeAtNodeGen;
+import org.enso.interpreter.runtime.data.vector.ArrayLikeLengthNode;
+import org.enso.interpreter.runtime.data.vector.ArrayLikeLengthNodeGen;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.state.State;
@@ -93,7 +97,7 @@ public final class WithWarnings implements EnsoObject {
 
   // Ignore the warnings cache in .value and re-fetch them using the WarningsLibrary.
   // This is only used for shouldWrap=true.
-  private Warning[] getWarningsNoCache(WarningsLibrary warningsLibrary) {
+  private Warning[] getWarningsNoCache(WarningsLibrary warningsLibrary, ArrayLikeLengthNode lengthNode, ArrayLikeAtNode atNode) {
     if (warningsLibrary != null && warningsLibrary.hasWarnings(value)) {
       try {
         return warningsLibrary.getWarnings(value, null, true);
@@ -101,7 +105,7 @@ public final class WithWarnings implements EnsoObject {
         throw EnsoContext.get(warningsLibrary).raiseAssertionPanic(warningsLibrary, null, e);
       }
     } else {
-      return Warning.fromSetToArray(warnings);
+      return Warning.fromMapToArray(warnings, lengthNode, atNode);
     }
   }
 
@@ -127,12 +131,12 @@ public final class WithWarnings implements EnsoObject {
       try {
         var valueWarnings = warningsLibrary.getWarnings(value, null, shouldWrap);
         var tmp = cloneSetAndAppend(maxWarnings, warnings, valueWarnings, insertNode, interop);
-        allWarnings = Warning.fromSetToArray(tmp);
+        allWarnings = Warning.fromMapToArray(tmp);
       } catch (UnsupportedMessageException e) {
         throw EnsoContext.get(warningsLibrary).raiseAssertionPanic(warningsLibrary, null, e);
       }
     } else {
-      allWarnings = Warning.fromSetToArray(warnings);
+      allWarnings = Warning.fromMapToArray(warnings);
     }
     return allWarnings;
   }
@@ -168,7 +172,9 @@ public final class WithWarnings implements EnsoObject {
             false,
             WarningsLibrary.getUncached(),
             HashMapInsertNodeGen.getUncached(),
-            InteropLibrary.getUncached());
+            InteropLibrary.getUncached(),
+            ArrayLikeAtNodeGen.getUncached(),
+            ArrayLikeLengthNodeGen.getUncached());
     var ctx = EnsoContext.get(where);
     var scopeOfAny = ctx.getBuiltins().any().getDefinitionScope();
     var toText = UnresolvedSymbol.build("to_text", scopeOfAny);
@@ -206,16 +212,18 @@ public final class WithWarnings implements EnsoObject {
       boolean shouldWrap,
       @Shared("warnsLib") @CachedLibrary(limit = "3") WarningsLibrary warningsLibrary,
       @Cached HashMapInsertNode insertNode,
-      @CachedLibrary(limit = "3") InteropLibrary interop) {
+      @CachedLibrary(limit = "3") InteropLibrary interop,
+      @Cached ArrayLikeAtNode atNode,
+      @Cached ArrayLikeLengthNode lengthNode) {
     if (location != null) {
       return getReassignedWarnings(location, shouldWrap, warningsLibrary, insertNode, interop);
     } else {
       if (shouldWrap) {
         // In the wrapping case, we don't use the local cache in .values, since
         // it contains unwrapped warnings. Instead, we fetch them again.
-        return getWarningsNoCache(warningsLibrary);
+        return getWarningsNoCache(warningsLibrary, lengthNode, atNode);
       } else {
-        return Warning.fromSetToArray(warnings);
+        return Warning.fromMapToArray(warnings);
       }
     }
   }
