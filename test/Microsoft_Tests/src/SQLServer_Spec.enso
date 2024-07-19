@@ -53,12 +53,6 @@ type SQLServer_Info_Data
         self.connection.execute_update 'DROP TABLE "'+self.tinfo+'"'
         self.connection.close
 
-
-add_specs suite_builder =
-    suite_builder.group "[SQLServer] Info" group_builder->
-        group_builder.specify "should return Table information" <|
-            [1] . should_equal [3, 1, 2, 3]
-
 get_configured_connection_details =
     host = Environment.get "ENSO_SQLSERVER_HOST" if_missing="localhost"
     port = Environment.get "ENSO_SQLSERVER_PORT" if_missing="1433"
@@ -68,6 +62,23 @@ get_configured_connection_details =
     resolved_password = if password.starts_with "enso://" then Enso_Secret.get password else password
     credentials = Credentials.Username_And_Password user resolved_password
     SQLServer_Details.SQLServer host port credentials database
+
+## Returns a function that takes anything and returns a new connection.
+   The function creates a _new_ connection on each invocation
+   (this is needed for some tests that need multiple distinct connections).
+create_connection_builder =
+    connection_details = get_configured_connection_details
+    connection_details.if_not_nothing <|
+        _ -> Database.connect connection_details
+
+add_specs suite_builder =
+    suite_builder.group "[SQLServer] Info" group_builder->
+        group_builder.specify "should return Table information" <|
+            conn = Database.connect get_configured_connection_details
+            conn.should_succeed
+            new_database = conn.read (SQL_Query.Raw_SQL "SELECT '1' as c") . at 0 . to_vector . first
+            new_database.should_equal "master"
+            [1] . should_equal [3, 1, 2, 3]
 
 main filter=Nothing =
     suite = Test.build suite_builder->

@@ -7,8 +7,9 @@ import project.Internal.SQLServer_Type_Mapping.SQLServer_Type_Mapping
 ## PRIVATE
    The dialect of SQLServer databases.
    Based off Postgres for now.
+   "SQLServer" "SQLServer_Dialect" SQLServer_Type_Mapping
 sqlserver : SQLServer_Dialect
 sqlserver =
-    Postgres_Dialect.Value make_internal_generator_dialect "SQLServer" "SQLServer_Dialect" SQLServer_Type_Mapping
+    Postgres_Dialect.Value make_internal_generator_dialect
 
 type SQLServer_Dialect
