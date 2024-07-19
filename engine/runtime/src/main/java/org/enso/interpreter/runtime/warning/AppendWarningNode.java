@@ -6,7 +6,9 @@ import com.oracle.truffle.api.dsl.Cached.Shared;
 import com.oracle.truffle.api.dsl.GenerateUncached;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.InvalidArrayIndexException;
+import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.hash.EnsoHashMap;
@@ -25,16 +27,17 @@ public abstract class AppendWarningNode extends Node {
    * Appends a warning to the given object.
    *
    * @param object Object that will have the warning appended
-   * @param warnings Array-like object containing warnings to append.
+   * @param warnings Either an array-like object containing warnings to append, or a single warning.
    * @return A wrapped object with warnings
    */
   public abstract WithWarnings execute(VirtualFrame frame, Object object, Object warnings);
 
-  @Specialization
-  WithWarnings doWithWarn(
+  @Specialization(guards = "interop.hasArrayElements(warnings)")
+  WithWarnings doWithWarnMultipleWarnings(
       VirtualFrame frame,
       WithWarnings withWarn,
       Object warnings,
+      @Shared @CachedLibrary(limit = "3") InteropLibrary interop,
       @Shared @Cached HashMapInsertNode mapInsertNode,
       @Shared @Cached ArrayLikeAtNode atNode,
       @Shared @Cached ArrayLikeLengthNode lengthNode) {
@@ -46,11 +49,12 @@ public abstract class AppendWarningNode extends Node {
     return new WithWarnings(withWarn.value, withWarn.maxWarnings, isLimitReached, resWarningMap);
   }
 
-  @Specialization
-  WithWarnings doGeneric(
+  @Specialization(guards = "interop.hasArrayElements(warnings)")
+  WithWarnings doGenericMultipleWarnings(
       VirtualFrame frame,
       Object object,
       Object warnings,
+      @Shared @CachedLibrary(limit = "3") InteropLibrary interop,
       @Shared @Cached ArrayLikeLengthNode lengthNode,
       @Shared @Cached ArrayLikeAtNode atNode,
       @Shared @Cached HashMapInsertNode mapInsertNode) {
@@ -60,6 +64,35 @@ public abstract class AppendWarningNode extends Node {
     var warnsLimit = EnsoContext.get(this).getWarningsLimit();
     var isLimitReached = newWarnsCnt >= warnsLimit;
     return new WithWarnings(object, warnsLimit, isLimitReached, resWarningMap);
+  }
+
+  @Specialization(guards = "!interop.hasArrayElements(warning)")
+  WithWarnings doWithWarnSingleWarning(
+      VirtualFrame frame,
+      WithWarnings withWarn,
+      Object warning,
+      @Shared @CachedLibrary(limit = "3") InteropLibrary interop,
+      @Shared @Cached HashMapInsertNode mapInsertNode
+  ) {
+    var warningsMap = withWarn.warnings;
+    var currWarnsCnt = warningsMap.getHashSize();
+    var newWarnsMap = mapInsertNode.execute(frame, warningsMap, warning, null);
+    var isLimitReached = currWarnsCnt + 1 >= withWarn.maxWarnings;
+    return new WithWarnings(withWarn.value, withWarn.maxWarnings, isLimitReached, newWarnsMap);
+  }
+
+  @Specialization(guards = "!interop.hasArrayElements(warning)")
+  WithWarnings doGenericSingleWarning(
+      VirtualFrame frame,
+      Object value,
+      Object warning,
+      @Shared @CachedLibrary(limit = "3") InteropLibrary interop,
+      @Shared @Cached HashMapInsertNode mapInsertNode
+  ) {
+    var warnsMap = mapInsertNode.execute(frame, EnsoHashMap.empty(), warning, null);
+    var warnsLimit = EnsoContext.get(this).getWarningsLimit();
+    var limitReached = 1 >= warnsLimit;
+    return new WithWarnings(value, warnsLimit, limitReached, warnsMap);
   }
 
   /** Inserts all {@code warnings} to the {@code initialWarningMap}. */
