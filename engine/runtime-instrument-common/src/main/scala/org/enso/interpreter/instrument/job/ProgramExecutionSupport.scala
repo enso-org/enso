@@ -49,7 +49,6 @@ import java.io.File
 import java.util.UUID
 import java.util.function.Consumer
 import java.util.logging.Level
-
 import scala.jdk.OptionConverters.RichOptional
 import scala.util.Try
 
@@ -324,9 +323,11 @@ object ProgramExecutionSupport {
     ctx: RuntimeContext
   ): PartialFunction[Throwable, Api.ExecutionResult.Diagnostic] = {
     case ex: AbstractTruffleException
+        // exit exception is special, and handled as failure rather than Diagnostics.
+        if !ctx.executionService.isExitException(ex) &&
         // The empty language is allowed because `getLanguage` returns null when
         // the error originates in builtin node.
-        if Option(ctx.executionService.getLanguage(ex))
+        Option(ctx.executionService.getLanguage(ex))
           .forall(_ == LanguageInfo.ID) =>
       val section = Option(ctx.executionService.getSourceLocation(ex))
       val source  = section.flatMap(sec => Option(sec.getSource))
@@ -355,6 +356,16 @@ object ProgramExecutionSupport {
       Api.ExecutionResult.Failure(
         ex.getMessage,
         findFileByModuleName(ex.getModule)
+      )
+
+    case exitEx: AbstractTruffleException
+        if ctx.executionService.isExitException(exitEx) =>
+      val section = Option(ctx.executionService.getSourceLocation(exitEx))
+      val source  = section.flatMap(sec => Option(sec.getSource))
+      val file    = source.flatMap(src => findFileByModuleName(src.getName))
+      Api.ExecutionResult.Failure(
+        exitEx.getMessage,
+        file
       )
 
     case ex: ServiceException =>

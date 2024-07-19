@@ -287,6 +287,7 @@ public abstract class ReadArgumentCheckNode extends Node {
     @Child IsValueOfTypeNode checkType;
     @CompilerDirectives.CompilationFinal private String expectedTypeMessage;
     @CompilerDirectives.CompilationFinal private LazyCheckRootNode lazyCheck;
+    @Child private EnsoMultiValue.CastToNode castTo;
 
     TypeCheckNode(String name, Type expectedType) {
       super(name);
@@ -354,7 +355,11 @@ public abstract class ReadArgumentCheckNode extends Node {
         return lazyCheckFn;
       }
       if (v instanceof EnsoMultiValue mv) {
-        var result = mv.castTo(expectedType);
+        if (castTo == null) {
+          CompilerDirectives.transferToInterpreter();
+          castTo = insert(EnsoMultiValue.CastToNode.create());
+        }
+        var result = castTo.executeCast(expectedType, mv);
         if (result != null) {
           return result;
         }
