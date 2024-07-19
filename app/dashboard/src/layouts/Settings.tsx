@@ -64,7 +64,7 @@ export default function Settings() {
   const updateUser = useMutation(useUpdateUserMutation()).mutateAsync
   const updateOrganization = useMutation(useUpdateOrganizationMutation()).mutateAsync
 
-  const updateLocalRootPathMutation = useMutation({
+  const updateLocalRootPath = useMutation({
     mutationKey: [localBackend?.type, 'updateRootPath'],
     mutationFn: (value: string) => {
       if (localBackend) {
@@ -73,8 +73,7 @@ export default function Settings() {
       return Promise.resolve()
     },
     meta: { invalidates: [[localBackend?.type, 'listDirectory']], awaitInvalidates: true },
-  })
-  const updateLocalRootPath = updateLocalRootPathMutation.mutateAsync
+  }).mutateAsync
 
   const context = React.useMemo<settingsData.SettingsContext>(
     () => ({
