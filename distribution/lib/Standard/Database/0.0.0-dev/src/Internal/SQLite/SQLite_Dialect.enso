@@ -71,13 +71,13 @@ type SQLite_Dialect
         Base_Generator.truncate_table_delete_from_style self table_name
 
     ## PRIVATE
-       Genarets SQL for limiting the number of rows using the `LIMIT` clause.
+       Generates SQL for limiting the number of rows using the `LIMIT` clause.
     get_limit_part_sql : Integer -> SQL_Builder
     get_limit_part_sql self limit =
         SQL_Builder.code (" LIMIT " + limit.to_text)
 
     ## PRIVATE
-       Genarets SQL for limiting the number of rows using the `TOP` clause.
+       Generates SQL for limiting the number of rows using the `TOP` clause.
     get_top_part_sql : Integer -> SQL_Builder
     get_top_part_sql self limit =
         _ = [limit]
