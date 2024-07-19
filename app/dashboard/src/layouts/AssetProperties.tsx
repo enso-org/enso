@@ -1,11 +1,13 @@
 /** @file Display and modify the properties of an asset. */
 import * as React from 'react'
 
+import { useMutation } from '@tanstack/react-query'
+
 import PenIcon from '#/assets/pen.svg'
 
 import * as datalinkValidator from '#/data/datalinkValidator'
 
-import * as backendHooks from '#/hooks/backendHooks'
+import { useBackendMutationOptions, useListTags } from '#/hooks/backendHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
@@ -71,7 +73,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
     },
     [setItemRaw]
   )
-  const labels = backendHooks.useListTags(backend) ?? []
+  const labels = useListTags(backend) ?? []
   const self = item.item.permissions?.find(
     backendModule.isUserPermissionAnd(permission => permission.user.userId === user.userId)
   )
@@ -89,9 +91,9 @@ export default function AssetProperties(props: AssetPropertiesProps) {
       ? localBackend?.getProjectDirectoryPath(item.item.id) ?? null
       : localBackendModule.extractTypeAndId(item.item.id).id
 
-  const createDatalinkMutation = backendHooks.useBackendMutation(backend, 'createDatalink')
-  const getDatalinkMutation = backendHooks.useBackendMutation(backend, 'getDatalink')
-  const updateAssetMutation = backendHooks.useBackendMutation(backend, 'updateAsset')
+  const createDatalinkMutation = useMutation(useBackendMutationOptions(backend, 'createDatalink'))
+  const getDatalinkMutation = useMutation(useBackendMutationOptions(backend, 'getDatalink'))
+  const updateAssetMutation = useMutation(useBackendMutationOptions(backend, 'updateAsset'))
   const getDatalink = getDatalinkMutation.mutateAsync
 
   React.useEffect(() => {

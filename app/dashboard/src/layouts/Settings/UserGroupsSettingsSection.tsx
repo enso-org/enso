@@ -1,9 +1,16 @@
 /** @file Settings tab for viewing and editing roles for all users in the organization. */
 import * as React from 'react'
 
+import { useMutation } from '@tanstack/react-query'
+
 import * as mimeTypes from '#/data/mimeTypes'
 
-import * as backendHooks from '#/hooks/backendHooks'
+import {
+  useChangeUserGroupMutation,
+  useDeleteUserGroupMutation,
+  useListUserGroupsWithUsers,
+  useListUsers,
+} from '#/hooks/backendHooks'
 import * as billingHooks from '#/hooks/billing'
 import * as scrollHooks from '#/hooks/scrollHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
@@ -43,12 +50,12 @@ export default function UserGroupsSettingsSection(props: UserGroupsSettingsSecti
   const { getText } = textProvider.useText()
   const { user } = authProvider.useFullUserSession()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
-  const users = backendHooks.useListUsers(backend)
-  const userGroups = backendHooks.useListUserGroupsWithUsers(backend)
+  const users = useListUsers(backend)
+  const userGroups = useListUserGroupsWithUsers(backend)
   const rootRef = React.useRef<HTMLDivElement>(null)
   const bodyRef = React.useRef<HTMLTableSectionElement>(null)
-  const changeUserGroup = backendHooks.useChangeUserGroupMutation()
-  const deleteUserGroup = backendHooks.useDeleteUserGroupMutation()
+  const changeUserGroup = useMutation(useChangeUserGroupMutation())
+  const deleteUserGroup = useMutation(useDeleteUserGroupMutation())
   const usersMap = React.useMemo(
     () => new Map((users ?? []).map(otherUser => [otherUser.userId, otherUser])),
     [users]

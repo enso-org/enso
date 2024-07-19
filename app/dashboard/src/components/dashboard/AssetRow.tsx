@@ -1,9 +1,11 @@
 /** @file A table row for an arbitrary asset. */
 import * as React from 'react'
 
+import { useMutation } from '@tanstack/react-query'
+
 import BlankIcon from '#/assets/blank.svg'
 
-import * as backendHooks from '#/hooks/backendHooks'
+import { useBackendMutationOptions } from '#/hooks/backendHooks'
 import * as dragAndDropHooks from '#/hooks/dragAndDropHooks'
 import * as setAssetHooks from '#/hooks/setAssetHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
@@ -129,17 +131,19 @@ export default function AssetRow(props: AssetRowProps) {
       : outerVisibility
   const hidden = hiddenRaw || visibility === Visibility.hidden
 
-  const copyAssetMutation = backendHooks.useBackendMutation(backend, 'copyAsset')
-  const updateAssetMutation = backendHooks.useBackendMutation(backend, 'updateAsset')
-  const deleteAssetMutation = backendHooks.useBackendMutation(backend, 'deleteAsset')
-  const undoDeleteAssetMutation = backendHooks.useBackendMutation(backend, 'undoDeleteAsset')
-  const openProjectMutation = backendHooks.useBackendMutation(backend, 'openProject')
-  const closeProjectMutation = backendHooks.useBackendMutation(backend, 'closeProject')
-  const getProjectDetailsMutation = backendHooks.useBackendMutation(backend, 'getProjectDetails')
-  const getFileDetailsMutation = backendHooks.useBackendMutation(backend, 'getFileDetails')
-  const getDatalinkMutation = backendHooks.useBackendMutation(backend, 'getDatalink')
-  const createPermissionMutation = backendHooks.useBackendMutation(backend, 'createPermission')
-  const associateTagMutation = backendHooks.useBackendMutation(backend, 'associateTag')
+  const copyAssetMutation = useMutation(useBackendMutationOptions(backend, 'copyAsset'))
+  const updateAssetMutation = useMutation(useBackendMutationOptions(backend, 'updateAsset'))
+  const deleteAssetMutation = useMutation(useBackendMutationOptions(backend, 'deleteAsset'))
+  const undoDeleteAssetMutation = useMutation(useBackendMutationOptions(backend, 'undoDeleteAsset'))
+  const openProjectMutation = useMutation(useBackendMutationOptions(backend, 'openProject'))
+  const closeProjectMutation = useMutation(useBackendMutationOptions(backend, 'closeProject'))
+  const getProjectDetailsMutation = useMutation(
+    useBackendMutationOptions(backend, 'getProjectDetails')
+  )
+  const getFileDetailsMutation = useMutation(useBackendMutationOptions(backend, 'getFileDetails'))
+  const getDatalinkMutation = useMutation(useBackendMutationOptions(backend, 'getDatalink'))
+  const createPermissionMutation = useMutation(useBackendMutationOptions(backend, 'createPermission'))
+  const associateTagMutation = useMutation(useBackendMutationOptions(backend, 'associateTag'))
   const copyAsset = copyAssetMutation.mutateAsync
   const updateAsset = updateAssetMutation.mutateAsync
   const deleteAsset = deleteAssetMutation.mutateAsync

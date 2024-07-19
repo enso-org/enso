@@ -247,7 +247,7 @@ export function useBackendQuery<Method extends backendQuery.BackendMethods>(
 
 /** Wrap a backend method call in a React Query Mutation. */
 // eslint-disable-next-line no-restricted-syntax
-export const useBackendMutation: <Method extends MutationMethod>(
+export const useBackendMutationOptions: <Method extends MutationMethod>(
   backend: Backend,
   method: Method,
   options?: Omit<
@@ -259,9 +259,10 @@ export const useBackendMutation: <Method extends MutationMethod>(
     >,
     'mutationFn'
   >
-) => ReturnType<typeof useBackendMutationInternal<Method>> = useBackendMutationInternal
+) => ReturnType<typeof useBackendMutationOptionsInternal<Method>> =
+  useBackendMutationOptionsInternal
 
-function useBackendMutationInternal<Method extends MutationMethodInternal>(
+function useBackendMutationOptionsInternal<Method extends MutationMethodInternal>(
   backend: Backend,
   method: Method,
   options?: Omit<
@@ -272,12 +273,12 @@ function useBackendMutationInternal<Method extends MutationMethodInternal>(
     >,
     'mutationFn'
   >
-): reactQuery.UseMutationResult<
+): reactQuery.UseMutationOptions<
   Awaited<ReturnType<Backend[Method]>>,
   Error,
   Parameters<Backend[Method]>
 >
-function useBackendMutationInternal<Method extends MutationMethodInternal>(
+function useBackendMutationOptionsInternal<Method extends MutationMethodInternal>(
   backend: Backend | null,
   method: Method,
   options?: Omit<
@@ -288,8 +289,7 @@ function useBackendMutationInternal<Method extends MutationMethodInternal>(
     >,
     'mutationFn'
   >
-): reactQuery.UseMutationResult<
-  // eslint-disable-next-line no-restricted-syntax
+): reactQuery.UseMutationOptions<
   Awaited<ReturnType<Backend[Method]>> | undefined,
   Error,
   Parameters<Backend[Method]>
@@ -299,7 +299,7 @@ function useBackendMutationInternal<Method extends MutationMethodInternal>(
 // otherwise match all calls, and return a result that is too wide.
 // This signature is required because the last signature is the one that is picked up by generic
 // resolution - specifically the `typeof useBackendMutationInternal` above.
-function useBackendMutationInternal<Method extends MutationMethodInternal>(
+function useBackendMutationOptionsInternal<Method extends MutationMethodInternal>(
   backend: Backend,
   method: Method,
   options?: Omit<
@@ -310,13 +310,13 @@ function useBackendMutationInternal<Method extends MutationMethodInternal>(
     >,
     'mutationFn'
   >
-): reactQuery.UseMutationResult<
+): reactQuery.UseMutationOptions<
   Awaited<ReturnType<Backend[Method]>>,
   Error,
   Parameters<Backend[Method]>
 >
 /** Wrap a backend method call in a React Query Mutation. */
-function useBackendMutationInternal<Method extends MutationMethodInternal>(
+function useBackendMutationOptionsInternal<Method extends MutationMethodInternal>(
   backend: Backend | null,
   method: Method,
   options?: Omit<
@@ -327,18 +327,18 @@ function useBackendMutationInternal<Method extends MutationMethodInternal>(
     >,
     'mutationFn'
   >
-) {
-  return reactQuery.useMutation<
-    Awaited<ReturnType<Backend[Method]>>,
-    Error,
-    Parameters<Backend[Method]>
-  >({
+): reactQuery.UseMutationOptions<
+  Awaited<ReturnType<Backend[Method]>>,
+  Error,
+  Parameters<Backend[Method]>
+> {
+  return {
     ...options,
     mutationKey: [backend?.type, method, ...(options?.mutationKey ?? [])],
     // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-return
     mutationFn: args => (backend?.[method] as any)?.(...args),
     networkMode: backend?.type === backendModule.BackendType.local ? 'always' : 'online',
-  })
+  }
 }
 
 // ===================================
@@ -618,7 +618,7 @@ export function useGetOrganization(backend: Backend | null) {
 export function useUpdateUserMutation(options?: BackendMutationOptions<'updateUser'>) {
   const backend = useRemoteBackendStrict()
   const { authQueryKey } = authProvider.useAuth()
-  return useBackendMutationInternal(backend, 'updateUser', {
+  return useBackendMutationOptionsInternal(backend, 'updateUser', {
     ...options,
     meta: {
       invalidates: [...(options?.meta?.invalidates ?? []), authQueryKey],
@@ -638,7 +638,7 @@ export function useUploadUserPictureMutation(
   const backend = useRemoteBackendStrict()
   const setQueryData = useBackendSetQueryData(backend)
   const { setUser } = authProvider.useAuth()
-  return useBackendMutationInternal(
+  return useBackendMutationOptionsInternal(
     backend,
     'uploadUserPicture',
     mergeBackendMutationOptions(options, {
@@ -661,7 +661,7 @@ export function useUpdateOrganizationMutation(
 ) {
   const backend = useRemoteBackendStrict()
   const setQueryData = useBackendSetQueryData(backend)
-  return useBackendMutationInternal(
+  return useBackendMutationOptionsInternal(
     backend,
     'updateOrganization',
     mergeBackendMutationOptions(options, {
@@ -682,7 +682,7 @@ export function useUploadOrganizationPictureMutation(
 ) {
   const backend = useRemoteBackendStrict()
   const setQueryData = useBackendSetQueryData(backend)
-  return useBackendMutationInternal(
+  return useBackendMutationOptionsInternal(
     backend,
     'uploadOrganizationPicture',
     mergeBackendMutationOptions(options, {
@@ -702,7 +702,7 @@ export function useUploadOrganizationPictureMutation(
 export function useCreateUserGroupMutation(options?: BackendMutationOptions<'createUserGroup'>) {
   const backend = useRemoteBackendStrict()
   const setQueryData = useBackendSetQueryData(backend)
-  return useBackendMutationInternal(
+  return useBackendMutationOptionsInternal(
     backend,
     'createUserGroup',
     mergeBackendMutationOptions(options, {
@@ -721,7 +721,7 @@ export function useCreateUserGroupMutation(options?: BackendMutationOptions<'cre
 export function useDeleteUserGroupMutation(options?: BackendMutationOptions<'deleteUserGroup'>) {
   const backend = useRemoteBackendStrict()
   const setQueryData = useBackendSetQueryData(backend)
-  return useBackendMutationInternal(
+  return useBackendMutationOptionsInternal(
     backend,
     'deleteUserGroup',
     mergeBackendMutationOptions(options, {
@@ -742,7 +742,7 @@ export function useDeleteUserGroupMutation(options?: BackendMutationOptions<'del
 export function useChangeUserGroupMutation(options?: BackendMutationOptions<'changeUserGroup'>) {
   const backend = useRemoteBackendStrict()
   const setQueryData = useBackendSetQueryData(backend)
-  return useBackendMutationInternal(
+  return useBackendMutationOptionsInternal(
     backend,
     'changeUserGroup',
     mergeBackendMutationOptions(options, {
@@ -765,7 +765,7 @@ export function useChangeUserGroupMutation(options?: BackendMutationOptions<'cha
 export function useCreateTagMutation(options?: BackendMutationOptions<'createTag'>) {
   const backend = useRemoteBackendStrict()
   const setQueryData = useBackendSetQueryData(backend)
-  return useBackendMutationInternal(
+  return useBackendMutationOptionsInternal(
     backend,
     'createTag',
     mergeBackendMutationOptions(options, {
@@ -784,7 +784,7 @@ export function useCreateTagMutation(options?: BackendMutationOptions<'createTag
 export function useDeleteTagMutation(options?: BackendMutationOptions<'deleteTag'>) {
   const backend = useRemoteBackendStrict()
   const setQueryData = useBackendSetQueryData(backend)
-  return useBackendMutationInternal(
+  return useBackendMutationOptionsInternal(
     backend,
     'deleteTag',
     mergeBackendMutationOptions(options, {

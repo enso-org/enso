@@ -1,9 +1,11 @@
 /** @file The input for viewing and changing the user's profile picture. */
 import * as React from 'react'
 
+import { useMutation } from '@tanstack/react-query'
+
 import DefaultUserIcon from '#/assets/default_user.svg'
 
-import * as backendHooks from '#/hooks/backendHooks'
+import { useUploadUserPictureMutation, useUsersMe } from '#/hooks/backendHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as textProvider from '#/providers/TextProvider'
@@ -26,10 +28,10 @@ export interface ProfilePictureInputProps {
 export default function ProfilePictureInput(props: ProfilePictureInputProps) {
   const { backend } = props
   const toastAndLog = toastAndLogHooks.useToastAndLog()
-  const user = backendHooks.useUsersMe(backend)
+  const user = useUsersMe(backend)
   const { getText } = textProvider.useText()
 
-  const uploadUserPicture = backendHooks.useUploadUserPictureMutation().mutate
+  const uploadUserPicture = useMutation(useUploadUserPictureMutation()).mutate
 
   const doUploadUserPicture = (event: React.ChangeEvent<HTMLInputElement>) => {
     const image = event.target.files?.[0]

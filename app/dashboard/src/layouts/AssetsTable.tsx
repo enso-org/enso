@@ -1,7 +1,7 @@
 /** @file Table displaying a list of projects. */
 import * as React from 'react'
 
-import * as reactQuery from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import * as toast from 'react-toastify'
 import * as z from 'zod'
 
@@ -10,7 +10,7 @@ import DropFilesImage from '#/assets/drop_files.svg'
 import * as mimeTypes from '#/data/mimeTypes'
 
 import * as autoScrollHooks from '#/hooks/autoScrollHooks'
-import * as backendHooks from '#/hooks/backendHooks'
+import { useBackendMutationOptions, useBackendQuery, useListTags } from '#/hooks/backendHooks'
 import * as intersectionHooks from '#/hooks/intersectionHooks'
 import * as projectHooks from '#/hooks/projectHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
@@ -377,13 +377,13 @@ export default function AssetsTable(props: AssetsTableProps) {
   const { setSuggestions, initialProjectName } = props
   const { setAssetPanelProps, targetDirectoryNodeRef, setIsAssetPanelTemporarilyVisible } = props
 
-  const queryClient = reactQuery.useQueryClient()
+  const queryClient = useQueryClient()
   const openedProjects = projectsProvider.useLaunchedProjects()
   const doOpenProject = projectHooks.useOpenProject()
 
   const { user } = authProvider.useNonPartialUserSession()
   const backend = backendProvider.useBackend(category)
-  const labels = backendHooks.useListTags(backend)
+  const labels = useListTags(backend)
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { localStorage } = localStorageProvider.useLocalStorage()
   const { getText } = textProvider.useText()
@@ -626,7 +626,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     true
   )
 
-  const updateSecretMutation = backendHooks.useBackendMutation(backend, 'updateSecret')
+  const updateSecret = useMutation(useBackendMutationOptions(backend, 'updateSecret')).mutateAsync
   React.useEffect(() => {
     previousCategoryRef.current = category
   })
@@ -980,7 +980,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     }
   }, [backend, category])
 
-  const rootDirectoryQuery = backendHooks.useBackendQuery(
+  const rootDirectoryQuery = useBackendQuery(
     backend,
     'listDirectory',
     [
@@ -1254,7 +1254,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                     name={item.item.title}
                     doCreate={async (_name, value) => {
                       try {
-                        await updateSecretMutation.mutateAsync([id, { value }, item.item.title])
+                        await updateSecret([id, { value }, item.item.title])
                       } catch (error) {
                         toastAndLog(null, error)
                       }

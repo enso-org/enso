@@ -1,7 +1,9 @@
 /** @file A modal for creating a new label. */
 import * as React from 'react'
 
-import * as backendHooks from '#/hooks/backendHooks'
+import { useMutation } from '@tanstack/react-query'
+
+import { useCreateTagMutation, useListTags } from '#/hooks/backendHooks'
 
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
@@ -43,7 +45,7 @@ export default function NewLabelModal(props: NewLabelModalProps) {
   const [value, setValue] = React.useState('')
   const [color, setColor] = React.useState<backendModule.LChColor | null>(null)
   const position = React.useMemo(() => eventTarget.getBoundingClientRect(), [eventTarget])
-  const labelsRaw = backendHooks.useListTags(backend)
+  const labelsRaw = useListTags(backend)
   const labels = React.useMemo(() => labelsRaw ?? [], [labelsRaw])
   const labelNames = React.useMemo(
     () => new Set<string>(labels.map(label => label.value)),
@@ -52,7 +54,7 @@ export default function NewLabelModal(props: NewLabelModalProps) {
   const leastUsedColor = React.useMemo(() => backendModule.leastUsedColor(labels), [labels])
   const canSubmit = Boolean(value && !labelNames.has(value))
 
-  const createTag = backendHooks.useCreateTagMutation().mutate
+  const createTag = useMutation(useCreateTagMutation()).mutate
 
   const doSubmit = () => {
     if (value !== '') {

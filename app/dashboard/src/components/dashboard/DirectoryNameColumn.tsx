@@ -1,10 +1,12 @@
 /** @file The icon and name of a {@link backendModule.DirectoryAsset}. */
 import * as React from 'react'
 
+import { useMutation } from '@tanstack/react-query'
+
 import FolderArrowIcon from '#/assets/folder_arrow.svg'
 import FolderIcon from '#/assets/folder.svg'
 
-import * as backendHooks from '#/hooks/backendHooks'
+import { useBackendMutationOptions } from '#/hooks/backendHooks'
 import * as setAssetHooks from '#/hooks/setAssetHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
@@ -57,8 +59,8 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
   const setAsset = setAssetHooks.useSetAsset(asset, setItem)
   const isExpanded = item.children != null && item.isExpanded
 
-  const createDirectoryMutation = backendHooks.useBackendMutation(backend, 'createDirectory')
-  const updateDirectoryMutation = backendHooks.useBackendMutation(backend, 'updateDirectory')
+  const createDirectoryMutation = useMutation(useBackendMutationOptions(backend, 'createDirectory'))
+  const updateDirectoryMutation = useMutation(useBackendMutationOptions(backend, 'updateDirectory'))
 
   const setIsEditing = (isEditingName: boolean) => {
     if (isEditable) {

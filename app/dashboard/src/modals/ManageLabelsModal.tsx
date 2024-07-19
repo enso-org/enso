@@ -1,7 +1,9 @@
 /** @file A modal to select labels for an asset. */
 import * as React from 'react'
 
-import * as backendHooks from '#/hooks/backendHooks'
+import { useMutation } from '@tanstack/react-query'
+
+import { useBackendMutationOptions, useCreateTagMutation, useListTags } from '#/hooks/backendHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as modalProvider from '#/providers/ModalProvider'
@@ -56,7 +58,7 @@ export default function ManageLabelsModal<
   const { unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
-  const allLabels = backendHooks.useListTags(backend)
+  const allLabels = useListTags(backend)
   const [labels, setLabelsRaw] = React.useState(item.labels ?? [])
   const [query, setQuery] = React.useState('')
   const [color, setColor] = React.useState<backendModule.LChColor | null>(null)
@@ -73,8 +75,8 @@ export default function ManageLabelsModal<
   )
   const canCreateNewLabel = canSelectColor
 
-  const createTagMutation = backendHooks.useCreateTagMutation()
-  const associateTagMutation = backendHooks.useBackendMutation(backend, 'associateTag')
+  const createTagMutation = useMutation(useCreateTagMutation())
+  const associateTagMutation = useMutation(useBackendMutationOptions(backend, 'associateTag'))
 
   const setLabels = React.useCallback(
     (valueOrUpdater: React.SetStateAction<backendModule.LabelName[]>) => {

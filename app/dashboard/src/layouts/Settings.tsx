@@ -1,11 +1,15 @@
 /** @file Settings screen. */
 import * as React from 'react'
 
-import * as reactQuery from '@tanstack/react-query'
+import { useMutation } from '@tanstack/react-query'
 
 import BurgerMenuIcon from '#/assets/burger_menu.svg'
 
-import * as backendHooks from '#/hooks/backendHooks'
+import {
+  useGetOrganization,
+  useUpdateOrganizationMutation,
+  useUpdateUserMutation,
+} from '#/hooks/backendHooks'
 import * as searchParamsState from '#/hooks/searchParamsStateHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
@@ -54,13 +58,13 @@ export default function Settings() {
   const [query, setQuery] = React.useState('')
   const root = portal.useStrictPortalContext()
   const [isSidebarPopoverOpen, setIsSidebarPopoverOpen] = React.useState(false)
-  const organization = backendHooks.useGetOrganization(backend)
+  const organization = useGetOrganization(backend)
   const isQueryBlank = !/\S/.test(query)
 
-  const updateUser = backendHooks.useUpdateUserMutation().mutateAsync
-  const updateOrganization = backendHooks.useUpdateOrganizationMutation().mutateAsync
+  const updateUser = useMutation(useUpdateUserMutation()).mutateAsync
+  const updateOrganization = useMutation(useUpdateOrganizationMutation()).mutateAsync
 
-  const updateLocalRootPathMutation = reactQuery.useMutation({
+  const updateLocalRootPathMutation = useMutation({
     mutationKey: [localBackend?.type, 'updateRootPath'],
     mutationFn: (value: string) => {
       if (localBackend) {

@@ -3,7 +3,7 @@ import * as React from 'react'
 
 import KeyIcon from '#/assets/key.svg'
 
-import * as backendHooks from '#/hooks/backendHooks'
+import { useBackendMutationOptions } from '#/hooks/backendHooks'
 import * as setAssetHooks from '#/hooks/setAssetHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
@@ -28,6 +28,7 @@ import * as indent from '#/utilities/indent'
 import * as object from '#/utilities/object'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 import Visibility from '#/utilities/Visibility'
+import { useMutation } from '@tanstack/react-query'
 
 // =====================
 // === ConnectorName ===
@@ -52,8 +53,8 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
   }
   const asset = item.item
 
-  const createSecretMutation = backendHooks.useBackendMutation(backend, 'createSecret')
-  const updateSecretMutation = backendHooks.useBackendMutation(backend, 'updateSecret')
+  const createSecretMutation = useMutation(useBackendMutationOptions(backend, 'createSecret'))
+  const updateSecretMutation = useMutation(useBackendMutationOptions(backend, 'updateSecret'))
 
   const setIsEditing = (isEditingName: boolean) => {
     if (isEditable) {

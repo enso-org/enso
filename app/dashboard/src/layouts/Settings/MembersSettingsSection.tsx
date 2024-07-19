@@ -1,9 +1,9 @@
 /** @file Settings tab for viewing and editing organization members. */
 import * as React from 'react'
 
-import * as reactQuery from '@tanstack/react-query'
+import { useMutation, useSuspenseQueries } from '@tanstack/react-query'
 
-import * as backendHooks from '#/hooks/backendHooks'
+import { useBackendMutationOptions } from '#/hooks/backendHooks'
 import * as billingHooks from '#/hooks/billing'
 
 import * as authProvider from '#/providers/AuthProvider'
@@ -36,7 +36,7 @@ export default function MembersSettingsSection() {
 
   const { isFeatureUnderPaywall, getFeature } = billingHooks.usePaywall({ plan: user.plan })
 
-  const [{ data: members }, { data: invitations }] = reactQuery.useSuspenseQueries({
+  const [{ data: members }, { data: invitations }] = useSuspenseQueries({
     queries: [
       {
         queryKey: ['listUsers'],
@@ -158,7 +158,7 @@ function ResendInvitationButton(props: ResendInvitationButtonProps) {
   const { invitation, backend } = props
 
   const { getText } = textProvider.useText()
-  const resendMutation = reactQuery.useMutation({
+  const resendMutation = useMutation({
     mutationKey: ['resendInvitation', invitation.userEmail],
     mutationFn: (email: backendModule.EmailAddress) => backend.resendInvitation(email),
   })
@@ -192,10 +192,12 @@ function RemoveMemberButton(props: RemoveMemberButtonProps) {
   const { backend, userId } = props
   const { getText } = textProvider.useText()
 
-  const removeMutation = backendHooks.useBackendMutation(backend, 'removeUser', {
-    mutationKey: [userId],
-    meta: { invalidates: [['listUsers']], awaitInvalidates: true },
-  })
+  const removeMutation = useMutation(
+    useBackendMutationOptions(backend, 'removeUser', {
+      mutationKey: [userId],
+      meta: { invalidates: [['listUsers']], awaitInvalidates: true },
+    })
+  )
 
   return (
     <ariaComponents.Button
@@ -224,10 +226,10 @@ function RemoveInvitationButton(props: RemoveInvitationButtonProps) {
 
   const { getText } = textProvider.useText()
 
-  const removeMutation = backendHooks.useBackendMutation(backend, 'resendInvitation', {
+  const removeMutation = useMutation(useBackendMutationOptions(backend, 'resendInvitation', {
     mutationKey: [email],
     meta: { invalidates: [['listInvitations']], awaitInvalidates: true },
-  })
+  }))
 
   return (
     <ariaComponents.Button

@@ -1,10 +1,12 @@
 /** @file A list of selectable labels. */
 import * as React from 'react'
 
+import { useMutation } from '@tanstack/react-query'
+
 import PlusIcon from '#/assets/plus.svg'
 import Trash2Icon from '#/assets/trash2.svg'
 
-import * as backendHooks from '#/hooks/backendHooks'
+import { useDeleteTagMutation, useListTags } from '#/hooks/backendHooks'
 
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
@@ -44,9 +46,9 @@ export default function Labels(props: LabelsProps) {
   const currentNegativeLabels = query.negativeLabels
   const { setModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
-  const labels = backendHooks.useListTags(backend) ?? []
+  const labels = useListTags(backend) ?? []
 
-  const deleteTag = backendHooks.useDeleteTagMutation().mutate
+  const deleteTag = useMutation(useDeleteTagMutation()).mutate
 
   return (
     <FocusArea direction="vertical">

@@ -1,9 +1,11 @@
 /** @file The input for viewing and changing the organization's profile picture. */
 import * as React from 'react'
 
+import { useMutation } from '@tanstack/react-query'
+
 import DefaultUserIcon from '#/assets/default_user.svg'
 
-import * as backendHooks from '#/hooks/backendHooks'
+import { useGetOrganization, useUploadOrganizationPictureMutation } from '#/hooks/backendHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as textProvider from '#/providers/TextProvider'
@@ -29,9 +31,9 @@ export default function OrganizationProfilePictureInput(
   const { backend } = props
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { getText } = textProvider.useText()
-  const organization = backendHooks.useGetOrganization(backend)
+  const organization = useGetOrganization(backend)
 
-  const uploadOrganizationPictureMutation = backendHooks.useUploadOrganizationPictureMutation()
+  const uploadOrganizationPictureMutation = useMutation(useUploadOrganizationPictureMutation())
 
   const doUploadOrganizationPicture = (event: React.ChangeEvent<HTMLInputElement>) => {
     const image = event.target.files?.[0]
