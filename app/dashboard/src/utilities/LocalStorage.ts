@@ -10,28 +10,7 @@ import * as object from '#/utilities/object'
 // ====================
 
 /** Metadata describing runtime behavior associated with a {@link LocalStorageKey}. */
-export type LocalStorageKeyMetadata<K extends LocalStorageKey> =
-  | LocalStorageKeyMetadataWithParseFunction<K>
-  | LocalStorageKeyMetadataWithSchema<K>
-
-/**
- * A {@link LocalStorageKeyMetadata} with a `tryParse` function.
- */
-interface LocalStorageKeyMetadataWithParseFunction<K extends LocalStorageKey> {
-  readonly isUserSpecific?: boolean
-  /**
-   * A function to parse a value from the stored data.
-   * If this is provided, the value will be parsed using this function.
-   * If this is not provided, the value will be parsed using the `schema`.
-   */
-  readonly tryParse: (value: unknown) => LocalStorageData[K] | null
-  readonly schema?: never
-}
-
-/**
- * A {@link LocalStorageKeyMetadata} with a `schema`.
- */
-interface LocalStorageKeyMetadataWithSchema<K extends LocalStorageKey> {
+export interface LocalStorageKeyMetadata<K extends LocalStorageKey> {
   readonly isUserSpecific?: boolean
   /**
    * The Zod schema to validate the value.
@@ -39,7 +18,6 @@ interface LocalStorageKeyMetadataWithSchema<K extends LocalStorageKey> {
    * If this is not provided, the value will be parsed using the `tryParse` function.
    */
   readonly schema: z.ZodType<LocalStorageData[K]>
-  readonly tryParse?: never
 }
 
 /** The data that can be stored in a {@link LocalStorage}.
@@ -68,9 +46,7 @@ export default class LocalStorage {
           // This is SAFE, as it is guarded by the `key in savedValues` check.
           // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, no-restricted-syntax, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment
           const savedValue = (savedValues as any)[key]
-          const value = metadata.schema
-            ? metadata.schema.safeParse(savedValue).data
-            : metadata.tryParse(savedValue)
+          const value = metadata.schema.safeParse(savedValue).data
           if (value != null) {
             newValues[key] = value
           }

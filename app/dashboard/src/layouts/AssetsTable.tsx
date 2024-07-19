@@ -3,6 +3,7 @@ import * as React from 'react'
 
 import * as reactQuery from '@tanstack/react-query'
 import * as toast from 'react-toastify'
+import * as z from 'zod'
 
 import DropFilesImage from '#/assets/drop_files.svg'
 
@@ -87,16 +88,12 @@ import Visibility from '#/utilities/Visibility'
 declare module '#/utilities/LocalStorage' {
   /** */
   interface LocalStorageData {
-    readonly enabledColumns: columnUtils.Column[]
+    readonly enabledColumns: readonly columnUtils.Column[]
   }
 }
 
 LocalStorage.registerKey('enabledColumns', {
-  tryParse: value => {
-    const possibleColumns = Array.isArray(value) ? value : []
-    const values = possibleColumns.filter(array.includesPredicate(columnUtils.CLOUD_COLUMNS))
-    return values.length === 0 ? null : values
-  },
+  schema: z.enum(columnUtils.CLOUD_COLUMNS).array().readonly(),
 })
 
 // =================

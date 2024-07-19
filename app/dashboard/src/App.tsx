@@ -38,6 +38,7 @@ import * as React from 'react'
 import * as reactQuery from '@tanstack/react-query'
 import * as router from 'react-router-dom'
 import * as toastify from 'react-toastify'
+import * as z from 'zod'
 
 import * as detect from 'enso-common/src/detect'
 
@@ -103,17 +104,16 @@ declare module '#/utilities/LocalStorage' {
 }
 
 LocalStorage.registerKey('inputBindings', {
-  tryParse: value =>
-    typeof value !== 'object' || value == null
-      ? null
-      : Object.fromEntries(
-          Object.entries<unknown>({ ...value }).flatMap(kv => {
-            const [k, v] = kv
-            return Array.isArray(v) && v.every((item): item is string => typeof item === 'string')
-              ? [[k, v]]
-              : []
-          })
-        ),
+  schema: z.object({}).transform(value =>
+    Object.fromEntries(
+      Object.entries<unknown>({ ...value }).flatMap(kv => {
+        const [k, v] = kv
+        return Array.isArray(v) && v.every((item): item is string => typeof item === 'string')
+          ? [[k, v]]
+          : []
+      })
+    )
+  ),
 })
 
 // ======================

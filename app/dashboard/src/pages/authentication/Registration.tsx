@@ -2,6 +2,7 @@
 import * as React from 'react'
 
 import * as router from 'react-router-dom'
+import * as z from 'zod'
 
 import AtIcon from '#/assets/at.svg'
 import CreateAccountIcon from '#/assets/create_account.svg'
@@ -39,7 +40,7 @@ declare module '#/utilities/LocalStorage' {
 
 LocalStorage.registerKey('loginRedirect', {
   isUserSpecific: true,
-  tryParse: value => (typeof value === 'string' ? value : null),
+  schema: z.string(),
 })
 
 // ====================
