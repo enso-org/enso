@@ -434,7 +434,7 @@ generate_select_context dialect ctx =
     group_part = (SQL_Builder.join ", " (gen_exprs ctx.groups)) . prefix_if_present " GROUP BY "
     limit_part = case ctx.limit of
         Nothing -> ""
-        _ : Integer -> " LIMIT " + ctx.limit.to_text
+        _ : Integer -> ""
 
     orders = ctx.orders.map (generate_order dialect)
     order_part = (SQL_Builder.join ", " orders) . prefix_if_present " ORDER BY "

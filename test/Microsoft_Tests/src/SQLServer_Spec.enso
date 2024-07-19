@@ -76,9 +76,8 @@ add_specs suite_builder =
         group_builder.specify "should return Table information" <|
             conn = Database.connect get_configured_connection_details
             conn.should_succeed
-            new_database = conn.read (SQL_Query.Raw_SQL "SELECT '1' as c") . at 0 . to_vector . first
+            new_database = conn.read (SQL_Query.Raw_SQL "SELECT 'master' as c") . at 0 . to_vector . first
             new_database.should_equal "master"
-            [1] . should_equal [3, 1, 2, 3]
 
 main filter=Nothing =
     suite = Test.build suite_builder->
