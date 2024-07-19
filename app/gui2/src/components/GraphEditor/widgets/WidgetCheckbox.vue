@@ -101,15 +101,7 @@ export const widgetDefinition = defineWidget(
 <template>
   <div class="CheckboxContainer r-24" :class="{ primary }">
     <span v-if="argumentName" class="name" v-text="argumentName" />
-    <!-- See comment in GraphNode next to dragPointer definition about stopping pointerdown and pointerup -->
-    <CheckboxWidget
-      v-model="value"
-      class="WidgetCheckbox"
-      contenteditable="false"
-      @beforeinput.stop
-      @pointerdown.stop
-      @pointerup.stop
-    />
+    <CheckboxWidget v-model="value" class="WidgetCheckbox" contenteditable="false" />
   </div>
 </template>
 

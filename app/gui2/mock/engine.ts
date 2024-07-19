@@ -1,3 +1,4 @@
+import { Pattern } from '@/util/ast/match'
 import type { MockYdocProviderImpl } from '@/util/crdt'
 import * as random from 'lib0/random'
 import * as Ast from 'shared/ast'
@@ -9,7 +10,7 @@ import {
   VisualizationContext,
   VisualizationUpdate,
 } from 'shared/binaryProtocol'
-import { mockDataWSHandler as originalMockDataWSHandler } from 'shared/dataServer/mock'
+import { ErrorCode } from 'shared/languageServer'
 import type {
   ContextId,
   ExpressionId,
@@ -26,6 +27,7 @@ import type { QualifiedName } from 'src/util/qualifiedName'
 import * as Y from 'yjs'
 import { mockFsDirectoryHandle, type FileTree } from '../src/util/convert/fsAccess'
 import mockDb from '../stories/mockSuggestions.json' assert { type: 'json' }
+import { mockDataWSHandler as originalMockDataWSHandler } from './dataServer'
 
 const mockProjectId = random.uuidv4() as Uuid
 const standardBase = 'Standard.Base' as QualifiedName
@@ -43,6 +45,7 @@ export function placeholderGroups(): LibraryComponentGroup[] {
 }
 
 let mainFile = `\
+## Module documentation
 from Standard.Base import all
 
 func1 arg =
@@ -54,6 +57,7 @@ func2 a =
     r = 42 + a
     r
 
+## The main method
 main =
     five = 5
     ten = 10
@@ -68,6 +72,7 @@ main =
     data = Data.read
     filtered = data.filter
     aggregated = data.aggregate
+    autoscoped = data.aggregate [..Group_By]
     selected = data.select_columns
 `
 
@@ -93,19 +98,21 @@ const visualizationExprIds = new Map<Uuid, ExpressionId>()
 const encoder = new TextEncoder()
 const encodeJSON = (data: unknown) => encoder.encode(JSON.stringify(data))
 
-const scatterplotJson = encodeJSON({
-  axis: {
-    x: { label: 'x-axis label', scale: 'linear' },
-    y: { label: 'y-axis label', scale: 'logarithmic' },
-  },
-  points: { labels: 'visible' },
-  data: [
-    { x: 0.1, y: 0.7, label: 'foo', color: '#FF0000', shape: 'circle', size: 0.2 },
-    { x: 0.4, y: 0.2, label: 'baz', color: '#0000FF', shape: 'square', size: 0.3 },
-  ],
-})
+const scatterplotJson = (params: string[]) =>
+  encodeJSON({
+    visualizedExpr: params[0],
+    axis: {
+      x: { label: 'x-axis label', scale: 'linear' },
+      y: { label: 'y-axis label', scale: 'logarithmic' },
+    },
+    points: { labels: 'visible' },
+    data: [
+      { x: 0.1, y: 0.7, label: 'foo', color: '#FF0000', shape: 'circle', size: 0.2 },
+      { x: 0.4, y: 0.2, label: 'baz', color: '#0000FF', shape: 'square', size: 0.3 },
+    ],
+  })
 
-const mockVizData: Record<string, Uint8Array | ((params: string[]) => Uint8Array)> = {
+const mockVizPreprocessors: Record<string, Uint8Array | ((params: string[]) => Uint8Array)> = {
   // JSON
   'Standard.Visualization.Preprocessor.default_preprocessor': scatterplotJson,
   'Standard.Visualization.Scatter_Plot.process_to_json_text': scatterplotJson,
@@ -163,164 +170,7 @@ const mockVizData: Record<string, Uint8Array | ((params: string[]) => Uint8Array
     'warning 1',
     "warning 2!!&<>;'\x22",
   ]),
-  'Standard.Visualization.Widgets.get_widget_json': (params) => {
-    switch (params[0]) {
-      case '.read':
-        return encodeJSON([
-          [
-            'path',
-            {
-              type: 'Widget',
-              constructor: 'Single_Choice',
-              label: null,
-              values: [
-                {
-                  type: 'Choice',
-                  constructor: 'Option',
-                  value: '"File 1"',
-                  label: 'File 1',
-                  parameters: [],
-                },
-                {
-                  type: 'Choice',
-                  constructor: 'Option',
-                  value: '"File 2"',
-                  label: 'File 2',
-                  parameters: [],
-                },
-              ],
-              display: { type: 'Display', constructor: 'Always' },
-            },
-          ],
-        ])
-      case '.select_columns':
-        return encodeJSON([
-          [
-            'columns',
-            {
-              type: 'Widget',
-              constructor: 'Multiple_Choice',
-              label: null,
-              values: [
-                {
-                  type: 'Choice',
-                  constructor: 'Option',
-                  value: "'Column A'",
-                  label: 'Column A',
-                  parameters: [],
-                },
-                {
-                  type: 'Choice',
-                  constructor: 'Option',
-                  value: "'Column B'",
-                  label: 'Column B',
-                  parameters: [],
-                },
-              ],
-              display: { type: 'Display', constructor: 'Always' },
-            },
-          ],
-        ])
-      case '.aggregate':
-        return encodeJSON([
-          [
-            'columns',
-            {
-              type: 'Widget',
-              constructor: 'Vector_Editor',
-              /* eslint-disable camelcase */
-              item_default: 'Aggregate_Column.Group_By',
-              item_editor: {
-                type: 'Widget',
-                constructor: 'Single_Choice',
-                label: null,
-                values: [
-                  {
-                    type: 'Choice',
-                    constructor: 'Option',
-                    value: 'Standard.Table.Aggregate_Column.Aggregate_Column.Group_By',
-                    label: null,
-                    parameters: [
-                      [
-                        'column',
-                        {
-                          type: 'Widget',
-                          constructor: 'Single_Choice',
-                          label: null,
-                          values: [
-                            {
-                              type: 'Choice',
-                              constructor: 'Option',
-                              value: '"column 1"',
-                              label: 'column 1',
-                              parameters: [],
-                            },
-                            {
-                              type: 'Choice',
-                              constructor: 'Option',
-                              value: '"column 2"',
-                              label: 'column 2',
-                              parameters: [],
-                            },
-                          ],
-                          display: { type: 'Display', constructor: 'Always' },
-                        },
-                      ],
-                    ],
-                  },
-                  {
-                    type: 'Choice',
-                    constructor: 'Option',
-                    value: 'Standard.Table.Aggregate_Column.Aggregate_Column.Count',
-                    label: null,
-                    parameters: [],
-                  },
-                  {
-                    type: 'Choice',
-                    constructor: 'Option',
-                    value: 'Standard.Table.Aggregate_Column.Aggregate_Column.Count_Distinct',
-                    label: null,
-                    parameters: [
-                      [
-                        'columns',
-                        {
-                          type: 'Widget',
-                          constructor: 'Single_Choice',
-                          label: null,
-                          values: [
-                            {
-                              type: 'Choice',
-                              constructor: 'Option',
-                              value: '"column 1"',
-                              label: 'column 1',
-                              parameters: [],
-                            },
-                            {
-                              type: 'Choice',
-                              constructor: 'Option',
-                              value: '"column 2"',
-                              label: 'column 2',
-                              parameters: [],
-                            },
-                          ],
-                          display: { type: 'Display', constructor: 'Always' },
-                        },
-                      ],
-                    ],
-                  },
-                ],
-                display: { type: 'Display', constructor: 'Always' },
-              },
-              /* eslint-enable camelcase */
-              display: { type: 'Display', constructor: 'Always' },
-            },
-          ],
-        ])
-      default:
-        return encodeJSON([])
-    }
-  },
-  'Standard.Visualization.AI.build_ai_prompt': () => encodeJSON('Could you __$$GOAL$$__, please?'),
+  'Standard.Visualization.Widgets.get_widget_json': (params) => mockWidgetConfiguration(params[0]),
 
   // The following visualizations do not have unique transformation methods, and as such are only kept
   // for posterity.
@@ -342,6 +192,164 @@ NmZmYiIGQ9Ik0wIDBoNDB2NDBIMHoiLz48L2NsaXBQYXRoPjwvZGVmcz48L3N2Zz4=`,
   ]),
 }
 
+function mockWidgetConfiguration(method: string | undefined) {
+  switch (method) {
+    case '.read':
+      return encodeJSON([
+        [
+          'path',
+          {
+            type: 'Widget',
+            constructor: 'Single_Choice',
+            label: null,
+            values: [
+              {
+                type: 'Choice',
+                constructor: 'Option',
+                value: '"File 1"',
+                label: 'File 1',
+                parameters: [],
+              },
+              {
+                type: 'Choice',
+                constructor: 'Option',
+                value: '"File 2"',
+                label: 'File 2',
+                parameters: [],
+              },
+            ],
+            display: { type: 'Display', constructor: 'Always' },
+          },
+        ],
+      ])
+    case '.select_columns':
+      return encodeJSON([
+        [
+          'columns',
+          {
+            type: 'Widget',
+            constructor: 'Multiple_Choice',
+            label: null,
+            values: [
+              {
+                type: 'Choice',
+                constructor: 'Option',
+                value: "'Column A'",
+                label: 'Column A',
+                parameters: [],
+              },
+              {
+                type: 'Choice',
+                constructor: 'Option',
+                value: "'Column B'",
+                label: 'Column B',
+                parameters: [],
+              },
+            ],
+            display: { type: 'Display', constructor: 'Always' },
+          },
+        ],
+      ])
+    case '.aggregate':
+      return encodeJSON([
+        [
+          'columns',
+          {
+            type: 'Widget',
+            constructor: 'Vector_Editor',
+            /* eslint-disable camelcase */
+            item_default: 'Aggregate_Column.Group_By',
+            item_editor: {
+              type: 'Widget',
+              constructor: 'Single_Choice',
+              label: null,
+              values: [
+                {
+                  type: 'Choice',
+                  constructor: 'Option',
+                  value: 'Standard.Table.Aggregate_Column.Aggregate_Column.Group_By',
+                  label: null,
+                  parameters: [
+                    [
+                      'column',
+                      {
+                        type: 'Widget',
+                        constructor: 'Single_Choice',
+                        label: null,
+                        values: [
+                          {
+                            type: 'Choice',
+                            constructor: 'Option',
+                            value: '"column 1"',
+                            label: 'column 1',
+                            parameters: [],
+                          },
+                          {
+                            type: 'Choice',
+                            constructor: 'Option',
+                            value: '"column 2"',
+                            label: 'column 2',
+                            parameters: [],
+                          },
+                        ],
+                        display: { type: 'Display', constructor: 'Always' },
+                      },
+                    ],
+                  ],
+                },
+                {
+                  type: 'Choice',
+                  constructor: 'Option',
+                  value: 'Standard.Table.Aggregate_Column.Aggregate_Column.Count',
+                  label: null,
+                  parameters: [],
+                },
+                {
+                  type: 'Choice',
+                  constructor: 'Option',
+                  value: 'Standard.Table.Aggregate_Column.Aggregate_Column.Count_Distinct',
+                  label: null,
+                  parameters: [
+                    [
+                      'columns',
+                      {
+                        type: 'Widget',
+                        constructor: 'Single_Choice',
+                        label: null,
+                        values: [
+                          {
+                            type: 'Choice',
+                            constructor: 'Option',
+                            value: '"column 1"',
+                            label: 'column 1',
+                            parameters: [],
+                          },
+                          {
+                            type: 'Choice',
+                            constructor: 'Option',
+                            value: '"column 2"',
+                            label: 'column 2',
+                            parameters: [],
+                          },
+                        ],
+                        display: { type: 'Display', constructor: 'Always' },
+                      },
+                    ],
+                  ],
+                },
+              ],
+              display: { type: 'Display', constructor: 'Always' },
+            },
+            /* eslint-enable camelcase */
+            display: { type: 'Display', constructor: 'Always' },
+          },
+        ],
+      ])
+    default:
+      return encodeJSON([])
+  }
+}
+
 function createMessageId(builder: Builder) {
   const messageUuid = random.uuidv4()
   const [leastSigBits, mostSigBits] = uuidToBits(messageUuid)
@@ -353,24 +361,36 @@ function createId(id: Uuid) {
   return (builder: Builder) => EnsoUUID.createEnsoUUID(builder, low, high)
 }
 
-function sendVizData(id: Uuid, config: VisualizationConfiguration) {
+function sendVizData(id: Uuid, config: VisualizationConfiguration, expressionId?: Uuid) {
   const vizDataHandler =
-    mockVizData[
-      typeof config.expression === 'string' ?
-        `${config.visualizationModule}.${config.expression}`
-      : `${config.expression.definedOnType}.${config.expression.name}`
-    ]
+    typeof config.expression === 'string' ?
+      // Getting widget configuration is a special case, where we sometimes pass lambda as
+      // expression to discard the input value
+      /^[a-z_]+ *->.*get_widget_json/.test(config.expression) ?
+        mockWidgetConfiguration(config.positionalArgumentsExpressions?.at(0))
+      : mockVizPreprocessors[`${config.visualizationModule}.${config.expression}`]
+    : mockVizPreprocessors[`${config.expression.definedOnType}.${config.expression.name}`]
   if (!vizDataHandler || !sendData) return
   const vizData =
     vizDataHandler instanceof Uint8Array ? vizDataHandler : (
       vizDataHandler(config.positionalArgumentsExpressions ?? [])
     )
+  const exprId = expressionId ?? visualizationExprIds.get(id)
+  sendVizUpdate(id, config.executionContextId, exprId, vizData)
+}
+
+function sendVizUpdate(
+  id: Uuid,
+  executionCtxId: Uuid,
+  exprId: Uuid | undefined,
+  vizData: Uint8Array,
+) {
+  if (!sendData) return
   const builder = new Builder()
-  const exprId = visualizationExprIds.get(id)
   const visualizationContextOffset = VisualizationContext.createVisualizationContext(
     builder,
     createId(id),
-    createId(config.executionContextId),
+    createId(executionCtxId),
     exprId ? createId(exprId) : null,
   )
   const dataOffset = VisualizationUpdate.createDataVector(builder, vizData)
@@ -446,16 +466,27 @@ export const mockLSHandler: MockTransportData = async (method, data, transport) 
         expressionId: ExpressionId
         expression: string
       }
-      const { func, args } = Ast.analyzeAppLike(Ast.parse(data_.expression))
-      if (!(func instanceof Ast.PropertyAccess && func.lhs)) return
-      const visualizationConfig: VisualizationConfiguration = {
-        executionContextId: data_.executionContextId,
-        visualizationModule: func.lhs.code(),
-        expression: func.rhs.code(),
-        positionalArgumentsExpressions: args.map((ast) => ast.code()),
+      const aiPromptPat = Pattern.parse('Standard.Visualization.AI.build_ai_prompt __ . to_json')
+      const exprAst = Ast.parse(data_.expression)
+      if (aiPromptPat.test(exprAst)) {
+        sendVizUpdate(
+          data_.visualizationId,
+          data_.executionContextId,
+          data_.expressionId,
+          encodeJSON('Could you __$$GOAL$$__, please?'),
+        )
+      } else {
+        // Check if there's existing preprocessor mock which matches our expression
+        const { func, args } = Ast.analyzeAppLike(exprAst)
+        if (!(func instanceof Ast.PropertyAccess && func.lhs)) return
+        const visualizationConfig: VisualizationConfiguration = {
+          executionContextId: data_.executionContextId,
+          visualizationModule: func.lhs.code(),
+          expression: func.rhs.code(),
+          positionalArgumentsExpressions: args.map((ast) => ast.code()),
+        }
+        sendVizData(data_.visualizationId, visualizationConfig, data_.expressionId)
       }
-      visualizationExprIds.set(data_.visualizationId, data_.expressionId)
-      sendVizData(data_.visualizationId, visualizationConfig)
       return
     }
     case 'search/getSuggestionsDatabase':
@@ -471,6 +502,7 @@ export const mockLSHandler: MockTransportData = async (method, data, transport) 
     case 'executionContext/push':
     case 'executionContext/pop':
     case 'executionContext/recompute':
+    case 'executionContext/setExecutionEnvironment':
     case 'capability/acquire':
       return {}
     case 'file/list': {
@@ -487,9 +519,16 @@ export const mockLSHandler: MockTransportData = async (method, data, transport) 
           if (!child || typeof child === 'string' || child instanceof ArrayBuffer) break
         }
       }
-      if (!child) return Promise.reject(`Folder '/${data_.path.segments.join('/')}' not found.`)
+      if (!child)
+        return Promise.reject({
+          code: ErrorCode.FILE_NOT_FOUND,
+          message: `Folder '/${data_.path.segments.join('/')}' not found.`,
+        })
       if (typeof child === 'string' || child instanceof ArrayBuffer)
-        return Promise.reject(`File '/${data_.path.segments.join('/')}' is not a folder.`)
+        return Promise.reject({
+          code: ErrorCode.NOT_DIRECTORY,
+          message: `File '/${data_.path.segments.join('/')}' is not a folder.`,
+        })
       return {
         paths: Object.entries(child).map(([name, entry]) => ({
           type: typeof entry === 'string' || entry instanceof ArrayBuffer ? 'File' : 'Directory',
@@ -500,8 +539,7 @@ export const mockLSHandler: MockTransportData = async (method, data, transport) 
     }
     case 'ai/completion': {
       const { prompt } = data
-      console.log(prompt)
-      const match = /^"Could you (.*), please\?"$/.exec(prompt)
+      const match = /^Could you (.*), please\?$/.exec(prompt)
       if (!match) {
         return { code: 'How rude!' }
       } else if (match[1] === 'convert to table') {

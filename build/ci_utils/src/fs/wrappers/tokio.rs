@@ -11,6 +11,19 @@ pub fn metadata<P: AsRef<Path>>(path: P) -> BoxFuture<'static, Result<std::fs::M
     tokio::fs::metadata(path).anyhow_err().boxed()
 }
 
+
+/// Like [tokio::fs::rename] but with a better error message and static lifetime.
+pub fn rename<P: AsRef<Path>, Q: AsRef<Path>>(from: P, to: Q) -> BoxFuture<'static, Result<()>> {
+    let from = from.as_ref().to_owned();
+    let to = to.as_ref().to_owned();
+    tokio::fs::rename(from.clone(), to.clone())
+        .with_context(move || {
+            format!("Failed to rename file from: {} to: {}", from.display(), to.display())
+        })
+        .boxed()
+}
+
+
 /// See [tokio::fs::symlink_metadata].
 pub fn symlink_metadata<P: AsRef<Path>>(path: P) -> BoxFuture<'static, Result<std::fs::Metadata>> {
     let path = path.as_ref().to_owned();

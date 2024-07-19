@@ -26,6 +26,7 @@ import project.Panic.Panic
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Text.Extensions import all
 from project.Data.Time.Date_Time import ensure_in_epoch
+from project.Metadata import Display, Widget
 from project.Widget_Helpers import make_date_format_selector
 
 polyglot java import java.lang.ArithmeticException
@@ -34,11 +35,12 @@ polyglot java import java.time.DateTimeException
 polyglot java import java.time.temporal.ChronoField
 polyglot java import java.time.temporal.IsoFields
 polyglot java import org.enso.base.Time_Utils
+polyglot java import org.enso.base.Time_Utils.AdjustOp
 
 ## PRIVATE
    Constructs a new Date from a year, month, and day.
 
-   Arguments
+   Arguments:
    - year: The year to represent.
    - month: The month-of-year to represent, from 1 (January) to 12 (December).
    - day: The day-of-month to represent, from 1 to 31. It must be valid for the
@@ -60,7 +62,7 @@ new_builtin year month day = @Builtin_Method "Date.new_builtin"
 type Date
     ## ALIAS current date, now
        GROUP DateTime
-       ICON date_and_time
+       ICON time
 
        Obtains the current date from the system clock in the system timezone.
 
@@ -72,10 +74,10 @@ type Date
     today = @Builtin_Method "Date.today"
 
     ## GROUP DateTime
-       ICON date_and_time
+       ICON time
        Constructs a new Date from a year, month, and day.
 
-       Arguments
+       Arguments:
        - year: The year to represent.
        - month: The month-of-year to represent, from 1 (January) to 12 (December).
        - day: The day-of-month to represent, from 1 to 31. It must be valid for the
@@ -94,9 +96,11 @@ type Date
          Get the local date of 5th August 1986.
 
              example_new = Date.new 1986 8 5
-
+    @year (Widget.Numeric_Input display=Display.Always)
+    @month (Widget.Numeric_Input minimum=1 maximum=12 display=Display.Always)
+    @day make_day_picker
     new : Integer -> Integer -> Integer -> Date ! Time_Error
-    new year (month = 1) (day = 1) =
+    new year:Integer (month:Integer=1) (day:Integer=1) =
         Panic.catch JException (new_builtin year month day) caught->
             Error.throw (Time_Error.Error caught.payload.getMessage)
 
@@ -310,19 +314,19 @@ type Date
             Day_Of_Week.from (Time_Utils.get_field_as_localdate self ChronoField.DAY_OF_WEEK) Day_Of_Week.Monday
 
     ## GROUP DateTime
-       ICON date_and_time
+       ICON time
        Returns the first date within the `Date_Period` containing self.
     start_of : Date_Period -> Date
     start_of self period=Date_Period.Month = period.adjust_start self
 
     ## GROUP DateTime
-       ICON date_and_time
+       ICON time
        Returns the last date within the `Date_Period` containing self.
     end_of : Date_Period -> Date
     end_of self period=Date_Period.Month = period.adjust_end self
 
     ## GROUP DateTime
-       ICON date_and_time
+       ICON time
        Returns the next date adding the `Date_Period` to self.
 
        Produces a warning for a Date that is before epoch start.
@@ -334,7 +338,7 @@ type Date
     next self period=Date_Period.Day = self + period.to_period
 
     ## GROUP DateTime
-       ICON date_and_time
+       ICON time
        Returns the previous date subtracting the `Date_Period` from self.
 
        Produces a warning for a Date that is before epoch start.
@@ -346,7 +350,7 @@ type Date
     previous self period=Date_Period.Day = self - period.to_period
 
     ## GROUP DateTime
-       ICON date_and_time
+       ICON time
        Creates a `Period` between self and the provided end date.
 
        Produces a warning for a Date that is before epoch start.
@@ -360,7 +364,7 @@ type Date
             Period.between self end
 
     ## GROUP DateTime
-       ICON date_and_time
+       ICON time
        Counts the days between self (inclusive) and the provided end date
        (exclusive, or inclusive if include_end_date=True).
 
@@ -378,7 +382,7 @@ type Date
                 (Time_Utils.days_between self end) + if include_end_date then 1 else 0
 
     ## GROUP DateTime
-       ICON date_and_time
+       ICON time
        Returns a requested date part as integer.
 
        Produces a warning for a Date that is before epoch start.
@@ -393,7 +397,7 @@ type Date
             Date_Period.Day     -> self.day
 
     ## GROUP DateTime
-       ICON date_and_time
+       ICON time
        Computes a time difference between the two dates.
 
        It returns an integer expressing how many periods fit between the two
@@ -412,7 +416,7 @@ type Date
         Time_Utils.unit_date_difference period.to_java_unit self end
 
     ## GROUP DateTime
-       ICON date_and_time
+       ICON time
        Shifts the date by a specified period.
 
        Produces a warning for a Date that is before epoch start.
@@ -426,7 +430,7 @@ type Date
         Time_Utils.unit_date_add period.to_java_unit self amount
 
     ## GROUP DateTime
-       ICON date_and_time
+       ICON time
        Counts workdays between self (inclusive) and the provided end date
        (exclusive).
 
@@ -494,7 +498,7 @@ type Date
 
     ## ALIAS add period
        GROUP Operators
-       ICON date_and_time
+       ICON time
        Add the specified amount of time to this instant to get another date.
 
        Arguments:
@@ -524,7 +528,7 @@ type Date
 
     ## ALIAS date range
        GROUP Input
-       ICON date_and_time
+       ICON time
        Creates an increasing range of dates from `self` to `end`.
 
        Arguments:
@@ -551,7 +555,7 @@ type Date
 
     ## ALIAS date range
        GROUP Input
-       ICON date_and_time
+       ICON time
        Creates a decreasing range of dates from `self` to `end`.
 
        Arguments:
@@ -575,7 +579,7 @@ type Date
         if step == Date_Period.Day then day_range else day_range.with_step step
 
     ## GROUP DateTime
-       ICON date_and_time
+       ICON time
        Shift the date by the specified amount of business days.
 
        For the purpose of this method, the business days are defined to be
@@ -700,7 +704,7 @@ type Date
 
     ## ALIAS subtract period
        GROUP Operators
-       ICON date_and_time
+       ICON time
        Subtract the specified amount of time from this instant to get another
        date.
 
@@ -817,7 +821,7 @@ type Date
          Format "2020-06-21" with French locale as "21. juin 2020"
 
              example_format = Date.new 2020 6 21 . format (Date_Time_Formatter.from "d. MMMM yyyy" (Locale.new "fr"))
-    @format (value-> make_date_format_selector value)
+    @format make_date_format_selector
     format : Date_Time_Formatter -> Text
     format self format:Date_Time_Formatter=Date_Time_Formatter.iso_date =
         format.format_date self
@@ -862,3 +866,14 @@ fits_in_range start end date =
 Date.from (that:JS_Object) =
     if that.get "type" == "Date" && ["year", "month", "day"].all that.contains_key then Date.new (that.get "year") (that.get "month") (that.get "day") else
         Error.throw (Illegal_Argument.Error "Invalid JS_Object for Date.from.")
+
+## PRIVATE
+private make_day_picker value cache =
+    _ = value
+    year = cache.if_not_nothing <| cache "year"
+    month = cache.if_not_nothing <| cache "month"
+    days = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+    max = if month.is_nothing then 31 else
+        if month != 2 || year.is_nothing then days.at (month - 1) else
+            if Date.new year 1 1 . is_leap_year then 29 else 28
+    Widget.Numeric_Input minimum=1 maximum=max display=Display.Always

@@ -2,7 +2,9 @@ package org.enso.interpreter.test.instrument
 
 import org.enso.interpreter.runtime.`type`.ConstantsGen
 import org.enso.interpreter.test.Metadata
-import org.enso.polyglot._
+import org.enso.common.LanguageInfo
+import org.enso.polyglot.RuntimeOptions
+import org.enso.polyglot.RuntimeServerInfo
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.text.editing.model
 import org.enso.text.editing.model.TextEdit
@@ -45,6 +47,7 @@ class RuntimeErrorsTest
         .option(RuntimeOptions.ENABLE_PROJECT_SUGGESTIONS, "false")
         .option(RuntimeOptions.ENABLE_GLOBAL_SUGGESTIONS, "false")
         .option(RuntimeOptions.ENABLE_EXECUTION_TIMER, "false")
+        .option(RuntimeOptions.STRICT_ERRORS, "false")
         .option(
           RuntimeOptions.DISABLE_IR_CACHES,
           InstrumentTestContext.DISABLE_IR_CACHE
@@ -870,7 +873,8 @@ class RuntimeErrorsTest
               "1234567890123456789"
             )
           ),
-          execute = true
+          execute = true,
+          idMap   = None
         )
       )
     )
@@ -919,7 +923,8 @@ class RuntimeErrorsTest
               "1000000000000.div 0"
             )
           ),
-          execute = true
+          execute = true,
+          idMap   = None
         )
       )
     )
@@ -968,7 +973,8 @@ class RuntimeErrorsTest
               "1000000000000.div 2"
             )
           ),
-          execute = true
+          execute = true,
+          idMap   = None
         )
       )
     )
@@ -1093,7 +1099,8 @@ class RuntimeErrorsTest
               "MyError2"
             )
           ),
-          execute = true
+          execute = true,
+          idMap   = None
         )
       )
     )
@@ -1217,7 +1224,8 @@ class RuntimeErrorsTest
               "MyError2"
             )
           ),
-          execute = true
+          execute = true,
+          idMap   = None
         )
       )
     )
@@ -1440,7 +1448,8 @@ class RuntimeErrorsTest
               "1234567890123456789"
             )
           ),
-          execute = true
+          execute = true,
+          idMap   = None
         )
       )
     )
@@ -1571,7 +1580,8 @@ class RuntimeErrorsTest
               "101"
             )
           ),
-          execute = true
+          execute = true,
+          idMap   = None
         )
       )
     )
@@ -1711,7 +1721,8 @@ class RuntimeErrorsTest
               "MyError2"
             )
           ),
-          execute = true
+          execute = true,
+          idMap   = None
         )
       )
     )
@@ -1854,7 +1865,8 @@ class RuntimeErrorsTest
               "10002 - 10000"
             )
           ),
-          execute = true
+          execute = true,
+          idMap   = None
         )
       )
     )
@@ -2051,7 +2063,8 @@ class RuntimeErrorsTest
               "10002 - 10000"
             )
           ),
-          execute = true
+          execute = true,
+          idMap   = None
         )
       )
     )
@@ -2185,7 +2198,8 @@ class RuntimeErrorsTest
               s"import Standard.Base.IO$newline$newline"
             )
           ),
-          execute = true
+          execute = true,
+          idMap   = None
         )
       )
     )
@@ -2298,7 +2312,8 @@ class RuntimeErrorsTest
               s"import Standard.Base.IO$newline$newline"
             )
           ),
-          execute = true
+          execute = true,
+          idMap   = None
         )
       )
     )
@@ -2398,7 +2413,8 @@ class RuntimeErrorsTest
               s"y = x - 1${newline}    y"
             )
           ),
-          execute = true
+          execute = true,
+          idMap   = None
         )
       )
     )
@@ -2487,7 +2503,8 @@ class RuntimeErrorsTest
               "2"
             )
           ),
-          execute = true
+          execute = true,
+          idMap   = None
         )
       )
     )

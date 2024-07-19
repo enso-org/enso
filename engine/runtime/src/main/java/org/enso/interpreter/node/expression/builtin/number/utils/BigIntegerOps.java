@@ -238,6 +238,15 @@ public class BigIntegerOps {
     return decimal <= Long.MAX_VALUE && decimal >= Long.MIN_VALUE;
   }
 
+  private static boolean fitsInLongCompat(double decimal) {
+    var nulaMinus = Double.doubleToRawLongBits(-0d);
+    if (nulaMinus == Double.doubleToRawLongBits(decimal)) {
+      return false;
+    }
+    var converted = (long) decimal;
+    return converted != Long.MAX_VALUE && converted == decimal;
+  }
+
   public static boolean fitsInInt(long number) {
     return number >= Integer.MIN_VALUE && number <= Integer.MAX_VALUE;
   }

@@ -18,6 +18,7 @@ import project.Nothing.Nothing
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Filter_Condition import unify_condition_or_predicate, unify_condition_predicate_or_element
 from project.Data.Range.Extensions import all
+from project.Metadata import Display, Widget
 from project.Runtime import assert
 
 polyglot java import org.enso.base.Time_Utils
@@ -29,7 +30,7 @@ type Date_Range
        allow to verify invariants and may lead to unexpected behavior.
     Internal_Constructor (start : Date) (end : Date) (step : Period) (increasing : Boolean) (cached_length : Integer)
 
-    ## ICON date_and_time
+    ## ICON time
        Create a representation of a right-exclusive range of dates.
 
        The range is increasing or decreasing, depending on if the start date is
@@ -54,7 +55,7 @@ type Date_Range
         Date_Range.Internal_Constructor start end one_day increasing base_length . with_step step
 
     ## GROUP Calculations
-       ICON date_and_time
+       ICON time
        Creates a copy of this range with a changed step.
 
        Arguments:
@@ -111,14 +112,14 @@ type Date_Range
         JS_Object.from_pairs [["type", "Date_Range"], ["start", self.start.to_js_object], ["end", self.end.to_js_object], ["step", self.step.to_js_object], ["increasing", self.increasing]]
 
     ## GROUP Selections
-       ICON select_row
+       ICON parse3
        Returns the first element that is included within the range or `Nothing`
        if the range is empty.
     first : Integer ! Index_Out_Of_Bounds
     first self = if self.is_empty then Error.throw (Index_Out_Of_Bounds.Error 0 0) else self.start
 
     ## GROUP Selections
-       ICON select_row
+       ICON parse3
        Returns the second element that is included within the range or `Nothing`
        if the range has less than 2 element
     second : Integer ! Index_Out_Of_Bounds
@@ -144,7 +145,7 @@ type Date_Range
     length self = self.cached_length
 
     ## GROUP Selections
-       ICON date_and_time
+       ICON parse3
        Gets an element from the range at a specified index (0-based).
 
        Arguments:
@@ -161,11 +162,13 @@ type Date_Range
          Get the last element of a range with step.
 
             (Date.new 2023 04 05) . up_to (Date.new 2023 10 07) . with_step Date_Period.Month . get -1 == (Date.new 2023 10 05)
+    @index (t-> Widget.Numeric_Input minimum=0 maximum=t.length-1 display=Display.Always)
     at : Integer -> Any ! Index_Out_Of_Bounds
-    at self index =
+    at self index:Integer=0 =
         self.get index (Error.throw (Index_Out_Of_Bounds.Error index self.length))
 
-    ## Gets an element from the range at a specified index (0-based).
+    ## ICON parse3
+       Gets an element from the range at a specified index (0-based).
        If the index is invalid then `if_missing` is returned.
 
        Arguments:
@@ -173,8 +176,9 @@ type Date_Range
          also allowed be negative, then the elements are indexed from the back,
          i.e. -1 will correspond to the last element.
        - if_missing: The value to return if the index is out of bounds.
+    @index (t-> Widget.Numeric_Input minimum=0 maximum=t.length-1 display=Display.Always)
     get : Integer -> Any -> Any
-    get self index ~if_missing=Nothing =
+    get self index:Integer=0 ~if_missing=Nothing =
         len = self.length
         effective_index = if index < 0 then len + index else index
         if effective_index >= 0 && effective_index < len then self.internal_at effective_index else
@@ -187,7 +191,7 @@ type Date_Range
     internal_at self i =
         nth_element_of_range self.start self.step self.increasing i
 
-    ## ICON dataframe_map_column
+    ## ICON column_add
        Applies a function to each element in the range, producing a vector of
        results.
 
@@ -213,7 +217,7 @@ type Date_Range
              (Date.new 2021 05 07).up_to (Date.new 2021 05 10) . to_vector
     to_vector : Vector Date
     to_vector self =
-        proxy = Array_Proxy.new self.length self.at
+        proxy = Array_Proxy.new self.length (self.at _)
         Vector.from_polyglot_array proxy
 
     ## GROUP Logical
@@ -252,14 +256,14 @@ type Date_Range
          Selecting all elements that are greater than 2020-10-12.
 
              (Date.new 2020 10 01).up_to (Date.new 2020 10 15) . filter (> (Date.new 2020 10 12))
-             (Date.new 2020 10 01).up_to (Date.new 2020 10 15) . filter (Filter_Condition.Greater than=(Date.new 2020 10 12))
+             (Date.new 2020 10 01).up_to (Date.new 2020 10 15) . filter (..Greater than=(Date.new 2020 10 12))
     @filter date_range_default_filter_condition_widget
     filter : (Filter_Condition | (Date -> Boolean)) -> Vector Date
-    filter self filter =
+    filter self (filter : Filter_Condition | (Date -> Boolean)) =
         predicate = unify_condition_or_predicate filter
-        builder = self.fold Vector.new_builder builder-> elem->
-            if predicate elem then builder.append elem else builder
-        builder.to_vector
+        Vector.build builder->
+            self.map elem->
+                if predicate elem then builder.append elem else builder
 
     ## GROUP Selections
        ICON preparation
@@ -285,19 +289,24 @@ type Date_Range
              (Date.new 2020 10 01).up_to (Date.new 2020 10 15).partition is_weekend
     @condition date_range_default_filter_condition_widget
     partition : (Filter_Condition | (Date -> Boolean)) -> Pair (Vector Date) (Vector Date)
-    partition self condition =
+    partition self (condition : Filter_Condition | (Date -> Boolean)) =
         predicate = unify_condition_or_predicate condition
-        pair = self.fold (Pair.new Vector.new_builder Vector.new_builder) acc-> elem->
-            case predicate elem of
-                True ->
-                    Pair.new (acc.first.append elem) acc.second
-                False ->
-                    Pair.new acc.first (acc.second.append elem)
-        pair.map .to_vector
+        vecs = Vector.build_multiple 2 builders->
+            self.map elem->
+                case predicate elem of
+                    True -> builders.at 0 . append elem
+                    False -> builders.at 1 . append elem
+        Pair.new (vecs.at 0) (vecs.at 1)
 
     ## PRIVATE
        ADVANCED
        Applies a function for each element in the range.
+
+       This method does not return the results, so it is only useful for performing
+       computations with side-effects.
+
+       If the function returns a dataflow error, the error is converted to a
+       panic and thrown immediately stopping further processing.
 
        Arguments:
        - function: The function to apply to each integer in the range.
@@ -330,7 +339,8 @@ type Date_Range
         (0.up_to self.length).each_with_index ix->
             function ix (self.internal_at ix)
 
-    ## Combines all the elements of the range, by iteratively applying the
+    ## ICON transform4
+       Combines all the elements of the range, by iteratively applying the
        passed function with next elements of the range.
 
        Arguments:
@@ -349,7 +359,7 @@ type Date_Range
         (0.up_to self.length).fold init acc-> ix->
             function acc (self.internal_at ix)
 
-    ## ICON dataframe_map_column
+    ## ICON column_add
        Combines all the elements of the range, by iteratively applying the
        passed function with the next element of the range. After each step the
        value is stored resulting in a new Vector of the same size as self.
@@ -376,7 +386,7 @@ type Date_Range
              (Date.new 2020 10 01).up_to (Date.new 2020 10 31) . all (> (Date.new 2020 10 01))
     @condition date_range_default_filter_condition_widget
     all : (Filter_Condition | (Date -> Boolean)) -> Boolean
-    all self condition =
+    all self (condition : Filter_Condition | (Date -> Boolean)) =
         predicate = unify_condition_or_predicate condition
         self . any (predicate >> .not) . not
 
@@ -391,10 +401,11 @@ type Date_Range
        > Example
          Checking that at least one date in the range is after 2020-10-01.
 
-             (Date.new 2020 10 01).up_to (Date.new 2020 10 31) . any (Filter_Condition.Greater (Date.new 2020 10 01))
+             (Date.new 2020 10 01).up_to (Date.new 2020 10 31) . any (..Greater (Date.new 2020 10 01))
     @condition date_range_default_filter_condition_widget
     any : (Filter_Condition | (Date -> Boolean)) -> Boolean
-    any self condition = self.find condition . is_nothing . not
+    any self (condition : Filter_Condition | (Date -> Boolean)) =
+        self.find condition . is_nothing . not
 
     ## GROUP Selections
        ICON find
@@ -414,7 +425,7 @@ type Date_Range
                 (Date.new 2020 10 01).up_to (Date.new 2020 10 31) . find (d-> d.day_of_week == Day_Of_Week.Monday)
     @condition date_range_default_filter_condition_widget
     find : (Filter_Condition | (Date -> Boolean)) -> Integer -> Any -> Any
-    find self condition (start : Integer = 0) ~if_missing=Nothing =
+    find self (condition : Filter_Condition | (Date -> Boolean)) (start : Integer = 0) ~if_missing=Nothing =
         predicate = unify_condition_or_predicate condition
         index = self.index_of predicate start
         case index of
@@ -595,7 +606,7 @@ unify_condition_for_index_of (condition : Date | Filter_Condition | Function) =
 
 ## PRIVATE
 date_range_default_filter_condition_widget =
-    Filter_Condition.default_widget include_text=False include_boolean=False include_numeric=False include_nullable=False
+    Filter_Condition.default_widget include_text=False include_boolean=False include_numeric=False include_nullable=False include_time=False include_date_time=False
 
 ## PRIVATE
 Vector.from (that:Date_Range) = that.to_vector

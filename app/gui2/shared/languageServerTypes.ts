@@ -74,6 +74,15 @@ export interface Position {
   character: number
 }
 
+interface IdMapSpan {
+  index: { value: number }
+  size: { value: number }
+}
+
+export type IdMapTuple = [IdMapSpan, string]
+
+export type IdMapTriple = [number, number, string]
+
 export type RegisterOptions = { path: Path } | { contextId: ContextId } | {}
 
 export interface CapabilityRegistration {
@@ -343,7 +352,11 @@ export type Notifications = {
   'file/event': (param: { path: Path; kind: FileEventKind }) => void
   'file/rootAdded': (param: {}) => void
   'file/rootRemoved': (param: {}) => void
-  'refactoring/projectRenamed': (param: {}) => void
+  'refactoring/projectRenamed': (param: {
+    oldNormalizedName: string
+    newNormalizedName: string
+    newName: string
+  }) => void
 }
 
 export type Event<T extends keyof Notifications> = Parameters<Notifications[T]>[0]
@@ -451,6 +464,10 @@ export namespace response {
 
   export interface AICompletion {
     code: string
+  }
+
+  export interface RenameSymbol {
+    newName: string
   }
 }
 

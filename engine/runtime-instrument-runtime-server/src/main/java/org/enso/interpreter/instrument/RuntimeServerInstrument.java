@@ -58,7 +58,7 @@ public class RuntimeServerInstrument extends TruffleInstrument {
 
     @Override
     public void onLanguageContextInitialized(TruffleContext context, LanguageInfo language) {
-      if (language.getId().equals(org.enso.polyglot.LanguageInfo.ID)) {
+      if (language.getId().equals(org.enso.common.LanguageInfo.ID)) {
         Object token = context.enter(null);
         ExecutionService service;
         try {

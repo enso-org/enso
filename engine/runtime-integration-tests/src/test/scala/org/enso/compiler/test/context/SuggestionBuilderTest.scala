@@ -1,12 +1,13 @@
 package org.enso.compiler.test.context
 
-import org.enso.compiler.context.SuggestionBuilder
+import org.enso.compiler.suggestions.SuggestionBuilder
 import org.enso.compiler.core.ir.Module
 import org.enso.interpreter.runtime
 import org.enso.interpreter.runtime.EnsoContext
 import org.enso.interpreter.test.InterpreterContext
 import org.enso.pkg.QualifiedName
-import org.enso.polyglot.{LanguageInfo, MethodNames, Suggestion}
+import org.enso.common.{LanguageInfo, MethodNames}
+import org.enso.polyglot.Suggestion
 import org.enso.polyglot.data.Tree
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
@@ -941,7 +942,86 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
                   false,
                   false,
                   None,
-                  Some(Seq("..A", "..B", "..Auto"))
+                  Some(Seq("..A", "..B", "Unnamed.Test.Auto"))
+                )
+              ),
+              selfType      = "Unnamed.Test",
+              returnType    = SuggestionBuilder.Any,
+              isStatic      = true,
+              documentation = None,
+              annotations   = Seq()
+            ),
+            Vector()
+          )
+        )
+      )
+    }
+
+    "build autoscope tagValues for Boolean" in {
+
+      val code =
+        """from Standard.Base import all
+          |
+          |type Value
+          |    A
+          |    B
+          |
+          |foo (a : Value | Boolean) = a
+          |""".stripMargin
+      val module = code.preprocessModule
+
+      build(code, module) shouldEqual Tree.Root(
+        Vector(
+          ModuleNode,
+          Tree.Node(
+            Suggestion.Type(
+              externalId    = None,
+              module        = "Unnamed.Test",
+              name          = "Value",
+              params        = Seq(),
+              returnType    = "Unnamed.Test.Value",
+              parentType    = Some(SuggestionBuilder.Any),
+              documentation = None
+            ),
+            Vector()
+          ),
+          Tree.Node(
+            Suggestion.Constructor(
+              externalId    = None,
+              module        = "Unnamed.Test",
+              name          = "A",
+              arguments     = Seq(),
+              returnType    = "Unnamed.Test.Value",
+              documentation = None,
+              annotations   = Seq()
+            ),
+            Vector()
+          ),
+          Tree.Node(
+            Suggestion.Constructor(
+              externalId    = None,
+              module        = "Unnamed.Test",
+              name          = "B",
+              arguments     = Seq(),
+              returnType    = "Unnamed.Test.Value",
+              documentation = None,
+              annotations   = Seq()
+            ),
+            Vector()
+          ),
+          Tree.Node(
+            Suggestion.DefinedMethod(
+              externalId = None,
+              module     = "Unnamed.Test",
+              name       = "foo",
+              arguments = Seq(
+                Suggestion.Argument(
+                  "a",
+                  "Unnamed.Test.Value | Standard.Base.Data.Boolean.Boolean",
+                  false,
+                  false,
+                  None,
+                  Some(Seq("..A", "..B", "True", "False"))
                 )
               ),
               selfType      = "Unnamed.Test",
@@ -1033,7 +1113,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
                   false,
                   false,
                   None,
-                  Some(Seq("..A", "..B", "..Auto"))
+                  Some(Seq("..A", "..B", "Unnamed.Test.Auto"))
                 )
               ),
               selfType      = "Unnamed.Test",
@@ -1537,8 +1617,8 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
                     Some("Boolean.True"),
                     Some(
                       List(
-                        "..True",
-                        "..False"
+                        "True",
+                        "False"
                       )
                     )
                   )
@@ -3018,6 +3098,129 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
       )
     }
 
+    "build type with private constructor" in {
+      val code =
+        """type T
+          |    private A x y
+          |
+          |    foo self = x + y
+          |""".stripMargin
+      val module = code.preprocessModule
+
+      build(code, module) shouldEqual Tree.Root(
+        Vector(
+          ModuleNode,
+          Tree.Node(
+            Suggestion.Type(
+              externalId    = None,
+              module        = "Unnamed.Test",
+              name          = "T",
+              params        = Seq(),
+              returnType    = "Unnamed.Test.T",
+              parentType    = Some(SuggestionBuilder.Any),
+              documentation = None
+            ),
+            Vector()
+          ),
+          Tree.Node(
+            Suggestion.DefinedMethod(
+              externalId = None,
+              module     = "Unnamed.Test",
+              name       = "foo",
+              arguments = Seq(
+                Suggestion
+                  .Argument("self", "Unnamed.Test.T", false, false, None)
+              ),
+              selfType      = "Unnamed.Test.T",
+              returnType    = SuggestionBuilder.Any,
+              isStatic      = false,
+              documentation = None,
+              annotations   = Seq()
+            ),
+            Vector()
+          )
+        )
+      )
+    }
+
+    "build type with private methods" in {
+      val code =
+        """type T
+          |    private priv_meth self = 42
+          |    pub_meth self = 42
+          |""".stripMargin
+      val module = code.preprocessModule
+
+      build(code, module) shouldEqual Tree.Root(
+        Vector(
+          ModuleNode,
+          Tree.Node(
+            Suggestion.Type(
+              externalId    = None,
+              module        = "Unnamed.Test",
+              name          = "T",
+              params        = Seq(),
+              returnType    = "Unnamed.Test.T",
+              parentType    = Some(SuggestionBuilder.Any),
+              documentation = None
+            ),
+            Vector()
+          ),
+          Tree.Node(
+            Suggestion.DefinedMethod(
+              externalId = None,
+              module     = "Unnamed.Test",
+              name       = "pub_meth",
+              arguments = Seq(
+                Suggestion
+                  .Argument("self", "Unnamed.Test.T", false, false, None)
+              ),
+              selfType      = "Unnamed.Test.T",
+              returnType    = SuggestionBuilder.Any,
+              isStatic      = false,
+              documentation = None,
+              annotations   = Seq()
+            ),
+            Vector()
+          )
+        )
+      )
+    }
+
+    "build module with private methods" in {
+      val code =
+        """
+          |private priv_stat_method x = 42
+          |
+          |pub_stat_method x = 42
+          |""".stripMargin
+
+      val module = code.preprocessModule
+
+      build(code, module) shouldEqual Tree.Root(
+        Vector(
+          ModuleNode,
+          Tree.Node(
+            Suggestion.DefinedMethod(
+              externalId = None,
+              module     = "Unnamed.Test",
+              name       = "pub_stat_method",
+              arguments = Seq(
+                Suggestion
+                  .Argument("x", "Standard.Base.Any.Any", false, false, None)
+              ),
+              selfType      = "Unnamed.Test",
+              returnType    = SuggestionBuilder.Any,
+              isStatic      = true,
+              documentation = None,
+              annotations   = Seq()
+            ),
+            Vector()
+          )
+        )
+      )
+    }
+
     "build Integer type" in {
 
       val code = "type Integer"
@@ -3170,6 +3373,19 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
           )
         )
       )
+    }
+
+    "build private module" in {
+      val code =
+        """private
+          |
+          |type T
+          |
+          |main = "Hello World!"
+          |""".stripMargin
+      val module = code.preprocessModule
+
+      build(code, module) shouldEqual Tree.Root(Vector())
     }
 
     "build module with a type named as module" in {
@@ -3723,6 +3939,10 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
     source: String,
     ir: Module,
     module: QualifiedName = Module
-  ): Tree.Root[Suggestion] =
-    SuggestionBuilder(source, langCtx.getCompiler).build(module, ir)
+  ): Tree.Root[Suggestion] = {
+    val compiler = langCtx.getCompiler
+    val types =
+      org.enso.interpreter.runtime.Module.findTypeHierarchy(compiler.context)
+    SuggestionBuilder(source, types, compiler).build(module, ir)
+  }
 }

@@ -175,7 +175,7 @@ In order to build and run Enso you will need the following tools:
   should be installed by default on most distributions.
 - On Windows, the `run` command must be run in the latest version of
   `Powershell` or in `cmd`.
-- If you want to be able to build the Launcher Native Image, you will need a
+- If you want to be able to build the `ensoup` Native Image, you will need a
   native C compiler for your platform as described in the
   [Native Image Prerequisites](https://www.graalvm.org/reference-manual/native-image/#prerequisites).
   On Linux that will be `gcc`, on macOS you may need `xcode` and on Windows you
@@ -190,17 +190,6 @@ helper tools for that. We recommend:
 
 **For users of M1 Mac**: installing GraalVM on M1 Mac requires manual actions,
 please refer to a [dedicated documentation](./graalvm-m1-mac.md).
-
-**For users of MacOS Monterey and later**: building desktop IDE currently
-requires Python 2 installed in the system. It can be installed using the
-following commands:
-
-```sh
-brew install pyenv
-pyenv install 2.7.18
-pyenv global 2.7.18
-export PYTHON_PATH=$(pyenv root)/shims/python
-```
 
 ### Getting the Sources
 
@@ -305,17 +294,9 @@ shell will execute the appropriate thing. Furthermore we have `testOnly` and
 `benchOnly` that accept a glob pattern that delineates some subset of the tests
 or benchmarks to run (e.g. `testOnly *FunctionArguments*`).
 
-#### Building the Launcher Native Binary
+#### Building the Updater Native Binary
 
-If you want to build the native launcher binary, you need to ensure that the
-Native Image component is installed in your GraalVM distribution. To install it,
-run:
-
-```bash
-<path-to-graal-home>/bin/gu install native-image
-```
-
-Then, you can build the launcher using:
+Then, you can build the updater/launcher using:
 
 ```bash
 sbt launcher/buildNativeImage
@@ -398,22 +379,22 @@ Internally, most of the developers working on the Enso project use IntelliJ as
 their primary IDE. To that end, what follows is a basic set of instructions for
 getting the project into a working state in IntelliJ.
 
-1.  Clone the project sources.
-2.  Open IntelliJ
-3.  File -> New -> Project From Existing Sources.
-4.  Navigate to the directory into which you cloned the project sources. By
-    default this will be called `enso`. Select the directory, and not the
-    `build.sbt` file it contains.
-5.  In the 'Import Project' dialogue, select 'Import project from external
-    model' and choose 'sbt'.
-6.  Where it says 'Download:', ensure you check both 'Library Sources' and 'sbt
-    sources'.
-7.  In addition, check the boxes next to 'Use sbt shell:' such that it is used
-    both 'for imports' and 'for builds'.
-8.  Disallow the overriding of the sbt version.
-9.  Under the 'Project JDK' setting, please ensure that it is set up to use a
-    GraalVM version as described in [System requirements](#system-requirements).
-    You may need to add it using the 'New' button if it isn't already set up.
+1. Clone the project sources.
+2. Open IntelliJ
+3. File -> New -> Project From Existing Sources.
+4. Navigate to the directory into which you cloned the project sources. By
+   default this will be called `enso`. Select the directory, and not the
+   `build.sbt` file it contains.
+5. In the 'Import Project' dialogue, select 'Import project from external model'
+   and choose 'sbt'.
+6. Where it says 'Download:', ensure you check both 'Library Sources' and 'sbt
+   sources'.
+7. In addition, check the boxes next to 'Use sbt shell:' such that it is used
+   both 'for imports' and 'for builds'.
+8. Disallow the overriding of the sbt version.
+9. Under the 'Project JDK' setting, please ensure that it is set up to use a
+   GraalVM version as described in [System requirements](#system-requirements).
+   You may need to add it using the 'New' button if it isn't already set up.
 10. Click 'Finish'. This will prompt you as to whether you want to overwrite the
     `project` folder. Select 'Yes' to continue. The Enso project will load up
     with an open SBT shell, which can be interacted with as described above. You

@@ -33,20 +33,31 @@ class DropDownLocator {
   }
 
   async expectVisible(): Promise<void> {
+    await expect(this.dropDown).toHaveCount(1)
     await expect(this.dropDown).toBeVisible()
   }
 
   async expectNotVisible(): Promise<void> {
-    await expect(this.dropDown).not.toBeVisible()
+    await expect(this.dropDown).toBeHidden()
   }
 
   async clickOption(option: string): Promise<void> {
-    const page = this.dropDown.page()
-    await this.items.filter({ has: page.getByText(option) }).click()
+    const item = this.item(option)
+    await item.click()
   }
 
   async clickWidget(): Promise<void> {
     await this.rootWidget.click()
+  }
+
+  selectedItem(text: string): Locator {
+    const page = this.dropDown.page()
+    return this.selectedItems.filter({ has: page.getByText(text) })
+  }
+
+  item(text: string): Locator {
+    const page = this.dropDown.page()
+    return this.items.filter({ has: page.getByText(text) })
   }
 }
 
@@ -55,7 +66,7 @@ test('Widget in plain AST', async ({ page }) => {
   const numberNode = locate.graphNodeByBinding(page, 'five')
   const numberWidget = numberNode.locator('.WidgetNumber')
   await expect(numberWidget).toBeVisible()
-  await expect(numberWidget.locator('input')).toHaveValue('5')
+  await expect(numberWidget).toHaveValue('5')
 
   const listNode = locate.graphNodeByBinding(page, 'list')
   const listWidget = listNode.locator('.WidgetVector')
@@ -97,6 +108,7 @@ test('Multi-selection widget', async ({ page }) => {
 
   // Enable an item.
   await dropDown.clickOption('Column A')
+  await expect(dropDown.selectedItem('Column A')).toExist()
   await expect(vector).toBeVisible()
   await expect(vectorItems).toHaveCount(1)
   await expect(vectorItems.first()).toHaveValue('Column A')
@@ -118,6 +130,20 @@ test('Multi-selection widget', async ({ page }) => {
   await expect(dropDown.items).toHaveCount(2)
   await expect(dropDown.selectedItems).toHaveCount(2)
 
+  // Clicking to edit an item opens the dropdown, after closing with escape.
+  await page.keyboard.press('Escape')
+  await dropDown.expectNotVisible()
+  await expect(vectorItems.first()).toHaveValue('Column A')
+  await vectorItems.first().click()
+  await expect(vectorItems.first()).toBeFocused()
+  await expect(dropDown.dropDown).toBeVisible()
+
+  // Clicking to edit a different item doesn't close the dropdown.
+  await expect(vectorItems.nth(1)).toHaveValue('Column B')
+  await vectorItems.nth(1).click()
+  await expect(vectorItems.nth(1)).toBeFocused()
+  await expect(dropDown.dropDown).toBeVisible()
+
   // Disable an item.
   await dropDown.clickOption('Column A')
   await expect(vectorItems).toHaveCount(1)
@@ -132,6 +158,37 @@ test('Multi-selection widget', async ({ page }) => {
   await expect(dropDown.dropDown).toBeVisible()
   await expect(dropDown.items).toHaveCount(2)
   await expect(dropDown.selectedItems).toHaveCount(0)
+})
+
+test('Multi-selection widget: Item edits', async ({ page }) => {
+  await actions.goToGraph(page)
+  await mockMethodCallInfo(page, 'selected', {
+    methodPointer: {
+      module: 'Standard.Table.Table',
+      definedOnType: 'Standard.Table.Table.Table',
+      name: 'select_columns',
+    },
+    notAppliedArguments: [1],
+  })
+
+  // Get the dropdown and set it up by enabling two items.
+  const columnsArg = locate
+    .graphNodeByBinding(page, 'selected')
+    .locator('.WidgetTopLevelArgument')
+    .filter({ has: page.getByText('columns') })
+  const vectorItems = columnsArg.locator('.WidgetVector .item .WidgetPort input')
+  const dropDown = new DropDownLocator(columnsArg)
+  await dropDown.clickWidget()
+  await dropDown.clickOption('Column A')
+  await dropDown.clickOption('Column B')
+
+  // Edit an item
+  await expect(dropDown.selectedItem('Column A')).toExist()
+  await expect(dropDown.selectedItem('Column B')).toExist()
+  await expect(vectorItems.first()).toHaveValue('Column A')
+  await vectorItems.first().fill('Something Else')
+  await expect(dropDown.selectedItem('Column A')).toBeHidden()
+  await expect(dropDown.selectedItem('Column B')).toExist()
 })
 
 async function dataReadNodeWithMethodCallInfo(page: Page): Promise<Locator> {
@@ -439,4 +496,40 @@ test('Managing aggregates in `aggregate` node', async ({ page }) => {
   //   'column 1',
   //   '"',
   // ])
+})
+
+// Test that autoscoped constructors provide argument placeholders.
+// This test can be removed when `aggregate` inserts autoscoped constructors by default,
+// so this behavior will be tested in regular `aggregate` tests.
+test('Autoscoped constructors', async ({ page }) => {
+  await actions.goToGraph(page)
+  await mockMethodCallInfo(page, 'autoscoped', {
+    methodPointer: {
+      module: 'Standard.Table.Table',
+      definedOnType: 'Standard.Table.Table.Table',
+      name: 'aggregate',
+    },
+    notAppliedArguments: [2, 3],
+  })
+  await mockMethodCallInfo(
+    page,
+    { binding: 'autoscoped', expr: '..Group_By' },
+    {
+      methodPointer: {
+        module: 'Standard.Table.Aggregate_Column',
+        definedOnType: 'Standard.Table.Aggregate_Column.Aggregate_Column',
+        name: 'Group_By',
+      },
+      notAppliedArguments: [0, 1],
+    },
+  )
+  const node = locate.graphNodeByBinding(page, 'autoscoped')
+  const topLevelArgs = node.locator('.WidgetTopLevelArgument')
+  // Wait for hidden arguments to appear after selecting the node.
+  await node.click()
+  await expect(topLevelArgs).toHaveCount(3)
+
+  const groupBy = node.locator('.item').nth(0)
+  await expect(groupBy).toBeVisible()
+  await expect(groupBy.locator('.WidgetArgumentName')).toContainText(['column', 'new_name'])
 })

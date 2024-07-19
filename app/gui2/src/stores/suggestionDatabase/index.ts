@@ -1,8 +1,9 @@
-import { useProjectStore } from '@/stores/project'
+import { createContextStore } from '@/providers'
+import { type ProjectStore } from '@/stores/project'
 import { entryQn, type SuggestionEntry, type SuggestionId } from '@/stores/suggestionDatabase/entry'
 import { applyUpdates, entryFromLs } from '@/stores/suggestionDatabase/lsUpdate'
 import { ReactiveDb, ReactiveIndex } from '@/util/database/reactiveDb'
-import { AsyncQueue, rpcWithRetries } from '@/util/net'
+import { AsyncQueue } from '@/util/net'
 import {
   normalizeQualifiedName,
   qnJoin,
@@ -10,10 +11,10 @@ import {
   tryQualifiedName,
   type QualifiedName,
 } from '@/util/qualifiedName'
-import { defineStore } from 'pinia'
 import { LanguageServer } from 'shared/languageServer'
 import type { MethodPointer } from 'shared/languageServerTypes'
-import { markRaw, ref, type Ref } from 'vue'
+import { exponentialBackoff } from 'shared/util/net'
+import { markRaw, proxyRefs, ref, type Ref } from 'vue'
 
 export class SuggestionDb extends ReactiveDb<SuggestionId, SuggestionEntry> {
   nameToId = new ReactiveIndex(this, (id, entry) => [[entryQn(entry), id]])
@@ -51,33 +52,23 @@ export interface Group {
   project: QualifiedName
 }
 
-export function groupColorVar(group: Group | undefined): string {
-  if (group) {
-    const name = `${group.project}-${group.name}`.replace(/[^\w]/g, '-')
-    return `--group-color-${name}`
-  } else {
-    return '--group-color-fallback'
-  }
-}
-
-export function groupColorStyle(group: Group | undefined): string {
-  return `var(${groupColorVar(group)})`
-}
-
 class Synchronizer {
   queue: AsyncQueue<{ currentVersion: number }>
 
   constructor(
+    projectStore: ProjectStore,
     public entries: SuggestionDb,
     public groups: Ref<Group[]>,
   ) {
-    const projectStore = useProjectStore()
-    const initState = projectStore.lsRpcConnection.then(async (lsRpc) => {
-      await rpcWithRetries(() =>
-        lsRpc.acquireCapability('search/receivesSuggestionsDatabaseUpdates', {}),
-      )
-      this.setupUpdateHandler(lsRpc)
-      this.loadGroups(lsRpc, projectStore.firstExecution)
+    const lsRpc = projectStore.lsRpcConnection
+    const initState = exponentialBackoff(() =>
+      lsRpc.acquireCapability('search/receivesSuggestionsDatabaseUpdates', {}),
+    ).then((capability) => {
+      if (!capability.ok) {
+        capability.error.log('Will not receive database updates')
+      }
+      this.#setupUpdateHandler(lsRpc)
+      this.#loadGroups(lsRpc, projectStore.firstExecution)
       return Synchronizer.loadDatabase(entries, lsRpc, groups.value)
     })
 
@@ -89,8 +80,14 @@ class Synchronizer {
     lsRpc: LanguageServer,
     groups: Group[],
   ): Promise<{ currentVersion: number }> {
-    const initialDb = await lsRpc.getSuggestionsDatabase()
-    for (const lsEntry of initialDb.entries) {
+    const initialDb = await exponentialBackoff(() => lsRpc.getSuggestionsDatabase())
+    if (!initialDb.ok) {
+      initialDb.error.log(
+        'Cannot load initial suggestion database. Continuing with empty suggestion database',
+      )
+      return { currentVersion: 0 }
+    }
+    for (const lsEntry of initialDb.value.entries) {
       const entry = entryFromLs(lsEntry.suggestion, groups)
       if (!entry.ok) {
         entry.error.log()
@@ -99,10 +96,10 @@ class Synchronizer {
         entries.set(lsEntry.id, entry.value)
       }
     }
-    return { currentVersion: initialDb.currentVersion }
+    return { currentVersion: initialDb.value.currentVersion }
   }
 
-  private setupUpdateHandler(lsRpc: LanguageServer) {
+  #setupUpdateHandler(lsRpc: LanguageServer) {
     lsRpc.on('search/suggestionsDatabaseUpdates', (param) => {
       this.queue.pushTask(async ({ currentVersion }) => {
         // There are rare cases where the database is updated twice in quick succession, with the
@@ -129,11 +126,17 @@ class Synchronizer {
     })
   }
 
-  private async loadGroups(lsRpc: LanguageServer, firstExecution: Promise<unknown>) {
+  async #loadGroups(lsRpc: LanguageServer, firstExecution: Promise<unknown>) {
     this.queue.pushTask(async ({ currentVersion }) => {
       await firstExecution
-      const groups = await lsRpc.getComponentGroups()
-      this.groups.value = groups.componentGroups.map(
+      const groups = await exponentialBackoff(() => lsRpc.getComponentGroups())
+      if (!groups.ok) {
+        if (!lsRpc.isDisposed) {
+          groups.error.log('Cannot read component groups. Continuing without groups')
+        }
+        return { currentVersion }
+      }
+      this.groups.value = groups.value.componentGroups.map(
         (group): Group => ({
           name: group.name,
           ...(group.color ? { color: group.color } : {}),
@@ -145,10 +148,12 @@ class Synchronizer {
   }
 }
 
-export const useSuggestionDbStore = defineStore('suggestionDatabase', () => {
-  const entries = new SuggestionDb()
-  const groups = ref<Group[]>([])
+export type SuggestionDbStore = ReturnType<typeof useSuggestionDbStore>
+export const { provideFn: provideSuggestionDbStore, injectFn: useSuggestionDbStore } =
+  createContextStore('suggestionDatabase', (projectStore: ProjectStore) => {
+    const entries = new SuggestionDb()
+    const groups = ref<Group[]>([])
 
-  const _synchronizer = new Synchronizer(entries, groups)
-  return { entries: markRaw(entries), groups, _synchronizer }
-})
+    const _synchronizer = new Synchronizer(projectStore, entries, groups)
+    return proxyRefs({ entries: markRaw(entries), groups, _synchronizer })
+  })

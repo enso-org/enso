@@ -2,10 +2,10 @@ from Standard.Base import all
 
 from Standard.Table import Table
 
-from project.Geo_Json export geo_json_to_table
+export project.Geo_Json.geo_json_to_table
 
 ## UNSTABLE
-   ICON spatial
+   ICON location
 
    Create a `Table` representing a geographic point with the specified latitude,
    longitude, and elevation.

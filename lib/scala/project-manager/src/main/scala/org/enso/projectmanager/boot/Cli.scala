@@ -1,7 +1,7 @@
 package org.enso.projectmanager.boot
 
 import org.apache.commons.cli
-import org.enso.polyglot.LanguageInfo
+import org.enso.common.LanguageInfo
 
 import scala.util.Try
 
@@ -17,6 +17,7 @@ object Cli {
   val PROJECTS_DIRECTORY = "projects-directory"
   val PROJECT_LIST       = "project-list"
 
+  val FILESYSTEM_EXISTS           = "filesystem-exists"
   val FILESYSTEM_LIST             = "filesystem-list"
   val FILESYSTEM_CREATE_DIRECTORY = "filesystem-create-directory"
   val FILESYSTEM_DELETE           = "filesystem-delete"
@@ -90,6 +91,14 @@ object Cli {
       .desc("List user projects.")
       .build()
 
+    val filesystemExists: cli.Option = cli.Option.builder
+      .hasArg(true)
+      .numberOfArgs(1)
+      .argName("path")
+      .longOpt(FILESYSTEM_EXISTS)
+      .desc("Check if a file or directory exists.")
+      .build()
+
     val filesystemList: cli.Option = cli.Option.builder
       .hasArg(true)
       .numberOfArgs(1)
@@ -150,6 +159,7 @@ object Cli {
       .addOption(option.profilingTime)
       .addOption(option.projectsDirectory)
       .addOption(option.projectList)
+      .addOption(option.filesystemExists)
       .addOption(option.filesystemList)
       .addOption(option.filesystemCreateDirectory)
       .addOption(option.filesystemDelete)

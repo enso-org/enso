@@ -18,23 +18,32 @@ type Source_Location
     to_text self =
         '(Source_Location ' + self.formatted_coordinates + ')'
 
-    ## Returns the 1-based line index of the start of this code range.
+    ## GROUP Metadata
+       ICON metadata
+       Returns the 1-based line index of the start of this code range.
     start_line : Integer
     start_line self = self.prim_location.getStartLine
 
-    ## Returns the 1-based line index of the end of this code range.
+    ## GROUP Metadata
+       ICON metadata
+       Returns the 1-based line index of the end of this code range.
     end_line : Integer
     end_line self = self.prim_location.getEndLine
 
-    ## Returns the 1-based column index of the start of this code range.
+    ## GROUP Metadata
+       ICON metadata
+       Returns the 1-based column index of the start of this code range.
     start_column : Integer
     start_column self = self.prim_location.getStartColumn
 
-    ## Returns the 1-based column index of the end of this code range.
+    ## GROUP Metadata
+       ICON metadata
+       Returns the 1-based column index of the end of this code range.
     end_column : Integer
     end_column self = self.prim_location.getEndColumn
 
-    ## Returns a pretty-printed location (file and line info).
+    ## ICON text
+       Returns a pretty-printed location (file and line info).
     formatted_coordinates : Text
     formatted_coordinates self =
         start_line = self.start_line
@@ -55,7 +64,8 @@ type Source_Location
                 _ -> file.path
             formatted_file + ":" + indices
 
-    ## ICON metadata
+    ## GROUP Metadata
+       ICON metadata
        Return the source file corresponding to this location.
     file : File | Nothing
     file self =

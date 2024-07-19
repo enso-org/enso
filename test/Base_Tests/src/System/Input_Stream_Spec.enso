@@ -1,0 +1,114 @@
+from Standard.Base import all
+import Standard.Base.Errors.Illegal_State.Illegal_State
+import Standard.Base.Runtime.Managed_Resource.Managed_Resource
+import Standard.Base.System.Input_Stream.Input_Stream
+
+from Standard.Test import all
+
+polyglot java import org.enso.base_test_helpers.RangeStream
+polyglot java import org.enso.base.Stream_Utils
+
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter filter
+
+
+foreign js is_like data available = """
+    let at = 0
+    let is = {
+        read : function(arr, off, len) {
+          let cnt = 0;
+          while (len-- > 0) {
+            arr[off++] = data[at++];
+            cnt++;
+          }
+          return cnt;
+        }
+    }
+    if (available) {
+      is.available = function() {
+        return data.length - at;
+      };
+    }
+    return is;
+
+add_specs suite_builder = suite_builder.group "Input Stream" group_builder->
+    group_builder.specify "should be peekable if backed by memory" <|
+        Managed_Resource.bracket (Input_Stream.from_bytes [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]) (.close) stream->
+            stream.is_peekable . should_be_true
+
+            stream.peek_bytes 3 . should_equal [1, 2, 3]
+            stream.peek_bytes 3 . should_equal [1, 2, 3]
+            # After the peek operation, read still starts from beginning
+            stream.read_n_bytes 3 . should_equal [1, 2, 3]
+
+            # Further peek after a read, starts from where the next read would start
+            stream.peek_bytes 3 . should_equal [4, 5, 6]
+            stream.read_n_bytes 3 . should_equal [4, 5, 6]
+            stream.read_n_bytes 5 . should_equal [7, 8, 9, 10]
+
+    group_builder.specify "should allow to skip bytes" <|
+        Managed_Resource.bracket (Input_Stream.from_bytes [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]) (.close) stream->
+            stream.skip_n_bytes 3
+            stream.read_n_bytes 1 . should_equal [4]
+            stream.peek_bytes 3 . should_equal [5, 6, 7]
+            stream.skip_n_bytes 3
+            stream.read_n_bytes 4 . should_equal [8, 9, 10]
+
+    group_builder.specify "should not be peekable if generic stream is provided" <|
+        error_handler x = x
+        generic_stream = Input_Stream.new (RangeStream.new 100 120) error_handler
+        generic_stream.is_peekable . should_be_false
+        generic_stream.peek_bytes 3 . should_fail_with Illegal_State
+
+    group_builder.specify "should be possible to make peekable" <|
+        error_handler x = x
+        generic_stream = Input_Stream.new (RangeStream.new 100 120) error_handler
+        generic_stream.read_n_bytes 4 . should_equal [100, 101, 102, 103]
+
+        promoted_stream = generic_stream.as_peekable_stream
+        # The new stream starts at the same position as the old one was left
+        promoted_stream.peek_bytes 4 . should_equal [104, 105, 106, 107]
+        promoted_stream.read_n_bytes 4 . should_equal [104, 105, 106, 107]
+        promoted_stream.peek_bytes 2 . should_equal [108, 109]
+        promoted_stream.peek_bytes 2 . should_equal [108, 109]
+
+    group_builder.specify "should allow to peek beyond EOF, still correctly restarting afterwards" <|
+        error_handler x = x
+        generic_stream = Input_Stream.new (RangeStream.new 100 105) error_handler
+        promoted_stream = generic_stream.as_peekable_stream
+        promoted_stream.peek_bytes 10 . should_equal [100, 101, 102, 103, 104]
+        promoted_stream.peek_bytes 10 . should_equal [100, 101, 102, 103, 104]
+        # The read still succeeds - ensuring there isn't some early EOF
+        promoted_stream.read_n_bytes 10 . should_equal [100, 101, 102, 103, 104]
+
+    group_builder.specify "read without available" <|
+        stream_like = is_like [20, 5, 1, 10] False
+        is = Stream_Utils.asInputStream stream_like
+        is.available . should_equal 0
+
+        is.read . should_equal 20
+        is.read . should_equal 5
+
+        is.available . should_equal 0
+
+        is.read . should_equal 1
+        is.read . should_equal 10
+
+        is.available . should_equal 0
+
+    group_builder.specify "read with available" <|
+        stream_like = is_like [20, 6, 8, 23] True
+        is = Stream_Utils.asInputStream stream_like
+        is.available . should_equal 4
+
+        is.read . should_equal 20
+        is.read . should_equal 6
+
+        is.available . should_equal 2
+
+        is.read . should_equal 8
+        is.read . should_equal 23
+
+        is.available . should_equal 0

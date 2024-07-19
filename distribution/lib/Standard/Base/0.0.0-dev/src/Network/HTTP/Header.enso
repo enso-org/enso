@@ -129,7 +129,7 @@ type Header
              example_content_type = Header.content_type "my_type"
     content_type : Text -> Encoding | Nothing -> Header
     content_type value:Text encoding:(Encoding | Nothing)=Nothing =
-        charset = if encoding.is_nothing then "" else "; charset="+encoding.character_set
+        charset = if encoding.is_nothing then "" else "; charset="+encoding.character_set_name
         Header.Value Header.content_type_header_name value+charset
 
     ## ICON text_input
@@ -225,7 +225,7 @@ type Header_Comparator
     hash : Header -> Integer
     hash x =
         key = x.name.to_case_insensitive_key + x.value
-        Comparable.from key . hash key
+        Ordering.hash key
 
 ## PRIVATE
-Comparable.from (_:Header) = Header_Comparator
+Comparable.from (that:Header) = Comparable.new that Header_Comparator

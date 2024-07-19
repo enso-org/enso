@@ -3,12 +3,16 @@ import Standard.Base.Errors.Common.Index_Out_Of_Bounds
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
+import project.Column.Column
 import project.Value_Type.Bits
 import project.Value_Type.Value_Type
 from project.Errors import Inexact_Type_Coercion
 
+polyglot java import java.math.BigDecimal
+
 polyglot java import org.enso.table.data.column.builder.Builder as Java_Builder
 polyglot java import org.enso.table.data.column.storage.type.AnyObjectType
+polyglot java import org.enso.table.data.column.storage.type.BigDecimalType
 polyglot java import org.enso.table.data.column.storage.type.BigIntegerType
 polyglot java import org.enso.table.data.column.storage.type.Bits as Java_Bits
 polyglot java import org.enso.table.data.column.storage.type.BooleanType
@@ -39,6 +43,7 @@ to_value_type storage_type = case storage_type of
     _ : DateType -> Value_Type.Date
     _ : DateTimeType -> Value_Type.Date_Time with_timezone=True
     _ : TimeOfDayType -> Value_Type.Time
+    _ : BigDecimalType -> Value_Type.Decimal
     _ : BigIntegerType -> Value_Type.Decimal scale=0
     _ : AnyObjectType -> Value_Type.Mixed
 
@@ -62,17 +67,35 @@ closest_storage_type value_type = case value_type of
     Value_Type.Time -> TimeOfDayType.INSTANCE
     Value_Type.Mixed -> AnyObjectType.INSTANCE
     Value_Type.Decimal _ scale ->
-        is_integer = scale.is_nothing || scale <= 0
-        if is_integer then BigIntegerType.INSTANCE else
-            Error.throw (Illegal_Argument.Error "Columns of type "+value_type.to_display_text+" are currently not supported in the in-memory backend - only Decimal of integer type (scale <= 0) is supported. You may cast the column to Float first (lossy conversion).")
+        is_integer = scale.is_nothing.not && scale <= 0
+        if is_integer then BigIntegerType.INSTANCE else BigDecimalType.INSTANCE
     _ ->
         Error.throw (Illegal_Argument.Error "Columns of type "+value_type.to_display_text+" are currently not supported in the in-memory backend.")
+
+## PRIVATE
+
+   Convert an Enso value to a Java value before storing it in a Java `Column`.
+   This step is unnecessary for primitive and builtin values, but necessary for
+   values such as `Decimal`/`BigDecimal`.
+enso_to_java x = case x of
+    Decimal.Value big_decimal -> big_decimal
+    _ -> x
+
+## PRIVATE
+
+   Convert a Java value to an Enso value before returning it to Enso from a Java
+   `Column`.  This step is unnecessary for primitive and builtin values, but
+   necessary for values such as `Decimal`/`BigDecimal`.
+java_to_enso x = case x of
+    _ : Nothing -> Nothing
+    _ : BigDecimal -> Decimal.Value x
+    _ -> x
 
 ## PRIVATE
    Converts a value type to an in-memory storage type, possibly approximating it
    to the closest supported type.
 from_value_type : Value_Type -> Problem_Behavior -> StorageType
-from_value_type value_type on_problems =
+from_value_type value_type on_problems:Problem_Behavior =
     approximate_storage = closest_storage_type value_type
     approximated_value_type = to_value_type approximate_storage
     problems = if approximated_value_type == value_type then [] else
@@ -94,3 +117,7 @@ from_value_type_strict value_type =
 make_builder : StorageType -> Integer -> ProblemAggregator -> Java_Builder
 make_builder storage initial_size java_problem_aggregator =
     Java_Builder.getForType storage initial_size java_problem_aggregator
+
+## PRIVATE
+   Helper function for tests to get the storage of a Column
+get_storage_for_column column:Column = column.java_column.getStorage

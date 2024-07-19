@@ -25,7 +25,7 @@ type SQL_Type_Mapping
        If the conversion is exact, it should be reversible, i.e.
        `sql_type_to_value_type (value_type_to_sql x Problem_Behavior.Report_Error) = x`.
     value_type_to_sql : Value_Type -> Problem_Behavior -> SQL_Type ! Inexact_Type_Coercion
-    value_type_to_sql value_type on_problems =
+    value_type_to_sql value_type on_problems:Problem_Behavior =
         _ = [value_type, on_problems]
         Unimplemented.throw "This is an interface only."
 
@@ -87,6 +87,40 @@ type SQL_Type_Mapping
     prepare_type_overrides : Nothing | Vector SQL_Type_Reference -> Nothing | Vector (Nothing | SQL_Type)
     prepare_type_overrides column_type_suggestions =
         _ = column_type_suggestions
+        Unimplemented.throw "This is an interface only."
+
+    ## PRIVATE
+       Checks if the conversion between the two types is one to be done implicitly in the given backend.
+       Conversions marked as implicit will not raise Inexact_Type_Coercion warnings.
+
+       For example, the Snowflake database converts all integer types to NUMERIC(38, 0).
+       This conversion is a property of the database, so warning about it would only be annoying.
+    is_implicit_conversion (source_type : Value_Type) (target_type : Value_Type) -> Boolean =
+        _ = [source_type, target_type]
+        Unimplemented.throw "This is an interface only."
+
+    ## PRIVATE
+       Specifies if this backend recognizes the given type as an integer type.
+
+       For most backends, this should just be `.is_integer`.
+       However, in some backends (e.g. Snowflake), the Decimal type is treated
+       as the main Integer type, so this method can be used to specify that.
+       We don't make Decimal type an integer type by default, as in other
+       backends we do want to keep the distinction (for example in Postgres,
+       `date_add` function will work with Integer but not with Decimal types).
+    is_integer_type (value_type : Value_Type) -> Boolean =
+        _ = value_type
+        Unimplemented.throw "This is an interface only."
+
+    ## PRIVATE
+       Checks if the two types are to be considered the same by the `By_Type`
+       selector.
+
+       In most backends this can just delegate to `Value_Type.is_same_type`. But
+       e.g. in Snowflake this can be used to make Decimal and Integer types
+       interchangeable.
+    is_same_type (value_type1 : Value_Type) (value_type2 : Value_Type) -> Boolean =
+        _ = [value_type1, value_type2]
         Unimplemented.throw "This is an interface only."
 
 ## PRIVATE

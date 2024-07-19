@@ -70,6 +70,7 @@ class EvalTest extends InterpreterTest {
     "return a value usable in the caller scope" in {
       val code =
         """import Standard.Base.Runtime.Debug
+          |import Standard.Base.Data.Numbers
           |
           |main =
           |    x = 1
@@ -85,6 +86,7 @@ class EvalTest extends InterpreterTest {
       val code =
         """import Standard.Base.Runtime.Debug
           |import Standard.Base.Any.Any
+          |import Standard.Base.Data.Numbers
           |
           |main =
           |    fn = sumTo ->

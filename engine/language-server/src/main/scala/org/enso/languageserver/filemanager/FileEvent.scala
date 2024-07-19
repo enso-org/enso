@@ -1,7 +1,8 @@
 package org.enso.languageserver.filemanager
 
+import io.circe.{Decoder, Encoder}
+
 import java.io.File
-import enumeratum._
 import org.enso.filewatcher.Watcher
 
 /** A representation of filesystem event.
@@ -12,7 +13,7 @@ import org.enso.filewatcher.Watcher
   */
 case class FileEvent(
   path: Path,
-  kind: FileEventKind,
+  kind: FileEventKinds.FileEventKind,
   attributes: Either[FileSystemFailure, FileAttributes]
 )
 
@@ -35,7 +36,7 @@ object FileEvent {
     val eventPath = Path.getRelativePath(root, base, event.path)
     FileEvent(
       eventPath,
-      FileEventKind(event.eventType),
+      FileEventKinds(event.eventType),
       attributes.map(
         FileAttributes.fromFileSystemAttributes(root, eventPath, _)
       )
@@ -44,23 +45,15 @@ object FileEvent {
 }
 
 /** Type of a file event. */
-sealed trait FileEventKind extends EnumEntry
+object FileEventKinds extends Enumeration {
 
-object FileEventKind extends Enum[FileEventKind] with CirceEnum[FileEventKind] {
+  type FileEventKind = Value
 
-  /** Event type indicating file creation.
+  /** Added - event type indicating file creation.
+    * Removed - event type indicating file deletion.
+    * Modified - event type indicating file modification.
     */
-  case object Added extends FileEventKind
-
-  /** Event type indicating file deletion.
-    */
-  case object Removed extends FileEventKind
-
-  /** Event type indicating file modification.
-    */
-  case object Modified extends FileEventKind
-
-  override val values = findValues
+  val Added, Removed, Modified = Value
 
   /** Create [[FileEventKind]] from [[Watcher.EventType]].
     *
@@ -69,8 +62,13 @@ object FileEventKind extends Enum[FileEventKind] with CirceEnum[FileEventKind] {
     */
   def apply(eventType: Watcher.EventType): FileEventKind =
     eventType match {
-      case Watcher.EventTypeCreate => FileEventKind.Added
-      case Watcher.EventTypeModify => FileEventKind.Modified
-      case Watcher.EventTypeDelete => FileEventKind.Removed
+      case Watcher.EventTypeCreate => Added
+      case Watcher.EventTypeModify => Modified
+      case Watcher.EventTypeDelete => Removed
     }
+
+  implicit val genderDecoder: Decoder[FileEventKind] =
+    Decoder.decodeEnumeration(FileEventKinds)
+  implicit val genderEncoder: Encoder[FileEventKind] =
+    Encoder.encodeEnumeration(FileEventKinds)
 }

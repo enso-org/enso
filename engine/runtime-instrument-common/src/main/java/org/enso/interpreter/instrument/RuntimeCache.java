@@ -1,20 +1,25 @@
 package org.enso.interpreter.instrument;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import java.lang.ref.Reference;
 import java.lang.ref.SoftReference;
+import java.lang.ref.WeakReference;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 import org.enso.interpreter.service.ExecutionService;
 
 /** A storage for computed values. */
-public final class RuntimeCache {
-
-  private final Map<UUID, SoftReference<Object>> cache = new HashMap<>();
+public final class RuntimeCache implements java.util.function.Function<String, Object> {
+  private final Map<UUID, Reference<Object>> cache = new HashMap<>();
+  private final Map<UUID, Reference<Object>> expressions = new HashMap<>();
   private final Map<UUID, String> types = new HashMap<>();
   private final Map<UUID, ExecutionService.FunctionCallInfo> calls = new HashMap<>();
   private Map<UUID, Double> weights = new HashMap<>();
+  private Consumer<UUID> observer;
 
   /**
    * Add value to the cache if it is possible.
@@ -25,23 +30,48 @@ public final class RuntimeCache {
    */
   @CompilerDirectives.TruffleBoundary
   public boolean offer(UUID key, Object value) {
-    Double weight = weights.get(key);
+    var weight = weights.get(key);
     if (weight != null && weight > 0) {
-      cache.put(key, new SoftReference<>(value));
+      var ref = new SoftReference<>(value);
+      cache.put(key, ref);
+      expressions.put(key, new WeakReference<>(value));
       return true;
+    } else {
+      var ref = new WeakReference<>(value);
+      expressions.put(key, ref);
+      return false;
     }
-    return false;
   }
 
   /** Get the value from the cache. */
   public Object get(UUID key) {
-    SoftReference<Object> ref = cache.get(key);
-    return ref != null ? ref.get() : null;
+    var ref = cache.get(key);
+    var res = ref != null ? ref.get() : null;
+    return res;
+  }
+
+  /** Get the value from the cache. */
+  public Object getAnyValue(UUID key) {
+    var ref = expressions.get(key);
+    var res = ref != null ? ref.get() : null;
+    return res;
+  }
+
+  @Override
+  public Object apply(String uuid) {
+    var key = UUID.fromString(uuid);
+    var ref = expressions.get(key);
+    var res = ref != null ? ref.get() : null;
+    var callback = observer;
+    if (callback != null) {
+      callback.accept(key);
+    }
+    return res;
   }
 
   /** Remove the value from the cache. */
   public Object remove(UUID key) {
-    SoftReference<Object> ref = cache.remove(key);
+    var ref = cache.remove(key);
     return ref == null ? null : ref.get();
   }
 
@@ -150,5 +180,23 @@ public final class RuntimeCache {
   /** Clear the weights. */
   public void clearWeights() {
     weights.clear();
+  }
+
+  /**
+   * Executes a query while tracking access to the cache by {@code callback} observer.
+   *
+   * @param callback call with accessed UUIDs
+   * @param scope the code to execute
+   * @return value computed by the {@code scope}
+   * @param <V> type of the returned value
+   */
+  public <V> V runQuery(Consumer<UUID> callback, Supplier<V> scope) {
+    var previousCallback = this.observer;
+    this.observer = callback;
+    try {
+      return scope.get();
+    } finally {
+      this.observer = previousCallback;
+    }
   }
 }

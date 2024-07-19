@@ -1,11 +1,14 @@
 {
   "devDependencies": {
+    "eslint-plugin-jsdoc": "^48.2.12",
+    "eslint-plugin-react-hooks": "^4.6.2",
+    "globals": "^15.8.0",
     "npm-run-all": "^4.1.5",
-    "prettier": "^3.0.0"
+    "prettier": "^3.3.2"
   },
   "dependencies": {
-    "chromedriver": "^106.0.1",
-    "tslib": "^2.6.2"
+    "tslib": "^2.6.3",
+    "typescript": "^5.5.3"
   },
   "name": "root",
   "scripts": {
@@ -17,13 +20,15 @@
     "ci-check": "run-p test prettier lint typecheck"
   },
   "workspaces": [
-    "app/ide-desktop",
-    "app/ide-desktop/lib/*",
-    "app/gui2"
+    "app/dashboard",
+    "app/ide-desktop/*",
+    "app/gui2",
+    "lib/js/runner"
   ],
   "pnpm": {
     "overrides": {
       "tslib": "$tslib",
+      "jsdom": "^24.1.0",
       "@types/react": "^18.0.27",
       "react-native": "./_IGNORED_",
       "react-native-url-polyfill": "./_IGNORED_",
@@ -47,5 +52,5 @@
       }
     }
   },
-  "packageManager": "pnpm@8.15.7+sha256.50783dd0fa303852de2dd1557cd4b9f07cb5b018154a6e76d0f40635d6cee019"
+  "packageManager": "pnpm@9.4.0+sha256.b6fd0bfda555e7e584ad7e56b30c68b01d5a04f9ee93989f4b93ca8473c49c74"
 }

@@ -1,6 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Errors.Common.Arithmetic_Error
 import Standard.Base.Errors.Common.Index_Out_Of_Bounds
+import Standard.Base.Errors.Common.Missing_Argument
 import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
@@ -19,15 +20,6 @@ from project.Common_Table_Operations.Util import run_default_backend
 
 main filter=Nothing = run_default_backend add_specs filter
 
-type Data
-    Value ~connection
-
-    setup create_connection_fn =
-        Data.Value (create_connection_fn Nothing)
-
-    teardown self =
-        self.connection.close
-
 
 ## Currently these tests rely on filtering preserving the insertion ordering
    within tables. This is not necessarily guaranteed by RDBMS, so we may adapt
@@ -36,31 +28,30 @@ type Data
 add_specs suite_builder setup =
     prefix = setup.prefix
     test_selection = setup.test_selection
-    create_connection_fn = setup.create_connection_func
+    table_builder = setup.light_table_builder
 
     suite_builder.group prefix+"Table.filter" group_builder->
-        data = Data.setup create_connection_fn
-
-        group_builder.teardown <|
-            data.teardown
-
-        table_builder cols =
-            setup.table_builder cols connection=data.connection
-
         group_builder.specify "by integer comparisons" <|
             t = table_builder [["ix", [1, 2, 3, 4, 5]], ["X", [100, 3, Nothing, 4, 12]], ["Y", [100, 4, 2, Nothing, 11]]]
             t.filter "X" (Filter_Condition.Less than=10) . at "X" . to_vector . should_equal [3, 4]
+            t.filter "X" (..Less than=10) . at "X" . to_vector . should_equal [3, 4]
             t.filter "X" (Filter_Condition.Less than=4) . at "X" . to_vector . should_equal [3]
             t.filter "X" (Filter_Condition.Less than=4 action=Filter_Action.Remove) . at "X" . to_vector . should_equal [100, Nothing, 4, 12]
+            t.filter "X" (..Less than=4 action=..Remove) . at "X" . to_vector . should_equal [100, Nothing, 4, 12]
             t.filter "X" (Filter_Condition.Equal_Or_Less than=4) . at "X" . to_vector . should_equal [3, 4]
+            t.filter "X" (..Equal_Or_Less than=4) . at "X" . to_vector . should_equal [3, 4]
             t.filter "X" (Filter_Condition.Equal_Or_Less than=4 action=Filter_Action.Remove) . at "X" . to_vector . should_equal [100, Nothing, 12]
             t.filter "X" (Filter_Condition.Greater than=4) . at "X" . to_vector . should_equal [100, 12]
+            t.filter "X" (..Greater than=4) . at "X" . to_vector . should_equal [100, 12]
             t.filter "X" (Filter_Condition.Greater than=4 action=Filter_Action.Remove) . at "X" . to_vector . should_equal [3, Nothing, 4]
             t.filter "X" (Filter_Condition.Equal_Or_Greater than=4) . at "X" . to_vector . should_equal [100, 4, 12]
+            t.filter "X" (..Equal_Or_Greater than=4) . at "X" . to_vector . should_equal [100, 4, 12]
             t.filter "X" (Filter_Condition.Equal_Or_Greater than=4 action=Filter_Action.Remove) . at "X" . to_vector . should_equal [3, Nothing]
             t.filter "X" (Filter_Condition.Between 4 100) . at "X" . to_vector . should_equal [100, 4, 12]
+            t.filter "X" (..Between 4 100) . at "X" . to_vector . should_equal [100, 4, 12]
             t.filter "X" (Filter_Condition.Between 4 100 action=Filter_Action.Remove) . at "X" . to_vector . should_equal [3, Nothing]
             t.filter "X" (Filter_Condition.Equal to=100) . at "X" . to_vector . should_equal [100]
+            t.filter "X" (..Equal to=100) . at "X" . to_vector . should_equal [100]
             t.filter "X" (Filter_Condition.Equal to=123) . at "X" . to_vector . should_equal []
             t.filter "X" (Filter_Condition.Equal to=3 action=Filter_Action.Remove) . at "X" . to_vector . should_equal [100, Nothing, 4, 12]
 
@@ -94,6 +85,7 @@ add_specs suite_builder setup =
             t.filter "Y" (Filter_Condition.Between (t.at "ix") 100 action=Filter_Action.Remove) . at "Y" . to_vector . should_equal [2, Nothing]
 
             t.filter "X" (Filter_Condition.Equal to=(Column_Ref.Name "Y")) . at "X" . to_vector . should_equal [100]
+            t.filter "X" (..Equal to=(..Name "Y")) . at "X" . to_vector . should_equal [100]
             t.filter "X" (Filter_Condition.Equal to=(expr "[Y]-1")) . at "X" . to_vector . should_equal [3]
             t.filter "X" (Filter_Condition.Less than=(Column_Ref.Name "Y")) . at "X" . to_vector . should_equal [3]
             t.filter "X" (Filter_Condition.Equal_Or_Less than=(Column_Ref.Name "Y")) . at "X" . to_vector . should_equal [100, 3]
@@ -106,13 +98,15 @@ add_specs suite_builder setup =
 
             t.filter "X" (Filter_Condition.Less than=10.0) . at "X" . to_vector . should_equal [2.5, Number.negative_infinity]
 
-            # In PostgreSQL, NaN is greater than any other value, so it is > 10.0; in other implementations it is usually not greater nor smaller, so it gets filtered out.
+            # In some backends, NaN is greater than any other value, so it is > 10.0; in other implementations it is usually not greater nor smaller, so it gets filtered out.
+            nan_is_comparable = setup.test_selection.is_nan_comparable
             t.filter "X" (Filter_Condition.Greater than=10.0) . at "ix" . to_vector . should_equal <|
-                if prefix.contains "PostgreSQL" . not then [1, 5] else [1, 4, 5]
+                if nan_is_comparable then [1, 4, 5] else [1, 5]
 
-            # Similarly, PostgreSQL treats NaN==NaN
+            # Similarly, PostgreSQL and Snowflake treats NaN==NaN, we assume `nan_is_comparable` implies that.
+            # If needed, this may become a separate flag in the future.
             t.filter "X" (Filter_Condition.Equal to=Number.nan) . at "ix" . to_vector . should_equal <|
-                if prefix.contains "PostgreSQL" . not then [] else [4]
+                if nan_is_comparable then [4] else []
             t.filter "X" (Filter_Condition.Equal to=Number.positive_infinity) . at "ix" . to_vector . should_equal [5]
 
             t.filter "X" Filter_Condition.Is_Infinite . at "ix" . to_vector . should_equal [5, 6]
@@ -385,23 +379,23 @@ add_specs suite_builder setup =
 
         group_builder.specify "should nicely handle Filter_Condition with unapplied arguments" <|
             t = table_builder [["X", [10, 20, 13, 4, 5]]]
-            t.filter "X" (Filter_Condition.Equal) . should_fail_with Illegal_Argument
-            t.filter "X" (Filter_Condition.Starts_With) . should_fail_with Illegal_Argument
-            t.filter "X" (Filter_Condition.Between) . should_fail_with Illegal_Argument
-            t.filter "X" (Filter_Condition.Between 1) . should_fail_with Illegal_Argument
+            t.filter "X" (Filter_Condition.Equal) . should_fail_with Missing_Argument
+            t.filter "X" (Filter_Condition.Starts_With) . should_fail_with Missing_Argument
+            t.filter "X" (Filter_Condition.Between) . should_fail_with Missing_Argument
+            t.filter "X" (Filter_Condition.Between 1) . should_fail_with Missing_Argument
 
         group_builder.specify "should report issues: floating point equality" <|
             t = table_builder [["ix", [1, 2, 3, 4, 5]], ["X", [10.0, 2.0001, 2.0, 4.5, 2.0]]]
 
-            r1 = t.filter "X" (Filter_Condition.Equal 2) on_problems=Problem_Behavior.Ignore
+            r1 = t.filter "X" (Filter_Condition.Equal 2) on_problems=..Ignore
             r1.at "ix" . to_vector . should_equal [3, 5]
             Problems.assume_no_problems r1
 
-            r2 = t.filter "X" (Filter_Condition.Equal 2) on_problems=Problem_Behavior.Report_Warning
+            r2 = t.filter "X" (Filter_Condition.Equal 2) on_problems=..Report_Warning
             r2.at "ix" . to_vector . should_equal [3, 5]
             Problems.expect_warning Floating_Point_Equality r2
 
-            r3 = t.filter "X" (Filter_Condition.Equal 2) on_problems=Problem_Behavior.Report_Error
+            r3 = t.filter "X" (Filter_Condition.Equal 2) on_problems=..Report_Error
             r3.should_fail_with Floating_Point_Equality
 
             r4 = t.filter "X" (Filter_Condition.Not_Equal 2)
@@ -421,12 +415,12 @@ add_specs suite_builder setup =
             Problems.expect_warning Floating_Point_Equality r1
             r1.at "ix" . to_vector . should_equal [2]
 
-            i1 = t2.filter "Y" (Filter_Condition.Equal 5) on_problems=Problem_Behavior.Ignore
+            i1 = t2.filter "Y" (Filter_Condition.Equal 5) on_problems=..Ignore
             Problems.expect_warning Illegal_State i1
             Problems.not_expect_warning Floating_Point_Equality i1
             i1.at "ix" . to_vector . should_equal [2]
 
-            err1 = t2.filter "Y" (Filter_Condition.Equal 5) on_problems=Problem_Behavior.Report_Error
+            err1 = t2.filter "Y" (Filter_Condition.Equal 5) on_problems=..Report_Error
             err1.should_fail_with Floating_Point_Equality
 
             r2 = t2.filter "Y" (Filter_Condition.Not_Equal 5)
@@ -434,12 +428,12 @@ add_specs suite_builder setup =
             Problems.expect_warning Floating_Point_Equality r2
             r2.at "ix" . to_vector . should_equal [1, 3]
 
-            i2 = t2.filter "Y" (Filter_Condition.Not_Equal 5) on_problems=Problem_Behavior.Ignore
+            i2 = t2.filter "Y" (Filter_Condition.Not_Equal 5) on_problems=..Ignore
             Problems.expect_warning Illegal_State i2
             Problems.not_expect_warning Floating_Point_Equality i2
             i2.at "ix" . to_vector . should_equal [1, 3]
 
-            err2 = t2.filter "Y" (Filter_Condition.Not_Equal 5) on_problems=Problem_Behavior.Report_Error
+            err2 = t2.filter "Y" (Filter_Condition.Not_Equal 5) on_problems=..Report_Error
             err2.should_fail_with Floating_Point_Equality
 
         group_builder.specify "should attach a warning when Nothing is used as a value in a comparison or `is_in` `Filter_Condition`" <|
@@ -464,14 +458,6 @@ add_specs suite_builder setup =
             Problems.assume_no_problems (t.filter "x" (Filter_Condition.Is_In [[Nothing, Nothing]]))
 
     suite_builder.group prefix+"Table.filter by an expression" group_builder->
-        data = Data.setup create_connection_fn
-
-        group_builder.teardown <|
-            data.teardown
-
-        table_builder cols =
-            setup.table_builder cols connection=data.connection
-
         group_builder.specify "by a boolean column" <|
             t = table_builder [["ix", [1, 2, 3, 4, 5]], ["b", [True, False, Nothing, True, True]]]
             t.filter (expr "[b]") . at "ix" . to_vector . should_equal [1, 4, 5]
@@ -507,16 +493,16 @@ add_specs suite_builder setup =
 
         group_builder.specify "should report issues: floating point equality" <|
             t = table_builder [["ix", [1, 2, 3, 4, 5]], ["X", [10.0, 2.0001, 2.0, 4.5, -2.0]]]
-            r1 = t.filter (expr "[X] * [X] == 4.0") on_problems=Problem_Behavior.Ignore
+            r1 = t.filter (expr "[X] * [X] == 4.0") on_problems=..Ignore
             Problems.assume_no_problems r1
             r1.at "ix" . to_vector . should_equal [3, 5]
 
-            r2 = t.filter (expr "[X] * [X] == 4.0") on_problems=Problem_Behavior.Report_Warning
+            r2 = t.filter (expr "[X] * [X] == 4.0") on_problems=..Report_Warning
 
             r2.at "ix" . to_vector . should_equal [3, 5]
             Problems.expect_warning Floating_Point_Equality r2
 
-            r3 = t.filter (expr "[X] * [X] == 4.0") on_problems=Problem_Behavior.Report_Error
+            r3 = t.filter (expr "[X] * [X] == 4.0") on_problems=..Report_Error
             r3.should_fail_with Floating_Point_Equality
 
             r4 = t.filter (expr "[X] * [X] != 4.0")

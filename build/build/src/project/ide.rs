@@ -29,13 +29,7 @@ impl Artifact {
         version: &Version,
         dist_dir: impl AsRef<Path>,
     ) -> Self {
-        let unpacked = dist_dir.as_ref().join(match target_os {
-            OS::Linux => "linux-unpacked",
-            OS::MacOS if target_arch == Arch::AArch64 => "mac-arm64",
-            OS::MacOS if target_arch == Arch::X86_64 => "mac",
-            OS::Windows => "win-unpacked",
-            _ => todo!("{target_os}-{target_arch} combination is not supported"),
-        });
+        let unpacked = crate::ide::web::unpacked_dir(&dist_dir, target_os, target_arch);
         let unpacked_executable = match target_os {
             OS::Linux => "enso",
             OS::MacOS => "Enso.app",

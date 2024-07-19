@@ -191,12 +191,13 @@ class Runner(
         )
       val shouldInvokeViaModulePath = engine.graalRuntimeVersion.isUnchained
 
+      val componentPath = engine.componentDirPath.toAbsolutePath.normalize
       var jvmArguments =
         manifestOptions ++ environmentOptions ++ commandLineOptions
       if (shouldInvokeViaModulePath) {
         jvmArguments = jvmArguments :++ Seq(
           "--module-path",
-          engine.componentDirPath.toAbsolutePath.normalize.toString,
+          componentPath.toString,
           "-m",
           "org.enso.runtime/org.enso.EngineRunnerBootLoader"
         )
@@ -217,8 +218,9 @@ class Runner(
           forceLoggerConnectionArguments()
         else Seq()
 
-      val command = Seq(javaCommand.executableName) ++
-        jvmArguments ++ loggingConnectionArguments ++ runSettings.runnerArguments
+      val command = Seq(
+        javaCommand.executableName
+      ) ++ jvmArguments ++ loggingConnectionArguments ++ runSettings.runnerArguments
 
       val distributionSettings =
         distributionManager.getEnvironmentToInheritSettings

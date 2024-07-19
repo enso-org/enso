@@ -19,8 +19,9 @@ import { VisualizationModule } from '@/stores/visualization/runtimeTypes'
 import { assertNever } from '@/util/assert'
 import { toError } from '@/util/data/error'
 import type { Opt } from '@/util/data/opt'
+import type { DataServer } from '@/util/net/dataServer'
+import * as builtins from '@/util/visualizationBuiltins'
 import { Error as DataError } from 'shared/binaryProtocol'
-import type { DataServer } from 'shared/dataServer'
 import type { Uuid } from 'shared/languageServerTypes'
 import * as vue from 'vue'
 
@@ -31,11 +32,9 @@ export const stylePathAttribute = 'data-style-path'
 const moduleCache: Record<string, unknown> = {
   __proto__: null,
   vue,
+  builtins,
   get d3() {
     return import('d3')
-  },
-  get builtins() {
-    return import('@/util/visualizationBuiltins')
   },
 }
 // @ts-expect-error Intentionally not defined in `env.d.ts` as it is a mistake to access this

@@ -1,5 +1,6 @@
 from Standard.Base import all
 from Standard.Table import all
+from Standard.Table.Internal.Storage import get_storage_for_column
 
 from Standard.Test import Bench
 
@@ -20,7 +21,7 @@ type Boxed_Map_Test_2
 
     java_map self =
         Column.from_storage "result" <|
-            MapHelpers.getYear self.date_column.java_column.getStorage
+            MapHelpers.getYear (get_storage_for_column self.date_column)
 
     ## We can still opt-out of `convert_polyglot_dates`, because this is applied
        at output which is Integer. If our output was another Date, we could not
@@ -33,7 +34,7 @@ type Boxed_Map_Test_2
     enso_map_with_builder_append_long self =
         n = self.date_column.length
         builder = NumericBuilder.createLongBuilder n
-        storage = self.date_column.java_column.getStorage
+        storage = get_storage_for_column self.date_column
         0.up_to n . each i->
             case storage.getItemBoxed i of
                 Nothing ->
@@ -47,7 +48,7 @@ type Boxed_Map_Test_2
     enso_map_with_builder_append_object self =
         n = self.date_column.length
         builder = NumericBuilder.createLongBuilder n
-        storage = self.date_column.java_column.getStorage
+        storage = get_storage_for_column self.date_column
         0.up_to n . each i->
             case storage.getItemBoxed i of
                 Nothing ->

@@ -1,7 +1,9 @@
 package org.enso.interpreter.runtime.data.atom;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.Idempotent;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.exception.AbstractTruffleException;
 import com.oracle.truffle.api.interop.ArityException;
@@ -134,40 +136,64 @@ public abstract class Atom implements EnsoObject {
     return true;
   }
 
+  /**
+   * Returns a polyglot list of all the public members of Atom. A member is any method on the atom.
+   * A member is public if it is not project-private.
+   */
   @ExportMessage
   @CompilerDirectives.TruffleBoundary
-  EnsoObject getMembers(boolean includeInternal) {
-    Set<String> members =
-        constructor.getDefinitionScope().getMethodNamesForType(constructor.getType());
-    Set<String> allMembers = new HashSet<>();
+  EnsoObject getMembers(boolean includeInternal) throws UnsupportedMessageException {
+    Set<Function> members =
+        constructor.getDefinitionScope().getMethodsForType(constructor.getType());
+    Set<Function> allFuncMembers = new HashSet<>();
     if (members != null) {
-      allMembers.addAll(members);
+      allFuncMembers.addAll(members);
     }
-    members =
-        constructor.getType().getDefinitionScope().getMethodNamesForType(constructor.getType());
+    members = constructor.getType().getDefinitionScope().getMethodsForType(constructor.getType());
     if (members != null) {
-      allMembers.addAll(members);
+      allFuncMembers.addAll(members);
     }
-    String[] mems = allMembers.toArray(new String[0]);
-    return ArrayLikeHelpers.wrapStrings(mems);
+    String[] publicMembers =
+        allFuncMembers.stream()
+            .filter(method -> !method.getSchema().isProjectPrivate())
+            .map(Function::getName)
+            .distinct()
+            .toArray(String[]::new);
+    return ArrayLikeHelpers.wrapStrings(publicMembers);
   }
 
+  protected boolean isMethodProjectPrivate(Type type, String methodName) {
+    Function method = constructor.getDefinitionScope().getMethodForType(type, methodName);
+    if (method != null) {
+      return method.getSchema().isProjectPrivate();
+    }
+    method = constructor.getType().getDefinitionScope().getMethodForType(type, methodName);
+    return method != null && method.getSchema().isProjectPrivate();
+  }
+
+  /** A member is invocable if it is a method on the Atom and it is public. */
   @ExportMessage
   @CompilerDirectives.TruffleBoundary
   final boolean isMemberInvocable(String member) {
-    Set<String> members =
-        constructor.getDefinitionScope().getMethodNamesForType(constructor.getType());
+    var type = constructor.getType();
+    Set<String> members = constructor.getDefinitionScope().getMethodNamesForType(type);
     if (members != null && members.contains(member)) {
-      return true;
+      return !isMethodProjectPrivate(type, member);
     }
-    members =
-        constructor.getType().getDefinitionScope().getMethodNamesForType(constructor.getType());
-    return members != null && members.contains(member);
+    members = type.getDefinitionScope().getMethodNamesForType(type);
+    if (members != null && members.contains(member)) {
+      return !isMethodProjectPrivate(type, member);
+    }
+    return false;
   }
 
+  /** A member is readable if it is an atom constructor and if the atom constructor is public. */
   @ExportMessage
   @ExplodeLoop
   final boolean isMemberReadable(String member) {
+    if (hasProjectPrivateConstructor()) {
+      return false;
+    }
     for (int i = 0; i < constructor.getArity(); i++) {
       if (member.equals(constructor.getFields()[i].getName())) {
         return true;
@@ -176,10 +202,22 @@ public abstract class Atom implements EnsoObject {
     return false;
   }
 
+  /**
+   * Reads a field of the atom.
+   *
+   * @param member An identifier of a field.
+   * @return Value of the member.
+   * @throws UnknownIdentifierException If an unknown field is requested.
+   * @throws UnsupportedMessageException If the atom constructor is project-private, and thus all
+   *     the fields are project-private.
+   */
   @ExportMessage
   @ExplodeLoop
   final Object readMember(String member, @CachedLibrary(limit = "3") StructsLibrary structs)
-      throws UnknownIdentifierException {
+      throws UnknownIdentifierException, UnsupportedMessageException {
+    if (hasProjectPrivateConstructor()) {
+      throw UnsupportedMessageException.create();
+    }
     for (int i = 0; i < constructor.getArity(); i++) {
       if (member.equals(constructor.getFields()[i].getName())) {
         return structs.getField(this, i);
@@ -188,6 +226,7 @@ public abstract class Atom implements EnsoObject {
     throw UnknownIdentifierException.create(member);
   }
 
+  /** Only public (non project-private) methods can be invoked. */
   @ExportMessage
   static class InvokeMember {
 
@@ -196,7 +235,11 @@ public abstract class Atom implements EnsoObject {
     }
 
     @Specialization(
-        guards = {"receiver.getConstructor() == cachedConstructor", "member.equals(cachedMember)"},
+        guards = {
+          "receiver.getConstructor() == cachedConstructor",
+          "member.equals(cachedMember)",
+          "!isProjectPrivate(cachedConstructor, cachedMember)"
+        },
         limit = "3")
     static Object doCached(
         Atom receiver,
@@ -210,6 +253,7 @@ public abstract class Atom implements EnsoObject {
             ArityException,
             UnsupportedTypeException,
             UnknownIdentifierException {
+      assert !isProjectPrivate(cachedConstructor, cachedMember);
       Object[] args = new Object[arguments.length + 1];
       args[0] = receiver;
       System.arraycopy(arguments, 0, args, 1, arguments.length);
@@ -234,9 +278,23 @@ public abstract class Atom implements EnsoObject {
             ArityException,
             UnsupportedTypeException,
             UnknownIdentifierException {
+      if (isProjectPrivate(receiver.getConstructor(), member)) {
+        throw UnsupportedMessageException.create();
+      }
       UnresolvedSymbol symbol = buildSym(receiver.getConstructor(), member);
       return doCached(
           receiver, member, arguments, receiver.getConstructor(), member, symbol, symbols);
+    }
+
+    @Idempotent
+    @TruffleBoundary
+    protected static boolean isProjectPrivate(AtomConstructor cons, String member) {
+      Function method = cons.getDefinitionScope().getMethodForType(cons.getType(), member);
+      if (method != null) {
+        return method.getSchema().isProjectPrivate();
+      }
+      method = cons.getType().getDefinitionScope().getMethodForType(cons.getType(), member);
+      return method != null && method.getSchema().isProjectPrivate();
     }
   }
 
@@ -304,5 +362,9 @@ public abstract class Atom implements EnsoObject {
   @ExportMessage
   boolean hasMetaObject() {
     return true;
+  }
+
+  private boolean hasProjectPrivateConstructor() {
+    return constructor.getType().isProjectPrivate();
   }
 }

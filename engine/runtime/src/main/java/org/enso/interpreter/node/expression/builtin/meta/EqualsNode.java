@@ -20,6 +20,8 @@ import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.data.atom.Atom;
+import org.enso.interpreter.runtime.data.atom.StructsLibrary;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.library.dispatch.TypeOfNode;
 import org.enso.interpreter.runtime.scope.ModuleScope;
@@ -127,7 +129,7 @@ public final class EqualsNode extends Node {
 
     private static boolean isDefinedIn(ModuleScope scope, Function fn) {
       if (fn.getCallTarget().getRootNode() instanceof EnsoRootNode ensoRoot) {
-        return ensoRoot.getModuleScope() == scope;
+        return ensoRoot.getModuleScope().getModule() == scope.getModule();
       } else {
         return false;
       }
@@ -140,8 +142,15 @@ public final class EqualsNode extends Node {
           InvokeFunctionNode.build(
               argSchema, DefaultsExecutionMode.EXECUTE, ArgumentsExecutionMode.EXECUTE);
       var state = State.create(ctx);
-      return node.execute(
-          convFn, null, state, new Object[] {ctx.getBuiltins().comparable(), value});
+      var by =
+          node.execute(convFn, null, state, new Object[] {ctx.getBuiltins().comparable(), value});
+      if (by instanceof Atom atom
+          && atom.getConstructor() == ctx.getBuiltins().comparable().getBy()) {
+        var structs = StructsLibrary.getUncached();
+        return structs.getField(atom, 1);
+      } else {
+        return null;
+      }
     }
 
     /**
@@ -175,14 +184,14 @@ public final class EqualsNode extends Node {
           UnresolvedConversion.build(selfScope).resolveFor(ctx, comparableType, thatType);
       var betweenBoth = UnresolvedConversion.build(selfScope).resolveFor(ctx, selfType, thatType);
 
-      if (isDefinedIn(selfScope, fromSelfType)
-          && isDefinedIn(selfScope, fromThatType)
-          && convertor(ctx, fromSelfType, self) == convertor(ctx, fromThatType, that)
-          && betweenBoth != null) {
-        return true;
-      } else {
-        return false;
+      if (isDefinedIn(selfScope, fromSelfType) && isDefinedIn(selfScope, fromThatType)) {
+        var c1 = convertor(ctx, fromSelfType, self);
+        var c2 = convertor(ctx, fromThatType, that);
+        if (c1 == c2 && c1 != null && betweenBoth != null) {
+          return true;
+        }
       }
+      return false;
     }
 
     @Specialization(

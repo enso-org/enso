@@ -7,7 +7,7 @@ import org.enso.interpreter.runtime
 import org.enso.interpreter.runtime.EnsoContext
 import org.enso.interpreter.test.InterpreterContext
 import org.enso.pkg.QualifiedName
-import org.enso.polyglot.{LanguageInfo, MethodNames}
+import org.enso.common.{LanguageInfo, MethodNames}
 import org.scalatest.OptionValues
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
@@ -52,7 +52,7 @@ class IRUtilsTest extends AnyWordSpecLike with Matchers with OptionValues {
     }
   }
 
-  private def findUsagesOfStaticMethod(
+  private def findUsagesOfModuleMethod(
     moduleName: QualifiedName,
     module: Module,
     ir: IR
@@ -164,8 +164,8 @@ class IRUtilsTest extends AnyWordSpecLike with Matchers with OptionValues {
            |""".stripMargin
 
       val module    = code.preprocessModule(moduleName)
-      val operator1 = IRUtils.findByExternalId(module, uuid1).get
-      val usages    = findUsagesOfStaticMethod(moduleName, module, operator1)
+      val function1 = IRUtils.findByExternalId(module, uuid1).get
+      val usages    = findUsagesOfModuleMethod(moduleName, module, function1)
 
       usages.value.size shouldEqual 1
       usages.value.foreach {
@@ -192,8 +192,8 @@ class IRUtilsTest extends AnyWordSpecLike with Matchers with OptionValues {
            |""".stripMargin
 
       val module    = code.preprocessModule(moduleName)
-      val operator1 = IRUtils.findByExternalId(module, uuid1).get
-      val usages    = findUsagesOfStaticMethod(moduleName, module, operator1)
+      val function1 = IRUtils.findByExternalId(module, uuid1).get
+      val usages    = findUsagesOfModuleMethod(moduleName, module, function1)
 
       usages.value.size shouldEqual 2
       usages.value.foreach {
@@ -220,8 +220,8 @@ class IRUtilsTest extends AnyWordSpecLike with Matchers with OptionValues {
            |""".stripMargin
 
       val module    = code.preprocessModule(moduleName)
-      val operator1 = IRUtils.findByExternalId(module, uuid1).get
-      val usages    = findUsagesOfStaticMethod(moduleName, module, operator1)
+      val function1 = IRUtils.findByExternalId(module, uuid1).get
+      val usages    = findUsagesOfModuleMethod(moduleName, module, function1)
 
       usages.value.size shouldEqual 1
       usages.value.foreach {
@@ -252,7 +252,7 @@ class IRUtilsTest extends AnyWordSpecLike with Matchers with OptionValues {
 
       val module    = code.preprocessModule(moduleName)
       val operator1 = IRUtils.findByExternalId(module, uuid1).get
-      val usages    = findUsagesOfStaticMethod(moduleName, module, operator1)
+      val usages    = findUsagesOfModuleMethod(moduleName, module, operator1)
 
       usages.value.size shouldEqual 1
       usages.value.foreach {

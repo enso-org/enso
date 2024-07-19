@@ -36,16 +36,8 @@ pub mod endpoints {
         artifact_name: impl AsRef<str>,
     ) -> Result<CreateArtifactResponse> {
         let body = CreateArtifactRequest::new(artifact_name.as_ref(), None);
-        //
-        // dbg!(&self.json_client);
-        // dbg!(serde_json::to_string(&body)?);
         let request = json_client.post(artifact_url).json(&body).build()?;
-
-        // dbg!(&request);
-        // TODO retry
         let response = json_client.execute(request).await?;
-        // dbg!(&response);
-        // let status = response.status();
         check_response_json(response, |status, err| match status {
             StatusCode::FORBIDDEN => err.context(
                 "Artifact storage quota has been hit. Unable to upload any new artifacts.",
@@ -130,11 +122,7 @@ pub mod endpoints {
         bin_client: &reqwest::Client,
         artifact_location: Url,
     ) -> Result<Pin<Box<dyn AsyncRead + Send>>> {
-        // debug!("Downloading {} to {}.", artifact_location, destination.as_ref().display());
-        // let file = tokio::fs::File::create(destination);
-
         let response = crate::io::web::execute(bin_client.get(artifact_location)).await?;
-        // let expected_size = decode_content_length(response.headers());
         let is_gzipped = response
             .headers()
             .get(reqwest::header::ACCEPT_ENCODING)
@@ -144,10 +132,8 @@ pub mod endpoints {
         if is_gzipped {
             let decoded_stream = async_compression::tokio::bufread::GzipDecoder::new(reader);
             Ok(Box::pin(decoded_stream) as Pin<Box<dyn AsyncRead + Send>>)
-            // tokio::io::copy(&mut decoded_stream, &mut file.await?).await?;
         } else {
             Ok(Box::pin(reader) as Pin<Box<dyn AsyncRead + Send>>)
-            // tokio::io::copy(&mut reader, &mut destination).await?;
         }
     }
 }
@@ -216,7 +202,6 @@ pub async fn check_response(
     response: Response,
     additional_context: impl FnOnce(StatusCode, anyhow::Error) -> anyhow::Error,
 ) -> Result<Bytes> {
-    // dbg!(&response);
     let status = response.status();
     if !status.is_success() {
         let mut err = anyhow!("Server replied with status {}.", status);

@@ -2,6 +2,7 @@ package org.enso.compiler.core.ir
 
 import org.enso.compiler.core.Implicits.{ShowPassData, ToStringHelper}
 import org.enso.compiler.core.{IR, Identifier}
+import org.enso.persist.Persistance
 
 import java.util.UUID
 
@@ -25,6 +26,9 @@ sealed trait Function extends Expression {
     */
   val canBeTCO: Boolean
 
+  /** Whether the method is project-private.
+    */
+  val isPrivate: Boolean
 }
 
 object Function {
@@ -36,7 +40,8 @@ object Function {
     * better optimisation.
     *
     * @param arguments   the arguments to the lambda
-    * @param body        the body of the lambda
+    * @param bodyReference the body of the lambda, stored as a reference to ensure
+    *                     laziness of storage
     * @param location    the source location that the node corresponds to
     * @param canBeTCO    whether or not the function can be tail-call optimised
     * @param passData    the pass metadata associated with this node
@@ -44,7 +49,7 @@ object Function {
     */
   sealed case class Lambda(
     override val arguments: List[DefinitionArgument],
-    bodySeq: Seq[Expression],
+    bodyReference: Persistance.Reference[Expression],
     location: Option[IdentifiedLocation],
     override val canBeTCO: Boolean,
     passData: MetadataStorage,
@@ -52,6 +57,7 @@ object Function {
   ) extends Function
       with IRKind.Primitive
       with LazyId {
+
     def this(
       arguments: List[DefinitionArgument],
       body: Expression,
@@ -60,9 +66,19 @@ object Function {
       passData: MetadataStorage      = new MetadataStorage(),
       diagnostics: DiagnosticStorage = new DiagnosticStorage()
     ) = {
-      this(arguments, Seq(body), location, canBeTCO, passData, diagnostics)
+      this(
+        arguments,
+        Persistance.Reference.of(body, true),
+        location,
+        canBeTCO,
+        passData,
+        diagnostics
+      )
     }
-    override lazy val body = bodySeq.head
+
+    override lazy val body: Expression = bodyReference.get(classOf[Expression])
+
+    override val isPrivate: Boolean = false
 
     /** Creates a copy of `this`.
       *
@@ -85,7 +101,14 @@ object Function {
       id: UUID @Identifier                 = id
     ): Lambda = {
       val res =
-        Lambda(arguments, Seq(body), location, canBeTCO, passData, diagnostics)
+        Lambda(
+          arguments,
+          Persistance.Reference.of(body, false),
+          location,
+          canBeTCO,
+          passData,
+          diagnostics
+        )
       res.id = id
       res
     }
@@ -131,7 +154,7 @@ object Function {
       copy(arguments = arguments.map(_.mapExpressions(fn)), body = fn(body))
     }
 
-    /** @inheritdoc */
+    /** String representation. */
     override def toString: String =
       s"""
          |Function.Lambda(
@@ -189,6 +212,7 @@ object Function {
     * @param name        the name of the function
     * @param arguments   the arguments to the function
     * @param body        the body of the function
+    * @param isPrivate    Whether the function is project-private
     * @param location    the source location that the node corresponds to
     * @param canBeTCO    whether or not the function can be tail-call optimised
     * @param passData    the pass metadata associated with this node
@@ -198,6 +222,7 @@ object Function {
     name: Name,
     override val arguments: List[DefinitionArgument],
     override val body: Expression,
+    override val isPrivate: Boolean,
     location: Option[IdentifiedLocation],
     override val canBeTCO: Boolean = true,
     passData: MetadataStorage      = new MetadataStorage(),
@@ -211,6 +236,7 @@ object Function {
       * @param name        the name of the function
       * @param arguments   the arguments to the function
       * @param body        the body of the function
+      * @param isPrivate    Whether the function is project-private
       * @param location    the source location that the node corresponds to
       * @param canBeTCO    whether or not the function can be tail-call optimised
       * @param passData    the pass metadata associated with this node
@@ -222,6 +248,7 @@ object Function {
       name: Name                           = name,
       arguments: List[DefinitionArgument]  = arguments,
       body: Expression                     = body,
+      isPrivate: Boolean                   = isPrivate,
       location: Option[IdentifiedLocation] = location,
       canBeTCO: Boolean                    = canBeTCO,
       passData: MetadataStorage            = passData,
@@ -233,6 +260,7 @@ object Function {
           name,
           arguments,
           body,
+          isPrivate,
           location,
           canBeTCO,
           passData,
@@ -292,7 +320,7 @@ object Function {
         body      = fn(body)
       )
 
-    /** @inheritdoc */
+    /** String representation. */
     override def toString: String =
       s"""
          |Function.Binding(

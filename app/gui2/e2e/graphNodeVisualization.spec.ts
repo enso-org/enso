@@ -5,14 +5,15 @@ import { computedContent } from './css'
 import { expect } from './customExpect'
 import * as locate from './locate'
 
-test('node can open and load visualization', async ({ page }) => {
+test('Node can open and load visualization', async ({ page }) => {
   await actions.goToGraph(page)
   const node = locate.graphNode(page).last()
   await node.click({ position: { x: 8, y: 8 } })
   await expect(locate.circularMenu(page)).toExist()
   await locate.toggleVisualizationButton(page).click()
   await expect(locate.anyVisualization(page)).toExist()
-  await locate.showVisualizationSelectorButton(page).click()
+  await expect(locate.loadingVisualization(page)).toHaveCount(0)
+  await locate.toggleVisualizationSelectorButton(page).click()
   await page.getByText('JSON').click()
   const vis = locate.jsonVisualization(page)
   await expect(vis).toExist()
@@ -24,6 +25,29 @@ test('node can open and load visualization', async ({ page }) => {
   expect(typeof jsonContent).toBe('object')
 })
 
+test('Previewing visualization', async ({ page }) => {
+  await actions.goToGraph(page)
+  const node = locate.graphNode(page).last()
+  const port = await locate.outputPortCoordinates(node)
+  await page.keyboard.down('Meta')
+  await page.keyboard.down('Control')
+  await expect(locate.anyVisualization(page)).toBeHidden()
+  await page.mouse.move(port.x, port.y)
+  await expect(locate.anyVisualization(node)).toBeVisible()
+  await page.keyboard.up('Meta')
+  await page.keyboard.up('Control')
+  await expect(locate.anyVisualization(page)).toBeHidden()
+  await page.keyboard.down('Meta')
+  await page.keyboard.down('Control')
+  await expect(locate.anyVisualization(node)).toBeVisible()
+  await page.mouse.move(1, 1)
+  await expect(locate.anyVisualization(page)).toBeHidden()
+  await page.keyboard.up('Meta')
+  await page.keyboard.up('Control')
+  await page.mouse.move(port.x, port.y)
+  await expect(locate.anyVisualization(page)).toBeHidden()
+})
+
 test('Warnings visualization', async ({ page }) => {
   await actions.goToGraph(page)
 
@@ -32,11 +56,12 @@ test('Warnings visualization', async ({ page }) => {
   const input = locate.componentBrowserInput(page).locator('input')
   await input.fill('Warning.attach "Uh oh" 42')
   await page.keyboard.press('Enter')
-  await expect(locate.componentBrowser(page)).not.toBeVisible()
+  await expect(locate.componentBrowser(page)).toBeHidden()
   await expect(locate.circularMenu(page)).toExist()
   await locate.toggleVisualizationButton(page).click()
   await expect(locate.anyVisualization(page)).toExist()
-  await locate.showVisualizationSelectorButton(page).click()
+  await expect(locate.loadingVisualization(page)).toHaveCount(0)
+  await locate.toggleVisualizationSelectorButton(page).click()
   await page.locator('.VisualizationSelector').getByRole('button', { name: 'Warnings' }).click()
   await expect(locate.warningsVisualization(page)).toExist()
   // Click the remove-warnings button, and ensure a node is created.

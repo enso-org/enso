@@ -1,26 +1,27 @@
 private
 
+import project.Data.Dictionary.Dictionary
 import project.Data.Json.JS_Object
-import project.Data.Map.Map
 import project.Data.Text.Text
-import project.Data.Text.Text_Sub_Range.Text_Sub_Range
 import project.Data.Time.Date_Time.Date_Time
 import project.Data.Time.Date_Time_Formatter.Date_Time_Formatter
 import project.Data.Vector.Vector
 import project.Enso_Cloud.Cloud_Caching_Settings
-import project.Enso_Cloud.Enso_User.Enso_User
 import project.Enso_Cloud.Enso_File.Enso_Asset_Type
 import project.Enso_Cloud.Enso_File.Enso_File
+import project.Enso_Cloud.Enso_User.Enso_User
 import project.Enso_Cloud.Internal.Utils
 import project.Error.Error
 import project.Errors.Common.Not_Found
 import project.Errors.File_Error.File_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
-import project.Errors.Unimplemented.Unimplemented
 import project.Network.HTTP.HTTP_Method.HTTP_Method
+import project.Network.URI.URI
+import project.Panic.Panic
 import project.Runtime.Context
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Text.Extensions import all
+from project.Enso_Cloud.Data_Link_Helpers import data_link_extension
 from project.Enso_Cloud.Public_Utils import get_required_field
 
 ## PRIVATE
@@ -31,7 +32,7 @@ from project.Enso_Cloud.Public_Utils import get_required_field
 type Existing_Enso_Asset
     ## PRIVATE
        Represents an existing asset within the Enso cloud.
-    Value title:Text id:Text asset_type:Enso_Asset_Type
+    private Value title:Text id:Text asset_type:Enso_Asset_Type
 
     ## PRIVATE
        Target URI for the api
@@ -51,8 +52,8 @@ type Existing_Enso_Asset
     ## PRIVATE
     name self -> Text =
         added_extension = case self.asset_type of
+            Enso_Asset_Type.Data_Link -> data_link_extension
             # TODO enable when using new path resolver that should support these
-            #Enso_Asset_Type.Data_Link -> ".datalink"
             #Enso_Asset_Type.Secret -> ".secret"
             #Enso_Asset_Type.Project -> ".enso"
             _ -> ""
@@ -61,14 +62,9 @@ type Existing_Enso_Asset
     ## PRIVATE
        Fetches the basic information about a file from the Cloud endpoint.
     get_file_description self -> JS_Object =
+        if self.asset_type != Enso_Asset_Type.File then
+            Panic.throw (Illegal_Argument.Error "`get_file_description` can only be called on File assets.")
         Utils.http_request_as_json HTTP_Method.Get self.internal_uri
-
-    ## PRIVATE
-       The returned URL may be valid only for a very short time, so it should not be
-       stored anywhere.
-    get_download_url self -> Text =
-        presigned_url = self.get_file_description |> get_required_field "url" expected_type=Text
-        presigned_url
 
     ## PRIVATE
        Fetches the basic information about an existing file from the Cloud.
@@ -78,17 +74,14 @@ type Existing_Enso_Asset
 
     ## PRIVATE
        Resolves a path to an existing asset in the cloud.
-    resolve_path (path : Text) ~if_not_found =
-        handle_not_found _ = if_not_found
-        error_handlers = Map.from_vector [["resource_missing", handle_not_found]]
+    resolve_path (path : Text) ~if_not_found = path.if_not_error <|
+        handle_not_found _ = Error.throw Not_Found
+        error_handlers = Dictionary.from_vector [["resource_missing", handle_not_found]]
 
-        uri = Utils.cloud_root_uri+"path/resolve"
-        payload = JS_Object.from_pairs [["path", path]]
-
-        # TODO remove workaround - this should be a Get endpoint, not Post
-        response = Context.Output.with_enabled <|
-            Utils.http_request_as_json HTTP_Method.Post uri payload error_handlers=error_handlers
+        uri = ((URI.from Utils.cloud_root_uri) / "path/resolve") . add_query_argument "path" path
+        response = Utils.http_request_as_json HTTP_Method.Get uri error_handlers=error_handlers
         Existing_Enso_Asset.from_json response
+            . catch Not_Found _-> if_not_found
 
     ## PRIVATE
     is_directory self = self.asset_type == Enso_Asset_Type.Directory
@@ -104,11 +97,14 @@ type Existing_Enso_Asset
              assets.map Existing_Enso_Asset.from_json
 
     ## PRIVATE
-    from_json json =
+    from_json json -> Existing_Enso_Asset =
         title = get_required_field "title" json expected_type=Text
         id = get_required_field "id" json expected_type=Text
-        #org = json.get "organizationId" ""
-        asset_type = (id.take (Text_Sub_Range.Before "-")):Enso_Asset_Type
+        Existing_Enso_Asset.from_id_and_title id title
+
+    ## PRIVATE
+    from_id_and_title id:Text title:Text -> Existing_Enso_Asset =
+        asset_type = Enso_Asset_Type.from (id.take (..Before "-"))
         Existing_Enso_Asset.Value title id asset_type
 
 

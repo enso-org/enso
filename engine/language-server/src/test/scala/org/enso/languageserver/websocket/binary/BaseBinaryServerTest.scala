@@ -6,7 +6,8 @@ import akka.actor.{ActorRef, Props}
 import akka.http.scaladsl.model.RemoteAddress
 import com.google.flatbuffers.FlatBufferBuilder
 import org.apache.commons.io.FileUtils
-import org.enso.languageserver.boot.{ProfilingConfig, StartupConfig}
+import org.enso.runner.common.ProfilingConfig
+import org.enso.languageserver.boot.StartupConfig
 import org.enso.languageserver.data.{
   Config,
   ExecutionContextConfig,
@@ -36,6 +37,7 @@ import org.enso.languageserver.websocket.binary.factory.{
 import java.util.concurrent.{ExecutorService, Executors}
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
+import org.slf4j.LoggerFactory
 
 abstract class BaseBinaryServerTest extends BinaryServerTestKit {
 
@@ -89,7 +91,9 @@ abstract class BaseBinaryServerTest extends BinaryServerTestKit {
           FileManager.props(
             config.fileManager,
             contentRootManagerWrapper,
-            new FileSystem,
+            new FileSystem(
+              LoggerFactory.getLogger(classOf[BaseBinaryServerTest])
+            ),
             zioExec
           )
         )

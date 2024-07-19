@@ -3,8 +3,8 @@ import Standard.Base.Metadata.Display
 import Standard.Base.Metadata.Widget
 from Standard.Base.Metadata.Choice import Option
 
-polyglot java import software.amazon.awssdk.regions.Region as Java_Region
 polyglot java import org.enso.aws.DefaultRegionProvider
+polyglot java import software.amazon.awssdk.regions.Region as Java_Region
 
 ## AWS Region
 type AWS_Region

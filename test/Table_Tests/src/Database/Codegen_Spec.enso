@@ -22,7 +22,7 @@ type Data
     t1 self = self.data.at 1
 
     setup = Data.Value <|
-        c = Database.connect (SQLite In_Memory)
+        c = Database.connect (SQLite.In_Memory)
         c.create_table "T1" [Column_Description.Value "A" Value_Type.Integer, Column_Description.Value "B" Value_Type.Char, Column_Description.Value "C" Value_Type.Boolean]
         c.create_table "T2" [Column_Description.Value "D" Value_Type.Integer, Column_Description.Value "E" Value_Type.Integer, Column_Description.Value "F" Value_Type.Boolean]
         c.create_table "T3" [Column_Description.Value "A" Value_Type.Integer, Column_Description.Value "E" Value_Type.Boolean, Column_Description.Value "F" Value_Type.Integer]
@@ -132,22 +132,22 @@ add_specs suite_builder =
             data.teardown
 
         group_builder.specify "should allow sorting by a single column name" <|
-            r1 = data.t1.order_by ([Sort_Column.Name "A"]) . at "B"
+            r1 = data.t1.sort ([..Name "A"]) . at "B"
             r1.to_sql.prepare . should_equal ['SELECT "T1"."B" AS "B" FROM "T1" AS "T1" ORDER BY "T1"."A" ASC', []]
 
-            r2 = data.t1.order_by ([Sort_Column.Name "B" Sort_Direction.Descending]) . at "A"
+            r2 = data.t1.sort ([..Name "B" ..Descending]) . at "A"
             r2.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A" FROM "T1" AS "T1" ORDER BY "T1"."B" DESC', []]
 
         group_builder.specify 'should allow sorting by multiple column names' <|
-            r1 = data.t1.order_by ([Sort_Column.Name 'A', Sort_Column.Name 'B'])
+            r1 = data.t1.sort ([..Name 'A', ..Name 'B'])
             r1.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" ORDER BY "T1"."A" ASC, "T1"."B" ASC', []]
 
         group_builder.specify 'should allow sorting with specific by-column rules' <|
-            r1 = data.t1.order_by ([Sort_Column.Name "A", Sort_Column.Name "B" Sort_Direction.Descending])
+            r1 = data.t1.sort ([..Name "A", ..Name "B" ..Descending])
             r1.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" ORDER BY "T1"."A" ASC, "T1"."B" DESC', []]
 
         group_builder.specify 'should return warnings and errors when passed a non-existent column' <|
-            t2 = data.t1.order_by ([Sort_Column.Name 'foobar'])
+            t2 = data.t1.sort ([..Name 'foobar'])
             t2.should_fail_with Missing_Input_Columns
 
     suite_builder.group "[Codegen] Aggregation" group_builder->

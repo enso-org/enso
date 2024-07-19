@@ -1,4 +1,4 @@
-from project.Data.Boolean import False
+import project.Data.Boolean.Boolean.False
 
 @Builtin_Type
 type Any
@@ -8,10 +8,10 @@ type Any
     is_error self = False
     == self other = @Builtin_Method "Any.=="
     != self other = (self == other).not
-    < self other = Comparable.less_than_builtin self other
-    <= self other = Comparable.less_than_builtin self other || Comparable.equals_builtin self other
-    > self other = Comparable.less_than_builtin other self
-    >= self other = Comparable.less_than_builtin other self || Comparable.equals_builtin other self
+    < self other = Default_Comparator.less_than_builtin self other
+    <= self other = Default_Comparator.less_than_builtin self other || Any.== self other
+    > self other = Default_Comparator.less_than_builtin other self
+    >= self other = Default_Comparator.less_than_builtin other self || Any.== other self
 
 @Builtin_Type
-type Comparable
+type Default_Comparator

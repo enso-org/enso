@@ -14,7 +14,7 @@ from Standard.Test import all
 
 
 add_specs suite_builder =
-    connection = Database.connect (SQLite In_Memory)
+    connection = Database.connect (SQLite.In_Memory)
     connection.execute_update 'CREATE TABLE "mock_table" ("A" VARCHAR, "B C" INTEGER, "D ""E""" BOOLEAN, "F.G/H\\I" REAL)'
     connection.execute_update 'CREATE TABLE "another" ("A" VARCHAR, "B C" INTEGER, "D ""E""" BOOLEAN, "F.G/H\\I" REAL)'
     connection.execute_update 'CREATE TABLE "a_table" ("A" VARCHAR, "B C" INTEGER, "D ""E""" BOOLEAN, "F.G/H\\I" REAL)'

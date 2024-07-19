@@ -46,3 +46,27 @@ impl Program for Npm {
         "npm"
     }
 }
+
+new_command_type! {Pnpm, PnpmCommand}
+
+impl PnpmCommand {
+    pub fn install(&mut self) -> &mut Self {
+        self.arg("pnpm").arg("i");
+        self
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default)]
+pub struct Pnpm;
+
+impl Program for Pnpm {
+    type Command = PnpmCommand;
+
+    fn executable_name(&self) -> &'static str {
+        "corepack"
+    }
+
+    fn pretty_name() -> Option<&'static str> {
+        Some("pnpm")
+    }
+}

@@ -14,6 +14,7 @@ import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.datetime.DateTimeStorage;
 import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
 import org.enso.table.data.column.storage.numeric.DoubleStorage;
 import org.enso.table.data.table.Column;
@@ -33,13 +34,13 @@ import org.enso.table.util.NameDeduplicator;
 public class ExcelWriter {
   private static final double SECONDS_IN_A_DAY = 86400.0;
 
-  private static Function<Object, Boolean> ensoToTextCallback;
+  private static Function<Object, String> ensoToTextCallback;
 
-  public static Function<Object, Boolean> getEnsoToTextCallback() {
+  public static Function<Object, String> getEnsoToTextCallback() {
     return ensoToTextCallback;
   }
 
-  public static void setEnsoToTextCallbackIfUnset(Function<Object, Boolean> callback) {
+  public static void setEnsoToTextCallbackIfUnset(Function<Object, String> callback) {
     if (ensoToTextCallback == null) {
       ensoToTextCallback = callback;
     }
@@ -179,7 +180,7 @@ public class ExcelWriter {
       excelRange = new ExcelRange(name == null ? rangeNameOrAddress : name.getRefersToFormula());
     } catch (IllegalArgumentException e) {
       throw new InvalidLocationException(
-          "Invalid range name or address '" + rangeNameOrAddress + "'.");
+          rangeNameOrAddress, "Invalid range name or address '" + rangeNameOrAddress + "'.");
     }
     writeTableToRange(workbook, excelRange, existingDataMode, skipRows, table, rowLimit, headers);
   }
@@ -200,7 +201,8 @@ public class ExcelWriter {
           ColumnCountMismatchException {
     int sheetIndex = workbook.getSheetIndex(range.getSheetName());
     if (sheetIndex == -1) {
-      throw new InvalidLocationException("Unknown sheet '" + range.getSheetName() + "'.");
+      throw new InvalidLocationException(
+          range.getSheetName(), "Unknown sheet '" + range.getSheetName() + "'.");
     }
     ExcelSheet sheet = new ExcelSheet(workbook, sheetIndex);
 
@@ -497,6 +499,9 @@ public class ExcelWriter {
       cell.setCellValue(longStorage.getItem(j));
     } else if (storage instanceof BoolStorage boolStorage) {
       cell.setCellValue(boolStorage.getItem(j));
+    } else if (storage instanceof DateTimeStorage dateTimeStorage) {
+      cell.setCellValue(dateTimeStorage.getItem(j).toLocalDateTime());
+      cell.setCellStyle(getDateTimeStyle(workbook, "yyyy-MM-dd HH:mm:ss"));
     } else {
       Object value = storage.getItemBoxed(j);
       switch (value) {

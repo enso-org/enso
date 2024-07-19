@@ -1,16 +1,17 @@
 import { assert } from '@/util/assert'
 import type { Doc } from '@/util/docParser'
 import type { Icon } from '@/util/iconName'
+import type { IdentifierOrOperatorIdentifier, QualifiedName } from '@/util/qualifiedName'
 import {
   isIdentifierOrOperatorIdentifier,
   isQualifiedName,
   qnJoin,
   qnLastSegment,
   qnParent,
+  qnSegments,
   qnSplit,
-  type IdentifierOrOperatorIdentifier,
-  type QualifiedName,
 } from '@/util/qualifiedName'
+import type { MethodPointer } from 'shared/languageServerTypes'
 import type {
   SuggestionEntryArgument,
   SuggestionEntryScope,
@@ -79,6 +80,33 @@ export function entryQn(entry: SuggestionEntry): QualifiedName {
   } else {
     return qnJoin(entry.definedIn, entry.name)
   }
+}
+
+/**
+ * Get the MethodPointer pointing to definition represented by the entry.
+ */
+export function entryMethodPointer(entry: SuggestionEntry): MethodPointer | undefined {
+  if (entry.kind !== SuggestionKind.Method || !entry.memberOf) return
+  return {
+    module: entry.definedIn,
+    definedOnType: entry.memberOf,
+    name: entry.name,
+  }
+}
+
+const DOCUMENTATION_ROOT = 'https://help.enso.org/docs/api'
+
+export function suggestionDocumentationUrl(entry: SuggestionEntry): string | undefined {
+  if (entry.kind !== SuggestionKind.Method && entry.kind !== SuggestionKind.Function) return
+  const location = entry.memberOf ?? entry.definedIn
+  const segments: string[] = qnSegments(location)
+  if (segments[0] !== 'Standard') return
+  if (segments.length < 3) return
+  const namespace = segments[0]
+  segments[0] = DOCUMENTATION_ROOT
+  segments[1] = `${namespace}.${segments[1]}`
+  segments[segments.length - 1] += `.${entry.name}`
+  return segments.join('/')
 }
 
 function makeSimpleEntry(

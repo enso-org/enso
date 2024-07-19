@@ -1,4 +1,6 @@
 @import url('./font-enso.css');
+@import url('./font-enso-prose.css');
+@import url('./font-enso-naming.css');
 @import url('./font-mplus1.css');
 @import url('./font-dejavu.css');
 
@@ -10,10 +12,12 @@
   --color-text-inversed: rgb(255 255 255);
   --color-app-bg: rgb(255 255 255 / 0.8);
   --color-menu-entry-hover-bg: rgb(0 0 0 / 0.1);
+  --color-menu-entry-selected-bg: rgb(0 0 0 / 0.05);
   --color-visualization-bg: rgb(255 242 242);
   --color-dim: rgb(0 0 0 / 0.25);
   --color-frame-bg: rgb(255 255 255 / 0.3);
   --color-frame-selected-bg: rgb(255 255 255 / 0.7);
+  --color-widget-slight: rgb(255 255 255 / 0.06);
   --color-widget: rgb(255 255 255 / 0.12);
   --color-widget-focus: rgb(255 255 255 / 0.25);
   --color-widget-selected: rgb(255 255 255 / 0.58);
@@ -35,6 +39,7 @@
   --radius-full: 9999px;
   --radius-default: 16px;
   --node-border-radius: 16px;
+  --node-port-height: 24px;
   --section-gap: 160px;
   --selected-node-border-width: 20px;
   --font-sans: 'M PLUS 1', /* System sans-serif font stack */ system-ui, -apple-system,
@@ -46,69 +51,12 @@
   --font-mono: 'DejaVu Sans Mono', /* System monspace font stack */ ui-monospace, Menlo, Monaco,
     'Cascadia Mono', 'Segoe UI Mono', 'Roboto Mono', 'Oxygen Mono', 'Ubuntu Monospace',
     'Source Code Pro', 'Fira Mono', 'Droid Sans Mono', 'Courier New', monospace;
-}
-
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-  margin: 0;
-}
-
-.icon {
-  width: 16px;
-  height: 16px;
-}
-
-.button {
-  cursor: pointer;
-}
-
-.hidden {
-  display: none;
-}
-
-.button.disabled {
-  cursor: default;
-}
-
-/* Scrollbar style definitions for textual visualizations which need support for scrolling.
- *
- * The 11px width/height (depending on scrollbar orientation)
- * is set so that it resembles macOS default scrollbar.
- */
-
-.scrollable {
-  scrollbar-color: rgba(190 190 190 / 50%) transparent;
-}
-
-.scrollable::-webkit-scrollbar {
-  -webkit-appearance: none;
-}
-
-.scrollable::-webkit-scrollbar-track {
-  -webkit-box-shadow: none;
-}
-
-.scrollable::-webkit-scrollbar:vertical {
-  width: 11px;
-}
-
-.scrollable::-webkit-scrollbar:horizontal {
-  height: 11px;
-}
-
-.scrollable::-webkit-scrollbar-thumb {
-  border-radius: 8px;
-  border: 1px solid rgba(220, 220, 220, 0.5);
-  background-color: rgba(190, 190, 190, 0.5);
-}
-
-.scrollable::-webkit-scrollbar-corner {
-  background: rgba(0, 0, 0, 0);
-}
-
-.scrollable::-webkit-scrollbar-button {
-  height: 8px;
-  width: 8px;
+  /* Default resize handle widths, used for panels. */
+  --resize-handle-inside: 3px;
+  --resize-handle-outside: 3px;
+  /* Resize handle override for the visualization container. */
+  --visualization-resize-handle-inside: 3px;
+  --visualization-resize-handle-outside: 3px;
+  --right-dock-default-width: 40%;
+  --code-editor-default-height: 30%;
 }

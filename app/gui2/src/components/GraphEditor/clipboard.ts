@@ -1,10 +1,17 @@
-import type { NavigatorComposable } from '@/composables/navigator'
-import type { GraphSelection } from '@/providers/graphSelection'
-import { useGraphStore } from '@/stores/graph'
+import type { NodeCreationOptions } from '@/composables/nodeCreation'
+import type { GraphStore, Node, NodeId } from '@/stores/graph'
+import { Ast } from '@/util/ast'
+import { Pattern } from '@/util/ast/match'
+import { filterDefined } from '@/util/data/iterable'
 import { Vec2 } from '@/util/data/vec2'
+import type { ToValue } from '@/util/reactivity'
 import type { NodeMetadataFields } from 'shared/ast'
+import { computed, toValue } from 'vue'
 
-const ENSO_MIME_TYPE = 'web application/enso'
+// MIME type in *vendor tree*; see https://www.rfc-editor.org/rfc/rfc6838#section-3.2
+// The `web ` prefix is required by Chromium:
+// https://developer.chrome.com/blog/web-custom-formats-for-the-async-clipboard-api/.
+const ENSO_MIME_TYPE = 'web application/vnd.enso.enso'
 
 /** The data that is copied to the clipboard. */
 interface ClipboardData {
@@ -14,107 +21,184 @@ interface ClipboardData {
 /** Node data that is copied to the clipboard. Used for serializing and deserializing the node information. */
 interface CopiedNode {
   expression: string
-  metadata: NodeMetadataFields | undefined
+  binding?: string
+  documentation?: string | undefined
+  metadata?: NodeMetadataFields
+}
+
+/** @internal Exported for testing. */
+export async function nodesFromClipboardContent(
+  clipboardItems: ClipboardItems,
+): Promise<CopiedNode[]> {
+  return [
+    ...(await decodeClipboard(clipboardItems, [ensoDecoder, spreadsheetDecoder, plainTextDecoder])),
+  ].flat()
+}
+
+const ensoDecoder: ClipboardDecoder<CopiedNode[]> = {
+  mimeType: ENSO_MIME_TYPE,
+  decode: async (blob) => (JSON.parse(await blob.text()) as ClipboardData).nodes,
+}
+const plainTextDecoder: ClipboardDecoder<CopiedNode[]> = {
+  mimeType: 'text/plain',
+  decode: async (blob) => [{ expression: await blob.text() }],
+}
+
+interface ExtendedClipboard extends Clipboard {
+  // Recent addition to the spec: https://github.com/w3c/clipboard-apis/pull/197
+  // Currently supported by Chromium: https://developer.chrome.com/docs/web-platform/unsanitized-html-async-clipboard
+  read(options?: { unsanitized?: ['text/html'] }): Promise<ClipboardItems>
+}
+
+function getClipboard(): ExtendedClipboard {
+  return (window.navigator as any).mockClipboard ?? window.navigator.clipboard
 }
 
 export function useGraphEditorClipboard(
-  nodeSelection: GraphSelection,
-  graphNavigator: NavigatorComposable,
+  graphStore: GraphStore,
+  selected: ToValue<Set<NodeId>>,
+  createNodes: (nodesOptions: Iterable<NodeCreationOptions>) => void,
 ) {
-  const graphStore = useGraphStore()
-
   /** Copy the content of the selected node to the clipboard. */
-  function copyNodeContent() {
-    const id = nodeSelection.selected.values().next().value
-    const node = graphStore.db.nodeIdToNode.get(id)
-    if (!node) return
-    const content = node.innerExpr.code()
-    const nodeMetadata = node.rootExpr.nodeMetadata
-    const metadata = {
-      position: nodeMetadata.get('position'),
-      visualization: nodeMetadata.get('visualization'),
+  async function copySelectionToClipboard() {
+    const nodes = new Array<Node>()
+    const ids = graphStore.pickInCodeOrder(toValue(selected))
+    for (const id of ids) {
+      const node = graphStore.db.nodeIdToNode.get(id)
+      if (!node) continue
+      nodes.push(node)
     }
-    const copiedNode: CopiedNode = { expression: content, metadata }
-    const clipboardData: ClipboardData = { nodes: [copiedNode] }
-    const jsonItem = new Blob([JSON.stringify(clipboardData)], { type: ENSO_MIME_TYPE })
-    const textItem = new Blob([content], { type: 'text/plain' })
-    const clipboardItem = new ClipboardItem({
-      [jsonItem.type]: jsonItem,
-      [textItem.type]: textItem,
+    if (!nodes.length) return
+    return writeClipboard(nodesToClipboardData(nodes))
+  }
+
+  /** Read the clipboard and if it contains valid data, create nodes from the content. */
+  async function createNodesFromClipboard() {
+    const clipboardItems = await getClipboard().read({
+      // Chromium-based browsers support reading unsanitized HTML data, so we can obtain predictable data for
+      // spreadsheet recognition in that case; other browsers, including Firefox (as of v127), do not, and should have
+      // their sanitized data included in test cases in `clipboardTestCases.json`.
+      unsanitized: ['text/html'],
     })
-    navigator.clipboard.write([clipboardItem])
-  }
-
-  async function retrieveDataFromClipboard(): Promise<ClipboardData | undefined> {
-    const clipboardItems = await navigator.clipboard.read()
-    let fallback = undefined
-    for (const clipboardItem of clipboardItems) {
-      for (const type of clipboardItem.types) {
-        if (type === ENSO_MIME_TYPE) {
-          const blob = await clipboardItem.getType(type)
-          return JSON.parse(await blob.text())
-        }
-
-        if (type === 'text/html') {
-          const blob = await clipboardItem.getType(type)
-          const htmlContent = await blob.text()
-          const excelPayload = await readNodeFromExcelClipboard(htmlContent, clipboardItem)
-          if (excelPayload) {
-            return excelPayload
-          }
-        }
-
-        if (type === 'text/plain') {
-          const blob = await clipboardItem.getType(type)
-          const fallbackExpression = await blob.text()
-          const fallbackNode = { expression: fallbackExpression, metadata: undefined } as CopiedNode
-          fallback = { nodes: [fallbackNode] } as ClipboardData
-        }
-      }
-    }
-    return fallback
-  }
-
-  /// Read the clipboard and if it contains valid data, create a node from the content.
-  async function readNodeFromClipboard() {
-    const clipboardData = await retrieveDataFromClipboard()
-    const copiedNode = clipboardData?.nodes[0]
-    if (!copiedNode) {
+    const clipboardData = await nodesFromClipboardContent(clipboardItems)
+    if (!clipboardData.length) {
       console.warn('No valid node in clipboard.')
       return
     }
-    if (copiedNode.expression == null) {
-      console.warn('No valid expression in clipboard.')
-    }
-    graphStore.createNode(
-      graphNavigator.sceneMousePos ?? Vec2.Zero,
-      copiedNode.expression,
-      copiedNode.metadata,
+    const firstNodePos = clipboardData[0]!.metadata?.position ?? { x: 0, y: 0 }
+    const originPos = new Vec2(firstNodePos.x, firstNodePos.y)
+    createNodes(
+      clipboardData.map(({ expression, binding, documentation, metadata }) => {
+        const pos = metadata?.position
+        const relativePos = pos ? new Vec2(pos.x, pos.y).sub(originPos) : new Vec2(0, 0)
+        return {
+          placement: { type: 'mouseRelative', posOffset: relativePos },
+          expression,
+          binding,
+          metadata,
+          documentation,
+        }
+      }),
     )
   }
 
-  async function readNodeFromExcelClipboard(
-    htmlContent: string,
-    clipboardItem: ClipboardItem,
-  ): Promise<ClipboardData | undefined> {
-    // Check we have a valid HTML table
-    // If it is Excel, we should have a plain-text version of the table with tab separators.
-    if (
-      clipboardItem.types.includes('text/plain') &&
-      htmlContent.startsWith('<table ') &&
-      htmlContent.endsWith('</table>')
-    ) {
-      const textData = await clipboardItem.getType('text/plain')
-      const text = await textData.text()
-      const payload = JSON.stringify(text).replaceAll(/^"|"$/g, '').replaceAll("'", "\\'")
-      const expression = `'${payload}'.to Table`
-      return { nodes: [{ expression: expression, metadata: undefined }] } as ClipboardData
-    }
-    return undefined
-  }
-
   return {
-    copyNodeContent,
-    readNodeFromClipboard,
+    copySelectionToClipboard,
+    createNodesFromClipboard,
+  }
+}
+
+// ==========================
+// === Clipboard decoding ===
+// ==========================
+
+interface ClipboardDecoder<T> {
+  mimeType: string
+  decode: (blob: Blob, item: ClipboardItem) => Promise<T | undefined>
+}
+
+async function decodeClipboard<T>(
+  clipboardItems: ClipboardItems,
+  decoders: ClipboardDecoder<T>[],
+): Promise<IterableIterator<T>> {
+  const decodeItem = async (clipboardItem: ClipboardItem) => {
+    for (const decoder of decoders) {
+      if (clipboardItem.types.includes(decoder.mimeType)) {
+        const blob = await clipboardItem.getType(decoder.mimeType)
+        const decoded = await decoder.decode(blob, clipboardItem)
+        if (decoded) return decoded
+      }
+    }
+  }
+  return filterDefined(await Promise.all(clipboardItems.map(decodeItem)))
+}
+
+// === Spreadsheet clipboard decoder ===
+
+const spreadsheetDecoder: ClipboardDecoder<CopiedNode[]> = {
+  mimeType: 'text/html',
+  decode: async (blob, item) => {
+    const htmlContent = await blob.text()
+    if (!item.types.includes('text/plain')) return
+    if (isSpreadsheetTsv(htmlContent)) {
+      const textData = await item.getType('text/plain').then((blob) => blob.text())
+      return [{ expression: tsvTableToEnsoExpression(textData) }]
+    }
+  },
+}
+
+const toTable = computed(() => Pattern.parse('__.to Table'))
+
+export function tsvTableToEnsoExpression(tsvData: string) {
+  const textLiteral = Ast.TextLiteral.new(tsvData)
+  return toTable.value.instantiate(textLiteral.module, [textLiteral]).code()
+}
+
+/** @internal Exported for testing. */
+export function isSpreadsheetTsv(htmlContent: string) {
+  // This is a very general criterion that can have some false-positives (e.g. pasting rich text that includes a table).
+  // However, due to non-standardized browser HTML sanitization it is difficult to precisely recognize spreadsheet
+  // clipboard data. We want to avoid false negatives (even if a browser changes its sanitization), and in case of a
+  // false positive the user is pasting data we don't have any good way to handle, so trying to make a Table from it is
+  // acceptable.
+  return /<table[ >]/i.test(htmlContent)
+}
+
+// =========================
+// === Clipboard writing ===
+// =========================
+
+export type MimeType = 'text/plain' | 'text/html' | typeof ENSO_MIME_TYPE
+export type MimeData = Partial<Record<MimeType, string>>
+
+export function writeClipboard(data: MimeData) {
+  const dataBlobs = Object.fromEntries(
+    Object.entries(data).map(([type, typeData]) => [type, new Blob([typeData], { type })]),
+  )
+  return getClipboard()
+    .write([new ClipboardItem(dataBlobs)])
+    .catch((error: any) => console.error(`Failed to write to clipboard: ${error}`))
+}
+
+// === Serializing nodes ===
+
+function nodeStructuredData(node: Node): CopiedNode {
+  return {
+    expression: node.innerExpr.code(),
+    documentation: node.documentation,
+    metadata: node.rootExpr.serializeMetadata(),
+    ...(node.pattern ? { binding: node.pattern.code() } : {}),
+  }
+}
+
+export function clipboardNodeData(nodes: CopiedNode[]): MimeData {
+  const clipboardData: ClipboardData = { nodes }
+  return { [ENSO_MIME_TYPE]: JSON.stringify(clipboardData) }
+}
+
+export function nodesToClipboardData(nodes: Node[]): MimeData {
+  return {
+    ...clipboardNodeData(nodes.map(nodeStructuredData)),
+    'text/plain': nodes.map((node) => node.outerExpr.code()).join('\n'),
   }
 }

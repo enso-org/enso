@@ -122,7 +122,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_cleaning() -> Result {
-        setup_logging()?;
+        setup_logging().ok();
         let dir = tempfile::tempdir()?;
         let dir = dir.path();
         crate::fs::tokio::reset_dir(dir).await?;

@@ -8,7 +8,9 @@ import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widge
 import { useGraphStore } from '@/stores/graph'
 import type { RequiredImport } from '@/stores/graph/imports'
 import { Ast } from '@/util/ast'
+import { Pattern } from '@/util/ast/match'
 import { ArgumentInfoKey } from '@/util/callTree'
+import { TextLiteral } from 'shared/ast'
 import { computed } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
@@ -26,12 +28,47 @@ const insertAsFileConstructor = computed(() => {
     return false
   }
 })
-const strictlyFile = computed(() => props.input.dynamicConfig?.kind === 'File_Browse')
-const strictlyDirectory = computed(() => props.input.dynamicConfig?.kind === 'Folder_Browse')
-const label = computed(() => (strictlyDirectory.value ? 'Choose directory…' : 'Choose file…'))
+const dialogKind = computed(() => {
+  switch (props.input.dynamicConfig?.kind) {
+    case 'File_Browse':
+      return props.input.dynamicConfig.existing_only ? 'file' : 'filePath'
+    case 'Folder_Browse':
+      return 'directory'
+    default:
+      if (props.input[ArgumentInfoKey]?.info?.reprType.includes(WRITABLE_FILE_TYPE)) {
+        return 'filePath'
+      } else {
+        return 'default'
+      }
+  }
+})
+const label = computed(() => {
+  switch (dialogKind.value) {
+    case 'directory':
+      return 'Choose directory…'
+    case 'filePath':
+      return 'Choose path…'
+    default:
+      return 'Choose file…'
+  }
+})
 
-const FILE_CONSTRUCTOR = FILE_TYPE + '.new'
-const FILE_SHORT_CONSTRUCTOR = 'File.new'
+const fileConPattern = Pattern.parse(`${FILE_TYPE}.new __`)
+const fileShortConPattern = Pattern.parse(`File.new __`)
+const currentPath = computed(() => {
+  if (typeof props.input.value === 'string') {
+    return props.input.value
+  } else if (props.input.value) {
+    const expression = props.input.value.innerExpression()
+    const match = fileShortConPattern.match(expression) ?? fileConPattern.match(expression)
+    const pathAst =
+      match && match[0] ? expression.module.get(match[0]).innerExpression() : expression
+    if (pathAst instanceof TextLiteral) {
+      return pathAst.rawTextContent
+    }
+  }
+  return undefined
+})
 
 function makeValue(edit: Ast.MutableModule, useFileConstructor: boolean, path: string): Ast.Owned {
   if (useFileConstructor) {
@@ -42,33 +79,32 @@ function makeValue(edit: Ast.MutableModule, useFileConstructor: boolean, path: s
       import: 'File',
     } as RequiredImport
     const conflicts = graph.addMissingImports(edit, [requiredImport])
-    const constructor = conflicts != null ? FILE_CONSTRUCTOR : FILE_SHORT_CONSTRUCTOR
-    const constructorAst = Ast.PropertyAccess.tryParse(constructor, edit)
-    if (constructorAst == null) {
-      throw new Error(`Failed to parse constructor as AST: ${constructor}`)
-    }
-    return Ast.App.new(edit, constructorAst, undefined, arg)
+    const pattern = conflicts ? fileConPattern : fileShortConPattern
+    return pattern.instantiate(edit, [arg])
   } else {
     return Ast.TextLiteral.new(path, edit)
   }
 }
 
 const onClick = async () => {
-  const kind =
-    strictlyDirectory.value ? 'directory'
-    : strictlyFile.value ? 'file'
-    : 'default'
-  const selected = await window.fileBrowserApi.openFileBrowser(kind)
-  if (selected != null && selected[0] != null) {
-    const edit = graph.startEdit()
-    const value = makeValue(edit, insertAsFileConstructor.value, selected[0])
-    props.onUpdate({
-      edit,
-      portUpdate: {
-        value,
-        origin: props.input.portId,
-      },
-    })
+  if (!window.fileBrowserApi) {
+    console.error('File browser not supported!')
+  } else {
+    const selected = await window.fileBrowserApi.openFileBrowser(
+      dialogKind.value,
+      currentPath.value,
+    )
+    if (selected != null && selected[0] != null) {
+      const edit = graph.startEdit()
+      const value = makeValue(edit, insertAsFileConstructor.value, selected[0])
+      props.onUpdate({
+        edit,
+        portUpdate: {
+          value,
+          origin: props.input.portId,
+        },
+      })
+    }
   }
 }
 
@@ -90,6 +126,8 @@ const innerWidgetInput = computed(() => {
 const TEXT_TYPE = 'Standard.Base.Data.Text.Text'
 const FILE_MODULE = 'Standard.Base.System.File'
 const FILE_TYPE = FILE_MODULE + '.File'
+const WRITABLE_FILE_MODULE = 'Standard.Base.System.File.Generic.Writable_File'
+const WRITABLE_FILE_TYPE = WRITABLE_FILE_MODULE + '.Writable_File'
 
 export const widgetDefinition = defineWidget(
   WidgetInput.isAstOrPlaceholder,
@@ -101,7 +139,9 @@ export const widgetDefinition = defineWidget(
         props.input.dynamicConfig?.kind === 'Folder_Browse'
       )
         return Score.Perfect
-      if (props.input[ArgumentInfoKey]?.info?.reprType.includes(FILE_TYPE)) return Score.Perfect
+      const reprType = props.input[ArgumentInfoKey]?.info?.reprType
+      if (reprType?.includes(FILE_TYPE) || reprType?.includes(WRITABLE_FILE_TYPE))
+        return Score.Perfect
       return Score.Mismatch
     },
   },

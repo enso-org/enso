@@ -3,6 +3,7 @@ package org.enso.interpreter.node.expression.builtin.meta;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.interop.InvalidArrayIndexException;
 import com.oracle.truffle.api.nodes.Node;
+import com.oracle.truffle.api.object.DynamicObjectLibrary;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
@@ -11,6 +12,8 @@ import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeAtNode;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeLengthNode;
 import org.enso.interpreter.runtime.error.PanicException;
+import org.enso.interpreter.runtime.state.State;
+import org.enso.polyglot.debugger.IdExecutionService;
 
 @BuiltinMethod(
     type = "Meta",
@@ -20,10 +23,30 @@ import org.enso.interpreter.runtime.error.PanicException;
 public class InstrumentorBuiltin extends Node {
   @Child private ArrayLikeAtNode atNode = ArrayLikeAtNode.create();
 
-  Object execute(Text operation, Object args) {
+  @SuppressWarnings("unchecked")
+  @CompilerDirectives.TruffleBoundary
+  private static Object findUuid(State state, Object uuid) {
+    var obj =
+        DynamicObjectLibrary.getUncached()
+            .getOrDefault(state.getContainer(), IdExecutionService.class, null);
+    if (obj instanceof java.util.function.Function cache) {
+      return cache.apply(uuid.toString());
+    }
+    return null;
+  }
+
+  Object execute(State state, Text operation, Object args) {
     var ctx = EnsoContext.get(this);
     var op = operation.toString();
     try {
+      if ("uuid".equals(op)) {
+        var res = findUuid(state, args);
+        if (res == null) {
+          return ctx.getBuiltins().nothing();
+        } else {
+          return res;
+        }
+      }
       Object ret = "newBuilder".equals(op) ? newBuilder(ctx, atNode.executeAt(args, 0)) : null;
       if (atNode.executeAt(args, 0) instanceof Instrumentor b) {
         ret =

@@ -483,14 +483,24 @@ impl RunContext {
         if self.config.build_native_runner {
             debug!("Building and testing native engine runners");
             runner_sanity_test(&self.repo_root, None).await?;
-            ide_ci::fs::remove_file_if_exists(&self.repo_root.runner)?;
-            let enso_java = "espresso";
-            sbt.command()?
-                .env(ENSO_JAVA, enso_java)
-                .arg("engine-runner/buildNativeImage")
-                .run_ok()
-                .await?;
-            runner_sanity_test(&self.repo_root, Some(enso_java)).await?;
+            let enso = self
+                .repo_root
+                .built_distribution
+                .enso_engine_triple
+                .engine_package
+                .bin
+                .join("enso")
+                .with_executable_extension();
+            ide_ci::fs::remove_file_if_exists(&enso)?;
+            if self.config.build_espresso_runner {
+                let enso_java = "espresso";
+                sbt.command()?
+                    .env(ENSO_JAVA, enso_java)
+                    .arg("engine-runner/buildNativeImage")
+                    .run_ok()
+                    .await?;
+                runner_sanity_test(&self.repo_root, Some(enso_java)).await?;
+            }
         }
 
         // Verify Integrity of Generated License Packages in Distributions
@@ -630,24 +640,27 @@ pub async fn runner_sanity_test(
     repo_root: &crate::paths::generated::RepoRoot,
     enso_java: Option<&str>,
 ) -> Result {
-    let factorial_input = "6";
-    let factorial_expected_output = "720";
     let engine_package = repo_root.built_distribution.enso_engine_triple.engine_package.as_path();
     // The engine package is necessary for running the native runner.
     ide_ci::fs::tokio::require_exist(engine_package).await?;
-    let output = Command::new(&repo_root.runner)
-        .args([
-            "--run",
-            repo_root.engine.runner.src.test.resources.factorial_enso.as_str(),
-            factorial_input,
-        ])
-        .set_env_opt(ENSO_JAVA, enso_java)?
-        .set_env(ENSO_DATA_DIRECTORY, engine_package)?
-        .run_stdout()
-        .await?;
-    ensure!(
-        output.contains(factorial_expected_output),
-        "Native runner output does not contain expected result '{factorial_expected_output}'. Output:\n{output}",
-    );
+    if enso_java.is_none() {
+        let enso = repo_root
+            .built_distribution
+            .enso_engine_triple
+            .engine_package
+            .bin
+            .join("enso")
+            .with_executable_extension();
+        let test_base = Command::new(&enso)
+            .args(["--run", repo_root.test.join("Base_Tests").as_str()])
+            .set_env_opt(ENSO_JAVA, enso_java)?
+            .set_env(ENSO_DATA_DIRECTORY, engine_package)?
+            .run_stdout()
+            .await?;
+        ensure!(
+            test_base.contains("0 tests failed."),
+            "All tests shall succeed. Output:\n{test_base}",
+        );
+    }
     Ok(())
 }

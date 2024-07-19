@@ -76,7 +76,7 @@ sealed case class Syntax(
     fn: java.util.function.Function[Expression, Expression]
   ): Syntax = this
 
-  /** @inheritdoc */
+  /** String representation. */
   override def toString: String =
     s"""
        |Error.Syntax(
@@ -145,6 +145,11 @@ object Syntax {
   case class UnsupportedSyntax(syntaxName: String) extends Reason {
     override def explanation: String =
       s"Syntax is not supported yet: $syntaxName"
+  }
+
+  case object InconsistentConstructorVisibility extends Reason {
+    override def explanation: String =
+      "Private and public constructors cannot be mixed within a single type"
   }
 
   case object InvalidUnderscore extends Reason {

@@ -1,4 +1,4 @@
-from Standard.Base import all hiding First, Last
+from Standard.Base import all
 import Standard.Base.Data.Vector.No_Wrap
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 from Standard.Base.Runtime import assert
@@ -170,7 +170,7 @@ resolve_aggregate table problem_builder aggregate_column:Aggregate_Column =
 
     resolve_order_by selector = case selector of
         Nothing -> Nothing
-        _ ->
+        _ -> if selector == [] then Nothing else
             columns_for_ordering = Table_Helpers.prepare_order_by table_columns selector problem_builder
             sort_columns = columns_for_ordering.map c->
                 Internal_Order_By_Column_Reference.Value c.column c.associated_selector.direction
@@ -188,10 +188,10 @@ resolve_aggregate table problem_builder aggregate_column:Aggregate_Column =
         Value_Type.expect_text col <|
             internal_column
 
-    result = case aggregate_column of
+    result = case aggregate_column:Aggregate_Column of
         Group_By c as -> Group_By (resolve c) as
         Count as -> Count as
-        Count_Distinct c as ignore_nothing ->
+        Count_Distinct c as ignore_nothing -> if c == [] then Count as else
             new_c = resolve_selector_to_vector c
             Count_Distinct new_c as ignore_nothing
         Count_Not_Nothing c as -> Count_Not_Nothing (resolve c) as
@@ -233,7 +233,7 @@ java_aggregator name column =
         Group_By c _ -> GroupByAggregator.new name c.java_column
         Count _ -> CountAggregator.new name
         Count_Distinct columns _ ignore_nothing ->
-            resolved = columns.map .java_column
+            resolved = columns.map c->c.java_column
             CountDistinctAggregator.new name resolved ignore_nothing
         Count_Not_Nothing c _ -> CountNothingAggregator.new name c.java_column False
         Count_Nothing c _ -> CountNothingAggregator.new name c.java_column True

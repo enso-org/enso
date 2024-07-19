@@ -5,19 +5,30 @@
     <artifactId>enso4igv</artifactId>
     <packaging>nbm</packaging>
     <name>Enso Language Support for NetBeans &amp; Ideal Graph Visualizer</name>
-    <version>1.33-SNAPSHOT</version>
+    <version>1.40-SNAPSHOT</version>
     <build>
         <plugins>
             <plugin>
                 <groupId>org.apache.netbeans.utilities</groupId>
                 <artifactId>nbm-maven-plugin</artifactId>
                 <extensions>true</extensions>
-                <version>4.7</version>
+                <version>14.1</version>
                 <configuration>
-                    <useOSGiDependencies>true</useOSGiDependencies>
+                    <useOSGiDependencies>false</useOSGiDependencies>
                     <author>Enso.org</author>
                     <licenseName>Apache 2.0</licenseName>
                     <licenseFile>../../LICENSE</licenseFile>
+                    <nbmResources>
+                        <nbmResource>
+                              <directory>${enso.parser.lib}</directory>
+                              <targetPath>modules/lib/</targetPath>
+                              <includes>
+                                <include>**/*.dll</include>
+                                <include>**/*.so</include>
+                                <include>**/*.dylib</include>
+                              </includes>
+                        </nbmResource>
+                    </nbmResources>
                 </configuration>
             </plugin>
             <plugin>
@@ -219,6 +230,21 @@
         </dependency>
         <dependency>
             <groupId>org.netbeans.api</groupId>
+            <artifactId>org-netbeans-api-lsp</artifactId>
+            <version>RELEASE160</version>
+            <type>jar</type>
+        </dependency>
+        <dependency>
+            <!--
+                $ sbt publishM2
+            -->
+            <groupId>org.enso</groupId>
+            <artifactId>runtime-parser</artifactId>
+            <version>0.2-SNAPSHOT</version>
+            <type>jar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.netbeans.api</groupId>
             <artifactId>org-netbeans-modules-nbjunit</artifactId>
             <version>${netbeans.version}</version>
             <scope>test</scope>
@@ -261,6 +287,8 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <netbeans.version>RELEASE140</netbeans.version>
         <netbeans.compile.on.save>none</netbeans.compile.on.save>
+        <enso.root>${basedir}/../../</enso.root>
+        <enso.parser.lib>${enso.root}/lib/rust/parser/target/classes/</enso.parser.lib>
     </properties>
     <profiles>
         <profile>

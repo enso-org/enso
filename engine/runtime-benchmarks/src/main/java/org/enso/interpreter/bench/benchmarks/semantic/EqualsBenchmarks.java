@@ -7,8 +7,8 @@ import java.util.List;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import org.enso.common.MethodNames.Module;
 import org.enso.compiler.benchmarks.Utils;
-import org.enso.polyglot.MethodNames.Module;
 import org.graalvm.polyglot.Value;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -64,7 +64,6 @@ public class EqualsBenchmarks {
         import Standard.Base.Data.Numbers.Number
         import Standard.Base.Data.Ordering.Ordering
         import Standard.Base.Data.Ordering.Comparable
-        import Standard.Base.Data.Ordering.Default_Comparator
 
         type Num
             Value n
@@ -75,7 +74,7 @@ public class EqualsBenchmarks {
 
         type Num_Comparator
             compare x:Num y:Num = Ordering.compare x.n y.n
-            hash x:Num = Default_Comparator.hash x.n
+            hash x:Num = Ordering.hash x.n
 
         type Node
             C1 f1

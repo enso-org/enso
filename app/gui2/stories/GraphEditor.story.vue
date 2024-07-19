@@ -38,16 +38,17 @@ main =
 
 /**
  * Note: These props should be synced with the props in
- * `app/ide-desktop/lib/dashboard/src/authentication/src/components/app.tsx`.
- * We need this here, as the react component is not part of the dashboard and not usually available in the demo scenes.
- * Using this wrapper enables us to see toasts in the absence of the dashboard/React.
+ * `app/dashboard/src/App.tsx`.
+ * We need this here, as the React component is not part of the dashboard and not usually
+ * available in the demo scenes. Using this wrapper enables us to see toasts in the absence
+ * of the dashboard/React.
  */
 const toastProps = reactive({
   position: 'top-center',
   theme: 'light',
   closeOnClick: false,
   draggable: false,
-  toastClassName: 'text-sm leading-170 bg-frame-selected rounded-2xl backdrop-blur-3xl',
+  toastClassName: 'text-sm leading-cozy bg-selected-frame rounded-lg backdrop-blur-default',
   limit: 3,
 })
 const WrappedToastContainer = createReactWrapper(ToastContainer, toastProps)

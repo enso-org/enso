@@ -1,7 +1,14 @@
 /** @file A Vue composable for panning and zooming a DOM element. */
 
 import { useApproach, useApproachVec } from '@/composables/animation'
-import { PointerButtonMask, useEvent, usePointer, useResizeObserver } from '@/composables/events'
+import {
+  PointerButtonMask,
+  useArrows,
+  useEvent,
+  usePointer,
+  useResizeObserver,
+  useWheelActions,
+} from '@/composables/events'
 import type { KeyboardComposable } from '@/composables/keyboard'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
@@ -18,6 +25,7 @@ const ZOOM_LEVELS_REVERSED = [...ZOOM_LEVELS].reverse()
  * If we are that close to next zoom level, we should choose the next one instead
  * to avoid small unnoticeable changes to zoom. */
 const ZOOM_SKIP_THRESHOLD = 0.05
+const WHEEL_CAPTURE_DURATION_MS = 250
 
 function elemRect(target: Element | undefined): Rect {
   if (target != null && target instanceof Element)
@@ -25,17 +33,36 @@ function elemRect(target: Element | undefined): Rect {
   return Rect.Zero
 }
 
+export interface NavigatorOptions {
+  /* A predicate deciding if given event should initialize navigation */
+  predicate?: (e: PointerEvent | KeyboardEvent) => boolean
+}
+
 export type NavigatorComposable = ReturnType<typeof useNavigator>
-export function useNavigator(viewportNode: Ref<Element | undefined>, keyboard: KeyboardComposable) {
+export function useNavigator(
+  viewportNode: Ref<Element | undefined>,
+  keyboard: KeyboardComposable,
+  options: NavigatorOptions = {},
+) {
+  const predicate = options.predicate ?? ((_) => true)
   const size = useResizeObserver(viewportNode)
   const targetCenter = shallowRef<Vec2>(Vec2.Zero)
   const center = useApproachVec(targetCenter, 100, 0.02)
 
   const targetScale = shallowRef(1)
   const scale = useApproach(targetScale)
-  const panPointer = usePointer((pos) => {
-    scrollTo(center.value.addScaled(pos.delta, -1 / scale.value))
-  }, PointerButtonMask.Auxiliary)
+  const panPointer = usePointer(
+    (pos) => scrollTo(center.value.addScaled(pos.delta, -1 / scale.value)),
+    {
+      requiredButtonMask: PointerButtonMask.Auxiliary,
+      predicate: (e) => e.target === e.currentTarget && predicate(e),
+    },
+  )
+
+  const panArrows = useArrows(
+    (pos) => scrollTo(center.value.addScaled(pos.delta, 1 / scale.value)),
+    { predicate, velocity: 1000 },
+  )
 
   function eventScreenPos(e: { clientX: number; clientY: number }): Vec2 {
     return new Vec2(e.clientX, e.clientY)
@@ -70,6 +97,7 @@ export function useNavigator(viewportNode: Ref<Element | undefined>, keyboard: K
     rect: Rect,
     minScale = PAN_AND_ZOOM_DEFAULT_SCALE_RANGE[0],
     maxScale = PAN_AND_ZOOM_DEFAULT_SCALE_RANGE[1],
+    skipAnimation = false,
   ) {
     if (!viewportNode.value) return
     targetScale.value = Math.max(
@@ -81,6 +109,10 @@ export function useNavigator(viewportNode: Ref<Element | undefined>, keyboard: K
       ),
     )
     targetCenter.value = rect.center().finiteOrZero()
+    if (skipAnimation) {
+      scale.skip()
+      center.skip()
+    }
   }
 
   /** Pan to include the given prioritized list of coordinates.
@@ -113,20 +145,26 @@ export function useNavigator(viewportNode: Ref<Element | undefined>, keyboard: K
   }
 
   let zoomPivot = Vec2.Zero
-  const zoomPointer = usePointer((pos, _event, ty) => {
-    if (ty === 'start') {
-      zoomPivot = clientToScenePos(pos.initial)
-    }
+  const zoomPointer = usePointer(
+    (pos, _event, ty) => {
+      if (ty === 'start') {
+        zoomPivot = clientToScenePos(pos.initial)
+      }
 
-    const prevScale = scale.value
-    updateScale((oldValue) => oldValue * Math.exp(-pos.delta.y / 100))
-    scrollTo(
-      center.value
-        .sub(zoomPivot)
-        .scale(prevScale / scale.value)
-        .add(zoomPivot),
-    )
-  }, PointerButtonMask.Secondary)
+      const prevScale = scale.value
+      updateScale((oldValue) => oldValue * Math.exp(-pos.delta.y / 100))
+      scrollTo(
+        center.value
+          .sub(zoomPivot)
+          .scale(prevScale / scale.value)
+          .add(zoomPivot),
+      )
+    },
+    {
+      requiredButtonMask: PointerButtonMask.Secondary,
+      predicate: (e) => e.target === e.currentTarget && predicate(e),
+    },
+  )
 
   const viewport = computed(() => {
     const nodeSize = size.value
@@ -239,8 +277,26 @@ export function useNavigator(viewportNode: Ref<Element | undefined>, keyboard: K
     scale.skip()
   }
 
+  const { events: wheelEvents, captureEvents: wheelEventsCapture } = useWheelActions(
+    keyboard,
+    WHEEL_CAPTURE_DURATION_MS,
+    (e, inputType) => {
+      if (inputType === 'trackpad') {
+        // OS X trackpad events provide usable rate-of-change information.
+        updateScale((oldValue: number) => oldValue * Math.exp(-e.deltaY / 100))
+      } else {
+        // Mouse wheel rate information is unreliable. We just step in the direction of the sign.
+        stepZoom(-Math.sign(e.deltaY))
+      }
+    },
+    (e) => {
+      const delta = new Vec2(e.deltaX, e.deltaY)
+      scrollTo(center.value.addScaled(delta, 1 / scale.value))
+    },
+  )
+
   return proxyRefs({
-    events: {
+    pointerEvents: {
       dragover(e: DragEvent) {
         eventMousePos.value = eventScreenPos(e)
       },
@@ -265,28 +321,13 @@ export function useNavigator(viewportNode: Ref<Element | undefined>, keyboard: K
         panPointer.events.pointerdown(e)
         zoomPointer.events.pointerdown(e)
       },
-      wheel(e: WheelEvent) {
-        e.preventDefault()
-        if (e.ctrlKey) {
-          // A pinch gesture is represented by setting `e.ctrlKey`. It can be distinguished from an actual Ctrl+wheel
-          // combination because the real Ctrl key emits keyup/keydown events.
-          const isGesture = !keyboard.ctrl
-          if (isGesture) {
-            // OS X trackpad events provide usable rate-of-change information.
-            updateScale((oldValue: number) => oldValue * Math.exp(-e.deltaY / 100))
-          } else {
-            // Mouse wheel rate information is unreliable. We just step in the direction of the sign.
-            stepZoom(-Math.sign(e.deltaY))
-          }
-        } else {
-          const delta = new Vec2(e.deltaX, e.deltaY)
-          scrollTo(center.value.addScaled(delta, 1 / scale.value))
-        }
-      },
       contextmenu(e: Event) {
         e.preventDefault()
       },
+      wheel: wheelEvents.wheel,
     },
+    pointerEventsCapture: wheelEventsCapture,
+    keyboardEvents: panArrows.events,
     translate,
     targetCenter: readonly(targetCenter),
     targetScale: readonly(targetScale),

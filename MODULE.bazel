@@ -1,9 +1,9 @@
 "enso-org/enso"
 
-bazel_dep(name = "aspect_rules_js", version = "1.41.2")
+bazel_dep(name = "aspect_rules_js", version = "2.0.0-rc6")
 
 ####### Node.js version #########
-bazel_dep(name = "rules_nodejs", version = "6.1.0")
+bazel_dep(name = "rules_nodejs", version = "6.2.0")
 node = use_extension("@rules_nodejs//nodejs:extensions.bzl", "node")
 node.toolchain(node_version = "20.11.1")
 #################################

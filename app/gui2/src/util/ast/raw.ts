@@ -7,7 +7,7 @@ import { tryGetSoleValue } from 'shared/util/data/iterable'
 import { isResult, mapOk } from 'shared/util/data/result'
 import type { SourceRange } from 'shared/yjsModel'
 
-export { RawAst, parseEnso }
+export { parseEnso, RawAst }
 
 export type HasAstRange = SourceRange | RawAst.Tree | RawAst.Token
 

@@ -1,21 +1,30 @@
 from Standard.Base import all
+import Standard.Base.Errors.Deprecated.Deprecated
 import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Metadata.Display
+import Standard.Base.Metadata.Widget
 import Standard.Base.Runtime.Managed_Resource.Managed_Resource
 import Standard.Base.Runtime.Ref.Ref
 import Standard.Base.System.File.Advanced.Temporary_File.Temporary_File
 import Standard.Base.System.Input_Stream.Input_Stream
 from Standard.Base.Data.Filter_Condition import sql_like_to_regex
 from Standard.Base.Metadata.Choice import Option
-from Standard.Base.Metadata.Widget import Single_Choice
+from Standard.Base.Metadata.Widget import Multiple_Choice, Single_Choice
 
+import project.Columns_To_Keep.Columns_To_Keep
 import project.Excel.Excel_Range.Excel_Range
+import project.Headers.Headers
 import project.Internal.Excel_Reader
 import project.Internal.Excel_Section.Excel_Section
 import project.Internal.Java_Problems
+import project.Internal.Problem_Builder.Problem_Builder
+import project.Match_Columns.Match_Columns
+import project.Rows_To_Read.Rows_To_Read
 import project.Table.Table
+from project.Errors import Empty_Sheet
+from project.Internal.Excel_Reader import handle_invalid_location
 
 polyglot java import java.io.File as Java_File
 polyglot java import org.apache.poi.ss.usermodel.Workbook
@@ -63,15 +72,21 @@ type Excel_Workbook
 
     ## PRIVATE
        Creates an Excel_Workbook connection.
-    Value (excel_connection_resource_ref : Ref (Managed_Resource ReadOnlyExcelConnection)) (file:(File|Temporary_File|Nothing)) xls_format:Boolean
+    private Value (excel_connection_resource_ref : Ref (Managed_Resource ReadOnlyExcelConnection)) (file:(File|Temporary_File|Nothing)) internal_xls_format:Boolean
 
-    ## ICON metadata
+    ## Is the Workbook in the old XLS format?
+    xls_format : Boolean
+    xls_format self = self.internal_xls_format
+
+    ## PRIVATE
+       ICON metadata
        Returns the list of databases (or catalogs) for the connection.
     databases : Nothing
     databases self = Nothing
 
-    ## ICON metadata
-       Returns the name of the current database (or catalog).
+    ## PRIVATE
+       ICON metadata
+       Returns the name of the current file.
     database : Text
     database self = case self.file of
         regular_file : File -> regular_file.path
@@ -79,31 +94,34 @@ type Excel_Workbook
            just an implementation detail - it is coming form a stream so there is no logical file it is associated with.
         _ -> ""
 
-    ## ICON data_input
-       Returns a new Connection with the specified database set as default.
+    ## PRIVATE
+       ICON data_input
+       Returns a new Workbook with the specified file.
 
        Arguments:
-        - database: The name of the database to connect to.
-    @database (Single_Choice display=Display.Always values=[Option 'Nothing'])
-    set_database : Text -> Excel_Workbook ! Illegal_Argument
+        - database: The target file to open as an Excel_Workbook.
+    set_database : Text | File -> Excel_Workbook ! Illegal_Argument
     set_database self database =
         if database == self.database then self else
             file = File.new database
             if file.exists && file.is_directory.not then Excel_Workbook.new file self.xls_format else
                 Error.throw (Illegal_Argument.Error "The specified file ('"+file.path+"') does not exist.")
 
-    ## ICON metadata
+    ## PRIVATE
+       ICON metadata
        Returns the list of schemas for the connection within the current database (or catalog).
     schemas : Vector (Text | Nothing)
     schemas self = [Nothing]
 
-    ## ICON metadata
+    ## PRIVATE
+       ICON metadata
        Returns the name of the current schema.
     schema : Text | Nothing
     schema self = Nothing
 
-    ## ICON data_input
-       Returns a new Connection with the specified schema set as default.
+    ## PRIVATE
+       ICON data_input
+       Returns a new Workbook with the specified schema set as default.
 
        Arguments:
         - schema: The name of the schema to connect to.
@@ -139,12 +157,14 @@ type Excel_Workbook
     named_ranges self = self.with_java_workbook java_workbook->
         Vector.from_polyglot_array (ExcelReader.readRangeNames java_workbook)
 
-    ## ICON metadata
+    ## PRIVATE
+       ICON metadata
        Gets a list of the table types.
     table_types : Vector Text
     table_types self = ['Worksheet', 'Named Range']
 
-    ## GROUP Standard.Base.Metadata
+    ## PRIVATE
+       GROUP Standard.Base.Metadata
        ICON metadata
        Returns a materialised Table of all the matching views and tables.
 
@@ -174,40 +194,46 @@ type Excel_Workbook
 
         Table.from_rows ['Name', 'Type', 'Database', 'Schema'] filtered
 
-    ## ICON data_input
+    ## PRIVATE
+       ICON data_input
        Read a range into a Table.
 
        Arguments:
        - query: sheet name, range name or address to read from the workbook.
        - alias: optionally specify a friendly alias for the query (unused).
-       - headers: whether to use the first row as headers (default is `Infer`).
+       - headers: whether to use the first row as headers (default is
+         `Detect_Headers`).
     @query (self-> Single_Choice display=Display.Always values=(self.tables.at "Name" . to_vector . map t-> Option t t.pretty))
-    query : Text -> Text -> Boolean | Infer -> Table
-    query self (query : Text) (alias : Text = "") (headers : Boolean | Infer = Infer) =
+    query : Text -> Text -> Headers -> Table
+    query self (query : Text) (alias : Text = "") (headers : Headers = Headers.Detect_Headers) =
         _ = [alias]
         self.read query headers=headers
 
-    ## ALIAS range, sheet, worksheet
+    ## ALIAS range, sheet, worksheet, get
        GROUP Standard.Base.Input
        ICON data_input
        Read a range into a Table.
 
        Arguments:
        - query: sheet name, range name or address to read from the workbook.
-       - headers: whether to use the first row as headers (default is `Infer`).
+       - headers: whether to use the first row as headers (default is
+         `Detect_Headers`).
        - limit: the maximum number of rows to read.
          If set to `Nothing`, all rows will be returned.
     @query (self-> Single_Choice display=Display.Always values=(self.tables.at "Name" . to_vector . map t-> Option t t.pretty))
-    read : Text | Excel_Range -> Boolean | Infer -> Integer | Nothing -> Table
-    read self (query : Text | Excel_Range) (headers : Boolean | Infer = Infer) (limit : Integer | Nothing = Nothing) =
+    @limit Rows_To_Read.default_widget
+    read : Text | Excel_Range -> Headers -> Rows_To_Read -> Problem_Behavior -> Table
+    read self (query : Text | Excel_Range) (headers : Headers = Headers.Detect_Headers) (limit : Rows_To_Read = ..All_Rows) (on_problems:Problem_Behavior=..Report_Warning) =
         java_headers = Excel_Reader.make_java_headers headers
-        java_table = Java_Problems.with_problem_aggregator Problem_Behavior.Report_Warning java_problem_aggregator->
+        java_limit = limit.rows_to_read
+        java_table = Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
             self.with_java_workbook java_workbook-> case query of
-                _ : Excel_Range -> ExcelReader.readRange java_workbook query.java_range java_headers 0 limit java_problem_aggregator
-                _ : Text -> ExcelReader.readRangeByName java_workbook query java_headers 0 limit java_problem_aggregator
-        Table.Value java_table
+                _ : Excel_Range -> ExcelReader.readRange java_workbook query.java_range java_headers 0 java_limit java_problem_aggregator
+                _ : Text -> ExcelReader.readRangeByName java_workbook query java_headers 0 java_limit java_problem_aggregator
+        limit.attach_warning (Table.Value java_table)
 
-    ## GROUP Standard.Base.Input
+    ## PRIVATE
+       GROUP Standard.Base.Input
        ICON data_input
        Read an Excel_Section from the Workbook
 
@@ -218,6 +244,7 @@ type Excel_Workbook
         case section of
             Excel_Section.Worksheet sheet headers skip_rows row_limit ->
                 java_headers = Excel_Reader.make_java_headers headers
+                java_limit = row_limit.rows_to_read
                 names = self.sheet_names
                 sheet_name = case sheet of
                     _ : Text -> if names.contains sheet then sheet else Error.throw (Illegal_Argument.Error "Worksheet not found.")
@@ -227,28 +254,31 @@ type Excel_Workbook
                     _ -> Error.throw (Illegal_Argument.Error "Worksheet must be either Text or an Integer.")
                 java_table = Java_Problems.with_problem_aggregator Problem_Behavior.Report_Warning java_problem_aggregator->
                     self.with_java_workbook java_workbook->
-                        ExcelReader.readRangeByName java_workbook sheet_name java_headers skip_rows row_limit java_problem_aggregator
-                Table.Value java_table
+                        ExcelReader.readRangeByName java_workbook sheet_name java_headers skip_rows java_limit java_problem_aggregator
+                row_limit.attach_warning (Table.Value java_table)
             Excel_Section.Cell_Range address headers skip_rows row_limit ->
                 java_headers = Excel_Reader.make_java_headers headers
+                java_limit = row_limit.rows_to_read
                 java_table = Java_Problems.with_problem_aggregator Problem_Behavior.Report_Warning java_problem_aggregator->
                     self.with_java_workbook java_workbook-> case address of
-                        _ : Excel_Range -> ExcelReader.readRange java_workbook address.java_range java_headers skip_rows row_limit java_problem_aggregator
-                        _ : Text -> ExcelReader.readRangeByName java_workbook address java_headers skip_rows row_limit java_problem_aggregator
-                Table.Value java_table
+                        _ : Excel_Range -> ExcelReader.readRange java_workbook address.java_range java_headers skip_rows java_limit java_problem_aggregator
+                        _ : Text -> ExcelReader.readRangeByName java_workbook address java_headers skip_rows java_limit java_problem_aggregator
+                row_limit.attach_warning (Table.Value java_table)
 
-    ## ALIAS get, worksheet
+    ## PRIVATE
        GROUP Standard.Base.Input
        ICON data_input
        Reads a worksheet from the workbook.
 
        Arguments:
        - name: the name of the worksheet to read.
-       - headers: whether to use the first row as headers (default is `Infer`).
+       - headers: whether to use the first row as headers (default is
+         `Detect_Headers`).
     @name (self-> Single_Choice display=Display.Always values=(self.sheet_names.map t-> Option t t.pretty))
-    sheet : Text | Integer -> Boolean | Infer -> Table
-    sheet self name:(Text | Integer) headers:(Boolean | Infer)=Infer =
-        self.read_section (Excel_Section.Worksheet name headers 0 Nothing)
+    sheet : Text | Integer -> Headers -> Table
+    sheet self name:(Text | Integer) headers:Headers=Headers.Detect_Headers =
+        Warning.attach (Deprecated.Warning "Standard.Table.Excel.Excel_Workbook.Excel_Workbook" "sheet" "Deprecated: use `read` instead.") <|
+            self.read_section (Excel_Section.Worksheet name headers 0 Nothing)
 
     ## PRIVATE
        ADVANCED
@@ -281,20 +311,69 @@ type Excel_Workbook
        Provides a JS object representation for use in visualizations.
     to_js_object : JS_Object
     to_js_object self =
+        values=(self.tables.at "Name" . to_vector)
         additional_fields = case self.file of
-            regular_file : File -> [["file", regular_file.path]]
+            regular_file : File -> [["file", regular_file.path], ["sheet_names", values]]
             _ -> []
         JS_Object.from_pairs <|
             [["type", "Excel_Workbook"], ["xls_format", self.xls_format]] + additional_fields
 
     ## PRIVATE
     with_java_workbook : (Workbook -> Any) -> Any ! Illegal_State
-    with_java_workbook self f = Illegal_State.handle_java_exception <|
+    with_java_workbook self f = Illegal_State.handle_java_exception <| handle_invalid_location <| Empty_Sheet.handle_java_exception <|
         case self.excel_connection_resource_ref.get of
             Nothing ->
                 Error.throw (Illegal_State.Error "The workbook is being used after it was closed.")
             resource -> resource.with connection->
                 connection.withWorkbook f
 
+    ## GROUP Standard.Base.Input
+       ICON data_input
+       Reads one or more sheets into a Table.
+
+       Arguments:
+       - sheet_names: the names of sheets, ranges or addresses to read.
+         Defaults to all sheets. An invalid `sheet_name` will be reported as a
+         problem.
+       - headers: whether to use the first row as headers (default is
+         `Detect_Headers`) for each sheet.
+       - return: how to return the tables. Defaults to `Merged_Table` meaning
+         the tables are merged into a single table.
+       - on_problems: how to handle problems during reading. Defaults to
+         `Report_Warning`.
+    @sheet_names build_sheet_selector
+    read_many : Vector Text -> Headers -> Return_As -> Problem_Behavior -> Table
+    read_many self sheet_names:Vector=self.sheet_names (headers:Headers=..Detect_Headers) (return:Return_As=..Merged_Table) (on_problems:Problem_Behavior=..Report_Warning) =
+        if sheet_names.is_empty then Error.throw (Illegal_Argument.Error "No sheets selected.") else
+            tables = sheet_names.map on_problems=on_problems address-> self.read address headers on_problems=on_problems
+            case return of
+                Return_As.Table_Of_Tables -> Table.new [["Sheet Name", sheet_names], ["Table", tables]]
+                Return_As.Merged_Table columns_to_keep match ->
+                    first_tbl = tables.find t-> t != Nothing
+                    if first_tbl == Nothing then Error.throw (Illegal_Argument.Error "No valid sheets found.") else
+                        unique = first_tbl.column_naming_helper.create_unique_name_strategy
+                        tables.each tbl-> if tbl != Nothing then unique.mark_used tbl.column_names
+                        new_column_name = unique.make_unique "Sheet Name"
+
+                        with_names = tables.zip sheet_names tbl->name-> if tbl == Nothing then Nothing else tbl.set name new_column_name . reorder_columns [new_column_name]
+                        result = Table.from_union (with_names.filter Filter_Condition.Not_Nothing) columns_to_keep=columns_to_keep match_columns=match
+
+                        problem_builder = Problem_Builder.new
+                        problem_builder.report_unique_name_strategy unique
+                        problem_builder.attach_problems_after on_problems result
+
 ## PRIVATE
 close_connection c = c.close
+
+## PRIVATE
+build_sheet_selector workbook:Excel_Workbook display:Display=Display.Always -> Widget =
+    names = workbook.sheet_names.map n-> Option n n.pretty
+    Multiple_Choice display=display values=names
+
+## How to merge sheets into a single table.
+type Return_As
+    ## Each sheet is returned as a row.
+    Table_Of_Tables
+
+    ## All sheets are merged into a single table. A union operation is performed.
+    Merged_Table (columns_to_keep : Columns_To_Keep = Columns_To_Keep.In_Any) (match : Match_Columns = Match_Columns.By_Name)

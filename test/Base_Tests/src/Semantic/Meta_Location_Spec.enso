@@ -3,6 +3,8 @@ import Standard.Base
 
 from Standard.Test import all
 
+polyglot java import org.enso.base_test_helpers.CallbackHelper
+
 
 type My_Type
     Value foo bar baz
@@ -14,15 +16,15 @@ add_specs suite_builder = suite_builder.group "Meta-Value Inspection" group_buil
 
     group_builder.specify "should allow to get the source location of a frame" pending=location_pending <|
         src = Meta.get_source_location 0
-        loc = "Meta_Location_Spec.enso:16:15-40"
-        src.take (Last loc.length) . should_equal loc
+        loc = "Meta_Location_Spec.enso:18:15-40"
+        src.take (..Last loc.length) . should_equal loc
 
     group_builder.specify "should allow to get qualified type names of values" <|
         x = 42
         y = My_Type.Value 1 2 3
         Meta.get_qualified_type_name x . should_equal "Standard.Base.Data.Numbers.Integer"
         Meta.get_simple_type_name x . should_equal "Integer"
-        Meta.get_qualified_type_name y . should_equal "enso_dev.Base_Tests.Semantic.Meta_Location_Spec.My_Type"
+        Meta.get_qualified_type_name y . should_end_with "Meta_Location_Spec.My_Type"
         Meta.get_simple_type_name y . should_equal "My_Type"
 
     group_builder.specify "should allow access to package names" <|
@@ -31,6 +33,20 @@ add_specs suite_builder = suite_builder.group "Meta-Value Inspection" group_buil
 
     group_builder.specify "should allow to fetch enso project description from a module" <|
         (Project_Description.new Standard.Base.Data.Vector).name.should_equal "Base"
+
+    group_builder.specify "enso_project can be called from polyglot code" <|
+        proj_name = js_proj_name (_ -> enso_project.name)
+        proj_name . should_equal "Base_Tests"
+
+    group_builder.specify "enso_project can be called from Java code" <|
+        callback _ = enso_project.name
+        res = CallbackHelper.runCallbackInt callback 42
+        res . should_equal "Base_Tests"
+
+
+foreign js js_proj_name proj_name_fn = """
+    return proj_name_fn(42);
+
 
 main filter=Nothing =
     suite = Test.build suite_builder->

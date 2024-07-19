@@ -5,6 +5,7 @@ import Standard.Base.Metadata.Display
 from Standard.Base.Metadata.Choice import Option
 from Standard.Base.Metadata.Widget import Single_Choice
 
+import Standard.Table.Rows_To_Read.Rows_To_Read
 from Standard.Table import Table
 
 import Standard.Database.Column_Description.Column_Description
@@ -32,12 +33,15 @@ type Snowflake_Connection
     create : Text -> Vector -> (Text -> Text -> Snowflake_Connection) -> Snowflake_Connection
     create url properties make_new =
         jdbc_connection = JDBC_Connection.create url properties
-        entity_naming_properties = Entity_Naming_Properties.from_jdbc_connection jdbc_connection is_case_sensitive=False
+        ## As long as names are quoted, the Snowflake SQL dialect is case sensitive.
+           Our generator always quotes identifiers, so we can rely on the case sensitivity.
+           This is the same as in Postgres.
+        entity_naming_properties = Entity_Naming_Properties.from_jdbc_connection jdbc_connection is_case_sensitive=True
         Snowflake_Connection.Value (Connection.new jdbc_connection Snowflake_Dialect.snowflake entity_naming_properties) make_new
 
     ## PRIVATE
 
-       A Postgres database connection.
+       A Snowflake database connection.
 
        Arguments:
        - connection: the underlying connection.
@@ -94,7 +98,7 @@ type Snowflake_Connection
     @database (self-> Single_Choice display=Display.Always values=(self.databases . map d-> Option d d.pretty))
     set_database : Text -> Connection ! SQL_Error
     set_database self database =
-        if database == self.database then self else
+        if database . equals_ignore_case self.database then self else
             self.make_new database Nothing Nothing
 
     ## ICON metadata
@@ -116,7 +120,7 @@ type Snowflake_Connection
     @schema make_schema_selector
     set_schema : Text -> Connection ! SQL_Error
     set_schema self schema =
-        if schema == self.schema then self else
+        if schema . equals_ignore_case self.schema then self else
             self.make_new Nothing schema Nothing
 
     ## GROUP Standard.Base.Metadata
@@ -185,9 +189,6 @@ type Snowflake_Connection
          If supplied as `Text`, the name is checked against the `tables` list to
          determine if it is a table or a query.
        - limit: the maximum number of rows to read.
-         If set to `Nothing`, all rows will be returned.
-       - warn_if_more_rows: if set to `True`, a warning is attached to the
-         result if the number of rows returned by the query exceeds `limit`.
 
        ? Side Effects
 
@@ -197,9 +198,10 @@ type Snowflake_Connection
          `execute_update` for DML queries, or if they are supposed to return
          results, the `read` should be wrapped in an execution context check.
     @query make_table_name_selector
-    read : Text | SQL_Query -> Integer | Nothing -> Boolean -> Table ! Table_Not_Found
-    read self query (limit : Integer | Nothing = 1000) (warn_if_more_rows : Boolean = True) =
-        self.connection.read query limit warn_if_more_rows
+    @limit Rows_To_Read.default_widget
+    read : Text | SQL_Query -> Rows_To_Read -> Table ! Table_Not_Found
+    read self query (limit : Rows_To_Read = ..First_With_Warning 1000) =
+        self.connection.read query limit
 
     ## GROUP Standard.Base.Output
        ICON data_output
@@ -245,7 +247,7 @@ type Snowflake_Connection
          a `Dry_Run_Operation` warning attached.
     @structure make_structure_creator
     create_table : Text  -> Vector Column_Description | DB_Table | Table -> Vector Text | Nothing -> Boolean -> Boolean -> Problem_Behavior -> DB_Table ! Table_Already_Exists
-    create_table self (table_name : Text) (structure : Vector Column_Description | DB_Table | Table) (primary_key : (Vector Text | Nothing) = [first_column_name_in_structure structure]) (temporary : Boolean = False) (allow_existing : Boolean = False) (on_problems:Problem_Behavior = Problem_Behavior.Report_Warning) =
+    create_table self (table_name : Text) (structure : Vector Column_Description | DB_Table | Table) (primary_key : (Vector Text | Nothing) = [first_column_name_in_structure structure]) (temporary : Boolean = False) (allow_existing : Boolean = False) (on_problems:Problem_Behavior = ..Report_Warning) =
         self.connection.create_table table_name structure primary_key temporary allow_existing on_problems
 
     ## ADVANCED

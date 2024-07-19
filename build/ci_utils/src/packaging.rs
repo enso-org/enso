@@ -60,7 +60,7 @@ mod tests {
     #[tokio::test]
     #[ignore]
     async fn lookup_dependencies() -> Result {
-        setup_logging()?;
+        setup_logging().ok();
         vs::apply_dev_environment().await?;
         let binary = Path::new(
             r"H:\NBO\enso\built-distribution\enso-engine-2024.1.1-dev-windows-amd64\enso-2024.1.1-dev\component\enso_parser.dll",

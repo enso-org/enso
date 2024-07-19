@@ -337,6 +337,36 @@ fn type_def_body<'s>(
 
 fn to_body_statement(mut line_expression: syntax::Tree<'_>) -> syntax::Tree<'_> {
     use syntax::tree::*;
+
+    // Unwrap `Private` tree from any `Invalid` added in expression context; it will be revalidated
+    // in the new context.
+    if let Tree {
+        variant:
+            box Variant::Invalid(Invalid {
+                ast: mut inner @ Tree { variant: box Variant::Private(_), .. },
+                ..
+            }),
+        span,
+    } = line_expression
+    {
+        inner.span = span;
+        return to_body_statement(inner);
+    }
+    // Recurse into body of `Private` keyword; validate usage of the keyword in type-body context.
+    if let Tree { variant: box Variant::Private(ref mut private), .. } = &mut line_expression {
+        let body_statement = private.body.take().map(to_body_statement);
+        let error = match body_statement.as_ref().map(|tree| &*tree.variant) {
+            Some(Variant::ConstructorDefinition(_)) => None,
+            Some(Variant::Function(_)) => None,
+            None => Some("Expected declaration after `private` keyword in type definition."),
+            _ => Some("The `private` keyword inside a type definition may only be applied to a constructor definition or a method."),
+        };
+        private.body = body_statement;
+        return match error {
+            Some(error) => line_expression.with_error(error),
+            None => line_expression,
+        };
+    }
     if let Tree { variant: box Variant::Documented(Documented { expression, .. }), .. } =
         &mut line_expression
     {
@@ -696,7 +726,7 @@ fn splice_body<'s>(
     let expression = segment.result.tokens();
     let expression = precedence.resolve(expression);
     let splice = syntax::tree::TextElement::Splice { open, expression, close };
-    syntax::Tree::text_literal(default(), default(), vec![splice], default(), default())
+    syntax::Tree::text_literal(default(), default(), vec![splice], default())
 }
 
 fn foreign<'s>() -> Definition<'s> {
@@ -715,14 +745,33 @@ fn freeze<'s>() -> Definition<'s> {
     crate::macro_definition! {("FREEZE", everything()) capture_expressions}
 }
 
+/// private can be either specified as the very first statement in the module, marking the
+/// whole module as private. Or it can be prepended to some definitions. For example it can
+/// be prepended to atom constructor definition and a method.
 fn private_keyword<'s>(
     segments: NonEmptyVec<MatchedSegment<'s>>,
     precedence: &mut operator::Precedence<'s>,
 ) -> syntax::Tree<'s> {
+    use syntax::tree::*;
     let segment = segments.pop().0;
     let keyword = into_private(segment.header);
-    let body = precedence.resolve(segment.result.tokens());
-    syntax::Tree::private(keyword, body)
+    let body_opt = precedence.resolve(segment.result.tokens());
+    match body_opt {
+        Some(body) => {
+            let statement = crate::expression_to_statement(body);
+            match statement.variant {
+                box Variant::ConstructorDefinition(_) => Tree::private(keyword, Some(statement)),
+                box Variant::Function(_) => Tree::private(keyword, Some(statement)),
+                _ => Tree::private(keyword, Some(statement))
+                    .with_error("The 'private' keyword cannot be applied to this expression"),
+            }
+        }
+        None => {
+            // Just a private keyword without a body. This is valid as the first statement in the
+            // module, to declare the module as private.
+            Tree::private(keyword, None)
+        }
+    }
 }
 
 /// Macro body builder that just parses the tokens of each segment as expressions, and places them

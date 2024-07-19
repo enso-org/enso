@@ -1,8 +1,11 @@
 package org.enso.interpreter.node.callable;
 
 import com.oracle.truffle.api.CompilerDirectives;
-import com.oracle.truffle.api.dsl.*;
+import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Cached.Shared;
+import com.oracle.truffle.api.dsl.GenerateUncached;
+import com.oracle.truffle.api.dsl.NonIdempotent;
+import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.Constants;
@@ -39,7 +42,7 @@ public abstract class InteropApplicationNode extends Node {
    * @param arguments the arguments for the function.
    * @return the result of calling the function.
    */
-  public abstract Object execute(Function function, Object state, Object[] arguments);
+  public abstract Object execute(Function function, State state, Object[] arguments);
 
   @CompilerDirectives.TruffleBoundary
   CallArgumentInfo[] buildSchema(int length) {
@@ -84,7 +87,7 @@ public abstract class InteropApplicationNode extends Node {
   @Specialization(replaces = "callCached")
   Object callUncached(
       Function function,
-      Object state,
+      State state,
       Object[] arguments,
       @Cached IndirectInvokeFunctionNode indirectInvokeFunctionNode,
       @Shared @Cached("build()") HostValueToEnsoNode hostValueToEnsoNode) {

@@ -7,10 +7,10 @@ import {
 import { readSyncMessage, writeSyncStep1, writeUpdate } from 'y-protocols/sync'
 import * as Y from 'yjs'
 
+import WebSocket from 'isomorphic-ws'
 import * as decoding from 'lib0/decoding'
 import * as encoding from 'lib0/encoding'
 import { ObservableV2 } from 'lib0/observable'
-import { WebSocket } from 'ws'
 import { LanguageServerSession } from './languageServerSession'
 
 const pingTimeout = 30000
@@ -200,6 +200,7 @@ class YjsConnection extends ObservableV2<{ close(): void }> {
       }
     } catch (err) {
       console.error(err)
+      // @ts-ignore
       this.wsDoc.doc.emit('error', [err])
     }
   }
@@ -213,6 +214,7 @@ class YjsConnection extends ObservableV2<{ close(): void }> {
     this.ws.close()
     this.emit('close', [])
     if (this.wsDoc.conns.size === 0) {
+      // @ts-ignore
       this.wsDoc.doc.emit('unload', [])
     }
   }

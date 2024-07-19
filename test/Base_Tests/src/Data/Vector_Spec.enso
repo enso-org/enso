@@ -1,11 +1,13 @@
 from Standard.Base import all
 from Standard.Base.Data.Array_Proxy import Array_Proxy
 import Standard.Base.Errors.Empty_Error.Empty_Error
+import Standard.Base.Data.Vector.Builder
 import Standard.Base.Data.Vector.Map_Error
 import Standard.Base.Data.Vector.No_Wrap
 import Standard.Base.Errors.Common.Additional_Warnings
 import Standard.Base.Errors.Common.Incomparable_Values
 import Standard.Base.Errors.Common.Index_Out_Of_Bounds
+import Standard.Base.Errors.Common.Missing_Argument
 import Standard.Base.Errors.Common.Not_Found
 import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Common.Unsupported_Argument_Types
@@ -13,7 +15,7 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Unimplemented.Unimplemented
 import Standard.Base.Runtime.Ref.Ref
 import Standard.Base.Runtime.State
-from Standard.Base.Data.Index_Sub_Range.Index_Sub_Range import While, By_Index, Sample, Every
+from Standard.Base.Panic import Wrapped_Dataflow_Error
 
 from Standard.Test import all
 
@@ -24,10 +26,12 @@ type T
     Value a b
 
 type T_Comparator
-    compare t1 t2 = Comparable.from t1.a . compare t1.a t2.a
-    hash t = Comparable.from t.a . hash t.a
+    compare t1 t2 =
+        Ordering.compare t1.a t2.a
+    hash t =
+        Ordering.hash t.a
 
-Comparable.from (_:T) = T_Comparator
+Comparable.from (that:T) = Comparable.new that T_Comparator
 
 ## Type that violates reflexivity
 type My_Nan
@@ -37,7 +41,7 @@ type My_Nan_Comparator
     compare _ _ = Nothing
     hash _ = 0
 
-Comparable.from (_:My_Nan) = My_Nan_Comparator
+Comparable.from (that:My_Nan) = Comparable.new that My_Nan_Comparator
 
 type My_Error
     Error a
@@ -164,10 +168,10 @@ type_spec suite_builder name alter = suite_builder.group name group_builder->
         vec.any (ix -> ix > 3) . should_be_true
         vec.any (ix -> ix < 0) . should_be_false
 
-        vec.any (Filter_Condition.Greater 0) . should_be_true
-        vec.any (Filter_Condition.Greater 0 Filter_Action.Remove) . should_be_false
-        vec.any (Filter_Condition.Less 3) . should_be_true
-        vec.any (Filter_Condition.Less 0) . should_be_false
+        vec.any (..Greater 0) . should_be_true
+        vec.any (..Greater 0 Filter_Action.Remove) . should_be_false
+        vec.any (..Less 3) . should_be_true
+        vec.any (..Less 0) . should_be_false
 
         Test.expect_panic_with matcher=Type_Error (vec.any "invalid argument")
 
@@ -176,9 +180,9 @@ type_spec suite_builder name alter = suite_builder.group name group_builder->
         vec.all (ix -> ix > 0) . should_be_true
         vec.all (ix -> ix < 5) . should_be_false
 
-        vec.all (Filter_Condition.Greater 0) . should_be_true
-        vec.all (Filter_Condition.Greater 0 Filter_Action.Remove) . should_be_false
-        vec.all (Filter_Condition.Less 3) . should_be_false
+        vec.all (..Greater 0) . should_be_true
+        vec.all (..Greater 0 Filter_Action.Remove) . should_be_false
+        vec.all (..Less 3) . should_be_false
 
         Test.expect_panic_with matcher=Type_Error (vec.all "invalid argument")
 
@@ -208,159 +212,159 @@ type_spec suite_builder name alter = suite_builder.group name group_builder->
 
     group_builder.specify "should filter numerical elements by Filter_Condition" <|
         vec = alter [1, 2, 3, 4, 5]
-        vec.filter (Filter_Condition.Greater 3) . should_equal [4, 5]
-        vec.filter (Filter_Condition.Greater 3 Filter_Action.Remove) . should_equal [1, 2, 3]
-        vec.filter (Filter_Condition.Less 3.5) . should_equal [1, 2, 3]
-        vec.filter (Filter_Condition.Less 3.5 Filter_Action.Remove) . should_equal [4, 5]
-        vec.filter (Filter_Condition.Equal 3) . should_equal [3]
-        vec.filter (Filter_Condition.Equal 3 Filter_Action.Remove) . should_equal [1, 2, 4, 5]
-        vec.filter (Filter_Condition.Not_Equal 3) . should_equal [1, 2, 4, 5]
-        vec.filter (Filter_Condition.Not_Equal 3 Filter_Action.Remove) . should_equal [3]
-        vec.filter (Filter_Condition.Equal_Or_Greater 3) . should_equal [3, 4, 5]
-        vec.filter (Filter_Condition.Equal_Or_Greater 3 Filter_Action.Remove) . should_equal [1, 2]
-        vec.filter (Filter_Condition.Equal_Or_Less (-1)) . should_equal []
-        vec.filter (Filter_Condition.Equal_Or_Less (-1) Filter_Action.Remove) . should_equal [1, 2, 3, 4, 5]
-        vec.filter (Filter_Condition.Between 2 4) . should_equal [2, 3, 4]
-        vec.filter (Filter_Condition.Between 2.1 4.5) . should_equal [3, 4]
-        vec.filter (Filter_Condition.Between 2 4 Filter_Action.Remove) . should_equal [1, 5]
-        vec.filter (Filter_Condition.Is_In [7, 3, 2, 2, 2]) . should_equal [2, 3]
-        vec.filter (Filter_Condition.Is_In [7, 3, 2] Filter_Action.Remove) . should_equal [1, 4, 5]
+        vec.filter (..Greater 3) . should_equal [4, 5]
+        vec.filter (..Greater 3 Filter_Action.Remove) . should_equal [1, 2, 3]
+        vec.filter (..Less 3.5) . should_equal [1, 2, 3]
+        vec.filter (..Less 3.5 Filter_Action.Remove) . should_equal [4, 5]
+        vec.filter (..Equal 3) . should_equal [3]
+        vec.filter (..Equal 3 Filter_Action.Remove) . should_equal [1, 2, 4, 5]
+        vec.filter (..Not_Equal 3) . should_equal [1, 2, 4, 5]
+        vec.filter (..Not_Equal 3 Filter_Action.Remove) . should_equal [3]
+        vec.filter (..Equal_Or_Greater 3) . should_equal [3, 4, 5]
+        vec.filter (..Equal_Or_Greater 3 Filter_Action.Remove) . should_equal [1, 2]
+        vec.filter (..Equal_Or_Less (-1)) . should_equal []
+        vec.filter (..Equal_Or_Less (-1) Filter_Action.Remove) . should_equal [1, 2, 3, 4, 5]
+        vec.filter (..Between 2 4) . should_equal [2, 3, 4]
+        vec.filter (..Between 2.1 4.5) . should_equal [3, 4]
+        vec.filter (..Between 2 4 Filter_Action.Remove) . should_equal [1, 5]
+        vec.filter (..Is_In [7, 3, 2, 2, 2]) . should_equal [2, 3]
+        vec.filter (..Is_In [7, 3, 2] Filter_Action.Remove) . should_equal [1, 4, 5]
 
-        vec.filter Filter_Condition.Is_Nothing . should_equal []
-        vec.filter (Filter_Condition.Is_Nothing Filter_Action.Remove) . should_equal [1, 2, 3, 4, 5]
-        vec.filter Filter_Condition.Not_Nothing . should_equal [1, 2, 3, 4, 5]
-        vec.filter (Filter_Condition.Not_Nothing Filter_Action.Remove) . should_equal []
+        vec.filter ..Is_Nothing . should_equal []
+        vec.filter (..Is_Nothing Filter_Action.Remove) . should_equal [1, 2, 3, 4, 5]
+        vec.filter ..Not_Nothing . should_equal [1, 2, 3, 4, 5]
+        vec.filter (..Not_Nothing Filter_Action.Remove) . should_equal []
 
         numvec = alter [1, 2.5, Number.nan, Number.positive_infinity, Number.negative_infinity, 0]
         # We need to use to_text because NaN!=NaN
-        numvec.filter Filter_Condition.Is_Nan . map .to_text . should_equal ["NaN"]
-        numvec.filter (Filter_Condition.Is_Nan Filter_Action.Remove) . should_equal [1, 2.5, Number.positive_infinity, Number.negative_infinity, 0]
-        numvec.filter Filter_Condition.Is_Infinite . should_equal [Number.positive_infinity, Number.negative_infinity]
-        numvec.filter (Filter_Condition.Is_Infinite Filter_Action.Remove) . length . should_equal 4
-        numvec.filter Filter_Condition.Is_Finite . should_equal [1, 2.5, 0]
-        numvec.filter (Filter_Condition.Is_Finite Filter_Action.Remove) . length . should_equal 3
+        numvec.filter ..Is_Nan . map .to_text . should_equal ["NaN"]
+        numvec.filter (..Is_Nan Filter_Action.Remove) . should_equal [1, 2.5, Number.positive_infinity, Number.negative_infinity, 0]
+        numvec.filter ..Is_Infinite . should_equal [Number.positive_infinity, Number.negative_infinity]
+        numvec.filter (..Is_Infinite Filter_Action.Remove) . length . should_equal 4
+        numvec.filter ..Is_Finite . should_equal [1, 2.5, 0]
+        numvec.filter (..Is_Finite Filter_Action.Remove) . length . should_equal 3
 
         ## Text based filters should fail with type error
-        Test.expect_panic Type_Error (vec.filter (Filter_Condition.Starts_With "a"))
-        Test.expect_panic Type_Error (vec.filter (Filter_Condition.Ends_With "a"))
-        Test.expect_panic Type_Error (vec.filter (Filter_Condition.Contains "a"))
-        Test.expect_panic Type_Error (vec.filter (Filter_Condition.Equal_Ignore_Case "a"))
-        Test.expect_panic Type_Error (vec.filter (Filter_Condition.Like "a%"))
-        Test.expect_panic Type_Error (vec.filter Filter_Condition.Is_Empty)
-        Test.expect_panic Type_Error (vec.filter Filter_Condition.Not_Empty)
+        Test.expect_panic Type_Error (vec.filter (..Starts_With "a"))
+        Test.expect_panic Type_Error (vec.filter (..Ends_With "a"))
+        Test.expect_panic Type_Error (vec.filter (..Contains "a"))
+        Test.expect_panic Type_Error (vec.filter (..Equal_Ignore_Case "a"))
+        Test.expect_panic Type_Error (vec.filter (..Like "a%"))
+        Test.expect_panic Type_Error (vec.filter ..Is_Empty)
+        Test.expect_panic Type_Error (vec.filter ..Not_Empty)
 
         ## Boolean based filters should fail with type error
-        Test.expect_panic Type_Error (vec.filter Filter_Condition.Is_True)
-        Test.expect_panic Type_Error (vec.filter Filter_Condition.Is_False)
+        Test.expect_panic Type_Error (vec.filter ..Is_True)
+        Test.expect_panic Type_Error (vec.filter ..Is_False)
 
-    group_builder.specify "should filter text elements by Filter_Condition" <|
+    group_builder.specify "should filter text elements by ." <|
         txtvec = alter ["aaa", "bbb", "abab", "cccc", "baaa", "ś"]
-        txtvec.filter (Filter_Condition.Contains "a") . should_equal ["aaa", "abab", "baaa"]
-        txtvec.filter (Filter_Condition.Contains "a" action=Filter_Action.Remove) . should_equal ["bbb", "cccc", "ś"]
-        txtvec.filter (Filter_Condition.Contains 'A' Case_Sensitivity.Sensitive) . should_equal []
-        txtvec.filter (Filter_Condition.Contains 'A' Case_Sensitivity.Insensitive) . should_equal ["aaa", "abab", "baaa"]
-        txtvec.filter (Filter_Condition.Contains 's\u0301') . should_equal ["ś"]
-        txtvec.filter (Filter_Condition.Contains 'S\u0301' Case_Sensitivity.Sensitive) . should_equal []
-        txtvec.filter (Filter_Condition.Contains 'S\u0301' Case_Sensitivity.Insensitive) . should_equal ["ś"]
-        Test.expect_panic_with (txtvec.filter (Filter_Condition.Contains 42)) Unsupported_Argument_Types
-        txtvec.filter (Filter_Condition.Starts_With "a") . should_equal ["aaa", "abab"]
-        txtvec.filter (Filter_Condition.Starts_With "a" action=Filter_Action.Remove) . should_equal ["bbb", "cccc", "baaa", "ś"]
-        txtvec.filter (Filter_Condition.Starts_With "A" Case_Sensitivity.Sensitive) . should_equal []
-        txtvec.filter (Filter_Condition.Starts_With "A" Case_Sensitivity.Insensitive) . should_equal ["aaa", "abab"]
-        Test.expect_panic_with (txtvec.filter (Filter_Condition.Starts_With 42)) Unsupported_Argument_Types
-        txtvec.filter (Filter_Condition.Ends_With "a") . should_equal ["aaa", "baaa"]
-        txtvec.filter (Filter_Condition.Ends_With "a" action=Filter_Action.Remove) . should_equal ["bbb", "abab", "cccc", "ś"]
-        txtvec.filter (Filter_Condition.Ends_With "A" Case_Sensitivity.Sensitive) . should_equal []
-        txtvec.filter (Filter_Condition.Ends_With "A" Case_Sensitivity.Insensitive) . should_equal ["aaa", "baaa"]
-        Test.expect_panic_with (txtvec.filter (Filter_Condition.Ends_With 42)) Unsupported_Argument_Types
+        txtvec.filter (..Contains "a") . should_equal ["aaa", "abab", "baaa"]
+        txtvec.filter (..Contains "a" action=Filter_Action.Remove) . should_equal ["bbb", "cccc", "ś"]
+        txtvec.filter (..Contains 'A' Case_Sensitivity.Sensitive) . should_equal []
+        txtvec.filter (..Contains 'A' Case_Sensitivity.Insensitive) . should_equal ["aaa", "abab", "baaa"]
+        txtvec.filter (..Contains 's\u0301') . should_equal ["ś"]
+        txtvec.filter (..Contains 'S\u0301' Case_Sensitivity.Sensitive) . should_equal []
+        txtvec.filter (..Contains 'S\u0301' Case_Sensitivity.Insensitive) . should_equal ["ś"]
+        Test.expect_panic_with (txtvec.filter (..Contains 42)) Unsupported_Argument_Types
+        txtvec.filter (..Starts_With "a") . should_equal ["aaa", "abab"]
+        txtvec.filter (..Starts_With "a" action=Filter_Action.Remove) . should_equal ["bbb", "cccc", "baaa", "ś"]
+        txtvec.filter (..Starts_With "A" Case_Sensitivity.Sensitive) . should_equal []
+        txtvec.filter (..Starts_With "A" Case_Sensitivity.Insensitive) . should_equal ["aaa", "abab"]
+        Test.expect_panic_with (txtvec.filter (..Starts_With 42)) Unsupported_Argument_Types
+        txtvec.filter (..Ends_With "a") . should_equal ["aaa", "baaa"]
+        txtvec.filter (..Ends_With "a" action=Filter_Action.Remove) . should_equal ["bbb", "abab", "cccc", "ś"]
+        txtvec.filter (..Ends_With "A" Case_Sensitivity.Sensitive) . should_equal []
+        txtvec.filter (..Ends_With "A" Case_Sensitivity.Insensitive) . should_equal ["aaa", "baaa"]
+        Test.expect_panic_with (txtvec.filter (..Ends_With 42)) Unsupported_Argument_Types
 
-        txtvec.filter (Filter_Condition.Less than="a") . should_equal []
-        txtvec.filter (Filter_Condition.Greater than="b") . should_equal ["bbb", "cccc", "baaa", "ś"]
-        txtvec.filter (Filter_Condition.Between "b" "c") . should_equal ["bbb", "baaa"]
-        txtvec.filter (Filter_Condition.Is_In [1, 2]) . should_equal []
-        txtvec.filter (Filter_Condition.Is_In ["bbb", 's\u0301', "bbb", "FOOBAR"]) . should_equal ["bbb", "ś"]
+        txtvec.filter (..Less than="a") . should_equal []
+        txtvec.filter (..Greater than="b") . should_equal ["bbb", "cccc", "baaa", "ś"]
+        txtvec.filter (..Between "b" "c") . should_equal ["bbb", "baaa"]
+        txtvec.filter (..Is_In [1, 2]) . should_equal []
+        txtvec.filter (..Is_In ["bbb", 's\u0301', "bbb", "FOOBAR"]) . should_equal ["bbb", "ś"]
 
         ## Boolean based filters should fail with type error
-        Test.expect_panic Type_Error (txtvec.filter Filter_Condition.Is_True)
-        Test.expect_panic Type_Error (txtvec.filter Filter_Condition.Is_False)
+        Test.expect_panic Type_Error (txtvec.filter ..Is_True)
+        Test.expect_panic Type_Error (txtvec.filter ..Is_False)
 
-        alter ["", Nothing, " ", "a"] . filter (Filter_Condition.Is_Empty) . should_equal ["", Nothing]
-        alter ["", Nothing, " ", "a"] . filter (Filter_Condition.Not_Empty) . should_equal [" ", "a"]
-        alter ["abab", "aaabaaaa", "ba"] . filter (Filter_Condition.Like "ba") . should_equal ["ba"]
-        alter ["abab", "aaabaaaa"] . filter (Filter_Condition.Like "_ba_") . should_equal ["abab"]
-        alter ["abab", "aaabaaaa"] . filter (Filter_Condition.Like "%ba__%") . should_equal ["aaabaaaa"]
-        alter ["aaaa", "bbbbb", "[ab]aaaa"] . filter (Filter_Condition.Like "[ab]%") . should_equal ["[ab]aaaa"]
-        alter ["f.txt", "abc.*"] . filter (Filter_Condition.Like "%.*") . should_equal ["abc.*"]
+        alter ["", Nothing, " ", "a"] . filter (..Is_Empty) . should_equal ["", Nothing]
+        alter ["", Nothing, " ", "a"] . filter (..Not_Empty) . should_equal [" ", "a"]
+        alter ["abab", "aaabaaaa", "ba"] . filter (..Like "ba") . should_equal ["ba"]
+        alter ["abab", "aaabaaaa"] . filter (..Like "_ba_") . should_equal ["abab"]
+        alter ["abab", "aaabaaaa"] . filter (..Like "%ba__%") . should_equal ["aaabaaaa"]
+        alter ["aaaa", "bbbbb", "[ab]aaaa"] . filter (..Like "[ab]%") . should_equal ["[ab]aaaa"]
+        alter ["f.txt", "abc.*"] . filter (..Like "%.*") . should_equal ["abc.*"]
 
         txt2 = alter ['a\n\n\n', 'a\n', 'a\n\n\nb', 'a\nb', 'caa\nbb']
-        txt2.filter (Filter_Condition.Like 'a_') . should_equal ['a\n']
-        txt2.filter (Filter_Condition.Like 'a_' Filter_Action.Remove) . should_equal ['a\n\n\n', 'a\n\n\nb', 'a\nb', 'caa\nbb']
-        txt2.filter (Filter_Condition.Like 'a%') . should_equal ['a\n\n\n', 'a\n', 'a\n\n\nb', 'a\nb']
-        txt2.filter (Filter_Condition.Like 'a_b') . should_equal ['a\nb']
-        txt2.filter (Filter_Condition.Like '%\nb') . should_equal ['a\n\n\nb', 'a\nb']
+        txt2.filter (..Like 'a_') . should_equal ['a\n']
+        txt2.filter (..Like 'a_' Filter_Action.Remove) . should_equal ['a\n\n\n', 'a\n\n\nb', 'a\nb', 'caa\nbb']
+        txt2.filter (..Like 'a%') . should_equal ['a\n\n\n', 'a\n', 'a\n\n\nb', 'a\nb']
+        txt2.filter (..Like 'a_b') . should_equal ['a\nb']
+        txt2.filter (..Like '%\nb') . should_equal ['a\n\n\nb', 'a\nb']
 
         ## NUmber based filters should fail with type error
-        Test.expect_panic Type_Error (txtvec.filter Filter_Condition.Is_Nan)
-        Test.expect_panic Type_Error (txtvec.filter Filter_Condition.Is_Infinite)
-        Test.expect_panic Type_Error (txtvec.filter Filter_Condition.Is_Finite)
+        Test.expect_panic Type_Error (txtvec.filter ..Is_Nan)
+        Test.expect_panic Type_Error (txtvec.filter ..Is_Infinite)
+        Test.expect_panic Type_Error (txtvec.filter ..Is_Finite)
 
     group_builder.specify "should filter unicode text elements by Filter_Condition" <|
         txt3 = alter ['śnieg', 's\u0301nieg', 'X', 'połać', 'połac\u0301']
-        txt3.filter (Filter_Condition.Starts_With 'ś') . should_equal ['śnieg', 's\u0301nieg']
-        txt3.filter (Filter_Condition.Contains 'ś') . should_equal ['śnieg', 's\u0301nieg']
-        txt3.filter (Filter_Condition.Ends_With 'ś') . should_equal []
-        txt3.filter (Filter_Condition.Ends_With 'ć') . should_equal ['połać', 'połac\u0301']
+        txt3.filter (..Starts_With 'ś') . should_equal ['śnieg', 's\u0301nieg']
+        txt3.filter (..Contains 'ś') . should_equal ['śnieg', 's\u0301nieg']
+        txt3.filter (..Ends_With 'ś') . should_equal []
+        txt3.filter (..Ends_With 'ć') . should_equal ['połać', 'połac\u0301']
         ## There is a bug with Java Regex in Unicode normalized mode (CANON_EQ) with quoting.
            https://bugs.java.com/bugdatabase/view_bug.do?bug_id=8032926
-        # txt3.filter (Filter_Condition.Like 'ś%') . should_equal ['śnieg', 's\u0301nieg']
+        # txt3.filter (..Like 'ś%') . should_equal ['śnieg', 's\u0301nieg']
         # This should be replaced with the disabled test above, once the related bug is fixed.
-        txt3.filter (Filter_Condition.Like 'ś%') . should_equal ['śnieg']
+        txt3.filter (..Like 'ś%') . should_equal ['śnieg']
 
         txt4 = alter ['a', 'A', 'ś', 'Ś', 'ﬃ']
-        txt4.filter (Filter_Condition.Equal_Ignore_Case 'a') . should_equal ['a', 'A']
-        txt4.filter (Filter_Condition.Equal_Ignore_Case 's\u0301') . should_equal ['ś', 'Ś']
-        txt4.filter (Filter_Condition.Equal_Ignore_Case 'FFI') . should_equal ['ﬃ']
+        txt4.filter (..Equal_Ignore_Case 'a') . should_equal ['a', 'A']
+        txt4.filter (..Equal_Ignore_Case 's\u0301') . should_equal ['ś', 'Ś']
+        txt4.filter (..Equal_Ignore_Case 'FFI') . should_equal ['ﬃ']
 
     group_builder.specify "should filter mixed elements by Filter_Condition" <|
         mixed = alter [1, Nothing, "b"]
-        mixed.filter Filter_Condition.Is_Nothing . should_equal [Nothing]
-        mixed.filter Filter_Condition.Not_Nothing . should_equal [1, "b"]
-        Test.expect_panic Type_Error (mixed.filter Filter_Condition.Is_Empty)
-        Test.expect_panic Type_Error (mixed.filter Filter_Condition.Not_Empty)
+        mixed.filter ..Is_Nothing . should_equal [Nothing]
+        mixed.filter ..Not_Nothing . should_equal [1, "b"]
+        Test.expect_panic Type_Error (mixed.filter ..Is_Empty)
+        Test.expect_panic Type_Error (mixed.filter ..Not_Empty)
 
-        (alter [2, "a"]).filter (Filter_Condition.Greater 1) . should_fail_with Incomparable_Values
+        (alter [2, "a"]).filter (..Greater 1) . should_fail_with Incomparable_Values
 
     group_builder.specify "should allow Nothing when filtering by Filter_Condition" <|
-        (alter [1, 2, Nothing, 3]).filter (Filter_Condition.Greater 2) . should_equal [3]
-        (alter [1, 2, Nothing, 3]).filter (Filter_Condition.Equal_Or_Less 2) . should_equal [1, 2]
-        (alter ["a", 2, Nothing, 2]).filter (Filter_Condition.Equal 2) . should_equal [2, 2]
-        (alter ["a", 2, Nothing, "a", "a"]).filter (Filter_Condition.Equal "a") . should_equal ["a", "a", "a"]
+        (alter [1, 2, Nothing, 3]).filter (..Greater 2) . should_equal [3]
+        (alter [1, 2, Nothing, 3]).filter (..Equal_Or_Less 2) . should_equal [1, 2]
+        (alter ["a", 2, Nothing, 2]).filter (..Equal 2) . should_equal [2, 2]
+        (alter ["a", 2, Nothing, "a", "a"]).filter (..Equal "a") . should_equal ["a", "a", "a"]
 
-        (alter [1, Nothing, (1/0), (0.log 0)]).filter Filter_Condition.Is_Nan . map .to_text . should_equal ["NaN"]
-        (alter [1, Nothing, (1/0), (0.log 0)]).filter Filter_Condition.Is_Infinite . should_equal [Number.positive_infinity]
-        (alter [1, Nothing, (1/0), (0.log 0)]).filter Filter_Condition.Is_Finite . should_equal [1]
+        (alter [1, Nothing, (1/0), (0.log 0)]).filter ..Is_Nan . map .to_text . should_equal ["NaN"]
+        (alter [1, Nothing, (1/0), (0.log 0)]).filter ..Is_Infinite . should_equal [Number.positive_infinity]
+        (alter [1, Nothing, (1/0), (0.log 0)]).filter ..Is_Finite . should_equal [1]
 
         boolvec = alter [True, False, Nothing, True]
-        boolvec.filter Filter_Condition.Is_True . should_equal [True, True]
-        boolvec.filter Filter_Condition.Is_False . should_equal [False]
+        boolvec.filter ..Is_True . should_equal [True, True]
+        boolvec.filter ..Is_False . should_equal [False]
 
         txtvec = alter ["abab", "baaa", Nothing, "cccc", "BAAA"]
-        txtvec.filter (Filter_Condition.Equal_Ignore_Case "baaA") . should_equal ["baaa", "BAAA"]
-        txtvec.filter (Filter_Condition.Contains "a") . should_equal ["abab", "baaa"]
-        txtvec.filter (Filter_Condition.Starts_With "a") . should_equal ["abab"]
-        txtvec.filter (Filter_Condition.Ends_With "a") . should_equal ["baaa"]
-        txtvec.filter (Filter_Condition.Like "b%a") . should_equal ["baaa"]
+        txtvec.filter (..Equal_Ignore_Case "baaA") . should_equal ["baaa", "BAAA"]
+        txtvec.filter (..Contains "a") . should_equal ["abab", "baaa"]
+        txtvec.filter (..Starts_With "a") . should_equal ["abab"]
+        txtvec.filter (..Ends_With "a") . should_equal ["baaa"]
+        txtvec.filter (..Like "b%a") . should_equal ["baaa"]
 
-        (alter ["a", 2, Nothing, 3]).filter (Filter_Condition.Is_In [Nothing, 2]) . should_equal [2, Nothing]
+        (alter ["a", 2, Nothing, 3]).filter (..Is_In [Nothing, 2]) . should_equal [2, Nothing]
 
     group_builder.specify "should have a friendly error when missing Filter_Condition arguments" <|
         v = alter [0, 1, 2]
 
-        r1 = v.filter Filter_Condition.Less
-        r1 . should_fail_with Illegal_Argument
-        r1.catch.to_display_text . should_contain "missing arguments"
+        r1 = v.filter ..Less
+        r1 . should_fail_with Missing_Argument
+        r1.catch.to_display_text . should_contain "Provide a value for"
 
-        v.filter (Filter_Condition.Between 10) . should_fail_with Illegal_Argument
+        v.filter (..Between 10) . should_fail_with Missing_Argument
 
     group_builder.specify "should filter elements with indices" <|
         (alter [0, 10, 2, 2] . filter_with_index (==)) . should_equal [0, 2]
@@ -372,8 +376,8 @@ type_spec suite_builder name alter = suite_builder.group name group_builder->
         vec.partition (x -> x.is_nothing.not && x%2==0) . should_equal <| Pair.new [2, 4] [1, 3, 5, Nothing]
         (vec . partition x-> if x == 1 then Error.throw <| My_Error.Error "foo" else True) . should_fail_with My_Error
 
-        vec.partition (Filter_Condition.Between 2 4) . should_equal <| Pair.new [2, 3, 4] [1, 5, Nothing]
-        vec.partition (Filter_Condition.Between 2 4 Filter_Action.Remove) . should_equal <| Pair.new [1, 5, Nothing] [2, 3, 4]
+        vec.partition (..Between 2 4) . should_equal <| Pair.new [2, 3, 4] [1, 5, Nothing]
+        vec.partition (..Between 2 4 Filter_Action.Remove) . should_equal <| Pair.new [1, 5, Nothing] [2, 3, 4]
 
         Test.expect_panic_with matcher=Type_Error (vec.partition "invalid arg")
 
@@ -420,27 +424,31 @@ type_spec suite_builder name alter = suite_builder.group name group_builder->
 
     group_builder.specify "should allow applying a function to each element" <|
         vec = alter [1, 2, 3, 4]
-        vec_mut = Vector.new_builder
-        vec.each vec_mut.append
-        vec_mut.to_vector . should_equal vec
+        result = Vector.build builder->
+            vec.each builder.append
+        result . should_equal vec
+
+    group_builder.specify "dataflow errors in .each should become panics" <|
+        do_write x =
+            Error.throw "Failed to write "+x.to_text
+        vec = alter [1, 2, 3, 4]
+        Test.expect_panic_with (vec.each do_write) Text
 
     group_builder.specify "should accept changed elements" <|
-        vec_mut = Vector.new_builder
-        vec_mut.append 1
-        vec_mut.append 1.1
-        vec_mut.append Nothing
+        vec = alter <| Vector.build builder->
+            builder.append 1
+            builder.append 1.1
+            builder.append Nothing
 
-        vec = alter vec_mut.to_vector
         vec.length . should_equal 3
         vec.at 0 . should_equal 1
         vec.at 1 . should_equal 1.1
         vec.at 2 . should_equal Nothing
 
     group_builder.specify "should accept Nothing" <|
-        vec_mut = Vector.new_builder
-        vec_mut.append Nothing
+        vec = alter <| Vector.build builder->
+            builder.append Nothing
 
-        vec = alter vec_mut.to_vector
         vec.length . should_equal 1
         vec.at 0 . should_equal Nothing
 
@@ -490,11 +498,11 @@ type_spec suite_builder name alter = suite_builder.group name group_builder->
         input.find (x -> x%3 == 2) start=-100 . should_fail_with Index_Out_Of_Bounds
         input.find (x -> x%3 == 3) if_missing=Nothing . should_equal Nothing
 
-        input.find (Filter_Condition.Greater 5) . should_equal 6
-        input.find (Filter_Condition.Less 5 Filter_Action.Remove) . should_equal 5
+        input.find (..Greater 5) . should_equal 6
+        input.find (..Less 5 Filter_Action.Remove) . should_equal 5
         Test.expect_panic_with matcher=Type_Error (input.find "invalid arg")
 
-        alter ["b", "A", "c"] . find (Filter_Condition.Equal_Ignore_Case "a") . should_equal "A"
+        alter ["b", "A", "c"] . find (..Equal_Ignore_Case "a") . should_equal "A"
 
     group_builder.specify "should allow finding the index of a value" <|
         input = alter [1, 2, 3, 4, 1, 2, 3, 1, 2, 1]
@@ -509,8 +517,8 @@ type_spec suite_builder name alter = suite_builder.group name group_builder->
         input.index_of 2 start=11 . catch . should_equal (Index_Out_Of_Bounds.Error 11 11)
         input.index_of 2 start=-11 . should_fail_with Index_Out_Of_Bounds
 
-        input.index_of (Filter_Condition.Equal_Or_Greater 2) . should_equal 1
-        input.index_of (Filter_Condition.Less 3 Filter_Action.Remove) . should_equal 2
+        input.index_of (..Equal_Or_Greater 2) . should_equal 1
+        input.index_of (..Less 3 Filter_Action.Remove) . should_equal 2
         input.index_of "text" . should_equal Nothing
 
     group_builder.specify "should allow finding the last index of a value" <|
@@ -524,8 +532,8 @@ type_spec suite_builder name alter = suite_builder.group name group_builder->
         input.last_index_of 2 start=10 . catch . should_equal (Index_Out_Of_Bounds.Error 10 10)
         input.last_index_of 2 start=-11 . should_fail_with Index_Out_Of_Bounds
 
-        input.last_index_of (Filter_Condition.Equal_Or_Greater 2) . should_equal input.length-2
-        input.last_index_of (Filter_Condition.Less 3 Filter_Action.Remove) . should_equal 6
+        input.last_index_of (..Equal_Or_Greater 2) . should_equal input.length-2
+        input.last_index_of (..Less 3 Filter_Action.Remove) . should_equal 6
         input.last_index_of "text" . should_equal Nothing
 
     group_builder.specify "should be convertible to a list" <|
@@ -569,15 +577,15 @@ type_spec suite_builder name alter = suite_builder.group name group_builder->
         [].drop (0.up_to 0) . catch . should_equal (Index_Out_Of_Bounds.Error 0 0)
         vec.drop (100.up_to 99) . should_fail_with Index_Out_Of_Bounds
 
-        vec.take (First 4) . should_equal first_four
-        vec.take (First 0) . should_equal []
-        vec.take (First -1) . should_equal []
-        vec.take (First 100) . should_equal vec
+        vec.take (..First 4) . should_equal first_four
+        vec.take (..First 0) . should_equal []
+        vec.take (..First -1) . should_equal []
+        vec.take (..First 100) . should_equal vec
 
-        vec.drop (First 2) . should_equal last_four
-        vec.drop (First 0) . should_equal vec
-        vec.drop (First -1) . should_equal vec
-        vec.drop (First 100) . should_equal []
+        vec.drop (..First 2) . should_equal last_four
+        vec.drop (..First 0) . should_equal vec
+        vec.drop (..First -1) . should_equal vec
+        vec.drop (..First 100) . should_equal []
 
         vec.take 4 . should_equal first_four
         vec.take 0 . should_equal []
@@ -589,107 +597,102 @@ type_spec suite_builder name alter = suite_builder.group name group_builder->
         vec.drop -1 . should_equal vec
         vec.drop 100 . should_equal []
 
-        vec.take (Last 4) . should_equal last_four
-        vec.take (Last 0) . should_equal []
-        vec.take (Last -1) . should_equal []
-        vec.take (Last 100) . should_equal vec
+        vec.take (..Last 4) . should_equal last_four
+        vec.take (..Last 0) . should_equal []
+        vec.take (..Last -1) . should_equal []
+        vec.take (..Last 100) . should_equal vec
 
-        vec.drop (Last 2) . should_equal first_four
-        vec.drop (Last 0) . should_equal vec
-        vec.drop (Last -1) . should_equal vec
-        vec.drop (Last 100) . should_equal []
+        vec.drop (..Last 2) . should_equal first_four
+        vec.drop (..Last 0) . should_equal vec
+        vec.drop (..Last -1) . should_equal vec
+        vec.drop (..Last 100) . should_equal []
 
-        vec.take (Every 1) . should_equal vec
-        vec.take (Every 3) . should_equal [1, 4]
-        vec.take (Every 3 first=1) . should_equal [2, 5]
-        vec.take (Every 2 first=1) . should_equal [2, 4, 6]
-        vec.take (Every 2 first=100) . should_equal []
-        vec.take (Every 200) . should_equal [1]
-        [].take (Every 2) . should_equal []
-        vec.take (Every 0) . should_fail_with Illegal_Argument
-        [].take (Every 0) . should_fail_with Illegal_Argument
+        vec.take (..Every 1) . should_equal vec
+        vec.take (..Every 3) . should_equal [1, 4]
+        vec.take (..Every 3 first=1) . should_equal [2, 5]
+        vec.take (..Every 2 first=1) . should_equal [2, 4, 6]
+        vec.take (..Every 2 first=100) . should_equal []
+        vec.take (..Every 200) . should_equal [1]
+        [].take (..Every 2) . should_equal []
+        vec.take (..Every 0) . should_fail_with Illegal_Argument
+        [].take (..Every 0) . should_fail_with Illegal_Argument
 
-        vec.drop (Every 1) . should_equal []
-        vec.drop (Every 3) . should_equal [2, 3, 5, 6]
-        vec.drop (Every 3 first=1) . should_equal [1, 3, 4, 6]
-        vec.drop (Every 2 first=1) . should_equal [1, 3, 5]
-        vec.drop (Every 2 first=100) . should_equal vec
-        vec.drop (Every 200) . should_equal [2, 3, 4, 5, 6]
-        [].drop (Every 2) . should_equal []
-        vec.drop (Every 0) . should_fail_with Illegal_Argument
-        [].drop (Every 0) . should_fail_with Illegal_Argument
+        vec.drop (..Every 1) . should_equal []
+        vec.drop (..Every 3) . should_equal [2, 3, 5, 6]
+        vec.drop (..Every 3 first=1) . should_equal [1, 3, 4, 6]
+        vec.drop (..Every 2 first=1) . should_equal [1, 3, 5]
+        vec.drop (..Every 2 first=100) . should_equal vec
+        vec.drop (..Every 200) . should_equal [2, 3, 4, 5, 6]
+        [].drop (..Every 2) . should_equal []
+        vec.drop (..Every 0) . should_fail_with Illegal_Argument
+        [].drop (..Every 0) . should_fail_with Illegal_Argument
 
-        vec.take (By_Index 0) . should_equal [1]
-        [].take (By_Index 0) . should_fail_with Index_Out_Of_Bounds
-        vec.take (By_Index []) . should_equal []
-        vec.take (By_Index [-1, -1]) . should_equal [6, 6]
-        vec.take (By_Index [0, 0, 3.up_to 100]) . should_equal [1, 1, 4, 5, 6]
+        vec.take (..By_Index 0) . should_equal [1]
+        [].take (..By_Index 0) . should_fail_with Index_Out_Of_Bounds
+        vec.take (..By_Index []) . should_equal []
+        vec.take (..By_Index [-1, -1]) . should_equal [6, 6]
+        vec.take (..By_Index [0, 0, 3.up_to 100]) . should_equal [1, 1, 4, 5, 6]
         vec.take (0.up_to 100 . with_step 2) . should_equal [1, 3, 5]
-        vec.take (By_Index [0.up_to 100 . with_step 2, 1.up_to 6 . with_step 2]) . should_equal [1, 3, 5, 2, 4, 6]
-        vec.take (By_Index [1.up_to 3, 2.up_to 5]) . should_equal [2, 3, 3, 4, 5]
-        vec.take (By_Index [2.up_to 5, 1.up_to 3]) . should_equal [3, 4, 5, 2, 3]
-        vec.take (By_Index [0, 1, 100.up_to 200]) . should_fail_with Index_Out_Of_Bounds
-        vec.take (By_Index 100) . should_fail_with Index_Out_Of_Bounds
+        vec.take (..By_Index [0.up_to 100 . with_step 2, 1.up_to 6 . with_step 2]) . should_equal [1, 3, 5, 2, 4, 6]
+        vec.take (..By_Index [1.up_to 3, 2.up_to 5]) . should_equal [2, 3, 3, 4, 5]
+        vec.take (..By_Index [2.up_to 5, 1.up_to 3]) . should_equal [3, 4, 5, 2, 3]
+        vec.take (..By_Index [0, 1, 100.up_to 200]) . should_fail_with Index_Out_Of_Bounds
+        vec.take (..By_Index 100) . should_fail_with Index_Out_Of_Bounds
 
-        vec.drop (By_Index 0) . should_equal [2, 3, 4, 5, 6]
-        vec.drop (By_Index []) . should_equal vec
-        vec.drop (By_Index [-1, -1]) . should_equal [1, 2, 3, 4, 5]
-        vec.drop (By_Index [0, 0, 3.up_to 100]) . should_equal [2, 3]
+        vec.drop (..By_Index 0) . should_equal [2, 3, 4, 5, 6]
+        vec.drop (..By_Index []) . should_equal vec
+        vec.drop (..By_Index [-1, -1]) . should_equal [1, 2, 3, 4, 5]
+        vec.drop (..By_Index [0, 0, 3.up_to 100]) . should_equal [2, 3]
         vec.drop (0.up_to 100 . with_step 2) . should_equal [2, 4, 6]
-        vec.drop (By_Index [0.up_to 100 . with_step 2, 1.up_to 6 . with_step 2]) . should_equal []
-        vec.drop (By_Index [1.up_to 3, 2.up_to 5]) . should_equal [1, 6]
-        vec.drop (By_Index [2.up_to 5, 1.up_to 3]) . should_equal [1, 6]
-        vec.drop (By_Index [0, 1, 100.up_to 200]) . should_fail_with Index_Out_Of_Bounds
-        vec.drop (By_Index 100) . should_fail_with Index_Out_Of_Bounds
+        vec.drop (..By_Index [0.up_to 100 . with_step 2, 1.up_to 6 . with_step 2]) . should_equal []
+        vec.drop (..By_Index [1.up_to 3, 2.up_to 5]) . should_equal [1, 6]
+        vec.drop (..By_Index [2.up_to 5, 1.up_to 3]) . should_equal [1, 6]
+        vec.drop (..By_Index [0, 1, 100.up_to 200]) . should_fail_with Index_Out_Of_Bounds
+        vec.drop (..By_Index 100) . should_fail_with Index_Out_Of_Bounds
 
-        [1, 3, 5, 6, 8, 9, 10, 11, 13].take (While (x-> x%2 == 1)) . should_equal [1, 3, 5]
-        alter [1, 2, 3] . take (While (_ > 10)) . should_equal []
-        alter [1, 2, 3] . take (While (_ < 10)) . should_equal [1, 2, 3]
+        [1, 3, 5, 6, 8, 9, 10, 11, 13].take (..While (x-> x%2 == 1)) . should_equal [1, 3, 5]
+        alter [1, 2, 3] . take (..While (_ > 10)) . should_equal []
+        alter [1, 2, 3] . take (..While (_ < 10)) . should_equal [1, 2, 3]
 
-        [1, 3, 5, 6, 8, 9, 10, 11, 13].drop (While (x-> x%2 == 1)) . should_equal [6, 8, 9, 10, 11, 13]
-        alter [1, 2, 3] . drop (While (_ > 10)) . should_equal [1, 2, 3]
-        alter [1, 2, 3] . drop (While (_ < 10)) . should_equal []
+        [1, 3, 5, 6, 8, 9, 10, 11, 13].drop (..While (x-> x%2 == 1)) . should_equal [6, 8, 9, 10, 11, 13]
+        alter [1, 2, 3] . drop (..While (_ > 10)) . should_equal [1, 2, 3]
+        alter [1, 2, 3] . drop (..While (_ < 10)) . should_equal []
 
-        vec.take (Sample 0) . should_equal []
-        alter [] . take (Sample 0) . should_equal []
-        alter [] . take (Sample 1) . should_fail_with Illegal_Argument
-        alter ["a"] . take (Sample 1) . should_equal ["a"]
-        alter ["a", "a", "a"] . take (Sample 1) . should_equal ["a"]
-        alter ["a", "a", "a"] . take (Sample 3) . should_equal ["a", "a", "a"]
-        alter ["a", "a", "a"] . take (Sample 100) . should_fail_with Illegal_Argument
+        vec.take (..Sample 0) . should_equal []
+        alter [] . take (..Sample 0) . should_equal []
+        alter [] . take (..Sample 1) . should_fail_with Illegal_Argument
+        alter ["a"] . take (..Sample 1) . should_equal ["a"]
+        alter ["a", "a", "a"] . take (..Sample 1) . should_equal ["a"]
+        alter ["a", "a", "a"] . take (..Sample 3) . should_equal ["a", "a", "a"]
+        alter ["a", "a", "a"] . take (..Sample 100) . should_fail_with Illegal_Argument
 
-        vec.drop (Sample 0) . should_equal vec
-        alter [] . drop (Sample 0) . should_equal []
-        alter [] . drop (Sample 1) . should_equal []
-        alter ["a"] . drop (Sample 1) . should_equal []
-        alter ["a", "a", "a"] . drop (Sample 1) . should_equal ["a", "a"]
-        alter ["a", "a", "a"] . drop (Sample 100) . should_equal []
+        vec.drop (..Sample 0) . should_equal vec
+        alter [] . drop (..Sample 0) . should_equal []
+        alter [] . drop (..Sample 1) . should_equal []
+        alter ["a"] . drop (..Sample 1) . should_equal []
+        alter ["a", "a", "a"] . drop (..Sample 1) . should_equal ["a", "a"]
+        alter ["a", "a", "a"] . drop (..Sample 100) . should_equal []
 
     suite_builder.group "take/drop Sample non-determinism" group_builder->
-        v = 0.up_to 20 . to_vector
+        v = 0.up_to 60 . to_vector
 
         group_builder.specify "sampling should be deterministic when a seed is supplied" <|
-            v.take (Sample 3 seed=4200000) . should_equal (v.take (Sample 3 seed=4200000))
+            v.take (..Sample 5 seed=4200000) . should_equal (v.take (..Sample 5 seed=4200000))
 
         group_builder.specify "sampling should be non-deterministic when a seed is not supplied" <|
-            0.up_to 3 . map _->
-                v.take (Sample 3) . should_not_equal (v.take (Sample 3))
+            v.take (..Sample 5) . should_not_equal (v.take (..Sample 5))
 
     group_builder.specify "take/drop should gracefully handle missing constructor arguments" <|
         Test.expect_panic Type_Error <| [].take "FOO"
         Test.expect_panic Type_Error <| [].drop "FOO"
 
-        r1 = [].take (Index_Sub_Range.While)
-        r1.should_fail_with Illegal_Argument
-        r1.catch.to_display_text . should_contain "The constructor While is missing some arguments"
+        r1 = [].take (..While)
+        r1.should_fail_with Missing_Argument
+        r1.catch.to_display_text . should_contain "Provide a value for the argument `predicate`."
 
-        r2 = [].drop (Index_Sub_Range.Every ...)
-        r2.should_fail_with Illegal_Argument
-        r2.catch.to_display_text . should_contain "The constructor Every is missing some arguments"
-
-        r3 = [].take (Index_Sub_Range.First _)
-        r3.should_fail_with Illegal_Argument
-        r3.catch.to_display_text . should_contain "Got a Function instead of a range, is a constructor argument missing?"
+        r2 = [].take (..By_Index)
+        r2.should_fail_with Missing_Argument
+        r2.catch.to_display_text . should_contain "Provide a value for the argument `indexes`."
 
     group_builder.specify "should allow getting the last element of the vector" <|
         non_empty_vec = alter [1, 2, 3, 4, 5]
@@ -741,9 +744,9 @@ type_spec suite_builder name alter = suite_builder.group name group_builder->
         small_expected = [T.Value -20 0, T.Value -1 1, T.Value -1 10, T.Value 1 8, T.Value 1 3, T.Value 4 0]
         small_vec.sort . should_equal small_expected
 
-    group_builder.specify "should fail the sort if Report_Error problem_behavior specified" <|
-        alter [T.Value 1 8, Nothing] . sort on_incomparable=Problem_Behavior.Report_Error . should_fail_with Incomparable_Values
-        alter [Nothing, Number.nan] . sort on_incomparable=Problem_Behavior.Report_Error . should_fail_with Incomparable_Values
+    group_builder.specify "should fail the sort if `Report_Error` problem_behavior specified" <|
+        alter [T.Value 1 8, Nothing] . sort on_problems=..Report_Error . should_fail_with Incomparable_Values
+        alter [Nothing, Number.nan] . sort on_problems=..Report_Error . should_fail_with Incomparable_Values
 
     group_builder.specify "should be able to use a custom element projection" <|
         small_vec = alter [T.Value 1 8, T.Value 1 3, T.Value -20 0, T.Value -1 1, T.Value -1 10, T.Value 4 0]
@@ -774,25 +777,24 @@ type_spec suite_builder name alter = suite_builder.group name group_builder->
     group_builder.specify "should be stable in descending order" <|
         small_vec = alter [T.Value 1 8, T.Value 1 3, T.Value -20 0, T.Value -1 1, T.Value -1 10, T.Value 4 0]
         small_expected = alter [T.Value 4 0, T.Value 1 3, T.Value 1 8, T.Value -1 10, T.Value -1 1, T.Value -20 0]
-        small_vec.sort Sort_Direction.Descending . should_equal small_expected
+        sorted_vec = small_vec.sort Sort_Direction.Descending
+        sorted_vec . should_equal small_expected
 
     group_builder.specify "should correctly propagate state through each" <|
         v = State.run Number 77 <|
-            b = Vector.new_builder
-            (alter ["A", "B"]).each x->
-                b.append x
-                b.append (State.get Number).to_text
-            b.to_vector
+            Vector.build builder->
+                (alter ["A", "B"]).each x->
+                    builder.append x
+                    builder.append (State.get Number).to_text
 
         v.should_equal ['A', '77', 'B', '77']
 
     group_builder.specify "should correctly propagate state through map" <|
         v = State.run Number 55 <|
-            b = Vector.new_builder
-            (alter ["X", "Y"]).map x->
-                b.append x
-                b.append (State.get Number).to_text
-            b.to_vector
+            Vector.build builder->
+                (alter ["X", "Y"]).map x->
+                    builder.append x
+                    builder.append (State.get Number).to_text
 
         v.should_equal ['X', '55', 'Y', '55']
 
@@ -854,6 +856,13 @@ type_spec suite_builder name alter = suite_builder.group name group_builder->
         alter [1, 1.0, 2, 2.0] . distinct . should_equal [1, 2]
         alter [] . distinct . should_equal []
 
+    group_builder.specify "should return a vector containing duplicate elements" <|
+        alter [1, 3, 1, 2, 2, 1] . duplicates . should_equal [1, 1, 2, 2, 1]
+        alter ["a", "a", "a"] . duplicates . should_equal ["a", "a", "a"]
+        alter ['ś', 's', 's\u0301'] . duplicates . should_equal ['ś', 's\u0301']
+        alter [1, 1.0, 2, 2.0] . duplicates . should_equal [1, 1.0, 2, 2.0]
+        alter [] . duplicates . should_equal []
+
     group_builder.specify "should be able to handle distinct on different primitive values" <|
         alter [1, "a"] . distinct . should_equal [1, "a"]
         alter ["a", 1] . distinct . should_equal ["a", 1]
@@ -902,7 +911,7 @@ type_spec suite_builder name alter = suite_builder.group name group_builder->
             8 -> Time_Of_Day.new
             _ -> x
         input = 0.up_to 500 . map gen
-        sorted = input.sort on_incomparable=Problem_Behavior.Report_Warning
+        sorted = input.sort on_problems=..Report_Warning
         Warning.get_all sorted . length . should_equal 10
         Warning.limit_reached sorted . should_equal True
 
@@ -943,29 +952,29 @@ type_spec suite_builder name alter = suite_builder.group name group_builder->
     group_builder.specify "nested Map_Error indicies should be in the correct order" <|
         nested_vector = [[10, 20, 30, 40], [30, 10, 20, 30]]
         expected_warnings = [(Map_Error.Error 1 (Map_Error.Error 3 (My_Error.Error 30))), (Map_Error.Error 1 (Map_Error.Error 0 (My_Error.Error 30))), (Map_Error.Error 0 (Map_Error.Error 2 (My_Error.Error 30)))]
-        Warning.get_all wrap_errors=True (nested_vector.map (_.map map_fun on_problems=Problem_Behavior.Report_Warning) on_problems=Problem_Behavior.Report_Warning) . map .value . should_equal expected_warnings
+        Warning.get_all wrap_errors=True (nested_vector.map (_.map map_fun on_problems=..Report_Warning) on_problems=..Report_Warning) . map .value . should_equal expected_warnings
 
     group_builder.specify "a Nothing thrown inside map should be caught as Nothing" <|
         map_fun a = if a == 30 then Error.throw Nothing else a+1
         alter [10, 20, 30, 40] . map map_fun . should_fail_with (Map_Error.Error 2 Nothing) unwrap_errors=False
 
-    group_builder.specify "an error thrown inside map with on_problems=Problem_Behavior.Ignore should be ignored" <|
-        results = alter [10, 20, 30, 40] . map map_fun on_problems=Problem_Behavior.Ignore
+    group_builder.specify "an error thrown inside map with on_problems=..Ignore should be ignored" <|
+        results = alter [10, 20, 30, 40] . map map_fun on_problems=..Ignore
         results . should_equal [11, 21, Nothing, 41]
         Warning.get_all results wrap_errors=True . should_equal []
 
-    group_builder.specify "an error thrown inside map with on_problems=Problem_Behavior.Report_Warning should be attached as a warning" <|
-        result = alter [10, 20, 30, 40] . map map_fun on_problems=Problem_Behavior.Report_Warning
+    group_builder.specify "an error thrown inside map with on_problems=..Report_Warning should be attached as a warning" <|
+        result = alter [10, 20, 30, 40] . map map_fun on_problems=..Report_Warning
         result . should_equal [11, 21, Nothing, 41]
         Warning.get_all result wrap_errors=True . map .value . should_equal [Map_Error.Error 2 (My_Error.Error 30)]
 
-    group_builder.specify "multiple errors thrown inside map with on_problems=Problem_Behavior.Report_Warning should be attached as warnings" <|
-        result = alter [10, 30, 20, 30, 40, 30] . map map_fun on_problems=Problem_Behavior.Report_Warning
+    group_builder.specify "multiple errors thrown inside map with on_problems=..Report_Warning should be attached as warnings" <|
+        result = alter [10, 30, 20, 30, 40, 30] . map map_fun on_problems=..Report_Warning
         result . should_equal [11, Nothing, 21, Nothing, 41, Nothing]
         Warning.get_all result wrap_errors=True . map .value . should_equal ([5, 3, 1].map i-> Map_Error.Error i (My_Error.Error 30))
 
-    group_builder.specify "many errors thrown inside map with on_problems=Problem_Behavior.Report_Warning should be attached as warnings and an Additional_Warnings" <|
-        result = alter ([10, 20] + (Vector.fill 12 30) + [40]) . map map_fun on_problems=Problem_Behavior.Report_Warning
+    group_builder.specify "many errors thrown inside map with on_problems=..Report_Warning should be attached as warnings and an Additional_Warnings" <|
+        result = alter ([10, 20] + (Vector.fill 12 30) + [40]) . map map_fun on_problems=..Report_Warning
         result . should_equal ([11, 21] + (Vector.fill 12 Nothing) + [41])
         expected_warnings_regular = 11.down_to 1 . map i-> Map_Error.Error i (My_Error.Error 30)
         expected_warnings = expected_warnings_regular + [(Additional_Warnings.Error 2)]
@@ -1001,9 +1010,57 @@ type_spec suite_builder name alter = suite_builder.group name group_builder->
         mat2.transpose . should_fail_with Illegal_Argument
 
 add_specs suite_builder =
-    suite_builder.group "Vector builder" group_builder->
+    suite_builder.group "Builder.new" group_builder->
+        group_builder.specify "Should be able to build a vector" <|
+            builder = Builder.new
+            builder.append 1
+            builder.append 2
+            builder.append Nothing
+            builder.append 3
+            v = builder.to_vector
+            v . should_equal [1, 2, Nothing, 3]
+
+            builder2 = Builder.new
+            v2 = builder2.to_vector
+            v2 . should_equal []
+
+            builder3 = Builder.new 20
+            builder3.append 1
+            v3 = builder3.to_vector
+            v3 . should_equal [1]
+
+        group_builder.specify "Builder should throw an uncaught dataflow error as a panic if it is appended with .append" <|
+            builder = Builder.new
+            builder.append 1
+            Test.expect_panic_with matcher=Wrapped_Dataflow_Error (builder.append (Error.throw (Illegal_Argument.Error "asdf")))
+
+        group_builder.specify "Builder should throw an uncaught error as a panic if it is appended with .append_vector_range" <|
+            builder = Builder.new
+            builder.append 1
+            Test.expect_panic_with matcher=Wrapped_Dataflow_Error (builder.append_vector_range [1, Error.throw (Illegal_Argument.Error "asdf")])
+
+        group_builder.specify "Builder should propagate warnings attached to an item added to the builder with .append" <|
+            builder = Builder.new
+            ww = Warning.attach (My_Error.Error "err") 2
+            builder.append 1
+            builder.append ww
+            builder.append 3
+            v = builder.to_vector
+            v . should_equal [1, 2, 3]
+            Warning.get_all v . map .value . should_equal [My_Error.Error "err"]
+
+        group_builder.specify "Builder should propagate warnings attached to an item added to the builder with .append_vector_range" <|
+            builder = Builder.new
+            ww = Warning.attach (My_Error.Error "err") 21
+            builder.append 1
+            builder.append_vector_range [20, ww, 22]
+            builder.append 3
+            v = builder.to_vector
+            v . should_equal [1, 20, 21, 22, 3]
+            Warning.get_all v . map .value . should_equal [My_Error.Error "err"]
+
         group_builder.specify "empty builder.get" <|
-            b = Vector.new_builder
+            b = Builder.new
             e = Panic.catch Index_Out_Of_Bounds (b.at 0) err->
                 err.payload
             Meta.type_of e . should_equal Index_Out_Of_Bounds
@@ -1011,7 +1068,7 @@ add_specs suite_builder =
             e.length . should_equal 0
 
         group_builder.specify "one number builder.get" <|
-            b = Vector.new_builder
+            b = Builder.new
             b.append 32
             e = Panic.catch Index_Out_Of_Bounds (b.at 1) err->
                 err.payload
@@ -1033,6 +1090,131 @@ add_specs suite_builder =
             l = List.Cons 1 <| List.Cons 2 <| List.Cons 3 <| List.Nil
             v = Vector.collect l .x .xs limit=30 stop_at=(_==List.Nil)
             v . should_equal [1, 2, 3]
+
+        group_builder.specify "example" <|
+            builder = Builder.new 5
+            do_build start stop =
+                builder.append start
+                if start >= stop then Nothing else
+                    @Tail_Call do_build start+1 stop
+            do_build 1 5
+            builder.to_vector . should_equal [1, 2, 3, 4, 5]
+
+    suite_builder.group "Vector.build" group_builder->
+        group_builder.specify "Should be able to build a vector" <|
+            v = Vector.build builder->
+                builder.append 1
+                builder.append 2
+                builder.append Nothing
+                builder.append 3
+            v . should_equal [1, 2, Nothing, 3]
+
+            v2 = Vector.build builder->
+                _ = builder  # Do nothing
+            v2 . should_equal []
+
+            v3 = Vector.build initial_capacity=20 builder->
+                builder.append 1
+            v3 . should_equal [1]
+
+        group_builder.specify "Should rethrow uncaught dataflow errors returned from build callback" <|
+            v = Vector.build builder->
+                builder.append 1
+                builder.append 2
+                Error.throw (Illegal_Argument.Error "asdf")
+            v . should_fail_with (Illegal_Argument.Error "asdf")
+
+        group_builder.specify "Builder should rethrow an uncaught dataflow error if it is appended with .append" <|
+            v = Vector.build builder->
+                builder.append 1
+                builder.append (Error.throw (Illegal_Argument.Error "asdf"))
+                builder.append 3
+                Test.fail "should not reach here because builder is immediately interrupted on error"
+            v . should_fail_with (Illegal_Argument.Error "asdf")
+
+        group_builder.specify "Builder should rethrow an uncaught error if it is appended with .append_vector_range" <|
+            v = Vector.build builder->
+                builder.append 1
+                builder.append_vector_range [1, Error.throw (Illegal_Argument.Error "asdf")]
+                builder.append 3
+                Test.fail "should not reach here because builder is immediately interrupted on error"
+            v . should_fail_with (Illegal_Argument.Error "asdf")
+
+        group_builder.specify "Builder should propagate warnings attached to an item added to the builder with .append" <|
+            v = Vector.build builder->
+                ww = Warning.attach (My_Error.Error "err") 2
+                builder.append 1
+                builder.append ww
+                builder.append 3
+            v . should_equal [1, 2, 3]
+            Warning.get_all v . map .value . should_equal [My_Error.Error "err"]
+
+        group_builder.specify "Builder should propagate warnings attached to an item added to the builder with .append_vector_range" <|
+            v = Vector.build builder->
+                ww = Warning.attach (My_Error.Error "err") 21
+                builder.append 1
+                builder.append_vector_range [20, ww, 22]
+                builder.append 3
+            v . should_equal [1, 20, 21, 22, 3]
+            Warning.get_all v . map .value . should_equal [My_Error.Error "err"]
+
+        group_builder.specify "Builder should not propagate warnings attached to an item with .append with propagate_warnings=False" <|
+            v = Vector.build propagate_warnings=False builder->
+                ww = Warning.attach (My_Error.Error "err") 2
+                builder.append 1
+                builder.append ww
+                builder.append 3
+            v . should_equal [1, 2, 3]
+            Warning.get_all v . should_equal []
+
+        group_builder.specify "Builder should not propagate warnings attached to an item with .append_vector_range with propagate_warnings=False" <|
+            v = Vector.build propagate_warnings=False builder->
+                ww = Warning.attach (My_Error.Error "err") 21
+                builder.append 1
+                builder.append_vector_range [20, ww, 22]
+                builder.append 3
+            v . should_equal [1, 20, 21, 22, 3]
+            Warning.get_all v . should_equal []
+
+        group_builder.specify ".build_multiple count must be non-negative" <|
+            Vector.build_multiple -2 (_->Nothing) . should_fail_with Illegal_Argument
+
+        group_builder.specify "example (single)" <|
+            vec = Vector.build initial_capacity=5 builder->
+                do_build start stop =
+                    builder.append start
+                    if start >= stop then Nothing else
+                        @Tail_Call do_build start+1 stop
+                do_build 1 5
+            vec . should_equal [1, 2, 3, 4, 5]
+
+            vec2 = Vector.build builder->
+                builder.append 1
+                builder.append 2
+                builder.append 3
+            vec2 . should_equal [1, 2, 3]
+
+        group_builder.specify "example (vector)" <|
+            vec = Vector.build builder->
+                builder.append_vector_range [1, 2]
+            vec . should_equal [1, 2]
+
+        group_builder.specify "example (vector subrange)" <|
+            vec = Vector.build builder->
+                builder.append_vector_range [20, 30, 40, 50] 1 3
+            vec . should_equal [30, 40]
+
+        group_builder.specify "example (multiple)" <|
+             vec = Vector.build_multiple 2 builders->
+                 builder0 = builders.at 0
+                 builder0.append 0
+                 builder0.append 1
+                 builder0.append 2
+                 builder1 = builders.at 1
+                 builder1.append 3
+                 builder1.append 4
+                 builder1.append 5
+             vec . should_equal [[0, 1, 2], [3, 4, 5]]
 
     suite_builder.group "Vector/Array equality" group_builder->
         v1 = [1, 2, 3]

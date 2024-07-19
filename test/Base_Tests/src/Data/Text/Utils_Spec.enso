@@ -101,8 +101,8 @@ add_specs suite_builder =
             long = "Hello World! ".repeat 1024
             disp = long.to_display_text
             disp.length . should_equal 80
-            disp.characters.take (First 5) . should_equal [ 'H', 'e', 'l', 'l', 'o' ]
-            disp.characters.take (Last 6) . should_equal ['l', 'd', '!', ' ', ' ', '…']
+            disp.characters.take (..First 5) . should_equal [ 'H', 'e', 'l', 'l', 'o' ]
+            disp.characters.take (..Last 6) . should_equal ['l', 'd', '!', ' ', ' ', '…']
 
         group_builder.specify "grapheme 1 conversion" <|
             txt = 'a\u0321\u0302'*100

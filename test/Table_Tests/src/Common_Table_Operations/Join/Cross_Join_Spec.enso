@@ -14,30 +14,23 @@ from Standard.Test import all
 
 from project.Common_Table_Operations.Util import expect_column_names, run_default_backend
 
-type Data
-    Value ~connection
-
-    setup create_connection_fn =
-        Data.Value (create_connection_fn Nothing)
-
-    teardown self = self.connection.close
+type Lazy_Ref
+    Value ~get
 
 add_specs suite_builder setup =
     prefix = setup.prefix
-    create_connection_fn = setup.create_connection_func
     materialize = setup.materialize
+    table_builder = setup.table_builder
+
+    common_t1 = Lazy_Ref.Value <|
+        table_builder [["X", [1, 2]], ["Y", [4, 5]]]
+    common_t2 = Lazy_Ref.Value <|
+        table_builder [["Z", ['a', 'b']], ["W", ['c', 'd']]]
+
     suite_builder.group prefix+"Table.cross_join" group_builder->
-        data = Data.setup create_connection_fn
-
-        group_builder.teardown <|
-            data.teardown
-
-        table_builder cols =
-            setup.table_builder cols connection=data.connection
-
         group_builder.specify "should allow to create a cross product of two tables in the right order" <|
-            t1 = table_builder [["X", [1, 2]], ["Y", [4, 5]]]
-            t2 = table_builder [["Z", ['a', 'b']], ["W", ['c', 'd']]]
+            t1 = common_t1.get
+            t2 = common_t2.get
 
             t3 = t1.cross_join t2
             expect_column_names ["X", "Y", "Z", "W"] t3
@@ -56,7 +49,7 @@ add_specs suite_builder setup =
                 False -> r.should_equal expected_rows
 
         group_builder.specify "should work correctly with empty tables" <|
-            t1 = table_builder [["X", [1, 2]], ["Y", [4, 5]]]
+            t1 = common_t1.get
             t2 = table_builder [["Z", ['a']], ["W", ['c']]]
             # Workaround to easily create empty table until table builder allows that directly.
             empty = t2.filter "Z" Filter_Condition.Is_Nothing
@@ -73,7 +66,7 @@ add_specs suite_builder setup =
             t4.at "X" . to_vector . should_equal []
 
         group_builder.specify "should respect the right row limit" <|
-            t2 = table_builder [["X", [1, 2]]]
+            t2 = common_t1.get.select_columns ["X"]
             t3 = table_builder [["X", [1, 2, 3]]]
             t100 = table_builder [["Y", 0.up_to 100 . to_vector]]
             t101 = table_builder [["Y", 0.up_to 101 . to_vector]]
@@ -87,7 +80,7 @@ add_specs suite_builder setup =
             Problems.test_problem_handling action problems tester
 
             t2.cross_join t101 right_row_limit=Nothing . row_count . should_equal 202
-            t2.cross_join t3 right_row_limit=2 on_problems=Problem_Behavior.Report_Error . should_fail_with Cross_Join_Row_Limit_Exceeded
+            t2.cross_join t3 right_row_limit=2 on_problems=..Report_Error . should_fail_with Cross_Join_Row_Limit_Exceeded
 
         group_builder.specify "should ensure 1-1 mapping even with duplicate rows" <|
             t1 = table_builder [["X", [2, 1, 2, 2]], ["Y", [5, 4, 5, 5]]]
@@ -108,7 +101,7 @@ add_specs suite_builder setup =
                 False -> r.should_equal expected_rows
 
         group_builder.specify "should allow self-joins" <|
-            t1 = table_builder [["X", [1, 2]], ["Y", [4, 5]]]
+            t1 = common_t1.get
             t2 = t1.cross_join t1
 
             expect_column_names ["X", "Y", "Right X", "Right Y"] t2
@@ -138,7 +131,7 @@ add_specs suite_builder setup =
             t3.at "Right X" . to_vector . should_equal ['a']
             t3.at "Right Y 1" . to_vector . should_equal ['d']
 
-            t1.cross_join t2 on_problems=Problem_Behavior.Report_Error . should_fail_with Duplicate_Output_Column_Names
+            t1.cross_join t2 on_problems=..Report_Error . should_fail_with Duplicate_Output_Column_Names
 
             expect_column_names ["X", "Y", "Right Y", "X 1", "Y 1"] (t1.cross_join t2 right_prefix="")
 
@@ -150,8 +143,8 @@ add_specs suite_builder setup =
             t1 = table_builder [["X", [100, 2]], ["Y", [4, 5]]]
             t2 = table_builder [["Z", ['a', 'b', 'c']], ["W", ['x', 'd', 'd']]]
 
-            t3 = t1.order_by "X"
-            t4 = t2.order_by ([Sort_Column.Name "Z" Sort_Direction.Descending])
+            t3 = t1.sort "X"
+            t4 = t2.sort ([..Name "Z" ..Descending])
 
             t5 = t3.cross_join t4
             expect_column_names ["X", "Y", "Z", "W"] t5
@@ -171,13 +164,13 @@ add_specs suite_builder setup =
                 False -> r.should_equal expected_rows
 
         group_builder.specify "Cross join is not possible via call to .join" <|
-            t1 = table_builder [["X", [1, 2]], ["Y", [4, 5]]]
-            t2 = table_builder [["Z", ['a', 'b']], ["W", ['c', 'd']]]
+            t1 = common_t1.get
+            t2 = common_t2.get
             Test.expect_panic_with (t1.join t2 join_kind=Join_Kind_Cross on=[]) Type_Error
 
         group_builder.specify "should gracefully handle tables from different backends" <|
             t1 = table_builder [["A", ["a", "b"]]]
-            alternative_connection = Database.connect (SQLite In_Memory)
+            alternative_connection = Database.connect (SQLite.In_Memory)
             t0 = (Table.new [["X", [1, 2, 4]], ["Z", [10, 20, 30]]]).select_into_database_table alternative_connection "T0" temporary=True
 
             r1 = t1.cross_join t0

@@ -3,11 +3,13 @@
 
 import { isSome, type Opt } from './opt'
 
-export type Result<T = undefined, E = string> =
+export type Result<T = undefined, E = unknown> =
   | { ok: true; value: T }
   | { ok: false; error: ResultError<E> }
 
-export function Ok<T>(data: T): Result<T, never> {
+export function Ok(): Result<undefined, never>
+export function Ok<T>(data: T): Result<T, never>
+export function Ok<T>(data?: T): Result<T | undefined, never> {
   return { ok: true, value: data }
 }
 
@@ -25,6 +27,11 @@ export function unwrap<T, E>(result: Result<T, E>): T {
   else throw result.error
 }
 
+export function unwrapOr<T, A>(result: Result<T, unknown>, alternative: A): T | A {
+  if (result.ok) return result.value
+  else return alternative
+}
+
 export function mapOk<T, U, E>(result: Result<T, E>, f: (value: T) => U): Result<U, E> {
   if (result.ok) return Ok(f(result.value))
   else return result
@@ -40,7 +47,7 @@ export function isResult(v: unknown): v is Result {
   )
 }
 
-export class ResultError<E = string> {
+export class ResultError<E = unknown> {
   payload: E
   context: (() => string)[]
 
@@ -60,13 +67,28 @@ export class ResultError<E = string> {
   }
 }
 
-export function withContext<T, E>(context: () => string, f: () => Result<T, E>): Result<T, E> {
+export function withContext<T, E>(context: () => string, f: () => Result<T, E>): Result<T, E>
+export function withContext<T, E>(
+  context: () => string,
+  f: () => Promise<Result<T, E>>,
+): Promise<Result<T, E>>
+export function withContext<T, E>(
+  context: () => string,
+  f: () => Promise<Result<T, E>> | Result<T, E>,
+) {
   const result = f()
-  if (result == null) {
-    throw new Error('withContext: f() returned null or undefined')
+  const handleResult = (result: Result<T, E>) => {
+    if (result == null) {
+      throw new Error('withContext: f() returned null or undefined')
+    }
+    if (!result.ok) result.error.context.splice(0, 0, context)
+    return result
   }
-  if (!result.ok) result.error.context.splice(0, 0, context)
-  return result
+  if (result instanceof Promise) {
+    return result.then(handleResult)
+  } else {
+    return handleResult(result)
+  }
 }
 
 /**

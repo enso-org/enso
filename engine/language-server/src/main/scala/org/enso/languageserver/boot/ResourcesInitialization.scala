@@ -10,11 +10,12 @@ import org.enso.languageserver.boot.resource.{
   RepoInitialization,
   SequentialResourcesInitialization,
   TruffleContextInitialization,
+  YdocInitialization,
   ZioRuntimeInitialization
 }
 import org.enso.languageserver.data.ProjectDirectoriesConfig
 import org.enso.languageserver.effect
-import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo}
+import org.enso.searcher.memory.InMemorySuggestionsRepo
 import org.graalvm.polyglot.Context
 
 import scala.concurrent.ExecutionContextExecutor
@@ -30,19 +31,20 @@ object ResourcesInitialization {
     * @param directoriesConfig configuration of directories that should be created
     * @param protocolFactory the JSON-RPC protocol factory
     * @param suggestionsRepo the suggestions repo
-    * @param sqlDatabase the sql database
     * @param truffleContext the runtime context
     * @param runtime the runtime to run effects
+    * @param ydoc the ydoc server
     * @return the initialization component
     */
   def apply(
     eventStream: EventStream,
     directoriesConfig: ProjectDirectoriesConfig,
     protocolFactory: ProtocolFactory,
-    sqlDatabase: SqlDatabase,
-    suggestionsRepo: SqlSuggestionsRepo,
-    truffleContext: Context,
-    runtime: effect.Runtime
+    suggestionsRepo: InMemorySuggestionsRepo,
+    truffleContextBuilder: Context#Builder,
+    truffleContextSupervisor: ComponentSupervisor,
+    runtime: effect.Runtime,
+    ydocSupervisor: ComponentSupervisor
   )(implicit ec: ExecutionContextExecutor): InitializationComponent = {
     new SequentialResourcesInitialization(
       ec,
@@ -54,10 +56,15 @@ object ResourcesInitialization {
           ec,
           directoriesConfig,
           eventStream,
-          sqlDatabase,
           suggestionsRepo
         ),
-        new TruffleContextInitialization(ec, truffleContext, eventStream)
+        new TruffleContextInitialization(
+          ec,
+          truffleContextBuilder,
+          truffleContextSupervisor,
+          eventStream
+        ),
+        new YdocInitialization(ec, ydocSupervisor)
       )
     )
   }

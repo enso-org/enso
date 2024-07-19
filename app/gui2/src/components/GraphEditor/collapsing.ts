@@ -3,7 +3,7 @@ import { assert, assertDefined } from '@/util/assert'
 import { Ast } from '@/util/ast'
 import { autospaced, isIdentifier, moduleMethodNames, type Identifier } from '@/util/ast/abstract'
 import { nodeFromAst } from '@/util/ast/node'
-import { unwrap } from '@/util/data/result'
+import { Err, Ok, unwrap, type Result } from '@/util/data/result'
 import {
   isIdentifierOrOperatorIdentifier,
   tryIdentifier,
@@ -54,10 +54,13 @@ interface RefactoredInfo {
 /** Prepare the information necessary for collapsing nodes.
  * @throws errors in case of failures, but it should not happen in normal execution.
  */
-export function prepareCollapsedInfo(selected: Set<NodeId>, graphDb: GraphDb): CollapsedInfo {
+export function prepareCollapsedInfo(
+  selected: Set<NodeId>,
+  graphDb: GraphDb,
+): Result<CollapsedInfo> {
   if (selected.size == 0) throw new Error('Collapsing requires at least a single selected node.')
   // Leaves are the nodes that have no outgoing connection.
-  const leaves = new Set([...selected])
+  const leaves = new Set(selected)
   const inputSet: Set<Identifier> = new Set()
   let output: Output | null = null
   for (const [targetExprId, sourceExprIds] of graphDb.allConnections.allReverse()) {
@@ -87,7 +90,7 @@ export function prepareCollapsedInfo(selected: Set<NodeId>, graphDb: GraphDb): C
         } else if (output.identifier == identifier) {
           // Ignore duplicate usage of the same identifier.
         } else {
-          throw new Error(
+          return Err(
             `More than one output from collapsed function: ${identifier} and ${output.identifier}. Collapsing is not supported.`,
           )
         }
@@ -98,8 +101,7 @@ export function prepareCollapsedInfo(selected: Set<NodeId>, graphDb: GraphDb): C
   // the extracted function. In such we will return value from arbitrarily chosen leaf.
   if (output == null) {
     const arbitraryLeaf = set.first(leaves)
-    if (arbitraryLeaf == null)
-      throw new Error('Cannot select the output node, no leaf nodes found.')
+    if (arbitraryLeaf == null) throw Error('Cannot select the output node, no leaf nodes found.')
     const outputNode = graphDb.nodeIdToNode.get(arbitraryLeaf)
     if (outputNode == null) throw new Error(`The node with id ${arbitraryLeaf} not found.`)
     const identifier = unwrap(tryIdentifier(outputNode.pattern?.code() || ''))
@@ -109,7 +111,7 @@ export function prepareCollapsedInfo(selected: Set<NodeId>, graphDb: GraphDb): C
   const pattern = graphDb.nodeIdToNode.get(output.node)?.pattern?.code() ?? ''
   assert(isIdentifier(pattern))
   const inputs = Array.from(inputSet)
-  return {
+  return Ok({
     extracted: {
       ids: selected,
       output,
@@ -120,7 +122,7 @@ export function prepareCollapsedInfo(selected: Set<NodeId>, graphDb: GraphDb): C
       pattern,
       arguments: inputs,
     },
-  }
+  })
 }
 
 /** Generate a safe method name for a collapsed function using `baseName` as a prefix. */
@@ -150,6 +152,7 @@ const COLLAPSED_FUNCTION_NAME = 'collapsed' as IdentifierOrOperatorIdentifier
 interface CollapsingResult {
   /** The ID of the node refactored to the collapsed function call. */
   refactoredNodeId: NodeId
+  refactoredExpressionAstId: Ast.AstId
   /** IDs of nodes inside the collapsed function, except the output node.
    * The order of these IDs is reversed comparing to the order of nodes in the source code.
    */
@@ -175,11 +178,11 @@ export function performCollapse(
     [...info.extracted.ids].map((nodeId) => db.nodeIdToNode.get(nodeId)?.outerExpr.id),
   )
   const astIdToReplace = db.nodeIdToNode.get(info.refactored.id)?.outerExpr.id
-  const { ast: refactoredAst, nodeId: refactoredNodeId } = collapsedCallAst(
-    info,
-    collapsedName,
-    edit,
-  )
+  const {
+    ast: refactoredAst,
+    nodeId: refactoredNodeId,
+    expressionAstId: refactoredExpressionAstId,
+  } = collapsedCallAst(info, collapsedName, edit)
   const collapsed: Ast.Owned[] = []
   // Update the definition of the refactored function.
   functionBlock.updateLines((lines) => {
@@ -201,19 +204,20 @@ export function performCollapse(
 
   // Insert a new function.
   const collapsedNodeIds = collapsed
-    .map((ast) => asNodeId(nodeFromAst(ast)?.rootExpr.id ?? ast.id))
+    .map((ast) => asNodeId(nodeFromAst(ast, false)?.rootExpr.externalId ?? ast.externalId))
     .reverse()
   let outputNodeId: NodeId | undefined
   const outputIdentifier = info.extracted.output?.identifier
   if (outputIdentifier != null) {
     const ident = Ast.Ident.new(edit, outputIdentifier)
     collapsed.push(ident)
-    outputNodeId = asNodeId(ident.id)
+    outputNodeId = asNodeId(ident.externalId)
   }
   const argNames = info.extracted.inputs
   const collapsedFunction = Ast.Function.fromStatements(edit, collapsedName, argNames, collapsed)
-  topLevel.insert(posToInsert, collapsedFunction, undefined)
-  return { refactoredNodeId, collapsedNodeIds, outputNodeId }
+  const collapsedFunctionWithIcon = Ast.Documented.new('ICON group', collapsedFunction)
+  topLevel.insert(posToInsert, collapsedFunctionWithIcon, undefined)
+  return { refactoredNodeId, refactoredExpressionAstId, collapsedNodeIds, outputNodeId }
 }
 
 /** Prepare a method call expression for collapsed method. */
@@ -221,14 +225,14 @@ function collapsedCallAst(
   info: CollapsedInfo,
   collapsedName: IdentifierOrOperatorIdentifier,
   edit: Ast.MutableModule,
-): { ast: Ast.Owned; nodeId: NodeId } {
+): { ast: Ast.Owned; expressionAstId: Ast.AstId; nodeId: NodeId } {
   const pattern = info.refactored.pattern
   const args = info.refactored.arguments
   const functionName = `${MODULE_NAME}.${collapsedName}`
   const expression = functionName + (args.length > 0 ? ' ' : '') + args.join(' ')
   const expressionAst = Ast.parse(expression, edit)
   const ast = Ast.Assignment.new(edit, pattern, expressionAst)
-  return { ast, nodeId: asNodeId(expressionAst.id) }
+  return { ast, expressionAstId: expressionAst.id, nodeId: asNodeId(expressionAst.externalId) }
 }
 
 /** Find the position before the current method to insert a collapsed one. */

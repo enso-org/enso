@@ -5,14 +5,12 @@ import project.Data.Numbers.Integer
 import project.Data.Numbers.Number
 import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Text
-import project.Data.Text.Text_Sub_Range.Text_Sub_Range
 import project.Data.Vector.Vector
 import project.Error.Error
 import project.Errors.File_Error.File_Error
 import project.Network.HTTP.Header.Header
 import project.Network.HTTP.HTTP_Status_Code.HTTP_Status_Code
 import project.Network.HTTP.Response_Body.Response_Body
-import project.Network.HTTP.Response_Body.Throw_Unsupported_Error
 import project.Network.URI.URI
 import project.Nothing.Nothing
 import project.System.File.Existing_File_Behavior.Existing_File_Behavior
@@ -25,6 +23,10 @@ import project.System.File_Format_Metadata.File_Format_Metadata
 from project.Data.Text.Extensions import all
 from project.Metadata import Display, Widget
 from project.Network.HTTP.Response_Body import decode_format_selector
+
+polyglot java import java.net.http.HttpHeaders
+polyglot java import java.util.Optional
+polyglot java import org.enso.base.enso_cloud.EnsoHttpResponse
 
 type Response
     ## PRIVATE
@@ -53,6 +55,7 @@ type Response
         URI.parse uri_string
 
     ## GROUP Metadata
+       ICON metadata
        Get the response headers.
 
        It returns a vector of Header objects and not a mapping, because the
@@ -72,7 +75,7 @@ type Response
 
              import Standard.Examples
 
-             example_headers = Map.from_vector error_on_duplicates=True (Examples.get_response.headers.map h-> [h.name, h.value])
+             example_headers = Dictionary.from_vector error_on_duplicates=True (Examples.get_response.headers.map h-> [h.name, h.value])
     headers : Vector Header
     headers self =
         # This is a mapping that maps a header name to a list of values (since headers may be duplicated).
@@ -134,7 +137,7 @@ type Response
        is returned.
     @format decode_format_selector
     decode : File_Format -> Any -> Any
-    decode self format=Auto_Detect ~if_unsupported=Throw_Unsupported_Error =
+    decode self format=Auto_Detect ~if_unsupported=(Error.throw (File_Error.Unsupported_Type (resolve_file_metadata_for_response self))) =
         self.body.decode format if_unsupported
 
     ## ALIAS parse as text
@@ -181,7 +184,7 @@ type Response
        - file: The file to write the body to.
        - on_existing_file: Specifies how to proceed if the file already exists.
 
-       > Examples
+       > Example
          Write the contents of the request body to a scratch file on disk. The
          file will be created if it does not exist, and will be overwritten if
          it does.
@@ -222,7 +225,7 @@ resolve_file_metadata_for_response : Response -> File_Format_Metadata
 resolve_file_metadata_for_response response =
     uri_as_text = response.uri.to_text
     guessed_filename = filename_from_content_disposition (response.get_header "Content-Disposition") . if_nothing <|
-        last_path_segment = uri_as_text.take (Text_Sub_Range.After_Last "/")
+        last_path_segment = uri_as_text.take (..After_Last "/")
         ## Heuristic: If the last path segment contains a dot, it is likely a filename,
            otherwise it is too unlikely + lack of extension will not help our guessing anyway,
            so we can discard it.

@@ -70,24 +70,3 @@ where
 pub fn perhaps<F: Future>(should_do: bool, f: impl FnOnce() -> F) -> OptionFuture<F> {
     should_do.then(f).into()
 }
-
-// pub fn perhaps_spawn_try<'a, F>(
-//     should_do: bool,
-//     f: impl FnOnce() -> F + 'a,
-// ) -> BoxFuture<'static, Result<Option<F::Ok>>>
-// where
-//     F: TryFuture + Send + 'static,
-//     F::Ok: Send + 'static,
-//     F::Error: Send + Sync + 'static,
-//     anyhow::Error: From<F::Error>,
-// {
-//     let job = should_do.then(|| tokio::spawn(f().into_future()));
-//     async move {
-//         if let Some(job) = job {
-//             Ok(Some(job.await??))
-//         } else {
-//             Ok(None)
-//         }
-//     }
-//     .boxed()
-// }

@@ -46,17 +46,20 @@ final class JobExecutionEngine(
   val jobExecutor: ExecutorService =
     context.newFixedThreadPool(jobParallelism, "job-pool", false)
 
+  private val MaxJobLimit =
+    Integer.MAX_VALUE // Temporary solution to avoid jobs being dropped
+
   val highPriorityJobExecutor: ExecutorService =
     context.newCachedThreadPool(
       "prioritized-job-pool",
       2,
       4,
-      50,
+      MaxJobLimit,
       false
     )
 
   private val backgroundJobExecutor: ExecutorService =
-    context.newCachedThreadPool("background-job-pool", 1, 4, 50, false)
+    context.newCachedThreadPool("background-job-pool", 1, 4, MaxJobLimit, false)
 
   private val runtimeContext =
     RuntimeContext(
@@ -140,13 +143,18 @@ final class JobExecutionEngine(
         case NonFatal(ex) =>
           logger.log(Level.SEVERE, s"Error executing $job", ex)
           promise.failure(ex)
-        case err: InterruptedException =>
-          logger.log(Level.WARNING, s"$job got interrupted", err)
+        case _: InterruptedException =>
+          logger.log(Level.WARNING, s"$job got interrupted")
         case err: Throwable =>
           logger.log(Level.SEVERE, s"Error executing $job", err)
           throw err
       } finally {
-        runningJobsRef.updateAndGet(_.filterNot(_.id == jobId))
+        val remaining = runningJobsRef.updateAndGet(_.filterNot(_.id == jobId))
+        logger.log(
+          Level.FINEST,
+          "Number of remaining pending jobs: {}",
+          remaining.size
+        )
       }
     })
     val runningJob = RunningJob(jobId, job, future)

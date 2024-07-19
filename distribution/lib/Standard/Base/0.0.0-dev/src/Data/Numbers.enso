@@ -1,4 +1,5 @@
 import project.Any.Any
+import project.Data.Decimal.Decimal
 import project.Data.Locale.Locale
 import project.Data.Ordering.Comparable
 import project.Data.Text.Text
@@ -13,6 +14,7 @@ import project.Nothing.Nothing
 import project.Panic.Panic
 from project.Data.Boolean import Boolean, False, True
 from project.Internal.Number_Builtins import all
+from project.Internal.Ordering_Helpers import Positive_Integer_Comparator
 from project.Widget_Helpers import make_number_format_selector
 
 polyglot java import java.lang.Double
@@ -251,6 +253,7 @@ type Number
 
     ## ALIAS exponential
        GROUP Math
+       ICON math
 
        Computes the exponential function, raising Euler's number `r` to the power of
        `self`.
@@ -344,7 +347,7 @@ type Number
         (self == that) || ((self - that).abs <= epsilon)
 
     ## GROUP Math
-       ICON sigma
+       ICON transform4
        Returns the smaller value of `self` and `that`.
 
        Arguments:
@@ -363,7 +366,7 @@ type Number
     min self that = if self < that then self else that
 
     ## GROUP Math
-       ICON math
+       ICON transform4
        Returns the larger value of `self` and `that`.
 
        Arguments:
@@ -621,7 +624,7 @@ type Float
 
     ## GROUP Rounding
        ICON math
-       Computes the nearest integer above this number.
+       Computes the nearest integer equal to or above this number.
 
        This method provides a means of converting a Float to an Integer.
 
@@ -633,7 +636,7 @@ type Float
 
     ## GROUP Rounding
        ICON math
-       Computes the nearest integer below this float.
+       Computes the nearest integer equal to or below this number.
 
        This method provides a means of converting a Float to an Integer.
 
@@ -731,6 +734,18 @@ type Float
              5.0.to_float
     to_float self -> Float = self
 
+    ## GROUP Conversions
+       ICON convert
+       Convert this to a `Decimal`.
+
+       > Example
+         Convert 12.3 to a Decimal.
+
+             12.3 . to_decimal
+             # => Decimal.new "12.3"
+    to_decimal : Decimal
+    to_decimal self -> Decimal = Decimal.from_float self
+
     ## ALIAS from text
        GROUP Conversions
        ICON convert
@@ -753,7 +768,7 @@ type Float
         Locale.Value java_locale -> Panic.catch ParseException ((NumberFormat.getInstance java_locale).parse text) _->
             Error.throw (Number_Parse_Error.Error text)
 
-    ## ICON number_input
+    ## ICON input_number
 
        Maximum representable positive value, from the underlying Java double
        type.
@@ -761,7 +776,7 @@ type Float
        The absolute-value-largest representable negative value is `-max_value`.
     max_value = Double.MAX_VALUE
 
-    ## ICON number_input
+    ## ICON input_number
 
        Minimum representable positive value, from the underlying Java double
        type.
@@ -1080,6 +1095,18 @@ type Integer
              5.to_float
     to_float self -> Float = integer_to_float self
 
+    ## GROUP Conversions
+       ICON convert
+       Convert this to a `Decimal`.
+
+       > Example
+         Convert 12 to a Decimal.
+
+             12 . to_decimal
+             # => Decimal.new "12"
+    to_decimal : Decimal
+    to_decimal self -> Decimal = Decimal.from_integer self
+
     ## GROUP Bitwise
        ICON math
        Computes the bitwise and (conjunction) operation between this and
@@ -1091,7 +1118,7 @@ type Integer
        Bitwise and computes the logical conjunction of the corresponding pairs
        of bits in the operands.
 
-       ? Example
+       > Example
          Computing the bitwise conjunction of 2_01101101 and 2_11110000.
 
              2_01101101.bit_and 2_11110000
@@ -1103,7 +1130,7 @@ type Integer
 
        The bitwise compliment negates the value of each bit in the operand.
 
-       ? Example
+       > Example
          Bitwise negation of 2_0110.
 
              2_0110.bit_not
@@ -1262,13 +1289,4 @@ Positive_Integer.from (that : Integer) = Positive_Integer.new that
 Integer.from (that : Positive_Integer) = that.integer
 
 ## PRIVATE
-type Positive_Integer_Comparator
-    ## PRIVATE
-    compare x y =
-        Comparable.from x.integer . compare x.integer y.integer
-
-    ## PRIVATE
-    hash x = Comparable.from x.integer . hash x.integer
-
-## PRIVATE
-Comparable.from (_:Positive_Integer) = Positive_Integer_Comparator
+Comparable.from (that:Positive_Integer) = Comparable.new that Positive_Integer_Comparator

@@ -1,6 +1,5 @@
 package org.enso.runner
 
-import cats.implicits.toTraverseOps
 import org.slf4j.event.Level
 import com.typesafe.scalalogging.Logger
 import org.enso.cli.ProgressBar
@@ -14,7 +13,7 @@ import org.enso.distribution.locking.{
 import org.enso.distribution.{DistributionManager, Environment, LanguageHome}
 import org.enso.editions.updater.EditionManager
 import org.enso.editions.{DefaultEdition, EditionResolver}
-import org.enso.languageserver.libraries.CompilerBasedDependencyExtractor
+import org.enso.runner.common.CompilerBasedDependencyExtractor
 import org.enso.librarymanager.dependencies.DependencyResolver
 import org.enso.librarymanager.{DefaultLibraryProvider, LibraryResolver}
 import org.enso.pkg.PackageManager
@@ -44,7 +43,8 @@ object DependencyPreinstaller {
 
     val editionProvider = EditionManager.makeEditionProvider(
       distributionManager,
-      Some(languageHome)
+      Some(languageHome),
+      true
     )
     val editionResolver = EditionResolver(editionProvider)
     val edition = editionResolver
@@ -112,13 +112,15 @@ object DependencyPreinstaller {
       logger.info(s"All ${allDependencies.size} dependencies are installed.")
     } else {
       logger.info(s"Will install ${dependenciesToInstall.size} dependencies.")
-      val result = dependenciesToInstall.toList.traverse { dependency =>
-        installer.findSpecificLibraryVersion(
-          dependency.libraryName,
-          dependency.version
-        )
-      }
-      result match {
+      dependenciesToInstall.toList
+        .map { dependency =>
+          installer.findSpecificLibraryVersion(
+            dependency.libraryName,
+            dependency.version
+          )
+        }
+        .find(_.isLeft)
+        .toLeft(()) match {
         case Left(error) =>
           throw new RuntimeException(
             s"Some dependencies could not be installed: [$error]."

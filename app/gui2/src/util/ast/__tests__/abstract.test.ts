@@ -4,14 +4,13 @@ import {
   MutableModule,
   TextLiteral,
   escapeTextLiteral,
+  substituteIdentifier,
   substituteQualifiedName,
   unescapeTextLiteral,
   type Identifier,
 } from '@/util/ast/abstract'
-import { tryQualifiedName } from '@/util/qualifiedName'
 import { fc, test } from '@fast-check/vitest'
 import { initializeFFI } from 'shared/ast/ffi'
-import { unwrap } from 'shared/util/data/result'
 import { describe, expect } from 'vitest'
 import { findExpressions, testCase, tryFindExpressions } from './testCase'
 
@@ -369,6 +368,10 @@ const cases = [
   ['value = foo', '    bar'].join('\n'),
   ['value = foo', '    +x', '    bar'].join('\n'),
   ['###', ' x'].join('\n'),
+  '\n',
+  '\n\n',
+  '\na',
+  '\n\na',
 ]
 test.each(cases)('parse/print round trip: %s', (code) => {
   // Get an AST.
@@ -849,34 +852,100 @@ test.each([
     substitution: 'ShouldNotWork',
     expected: 'Data.Table.new',
   },
-])('Substitute $pattern insde $original', ({ original, pattern, substitution, expected }) => {
-  const expression = Ast.parse(original)
-  expression.module.replaceRoot(expression)
-  const edit = expression.module.edit()
-  substituteQualifiedName(
-    edit,
-    expression,
-    pattern as Ast.QualifiedName,
-    unwrap(tryQualifiedName(substitution)),
-  )
-  expect(edit.root()?.code()).toEqual(expected)
-})
+])(
+  'Substitute qualified name $pattern inside $original',
+  ({ original, pattern, substitution, expected }) => {
+    const expression = Ast.parse(original)
+    const module = expression.module
+    module.replaceRoot(expression)
+    const edit = expression.module.edit()
+    substituteQualifiedName(expression, pattern as Ast.Identifier, substitution as Ast.Identifier)
+    module.applyEdit(edit)
+    expect(module.root()?.code()).toEqual(expected)
+  },
+)
+
+test.each([
+  {
+    original: 'some_name',
+    pattern: 'some_name',
+    substitution: 'other_name',
+    expected: 'other_name',
+  },
+  {
+    original: 'x = Table.from_vec (node1.new 1 2 3)',
+    pattern: 'node1',
+    substitution: 'node2',
+    expected: 'x = Table.from_vec (node2.new 1 2 3)',
+  },
+  {
+    original: 'x = some_func "node1"',
+    pattern: 'node1',
+    substitution: 'node2',
+    expected: 'x = some_func "node1"',
+  },
+  {
+    original: 'x + y',
+    pattern: 'x',
+    substitution: 'z',
+    expected: 'z + y',
+  },
+  {
+    original: 'node1.node2.node3',
+    pattern: 'node2',
+    substitution: 'ShouldNotWork',
+    expected: 'node1.node2.node3',
+  },
+  {
+    original: 'node1.node2.node3',
+    pattern: 'node3',
+    substitution: 'ShouldNotWork',
+    expected: 'node1.node2.node3',
+  },
+  {
+    original: '.node1',
+    pattern: 'node1',
+    substitution: 'ShouldNotWork',
+    expected: '.node1',
+  },
+])(
+  'Substitute identifier $pattern inside $original',
+  ({ original, pattern, substitution, expected }) => {
+    const expression = Ast.parse(original)
+    const module = expression.module
+    module.replaceRoot(expression)
+    const edit = expression.module.edit()
+    substituteIdentifier(expression, pattern as Ast.Identifier, substitution as Ast.Identifier)
+    module.applyEdit(edit)
+    expect(module.root()?.code()).toEqual(expected)
+  },
+)
 
 test.each([
   ['', ''],
   ['\\x20', ' ', ' '],
   ['\\b', '\b'],
   ['abcdef_123', 'abcdef_123'],
-  ['\\t\\r\\n\\v\\"\\\'\\`', '\t\r\n\v"\'`'],
-  ['\\u00B6\\u{20}\\U\\u{D8\\xBFF}', '\xB6 \0\xD8\xBFF}', '\xB6 \\0\xD8\xBFF}'],
+  ["\\t\\r\\n\\v\\'\\`", "\t\r\n\v'`", "\\t\\r\\n\\v\\'\\`"],
+  // Escaping a double quote is allowed, but not necessary.
+  ['\\"', '"', '"'],
+  // Undefined/malformed escape sequences are left unevaluated, and properly escaped when normalized.
+  ['\\q\\u', '\\q\\u', '\\\\q\\\\u'],
+  ['\\u00B6\\u{20}\\U\\u{D8\\xBFF}', '\xB6 \\U\xD8\xBFF}', '\xB6 \\\\U\xD8\xBFF}'],
   ['\\`foo\\` \\`bar\\` \\`baz\\`', '`foo` `bar` `baz`'],
+  // Enso source code must be valid UTF-8 (per the specification), so Unicode unpaired surrogates must be escaped.
+  ['\\uDEAD', '\uDEAD', '\\u{dead}'],
 ])(
   'Applying and escaping text literal interpolation',
-  (escapedText: string, rawText: string, roundtrip?: string) => {
+  (escapedText: string, rawText: string, normalizedEscapedText?: string) => {
+    if (normalizedEscapedText != null) {
+      // If `normalizedEscapedText` is provided, it must be a representation of the same raw value as `escapedText`.
+      const rawTextFromNormalizedInput = unescapeTextLiteral(normalizedEscapedText)
+      expect(rawTextFromNormalizedInput).toBe(rawText)
+    }
     const actualApplied = unescapeTextLiteral(escapedText)
     const actualEscaped = escapeTextLiteral(rawText)
-
-    expect(actualEscaped).toBe(roundtrip ?? escapedText)
+    expect(actualEscaped).toBe(normalizedEscapedText ?? escapedText)
     expect(actualApplied).toBe(rawText)
   },
 )
@@ -957,7 +1026,35 @@ test.each(docEditCases)('Documentation edit round trip: $code', (docCase) => {
   expect(edited.code()).toBe(docCase.normalized ?? code)
 })
 
-test('Adding comments', () => {
+test.each([
+  '## Some documentation\nf x = 123',
+  '## Some documentation\n    and a second line\nf x = 123',
+  '## Some documentation## Another documentation??\nf x = 123',
+])('Finding documentation: $code', (code) => {
+  const block = Ast.parseBlock(code)
+  const method = Ast.findModuleMethod(block, 'f')
+  assertDefined(method)
+  expect(method.documentingAncestor()).toBeDefined()
+})
+
+test.each([
+  {
+    code: '## Already documented\nf x = 123',
+    expected: '## Already documented\nf x = 123',
+  },
+  {
+    code: 'f x = 123',
+    expected: '## \nf x = 123',
+  },
+])('Adding documentation: $code', ({ code, expected }) => {
+  const block = Ast.parseBlock(code)
+  const module = block.module
+  const method = module.getVersion(Ast.findModuleMethod(block, 'f')!)
+  method.getOrInitDocumentation()
+  expect(block.code()).toBe(expected)
+})
+
+test('Creating comments', () => {
   const expr = Ast.parse('2 + 2')
   expr.module.replaceRoot(expr)
   expr.update((expr) => Ast.Documented.new('Calculate five', expr))

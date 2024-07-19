@@ -3,16 +3,19 @@ package org.enso.interpreter.service;
 import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.TruffleLogger;
+import com.oracle.truffle.api.exception.AbstractTruffleException;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.instrumentation.EventBinding;
 import com.oracle.truffle.api.instrumentation.ExecutionEventNodeFactory;
 import com.oracle.truffle.api.interop.ArityException;
+import com.oracle.truffle.api.interop.ExceptionType;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnknownIdentifierException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RootNode;
+import com.oracle.truffle.api.object.DynamicObjectLibrary;
 import com.oracle.truffle.api.source.SourceSection;
 import java.io.File;
 import java.io.IOException;
@@ -22,7 +25,9 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.logging.Level;
-import org.enso.compiler.context.SimpleUpdate;
+import org.enso.common.LanguageInfo;
+import org.enso.common.MethodNames;
+import org.enso.compiler.suggestions.SimpleUpdate;
 import org.enso.interpreter.instrument.Endpoint;
 import org.enso.interpreter.instrument.MethodCallsCache;
 import org.enso.interpreter.instrument.NotificationHandler;
@@ -52,8 +57,6 @@ import org.enso.interpreter.service.error.TypeNotFoundException;
 import org.enso.lockmanager.client.ConnectedLockManager;
 import org.enso.logger.masking.MaskedString;
 import org.enso.pkg.QualifiedName;
-import org.enso.polyglot.LanguageInfo;
-import org.enso.polyglot.MethodNames;
 import org.enso.polyglot.debugger.ExecutedVisualization;
 import org.enso.polyglot.debugger.IdExecutionService;
 import org.enso.text.editing.JavaEditorAdapter;
@@ -119,17 +122,17 @@ public final class ExecutionService {
       Module module, String typeName, String methodName)
       throws TypeNotFoundException, MethodNotFoundException {
     ModuleScope scope = module.compileScope(context);
-    Type type =
-        scope
-            .getType(typeName)
-            .orElseThrow(() -> new TypeNotFoundException(module.getName().toString(), typeName));
+    Type type = scope.getType(typeName, false);
+    if (type == null) {
+      throw new TypeNotFoundException(module.getName().toString(), typeName);
+    }
     Function function = scope.lookupMethodDefinition(type, methodName);
     if (function == null) {
       throw new MethodNotFoundException(module.getName().toString(), type, methodName);
     }
     Object[] arguments = MAIN_METHOD.equals(methodName) ? new Object[] {} : new Object[] {type};
     return new FunctionCallInstrumentationNode.FunctionCall(
-        function, State.create(EnsoContext.get(null)), arguments);
+        function, State.create(context), arguments);
   }
 
   public void initializeLanguageServerConnection(Endpoint endpoint) {
@@ -193,6 +196,10 @@ public final class ExecutionService {
         idExecutionInstrument.map(
             service ->
                 service.bind(module, call.getFunction().getCallTarget(), callbacks, this.timer));
+
+    DynamicObjectLibrary.getUncached()
+        .put(call.getState().getContainer(), IdExecutionService.class, cache);
+
     Object p = context.getThreadManager().enter();
     try {
       execute.getCallTarget().call(call);
@@ -305,7 +312,9 @@ public final class ExecutionService {
   /**
    * Calls a function with the given argument and attaching an execution instrument.
    *
+   * @param visualizationHolder visualization to compute
    * @param cache the runtime cache
+   * @param executionCache cache with values provided by main execution
    * @param module the module providing scope for the function
    * @param function the function object
    * @param arguments the sequence of arguments applied to the function
@@ -314,6 +323,7 @@ public final class ExecutionService {
   public Object callFunctionWithInstrument(
       VisualizationHolder visualizationHolder,
       RuntimeCache cache,
+      RuntimeCache executionCache,
       Module module,
       Object function,
       Object... arguments) {
@@ -343,13 +353,28 @@ public final class ExecutionService {
     Optional<EventBinding<ExecutionEventNodeFactory>> eventNodeFactory =
         idExecutionInstrument.map(
             service -> service.bind(module, entryCallTarget, callbacks, this.timer));
+    var ret = new Object[1];
     Object p = context.getThreadManager().enter();
     try {
-      return call.getCallTarget().call(function, arguments);
+      State state;
+      if (function instanceof FunctionCallInstrumentationNode.FunctionCall fnCall) {
+        state = fnCall.getState();
+      } else {
+        var fn = (Function) function;
+        state = State.create(context);
+        function = new FunctionCallInstrumentationNode.FunctionCall(fn, state, new Object[0]);
+      }
+      if (executionCache != null) {
+        DynamicObjectLibrary.getUncached()
+            .put(state.getContainer(), IdExecutionService.class, executionCache);
+      }
+
+      ret[0] = call.getCallTarget().call(function, arguments);
     } finally {
       context.getThreadManager().leave(p);
       eventNodeFactory.ifPresent(EventBinding::dispose);
     }
+    return ret[0];
   }
 
   /**
@@ -454,6 +479,18 @@ public final class ExecutionService {
       }
     }
     return null;
+  }
+
+  public boolean isExitException(AbstractTruffleException ex) {
+    var interop = InteropLibrary.getUncached();
+    if (interop.isException(ex)) {
+      try {
+        return interop.getExceptionType(ex) == ExceptionType.EXIT;
+      } catch (UnsupportedMessageException e) {
+        throw new IllegalStateException(e);
+      }
+    }
+    return false;
   }
 
   /**

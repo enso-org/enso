@@ -1,6 +1,5 @@
 package org.enso.compiler
 
-import com.oracle.truffle.api.source.{Source}
 import org.enso.compiler.context.{
   CompilerContext,
   FreshNameSupply,
@@ -13,7 +12,6 @@ import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.ir.{
   Diagnostic,
   Expression,
-  IdentifiedLocation,
   Name,
   Warning,
   Module => IRModule
@@ -25,22 +23,20 @@ import org.enso.compiler.core.ir.module.scope.Import
 import org.enso.compiler.core.ir.module.scope.imports
 import org.enso.compiler.core.EnsoParser
 import org.enso.compiler.data.CompilerConfig
-import org.enso.compiler.exception.CompilationAbortedException
 import org.enso.compiler.pass.PassManager
 import org.enso.compiler.pass.analyse._
-import org.enso.compiler.phase.{
-  ExportCycleException,
-  ExportsResolution,
-  ImportResolver,
-  ImportResolverAlgorithm
-}
+import org.enso.compiler.phase.{ImportResolver, ImportResolverAlgorithm}
 import org.enso.editions.LibraryName
 import org.enso.pkg.QualifiedName
-import org.enso.polyglot.LanguageInfo
-import org.enso.polyglot.CompilationStage
+import org.enso.common.CompilationStage
+import org.enso.compiler.phase.exports.{
+  ExportCycleException,
+  ExportSymbolAnalysis,
+  ExportsResolution
+}
 import org.enso.syntax2.Tree
 
-import java.io.{PrintStream, StringReader}
+import java.io.PrintStream
 import java.util.concurrent.{
   CompletableFuture,
   ExecutorService,
@@ -50,7 +46,6 @@ import java.util.concurrent.{
   TimeUnit
 }
 import java.util.logging.Level
-import scala.jdk.OptionConverters._
 
 /** This class encapsulates the static transformation processes that take place
   * on source code, including parsing, desugaring, type-checking, static
@@ -261,7 +256,7 @@ class Compiler(
             Level.SEVERE,
             "Contents of module {0}: {0}",
             m.getPath,
-            m.getSource.getCharacters.toString
+            m.getCharacters.toString
           )
       }
     )
@@ -294,8 +289,8 @@ class Compiler(
         parseModule(module, irCachingEnabled && !context.isInteractive(module))
         importedModules
           .filter(isLoadedFromSource)
-          .map(m => {
-            if (m.getBindingsMap() == null) {
+          .foreach(m => {
+            if (m.getBindingsMap == null) {
               parseModule(m, irCachingEnabled && !context.isInteractive(module))
             }
           })
@@ -365,7 +360,7 @@ class Compiler(
 
     runErrorHandling(requiredModules)
 
-    requiredModules.foreach { module =>
+    val requiredModulesWithScope = requiredModules.map { module =>
       if (
         !context
           .getCompilationStage(module)
@@ -373,16 +368,21 @@ class Compiler(
             CompilationStage.AFTER_RUNTIME_STUBS
           )
       ) {
-        context.runStubsGenerator(module)
+        val moduleScopeBuilder = module.getScopeBuilder()
+        context.runStubsGenerator(module, moduleScopeBuilder)
         context.updateModule(
           module,
           { u =>
             u.compilationStage(CompilationStage.AFTER_RUNTIME_STUBS)
           }
         )
+        (module, moduleScopeBuilder)
+      } else {
+        (module, module.getScopeBuilder)
       }
     }
-    requiredModules.foreach { module =>
+
+    requiredModulesWithScope.foreach { case (module, moduleScopeBuilder) =>
       if (
         !context
           .getCompilationStage(module)
@@ -398,7 +398,7 @@ class Compiler(
             context.getModuleName(module)
           )
 
-          context.truffleRunCodegen(module, config)
+          context.truffleRunCodegen(module, moduleScopeBuilder, config)
         }
         context.updateModule(
           module,
@@ -407,7 +407,11 @@ class Compiler(
           }
         )
 
-        if (shouldCompileDependencies || isModuleInRootPackage(module)) {
+        if (
+          shouldCompileDependencies || (!context.isInteractive(
+            module
+          ) && context.isModuleInRootPackage(module))
+        ) {
           val shouldStoreCache =
             generateCode &&
             irCachingEnabled && !context.wasLoadedFromCache(module)
@@ -437,15 +441,6 @@ class Compiler(
     }
 
     requiredModules
-  }
-
-  private def isModuleInRootPackage(module: Module): Boolean = {
-    if (!context.isInteractive(module)) {
-      val pkg = PackageRepositoryUtils
-        .getPackageOf(getPackageRepository, module.getSourceFile)
-        .toScala
-      pkg.contains(getPackageRepository.getMainProjectPackage.get)
-    } else false
   }
 
   private def runImportsAndExportsResolution(
@@ -484,7 +479,18 @@ class Compiler(
     // the symbol brought to the scope has not been properly resolved yet.
     val sortedCachedModules =
       new ExportsResolution(context).runSort(modulesImportedWithCachedBindings)
-    sortedCachedModules ++ requiredModules
+    val allSortedModules = sortedCachedModules ++ requiredModules
+    allSortedModules.foreach { mod =>
+      val newModIr =
+        ExportSymbolAnalysis.analyseModule(mod.getIr, packageRepository)
+      context.updateModule(
+        mod,
+        updater => {
+          updater.ir(newModIr)
+        }
+      )
+    }
+    allSortedModules
   }
 
   private def ensureParsedAndAnalyzed(module: Module): Unit = {
@@ -590,9 +596,10 @@ class Compiler(
       isGeneratingDocs = isGenDocs
     )
 
-    val src  = context.getCharacters(module)
-    val tree = ensoCompiler.parse(src)
-    val expr = ensoCompiler.generateIR(tree)
+    val src   = context.getCharacters(module)
+    val idMap = context.getIdMap(module)
+    val tree  = ensoCompiler.parse(src)
+    val expr  = ensoCompiler.generateModuleIr(tree, idMap.values)
 
     val exprWithModuleExports =
       if (context.isSynthetic(module))
@@ -671,56 +678,16 @@ class Compiler(
     * @return an expression node representing the parsed and analyzed source
     */
   def runInline(
-    srcString: String,
+    srcString: CharSequence,
     inlineContext: InlineContext
-  ): Option[(InlineContext, Expression, Source)] = {
+  ): Option[(InlineContext, Expression)] = {
     val newContext = inlineContext.copy(freshNameSupply = Some(freshNameSupply))
-    val source = Source
-      .newBuilder(
-        LanguageInfo.ID,
-        new StringReader(srcString),
-        "<interactive_source>"
-      )
-      .build()
-    val tree = ensoCompiler.parse(source.getCharacters)
+    val tree       = ensoCompiler.parse(srcString)
 
     ensoCompiler.generateIRInline(tree).map { ir =>
       val compilerOutput = runCompilerPhasesInline(ir, newContext)
       runErrorHandlingInline(compilerOutput, newContext)
-      (newContext, compilerOutput, source)
-    }
-  }
-
-  /** Finds and processes a language source by its qualified name.
-    *
-    * The results of this operation are cached internally so we do not need to
-    * process the same source file multiple times.
-    *
-    * @param qualifiedName the qualified name of the module
-    * @param loc the location of the import
-    * @return the scope containing all definitions in the requested module
-    */
-  def processImport(
-    qualifiedName: String,
-    loc: Option[IdentifiedLocation],
-    source: Source
-  ): Unit = {
-    val module = Option(context.findTopScopeModule(qualifiedName))
-      .getOrElse {
-        val locStr = fileLocationFromSectionOption(loc, source)
-        throw new CompilerError(
-          s"Attempted to import the unresolved module $qualifiedName " +
-          s"during code generation. Defined at $locStr."
-        )
-      }
-    if (
-      !module.getCompilationStage.isAtLeast(
-        CompilationStage.AFTER_RUNTIME_STUBS
-      )
-    ) {
-      throw new CompilerError(
-        "Trying to use a module in codegen without generating runtime stubs"
-      )
+      (newContext, compilerOutput)
     }
   }
 
@@ -729,8 +696,8 @@ class Compiler(
     * @param source The inline code to parse
     * @return A Tree representation of `source`
     */
-  def parseInline(source: Source): Tree =
-    ensoCompiler.parse(source.getCharacters())
+  def parseInline(source: CharSequence): Tree =
+    ensoCompiler.parse(source)
 
   /** Enhances the provided IR with import/export statements for the provided list
     * of fully qualified names of modules. The statements are considered to be "synthetic" i.e. compiler-generated.
@@ -793,9 +760,7 @@ class Compiler(
         Export.Module(
           m,
           rename      = None,
-          isAll       = false,
           onlyNames   = None,
-          hiddenNames = None,
           location    = None,
           isSynthetic = true
         )
@@ -864,9 +829,12 @@ class Compiler(
         "No diagnostics metadata right after the gathering pass."
       )
       .diagnostics
-    val hasErrors = reportDiagnostics(errors, null)
-    if (hasErrors && inlineContext.compilerConfig.isStrictErrors) {
-      throw new CompilationAbortedException
+    val module    = inlineContext.getModule()
+    val hasErrors = reportDiagnostics(errors, module)
+    hasErrors match {
+      case error :: _ if inlineContext.compilerConfig.isStrictErrors =>
+        throw error
+      case _ =>
     }
   }
 
@@ -886,7 +854,7 @@ class Compiler(
     }
 
     val hasErrors = reportDiagnostics(diagnostics)
-    if (hasErrors && config.isStrictErrors) {
+    if (hasErrors.nonEmpty && config.isStrictErrors) {
       val count =
         diagnostics.map(_._2.collect { case e: Error => e }.length).sum
       val warnCount =
@@ -894,7 +862,7 @@ class Compiler(
       context.getErr.println(
         s"Aborting due to ${count} errors and ${warnCount} warnings."
       )
-      throw new CompilationAbortedException
+      throw hasErrors.head
     }
   }
 
@@ -942,7 +910,7 @@ class Compiler(
     }
 
     if (config.isStrictErrors) {
-      throw new CompilationAbortedException
+      throw context.throwAbortedException()
     } else {
       throw exception
     }
@@ -953,7 +921,7 @@ class Compiler(
     printDiagnostic(exception.getMessage)
 
     if (config.isStrictErrors) {
-      throw new CompilationAbortedException
+      throw context.throwAbortedException()
     } else {
       throw exception
     }
@@ -978,18 +946,14 @@ class Compiler(
     */
   private def reportDiagnostics(
     diagnostics: List[(Module, List[Diagnostic])]
-  ): Boolean = {
-    // It may be tempting to replace `.foldLeft(..)` with
-    // `.find(...).nonEmpty. Don't. We want to report diagnostics for all modules
-    // not just the first one.
-    diagnostics
-      .foldLeft(false) { case (result, (mod, diags)) =>
-        if (diags.nonEmpty) {
-          reportDiagnostics(diags, mod) || result
-        } else {
-          result
-        }
+  ): List[RuntimeException] = {
+    diagnostics.flatMap { diags =>
+      if (diags._2.nonEmpty) {
+        reportDiagnostics(diags._2, diags._1)
+      } else {
+        List()
       }
+    }
   }
 
   /** Reports compilation diagnostics to the standard output and throws an
@@ -1002,33 +966,20 @@ class Compiler(
   private def reportDiagnostics(
     diagnostics: List[Diagnostic],
     compilerModule: CompilerContext.Module
-  ): Boolean = {
+  ): List[RuntimeException] = {
     val isOutputRedirected = config.outputRedirect.isDefined
-    diagnostics.foreach { diag =>
-      val formattedDiag =
-        context.formatDiagnostic(compilerModule, diag, isOutputRedirected)
-      printDiagnostic(formattedDiag)
-    }
-    diagnostics.exists(_.isInstanceOf[Error])
-  }
-
-  private def fileLocationFromSectionOption(
-    loc: Option[IdentifiedLocation],
-    source: Source
-  ): String = {
-    val srcLocation = loc
-      .map { loc =>
-        val section =
-          source.createSection(loc.location.start, loc.location.length)
-        val locStr =
-          "" + section.getStartLine + ":" +
-          section.getStartColumn + "-" +
-          section.getEndLine + ":" +
-          section.getEndColumn
-        "[" + locStr + "]"
+    val exceptions = diagnostics
+      .flatMap { diag =>
+        val formattedDiag =
+          context.formatDiagnostic(compilerModule, diag, isOutputRedirected)
+        printDiagnostic(formattedDiag.getMessage)
+        if (diag.isInstanceOf[Error]) {
+          Some(formattedDiag)
+        } else {
+          None
+        }
       }
-      .getOrElse("")
-    source.getPath + ":" + srcLocation
+    exceptions
   }
 
   /** Performs shutdown actions for the compiler.

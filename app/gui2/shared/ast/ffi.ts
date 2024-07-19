@@ -1,6 +1,17 @@
+/**
+ * @file Provides the Rust ffi interface. The interface should be kept in sync with polyglot ffi inteface {@link module:ffiPolyglot}.
+ *
+ * @module ffi
+ */
+
 import { createXXHash128 } from 'hash-wasm'
 import type { IDataType } from 'hash-wasm/dist/lib/util'
-import init, { is_ident_or_operator, parse, parse_doc_to_json } from '../../rust-ffi/pkg/rust_ffi'
+import init, {
+  is_ident_or_operator,
+  is_numeric_literal,
+  parse,
+  parse_doc_to_json,
+} from '../../rust-ffi/pkg/rust_ffi'
 import { assertDefined } from '../util/assert'
 import { isNode } from '../util/detect'
 
@@ -13,6 +24,7 @@ export function xxHash128(input: IDataType) {
 }
 
 export async function initializeFFI(path?: string | undefined) {
+  if (xxHasher128 != null) return
   if (isNode) {
     const fs = await import('node:fs/promises')
     const { fileURLToPath, URL: nodeURL } = await import('node:url')
@@ -30,4 +42,4 @@ export async function initializeFFI(path?: string | undefined) {
 // await initializeFFI()
 
 /* eslint-disable-next-line camelcase */
-export { is_ident_or_operator, parse_doc_to_json, parse as parse_tree }
+export { is_ident_or_operator, is_numeric_literal, parse_doc_to_json, parse as parse_tree }

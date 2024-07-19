@@ -17,7 +17,6 @@
       shader-tools.yml:
       std-libs-benchmark.yml:
   app/:
-    gui/:
     gui2/: # The new, Vue-based GUI.
       dist/:
       playwright-report/: # Test results for the new GUI that we want to keep as artifacts.
@@ -30,17 +29,12 @@
           font-enso.css:
           font-mplus1.css:
           font-dejavu.css:
+    dashboard/:
+      playwright-report/: # Test results for the dashboard that we want to keep as artifacts.
     ide-desktop/:
-      lib/:
-        client/:
-        content/:
-        content-config/:
-          src/:
-            config.json:
-        dashboard/:
-          playwright-report/: # Test results for the dashboard that we want to keep as artifacts.
-        icons/:
-        project-manager/:
+      client/:
+      common/:
+      icons/:
   build/:
     prettier/:
   built-distribution/:
@@ -108,6 +102,7 @@
     enso-pack/:
       dist/: # Here ensogl-pack outputs its artifacts
     generated-java/:
+    rust/:
     test-results/:
   test/:
     Benchmarks/:
@@ -122,7 +117,6 @@
       bench-report.xml:
   build.sbt:
   run:
-  runner: # The runner native image (Linux only).
   CHANGELOG.md:
 
 # Launcher Package

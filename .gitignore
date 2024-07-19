@@ -118,6 +118,11 @@ project/metals.sbt
 /app/ide-desktop/lib/client/electron-builder-config.json
 *.config.ts.timestamp-*
 
+# Resources fire generated build-time for Win installer/uninstaller.
+/build/install/installer/archive.rc
+/build/install/icon.rc
+
+
 #################
 ## Build Cache ##
 #################
@@ -133,7 +138,6 @@ build-cache
 ##################
 
 *.build_artifacts.txt
-/runner
 
 ######################
 ## Enso-Development ##
@@ -166,3 +170,17 @@ test-results
 *.ir
 *.meta
 .enso/
+
+##################
+## direnv cache ##
+##################
+
+.direnv
+
+##########################
+## Playwright artifacts ##
+##########################
+
+test-results/
+playwright-report/
+playwright/.cache/
