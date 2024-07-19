@@ -4,6 +4,7 @@ from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Errors.Unimplemented.Unimplemented
+import Standard.Base.Runtime.Ref.Ref
 
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
 import Standard.Table.Internal.Vector_Builder.Vector_Builder
@@ -167,13 +168,12 @@ type Snowflake_Dialect
         mapping = self.get_type_mapping
         source_type = mapping.sql_type_to_value_type column.sql_type_reference.get
         target_value_type = mapping.sql_type_to_value_type target_type
-        # Boolean to Numeric casts need special handling:
-        transformed_expression = case source_type.is_boolean && target_value_type.is_numeric of
-            True ->
-                SQL_Expression.Operation "IIF" [Internals_Access.column_expression column, SQL_Expression.Literal "1", SQL_Expression.Literal "0"]
-            False -> Internals_Access.column_expression column
-        target_type_sql_text = mapping.sql_type_to_text target_type
-        new_expression = SQL_Expression.Operation "CAST" [transformed_expression, SQL_Expression.Literal target_type_sql_text]
+
+        new_expression = make_custom_cast column source_type target_value_type . if_nothing <|
+            source_expression = Internals_Access.column_expression column
+            target_type_sql_text = mapping.sql_type_to_text target_type
+            SQL_Expression.Operation "CAST" [source_expression, SQL_Expression.Literal target_type_sql_text]
+
         new_sql_type_reference = infer_result_type_from_database_callback new_expression
         Internal_Column.Value column.name new_sql_type_reference new_expression
 
@@ -698,6 +698,30 @@ make_distinct_extension distinct_expressions =
            Once fixed, should re-enable the `distinct_returns_first_row_from_group_if_ordered` flag back to `True`.
         SQL_Builder.code " QUALIFY ROW_NUMBER() OVER (PARTITION BY " ++ joined ++ " ORDER BY 1) = 1 "
     Context_Extension.Value position=550 expressions=distinct_expressions run_generator=run_generator
+
+## PRIVATE
+   Returns a custom cast expression if it is needed for a specific pair of types,
+   or Nothing if the default cast is sufficient.
+make_custom_cast (column : Internal_Column) (source_value_type : Value_Type) (target_value_type : Value_Type) -> SQL_Expression | Nothing =
+    result = Ref.new Nothing
+
+    # Custom expression for boolean to float cast, as regular cast does not support it.
+    if source_value_type.is_boolean && target_value_type.is_floating_point then
+        result.put <|
+            SQL_Expression.Operation "IIF" [Internals_Access.column_expression column, SQL_Expression.Literal "1", SQL_Expression.Literal "0"]
+
+    # If the text length is bounded, we need to add a `LEFT` call to truncate to desired length avoiding errors.
+    if target_value_type.is_text && target_value_type.size.is_nothing.not then
+        # But we only do so if the source type was also text.
+        # For any other source type, we keep the original behaviour - failing to convert if the text representation would not fit.
+        if source_value_type.is_text then result.put <|
+            max_size = (target_value_type.size : Integer)
+            truncated = SQL_Expression.Operation "LEFT" [Internals_Access.column_expression column, SQL_Expression.Literal max_size.to_text]
+            # We still need a cast to ensure the Value_Type gets the max size in it - LEFT returns no size limit unfortunately.
+            target_type_name = "VARCHAR(" + max_size.to_text + ")"
+            SQL_Expression.Operation "CAST" [truncated, SQL_Expression.Literal target_type_name]
+
+    result.get
 
 ## PRIVATE
 snowflake_dialect_name = "Snowflake"
