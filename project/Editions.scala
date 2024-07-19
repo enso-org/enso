@@ -19,7 +19,7 @@ object Editions {
     "Standard.Examples",
     "Standard.Searcher",
     "Standard.Google_Api",
-    "Standard.Snowflake"
+    "Standard.Snowflake",
     "Standard.Microsoft"
   )
 
