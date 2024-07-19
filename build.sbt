@@ -163,7 +163,10 @@ GatherLicenses.distributions := Seq(
   makeStdLibDistribution("Database", Distribution.sbtProjects(`std-database`)),
   makeStdLibDistribution("Image", Distribution.sbtProjects(`std-image`)),
   makeStdLibDistribution("AWS", Distribution.sbtProjects(`std-aws`)),
-  makeStdLibDistribution("Snowflake", Distribution.sbtProjects(`std-snowflake`)),
+  makeStdLibDistribution(
+    "Snowflake",
+    Distribution.sbtProjects(`std-snowflake`)
+  ),
   makeStdLibDistribution("Microsoft", Distribution.sbtProjects(`std-microsoft`))
 )
 
@@ -3550,7 +3553,7 @@ lazy val `std-snowflake` = project
   .dependsOn(`std-table` % "provided")
   .dependsOn(`std-database` % "provided")
 
-  lazy val `std-microsoft` = project
+lazy val `std-microsoft` = project
   .in(file("std-bits") / "microsoft")
   .settings(
     frgaalJavaCompilerSetting,
@@ -3561,8 +3564,8 @@ lazy val `std-snowflake` = project
     Compile / packageBin / artifactPath :=
       `std-microsoft-polyglot-root` / "std-microsoft.jar",
     libraryDependencies ++= Seq(
-      "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion % "provided",
-      "com.microsoft.sqlserver" % "mssql-jdbc" % mssqlserverJDBCVersion
+      "org.netbeans.api"        % "org-openide-util-lookup" % netbeansApiVersion % "provided",
+      "com.microsoft.sqlserver" % "mssql-jdbc"              % mssqlserverJDBCVersion
     ),
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value
