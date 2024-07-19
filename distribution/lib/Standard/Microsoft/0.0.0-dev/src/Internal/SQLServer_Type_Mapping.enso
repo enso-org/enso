@@ -82,7 +82,10 @@ type SQLServer_Type_Mapping
             Types.DOUBLE -> Value_Type.Float Bits.Bits_64
             Types.DATE -> Value_Type.Date
             Types.TIME -> Value_Type.Time
-            Types.TIMESTAMP -> Value_Type.Date_Time with_timezone=False
+            Types.TIMESTAMP -> case sql_type.name of
+                "datetime" -> Value_Type.Date_Time with_timezone=False
+                "smalldatetime" -> Value_Type.Date_Time with_timezone=False
+                _ -> on_unknown_type sql_type
             _ -> Nothing
         simple_type.if_nothing <|
             ## If we didn't match any of the types from the simple mapping, we

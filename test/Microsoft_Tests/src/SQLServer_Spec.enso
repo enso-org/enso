@@ -40,12 +40,12 @@ type SQLServer_Info_Data
     setup default_connection = SQLServer_Info_Data.Value <|
         connection = default_connection
         tinfo = Name_Generator.random_name "Tinfo"
-        connection.execute_update 'Create Table "'+tinfo+'" ("strs" VARCHAR(255), "ints" INTEGER, "bools" BIT, "reals" REAL, "floats" FLOAT, "tinyints" TINYINT, "smallints" SMALLINT, "bigints" BIGINT, "times" TIME, "dates" DATE, "datetimes" DATETIME)'
+        connection.execute_update 'Create Table "'+tinfo+'" ("strs" VARCHAR(255), "ints" INTEGER, "bools" BIT, "reals" REAL, "floats" FLOAT, "tinyints" TINYINT, "smallints" SMALLINT, "bigints" BIGINT, "times" TIME, "dates" DATE, "datetimes" DATETIME, "smalldatetimes" SMALLDATETIME)'
         t = connection.query (SQL_Query.Table_Name tinfo)
-        row1 = ["a", Nothing, False, 1.2, 1.2, 0, 0, 0, Time_Of_Day.new 12 12 12 1 1 1, Date.new 2021 1 1, Date_Time.new 2021 1 1 12 12 12 1 1 1]
-        row2 = ["abc", Nothing, Nothing, 1.3, 1.3, 255, 32767, 9223372036854775807, Time_Of_Day.new 7 12 12 1 1 1, Date.new 1999 1 1, Date_Time.new 1999 1 1 12 12 12 1 1 1]
-        row3 = ["def", 42, True, 1.4, 1.4, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing]
-        table = Table.from_rows ["strs", "ints", "bools", "reals", "floats", "tinyints", "smallints", "bigints", "times", "dates", "datetimes"] [row1, row2, row3]
+        row1 = ["a", Nothing, False, 1.2, 1.2, 0, 0, 0, Time_Of_Day.new 12 12 12 1 1 1, Date.new 2021 1 1, Date_Time.new 2021 1 1 12 12 12 1 1 1, Date_Time.new 2021 1 1 12 12 12 1 1 1]
+        row2 = ["abc", Nothing, Nothing, 1.3, 1.3, 255, 32767, 9223372036854775807, Time_Of_Day.new 7 12 12 1 1 1, Date.new 1999 1 1, Date_Time.new 1999 1 1 12 12 12 1 1 1, Date_Time.new 1999 1 1 12 12 12 1 1 1]
+        row3 = ["def", 42, True, 1.4, 1.4, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing]
+        table = Table.from_rows ["strs", "ints", "bools", "reals", "floats", "tinyints", "smallints", "bigints", "times", "dates", "datetimes", "smalldatetimes"] [row1, row2, row3]
         table2 = table.cast ['tinyints'] (Value_Type.Integer Bits.Bits_16)
         table3 = table2.cast ['smallints'] (Value_Type.Integer Bits.Bits_16)
         table4 = table3.cast ['ints'] (Value_Type.Integer Bits.Bits_32)
@@ -99,9 +99,9 @@ add_specs suite_builder =
 
         group_builder.specify "should return Table information" <|
             i = data.t.column_info
-            i.at "Column" . to_vector . should_equal ["strs", "ints", "bools", "reals", "floats", "tinyints", "smallints", "bigints", "times", "dates", "datetimes"]
-            i.at "Items Count" . to_vector . should_equal [3, 1, 2, 3, 3, 2, 2, 2, 2, 2, 2]
-            i.at "Value Type" . to_vector . should_equal [Value_Type.Char 255, Value_Type.Integer ..Bits_32, Value_Type.Boolean, Value_Type.Float, Value_Type.Float, Value_Type.Integer Bits.Bits_16, Value_Type.Integer Bits.Bits_16, Value_Type.Integer Bits.Bits_64, Value_Type.Time, Value_Type.Date, Value_Type.Date_Time False]
+            i.at "Column" . to_vector . should_equal ["strs", "ints", "bools", "reals", "floats", "tinyints", "smallints", "bigints", "times", "dates", "datetimes", "smalldatetimes"]
+            i.at "Items Count" . to_vector . should_equal [3, 1, 2, 3, 3, 2, 2, 2, 2, 2, 2, 2]
+            i.at "Value Type" . to_vector . should_equal [Value_Type.Char 255, Value_Type.Integer ..Bits_32, Value_Type.Boolean, Value_Type.Float, Value_Type.Float, Value_Type.Integer Bits.Bits_16, Value_Type.Integer Bits.Bits_16, Value_Type.Integer Bits.Bits_64, Value_Type.Time, Value_Type.Date, Value_Type.Date_Time False, Value_Type.Date_Time False]
 
         group_builder.specify "should return Table information, also for aggregated results" <|
             i = data.t.aggregate columns=[Aggregate_Column.Sum "ints", Aggregate_Column.Count_Distinct "bools"] . column_info
