@@ -106,7 +106,8 @@ final class Array implements EnsoObject {
     var v = items[(int) index];
     if (this.hasWarnings(warnings)) {
       hasWarningsProfile.enter();
-      Warning[] extracted = this.getWarnings(null, false, warnings, mapInsertNode, atNode, lengthNode);
+      Warning[] extracted =
+          this.getWarnings(null, false, warnings, mapInsertNode, atNode, lengthNode);
       if (warnings.hasWarnings(v)) {
         v = warnings.removeWarnings(v);
       }

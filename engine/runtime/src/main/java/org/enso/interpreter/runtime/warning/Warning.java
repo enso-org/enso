@@ -114,12 +114,11 @@ public final class Warning implements EnsoObject {
 
   public static Warning[] fromMapToArray(EnsoHashMap set) {
     return fromMapToArray(
-        set,
-        ArrayLikeLengthNodeGen.getUncached(),
-        ArrayLikeAtNodeGen.getUncached());
+        set, ArrayLikeLengthNodeGen.getUncached(), ArrayLikeAtNodeGen.getUncached());
   }
 
-  public static Warning[] fromMapToArray(EnsoHashMap set, ArrayLikeLengthNode lengthNode, ArrayLikeAtNode atNode) {
+  public static Warning[] fromMapToArray(
+      EnsoHashMap set, ArrayLikeLengthNode lengthNode, ArrayLikeAtNode atNode) {
     var vec = set.getCachedVectorRepresentation();
     var vecLen = Math.toIntExact(lengthNode.executeLength(vec));
     Warning[] warns = new Warning[vecLen];
@@ -143,9 +142,7 @@ public final class Warning implements EnsoObject {
   @Builtin.Specialize
   @SuppressWarnings("generic-enso-builtin-type")
   public static Object set(
-      WithWarnings value,
-      Object warnings,
-      @Shared @Cached AppendWarningNode appendWarningNode) {
+      WithWarnings value, Object warnings, @Shared @Cached AppendWarningNode appendWarningNode) {
     return setGeneric(value.getValue(), warnings, appendWarningNode);
   }
 
@@ -156,16 +153,12 @@ public final class Warning implements EnsoObject {
   @SuppressWarnings("generic-enso-builtin-type")
   @Builtin.Specialize(fallback = true)
   public static Object set(
-      Object value,
-      Object warnings,
-      @Shared @Cached AppendWarningNode appendWarningNode) {
+      Object value, Object warnings, @Shared @Cached AppendWarningNode appendWarningNode) {
     return setGeneric(value, warnings, appendWarningNode);
   }
 
   private static Object setGeneric(
-      Object value,
-      Object warnings,
-      AppendWarningNode appendWarningNode) {
+      Object value, Object warnings, AppendWarningNode appendWarningNode) {
     return appendWarningNode.execute(null, value, warnings);
   }
 

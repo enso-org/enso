@@ -72,8 +72,7 @@ public abstract class AppendWarningNode extends Node {
       WithWarnings withWarn,
       Object warning,
       @Shared @CachedLibrary(limit = "3") InteropLibrary interop,
-      @Shared @Cached HashMapInsertNode mapInsertNode
-  ) {
+      @Shared @Cached HashMapInsertNode mapInsertNode) {
     var warningsMap = withWarn.warnings;
     var currWarnsCnt = warningsMap.getHashSize();
     var newWarnsMap = mapInsertNode.execute(frame, warningsMap, warning, null);
@@ -87,8 +86,7 @@ public abstract class AppendWarningNode extends Node {
       Object value,
       Object warning,
       @Shared @CachedLibrary(limit = "3") InteropLibrary interop,
-      @Shared @Cached HashMapInsertNode mapInsertNode
-  ) {
+      @Shared @Cached HashMapInsertNode mapInsertNode) {
     var warnsMap = mapInsertNode.execute(frame, EnsoHashMap.empty(), warning, null);
     var warnsLimit = EnsoContext.get(this).getWarningsLimit();
     var limitReached = 1 >= warnsLimit;
