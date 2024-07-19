@@ -171,6 +171,18 @@ type Dialect
         Unimplemented.throw "This is an interface only."
 
     ## PRIVATE
+       Specifies whether the Database supports CREATE TEMPORARY TABLE syntax.
+    suppports_temporary_table_syntax : Boolean
+    suppports_temporary_table_syntax self =
+         Unimplemented.throw "This is an interface only."
+
+    ## PRIVATE
+       Specifies whether the Database supports CREATE TABLE #temptablename syntax.
+    suppports_temporary_with_hash_syntax : Boolean
+    suppports_temporary_with_hash_syntax self =
+         Unimplemented.throw "This is an interface only."
+
+    ## PRIVATE
        Performs any transformations on a column resulting from unifying other
        columns.
 

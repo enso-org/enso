@@ -1,6 +1,7 @@
 private
 
 from Standard.Base import all
+import Standard.Base.Data.Numbers.Positive_Integer
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 import Standard.Table.Internal.Java_Exports
@@ -23,23 +24,27 @@ type SQLServer_Type_Mapping
     value_type_to_sql : Value_Type -> Problem_Behavior -> SQL_Type
     value_type_to_sql value_type on_problems =
         result = case value_type of
-            Value_Type.Boolean -> SQL_Type.Value Types.BOOLEAN "boolean"
+            Value_Type.Boolean -> SQL_Type.Value Types.BIT "bit"
             # All integer types in Snowflake become NUMERIC(38,0).
             Value_Type.Byte -> SQL_Type.Value Types.BIGINT "bigint"
             Value_Type.Integer _ -> SQL_Type.Value Types.BIGINT "bigint"
             # All float types in Snowflake become double
-            Value_Type.Float _ -> SQL_Type.Value Types.DOUBLE "float8"
+            Value_Type.Float _ -> SQL_Type.Value Types.DOUBLE "float"
             Value_Type.Decimal precision scale -> case precision of
                 # If precision is not set, scale is also lost because SQL is unable to express a scale without a precision.
                 Nothing -> SQL_Type.Value Types.DECIMAL "decimal" Nothing Nothing
                 # Scale can be set or not, if precision is given, so no check needed.
                 _       -> SQL_Type.Value Types.DECIMAL "decimal" precision scale
-            Value_Type.Char size _ ->
-                # Snowflake does not support fixed length strings, so we use VARCHAR.
-                is_unbounded = size.is_nothing || (size >= max_length)
-                case is_unbounded of
-                    True  -> SQL_Type.Value Types.VARCHAR "varchar"
-                    False -> SQL_Type.Value Types.VARCHAR "varchar" size
+            Value_Type.Char size variable ->
+                case variable of
+                    True  ->
+                        is_unbounded = case size of
+                            Nothing -> True
+                            Positive_Integer.Value integer -> integer == max_precision
+                        case is_unbounded of
+                            True  -> SQL_Type.Value Types.VARCHAR "text"
+                            False -> SQL_Type.Value Types.VARCHAR "varchar" size
+                    False -> SQL_Type.Value Types.CHAR "char" size
             Value_Type.Time -> SQL_Type.Value Types.TIME "time"
             Value_Type.Date -> SQL_Type.Value Types.DATE "date"
             Value_Type.Date_Time with_timezone ->
@@ -116,7 +121,7 @@ type SQLServer_Type_Mapping
 simple_types_map = Map.from_vector <|
     ints = [[Types.TINYINT, Value_Type.Byte], [Types.SMALLINT, Value_Type.Integer Bits.Bits_16], [Types.BIGINT, Value_Type.Integer Bits.Bits_64], [Types.INTEGER, Value_Type.Integer Bits.Bits_32]]
     floats = [[Types.DOUBLE, Value_Type.Float Bits.Bits_64], [Types.REAL, Value_Type.Float Bits.Bits_32]]
-    other = [[Types.DATE, Value_Type.Date], [Types.TIME, Value_Type.Time], [Types.BOOLEAN, Value_Type.Boolean]]
+    other = [[Types.DATE, Value_Type.Date], [Types.TIME, Value_Type.Time], [Types.BIT, Value_Type.Boolean]]
     ints + floats + other
 
 ## PRIVATE
@@ -179,3 +184,8 @@ date_time_fetcher =
         java_builder = Java_Exports.make_date_time_builder initial_size
         Column_Fetcher_Module.make_builder_from_java_object_builder java_builder
     Column_Fetcher.Value fetch_value make_builder
+
+## PRIVATE
+   This is the maximum size that JDBC driver reports for 'unbounded' types in
+   Postgres.
+max_precision = 2147483647

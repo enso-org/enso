@@ -192,10 +192,34 @@ type SQLSever_Dialect
     supports_float_round_decimal_places self = True
 
     ## PRIVATE
+       Specifies whether the Database supports CREATE TEMPORARY TABLE syntax.
+    suppports_temporary_table_syntax : Boolean
+    suppports_temporary_table_syntax self = False
+
+    ## PRIVATE
+       Specifies whether the Database supports CREATE TABLE #temptablename syntax.
+    suppports_temporary_with_hash_syntax : Boolean
+    suppports_temporary_with_hash_syntax self = True
+
+    ## PRIVATE
     adapt_unified_column : Internal_Column -> Value_Type -> (SQL_Expression -> SQL_Type_Reference) -> Internal_Column
     adapt_unified_column self column approximate_result_type infer_result_type_from_database_callback =
         _ = [approximate_result_type, infer_result_type_from_database_callback]
         column
+
+    ## PRIVATE
+       Add an extra cast to adjust the output type of certain operations with
+       certain arguments.
+
+       It is used when the normal type inference provided by the database engine
+       needs to be adjusted.
+
+       In most cases this method will just return the expression unchanged, it
+       is used only to override the type in cases where the default one that the
+       database uses is not what we want.
+    cast_op_type self (op_kind:Text) (args:(Vector Internal_Column)) (expression:SQL_Expression) =
+        _ = [op_kind, args]
+        expression
 
     ## PRIVATE
     prepare_fetch_types_query : SQL_Expression -> Context -> SQL_Statement

@@ -200,6 +200,16 @@ type SQLite_Dialect
     supports_float_round_decimal_places self = True
 
     ## PRIVATE
+       Specifies whether the Database supports CREATE TEMPORARY TABLE syntax.
+    suppports_temporary_table_syntax : Boolean
+    suppports_temporary_table_syntax self = True
+
+    ## PRIVATE
+       Specifies whether the Database supports CREATE TABLE #temptablename syntax.
+    suppports_temporary_with_hash_syntax : Boolean
+    suppports_temporary_with_hash_syntax self = False
+
+    ## PRIVATE
        SQLite allows mixed type columns, but we want our columns to be uniform.
        So after unifying columns with mixed types, we add a cast to ensure that.
     adapt_unified_column : Internal_Column -> Value_Type -> (SQL_Expression -> SQL_Type_Reference) -> Internal_Column
