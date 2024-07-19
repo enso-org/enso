@@ -131,8 +131,14 @@ type SQLServer_Type_Mapping
             Value_Type.Date_Time _ -> date_time_fetcher
             _ -> Column_Fetcher_Module.default_fetcher_for_value_type value_type
 
+    ## PRIVATE
+    is_implicit_conversion (source_type : Value_Type) (target_type : Value_Type) -> Boolean =
+        # Currently, we do not have any implicit conversions.
+        _ = [source_type, target_type]
+        False
+
 ## PRIVATE
-complex_types_map = Map.from_vector <|
+complex_types_map = Dictionary.from_vector <|
     make_decimal sql_type =
         Value_Type.Decimal sql_type.precision sql_type.scale
     make_varchar sql_type =
