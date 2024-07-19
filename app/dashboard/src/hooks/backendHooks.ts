@@ -633,25 +633,33 @@ export function useUpdateUserMutation(options?: BackendMutationOptions<'updateUs
 // ==========================================
 
 /** Return a function to build mutation options for a specific backend method. */
-function createRemoteBackendMutationBuilder<Method extends MutationMethodInternal>(
+function createRemoteBackendMutationBuilder<
+  Method extends MutationMethodInternal,
+  ExtraHooks extends object = object,
+>(
   method: Method,
   onSuccess: (
-    backend: RemoteBackend,
-    setQueryData: ReturnType<typeof useBackendSetQueryData>,
+    context: ExtraHooks & {
+      backend: RemoteBackend
+      setQueryData: ReturnType<typeof useBackendSetQueryData>
+    },
     ...args: Parameters<NonNullable<BackendMutationOptions<Method>['onSuccess']>>
-  ) => void
+  ) => void,
+  useExtraHooks?: () => ExtraHooks
 ) {
   /** A function to build mutation options for a specific backend method. */
   // eslint-disable-next-line no-restricted-syntax
   function useBuilder(options?: BackendMutationOptions<Method>) {
     const backend = useRemoteBackendStrict()
     const setQueryData = useBackendSetQueryData(backend)
+    // eslint-disable-next-line no-restricted-syntax
+    const extraHooks = useExtraHooks?.() as ExtraHooks
     return useBackendMutationOptionsInternal(
       backend,
       method,
       mergeBackendMutationOptions(options, {
         onSuccess: (...args) => {
-          onSuccess(backend, setQueryData, ...args)
+          onSuccess({ backend, setQueryData, ...extraHooks }, ...args)
         },
       })
     )
@@ -664,24 +672,18 @@ function createRemoteBackendMutationBuilder<Method extends MutationMethodInterna
 // ====================================
 
 /** A mutation to upload a user's profile picture. */
-export function useUploadUserPictureMutation(
-  options?: BackendMutationOptions<'uploadUserPicture'>
-) {
-  const backend = useRemoteBackendStrict()
-  const setQueryData = useBackendSetQueryData(backend)
-  const { setUser } = authProvider.useAuth()
-  return useBackendMutationOptionsInternal(
-    backend,
-    'uploadUserPicture',
-    mergeBackendMutationOptions(options, {
-      onSuccess: data => {
-        revokeUserPictureUrl(backend)
-        setQueryData('usersMe', () => data)
-        setUser(data)
-      },
-    })
-  )
-}
+export const useUploadUserPictureMutation = createRemoteBackendMutationBuilder(
+  'uploadUserPicture',
+  ({ backend, setQueryData, setUser }, data) => {
+    revokeUserPictureUrl(backend)
+    setQueryData('usersMe', () => data)
+    setUser(data)
+  },
+  () => {
+    const { setUser } = authProvider.useAuth()
+    return { setUser }
+  }
+)
 
 // =====================================
 // === useUpdateOrganizationMutation ===
@@ -690,7 +692,7 @@ export function useUploadUserPictureMutation(
 /** A mutation to update an organization's information. */
 export const useUpdateOrganizationMutation = createRemoteBackendMutationBuilder(
   'updateOrganization',
-  (_backend, setQueryData, data) => {
+  ({ setQueryData }, data) => {
     setQueryData('getOrganization', () => data)
   }
 )
@@ -702,7 +704,7 @@ export const useUpdateOrganizationMutation = createRemoteBackendMutationBuilder(
 /** A mutation to upload an organization's profile picture. */
 export const useUploadOrganizationPictureMutation = createRemoteBackendMutationBuilder(
   'uploadOrganizationPicture',
-  (backend, setQueryData, data) => {
+  ({ backend, setQueryData }, data) => {
     revokeOrganizationPictureUrl(backend)
     setQueryData('getOrganization', () => data)
   }
@@ -715,7 +717,7 @@ export const useUploadOrganizationPictureMutation = createRemoteBackendMutationB
 /** A mutation to create a user group. */
 export const useCreateUserGroupMutation = createRemoteBackendMutationBuilder(
   'createUserGroup',
-  (_backend, setQueryData, data) => {
+  ({ setQueryData }, data) => {
     setQueryData('listUserGroups', userGroups => [data, ...userGroups])
   }
 )
@@ -727,7 +729,7 @@ export const useCreateUserGroupMutation = createRemoteBackendMutationBuilder(
 /** A mutation to delete a user group. */
 export const useDeleteUserGroupMutation = createRemoteBackendMutationBuilder(
   'deleteUserGroup',
-  (_backen, setQueryData, _data, variables) => {
+  ({ setQueryData }, _data, variables) => {
     setQueryData('listUserGroups', userGroups =>
       userGroups.filter(userGroup => userGroup.id !== variables[0])
     )
@@ -741,7 +743,7 @@ export const useDeleteUserGroupMutation = createRemoteBackendMutationBuilder(
 /** A mutation to change a user group. */
 export const useChangeUserGroupMutation = createRemoteBackendMutationBuilder(
   'changeUserGroup',
-  (_backen, setQueryData, _data, [userId, body]) => {
+  ({ setQueryData }, _data, [userId, body]) => {
     setQueryData('listUsers', users =>
       users.map(user => (user.userId !== userId ? user : { ...user, userGroups: body.userGroups }))
     )
@@ -755,7 +757,7 @@ export const useChangeUserGroupMutation = createRemoteBackendMutationBuilder(
 /** A mutation to create a tag. */
 export const useCreateTagMutation = createRemoteBackendMutationBuilder(
   'createTag',
-  (_backend, setQueryData, data) => {
+  ({ setQueryData }, data) => {
     setQueryData('listTags', tags => [...tags, data])
   }
 )
@@ -767,7 +769,7 @@ export const useCreateTagMutation = createRemoteBackendMutationBuilder(
 /** A mutation to delete a tag. */
 export const useDeleteTagMutation = createRemoteBackendMutationBuilder(
   'deleteTag',
-  (_backend, setQueryData, _data, [tagId]) => {
+  ({ setQueryData }, _data, [tagId]) => {
     setQueryData('listTags', tags => tags.filter(tag => tag.id !== tagId))
   }
 )
