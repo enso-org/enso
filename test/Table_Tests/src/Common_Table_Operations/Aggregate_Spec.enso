@@ -1061,6 +1061,26 @@ add_specs suite_builder setup =
             m1.columns.first.name . should_equal "Count Distinct A B"
             m1.columns.first.to_vector . should_equal [3]
 
+        group_builder.specify "should work correctly with Boolean columns" <|
+            table = table_builder [["A", [True, True, True]], ["B", [False, False, False]], ["C", [True, False, True]], ["D", [Nothing, False, True]]]
+
+            t_with_nulls = table.aggregate columns=[..Count_Distinct "A", ..Count_Distinct "B", ..Count_Distinct "C", ..Count_Distinct "D"]
+            m1 = materialize t_with_nulls
+            m1.column_count . should_equal 4
+            m1.at "Count Distinct A" . to_vector . should_equal [1]
+            m1.at "Count Distinct B" . to_vector . should_equal [1]
+            m1.at "Count Distinct C" . to_vector . should_equal [2]
+            m1.at "Count Distinct D" . to_vector . should_equal [3]
+
+            t_without_nulls = table.aggregate columns=[..Count_Distinct "A" ignore_nothing=True, ..Count_Distinct "B" ignore_nothing=True, ..Count_Distinct "C" ignore_nothing=True, ..Count_Distinct "D" ignore_nothing=True]
+            m2 = materialize t_without_nulls
+            m2.column_count . should_equal 4
+            m2.at "Count Distinct A" . to_vector . should_equal [1]
+            m2.at "Count Distinct B" . to_vector . should_equal [1]
+            m2.at "Count Distinct C" . to_vector . should_equal [2]
+            # The NULL is ignored, and not counted towards the total
+            m2.at "Count Distinct D" . to_vector . should_equal [2]
+
     suite_builder.group prefix+"Table.aggregate Standard_Deviation" pending=(resolve_pending test_selection.std_dev) group_builder->
         group_builder.specify "should correctly handle single elements" <|
             r1 = table_builder [["X", [1]]] . aggregate columns=[Standard_Deviation "X" (population=False), Standard_Deviation "X" (population=True)]
