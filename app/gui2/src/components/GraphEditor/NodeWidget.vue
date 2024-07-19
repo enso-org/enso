@@ -119,31 +119,4 @@ const spanStart = computed(() => {
   user-select: none;
   white-space: pre;
 }
-
-.NodeWidget {
-  --widget-is-leaf: 1;
-}
-
-.NodeWidget:has(.NodeWidget) {
-  --widget-is-leaf: 0;
-}
-
-.NodeWidget:not(:nth-last-child(1 of .NodeWidget)) {
-  --hard-edge-on-right: 0;
-}
-
-.NodeWidget:has(+ .HardEdgeLeft.HardEdgeLeft) {
-  --hard-edge-on-right: 1;
-}
-
-.NodeWidget.MarginBoundary {
-  > * {
-    --hard-edge-on-right: 0;
-  }
-}
-
-/* .MarginBoundary,
-.NodeWidget:not(.NodeWidget:has(.NodeWidget)) {
-  margin-right: calc(8px * var(--hard-edge-on-right) * var(--widget-is-leaf));
-} */
 </style>
