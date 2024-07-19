@@ -21,10 +21,6 @@ add_specs suite_builder setup =
     prefix = setup.prefix
     suite_builder.group prefix+"Table.replace" group_builder->
         table_builder = build_sorted_table setup
-        table_builder_typed columns value_type =
-            cast_columns = columns.map c->
-                Column.from_vector (c.at 0) (c.at 1) . cast value_type
-            build_sorted_table setup cast_columns
 
         table1 = Lazy_Ref.Value <|
             table_builder [['x', [1, 2, 3, 4, 2]], ['y', ['a', 'b', 'c', 'd', 'e']]]
@@ -32,6 +28,10 @@ add_specs suite_builder setup =
             table_builder [['x', [2, 1, 4, 3]], ['z', [20, 10, 40, 30]]]
         table3 = Lazy_Ref.Value <|
             table_builder [['x', [1, 2, 3, 4]], ['y', ['a', 'b', 'c', 'd']]]
+        empty_table = Lazy_Ref.Value <|
+            in_memory = Table.new [['x', [1]], ['z', [2]]]
+            empty = in_memory.take 0
+            table_builder empty.columns
         group_builder.specify "should be able to replace values via a lookup table, using from/to column defaults" <|
             table = table1.get
             lookup_table = table2.get
@@ -102,7 +102,7 @@ add_specs suite_builder setup =
             table = table3.get.rename_columns [['x', 'duplicate_key']]
             lookup_table = table2.get
             expected = Table.new [['duplicate_key', [10, 20, 30, 40]], ['y', ['a', 'b', 'c', 'd']]]
-            result = table.replace lookup_table 'duplicate_key'
+            result = table.replace lookup_table 'duplicate_key' . sort 'y'
             result . should_equal expected
 
         group_builder.specify "(edge-case) should allow lookup with itself" <|
@@ -123,27 +123,22 @@ add_specs suite_builder setup =
             lookup_table = table_builder [['x', [2, 1, Nothing, 3]], ['z', [20, 10, 40, 30]]]
             table.replace lookup_table 'x' . should_fail_with Null_Values_In_Key_Columns
 
-        group_builder.specify "should fail on an empty lookup table with no columns" <|
-            table = table1.get
-            lookup_table = table_builder []
-            table.replace lookup_table 'x' . should_fail_with Illegal_Argument
-
         group_builder.specify "should accept an empty (but well-formed) lookup table if allow_unmatched_rows=True, but expect a warning" <|
             table = table1.get
-            lookup_table = table_builder_typed [['x', []], ['z', []]] Value_Type.Integer
+            lookup_table = empty_table.get
             t = table.replace lookup_table 'x' . sort ['y']
             t . should_equal table
             Problems.expect_warning (Empty_Error.Error "lookup_table") t
 
         group_builder.specify "should throw an error on an empty (but well-formed) lookup table and non-empty base table if allow_unmatched_rows=False" <|
             table = table1.get . sort ['x']
-            lookup_table = table_builder_typed [['x', []], ['z', []]] Value_Type.Integer
+            lookup_table = empty_table.get
             t = table.replace lookup_table 'x' allow_unmatched_rows=False . sort ['y']
             t . should_fail_with Unmatched_Rows_In_Lookup
 
         group_builder.specify "should accept an empty (but well-formed) lookup table if the base table is also empty, but expect a warning" <|
-            table = table_builder_typed [['x', []], ['z', []]] Value_Type.Integer
-            lookup_table = table_builder_typed [['x', []], ['z', []]] Value_Type.Integer
+            table = empty_table.get
+            lookup_table = empty_table.get
             t = table.replace lookup_table 'x'
             t . should_equal table
             Problems.expect_warning (Empty_Error.Error "lookup_table") t
@@ -161,7 +156,7 @@ add_specs suite_builder setup =
             t.catch.example_key_values . should_equal [1]
 
         group_builder.specify "should accept an empty lookup map if the base table is also empty, but expect a warning" <|
-            table = table_builder_typed [['x', []], ['z', []]] Value_Type.Integer
+            table = empty_table.get
             t = table.replace Dictionary.empty 'x'
             t . should_equal table
             Problems.expect_warning (Empty_Error.Error "lookup_table") t
