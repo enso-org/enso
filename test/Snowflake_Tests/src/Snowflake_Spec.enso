@@ -272,8 +272,13 @@ snowflake_specific_spec suite_builder default_connection db_name setup =
         group_builder.specify "Counts" <|
             r = data.t.aggregate columns=[Aggregate_Column.Count, Aggregate_Column.Count_Empty "txt", Aggregate_Column.Count_Not_Empty "txt", Aggregate_Column.Count_Distinct "i1", Aggregate_Column.Count_Not_Nothing "i2", Aggregate_Column.Count_Nothing "i3"]
             r.column_count . should_equal 6
-            r.columns.each column-> Test.with_clue "(Column ["+column.name+"]) " <|
-                column.value_type . should_equal (Value_Type.Decimal 13 0)
+
+            r.at "Count" . value_type . should_equal (Value_Type.Decimal 18 0)
+            r.at "Count_Empty txt" . value_type . should_equal (Value_Type.Decimal 13 0)
+            r.at "Count Not Empty txt" . value_type . should_equal (Value_Type.Decimal 13 0)
+            r.at "Count Distinct i1" . value_type . should_equal (Value_Type.Decimal 18 0)
+            r.at "Count Not Nothing i2" . value_type . should_equal (Value_Type.Decimal 18 0)
+            r.at "Count Nothing i3" . value_type . should_equal (Value_Type.Decimal 13 0)
 
         group_builder.specify "Sum" <|
             r = data.t.aggregate columns=[Aggregate_Column.Sum "i1", Aggregate_Column.Sum "i2", Aggregate_Column.Sum "i3", Aggregate_Column.Sum "i4", Aggregate_Column.Sum "r1", Aggregate_Column.Sum "r2"]
@@ -299,8 +304,11 @@ snowflake_specific_spec suite_builder default_connection db_name setup =
         group_builder.specify "is capable of handling weird tables" <|
             default_connection.get.execute_update 'CREATE TEMPORARY TABLE "empty-column-name" ("" VARCHAR)' . should_succeed
             t = default_connection.get.query "empty-column-name"
-            IO.println t.columns
-            t.print
+            t.columns.length . should_equal 1
+            # The column is renamed to something valid upon read:
+            t.column_names . should_equal ["Column 1"]
+            # Should be readable:
+            t.read . at 0 . to_vector . should_equal []
 
             Problems.assume_no_problems <|
                 default_connection.get.execute_update 'CREATE TEMPORARY TABLE "clashing-unicode-names" ("ś" VARCHAR, "s\u0301" INTEGER)'
@@ -318,7 +326,9 @@ snowflake_specific_spec suite_builder default_connection db_name setup =
             r3.catch.cause . should_be_a Duplicate_Output_Column_Names
 
             r4 = default_connection.get.query 'SELECT 1 AS ""'
-            r4.should_fail_with SQL_Error
+            r4.should_fail_with Illegal_Argument
+            r4.catch.to_display_text . should_contain "The provided custom SQL query is invalid and may suffer data corruption"
+            r4.catch.to_display_text . should_contain "The name '' is invalid"
 
     suite_builder.group "[Snowflake] Edge Cases" group_builder->
         group_builder.specify "materialize should respect the overridden type" pending="TODO" <|
@@ -500,31 +510,31 @@ snowflake_specific_spec suite_builder default_connection db_name setup =
     suite_builder.group "[Snowflake] math functions" group_builder->
         group_builder.specify "round, trunc, ceil, floor" <|
             col = table_builder [["x", [0.1, 0.9, 3.1, 3.9, -0.1, -0.9, -3.1, -3.9]]] . at "x"
-            col . cast Value_Type.Integer . ceil . value_type . should_equal Value_Type.Float
+            col . cast Value_Type.Integer . ceil . value_type . should_equal (Value_Type.Decimal 38 0)
 
             col . cast Value_Type.Float . round . value_type . should_equal Value_Type.Float
-            col . cast Value_Type.Integer . round . value_type . should_equal Value_Type.Float
-            col . cast Value_Type.Decimal . round . value_type . should_equal Value_Type.Decimal
+            col . cast Value_Type.Integer . round . value_type . should_equal (Value_Type.Decimal 38 0)
+            col . cast Value_Type.Decimal . round . value_type . should_equal (Value_Type.Decimal 38 0)
 
             col . cast Value_Type.Float . round 1 . value_type . should_equal Value_Type.Float
-            col . cast Value_Type.Integer . round 1 . value_type . should_equal Value_Type.Decimal
-            col . cast Value_Type.Decimal . round 1 . value_type . should_equal Value_Type.Decimal
+            col . cast Value_Type.Integer . round 1 . value_type . should_equal (Value_Type.Decimal 38 0)
+            col . cast Value_Type.Decimal . round 1 . value_type . should_equal (Value_Type.Decimal 38 0)
 
             col . cast Value_Type.Float . round use_bankers=True . value_type . should_equal Value_Type.Float
             col . cast Value_Type.Integer . round use_bankers=True . value_type . should_equal Value_Type.Float
-            col . cast Value_Type.Decimal . round use_bankers=True . value_type . should_equal Value_Type.Decimal
+            col . cast Value_Type.Decimal . round use_bankers=True . value_type . should_equal (Value_Type.Decimal 38 0)
 
             col . cast Value_Type.Float . ceil . value_type . should_equal Value_Type.Float
             col . cast Value_Type.Integer . ceil . value_type . should_equal Value_Type.Float
-            col . cast Value_Type.Decimal . ceil . value_type . should_equal Value_Type.Decimal
+            col . cast Value_Type.Decimal . ceil . value_type . should_equal (Value_Type.Decimal 38 0)
 
             col . cast Value_Type.Float . floor . value_type . should_equal Value_Type.Float
             col . cast Value_Type.Integer . floor . value_type . should_equal Value_Type.Float
-            col . cast Value_Type.Decimal . floor . value_type . should_equal Value_Type.Decimal
+            col . cast Value_Type.Decimal . floor . value_type . should_equal (Value_Type.Decimal 38 0)
 
             col . cast Value_Type.Float . truncate . value_type . should_equal Value_Type.Float
             col . cast Value_Type.Integer . truncate . value_type . should_equal Value_Type.Float
-            col . cast Value_Type.Decimal . truncate . value_type . should_equal Value_Type.Decimal
+            col . cast Value_Type.Decimal . truncate . value_type . should_equal (Value_Type.Decimal 38 0)
 
         do_op n op =
             table = light_table_builder [["x", [n]]]
