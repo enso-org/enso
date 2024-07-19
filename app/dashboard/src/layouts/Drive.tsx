@@ -269,7 +269,6 @@ export default function Drive(props: DriveProps) {
               setQuery={setQuery}
               suggestions={suggestions}
               category={category}
-              setCategory={setCategory}
               canDownload={canDownload}
               isAssetPanelOpen={isAssetPanelVisible}
               setIsAssetPanelOpen={valueOrUpdater => {

@@ -49,7 +49,6 @@ export interface DriveBarProps {
   readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
   readonly suggestions: readonly assetSearchBar.Suggestion[]
   readonly category: Category
-  readonly setCategory: (category: Category) => void
   readonly canDownload: boolean
   readonly isAssetPanelOpen: boolean
   readonly setIsAssetPanelOpen: React.Dispatch<React.SetStateAction<boolean>>
@@ -64,7 +63,7 @@ export interface DriveBarProps {
 /** Displays the current directory path and permissions, upload and download buttons,
  * and a column display mode switcher. */
 export default function DriveBar(props: DriveBarProps) {
-  const { backend, query, setQuery, suggestions, category, setCategory, canDownload } = props
+  const { backend, query, setQuery, suggestions, category, canDownload } = props
   const { doEmptyTrash, doCreateProject, doCreateDirectory } = props
   const { doCreateSecret, doCreateDatalink, doUploadFiles } = props
   const { isAssetPanelOpen, setIsAssetPanelOpen } = props
@@ -73,6 +72,7 @@ export default function DriveBar(props: DriveBarProps) {
   const { user } = authProvider.useFullUserSession()
   const inputBindings = inputBindingsProvider.useInputBindings()
   const dispatchAssetEvent = eventListProvider.useDispatchAssetEvent()
+  const createAssetButtonsRef = React.useRef<HTMLDivElement>(null)
   const uploadFilesRef = React.useRef<HTMLInputElement>(null)
   const isCloud = categoryModule.isCloudCategory(category)
   const { isOffline } = offlineHooks.useOffline()
@@ -86,6 +86,12 @@ export default function DriveBar(props: DriveBarProps) {
     : isCloud && isOffline
       ? getText('youAreOffline')
       : getText('cannotCreateAssetsHere')
+  const createAssetsVisualTooltip = ariaComponents.useVisualTooltip({
+    isDisabled: error == null,
+    children: error,
+    targetRef: createAssetButtonsRef,
+    overlayPositionProps: { placement: 'top' },
+  })
 
   React.useEffect(() => {
     return inputBindings.attach(sanitizedEventTargets.document.body, 'keydown', {
@@ -172,106 +178,101 @@ export default function DriveBar(props: DriveBarProps) {
     case categoryModule.CategoryType.team: {
       return (
         <ariaComponents.ButtonGroup className="my-0.5 grow-0">
-          <aria.DialogTrigger>
-            <ariaComponents.Button
-              size="medium"
-              variant="tertiary"
-              isDisabled={shouldBeDisabled}
-              tooltip={error}
-            >
-              {getText('startWithATemplate')}
-            </ariaComponents.Button>
-
-            <StartModal createProject={doCreateProject} />
-          </aria.DialogTrigger>
-          <ariaComponents.Button
-            size="medium"
-            variant="bar"
-            isDisabled={shouldBeDisabled}
-            tooltip={error}
-            onPress={() => {
-              doCreateProject()
-            }}
+          <ariaComponents.ButtonGroup
+            ref={createAssetButtonsRef}
+            {...createAssetsVisualTooltip.targetProps}
           >
-            {getText('newEmptyProject')}
-          </ariaComponents.Button>
-          <div className="flex h-row items-center gap-4 rounded-full border-0.5 border-primary/20 px-[11px]">
+            <aria.DialogTrigger>
+              <ariaComponents.Button size="medium" variant="tertiary" isDisabled={shouldBeDisabled}>
+                {getText('startWithATemplate')}
+              </ariaComponents.Button>
+
+              <StartModal createProject={doCreateProject} />
+            </aria.DialogTrigger>
             <ariaComponents.Button
-              variant="icon"
               size="medium"
-              icon={AddFolderIcon}
+              variant="bar"
               isDisabled={shouldBeDisabled}
-              aria-label={getText('newFolder')}
-              tooltip={error}
               onPress={() => {
-                doCreateDirectory()
+                doCreateProject()
               }}
-            />
-            {isCloud && (
+            >
+              {getText('newEmptyProject')}
+            </ariaComponents.Button>
+            <div className="flex h-row items-center gap-4 rounded-full border-0.5 border-primary/20 px-[11px]">
               <ariaComponents.Button
                 variant="icon"
                 size="medium"
-                icon={AddKeyIcon}
+                icon={AddFolderIcon}
                 isDisabled={shouldBeDisabled}
-                aria-label={getText('newSecret')}
-                tooltip={error}
+                aria-label={getText('newFolder')}
                 onPress={() => {
-                  setModal(<UpsertSecretModal id={null} name={null} doCreate={doCreateSecret} />)
+                  doCreateDirectory()
                 }}
               />
-            )}
-            {isCloud && (
+              {isCloud && (
+                <ariaComponents.Button
+                  variant="icon"
+                  size="medium"
+                  icon={AddKeyIcon}
+                  isDisabled={shouldBeDisabled}
+                  aria-label={getText('newSecret')}
+                  onPress={() => {
+                    setModal(<UpsertSecretModal id={null} name={null} doCreate={doCreateSecret} />)
+                  }}
+                />
+              )}
+              {isCloud && (
+                <ariaComponents.Button
+                  variant="icon"
+                  size="medium"
+                  icon={AddDatalinkIcon}
+                  isDisabled={shouldBeDisabled}
+                  aria-label={getText('newDatalink')}
+                  onPress={() => {
+                    setModal(<UpsertDatalinkModal doCreate={doCreateDatalink} />)
+                  }}
+                />
+              )}
+              <aria.Input
+                ref={uploadFilesRef}
+                type="file"
+                multiple
+                className="hidden"
+                onInput={event => {
+                  if (event.currentTarget.files != null) {
+                    doUploadFiles(Array.from(event.currentTarget.files))
+                  }
+                  // Clear the list of selected files, otherwise `onInput` will not be
+                  // dispatched again if the same file is selected.
+                  event.currentTarget.value = ''
+                }}
+              />
               <ariaComponents.Button
                 variant="icon"
                 size="medium"
-                icon={AddDatalinkIcon}
+                icon={DataUploadIcon}
                 isDisabled={shouldBeDisabled}
-                aria-label={getText('newDatalink')}
-                tooltip={error}
+                aria-label={getText('uploadFiles')}
                 onPress={() => {
-                  setModal(<UpsertDatalinkModal doCreate={doCreateDatalink} />)
+                  unsetModal()
+                  uploadFilesRef.current?.click()
                 }}
               />
-            )}
-            <aria.Input
-              ref={uploadFilesRef}
-              type="file"
-              multiple
-              className="hidden"
-              onInput={event => {
-                if (event.currentTarget.files != null) {
-                  doUploadFiles(Array.from(event.currentTarget.files))
-                }
-                // Clear the list of selected files. Otherwise, `onInput` will not be
-                // dispatched again if the same file is selected.
-                event.currentTarget.value = ''
-              }}
-            />
-            <ariaComponents.Button
-              variant="icon"
-              size="medium"
-              icon={DataUploadIcon}
-              isDisabled={shouldBeDisabled}
-              aria-label={getText('uploadFiles')}
-              tooltip={error}
-              onPress={() => {
-                unsetModal()
-                uploadFilesRef.current?.click()
-              }}
-            />
-            <ariaComponents.Button
-              isDisabled={!canDownload || shouldBeDisabled}
-              variant="icon"
-              size="medium"
-              icon={DataDownloadIcon}
-              aria-label={getText('downloadFiles')}
-              tooltip={error}
-              onPress={() => {
-                unsetModal()
-                dispatchAssetEvent({ type: AssetEventType.downloadSelected })
-              }}
-            />
-          </div>
+              <ariaComponents.Button
+                isDisabled={!canDownload || shouldBeDisabled}
+                variant="icon"
+                size="medium"
+                icon={DataDownloadIcon}
+                aria-label={getText('downloadFiles')}
+                onPress={() => {
+                  unsetModal()
+                  dispatchAssetEvent({ type: AssetEventType.downloadSelected })
+                }}
+              />
+            </div>
+            {createAssetsVisualTooltip.tooltip}
+          </ariaComponents.ButtonGroup>
           {searchBar}
           {assetPanelToggle}
         </ariaComponents.ButtonGroup>
