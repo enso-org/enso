@@ -280,7 +280,7 @@ export const widgetDefinition = defineWidget(
 }
 
 /* Selector specificity must be high enough to override r-24 specific styles. */
-.WidgetPort.isSelfArgument.isSelfArgument {
+.WidgetPort.isSelfArgument.isSelfArgument:not(:last-child) {
   margin-right: 6px;
 }
 </style>
