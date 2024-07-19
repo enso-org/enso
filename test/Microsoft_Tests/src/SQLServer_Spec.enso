@@ -54,21 +54,10 @@ type SQLServer_Info_Data
         self.connection.close
 
 
-sqlserver_specific_spec suite_builder create_connection_fn db_name setup =
-    table_builder = setup.table_builder
-    materialize = setup.materialize
-
+add_specs suite_builder =
     suite_builder.group "[SQLServer] Info" group_builder->
-        data = SQLServer_Info_Data.setup create_connection_fn
-
-        group_builder.teardown <|
-            data.teardown
-
         group_builder.specify "should return Table information" <|
-            i = data.t.column_info
-            i.at "Column" . to_vector . should_equal ["strs", "ints", "bools", "doubles"]
-            i.at "Items Count" . to_vector . should_equal [3, 1, 2, 3]
-            i.at "Value Type" . to_vector . should_equal [default_text, Value_Type.Integer, Value_Type.Boolean, Value_Type.Float]
+            [1] . should_equal [3, 1, 2, 3]
 
 get_configured_connection_details =
     host = Environment.get "ENSO_SQLSERVER_HOST" if_missing="localhost"
@@ -79,74 +68,6 @@ get_configured_connection_details =
     resolved_password = if password.starts_with "enso://" then Enso_Secret.get password else password
     credentials = Credentials.Username_And_Password user resolved_password
     SQLServer_Details.SQLServer host port credentials database
-
-## Returns a function that takes anything and returns a new connection.
-   The function creates a _new_ connection on each invocation
-   (this is needed for some tests that need multiple distinct connections).
-create_connection_builder =
-    connection_details = get_configured_connection_details
-    connection_details.if_not_nothing <|
-        _ -> Database.connect connection_details
-
-add_snowflake_specs suite_builder create_connection_fn db_name =
-    prefix = "[Snowflake] "
-    name_counter = Ref.new 0
-
-    table_builder columns connection=(create_connection_fn Nothing) =
-        ix = name_counter.get
-        name_counter . put ix+1
-        name = Name_Generator.random_name "table_"+ix.to_text
-
-        in_mem_table = Table.new columns
-        in_mem_table.select_into_database_table connection name primary_key=Nothing temporary=True
-
-    materialize = .read
-
-    Common_Spec.add_specs suite_builder prefix create_connection_fn
-
-    common_selection = Common_Table_Operations.Main.Test_Selection.Config supports_case_sensitive_columns=True order_by_unicode_normalization_by_default=True allows_mixed_type_comparisons=False fixed_length_text_columns=True removes_trailing_whitespace_casting_from_char_to_varchar=True supports_decimal_type=True supported_replace_params=supported_replace_params
-    aggregate_selection = Common_Table_Operations.Aggregate_Spec.Test_Selection.Config first_last_row_order=False aggregation_problems=False
-    agg_in_memory_table = ((Project_Description.new enso_dev.Table_Tests).data / "data.csv") . read
-
-    agg_table_fn = _->
-        connection = create_connection_fn Nothing
-        agg_in_memory_table.select_into_database_table connection (Name_Generator.random_name "Agg1") primary_key=Nothing temporary=True
-
-    empty_agg_table_fn = _->
-        connection = create_connection_fn Nothing
-        (agg_in_memory_table.take (First 0)).select_into_database_table connection (Name_Generator.random_name "Agg_Empty") primary_key=Nothing temporary=True
-
-    setup = Common_Table_Operations.Main.Test_Setup.Config prefix agg_table_fn empty_agg_table_fn table_builder materialize is_database=True test_selection=common_selection aggregate_test_selection=aggregate_selection create_connection_func=create_connection_fn
-
-    snowflake_specific_spec suite_builder create_connection_fn db_name setup
-    Common_Table_Operations.Main.add_specs suite_builder setup
-
-add_table_specs suite_builder =
-    case create_connection_builder of
-        Nothing ->
-            message = "Snowflake test connection is not configured. See README.md for instructions."
-            suite_builder.group "[Snowflake] Database tests" pending=message (_-> Nothing)
-        connection_builder ->
-            db_name = get_configured_connection_details.database
-            add_snowflake_specs suite_builder connection_builder db_name
-            Transaction_Spec.add_specs suite_builder connection_builder "[Snowflake] "
-            Upload_Spec.add_specs suite_builder connection_builder "[Snowflake] "
-
-            suite_builder.group "[Snowflake] Secrets in connection settings" group_builder->
-                cloud_setup = Cloud_Tests_Setup.prepare
-                base_details = get_configured_connection_details
-                group_builder.specify "should allow to set up a connection with the password passed as a secret" pending=cloud_setup.pending <|
-                    cloud_setup.with_prepared_environment <|
-                        with_secret "my_postgres_username" base_details.credentials.username username_secret-> with_secret "my_postgres_password" base_details.credentials.password password_secret->
-                            secret_credentials = Credentials.Username_And_Password username_secret password_secret
-                            details = Snowflake_Details.Snowflake base_details.account_name secret_credentials base_details.database base_details.schema base_details.warehouse
-                            connection = Database.connect details
-                            connection.should_succeed
-                            Panic.with_finalizer connection.close <|
-                                connection.tables . should_be_a Table
-
-add_specs suite_builder =
-    add_table_specs suite_builder
 
 main filter=Nothing =
     suite = Test.build suite_builder->
