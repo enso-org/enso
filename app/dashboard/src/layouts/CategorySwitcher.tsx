@@ -30,6 +30,7 @@ import FocusArea from '#/components/styled/FocusArea'
 import SvgMask from '#/components/SvgMask'
 
 import * as backend from '#/services/Backend'
+import { TEAMS_DIRECTORY_ID, USERS_DIRECTORY_ID } from '#/services/remoteBackendPaths'
 
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 
@@ -252,7 +253,7 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
   )
   const usersDirectoryQuery = backendHooks.useBackendQuery(remoteBackend, 'listDirectory', [
     {
-      parentId: backend.DirectoryId('directory-0000000000000000000000users'),
+      parentId: backend.DirectoryId(USERS_DIRECTORY_ID),
       filterBy: backend.FilterBy.active,
       labels: [],
       recentProjects: false,
@@ -261,7 +262,7 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
   ])
   const teamsDirectoryQuery = backendHooks.useBackendQuery(remoteBackend, 'listDirectory', [
     {
-      parentId: backend.DirectoryId('directory-0000000000000000000000teams'),
+      parentId: backend.DirectoryId(TEAMS_DIRECTORY_ID),
       filterBy: backend.FilterBy.active,
       labels: [],
       recentProjects: false,

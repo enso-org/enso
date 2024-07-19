@@ -58,6 +58,7 @@ import UpsertSecretModal from '#/modals/UpsertSecretModal'
 import * as backendModule from '#/services/Backend'
 import type Backend from '#/services/Backend'
 import LocalBackend from '#/services/LocalBackend'
+import { TEAMS_DIRECTORY_ID, USERS_DIRECTORY_ID } from '#/services/remoteBackendPaths'
 
 import * as array from '#/utilities/array'
 import type * as assetQuery from '#/utilities/AssetQuery'
@@ -1828,8 +1829,12 @@ export default function AssetsTable(props: AssetsTableProps) {
         if (category.type !== categoryModule.CategoryType.trash) {
           toastAndLog('canOnlyEmptyTrashWhenInTrash')
         } else if (assetTree.children != null) {
-          const ids = new Set(assetTree.children.map(child => child.item.id))
-          // This is required to prevent an infinite loop,
+          const ids = new Set(
+            assetTree.children
+              .map(child => child.item.id)
+              .filter(id => id !== USERS_DIRECTORY_ID && id !== TEAMS_DIRECTORY_ID)
+          )
+          // This is required to prevent an infinite loop.
           window.setTimeout(() => {
             dispatchAssetEvent({ type: AssetEventType.deleteForever, ids })
           })
