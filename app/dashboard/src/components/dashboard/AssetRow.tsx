@@ -142,7 +142,9 @@ export default function AssetRow(props: AssetRowProps) {
   )
   const getFileDetailsMutation = useMutation(useBackendMutationOptions(backend, 'getFileDetails'))
   const getDatalinkMutation = useMutation(useBackendMutationOptions(backend, 'getDatalink'))
-  const createPermissionMutation = useMutation(useBackendMutationOptions(backend, 'createPermission'))
+  const createPermissionMutation = useMutation(
+    useBackendMutationOptions(backend, 'createPermission')
+  )
   const associateTagMutation = useMutation(useBackendMutationOptions(backend, 'associateTag'))
   const copyAsset = copyAssetMutation.mutateAsync
   const updateAsset = updateAssetMutation.mutateAsync

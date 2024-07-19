@@ -226,10 +226,12 @@ function RemoveInvitationButton(props: RemoveInvitationButtonProps) {
 
   const { getText } = textProvider.useText()
 
-  const removeMutation = useMutation(useBackendMutationOptions(backend, 'resendInvitation', {
-    mutationKey: [email],
-    meta: { invalidates: [['listInvitations']], awaitInvalidates: true },
-  }))
+  const removeMutation = useMutation(
+    useBackendMutationOptions(backend, 'resendInvitation', {
+      mutationKey: [email],
+      meta: { invalidates: [['listInvitations']], awaitInvalidates: true },
+    })
+  )
 
   return (
     <ariaComponents.Button
