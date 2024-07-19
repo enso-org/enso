@@ -83,7 +83,7 @@ public final class Warning implements EnsoObject {
   @Builtin.Specialize
   public static WithWarnings attach(
       EnsoContext ctx,
-      WithWarnings value,
+      Object value,
       Object warning,
       Object origin,
       @Cached AppendWarningNode appendWarningNode) {
