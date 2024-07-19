@@ -418,6 +418,26 @@ generate_order dialect order_descriptor =
     base_expression = generate_expression dialect order_descriptor.expression
     base_expression ++ collation ++ order_suffix ++ nulls_suffix
 
+## PRIVATE
+    Generates SQL code corresponding to a SELECT statement.
+
+    Arguments:
+    - dialect: The SQL dialect for which the code is being generated.
+    - ctx: A description of the SELECT clause.
+generate_select_query_sql : Dialect -> Vector (Pair Text SQL_Expression) -> Context -> SQL_Builder
+generate_select_query_sql dialect columns ctx =
+    gen_column pair = (generate_expression dialect pair.second) ++ alias dialect pair.first
+    cols = case columns of
+        Nothing -> SQL_Builder.code "*"
+        _ -> SQL_Builder.join ", " (columns.map gen_column)
+    prefix = case ctx.distinct_on of
+        Nothing -> SQL_Builder.code ""
+        expressions : Vector ->
+            ## TODO I just realised this does not make sense in other backends than Postgres,
+                so we should probably fail in such cases; probably rewrite into a generic modifier? or a transform?
+            generated = SQL_Builder.join ", " (expressions.map (generate_expression dialect))
+            SQL_Builder.code "DISTINCT ON (" ++ generated ++ ") "
+    SQL_Builder.code "SELECT " ++ prefix ++ cols ++ generate_select_context dialect ctx
 
 ## PRIVATE
 
@@ -467,18 +487,7 @@ generate_insert_query dialect table_name pairs =
 generate_query : Dialect -> Query -> SQL_Builder
 generate_query dialect query = case query of
     Query.Select columns ctx ->
-        gen_column pair = (generate_expression dialect pair.second) ++ alias dialect pair.first
-        cols = case columns of
-            Nothing -> SQL_Builder.code "*"
-            _ -> SQL_Builder.join ", " (columns.map gen_column)
-        prefix = case ctx.distinct_on of
-            Nothing -> SQL_Builder.code ""
-            expressions : Vector ->
-                ## TODO I just realised this does not make sense in other backends than Postgres,
-                   so we should probably fail in such cases; probably rewrite into a generic modifier? or a transform?
-                generated = SQL_Builder.join ", " (expressions.map (generate_expression dialect))
-                SQL_Builder.code "DISTINCT ON (" ++ generated ++ ") "
-        SQL_Builder.code "SELECT " ++ prefix ++ cols ++ generate_select_context dialect ctx
+        generate_select_query_sql dialect columns ctx
     Query.Insert table_name pairs ->
         generate_insert_query dialect table_name pairs
     Query.Create_Table name columns primary_key temporary ->
