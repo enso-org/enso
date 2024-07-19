@@ -43,8 +43,8 @@ pub enum EndpointConfiguration {
     /// Used when the SQLServer container is started directly from host (rather than Docker
     /// container). In such case the SQLServer will be exposed to host network on a given port.
     Host { port: u16 },
-    /// Used when SQLServer is spawned from a container. In such case it will be spawned in a owning
-    /// container's network on the default port.
+    /// Used when SQLServer is spawned from a container. In such case it will be spawned in a
+    /// owning container's network on the default port.
     Container { owner: ContainerId },
 }
 
