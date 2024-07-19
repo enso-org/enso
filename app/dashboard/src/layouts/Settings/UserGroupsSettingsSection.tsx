@@ -43,7 +43,7 @@ export default function UserGroupsSettingsSection(props: UserGroupsSettingsSecti
   const { getText } = textProvider.useText()
   const { user } = authProvider.useFullUserSession()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
-  const users = backendHooks.useBackendListUsers(backend)
+  const users = backendHooks.useListUsers(backend)
   const userGroups = backendHooks.useBackendListUserGroupsWithUsers(backend)
   const rootRef = React.useRef<HTMLDivElement>(null)
   const bodyRef = React.useRef<HTMLTableSectionElement>(null)

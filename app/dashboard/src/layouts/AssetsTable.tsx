@@ -386,7 +386,7 @@ export default function AssetsTable(props: AssetsTableProps) {
 
   const { user } = authProvider.useNonPartialUserSession()
   const backend = backendProvider.useBackend(category)
-  const labels = backendHooks.useBackendListTags(backend)
+  const labels = backendHooks.useListTags(backend)
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { localStorage } = localStorageProvider.useLocalStorage()
   const { getText } = textProvider.useText()

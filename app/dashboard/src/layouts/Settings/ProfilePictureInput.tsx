@@ -28,7 +28,7 @@ export default function ProfilePictureInput(props: ProfilePictureInputProps) {
   const { backend } = props
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { setUser } = authProvider.useAuth()
-  const user = backendHooks.useBackendUsersMe(backend)
+  const user = backendHooks.useUsersMe(backend)
   const { getText } = textProvider.useText()
 
   const uploadUserPictureMutation = backendHooks.useBackendMutation(backend, 'uploadUserPicture')

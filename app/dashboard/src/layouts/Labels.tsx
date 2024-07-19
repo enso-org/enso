@@ -44,7 +44,7 @@ export default function Labels(props: LabelsProps) {
   const currentNegativeLabels = query.negativeLabels
   const { setModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
-  const labels = backendHooks.useBackendListTags(backend) ?? []
+  const labels = backendHooks.useListTags(backend) ?? []
 
   const deleteTagMutation = backendHooks.useBackendMutation(backend, 'deleteTag')
 

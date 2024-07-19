@@ -56,7 +56,7 @@ export default function ManageLabelsModal<
   const { unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
-  const allLabels = backendHooks.useBackendListTags(backend)
+  const allLabels = backendHooks.useListTags(backend)
   const [labels, setLabelsRaw] = React.useState(item.labels ?? [])
   const [query, setQuery] = React.useState('')
   const [color, setColor] = React.useState<backendModule.LChColor | null>(null)

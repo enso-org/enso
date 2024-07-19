@@ -45,8 +45,6 @@ import * as appUtils from '#/appUtils'
 
 import * as inputBindingsModule from '#/configurations/inputBindings'
 
-import * as backendHooks from '#/hooks/backendHooks'
-
 import AuthProvider, * as authProvider from '#/providers/AuthProvider'
 import BackendProvider from '#/providers/BackendProvider'
 import * as httpClientProvider from '#/providers/HttpClientProvider'
@@ -281,9 +279,6 @@ function AppRouter(props: AppRouterProps) {
     () => new RemoteBackend(httpClient, logger, getText),
     [httpClient, logger, getText]
   )
-
-  backendHooks.useObserveBackend(remoteBackend)
-  backendHooks.useObserveBackend(localBackend)
 
   if (detect.IS_DEV_MODE) {
     // @ts-expect-error This is used exclusively for debugging.

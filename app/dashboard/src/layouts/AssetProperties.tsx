@@ -71,7 +71,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
     },
     [setItemRaw]
   )
-  const labels = backendHooks.useBackendListTags(backend) ?? []
+  const labels = backendHooks.useListTags(backend) ?? []
   const self = item.item.permissions?.find(
     backendModule.isUserPermissionAnd(permission => permission.user.userId === user.userId)
   )

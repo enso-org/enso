@@ -45,7 +45,7 @@ export default function NewLabelModal(props: NewLabelModalProps) {
   const [value, setValue] = React.useState('')
   const [color, setColor] = React.useState<backendModule.LChColor | null>(null)
   const position = React.useMemo(() => eventTarget.getBoundingClientRect(), [eventTarget])
-  const labelsRaw = backendHooks.useBackendListTags(backend)
+  const labelsRaw = backendHooks.useListTags(backend)
   const labels = React.useMemo(() => labelsRaw ?? [], [labelsRaw])
   const labelNames = React.useMemo(
     () => new Set<string>(labels.map(label => label.value)),
