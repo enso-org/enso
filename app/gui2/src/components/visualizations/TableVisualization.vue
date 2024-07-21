@@ -167,7 +167,7 @@ const agGridOptions: Ref<GridOptions & Required<Pick<GridOptions, 'defaultColDef
   enableRangeSelection: true,
   popupParent: document.body,
 })
-const textFormatterSelected = ref<TextFormatOptions>(TextFormatOptions.Special)
+const textFormatterSelected = ref<TextFormatOptions>(TextFormatOptions.Partial)
 const updateTextFormat = (option: TextFormatOptions) => {
   textFormatterSelected.value = option
 }
@@ -318,7 +318,7 @@ function escapeHTML(str: string) {
 function getRowHeight(params: RowHeightParams) {
   if (textFormatterSelected.value === TextFormatOptions.Off) return DEFAULT_ROW_HEIGHT
   const rowData = Object.values(params.data)
-  const textValues = rowData.filter<string>((r) => typeof r === 'string')
+  const textValues = rowData.filter((r) => typeof r === 'string') as string[]
   if (!textValues.length) return DEFAULT_ROW_HEIGHT
   const containsReturnChars = textValues.filter(
     (text: string) => text.match(/\r/g)?.length || text.match(/\n/g)?.length,
