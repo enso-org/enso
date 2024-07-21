@@ -2,6 +2,7 @@ package org.enso.desktopenvironment;
 
 import java.nio.file.Path;
 
+/** Operations with system trash */
 public sealed interface Trash permits JnaTrash, LinuxTrash {
 
   /**

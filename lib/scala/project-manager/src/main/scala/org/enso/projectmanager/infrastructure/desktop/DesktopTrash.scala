@@ -15,6 +15,6 @@ class DesktopTrash[F[+_, +_]: Sync](trash: Trash) extends TrashCan[F] {
 object DesktopTrash {
 
   def apply[F[+_, +_]: Sync]: DesktopTrash[F] = {
-    new DesktopTrash(Platform.getTrash)
+    new DesktopTrash(Platform.getOperatingSystem.getTrash)
   }
 }

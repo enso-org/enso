@@ -21,7 +21,12 @@ public final class ProjectsMigration {
 
   public static void migrate(configuration.StorageConfig storageConfig) {
     var oldProjectsPath =
-        Platform.getDirectories().getUserHome().resolve("enso").resolve("projects").toFile();
+        Platform.getOperatingSystem()
+            .getDirectories()
+            .getUserHome()
+            .resolve("enso")
+            .resolve("projects")
+            .toFile();
     if (oldProjectsPath.isDirectory()) {
       try {
         File newProjectsPath = storageConfig.userProjectsPath();
@@ -63,7 +68,7 @@ public final class ProjectsMigration {
         return;
       }
 
-      if (!Platform.isWindows()) {
+      if (!Platform.getOperatingSystem().isWindows()) {
         try {
           logger.info("Setting projects directory permissions '{}'.", newProjectsPath);
           setProjectsDirectoryPermissions(newProjectsPath);

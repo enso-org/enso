@@ -2834,6 +2834,7 @@ lazy val `desktop-environment` =
     .in(file("lib/java/desktop-environment"))
     .settings(
       frgaalJavaCompilerSetting,
+      javadocSettings,
       libraryDependencies ++= Seq(
         "commons-io"       % "commons-io"      % commonsIoVersion,
         "net.java.dev.jna" % "jna-platform"    % jnaVersion,
