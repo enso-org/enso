@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.enso.interpreter.runtime.data.ManagedResource;
@@ -156,6 +157,8 @@ public final class ResourceManager {
      */
     private final List<Item> pendingItems = new ArrayList<>();
 
+    private Future<Void> request;
+
     private volatile boolean killed = false;
 
     ProcessItems() {
@@ -174,6 +177,7 @@ public final class ResourceManager {
       for (; ; ) {
         Item[] toProcess;
         synchronized (pendingItems) {
+          request.cancel(false);
           if (pendingItems.isEmpty() || pendingItems.get(0) == null) {
             // nothing to process or already processing
             // avoids re-entrant calls into this method
@@ -217,7 +221,7 @@ public final class ResourceManager {
               it.flaggedForFinalization.set(true);
               synchronized (pendingItems) {
                 if (pendingItems.isEmpty()) {
-                  context.submitThreadLocal(null, this);
+                  request = context.submitThreadLocal(null, this);
                 }
                 pendingItems.add(it);
               }
