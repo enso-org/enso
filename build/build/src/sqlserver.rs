@@ -180,25 +180,23 @@ impl SQLServer {
         }
         opts.sig_proxy = Some(true);
         opts.name = Some(config.sqlserver_container.to_string());
-
         let mut cmd = Docker.run_cmd(&opts)?;
-        cmd.stderr(Stdio::piped());
+        cmd.stdout(Stdio::piped());
         cmd.kill_on_drop(true);
         let mut child = cmd.spawn().anyhow_err()?;
-        let stderr = child
-            .stderr
+        let stdout = child
+            .stdout
+            .take()
             .ok_or_else(|| anyhow!("Failed to access standard output of the spawned process!"))?;
 
         // Wait until container is ready.
         let check_line = |line: &str| {
             debug!("ERR: {}", line);
-            line.contains("database system is ready to accept connections")
+            line.contains("The tempdb database has")
         };
-        let stderr = process_lines_until(stderr, &check_line).await?;
-
+        let stdout = process_lines_until(stdout, &check_line).await?;
         // Put back stream we've been reading and pack the whole thing back for the caller.
-        child.stderr = Some(stderr);
-
+        child.stdout = Some(stdout);
         config.set_enso_test_env()?;
         Ok(SQLServerContainer { _docker_run: child, config })
     }
@@ -209,14 +207,13 @@ mod tests {
     use super::*;
 
     #[tokio::test]
-    #[ignore]
     async fn start_sqlserver() -> Result {
         let config = Configuration {
             sqlserver_container: ContainerId("something".into()),
             endpoint:            EndpointConfiguration::deduce()?,
             version:             "latest".into(),
             user:                "test".into(),
-            password:            "test".into(),
+            password:            "<YourStrong@Passw0rd>".into(),
             database_name:       "test".into(),
         };
         let child = SQLServer::start(config).await?;
