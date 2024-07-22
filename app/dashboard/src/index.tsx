@@ -19,13 +19,11 @@ import LoggerProvider, { type Logger } from '#/providers/LoggerProvider'
 
 import LoadingScreen from '#/pages/authentication/LoadingScreen'
 
-import { I18nProvider } from '#/components/aria'
-import { DialogStackProvider } from '#/components/AriaComponents'
 import { ReactQueryDevtools } from '#/components/Devtools'
 import { ErrorBoundary } from '#/components/ErrorBoundary'
 import { OfflineNotificationManager } from '#/components/OfflineNotificationManager'
-import { PortalProvider } from '#/components/Portal'
 import { Suspense } from '#/components/Suspense'
+import UIProviders from '#/components/UIProviders'
 
 import HttpClient from '#/utilities/HttpClient'
 
@@ -121,13 +119,9 @@ function run(props: DashboardProps) {
               <OfflineNotificationManager>
                 <LoggerProvider logger={logger}>
                   <HttpClientProvider httpClient={httpClient}>
-                    <PortalProvider value={portalRoot}>
-                      <DialogStackProvider>
-                        <I18nProvider locale="en-US">
-                          <App {...props} supportsDeepLinks={actuallySupportsDeepLinks} />
-                        </I18nProvider>
-                      </DialogStackProvider>
-                    </PortalProvider>
+                    <UIProviders locale="en-US" portalRoot={portalRoot}>
+                      <App {...props} supportsDeepLinks={actuallySupportsDeepLinks} />
+                    </UIProviders>
                   </HttpClientProvider>
                 </LoggerProvider>
               </OfflineNotificationManager>
