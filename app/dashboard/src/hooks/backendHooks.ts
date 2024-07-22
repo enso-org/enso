@@ -628,6 +628,7 @@ export function useSetAsset() {
         valueOrUpdater = valueOrUpdater(queryClient.getQueryData(key)!)
       }
       queryClient.setQueryData(key, valueOrUpdater)
+      return valueOrUpdater
     }
   )
 }

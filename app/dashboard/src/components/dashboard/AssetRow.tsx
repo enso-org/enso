@@ -151,7 +151,11 @@ export default function AssetRow(props: AssetRowProps) {
   const setAssetRaw = backendHooks.useSetAsset()
   const setAsset = useEventCallback(
     (valueOrUpdater: React.SetStateAction<backendModule.AnyAsset>) => {
-      setAssetRaw(backend, assetId, valueOrUpdater)
+      const newAsset = setAssetRaw(backend, assetId, valueOrUpdater)
+      // Mutation is HIGHLY INADVISABLE in React, however it is useful here as we want to update the
+      // parent's state while avoiding re-rendering the parent.
+      rawItem.item = newAsset
+      setItem(currentItem => currentItem.with({ item: newAsset }))
     }
   )
 
@@ -225,6 +229,7 @@ export default function AssetRow(props: AssetRowProps) {
         setItem(oldItem =>
           oldItem.with({ directoryKey: nonNullNewParentKey, directoryId: nonNullNewParentId })
         )
+        setAsset(object.merger({ parentId: nonNullNewParentId }))
         const newParentPath = localBackend.extractTypeAndId(nonNullNewParentId).id
         let newId = asset.id
         if (!isCloud) {
@@ -282,6 +287,7 @@ export default function AssetRow(props: AssetRowProps) {
         setItem(oldItem =>
           oldItem.with({ directoryKey: item.directoryKey, directoryId: item.directoryId })
         )
+        setAsset(object.merger({ parentId: item.directoryId }))
         // Move the asset back to its original position.
         dispatchAssetListEvent({
           type: AssetListEventType.move,
