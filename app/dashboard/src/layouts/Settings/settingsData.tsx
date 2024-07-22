@@ -257,23 +257,24 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
     visible: context => context.organization?.subscription != null,
     sections: [],
     onPress: context =>
-      context.queryClient.fetchQuery({
-        queryKey: ['billing', 'customerPortalSession'],
-        queryFn: () =>
-          context.backend
-            .createCustomerPortalSession()
-            .then(url => {
-              if (url != null) {
-                window.open(url, '_blank')?.focus()
-              }
-
-              return url
-            })
-            .catch(err => {
-              context.toastAndLog('arbitraryErrorTitle', err)
-              throw err
-            }),
-      }),
+      context.queryClient
+        .getMutationCache()
+        .build(context.queryClient, {
+          mutationKey: ['billing', 'customerPortalSession'],
+          mutationFn: () =>
+            context.backend
+              .createCustomerPortalSession()
+              .then(url => {
+                if (url != null) {
+                  window.open(url, '_blank')?.focus()
+                }
+              })
+              .catch(err => {
+                context.toastAndLog('arbitraryErrorTitle', err)
+                throw err
+              }),
+        })
+        .execute({} satisfies unknown),
   },
   [SettingsTabType.members]: {
     nameId: 'membersSettingsTab',
