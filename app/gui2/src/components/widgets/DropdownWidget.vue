@@ -97,18 +97,21 @@ export interface DropdownEntry {
 
 <style scoped>
 .DropdownWidget {
+  --item-height: 23px;
+  --dropdown-padding: 6px;
+  /* When dropdown is displayed right below the last node's argument, the rounded corner needs to be
+     covered. This is done by covering extra node-sized space at the top of the dropdown. */
+  --dropdown-extend: calc(var(--node-height) - var(--extend-margin));
+
   position: relative;
   user-select: none;
   min-width: 100%;
   z-index: 21;
 
-  /* When dropdown is displayed right below the last node's argument, the rounded corner needs to be
-     covered. This is done by covering extra node-sized space at the top of the dropdown. */
-  --dropdown-extend: calc(var(--node-height) - var(--extend-margin));
   margin-top: calc(0px - var(--dropdown-extend));
   padding-top: var(--dropdown-extend);
   background-color: var(--dropdown-bg);
-  border-radius: 19px;
+  border-radius: calc(var(--item-height) / 2 + var(--dropdown-padding));
 
   &:before {
     content: '';
@@ -129,15 +132,15 @@ export interface DropdownEntry {
   list-style-type: none;
   color: var(--color-text-light);
   scrollbar-width: thin;
-  padding: 6px;
+  padding: var(--dropdown-padding);
   position: relative;
 }
 
 .item {
   padding-left: 8px;
   padding-right: 8px;
-  border-radius: 13px;
-  height: 26px;
+  border-radius: calc(var(--item-height) / 2);
+  height: var(--item-height);
   text-align: left;
   max-width: 100%;
   overflow: hidden;
