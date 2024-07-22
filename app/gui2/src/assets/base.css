@@ -33,14 +33,14 @@
 /*********************************
  *** Node graph core variables ***
  *********************************/
- :root {
+:root {
   /** Minimum height of a node "pill" shape. Ports might be higher when widgets demand it. */
   --node-base-height: 32px;
   /** The minimum height of a port widget. Ports might be higher when widgets inside them demand it. */
   --node-port-height: 24px;
-  /** Stroke width of an output port shape in its fully visible, not-hovered state. */ 
+  /** Stroke width of an output port shape in its fully visible, not-hovered state. */
   --output-port-max-width: 4px;
-  /** Additional stroke width of an output port shape when it is being hovered. */ 
+  /** Additional stroke width of an output port shape when it is being hovered. */
   --output-port-hovered-extra-width: 2px;
   /** The amount of overlap for the port shape with the node. */
   --output-port-overlap: -8px;
