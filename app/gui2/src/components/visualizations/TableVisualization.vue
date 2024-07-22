@@ -260,28 +260,31 @@ function formatText(params: ICellRendererParams) {
     return params.value
   }
   const partialMappings = {
-    '\r': '<span style="color: grey">␍</span> <br>',
-    '\n': '<span style="color: grey;">␊</span> <br>',
+    '\r': '<span style="color: lightgrey">␍</span> <br>',
+    '\n': '<span style="color: lightgrey;">␊</span> <br>',
     '\t': '<span style="white-space: break-spaces;">    </span>',
   }
   const fullMappings = {
-    '\r': '<span style="color: grey">␍</span> <br>',
-    '\n': '<span style="color: grey">␊</span> <br>',
-    '\t': '<span style="color: grey; white-space: break-spaces;">&#8594;   </span>',
+    '\r': '<span style="color: lightgrey">␍</span> <br>',
+    '\n': '<span style="color: lightgrey">␊</span> <br>',
+    '\t': '<span style="color: lightgrey; white-space: break-spaces;">&#8594;   </span>',
   }
 
   const replaceSpaces =
     textFormatterSelected.value === TextFormatOptions.On ?
-      params.value.replaceAll(' ', '<span style="color: grey">&#183;</span>')
+      params.value.replaceAll(' ', '<span style="color: lightgrey">&#183;</span>')
     : params.value.replace(/ {2,}/g, function (match: string) {
-        return `<span style="color: grey">${'&#183;'.repeat(match.length)}</span>`
+        return `<span style="color: lightgrey">${'&#183;'.repeat(match.length)}</span>`
       })
 
-  const replaceReturns = replaceSpaces.replace(/\r\n/g, '<span style="color: grey">␍␊</span> <br>')
+  const replaceReturns = replaceSpaces.replace(
+    /\r\n/g,
+    '<span style="color: lightgrey">␍␊</span> <br>',
+  )
 
   const renderOtherWhitespace = (match: string) => {
     return textFormatterSelected.value === TextFormatOptions.On && match != ' ' ?
-        '<span style="color: grey">&#9744;</span>'
+        '<span style="color: lightgrey">&#9744;</span>'
       : match
   }
   const newString = replaceReturns.replace(/[\s]/g, function (match: string) {
