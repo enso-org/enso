@@ -141,7 +141,8 @@ const rowCount = ref(0)
 const showRowCount = ref(true)
 const isTruncated = ref(false)
 const tableNode = ref<HTMLElement>()
-const isCreateNodeVisible = ref(false)
+const isCreateNodeVisibleSort = ref(false)
+const isCreateNodeVisibleFilter = ref(false)
 const filterModel = ref({})
 const sortModel = ref({})
 const dataGroupingMap = shallowRef<Map<string, boolean>>()
@@ -165,8 +166,8 @@ const agGridOptions: Ref<GridOptions & Required<Pick<GridOptions, 'defaultColDef
   onFirstDataRendered: updateColumnWidths,
   onRowDataUpdated: updateColumnWidths,
   onColumnResized: lockColumnSize,
-  onFilterChanged: checkSortAndFilter,
-  onSortChanged: checkSortAndFilter,
+  onFilterChanged: checkFilter,
+  onSortChanged: checkSort,
   copyHeadersToClipboard: true,
   sendToClipboard: ({ data }: { data: string }) => sendToClipboard(data),
   suppressFieldDotNotation: true,
@@ -645,11 +646,11 @@ watchEffect(() => {
   options.api.setRowData(rowData)
 })
 
-function checkSortAndFilter() {
+function checkFilter() {
   const columnApi = agGridOptions.value.api
   if (columnApi == null) {
     console.warn('AG Grid column API does not exist.')
-    isCreateNodeVisible.value = false
+    isCreateNodeVisibleFilter.value = false
     return
   }
   const colState =
@@ -662,11 +663,38 @@ function checkSortAndFilter() {
     }
   })
   if (sort.size || Object.keys(filter).length) {
-    isCreateNodeVisible.value = true
+    isCreateNodeVisibleFilter.value = true
     sortModel.value = sort
     filterModel.value = filter
   } else {
-    isCreateNodeVisible.value = false
+    isCreateNodeVisibleFilter.value = false
+    sortModel.value = {}
+    filterModel.value = {}
+  }
+}
+
+function checkSort() {
+  const columnApi = agGridOptions.value.api
+  if (columnApi == null) {
+    console.warn('AG Grid column API does not exist.')
+    isCreateNodeVisibleSort.value = false
+    return
+  }
+  const colState =
+    agGridOptions.value.columnApi ? agGridOptions.value.columnApi.getColumnState() : []
+  const filter = columnApi.getFilterModel()
+  const sort = new Map<string, string>()
+  colState.map((cs) => {
+    if (cs.sort) {
+      sort.set(cs.colId, cs.sort)
+    }
+  })
+  if (sort.size || Object.keys(filter).length) {
+    isCreateNodeVisibleSort.value = true
+    sortModel.value = sort
+    filterModel.value = filter
+  } else {
+    isCreateNodeVisibleSort.value = false
     sortModel.value = {}
     filterModel.value = {}
   }
@@ -832,5 +860,10 @@ onUnmounted(() => {
 
 :deep(.link):hover {
   color: darkblue;
+}
+
+.button-wrappers {
+  display: flex;
+  flex-direction: row;
 }
 </style>
