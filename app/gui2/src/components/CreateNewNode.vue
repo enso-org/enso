@@ -11,12 +11,24 @@ const props = defineProps<{
 
 const config = useVisualizationConfig()
 
-function getAstPattern() {
+function getAstPatternSort() {
   const colName = 'Sales Date'
+  const direction = '..Ascending'
   return Pattern.new((ast) =>
     Ast.App.positional(
       Ast.PropertyAccess.new(ast.module, ast, Ast.identifier('sort')!),
-      Ast.parse(`[(..Name '${colName}' ..Ascending)]`),
+      Ast.parse(`[(..Name '${colName}' ${direction})]`),
+    ),
+  )
+}
+
+function getAstPatternFilter() {
+  const colName = 'Sales Date'
+  const val = 'Spring Garden Petal Soap'
+  return Pattern.new((ast) =>
+    Ast.App.positional(
+      Ast.PropertyAccess.new(ast.module, ast, Ast.identifier('filter')!),
+      Ast.parse(`'${colName}' (..Equal '${val}' ..Remove)`),
     ),
   )
 }
@@ -42,7 +54,7 @@ const createNewNode = () => {
   console.log({ filterModel })
   console.log({ sortModel })
   config.createNodes({
-    content: getAstPattern(),
+    content: props.type === 'SORT' ? getAstPatternSort() : getAstPatternFilter(),
     commit: true,
   })
 }
