@@ -36,6 +36,7 @@ use enso_build::config::Config;
 use enso_build::context::BuildContext;
 use enso_build::engine::context::EnginePackageProvider;
 use enso_build::engine::Benchmarks;
+use enso_build::engine::StandardLibraryTestsSelection;
 use enso_build::engine::Tests;
 use enso_build::paths::TargetTriple;
 use enso_build::project;
@@ -414,7 +415,8 @@ impl Processor {
                 for arg in which {
                     match arg {
                         Tests::Jvm => config.test_jvm = true,
-                        Tests::StandardLibrary => config.test_standard_library = true,
+                        Tests::StandardLibrary => config.add_standard_library_test_selection(StandardLibraryTestsSelection::All),
+                        Tests::StdSnowflake => config.add_standard_library_test_selection(StandardLibraryTestsSelection::Selected(vec!["Snowflake_Tests".to_string()])),
                     }
                 }
                 config.test_java_generated_from_rust = true;

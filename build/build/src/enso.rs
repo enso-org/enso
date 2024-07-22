@@ -1,3 +1,4 @@
+use crate::engine::StandardLibraryTestsSelection;
 use crate::prelude::*;
 
 use crate::paths::Paths;
@@ -113,7 +114,9 @@ impl BuiltEnso {
         ir_caches: IrCaches,
         sbt: &crate::engine::sbt::Context,
         async_policy: AsyncPolicy,
+        test_selection: StandardLibraryTestsSelection
     ) -> Result {
+        let _ = test_selection;
         let paths = &self.paths;
         // Environment for meta-tests. See:
         // https://github.com/enso-org/enso/tree/develop/test/Meta_Test_Suite_Tests
@@ -131,9 +134,24 @@ impl BuiltEnso {
             ide_ci::fs::write(google_api_test_data_dir.join("secret.json"), gdoc_key)?;
         }
 
+        let std_tests = match &test_selection {
+            StandardLibraryTestsSelection::All => {
+                crate::paths::discover_standard_library_tests(&paths.repo_root)?
+            }
+            StandardLibraryTestsSelection::Selected(only) => {
+                only.into_iter().map(|test| paths.repo_root.test.join(test)).collect()
+            }
+        };
+        let may_need_postgres = match &test_selection {
+            StandardLibraryTestsSelection::All => true,
+            StandardLibraryTestsSelection::Selected(only) =>
+                only.into_iter().any(|test| test.contains("Postgres_Tests")),
+        };
+
         let _httpbin = crate::httpbin::get_and_spawn_httpbin_on_free_port(sbt).await?;
+        
         let _postgres = match TARGET_OS {
-            OS::Linux => {
+            OS::Linux if may_need_postgres => {
                 let runner_context_string = crate::env::ENSO_RUNNER_CONTAINER_NAME
                     .get_raw()
                     .or_else(|_| ide_ci::actions::env::RUNNER_NAME.get())
@@ -156,7 +174,6 @@ impl BuiltEnso {
             _ => None,
         };
 
-        let std_tests = crate::paths::discover_standard_library_tests(&paths.repo_root)?;
         let futures = std_tests.into_iter().map(|test_path| {
             let command = self.run_test(test_path, ir_caches);
             async move { command?.run_ok().await }
