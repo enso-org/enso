@@ -118,18 +118,15 @@ export function useObserveBackend(backend: Backend | null) {
   React.useEffect(
     () =>
       queryCache.subscribe(event => {
-        if (event.type === 'added' || event.type === 'updated') {
+        if (
+          (event.type === 'added' || event.type === 'updated') &&
+          reactQuery.matchQuery({ queryKey: [backend?.type, 'listDirectory'] }, event.query)
+        ) {
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-          const query: reactQuery.Query<unknown, unknown, unknown, reactQuery.QueryKey> =
-            event.query
-          if (query.queryKey[0] === backend?.type && query.queryKey[1] === 'listDirectory')
-            for (const asset of event.query.state.data ?? []) {
-              queryClient.setQueryData(
-                // eslint-disable-next-line no-restricted-syntax
-                [backend?.type, 'getAsset', (asset as backendModule.AnyAsset).id],
-                asset
-              )
-            }
+          const query: reactQuery.Query<readonly backendModule.AnyAsset[]> = event.query
+          for (const asset of query.state.data ?? []) {
+            queryClient.setQueryData([backend?.type, 'getAsset', asset.id], asset)
+          }
         }
       }),
     [backend?.type, queryCache, queryClient]
