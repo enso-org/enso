@@ -16,11 +16,13 @@
 - [Redesigned "record control" panel][10509]. Now it contains more intuitive
   "refresh" and "write all" buttons.
 - [Warning messages do not obscure visualization buttons][10546].
+- [Text displayed in monospace and whitespace rendered as symbols][10563].
 
 [10433]: https://github.com/enso-org/enso/pull/10443
 [10457]: https://github.com/enso-org/enso/pull/10457
 [10509]: https://github.com/enso-org/enso/pull/10509
 [10546]: https://github.com/enso-org/enso/pull/10546
+[10563]: https://github.com/enso-org/enso/pull/10563
 
 #### Enso Enso Standard Library
 
