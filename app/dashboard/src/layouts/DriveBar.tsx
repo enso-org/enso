@@ -35,7 +35,6 @@ import UpsertSecretModal from '#/modals/UpsertSecretModal'
 
 import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
-import { isSpecialReadonlyDirectoryId } from '#/services/RemoteBackend'
 
 import type AssetQuery from '#/utilities/AssetQuery'
 import {
@@ -86,11 +85,12 @@ export default function DriveBar(props: DriveBarProps) {
   const targetDirectorySelfPermission =
     targetDirectory == null ? null : tryFindSelfPermission(user, targetDirectory.item.permissions)
   const canCreateAssets =
-    category.type !== categoryModule.CategoryType.cloud ||
-    user.plan == null ||
-    user.plan === backendModule.Plan.solo ||
-    (targetDirectorySelfPermission != null &&
-      canPermissionModifyDirectoryContents(targetDirectorySelfPermission.permission))
+    targetDirectory == null
+      ? category.type !== categoryModule.CategoryType.cloud ||
+        user.plan == null ||
+        user.plan === backendModule.Plan.solo
+      : targetDirectorySelfPermission != null &&
+        canPermissionModifyDirectoryContents(targetDirectorySelfPermission.permission)
   const shouldBeDisabled = (isCloud && isOffline) || !canCreateAssets
   const error = !shouldBeDisabled
     ? null
