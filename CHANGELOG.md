@@ -16,12 +16,15 @@
 - [Redesigned "record control" panel][10509]. Now it contains more intuitive
   "refresh" and "write all" buttons.
 - [Warning messages do not obscure visualization buttons][10546].
+- [Output component in collapsed function changed][10577]. It cannot be deleted
+  anymore, except by directily editing the code.
 - [Multiselect drop-down widget visuals are improved][10607].
 
 [10433]: https://github.com/enso-org/enso/pull/10443
 [10457]: https://github.com/enso-org/enso/pull/10457
 [10509]: https://github.com/enso-org/enso/pull/10509
 [10546]: https://github.com/enso-org/enso/pull/10546
+[10577]: https://github.com/enso-org/enso/pull/10577
 [10607]: https://github.com/enso-org/enso/pull/10607
 
 #### Enso Enso Standard Library

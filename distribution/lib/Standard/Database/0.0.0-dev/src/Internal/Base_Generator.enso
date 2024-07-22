@@ -420,25 +420,46 @@ generate_order dialect order_descriptor =
 
 
 ## PRIVATE
-
    Generates SQL code corresponding to a SELECT statement.
 
    Arguments:
    - dialect: The SQL dialect for which the code is being generated.
    - ctx: A description of the SELECT clause.
-generate_select_context : Dialect -> Context -> SQL_Builder
-generate_select_context dialect ctx =
+generate_select : Dialect -> Vector | Nothing -> Context -> SQL_Builder
+generate_select dialect columns ctx =
     gen_exprs exprs = exprs.map (generate_expression dialect)
+    gen_column pair = (generate_expression dialect pair.second) ++ alias dialect pair.first
+
+    generated_columns = case columns of
+        Nothing -> SQL_Builder.code "*"
+        _ -> SQL_Builder.join ", " (columns.map gen_column)
+
     from_part = generate_from_part dialect ctx.from_spec
     where_part = (SQL_Builder.join " AND " (gen_exprs ctx.where_filters)) . prefix_if_present " WHERE "
     group_part = (SQL_Builder.join ", " (gen_exprs ctx.groups)) . prefix_if_present " GROUP BY "
+
+    orders = ctx.orders.map (generate_order dialect)
+    order_part = (SQL_Builder.join ", " orders) . prefix_if_present " ORDER BY "
+
     limit_part = case ctx.limit of
         Nothing -> ""
         _ : Integer -> " LIMIT " + ctx.limit.to_text
 
-    orders = ctx.orders.map (generate_order dialect)
-    order_part = (SQL_Builder.join ", " orders) . prefix_if_present " ORDER BY "
-    (SQL_Builder.code " FROM ") ++ from_part ++ where_part ++ group_part ++ order_part ++ limit_part
+    extensions = ctx.extensions.map extension->
+        part = extension.run_generator (gen_exprs extension.expressions)
+        [extension.position, part]
+
+    parts = Vector.build builder->
+        builder.append [100, SQL_Builder.code "SELECT "]
+        builder.append [200, generated_columns]
+        builder.append [300, SQL_Builder.code " FROM " ++ from_part]
+        builder.append [400, where_part]
+        builder.append [500, group_part]
+        builder.append [600, order_part]
+        builder.append [700, limit_part]
+        extensions.each builder.append
+
+    SQL_Builder.join "" <| parts.sort on=(.first) . map .second
 
 ## PRIVATE
 
@@ -467,18 +488,7 @@ generate_insert_query dialect table_name pairs =
 generate_query : Dialect -> Query -> SQL_Builder
 generate_query dialect query = case query of
     Query.Select columns ctx ->
-        gen_column pair = (generate_expression dialect pair.second) ++ alias dialect pair.first
-        cols = case columns of
-            Nothing -> SQL_Builder.code "*"
-            _ -> SQL_Builder.join ", " (columns.map gen_column)
-        prefix = case ctx.distinct_on of
-            Nothing -> SQL_Builder.code ""
-            expressions : Vector ->
-                ## TODO I just realised this does not make sense in other backends than Postgres,
-                   so we should probably fail in such cases; probably rewrite into a generic modifier? or a transform?
-                generated = SQL_Builder.join ", " (expressions.map (generate_expression dialect))
-                SQL_Builder.code "DISTINCT ON (" ++ generated ++ ") "
-        SQL_Builder.code "SELECT " ++ prefix ++ cols ++ generate_select_context dialect ctx
+        generate_select dialect columns ctx
     Query.Insert table_name pairs ->
         generate_insert_query dialect table_name pairs
     Query.Create_Table name columns primary_key temporary ->
