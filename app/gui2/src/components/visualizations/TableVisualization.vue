@@ -318,22 +318,27 @@ function escapeHTML(str: string) {
   return str.replace(/[&<>"']/g, (m) => mapping[m]!)
 }
 
-function getRowHeight(params: RowHeightParams) {
-  if (textFormatterSelected.value === TextFormatOptions.Off) return DEFAULT_ROW_HEIGHT
+function getRowHeight(params: RowHeightParams): number {
+  if (textFormatterSelected.value === TextFormatOptions.Off) {
+    return DEFAULT_ROW_HEIGHT
+  }
+
   const rowData = Object.values(params.data)
-  const textValues = rowData.filter((r) => typeof r === 'string') as string[]
-  if (!textValues.length) return DEFAULT_ROW_HEIGHT
-  const containsReturnChars = textValues.filter(
-    (text: string) => text.match(/\r/g)?.length || text.match(/\n/g)?.length,
-  )
-  if (!containsReturnChars.length) return DEFAULT_ROW_HEIGHT
-  const returnCharsCount = containsReturnChars.map((text: string) => {
-    const r = text.match(/\r/g)?.length as number
-    const n = text.match(/\n/g)?.length as number
-    const rn = text.match(/\r\n/g)?.length as number
-    return r + n - rn
+  const textValues = rowData.filter((r): r is string => typeof r === 'string')
+
+  if (!textValues.length) {
+    return DEFAULT_ROW_HEIGHT
+  }
+
+  const returnCharsCount = textValues.map((text: string) => {
+    const crlfCount = (text.match(/\r\n/g) || []).length
+    const crCount = (text.match(/\r/g) || []).length
+    const lfCount = (text.match(/\n/g) || []).length
+    return crCount + lfCount - crlfCount
   })
-  return (Math.max(...returnCharsCount) + 1) * DEFAULT_ROW_HEIGHT
+
+  const maxReturnCharsCount = Math.max(...returnCharsCount)
+  return (maxReturnCharsCount + 1) * DEFAULT_ROW_HEIGHT
 }
 
 function cellClass(params: CellClassParams) {
