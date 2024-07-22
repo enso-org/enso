@@ -35,6 +35,7 @@ import UpsertSecretModal from '#/modals/UpsertSecretModal'
 
 import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
+import { isSpecialReadonlyDirectoryId } from '#/services/RemoteBackend'
 
 import type AssetQuery from '#/utilities/AssetQuery'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
@@ -82,7 +83,7 @@ export default function DriveBar(props: DriveBarProps) {
     category.type !== categoryModule.CategoryType.cloud ||
     user.plan == null ||
     user.plan === backendModule.Plan.solo ||
-    targetDirectory != null
+    (targetDirectory != null && !isSpecialReadonlyDirectoryId(targetDirectory.directoryId))
   const shouldBeDisabled = (isCloud && isOffline) || !canCreateAssets
   const error = !shouldBeDisabled
     ? null

@@ -60,7 +60,7 @@ import UpsertSecretModal from '#/modals/UpsertSecretModal'
 import * as backendModule from '#/services/Backend'
 import type Backend from '#/services/Backend'
 import LocalBackend from '#/services/LocalBackend'
-import { TEAMS_DIRECTORY_ID, USERS_DIRECTORY_ID } from '#/services/remoteBackendPaths'
+import { isSpecialReadonlyDirectoryId } from '#/services/RemoteBackend'
 
 import * as array from '#/utilities/array'
 import type * as assetQuery from '#/utilities/AssetQuery'
@@ -710,7 +710,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         setTargetDirectory(node)
       }
     }
-  }, [targetDirectoryNodeRef, selectedKeys])
+  }, [targetDirectoryNodeRef, selectedKeys, setTargetDirectory])
 
   React.useEffect(() => {
     const nodeToSuggestion = (
@@ -1842,7 +1842,7 @@ export default function AssetsTable(props: AssetsTableProps) {
           const ids = new Set(
             assetTree.children
               .map(child => child.item.id)
-              .filter(id => id !== USERS_DIRECTORY_ID && id !== TEAMS_DIRECTORY_ID)
+              .filter(id => !isSpecialReadonlyDirectoryId(id))
           )
           // This is required to prevent an infinite loop.
           window.setTimeout(() => {

@@ -57,6 +57,17 @@ function responseIsSuccessful(response: Response) {
   return response.status >= STATUS_SUCCESS_FIRST && response.status <= STATUS_SUCCESS_LAST
 }
 
+// ====================================
+// === isSpecialReadonlyDirectoryId ===
+// ====================================
+
+/** Whether the given directory is a special directory that cannot be written to. */
+export function isSpecialReadonlyDirectoryId(id: backend.AssetId) {
+  return (
+    id !== remoteBackendPaths.USERS_DIRECTORY_ID && id !== remoteBackendPaths.TEAMS_DIRECTORY_ID
+  )
+}
+
 // =============
 // === Types ===
 // =============
