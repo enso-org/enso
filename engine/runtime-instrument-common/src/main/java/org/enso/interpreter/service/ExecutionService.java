@@ -3,10 +3,12 @@ package org.enso.interpreter.service;
 import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.TruffleLogger;
+import com.oracle.truffle.api.exception.AbstractTruffleException;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.instrumentation.EventBinding;
 import com.oracle.truffle.api.instrumentation.ExecutionEventNodeFactory;
 import com.oracle.truffle.api.interop.ArityException;
+import com.oracle.truffle.api.interop.ExceptionType;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnknownIdentifierException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
@@ -477,6 +479,18 @@ public final class ExecutionService {
       }
     }
     return null;
+  }
+
+  public boolean isExitException(AbstractTruffleException ex) {
+    var interop = InteropLibrary.getUncached();
+    if (interop.isException(ex)) {
+      try {
+        return interop.getExceptionType(ex) == ExceptionType.EXIT;
+      } catch (UnsupportedMessageException e) {
+        throw new IllegalStateException(e);
+      }
+    }
+    return false;
   }
 
   /**

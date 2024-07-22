@@ -668,19 +668,11 @@ export class App extends Ast {
       : ensureSpaced(nameSpecification.name, verbatim)
       yield ensureSpacedOnlyIf(nameSpecification.equals, spacedEquals, verbatim)
     }
-    yield ensureSpacedOnlyIf(argument, !nameSpecification || spacedEquals, verbatim)
+    // Some syntax trees, including many error conditions, involve unspaced applications.
+    // If a parsed input lacked a space before the argument, reproduce it as-is.
+    const verbatimArgument = true
+    yield ensureSpacedOnlyIf(argument, !nameSpecification || spacedEquals, verbatimArgument)
     if (useParens) yield preferUnspaced(parens.close)
-  }
-
-  printSubtree(
-    info: SpanMap,
-    offset: number,
-    parentIndent: string | undefined,
-    verbatim?: boolean,
-  ): string {
-    const verbatim_ =
-      verbatim ?? (this.function instanceof Invalid || this.argument instanceof Invalid)
-    return super.printSubtree(info, offset, parentIndent, verbatim_)
   }
 }
 function ensureSpacedOnlyIf<T>(

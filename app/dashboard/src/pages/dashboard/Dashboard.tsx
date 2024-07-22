@@ -26,6 +26,7 @@ import ProjectsProvider, {
   useClearLaunchedProjects,
   useLaunchedProjects,
   usePage,
+  useProjectsStore,
   useSetPage,
   type LaunchedProject,
 } from '#/providers/ProjectsProvider'
@@ -136,6 +137,7 @@ function DashboardInner(props: DashboardProps) {
     }
   )
 
+  const projectsStore = useProjectsStore()
   const page = usePage()
   const launchedProjects = useLaunchedProjects()
   const selectedProject = launchedProjects.find(p => p.id === page) ?? null
@@ -171,13 +173,12 @@ function DashboardInner(props: DashboardProps) {
         closeModal: () => {
           updateModal(oldModal => {
             if (oldModal == null) {
-              queueMicrotask(() => {
-                setPage(localStorage.get('page') ?? TabType.drive)
-              })
-              return oldModal
-            } else {
-              return null
+              const currentPage = projectsStore.getState().page
+              if (array.includes(Object.values(TabType), currentPage)) {
+                setPage(TabType.drive)
+              }
             }
+            return null
           })
           if (modalRef.current == null) {
             // eslint-disable-next-line no-restricted-syntax
@@ -185,7 +186,7 @@ function DashboardInner(props: DashboardProps) {
           }
         },
       }),
-    [inputBindings, modalRef, localStorage, updateModal, setPage]
+    [inputBindings, modalRef, localStorage, updateModal, setPage, projectsStore]
   )
 
   React.useEffect(() => {
@@ -244,14 +245,14 @@ function DashboardInner(props: DashboardProps) {
   return (
     <Page hideInfoBar hideChat>
       <div
-        className="flex text-xs text-primary"
+        className="flex min-h-full flex-col text-xs text-primary"
         onContextMenu={event => {
           event.preventDefault()
           unsetModal()
         }}
       >
         <aria.Tabs
-          className="relative flex h-screen grow select-none flex-col container-size"
+          className="relative flex min-h-full grow select-none flex-col container-size"
           selectedKey={page}
           onSelectionChange={newPage => {
             const validated = PAGES_SCHEMA.safeParse(newPage)
@@ -317,7 +318,7 @@ function DashboardInner(props: DashboardProps) {
           <aria.TabPanel
             shouldForceMount
             id={TabType.drive}
-            className="flex grow [&[data-inert]]:hidden"
+            className="flex min-h-0 grow [&[data-inert]]:hidden"
           >
             <Drive
               assetsManagementApiRef={assetManagementApiRef}
@@ -332,7 +333,7 @@ function DashboardInner(props: DashboardProps) {
               <aria.TabPanel
                 shouldForceMount
                 id={project.id}
-                className="flex grow [&[data-inert]]:hidden"
+                className="flex min-h-0 grow [&[data-inert]]:hidden"
               >
                 <Editor
                   key={project.id}
@@ -364,7 +365,7 @@ function DashboardInner(props: DashboardProps) {
                 />
               </aria.TabPanel>
             ))}
-          <aria.TabPanel id={TabType.settings} className="flex grow">
+          <aria.TabPanel id={TabType.settings} className="flex min-h-0 grow">
             <Settings />
           </aria.TabPanel>
         </aria.Tabs>

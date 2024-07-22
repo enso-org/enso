@@ -111,10 +111,10 @@ from project.Internal.Ordering_Helpers import all
        the custom comparator whenever equality or hash code is needed.
 @Builtin_Type
 type Comparable
+    ## PRIVATE
     private By value:Any comparator:Any
 
-    ##
-       Creates new opaque `Comparable` instance for given `value` and
+    ## Creates new opaque `Comparable` instance for given `value` and
        a `Comparator` with two static methods what work on the
        type `T` of the provided `value`:
 

@@ -44,8 +44,10 @@ declare module '#/utilities/LocalStorage' {
 
 const PROJECT_SCHEMA = z
   .object({
-    id: z.custom<backendModule.ProjectId>(x => typeof x === 'string'),
-    parentId: z.custom<backendModule.DirectoryId>(x => typeof x === 'string'),
+    id: z.custom<backendModule.ProjectId>(x => typeof x === 'string' && x.startsWith('project-')),
+    parentId: z.custom<backendModule.DirectoryId>(
+      x => typeof x === 'string' && x.startsWith('directory-')
+    ),
     title: z.string(),
     type: z.nativeEnum(backendModule.BackendType),
   })
@@ -68,7 +70,9 @@ LocalStorage.registerKey('launchedProjects', {
 
 export const PAGES_SCHEMA = z
   .nativeEnum(TabType)
-  .or(z.custom<LaunchedProjectId>(value => typeof value === 'string'))
+  .or(
+    z.custom<LaunchedProjectId>(value => typeof value === 'string' && value.startsWith('project-'))
+  )
 
 LocalStorage.registerKey('page', { schema: PAGES_SCHEMA })
 
@@ -150,6 +154,7 @@ export default function ProjectsProvider(props: ProjectsProviderProps) {
 function PageSynchronizer() {
   const { localStorage } = localStorageProvider.useLocalStorage()
   const store = useProjectsStore()
+  const providerPage = usePage()
   const providerSetPage = useSetPage()
   const [page, privateSetPage] = searchParamsState.useSearchParamsState(
     'page',
@@ -166,11 +171,9 @@ function PageSynchronizer() {
     providerSetPage(page)
   }, [page, providerSetPage])
 
-  React.useEffect(() =>
-    store.subscribe(state => {
-      privateSetPage(state.page)
-    })
-  )
+  React.useEffect(() => {
+    privateSetPage(providerPage)
+  }, [providerPage, privateSetPage])
 
   React.useEffect(() =>
     store.subscribe(state => {
