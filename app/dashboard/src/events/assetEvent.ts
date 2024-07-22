@@ -37,7 +37,6 @@ interface AssetEvents {
   readonly addLabels: AssetAddLabelsEvent
   readonly removeLabels: AssetRemoveLabelsEvent
   readonly deleteLabel: AssetDeleteLabelEvent
-  readonly setItem: AssetSetItemEvent
   readonly projectClosed: AssetProjectClosedEvent
 }
 
@@ -186,12 +185,6 @@ export interface AssetRemoveLabelsEvent extends AssetBaseEvent<AssetEventType.re
 /** A signal to remove a label from all assets. */
 export interface AssetDeleteLabelEvent extends AssetBaseEvent<AssetEventType.deleteLabel> {
   readonly labelName: backend.LabelName
-}
-
-/** A signal to update the value of an item. */
-export interface AssetSetItemEvent extends AssetBaseEvent<AssetEventType.setItem> {
-  readonly id: backend.AssetId
-  readonly valueOrUpdater: React.SetStateAction<backend.AnyAsset>
 }
 
 /** A signal that a project was closed. In this case, the consumer should not fire a

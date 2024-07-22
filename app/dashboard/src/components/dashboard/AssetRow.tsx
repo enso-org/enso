@@ -663,12 +663,6 @@ export default function AssetRow(props: AssetRowProps) {
           })
           break
         }
-        case AssetEventType.setItem: {
-          if (asset.id === event.id) {
-            setAsset(event.valueOrUpdater)
-          }
-          break
-        }
       }
     }
   }, item.initialAssetEvents)

@@ -29,7 +29,6 @@ enum AssetEventType {
   addLabels = 'add-labels',
   removeLabels = 'remove-labels',
   deleteLabel = 'delete-label',
-  setItem = 'set-item',
   projectClosed = 'project-closed',
 }
 

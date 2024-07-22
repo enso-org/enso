@@ -124,7 +124,6 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
         case AssetEventType.addLabels:
         case AssetEventType.removeLabels:
         case AssetEventType.deleteLabel:
-        case AssetEventType.setItem:
         case AssetEventType.projectClosed: {
           // Ignored. These events should all be unrelated to directories.
           // `delete`, `deleteForever`, `restore`, `download`, and `downloadSelected`
