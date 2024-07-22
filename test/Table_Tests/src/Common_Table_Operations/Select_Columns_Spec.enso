@@ -522,7 +522,7 @@ add_specs suite_builder setup =
             tester = expect_column_names ["FirstColumn", "beta", "gamma", "delta"]
             err_checker err =
                 err.catch.should_be_a Missing_Input_Columns.Error
-                err.catch.criteria.should_contain_the_same_elements_as ["omicron", weird_name]
+                err.catch.criteria.should_equal_ignoring_order ["omicron", weird_name]
             Problems.test_advanced_problem_handling action err_checker (x-> x) tester
 
             err = data.table.rename_columns map
@@ -534,7 +534,7 @@ add_specs suite_builder setup =
             tester = expect_column_names ["FirstColumn", "beta", "gamma", "Another"]
             err_checker err =
                 err.catch.should_be_a Missing_Input_Columns.Error
-                err.catch.criteria.should_contain_the_same_elements_as [-200, 100, 300]
+                err.catch.criteria.should_equal_ignoring_order [-200, 100, 300]
             Problems.test_advanced_problem_handling action err_checker (x-> x) tester
 
             err = data.table.rename_columns map
@@ -622,7 +622,7 @@ add_specs suite_builder setup =
             tester = expect_column_names ["A", "B", "C", "D"]
             problem_checker problem =
                 problem.should_be_a Too_Many_Column_Names_Provided.Error
-                problem.column_names.should_contain_the_same_elements_as ["E", "F"]
+                problem.column_names.should_equal_ignoring_order ["E", "F"]
                 True
             err_checker err =
                 problem_checker err.catch
