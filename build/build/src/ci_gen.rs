@@ -682,6 +682,16 @@ pub fn engine_nightly() -> Result<Workflow> {
     Ok(workflow)
 }
 
+pub fn extra_nightly_tests() -> Result<Workflow> {
+    let on = Event {
+        // We start at running the tests daily at 3 am, but we may adjust to run it every few days or only once a week.
+        schedule: vec![Schedule::new("0 3 * * *")?],
+        workflow_dispatch: Some(manual_workflow_dispatch()),
+        ..default()
+    };
+    let mut workflow = Workflow { name: "Extra Nightly Tests".into(), on, ..default() };
+    Ok(workflow)
+}
 
 pub fn engine_benchmark() -> Result<Workflow> {
     benchmark_workflow("Benchmark Engine", "backend benchmark runtime", Some(4 * 60))
@@ -751,6 +761,7 @@ pub fn generate(
         (repo_root.nightly_yml.to_path_buf(), nightly()?),
         (repo_root.scala_new_yml.to_path_buf(), backend()?),
         (repo_root.engine_nightly_yml.to_path_buf(), engine_nightly()?),
+        (repo_root.extra_nightly_tests_yml.to_path_buf(), extra_nightly_tests()?),
         (repo_root.gui_yml.to_path_buf(), gui()?),
         (repo_root.gui_tests_yml.to_path_buf(), gui_tests()?),
         (repo_root.engine_benchmark_yml.to_path_buf(), engine_benchmark()?),
