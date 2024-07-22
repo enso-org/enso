@@ -14,7 +14,6 @@ import { Ast } from '@/util/ast'
 import { ArgumentInfoKey } from '@/util/callTree'
 import { Rect } from '@/util/data/rect'
 import { cachedGetter } from '@/util/reactivity'
-import { uuidv4 } from 'lib0/random'
 import { isUuid } from 'shared/yjsModel'
 import {
   computed,
@@ -72,7 +71,6 @@ const nodeSize = useResizeObserver(rootNode)
 // 2. The expression is already used as an existing edge endpoint.
 const portRect = shallowRef<Rect>()
 
-const randomUuid = uuidv4() as PortId
 // Since the port ID computation has many dependencies but rarely changes its final output, store
 // its result in an intermediate ref, and update it only when the value actually changes. That way
 // effects depending on the port ID value will not be re-triggered unnecessarily.
@@ -86,8 +84,6 @@ const innerWidget = computed(() => {
 })
 
 providePortInfo(proxyRefs({ portId, connected: hasConnection }))
-
-const randSlice = randomUuid.slice(0, 4)
 
 watchEffect(
   (onCleanup) => {
@@ -197,8 +193,6 @@ export const widgetDefinition = defineWidget(
       newToConnect: !hasConnection && isCurrentEdgeHoverTarget,
       primary: props.nesting < 2,
     }"
-    :data-id="portId"
-    :data-h="randSlice"
   >
     <NodeWidget :input="innerWidget" />
   </div>

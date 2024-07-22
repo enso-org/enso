@@ -11,12 +11,13 @@ const props = defineProps(widgetProps(widgetDefinition))
 export const widgetDefinition = defineWidget(
   WidgetInput.astMatcher(Ast.PropertyAccess),
   {
-    priority: 1000,
+    priority: 999,
     score: (info) => {
       const tree = injectWidgetTree()
       const match =
-        tree.potentialSelfArgumentId && info.input.value.lhs?.id === tree.potentialSelfArgumentId
-      return match ? Score.Perfect : Score.Mismatch
+        tree.potentialSelfArgumentId != null &&
+        info.input.value.lhs?.id === tree.potentialSelfArgumentId
+      return match ? Score.Good : Score.Mismatch
     },
   },
   import.meta.hot,
