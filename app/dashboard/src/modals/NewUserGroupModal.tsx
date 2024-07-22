@@ -3,7 +3,7 @@ import * as React from 'react'
 
 import { useMutation } from '@tanstack/react-query'
 
-import { useBackendQuery, useCreateUserGroupMutation } from '#/hooks/backendHooks'
+import { useBackendMutationOptions, useBackendQuery } from '#/hooks/backendHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as modalProvider from '#/providers/ModalProvider'
@@ -49,14 +49,16 @@ export default function NewUserGroupModal(props: NewUserGroupModalProps) {
     userGroupNames != null && userGroupNames.has(string.normalizeName(name))
       ? getText('duplicateUserGroupError')
       : null
-  const createUserGroupMutation = useMutation(useCreateUserGroupMutation())
+  const createUserGroup = useMutation(
+    useBackendMutationOptions(backend, 'createUserGroup')
+  ).mutateAsync
   const canSubmit = nameError == null && name !== '' && userGroupNames != null
 
   const onSubmit = async () => {
     if (canSubmit) {
       unsetModal()
       try {
-        await createUserGroupMutation.mutateAsync([{ name }])
+        await createUserGroup([{ name }])
       } catch (error) {
         toastAndLog(null, error)
       }

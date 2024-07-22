@@ -6,8 +6,7 @@ import { useMutation } from '@tanstack/react-query'
 import * as mimeTypes from '#/data/mimeTypes'
 
 import {
-  useChangeUserGroupMutation,
-  useDeleteUserGroupMutation,
+  useBackendMutationOptions,
   useListUserGroupsWithUsers,
   useListUsers,
 } from '#/hooks/backendHooks'
@@ -54,8 +53,12 @@ export default function UserGroupsSettingsSection(props: UserGroupsSettingsSecti
   const userGroups = useListUserGroupsWithUsers(backend)
   const rootRef = React.useRef<HTMLDivElement>(null)
   const bodyRef = React.useRef<HTMLTableSectionElement>(null)
-  const changeUserGroup = useMutation(useChangeUserGroupMutation())
-  const deleteUserGroup = useMutation(useDeleteUserGroupMutation())
+  const changeUserGroup = useMutation(
+    useBackendMutationOptions(backend, 'changeUserGroup')
+  ).mutateAsync
+  const deleteUserGroup = useMutation(
+    useBackendMutationOptions(backend, 'deleteUserGroup')
+  ).mutateAsync
   const usersMap = React.useMemo(
     () => new Map((users ?? []).map(otherUser => [otherUser.userId, otherUser])),
     [users]
@@ -93,7 +96,7 @@ export default function UserGroupsSettingsSection(props: UserGroupsSettingsSecti
               if (!groups.includes(userGroupId)) {
                 try {
                   const newUserGroups = [...groups, userGroupId]
-                  await changeUserGroup.mutateAsync([
+                  await changeUserGroup([
                     newUser.userId,
                     { userGroups: newUserGroups },
                     newUser.name,
@@ -111,7 +114,7 @@ export default function UserGroupsSettingsSection(props: UserGroupsSettingsSecti
 
   const doDeleteUserGroup = async (userGroup: backendModule.UserGroupInfo) => {
     try {
-      await deleteUserGroup.mutateAsync([userGroup.id, userGroup.groupName])
+      await deleteUserGroup([userGroup.id, userGroup.groupName])
     } catch (error) {
       toastAndLog('deleteUserGroupError', error, userGroup.groupName)
     }
@@ -125,11 +128,7 @@ export default function UserGroupsSettingsSection(props: UserGroupsSettingsSecti
       const intermediateUserGroups =
         otherUser.userGroups?.filter(userGroupId => userGroupId !== userGroup.id) ?? null
       const newUserGroups = intermediateUserGroups?.length === 0 ? null : intermediateUserGroups
-      await changeUserGroup.mutateAsync([
-        otherUser.userId,
-        { userGroups: newUserGroups ?? [] },
-        otherUser.name,
-      ])
+      await changeUserGroup([otherUser.userId, { userGroups: newUserGroups ?? [] }, otherUser.name])
     } catch (error) {
       toastAndLog('removeUserFromUserGroupError', error, otherUser.name, userGroup.groupName)
     }

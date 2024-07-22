@@ -5,11 +5,7 @@ import { useMutation } from '@tanstack/react-query'
 
 import BurgerMenuIcon from '#/assets/burger_menu.svg'
 
-import {
-  useGetOrganization,
-  useUpdateOrganizationMutation,
-  useUpdateUserMutation,
-} from '#/hooks/backendHooks'
+import { useBackendMutationOptions, useGetOrganization } from '#/hooks/backendHooks'
 import * as searchParamsState from '#/hooks/searchParamsStateHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
@@ -61,8 +57,10 @@ export default function Settings() {
   const organization = useGetOrganization(backend)
   const isQueryBlank = !/\S/.test(query)
 
-  const updateUser = useMutation(useUpdateUserMutation()).mutateAsync
-  const updateOrganization = useMutation(useUpdateOrganizationMutation()).mutateAsync
+  const updateUser = useMutation(useBackendMutationOptions(backend, 'updateUser')).mutateAsync
+  const updateOrganization = useMutation(
+    useBackendMutationOptions(backend, 'updateOrganization')
+  ).mutateAsync
 
   const updateLocalRootPath = useMutation({
     mutationKey: [localBackend?.type, 'updateRootPath'],

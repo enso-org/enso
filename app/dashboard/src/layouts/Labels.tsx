@@ -6,7 +6,7 @@ import { useMutation } from '@tanstack/react-query'
 import PlusIcon from '#/assets/plus.svg'
 import Trash2Icon from '#/assets/trash2.svg'
 
-import { useDeleteTagMutation, useListTags } from '#/hooks/backendHooks'
+import { useBackendMutationOptions, useListTags } from '#/hooks/backendHooks'
 
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
@@ -48,7 +48,7 @@ export default function Labels(props: LabelsProps) {
   const { getText } = textProvider.useText()
   const labels = useListTags(backend) ?? []
 
-  const deleteTag = useMutation(useDeleteTagMutation()).mutate
+  const deleteTag = useMutation(useBackendMutationOptions(backend, 'deleteTag')).mutate
 
   return (
     <FocusArea direction="vertical">

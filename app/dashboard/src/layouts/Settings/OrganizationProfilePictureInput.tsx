@@ -5,7 +5,7 @@ import { useMutation } from '@tanstack/react-query'
 
 import DefaultUserIcon from '#/assets/default_user.svg'
 
-import { useGetOrganization, useUploadOrganizationPictureMutation } from '#/hooks/backendHooks'
+import { useBackendMutationOptions, useGetOrganization } from '#/hooks/backendHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as textProvider from '#/providers/TextProvider'
@@ -33,14 +33,16 @@ export default function OrganizationProfilePictureInput(
   const { getText } = textProvider.useText()
   const organization = useGetOrganization(backend)
 
-  const uploadOrganizationPictureMutation = useMutation(useUploadOrganizationPictureMutation())
+  const uploadOrganizationPicture = useMutation(
+    useBackendMutationOptions(backend, 'uploadOrganizationPicture')
+  ).mutate
 
   const doUploadOrganizationPicture = (event: React.ChangeEvent<HTMLInputElement>) => {
     const image = event.target.files?.[0]
     if (image == null) {
       toastAndLog('noNewProfilePictureError')
     } else {
-      uploadOrganizationPictureMutation.mutate([{ fileName: image.name }, image])
+      uploadOrganizationPicture([{ fileName: image.name }, image])
     }
     // Reset selected files, otherwise the file input will do nothing if the same file is
     // selected again. While technically not undesired behavior, it is unintuitive for the user.
