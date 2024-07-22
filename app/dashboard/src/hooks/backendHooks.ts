@@ -7,11 +7,9 @@ import * as backendQuery from 'enso-common/src/backendQuery'
 import { merge } from 'enso-common/src/utilities/data/object'
 
 import * as authProvider from '#/providers/AuthProvider'
-import { useRemoteBackendStrict } from '#/providers/BackendProvider'
 
 import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
-import type RemoteBackend from '#/services/RemoteBackend'
 
 import * as uniqueString from '#/utilities/uniqueString'
 

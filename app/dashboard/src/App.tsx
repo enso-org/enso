@@ -213,7 +213,6 @@ export default function App(props: AppProps) {
   // will redirect the user between the login/register pages and the dashboard.
   return (
     <>
-      <BackendRequestListener />
       <toastify.ToastContainer
         position="top-center"
         theme="light"
@@ -506,6 +505,7 @@ function AppRouter(props: AppRouterProps) {
             authService={authService}
             onAuthenticated={onAuthenticated}
           >
+            <BackendRequestListener />
             <InputBindingsProvider inputBindings={inputBindings}>
               <errorBoundary.ErrorBoundary>{routes}</errorBoundary.ErrorBoundary>
             </InputBindingsProvider>

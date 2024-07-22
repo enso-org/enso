@@ -1,9 +1,9 @@
 /** @file Register listeners for all backend types. */
 import * as React from 'react'
 
-import { matchMutation, Mutation, useQueryClient } from '@tanstack/react-query'
+import { matchMutation, useQueryClient, type Mutation } from '@tanstack/react-query'
 
-import { BackendType, User } from 'enso-common/src/services/Backend'
+import { BackendType, type User } from 'enso-common/src/services/Backend'
 
 import { useBackendMutationListener } from '#/hooks/backendHooks'
 
@@ -31,10 +31,11 @@ export default function BackendRequestListener() {
           (matchMutation({ mutationKey: [BackendType.remote, 'uploadUserPicture'] }, mutation) ||
             matchMutation({ mutationKey: [BackendType.local, 'uploadUserPicture'] }, mutation))
         ) {
+          // eslint-disable-next-line no-restricted-syntax
           setUser(mutation.state.data as Partial<User>)
         }
       }),
-    []
+    [mutationCache, setUser]
   )
 
   return null
