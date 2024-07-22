@@ -294,10 +294,11 @@ public abstract class InvokeMethodNode extends BaseNode {
       UnresolvedSymbol symbol,
       EnsoMultiValue self,
       Object[] arguments,
-      @Shared("methodResolverNode") @Cached MethodResolverNode methodResolverNode) {
+      @Shared("methodResolverNode") @Cached MethodResolverNode methodResolverNode,
+      @Cached EnsoMultiValue.CastToNode castTo) {
     var fnAndType = self.resolveSymbol(methodResolverNode, symbol);
     if (fnAndType != null) {
-      var unwrapSelf = self.castTo(fnAndType.getRight());
+      var unwrapSelf = castTo.executeCast(fnAndType.getRight(), self);
       if (unwrapSelf != null) {
         assert arguments[0] == self;
         arguments[0] = unwrapSelf;

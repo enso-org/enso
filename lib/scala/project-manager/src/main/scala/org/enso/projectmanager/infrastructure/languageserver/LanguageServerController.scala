@@ -127,7 +127,7 @@ class LanguageServerController(
   private def booting(Bootloader: ActorRef): Receive =
     LoggingReceive.withLabel("booting") {
       case BootTimeout =>
-        logger.error("Booting failed for {}.", descriptor)
+        logger.error("Booting failed for {}", descriptor)
         unstashAll()
         context.become(bootFailed(LanguageServerProtocol.ServerBootTimedOut))
 
@@ -151,12 +151,12 @@ class LanguageServerController(
         )
 
       case Terminated(Bootloader) =>
-        logger.error("Bootloader for project {} failed.", project.name)
+        logger.error("Bootloader for project {} failed", project.name)
         unstashAll()
         context.become(
           bootFailed(
             LanguageServerProtocol.ServerBootFailed(
-              new Exception("The number of boot retries exceeded.")
+              new Exception("The number of boot retries exceeded")
             )
           )
         )
@@ -187,7 +187,7 @@ class LanguageServerController(
               s"Requested to boot a server version $requestedEngineVersion, " +
               s"but a server for this project with a different version, " +
               s"$engineVersion, is already running. Two servers with different " +
-              s"versions cannot be running for a single project."
+              s"versions cannot be running for a single project"
             )
           )
         } else {
@@ -214,7 +214,7 @@ class LanguageServerController(
         }
       case Terminated(_) =>
         scheduledShutdown.foreach(_._1.cancel())
-        logger.debug("Bootloader for {} terminated.", project)
+        logger.debug("Bootloader for {} terminated", project)
 
       case StopServer(clientId, _) =>
         removeClient(
@@ -284,7 +284,7 @@ class LanguageServerController(
 
       case ServerDied =>
         scheduledShutdown.foreach(_._1.cancel())
-        logger.error("Language server died [{}].", connectionInfo)
+        logger.error("Language server died [{}]", connectionInfo)
         context.stop(self)
 
     }
@@ -302,7 +302,7 @@ class LanguageServerController(
     val updatedClients = clients - clientId
     if (updatedClients.isEmpty) {
       if (!explicitShutdownRequested) {
-        logger.debug("Delaying shutdown for project {}.", project.id)
+        logger.debug("Delaying shutdown for project {}", project.id)
         val scheduledShutdown: Option[(Cancellable, Int)] =
           shutdownTimeout.orElse(
             Some(
@@ -342,7 +342,7 @@ class LanguageServerController(
   }
 
   private def shutDownServer(maybeRequester: Option[ActorRef]): Unit = {
-    logger.debug("Shutting down a language server for project {}.", project.id)
+    logger.debug("Shutting down a language server for project {}", project.id)
     context.children.foreach(_ ! GracefulStop)
     val cancellable =
       context.system.scheduler
@@ -364,10 +364,10 @@ class LanguageServerController(
       case LanguageServerProcess.ServerTerminated(exitCode) =>
         cancellable.cancel()
         if (exitCode == 0) {
-          logger.info("Language server shut down successfully [{}].", project)
+          logger.debug("Language server shut down successfully [{}]", project)
         } else {
           logger.warn(
-            "Language server shut down with non-zero exit code: {} [{}].",
+            "Language server shut down with non-zero exit code: {} [{}]",
             exitCode,
             project
           )
@@ -376,17 +376,17 @@ class LanguageServerController(
         stop()
 
       case ShutdownTimeout =>
-        logger.error("Language server shutdown timed out.")
+        logger.error("Language server shutdown timed out")
         maybeRequester.foreach(_ ! ServerShutdownTimedOut)
         stop()
 
       case ClientDisconnected(clientId, _) =>
         logger.debug(
-          s"Received client ($clientId) disconnect request during shutdown. Ignoring."
+          s"Received client ($clientId) disconnect request during shutdown. Ignoring"
         )
 
       case ShutDownServer =>
-        logger.debug(s"Received shutdown request during shutdown. Ignoring.")
+        logger.debug(s"Received shutdown request during shutdown. Ignoring")
 
       case m: StartServer =>
         // This instance has not yet been shut down. Retry

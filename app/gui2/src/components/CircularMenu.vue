@@ -14,6 +14,7 @@ const props = defineProps<{
   isDocsVisible: boolean
   isVisualizationEnabled: boolean
   isFullMenuVisible: boolean
+  isRemovable: boolean
   matchableNodeColors: Set<string>
   documentationUrl: string | undefined
 }>()
@@ -70,6 +71,8 @@ function readableBinding(binding: keyof (typeof graphBindings)['bindings']) {
           name="trash2"
           class="slot4"
           :title="`Delete (${readableBinding('deleteSelected')})`"
+          data-testid="removeNode"
+          :disabled="!isRemovable"
           @click.stop="emit('delete')"
         />
       </template>
@@ -92,7 +95,7 @@ function readableBinding(binding: keyof (typeof graphBindings)['bindings']) {
         icon="record"
         class="slot7 record"
         data-testid="toggleRecord"
-        title="Record"
+        title="Write Always"
         :modelValue="props.isRecordingOverridden"
         @update:modelValue="emit('update:isRecordingOverridden', $event)"
       />

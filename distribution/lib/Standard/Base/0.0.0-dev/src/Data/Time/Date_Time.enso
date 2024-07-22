@@ -24,8 +24,8 @@ import project.Nothing.Nothing
 import project.Panic.Panic
 import project.Warning.Warning
 from project.Data.Boolean import Boolean, False, True
-from project.Data.Time.Date import make_day_picker
 from project.Data.Text.Extensions import all
+from project.Data.Time.Date import make_day_picker
 from project.Metadata import Display, Widget
 from project.Widget_Helpers import make_date_time_format_selector
 

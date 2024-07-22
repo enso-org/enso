@@ -22,6 +22,7 @@ import Standard.Database.Internal.Common.Database_Join_Helper
 import Standard.Database.Internal.Error_Mapper.Error_Mapper
 import Standard.Database.Internal.Internals_Access
 import Standard.Database.Internal.IR.Context.Context
+import Standard.Database.Internal.IR.Context.Context_Extension
 import Standard.Database.Internal.IR.From_Spec.From_Spec
 import Standard.Database.Internal.IR.Internal_Column.Internal_Column
 import Standard.Database.Internal.IR.Nulls_Order.Nulls_Order
@@ -125,10 +126,12 @@ type Snowflake_Dialect
         column_mapping = Dictionary.from_vector <| new_columns.map c-> [c.name, c]
         new_key_columns = key_columns.map c-> column_mapping.at c.name
         type_mapping = self.get_type_mapping
+        # TODO simpler distinct if distinct_expressions are all columns?
         distinct_expressions = new_key_columns.map column->
             value_type = type_mapping.sql_type_to_value_type column.sql_type_reference.get
             Database_Distinct_Helper.make_distinct_expression case_sensitivity problem_builder column value_type
-        new_context = Context.for_subquery setup.subquery . set_distinct_on distinct_expressions
+        new_context = Context.for_subquery setup.subquery
+            . add_extension (make_distinct_extension distinct_expressions)
         table.updated_context_and_columns new_context new_columns subquery=True
 
     ## PRIVATE
@@ -311,7 +314,7 @@ make_dialect_operations =
         other = [["day_of_year", Base_Generator.make_function "DAYOFYEAR"], ["day_of_week", Base_Generator.make_function "DAYOFWEEKISO"]]
         operations = [["date_add", make_date_add], ["date_diff", make_date_diff], ["date_trunc_to_day", make_date_trunc_to_day]]
         trivial + fractional + other + operations
-    other = [["IIF", make_iif], ["RUNTIME_ERROR", make_runtime_error_op]]
+    other = [["IIF", make_iif], ["RUNTIME_ERROR", make_runtime_error_op], ["ROW_NUMBER_IN_GROUP", make_row_number_in_group]]
     my_mappings = text + counts + stats + arith_extensions + bool + date_ops + other
     Base_Generator.base_dialect_operations . extend_with my_mappings
 
@@ -430,6 +433,16 @@ replace_null_with_marker expr =
     SQL_Builder.code "COALESCE(" ++ expr ++ ", {'enso-null-replacement-marker':'"+Random.uuid+"'}::variant)"
 
 ## PRIVATE
+   A helper for `lookup_and_replace`, and perhaps other operation.
+   It creates an expression that returns a row number within a group.
+   This is a specialization for Snowflake that adds a dummy ORDER BY clause to satisfy its compiler.
+make_row_number_in_group arguments =
+    if arguments.length == 0 then
+        Panic.throw <| Illegal_State.Error "The operation ROW_NUMBER_IN_GROUP requires at least one argument."
+    SQL_Builder.code "ROW_NUMBER() OVER (PARTITION BY " ++ (SQL_Builder.join ", " arguments) ++ " ORDER BY 1)"
+
+
+## PRIVATE
 starts_with = Base_Generator.lift_binary_sql_function "STARTS_WITH" "STARTSWITH"
 
 ## PRIVATE
@@ -495,15 +508,15 @@ floating_point_div = Base_Generator.lift_binary_op "/" x-> y->
 
 ## PRIVATE
 mod_op = Base_Generator.lift_binary_op "MOD" x-> y->
-    x ++ " - FLOOR(CAST(" ++ x ++ " AS float) / CAST(" ++ y ++ " AS float)) * " ++ y
+    x ++ " % " ++ y
 
 ## PRIVATE
 decimal_div = Base_Generator.lift_binary_op "DECIMAL_DIV" x-> y->
-    SQL_Builder.code "CAST(" ++ x ++ " AS decimal) / CAST(" ++ y ++ " AS decimal)"
+    x ++ " / " ++ y
 
 ## PRIVATE
 decimal_mod = Base_Generator.lift_binary_op "DECIMAL_MOD" x-> y->
-    x ++ " - FLOOR(CAST(" ++ x ++ " AS decimal) / CAST(" ++ y ++ " AS decimal)) * " ++ y
+    x ++ " % " ++ y
 
 ## PRIVATE
 supported_replace_params : Hashset Replace_Params
@@ -674,6 +687,17 @@ make_iif arguments = case arguments.length of
         SQL_Builder.code "DECODE(" ++ expr ++ ", TRUE, " ++ when_true ++ ", FALSE, " ++ when_false ++ ")"
     _ ->
         Error.throw <| Illegal_State.Error ("Invalid amount of arguments for operation IIF")
+
+## PRIVATE
+make_distinct_extension distinct_expressions =
+    run_generator sql_expressions =
+        joined = SQL_Builder.join ", " sql_expressions
+        ## We could use the ORDER BY here to ensure any previous ordering is preserved by distinct.
+           But to do so we need to have a robust way of checking such ordering, even if subqueries were taken in the meantime.
+           This may be related to #10321
+           Once fixed, should re-enable the `distinct_returns_first_row_from_group_if_ordered` flag back to `True`.
+        SQL_Builder.code " QUALIFY ROW_NUMBER() OVER (PARTITION BY " ++ joined ++ " ORDER BY 1) = 1 "
+    Context_Extension.Value position=550 expressions=distinct_expressions run_generator=run_generator
 
 ## PRIVATE
 snowflake_dialect_name = "Snowflake"

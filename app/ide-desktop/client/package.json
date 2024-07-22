@@ -1,0 +1,70 @@
+{
+  "version": "0.0.0-dev",
+  "type": "module",
+  "author": {
+    "name": "Enso Team",
+    "email": "contact@enso.org"
+  },
+  "homepage": "https://github.com/enso-org/ide",
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:enso-org/ide.git"
+  },
+  "bugs": {
+    "url": "https://github.com/enso-org/ide/issues"
+  },
+  "name": "enso",
+  "description": "Enso Data Processing Environment.",
+  "main": "index.cjs",
+  "dependencies": {
+    "chalk": "^5.2.0",
+    "create-servers": "3.2.0",
+    "electron-is-dev": "^2.0.0",
+    "mime-types": "^2.1.35",
+    "mkcert": "3.2.0",
+    "opener": "^1.5.2",
+    "semver": "^7.6.2",
+    "string-length": "^5.0.1",
+    "tar": "^6.2.0",
+    "yargs": "17.6.2"
+  },
+  "devDependencies": {
+    "@babel/plugin-syntax-import-attributes": "^7.24.7",
+    "@electron/notarize": "2.1.0",
+    "@types/mime-types": "^2.1.1",
+    "@types/node": "^20.11.21",
+    "@types/opener": "^1.4.0",
+    "@types/semver": "^7.5.8",
+    "@types/tar": "^6.1.4",
+    "@types/yargs": "^17.0.30",
+    "electron": "31.2.0",
+    "electron-builder": "^24.13.3",
+    "enso-common": "workspace:*",
+    "enso-dashboard": "workspace:*",
+    "enso-gui2": "workspace:*",
+    "enso-runner": "workspace:*",
+    "esbuild": "^0.19.3",
+    "esbuild-plugin-yaml": "^0.0.1",
+    "fast-glob": "^3.2.12",
+    "lightningcss": "^1.24.0",
+    "portfinder": "^1.0.32",
+    "rollup": "^4.18.1",
+    "sharp": "^0.31.2",
+    "to-ico": "^1.1.5",
+    "tsx": "^4.7.1",
+    "vite": "^5.3.3"
+  },
+  "//": [
+    "vite is required for the watch script",
+    "rollup is required for vite",
+    "@babel/plugin-syntax-import-attributes is a dependency of the dashboard"
+  ],
+  "scripts": {
+    "typecheck": "npm run --workspace=enso-gui2 compile-server && tsc --build",
+    "build": "tsx bundle.ts",
+    "dist": "tsx dist.ts",
+    "watch:windows": "cross-env ENSO_BUILD_IDE=%LOCALAPPDATA%/Temp/enso/dist/ide ENSO_BUILD_PROJECT_MANAGER=%CD%/../../../dist/backend ENSO_BUILD_PROJECT_MANAGER_IN_BUNDLE_PATH=bin/project-manager.exe ENSO_BUILD_IDE_BUNDLED_ENGINE_VERSION=0 tsx watch.ts",
+    "watch:linux": "ENSO_BUILD_IDE=\"${ENSO_BUILD_IDE:-/tmp/enso/dist/ide}\" ENSO_BUILD_PROJECT_MANAGER=\"${ENSO_BUILD_PROJECT_MANAGER:-\"$(pwd)/../../../dist/backend\"}\" ENSO_BUILD_PROJECT_MANAGER_IN_BUNDLE_PATH=\"${ENSO_BUILD_PROJECT_MANAGER_IN_BUNDLE_PATH:-bin/project-manager}\" ENSO_BUILD_IDE_BUNDLED_ENGINE_VERSION=\"${ENSO_BUILD_IDE_BUNDLED_ENGINE_VERSION:-0}\" tsx watch.ts \"$@\"",
+    "watch:macos": "ENSO_BUILD_IDE=\"${ENSO_BUILD_IDE:-/tmp/enso/dist/ide}\" ENSO_BUILD_PROJECT_MANAGER=\"${ENSO_BUILD_PROJECT_MANAGER:-\"$(pwd)/../../../dist/backend\"}\" ENSO_BUILD_PROJECT_MANAGER_IN_BUNDLE_PATH=\"${ENSO_BUILD_PROJECT_MANAGER_IN_BUNDLE_PATH:-bin/project-manager}\" ENSO_BUILD_IDE_BUNDLED_ENGINE_VERSION=\"${ENSO_BUILD_IDE_BUNDLED_ENGINE_VERSION:-0}\" tsx watch.ts \"$@\""
+  }
+}

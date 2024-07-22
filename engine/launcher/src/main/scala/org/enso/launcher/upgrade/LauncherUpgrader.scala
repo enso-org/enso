@@ -255,7 +255,7 @@ class LauncherUpgrader(
       .iterateArchive(archivePath) { entry =>
         if (
           entry.relativePath.endsWith(
-            Path.of("bin") / OS.executableName("enso")
+            Path.of("bin") / OS.executableName(org.enso.launcher.Constants.name)
           )
         ) {
           entryFound = true

@@ -66,9 +66,9 @@ add_specs suite_builder =
 
             default_warning = invalid.bytes Encoding.ascii
             default_warning.should_equal invalid_ascii_out
-            Problems.get_attached_warnings default_warning . should_contain_the_same_elements_as problems
+            Problems.get_attached_warnings default_warning . should_equal_ignoring_order problems
 
-    suite_builder.group "Default Encoding" pending="Encoding.default turned off temporarily" group_builder->
+    suite_builder.group "Default Encoding" group_builder->
         group_builder.specify "should try reading as UTF-8 by default" <|
             bytes = [65, -60, -123, -60, -103]
             #        A   ą          ę
@@ -199,7 +199,7 @@ add_specs suite_builder =
             Problems.test_problem_handling action problems tester
 
             default_warning = text.utf_8
-            Problems.get_attached_warnings default_warning . should_contain_the_same_elements_as problems
+            Problems.get_attached_warnings default_warning . should_equal_ignoring_order problems
 
         group_builder.specify "should convert an array of bytes to text via encoding" <|
             result = Text.from_bytes kshi_utf_8 Encoding.utf_8
