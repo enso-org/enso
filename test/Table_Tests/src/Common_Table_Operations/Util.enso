@@ -1,5 +1,5 @@
 from Standard.Base import all
-from Standard.Table import Table
+from Standard.Table import Table, Value_Type
 
 from Standard.Test import all
 
@@ -75,3 +75,9 @@ build_sorted_table setup table_structure =
         row_count = table_structure.first.second.length
         new_structure = table_structure+[["row_id", (0.up_to row_count) . to_vector]]
         setup.table_builder new_structure . sort "row_id" . remove_columns ["row_id"]
+
+## PRIVATE
+is_float_or_decimal ~column = case column.value_type of
+    Value_Type.Float _ -> Nothing
+    Value_Type.Decimal _ _ -> Nothing
+    other -> Test.fail "Expected "+column.name+" to be a float or decimal, but got "+other.to_display_text

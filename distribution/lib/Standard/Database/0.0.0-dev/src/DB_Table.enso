@@ -1323,9 +1323,10 @@ type DB_Table
     distinct self columns=self.column_names case_sensitivity:Case_Sensitivity=..Default on_problems:Problem_Behavior=..Report_Warning =
         key_columns = self.columns_helper.select_columns columns Case_Sensitivity.Default reorder=True error_on_missing_columns=True on_problems=on_problems . catch No_Output_Columns _->
             Error.throw No_Input_Columns_Selected
-        problem_builder = Problem_Builder.new
-        new_table = self.connection.dialect.prepare_distinct self key_columns case_sensitivity problem_builder
-        problem_builder.attach_problems_before on_problems new_table
+        key_columns.if_not_error <|
+            problem_builder = Problem_Builder.new
+            new_table = self.connection.dialect.prepare_distinct self key_columns case_sensitivity problem_builder
+            problem_builder.attach_problems_before on_problems new_table
 
     ## GROUP Standard.Base.Selections
        ICON preparation
@@ -2612,16 +2613,8 @@ type DB_Table
             actual_types = materialized_table.columns.map .value_type
             expected_types.zip actual_types expected_type-> actual_type->
                 if expected_type == actual_type then Nothing else
-                    expected_type_kind = Meta.meta expected_type . constructor
-                    actual_type_kind = Meta.meta actual_type . constructor
-                    ## We ignore simple approximations that our in-memory backend does - things like adding default
-                       timezone (because we do not have Date_Time without timezone in-memory),
-                       or changing Float32 to Float64 are silently ignored.
-                       However, bigger changes, like a Binary type column getting coerced to Mixed - _will_ still be reported.
-                    if expected_type_kind == actual_type_kind then Nothing else
-                        # If the reverse was an implicit conversion, undoing it also should not yield warnings:
-                        if self.connection.dialect.get_type_mapping.is_implicit_conversion actual_type expected_type then Nothing else
-                            warnings_builder.append (Inexact_Type_Coercion.Warning expected_type actual_type)
+                    if self.connection.dialect.get_type_mapping.should_warn_on_materialize expected_type actual_type then
+                        warnings_builder.append (Inexact_Type_Coercion.Warning expected_type actual_type)
 
             result = max_rows.attach_warning materialized_table
             Problem_Behavior.Report_Warning.attach_problems_before warnings_builder.to_vector result
