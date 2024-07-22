@@ -12,6 +12,7 @@ import RightPanelIcon from '#/assets/right_panel.svg'
 import * as offlineHooks from '#/hooks/offlineHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
+import { useTargetDirectory } from '#/providers/DriveProvider'
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
@@ -72,6 +73,7 @@ export default function DriveBar(props: DriveBarProps) {
   const { user } = authProvider.useFullUserSession()
   const inputBindings = inputBindingsProvider.useInputBindings()
   const dispatchAssetEvent = eventListProvider.useDispatchAssetEvent()
+  const targetDirectory = useTargetDirectory()
   const createAssetButtonsRef = React.useRef<HTMLDivElement>(null)
   const uploadFilesRef = React.useRef<HTMLInputElement>(null)
   const isCloud = categoryModule.isCloudCategory(category)
@@ -79,7 +81,8 @@ export default function DriveBar(props: DriveBarProps) {
   const canCreateAssets =
     category.type !== categoryModule.CategoryType.cloud ||
     user.plan == null ||
-    user.plan === backendModule.Plan.solo
+    user.plan === backendModule.Plan.solo ||
+    targetDirectory != null
   const shouldBeDisabled = (isCloud && isOffline) || !canCreateAssets
   const error = !shouldBeDisabled
     ? null
@@ -180,6 +183,7 @@ export default function DriveBar(props: DriveBarProps) {
         <ariaComponents.ButtonGroup className="my-0.5 grow-0">
           <ariaComponents.ButtonGroup
             ref={createAssetButtonsRef}
+            className="grow-0"
             {...createAssetsVisualTooltip.targetProps}
           >
             <aria.DialogTrigger>

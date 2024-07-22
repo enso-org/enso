@@ -10,6 +10,7 @@ import DropFilesImage from '#/assets/drop_files.svg'
 import * as mimeTypes from '#/data/mimeTypes'
 
 import * as backendHooks from '#/hooks/backendHooks'
+import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import * as intersectionHooks from '#/hooks/intersectionHooks'
 import * as projectHooks from '#/hooks/projectHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
@@ -17,6 +18,7 @@ import useOnScroll from '#/hooks/useOnScroll'
 
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
+import { useSetTargetDirectory } from '#/providers/DriveProvider'
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as modalProvider from '#/providers/ModalProvider'
@@ -410,6 +412,7 @@ export default function AssetsTable(props: AssetsTableProps) {
   const previousCategoryRef = React.useRef(category)
   const dispatchAssetEvent = eventListProvider.useDispatchAssetEvent()
   const dispatchAssetListEvent = eventListProvider.useDispatchAssetListEvent()
+  const setTargetDirectoryRaw = useSetTargetDirectory()
   const [enabledColumns, setEnabledColumns] = React.useState(columnUtils.DEFAULT_ENABLED_COLUMNS)
   const [sortInfo, setSortInfo] =
     React.useState<sorting.SortInfo<columnUtils.SortableColumn> | null>(null)
@@ -660,14 +663,21 @@ export default function AssetsTable(props: AssetsTableProps) {
     previousCategoryRef.current = category
   })
 
+  const setTargetDirectory = useEventCallback(
+    (page: AssetTreeNode<backendModule.DirectoryAsset> | null) => {
+      setTargetDirectoryRaw(page)
+      targetDirectoryNodeRef.current = page
+    }
+  )
+
   React.useEffect(() => {
     if (selectedKeys.size === 0) {
-      targetDirectoryNodeRef.current = null
+      setTargetDirectory(null)
     } else if (selectedKeys.size === 1) {
       const [soleKey] = selectedKeys
       const node = soleKey == null ? null : nodeMapRef.current.get(soleKey)
       if (node != null && node.isType(backendModule.AssetType.directory)) {
-        targetDirectoryNodeRef.current = node
+        setTargetDirectory(node)
       }
     } else {
       let commonDirectoryKey: backendModule.AssetId | null = null
@@ -697,7 +707,7 @@ export default function AssetsTable(props: AssetsTableProps) {
       }
       const node = commonDirectoryKey == null ? null : nodeMapRef.current.get(commonDirectoryKey)
       if (node != null && node.isType(backendModule.AssetType.directory)) {
-        targetDirectoryNodeRef.current = node
+        setTargetDirectory(node)
       }
     }
   }, [targetDirectoryNodeRef, selectedKeys])
