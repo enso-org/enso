@@ -429,8 +429,8 @@ add_specs suite_builder =
             py_dict = py_dict_from_vec ["A", 1, "B", 2]
             dict = py_dict.insert "C" 3
             py_dict.not_empty . should_be_true
-            py_dict.to_vector . should_contain_the_same_elements_as [["A", 1], ["B", 2]]
-            dict.to_vector . should_contain_the_same_elements_as [["A", 1], ["B", 2], ["C", 3]]
+            py_dict.to_vector . should_equal_ignoring_order [["A", 1], ["B", 2]]
+            dict.to_vector . should_equal_ignoring_order [["A", 1], ["B", 2], ["C", 3]]
             py_empty_dict.is_empty.should_be_true
             py_empty_dict.insert "A" 1 . insert "A" 2 . get "A" . should_equal 2
 
@@ -450,9 +450,9 @@ add_specs suite_builder =
 
         group_builder.specify "should treat Enso Dictionaries as Python dicts when passed to Python" pending=pending_python_missing <|
             dict1 = Dictionary.singleton "A" 1 . insert "B" 2
-            py_vec_from_map dict1 . should_contain_the_same_elements_as [["A", 1], ["B", 2]]
+            py_vec_from_map dict1 . should_equal_ignoring_order [["A", 1], ["B", 2]]
             dict2 = Dictionary.singleton "A" 1 . insert Nothing 2
-            py_vec_from_map dict2 . should_contain_the_same_elements_as [["A", 1], [Nothing, 2]]
+            py_vec_from_map dict2 . should_equal_ignoring_order [["A", 1], [Nothing, 2]]
 
 
 add_common_specs suite_builder prefix:Text (pending : (Text | Nothing)) (empty_dict_fn : (Nothing -> Dictionary)) =

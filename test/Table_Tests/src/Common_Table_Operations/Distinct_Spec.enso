@@ -59,7 +59,7 @@ add_specs suite_builder setup =
             [0.3, 0.4, 0.6].contains (cv.at 1) . should_be_true
 
         if setup.test_selection.distinct_returns_first_row_from_group_if_ordered then
-            group_builder.specify "should allow to select distinct rows based on a subset of columns, returning any first from each group if the table was ordered" <|
+            group_builder.specify "should allow to select distinct rows based on a subset of columns, returning first from each group if the table was ordered" <|
                 a = ["A", ["a", "a", "a", "a", "a", "a"]]
                 b = ["B", [1, 1, 2, 2, 1, 2]]
                 c = ["C", [0.1, 0.2, 0.3, 0.4, 0.5, 0.6]]

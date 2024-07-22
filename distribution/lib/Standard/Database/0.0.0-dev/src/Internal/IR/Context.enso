@@ -5,6 +5,7 @@ import project.Internal.IR.From_Spec.From_Spec
 import project.Internal.IR.Internal_Column.Internal_Column
 import project.Internal.IR.Order_Descriptor.Order_Descriptor
 import project.Internal.IR.SQL_Expression.SQL_Expression
+import project.SQL.SQL_Builder
 
 ## PRIVATE
 
@@ -22,7 +23,7 @@ type Context
          details.
     for_table : Text -> Text -> Any -> Context
     for_table table_name alias=table_name internal_temporary_keep_alive_reference=Nothing =
-        Context.Value (From_Spec.Table table_name alias internal_temporary_keep_alive_reference=internal_temporary_keep_alive_reference) [] [] [] Nothing Nothing
+        Context.Value (From_Spec.Table table_name alias internal_temporary_keep_alive_reference=internal_temporary_keep_alive_reference) [] [] [] Nothing []
 
     ## PRIVATE
 
@@ -33,7 +34,7 @@ type Context
        - alias: An alias name to use for table within the query.
     for_query : Text -> Text -> Context
     for_query raw_sql alias =
-        Context.Value (From_Spec.Query raw_sql alias) [] [] [] Nothing Nothing
+        Context.Value (From_Spec.Query raw_sql alias) [] [] [] Nothing []
 
     ## PRIVATE
 
@@ -43,7 +44,7 @@ type Context
        - subquery: The subquery to lift into a context.
     for_subquery : From_Spec -> Context
     for_subquery subquery =
-        Context.Value subquery [] [] [] Nothing Nothing
+        Context.Value subquery [] [] [] Nothing []
 
     ## PRIVATE
 
@@ -66,7 +67,7 @@ type Context
          grouped-by columns or aggregate expressions.
        - limit: an optional maximum number of elements that the query should
          return.
-    Value (from_spec : From_Spec) (where_filters : Vector SQL_Expression) (orders : Vector Order_Descriptor) (groups : Vector SQL_Expression) (limit : Nothing | Integer) (distinct_on : Nothing | Vector SQL_Expression)
+    Value (from_spec : From_Spec) (where_filters : Vector SQL_Expression) (orders : Vector Order_Descriptor) (groups : Vector SQL_Expression) (limit : Nothing | Integer) (extensions : Vector Context_Extension)
 
     ## PRIVATE
 
@@ -76,7 +77,7 @@ type Context
        - new_filters: The new filters to set in the query.
     set_where_filters : Vector SQL_Expression -> Context
     set_where_filters self new_filters =
-        Context.Value self.from_spec new_filters self.orders self.groups self.limit self.distinct_on
+        Context.Value self.from_spec new_filters self.orders self.groups self.limit self.extensions
 
     ## PRIVATE
 
@@ -87,7 +88,7 @@ type Context
          query.
     add_where_filters : Vector SQL_Expression -> Context
     add_where_filters self new_filters =
-        Context.Value self.from_spec (self.where_filters+new_filters) self.orders self.groups self.limit self.distinct_on
+        Context.Value self.from_spec (self.where_filters+new_filters) self.orders self.groups self.limit self.extensions
 
     ## PRIVATE
 
@@ -97,7 +98,7 @@ type Context
        - new_orders: The new ordering clauses to set in the query.
     set_orders : Vector Order_Descriptor -> Context
     set_orders self new_orders =
-        Context.Value self.from_spec self.where_filters new_orders self.groups self.limit self.distinct_on
+        Context.Value self.from_spec self.where_filters new_orders self.groups self.limit self.extensions
 
     ## PRIVATE
 
@@ -114,7 +115,7 @@ type Context
        - new_orders: The new ordering clauses to add to the query.
     add_orders : Vector Order_Descriptor -> Context
     add_orders self new_orders =
-        Context.Value self.from_spec self.where_filters new_orders+self.orders self.groups self.limit self.distinct_on
+        Context.Value self.from_spec self.where_filters new_orders+self.orders self.groups self.limit self.extensions
 
     ## PRIVATE
 
@@ -124,7 +125,7 @@ type Context
        - new_groups: The new grouping clauses to set in the query.
     set_groups : Vector SQL_Expression -> Context
     set_groups self new_groups =
-        Context.Value self.from_spec self.where_filters self.orders new_groups self.limit self.distinct_on
+        Context.Value self.from_spec self.where_filters self.orders new_groups self.limit self.extensions
 
     ## PRIVATE
 
@@ -134,14 +135,13 @@ type Context
        - new_limit: The new limit clauses to set in the query.
     set_limit : (Nothing | Integer) -> Context
     set_limit self new_limit =
-       Context.Value self.from_spec self.where_filters self.orders self.groups new_limit self.distinct_on
+       Context.Value self.from_spec self.where_filters self.orders self.groups new_limit self.extensions
 
     ## PRIVATE
-
-       Returns a copy of the context with changed `distinct_on` expressions.
-    set_distinct_on : (Nothing | Vector SQL_Expression) -> Context
-    set_distinct_on self new_distinct_on =
-       Context.Value self.from_spec self.where_filters self.orders self.groups self.limit new_distinct_on
+       Returns a copy of the context with an added extension.
+    add_extension : Context_Extension -> Context
+    add_extension self extension =
+       Context.Value self.from_spec self.where_filters self.orders self.groups self.limit (self.extensions + [extension])
 
     ## PRIVATE
 
@@ -176,3 +176,27 @@ type Context
 type Subquery_Setup
     ## PRIVATE
     Value (subquery : From_Spec) (new_columns : Vector (Vector Internal_Column))
+
+## PRIVATE
+   Describes an extension to a Context that can be used to add additional custom
+   SQL code as part of the query.
+type Context_Extension
+    ## A recipe for building the extension.
+
+       Arguments:
+       - position: Determines where the extension code should be inserted.
+         The positions of common query parts are following:
+         - 100 - the SELECT keyword
+         - 200 - the column descriptions
+         - 300 - the FROM part
+         - 400 - the WHERE part
+         - 500 - the GROUP BY part
+         - 600 - the ORDER BY part
+         - 700 - the LIMIT part
+         Setting the position to a value between these will result in it being
+         sorted in the desired place.
+       - expressions: Sub-expressions needed for the part. They will be
+         generated and the results of that will be passed to `run_generator`.
+       - run_generator: A function that takes the generated expressions and
+         returns the SQL code that will be inserted at the desired position.
+    Value (position : Integer) (expressions : Vector SQL_Expression) (run_generator : Vector SQL_Builder -> SQL_Builder)
