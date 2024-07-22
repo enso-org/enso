@@ -363,20 +363,11 @@ export interface AssetsTableProps {
   readonly setAssetPanelProps: (props: assetPanel.AssetPanelRequiredProps | null) => void
   readonly setIsAssetPanelTemporarilyVisible: (visible: boolean) => void
   readonly targetDirectoryNodeRef: React.MutableRefObject<assetTreeNode.AnyAssetTreeNode<backendModule.DirectoryAsset> | null>
-  readonly assetManagementApiRef: React.Ref<AssetManagementApi>
-}
-
-/**
- * The API for managing assets in the table.
- */
-export interface AssetManagementApi {
-  readonly getAsset: (id: backendModule.AssetId) => backendModule.AnyAsset | null
-  readonly setAsset: (id: backendModule.AssetId, asset: backendModule.AnyAsset) => void
 }
 
 /** The table of project assets. */
 export default function AssetsTable(props: AssetsTableProps) {
-  const { hidden, query, setQuery, setCanDownload, category, assetManagementApiRef } = props
+  const { hidden, query, setQuery, setCanDownload, category } = props
   const { setSuggestions, initialProjectName } = props
   const { setAssetPanelProps, targetDirectoryNodeRef, setIsAssetPanelTemporarilyVisible } = props
 
@@ -406,9 +397,6 @@ export default function AssetsTable(props: AssetsTableProps) {
     () => new Set()
   )
   const selectedKeysRef = React.useRef(selectedKeys)
-  const updateAssetRef = React.useRef<
-    Record<backendModule.AnyAsset['id'], (asset: backendModule.AnyAsset) => void>
-  >({})
   const [pasteData, setPasteData] = React.useState<pasteDataModule.PasteData<
     ReadonlySet<backendModule.AssetId>
   > | null>(null)
@@ -2200,26 +2188,6 @@ export default function AssetsTable(props: AssetsTableProps) {
     [visibleItems, calculateNewKeys, setSelectedKeys, setMostRecentlySelectedIndex]
   )
 
-  const getAsset = React.useCallback(
-    (key: backendModule.AssetId) => nodeMapRef.current.get(key)?.item ?? null,
-    [nodeMapRef]
-  )
-
-  const setAsset = React.useCallback(
-    (key: backendModule.AssetId, asset: backendModule.AnyAsset) => {
-      setAssetTree(oldAssetTree =>
-        oldAssetTree.map(item => (item.key === key ? item.with({ item: asset }) : item))
-      )
-      updateAssetRef.current[asset.id]?.(asset)
-    },
-    []
-  )
-
-  React.useImperativeHandle(assetManagementApiRef, () => ({
-    getAsset,
-    setAsset,
-  }))
-
   const columns = columnUtils.getColumnList(backend.type, enabledColumns)
 
   const headerRow = (
@@ -2254,16 +2222,6 @@ export default function AssetsTable(props: AssetsTableProps) {
       return (
         <AssetRow
           key={key}
-          updateAssetRef={instance => {
-            if (instance != null) {
-              updateAssetRef.current[item.item.id] = instance
-            } else {
-              // Hacky way to clear the reference to the asset on unmount.
-              // eventually once we pull the assets up in the tree, we can remove this.
-              // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
-              delete updateAssetRef.current[item.item.id]
-            }
-          }}
           isOpened={openedProjects.some(({ id }) => item.item.id === id)}
           columns={columns}
           item={item}

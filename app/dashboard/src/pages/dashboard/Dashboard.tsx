@@ -11,6 +11,7 @@ import DriveIcon from '#/assets/drive.svg'
 import EditorIcon from '#/assets/network.svg'
 import SettingsIcon from '#/assets/settings.svg'
 
+import { useGetCachedAsset, useSetAsset } from '#/hooks/backendHooks'
 import * as eventCallbacks from '#/hooks/eventCallbackHooks'
 import * as projectHooks from '#/hooks/projectHooks'
 import * as searchParamsState from '#/hooks/searchParamsStateHooks'
@@ -26,7 +27,6 @@ import * as textProvider from '#/providers/TextProvider'
 import AssetEventType from '#/events/AssetEventType'
 import AssetListEventType from '#/events/AssetListEventType'
 
-import type * as assetTable from '#/layouts/AssetsTable'
 import EventListProvider, * as eventListProvider from '#/layouts/AssetsTable/EventListProvider'
 import Category, * as categoryModule from '#/layouts/CategorySwitcher/Category'
 import Chat from '#/layouts/Chat'
@@ -94,6 +94,7 @@ export default function Dashboard(props: DashboardProps) {
 function DashboardInner(props: DashboardProps) {
   const { appRunner, initialProjectName: initialProjectNameRaw, ydocUrl } = props
   const { user } = authProvider.useFullUserSession()
+  const remoteBackend = backendProvider.useRemoteBackend()
   const localBackend = backendProvider.useLocalBackend()
   const { getText } = textProvider.useText()
   const { modalRef } = modalProvider.useModalRef()
@@ -104,7 +105,6 @@ function DashboardInner(props: DashboardProps) {
 
   const dispatchAssetEvent = eventListProvider.useDispatchAssetEvent()
   const dispatchAssetListEvent = eventListProvider.useDispatchAssetListEvent()
-  const assetManagementApiRef = React.useRef<assetTable.AssetManagementApi | null>(null)
 
   const initialLocalProjectId =
     initialProjectNameRaw != null && validator.isUUID(initialProjectNameRaw)
@@ -230,29 +230,39 @@ function DashboardInner(props: DashboardProps) {
     clearLaunchedProjects()
   })
 
-  const doOpenShareModal = eventCallbacks.useEventCallback(() => {
-    if (assetManagementApiRef.current != null && selectedProject != null) {
-      const asset = assetManagementApiRef.current.getAsset(selectedProject.id)
-      const self =
-        asset?.permissions?.find(
-          backendModule.isUserPermissionAnd(permissions => permissions.user.userId === user.userId)
-        ) ?? null
+  const getCachedAsset = useGetCachedAsset()
+  const setAsset = useSetAsset()
 
-      if (asset != null && self != null) {
-        setModal(
-          <ManagePermissionsModal
-            item={asset}
-            setItem={updater => {
-              const nextAsset = updater instanceof Function ? updater(asset) : updater
-              assetManagementApiRef.current?.setAsset(asset.id, nextAsset)
-            }}
-            self={self}
-            doRemoveSelf={() => {
-              doRemoveSelf(selectedProject)
-            }}
-            eventTarget={null}
-          />
-        )
+  const doOpenShareModal = eventCallbacks.useEventCallback(() => {
+    if (selectedProject != null) {
+      const backend =
+        selectedProject.type === backendModule.BackendType.remote ? remoteBackend : localBackend
+      if (backend) {
+        const asset = getCachedAsset(backend, selectedProject.id)
+        const self =
+          asset?.permissions?.find(
+            backendModule.isUserPermissionAnd(
+              permissions => permissions.user.userId === user.userId
+            )
+          ) ?? null
+
+        if (asset != null && self != null) {
+          setModal(
+            <ManagePermissionsModal
+              item={asset}
+              setItem={valueOrUpdater => {
+                valueOrUpdater =
+                  typeof valueOrUpdater === 'function' ? valueOrUpdater(asset) : valueOrUpdater
+                setAsset(backend, asset.id, valueOrUpdater)
+              }}
+              self={self}
+              doRemoveSelf={() => {
+                doRemoveSelf(selectedProject)
+              }}
+              eventTarget={null}
+            />
+          )
+        }
       }
     }
   })
@@ -336,7 +346,6 @@ function DashboardInner(props: DashboardProps) {
             className="flex grow [&[data-inert]]:hidden"
           >
             <Drive
-              assetsManagementApiRef={assetManagementApiRef}
               category={category}
               setCategory={setCategory}
               hidden={page !== projectsProvider.TabType.drive}

@@ -5,7 +5,7 @@ import BlankIcon from '#/assets/blank.svg'
 
 import * as backendHooks from '#/hooks/backendHooks'
 import * as dragAndDropHooks from '#/hooks/dragAndDropHooks'
-import * as setAssetHooks from '#/hooks/setAssetHooks'
+import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
@@ -90,14 +90,13 @@ export interface AssetRowProps
     props: AssetRowInnerProps,
     event: React.MouseEvent<HTMLTableRowElement>
   ) => void
-  readonly updateAssetRef: React.Ref<(asset: backendModule.AnyAsset) => void>
 }
 
 /** A row containing an {@link backendModule.AnyAsset}. */
 export default function AssetRow(props: AssetRowProps) {
   const { selected, isSoleSelected, isKeyboardSelected, isOpened } = props
   const { setSelected, allowContextMenu, onContextMenu, state, columns, onClick } = props
-  const { item: rawItem, hidden: hiddenRaw, updateAssetRef, grabKeyboardFocus } = props
+  const { item: rawItem, hidden: hiddenRaw, grabKeyboardFocus } = props
   const { nodeMap, setAssetPanelProps, doToggleDirectoryExpansion, doCopy, doCut, doPaste } = state
   const { setIsAssetPanelTemporarilyVisible, scrollContainerRef, rootDirectoryId, backend } = state
   const { visibilities } = state
@@ -115,7 +114,6 @@ export default function AssetRow(props: AssetRowProps) {
   const dragOverTimeoutHandle = React.useRef<number | null>(null)
   const grabKeyboardFocusRef = React.useRef(grabKeyboardFocus)
   grabKeyboardFocusRef.current = grabKeyboardFocus
-  const asset = item.item
   const [insertionVisibility, setInsertionVisibility] = React.useState(Visibility.visible)
   const [rowState, setRowState] = React.useState<assetsTable.AssetRowState>(() =>
     object.merge(assetRowUtils.INITIAL_ROW_STATE, { setVisibility: setInsertionVisibility })
@@ -147,16 +145,15 @@ export default function AssetRow(props: AssetRowProps) {
   const openProjectMutate = openProjectMutation.mutateAsync
   const closeProjectMutate = closeProjectMutation.mutateAsync
 
-  React.useEffect(() => {
-    setItem(rawItem)
-  }, [rawItem])
-
-  React.useEffect(() => {
-    // Mutation is HIGHLY INADVISABLE in React, however it is useful here as we want to update the
-    // parent's state while avoiding re-rendering the parent.
-    rawItem.item = asset
-  }, [asset, rawItem])
-  const setAsset = setAssetHooks.useSetAsset(asset, setItem)
+  const assetId = item.item.id
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+  const asset = backendHooks.useGetAsset(backend, assetId).data!
+  const setAssetRaw = backendHooks.useSetAsset()
+  const setAsset = useEventCallback(
+    (valueOrUpdater: React.SetStateAction<backendModule.AnyAsset>) => {
+      setAssetRaw(backend, assetId, valueOrUpdater)
+    }
+  )
 
   React.useEffect(() => {
     if (selected && insertionVisibility !== Visibility.visible) {
@@ -170,8 +167,6 @@ export default function AssetRow(props: AssetRowProps) {
       grabKeyboardFocusRef.current()
     }
   }, [isKeyboardSelected])
-
-  React.useImperativeHandle(updateAssetRef, () => setAsset)
 
   const doCopyOnBackend = React.useCallback(
     async (newParentId: backendModule.DirectoryId | null) => {
@@ -387,7 +382,7 @@ export default function AssetRow(props: AssetRowProps) {
             setAsset(object.merger({ description }))
 
             await backend
-              .updateAsset(item.item.id, { parentDirectoryId: null, description }, item.item.title)
+              .updateAsset(assetId, { parentDirectoryId: null, description }, item.item.title)
               .catch(error => {
                 setAsset(object.merger({ description: asset.description }))
                 throw error
@@ -397,7 +392,7 @@ export default function AssetRow(props: AssetRowProps) {
         initialDescription={asset.description}
       />
     )
-  }, [setModal, asset.description, setAsset, backend, item.item.id, item.item.title])
+  }, [setModal, asset.description, setAsset, assetId, backend, item.item.title])
 
   eventListProvider.useAssetEventListener(async event => {
     if (state.category === Category.trash) {

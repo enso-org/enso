@@ -16,7 +16,6 @@ import AssetListEventType from '#/events/AssetListEventType'
 import type * as assetPanel from '#/layouts/AssetPanel'
 import AssetPanel from '#/layouts/AssetPanel'
 import type * as assetSearchBar from '#/layouts/AssetSearchBar'
-import type * as assetsTable from '#/layouts/AssetsTable'
 import AssetsTable from '#/layouts/AssetsTable'
 import * as eventListProvider from '#/layouts/AssetsTable/EventListProvider'
 import CategorySwitcher from '#/layouts/CategorySwitcher'
@@ -64,12 +63,11 @@ export interface DriveProps {
   readonly setCategory: (category: Category) => void
   readonly hidden: boolean
   readonly initialProjectName: string | null
-  readonly assetsManagementApiRef: React.Ref<assetsTable.AssetManagementApi>
 }
 
 /** Contains directory path and directory contents (projects, folders, secrets and files). */
 export default function Drive(props: DriveProps) {
-  const { category, setCategory, hidden, initialProjectName, assetsManagementApiRef } = props
+  const { category, setCategory, hidden, initialProjectName } = props
 
   const { isOffline } = offlineHooks.useOffline()
   const { localStorage } = localStorageProvider.useLocalStorage()
@@ -311,7 +309,6 @@ export default function Drive(props: DriveProps) {
                 </result.Result>
               ) : (
                 <AssetsTable
-                  assetManagementApiRef={assetsManagementApiRef}
                   hidden={hidden}
                   query={query}
                   setQuery={setQuery}

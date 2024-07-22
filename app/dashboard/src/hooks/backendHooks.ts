@@ -587,9 +587,25 @@ export function useBackendGetOrganization(backend: Backend | null) {
 export function useGetAsset(backend: Backend, assetId: backendModule.AssetId) {
   // This is a passive query. For now, please refetch the asset's parent directory
   // to update its value.
-  return reactQuery.useQuery({
-    queryKey: [backend.type, 'getAsset', assetId],
+  return reactQuery.useQuery<backendModule.AnyAsset>({
+    queryKey: useGetAsset.key(backend, assetId),
   })
+}
+useGetAsset.key = (backend: Backend, assetId: backendModule.AssetId) =>
+  [backend.type, 'getAsset', assetId] as const
+
+// =========================
+// === useGetCachedAsset ===
+// =========================
+
+/** A callback to get the cached value of the asset. */
+export function useGetCachedAsset() {
+  const queryClient = reactQuery.useQueryClient()
+  // This is a passive query. For now, please refetch the asset's parent directory
+  // to update its value.
+  return useEventCallback((backend: Backend, assetId: backendModule.AssetId) =>
+    queryClient.getQueryData<backendModule.AnyAsset>([backend.type, 'getAsset', assetId])
+  )
 }
 
 // ===================
@@ -597,9 +613,20 @@ export function useGetAsset(backend: Backend, assetId: backendModule.AssetId) {
 // ===================
 
 /** A callback to update the cached value of the asset. */
-export function useSetAsset(backend: Backend) {
+export function useSetAsset() {
   const queryClient = reactQuery.useQueryClient()
-  return useEventCallback((asset: backendModule.AnyAsset) => {
-    queryClient.setQueryData([backend.type, 'getAsset', asset.id], asset)
-  })
+  return useEventCallback(
+    (
+      backend: Backend,
+      assetId: backendModule.AssetId,
+      valueOrUpdater: React.SetStateAction<backendModule.AnyAsset>
+    ) => {
+      const key = useGetAsset.key(backend, assetId)
+      if (typeof valueOrUpdater === 'function') {
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        valueOrUpdater = valueOrUpdater(queryClient.getQueryData(key)!)
+      }
+      queryClient.setQueryData(key, valueOrUpdater)
+    }
+  )
 }
