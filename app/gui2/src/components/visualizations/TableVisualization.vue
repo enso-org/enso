@@ -407,7 +407,7 @@ function toLinkField(fieldName: string): ColDef {
     tooltipValueGetter: () => {
       return `Double click to view this ${newNodeSelectorValues.value.tooltipValue} in a separate component`
     },
-    cellRenderer: (params: any) => `<a> ${params.value} </a>`,
+    cellRenderer: (params: any) => `<div class='link'> ${params.value} </div>`,
   }
 }
 
@@ -701,12 +701,12 @@ onUnmounted(() => {
 /* Tag selectors are inefficient to compute, and should be replaced with a class selector
  * if possible.
  * See https://vuejs.org/api/sfc-css-features.html#scoped-style-tips */
-:deep(a) {
+:deep(.link) {
   color: blue;
   text-decoration: underline;
 }
 
-:deep(a):hover {
+:deep(.link):hover {
   color: darkblue;
 }
 </style>
