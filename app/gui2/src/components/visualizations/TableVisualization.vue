@@ -261,13 +261,13 @@ function formatText(params: ICellRendererParams) {
   }
   const partialMappings = {
     '\r': '<span style="color: grey">␍</span> <br>',
-    '\n': '<span style="color: grey">␊</span> <br>',
-    '\t': '<span>    </span>',
+    '\n': '<span style="color: grey;">␊</span> <br>',
+    '\t': '<span style="white-space: break-spaces;">    </span>',
   }
   const fullMappings = {
     '\r': '<span style="color: grey">␍</span> <br>',
     '\n': '<span style="color: grey">␊</span> <br>',
-    '\t': '<span style="color: grey">&#8594;   </span>',
+    '\t': '<span style="color: grey; white-space: break-spaces;">&#8594;   </span>',
   }
 
   const replaceSpaces =
@@ -289,7 +289,7 @@ function formatText(params: ICellRendererParams) {
       textFormatterSelected.value === TextFormatOptions.On ? fullMappings : partialMappings
     return mapping[match as keyof typeof mapping] || renderOtherWhitespace(match)
   })
-  return newString
+  return `<span > ${newString} <span>`
 }
 
 function setRowLimit(newRowLimit: number) {
