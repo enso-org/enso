@@ -37,7 +37,8 @@
 - [Compare two objects with `Ordering.compare` and define comparator with
   `Comparable.new`][10468]
 - [Added `dec` construction function for creating `Decimal`s.][10517]
-- [Implemented in-memory mixed `Decimal` column comparisons.][10614]
+- [Implemented in-memory and database mixed `Decimal` column
+  comparisons.][10614]
 
 [10434]: https://github.com/enso-org/enso/pull/10434
 [10445]: https://github.com/enso-org/enso/pull/10445
