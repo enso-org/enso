@@ -81,3 +81,16 @@ export function tryFindSelfPermission(
   }
   return selfPermission
 }
+
+// ============================================
+// === canPermissionModifyDirectoryContents ===
+// ============================================
+
+/** Whether the given permission means the user can edit the list of assets of the directory. */
+export function canPermissionModifyDirectoryContents(permission: permissions.PermissionAction) {
+  return (
+    permission === permissions.PermissionAction.own ||
+    permission === permissions.PermissionAction.admin ||
+    permission === permissions.PermissionAction.edit
+  )
+}

@@ -38,6 +38,10 @@ import * as backendModule from '#/services/Backend'
 import { isSpecialReadonlyDirectoryId } from '#/services/RemoteBackend'
 
 import type AssetQuery from '#/utilities/AssetQuery'
+import {
+  canPermissionModifyDirectoryContents,
+  tryFindSelfPermission,
+} from '#/utilities/permissions'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 
 // ================
@@ -79,11 +83,14 @@ export default function DriveBar(props: DriveBarProps) {
   const uploadFilesRef = React.useRef<HTMLInputElement>(null)
   const isCloud = categoryModule.isCloudCategory(category)
   const { isOffline } = offlineHooks.useOffline()
+  const targetDirectorySelfPermission =
+    targetDirectory == null ? null : tryFindSelfPermission(user, targetDirectory.item.permissions)
   const canCreateAssets =
     category.type !== categoryModule.CategoryType.cloud ||
     user.plan == null ||
     user.plan === backendModule.Plan.solo ||
-    (targetDirectory != null && !isSpecialReadonlyDirectoryId(targetDirectory.directoryId))
+    (targetDirectorySelfPermission != null &&
+      canPermissionModifyDirectoryContents(targetDirectorySelfPermission.permission))
   const shouldBeDisabled = (isCloud && isOffline) || !canCreateAssets
   const error = !shouldBeDisabled
     ? null
