@@ -68,6 +68,7 @@ import Dashboard from '#/pages/dashboard/Dashboard'
 import * as subscribe from '#/pages/subscribe/Subscribe'
 import * as subscribeSuccess from '#/pages/subscribe/SubscribeSuccess'
 
+import BackendRequestListener from '#/layouts/BackendRequestListener'
 import type * as editor from '#/layouts/Editor'
 import * as openAppWatcher from '#/layouts/OpenAppWatcher'
 
@@ -212,6 +213,7 @@ export default function App(props: AppProps) {
   // will redirect the user between the login/register pages and the dashboard.
   return (
     <>
+      <BackendRequestListener />
       <toastify.ToastContainer
         position="top-center"
         theme="light"
