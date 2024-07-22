@@ -157,6 +157,9 @@ public final class ResourceManager {
      */
     private final List<Item> pendingItems = new ArrayList<>();
 
+    /**
+     * @GuardedBy("pendingItems")
+     */
     private Future<Void> request;
 
     private volatile boolean killed = false;
@@ -178,9 +181,10 @@ public final class ResourceManager {
         Item[] toProcess;
         synchronized (pendingItems) {
           request.cancel(false);
-          if (pendingItems.isEmpty() || pendingItems.get(0) == null) {
-            // nothing to process or already processing
-            // avoids re-entrant calls into this method
+          if (pendingItems.isEmpty()) {
+            // nothing to process,
+            // signal request is finished
+            request = null;
             return;
           }
           toProcess = pendingItems.toArray(Item[]::new);
@@ -194,12 +198,6 @@ public final class ResourceManager {
           }
         } finally {
           synchronized (pendingItems) {
-            assert pendingItems.size() >= toProcess.length
-                : "Just processed "
-                    + toProcess.length
-                    + " but there is only "
-                    + pendingItems.size()
-                    + " to clear";
             pendingItems.subList(0, toProcess.length).clear();
           }
         }
@@ -220,7 +218,7 @@ public final class ResourceManager {
             if (ref instanceof Item it) {
               it.flaggedForFinalization.set(true);
               synchronized (pendingItems) {
-                if (pendingItems.isEmpty()) {
+                if (request == null) {
                   request = context.submitThreadLocal(null, this);
                 }
                 pendingItems.add(it);
