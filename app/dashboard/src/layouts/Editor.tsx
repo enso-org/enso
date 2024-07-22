@@ -72,7 +72,7 @@ export interface EditorProps {
   readonly ydocUrl: string | null
   readonly appRunner: GraphEditorRunner | null
   readonly renameProject: (newName: string) => void
-  readonly projectId: backendModule.ProjectAsset['id']
+  readonly projectId: backendModule.ProjectId
 }
 
 /** The container that launches the IDE. */
@@ -116,7 +116,11 @@ export default function Editor(props: EditorProps) {
   }
 
   return (
-    <div className={twMerge.twJoin('contents', hidden && 'hidden')} data-testvalue={project.id}>
+    <div
+      className={twMerge.twJoin('contents', hidden && 'hidden')}
+      data-testvalue={project.id}
+      data-testid="editor"
+    >
       {(() => {
         if (projectQuery.isError) {
           return (

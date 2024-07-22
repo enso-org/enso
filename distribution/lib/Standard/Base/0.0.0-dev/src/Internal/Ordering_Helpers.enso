@@ -1,18 +1,18 @@
 private
 
 import project.Any.Any
-from project.Data.Boolean import Boolean, False, True
-import project.Data.Numbers.Number
 import project.Data.Numbers.Integer
+import project.Data.Numbers.Number
 import project.Data.Numbers.Positive_Integer
-from project.Data.Ordering import all
-import project.Errors.Common.Type_Error
-import project.Errors.Common.Incomparable_Values
 import project.Error.Error
-import project.Panic.Panic
+import project.Errors.Common.Incomparable_Values
+import project.Errors.Common.Type_Error
 import project.Meta
 import project.Meta.Atom
 import project.Nothing.Nothing
+import project.Panic.Panic
+from project.Data.Boolean import Boolean, False, True
+from project.Data.Ordering import all
 from project.Function import identity
 
 ## PRIVATE
@@ -69,16 +69,16 @@ assert_same_comparators this that ~action =
         False -> Error.throw (Incomparable_Values.Error this that)
 
 compare_with_comparators this that -> Ordering ! Incomparable_Values =
-    any_result = Panic.catch Type_Error handler=identity <|
+    yield_an_error _ = Error.throw (Incomparable_Values.Error this that)
+    Panic.catch Type_Error handler=yield_an_error <|
         comp_this = Comparable.from this
         comp_that = Comparable.from that
 
-        if Meta.is_same_object comp_this.comparator comp_that.comparator then
+        any_result = if Meta.is_same_object comp_this.comparator comp_that.comparator then
             comp_this.comparator.compare comp_this.value comp_that.value
 
-    case any_result of
-        result:Ordering -> result
-        _ -> Error.throw (Incomparable_Values.Error this that)
+        result = any_result:Ordering
+        result
 
 ## PRIVATE
 type Positive_Integer_Comparator
@@ -92,7 +92,10 @@ type Positive_Integer_Comparator
 ## PRIVATE
 type Ordering_Comparator
     ## PRIVATE
-    compare x:Ordering y:Ordering = Ordering.compare x.to_sign y.to_sign
+    compare x:Ordering y:Ordering = if Meta.is_same_object x y then Ordering.Equal else
+        if Meta.is_same_object x Ordering.Equal . not then x else
+            if Meta.is_same_object y Ordering.Less then Ordering.Greater else
+                Ordering.Less
 
     ## PRIVATE
     hash x:Ordering = x.to_sign

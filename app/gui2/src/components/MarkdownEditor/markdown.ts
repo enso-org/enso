@@ -12,6 +12,7 @@ import {
 } from '@lexical/markdown'
 import { HeadingNode, QuoteNode, registerRichText } from '@lexical/rich-text'
 import { TableCellNode, TableNode, TableRowNode } from '@lexical/table'
+import { $setSelection } from 'lexical'
 import { watch, type Ref } from 'vue'
 
 export interface LexicalMarkdownPlugin extends LexicalPlugin {
@@ -55,7 +56,10 @@ const markdownSyncPlugin = (model: Ref<string>, transformers: Transformer[]): Le
     const { content } = useLexicalStringSync(
       editor,
       () => $convertToMarkdownString(transformers),
-      (value) => $convertFromMarkdownString(value, transformers),
+      (value) => {
+        $convertFromMarkdownString(value, transformers)
+        $setSelection(null)
+      },
     )
     watch(model, (newContent) => content.set(newContent), { immediate: true })
     watch(content.state, (newContent) => (model.value = newContent))

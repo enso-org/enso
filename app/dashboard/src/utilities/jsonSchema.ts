@@ -158,7 +158,9 @@ function constantValueHelper(
       ? SINGLETON_NULL
       : EMPTY_ARRAY
     const results: (NonNullable<unknown> | null)[] = []
-    if ('type' in schema) {
+    if ('default' in schema && schema.default != null && partial) {
+      return [schema.default]
+    } else if ('type' in schema) {
       switch (schema.type) {
         case 'null': {
           results.push(null)

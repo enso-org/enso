@@ -49,6 +49,7 @@ const style = computed(() => ({
 <style scoped>
 .DockPanel {
   background-color: rgb(255, 255, 255);
+  position: relative;
 }
 
 .scrollArea {

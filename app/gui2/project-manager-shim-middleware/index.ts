@@ -412,7 +412,7 @@ function extractProjectMetadata(yamlObj: unknown, jsonObj: unknown): ProjectMeta
     }
     const name = 'name' in yamlObj && typeof yamlObj.name === 'string' ? yamlObj.name : null
     const namespace =
-      'namespace' in yamlObj && typeof yamlObj.namespace === 'string' ? yamlObj.namespace : null
+      'namespace' in yamlObj && typeof yamlObj.namespace === 'string' ? yamlObj.namespace : 'local'
     const engineVersion =
       'edition' in yamlObj && typeof yamlObj.edition === 'string' ? yamlObj.edition : null
     const id = 'id' in jsonObj && typeof jsonObj.id === 'string' ? jsonObj.id : null
@@ -424,7 +424,7 @@ function extractProjectMetadata(yamlObj: unknown, jsonObj: unknown): ProjectMeta
       'lastOpened' in jsonObj && typeof jsonObj.lastOpened === 'string' ?
         validDateString(jsonObj.lastOpened)
       : null
-    if (name != null && namespace != null && id != null && created != null) {
+    if (name != null && id != null && created != null) {
       return {
         name,
         namespace,

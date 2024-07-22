@@ -5,6 +5,8 @@ import * as reactQuery from '@tanstack/react-query'
 import invariant from 'tiny-invariant'
 import * as z from 'zod'
 
+import { merge } from 'enso-common/src/utilities/data/object'
+
 import * as eventCallbacks from '#/hooks/eventCallbackHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
@@ -34,8 +36,10 @@ declare module '#/utilities/LocalStorage' {
 
 const PROJECT_SCHEMA = z
   .object({
-    id: z.custom<backendModule.ProjectId>(x => typeof x === 'string'),
-    parentId: z.custom<backendModule.DirectoryId>(x => typeof x === 'string'),
+    id: z.custom<backendModule.ProjectId>(x => typeof x === 'string' && x.startsWith('project-')),
+    parentId: z.custom<backendModule.DirectoryId>(
+      x => typeof x === 'string' && x.startsWith('directory-')
+    ),
     title: z.string(),
     type: z.nativeEnum(backendModule.BackendType),
   })
@@ -220,6 +224,7 @@ export function useRenameProjectMutation() {
   const client = reactQuery.useQueryClient()
   const remoteBackend = backendProvider.useRemoteBackendStrict()
   const localBackend = backendProvider.useLocalBackend()
+  const updateLaunchedProjects = projectsProvider.useUpdateLaunchedProjects()
 
   return reactQuery.useMutation({
     mutationKey: ['renameProject'],
@@ -231,10 +236,16 @@ export function useRenameProjectMutation() {
 
       return backend.updateProject(id, { projectName: newName, ami: null, ideVersion: null }, title)
     },
-    onSuccess: (_, { project }) =>
-      client.invalidateQueries({
+    onSuccess: (_, { newName, project }) => {
+      updateLaunchedProjects(projects =>
+        projects.map(otherProject =>
+          project.id !== otherProject.id ? otherProject : merge(otherProject, { title: newName })
+        )
+      )
+      return client.invalidateQueries({
         queryKey: createGetProjectDetailsQuery.getQueryKey(project.id),
-      }),
+      })
+    },
   })
 }
 
@@ -320,6 +331,7 @@ export function useCloseProject() {
   const client = reactQuery.useQueryClient()
   const closeProjectMutation = useCloseProjectMutation()
   const removeLaunchedProject = projectsProvider.useRemoveLaunchedProject()
+  const projectsStore = projectsProvider.useProjectsStore()
   const setPage = projectsProvider.useSetPage()
 
   return eventCallbacks.useEventCallback((project: Project) => {
@@ -350,7 +362,9 @@ export function useCloseProject() {
 
     removeLaunchedProject(project.id)
 
-    setPage(projectsProvider.TabType.drive)
+    if (projectsStore.getState().page === project.id) {
+      setPage(projectsProvider.TabType.drive)
+    }
   })
 }
 

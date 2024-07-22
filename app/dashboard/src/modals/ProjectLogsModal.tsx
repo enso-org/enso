@@ -3,6 +3,8 @@ import * as React from 'react'
 
 import * as reactQuery from '@tanstack/react-query'
 
+import ReloadIcon from '#/assets/reload.svg'
+
 import * as textProvider from '#/providers/TextProvider'
 
 import * as ariaComponents from '#/components/AriaComponents'
@@ -44,6 +46,7 @@ interface ProjectLogsModalInternalProps extends ProjectLogsModalProps {}
 /** A modal for showing logs for a project. */
 function ProjectLogsModalInternal(props: ProjectLogsModalInternalProps) {
   const { backend, projectSessionId, projectTitle } = props
+  const { getText } = textProvider.useText()
   const logsQuery = reactQuery.useSuspenseQuery({
     queryKey: ['projectLogs', { projectSessionId, projectTitle }],
     queryFn: async () => {
@@ -53,8 +56,21 @@ function ProjectLogsModalInternal(props: ProjectLogsModalInternalProps) {
   })
 
   return (
-    <pre className="relative overflow-auto whitespace-pre-wrap">
-      <code>{logsQuery.data}</code>
-    </pre>
+    <div className="flex flex-col">
+      <div className="flex items-center gap-4 self-start rounded-full border-0.5 border-primary/20 px-[11px] py-2">
+        <ariaComponents.Button
+          size="medium"
+          variant="icon"
+          icon={ReloadIcon}
+          aria-label={getText('reload')}
+          onPress={async () => {
+            await logsQuery.refetch()
+          }}
+        />
+      </div>
+      <pre className="relative overflow-auto whitespace-pre-wrap">
+        <code>{logsQuery.data}</code>
+      </pre>
+    </div>
   )
 }

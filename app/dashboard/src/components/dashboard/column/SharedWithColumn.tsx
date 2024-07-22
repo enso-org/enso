@@ -102,7 +102,8 @@ export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
         <paywall.PaywallDialogButton
           feature="share"
           variant="icon"
-          size="xxsmall"
+          size="medium"
+          tooltipPlacement="left"
           className="opacity-0 group-hover:opacity-100"
           children={false}
         />
@@ -110,7 +111,7 @@ export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
       {managesThisAsset && !isUnderPaywall && (
         <ariaComponents.Button
           ref={plusButtonRef}
-          size="icon"
+          size="medium"
           variant="ghost"
           icon={Plus2Icon}
           showIconOnHover

@@ -150,7 +150,7 @@ export class Server {
                         )
                         const rustFFIWasmPath =
                             process.env.ELECTRON_DEV_MODE === 'true'
-                                ? path.resolve('../../../gui2/rust-ffi/pkg/rust_ffi_bg.wasm')
+                                ? path.resolve('../../gui2/rust-ffi/pkg/rust_ffi_bg.wasm')
                                 : rustFFIWasmName == null
                                   ? null
                                   : path.join(assets, rustFFIWasmName)
@@ -200,16 +200,8 @@ export class Server {
             )
             request.pipe(
                 http.request(
-                    // `...actualUrl` does NOT work because `URL` properties are not enumerable.
-                    {
-                        headers: request.headers,
-                        host: actualUrl.host,
-                        hostname: actualUrl.hostname,
-                        method: request.method,
-                        path: actualUrl.pathname,
-                        port: actualUrl.port,
-                        protocol: actualUrl.protocol,
-                    },
+                    actualUrl,
+                    { headers: request.headers, method: request.method },
                     actualResponse => {
                         response.writeHead(
                             // This is SAFE. The documentation says:

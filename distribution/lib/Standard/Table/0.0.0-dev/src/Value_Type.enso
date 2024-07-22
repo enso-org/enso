@@ -206,6 +206,22 @@ type Value_Type
 
     ## GROUP Standard.Base.Metadata
        ICON metadata
+       Checks if the `Value_Type` represents a Date type.
+    is_date : Boolean
+    is_date self = case self of
+        Value_Type.Date -> True
+        _ -> False
+
+    ## GROUP Standard.Base.Metadata
+       ICON metadata
+       Checks if the `Value_Type` represents a Time type.
+    is_time : Boolean
+    is_time self = case self of
+        Value_Type.Time -> True
+        _ -> False
+
+    ## GROUP Standard.Base.Metadata
+       ICON metadata
        Checks if the `Value_Type` represents a Date_Time type.
     is_date_time : Boolean
     is_date_time self = case self of
