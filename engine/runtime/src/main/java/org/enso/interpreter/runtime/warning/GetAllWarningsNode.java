@@ -40,12 +40,8 @@ public abstract class GetAllWarningsNode extends Node {
       @Cached HashMapInsertNode mapInsertNode,
       @Cached ArrayLikeLengthNode lengthNode,
       @Cached ArrayLikeAtNode atNode) {
-    var warns = value.getWarningsArray(shouldWrap,
-        warningsLib,
-        mapInsertNode,
-        interop,
-        lengthNode,
-        atNode);
+    var warns =
+        value.getWarningsArray(shouldWrap, warningsLib, mapInsertNode, interop, lengthNode, atNode);
     sortArray(warns);
     return ArrayLikeHelpers.asVectorEnsoObjects(warns);
   }

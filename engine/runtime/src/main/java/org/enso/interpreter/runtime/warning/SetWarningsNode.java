@@ -22,8 +22,7 @@ import org.enso.interpreter.runtime.data.hash.HashMapInsertNode;
     type = "Warning",
     name = "set_array",
     description = "Sets all the warnings associated with the value.",
-    autoRegister = false
-)
+    autoRegister = false)
 @GenerateUncached
 public abstract class SetWarningsNode extends Node {
 
@@ -38,8 +37,7 @@ public abstract class SetWarningsNode extends Node {
       VirtualFrame frame,
       WithWarnings withWarn,
       Object warnings,
-      @Shared @CachedLibrary(limit = "3") InteropLibrary interop
-  ) {
+      @Shared @CachedLibrary(limit = "3") InteropLibrary interop) {
     return withWarn.value;
   }
 
@@ -48,8 +46,7 @@ public abstract class SetWarningsNode extends Node {
       VirtualFrame frame,
       Object object,
       Object warnings,
-      @Shared @CachedLibrary(limit = "3") InteropLibrary interop
-  ) {
+      @Shared @CachedLibrary(limit = "3") InteropLibrary interop) {
     return object;
   }
 
@@ -60,8 +57,7 @@ public abstract class SetWarningsNode extends Node {
       Warning[] warnings,
       @Shared @CachedLibrary(limit = "3") InteropLibrary interop,
       @Shared @Cached HashMapInsertNode mapInsertNode,
-      @Shared @Cached ConditionProfile isWithWarnsProfile
-  ) {
+      @Shared @Cached ConditionProfile isWithWarnsProfile) {
     var warnMap = EnsoHashMap.empty();
     for (var warn : warnings) {
       warnMap = mapInsertNode.execute(frame, warnMap, warn, null);
@@ -82,8 +78,7 @@ public abstract class SetWarningsNode extends Node {
       Object warnings,
       @Shared @CachedLibrary(limit = "3") InteropLibrary interop,
       @Shared @Cached HashMapInsertNode mapInsertNode,
-      @Shared @Cached ConditionProfile isWithWarnsProfile
-  ) {
+      @Shared @Cached ConditionProfile isWithWarnsProfile) {
     var warnMap = EnsoHashMap.empty();
     var ctx = EnsoContext.get(this);
     try {

@@ -37,8 +37,7 @@ public abstract class AppendWarningNode extends Node {
       VirtualFrame frame,
       WithWarnings withWarn,
       Warning[] warnings,
-      @Shared @Cached HashMapInsertNode mapInsertNode
-  ) {
+      @Shared @Cached HashMapInsertNode mapInsertNode) {
     var warnsMap = withWarn.warnings;
     for (var warn : warnings) {
       warnsMap = mapInsertNode.execute(frame, warnsMap, warn, null);
@@ -54,8 +53,7 @@ public abstract class AppendWarningNode extends Node {
       VirtualFrame frame,
       Object object,
       Warning[] warnings,
-      @Shared @Cached HashMapInsertNode mapInsertNode
-  ) {
+      @Shared @Cached HashMapInsertNode mapInsertNode) {
     var warnsMap = EnsoHashMap.empty();
     for (var warn : warnings) {
       warnsMap = mapInsertNode.execute(frame, warnsMap, warn, null);

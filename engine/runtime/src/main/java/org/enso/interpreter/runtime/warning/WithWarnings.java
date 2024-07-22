@@ -111,7 +111,9 @@ public final class WithWarnings implements EnsoObject {
   }
 
   /**
-   * Slow version of {@link #getWarningsArray(boolean, WarningsLibrary, HashMapInsertNode, InteropLibrary, ArrayLikeLengthNode, ArrayLikeAtNode)} that uses uncached version of nodes and libraries parameters.
+   * Slow version of {@link #getWarningsArray(boolean, WarningsLibrary, HashMapInsertNode,
+   * InteropLibrary, ArrayLikeLengthNode, ArrayLikeAtNode)} that uses uncached version of nodes and
+   * libraries parameters.
    */
   public Warning[] getWarningsArray(boolean shouldWrap) {
     return getWarningsArray(
@@ -165,12 +167,8 @@ public final class WithWarnings implements EnsoObject {
       InteropLibrary interop,
       ArrayLikeLengthNode lengthNode,
       ArrayLikeAtNode atNode) {
-    Warning[] warnings = getWarningsArray(shouldWrap,
-        warningsLibrary,
-        insertNode,
-        interop,
-        lengthNode,
-        atNode);
+    Warning[] warnings =
+        getWarningsArray(shouldWrap, warningsLibrary, insertNode, interop, lengthNode, atNode);
     for (int i = 0; i < warnings.length; i++) {
       warnings[i] = warnings[i].reassign(location);
     }
@@ -229,13 +227,8 @@ public final class WithWarnings implements EnsoObject {
       @Cached ArrayLikeAtNode atNode,
       @Cached ArrayLikeLengthNode lengthNode) {
     if (location != null) {
-      return getReassignedWarnings(location,
-          shouldWrap,
-          warningsLibrary,
-          insertNode,
-          interop,
-          lengthNode,
-          atNode);
+      return getReassignedWarnings(
+          location, shouldWrap, warningsLibrary, insertNode, interop, lengthNode, atNode);
     } else {
       if (shouldWrap) {
         // In the wrapping case, we don't use the local cache in .values, since
