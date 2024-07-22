@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import DropdownMenu from '@/components/DropdownMenu.vue'
+import MenuButton from '@/components/MenuButton.vue'
 import SvgButton from '@/components/SvgButton.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import { ref, watch } from 'vue'
@@ -20,31 +21,34 @@ const open = ref(false)
     <template #button><SvgIcon name="paragraph" title="Text Display Options" /> </template>
 
     <template #entries>
-      <SvgButton
-        name="paragraph"
+      <MenuButton
         class="full-format"
-        label="Full whitespace rendering"
         :title="`Text displayed in monospace font and all whitespace characters displayed as symbols`"
-        @click.stop="() => emit('changeFormat', TextFormatOptions.On)"
-      />
+        @click="() => emit('changeFormat', TextFormatOptions.On)"
+      >
+        <SvgIcon name="paragraph" />
+        <div class="title">Full whitespace rendering</div>
+      </MenuButton>
 
-      <SvgButton
-        name="paragraph"
+      <MenuButton
         class="partial"
-        label="Partial whitespace rendering"
         :title="`Text displayed in monospace font, only multiple spaces displayed with &#183;`"
-        @click.stop="() => emit('changeFormat', TextFormatOptions.Partial)"
-      />
-      <button
-        class="OffButton"
+        @click="() => emit('changeFormat', TextFormatOptions.Partial)"
+      >
+        <SvgIcon name="paragraph" />
+        <div class="title">Partial whitespace rendering</div>
+      </MenuButton>
+
+      <MenuButton
+        class="off"
+        @click="() => emit('changeFormat', TextFormatOptions.Off)"
         title="`No formatting applied to text`"
-        @click.stop="() => emit('changeFormat', TextFormatOptions.Off)"
       >
         <div class="strikethrough">
           <SvgIcon name="paragraph" />
         </div>
-        <div>No whitespace rendering</div>
-      </button>
+        <div class="title">No whitespace rendering</div>
+      </MenuButton>
     </template>
   </DropdownMenu>
 </template>
@@ -63,28 +67,6 @@ const open = ref(false)
     display: flex;
     padding-left: 8px;
     padding-right: 8px;
-  }
-}
-
-.OffButton {
-  display: flex;
-  justify-content: flex-start;
-  align-items: center;
-  min-width: max-content;
-  padding: 0 4px;
-  border-radius: var(--radius-full);
-  border: none;
-  transition: background-color 0.3s;
-  &:hover,
-  &:focus,
-  &:active {
-    background-color: var(--color-menu-entry-hover-bg);
-  }
-  &.disabled {
-    cursor: default;
-    &:hover {
-      background-color: unset;
-    }
   }
 }
 
@@ -113,9 +95,17 @@ const open = ref(false)
   fill: #808080;
 }
 
+.off {
+  justify-content: flex-start;
+}
+
 .full-format {
   stroke: black;
   fill: #000000;
   justify-content: flex-start;
+}
+
+.title {
+  padding-left: 2px;
 }
 </style>
