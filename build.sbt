@@ -163,11 +163,9 @@ GatherLicenses.distributions := Seq(
   makeStdLibDistribution("Database", Distribution.sbtProjects(`std-database`)),
   makeStdLibDistribution("Image", Distribution.sbtProjects(`std-image`)),
   makeStdLibDistribution("AWS", Distribution.sbtProjects(`std-aws`)),
-  makeStdLibDistribution(
-    "Snowflake",
-    Distribution.sbtProjects(`std-snowflake`)
-  ),
-  makeStdLibDistribution("Microsoft", Distribution.sbtProjects(`std-microsoft`))
+  makeStdLibDistribution("Snowflake", Distribution.sbtProjects(`std-snowflake`)),
+  makeStdLibDistribution("Microsoft", Distribution.sbtProjects(`std-microsoft`)),
+  makeStdLibDistribution("Tableau", Distribution.sbtProjects(`std-tableau`))
 )
 
 GatherLicenses.licenseConfigurations := Set("compile")
@@ -3269,6 +3267,8 @@ val `std-snowflake-polyglot-root` =
   stdLibComponentRoot("Snowflake") / "polyglot" / "java"
 val `std-microsoft-polyglot-root` =
   stdLibComponentRoot("Microsoft") / "polyglot" / "java"
+val `std-tableau-polyglot-root` =
+  stdLibComponentRoot("Tableau") / "polyglot" / "java"
 
 lazy val `std-base` = project
   .in(file("std-bits") / "base")
@@ -3606,6 +3606,35 @@ lazy val `std-microsoft` = project
   .dependsOn(`std-table` % "provided")
   .dependsOn(`std-database` % "provided")
 
+lazy val `std-tableau` = project
+  .in(file("std-bits") / "tableau")
+  .settings(
+    frgaalJavaCompilerSetting,
+    autoScalaLibrary := false,
+    Compile / compile / compileInputs := (Compile / compile / compileInputs)
+      .dependsOn(SPIHelpers.ensureSPIConsistency)
+      .value,
+    Compile / packageBin / artifactPath :=
+      `std-tableau-polyglot-root` / "std-tableau.jar",
+    libraryDependencies ++= Seq(
+      "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion % "provided",
+      "net.snowflake"    % "snowflake-jdbc"          % snowflakeJDBCVersion
+    ),
+    Compile / packageBin := Def.task {
+      val result = (Compile / packageBin).value
+      val _ = StdBits
+        .copyDependencies(
+          `std-tableau-polyglot-root`,
+          Seq("std-tableau.jar"),
+          ignoreScalaLibrary = true
+        )
+        .value
+      result
+    }.value
+  )
+  .dependsOn(`std-base` % "provided")
+  .dependsOn(`std-table` % "provided")
+
 /* Note [Native Image Workaround for GraalVM 20.2]
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  * In GraalVM 20.2 the Native Image build of even simple Scala programs has
@@ -3826,6 +3855,8 @@ pkgStdLibInternal := Def.inputTask {
       (`std-snowflake` / Compile / packageBin).value
     case "Microsoft" =>
       (`std-microsoft` / Compile / packageBin).value
+    case "Tableau" =>
+      (`std-tableau` / Compile / packageBin).value
     case _ if buildAllCmd =>
       (`std-base` / Compile / packageBin).value
       (`enso-test-java-helpers` / Compile / packageBin).value
@@ -3838,6 +3869,7 @@ pkgStdLibInternal := Def.inputTask {
       (`std-aws` / Compile / packageBin).value
       (`std-snowflake` / Compile / packageBin).value
       (`std-microsoft` / Compile / packageBin).value
+      (`std-tableau` / Compile / packageBin).value
     case _ =>
   }
   val libs =
