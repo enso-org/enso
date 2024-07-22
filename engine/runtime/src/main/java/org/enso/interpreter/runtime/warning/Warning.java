@@ -135,33 +135,6 @@ public final class Warning implements EnsoObject {
     return warns;
   }
 
-  @Builtin.Method(
-      name = "set_array",
-      description = "Sets all the warnings associated with the value.",
-      autoRegister = false)
-  @Builtin.Specialize
-  @SuppressWarnings("generic-enso-builtin-type")
-  public static Object set(
-      WithWarnings value, Object warnings, @Shared @Cached AppendWarningNode appendWarningNode) {
-    return setGeneric(value.getValue(), warnings, appendWarningNode);
-  }
-
-  @Builtin.Method(
-      name = "set_array",
-      description = "Sets all the warnings associated with the value.",
-      autoRegister = false)
-  @SuppressWarnings("generic-enso-builtin-type")
-  @Builtin.Specialize(fallback = true)
-  public static Object set(
-      Object value, Object warnings, @Shared @Cached AppendWarningNode appendWarningNode) {
-    return setGeneric(value, warnings, appendWarningNode);
-  }
-
-  private static Object setGeneric(
-      Object value, Object warnings, AppendWarningNode appendWarningNode) {
-    return appendWarningNode.execute(null, value, warnings);
-  }
-
   @CompilerDirectives.TruffleBoundary
   @Override
   public String toString() {
