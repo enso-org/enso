@@ -119,6 +119,14 @@ pub mod secret {
     pub const APPLE_NOTARIZATION_PASSWORD: &str = "APPLE_NOTARIZATION_PASSWORD";
     pub const APPLE_NOTARIZATION_TEAM_ID: &str = "APPLE_NOTARIZATION_TEAM_ID";
 
+    // === Snowflake Test Account ===
+    pub const ENSO_SNOWFLAKE_ACCOUNT: &str = "ENSO_SNOWFLAKE_ACCOUNT";
+    pub const ENSO_SNOWFLAKE_USER: &str = "ENSO_SNOWFLAKE_USER";
+    pub const ENSO_SNOWFLAKE_PASSWORD: &str = "ENSO_SNOWFLAKE_PASSWORD";
+    pub const ENSO_SNOWFLAKE_DATABASE: &str = "ENSO_SNOWFLAKE_DATABASE";
+    pub const ENSO_SNOWFLAKE_SCHEMA: &str = "ENSO_SNOWFLAKE_SCHEMA";
+    pub const ENSO_SNOWFLAKE_WAREHOUSE: &str = "ENSO_SNOWFLAKE_WAREHOUSE";
+
     // === Windows Code Signing ===
     /// Name of the GitHub Actions secret that stores path to the Windows code signing certificate
     /// within the runner.
@@ -690,6 +698,10 @@ pub fn extra_nightly_tests() -> Result<Workflow> {
         ..default()
     };
     let mut workflow = Workflow { name: "Extra Nightly Tests".into(), on, ..default() };
+    
+    // We run the extra tests only on Linux, as they should not contain any platform-specific behavior.
+    let target = (OS::Linux, Arch::X86_64);
+    workflow.add(target, job::SnowflakeTests{});
     Ok(workflow)
 }
 

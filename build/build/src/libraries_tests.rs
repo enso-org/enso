@@ -8,3 +8,17 @@ pub mod s3 {
         }
     }
 }
+
+pub mod snowflake {
+    /// Environment variables used inside of the Snowflake tests.
+    pub mod env {
+        ide_ci::define_env_var! {
+            ENSO_SNOWFLAKE_ACCOUNT, String;
+            ENSO_SNOWFLAKE_USER, String;
+            ENSO_SNOWFLAKE_PASSWORD, String;
+            ENSO_SNOWFLAKE_DATABASE, String;
+            ENSO_SNOWFLAKE_SCHEMA, String;
+            ENSO_SNOWFLAKE_WAREHOUSE, String;
+        }
+    }
+}

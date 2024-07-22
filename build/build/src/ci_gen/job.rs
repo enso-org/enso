@@ -257,6 +257,57 @@ impl JobArchetype for StandardLibraryTests {
 }
 
 #[derive(Clone, Copy, Debug)]
+pub struct SnowflakeTests {}
+
+const GRAAL_EDITION_FOR_EXTRA_TESTS: graalvm::Edition = graalvm::Edition::Community;
+
+impl JobArchetype for SnowflakeTests {
+    fn job(&self, target: Target) -> Job {
+        let job_name = format!("Snowflake Tests");
+        let mut job = RunStepsBuilder::new("backend test extra-snowflake")
+            .customize(move |step| {
+                let main_step = step
+                    .with_secret_exposed_as(
+                        secret::ENSO_SNOWFLAKE_ACCOUNT,
+                        crate::libraries_tests::snowflake::env::ENSO_SNOWFLAKE_ACCOUNT,
+                    )
+                    .with_secret_exposed_as(
+                        secret::ENSO_SNOWFLAKE_USER,
+                        crate::libraries_tests::snowflake::env::ENSO_SNOWFLAKE_USER,
+                    )
+                    .with_secret_exposed_as(
+                        secret::ENSO_SNOWFLAKE_PASSWORD,
+                        crate::libraries_tests::snowflake::env::ENSO_SNOWFLAKE_PASSWORD,
+                    )
+                    .with_secret_exposed_as(
+                        secret::ENSO_SNOWFLAKE_DATABASE,
+                        crate::libraries_tests::snowflake::env::ENSO_SNOWFLAKE_DATABASE,
+                    )
+                    .with_secret_exposed_as(
+                        secret::ENSO_SNOWFLAKE_SCHEMA,
+                        crate::libraries_tests::snowflake::env::ENSO_SNOWFLAKE_SCHEMA,
+                    )
+                    .with_secret_exposed_as(
+                        secret::ENSO_SNOWFLAKE_WAREHOUSE,
+                        crate::libraries_tests::snowflake::env::ENSO_SNOWFLAKE_WAREHOUSE,
+                    );
+                vec![main_step, step::extra_stdlib_test_reporter(target, GRAAL_EDITION_FOR_EXTRA_TESTS)]
+            })
+            .build_job(job_name, target)
+            .with_permission(Permission::Checks, Access::Write);
+        job.env(env::GRAAL_EDITION, GRAAL_EDITION_FOR_EXTRA_TESTS);
+        job
+    }
+
+    fn key(&self, (os, arch): Target) -> String {
+        format!(
+            "{}-{os}-{arch}",
+            self.id_key_base()
+        )
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
 pub struct Lint;
 
 impl JobArchetype for Lint {
