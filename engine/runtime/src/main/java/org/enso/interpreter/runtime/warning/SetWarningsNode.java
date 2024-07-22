@@ -60,7 +60,7 @@ public abstract class SetWarningsNode extends Node {
       Warning[] warnings,
       @Shared @CachedLibrary(limit = "3") InteropLibrary interop,
       @Shared @Cached HashMapInsertNode mapInsertNode,
-      @Cached ConditionProfile isWithWarnsProfile
+      @Shared @Cached ConditionProfile isWithWarnsProfile
   ) {
     var warnMap = EnsoHashMap.empty();
     for (var warn : warnings) {
@@ -82,7 +82,7 @@ public abstract class SetWarningsNode extends Node {
       Object warnings,
       @Shared @CachedLibrary(limit = "3") InteropLibrary interop,
       @Shared @Cached HashMapInsertNode mapInsertNode,
-      @Cached ConditionProfile isWithWarnsProfile
+      @Shared @Cached ConditionProfile isWithWarnsProfile
   ) {
     var warnMap = EnsoHashMap.empty();
     var ctx = EnsoContext.get(this);

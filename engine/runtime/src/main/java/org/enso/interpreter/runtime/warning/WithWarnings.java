@@ -111,33 +111,36 @@ public final class WithWarnings implements EnsoObject {
   }
 
   /**
-   * Slow version of {@link #getWarningsArray(boolean, WarningsLibrary, HashMapInsertNode,
-   * InteropLibrary)} that uses uncached version of nodes and libraries parameters.
+   * Slow version of {@link #getWarningsArray(boolean, WarningsLibrary, HashMapInsertNode, InteropLibrary, ArrayLikeLengthNode, ArrayLikeAtNode)} that uses uncached version of nodes and libraries parameters.
    */
   public Warning[] getWarningsArray(boolean shouldWrap) {
     return getWarningsArray(
         shouldWrap,
         WarningsLibrary.getUncached(),
         HashMapInsertNodeGen.getUncached(),
-        InteropLibrary.getUncached());
+        InteropLibrary.getUncached(),
+        ArrayLikeLengthNodeGen.getUncached(),
+        ArrayLikeAtNodeGen.getUncached());
   }
 
   public Warning[] getWarningsArray(
       boolean shouldWrap,
       WarningsLibrary warningsLibrary,
       HashMapInsertNode insertNode,
-      InteropLibrary interop) {
+      InteropLibrary interop,
+      ArrayLikeLengthNode lengthNode,
+      ArrayLikeAtNode atNode) {
     Warning[] allWarnings;
     if (warningsLibrary != null && warningsLibrary.hasWarnings(value)) {
       try {
         var valueWarnings = warningsLibrary.getWarnings(value, null, shouldWrap);
         var tmp = cloneSetAndAppend(maxWarnings, warnings, valueWarnings, insertNode, interop);
-        allWarnings = Warning.fromMapToArray(tmp);
+        allWarnings = Warning.fromMapToArray(tmp, lengthNode, atNode);
       } catch (UnsupportedMessageException e) {
         throw EnsoContext.get(warningsLibrary).raiseAssertionPanic(warningsLibrary, null, e);
       }
     } else {
-      allWarnings = Warning.fromMapToArray(warnings);
+      allWarnings = Warning.fromMapToArray(warnings, lengthNode, atNode);
     }
     return allWarnings;
   }
@@ -149,7 +152,9 @@ public final class WithWarnings implements EnsoObject {
             shouldWrap,
             null,
             HashMapInsertNodeGen.getUncached(),
-            InteropLibrary.getUncached()));
+            InteropLibrary.getUncached(),
+            ArrayLikeLengthNodeGen.getUncached(),
+            ArrayLikeAtNodeGen.getUncached()));
   }
 
   public Warning[] getReassignedWarnings(
@@ -157,8 +162,15 @@ public final class WithWarnings implements EnsoObject {
       boolean shouldWrap,
       WarningsLibrary warningsLibrary,
       HashMapInsertNode insertNode,
-      InteropLibrary interop) {
-    Warning[] warnings = getWarningsArray(shouldWrap, warningsLibrary, insertNode, interop);
+      InteropLibrary interop,
+      ArrayLikeLengthNode lengthNode,
+      ArrayLikeAtNode atNode) {
+    Warning[] warnings = getWarningsArray(shouldWrap,
+        warningsLibrary,
+        insertNode,
+        interop,
+        lengthNode,
+        atNode);
     for (int i = 0; i < warnings.length; i++) {
       warnings[i] = warnings[i].reassign(location);
     }
@@ -217,14 +229,20 @@ public final class WithWarnings implements EnsoObject {
       @Cached ArrayLikeAtNode atNode,
       @Cached ArrayLikeLengthNode lengthNode) {
     if (location != null) {
-      return getReassignedWarnings(location, shouldWrap, warningsLibrary, insertNode, interop);
+      return getReassignedWarnings(location,
+          shouldWrap,
+          warningsLibrary,
+          insertNode,
+          interop,
+          lengthNode,
+          atNode);
     } else {
       if (shouldWrap) {
         // In the wrapping case, we don't use the local cache in .values, since
         // it contains unwrapped warnings. Instead, we fetch them again.
         return getWarningsNoCache(warningsLibrary, lengthNode, atNode);
       } else {
-        return Warning.fromMapToArray(warnings);
+        return Warning.fromMapToArray(warnings, lengthNode, atNode);
       }
     }
   }

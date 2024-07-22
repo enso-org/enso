@@ -14,7 +14,9 @@ import org.enso.interpreter.dsl.AcceptsWarning;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.hash.HashMapInsertNode;
+import org.enso.interpreter.runtime.data.vector.ArrayLikeAtNode;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
+import org.enso.interpreter.runtime.data.vector.ArrayLikeLengthNode;
 
 @BuiltinMethod(
     type = "Warning",
@@ -35,8 +37,15 @@ public abstract class GetAllWarningsNode extends Node {
       boolean shouldWrap,
       @Shared @CachedLibrary(limit = "3") WarningsLibrary warningsLib,
       @CachedLibrary(limit = "3") InteropLibrary interop,
-      @Cached HashMapInsertNode mapInsertNode) {
-    var warns = value.getWarningsArray(shouldWrap, warningsLib, mapInsertNode, interop);
+      @Cached HashMapInsertNode mapInsertNode,
+      @Cached ArrayLikeLengthNode lengthNode,
+      @Cached ArrayLikeAtNode atNode) {
+    var warns = value.getWarningsArray(shouldWrap,
+        warningsLib,
+        mapInsertNode,
+        interop,
+        lengthNode,
+        atNode);
     sortArray(warns);
     return ArrayLikeHelpers.asVectorEnsoObjects(warns);
   }
