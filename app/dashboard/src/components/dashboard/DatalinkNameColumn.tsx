@@ -4,6 +4,7 @@ import * as React from 'react'
 import DatalinkIcon from '#/assets/datalink.svg'
 
 import * as backendHooks from '#/hooks/backendHooks'
+import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import * as setAssetHooks from '#/hooks/setAssetHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
@@ -46,7 +47,16 @@ export default function DatalinkNameColumn(props: DatalinkNameColumnProps) {
     throw new Error('`DatalinkNameColumn` can only display Datalinks.')
   }
   const asset = item.item
-  const setAsset = setAssetHooks.useSetAsset(asset, setItem)
+  const setAssetInNode = setAssetHooks.useSetAsset(asset, setItem)
+  const setAssetRaw = backendHooks.useSetAsset()
+  const setAsset = useEventCallback(
+    (
+      assetId: backendModule.AssetId,
+      valueOrUpdater: React.SetStateAction<backendModule.AnyAsset>
+    ) => {
+      setAssetRaw(backend, assetId, valueOrUpdater)
+    }
+  )
 
   const createDatalinkMutation = backendHooks.useBackendMutation(backend, 'createDatalink')
 
@@ -111,7 +121,8 @@ export default function DatalinkNameColumn(props: DatalinkNameColumnProps) {
                   },
                 ])
                 rowState.setVisibility(Visibility.visible)
-                setAsset(object.merger({ id }))
+                setAssetInNode(object.merger({ id }))
+                setAsset(id, object.merge(asset, { id }))
               } catch (error) {
                 dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
                 toastAndLog('createDatalinkError', error)
@@ -160,11 +171,11 @@ export default function DatalinkNameColumn(props: DatalinkNameColumnProps) {
 
           if (newTitle !== asset.title) {
             const oldTitle = asset.title
-            setAsset(object.merger({ title: newTitle }))
+            setAssetInNode(object.merger({ title: newTitle }))
             try {
               await doRename()
             } catch {
-              setAsset(object.merger({ title: oldTitle }))
+              setAssetInNode(object.merger({ title: oldTitle }))
             }
           }
         }}

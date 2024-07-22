@@ -78,6 +78,7 @@ function revokeOrganizationPictureUrl(backend: Backend | null) {
  * MUST be unconditionally called exactly once for each backend type. */
 export function useObserveBackend(backend: Backend | null) {
   const queryClient = reactQuery.useQueryClient()
+  const queryCache = queryClient.getQueryCache()
   const [seen] = React.useState(new WeakSet())
   const useObserveMutations = <Method extends backendQuery.BackendMethods>(
     method: Method,
@@ -114,21 +115,24 @@ export function useObserveBackend(backend: Backend | null) {
       data == null ? data : updater(data)
     )
   }
-  const listDirectoriesObserver = React.useMemo(
-    () =>
-      new reactQuery.QueryObserver<readonly backendModule.AnyAsset[]>(queryClient, {
-        queryKey: [backend?.type, 'listDirectory'],
-      }),
-    [backend?.type, queryClient]
-  )
   React.useEffect(
     () =>
-      listDirectoriesObserver.subscribe(result => {
-        for (const asset of result.data ?? []) {
-          queryClient.setQueryData([backend?.type, 'getAsset', asset.id], asset)
+      queryCache.subscribe(event => {
+        if (event.type === 'added' || event.type === 'updated') {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          const query: reactQuery.Query<unknown, unknown, unknown, reactQuery.QueryKey> =
+            event.query
+          if (query.queryKey[0] === backend?.type && query.queryKey[1] === 'listDirectory')
+            for (const asset of event.query.state.data ?? []) {
+              queryClient.setQueryData(
+                // eslint-disable-next-line no-restricted-syntax
+                [backend?.type, 'getAsset', (asset as backendModule.AnyAsset).id],
+                asset
+              )
+            }
         }
       }),
-    [backend?.type, listDirectoriesObserver, queryClient]
+    [backend?.type, queryCache, queryClient]
   )
   useObserveMutations('uploadUserPicture', state => {
     revokeUserPictureUrl(backend)

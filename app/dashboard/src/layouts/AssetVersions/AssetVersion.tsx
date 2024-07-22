@@ -46,7 +46,8 @@ export default function AssetVersion(props: AssetVersionProps) {
     if (isProject) {
       dispatchAssetListEvent({
         type: AssetListEventType.duplicateProject,
-        parentKey: item.directoryKey,
+        // FIXME: Breaks on newly created directories.
+        parentKey: item.parentId,
         parentId: item.parentId,
         original: item,
         versionId: version.versionId,

@@ -4,6 +4,7 @@ import * as React from 'react'
 import KeyIcon from '#/assets/key.svg'
 
 import * as backendHooks from '#/hooks/backendHooks'
+import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import * as setAssetHooks from '#/hooks/setAssetHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
@@ -61,7 +62,16 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
     }
   }
 
-  const setAsset = setAssetHooks.useSetAsset(asset, setItem)
+  const setAssetInNode = setAssetHooks.useSetAsset(asset, setItem)
+  const setAssetRaw = backendHooks.useSetAsset()
+  const setAsset = useEventCallback(
+    (
+      assetId: backendModule.AssetId,
+      valueOrUpdater: React.SetStateAction<backendModule.AnyAsset>
+    ) => {
+      setAssetRaw(backend, assetId, valueOrUpdater)
+    }
+  )
 
   eventListProvider.useAssetEventListener(async event => {
     if (isEditable) {
@@ -110,7 +120,8 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
                   },
                 ])
                 rowState.setVisibility(Visibility.visible)
-                setAsset(object.merger({ id }))
+                setAssetInNode(object.merger({ id }))
+                setAsset(id, object.merge(asset, { id }))
               } catch (error) {
                 dispatchAssetListEvent({
                   type: AssetListEventType.delete,

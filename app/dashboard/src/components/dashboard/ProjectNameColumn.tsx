@@ -6,6 +6,7 @@ import * as reactQuery from '@tanstack/react-query'
 import NetworkIcon from '#/assets/network.svg'
 
 import * as backendHooks from '#/hooks/backendHooks'
+import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import * as projectHooks from '#/hooks/projectHooks'
 import * as setAssetHooks from '#/hooks/setAssetHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
@@ -73,7 +74,16 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
     throw new Error('`ProjectNameColumn` can only display projects.')
   }
   const asset = item.item
-  const setAsset = setAssetHooks.useSetAsset(asset, setItem)
+  const setAssetInNode = setAssetHooks.useSetAsset(asset, setItem)
+  const setAssetRaw = backendHooks.useSetAsset()
+  const setAsset = useEventCallback(
+    (
+      assetId: backendModule.AssetId,
+      valueOrUpdater: React.SetStateAction<backendModule.AnyAsset>
+    ) => {
+      setAssetRaw(backend, assetId, valueOrUpdater)
+    }
+  )
   const ownPermission =
     asset.permissions?.find(
       backendModule.isUserPermissionAnd(permission => permission.user.userId === user.userId)
@@ -118,7 +128,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
       // Do nothing.
     } else if (newTitle !== asset.title) {
       const oldTitle = asset.title
-      setAsset(object.merger({ title: newTitle }))
+      setAssetInNode(object.merger({ title: newTitle }))
       try {
         await updateProjectMutation.mutateAsync([
           asset.id,
@@ -130,7 +140,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
         })
       } catch (error) {
         toastAndLog('renameProjectError', error)
-        setAsset(object.merger({ title: oldTitle }))
+        setAssetInNode(object.merger({ title: oldTitle }))
       }
     }
   }
@@ -190,14 +200,14 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                       asset.title,
                     ])
               rowState.setVisibility(Visibility.visible)
-              setAsset(
-                object.merge(asset, {
-                  id: createdProject.projectId,
-                  projectState: object.merge(projectState, {
-                    type: backendModule.ProjectState.placeholder,
-                  }),
-                })
-              )
+              const newAsset = object.merge(asset, {
+                id: createdProject.projectId,
+                projectState: object.merge(projectState, {
+                  type: backendModule.ProjectState.placeholder,
+                }),
+              })
+              setAssetInNode(newAsset)
+              setAsset(newAsset.id, newAsset)
               doOpenProject({
                 id: createdProject.projectId,
                 type: backendType,
@@ -219,7 +229,9 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
             rowState.setVisibility(Visibility.faded)
             const { extension } = backendModule.extractProjectExtension(file.name)
             const title = backendModule.stripProjectExtension(asset.title)
-            setAsset(object.merge(asset, { title }))
+            const newAsset = object.merge(asset, { title })
+            setAssetInNode(newAsset)
+            setAsset(newAsset.id, newAsset)
             try {
               if (backend.type === backendModule.BackendType.local) {
                 const directory = localBackend.extractTypeAndId(item.directoryId).id
@@ -250,7 +262,12 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                   file.name,
                 ])
                 rowState.setVisibility(Visibility.visible)
-                setAsset(object.merge(asset, { title: listedProject.packageName, id: projectId }))
+                const newAsset2 = object.merge(asset, {
+                  title: listedProject.packageName,
+                  id: projectId,
+                })
+                setAssetInNode(newAsset2)
+                setAsset(newAsset2.id, newAsset2)
               } else {
                 const createdFile = await uploadFileMutation.mutateAsync([
                   {
@@ -265,13 +282,13 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                   throw new Error('The uploaded file was not a project.')
                 } else {
                   rowState.setVisibility(Visibility.visible)
-                  setAsset(
-                    object.merge(asset, {
-                      title,
-                      id: project.projectId,
-                      projectState: project.state,
-                    })
-                  )
+                  const newAsset2 = object.merge(asset, {
+                    title,
+                    id: project.projectId,
+                    projectState: project.state,
+                  })
+                  setAssetInNode(newAsset2)
+                  setAsset(newAsset2.id, newAsset2)
                   return
                 }
               }

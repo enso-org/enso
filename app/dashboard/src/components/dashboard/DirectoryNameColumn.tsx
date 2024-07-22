@@ -5,6 +5,7 @@ import FolderArrowIcon from '#/assets/folder_arrow.svg'
 import FolderIcon from '#/assets/folder.svg'
 
 import * as backendHooks from '#/hooks/backendHooks'
+import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import * as setAssetHooks from '#/hooks/setAssetHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
@@ -54,7 +55,16 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
     throw new Error('`DirectoryNameColumn` can only display folders.')
   }
   const asset = item.item
-  const setAsset = setAssetHooks.useSetAsset(asset, setItem)
+  const setAssetInNode = setAssetHooks.useSetAsset(asset, setItem)
+  const setAssetRaw = backendHooks.useSetAsset()
+  const setAsset = useEventCallback(
+    (
+      assetId: backendModule.AssetId,
+      valueOrUpdater: React.SetStateAction<backendModule.AnyAsset>
+    ) => {
+      setAssetRaw(backend, assetId, valueOrUpdater)
+    }
+  )
   const isExpanded = item.children != null && item.isExpanded
 
   const createDirectoryMutation = backendHooks.useBackendMutation(backend, 'createDirectory')
@@ -73,17 +83,17 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
         // Do nothing.
       } else if (newTitle !== asset.title) {
         const oldTitle = asset.title
-        setAsset(object.merger({ title: newTitle }))
+        setAssetInNode(object.merger({ title: newTitle }))
         try {
           const updated = await updateDirectoryMutation.mutateAsync([
             asset.id,
             { title: newTitle },
             asset.title,
           ])
-          setAsset(object.merger(updated))
+          setAssetInNode(object.merger(updated))
         } catch (error) {
           toastAndLog('renameFolderError', error)
-          setAsset(object.merger({ title: oldTitle }))
+          setAssetInNode(object.merger({ title: oldTitle }))
         }
       }
     }
@@ -126,13 +136,12 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
             rowState.setVisibility(Visibility.faded)
             try {
               const createdDirectory = await createDirectoryMutation.mutateAsync([
-                {
-                  parentId: asset.parentId,
-                  title: asset.title,
-                },
+                { parentId: asset.parentId, title: asset.title },
               ])
               rowState.setVisibility(Visibility.visible)
-              setAsset(object.merge(asset, createdDirectory))
+              const newAsset = object.merge(asset, createdDirectory)
+              setAssetInNode(newAsset)
+              setAsset(newAsset.id, newAsset)
             } catch (error) {
               dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
               toastAndLog('createFolderError', error)

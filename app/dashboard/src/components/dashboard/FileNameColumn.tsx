@@ -2,6 +2,7 @@
 import * as React from 'react'
 
 import * as backendHooks from '#/hooks/backendHooks'
+import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import * as setAssetHooks from '#/hooks/setAssetHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
@@ -47,7 +48,16 @@ export default function FileNameColumn(props: FileNameColumnProps) {
     throw new Error('`FileNameColumn` can only display files.')
   }
   const asset = item.item
-  const setAsset = setAssetHooks.useSetAsset(asset, setItem)
+  const setAssetInNode = setAssetHooks.useSetAsset(asset, setItem)
+  const setAssetRaw = backendHooks.useSetAsset()
+  const setAsset = useEventCallback(
+    (
+      assetId: backendModule.AssetId,
+      valueOrUpdater: React.SetStateAction<backendModule.AnyAsset>
+    ) => {
+      setAssetRaw(backend, assetId, valueOrUpdater)
+    }
+  )
   const isCloud = backend.type === backendModule.BackendType.remote
 
   const updateFileMutation = backendHooks.useBackendMutation(backend, 'updateFile')
@@ -73,13 +83,14 @@ export default function FileNameColumn(props: FileNameColumnProps) {
       if (string.isWhitespaceOnly(newTitle)) {
         // Do nothing.
       } else if (!isCloud && newTitle !== asset.title) {
-        const oldTitle = asset.title
-        setAsset(object.merger({ title: newTitle }))
+        setAssetInNode(object.merger({ title: newTitle }))
+        setAsset(asset.id, object.merger({ title: newTitle }))
         try {
           await updateFileMutation.mutateAsync([asset.id, { title: newTitle }, asset.title])
         } catch (error) {
           toastAndLog('renameFolderError', error)
-          setAsset(object.merger({ title: oldTitle }))
+          setAssetInNode(object.merger({ title: asset.title }))
+          setAsset(asset.id, object.merger({ title: asset.title }))
         }
       }
     }
@@ -128,7 +139,9 @@ export default function FileNameColumn(props: FileNameColumnProps) {
                 file,
               ])
               rowState.setVisibility(Visibility.visible)
-              setAsset(object.merge(asset, { id: createdFile.id }))
+              const newAsset = object.merge(asset, { id: createdFile.id })
+              setAssetInNode(newAsset)
+              setAsset(newAsset.id, newAsset)
             } catch (error) {
               switch (event.type) {
                 case AssetEventType.uploadFiles: {

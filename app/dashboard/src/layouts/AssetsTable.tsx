@@ -10,6 +10,7 @@ import * as mimeTypes from '#/data/mimeTypes'
 
 import * as autoScrollHooks from '#/hooks/autoScrollHooks'
 import * as backendHooks from '#/hooks/backendHooks'
+import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import * as intersectionHooks from '#/hooks/intersectionHooks'
 import * as projectHooks from '#/hooks/projectHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
@@ -384,6 +385,15 @@ export default function AssetsTable(props: AssetsTableProps) {
   const inputBindings = inputBindingsProvider.useInputBindings()
   const navigator2D = navigator2DProvider.useNavigator2D()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
+  const setAssetRaw = backendHooks.useSetAsset()
+  const setAsset = useEventCallback(
+    (
+      assetId: backendModule.AssetId,
+      valueOrUpdater: React.SetStateAction<backendModule.AnyAsset>
+    ) => {
+      setAssetRaw(backend, assetId, valueOrUpdater)
+    }
+  )
   const previousCategoryRef = React.useRef(category)
   const dispatchAssetEvent = eventListProvider.useDispatchAssetEvent()
   const dispatchAssetListEvent = eventListProvider.useDispatchAssetListEvent()
@@ -1416,6 +1426,9 @@ export default function AssetsTable(props: AssetsTableProps) {
       parentId: backendModule.DirectoryId | null,
       getInitialAssetEvents: (id: backendModule.AssetId) => readonly assetEvent.AssetEvent[] | null
     ) => {
+      for (const asset of assets) {
+        setAsset(asset.id, asset)
+      }
       const actualParentKey = parentKey ?? rootDirectoryId
       const actualParentId = parentId ?? rootDirectoryId
       setAssetTree(oldAssetTree =>
@@ -1432,7 +1445,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         )
       )
     },
-    [rootDirectoryId]
+    [rootDirectoryId, setAsset]
   )
 
   const insertArbitraryAssets = React.useCallback(
@@ -1445,6 +1458,9 @@ export default function AssetsTable(props: AssetsTableProps) {
         id: backendModule.AssetId
       ) => readonly assetEvent.AssetEvent[] | null = () => null
     ) => {
+      for (const asset of assets) {
+        setAsset(asset.id, asset)
+      }
       const actualParentKey = parentKey ?? rootDirectoryId
       const actualParentId = parentId ?? rootDirectoryId
       setAssetTree(oldAssetTree => {
@@ -1462,7 +1478,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         )
       })
     },
-    [rootDirectoryId]
+    [rootDirectoryId, setAsset]
   )
 
   // This is not a React component, even though it contains JSX.
