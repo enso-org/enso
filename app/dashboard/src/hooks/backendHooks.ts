@@ -5,6 +5,8 @@ import * as reactQuery from '@tanstack/react-query'
 
 import * as backendQuery from 'enso-common/src/backendQuery'
 
+import { useEventCallback } from '#/hooks/eventCallbackHooks'
+
 import * as authProvider from '#/providers/AuthProvider'
 
 import type Backend from '#/services/Backend'
@@ -112,6 +114,22 @@ export function useObserveBackend(backend: Backend | null) {
       data == null ? data : updater(data)
     )
   }
+  const listDirectoriesObserver = React.useMemo(
+    () =>
+      new reactQuery.QueryObserver<readonly backendModule.AnyAsset[]>(queryClient, {
+        queryKey: [backend?.type, 'listDirectory'],
+      }),
+    [backend?.type, queryClient]
+  )
+  React.useEffect(
+    () =>
+      listDirectoriesObserver.subscribe(result => {
+        for (const asset of result.data ?? []) {
+          queryClient.setQueryData([backend?.type, 'getAsset', asset.id], asset)
+        }
+      }),
+    [backend?.type, listDirectoriesObserver, queryClient]
+  )
   useObserveMutations('uploadUserPicture', state => {
     revokeUserPictureUrl(backend)
     setQueryData('usersMe', user => state.data ?? user)
@@ -559,4 +577,29 @@ export function useBackendGetOrganization(backend: Backend | null) {
     updateOrganizationVariables,
     uploadOrganizationPictureVariables,
   ])
+}
+
+// ===================
+// === useGetAsset ===
+// ===================
+
+/** Get the cached value of the asset. */
+export function useGetAsset(backend: Backend, assetId: backendModule.AssetId) {
+  // This is a passive query. For now, please refetch the asset's parent directory
+  // to update its value.
+  return reactQuery.useQuery({
+    queryKey: [backend.type, 'getAsset', assetId],
+  })
+}
+
+// ===================
+// === useSetAsset ===
+// ===================
+
+/** A callback to update the cached value of the asset. */
+export function useSetAsset(backend: Backend) {
+  const queryClient = reactQuery.useQueryClient()
+  return useEventCallback((asset: backendModule.AnyAsset) => {
+    queryClient.setQueryData([backend.type, 'getAsset', asset.id], asset)
+  })
 }
