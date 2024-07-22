@@ -194,7 +194,7 @@ class JsonConnectionController(
           _,
           InitProtocolConnection.Params(clientId)
         ) =>
-      logger.info(
+      logger.debug(
         "Initializing resources for [{}] [{}].",
         clientId,
         mainComponent
@@ -219,7 +219,7 @@ class JsonConnectionController(
     receiver: ActorRef
   ): Receive = LoggingReceive {
     case _: InitializationComponentInitialized =>
-      logger.info("RPC session initialized for client [{}].", clientId)
+      logger.debug("RPC session initialized for client [{}]", clientId)
       val session = JsonSession(clientId, self)
       context.system.eventStream.publish(JsonSessionInitialized(session))
       context.system.eventStream.publish(
@@ -356,7 +356,7 @@ class JsonConnectionController(
       }
 
     case MessageHandler.Disconnected(_) =>
-      logger.info("Json session terminated [{}].", rpcSession.clientId)
+      logger.info("Session terminated [{}].", rpcSession.clientId)
       context.system.eventStream.publish(JsonSessionTerminated(rpcSession))
       context.stop(self)
 

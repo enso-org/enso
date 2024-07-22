@@ -179,9 +179,10 @@ public abstract class InvokeConversionNode extends BaseNode {
       UnresolvedConversion conversion,
       Object self,
       EnsoMultiValue that,
-      Object[] arguments) {
+      Object[] arguments,
+      @Cached EnsoMultiValue.CastToNode castTo) {
     var type = extractType(self);
-    var result = that.castTo(type);
+    var result = castTo.executeCast(type, that);
     if (result == null) {
       throw new PanicException(
           EnsoContext.get(this).getBuiltins().error().makeNoSuchConversion(type, self, conversion),

@@ -20,6 +20,9 @@ type My_Type
     to_text : Text
     to_text self = "{{{MY Type [x="+self.x.to_text+"] }}}"
 
+type Lazy_Ref
+    Value ~get
+
 add_specs suite_builder setup =
     prefix = setup.prefix
     materialize = setup.materialize
@@ -27,8 +30,10 @@ add_specs suite_builder setup =
     supports_conversion_failure_reporting = setup.is_database.not
     table_builder = build_sorted_table setup
     suite_builder.group prefix+"(Conversion_Spec) Table/Column.cast - to text" group_builder->
+        table = Lazy_Ref.Value <|
+            table_builder [["X", [1, 2, 3000]], ["Y", [True, False, True]], ["Z", [1.5, 0.125, -2.5]], ["W", ["a", "DEF", "a slightly longer text"]]]
         group_builder.specify "should allow to cast columns of various basic types to text" <|
-            t = table_builder [["X", [1, 2, 3000]], ["Y", [True, False, True]], ["Z", [1.5, 0.125, -2.5]], ["W", ["a", "DEF", "a slightly longer text"]]]
+            t = table.get
             t2 = t.cast t.column_names Value_Type.Char
             t2.at "X" . value_type . is_text . should_be_true
             t2.at "Y" . value_type . is_text . should_be_true
@@ -42,7 +47,7 @@ add_specs suite_builder setup =
             t2.at "W" . to_vector . should_equal ["a", "DEF", "a slightly longer text"]
 
         group_builder.specify "should allow to cast columns selecting columns by type" <|
-            t = table_builder [["X", [1, 2, 3000]], ["Y", [True, False, True]], ["Z", [1.5, 0.125, -2.5]], ["W", ["a", "DEF", "a slightly longer text"]]]
+            t = table.get
             t2 = t.cast [..By_Type ..Integer] Value_Type.Char
             t2.at "X" . value_type . should_be_a (Value_Type.Char ...)
             t2.at "Y" . value_type . is_text . should_be_false
@@ -79,26 +84,17 @@ add_specs suite_builder setup =
                 c.to_vector . should_equal ["{{{MY Type [x=42] }}}", "{{{MY Type [x=X] }}}"]
 
             group_builder.specify "should allow to cast an integer column to a decimal type" <|
-                t = table_builder [["X", [1, 2, 3]]]
+                t = table.get
                 c = t.at "X" . cast Value_Type.Decimal
                 c.value_type.is_decimal . should_be_true
-                c.to_vector . should_equal [1, 2, 3]
+                c.to_vector . should_equal [1, 2, 3000]
 
         if setup.test_selection.fixed_length_text_columns then
             group_builder.specify "should allow to cast a text column to fixed-length"  <|
-                t = table_builder [["X", ["a", "DEF", "a slightly longer text"]]]
-                c = t.at "X" . cast (Value_Type.Char size=3 variable_length=False)
+                t = table.get
+                c = t.at "W" . cast (Value_Type.Char size=3 variable_length=False)
                 c.value_type . should_equal (Value_Type.Char size=3 variable_length=False)
                 c.to_vector . should_equal ["a  ", "DEF", "a s"]
-
-                # No Conversion_Failure warning here, because we started with text, so it was expected we will trim it if needed.
-                Problems.assume_no_problems c
-
-            group_builder.specify "should allow to cast a text column to variable-length with a max size" <|
-                t = table_builder [["X", ["a", "DEF", "a slightly longer text"]]]
-                c = t.at "X" . cast (Value_Type.Char size=3 variable_length=True)
-                c.value_type . should_equal (Value_Type.Char size=3 variable_length=True)
-                c.to_vector . should_equal ["a", "DEF", "a s"]
 
                 # No Conversion_Failure warning here, because we started with text, so it was expected we will trim it if needed.
                 Problems.assume_no_problems c
@@ -127,11 +123,23 @@ add_specs suite_builder setup =
                 w2.affected_rows_count . should_equal 4
 
             group_builder.specify "should not allow 0-length Char type" <|
-                c1 = table_builder [["X", ["a", "", "bcd"]]] . at "X"
+                c1 = table.get . at "W"
                 r1 = c1.cast (Value_Type.Char size=0 variable_length=False)
                 r1.should_fail_with Illegal_Argument
                 r1.catch.to_display_text . should_contain "positive"
 
+        if setup.test_selection.text_length_limited_columns then
+            group_builder.specify "should allow to cast a text column to variable-length with a max size" <|
+                t = table_builder [["X", ["a", "DEF", "a slightly longer text"]]]
+                c = t.at "X" . cast (Value_Type.Char size=3 variable_length=True)
+                c.value_type . should_equal (Value_Type.Char size=3 variable_length=True)
+                c.to_vector . should_equal ["a", "DEF", "a s"]
+
+                # No Conversion_Failure warning here, because we started with text, so it was expected we will trim it if needed.
+                Problems.assume_no_problems c
+
+            group_builder.specify "should not allow 0-length Char type" <|
+                c1 = table.get . at "W"
                 r2 = c1.cast (Value_Type.Char size=0 variable_length=True)
                 r2.should_fail_with Illegal_Argument
 
@@ -500,7 +508,7 @@ add_specs suite_builder setup =
                 c3.to_vector . should_equal ["1", "2.25", "3", "-45.25", "2.0", "X", "2020-01-01", date_time_str, "12:30:00", "{{{MY Type [x=42] }}}", "True", Nothing, "True"]
                 Problems.assume_no_problems c3
 
-                if setup.test_selection.fixed_length_text_columns then
+                if setup.test_selection.text_length_limited_columns then
                     c3_2 = t2.cast "super-mix" (Value_Type.Char size=2) . at "super-mix"
                     c3_2.value_type . should_equal (Value_Type.Char size=2)
                     c3_2.to_vector . should_equal ["1", "2.", "3", "-4", "2.", "X", "20", "20", "12", "{{", "Tr", Nothing, "Tr"]

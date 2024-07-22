@@ -6,6 +6,7 @@ import javax.swing.text.BadLocationException;
 import javax.swing.text.Document;
 import org.enso.compiler.core.EnsoParser;
 import org.enso.compiler.core.IR;
+import org.enso.compiler.core.ir.Function;
 import org.enso.compiler.core.ir.module.scope.Definition;
 import org.enso.compiler.core.ir.module.scope.definition.Method;
 import org.netbeans.api.editor.mimelookup.MimeRegistration;
@@ -63,6 +64,11 @@ public final class EnsoStructure implements StructureProvider {
 
       case Definition.Data data -> {
         var bldr = StructureProvider.newBuilder(data.name().name(), StructureElement.Kind.Constructor);
+        yield bldr;
+      }
+
+      case Function.Binding funcBinding ->  {
+        var bldr = StructureProvider.newBuilder(funcBinding.name().name(), StructureElement.Kind.Method);
         yield bldr;
       }
 

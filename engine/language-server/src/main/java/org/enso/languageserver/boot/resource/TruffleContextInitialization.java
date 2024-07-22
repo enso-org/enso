@@ -39,7 +39,7 @@ public class TruffleContextInitialization extends LockedInitialization {
 
   @Override
   public void initComponent() {
-    logger.trace("Creating Runtime context.");
+    logger.trace("Creating Runtime context");
     if (Engine.newBuilder()
         .allowExperimentalOptions(true)
         .build()
@@ -53,10 +53,10 @@ public class TruffleContextInitialization extends LockedInitialization {
     }
     var truffleContext = truffleContextBuilder.build();
     supervisor.registerService(truffleContext);
-    logger.trace("Created Runtime context [{}].", truffleContext);
-    logger.info("Initializing Runtime context [{}]...", truffleContext);
+    logger.trace("Created Runtime context [{}]", truffleContext);
+    logger.debug("Initializing Runtime context [{}]", truffleContext);
     truffleContext.initialize(LanguageInfo.ID);
     eventStream.publish(InitializedEvent.TruffleContextInitialized$.MODULE$);
-    logger.info("Initialized Runtime context [{}].", truffleContext);
+    logger.debug("Initialized Runtime context [{}]", truffleContext);
   }
 }
