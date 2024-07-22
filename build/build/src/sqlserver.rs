@@ -207,7 +207,6 @@ mod tests {
     use super::*;
 
     #[tokio::test]
-    #[ignore]
     async fn start_sqlserver() -> Result {
         let config = Configuration {
             sqlserver_container: ContainerId("something".into()),
