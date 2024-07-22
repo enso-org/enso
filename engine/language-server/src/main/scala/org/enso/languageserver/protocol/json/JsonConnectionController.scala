@@ -275,7 +275,7 @@ class JsonConnectionController(
     rootsSoFar: List[ContentRootWithFile]
   ): Receive = LoggingReceive {
     case ContentRootManagerProtocol.ContentRootsAddedNotification(roots) =>
-      val allRoots = (roots ++ rootsSoFar).map(_.toContentRoot).toSet
+      val allRoots = roots ++ rootsSoFar
       val hasProject = roots.exists {
         case ContentRootWithFile(ContentRoot.Project(_), _) => true
         case _                                              => false
@@ -284,17 +284,18 @@ class JsonConnectionController(
         cancellable.cancel()
         unstashAll()
 
+        val allContentRoots = allRoots.map(_.toContentRoot).toSet
         receiver ! ResponseResult(
           InitProtocolConnection,
           request.id,
           InitProtocolConnection.Result(
             buildinfo.Info.ensoVersion,
             buildinfo.Info.currentEdition,
-            allRoots
+            allContentRoots
           )
         )
 
-        initialize(webActor, rpcSession, allRoots)
+        initialize(webActor, rpcSession, allContentRoots)
       } else {
         context.become(
           waitingForContentRoots(
@@ -303,7 +304,7 @@ class JsonConnectionController(
             request     = request,
             receiver    = receiver,
             cancellable = cancellable,
-            rootsSoFar  = roots ++ rootsSoFar
+            rootsSoFar  = allRoots
           )
         )
       }
