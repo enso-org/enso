@@ -66,17 +66,17 @@ class SessionManagementTest extends BaseServerTest with ReportLogsOnFailure {
     "connection is initialised" must {
 
       "reply with a standard message if client tries initialise connection second time" in {
-        val client = getInitialisedWsClient()
+        val (client, clientId) = getInitialisedWsClientAndId()
         client.send(json"""
           { "jsonrpc": "2.0",
             "method": "session/initProtocolConnection",
             "id": 1,
             "params": {
-              "clientId": "e3d99192-2edc-4613-bdf4-db35e4b9b956"
+              "clientId": $clientId
             }
           }
           """)
-        val response = parse(client.expectMessage()).rightValue.asObject.value
+        val response = client.expectSomeJson().asObject.value
         response("jsonrpc") shouldEqual Some("2.0".asJson)
         response("id") shouldEqual Some(1.asJson)
         val result = response("result").value.asObject.value
