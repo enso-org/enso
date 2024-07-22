@@ -584,15 +584,15 @@ export function useBackendGetOrganization(backend: Backend | null) {
 // ===================
 
 /** Get the cached value of the asset. */
-export function useGetAsset(backend: Backend, assetId: backendModule.AssetId) {
+export function useGetAsset(backend: Backend | null, assetId: backendModule.AssetId | null) {
   // This is a passive query. For now, please refetch the asset's parent directory
   // to update its value.
   return reactQuery.useQuery<backendModule.AnyAsset>({
     queryKey: useGetAsset.key(backend, assetId),
   })
 }
-useGetAsset.key = (backend: Backend, assetId: backendModule.AssetId) =>
-  [backend.type, 'getAsset', assetId] as const
+useGetAsset.key = (backend: Backend | null, assetId: backendModule.AssetId | null) =>
+  [backend?.type, 'getAsset', assetId] as const
 
 // =========================
 // === useGetCachedAsset ===

@@ -30,20 +30,22 @@ import * as uniqueString from '#/utilities/uniqueString'
 // ========================
 
 /** The type of the `state` prop of a {@link SharedWithColumn}. */
-interface SharedWithColumnStateProp extends Pick<column.AssetColumnProps['state'], 'category'> {
+interface SharedWithColumnStateProp
+  extends Pick<column.AssetColumnProps['state'], 'backend' | 'category'> {
   readonly setQuery: column.AssetColumnProps['state']['setQuery'] | null
 }
 
 /** Props for a {@link SharedWithColumn}. */
-interface SharedWithColumnPropsInternal extends Pick<column.AssetColumnProps, 'item' | 'setItem'> {
+interface SharedWithColumnPropsInternal {
+  readonly item: { readonly item: backendModule.AnyAsset }
   readonly isReadonly?: boolean
   readonly state: SharedWithColumnStateProp
 }
 
 /** A column listing the users with which this asset is shared. */
 export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
-  const { item, setItem, state, isReadonly = false } = props
-  const { category, setQuery } = state
+  const { item, state, isReadonly = false } = props
+  const { backend, category, setQuery } = state
   const asset = item.item
   const { user } = authProvider.useNonPartialUserSession()
   const dispatchAssetEvent = eventListProvider.useDispatchAssetEvent()
@@ -62,17 +64,6 @@ export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
     category !== Category.trash &&
     (self?.permission === permissions.PermissionAction.own ||
       self?.permission === permissions.PermissionAction.admin)
-  const setAsset = React.useCallback(
-    (valueOrUpdater: React.SetStateAction<backendModule.AnyAsset>) => {
-      setItem(oldItem =>
-        oldItem.with({
-          item:
-            typeof valueOrUpdater !== 'function' ? valueOrUpdater : valueOrUpdater(oldItem.item),
-        })
-      )
-    },
-    [setItem]
-  )
 
   return (
     <div className="group flex items-center gap-column-items">
@@ -118,8 +109,8 @@ export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
             setModal(
               <ManagePermissionsModal
                 key={uniqueString.uniqueString()}
+                backend={backend}
                 item={asset}
-                setItem={setAsset}
                 self={self}
                 eventTarget={plusButtonRef.current}
                 doRemoveSelf={() => {

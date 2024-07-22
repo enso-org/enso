@@ -10,8 +10,6 @@ import * as loader from '#/components/Loader'
 import type * as backendModule from '#/services/Backend'
 import type Backend from '#/services/Backend'
 
-import type AssetTreeNode from '#/utilities/AssetTreeNode'
-
 // ============================
 // === AssetProjectSessions ===
 // ============================
@@ -19,7 +17,7 @@ import type AssetTreeNode from '#/utilities/AssetTreeNode'
 /** Props for a {@link AssetProjectSessions}. */
 export interface AssetProjectSessionsProps {
   readonly backend: Backend
-  readonly item: AssetTreeNode<backendModule.ProjectAsset>
+  readonly item: backendModule.ProjectAsset
 }
 
 /** A list of previous versions of an asset. */
@@ -43,9 +41,9 @@ function AssetProjectSessionsInternal(props: AssetProjectSessionsInternalProps) 
   const { backend, item } = props
 
   const projectSessionsQuery = reactQuery.useSuspenseQuery({
-    queryKey: ['getProjectSessions', item.item.id, item.item.title],
+    queryKey: ['getProjectSessions', item.id, item.title],
     queryFn: async () => {
-      const sessions = await backend.listProjectSessions(item.item.id, item.item.title)
+      const sessions = await backend.listProjectSessions(item.id, item.title)
       return [...sessions].reverse()
     },
   })
@@ -56,7 +54,7 @@ function AssetProjectSessionsInternal(props: AssetProjectSessionsInternalProps) 
         <AssetProjectSession
           key={session.projectSessionId}
           backend={backend}
-          project={item.item}
+          project={item}
           projectSession={session}
         />
       ))}

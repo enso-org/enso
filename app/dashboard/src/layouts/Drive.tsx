@@ -331,10 +331,9 @@ export default function Drive(props: DriveProps) {
           >
             <AssetPanel
               isVisible={isAssetPanelVisible}
-              key={assetPanelProps?.item?.item.id}
+              key={assetPanelProps?.itemId}
               backend={assetPanelProps?.backend ?? null}
-              item={assetPanelProps?.item ?? null}
-              setItem={assetPanelProps?.setItem ?? null}
+              itemId={assetPanelProps?.itemId ?? null}
               category={category}
               isReadonly={category === Category.trash}
             />

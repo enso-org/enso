@@ -308,7 +308,7 @@ export default function AssetRow(props: AssetRowProps) {
 
   React.useEffect(() => {
     if (isSoleSelected) {
-      setAssetPanelProps({ backend, item, setItem })
+      setAssetPanelProps({ backend, itemId: item.item.id })
       setIsAssetPanelTemporarilyVisible(false)
     }
   }, [item, isSoleSelected, backend, setAssetPanelProps, setIsAssetPanelTemporarilyVisible])

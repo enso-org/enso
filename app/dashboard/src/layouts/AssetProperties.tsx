@@ -6,6 +6,7 @@ import PenIcon from '#/assets/pen.svg'
 import * as datalinkValidator from '#/data/datalinkValidator'
 
 import * as backendHooks from '#/hooks/backendHooks'
+import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
@@ -25,7 +26,6 @@ import * as backendModule from '#/services/Backend'
 import type Backend from '#/services/Backend'
 import * as localBackendModule from '#/services/LocalBackend'
 
-import type * as assetTreeNode from '#/utilities/AssetTreeNode'
 import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
 
@@ -36,21 +36,28 @@ import * as permissions from '#/utilities/permissions'
 /** Props for an {@link AssetPropertiesProps}. */
 export interface AssetPropertiesProps {
   readonly backend: Backend
-  readonly item: assetTreeNode.AnyAssetTreeNode
-  readonly setItem: React.Dispatch<React.SetStateAction<assetTreeNode.AnyAssetTreeNode>>
+  readonly itemId: backendModule.AssetId
   readonly category: Category
   readonly isReadonly?: boolean
 }
 
 /** Display and modify the properties of an asset. */
 export default function AssetProperties(props: AssetPropertiesProps) {
-  const { backend, item: itemRaw, setItem: setItemRaw, category } = props
+  const { backend, itemId, category } = props
   const { isReadonly = false } = props
 
   const { user } = authProvider.useNonPartialUserSession()
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const localBackend = backendProvider.useLocalBackend()
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+  const itemRaw = backendHooks.useGetAsset(backend, itemId).data!
+  const setAssetRaw = backendHooks.useSetAsset()
+  const setAsset = useEventCallback(
+    (valueOrUpdater: React.SetStateAction<backendModule.AnyAsset>) => {
+      setAssetRaw(backend, itemId, valueOrUpdater)
+    }
+  )
   const [item, setItemInner] = React.useState(itemRaw)
   const [isEditingDescription, setIsEditingDescription] = React.useState(false)
   const [queuedDescription, setQueuedDescripion] = React.useState<string | null>(null)
@@ -65,14 +72,14 @@ export default function AssetProperties(props: AssetPropertiesProps) {
     [datalinkValue]
   )
   const setItem = React.useCallback(
-    (valueOrUpdater: React.SetStateAction<assetTreeNode.AnyAssetTreeNode>) => {
+    (valueOrUpdater: React.SetStateAction<backendModule.AnyAsset>) => {
       setItemInner(valueOrUpdater)
-      setItemRaw(valueOrUpdater)
+      setAsset(valueOrUpdater)
     },
-    [setItemRaw]
+    [setAsset]
   )
   const labels = backendHooks.useBackendListTags(backend) ?? []
-  const self = item.item.permissions?.find(
+  const self = item.permissions?.find(
     backendModule.isUserPermissionAnd(permission => permission.user.userId === user.userId)
   )
   const ownsThisAsset = self?.permission === permissions.PermissionAction.own
@@ -80,14 +87,14 @@ export default function AssetProperties(props: AssetPropertiesProps) {
     ownsThisAsset ||
     self?.permission === permissions.PermissionAction.admin ||
     self?.permission === permissions.PermissionAction.edit
-  const isDatalink = item.item.type === backendModule.AssetType.datalink
+  const isDatalink = item.type === backendModule.AssetType.datalink
   const isDatalinkDisabled = datalinkValue === editedDatalinkValue || !isDatalinkSubmittable
   const isCloud = backend.type === backendModule.BackendType.remote
   const path = isCloud
     ? null
-    : item.item.type === backendModule.AssetType.project
-      ? localBackend?.getProjectDirectoryPath(item.item.id) ?? null
-      : localBackendModule.extractTypeAndId(item.item.id).id
+    : item.type === backendModule.AssetType.project
+      ? localBackend?.getProjectDirectoryPath(item.id) ?? null
+      : localBackendModule.extractTypeAndId(item.id).id
 
   const createDatalinkMutation = backendHooks.useBackendMutation(backend, 'createDatalink')
   const getDatalinkMutation = backendHooks.useBackendMutation(backend, 'getDatalink')
@@ -95,36 +102,34 @@ export default function AssetProperties(props: AssetPropertiesProps) {
   const getDatalinkMutate = getDatalinkMutation.mutateAsync
 
   React.useEffect(() => {
-    setDescription(item.item.description ?? '')
-  }, [item.item.description])
+    setDescription(item.description ?? '')
+  }, [item.description])
 
   React.useEffect(() => {
     void (async () => {
-      if (item.item.type === backendModule.AssetType.datalink) {
-        const value = await getDatalinkMutate([item.item.id, item.item.title])
+      if (item.type === backendModule.AssetType.datalink) {
+        const value = await getDatalinkMutate([item.id, item.title])
         setDatalinkValue(value)
         setEditedDatalinkValue(value)
         setIsDatalinkFetched(true)
       }
     })()
-  }, [backend, item.item, getDatalinkMutate])
+  }, [backend, item, getDatalinkMutate])
 
   const doEditDescription = async () => {
     setIsEditingDescription(false)
-    if (description !== item.item.description) {
-      const oldDescription = item.item.description
-      setItem(oldItem => oldItem.with({ item: object.merge(oldItem.item, { description }) }))
+    if (description !== item.description) {
+      const oldDescription = item.description
+      setItem(object.merger({ description }))
       try {
         await updateAssetMutation.mutateAsync([
-          item.item.id,
+          item.id,
           { parentDirectoryId: null, description },
-          item.item.title,
+          item.title,
         ])
       } catch (error) {
         toastAndLog('editDescriptionError')
-        setItem(oldItem =>
-          oldItem.with({ item: object.merge(oldItem.item, { description: oldDescription }) })
-        )
+        setItem(object.merger({ description: oldDescription }))
       }
     }
   }
@@ -144,7 +149,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
               icon={PenIcon}
               onPress={() => {
                 setIsEditingDescription(true)
-                setQueuedDescripion(item.item.description)
+                setQueuedDescripion(item.description)
               }}
             />
           )}
@@ -154,7 +159,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
           className="self-stretch py-side-panel-description-y"
         >
           {!isEditingDescription ? (
-            <aria.Text className="text">{item.item.description}</aria.Text>
+            <aria.Text className="text">{item.description}</aria.Text>
           ) : (
             <form className="flex flex-col gap-modal pr-4" onSubmit={doEditDescription}>
               <textarea
@@ -237,9 +242,8 @@ export default function AssetProperties(props: AssetPropertiesProps) {
                 <td className="w-full p">
                   <SharedWithColumn
                     isReadonly={isReadonly}
-                    item={item}
-                    setItem={setItem}
-                    state={{ category, setQuery: () => {} }}
+                    item={{ item }}
+                    state={{ backend, category, setQuery: () => {} }}
                   />
                 </td>
               </tr>
@@ -248,7 +252,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
                   <aria.Label className="text inline-block">{getText('labels')}</aria.Label>
                 </td>
                 <td className="w-full p">
-                  {item.item.labels?.map(value => {
+                  {item.labels?.map(value => {
                     const label = labels.find(otherLabel => otherLabel.value === value)
                     return label == null ? null : (
                       <Label key={value} active isDisabled color={label.color} onPress={() => {}}>
@@ -291,27 +295,23 @@ export default function AssetProperties(props: AssetPropertiesProps) {
                     {...(isDatalinkDisabled
                       ? { title: 'Edit the Datalink before updating it.' }
                       : {})}
-                    onPress={() => {
-                      void (async () => {
-                        if (item.item.type === backendModule.AssetType.datalink) {
-                          const oldDatalinkValue = datalinkValue
-                          try {
-                            setDatalinkValue(editedDatalinkValue)
-                            await createDatalinkMutation.mutateAsync([
-                              {
-                                datalinkId: item.item.id,
-                                name: item.item.title,
-                                parentDirectoryId: null,
-                                value: editedDatalinkValue,
-                              },
-                            ])
-                          } catch (error) {
-                            toastAndLog(null, error)
-                            setDatalinkValue(oldDatalinkValue)
-                            setEditedDatalinkValue(oldDatalinkValue)
-                          }
-                        }
-                      })()
+                    onPress={async () => {
+                      const oldDatalinkValue = datalinkValue
+                      try {
+                        setDatalinkValue(editedDatalinkValue)
+                        await createDatalinkMutation.mutateAsync([
+                          {
+                            datalinkId: item.id,
+                            name: item.title,
+                            parentDirectoryId: null,
+                            value: editedDatalinkValue,
+                          },
+                        ])
+                      } catch (error) {
+                        toastAndLog(null, error)
+                        setDatalinkValue(oldDatalinkValue)
+                        setEditedDatalinkValue(oldDatalinkValue)
+                      }
                     }}
                   >
                     {getText('update')}

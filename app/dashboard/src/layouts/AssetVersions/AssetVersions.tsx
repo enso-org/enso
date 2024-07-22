@@ -16,7 +16,6 @@ import * as spinnerModule from '#/components/Spinner'
 import * as backendService from '#/services/Backend'
 import type Backend from '#/services/Backend'
 
-import type AssetTreeNode from '#/utilities/AssetTreeNode'
 import * as dateTime from '#/utilities/dateTime'
 import * as uniqueString from '#/utilities/uniqueString'
 
@@ -37,7 +36,7 @@ interface AddNewVersionVariables {
 /** Props for a {@link AssetVersions}. */
 export interface AssetVersionsProps {
   readonly backend: Backend
-  readonly item: AssetTreeNode
+  readonly item: backendService.AnyAsset
 }
 
 /** A list of previous versions of an asset. */
@@ -49,12 +48,12 @@ export default function AssetVersions(props: AssetVersionsProps) {
     readonly backendService.S3ObjectVersion[]
   >([])
   const isCloud = backend.type === backendService.BackendType.remote
-  const queryKey = ['assetVersions', item.item.id, item.item.title]
+  const queryKey = ['assetVersions', item.id, item.title]
   const versionsQuery = useAssetVersions.useAssetVersions({
     backend,
     queryKey,
-    assetId: item.item.id,
-    title: item.item.title,
+    assetId: item.id,
+    title: item.title,
     onError: backendError => toastAndLog('listVersionsError', backendError),
     enabled: isCloud,
   })
@@ -62,8 +61,8 @@ export default function AssetVersions(props: AssetVersionsProps) {
 
   const restoreMutation = reactQuery.useMutation({
     mutationFn: async (variables: AddNewVersionVariables) => {
-      if (item.item.type === backendService.AssetType.project) {
-        await backend.restoreProject(item.item.id, variables.versionId, item.item.title)
+      if (item.type === backendService.AssetType.project) {
+        await backend.restoreProject(item.id, variables.versionId, item.title)
       }
     },
     onMutate: variables => {
@@ -83,7 +82,7 @@ export default function AssetVersions(props: AssetVersionsProps) {
       await versionsQuery.refetch()
     },
     onError: (error: unknown) => {
-      toastAndLog('restoreProjectError', error, item.item.title)
+      toastAndLog('restoreProjectError', error, item.title)
     },
     onSettled: (_data, _error, variables) => {
       setPlaceholderVersions(oldVersions =>

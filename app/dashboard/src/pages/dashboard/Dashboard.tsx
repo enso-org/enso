@@ -103,7 +103,6 @@ function DashboardInner(props: DashboardProps) {
   const inputBindings = inputBindingsProvider.useInputBindings()
   const [isHelpChatOpen, setIsHelpChatOpen] = React.useState(false)
 
-  const dispatchAssetEvent = eventListProvider.useDispatchAssetEvent()
   const dispatchAssetListEvent = eventListProvider.useDispatchAssetListEvent()
 
   const initialLocalProjectId =
@@ -249,12 +248,8 @@ function DashboardInner(props: DashboardProps) {
         if (asset != null && self != null) {
           setModal(
             <ManagePermissionsModal
+              backend={backend}
               item={asset}
-              setItem={valueOrUpdater => {
-                valueOrUpdater =
-                  typeof valueOrUpdater === 'function' ? valueOrUpdater(asset) : valueOrUpdater
-                setAsset(backend, asset.id, valueOrUpdater)
-              }}
               self={self}
               doRemoveSelf={() => {
                 doRemoveSelf(selectedProject)
@@ -371,19 +366,19 @@ function DashboardInner(props: DashboardProps) {
                   openingError={openProjectMutation.error}
                   startProject={openProjectMutation.mutate}
                   renameProject={async newName => {
+                    const backend =
+                      project.type === backendModule.BackendType.remote
+                        ? remoteBackend
+                        : localBackend
                     try {
                       await renameProjectMutation.mutateAsync({ newName, project })
-                      dispatchAssetEvent({
-                        type: AssetEventType.setItem,
-                        id: project.id,
-                        valueOrUpdater: object.merger({ title: newName }),
-                      })
+                      if (backend) {
+                        setAsset(backend, project.id, object.merger({ title: newName }))
+                      }
                     } catch {
-                      dispatchAssetEvent({
-                        type: AssetEventType.setItem,
-                        id: project.id,
-                        valueOrUpdater: object.merger({ title: project.title }),
-                      })
+                      if (backend) {
+                        setAsset(backend, project.id, object.merger({ title: project.title }))
+                      }
                     }
                   }}
                 />

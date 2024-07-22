@@ -7,10 +7,10 @@ import isEmail from 'validator/es/lib/isEmail'
 
 import * as backendHooks from '#/hooks/backendHooks'
 import * as billingHooks from '#/hooks/billing'
+import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
-import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
@@ -24,6 +24,7 @@ import * as paywall from '#/components/Paywall'
 import FocusArea from '#/components/styled/FocusArea'
 
 import * as backendModule from '#/services/Backend'
+import type Backend from '#/services/Backend'
 
 import * as object from '#/utilities/object'
 import * as permissionsModule from '#/utilities/permissions'
@@ -44,8 +45,8 @@ const TYPE_SELECTOR_Y_OFFSET_PX = 32
 export interface ManagePermissionsModalProps<
   Asset extends backendModule.AnyAsset = backendModule.AnyAsset,
 > {
+  readonly backend: Backend
   readonly item: Pick<Asset, 'id' | 'permissions' | 'type'>
-  readonly setItem: React.Dispatch<React.SetStateAction<Asset>>
   readonly self: backendModule.UserPermission
   /** Remove the current user's permissions from this asset. This MUST be a prop because it should
    * change the assets list. */
@@ -60,26 +61,32 @@ export interface ManagePermissionsModalProps<
 export default function ManagePermissionsModal<
   Asset extends backendModule.AnyAsset = backendModule.AnyAsset,
 >(props: ManagePermissionsModalProps<Asset>) {
-  const { item, setItem, self, doRemoveSelf, eventTarget } = props
-  const remoteBackend = backendProvider.useRemoteBackendStrict()
+  const { backend, item, self, doRemoveSelf, eventTarget } = props
   const { user } = authProvider.useFullUserSession()
   const { unsetModal } = modalProvider.useSetModal()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { getText } = textProvider.useText()
+
+  const setAsset = backendHooks.useSetAsset()
+  const setItem = useEventCallback(
+    (valueOrUpdater: React.SetStateAction<backendModule.AnyAsset>) => {
+      setAsset(backend, item.id, valueOrUpdater)
+    }
+  )
 
   const { isFeatureUnderPaywall } = billingHooks.usePaywall({ plan: user.plan })
   const isUnderPaywall = isFeatureUnderPaywall('shareFull')
 
   const listedUsers = reactQuery.useQuery({
     queryKey: ['listUsers'],
-    queryFn: () => remoteBackend.listUsers(),
+    queryFn: () => backend.listUsers(),
     enabled: !isUnderPaywall,
     select: data => (isUnderPaywall ? [] : data),
   })
 
   const listedUserGroups = reactQuery.useQuery({
     queryKey: ['listUserGroups'],
-    queryFn: () => remoteBackend.listUserGroups(),
+    queryFn: () => backend.listUserGroups(),
   })
 
   const [permissions, setPermissions] = React.useState(item.permissions ?? [])
@@ -122,11 +129,8 @@ export default function ManagePermissionsModal<
     [user.userId, permissions, self.permission]
   )
 
-  const inviteUserMutation = backendHooks.useBackendMutation(remoteBackend, 'inviteUser')
-  const createPermissionMutation = backendHooks.useBackendMutation(
-    remoteBackend,
-    'createPermission'
-  )
+  const inviteUserMutation = backendHooks.useBackendMutation(backend, 'inviteUser')
+  const createPermissionMutation = backendHooks.useBackendMutation(backend, 'createPermission')
 
   React.useEffect(() => {
     // This is SAFE, as the type of asset is not being changed.
@@ -387,7 +391,7 @@ export default function ManagePermissionsModal<
                 className="flex h-row items-center"
               >
                 <Permission
-                  backend={remoteBackend}
+                  backend={backend}
                   asset={item}
                   self={self}
                   isOnlyOwner={isOnlyOwner}

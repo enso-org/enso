@@ -21,7 +21,7 @@ export interface AssetNameColumnProps extends column.AssetColumnProps {}
 export default function AssetNameColumn(props: AssetNameColumnProps) {
   const { item } = props
 
-  switch (item.item.type) {
+  switch (item.type) {
     case backendModule.AssetType.directory: {
       return <DirectoryNameColumn {...props} />
     }

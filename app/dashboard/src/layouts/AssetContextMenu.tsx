@@ -372,7 +372,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                   setModal(
                     <ManagePermissionsModal
                       item={asset}
-                      setItem={setAsset}
+                      backend={backend}
                       self={self}
                       eventTarget={eventTarget}
                       doRemoveSelf={() => {

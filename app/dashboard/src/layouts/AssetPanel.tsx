@@ -1,6 +1,8 @@
 /** @file A panel containing the description and settings for an asset. */
 import * as React from 'react'
 
+import { useGetAsset } from '#/hooks/backendHooks'
+
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as textProvider from '#/providers/TextProvider'
 
@@ -15,7 +17,6 @@ import * as backendModule from '#/services/Backend'
 import type Backend from '#/services/Backend'
 
 import * as array from '#/utilities/array'
-import type * as assetTreeNode from '#/utilities/AssetTreeNode'
 import LocalStorage from '#/utilities/LocalStorage'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 
@@ -53,8 +54,7 @@ LocalStorage.registerKey('assetPanelTab', {
 /** The subset of {@link AssetPanelProps} that are required to be supplied by the row. */
 export interface AssetPanelRequiredProps {
   readonly backend: Backend | null
-  readonly item: assetTreeNode.AnyAssetTreeNode | null
-  readonly setItem: React.Dispatch<React.SetStateAction<assetTreeNode.AnyAssetTreeNode>> | null
+  readonly itemId: backendModule.AssetId | null
 }
 
 /** Props for an {@link AssetPanel}. */
@@ -66,8 +66,10 @@ export interface AssetPanelProps extends AssetPanelRequiredProps {
 
 /** A panel containing the description and settings for an asset. */
 export default function AssetPanel(props: AssetPanelProps) {
-  const { isVisible, backend, isReadonly = false, item, setItem, category } = props
+  const { isVisible, backend, isReadonly = false, itemId, category } = props
   const isCloud = backend?.type === backendModule.BackendType.remote
+
+  const item = useGetAsset(backend, itemId).data
 
   const { getText } = textProvider.useText()
   const { localStorage } = localStorageProvider.useLocalStorage()
@@ -81,13 +83,13 @@ export default function AssetPanel(props: AssetPanelProps) {
     if (!isCloud) {
       return AssetPanelTab.properties
     } else if (
-      (item?.item.type === backendModule.AssetType.secret ||
-        item?.item.type === backendModule.AssetType.directory) &&
+      (item?.type === backendModule.AssetType.secret ||
+        item?.type === backendModule.AssetType.directory) &&
       tabRaw === AssetPanelTab.versions
     ) {
       return AssetPanelTab.properties
     } else if (
-      item?.item.type !== backendModule.AssetType.project &&
+      item?.type !== backendModule.AssetType.project &&
       tabRaw === AssetPanelTab.projectSessions
     ) {
       return AssetPanelTab.properties
@@ -122,8 +124,8 @@ export default function AssetPanel(props: AssetPanelProps) {
       <ariaComponents.ButtonGroup className="mt-0.5 grow-0 basis-8">
         {isCloud &&
           item != null &&
-          item.item.type !== backendModule.AssetType.secret &&
-          item.item.type !== backendModule.AssetType.directory && (
+          item.type !== backendModule.AssetType.secret &&
+          item.type !== backendModule.AssetType.directory && (
             <ariaComponents.Button
               size="medium"
               variant="bar"
@@ -142,7 +144,7 @@ export default function AssetPanel(props: AssetPanelProps) {
               {getText('versions')}
             </ariaComponents.Button>
           )}
-        {isCloud && item != null && item.item.type === backendModule.AssetType.project && (
+        {isCloud && item != null && item.type === backendModule.AssetType.project && (
           <ariaComponents.Button
             size="medium"
             variant="bar"
@@ -165,7 +167,7 @@ export default function AssetPanel(props: AssetPanelProps) {
         {/* Spacing. The top right asset and user bars overlap this area. */}
         <div className="grow" />
       </ariaComponents.ButtonGroup>
-      {item == null || setItem == null || backend == null ? (
+      {item == null || backend == null ? (
         <div className="grid grow place-items-center text-lg">
           {getText('selectExactlyOneAssetToViewItsDetails')}
         </div>
@@ -175,8 +177,7 @@ export default function AssetPanel(props: AssetPanelProps) {
             <AssetProperties
               backend={backend}
               isReadonly={isReadonly}
-              item={item}
-              setItem={setItem}
+              itemId={item.id}
               category={category}
             />
           )}
