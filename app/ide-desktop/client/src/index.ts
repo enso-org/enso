@@ -116,7 +116,11 @@ class App {
                         )
 
                         if (ensoLinkInArgs != null) {
-                            electron.app.emit('open-url', ensoLinkInArgs)
+                            electron.app.emit(
+                                'open-url',
+                                new CustomEvent('open-url'),
+                                ensoLinkInArgs
+                            )
                         }
                     }
 
