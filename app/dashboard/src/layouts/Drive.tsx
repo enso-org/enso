@@ -8,7 +8,6 @@ import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
-import DriveProvider from '#/providers/DriveProvider'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as textProvider from '#/providers/TextProvider'
 
@@ -247,102 +246,100 @@ export default function Drive(props: DriveProps) {
     case DriveStatus.offline:
     case DriveStatus.ok: {
       return (
-        <DriveProvider>
-          <div className={tailwindMerge.twMerge('relative flex grow', hidden && 'hidden')}>
-            <div
-              data-testid="drive-view"
-              className="mt-4 flex flex-1 flex-col gap-4 overflow-visible px-page-x"
-            >
-              <DriveBar
-                backend={backend}
-                query={query}
-                setQuery={setQuery}
-                suggestions={suggestions}
-                category={category}
-                isAssetPanelOpen={isAssetPanelVisible}
-                setIsAssetPanelOpen={valueOrUpdater => {
-                  const newValue =
-                    typeof valueOrUpdater === 'function'
-                      ? valueOrUpdater(isAssetPanelVisible)
-                      : valueOrUpdater
-                  setIsAssetPanelTemporarilyVisible(false)
-                  setIsAssetPanelEnabled(newValue)
-                }}
-                doEmptyTrash={doEmptyTrash}
-                doCreateProject={doCreateProject}
-                doUploadFiles={doUploadFiles}
-                doCreateDirectory={doCreateDirectory}
-                doCreateSecret={doCreateSecret}
-                doCreateDatalink={doCreateDatalink}
-              />
+        <div className={tailwindMerge.twMerge('relative flex grow', hidden && 'hidden')}>
+          <div
+            data-testid="drive-view"
+            className="mt-4 flex flex-1 flex-col gap-4 overflow-visible px-page-x"
+          >
+            <DriveBar
+              backend={backend}
+              query={query}
+              setQuery={setQuery}
+              suggestions={suggestions}
+              category={category}
+              isAssetPanelOpen={isAssetPanelVisible}
+              setIsAssetPanelOpen={valueOrUpdater => {
+                const newValue =
+                  typeof valueOrUpdater === 'function'
+                    ? valueOrUpdater(isAssetPanelVisible)
+                    : valueOrUpdater
+                setIsAssetPanelTemporarilyVisible(false)
+                setIsAssetPanelEnabled(newValue)
+              }}
+              doEmptyTrash={doEmptyTrash}
+              doCreateProject={doCreateProject}
+              doUploadFiles={doUploadFiles}
+              doCreateDirectory={doCreateDirectory}
+              doCreateSecret={doCreateSecret}
+              doCreateDatalink={doCreateDatalink}
+            />
 
-              <div className="flex flex-1 gap-drive overflow-hidden">
-                <div className="flex w-drive-sidebar flex-col gap-drive-sidebar py-drive-sidebar-y">
-                  <CategorySwitcher category={category} setCategory={setCategory} />
-                  {isCloud && (
-                    <Labels
-                      backend={backend}
-                      draggable={category !== Category.trash}
-                      query={query}
-                      setQuery={setQuery}
-                    />
-                  )}
-                </div>
-                {status === DriveStatus.offline ? (
-                  <result.Result
-                    status="info"
-                    className="my-12"
-                    centered="horizontal"
-                    title={getText('cloudUnavailableOffline')}
-                    subtitle={`${getText('cloudUnavailableOfflineDescription')} ${supportLocalBackend ? getText('cloudUnavailableOfflineDescriptionOfferLocal') : ''}`}
-                  >
-                    {supportLocalBackend && (
-                      <ariaComponents.Button
-                        variant="primary"
-                        size="small"
-                        className="mx-auto"
-                        onPress={() => {
-                          setCategory(Category.local)
-                        }}
-                      >
-                        {getText('switchToLocal')}
-                      </ariaComponents.Button>
-                    )}
-                  </result.Result>
-                ) : (
-                  <AssetsTable
-                    assetManagementApiRef={assetsManagementApiRef}
-                    hidden={hidden}
+            <div className="flex flex-1 gap-drive overflow-hidden">
+              <div className="flex w-drive-sidebar flex-col gap-drive-sidebar py-drive-sidebar-y">
+                <CategorySwitcher category={category} setCategory={setCategory} />
+                {isCloud && (
+                  <Labels
+                    backend={backend}
+                    draggable={category !== Category.trash}
                     query={query}
                     setQuery={setQuery}
-                    category={category}
-                    setSuggestions={setSuggestions}
-                    initialProjectName={initialProjectName}
-                    setAssetPanelProps={setAssetPanelProps}
-                    setIsAssetPanelTemporarilyVisible={setIsAssetPanelTemporarilyVisible}
-                    targetDirectoryNodeRef={targetDirectoryNodeRef}
                   />
                 )}
               </div>
-            </div>
-            <div
-              className={tailwindMerge.twMerge(
-                'flex flex-col overflow-hidden transition-min-width duration-side-panel ease-in-out',
-                isAssetPanelVisible ? 'min-w-side-panel' : 'min-w'
+              {status === DriveStatus.offline ? (
+                <result.Result
+                  status="info"
+                  className="my-12"
+                  centered="horizontal"
+                  title={getText('cloudUnavailableOffline')}
+                  subtitle={`${getText('cloudUnavailableOfflineDescription')} ${supportLocalBackend ? getText('cloudUnavailableOfflineDescriptionOfferLocal') : ''}`}
+                >
+                  {supportLocalBackend && (
+                    <ariaComponents.Button
+                      variant="primary"
+                      size="small"
+                      className="mx-auto"
+                      onPress={() => {
+                        setCategory(Category.local)
+                      }}
+                    >
+                      {getText('switchToLocal')}
+                    </ariaComponents.Button>
+                  )}
+                </result.Result>
+              ) : (
+                <AssetsTable
+                  assetManagementApiRef={assetsManagementApiRef}
+                  hidden={hidden}
+                  query={query}
+                  setQuery={setQuery}
+                  category={category}
+                  setSuggestions={setSuggestions}
+                  initialProjectName={initialProjectName}
+                  setAssetPanelProps={setAssetPanelProps}
+                  setIsAssetPanelTemporarilyVisible={setIsAssetPanelTemporarilyVisible}
+                  targetDirectoryNodeRef={targetDirectoryNodeRef}
+                />
               )}
-            >
-              <AssetPanel
-                isVisible={isAssetPanelVisible}
-                key={assetPanelProps?.item?.item.id}
-                backend={assetPanelProps?.backend ?? null}
-                item={assetPanelProps?.item ?? null}
-                setItem={assetPanelProps?.setItem ?? null}
-                category={category}
-                isReadonly={category === Category.trash}
-              />
             </div>
           </div>
-        </DriveProvider>
+          <div
+            className={tailwindMerge.twMerge(
+              'flex flex-col overflow-hidden transition-min-width duration-side-panel ease-in-out',
+              isAssetPanelVisible ? 'min-w-side-panel' : 'min-w'
+            )}
+          >
+            <AssetPanel
+              isVisible={isAssetPanelVisible}
+              key={assetPanelProps?.item?.item.id}
+              backend={assetPanelProps?.backend ?? null}
+              item={assetPanelProps?.item ?? null}
+              setItem={assetPanelProps?.setItem ?? null}
+              category={category}
+              isReadonly={category === Category.trash}
+            />
+          </div>
+        </div>
       )
     }
   }
