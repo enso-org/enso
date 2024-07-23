@@ -43,6 +43,7 @@ public abstract class HashMapInsertNode extends Node {
       Object value,
       @Shared("hash") @Cached HashCodeNode hashCodeNode,
       @Shared("equals") @Cached EqualsNode equalsNode) {
+    assert value != null;
     var mapBuilder = hashMap.getMapBuilder(frame, false, hashCodeNode, equalsNode);
     mapBuilder.put(frame, key, value, hashCodeNode, equalsNode);
     var newMap = mapBuilder.build();
@@ -63,6 +64,7 @@ public abstract class HashMapInsertNode extends Node {
       @CachedLibrary(limit = "3") InteropLibrary iteratorInterop,
       @Shared("hash") @Cached HashCodeNode hashCodeNode,
       @Shared("equals") @Cached EqualsNode equalsNode) {
+    assert valueToInsert != null;
     var mapBuilder = EnsoHashMapBuilder.create();
     try {
       Object entriesIterator = mapInterop.getHashEntriesIterator(foreignMap);
