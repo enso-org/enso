@@ -2879,8 +2879,8 @@ lazy val `desktop-environment` =
         "org.graalvm.sdk"  % "graal-sdk"       % graalMavenPackagesVersion % "provided",
         "commons-io"       % "commons-io"      % commonsIoVersion,
         "net.java.dev.jna" % "jna-platform"    % jnaVersion,
-        "junit"            % "junit"           % junitVersion   % Test,
-        "com.github.sbt"   % "junit-interface" % junitIfVersion % Test
+        "junit"            % "junit"           % junitVersion              % Test,
+        "com.github.sbt"   % "junit-interface" % junitIfVersion            % Test
       )
     )
 
