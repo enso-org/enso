@@ -3,6 +3,7 @@ package org.enso.interpreter.runtime.warning;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Cached.Shared;
+import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
@@ -46,11 +47,12 @@ public abstract class GetAllWarningsNode extends Node {
     return ArrayLikeHelpers.asVectorEnsoObjects(warns);
   }
 
-  @Specialization
+  @Fallback
   Object doGeneric(
       Object value,
       boolean shouldWrap,
       @Shared @CachedLibrary(limit = "3") WarningsLibrary warningsLib) {
+    assert !(value instanceof WithWarnings);
     if (warningsLib.hasWarnings(value)) {
       try {
         Warning[] warnings = warningsLib.getWarnings(value, null, shouldWrap);
