@@ -1736,39 +1736,48 @@ export default function AssetsTable(props: AssetsTableProps) {
         break
       }
       case AssetListEventType.duplicateProject: {
-        const siblings = nodeMapRef.current.get(event.parentKey)?.children ?? []
-        const siblingTitles = new Set(siblings.map(sibling => sibling.item.title))
-        let index = 1
-        let title = `${event.original.title} (${index})`
-        while (siblingTitles.has(title)) {
-          index += 1
-          title = `${event.original.title} (${index})`
+        let parentKey: backendModule.DirectoryId | null = null
+        for (const node of nodeMapRef.current.values()) {
+          if (node.item.id === event.parentId && node.type === backendModule.AssetType.directory) {
+            parentKey = node.key
+            break
+          }
         }
-        const placeholderItem: backendModule.ProjectAsset = {
-          type: backendModule.AssetType.project,
-          id: backendModule.ProjectId(uniqueString.uniqueString()),
-          title,
-          modifiedAt: dateTime.toRfc3339(new Date()),
-          parentId: event.parentId,
-          permissions: permissions.tryGetSingletonOwnerPermission(user),
-          projectState: {
-            type: backendModule.ProjectState.placeholder,
-            volumeId: '',
-            openedBy: user.email,
-          },
-          labels: [],
-          description: null,
+        if (parentKey != null) {
+          const siblings = nodeMapRef.current.get(parentKey)?.children ?? []
+          const siblingTitles = new Set(siblings.map(sibling => sibling.item.title))
+          let index = 1
+          let title = `${event.original.title} (${index})`
+          while (siblingTitles.has(title)) {
+            index += 1
+            title = `${event.original.title} (${index})`
+          }
+          const placeholderItem: backendModule.ProjectAsset = {
+            type: backendModule.AssetType.project,
+            id: backendModule.ProjectId(uniqueString.uniqueString()),
+            title,
+            modifiedAt: dateTime.toRfc3339(new Date()),
+            parentId: event.parentId,
+            permissions: permissions.tryGetSingletonOwnerPermission(user),
+            projectState: {
+              type: backendModule.ProjectState.placeholder,
+              volumeId: '',
+              openedBy: user.email,
+            },
+            labels: [],
+            description: null,
+          }
+          insertAssets([placeholderItem], parentKey, event.parentId, () => [
+            {
+              type: AssetEventType.newProject,
+              placeholderId: placeholderItem.id,
+              templateId: null,
+              datalinkId: null,
+              originalId: event.original.id,
+              versionId: event.versionId,
+            },
+          ])
         }
-        insertAssets([placeholderItem], event.parentKey, event.parentId, () => [
-          {
-            type: AssetEventType.newProject,
-            placeholderId: placeholderItem.id,
-            templateId: null,
-            datalinkId: null,
-            originalId: event.original.id,
-            versionId: event.versionId,
-          },
-        ])
         break
       }
       case AssetListEventType.willDelete: {

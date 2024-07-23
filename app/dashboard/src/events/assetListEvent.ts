@@ -99,7 +99,6 @@ export interface AssetListOpenProjectEvent
 /** A signal to duplicate a project. */
 interface AssetListDuplicateProjectEvent
   extends AssetListBaseEvent<AssetListEventType.duplicateProject> {
-  readonly parentKey: backend.DirectoryId
   readonly parentId: backend.DirectoryId
   readonly original: backend.ProjectAsset
   readonly versionId: backend.S3ObjectVersionId
