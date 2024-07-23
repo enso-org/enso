@@ -34,6 +34,7 @@ import type Backend from '#/services/Backend'
 
 import type AssetQuery from '#/utilities/AssetQuery'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
+import { useCanDownload } from '#/providers/DriveProvider'
 
 // ================
 // === DriveBar ===
@@ -46,7 +47,6 @@ export interface DriveBarProps {
   readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
   readonly suggestions: readonly assetSearchBar.Suggestion[]
   readonly category: Category
-  readonly canDownload: boolean
   readonly isAssetPanelOpen: boolean
   readonly setIsAssetPanelOpen: React.Dispatch<React.SetStateAction<boolean>>
   readonly doEmptyTrash: () => void
@@ -60,7 +60,7 @@ export interface DriveBarProps {
 /** Displays the current directory path and permissions, upload and download buttons,
  * and a column display mode switcher. */
 export default function DriveBar(props: DriveBarProps) {
-  const { backend, query, setQuery, suggestions, category, canDownload } = props
+  const { backend, query, setQuery, suggestions, category } = props
   const { doEmptyTrash, doCreateProject, doCreateDirectory } = props
   const { doCreateSecret, doCreateDatalink, doUploadFiles } = props
   const { isAssetPanelOpen, setIsAssetPanelOpen } = props
@@ -71,6 +71,7 @@ export default function DriveBar(props: DriveBarProps) {
   const uploadFilesRef = React.useRef<HTMLInputElement>(null)
   const isCloud = categoryModule.isCloud(category)
   const { isOffline } = offlineHooks.useOffline()
+  const canDownload = useCanDownload()
 
   const shouldBeDisabled = isCloud && isOffline
 

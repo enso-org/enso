@@ -572,26 +572,26 @@ export default function AssetRow(props: AssetRowProps) {
           break
         }
         case AssetEventType.temporarilyAddLabels: {
-          const labels = event.ids.has(item.key) ? event.labelNames : set.EMPTY
+          const labels = event.ids.has(item.key) ? event.labelNames : set.EMPTY_SET
           setRowState(oldRowState =>
             oldRowState.temporarilyAddedLabels === labels &&
-            oldRowState.temporarilyRemovedLabels === set.EMPTY
+            oldRowState.temporarilyRemovedLabels === set.EMPTY_SET
               ? oldRowState
               : object.merge(oldRowState, {
                   temporarilyAddedLabels: labels,
-                  temporarilyRemovedLabels: set.EMPTY,
+                  temporarilyRemovedLabels: set.EMPTY_SET,
                 })
           )
           break
         }
         case AssetEventType.temporarilyRemoveLabels: {
-          const labels = event.ids.has(item.key) ? event.labelNames : set.EMPTY
+          const labels = event.ids.has(item.key) ? event.labelNames : set.EMPTY_SET
           setRowState(oldRowState =>
-            oldRowState.temporarilyAddedLabels === set.EMPTY &&
+            oldRowState.temporarilyAddedLabels === set.EMPTY_SET &&
             oldRowState.temporarilyRemovedLabels === labels
               ? oldRowState
               : object.merge(oldRowState, {
-                  temporarilyAddedLabels: set.EMPTY,
+                  temporarilyAddedLabels: set.EMPTY_SET,
                   temporarilyRemovedLabels: labels,
                 })
           )
@@ -599,9 +599,9 @@ export default function AssetRow(props: AssetRowProps) {
         }
         case AssetEventType.addLabels: {
           setRowState(oldRowState =>
-            oldRowState.temporarilyAddedLabels === set.EMPTY
+            oldRowState.temporarilyAddedLabels === set.EMPTY_SET
               ? oldRowState
-              : object.merge(oldRowState, { temporarilyAddedLabels: set.EMPTY })
+              : object.merge(oldRowState, { temporarilyAddedLabels: set.EMPTY_SET })
           )
           const labels = asset.labels
           if (
@@ -624,9 +624,9 @@ export default function AssetRow(props: AssetRowProps) {
         }
         case AssetEventType.removeLabels: {
           setRowState(oldRowState =>
-            oldRowState.temporarilyAddedLabels === set.EMPTY
+            oldRowState.temporarilyAddedLabels === set.EMPTY_SET
               ? oldRowState
-              : object.merge(oldRowState, { temporarilyAddedLabels: set.EMPTY })
+              : object.merge(oldRowState, { temporarilyAddedLabels: set.EMPTY_SET })
           )
           const labels = asset.labels
           if (
@@ -675,9 +675,9 @@ export default function AssetRow(props: AssetRowProps) {
   const clearDragState = React.useCallback(() => {
     setIsDraggedOver(false)
     setRowState(oldRowState =>
-      oldRowState.temporarilyAddedLabels === set.EMPTY
+      oldRowState.temporarilyAddedLabels === set.EMPTY_SET
         ? oldRowState
-        : object.merge(oldRowState, { temporarilyAddedLabels: set.EMPTY })
+        : object.merge(oldRowState, { temporarilyAddedLabels: set.EMPTY_SET })
     )
   }, [])
 
