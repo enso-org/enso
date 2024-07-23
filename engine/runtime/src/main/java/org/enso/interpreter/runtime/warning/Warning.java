@@ -19,11 +19,10 @@ import org.enso.interpreter.runtime.data.ArrayRope;
 import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.hash.EnsoHashMap;
+import org.enso.interpreter.runtime.data.hash.HashMapInsertNode;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeAtNode;
-import org.enso.interpreter.runtime.data.vector.ArrayLikeAtNodeGen;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeLengthNode;
-import org.enso.interpreter.runtime.data.vector.ArrayLikeLengthNodeGen;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 
 @Builtin(pkg = "error", stdlibName = "Standard.Base.Warning.Warning")
@@ -89,8 +88,8 @@ public final class Warning implements EnsoObject {
   }
 
   public static Warning[] fromMapToArray(
-      EnsoHashMap set, ArrayLikeLengthNode lengthNode, ArrayLikeAtNode atNode) {
-    var vec = set.getCachedVectorRepresentation();
+      EnsoHashMap map, ArrayLikeLengthNode lengthNode, ArrayLikeAtNode atNode) {
+    var vec = map.getCachedVectorRepresentation();
     var vecLen = Math.toIntExact(lengthNode.executeLength(vec));
     Warning[] warns = new Warning[vecLen];
     try {
@@ -104,6 +103,17 @@ public final class Warning implements EnsoObject {
       throw CompilerDirectives.shouldNotReachHere(e);
     }
     return warns;
+  }
+
+  public static EnsoHashMap fromArrayToMap(
+      Warning[] warnings,
+      HashMapInsertNode mapInsertNode
+  ) {
+    var map = EnsoHashMap.empty();
+    for (var warn : warnings) {
+      map = mapInsertNode.execute(null, map, warn.getSequenceId(), warn);
+    }
+    return map;
   }
 
   @CompilerDirectives.TruffleBoundary

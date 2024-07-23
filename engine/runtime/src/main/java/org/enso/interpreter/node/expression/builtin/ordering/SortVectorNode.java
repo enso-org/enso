@@ -45,6 +45,7 @@ import org.enso.interpreter.runtime.state.State;
 import org.enso.interpreter.runtime.warning.AppendWarningNodeGen;
 import org.enso.interpreter.runtime.warning.Warning;
 import org.enso.interpreter.runtime.warning.WarningsLibrary;
+import org.enso.interpreter.runtime.warning.WithWarnings;
 
 /**
  * Sorts a vector with elements that have only Default_Comparator, thus, only elements with a
@@ -66,7 +67,7 @@ public abstract class SortVectorNode extends Node {
    * @param self Vector that has elements with only Default_Comparator, that are elements with
    *     builtin types.
    * @param ascending -1 for descending, 1 for ascending
-   * @param comparators Vector of comparators, with the same length of self. This is gather in the
+   * @param comparators Vector of comparators, with the same length of self. This is gathered in the
    *     Enso code, because doing that in this builtin would be difficult. If {@code onFunc}
    *     parameter is not {@code Nothing}, comparators are gathered from the result of {@code
    *     onFunc} projection.
@@ -355,7 +356,7 @@ public abstract class SortVectorNode extends Node {
             .limit(MAX_SORT_WARNINGS)
             .toArray(Warning[]::new);
     var reachedMaxCount = warnArray.length < warnings.size();
-    return AppendWarningNodeGen.getUncached().execute(null, vector, warnArray);
+    return WithWarnings.create(vector, MAX_SORT_WARNINGS, reachedMaxCount, warnArray);
   }
 
   private Object attachDifferentComparatorsWarning(Object vector, List<Group> groups) {
@@ -366,8 +367,13 @@ public abstract class SortVectorNode extends Node {
             .collect(Collectors.joining(", "));
     var text = Text.create("Different comparators: [" + diffCompsMsg + "]");
     var ctx = EnsoContext.get(this);
-    var warn = Warning.create(ctx, text, this);
-    return AppendWarningNodeGen.getUncached().execute(null, vector, warn);
+    var warnsLib = WarningsLibrary.getUncached();
+    if (warnsLib.hasWarnings(vector) && warnsLib.isLimitReached(vector)) {
+      return vector;
+    } else {
+      var warn = Warning.create(ctx, text, this);
+      return AppendWarningNodeGen.getUncached().execute(null, vector, warn);
+    }
   }
 
   private String getDefaultComparatorQualifiedName() {

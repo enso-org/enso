@@ -78,10 +78,39 @@ public final class WithWarnings implements EnsoObject {
    */
   WithWarnings(Object value, int maxWarnings, boolean limitReached, EnsoHashMap warningsMap) {
     assert isAcceptableValue(value);
+    assert warningsMap.getHashSize() <= maxWarnings;
+    if (limitReached) {
+      assert warningsMap.getHashSize() == maxWarnings;
+    }
     this.value = value;
     this.maxWarnings = maxWarnings;
     this.limitReached = limitReached || warningsMap.getHashSize() >= maxWarnings;
     this.warnings = warningsMap;
+  }
+
+  /**
+   * Explicit creation of WithWarnings. Allows to set a specific {@code maxWarnings} count, which
+   * cannot be achieved by using warning-handling nodes like {@link AppendWarningNode}. If
+   * {@code maxWarnings} does not need to be set explicitly, use nodes to create WithWarning objects
+   * instead.
+   *
+   * @param value value to be wrapped in warnings
+   * @param maxWarnings maximal number of warnings allowed to be attached to the value
+   * @param limitReached if `true`, no other warnings will be attached to the {@code value}.
+   * @param warnings array of warnings to be attached to the {@code value}
+   */
+  public static WithWarnings create(
+      Object  value,
+      int maxWarnings,
+      boolean limitReached,
+      Warning[] warnings
+  ) {
+    assert warnings.length <= maxWarnings;
+    if (limitReached) {
+      assert warnings.length == maxWarnings;
+    }
+    var warnMap = Warning.fromArrayToMap(warnings, HashMapInsertNodeGen.getUncached());
+    return new WithWarnings(value, maxWarnings, limitReached, warnMap);
   }
 
   private static boolean isAcceptableValue(Object value) {
