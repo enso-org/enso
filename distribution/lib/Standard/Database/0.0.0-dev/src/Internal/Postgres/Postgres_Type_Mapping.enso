@@ -132,6 +132,10 @@ type Postgres_Type_Mapping
         False
 
     ## PRIVATE
+    should_warn_on_materialize (db_type : Value_Type) (in_memory_type : Value_Type) -> Boolean =
+        SQL_Type_Mapping.default_should_warn_on_materialize db_type in_memory_type
+
+    ## PRIVATE
     is_integer_type (value_type : Value_Type) -> Boolean = value_type.is_integer
 
     ## PRIVATE

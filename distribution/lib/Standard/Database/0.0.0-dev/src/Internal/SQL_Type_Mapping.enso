@@ -100,6 +100,13 @@ type SQL_Type_Mapping
         Unimplemented.throw "This is an interface only."
 
     ## PRIVATE
+       Specifies if the given type coercion should raise an
+       `Inexact_Type_Coercion` warning when materializing a table into memory.
+    should_warn_on_materialize (db_type : Value_Type) (in_memory_type : Value_Type) -> Boolean =
+        _ = [db_type, in_memory_type]
+        Unimplemented.throw "This is an interface only."
+
+    ## PRIVATE
        Specifies if this backend recognizes the given type as an integer type.
 
        For most backends, this should just be `.is_integer`.
@@ -133,3 +140,11 @@ default_sql_type_to_text sql_type =
             if sql_type.scale.is_nothing then "(" + sql_type.precision.to_text + ")" else
                 " (" + sql_type.precision.to_text + "," + sql_type.scale.to_text + ")"
     sql_type.name.trim + suffix
+
+## PRIVATE
+default_should_warn_on_materialize (db_type : Value_Type) (in_memory_type : Value_Type) =
+    ## We ignore simple approximations that our in-memory backend does - things like adding default
+       timezone (because we do not have Date_Time without timezone in-memory),
+       or changing Float32 to Float64 are silently ignored.
+       However, bigger changes, like a Binary type column getting coerced to Mixed - _will_ still be reported.
+    (Meta.meta db_type . constructor) != (Meta.meta in_memory_type . constructor)

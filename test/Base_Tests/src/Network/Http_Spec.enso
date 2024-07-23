@@ -559,30 +559,30 @@ add_specs suite_builder =
     suite_builder.group "Header resolution" group_builder->
         group_builder.specify "Default content type and encoding" <|
             expected = [Header.content_type "text/plain; charset=UTF-8"]
-            resolve_headers (Request.new HTTP_Method.Get "" [] (Request_Body.Text "")) . should_contain_the_same_elements_as expected
+            resolve_headers (Request.new HTTP_Method.Get "" [] (Request_Body.Text "")) . should_equal_ignoring_order expected
 
         group_builder.specify "Content type specified in body" <|
             expected = [Header.content_type "application/json; charset=UTF-8"]
-            resolve_headers (Request.new HTTP_Method.Get "" [] (Request_Body.Text "" content_type="application/json")) . should_contain_the_same_elements_as expected
+            resolve_headers (Request.new HTTP_Method.Get "" [] (Request_Body.Text "" content_type="application/json")) . should_equal_ignoring_order expected
 
         group_builder.specify "Content type specified in header list" <|
             expected = [Header.content_type "application/json"]
-            resolve_headers (Request.new HTTP_Method.Get "" [Header.content_type "application/json"] (Request_Body.Text "")) . should_contain_the_same_elements_as expected
+            resolve_headers (Request.new HTTP_Method.Get "" [Header.content_type "application/json"] (Request_Body.Text "")) . should_equal_ignoring_order expected
 
         group_builder.specify "Text encoding specified in body" <|
             expected = [Header.content_type "text/plain; charset=UTF-16LE"]
-            resolve_headers (Request.new HTTP_Method.Get "" [] (Request_Body.Text "" encoding=Encoding.utf_16_le)) . should_contain_the_same_elements_as expected
+            resolve_headers (Request.new HTTP_Method.Get "" [] (Request_Body.Text "" encoding=Encoding.utf_16_le)) . should_equal_ignoring_order expected
 
         group_builder.specify "Can't specify content type in both places" <|
             resolve_headers (Request.new HTTP_Method.Get "" [Header.content_type "application/json"] (Request_Body.Text "" content_type="text/plain")) . should_fail_with Illegal_Argument
 
         group_builder.specify "Custom header" <|
             expected = [Header.new "some" "header", Header.content_type "application/json; charset=UTF-8"]
-            resolve_headers (Request.new HTTP_Method.Get "" [Header.new "some" "header"] (Request_Body.Text "" content_type="application/json")) . should_contain_the_same_elements_as expected
+            resolve_headers (Request.new HTTP_Method.Get "" [Header.new "some" "header"] (Request_Body.Text "" content_type="application/json")) . should_equal_ignoring_order expected
 
         group_builder.specify "Multiple content types in header list are ok" <|
             expected = [Header.content_type "application/json", Header.content_type "text/plain"]
-            resolve_headers (Request.new HTTP_Method.Get "" [Header.content_type "application/json", Header.content_type "text/plain"] (Request_Body.Text "")) . should_contain_the_same_elements_as expected
+            resolve_headers (Request.new HTTP_Method.Get "" [Header.content_type "application/json", Header.content_type "text/plain"] (Request_Body.Text "")) . should_equal_ignoring_order expected
 
     suite_builder.group "Http Error handling" group_builder->
         group_builder.specify "should be able to handle request errors" <|

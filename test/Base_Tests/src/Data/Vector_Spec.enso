@@ -912,7 +912,9 @@ type_spec suite_builder name alter = suite_builder.group name group_builder->
             _ -> x
         input = 0.up_to 500 . map gen
         sorted = input.sort on_problems=..Report_Warning
-        Warning.get_all sorted . length . should_equal 10
+        warnings = Warning.get_all sorted
+        Test.with_clue "(sorted - warnings = "+warnings.to_display_text+") " <|
+            warnings.length . should_equal 10
         Warning.limit_reached sorted . should_equal True
 
     group_builder.specify "an error thrown inside map should be caught as a Map_Error" <|

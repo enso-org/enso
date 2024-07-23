@@ -20,6 +20,7 @@
   anymore, except by directily editing the code.
 - [Improved handling of spacing around rounded node widgets][10599], added
   support for widgets of arbitrary sizes.
+- [Multiselect drop-down widget visuals are improved][10607].
 
 [10433]: https://github.com/enso-org/enso/pull/10443
 [10457]: https://github.com/enso-org/enso/pull/10457
@@ -27,6 +28,7 @@
 [10546]: https://github.com/enso-org/enso/pull/10546
 [10577]: https://github.com/enso-org/enso/pull/10577
 [10599]: https://github.com/enso-org/enso/pull/10599
+[10607]: https://github.com/enso-org/enso/pull/10607
 
 #### Enso Enso Standard Library
 

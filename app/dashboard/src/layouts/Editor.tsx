@@ -116,7 +116,11 @@ export default function Editor(props: EditorProps) {
   }
 
   return (
-    <div className={twMerge.twJoin('contents', hidden && 'hidden')} data-testvalue={project.id}>
+    <div
+      className={twMerge.twJoin('contents', hidden && 'hidden')}
+      data-testvalue={project.id}
+      data-testid="editor"
+    >
       {(() => {
         if (projectQuery.isError) {
           return (
@@ -188,7 +192,7 @@ function EditorInternal(props: EditorInternalProps) {
   const appProps = React.useMemo<GraphEditorProps>(() => {
     const jsonAddress = openedProject.jsonAddress
     const binaryAddress = openedProject.binaryAddress
-    const ydocAddress = ydocUrl ?? ''
+    const ydocAddress = openedProject.ydocAddress ?? ydocUrl ?? ''
     const backend = backendType === backendModule.BackendType.remote ? remoteBackend : localBackend
 
     if (jsonAddress == null) {

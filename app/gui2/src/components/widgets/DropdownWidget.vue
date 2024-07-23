@@ -97,6 +97,12 @@ export interface DropdownEntry {
 
 <style scoped>
 .DropdownWidget {
+  --item-height: 23px;
+  --dropdown-padding: 6px;
+  /* When dropdown is displayed right below the last node's argument, the rounded corner needs to be
+     covered. This is done by covering extra node-sized space at the top of the dropdown. */
+  --dropdown-extend: calc(var(--node-height) - var(--extend-margin));
+
   position: relative;
   user-select: none;
   min-width: 100%;
@@ -108,7 +114,7 @@ export interface DropdownEntry {
   margin-top: calc(0px - var(--dropdown-extend));
   padding-top: var(--dropdown-extend);
   background-color: var(--dropdown-bg);
-  border-radius: 16px;
+  border-radius: calc(var(--item-height) / 2 + var(--dropdown-padding));
 
   &:before {
     content: '';
@@ -123,29 +129,54 @@ export interface DropdownEntry {
 }
 .list {
   overflow: auto;
-  border-radius: 0 0 16px 16px;
   min-width: 100%;
   min-height: 16px;
   max-height: 152px;
   list-style-type: none;
   color: var(--color-text-light);
-  background: var(--dropdown-bg);
   scrollbar-width: thin;
-  padding: 6px;
+  padding: var(--dropdown-padding);
   position: relative;
 }
 
-li {
+.item {
+  padding-left: 8px;
+  padding-right: 8px;
+  border-radius: calc(var(--item-height) / 2);
+  height: var(--item-height);
   text-align: left;
   max-width: 100%;
   overflow: hidden;
+
+  &:hover {
+    background-color: color-mix(in oklab, var(--color-port-connected) 50%, transparent 50%);
+    span {
+      --text-scroll-max: calc(var(--dropdown-max-width) - 28px);
+      will-change: transform;
+      animation: 6s 1s infinite text-scroll;
+    }
+  }
+
+  &:not(.selected):hover {
+    color: white;
+  }
+
+  &.selected {
+    background-color: var(--color-port-connected);
+
+    & + .selected {
+      border-top-left-radius: 0;
+      border-top-right-radius: 0;
+    }
+
+    &:has(+ .selected) {
+      border-bottom-left-radius: 0;
+      border-bottom-right-radius: 0;
+    }
+  }
 }
 
-.item:not(.selected):hover {
-  color: white;
-}
-
-.list .itemContent {
+.itemContent {
   display: inline-block;
   max-width: 100%;
   white-space: nowrap;
@@ -154,14 +185,6 @@ li {
   margin: 3px 0;
   text-wrap: nowrap;
   text-overflow: ellipsis;
-}
-
-li.item:hover {
-  span {
-    --text-scroll-max: calc(var(--dropdown-max-width) - 28px);
-    will-change: transform;
-    animation: 6s 1s infinite text-scroll;
-  }
 }
 
 @keyframes text-scroll {
@@ -202,18 +225,5 @@ li.item:hover {
 
 .sort > img {
   position: relative;
-}
-
-.item {
-  padding-left: 8px;
-  padding-right: 8px;
-  border-radius: var(--radius-full);
-
-  &:hover {
-    background-color: color-mix(in oklab, var(--color-port-connected) 50%, transparent 50%);
-  }
-  &.selected {
-    background-color: var(--color-port-connected);
-  }
 }
 </style>

@@ -284,17 +284,18 @@ class JsonConnectionController(
         cancellable.cancel()
         unstashAll()
 
+        val allContentRoots = allRoots.map(_.toContentRoot).toSet
         receiver ! ResponseResult(
           InitProtocolConnection,
           request.id,
           InitProtocolConnection.Result(
             buildinfo.Info.ensoVersion,
             buildinfo.Info.currentEdition,
-            allRoots.map(_.toContentRoot).toSet
+            allContentRoots
           )
         )
 
-        initialize(webActor, rpcSession)
+        initialize(webActor, rpcSession, allContentRoots)
       } else {
         context.become(
           waitingForContentRoots(
@@ -303,7 +304,7 @@ class JsonConnectionController(
             request     = request,
             receiver    = receiver,
             cancellable = cancellable,
-            rootsSoFar  = roots ++ rootsSoFar
+            rootsSoFar  = allRoots
           )
         )
       }
@@ -319,10 +320,11 @@ class JsonConnectionController(
 
   private def initialize(
     webActor: ActorRef,
-    rpcSession: JsonSession
+    rpcSession: JsonSession,
+    roots: Set[ContentRoot]
   ): Unit = {
     val requestHandlers = createRequestHandlers(rpcSession)
-    context.become(initialised(webActor, rpcSession, requestHandlers))
+    context.become(initialised(webActor, rpcSession, requestHandlers, roots))
 
     context.system.eventStream
       .subscribe(self, classOf[Api.ProgressNotification])
@@ -331,10 +333,27 @@ class JsonConnectionController(
   private def initialised(
     webActor: ActorRef,
     rpcSession: JsonSession,
-    requestHandlers: Map[Method, Props]
+    requestHandlers: Map[Method, Props],
+    roots: Set[ContentRoot]
   ): Receive = LoggingReceive {
-    case Request(InitProtocolConnection, id, _) =>
-      sender() ! ResponseError(Some(id), SessionAlreadyInitialisedError)
+    case Request(
+          InitProtocolConnection,
+          id,
+          InitProtocolConnection.Params(clientId)
+        ) =>
+      if (clientId == rpcSession.clientId) {
+        sender() ! ResponseResult(
+          InitProtocolConnection,
+          id,
+          InitProtocolConnection.Result(
+            buildinfo.Info.ensoVersion,
+            buildinfo.Info.currentEdition,
+            roots
+          )
+        )
+      } else {
+        sender() ! ResponseError(Some(id), SessionAlreadyInitialisedError)
+      }
 
     case MessageHandler.Disconnected(_) =>
       logger.info("Session terminated [{}].", rpcSession.clientId)
