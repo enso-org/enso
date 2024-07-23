@@ -627,6 +627,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     true
   )
 
+  const fetchListDirectory = backendHooks.useFetchBackendQuery(backend, 'listDirectory')
   const updateSecretMutation = backendHooks.useBackendMutation(backend, 'updateSecret')
   React.useEffect(() => {
     previousCategoryRef.current = category
@@ -1104,20 +1105,18 @@ export default function AssetsTable(props: AssetsTableProps) {
           const abortController = new AbortController()
           directoryListAbortControllersRef.current.set(directoryId, abortController)
           const displayedTitle = title ?? nodeMapRef.current.get(key)?.item.title ?? '(unknown)'
-          const childAssets = await backend
-            .listDirectory(
-              {
-                parentId: directoryId,
-                filterBy: CATEGORY_TO_FILTER_BY[category],
-                recentProjects: category === Category.recent,
-                labels: null,
-              },
-              displayedTitle
-            )
-            .catch(error => {
-              toastAndLog('listFolderBackendError', error, displayedTitle)
-              throw error
-            })
+          const childAssets = await fetchListDirectory([
+            {
+              parentId: directoryId,
+              filterBy: CATEGORY_TO_FILTER_BY[category],
+              recentProjects: category === Category.recent,
+              labels: null,
+            },
+            displayedTitle,
+          ]).catch(error => {
+            toastAndLog('listFolderBackendError', error, displayedTitle)
+            throw error
+          })
           if (!abortController.signal.aborted) {
             setAssetTree(oldAssetTree =>
               oldAssetTree.map(item => {
@@ -1175,7 +1174,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         })()
       }
     },
-    [setAsset, backend, category, toastAndLog]
+    [setAsset, fetchListDirectory, category, toastAndLog]
   )
 
   const [spinnerState, setSpinnerState] = React.useState(spinner.SpinnerState.initial)

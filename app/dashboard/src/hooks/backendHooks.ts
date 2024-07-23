@@ -177,11 +177,11 @@ export function useObserveBackend(backend: Backend | null) {
   })
 }
 
-// =======================
-// === useBackendQuery ===
-// =======================
+// ==============================
+// === useBackendQueryOptions ===
+// ==============================
 
-export function useBackendQuery<Method extends backendQuery.BackendMethods>(
+export function backendQueryOptions<Method extends backendQuery.BackendMethods>(
   backend: Backend,
   method: Method,
   args: Parameters<Backend[Method]>,
@@ -194,50 +194,97 @@ export function useBackendQuery<Method extends backendQuery.BackendMethods>(
     >,
     'queryFn'
   >
-): reactQuery.UseQueryResult<Awaited<ReturnType<Backend[Method]>>>
-export function useBackendQuery<Method extends backendQuery.BackendMethods>(
-  backend: Backend | null,
-  method: Method,
-  args: Parameters<Backend[Method]>,
-  options?: Omit<
-    reactQuery.UseQueryOptions<
-      Awaited<ReturnType<Backend[Method]>>,
-      Error,
-      Awaited<ReturnType<Backend[Method]>>,
-      readonly unknown[]
-    >,
-    'queryFn'
-  >
-): reactQuery.UseQueryResult<
-  // eslint-disable-next-line no-restricted-syntax
-  Awaited<ReturnType<Backend[Method]>> | undefined
+): reactQuery.UseQueryOptions<
+  Awaited<ReturnType<Backend[Method]>>,
+  Error,
+  Awaited<ReturnType<Backend[Method]>>,
+  readonly unknown[]
 >
-/** Wrap a backend method call in a React Query. */
-export function useBackendQuery<Method extends backendQuery.BackendMethods>(
+export function backendQueryOptions<Method extends backendQuery.BackendMethods>(
   backend: Backend | null,
   method: Method,
   args: Parameters<Backend[Method]>,
-  options?: Omit<
-    reactQuery.UseQueryOptions<
-      Awaited<ReturnType<Backend[Method]>>,
-      Error,
-      Awaited<ReturnType<Backend[Method]>>,
-      readonly unknown[]
-    >,
-    'queryFn'
-  >
+  options?: Omit<reactQuery.UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>, 'queryFn'>
+): reactQuery.UseQueryOptions<Awaited<ReturnType<Backend[Method]>> | undefined>
+/** Wrap a backend method call in a React Query. */
+export function backendQueryOptions<Method extends backendQuery.BackendMethods>(
+  backend: Backend | null,
+  method: Method,
+  args: Parameters<Backend[Method]>,
+  options?: Omit<reactQuery.UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>, 'queryFn'>
 ) {
-  return reactQuery.useQuery<
-    Awaited<ReturnType<Backend[Method]>>,
-    Error,
-    Awaited<ReturnType<Backend[Method]>>,
-    readonly unknown[]
+  return reactQuery.queryOptions<
+    Awaited<ReturnType<Backend[Method]>>
+    // @ts-expect-error This function is generic over the presence of `initialData`.
   >({
     ...options,
     ...backendQuery.backendQueryOptions(backend, method, args, options?.queryKey),
     // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-return
     queryFn: () => (backend?.[method] as any)?.(...args),
   })
+}
+
+// =======================
+// === useBackendQuery ===
+// =======================
+
+export function useBackendQuery<Method extends backendQuery.BackendMethods>(
+  backend: Backend,
+  method: Method,
+  args: Parameters<Backend[Method]>,
+  options?: Omit<reactQuery.UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>, 'queryFn'>
+): reactQuery.UseQueryResult<Awaited<ReturnType<Backend[Method]>>>
+export function useBackendQuery<Method extends backendQuery.BackendMethods>(
+  backend: Backend | null,
+  method: Method,
+  args: Parameters<Backend[Method]>,
+  options?: Omit<reactQuery.UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>, 'queryFn'>
+): reactQuery.UseQueryResult<Awaited<ReturnType<Backend[Method]>> | undefined>
+/** Wrap a backend method call in a React Query. */
+export function useBackendQuery<Method extends backendQuery.BackendMethods>(
+  backend: Backend | null,
+  method: Method,
+  args: Parameters<Backend[Method]>,
+  options?: Omit<reactQuery.UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>, 'queryFn'>
+) {
+  return reactQuery.useQuery<Awaited<ReturnType<Backend[Method]>> | undefined>(
+    backendQueryOptions(backend, method, args, options)
+  )
+}
+
+// ============================
+// === useFetchBackendQuery ===
+// ============================
+
+export function useFetchBackendQuery<Method extends backendQuery.BackendMethods>(
+  backend: Backend,
+  method: Method
+): (
+  args: Parameters<Backend[Method]>,
+  options?: Omit<reactQuery.UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>, 'queryFn'>
+) => Promise<Awaited<ReturnType<Backend[Method]>>>
+export function useFetchBackendQuery<Method extends backendQuery.BackendMethods>(
+  backend: Backend | null,
+  method: Method
+): (
+  args: Parameters<Backend[Method]>,
+  options?: Omit<reactQuery.UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>, 'queryFn'>
+) => Promise<Awaited<ReturnType<Backend[Method]>> | undefined>
+/** Wrap a backend method call in a React Query. */
+export function useFetchBackendQuery<Method extends backendQuery.BackendMethods>(
+  backend: Backend | null,
+  method: Method
+) {
+  const queryClient = reactQuery.useQueryClient()
+  return useEventCallback(
+    (
+      args: Parameters<Backend[Method]>,
+      options?: Omit<reactQuery.UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>, 'queryFn'>
+    ) =>
+      queryClient.fetchQuery<Awaited<ReturnType<Backend[Method]>> | undefined>(
+        backendQueryOptions(backend, method, args, options)
+      )
+  )
 }
 
 // ==========================
