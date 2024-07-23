@@ -77,7 +77,8 @@ public enum Platform {
       trash =
           switch (this) {
             case LINUX -> new LinuxTrash();
-            case MACOS, WINDOWS -> new JnaTrash();
+            case MACOS -> new MacTrash();
+            case WINDOWS -> new WindowsTrash();
           };
     }
     return trash;

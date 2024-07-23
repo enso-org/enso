@@ -3,7 +3,7 @@ package org.enso.desktopenvironment;
 import java.nio.file.Path;
 
 /** Operations with system trash */
-public sealed interface Trash permits JnaTrash, LinuxTrash {
+public sealed interface Trash permits JnaTrash, LinuxTrash, WindowsTrash, MacTrash {
 
   /**
    * @return {@code true} if the trash functionality is supported on this platform.
