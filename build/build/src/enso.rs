@@ -116,7 +116,6 @@ impl BuiltEnso {
         async_policy: AsyncPolicy,
         test_selection: StandardLibraryTestsSelection
     ) -> Result {
-        let _ = test_selection;
         let paths = &self.paths;
         // Environment for meta-tests. See:
         // https://github.com/enso-org/enso/tree/develop/test/Meta_Test_Suite_Tests
