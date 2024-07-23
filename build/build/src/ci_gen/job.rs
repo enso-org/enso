@@ -291,7 +291,10 @@ impl JobArchetype for SnowflakeTests {
                         secret::ENSO_SNOWFLAKE_WAREHOUSE,
                         crate::libraries_tests::snowflake::env::ENSO_SNOWFLAKE_WAREHOUSE,
                     );
-                vec![main_step, step::extra_stdlib_test_reporter(target, GRAAL_EDITION_FOR_EXTRA_TESTS)]
+                vec![
+                    main_step,
+                    step::extra_stdlib_test_reporter(target, GRAAL_EDITION_FOR_EXTRA_TESTS),
+                ]
             })
             .build_job(job_name, target)
             .with_permission(Permission::Checks, Access::Write);
@@ -300,10 +303,7 @@ impl JobArchetype for SnowflakeTests {
     }
 
     fn key(&self, (os, arch): Target) -> String {
-        format!(
-            "{}-{os}-{arch}",
-            self.id_key_base()
-        )
+        format!("{}-{os}-{arch}", self.id_key_base())
     }
 }
 

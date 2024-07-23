@@ -418,9 +418,15 @@ impl Processor {
                             config.test_jvm = true;
                             // We also test the Java parser integration when running the JVM tests.
                             config.test_java_generated_from_rust = true;
-                        },
-                        Tests::StandardLibrary => config.add_standard_library_test_selection(StandardLibraryTestsSelection::All),
-                        Tests::StdSnowflake => config.add_standard_library_test_selection(StandardLibraryTestsSelection::Selected(vec!["Snowflake_Tests".to_string()])),
+                        }
+                        Tests::StandardLibrary => config.add_standard_library_test_selection(
+                            StandardLibraryTestsSelection::All,
+                        ),
+                        Tests::StdSnowflake => config.add_standard_library_test_selection(
+                            StandardLibraryTestsSelection::Selected(vec![
+                                "Snowflake_Tests".to_string()
+                            ]),
+                        ),
                     }
                 }
                 let context = self.prepare_backend_context(config);
