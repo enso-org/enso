@@ -104,7 +104,8 @@ public final class WithWarnings implements EnsoObject {
   // This is only used for shouldWrap=true.
   private Warning[] getWarningsNoCache(
       WarningsLibrary warningsLibrary, ArrayLikeLengthNode lengthNode, ArrayLikeAtNode atNode) {
-    if (warningsLibrary != null && warningsLibrary.hasWarnings(value)) {
+    assert warningsLibrary != null;
+    if (warningsLibrary.hasWarnings(value)) {
       try {
         return warningsLibrary.getWarnings(value, null, true);
       } catch (UnsupportedMessageException e) {
