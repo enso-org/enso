@@ -260,6 +260,7 @@ export interface ListedProjectRaw extends CreatedProject {
 export interface ListedProject extends CreatedProject {
     readonly binaryAddress: Address | null
     readonly jsonAddress: Address | null
+    readonly ydocAddress: Address | null
 }
 
 /** A `Project` returned by `updateProject`. */

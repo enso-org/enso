@@ -2,6 +2,7 @@ from Standard.Base import all
 import Standard.Base.Data.Vector.Builder
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Runtime.Managed_Resource.Managed_Resource
+import project.Runtime.GC_Example
 
 from Standard.Test import all
 
@@ -56,6 +57,10 @@ add_specs suite_builder = suite_builder.group "Managed_Resource" group_builder->
 
         r_3 = Panic.recover Any <| Managed_Resource.bracket 42 (_-> Nothing) (_-> Panic.throw "action")
         r_3.catch . should_equal "action"
+
+    group_builder.specify "allocate lots of resources at once" <|
+        remaining = GC_Example.perform_test 100000 (_->Nothing)
+        remaining . should_equal 0
 
 main filter=Nothing =
     suite = Test.build suite_builder->
