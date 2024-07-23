@@ -835,20 +835,21 @@ fn analyze_operator(token: &str) -> token::OperatorProperties {
             }
         }
     }
-    let (value_op, binary) = match precedence_char.unwrap() {
-        '!' => (true, 10),
-        '|' => (true, 11),
-        '&' => (true, 13),
-        '<' | '>' => (true, 14),
-        '+' | '-' => (true, 15),
-        '*' | '/' | '%' => (true, 16),
-        '^' => (true, 17),
-        _ => (true, 18),
+    let binary = match precedence_char.unwrap() {
+        '!' => 10,
+        '|' => 11,
+        '&' => 13,
+        '<' | '>' => 14,
+        '+' | '-' => 15,
+        '*' | '/' | '%' => 16,
+        '^' => 17,
+        _ => 18,
     };
     let operator = operator.with_binary_infix_precedence(binary);
-    match !has_right_arrow && !has_left_arrow && value_op {
-        true => operator.as_value_operation(),
-        false => operator,
+    if !has_right_arrow && !has_left_arrow {
+        operator.as_value_operation()
+    } else {
+        operator
     }
 }
 
