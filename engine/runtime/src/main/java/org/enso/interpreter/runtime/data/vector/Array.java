@@ -13,6 +13,7 @@ import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.profiles.BranchProfile;
 import java.util.Arrays;
+import java.util.Comparator;
 import org.enso.interpreter.dsl.Builtin;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.EnsoObject;
@@ -31,8 +32,17 @@ import org.enso.interpreter.runtime.warning.WarningsLibrary;
 @Builtin(pkg = "mutable", stdlibName = "Standard.Base.Data.Array.Array")
 final class Array implements EnsoObject {
   private final Object[] items;
+  /**
+   * If true, some elements contain warning, and thus, this Array contains warning.
+   */
   private Boolean withWarnings;
+  /**
+   * This array is not sorted by {@link Warning#sequenceId}.
+   */
   private Warning[] cachedWarningsWrapped;
+  /**
+   * This array is not sorted by {@link Warning#sequenceId}.
+   */
   private Warning[] cachedWarningsUnwrapped;
 
   /**
@@ -221,6 +231,10 @@ final class Array implements EnsoObject {
         Warning[] wrappedWarningsMaybe;
 
         if (shouldWrap) {
+          // warnings need to be sorted such that at the first index, there is the oldest warning.
+          // This is because we are creating new warnings by wrapping the previous one, and we need to
+          // do that in the same creation order.
+          Arrays.sort(warnings, Comparator.comparing(Warning::getSequenceId));
           wrappedWarningsMaybe = new Warning[warnings.length];
           for (int warnIdx = 0; warnIdx < warnings.length; warnIdx++) {
             wrappedWarningsMaybe[warnIdx] =
