@@ -7,14 +7,13 @@ import { Pattern } from '@/util/ast/match'
 type SortDirection = 'asc' | 'desc'
 
 const props = defineProps<{
-  type: 'sort' | 'filter'
-  filterModel?: {
+  filterModel: {
     [key: string]: {
       values: any[]
       filterType: string
     }
   }
-  sortModel?: Map<string, SortDirection>
+  sortModel: Map<string, SortDirection>
 }>()
 
 const config = useVisualizationConfig()
@@ -24,48 +23,51 @@ const makeSortPattern = () => {
     asc: '..Ascending',
     desc: '..Descending',
   }
-  if (props.sortModel?.size) {
-    const columnName = props.sortModel.keys().next().value
-    const direction = props.sortModel.values().next().value as SortDirection
-    return `(..Name '${columnName}' ${sortMapping[direction]})`
-  }
+  const columnName = props.sortModel.keys().next().value
+  const direction = props.sortModel.values().next().value as SortDirection
+  return `(..Name '${columnName}' ${sortMapping[direction]})`
 }
 
 const makeFilterPattern = () => {
-  if (props.filterModel) {
-    const columnName = Object.keys(props.filterModel)[0]
-    const items = props.filterModel[columnName || '']?.values.map((item) => `'${item}'`)
-    return `'${columnName}' (..Is_In [${items}] ..Keep)`
-  }
+  const columnName = Object.keys(props.filterModel)[0]
+  const items = props.filterModel[columnName || '']?.values.map((item) => `'${item}'`)
+  return `'${columnName}' (..Is_In [${items}] ..Keep)`
 }
 
 function getAstPatternSort() {
+  console.log('sort')
   return Pattern.new((ast) =>
     Ast.App.positional(
-      Ast.PropertyAccess.new(ast.module, ast, Ast.identifier(props.type)!),
+      Ast.PropertyAccess.new(ast.module, ast, Ast.identifier('sort')!),
       Ast.parse(makeSortPattern() || ''),
     ),
   )
 }
 
 function getAstPatternFilter() {
+  console.log('filter')
   return Pattern.new((ast) =>
     Ast.App.positional(
-      Ast.PropertyAccess.new(ast.module, ast, Ast.identifier(props.type)!),
+      Ast.PropertyAccess.new(ast.module, ast, Ast.identifier('filter')!),
       Ast.parse(makeFilterPattern() || ''),
     ),
   )
 }
 
 const createNewNode = () => {
-  config.createNodes({
-    content: getAstPatternSort(),
-    commit: true,
-  })
-  config.createNodes({
-    content: getAstPatternFilter(),
-    commit: true,
-  })
+  console.log('hello')
+  if (props.sortModel?.size) {
+    config.createNodes({
+      content: getAstPatternSort(),
+      commit: true,
+    })
+  }
+  if (Object.keys(props.filterModel).length) {
+    config.createNodes({
+      content: getAstPatternFilter(),
+      commit: true,
+    })
+  }
 }
 </script>
 
@@ -73,7 +75,7 @@ const createNewNode = () => {
   <SvgButton
     name="add"
     :title="`Create new component with sort and filters applied to the workflow`"
-    @click.stop="createNewNode()"
+    @click="createNewNode()"
   />
 </template>
 
