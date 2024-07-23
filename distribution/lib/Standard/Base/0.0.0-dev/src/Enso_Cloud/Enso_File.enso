@@ -88,9 +88,14 @@ type Enso_File
        directory.
     current_working_directory : Enso_File
     current_working_directory =
+        Enso_File.cloud_project_parent_directory . if_nothing Enso_File.root
+
+    ## PRIVATE
+       The parent directory containing the currently open project if in the
+       Cloud, or `Nothing` if running locally.
+    cloud_project_parent_directory -> Enso_File | Nothing =
         path = Environment.get "ENSO_CLOUD_PROJECT_DIRECTORY_PATH"
-        if path.is_nothing then Enso_File.root else
-            Enso_File.new path
+        path.if_not_nothing <| Enso_File.new path
 
     ## PRIVATE
     asset_type self -> Enso_Asset_Type =
