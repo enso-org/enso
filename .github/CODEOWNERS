@@ -40,6 +40,9 @@ Cargo.toml
 /test/ @jdunkerley @radeusgd @GregoryTravis @AdRiley @marthasharkey
 /tools/http-test-helper/ @radeusgd @jdunkerley @GregoryTravis @AdRiley @marthasharkey
 
+# The default project template is owned by the libraries team
+/lib/scala/pkg/src/main/resources/default/src/ @radeusgd @jdunkerley @GregoryTravis @AdRiley @marthasharkey
+
 # Dashboard, Cloud, Authentication & Electron
 /app/ide-desktop/ @PabloBuchu @indiv0 @somebody1234 @MrFlashAccount
 /app/dashboard/ @PabloBuchu @indiv0 @somebody1234 @MrFlashAccount
