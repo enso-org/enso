@@ -114,7 +114,7 @@ impl BuiltEnso {
         ir_caches: IrCaches,
         sbt: &crate::engine::sbt::Context,
         async_policy: AsyncPolicy,
-        test_selection: StandardLibraryTestsSelection
+        test_selection: StandardLibraryTestsSelection,
     ) -> Result {
         let paths = &self.paths;
         // Environment for meta-tests. See:
@@ -134,21 +134,19 @@ impl BuiltEnso {
         }
 
         let std_tests = match &test_selection {
-            StandardLibraryTestsSelection::All => {
-                crate::paths::discover_standard_library_tests(&paths.repo_root)?
-            }
-            StandardLibraryTestsSelection::Selected(only) => {
-                only.into_iter().map(|test| paths.repo_root.test.join(test)).collect()
-            }
+            StandardLibraryTestsSelection::All =>
+                crate::paths::discover_standard_library_tests(&paths.repo_root)?,
+            StandardLibraryTestsSelection::Selected(only) =>
+                only.iter().map(|test| paths.repo_root.test.join(test)).collect(),
         };
         let may_need_postgres = match &test_selection {
             StandardLibraryTestsSelection::All => true,
             StandardLibraryTestsSelection::Selected(only) =>
-                only.into_iter().any(|test| test.contains("Postgres_Tests")),
+                only.iter().any(|test| test.contains("Postgres_Tests")),
         };
 
         let _httpbin = crate::httpbin::get_and_spawn_httpbin_on_free_port(sbt).await?;
-        
+
         let _postgres = match TARGET_OS {
             OS::Linux if may_need_postgres => {
                 let runner_context_string = crate::env::ENSO_RUNNER_CONTAINER_NAME

@@ -263,7 +263,7 @@ const GRAAL_EDITION_FOR_EXTRA_TESTS: graalvm::Edition = graalvm::Edition::Commun
 
 impl JobArchetype for SnowflakeTests {
     fn job(&self, target: Target) -> Job {
-        let job_name = format!("Snowflake Tests");
+        let job_name = "Snowflake Tests";
         let mut job = RunStepsBuilder::new("backend test std-snowflake")
             .customize(move |step| {
                 let main_step = step
