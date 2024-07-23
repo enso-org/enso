@@ -127,7 +127,7 @@ function runAnimation(e: HTMLElement, done: Done, isEnter: boolean) {
     cleanup(e)
     done(true)
   })
-  e.dataset['transitioning'] = ''
+  e.dataset['transitioning'] = isEnter ? 'enter' : 'leave'
   animation.play()
   animationsMap.set(e, animation)
 }

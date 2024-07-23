@@ -110,12 +110,3 @@ const spanStart = computed(() => {
     >🚫</span
   >
 </template>
-
-<style scoped>
-.whitespace {
-  color: transparent;
-  pointer-events: none;
-  user-select: none;
-  white-space: pre;
-}
-</style>

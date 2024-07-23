@@ -208,6 +208,11 @@ function handleArgUpdate(update: WidgetUpdate): boolean {
 </script>
 <script lang="ts">
 const CallInfo: unique symbol = Symbol('CallInfo')
+declare module '@/providers/widgetRegistry' {
+  export interface WidgetInput {
+    [CallInfo]?: MethodCallInfo
+  }
+}
 
 export const WidgetInputIsSpecificMethodCall =
   (methodPointer: MethodPointer) =>
@@ -218,12 +223,6 @@ export const WidgetInputIsSpecificMethodCall =
     // No need to check for AST type, since CallInfo depends on WidgetFunction being matched first.
     return callInfo != null && methodPointerEquals(callInfo.methodCall.methodPointer, methodPointer)
   }
-
-declare module '@/providers/widgetRegistry' {
-  export interface WidgetInput {
-    [CallInfo]?: MethodCallInfo
-  }
-}
 
 export const widgetDefinition = defineWidget(
   WidgetInput.isFunctionCall,

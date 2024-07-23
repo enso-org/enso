@@ -163,10 +163,10 @@ export const ICON_WIDTH = 16
    * children of a widget. That way, only the innermost left/right deep child of a rounded widget will
    * receive the propagated paddings.
    */
-  *:not(:nth-child(1 of :not(.widgetOutOfLayout))) {
+  *:not(:nth-child(1 of :not(.widgetOutOfLayout, [data-transitioning='leave']))) {
     --widget-token-pad-left: 0px;
   }
-  *:not(:nth-last-child(1 of :not(.widgetOutOfLayout))) {
+  *:not(:nth-last-child(1 of :not(.widgetOutOfLayout, [data-transitioning='leave']))) {
     --widget-token-pad-right: 0px;
   }
 
@@ -189,7 +189,7 @@ export const ICON_WIDTH = 16
   :deep(.widgetApplyPadding.widgetApplyPadding) {
     padding-left: var(--widget-token-pad-left, 0);
     padding-right: var(--widget-token-pad-right, 0);
-    transition: padding 0.2s;
+    transition: padding 0.2s ease-out;
   }
 }
 </style>
