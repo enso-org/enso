@@ -33,21 +33,17 @@ public abstract class SetWarningsNode extends Node {
   public abstract Object execute(VirtualFrame frame, @AcceptsWarning Object value, Object warnings);
 
   @Specialization(guards = "isEmpty(warnings, interop)")
-  Object doEmptyWithWarn(
-      VirtualFrame frame,
-      WithWarnings withWarn,
-      Object warnings,
-      @Shared @CachedLibrary(limit = "3") InteropLibrary interop) {
-    return withWarn.value;
-  }
-
-  @Specialization(guards = "isEmpty(warnings, interop)")
-  Object doEmptyObject(
+  Object doEmpty(
       VirtualFrame frame,
       Object object,
       Object warnings,
-      @Shared @CachedLibrary(limit = "3") InteropLibrary interop) {
-    return object;
+      @Shared @CachedLibrary(limit = "3") InteropLibrary interop,
+      @Cached ConditionProfile isWithWarnsProfile) {
+    if (isWithWarnsProfile.profile(object instanceof WithWarnings)) {
+      return ((WithWarnings) object).value;
+    } else {
+      return object;
+    }
   }
 
   @Specialization(guards = "!isEmpty(warnings, interop)")
@@ -71,7 +67,7 @@ public abstract class SetWarningsNode extends Node {
     }
   }
 
-  @Specialization(guards = "!isEmpty(warnings, interop)")
+  @Specialization(guards = {"!isEmpty(warnings, interop)", "!isWarnArray(warnings)"})
   Object doSetInteropArray(
       VirtualFrame frame,
       Object object,
@@ -79,6 +75,7 @@ public abstract class SetWarningsNode extends Node {
       @Shared @CachedLibrary(limit = "3") InteropLibrary interop,
       @Shared @Cached HashMapInsertNode mapInsertNode,
       @Shared @Cached ConditionProfile isWithWarnsProfile) {
+    assert !(warnings instanceof Warning[]);
     var warnMap = EnsoHashMap.empty();
     var ctx = EnsoContext.get(this);
     try {
@@ -113,5 +110,9 @@ public abstract class SetWarningsNode extends Node {
       }
     }
     return false;
+  }
+
+  protected static boolean isWarnArray(Object obj) {
+    return obj instanceof Warning[];
   }
 }
