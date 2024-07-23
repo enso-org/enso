@@ -326,6 +326,9 @@ importers:
       ag-grid-enterprise:
         specifier: ^30.2.1
         version: 30.2.1
+      ag-grid-vue3:
+        specifier: ^30.2.1
+        version: 30.2.1(ag-grid-community@30.2.1)(vue@3.4.31(typescript@5.5.3))
       codemirror:
         specifier: ^6.0.1
         version: 6.0.1(@lezer/common@1.2.1)
@@ -3069,6 +3072,12 @@ packages:
 
   ag-grid-enterprise@30.2.1:
     resolution: {integrity: sha512-sGeyAfZ416dBlJaxIHB6hGTJG6QzuajXnDAtVuQlOLUuV4/TXVQoh5SJkiKBpWXukZQJPE4VD/5IkQ1tXh96/w==}
+
+  ag-grid-vue3@30.2.1:
+    resolution: {integrity: sha512-uIsBv5H7Nu6ao1V7cuReVj27gFdlK4kfvo/4M6AWmYswghMpc1GwzczZNV8HUypGcwxONW9YSfr8zabYQNGcAg==}
+    peerDependencies:
+      ag-grid-community: ~30.2.1
+      vue: ^3.0.0
 
   agent-base@6.0.2:
     resolution: {integrity: sha512-RZNwNclF7+MS/8bDg70amg32dyeZGZxiDuQmZxKLAlQjr3jGyLx+4Kkk58UO7D2QdgFIQCovuSuZESne6RG6XQ==}
@@ -10502,6 +10511,11 @@ snapshots:
   ag-grid-enterprise@30.2.1:
     dependencies:
       ag-grid-community: 30.2.1
+
+  ag-grid-vue3@30.2.1(ag-grid-community@30.2.1)(vue@3.4.31(typescript@5.5.3)):
+    dependencies:
+      ag-grid-community: 30.2.1
+      vue: 3.4.31(typescript@5.5.3)
 
   agent-base@6.0.2:
     dependencies:
