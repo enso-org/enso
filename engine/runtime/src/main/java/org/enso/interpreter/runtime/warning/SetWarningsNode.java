@@ -38,7 +38,7 @@ public abstract class SetWarningsNode extends Node {
       Object object,
       Object warnings,
       @Shared @CachedLibrary(limit = "3") InteropLibrary interop,
-      @Cached ConditionProfile isWithWarnsProfile) {
+      @Shared @Cached ConditionProfile isWithWarnsProfile) {
     if (isWithWarnsProfile.profile(object instanceof WithWarnings)) {
       return ((WithWarnings) object).value;
     } else {
