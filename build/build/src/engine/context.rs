@@ -403,7 +403,6 @@ impl RunContext {
         perhaps_test_java_generated_from_rust_job.await.transpose()?;
 
         // === Run benchmarks ===
-        debug!("Running benchmarks.");
         let build_benchmark_task = if self.config.build_benchmarks {
             let build_benchmark_task_names = [
                 "runtime-benchmarks/compile",
@@ -425,6 +424,7 @@ impl RunContext {
             build_benchmark_task.as_deref().into_iter().chain(execute_benchmark_tasks);
         let benchmark_command = Sbt::sequential_tasks(build_and_execute_benchmark_task);
         if !benchmark_command.is_empty() {
+            debug!("Running benchmarks.");
             sbt.call_arg(benchmark_command).await?;
         } else {
             debug!("No SBT tasks to run.");
