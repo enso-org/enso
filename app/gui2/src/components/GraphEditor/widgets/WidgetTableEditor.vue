@@ -38,7 +38,9 @@ export const widgetDefinition = defineWidget(
   }),
   {
     priority: 999,
-    score: Score.Perfect,
+    // TODO[#10293]: This widget is not yet fully implemented, so it is temporarily disabled.
+    // Change this to `Score.Perfect` or implement appropriate score method as part of next task.
+    score: Score.Mismatch,
   },
   import.meta.hot,
 )
