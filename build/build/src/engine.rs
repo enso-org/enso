@@ -97,7 +97,7 @@ pub enum Tests {
     Jvm,
     #[clap(alias = "stdlib")]
     StandardLibrary,
-    StdSnowflake
+    StdSnowflake,
 }
 
 impl Benchmarks {
@@ -214,27 +214,20 @@ impl BuildConfigurationFlags {
         self.build_launcher_package || self.build_launcher_bundle
     }
 
-    pub fn add_standard_library_test_selection(&mut self, selection: StandardLibraryTestsSelection) {
-        match selection {
-            StandardLibraryTestsSelection::All => {
-                self.test_standard_library = Some(StandardLibraryTestsSelection::All);
+    pub fn add_standard_library_test_selection(
+        &mut self,
+        selection: StandardLibraryTestsSelection,
+    ) {
+        use StandardLibraryTestsSelection::*;
+        let combined_selection = match (self.test_standard_library.take(), selection) {
+            (None, selection) => selection,
+            (Some(All), _) | (_, All) => All,
+            (Some(Selected(mut selection)), Selected(new_selection)) => {
+                selection.extend(new_selection);
+                Selected(selection)
             }
-            StandardLibraryTestsSelection::Selected(new_selection) => {
-                match &mut self.test_standard_library {
-                    Some(StandardLibraryTestsSelection::All) => {
-                        // If all were selected, we keep all.
-                        self.test_standard_library = Some(StandardLibraryTestsSelection::All);
-                    }
-                    Some(StandardLibraryTestsSelection::Selected(existing_selection)) => {
-                        // Merge selections
-                        existing_selection.extend(new_selection);
-                    }
-                    None => {
-                        self.test_standard_library = Some(StandardLibraryTestsSelection::Selected(new_selection));
-                    }
-                }
-            }
-        }
+        };
+        self.test_standard_library = Some(combined_selection);
     }
 }
 
