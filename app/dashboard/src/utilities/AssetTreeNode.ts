@@ -58,12 +58,6 @@ export default class AssetTreeNode<Item extends backendModule.AnyAsset = backend
     this.type = item.type
   }
 
-  /** Get an {@link AssetTreeNode.key} from an {@link AssetTreeNode}. Useful for React,
-   * becausse references of static functions do not change. */
-  static getKey(this: void, node: AssetTreeNode) {
-    return node.key
-  }
-
   /** Return a positive number if `a > b`, a negative number if `a < b`, and zero if `a === b`.
    * Uses {@link backendModule.compareAssets} internally. */
   static compare(this: void, a: AssetTreeNode, b: AssetTreeNode) {

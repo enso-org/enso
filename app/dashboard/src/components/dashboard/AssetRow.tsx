@@ -38,7 +38,6 @@ import * as localBackend from '#/services/LocalBackend'
 import * as projectManager from '#/services/ProjectManager'
 
 import type * as assetTreeNode from '#/utilities/AssetTreeNode'
-import AssetTreeNode from '#/utilities/AssetTreeNode'
 import * as dateTime from '#/utilities/dateTime'
 import * as download from '#/utilities/download'
 import * as drag from '#/utilities/drag'
@@ -99,11 +98,10 @@ export default function AssetRow(props: AssetRowProps) {
   const { visibilities } = state
 
   const [item, setItem] = React.useState(rawItem)
-  const key = AssetTreeNode.getKey(item)
   const driveStore = useDriveStore()
   const setSelectedKeys = useSetSelectedKeys()
   const selected = useStore(driveStore, ({ visuallySelectedKeys, selectedKeys }) =>
-    (visuallySelectedKeys ?? selectedKeys).has(key)
+    (visuallySelectedKeys ?? selectedKeys).has(item.key)
   )
   const isSoleSelected = useStore(
     driveStore,
@@ -131,7 +129,7 @@ export default function AssetRow(props: AssetRowProps) {
     object.merge(assetRowUtils.INITIAL_ROW_STATE, { setVisibility: setInsertionVisibility })
   )
   const isCloud = backend.type === backendModule.BackendType.remote
-  const outerVisibility = visibilities.get(key)
+  const outerVisibility = visibilities.get(item.key)
   const visibility =
     outerVisibility == null || outerVisibility === Visibility.visible
       ? insertionVisibility
@@ -158,7 +156,7 @@ export default function AssetRow(props: AssetRowProps) {
 
   const setSelected = useEventCallback((newSelected: boolean) => {
     const { selectedKeys } = driveStore.getState()
-    setSelectedKeys(set.withPresence(selectedKeys, key, newSelected))
+    setSelectedKeys(set.withPresence(selectedKeys, item.key, newSelected))
   })
 
   React.useEffect(() => {
@@ -719,7 +717,14 @@ export default function AssetRow(props: AssetRowProps) {
     case backendModule.AssetType.file:
     case backendModule.AssetType.datalink:
     case backendModule.AssetType.secret: {
-      const innerProps: AssetRowInnerProps = { key, item, setItem, state, rowState, setRowState }
+      const innerProps: AssetRowInnerProps = {
+        key: item.key,
+        item,
+        setItem,
+        state,
+        rowState,
+        setRowState,
+      }
       return (
         <>
           {!hidden && (
@@ -884,7 +889,7 @@ export default function AssetRow(props: AssetRowProps) {
                   return (
                     <td key={column} className={columnUtils.COLUMN_CSS_CLASS[column]}>
                       <Render
-                        keyProp={key}
+                        keyProp={item.key}
                         isOpened={isOpened}
                         backendType={backend.type}
                         item={item}
@@ -910,7 +915,7 @@ export default function AssetRow(props: AssetRowProps) {
             <AssetContextMenu
               hidden
               innerProps={{
-                key,
+                key: item.key,
                 item,
                 setItem,
                 state,

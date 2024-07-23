@@ -2180,7 +2180,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     (innerRowProps: assetRow.AssetRowInnerProps, event: React.MouseEvent) => {
       const { key } = innerRowProps
       event.stopPropagation()
-      const newIndex = visibleItems.findIndex(innerItem => AssetTreeNode.getKey(innerItem) === key)
+      const newIndex = visibleItems.findIndex(innerItem => innerItem.key === key)
       const getRange = () => {
         if (mostRecentlySelectedIndexRef.current == null) {
           return [key]
@@ -2189,7 +2189,7 @@ export default function AssetsTable(props: AssetsTableProps) {
           const index2 = newIndex
           const startIndex = Math.min(index1, index2)
           const endIndex = Math.max(index1, index2) + 1
-          return visibleItems.slice(startIndex, endIndex).map(AssetTreeNode.getKey)
+          return visibleItems.slice(startIndex, endIndex).map(innerItem => innerItem.key)
         }
       }
       setSelectedKeys(calculateNewKeys(event, [key], getRange))
@@ -2248,10 +2248,9 @@ export default function AssetsTable(props: AssetsTableProps) {
     </tr>
   ) : (
     displayItems.map((item, i) => {
-      const key = AssetTreeNode.getKey(item)
       return (
         <AssetRow
-          key={key}
+          key={item.key}
           updateAssetRef={instance => {
             if (instance != null) {
               updateAssetRef.current[item.item.id] = instance
@@ -2271,23 +2270,23 @@ export default function AssetsTable(props: AssetsTableProps) {
             keyboardSelectedIndex != null && item === visibleItems[keyboardSelectedIndex]
           }
           grabKeyboardFocus={() => {
-            setSelectedKeys(new Set([key]))
+            setSelectedKeys(new Set([item.key]))
             setMostRecentlySelectedIndex(i, true)
           }}
           onClick={onRowClick}
           select={() => {
             setMostRecentlySelectedIndex(visibleItems.indexOf(item))
             selectionStartIndexRef.current = null
-            setSelectedKeys(new Set([key]))
+            setSelectedKeys(new Set([item.key]))
           }}
           onDragStart={event => {
             startAutoScroll()
             onMouseEvent(event)
             let newSelectedKeys = driveStore.getState().selectedKeys
-            if (!newSelectedKeys.has(key)) {
+            if (!newSelectedKeys.has(item.key)) {
               setMostRecentlySelectedIndex(visibleItems.indexOf(item))
               selectionStartIndexRef.current = null
-              newSelectedKeys = new Set([key])
+              newSelectedKeys = new Set([item.key])
               setSelectedKeys(newSelectedKeys)
             }
             const nodes = assetTree
@@ -2340,7 +2339,7 @@ export default function AssetsTable(props: AssetsTableProps) {
               event.preventDefault()
               event.stopPropagation()
               const { selectedKeys } = driveStore.getState()
-              const idsReference = selectedKeys.has(key) ? selectedKeys : key
+              const idsReference = selectedKeys.has(item.key) ? selectedKeys : item.key
               // This optimization is required in order to avoid severe lag on Firefox.
               if (idsReference !== lastSelectedIdsRef.current) {
                 lastSelectedIdsRef.current = idsReference
@@ -2383,7 +2382,7 @@ export default function AssetsTable(props: AssetsTableProps) {
           onDrop={event => {
             endAutoScroll()
             const { selectedKeys } = driveStore.getState()
-            const ids = new Set(selectedKeys.has(key) ? selectedKeys : [key])
+            const ids = new Set(selectedKeys.has(item.key) ? selectedKeys : [item.key])
             const payload = drag.LABELS.lookup(event)
             if (payload != null) {
               event.preventDefault()
