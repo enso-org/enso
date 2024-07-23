@@ -106,11 +106,6 @@ public final class Warning implements EnsoObject {
     return warnings.hasWarnings(value) && warnings.isLimitReached(value);
   }
 
-  @CompilerDirectives.TruffleBoundary
-  private static void sortArray(Warning[] arr) {
-    Arrays.sort(arr, Comparator.comparing(Warning::getSequenceId).reversed());
-  }
-
   public static Warning[] fromMapToArray(
       EnsoHashMap set, ArrayLikeLengthNode lengthNode, ArrayLikeAtNode atNode) {
     var vec = set.getCachedVectorRepresentation();
