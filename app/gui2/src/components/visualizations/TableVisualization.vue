@@ -141,8 +141,7 @@ const rowCount = ref(0)
 const showRowCount = ref(true)
 const isTruncated = ref(false)
 const tableNode = ref<HTMLElement>()
-const isCreateNodeVisibleSort = ref(false)
-const isCreateNodeVisibleFilter = ref(false)
+const isCreateNodeVisible = ref(false)
 const filterModel = ref({})
 const sortModel = ref({})
 const dataGroupingMap = shallowRef<Map<string, boolean>>()
@@ -166,8 +165,8 @@ const agGridOptions: Ref<GridOptions & Required<Pick<GridOptions, 'defaultColDef
   onFirstDataRendered: updateColumnWidths,
   onRowDataUpdated: updateColumnWidths,
   onColumnResized: lockColumnSize,
-  onFilterChanged: checkFilter,
-  onSortChanged: checkSort,
+  onFilterChanged: checkSortAndFilter,
+  onSortChanged: checkSortAndFilter,
   copyHeadersToClipboard: true,
   sendToClipboard: ({ data }: { data: string }) => sendToClipboard(data),
   suppressFieldDotNotation: true,
@@ -646,11 +645,11 @@ watchEffect(() => {
   options.api.setRowData(rowData)
 })
 
-function checkFilter() {
+function checkSortAndFilter() {
   const columnApi = agGridOptions.value.api
   if (columnApi == null) {
     console.warn('AG Grid column API does not exist.')
-    isCreateNodeVisibleFilter.value = false
+    isCreateNodeVisible.value = false
     return
   }
   const colState =
@@ -663,38 +662,11 @@ function checkFilter() {
     }
   })
   if (sort.size || Object.keys(filter).length) {
-    isCreateNodeVisibleFilter.value = true
+    isCreateNodeVisible.value = true
     sortModel.value = sort
     filterModel.value = filter
   } else {
-    isCreateNodeVisibleFilter.value = false
-    sortModel.value = {}
-    filterModel.value = {}
-  }
-}
-
-function checkSort() {
-  const columnApi = agGridOptions.value.api
-  if (columnApi == null) {
-    console.warn('AG Grid column API does not exist.')
-    isCreateNodeVisibleSort.value = false
-    return
-  }
-  const colState =
-    agGridOptions.value.columnApi ? agGridOptions.value.columnApi.getColumnState() : []
-  const filter = columnApi.getFilterModel()
-  const sort = new Map<string, string>()
-  colState.map((cs) => {
-    if (cs.sort) {
-      sort.set(cs.colId, cs.sort)
-    }
-  })
-  if (sort.size || Object.keys(filter).length) {
-    isCreateNodeVisibleSort.value = true
-    sortModel.value = sort
-    filterModel.value = filter
-  } else {
-    isCreateNodeVisibleSort.value = false
+    isCreateNodeVisible.value = false
     sortModel.value = {}
     filterModel.value = {}
   }

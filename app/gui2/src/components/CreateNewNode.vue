@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import SvgButton from '@/components/SvgButton.vue'
 import { useVisualizationConfig } from '@/providers/visualizationConfig'
 import { Ast } from '@/util/ast'
 import { Pattern } from '@/util/ast/match'
@@ -7,7 +8,12 @@ type SortDirection = 'asc' | 'desc'
 
 const props = defineProps<{
   type: 'sort' | 'filter'
-  filterModel?: { [key: string]: string }
+  filterModel?: {
+    [key: string]: {
+      values: any[]
+      filterType: string
+    }
+  }
   sortModel?: Map<string, SortDirection>
 }>()
 
@@ -28,9 +34,8 @@ const makeSortPattern = () => {
 const makeFilterPattern = () => {
   if (props.filterModel) {
     const columnName = Object.keys(props.filterModel)[0]
-    const items = props.filterModel[columnName || '']
-    console.log({ items })
-    return `'${columnName}' (..Equal '${items}' ..Remove)`
+    const items = props.filterModel[columnName || '']?.values.map((item) => `'${item}'`)
+    return `'${columnName}' (..Is_In [${items}] ..Keep)`
   }
 }
 
@@ -53,20 +58,23 @@ function getAstPatternFilter() {
 }
 
 const createNewNode = () => {
-  const { filterModel, sortModel } = props
-  console.log({ filterModel })
-  console.log({ sortModel })
   config.createNodes({
-    content: props.type === 'sort' ? getAstPatternSort() : getAstPatternFilter(),
+    content: getAstPatternSort(),
+    commit: true,
+  })
+  config.createNodes({
+    content: getAstPatternFilter(),
     commit: true,
   })
 }
 </script>
 
 <template>
-  <div class="CreateNewNode">
-    <button :onclick="createNewNode">CREATE COMPONENT {{ props.type }}</button>
-  </div>
+  <SvgButton
+    name="add"
+    :title="`Create new component with sort and filters applied to the workflow`"
+    @click.stop="createNewNode()"
+  />
 </template>
 
 <style scoped>
