@@ -162,6 +162,11 @@ export default function AssetRow(props: AssetRowProps) {
   )
 
   React.useEffect(() => {
+    // Required to update `isExpanded` state.
+    setItem(rawItem)
+  }, [rawItem])
+
+  React.useEffect(() => {
     if (selected && insertionVisibility !== Visibility.visible) {
       setSelected(false)
     }
