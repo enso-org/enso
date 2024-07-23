@@ -28,7 +28,7 @@ public abstract class AppendWarningNode extends Node {
    *
    * @param object Object that will have the warning appended
    * @param warnings Either an array-like object containing warnings to append, or a single warning.
-   *                 It is expected that all the elements in the container are of {@link Warning} class.
+   *     It is expected that all the elements in the container are of {@link Warning} class.
    * @return A wrapped object with warnings
    */
   public abstract WithWarnings execute(VirtualFrame frame, Object object, Object warnings);
@@ -84,7 +84,8 @@ public abstract class AppendWarningNode extends Node {
       @Shared @Cached ArrayLikeLengthNode lengthNode) {
     var warnsLimit = withWarn.maxWarnings;
     var resWarningMap =
-        insertToWarningMap(frame, withWarn.warnings, warnings, warnsLimit, lengthNode, atNode, mapInsertNode);
+        insertToWarningMap(
+            frame, withWarn.warnings, warnings, warnsLimit, lengthNode, atNode, mapInsertNode);
     var currWarnsCnt = withWarn.warnings.getHashSize();
     var newWarnsCnt = lengthNode.executeLength(warnings);
     var isLimitReached = currWarnsCnt + newWarnsCnt >= withWarn.maxWarnings;
@@ -118,7 +119,8 @@ public abstract class AppendWarningNode extends Node {
       Warning warning,
       @Shared @CachedLibrary(limit = "3") InteropLibrary interop,
       @Shared @Cached HashMapInsertNode mapInsertNode) {
-    var warnsMap = mapInsertNode.execute(frame, EnsoHashMap.empty(), warning.getSequenceId(), warning);
+    var warnsMap =
+        mapInsertNode.execute(frame, EnsoHashMap.empty(), warning.getSequenceId(), warning);
     var warnsLimit = EnsoContext.get(this).getWarningsLimit();
     var limitReached = 1 >= warnsLimit;
     return new WithWarnings(value, warnsLimit, limitReached, warnsMap);
@@ -135,7 +137,8 @@ public abstract class AppendWarningNode extends Node {
       @Shared @Cached HashMapInsertNode mapInsertNode) {
     var warnsLimit = EnsoContext.get(this).getWarningsLimit();
     var resWarningMap =
-        insertToWarningMap(frame, EnsoHashMap.empty(), warnings, warnsLimit, lengthNode, atNode, mapInsertNode);
+        insertToWarningMap(
+            frame, EnsoHashMap.empty(), warnings, warnsLimit, lengthNode, atNode, mapInsertNode);
     var newWarnsCnt = lengthNode.executeLength(warnings);
     var isLimitReached = newWarnsCnt >= warnsLimit;
     return new WithWarnings(object, warnsLimit, isLimitReached, resWarningMap);

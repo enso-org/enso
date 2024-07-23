@@ -11,8 +11,6 @@ import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.source.SourceSection;
-import java.util.Arrays;
-import java.util.Comparator;
 import org.enso.interpreter.dsl.Builtin;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.ArrayRope;
@@ -105,10 +103,7 @@ public final class Warning implements EnsoObject {
     return warns;
   }
 
-  public static EnsoHashMap fromArrayToMap(
-      Warning[] warnings,
-      HashMapInsertNode mapInsertNode
-  ) {
+  public static EnsoHashMap fromArrayToMap(Warning[] warnings, HashMapInsertNode mapInsertNode) {
     var map = EnsoHashMap.empty();
     for (var warn : warnings) {
       map = mapInsertNode.execute(null, map, warn.getSequenceId(), warn);

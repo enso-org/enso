@@ -57,10 +57,11 @@ import org.enso.interpreter.runtime.state.State;
 @ExportLibrary(value = InteropLibrary.class, delegateTo = "value")
 public final class WithWarnings implements EnsoObject {
   final Object value;
+
   /**
    * Internal storage for warnings is a PE-friendly hash map. The key is a sequence ID (gathered
-   * from {@link EnsoContext#nextSequenceId()} and the value is the warning itself. Note that it
-   * is essential that sequenceId is the key so that the warnings are not duplicated.
+   * from {@link EnsoContext#nextSequenceId()} and the value is the warning itself. Note that it is
+   * essential that sequenceId is the key so that the warnings are not duplicated.
    */
   final EnsoHashMap warnings;
 
@@ -90,8 +91,8 @@ public final class WithWarnings implements EnsoObject {
 
   /**
    * Explicit creation of WithWarnings. Allows to set a specific {@code maxWarnings} count, which
-   * cannot be achieved by using warning-handling nodes like {@link AppendWarningNode}. If
-   * {@code maxWarnings} does not need to be set explicitly, use nodes to create WithWarning objects
+   * cannot be achieved by using warning-handling nodes like {@link AppendWarningNode}. If {@code
+   * maxWarnings} does not need to be set explicitly, use nodes to create WithWarning objects
    * instead.
    *
    * @param value value to be wrapped in warnings
@@ -100,11 +101,7 @@ public final class WithWarnings implements EnsoObject {
    * @param warnings array of warnings to be attached to the {@code value}
    */
   public static WithWarnings create(
-      Object  value,
-      int maxWarnings,
-      boolean limitReached,
-      Warning[] warnings
-  ) {
+      Object value, int maxWarnings, boolean limitReached, Warning[] warnings) {
     assert warnings.length <= maxWarnings;
     if (limitReached) {
       assert warnings.length == maxWarnings;
