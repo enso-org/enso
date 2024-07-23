@@ -639,7 +639,7 @@ export default function AssetsTable(props: AssetsTableProps) {
   })
 
   React.useEffect(() => {
-    const selectedKeys = driveStore.getState().selectedKeys
+    const { selectedKeys } = driveStore.getState()
     if (selectedKeys.size === 0) {
       targetDirectoryNodeRef.current = null
     } else if (selectedKeys.size === 1) {
@@ -1215,7 +1215,7 @@ export default function AssetsTable(props: AssetsTableProps) {
   // This is not a React component, even though it contains JSX.
   // eslint-disable-next-line no-restricted-syntax
   const onKeyDown = (event: React.KeyboardEvent) => {
-    const selectedKeys = driveStore.getState().selectedKeys
+    const { selectedKeys } = driveStore.getState()
     const prevIndex = mostRecentlySelectedIndexRef.current
     const item = prevIndex == null ? null : visibleItems[prevIndex]
     if (selectedKeys.size === 1 && item != null) {
@@ -1775,7 +1775,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         break
       }
       case AssetListEventType.willDelete: {
-        const selectedKeys = driveStore.getState().selectedKeys
+        const { selectedKeys } = driveStore.getState()
         if (selectedKeys.has(event.key)) {
           const newSelectedKeys = new Set(selectedKeys)
           newSelectedKeys.delete(event.key)
@@ -1850,7 +1850,7 @@ export default function AssetsTable(props: AssetsTableProps) {
 
   const doCopy = React.useCallback(() => {
     unsetModal()
-    const selectedKeys = driveStore.getState().selectedKeys
+    const { selectedKeys } = driveStore.getState()
     setPasteData({ type: PasteType.copy, data: selectedKeys })
   }, [driveStore, unsetModal])
 
@@ -1859,7 +1859,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     if (pasteData != null) {
       dispatchAssetEvent({ type: AssetEventType.cancelCut, ids: pasteData.data })
     }
-    const selectedKeys = driveStore.getState().selectedKeys
+    const { selectedKeys } = driveStore.getState()
     setPasteData({ type: PasteType.move, data: selectedKeys })
     dispatchAssetEvent({ type: AssetEventType.cut, ids: selectedKeys })
     setSelectedKeys(new Set())
@@ -2025,7 +2025,7 @@ export default function AssetsTable(props: AssetsTableProps) {
           selectAdditional: () => {},
           selectAdditionalRange: () => {},
           [inputBindingsModule.DEFAULT_HANDLER]: () => {
-            const selectedKeys = driveStore.getState().selectedKeys
+            const { selectedKeys } = driveStore.getState()
             if (selectedKeys.size !== 0) {
               setSelectedKeys(set.EMPTY_SET)
               setMostRecentlySelectedIndex(null)
@@ -2069,11 +2069,11 @@ export default function AssetsTable(props: AssetsTableProps) {
           result = new Set(getRange())
         },
         selectAdditionalRange: () => {
-          const selectedKeys = driveStore.getState().selectedKeys
+          const { selectedKeys } = driveStore.getState()
           result = new Set([...selectedKeys, ...getRange()])
         },
         selectAdditional: () => {
-          const selectedKeys = driveStore.getState().selectedKeys
+          const { selectedKeys } = driveStore.getState()
           const newSelectedKeys = new Set(selectedKeys)
           let count = 0
           for (const key of keys) {
@@ -2249,9 +2249,6 @@ export default function AssetsTable(props: AssetsTableProps) {
   ) : (
     displayItems.map((item, i) => {
       const key = AssetTreeNode.getKey(item)
-      const isSelected = (visuallySelectedKeys ?? selectedKeys).has(key)
-      const isSoleSelected = isSelected && selectedKeys.size === 1
-
       return (
         <AssetRow
           key={key}
@@ -2270,11 +2267,6 @@ export default function AssetsTable(props: AssetsTableProps) {
           item={item}
           state={state}
           hidden={hidden || visibilities.get(item.key) === Visibility.hidden}
-          selected={isSelected}
-          setSelected={selected => {
-            setSelectedKeys(set.withPresence(selectedKeysRef.current, key, selected))
-          }}
-          isSoleSelected={isSoleSelected}
           isKeyboardSelected={
             keyboardSelectedIndex != null && item === visibleItems[keyboardSelectedIndex]
           }
@@ -2282,21 +2274,16 @@ export default function AssetsTable(props: AssetsTableProps) {
             setSelectedKeys(new Set([key]))
             setMostRecentlySelectedIndex(i, true)
           }}
-          allowContextMenu={selectedKeysRef.current.size === 0 || !isSelected || isSoleSelected}
           onClick={onRowClick}
-          onContextMenu={(_innerProps, event) => {
-            if (!isSelected) {
-              event.preventDefault()
-              event.stopPropagation()
-              setMostRecentlySelectedIndex(visibleItems.indexOf(item))
-              selectionStartIndexRef.current = null
-              setSelectedKeys(new Set([key]))
-            }
+          select={() => {
+            setMostRecentlySelectedIndex(visibleItems.indexOf(item))
+            selectionStartIndexRef.current = null
+            setSelectedKeys(new Set([key]))
           }}
           onDragStart={event => {
             startAutoScroll()
             onMouseEvent(event)
-            let newSelectedKeys = selectedKeysRef.current
+            let newSelectedKeys = driveStore.getState().selectedKeys
             if (!newSelectedKeys.has(key)) {
               setMostRecentlySelectedIndex(visibleItems.indexOf(item))
               selectionStartIndexRef.current = null
@@ -2352,7 +2339,7 @@ export default function AssetsTable(props: AssetsTableProps) {
             if (payload != null) {
               event.preventDefault()
               event.stopPropagation()
-              const selectedKeys = driveStore.getState().selectedKeys
+              const { selectedKeys } = driveStore.getState()
               const idsReference = selectedKeys.has(key) ? selectedKeys : key
               // This optimization is required in order to avoid severe lag on Firefox.
               if (idsReference !== lastSelectedIdsRef.current) {
@@ -2386,7 +2373,7 @@ export default function AssetsTable(props: AssetsTableProps) {
           onDragEnd={() => {
             endAutoScroll()
             lastSelectedIdsRef.current = null
-            const selectedKeys = driveStore.getState().selectedKeys
+            const { selectedKeys } = driveStore.getState()
             dispatchAssetEvent({
               type: AssetEventType.temporarilyAddLabels,
               ids: selectedKeys,
@@ -2395,7 +2382,7 @@ export default function AssetsTable(props: AssetsTableProps) {
           }}
           onDrop={event => {
             endAutoScroll()
-            const selectedKeys = driveStore.getState().selectedKeys
+            const { selectedKeys } = driveStore.getState()
             const ids = new Set(selectedKeys.has(key) ? selectedKeys : [key])
             const payload = drag.LABELS.lookup(event)
             if (payload != null) {
@@ -2465,7 +2452,7 @@ export default function AssetsTable(props: AssetsTableProps) {
           !event.currentTarget.contains(event.relatedTarget)
         ) {
           lastSelectedIdsRef.current = null
-          const selectedKeys = driveStore.getState().selectedKeys
+          const { selectedKeys } = driveStore.getState()
           dispatchAssetEvent({
             type: AssetEventType.temporarilyAddLabels,
             ids: selectedKeys,

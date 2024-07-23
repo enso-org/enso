@@ -1,14 +1,18 @@
 /** @file A table row for an arbitrary asset. */
 import * as React from 'react'
 
+import { useStore } from 'zustand'
+
 import BlankIcon from '#/assets/blank.svg'
 
 import * as backendHooks from '#/hooks/backendHooks'
 import * as dragAndDropHooks from '#/hooks/dragAndDropHooks'
+import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import * as setAssetHooks from '#/hooks/setAssetHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
+import { useDriveStore, useSetSelectedKeys } from '#/providers/DriveProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
@@ -79,29 +83,36 @@ export interface AssetRowProps
   readonly state: assetsTable.AssetsTableState
   readonly hidden: boolean
   readonly columns: columnUtils.Column[]
-  readonly selected: boolean
-  readonly setSelected: (selected: boolean) => void
-  readonly isSoleSelected: boolean
   readonly isKeyboardSelected: boolean
   readonly grabKeyboardFocus: () => void
-  readonly allowContextMenu: boolean
   readonly onClick: (props: AssetRowInnerProps, event: React.MouseEvent) => void
-  readonly onContextMenu?: (
-    props: AssetRowInnerProps,
-    event: React.MouseEvent<HTMLTableRowElement>
-  ) => void
+  readonly select: () => void
   readonly updateAssetRef: React.Ref<(asset: backendModule.AnyAsset) => void>
 }
 
 /** A row containing an {@link backendModule.AnyAsset}. */
 export default function AssetRow(props: AssetRowProps) {
-  const { selected, isSoleSelected, isKeyboardSelected, isOpened } = props
-  const { setSelected, allowContextMenu, onContextMenu, state, columns, onClick } = props
+  const { isKeyboardSelected, isOpened, select, state, columns, onClick } = props
   const { item: rawItem, hidden: hiddenRaw, updateAssetRef, grabKeyboardFocus } = props
   const { nodeMap, setAssetPanelProps, doToggleDirectoryExpansion, doCopy, doCut, doPaste } = state
   const { setIsAssetPanelTemporarilyVisible, scrollContainerRef, rootDirectoryId, backend } = state
   const { visibilities } = state
 
+  const [item, setItem] = React.useState(rawItem)
+  const key = AssetTreeNode.getKey(item)
+  const driveStore = useDriveStore()
+  const setSelectedKeys = useSetSelectedKeys()
+  const selected = useStore(driveStore, ({ visuallySelectedKeys, selectedKeys }) =>
+    (visuallySelectedKeys ?? selectedKeys).has(key)
+  )
+  const isSoleSelected = useStore(
+    driveStore,
+    ({ selectedKeys }) => selected && selectedKeys.size === 1
+  )
+  const allowContextMenu = useStore(
+    driveStore,
+    ({ selectedKeys }) => selectedKeys.size === 0 || !selected || isSoleSelected
+  )
   const draggableProps = dragAndDropHooks.useDraggable()
   const { user } = authProvider.useNonPartialUserSession()
   const { setModal, unsetModal } = modalProvider.useSetModal()
@@ -110,7 +121,6 @@ export default function AssetRow(props: AssetRowProps) {
   const dispatchAssetEvent = eventListProvider.useDispatchAssetEvent()
   const dispatchAssetListEvent = eventListProvider.useDispatchAssetListEvent()
   const [isDraggedOver, setIsDraggedOver] = React.useState(false)
-  const [item, setItem] = React.useState(rawItem)
   const rootRef = React.useRef<HTMLElement | null>(null)
   const dragOverTimeoutHandle = React.useRef<number | null>(null)
   const grabKeyboardFocusRef = React.useRef(grabKeyboardFocus)
@@ -120,7 +130,6 @@ export default function AssetRow(props: AssetRowProps) {
   const [rowState, setRowState] = React.useState<assetsTable.AssetRowState>(() =>
     object.merge(assetRowUtils.INITIAL_ROW_STATE, { setVisibility: setInsertionVisibility })
   )
-  const key = AssetTreeNode.getKey(item)
   const isCloud = backend.type === backendModule.BackendType.remote
   const outerVisibility = visibilities.get(key)
   const visibility =
@@ -146,6 +155,11 @@ export default function AssetRow(props: AssetRowProps) {
   const undoDeleteAssetMutate = undoDeleteAssetMutation.mutateAsync
   const openProjectMutate = openProjectMutation.mutateAsync
   const closeProjectMutate = closeProjectMutation.mutateAsync
+
+  const setSelected = useEventCallback((newSelected: boolean) => {
+    const { selectedKeys } = driveStore.getState()
+    setSelectedKeys(set.withPresence(selectedKeys, key, newSelected))
+  })
 
   React.useEffect(() => {
     setItem(rawItem)
@@ -756,7 +770,9 @@ export default function AssetRow(props: AssetRowProps) {
                   if (allowContextMenu) {
                     event.preventDefault()
                     event.stopPropagation()
-                    onContextMenu?.(innerProps, event)
+                    if (!selected) {
+                      select()
+                    }
                     setModal(
                       <AssetContextMenu
                         innerProps={innerProps}
@@ -772,8 +788,6 @@ export default function AssetRow(props: AssetRowProps) {
                         doTriggerDescriptionEdit={doTriggerDescriptionEdit}
                       />
                     )
-                  } else {
-                    onContextMenu?.(innerProps, event)
                   }
                 }}
                 onDragStart={event => {
