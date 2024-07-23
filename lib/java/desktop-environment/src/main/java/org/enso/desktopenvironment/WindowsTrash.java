@@ -63,6 +63,11 @@ final class WindowsTrash implements Trash {
   public static final class ShellApi implements CContext.Directives {
 
     @Override
+    public boolean isInConfiguration() {
+      return !Platform.getOperatingSystem().isLinux();
+    }
+
+    @Override
     public List<String> getHeaderFiles() {
       return Arrays.asList("<windows.h>");
     }
