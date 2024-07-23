@@ -42,7 +42,7 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: ./run backend test extra-snowflake
+      - run: ./run backend test std-snowflake
         env:
           ENSO_SNOWFLAKE_ACCOUNT: ${{ secrets.ENSO_SNOWFLAKE_ACCOUNT }}
           ENSO_SNOWFLAKE_DATABASE: ${{ secrets.ENSO_SNOWFLAKE_DATABASE }}
