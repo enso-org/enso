@@ -11,6 +11,7 @@ import RightPanelIcon from '#/assets/right_panel.svg'
 
 import * as offlineHooks from '#/hooks/offlineHooks'
 
+import { useCanDownload } from '#/providers/DriveProvider'
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
@@ -34,7 +35,6 @@ import type Backend from '#/services/Backend'
 
 import type AssetQuery from '#/utilities/AssetQuery'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
-import { useCanDownload } from '#/providers/DriveProvider'
 
 // ================
 // === DriveBar ===

@@ -11,6 +11,7 @@ import * as setAssetHooks from '#/hooks/setAssetHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
+import { useDriveStore } from '#/providers/DriveProvider'
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as textProvider from '#/providers/TextProvider'
 
@@ -59,13 +60,14 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
     backendType,
     isOpened,
   } = props
-  const { backend, selectedKeys, nodeMap } = state
+  const { backend, nodeMap } = state
   const client = reactQuery.useQueryClient()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { user } = authProvider.useNonPartialUserSession()
   const { getText } = textProvider.useText()
   const inputBindings = inputBindingsProvider.useInputBindings()
   const dispatchAssetListEvent = eventListProvider.useDispatchAssetListEvent()
+  const driveStore = useDriveStore()
   const doOpenProject = projectHooks.useOpenProject()
 
   if (item.type !== backendModule.AssetType.project) {
@@ -321,7 +323,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
           !isRunning &&
           eventModule.isSingleClick(event) &&
           selected &&
-          selectedKeys.current.size === 1
+          driveStore.getState().selectedKeys.size === 1
         ) {
           setIsEditing(true)
         } else if (eventModule.isDoubleClick(event)) {
