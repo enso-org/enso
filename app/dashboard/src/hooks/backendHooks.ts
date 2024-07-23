@@ -637,10 +637,7 @@ export function useBackendMutationListener(backendType: backendModule.BackendTyp
     }
     return mutationCache.subscribe(event => {
       const mutationRaw: reactQuery.Mutation | undefined = event.mutation
-      if (
-        (event.type === 'added' || event.type === 'updated') &&
-        mutationRaw?.options.mutationKey?.[0] === backendType
-      ) {
+      if (event.type === 'updated' && mutationRaw?.options.mutationKey?.[0] === backendType) {
         // eslint-disable-next-line no-restricted-syntax
         const obj = {
           method: mutationRaw.options.mutationKey[1],
