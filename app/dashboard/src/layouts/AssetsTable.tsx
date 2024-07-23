@@ -887,26 +887,29 @@ export default function AssetsTable(props: AssetsTableProps) {
   React.useEffect(
     () =>
       driveStore.subscribe(({ selectedKeys }) => {
+        let newCanDownload: boolean
         if (!isCloud) {
-          setCanDownload(
+          newCanDownload =
             selectedKeys.size !== 0 &&
-              Array.from(selectedKeys).every(key => {
-                const node = nodeMapRef.current.get(key)
-                return node?.item.type === backendModule.AssetType.project
-              })
-          )
+            Array.from(selectedKeys).every(key => {
+              const node = nodeMapRef.current.get(key)
+              return node?.item.type === backendModule.AssetType.project
+            })
         } else {
-          setCanDownload(
+          newCanDownload =
             selectedKeys.size !== 0 &&
-              Array.from(selectedKeys).every(key => {
-                const node = nodeMapRef.current.get(key)
-                return (
-                  node?.item.type === backendModule.AssetType.project ||
-                  node?.item.type === backendModule.AssetType.file ||
-                  node?.item.type === backendModule.AssetType.datalink
-                )
-              })
-          )
+            Array.from(selectedKeys).every(key => {
+              const node = nodeMapRef.current.get(key)
+              return (
+                node?.item.type === backendModule.AssetType.project ||
+                node?.item.type === backendModule.AssetType.file ||
+                node?.item.type === backendModule.AssetType.datalink
+              )
+            })
+        }
+        const currentCanDownload = driveStore.getState().canDownload
+        if (currentCanDownload !== newCanDownload) {
+          setCanDownload(newCanDownload)
         }
       }),
     [driveStore, isCloud, setCanDownload]
