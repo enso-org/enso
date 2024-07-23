@@ -39,7 +39,6 @@ import { provideInteractionHandler } from '@/providers/interactionHandler'
 import { provideKeyboard } from '@/providers/keyboard'
 import { provideWidgetRegistry } from '@/providers/widgetRegistry'
 import { provideGraphStore, type NodeId } from '@/stores/graph'
-import { asNodeId } from '@/stores/graph/graphDatabase'
 import type { RequiredImport } from '@/stores/graph/imports'
 import { useProjectStore } from '@/stores/project'
 import { provideSuggestionDbStore } from '@/stores/suggestionDatabase'
@@ -57,6 +56,7 @@ import { computedFallback } from '@/util/reactivity'
 import { until } from '@vueuse/core'
 import { encoding, set } from 'lib0'
 import { encodeMethodPointer } from 'shared/languageServerTypes'
+import * as iterable from 'shared/util/data/iterable'
 import { isDevMode } from 'shared/util/detect'
 import {
   computed,
@@ -71,6 +71,7 @@ import {
 } from 'vue'
 
 import { builtinWidgets } from '@/components/widgets'
+import { injectVisibility } from '@/providers/visibility'
 
 const keyboard = provideKeyboard()
 const projectStore = useProjectStore()
@@ -78,6 +79,7 @@ const suggestionDb = provideSuggestionDbStore(projectStore)
 const graphStore = provideGraphStore(projectStore, suggestionDb)
 const widgetRegistry = provideWidgetRegistry(graphStore.db)
 const _visualizationStore = provideVisualizationStore(projectStore)
+const visible = injectVisibility()
 
 onMounted(() => {
   widgetRegistry.loadWidgets(Object.entries(builtinWidgets))
@@ -133,7 +135,7 @@ useSyncLocalStorage<GraphStoredState>({
     // Client graph state needs to be stored separately for:
     // - each project
     // - each function within the project
-    encoding.writeVarString(enc, projectStore.name)
+    encoding.writeVarString(enc, projectStore.id)
     const methodPtr = graphStore.currentMethodPointer()
     if (methodPtr != null) encodeMethodPointer(enc, methodPtr)
   },
@@ -156,6 +158,7 @@ useSyncLocalStorage<GraphStoredState>({
       rightDockWidth.value = restored.rwidth ?? undefined
     } else {
       await until(visibleAreasReady).toBe(true)
+      await until(visible).toBe(true)
       if (!abort.aborted) zoomToAll(true)
     }
   },
@@ -211,8 +214,6 @@ const nodeSelection = provideGraphSelection(
   graphStore.isPortEnabled,
   {
     isValid: (id) => graphStore.db.nodeIdToNode.has(id),
-    pack: (id) => graphStore.db.nodeIdToNode.get(id)?.rootExpr.externalId,
-    unpack: (eid) => asNodeId(graphStore.db.idFromExternal(eid)),
     onSelected: (id) => graphStore.db.moveNodeToTop(id),
   },
 )
@@ -388,7 +389,6 @@ const { handleClick } = useDoubleClick(
 
 function deleteSelected() {
   graphStore.deleteNodes(nodeSelection.selected)
-  nodeSelection.deselectAll()
 }
 
 // === Code Editor ===
@@ -420,27 +420,6 @@ const documentationEditorHandler = documentationEditorBindings.handler({
 
 const { documentation } = useAstDocumentation(graphStore, () =>
   unwrapOr(graphStore.methodAst, undefined),
-)
-
-// === Execution Mode ===
-
-/** Handle record-once button presses. */
-function onRecordOnceButtonPress() {
-  projectStore.lsRpcConnection.initialized.then(async () => {
-    const modeValue = projectStore.executionMode
-    if (modeValue == undefined) {
-      return
-    }
-    projectStore.executionContext.recompute('all', 'Live')
-  })
-}
-
-// Watch for changes in the execution mode.
-watch(
-  () => projectStore.executionMode,
-  (modeValue) => {
-    projectStore.executionContext.executionEnvironment = modeValue === 'live' ? 'Live' : 'Design'
-  },
 )
 
 // === Component Browser ===
@@ -539,6 +518,7 @@ function clearFocus() {
 
 function createNodesFromSource(sourceNode: NodeId, options: NodeCreationOptions[]) {
   const sourcePort = graphStore.db.getNodeFirstOutputPort(sourceNode)
+  if (sourcePort == null) return
   const sourcePortAst = graphStore.viewModule.get(sourcePort)
   const [toCommit, toEdit] = partition(options, (opts) => opts.commit)
   createNodes(
@@ -567,7 +547,12 @@ function handleEdgeDrop(source: AstId, position: Vec2) {
 // === Node Collapsing ===
 
 function collapseNodes() {
-  const selected = nodeSelection.selected
+  const selected = new Set(
+    iterable.filter(
+      nodeSelection.selected,
+      (id) => graphStore.db.nodeIdToNode.get(id)?.type === 'component',
+    ),
+  )
   if (selected.size == 0) return
   try {
     const info = prepareCollapsedInfo(selected, graphStore.db)
@@ -586,25 +571,25 @@ function collapseNodes() {
     }
     const selectedNodeRects = filterDefined(Array.from(selected, graphStore.visibleArea))
     graphStore.edit((edit) => {
-      const { refactoredNodeId, collapsedNodeIds, outputNodeId } = performCollapse(
+      const { refactoredExpressionAstId, collapsedNodeIds, outputNodeId } = performCollapse(
         info.value,
         edit.getVersion(topLevel),
         graphStore.db,
         currentMethodName,
       )
       const position = collapsedNodePlacement(selectedNodeRects)
-      edit.get(refactoredNodeId).mutableNodeMetadata().set('position', position.xy())
+      edit.get(refactoredExpressionAstId).mutableNodeMetadata().set('position', position.xy())
       if (outputNodeId != null) {
         const collapsedNodeRects = filterDefined(
           Array.from(collapsedNodeIds, graphStore.visibleArea),
         )
         const { place } = usePlacement(collapsedNodeRects, graphNavigator.viewport)
         const position = place(collapsedNodeRects)
-        edit.get(outputNodeId).mutableNodeMetadata().set('position', position.xy())
+        edit.get(refactoredExpressionAstId).mutableNodeMetadata().set('position', position.xy())
       }
     })
   } catch (err) {
-    console.log('Error while collapsing, this is not normal.', err)
+    console.error('Error while collapsing, this is not normal.', err)
   }
 }
 
@@ -720,7 +705,6 @@ const groupColors = computed(() => {
           :zoomLevel="100.0 * graphNavigator.targetScale"
           :componentsSelected="nodeSelection.selected.size"
           :class="{ extraRightSpace: !showDocumentationEditor }"
-          @recordOnce="onRecordOnceButtonPress()"
           @fitToAllClicked="zoomToSelected"
           @zoomIn="graphNavigator.stepZoom(+1)"
           @zoomOut="graphNavigator.stepZoom(-1)"
@@ -793,6 +777,7 @@ const groupColors = computed(() => {
   overflow: clip;
   --group-color-fallback: #006b8a;
   --node-color-no-type: #596b81;
+  --output-node-color: #006b8a;
 }
 
 .layer {
@@ -805,7 +790,7 @@ const groupColors = computed(() => {
   will-change: transform;
 }
 
-::selection {
+.layer.nodes:deep(::selection) {
   background-color: rgba(255, 255, 255, 20%);
 }
 </style>

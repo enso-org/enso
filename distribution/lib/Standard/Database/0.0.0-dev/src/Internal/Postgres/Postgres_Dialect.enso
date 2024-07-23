@@ -19,6 +19,7 @@ import project.Internal.Common.Database_Distinct_Helper
 import project.Internal.Common.Database_Join_Helper
 import project.Internal.Error_Mapper.Error_Mapper
 import project.Internal.IR.Context.Context
+import project.Internal.IR.Context.Context_Extension
 import project.Internal.IR.From_Spec.From_Spec
 import project.Internal.IR.Internal_Column.Internal_Column
 import project.Internal.IR.Nulls_Order.Nulls_Order
@@ -122,7 +123,7 @@ type Postgres_Dialect
         distinct_expressions = new_key_columns.map column->
             value_type = type_mapping.sql_type_to_value_type column.sql_type_reference.get
             Database_Distinct_Helper.make_distinct_expression case_sensitivity problem_builder column value_type
-        new_context = Context.for_subquery setup.subquery . set_distinct_on distinct_expressions
+        new_context = Context.for_subquery setup.subquery . add_extension (make_distinct_extension distinct_expressions)
         table.updated_context_and_columns new_context new_columns subquery=True
 
     ## PRIVATE
@@ -158,8 +159,10 @@ type Postgres_Dialect
         Internal_Column.Value column.name new_sql_type_reference new_expression
 
     ## PRIVATE
-    needs_execute_query_for_type_inference : Boolean
-    needs_execute_query_for_type_inference self = False
+    needs_execute_query_for_type_inference : Text | SQL_Statement -> Boolean
+    needs_execute_query_for_type_inference self statement =
+        _ = statement
+        False
 
     ## PRIVATE
     supports_separate_nan : Boolean
@@ -301,6 +304,12 @@ type Postgres_Dialect
                             Warning.attach (Inexact_Type_Coercion.Warning base_type new_type unavailable=False) new_type
                         False -> base_type
                 _ -> base_type
+
+    ## PRIVATE
+    needs_literal_table_cast : Value_Type -> Boolean
+    needs_literal_table_cast self value_type =
+        _ = value_type
+        False
 
 ## PRIVATE
 make_dialect_operations =
@@ -664,6 +673,8 @@ make_date_add arguments (metadata : Date_Period_Metadata) =
                 "secs=>0.001"
             Time_Period.Microsecond ->
                 "secs=>0.000001"
+            Time_Period.Nanosecond ->
+                Panic.throw (Illegal_State.Error "Nanosecond precision is not supported by Postgres.")
         interval_expression = SQL_Builder.code "make_interval(" ++ interval_arg ++ ")"
         shifted = SQL_Builder.code "(" ++ expr ++ " + (" ++ amount ++ " * " ++ interval_expression ++ "))"
         case metadata.input_value_type of
@@ -753,6 +764,12 @@ as_int64 expr =
    Alters the expression casting the value to a 32-bit integer (the default choice for integers in Postgres).
 as_int32 expr =
     SQL_Builder.code "(" ++ expr ++ "::int4)"
+
+## PRIVATE
+make_distinct_extension expressions =
+    run_generator sql_expressions =
+        SQL_Builder.code "DISTINCT ON (" ++ (SQL_Builder.join ", " sql_expressions) ++ ") "
+    Context_Extension.Value position=120 expressions=expressions run_generator=run_generator
 
 ## PRIVATE
    The RUNTIME_ERROR operation should allow the query to compile fine and it

@@ -49,11 +49,10 @@ function onClick() {
   border-radius: var(--radius-full);
   border: none;
   transition: background-color 0.3s;
-  &:hover {
-    background-color: var(--color-menu-entry-hover-bg);
-  }
+  &:hover,
+  &:focus,
   &:active {
-    background-color: var(--color-menu-entry-active-bg);
+    background-color: var(--color-menu-entry-hover-bg);
   }
   &.disabled {
     cursor: default;

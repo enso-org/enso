@@ -14,28 +14,12 @@ import project.Util
 
 main filter=Nothing = run_default_backend add_specs filter
 
-type Data
-    Value ~connection
-
-    setup create_connection_fn =
-        Data.Value (create_connection_fn Nothing)
-
-    teardown self = self.connection.close
-
 
 add_specs suite_builder setup =
     prefix = setup.prefix
-    create_connection_fn = setup.create_connection_func
     materialize = setup.materialize
+    table_builder = setup.table_builder
     suite_builder.group prefix+"Table.merge" group_builder->
-        data = Data.setup create_connection_fn
-
-        group_builder.teardown <|
-            data.teardown
-
-        table_builder cols =
-            setup.table_builder cols connection=data.connection
-
         group_builder.specify "should allow to simply update columns based on a lookup table" <|
             lookup = table_builder [["Y", ["A", "B", "A"]], ["X", [1, 2, 3]]]
             my_table = table_builder [["X", [1, 2, 3, 2]], ["Y", ["Z", "ZZ", "ZZZ", "ZZZZ"]], ["Z", [10, 20, 30, 40]]]
@@ -224,20 +208,20 @@ add_specs suite_builder setup =
                 t2 = table_prepared.merge lookup key_columns=["key1", "key2"] allow_unmatched_rows=allow_unmatched_rows add_new_columns=True
                 t2.column_names . should_equal ["key1", "key2", "X", "Y", "Z", "W", "A", "B", "C", "D", "X2", "Y2", "Z2", "W2"]
 
-                t2.at "key1" . value_type . should_be_a (Value_Type.Integer ...)
+                setup.expect_integer_type <| t2.at "key1"
                 t2.at "key2" . value_type . should_equal Value_Type.Char
 
-                t2.at "X" . value_type . should_be_a (Value_Type.Integer ...)
+                setup.expect_integer_type <| t2.at "X"
                 t2.at "Y" . value_type . should_equal Value_Type.Char
                 t2.at "Z" . value_type . should_equal Value_Type.Float
                 t2.at "W" . value_type . should_equal Value_Type.Boolean
 
-                t2.at "A" . value_type . should_be_a (Value_Type.Integer ...)
+                setup.expect_integer_type <| t2.at "A"
                 t2.at "B" . value_type . should_equal Value_Type.Char
                 t2.at "C" . value_type . should_equal Value_Type.Float
                 t2.at "D" . value_type . should_equal Value_Type.Boolean
 
-                t2.at "X2" . value_type . should_be_a (Value_Type.Integer ...)
+                setup.expect_integer_type <| t2.at "X2"
                 t2.at "Y2" . value_type . should_equal Value_Type.Char
                 t2.at "Z2" . value_type . should_equal Value_Type.Float
                 t2.at "W2" . value_type . should_equal Value_Type.Boolean
@@ -292,9 +276,10 @@ add_specs suite_builder setup =
 
             r2 = my_table.merge lookup key_columns="X"
             r2.should_fail_with No_Common_Type
-            r2.catch.to_display_text . should_contain "Integer"
-            r2.catch.to_display_text . should_contain "Char"
-            r2.catch.to_display_text . should_contain "when unifying column [Y]"
+            txt = r2.catch.to_display_text
+            ((txt.contains "Integer") || (txt.contains "Decimal")).should_be_true
+            txt.should_contain "Char"
+            txt.should_contain "when unifying column [Y]"
 
         group_builder.specify "will allow incompatible types if allow_unmatched_rows=False" <|
             lookup = table_builder [["X", [1, 2, 3]], ["Y", [1, 11, 111]]]
@@ -303,7 +288,7 @@ add_specs suite_builder setup =
 
             t2 = my_table.merge lookup key_columns="X" allow_unmatched_rows=False
             t2.column_names . should_equal ["X", "Y", "Z"]
-            t2.at "Y" . value_type . is_integer . should_be_true
+            setup.expect_integer_type <| t2.at "Y"
             m2 = t2 |> materialize |> _.sort "Z"
             m2.at "X" . to_vector . should_equal [2, 3, 2, 3]
             m2.at "Y" . to_vector . should_equal [11, 111, 11, 111]
@@ -335,7 +320,7 @@ add_specs suite_builder setup =
             r2 = my_table.merge lookup key_columns=[] add_new_columns=True
             r2.should_fail_with Illegal_Argument
 
-        if setup.is_database.not then group_builder.specify "(in-memory only) will preserve the order of rows from the original table" <|
+        if setup.is_database.not then group_builder.specify "(in-memory only) will preserve the 279table_builder of rows from the original table" <|
             lookup = table_builder [["Y", [1, 0]], ["V", ["TRUE", "FALSE"]]]
             xs = 0.up_to 50 . to_vector
             ys = xs.map x-> x%2
@@ -386,7 +371,7 @@ add_specs suite_builder setup =
 
                         r3.row_count . should_equal 3
                         r3.at "Z" . to_vector . length . should_equal 3
-                        r3.at "Z" . to_vector . should_contain_the_same_elements_as [10, 20, 30]
+                        r3.at "Z" . to_vector . should_equal_ignoring_order [10, 20, 30]
                 m3.should_fail_with Invariant_Violation
                 r3.at "Z" . to_vector . should_fail_with Invariant_Violation
 

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import ExtendedMenu from '@/components/ExtendedMenu.vue'
-import NavBar from '@/components/NavBar.vue'
+import NavBreadcrumbs from '@/components/NavBreadcrumbs.vue'
 import RecordControl from '@/components/RecordControl.vue'
 import SelectionMenu from '@/components/SelectionMenu.vue'
 import { injectGuiConfig } from '@/providers/guiConfig'
@@ -10,13 +10,10 @@ const showColorPicker = defineModel<boolean>('showColorPicker', { required: true
 const showCodeEditor = defineModel<boolean>('showCodeEditor', { required: true })
 const showDocumentationEditor = defineModel<boolean>('showDocumentationEditor', { required: true })
 const props = defineProps<{
-  recordMode: boolean
   zoomLevel: number
   componentsSelected: number
 }>()
 const emit = defineEmits<{
-  recordOnce: []
-  'update:recordMode': [enabled: boolean]
   fitToAllClicked: []
   zoomIn: []
   zoomOut: []
@@ -38,12 +35,8 @@ const barStyle = computed(() => {
 
 <template>
   <div class="TopBar" :style="barStyle">
-    <RecordControl
-      :recordMode="props.recordMode"
-      @update:recordMode="emit('update:recordMode', $event)"
-      @recordOnce="emit('recordOnce')"
-    />
-    <NavBar />
+    <NavBreadcrumbs />
+    <RecordControl />
     <Transition name="selection-menu">
       <SelectionMenu
         v-if="componentsSelected > 1"

@@ -24,8 +24,8 @@ public class DirectoriesInitialization extends LockedInitialization {
 
   @Override
   public void initComponent() {
-    logger.info("Initializing directories...");
+    logger.debug("Initializing directories");
     projectDirectoriesConfig.createDirectories();
-    logger.info("Initialized directories.");
+    logger.debug("Initialized directories");
   }
 }

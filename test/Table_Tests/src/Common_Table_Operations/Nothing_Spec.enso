@@ -14,14 +14,8 @@ main filter=Nothing = run_default_backend add_specs filter
 type My_Type
     Value x:Text
 
-type Data
-    Value ~connection
-
-    setup create_connection_fn =
-        Data.Value (create_connection_fn Nothing)
-
-    teardown self = self.connection.close
-
+type Lazy_Ref
+    Value ~get
 
 add_specs suite_builder setup =
     prefix = setup.prefix
@@ -245,7 +239,7 @@ add_specs suite_builder setup =
                 t1 = table . distinct ["x"]
                 v = t1.at "x" . to_vector
                 v . length . should_equal 3
-                v . should_contain_the_same_elements_as [value, other_value, Nothing]
+                v . should_equal_ignoring_order [value, other_value, Nothing]
 
         group_builder.specify "Correctly handle Nothing in .distinct for Nothing" <|
             table = table_builder_typed [["x", [Nothing, Nothing, Nothing, Nothing, Nothing, Nothing]]] Value_Type.Char
@@ -259,15 +253,18 @@ add_specs suite_builder setup =
             other_value = triple.at 1
             value_type = triple.at 2
 
-            is_comparable = Default_Comparator.compare value other_value != Nothing
+            is_comparable = case Ordering.compare value other_value of
+                _:Ordering -> True
+                _ -> False
 
             if is_comparable then
-                table = table_builder_typed [["x", [value, Nothing, other_value, other_value, Nothing, value, Nothing]]] value_type
+                table = Lazy_Ref.Value <|
+                    table_builder_typed [["x", [value, Nothing, other_value, other_value, Nothing, value, Nothing]]] value_type
 
                 group_builder.specify "Correctly handle Nothing in .sort (asc) for "+value_type.to_text <|
-                    t1 = table . sort [..Name "x" ..Ascending]
+                    t1 = table.get . sort [..Name "x" ..Ascending]
                     t1.at "x" . to_vector . should_equal [Nothing, Nothing, Nothing, value, value, other_value, other_value]
 
                 group_builder.specify "Correctly handle Nothing in .sort (desc) for "+value_type.to_text <|
-                    t1 = table . sort [..Name "x" ..Descending]
+                    t1 = table.get . sort [..Name "x" ..Descending]
                     t1.at "x" . to_vector . should_equal [other_value, other_value, value, value, Nothing, Nothing, Nothing]

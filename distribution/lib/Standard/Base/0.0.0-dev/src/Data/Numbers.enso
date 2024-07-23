@@ -14,6 +14,7 @@ import project.Nothing.Nothing
 import project.Panic.Panic
 from project.Data.Boolean import Boolean, False, True
 from project.Internal.Number_Builtins import all
+from project.Internal.Ordering_Helpers import Positive_Integer_Comparator
 from project.Widget_Helpers import make_number_format_selector
 
 polyglot java import java.lang.Double
@@ -1247,6 +1248,10 @@ type Integer
             Integer.parse "20220216"
     parse text:Text (radix=10:Integer) -> Integer ! Number_Parse_Error = integer_parse text radix
 
+    ## PRIVATE
+    fits_in_long self -> Boolean =
+        self >= Long.MIN_VALUE && self <= Long.MAX_VALUE
+
 ## A syntax error when parsing a double.
 @Builtin_Type
 type Number_Parse_Error
@@ -1288,13 +1293,4 @@ Positive_Integer.from (that : Integer) = Positive_Integer.new that
 Integer.from (that : Positive_Integer) = that.integer
 
 ## PRIVATE
-type Positive_Integer_Comparator
-    ## PRIVATE
-    compare x y =
-        Comparable.from x.integer . compare x.integer y.integer
-
-    ## PRIVATE
-    hash x = Comparable.from x.integer . hash x.integer
-
-## PRIVATE
-Comparable.from (_:Positive_Integer) = Positive_Integer_Comparator
+Comparable.from (that:Positive_Integer) = Comparable.new that Positive_Integer_Comparator

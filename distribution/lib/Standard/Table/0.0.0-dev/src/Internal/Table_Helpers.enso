@@ -83,8 +83,9 @@ type Table_Column_Helper
          specified types will also be selected (i.e. ignore size, precision).
     select_by_type : Vector Value_Type -> Boolean -> Vector
     select_by_type self types:Vector strict:Boolean=False =
-        selected_columns = if strict then self.columns.filter c-> types.contains c.value_type else
-            self.columns.filter c-> types.any t-> c.value_type.is_same_type t
+        parsed_types = types.map t->t:Value_Type
+        selected_columns = if strict then self.columns.filter c-> parsed_types.contains c.value_type else
+            self.columns.filter c-> parsed_types.any t-> c.value_type.is_same_type t
         if selected_columns.length == 0 then Error.throw (No_Output_Columns.Error "No columns of the specified types were found.") else
             selected_columns
 
@@ -192,7 +193,8 @@ type Table_Column_Helper
                 ix : Integer -> if is_index_valid self.columns.length ix then [self.columns.at ix] else
                     problem_builder.report_oob_indices [ix]
                     []
-                _ : By_Type -> self.columns.filter column-> column.value_type.is_same_type selector.type
+                _ : By_Type -> self.columns.filter column->
+                    column.should_be_selected_by_type selector.type
                 _ ->
                     matches = match_columns selector case_sensitivity self.columns
                     if matches.is_empty then problem_builder.report_missing_input_columns [selector]

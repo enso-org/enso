@@ -125,6 +125,23 @@ type Postgres_Type_Mapping
         value_type = self.sql_type_to_value_type sql_type
         Column_Fetcher_Module.default_fetcher_for_value_type value_type
 
+    ## PRIVATE
+    is_implicit_conversion (source_type : Value_Type) (target_type : Value_Type) -> Boolean =
+        # Currently, we do not have any implicit conversions.
+        _ = [source_type, target_type]
+        False
+
+    ## PRIVATE
+    should_warn_on_materialize (db_type : Value_Type) (in_memory_type : Value_Type) -> Boolean =
+        SQL_Type_Mapping.default_should_warn_on_materialize db_type in_memory_type
+
+    ## PRIVATE
+    is_integer_type (value_type : Value_Type) -> Boolean = value_type.is_integer
+
+    ## PRIVATE
+    is_same_type (value_type1 : Value_Type) (value_type2 : Value_Type) -> Boolean =
+        value_type1.is_same_type value_type2
+
 ## PRIVATE
 simple_types_map = Dictionary.from_vector <|
     ints = [[Types.SMALLINT, Value_Type.Integer Bits.Bits_16], [Types.BIGINT, Value_Type.Integer Bits.Bits_64], [Types.INTEGER, Value_Type.Integer Bits.Bits_32]]

@@ -39,19 +39,19 @@ public interface Locking {
   /**
    * Executes `callable` while holding a context lock
    *
-   * @param contextId context id for which the lock is being requested
+   * @param contextLock lock used to ensure exclusive access
    * @param where the class requesting the lock
    * @param callable code to be executed while holding the lock
    * @return the result of calling `callable` or null, if no result is expected
    */
-  <T> T withContextLock(UUID contextId, Class<?> where, Callable<T> callable);
+  <T> T withContextLock(ContextLock contextLock, Class<?> where, Callable<T> callable);
 
   /**
    * Removes a context lock.
    *
-   * @param contextId a context to remove
+   * @param a context lock to remove
    */
-  void removeContextLock(UUID contextId);
+  void removeContextLock(ContextLock contextLock);
 
   /**
    * Executes `callable` while holding a file lock
@@ -62,4 +62,12 @@ public interface Locking {
    * @return the result of calling `callable` or null, if no result is expected
    */
   <T> T withFileLock(File file, Class<?> where, Callable<T> callable);
+
+  /**
+   * Gets an existing context lock, or creates a fresh one, for the given context ID.
+   *
+   * @param contextId context id for which a lock will be returned
+   * @return lock wrapper
+   */
+  ContextLock getOrCreateContextLock(UUID contextId);
 }

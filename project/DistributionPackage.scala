@@ -414,7 +414,7 @@ object DistributionPackage {
     )
 
     copyFilesIncremental(
-      Seq(file(executableName("enso"))),
+      Seq(file(executableName("ensoup"))),
       distributionRoot / "bin",
       cacheFactory.make("launcher-exe")
     )

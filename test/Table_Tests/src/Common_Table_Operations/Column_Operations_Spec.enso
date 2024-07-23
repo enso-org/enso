@@ -18,7 +18,8 @@ from Standard.Test import all
 
 import enso_dev.Base_Tests.Data.Round_Spec
 
-from project.Common_Table_Operations.Util import run_default_backend, within_table
+import project.Common_Table_Operations.Main.Char_Max_Size_After_Substring_Behavior
+from project.Common_Table_Operations.Util import run_default_backend, within_table, is_float_or_decimal
 
 main filter=Nothing = run_default_backend add_specs filter
 
@@ -30,7 +31,7 @@ type Arithmetic_Data
     z self = self.data.at 2
 
     setup table_builder = Arithmetic_Data.Value <|
-        t2 = table_builder [["x", [1, 4, 5, Nothing]], ["y", [2.0, 3.25, 5.0, Nothing]], ["z", [Decimal.new 2, Decimal.new 4.5, Decimal.new 5.0, Nothing]], ["row_id", [1, 2, 3, 4]]] . order_by "row_id"
+        t2 = table_builder [["x", [1, 4, 5, Nothing]], ["y", [2.0, 3.25, 5.0, Nothing]], ["z", [Decimal.new 2, Decimal.new 4.5, Decimal.new 5.0, Nothing]], ["row_id", [1, 2, 3, 4]]] . sort "row_id"
         x = t2.at "x"
         y = t2.at "y"
         z = t2.at "z"
@@ -45,7 +46,7 @@ type Min_Max_Data
     t self = self.data.at 3
 
     setup table_builder = Min_Max_Data.Value <|
-        t = table_builder [["a", [1, 2, 3]], ["b", [4.5, 5.5, 6.5]], ["c", ['a', 'b', 'c']], ["d", [True, False, True]]] . order_by "a"
+        t = table_builder [["a", [1, 2, 3]], ["b", [4.5, 5.5, 6.5]], ["c", ['a', 'b', 'c']], ["d", [True, False, True]]] . sort "a"
         a = t.at "a"
         b = t.at "b"
         c = t.at "c"
@@ -58,8 +59,8 @@ type Literal_Data
     col1 self = self.data.at 1
 
     setup table_builder = Literal_Data.Value <|
-        col0 = table_builder [["x", ['hello Hello', 'hello hello', 'HELLO HELLO']], ["row_id", [1, 2, 3]]] . order_by "row_id" . at "x"
-        col1 = table_builder [["x", ['a[bcd] A[bCd] a[bcd]', 'abac ad Ab aCAd']], ["row_id", [1, 2]]] . order_by "row_id" . at "x"
+        col0 = table_builder [["x", ['hello Hello', 'hello hello', 'HELLO HELLO']], ["row_id", [1, 2, 3]]] . sort "row_id" . at "x"
+        col1 = table_builder [["x", ['a[bcd] A[bCd] a[bcd]', 'abac ad Ab aCAd']], ["row_id", [1, 2]]] . sort "row_id" . at "x"
         [col0, col1]
 
 type Replace_Data
@@ -70,7 +71,7 @@ type Replace_Data
     replacements self = self.data.at 2
 
     setup table_builder = Replace_Data.Value <|
-        table = table_builder [["x", ['hello Hello', 'hello hello', 'HELLO HELLO', 'a[bcd] A[bCd] a[bcd]', 'abac ad Ab aCAd']], ["patterns", ['hello', 'hello', 'hello', 'a[bcd]', 'a[bcd]']], ["replacements", ['bye', 'bye', 'bye', 'hey', 'hey']], ["row_id", [1, 2, 3, 4, 5]]] . order_by "row_id"
+        table = table_builder [["x", ['hello Hello', 'hello hello', 'HELLO HELLO', 'a[bcd] A[bCd] a[bcd]', 'abac ad Ab aCAd']], ["patterns", ['hello', 'hello', 'hello', 'a[bcd]', 'a[bcd]']], ["replacements", ['bye', 'bye', 'bye', 'hey', 'hey']], ["row_id", [1, 2, 3, 4, 5]]] . sort "row_id"
         col = table.at "x"
         patterns = table.at "patterns"
         replacements = table.at "replacements"
@@ -86,7 +87,7 @@ type Text_Replace_Data
     d self = self.data.at 3
 
     setup table_builder = Text_Replace_Data.Value <|
-        t4 = table_builder [["A", ["Alpha", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot"]], ["B", ["A","O","a","E","o","O"]], ["C", [1,2,3,4,5,6]], ["D", ['',Nothing,'',Nothing,'','']]] . order_by "C"
+        t4 = table_builder [["A", ["Alpha", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot"]], ["B", ["A","O","a","E","o","O"]], ["C", [1,2,3,4,5,6]], ["D", ['',Nothing,'',Nothing,'','']]] . sort "C"
         a = t4.at "A"
         b = t4.at "B"
         c = t4.at "C"
@@ -101,7 +102,7 @@ type Trim_Data
     c self = self.data.at 2
 
     setup table_builder = Trim_Data.Value <|
-        table = table_builder [["A", [" A ", ' \t\n\rA\r\n\t ', "xxxAxx"]], ["B", [" ",' \t',"x"]], ["C", [1,2,3]]] . order_by "C"
+        table = table_builder [["A", [" A ", ' \t\n\rA\r\n\t ', "xxxAxx"]], ["B", [" ",' \t',"x"]], ["C", [1,2,3]]] . sort "C"
         a = table.at "A"
         b = table.at "B"
         c = table.at "C"
@@ -113,9 +114,11 @@ type Names_Data
     t self = self.data.at 0
 
     setup table_builder = Names_Data.Value <|
-        t = table_builder [["a", [1, 2, 3]], ["b", ['x', 'y', 'z']], ["c", [1.0, 2.0, 3.0]], ["d", [True, False, True]]] . order_by "a"
+        t = table_builder [["a", [1, 2, 3]], ["b", ['x', 'y', 'z']], ["c", [1.0, 2.0, 3.0]], ["d", [True, False, True]]] . sort "a"
         [t]
 
+type Lazy_Ref
+    Value ~get
 
 add_specs suite_builder setup =
     prefix = setup.prefix
@@ -123,14 +126,33 @@ add_specs suite_builder setup =
     light_table_builder = setup.light_table_builder
     pending_datetime = if setup.test_selection.date_time.not then "Date/Time operations are not supported by this backend."
     suite_builder.group prefix+"(Column_Operations_Spec) Rounding numeric tests" group_builder->
-        do_op n op =
+        round_one n dp=0 use_bankers=False =
             table = light_table_builder [["x", [n]]]
-            result = table.at "x" |> op
+            result = table.at "x" . round dp use_bankers
             result.to_vector.at 0
 
-        do_round n dp=0 use_bankers=False = do_op n (_.round dp use_bankers)
-
-        Round_Spec.add_specs group_builder do_round
+        round_batch n_vec dp_vec use_bankers = case use_bankers of
+            ## If banker's rounding is used, we refrain from batching due to issue
+               https://github.com/enso-org/enso/issues/10306
+               That is because the created SQL code is tremendously large with batching
+               (up to around 250k characters, making running it very slow).
+            True ->
+                # Just use `round_one` for each entry
+                n_vec.zip dp_vec n-> dp-> round_one n dp use_bankers
+            False ->
+                name_for ix = "x"+ix.to_text
+                n_columns = n_vec.map_with_index ix-> n-> [name_for ix, [n]]
+                table = light_table_builder n_columns
+                new_columns = dp_vec.map_with_index ix-> dp->
+                    n_col = table.at (name_for ix)
+                    n_col.round dp use_bankers . rename (name_for ix)
+                # In new table input columns are replaced with results of output
+                new_table = new_columns.fold table acc-> col-> acc.set col (set_mode=..Update)
+                # We read all operations in a single query
+                materialized = new_table.read
+                Runtime.assert (materialized.row_count == 1)
+                materialized.first_row.to_vector
+        Round_Spec.add_specs group_builder (Round_Spec.Batch_Runner.Value round_batch round_one) run_advanced=setup.test_selection.run_advanced_edge_case_tests
 
         group_builder.specify "Decimal places out of range" <|
             3.1 . round 16 . should_fail_with Illegal_Argument
@@ -141,7 +163,7 @@ add_specs suite_builder setup =
         if setup.prefix.contains "Snowflake" . not then table_builder table_structure else
             row_count = table_structure.first.second.length
             new_structure = table_structure+[["row_id", (0.up_to row_count) . to_vector]]
-            table_builder new_structure . order_by "row_id" . remove_columns ["row_id"]
+            table_builder new_structure . sort "row_id" . remove_columns ["row_id"]
 
     ## Runs the provided callback with a few combinations of columns, where some
        of them are made Mixed (but still contain only the original values).
@@ -173,28 +195,26 @@ add_specs suite_builder setup =
     suite_builder.group prefix+"(Column_Operations_Spec) Boolean Column Operations" group_builder->
         table_builder = light_table_builder
         group_builder.specify "iif" <|
-            t = table_builder [["X", [True, False, Nothing, True]]]
-            # TODO
-            IO.println (t.at "X" . value_type)
+            t = build_sorted_table [["X", [True, False, Nothing, True]]]
             c1 = t.at "X" . iif 22 33
             c1.to_vector . should_equal [22, 33, Nothing, 22]
-            c1.value_type . is_integer . should_be_true
+            setup.expect_integer_type <| c1
 
             c2 = t.at "X" . iif 22 33.0
             c2.to_vector . should_equal [22, 33, Nothing, 22]
-            c2.value_type . is_floating_point . should_be_true
+            c2.value_type . should_be_a (Value_Type.Float ...)
 
             c3 = t.at "X" . iif "A" "B"
             c3.to_vector . should_equal ["A", "B", Nothing, "A"]
-            c3.value_type . is_text . should_be_true
+            c3.value_type . should_be_a (Value_Type.Char ...)
 
             c4 = t.at "X" . iif Nothing "B"
             c4.to_vector . should_equal [Nothing, "B", Nothing, Nothing]
-            c4.value_type . is_text . should_be_true
+            c4.value_type . should_be_a (Value_Type.Char ...)
 
             c5 = t.at "X" . iif 42 Nothing
             c5.to_vector . should_equal [42, Nothing, Nothing, 42]
-            c5.value_type . is_integer . should_be_true
+            setup.expect_integer_type <| c5
 
             c6 = t.at "X" . iif Nothing Nothing
             c6.to_vector . should_equal [Nothing, Nothing, Nothing, Nothing]
@@ -446,6 +466,10 @@ add_specs suite_builder setup =
             t = table_builder [["col0", ["0", Nothing, "4", "5", Nothing, Nothing]]] . cast "col0" (Value_Type.Char size=1 variable_length=False)
             actual = t.fill_nothing ["col0"] "ABCDE"
             actual.at "col0" . to_vector . should_equal ["0", "ABCDE", "4", "5", "ABCDE", "ABCDE"]
+            # Snowflake worksheet returns:
+            # SELECT SYSTEM$TYPEOF(COALESCE(CAST("literal_table"."x" AS CHAR(1)), 'N/A')) FROM (VALUES ('1'), (NULL), ('a')) AS "literal_table"("x");
+            # VARCHAR(3) - so it is correct
+            # TODO - investigate JDBC / our mapping bug
             case setup.test_selection.length_restricted_text_columns of
                 True -> actual.at "col0" . value_type . should_equal (Value_Type.Char size=5 variable_length=True)
                 False -> actual.at "col0" . value_type . should_equal (Value_Type.Char variable_length=True)
@@ -464,16 +488,20 @@ add_specs suite_builder setup =
                 True -> actual.at "col0" . value_type . should_equal (Value_Type.Char size=3 variable_length=True)
                 False -> actual.at "col0" . value_type . should_equal (Value_Type.Char variable_length=True)
 
-        group_builder.specify "should allow to fill_nothing a fixed width of width 1 correctly expanding ouptut types" <|
+        group_builder.specify "should allow to fill_nothing a fixed width of width 1 correctly expanding output types" <|
             t = table_builder [["col0", ["a", Nothing, " "]]] . cast "col0" (Value_Type.Char size=1 variable_length=False)
             fillBlank = t.fill_nothing ["col0"] ""
             fillOneSpace = t.fill_nothing ["col0"] " "
             fillTwoSpaces = t.fill_nothing ["col0"] "  "
             case setup.test_selection.length_restricted_text_columns of
-                True -> fillBlank.at "col0" . value_type . should_equal (Value_Type.Char size=1 variable_length=True)
-                    fillOneSpace.at "col0" . value_type . should_equal (Value_Type.Char size=1 variable_length=False)
+                True ->
+                    fillBlank.at "col0" . value_type . should_equal (Value_Type.Char size=1 variable_length=True)
+                    case setup.test_selection.fixed_length_text_columns of
+                        True  -> fillOneSpace.at "col0" . value_type . should_equal (Value_Type.Char size=1 variable_length=False)
+                        False -> fillOneSpace.at "col0" . value_type . should_equal (Value_Type.Char size=1 variable_length=True)
                     fillTwoSpaces.at "col0" . value_type . should_equal (Value_Type.Char size=2 variable_length=True)
-                False -> fillBlank.at "col0" . value_type . should_equal (Value_Type.Char variable_length=True)
+                False ->
+                    fillBlank.at "col0" . value_type . should_equal (Value_Type.Char variable_length=True)
                     fillOneSpace.at "col0" . value_type . should_equal (Value_Type.Char variable_length=True)
                     fillTwoSpaces.at "col0" . value_type . should_equal (Value_Type.Char variable_length=True)
 
@@ -491,8 +519,12 @@ add_specs suite_builder setup =
             t = table_builder [["col0", [Nothing, "200", Nothing, "400", "500", Nothing]]] . cast "col0" (Value_Type.Char size=3 variable_length=False)
             actual = t.fill_nothing ["col0"] "   "
             actual.at "col0" . to_vector . should_equal ["   ", "200", "   ", "400", "500", "   "]
-            case setup.test_selection.fixed_length_text_columns of
-                True -> actual.at "col0" . value_type . should_equal (Value_Type.Char size=3 variable_length=False)
+
+            case setup.test_selection.length_restricted_text_columns of
+                True ->
+                    case setup.test_selection.fixed_length_text_columns of
+                        True  -> actual.at "col0" . value_type . should_equal (Value_Type.Char size=3 variable_length=False)
+                        False -> actual.at "col0" . value_type . should_equal (Value_Type.Char size=3 variable_length=True)
                 False -> actual.at "col0" . value_type . should_equal (Value_Type.Char variable_length=True)
 
         group_builder.specify "should allow to fill_nothing from other columns" <|
@@ -630,8 +662,8 @@ add_specs suite_builder setup =
             with_mixed_columns_if_supported [["x", [1, 4, 5, Nothing]], ["y", [2.0, 3.25, 5.0, Nothing]]] t2->
                 x = t2.at "x"
                 y = t2.at "y"
-                x.inferred_precise_value_type . is_integer . should_be_true
-                y.inferred_precise_value_type . is_floating_point . should_be_true
+                setup.is_integer_type x.inferred_precise_value_type . should_be_true
+                y.inferred_precise_value_type . should_be_a (Value_Type.Float ...)
 
                 (x < y).to_vector . should_equal [True, False, False, Nothing]
                 (x <= y).to_vector . should_equal [True, False, True, Nothing]
@@ -762,32 +794,33 @@ add_specs suite_builder setup =
                 (x ^ y).to_vector . should_equal [10000, 9765625]
 
         group_builder.specify "should correctly infer the types" <|
-            (data.x + data.x).value_type . is_integer . should_be_true
-            (data.x + data.y).value_type . is_floating_point . should_be_true
-            (data.x + 2).value_type . is_integer . should_be_true
-            (data.x + 1.5).value_type . is_floating_point . should_be_true
+            setup.expect_integer_type <| (data.x + data.x)
+            (data.x + data.y).value_type . should_be_a (Value_Type.Float ...)
+            setup.expect_integer_type <| (data.x + 2)
+            is_float_or_decimal (data.x + 1.5)
 
-            (data.x - data.x).value_type . is_integer . should_be_true
-            (data.x - data.y).value_type . is_floating_point . should_be_true
-            (data.x - 2).value_type . is_integer . should_be_true
-            (data.x - 1.5).value_type . is_floating_point . should_be_true
+            setup.expect_integer_type <| (data.x - data.x)
+            (data.x - data.y).value_type . should_be_a (Value_Type.Float ...)
+            setup.expect_integer_type <| (data.x - 2)
+            is_float_or_decimal (data.x - 1.5)
 
-            (data.x * data.x).value_type . is_integer . should_be_true
-            (data.x * data.y).value_type . is_floating_point . should_be_true
-            (data.x * 2).value_type . is_integer . should_be_true
-            (data.x * 1.5).value_type . is_floating_point . should_be_true
+            setup.expect_integer_type <| (data.x * data.x)
+            (data.x * data.y).value_type . should_be_a (Value_Type.Float ...)
+            setup.expect_integer_type <| (data.x * 2)
+            is_float_or_decimal <| (data.x * 1.5)
 
             (data.x ^ data.x).value_type . is_numeric . should_be_true
 
         if setup.test_selection.supports_decimal_type then
+            # TODO in-memory specific tests may be added in In_Memory/Table_Spec as part of #10429
             divide_in_memory_pending = if setup.is_database.not then "TODO: https://github.com/enso-org/enso/issues/10429"
             group_builder.specify "should correctly infer the types (for decimal division)" pending=divide_in_memory_pending <|
-                (data.x / data.x).value_type . is_floating_point . should_be_true
-                (data.x / data.y).value_type . is_floating_point . should_be_true
-                (data.x / data.z).value_type . is_decimal . should_be_true
-                (data.y / data.z).value_type . is_decimal . should_be_true
-                (data.x / 2).value_type . is_floating_point  . should_be_true
-                (data.x / 1.5).value_type . is_floating_point . should_be_true
+                is_float_or_decimal (data.x / data.x)
+                is_float_or_decimal (data.x / data.y)
+                is_float_or_decimal (data.x / data.z)
+                is_float_or_decimal (data.y / data.z)
+                is_float_or_decimal (data.x / 2)
+                is_float_or_decimal (data.x / 1.5)
 
         group_builder.specify "should check types" <|
             t = table_builder [["X", [1, 2]], ["Y", ["a", "b"]], ["Z", [True, False]]]
@@ -824,14 +857,17 @@ add_specs suite_builder setup =
 
         case setup.test_selection.is_nan_and_nothing_distinct of
             True ->
-                t = build_sorted_table [["X", [1.5, 3.0, Number.positive_infinity, Number.negative_infinity, Number.nan, Nothing]], ["Y", [1, 2, 3, 4, 5, Nothing]], ["Z", ["1", "2", "3", "4", "5", Nothing]]]
+                table = Lazy_Ref.Value <|
+                    build_sorted_table [["X", [1.5, 3.0, Number.positive_infinity, Number.negative_infinity, Number.nan, Nothing]], ["Y", [1, 2, 3, 4, 5, Nothing]], ["Z", ["1", "2", "3", "4", "5", Nothing]]]
 
                 group_builder.specify "should support is_nan" <|
+                    t = table.get
                     t.at "X" . is_nan . to_vector . should_equal [False, False, False, False, True, Nothing]
                     t.at "Y" . is_nan . to_vector . should_equal [False, False, False, False, False, Nothing]
                     t.at "Z" . is_nan . to_vector . should_fail_with Invalid_Value_Type
 
                 group_builder.specify "should support is_infinite" <|
+                    t = table.get
                     t.at "X" . is_infinite . to_vector . should_equal [False, False, True, True, False, Nothing]
                     t.at "Y" . is_infinite . to_vector . should_equal [False, False, False, False, False, Nothing]
                     t.at "Z" . is_infinite . to_vector . should_fail_with Invalid_Value_Type
@@ -858,16 +894,16 @@ add_specs suite_builder setup =
             a.zip b (/) . should_equal r
 
             t = build_sorted_table [["A", a], ["B", b]]
-            t.at "A" . value_type . is_integer . should_be_true
-            t.at "B" . value_type . is_integer . should_be_true
+            setup.expect_integer_type <| t.at "A"
+            setup.expect_integer_type <| t.at "B"
 
             r2 = (t.at "A") / (t.at "B")
             r2 . to_vector . should_equal r
-            r2.value_type . is_floating_point . should_be_true
+            is_float_or_decimal r2
 
             r3 = (t.at "A") / 2
             r3 . to_vector . should_equal [0.5, 2.5, 5.0, 50.0]
-            r3.value_type . is_floating_point . should_be_true
+            is_float_or_decimal r3
 
             a2 = [1.2, 5, 10.2, 100]
             b2 = [1.2, 2, 2, 5]
@@ -880,11 +916,11 @@ add_specs suite_builder setup =
 
             r5 = (t2.at "A") / (t2.at "B")
             r5 . to_vector . should_equal r4
-            r5.value_type . is_floating_point . should_be_true
+            is_float_or_decimal r5
 
             r6 = (t2.at "A") / 2
             r6 . to_vector . should_equal [0.6, 2.5, 5.1, 50.0]
-            r6.value_type . is_floating_point . should_be_true
+            is_float_or_decimal r6
 
         db_pending = if setup.is_database then "Arithmetic error handling is currently not implemented for the Database backend."
         group_builder.specify "should allow division by 0 and report warnings" pending=db_pending <|
@@ -965,9 +1001,6 @@ add_specs suite_builder setup =
             group_builder.specify "should allow round on a "+type.to_text+" column (to >0 decimal places)" <|
                 table = table_builder [["x", [0.51, 0.59, 3.51, 3.59, -0.51, -0.59, -3.51, -3.59]]]
                 result = table.at "x" . cast type . round 1
-                # TODO why it's becoming an Int?
-                IO.println (result.value_type)
-                IO.println (result.cast Value_Type.Char . to_vector)
                 result.to_vector.should_equal [0.5, 0.6, 3.5, 3.6, -0.5, -0.6, -3.5, -3.6]
                 result.name . should_equal "round([x])"
 
@@ -1126,12 +1159,15 @@ add_specs suite_builder setup =
                 resRight.name . should_equal "text_right([strings], 1)"
                 resLeft . to_vector . should_equal ["a", "f", "", Nothing, "c", "I"]
                 resRight . to_vector . should_equal ["a", "r", "", Nothing, "é", "."]
-                case setup.is_database of
-                    False -> resLeft . value_type . should_equal (Value_Type.Char size=286 variable_length=True)
-                    True -> resLeft . value_type . should_equal (Value_Type.Char variable_length=True)
-                case setup.is_database of
-                    False -> resRight . value_type . should_equal (Value_Type.Char size=286 variable_length=True)
-                    True -> resRight . value_type . should_equal (Value_Type.Char variable_length=True)
+
+                expected_new_size = case setup.test_selection.char_max_size_after_substring of
+                    Char_Max_Size_After_Substring_Behavior.Reset   -> Nothing
+                    Char_Max_Size_After_Substring_Behavior.Kept    -> 286
+                    Char_Max_Size_After_Substring_Behavior.Reduced -> 1
+
+                Test.with_clue "(Expected behaviour for substring size = "+setup.test_selection.char_max_size_after_substring.to_text+".) " <|
+                    resLeft.value_type . should_equal (Value_Type.Char size=expected_new_size variable_length=True)
+                    resRight.value_type . should_equal (Value_Type.Char size=expected_new_size variable_length=True)
 
         group_builder.specify "should handle operation text_left and text_right of grapheme and non-grapheme" <|
             with_mixed_columns_if_supported [["strings", ["a", "foobar", "", Nothing, "👩‍🔬👩‍🔬V👩‍🔬👩‍🔬", "café", "It was the best of times, it was the worst of times, it was the age of wisdom, it was the age of foolishness, it was the epoch of belief, it was the epoch of incredulity, it was the season of light, it was the season of darkness, it was the spring of hope, it was the winter of despair."]]] t->
@@ -1234,8 +1270,8 @@ add_specs suite_builder setup =
 
             s1.is_empty . value_type . should_equal Value_Type.Boolean
             s1.is_blank . value_type . should_equal Value_Type.Boolean
-            s1.fill_empty "<>" . value_type . is_text . should_be_true
-            s1.fill_empty s2 . value_type . is_text . should_be_true
+            s1.fill_empty "<>" . value_type . should_be_a (Value_Type.Char ...)
+            s1.fill_empty s2 . value_type . should_be_a (Value_Type.Char ...)
 
         group_builder.specify "should support text concatenation with the + operator" <|
             with_mixed_columns_if_supported [["s1", ["foobar", "bar", "baz", "BAB", Nothing]], ["s2", ["foo", "ar", "a", "b", Nothing]]] t3->
@@ -1243,60 +1279,58 @@ add_specs suite_builder setup =
                 s2 = t3.at "s2"
                 c1 = s1 + s2
                 c1.to_vector . should_equal ["foobarfoo", "barar", "baza", "BABb", Nothing]
-                c1.value_type.is_text . should_be_true
+                c1.value_type.should_be_a (Value_Type.Char ...)
 
                 c2 = s1 + "_SUF"
                 c2.to_vector . should_equal ["foobar_SUF", "bar_SUF", "baz_SUF", "BAB_SUF", Nothing]
-                c2.value_type.is_text . should_be_true
+                c2.value_type.should_be_a (Value_Type.Char ...)
 
                 c3 = s1 + Nothing
                 c3.to_vector . should_equal [Nothing, Nothing, Nothing, Nothing, Nothing]
-                c3.value_type.is_text . should_be_true
+                c3.value_type.should_be_a (Value_Type.Char ...)
 
     suite_builder.group prefix+"(Column_Operations_Spec) Min/Max Operations" group_builder->
         data = Min_Max_Data.setup setup.table_builder
         group_builder.specify "should allow one or more args and return the correct type" <|
             c1 = data.a.min 2
             c1.to_vector . should_equal [1, 2, 2]
-            c1.value_type.is_integer . should_be_true
+            setup.expect_integer_type c1
 
             c2 = data.a.max 2
             c2.to_vector . should_equal [2, 2, 3]
-            c2.value_type.is_integer . should_be_true
+            setup.expect_integer_type c2
 
             c3 = data.a.min [2.5, 2]
             c3.to_vector . should_equal [1, 2, 2]
-            Test.with_clue "c3.value_type="+c3.value_type.to_display_text <|
-                c3.value_type.is_floating_point . should_be_true
+            c3.value_type.should_be_a (Value_Type.Float ...)
 
             c4 = data.a.max [2.5, 2]
             c4.to_vector . should_equal [2.5, 2.5, 3]
-            c4.value_type.is_floating_point . should_be_true
+            c4.value_type.should_be_a (Value_Type.Float ...)
 
             c5 = data.a.min data.b
             c5.to_vector . should_equal [1, 2, 3]
-            Test.with_clue "c5.value_type="+c5.value_type.to_display_text+": " <|
-                c5.value_type.is_floating_point . should_be_true
+            c5.value_type.should_be_a (Value_Type.Float ...)
 
             c6 = data.a.max data.b
             c6.to_vector . should_equal [4.5, 5.5, 6.5]
-            c6.value_type.is_floating_point . should_be_true
+            c6.value_type.should_be_a (Value_Type.Float ...)
 
             c7 = data.a.min [data.a, data.b, 1]
             c7.to_vector . should_equal [1, 1, 1]
-            c7.value_type.is_floating_point . should_be_true
+            c7.value_type.should_be_a (Value_Type.Float ...)
 
             c8 = data.a.max [data.a, data.b, 1]
             c8.to_vector . should_equal [4.5, 5.5, 6.5]
-            c8.value_type.is_floating_point . should_be_true
+            c8.value_type.should_be_a (Value_Type.Float ...)
 
             c9 = (data.t.at "d").min False
             c9.to_vector . should_equal [False, False, False]
-            c9.value_type.is_boolean . should_be_true
+            c9.value_type.should_equal Value_Type.Boolean
 
             c10 = (data.t.at "d").max False
             c10.to_vector . should_equal [True, False, True]
-            c10.value_type.is_boolean . should_be_true
+            c10.value_type.should_equal Value_Type.Boolean
 
         group_builder.specify "should check types" <|
             [(.min), (.max)].each op->
@@ -1322,39 +1356,38 @@ add_specs suite_builder setup =
                 result.value_type . should_equal Value_Type.Char
                 result . to_vector . should_equal expected
 
+    literal_data = Literal_Data.setup setup.table_builder
     suite_builder.group prefix+"(Column_Operations_Spec) replace: literal text pattern and replacement" group_builder->
-        data = Literal_Data.setup setup.table_builder
         group_builder.specify "case_sensitivity=sensitive/default use_regex=false only_first=false"
-            do_replace data.col0 'hello' 'bye' expected=['bye Hello', 'bye bye', 'HELLO HELLO']
-            do_replace data.col0 'hello' 'bye' case_sensitivity=Case_Sensitivity.Default expected=['bye Hello', 'bye bye', 'HELLO HELLO']
-            do_replace data.col0 'hello' 'bye' case_sensitivity=Case_Sensitivity.Sensitive expected=['bye Hello', 'bye bye', 'HELLO HELLO']
-            do_replace data.col1 'a[bcd]' 'hey' expected=['hey A[bCd] hey', 'abac ad Ab aCAd']
+            do_replace literal_data.col0 'hello' 'bye' expected=['bye Hello', 'bye bye', 'HELLO HELLO']
+            do_replace literal_data.col0 'hello' 'bye' case_sensitivity=Case_Sensitivity.Default expected=['bye Hello', 'bye bye', 'HELLO HELLO']
+            do_replace literal_data.col0 'hello' 'bye' case_sensitivity=Case_Sensitivity.Sensitive expected=['bye Hello', 'bye bye', 'HELLO HELLO']
+            do_replace literal_data.col1 'a[bcd]' 'hey' expected=['hey A[bCd] hey', 'abac ad Ab aCAd']
 
         group_builder.specify "case_sensitivity=sensitive/default use_regex=false only_first=true"
-            do_replace data.col0 'hello' 'bye' only_first=True expected=['bye Hello', 'bye hello', 'HELLO HELLO']
-            do_replace data.col1 'a[bcd]' 'hey' only_first=True expected=['hey A[bCd] a[bcd]', 'abac ad Ab aCAd']
+            do_replace literal_data.col0 'hello' 'bye' only_first=True expected=['bye Hello', 'bye hello', 'HELLO HELLO']
+            do_replace literal_data.col1 'a[bcd]' 'hey' only_first=True expected=['hey A[bCd] a[bcd]', 'abac ad Ab aCAd']
 
         group_builder.specify "case_sensitivity=insensitive use_regex=false only_first=false"
-            do_replace data.col0 'hello' 'bye' case_sensitivity=Case_Sensitivity.Insensitive expected=['bye bye', 'bye bye', 'bye bye']
-            do_replace data.col1 'a[bcd]' 'hey' case_sensitivity=Case_Sensitivity.Insensitive expected=['hey hey hey', 'abac ad Ab aCAd']
+            do_replace literal_data.col0 'hello' 'bye' case_sensitivity=Case_Sensitivity.Insensitive expected=['bye bye', 'bye bye', 'bye bye']
+            do_replace literal_data.col1 'a[bcd]' 'hey' case_sensitivity=Case_Sensitivity.Insensitive expected=['hey hey hey', 'abac ad Ab aCAd']
 
         group_builder.specify "case_sensitivity=insensitive use_regex=false only_first=true"
-            do_replace data.col0 'hello' 'bye' case_sensitivity=Case_Sensitivity.Insensitive only_first=True expected=['bye Hello', 'bye hello', 'bye HELLO']
-            do_replace data.col1 'a[bcd]' 'hey' case_sensitivity=Case_Sensitivity.Insensitive only_first=True expected=['hey A[bCd] a[bcd]', 'abac ad Ab aCAd']
+            do_replace literal_data.col0 'hello' 'bye' case_sensitivity=Case_Sensitivity.Insensitive only_first=True expected=['bye Hello', 'bye hello', 'bye HELLO']
+            do_replace literal_data.col1 'a[bcd]' 'hey' case_sensitivity=Case_Sensitivity.Insensitive only_first=True expected=['hey A[bCd] a[bcd]', 'abac ad Ab aCAd']
 
     suite_builder.group prefix+"(Column_Operations_Spec) replace: literal regex pattern and replacement" group_builder->
-        data = Literal_Data.setup setup.table_builder
         group_builder.specify "case_sensitivity=sensitive/default use_regex=True only_first=false"
-            do_replace data.col1 'a[bcd]'.to_regex 'hey' expected=['a[bcd] A[bCd] a[bcd]', 'heyhey hey Ab aCAd']
+            do_replace literal_data.col1 'a[bcd]'.to_regex 'hey' expected=['a[bcd] A[bCd] a[bcd]', 'heyhey hey Ab aCAd']
 
         group_builder.specify "case_sensitivity=sensitive/default use_regex=True only_first=true"
-            do_replace data.col1 'a[bcd]'.to_regex 'hey' only_first=True expected=['a[bcd] A[bCd] a[bcd]', 'heyac ad Ab aCAd']
+            do_replace literal_data.col1 'a[bcd]'.to_regex 'hey' only_first=True expected=['a[bcd] A[bCd] a[bcd]', 'heyac ad Ab aCAd']
 
         group_builder.specify "case_sensitivity=insensitive use_regex=True only_first=false"
-            do_replace data.col1 'a[bcd]'.to_regex 'hey' case_sensitivity=Case_Sensitivity.Insensitive expected=['a[bcd] A[bCd] a[bcd]', 'heyhey hey hey heyhey']
+            do_replace literal_data.col1 'a[bcd]'.to_regex 'hey' case_sensitivity=Case_Sensitivity.Insensitive expected=['a[bcd] A[bCd] a[bcd]', 'heyhey hey hey heyhey']
 
         group_builder.specify "case_sensitivity=insensitive use_regex=True only_first=true"
-            do_replace data.col1 'a[bcd]'.to_regex 'hey' case_sensitivity=Case_Sensitivity.Insensitive only_first=True expected=['a[bcd] A[bCd] a[bcd]', 'heyac ad Ab aCAd']
+            do_replace literal_data.col1 'a[bcd]'.to_regex 'hey' case_sensitivity=Case_Sensitivity.Insensitive only_first=True expected=['a[bcd] A[bCd] a[bcd]', 'heyac ad Ab aCAd']
 
         group_builder.specify "can properly escape complex regexes" <|
             regex = "^([^\(]+)|(?<foo>\w\d[a-z])+$"
@@ -1362,10 +1395,8 @@ add_specs suite_builder setup =
             do_replace col regex "asdf" ["asdf"]
     
     suite_builder.group prefix+"(Column_Operations_Spec) replace: Named_Pattern and replacement" group_builder->
-        data = Literal_Data.setup setup.table_builder
         group_builder.specify "can use Named_Patterns" <|
-            do_replace data.col1 Named_Pattern.Symbols 'hey' expected=['aheybcdhey AheybCdhey aheybcdhey', 'abac ad Ab aCAd']
-
+            do_replace literal_data.col1 Named_Pattern.Symbols 'hey' expected=['aheybcdhey AheybCdhey aheybcdhey', 'abac ad Ab aCAd']
 
     suite_builder.group prefix+"(Column_Operations_Spec) replace: pattern and replacement columns" group_builder->
         data = Replace_Data.setup setup.table_builder
@@ -1612,10 +1643,47 @@ add_specs suite_builder setup =
     suite_builder.group prefix+"(Column_Operations_Spec) Table.make_constant_column" group_builder->
         group_builder.specify "Should allow the creation of constant columns" <|
             t = table_builder [["x", ["1", "2", "3"]]]
-            t.make_constant_column True . to_vector . should_equal [True, True, True]
-            t.make_constant_column 12 . to_vector . should_equal [12, 12, 12]
-            t.make_constant_column 12.3 . to_vector . should_equal [12.3, 12.3, 12.3]
-            t.make_constant_column "asdf" . to_vector . should_equal ["asdf", "asdf", "asdf"]
+            c1 = t.make_constant_column True
+            c1.to_vector . should_equal [True, True, True]
+            c1.value_type.should_equal Value_Type.Boolean
+
+            c2 = t.make_constant_column 12
+            c2.to_vector . should_equal [12, 12, 12]
+            setup.expect_integer_type c2
+
+            c3 = t.make_constant_column 12.3
+            c3.to_vector . should_equal [12.3, 12.3, 12.3]
+            c3.value_type.should_be_a (Value_Type.Float ...)
+
+            c4 = t.make_constant_column "asdf"
+            c4.to_vector . should_equal ["asdf", "asdf", "asdf"]
+            c4.value_type.should_be_a (Value_Type.Char ...)
+
+        if setup.test_selection.date_time then group_builder.specify "Should allow the creation of constant date/time columns" <|
+            t = table_builder [["x", ["1", "2", "3"]]]
+            d = Date.new 2024 07 05
+            c1 = t.make_constant_column d
+            c1.to_vector . should_equal [d, d, d]
+            c1.value_type.should_equal Value_Type.Date
+
+            dt = Date_Time.new 2024 07 05 12 30 45
+            c2 = t.make_constant_column dt
+            c2.value_type.should_be_a (Value_Type.Date_Time ...)
+
+            time = Time_Of_Day.new 12 30 45
+            c3 = t.make_constant_column time
+            c3.to_vector . should_equal [time, time, time]
+            c3.value_type.should_equal Value_Type.Time
+
+            # The types should be preserved after an 'identity' operation:
+            c1_prime = (c1 == c1).iif c1 c1
+            c1_prime.value_type.should_equal Value_Type.Date
+
+            c2_prime = (c2 == c2).iif c2 c2
+            c2_prime.value_type.should_be_a (Value_Type.Date_Time ...)
+
+            c3_prime = (c3 == c3).iif c3 c3
+            c3_prime.value_type.should_equal Value_Type.Time
 
         group_builder.specify "Should allow the creation of constant columns on a table with no rows" <|
             t = table_builder [["x", ["1", "2", "3"]]]
@@ -1627,12 +1695,19 @@ add_specs suite_builder setup =
         group_builder.specify "Should create a column of the correct type on a table with no rows" <|
             t = table_builder [["x", ["1", "2", "3"]]]
             empty = t.take 0
-            [[False, .is_boolean], [42,  .is_integer], ["42",  .is_text], ["foo", .is_text], [1.1, .is_floating_point]].map pair->
-                value = pair.at 0
-                pred = pair.at 1
+
+            check value expected_type =
                 c = empty.make_constant_column value
-                pred c.value_type . should_be_true
-                pred ((empty.set c).at c.name . value_type) . should_be_true
+                c.value_type.should_be_a expected_type
+                (empty.set c).at c.name . value_type . should_be_a expected_type
+
+            check False Value_Type.Boolean
+            check "42" (Value_Type.Char ...)
+            check "foo" (Value_Type.Char ...)
+            check 1.1 (Value_Type.Float ...)
+
+            c = empty.make_constant_column 42
+            setup.expect_integer_type c
 
         nulls_db_pending = if setup.is_database then "Empty NULL columns are unsupported in the database backends"
         group_builder.specify "Should create a column of the correct type on a table with no rows" pending=nulls_db_pending <|

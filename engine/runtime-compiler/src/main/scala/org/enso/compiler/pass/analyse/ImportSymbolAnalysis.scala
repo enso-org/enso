@@ -68,15 +68,16 @@ case object ImportSymbolAnalysis extends IRPass {
           ) =>
         bindingMap.resolvedImports.find(_.importDef == imp) match {
           case Some(resolvedImport) =>
-            val importedTarget = resolvedImport.target
-            val unresolvedSymbols =
+            val importedTargets = resolvedImport.targets
+            val unresolvedSymbols = importedTargets.flatMap { importedTarget =>
               onlyNames.filterNot(isSymbolResolved(importedTarget, _))
+            }
             if (unresolvedSymbols.nonEmpty) {
               unresolvedSymbols
                 .map(
                   createErrorForUnresolvedSymbol(
                     imp,
-                    importedTarget,
+                    importedTargets.head,
                     _
                   )
                 )
@@ -85,8 +86,79 @@ case object ImportSymbolAnalysis extends IRPass {
             }
           case None => List(imp)
         }
+      // Importing symbols from methods is not allowed. The following code checks that if the
+      // import is importing all from a method, an error is reported.
+      case imp @ Import.Module(
+            _,
+            _,
+            isAll,
+            _,
+            _,
+            _,
+            isSynthetic,
+            _,
+            _
+          ) if isAll && !isSynthetic =>
+        bindingMap.resolvedImports.find(_.importDef == imp) match {
+          case Some(resolvedImport) =>
+            val importedTargets = resolvedImport.targets
+            val errors = importedTargets.flatMap { importedTarget =>
+              importedTarget match {
+                case BindingsMap.ResolvedModuleMethod(module, method) =>
+                  val err = createImportFromMethodError(
+                    imp,
+                    module.getName.toString,
+                    method.name
+                  )
+                  Some(err)
+                case BindingsMap.ResolvedExtensionMethod(
+                      module,
+                      staticMethod
+                    ) =>
+                  val err = createImportFromMethodError(
+                    imp,
+                    module.getName.createChild(staticMethod.tpName).toString,
+                    staticMethod.methodName
+                  )
+                  Some(err)
+                case BindingsMap.ResolvedConversionMethod(
+                      module,
+                      conversionMethod
+                    ) =>
+                  val err = createImportFromMethodError(
+                    imp,
+                    module.getName
+                      .createChild(conversionMethod.targetTpName)
+                      .toString,
+                    conversionMethod.methodName
+                  )
+                  Some(err)
+                case _ => None
+              }
+            }
+            if (errors.nonEmpty) {
+              errors
+            } else {
+              List(imp)
+            }
+          case None => List(imp)
+        }
       case _ => List(imp)
     }
+  }
+
+  private def createImportFromMethodError(
+    imp: Import,
+    moduleName: String,
+    methodName: String
+  ): errors.ImportExport = {
+    errors.ImportExport(
+      imp,
+      errors.ImportExport.IllegalImportFromMethod(
+        moduleName,
+        methodName
+      )
+    )
   }
 
   private def createErrorForUnresolvedSymbol(
@@ -109,6 +181,40 @@ case object ImportSymbolAnalysis extends IRPass {
           errors.ImportExport.NoSuchConstructor(
             tp.name,
             unresolvedSymbol.name
+          )
+        )
+      case BindingsMap.ResolvedConstructor(_, cons) =>
+        errors.ImportExport(
+          imp,
+          errors.ImportExport.NoSuchConstructor(
+            cons.name,
+            unresolvedSymbol.name
+          )
+        )
+      case BindingsMap.ResolvedModuleMethod(_, method) =>
+        errors.ImportExport(
+          imp,
+          errors.ImportExport.NoSuchModuleMethod(
+            method.name,
+            unresolvedSymbol.name
+          )
+        )
+      case BindingsMap.ResolvedExtensionMethod(mod, staticMethod) =>
+        errors.ImportExport(
+          imp,
+          errors.ImportExport.NoSuchStaticMethod(
+            moduleName = mod.getName.toString,
+            typeName   = staticMethod.tpName,
+            methodName = unresolvedSymbol.name
+          )
+        )
+      case BindingsMap.ResolvedConversionMethod(mod, conversionMethod) =>
+        errors.ImportExport(
+          imp,
+          errors.ImportExport.NoSuchConversionMethod(
+            moduleName     = mod.getName.toString,
+            targetTypeName = conversionMethod.targetTpName,
+            sourceTypeName = conversionMethod.sourceTpName
           )
         )
     }

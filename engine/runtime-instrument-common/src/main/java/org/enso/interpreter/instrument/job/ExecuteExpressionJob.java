@@ -1,6 +1,5 @@
 package org.enso.interpreter.instrument.job;
 
-import com.oracle.truffle.api.TruffleLogger;
 import java.util.UUID;
 import org.enso.interpreter.instrument.OneshotExpression;
 import org.enso.interpreter.instrument.execution.Executable;
@@ -34,10 +33,9 @@ public class ExecuteExpressionJob extends Job<Executable> implements UniqueJob<E
 
   @Override
   public Executable run(RuntimeContext ctx) {
-    TruffleLogger logger = ctx.executionService().getLogger();
     return ctx.locking()
         .withContextLock(
-            contextId,
+            ctx.locking().getOrCreateContextLock(contextId),
             this.getClass(),
             () -> {
               OneshotExpression oneshotExpression =

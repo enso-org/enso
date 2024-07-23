@@ -407,7 +407,7 @@ add_specs suite_builder =
 
             samples_1 = 0.up_to 10000 . map seed->
                 "ABCD".take (..Sample 2 seed)
-            samples_1.should_contain_the_same_elements_as ["AB", "BA", "AC", "CA", "AD", "DA", "BC", "CB", "BD", "DB", "CD", "DC"]
+            samples_1.distinct.should_equal_ignoring_order ["AB", "BA", "AC", "CA", "AD", "DA", "BC", "CB", "BD", "DB", "CD", "DC"]
 
             "ABCDEFGH".drop (..Sample 0) . should_equal "ABCDEFGH"
             "ABCDEFGH".drop (..Sample 1 seed=42) . should_equal "ABCDEGH"
@@ -418,7 +418,7 @@ add_specs suite_builder =
 
             samples_2 = 0.up_to 10000 . map seed->
                 "ABCD".drop (..Sample 2 seed)
-            samples_2.should_contain_the_same_elements_as ["AB", "AC", "AD", "BC", "CD", "BD"]
+            samples_2.distinct.should_equal_ignoring_order ["AB", "AC", "AD", "BC", "CD", "BD"]
 
         group_builder.specify "should allow taking or dropping many indices or subranges (possibly overlapping)" <|
             "123"*1000 . take (..By_Index (Vector.new 3000 ix-> 2999-ix)) . should_equal "321"*1000

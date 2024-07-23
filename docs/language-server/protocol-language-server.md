@@ -1440,6 +1440,9 @@ This message initializes the connection used to send the textual protocol
 messages. This initialization is important such that the client identifier can
 be correlated between the textual and data connections.
 
+The subsequent `session/initProtocolConnection` calls with same clientId will
+immediately return success message.
+
 - **Type:** Request
 - **Direction:** Client -> Server
 - **Connection:** Protocol
@@ -1464,7 +1467,7 @@ interface SessionInitProtocolConnectionResult {
 #### Errors
 
 - [`SessionAlreadyInitialisedError`](#sessionalreadyinitializederror) to signal
-  that the session is already initialized.
+  that the session is already initialized with different clientId.
 - [`ResourcesInitializationError`](#resourcesinitializationerror) to signal
   about the error during the initialization of Language Server resources.
 

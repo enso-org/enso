@@ -39,7 +39,7 @@ export const defaultPreprocessor = [
   '1000',
 ] as const
 
-type Data = Error | Matrix | ObjectMatrix | UnknownTable | Excel_Workbook
+type Data = number | string | Error | Matrix | ObjectMatrix | UnknownTable | Excel_Workbook
 
 interface Error {
   type: undefined
@@ -128,6 +128,7 @@ const rowLimit = ref(0)
 const page = ref(0)
 const pageLimit = ref(0)
 const rowCount = ref(0)
+const showRowCount = ref(true)
 const isTruncated = ref(false)
 const tableNode = ref<HTMLElement>()
 const dataGroupingMap = shallowRef<Map<string, boolean>>()
@@ -135,7 +136,7 @@ useAutoBlur(tableNode)
 const widths = reactive(new Map<string, number>())
 const defaultColDef = {
   editable: false,
-  sortable: true as boolean,
+  sortable: true,
   filter: true,
   resizable: true,
   minWidth: 25,
@@ -159,6 +160,7 @@ const agGridOptions: Ref<GridOptions & Required<Pick<GridOptions, 'defaultColDef
 })
 
 const isRowCountSelectorVisible = computed(() => rowCount.value >= 1000)
+
 const selectableRowLimits = computed(() => {
   const defaults = [1000, 2500, 5000, 10000, 25000, 50000, 100000].filter(
     (r) => r <= rowCount.value,
@@ -325,14 +327,23 @@ function toField(name: string, valueType?: ValueType | null | undefined): ColDef
       icon = 'mixed'
   }
   const svgTemplate = `<svg viewBox="0 0 16 16" width="16" height="16"> <use xlink:href="${icons}#${icon}"/> </svg>`
+  const menu = `<span ref="eMenu" class="ag-header-icon ag-header-cell-menu-button"> </span>`
+  const sort = `
+      <span ref="eFilter" class="ag-header-icon ag-header-label-icon ag-filter-icon" aria-hidden="true"></span>
+      <span ref="eSortOrder" class="ag-header-icon ag-sort-order" aria-hidden="true"></span>
+      <span ref="eSortAsc" class="ag-header-icon ag-sort-ascending-icon" aria-hidden="true"></span>
+      <span ref="eSortDesc" class="ag-header-icon ag-sort-descending-icon" aria-hidden="true"></span>
+      <span ref="eSortNone" class="ag-header-icon ag-sort-none-icon" aria-hidden="true"></span>
+    `
   const template =
     icon ?
-      `<div style='display:flex; flex-direction:row; justify-content:space-between; width:inherit;'> ${name} <span ref="eMenu" class="ag-header-icon ag-header-cell-menu-button"> </span> ${svgTemplate}</div>`
-    : `<div>${name}</div>`
+      `<span style='display:flex; flex-direction:row; justify-content:space-between; width:inherit;'><span ref="eLabel" class="ag-header-cell-label" role="presentation" style='display:flex; flex-direction:row; justify-content:space-between; width:inherit;'> ${name} ${menu}</span> ${sort} ${svgTemplate}</span>`
+    : `<span ref="eLabel" style='display:flex; flex-direction:row; justify-content:space-between; width:inherit;'>${name} ${menu} ${sort}</span>`
   return {
     field: name,
     headerComponentParams: {
       template,
+      setAriaSort: () => {},
     },
     headerTooltip: displayValue ? displayValue : '',
   }
@@ -394,9 +405,9 @@ function toLinkField(fieldName: string): ColDef {
     field: fieldName,
     onCellDoubleClicked: (params) => createNode(params),
     tooltipValueGetter: () => {
-      return `Double click to view this ${newNodeSelectorValues.value.tooltipValue} in a separate node`
+      return `Double click to view this ${newNodeSelectorValues.value.tooltipValue} in a separate component`
     },
-    cellRenderer: (params: any) => `<a href='#'> ${params.value} </a>`,
+    cellRenderer: (params: any) => `<a> ${params.value} </a>`,
   }
 }
 
@@ -503,6 +514,7 @@ watchEffect(() => {
 
   // Update paging
   const newRowCount = data_.all_rows_count == null ? 1 : data_.all_rows_count
+  showRowCount.value = !(data_.all_rows_count == null)
   rowCount.value = newRowCount
   const newPageLimit = Math.ceil(newRowCount / rowLimit.value)
   pageLimit.value = newPageLimit
@@ -644,13 +656,15 @@ onUnmounted(() => {
             v-text="limit"
           ></option>
         </select>
-        <span
-          v-if="isRowCountSelectorVisible && isTruncated"
-          v-text="` of ${rowCount} rows (Sorting/Filtering disabled).`"
-        ></span>
-        <span v-else-if="isRowCountSelectorVisible" v-text="' rows.'"></span>
-        <span v-else-if="rowCount === 1" v-text="'1 row.'"></span>
-        <span v-else v-text="`${rowCount} rows.`"></span>
+        <template v-if="showRowCount">
+          <span
+            v-if="isRowCountSelectorVisible && isTruncated"
+            v-text="` of ${rowCount} rows (Sorting/Filtering disabled).`"
+          ></span>
+          <span v-else-if="isRowCountSelectorVisible" v-text="' rows.'"></span>
+          <span v-else-if="rowCount === 1" v-text="'1 row.'"></span>
+          <span v-else v-text="`${rowCount} rows.`"></span>
+        </template>
       </div>
       <div ref="tableNode" class="scrollable ag-theme-alpine"></div>
     </div>
@@ -679,18 +693,20 @@ onUnmounted(() => {
   padding: 0 5px;
   overflow: hidden;
 }
-</style>
 
-<style>
-.TableVisualization > .ag-theme-alpine > .ag-root-wrapper.ag-layout-normal {
+.TableVisualization > .ag-theme-alpine > :deep(.ag-root-wrapper.ag-layout-normal) {
   border-radius: 0 0 var(--radius-default) var(--radius-default);
 }
 
-a {
+/* Tag selectors are inefficient to compute, and should be replaced with a class selector
+ * if possible.
+ * See https://vuejs.org/api/sfc-css-features.html#scoped-style-tips */
+:deep(a) {
   color: blue;
   text-decoration: underline;
 }
-a:hover {
+
+:deep(a):hover {
   color: darkblue;
 }
 </style>

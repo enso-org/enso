@@ -8,7 +8,9 @@ import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
+import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.Node;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -157,21 +159,54 @@ public final class Type implements EnsoObject {
     return supertype;
   }
 
+  /**
+   * All types this type represents including super types.
+   *
+   * @param ctx contexts to get Any type (common super class) from
+   * @return a compilation constant array with all types this type represents
+   */
   public final Type[] allTypes(EnsoContext ctx) {
-    if (supertype == null) {
-      if (builtin) {
-        return new Type[] {this};
+    var types = new Type[3];
+    var realCount = fillInTypes(this, types, ctx);
+    return Arrays.copyOf(types, realCount);
+  }
+
+  /**
+   * Fills the provided {@code fill} array with all types the {@code self} type can represent. E.g.
+   * including super classes.
+   *
+   * @param self the type to "enroll"
+   * @param fill the array to fill
+   * @param ctx context to obtain Any type from
+   * @return number of types put into the {@code fill} array
+   */
+  @ExplodeLoop
+  private static int fillInTypes(Type self, Type[] fill, EnsoContext ctx) {
+    var at = 0;
+    while (at < fill.length) {
+      fill[at++] = self;
+      if (self.supertype == null) {
+        if (self.builtin) {
+          return at;
+        }
+        fill[at++] = ctx.getBuiltins().any();
+        return at;
       }
-      return new Type[] {this, ctx.getBuiltins().any()};
+      if (self.supertype == ctx.getBuiltins().any()) {
+        fill[at++] = ctx.getBuiltins().any();
+        return at;
+      }
+      if (self == self.supertype) {
+        return at;
+      }
+      self = self.supertype;
     }
-    if (supertype == ctx.getBuiltins().any()) {
-      return new Type[] {this, ctx.getBuiltins().any()};
-    }
-    var superTypes = supertype.allTypes(ctx);
-    var allTypes = new Type[superTypes.length + 1];
-    System.arraycopy(superTypes, 0, allTypes, 1, superTypes.length);
-    allTypes[0] = this;
-    return allTypes;
+    throw CompilerDirectives.shouldNotReachHere(invalidInTypes(self));
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  private static String invalidInTypes(Type self) {
+    return "Cannot compute allTypes for " + self;
   }
 
   public void generateGetters(EnsoLanguage language) {

@@ -25,6 +25,8 @@ import project.Panic.Panic
 import project.Warning.Warning
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Text.Extensions import all
+from project.Data.Time.Date import make_day_picker
+from project.Metadata import Display, Widget
 from project.Widget_Helpers import make_date_time_format_selector
 
 polyglot java import java.lang.ArithmeticException
@@ -148,6 +150,16 @@ type Date_Time
              from Standard.Base import Date_Time, Time_Zone
 
              example_new = Date_Time.new 1986 8 5
+    @year (Widget.Numeric_Input display=Display.Always)
+    @month (Widget.Numeric_Input minimum=1 maximum=12 display=Display.Always)
+    @day make_day_picker
+    @hour (Widget.Numeric_Input minimum=0 maximum=23 display=Display.Always)
+    @minute (Widget.Numeric_Input minimum=0 maximum=59 display=Display.Always)
+    @second (Widget.Numeric_Input minimum=0 maximum=59 display=Display.When_Modified)
+    @millisecond (Widget.Numeric_Input minimum=0 maximum=999 display=Display.When_Modified)
+    @microsecond (Widget.Numeric_Input minimum=0 maximum=999 display=Display.When_Modified)
+    @nanosecond (Widget.Numeric_Input minimum=0 maximum=999 display=Display.When_Modified)
+    @zone Time_Zone.default_widget
     new : Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Time_Zone -> Date_Time ! Time_Error
     new year (month = 1) (day = 1) (hour = 0) (minute = 0) (second = 0) (millisecond = 0) (microsecond = 0) (nanosecond = 0) (zone = Time_Zone.system) =
         total_nanoseconds = nanosecond + microsecond * 1000 + millisecond * 1000000

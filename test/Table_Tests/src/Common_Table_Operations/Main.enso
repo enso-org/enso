@@ -2,6 +2,8 @@ from Standard.Base import all
 
 import Standard.Database.Internal.Replace_Params.Replace_Params
 
+from Standard.Test import Test
+
 import project.Common_Table_Operations.Add_Row_Number_Spec
 import project.Common_Table_Operations.Aggregate_Spec
 import project.Common_Table_Operations.Column_Name_Edge_Cases_Spec
@@ -64,13 +66,22 @@ type Test_Setup
        - light_table_builder: Like `table_builder`, but for Database backends it
          will not create a new table, but instead just create a query with the values inlined.
          Note that it has less guarantees about column types, but is faster.
-    Config prefix table_fn empty_table_fn (table_builder : (Vector Any -> (Any|Nothing)) -> Any) materialize is_database test_selection aggregate_test_selection create_connection_func light_table_builder
+       - is_integer_type: A predicate specifying if the given backend treats the
+         given type as an integer type. See `SQL_Type_Mapping.is_integer_type` for more information.
+    Config prefix table_fn empty_table_fn (table_builder : (Vector Any -> (Any|Nothing)) -> Any) materialize is_database test_selection aggregate_test_selection create_connection_func light_table_builder is_integer_type=(.is_integer)
 
     ## Specifies if the given Table backend supports custom Enso types.
 
        Currently, only the in-memory backend does.
     supports_custom_objects : Boolean
     supports_custom_objects self = self.is_database.not
+
+    ## Checks if the provided column has integer type as defined by the backend.
+    expect_integer_type self column =
+        loc = Meta.get_source_location 1
+        value_type = column.value_type
+        if self.is_integer_type value_type then column else
+            Test.fail ("Expected column ["+column.name+"] to have integer type, but got "+value_type.to_display_text+" (at " + loc + ").")
 
 type Test_Selection
     ## The configuration specifying what features are supported by a given
@@ -99,11 +110,16 @@ type Test_Selection
        - is_nan_and_nothing_distinct: Specifies if the backend is able to
          distinguish between a decimal NaN value and a missing value (Enso's
          Nothing, or SQL's NULL). If `False`, NaN is treated as a NULL.
+       - is_nan_comparable: Specifies if NaN value is
+         treated as greater than all numbers. If `False`, `NaN` is expected to
+         yield False to both < and > comparisons.
        - distinct_returns_first_row_from_group_if_ordered: If `order_by` was
          applied before, the distinct operation will return the first row from
          each group. Guaranteed in the in-memory backend, but may not be
          supported by all databases.
        - date_time: Specifies if the backend supports date/time operations.
+       - text_length_limited_columns: Specifies if the backend supports setting
+         a length limit on text columns.
        - fixed_length_text_columns: Specifies if the backend supports fixed
          length text columns.
        - length_restricted_text_columns: Specifies if the backend supports
@@ -111,6 +127,8 @@ type Test_Selection
        - removes_trailing_whitespace_casting_from_char_to_varchar: if
          SELECT concat('X', CAST(CAST('   ' AS CHAR(3)) AS VARCHAR(3)), 'X')
          returns XX then this should be set to True
+       - char_max_size_after_substring: Specifies how the max size of the char
+         type behaves after text_left/text_right.
        - different_size_integer_types: Specifies if the backend supports
          integer types of various sizes, like 16-bit or 32-bit integers.
        - supports_8bit_integer: Specifies if the backend supports 8-bit
@@ -136,7 +154,10 @@ type Test_Selection
          databases may have this flag disabled to save time.
          If `ENSO_ADVANCED_EDGE_CASE_TESTS` environment variable is set to `True`,
          the advanced tests are ran regardless of this setting.
-    Config supports_case_sensitive_columns=True order_by=True natural_ordering=False case_insensitive_ordering=True order_by_unicode_normalization_by_default=False case_insensitive_ascii_only=False allows_mixed_type_comparisons=True supports_unicode_normalization=False is_nan_and_nothing_distinct=True distinct_returns_first_row_from_group_if_ordered=True date_time=True fixed_length_text_columns=False length_restricted_text_columns=True removes_trailing_whitespace_casting_from_char_to_varchar=False different_size_integer_types=True supports_8bit_integer=False supports_decimal_type=False supports_time_duration=False supports_nanoseconds_in_time=False supports_mixed_columns=False supported_replace_params=Nothing run_advanced_edge_case_tests_by_default=True
+       - supports_date_time_without_timezone: Specifies if the backend supports
+         date/time operations without a timezone (true for most Database backends).
+         Defaults to `.is_integer`.
+    Config supports_case_sensitive_columns=True order_by=True natural_ordering=False case_insensitive_ordering=True order_by_unicode_normalization_by_default=False case_insensitive_ascii_only=False allows_mixed_type_comparisons=True supports_unicode_normalization=False is_nan_and_nothing_distinct=True is_nan_comparable=False distinct_returns_first_row_from_group_if_ordered=True date_time=True text_length_limited_columns=False fixed_length_text_columns=False length_restricted_text_columns=True removes_trailing_whitespace_casting_from_char_to_varchar=False char_max_size_after_substring:Char_Max_Size_After_Substring_Behavior=..Kept different_size_integer_types=True supports_8bit_integer=False supports_decimal_type=False supports_time_duration=False supports_nanoseconds_in_time=False supports_mixed_columns=False supported_replace_params=Nothing run_advanced_edge_case_tests_by_default=True supports_date_time_without_timezone=False
 
     ## Specifies if the advanced edge case tests shall be run.
 
@@ -145,6 +166,16 @@ type Test_Selection
        if the `ENSO_ADVANCED_EDGE_CASE_TESTS` environment variable is set.
     run_advanced_edge_case_tests self -> Boolean =
         self.run_advanced_edge_case_tests_by_default || (Environment.get "ENSO_ADVANCED_EDGE_CASE_TESTS" . is_nothing . not)
+
+type Char_Max_Size_After_Substring_Behavior
+    # The max size is reset to unbounded.
+    Reset
+
+    # The max size is kept unchanged.
+    Kept
+
+    # The max size is reduced to the length of the substring.
+    Reduced
 
 add_specs suite_builder setup =
     Core_Spec.add_specs suite_builder setup

@@ -159,7 +159,7 @@ add_specs suite_builder =
             large_number.to_json . parse_json . should_equal large_number
 
         group_builder.specify "should serialise decimals and parse back" <|
-            decimal = Decimal.from_string "1234567890123456789012345678901234567890.1234567890123456789012345678901234567890"
+            decimal = Decimal.from_text "1234567890123456789012345678901234567890.1234567890123456789012345678901234567890"
             decimal.to_json . should_equal '{"type":"Decimal","value":"1234567890123456789012345678901234567890.1234567890123456789012345678901234567890","scale":40,"precision":80}'
             decimal.to_json . parse_json . should_equal decimal
             decimal.to_json . parse_json . scale . should_equal 40
