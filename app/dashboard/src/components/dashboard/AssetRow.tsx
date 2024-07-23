@@ -1,6 +1,8 @@
 /** @file A table row for an arbitrary asset. */
 import * as React from 'react'
 
+import invariant from 'tiny-invariant'
+
 import BlankIcon from '#/assets/blank.svg'
 
 import * as backendHooks from '#/hooks/backendHooks'
@@ -146,8 +148,8 @@ export default function AssetRow(props: AssetRowProps) {
   const closeProjectMutate = closeProjectMutation.mutateAsync
 
   const assetId = item.item.id
-  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-  const asset = backendHooks.useGetAsset(backend, assetId).data!
+  const asset = backendHooks.useGetAsset(backend, assetId).data
+  invariant(asset, `Asset '${assetId}' is missing cached data`)
   const setAssetRaw = backendHooks.useSetAsset()
   const setAsset = useEventCallback(
     (valueOrUpdater: React.SetStateAction<backendModule.AnyAsset>) => {

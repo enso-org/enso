@@ -119,7 +119,7 @@ export function useObserveBackend(backend: Backend | null) {
     () =>
       queryCache.subscribe(event => {
         if (
-          (event.type === 'added' || event.type === 'updated') &&
+          event.type === 'updated' &&
           reactQuery.matchQuery({ queryKey: [backend?.type, 'listDirectory'] }, event.query)
         ) {
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
