@@ -33,18 +33,27 @@ class EditFileCmd(request: Api.EditFileNotification)
           () => {
             logger.log(
               Level.FINE,
-              "Adding pending file edits: {}",
-              request.edits.map(e => (e.range, e.text.length))
+              "Adding pending file edits: {0}, {1}, {2}",
+              Array[Object](
+                request.path,
+                request.edits.map(e => (e.range, e.text.length)),
+                request.idMap
+              )
             )
             val edits =
               request.edits.map(edit =>
-                PendingEdit.ApplyEdit(edit, request.execute, request.idMap)
+                PendingEdit.ApplyEdit(edit, request.execute)
               )
             ctx.state.pendingEdits.enqueue(request.path, edits)
+            request.idMap.foreach { idMap =>
+              ctx.state.pendingEdits.putIdMap(request.path, idMap)
+            }
             if (request.execute) {
               ctx.jobControlPlane.abortAllJobs()
               ctx.jobProcessor.run(new EnsureCompiledJob(Seq(request.path)))
               executeJobs.foreach(ctx.jobProcessor.run)
+            } else if (request.idMap.isDefined) {
+              ctx.jobProcessor.run(new EnsureCompiledJob(Seq(request.path)))
             }
           }
         )

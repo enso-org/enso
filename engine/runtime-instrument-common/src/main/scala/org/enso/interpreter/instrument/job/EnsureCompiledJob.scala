@@ -59,10 +59,11 @@ final class EnsureCompiledJob(
     ctx.locking.withWriteCompilationLock(
       this.getClass,
       () => {
-        val compilationResult = ensureCompiledFiles(files)(
-          implicitly[RuntimeContext],
-          ctx.executionService.getLogger
-        )
+        val compilationResult =
+          ensureCompiledFiles(files)(
+            ctx,
+            ctx.executionService.getLogger
+          )
         setCacheWeights()
         compilationResult
       }
@@ -336,7 +337,14 @@ final class EnsureCompiledJob(
           this.getClass,
           () => {
             val pendingEdits = ctx.state.pendingEdits.dequeue(file)
-            val edits        = pendingEdits.map(_.edit)
+            val idMap        = ctx.state.pendingEdits.takeIdMap(file)
+            ctx.executionService.getLogger
+              .log(
+                Level.FINEST,
+                s"DBGG applyEdits {0}, {1}, {2}",
+                Array[Object](file, pendingEdits, idMap)
+              )
+            val edits = pendingEdits.map(_.edit)
             val shouldExecute =
               pendingEdits.isEmpty || pendingEdits.exists(_.execute)
             val module = ctx.executionService.getContext
@@ -346,7 +354,7 @@ final class EnsureCompiledJob(
               module.getLiteralSource,
               module.getIr
             )
-            val changeset = changesetBuilder.build(pendingEdits)
+            val changeset = changesetBuilder.build(pendingEdits, idMap)
             ctx.executionService.modifyModuleSources(
               module,
               edits,

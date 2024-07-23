@@ -27,7 +27,7 @@ public final class YdocInitialization extends LockedInitialization {
             .port(applicationConfig.ydoc().port())
             .build();
     try {
-      ydoc.start();
+      //ydoc.start();
       this.supervisor.registerService(ydoc);
     } catch (Exception e) {
       throw new RuntimeException(e);
