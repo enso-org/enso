@@ -111,11 +111,6 @@ public final class Warning implements EnsoObject {
     Arrays.sort(arr, Comparator.comparing(Warning::getSequenceId).reversed());
   }
 
-  public static Warning[] fromMapToArray(EnsoHashMap set) {
-    return fromMapToArray(
-        set, ArrayLikeLengthNodeGen.getUncached(), ArrayLikeAtNodeGen.getUncached());
-  }
-
   public static Warning[] fromMapToArray(
       EnsoHashMap set, ArrayLikeLengthNode lengthNode, ArrayLikeAtNode atNode) {
     var vec = set.getCachedVectorRepresentation();
@@ -125,8 +120,8 @@ public final class Warning implements EnsoObject {
       for (int i = 0; i < vecLen; i++) {
         var entry = atNode.executeAt(vec, i);
         assert lengthNode.executeLength(entry) == 2;
-        var key = atNode.executeAt(entry, 0);
-        warns[i] = (Warning) key;
+        var value = atNode.executeAt(entry, 1);
+        warns[i] = (Warning) value;
       }
     } catch (InvalidArrayIndexException | ClassCastException e) {
       throw CompilerDirectives.shouldNotReachHere(e);

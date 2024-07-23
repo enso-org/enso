@@ -57,6 +57,11 @@ import org.enso.interpreter.runtime.state.State;
 @ExportLibrary(value = InteropLibrary.class, delegateTo = "value")
 public final class WithWarnings implements EnsoObject {
   final Object value;
+  /**
+   * Internal storage for warnings is a PE-friendly hash map. The key is a sequence ID (gathered
+   * from {@link EnsoContext#nextSequenceId()} and the value is the warning itself. Note that it
+   * is essential that sequenceId is the key so that the warnings are not duplicated.
+   */
   final EnsoHashMap warnings;
 
   private final boolean limitReached;
@@ -293,21 +298,23 @@ public final class WithWarnings implements EnsoObject {
     var initialVec = initial.getCachedVectorRepresentation();
     try {
       for (int i = 0; i < interop.getArraySize(initialVec); i++) {
-        var entry = interop.readArrayElement(initialVec, i);
-        var key = interop.readArrayElement(entry, 0);
         if (set.getHashSize() == maxWarnings) {
           return set;
         }
-        set = insertNode.execute(null, set, key, null);
+        var entry = interop.readArrayElement(initialVec, i);
+        assert interop.getArraySize(entry) == 2;
+        var key = interop.readArrayElement(entry, 0);
+        var value = interop.readArrayElement(entry, 1);
+        set = insertNode.execute(null, set, key, value);
       }
     } catch (UnsupportedMessageException | InvalidArrayIndexException e) {
-      throw new IllegalStateException(e);
+      throw CompilerDirectives.shouldNotReachHere(e);
     }
     for (Warning warn : entries) {
       if (set.getHashSize() == maxWarnings) {
         return set;
       }
-      set = insertNode.execute(null, set, warn, null);
+      set = insertNode.execute(null, set, warn.getSequenceId(), warn);
     }
     return set;
   }

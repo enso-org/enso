@@ -60,7 +60,7 @@ public abstract class SetWarningsNode extends Node {
       @Shared @Cached ConditionProfile isWithWarnsProfile) {
     var warnMap = EnsoHashMap.empty();
     for (var warn : warnings) {
-      warnMap = mapInsertNode.execute(frame, warnMap, warn, null);
+      warnMap = mapInsertNode.execute(frame, warnMap, warn.getSequenceId(), warn);
     }
     var maxWarns = EnsoContext.get(this).getWarningsLimit();
     var isLimitReached = warnings.length >= maxWarns;
@@ -85,7 +85,7 @@ public abstract class SetWarningsNode extends Node {
       var size = interop.getArraySize(warnings);
       for (long i = 0; i < interop.getArraySize(warnings); i++) {
         var warn = (Warning) interop.readArrayElement(warnings, i);
-        warnMap = mapInsertNode.execute(frame, warnMap, warn, null);
+        warnMap = mapInsertNode.execute(frame, warnMap, warn.getSequenceId(), warn);
       }
       var maxWarns = ctx.getWarningsLimit();
       var isLimitReached = size >= maxWarns;

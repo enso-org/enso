@@ -231,7 +231,7 @@ final class Array implements EnsoObject {
         }
 
         for (var warn : wrappedWarningsMaybe) {
-          warnsSet = mapInsertNode.execute(null, warnsSet, warn, null);
+          warnsSet = mapInsertNode.execute(null, warnsSet, warn.getSequenceId(), warn);
         }
       }
     }

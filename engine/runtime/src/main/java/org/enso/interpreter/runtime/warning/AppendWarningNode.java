@@ -28,6 +28,7 @@ public abstract class AppendWarningNode extends Node {
    *
    * @param object Object that will have the warning appended
    * @param warnings Either an array-like object containing warnings to append, or a single warning.
+   *                 It is expected that all the elements in the container are of {@link Warning} class.
    * @return A wrapped object with warnings
    */
   public abstract WithWarnings execute(VirtualFrame frame, Object object, Object warnings);
@@ -40,7 +41,7 @@ public abstract class AppendWarningNode extends Node {
       @Shared @Cached HashMapInsertNode mapInsertNode) {
     var warnsMap = withWarn.warnings;
     for (var warn : warnings) {
-      warnsMap = mapInsertNode.execute(frame, warnsMap, warn, null);
+      warnsMap = mapInsertNode.execute(frame, warnsMap, warn.getSequenceId(), warn);
     }
     var currWarnsCnt = withWarn.warnings.getHashSize();
     var newWarnsCnt = warnings.length;
@@ -56,7 +57,7 @@ public abstract class AppendWarningNode extends Node {
       @Shared @Cached HashMapInsertNode mapInsertNode) {
     var warnsMap = EnsoHashMap.empty();
     for (var warn : warnings) {
-      warnsMap = mapInsertNode.execute(frame, warnsMap, warn, null);
+      warnsMap = mapInsertNode.execute(frame, warnsMap, warn.getSequenceId(), warn);
     }
     var warnsLimit = EnsoContext.get(this).getWarningsLimit();
     var isLimitReached = warnings.length >= warnsLimit;
@@ -84,12 +85,12 @@ public abstract class AppendWarningNode extends Node {
   WithWarnings doWithWarnSingleWarning(
       VirtualFrame frame,
       WithWarnings withWarn,
-      Object warning,
+      Warning warning,
       @Shared @CachedLibrary(limit = "3") InteropLibrary interop,
       @Shared @Cached HashMapInsertNode mapInsertNode) {
     var warningsMap = withWarn.warnings;
     var currWarnsCnt = warningsMap.getHashSize();
-    var newWarnsMap = mapInsertNode.execute(frame, warningsMap, warning, null);
+    var newWarnsMap = mapInsertNode.execute(frame, warningsMap, warning.getSequenceId(), warning);
     var isLimitReached = currWarnsCnt + 1 >= withWarn.maxWarnings;
     return new WithWarnings(withWarn.value, withWarn.maxWarnings, isLimitReached, newWarnsMap);
   }
@@ -98,10 +99,10 @@ public abstract class AppendWarningNode extends Node {
   WithWarnings doGenericSingleWarning(
       VirtualFrame frame,
       Object value,
-      Object warning,
+      Warning warning,
       @Shared @CachedLibrary(limit = "3") InteropLibrary interop,
       @Shared @Cached HashMapInsertNode mapInsertNode) {
-    var warnsMap = mapInsertNode.execute(frame, EnsoHashMap.empty(), warning, null);
+    var warnsMap = mapInsertNode.execute(frame, EnsoHashMap.empty(), warning.getSequenceId(), warning);
     var warnsLimit = EnsoContext.get(this).getWarningsLimit();
     var limitReached = 1 >= warnsLimit;
     return new WithWarnings(value, warnsLimit, limitReached, warnsMap);
@@ -142,7 +143,7 @@ public abstract class AppendWarningNode extends Node {
       } catch (ClassCastException e) {
         throw EnsoContext.get(this).raiseAssertionPanic(this, "Expected warning object", e);
       }
-      resWarningMap = mapInsertNode.execute(frame, resWarningMap, warn, null);
+      resWarningMap = mapInsertNode.execute(frame, resWarningMap, warn.getSequenceId(), warn);
     }
     return resWarningMap;
   }
