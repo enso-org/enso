@@ -14,6 +14,7 @@ use enso_prelude::*;
 use jni::objects::JByteBuffer;
 use jni::objects::JClass;
 use jni::sys::jobject;
+use jni::sys::jstring;
 use jni::JNIEnv;
 
 
@@ -65,7 +66,8 @@ pub extern "system" fn Java_org_enso_syntax2_Parser_parseTree(
         }
     };
     state.metadata = meta;
-    let result = unsafe { env.new_direct_byte_buffer(state.output.as_mut_ptr(), state.output.len()) };
+    let result =
+        unsafe { env.new_direct_byte_buffer(state.output.as_mut_ptr(), state.output.len()) };
     result.unwrap().into_raw()
 }
 
@@ -92,7 +94,8 @@ pub extern "system" fn Java_org_enso_syntax2_Parser_parseTreeLazy(
     let tree = enso_parser::Parser::new().run(input);
     state.output = enso_parser::format::serialize(&tree).expect(FAILED_SERIALIZE_AST);
 
-    let result = unsafe { env.new_direct_byte_buffer(state.output.as_mut_ptr(), state.output.len()) };
+    let result =
+        unsafe { env.new_direct_byte_buffer(state.output.as_mut_ptr(), state.output.len()) };
     result.unwrap().into_raw()
 }
 
@@ -192,6 +195,19 @@ pub extern "system" fn Java_org_enso_syntax2_Parser_freeState(
     }
 }
 
+/// Returns the string template corresponding to the given warning ID.
+#[allow(unsafe_code)]
+#[no_mangle]
+pub extern "system" fn Java_org_enso_syntax2_Parser_getWarningTemplate(
+    env: JNIEnv,
+    _class: JClass,
+    id: u32,
+) -> jstring {
+    let message =
+        enso_parser::syntax::WARNINGS.get(id as usize).copied().unwrap_or("Unknown warning ID");
+    env.new_string(message).unwrap().into_raw()
+}
+
 /// Return the high bits of the UUID associated with the specified node.
 ///
 /// # Safety
@@ -255,6 +271,10 @@ unsafe fn decode_utf8_unchecked(input: &[u8]) -> &str {
     }
 }
 
+/// # Safety
+///
+/// The input buffer contents MUST be valid UTF-8.
+#[allow(unsafe_code)]
 unsafe fn decode_utf8_buffer<'a>(env: &JNIEnv, buffer: &'a JByteBuffer) -> &'a str {
     let ptr = env.get_direct_buffer_address(buffer).expect(DIRECT_ALLOCATED);
     let len = env.get_direct_buffer_capacity(buffer).expect(DIRECT_ALLOCATED);
