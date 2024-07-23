@@ -3,58 +3,61 @@ import { useVisualizationConfig } from '@/providers/visualizationConfig'
 import { Ast } from '@/util/ast'
 import { Pattern } from '@/util/ast/match'
 
+type SortDirection = 'asc' | 'desc'
+
 const props = defineProps<{
-  type: string
+  type: 'sort' | 'filter'
   filterModel?: { [key: string]: string }
-  sortModel?: Map<string, string>
+  sortModel?: Map<string, SortDirection>
 }>()
 
 const config = useVisualizationConfig()
 
+const makeSortPattern = () => {
+  const sortMapping = {
+    asc: '..Ascending',
+    desc: '..Descending',
+  }
+  if (props.sortModel?.size) {
+    const columnName = props.sortModel.keys().next().value
+    const direction = props.sortModel.values().next().value as SortDirection
+    return `(..Name '${columnName}' ${sortMapping[direction]})`
+  }
+}
+
+const makeFilterPattern = () => {
+  if (props.filterModel) {
+    const columnName = Object.keys(props.filterModel)[0]
+    const items = props.filterModel[columnName || '']
+    console.log({ items })
+    return `'${columnName}' (..Equal '${items}' ..Remove)`
+  }
+}
+
 function getAstPatternSort() {
-  const colName = 'Sales Date'
-  const direction = '..Ascending'
   return Pattern.new((ast) =>
     Ast.App.positional(
-      Ast.PropertyAccess.new(ast.module, ast, Ast.identifier('sort')!),
-      Ast.parse(`[(..Name '${colName}' ${direction})]`),
+      Ast.PropertyAccess.new(ast.module, ast, Ast.identifier(props.type)!),
+      Ast.parse(makeSortPattern() || ''),
     ),
   )
 }
 
 function getAstPatternFilter() {
-  const colName = 'Sales Date'
-  const val = 'Spring Garden Petal Soap'
   return Pattern.new((ast) =>
     Ast.App.positional(
-      Ast.PropertyAccess.new(ast.module, ast, Ast.identifier('filter')!),
-      Ast.parse(`'${colName}' (..Equal '${val}' ..Remove)`),
+      Ast.PropertyAccess.new(ast.module, ast, Ast.identifier(props.type)!),
+      Ast.parse(makeFilterPattern() || ''),
     ),
   )
 }
-
-// function getAstPattern(action: string, columnName: string | undefined)
-// Pattern.new((ast) =>
-//   Ast.OprApp.new(
-//     ast.module,
-//     Ast.App.positional(
-//       Ast.PropertyAccess.new(ast.module, ast, Ast.identifier('rows')!),
-//       Ast.parse('(..All_Rows)'),
-//     ),
-//     '.',
-//     Ast.App.positional(
-//       Ast.Ident.new(ast.module, Ast.identifier('get')!),
-//       Ast.tryNumberToEnso(index, ast.module)!,
-//     ),
-//   ),
-// )
 
 const createNewNode = () => {
   const { filterModel, sortModel } = props
   console.log({ filterModel })
   console.log({ sortModel })
   config.createNodes({
-    content: props.type === 'SORT' ? getAstPatternSort() : getAstPatternFilter(),
+    content: props.type === 'sort' ? getAstPatternSort() : getAstPatternFilter(),
     commit: true,
   })
 }
