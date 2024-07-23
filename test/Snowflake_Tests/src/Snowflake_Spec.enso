@@ -111,11 +111,11 @@ snowflake_specific_spec suite_builder default_connection db_name setup =
             connection.schemas.find (name-> name.equals_ignore_case "public") . should_succeed
             Meta.is_same_object connection (connection.set_schema "public") . should_be_true
 
-        group_builder.specify "should allow changing schema" pending="TODO?" <|
+        group_builder.specify "should allow changing schema" <|
             connection = default_connection.get
             new_connection = connection.set_schema "information_schema"
             new_schema = new_connection.read (SQL_Query.Raw_SQL "SELECT current_schema()") . at 0 . to_vector . first
-            new_schema . should_equal "information_schema"
+            new_schema . should_equal "INFORMATION_SCHEMA"
 
         group_builder.specify "should allow changing database" <|
             connection = default_connection.get
