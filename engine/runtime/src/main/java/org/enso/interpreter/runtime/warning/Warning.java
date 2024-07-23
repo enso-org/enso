@@ -88,24 +88,6 @@ public final class Warning implements EnsoObject {
     return appendWarningNode.execute(null, value, warn);
   }
 
-  @Builtin.Method(
-      description =
-          "Returns `true` if the maximal number of warnings has been reached, `false` otherwise.",
-      autoRegister = false)
-  @Builtin.Specialize
-  public static boolean limitReached(WithWarnings value, WarningsLibrary warnings) {
-    return value.isLimitReached();
-  }
-
-  @Builtin.Method(
-      description =
-          "Returns `true` if the maximal number of warnings has been reached, `false` otherwise.",
-      autoRegister = false)
-  @Builtin.Specialize(fallback = true)
-  public static boolean limitReached(Object value, WarningsLibrary warnings) {
-    return warnings.hasWarnings(value) && warnings.isLimitReached(value);
-  }
-
   public static Warning[] fromMapToArray(
       EnsoHashMap set, ArrayLikeLengthNode lengthNode, ArrayLikeAtNode atNode) {
     var vec = set.getCachedVectorRepresentation();
