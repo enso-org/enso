@@ -1083,25 +1083,22 @@ export default function AssetsTable(props: AssetsTableProps) {
         )
       } else {
         setAssetTree(oldAssetTree =>
-          oldAssetTree.map(item =>
-            item.key !== key
-              ? item
-              : item.children != null
-                ? item.with({ isExpanded: true })
-                : item.with({
-                    isExpanded: true,
-                    children: [
-                      AssetTreeNode.fromAsset(
-                        backendModule.createSpecialLoadingAsset(directoryId),
-                        key,
-                        directoryId,
-                        item.depth + 1,
-                        '',
-                        null
-                      ),
-                    ],
-                  })
-          )
+          oldAssetTree.map(item => {
+            if (item.key !== key) {
+              return item
+            } else if (item.children != null) {
+              return item.with({ isExpanded: true })
+            } else {
+              const loadingAsset = backendModule.createSpecialLoadingAsset(directoryId)
+              setAsset(loadingAsset.id, loadingAsset)
+              return item.with({
+                isExpanded: true,
+                children: [
+                  AssetTreeNode.fromAsset(loadingAsset, key, directoryId, item.depth + 1, '', null),
+                ],
+              })
+            }
+          })
         )
         void (async () => {
           const abortController = new AbortController()
@@ -1153,21 +1150,23 @@ export default function AssetsTable(props: AssetsTableProps) {
                     childAssetNodes.length !== 0
                       ? null
                       : backendModule.createSpecialEmptyAsset(directoryId)
-                  const children =
-                    specialEmptyAsset != null
-                      ? [
-                          AssetTreeNode.fromAsset(
-                            specialEmptyAsset,
-                            key,
-                            directoryId,
-                            item.depth + 1,
-                            '',
-                            null
-                          ),
-                        ]
-                      : initialChildren == null || initialChildren.length === 0
-                        ? childAssetNodes
-                        : [...initialChildren, ...childAssetNodes].sort(AssetTreeNode.compare)
+                  if (specialEmptyAsset) {
+                    setAsset(specialEmptyAsset.id, specialEmptyAsset)
+                  }
+                  const children = specialEmptyAsset
+                    ? [
+                        AssetTreeNode.fromAsset(
+                          specialEmptyAsset,
+                          key,
+                          directoryId,
+                          item.depth + 1,
+                          '',
+                          null
+                        ),
+                      ]
+                    : initialChildren == null || initialChildren.length === 0
+                      ? childAssetNodes
+                      : [...initialChildren, ...childAssetNodes].sort(AssetTreeNode.compare)
                   return item.with({ children })
                 }
               })
@@ -1176,7 +1175,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         })()
       }
     },
-    [category, backend, toastAndLog]
+    [setAsset, backend, category, toastAndLog]
   )
 
   const [spinnerState, setSpinnerState] = React.useState(spinner.SpinnerState.initial)
