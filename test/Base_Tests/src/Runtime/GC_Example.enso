@@ -37,6 +37,5 @@ perform_test n:Integer println =
     counter.get
 
 main n=1000000 =
-    ## perform_test n IO.println
-    IO.println "GC_Example is pending..."
+    perform_test n IO.println
 
