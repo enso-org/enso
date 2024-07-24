@@ -322,7 +322,10 @@ export default function projectManagerShimMiddleware(
                   break
                 }
                 default: {
-                  // Ignored. `result` retains its original value indicating an error.
+                  const message = `Error in Project Manager shim: unknown command ${JSON.stringify(cliArguments)}`
+                  console.error(message)
+                  result = toJSONRPCError(message)
+                  break
                 }
               }
             } catch {
