@@ -60,7 +60,9 @@ public final class MixedStorage extends ObjectStorage implements ColumnStorageWi
   private StorageType commonNumericType(StorageType a, StorageType b) {
     assert isNumeric(a);
     assert isNumeric(b);
-    if (a instanceof FloatType || b instanceof FloatType) {
+    if (a instanceof BigDecimalType || b instanceof BigDecimalType ) {
+      return BigDecimalType.INSTANCE;
+    } else if (a instanceof FloatType || b instanceof FloatType) {
       return FloatType.FLOAT_64;
     } else if (a instanceof BigIntegerType || b instanceof BigIntegerType) {
       return BigIntegerType.INSTANCE;
