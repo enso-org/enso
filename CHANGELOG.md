@@ -4,9 +4,11 @@
 
 - [Enforce conversion method return type][10468]
 - [Renaming launcher executable to ensoup][10535]
+- [Space-precedence does not apply to value-level operators][10597]
 
 [10468]: https://github.com/enso-org/enso/pull/10468
 [10535]: https://github.com/enso-org/enso/pull/10535
+[10597]: https://github.com/enso-org/enso/pull/10597
 
 #### Enso IDE
 
@@ -14,13 +16,20 @@
 - [Numeric Widget does not accept non-numeric input][10457]. This is to prevent
   node being completely altered by accidental code put to the widget.
 - [Redesigned "record control" panel][10509]. Now it contains more intuitive
-  "refresh" and "run workflow" buttons.
+  "refresh" and "write all" buttons.
 - [Warning messages do not obscure visualization buttons][10546].
+- [Output component in collapsed function changed][10577]. It cannot be deleted
+  anymore, except by directily editing the code.
+- [Multiselect drop-down widget visuals are improved][10607].
+- [Text displayed in monospace and whitespace rendered as symbols][10563].
 
 [10433]: https://github.com/enso-org/enso/pull/10443
 [10457]: https://github.com/enso-org/enso/pull/10457
 [10509]: https://github.com/enso-org/enso/pull/10509
 [10546]: https://github.com/enso-org/enso/pull/10546
+[10577]: https://github.com/enso-org/enso/pull/10577
+[10607]: https://github.com/enso-org/enso/pull/10607
+[10563]: https://github.com/enso-org/enso/pull/10563
 
 #### Enso Enso Standard Library
 
@@ -33,12 +42,14 @@
 - [Rename `Map` to `Dictionary` and `Set` to `Hashset`.][10474]
 - [Compare two objects with `Ordering.compare` and define comparator with
   `Comparable.new`][10468]
+- [Added `dec` construction function for creating `Decimal`s.][10517]
 
 [10434]: https://github.com/enso-org/enso/pull/10434
 [10445]: https://github.com/enso-org/enso/pull/10445
 [10466]: https://github.com/enso-org/enso/pull/10466
 [10467]: https://github.com/enso-org/enso/pull/10467
 [10474]: https://github.com/enso-org/enso/pull/10474
+[10517]: https://github.com/enso-org/enso/pull/10517
 
 # Enso 2024.2
 

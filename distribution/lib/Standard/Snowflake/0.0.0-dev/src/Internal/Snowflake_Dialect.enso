@@ -4,6 +4,7 @@ from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Errors.Unimplemented.Unimplemented
+import Standard.Base.Runtime.Ref.Ref
 
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
 import Standard.Table.Internal.Vector_Builder.Vector_Builder
@@ -22,6 +23,7 @@ import Standard.Database.Internal.Common.Database_Join_Helper
 import Standard.Database.Internal.Error_Mapper.Error_Mapper
 import Standard.Database.Internal.Internals_Access
 import Standard.Database.Internal.IR.Context.Context
+import Standard.Database.Internal.IR.Context.Context_Extension
 import Standard.Database.Internal.IR.From_Spec.From_Spec
 import Standard.Database.Internal.IR.Internal_Column.Internal_Column
 import Standard.Database.Internal.IR.Nulls_Order.Nulls_Order
@@ -125,10 +127,12 @@ type Snowflake_Dialect
         column_mapping = Dictionary.from_vector <| new_columns.map c-> [c.name, c]
         new_key_columns = key_columns.map c-> column_mapping.at c.name
         type_mapping = self.get_type_mapping
+        # TODO simpler distinct if distinct_expressions are all columns?
         distinct_expressions = new_key_columns.map column->
             value_type = type_mapping.sql_type_to_value_type column.sql_type_reference.get
             Database_Distinct_Helper.make_distinct_expression case_sensitivity problem_builder column value_type
-        new_context = Context.for_subquery setup.subquery . set_distinct_on distinct_expressions
+        new_context = Context.for_subquery setup.subquery
+            . add_extension (make_distinct_extension distinct_expressions)
         table.updated_context_and_columns new_context new_columns subquery=True
 
     ## PRIVATE
@@ -164,13 +168,12 @@ type Snowflake_Dialect
         mapping = self.get_type_mapping
         source_type = mapping.sql_type_to_value_type column.sql_type_reference.get
         target_value_type = mapping.sql_type_to_value_type target_type
-        # Boolean to Numeric casts need special handling:
-        transformed_expression = case source_type.is_boolean && target_value_type.is_numeric of
-            True ->
-                SQL_Expression.Operation "IIF" [Internals_Access.column_expression column, SQL_Expression.Literal "1", SQL_Expression.Literal "0"]
-            False -> Internals_Access.column_expression column
-        target_type_sql_text = mapping.sql_type_to_text target_type
-        new_expression = SQL_Expression.Operation "CAST" [transformed_expression, SQL_Expression.Literal target_type_sql_text]
+
+        new_expression = make_custom_cast column source_type target_value_type . if_nothing <|
+            source_expression = Internals_Access.column_expression column
+            target_type_sql_text = mapping.sql_type_to_text target_type
+            SQL_Expression.Operation "CAST" [source_expression, SQL_Expression.Literal target_type_sql_text]
+
         new_sql_type_reference = infer_result_type_from_database_callback new_expression
         Internal_Column.Value column.name new_sql_type_reference new_expression
 
@@ -311,7 +314,7 @@ make_dialect_operations =
         other = [["day_of_year", Base_Generator.make_function "DAYOFYEAR"], ["day_of_week", Base_Generator.make_function "DAYOFWEEKISO"]]
         operations = [["date_add", make_date_add], ["date_diff", make_date_diff], ["date_trunc_to_day", make_date_trunc_to_day]]
         trivial + fractional + other + operations
-    other = [["IIF", make_iif], ["RUNTIME_ERROR", make_runtime_error_op]]
+    other = [["IIF", make_iif], ["RUNTIME_ERROR", make_runtime_error_op], ["ROW_NUMBER_IN_GROUP", make_row_number_in_group]]
     my_mappings = text + counts + stats + arith_extensions + bool + date_ops + other
     Base_Generator.base_dialect_operations . extend_with my_mappings
 
@@ -427,7 +430,17 @@ agg_count_distinct_include_null args =
    The columns are converted to VARIANT type because of that, which may incur some overhead.
    But there seems to be no other reliable way to handle this for columns like numeric where no non-NULL value exists that can be guaranteed to be unused.
 replace_null_with_marker expr =
-    SQL_Builder.code "COALESCE(" ++ expr ++ ", {'enso-null-replacement-marker':'"+Random.uuid+"'}::variant)"
+    SQL_Builder.code "COALESCE(" ++ expr ++ ", {'enso-null-replacement-marker':'" ++ Random.uuid ++ "'}::variant)"
+
+## PRIVATE
+   A helper for `lookup_and_replace`, and perhaps other operation.
+   It creates an expression that returns a row number within a group.
+   This is a specialization for Snowflake that adds a dummy ORDER BY clause to satisfy its compiler.
+make_row_number_in_group arguments =
+    if arguments.length == 0 then
+        Panic.throw <| Illegal_State.Error "The operation ROW_NUMBER_IN_GROUP requires at least one argument."
+    SQL_Builder.code "ROW_NUMBER() OVER (PARTITION BY " ++ (SQL_Builder.join ", " arguments) ++ " ORDER BY 1)"
+
 
 ## PRIVATE
 starts_with = Base_Generator.lift_binary_sql_function "STARTS_WITH" "STARTSWITH"
@@ -674,6 +687,41 @@ make_iif arguments = case arguments.length of
         SQL_Builder.code "DECODE(" ++ expr ++ ", TRUE, " ++ when_true ++ ", FALSE, " ++ when_false ++ ")"
     _ ->
         Error.throw <| Illegal_State.Error ("Invalid amount of arguments for operation IIF")
+
+## PRIVATE
+make_distinct_extension distinct_expressions =
+    run_generator sql_expressions =
+        joined = SQL_Builder.join ", " sql_expressions
+        ## We could use the ORDER BY here to ensure any previous ordering is preserved by distinct.
+           But to do so we need to have a robust way of checking such ordering, even if subqueries were taken in the meantime.
+           This may be related to #10321
+           Once fixed, should re-enable the `distinct_returns_first_row_from_group_if_ordered` flag back to `True`.
+        SQL_Builder.code " QUALIFY ROW_NUMBER() OVER (PARTITION BY " ++ joined ++ " ORDER BY 1) = 1 "
+    Context_Extension.Value position=550 expressions=distinct_expressions run_generator=run_generator
+
+## PRIVATE
+   Returns a custom cast expression if it is needed for a specific pair of types,
+   or Nothing if the default cast is sufficient.
+make_custom_cast (column : Internal_Column) (source_value_type : Value_Type) (target_value_type : Value_Type) -> SQL_Expression | Nothing =
+    result = Ref.new Nothing
+
+    # Custom expression for boolean to float cast, as regular cast does not support it.
+    if source_value_type.is_boolean && target_value_type.is_floating_point then
+        result.put <|
+            SQL_Expression.Operation "IIF" [Internals_Access.column_expression column, SQL_Expression.Literal "1", SQL_Expression.Literal "0"]
+
+    # If the text length is bounded, we need to add a `LEFT` call to truncate to desired length avoiding errors.
+    if target_value_type.is_text && target_value_type.size.is_nothing.not then
+        # But we only do so if the source type was also text.
+        # For any other source type, we keep the original behaviour - failing to convert if the text representation would not fit.
+        if source_value_type.is_text then result.put <|
+            max_size = (target_value_type.size : Integer)
+            truncated = SQL_Expression.Operation "LEFT" [Internals_Access.column_expression column, SQL_Expression.Literal max_size.to_text]
+            # We still need a cast to ensure the Value_Type gets the max size in it - LEFT returns no size limit unfortunately.
+            target_type_name = "VARCHAR(" + max_size.to_text + ")"
+            SQL_Expression.Operation "CAST" [truncated, SQL_Expression.Literal target_type_name]
+
+    result.get
 
 ## PRIVATE
 snowflake_dialect_name = "Snowflake"

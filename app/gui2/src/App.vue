@@ -18,6 +18,7 @@ import type Backend from 'enso-common/src/services/Backend'
 import { computed, markRaw, toRaw, toRef, watch } from 'vue'
 import TooltipDisplayer from './components/TooltipDisplayer.vue'
 import { provideTooltipRegistry } from './providers/tooltipState'
+import { provideVisibility } from './providers/visibility'
 import { initializePrefixes } from './util/ast/node'
 import { urlParams } from './util/urlParams'
 
@@ -66,6 +67,7 @@ const appConfig = computed(() => {
 })
 
 provideGuiConfig(computed((): ApplicationConfigValue => configValue(appConfig.value.config)))
+provideVisibility(computed(() => !props.hidden))
 
 registerAutoBlurHandler()
 </script>
@@ -83,6 +85,7 @@ registerAutoBlurHandler()
     v-bind="$attrs"
     class="App"
     :class="[...classSet.keys()]"
+    :projectId="props.projectId"
     :renameProject="renameProject"
   />
   <Teleport to="body">

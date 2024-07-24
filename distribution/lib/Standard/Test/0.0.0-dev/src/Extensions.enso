@@ -486,18 +486,24 @@ Any.should_be_a self typ =
          import Standard.Examples
          from Standard.Test import Test
 
-         example_should_equal = [1, 2] . should_contain_the_same_elements_as [2, 1]
-Any.should_contain_the_same_elements_as : Any -> Integer -> Spec_Result
-Any.should_contain_the_same_elements_as self that frames_to_skip=0 =
+         example_should_equal = [1, 2] . should_equal_ignoring_order [2, 1]
+Any.should_equal_ignoring_order : Any -> Integer -> Spec_Result
+Any.should_equal_ignoring_order self that frames_to_skip=0 =
     loc = Meta.get_source_location 1+frames_to_skip
     that.each element->
         if self.contains element . not then
-            msg = "The collection (" + self.to_text + ") did not contain "+element.to_text+" (at " + loc + ")."
+            msg = "The collection (" + self.to_text + ") did not contain " + element.to_text + " (at " + loc + ")."
             Test.fail msg
     self.each element->
         if that.contains element . not then
-            msg = "The collection contained an element ("+element.to_text+") which was not expected (at " + loc + ")."
+            msg = "The collection contained an element (" + element.to_text + ") which was not expected (at " + loc + ")."
             Test.fail msg
+    Test.with_clue "Duplicate elements in either collection should have the same counts - checked by comparing sorted collections: " <|
+        ## If the vector contains vectors or incomparable values, they may not get sorted correctly.
+           We normalize by converting to a text representation.
+        normalize e =
+            Panic.catch No_Such_Method e.pretty _->e.to_text
+        (self.sort on=normalize) . should_equal (that.sort on=normalize) frames_to_skip=frames_to_skip+3
     Spec_Result.Success
 
 ## Asserts that `self` value contains the same elements as `that`.
@@ -520,9 +526,9 @@ Any.should_contain_the_same_elements_as self that frames_to_skip=0 =
          import Standard.Examples
          from Standard.Test import Test
 
-         example_should_equal = [1, 2] . should_contain_the_same_elements_as [2, 1]
-Error.should_contain_the_same_elements_as : Any -> Integer -> Spec_Result
-Error.should_contain_the_same_elements_as self that frames_to_skip=0 =
+         example_should_equal = [1, 2] . should_equal_ignoring_order [2, 1]
+Error.should_equal_ignoring_order : Any -> Integer -> Spec_Result
+Error.should_equal_ignoring_order self that frames_to_skip=0 =
     _ = [that]
     Test.fail_match_on_unexpected_error self 1+frames_to_skip
 

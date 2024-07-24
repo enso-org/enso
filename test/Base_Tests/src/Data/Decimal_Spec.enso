@@ -15,9 +15,17 @@ Decimal.should_have_rep self rep = self.internal_representation . should_equal r
 
 add_specs suite_builder =
     suite_builder.group "(Decimal_Spec) construction" group_builder->
+        group_builder.specify "should be able to construct a Decimal with dec" <|
+            dec "123.45" . should_have_rep [12345, 5, 2]
+            dec 123.45 . should_have_rep [12345, 5, 2]
+            dec 12345 . should_have_rep [12345, 5, 0]
+
+            mc = Math_Context.new 4
+            dec "123.45" mc . should_have_rep [1235, 4, 1]
+
         group_builder.specify "should be able to construct a Decimal from a string" <|
             Decimal.new "123.45" . should_have_rep [12345, 5, 2]
-            Decimal.from_string "123.45" . should_have_rep [12345, 5, 2]
+            Decimal.from_text "123.45" . should_have_rep [12345, 5, 2]
 
         group_builder.specify "should throw Number_Parse_Error on a badly-formatted string" <|
             Decimal.new "ee" . should_fail_with Number_Parse_Error
@@ -35,7 +43,7 @@ add_specs suite_builder =
 
         group_builder.specify "should be able to construct a Decimal from a long string" <|
             Decimal.new "495782984723948723947239938732974241.2345" . should_have_rep [4957829847239487239472399387329742412345, 40, 4]
-            Decimal.from_string "495782984723948723947239938732974241.2345" . should_have_rep [4957829847239487239472399387329742412345, 40, 4]
+            Decimal.from_text "495782984723948723947239938732974241.2345" . should_have_rep [4957829847239487239472399387329742412345, 40, 4]
 
         group_builder.specify "should be able to construct a Decimal from a small integer" <|
             Decimal.new 1234500 . should_have_rep [1234500, 7, 0]
@@ -97,17 +105,17 @@ add_specs suite_builder =
             mc4 = Math_Context.new 4
             mc5 = Math_Context.new 5
 
-            Problems.not_expect_warning (Decimal.new "123.25")
+            Problems.assume_no_problems (Decimal.new "123.25")
             Problems.expect_warning Loss_Of_Numeric_Precision (Decimal.new "123.25" mc4)
-            Problems.not_expect_warning Loss_Of_Numeric_Precision (Decimal.new "123.25" mc5)
+            Problems.assume_no_problems (Decimal.new "123.25" mc5)
 
             Problems.expect_warning Loss_Of_Numeric_Precision (Decimal.new 123.25)
             Problems.expect_warning Loss_Of_Numeric_Precision (Decimal.new 123.25 mc4)
             Problems.expect_warning Loss_Of_Numeric_Precision (Decimal.new 123.25 mc5)
 
-            Problems.not_expect_warning (Decimal.new 12325)
+            Problems.assume_no_problems (Decimal.new 12325)
             Problems.expect_warning Loss_Of_Numeric_Precision (Decimal.new 12325 mc4)
-            Problems.not_expect_warning Loss_Of_Numeric_Precision (Decimal.new 12325 mc5)
+            Problems.assume_no_problems (Decimal.new 12325 mc5)
 
         group_builder.specify "should throw Illegal_Argument for NaN/Inf" <|
             Decimal.new Number.nan . should_fail_with Illegal_Argument
@@ -116,11 +124,14 @@ add_specs suite_builder =
 
         group_builder.specify "should be convertible via .from" <|
             Decimal.from "123.45" . should_equal (Decimal.new "123.45")
-            Decimal.from "123.45" . should_equal (Decimal.from_string "123.45")
+            Decimal.from "123.45" . should_equal (Decimal.from_text "123.45")
             Decimal.from 123.45 . should_equal (Decimal.new 123.45)
             Decimal.from 123.45 . should_equal (Decimal.from_float 123.45)
             Decimal.from 12345 . should_equal (Decimal.new 12345)
             Decimal.from 12345 . should_equal (Decimal.from_integer 12345)
+
+        group_builder.specify "should attach a Loss_Of_Numeric_Precision warning when converting float to decimal with .from" <|
+            Problems.expect_only_warning Loss_Of_Numeric_Precision (Decimal.from 123.45)
 
         group_builder.specify "constructor should respect Math_Context " <|
             Decimal.new 12000 (Math_Context.new 0) . should_equal 12000
@@ -200,7 +211,7 @@ add_specs suite_builder =
 
                 (Ordering.hash x0) . should_equal (Ordering.hash x1)
 
-        group_builder.specify "should compare correctly to Integer and Float" <|
+        group_builder.specify "should compare correctly to Integer and Float" pending="https://github.com/enso-org/enso/issues/10163" <|
             values = []
                 + [[0.1, 0.1]]
                 + [["0.1", 0.1]]
@@ -301,8 +312,8 @@ add_specs suite_builder =
 
             values.map pr->
                 v = pr.at 0
-                d = Decimal.new v . to_float
-                expected = pr.at 1 . to_float
+                d = Decimal.new v . remove_warnings
+                expected = pr.at 1
 
                 d . should_equal expected
                 expected . should_equal d
@@ -336,6 +347,12 @@ add_specs suite_builder =
                     (d <= d) . should_be_true
                     (d >= d) . should_be_true
 
+                    if v.is_a Float then
+                        Problems.expect_only_warning Loss_Of_Numeric_Precision (d <= v)
+                        Problems.expect_only_warning Loss_Of_Numeric_Precision (d >= v)
+                        Problems.expect_only_warning Loss_Of_Numeric_Precision (v <= d)
+                        Problems.expect_only_warning Loss_Of_Numeric_Precision (v >= d)
+
                     if greater.is_infinite.not then
                         (d < greater) . should_be_true
                         (d <= greater) . should_be_true
@@ -367,7 +384,7 @@ add_specs suite_builder =
     suite_builder.group "(Decimal_Spec) edge cases" group_builder->
         group_builder.specify "can support values outside the double range" <|
             d = Decimal.new Float.max_value
-            (d == Float.max_value) . should_be_false
+            (d == Float.max_value) . should_be_true
             ((d * d) == Float.max_value) . should_be_false
             ((-(d * d)) == -Float.max_value) . should_be_false
             Ordering.hash (d * d) . should_equal 2146435072
@@ -501,6 +518,17 @@ add_specs suite_builder =
             (3 * Decimal.new 4.0) . should_equal 12
             (3 / Decimal.new 4.0) . should_equal 0.75
 
+        group_builder.specify "Decimal mixed arithmetic should result in Decimal" <|
+            (Decimal.new 1 + 2) . should_be_a Decimal
+            (Decimal.new 1 - 2) . should_be_a Decimal
+            (Decimal.new 3 * 4) . should_be_a Decimal
+            (Decimal.new 3 / 4) . should_be_a Decimal
+
+            (1 + Decimal.new 2) . should_be_a Decimal
+            (1 - Decimal.new 2) . should_be_a Decimal
+            (3 * Decimal.new 4) . should_be_a Decimal
+            (3 / Decimal.new 4) . should_be_a Decimal
+
         group_builder.specify "should get an aritmetic error when a result is a nonterminating decimal expansion" <|
             (Decimal.new 1 / Decimal.new 3) . should_fail_with Arithmetic_Error
 
@@ -517,6 +545,10 @@ add_specs suite_builder =
             d2 = Decimal.new -5
             nd2 = -d2
             nd2 . should_equal 5
+
+        group_builder.specify "Mixed Decimal/Integer arithmetic should not attach warnings" <|
+            Problems.assume_no_problems (Decimal.new 1 + 2)
+            Problems.assume_no_problems (1 + Decimal.new 2)
 
     suite_builder.group "(Decimal_Spec) conversions" group_builder->
         group_builder.specify "should convert correctly to and from Integer" <|
@@ -587,12 +619,15 @@ add_specs suite_builder =
             f.should_be_a Float
             f.should_equal 56.34
 
-        group_builder.specify "Decimal.to_float cannot compare correctly with the original Decimal" <|
+        group_builder.specify "should attach a Loss_Of_Numeric_Precision warning when converting decimal to float with .from" <|
+            Problems.expect_only_warning Loss_Of_Numeric_Precision (Float.from (Decimal.new "56.34"))
+
+        group_builder.specify "Decimal.to_float should compare correctly with the original Decimal" <|
             huge_a = Decimal.new "3.4E300"
             huge_a_float = Float.from huge_a
 
-            (huge_a_float == huge_a) . should_be_false
-            (huge_a == huge_a_float) . should_be_false
+            (huge_a_float == huge_a) . should_be_true
+            (huge_a == huge_a_float) . should_be_true
 
         group_builder.specify "Decimal.to_integer should compare correctly with the original Decimal" <|
             huge_a = Decimal.new "3.4E320"
@@ -603,7 +638,7 @@ add_specs suite_builder =
 
         group_builder.specify "should attach a warning on loss of precision in integer conversion" <|
             Problems.expect_only_warning Loss_Of_Numeric_Precision (Decimal.new "125.2" . to_integer)
-            Problems.not_expect_warning Loss_Of_Numeric_Precision (Decimal.new "125" . to_integer)
+            Problems.assume_no_problems (Decimal.new "125" . to_integer)
             huge_int = Decimal.new "125E90"
             huge_fraction = Decimal.new "125E90" + Decimal.new "0.2"
             Problems.expect_only_warning Loss_Of_Numeric_Precision (huge_fraction . to_integer)

@@ -18,7 +18,7 @@ const project = useProjectStore()
     </div>
     <div class="control right-end">
       <SvgButton
-        title="Run Workflow"
+        title="Write All"
         class="iconButton"
         name="workflow_play"
         draggable="false"

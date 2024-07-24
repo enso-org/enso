@@ -873,8 +873,12 @@ public final class Main {
         }
       }
     } catch (PolyglotException e) {
-      printPolyglotException(e, rootPkgPath);
-      throw exitFail();
+      if (e.isExit()) {
+        doExit(e.getExitStatus());
+      } else {
+        printPolyglotException(e, rootPkgPath);
+        throw exitFail();
+      }
     }
   }
 

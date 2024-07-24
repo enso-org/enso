@@ -6,16 +6,15 @@ import type { Icon } from '@/util/iconName'
 
 const blockType = defineModel<BlockType>({ required: true })
 
-const TODO: Icon = 'text'
 const blockTypeIcon: Record<keyof typeof blockTypeToBlockName, Icon> = {
   paragraph: 'text',
   bullet: 'bullet-list',
-  code: TODO,
-  h1: TODO,
-  h2: TODO,
-  h3: TODO,
+  code: 'code',
+  h1: 'header1',
+  h2: 'header2',
+  h3: 'header3',
   number: 'numbered-list',
-  quote: TODO,
+  quote: 'quote',
 }
 const blockTypesOrdered: BlockType[] = [
   'paragraph',

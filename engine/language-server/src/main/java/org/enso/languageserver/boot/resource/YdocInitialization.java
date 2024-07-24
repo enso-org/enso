@@ -11,6 +11,7 @@ public final class YdocInitialization extends LockedInitialization {
 
   private final Logger logger = LoggerFactory.getLogger(this.getClass());
   private final ComponentSupervisor supervisor;
+  private final String ENABLED_YDOC = "POLYGLOT_YDOC_SERVER";
 
   public YdocInitialization(Executor executor, ComponentSupervisor componentSupervisor) {
     super(executor);
@@ -19,19 +20,27 @@ public final class YdocInitialization extends LockedInitialization {
 
   @Override
   public void initComponent() {
-    logger.info("Starting Ydoc server...");
-    var applicationConfig = ApplicationConfig.load();
-    var ydoc =
-        Ydoc.builder()
-            .hostname(applicationConfig.ydoc().hostname())
-            .port(applicationConfig.ydoc().port())
-            .build();
-    try {
-      ydoc.start();
-      this.supervisor.registerService(ydoc);
-    } catch (Exception e) {
-      throw new RuntimeException(e);
+    var ydocEnabled =
+        System.getenv(ENABLED_YDOC) == null
+            ? false
+            : Boolean.parseBoolean(System.getenv(ENABLED_YDOC));
+    if (ydocEnabled) {
+      logger.debug("Starting Ydoc server...");
+      var applicationConfig = ApplicationConfig.load();
+      var ydoc =
+          Ydoc.builder()
+              .hostname(applicationConfig.ydoc().hostname())
+              .port(applicationConfig.ydoc().port())
+              .build();
+      try {
+        ydoc.start();
+        this.supervisor.registerService(ydoc);
+      } catch (Exception e) {
+        throw new RuntimeException(e);
+      }
+      logger.debug("Started Ydoc server");
+    } else {
+      logger.debug("Reverting to Node.js Ydoc");
     }
-    logger.info("Started Ydoc server.");
   }
 }
