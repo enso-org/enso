@@ -149,6 +149,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
           aria-label={getText('openInEditor')}
           tooltipPlacement="left"
           extraClickZone="xsmall"
+          isDisabled={state === backendModule.ProjectState.closing}
           onPress={doOpenProject}
         />
       )
