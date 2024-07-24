@@ -3794,7 +3794,6 @@ pkgStdLibInternal := Def.inputTask {
     if (generateIndex) {
       val stdlibStandardRoot = root / "lib" / standardNamespace
       DistributionPackage.indexStdLib(
-        libMajor       = stdlibStandardRoot,
         libName        = stdlibStandardRoot / lib,
         stdLibVersion  = defaultDevEnsoVersion,
         ensoVersion    = defaultDevEnsoVersion,
