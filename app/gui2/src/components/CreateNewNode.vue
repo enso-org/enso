@@ -35,27 +35,24 @@ const makeFilterPattern = () => {
 }
 
 function getAstPatternSort() {
-  console.log('sort')
   return Pattern.new((ast) =>
     Ast.App.positional(
       Ast.PropertyAccess.new(ast.module, ast, Ast.identifier('sort')!),
-      Ast.parse(makeSortPattern() || ''),
+      Ast.parse(makeSortPattern()),
     ),
   )
 }
 
 function getAstPatternFilter() {
-  console.log('filter')
   return Pattern.new((ast) =>
     Ast.App.positional(
       Ast.PropertyAccess.new(ast.module, ast, Ast.identifier('filter')!),
-      Ast.parse(makeFilterPattern() || ''),
+      Ast.parse(makeFilterPattern()),
     ),
   )
 }
 
 const createNewNode = () => {
-  console.log('hello')
   if (props.sortModel?.size) {
     config.createNodes({
       content: getAstPatternSort(),
