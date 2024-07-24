@@ -49,6 +49,7 @@ import * as backendHooks from '#/hooks/backendHooks'
 
 import AuthProvider, * as authProvider from '#/providers/AuthProvider'
 import BackendProvider from '#/providers/BackendProvider'
+import DevtoolsProvider from '#/providers/EnsoDevtoolsProvider'
 import * as httpClientProvider from '#/providers/HttpClientProvider'
 import InputBindingsProvider from '#/providers/InputBindingsProvider'
 import LocalStorageProvider, * as localStorageProvider from '#/providers/LocalStorageProvider'
@@ -561,8 +562,8 @@ function AppRouter(props: AppRouterProps) {
       {result}
     </httpClientProvider.HttpClientProvider>
   )
-
   result = <LoggerProvider logger={logger}>{result}</LoggerProvider>
+  result = <DevtoolsProvider>{result}</DevtoolsProvider>
 
   return result
 }

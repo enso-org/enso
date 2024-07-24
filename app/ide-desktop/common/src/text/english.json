@@ -326,6 +326,7 @@
   "cloudUnavailableOfflineDescriptionOfferLocal": "Alternatively, you can work on your local projects.",
   "loginUnavailableOffline": "Login functionality is unavailable offline. Please connect to the internet to log in.",
   "loginUnavailableOfflineLocal": "After logging in, you can work offline with your local projects.",
+  "productionOnlyFeatures": "Production-only features",
   "switchToLocal": "Switch to Local",
   "switchToCloud": "Switch to Cloud",
   "notEnabledTitle": "Your cloud experience is in progress",
@@ -408,6 +409,8 @@
   "showPassword": "Show password",
   "copiedToClipboard": "Copied to clipboard",
   "noResultsFound": "No results found.",
+  "enableVersionChecker": "Enable Version Checker",
+  "enableVersionCheckerDescription": "Show a modal if the current version of the desktop app does not match the latest version.",
 
   "deleteLabelActionText": "delete the label '$0'",
   "deleteSelectedAssetActionText": "delete '$0'",
