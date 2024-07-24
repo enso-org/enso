@@ -936,7 +936,6 @@ final class TreeToIr {
           var rhs = unnamedCallArgument(l.getExpression().getExpression());
           var both = applyOperator(op, lhs, rhs, app);
           expr = both;
-          var loc = getIdentifiedLocation(app);
           lhs = new CallArgument.Specified(Option.empty(), expr, loc, meta(), diag());
         }
         yield expr;
