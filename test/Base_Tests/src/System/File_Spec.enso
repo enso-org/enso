@@ -378,6 +378,7 @@ add_specs suite_builder =
             f.should_be_a File
             f.absolute.normalize.path . should_equal expected_file.absolute.normalize.path
 
+            (File.new "abc").create_directory . should_succeed
             txt = "test-content"+Random.uuid
             txt.write expected_file . should_succeed
             Panic.with_finalizer expected_file.delete_if_exists <|
@@ -409,6 +410,7 @@ add_specs suite_builder =
 
                 # Data.read should be consistent too
                 txt = "test-content"+Random.uuid
+                (File.new "abc").create_directory . should_succeed
                 txt.write f . should_succeed
                 Panic.with_finalizer f.delete_if_exists <|
                     Data.read "abc/def" . should_equal txt
