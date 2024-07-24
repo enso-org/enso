@@ -81,7 +81,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
       versionOverride.getOrElse(configurationManager.defaultVersion)
     val globalConfig = configurationManager.getConfig
 
-    val exitCode = runner
+    val (exitCode, output) = runner
       .withCommand(
         runner
           .newProject(
@@ -97,7 +97,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
           .get,
         JVMSettings(useSystemJVM, jvmOpts, extraOptions = Seq.empty)
       ) { command =>
-        command.run().get
+        command.run(inheritStdOutErr = false).get
       }
 
     if (exitCode == 0) {
@@ -105,7 +105,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
         s"Project created in `$actualPath` using version $version."
       )
     } else {
-      logger.error("Project creation failed.")
+      logger.error(s"Project creation failed: $output")
     }
 
     exitCode
@@ -211,7 +211,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     jvmOpts: Seq[(String, String)],
     additionalArguments: Seq[String]
   ): Int = {
-    val exitCode = runner
+    val (exitCode, _) = runner
       .withCommand(
         runner
           .repl(
@@ -255,7 +255,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     jvmOpts: Seq[(String, String)],
     additionalArguments: Seq[String]
   ): Int = {
-    val exitCode = runner
+    val (exitCode, _) = runner
       .withCommand(
         runner
           .run(
@@ -297,7 +297,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     jvmOpts: Seq[(String, String)],
     additionalArguments: Seq[String]
   ): Int = {
-    val exitCode = runner
+    val (exitCode, _) = runner
       .withCommand(
         runner
           .languageServer(
@@ -335,7 +335,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     jvmOpts: Seq[(String, String)],
     additionalArguments: Seq[String]
   ): Int = {
-    val exitCode = runner.withCommand(
+    val (exitCode, _) = runner.withCommand(
       runner
         .installDependencies(
           versionOverride,
@@ -412,12 +412,14 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
       )
       .get
 
-    runner.withCommand(
-      settings,
-      JVMSettings(useSystemJVM, jvmOpts, extraOptions = Seq())
-    ) { command =>
-      command.run().get
-    }
+    runner
+      .withCommand(
+        settings,
+        JVMSettings(useSystemJVM, jvmOpts, extraOptions = Seq())
+      ) { command =>
+        command.run().get
+      }
+      ._1
   }
 
   /** Prints the value of `key` from the global configuration.

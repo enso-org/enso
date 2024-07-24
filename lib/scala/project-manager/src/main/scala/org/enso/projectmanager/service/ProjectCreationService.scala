@@ -74,20 +74,20 @@ class ProjectCreationService[
           s"Running engine $engineVersion to create project $name at " +
           s"[${MaskedPath(path).applyMasking()}]."
         )
-        command.run().get
+        command.run(inheritStdOutErr = false).get
       }
     }
     .mapRuntimeManagerErrors { other: Throwable =>
       ProjectCreateFailed(other.getMessage)
     }
-    .flatMap { exitCode =>
+    .flatMap { case (exitCode, output) =>
       if (exitCode == 0)
         CovariantFlatMap[F].pure(())
       else
         ErrorChannel[F].fail(
           ProjectCreateFailed(
-            s"The runner used to create the project returned exit code " +
-            s"$exitCode."
+            s"The runner used to create the project returned exit code $exitCode.${System
+              .getProperty("line.separator")}Runner's output: $output"
           )
         )
     }

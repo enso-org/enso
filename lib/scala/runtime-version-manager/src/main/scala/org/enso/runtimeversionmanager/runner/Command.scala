@@ -2,6 +2,8 @@ package org.enso.runtimeversionmanager.runner
 
 import com.typesafe.scalalogging.Logger
 
+import java.io.{BufferedReader, InputStreamReader}
+import java.util.StringJoiner
 import scala.sys.process.Process
 import scala.util.{Failure, Try}
 
@@ -18,13 +20,25 @@ case class Command(command: Seq[String], extraEnv: Seq[(String, String)]) {
     * May return an exception if it is impossible to run the command (for
     * example due to insufficient permissions or nonexistent executable).
     */
-  def run(): Try[Int] =
+  def run(inheritStdOutErr: Boolean = true): Try[(Int, String)] =
     wrapError {
       logger.debug("Executing {}", this)
       val processBuilder = builder()
-      processBuilder.inheritIO()
-      val process = processBuilder.start()
-      process.waitFor()
+      if (inheritStdOutErr) {
+        processBuilder.inheritIO()
+        val process = processBuilder.start()
+        (process.waitFor(), "")
+      } else {
+        val process = processBuilder.start()
+        val outReader =
+          new BufferedReader(new InputStreamReader(process.getInputStream))
+        val errReader =
+          new BufferedReader(new InputStreamReader(process.getErrorStream))
+        val joiner = new StringJoiner(System.getProperty("line.separator"))
+        outReader.lines.iterator.forEachRemaining(joiner.add)
+        errReader.lines.iterator.forEachRemaining(joiner.add)
+        (process.waitFor(), joiner.toString)
+      }
     }
 
   /** Runs the command and returns its standard output as [[String]].

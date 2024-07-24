@@ -66,7 +66,9 @@ class ProjectFileRepository[
       .recover { case FileNotFound | NotDirectory =>
         Nil
       }
-      .mapError(th => StorageFailure(th.toString))
+      .mapError(th =>
+        StorageFailure(s"Cannot find projects at $projectsPath: ${th.toString}")
+      )
       .flatMap { dirs =>
         Traverse[List].traverse(dirs)(tryLoadProject).map(_.flatten)
       }
@@ -172,14 +174,18 @@ class ProjectFileRepository[
   ): F[ProjectRepositoryFailure, Option[Package[File]]] =
     Sync[F]
       .blockingOp { PackageManager.Default.fromDirectory(projectPath) }
-      .mapError(th => StorageFailure(th.toString))
+      .mapError(th => StorageFailure(s"Cannot load package $projectPath: $th"))
 
   private def getDirectoryCreationTime(
     pkg: Package[File]
   ): F[ProjectRepositoryFailure, FileTime] =
     Sync[F]
       .blockingOp(pkg.fileSystem.getCreationTime(pkg.root))
-      .mapError(th => StorageFailure(th.toString))
+      .mapError(th =>
+        StorageFailure(
+          s"Cannot find creation time for package ${pkg.root}: $th"
+        )
+      )
 
   private def getPackage(
     projectPath: File
@@ -202,14 +208,20 @@ class ProjectFileRepository[
         Sync[F]
           .blockingOp { projectPackage.rename(newName) }
           .map(_ => ())
-          .mapError(th => StorageFailure(th.toString))
+          .mapError(th =>
+            StorageFailure(
+              s"Cannot rename package $newName at $projectPath: $th"
+            )
+          )
       }
 
   /** @inheritdoc */
   def update(project: Project): F[ProjectRepositoryFailure, Unit] =
     metadataStorage(project.path)
       .persist(ProjectMetadata(project))
-      .mapError(th => StorageFailure(th.toString))
+      .mapError(th =>
+        StorageFailure(s"Cannot update project at ${project.path}: $th")
+      )
 
   /** @inheritdoc */
   override def delete(projectId: UUID): F[ProjectRepositoryFailure, Unit] = {
@@ -218,7 +230,9 @@ class ProjectFileRepository[
         case Some(project) =>
           fileSystem
             .remove(project.path)
-            .mapError(th => StorageFailure(th.toString))
+            .mapError(th =>
+              StorageFailure(s"Cannot delete project at ${project.path}: $th")
+            )
         case None =>
           ErrorChannel[F].fail(ProjectNotFoundInIndex)
       }
@@ -257,7 +271,11 @@ class ProjectFileRepository[
       newProjectPath <- copy(project)
       _ <- metadataStorage(newProjectPath)
         .persist(newMetadata)
-        .mapError(th => StorageFailure(th.toString))
+        .mapError(th =>
+          StorageFailure(
+            s"Cannot persist new project name at $newProjectPath: $th"
+          )
+        )
       _          <- renamePackage(newProjectPath, newName)
       newProject <- getProject(newMetadata.id)
     } yield newProject
@@ -267,7 +285,9 @@ class ProjectFileRepository[
     fileSystem
       .move(projectPath, targetPath)
       .mapError[ProjectRepositoryFailure](failure =>
-        StorageFailure(failure.toString)
+        StorageFailure(
+          s"Cannot move project path from $projectPath to $targetPath: $failure"
+        )
       )
   }
 
@@ -275,7 +295,9 @@ class ProjectFileRepository[
     fileSystem
       .copy(projectPath, targetPath)
       .mapError[ProjectRepositoryFailure](failure =>
-        StorageFailure(failure.toString)
+        StorageFailure(
+          s"Cannot copy project directory $projectPath to $targetPath: $failure"
+        )
       )
   }
 
@@ -292,7 +314,7 @@ class ProjectFileRepository[
         fileSystem
           .exists(path)
           .mapError[ProjectRepositoryFailure](failure =>
-            StorageFailure(failure.toString)
+            StorageFailure(s"Cannot find path $path: $failure")
           )
           .flatMap { fileExists =>
             if (fileExists) {
