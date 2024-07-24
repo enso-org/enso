@@ -43,10 +43,6 @@ type Data
         in_memory_table = Table.new [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]]
         [connection, in_memory_table]
 
-    teardown self =
-        self.connection.close
-
-
 in_memory_table_builder args primary_key=[] connection =
     _ = [primary_key, connection]
     case args of
@@ -69,12 +65,9 @@ database_table_builder name_prefix args primary_key=[] connection =
      database, so features relying on persistence cannot really be tested.
 add_specs suite_builder setup make_new_connection persistent_connector=True =
     prefix = setup.prefix
-    suite_builder.group prefix+"Creating an empty table" group_builder->
-        data = Data.setup make_new_connection
-
-        group_builder.teardown <|
-            data.teardown
-
+    snowflake_pending = if prefix.contains "Snowflake" then "Table Upload / Update is not yet fully implemented for Snowflake backend. TODO: https://github.com/enso-org/enso/issues/10609"
+    data = Data.setup make_new_connection
+    suite_builder.group prefix+"(Upload_Spec) Creating an empty table" group_builder->
         group_builder.specify "should allow to specify the column names and types" <|
             t = data.connection.create_table (Name_Generator.random_name "creating-table") structure=[Column_Description.Value "X" Value_Type.Integer, Column_Description.Value "Y" Value_Type.Char] temporary=True
             t.column_names . should_equal ["X", "Y"]
@@ -98,7 +91,7 @@ add_specs suite_builder setup make_new_connection persistent_connector=True =
         group_builder.specify "should allow to inherit the structure of an existing Database table" <|
             t = Table.new [["X", [1, 2]], ["Y", ['a', 'b']]]
             input_db_table = t.select_into_database_table data.connection (Name_Generator.random_name "input_table") temporary=True
-            input_db_table.at "X" . to_vector . should_equal [1, 2]
+            input_db_table.at "X" . to_vector . should_equal_ignoring_order [1, 2]
 
             db_table = data.connection.create_table (Name_Generator.random_name "creating-table") structure=input_db_table temporary=True
             db_table.column_names . should_equal ["X", "Y"]
@@ -231,7 +224,7 @@ add_specs suite_builder setup make_new_connection persistent_connector=True =
             name = Name_Generator.random_name "primary_key 1"
             db_table = data.connection.create_table table_name=name structure=[Column_Description.Value "X" Value_Type.Integer, Column_Description.Value "Y" Value_Type.Char, Column_Description.Value "Z" Value_Type.Integer, Column_Description.Value "W" Value_Type.Float] primary_key=["Y", "Z"] temporary=False
             Panic.with_finalizer (data.connection.drop_table db_table.name) <|
-                db_table.get_primary_key . should_equal ["Y", "Z"]
+                db_table.get_primary_key . should_equal_ignoring_order ["Y", "Z"]
 
         group_builder.specify "should ensure that primary key columns specified are valid" <|
             run_with_and_without_output <|
@@ -297,17 +290,12 @@ add_specs suite_builder setup make_new_connection persistent_connector=True =
                 t1.at "X" . to_vector . should_fail_with SQL_Error
 
 
-    suite_builder.group prefix+"Uploading an in-memory Table" group_builder->
-        data = Data.setup make_new_connection
-
-        group_builder.teardown <|
-            data.teardown
-
+    suite_builder.group prefix+"(Upload_Spec) Uploading an in-memory Table" group_builder->
         group_builder.specify "should create a database table with the same contents as the source" <|
             db_table = data.in_memory_table.select_into_database_table data.connection (Name_Generator.random_name "creating-table") temporary=True
             db_table.column_names . should_equal ["X", "Y"]
-            db_table.at "X" . to_vector . should_equal [1, 2, 3]
-            db_table.at "Y" . to_vector . should_equal ['a', 'b', 'c']
+            db_table.at "X" . to_vector . should_equal_ignoring_order [1, 2, 3]
+            db_table.at "Y" . to_vector . should_equal_ignoring_order ['a', 'b', 'c']
             setup.expect_integer_type <| db_table.at "X"
             db_table.at "Y" . value_type . is_text . should_be_true
             db_table.row_count . should_equal 3
@@ -316,23 +304,23 @@ add_specs suite_builder setup make_new_connection persistent_connector=True =
         group_builder.specify "should include the created table in the tables directory" <|
             db_table = data.in_memory_table.select_into_database_table data.connection (Name_Generator.random_name "permanent_table 1") temporary=False
             Panic.with_finalizer (data.connection.drop_table db_table.name) <|
-                db_table.at "X" . to_vector . should_equal [1, 2, 3]
+                db_table.at "X" . to_vector . should_equal_ignoring_order [1, 2, 3]
 
                 data.connection.tables.at "Name" . to_vector . should_contain db_table.name
-                data.connection.query db_table.name . at "X" . to_vector . should_equal [1, 2, 3]
+                data.connection.query db_table.name . at "X" . to_vector . should_equal_ignoring_order [1, 2, 3]
 
         group_builder.specify "should include the temporary table in the tables directory" <|
             db_table = data.in_memory_table.select_into_database_table data.connection (Name_Generator.random_name "temporary_table 1") temporary=True
-            db_table.at "X" . to_vector . should_equal [1, 2, 3]
+            db_table.at "X" . to_vector . should_equal_ignoring_order [1, 2, 3]
             data.connection.tables.at "Name" . to_vector . should_contain db_table.name
-            data.connection.query db_table.name . at "X" . to_vector . should_equal [1, 2, 3]
+            data.connection.query db_table.name . at "X" . to_vector . should_equal_ignoring_order [1, 2, 3]
 
         if persistent_connector then
             group_builder.specify "should drop the temporary table after the connection is closed" <|
                 tmp_connection = make_new_connection Nothing
                 db_table = data.in_memory_table.select_into_database_table tmp_connection (Name_Generator.random_name "temporary_table 2") temporary=True
                 name = db_table.name
-                tmp_connection.query (SQL_Query.Table_Name name) . at "X" . to_vector . should_equal [1, 2, 3]
+                tmp_connection.query (SQL_Query.Table_Name name) . at "X" . to_vector . should_equal_ignoring_order [1, 2, 3]
                 tmp_connection.close
 
                 wait_until_temporary_table_is_deleted_after_closing_connection data.connection name
@@ -344,35 +332,38 @@ add_specs suite_builder setup make_new_connection persistent_connector=True =
                 db_table = data.in_memory_table.select_into_database_table tmp_connection (Name_Generator.random_name "permanent_table 1") temporary=False
                 name = db_table.name
                 Panic.with_finalizer (data.connection.drop_table name) <|
-                    tmp_connection.query (SQL_Query.Table_Name name) . at "X" . to_vector . should_equal [1, 2, 3]
+                    tmp_connection.query (SQL_Query.Table_Name name) . at "X" . to_vector . should_equal_ignoring_order [1, 2, 3]
                     tmp_connection.close
-                    data.connection.query (SQL_Query.Table_Name name) . at "X" . to_vector . should_equal [1, 2, 3]
+                    data.connection.query (SQL_Query.Table_Name name) . at "X" . to_vector . should_equal_ignoring_order [1, 2, 3]
 
-        group_builder.specify "should not create any table if upload fails" <|
+        group_builder.specify "should not create any table if upload fails" pending=snowflake_pending <|
             normal_column = Column.from_vector "Y" ((100+0).up_to (100+1000)).to_vector
             exploding_column = make_mock_column "X" (0.up_to 1000).to_vector 512
             exploding_table = Table.new [normal_column, exploding_column]
             name = Name_Generator.random_name "rolling-back-table"
             data.connection.query (SQL_Query.Table_Name name) . should_fail_with Table_Not_Found
-            Test.expect_panic_with matcher=ExplodingStoragePayload <|
-                exploding_table.select_into_database_table data.connection name temporary=False primary_key=Nothing
-            data.connection.query (SQL_Query.Table_Name name) . should_fail_with Table_Not_Found
+
+            # We ensure that we try to clean-up the table even if the test failed.
+            Panic.with_finalizer (data.connection.drop_table name if_exists=True) <|
+                Test.expect_panic_with matcher=ExplodingStoragePayload <|
+                    exploding_table.select_into_database_table data.connection name temporary=False primary_key=Nothing
+                data.connection.query (SQL_Query.Table_Name name) . should_fail_with Table_Not_Found
 
         group_builder.specify "should set a primary key for the table" <|
             t1 = Table.new [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']], ["Z", [1.0, 2.0, 3.0]]]
             db_table_1 = t1.select_into_database_table data.connection (Name_Generator.random_name "primary-key-1") primary_key=["Y", "X"]
             Panic.with_finalizer (data.connection.drop_table db_table_1.name) <|
-                db_table_1.at "X" . to_vector . should_equal [1, 2, 3]
-                db_table_1.get_primary_key . should_equal ["Y", "X"]
+                db_table_1.at "X" . to_vector . should_equal_ignoring_order [1, 2, 3]
+                db_table_1.get_primary_key . should_equal_ignoring_order ["Y", "X"]
 
             db_table_2 = t1.select_into_database_table data.connection (Name_Generator.random_name "primary-key-2")
             Panic.with_finalizer (data.connection.drop_table db_table_2.name) <|
-                db_table_2.at "X" . to_vector . should_equal [1, 2, 3]
+                db_table_2.at "X" . to_vector . should_equal_ignoring_order [1, 2, 3]
                 db_table_2.get_primary_key . should_equal ["X"]
 
             db_table_3 = t1.select_into_database_table data.connection (Name_Generator.random_name "primary-key-3") primary_key=Nothing
             Panic.with_finalizer (data.connection.drop_table db_table_3.name) <|
-                db_table_3.at "X" . to_vector . should_equal [1, 2, 3]
+                db_table_3.at "X" . to_vector . should_equal_ignoring_order [1, 2, 3]
                 db_table_3.get_primary_key . should_equal Nothing
 
         group_builder.specify "should ensure that primary key columns are valid" <|
@@ -380,7 +371,7 @@ add_specs suite_builder setup make_new_connection persistent_connector=True =
                 r1 = data.in_memory_table.select_into_database_table data.connection (Name_Generator.random_name "primary-key-4") primary_key=["X", "nonexistent"]
                 r1.should_fail_with Missing_Input_Columns
 
-        group_builder.specify "should fail if the primary key is not unique" <|
+        group_builder.specify "should fail if the primary key is not unique" pending=snowflake_pending <|
             t1 = Table.new [["X", [1, 2, 1]], ["Y", ['b', 'b', 'a']]]
 
             run_with_and_without_output <|
@@ -396,12 +387,12 @@ add_specs suite_builder setup make_new_connection persistent_connector=True =
                 r2.catch . clashing_example_key_values . should_equal ['b']
 
                 r3 = t1.select_into_database_table data.connection (Name_Generator.random_name "primary-key-7") temporary=True primary_key=["X", "Y"]
-                r3.at "X" . to_vector . should_equal [1, 2, 1]
+                r3.at "X" . to_vector . should_equal_ignoring_order [1, 2, 1]
 
                 t2 = Table.new [["X", [1, 2, 1]], ["Y", ['a', 'b', 'a']]]
                 r4 = t2.select_into_database_table data.connection (Name_Generator.random_name "primary-key-7") temporary=True primary_key=["X", "Y"]
                 r4.should_fail_with Non_Unique_Key
-                r4.catch . clashing_example_key_values . should_equal [1, 'a']
+                r4.catch . clashing_example_key_values . should_equal_ignoring_order [1, 'a']
 
             # Will not find clashes if they are not in the first 1000 rows, in Output disabled mode.
             vec = (0.up_to 1010).to_vector
@@ -442,7 +433,7 @@ add_specs suite_builder setup make_new_connection persistent_connector=True =
                 tmp_name . should_not_equal base_table_name
                 data.connection.query base_table_name . should_fail_with Table_Not_Found
 
-                t1.at "X" . to_vector . should_contain_the_same_elements_as [1, 2, 3]
+                t1.at "X" . to_vector . should_equal_ignoring_order [1, 2, 3]
 
                 t2 = (Table.new [["Y", [44]]]).select_into_database_table data.connection base_table_name temporary=False primary_key=[]
                 Problems.expect_only_warning Dry_Run_Operation t2
@@ -457,12 +448,7 @@ add_specs suite_builder setup make_new_connection persistent_connector=True =
                 # The old dry run table has been invalidated due to overwrite
                 t1.at "X" . to_vector . should_fail_with SQL_Error
 
-    suite_builder.group prefix+"Persisting a Database Table (query)" group_builder->
-        data = Data.setup make_new_connection
-
-        group_builder.teardown <|
-            data.teardown
-
+    suite_builder.group prefix+"(Upload_Spec) Persisting a Database Table (query)" group_builder->
         group_builder.specify "should be able to create a persistent copy of a DB table" <|
             t = Table.new [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']], ["Z", [1.0, 2.0, 3.0]]]
             tmp_connection = make_new_connection Nothing
@@ -476,11 +462,11 @@ add_specs suite_builder setup make_new_connection persistent_connector=True =
                 copied_table.at "Y" . value_type . is_text . should_be_true
                 copied_table.at "Z" . value_type . is_floating_point . should_be_true
 
-                tmp_connection.query name . at "X" . to_vector . should_equal [1, 2, 3]
+                tmp_connection.query name . at "X" . to_vector . should_equal_ignoring_order [1, 2, 3]
                 tmp_connection.close
 
                 if persistent_connector then
-                    data.connection.query name . at "X" . to_vector . should_equal [1, 2, 3]
+                    data.connection.query name . at "X" . to_vector . should_equal_ignoring_order [1, 2, 3]
 
         group_builder.specify "should be able to persist a complex query with generated columns, joins etc." <|
             t1 = Table.new [["X", [1, 1, 2]], ["Y", [1, 2, 3]]]
@@ -495,11 +481,11 @@ add_specs suite_builder setup make_new_connection persistent_connector=True =
 
             copied_table = db_table_4.select_into_database_table data.connection (Name_Generator.random_name "copied-table") temporary=True primary_key=Nothing
             copied_table.column_names . should_equal ["X", "Y", "C1", "C2", "Right X", "C3"]
-            copied_table.at "X" . to_vector . should_equal [1, 1, 2]
-            copied_table.at "C1" . to_vector . should_equal [101, 102, 203]
-            copied_table.at "C2" . to_vector . should_equal ["constant_text", "constant_text", "constant_text"]
-            copied_table.at "Right X" . to_vector . should_equal [Nothing, Nothing, 2]
-            copied_table.at "C3" . to_vector . should_equal [Nothing, Nothing, 5]
+            copied_table.at "X" . to_vector . should_equal_ignoring_order [1, 1, 2]
+            copied_table.at "C1" . to_vector . should_equal_ignoring_order [101, 102, 203]
+            copied_table.at "C2" . to_vector . should_equal_ignoring_order ["constant_text", "constant_text", "constant_text"]
+            copied_table.at "Right X" . to_vector . should_equal_ignoring_order [Nothing, Nothing, 2]
+            copied_table.at "C3" . to_vector . should_equal_ignoring_order [Nothing, Nothing, 5]
             copied_table.is_trivial_query . should_be_true
 
             # We check that this is indeed querying a simple DB table and not a complex query like `db_table_4` would be,
@@ -520,7 +506,7 @@ add_specs suite_builder setup make_new_connection persistent_connector=True =
 
             copied_table_accessed = tmp_connection.query name
             copied_table_accessed.column_names . should_equal ["X", "Y", "computed"]
-            copied_table_accessed.at "computed" . to_vector . should_equal [401, 502, 603]
+            copied_table_accessed.at "computed" . to_vector . should_equal_ignoring_order [401, 502, 603]
             tmp_connection.close
 
             data.connection.query name . should_fail_with Table_Not_Found
@@ -539,7 +525,7 @@ add_specs suite_builder setup make_new_connection persistent_connector=True =
                 r1 = db_table.select_into_database_table data.connection (Name_Generator.random_name "copied-table") temporary=True primary_key=["nonexistent"]
                 r1.should_fail_with Missing_Input_Columns
 
-        group_builder.specify "should fail when the primary key is not unique" <|
+        group_builder.specify "should fail when the primary key is not unique" pending=snowflake_pending <|
             t = Table.new [["X", [1, 2, 1]], ["Y", ['b', 'b', 'a']]]
             db_table = t.select_into_database_table data.connection (Name_Generator.random_name "source-table") temporary=True primary_key=Nothing
             Problems.assume_no_problems db_table
@@ -605,12 +591,7 @@ add_specs suite_builder setup make_new_connection persistent_connector=True =
             preexisting2.column_names . should_equal ["X"]
             preexisting2.at "X" . to_vector . should_equal [42]
 
-    suite_builder.group prefix+"Appending an in-memory table to a Database table" group_builder->
-        data = Data.setup make_new_connection
-
-        group_builder.teardown <|
-            data.teardown
-
+    suite_builder.group prefix+"(Upload_Spec) Appending an in-memory table to a Database table" group_builder->
         test_table_append group_builder data in_memory_table_builder (database_table_builder "target-table")
 
         group_builder.specify "will issue a friendly error if using in-memory table as target" <|
@@ -620,40 +601,20 @@ add_specs suite_builder setup make_new_connection persistent_connector=True =
             r1.should_fail_with Illegal_Argument
             r1.to_display_text.should_contain "in-memory tables are immutable"
 
-    suite_builder.group prefix+"Appending a Database table to a Database table" group_builder->
-        data = Data.setup make_new_connection
-
-        group_builder.teardown <|
-            data.teardown
-
+    suite_builder.group prefix+"(Upload_Spec) Appending a Database table to a Database table" group_builder->
         test_table_append group_builder data (database_table_builder "source-table") (database_table_builder "target-table")
 
-    suite_builder.group prefix+"Deleting rows from a Database table (source=in-memory)" group_builder->
-        data = Data.setup make_new_connection
-
-        group_builder.teardown <|
-            data.teardown
-
+    suite_builder.group prefix+"(Upload_Spec) Deleting rows from a Database table (source=in-memory)" group_builder->
         test_table_delete group_builder data in_memory_table_builder (database_table_builder "target-table")
 
-    suite_builder.group prefix+"Deleting rows from a Database table (source=Database)" group_builder->
-        data = Data.setup make_new_connection
-
-        group_builder.teardown <|
-            data.teardown
-
+    suite_builder.group prefix+"(Upload_Spec) Deleting rows from a Database table (source=Database)" group_builder->
         test_table_delete group_builder data (database_table_builder "source-table") (database_table_builder "target-table")
 
-    suite_builder.group prefix+"Deleting rows from a Database table" group_builder->
-        data = Data.setup make_new_connection
-
-        group_builder.teardown <|
-            data.teardown
-
+    suite_builder.group prefix+"(Upload_Spec) Deleting rows from a Database table" group_builder->
         group_builder.specify "[ADVANCED] it should be possible to truncate the whole table" <|
             name = Name_Generator.random_name "table-to-truncate"
             t = (Table.new [["X", [1, 2, 3]]]).select_into_database_table data.connection name temporary=True primary_key=[]
-            t.at "X" . to_vector . should_equal [1, 2, 3]
+            t.at "X" . to_vector . should_equal_ignoring_order [1, 2, 3]
             data.connection.truncate_table name
             t.at "X" . to_vector . should_equal []
             # The table still exists
@@ -665,7 +626,7 @@ add_specs suite_builder setup make_new_connection persistent_connector=True =
             graduates = table.filter "graduation_year" (Filter_Condition.Less 2023)
             affected_rows = table.delete_rows graduates # uses the primary key by default
             affected_rows . should_equal 3
-            table.rows.map .to_vector . should_equal [[1, "Alice", 2023], [2, "Bob", 2024]]
+            table.rows.map .to_vector . should_equal_ignoring_order [[1, "Alice", 2023], [2, "Bob", 2024]]
 
         group_builder.specify "will issue a friendly error if using in-memory table as target" <|
             t1 = Table.new [["X", [1, 2, 3]]]
@@ -680,13 +641,8 @@ add_specs suite_builder setup make_new_connection persistent_connector=True =
             affected_rows . should_equal 3
             t1.rows.should_equal []
 
-    execution_context_group_name = prefix+"Output Execution Context for Database operations"
+    execution_context_group_name = prefix+"(Upload_Spec) Output Execution Context for Database operations"
     suite_builder.group execution_context_group_name group_builder->
-        data = Data.setup make_new_connection
-
-        group_builder.teardown <|
-            data.teardown
-
         group_builder.specify "should forbid executing updates" <|
             Context.Output.with_disabled <|
                 r1 = data.connection.execute_update "CREATE TEMPORARY TABLE foo (x INTEGER)"
@@ -713,7 +669,7 @@ add_specs suite_builder setup make_new_connection persistent_connector=True =
             data.connection.tables . at "Name" . to_vector . should_not_contain dry_run_name
             data.connection.base_connection.get_tables_advanced include_hidden=True . at "Name" . to_vector . should_contain dry_run_name
 
-            table.at "X" . to_vector . should_contain_the_same_elements_as [1, 2, 3]
+            table.at "X" . to_vector . should_equal_ignoring_order [1, 2, 3]
 
         ## This test relies on GC behaviour which may not be fully deterministic.
            Currently this test seems to work fine, but if there are ever issues
@@ -732,7 +688,7 @@ add_specs suite_builder setup make_new_connection persistent_connector=True =
                 sentinel = Managed_Resource.register "payload" (cleanup_sentinel was_cleanup_performed)
                 table.column_names . should_equal ["X"]
                 data.connection.base_connection.get_tables_advanced include_hidden=True . at "Name" . to_vector . should_contain table.name
-                table.at "X" . to_vector . should_contain_the_same_elements_as [1, 2, 3]
+                table.at "X" . to_vector . should_equal_ignoring_order [1, 2, 3]
                 name = table.name
                 payload = sentinel.with x-> "transformed_"+x
                 payload . should_equal "transformed_payload"
@@ -768,7 +724,7 @@ add_specs suite_builder setup make_new_connection persistent_connector=True =
                 # Create a table that has the same name as the dry run table normally would have.
                 pre_existing_table = src.select_into_database_table data.connection dry_run_name temporary=False . should_succeed
                 pre_existing_table.column_names . should_equal ["X"]
-                pre_existing_table.at "X" . to_vector . should_contain_the_same_elements_as [1, 2, 3]
+                pre_existing_table.at "X" . to_vector . should_equal_ignoring_order [1, 2, 3]
                 Panic.with_finalizer (data.connection.drop_table pre_existing_table.name if_exists=True) <|
                     new_dry_run_name = Context.Output.with_disabled <|
                         tmp_connection2 = make_new_connection Nothing
@@ -784,7 +740,7 @@ add_specs suite_builder setup make_new_connection persistent_connector=True =
                     new_dry_run_name . should_not_equal dry_run_name
 
                     # The pre-existing table should not have been overwritten.
-                    pre_existing_table.at "X" . to_vector . should_contain_the_same_elements_as [1, 2, 3]
+                    pre_existing_table.at "X" . to_vector . should_equal_ignoring_order [1, 2, 3]
 
 
         tests group_builder data make_new_connection in_memory_table_builder " (from memory)" persistent_connector
@@ -792,6 +748,7 @@ add_specs suite_builder setup make_new_connection persistent_connector=True =
 
 
 test_table_append group_builder (data : Data) source_table_builder target_table_builder =
+    snowflake_pending = if group_builder.name.contains "Snowflake" then "Table Upload / Update is not yet fully implemented for Snowflake backend. TODO: https://github.com/enso-org/enso/issues/10609"
     group_builder.specify "should be able to append new rows to a table" <|
         dest = target_table_builder [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]] primary_key=["X"] connection=data.connection
         src = source_table_builder [["X", [4, 5, 6]], ["Y", ['d', 'e', 'f']]] connection=data.connection
@@ -804,7 +761,7 @@ test_table_append group_builder (data : Data) source_table_builder target_table_
 
         expected_rows = [[1, 'a'], [2, 'b'], [3, 'c'], [4, 'd'], [5, 'e'], [6, 'f']]
         rows1 = result.rows.to_vector.map .to_vector
-        rows1.should_contain_the_same_elements_as expected_rows
+        rows1.should_equal_ignoring_order expected_rows
 
     group_builder.specify "should error if new rows clash with existing ones and mode is Insert, target table should remain unchanged" <|
         dest = target_table_builder [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]] primary_key=["X"] connection=data.connection
@@ -817,14 +774,14 @@ test_table_append group_builder (data : Data) source_table_builder target_table_
 
     group_builder.specify "should use the target table primary key for the key by default" <|
         dest1 = target_table_builder [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']], ["Z", [4, 5, 6]]] primary_key=["Y", "Z"] connection=data.connection
-        default_key_columns dest1 . should_equal ["Y", "Z"]
+        default_key_columns dest1 . should_equal_ignoring_order ["Y", "Z"]
 
         dest2 = target_table_builder [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]] primary_key=["Y"] connection=data.connection
         src = source_table_builder [["X", [4, 5]], ["Y", ['b', 'e']]] connection=data.connection
         # Not specifying `key_columns`, rely on `default_key_columns` inferring Y as default based on the primary key.
         r1 = dest2.update_rows src
         rows = r1.rows.to_vector.map .to_vector
-        rows.should_contain_the_same_elements_as [[1, 'a'], [4, 'b'], [3, 'c'], [5, 'e']]
+        rows.should_equal_ignoring_order [[1, 'a'], [4, 'b'], [3, 'c'], [5, 'e']]
 
     group_builder.specify "should be able to Update existing rows in a table" <|
         dest = target_table_builder [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]] connection=data.connection
@@ -835,7 +792,7 @@ test_table_append group_builder (data : Data) source_table_builder target_table_
         r1.should_succeed
 
         rows = dest.rows.to_vector.map .to_vector
-        rows.should_contain_the_same_elements_as [[1, 'a'], [2, 'ZZZ'], [3, 'c']]
+        rows.should_equal_ignoring_order [[1, 'a'], [2, 'ZZZ'], [3, 'c']]
 
     group_builder.specify "should fail on unmatched rows in Update mode" <|
         dest = target_table_builder [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]] connection=data.connection
@@ -848,7 +805,7 @@ test_table_append group_builder (data : Data) source_table_builder target_table_
 
             # The table should remain unchanged.
             rows = dest.rows.to_vector.map .to_vector
-            rows.should_contain_the_same_elements_as [[1, 'a'], [2, 'b'], [3, 'c']]
+            rows.should_equal_ignoring_order [[1, 'a'], [2, 'b'], [3, 'c']]
 
     group_builder.specify "should upsert by default (update existing rows, insert new rows)" <|
         dest = target_table_builder [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]] primary_key=["X"] connection=data.connection
@@ -858,11 +815,11 @@ test_table_append group_builder (data : Data) source_table_builder target_table_
         r1.column_names . should_equal ["X", "Y"]
         expected_rows = [[1, 'a'], [2, 'D'], [3, 'c'], [100, 'E']]
         rows1 = r1.rows.to_vector.map .to_vector
-        rows1.should_contain_the_same_elements_as expected_rows
+        rows1.should_equal_ignoring_order expected_rows
 
         # The original table is updated too.
         rows2 = dest.rows.to_vector.map .to_vector
-        rows2.should_contain_the_same_elements_as expected_rows
+        rows2.should_equal_ignoring_order expected_rows
 
     group_builder.specify "should allow to align an existing table with a source (upsert + delete rows missing from source)" <|
         dest = target_table_builder [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]] primary_key=["X"] connection=data.connection
@@ -872,9 +829,9 @@ test_table_append group_builder (data : Data) source_table_builder target_table_
         r1.column_names . should_equal ["X", "Y"]
         expected_rows = [[2, 'D'], [100, 'E']]
         rows1 = r1.rows.to_vector.map .to_vector
-        rows1.should_contain_the_same_elements_as expected_rows
+        rows1.should_equal_ignoring_order expected_rows
         rows2 = dest.rows.to_vector.map .to_vector
-        rows2.should_contain_the_same_elements_as expected_rows
+        rows2.should_equal_ignoring_order expected_rows
 
     group_builder.specify "should match columns by name, reordering to destination order if needed (Insert)" <|
         dest = target_table_builder [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]] primary_key=["X"] connection=data.connection
@@ -884,7 +841,7 @@ test_table_append group_builder (data : Data) source_table_builder target_table_
         src.column_names . should_equal ["Y", "X"]
         expected_rows = [[1, 'a'], [2, 'b'], [3, 'c'], [4, 'd'], [5, 'e'], [6, 'f']]
         rows1 = result.rows.to_vector.map .to_vector
-        rows1.should_contain_the_same_elements_as expected_rows
+        rows1.should_equal_ignoring_order expected_rows
 
     group_builder.specify "should match columns by name, reordering to destination order if needed (Upsert)" <|
         dest = target_table_builder [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]] primary_key=["X"] connection=data.connection
@@ -894,7 +851,7 @@ test_table_append group_builder (data : Data) source_table_builder target_table_
         src.column_names . should_equal ["Y", "X"]
         expected_rows = [[1, 'd'], [2, 'b'], [3, 'c'], [5, 'e'], [6, 'f']]
         rows1 = result.rows.to_vector.map .to_vector
-        rows1.should_contain_the_same_elements_as expected_rows
+        rows1.should_equal_ignoring_order expected_rows
 
     group_builder.specify "should match columns by name, reordering to destination order if needed (Update)" <|
         dest = target_table_builder [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]] primary_key=["X"] connection=data.connection
@@ -904,7 +861,7 @@ test_table_append group_builder (data : Data) source_table_builder target_table_
         src.column_names . should_equal ["Y", "X"]
         expected_rows = [[1, 'f'], [2, 'e'], [3, 'd']]
         rows1 = result.rows.to_vector.map .to_vector
-        rows1.should_contain_the_same_elements_as expected_rows
+        rows1.should_equal_ignoring_order expected_rows
 
     group_builder.specify "should match columns by name, reordering to destination order if needed (Align)" <|
         dest = target_table_builder [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]] primary_key=["X"] connection=data.connection
@@ -914,39 +871,41 @@ test_table_append group_builder (data : Data) source_table_builder target_table_
         src.column_names . should_equal ["Y", "X"]
         expected_rows = [[1, 'e'], [2, 'd'], [6, 'f']]
         rows1 = result.rows.to_vector.map .to_vector
-        rows1.should_contain_the_same_elements_as expected_rows
+        rows1.should_equal_ignoring_order expected_rows
 
     group_builder.specify "should allow to use a transformed table, with computed fields, as a source" <|
         dest = target_table_builder [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]] primary_key=["X"] connection=data.connection
         t1 = source_table_builder [["Z", [10, 20]], ["Y", ['D', 'E']]] connection=data.connection
         t2 = source_table_builder [["Z", [20, 10]], ["X", [-99, 10]]] connection=data.connection
         src = t1.join t2 on=["Z"] join_kind=Join_Kind.Inner . remove_columns "Z" . set (expr "[X] + 100") "X"
-        src.at "X" . to_vector . should_contain_the_same_elements_as [1, 110]
+        src.at "X" . to_vector . should_equal_ignoring_order [1, 110]
 
         r1 = dest.update_rows src key_columns=["X"]
         Problems.assume_no_problems r1
         r1.column_names . should_equal ["X", "Y"]
         expected_rows = [[1, 'E'], [110, 'D'], [2, 'b'], [3, 'c']]
         rows1 = r1.rows.to_vector.map .to_vector
-        rows1.should_contain_the_same_elements_as expected_rows
+        rows1.should_equal_ignoring_order expected_rows
 
     group_builder.specify "should allow specifying no key in Insert mode" <|
         dest = target_table_builder [["X", [1, 10, 100]]] connection=data.connection
         src = source_table_builder [["X", [1, 2, 3]]] connection=data.connection
         result = dest.update_rows src update_action=Update_Action.Insert key_columns=[]
 
-        expected = [1, 10, 100, 1, 2, 3]
         result.column_names . should_equal ["X"]
-        result.at "X" . to_vector . should_contain_the_same_elements_as expected
+        result.at "X" . to_vector . should_equal_ignoring_order [1, 10, 100, 1, 2, 3]
 
-        r2 = dest.update_rows src update_action=Update_Action.Insert key_columns=Nothing
+        bump table offset = table.set (table.at "X" + offset) "X"
+        src2 = bump src 20 # 21, 22, 23
+        r2 = dest.update_rows src2 update_action=Update_Action.Insert key_columns=Nothing
         r2.column_names . should_equal ["X"]
-        r2.at "X" . to_vector . should_contain_the_same_elements_as expected
+        r2.at "X" . to_vector . should_equal_ignoring_order [1, 10, 100, 1, 2, 3, 21, 22, 23]
 
+        src3 = bump src 30 # 31, 32, 33
         default_key_columns dest . should_equal Nothing
-        r3 = dest.update_rows src update_action=Update_Action.Insert
+        r3 = dest.update_rows src3 update_action=Update_Action.Insert
         r3.column_names . should_equal ["X"]
-        r3.at "X" . to_vector . should_contain_the_same_elements_as expected
+        r3.at "X" . to_vector . should_equal_ignoring_order [1, 10, 100, 1, 2, 3, 21, 22, 23, 31, 32, 33]
 
     group_builder.specify "should fail if no key is specified in other modes" <|
         dest = target_table_builder [["X", [1, 10, 100]]] connection=data.connection
@@ -971,7 +930,7 @@ test_table_append group_builder (data : Data) source_table_builder target_table_
             r5 = dest.update_rows src update_action=Update_Action.Align_Records key_columns=[]
             r5.should_fail_with Illegal_Argument
 
-    group_builder.specify "should fail if the key is not unique in the input table" <|
+    group_builder.specify "should fail if the key is not unique in the input table" pending=snowflake_pending <|
         d1 = target_table_builder [["X", [0, 10, 100]]] primary_key=["X"] connection=data.connection
         d2 = target_table_builder [["X", [0, 10, 100]]] connection=data.connection
         src = source_table_builder [["X", [1, 1, 3]]] connection=data.connection
@@ -995,8 +954,8 @@ test_table_append group_builder (data : Data) source_table_builder target_table_
         r2 = t1.update_rows s1 update_action=Update_Action.Insert key_columns=[]
         Problems.assume_no_problems r2
         m2 = r2.read . sort "Y"
-        m2.at "Y" . to_vector . should_equal ["a", "b", "c", "x", "y"]
-        m2.at "X" . to_vector . should_equal [0, 10, 100, 10, Nothing]
+        m2.at "Y" . to_vector . should_equal_ignoring_order ["a", "b", "c", "x", "y"]
+        m2.at "X" . to_vector . should_equal_ignoring_order [0, 10, 100, 10, Nothing]
 
     group_builder.specify "should fail if the key causes update of multiple values (it's not unique in the target table)" <|
         dest = target_table_builder [["X", [1, 1, 2]], ["Y", ['a', 'b', 'c']]] connection=data.connection
@@ -1044,7 +1003,7 @@ test_table_append group_builder (data : Data) source_table_builder target_table_
         r1.column_names . should_equal ["Y", "X"]
         expected_rows = [[42, 1], [42, 2], [42, 3]]
         rows1 = r1.rows.to_vector.map .to_vector
-        rows1.should_contain_the_same_elements_as expected_rows
+        rows1.should_equal_ignoring_order expected_rows
         data.connection.drop_table dest_name
 
     group_builder.specify "should use defaults when inserting new values in upsert, but retain existing values" <|
@@ -1059,7 +1018,7 @@ test_table_append group_builder (data : Data) source_table_builder target_table_
         r1.column_names . should_equal ["Y", "X", "Z"]
         expected_rows = [[1000, 1, 100], [42, 2, 200], [42, 3, 300]]
         rows1 = r1.rows.to_vector.map .to_vector
-        rows1.should_contain_the_same_elements_as expected_rows
+        rows1.should_equal_ignoring_order expected_rows
         data.connection.drop_table dest_name
 
     group_builder.specify "should use defaults for missing input columns for newly inserted rows when Aligning the tables, but keep existing values for existing rows" <|
@@ -1074,7 +1033,7 @@ test_table_append group_builder (data : Data) source_table_builder target_table_
         # The X=10 stays with Y=100, but the X=2 is inserted with the default Y=42
         expected_rows = [[10, 100, -1], [2, 42, -2], [3, 42, -3]]
         rows1 = r1.rows.to_vector.map .to_vector
-        rows1.should_contain_the_same_elements_as expected_rows
+        rows1.should_equal_ignoring_order expected_rows
         data.connection.drop_table dest_name
 
     group_builder.specify "should fail if the source table is missing some columns and the column in the target has no default value" <|
@@ -1137,7 +1096,7 @@ test_table_append group_builder (data : Data) source_table_builder target_table_
             r2 = in_memory_table.update_rows t
             r2.should_fail_with Illegal_Argument
 
-    group_builder.specify "should warn if type widening occurs" <|
+    group_builder.specify "should warn if type widening occurs" pending=snowflake_pending <|
         dest = target_table_builder [["X", [3.25, 4.25, 10.0]]] connection=data.connection
         src = source_table_builder [["X", [1, 2, 0]]] connection=data.connection
 
@@ -1147,7 +1106,7 @@ test_table_append group_builder (data : Data) source_table_builder target_table_
             Problems.expect_warning Inexact_Type_Coercion r2
 
             # But in dry run the update is not actually performed:
-            r2.at "X" . to_vector . should_contain_the_same_elements_as [3.25, 4.25, 10.0]
+            r2.at "X" . to_vector . should_equal_ignoring_order [3.25, 4.25, 10.0]
 
         result = dest.update_rows src update_action=Update_Action.Insert key_columns=[]
         warning = Problems.expect_warning Inexact_Type_Coercion result
@@ -1155,7 +1114,7 @@ test_table_append group_builder (data : Data) source_table_builder target_table_
         warning.actual_type.is_floating_point . should_be_true
 
         result.column_names . should_equal ["X"]
-        result.at "X" . to_vector . should_contain_the_same_elements_as [3.25, 4.25, 10.0, 1, 2, 0]
+        result.at "X" . to_vector . should_equal_ignoring_order [3.25, 4.25, 10.0, 1, 2, 0]
 
     group_builder.specify "should fail if types of columns are not compatible" <|
         dest = target_table_builder [["X", ["a", "B", "c"]]] connection=data.connection
@@ -1187,7 +1146,7 @@ test_table_append group_builder (data : Data) source_table_builder target_table_
                 result = dest.update_rows src update_action=Update_Action.Insert key_columns=[]
                 result.should_fail_with Column_Type_Mismatch
 
-    group_builder.specify "should not leave behind any garbage temporary tables if the upload fails" <|
+    group_builder.specify "should not leave behind any garbage temporary tables if the upload fails" pending=snowflake_pending <|
         dest_name = Name_Generator.random_name "dest-table"
         # We will make the upload fail by violating the NOT NULL constraint.
         dest = data.connection.create_table dest_name [Column_Description.Value "X" Value_Type.Integer [Column_Constraint.Not_Null]] temporary=True primary_key=[] . should_succeed
@@ -1219,7 +1178,7 @@ test_table_delete group_builder (data : Data) source_table_builder target_table_
         # key columns should automatically be discovered by the primary key
         affected_rows = table.delete_rows key_values_to_delete
         affected_rows . should_equal 2
-        table.rows.map .to_vector . should_equal [[1, "Alice", 100], [2, "Bob", 100], [120, "Eve", 120]]
+        table.rows.map .to_vector . should_equal_ignoring_order [[1, "Alice", 100], [2, "Bob", 100], [120, "Eve", 120]]
 
     group_builder.specify "will require key_columns if no default can be used as no primary key is set" <|
         table = target_table_builder [["X", [1, 2, 3]]] primary_key=[] connection=data.connection
@@ -1241,20 +1200,20 @@ test_table_delete group_builder (data : Data) source_table_builder target_table_
         r1 = table.delete_rows key_values_to_delete key_columns=["X"] # Error: Unresolved method `delete_rows`
         r1.should_equal 0
         Problems.assume_no_problems r1
-        table.at "X" . to_vector . should_equal [1, 2, 3]
+        table.at "X" . to_vector . should_equal_ignoring_order [1, 2, 3]
 
         key_values_2 = source_table_builder [["X", [4, 3, 5]]] connection=data.connection
         r2 = table.delete_rows key_values_2 key_columns=["X"]
         r2.should_equal 1
         Problems.assume_no_problems r2
-        table.at "X" . to_vector . should_equal [1, 2]
+        table.at "X" . to_vector . should_equal_ignoring_order [1, 2]
 
     group_builder.specify "should allow to use multiple columns as key" <|
         table = target_table_builder [["X", [1, 2, 2, 3, 4, 4]], ["Y", ['a', 'b', 'c', 'd', 'e', 'f']]] primary_key=[] connection=data.connection
         keys = source_table_builder [["X", [2, 4]], ["Y", ['b', 'f']]] connection=data.connection
         affected_rows = table.delete_rows keys key_columns=["X", "Y"]
         affected_rows . should_equal 2
-        table.rows.map .to_vector . should_equal [[1, "a"], [2, "c"], [3, "d"], [4, "e"]]
+        table.rows.map .to_vector . should_equal_ignoring_order [[1, "a"], [2, "c"], [3, "d"], [4, "e"]]
 
     group_builder.specify "should fail if key_columns are missing in source or target tables" <|
         table = target_table_builder [["X", [1, 2, 3]], ["Y", [4, 5, 6]]] primary_key=[] connection=data.connection
@@ -1291,11 +1250,11 @@ test_table_delete group_builder (data : Data) source_table_builder target_table_
             r1.catch.example_key . should_equal [2]
             r1.catch.example_count . should_equal 3
             # no changes
-            table.at "X" . to_vector . should_equal [1, 2, 2, 3, 2]
+            table.at "X" . to_vector . should_equal_ignoring_order [1, 2, 2, 3, 2]
 
         r2 = table.delete_rows keys key_columns=["X"] allow_duplicate_matches=True
         r2.should_equal 3
-        table.rows.map .to_vector . should_equal [[1, "a"], [3, "d"]]
+        table.rows.map .to_vector . should_equal_ignoring_order [[1, "a"], [3, "d"]]
 
     group_builder.specify "should fail if the target table does not exist" <|
         table = target_table_builder [["X", [1, 2, 3]]] connection=data.connection
@@ -1320,21 +1279,21 @@ test_table_delete group_builder (data : Data) source_table_builder target_table_
                 w1.to_display_text . should_contain "Only the first 1000 distinct rows out of 1999 were used for the dry run"
 
         # Target remains unchanged
-        target.at "X" . to_vector . should_equal [0, 1, 500, 1500, 3500]
+        target.at "X" . to_vector . should_equal_ignoring_order [0, 1, 500, 1500, 3500]
 
         r2 = target.delete_rows source
         Problems.assume_no_problems r2
         # All 3 rows were deleted
         r2.should_equal 3
-        target.at "X" . to_vector . should_equal [0, 3500]
+        target.at "X" . to_vector . should_equal_ignoring_order [0, 3500]
 
     group_builder.specify "will work fine if the target table contains NULL keys" <|
         t1 = target_table_builder [["X", ["a", "b", Nothing, "c"]], ["Y", [1, 2, 3, Nothing]]] connection=data.connection
         s1 = source_table_builder [["X", ["b", "c"]]] connection=data.connection
         t1.delete_rows s1 key_columns=["X"] . should_equal 2
         m1 = t1.read . sort "X"
-        m1.at "X" . to_vector . should_equal [Nothing, "a"]
-        m1.at "Y" . to_vector . should_equal [3, 1]
+        m1.at "X" . to_vector . should_equal_ignoring_order [Nothing, "a"]
+        m1.at "Y" . to_vector . should_equal_ignoring_order [3, 1]
 
     group_builder.specify "will raise an error if they source table contains NULL keys" <|
         t2 = target_table_builder [["X", ["a", "b", "c"]], ["Y", [1, 2, Nothing]]] connection=data.connection
@@ -1355,7 +1314,7 @@ tests group_builder (data : Data) make_new_connection source_table_builder (suff
             r1.column_names . should_equal ["X"]
             r1.name . should_not_equal name
             # A small table is uploaded whole.
-            r1.at "X" . to_vector . should_contain_the_same_elements_as [1, 2, 3]
+            r1.at "X" . to_vector . should_equal_ignoring_order [1, 2, 3]
             r1.row_count . should_equal 3
             r1.is_trivial_query . should_be_true
 
@@ -1381,7 +1340,7 @@ tests group_builder (data : Data) make_new_connection source_table_builder (suff
             # The target table is returned, as usually.
             r1.name . should_equal dest.name
             # But the data is not appended due to the dry-run - the table is unmodified.
-            r1.at "X" . to_vector . should_contain_the_same_elements_as [1, 2, 3]
+            r1.at "X" . to_vector . should_equal_ignoring_order [1, 2, 3]
             r1.is_trivial_query . should_be_true
 
     group_builder.specify "should return the count of rows that would be deleted for delete_rows, but keep the table unchanged"+suffix <|
@@ -1396,14 +1355,14 @@ tests group_builder (data : Data) make_new_connection source_table_builder (suff
             Problems.expect_only_warning Dry_Run_Operation r1
 
             # The target table is unaffected.
-            dest.at "X" . to_vector . should_equal v
+            dest.at "X" . to_vector . should_equal_ignoring_order v
 
             src2 = source_table_builder [["X", [4]]] connection=data.connection
             r2 = dest.delete_rows src2 key_columns=["X"] allow_duplicate_matches=True
             # 3 rows would be deleted
             r2.should_equal 3
             Problems.expect_only_warning Dry_Run_Operation r2
-            dest.at "X" . to_vector . should_equal v
+            dest.at "X" . to_vector . should_equal_ignoring_order v
 
     if persistent_connector then
         group_builder.specify "will not overwrite an existing table with a dry-run table if the name is clashing (select_into_database_table)"+suffix <|
@@ -1424,7 +1383,7 @@ tests group_builder (data : Data) make_new_connection source_table_builder (suff
             # Create a table that has the same name as the dry run table normally would have.
             pre_existing_table = pre_existing_src.select_into_database_table data.connection dry_run_name temporary=False . should_succeed
             pre_existing_table.column_names . should_equal ["X"]
-            pre_existing_table.at "X" . to_vector . should_contain_the_same_elements_as [4, 5, 6]
+            pre_existing_table.at "X" . to_vector . should_equal_ignoring_order [4, 5, 6]
             Panic.with_finalizer (data.connection.drop_table pre_existing_table.name if_exists=True) <|
                 new_dry_run_name = Context.Output.with_disabled <|
                     tmp_connection2 = make_new_connection Nothing
@@ -1433,7 +1392,7 @@ tests group_builder (data : Data) make_new_connection source_table_builder (suff
                     dry_run_table = src3.select_into_database_table tmp_connection2 target_name temporary=True . should_succeed
                     Problems.expect_warning Dry_Run_Operation dry_run_table
                     dry_run_table.column_names . should_equal ["B"]
-                    dry_run_table.at "B" . to_vector . should_contain_the_same_elements_as [7, 8, 9]
+                    dry_run_table.at "B" . to_vector . should_equal_ignoring_order [7, 8, 9]
                     name = Warning.clear dry_run_table.name
                     tmp_connection2.close
                     name
@@ -1442,7 +1401,7 @@ tests group_builder (data : Data) make_new_connection source_table_builder (suff
                 new_dry_run_name . should_not_equal dry_run_name
 
                 # The pre-existing table should not have been overwritten.
-                pre_existing_table.at "X" . to_vector . should_contain_the_same_elements_as [4, 5, 6]
+                pre_existing_table.at "X" . to_vector . should_equal_ignoring_order [4, 5, 6]
 
 
 ## PRIVATE

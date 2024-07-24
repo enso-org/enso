@@ -202,6 +202,7 @@ export default class LocalBackend extends Backend {
       },
       jsonAddress: null,
       binaryAddress: null,
+      ydocAddress: null,
     }))
   }
 
@@ -285,6 +286,7 @@ export default class LocalBackend extends Backend {
           ideVersion: version,
           jsonAddress: null,
           binaryAddress: null,
+          ydocAddress: null,
           organizationId: backend.OrganizationId(''),
           packageName: project.name,
           projectId,
@@ -305,6 +307,7 @@ export default class LocalBackend extends Backend {
         },
         jsonAddress: ipWithSocketToAddress(cachedProject.languageServerJsonAddress),
         binaryAddress: ipWithSocketToAddress(cachedProject.languageServerBinaryAddress),
+        ydocAddress: null,
         organizationId: backend.OrganizationId(''),
         packageName: cachedProject.projectNormalizedName,
         projectId,
@@ -799,6 +802,13 @@ export default class LocalBackend extends Backend {
 
   /** Invalid operation. */
   override logEvent() {
+    return this.invalidOperation()
+  }
+
+  /**
+   * Invalid operation.
+   */
+  override createCustomerPortalSession() {
     return this.invalidOperation()
   }
 }

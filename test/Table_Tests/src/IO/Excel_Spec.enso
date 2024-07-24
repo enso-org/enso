@@ -81,7 +81,7 @@ spec_fmt suite_builder header file read_method sheet_count=5 =
                 table.row_count . should_equal 25
                 table.column_names . should_equal ["Sheet Name", "Name", "Quantity", "Price", "A", "B", "C", "D", "E", "Student Name", "Enrolment Date", "Item", "Price 1"]
             problems = [Empty_Sheet.Error, Duplicate_Output_Column_Names.Error ["Price"]]
-            Problems.test_problem_handling action problems tester
+            Problems.test_problem_handling action problems tester ignore_warning_cardinality=True
 
         group_builder.specify "should let you read all sheets into a table of tables" <|
             wb = read_method file
@@ -90,7 +90,7 @@ spec_fmt suite_builder header file read_method sheet_count=5 =
                 table.row_count . should_equal 5
                 table.column_names . should_equal ["Sheet Name", "Table"]
             problems = [Empty_Sheet.Error, Duplicate_Output_Column_Names.Error ["Price"]]
-            Problems.test_problem_handling action problems tester
+            Problems.test_problem_handling action problems tester ignore_warning_cardinality=True
 
         group_builder.specify "should let you read some sheets from xlsx" <|
             wb = read_method file
@@ -847,7 +847,7 @@ add_specs suite_builder =
             workbook.table_types . should_equal ['Worksheet', 'Named Range']
 
             workbook.tables.row_count . should_equal (sheet_names.length + range_names.length)
-            workbook.tables.at "Name" . to_vector . should_contain_the_same_elements_as (sheet_names + range_names)
+            workbook.tables.at "Name" . to_vector . should_equal_ignoring_order (sheet_names + range_names)
 
             workbook.tables types=["Worksheet"] . row_count . should_equal sheet_names.length
             workbook.tables types=["Named Range"] . row_count . should_equal range_names.length

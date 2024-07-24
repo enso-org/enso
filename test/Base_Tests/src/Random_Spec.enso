@@ -49,8 +49,8 @@ add_specs suite_builder = suite_builder.group "Random" group_builder->
             Random.set_seed seed
             Random.indices 4 2
 
-        two_out_of_three . should_contain_the_same_elements_as [[0, 1], [0, 2], [1, 2], [1, 0], [2, 0], [2, 1]]
-        two_out_of_four . should_contain_the_same_elements_as <|
+        two_out_of_three.distinct.should_equal_ignoring_order [[0, 1], [0, 2], [1, 2], [1, 0], [2, 0], [2, 1]]
+        two_out_of_four.distinct.should_equal_ignoring_order <|
             [[0, 1], [0, 2], [1, 2], [1, 0], [2, 0], [2, 1], [0, 3], [1, 3], [2, 3], [3, 0], [3, 1], [3, 2]]
 
         permutations = 0.up_to 100 . map _->
@@ -59,8 +59,8 @@ add_specs suite_builder = suite_builder.group "Random" group_builder->
             Random.indices 3 100
 
         all_permutations = [[0, 1, 2], [0, 2, 1], [1, 0, 2], [1, 2, 0], [2, 0, 1], [2, 1, 0]]
-        permutations . should_contain_the_same_elements_as all_permutations
-        permutations_2 . should_contain_the_same_elements_as all_permutations
+        permutations.distinct.should_equal_ignoring_order all_permutations
+        permutations_2.distinct.should_equal_ignoring_order all_permutations
 
         Random.indices 0 0 . should_equal []
         Random.indices 0 100 . should_equal []
@@ -77,7 +77,7 @@ add_specs suite_builder = suite_builder.group "Random" group_builder->
 
         all_from_small_range = [Date.new 2023 03 01, Date.new 2023 03 02, Date.new 2023 03 03]
         dates = 0.up_to 100 . map (_-> Random.date (Date.new 2023 03 01) (Date.new 2023 03 03))
-        dates.should_contain_the_same_elements_as all_from_small_range
+        dates.distinct.should_equal_ignoring_order all_from_small_range
 
     group_builder.specify "should allow generating random times" <|
         Random.set_seed 12345
@@ -94,7 +94,7 @@ add_specs suite_builder = suite_builder.group "Random" group_builder->
         small_range_end = Time_Of_Day.new 8 12 18
         all_from_small_range = [Time_Of_Day.new 8 12 15, Time_Of_Day.new 8 12 16, Time_Of_Day.new 8 12 17, Time_Of_Day.new 8 12 18]
         times = 0.up_to 100 . map (_-> Random.time small_range_start small_range_end)
-        times.should_contain_the_same_elements_as all_from_small_range
+        times.distinct.should_equal_ignoring_order all_from_small_range
 
     group_builder.specify "should allow generating random UUIDs" <|
         Random.uuid . should_only_contain_elements_in "0123456789abcdef-"
@@ -104,7 +104,7 @@ add_specs suite_builder = suite_builder.group "Random" group_builder->
         vector = ["A", "B", "C"]
         shuffles = 0.up_to 100 . map _->
             Random.items vector 2
-        shuffles . should_contain_the_same_elements_as [["A", "B"], ["A", "C"], ["B", "A"], ["B", "C"], ["C", "A"], ["C", "B"]]
+        shuffles.distinct.should_equal_ignoring_order [["A", "B"], ["A", "C"], ["B", "A"], ["B", "C"], ["C", "A"], ["C", "B"]]
 
         Random.items ["A", "A", "A"] 2 . should_equal ["A", "A"]
         Random.items ["A", "A", "A"] 0 . should_equal []
@@ -139,8 +139,8 @@ add_specs suite_builder = suite_builder.group "Random" group_builder->
             Random.permute list
 
         all_permutations = [[0, 1, 2], [0, 2, 1], [1, 0, 2], [1, 2, 0], [2, 0, 1], [2, 1, 0]]
-        permutations . should_contain_the_same_elements_as all_permutations
-        permutations_2 . should_contain_the_same_elements_as all_permutations
+        permutations.distinct.should_equal_ignoring_order all_permutations
+        permutations_2.distinct.should_equal_ignoring_order all_permutations
 
     group_builder.specify "should not allow using a too-large integer range" <|
         high = 9223372036854775806999

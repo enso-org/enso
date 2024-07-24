@@ -429,7 +429,7 @@ add_specs suite_builder =
 
                     # No new file was created
                     parent_dir = my_file.parent
-                    parent_dir.list . should_contain_the_same_elements_as [my_file, bak_file]
+                    parent_dir.list . should_equal_ignoring_order [my_file, bak_file]
 
                     # If the original file is deleted and the backup file remains, the original file should _not_ count as existing (this used to fail).
                     my_file.delete

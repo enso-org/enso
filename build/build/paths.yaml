@@ -10,6 +10,7 @@
       gui-tests.yml:
       gui.yml:
       engine-nightly.yml:
+      extra-nightly-tests.yml:
       nightly.yml:
       promote.yml:
       release.yml:

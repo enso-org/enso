@@ -49,6 +49,7 @@ import * as backendHooks from '#/hooks/backendHooks'
 
 import AuthProvider, * as authProvider from '#/providers/AuthProvider'
 import BackendProvider from '#/providers/BackendProvider'
+import DevtoolsProvider from '#/providers/EnsoDevtoolsProvider'
 import * as httpClientProvider from '#/providers/HttpClientProvider'
 import InputBindingsProvider from '#/providers/InputBindingsProvider'
 import LocalStorageProvider, * as localStorageProvider from '#/providers/LocalStorageProvider'
@@ -72,6 +73,7 @@ import * as subscribeSuccess from '#/pages/subscribe/SubscribeSuccess'
 
 import type * as editor from '#/layouts/Editor'
 import * as openAppWatcher from '#/layouts/OpenAppWatcher'
+import VersionChecker from '#/layouts/VersionChecker'
 
 import * as devtools from '#/components/Devtools'
 import * as errorBoundary from '#/components/ErrorBoundary'
@@ -508,7 +510,12 @@ function AppRouter(props: AppRouterProps) {
     </router.Routes>
   )
 
-  let result = routes
+  let result = (
+    <>
+      <VersionChecker />
+      {routes}
+    </>
+  )
 
   result = <errorBoundary.ErrorBoundary>{result}</errorBoundary.ErrorBoundary>
   result = <InputBindingsProvider inputBindings={inputBindings}>{result}</InputBindingsProvider>
@@ -555,8 +562,8 @@ function AppRouter(props: AppRouterProps) {
       {result}
     </httpClientProvider.HttpClientProvider>
   )
-
   result = <LoggerProvider logger={logger}>{result}</LoggerProvider>
+  result = <DevtoolsProvider>{result}</DevtoolsProvider>
 
   return result
 }
