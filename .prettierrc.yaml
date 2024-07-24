@@ -5,12 +5,15 @@ overrides:
       - "*.m[j|t]s"
       - "*.c[j|t]s"
     options:
-      printWidth: 100
-      tabWidth: 4
+      plugins: ["prettier-plugin-organize-imports"]
       semi: false
+      tabWidth: 2
       singleQuote: true
-      trailingComma: "es5"
+      printWidth: 100
+      trailingComma: "all"
       arrowParens: "avoid"
+      organizeImportsSkipDestructiveCodeActions: true
+      experimentalTernaries: true
 
   - files: "*.md"
     options:

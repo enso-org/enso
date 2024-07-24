@@ -8,12 +8,12 @@ import * as url from 'node:url'
 // This is specialcased in other files, but these modules shouldn't be used in other files anyway.
 /* eslint-disable no-restricted-syntax */
 import eslintJs from '@eslint/js'
-import globals from 'globals'
+import tsEslint from '@typescript-eslint/eslint-plugin'
+import tsEslintParser from '@typescript-eslint/parser'
 import jsdoc from 'eslint-plugin-jsdoc'
 import react from 'eslint-plugin-react'
 import reactHooks from 'eslint-plugin-react-hooks'
-import tsEslint from '@typescript-eslint/eslint-plugin'
-import tsEslintParser from '@typescript-eslint/parser'
+import globals from 'globals'
 /* eslint-enable no-restricted-syntax */
 
 // =================
@@ -32,7 +32,6 @@ const NAME = 'enso'
  * `node:process` is here because `process.on` does not exist on the namespace import. */
 const DEFAULT_IMPORT_ONLY_MODULES =
     '@vitejs\\u002Fplugin-react|node:process|chalk|string-length|yargs|yargs\\u002Fyargs|sharp|to-ico|connect|morgan|serve-static|tiny-invariant|clsx|create-servers|electron-is-dev|fast-glob|esbuild-plugin-.+|opener|tailwindcss.*|@modyfi\\u002Fvite-plugin-yaml|build-info|is-network-error|validator.+|.*[.]json$'
-const OUR_MODULES = 'enso-.*'
 const RELATIVE_MODULES =
     'bin\\u002Fproject-manager|bin\\u002Fserver|config\\u002Fparser|authentication|config|debug|detect|file-associations|index|ipc|log|naming|paths|preload|project-management|security|url-associations|content-config|desktop-environment|#\\u002F.*'
 const ALLOWED_DEFAULT_IMPORT_MODULES = `${DEFAULT_IMPORT_ONLY_MODULES}|postcss|ajv\\u002Fdist\\u002F2020|${RELATIVE_MODULES}`
@@ -146,29 +145,6 @@ const RESTRICTED_SYNTAXES = [
     {
         selector: 'TSEnumDeclaration:not(:has(TSEnumMember))',
         message: 'Enums must not be empty',
-    },
-    {
-        selector:
-            'ImportDeclaration[source.value=/^(?!node:)/] ~ ImportDeclaration[source.value=/^node:/]',
-        message:
-            'Import node modules before npm modules, our modules, and relative imports, separated by a blank line',
-    },
-    {
-        selector: `ImportDeclaration[source.value=/^(?:${OUR_MODULES}|${RELATIVE_MODULES})$/] ~ ImportDeclaration[source.value=/^(?!(|${OUR_MODULES}|${RELATIVE_MODULES})$|\\.)/]`,
-        message:
-            'Import npm modules before our modules and relative imports, separated by a blank line',
-    },
-    {
-        selector: `ImportDeclaration[source.value=/^(?:${RELATIVE_MODULES})$/] ~ ImportDeclaration[source.value=/^(?:${OUR_MODULES})$/]`,
-        message: 'Import our modules before relative imports, separated by a blank line',
-    },
-    {
-        selector: `ImportDeclaration[source.value=/^\\./] ~ ImportDeclaration[source.value=/^[^.]/]`,
-        message: 'Import relative imports last',
-    },
-    {
-        selector: `ImportDeclaration[source.value=/^\\..+\\.(?:json|yml|yaml)$/] ~ ImportDeclaration[source.value=/^\\..+\\.(?!json|yml|yaml)[^.]+$/]`,
-        message: 'Import data files after other relative imports',
     },
     {
         selector:
