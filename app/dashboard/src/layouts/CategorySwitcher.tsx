@@ -1,11 +1,14 @@
 /** @file Switcher to choose the currently visible assets table category. */
 import * as React from 'react'
 
+import { useSearchParams } from 'react-router-dom'
+
 import type * as text from 'enso-common/src/text'
 
 import CloudIcon from '#/assets/cloud.svg'
 import ComputerIcon from '#/assets/computer.svg'
 import RecentIcon from '#/assets/recent.svg'
+import SettingsIcon from '#/assets/settings.svg'
 import Trash2Icon from '#/assets/trash2.svg'
 
 import * as mimeTypes from '#/data/mimeTypes'
@@ -15,6 +18,7 @@ import * as offlineHooks from '#/hooks/offlineHooks'
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
+import { TabType, useSetPage } from '#/providers/ProjectsProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import AssetEventType from '#/events/AssetEventType'
@@ -168,6 +172,8 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
   const { getText } = textProvider.useText()
   const { isOffline } = offlineHooks.useOffline()
   const dispatchAssetEvent = eventListProvider.useDispatchAssetEvent()
+  const setPage = useSetPage()
+  const [, setSearchParams] = useSearchParams()
 
   const localBackend = backendProvider.useLocalBackend()
   /** The list of *visible* categories. */
@@ -284,8 +290,25 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
                   <div className="ml-[15px] mr-1 border-r border-primary/20" />
                   {element}
                 </div>
-              ) : (
+              ) : data.category !== Category.local ? (
                 element
+              ) : (
+                <div key={data.category} className="group flex items-center self-stretch">
+                  {element}
+                  <div className="grow" />
+                  <ariaComponents.Button
+                    size="medium"
+                    variant="icon"
+                    icon={SettingsIcon}
+                    aria-label={getText('changeLocalRootDirectoryInSettings')}
+                    className="hidden group-hover:block"
+                    onPress={() => {
+                      // eslint-disable-next-line @typescript-eslint/naming-convention
+                      setSearchParams({ 'cloud-ide_SettingsTab': '"local"' })
+                      setPage(TabType.settings)
+                    }}
+                  />
+                </div>
               )
             })}
           </div>
