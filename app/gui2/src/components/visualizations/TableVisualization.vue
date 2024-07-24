@@ -719,7 +719,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <VisualizationContainer :belowToolbar="true" :overflow="true">
+  <VisualizationContainer :belowToolbar="true" :overflow="true" :toolbarOverflow="true">
     <template #toolbar>
       <TextFormattingSelector @changeFormat="(i) => updateTextFormat(i)" />
     </template>

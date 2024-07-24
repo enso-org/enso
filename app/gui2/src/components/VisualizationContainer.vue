@@ -16,6 +16,7 @@ const props = defineProps<{
   belowNode?: boolean
   /** If true, the visualization should display below the toolbar buttons. */
   belowToolbar?: boolean
+  toolbarOverflow?: boolean
 }>()
 
 const config = useVisualizationConfig()
@@ -75,16 +76,22 @@ watch(contentSize, (newVal, oldVal) => {
 })
 
 const UNKNOWN_TYPE = 'Unknown'
-const nodeShortType = computed(() =>
-  config.nodeType != null && isQualifiedName(config.nodeType) ?
-    qnLastSegment(config.nodeType)
-  : UNKNOWN_TYPE,
-)
+const nodeShortType = computed(() => {
+  return config.nodeType != null && isQualifiedName(config.nodeType) ?
+      qnLastSegment(config.nodeType)
+    : UNKNOWN_TYPE
+})
 
 const contentStyle = computed(() => {
   return {
     width: config.fullscreen ? undefined : `${config.width}px`,
     height: config.fullscreen ? undefined : `${config.height}px`,
+  }
+})
+
+const myStyle = computed(() => {
+  return {
+    overflow: props.toolbarOverflow ? 'visible' : 'hidden',
   }
 })
 </script>
@@ -159,7 +166,12 @@ const contentStyle = computed(() => {
             </Suspense>
           </div>
         </div>
-        <div v-if="$slots.toolbar && !config.isPreview" class="visualization-defined-toolbars">
+        <div
+          v-if="$slots.toolbar && !config.isPreview"
+          id="visualization-defined-toolbar"
+          class="visualization-defined-toolbars"
+          :style="myStyle"
+        >
           <div class="toolbar"><slot name="toolbar"></slot></div>
         </div>
         <div
@@ -245,6 +257,7 @@ const contentStyle = computed(() => {
 .after-toolbars {
   margin-left: auto;
   margin-right: 8px;
+  overflow: hidden;
 }
 
 .node-type {
@@ -282,10 +295,7 @@ const contentStyle = computed(() => {
 }
 
 .visualization-defined-toolbars {
-  min-width: calc(100% - var(--permanent-toolbar-width));
-  max-width: 100%;
-  overflow-x: clip;
-  overflow-y: visible;
+  max-width: calc(100% - var(--permanent-toolbar-width));
 }
 
 .invisible {
