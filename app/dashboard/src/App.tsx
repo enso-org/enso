@@ -48,7 +48,7 @@ import * as inputBindingsModule from '#/configurations/inputBindings'
 import * as backendHooks from '#/hooks/backendHooks'
 
 import AuthProvider, * as authProvider from '#/providers/AuthProvider'
-import BackendProvider from '#/providers/BackendProvider'
+import BackendProvider, { useLocalBackend, useRemoteBackend } from '#/providers/BackendProvider'
 import DevtoolsProvider from '#/providers/EnsoDevtoolsProvider'
 import * as httpClientProvider from '#/providers/HttpClientProvider'
 import InputBindingsProvider from '#/providers/InputBindingsProvider'
@@ -284,9 +284,6 @@ function AppRouter(props: AppRouterProps) {
     [httpClient, logger, getText]
   )
 
-  backendHooks.useObserveBackend(remoteBackend)
-  backendHooks.useObserveBackend(localBackend)
-
   if (detect.IS_DEV_MODE) {
     // @ts-expect-error This is used exclusively for debugging.
     window.navigate = navigate
@@ -512,6 +509,7 @@ function AppRouter(props: AppRouterProps) {
 
   let result = (
     <>
+      <MutationListener />
       <VersionChecker />
       {routes}
     </>
@@ -566,4 +564,19 @@ function AppRouter(props: AppRouterProps) {
   result = <DevtoolsProvider>{result}</DevtoolsProvider>
 
   return result
+}
+
+// ========================
+// === MutationListener ===
+// ========================
+
+/** A component that applies state updates for successful mutations. */
+function MutationListener() {
+  const remoteBackend = useRemoteBackend()
+  const localBackend = useLocalBackend()
+
+  backendHooks.useObserveBackend(remoteBackend)
+  backendHooks.useObserveBackend(localBackend)
+
+  return null
 }
