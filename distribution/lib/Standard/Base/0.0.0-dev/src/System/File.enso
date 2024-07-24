@@ -61,6 +61,10 @@ type File
 
        Creates a new file object, pointing to the given path.
 
+       Relative paths are resolved relative to the directory containing the
+       currently running workflow. Thus, if the workflow is running in the Cloud,
+       the relative paths will be resolved to Cloud files.
+
        Arguments:
        - path: The path to the file that you want to create, or a file itself. The
          latter is a no-op.
