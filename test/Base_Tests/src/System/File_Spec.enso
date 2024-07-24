@@ -373,8 +373,8 @@ add_specs suite_builder =
             # The `.` path should resolve to the base path
             root.absolute.normalize.path . should_equal base_directory.absolute.normalize.path
 
-            expected_file = base_directory / "abc" / "def"
-            f = File.new "abc/def"
+            expected_file = base_directory / "abc" / "def.txt"
+            f = File.new "abc/def.txt"
             f.should_be_a File
             f.absolute.normalize.path . should_equal expected_file.absolute.normalize.path
 
@@ -383,7 +383,7 @@ add_specs suite_builder =
             txt.write expected_file . should_succeed
             Panic.with_finalizer expected_file.delete_if_exists <|
                 f.read_text . should_equal txt
-                Data.read "abc/def" . should_equal txt
+                Data.read "abc/def.txt" . should_equal txt
 
         cloud_setup = Cloud_Tests_Setup.prepare
         with_temporary_cloud_root ~action =
@@ -396,24 +396,24 @@ add_specs suite_builder =
                 Test_Environment.unsafe_with_environment_override "ENSO_CLOUD_PROJECT_DIRECTORY_PATH" subdir.path <|
                     # Flush caches to ensure fresh dir is used
                     Enso_User.flush_caches
-
                     action
+
         group_builder.specify "will resolve relative paths as Cloud paths if running in the Cloud" pending=cloud_setup.real_cloud_pending <|
             with_temporary_cloud_root <|
                 root = File.new "."
                 root.should_be_a Enso_File
                 root.should_equal Enso_File.current_working_directory
 
-                f = File.new "abc/def"
+                f = File.new "abc/def.txt"
                 f.should_be_a Enso_File
-                f.should_equal (Enso_File.current_working_directory / "abc" / "def")
+                f.should_equal (Enso_File.current_working_directory / "abc" / "def.txt")
 
                 # Data.read should be consistent too
                 txt = "test-content"+Random.uuid
                 (File.new "abc").create_directory . should_succeed
                 txt.write f . should_succeed
                 Panic.with_finalizer f.delete_if_exists <|
-                    Data.read "abc/def" . should_equal txt
+                    Data.read "abc/def.txt" . should_equal txt
 
     suite_builder.group "read_text" group_builder->
         group_builder.specify "should allow reading a UTF-8 file" <|
