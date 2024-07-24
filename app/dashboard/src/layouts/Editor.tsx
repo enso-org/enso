@@ -193,7 +193,7 @@ function EditorInternal(props: EditorInternalProps) {
   const appProps = React.useMemo<GraphEditorProps>(() => {
     const jsonAddress = openedProject.jsonAddress
     const binaryAddress = openedProject.binaryAddress
-    const ydocAddress = ydocUrl ?? ''
+    const ydocAddress = openedProject.ydocAddress ?? ydocUrl ?? ''
     const backend = backendType === backendModule.BackendType.remote ? remoteBackend : localBackend
 
     if (jsonAddress == null) {

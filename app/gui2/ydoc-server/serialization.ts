@@ -23,7 +23,7 @@ export function serializeIdMap(map: IdMap): string {
   return json.stringify(idMapToArray(map))
 }
 
-export function idMapToArray(map: IdMap): fileFormat.IdMapEntry[] {
+function idMapToArray(map: IdMap): fileFormat.IdMapEntry[] {
   const entries: fileFormat.IdMapEntry[] = []
   map.entries().forEach(([rangeBuffer, id]) => {
     const decoded = sourceRangeFromKey(rangeBuffer)

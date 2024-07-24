@@ -50,7 +50,6 @@ test.test('extra columns should stick to top of scroll container', async ({ page
       }
     },
   })
-  await actions.reload({ page })
 
   await actions.locateAccessedByProjectsColumnToggle(page).click()
   await actions.locateAccessedDataColumnToggle(page).click()

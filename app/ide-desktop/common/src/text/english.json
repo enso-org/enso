@@ -145,6 +145,7 @@
   "logEventBackendError": "Could not log an event '$0'",
   "getDefaultVersionBackendError": "No default $0 version found",
   "duplicateUserGroupError": "This user group already exists",
+  "getCustomerPortalUrlBackendError": "Could not get customer portal URL",
 
   "directoryAssetType": "folder",
   "projectAssetType": "project",
@@ -706,6 +707,7 @@
   "localSettingsSection": "Local",
   "localRootPathSettingsInput": "Root Folder",
   "accessSettingsTabSection": "Access",
+  "billingAndPlansSettingsTab": "Billing",
   "membersSettingsTab": "Members",
   "membersSettingsSection": "Members",
   "userGroupsSettingsTab": "User groups",
