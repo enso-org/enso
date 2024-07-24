@@ -97,7 +97,8 @@ export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
         <paywall.PaywallDialogButton
           feature="share"
           variant="icon"
-          size="xxsmall"
+          size="medium"
+          tooltipPlacement="left"
           className="opacity-0 group-hover:opacity-100"
           children={false}
         />

@@ -159,6 +159,7 @@ test.test('duplicate', ({ page }) =>
     .mockAllAndLogin({ page })
     // Assets: [0: New Project 1]
     .newEmptyProject()
+    .waitForEditorToLoad()
     .goToPage.drive()
     .driveTable.rightClickRow(0)
     .contextMenu.duplicate()
@@ -176,6 +177,7 @@ test.test('duplicate (keyboard)', ({ page }) =>
     .mockAllAndLogin({ page })
     // Assets: [0: New Project 1]
     .newEmptyProject()
+    .waitForEditorToLoad()
     .goToPage.drive()
     .driveTable.clickRow(0)
     .press('Mod+D')

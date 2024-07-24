@@ -1,4 +1,5 @@
 import { type GraphStore, type NodeId } from '@/stores/graph'
+import type { NodeType } from '@/stores/graph/graphDatabase'
 import { type Group } from '@/stores/suggestionDatabase'
 import { colorFromString } from '@/util/colors'
 import { computed } from 'vue'
@@ -34,9 +35,11 @@ export function useNodeColors(graphStore: GraphStore, getCssValue: (variable: st
 }
 
 export function computeNodeColor(
+  getType: () => NodeType,
   getGroup: () => Group | undefined,
   getTypeName: () => string | undefined,
 ) {
+  if (getType() === 'output') return 'var(--output-node-color)'
   const group = getGroup()
   if (group) return groupColorStyle(group)
   const typeName = getTypeName()

@@ -417,6 +417,13 @@ export default class ProjectManager {
       path == null ? this.rootDirectory : pathModule.getDirectoryAndName(path).directoryPath
     const fullParams: RenameProjectParams = { ...params, projectsDirectory: directoryPath }
     await this.sendRequest('project/rename', fullParams)
+    const state = this.internalProjects.get(params.projectId)
+    if (state?.state === backend.ProjectState.opened) {
+      this.internalProjects.set(params.projectId, {
+        state: state.state,
+        data: { ...state.data, projectName: params.name },
+      })
+    }
     // Update `internalDirectories` by listing the project's parent directory, because the new
     // directory name of the project is unknown. Deleting the directory is not an option because
     // that will prevent ALL descendants of the parent directory from being updated.

@@ -41,7 +41,7 @@ export interface SettingsProps {
 
 /** Settings screen. */
 export default function Settings() {
-  const backend = backendProvider.useRemoteBackend()
+  const backend = backendProvider.useRemoteBackendStrict()
   const localBackend = backendProvider.useLocalBackend()
   const [tab, setTab] = searchParamsState.useSearchParamsState(
     'SettingsTab',
@@ -58,6 +58,7 @@ export default function Settings() {
   const organization = backendHooks.useBackendGetOrganization(backend)
   const isQueryBlank = !/\S/.test(query)
 
+  const client = reactQuery.useQueryClient()
   const updateUserMutation = backendHooks.useBackendMutation(backend, 'updateUser', {
     meta: { invalidates: [authQueryKey], awaitInvalidates: true },
   })
@@ -75,6 +76,7 @@ export default function Settings() {
     },
     meta: { invalidates: [[localBackend?.type, 'listDirectory']], awaitInvalidates: true },
   })
+
   const updateLocalRootPath = updateLocalRootPathMutation.mutateAsync
 
   const context = React.useMemo<settingsData.SettingsContext>(
@@ -89,6 +91,7 @@ export default function Settings() {
       updateLocalRootPath,
       toastAndLog,
       getText,
+      queryClient: client,
     }),
     [
       accessToken,
@@ -101,6 +104,7 @@ export default function Settings() {
       updateOrganization,
       updateUser,
       user,
+      client,
     ]
   )
 
@@ -197,8 +201,9 @@ export default function Settings() {
             />
           </aria.Popover>
         </aria.MenuTrigger>
+
         <ariaComponents.Text variant="h1" className="font-bold">
-          <span>{getText('settingsFor')}</span>
+          {getText('settingsFor')}
         </ariaComponents.Text>
 
         <ariaComponents.Text

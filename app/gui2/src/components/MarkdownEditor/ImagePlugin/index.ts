@@ -8,9 +8,7 @@ import type { TextMatchTransformer } from '@lexical/markdown'
 import type { LexicalEditor } from 'lexical'
 import { assertDefined } from 'shared/util/assert'
 
-export const DEFAULT_ALT_TEXT = 'Image'
-
-const IMAGE: TextMatchTransformer = {
+export const IMAGE: TextMatchTransformer = {
   dependencies: [ImageNode],
   export: (node) => {
     if (!$isImageNode(node)) {
@@ -18,8 +16,8 @@ const IMAGE: TextMatchTransformer = {
     }
     return `![${node.getAltText()}](${node.getSrc()})`
   },
-  importRegExp: /!\[([^[]+)]\(([^()\n]+)\)/,
-  regExp: /!\[([^[]+)]\(([^()\n]+)\)$/,
+  importRegExp: /!\[([^\]]*)]\(([^()\n]+)\)/,
+  regExp: /!\[([^\]]*)]\(([^()\n]+)\)$/,
   replace: (textNode, match) => {
     const [, altText, src] = match
     assertDefined(altText)

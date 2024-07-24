@@ -343,6 +343,9 @@ fn type_methods() {
                    "=" (BodyBlock #((Ident self))))))
     ];
     test(&code.join("\n"), expected);
+    test!("[foo., bar.]",
+        (Array (OprSectionBoundary 1 (OprApp (Ident foo) (Ok ".") ()))
+               #(("," (OprSectionBoundary 1 (OprApp (Ident bar) (Ok ".") ()))))));
 }
 
 #[test]
@@ -365,6 +368,22 @@ fn type_operator_methods() {
            (Function (OprApp (Ident Foo) (Ok ".") (Ident #"+"))
                      #((() (Ident self) () ()) (() (Ident b) () ())) () "=" (Ident b))))];
     test(&code.join("\n"), expected);
+    test!("Any.==", (OprApp (Ident Any) (Ok ".") (Ident #"==")));
+    expect_invalid_node("x.-y");
+    expect_invalid_node("x.-1");
+    expect_invalid_node("x.+y");
+    expect_invalid_node("x.+1");
+    expect_invalid_node("x.+'a'");
+    // Compile-time operators are never operator-identifiers.
+    test!("x.~y", (OprApp (Ident x) (Ok ".") (UnaryOprApp "~" (Ident y))));
+    test!("x.~1", (OprApp (Ident x) (Ok ".") (UnaryOprApp "~" (Number () "1" ()))));
+}
+
+#[test]
+fn unspaced_app() {
+    test!("js_set_zone arr.at(0)", (App (Ident js_set_zone)
+                                        (App (OprApp (Ident arr) (Ok ".") (Ident at))
+                                             (Group (Number () "0" ())))));
 }
 
 #[test]
@@ -727,16 +746,13 @@ fn first_line_indented() {
 
 #[test]
 fn multiple_operator_error() {
-    let code = ["x + + x"];
-    let expected = block![
-        (OprApp (Ident x) (Err (#("+" "+"))) (Ident x))
-    ];
-    test(&code.join("\n"), expected);
-    let code = ["x + + + x"];
-    let expected = block![
-        (OprApp (Ident x) (Err (#("+" "+" "+"))) (Ident x))
-    ];
-    test(&code.join("\n"), expected);
+    expect_multiple_operator_error("x + + x");
+    expect_multiple_operator_error("x + + + x");
+    expect_multiple_operator_error("x + +");
+    expect_multiple_operator_error("+ + x");
+    expect_multiple_operator_error("+ +");
+    expect_multiple_operator_error("+ -");
+    expect_multiple_operator_error("x + -");
 }
 
 #[test]
@@ -779,12 +795,9 @@ fn pipeline_operators() {
 #[test]
 fn accessor_operator() {
     // Test that the accessor operator `.` is treated like any other operator.
-    let cases = [
-        ("Console.", block![(OprSectionBoundary 1 (OprApp (Ident Console) (Ok ".") ()))]),
-        (".", block![(OprSectionBoundary 2 (OprApp () (Ok ".") ()))]),
-        (".log", block![(OprSectionBoundary 1 (OprApp () (Ok ".") (Ident log)))]),
-    ];
-    cases.into_iter().for_each(|(code, expected)| test(code, expected));
+    test!("Console.", (OprSectionBoundary 1 (OprApp (Ident Console) (Ok ".") ())));
+    test!(".", (OprSectionBoundary 2 (OprApp () (Ok ".") ())));
+    test!(".log", (OprSectionBoundary 1 (OprApp () (Ok ".") (Ident log))));
 }
 
 #[test]
@@ -808,6 +821,21 @@ fn operator_sections() {
     test("increment = 1 +", block![
         (Assignment (Ident increment) "="
          (OprSectionBoundary 1 (OprApp (Number () "1" ()) (Ok "+") ())))]);
+    test!("1+ << 2*",
+        (OprSectionBoundary 1
+         (OprApp (OprApp (Number () "1" ()) (Ok "+") ())
+                 (Ok "<<")
+                 (OprSectionBoundary 1 (OprApp (Number () "2" ()) (Ok "*") ())))));
+    test!("+1 << *2",
+        (OprSectionBoundary 1
+         (OprApp (OprApp () (Ok "+") (Number () "1" ()))
+                 (Ok "<<")
+                 (OprSectionBoundary 1 (OprApp () (Ok "*") (Number () "2" ()))))));
+    test!("+1+1 << *2*2",
+        (OprSectionBoundary 1
+         (OprApp (OprApp (OprApp () (Ok "+") (Number () "1" ())) (Ok "+") (Number () "1" ()))
+                 (Ok "<<")
+                 (OprSectionBoundary 1 (OprApp (OprApp () (Ok "*") (Number () "2" ())) (Ok "*") (Number () "2" ()))))));
 }
 
 #[test]
@@ -873,13 +901,8 @@ fn unspaced_operator_sequence() {
 
 #[test]
 fn minus_binary() {
-    let cases = [
-        ("x - x", block![(OprApp (Ident x) (Ok "-") (Ident x))]),
-        ("x-x", block![(OprApp (Ident x) (Ok "-") (Ident x))]),
-        ("x.-y", block![(OprApp (Ident x) (Ok ".") (UnaryOprApp "-" (Ident y)))]),
-        ("x.~y", block![(OprApp (Ident x) (Ok ".") (UnaryOprApp "~" (Ident y)))]),
-    ];
-    cases.into_iter().for_each(|(code, expected)| test(code, expected));
+    test!("x - x", (OprApp (Ident x) (Ok "-") (Ident x)));
+    test!("x-x", (OprApp (Ident x) (Ok "-") (Ident x)));
 }
 
 #[test]
@@ -939,6 +962,8 @@ fn autoscope_operator() {
     expect_invalid_node("x = f(.. ..)");
     expect_invalid_node("x = f(.. *)");
     expect_invalid_node("x = f(.. True)");
+    expect_invalid_node("x = True..");
+    expect_invalid_node("x = True..True");
     expect_multiple_operator_error("x = ..");
     expect_multiple_operator_error("x = .. True");
     expect_multiple_operator_error("x : .. True");
@@ -1231,6 +1256,7 @@ fn old_lambdas() {
     test("x -> y", block![(OprApp (Ident x) (Ok "->") (Ident y))]);
     test("x->y", block![(OprApp (Ident x) (Ok "->") (Ident y))]);
     test("x-> y", block![(OprApp (Ident x) (Ok "->") (Ident y))]);
+    test("x-> x + y", block![(OprApp (Ident x) (Ok "->") (OprApp (Ident x) (Ok "+") (Ident y)))]);
     test("x->\n y", block![(OprApp (Ident x) (Ok "->") (BodyBlock #((Ident y))))]);
     test("x ->\n y", block![(OprApp (Ident x) (Ok "->") (BodyBlock #((Ident y))))]);
     test("f x->\n y", block![
@@ -1815,9 +1841,8 @@ struct Errors {
 }
 
 impl Errors {
-    fn collect(code: &str) -> Self {
-        let ast = parse(code);
-        expect_tree_representing_code(code, &ast);
+    fn collect(ast: &enso_parser::syntax::Tree, code: &str) -> Self {
+        expect_tree_representing_code(code, ast);
         let errors = core::cell::Cell::new(Errors::default());
         ast.visit_trees(|tree| match &*tree.variant {
             enso_parser::syntax::tree::Variant::Invalid(_) => {
@@ -1834,18 +1859,22 @@ impl Errors {
 
 /// Checks that an input contains an `Invalid` node somewhere.
 fn expect_invalid_node(code: &str) {
-    let errors = Errors::collect(code);
-    assert!(errors.invalid_node, "{:?}", enso_parser::Parser::new().run(code));
+    let ast = enso_parser::Parser::new().run(code);
+    let errors = Errors::collect(&ast, code);
+    assert!(errors.invalid_node, "{}", to_s_expr(&ast, code));
 }
 
 /// Checks that an input contains a multiple-operator error somewhere.
 fn expect_multiple_operator_error(code: &str) {
-    let errors = Errors::collect(code);
-    assert!(errors.multiple_operator, "{:?}", enso_parser::Parser::new().run(code));
+    let ast = enso_parser::Parser::new().run(code);
+    let errors = Errors::collect(&ast, code);
+    assert!(errors.multiple_operator || errors.invalid_node, "{}", to_s_expr(&ast, code));
+    assert!(errors.multiple_operator, "{:?}", ast);
 }
 
 /// Check that the input can be parsed, and doesn't yield any `Invalid` nodes.
 fn expect_valid(code: &str) {
-    let errors = Errors::collect(code);
+    let ast = enso_parser::Parser::new().run(code);
+    let errors = Errors::collect(&ast, code);
     assert!(!errors.invalid_node);
 }

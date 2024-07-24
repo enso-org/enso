@@ -578,8 +578,9 @@ type DB_Column
                 _ : DB_Column -> other.value_type.is_decimal
                 _ -> False
             either_is_decimal = self.value_type.is_decimal || other_is_decimal
-            if either_is_decimal then self.make_binary_op "DECIMAL_DIV" other else
-                self.make_binary_op "/" other
+            new_name = self.naming_helper.binary_operation_name "/" self other
+            if either_is_decimal then self.make_binary_op "DECIMAL_DIV" other new_name else
+                self.make_binary_op "/" other new_name
 
     ## ALIAS modulo, modulus
        GROUP Standard.Base.Operators

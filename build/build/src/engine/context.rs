@@ -274,6 +274,9 @@ impl RunContext {
         // sbt:warning: java.lang.ClassNotFoundException:
         // org.enso.interpreter.node.expression.builtin.bool.True
         ide_ci::fs::remove_if_exists(&self.paths.repo_root.engine.runtime.target)?;
+        // cleanup distribution from previous build
+        // it is fast to assemble it again
+        ide_ci::fs::remove_if_exists(&self.paths.repo_root.built_distribution)?;
 
         // We want to start this earlier, and await only before Engine build starts.
         let perhaps_generate_java_from_rust_job =

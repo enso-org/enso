@@ -51,6 +51,7 @@ import * as projectManager from '#/services/ProjectManager'
 
 import * as array from '#/utilities/array'
 import LocalStorage from '#/utilities/LocalStorage'
+import * as object from '#/utilities/object'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 
 // ============================
@@ -102,6 +103,7 @@ function DashboardInner(props: DashboardProps) {
   const inputBindings = inputBindingsProvider.useInputBindings()
   const [isHelpChatOpen, setIsHelpChatOpen] = React.useState(false)
 
+  const dispatchAssetEvent = eventListProvider.useDispatchAssetEvent()
   const dispatchAssetListEvent = eventListProvider.useDispatchAssetListEvent()
   const assetManagementApiRef = React.useRef<assetTable.AssetManagementApi | null>(null)
 
@@ -165,6 +167,7 @@ function DashboardInner(props: DashboardProps) {
     }
   )
 
+  const projectsStore = projectsProvider.useProjectsStore()
   const page = projectsProvider.usePage()
   const launchedProjects = projectsProvider.useLaunchedProjects()
   const selectedProject = launchedProjects.find(p => p.id === page) ?? null
@@ -224,13 +227,12 @@ function DashboardInner(props: DashboardProps) {
         closeModal: () => {
           updateModal(oldModal => {
             if (oldModal == null) {
-              queueMicrotask(() => {
-                setPage(localStorage.get('page') ?? projectsProvider.TabType.drive)
-              })
-              return oldModal
-            } else {
-              return null
+              const currentPage = projectsStore.getState().page
+              if (array.includes(Object.values(projectsProvider.TabType), currentPage)) {
+                setPage(projectsProvider.TabType.drive)
+              }
             }
+            return null
           })
           if (modalRef.current == null) {
             // eslint-disable-next-line no-restricted-syntax
@@ -238,7 +240,7 @@ function DashboardInner(props: DashboardProps) {
           }
         },
       }),
-    [inputBindings, modalRef, localStorage, updateModal, setPage]
+    [inputBindings, modalRef, localStorage, updateModal, setPage, projectsStore]
   )
 
   React.useEffect(() => {
@@ -297,14 +299,14 @@ function DashboardInner(props: DashboardProps) {
   return (
     <Page hideInfoBar hideChat>
       <div
-        className="flex text-xs text-primary"
+        className="flex min-h-full flex-col text-xs text-primary"
         onContextMenu={event => {
           event.preventDefault()
           unsetModal()
         }}
       >
         <aria.Tabs
-          className="relative flex h-screen grow select-none flex-col container-size"
+          className="relative flex min-h-full grow select-none flex-col container-size"
           selectedKey={page}
           onSelectionChange={newPage => {
             const validated = projectsProvider.PAGES_SCHEMA.safeParse(newPage)
@@ -370,7 +372,7 @@ function DashboardInner(props: DashboardProps) {
           <aria.TabPanel
             shouldForceMount
             id={projectsProvider.TabType.drive}
-            className="flex grow [&[data-inert]]:hidden"
+            className="flex min-h-0 grow [&[data-inert]]:hidden"
           >
             <Drive
               assetsManagementApiRef={assetManagementApiRef}
@@ -385,7 +387,7 @@ function DashboardInner(props: DashboardProps) {
               <aria.TabPanel
                 shouldForceMount
                 id={project.id}
-                className="flex grow [&[data-inert]]:hidden"
+                className="flex min-h-0 grow [&[data-inert]]:hidden"
               >
                 <Editor
                   key={project.id}
@@ -398,13 +400,26 @@ function DashboardInner(props: DashboardProps) {
                   isOpeningFailed={openProjectMutation.isError}
                   openingError={openProjectMutation.error}
                   startProject={openProjectMutation.mutate}
-                  renameProject={newName => {
-                    renameProjectMutation.mutate({ newName, project })
+                  renameProject={async newName => {
+                    try {
+                      await renameProjectMutation.mutateAsync({ newName, project })
+                      dispatchAssetEvent({
+                        type: AssetEventType.setItem,
+                        id: project.id,
+                        valueOrUpdater: object.merger({ title: newName }),
+                      })
+                    } catch {
+                      dispatchAssetEvent({
+                        type: AssetEventType.setItem,
+                        id: project.id,
+                        valueOrUpdater: object.merger({ title: project.title }),
+                      })
+                    }
                   }}
                 />
               </aria.TabPanel>
             ))}
-          <aria.TabPanel id={projectsProvider.TabType.settings} className="flex grow">
+          <aria.TabPanel id={projectsProvider.TabType.settings} className="flex min-h-0 grow">
             <Settings />
           </aria.TabPanel>
         </aria.Tabs>

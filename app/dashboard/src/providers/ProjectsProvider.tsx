@@ -12,7 +12,6 @@ import * as searchParamsState from '#/hooks/searchParamsStateHooks'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 
 import * as array from '#/utilities/array'
-import LocalStorage from '#/utilities/LocalStorage'
 
 // ===============
 // === TabType ===
@@ -32,15 +31,16 @@ declare module '#/utilities/LocalStorage' {
   /** */
   interface LocalStorageData {
     readonly isAssetPanelVisible: boolean
-    readonly page: z.infer<typeof PAGES_SCHEMA>
   }
 }
 
 export const PAGES_SCHEMA = z
   .nativeEnum(TabType)
-  .or(z.custom<projectHooks.ProjectId>(value => typeof value === 'string'))
-
-LocalStorage.registerKey('page', { schema: PAGES_SCHEMA })
+  .or(
+    z.custom<projectHooks.ProjectId>(
+      value => typeof value === 'string' && value.startsWith('project-')
+    )
+  )
 
 // =====================
 // === ProjectsStore ===
@@ -51,6 +51,9 @@ interface ProjectsStore {
   readonly page: projectHooks.ProjectId | TabType
   readonly setPage: (page: projectHooks.ProjectId | TabType) => void
   readonly launchedProjects: readonly projectHooks.Project[]
+  readonly updateLaunchedProjects: (
+    update: (projects: readonly projectHooks.Project[]) => readonly projectHooks.Project[]
+  ) => void
   readonly addLaunchedProject: (project: projectHooks.Project) => void
   readonly removeLaunchedProject: (projectId: projectHooks.ProjectId) => void
   readonly clearLaunchedProjects: () => void
@@ -84,6 +87,9 @@ export default function ProjectsProvider(props: ProjectsProviderProps) {
         set({ page })
       },
       launchedProjects: localStorage.get('launchedProjects') ?? [],
+      updateLaunchedProjects: update => {
+        set(({ launchedProjects }) => ({ launchedProjects: update(launchedProjects) }))
+      },
       addLaunchedProject: project => {
         set(({ launchedProjects }) => ({ launchedProjects: [...launchedProjects, project] }))
       },
@@ -114,6 +120,7 @@ export default function ProjectsProvider(props: ProjectsProviderProps) {
 function PageSynchronizer() {
   const { localStorage } = localStorageProvider.useLocalStorage()
   const store = useProjectsStore()
+  const providerPage = usePage()
   const providerSetPage = useSetPage()
   const [page, privateSetPage] = searchParamsState.useSearchParamsState(
     'page',
@@ -130,11 +137,9 @@ function PageSynchronizer() {
     providerSetPage(page)
   }, [page, providerSetPage])
 
-  React.useEffect(() =>
-    store.subscribe(state => {
-      privateSetPage(state.page)
-    })
-  )
+  React.useEffect(() => {
+    privateSetPage(providerPage)
+  }, [providerPage, privateSetPage])
 
   React.useEffect(() =>
     store.subscribe(state => {
@@ -168,11 +173,28 @@ export function useLaunchedProjects() {
   return zustand.useStore(store, state => state.launchedProjects)
 }
 
+// =================================
+// === useUpdateLaunchedProjects ===
+// =================================
+
+/** A function to update launched projects. */
+export function useUpdateLaunchedProjects() {
+  const store = useProjectsStore()
+  const updateLaunchedProjects = zustand.useStore(store, state => state.updateLaunchedProjects)
+  return eventCallbacks.useEventCallback(
+    (update: (projects: readonly projectHooks.Project[]) => readonly projectHooks.Project[]) => {
+      React.startTransition(() => {
+        updateLaunchedProjects(update)
+      })
+    }
+  )
+}
+
 // =============================
 // === useAddLaunchedProject ===
 // =============================
 
-/** A function to add a new launched projoect. */
+/** A function to add a new launched project. */
 export function useAddLaunchedProject() {
   const store = useProjectsStore()
   const addLaunchedProject = zustand.useStore(store, state => state.addLaunchedProject)

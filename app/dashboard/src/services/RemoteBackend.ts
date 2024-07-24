@@ -28,9 +28,7 @@ const STATUS_SUCCESS_LAST = 299
 const STATUS_NOT_FOUND = 404
 /** HTTP status indicating that the server encountered a fatal exception. */
 const STATUS_SERVER_ERROR = 500
-/**
- * HTTP status indicating that the request was successful, but the user is not authorized to access
- */
+/** HTTP status indicating that the request was successful, but the user is not authorized to access. */
 const STATUS_NOT_AUTHORIZED = 401
 
 /** The number of milliseconds in one day. */
@@ -616,6 +614,7 @@ export default class RemoteBackend extends Backend {
         ...project,
         jsonAddress: project.address != null ? backend.Address(`${project.address}json`) : null,
         binaryAddress: project.address != null ? backend.Address(`${project.address}binary`) : null,
+        ydocAddress: project.address != null ? backend.Address(`${project.address}project`) : null,
       }))
     }
   }
@@ -714,6 +713,7 @@ export default class RemoteBackend extends Backend {
         engineVersion: project.engine_version,
         jsonAddress: project.address != null ? backend.Address(`${project.address}json`) : null,
         binaryAddress: project.address != null ? backend.Address(`${project.address}binary`) : null,
+        ydocAddress: project.address != null ? backend.Address(`${project.address}project`) : null,
       }
     }
   }
@@ -1134,6 +1134,22 @@ export default class RemoteBackend extends Backend {
   /** Download from an arbitrary URL that is assumed to originate from this backend. */
   override async download(url: string, name?: string) {
     await download.downloadWithHeaders(url, this.client.defaultHeaders, name)
+  }
+
+  /**
+   * Fetch the URL of the customer portal.
+   */
+  override async createCustomerPortalSession() {
+    const response = await this.post<backend.CreateCustomerPortalSessionResponse>(
+      remoteBackendPaths.getCustomerPortalSessionPath(),
+      {}
+    )
+
+    if (!responseIsSuccessful(response)) {
+      return await this.throw(response, 'getCustomerPortalUrlBackendError')
+    } else {
+      return (await response.json()).url
+    }
   }
 
   /** Get the default version given the type of version (IDE or backend). */

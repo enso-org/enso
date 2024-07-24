@@ -1,6 +1,8 @@
 /** @file The icon and name of a {@link backendModule.ProjectAsset}. */
 import * as React from 'react'
 
+import * as reactQuery from '@tanstack/react-query'
+
 import NetworkIcon from '#/assets/network.svg'
 
 import * as backendHooks from '#/hooks/backendHooks'
@@ -58,6 +60,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
     isOpened,
   } = props
   const { backend, selectedKeys, nodeMap } = state
+  const client = reactQuery.useQueryClient()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { user } = authProvider.useFullUserSession()
   const { getText } = textProvider.useText()
@@ -122,6 +125,9 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
           { ami: null, ideVersion: null, projectName: newTitle },
           asset.title,
         ])
+        await client.invalidateQueries({
+          queryKey: projectHooks.createGetProjectDetailsQuery.getQueryKey(asset.id),
+        })
       } catch (error) {
         toastAndLog('renameProjectError', error)
         setAsset(object.merger({ title: oldTitle }))
@@ -151,7 +157,9 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
         case AssetEventType.temporarilyRemoveLabels:
         case AssetEventType.addLabels:
         case AssetEventType.removeLabels:
-        case AssetEventType.deleteLabel: {
+        case AssetEventType.deleteLabel:
+        case AssetEventType.setItem:
+        case AssetEventType.projectClosed: {
           // Ignored. Any missing project-related events should be handled by `ProjectIcon`.
           // `delete`, `deleteForever`, `restore`, `download`, and `downloadSelected`
           // are handled by`AssetRow`.

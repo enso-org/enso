@@ -44,7 +44,7 @@ trait Pattern {
 impl<T: FnMut(char) -> bool> Pattern for T {
     #[inline(always)]
     fn match_pattern(&mut self, input: char) -> bool {
-        (self)(input)
+        self(input)
     }
 }
 
@@ -234,6 +234,12 @@ impl<'s> Lexer<'s> {
     #[inline(always)]
     fn submit_token(&mut self, token: Token<'s>) {
         self.output.push(token);
+    }
+
+    /// Push the [`tokens`] to the result stream.
+    #[inline(always)]
+    fn submit_tokens<T: IntoIterator<Item = Token<'s>>>(&mut self, tokens: T) {
+        self.output.extend(tokens);
     }
 
     /// Start a new block.
@@ -600,6 +606,9 @@ impl<'s> Lexer<'s> {
                 this.take_while_1(is_ident_char);
             }
         }) {
+            if token.left_offset.is_empty() {
+                self.unspaced_term();
+            }
             let tp = token::Variant::new_ident_or_wildcard_unchecked(&token.code);
             let token = token.with_variant(tp);
             self.submit_token(token);
@@ -672,6 +681,17 @@ impl<'s> Lexer<'s> {
                     let token = token.with_variant(token::Variant::operator(opr));
                     self.submit_token(token);
                 }
+                // Operator-identifiers.
+                _ if self.prev_token_is_dot_operator() => {
+                    let properties = analyze_operator(&token.code);
+                    if properties.is_compile_time_operation() {
+                        self.submit_token(token.with_variant(token::Variant::operator(properties)));
+                    } else {
+                        self.submit_token(
+                            token.with_variant(token::Variant::operator_ident().into()),
+                        );
+                    }
+                }
                 // The unary-negation operator binds tighter to numeric literals than other
                 // expressions.
                 "-" if self.last_spaces_visible_offset.width_in_spaces == 0
@@ -691,6 +711,28 @@ impl<'s> Lexer<'s> {
                     self.submit_token(token);
                 }
             }
+        }
+    }
+
+    fn prev_token_is_dot_operator(&self) -> bool {
+        match self.output.last() {
+            Some(Token { variant: token::Variant::Operator(operator), .. }) =>
+                operator.properties.is_dot(),
+            _ => false,
+        }
+    }
+
+    fn unspaced_term(&mut self) {
+        if let Some(Token {
+            variant:
+                variant @ token::Variant::Ident(token::variant::Ident {
+                    is_operator_lexically: true,
+                    ..
+                }),
+            ..
+        }) = self.output.last_mut()
+        {
+            *variant = token::Variant::invalid();
         }
     }
 }
@@ -881,6 +923,9 @@ impl<'s> Lexer<'s> {
             }
         });
         if let Some(token) = token {
+            if token.left_offset.is_empty() {
+                self.unspaced_term();
+            }
             if let Some(base) = base {
                 self.submit_token(token.with_variant(token::Variant::number_base()));
                 let after_base = self.current_offset;
@@ -933,6 +978,9 @@ impl<'s> Lexer<'s> {
             }
             _ => return,
         };
+        if self.last_spaces_visible_offset == VisibleOffset(0) {
+            self.unspaced_term();
+        }
         let indent = self.current_block_indent;
         let open_quote_start = self.mark();
         self.take_next();
@@ -963,17 +1011,17 @@ impl<'s> Lexer<'s> {
                     close_quote_start.clone(),
                     token::Variant::text_start(),
                 );
-                self.output.push(token);
+                self.submit_token(token);
                 let token =
                     self.make_token(close_quote_start, close_quote_end, token::Variant::text_end());
-                self.output.push(token);
+                self.submit_token(token);
             }
         } else {
             // One quote followed by non-quote character: Inline quote.
             let open_quote_end = self.mark_without_whitespace();
             let token =
                 self.make_token(open_quote_start, open_quote_end, token::Variant::text_start());
-            self.output.push(token);
+            self.submit_token(token);
             self.inline_quote(quote_char, text_type);
         }
         self.spaces_after_lexeme();
@@ -987,12 +1035,12 @@ impl<'s> Lexer<'s> {
     ) {
         let open_quote_end = self.mark_without_whitespace();
         let token = self.make_token(open_quote_start, open_quote_end, token::Variant::text_start());
-        self.output.push(token);
+        self.submit_token(token);
         let mut initial_indent = None;
         if text_type.expects_initial_newline()
             && let Some(newline) = self.line_break()
         {
-            self.output.push(newline.with_variant(token::Variant::text_initial_newline()));
+            self.submit_token(newline.with_variant(token::Variant::text_initial_newline()));
             if self.last_spaces_visible_offset > block_indent {
                 initial_indent = self.last_spaces_visible_offset.into();
             }
@@ -1014,7 +1062,7 @@ impl<'s> Lexer<'s> {
         let splice_quote_end = self.mark_without_whitespace();
         let token =
             self.make_token(splice_quote_start, splice_quote_end, token::Variant::close_symbol());
-        self.output.push(token);
+        self.submit_token(token);
         match state {
             State::InlineText => self.inline_quote('\'', TextType::Interpolated),
             State::MultilineText { .. } => {
@@ -1061,8 +1109,8 @@ impl<'s> Lexer<'s> {
                     );
                     // If `token.code.is_empty()`, we ignore the `token.left_offset` here even if
                     // it is non-empty, because it will be attached to the newline token.
-                    if !(token.code.is_empty()) {
-                        self.output.push(token);
+                    if !token.code.is_empty() {
+                        self.submit_token(token);
                     } else {
                         before_newline = text_start;
                     }
@@ -1097,9 +1145,9 @@ impl<'s> Lexer<'s> {
                             let offset = Offset(VisibleOffset(0), location.clone());
                             Token(offset, location, token::Variant::text_end())
                         };
-                        self.output.push(text_end);
+                        self.submit_token(text_end);
                         self.end_blocks(indent, newlines.first().as_ref().unwrap());
-                        self.output.extend(newlines);
+                        self.submit_tokens(newlines);
                         if self.current_offset == text_start.location {
                             self.last_spaces_visible_offset = text_start.offset.visible;
                             self.last_spaces_offset = text_start.offset.code.range().start;
@@ -1109,7 +1157,7 @@ impl<'s> Lexer<'s> {
                     let newlines = newlines
                         .into_iter()
                         .map(|token| token.with_variant(token::Variant::text_newline()));
-                    self.output.extend(newlines);
+                    self.submit_tokens(newlines);
                     continue;
                 }
             }
@@ -1125,7 +1173,7 @@ impl<'s> Lexer<'s> {
                     if token.code.is_empty() {
                         backslash_start = text_start.clone();
                     } else {
-                        self.output.push(token);
+                        self.submit_token(token);
                     }
                     self.last_spaces_offset = self.current_offset;
                     text_start = self.text_escape(backslash_start, char);
@@ -1144,7 +1192,7 @@ impl<'s> Lexer<'s> {
                 if token.code.is_empty() {
                     splice_quote_start = text_start;
                 } else {
-                    self.output.push(token);
+                    self.submit_token(token);
                 }
                 self.take_next();
                 let splice_quote_end = self.mark_without_whitespace();
@@ -1153,7 +1201,7 @@ impl<'s> Lexer<'s> {
                     splice_quote_end,
                     token::Variant::open_symbol(),
                 );
-                self.output.push(token);
+                self.submit_token(token);
                 self.stack.push(state);
                 self.last_spaces_offset = self.current_offset;
                 return TextEndedAt::Splice;
@@ -1163,7 +1211,7 @@ impl<'s> Lexer<'s> {
         let text_end = self.mark_without_whitespace();
         let token = self.make_token(text_start, text_end.clone(), token::Variant::text_section());
         if !(token.code.is_empty() && token.left_offset.code.is_empty()) {
-            self.output.push(token);
+            self.submit_token(token);
         }
         let end_token = if self.current_char == closing_char {
             self.take_next();
@@ -1175,7 +1223,7 @@ impl<'s> Lexer<'s> {
                 Code::empty(self.current_offset),
             ))
         };
-        self.output.push(end_token);
+        self.submit_token(end_token);
         TextEndedAt::End
     }
 
@@ -1213,7 +1261,7 @@ impl<'s> Lexer<'s> {
                 sequence_end.clone(),
                 token::Variant::text_escape(value.map(Codepoint::from_u32).unwrap_or_default()),
             );
-            self.output.push(token);
+            self.submit_token(token);
             sequence_end
         } else {
             let value = match char {
@@ -1239,7 +1287,7 @@ impl<'s> Lexer<'s> {
                 escape_end.clone(),
                 token::Variant::text_escape(value.map(Codepoint::from_char).unwrap_or_default()),
             );
-            self.output.push(token);
+            self.submit_token(token);
             escape_end
         }
     }
@@ -1486,7 +1534,7 @@ pub fn run(input: &'_ str) -> ParseResult<Vec<Token<'_>>> {
 // === Tests ===
 // =============
 
-/// Test utils for fast mock tokens creation.
+/// Test utils for fast mock token creation.
 pub mod test {
     use super::*;
     pub use token::*;

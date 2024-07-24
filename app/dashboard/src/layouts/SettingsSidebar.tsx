@@ -62,6 +62,7 @@ export default function SettingsSidebar(props: SettingsSidebarProps) {
                 >
                   {name}
                 </aria.Header>
+
                 <ariaComponents.ButtonGroup gap="xxsmall" direction="column" align="start">
                   {visibleTabData.map(tabData => (
                     <SidebarTabButton
@@ -70,9 +71,14 @@ export default function SettingsSidebar(props: SettingsSidebarProps) {
                       icon={tabData.icon}
                       label={getText(tabData.nameId)}
                       active={tabData.settingsTab === tab}
-                      onPress={() => {
-                        setTab(tabData.settingsTab)
-                      }}
+                      onPress={() =>
+                        tabData.onPress
+                          ? tabData.onPress(context)
+                          : // even though this function returns void, we don't want to
+                            // complicate things by returning only in case of custom onPress
+                            // eslint-disable-next-line @typescript-eslint/no-confusing-void-expression
+                            setTab(tabData.settingsTab)
+                      }
                     />
                   ))}
                 </ariaComponents.ButtonGroup>
