@@ -308,7 +308,7 @@ add_specs suite_builder =
             # AWS S3 does not record creation time, only last modified time.
             hello_txt.creation_time . should_fail_with S3_Error
 
-    my_writable_dir = writable_root / "test-run-"+(Date_Time.now.format "yyyy-MM-dd_HHmmss.fV" . replace "/" "|")+"/"
+    my_writable_dir = writable_root / ("test-run-"+(Date_Time.now.format "yyyy-MM-dd_HHmmss.fV" . replace "/" "|")+"/")
 
     suite_builder.group "S3_File writing" pending=api_pending group_builder->
         assert my_writable_dir.is_directory
@@ -565,7 +565,7 @@ add_specs suite_builder =
         table = Table.new [["X", [1, 2, 3]], ["Y", ["a", "b", "c"]]]
         test_write_table_to_datalink extension check_read_back = group_builder.specify "should be able to write a Table to an S3 data link ("+extension+")" <| with_default_credentials <|
             link_target = my_writable_dir / ("linked-sheet."+extension)
-            s3_link = my_writable_dir / "my-simple-write-"+extension+".datalink"
+            s3_link = my_writable_dir / ("my-simple-write-"+extension+".datalink")
             Problems.assume_no_problems <| Data_Link.write_config s3_link <|
                 JS_Object.from_pairs <|
                     [["type", "S3"]]
