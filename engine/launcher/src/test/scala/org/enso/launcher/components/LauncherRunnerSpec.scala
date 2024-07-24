@@ -244,6 +244,7 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
         .get
 
       outsideProject.engineVersion shouldEqual version
+      outsideProject.workingDirectory shouldEqual Some(projectPath.getParent)
       outsideProject.runnerArguments.mkString(" ") should
       (include(s"--in-project $normalizedPath") and include("--repl"))
 
@@ -259,6 +260,7 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
         .get
 
       insideProject.engineVersion shouldEqual version
+      insideProject.workingDirectory shouldEqual Some(projectPath.getParent)
       insideProject.runnerArguments.mkString(" ") should
       (include(s"--in-project $normalizedPath") and include("--repl"))
 
@@ -305,6 +307,7 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
         .get
 
       runSettings.engineVersion shouldEqual version
+      runSettings.workingDirectory shouldEqual Some(projectPath.getParent)
       val commandLine = runSettings.runnerArguments.mkString(" ")
       commandLine should include(s"--interface ${options.interface}")
       commandLine should include(s"--rpc-port ${options.rpcPort}")
@@ -347,6 +350,7 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
         .get
 
       outsideProject.engineVersion shouldEqual version
+      outsideProject.workingDirectory shouldEqual Some(projectPath.getParent)
       outsideProject.runnerArguments.mkString(" ") should
       include(s"--run $normalizedPath")
 
@@ -444,6 +448,7 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
         .get
 
       runSettings.engineVersion shouldEqual version
+      runSettings.workingDirectory shouldEqual Some(projectPath.getParent)
       runSettings.runnerArguments.mkString(" ") should
       (include(s"--run $normalizedFilePath") and
       include(s"--in-project $normalizedProjectPath"))
