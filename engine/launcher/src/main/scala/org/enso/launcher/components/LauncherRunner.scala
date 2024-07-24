@@ -68,6 +68,7 @@ class LauncherRunner(
         version,
         arguments ++ setLogLevelArgs(logLevel, logMasking)
         ++ additionalArguments,
+        workingDirectory         = None,
         connectLoggerIfAvailable = true
       )
     }
@@ -109,6 +110,15 @@ class LauncherRunner(
         else projectManager.findProject(actualPath).get
       val version = resolveVersion(versionOverride, project)
 
+      // The path of the project or standalone script that is being ran.
+      val targetPath = project match {
+        case Some(project) => project.path.toAbsolutePath.normalize
+        case None          => actualPath
+      }
+
+      // The engine is started in the directory containing the project, or the standalone script.
+      val workingDirectory = targetPath.getParent
+
       val arguments =
         if (projectMode) Seq("--run", actualPath.toString)
         else
@@ -127,6 +137,7 @@ class LauncherRunner(
         version,
         arguments ++ setLogLevelArgs(logLevel, logMasking)
         ++ additionalArguments,
+        workingDirectory         = Some(workingDirectory),
         connectLoggerIfAvailable = true
       )
     }
@@ -190,7 +201,12 @@ class LauncherRunner(
         }
 
       (
-        RunSettings(version, arguments, connectLoggerIfAvailable = false),
+        RunSettings(
+          version,
+          arguments,
+          workingDirectory         = None,
+          connectLoggerIfAvailable = false
+        ),
         whichEngine
       )
     }
@@ -239,6 +255,7 @@ class LauncherRunner(
         version,
         arguments ++ setLogLevelArgs(logLevel, logMasking)
         ++ additionalArguments,
+        workingDirectory         = None,
         connectLoggerIfAvailable = true
       )
     }
@@ -286,6 +303,7 @@ class LauncherRunner(
         version,
         arguments ++ setLogLevelArgs(logLevel, logMasking)
         ++ additionalArguments,
+        workingDirectory         = None,
         connectLoggerIfAvailable = true
       )
     }

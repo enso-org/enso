@@ -137,7 +137,6 @@ object ExecutorWithUnlimitedPool extends LanguageServerExecutor {
       val process = {
         val pb = command.builder()
         pb.inheritIO()
-        pb.directory(projectParentDirectory)
 
         pb.redirectInput(Redirect.PIPE)
         if (descriptor.discardOutput) {
