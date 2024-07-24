@@ -16,7 +16,7 @@ import * as common from 'enso-common'
 import type * as clientConfig from 'config'
 import * as contentConfig from 'content-config'
 import * as project from 'project-management'
-import * as fileAssociations from '../file-associations'
+import * as fileAssociations from '../fileAssociations'
 
 const logger = contentConfig.logger
 

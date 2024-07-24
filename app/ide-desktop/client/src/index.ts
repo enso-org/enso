@@ -20,20 +20,20 @@ import GLOBAL_CONFIG from 'enso-common/src/config.json' assert { type: 'json' }
 
 import * as authentication from 'authentication'
 import * as config from 'config'
-import * as configParser from 'config-parser'
-import * as contentConfig from 'content-config'
+import * as configParser from 'configParser'
+import * as contentConfig from 'contentConfig'
 import * as debug from 'debug'
 import * as detect from 'detect'
-import * as fileAssociations from 'file-associations'
+import * as fileAssociations from 'fileAssociations'
 import * as ipc from 'ipc'
 import * as log from 'log'
 import * as naming from 'naming'
 import * as paths from 'paths'
-import * as projectManagement from 'project-management'
-import * as projectManager from 'project-manager'
+import * as projectManagement from 'projectManagement'
+import * as projectManager from 'projectManager'
 import * as security from 'security'
 import * as server from 'server'
-import * as urlAssociations from 'url-associations'
+import * as urlAssociations from 'urlAssociations'
 
 const logger = contentConfig.logger
 

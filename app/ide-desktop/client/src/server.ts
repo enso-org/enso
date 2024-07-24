@@ -15,9 +15,9 @@ import createServer from 'create-servers'
 import * as common from 'enso-common'
 import GLOBAL_CONFIG from 'enso-common/src/config.json' assert { type: 'json' }
 import * as ydocServer from 'enso-gui2/ydoc-server'
-import * as projectManagement from 'project-management'
+import * as projectManagement from 'projectManagement'
 
-import * as contentConfig from 'content-config'
+import * as contentConfig from 'contentConfig'
 import * as paths from 'paths'
 
 const logger = contentConfig.logger

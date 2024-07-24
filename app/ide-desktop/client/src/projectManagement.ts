@@ -18,7 +18,7 @@ import * as tar from 'tar'
 import * as common from 'enso-common'
 import * as buildUtils from 'enso-common/src/buildUtils'
 
-import * as desktopEnvironment from 'desktop-environment'
+import * as desktopEnvironment from 'desktopEnvironment'
 
 const logger = console
 
