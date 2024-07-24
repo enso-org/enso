@@ -71,7 +71,7 @@ const createNewNode = () => {
 <template>
   <SvgButton
     name="add"
-    :title="`Create new component with sort and filters applied to the workflow`"
+    :title="`Create new component(s) with the current grid's sort and filters applied to the workflow`"
     @click="createNewNode()"
   />
 </template>
