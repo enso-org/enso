@@ -382,6 +382,7 @@ add_specs suite_builder =
             txt.write expected_file . should_succeed
             Panic.with_finalizer expected_file.delete_if_exists <|
                 f.read_text . should_equal txt
+                Data.read "abc/def" . should_equal txt
 
         cloud_setup = Cloud_Tests_Setup.prepare
         with_temporary_cloud_root ~action =
@@ -405,6 +406,12 @@ add_specs suite_builder =
                 f = File.new "abc/def"
                 f.should_be_a Enso_File
                 f.should_equal (Enso_File.current_working_directory / "abc" / "def")
+
+                # Data.read should be consistent too
+                txt = "test-content"+Random.uuid
+                txt.write f . should_succeed
+                Panic.with_finalizer f.delete_if_exists <|
+                    Data.read "abc/def" . should_equal txt
 
     suite_builder.group "read_text" group_builder->
         group_builder.specify "should allow reading a UTF-8 file" <|
