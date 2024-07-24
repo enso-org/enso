@@ -111,7 +111,7 @@ export default function AssetRow(props: AssetRowProps) {
   const dispatchAssetEvent = eventListProvider.useDispatchAssetEvent()
   const dispatchAssetListEvent = eventListProvider.useDispatchAssetListEvent()
   const [isDraggedOver, setIsDraggedOver] = React.useState(false)
-  const [item, setItem] = React.useState(rawItem)
+  const [item, setItemRaw] = React.useState(rawItem)
   const rootRef = React.useRef<HTMLElement | null>(null)
   const dragOverTimeoutHandle = React.useRef<number | null>(null)
   const grabKeyboardFocusRef = React.useRef(grabKeyboardFocus)
@@ -147,16 +147,30 @@ export default function AssetRow(props: AssetRowProps) {
   const openProjectMutate = openProjectMutation.mutateAsync
   const closeProjectMutate = closeProjectMutation.mutateAsync
 
+  const setItem = useEventCallback(
+    (valueOrUpdater: React.SetStateAction<assetTreeNode.AnyAssetTreeNode>) => {
+      setItemRaw(currentValue => {
+        if (typeof valueOrUpdater === 'function') {
+          valueOrUpdater = valueOrUpdater(currentValue)
+        }
+        // Mutation is HIGHLY INADVISABLE in React, however it is useful here as we want to update the
+        // parent's state while avoiding re-rendering the parent.
+        rawItem.item = valueOrUpdater.item
+        return valueOrUpdater
+      })
+    }
+  )
+
   const assetId = item.item.id
   const asset = backendHooks.useGetAsset(backend, assetId).data
   invariant(asset, `Asset '${assetId}' is missing cached data`)
   const setAssetRaw = backendHooks.useSetAsset()
   const setAsset = useEventCallback(
-    (valueOrUpdater: React.SetStateAction<backendModule.AnyAsset>) => {
-      const newAsset = setAssetRaw(backend, assetId, valueOrUpdater)
-      // Mutation is HIGHLY INADVISABLE in React, however it is useful here as we want to update the
-      // parent's state while avoiding re-rendering the parent.
-      rawItem.item = newAsset
+    (
+      currentAssetId: backendModule.AssetId,
+      valueOrUpdater: React.SetStateAction<backendModule.AnyAsset>
+    ) => {
+      const newAsset = setAssetRaw(backend, currentAssetId, valueOrUpdater)
       setItem(currentItem => currentItem.with({ item: newAsset }))
     }
   )
@@ -164,7 +178,7 @@ export default function AssetRow(props: AssetRowProps) {
   React.useEffect(() => {
     // Required to update `isExpanded` state.
     setItem(rawItem)
-  }, [rawItem])
+  }, [rawItem, setItem])
 
   React.useEffect(() => {
     if (selected && insertionVisibility !== Visibility.visible) {
@@ -182,7 +196,7 @@ export default function AssetRow(props: AssetRowProps) {
   const doCopyOnBackend = React.useCallback(
     async (newParentId: backendModule.DirectoryId | null) => {
       try {
-        setAsset(oldAsset =>
+        setAsset(assetId, oldAsset =>
           object.merge(oldAsset, {
             title: oldAsset.title + ' (copy)',
             labels: [],
@@ -198,10 +212,11 @@ export default function AssetRow(props: AssetRowProps) {
           nodeMap.current.get(newParentId)?.item.title ?? '(unknown)',
         ])
         setAsset(
+          copiedAsset.asset.id,
           // This is SAFE, as the type of the copied asset is guaranteed to be the same
           // as the type of the original asset.
           // eslint-disable-next-line no-restricted-syntax
-          object.merger({
+          object.merge(asset, {
             ...copiedAsset.asset,
             state: { type: backendModule.ProjectState.new },
           } as Partial<backendModule.AnyAsset>)
@@ -213,15 +228,16 @@ export default function AssetRow(props: AssetRowProps) {
       }
     },
     [
-      user,
-      rootDirectoryId,
-      asset,
-      item.key,
-      toastAndLog,
-      copyAssetMutate,
-      nodeMap,
       setAsset,
+      assetId,
+      rootDirectoryId,
+      copyAssetMutate,
+      asset,
+      nodeMap,
+      user,
+      toastAndLog,
       dispatchAssetListEvent,
+      item.key,
     ]
   )
 
@@ -236,7 +252,7 @@ export default function AssetRow(props: AssetRowProps) {
         setItem(oldItem =>
           oldItem.with({ directoryKey: nonNullNewParentKey, directoryId: nonNullNewParentId })
         )
-        setAsset(object.merger({ parentId: nonNullNewParentId }))
+        setAsset(assetId, object.merger({ parentId: nonNullNewParentId }))
         const newParentPath = localBackend.extractTypeAndId(nonNullNewParentId).id
         let newId = asset.id
         if (!isCloud) {
@@ -274,7 +290,7 @@ export default function AssetRow(props: AssetRowProps) {
           key: item.key,
           item: newAsset,
         })
-        setAsset(newAsset)
+        setAsset(assetId, newAsset)
         await updateAssetMutate([
           asset.id,
           { parentDirectoryId: newParentId ?? rootDirectoryId, description: null },
@@ -282,19 +298,10 @@ export default function AssetRow(props: AssetRowProps) {
         ])
       } catch (error) {
         toastAndLog('moveAssetError', error, asset.title)
-        setAsset(
-          object.merger({
-            // This is SAFE as the type of `newId` is not changed from its original type.
-            // eslint-disable-next-line no-restricted-syntax
-            id: asset.id as never,
-            parentId: asset.parentId,
-            projectState: asset.projectState,
-          })
-        )
         setItem(oldItem =>
           oldItem.with({ directoryKey: item.directoryKey, directoryId: item.directoryId })
         )
-        setAsset(object.merger({ parentId: item.directoryId }))
+        setAsset(assetId, asset)
         // Move the asset back to its original position.
         dispatchAssetListEvent({
           type: AssetListEventType.move,
@@ -306,16 +313,18 @@ export default function AssetRow(props: AssetRowProps) {
       }
     },
     [
-      isCloud,
-      asset,
       rootDirectoryId,
-      item.directoryId,
-      item.directoryKey,
-      item.key,
-      toastAndLog,
-      updateAssetMutate,
+      setItem,
       setAsset,
+      assetId,
+      asset,
+      isCloud,
       dispatchAssetListEvent,
+      item.key,
+      item.directoryKey,
+      item.directoryId,
+      updateAssetMutate,
+      toastAndLog,
     ]
   )
 
@@ -392,12 +401,12 @@ export default function AssetRow(props: AssetRowProps) {
       <EditAssetDescriptionModal
         doChangeDescription={async description => {
           if (description !== asset.description) {
-            setAsset(object.merger({ description }))
+            setAsset(assetId, object.merger({ description }))
 
             await backend
               .updateAsset(assetId, { parentDirectoryId: null, description }, item.item.title)
               .catch(error => {
-                setAsset(object.merger({ description: asset.description }))
+                setAsset(assetId, object.merger({ description: asset.description }))
                 throw error
               })
           }
@@ -620,11 +629,11 @@ export default function AssetRow(props: AssetRowProps) {
               ...(labels ?? []),
               ...[...event.labelNames].filter(label => labels?.includes(label) !== true),
             ]
-            setAsset(object.merger({ labels: newLabels }))
+            setAsset(assetId, object.merger({ labels: newLabels }))
             try {
               await associateTagMutation.mutateAsync([asset.id, newLabels, asset.title])
             } catch (error) {
-              setAsset(object.merger({ labels }))
+              setAsset(assetId, object.merger({ labels }))
               toastAndLog(null, error)
             }
           }
@@ -643,18 +652,18 @@ export default function AssetRow(props: AssetRowProps) {
             [...event.labelNames].some(label => labels.includes(label))
           ) {
             const newLabels = labels.filter(label => !event.labelNames.has(label))
-            setAsset(object.merger({ labels: newLabels }))
+            setAsset(assetId, object.merger({ labels: newLabels }))
             try {
               await associateTagMutation.mutateAsync([asset.id, newLabels, asset.title])
             } catch (error) {
-              setAsset(object.merger({ labels }))
+              setAsset(assetId, object.merger({ labels }))
               toastAndLog(null, error)
             }
           }
           break
         }
         case AssetEventType.deleteLabel: {
-          setAsset(oldAsset => {
+          setAsset(assetId, oldAsset => {
             // The IIFE is required to prevent TypeScript from narrowing this value.
             let found = (() => false)()
             const labels =

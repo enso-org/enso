@@ -4,6 +4,8 @@ import * as React from 'react'
 import * as reactQuery from '@tanstack/react-query'
 import * as toast from 'react-toastify'
 
+import { merge } from 'enso-common/src/utilities/data/object'
+
 import DropFilesImage from '#/assets/drop_files.svg'
 
 import * as mimeTypes from '#/data/mimeTypes'
@@ -1793,6 +1795,9 @@ export default function AssetsTable(props: AssetsTableProps) {
         const getKey = (asset: backendModule.AnyAsset) => {
           const newId = backendModule.createPlaceholderAssetId(asset.type)
           ids.add(newId)
+          // This is SAFE, as the type of ID is guaranteed to match the type of the asset.
+          // eslint-disable-next-line no-restricted-syntax
+          setAsset(newId, merge(asset, { id: newId as never }))
           return newId
         }
         const assetEvents: readonly assetEvent.AssetEvent[] = [
