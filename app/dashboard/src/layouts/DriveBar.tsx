@@ -81,6 +81,7 @@ export default function DriveBar(props: DriveBarProps) {
   const uploadFilesRef = React.useRef<HTMLInputElement>(null)
   const isCloud = categoryModule.isCloud(category)
   const { isOffline } = offlineHooks.useOffline()
+  const [isCreatingProjectFromTemplate, setIsCreatingProjectFromTemplate] = React.useState(false)
   const [isCreatingProject, setIsCreatingProject] = React.useState(false)
   const [createdProjectId, setCreatedProjectId] = React.useState<ProjectId | null>(null)
 
@@ -130,6 +131,7 @@ export default function DriveBar(props: DriveBarProps) {
   React.useEffect(() => {
     if (!isFetching) {
       setIsCreatingProject(false)
+      setIsCreatingProjectFromTemplate(false)
     }
   }, [isFetching])
 
@@ -199,16 +201,37 @@ export default function DriveBar(props: DriveBarProps) {
       return (
         <ariaComponents.ButtonGroup className="my-0.5 grow-0">
           <aria.DialogTrigger>
-            <ariaComponents.Button size="medium" variant="tertiary" isDisabled={shouldBeDisabled}>
+            <ariaComponents.Button
+              size="medium"
+              variant="tertiary"
+              isDisabled={shouldBeDisabled || isCreatingProject || isCreatingProjectFromTemplate}
+              icon={Plus2Icon}
+              loading={isCreatingProjectFromTemplate}
+              loaderPosition="icon"
+            >
               {getText('startWithATemplate')}
             </ariaComponents.Button>
 
-            <StartModal createProject={doCreateProject} />
+            <StartModal
+              createProject={(templateId, templateName) => {
+                setIsCreatingProjectFromTemplate(true)
+                doCreateProject(
+                  templateId,
+                  templateName,
+                  project => {
+                    setCreatedProjectId(project.projectId)
+                  },
+                  () => {
+                    setIsCreatingProjectFromTemplate(false)
+                  }
+                )
+              }}
+            />
           </aria.DialogTrigger>
           <ariaComponents.Button
             size="medium"
             variant="bar"
-            isDisabled={shouldBeDisabled || isCreatingProject}
+            isDisabled={shouldBeDisabled || isCreatingProject || isCreatingProjectFromTemplate}
             icon={Plus2Icon}
             loading={isCreatingProject}
             loaderPosition="icon"
