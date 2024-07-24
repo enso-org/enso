@@ -80,7 +80,7 @@ polyglot java import org.enso.base.numeric.Decimal_Utils
    named methods, but which cannot take a `Math_Context`.
 
    In the case of `divide`, it is possible that the result will have a
-   non-terminating deicmal expansion. If the operation did not specify a
+   non-terminating decimal expansion. If the operation did not specify a
    `Math_Context`, or specified an explicit `Math_Context` with infinite
    precision, then it is impossible to represent the result as requested, and an
    `Arithmetic_Error` will be thrown. In this case, the solution is to specify
