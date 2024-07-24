@@ -292,7 +292,7 @@ class DistributionManager(val env: Environment) {
 
     private val LINUX_ENSO_DIRECTORY   = "enso"
     private val MACOS_ENSO_DIRECTORY   = "org.enso"
-    private val WINDOWS_ENSO_DIRECTORY = "enso"
+    private val   WINDOWS_ENSO_DIRECTORY = "enso"
 
     /** Data directory for an installed distribution.
       */

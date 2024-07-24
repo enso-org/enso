@@ -1,5 +1,6 @@
 from Standard.Base import all
 
+
 type Hyper_API
     ## A representation of a Tableau Hyper Extract file.
     private Value file:File

@@ -568,6 +568,7 @@ val apacheArrowVersion      = "14.0.1"
 val snowflakeJDBCVersion    = "3.15.0"
 val mssqlserverJDBCVersion  = "12.6.2.jre11"
 val jsoniterVersion         = "2.28.5"
+val jnaVersion              = "5.14.0"
 
 // ============================================================================
 // === Utility methods =====================================================
@@ -3616,6 +3617,10 @@ lazy val `std-tableau` = project
       .value,
     Compile / packageBin / artifactPath :=
       `std-tableau-polyglot-root` / "std-tableau.jar",
+    libraryDependencies ++= Seq(
+      "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion % "provided",
+      "net.java.dev.jna" % "jna-platform" % jnaVersion,
+    ),
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value
       val _ = StdBits
