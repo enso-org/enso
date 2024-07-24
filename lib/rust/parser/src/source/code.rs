@@ -73,12 +73,12 @@ pub struct Code<'s> {
     #[serde(deserialize_with = "crate::serialization::deserialize_cow")]
     #[reflect(as = "crate::serialization::Code", flatten, hide)]
     #[deref]
-    pub repr: StrRef<'s>,
+    pub repr:  StrRef<'s>,
     #[reflect(flatten)]
-    start:    Location,
+    pub start: Location,
     /// The length of the source code.
     #[reflect(flatten)]
-    pub len:  Length,
+    pub len:   Length,
 }
 
 impl<'s> Code<'s> {

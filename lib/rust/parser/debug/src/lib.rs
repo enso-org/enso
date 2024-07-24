@@ -126,6 +126,7 @@ fn strip_hidden_fields(tree: Value) -> Value {
         ":spanCodeLengthUtf16",
         ":spanCodeLengthNewlines",
         ":spanCodeLengthLineChars16",
+        ":warnings",
     ];
     let hidden_tree_fields: HashSet<_> = hidden_tree_fields.into_iter().collect();
     Value::list(tree.to_vec().unwrap().into_iter().filter(|val| match val {

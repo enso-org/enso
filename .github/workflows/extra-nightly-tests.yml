@@ -1,0 +1,79 @@
+# This file is auto-generated. Do not edit it manually!
+# Edit the enso_build::ci_gen module instead and run `cargo run --package enso-build-ci-gen`.
+
+name: Extra Nightly Tests
+on:
+  schedule:
+    - cron: 0 3 * * *
+  workflow_dispatch:
+    inputs:
+      clean_build_required:
+        description: Clean before and after the run.
+        required: false
+        type: boolean
+        default: false
+jobs:
+  enso-build-ci-gen-job-snowflake-tests-linux-x86_64:
+    name: Snowflake Tests (linux, x86_64)
+    runs-on:
+      - self-hosted
+      - Linux
+    steps:
+      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
+        name: Installing wasm-pack
+        uses: jetli/wasm-pack-action@v0.4.0
+        with:
+          version: v0.10.2
+      - name: Expose Artifact API and context information.
+        uses: actions/github-script@v7
+        with:
+          script: "\n    core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\n    core.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\n    core.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])\n    console.log(context)\n    "
+      - name: Checking out the repository
+        uses: actions/checkout@v4
+        with:
+          clean: false
+          submodules: recursive
+      - name: Build Script Setup
+        run: ./run --help || (git clean -ffdx && ./run --help)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - if: "(contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
+        name: Clean before
+        run: ./run git-clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - run: ./run backend test std-snowflake
+        env:
+          ENSO_SNOWFLAKE_ACCOUNT: ${{ secrets.ENSO_SNOWFLAKE_ACCOUNT }}
+          ENSO_SNOWFLAKE_DATABASE: ${{ secrets.ENSO_SNOWFLAKE_DATABASE }}
+          ENSO_SNOWFLAKE_PASSWORD: ${{ secrets.ENSO_SNOWFLAKE_PASSWORD }}
+          ENSO_SNOWFLAKE_SCHEMA: ${{ secrets.ENSO_SNOWFLAKE_SCHEMA }}
+          ENSO_SNOWFLAKE_USER: ${{ secrets.ENSO_SNOWFLAKE_USER }}
+          ENSO_SNOWFLAKE_WAREHOUSE: ${{ secrets.ENSO_SNOWFLAKE_WAREHOUSE }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - if: (success() || failure()) && github.event.pull_request.head.repo.full_name == github.repository
+        name: Extra Library Test Reporter
+        uses: dorny/test-reporter@v1
+        with:
+          max-annotations: 50
+          name: Extra Library Tests Report (GraalVM CE, linux, x86_64)
+          path: ${{ env.ENSO_TEST_JUNIT_DIR }}/*/*.xml
+          path-replace-backslashes: true
+          reporter: java-junit
+      - if: failure() && runner.os == 'Windows'
+        name: List files if failed (Windows)
+        run: Get-ChildItem -Force -Recurse
+      - if: failure() && runner.os != 'Windows'
+        name: List files if failed (non-Windows)
+        run: ls -lAR
+      - if: "(always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
+        name: Clean after
+        run: ./run git-clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    env:
+      GRAAL_EDITION: GraalVM CE
+    permissions:
+      checks: write
+env:
+  ENSO_BUILD_SKIP_VERSION_CHECK: "true"

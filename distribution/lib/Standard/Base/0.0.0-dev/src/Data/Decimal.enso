@@ -764,8 +764,7 @@ type Decimal
              d = Decimal.new "2345.6"
              d.to_integer
              # => 2345
-    to_integer : Integer
-    to_integer self =
+    to_integer self -> Integer =
         as_biginteger = self.big_decimal.toBigInteger
         back_to_decimal = BigDecimal.new as_biginteger
         are_equal = (self.big_decimal.compareTo back_to_decimal) == 0
