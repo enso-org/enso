@@ -164,7 +164,7 @@ export function useCloseProjectMutation() {
 
   return reactQuery.useMutation({
     mutationKey: ['closeProject'],
-    mutationFn: async ({ type, id, title }: LaunchedProject) => {
+    mutationFn: ({ type, id, title }: LaunchedProject) => {
       const backend = type === backendModule.BackendType.remote ? remoteBackend : localBackend
 
       invariant(backend != null, 'Backend is null')
