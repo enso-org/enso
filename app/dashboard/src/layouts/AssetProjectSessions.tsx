@@ -5,6 +5,7 @@ import * as reactQuery from '@tanstack/react-query'
 
 import AssetProjectSession from '#/layouts/AssetProjectSession'
 
+import * as errorBoundary from '#/components/ErrorBoundary'
 import * as loader from '#/components/Loader'
 
 import type * as backendModule from '#/services/Backend'
@@ -25,9 +26,11 @@ export interface AssetProjectSessionsProps {
 /** A list of previous versions of an asset. */
 export default function AssetProjectSessions(props: AssetProjectSessionsProps) {
   return (
-    <React.Suspense fallback={<loader.Loader />}>
-      <AssetProjectSessionsInternal {...props} />
-    </React.Suspense>
+    <errorBoundary.ErrorBoundary>
+      <React.Suspense fallback={<loader.Loader />}>
+        <AssetProjectSessionsInternal {...props} />
+      </React.Suspense>
+    </errorBoundary.ErrorBoundary>
   )
 }
 

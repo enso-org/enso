@@ -100,11 +100,30 @@ class App {
                 this.handleItemOpening(fileToOpen, urlToOpen)
                 this.setChromeOptions(chromeOptions)
                 security.enableAll()
+
                 electron.app.on('before-quit', () => {
                     this.isQuitting = true
                 })
+
                 electron.app.on('second-instance', (_event, argv) => {
                     logger.log(`Got data from 'second-instance' event: '${argv.toString()}'.`)
+
+                    const isWin = os.platform() === 'win32'
+
+                    if (isWin) {
+                        const ensoLinkInArgs = argv.find(arg =>
+                            arg.startsWith(common.DEEP_LINK_SCHEME)
+                        )
+
+                        if (ensoLinkInArgs != null) {
+                            electron.app.emit(
+                                'open-url',
+                                new CustomEvent('open-url'),
+                                ensoLinkInArgs
+                            )
+                        }
+                    }
+
                     // The second instances will close themselves, but our window likely is not in the
                     // foreground - the focus went to the "second instance" of the application.
                     if (this.window) {

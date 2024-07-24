@@ -52,7 +52,10 @@ export default function BackendProvider(props: BackendProviderProps) {
 // === useRemoteBackend ===
 // ========================
 
-/** Get the Remote Backend. */
+/**
+ * Get the Remote Backend. Since the RemoteBackend is always defined, `null` is never returned.
+ * @deprecated Use {@link useRemoteBackendStrict} instead.
+ */
 export function useRemoteBackend() {
   return React.useContext(BackendContext).remoteBackend
 }
@@ -61,9 +64,10 @@ export function useRemoteBackend() {
 // === useRemoteBackendStrict ===
 // ==============================
 
-/** Get the Remote Backend.
- * @throws {Error} when no Remote Backend exists. This should only happen if the user is not logged
- * in. */
+/**
+ * Get the Remote Backend.
+ * @throws {Error} when no Remote Backend exists. This should never happen.
+ */
 export function useRemoteBackendStrict() {
   const remoteBackend = React.useContext(BackendContext).remoteBackend
   if (remoteBackend == null) {
@@ -90,14 +94,10 @@ export function useLocalBackend() {
  * @throws {Error} when neither the Remote Backend nor the Local Backend are supported.
  * This should never happen unless the build is misconfigured. */
 export function useBackend(category: Category) {
-  const remoteBackend = useRemoteBackend()
+  const remoteBackend = useRemoteBackendStrict()
   const localBackend = useLocalBackend()
 
   if (categoryModule.isCloud(category)) {
-    invariant(
-      remoteBackend != null,
-      `This distribution of ${common.PRODUCT_NAME} does not support the Cloud Backend.`
-    )
     return remoteBackend
   } else {
     invariant(

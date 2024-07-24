@@ -74,6 +74,20 @@ export const CANCEL_SUBSCRIPTION_PATH = 'payments/subscription'
 export const GET_LOG_EVENTS_PATH = 'log_events'
 /** Relative HTTP path to the "post log event" endpoint of the Cloud backend API. */
 export const POST_LOG_EVENT_PATH = 'logs'
+
+/**
+ * Relative HTTP path to the "get customer portal session" endpoint of the Cloud backend API.
+ */
+export function getCustomerPortalSessionPath(returnUrl?: string) {
+  const baseUrl = 'payments/customer-portal-sessions/create'
+
+  if (returnUrl === undefined) {
+    return baseUrl
+  } else {
+    return `${baseUrl}?returnUrl=${returnUrl}`
+  }
+}
+
 /** Relative HTTP path to the "change user groups" endpoint of the Cloud backend API. */
 export function changeUserGroupPath(userId: backend.UserId) {
   return `users/${userId}/usergroups`
