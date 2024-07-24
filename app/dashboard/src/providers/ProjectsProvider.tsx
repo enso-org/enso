@@ -12,7 +12,6 @@ import * as searchParamsState from '#/hooks/searchParamsStateHooks'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 
 import * as array from '#/utilities/array'
-import LocalStorage from '#/utilities/LocalStorage'
 
 // ===============
 // === TabType ===
@@ -32,15 +31,16 @@ declare module '#/utilities/LocalStorage' {
   /** */
   interface LocalStorageData {
     readonly isAssetPanelVisible: boolean
-    readonly page: z.infer<typeof PAGES_SCHEMA>
   }
 }
 
 export const PAGES_SCHEMA = z
   .nativeEnum(TabType)
-  .or(z.custom<projectHooks.ProjectId>(value => typeof value === 'string'))
-
-LocalStorage.registerKey('page', { schema: PAGES_SCHEMA })
+  .or(
+    z.custom<projectHooks.ProjectId>(
+      value => typeof value === 'string' && value.startsWith('project-')
+    )
+  )
 
 // =====================
 // === ProjectsStore ===
@@ -120,6 +120,7 @@ export default function ProjectsProvider(props: ProjectsProviderProps) {
 function PageSynchronizer() {
   const { localStorage } = localStorageProvider.useLocalStorage()
   const store = useProjectsStore()
+  const providerPage = usePage()
   const providerSetPage = useSetPage()
   const [page, privateSetPage] = searchParamsState.useSearchParamsState(
     'page',
@@ -136,11 +137,9 @@ function PageSynchronizer() {
     providerSetPage(page)
   }, [page, providerSetPage])
 
-  React.useEffect(() =>
-    store.subscribe(state => {
-      privateSetPage(state.page)
-    })
-  )
+  React.useEffect(() => {
+    privateSetPage(providerPage)
+  }, [providerPage, privateSetPage])
 
   React.useEffect(() =>
     store.subscribe(state => {

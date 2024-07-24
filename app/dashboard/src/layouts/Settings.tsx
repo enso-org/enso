@@ -1,7 +1,7 @@
 /** @file Settings screen. */
 import * as React from 'react'
 
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 
 import BurgerMenuIcon from '#/assets/burger_menu.svg'
 
@@ -41,6 +41,7 @@ export interface SettingsProps {
 
 /** Settings screen. */
 export default function Settings() {
+  const queryClient = useQueryClient()
   const backend = backendProvider.useRemoteBackendStrict()
   const localBackend = backendProvider.useLocalBackend()
   const [tab, setTab] = searchParamsState.useSearchParamsState(
@@ -85,6 +86,7 @@ export default function Settings() {
       updateLocalRootPath,
       toastAndLog,
       getText,
+      queryClient,
     }),
     [
       accessToken,
@@ -97,6 +99,7 @@ export default function Settings() {
       updateOrganization,
       updateUser,
       user,
+      queryClient,
     ]
   )
 
@@ -193,8 +196,9 @@ export default function Settings() {
             />
           </aria.Popover>
         </aria.MenuTrigger>
+
         <ariaComponents.Text variant="h1" className="font-bold">
-          <span>{getText('settingsFor')}</span>
+          {getText('settingsFor')}
         </ariaComponents.Text>
 
         <ariaComponents.Text
