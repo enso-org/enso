@@ -53,6 +53,7 @@ object LibraryManifestGenerator {
     javaOpts: Seq[String],
     log: Logger
   ): Unit = {
+    val canonicalPath = projectPath.getCanonicalFile
     val javaCommand =
       ProcessHandle.current().info().command().asScala.getOrElse("java")
     val command = Seq(
@@ -60,7 +61,7 @@ object LibraryManifestGenerator {
     ) ++ javaOpts ++ Seq(
       "--update-manifest",
       "--in-project",
-      projectPath.getCanonicalPath
+      canonicalPath.toString
     )
 
     val commandText = command.mkString(" ")
@@ -68,7 +69,7 @@ object LibraryManifestGenerator {
     val exitCode = sys.process
       .Process(
         command,
-        None,
+        Some(canonicalPath),
         "ENSO_EDITION_PATH" -> file("distribution/editions").getCanonicalPath
       )
       .!
