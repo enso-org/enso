@@ -14,6 +14,7 @@ use enso_prelude::*;
 use jni::objects::JByteBuffer;
 use jni::objects::JClass;
 use jni::sys::jobject;
+use jni::sys::jstring;
 use jni::JNIEnv;
 
 
@@ -37,18 +38,13 @@ static FAILED_SERIALIZE_AST: &str = "Failed to serialize AST to binary format.";
 #[allow(unsafe_code)]
 #[no_mangle]
 pub extern "system" fn Java_org_enso_syntax2_Parser_parseTree(
-    env: JNIEnv,
+    mut env: JNIEnv,
     _class: JClass,
     state: u64,
     input: JByteBuffer,
 ) -> jobject {
     let state = unsafe { &mut *(state as usize as *mut State) };
-    let input = env.get_direct_buffer_address(input).expect(DIRECT_ALLOCATED);
-    let input = if cfg!(debug_assertions) {
-        std::str::from_utf8(input).unwrap()
-    } else {
-        unsafe { std::str::from_utf8_unchecked(input) }
-    };
+    let input = unsafe { decode_utf8_buffer(&env, &input) };
     let mut code = input;
     let mut meta = None;
     if let Some((meta_, code_)) = enso_parser::metadata::parse(input) {
@@ -70,8 +66,9 @@ pub extern "system" fn Java_org_enso_syntax2_Parser_parseTree(
         }
     };
     state.metadata = meta;
-    let result = env.new_direct_byte_buffer(&mut state.output);
-    result.unwrap().into_inner()
+    let result =
+        unsafe { env.new_direct_byte_buffer(state.output.as_mut_ptr(), state.output.len()) };
+    result.unwrap().into_raw()
 }
 
 /// Parse the input. Returns a serialize format compatible with a lazy deserialization strategy. The
@@ -86,24 +83,20 @@ pub extern "system" fn Java_org_enso_syntax2_Parser_parseTree(
 #[allow(unsafe_code)]
 #[no_mangle]
 pub extern "system" fn Java_org_enso_syntax2_Parser_parseTreeLazy(
-    env: JNIEnv,
+    mut env: JNIEnv,
     _class: JClass,
     state: u64,
     input: JByteBuffer,
 ) -> jobject {
     let state = unsafe { &mut *(state as usize as *mut State) };
-    let input = env.get_direct_buffer_address(input).expect(DIRECT_ALLOCATED);
-    let input = if cfg!(debug_assertions) {
-        std::str::from_utf8(input).unwrap()
-    } else {
-        unsafe { std::str::from_utf8_unchecked(input) }
-    };
+    let input = unsafe { decode_utf8_buffer(&env, &input) };
 
     let tree = enso_parser::Parser::new().run(input);
     state.output = enso_parser::format::serialize(&tree).expect(FAILED_SERIALIZE_AST);
 
-    let result = env.new_direct_byte_buffer(&mut state.output);
-    result.unwrap().into_inner()
+    let result =
+        unsafe { env.new_direct_byte_buffer(state.output.as_mut_ptr(), state.output.len()) };
+    result.unwrap().into_raw()
 }
 
 /// Determine the token variant of the provided input.
@@ -114,12 +107,7 @@ pub extern "system" fn Java_org_enso_syntax2_Parser_isIdentOrOperator(
     _class: JClass,
     input: JByteBuffer,
 ) -> u64 {
-    let input = env.get_direct_buffer_address(input).expect(DIRECT_ALLOCATED);
-    let input = if cfg!(debug_assertions) {
-        std::str::from_utf8(input).unwrap()
-    } else {
-        unsafe { std::str::from_utf8_unchecked(input) }
-    };
+    let input = unsafe { decode_utf8_buffer(&env, &input) };
 
     let parsed = enso_parser::lexer::run(input);
     if parsed.internal_error.is_some() {
@@ -207,6 +195,19 @@ pub extern "system" fn Java_org_enso_syntax2_Parser_freeState(
     }
 }
 
+/// Returns the string template corresponding to the given warning ID.
+#[allow(unsafe_code)]
+#[no_mangle]
+pub extern "system" fn Java_org_enso_syntax2_Parser_getWarningTemplate(
+    env: JNIEnv,
+    _class: JClass,
+    id: u32,
+) -> jstring {
+    let message =
+        enso_parser::syntax::WARNINGS.get(id as usize).copied().unwrap_or("Unknown warning ID");
+    env.new_string(message).unwrap().into_raw()
+}
+
 /// Return the high bits of the UUID associated with the specified node.
 ///
 /// # Safety
@@ -256,6 +257,29 @@ fn get_uuid(metadata: u64, code_offset: u64, code_length: u64) -> (u64, u64) {
         Some(uuid) => uuid.as_u64_pair(),
         None => (0, 0),
     }
+}
+
+/// # Safety
+///
+/// The input MUST be valid UTF-8.
+#[allow(unsafe_code)]
+unsafe fn decode_utf8_unchecked(input: &[u8]) -> &str {
+    if cfg!(debug_assertions) {
+        std::str::from_utf8(input).unwrap()
+    } else {
+        std::str::from_utf8_unchecked(input)
+    }
+}
+
+/// # Safety
+///
+/// The input buffer contents MUST be valid UTF-8.
+#[allow(unsafe_code)]
+unsafe fn decode_utf8_buffer<'a>(env: &JNIEnv, buffer: &'a JByteBuffer) -> &'a str {
+    let ptr = env.get_direct_buffer_address(buffer).expect(DIRECT_ALLOCATED);
+    let len = env.get_direct_buffer_capacity(buffer).expect(DIRECT_ALLOCATED);
+    let bytes = slice::from_raw_parts(ptr, len);
+    decode_utf8_unchecked(bytes)
 }
 
 
