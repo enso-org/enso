@@ -89,6 +89,9 @@ type Decimal
     ## PRIVATE
     Value (big_decimal : BigDecimal)
 
+    ## PRIVATE
+    From_Float (big_decimal : BigDecimal)
+
     ## ICON input_number
        Construct a `Decimal` from a `Text`, `Integer` or `Float`.
 
@@ -329,8 +332,8 @@ type Decimal
              a.add b (Math_Context.new 3)
              # => Decimal.new 30.5
     add : Decimal -> Math_Context | Nothing -> Decimal ! Arithmetic_Error
-    add self (that : Decimal) (math_context : Math_Context | Nothing = Nothing) -> Decimal ! Arithmetic_Error =
-        handle_java_exception <|
+    add self (that : Decimal) (math_context : Math_Context | Nothing = Nothing) =
+        error_if_from_float self that <| handle_java_exception <|
             case math_context of
                 Nothing -> Decimal.Value (self.big_decimal.add that.big_decimal)
                 _ -> Decimal.Value (self.big_decimal.add that.big_decimal math_context.math_context)
@@ -1123,11 +1126,27 @@ Decimal.from (that : Text) = Decimal.from_text that
 Decimal.from (that : Integer) = Decimal.new that
 
 ## PRIVATE
-Decimal.from (that : Float) =
+Decimal.from (that : Float) (explicit:Boolean=False) =
     is_exceptional = that.is_nan || that.is_infinite
     if is_exceptional then Error.throw (Illegal_Argument.Error "Cannot convert "+that.to_text+" to a Decimal") else
         handle_java_exception <| attach_loss_of_numeric_precision that <|
-            Decimal.Value <| Decimal_Utils.fromFloat that
+            big_decimal = Decimal_Utils.fromFloat that
+            if explicit then Decimal.Value big_decimal else Decimal.From_Float big_decimal
 
 ## PRIVATE
 Float.from (that : Decimal) = that.to_float
+
+## PRIVATE
+   Helper method allowing access to the backing field.
+get_big_decimal (that : Decimal) = that.big_decimal
+
+## PRIVATE
+   Create a Decimal from the Java backing field.
+from_big_decimal that = Decimal.Value that
+
+## PRIVATE
+error_if_from_float left right ~action = case left of
+    Decimal.From_Float _ -> Error.throw (Illegal_Argument.Error "Cannot perform operation on Float and Decimal.")
+    _ -> case right of
+        Decimal.From_Float _ -> Error.throw (Illegal_Argument.Error "Cannot perform operation on Decimal and Float.")
+        _ -> action
