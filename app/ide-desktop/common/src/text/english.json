@@ -410,7 +410,7 @@
   "copiedToClipboard": "Copied to clipboard",
   "noResultsFound": "No results found.",
   "enableVersionChecker": "Enable Version Checker",
-  "enableVersionCheckerDescription": "Show a modal if the current version of the desktop app does not match the latest version.",
+  "enableVersionCheckerDescription": "Show a dialog if the current version of the desktop app does not match the latest version.",
 
   "deleteLabelActionText": "delete the label '$0'",
   "deleteSelectedAssetActionText": "delete '$0'",
