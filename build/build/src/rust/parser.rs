@@ -69,7 +69,6 @@ pub async fn run_self_tests(repo_root: &RepoRoot) -> Result {
         .output_ok()
         .await?
         .into_stdout_string()?;
-    trace!("Generated test code:\n{tests_code}");
     ide_ci::fs::tokio::write(&test, tests_code).await?;
 
     Javac
