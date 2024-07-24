@@ -18,3 +18,4 @@ mod treebuilding;
 pub use item::Item;
 pub use token::Token;
 pub use tree::Tree;
+pub use tree::WARNINGS;
