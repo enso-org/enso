@@ -10,6 +10,7 @@ import project.Data.Time.Date_Time.Date_Time
 import project.Data.Vector.Vector
 import project.Enso_Cloud.Data_Link.Data_Link
 import project.Enso_Cloud.Data_Link_Helpers
+import project.Enso_Cloud.Enso_File.Enso_File
 import project.Error.Error
 import project.Errors.Common.Dry_Run_Operation
 import project.Errors.Common.Type_Error
