@@ -31,6 +31,11 @@ final class WindowsTrash implements Trash {
 
   @Override
   public boolean moveToTrash(Path path) {
+    if (Platform.getOperatingSystem().isWindows()) return moveToTrashImpl(path);
+    else return false;
+  }
+
+  private boolean moveToTrashImpl(Path path) {
     CTypeConversion.CCharPointerHolder cPath;
     try {
       cPath = CTypeConversion.toCString(path.toString() + "\0");
@@ -64,7 +69,7 @@ final class WindowsTrash implements Trash {
 
     @Override
     public boolean isInConfiguration() {
-      return !Platform.getOperatingSystem().isLinux();
+      return Platform.getOperatingSystem().isWindows();
     }
 
     @Override
