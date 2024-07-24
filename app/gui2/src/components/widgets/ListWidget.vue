@@ -183,11 +183,13 @@ function onDragStart(event: DragEvent, index: number) {
 
     const metaMime = encodeMetadataToMime(meta)
     event.dataTransfer.setData(metaMime, '')
-    nextTick(() => {
+    // The code below will remove the item from list; because doing it in the same frame ends drag
+    // immediately, we need to put it in setTimeout (nextTick is not enough).
+    setTimeout(() => {
       updateItemBounds()
       draggedIndex.value = index
       dropInfo.value = { meta, position: currentMousePos }
-    })
+    }, 0)
   }
 }
 
