@@ -21,6 +21,7 @@ import com.oracle.truffle.api.object.Shape;
 import com.oracle.truffle.api.source.Source;
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
@@ -163,6 +164,7 @@ public final class EnsoContext {
     PackageManager<TruffleFile> packageManager = new PackageManager<>(fs);
 
     Optional<TruffleFile> projectRoot = OptionsHelper.getProjectRoot(environment);
+    checkWorkingDirectory(projectRoot);
     Optional<Package<TruffleFile>> projectPackage =
         projectRoot.map(
             file ->
@@ -202,6 +204,25 @@ public final class EnsoContext {
       var run = (Consumer<String>) environment.lookup(epb, Consumer.class);
       if (run != null) {
         run.accept(preinit);
+      }
+    }
+  }
+
+  /** Checks if the working directory is as expected and reports a warning if not. */
+  private void checkWorkingDirectory(Optional<TruffleFile> maybeProjectRoot) {
+    if (maybeProjectRoot.isPresent()) {
+      var root = maybeProjectRoot.get();
+      var parent = root.getAbsoluteFile().normalize().getParent();
+      var cwd = environment.getCurrentWorkingDirectory().getAbsoluteFile().normalize();
+      try {
+        if (!cwd.isSameFile(parent)) {
+          logger.warning(
+              "Initializing the context in a different working directory than the one containing"
+                  + " the project root. This may lead to relative paths in Java libraries behaving"
+                  + " inconsistently with Enso `File.new` operation.");
+        }
+      } catch (IOException e) {
+        logger.severe("Error checking working directory: " + e.getMessage());
       }
     }
   }
