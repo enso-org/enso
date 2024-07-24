@@ -93,7 +93,8 @@ type Enso_File
     ## PRIVATE
        The parent directory containing the currently open project if in the
        Cloud, or `Nothing` if running locally.
-    cloud_project_parent_directory -> Enso_File | Nothing =
+    cloud_project_parent_directory : Enso_File | Nothing
+    cloud_project_parent_directory =
         path = Environment.get "ENSO_CLOUD_PROJECT_DIRECTORY_PATH"
         path.if_not_nothing <| Enso_File.new path
 
