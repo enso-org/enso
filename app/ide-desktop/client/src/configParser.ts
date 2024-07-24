@@ -6,10 +6,10 @@ import stringLength from 'string-length'
 // eslint-disable-next-line no-restricted-syntax
 import yargs, { type Options } from 'yargs'
 
-import * as config from 'config'
-import * as contentConfig from 'contentConfig'
-import * as fileAssociations from 'fileAssociations'
-import * as naming from 'naming'
+import * as config from '@/config'
+import * as contentConfig from '@/contentConfig'
+import * as fileAssociations from '@/fileAssociations'
+import * as naming from '@/naming'
 import BUILD_INFO from '../buildInfo'
 
 const logger = contentConfig.logger

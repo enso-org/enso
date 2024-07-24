@@ -11,8 +11,8 @@ import * as pathModule from 'node:path'
 
 import * as linkedDist from 'enso-runner/src/runner'
 
-import * as contentConfig from 'contentConfig'
-import * as paths from 'paths'
+import * as contentConfig from '@/contentConfig'
+import * as paths from '@/paths'
 
 // ================
 // === Log File ===

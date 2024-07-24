@@ -3,9 +3,9 @@
 
 import chalk from 'chalk'
 
-import * as contentConfig from 'contentConfig'
-import * as naming from 'naming'
-import * as paths from 'paths'
+import * as contentConfig from '@/contentConfig'
+import * as naming from '@/naming'
+import * as paths from '@/paths'
 
 // =================
 // === Constants ===

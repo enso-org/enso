@@ -7,9 +7,9 @@ import * as electron from 'electron'
 
 import type * as dashboard from 'enso-dashboard'
 
-import * as debug from 'debug'
-import * as ipc from 'ipc'
-import type * as projectManagement from 'projectManagement'
+import * as debug from '@/debug'
+import * as ipc from '@/ipc'
+import type * as projectManagement from '@/projectManagement'
 
 // =================
 // === Constants ===
