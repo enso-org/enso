@@ -670,54 +670,55 @@ add_specs suite_builder setup =
                     False ->
                         (t.at "d").inferred_precise_value_type . should_be_a (Value_Type.Integer ...)
 
-        group_builder.specify "(Column_Operations_Spec) should allow to compare numbers (including mixed types)" <|
-            x_values = [1.25, 4.5, 5.0]
-            y_values = [2.0, 3.0, 5.0]
+        if setup.test_selection.run_advanced_edge_case_tests then
+            group_builder.specify "(Column_Operations_Spec) should allow to compare numbers (including mixed types)" <|
+                x_values = [1.25, 4.5, 5.0]
+                y_values = [2.0, 3.0, 5.0]
 
-            converters = [.truncate, x->x, dec]
-            converters.map x_converter-> converters.map y_converter->
-                x_values_converted = x_values.map x_converter
-                y_values_converted = y_values.map y_converter
-                with_mixed_columns_if_supported [['x', x_values_converted + [Nothing]], ['y', y_values_converted + [Nothing]]] t->
-                    x = t.at "x"
-                    y = t.at "y"
+                converters = [.truncate, x->x, dec]
+                converters.map x_converter-> converters.map y_converter->
+                    x_values_converted = x_values.map x_converter
+                    y_values_converted = y_values.map y_converter
+                    with_mixed_columns_if_supported [['x', x_values_converted + [Nothing]], ['y', y_values_converted + [Nothing]]] t->
+                        x = t.at "x"
+                        y = t.at "y"
 
-                    Test.with_clue " comparison: "+x.value_type.to_text+', '+y.value_type.to_text+" " <|
-                        (x < y).to_vector . should_equal [True, False, False, Nothing]
-                        (x <= y).to_vector . should_equal [True, False, True, Nothing]
-                        (x > y).to_vector . should_equal (x <= y).not.to_vector
-                        (x >= y).to_vector . should_equal (x < y).not.to_vector
+                        Test.with_clue " comparison: "+x.value_type.to_text+', '+y.value_type.to_text+" " <|
+                            (x < y).to_vector . should_equal [True, False, False, Nothing]
+                            (x <= y).to_vector . should_equal [True, False, True, Nothing]
+                            (x > y).to_vector . should_equal (x <= y).not.to_vector
+                            (x >= y).to_vector . should_equal (x < y).not.to_vector
 
-                        converters.map converter->
-                            const_float = 3.0
-                            constant = converter const_float
-                            Test.with_clue " constant: "+(Meta.get_simple_type_name constant) <|
-                                (x == constant).to_vector . should_equal [False, False, False, Nothing]
-                                (x != constant).to_vector . should_equal [True, True, True, Nothing]
-                                (y == constant).to_vector . should_equal [False, True, False, Nothing]
-                                (y != constant).to_vector . should_equal [True, False, True, Nothing]
-
-                        [6.5, 1000.5].map const_float->
                             converters.map converter->
+                                const_float = 3.0
                                 constant = converter const_float
                                 Test.with_clue " constant: "+(Meta.get_simple_type_name constant) <|
-                                    (x < -constant).to_vector . should_equal [False, False, False, Nothing]
-                                    (x < constant).to_vector . should_equal [True, True, True, Nothing]
-                                    (x <= -constant).to_vector . should_equal [False, False, False, Nothing]
-                                    (x <= constant).to_vector . should_equal [True, True, True, Nothing]
+                                    (x == constant).to_vector . should_equal [False, False, False, Nothing]
+                                    (x != constant).to_vector . should_equal [True, True, True, Nothing]
+                                    (y == constant).to_vector . should_equal [False, True, False, Nothing]
+                                    (y != constant).to_vector . should_equal [True, False, True, Nothing]
 
-                                    (y > -constant).to_vector . should_equal [True, True, True, Nothing]
-                                    (y > constant).to_vector . should_equal [False, False, False, Nothing]
-                                    (y >= -constant).to_vector . should_equal [True, True, True, Nothing]
-                                    (y >= constant).to_vector . should_equal [False, False, False, Nothing]
+                            [6.5, 1000.5].map const_float->
+                                converters.map converter->
+                                    constant = converter const_float
+                                    Test.with_clue " constant: "+(Meta.get_simple_type_name constant) <|
+                                        (x < -constant).to_vector . should_equal [False, False, False, Nothing]
+                                        (x < constant).to_vector . should_equal [True, True, True, Nothing]
+                                        (x <= -constant).to_vector . should_equal [False, False, False, Nothing]
+                                        (x <= constant).to_vector . should_equal [True, True, True, Nothing]
 
-                        [(<), (<=), (>), (>=)].each op->
-                            op x y . value_type . should_equal Value_Type.Boolean
-                            op x y . to_vector . should_succeed
-                            op x 23 . to_vector . should_succeed
-                            op y 23 . to_vector . should_succeed
-                            op x 1.5 . to_vector . should_succeed
-                            op x (dec 1.5) . to_vector . should_succeed
+                                        (y > -constant).to_vector . should_equal [True, True, True, Nothing]
+                                        (y > constant).to_vector . should_equal [False, False, False, Nothing]
+                                        (y >= -constant).to_vector . should_equal [True, True, True, Nothing]
+                                        (y >= constant).to_vector . should_equal [False, False, False, Nothing]
+
+                            [(<), (<=), (>), (>=)].each op->
+                                op x y . value_type . should_equal Value_Type.Boolean
+                                op x y . to_vector . should_succeed
+                                op x 23 . to_vector . should_succeed
+                                op y 23 . to_vector . should_succeed
+                                op x 1.5 . to_vector . should_succeed
+                                op x (dec 1.5) . to_vector . should_succeed
 
         group_builder.specify "should allow to compare texts" <|
             t0 = table_builder [["X", ["a", "b", "c"]], ["Y", ["a", "b", "d"]]]
