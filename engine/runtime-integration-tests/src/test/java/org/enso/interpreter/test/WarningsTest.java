@@ -52,17 +52,20 @@ public class WarningsTest {
 
   @Test
   public void doubleWithWarningsWrap() {
-    var warn1 = Warning.create(ensoContext, "w1", this);
-    var warn2 = Warning.create(ensoContext, "w2", this);
-    var value = 42L;
+    ContextUtils.executeInContext(ctx, () -> {
+      var warn1 = Warning.create(ensoContext, "w1", this);
+      var warn2 = Warning.create(ensoContext, "w2", this);
+      var value = 42L;
 
-    var with1 = AppendWarningNodeGen.getUncached().execute(null, value, warn1);
-    var with2 = AppendWarningNodeGen.getUncached().execute(null, with1, warn2);
+      var with1 = AppendWarningNodeGen.getUncached().execute(null, value, warn1);
+      var with2 = AppendWarningNodeGen.getUncached().execute(null, with1, warn2);
 
-    assertEquals(value, with1.getValue());
-    assertEquals(value, with2.getValue());
-    Assert.assertArrayEquals(new Object[] {warn1}, with1.getWarningsArray(false));
-    Assert.assertArrayEquals(new Object[] {warn1, warn2}, with2.getWarningsArray(false));
+      assertEquals(value, with1.getValue());
+      assertEquals(value, with2.getValue());
+      Assert.assertArrayEquals(new Object[] {warn1}, with1.getWarningsArray(false));
+      Assert.assertArrayEquals(new Object[] {warn1, warn2}, with2.getWarningsArray(false));
+      return null;
+    });
   }
 
   @Test
