@@ -35,7 +35,7 @@ const STATUS_ICON_MAP: Readonly<Record<Status, StatusIcon>> = {
 }
 
 const RESULT_STYLES = twv.tv({
-  base: 'flex flex-col items-center justify-center px-6 py-4 text-center h-[max-content]',
+  base: 'flex flex-col items-center justify-center max-w-full px-6 py-4 text-center h-[max-content]',
   variants: {
     centered: {
       horizontal: 'mx-auto',

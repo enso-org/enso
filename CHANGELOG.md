@@ -4,9 +4,11 @@
 
 - [Enforce conversion method return type][10468]
 - [Renaming launcher executable to ensoup][10535]
+- [Space-precedence does not apply to value-level operators][10597]
 
 [10468]: https://github.com/enso-org/enso/pull/10468
 [10535]: https://github.com/enso-org/enso/pull/10535
+[10597]: https://github.com/enso-org/enso/pull/10597
 
 #### Enso IDE
 
@@ -18,12 +20,16 @@
 - [Warning messages do not obscure visualization buttons][10546].
 - [Output component in collapsed function changed][10577]. It cannot be deleted
   anymore, except by directily editing the code.
+- [Multiselect drop-down widget visuals are improved][10607].
+- [Text displayed in monospace and whitespace rendered as symbols][10563].
 
 [10433]: https://github.com/enso-org/enso/pull/10443
 [10457]: https://github.com/enso-org/enso/pull/10457
 [10509]: https://github.com/enso-org/enso/pull/10509
 [10546]: https://github.com/enso-org/enso/pull/10546
 [10577]: https://github.com/enso-org/enso/pull/10577
+[10607]: https://github.com/enso-org/enso/pull/10607
+[10563]: https://github.com/enso-org/enso/pull/10563
 
 #### Enso Enso Standard Library
 

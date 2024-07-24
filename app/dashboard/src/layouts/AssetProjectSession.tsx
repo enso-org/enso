@@ -42,6 +42,7 @@ export default function AssetProjectSession(props: AssetProjectSessionProps) {
       <div className="flex items-center gap-1">
         <ariaComponents.DialogTrigger isOpen={isOpen} onOpenChange={setIsOpen}>
           <Button active image={LogsIcon} alt={getText('showLogs')} onPress={() => {}} />
+
           <ProjectLogsModal
             isOpen={isOpen}
             backend={backend}

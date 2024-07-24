@@ -24,13 +24,13 @@ DB_Table.should_equal : DB_Table -> Integer -> Any
 DB_Table.should_equal self expected frames_to_skip=0 =
     t0 = self.read
     t1 = expected.read
-    t0 . should_equal t1 frames_to_skip
+    t0 . should_equal t1 frames_to_skip+1
 
 DB_Column.should_equal : DB_Column -> Integer -> Any
 DB_Column.should_equal self expected frames_to_skip=0 =
     t0 = self.read
     t1 = expected.read
-    t0 . should_equal t1 frames_to_skip
+    t0 . should_equal t1 frames_to_skip+1
 
 type Test_Failure_Error
     ## PRIVATE

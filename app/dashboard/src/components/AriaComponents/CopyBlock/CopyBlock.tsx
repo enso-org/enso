@@ -2,6 +2,10 @@
 
 import * as React from 'react'
 
+import * as copyHook from '#/hooks/copyHooks'
+
+import * as textProvider from '#/providers/TextProvider'
+
 import * as ariaComponents from '#/components/AriaComponents'
 
 import * as twv from '#/utilities/tailwindVariants'
@@ -11,14 +15,16 @@ import * as twv from '#/utilities/tailwindVariants'
 // =================
 
 const COPY_BLOCK_STYLES = twv.tv({
-  base: 'relative grid grid-cols-[minmax(0,_1fr)_auto] max-w-full bg-primary/10 items-center',
+  base: ariaComponents.TEXT_STYLE({
+    class: 'max-w-full bg-primary/5 border-primary/10',
+  }),
   variants: {
     size: {
-      small: 'py-2 pl-2 pr-1',
-      medium: 'py-3 pl-3 pr-2',
-      large: 'py-4 pl-4 pr-2.5',
+      small: 'py-[1.5px] px-[5.5px]',
+      medium: 'py-[3.5px] px-[7.5px]',
+      large: 'py-[5.5px] px-[11.5px]',
     },
-    roundings: {
+    rounded: {
       custom: '',
       small: 'rounded-sm',
       medium: 'rounded-md',
@@ -26,15 +32,8 @@ const COPY_BLOCK_STYLES = twv.tv({
       full: 'rounded-full',
     },
   },
-  slots: {
-    titleBlock: 'col-span-1 text-sm text-primary/60',
-    copyTextBlock: 'flex-auto text-sm text-primary/60 text-nowrap overflow-x-auto scroll-hidden',
-    copyButton: 'flex-none',
-  },
-  defaultVariants: {
-    size: 'medium',
-    roundings: 'medium',
-  },
+  slots: { copyTextBlock: 'flex-auto text-nowrap overflow-x-auto scroll-hidden w-full' },
+  defaultVariants: { size: 'medium', rounded: 'full' },
 })
 
 // =================
@@ -52,12 +51,21 @@ export interface CopyBlockProps {
 /** A block of text with a copy button. */
 export function CopyBlock(props: CopyBlockProps) {
   const { copyText, className, onCopy = () => {} } = props
-  const { copyTextBlock, base, copyButton } = COPY_BLOCK_STYLES()
+
+  const { getText } = textProvider.useText()
+  const { mutateAsync, isSuccess } = copyHook.useCopy({ copyText, onCopy })
+
+  const { copyTextBlock, base } = COPY_BLOCK_STYLES()
 
   return (
-    <div className={base({ className })}>
-      <div className={copyTextBlock()}>{copyText}</div>
-      <ariaComponents.CopyButton copyText={copyText} onCopy={onCopy} className={copyButton()} />
-    </div>
+    <ariaComponents.Button
+      variant="custom"
+      size="custom"
+      onPress={() => mutateAsync()}
+      tooltip={isSuccess ? getText('copied') : getText('copy')}
+      className={base({ className })}
+    >
+      <span className={copyTextBlock()}>{copyText}</span>
+    </ariaComponents.Button>
   )
 }

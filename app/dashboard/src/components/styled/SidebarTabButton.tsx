@@ -1,7 +1,6 @@
 /** @file A styled button representing a tab on a sidebar. */
 import * as React from 'react'
 
-import type * as aria from '#/components/aria'
 import * as ariaComponent from '#/components/AriaComponents'
 
 // ========================
@@ -17,7 +16,7 @@ export interface SidebarTabButtonProps {
   readonly active?: boolean
   readonly icon: string
   readonly label: string
-  readonly onPress: (event: aria.PressEvent) => void
+  readonly onPress: ariaComponent.ButtonProps['onPress']
 }
 
 /** A styled button representing a tab on a sidebar. */
@@ -26,11 +25,12 @@ export default function SidebarTabButton(props: SidebarTabButtonProps) {
 
   return (
     <ariaComponent.Button
-      variant="ghost"
-      size="medium"
       onPress={onPress}
-      isDisabled={isDisabled}
       icon={icon}
+      variant="ghost"
+      loaderPosition="icon"
+      size="medium"
+      isDisabled={isDisabled}
       rounded="full"
       className={active ? 'bg-white opacity-100' : ''}
     >

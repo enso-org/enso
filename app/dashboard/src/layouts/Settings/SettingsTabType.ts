@@ -11,7 +11,7 @@ enum SettingsTabType {
   local = 'local',
   // features = 'features',
   // notifications = 'notifications',
-  // billingAndPlans = 'billing-and-plans',
+  billingAndPlans = 'billing-and-plans',
   members = 'members',
   userGroups = 'user-groups',
   // appearance = 'appearance',
