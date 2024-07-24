@@ -260,8 +260,6 @@ type Date_Operation
        Evaluate the operation - will be passed a Column or DB_Column
     evaluate : Any -> Table_Ref -> Any
     evaluate self column table:Table_Ref =
-    evaluate : Any -> Table_Ref -> Any
-    evaluate self column table:Table_Ref =
         case self of
             Date_Operation.Add length period -> column.date_add (table.resolve length) period
             Date_Operation.Part period -> column.date_part period
