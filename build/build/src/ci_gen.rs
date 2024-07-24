@@ -119,6 +119,14 @@ pub mod secret {
     pub const APPLE_NOTARIZATION_PASSWORD: &str = "APPLE_NOTARIZATION_PASSWORD";
     pub const APPLE_NOTARIZATION_TEAM_ID: &str = "APPLE_NOTARIZATION_TEAM_ID";
 
+    // === Snowflake Test Account ===
+    pub const ENSO_SNOWFLAKE_ACCOUNT: &str = "ENSO_SNOWFLAKE_ACCOUNT";
+    pub const ENSO_SNOWFLAKE_USER: &str = "ENSO_SNOWFLAKE_USER";
+    pub const ENSO_SNOWFLAKE_PASSWORD: &str = "ENSO_SNOWFLAKE_PASSWORD";
+    pub const ENSO_SNOWFLAKE_DATABASE: &str = "ENSO_SNOWFLAKE_DATABASE";
+    pub const ENSO_SNOWFLAKE_SCHEMA: &str = "ENSO_SNOWFLAKE_SCHEMA";
+    pub const ENSO_SNOWFLAKE_WAREHOUSE: &str = "ENSO_SNOWFLAKE_WAREHOUSE";
+
     // === Windows Code Signing ===
     /// Name of the GitHub Actions secret that stores path to the Windows code signing certificate
     /// within the runner.
@@ -682,6 +690,22 @@ pub fn engine_nightly() -> Result<Workflow> {
     Ok(workflow)
 }
 
+pub fn extra_nightly_tests() -> Result<Workflow> {
+    let on = Event {
+        // We start at running the tests daily at 3 am, but we may adjust to run it every few days
+        // or only once a week.
+        schedule: vec![Schedule::new("0 3 * * *")?],
+        workflow_dispatch: Some(manual_workflow_dispatch()),
+        ..default()
+    };
+    let mut workflow = Workflow { name: "Extra Nightly Tests".into(), on, ..default() };
+
+    // We run the extra tests only on Linux, as they should not contain any platform-specific
+    // behavior.
+    let target = (OS::Linux, Arch::X86_64);
+    workflow.add(target, job::SnowflakeTests {});
+    Ok(workflow)
+}
 
 pub fn engine_benchmark() -> Result<Workflow> {
     benchmark_workflow("Benchmark Engine", "backend benchmark runtime", Some(4 * 60))
@@ -751,6 +775,7 @@ pub fn generate(
         (repo_root.nightly_yml.to_path_buf(), nightly()?),
         (repo_root.scala_new_yml.to_path_buf(), backend()?),
         (repo_root.engine_nightly_yml.to_path_buf(), engine_nightly()?),
+        (repo_root.extra_nightly_tests_yml.to_path_buf(), extra_nightly_tests()?),
         (repo_root.gui_yml.to_path_buf(), gui()?),
         (repo_root.gui_tests_yml.to_path_buf(), gui_tests()?),
         (repo_root.engine_benchmark_yml.to_path_buf(), engine_benchmark()?),

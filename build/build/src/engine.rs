@@ -97,6 +97,7 @@ pub enum Tests {
     Jvm,
     #[clap(alias = "stdlib")]
     StandardLibrary,
+    StdSnowflake,
 }
 
 impl Benchmarks {
@@ -118,7 +119,7 @@ pub struct BuildConfigurationFlags {
     /// Run JVM tests.
     pub test_jvm: bool,
     /// Whether the Enso standard library should be tested.
-    pub test_standard_library: bool,
+    pub test_standard_library: Option<StandardLibraryTestsSelection>,
     /// Whether benchmarks are compiled.
     ///
     /// Note that this does not run the benchmarks, only ensures that they are buildable.
@@ -147,6 +148,12 @@ pub struct BuildConfigurationFlags {
     pub verify_packages: bool,
 }
 
+#[derive(Clone, Debug)]
+pub enum StandardLibraryTestsSelection {
+    All,
+    Selected(Vec<String>),
+}
+
 impl From<BuildConfigurationFlags> for BuildConfigurationResolved {
     fn from(value: BuildConfigurationFlags) -> Self {
         Self::new(value)
@@ -170,7 +177,7 @@ impl BuildConfigurationResolved {
 
         // Check for components that require Enso Engine runner. Basically everything that needs to
         // run pure Enso code.
-        if config.test_standard_library
+        if config.test_standard_library.is_some()
             || config.execute_benchmarks.contains(&Benchmarks::Enso)
             || config.check_enso_benchmarks
         {
@@ -195,7 +202,7 @@ impl BuildConfigurationFlags {
         self.build_engine_package
             || self.build_launcher_bundle
             || self.build_project_manager_bundle
-            || self.test_standard_library
+            || self.test_standard_library.is_some()
             || self.build_native_runner
     }
 
@@ -206,13 +213,29 @@ impl BuildConfigurationFlags {
     pub fn build_launcher_package(&self) -> bool {
         self.build_launcher_package || self.build_launcher_bundle
     }
+
+    pub fn add_standard_library_test_selection(
+        &mut self,
+        selection: StandardLibraryTestsSelection,
+    ) {
+        use StandardLibraryTestsSelection::*;
+        let combined_selection = match (self.test_standard_library.take(), selection) {
+            (None, selection) => selection,
+            (Some(All), _) | (_, All) => All,
+            (Some(Selected(mut selection)), Selected(new_selection)) => {
+                selection.extend(new_selection);
+                Selected(selection)
+            }
+        };
+        self.test_standard_library = Some(combined_selection);
+    }
 }
 
 impl Default for BuildConfigurationFlags {
     fn default() -> Self {
         Self {
             test_jvm: false,
-            test_standard_library: false,
+            test_standard_library: None,
             build_benchmarks: false,
             check_enso_benchmarks: false,
             execute_benchmarks: default(),
