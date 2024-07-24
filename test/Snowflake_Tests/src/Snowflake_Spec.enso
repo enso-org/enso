@@ -618,6 +618,8 @@ get_configured_connection_details = Panic.rethrow <|
 create_connection_builder =
     connection_details = get_configured_connection_details
     connection_details.if_not_nothing <|
+        IO.println connection_details.to_text
+        IO.println connection_details.jdbc_url
         _ -> Database.connect connection_details
 
 add_specs suite_builder =
