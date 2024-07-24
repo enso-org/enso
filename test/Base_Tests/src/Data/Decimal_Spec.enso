@@ -13,6 +13,8 @@ polyglot java import java.lang.Integer as Java_Integer
 
 Decimal.should_have_rep self rep = self.internal_representation . should_equal rep
 
+id_decimal (x : Decimal) -> Decimal = x
+
 add_specs suite_builder =
     suite_builder.group "(Decimal_Spec) construction" group_builder->
         group_builder.specify "should be able to construct a Decimal with dec" <|
@@ -373,6 +375,13 @@ add_specs suite_builder =
                         (lesser > d) . should_be_false
                         (lesser >= d) . should_be_false
 
+        group_builder.specify "mixed float/decimal comparisons should attach a warning" <|
+            [(_ == _), (_ != _), (_ <= _), (_ >= _), (_ < _), (_ > _)].map c->
+                a = c (Decimal.new "0.1") 0.1
+                b = c 0.1 (Decimal.new "0.1")
+                Problems.expect_only_warning (Loss_Of_Numeric_Precision.Warning 0.1 (Decimal.new "0.1")) a
+                Problems.expect_only_warning (Loss_Of_Numeric_Precision.Warning 0.1 (Decimal.new "0.1")) b
+
         group_builder.specify "should not implicitly convert Decimal to Integer in comparison" <|
             (Decimal.new "12.5" == 12) . should_be_false
             (12 == Decimal.new "12.5") . should_be_false
@@ -508,15 +517,15 @@ add_specs suite_builder =
             (3 * Decimal.new 4) . should_equal 12
             (3 / Decimal.new 4) . should_equal 0.75
 
-            (Decimal.new 1 + 2.0) . should_equal 3
-            (Decimal.new 1 - 2.0) . should_equal -1
-            (Decimal.new 3 * 4.0) . should_equal 12
-            (Decimal.new 3 / 4.0) . should_equal 0.75
+            (Decimal.new 1 + 2.0) . should_fail_with Illegal_Argument
+            (Decimal.new 1 - 2.0) . should_fail_with Illegal_Argument
+            (Decimal.new 3 * 4.0) . should_fail_with Illegal_Argument
+            (Decimal.new 3 / 4.0) . should_fail_with Illegal_Argument
 
-            (1 + Decimal.new 2.0) . should_equal 3
-            (1 - Decimal.new 2.0) . should_equal -1
-            (3 * Decimal.new 4.0) . should_equal 12
-            (3 / Decimal.new 4.0) . should_equal 0.75
+            (1 + Decimal.new 2.0) . should_fail_with Illegal_Argument
+            (1 - Decimal.new 2.0) . should_fail_with Illegal_Argument
+            (3 * Decimal.new 4.0) . should_fail_with Illegal_Argument
+            (3 / Decimal.new 4.0) . should_fail_with Illegal_Argument
 
         group_builder.specify "Decimal mixed arithmetic should result in Decimal" <|
             (Decimal.new 1 + 2) . should_be_a Decimal
@@ -545,10 +554,6 @@ add_specs suite_builder =
             d2 = Decimal.new -5
             nd2 = -d2
             nd2 . should_equal 5
-
-        group_builder.specify "Mixed Decimal/Integer arithmetic should not attach warnings" <|
-            Problems.assume_no_problems (Decimal.new 1 + 2)
-            Problems.assume_no_problems (1 + Decimal.new 2)
 
     suite_builder.group "(Decimal_Spec) conversions" group_builder->
         group_builder.specify "should convert correctly to and from Integer" <|
@@ -618,6 +623,24 @@ add_specs suite_builder =
             f = Float.from (Decimal.new "56.34")
             f.should_be_a Float
             f.should_equal 56.34
+
+        group_builder.specify "Conversion from float to decimal should use the correct constructor" <|
+            is_value_constructor d = case d of
+                Decimal.Value _ -> True
+                Decimal.From_Float _ _ -> False
+
+            0.1 . to Decimal |> is_value_constructor . should_be_true
+            Decimal.from 0.1 |> is_value_constructor . should_be_false
+            Decimal.from 0.1 explicit=False |> is_value_constructor . should_be_true
+            id_decimal 0.1 |> is_value_constructor . should_be_false
+
+        group_builder.specify "Arithmetic with decimal and explicitly converted float should succeed" <|
+            (Decimal.new 1) + (0.1 . to Decimal) . should_equal 1.1
+            (Decimal.new 1) + (Decimal.from 0.1 explicit=False) . should_equal 1.1
+
+        group_builder.specify "Arithmetic with decimal and implicitly converted float should fail" <|
+            (Decimal.new 1) + (Decimal.from 0.1) . should_fail_with Illegal_Argument
+            (Decimal.new 1) + (id_decimal 0.1) . should_fail_with Illegal_Argument
 
         group_builder.specify "should attach a Loss_Of_Numeric_Precision warning when converting decimal to float with .from" <|
             Problems.expect_only_warning Loss_Of_Numeric_Precision (Float.from (Decimal.new "56.34"))

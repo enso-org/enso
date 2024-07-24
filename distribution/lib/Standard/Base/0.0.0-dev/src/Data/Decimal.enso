@@ -90,7 +90,11 @@ type Decimal
     Value (big_decimal : BigDecimal)
 
     ## PRIVATE
-    From_Float (big_decimal : BigDecimal)
+    From_Float (big_decimal : BigDecimal) (original_value : Float)
+
+    trep self = case self of
+        Decimal.Value bd -> ['value', bd]
+        Decimal.From_Float bd f -> ['from_float', bd, f]
 
     ## ICON input_number
        Construct a `Decimal` from a `Text`, `Integer` or `Float`.
@@ -1131,7 +1135,7 @@ Decimal.from (that : Float) (explicit:Boolean=False) =
     if is_exceptional then Error.throw (Illegal_Argument.Error "Cannot convert "+that.to_text+" to a Decimal") else
         handle_java_exception <| attach_loss_of_numeric_precision that <|
             big_decimal = Decimal_Utils.fromFloat that
-            if explicit then Decimal.Value big_decimal else Decimal.From_Float big_decimal
+            if explicit then Decimal.Value big_decimal else Decimal.From_Float big_decimal that
 
 ## PRIVATE
 Float.from (that : Decimal) = that.to_float
@@ -1146,7 +1150,7 @@ from_big_decimal that = Decimal.Value that
 
 ## PRIVATE
 error_if_from_float left right ~action = case left of
-    Decimal.From_Float _ -> Error.throw (Illegal_Argument.Error "Cannot perform operation on Float and Decimal.")
+    Decimal.From_Float _ _ -> Error.throw (Illegal_Argument.Error "Cannot perform operation on Float and Decimal.")
     _ -> case right of
-        Decimal.From_Float _ -> Error.throw (Illegal_Argument.Error "Cannot perform operation on Decimal and Float.")
+        Decimal.From_Float _ _ -> Error.throw (Illegal_Argument.Error "Cannot perform operation on Decimal and Float.")
         _ -> action
