@@ -919,9 +919,7 @@ final class TreeToIr {
           default -> {
             var lhs = unnamedCallArgument(app.getLhs());
             var rhs = unnamedCallArgument(app.getRhs());
-            var loc = getIdentifiedLocation(app);
-            var ir = applyOperator(op, lhs, rhs, loc);
-            attachTranslatedWarnings(ir, app);
+            var ir = applyOperator(op, lhs, rhs, app);
             yield ir;
           }
         };
@@ -936,8 +934,7 @@ final class TreeToIr {
                 Syntax.UnexpectedExpression$.MODULE$);
           }
           var rhs = unnamedCallArgument(l.getExpression().getExpression());
-          var loc = getIdentifiedLocation(app);
-          var both = applyOperator(op, lhs, rhs, loc);
+          var both = applyOperator(op, lhs, rhs, app);
           expr = both;
           lhs = new CallArgument.Specified(Option.empty(), expr, loc, meta(), diag());
         }
@@ -1201,27 +1198,19 @@ final class TreeToIr {
     };
   }
 
-  private void attachTranslatedWarnings(IR ir, Tree tree) {
-    for (var warning : tree.getWarnings()) {
-      var message = Parser.getWarningMessage(warning);
-      var irWarning = new Warning.Syntax(ir, message);
-      ir.diagnostics().add(irWarning);
-    }
-  }
-
-  private Operator applyOperator(Token.Operator op, CallArgument lhs, CallArgument rhs,
-      Option<IdentifiedLocation> loc) {
+  private Operator applyOperator(Token.Operator op, CallArgument lhs, CallArgument rhs, Tree tree) {
+    var loc = getIdentifiedLocation(tree);
     var name = new Name.Literal(
-        op.codeRepr(), true, getIdentifiedLocation(op), Option.empty(), meta(), diag()
+        op.codeRepr(), true, getIdentifiedLocation(op), Option.empty(), meta(), diag(op)
     );
     if (lhs == null && rhs == null) {
-      return new Section.Sides(name, loc, meta(), diag());
+      return new Section.Sides(name, loc, meta(), diag(tree));
     } else if (lhs == null) {
-      return new Section.Right(name, rhs, loc, meta(), diag());
+      return new Section.Right(name, rhs, loc, meta(), diag(tree));
     } else if (rhs == null) {
-      return new Section.Left(lhs, name, loc, meta(), diag());
+      return new Section.Left(lhs, name, loc, meta(), diag(tree));
     } else {
-      return new Operator.Binary(lhs, name, rhs, loc, meta(), diag());
+      return new Operator.Binary(lhs, name, rhs, loc, meta(), diag(tree));
     }
   }
 
@@ -2036,6 +2025,17 @@ final class TreeToIr {
 
   private DiagnosticStorage diag() {
     return DiagnosticStorage.apply(nil());
+  }
+
+  private DiagnosticStorage diag(Tree tree) {
+    var warnings = tree.getWarnings().stream();
+    var diags = warnings.map(warning -> new Warning.Syntax(ir, Parser.getWarningMessage(warning)));
+    return DiagnosticStorage.apply(diags);
+  }
+
+  private DiagnosticStorage diag(Token token) {
+    // Tokens don't (currently) have warnings attached.
+    return diag();
   }
 
   private static int castToInt(long presumablyInt) {
