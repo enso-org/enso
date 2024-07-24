@@ -10,6 +10,7 @@ import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.InvalidArrayIndexException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
+import com.oracle.truffle.api.profiles.ConditionProfile;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.hash.EnsoHashMap;
 import org.enso.interpreter.runtime.data.hash.HashMapInsertNode;
@@ -34,34 +35,54 @@ public abstract class AppendWarningNode extends Node {
   public abstract WithWarnings execute(VirtualFrame frame, Object object, Object warnings);
 
   @Specialization
-  WithWarnings doWithWarnMultipleWarningsArray(
+  WithWarnings doSingleWarning(
       VirtualFrame frame,
-      WithWarnings withWarn,
-      Warning[] warnings,
-      @Shared @Cached HashMapInsertNode mapInsertNode) {
-    var warnsMap = withWarn.warnings;
-    var maxWarnsCnt = withWarn.maxWarnings;
-    var isLimitReached = false;
-    for (var warn : warnings) {
-      if (warnsMap.getHashSize() < maxWarnsCnt) {
-        warnsMap = mapInsertNode.execute(frame, warnsMap, warn.getSequenceId(), warn);
-      } else {
-        isLimitReached = true;
-        break;
-      }
+      Object object,
+      Warning warning,
+      @Shared @Cached HashMapInsertNode mapInsertNode,
+      @Shared @Cached ConditionProfile isWithWarnsProfile) {
+    EnsoHashMap warnsMap;
+    int warnsLimit;
+    Object value;
+    if (isWithWarnsProfile.profile(object instanceof WithWarnings)) {
+      warnsMap = ((WithWarnings) object).warnings;
+      value = ((WithWarnings) object).value;
+      warnsLimit = ((WithWarnings) object).maxWarnings;
+    } else {
+      warnsMap = EnsoHashMap.empty();
+      value = object;
+      warnsLimit = EnsoContext.get(this).getWarningsLimit();
     }
-    return new WithWarnings(withWarn.value, withWarn.maxWarnings, isLimitReached, warnsMap);
+    boolean isLimitReached;
+    if (warnsMap.getHashSize() < warnsLimit) {
+      warnsMap = mapInsertNode.execute(frame, warnsMap, warning.getSequenceId(), warning);
+      isLimitReached = false;
+    } else {
+      isLimitReached = true;
+    }
+    return new WithWarnings(value, warnsLimit, isLimitReached, warnsMap);
   }
 
   @Specialization
-  WithWarnings doGenericMultipleWarningsArray(
+  WithWarnings doMultipleWarningsArray(
       VirtualFrame frame,
       Object object,
       Warning[] warnings,
-      @Shared @Cached HashMapInsertNode mapInsertNode) {
-    var warnsMap = EnsoHashMap.empty();
+      @Shared @Cached HashMapInsertNode mapInsertNode,
+      @Shared @Cached ConditionProfile isWithWarnsProfile) {
+    EnsoHashMap warnsMap;
+    int warnsLimit;
+    Object value;
+    if (isWithWarnsProfile.profile(object instanceof WithWarnings)) {
+      warnsMap = ((WithWarnings) object).warnings;
+      warnsLimit = ((WithWarnings) object).maxWarnings;
+      value = ((WithWarnings) object).value;
+    } else {
+      warnsMap = EnsoHashMap.empty();
+      warnsLimit = EnsoContext.get(this).getWarningsLimit();
+      value = object;
+    }
     var isLimitReached = false;
-    var warnsLimit = EnsoContext.get(this).getWarningsLimit();
     for (var warn : warnings) {
       if (warnsMap.getHashSize() < warnsLimit) {
         warnsMap = mapInsertNode.execute(frame, warnsMap, warn.getSequenceId(), warn);
@@ -70,78 +91,39 @@ public abstract class AppendWarningNode extends Node {
         break;
       }
     }
-    return new WithWarnings(object, warnsLimit, isLimitReached, warnsMap);
+    return new WithWarnings(value, warnsLimit, isLimitReached, warnsMap);
   }
 
-  @Specialization(guards = "interop.hasArrayElements(warnings)")
-  WithWarnings doWithWarnMultipleWarningsInterop(
-      VirtualFrame frame,
-      WithWarnings withWarn,
-      Object warnings,
-      @Shared @CachedLibrary(limit = "3") InteropLibrary interop,
-      @Shared @Cached HashMapInsertNode mapInsertNode,
-      @Shared @Cached ArrayLikeAtNode atNode,
-      @Shared @Cached ArrayLikeLengthNode lengthNode) {
-    var warnsLimit = withWarn.maxWarnings;
-    var resWarningMap =
-        insertToWarningMap(
-            frame, withWarn.warnings, warnings, warnsLimit, lengthNode, atNode, mapInsertNode);
-    var currWarnsCnt = withWarn.warnings.getHashSize();
-    var newWarnsCnt = lengthNode.executeLength(warnings);
-    var isLimitReached = currWarnsCnt + newWarnsCnt >= withWarn.maxWarnings;
-    return new WithWarnings(withWarn.value, withWarn.maxWarnings, isLimitReached, resWarningMap);
-  }
-
-  @Specialization(guards = {"!interop.hasArrayElements(warning)", "!isWarnArray(warning)"})
-  WithWarnings doWithWarnSingleWarning(
-      VirtualFrame frame,
-      WithWarnings withWarn,
-      Warning warning,
-      @Shared @CachedLibrary(limit = "3") InteropLibrary interop,
-      @Shared @Cached HashMapInsertNode mapInsertNode) {
-    var warningsMap = withWarn.warnings;
-    EnsoHashMap newWarnsMap;
-    boolean isLimitReached;
-    if (warningsMap.getHashSize() < withWarn.maxWarnings) {
-      newWarnsMap = mapInsertNode.execute(frame, warningsMap, warning.getSequenceId(), warning);
-      isLimitReached = false;
-    } else {
-      newWarnsMap = withWarn.warnings;
-      isLimitReached = true;
-    }
-    return new WithWarnings(withWarn.value, withWarn.maxWarnings, isLimitReached, newWarnsMap);
-  }
-
-  @Specialization(guards = {"!interop.hasArrayElements(warning)", "!isWarnArray(warning)"})
-  WithWarnings doGenericSingleWarning(
-      VirtualFrame frame,
-      Object value,
-      Warning warning,
-      @Shared @CachedLibrary(limit = "3") InteropLibrary interop,
-      @Shared @Cached HashMapInsertNode mapInsertNode) {
-    var warnsMap =
-        mapInsertNode.execute(frame, EnsoHashMap.empty(), warning.getSequenceId(), warning);
-    var warnsLimit = EnsoContext.get(this).getWarningsLimit();
-    var limitReached = 1 >= warnsLimit;
-    return new WithWarnings(value, warnsLimit, limitReached, warnsMap);
-  }
-
-  @Specialization(guards = "interop.hasArrayElements(warnings)")
-  WithWarnings doGenericMultipleWarnings(
+  @Specialization(guards = {"interop.hasArrayElements(warnings)", "!isWarnArray(warnings)"})
+  WithWarnings doMultipleWarningsInterop(
       VirtualFrame frame,
       Object object,
       Object warnings,
-      @Shared @CachedLibrary(limit = "3") InteropLibrary interop,
-      @Shared @Cached ArrayLikeLengthNode lengthNode,
-      @Shared @Cached ArrayLikeAtNode atNode,
-      @Shared @Cached HashMapInsertNode mapInsertNode) {
-    var warnsLimit = EnsoContext.get(this).getWarningsLimit();
+      @CachedLibrary(limit = "3") InteropLibrary interop,
+      @Shared @Cached HashMapInsertNode mapInsertNode,
+      @Cached ArrayLikeAtNode atNode,
+      @Cached ArrayLikeLengthNode lengthNode,
+      @Shared @Cached ConditionProfile isWithWarnsProfile) {
+    assert !(warnings instanceof Warning[]);
+    EnsoHashMap warnsMap;
+    int warnsLimit;
+    Object value;
+    if (isWithWarnsProfile.profile(object instanceof WithWarnings)) {
+      value = ((WithWarnings) object).value;
+      warnsLimit = ((WithWarnings) object).maxWarnings;
+      warnsMap = ((WithWarnings) object).warnings;
+    } else {
+      value = object;
+      warnsLimit = EnsoContext.get(this).getWarningsLimit();
+      warnsMap = EnsoHashMap.empty();
+    }
+    var currWarnsCnt = warnsMap.getHashSize();
     var resWarningMap =
         insertToWarningMap(
-            frame, EnsoHashMap.empty(), warnings, warnsLimit, lengthNode, atNode, mapInsertNode);
+            frame, warnsMap, warnings, warnsLimit, lengthNode, atNode, mapInsertNode);
     var newWarnsCnt = lengthNode.executeLength(warnings);
-    var isLimitReached = newWarnsCnt >= warnsLimit;
-    return new WithWarnings(object, warnsLimit, isLimitReached, resWarningMap);
+    var isLimitReached = currWarnsCnt + newWarnsCnt >= warnsLimit;
+    return new WithWarnings(value, warnsLimit, isLimitReached, resWarningMap);
   }
 
   /** Inserts all {@code warnings} to the {@code initialWarningMap}. */
