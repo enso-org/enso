@@ -55,7 +55,8 @@ class LauncherRunner(
           projectManager.findProject(currentWorkingDirectory).get
       }
 
-      val version = resolveVersion(versionOverride, inProject)
+      val version          = resolveVersion(versionOverride, inProject)
+      val workingDirectory = workingDirectoryForRunner(inProject, None)
       val arguments = inProject match {
         case Some(project) =>
           val projectPackagePath =
@@ -68,7 +69,7 @@ class LauncherRunner(
         version,
         arguments ++ setLogLevelArgs(logLevel, logMasking)
         ++ additionalArguments,
-        workingDirectory         = None,
+        workingDirectory         = workingDirectory,
         connectLoggerIfAvailable = true
       )
     }
@@ -110,14 +111,9 @@ class LauncherRunner(
         else projectManager.findProject(actualPath).get
       val version = resolveVersion(versionOverride, project)
 
-      // The path of the project or standalone script that is being ran.
-      val targetPath = project match {
-        case Some(project) => project.path.toAbsolutePath.normalize
-        case None          => actualPath
-      }
-
       // The engine is started in the directory containing the project, or the standalone script.
-      val workingDirectory = targetPath.getParent
+      val workingDirectory =
+        workingDirectoryForRunner(project, Some(actualPath))
 
       val arguments =
         if (projectMode) Seq("--run", actualPath.toString)
@@ -137,10 +133,23 @@ class LauncherRunner(
         version,
         arguments ++ setLogLevelArgs(logLevel, logMasking)
         ++ additionalArguments,
-        workingDirectory         = Some(workingDirectory),
+        workingDirectory         = workingDirectory,
         connectLoggerIfAvailable = true
       )
     }
+
+  private def workingDirectoryForRunner(
+    inProject: Option[Project],
+    scriptPath: Option[Path]
+  ): Option[Path] = {
+    // The path of the project or standalone script that is being run.
+    val baseDirectory = inProject match {
+      case Some(project) => Some(project.path)
+      case None          => scriptPath
+    }
+
+    baseDirectory.map(p => p.toAbsolutePath.normalize().getParent)
+  }
 
   private def setLogLevelArgs(
     level: Level,

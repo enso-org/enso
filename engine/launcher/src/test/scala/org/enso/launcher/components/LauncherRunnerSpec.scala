@@ -64,6 +64,7 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
       val runSettings = RunSettings(
         SemVer.of(0, 0, 0),
         Seq("arg1", "--flag2"),
+        workingDirectory         = None,
         connectLoggerIfAvailable = true
       )
       val jvmOptions = Seq(("locally-added-options", "value1"))
