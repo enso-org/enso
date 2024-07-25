@@ -539,7 +539,6 @@ val directoryWatcherVersion = "0.18.0"
 val flatbuffersVersion      = "24.3.25"
 val guavaVersion            = "32.0.0-jre"
 val jlineVersion            = "3.23.0"
-val jnaVersion              = "5.14.0"
 val jgitVersion             = "6.7.0.202309050840-r"
 val kindProjectorVersion    = "0.13.2"
 val mockitoScalaVersion     = "1.17.14"
@@ -1121,15 +1120,10 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
         staticOnLinux = true,
         initializeAtRuntime = Seq(
           "scala.util.Random",
-          "com.sun.jna",
           "zio.internal.ZScheduler$$anon$4",
           "zio.Runtime$",
           "zio.FiberRef$"
         ),
-        additionalOptions = Seq(
-          "-H:+AddAllCharsets",
-          "-H:+IncludeAllLocales"
-        )
       )
       .dependsOn(VerifyReflectionSetup.run)
       .dependsOn(assembly)
@@ -2874,11 +2868,9 @@ lazy val `desktop-environment` =
     .in(file("lib/java/desktop-environment"))
     .settings(
       frgaalJavaCompilerSetting,
-      javadocSettings,
       libraryDependencies ++= Seq(
         "org.graalvm.sdk"  % "graal-sdk"       % graalMavenPackagesVersion % "provided",
         "commons-io"       % "commons-io"      % commonsIoVersion,
-        "net.java.dev.jna" % "jna-platform"    % jnaVersion,
         "junit"            % "junit"           % junitVersion              % Test,
         "com.github.sbt"   % "junit-interface" % junitIfVersion            % Test
       )
