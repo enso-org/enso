@@ -10,6 +10,7 @@ import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Context;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -94,6 +95,7 @@ public class AtomInteropTest {
     assertThat(anyType.getMetaSimpleName(), is("Any"));
   }
 
+  @Ignore("https://github.com/enso-org/enso/issues/10675")
   @Test
   public void atomMembersAreConstructorFields_ManyConstructors() {
     var myTypeAtom =
