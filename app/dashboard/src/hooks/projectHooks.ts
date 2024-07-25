@@ -13,7 +13,6 @@ import { useNavigate } from '#/hooks/routerHooks'
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import {
-  TabType,
   useAddLaunchedProject,
   useProjectsStore,
   useRemoveLaunchedProject,

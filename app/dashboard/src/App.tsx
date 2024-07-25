@@ -41,7 +41,7 @@ import * as toastify from 'react-toastify'
 
 import * as detect from 'enso-common/src/detect'
 
-import { ALL_PATHS_REGEX, definePath } from '#/appUtils'
+import { definePath } from '#/appUtils'
 
 import * as inputBindingsModule from '#/configurations/inputBindings'
 

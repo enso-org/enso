@@ -2,13 +2,12 @@
 import * as React from 'react'
 
 import * as reactQuery from '@tanstack/react-query'
-import { Navigate, useLocation } from 'react-router'
+import { useLocation } from 'react-router'
 
 import BurgerMenuIcon from '#/assets/burger_menu.svg'
 
 import * as backendHooks from '#/hooks/backendHooks'
 import { useNavigate } from '#/hooks/routerHooks'
-import * as searchParamsState from '#/hooks/searchParamsStateHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
@@ -56,8 +55,8 @@ export default function Settings() {
   const navigate = useNavigate()
   const maybeTab = pathname.replace(/^[/]settings[/]/, '')
   const tab = settingsData.isSettingsTabType(maybeTab) ? maybeTab : 'account'
-  const setTab = (tab: settingsData.SettingsTabType) => {
-    navigate(`/settings/${tab}`)
+  const setTab = (newTab: settingsData.SettingsTabType) => {
+    navigate(`/settings/${newTab}`)
   }
 
   const client = reactQuery.useQueryClient()

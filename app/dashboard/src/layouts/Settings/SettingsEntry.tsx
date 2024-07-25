@@ -1,8 +1,8 @@
-/** @file Rendering for an arbitrary {@link settingsData.SettingsEntryData}. */
+/** @file Rendering for an arbitrary {@link SettingsEntryData}. */
 import * as React from 'react'
 
 import SettingsCustomEntry from '#/layouts/Settings/SettingsCustomEntry'
-import * as settingsData from '#/layouts/Settings/settingsData'
+import type { SettingsContext, SettingsEntryData } from '#/layouts/Settings/settingsData'
 import SettingsInputEntry from '#/layouts/Settings/SettingsInputEntry'
 
 // =====================
@@ -11,11 +11,11 @@ import SettingsInputEntry from '#/layouts/Settings/SettingsInputEntry'
 
 /** Props for a {@link SettingsEntry}. */
 export interface SettingsEntryProps {
-  readonly context: settingsData.SettingsContext
-  readonly data: settingsData.SettingsEntryData
+  readonly context: SettingsContext
+  readonly data: SettingsEntryData
 }
 
-/** Rendering for an arbitrary {@link settingsData.SettingsEntryData}. */
+/** Rendering for an arbitrary {@link SettingsEntryData}. */
 export default function SettingsEntry(props: SettingsEntryProps) {
   const { context, data } = props
   switch (data.type) {

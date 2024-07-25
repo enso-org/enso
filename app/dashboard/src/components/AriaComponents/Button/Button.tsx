@@ -27,7 +27,7 @@ export type ButtonProps =
  * Props for a button with an href.
  */
 interface PropsWithHref {
-  readonly href: AppFullPath
+  readonly href: AppFullPath | `https://${string}` | `mailto:${string}`
 }
 
 /**

@@ -6,24 +6,12 @@ import * as z from 'zod'
 import * as zustand from 'zustand'
 
 import * as eventCallbacks from '#/hooks/eventCallbackHooks'
-import * as searchParamsState from '#/hooks/searchParamsStateHooks'
 
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 
 import * as backendModule from '#/services/Backend'
 
-import * as array from '#/utilities/array'
 import LocalStorage from '#/utilities/LocalStorage'
-
-// ===============
-// === TabType ===
-// ===============
-
-/** Main content of the screen. Only one should be visible at a time. */
-export enum TabType {
-  drive = 'drive',
-  settings = 'settings',
-}
 
 // ============================
 // === Global configuration ===
@@ -33,7 +21,6 @@ declare module '#/utilities/LocalStorage' {
   /** */
   interface LocalStorageData {
     readonly isAssetPanelVisible: boolean
-    readonly page: z.infer<typeof PAGES_SCHEMA>
     readonly launchedProjects: z.infer<typeof LAUNCHED_PROJECT_SCHEMA>
   }
 }
@@ -67,14 +54,6 @@ LocalStorage.registerKey('launchedProjects', {
   isUserSpecific: true,
   schema: LAUNCHED_PROJECT_SCHEMA,
 })
-
-const PAGES_SCHEMA = z
-  .nativeEnum(TabType)
-  .or(
-    z.custom<LaunchedProjectId>(value => typeof value === 'string' && value.startsWith('project-'))
-  )
-
-LocalStorage.registerKey('page', { schema: PAGES_SCHEMA })
 
 // =====================
 // === ProjectsStore ===

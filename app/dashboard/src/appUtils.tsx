@@ -52,10 +52,11 @@ export function getUpgradeURL(plan: string): AppFullPath {
 /**
  * Build a Subscription URL for contacting sales.
  */
-export function getContactSalesURL(): string {
+export function getContactSalesURL(): `mailto:${string}` {
   return 'mailto:contact@enso.org?subject=Upgrading%20to%20Organization%20Plan'
 }
 
+/** A type predicate for whether a path is a valid app path. */
 export function isAppFullPath(path: string): path is AppFullPath {
   return ALL_PATHS_REGEX.test(path)
 }

@@ -3,8 +3,11 @@ import * as React from 'react'
 
 import * as textProvider from '#/providers/TextProvider'
 
-import * as settingsData from '#/layouts/Settings/settingsData'
-import type SettingsTabType from '#/layouts/Settings/SettingsTabType'
+import {
+  SETTINGS_DATA,
+  type SettingsContext,
+  type SettingsTabType,
+} from '#/layouts/Settings/settingsData'
 
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
@@ -19,11 +22,11 @@ import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 /** Props for a {@link SettingsSidebar} */
 export interface SettingsSidebarProps {
-  readonly context: settingsData.SettingsContext
+  readonly context: SettingsContext
   readonly tabsToShow: readonly SettingsTabType[]
   readonly isMenu?: true
   readonly tab: SettingsTabType
-  readonly setTab: React.Dispatch<React.SetStateAction<SettingsTabType>>
+  readonly setTab: (tab: SettingsTabType) => void
   readonly onClickCapture?: () => void
 }
 
@@ -47,7 +50,7 @@ export default function SettingsSidebar(props: SettingsSidebarProps) {
           onClickCapture={onClickCapture}
           {...innerProps}
         >
-          {settingsData.SETTINGS_DATA.map(section => {
+          {SETTINGS_DATA.map(section => {
             const name = getText(section.nameId)
             const visibleTabData = section.tabs.filter(
               tabData =>

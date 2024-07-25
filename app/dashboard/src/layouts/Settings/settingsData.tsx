@@ -5,6 +5,7 @@ import type * as reactQuery from '@tanstack/react-query'
 import isEmail from 'validator/lib/isEmail'
 
 import type * as text from 'enso-common/src/text'
+import { includesPredicate } from 'enso-common/src/utilities/data/array'
 
 import ComputerIcon from '#/assets/computer.svg'
 import CreditCardIcon from '#/assets/credit_card.svg'
@@ -39,7 +40,6 @@ import type LocalBackend from '#/services/LocalBackend'
 import type RemoteBackend from '#/services/RemoteBackend'
 
 import * as object from '#/utilities/object'
-import { includesPredicate } from 'enso-common/src/utilities/data/array'
 
 // =================
 // === Constants ===
@@ -62,8 +62,11 @@ const SETTINGS_TAB_TYPES = [
   'activity-log',
 ] as const
 
+/** All possible identifiers for settings tabs. */
 export type SettingsTabType = (typeof SETTINGS_TAB_TYPES)[number]
 
+// This is a function even though it does not contain function syntax.
+// eslint-disable-next-line no-restricted-syntax
 export const isSettingsTabType = includesPredicate(SETTINGS_TAB_TYPES)
 
 export const SETTINGS_NO_RESULTS_SECTION_DATA: SettingsSectionData = {
@@ -79,6 +82,7 @@ export const SETTINGS_NO_RESULTS_SECTION_DATA: SettingsSectionData = {
   ],
 }
 
+/* eslint-disable @typescript-eslint/naming-convention */
 export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData>> = {
   account: {
     nameId: 'accountSettingsTab',
@@ -380,6 +384,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
     ],
   },
 }
+/* eslint-enable @typescript-eslint/naming-convention */
 
 export const SETTINGS_DATA: SettingsData = [
   {

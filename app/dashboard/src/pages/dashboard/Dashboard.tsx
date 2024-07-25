@@ -26,7 +26,6 @@ import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import ProjectsProvider, {
-  TabType,
   useClearLaunchedProjects,
   useLaunchedProjects,
   useProjectsStore,
@@ -190,7 +189,7 @@ function DashboardInner(props: DashboardProps) {
           }
         },
       }),
-    [inputBindings, modalRef, localStorage, updateModal, projectsStore]
+    [inputBindings, modalRef, localStorage, updateModal, projectsStore, pathnameRef, navigate]
   )
 
   React.useEffect(() => {
