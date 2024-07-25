@@ -293,9 +293,11 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
               ) : data.category !== Category.local ? (
                 element
               ) : (
-                <div key={data.category} className="group flex items-center self-stretch">
+                <div
+                  key={data.category}
+                  className="group flex items-center justify-between self-stretch"
+                >
                   {element}
-                  <div className="grow" />
                   <ariaComponents.Button
                     size="medium"
                     variant="icon"
