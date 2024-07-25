@@ -22,6 +22,7 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
+import org.enso.common.ContextFactory;
 import org.enso.common.HostEnsoUtils;
 import org.enso.common.LanguageInfo;
 import org.enso.distribution.DistributionManager;
@@ -34,6 +35,8 @@ import org.enso.pkg.PackageManager$;
 import org.enso.pkg.Template;
 import org.enso.polyglot.Module;
 import org.enso.polyglot.PolyglotContext;
+import org.enso.polyglot.debugger.DebugServerInfo;
+import org.enso.polyglot.debugger.DebuggerSessionManagerEndpoint;
 import org.enso.profiling.sampler.NoopSampler;
 import org.enso.profiling.sampler.OutputStreamSampler;
 import org.enso.runner.common.LanguageServerApi;
@@ -43,6 +46,7 @@ import org.enso.version.VersionDescription;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.PolyglotException.StackFrame;
 import org.graalvm.polyglot.SourceSection;
+import org.graalvm.polyglot.io.MessageTransport;
 import org.slf4j.LoggerFactory;
 import org.slf4j.event.Level;
 import scala.Option$;
@@ -617,18 +621,18 @@ public final class Main {
     }
 
     var context =
-        ContextFactory.create()
-            .projectRoot(packagePath)
-            .in(System.in)
-            .out(System.out)
-            .repl(new Repl(makeTerminalForRepl()))
-            .logLevel(logLevel)
-            .logMasking(logMasking)
-            .enableIrCaches(true)
-            .enableStaticAnalysis(enableStaticAnalysis)
-            .strictErrors(true)
-            .useGlobalIrCacheLocation(shouldUseGlobalCache)
-            .build();
+        new PolyglotContext(
+            ContextFactory.create()
+                .projectRoot(packagePath)
+                .in(System.in)
+                .out(System.out)
+                .logLevel(logLevel)
+                .logMasking(logMasking)
+                .enableIrCaches(true)
+                .enableStaticAnalysis(enableStaticAnalysis)
+                .strictErrors(true)
+                .useGlobalIrCacheLocation(shouldUseGlobalCache)
+                .build());
 
     var topScope = context.getTopScope();
     try {
@@ -692,22 +696,22 @@ public final class Main {
       options.put("inspect", "");
     }
     var context =
-        ContextFactory.create()
-            .projectRoot(projectRoot)
-            .in(System.in)
-            .out(System.out)
-            .repl(new Repl(makeTerminalForRepl()))
-            .logLevel(logLevel)
-            .logMasking(logMasking)
-            .enableIrCaches(enableIrCaches)
-            .disablePrivateCheck(disablePrivateCheck)
-            .strictErrors(true)
-            .enableAutoParallelism(enableAutoParallelism)
-            .enableStaticAnalysis(enableStaticAnalysis)
-            .executionEnvironment(executionEnvironment != null ? executionEnvironment : "live")
-            .warningsLimit(warningsLimit)
-            .options(options)
-            .build();
+        new PolyglotContext(
+            ContextFactory.create()
+                .projectRoot(projectRoot)
+                .in(System.in)
+                .out(System.out)
+                .logLevel(logLevel)
+                .logMasking(logMasking)
+                .enableIrCaches(enableIrCaches)
+                .disablePrivateCheck(disablePrivateCheck)
+                .strictErrors(true)
+                .enableAutoParallelism(enableAutoParallelism)
+                .enableStaticAnalysis(enableStaticAnalysis)
+                .executionEnvironment(executionEnvironment != null ? executionEnvironment : "live")
+                .warningsLimit(warningsLimit)
+                .options(options)
+                .build());
 
     if (projectMode) {
       var result = PackageManager$.MODULE$.Default().loadPackage(file);
@@ -761,15 +765,15 @@ public final class Main {
   private void generateDocsFrom(
       String path, Level logLevel, boolean logMasking, boolean enableIrCaches) {
     var executionContext =
-        ContextFactory.create()
-            .projectRoot(path)
-            .in(System.in)
-            .out(System.out)
-            .repl(new Repl(makeTerminalForRepl()))
-            .logLevel(logLevel)
-            .logMasking(logMasking)
-            .enableIrCaches(enableIrCaches)
-            .build();
+        new PolyglotContext(
+            ContextFactory.create()
+                .projectRoot(path)
+                .in(System.in)
+                .out(System.out)
+                .logLevel(logLevel)
+                .logMasking(logMasking)
+                .enableIrCaches(enableIrCaches)
+                .build());
 
     var file = new File(path);
     var pkg = PackageManager.Default().fromDirectory(file);
@@ -908,17 +912,27 @@ public final class Main {
             .replace("$mainMethodName", mainMethodName);
     var replModuleName = "Internal_Repl_Module___";
     var projectRoot = projectPath != null ? projectPath : "";
+    var repl = new Repl(makeTerminalForRepl());
+    MessageTransport transport =
+        (uri, peer) ->
+            DebugServerInfo.URI.equals(uri.toString())
+                ? new DebuggerSessionManagerEndpoint(repl, peer)
+                : null;
+    var options = Collections.singletonMap(DebugServerInfo.ENABLE_OPTION, "true");
+
     var context =
-        ContextFactory.create()
-            .projectRoot(projectRoot)
-            .in(System.in)
-            .out(System.out)
-            .repl(new Repl(makeTerminalForRepl()))
-            .logLevel(logLevel)
-            .logMasking(logMasking)
-            .enableIrCaches(enableIrCaches)
-            .enableStaticAnalysis(enableStaticAnalysis)
-            .build();
+        new PolyglotContext(
+            ContextFactory.create()
+                .projectRoot(projectRoot)
+                .in(System.in)
+                .out(System.out)
+                .messageTransport(transport)
+                .options(options)
+                .logLevel(logLevel)
+                .logMasking(logMasking)
+                .enableIrCaches(enableIrCaches)
+                .enableStaticAnalysis(enableStaticAnalysis)
+                .build());
     var mainModule = context.evalModule(dummySourceToTriggerRepl, replModuleName);
     runMain(mainModule, null, Collections.emptyList(), mainMethodName);
     throw exitSuccess();

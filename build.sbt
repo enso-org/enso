@@ -1445,6 +1445,12 @@ val testLogProviderOptions = Seq(
   "-Dconfig.resource=application-test.conf"
 )
 
+/** engine/common project contains classes that are necessary to configure
+  * GraalVM's polyglot context. Most specifically it contains `ContextFactory`.
+  * As such it needs to depend on `org.graalvm.polyglot` package. Otherwise
+  * its dependencies shall be limited - no JSON & co. please. For purposes
+  * of consistently setting up loaders, the module depends on `logging-utils`.
+  */
 lazy val `engine-common` = project
   .in(file("engine/common"))
   .settings(
@@ -1456,6 +1462,8 @@ lazy val `engine-common` = project
       "org.graalvm.polyglot" % "polyglot" % graalMavenPackagesVersion % "provided"
     )
   )
+  .dependsOn(`logging-config`)
+  .dependsOn(`logging-utils`)
   .dependsOn(testkit % Test)
 
 lazy val `polyglot-api` = project
