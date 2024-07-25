@@ -1036,6 +1036,8 @@ public class TypeInferenceTest extends StaticAnalysisTest {
                         static_zero -> My_Type = My_Type.Value 42
                         static_one (x : My_Type) -> My_Type = My_Type.Value [x.v, 1]
 
+                    My_Type.extension_method self -> My_Type = My_Type.Value [self.v, 2]
+
                     foo =
                         inst = My_Type.Value 23
                         x1 = inst.zero_arg
@@ -1046,7 +1048,11 @@ public class TypeInferenceTest extends StaticAnalysisTest {
                         # And calling member methods through static syntax:
                         x5 = My_Type.zero_arg inst
                         x6 = My_Type.one_arg inst
-                        [x1, x2, x3, x4, x5, x6]
+
+                        # And extension methods
+                        x7 = inst.extension_method
+                        x8 = My_Type.extension_method inst
+                        [x1, x2, x3, x4, x5, x6, x7, x8]
                     """,
                 uri.getAuthority())
             .uri(uri)
@@ -1063,8 +1069,12 @@ public class TypeInferenceTest extends StaticAnalysisTest {
     assertAtomType(myType, findAssignment(foo, "x3"));
     assertAtomType(myType, findAssignment(foo, "x4"));
     assertAtomType(myType, findAssignment(foo, "x5"));
-    // Last function was not fully applied - still expecting 1 arg:
+
+    // The function in x6 was not fully applied - still expecting 1 arg:
     assertEquals("My_Type -> My_Type", getInferredType(findAssignment(foo, "x6")).toString());
+
+    assertAtomType(myType, findAssignment(foo, "x7"));
+    assertAtomType(myType, findAssignment(foo, "x8"));
   }
 
   @Ignore(
@@ -1240,7 +1250,7 @@ public class TypeInferenceTest extends StaticAnalysisTest {
   }
 
   @Test
-  public void callingMethodDefinedElsewhere() throws Exception {
+  public void callingExtensionMethodDefinedElsewhere() throws Exception {
     final URI uriA = new URI("memory://local.Project1.modA.enso");
     final Source srcA =
         Source.newBuilder(
