@@ -507,8 +507,7 @@ public class DebuggingEnsoTest {
                   assertThat(objValue.isInternal(), is(false));
                   assertThat(objValue.hasReadSideEffects(), is(false));
 
-                  assertThat("Has fields f1 and f2",
-                      objValue.getProperties().size(), is(2));
+                  assertThat("Has fields f1 and f2", objValue.getProperties().size(), is(2));
                   for (var prop : objValue.getProperties()) {
                     assertThat(
                         "Property '" + prop.getName() + "' should be readable",

@@ -1,7 +1,6 @@
 package org.enso.interpreter.test;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
@@ -50,10 +49,7 @@ public class AtomInteropTest {
     for (var memberName : memberNames) {
       var member = myTypeAtom.getMember(memberName);
       assertThat("Member " + memberName + " should be readable", member, is(notNullValue()));
-      assertThat(
-          "All fields are numbers",
-          member.isNumber(),
-          is(true));
+      assertThat("All fields are numbers", member.isNumber(), is(true));
     }
   }
 
