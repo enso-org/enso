@@ -1076,21 +1076,21 @@ public class TypeInferenceTest extends StaticAnalysisTest {
     final Source src =
         Source.newBuilder(
                 "enso",
-                """
-                type My_Type
-                    Value v
+            """
+            type My_Type
+                Value v
 
-                    member_method self = [self.v]
+                member_method self = [self.v]
 
-                type Other_Type
-                    Constructor v
+            type Other_Type
+                Constructor v
 
-                    member_method = [self.v, self.v]
+                member_method = [self.v, self.v]
 
-                foo =
-                    other = Other_Type.Constructor 44
-                    x1 = My_Type.member_method other
-                    x1
+            foo =
+                other = Other_Type.Constructor 44
+                x1 = My_Type.member_method other
+                x1
             """,
                 uri.getAuthority())
             .uri(uri)
@@ -1111,23 +1111,23 @@ public class TypeInferenceTest extends StaticAnalysisTest {
         Source.newBuilder(
                 "enso",
                 """
-                type My_Type
-                    Constructor_1 (field_a : Typ_X) (field_b : Typ_Y)
-                    Constructor_2 (field_b : Typ_Z)
-                    Constructor_3 (field_c : Typ_Z)
-                    Constructor_4 (field_c : Typ_Z)
-                    Constructor_5 field_d
+            type My_Type
+                Constructor_1 (field_a : Typ_X) (field_b : Typ_Y)
+                Constructor_2 (field_b : Typ_Z)
+                Constructor_3 (field_c : Typ_Z)
+                Constructor_4 (field_c : Typ_Z)
+                Constructor_5 field_d
 
-                type Typ_X
-                type Typ_Y
-                type Typ_Z
+            type Typ_X
+            type Typ_Y
+            type Typ_Z
 
-                foo (instance : My_Type) =
-                    x_a = instance.field_a
-                    x_b = instance.field_b
-                    x_c = instance.field_c
-                    x_d = instance.field_d
-                    [x_a, x_b, x_c, x_d]
+            foo (instance : My_Type) =
+                x_a = instance.field_a
+                x_b = instance.field_b
+                x_c = instance.field_c
+                x_d = instance.field_d
+                [x_a, x_b, x_c, x_d]
             """,
                 uri.getAuthority())
             .uri(uri)
