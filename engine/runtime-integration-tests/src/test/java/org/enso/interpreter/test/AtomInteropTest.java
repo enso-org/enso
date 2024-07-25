@@ -51,11 +51,9 @@ public class AtomInteropTest {
       var member = myTypeAtom.getMember(memberName);
       assertThat("Member " + memberName + " should be readable", member, is(notNullValue()));
       assertThat(
-          "fields are accessor functions",
-          member.canExecute(),
+          "All fields are numbers",
+          member.isNumber(),
           is(true));
-      var fieldValue = member.execute(myTypeAtom);
-      assertThat("All field values are numbers", fieldValue.isNumber(), is(true));
     }
   }
 
