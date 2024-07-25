@@ -44,6 +44,7 @@ class MethodTypeResolver {
         return definedWithAtom;
       }
     } else {
+      // TODO need a way to find builtin Any
       logger.error("Could not find declaration module of type: {}", type);
     }
 
