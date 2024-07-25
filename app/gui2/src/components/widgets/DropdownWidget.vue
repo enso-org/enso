@@ -101,16 +101,12 @@ export interface DropdownEntry {
   --dropdown-padding: 6px;
   /* When dropdown is displayed right below the last node's argument, the rounded corner needs to be
      covered. This is done by covering extra node-sized space at the top of the dropdown. */
-  --dropdown-extend: calc(var(--node-height) - var(--extend-margin));
+  --dropdown-extend: calc(var(--node-base-height) - var(--extend-margin));
 
   position: relative;
   user-select: none;
   min-width: 100%;
   z-index: 21;
-
-  /* When dropdown is displayed right below the last node's argument, the rounded corner needs to be
-     covered. This is done by covering extra node-sized space at the top of the dropdown. */
-  --dropdown-extend: calc(var(--node-base-height) - var(--extend-margin));
   margin-top: calc(0px - var(--dropdown-extend));
   padding-top: var(--dropdown-extend);
   background-color: var(--dropdown-bg);
