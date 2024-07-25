@@ -1,3 +1,0 @@
-Atom XA_COPYRIGHT = new Atom(61);
-Conversion code in this class Copyright 2002-2004 Apache Software Foundation.
-case 61: return XA_COPYRIGHT;
