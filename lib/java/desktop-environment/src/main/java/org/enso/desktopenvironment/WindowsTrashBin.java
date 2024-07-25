@@ -13,8 +13,8 @@ import org.graalvm.nativeimage.c.type.CCharPointer;
 import org.graalvm.nativeimage.c.type.CTypeConversion;
 import org.graalvm.word.PointerBase;
 
-@CContext(WindowsTrash.ShellApi.class)
-final class WindowsTrash implements Trash {
+@CContext(WindowsTrashBin.ShellApi.class)
+final class WindowsTrashBin implements TrashBin {
   @CConstant
   public static native int FO_DELETE();
 

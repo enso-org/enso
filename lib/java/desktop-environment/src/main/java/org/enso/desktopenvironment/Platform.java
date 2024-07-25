@@ -21,7 +21,7 @@ public enum Platform {
   /**
    * @GuardedBy("this")
    */
-  private Trash trash;
+  private TrashBin trashBin;
 
   private Platform() {}
 
@@ -72,15 +72,15 @@ public enum Platform {
     return directories;
   }
 
-  public synchronized Trash getTrash() {
-    if (trash == null) {
-      trash =
+  public synchronized TrashBin getTrashBin() {
+    if (trashBin == null) {
+      trashBin =
           switch (this) {
-            case LINUX -> new LinuxTrash();
-            case MACOS -> new MacTrash();
-            case WINDOWS -> new WindowsTrash();
+            case LINUX -> new LinuxTrashBin();
+            case MACOS -> new MacTrashBin();
+            case WINDOWS -> new WindowsTrashBin();
           };
     }
-    return trash;
+    return trashBin;
   }
 }

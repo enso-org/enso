@@ -1,11 +1,11 @@
 package org.enso.projectmanager.infrastructure.desktop
 
-import org.enso.desktopenvironment.{Platform, Trash}
+import org.enso.desktopenvironment.{Platform, TrashBin}
 import org.enso.projectmanager.control.effect.Sync
 
 import java.io.File
 
-class DesktopTrash[F[+_, +_]: Sync](trash: Trash) extends TrashCan[F] {
+class DesktopTrash[F[+_, +_]: Sync](trash: TrashBin) extends TrashCan[F] {
 
   /** @inheritdoc */
   override def moveToTrash(path: File): F[Nothing, Boolean] =
@@ -15,6 +15,6 @@ class DesktopTrash[F[+_, +_]: Sync](trash: Trash) extends TrashCan[F] {
 object DesktopTrash {
 
   def apply[F[+_, +_]: Sync]: DesktopTrash[F] = {
-    new DesktopTrash(Platform.getOperatingSystem.getTrash)
+    new DesktopTrash(Platform.getOperatingSystem.getTrashBin)
   }
 }

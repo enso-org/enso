@@ -7,13 +7,13 @@ import org.apache.commons.io.FileUtils;
 import org.junit.Assert;
 import org.junit.Test;
 
-public class TrashTest {
+public class TrashBinTest {
 
-  private static final Trash trash = Platform.getTrash();
+  private static final TrashBin TRASH_BIN = Platform.getTrashBin();
 
   @Test
   public void isSupported() {
-    Assert.assertTrue(trash.isSupported());
+    Assert.assertTrue(TRASH_BIN.isSupported());
   }
 
   @Test
@@ -21,8 +21,8 @@ public class TrashTest {
     var path = writeTempFile("moveToTrashFile");
 
     try {
-      Assert.assertTrue(trash.moveToTrash(path));
-      Assert.assertFalse(trash.moveToTrash(path));
+      Assert.assertTrue(TRASH_BIN.moveToTrash(path));
+      Assert.assertFalse(TRASH_BIN.moveToTrash(path));
     } finally {
       FileUtils.deleteQuietly(path.toFile());
     }
@@ -33,10 +33,10 @@ public class TrashTest {
     var path = writeTempFile("moveToTrashSameFile");
 
     try {
-      Assert.assertTrue(trash.moveToTrash(path));
+      Assert.assertTrue(TRASH_BIN.moveToTrash(path));
 
       Files.writeString(path, "moveToTrashSameFile2");
-      Assert.assertTrue(trash.moveToTrash(path));
+      Assert.assertTrue(TRASH_BIN.moveToTrash(path));
     } finally {
       FileUtils.deleteQuietly(path.toFile());
     }
@@ -48,8 +48,8 @@ public class TrashTest {
     Files.writeString(path.resolve("moveToTrashDirectory"), "moveToTrashDirectory");
 
     try {
-      Assert.assertTrue(trash.moveToTrash(path));
-      Assert.assertFalse(trash.moveToTrash(path));
+      Assert.assertTrue(TRASH_BIN.moveToTrash(path));
+      Assert.assertFalse(TRASH_BIN.moveToTrash(path));
     } finally {
       FileUtils.deleteQuietly(path.toFile());
     }
@@ -61,11 +61,11 @@ public class TrashTest {
     Files.writeString(path.resolve("moveToTrashSameDirectory"), "moveToTrashSameDirectory");
 
     try {
-      Assert.assertTrue(trash.moveToTrash(path));
+      Assert.assertTrue(TRASH_BIN.moveToTrash(path));
 
       Files.createDirectory(path);
       Files.writeString(path.resolve("moveToTrashSameDirectory"), "moveToTrashSameDirectory2");
-      Assert.assertTrue(trash.moveToTrash(path));
+      Assert.assertTrue(TRASH_BIN.moveToTrash(path));
     } finally {
       FileUtils.deleteQuietly(path.toFile());
     }

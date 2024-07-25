@@ -11,8 +11,8 @@ import org.graalvm.nativeimage.c.type.CTypeConversion;
 import org.graalvm.word.Pointer;
 import org.graalvm.word.WordFactory;
 
-@CContext(MacTrash.CoreServices.class)
-final class MacTrash implements Trash {
+@CContext(MacTrashBin.CoreServices.class)
+final class MacTrashBin implements TrashBin {
 
   @CFunction
   static native int FSPathMakeRefWithOptions(

@@ -21,7 +21,7 @@ import org.apache.commons.io.FileUtils;
  * contains the trashed files, and the info directory contains the corresponding trashinfo metadata
  * for each trashed entry in the files directory.
  */
-final class LinuxTrash implements Trash {
+final class LinuxTrashBin implements TrashBin {
 
   private static final String XDG_DATA_HOME = "XDG_DATA_HOME";
   private static final String PATH_TRASH = "Trash";

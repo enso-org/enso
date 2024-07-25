@@ -1123,7 +1123,7 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
           "zio.internal.ZScheduler$$anon$4",
           "zio.Runtime$",
           "zio.FiberRef$"
-        ),
+        )
       )
       .dependsOn(VerifyReflectionSetup.run)
       .dependsOn(assembly)

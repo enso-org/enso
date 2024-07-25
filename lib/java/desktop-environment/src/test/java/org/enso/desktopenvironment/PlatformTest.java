@@ -16,7 +16,7 @@ public class PlatformTest {
   }
 
   @Test
-  public void getTrash() {
-    Assert.assertNotNull(Platform.getTrash());
+  public void getTrashBin() {
+    Assert.assertNotNull(Platform.getTrashBin());
   }
 }
