@@ -218,8 +218,8 @@ public final class EnsoContext {
         if (!cwd.isSameFile(parent)) {
           logger.warning(
               "Initializing the context in a different working directory than the one containing"
-                  + " the project root. This may lead to relative paths in Java libraries behaving"
-                  + " inconsistently with Enso `File.new` operation.");
+                  + " the project root. This may lead to relative paths not behaving as advertised"
+                  + " by `File.new`.");
         }
       } catch (IOException e) {
         logger.severe("Error checking working directory: " + e.getMessage());
