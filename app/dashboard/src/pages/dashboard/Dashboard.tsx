@@ -360,7 +360,7 @@ function DashboardInner(props: DashboardProps) {
                 />
               </aria.TabPanel>
             ))}
-          <aria.TabPanel id={TabType.settings} className="flex min-h-0 grow">
+          <aria.TabPanel id="/settings" className="flex min-h-0 grow">
             <Settings />
           </aria.TabPanel>
         </aria.Tabs>

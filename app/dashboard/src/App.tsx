@@ -77,6 +77,7 @@ import VersionChecker from '#/layouts/VersionChecker'
 
 import * as devtools from '#/components/Devtools'
 import * as errorBoundary from '#/components/ErrorBoundary'
+import Navigate from '#/components/Navigate'
 import * as offlineNotificationManager from '#/components/OfflineNotificationManager'
 import * as rootComponent from '#/components/Root'
 import * as suspense from '#/components/Suspense'
@@ -123,14 +124,14 @@ LocalStorage.registerKey('inputBindings', {
         ),
 })
 
-// ======================
-// === getMainPageUrl ===
-// ======================
+// ==================
+// === getRootUrl ===
+// ==================
 
-/** Returns the URL to the main page. This is the current URL, with the current route removed. */
-function getMainPageUrl() {
+/** Returns the URL to the app root. This is the current URL, with the current route removed. */
+function getRootUrl() {
   const mainPageUrl = new URL(window.location.href)
-  mainPageUrl.pathname = mainPageUrl.pathname.replace(ALL_PATHS_REGEX, '')
+  mainPageUrl.pathname = appBaseUrl.APP_BASE_URL
   return mainPageUrl
 }
 
@@ -231,7 +232,7 @@ export default function App(props: AppProps) {
         transition={toastify.Zoom}
         limit={3}
       />
-      <router.BrowserRouter basename={getMainPageUrl().pathname}>
+      <router.BrowserRouter basename={getRootUrl().pathname}>
         <LocalStorageProvider>
           <ModalProvider>
             <AppRouter
@@ -357,7 +358,8 @@ function AppRouter(props: AppRouterProps) {
     }
   }, [localStorage, inputBindingsRaw])
 
-  const mainPageUrl = getMainPageUrl()
+  const mainPageUrl = getRootUrl()
+  mainPageUrl.pathname += '/drive'
 
   const authService = React.useMemo(() => {
     const authConfig = { navigate, ...props }
@@ -448,7 +450,11 @@ function AppRouter(props: AppRouterProps) {
             <router.Route element={<termsOfServiceModal.TermsOfServiceModal />}>
               <router.Route element={<setOrganizationNameModal.SetOrganizationNameModal />}>
                 <router.Route element={<openAppWatcher.OpenAppWatcher />}>
-                  <router.Route index element={shouldShowDashboard && <Dashboard {...props} />} />
+                  <router.Route path="" element={<Navigate to="/drive" />} />
+                  <router.Route
+                    path="*"
+                    element={shouldShowDashboard && <Dashboard {...props} />}
+                  />
 
                   <router.Route
                     path={definePath('subscribe')}

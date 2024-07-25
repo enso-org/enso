@@ -33,7 +33,7 @@ export function definePath(path: AppPath) {
 
 /** A {@link RegExp} matching all paths. */
 export const ALL_PATHS_REGEX = new RegExp(
-  `/$|\\b/(?:${APP_PATHS.map(path => (path === 'editor' ? `${path}/` : path)).join('|')})\\b.*$`
+  `/$|/(?:${APP_PATHS.map(path => (path === 'editor' ? `${path}/` : path)).join('|')})\\b.*?$`
 )
 
 export const SEARCH_PARAMS_PREFIX = 'cloud-ide_'
