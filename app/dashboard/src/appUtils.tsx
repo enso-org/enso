@@ -1,4 +1,5 @@
 /** @file Constants related to the application root component. */
+import type { SettingsTabType } from '#/layouts/Settings/settingsData'
 
 // =================
 // === Constants ===
@@ -20,7 +21,10 @@ const APP_PATHS = [
 ] as const
 
 /** Valid paths for a page in the app. */
-export type AppPath = Exclude<(typeof APP_PATHS)[number], 'editor'> | `editor/${string}`
+export type AppPath =
+  | Exclude<(typeof APP_PATHS)[number], 'editor' | 'settings'>
+  | `editor/${string}`
+  | `settings/${SettingsTabType}`
 
 /** Valid paths to a page in the app, including the leading slash and the search query
  * (if any). */

@@ -2,10 +2,12 @@
 import * as React from 'react'
 
 import * as reactQuery from '@tanstack/react-query'
+import { Navigate, useLocation } from 'react-router'
 
 import BurgerMenuIcon from '#/assets/burger_menu.svg'
 
 import * as backendHooks from '#/hooks/backendHooks'
+import { useNavigate } from '#/hooks/routerHooks'
 import * as searchParamsState from '#/hooks/searchParamsStateHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
@@ -16,7 +18,6 @@ import * as textProvider from '#/providers/TextProvider'
 import SearchBar from '#/layouts/SearchBar'
 import * as settingsData from '#/layouts/Settings/settingsData'
 import SettingsTab from '#/layouts/Settings/SettingsTab'
-import SettingsTabType from '#/layouts/Settings/SettingsTabType'
 import SettingsSidebar from '#/layouts/SettingsSidebar'
 
 import * as aria from '#/components/aria'
@@ -27,7 +28,6 @@ import Button from '#/components/styled/Button'
 import type Backend from '#/services/Backend'
 import * as projectManager from '#/services/ProjectManager'
 
-import * as array from '#/utilities/array'
 import * as string from '#/utilities/string'
 
 // ================
@@ -43,11 +43,6 @@ export interface SettingsProps {
 export default function Settings() {
   const backend = backendProvider.useRemoteBackendStrict()
   const localBackend = backendProvider.useLocalBackend()
-  const [tab, setTab] = searchParamsState.useSearchParamsState(
-    'SettingsTab',
-    SettingsTabType.account,
-    array.includesPredicate(Object.values(SettingsTabType))
-  )
   const { user, accessToken } = authProvider.useNonPartialUserSession()
   const { authQueryKey } = authProvider.useAuth()
   const { getText } = textProvider.useText()
@@ -57,6 +52,13 @@ export default function Settings() {
   const [isSidebarPopoverOpen, setIsSidebarPopoverOpen] = React.useState(false)
   const organization = backendHooks.useBackendGetOrganization(backend)
   const isQueryBlank = !/\S/.test(query)
+  const { pathname } = useLocation()
+  const navigate = useNavigate()
+  const maybeTab = pathname.replace(/^[/]settings[/]/, '')
+  const tab = settingsData.isSettingsTabType(maybeTab) ? maybeTab : 'account'
+  const setTab = (tab: settingsData.SettingsTabType) => {
+    navigate(`/settings/${tab}`)
+  }
 
   const client = reactQuery.useQueryClient()
   const updateUserMutation = backendHooks.useBackendMutation(backend, 'updateUser', {
@@ -116,10 +118,10 @@ export default function Settings() {
   const doesEntryMatchQuery = React.useCallback(
     (entry: settingsData.SettingsEntryData) => {
       switch (entry.type) {
-        case settingsData.SettingsEntryType.input: {
+        case 'input': {
           return isMatch(getText(entry.nameId))
         }
-        case settingsData.SettingsEntryType.custom: {
+        case 'custom': {
           const doesAliasesIdMatch =
             entry.aliasesId == null ? false : getText(entry.aliasesId).split('\n').some(isMatch)
           if (doesAliasesIdMatch) {
@@ -135,7 +137,7 @@ export default function Settings() {
     [context, getText, isMatch]
   )
 
-  const tabsToShow = React.useMemo<readonly SettingsTabType[]>(() => {
+  const tabsToShow = React.useMemo<readonly settingsData.SettingsTabType[]>(() => {
     if (isQueryBlank) {
       return settingsData.ALL_SETTINGS_TABS
     } else {
@@ -154,7 +156,7 @@ export default function Settings() {
       )
     }
   }, [isQueryBlank, doesEntryMatchQuery, getText, isMatch])
-  const effectiveTab = tabsToShow.includes(tab) ? tab : tabsToShow[0] ?? SettingsTabType.account
+  const effectiveTab = tabsToShow.includes(tab) ? tab : tabsToShow[0] ?? 'account'
 
   const data = React.useMemo<settingsData.SettingsTabData>(() => {
     const tabData = settingsData.SETTINGS_TAB_DATA[effectiveTab]

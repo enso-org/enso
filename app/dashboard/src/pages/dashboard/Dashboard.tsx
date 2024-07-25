@@ -114,6 +114,7 @@ function DashboardInner(props: DashboardProps) {
   const [isHelpChatOpen, setIsHelpChatOpen] = React.useState(false)
   const { pathname } = useLocation()
   const pathnameRef = useSyncRef(pathname)
+  const tab = pathname.startsWith('/settings/') ? '/settings' : pathname
   const navigate = useNavigate()
 
   const dispatchAssetEvent = eventListProvider.useDispatchAssetEvent()
@@ -144,7 +145,7 @@ function DashboardInner(props: DashboardProps) {
 
   const projectsStore = useProjectsStore()
   const launchedProjects = useLaunchedProjects()
-  const selectedProject = launchedProjects.find(p => `/editor/${p.id}` === pathname) ?? null
+  const selectedProject = launchedProjects.find(p => `/editor/${p.id}` === tab) ?? null
 
   const openEditor = projectHooks.useOpenEditor()
   const openProject = projectHooks.useOpenProject()
@@ -256,7 +257,7 @@ function DashboardInner(props: DashboardProps) {
       >
         <aria.Tabs
           className="relative flex min-h-full grow select-none flex-col container-size"
-          selectedKey={pathname}
+          selectedKey={tab}
           onSelectionChange={newPage => {
             if (typeof newPage === 'string' && isAppFullPath(newPage)) {
               navigate(newPage)
@@ -290,7 +291,7 @@ function DashboardInner(props: DashboardProps) {
 
               <tabBar.Tab
                 path="/settings"
-                isHidden={pathname !== '/settings'}
+                isHidden={tab !== '/settings'}
                 icon={SettingsIcon}
                 labelId="settingsPageName"
                 onClose={() => {
@@ -305,7 +306,7 @@ function DashboardInner(props: DashboardProps) {
               onShareClick={selectedProject ? doOpenShareModal : undefined}
               setIsHelpChatOpen={setIsHelpChatOpen}
               goToSettingsPage={() => {
-                navigate('/settings')
+                navigate('/settings/account')
               }}
               onSignOut={onSignOut}
             />
@@ -319,7 +320,7 @@ function DashboardInner(props: DashboardProps) {
               assetsManagementApiRef={assetManagementApiRef}
               category={category}
               setCategory={setCategory}
-              hidden={pathname !== '/drive'}
+              hidden={tab !== '/drive'}
               initialProjectName={initialProjectName}
             />
           </aria.TabPanel>
@@ -332,7 +333,7 @@ function DashboardInner(props: DashboardProps) {
               >
                 <Editor
                   key={project.id}
-                  hidden={pathname !== `/editor/${project.id}`}
+                  hidden={tab !== `/editor/${project.id}`}
                   ydocUrl={ydocUrl}
                   project={project}
                   projectId={project.id}

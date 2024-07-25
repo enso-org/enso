@@ -19,10 +19,10 @@ export interface SettingsEntryProps {
 export default function SettingsEntry(props: SettingsEntryProps) {
   const { context, data } = props
   switch (data.type) {
-    case settingsData.SettingsEntryType.input: {
+    case 'input': {
       return <SettingsInputEntry context={context} data={data} />
     }
-    case settingsData.SettingsEntryType.custom: {
+    case 'custom': {
       return <SettingsCustomEntry context={context} data={data} />
     }
   }

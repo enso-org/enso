@@ -29,7 +29,6 @@ import MembersSettingsSection from '#/layouts/Settings/MembersSettingsSection'
 import MembersTable from '#/layouts/Settings/MembersTable'
 import OrganizationProfilePictureInput from '#/layouts/Settings/OrganizationProfilePictureInput'
 import ProfilePictureInput from '#/layouts/Settings/ProfilePictureInput'
-import SettingsTabType from '#/layouts/Settings/SettingsTabType'
 import UserGroupsSettingsSection from '#/layouts/Settings/UserGroupsSettingsSection'
 
 import * as menuEntry from '#/components/MenuEntry'
@@ -40,27 +39,39 @@ import type LocalBackend from '#/services/LocalBackend'
 import type RemoteBackend from '#/services/RemoteBackend'
 
 import * as object from '#/utilities/object'
-
-// =========================
-// === SettingsEntryType ===
-// =========================
-
-/** The tag for the {@link SettingsEntryData} discriminated union. */
-export enum SettingsEntryType {
-  input = 'input',
-  custom = 'custom',
-}
+import { includesPredicate } from 'enso-common/src/utilities/data/array'
 
 // =================
 // === Constants ===
 // =================
+
+/** A sub-page of the settings page. */
+const SETTINGS_TAB_TYPES = [
+  'account',
+  'organization',
+  'local',
+  // 'features',
+  // 'notifications',
+  'billing-and-plans',
+  'members',
+  'user-groups',
+  // 'appearance',
+  'keyboard-shortcuts',
+  // 'data-co-pilot',
+  // 'feature-preview',
+  'activity-log',
+] as const
+
+export type SettingsTabType = (typeof SETTINGS_TAB_TYPES)[number]
+
+export const isSettingsTabType = includesPredicate(SETTINGS_TAB_TYPES)
 
 export const SETTINGS_NO_RESULTS_SECTION_DATA: SettingsSectionData = {
   nameId: 'noResultsSettingsSection',
   heading: false,
   entries: [
     {
-      type: SettingsEntryType.custom,
+      type: 'custom',
       render: context => (
         <div className="grid max-w-[512px] justify-center">{context.getText('noResultsFound')}</div>
       ),
@@ -69,16 +80,16 @@ export const SETTINGS_NO_RESULTS_SECTION_DATA: SettingsSectionData = {
 }
 
 export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData>> = {
-  [SettingsTabType.account]: {
+  account: {
     nameId: 'accountSettingsTab',
-    settingsTab: SettingsTabType.account,
+    settingsTab: 'account',
     icon: SettingsIcon,
     sections: [
       {
         nameId: 'userAccountSettingsSection',
         entries: [
           {
-            type: SettingsEntryType.input,
+            type: 'input',
             nameId: 'userNameSettingsInput',
             getValue: context => context.user.name,
             setValue: async (context, newName) => {
@@ -91,7 +102,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
             getEditable: () => true,
           },
           {
-            type: SettingsEntryType.input,
+            type: 'input',
             nameId: 'userEmailSettingsInput',
             getValue: context => context.user.email,
             // A user's email currently cannot be changed.
@@ -110,7 +121,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
         nameId: 'changePasswordSettingsSection',
         entries: [
           {
-            type: SettingsEntryType.custom,
+            type: 'custom',
             aliasesId: 'changePasswordSettingsCustomEntryAliases',
             render: ChangePasswordForm,
             getVisible: context => {
@@ -129,7 +140,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
         heading: false,
         entries: [
           {
-            type: SettingsEntryType.custom,
+            type: 'custom',
             aliasesId: 'deleteUserAccountSettingsCustomEntryAliases',
             render: () => <DeleteUserAccountSettingsSection />,
           },
@@ -140,7 +151,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
         column: 2,
         entries: [
           {
-            type: SettingsEntryType.custom,
+            type: 'custom',
             aliasesId: 'profilePictureSettingsCustomEntryAliases',
             render: context => <ProfilePictureInput backend={context.backend} />,
           },
@@ -148,9 +159,9 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
       },
     ],
   },
-  [SettingsTabType.organization]: {
+  organization: {
     nameId: 'organizationSettingsTab',
-    settingsTab: SettingsTabType.organization,
+    settingsTab: 'organization',
     icon: PeopleSettingsIcon,
     organizationOnly: true,
     sections: [
@@ -158,7 +169,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
         nameId: 'organizationSettingsSection',
         entries: [
           {
-            type: SettingsEntryType.input,
+            type: 'input',
             nameId: 'organizationNameSettingsInput',
             getValue: context => context.organization?.name ?? '',
             setValue: async (context, newName) => {
@@ -171,7 +182,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
             getEditable: () => true,
           },
           {
-            type: SettingsEntryType.input,
+            type: 'input',
             nameId: 'organizationEmailSettingsInput',
             getValue: context => context.organization?.email ?? '',
             setValue: async (context, newValue) => {
@@ -190,7 +201,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
             getEditable: () => true,
           },
           {
-            type: SettingsEntryType.input,
+            type: 'input',
             nameId: 'organizationWebsiteSettingsInput',
             getValue: context => context.organization?.website ?? '',
             setValue: async (context, newValue) => {
@@ -203,7 +214,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
             getEditable: () => true,
           },
           {
-            type: SettingsEntryType.input,
+            type: 'input',
             nameId: 'organizationLocationSettingsInput',
             getValue: context => context.organization?.address ?? '',
             setValue: async (context, newLocation) => {
@@ -221,7 +232,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
         column: 2,
         entries: [
           {
-            type: SettingsEntryType.custom,
+            type: 'custom',
             aliasesId: 'organizationProfilePictureSettingsCustomEntryAliases',
             render: context => <OrganizationProfilePictureInput backend={context.backend} />,
           },
@@ -229,9 +240,9 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
       },
     ],
   },
-  [SettingsTabType.local]: {
+  local: {
     nameId: 'localSettingsTab',
-    settingsTab: SettingsTabType.organization,
+    settingsTab: 'organization',
     icon: ComputerIcon,
     visible: context => context.localBackend != null,
     sections: [
@@ -239,7 +250,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
         nameId: 'localSettingsSection',
         entries: [
           {
-            type: SettingsEntryType.input,
+            type: 'input',
             nameId: 'localRootPathSettingsInput',
             getValue: context => context.localBackend?.rootPath ?? '',
             setValue: (context, value) => context.updateLocalRootPath(value),
@@ -249,9 +260,9 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
       },
     ],
   },
-  [SettingsTabType.billingAndPlans]: {
+  'billing-and-plans': {
     nameId: 'billingAndPlansSettingsTab',
-    settingsTab: SettingsTabType.billingAndPlans,
+    settingsTab: 'billing-and-plans',
     icon: CreditCardIcon,
     organizationOnly: true,
     visible: context => context.organization?.subscription != null,
@@ -276,22 +287,22 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
         })
         .execute({} satisfies unknown),
   },
-  [SettingsTabType.members]: {
+  members: {
     nameId: 'membersSettingsTab',
-    settingsTab: SettingsTabType.members,
+    settingsTab: 'members',
     icon: PeopleIcon,
     organizationOnly: true,
     feature: 'inviteUser',
     sections: [
       {
         nameId: 'membersSettingsSection',
-        entries: [{ type: SettingsEntryType.custom, render: () => <MembersSettingsSection /> }],
+        entries: [{ type: 'custom', render: () => <MembersSettingsSection /> }],
       },
     ],
   },
-  [SettingsTabType.userGroups]: {
+  'user-groups': {
     nameId: 'userGroupsSettingsTab',
-    settingsTab: SettingsTabType.userGroups,
+    settingsTab: 'user-groups',
     icon: PeopleSettingsIcon,
     organizationOnly: true,
     feature: 'userGroups',
@@ -301,7 +312,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
         columnClassName: 'h-3/5 lg:h-[unset] overflow-auto',
         entries: [
           {
-            type: SettingsEntryType.custom,
+            type: 'custom',
             render: context => <UserGroupsSettingsSection backend={context.backend} />,
           },
         ],
@@ -312,7 +323,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
         columnClassName: 'h-2/5 lg:h-[unset] overflow-auto',
         entries: [
           {
-            type: SettingsEntryType.custom,
+            type: 'custom',
             render: context => (
               <MembersTable backend={context.backend} draggable populateWithSelf />
             ),
@@ -321,16 +332,16 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
       },
     ],
   },
-  [SettingsTabType.keyboardShortcuts]: {
+  'keyboard-shortcuts': {
     nameId: 'keyboardShortcutsSettingsTab',
-    settingsTab: SettingsTabType.keyboardShortcuts,
+    settingsTab: 'keyboard-shortcuts',
     icon: KeyboardShortcutsIcon,
     sections: [
       {
         nameId: 'keyboardShortcutsSettingsSection',
         entries: [
           {
-            type: SettingsEntryType.custom,
+            type: 'custom',
             aliasesId: 'keyboardShortcutsSettingsCustomEntryAliases',
             getExtraAliases: context => {
               const rebindableBindings = object
@@ -351,9 +362,9 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
       },
     ],
   },
-  [SettingsTabType.activityLog]: {
+  'activity-log': {
     nameId: 'activityLogSettingsTab',
-    settingsTab: SettingsTabType.activityLog,
+    settingsTab: 'activity-log',
     icon: LogIcon,
     organizationOnly: true,
     sections: [
@@ -361,7 +372,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
         nameId: 'activityLogSettingsSection',
         entries: [
           {
-            type: SettingsEntryType.custom,
+            type: 'custom',
             render: context => <ActivityLogSettingsSection backend={context.backend} />,
           },
         ],
@@ -373,26 +384,23 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
 export const SETTINGS_DATA: SettingsData = [
   {
     nameId: 'generalSettingsTabSection',
-    tabs: [
-      SETTINGS_TAB_DATA[SettingsTabType.account],
-      SETTINGS_TAB_DATA[SettingsTabType.organization],
-    ],
+    tabs: [SETTINGS_TAB_DATA['account'], SETTINGS_TAB_DATA['organization']],
   },
   {
     nameId: 'accessSettingsTabSection',
     tabs: [
-      SETTINGS_TAB_DATA[SettingsTabType.billingAndPlans],
-      SETTINGS_TAB_DATA[SettingsTabType.members],
-      SETTINGS_TAB_DATA[SettingsTabType.userGroups],
+      SETTINGS_TAB_DATA['billing-and-plans'],
+      SETTINGS_TAB_DATA['members'],
+      SETTINGS_TAB_DATA['user-groups'],
     ],
   },
   {
     nameId: 'lookAndFeelSettingsTabSection',
-    tabs: [SETTINGS_TAB_DATA[SettingsTabType.keyboardShortcuts]],
+    tabs: [SETTINGS_TAB_DATA['keyboard-shortcuts']],
   },
   {
     nameId: 'securitySettingsTabSection',
-    tabs: [SETTINGS_TAB_DATA[SettingsTabType.activityLog]],
+    tabs: [SETTINGS_TAB_DATA['activity-log']],
   },
 ]
 
@@ -427,7 +435,7 @@ export interface SettingsContext {
 
 /** Metadata describing a settings entry that is an input. */
 export interface SettingsInputEntryData {
-  readonly type: SettingsEntryType.input
+  readonly type: 'input'
   readonly nameId: text.TextId & `${string}SettingsInput`
   readonly getValue: (context: SettingsContext) => string
   readonly setValue: (context: SettingsContext, value: string) => Promise<void>
@@ -441,7 +449,7 @@ export interface SettingsInputEntryData {
 
 /** Metadata describing a settings entry that needs custom rendering. */
 export interface SettingsCustomEntryData {
-  readonly type: SettingsEntryType.custom
+  readonly type: 'custom'
   readonly aliasesId?: text.TextId & `${string}SettingsCustomEntryAliases`
   readonly getExtraAliases?: (context: SettingsContext) => readonly string[]
   readonly render: (context: SettingsContext) => React.ReactNode

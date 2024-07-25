@@ -7,7 +7,7 @@ import invariant from 'tiny-invariant'
 
 import type * as text from 'enso-common/src/text'
 
-import type { AppFullPath } from '#/appUtils'
+import type { AppPath } from '#/appUtils'
 
 import * as projectHooks from '#/hooks/projectHooks'
 
@@ -183,7 +183,7 @@ export default function TabBar(props: TabBarProps) {
 /** Props for a {@link Tab}. */
 interface InternalTabProps extends Readonly<React.PropsWithChildren> {
   readonly 'data-testid'?: string
-  readonly path: AppFullPath
+  readonly path: `/${AppPath}` | '/settings'
   readonly project?: LaunchedProject
   readonly isHidden?: boolean
   readonly icon: string
@@ -201,7 +201,7 @@ export function Tab(props: InternalTabProps) {
   const isLoadingRef = React.useRef(true)
   const { getText } = textProvider.useText()
   const { pathname } = useLocation()
-  const isActive = path === pathname
+  const isActive = pathname.startsWith(path)
   const actuallyActive = isActive && !isHidden
   const [resizeObserver] = React.useState(
     () =>
