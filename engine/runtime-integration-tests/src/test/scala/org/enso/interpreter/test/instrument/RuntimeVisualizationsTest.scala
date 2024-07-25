@@ -2,7 +2,7 @@ package org.enso.interpreter.test.instrument
 
 import org.enso.interpreter.runtime.`type`.ConstantsGen
 import org.enso.interpreter.test.Metadata
-//import org.enso.pkg.QualifiedName
+import org.enso.pkg.QualifiedName
 import org.enso.polyglot._
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.text.editing.model
@@ -31,7 +31,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
         .allowExperimentalOptions(true)
         .allowAllAccess(true)
         .option(RuntimeOptions.PROJECT_ROOT, pkg.root.getAbsolutePath)
-        .option(RuntimeOptions.LOG_LEVEL, Level.FINEST.getName())
+        .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())
         .option(
           RuntimeOptions.INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION,
           sequentialExecution.toString
@@ -317,7 +317,6 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
     }
   }
 
-  /*
   it should "emit visualization update when expression is computed" in withContext() {
     context =>
       val idMainRes  = context.Main.metadata.addItem(99, 1)
@@ -700,7 +699,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
           Api.EditFileNotification(
             mainFile,
             Seq(
-              TextEdit(
+              model.TextEdit(
                 model.Range(model.Position(4, 8), model.Position(4, 9)),
                 "5"
               )
@@ -836,7 +835,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
           Api.EditFileNotification(
             mainFile,
             Seq(
-              TextEdit(
+              model.TextEdit(
                 model.Range(model.Position(4, 8), model.Position(4, 9)),
                 "5"
               )
@@ -1026,7 +1025,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
           Api.EditFileNotification(
             mainFile,
             Seq(
-              TextEdit(
+              model.TextEdit(
                 model.Range(model.Position(10, 15), model.Position(10, 16)),
                 "5"
               )
@@ -1356,7 +1355,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
         Api.EditFileNotification(
           mainFile,
           Seq(
-            TextEdit(
+            model.TextEdit(
               model.Range(model.Position(4, 8), model.Position(4, 9)),
               "7"
             )
@@ -1709,7 +1708,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
           Api.EditFileNotification(
             mainFile,
             Seq(
-              TextEdit(
+              model.TextEdit(
                 model.Range(model.Position(6, 12), model.Position(6, 13)),
                 "6"
               )
@@ -3429,7 +3428,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
           Api.EditFileNotification(
             visualizationFile,
             Seq(
-              TextEdit(
+              model.TextEdit(
                 model.Range(model.Position(6, 21), model.Position(6, 22)),
                 "2"
               )
@@ -4193,7 +4192,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
           Api.EditFileNotification(
             mainFile,
             Seq(
-              TextEdit(
+              model.TextEdit(
                 model.Range(model.Position(9, 8), model.Position(9, 9)),
                 "x"
               )
@@ -4224,7 +4223,6 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       }
       new String(data1, StandardCharsets.UTF_8) shouldEqual "C"
   }
-   */
 
   it should "emit visualization update for the target of a method call (subexpression) with IdMap" in withContext() {
     context =>
@@ -4277,7 +4275,6 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
         3
       ) should contain theSameElementsAs Seq(
         Api.Response(requestId, Api.PushContextResponse(contextId)),
-        //TestMessages.update(contextId, idYX, s"$moduleName.T"),
         TestMessages.update(
           contextId,
           idY,
@@ -4323,7 +4320,6 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       )
       val attachVisualizationResponses =
         context.receiveNIgnoreExpressionUpdates(3)
-      println(attachVisualizationResponses)
       attachVisualizationResponses should contain allOf (
         Api.Response(requestId, Api.VisualizationAttached()),
         context.executionComplete(contextId)
@@ -4344,14 +4340,13 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       }
       new String(data, StandardCharsets.UTF_8) shouldEqual "C"
 
-    /*
       // Modify the file
       context.send(
         Api.Request(
           Api.EditFileNotification(
             mainFile,
             Seq(
-              TextEdit(
+              model.TextEdit(
                 model.Range(model.Position(9, 8), model.Position(9, 9)),
                 "x"
               )
@@ -4381,10 +4376,8 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
           data
       }
       new String(data1, StandardCharsets.UTF_8) shouldEqual "C"
-     */
   }
 
-  /*
   it should "execute expression in the scope of local expression cached" in withContext() {
     context =>
       val contextId       = UUID.randomUUID()
@@ -5034,7 +5027,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
           Api.EditFileNotification(
             mainFile,
             Seq(
-              TextEdit(
+              model.TextEdit(
                 model.Range(model.Position(3, 8), model.Position(3, 9)),
                 "\"Hello World!\""
               )
@@ -5050,6 +5043,5 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       )
       context.consumeOut shouldEqual List("Hello World!")
   }
-   */
 
 }

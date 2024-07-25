@@ -622,13 +622,9 @@ object UpsertVisualizationJob {
             val externalId = expressionId
             module.getIr.preorder
               .find(_.getExternalId.contains(externalId))
-              .collect {
-                case name: Name.Literal =>
-                  DataflowAnalysis.DependencyInfo.Type
-                    .Dynamic(name.name, Some(externalId))
-                case ir =>
-                  DataflowAnalysis.DependencyInfo.Type
-                    .Static(ir.getId, ir.getExternalId)
+              .map { ir =>
+                DataflowAnalysis.DependencyInfo.Type
+                  .Static(ir.getId, ir.getExternalId)
               }
               .flatMap { expressionKey =>
                 metadata.dependents.getExternal(expressionKey)
