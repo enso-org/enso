@@ -1298,7 +1298,7 @@ add_specs suite_builder setup =
 
         group_builder.specify "should work when stacked one after another" <|
             t1 = table_builder [["X", [1, 1, 1, 2, 2, 3]], ["Y", [1, 2, 3, 4, 5, 6]]]
-            t2 = t1.aggregate ["X"] [Aggregate_Column.Count, Aggregate_Column.Sum "Y", Aggregate_Column.Minimum "Y"]
+            t2 = t1.aggregate ["X"] [Count, Sum "Y", Minimum "Y"]
 
             # Just check that first aggregate is correct
             m2 = materialize t2 |> _.sort "X"
@@ -1307,7 +1307,7 @@ add_specs suite_builder setup =
             m2.at "Sum Y" . to_vector . should_equal [6, 9, 6]
             m2.at "Minimum Y" . to_vector . should_equal [1, 4, 6]
 
-            t3 = t2.aggregate columns=[Aggregate_Column.Count, Aggregate_Column.Sum "Count", Aggregate_Column.Average "Sum Y", Aggregate_Column.Maximum "Minimum Y"]
+            t3 = t2.aggregate columns=[Count, Sum "Count", Average "Sum Y", Maximum "Minimum Y"]
             m3 = materialize t3
             m3.at "Count" . to_vector . should_equal [3]
             m3.at "Sum Count" . to_vector . should_equal [6]
