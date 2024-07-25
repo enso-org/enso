@@ -631,6 +631,7 @@ const sourceHoverAnimationStyle = computed(() => {
   fill: none;
   stroke: var(--edge-color);
   transition: stroke 0.2s ease;
+  contain: strict;
 }
 
 .arrow {

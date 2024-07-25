@@ -80,7 +80,7 @@ test('Conditional ports: Disabled', async ({ page }) => {
   const conditionalPort = node.locator('.WidgetPort').filter({ hasText: /^filter$/ })
 
   // Check that the `enabled` CSS class is not set on disabled `WidgetPort`s.
-  await expect(node.locator('.WidgetSelfIcon')).toBeVisible()
+  await expect(node.locator('.WidgetIcon')).toBeVisible()
   await expect(conditionalPort).not.toHaveClass(/enabled/)
 
   // When a port is disabled, it doesn't react to hovering with a disconnected edge,
