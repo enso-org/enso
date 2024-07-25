@@ -2,15 +2,11 @@ package org.enso.runner.common
 
 import org.enso.editions.LibraryName
 import org.enso.libraryupload.DependencyExtractor
-import org.enso.logger.Converter
 
-import org.enso.logger.JulHandler
 import org.enso.pkg.Package
 import org.enso.pkg.SourceFile
-import org.enso.common.HostAccessFactory
-import org.enso.common.RuntimeOptions
 import org.enso.polyglot.PolyglotContext
-import org.graalvm.polyglot.Context
+import org.enso.common.ContextFactory
 import org.slf4j.event.Level
 
 import java.io.File
@@ -56,18 +52,10 @@ class CompilerBasedDependencyExtractor(logLevel: Level)
     * project root.
     */
   private def createContextWithProject(pkg: Package[File]): PolyglotContext = {
-    val context = Context
-      .newBuilder()
-      .allowExperimentalOptions(true)
-      .allowAllAccess(true)
-      .allowHostAccess(new HostAccessFactory().allWithTypeMapping())
-      .option(RuntimeOptions.PROJECT_ROOT, pkg.root.getCanonicalPath)
-      .option("js.foreign-object-prototype", "true")
-      .option(
-        RuntimeOptions.LOG_LEVEL,
-        Converter.toJavaLevel(logLevel).getName
-      )
-      .logHandler(JulHandler.get())
+    val context = ContextFactory
+      .create()
+      .projectRoot(pkg.root.getCanonicalPath)
+      .logLevel(logLevel)
       .build
     new PolyglotContext(context)
   }

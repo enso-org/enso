@@ -9,6 +9,7 @@ import org.enso.logger.Converter;
 import org.enso.logger.JulHandler;
 import org.enso.logger.LoggerSetup;
 import org.graalvm.polyglot.Context;
+import org.graalvm.polyglot.HostAccess;
 import org.graalvm.polyglot.io.MessageTransport;
 import org.slf4j.event.Level;
 
@@ -33,6 +34,7 @@ public final class ContextFactory {
   private String projectRoot;
   private InputStream in;
   private OutputStream out;
+  private OutputStream err;
   private MessageTransport messageTransport;
   private Level logLevel;
   private boolean logMasking;
@@ -64,6 +66,11 @@ public final class ContextFactory {
 
   public ContextFactory out(OutputStream out) {
     this.out = out;
+    return this;
+  }
+
+  public ContextFactory err(OutputStream err) {
+    this.err = err;
     return this;
   }
 
@@ -137,7 +144,7 @@ public final class ContextFactory {
         Context.newBuilder()
             .allowExperimentalOptions(true)
             .allowAllAccess(true)
-            .allowHostAccess(new HostAccessFactory().allWithTypeMapping())
+            .allowHostAccess(allWithTypeMapping())
             .option(RuntimeOptions.PROJECT_ROOT, projectRoot)
             .option(RuntimeOptions.STRICT_ERRORS, Boolean.toString(strictErrors))
             .option(RuntimeOptions.WAIT_FOR_PENDING_SERIALIZATION_JOBS, "true")
@@ -152,6 +159,7 @@ public final class ContextFactory {
             .option(RuntimeOptions.ENABLE_AUTO_PARALLELISM, Boolean.toString(enableAutoParallelism))
             .option(RuntimeOptions.WARNINGS_LIMIT, Integer.toString(warningsLimit))
             .out(out)
+            .err(err == null ? out : err)
             .in(in);
     if (messageTransport != null) {
       builder.serverTransport(messageTransport);
@@ -208,4 +216,20 @@ public final class ContextFactory {
     }
     ENGINE_HAS_JAVA = found;
   }
+
+  private static HostAccess allWithTypeMapping() {
+    return HostAccess.newBuilder()
+        .allowPublicAccess(true)
+        .allowAllImplementations(true)
+        .allowAllClassImplementations(true)
+        .allowArrayAccess(true)
+        .allowListAccess(true)
+        .allowBufferAccess(true)
+        .allowIterableAccess(true)
+        .allowIteratorAccess(true)
+        .allowMapAccess(true)
+        .allowAccessInheritance(true)
+        .build();
+  }
+
 }
