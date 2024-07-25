@@ -32,7 +32,7 @@ import ProfilePictureInput from '#/layouts/Settings/ProfilePictureInput'
 import SettingsTabType from '#/layouts/Settings/SettingsTabType'
 import UserGroupsSettingsSection from '#/layouts/Settings/UserGroupsSettingsSection'
 
-import { Button } from '#/components/AriaComponents'
+import { Button, ButtonGroup } from '#/components/AriaComponents'
 import * as menuEntry from '#/components/MenuEntry'
 
 import * as backend from '#/services/Backend'
@@ -253,14 +253,31 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
             type: SettingsEntryType.custom,
             aliasesId: 'localRootPathButtonSettingsCustomEntryAliases',
             render: context => (
-              <Button
-                size="small"
-                variant="outline"
-                className="self-start"
-                onPress={context.resetLocalRootPath}
-              >
-                {context.getText('resetLocalRootDirectory')}
-              </Button>
+              <ButtonGroup>
+                {window.fileBrowserApi && (
+                  <Button
+                    size="small"
+                    variant="outline"
+                    onPress={async () => {
+                      const [newDirectory] =
+                        (await window.fileBrowserApi?.openFileBrowser('directory')) ?? []
+                      if (newDirectory != null) {
+                        context.updateLocalRootPath(newDirectory)
+                      }
+                    }}
+                  >
+                    {context.getText('browseForNewLocalRootDirectory')}
+                  </Button>
+                )}
+                <Button
+                  size="small"
+                  variant="outline"
+                  className="self-start"
+                  onPress={context.resetLocalRootPath}
+                >
+                  {context.getText('resetLocalRootDirectory')}
+                </Button>
+              </ButtonGroup>
             ),
           },
         ],

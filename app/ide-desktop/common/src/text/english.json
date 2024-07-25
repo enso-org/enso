@@ -420,6 +420,7 @@
   "removeTheLocalDirectoryX": "remove the local folder '$0'",
   "changeLocalRootDirectoryInSettings": "Change your root folder in Settings.",
   "addLocalDirectory": "Add Folder",
+  "browseForNewLocalRootDirectory": "Browse for new Root Folder",
   "resetLocalRootDirectory": "Reset Root Folder",
 
   "deleteLabelActionText": "delete the label '$0'",
