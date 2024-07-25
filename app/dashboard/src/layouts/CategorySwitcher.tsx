@@ -2,9 +2,11 @@
 import * as React from 'react'
 
 import { useSearchParams } from 'react-router-dom'
+import * as z from 'zod'
 
 import CloudIcon from '#/assets/cloud.svg'
 import ComputerIcon from '#/assets/computer.svg'
+import FolderIcon from '#/assets/folder.svg'
 import PeopleIcon from '#/assets/people.svg'
 import PersonIcon from '#/assets/person.svg'
 import RecentIcon from '#/assets/recent.svg'
@@ -18,6 +20,7 @@ import * as offlineHooks from '#/hooks/offlineHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
+import { useLocalStorageKey } from '#/providers/LocalStorageProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import { TabType, useSetPage } from '#/providers/ProjectsProvider'
 import * as textProvider from '#/providers/TextProvider'
@@ -25,7 +28,7 @@ import * as textProvider from '#/providers/TextProvider'
 import AssetEventType from '#/events/AssetEventType'
 
 import * as eventListProvider from '#/layouts/AssetsTable/EventListProvider'
-import * as categoryModule from '#/layouts/CategorySwitcher/Category'
+import { areCategoriesEqual, CategoryType } from '#/layouts/CategorySwitcher/Category'
 import type Category from '#/layouts/CategorySwitcher/Category'
 
 import * as aria from '#/components/aria'
@@ -34,9 +37,24 @@ import FocusArea from '#/components/styled/FocusArea'
 import SvgMask from '#/components/SvgMask'
 
 import * as backend from '#/services/Backend'
+import { newDirectoryId } from '#/services/LocalBackend'
 import { TEAMS_DIRECTORY_ID, USERS_DIRECTORY_ID } from '#/services/remoteBackendPaths'
 
+import LocalStorage from '#/utilities/LocalStorage'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
+
+// ============================
+// === Global configuration ===
+// ============================
+
+declare module '#/utilities/LocalStorage' {
+  /** */
+  interface LocalStorageData {
+    readonly localRootDirectories: readonly string[]
+  }
+}
+
+LocalStorage.registerKey('localRootDirectories', { schema: z.string().array().readonly() })
 
 // ========================
 // === CategoryMetadata ===
@@ -74,22 +92,23 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
   const { getText } = textProvider.useText()
   const localBackend = backendProvider.useLocalBackend()
   const { isOffline } = offlineHooks.useOffline()
-  const isCurrent = categoryModule.areCategoriesEqual(currentCategory, category)
+  const isCurrent = areCategoriesEqual(currentCategory, category)
   const dispatchAssetEvent = eventListProvider.useDispatchAssetEvent()
   const getCategoryError = (otherCategory: Category) => {
     switch (otherCategory.type) {
-      case categoryModule.CategoryType.local: {
+      case CategoryType.local:
+      case CategoryType.localDirectory: {
         if (localBackend == null) {
           return getText('localBackendNotDetectedError')
         } else {
           return null
         }
       }
-      case categoryModule.CategoryType.cloud:
-      case categoryModule.CategoryType.recent:
-      case categoryModule.CategoryType.trash:
-      case categoryModule.CategoryType.user:
-      case categoryModule.CategoryType.team: {
+      case CategoryType.cloud:
+      case CategoryType.recent:
+      case CategoryType.trash:
+      case CategoryType.user:
+      case CategoryType.team: {
         if (isOffline) {
           return getText('unavailableOffline')
         } else if (!user.isEnabled) {
@@ -105,12 +124,12 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
   const tooltip = error ?? false
 
   const isDropTarget = (() => {
-    if (categoryModule.areCategoriesEqual(category, currentCategory)) {
+    if (areCategoriesEqual(category, currentCategory)) {
       return false
-    } else if (currentCategory.type === categoryModule.CategoryType.trash) {
+    } else if (currentCategory.type === CategoryType.trash) {
       switch (category.type) {
-        case categoryModule.CategoryType.trash:
-        case categoryModule.CategoryType.recent: {
+        case CategoryType.trash:
+        case CategoryType.recent: {
           return false
         }
         default: {
@@ -118,13 +137,13 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
         }
       }
     } else {
-      return category.type !== categoryModule.CategoryType.recent
+      return category.type !== CategoryType.recent
     }
   })()
   const acceptedDragTypes = isDropTarget ? [mimeTypes.ASSETS_MIME_TYPE] : []
 
   const onPress = () => {
-    if (error == null && !categoryModule.areCategoriesEqual(category, currentCategory)) {
+    if (error == null && !areCategoriesEqual(category, currentCategory)) {
       setCategory(category)
     }
   }
@@ -151,7 +170,7 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
     ).then(keys => {
       dispatchAssetEvent({
         type:
-          currentCategory.type === categoryModule.CategoryType.trash
+          currentCategory.type === CategoryType.trash
             ? AssetEventType.restore
             : AssetEventType.delete,
         ids: new Set(keys.flat(1)),
@@ -226,6 +245,7 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
   const dispatchAssetEvent = eventListProvider.useDispatchAssetEvent()
   const setPage = useSetPage()
   const [, setSearchParams] = useSearchParams()
+  const [localRootDirectories] = useLocalStorageKey('localRootDirectories')
 
   const localBackend = backendProvider.useLocalBackend()
   const itemProps = { currentCategory: category, setCategory, dispatchAssetEvent }
@@ -292,7 +312,7 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
           >
             <CategorySwitcherItem
               {...itemProps}
-              category={{ type: categoryModule.CategoryType.cloud }}
+              category={{ type: CategoryType.cloud }}
               icon={CloudIcon}
               label={getText('cloudCategory')}
               buttonLabel={getText('cloudCategoryButtonLabel')}
@@ -303,7 +323,7 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
                 {...itemProps}
                 isNested
                 category={{
-                  type: categoryModule.CategoryType.user,
+                  type: CategoryType.user,
                   rootPath: backend.Path(`enso://Users/${user.name}`),
                   homeDirectoryId: selfDirectoryId,
                 }}
@@ -316,7 +336,7 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
             <CategorySwitcherItem
               {...itemProps}
               isNested
-              category={{ type: categoryModule.CategoryType.recent }}
+              category={{ type: CategoryType.recent }}
               icon={RecentIcon}
               label={getText('recentCategory')}
               buttonLabel={getText('recentCategoryButtonLabel')}
@@ -326,7 +346,7 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
             <CategorySwitcherItem
               {...itemProps}
               isNested
-              category={{ type: categoryModule.CategoryType.trash }}
+              category={{ type: CategoryType.trash }}
               icon={Trash2Icon}
               label={getText('trashCategory')}
               buttonLabel={getText('trashCategoryButtonLabel')}
@@ -343,7 +363,7 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
                     {...itemProps}
                     isNested
                     category={{
-                      type: categoryModule.CategoryType.user,
+                      type: CategoryType.user,
                       rootPath: backend.Path(`enso://Users/${otherUser.name}`),
                       homeDirectoryId: userDirectory.id,
                     }}
@@ -366,7 +386,7 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
                     {...itemProps}
                     isNested
                     category={{
-                      type: categoryModule.CategoryType.team,
+                      type: CategoryType.team,
                       team,
                       rootPath: backend.Path(`enso://Teams/${team.groupName}`),
                       homeDirectoryId: teamDirectory.id,
@@ -383,7 +403,7 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
               <div className="group flex items-center self-stretch">
                 <CategorySwitcherItem
                   {...itemProps}
-                  category={{ type: categoryModule.CategoryType.local }}
+                  category={{ type: CategoryType.local }}
                   icon={ComputerIcon}
                   label={getText('localCategory')}
                   buttonLabel={getText('localCategoryButtonLabel')}
@@ -404,6 +424,36 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
                 />
               </div>
             )}
+            {localBackend != null &&
+              localRootDirectories?.map(directory => (
+                <div className="group flex items-center self-stretch">
+                  <CategorySwitcherItem
+                    {...itemProps}
+                    category={{
+                      type: CategoryType.localDirectory,
+                      rootPath: backend.Path(directory),
+                      homeDirectoryId: newDirectoryId(backend.Path(directory)),
+                    }}
+                    icon={FolderIcon}
+                    label={getText('localCategory')}
+                    buttonLabel={getText('localCategoryButtonLabel')}
+                    dropZoneLabel={getText('localCategoryDropZoneLabel')}
+                  />
+                  <div className="grow" />
+                  <ariaComponents.Button
+                    size="medium"
+                    variant="icon"
+                    icon={Trash2Icon}
+                    aria-label={getText('changeLocalRootDirectoryInSettings')}
+                    className="hidden text-delete group-hover:block"
+                    onPress={() => {
+                      // eslint-disable-next-line @typescript-eslint/naming-convention
+                      setSearchParams({ 'cloud-ide_SettingsTab': '"local"' })
+                      setPage(TabType.settings)
+                    }}
+                  />
+                </div>
+              ))}
           </div>
         </div>
       )}

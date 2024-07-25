@@ -7,7 +7,10 @@ import type * as backend from '#/services/Backend'
 
 /** A category with a special predefined meaning. */
 interface StaticCategory {
-  readonly type: Exclude<CategoryType, CategoryType.team | CategoryType.user>
+  readonly type: Exclude<
+    CategoryType,
+    CategoryType.localDirectory | CategoryType.team | CategoryType.user
+  >
 }
 
 /** A category corresponding to the root directory of a user. */
@@ -25,8 +28,15 @@ interface TeamCategory {
   readonly homeDirectoryId: backend.DirectoryId
 }
 
+/** A category corresponding to an alternate local root directory. */
+interface LocalDirectoryCategory {
+  readonly type: CategoryType.localDirectory
+  readonly rootPath: backend.Path
+  readonly homeDirectoryId: backend.DirectoryId
+}
+
 /** A category of an arbitrary type. */
-type Category = StaticCategory | TeamCategory | UserCategory
+type Category = LocalDirectoryCategory | StaticCategory | TeamCategory | UserCategory
 export default Category
 
 // ================
@@ -41,6 +51,7 @@ export enum CategoryType {
   trash = 'trash',
   user = 'user',
   team = 'team',
+  localDirectory = 'local-directory',
 }
 
 // =======================

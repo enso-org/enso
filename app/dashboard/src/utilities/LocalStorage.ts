@@ -47,7 +47,7 @@ interface LocalStorageKeyMetadataWithSchema<K extends LocalStorageKey> {
 export interface LocalStorageData {}
 
 /** All possible keys of a {@link LocalStorage}. */
-type LocalStorageKey = keyof LocalStorageData
+export type LocalStorageKey = keyof LocalStorageData
 
 /** A LocalStorage data manager. */
 export default class LocalStorage {
@@ -57,6 +57,7 @@ export default class LocalStorage {
   static keyMetadata = {} as Record<LocalStorageKey, LocalStorageKeyMetadata<LocalStorageKey>>
   localStorageKey = common.PRODUCT_NAME.toLowerCase()
   protected values: Partial<LocalStorageData>
+  private readonly eventTarget = new EventTarget()
 
   /** Create a {@link LocalStorage}. */
   constructor(private readonly triggerRerender: () => void) {
@@ -96,6 +97,7 @@ export default class LocalStorage {
   /** Write an entry to the stored data, and save. */
   set<K extends LocalStorageKey>(key: K, value: LocalStorageData[K]) {
     this.values[key] = value
+    this.eventTarget.dispatchEvent(new Event(key))
     this.save()
   }
 
@@ -115,6 +117,20 @@ export default class LocalStorage {
       if (metadata.isUserSpecific === true) {
         this.delete(key)
       }
+    }
+  }
+
+  /** Add an event listener to a specific key. */
+  subscribe<K extends LocalStorageKey>(key: K, callback: (value: LocalStorageData[K]) => void) {
+    const wrapped = () => {
+      const value = this.values[key]
+      if (value !== undefined) {
+        callback(value)
+      }
+    }
+    this.eventTarget.addEventListener(key, wrapped)
+    return () => {
+      this.eventTarget.removeEventListener(key, wrapped)
     }
   }
 
