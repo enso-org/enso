@@ -34,7 +34,6 @@ import { prefixes } from '@/util/ast/node'
 import type { Opt } from '@/util/data/opt'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
-import { displayedIconOf } from '@/util/getIconName'
 import type { ExternalId, VisualizationIdentifier } from 'shared/yjsModel'
 import { computed, onUnmounted, ref, shallowRef, watch, watchEffect } from 'vue'
 
@@ -291,23 +290,9 @@ const isRecordingOverridden = computed({
 })
 
 const expressionInfo = computed(() => graph.db.getExpressionInfo(props.node.innerExpr.externalId))
-const outputPortLabel = computed(() => expressionInfo.value?.typename ?? 'Unknown')
 const executionState = computed(() => expressionInfo.value?.payload.type ?? 'Unknown')
 const suggestionEntry = computed(() => graph.db.nodeMainSuggestion.lookup(nodeId.value))
 const color = computed(() => graph.db.getNodeColorStyle(nodeId.value))
-const icon = computed(() => {
-  switch (props.node.type) {
-    default:
-    case 'component':
-      return displayedIconOf(
-        suggestionEntry.value,
-        expressionInfo.value?.methodCall?.methodPointer,
-        outputPortLabel.value,
-      )
-    case 'output':
-      return 'data_output'
-  }
-})
 const documentationUrl = computed(
   () => suggestionEntry.value && suggestionDocumentationUrl(suggestionEntry.value),
 )
@@ -430,9 +415,8 @@ watchEffect(() => {
     @pointerleave="(nodeHovered = false), updateNodeHover(undefined)"
     @pointermove="updateNodeHover"
   >
-    <Teleport :to="graphNodeSelections">
+    <Teleport v-if="navigator && !edited" :to="graphNodeSelections">
       <GraphNodeSelection
-        v-if="navigator && !edited"
         :data-node-id="nodeId"
         :nodePosition="props.node.position"
         :nodeSize="graphSelectionSize"
@@ -513,8 +497,8 @@ watchEffect(() => {
         :ast="props.node.innerExpr"
         :nodeId="nodeId"
         :nodeElement="rootNode"
+        :nodeType="props.node.type"
         :nodeSize="nodeSize"
-        :icon="icon"
         :potentialSelfArgumentId="potentialSelfArgumentId"
         :conditionalPorts="props.node.conditionalPorts"
         :extended="isOnlyOneSelected"

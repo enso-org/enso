@@ -1,22 +1,23 @@
 <script setup lang="ts">
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
-import SvgIcon from '@/components/SvgIcon.vue'
 import { useTransitioning } from '@/composables/animation'
 import { injectGraphSelection } from '@/providers/graphSelection'
 import { WidgetInput, type WidgetUpdate } from '@/providers/widgetRegistry'
 import { provideWidgetTree } from '@/providers/widgetTree'
 import { useGraphStore, type NodeId } from '@/stores/graph'
+import type { NodeType } from '@/stores/graph/graphDatabase'
 import { Ast } from '@/util/ast'
 import type { Vec2 } from '@/util/data/vec2'
-import type { Icon } from '@/util/iconName'
+import { displayedIconOf } from '@/util/getIconName'
 import { computed, toRef, watch } from 'vue'
+import { DisplayIcon } from './widgets/WidgetIcon.vue'
 
 const props = defineProps<{
   ast: Ast.Ast
   nodeId: NodeId
   nodeElement: HTMLElement | undefined
+  nodeType: NodeType
   nodeSize: Vec2
-  icon: Icon
   potentialSelfArgumentId: Ast.AstId | undefined
   /** Ports that are not targetable by default; see {@link NodeDataFromAst}. */
   conditionalPorts: Set<Ast.AstId>
@@ -33,6 +34,13 @@ const rootPort = computed(() => {
     (!graph.db.isKnownFunctionCall(props.ast.id) || graph.db.connections.hasValue(props.ast.id))
   ) {
     input.forcePort = true
+  }
+
+  if (!props.potentialSelfArgumentId && topLevelIcon.value) {
+    input[DisplayIcon] = {
+      icon: topLevelIcon.value,
+      showContents: props.nodeType != 'output',
+    }
   }
   return input
 })
@@ -85,13 +93,28 @@ const widgetTree = provideWidgetTree(
   toRef(props, 'nodeId'),
   toRef(props, 'nodeElement'),
   toRef(props, 'nodeSize'),
-  toRef(props, 'icon'),
   toRef(props, 'potentialSelfArgumentId'),
   toRef(props, 'conditionalPorts'),
   toRef(props, 'extended'),
   layoutTransitions.active,
   () => emit('openFullMenu'),
 )
+
+const expressionInfo = computed(() => graph.db.getExpressionInfo(props.ast.externalId))
+const suggestionEntry = computed(() => graph.db.nodeMainSuggestion.lookup(props.nodeId))
+const topLevelIcon = computed(() => {
+  switch (props.nodeType) {
+    default:
+    case 'component':
+      return displayedIconOf(
+        suggestionEntry.value,
+        expressionInfo.value?.methodCall?.methodPointer,
+        expressionInfo.value?.typename ?? 'Unknown',
+      )
+    case 'output':
+      return 'data_output'
+  }
+})
 
 watch(toRef(widgetTree, 'currentEdit'), (edit) => edit && selectNode())
 </script>
@@ -103,14 +126,6 @@ export const ICON_WIDTH = 16
 
 <template>
   <div class="NodeWidgetTree widgetRounded" spellcheck="false" v-on="layoutTransitions.events">
-    <!-- Display an icon for the node if no widget in the tree provides one. -->
-    <SvgIcon
-      v-if="!props.potentialSelfArgumentId"
-      class="icon grab-handle nodeCategoryIcon draggable"
-      :style="{ margin: `0 ${GRAB_HANDLE_X_MARGIN_R}px 0 ${GRAB_HANDLE_X_MARGIN_L}px` }"
-      :name="props.icon"
-      @click.right.stop.prevent="emit('openFullMenu')"
-    />
     <NodeWidget :input="rootPort" @update="handleWidgetUpdates" />
   </div>
 </template>
@@ -187,9 +202,9 @@ export const ICON_WIDTH = 16
   }
 
   :deep(.widgetApplyPadding.widgetApplyPadding) {
-    padding-left: var(--widget-token-pad-left, 0);
-    padding-right: var(--widget-token-pad-right, 0);
-    transition: padding 0.2s ease-out;
+    margin-left: var(--widget-token-pad-left, 0);
+    margin-right: var(--widget-token-pad-right, 0);
+    transition: margin 0.2s ease-out;
   }
 }
 </style>

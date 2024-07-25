@@ -26,6 +26,7 @@ import { ArgumentInfoKey } from '@/util/callTree'
 import { arrayEquals } from '@/util/data/array'
 import type { Opt } from '@/util/data/opt'
 import { qnLastSegment, tryQualifiedName } from '@/util/qualifiedName'
+import { defineSymbolHmr } from '@/util/symbols'
 import { autoUpdate, offset, shift, size, useFloating } from '@floating-ui/vue'
 import type { Ref, RendererNode, VNode } from 'vue'
 import { computed, proxyRefs, ref, shallowRef, watch } from 'vue'
@@ -392,7 +393,7 @@ const arrowLocation = ref()
 </script>
 
 <script lang="ts">
-import { CustomDropdownItemsKeySymbol as CustomDropdownItemsKey } from '@/util/symbols'
+const CustomDropdownItemsKey: unique symbol = Symbol.for('WidgetInput:CustomDropdownItems')
 
 function isHandledByCheckboxWidget(parameter: SuggestionEntryArgument | undefined): boolean {
   return (

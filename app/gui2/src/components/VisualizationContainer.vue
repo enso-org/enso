@@ -176,6 +176,7 @@ const contentStyle = computed(() => {
 <style scoped>
 .VisualizationContainer {
   --permanent-toolbar-width: 200px;
+  --toolbar-reserved-height: 36px;
   --resize-handle-inside: var(--visualization-resize-handle-inside);
   --resize-handle-outside: var(--visualization-resize-handle-outside);
   --resize-handle-radius: var(--radius-default);
@@ -197,7 +198,7 @@ const contentStyle = computed(() => {
 }
 
 .VisualizationContainer.below-toolbar {
-  padding-top: calc(var(--node-size-y) + 72px);
+  padding-top: calc(var(--node-size-y) + var(--toolbar-reserved-height));
 }
 
 .VisualizationContainer.fullscreen {

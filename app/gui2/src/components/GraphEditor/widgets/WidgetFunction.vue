@@ -32,6 +32,15 @@ const props = defineProps(widgetProps(widgetDefinition))
 const graph = useGraphStore()
 const project = useProjectStore()
 
+const exprInfo = computed(() => graph.db.getExpressionInfo(props.input.value.externalId))
+const outputType = computed(() => exprInfo.value?.typename)
+
+const { methodCallInfo, application } = useWidgetFunctionCallInfo(
+  () => props.input,
+  graph.db,
+  project,
+)
+
 provideFunctionInfo(
   proxyRefs({
     prefixCalls: computed(() => {
@@ -43,13 +52,9 @@ provideFunctionInfo(
       }
       return ids
     }),
+    callInfo: methodCallInfo,
+    outputType,
   }),
-)
-
-const { methodCallInfo, application } = useWidgetFunctionCallInfo(
-  () => props.input,
-  graph.db,
-  project,
 )
 
 const innerInput = computed(() => {
@@ -207,7 +212,7 @@ function handleArgUpdate(update: WidgetUpdate): boolean {
 }
 </script>
 <script lang="ts">
-const CallInfo: unique symbol = Symbol('CallInfo')
+export const CallInfo: unique symbol = Symbol.for('WidgetInput:CallInfo')
 declare module '@/providers/widgetRegistry' {
   export interface WidgetInput {
     [CallInfo]?: MethodCallInfo

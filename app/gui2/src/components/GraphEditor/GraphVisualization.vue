@@ -43,7 +43,7 @@ import {
 const MIN_WIDTH_PX = 200
 const MIN_CONTENT_HEIGHT_PX = 32
 const DEFAULT_CONTENT_HEIGHT_PX = 150
-const TOP_WITH_TOOLBAR_PX = 72
+const TOOLBAR_HEIGHT_PX = 36
 
 // Used for testing.
 type RawDataSource = { type: 'raw'; data: any }
@@ -237,7 +237,7 @@ watchEffect(async () => {
 
 const isBelowToolbar = ref(false)
 
-const toolbarHeight = computed(() => (isBelowToolbar.value ? TOP_WITH_TOOLBAR_PX : 0))
+const toolbarHeight = computed(() => (isBelowToolbar.value ? TOOLBAR_HEIGHT_PX : 0))
 
 const rect = computed(
   () =>

@@ -523,8 +523,8 @@ export function getMethodCallInfoRecursively(
   }
 }
 
-export const ArgumentApplicationKey: unique symbol = Symbol('ArgumentApplicationKey')
-export const ArgumentInfoKey: unique symbol = Symbol('ArgumentInfoKey')
+export const ArgumentApplicationKey: unique symbol = Symbol.for('WidgetInput:ArgumentApplication')
+export const ArgumentInfoKey: unique symbol = Symbol.for('WidgetInput:ArgumentInfo')
 declare module '@/providers/widgetRegistry' {
   export interface WidgetInput {
     [ArgumentApplicationKey]?: ArgumentApplication

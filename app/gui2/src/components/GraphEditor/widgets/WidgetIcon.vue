@@ -4,16 +4,20 @@ import { Score, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { injectWidgetTree } from '@/providers/widgetTree'
 import type { URLString } from '@/util/data/urlString'
 import type { Icon } from '@/util/iconName'
+import NodeWidget from '../NodeWidget.vue'
 
-const _props = defineProps(widgetProps(widgetDefinition))
+const props = defineProps(widgetProps(widgetDefinition))
 const tree = injectWidgetTree()
 </script>
 
 <script lang="ts">
-export const DisplayIcon: unique symbol = Symbol('DisplayIcon')
+export const DisplayIcon: unique symbol = Symbol.for('WidgetInput:DisplayIcon')
 declare module '@/providers/widgetRegistry' {
   export interface WidgetInput {
-    [DisplayIcon]?: Icon | URLString
+    [DisplayIcon]?: {
+      icon: Icon | URLString
+      showContents?: boolean
+    }
   }
 }
 
@@ -30,15 +34,24 @@ export const widgetDefinition = defineWidget(
 <template>
   <div class="WidgetIcon">
     <SvgIcon
-      class="icon nodeCategoryIcon draggable"
-      :name="$props.input[DisplayIcon]"
+      class="nodeCategoryIcon grab-handle draggable"
+      :name="props.input[DisplayIcon].icon"
       @click.right.stop.prevent="tree.emitOpenFullMenu()"
     />
+    <NodeWidget v-if="props.input[DisplayIcon].showContents === true" :input="props.input" />
   </div>
 </template>
 
 <style scoped>
 .WidgetIcon {
   display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--widget-token-pad-unit);
+
+  > .SvgIcon {
+    margin: 0 calc((var(--node-port-height) - 16px) / 2);
+    display: flex;
+  }
 }
 </style>

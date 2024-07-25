@@ -53,7 +53,7 @@ test.each([
 ])('Primary application subject of $code', ({ code, expected }) => {
   const ast = Ast.Ast.parse(code)
   const module = ast.module
-  const primaryApplication = primaryApplicationSubject(ast, 'component')
+  const primaryApplication = primaryApplicationSubject(ast)
   const analyzed = primaryApplication && {
     subject: module.get(primaryApplication.subject).code(),
     accesses: primaryApplication.accessChain.map((id) => {
