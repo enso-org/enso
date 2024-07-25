@@ -32,7 +32,7 @@ import {
 } from './util/net'
 import type { Uuid } from './yjsModel'
 
-const DEBUG_LOG_RPC = true
+const DEBUG_LOG_RPC = false
 const RPC_TIMEOUT_MS = 15000
 
 export enum ErrorCode {
@@ -233,8 +233,8 @@ export class LanguageServer extends ObservableV2<Notifications & TransportEvents
     const now = performance.now()
     try {
       if (DEBUG_LOG_RPC) {
-        console.log(`LS [${uuid}] ${method}: ${JSON.stringify(params)}`)
-        //console.dir(params)
+        console.log(`LS [${uuid}] ${method}:`)
+        console.dir(params)
       }
       if (waitForInit) {
         const initResult = await this.initialized
