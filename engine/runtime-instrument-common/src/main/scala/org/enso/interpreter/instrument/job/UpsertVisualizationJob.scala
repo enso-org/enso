@@ -65,13 +65,9 @@ class UpsertVisualizationJob(
       this.getClass,
       () => {
         val maybeCallable =
-          ctx.locking.withWriteCompilationLock(
-            this.getClass,
-            () =>
-              UpsertVisualizationJob.evaluateVisualizationExpression(
-                config.visualizationModule,
-                config.expression
-              )
+          UpsertVisualizationJob.evaluateVisualizationExpression(
+            config.visualizationModule,
+            config.expression
           )
 
         maybeCallable match {

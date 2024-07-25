@@ -25,6 +25,7 @@ import org.enso.interpreter.instrument.{
 }
 import org.enso.interpreter.runtime.Module
 import org.enso.interpreter.service.error.ModuleNotFoundForFileException
+import org.enso.logger.masking.MaskedPath
 import org.enso.pkg.QualifiedName
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.Runtime.Api.StackItem
@@ -341,8 +342,12 @@ final class EnsureCompiledJob(
             ctx.executionService.getLogger
               .log(
                 Level.FINEST,
-                s"DBGG applyEdits {0}, {1}, {2}",
-                Array[Object](file, pendingEdits, idMap)
+                s"Applying pending file [{0}] edits [{1}] idMap [{2}]",
+                Array[Any](
+                  MaskedPath(file.toPath),
+                  pendingEdits.length,
+                  idMap.map(_.values.length)
+                )
               )
             val edits = pendingEdits.map(_.edit)
             val shouldExecute =

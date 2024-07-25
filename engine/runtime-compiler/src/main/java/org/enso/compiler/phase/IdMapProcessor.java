@@ -14,10 +14,10 @@ public final class IdMapProcessor {
   private IdMapProcessor() {}
 
   /**
-   * Applies the idMap to the module ir.
+   * Applies the map with external ids to the module ir.
    *
    * @param ir the module ir.
-   * @param idMap the provided idMap.
+   * @param idMap the provided IdMap.
    */
   public static Module updateIr(Module ir, IdMap idMap) {
     if (idMap == null) {
@@ -33,10 +33,10 @@ public final class IdMapProcessor {
     var identifiedLocationOption = expression.location();
     if (identifiedLocationOption.isDefined()) {
       var location = identifiedLocationOption.get().location();
-      var id = values.get(location);
-      if (id != null) {
+      var externalId = values.get(location);
+      if (externalId != null) {
         return expression
-            .setLocation(Some$.MODULE$.apply(new IdentifiedLocation(location, id)))
+            .setLocation(Some$.MODULE$.apply(new IdentifiedLocation(location, externalId)))
             .mapExpressions(expression1 -> setLocation(values, expression1));
       }
     }

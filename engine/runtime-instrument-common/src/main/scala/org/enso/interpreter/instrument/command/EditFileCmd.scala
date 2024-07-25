@@ -3,9 +3,11 @@ package org.enso.interpreter.instrument.command
 import org.enso.interpreter.instrument.execution.RuntimeContext
 import org.enso.interpreter.instrument.execution.model.PendingEdit
 import org.enso.interpreter.instrument.job.{EnsureCompiledJob, ExecuteJob}
+import org.enso.logger.masking.MaskedPath
 import org.enso.polyglot.runtime.Runtime.Api
 
 import java.util.logging.Level
+
 import scala.concurrent.ExecutionContext
 
 /** A command that performs edition of a file.
@@ -32,12 +34,12 @@ class EditFileCmd(request: Api.EditFileNotification)
           this.getClass,
           () => {
             logger.log(
-              Level.FINE,
-              "Adding pending file edits: {0}, {1}, {2}",
-              Array[Object](
-                request.path,
+              Level.FINEST,
+              "Adding pending file [{0}] edits [{1}] idMap [{2}]",
+              Array[Any](
+                MaskedPath(request.path.toPath),
                 request.edits.map(e => (e.range, e.text.length)),
-                request.idMap
+                request.idMap.map(_.values.length)
               )
             )
             val edits =
