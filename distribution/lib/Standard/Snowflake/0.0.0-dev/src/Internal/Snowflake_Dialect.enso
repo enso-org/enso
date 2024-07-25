@@ -635,7 +635,7 @@ make_date_diff arguments (metadata : Date_Period_Metadata) =
             Date_Period.Quarter ->
                 SQL_Builder.code "TRUNC(MONTHS_BETWEEN((" ++ end ++ ")::DATE, (" ++ start ++ ")::DATE) / 3)"
             Date_Period.Month ->
-                SQL_Builder.code "MONTHS_BETWEEN((" ++ end ++ ")::DATE, (" ++ start ++ ")::DATE)"
+                SQL_Builder.code "TRUNC(MONTHS_BETWEEN((" ++ end ++ ")::DATE, (" ++ start ++ ")::DATE))"
             _ ->
                 part_with_multiplier = date_period_to_part_with_multiplier metadata.period
                 date_part = part_with_multiplier.first
