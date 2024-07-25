@@ -68,7 +68,7 @@ LocalStorage.registerKey('launchedProjects', {
   schema: LAUNCHED_PROJECT_SCHEMA,
 })
 
-export const PAGES_SCHEMA = z
+const PAGES_SCHEMA = z
   .nativeEnum(TabType)
   .or(
     z.custom<LaunchedProjectId>(value => typeof value === 'string' && value.startsWith('project-'))
@@ -82,8 +82,6 @@ LocalStorage.registerKey('page', { schema: PAGES_SCHEMA })
 
 /** The state of this zustand store. */
 interface ProjectsStore {
-  readonly page: LaunchedProjectId | TabType
-  readonly setPage: (page: LaunchedProjectId | TabType) => void
   readonly launchedProjects: readonly LaunchedProject[]
   readonly updateLaunchedProjects: (
     update: (projects: readonly LaunchedProject[]) => readonly LaunchedProject[]
@@ -116,10 +114,6 @@ export default function ProjectsProvider(props: ProjectsProviderProps) {
   const { localStorage } = localStorageProvider.useLocalStorage()
   const [store] = React.useState(() => {
     return zustand.createStore<ProjectsStore>(set => ({
-      page: TabType.drive,
-      setPage: page => {
-        set({ page })
-      },
       launchedProjects: localStorage.get('launchedProjects') ?? [],
       updateLaunchedProjects: update => {
         set(({ launchedProjects }) => ({ launchedProjects: update(launchedProjects) }))
@@ -138,50 +132,7 @@ export default function ProjectsProvider(props: ProjectsProviderProps) {
     }))
   })
 
-  return (
-    <ProjectsContext.Provider value={store}>
-      <PageSynchronizer />
-      {children}
-    </ProjectsContext.Provider>
-  )
-}
-
-// ========================
-// === PageSynchronizer ===
-// ========================
-
-/** A component to synchronize React state with search parmas state. */
-function PageSynchronizer() {
-  const { localStorage } = localStorageProvider.useLocalStorage()
-  const store = useProjectsStore()
-  const providerPage = usePage()
-  const providerSetPage = useSetPage()
-  const [page, privateSetPage] = searchParamsState.useSearchParamsState(
-    'page',
-    () => store.getState().page,
-    (value: unknown): value is LaunchedProjectId | TabType => {
-      return (
-        array.includes(Object.values(TabType), value) ||
-        store.getState().launchedProjects.some(p => p.id === value)
-      )
-    }
-  )
-
-  React.useEffect(() => {
-    providerSetPage(page)
-  }, [page, providerSetPage])
-
-  React.useEffect(() => {
-    privateSetPage(providerPage)
-  }, [providerPage, privateSetPage])
-
-  React.useEffect(() =>
-    store.subscribe(state => {
-      localStorage.set('launchedProjects', state.launchedProjects)
-    })
-  )
-
-  return null
+  return <ProjectsContext.Provider value={store}>{children}</ProjectsContext.Provider>
 }
 
 // ========================
@@ -265,30 +216,6 @@ export function useClearLaunchedProjects() {
   return eventCallbacks.useEventCallback(() => {
     React.startTransition(() => {
       clearLaunchedProjects()
-    })
-  })
-}
-
-// ===============
-// === usePage ===
-// ===============
-
-/** A function to get the current page. */
-export function usePage() {
-  const store = useProjectsStore()
-  return zustand.useStore(store, state => state.page)
-}
-// ==================
-// === useSetPage ===
-// ==================
-
-/** A function to set the current page. */
-export function useSetPage() {
-  const store = useProjectsStore()
-  const setPage = zustand.useStore(store, state => state.setPage)
-  return eventCallbacks.useEventCallback((page: LaunchedProjectId | TabType) => {
-    React.startTransition(() => {
-      setPage(page)
     })
   })
 }

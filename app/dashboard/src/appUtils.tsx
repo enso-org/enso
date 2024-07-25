@@ -20,7 +20,7 @@ const APP_PATHS = [
 ] as const
 
 /** Valid paths for a page in the app. */
-export type AppPath = (typeof APP_PATHS)[number]
+export type AppPath = Exclude<(typeof APP_PATHS)[number], 'editor'> | `editor/${string}`
 
 /** Valid paths to a page in the app, including the leading slash and the search query
  * (if any). */
@@ -31,12 +31,10 @@ export function definePath(path: AppPath) {
   return path
 }
 
-// === Paths ===
-
 /** A {@link RegExp} matching all paths. */
-export const ALL_PATHS_REGEX = new RegExp(`\\b(?:${APP_PATHS.join('|')})\\b`)
-
-// === Constants related to URLs ===
+export const ALL_PATHS_REGEX = new RegExp(
+  `/$|\\b/(?:${APP_PATHS.map(path => (path === 'editor' ? `${path}/` : path)).join('|')})\\b.*$`
+)
 
 export const SEARCH_PARAMS_PREFIX = 'cloud-ide_'
 
@@ -52,4 +50,8 @@ export function getUpgradeURL(plan: string): AppFullPath {
  */
 export function getContactSalesURL(): string {
   return 'mailto:contact@enso.org?subject=Upgrading%20to%20Organization%20Plan'
+}
+
+export function isAppFullPath(path: string): path is AppFullPath {
+  return ALL_PATHS_REGEX.test(path)
 }

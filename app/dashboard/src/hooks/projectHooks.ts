@@ -2,11 +2,13 @@
 import * as React from 'react'
 
 import * as reactQuery from '@tanstack/react-query'
+import { useLocation } from 'react-router'
 import invariant from 'tiny-invariant'
 
 import { merge } from 'enso-common/src/utilities/data/object'
 
 import * as eventCallbacks from '#/hooks/eventCallbackHooks'
+import { useNavigate } from '#/hooks/routerHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
@@ -15,7 +17,6 @@ import {
   useAddLaunchedProject,
   useProjectsStore,
   useRemoveLaunchedProject,
-  useSetPage,
   useUpdateLaunchedProjects,
   type LaunchedProject,
   type LaunchedProjectId,
@@ -264,10 +265,10 @@ export function useOpenProject() {
 
 /** A function to open the editor. */
 export function useOpenEditor() {
-  const setPage = useSetPage()
+  const navigate = useNavigate()
   return eventCallbacks.useEventCallback((projectId: LaunchedProjectId) => {
     React.startTransition(() => {
-      setPage(projectId)
+      navigate(`/editor/${projectId}`)
     })
   })
 }
@@ -281,8 +282,8 @@ export function useCloseProject() {
   const client = reactQuery.useQueryClient()
   const closeProjectMutation = useCloseProjectMutation()
   const removeLaunchedProject = useRemoveLaunchedProject()
-  const projectsStore = useProjectsStore()
-  const setPage = useSetPage()
+  const { pathname } = useLocation()
+  const navigate = useNavigate()
 
   return eventCallbacks.useEventCallback((project: LaunchedProject) => {
     client
@@ -309,8 +310,8 @@ export function useCloseProject() {
       })
     removeLaunchedProject(project.id)
 
-    if (projectsStore.getState().page === project.id) {
-      setPage(TabType.drive)
+    if (pathname === `/editor/${project.id}`) {
+      navigate('/drive')
     }
   })
 }

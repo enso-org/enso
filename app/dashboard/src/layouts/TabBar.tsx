@@ -2,9 +2,12 @@
 import * as React from 'react'
 
 import * as reactQuery from '@tanstack/react-query'
+import { useLocation } from 'react-router'
 import invariant from 'tiny-invariant'
 
 import type * as text from 'enso-common/src/text'
+
+import type { AppFullPath } from '#/appUtils'
 
 import * as projectHooks from '#/hooks/projectHooks'
 
@@ -180,9 +183,8 @@ export default function TabBar(props: TabBarProps) {
 /** Props for a {@link Tab}. */
 interface InternalTabProps extends Readonly<React.PropsWithChildren> {
   readonly 'data-testid'?: string
-  readonly id: string
+  readonly path: AppFullPath
   readonly project?: LaunchedProject
-  readonly isActive: boolean
   readonly isHidden?: boolean
   readonly icon: string
   readonly labelId: text.TextId
@@ -192,12 +194,14 @@ interface InternalTabProps extends Readonly<React.PropsWithChildren> {
 
 /** A tab in a {@link TabBar}. */
 export function Tab(props: InternalTabProps) {
-  const { id, project, isActive, isHidden = false, icon, labelId, children, onClose } = props
+  const { path, project, isHidden = false, icon, labelId, children, onClose } = props
   const { onLoadEnd } = props
   const { setSelectedTab } = useTabBarContext()
   const ref = React.useRef<HTMLDivElement | null>(null)
   const isLoadingRef = React.useRef(true)
   const { getText } = textProvider.useText()
+  const { pathname } = useLocation()
+  const isActive = path === pathname
   const actuallyActive = isActive && !isHidden
   const [resizeObserver] = React.useState(
     () =>
@@ -231,7 +235,7 @@ export function Tab(props: InternalTabProps) {
     if (actuallyActive && ref.current) {
       setSelectedTab(ref.current)
     }
-  }, [actuallyActive, id, setSelectedTab])
+  }, [actuallyActive, path, setSelectedTab])
 
   const { isLoading, data } = reactQuery.useQuery<backend.Project>(
     project?.id
@@ -263,7 +267,7 @@ export function Tab(props: InternalTabProps) {
           updateClipPath()
         }
       }}
-      id={id}
+      id={path}
       aria-label={getText(labelId)}
       className={tailwindMerge.twMerge(
         'relative -mx-6 flex h-full items-center gap-3 rounded-t-3xl px-10',

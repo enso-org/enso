@@ -2,6 +2,7 @@
  * interactive components. */
 import * as React from 'react'
 
+import { useLocation } from 'react-router'
 import * as validator from 'validator'
 import * as z from 'zod'
 
@@ -11,9 +12,13 @@ import DriveIcon from '#/assets/drive.svg'
 import EditorIcon from '#/assets/network.svg'
 import SettingsIcon from '#/assets/settings.svg'
 
+import { isAppFullPath } from '#/appUtils'
+
 import * as eventCallbacks from '#/hooks/eventCallbackHooks'
 import * as projectHooks from '#/hooks/projectHooks'
+import { useNavigate } from '#/hooks/routerHooks'
 import * as searchParamsState from '#/hooks/searchParamsStateHooks'
+import { useSyncRef } from '#/hooks/syncRefHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
@@ -21,13 +26,10 @@ import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import ProjectsProvider, {
-  PAGES_SCHEMA,
   TabType,
   useClearLaunchedProjects,
   useLaunchedProjects,
-  usePage,
   useProjectsStore,
-  useSetPage,
   type LaunchedProject,
 } from '#/providers/ProjectsProvider'
 import * as textProvider from '#/providers/TextProvider'
@@ -110,6 +112,9 @@ function DashboardInner(props: DashboardProps) {
   const { localStorage } = localStorageProvider.useLocalStorage()
   const inputBindings = inputBindingsProvider.useInputBindings()
   const [isHelpChatOpen, setIsHelpChatOpen] = React.useState(false)
+  const { pathname } = useLocation()
+  const pathnameRef = useSyncRef(pathname)
+  const navigate = useNavigate()
 
   const dispatchAssetEvent = eventListProvider.useDispatchAssetEvent()
   const dispatchAssetListEvent = eventListProvider.useDispatchAssetListEvent()
@@ -138,11 +143,9 @@ function DashboardInner(props: DashboardProps) {
   )
 
   const projectsStore = useProjectsStore()
-  const page = usePage()
   const launchedProjects = useLaunchedProjects()
-  const selectedProject = launchedProjects.find(p => p.id === page) ?? null
+  const selectedProject = launchedProjects.find(p => `/editor/${p.id}` === pathname) ?? null
 
-  const setPage = useSetPage()
   const openEditor = projectHooks.useOpenEditor()
   const openProject = projectHooks.useOpenProject()
   const closeProject = projectHooks.useCloseProject()
@@ -173,9 +176,9 @@ function DashboardInner(props: DashboardProps) {
         closeModal: () => {
           updateModal(oldModal => {
             if (oldModal == null) {
-              const currentPage = projectsStore.getState().page
-              if (array.includes(Object.values(TabType), currentPage)) {
-                setPage(TabType.drive)
+              const currentPathname = pathnameRef.current
+              if (!currentPathname.startsWith('/editor')) {
+                navigate('/drive')
               }
             }
             return null
@@ -186,7 +189,7 @@ function DashboardInner(props: DashboardProps) {
           }
         },
       }),
-    [inputBindings, modalRef, localStorage, updateModal, setPage, projectsStore]
+    [inputBindings, modalRef, localStorage, updateModal, projectsStore]
   )
 
   React.useEffect(() => {
@@ -210,7 +213,7 @@ function DashboardInner(props: DashboardProps) {
   })
 
   const onSignOut = eventCallbacks.useEventCallback(() => {
-    setPage(TabType.drive)
+    navigate('/drive')
     closeAllProjects()
     clearLaunchedProjects()
   })
@@ -253,32 +256,25 @@ function DashboardInner(props: DashboardProps) {
       >
         <aria.Tabs
           className="relative flex min-h-full grow select-none flex-col container-size"
-          selectedKey={page}
+          selectedKey={pathname}
           onSelectionChange={newPage => {
-            const validated = PAGES_SCHEMA.safeParse(newPage)
-            if (validated.success) {
-              setPage(validated.data)
+            if (typeof newPage === 'string' && isAppFullPath(newPage)) {
+              navigate(newPage)
             }
           }}
         >
           <div className="flex">
             <TabBar>
-              <tabBar.Tab
-                id={TabType.drive}
-                isActive={page === TabType.drive}
-                icon={DriveIcon}
-                labelId="drivePageName"
-              >
+              <tabBar.Tab path="/drive" icon={DriveIcon} labelId="drivePageName">
                 {getText('drivePageName')}
               </tabBar.Tab>
 
               {launchedProjects.map(project => (
                 <tabBar.Tab
                   data-testid="editor-tab-button"
-                  id={project.id}
+                  path={`/editor/${project.id}`}
                   project={project}
                   key={project.id}
-                  isActive={page === project.id}
                   icon={EditorIcon}
                   labelId="editorPageName"
                   onClose={() => {
@@ -293,13 +289,12 @@ function DashboardInner(props: DashboardProps) {
               ))}
 
               <tabBar.Tab
-                isActive
-                id={TabType.settings}
-                isHidden={page !== TabType.settings}
+                path="/settings"
+                isHidden={pathname !== '/settings'}
                 icon={SettingsIcon}
                 labelId="settingsPageName"
                 onClose={() => {
-                  setPage(TabType.drive)
+                  navigate('/drive')
                 }}
               >
                 {getText('settingsPageName')}
@@ -310,21 +305,21 @@ function DashboardInner(props: DashboardProps) {
               onShareClick={selectedProject ? doOpenShareModal : undefined}
               setIsHelpChatOpen={setIsHelpChatOpen}
               goToSettingsPage={() => {
-                setPage(TabType.settings)
+                navigate('/settings')
               }}
               onSignOut={onSignOut}
             />
           </div>
           <aria.TabPanel
             shouldForceMount
-            id={TabType.drive}
+            id="/drive"
             className="flex min-h-0 grow [&[data-inert]]:hidden"
           >
             <Drive
               assetsManagementApiRef={assetManagementApiRef}
               category={category}
               setCategory={setCategory}
-              hidden={page !== TabType.drive}
+              hidden={pathname !== '/drive'}
               initialProjectName={initialProjectName}
             />
           </aria.TabPanel>
@@ -332,12 +327,12 @@ function DashboardInner(props: DashboardProps) {
             launchedProjects.map(project => (
               <aria.TabPanel
                 shouldForceMount
-                id={project.id}
+                id={`/editor/${project.id}`}
                 className="flex min-h-0 grow [&[data-inert]]:hidden"
               >
                 <Editor
                   key={project.id}
-                  hidden={page !== project.id}
+                  hidden={pathname !== `/editor/${project.id}`}
                   ydocUrl={ydocUrl}
                   project={project}
                   projectId={project.id}
