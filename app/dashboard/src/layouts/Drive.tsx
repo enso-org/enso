@@ -1,6 +1,8 @@
 /** @file The directory header bar and directory item listing. */
 import * as React from 'react'
 
+import invariant from 'tiny-invariant'
+
 import * as appUtils from '#/appUtils'
 
 import * as backendHooks from '#/hooks/backendHooks'
@@ -96,6 +98,7 @@ export default function Drive(props: DriveProps) {
   const [isAssetPanelTemporarilyVisible, setIsAssetPanelTemporarilyVisible] = React.useState(false)
   const organizationQuery = backendHooks.useBackendQuery(backend, 'getOrganization', [])
   const organization = organizationQuery.data ?? null
+  const [localRootDirectory] = localStorageProvider.useLocalStorageKey('localRootDirectory')
   const rootDirectoryId = React.useMemo(() => {
     switch (category.type) {
       case categoryModule.CategoryType.user:
@@ -103,10 +106,14 @@ export default function Drive(props: DriveProps) {
         return category.homeDirectoryId
       }
       default: {
-        return backend.rootDirectoryId(user, organization) ?? backendModule.DirectoryId('')
+        const localRootPath =
+          localRootDirectory != null ? backendModule.Path(localRootDirectory) : null
+        const id = backend.rootDirectoryId(user, organization, localRootPath)
+        invariant(id, 'Missing root directory')
+        return id
       }
     }
-  }, [category, backend, user, organization])
+  }, [category, backend, user, organization, localRootDirectory])
   const targetDirectoryNodeRef = React.useRef<AssetTreeNode<backendModule.DirectoryAsset> | null>(
     null
   )

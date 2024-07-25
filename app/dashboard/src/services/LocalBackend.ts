@@ -120,8 +120,12 @@ export default class LocalBackend extends Backend {
   }
 
   /** Return the ID of the root directory. */
-  override rootDirectoryId(): backend.DirectoryId {
-    return newDirectoryId(this.projectManager.rootDirectory)
+  override rootDirectoryId(
+    _user: backend.User | null,
+    _organization: backend.OrganizationInfo | null,
+    rootDirectory: backend.Path | null | undefined
+  ): backend.DirectoryId {
+    return newDirectoryId(rootDirectory ?? this.projectManager.rootDirectory)
   }
 
   /** Return a list of assets in a directory.

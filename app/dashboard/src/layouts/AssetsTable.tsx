@@ -426,14 +426,16 @@ export default function AssetsTable(props: AssetsTableProps) {
     queryFn: () => backend.getOrganization(),
   })
   const organization = organizationQuery.data
+  const [localRootDirectory] = localStorageProvider.useLocalStorageKey('localRootDirectory')
   const rootDirectoryId = React.useMemo(() => {
+    const localRootPath = localRootDirectory != null ? backendModule.Path(localRootDirectory) : null
     const id =
       'homeDirectoryId' in category
         ? category.homeDirectoryId
-        : backend.rootDirectoryId(user, organization)
+        : backend.rootDirectoryId(user, organization, localRootPath)
     invariant(id, 'Missing root directory')
     return id
-  }, [backend, category, user, organization])
+  }, [category, backend, user, organization, localRootDirectory])
   const [assetTree, setAssetTree] = React.useState<assetTreeNode.AnyAssetTreeNode>(() => {
     const rootParentDirectoryId = backendModule.DirectoryId('')
     const rootPath = 'rootPath' in category ? category.rootPath : backend.rootPath
