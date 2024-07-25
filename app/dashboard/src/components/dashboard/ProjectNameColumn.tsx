@@ -141,8 +141,6 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
         case AssetEventType.newFolder:
         case AssetEventType.newDatalink:
         case AssetEventType.newSecret:
-        case AssetEventType.openProject:
-        case AssetEventType.closeProject:
         case AssetEventType.copy:
         case AssetEventType.cut:
         case AssetEventType.cancelCut:
@@ -189,6 +187,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                       event.versionId,
                       asset.title,
                     ])
+              event.onCreated?.(createdProject)
               rowState.setVisibility(Visibility.visible)
               setAsset(
                 object.merge(asset, {
@@ -205,6 +204,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                 title: asset.title,
               })
             } catch (error) {
+              event.onError?.()
               dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
               toastAndLog('createProjectError', error)
             }

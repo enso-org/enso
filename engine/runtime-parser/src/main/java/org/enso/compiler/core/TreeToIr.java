@@ -19,6 +19,7 @@ import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.core.ir.Name;
 import org.enso.compiler.core.ir.Pattern;
 import org.enso.compiler.core.ir.Type;
+import org.enso.compiler.core.ir.Warning;
 import org.enso.compiler.core.ir.expression.Application;
 import org.enso.compiler.core.ir.expression.Case;
 import org.enso.compiler.core.ir.expression.Comment;
@@ -35,6 +36,7 @@ import org.enso.syntax2.ArgumentDefinition;
 import org.enso.syntax2.Base;
 import org.enso.syntax2.DocComment;
 import org.enso.syntax2.Line;
+import org.enso.syntax2.Parser;
 import org.enso.syntax2.TextElement;
 import org.enso.syntax2.Token;
 import org.enso.syntax2.Tree;
@@ -918,7 +920,9 @@ final class TreeToIr {
             var lhs = unnamedCallArgument(app.getLhs());
             var rhs = unnamedCallArgument(app.getRhs());
             var loc = getIdentifiedLocation(app);
-            yield applyOperator(op, lhs, rhs, loc);
+            var ir = applyOperator(op, lhs, rhs, loc);
+            attachTranslatedWarnings(ir, app);
+            yield ir;
           }
         };
       }
@@ -1195,6 +1199,14 @@ final class TreeToIr {
       case Tree.Invalid __ -> translateSyntaxError(tree, Syntax.UnexpectedExpression$.MODULE$);
       default -> translateSyntaxError(tree, new Syntax.UnsupportedSyntax("translateExpression"));
     };
+  }
+
+  private void attachTranslatedWarnings(IR ir, Tree tree) {
+    for (var warning : tree.getWarnings()) {
+      var message = Parser.getWarningMessage(warning);
+      var irWarning = new Warning.Syntax(ir, message);
+      ir.diagnostics().add(irWarning);
+    }
   }
 
   private Operator applyOperator(Token.Operator op, CallArgument lhs, CallArgument rhs,
