@@ -28,27 +28,29 @@ export function markdownPlugin(
     if (extension?.transformers) transformers.push(...extension.transformers)
   }
   transformers.push(...TRANSFORMERS)
-  return [...extensions, baseMarkdownPlugin, markdownSyncPlugin(model, transformers)]
+  return [...extensions, baseMarkdownPlugin(transformers), markdownSyncPlugin(model, transformers)]
 }
 
-const baseMarkdownPlugin: LexicalPlugin = {
-  nodes: [
-    HeadingNode,
-    QuoteNode,
-    ListItemNode,
-    ListNode,
-    AutoLinkNode,
-    LinkNode,
-    CodeHighlightNode,
-    CodeNode,
-    TableCellNode,
-    TableNode,
-    TableRowNode,
-  ],
-  register: (editor) => {
-    registerRichText(editor)
-    registerMarkdownShortcuts(editor, TRANSFORMERS)
-  },
+function baseMarkdownPlugin(transformers: Transformer[]): LexicalPlugin {
+  return {
+    nodes: [
+      HeadingNode,
+      QuoteNode,
+      ListItemNode,
+      ListNode,
+      AutoLinkNode,
+      LinkNode,
+      CodeHighlightNode,
+      CodeNode,
+      TableCellNode,
+      TableNode,
+      TableRowNode,
+    ],
+    register: (editor) => {
+      registerRichText(editor)
+      registerMarkdownShortcuts(editor, transformers)
+    },
+  }
 }
 
 const markdownSyncPlugin = (model: Ref<string>, transformers: Transformer[]): LexicalPlugin => ({
