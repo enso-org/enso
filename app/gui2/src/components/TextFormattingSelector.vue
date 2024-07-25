@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import DropdownMenu from '@/components/DropdownMenu.vue'
 import MenuButton from '@/components/MenuButton.vue'
-import SvgButton from '@/components/SvgButton.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import { computed, ref, watch } from 'vue'
 import { TextFormatOptions } from './visualizations/TableVisualization.vue'
@@ -36,10 +35,10 @@ const changeFormat = (option: TextFormatOptions) => {
 </script>
 
 <template>
-  <DropdownMenu v-model:open="open" class="TextFormattingSelector">
+  <DropdownMenu v-model:open="open" class="TextFormattingSelector" title="Text Display Options">
     <template #button
       ><div :class="buttonClass">
-        <SvgIcon name="paragraph" title="Text Display Options" /></div
+        <SvgIcon name="paragraph" /></div
     ></template>
 
     <template #entries>
@@ -63,8 +62,8 @@ const changeFormat = (option: TextFormatOptions) => {
 
       <MenuButton
         class="off"
-        @click="() => changeFormat(TextFormatOptions.Off)"
         title="`No formatting applied to text`"
+        @click="() => changeFormat(TextFormatOptions.Off)"
       >
         <div class="strikethrough">
           <SvgIcon name="paragraph" />
