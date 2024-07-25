@@ -628,16 +628,25 @@ make_date_diff arguments (metadata : Date_Period_Metadata) =
     if arguments.length != 2 then Error.throw (Illegal_State.Error "date_diff expects exactly 2 sub expressions. This is a bug in Database library.") else
         start = arguments.at 0
         end = arguments.at 1
-        part_with_multiplier = date_period_to_part_with_multiplier metadata.period
-        date_part = part_with_multiplier.first
-        multiplier = part_with_multiplier.second
-        ## The SQL type to add as a cast. This is needed, because otherwise this operation is losing type information,
-           especially if given NULL (Nothing). It would tell that it returns a VARCHAR which is not true.
-        sql_typ = sql_type_string_for_date_time metadata.input_value_type
-        diff = SQL_Builder.code "DATEDIFF('" ++ date_part ++ "', (" ++ start ++ ")::" ++ sql_typ ++ ", (" ++ end ++ ")::" ++ sql_typ ++ ")"
-        if multiplier == 1 then diff else
-            # We want to return integer, so we truncate any fractional part that did not constitute a full unit.
-            SQL_Builder.code "TRUNC(" ++ diff ++ " / " ++ multiplier.to_text ++ ")"
+        case metadata.period of
+            # Year / Quarter / Month rely on MONTHS_BETWEEN because DATEDIFF looked just at months and years and ignored days, yielding incorrect results.
+            Date_Period.Year ->
+                SQL_Builder.code "TRUNC(MONTHS_BETWEEN((" ++ end ++ ")::DATE, (" ++ start ++ ")::DATE) / 12)"
+            Date_Period.Quarter ->
+                SQL_Builder.code "TRUNC(MONTHS_BETWEEN((" ++ end ++ ")::DATE, (" ++ start ++ ")::DATE) / 3)"
+            Date_Period.Month ->
+                SQL_Builder.code "MONTHS_BETWEEN((" ++ end ++ ")::DATE, (" ++ start ++ ")::DATE)"
+            _ ->
+                part_with_multiplier = date_period_to_part_with_multiplier metadata.period
+                date_part = part_with_multiplier.first
+                multiplier = part_with_multiplier.second
+                ## The SQL type to add as a cast. This is needed, because otherwise this operation is losing type information,
+                   especially if given NULL (Nothing). It would tell that it returns a VARCHAR which is not true.
+                sql_typ = sql_type_string_for_date_time metadata.input_value_type
+                diff = SQL_Builder.code "DATEDIFF('" ++ date_part ++ "', (" ++ start ++ ")::" ++ sql_typ ++ ", (" ++ end ++ ")::" ++ sql_typ ++ ")"
+                if multiplier == 1 then diff else
+                    # We want to return integer, so we truncate any fractional part that did not constitute a full unit.
+                    SQL_Builder.code "TRUNC(" ++ diff ++ " / " ++ multiplier.to_text ++ ")"
 
 ## PRIVATE
 make_date_trunc_to_day arguments =
