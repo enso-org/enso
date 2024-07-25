@@ -1,9 +1,8 @@
 package org.enso.runtimeversionmanager.runner
 
 import com.typesafe.scalalogging.Logger
+import org.enso.process.WrappedProcess
 
-import java.io.{BufferedReader, InputStreamReader}
-import java.util.StringJoiner
 import scala.sys.process.Process
 import scala.util.{Failure, Try}
 
@@ -20,25 +19,30 @@ case class Command(command: Seq[String], extraEnv: Seq[(String, String)]) {
     * May return an exception if it is impossible to run the command (for
     * example due to insufficient permissions or nonexistent executable).
     */
-  def run(inheritStdOutErr: Boolean = true): Try[(Int, String)] =
+  def run(): Try[Int] =
     wrapError {
       logger.debug("Executing {}", this)
       val processBuilder = builder()
-      if (inheritStdOutErr) {
-        processBuilder.inheritIO()
-        val process = processBuilder.start()
-        (process.waitFor(), "")
-      } else {
-        val process = processBuilder.start()
-        val outReader =
-          new BufferedReader(new InputStreamReader(process.getInputStream))
-        val errReader =
-          new BufferedReader(new InputStreamReader(process.getErrorStream))
-        val joiner = new StringJoiner(System.getProperty("line.separator"))
-        outReader.lines.iterator.forEachRemaining(joiner.add)
-        errReader.lines.iterator.forEachRemaining(joiner.add)
-        (process.waitFor(), joiner.toString)
-      }
+      processBuilder.inheritIO()
+      val process = processBuilder.start()
+      process.waitFor()
+    }
+
+  /** Runs the command and returns its exit code along with any output produced..
+    *
+    * May return an exception if it is impossible to run the command (for
+    * example due to insufficient permissions or nonexistent executable).
+    */
+  def runAndCaptureOutput(): Try[(Int, String)] =
+    wrapError {
+      logger.debug("Executing {}", this)
+      val processBuilder = builder()
+      val process        = processBuilder.start()
+      val wrappedProcess = new WrappedProcess(command, process)
+      val stringBuilder  = new StringBuilder()
+      wrappedProcess.appendToBuilder(stringBuilder)
+      val result = wrappedProcess.join(waitForDescendants = true, 5 * 60)
+      (result.exitCode, stringBuilder.toString())
     }
 
   /** Runs the command and returns its standard output as [[String]].

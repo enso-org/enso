@@ -97,7 +97,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
           .get,
         JVMSettings(useSystemJVM, jvmOpts, extraOptions = Seq.empty)
       ) { command =>
-        command.run(inheritStdOutErr = false).get
+        command.runAndCaptureOutput().get
       }
 
     if (exitCode == 0) {
@@ -211,7 +211,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     jvmOpts: Seq[(String, String)],
     additionalArguments: Seq[String]
   ): Int = {
-    val (exitCode, _) = runner
+    runner
       .withCommand(
         runner
           .repl(
@@ -226,7 +226,6 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
       ) { command =>
         command.run().get
       }
-    exitCode
   }
 
   /** Runs an Enso script or project.
@@ -255,7 +254,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     jvmOpts: Seq[(String, String)],
     additionalArguments: Seq[String]
   ): Int = {
-    val (exitCode, _) = runner
+    val exitCode = runner
       .withCommand(
         runner
           .run(
@@ -297,7 +296,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     jvmOpts: Seq[(String, String)],
     additionalArguments: Seq[String]
   ): Int = {
-    val (exitCode, _) = runner
+    val exitCode = runner
       .withCommand(
         runner
           .languageServer(
@@ -335,7 +334,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     jvmOpts: Seq[(String, String)],
     additionalArguments: Seq[String]
   ): Int = {
-    val (exitCode, _) = runner.withCommand(
+    val exitCode = runner.withCommand(
       runner
         .installDependencies(
           versionOverride,
@@ -419,7 +418,6 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
       ) { command =>
         command.run().get
       }
-      ._1
   }
 
   /** Prints the value of `key` from the global configuration.

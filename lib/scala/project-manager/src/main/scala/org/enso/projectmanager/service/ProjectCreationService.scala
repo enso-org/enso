@@ -74,7 +74,7 @@ class ProjectCreationService[
           s"Running engine $engineVersion to create project $name at " +
           s"[${MaskedPath(path).applyMasking()}]."
         )
-        command.run(inheritStdOutErr = false).get
+        command.runAndCaptureOutput().get
       }
     }
     .mapRuntimeManagerErrors { other: Throwable =>
