@@ -6,6 +6,7 @@ import * as reactQuery from '@tanstack/react-query'
 import BurgerMenuIcon from '#/assets/burger_menu.svg'
 
 import * as backendHooks from '#/hooks/backendHooks'
+import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import * as searchParamsState from '#/hooks/searchParamsStateHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
@@ -68,26 +69,16 @@ export default function Settings() {
   const updateOrganization = updateOrganizationMutation.mutateAsync
 
   const [, setLocalRootDirectory] = useLocalStorageKey('localRootDirectory')
-  const updateLocalRootPath = reactQuery.useMutation({
-    mutationKey: [localBackend?.type, 'updateRootPath'],
-    mutationFn: (value: string) => {
-      setLocalRootDirectory(value)
-      if (localBackend) {
-        localBackend.rootPath = projectManager.Path(value)
-      }
-      return Promise.resolve()
-    },
-    meta: { invalidates: [[localBackend?.type, 'listDirectory']], awaitInvalidates: true },
-  }).mutateAsync
-  const resetLocalRootPath = reactQuery.useMutation({
-    mutationKey: [localBackend?.type, 'updateRootPath'],
-    mutationFn: () => {
-      setLocalRootDirectory(undefined)
-      localBackend?.resetRootPath()
-      return Promise.resolve()
-    },
-    meta: { invalidates: [[localBackend?.type, 'listDirectory']], awaitInvalidates: true },
-  }).mutateAsync
+  const updateLocalRootPath = useEventCallback((value: string) => {
+    setLocalRootDirectory(value)
+    if (localBackend) {
+      localBackend.rootPath = projectManager.Path(value)
+    }
+  })
+  const resetLocalRootPath = useEventCallback(() => {
+    setLocalRootDirectory(undefined)
+    localBackend?.resetRootPath()
+  })
 
   const context = React.useMemo<settingsData.SettingsContext>(
     () => ({

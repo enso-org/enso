@@ -243,7 +243,10 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
             type: SettingsEntryType.input,
             nameId: 'localRootPathSettingsInput',
             getValue: context => context.localBackend?.rootPath ?? '',
-            setValue: (context, value) => context.updateLocalRootPath(value),
+            setValue: async (context, value) => {
+              context.updateLocalRootPath(value)
+              await Promise.resolve()
+            },
             getEditable: () => true,
           },
           {
@@ -431,8 +434,8 @@ export interface SettingsContext {
   readonly updateOrganization: (
     variables: Parameters<Backend['updateOrganization']>
   ) => Promise<backend.OrganizationInfo | null | undefined>
-  readonly updateLocalRootPath: (rootPath: string) => Promise<void>
-  readonly resetLocalRootPath: () => Promise<void>
+  readonly updateLocalRootPath: (rootPath: string) => void
+  readonly resetLocalRootPath: () => void
   readonly toastAndLog: toastAndLogHooks.ToastAndLogCallback
   readonly getText: textProvider.GetText
   readonly queryClient: reactQuery.QueryClient
