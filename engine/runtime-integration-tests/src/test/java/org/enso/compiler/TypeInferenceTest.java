@@ -1201,11 +1201,9 @@ public class TypeInferenceTest extends StaticAnalysisTest {
     assertEquals(List.of(), getDescendantsDiagnostics(x3.expression()));
     assertEquals(List.of(), getDescendantsDiagnostics(x4.expression()));
 
-    // calling a static method on an instance _does not work_, so we should get a warning
-    // TODO this error may be confusing as no way to distinguish a method missing from static-member
-    // mismatch - shall we improve the error message?
+    // calling a static method on an instance _does not work_, so we get a warning telling there's no such _member_ method
     assertEquals(
-        List.of(new Warning.NoSuchMethod(x5.expression().location(), "static method `static_method` on (type My_Type)")),
+        List.of(new Warning.NoSuchMethod(x5.expression().location(), "member method `static_method` on type My_Type")),
         getImmediateDiagnostics(x5.expression()));
   }
 
