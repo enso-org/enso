@@ -106,7 +106,7 @@ add_specs suite_builder setup =
             t.set (Simple_Expression.Simple_Expr (Column_Ref.Name "x") (Simple_Calculation.Date_Part Date_Period.Year)) . should_fail_with Invalid_Value_Type
             Test.expect_panic Type_Error <| t2.set (Simple_Expression.Simple_Expr 42 (Simple_Calculation.Date_Diff "x" Date_Period.Year))
 
-        group_builder.specify "date/time (edge case)" pending=(pending_datetime.if_nothing (if setup.prefix.contains "Snowflake" then "TODO: https://github.com/enso-org/enso/issues/10438")) <|
+        group_builder.specify "date/time (edge case)" pending=pending_datetime <|
             t2 = table_builder [["C", [Date.new 2002 12 10, Date.new 2005 01 01]], ["D", [Time_Of_Day.new 12 45, Time_Of_Day.new 01 01]]]
             t2.set (Simple_Expression.Simple_Expr (Column_Ref.Name "C") (Simple_Calculation.Date_Diff (Date.new 2003 01 01) Date_Period.Year)) "Z" . at "Z" . to_vector . should_equal [0, -2]
 

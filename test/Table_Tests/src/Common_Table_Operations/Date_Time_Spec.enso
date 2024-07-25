@@ -389,7 +389,7 @@ add_specs suite_builder setup =
 
         ## TODO these were extracted from the test above, they may later be merged again, or we may keep them separate depending on resolution of
            https://github.com/enso-org/enso/issues/10438
-        group_builder.specify "date_diff edge cases" pending=(if setup.prefix.contains "Snowflake" then "TODO: https://github.com/enso-org/enso/issues/10438") <|
+        group_builder.specify "date_diff edge cases" <|
             t1 = dates1.get.select_columns ["d_X", "d_Y", "X1"] reorder=True . rename_columns ["X", "Y", "X1"]
             ## TODO Snowflake just looks at year and month, but Postgres/in-memory look if it was a full month or not by looking at days
             (t1.at "X").date_diff (Date.new 2021 12 1) Date_Period.Month . to_vector . should_equal [0]
