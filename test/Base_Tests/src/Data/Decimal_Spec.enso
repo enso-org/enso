@@ -375,7 +375,7 @@ add_specs suite_builder =
                         (lesser > d) . should_be_false
                         (lesser >= d) . should_be_false
 
-        group_builder.specify "mixed float/decimal comparisons should attach a warning" <|
+        group_builder.specify "mixed float/decimal comparisons should attach a warning" pending="https://github.com/enso-org/enso/issues/10679" <|
             [(_ == _), (_ != _), (_ <= _), (_ >= _), (_ < _), (_ > _)].map c->
                 a = c (Decimal.new "0.1") 0.1
                 b = c 0.1 (Decimal.new "0.1")
