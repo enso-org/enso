@@ -34,21 +34,17 @@ import { prefixes } from '@/util/ast/node'
 import type { Opt } from '@/util/data/opt'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
-import { displayedIconOf } from '@/util/getIconName'
 import type { ExternalId, VisualizationIdentifier } from 'shared/yjsModel'
 import { computed, onUnmounted, ref, shallowRef, watch, watchEffect } from 'vue'
 
 const MAXIMUM_CLICK_LENGTH_MS = 300
 const MAXIMUM_CLICK_DISTANCE_SQ = 50
 const CONTENT_PADDING = 4
-const CONTENT_PADDING_RIGHT = 8
 const CONTENT_PADDING_PX = `${CONTENT_PADDING}px`
-const CONTENT_PADDING_RIGHT_PX = `${CONTENT_PADDING_RIGHT}px`
 const MENU_CLOSE_TIMEOUT_MS = 300
 
 const contentNodeStyle = {
   padding: CONTENT_PADDING_PX,
-  paddingRight: CONTENT_PADDING_RIGHT_PX,
 }
 
 const props = defineProps<{
@@ -85,11 +81,6 @@ const navigator = injectGraphNavigator(true)
 
 const nodeId = computed(() => asNodeId(props.node.rootExpr.externalId))
 const potentialSelfArgumentId = computed(() => props.node.primarySubject)
-const connectedSelfArgumentId = computed(() =>
-  potentialSelfArgumentId.value && graph.isConnectedTarget(potentialSelfArgumentId.value) ?
-    potentialSelfArgumentId.value
-  : undefined,
-)
 
 onUnmounted(() => graph.unregisterNodeRect(nodeId.value))
 
@@ -241,14 +232,6 @@ watch(isVisualizationPreviewed, (newVal, oldVal) => {
 
 const isVisualizationFullscreen = computed(() => props.node.vis?.fullscreen ?? false)
 
-const bgStyleVariables = computed(() => {
-  const { x: width, y: height } = nodeSize.value
-  return {
-    '--node-width': `${width}px`,
-    '--node-height': `${height}px`,
-  }
-})
-
 const transform = computed(() => {
   const { x, y } = props.node.position
   return `translate(${x}px, ${y}px)`
@@ -307,23 +290,9 @@ const isRecordingOverridden = computed({
 })
 
 const expressionInfo = computed(() => graph.db.getExpressionInfo(props.node.innerExpr.externalId))
-const outputPortLabel = computed(() => expressionInfo.value?.typename ?? 'Unknown')
 const executionState = computed(() => expressionInfo.value?.payload.type ?? 'Unknown')
 const suggestionEntry = computed(() => graph.db.nodeMainSuggestion.lookup(nodeId.value))
 const color = computed(() => graph.db.getNodeColorStyle(nodeId.value))
-const icon = computed(() => {
-  switch (props.node.type) {
-    default:
-    case 'component':
-      return displayedIconOf(
-        suggestionEntry.value,
-        expressionInfo.value?.methodCall?.methodPointer,
-        outputPortLabel.value,
-      )
-    case 'output':
-      return 'data_output'
-  }
-})
 const documentationUrl = computed(
   () => suggestionEntry.value && suggestionDocumentationUrl(suggestionEntry.value),
 )
@@ -432,6 +401,8 @@ watchEffect(() => {
       '--node-group-color': color,
       ...(node.zIndex ? { 'z-index': node.zIndex } : {}),
       '--viz-below-node': `${graphSelectionSize.y - nodeSize.y}px`,
+      '--node-size-x': `${nodeSize.x}px`,
+      '--node-size-y': `${nodeSize.y}px`,
     }"
     :class="{
       selected,
@@ -444,9 +415,8 @@ watchEffect(() => {
     @pointerleave="(nodeHovered = false), updateNodeHover(undefined)"
     @pointermove="updateNodeHover"
   >
-    <Teleport :to="graphNodeSelections">
+    <Teleport v-if="navigator && !edited" :to="graphNodeSelections">
       <GraphNodeSelection
-        v-if="navigator && !edited"
         :data-node-id="nodeId"
         :nodePosition="props.node.position"
         :nodeSize="graphSelectionSize"
@@ -527,9 +497,8 @@ watchEffect(() => {
         :ast="props.node.innerExpr"
         :nodeId="nodeId"
         :nodeElement="rootNode"
+        :nodeType="props.node.type"
         :nodeSize="nodeSize"
-        :icon="icon"
-        :connectedSelfArgumentId="connectedSelfArgumentId"
         :potentialSelfArgumentId="potentialSelfArgumentId"
         :conditionalPorts="props.node.conditionalPorts"
         :extended="isOnlyOneSelected"
@@ -550,7 +519,7 @@ watchEffect(() => {
       :message="visibleMessage.text"
       :type="visibleMessage.type"
     />
-    <svg class="bgPaths" :style="bgStyleVariables">
+    <svg class="bgPaths">
       <rect class="bgFill" />
       <GraphNodeOutputPorts
         v-if="props.node.type !== 'output'"
@@ -581,15 +550,11 @@ watchEffect(() => {
   display: flex;
 
   --output-port-transform: translateY(var(--viz-below-node));
-  --output-port-max-width: 4px;
-  --output-port-hovered-extra-width: 2px;
-  --output-port-overlap: -8px;
-  --output-port-hover-width: 20px;
 }
 
 .bgFill {
-  width: var(--node-width);
-  height: var(--node-height);
+  width: var(--node-size-x);
+  height: var(--node-size-y);
   rx: var(--node-border-radius);
 
   fill: var(--node-color-primary);
@@ -597,7 +562,10 @@ watchEffect(() => {
 }
 
 .GraphNode {
-  --node-height: 32px;
+  position: absolute;
+  border-radius: var(--node-border-radius);
+  transition: box-shadow 0.2s ease-in-out;
+  box-sizing: border-box;
 
   --node-color-primary: color-mix(
     in oklab,
@@ -611,11 +579,6 @@ watchEffect(() => {
   &.executionState-Pending {
     --node-color-primary: color-mix(in oklab, var(--node-group-color) 60%, #aaa 40%);
   }
-
-  position: absolute;
-  border-radius: var(--node-border-radius);
-  transition: box-shadow 0.2s ease-in-out;
-  box-sizing: border-box;
 }
 
 .content {
@@ -623,8 +586,6 @@ watchEffect(() => {
   position: relative;
   top: 0;
   left: 0;
-  caret-shape: bar;
-  height: var(--node-height);
   border-radius: var(--node-border-radius);
   display: flex;
   flex-direction: row;

@@ -87,28 +87,22 @@ export function outputNode(page: Page | Locator): Node {
 
 // === Data locators ===
 
-type SanitizeClassName<T extends string> =
-  T extends `${infer A}.${infer B}` ? SanitizeClassName<`${A}${B}`>
-  : T extends `${infer A} ${infer B}` ? SanitizeClassName<`${A}${B}`>
-  : T
-
-function componentLocator<T extends string>(className: SanitizeClassName<T>) {
+function componentLocator(locatorStr: string) {
   return (page: Locator | Page, filter?: (f: Filter) => { selector: string }) => {
-    return page.locator(`.${className}${filter?.(new Filter()) ?? ''}`)
+    return page.locator(`${locatorStr}${filter?.(new Filter()) ?? ''}`)
   }
 }
 
-export const graphEditor = componentLocator('GraphEditor')
-export const codeEditor = componentLocator('CodeEditor')
-// @ts-expect-error
-export const anyVisualization = componentLocator('GraphVisualization > *')
-export const loadingVisualization = componentLocator('LoadingVisualization')
-export const circularMenu = componentLocator('CircularMenu')
-export const addNewNodeButton = componentLocator('PlusButton')
-export const componentBrowser = componentLocator('ComponentBrowser')
-export const nodeOutputPort = componentLocator('outputPortHoverArea')
-export const smallPlusButton = componentLocator('SmallPlusButton')
-export const lexicalContent = componentLocator('LexicalContent')
+export const graphEditor = componentLocator('.GraphEditor')
+export const codeEditor = componentLocator('.CodeEditor')
+export const anyVisualization = componentLocator('.GraphVisualization > *')
+export const loadingVisualization = componentLocator('.LoadingVisualization')
+export const circularMenu = componentLocator('.CircularMenu > .circle')
+export const addNewNodeButton = componentLocator('.PlusButton')
+export const componentBrowser = componentLocator('.ComponentBrowser')
+export const nodeOutputPort = componentLocator('.outputPortHoverArea')
+export const smallPlusButton = componentLocator('.SmallPlusButton')
+export const lexicalContent = componentLocator('.LexicalContent')
 
 export function componentBrowserEntry(
   page: Locator | Page,
@@ -140,17 +134,17 @@ export function bottomDock(page: Page) {
   return page.getByTestId('bottomDock')
 }
 
-export const navBreadcrumb = componentLocator('NavBreadcrumb')
-export const componentBrowserInput = componentLocator('ComponentEditor')
-export const jsonVisualization = componentLocator('JSONVisualization')
-export const tableVisualization = componentLocator('TableVisualization')
-export const scatterplotVisualization = componentLocator('ScatterplotVisualization')
-export const histogramVisualization = componentLocator('HistogramVisualization')
-export const heatmapVisualization = componentLocator('HeatmapVisualization')
-export const sqlVisualization = componentLocator('SqlVisualization')
-export const geoMapVisualization = componentLocator('GeoMapVisualization')
-export const imageBase64Visualization = componentLocator('ImageBase64Visualization')
-export const warningsVisualization = componentLocator('WarningsVisualization')
+export const navBreadcrumb = componentLocator('.NavBreadcrumb')
+export const componentBrowserInput = componentLocator('.ComponentEditor')
+export const jsonVisualization = componentLocator('.JSONVisualization')
+export const tableVisualization = componentLocator('.TableVisualization')
+export const scatterplotVisualization = componentLocator('.ScatterplotVisualization')
+export const histogramVisualization = componentLocator('.HistogramVisualization')
+export const heatmapVisualization = componentLocator('.HeatmapVisualization')
+export const sqlVisualization = componentLocator('.SqlVisualization')
+export const geoMapVisualization = componentLocator('.GeoMapVisualization')
+export const imageBase64Visualization = componentLocator('.ImageBase64Visualization')
+export const warningsVisualization = componentLocator('.WarningsVisualization')
 
 // === Edge locators ===
 
