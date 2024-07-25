@@ -98,7 +98,7 @@ add_specs suite_builder setup =
         group_builder.specify "ordering before aggregate" <|
             t1 = table_builder [["X", [5, 4, 1, 3, 2]], ["Y", ["b", "a", "d", "c", "e"]]]
             t2 = t1.sort "Y"
-            t3 = t2.aggregate [Aggregate_Column.Count, Aggregate_Column.Sum "X", Aggregate_Column.Minimum "X"]
+            t3 = t2.aggregate columns=[Aggregate_Column.Count, Aggregate_Column.Sum "X", Aggregate_Column.Minimum "X"]
             t3.columns.map .name . should_equal ["Count", "Sum X", "Minimum X"]
             m3 = materialize t3
             m3.at "Count" . to_vector . should_equal [5]
