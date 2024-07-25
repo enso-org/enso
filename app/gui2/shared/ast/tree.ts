@@ -2396,6 +2396,12 @@ export class Vector extends Ast {
     for (const element of this.fields.get('elements'))
       if (element.value) yield this.module.get(element.value.node)
   }
+
+  *enumerate(): IterableIterator<[number, Ast | undefined]> {
+    for (const [index, element] of this.fields.get('elements').entries()) {
+      yield [index, this.module.get(element.value?.node)]
+    }
+  }
 }
 export class MutableVector extends Vector implements MutableAst {
   declare readonly module: MutableModule

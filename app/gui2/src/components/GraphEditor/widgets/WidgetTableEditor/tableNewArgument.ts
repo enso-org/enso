@@ -2,17 +2,29 @@ import type { WidgetInput } from '@/providers/widgetRegistry'
 import { Ast } from '@/util/ast'
 import { filterDefined } from '@/util/data/iterable'
 import type { ToValue } from '@/util/reactivity'
+import type { ValueGetterParams, ValueSetterParams } from 'ag-grid-community'
 import { mapIterator } from 'lib0/iterator'
+import type { AstId } from 'shared/ast'
 import { initializeFFI } from 'shared/ast/ffi'
+import { assert } from 'shared/util/assert'
 import { computed, toValue } from 'vue'
 
 await initializeFFI()
 
-export function useTableNewArgument(input: ToValue<WidgetInput & { value: Ast.Ast }>) {
+export type RowData = {
+  index: number
+  cells: Record<string, AstId>
+}
+
+export function useTableNewArgument(
+  input: ToValue<WidgetInput & { value: Ast.Ast }>,
+  onChange: (id: AstId, newValue: string) => boolean,
+) {
   const columnsAst = computed(() => {
     const inputAst = toValue(input).value
     if (!(inputAst instanceof Ast.App)) return undefined
     if (!(inputAst.argument instanceof Ast.Vector)) return undefined
+    console.log('new columnsAst')
     return inputAst.argument
   })
 
@@ -21,6 +33,7 @@ export function useTableNewArgument(input: ToValue<WidgetInput & { value: Ast.As
     if (cols == null) return []
     const arr = Array.from(filterDefined(mapIterator(cols, (element) => readColumn(element))))
     if (arr.some((x) => x == null)) return []
+    console.log('new columns')
     return arr
   })
 
@@ -39,34 +52,35 @@ export function useTableNewArgument(input: ToValue<WidgetInput & { value: Ast.As
   }
 
   const columnDefs = computed(() => {
+    const inputVal = toValue(input)
+    console.log('new columnDefs')
     return Array.from(columns.value, (col) => ({
-      field: col.name,
+      headerName: col.name,
       editable: true,
+      valueGetter: ({ data }: ValueGetterParams<RowData>) =>
+        data ? inputVal.value.module.get(data.cells[col.name])?.code() : undefined,
+      valueSetter: ({ data, newValue }: ValueSetterParams<RowData>) => {
+        const astId = data?.cells[col.name]
+        if (astId != null) onChange(astId, newValue)
+      },
     }))
   })
 
   const rowData = computed(() => {
-    const cols = Array.from(columns.value, (col) => ({ name: col.name, data: col.data.values() }))
-    const rows: Record<string, any>[] = []
-    let anyValue: boolean
-    do {
-      const row: Record<string, any> = {}
-      anyValue = false
-      for (const col of cols) {
-        const valueAst = col.data.next()
-        if (valueAst.done) continue
-        const value =
-          valueAst.value instanceof Ast.TextLiteral ? valueAst.value.rawTextContent
-          : valueAst.value instanceof Ast.NumericLiteral ? parseFloat(valueAst.value.code())
-          : undefined
-        if (value == null) continue
-        anyValue = true
-        row[col.name] = value
+    const rows: RowData[] = []
+    for (const col of columns.value) {
+      for (const [rowIndex, value] of col.data.enumerate()) {
+        const row: RowData = rows.at(rowIndex) ?? { index: rowIndex, cells: {} }
+        assert(rowIndex <= rows.length)
+        if (rowIndex === rows.length) {
+          rows.push(row)
+        }
+        if (value?.id) {
+          row.cells[col.name] = value?.id
+        }
       }
-      if (anyValue) {
-        rows.push(row)
-      }
-    } while (anyValue)
+    }
+    console.log('new rows')
     return rows
   })
 

@@ -6,7 +6,7 @@ import { expect, test } from 'vitest'
 test.each([
   {
     code: 'Table.new [["a", [1, 2, 3]], ["b", [4, 5, "six"]]]',
-    expectedColumnDefs: [{ field: 'a' }, { field: 'b' }],
+    expectedColumnDefs: [{ headerName: 'a' }, { headerName: 'b' }],
     expectedRowData: [
       { a: 1, b: 4 },
       { a: 2, b: 5 },
@@ -20,7 +20,7 @@ test.each([
   },
   {
     code: 'Table.new [["a", []]]',
-    expectedColumnDefs: [{ field: 'a' }],
+    expectedColumnDefs: [{ headerName: 'a' }],
     expectedRowData: [],
   },
 ])('Reading table from $code', ({ code, expectedColumnDefs, expectedRowData }) => {

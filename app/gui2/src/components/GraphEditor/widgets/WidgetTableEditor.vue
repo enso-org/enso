@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { WidgetInputIsSpecificMethodCall } from '@/components/GraphEditor/widgets/WidgetFunction.vue'
-import { useTableNewArgument } from '@/components/GraphEditor/widgets/WidgetTableEditor/tableNewArgument'
+import {
+  type RowData,
+  useTableNewArgument,
+} from '@/components/GraphEditor/widgets/WidgetTableEditor/tableNewArgument'
 import ResizeHandles from '@/components/ResizeHandles.vue'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
 import { Score, defineWidget, widgetProps } from '@/providers/widgetRegistry'
@@ -8,12 +11,27 @@ import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import '@ag-grid-community/styles/ag-grid.css'
 import '@ag-grid-community/styles/ag-theme-alpine.css'
+import type { GetRowIdParams } from 'ag-grid-community'
 import { AgGridVue } from 'ag-grid-vue3'
-import { computed, ref } from 'vue'
+import type { AstId } from 'shared/ast'
+import { computed, ref, watch } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
 
-const { rowData, columnDefs } = useTableNewArgument(props.input)
+const { rowData, columnDefs } = useTableNewArgument(() => props.input, onCellChange)
+
+watch(rowData, (rowData) => console.log(rowData), { flush: 'sync' })
+watch(columnDefs, (columnDefs) => console.log(columnDefs), { flush: 'sync' })
+
+function onCellChange(id: AstId, newValue: string) {
+  props.onUpdate({
+    portUpdate: {
+      origin: id,
+      value: newValue,
+    },
+  })
+  return true
+}
 
 // === Resizing ===
 
@@ -46,9 +64,7 @@ export const widgetDefinition = defineWidget(
   }),
   {
     priority: 999,
-    // TODO[#10293]: This widget is not yet fully implemented, so it is temporarily disabled.
-    // Change this to `Score.Perfect` or implement appropriate score method as part of next task.
-    score: Score.Mismatch,
+    score: Score.Perfect,
   },
   import.meta.hot,
 )
@@ -56,7 +72,12 @@ export const widgetDefinition = defineWidget(
 
 <template>
   <div class="WidgetTableEditor" :style="widgetStyle">
-    <AgGridVue class="grid" :columnDefs="columnDefs" :rowData="rowData" />
+    <AgGridVue
+      class="grid"
+      :columnDefs="columnDefs"
+      :rowData="rowData"
+      :getRowId="(row: GetRowIdParams<RowData>) => row.data.index"
+    />
     <ResizeHandles v-model="clientBounds" bottom right />
   </div>
 </template>
