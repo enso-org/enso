@@ -589,6 +589,7 @@ function MutationListener() {
 // === DriveNavigator ===
 // ======================
 
+/** A component that navigates from `/drive` to the saved category. */
 function DriveNavigator() {
   const { user } = authProvider.useFullUserSession()
   const localBackend = useLocalBackend()

@@ -14,7 +14,7 @@ import SettingsIcon from '#/assets/settings.svg'
 
 import { isAppFullPath } from '#/appUtils'
 
-import * as eventCallbacks from '#/hooks/eventCallbackHooks'
+import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import * as projectHooks from '#/hooks/projectHooks'
 import { useNavigate } from '#/hooks/routerHooks'
 import { useSyncRef } from '#/hooks/syncRefHooks'
@@ -36,12 +36,7 @@ import AssetListEventType from '#/events/AssetListEventType'
 
 import type * as assetTable from '#/layouts/AssetsTable'
 import EventListProvider, * as eventListProvider from '#/layouts/AssetsTable/EventListProvider'
-import {
-  DRIVE_CATEGORIES,
-  DriveCategory,
-  isDriveCategory,
-  isLocalCategory,
-} from '#/layouts/CategorySwitcher/Category'
+import { isDriveCategory, type DriveCategory } from '#/layouts/CategorySwitcher/Category'
 import Chat from '#/layouts/Chat'
 import ChatPlaceholder from '#/layouts/ChatPlaceholder'
 import Drive from '#/layouts/Drive'
@@ -61,7 +56,6 @@ import * as backendModule from '#/services/Backend'
 import * as localBackendModule from '#/services/LocalBackend'
 import * as projectManager from '#/services/ProjectManager'
 
-import * as array from '#/utilities/array'
 import LocalStorage from '#/utilities/LocalStorage'
 import * as object from '#/utilities/object'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
@@ -123,10 +117,10 @@ function DashboardInner(props: DashboardProps) {
       : pathname
   const maybeCategory = pathname.startsWith('/drive/') ? pathname.replace(/^[/]drive[/]/, '') : null
   const category = isDriveCategory(maybeCategory) ? maybeCategory : 'cloud'
-  const setCategory = (category: DriveCategory) => {
-    navigate(`/drive/${category}`)
-    localStorage.set('driveCategory', category)
-  }
+  const setCategory = useEventCallback((newCategory: DriveCategory) => {
+    navigate(`/drive/${newCategory}`)
+    localStorage.set('driveCategory', newCategory)
+  })
 
   const dispatchAssetEvent = eventListProvider.useDispatchAssetEvent()
   const dispatchAssetListEvent = eventListProvider.useDispatchAssetListEvent()
@@ -203,18 +197,18 @@ function DashboardInner(props: DashboardProps) {
     }
   }, [inputBindings])
 
-  const doRemoveSelf = eventCallbacks.useEventCallback((project: LaunchedProject) => {
+  const doRemoveSelf = useEventCallback((project: LaunchedProject) => {
     dispatchAssetListEvent({ type: AssetListEventType.removeSelf, id: project.id })
     closeProject(project)
   })
 
-  const onSignOut = eventCallbacks.useEventCallback(() => {
+  const onSignOut = useEventCallback(() => {
     navigate('/drive')
     closeAllProjects()
     clearLaunchedProjects()
   })
 
-  const doOpenShareModal = eventCallbacks.useEventCallback(() => {
+  const doOpenShareModal = useEventCallback(() => {
     if (assetManagementApiRef.current != null && selectedProject != null) {
       const asset = assetManagementApiRef.current.getAsset(selectedProject.id)
       const self =

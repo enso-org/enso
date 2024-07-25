@@ -1,4 +1,4 @@
-/** @file The categories available in the category switcher. */
+/** @file All posssible categories in the Data Catalog. */
 import * as z from 'zod'
 
 import { includesPredicate } from 'enso-common/src/utilities/data/array'
@@ -11,8 +11,11 @@ import LocalStorage from '#/utilities/LocalStorage'
 
 export const DRIVE_CATEGORIES = ['cloud', 'local', 'recent', 'trash'] as const
 
+/** All posssible categories in the Data Catalog. */
 export type DriveCategory = (typeof DRIVE_CATEGORIES)[number]
 
+// This is a function, even though it does not contain function syntax.
+// eslint-disable-next-line no-restricted-syntax
 export const isDriveCategory = includesPredicate(DRIVE_CATEGORIES)
 
 // ============================

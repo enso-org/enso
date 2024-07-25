@@ -3,8 +3,6 @@ import * as React from 'react'
 
 import * as reactQuery from '@tanstack/react-query'
 
-import * as appUtils from '#/appUtils'
-
 import * as gtagHooks from '#/hooks/gtagHooks'
 import * as projectHooks from '#/hooks/projectHooks'
 
