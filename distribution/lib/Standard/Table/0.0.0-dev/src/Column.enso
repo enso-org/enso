@@ -2684,7 +2684,7 @@ run_vectorized_binary_op_with_fallback_problem_handling column name operand fall
             _ ->
                 s1 = column.java_column.getStorage
                 rs = Polyglot_Helpers.handle_polyglot_dataflow_errors <|
-                    s1.vectorizedOrFallbackBinaryMap name problem_builder applied_fn operand skip_nulls storage_type
+                    s1.vectorizedOrFallbackBinaryMap name problem_builder applied_fn (enso_to_java operand) skip_nulls storage_type
                 Column.Value (Java_Column.new new_name rs)
 
 ## PRIVATE
