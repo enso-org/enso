@@ -17,8 +17,8 @@ const open = ref(false)
 </script>
 
 <template>
-  <DropdownMenu v-model:open="open" class="TextFormattingSelector">
-    <template #button><SvgIcon name="paragraph" title="Text Display Options" /> </template>
+  <DropdownMenu v-model:open="open" class="TextFormattingSelector" title="Text Display Options">
+    <template #button><SvgIcon name="paragraph" /></template>
 
     <template #entries>
       <MenuButton
@@ -41,8 +41,8 @@ const open = ref(false)
 
       <MenuButton
         class="off"
-        @click="() => emit('changeFormat', TextFormatOptions.Off)"
         title="`No formatting applied to text`"
+        @click="() => emit('changeFormat', TextFormatOptions.Off)"
       >
         <div class="strikethrough">
           <SvgIcon name="paragraph" />
