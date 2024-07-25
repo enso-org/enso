@@ -15,11 +15,11 @@ type My_Resource
 
 close_resource resource = resource.close
 
-repeat_cleanup_until_done counter =
+repeat_cleanup_until_done counter println =
     go i =
         if counter.get == 0 then Nothing else
             if i % 100 == 0 then
-                IO.println "Still "+counter.get.to_text+" resources to clean up..."
+                println "Still "+counter.get.to_text+" resources to clean up..."
             Runtime.gc
             @Tail_Call go i+1
     go 1
@@ -32,7 +32,7 @@ perform_test n:Integer println =
         My_Resource.allocate counter
 
     println "Cleaning up..."
-    repeat_cleanup_until_done counter
+    repeat_cleanup_until_done counter println
     println "All cleaned up! Remaining: "+counter.get.to_text
     counter.get
 
