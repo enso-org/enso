@@ -204,6 +204,7 @@ export class ArgumentApplication {
     public infixOperator: Ast.Token | undefined,
     public argument: ArgumentAst | ArgumentPlaceholder,
     public calledFunction: SuggestionEntry | undefined,
+    public isInnermost: boolean,
   ) {}
 
   private static FromInterpretedInfix(interpreted: InterpretedInfix, callInfo: CallInfo) {
@@ -223,6 +224,7 @@ export class ArgumentApplication {
       interpreted.operator,
       argFor('rhs', 1),
       suggestion,
+      true,
     )
   }
 
@@ -373,6 +375,7 @@ export class ArgumentApplication {
           undefined,
           toDisplay.argument,
           suggestion,
+          target === interpreted.func,
         ),
       interpreted.func,
     )
@@ -520,8 +523,8 @@ export function getMethodCallInfoRecursively(
   }
 }
 
-export const ArgumentApplicationKey: unique symbol = Symbol('ArgumentApplicationKey')
-export const ArgumentInfoKey: unique symbol = Symbol('ArgumentInfoKey')
+export const ArgumentApplicationKey: unique symbol = Symbol.for('WidgetInput:ArgumentApplication')
+export const ArgumentInfoKey: unique symbol = Symbol.for('WidgetInput:ArgumentInfo')
 declare module '@/providers/widgetRegistry' {
   export interface WidgetInput {
     [ArgumentApplicationKey]?: ArgumentApplication

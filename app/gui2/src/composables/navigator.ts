@@ -12,7 +12,7 @@ import {
 import type { KeyboardComposable } from '@/composables/keyboard'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
-import { computed, proxyRefs, readonly, shallowRef, toRef, type Ref } from 'vue'
+import { computed, proxyRefs, readonly, shallowRef, toRef, watch, type Ref } from 'vue'
 
 type ScaleRange = readonly [number, number]
 const PAN_AND_ZOOM_DEFAULT_SCALE_RANGE: ScaleRange = [0.1, 1]
@@ -49,6 +49,13 @@ export function useNavigator(
   const targetCenter = shallowRef<Vec2>(Vec2.Zero)
   const center = useApproachVec(targetCenter, 100, 0.02)
 
+  const viewportRect = shallowRef<Rect>(Rect.Zero)
+  function updateViewportRect() {
+    viewportRect.value = elemRect(viewportNode.value)
+  }
+
+  watch(size, updateViewportRect, { immediate: true })
+
   const targetScale = shallowRef(1)
   const scale = useApproach(targetScale)
   const panPointer = usePointer(
@@ -69,7 +76,7 @@ export function useNavigator(
   }
 
   function clientToScenePos(clientPos: Vec2): Vec2 {
-    const rect = elemRect(viewportNode.value)
+    const rect = viewportRect.value
     const canvasPos = clientPos.sub(rect.pos)
     const v = viewport.value
     return new Vec2(
@@ -79,7 +86,7 @@ export function useNavigator(
   }
 
   function clientToSceneRect(clientRect: Rect): Rect {
-    const rect = elemRect(viewportNode.value)
+    const rect = viewportRect.value
     const canvasPos = clientRect.pos.sub(rect.pos)
     const v = viewport.value
     const pos = new Vec2(

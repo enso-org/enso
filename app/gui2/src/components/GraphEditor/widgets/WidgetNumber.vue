@@ -77,7 +77,7 @@ export const widgetDefinition = defineWidget(
 <template>
   <NumericInputWidget
     ref="inputComponent"
-    class="WidgetNumber r-24"
+    class="WidgetNumber"
     :limits="limits"
     :placeholder="placeholder"
     :modelValue="value"

@@ -422,6 +422,7 @@
   "addLocalDirectory": "Add Folder",
   "browseForNewLocalRootDirectory": "Browse for new Root Folder",
   "resetLocalRootDirectory": "Reset Root Folder",
+  "changeLocalRootDirectoryInSettings": "Change your root folder in Settings.",
 
   "deleteLabelActionText": "delete the label '$0'",
   "deleteSelectedAssetActionText": "delete '$0'",

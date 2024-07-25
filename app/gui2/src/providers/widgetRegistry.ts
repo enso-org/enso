@@ -19,6 +19,16 @@ export namespace WidgetInput {
     }
   }
 
+  export function FromAstWithPort<A extends Ast.Ast | Ast.Token>(
+    ast: A,
+  ): WidgetInput & { value: A } {
+    return {
+      portId: ast.id,
+      value: ast,
+      forcePort: true,
+    }
+  }
+
   export function valueRepr(input: WidgetInput): string | undefined {
     if (typeof input.value === 'string') return input.value
     else return input.value?.code()
