@@ -3,7 +3,7 @@ import DropdownMenu from '@/components/DropdownMenu.vue'
 import MenuButton from '@/components/MenuButton.vue'
 import SvgButton from '@/components/SvgButton.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { TextFormatOptions } from './visualizations/TableVisualization.vue'
 
 const emit = defineEmits<{
@@ -13,18 +13,40 @@ const emit = defineEmits<{
 const textFormatterSelected = ref(TextFormatOptions.Partial)
 watch(textFormatterSelected, (selected) => emit('changeFormat', selected))
 
+const buttonClass = computed(() => {
+  return {
+    full: isFormatOptionSelected(TextFormatOptions.On),
+    partial: isFormatOptionSelected(TextFormatOptions.Partial),
+    strikethrough: isFormatOptionSelected(TextFormatOptions.Off),
+  }
+})
+
+const isFormatOptionSelected = (option: TextFormatOptions): boolean =>
+  option === textFormatterSelected.value
+
 const open = ref(false)
+const toggleOpen = () => {
+  open.value = !open.value
+}
+
+const changeFormat = (option: TextFormatOptions) => {
+  textFormatterSelected.value = option
+  toggleOpen()
+}
 </script>
 
 <template>
   <DropdownMenu v-model:open="open" class="TextFormattingSelector">
-    <template #button><SvgIcon name="paragraph" title="Text Display Options" /> </template>
+    <template #button
+      ><div :class="buttonClass">
+        <SvgIcon name="paragraph" title="Text Display Options" /></div
+    ></template>
 
     <template #entries>
       <MenuButton
-        class="full-format"
+        class="full"
         :title="`Text displayed in monospace font and all whitespace characters displayed as symbols`"
-        @click="() => emit('changeFormat', TextFormatOptions.On)"
+        @click="() => changeFormat(TextFormatOptions.On)"
       >
         <SvgIcon name="paragraph" />
         <div class="title">Full whitespace rendering</div>
@@ -33,7 +55,7 @@ const open = ref(false)
       <MenuButton
         class="partial"
         :title="`Text displayed in monospace font, only multiple spaces displayed with &#183;`"
-        @click="() => emit('changeFormat', TextFormatOptions.Partial)"
+        @click="() => changeFormat(TextFormatOptions.Partial)"
       >
         <SvgIcon name="paragraph" />
         <div class="title">Partial whitespace rendering</div>
@@ -41,7 +63,7 @@ const open = ref(false)
 
       <MenuButton
         class="off"
-        @click="() => emit('changeFormat', TextFormatOptions.Off)"
+        @click="() => changeFormat(TextFormatOptions.Off)"
         title="`No formatting applied to text`"
       >
         <div class="strikethrough">
@@ -99,7 +121,7 @@ const open = ref(false)
   justify-content: flex-start;
 }
 
-.full-format {
+.full {
   stroke: black;
   fill: #000000;
   justify-content: flex-start;
