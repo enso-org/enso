@@ -151,16 +151,16 @@ graph.suggestEdgeFromOutput(outputHovered)
 .outputPortHoverArea {
   x: calc(0px - var(--output-port-width) / 2);
   y: calc(0px - var(--output-port-width) / 2);
-  height: calc(var(--node-height) + var(--output-port-width));
-  width: calc(var(--node-width) + var(--output-port-width));
+  height: calc(var(--node-size-y) + var(--output-port-width));
+  width: calc(var(--node-size-x) + var(--output-port-width));
   rx: calc(var(--node-border-radius) + var(--output-port-width) / 2);
 
   fill: none;
   stroke: var(--node-color-port);
   stroke-width: calc(var(--output-port-width) + var(--output-port-overlap-anim));
   transition: stroke 0.2s ease;
-  --horizontal-line: calc(var(--node-width) - var(--node-border-radius) * 2);
-  --vertical-line: calc(var(--node-height) - var(--node-border-radius) * 2);
+  --horizontal-line: calc(var(--node-size-x) - var(--node-border-radius) * 2);
+  --vertical-line: calc(var(--node-size-y) - var(--node-border-radius) * 2);
   --radius-arclength: calc((var(--node-border-radius) + var(--output-port-width) * 0.5) * 2 * pi);
 
   stroke-dasharray: calc(var(--horizontal-line) + var(--radius-arclength) * 0.5) 10000%;
@@ -203,6 +203,6 @@ graph.suggestEdgeFromOutput(outputHovered)
   text-anchor: middle;
   opacity: calc(var(--hover-animation) * var(--hover-animation));
   fill: var(--node-color-primary);
-  transform: translate(50%, calc(var(--node-height) + var(--output-port-max-width) + 16px));
+  transform: translate(50%, calc(var(--node-size-y) + var(--output-port-max-width) + 16px));
 }
 </style>
