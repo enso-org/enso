@@ -76,11 +76,11 @@ watch(contentSize, (newVal, oldVal) => {
 })
 
 const UNKNOWN_TYPE = 'Unknown'
-const nodeShortType = computed(() => {
-  return config.nodeType != null && isQualifiedName(config.nodeType) ?
-      qnLastSegment(config.nodeType)
-    : UNKNOWN_TYPE
-})
+const nodeShortType = computed(() =>
+  config.nodeType != null && isQualifiedName(config.nodeType) ?
+    qnLastSegment(config.nodeType)
+  : UNKNOWN_TYPE,
+)
 
 const contentStyle = computed(() => {
   return {
@@ -89,7 +89,7 @@ const contentStyle = computed(() => {
   }
 })
 
-const myStyle = computed(() => {
+const overFlowStyle = computed(() => {
   return {
     overflow: props.toolbarOverflow ? 'visible' : 'hidden',
   }
@@ -170,7 +170,7 @@ const myStyle = computed(() => {
           v-if="$slots.toolbar && !config.isPreview"
           id="visualization-defined-toolbar"
           class="visualization-defined-toolbars"
-          :style="myStyle"
+          :style="overFlowStyle"
         >
           <div class="toolbar"><slot name="toolbar"></slot></div>
         </div>
