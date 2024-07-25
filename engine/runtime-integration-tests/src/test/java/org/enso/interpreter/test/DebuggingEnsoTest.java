@@ -32,7 +32,7 @@ import java.util.TreeSet;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 import org.enso.common.MethodNames.Module;
-import org.enso.polyglot.RuntimeOptions;
+import org.enso.common.RuntimeOptions;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Engine;
 import org.graalvm.polyglot.Language;

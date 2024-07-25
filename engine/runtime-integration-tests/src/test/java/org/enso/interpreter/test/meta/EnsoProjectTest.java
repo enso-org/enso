@@ -11,7 +11,7 @@ import org.enso.common.LanguageInfo;
 import org.enso.interpreter.util.ScalaConversions;
 import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.PolyglotContext;
-import org.enso.polyglot.RuntimeOptions;
+import org.enso.common.RuntimeOptions;
 import org.enso.test.utils.ContextUtils;
 import org.enso.test.utils.ProjectUtils;
 import org.enso.test.utils.SourceModule;

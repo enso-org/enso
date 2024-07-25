@@ -16,7 +16,7 @@ import org.enso.compiler.data.BindingsMap.ResolvedConstructor;
 import org.enso.compiler.data.BindingsMap.ResolvedModule;
 import org.enso.compiler.data.BindingsMap.ResolvedType;
 import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.polyglot.RuntimeOptions;
+import org.enso.common.RuntimeOptions;
 import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Context;
 import org.junit.AfterClass;

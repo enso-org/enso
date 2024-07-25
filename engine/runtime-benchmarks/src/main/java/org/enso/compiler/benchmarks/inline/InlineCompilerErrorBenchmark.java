@@ -6,7 +6,7 @@ import java.io.OutputStream;
 import java.util.concurrent.TimeUnit;
 import org.enso.compiler.Compiler;
 import org.enso.compiler.benchmarks.Utils;
-import org.enso.polyglot.RuntimeOptions;
+import org.enso.common.RuntimeOptions;
 import org.graalvm.polyglot.Context;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;

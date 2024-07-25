@@ -22,7 +22,7 @@ import org.enso.common.MethodNames;
 import org.enso.compiler.core.ir.Module;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.pkg.PackageManager;
-import org.enso.polyglot.RuntimeOptions;
+import org.enso.common.RuntimeOptions;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.io.IOAccess;
 import org.junit.Test;

@@ -15,7 +15,7 @@ import org.enso.compiler.phase.exports.ExportCycleException;
 import org.enso.compiler.phase.exports.ExportsResolution;
 import org.enso.interpreter.runtime.Module;
 import org.enso.pkg.QualifiedName;
-import org.enso.polyglot.RuntimeOptions;
+import org.enso.common.RuntimeOptions;
 import org.enso.test.utils.ContextUtils;
 import org.enso.test.utils.ProjectUtils;
 import org.enso.test.utils.SourceModule;

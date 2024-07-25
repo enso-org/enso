@@ -14,7 +14,7 @@ import org.enso.common.MethodNames;
 import org.enso.compiler.data.BindingsMap;
 import org.enso.compiler.data.BindingsMap$ModuleReference$Concrete;
 import org.enso.pkg.QualifiedName;
-import org.enso.polyglot.RuntimeOptions;
+import org.enso.common.RuntimeOptions;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Engine;
 import org.graalvm.polyglot.Source;

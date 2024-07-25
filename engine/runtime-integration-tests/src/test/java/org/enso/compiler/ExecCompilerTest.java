@@ -16,7 +16,7 @@ import org.enso.common.LanguageInfo;
 import org.enso.common.MethodNames;
 import org.enso.common.MethodNames.Module;
 import org.enso.compiler.core.ir.expression.errors.Conversion.DeclaredAsPrivate$;
-import org.enso.polyglot.RuntimeOptions;
+import org.enso.common.RuntimeOptions;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Source;

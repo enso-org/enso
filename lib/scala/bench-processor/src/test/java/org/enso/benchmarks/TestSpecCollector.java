@@ -14,7 +14,7 @@ import org.enso.benchmarks.processor.SpecCollector;
 import org.enso.common.LanguageInfo;
 import org.enso.common.MethodNames.TopScope;
 import org.enso.pkg.PackageManager;
-import org.enso.polyglot.RuntimeOptions;
+import org.enso.common.RuntimeOptions;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 import org.graalvm.polyglot.io.IOAccess;

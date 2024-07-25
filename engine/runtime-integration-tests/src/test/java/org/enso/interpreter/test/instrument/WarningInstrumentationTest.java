@@ -12,7 +12,7 @@ import org.enso.interpreter.runtime.tag.AvoidIdInstrumentationTag;
 import org.enso.interpreter.runtime.tag.IdentifiedTag;
 import org.enso.interpreter.test.Metadata;
 import org.enso.interpreter.test.instruments.NodeCountingTestInstrument;
-import org.enso.polyglot.RuntimeOptions;
+import org.enso.common.RuntimeOptions;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Language;
 import org.graalvm.polyglot.Source;

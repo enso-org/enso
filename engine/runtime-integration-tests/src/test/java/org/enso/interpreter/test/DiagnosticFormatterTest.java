@@ -18,7 +18,7 @@ import org.enso.common.MethodNames.TopScope;
 import org.enso.compiler.core.ir.Diagnostic;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.util.DiagnosticFormatter;
-import org.enso.polyglot.RuntimeOptions;
+import org.enso.common.RuntimeOptions;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.io.IOAccess;

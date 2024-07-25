@@ -10,7 +10,7 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.PolyglotContext;
-import org.enso.polyglot.RuntimeOptions;
+import org.enso.common.RuntimeOptions;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Context.Builder;
 import org.graalvm.polyglot.Value;

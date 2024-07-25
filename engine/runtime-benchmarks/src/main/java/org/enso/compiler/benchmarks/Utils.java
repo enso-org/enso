@@ -13,7 +13,7 @@ import java.util.logging.Level;
 import org.enso.common.LanguageInfo;
 import org.enso.common.MethodNames;
 import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.polyglot.RuntimeOptions;
+import org.enso.common.RuntimeOptions;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 import org.graalvm.polyglot.io.IOAccess;

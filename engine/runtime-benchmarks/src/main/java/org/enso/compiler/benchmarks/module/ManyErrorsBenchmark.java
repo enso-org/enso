@@ -13,7 +13,7 @@ import org.enso.compiler.benchmarks.CodeGenerator;
 import org.enso.compiler.benchmarks.Utils;
 import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.data.Type;
-import org.enso.polyglot.RuntimeOptions;
+import org.enso.common.RuntimeOptions;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
 import org.openjdk.jmh.annotations.Benchmark;

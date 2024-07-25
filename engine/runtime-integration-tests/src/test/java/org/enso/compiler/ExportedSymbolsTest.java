@@ -17,7 +17,7 @@ import org.enso.compiler.context.CompilerContext.Module;
 import org.enso.compiler.data.BindingsMap;
 import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.PolyglotContext;
-import org.enso.polyglot.RuntimeOptions;
+import org.enso.common.RuntimeOptions;
 import org.enso.test.utils.ContextUtils;
 import org.enso.test.utils.ProjectUtils;
 import org.enso.test.utils.SourceModule;
