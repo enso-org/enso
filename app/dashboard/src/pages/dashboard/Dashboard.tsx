@@ -38,7 +38,12 @@ import AssetListEventType from '#/events/AssetListEventType'
 
 import type * as assetTable from '#/layouts/AssetsTable'
 import EventListProvider, * as eventListProvider from '#/layouts/AssetsTable/EventListProvider'
-import Category, * as categoryModule from '#/layouts/CategorySwitcher/Category'
+import {
+  DRIVE_CATEGORIES,
+  DriveCategory,
+  isDriveCategory,
+  isLocal,
+} from '#/layouts/CategorySwitcher/Category'
 import Chat from '#/layouts/Chat'
 import ChatPlaceholder from '#/layouts/ChatPlaceholder'
 import Drive from '#/layouts/Drive'
@@ -104,17 +109,26 @@ export default function Dashboard(props: DashboardProps) {
 function DashboardInner(props: DashboardProps) {
   const { appRunner, initialProjectName: initialProjectNameRaw, ydocUrl } = props
   const { user } = authProvider.useFullUserSession()
-  const localBackend = backendProvider.useLocalBackend()
   const { getText } = textProvider.useText()
   const { modalRef } = modalProvider.useModalRef()
   const { updateModal, unsetModal, setModal } = modalProvider.useSetModal()
   const { localStorage } = localStorageProvider.useLocalStorage()
   const inputBindings = inputBindingsProvider.useInputBindings()
   const [isHelpChatOpen, setIsHelpChatOpen] = React.useState(false)
+  const navigate = useNavigate()
   const { pathname } = useLocation()
   const pathnameRef = useSyncRef(pathname)
-  const tab = pathname.startsWith('/settings/') ? '/settings' : pathname
-  const navigate = useNavigate()
+  const tab = pathname.startsWith('/settings/')
+    ? '/settings'
+    : pathname.startsWith('/drive/')
+      ? '/drive'
+      : pathname
+  const maybeCategory = pathname.startsWith('/drive/') ? pathname.replace(/^[/]drive[/]/, '') : null
+  const category = isDriveCategory(maybeCategory) ? maybeCategory : 'cloud'
+  const setCategory = (category: DriveCategory) => {
+    navigate(`/drive/${category}`)
+    localStorage.set('driveCategory', category)
+  }
 
   const dispatchAssetEvent = eventListProvider.useDispatchAssetEvent()
   const dispatchAssetListEvent = eventListProvider.useDispatchAssetListEvent()
@@ -125,22 +139,6 @@ function DashboardInner(props: DashboardProps) {
       ? localBackendModule.newProjectId(projectManager.UUID(initialProjectNameRaw))
       : null
   const initialProjectName = initialLocalProjectId ?? initialProjectNameRaw
-
-  const [category, setCategory] = searchParamsState.useSearchParamsState(
-    'driveCategory',
-    () => {
-      const shouldDefaultToCloud =
-        initialLocalProjectId == null && (user.isEnabled || localBackend == null)
-      return shouldDefaultToCloud ? Category.cloud : Category.local
-    },
-    (value): value is Category => {
-      if (array.includes(Object.values(Category), value)) {
-        return categoryModule.isLocal(value) ? localBackend != null : true
-      } else {
-        return false
-      }
-    }
-  )
 
   const projectsStore = useProjectsStore()
   const launchedProjects = useLaunchedProjects()
@@ -156,7 +154,7 @@ function DashboardInner(props: DashboardProps) {
 
   React.useEffect(() => {
     window.projectManagementApi?.setOpenProjectHandler(project => {
-      setCategory(Category.local)
+      setCategory('local')
       const projectId = localBackendModule.newProjectId(projectManager.UUID(project.id))
       openProject({
         type: backendModule.BackendType.local,

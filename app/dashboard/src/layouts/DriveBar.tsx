@@ -165,7 +165,7 @@ export default function DriveBar(props: DriveBarProps) {
   )
 
   switch (category) {
-    case Category.recent: {
+    case 'recent': {
       return (
         <ariaComponents.ButtonGroup className="my-0.5 grow-0">
           {searchBar}
@@ -173,7 +173,7 @@ export default function DriveBar(props: DriveBarProps) {
         </ariaComponents.ButtonGroup>
       )
     }
-    case Category.trash: {
+    case 'trash': {
       return (
         <ariaComponents.ButtonGroup className="my-0.5 grow-0">
           <ariaComponents.Button
@@ -196,8 +196,8 @@ export default function DriveBar(props: DriveBarProps) {
         </ariaComponents.ButtonGroup>
       )
     }
-    case Category.cloud:
-    case Category.local: {
+    case 'cloud':
+    case 'local': {
       return (
         <ariaComponents.ButtonGroup className="my-0.5 grow-0">
           <aria.DialogTrigger>

@@ -451,6 +451,7 @@ function AppRouter(props: AppRouterProps) {
               <router.Route element={<setOrganizationNameModal.SetOrganizationNameModal />}>
                 <router.Route element={<openAppWatcher.OpenAppWatcher />}>
                   <router.Route path="" element={<Navigate to="/drive" />} />
+                  <router.Route path="/drive" element={<DriveNavigator />} />
                   <router.Route
                     path="*"
                     element={shouldShowDashboard && <Dashboard {...props} />}
@@ -582,4 +583,21 @@ function MutationListener() {
   backendHooks.useObserveBackend(localBackend)
 
   return null
+}
+
+// ======================
+// === DriveNavigator ===
+// ======================
+
+function DriveNavigator() {
+  const { user } = authProvider.useFullUserSession()
+  const localBackend = useLocalBackend()
+  const { localStorage } = localStorageProvider.useLocalStorage()
+  const category =
+    localStorage.get('driveCategory') ??
+    (() => {
+      const shouldDefaultToCloud = user.isEnabled || localBackend == null
+      return shouldDefaultToCloud ? 'cloud' : 'local'
+    })()
+  return <Navigate to={`/drive/${category}`} />
 }

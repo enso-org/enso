@@ -32,7 +32,7 @@ import type * as assetPanel from '#/layouts/AssetPanel'
 import type * as assetSearchBar from '#/layouts/AssetSearchBar'
 import * as eventListProvider from '#/layouts/AssetsTable/EventListProvider'
 import AssetsTableContextMenu from '#/layouts/AssetsTableContextMenu'
-import Category from '#/layouts/CategorySwitcher/Category'
+import type { DriveCategory } from '#/layouts/CategorySwitcher/Category'
 
 import * as aria from '#/components/aria'
 import type * as assetRow from '#/components/dashboard/AssetRow'
@@ -295,11 +295,11 @@ interface DragSelectionInfo {
 // === Category to filter by ===
 // =============================
 
-const CATEGORY_TO_FILTER_BY: Readonly<Record<Category, backendModule.FilterBy | null>> = {
-  [Category.cloud]: backendModule.FilterBy.active,
-  [Category.local]: backendModule.FilterBy.active,
-  [Category.recent]: null,
-  [Category.trash]: backendModule.FilterBy.trashed,
+const CATEGORY_TO_FILTER_BY: Readonly<Record<DriveCategory, backendModule.FilterBy | null>> = {
+  ['cloud']: backendModule.FilterBy.active,
+  ['local']: backendModule.FilterBy.active,
+  ['recent']: null,
+  ['trash']: backendModule.FilterBy.trashed,
 }
 
 // ===================
@@ -313,7 +313,7 @@ export interface AssetsTableState {
   readonly selectedKeys: React.MutableRefObject<ReadonlySet<backendModule.AssetId>>
   readonly scrollContainerRef: React.RefObject<HTMLElement>
   readonly visibilities: ReadonlyMap<backendModule.AssetId, Visibility>
-  readonly category: Category
+  readonly category: DriveCategory
   readonly hasPasteData: boolean
   readonly setPasteData: (pasteData: pasteDataModule.PasteData<Set<backendModule.AssetId>>) => void
   readonly sortInfo: sorting.SortInfo<columnUtils.SortableColumn> | null
@@ -357,7 +357,7 @@ export interface AssetsTableProps {
     React.SetStateAction<readonly assetSearchBar.Suggestion[]>
   >
   readonly setCanDownload: (canDownload: boolean) => void
-  readonly category: Category
+  readonly category: DriveCategory
   readonly initialProjectName: string | null
   readonly setAssetPanelProps: (props: assetPanel.AssetPanelRequiredProps | null) => void
   readonly setIsAssetPanelTemporarilyVisible: (visible: boolean) => void
@@ -988,7 +988,7 @@ export default function AssetsTable(props: AssetsTableProps) {
       {
         parentId: null,
         filterBy: CATEGORY_TO_FILTER_BY[category],
-        recentProjects: category === Category.recent,
+        recentProjects: category === 'recent',
         labels: null,
       },
       // The root directory has no name. This is also SAFE, as there is a different error
@@ -1112,7 +1112,7 @@ export default function AssetsTable(props: AssetsTableProps) {
               {
                 parentId: directoryId,
                 filterBy: CATEGORY_TO_FILTER_BY[category],
-                recentProjects: category === Category.recent,
+                recentProjects: category === 'recent',
                 labels: null,
               },
               displayedTitle
@@ -1793,7 +1793,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         break
       }
       case AssetListEventType.emptyTrash: {
-        if (category !== Category.trash) {
+        if (category !== 'trash') {
           toastAndLog('canOnlyEmptyTrashWhenInTrash')
         } else if (assetTree.children != null) {
           const ids = new Set(assetTree.children.map(child => child.item.id))
@@ -2459,13 +2459,13 @@ export default function AssetsTable(props: AssetsTableProps) {
           {itemRows}
           <tr className="hidden h-row first:table-row">
             <td colSpan={columns.length} className="bg-transparent">
-              {category === Category.trash ? (
+              {category === 'trash' ? (
                 <aria.Text className="px-cell-x placeholder">
                   {query.query !== ''
                     ? getText('noFilesMatchTheCurrentFilters')
                     : getText('yourTrashIsEmpty')}
                 </aria.Text>
-              ) : category === Category.recent ? (
+              ) : category === 'recent' ? (
                 <aria.Text className="px-cell-x placeholder">
                   {query.query !== ''
                     ? getText('noFilesMatchTheCurrentFilters')
@@ -2486,7 +2486,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         data-testid="root-directory-dropzone"
         className={tailwindMerge.twMerge(
           'sticky left-0 grid max-w-container grow place-items-center',
-          category !== Category.cloud && category !== Category.local && 'hidden'
+          category !== 'cloud' && category !== 'local' && 'hidden'
         )}
         onDragEnter={onDropzoneDragOver}
         onDragOver={onDropzoneDragOver}

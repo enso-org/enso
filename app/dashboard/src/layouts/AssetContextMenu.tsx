@@ -85,7 +85,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   )
   const isCloud = categoryModule.isCloud(category)
   const path =
-    category !== Category.cloud && category !== Category.local
+    category !== 'cloud' && category !== 'local'
       ? null
       : isCloud
         ? `${item.path}${item.type === backendModule.AssetType.datalink ? '.datalink' : ''}`
@@ -128,7 +128,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
 
   const setAsset = setAssetHooks.useSetAsset(asset, setItem)
 
-  return category === Category.trash ? (
+  return category === 'trash' ? (
     !ownsThisAsset ? null : (
       <ContextMenus hidden={hidden} key={asset.id} event={event}>
         <ContextMenu aria-label={getText('assetContextMenuLabel')} hidden={hidden}>
@@ -464,7 +464,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
           />
         )}
       </ContextMenu>
-      {(category === Category.cloud || category === Category.local) &&
+      {(category === 'cloud' || category === 'local') &&
         asset.type === backendModule.AssetType.directory && (
           <GlobalContextMenu
             hidden={hidden}

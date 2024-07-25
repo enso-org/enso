@@ -101,7 +101,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
     }
   }
 
-  if (category === Category.trash) {
+  if (category === 'trash') {
     return selectedKeys.size === 0 ? (
       <></>
     ) : (
@@ -146,7 +146,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
         </ContextMenu>
       </ContextMenus>
     )
-  } else if (category !== Category.cloud && category !== Category.local) {
+  } else if (category !== 'cloud' && category !== 'local') {
     return null
   } else {
     return (

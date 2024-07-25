@@ -1,4 +1,5 @@
 /** @file Constants related to the application root component. */
+import type { DriveCategory } from '#/layouts/CategorySwitcher/Category'
 import type { SettingsTabType } from '#/layouts/Settings/settingsData'
 
 // =================
@@ -23,6 +24,7 @@ const APP_PATHS = [
 /** Valid paths for a page in the app. */
 export type AppPath =
   | Exclude<(typeof APP_PATHS)[number], 'editor' | 'settings'>
+  | `drive/${DriveCategory}`
   | `editor/${string}`
   | `settings/${SettingsTabType}`
 

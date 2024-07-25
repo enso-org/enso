@@ -59,7 +59,7 @@ export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
   const plusButtonRef = React.useRef<HTMLButtonElement>(null)
   const managesThisAsset =
     !isReadonly &&
-    category !== Category.trash &&
+    category !== 'trash' &&
     (self?.permission === permissions.PermissionAction.own ||
       self?.permission === permissions.PermissionAction.admin)
   const setAsset = React.useCallback(

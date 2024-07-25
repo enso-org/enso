@@ -50,7 +50,7 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
     backendModule.isUserPermissionAnd(permission => permission.user.userId === user.userId)
   )
   const managesThisAsset =
-    category !== Category.trash &&
+    category !== 'trash' &&
     (self?.permission === permissions.PermissionAction.own ||
       self?.permission === permissions.PermissionAction.admin)
   const setAsset = React.useCallback(

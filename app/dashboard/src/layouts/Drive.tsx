@@ -287,7 +287,7 @@ export default function Drive(props: DriveProps) {
                 {isCloud && (
                   <Labels
                     backend={backend}
-                    draggable={category !== Category.trash}
+                    draggable={category !== 'trash'}
                     query={query}
                     setQuery={setQuery}
                   />
@@ -307,7 +307,7 @@ export default function Drive(props: DriveProps) {
                       size="small"
                       className="mx-auto"
                       onPress={() => {
-                        setCategory(Category.local)
+                        setCategory('local')
                       }}
                     >
                       {getText('switchToLocal')}
@@ -344,7 +344,7 @@ export default function Drive(props: DriveProps) {
               item={assetPanelProps?.item ?? null}
               setItem={assetPanelProps?.setItem ?? null}
               category={category}
-              isReadonly={category === Category.trash}
+              isReadonly={category === 'trash'}
             />
           </div>
         </div>

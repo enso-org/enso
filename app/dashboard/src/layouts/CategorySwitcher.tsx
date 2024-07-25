@@ -53,14 +53,14 @@ interface CategoryMetadata {
 
 const CATEGORY_DATA: readonly CategoryMetadata[] = [
   {
-    category: Category.cloud,
+    category: 'cloud',
     icon: CloudIcon,
     textId: 'cloudCategory',
     buttonTextId: 'cloudCategoryButtonLabel',
     dropZoneTextId: 'cloudCategoryDropZoneLabel',
   },
   {
-    category: Category.recent,
+    category: 'recent',
     icon: RecentIcon,
     textId: 'recentCategory',
     buttonTextId: 'recentCategoryButtonLabel',
@@ -68,7 +68,7 @@ const CATEGORY_DATA: readonly CategoryMetadata[] = [
     nested: true,
   },
   {
-    category: Category.trash,
+    category: 'trash',
     icon: Trash2Icon,
     textId: 'trashCategory',
     buttonTextId: 'trashCategoryButtonLabel',
@@ -76,7 +76,7 @@ const CATEGORY_DATA: readonly CategoryMetadata[] = [
     nested: true,
   },
   {
-    category: Category.local,
+    category: 'local',
     icon: ComputerIcon,
     textId: 'localCategory',
     buttonTextId: 'localCategoryButtonLabel',
@@ -139,7 +139,7 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
             className={
               // This explicit class is a special-case due to the unusual shape of the "Recent" icon.
               // eslint-disable-next-line no-restricted-syntax
-              category === Category.recent ? '-ml-0.5' : ''
+              category === 'recent' ? '-ml-0.5' : ''
             }
           />
           <aria.Text slot="description">{getText(textId)}</aria.Text>
@@ -178,7 +178,7 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
     () =>
       CATEGORY_DATA.filter(data => {
         switch (data.category) {
-          case Category.local: {
+          case 'local': {
             return localBackend != null
           }
           default: {
@@ -190,16 +190,16 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
   )
   const getCategoryError = (otherCategory: Category) => {
     switch (otherCategory) {
-      case Category.local: {
+      case 'local': {
         if (localBackend == null) {
           return getText('localBackendNotDetectedError')
         } else {
           return null
         }
       }
-      case Category.cloud:
-      case Category.recent:
-      case Category.trash: {
+      case 'cloud':
+      case 'recent':
+      case 'trash': {
         if (isOffline) {
           return getText('unavailableOffline')
         } else if (!user.isEnabled) {
@@ -212,7 +212,7 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
   }
 
   if (!categoryData.some(data => data.category === category)) {
-    setCategory(categoryData[0]?.category ?? Category.cloud)
+    setCategory(categoryData[0]?.category ?? 'cloud')
   }
 
   return (
@@ -245,9 +245,9 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
                     }
                   }}
                   acceptedDragTypes={
-                    (category === Category.trash &&
-                      (data.category === Category.cloud || data.category === Category.local)) ||
-                    (category !== Category.trash && data.category === Category.trash)
+                    (category === 'trash' &&
+                      (data.category === 'cloud' || data.category === 'local')) ||
+                    (category !== 'trash' && data.category === 'trash')
                       ? [mimeTypes.ASSETS_MIME_TYPE]
                       : []
                   }
@@ -272,10 +272,7 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
                       })
                     ).then(keys => {
                       dispatchAssetEvent({
-                        type:
-                          category === Category.trash
-                            ? AssetEventType.restore
-                            : AssetEventType.delete,
+                        type: category === 'trash' ? AssetEventType.restore : AssetEventType.delete,
                         ids: new Set(keys.flat(1)),
                       })
                     })
@@ -287,7 +284,7 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
                   <div className="ml-[15px] mr-1 border-r border-primary/20" />
                   {element}
                 </div>
-              ) : data.category !== Category.local ? (
+              ) : data.category !== 'local' ? (
                 element
               ) : (
                 <div

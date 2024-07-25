@@ -1,20 +1,34 @@
 /** @file The categories available in the category switcher. */
+import * as z from 'zod'
+
+import { includesPredicate } from 'enso-common/src/utilities/data/array'
+
+import LocalStorage from '#/utilities/LocalStorage'
 
 // ================
 // === Category ===
 // ================
 
-/** The categories available in the category switcher. */
-enum Category {
-  cloud = 'cloud',
-  local = 'local',
-  recent = 'recent',
-  trash = 'trash',
+export const DRIVE_CATEGORIES = ['cloud', 'local', 'recent', 'trash'] as const
+
+export type DriveCategory = (typeof DRIVE_CATEGORIES)[number]
+
+export const isDriveCategory = includesPredicate(DRIVE_CATEGORIES)
+
+// ============================
+// === Globak configuration ===
+// ============================
+
+declare module '#/utilities/LocalStorage' {
+  /** */
+  interface LocalStorageData {
+    readonly driveCategory: DriveCategory
+  }
 }
 
-// This is REQUIRED, as `export default enum` is invalid syntax.
-// eslint-disable-next-line no-restricted-syntax
-export default Category
+LocalStorage.registerKey('driveCategory', {
+  schema: z.enum(DRIVE_CATEGORIES),
+})
 
 // ===============
 // === isCloud ===
@@ -22,13 +36,13 @@ export default Category
 
 /** Return `true` if the category is only accessible from the cloud.
  */
-export function isCloud(category: Category) {
-  return category !== Category.local
+export function isCloud(category: DriveCategory) {
+  return category !== 'local'
 }
 
 /**
  * Return `true` if the category is only accessible locally.
  */
-export function isLocal(category: Category) {
-  return category === Category.local
+export function isLocal(category: DriveCategory) {
+  return category === 'local'
 }
