@@ -310,6 +310,7 @@ const CATEGORY_TO_FILTER_BY: Readonly<
   [categoryModule.CategoryType.trash]: backendModule.FilterBy.trashed,
   [categoryModule.CategoryType.user]: backendModule.FilterBy.active,
   [categoryModule.CategoryType.team]: backendModule.FilterBy.active,
+  [categoryModule.CategoryType.localDirectory]: backendModule.FilterBy.active,
 }
 
 // ===================

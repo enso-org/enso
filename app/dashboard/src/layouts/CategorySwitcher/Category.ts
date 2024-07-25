@@ -60,7 +60,7 @@ export enum CategoryType {
 
 /** Whether the category is only accessible from the cloud. */
 export function isCloudCategory(category: Category) {
-  return category.type !== CategoryType.local
+  return category.type !== CategoryType.local && category.type !== CategoryType.localDirectory
 }
 
 // =======================
@@ -69,7 +69,7 @@ export function isCloudCategory(category: Category) {
 
 /** Whether the category is only accessible locally. */
 export function isLocalCategory(category: Category) {
-  return category.type === CategoryType.local
+  return !isCloudCategory(category)
 }
 
 // ==========================
