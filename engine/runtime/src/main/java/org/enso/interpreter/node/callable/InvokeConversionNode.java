@@ -20,10 +20,12 @@ import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.control.TailCallException;
-import org.enso.interpreter.runtime.data.ArrayRope;
 import org.enso.interpreter.runtime.data.EnsoMultiValue;
 import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.data.hash.HashMapInsertNode;
 import org.enso.interpreter.runtime.data.text.Text;
+import org.enso.interpreter.runtime.data.vector.ArrayLikeAtNode;
+import org.enso.interpreter.runtime.data.vector.ArrayLikeLengthNode;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.error.PanicSentinel;
@@ -31,6 +33,7 @@ import org.enso.interpreter.runtime.library.dispatch.TypeOfNode;
 import org.enso.interpreter.runtime.state.State;
 import org.enso.interpreter.runtime.warning.AppendWarningNode;
 import org.enso.interpreter.runtime.warning.Warning;
+import org.enso.interpreter.runtime.warning.WarningsLibrary;
 import org.enso.interpreter.runtime.warning.WithWarnings;
 
 public abstract class InvokeConversionNode extends BaseNode {
@@ -200,7 +203,12 @@ public abstract class InvokeConversionNode extends BaseNode {
       Object self,
       WithWarnings that,
       Object[] arguments,
-      @Cached AppendWarningNode appendWarningNode) {
+      @Cached AppendWarningNode appendWarningNode,
+      @CachedLibrary(limit = "3") WarningsLibrary warnsLib,
+      @Cached HashMapInsertNode mapInsertNode,
+      @CachedLibrary(limit = "3") InteropLibrary interop,
+      @Cached ArrayLikeLengthNode lengthNode,
+      @Cached ArrayLikeAtNode atNode) {
     // Cannot use @Cached for childDispatch, because we need to call notifyInserted.
     if (childDispatch == null) {
       CompilerDirectives.transferToInterpreterAndInvalidate();
@@ -225,12 +233,13 @@ public abstract class InvokeConversionNode extends BaseNode {
     }
     Object value = that.getValue();
     arguments[thatArgumentPosition] = value;
-    ArrayRope<Warning> warnings = that.getReassignedWarningsAsRope(this, false);
+    Warning[] warnings =
+        that.getWarningsArray(false, warnsLib, mapInsertNode, interop, lengthNode, atNode);
     try {
       Object result = childDispatch.execute(frame, state, conversion, self, value, arguments);
       return appendWarningNode.execute(null, result, warnings);
     } catch (TailCallException e) {
-      throw new TailCallException(e, warnings.toArray(Warning[]::new));
+      throw new TailCallException(e, warnings);
     }
   }
 

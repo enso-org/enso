@@ -93,7 +93,7 @@ public abstract class CaseNode extends ExpressionNode {
       @CachedLibrary(limit = "3") InteropLibrary interop,
       @Cached AppendWarningNode appendWarningNode) {
     try {
-      Warning[] ws = warnings.getWarnings(object, this, false);
+      Warning[] ws = warnings.getWarnings(object, false);
       Object result = doMatch(frame, warnings.removeWarnings(object), warnings);
       return appendWarningNode.execute(null, result, ws);
     } catch (UnsupportedMessageException e) {

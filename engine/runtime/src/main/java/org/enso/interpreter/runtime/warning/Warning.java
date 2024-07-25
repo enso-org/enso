@@ -3,23 +3,17 @@ package org.enso.interpreter.runtime.warning;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Bind;
 import com.oracle.truffle.api.dsl.Cached;
-import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.InvalidArrayIndexException;
-import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.Node;
-import com.oracle.truffle.api.nodes.RootNode;
-import com.oracle.truffle.api.source.SourceSection;
 import org.enso.interpreter.dsl.Builtin;
 import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.interpreter.runtime.data.ArrayRope;
 import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.hash.EnsoHashMap;
 import org.enso.interpreter.runtime.data.hash.HashMapInsertNode;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeAtNode;
-import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeLengthNode;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 
@@ -28,18 +22,11 @@ import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 public final class Warning implements EnsoObject {
   private final Object value;
   private final Object origin;
-  private final ArrayRope<Reassignment> reassignments;
   private final long sequenceId;
 
-  Warning(Object value, Object origin, long sequenceId) {
-    this(value, origin, sequenceId, new ArrayRope<>());
-  }
-
-  private Warning(
-      Object value, Object origin, long sequenceId, ArrayRope<Reassignment> reassignments) {
+  private Warning(Object value, Object origin, long sequenceId) {
     this.value = value;
     this.origin = origin;
-    this.reassignments = reassignments;
     this.sequenceId = sequenceId;
   }
 
@@ -62,12 +49,6 @@ public final class Warning implements EnsoObject {
   @Builtin.Specialize
   public static Warning create(EnsoContext ctx, Object payload, Object origin) {
     return new Warning(payload, origin, ctx.nextSequenceId());
-  }
-
-  @Builtin.Method(description = "Gets the list of locations where the warnings was reassigned.")
-  public EnsoObject getReassignments() {
-    Warning.Reassignment[] reassignmentsArray = reassignments.toArray(Warning.Reassignment[]::new);
-    return ArrayLikeHelpers.wrapEnsoObjects(reassignmentsArray);
   }
 
   @Builtin.Method(
@@ -117,50 +98,8 @@ public final class Warning implements EnsoObject {
     return value.toString();
   }
 
-  @ExportLibrary(InteropLibrary.class)
-  public static final class Reassignment implements EnsoObject {
-    private final String methodName;
-    private final SourceSection location;
-
-    public Reassignment(String methodName, SourceSection location) {
-      this.methodName = methodName;
-      this.location = location;
-    }
-
-    @ExportMessage
-    boolean hasExecutableName() {
-      return true;
-    }
-
-    @ExportMessage
-    String getExecutableName() {
-      return methodName;
-    }
-
-    @ExportMessage
-    boolean hasSourceLocation() {
-      return location != null;
-    }
-
-    @ExportMessage
-    SourceSection getSourceLocation() throws UnsupportedMessageException {
-      if (location == null) {
-        throw UnsupportedMessageException.create();
-      }
-      return location;
-    }
-  }
-
   public long getSequenceId() {
     return sequenceId;
-  }
-
-  @CompilerDirectives.TruffleBoundary
-  public Warning reassign(Node location) {
-    RootNode root = location.getRootNode();
-    SourceSection section = location.getEncapsulatingSourceSection();
-    Reassignment reassignment = new Reassignment(root == null ? "" : root.getName(), section);
-    return new Warning(value, origin, sequenceId, reassignments.prepend(reassignment));
   }
 
   @ExportMessage

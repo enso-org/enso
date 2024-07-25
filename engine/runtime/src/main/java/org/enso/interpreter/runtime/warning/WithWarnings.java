@@ -18,7 +18,6 @@ import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.node.callable.InteropMethodCallNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
-import org.enso.interpreter.runtime.data.ArrayRope;
 import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.hash.EnsoHashMap;
@@ -133,7 +132,7 @@ public final class WithWarnings implements EnsoObject {
     assert warningsLibrary != null;
     if (warningsLibrary.hasWarnings(value)) {
       try {
-        return warningsLibrary.getWarnings(value, null, true);
+        return warningsLibrary.getWarnings(value, true);
       } catch (UnsupportedMessageException e) {
         throw EnsoContext.get(warningsLibrary).raiseAssertionPanic(warningsLibrary, null, e);
       }
@@ -167,7 +166,7 @@ public final class WithWarnings implements EnsoObject {
     Warning[] allWarnings;
     if (warningsLibrary != null && warningsLibrary.hasWarnings(value)) {
       try {
-        var valueWarnings = warningsLibrary.getWarnings(value, null, shouldWrap);
+        var valueWarnings = warningsLibrary.getWarnings(value, shouldWrap);
         var tmp = cloneSetAndAppend(maxWarnings, warnings, valueWarnings, insertNode, interop);
         allWarnings = Warning.fromMapToArray(tmp, lengthNode, atNode);
       } catch (UnsupportedMessageException e) {
@@ -179,43 +178,12 @@ public final class WithWarnings implements EnsoObject {
     return allWarnings;
   }
 
-  public ArrayRope<Warning> getReassignedWarningsAsRope(Node location, boolean shouldWrap) {
-    return new ArrayRope<>(
-        getReassignedWarnings(
-            location,
-            shouldWrap,
-            null,
-            HashMapInsertNodeGen.getUncached(),
-            InteropLibrary.getUncached(),
-            ArrayLikeLengthNodeGen.getUncached(),
-            ArrayLikeAtNodeGen.getUncached()));
-  }
-
-  public Warning[] getReassignedWarnings(
-      Node location,
-      boolean shouldWrap,
-      WarningsLibrary warningsLibrary,
-      HashMapInsertNode insertNode,
-      InteropLibrary interop,
-      ArrayLikeLengthNode lengthNode,
-      ArrayLikeAtNode atNode) {
-    Warning[] warnings =
-        getWarningsArray(shouldWrap, warningsLibrary, insertNode, interop, lengthNode, atNode);
-    for (int i = 0; i < warnings.length; i++) {
-      warnings[i] = warnings[i].reassign(location);
-    }
-    return warnings;
-  }
-
   @CompilerDirectives.TruffleBoundary
   private PanicException asException(Node where) {
     var rawWarn =
         this.getWarnings(
-            where,
             false,
             WarningsLibrary.getUncached(),
-            HashMapInsertNodeGen.getUncached(),
-            InteropLibrary.getUncached(),
             ArrayLikeAtNodeGen.getUncached(),
             ArrayLikeLengthNodeGen.getUncached());
     var ctx = EnsoContext.get(where);
@@ -251,24 +219,16 @@ public final class WithWarnings implements EnsoObject {
 
   @ExportMessage
   Warning[] getWarnings(
-      Node location,
       boolean shouldWrap,
       @Shared("warnsLib") @CachedLibrary(limit = "3") WarningsLibrary warningsLibrary,
-      @Cached HashMapInsertNode insertNode,
-      @CachedLibrary(limit = "3") InteropLibrary interop,
       @Cached ArrayLikeAtNode atNode,
       @Cached ArrayLikeLengthNode lengthNode) {
-    if (location != null) {
-      return getReassignedWarnings(
-          location, shouldWrap, warningsLibrary, insertNode, interop, lengthNode, atNode);
+    if (shouldWrap) {
+      // In the wrapping case, we don't use the local cache in .values, since
+      // it contains unwrapped warnings. Instead, we fetch them again.
+      return getWarningsNoCache(warningsLibrary, lengthNode, atNode);
     } else {
-      if (shouldWrap) {
-        // In the wrapping case, we don't use the local cache in .values, since
-        // it contains unwrapped warnings. Instead, we fetch them again.
-        return getWarningsNoCache(warningsLibrary, lengthNode, atNode);
-      } else {
-        return Warning.fromMapToArray(warnings, lengthNode, atNode);
-      }
+      return Warning.fromMapToArray(warnings, lengthNode, atNode);
     }
   }
 

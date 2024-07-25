@@ -630,7 +630,8 @@ public class MethodProcessor
                 + " = withWarnings.getValue();");
         out.print(
             """
-            gatheredWarnings = gatheredWarnings.prepend(withWarnings.getReassignedWarningsAsRope(bodyNode, false));
+            // TODO: Use cached version!!
+            gatheredWarnings = gatheredWarnings.prepend(withWarnings.getWarningsArray(false));
       """);
         out.println("    }");
       }

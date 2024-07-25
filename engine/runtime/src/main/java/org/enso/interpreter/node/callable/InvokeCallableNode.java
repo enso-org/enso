@@ -292,7 +292,7 @@ public abstract class InvokeCallableNode extends BaseNode {
     Warning[] extracted;
     Object callable;
     try {
-      extracted = warnings.getWarnings(warning, null, false);
+      extracted = warnings.getWarnings(warning, false);
       callable = warnings.removeWarnings(warning);
     } catch (UnsupportedMessageException e) {
       var ctx = EnsoContext.get(this);

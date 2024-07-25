@@ -442,7 +442,7 @@ public abstract class InvokeMethodNode extends BaseNode {
     Warning[] arrOfWarnings;
     try {
       selfWithoutWarnings = warnings.removeWarnings(self);
-      arrOfWarnings = warnings.getWarnings(self, this, false);
+      arrOfWarnings = warnings.getWarnings(self, false);
     } catch (UnsupportedMessageException e) {
       var ctx = EnsoContext.get(this);
       throw ctx.raiseAssertionPanic(this, null, e);
@@ -520,7 +520,7 @@ public abstract class InvokeMethodNode extends BaseNode {
         warningProfiles[i].enter();
         anyWarnings = true;
         try {
-          accumulatedWarnings = accumulatedWarnings.append(warnings.getWarnings(r, this, false));
+          accumulatedWarnings = accumulatedWarnings.append(warnings.getWarnings(r, false));
           args[i] = warnings.removeWarnings(r);
         } catch (UnsupportedMessageException e) {
           var ctx = EnsoContext.get(this);

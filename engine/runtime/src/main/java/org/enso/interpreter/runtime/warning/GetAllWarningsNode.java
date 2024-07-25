@@ -55,7 +55,7 @@ public abstract class GetAllWarningsNode extends Node {
     assert !(value instanceof WithWarnings);
     if (warningsLib.hasWarnings(value)) {
       try {
-        Warning[] warnings = warningsLib.getWarnings(value, null, shouldWrap);
+        Warning[] warnings = warningsLib.getWarnings(value, shouldWrap);
         sortArray(warnings);
         return ArrayLikeHelpers.asVectorEnsoObjects(warnings);
       } catch (UnsupportedMessageException e) {

@@ -4,7 +4,6 @@ import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.GenerateLibrary;
 import com.oracle.truffle.api.library.Library;
 import com.oracle.truffle.api.library.LibraryFactory;
-import com.oracle.truffle.api.nodes.Node;
 
 @GenerateLibrary
 public abstract class WarningsLibrary extends Library {
@@ -44,15 +43,13 @@ public abstract class WarningsLibrary extends Library {
   /**
    * Returns all unique warnings associated with the receiver.
    *
-   * @param receiver the receiver to analyze
-   * @param location optional parameter specifying the node to which the warnings should be
-   *     reassigned to
+   * @param receiver the receiver to get the warnings from
    * @param shouldWrap if true, warnings attached to elements in array-likes are wrapped in
    *     Map_Error
    * @return the associated warnings
    */
   @GenerateLibrary.Abstract(ifExported = {"hasWarnings"})
-  public Warning[] getWarnings(Object receiver, Node location, boolean shouldWrap)
+  public Warning[] getWarnings(Object receiver, boolean shouldWrap)
       throws UnsupportedMessageException {
     throw UnsupportedMessageException.create();
   }

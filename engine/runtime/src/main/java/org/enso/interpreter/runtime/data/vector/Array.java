@@ -115,7 +115,7 @@ final class Array implements EnsoObject {
     if (this.hasWarnings(warnings)) {
       hasWarningsProfile.enter();
       Warning[] extracted =
-          this.getWarnings(null, false, warnings, mapInsertNode, atNode, lengthNode, shouldWrapProfile);
+          this.getWarnings(false, warnings, mapInsertNode, atNode, lengthNode, shouldWrapProfile);
       if (warnings.hasWarnings(v)) {
         v = warnings.removeWarnings(v);
       }
@@ -195,17 +195,16 @@ final class Array implements EnsoObject {
 
   @ExportMessage
   Warning[] getWarnings(
-      Node location,
       boolean shouldWrap,
       @Shared("warnsLib") @CachedLibrary(limit = "3") WarningsLibrary warnings,
       @Shared("mapInsertNode") @Cached HashMapInsertNode mapInsertNode,
       @Shared @Cached ArrayLikeAtNode atNode,
       @Shared @Cached ArrayLikeLengthNode lengthNode,
-      @Cached BranchProfile shouldWrapProfile)
+      @Shared @Cached BranchProfile shouldWrapProfile)
       throws UnsupportedMessageException {
     Warning[] cache = shouldWrap ? cachedWarningsWrapped : cachedWarningsUnwrapped;
     if (cache == null) {
-      var allWarnsMap = collectAllWarnings(warnings, location, mapInsertNode, shouldWrap, shouldWrapProfile);
+      var allWarnsMap = collectAllWarnings(warnings, mapInsertNode, shouldWrap, shouldWrapProfile);
       cache = Warning.fromMapToArray(allWarnsMap, lengthNode, atNode);
       if (shouldWrap) {
         cachedWarningsWrapped = cache;
@@ -218,7 +217,6 @@ final class Array implements EnsoObject {
 
   private EnsoHashMap collectAllWarnings(
       WarningsLibrary warningsLib,
-      Node location,
       HashMapInsertNode mapInsertNode,
       boolean shouldWrap,
       BranchProfile shouldWrapProfile)
@@ -227,7 +225,7 @@ final class Array implements EnsoObject {
     for (int itemIdx = 0; itemIdx < this.items.length; itemIdx++) {
       Object item = this.items[itemIdx];
       if (warningsLib.hasWarnings(item)) {
-        Warning[] warnings = warningsLib.getWarnings(item, location, shouldWrap);
+        Warning[] warnings = warningsLib.getWarnings(item, shouldWrap);
         Warning[] wrappedWarningsMaybe;
 
         if (shouldWrap) {
@@ -275,10 +273,11 @@ final class Array implements EnsoObject {
       @Shared("mapInsertNode") @Cached HashMapInsertNode mapInsertNode,
       @Shared @Cached ArrayLikeAtNode atNode,
       @Shared @Cached ArrayLikeLengthNode lengthNode,
-      @Cached BranchProfile shouldWrapProfile) {
+      @Shared @Cached BranchProfile shouldWrapProfile) {
     try {
       int limit = EnsoContext.get(warnsLib).getWarningsLimit();
-      var ourWarnings = getWarnings(null, false, warnsLib, mapInsertNode, atNode, lengthNode, shouldWrapProfile);
+      var ourWarnings =
+          getWarnings(false, warnsLib, mapInsertNode, atNode, lengthNode, shouldWrapProfile);
       return ourWarnings.length >= limit;
     } catch (UnsupportedMessageException e) {
       return false;
