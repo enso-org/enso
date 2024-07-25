@@ -1,8 +1,6 @@
 /** @file The directory header bar and directory item listing. */
 import * as React from 'react'
 
-import * as appUtils from '#/appUtils'
-
 import * as offlineHooks from '#/hooks/offlineHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
@@ -227,7 +225,7 @@ export default function Drive(props: DriveProps) {
           subtitle={`${getText('notEnabledSubtitle')}${localBackend == null ? ' ' + getText('downloadFreeEditionMessage') : ''}`}
         >
           <ariaComponents.ButtonGroup align="center">
-            <ariaComponents.Button variant="tertiary" size="medium" href={appUtils.SUBSCRIBE_PATH}>
+            <ariaComponents.Button variant="tertiary" size="medium" href="/subscribe">
               {getText('upgrade')}
             </ariaComponents.Button>
 

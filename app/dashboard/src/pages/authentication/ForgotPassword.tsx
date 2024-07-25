@@ -6,8 +6,6 @@ import ArrowRightIcon from '#/assets/arrow_right.svg'
 import AtIcon from '#/assets/at.svg'
 import GoBackIcon from '#/assets/go_back.svg'
 
-import * as appUtils from '#/appUtils'
-
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
@@ -35,7 +33,7 @@ export default function ForgotPassword() {
   return (
     <AuthenticationPage
       title={getText('forgotYourPassword')}
-      footer={<Link to={appUtils.LOGIN_PATH} icon={GoBackIcon} text={getText('goBackToLogin')} />}
+      footer={<Link to="/login" icon={GoBackIcon} text={getText('goBackToLogin')} />}
       supportsOffline={supportsOffline}
       onSubmit={async event => {
         event.preventDefault()

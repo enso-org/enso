@@ -6,7 +6,7 @@ import * as router from 'react-router-dom'
 
 import Back from '#/assets/arrow_left.svg'
 
-import * as appUtils from '#/appUtils'
+import { useNavigate } from '#/hooks/routerHooks'
 
 import * as backendProvider from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
@@ -40,7 +40,7 @@ interface CreateCheckoutSessionMutation {
  * paymentStatus: 'no_payment_required' || 'paid' || 'unpaid' }`).
  */
 export function Subscribe() {
-  const navigate = router.useNavigate()
+  const navigate = useNavigate()
   const { getText } = textProvider.useText()
 
   const [searchParams] = router.useSearchParams()
@@ -58,7 +58,7 @@ export function Subscribe() {
     },
     onSuccess: (data, mutationData) => {
       if (['trialing', 'active'].includes(data.status)) {
-        navigate({ pathname: appUtils.SUBSCRIBE_SUCCESS_PATH, search: `plan=${mutationData.plan}` })
+        navigate({ pathname: '/subscribe/success', search: `plan=${mutationData.plan}` })
         return
       } else {
         throw new Error(
@@ -72,12 +72,7 @@ export function Subscribe() {
     <div className="flex h-full w-full flex-col overflow-y-auto bg-hover-bg text-xs text-primary">
       <div className="mx-auto mt-16 flex w-full min-w-96 max-w-[1400px] flex-col items-start justify-center p-12">
         <div className="flex flex-col items-start">
-          <ariaComponents.Button
-            variant="icon"
-            icon={Back}
-            href={appUtils.DASHBOARD_PATH}
-            className="-ml-2"
-          >
+          <ariaComponents.Button variant="icon" icon={Back} href="/drive" className="-ml-2">
             {getText('returnToDashboard')}
           </ariaComponents.Button>
 

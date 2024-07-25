@@ -14,9 +14,8 @@ import invariant from 'tiny-invariant'
 import * as detect from 'enso-common/src/detect'
 import * as gtag from 'enso-common/src/gtag'
 
-import * as appUtils from '#/appUtils'
-
 import * as gtagHooks from '#/hooks/gtagHooks'
+import { useNavigate } from '#/hooks/routerHooks'
 
 import * as backendProvider from '#/providers/BackendProvider'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
@@ -25,6 +24,7 @@ import * as sessionProvider from '#/providers/SessionProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import * as ariaComponents from '#/components/AriaComponents'
+import Navigate from '#/components/Navigate'
 import * as resultComponent from '#/components/Result'
 
 import type Backend from '#/services/Backend'
@@ -180,10 +180,7 @@ export default function AuthProvider(props: AuthProviderProps) {
   const { localStorage } = localStorageProvider.useLocalStorage()
   const { getText } = textProvider.useText()
   const { unsetModal } = modalProvider.useSetModal()
-  // This must not be `hooks.useNavigate` as `goOffline` would be inaccessible,
-  // and the function call would error.
-  // eslint-disable-next-line no-restricted-properties
-  const navigate = router.useNavigate()
+  const navigate = useNavigate()
   const toastId = React.useId()
 
   const queryClient = reactQuery.useQueryClient()
@@ -290,7 +287,7 @@ export default function AuthProvider(props: AuthProviderProps) {
       const result = await cognito.signUp(username, password, organizationId)
       if (result.ok) {
         toastSuccess(getText('signUpSuccess'))
-        navigate(appUtils.LOGIN_PATH)
+        navigate('/login')
       } else {
         toastError(result.val.message)
       }
@@ -311,7 +308,7 @@ export default function AuthProvider(props: AuthProviderProps) {
           }
           case cognitoModule.CognitoErrorType.userNotFound: {
             toastError(getText('confirmSignUpError'))
-            navigate(appUtils.LOGIN_PATH)
+            navigate('/login')
             return false
           }
           default: {
@@ -320,7 +317,7 @@ export default function AuthProvider(props: AuthProviderProps) {
         }
       }
       toastSuccess(getText('confirmSignUpSuccess'))
-      navigate(appUtils.LOGIN_PATH)
+      navigate('/login')
       return result.ok
     }
   }
@@ -337,7 +334,7 @@ export default function AuthProvider(props: AuthProviderProps) {
       } else {
         if (result.val.type === cognitoModule.CognitoErrorType.userNotFound) {
           // It may not be safe to pass the user's password in the URL.
-          navigate(`${appUtils.REGISTRATION_PATH}?${new URLSearchParams({ email }).toString()}`)
+          navigate(`/registration?${new URLSearchParams({ email }).toString()}`)
         }
         toastError(result.val.message)
       }
@@ -376,7 +373,7 @@ export default function AuthProvider(props: AuthProviderProps) {
           localStorage.delete('loginRedirect')
           location.href = redirectTo
         } else {
-          navigate(appUtils.DASHBOARD_PATH)
+          navigate('/drive')
         }
         return true
       } catch {
@@ -432,7 +429,7 @@ export default function AuthProvider(props: AuthProviderProps) {
       const result = await cognito.forgotPassword(email)
       if (result.ok) {
         toastSuccess(getText('forgotPasswordSuccess'))
-        navigate(appUtils.LOGIN_PATH)
+        navigate('/login')
       } else {
         toastError(result.val.message)
       }
@@ -447,7 +444,7 @@ export default function AuthProvider(props: AuthProviderProps) {
       const result = await cognito.forgotPasswordSubmit(email, code, password)
       if (result.ok) {
         toastSuccess(getText('resetPasswordSuccess'))
-        navigate(appUtils.LOGIN_PATH)
+        navigate('/login')
       } else {
         toastError(result.val.message)
       }
@@ -612,9 +609,9 @@ export function ProtectedLayout() {
   const { session } = useAuth()
 
   if (session == null) {
-    return <router.Navigate to={appUtils.LOGIN_PATH} />
+    return <Navigate to="/login" />
   } else if (session.type === UserSessionType.partial) {
-    return <router.Navigate to={appUtils.SET_USERNAME_PATH} />
+    return <Navigate to="/set-username" />
   } else {
     return <router.Outlet context={session} />
   }
@@ -637,10 +634,10 @@ export function SemiProtectedLayout() {
       location.href = redirectTo
       return
     } else {
-      return <router.Navigate to={appUtils.DASHBOARD_PATH} />
+      return <Navigate to="/drive" />
     }
   } else if (session?.type !== UserSessionType.partial) {
-    return <router.Navigate to={appUtils.LOGIN_PATH} />
+    return <Navigate to="/login" />
   } else {
     return <router.Outlet context={session} />
   }
@@ -657,7 +654,7 @@ export function GuestLayout() {
   const { localStorage } = localStorageProvider.useLocalStorage()
 
   if (session?.type === UserSessionType.partial) {
-    return <router.Navigate to={appUtils.SET_USERNAME_PATH} />
+    return <Navigate to="/set-username" />
   } else if (session?.type === UserSessionType.full) {
     const redirectTo = localStorage.get('loginRedirect')
     if (redirectTo != null) {
@@ -665,7 +662,7 @@ export function GuestLayout() {
       location.href = redirectTo
       return
     } else {
-      return <router.Navigate to={appUtils.DASHBOARD_PATH} />
+      return <Navigate to="/drive" />
     }
   } else {
     return <router.Outlet />
@@ -677,7 +674,7 @@ export function NotDeletedUserLayout() {
   const { session, isUserMarkedForDeletion } = useAuth()
 
   if (isUserMarkedForDeletion()) {
-    return <router.Navigate to={appUtils.RESTORE_USER_PATH} />
+    return <Navigate to="/restore-user" />
   } else {
     return <router.Outlet context={session} />
   }
@@ -693,9 +690,9 @@ export function SoftDeletedUserLayout() {
     if (isSoftDeleted) {
       return <router.Outlet context={session} />
     } else if (isDeleted) {
-      return <router.Navigate to={appUtils.LOGIN_PATH} />
+      return <Navigate to="/login" />
     } else {
-      return <router.Navigate to={appUtils.DASHBOARD_PATH} />
+      return <Navigate to="/drive" />
     }
   }
 }

@@ -4,6 +4,8 @@ import * as React from 'react'
 import * as router from 'react-router-dom'
 import * as toastify from 'react-toastify'
 
+import type { AppFullPath } from '#/appUtils'
+
 import * as focusHooks from '#/hooks/focusHooks'
 
 import * as textProvider from '#/providers/TextProvider'
@@ -19,7 +21,7 @@ import SvgMask from '#/components/SvgMask'
 /** Props for a {@link Link}. */
 export interface LinkProps {
   readonly openInBrowser?: boolean
-  readonly to: string
+  readonly to: AppFullPath | `https://${string}`
   readonly icon: string
   readonly text: string
 }

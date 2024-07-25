@@ -41,7 +41,7 @@ import * as toastify from 'react-toastify'
 
 import * as detect from 'enso-common/src/detect'
 
-import * as appUtils from '#/appUtils'
+import { ALL_PATHS_REGEX, definePath } from '#/appUtils'
 
 import * as inputBindingsModule from '#/configurations/inputBindings'
 
@@ -130,7 +130,7 @@ LocalStorage.registerKey('inputBindings', {
 /** Returns the URL to the main page. This is the current URL, with the current route removed. */
 function getMainPageUrl() {
   const mainPageUrl = new URL(window.location.href)
-  mainPageUrl.pathname = mainPageUrl.pathname.replace(appUtils.ALL_PATHS_REGEX, '')
+  mainPageUrl.pathname = mainPageUrl.pathname.replace(ALL_PATHS_REGEX, '')
   return mainPageUrl
 }
 
@@ -429,8 +429,8 @@ function AppRouter(props: AppRouterProps) {
     <router.Routes>
       {/* Login & registration pages are visible to unauthenticated users. */}
       <router.Route element={<authProvider.GuestLayout />}>
-        <router.Route path={appUtils.REGISTRATION_PATH} element={<Registration />} />
-        <router.Route path={appUtils.LOGIN_PATH} element={<Login />} />
+        <router.Route path={definePath('registration')} element={<Registration />} />
+        <router.Route path={definePath('login')} element={<Login />} />
       </router.Route>
 
       {/* Protected pages are visible to authenticated users. */}
@@ -448,13 +448,10 @@ function AppRouter(props: AppRouterProps) {
             <router.Route element={<termsOfServiceModal.TermsOfServiceModal />}>
               <router.Route element={<setOrganizationNameModal.SetOrganizationNameModal />}>
                 <router.Route element={<openAppWatcher.OpenAppWatcher />}>
-                  <router.Route
-                    path={appUtils.DASHBOARD_PATH}
-                    element={shouldShowDashboard && <Dashboard {...props} />}
-                  />
+                  <router.Route index element={shouldShowDashboard && <Dashboard {...props} />} />
 
                   <router.Route
-                    path={appUtils.SUBSCRIBE_PATH}
+                    path={definePath('subscribe')}
                     element={
                       <errorBoundary.ErrorBoundary>
                         <suspense.Suspense>
@@ -468,7 +465,7 @@ function AppRouter(props: AppRouterProps) {
             </router.Route>
 
             <router.Route
-              path={appUtils.SUBSCRIBE_SUCCESS_PATH}
+              path={definePath('subscribe/success')}
               element={
                 <errorBoundary.ErrorBoundary>
                   <suspense.Suspense>
@@ -485,20 +482,20 @@ function AppRouter(props: AppRouterProps) {
         {/* Semi-protected pages are visible to users currently registering. */}
         <router.Route element={<authProvider.NotDeletedUserLayout />}>
           <router.Route element={<authProvider.SemiProtectedLayout />}>
-            <router.Route path={appUtils.SET_USERNAME_PATH} element={<SetUsername />} />
+            <router.Route path={definePath('set-username')} element={<SetUsername />} />
           </router.Route>
         </router.Route>
       </router.Route>
 
       {/* Other pages are visible to unauthenticated and authenticated users. */}
-      <router.Route path={appUtils.CONFIRM_REGISTRATION_PATH} element={<ConfirmRegistration />} />
-      <router.Route path={appUtils.FORGOT_PASSWORD_PATH} element={<ForgotPassword />} />
-      <router.Route path={appUtils.RESET_PASSWORD_PATH} element={<ResetPassword />} />
+      <router.Route path={definePath('confirmation')} element={<ConfirmRegistration />} />
+      <router.Route path={definePath('forgot-password')} element={<ForgotPassword />} />
+      <router.Route path={definePath('password-reset')} element={<ResetPassword />} />
 
       {/* Soft-deleted user pages are visible to users who have been soft-deleted. */}
       <router.Route element={<authProvider.ProtectedLayout />}>
         <router.Route element={<authProvider.SoftDeletedUserLayout />}>
-          <router.Route path={appUtils.RESTORE_USER_PATH} element={<RestoreAccount />} />
+          <router.Route path={definePath('restore-user')} element={<RestoreAccount />} />
         </router.Route>
       </router.Route>
 

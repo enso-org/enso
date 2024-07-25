@@ -477,6 +477,18 @@ export default [
                 { property: 'useDebugEffect', message: DEBUG_STATEMENTS_MESSAGE },
                 { property: 'useDebugMemo', message: DEBUG_STATEMENTS_MESSAGE },
                 { property: 'useDebugCallback', message: DEBUG_STATEMENTS_MESSAGE },
+                {
+                    object: 'router',
+                    property: 'useNavigate',
+                    message:
+                        "Use `routerHooks.useNavigate` instead of `react-router`'s `useNavigate`",
+                },
+                {
+                    object: 'routerDom',
+                    property: 'useNavigate',
+                    message:
+                        "Use `routerHooks.useNavigate` instead of `react-router`'s `useNavigate`",
+                },
             ],
         },
     },
@@ -494,26 +506,6 @@ export default [
                 'error',
                 {
                     object: 'console',
-                    message: 'Avoid leaving debugging statements when committing code',
-                },
-                {
-                    object: 'hooks',
-                    property: 'useDebugState',
-                    message: 'Avoid leaving debugging statements when committing code',
-                },
-                {
-                    object: 'hooks',
-                    property: 'useDebugEffect',
-                    message: 'Avoid leaving debugging statements when committing code',
-                },
-                {
-                    object: 'hooks',
-                    property: 'useDebugMemo',
-                    message: 'Avoid leaving debugging statements when committing code',
-                },
-                {
-                    object: 'hooks',
-                    property: 'useDebugCallback',
                     message: 'Avoid leaving debugging statements when committing code',
                 },
                 {

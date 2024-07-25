@@ -1,6 +1,8 @@
 /** @file A styled button. */
 import * as React from 'react'
 
+import type { AppFullPath } from '#/appUtils'
+
 import * as focusHooks from '#/hooks/focusHooks'
 
 import * as aria from '#/components/aria'
@@ -25,7 +27,7 @@ export type ButtonProps =
  * Props for a button with an href.
  */
 interface PropsWithHref {
-  readonly href: string
+  readonly href: AppFullPath
 }
 
 /**

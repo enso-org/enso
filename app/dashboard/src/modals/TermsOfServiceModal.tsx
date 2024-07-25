@@ -100,70 +100,66 @@ export function TermsOfServiceModal() {
     // all `ariaComponents.Dialog`s contain one. This is likely caused by Suspense discarding
     // renders, and so it does not seem to be fixable.
     return (
-      <>
-        <ariaComponents.Dialog
-          title={getText('licenseAgreementTitle')}
-          isKeyboardDismissDisabled
-          isDismissable={false}
-          hideCloseButton
-          modalProps={{ defaultOpen: true }}
-          testId="terms-of-service-modal"
-          id="terms-of-service-modal"
+      <ariaComponents.Dialog
+        title={getText('licenseAgreementTitle')}
+        isKeyboardDismissDisabled
+        isDismissable={false}
+        hideCloseButton
+        modalProps={{ defaultOpen: true }}
+        testId="terms-of-service-modal"
+        id="terms-of-service-modal"
+      >
+        <ariaComponents.Form
+          schema={formSchema}
+          defaultValues={{ agree: false, hash: latestVersionHash }}
+          testId="terms-of-service-form"
+          method="dialog"
+          onSubmit={({ hash }) => {
+            localStorage.set('termsOfService', { versionHash: hash })
+          }}
         >
-          <ariaComponents.Form
-            schema={formSchema}
-            defaultValues={{ agree: false, hash: latestVersionHash }}
-            testId="terms-of-service-form"
-            method="dialog"
-            onSubmit={({ hash }) => {
-              localStorage.set('termsOfService', { versionHash: hash })
-            }}
-          >
-            {({ register }) => (
-              <>
-                <ariaComponents.Form.Field name="agree">
-                  {({ isInvalid }) => (
-                    <>
-                      <div className="flex w-full items-center gap-1">
-                        <aria.Input
-                          type="checkbox"
-                          className={tailwindMerge.twMerge(
-                            'flex size-4 cursor-pointer overflow-clip rounded-lg border border-primary outline-primary focus-visible:outline focus-visible:outline-2',
-                            isInvalid && 'border-red-700 text-red-500 outline-red-500'
-                          )}
-                          id={checkboxId}
-                          data-testid="terms-of-service-checkbox"
-                          {...object.omit(register('agree'), 'isInvalid')}
-                        />
+          {({ register }) => (
+            <>
+              <ariaComponents.Form.Field name="agree">
+                {({ isInvalid }) => (
+                  <>
+                    <div className="flex w-full items-center gap-1">
+                      <aria.Input
+                        type="checkbox"
+                        className={tailwindMerge.twMerge(
+                          'flex size-4 cursor-pointer overflow-clip rounded-lg border border-primary outline-primary focus-visible:outline focus-visible:outline-2',
+                          isInvalid && 'border-red-700 text-red-500 outline-red-500'
+                        )}
+                        id={checkboxId}
+                        data-testid="terms-of-service-checkbox"
+                        {...object.omit(register('agree'), 'isInvalid')}
+                      />
 
-                        <label htmlFor={checkboxId}>
-                          <ariaComponents.Text>
-                            {getText('licenseAgreementCheckbox')}
-                          </ariaComponents.Text>
-                        </label>
-                      </div>
+                      <label htmlFor={checkboxId}>
+                        <ariaComponents.Text>
+                          {getText('licenseAgreementCheckbox')}
+                        </ariaComponents.Text>
+                      </label>
+                    </div>
 
-                      <ariaComponents.Button
-                        variant="link"
-                        target="_blank"
-                        href="https://enso.org/eula"
-                      >
-                        {getText('viewLicenseAgreement')}
-                      </ariaComponents.Button>
-                    </>
-                  )}
-                </ariaComponents.Form.Field>
+                    <ariaComponents.Button
+                      variant="link"
+                      target="_blank"
+                      href="https://enso.org/eula"
+                    >
+                      {getText('viewLicenseAgreement')}
+                    </ariaComponents.Button>
+                  </>
+                )}
+              </ariaComponents.Form.Field>
 
-                <ariaComponents.Form.FormError />
+              <ariaComponents.Form.FormError />
 
-                <ariaComponents.Form.Submit fullWidth>
-                  {getText('accept')}
-                </ariaComponents.Form.Submit>
-              </>
-            )}
-          </ariaComponents.Form>
-        </ariaComponents.Dialog>
-      </>
+              <ariaComponents.Form.Submit fullWidth>{getText('accept')}</ariaComponents.Form.Submit>
+            </>
+          )}
+        </ariaComponents.Form>
+      </ariaComponents.Dialog>
     )
   } else {
     return <router.Outlet context={session} />

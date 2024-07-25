@@ -2,11 +2,10 @@
 import * as React from 'react'
 
 import * as reactDom from 'react-dom'
-import * as router from 'react-router-dom'
 
 import CloseLargeIcon from '#/assets/close_large.svg'
 
-import * as appUtils from '#/appUtils'
+import { useNavigate } from '#/hooks/routerHooks'
 
 import * as loggerProvider from '#/providers/LoggerProvider'
 import * as textProvider from '#/providers/TextProvider'
@@ -31,7 +30,7 @@ export default function ChatPlaceholder(props: ChatPlaceholderProps) {
   const { hideLoginButtons = false, isOpen, doClose } = props
   const { getText } = textProvider.useText()
   const logger = loggerProvider.useLogger()
-  const navigate = router.useNavigate()
+  const navigate = useNavigate()
 
   const container = document.getElementById(chat.HELP_CHAT_ID)
 
@@ -68,7 +67,7 @@ export default function ChatPlaceholder(props: ChatPlaceholderProps) {
                 variant="custom"
                 className="button self-center bg-help text-white"
                 onPress={() => {
-                  navigate(appUtils.LOGIN_PATH)
+                  navigate('/login')
                 }}
               >
                 {getText('login')}
@@ -80,7 +79,7 @@ export default function ChatPlaceholder(props: ChatPlaceholderProps) {
                 variant="custom"
                 className="button self-center bg-help text-white"
                 onPress={() => {
-                  navigate(appUtils.REGISTRATION_PATH)
+                  navigate('/registration')
                 }}
               >
                 {getText('register')}

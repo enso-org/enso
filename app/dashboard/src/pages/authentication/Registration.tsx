@@ -8,8 +8,6 @@ import CreateAccountIcon from '#/assets/create_account.svg'
 import GoBackIcon from '#/assets/go_back.svg'
 import LockIcon from '#/assets/lock.svg'
 
-import * as appUtils from '#/appUtils'
-
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
@@ -77,9 +75,7 @@ export default function Registration() {
     <AuthenticationPage
       title={getText('createANewAccount')}
       supportsOffline={supportsOffline}
-      footer={
-        <Link to={appUtils.LOGIN_PATH} icon={GoBackIcon} text={getText('alreadyHaveAnAccount')} />
-      }
+      footer={<Link to="/login" icon={GoBackIcon} text={getText('alreadyHaveAnAccount')} />}
       onSubmit={async event => {
         event.preventDefault()
         setIsSubmitting(true)

@@ -6,7 +6,7 @@ import * as amplify from '@aws-amplify/auth'
 import * as common from 'enso-common'
 import * as detect from 'enso-common/src/detect'
 
-import * as appUtils from '#/appUtils'
+import type * as appUtils from '#/appUtils'
 
 import type * as loggerProvider from '#/providers/LoggerProvider'
 
@@ -211,24 +211,27 @@ function loadAmplifyConfig(
  *
  * All URLs that don't have a pathname that starts with `AUTHENTICATION_PATHNAME_BASE` will be
  * ignored by this handler. */
-function setDeepLinkHandler(logger: loggerProvider.Logger, navigate: (url: string) => void) {
+function setDeepLinkHandler(
+  logger: loggerProvider.Logger,
+  navigate: (url: appUtils.AppFullPath) => void
+) {
   window.authenticationApi.setDeepLinkHandler((urlString: string) => {
     const url = new URL(urlString)
     logger.log(`Parsed pathname: ${url.pathname}`)
     // Remove the trailing slash in the pathname - it is present on Windows but not on macOS.
     const pathname = url.pathname.replace(/\/$/, '')
+    const search = url.search.replace(/^\?/, '')
     switch (pathname) {
       // If the user is being redirected after clicking the registration confirmation link in their
       // email, then the URL will be for the confirmation page path.
       case '//auth/confirmation': {
-        const redirectUrl = `${appUtils.CONFIRM_REGISTRATION_PATH}${url.search}`
-        navigate(redirectUrl)
+        navigate(`/confirmation?${search}`)
         break
       }
       case '//auth': {
         if (url.search === '') {
           // Signing out.
-          navigate(appUtils.LOGIN_PATH)
+          navigate('/login')
         } else {
           // Signing in.
           void (async () => {
@@ -246,7 +249,7 @@ function setDeepLinkHandler(logger: loggerProvider.Logger, navigate: (url: strin
               // eslint-disable-next-line @typescript-eslint/no-unsafe-call
               await amplify.Auth._handleAuthResponse(url.toString())
 
-              navigate(appUtils.DASHBOARD_PATH)
+              navigate('/drive')
             } finally {
               // Restore the original `history.replaceState` function.
               history.replaceState = replaceState
@@ -258,17 +261,18 @@ function setDeepLinkHandler(logger: loggerProvider.Logger, navigate: (url: strin
       // If the user is being redirected after finishing the password reset flow, then the URL will
       // be for the login page.
       case '//auth/login': {
-        navigate(appUtils.LOGIN_PATH)
+        navigate('/login')
         break
       }
       case '//auth/registration': {
-        navigate(`${appUtils.REGISTRATION_PATH}${url.search}`)
+        navigate(`/registration?${search}`)
         break
       }
       // If the user is being redirected from a password reset email, navigate to the password
       // reset page, with the verification code and email prefilled.
-      case appUtils.RESET_PASSWORD_PATH: {
-        navigate(`${appUtils.RESET_PASSWORD_PATH}${url.search}`)
+      case '/password-reset':
+      case '//password-reset': {
+        navigate(`/password-reset?${search}`)
         break
       }
       default: {

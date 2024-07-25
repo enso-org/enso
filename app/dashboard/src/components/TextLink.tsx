@@ -1,6 +1,8 @@
 /** @file A link without an icon. */
 import * as router from 'react-router-dom'
 
+import type { AppFullPath } from '#/appUtils'
+
 import * as focusHooks from '#/hooks/focusHooks'
 
 import * as aria from '#/components/aria'
@@ -12,7 +14,7 @@ import FocusRing from '#/components/styled/FocusRing'
 
 /** Props for a {@link TextLink}. */
 export interface TextLinkProps {
-  readonly to: string
+  readonly to: AppFullPath
   readonly text: string
 }
 

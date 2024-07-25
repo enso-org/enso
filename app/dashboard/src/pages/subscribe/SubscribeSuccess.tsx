@@ -1,14 +1,14 @@
 /** @file A page to show when a user successfully subscribes to a plan. */
-import * as router from 'react-router'
 import * as routerDom from 'react-router-dom'
 
-import * as appUtils from '#/appUtils'
+import { useNavigate } from '#/hooks/routerHooks'
 
 import * as textProvider from '#/providers/TextProvider'
 
 import * as constants from '#/pages/subscribe/constants'
 
 import * as ariaComponents from '#/components/AriaComponents'
+import Navigate from '#/components/Navigate'
 import * as result from '#/components/Result'
 
 import * as backend from '#/services/Backend'
@@ -21,11 +21,11 @@ import * as backend from '#/services/Backend'
 export function SubscribeSuccess() {
   const { getText } = textProvider.useText()
   const [searchParams] = routerDom.useSearchParams()
-  const navigate = routerDom.useNavigate()
+  const navigate = useNavigate()
   const plan = searchParams.get('plan') ?? backend.Plan.solo
 
   if (!backend.isPlan(plan)) {
-    return <router.Navigate to={appUtils.DASHBOARD_PATH} replace />
+    return <Navigate to="/drive" replace />
   } else {
     return (
       <result.Result
@@ -39,7 +39,7 @@ export function SubscribeSuccess() {
             variant="submit"
             size="large"
             onPress={() => {
-              navigate(appUtils.DASHBOARD_PATH)
+              navigate('/drive')
             }}
           >
             {getText('subscribeSuccessSubmit')}

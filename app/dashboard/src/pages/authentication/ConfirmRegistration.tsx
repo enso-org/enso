@@ -4,8 +4,7 @@ import * as React from 'react'
 
 import * as router from 'react-router-dom'
 
-import * as appUtils from '#/appUtils'
-
+import { useNavigate } from '#/hooks/routerHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
@@ -19,7 +18,7 @@ export default function ConfirmRegistration() {
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const auth = authProvider.useAuth()
   const location = router.useLocation()
-  const navigate = router.useNavigate()
+  const navigate = useNavigate()
 
   const query = new URLSearchParams(location.search)
   const verificationCode = query.get('verification_code')
@@ -28,7 +27,7 @@ export default function ConfirmRegistration() {
 
   React.useEffect(() => {
     if (email == null || verificationCode == null) {
-      navigate(appUtils.LOGIN_PATH)
+      navigate('/login')
     } else {
       void (async () => {
         try {
@@ -36,11 +35,11 @@ export default function ConfirmRegistration() {
           if (redirectUrl != null) {
             window.location.href = redirectUrl
           } else {
-            navigate(appUtils.LOGIN_PATH + location.search.toString())
+            navigate(`/login?${location.search.replace(/^\?/, '')}`)
           }
         } catch (error) {
           toastAndLog('registrationError')
-          navigate(appUtils.LOGIN_PATH)
+          navigate('/login')
         }
       })()
     }

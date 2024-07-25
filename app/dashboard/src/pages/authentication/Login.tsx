@@ -13,7 +13,7 @@ import GithubIcon from '#/assets/github.svg'
 import GoogleIcon from '#/assets/google.svg'
 import LockIcon from '#/assets/lock.svg'
 
-import * as appUtils from '#/appUtils'
+import { useNavigate } from '#/hooks/routerHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
@@ -36,7 +36,7 @@ import * as eventModule from '#/utilities/event'
 /** A form for users to log in. */
 export default function Login() {
   const location = router.useLocation()
-  const navigate = router.useNavigate()
+  const navigate = useNavigate()
   const { signInWithGoogle, signInWithGitHub, signInWithPassword } = authProvider.useAuth()
   const { getText } = textProvider.useText()
 
@@ -58,18 +58,16 @@ export default function Login() {
       title={getText('loginToYourAccount')}
       supportsOffline={supportsOffline}
       footer={
-        <>
-          <Link
-            openInBrowser={detect.isOnElectron()}
-            to={
-              detect.isOnElectron()
-                ? 'https://' + common.CLOUD_DASHBOARD_DOMAIN + appUtils.REGISTRATION_PATH
-                : appUtils.REGISTRATION_PATH
-            }
-            icon={CreateAccountIcon}
-            text={getText('dontHaveAnAccount')}
-          />
-        </>
+        <Link
+          openInBrowser={detect.isOnElectron()}
+          to={
+            detect.isOnElectron()
+              ? `https://${common.CLOUD_DASHBOARD_DOMAIN}/registration`
+              : '/registration'
+          }
+          icon={CreateAccountIcon}
+          text={getText('dontHaveAnAccount')}
+        />
       }
     >
       <div className="flex flex-col gap-auth">
@@ -112,7 +110,7 @@ export default function Login() {
           await signInWithPassword(email, password)
           shouldReportValidityRef.current = true
           setIsSubmitting(false)
-          navigate(appUtils.DASHBOARD_PATH)
+          navigate('/drive')
         }}
       >
         <Input
@@ -141,7 +139,7 @@ export default function Login() {
             setValue={setPassword}
             shouldReportValidityRef={shouldReportValidityRef}
           />
-          <TextLink to={appUtils.FORGOT_PASSWORD_PATH} text={getText('forgotYourPassword')} />
+          <TextLink to="/forgot-password" text={getText('forgotYourPassword')} />
         </div>
 
         <SubmitButton

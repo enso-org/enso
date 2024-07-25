@@ -8,8 +8,7 @@ import ArrowRightIcon from '#/assets/arrow_right.svg'
 import GoBackIcon from '#/assets/go_back.svg'
 import LockIcon from '#/assets/lock.svg'
 
-import * as appUtils from '#/appUtils'
-
+import { useNavigate } from '#/hooks/routerHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
@@ -36,7 +35,7 @@ export default function ResetPassword() {
   const { resetPassword } = authProvider.useAuth()
   const { getText } = textProvider.useText()
   const location = router.useLocation()
-  const navigate = router.useNavigate()
+  const navigate = useNavigate()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const localBackend = backendProvider.useLocalBackend()
   const supportsOffline = localBackend != null
@@ -51,10 +50,10 @@ export default function ResetPassword() {
   React.useEffect(() => {
     if (email == null) {
       toastAndLog('missingEmailError')
-      navigate(appUtils.LOGIN_PATH)
+      navigate('/login')
     } else if (verificationCode == null) {
       toastAndLog('missingVerificationCodeError')
-      navigate(appUtils.LOGIN_PATH)
+      navigate('/login')
     }
   }, [email, navigate, verificationCode, getText, toastAndLog])
 
@@ -72,7 +71,7 @@ export default function ResetPassword() {
     <AuthenticationPage
       supportsOffline={supportsOffline}
       title={getText('resetYourPassword')}
-      footer={<Link to={appUtils.LOGIN_PATH} icon={GoBackIcon} text={getText('goBackToLogin')} />}
+      footer={<Link to="/login" icon={GoBackIcon} text={getText('goBackToLogin')} />}
       onSubmit={async event => {
         event.preventDefault()
         await doSubmit()
