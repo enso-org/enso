@@ -655,8 +655,14 @@ with_secret name value callback = case value of
 get_configured_connection_details = Panic.rethrow <|
     account_name = Environment.get "ENSO_SNOWFLAKE_ACCOUNT"
     if account_name.is_nothing then Nothing else
+        if account_name.is_empty then
+            Panic.throw (Illegal_Argument.Error "ENSO_SNOWFLAKE_ACCOUNT is set, but empty. Please set all required environment variables.")
+
         get_var name =
-            Environment.get name if_missing=(Panic.throw (Illegal_State.Error "ENSO_SNOWFLAKE_ACCOUNT is set, but "+name+" is not. Please set all required environment variables."))
+            value = Environment.get name if_missing=(Panic.throw (Illegal_State.Error "ENSO_SNOWFLAKE_ACCOUNT is set, but "+name+" is not. Please set all required environment variables."))
+            if value.is_empty then
+                Panic.throw (Illegal_State.Error "The "+name+" environment variable is set, but it is empty. Please set all required environment variables.")
+            value
         user = get_var "ENSO_SNOWFLAKE_USER"
         password = get_var "ENSO_SNOWFLAKE_PASSWORD"
         database = get_var "ENSO_SNOWFLAKE_DATABASE"
