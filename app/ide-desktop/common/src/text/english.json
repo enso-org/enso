@@ -417,7 +417,9 @@
   "cannotCreateAssetsHere": "You do not have the permissions to create assets here.",
   "enableVersionChecker": "Enable Version Checker",
   "enableVersionCheckerDescription": "Show a dialog if the current version of the desktop app does not match the latest version.",
+  "removeTheLocalDirectoryX": "remove the local folder '$0'",
   "changeLocalRootDirectoryInSettings": "Change your root folder in Settings.",
+  "addLocalDirectory": "Add Folder",
 
   "deleteLabelActionText": "delete the label '$0'",
   "deleteSelectedAssetActionText": "delete '$0'",

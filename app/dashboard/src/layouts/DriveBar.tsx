@@ -234,7 +234,8 @@ export default function DriveBar(props: DriveBarProps) {
     case categoryModule.CategoryType.cloud:
     case categoryModule.CategoryType.local:
     case categoryModule.CategoryType.user:
-    case categoryModule.CategoryType.team: {
+    case categoryModule.CategoryType.team:
+    case categoryModule.CategoryType.localDirectory: {
       return (
         <ariaComponents.ButtonGroup className="my-0.5 grow-0">
           <ariaComponents.ButtonGroup

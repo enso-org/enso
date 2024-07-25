@@ -9,6 +9,7 @@ import ComputerIcon from '#/assets/computer.svg'
 import FolderIcon from '#/assets/folder.svg'
 import PeopleIcon from '#/assets/people.svg'
 import PersonIcon from '#/assets/person.svg'
+import PlusIcon from '#/assets/plus.svg'
 import RecentIcon from '#/assets/recent.svg'
 import SettingsIcon from '#/assets/settings.svg'
 import Trash2Icon from '#/assets/trash2.svg'
@@ -36,10 +37,13 @@ import * as ariaComponents from '#/components/AriaComponents'
 import FocusArea from '#/components/styled/FocusArea'
 import SvgMask from '#/components/SvgMask'
 
+import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
+
 import * as backend from '#/services/Backend'
 import { newDirectoryId } from '#/services/LocalBackend'
 import { TEAMS_DIRECTORY_ID, USERS_DIRECTORY_ID } from '#/services/remoteBackendPaths'
 
+import { fileName } from '#/utilities/fileInfo'
 import LocalStorage from '#/utilities/LocalStorage'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 
@@ -245,7 +249,8 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
   const dispatchAssetEvent = eventListProvider.useDispatchAssetEvent()
   const setPage = useSetPage()
   const [, setSearchParams] = useSearchParams()
-  const [localRootDirectories] = useLocalStorageKey('localRootDirectories')
+  const [localRootDirectories, setLocalRootDirectories] = useLocalStorageKey('localRootDirectories')
+  const { setModal } = modalProvider.useSetModal()
 
   const localBackend = backendProvider.useLocalBackend()
   const itemProps = { currentCategory: category, setCategory, dispatchAssetEvent }
@@ -399,7 +404,7 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
                 )
               }
             })}
-            {localBackend != null && (
+            {localBackend && (
               <div className="group flex items-center self-stretch">
                 <CategorySwitcherItem
                   {...itemProps}
@@ -424,18 +429,19 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
                 />
               </div>
             )}
-            {localBackend != null &&
+            {localBackend &&
               localRootDirectories?.map(directory => (
                 <div className="group flex items-center self-stretch">
                   <CategorySwitcherItem
                     {...itemProps}
+                    isNested
                     category={{
                       type: CategoryType.localDirectory,
                       rootPath: backend.Path(directory),
                       homeDirectoryId: newDirectoryId(backend.Path(directory)),
                     }}
                     icon={FolderIcon}
-                    label={getText('localCategory')}
+                    label={fileName(directory)}
                     buttonLabel={getText('localCategoryButtonLabel')}
                     dropZoneLabel={getText('localCategoryDropZoneLabel')}
                   />
@@ -444,16 +450,45 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
                     size="medium"
                     variant="icon"
                     icon={Trash2Icon}
-                    aria-label={getText('changeLocalRootDirectoryInSettings')}
                     className="hidden text-delete group-hover:block"
                     onPress={() => {
-                      // eslint-disable-next-line @typescript-eslint/naming-convention
-                      setSearchParams({ 'cloud-ide_SettingsTab': '"local"' })
-                      setPage(TabType.settings)
+                      setModal(
+                        <ConfirmDeleteModal
+                          actionText={getText('removeTheLocalDirectoryX', fileName(directory))}
+                          doDelete={() => {
+                            setLocalRootDirectories(
+                              localRootDirectories.filter(
+                                otherDirectory => otherDirectory !== directory
+                              )
+                            )
+                          }}
+                        />
+                      )
                     }}
                   />
                 </div>
               ))}
+            {localBackend && window.fileBrowserApi && (
+              <div className="flex">
+                <div className="ml-[15px] mr-1 border-r border-primary/20" />
+                <ariaComponents.Button
+                  size="xsmall"
+                  variant="outline"
+                  icon={PlusIcon}
+                  loaderPosition="icon"
+                  className="ml-0.5 rounded-full px-2 selectable"
+                  onPress={async () => {
+                    const [newDirectory] =
+                      (await window.fileBrowserApi?.openFileBrowser('directory')) ?? []
+                    if (newDirectory != null) {
+                      setLocalRootDirectories([...(localRootDirectories ?? []), newDirectory])
+                    }
+                  }}
+                >
+                  <div className="ml-1.5">{getText('addLocalDirectory')}</div>
+                </ariaComponents.Button>
+              </div>
+            )}
           </div>
         </div>
       )}
