@@ -89,7 +89,7 @@ defineExpose({
   text-align: center;
   font-weight: 800;
   line-height: 171.5%;
-  height: 24px;
+  height: var(--node-port-height);
   appearance: textfield;
   -moz-appearance: textfield;
   user-select: all;

@@ -6,11 +6,13 @@ import type * as text from 'enso-common/src/text'
 import CloudIcon from '#/assets/cloud.svg'
 import ComputerIcon from '#/assets/computer.svg'
 import RecentIcon from '#/assets/recent.svg'
+import SettingsIcon from '#/assets/settings.svg'
 import Trash2Icon from '#/assets/trash2.svg'
 
 import * as mimeTypes from '#/data/mimeTypes'
 
 import * as offlineHooks from '#/hooks/offlineHooks'
+import { useNavigate } from '#/hooks/routerHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
@@ -168,6 +170,7 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
   const { getText } = textProvider.useText()
   const { isOffline } = offlineHooks.useOffline()
   const dispatchAssetEvent = eventListProvider.useDispatchAssetEvent()
+  const navigate = useNavigate()
 
   const localBackend = backendProvider.useLocalBackend()
   /** The list of *visible* categories. */
@@ -284,8 +287,25 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
                   <div className="ml-[15px] mr-1 border-r border-primary/20" />
                   {element}
                 </div>
-              ) : (
+              ) : data.category !== Category.local ? (
                 element
+              ) : (
+                <div
+                  key={data.category}
+                  className="group flex items-center justify-between self-stretch"
+                >
+                  {element}
+                  <ariaComponents.Button
+                    size="medium"
+                    variant="icon"
+                    icon={SettingsIcon}
+                    aria-label={getText('changeLocalRootDirectoryInSettings')}
+                    className="opacity-0 transition-opacity group-hover:opacity-100"
+                    onPress={() => {
+                      navigate('/settings/local')
+                    }}
+                  />
+                </div>
               )
             })}
           </div>

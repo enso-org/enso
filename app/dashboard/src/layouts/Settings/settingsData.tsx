@@ -246,7 +246,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
   },
   local: {
     nameId: 'localSettingsTab',
-    settingsTab: 'organization',
+    settingsTab: 'local',
     icon: ComputerIcon,
     visible: context => context.localBackend != null,
     sections: [
@@ -389,7 +389,11 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
 export const SETTINGS_DATA: SettingsData = [
   {
     nameId: 'generalSettingsTabSection',
-    tabs: [SETTINGS_TAB_DATA['account'], SETTINGS_TAB_DATA['organization']],
+    tabs: [
+      SETTINGS_TAB_DATA['account'],
+      SETTINGS_TAB_DATA['organization'],
+      SETTINGS_TAB_DATA['local'],
+    ],
   },
   {
     nameId: 'accessSettingsTabSection',

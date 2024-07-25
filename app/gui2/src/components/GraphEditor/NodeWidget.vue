@@ -95,7 +95,7 @@ const spanStart = computed(() => {
   <component
     :is="selectedWidget.default"
     v-if="selectedWidget"
-    ref="rootNode"
+    v-bind="$attrs"
     :input="props.input"
     :nesting="nesting"
     :data-span-start="spanStart"
@@ -110,12 +110,3 @@ const spanStart = computed(() => {
     >🚫</span
   >
 </template>
-
-<style scoped>
-.whitespace {
-  color: transparent;
-  pointer-events: none;
-  user-select: none;
-  white-space: pre;
-}
-</style>

@@ -72,8 +72,10 @@ const dragPointer = usePointer(
 const sliderWidth = computed(() => {
   if (props.limits == null) return undefined
   const numberValue = parseFloat(editedValue.value)
-  if (isNaN(numberValue)) return undefined
-  return `${((numberValue - props.limits.min) * 100) / (props.limits.max - props.limits.min)}%`
+  const sliderValue =
+    ((numberValue - props.limits.min) * 100) / (props.limits.max - props.limits.min)
+  if (isNaN(sliderValue)) return undefined
+  return `${sliderValue}%`
 })
 
 const inputComponent = ref<ComponentInstance<typeof AutoSizedInput>>()
