@@ -1208,6 +1208,38 @@ public class TypeInferenceTest extends StaticAnalysisTest {
   }
 
   @Test
+  public void alwaysKnowsMethodsOfAny() throws Exception {
+    final URI uri = new URI("memory://alwaysKnowsMethodsOfAny.enso");
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
+                    type My_Type
+                        Value v
+                    
+                    foo x =
+                        txt1 = x.to_text
+                        txt2 = 42.to_text
+                        txt3 = (My_Type.Value 1).to_text
+
+                        bool = x.is_error
+                        [txt1, txt2, txt3, bool]
+                    """,
+                uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = compile(src);
+    var foo = findStaticMethod(module, "foo");
+
+    assertAtomType("Standard.Base.Data.Text.Text", findAssignment(foo, "txt1"));
+    assertAtomType("Standard.Base.Data.Text.Text", findAssignment(foo, "txt2"));
+    assertAtomType("Standard.Base.Data.Text.Text", findAssignment(foo, "txt3"));
+
+    assertAtomType("Standard.Base.Data.Boolean.Boolean", findAssignment(foo, "bool"));
+  }
+
+  @Test
   public void callingMethodDefinedElsewhere() throws Exception {
     final URI uriA = new URI("memory://local.Project1.modA.enso");
     final Source srcA =
