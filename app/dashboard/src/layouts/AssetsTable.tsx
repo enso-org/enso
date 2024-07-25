@@ -426,7 +426,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     queryFn: () => backend.getOrganization(),
   })
   const organization = organizationQuery.data
-  const [localRootDirectory] = localStorageProvider.useLocalStorageKey('localRootDirectory')
+  const [localRootDirectory] = localStorageProvider.useLocalStorageState('localRootDirectory')
   const rootDirectoryId = React.useMemo(() => {
     const localRootPath = localRootDirectory != null ? backendModule.Path(localRootDirectory) : null
     const id =

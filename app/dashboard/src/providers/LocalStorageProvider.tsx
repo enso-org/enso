@@ -51,7 +51,7 @@ export function useLocalStorage() {
 }
 
 /** Subscribe to Local Storage updates for a specific key. */
-export function useLocalStorageKey<K extends LocalStorageKey>(
+export function useLocalStorageState<K extends LocalStorageKey>(
   key: K
 ): [
   value: LocalStorageData[K] | undefined,

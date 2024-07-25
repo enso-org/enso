@@ -21,7 +21,7 @@ import * as offlineHooks from '#/hooks/offlineHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
-import { useLocalStorageKey } from '#/providers/LocalStorageProvider'
+import { useLocalStorageState } from '#/providers/LocalStorageProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import { TabType, useSetPage } from '#/providers/ProjectsProvider'
 import * as textProvider from '#/providers/TextProvider'
@@ -249,7 +249,8 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
   const dispatchAssetEvent = eventListProvider.useDispatchAssetEvent()
   const setPage = useSetPage()
   const [, setSearchParams] = useSearchParams()
-  const [localRootDirectories, setLocalRootDirectories] = useLocalStorageKey('localRootDirectories')
+  const [localRootDirectories, setLocalRootDirectories] =
+    useLocalStorageState('localRootDirectories')
   const { setModal } = modalProvider.useSetModal()
 
   const localBackend = backendProvider.useLocalBackend()

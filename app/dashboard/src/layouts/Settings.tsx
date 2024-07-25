@@ -12,7 +12,7 @@ import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
-import { useLocalStorageKey } from '#/providers/LocalStorageProvider'
+import { useLocalStorageState } from '#/providers/LocalStorageProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import SearchBar from '#/layouts/SearchBar'
@@ -68,7 +68,7 @@ export default function Settings() {
   const updateUser = updateUserMutation.mutateAsync
   const updateOrganization = updateOrganizationMutation.mutateAsync
 
-  const [, setLocalRootDirectory] = useLocalStorageKey('localRootDirectory')
+  const [, setLocalRootDirectory] = useLocalStorageState('localRootDirectory')
   const updateLocalRootPath = useEventCallback((value: string) => {
     setLocalRootDirectory(value)
     if (localBackend) {

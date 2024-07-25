@@ -98,7 +98,7 @@ export default function Drive(props: DriveProps) {
   const [isAssetPanelTemporarilyVisible, setIsAssetPanelTemporarilyVisible] = React.useState(false)
   const organizationQuery = backendHooks.useBackendQuery(backend, 'getOrganization', [])
   const organization = organizationQuery.data ?? null
-  const [localRootDirectory] = localStorageProvider.useLocalStorageKey('localRootDirectory')
+  const [localRootDirectory] = localStorageProvider.useLocalStorageState('localRootDirectory')
   const rootDirectoryId = React.useMemo(() => {
     switch (category.type) {
       case categoryModule.CategoryType.user:
