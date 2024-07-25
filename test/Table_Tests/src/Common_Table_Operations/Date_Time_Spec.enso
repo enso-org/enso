@@ -303,9 +303,11 @@ add_specs suite_builder setup =
 
             (t1.at "X").date_diff (t1.at "Y") Date_Period.Month . to_vector . should_equal [1]
             (t1.at "X").date_diff (Date.new 2020 12 1) Date_Period.Month . to_vector . should_equal [-11]
+            (t1.at "X").date_diff (Date.new 2021 12 1) Date_Period.Month . to_vector . should_equal [0]
 
             (t1.at "X").date_diff (t1.at "Y") Date_Period.Quarter . to_vector . should_equal [0]
             (t1.at "X").date_diff (Date.new 2021 5 1) Date_Period.Quarter . to_vector . should_equal [-2]
+            (t1.at "X").date_diff (Date.new 2023 7 1) Date_Period.Quarter . to_vector . should_equal [6]
 
             (t1.at "X").date_diff (t1.at "Y") Date_Period.Year . to_vector . should_equal [0]
             (t1.at "X").date_diff (Date.new 2021 12 1) Date_Period.Year . to_vector . should_equal [0]
@@ -315,6 +317,7 @@ add_specs suite_builder setup =
             (t1.at "X1").date_diff (Date.new 2021 03 02) Date_Period.Day . to_vector . should_equal [59]
             (t1.at "X1").date_diff (Date.new 2021 03 02) Date_Period.Month . to_vector . should_equal [2]
             (t1.at "X1").date_diff (Date.new 2021 03 01) Date_Period.Day . to_vector . should_equal [58]
+            (t1.at "X1").date_diff (Date.new 2021 03 01) Date_Period.Month . to_vector . should_equal [1]
 
             # We do allow the `Time_Period.Day` as a kind of alias for `Date_Period.Day` here.
             (t1.at "X").date_diff (t1.at "Y") Time_Period.Day . to_vector . should_equal [32]
@@ -327,6 +330,7 @@ add_specs suite_builder setup =
             (t2.at "X").date_diff (Date_Time.new 2021 11 3 10 15 0 zone=zone) Date_Period.Day . to_vector . should_equal [0]
 
             (t2.at "X").date_diff (t2.at "Y") Date_Period.Month . to_vector . should_equal [1]
+            (t2.at "X").date_diff (Date_Time.new 2021 12 1 10 15 0 zone=zone) Date_Period.Month . to_vector . should_equal [0]
 
             (t2.at "X").date_diff (t2.at "Y") Date_Period.Year . to_vector . should_equal [0]
             (t2.at "X").date_diff (Date_Time.new 2031 12 1 10 15 0 zone=zone) Date_Period.Year . to_vector . should_equal [10]
@@ -386,19 +390,6 @@ add_specs suite_builder setup =
                 False ->
                     (t3.at "X").date_diff (t3.at "Y") Time_Period.Nanosecond . should_fail_with Unsupported_Database_Operation
                     (t3.at "X").date_diff (Time_Of_Day.new 10 15 12 34 56 78) Time_Period.Nanosecond . should_fail_with Unsupported_Database_Operation
-
-        ## TODO these were extracted from the test above, they may later be merged again, or we may keep them separate depending on resolution of
-           https://github.com/enso-org/enso/issues/10438
-        group_builder.specify "date_diff edge cases" <|
-            t1 = dates1.get.select_columns ["d_X", "d_Y", "X1"] reorder=True . rename_columns ["X", "Y", "X1"]
-            ## TODO Snowflake just looks at year and month, but Postgres/in-memory look if it was a full month or not by looking at days
-            (t1.at "X").date_diff (Date.new 2021 12 1) Date_Period.Month . to_vector . should_equal [0]
-            (t1.at "X").date_diff (Date.new 2023 7 1) Date_Period.Quarter . to_vector . should_equal [6]
-
-            (t1.at "X1").date_diff (Date.new 2021 03 01) Date_Period.Month . to_vector . should_equal [1]
-
-            t2 = dates1.get.select_columns ["dt_X", "dt_Y"] reorder=True . rename_columns ["X", "Y"]
-            (t2.at "X").date_diff (Date_Time.new 2021 12 1 10 15 0 zone=zone) Date_Period.Month . to_vector . should_equal [0]
 
         group_builder.specify "date_diff should return integers" <|
             t = table_builder [["X", [Date.new 2021 01 31]], ["Y", [Time_Of_Day.new 12 30 20]], ["Z", [Date_Time.new 2021 12 5 12 30 20]]]
