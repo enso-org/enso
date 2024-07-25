@@ -260,31 +260,31 @@ function formatText(params: ICellRendererParams) {
     return params.value
   }
   const partialMappings = {
-    '\r': '<span style="color: lightgrey">␍</span> <br>',
-    '\n': '<span style="color: lightgrey;">␊</span> <br>',
+    '\r': '<span style="color: #df8800">␍</span> <br>',
+    '\n': '<span style="color: #df8800;">␊</span> <br>',
     '\t': '<span style="white-space: break-spaces;">    </span>',
   }
   const fullMappings = {
-    '\r': '<span style="color: lightgrey">␍</span> <br>',
-    '\n': '<span style="color: lightgrey">␊</span> <br>',
-    '\t': '<span style="color: lightgrey; white-space: break-spaces;">&#8594;   </span>',
+    '\r': '<span style="color: #df8800">␍</span> <br>',
+    '\n': '<span style="color: #df8800">␊</span> <br>',
+    '\t': '<span style="color: #df8800; white-space: break-spaces;">&#8594;   </span>',
   }
 
   const replaceSpaces =
     textFormatterSelected.value === TextFormatOptions.On ?
-      params.value.replaceAll(' ', '<span style="color: lightgrey">&#183;</span>')
+      params.value.replaceAll(' ', '<span style="color: #df8800">&#183;</span>')
     : params.value.replace(/ {2,}/g, function (match: string) {
-        return `<span style="color: lightgrey">${'&#183;'.repeat(match.length)}</span>`
+        return `<span style="color: #df8800">${'&#183;'.repeat(match.length)}</span>`
       })
 
   const replaceReturns = replaceSpaces.replace(
     /\r\n/g,
-    '<span style="color: lightgrey">␍␊</span> <br>',
+    '<span style="color: #df8800">␍␊</span> <br>',
   )
 
   const renderOtherWhitespace = (match: string) => {
     return textFormatterSelected.value === TextFormatOptions.On && match != ' ' ?
-        '<span style="color: lightgrey">&#9744;</span>'
+        '<span style="color: #df8800">&#9744;</span>'
       : match
   }
   const newString = replaceReturns.replace(/[\s]/g, function (match: string) {
@@ -719,7 +719,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <VisualizationContainer :belowToolbar="true" :overflow="true">
+  <VisualizationContainer :belowToolbar="true" :overflow="true" :toolbarOverflow="true">
     <template #toolbar>
       <TextFormattingSelector @changeFormat="(i) => updateTextFormat(i)" />
     </template>
@@ -763,7 +763,7 @@ onUnmounted(() => {
   --ag-grid-size: 3px;
   --ag-list-item-height: 20px;
   flex-grow: 1;
-  font-family: monospace;
+  font-family: var(--font-mono);
 }
 
 .table-visualization-status-bar {

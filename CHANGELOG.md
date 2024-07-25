@@ -20,6 +20,8 @@
 - [Warning messages do not obscure visualization buttons][10546].
 - [Output component in collapsed function changed][10577]. It cannot be deleted
   anymore, except by directily editing the code.
+- [Improved handling of spacing around rounded node widgets][10599], added
+  support for widgets of arbitrary sizes.
 - [Multiselect drop-down widget visuals are improved][10607].
 - [Text displayed in monospace and whitespace rendered as symbols][10563].
 
@@ -28,6 +30,7 @@
 [10509]: https://github.com/enso-org/enso/pull/10509
 [10546]: https://github.com/enso-org/enso/pull/10546
 [10577]: https://github.com/enso-org/enso/pull/10577
+[10599]: https://github.com/enso-org/enso/pull/10599
 [10607]: https://github.com/enso-org/enso/pull/10607
 [10563]: https://github.com/enso-org/enso/pull/10563
 
