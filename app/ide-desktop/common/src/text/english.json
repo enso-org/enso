@@ -420,6 +420,7 @@
   "removeTheLocalDirectoryX": "remove the local folder '$0'",
   "changeLocalRootDirectoryInSettings": "Change your root folder in Settings.",
   "addLocalDirectory": "Add Folder",
+  "resetLocalRootDirectory": "Reset Root Folder",
 
   "deleteLabelActionText": "delete the label '$0'",
   "deleteSelectedAssetActionText": "delete '$0'",
@@ -725,6 +726,7 @@
   "localSettingsTab": "Local",
   "localSettingsSection": "Local",
   "localRootPathSettingsInput": "Root Folder",
+  "localRootPathButtonSettingsCustomEntryAliases": "reset root folder\nreset root directory",
   "accessSettingsTabSection": "Access",
   "billingAndPlansSettingsTab": "Billing",
   "membersSettingsTab": "Members",

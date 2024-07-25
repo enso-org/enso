@@ -68,7 +68,7 @@ export default function Settings() {
   const updateOrganization = updateOrganizationMutation.mutateAsync
 
   const [, setLocalRootDirectory] = useLocalStorageKey('localRootDirectory')
-  const updateLocalRootPathMutation = reactQuery.useMutation({
+  const updateLocalRootPath = reactQuery.useMutation({
     mutationKey: [localBackend?.type, 'updateRootPath'],
     mutationFn: (value: string) => {
       setLocalRootDirectory(value)
@@ -78,9 +78,16 @@ export default function Settings() {
       return Promise.resolve()
     },
     meta: { invalidates: [[localBackend?.type, 'listDirectory']], awaitInvalidates: true },
-  })
-
-  const updateLocalRootPath = updateLocalRootPathMutation.mutateAsync
+  }).mutateAsync
+  const resetLocalRootPath = reactQuery.useMutation({
+    mutationKey: [localBackend?.type, 'updateRootPath'],
+    mutationFn: () => {
+      setLocalRootDirectory(undefined)
+      localBackend?.resetRootPath()
+      return Promise.resolve()
+    },
+    meta: { invalidates: [[localBackend?.type, 'listDirectory']], awaitInvalidates: true },
+  }).mutateAsync
 
   const context = React.useMemo<settingsData.SettingsContext>(
     () => ({
@@ -92,6 +99,7 @@ export default function Settings() {
       updateUser,
       updateOrganization,
       updateLocalRootPath,
+      resetLocalRootPath,
       toastAndLog,
       getText,
       queryClient: client,
@@ -104,6 +112,7 @@ export default function Settings() {
       organization,
       toastAndLog,
       updateLocalRootPath,
+      resetLocalRootPath,
       updateOrganization,
       updateUser,
       user,

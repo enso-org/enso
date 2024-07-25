@@ -32,6 +32,7 @@ import ProfilePictureInput from '#/layouts/Settings/ProfilePictureInput'
 import SettingsTabType from '#/layouts/Settings/SettingsTabType'
 import UserGroupsSettingsSection from '#/layouts/Settings/UserGroupsSettingsSection'
 
+import { Button } from '#/components/AriaComponents'
 import * as menuEntry from '#/components/MenuEntry'
 
 import * as backend from '#/services/Backend'
@@ -245,6 +246,20 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
             setValue: (context, value) => context.updateLocalRootPath(value),
             getEditable: () => true,
           },
+          {
+            type: SettingsEntryType.custom,
+            aliasesId: 'localRootPathButtonSettingsCustomEntryAliases',
+            render: context => (
+              <Button
+                size="small"
+                variant="outline"
+                className="self-start"
+                onPress={context.resetLocalRootPath}
+              >
+                {context.getText('resetLocalRootDirectory')}
+              </Button>
+            ),
+          },
         ],
       },
     ],
@@ -417,6 +432,7 @@ export interface SettingsContext {
     variables: Parameters<Backend['updateOrganization']>
   ) => Promise<backend.OrganizationInfo | null | undefined>
   readonly updateLocalRootPath: (rootPath: string) => Promise<void>
+  readonly resetLocalRootPath: () => Promise<void>
   readonly toastAndLog: toastAndLogHooks.ToastAndLogCallback
   readonly getText: textProvider.GetText
   readonly queryClient: reactQuery.QueryClient

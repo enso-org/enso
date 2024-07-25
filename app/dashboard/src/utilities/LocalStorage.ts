@@ -107,6 +107,7 @@ export default class LocalStorage {
     // The key being deleted is one of a statically known set of keys.
     // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
     delete this.values[key]
+    this.eventTarget.dispatchEvent(new Event(key))
     this.save()
     return oldValue
   }

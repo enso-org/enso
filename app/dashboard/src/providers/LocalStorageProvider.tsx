@@ -53,14 +53,21 @@ export function useLocalStorage() {
 /** Subscribe to Local Storage updates for a specific key. */
 export function useLocalStorageKey<K extends LocalStorageKey>(
   key: K
-): [value: LocalStorageData[K] | undefined, setValue: (newValue: LocalStorageData[K]) => void] {
+): [
+  value: LocalStorageData[K] | undefined,
+  setValue: (newValue: LocalStorageData[K] | undefined) => void,
+] {
   const { localStorage } = useLocalStorage()
   const value = React.useSyncExternalStore(
     callback => localStorage.subscribe(key, callback),
     () => localStorage.get(key)
   )
-  const setValue = useEventCallback((newValue: LocalStorageData[K]) => {
-    localStorage.set(key, newValue)
+  const setValue = useEventCallback((newValue: LocalStorageData[K] | undefined) => {
+    if (newValue === undefined) {
+      localStorage.delete(key)
+    } else {
+      localStorage.set(key, newValue)
+    }
   })
   return [value, setValue] as const
 }

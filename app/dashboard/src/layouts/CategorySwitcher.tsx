@@ -431,7 +431,7 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
             )}
             {localBackend &&
               localRootDirectories?.map(directory => (
-                <div className="group flex items-center self-stretch">
+                <div key={directory} className="group flex items-center self-stretch">
                   <CategorySwitcherItem
                     {...itemProps}
                     isNested
