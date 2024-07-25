@@ -26,6 +26,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.net.MalformedURLException;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -56,6 +57,7 @@ import org.enso.interpreter.runtime.state.State;
 import org.enso.interpreter.runtime.util.TruffleFileSystem;
 import org.enso.librarymanager.ProjectLoadingFailure;
 import org.enso.librarymanager.resolved.LibraryRoot;
+import org.enso.logger.masking.MaskedPath$;
 import org.enso.pkg.Package;
 import org.enso.pkg.PackageManager;
 import org.enso.pkg.QualifiedName;
@@ -216,10 +218,13 @@ public final class EnsoContext {
       var cwd = environment.getCurrentWorkingDirectory().getAbsoluteFile().normalize();
       try {
         if (!cwd.isSameFile(parent)) {
-          logger.warning(
+          var maskedPath = MaskedPath$.MODULE$.apply(Path.of(parent.toString()));
+          logger.log(
+              Level.WARNING,
               "Initializing the context in a different working directory than the one containing"
                   + " the project root. This may lead to relative paths not behaving as advertised"
-                  + " by `File.new`.");
+                  + " by `File.new`. Please run the engine inside of `{}` directory.",
+              maskedPath);
         }
       } catch (IOException e) {
         logger.severe("Error checking working directory: " + e.getMessage());
