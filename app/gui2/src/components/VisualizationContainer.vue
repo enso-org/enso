@@ -16,6 +16,7 @@ const props = defineProps<{
   belowNode?: boolean
   /** If true, the visualization should display below the toolbar buttons. */
   belowToolbar?: boolean
+  toolbarOverflow?: boolean
 }>()
 
 const config = useVisualizationConfig()
@@ -87,6 +88,12 @@ const contentStyle = computed(() => {
     height: config.fullscreen ? undefined : `${config.height}px`,
   }
 })
+
+const overFlowStyle = computed(() => {
+  return {
+    overflow: props.toolbarOverflow ? 'visible' : 'hidden',
+  }
+})
 </script>
 
 <template>
@@ -101,7 +108,8 @@ const contentStyle = computed(() => {
       }"
       :style="{
         '--color-visualization-bg': config.background,
-        '--node-height': `${config.nodeSize.y}px`,
+        '--node-size-x': `${config.nodeSize.x}px`,
+        '--node-size-y': `${config.nodeSize.y}px`,
         ...(config.isPreview ? { pointerEvents: 'none' } : {}),
       }"
     >
@@ -159,7 +167,12 @@ const contentStyle = computed(() => {
             </Suspense>
           </div>
         </div>
-        <div v-if="$slots.toolbar && !config.isPreview" class="visualization-defined-toolbars">
+        <div
+          v-if="$slots.toolbar && !config.isPreview"
+          id="visualization-defined-toolbar"
+          class="visualization-defined-toolbars"
+          :style="overFlowStyle"
+        >
           <div class="toolbar"><slot name="toolbar"></slot></div>
         </div>
         <div
@@ -174,8 +187,8 @@ const contentStyle = computed(() => {
 
 <style scoped>
 .VisualizationContainer {
-  --node-height: 32px;
-  --permanent-toolbar-width: 200px;
+  --permanent-toolbar-width: 240px;
+  --toolbar-reserved-height: 36px;
   --resize-handle-inside: var(--visualization-resize-handle-inside);
   --resize-handle-outside: var(--visualization-resize-handle-outside);
   --resize-handle-radius: var(--radius-default);
@@ -188,12 +201,16 @@ const contentStyle = computed(() => {
   cursor: default;
 }
 
+.VisualizationContainer {
+  padding-top: calc(var(--node-size-y) - var(--radius-default));
+}
+
 .VisualizationContainer.below-node {
-  padding-top: var(--node-height);
+  padding-top: var(--node-size-y);
 }
 
 .VisualizationContainer.below-toolbar {
-  padding-top: calc(var(--node-height) + 40px);
+  padding-top: calc(var(--node-size-y) + var(--toolbar-reserved-height));
 }
 
 .VisualizationContainer.fullscreen {
@@ -239,12 +256,13 @@ const contentStyle = computed(() => {
   position: absolute;
   display: flex;
   gap: 4px;
-  top: calc(var(--node-height) + 4px);
+  top: calc(var(--node-size-y) + 4px);
 }
 
 .after-toolbars {
   margin-left: auto;
   margin-right: 8px;
+  overflow: hidden;
 }
 
 .node-type {
@@ -283,9 +301,6 @@ const contentStyle = computed(() => {
 
 .visualization-defined-toolbars {
   max-width: calc(100% - var(--permanent-toolbar-width));
-  /* FIXME [sb]: This will cut off floating panels - consider investigating whether there's a better
-   * way to clip only the toolbar div itself. */
-  overflow-x: hidden;
 }
 
 .invisible {

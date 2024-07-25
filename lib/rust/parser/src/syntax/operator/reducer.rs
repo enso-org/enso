@@ -1,12 +1,7 @@
-use crate::syntax::operator::apply_operator;
-use crate::syntax::operator::apply_unary_operator;
-use crate::syntax::operator::Arity;
-use crate::syntax::operator::BinaryOperand;
-use crate::syntax::operator::ModifiedPrecedence;
-use crate::syntax::operator::Operand;
-use crate::syntax::operator::OperandConsumer;
-use crate::syntax::operator::Operator;
-use crate::syntax::operator::OperatorConsumer;
+use crate::syntax::operator::apply::*;
+use crate::syntax::operator::types::*;
+
+use crate::syntax::operator::operand::Operand;
 use crate::syntax::token;
 use crate::syntax::treebuilding::Finish;
 use crate::syntax::treebuilding::Spacing;
@@ -31,7 +26,7 @@ use enso_prelude::VecOps;
 #[derive(Default, Debug)]
 pub struct Reduce<'s> {
     output:         Vec<Operand<Tree<'s>>>,
-    operator_stack: Vec<Operator<'s>>,
+    operator_stack: Vec<StackOperator<'s>>,
 }
 
 impl<'s> OperandConsumer<'s> for Reduce<'s> {
@@ -42,10 +37,18 @@ impl<'s> OperandConsumer<'s> for Reduce<'s> {
 
 impl<'s> OperatorConsumer<'s> for Reduce<'s> {
     fn push_operator(&mut self, operator: Operator<'s>) {
-        if let Some(precedence) = operator.left_precedence {
-            self.reduce(precedence);
-        }
-        self.operator_stack.push(operator);
+        let Operator { left_precedence, right_precedence, associativity, arity } = operator;
+        let warnings = if let Some(precedence) = left_precedence {
+            self.reduce(precedence)
+        } else {
+            Default::default()
+        };
+        self.operator_stack.push(StackOperator {
+            right_precedence,
+            associativity,
+            arity,
+            warnings,
+        });
     }
 }
 
@@ -54,8 +57,9 @@ impl<'s> Finish for Reduce<'s> {
 
     fn finish(&mut self) -> Self::Result {
         self.reduce(ModifiedPrecedence {
-            spacing:    Spacing::Spaced,
-            precedence: token::Precedence::min(),
+            spacing:            Spacing::Spaced,
+            precedence:         token::Precedence::min(),
+            is_value_operation: false,
         });
         let out = self.output.pop();
         debug_assert!(self.operator_stack.is_empty());
@@ -72,19 +76,32 @@ impl<'s> Reduce<'s> {
     /// Given a starting value, replace it with the result of successively applying to it all
     /// operators in the `operator_stack` that have precedence greater than or equal to the
     /// specified value, consuming LHS values from the `output` stack as needed.
-    fn reduce(&mut self, prec: ModifiedPrecedence) {
+    fn reduce(&mut self, right_op_precedence: ModifiedPrecedence) -> Warnings {
         let mut rhs = self.output.pop();
-        while let Some(opr) = self.operator_stack.pop_if(|opr| {
-            opr.right_precedence > prec
-                || (opr.right_precedence == prec && opr.associativity == token::Associativity::Left)
+        let mut right_op_warnings = Warnings::default();
+        while let Some(opr) = self.operator_stack.pop_if_mut(|opr| {
+            let ModifiedPrecedenceComparisonResult { is_greater, inconsistent_spacing } = opr
+                .right_precedence
+                .compare(&right_op_precedence, opr.associativity == token::Associativity::Left);
+            if inconsistent_spacing {
+                if is_greater { &mut right_op_warnings } else { &mut opr.warnings }
+                    .set_inconsistent_spacing();
+            }
+            is_greater
         }) {
-            match opr.arity {
+            let StackOperator { right_precedence: _, associativity: _, arity, warnings } = opr;
+            match arity {
                 Arity::Unary { token, error } => {
                     let rhs_ = rhs.take();
                     debug_assert_ne!(rhs_, None);
-                    rhs = Some(apply_unary_operator(token, rhs_, error));
+                    rhs = ApplyUnaryOperator::token(token)
+                        .with_rhs(rhs_)
+                        .with_error(error)
+                        .with_warnings(warnings)
+                        .finish()
+                        .into();
                 }
-                Arity::Binary { tokens, lhs_section_termination, missing, reify_rhs_section } => {
+                Arity::Binary { tokens, missing, reify_rhs_section } => {
                     let operand = rhs.take();
                     debug_assert_ne!(operand, None);
                     let (lhs, rhs_) = match missing {
@@ -96,18 +113,29 @@ impl<'s> Reduce<'s> {
                             (lhs, operand)
                         }
                     };
-                    rhs = Some(apply_operator(
-                        tokens,
-                        lhs_section_termination,
-                        reify_rhs_section,
-                        lhs,
-                        rhs_,
-                    ));
+                    rhs = ApplyOperator::tokens(tokens)
+                        .with_lhs(lhs)
+                        .with_rhs(rhs_, reify_rhs_section)
+                        .with_warnings(warnings)
+                        .finish()
+                        .into();
                 }
             };
         }
         if let Some(rhs) = rhs {
             self.output.push(rhs);
         }
+        right_op_warnings
     }
+}
+
+
+// === Operator on-stack information ===
+
+#[derive(Debug)]
+struct StackOperator<'s> {
+    right_precedence: ModifiedPrecedence,
+    associativity:    token::Associativity,
+    arity:            Arity<'s>,
+    warnings:         Warnings,
 }

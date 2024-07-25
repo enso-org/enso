@@ -1,7 +1,6 @@
 import type { BreadcrumbItem } from '@/components/NavBreadcrumbs.vue'
 import { type GraphStore, type NodeId } from '@/stores/graph'
 import { type ProjectStore } from '@/stores/project'
-import type { AstId } from '@/util/ast/abstract.ts'
 import { qnLastSegment, tryQualifiedName } from '@/util/qualifiedName'
 import { methodPointerEquals, type StackItem } from 'shared/languageServerTypes'
 import { computed, onMounted, ref } from 'vue'

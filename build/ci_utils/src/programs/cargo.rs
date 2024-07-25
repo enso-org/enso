@@ -124,6 +124,8 @@ impl Manipulator for Options {
 pub enum RunOption {
     /// Name of the bin target to run.
     Bin(String),
+    /// Build in release mode.
+    Release,
 }
 
 impl Manipulator for RunOption {
@@ -135,6 +137,7 @@ impl Manipulator for RunOption {
             Bin(binary_name) => {
                 command.arg(binary_name.as_str());
             }
+            Release => {}
         }
     }
 }

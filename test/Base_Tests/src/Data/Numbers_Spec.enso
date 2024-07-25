@@ -76,7 +76,7 @@ add_specs suite_builder =
 
         group_builder.specify "should be of unbound size when taking remainder" <|
             expected = 3191479909175673432
-            ((1.up_to 101 . fold 1 (*)) % 3*almost_max_long).should_equal expected
+            ((1.up_to 101 . fold 1 (*)) % (3*almost_max_long)).should_equal expected
 
         group_builder.specify "should allow defining extension methods through the Integer type for any number size" <|
             876543.is_even.should_be_false

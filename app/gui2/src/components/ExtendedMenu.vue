@@ -24,10 +24,13 @@ const toggleDocumentationEditorShortcut = documentationEditorBindings.bindings.t
 </script>
 
 <template>
-  <DropdownMenu v-model:open="open" placement="bottom-end" class="ExtendedMenu">
-    <template #button
-      ><SvgButton name="3_dot_menu" class="moreIcon" title="Additional Options"
-    /></template>
+  <DropdownMenu
+    v-model:open="open"
+    placement="bottom-end"
+    class="ExtendedMenu"
+    title="Additional Options"
+  >
+    <template #button><SvgIcon name="3_dot_menu" class="moreIcon" /></template>
     <template #entries>
       <div>
         <div class="nonInteractive"><SvgIcon name="zoom" class="rowIcon" />Zoom</div>

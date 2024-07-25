@@ -1,12 +1,7 @@
+use crate::syntax::operator::types::*;
 use enso_prelude::*;
 
 use crate::syntax::operator::operand::Operand;
-use crate::syntax::operator::types::Arity;
-use crate::syntax::operator::types::BinaryOperand;
-use crate::syntax::operator::types::ModifiedPrecedence;
-use crate::syntax::operator::types::Operator;
-use crate::syntax::operator::OperandConsumer;
-use crate::syntax::operator::OperatorConsumer;
 use crate::syntax::token;
 use crate::syntax::treebuilding::Finish;
 use crate::syntax::treebuilding::Spacing;
@@ -64,16 +59,19 @@ impl<Inner: Finish> Finish for InsertApps<Inner> {
 }
 
 fn application<'s>(spacing: Spacing) -> Operator<'s> {
-    let precedence = ModifiedPrecedence { spacing, precedence: token::Precedence::application() };
+    let precedence = ModifiedPrecedence {
+        spacing,
+        precedence: token::Precedence::application(),
+        is_value_operation: false,
+    };
     Operator {
         left_precedence:  Some(precedence),
         right_precedence: precedence,
         associativity:    token::Associativity::Left,
         arity:            Arity::Binary {
-            tokens:                  default(),
-            lhs_section_termination: default(),
-            missing:                 None,
-            reify_rhs_section:       true,
+            tokens:            default(),
+            missing:           None,
+            reify_rhs_section: true,
         },
     }
 }

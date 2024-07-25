@@ -9,6 +9,7 @@ import { ref, shallowRef } from 'vue'
 
 const open = defineModel<boolean>('open', { default: false })
 const props = defineProps<{
+  title?: string | undefined
   placement?: Placement
 }>()
 
@@ -35,6 +36,7 @@ const { floatingStyles } = useFloating(rootElement, floatElement, {
     <MenuButton
       v-model="open"
       class="DropdownMenuButton"
+      :title="props.title"
       @pointerenter="hovered = true"
       @pointerleave="hovered = false"
     >
@@ -72,10 +74,10 @@ const { floatingStyles } = useFloating(rootElement, floatElement, {
   position: absolute;
   bottom: -5px;
   left: 50%;
-  transform: translateX(-50%) rotate(90deg) scale(0.7);
-  transform-origin: center;
   opacity: 0.5;
   /* Prevent the parent from receiving a pointerout event if the mouse is over the arrow, which causes flickering. */
   pointer-events: none;
+  --icon-transform: translateX(-50%) rotate(90deg) scale(0.7);
+  --icon-transform-origin: center;
 }
 </style>
