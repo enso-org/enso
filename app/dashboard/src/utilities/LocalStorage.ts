@@ -121,12 +121,13 @@ export default class LocalStorage {
   }
 
   /** Add an event listener to a specific key. */
-  subscribe<K extends LocalStorageKey>(key: K, callback: (value: LocalStorageData[K]) => void) {
+  subscribe<K extends LocalStorageKey>(
+    key: K,
+    callback: (value: LocalStorageData[K] | undefined) => void
+  ) {
     const wrapped = () => {
       const value = this.values[key]
-      if (value !== undefined) {
-        callback(value)
-      }
+      callback(value)
     }
     this.eventTarget.addEventListener(key, wrapped)
     return () => {

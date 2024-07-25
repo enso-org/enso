@@ -273,6 +273,7 @@ export enum ProjectManagerEvents {
  * It should always be in sync with the Rust interface at
  * `app/gui/controller/engine-protocol/src/project_manager.rs`. */
 export default class ProjectManager {
+  private readonly initialRootDirectory: Path
   // This is required so that projects get recursively updated (deleted, renamed or moved).
   private readonly internalDirectories = new Map<Path, readonly FileSystemEntry[]>()
   private readonly internalProjects = new Map<UUID, ProjectState>()
@@ -296,6 +297,7 @@ export default class ProjectManager {
     private readonly connectionUrl: string,
     public rootDirectory: Path
   ) {
+    this.initialRootDirectory = this.rootDirectory
     const firstConnectionStartMs = Number(new Date())
     let lastConnectionStartMs = 0
     let justErrored = false
@@ -347,6 +349,11 @@ export default class ProjectManager {
       })
     }
     this.socketPromise = createSocket()
+  }
+
+  /** Set the root directory to the initial root directory. */
+  resetRootDirectory() {
+    this.rootDirectory = this.initialRootDirectory
   }
 
   /**

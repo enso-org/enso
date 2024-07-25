@@ -11,6 +11,7 @@ import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
+import { useLocalStorageKey } from '#/providers/LocalStorageProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import SearchBar from '#/layouts/SearchBar'
@@ -66,9 +67,11 @@ export default function Settings() {
   const updateUser = updateUserMutation.mutateAsync
   const updateOrganization = updateOrganizationMutation.mutateAsync
 
+  const [, setLocalRootDirectory] = useLocalStorageKey('localRootDirectory')
   const updateLocalRootPathMutation = reactQuery.useMutation({
     mutationKey: [localBackend?.type, 'updateRootPath'],
     mutationFn: (value: string) => {
+      setLocalRootDirectory(value)
       if (localBackend) {
         localBackend.rootPath = projectManager.Path(value)
       }

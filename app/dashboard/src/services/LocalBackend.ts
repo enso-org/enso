@@ -104,14 +104,19 @@ export default class LocalBackend extends Backend {
     this.projectManager = projectManagerInstance
   }
 
-  /** Get the root directory of this Backend as a path. */
+  /** Get the root directory of this Backend. */
   get rootPath() {
     return this.projectManager.rootDirectory
   }
 
-  /** Set the root directory of this Backend as a path. */
+  /** Set the root directory of this Backend. */
   set rootPath(value) {
     this.projectManager.rootDirectory = value
+  }
+
+  /** Reset the root directory of this Backend. */
+  resetRootPath() {
+    this.projectManager.resetRootDirectory()
   }
 
   /** Return the ID of the root directory. */

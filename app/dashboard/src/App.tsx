@@ -38,6 +38,7 @@ import * as React from 'react'
 import * as reactQuery from '@tanstack/react-query'
 import * as router from 'react-router-dom'
 import * as toastify from 'react-toastify'
+import * as z from 'zod'
 
 import * as detect from 'enso-common/src/detect'
 
@@ -106,6 +107,7 @@ declare module '#/utilities/LocalStorage' {
   /** */
   interface LocalStorageData {
     readonly inputBindings: Readonly<Record<string, readonly string[]>>
+    readonly localRootDirectory: string
   }
 }
 
@@ -122,6 +124,8 @@ LocalStorage.registerKey('inputBindings', {
           })
         ),
 })
+
+LocalStorage.registerKey('localRootDirectory', { schema: z.string() })
 
 // ======================
 // === getMainPageUrl ===
@@ -278,6 +282,24 @@ function AppRouter(props: AppRouterProps) {
     () => (projectManagerInstance != null ? new LocalBackend(projectManagerInstance) : null),
     [projectManagerInstance]
   )
+
+  React.useEffect(() => {
+    const localRootDirectory = localStorage.get('localRootDirectory')
+    if (!localBackend) {
+      return
+    } else {
+      if (localRootDirectory != null) {
+        localBackend.rootPath = projectManager.Path(localRootDirectory)
+      }
+      return localStorage.subscribe('localRootDirectory', path => {
+        if (path != null) {
+          localBackend.rootPath = projectManager.Path(path)
+        } else {
+          localBackend.resetRootPath()
+        }
+      })
+    }
+  }, [localBackend, localStorage])
 
   const remoteBackend = React.useMemo(
     () => new RemoteBackend(httpClient, logger, getText),
