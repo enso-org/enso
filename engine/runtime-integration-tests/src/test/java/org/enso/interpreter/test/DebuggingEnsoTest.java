@@ -480,6 +480,49 @@ public class DebuggingEnsoTest {
     }
   }
 
+  @Test
+  public void testAtomFieldAreReadable_MultipleConstructors() {
+    var fooFunc =
+        createEnsoMethod(
+            """
+        type My_Type
+            Cons_1 f1 f2
+            Cons_2 g1 g2 g3
+
+        foo x =
+            obj = My_Type.Cons_1 1 2
+            obj
+        """,
+            "foo");
+    try (DebuggerSession session =
+        debugger.startSession(
+            (SuspendedEvent event) -> {
+              switch (event.getSourceSection().getCharacters().toString().strip()) {
+                case "obj" -> {
+                  DebugScope scope = event.getTopStackFrame().getScope();
+                  DebugValue objValue = scope.getDeclaredValue("obj");
+                  assertThat(objValue.isReadable(), is(true));
+                  assertThat(objValue.isInternal(), is(false));
+                  assertThat(objValue.hasReadSideEffects(), is(false));
+
+                  assertThat("Has fields f1 and f2",
+                      objValue.getProperties().size(), is(2));
+                  for (var prop : objValue.getProperties()) {
+                    assertThat(
+                        "Property '" + prop.getName() + "' should be readable",
+                        prop.isReadable(),
+                        is(true));
+                    assertThat(prop.isNumber(), is(true));
+                  }
+                }
+              }
+              event.getSession().suspendNextExecution();
+            })) {
+      session.suspendNextExecution();
+      fooFunc.execute(0);
+    }
+  }
+
   /**
    * Tests stepping through the given source.
    *
