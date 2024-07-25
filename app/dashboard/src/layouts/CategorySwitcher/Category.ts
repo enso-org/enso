@@ -36,13 +36,13 @@ LocalStorage.registerKey('driveCategory', {
 
 /** Return `true` if the category is only accessible from the cloud.
  */
-export function isCloud(category: DriveCategory) {
+export function isCloudCategory(category: DriveCategory) {
   return category !== 'local'
 }
 
 /**
  * Return `true` if the category is only accessible locally.
  */
-export function isLocal(category: DriveCategory) {
+export function isLocalCategory(category: DriveCategory) {
   return category === 'local'
 }

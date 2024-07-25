@@ -24,7 +24,7 @@ import AssetEventType from '#/events/AssetEventType'
 import type * as assetSearchBar from '#/layouts/AssetSearchBar'
 import AssetSearchBar from '#/layouts/AssetSearchBar'
 import * as eventListProvider from '#/layouts/AssetsTable/EventListProvider'
-import Category, * as categoryModule from '#/layouts/CategorySwitcher/Category'
+import { isCloudCategory, type DriveCategory } from '#/layouts/CategorySwitcher/Category'
 import StartModal from '#/layouts/StartModal'
 
 import * as aria from '#/components/aria'
@@ -50,7 +50,7 @@ export interface DriveBarProps {
   readonly query: AssetQuery
   readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
   readonly suggestions: readonly assetSearchBar.Suggestion[]
-  readonly category: Category
+  readonly category: DriveCategory
   readonly canDownload: boolean
   readonly isAssetPanelOpen: boolean
   readonly setIsAssetPanelOpen: React.Dispatch<React.SetStateAction<boolean>>
@@ -79,7 +79,7 @@ export default function DriveBar(props: DriveBarProps) {
   const inputBindings = inputBindingsProvider.useInputBindings()
   const dispatchAssetEvent = eventListProvider.useDispatchAssetEvent()
   const uploadFilesRef = React.useRef<HTMLInputElement>(null)
-  const isCloud = categoryModule.isCloud(category)
+  const isCloud = isCloudCategory(category)
   const { isOffline } = offlineHooks.useOffline()
   const [isCreatingProjectFromTemplate, setIsCreatingProjectFromTemplate] = React.useState(false)
   const [isCreatingProject, setIsCreatingProject] = React.useState(false)

@@ -22,7 +22,7 @@ import * as textProvider from '#/providers/TextProvider'
 import AssetEventType from '#/events/AssetEventType'
 
 import * as eventListProvider from '#/layouts/AssetsTable/EventListProvider'
-import Category from '#/layouts/CategorySwitcher/Category'
+import type { DriveCategory } from '#/layouts/CategorySwitcher/Category'
 
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
@@ -39,11 +39,11 @@ import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 /** Metadata for a category. */
 interface CategoryMetadata {
-  readonly category: Category
+  readonly category: DriveCategory
   readonly icon: string
-  readonly textId: Extract<text.TextId, `${Category}Category`>
-  readonly buttonTextId: Extract<text.TextId, `${Category}CategoryButtonLabel`>
-  readonly dropZoneTextId: Extract<text.TextId, `${Category}CategoryDropZoneLabel`>
+  readonly textId: Extract<text.TextId, `${DriveCategory}Category`>
+  readonly buttonTextId: Extract<text.TextId, `${DriveCategory}CategoryButtonLabel`>
+  readonly dropZoneTextId: Extract<text.TextId, `${DriveCategory}CategoryDropZoneLabel`>
   readonly nested?: true
 }
 
@@ -158,8 +158,8 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
 
 /** Props for a {@link CategorySwitcher}. */
 export interface CategorySwitcherProps {
-  readonly category: Category
-  readonly setCategory: (category: Category) => void
+  readonly category: DriveCategory
+  readonly setCategory: (category: DriveCategory) => void
 }
 
 /** A switcher to choose the currently visible assets table category. */
@@ -188,7 +188,7 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
       }),
     [localBackend]
   )
-  const getCategoryError = (otherCategory: Category) => {
+  const getCategoryError = (otherCategory: DriveCategory) => {
     switch (otherCategory) {
       case 'local': {
         if (localBackend == null) {

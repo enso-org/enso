@@ -19,7 +19,7 @@ import AssetEventType from '#/events/AssetEventType'
 import AssetListEventType from '#/events/AssetListEventType'
 
 import * as eventListProvider from '#/layouts/AssetsTable/EventListProvider'
-import Category, * as categoryModule from '#/layouts/CategorySwitcher/Category'
+import * as categoryModule from '#/layouts/CategorySwitcher/Category'
 import GlobalContextMenu from '#/layouts/GlobalContextMenu'
 
 import ContextMenu from '#/components/ContextMenu'
@@ -83,7 +83,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   const self = asset.permissions?.find(
     backendModule.isUserPermissionAnd(permission => permission.user.userId === user.userId)
   )
-  const isCloud = categoryModule.isCloud(category)
+  const isCloud = categoryModule.isCloudCategory(category)
   const path =
     category !== 'cloud' && category !== 'local'
       ? null

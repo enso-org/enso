@@ -18,7 +18,6 @@ import AssetListEventType from '#/events/AssetListEventType'
 import AssetContextMenu from '#/layouts/AssetContextMenu'
 import type * as assetsTable from '#/layouts/AssetsTable'
 import * as eventListProvider from '#/layouts/AssetsTable/EventListProvider'
-import Category from '#/layouts/CategorySwitcher/Category'
 
 import * as aria from '#/components/aria'
 import * as assetRowUtils from '#/components/dashboard/AssetRow/assetRowUtils'

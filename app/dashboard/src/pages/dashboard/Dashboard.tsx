@@ -40,7 +40,7 @@ import {
   DRIVE_CATEGORIES,
   DriveCategory,
   isDriveCategory,
-  isLocal,
+  isLocalCategory,
 } from '#/layouts/CategorySwitcher/Category'
 import Chat from '#/layouts/Chat'
 import ChatPlaceholder from '#/layouts/ChatPlaceholder'

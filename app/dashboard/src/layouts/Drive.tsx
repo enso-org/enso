@@ -18,7 +18,7 @@ import type * as assetsTable from '#/layouts/AssetsTable'
 import AssetsTable from '#/layouts/AssetsTable'
 import * as eventListProvider from '#/layouts/AssetsTable/EventListProvider'
 import CategorySwitcher from '#/layouts/CategorySwitcher'
-import Category, * as categoryModule from '#/layouts/CategorySwitcher/Category'
+import { isCloudCategory, type DriveCategory } from '#/layouts/CategorySwitcher/Category'
 import DriveBar from '#/layouts/DriveBar'
 import Labels from '#/layouts/Labels'
 
@@ -58,8 +58,8 @@ enum DriveStatus {
 
 /** Props for a {@link Drive}. */
 export interface DriveProps {
-  readonly category: Category
-  readonly setCategory: (category: Category) => void
+  readonly category: DriveCategory
+  readonly setCategory: (category: DriveCategory) => void
   readonly hidden: boolean
   readonly initialProjectName: string | null
   readonly assetsManagementApiRef: React.Ref<assetsTable.AssetManagementApi>
@@ -96,7 +96,7 @@ export default function Drive(props: DriveProps) {
   const targetDirectoryNodeRef = React.useRef<AssetTreeNode<backendModule.DirectoryAsset> | null>(
     null
   )
-  const isCloud = categoryModule.isCloud(category)
+  const isCloud = isCloudCategory(category)
   const supportLocalBackend = localBackend != null
 
   const status =

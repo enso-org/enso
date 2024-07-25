@@ -12,7 +12,7 @@ import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
 
-import type Category from '#/layouts/CategorySwitcher/Category'
+import type { DriveCategory } from '#/layouts/CategorySwitcher/Category'
 
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
@@ -38,7 +38,7 @@ export interface AssetPropertiesProps {
   readonly backend: Backend
   readonly item: assetTreeNode.AnyAssetTreeNode
   readonly setItem: React.Dispatch<React.SetStateAction<assetTreeNode.AnyAssetTreeNode>>
-  readonly category: Category
+  readonly category: DriveCategory
   readonly isReadonly?: boolean
 }
 

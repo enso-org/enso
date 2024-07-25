@@ -9,7 +9,7 @@ import * as textProvider from '#/providers/TextProvider'
 import AssetEventType from '#/events/AssetEventType'
 
 import * as eventListProvider from '#/layouts/AssetsTable/EventListProvider'
-import Category, * as categoryModule from '#/layouts/CategorySwitcher/Category'
+import { isCloudCategory, type DriveCategory } from '#/layouts/CategorySwitcher/Category'
 import GlobalContextMenu from '#/layouts/GlobalContextMenu'
 
 import ContextMenu from '#/components/ContextMenu'
@@ -34,7 +34,7 @@ import * as uniqueString from '#/utilities/uniqueString'
 export interface AssetsTableContextMenuProps {
   readonly hidden?: boolean
   readonly backend: Backend
-  readonly category: Category
+  readonly category: DriveCategory
   readonly rootDirectoryId: backendModule.DirectoryId
   readonly pasteData: pasteDataModule.PasteData<ReadonlySet<backendModule.AssetId>> | null
   readonly selectedKeys: ReadonlySet<backendModule.AssetId>
@@ -61,7 +61,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
   const dispatchAssetEvent = eventListProvider.useDispatchAssetEvent()
-  const isCloud = categoryModule.isCloud(category)
+  const isCloud = isCloudCategory(category)
 
   // This works because all items are mutated, ensuring their value stays
   // up to date.
@@ -102,9 +102,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
   }
 
   if (category === 'trash') {
-    return selectedKeys.size === 0 ? (
-      <></>
-    ) : (
+    return selectedKeys.size === 0 ? null : (
       <ContextMenus key={uniqueString.uniqueString()} hidden={hidden} event={event}>
         <ContextMenu aria-label={getText('assetsTableContextMenuLabel')} hidden={hidden}>
           <ContextMenuEntry

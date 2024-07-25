@@ -10,8 +10,6 @@ import * as authProvider from '#/providers/AuthProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
-import Category from '#/layouts/CategorySwitcher/Category'
-
 import * as ariaComponents from '#/components/AriaComponents'
 import ContextMenu from '#/components/ContextMenu'
 import ContextMenus from '#/components/ContextMenus'

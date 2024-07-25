@@ -7,7 +7,7 @@ import * as textProvider from '#/providers/TextProvider'
 import AssetProjectSessions from '#/layouts/AssetProjectSessions'
 import AssetProperties from '#/layouts/AssetProperties'
 import AssetVersions from '#/layouts/AssetVersions/AssetVersions'
-import type Category from '#/layouts/CategorySwitcher/Category'
+import type { DriveCategory } from '#/layouts/CategorySwitcher/Category'
 
 import * as ariaComponents from '#/components/AriaComponents'
 
@@ -61,7 +61,7 @@ export interface AssetPanelRequiredProps {
 export interface AssetPanelProps extends AssetPanelRequiredProps {
   readonly isVisible: boolean
   readonly isReadonly?: boolean
-  readonly category: Category
+  readonly category: DriveCategory
 }
 
 /** A panel containing the description and settings for an asset. */

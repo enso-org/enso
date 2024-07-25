@@ -11,7 +11,6 @@ import * as modalProvider from '#/providers/ModalProvider'
 import AssetEventType from '#/events/AssetEventType'
 
 import * as eventListProvider from '#/layouts/AssetsTable/EventListProvider'
-import Category from '#/layouts/CategorySwitcher/Category'
 
 import * as ariaComponents from '#/components/AriaComponents'
 import type * as column from '#/components/dashboard/column'

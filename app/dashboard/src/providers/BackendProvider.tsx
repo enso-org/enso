@@ -6,8 +6,7 @@ import invariant from 'tiny-invariant'
 
 import * as common from 'enso-common'
 
-import * as categoryModule from '#/layouts/CategorySwitcher/Category'
-import type Category from '#/layouts/CategorySwitcher/Category'
+import { isCloudCategory, type DriveCategory } from '#/layouts/CategorySwitcher/Category'
 
 import type LocalBackend from '#/services/LocalBackend'
 import type RemoteBackend from '#/services/RemoteBackend'
@@ -93,11 +92,11 @@ export function useLocalBackend() {
 /** Get the corresponding backend for the given property.
  * @throws {Error} when neither the Remote Backend nor the Local Backend are supported.
  * This should never happen unless the build is misconfigured. */
-export function useBackend(category: Category) {
+export function useBackend(category: DriveCategory) {
   const remoteBackend = useRemoteBackendStrict()
   const localBackend = useLocalBackend()
 
-  if (categoryModule.isCloud(category)) {
+  if (isCloudCategory(category)) {
     return remoteBackend
   } else {
     invariant(
