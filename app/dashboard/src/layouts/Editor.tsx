@@ -52,12 +52,6 @@ export interface GraphEditorProps {
  * open a new IDE instance. */
 export type GraphEditorRunner = React.ComponentType<GraphEditorProps>
 
-// =================
-// === Constants ===
-// =================
-
-const IGNORE_PARAMS_REGEX = new RegExp(`^${appUtils.SEARCH_PARAMS_PREFIX}(.+)$`)
-
 // ==============
 // === Editor ===
 // ==============
@@ -209,7 +203,6 @@ function EditorInternal(props: EditorInternalProps) {
         },
         projectId: openedProject.projectId,
         hidden,
-        ignoreParamsRegex: IGNORE_PARAMS_REGEX,
         logEvent,
         renameProject,
         backend,
