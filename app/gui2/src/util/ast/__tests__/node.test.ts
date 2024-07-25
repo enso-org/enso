@@ -15,7 +15,7 @@ test.each`
   ${'## Documentation\nfoo = 2 + 2'} | ${'foo'}     | ${'2 + 2'} | ${'Documentation'}
 `('Node information from AST $line line', ({ line, pattern, rootExpr, documentation }) => {
   const ast = Ast.Ast.parse(line)
-  const node = nodeFromAst(ast)
+  const node = nodeFromAst(ast, false)
   expect(node?.outerExpr).toBe(ast)
   expect(node?.pattern?.code()).toBe(pattern)
   expect(node?.rootExpr.code()).toBe(rootExpr)
@@ -25,7 +25,7 @@ test.each`
 
 test.each(['## Documentation only'])("'%s' should not be a node", (line) => {
   const ast = Ast.Ast.parse(line)
-  const node = nodeFromAst(ast)
+  const node = nodeFromAst(ast, false)
   expect(node).toBeUndefined()
 })
 

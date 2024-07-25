@@ -201,6 +201,8 @@ function getOrCreateObserverData(element: Element): ResizeObserverData {
   return data
 }
 
+const RESIZE_OBSERVER_EPSILON = 0.01
+
 const sharedResizeObserver: ResizeObserver | undefined =
   typeof ResizeObserver === 'undefined' ? undefined : (
     new ResizeObserver((entries) => {
@@ -208,11 +210,14 @@ const sharedResizeObserver: ResizeObserver | undefined =
         const data = resizeObserverData.get(entry.target)
         if (data != null) {
           if (entry.contentRect != null) {
-            data.contentRect.value = new Vec2(entry.contentRect.width, entry.contentRect.height)
+            const newSize = Vec2.FromSize(entry.contentRect)
+            if (!data.contentRect.value.equalsApproximately(newSize, RESIZE_OBSERVER_EPSILON))
+              data.contentRect.value = newSize
           }
           if (data.boundRectUsers > 0) {
-            const rect = entry.target.getBoundingClientRect()
-            data.boundRect.value = new Vec2(rect.width, rect.height)
+            const newSize = Vec2.FromSize(entry.target.getBoundingClientRect())
+            if (!data.boundRect.value.equalsApproximately(newSize, RESIZE_OBSERVER_EPSILON))
+              data.boundRect.value = newSize
           }
         }
       }

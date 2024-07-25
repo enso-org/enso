@@ -4,7 +4,6 @@ import { useGraphStore } from '@/stores/graph'
 import { type NodeId } from '@/stores/graph/graphDatabase'
 import { Ast } from '@/util/ast'
 import type { Vec2 } from '@/util/data/vec2'
-import type { Icon } from '@/util/iconName'
 import { computed, proxyRefs, shallowRef, type Ref, type ShallowUnwrapRef } from 'vue'
 
 export { injectFn as injectWidgetTree, provideFn as provideWidgetTree }
@@ -15,8 +14,6 @@ const { provideFn, injectFn } = createContextStore(
     nodeId: Ref<NodeId>,
     nodeElement: Ref<HTMLElement | undefined>,
     nodeSize: Ref<Vec2>,
-    icon: Ref<Icon>,
-    connectedSelfArgumentId: Ref<Ast.AstId | undefined>,
     potentialSelfArgumentId: Ref<Ast.AstId | undefined>,
     conditionalPorts: Ref<Set<Ast.AstId>>,
     extended: Ref<boolean>,
@@ -31,8 +28,6 @@ const { provideFn, injectFn } = createContextStore(
       nodeId,
       nodeElement,
       nodeSize,
-      icon,
-      connectedSelfArgumentId,
       potentialSelfArgumentId,
       conditionalPorts,
       extended,
