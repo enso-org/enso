@@ -66,7 +66,8 @@ object LibraryManifestGenerator {
 
     val commandText = command.mkString(" ")
     log.debug(s"Running [$commandText].")
-    val exitCode = sys.process.Process(
+    val exitCode = sys.process
+      .Process(
         command,
         cwd = Some(canonicalPath.getParentFile),
         "ENSO_EDITION_PATH" -> file("distribution/editions").getCanonicalPath
