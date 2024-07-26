@@ -12,11 +12,11 @@ public class PlatformTest {
 
   @Test
   public void getDirectories() {
-    Assert.assertNotNull(Platform.getDirectories());
+    Assert.assertNotNull(Platform.getOperatingSystem().getDirectories());
   }
 
   @Test
   public void getTrashBin() {
-    Assert.assertNotNull(Platform.getTrashBin());
+    Assert.assertNotNull(Platform.getOperatingSystem().getTrashBin());
   }
 }

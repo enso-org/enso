@@ -7,7 +7,7 @@ import org.junit.Test;
 
 public class DirectoriesTest {
 
-  private static final Directories directories = Platform.getDirectories();
+  private static final Directories directories = Platform.getOperatingSystem().getDirectories();
 
   @Test
   public void getUserHome() {
@@ -18,7 +18,7 @@ public class DirectoriesTest {
   @Test
   public void getDocuments() throws IOException {
     // getDocuments fails on Windows CI
-    if (Platform.isWindows()) return;
+    if (Platform.getOperatingSystem().isWindows()) return;
 
     var documents = directories.getDocuments();
     Assert.assertTrue(

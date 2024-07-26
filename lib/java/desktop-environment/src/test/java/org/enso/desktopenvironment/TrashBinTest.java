@@ -9,7 +9,7 @@ import org.junit.Test;
 
 public class TrashBinTest {
 
-  private static final TrashBin TRASH_BIN = Platform.getTrashBin();
+  private static final TrashBin TRASH_BIN = Platform.getOperatingSystem().getTrashBin();
 
   @Test
   public void isSupported() {
