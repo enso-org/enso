@@ -96,8 +96,6 @@ export default function FileNameColumn(props: FileNameColumnProps) {
         case AssetEventType.newFolder:
         case AssetEventType.newDatalink:
         case AssetEventType.newSecret:
-        case AssetEventType.openProject:
-        case AssetEventType.closeProject:
         case AssetEventType.copy:
         case AssetEventType.cut:
         case AssetEventType.cancelCut:

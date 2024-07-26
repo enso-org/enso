@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
+import { Ast } from '@/util/ast'
 import { computed } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
@@ -21,8 +22,6 @@ const displayParenthesis = computed(() => props.nesting >= 2)
 </script>
 
 <script lang="ts">
-import { Ast } from '@/util/ast'
-
 export const widgetDefinition = defineWidget(
   WidgetInput.astMatcher(Ast.Group),
   {
@@ -35,9 +34,9 @@ export const widgetDefinition = defineWidget(
 
 <template>
   <div class="WidgetGroup">
-    <span v-if="displayParenthesis" class="token">(</span>
+    <span v-if="displayParenthesis" class="token widgetApplyPadding">(</span>
     <NodeWidget v-if="child" :input="child" />
-    <span v-if="displayParenthesis" class="token">)</span>
+    <span v-if="displayParenthesis" class="token widgetApplyPadding">)</span>
   </div>
 </template>
 

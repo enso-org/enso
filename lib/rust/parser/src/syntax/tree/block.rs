@@ -181,11 +181,14 @@ impl<'s> From<Prefix<'s>> for Tree<'s> {
     fn from(prefix: Prefix<'s>) -> Self {
         match prefix {
             Prefix::Annotation { node, span } =>
-                Tree { variant: Box::new(Variant::Annotated(node)), span },
-            Prefix::BuiltinAnnotation { node, span } =>
-                Tree { variant: Box::new(Variant::AnnotatedBuiltin(node)), span },
+                Tree { variant: Box::new(Variant::Annotated(node)), span, warnings: default() },
+            Prefix::BuiltinAnnotation { node, span } => Tree {
+                variant: Box::new(Variant::AnnotatedBuiltin(node)),
+                span,
+                warnings: default(),
+            },
             Prefix::Documentation { node, span } =>
-                Tree { variant: Box::new(Variant::Documented(node)), span },
+                Tree { variant: Box::new(Variant::Documented(node)), span, warnings: default() },
         }
     }
 }

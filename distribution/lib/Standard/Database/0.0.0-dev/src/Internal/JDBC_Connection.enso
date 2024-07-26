@@ -244,8 +244,8 @@ type JDBC_Connection
                     values = columns.map col-> col.at row_id
                     set_statement_values stmt statement_setter values expected_type_hints=expected_type_hints
                     stmt.addBatch
-                    if (row_id+1 % batch_size) == 0 then check_rows stmt.executeBatch batch_size
-                if (num_rows % batch_size) != 0 then check_rows stmt.executeBatch (num_rows % batch_size)
+                    if (row_id+1) % batch_size == 0 then check_rows stmt.executeBatch batch_size
+                if num_rows % batch_size != 0 then check_rows stmt.executeBatch (num_rows % batch_size)
 
 ## PRIVATE
 

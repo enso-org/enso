@@ -47,8 +47,10 @@ import * as appUtils from '#/appUtils'
 import * as inputBindingsModule from '#/configurations/inputBindings'
 
 import AuthProvider, * as authProvider from '#/providers/AuthProvider'
-import BackendProvider from '#/providers/BackendProvider'
+import BackendProvider, { useLocalBackend, useRemoteBackend } from '#/providers/BackendProvider'
+import DevtoolsProvider from '#/providers/EnsoDevtoolsProvider'
 import { useHttpClient } from '#/providers/HttpClientProvider'
+import * as httpClientProvider from '#/providers/HttpClientProvider'
 import InputBindingsProvider from '#/providers/InputBindingsProvider'
 import LocalStorageProvider, * as localStorageProvider from '#/providers/LocalStorageProvider'
 import { useLogger } from '#/providers/LoggerProvider'
@@ -71,6 +73,7 @@ import * as subscribeSuccess from '#/pages/subscribe/SubscribeSuccess'
 import BackendRequestListener from '#/layouts/BackendRequestListener'
 import type * as editor from '#/layouts/Editor'
 import * as openAppWatcher from '#/layouts/OpenAppWatcher'
+import VersionChecker from '#/layouts/VersionChecker'
 
 import { RouterProvider } from '#/components/aria'
 import * as devtools from '#/components/Devtools'
@@ -491,27 +494,32 @@ function AppRouter(props: AppRouterProps) {
   )
 
   return (
-    <RouterProvider navigate={navigate}>
-      <SessionProvider
-        saveAccessToken={authService?.cognito.saveAccessToken.bind(authService.cognito) ?? null}
-        mainPageUrl={mainPageUrl}
-        userSession={userSession}
-        registerAuthEventListener={registerAuthEventListener}
-        refreshUserSession={refreshUserSession}
-      >
-        <BackendProvider remoteBackend={remoteBackend} localBackend={localBackend}>
-          <AuthProvider
-            shouldStartInOfflineMode={isAuthenticationDisabled}
-            authService={authService}
-            onAuthenticated={onAuthenticated}
-          >
-            <BackendRequestListener />
-            <InputBindingsProvider inputBindings={inputBindings}>
-              <errorBoundary.ErrorBoundary>{routes}</errorBoundary.ErrorBoundary>
-            </InputBindingsProvider>
-          </AuthProvider>
-        </BackendProvider>
-      </SessionProvider>
-    </RouterProvider>
+    <DevtoolsProvider>
+      <RouterProvider navigate={navigate}>
+        <SessionProvider
+          saveAccessToken={authService?.cognito.saveAccessToken.bind(authService.cognito) ?? null}
+          mainPageUrl={mainPageUrl}
+          userSession={userSession}
+          registerAuthEventListener={registerAuthEventListener}
+          refreshUserSession={refreshUserSession}
+        >
+          <BackendProvider remoteBackend={remoteBackend} localBackend={localBackend}>
+            <AuthProvider
+              shouldStartInOfflineMode={isAuthenticationDisabled}
+              authService={authService}
+              onAuthenticated={onAuthenticated}
+            >
+              <InputBindingsProvider inputBindings={inputBindings}>
+                <errorBoundary.ErrorBoundary>
+                  <BackendRequestListener />
+                  <VersionChecker />
+                  {routes}
+                </errorBoundary.ErrorBoundary>
+              </InputBindingsProvider>
+            </AuthProvider>
+          </BackendProvider>
+        </SessionProvider>
+      </RouterProvider>
+    </DevtoolsProvider>
   )
 }

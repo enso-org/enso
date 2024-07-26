@@ -115,7 +115,7 @@ test('Output node', async ({ page }) => {
   const outputNode = locate.outputNode(page)
   await expect(outputNode).toHaveCount(1)
   // Output node with identifier should have only icon and no displayed identifiers
-  await expect(outputNode.locator('.WidgetSelfIcon')).toHaveCount(1)
+  await expect(outputNode.locator('.WidgetIcon')).toHaveCount(1)
   await expect(outputNode.locator('.WidgetToken')).toHaveCount(0)
 
   await outputNode.click()
