@@ -26,7 +26,7 @@ import scala.jdk.javaapi.CollectionConverters;
 public class TypeResolver {
   private static final Logger logger = LoggerFactory.getLogger(TypeResolver.class);
 
-  TypeRepresentation resolveTypeExpression(Expression type) {
+  public TypeRepresentation resolveTypeExpression(Expression type) {
     return switch (type) {
       case Name.Literal name -> getResolvedTypeFromBindingsMap(name);
       case Name.SelfType selfType -> getResolvedTypeFromBindingsMap(selfType);

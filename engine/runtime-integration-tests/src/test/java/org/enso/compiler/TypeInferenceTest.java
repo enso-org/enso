@@ -1146,19 +1146,17 @@ public class TypeInferenceTest extends StaticAnalysisTest {
     var module = compile(src);
     var foo = findStaticMethod(module, "foo");
 
-    assertAtomType("Typ_X", findAssignment(foo, "x_a"));
+    assertAtomType("callingFieldGetters.Typ_X", findAssignment(foo, "x_a"));
     // We don't know which constructor was used, so if the field appears in many constructors, it
     // resolves to a sum type
     assertSumType(findAssignment(foo, "x_b"), "Typ_Y", "Typ_Z");
 
     // We have two constructors with field `field_c`, but they have the same type so the sum type
     // should have been simplified
-    assertAtomType("Typ_Z", findAssignment(foo, "x_c"));
+    assertAtomType("callingFieldGetters.Typ_Z", findAssignment(foo, "x_c"));
 
+    // We shouldn't get a No_Such_Method error on a field with no type ascription:
     var x_d = findAssignment(foo, "x_d");
-    // No type is inferred if no ascription was present for `field_d`.
-    assertNoInferredType(x_d);
-    // But we shouldn't get a No_Such_Method error, because the field itself exists:
     assertEquals(
         "Field access should not yield any warnings", List.of(), getDescendantsDiagnostics(x_d));
   }

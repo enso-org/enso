@@ -1,5 +1,7 @@
 package org.enso.compiler.pass.analyse.types.scope;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
 import org.enso.compiler.MetadataInteropHelpers;
@@ -15,16 +17,20 @@ import org.enso.compiler.pass.IRPass;
 import org.enso.compiler.pass.analyse.types.InferredType;
 import org.enso.compiler.pass.analyse.types.TypeInferenceSignatures;
 import org.enso.compiler.pass.analyse.types.TypeRepresentation;
+import org.enso.compiler.pass.analyse.types.TypeResolver;
 import org.enso.compiler.pass.resolve.FullyQualifiedNames$;
 import org.enso.compiler.pass.resolve.GlobalNames$;
 import org.enso.compiler.pass.resolve.MethodDefinitions$;
 import org.enso.compiler.pass.resolve.TypeNames$;
+import org.enso.pkg.QualifiedName;
 import scala.collection.immutable.Seq;
 import scala.jdk.javaapi.CollectionConverters;
 import scala.jdk.javaapi.CollectionConverters$;
 
 public class StaticModuleScopeAnalysis implements IRPass {
   public static final StaticModuleScopeAnalysis INSTANCE = new StaticModuleScopeAnalysis();
+
+  private final TypeResolver typeResolver = new TypeResolver();
 
   private StaticModuleScopeAnalysis() {}
 
@@ -108,8 +114,32 @@ public class StaticModuleScopeAnalysis implements IRPass {
             .toList();
 
     AtomType atomType = new AtomType(type.name().name(), constructors, scope);
-    // TODO register field getters - ideally common logic with AtomConstructor.collectFieldAccessors
+    var qualifiedName = scope.getModuleName().createChild(type.name().name());
+    var atomTypeScope = TypeScopeReference.atomType(qualifiedName);
     scope.registerType(atomType);
+    registerFieldGetters(scope, atomTypeScope, type);
+  }
+
+  /**
+   * Registers getters for fields of the given type.
+   * <p>
+   * This should be consistent with logic with AtomConstructor.collectFieldAccessors.
+   */
+  private void registerFieldGetters(StaticModuleScope scope, TypeScopeReference typeScope, Definition.Type typeDefinition) {
+    HashMap<String, List<TypeRepresentation>> fieldTypes = new HashMap<>();
+    for (var constructorDef : CollectionConverters$.MODULE$.asJava(typeDefinition.members())) {
+      for (var argumentDef : CollectionConverters$.MODULE$.asJava(constructorDef.arguments())) {
+        String fieldName = argumentDef.name().name();
+        TypeRepresentation fieldType = argumentDef.ascribedType().map(typeResolver::resolveTypeExpression).getOrElse(() -> TypeRepresentation.UNKNOWN);
+        fieldTypes.computeIfAbsent(fieldName, k -> new ArrayList<>()).add(fieldType);
+      }
+    }
+
+    for (var entry : fieldTypes.entrySet()) {
+      String fieldName = entry.getKey();
+      TypeRepresentation mergedType = TypeRepresentation.buildSimplifiedSumType(entry.getValue());
+      scope.registerMethod(typeScope, fieldName, mergedType);
+    }
   }
 
   private void processMethod(StaticModuleScope scope, Method.Explicit method) {

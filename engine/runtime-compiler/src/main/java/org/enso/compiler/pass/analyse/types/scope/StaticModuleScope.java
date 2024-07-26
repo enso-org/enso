@@ -25,10 +25,12 @@ import scala.Option;
  * enough of similarity, we should merge them.
  */
 public final class StaticModuleScope implements ProcessingPass.Metadata {
+  private final QualifiedName moduleName;
   private final TypeScopeReference associatedType;
 
   StaticModuleScope(QualifiedName moduleName) {
-    associatedType = TypeScopeReference.moduleAssociatedType(moduleName);
+    this.moduleName = moduleName;
+    this.associatedType = TypeScopeReference.moduleAssociatedType(moduleName);
   }
 
   void registerType(AtomType type) {
@@ -47,8 +49,8 @@ public final class StaticModuleScope implements ProcessingPass.Metadata {
     return associatedType;
   }
 
-  private Map<String, AtomType> typesDefinedHere = new HashMap<>();
-  private Map<TypeScopeReference, Map<String, TypeRepresentation>> methods = new HashMap<>();
+  private final Map<String, AtomType> typesDefinedHere = new HashMap<>();
+  private final Map<TypeScopeReference, Map<String, TypeRepresentation>> methods = new HashMap<>();
 
   public static StaticModuleScope forIR(Module module) {
     return MetadataInteropHelpers.getMetadata(
@@ -81,7 +83,10 @@ public final class StaticModuleScope implements ProcessingPass.Metadata {
 
   @Override
   public Option<ProcessingPass.Metadata> duplicate() {
-    // TODO ?
-    return null;
+    return Option.empty();
+  }
+
+  public QualifiedName getModuleName() {
+    return moduleName;
   }
 }
