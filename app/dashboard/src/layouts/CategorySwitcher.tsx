@@ -1,11 +1,14 @@
 /** @file Switcher to choose the currently visible assets table category. */
 import * as React from 'react'
 
+import { useSearchParams } from 'react-router-dom'
+
 import CloudIcon from '#/assets/cloud.svg'
 import ComputerIcon from '#/assets/computer.svg'
 import PeopleIcon from '#/assets/people.svg'
 import PersonIcon from '#/assets/person.svg'
 import RecentIcon from '#/assets/recent.svg'
+import SettingsIcon from '#/assets/settings.svg'
 import Trash2Icon from '#/assets/trash2.svg'
 
 import * as mimeTypes from '#/data/mimeTypes'
@@ -16,6 +19,7 @@ import * as offlineHooks from '#/hooks/offlineHooks'
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
+import { TabType, useSetPage } from '#/providers/ProjectsProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import AssetEventType from '#/events/AssetEventType'
@@ -218,6 +222,8 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
   const { getText } = textProvider.useText()
   const remoteBackend = backendProvider.useRemoteBackendStrict()
   const dispatchAssetEvent = eventListProvider.useDispatchAssetEvent()
+  const setPage = useSetPage()
+  const [, setSearchParams] = useSearchParams()
 
   const localBackend = backendProvider.useLocalBackend()
   const itemProps = { currentCategory: category, setCategory, dispatchAssetEvent }
@@ -372,14 +378,28 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
               }
             })}
             {localBackend != null && (
-              <CategorySwitcherItem
-                {...itemProps}
-                category={{ type: categoryModule.CategoryType.local }}
-                icon={ComputerIcon}
-                label={getText('localCategory')}
-                buttonLabel={getText('localCategoryButtonLabel')}
-                dropZoneLabel={getText('localCategoryDropZoneLabel')}
-              />
+              <div className="group flex items-center justify-between self-stretch">
+                <CategorySwitcherItem
+                  {...itemProps}
+                  category={{ type: categoryModule.CategoryType.local }}
+                  icon={ComputerIcon}
+                  label={getText('localCategory')}
+                  buttonLabel={getText('localCategoryButtonLabel')}
+                  dropZoneLabel={getText('localCategoryDropZoneLabel')}
+                />
+                <ariaComponents.Button
+                  size="medium"
+                  variant="icon"
+                  icon={SettingsIcon}
+                  aria-label={getText('changeLocalRootDirectoryInSettings')}
+                  className="opacity-0 transition-opacity group-hover:opacity-100"
+                  onPress={() => {
+                    // eslint-disable-next-line @typescript-eslint/naming-convention
+                    setSearchParams({ 'cloud-ide_SettingsTab': '"local"' })
+                    setPage(TabType.settings)
+                  }}
+                />
+              </div>
             )}
           </div>
         </div>
