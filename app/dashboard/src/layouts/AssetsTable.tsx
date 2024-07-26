@@ -1795,8 +1795,15 @@ export default function AssetsTable(props: AssetsTableProps) {
             newParentId: event.newParentId,
           },
         ]
+        const newParent = nodeMapRef.current.get(event.newParentKey)
+        const newOwner =
+          !isCloud || !newParent
+            ? null
+            : permissions.newOwnerFromPath(newParent.path, users ?? [], userGroups ?? [])
         insertArbitraryAssets(
-          event.items,
+          newOwner
+            ? event.items.map(item => permissions.replaceOwnerPermission(item, newOwner))
+            : event.items,
           event.newParentKey,
           event.newParentId,
           getKey,
@@ -1807,21 +1814,16 @@ export default function AssetsTable(props: AssetsTableProps) {
       case AssetListEventType.move: {
         deleteAsset(event.key)
         const newParent = nodeMapRef.current.get(event.newParentKey)
-        if (isCloud && newParent) {
-          const newOwner = permissions.newOwnerFromPath(
-            newParent.path,
-            users ?? [],
-            userGroups ?? []
-          )
-          insertAssets(
-            [newOwner ? permissions.replaceOwnerPermission(event.item, newOwner) : event.item],
-            event.newParentKey,
-            event.newParentId,
-            () => null
-          )
-        } else {
-          insertAssets([event.item], event.newParentKey, event.newParentId, () => null)
-        }
+        const newOwner =
+          !isCloud || !newParent
+            ? null
+            : permissions.newOwnerFromPath(newParent.path, users ?? [], userGroups ?? [])
+        insertAssets(
+          [newOwner ? permissions.replaceOwnerPermission(event.item, newOwner) : event.item],
+          event.newParentKey,
+          event.newParentId,
+          () => null
+        )
         break
       }
       case AssetListEventType.delete: {

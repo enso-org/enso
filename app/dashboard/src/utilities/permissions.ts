@@ -138,9 +138,15 @@ export function newOwnerFromPath(
 ) {
   const [, userName] = path.match(/enso:[/][/][/]Users[/]([^/]+)/) ?? []
   if (userName != null) {
-    return users.find(user => user.name === userName)
+    const userNameLowercase = userName.toLowerCase()
+    return users.find(user => user.name.toLowerCase() === userNameLowercase)
   } else {
     const [, teamName] = path.match(/enso:[/][/][/]Teams[/]([^/]+)/) ?? []
-    return userGroups.find(userGroup => userGroup.groupName === teamName)
+    if (teamName != null) {
+      const teamNameLowercase = teamName.toLowerCase()
+      return userGroups.find(userGroup => userGroup.groupName === teamNameLowercase)
+    } else {
+      return
+    }
   }
 }
