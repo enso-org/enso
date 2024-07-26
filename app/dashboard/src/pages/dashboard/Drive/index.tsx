@@ -20,7 +20,7 @@ import * as eventListProvider from '#/layouts/AssetsTable/EventListProvider'
 import CategorySwitcher from '#/layouts/CategorySwitcher'
 import { isCloudCategory, type DriveCategory } from '#/layouts/CategorySwitcher/Category'
 import Labels from '#/layouts/Labels'
-import DriveBar from '#/pages/dashboard/Drive/DriveBar'
+import DriveBar from './DriveBar'
 
 import * as ariaComponents from '#/components/AriaComponents'
 import * as result from '#/components/Result'
