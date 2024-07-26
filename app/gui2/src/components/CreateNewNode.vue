@@ -42,6 +42,18 @@ function getAstPatternSort() {
 }
 
 function getAstPatternFilter(columnName?: string, items?: string[]) {
+  if (
+    (items?.length === 1 && items.indexOf('"true"') != -1) ||
+    (items?.length === 1 && items.indexOf('"false"') != -1)
+  ) {
+    const boolToInclude = items.indexOf('"false"') != -1 ? 'False' : 'True'
+    return Pattern.new((ast) =>
+      Ast.App.positional(
+        Ast.PropertyAccess.new(ast.module, ast, Ast.identifier('filter')!),
+        Ast.parse(`'${columnName}' (..Equal ${boolToInclude})`),
+      ),
+    )
+  }
   return Pattern.new((ast) =>
     Ast.App.positional(
       Ast.PropertyAccess.new(ast.module, ast, Ast.identifier('filter')!),
