@@ -6,6 +6,8 @@ import type { SettingsTabType } from '#/layouts/Settings/settingsData'
 // === Constants ===
 // =================
 
+export const SEARCH_PARAMS_PREFIX = 'cloud-ide_'
+
 const APP_PATHS = [
   'drive',
   'editor',

@@ -16,7 +16,10 @@ import * as suspense from '#/components/Suspense'
 import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
 
+import { SEARCH_PARAMS_PREFIX } from '#/appUtils'
 import * as twMerge from '#/utilities/tailwindMerge'
+
+const IGNORE_PARAMS_REGEX = new RegExp(`^${SEARCH_PARAMS_PREFIX}(.+)$`)
 
 // ====================
 // === StringConfig ===
@@ -201,6 +204,7 @@ function EditorInternal(props: EditorInternalProps) {
         },
         projectId: openedProject.projectId,
         hidden,
+        ignoreParamsRegex: IGNORE_PARAMS_REGEX,
         logEvent,
         renameProject,
         backend,
