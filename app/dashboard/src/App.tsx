@@ -97,6 +97,8 @@ import LocalStorage from '#/utilities/LocalStorage'
 import * as object from '#/utilities/object'
 
 import * as authServiceModule from '#/authentication/service'
+import EventListProvider from '#/layouts/AssetsTable/EventListProvider'
+import ProjectsProvider from '#/providers/ProjectsProvider'
 
 // ============================
 // === Global configuration ===
@@ -511,11 +513,13 @@ function AppRouter(props: AppRouterProps) {
   )
 
   let result = (
-    <>
-      <MutationListener />
-      <VersionChecker />
-      {routes}
-    </>
+    <EventListProvider>
+      <ProjectsProvider>
+        <MutationListener />
+        <VersionChecker />
+        {routes}
+      </ProjectsProvider>
+    </EventListProvider>
   )
 
   result = <errorBoundary.ErrorBoundary>{result}</errorBoundary.ErrorBoundary>

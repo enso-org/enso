@@ -198,7 +198,7 @@ export function Tab(props: InternalTabProps) {
   const { onLoadEnd } = props
   const { setSelectedTab } = useTabBarContext()
   const ref = React.useRef<HTMLDivElement | null>(null)
-  const isLoadingRef = React.useRef(true)
+  const isLoadingRef = React.useRef(false)
   const { getText } = textProvider.useText()
   const { pathname } = useLocation()
   const isActive = pathname.startsWith(path)
@@ -248,9 +248,9 @@ export function Tab(props: InternalTabProps) {
 
   React.useEffect(() => {
     if (!isFetching && isLoadingRef.current) {
-      isLoadingRef.current = false
       onLoadEnd?.()
     }
+    isLoadingRef.current = isFetching
   }, [isFetching, onLoadEnd])
 
   return (

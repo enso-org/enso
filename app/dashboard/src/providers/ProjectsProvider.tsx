@@ -91,8 +91,8 @@ export interface ProjectsProviderProps extends Readonly<React.PropsWithChildren>
 export default function ProjectsProvider(props: ProjectsProviderProps) {
   const { children } = props
   const { localStorage } = localStorageProvider.useLocalStorage()
-  const [store] = React.useState(() => {
-    return zustand.createStore<ProjectsStore>((set) => ({
+  const [store] = React.useState(() =>
+    zustand.createStore<ProjectsStore>((set) => ({
       launchedProjects: localStorage.get('launchedProjects') ?? [],
       updateLaunchedProjects: (update) => {
         set(({ launchedProjects }) => ({ launchedProjects: update(launchedProjects) }))
@@ -108,8 +108,14 @@ export default function ProjectsProvider(props: ProjectsProviderProps) {
       clearLaunchedProjects: () => {
         set({ launchedProjects: [] })
       },
-    }))
-  })
+    })),
+  )
+
+  React.useEffect(() =>
+    store.subscribe(({ launchedProjects }) => {
+      localStorage.set('launchedProjects', launchedProjects)
+    }),
+  )
 
   return <ProjectsContext.Provider value={store}>{children}</ProjectsContext.Provider>
 }

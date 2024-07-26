@@ -23,7 +23,7 @@ import * as authProvider from '#/providers/AuthProvider'
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as modalProvider from '#/providers/ModalProvider'
-import ProjectsProvider, {
+import {
   useClearLaunchedProjects,
   useLaunchedProjects,
   useProjectsStore,
@@ -35,7 +35,7 @@ import AssetEventType from '#/events/AssetEventType'
 import AssetListEventType from '#/events/AssetListEventType'
 
 import type * as assetTable from '#/layouts/AssetsTable'
-import EventListProvider, * as eventListProvider from '#/layouts/AssetsTable/EventListProvider'
+import * as eventListProvider from '#/layouts/AssetsTable/EventListProvider'
 import { isDriveCategory, type DriveCategory } from '#/layouts/CategorySwitcher/Category'
 import Chat from '#/layouts/Chat'
 import ChatPlaceholder from '#/layouts/ChatPlaceholder'
@@ -87,17 +87,6 @@ export interface DashboardProps {
 
 /** The component that contains the entire UI. */
 export default function Dashboard(props: DashboardProps) {
-  return (
-    <EventListProvider>
-      <ProjectsProvider>
-        <DashboardInner {...props} />
-      </ProjectsProvider>
-    </EventListProvider>
-  )
-}
-
-/** The component that contains the entire UI. */
-function DashboardInner(props: DashboardProps) {
   const { appRunner, initialProjectName: initialProjectNameRaw, ydocUrl } = props
   const { user } = authProvider.useFullUserSession()
   const { getText } = textProvider.useText()
