@@ -77,7 +77,6 @@ import VersionChecker from '#/layouts/VersionChecker'
 
 import * as devtools from '#/components/Devtools'
 import * as errorBoundary from '#/components/ErrorBoundary'
-import Navigate from '#/components/Navigate'
 import * as offlineNotificationManager from '#/components/OfflineNotificationManager'
 import * as rootComponent from '#/components/Root'
 import * as suspense from '#/components/Suspense'
@@ -451,8 +450,6 @@ function AppRouter(props: AppRouterProps) {
             <router.Route element={<termsOfServiceModal.TermsOfServiceModal />}>
               <router.Route element={<setOrganizationNameModal.SetOrganizationNameModal />}>
                 <router.Route element={<openAppWatcher.OpenAppWatcher />}>
-                  <router.Route path="" element={<Navigate to="/drive" />} />
-                  <router.Route path="/drive" element={<DriveNavigator />} />
                   <router.Route
                     path="*"
                     element={shouldShowDashboard && <Dashboard {...props} />}
@@ -586,22 +583,4 @@ function MutationListener() {
   backendHooks.useObserveBackend(localBackend)
 
   return null
-}
-
-// ======================
-// === DriveNavigator ===
-// ======================
-
-/** A component that navigates from `/drive` to the saved category. */
-function DriveNavigator() {
-  const { user } = authProvider.useFullUserSession()
-  const localBackend = useLocalBackend()
-  const { localStorage } = localStorageProvider.useLocalStorage()
-  const category =
-    localStorage.get('driveCategory') ??
-    (() => {
-      const shouldDefaultToCloud = user.isEnabled || localBackend == null
-      return shouldDefaultToCloud ? 'cloud' : 'local'
-    })()
-  return <Navigate to={`/drive/${category}`} />
 }
