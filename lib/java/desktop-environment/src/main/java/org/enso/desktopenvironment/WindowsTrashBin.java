@@ -12,6 +12,7 @@ import org.graalvm.nativeimage.c.struct.CStruct;
 import org.graalvm.nativeimage.c.type.CCharPointer;
 import org.graalvm.nativeimage.c.type.CTypeConversion;
 import org.graalvm.word.PointerBase;
+import org.slf4j.LoggerFactory;
 
 @CContext(WindowsTrashBin.ShellApi.class)
 final class WindowsTrashBin implements TrashBin {
@@ -31,7 +32,18 @@ final class WindowsTrashBin implements TrashBin {
 
   @Override
   public boolean moveToTrash(Path path) {
-    if (Platform.getOperatingSystem().isWindows()) return moveToTrashImpl(path);
+    if (Platform.getOperatingSystem().isWindows())
+      try {
+        return moveToTrashImpl(path);
+      } catch (NullPointerException | LinkageError err) {
+        if (!Boolean.getBoolean("com.oracle.graalvm.isaot")) {
+          LoggerFactory.getLogger(MacTrashBin.class)
+              .warn(
+                  "Moving to Windows' Trash Bin is not supported in non-AOT mode. Deleting"
+                      + " permanently");
+          return path.toFile().delete();
+        } else throw err;
+      }
     else return false;
   }
 

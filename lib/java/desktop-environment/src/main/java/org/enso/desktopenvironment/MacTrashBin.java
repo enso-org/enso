@@ -10,6 +10,7 @@ import org.graalvm.nativeimage.c.type.CCharPointer;
 import org.graalvm.nativeimage.c.type.CTypeConversion;
 import org.graalvm.word.Pointer;
 import org.graalvm.word.WordFactory;
+import org.slf4j.LoggerFactory;
 
 @CContext(MacTrashBin.CoreServices.class)
 final class MacTrashBin implements TrashBin {
@@ -28,7 +29,18 @@ final class MacTrashBin implements TrashBin {
 
   @Override
   public boolean moveToTrash(Path path) {
-    if (Platform.getOperatingSystem().isMacOs()) return moveToTrashImpl(path);
+    if (Platform.getOperatingSystem().isMacOs())
+      try {
+        return moveToTrashImpl(path);
+      } catch (NullPointerException | LinkageError err) {
+        if (!Boolean.getBoolean("com.oracle.graalvm.isaot")) {
+          LoggerFactory.getLogger(MacTrashBin.class)
+              .warn(
+                  "Moving to MacOS's Trash Bin is not supported in non-AOT mode. Deleting"
+                      + " permanently");
+          return path.toFile().delete();
+        } else throw err;
+      }
     else return false;
   }
 
