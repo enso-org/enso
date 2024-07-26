@@ -66,19 +66,19 @@ export function PlanSelector(props: PlanSelectorProps) {
         quantity: mutationData.seats,
       })
 
-      return backend.getCheckoutSession(id).then(data => {
+      return backend.getCheckoutSession(id).then((data) => {
         if (['trialing', 'active'].includes(data.status)) {
           return data
         } else {
           throw new Error(
-            'Session not complete, please contact the support team or try with another payment method.'
+            'Session not complete, please contact the support team or try with another payment method.',
           )
         }
       })
     },
     onSuccess: (_, mutationData) =>
       onSubscribeSuccess?.(mutationData.plan, mutationData.paymentMethodId),
-    onError: error => onSubscribeError?.(error),
+    onError: (error) => onSubscribeError?.(error),
     meta: { invalidates: [['userMe'], [['organization']]], awaitInvalidates: true },
   })
 
@@ -89,7 +89,7 @@ export function PlanSelector(props: PlanSelectorProps) {
       })}
     >
       <div className="inline-flex min-w-full gap-6 p-6">
-        {backendModule.PLANS.map(newPlan => {
+        {backendModule.PLANS.map((newPlan) => {
           const paywallLevel = getPaywallLevel(newPlan)
           const userPaywallLevel = getPaywallLevel(userPlan)
           const planProps = componentForPlan.getComponentPerPlan(newPlan, getText)

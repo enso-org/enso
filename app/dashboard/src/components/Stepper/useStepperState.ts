@@ -72,7 +72,7 @@ export function useStepperState(props: StepperStateProps): UseStepperStateResult
 
   const setCurrentStep = eventCallbackHooks.useEventCallback(
     (step: number | ((current: number) => number)) => {
-      privateSetCurrentStep(current => {
+      privateSetCurrentStep((current) => {
         const newStep = typeof step === 'function' ? step(current.current) : step
         const direction = newStep > current.current ? 'forward' : 'back'
 
@@ -94,18 +94,18 @@ export function useStepperState(props: StepperStateProps): UseStepperStateResult
           return { current: newStep, direction }
         }
       })
-    }
+    },
   )
 
   const isCurrentStep = eventCallbackHooks.useEventCallback(
-    (step: number) => step === currentStep.current
+    (step: number) => step === currentStep.current,
   )
 
   const nextStep = eventCallbackHooks.useEventCallback(() => {
-    setCurrentStep(current => current + 1)
+    setCurrentStep((current) => current + 1)
   })
   const previousStep = eventCallbackHooks.useEventCallback(() => {
-    setCurrentStep(current => current - 1)
+    setCurrentStep((current) => current - 1)
   })
 
   // eslint-disable-next-line @typescript-eslint/no-magic-numbers

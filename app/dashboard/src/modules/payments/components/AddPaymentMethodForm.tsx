@@ -37,12 +37,12 @@ export const ADD_PAYMENT_METHOD_FORM_SCHEMA = ariaComponents.Form.schema.object(
           .object({ message: ariaComponents.Form.schema.string() })
           .nullish(),
       },
-      { message: 'This field is required' }
+      { message: 'This field is required' },
     )
     .nullable()
     .refine(
-      data => data?.error == null,
-      data => ({ message: data?.error?.message ?? 'This field is required' })
+      (data) => data?.error == null,
+      (data) => ({ message: data?.error?.message ?? 'This field is required' }),
     ),
 })
 
@@ -57,7 +57,7 @@ export function AddPaymentMethodForm<
   const { getText } = text.useText()
 
   const [cardElement, setCardElement] = React.useState<stripeJs.StripeCardElement | null>(() =>
-    elements.getElement(stripeReact.CardElement)
+    elements.getElement(stripeReact.CardElement),
   )
 
   const dialogContext = ariaComponents.useDialogContext()
@@ -69,7 +69,7 @@ export function AddPaymentMethodForm<
       } else {
         return stripeInstance
           .createPaymentMethod({ type: 'card', card: cardElement })
-          .then(result => {
+          .then((result) => {
             if (result.error) {
               throw new Error(result.error.message)
             } else {
@@ -78,7 +78,7 @@ export function AddPaymentMethodForm<
           })
       }
     },
-    onSuccess: async paymentMethod => {
+    onSuccess: async (paymentMethod) => {
       await onSubmit?.(paymentMethod.paymentMethod.id)
       cardElement?.clear()
     },
@@ -88,7 +88,7 @@ export function AddPaymentMethodForm<
   // but for some reason ts fails to infer the `card` field from the schema (it should always be there)
   // eslint-disable-next-line no-restricted-syntax
   const formInstance = ariaComponents.Form.useForm(
-    form ?? { schema: ADD_PAYMENT_METHOD_FORM_SCHEMA }
+    form ?? { schema: ADD_PAYMENT_METHOD_FORM_SCHEMA },
   ) as unknown as ariaComponents.FormInstance<typeof ADD_PAYMENT_METHOD_FORM_SCHEMA>
 
   return (
@@ -108,10 +108,10 @@ export function AddPaymentMethodForm<
             },
           }}
           onEscape={() => dialogContext?.close()}
-          onReady={element => {
+          onReady={(element) => {
             setCardElement(element)
           }}
-          onChange={event => {
+          onChange={(event) => {
             if (event.error?.message != null) {
               formInstance.setError('card', { message: event.error.message })
               cardElement?.focus()

@@ -50,7 +50,7 @@ export const Input = React.forwardRef(function Input<
   TTransformedValues extends ariaComponents.FieldValues<Schema> | undefined = undefined,
 >(
   props: InputProps<Schema, TFieldValues, TFieldName, TTransformedValues>,
-  ref: React.ForwardedRef<HTMLFieldSetElement>
+  ref: React.ForwardedRef<HTMLFieldSetElement>,
 ) {
   const {
     name,
@@ -97,7 +97,7 @@ export const Input = React.forwardRef(function Input<
     ...(inputProps.maxLength != null ? { maxLength: inputProps.maxLength } : {}),
     ...(min != null ? { min } : {}),
     ...(max != null ? { max } : {}),
-    setValueAs: value => {
+    setValueAs: (value) => {
       if (typeof value === 'string') {
         if (type === 'number') {
           return Number(value)
@@ -141,7 +141,7 @@ export const Input = React.forwardRef(function Input<
             {...aria.mergeProps<aria.InputProps>()(
               { className: classes.textArea(), type, name, min, max, isRequired, isDisabled },
               inputProps,
-              field
+              field,
             )}
           />
 
@@ -163,5 +163,5 @@ export const Input = React.forwardRef(function Input<
   TTransformedValues extends ariaComponents.FieldValues<Schema> | undefined = undefined,
 >(
   props: InputProps<Schema, TFieldValues, TFieldName, TTransformedValues> &
-    React.RefAttributes<HTMLInputElement>
+    React.RefAttributes<HTMLInputElement>,
 ) => React.ReactElement

@@ -6,8 +6,8 @@ import * as router from 'react-router'
 
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
-import * as textProvider from '#/providers/TextProvider'
 import type { GetText } from '#/providers/TextProvider'
+import * as textProvider from '#/providers/TextProvider'
 
 import * as ariaComponents from '#/components/AriaComponents'
 
@@ -39,7 +39,7 @@ export function SetOrganizationNameModal() {
     queryKey: ['organization', userId],
     queryFn: () => backend.getOrganization().catch(() => null),
     staleTime: Infinity,
-    select: data => data?.name ?? '',
+    select: (data) => data?.name ?? '',
   })
 
   const submit = reactQuery.useMutation({
@@ -61,7 +61,7 @@ export function SetOrganizationNameModal() {
         modalProps={{ isOpen: shouldShowModal }}
       >
         <SetOrganizationNameForm
-          onSubmit={async name => {
+          onSubmit={async (name) => {
             await submit.mutateAsync(name)
           }}
         />
@@ -114,7 +114,7 @@ export function SetOrganizationNameForm(props: SetOrganizationNameFormProps) {
         label={getText('organizationNameSettingsInput')}
         description={getText(
           'organizationNameSettingsInputDescription',
-          ORGANIZATION_NAME_MAX_LENGTH
+          ORGANIZATION_NAME_MAX_LENGTH,
         )}
       />
 

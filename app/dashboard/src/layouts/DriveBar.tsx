@@ -76,13 +76,13 @@ export default function DriveBar(props: DriveBarProps) {
 
   React.useEffect(() => {
     return inputBindings.attach(sanitizedEventTargets.document.body, 'keydown', {
-      ...(isCloud
-        ? {
-            newFolder: () => {
-              doCreateDirectory()
-            },
-          }
-        : {}),
+      ...(isCloud ?
+        {
+          newFolder: () => {
+            doCreateDirectory()
+          },
+        }
+      : {}),
       newProject: () => {
         doCreateProject()
       },
@@ -114,7 +114,7 @@ export default function DriveBar(props: DriveBarProps) {
           icon={RightPanelIcon}
           aria-label={isAssetPanelOpen ? getText('openAssetPanel') : getText('closeAssetPanel')}
           onPress={() => {
-            setIsAssetPanelOpen(isOpen => !isOpen)
+            setIsAssetPanelOpen((isOpen) => !isOpen)
           }}
         />
       </div>
@@ -142,7 +142,7 @@ export default function DriveBar(props: DriveBarProps) {
                 <ConfirmDeleteModal
                   actionText={getText('allTrashedItemsForever')}
                   doDelete={doEmptyTrash}
-                />
+                />,
               )
             }}
           >
@@ -214,7 +214,7 @@ export default function DriveBar(props: DriveBarProps) {
               type="file"
               multiple
               className="hidden"
-              onInput={event => {
+              onInput={(event) => {
                 if (event.currentTarget.files != null) {
                   doUploadFiles(Array.from(event.currentTarget.files))
                 }

@@ -9,8 +9,8 @@ import * as textProvider from '#/providers/TextProvider'
 import * as ariaComponents from '#/components/AriaComponents'
 import * as result from '#/components/Result'
 
-import * as backend from '#/services/Backend'
 import { PLAN_TO_TEXT_ID } from '#/modules/payments'
+import * as backend from '#/services/Backend'
 
 // ========================
 // === SubscribeSuccess ===

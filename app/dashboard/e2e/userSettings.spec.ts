@@ -38,7 +38,7 @@ test.test('change password form', async ({ page }) => {
         await localActions
           .locateNewPasswordInput(page)
           .evaluate((element: HTMLInputElement) => element.validity.valid),
-        'invalid new password should be rejected'
+        'invalid new password should be rejected',
       )
       .toBe(false)
     await test
@@ -55,13 +55,13 @@ test.test('change password form', async ({ page }) => {
         await localActions
           .locateConfirmNewPasswordInput(page)
           .evaluate((element: HTMLInputElement) => element.validity.valid),
-        'invalid new password confirmation should be rejected'
+        'invalid new password confirmation should be rejected',
       )
       .toBe(false)
     await test
       .expect(
         localActions.locateChangeButton(page),
-        'invalid new password confirmation should be rejected'
+        'invalid new password confirmation should be rejected',
       )
       .toBeDisabled()
   })

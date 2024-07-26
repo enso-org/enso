@@ -123,7 +123,9 @@ export function Card(props: CardProps) {
         </ariaComponents.Text>
       )}
 
-      {submitButton != null ? <div className="my-4">{submitButton}</div> : null}
+      {submitButton != null ?
+        <div className="my-4">{submitButton}</div>
+      : null}
 
       <ariaComponents.Separator
         variant="primary"

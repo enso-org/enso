@@ -30,6 +30,6 @@ v.describe('`error.tryGetMessage`', () => {
     'should return default message if failed to extract it from the error object',
     ({ errorObject, message, defaultMessage }) => {
       v.expect(error.tryGetMessage<unknown, string>(errorObject, defaultMessage)).toBe(message)
-    }
+    },
   )
 })

@@ -27,8 +27,8 @@ import * as stepper from '#/components/Stepper'
 
 import { ORGANIZATION_NAME_MAX_LENGTH } from '#/modals/SetOrganizationNameModal'
 
-import { Plan } from '#/services/Backend'
 import { PlanSelector } from '#/modules/payments'
+import { Plan } from '#/services/Backend'
 
 /**
  * Step in the setup process
@@ -72,7 +72,7 @@ const BASE_STEPS: Step[] = [
         <ariaComponents.Form
           className="max-w-96"
           /* eslint-disable-next-line @typescript-eslint/no-magic-numbers */
-          schema={z => z.object({ username: z.string().min(3).max(48) })}
+          schema={(z) => z.object({ username: z.string().min(3).max(48) })}
           defaultValues={{ username: defaultName }}
           onSubmit={({ username }) => {
             if (username !== defaultName) {
@@ -121,7 +121,7 @@ const BASE_STEPS: Step[] = [
   {
     title: 'setOrgNameTitle',
     text: 'setOrgNameDescription',
-    ignore: context => context.plan === Plan.free || context.plan === Plan.solo,
+    ignore: (context) => context.plan === Plan.free || context.plan === Plan.solo,
     hideNext: true,
     hidePrevious: true,
     /**
@@ -134,12 +134,12 @@ const BASE_STEPS: Step[] = [
       const { data: defaultOrgName } = useSuspenseQuery({
         queryKey: ['organization'],
         queryFn: () => remoteBackend.getOrganization(),
-        select: data => data?.name ?? '',
+        select: (data) => data?.name ?? '',
       })
 
       return (
         <ariaComponents.Form
-          schema={z =>
+          schema={(z) =>
             z.object({ organizationName: z.string().min(1).max(ORGANIZATION_NAME_MAX_LENGTH) })
           }
           defaultValues={{ organizationName: defaultOrgName }}
@@ -158,7 +158,7 @@ const BASE_STEPS: Step[] = [
             label={getText('organizationNameSettingsInput')}
             description={getText(
               'organizationNameSettingsInputDescription',
-              ORGANIZATION_NAME_MAX_LENGTH
+              ORGANIZATION_NAME_MAX_LENGTH,
             )}
           />
 
@@ -233,17 +233,17 @@ export function Setup() {
   }
 
   const hideNext =
-    typeof currentScreen.hideNext === 'function'
-      ? currentScreen.hideNext(context)
-      : currentScreen.hideNext ?? false
+    typeof currentScreen.hideNext === 'function' ?
+      currentScreen.hideNext(context)
+    : currentScreen.hideNext ?? false
   const canSkip =
-    typeof currentScreen.canSkip === 'function'
-      ? currentScreen.canSkip(context)
-      : currentScreen.canSkip ?? false
+    typeof currentScreen.canSkip === 'function' ?
+      currentScreen.canSkip(context)
+    : currentScreen.canSkip ?? false
   const hidePrevious =
-    typeof currentScreen.hidePrevious === 'function'
-      ? currentScreen.hidePrevious(context)
-      : currentScreen.hidePrevious ?? false
+    typeof currentScreen.hidePrevious === 'function' ?
+      currentScreen.hidePrevious(context)
+    : currentScreen.hidePrevious ?? false
 
   return (
     <Page>
@@ -255,7 +255,7 @@ export function Setup() {
 
           <stepper.Stepper
             state={stepperState}
-            renderStep={stepProps => {
+            renderStep={(stepProps) => {
               const step = steps[stepProps.index]
 
               invariant(step != null, 'Step not found')

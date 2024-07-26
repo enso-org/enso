@@ -64,7 +64,7 @@ function run(props: Omit<app.AppProps, 'httpClient' | 'portalRoot'>) {
             reactRouter.useLocation,
             reactRouter.useNavigationType,
             reactRouter.createRoutesFromChildren,
-            reactRouter.matchRoutes
+            reactRouter.matchRoutes,
           ),
         }),
         sentry.extraErrorDataIntegration({ captureErrorCause: true }),
@@ -91,9 +91,8 @@ function run(props: Omit<app.AppProps, 'httpClient' | 'portalRoot'>) {
 
   // `supportsDeepLinks` will be incorrect when accessing the installed Electron app's pages
   // via the browser.
-  const actuallySupportsDeepLinks = detect.IS_DEV_MODE
-    ? supportsDeepLinks
-    : supportsDeepLinks && detect.isOnElectron()
+  const actuallySupportsDeepLinks =
+    detect.IS_DEV_MODE ? supportsDeepLinks : supportsDeepLinks && detect.isOnElectron()
 
   const httpClient = new HttpClient()
 
@@ -114,7 +113,7 @@ function run(props: Omit<app.AppProps, 'httpClient' | 'portalRoot'>) {
 
           <devtools.ReactQueryDevtools />
         </reactQuery.QueryClientProvider>
-      </React.StrictMode>
+      </React.StrictMode>,
     )
   })
 }

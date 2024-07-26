@@ -38,7 +38,7 @@ export default function UserGroupUserRow(props: UserGroupUserRowProps) {
   const contextMenuRef = contextMenuHooks.useContextMenuRef(
     user.userId,
     getText('userGroupUserContextMenuLabel'),
-    position => (
+    (position) => (
       <ContextMenuEntry
         action="delete"
         doAction={() => {
@@ -48,16 +48,16 @@ export default function UserGroupUserRow(props: UserGroupUserRowProps) {
               actionText={getText(
                 'removeUserFromUserGroupActionText',
                 user.name,
-                userGroup.groupName
+                userGroup.groupName,
               )}
               doDelete={() => {
                 doRemoveUserFromUserGroup(user, userGroup)
               }}
-            />
+            />,
           )
         }}
       />
-    )
+    ),
   )
 
   return (
@@ -65,7 +65,7 @@ export default function UserGroupUserRow(props: UserGroupUserRowProps) {
       id={`_key-${userGroup.id}-${user.userId}`}
       className={tailwindMerge.twMerge(
         'group h-row select-none rounded-rows-child',
-        user.isPlaceholder && 'pointer-events-none placeholder'
+        user.isPlaceholder && 'pointer-events-none placeholder',
       )}
       ref={contextMenuRef}
     >
@@ -86,13 +86,13 @@ export default function UserGroupUserRow(props: UserGroupUserRowProps) {
                 actionText={getText(
                   'removeUserFromUserGroupActionText',
                   user.name,
-                  userGroup.groupName
+                  userGroup.groupName,
                 )}
                 actionButtonLabel={getText('remove')}
                 doDelete={() => {
                   doRemoveUserFromUserGroup(user, userGroup)
                 }}
-              />
+              />,
             )
           }}
           className="absolute right-full mr-4 size-4 -translate-y-1/2"

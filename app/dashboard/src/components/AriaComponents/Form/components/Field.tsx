@@ -61,7 +61,7 @@ export const FIELD_STYLES = twv.tv({
  */
 export const Field = React.forwardRef(function Field(
   props: FieldComponentProps,
-  ref: React.ForwardedRef<HTMLFieldSetElement>
+  ref: React.ForwardedRef<HTMLFieldSetElement>,
 ) {
   const {
     form = formContext.useFormContext(),
@@ -118,15 +118,15 @@ export const Field = React.forwardRef(function Field(
         )}
 
         <div className={classes.content()}>
-          {typeof children === 'function'
-            ? children({
-                isInvalid: invalid,
-                isDirty: fieldState.isDirty,
-                isTouched: fieldState.isTouched,
-                isValidating: fieldState.isValidating,
-                error: fieldState.error?.message,
-              })
-            : children}
+          {typeof children === 'function' ?
+            children({
+              isInvalid: invalid,
+              isDirty: fieldState.isDirty,
+              isTouched: fieldState.isTouched,
+              isValidating: fieldState.isValidating,
+              error: fieldState.error?.message,
+            })
+          : children}
         </div>
       </aria.Label>
 

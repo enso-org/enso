@@ -13,9 +13,8 @@ import type * as schemaModule from './schema'
  * Field values type.
  */
 // eslint-disable-next-line no-restricted-syntax
-export type FieldValues<Schema extends TSchema | undefined> = Schema extends z.AnyZodObject
-  ? z.infer<Schema>
-  : reactHookForm.FieldValues
+export type FieldValues<Schema extends TSchema | undefined> =
+  Schema extends z.AnyZodObject ? z.infer<Schema> : reactHookForm.FieldValues
 
 /**
  * Field path type.
@@ -82,9 +81,9 @@ export interface FormWithValueValidation<
   TTransformedValues extends FieldValues<Schema> | undefined = undefined,
 > {
   readonly form?:
-    | (BaseValueType extends TFieldValues[TFieldName]
-        ? FormInstance<Schema, TFieldValues, TTransformedValues>
-        : 'Type mismatch: Field with this name has a different type than the value of the component.')
+    | (BaseValueType extends TFieldValues[TFieldName] ?
+        FormInstance<Schema, TFieldValues, TTransformedValues>
+      : 'Type mismatch: Field with this name has a different type than the value of the component.')
     | undefined
 }
 

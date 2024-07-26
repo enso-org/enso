@@ -37,7 +37,7 @@ const PERMISSION_TYPE_DATA: readonly PermissionTypeData[] = [
   {
     type: permissions.Permission.view,
     previous: null,
-    description: type =>
+    description: (type) =>
       CAPITALIZED_ASSET_TYPE[type] +
       ` visibility only. Optionally, edit docs${
         type === backend.AssetType.project ? ' and execute project' : ''
@@ -46,12 +46,12 @@ const PERMISSION_TYPE_DATA: readonly PermissionTypeData[] = [
   {
     type: permissions.Permission.read,
     previous: permissions.Permission.view,
-    description: type => CAPITALIZED_ASSET_TYPE[type] + ' content reading.',
+    description: (type) => CAPITALIZED_ASSET_TYPE[type] + ' content reading.',
   },
   {
     type: permissions.Permission.edit,
     previous: permissions.Permission.read,
-    description: type => CAPITALIZED_ASSET_TYPE[type] + ' editing.',
+    description: (type) => CAPITALIZED_ASSET_TYPE[type] + ' editing.',
   },
   {
     type: permissions.Permission.admin,
@@ -61,7 +61,7 @@ const PERMISSION_TYPE_DATA: readonly PermissionTypeData[] = [
   {
     type: permissions.Permission.owner,
     previous: permissions.Permission.admin,
-    description: type => CAPITALIZED_ASSET_TYPE[type] + ' removal permission.',
+    description: (type) => CAPITALIZED_ASSET_TYPE[type] + ' removal permission.',
   },
   {
     type: permissions.Permission.delete,
@@ -89,30 +89,30 @@ export default function PermissionTypeSelector(props: PermissionTypeSelectorProp
   const { showDelete = false, selfPermission, type, assetType, style, onChange } = props
   return (
     <FocusArea direction="vertical">
-      {innerProps => (
+      {(innerProps) => (
         <div
           style={style}
           className="pointer-events-auto sticky w-min rounded-permission-type-selector before:absolute before:h-full before:w-full before:rounded-permission-type-selector before:bg-selected-frame before:backdrop-blur-default"
-          onClick={event => {
+          onClick={(event) => {
             event.stopPropagation()
           }}
           {...innerProps}
         >
           <div className="group relative flex w-permission-type-selector flex-col p-permission-type-selector">
             {PERMISSION_TYPE_DATA.filter(
-              data =>
+              (data) =>
                 (showDelete ? true : data.type !== permissions.Permission.delete) &&
-                (selfPermission === permissions.PermissionAction.own
-                  ? true
-                  : data.type !== permissions.Permission.owner)
-            ).map(data => (
+                (selfPermission === permissions.PermissionAction.own ?
+                  true
+                : data.type !== permissions.Permission.owner),
+            ).map((data) => (
               <ariaComponents.Button
                 size="custom"
                 variant="custom"
                 key={data.type}
                 className={tailwindMerge.twMerge(
                   'flex h-row items-start justify-stretch gap-permission-type-button rounded-full p-permission-type-button hover:bg-black/5',
-                  type === data.type && 'bg-black/5 hover:!bg-black/5 group-hover:bg-transparent'
+                  type === data.type && 'bg-black/5 hover:!bg-black/5 group-hover:bg-transparent',
                 )}
                 onPress={() => {
                   onChange(data.type)
@@ -121,7 +121,7 @@ export default function PermissionTypeSelector(props: PermissionTypeSelectorProp
                 <div
                   className={tailwindMerge.twMerge(
                     'h-text w-permission-type rounded-full py-permission-type-y',
-                    permissions.PERMISSION_CLASS_NAME[data.type]
+                    permissions.PERMISSION_CLASS_NAME[data.type],
                   )}
                 >
                   {data.type}
@@ -135,7 +135,7 @@ export default function PermissionTypeSelector(props: PermissionTypeSelectorProp
                     <div
                       className={tailwindMerge.twMerge(
                         'h-text w-permission-type rounded-full py-permission-type-y text-center',
-                        permissions.PERMISSION_CLASS_NAME[data.previous]
+                        permissions.PERMISSION_CLASS_NAME[data.previous],
                       )}
                     >
                       {data.previous}

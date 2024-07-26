@@ -45,7 +45,7 @@ export function ErrorBoundary(props: ErrorBoundaryProps) {
             sentry.captureException(error, { extra: { info } })
             onError(error, info)
           }}
-          onReset={details => {
+          onReset={(details) => {
             reset()
             onReset(details)
           }}

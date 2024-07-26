@@ -33,7 +33,7 @@ export function useForm<
 >(
   optionsOrFormInstance:
     | types.UseFormProps<Schema, TFieldValues>
-    | types.UseFormReturn<Schema, TFieldValues, TTransformedValues>
+    | types.UseFormReturn<Schema, TFieldValues, TTransformedValues>,
 ): types.UseFormReturn<Schema, TFieldValues, TTransformedValues> {
   const initialTypePassed = React.useRef(getArgsType(optionsOrFormInstance))
 
@@ -44,7 +44,7 @@ export function useForm<
     `
     Found a switch between form options and form instance. This is not allowed. Please use either form options or form instance and stick to it.\n\n
     Initially passed: ${initialTypePassed.current}, Currently passed: ${argsType}.
-    `
+    `,
   )
 
   if ('formState' in optionsOrFormInstance) {
@@ -71,7 +71,7 @@ function getArgsType<
 >(
   args:
     | types.UseFormProps<Schema, TFieldValues>
-    | types.UseFormReturn<Schema, TFieldValues, TTransformedValues>
+    | types.UseFormReturn<Schema, TFieldValues, TTransformedValues>,
 ) {
   return 'formState' in args ? 'formInstance' : 'formOptions'
 }

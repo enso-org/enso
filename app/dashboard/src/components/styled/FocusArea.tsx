@@ -70,26 +70,26 @@ function FocusArea(props: FocusAreaProps) {
       // `react-aria-components`.
       // eslint-disable-next-line no-restricted-syntax
       children({
-        ref: element => {
+        ref: (element) => {
           rootRef.current = element
           cleanupRef.current()
           if (active && element != null && focusManager != null) {
             const focusFirst = focusManager.focusFirst.bind(null, {
-              accept: other => other.classList.contains(focusChildClassRef.current),
+              accept: (other) => other.classList.contains(focusChildClassRef.current),
             })
             const focusLast = focusManager.focusLast.bind(null, {
-              accept: other => other.classList.contains(focusChildClassRef.current),
+              accept: (other) => other.classList.contains(focusChildClassRef.current),
             })
             const focusCurrent = () =>
               focusManager.focusFirst({
-                accept: other => other.classList.contains(focusDefaultClassRef.current),
+                accept: (other) => other.classList.contains(focusDefaultClassRef.current),
               }) ?? focusFirst()
             cleanupRef.current = navigator2D.register(element, {
               focusPrimaryChild: focusCurrent,
               focusWhenPressed:
-                direction === 'horizontal'
-                  ? { right: focusFirst, left: focusLast }
-                  : { down: focusFirst, up: focusLast },
+                direction === 'horizontal' ?
+                  { right: focusFirst, left: focusLast }
+                : { down: focusFirst, up: focusLast },
             })
           } else {
             cleanupRef.current = () => {}
@@ -104,7 +104,7 @@ function FocusArea(props: FocusAreaProps) {
         },
         ...focusWithinProps,
       } as FocusWithinProps),
-    [active, direction, children, focusManager, focusWithinProps, navigator2D]
+    [active, direction, children, focusManager, focusWithinProps, navigator2D],
   )
 
   const result = (
@@ -112,11 +112,9 @@ function FocusArea(props: FocusAreaProps) {
       <AreaFocusProvider areaFocus={areaFocus}>{cachedChildren}</AreaFocusProvider>
     </FocusDirectionProvider>
   )
-  return focusChildClass === outerFocusChildClass ? (
-    result
-  ) : (
-    <FocusClassesProvider focusChildClass={focusChildClass}>{result}</FocusClassesProvider>
-  )
+  return focusChildClass === outerFocusChildClass ? result : (
+      <FocusClassesProvider focusChildClass={focusChildClass}>{result}</FocusClassesProvider>
+    )
 }
 
 /** An area that can be focused within. */

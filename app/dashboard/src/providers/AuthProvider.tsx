@@ -89,7 +89,7 @@ interface AuthContextType {
   readonly signUp: (
     email: string,
     password: string,
-    organizationId: string | null
+    organizationId: string | null,
   ) => Promise<boolean>
   readonly authQueryKey: reactQuery.QueryKey
   readonly confirmSignUp: (email: string, code: string) => Promise<boolean>
@@ -131,7 +131,7 @@ const AuthContext = React.createContext<AuthContextType | null>(null)
 function createUsersMeQuery(
   session: cognitoModule.UserSession | null,
   remoteBackend: RemoteBackend,
-  performLogout: () => Promise<void>
+  performLogout: () => Promise<void>,
 ) {
   return reactQuery.queryOptions({
     queryKey: ['usersMe', session?.clientId] as const,
@@ -145,8 +145,8 @@ function createUsersMeQuery(
 
         // if API returns null, user is not yet registered
         // but already authenticated with Cognito
-        return user == null
-          ? ({ type: UserSessionType.partial, ...session } satisfies PartialUserSession)
+        return user == null ?
+            ({ type: UserSessionType.partial, ...session } satisfies PartialUserSession)
           : ({ type: UserSessionType.full, user, ...session } satisfies FullUserSession)
       } catch (error) {
         if (error instanceof backendModule.NotAuthorizedError) {
@@ -229,7 +229,7 @@ export default function AuthProvider(props: AuthProviderProps) {
   const usersMeQuery = createUsersMeQuery(session, remoteBackend, () =>
     performLogout().then(() => {
       toast.toast.info(getText('userNotAuthorizedError'))
-    })
+    }),
   )
 
   const { data: userData } = reactQuery.useSuspenseQuery(usersMeQuery)
@@ -302,7 +302,7 @@ export default function AuthProvider(props: AuthProviderProps) {
         }
         return result.ok
       }
-    }
+    },
   )
 
   const confirmSignUp = useEventCallback(async (email: string, code: string) => {
@@ -461,7 +461,7 @@ export default function AuthProvider(props: AuthProviderProps) {
   })
 
   const isUserMarkedForDeletion = useEventCallback(
-    () => !!(userData && 'user' in userData && userData.user.removeAt)
+    () => !!(userData && 'user' in userData && userData.user.removeAt),
   )
 
   const isUserDeleted = useEventCallback(() => {
@@ -534,7 +534,7 @@ export default function AuthProvider(props: AuthProviderProps) {
           .then(() => queryClient.invalidateQueries({ queryKey: sessionQueryKey }))
           .then(
             () => true,
-            () => false
+            () => false,
           )
       }
     }),
@@ -548,7 +548,7 @@ export default function AuthProvider(props: AuthProviderProps) {
           .then(() => queryClient.invalidateQueries({ queryKey: sessionQueryKey }))
           .then(
             () => true,
-            () => false
+            () => false,
           )
       }
     }),

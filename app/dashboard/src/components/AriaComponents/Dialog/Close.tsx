@@ -27,7 +27,7 @@ export function Close(props: CloseProps) {
 
   const onPressCallback = eventCallback.useEventCallback<
     NonNullable<button.ButtonProps['onPress']>
-  >(event => {
+  >((event) => {
     dialogContext.close()
     return props.onPress?.(event)
   })

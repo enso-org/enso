@@ -20,7 +20,7 @@ export default class LoginPageActions extends BaseActions {
   /** Perform a login as a new user (a user that does not yet have a username). */
   loginAsNewUser(email = 'email@example.com', password = actions.VALID_PASSWORD) {
     return this.step('Login (as new user)', () => this.loginInternal(email, password)).into(
-      SetUsernamePageActions
+      SetUsernamePageActions,
     )
   }
 

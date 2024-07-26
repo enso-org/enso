@@ -281,7 +281,7 @@ export const BUTTON_STYLES = twv.tv({
 /** A button allows a user to perform an action, with mouse, touch, and keyboard interactions. */
 export const Button = React.forwardRef(function Button(
   props: ButtonProps,
-  ref: React.ForwardedRef<HTMLButtonElement>
+  ref: React.ForwardedRef<HTMLButtonElement>,
 ) {
   const {
     className,
@@ -342,17 +342,17 @@ export const Button = React.forwardRef(function Button(
     if (isLoading) {
       const loaderAnimation = loaderRef.current?.animate(
         [{ opacity: 0 }, { opacity: 0, offset: 1 }, { opacity: 1 }],
-        { duration: delay, easing: 'linear', delay: 0, fill: 'forwards' }
+        { duration: delay, easing: 'linear', delay: 0, fill: 'forwards' },
       )
       const contentAnimation =
-        loaderPosition !== 'full'
-          ? null
-          : contentRef.current?.animate([{ opacity: 1 }, { opacity: 0 }], {
-              duration: 0,
-              easing: 'linear',
-              delay,
-              fill: 'forwards',
-            })
+        loaderPosition !== 'full' ? null : (
+          contentRef.current?.animate([{ opacity: 1 }, { opacity: 0 }], {
+            duration: 0,
+            easing: 'linear',
+            delay,
+            fill: 'forwards',
+          })
+        )
 
       return () => {
         loaderAnimation?.cancel()
@@ -400,7 +400,7 @@ export const Button = React.forwardRef(function Button(
   })
 
   const childrenFactory = (
-    render: aria.ButtonRenderProps | aria.LinkRenderProps
+    render: aria.ButtonRenderProps | aria.LinkRenderProps,
   ): React.ReactNode => {
     const iconComponent = (() => {
       if (icon == null) {
@@ -448,12 +448,12 @@ export const Button = React.forwardRef(function Button(
         // onPress on EXTRA_CLICK_ZONE, but onPress{start,end} are triggered
         onPressEnd: handlePress,
         className: aria.composeRenderProps(className, (classNames, states) =>
-          base({ className: classNames, ...states })
+          base({ className: classNames, ...states }),
         ),
       })}
     >
       {/* @ts-expect-error any here is safe because we transparently pass it to the children, and ts infer the type outside correctly */}
-      {render => (
+      {(render) => (
         <>
           <span className={wrapper()}>
             <span ref={contentRef} className={content({ className: contentClassName })}>
@@ -472,17 +472,15 @@ export const Button = React.forwardRef(function Button(
     </Tag>
   )
 
-  return tooltipElement == null ? (
-    button
-  ) : (
-    <ariaComponents.TooltipTrigger delay={0} closeDelay={0}>
-      {button}
+  return tooltipElement == null ? button : (
+      <ariaComponents.TooltipTrigger delay={0} closeDelay={0}>
+        {button}
 
-      <ariaComponents.Tooltip
-        {...(tooltipPlacement != null ? { placement: tooltipPlacement } : {})}
-      >
-        {tooltipElement}
-      </ariaComponents.Tooltip>
-    </ariaComponents.TooltipTrigger>
-  )
+        <ariaComponents.Tooltip
+          {...(tooltipPlacement != null ? { placement: tooltipPlacement } : {})}
+        >
+          {tooltipElement}
+        </ariaComponents.Tooltip>
+      </ariaComponents.TooltipTrigger>
+    )
 })

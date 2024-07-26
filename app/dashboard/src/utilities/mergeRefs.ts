@@ -3,7 +3,7 @@ import type * as React from 'react'
 
 /** Merge multiple refs into a single ref callback. */
 export function mergeRefs<T>(...refs: (React.Ref<T> | null | undefined)[]): React.RefCallback<T> {
-  return value => {
+  return (value) => {
     for (const ref of refs) {
       if (ref != null) {
         if (typeof ref === 'function') {

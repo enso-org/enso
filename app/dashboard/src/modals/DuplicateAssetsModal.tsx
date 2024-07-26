@@ -128,7 +128,7 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
   const doUpdate = (toUpdate: ConflictingAsset[]) => {
     dispatchAssetEvent({
       type: AssetEventType.updateFiles,
-      files: new Map(toUpdate.map(asset => [asset.current.id, asset.file])),
+      files: new Map(toUpdate.map((asset) => [asset.current.id, asset.file])),
     })
   }
 
@@ -142,11 +142,11 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
       type: AssetListEventType.insertAssets,
       parentKey,
       parentId,
-      assets: clonedConflicts.map(conflict => conflict.new),
+      assets: clonedConflicts.map((conflict) => conflict.new),
     })
     dispatchAssetEvent({
       type: AssetEventType.uploadFiles,
-      files: new Map(clonedConflicts.map(conflict => [conflict.new.id, conflict.file])),
+      files: new Map(clonedConflicts.map((conflict) => [conflict.new.id, conflict.file])),
     })
   }
 
@@ -156,35 +156,35 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
         data-testid="new-label-modal"
         tabIndex={-1}
         className="pointer-events-auto relative flex w-duplicate-assets-modal flex-col gap-modal rounded-default p-modal-wide pt-modal before:absolute before:inset before:h-full before:w-full before:rounded-default before:bg-selected-frame before:backdrop-blur-default"
-        onClick={event => {
+        onClick={(event) => {
           event.stopPropagation()
         }}
-        onSubmit={event => {
+        onSubmit={(event) => {
           event.preventDefault()
         }}
       >
         <aria.Heading level={2} className="relative text-sm font-semibold">
-          {conflictingFiles.length > 0
-            ? conflictingProjects.length > 0
-              ? getText('duplicateFilesAndProjectsFound')
-              : getText('duplicateFilesFound')
-            : getText('duplicateProjectsFound')}
+          {conflictingFiles.length > 0 ?
+            conflictingProjects.length > 0 ?
+              getText('duplicateFilesAndProjectsFound')
+            : getText('duplicateFilesFound')
+          : getText('duplicateProjectsFound')}
         </aria.Heading>
         {nonConflictingFileCount > 0 ||
           (nonConflictingProjectCount > 0 && (
             <div className="relative flex flex-col">
               {nonConflictingFileCount > 0 && (
                 <aria.Text className="text">
-                  {nonConflictingFileCount === 1
-                    ? getText('fileWithoutConflicts')
-                    : getText('filesWithoutConflicts', nonConflictingFileCount)}
+                  {nonConflictingFileCount === 1 ?
+                    getText('fileWithoutConflicts')
+                  : getText('filesWithoutConflicts', nonConflictingFileCount)}
                 </aria.Text>
               )}
               {nonConflictingProjectCount > 0 && (
                 <aria.Text className="text">
-                  {nonConflictingProjectCount === 1
-                    ? getText('projectWithoutConflicts')
-                    : getText('projectsWithoutConflicts', nonConflictingFileCount)}
+                  {nonConflictingProjectCount === 1 ?
+                    getText('projectWithoutConflicts')
+                  : getText('projectsWithoutConflicts', nonConflictingFileCount)}
                 </aria.Text>
               )}
               <ariaComponents.Button
@@ -222,11 +222,11 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
                     doUpdate([firstConflict])
                     switch (firstConflict.new.type) {
                       case backendModule.AssetType.file: {
-                        setConflictingFiles(oldConflicts => oldConflicts.slice(1))
+                        setConflictingFiles((oldConflicts) => oldConflicts.slice(1))
                         break
                       }
                       case backendModule.AssetType.project: {
-                        setConflictingProjects(oldConflicts => oldConflicts.slice(1))
+                        setConflictingProjects((oldConflicts) => oldConflicts.slice(1))
                         break
                       }
                     }
@@ -240,19 +240,19 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
                     doRename([firstConflict])
                     switch (firstConflict.new.type) {
                       case backendModule.AssetType.file: {
-                        setConflictingFiles(oldConflicts => oldConflicts.slice(1))
+                        setConflictingFiles((oldConflicts) => oldConflicts.slice(1))
                         break
                       }
                       case backendModule.AssetType.project: {
-                        setConflictingProjects(oldConflicts => oldConflicts.slice(1))
+                        setConflictingProjects((oldConflicts) => oldConflicts.slice(1))
                         break
                       }
                     }
                   }}
                 >
-                  {firstConflict.new.type === backendModule.AssetType.file
-                    ? getText('renameNewFile')
-                    : getText('renameNewProject')}
+                  {firstConflict.new.type === backendModule.AssetType.file ?
+                    getText('renameNewFile')
+                  : getText('renameNewProject')}
                 </ariaComponents.Button>
               </ariaComponents.ButtonGroup>
             )}
@@ -260,16 +260,16 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
         )}
         {otherFilesCount > 0 && (
           <aria.Text className="relative">
-            {otherFilesCount === 1
-              ? getText('andOtherFile')
-              : getText('andOtherFiles', otherFilesCount)}
+            {otherFilesCount === 1 ?
+              getText('andOtherFile')
+            : getText('andOtherFiles', otherFilesCount)}
           </aria.Text>
         )}
         {otherProjectsCount > 0 && (
           <aria.Text className="relative">
-            {otherProjectsCount === 1
-              ? getText('andOtherProject')
-              : getText('andOtherProjects', otherProjectsCount)}
+            {otherProjectsCount === 1 ?
+              getText('andOtherProject')
+            : getText('andOtherProjects', otherProjectsCount)}
           </aria.Text>
         )}
         <ariaComponents.ButtonGroup className="relative">
@@ -291,13 +291,13 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
               doRename([...conflictingFiles, ...conflictingProjects])
             }}
           >
-            {count === 1
-              ? firstConflict?.new.type === backendModule.AssetType.file
-                ? getText('renameNewFile')
-                : getText('renameNewProject')
-              : firstConflict?.new.type === backendModule.AssetType.file
-                ? getText('renameNewFiles')
-                : getText('renameNewProjects')}
+            {count === 1 ?
+              firstConflict?.new.type === backendModule.AssetType.file ?
+                getText('renameNewFile')
+              : getText('renameNewProject')
+            : firstConflict?.new.type === backendModule.AssetType.file ?
+              getText('renameNewFiles')
+            : getText('renameNewProjects')}
           </ariaComponents.Button>
           <ariaComponents.Button variant="cancel" onPress={unsetModal}>
             {getText('cancel')}

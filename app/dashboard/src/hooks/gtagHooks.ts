@@ -26,7 +26,7 @@ export function useGtagEvent() {
 export function gtagOpenCloseCallback(
   gtagEvent: ReturnType<typeof useGtagEvent>,
   openEvent: string,
-  closeEvent: string
+  closeEvent: string,
 ) {
   gtagEvent(openEvent)
 

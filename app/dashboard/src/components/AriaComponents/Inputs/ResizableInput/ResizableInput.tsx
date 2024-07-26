@@ -24,7 +24,7 @@ export interface ResizableInputProps extends aria.TextFieldProps {
  */
 export const ResizableInput = React.forwardRef(function ResizableInput(
   props: ResizableInputProps,
-  ref: React.ForwardedRef<HTMLTextAreaElement>
+  ref: React.ForwardedRef<HTMLTextAreaElement>,
 ) {
   const { value = '', placeholder = '', description = null, ...textFieldProps } = props
   const inputRef = React.useRef<HTMLTextAreaElement>(null)
@@ -36,7 +36,7 @@ export const ResizableInput = React.forwardRef(function ResizableInput(
       event.preventDefault()
       const text = event.clipboardData.getData('text/plain')
       document.execCommand('insertHTML', false, text)
-    }
+    },
   )
 
   React.useLayoutEffect(() => {
@@ -57,7 +57,7 @@ export const ResizableInput = React.forwardRef(function ResizableInput(
     <aria.TextField {...textFieldProps}>
       <div
         className={base()}
-        onClick={event => {
+        onClick={(event) => {
           if (event.target !== inputRef.current && inputRef.current) {
             inputRef.current.focus({ preventScroll: true })
           }

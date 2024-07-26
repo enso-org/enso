@@ -57,7 +57,7 @@ const COMPONENT_PER_PLAN: Record<backendModule.Plan, ComponentForPlan> = {
     features: 'freePlanFeatures',
     title: constants.PLAN_TO_TEXT_ID['free'],
     subtitle: 'freePlanSubtitle',
-    submitButton: props => <SubscribeButton {...props} isDisabled={true} />,
+    submitButton: (props) => <SubscribeButton {...props} isDisabled={true} />,
   },
   [backendModule.Plan.solo]: {
     learnMore: () => {

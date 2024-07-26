@@ -85,7 +85,7 @@ export default function FileNameColumn(props: FileNameColumnProps) {
     }
   }
 
-  eventListProvider.useAssetEventListener(async event => {
+  eventListProvider.useAssetEventListener(async (event) => {
     if (isEditable) {
       switch (event.type) {
         case AssetEventType.newProject:
@@ -159,14 +159,14 @@ export default function FileNameColumn(props: FileNameColumnProps) {
     <div
       className={tailwindMerge.twMerge(
         'flex h-table-row min-w-max items-center gap-name-column-icon whitespace-nowrap rounded-l-full px-name-column-x py-name-column-y',
-        indent.indentClass(item.depth)
+        indent.indentClass(item.depth),
       )}
-      onKeyDown={event => {
+      onKeyDown={(event) => {
         if (rowState.isEditingName && event.key === 'Enter') {
           event.stopPropagation()
         }
       }}
-      onClick={event => {
+      onClick={(event) => {
         if (handleClick(event)) {
           // Already handled.
         } else if (eventModule.isSingleClick(event) && selected) {
@@ -181,7 +181,7 @@ export default function FileNameColumn(props: FileNameColumnProps) {
         data-testid="asset-row-name"
         editable={rowState.isEditingName}
         className="text grow bg-transparent font-naming"
-        checkSubmittable={newTitle =>
+        checkSubmittable={(newTitle) =>
           item.isNewTitleValid(newTitle, nodeMap.current.get(item.directoryKey)?.children)
         }
         onSubmit={doRename}

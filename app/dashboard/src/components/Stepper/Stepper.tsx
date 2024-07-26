@@ -140,9 +140,9 @@ export function Stepper(props: StepperProps) {
     <div
       className={classes.base({
         className:
-          typeof props.className === 'function'
-            ? props.className(baseRenderProps)
-            : props.className,
+          typeof props.className === 'function' ?
+            props.className(baseRenderProps)
+          : props.className,
       })}
       style={style}
     >
@@ -336,8 +336,14 @@ function Step(props: StepProps) {
 
   const styles = STEP_STYLES({
     className: classes,
-    position: isFirst ? 'first' : isLast ? 'last' : undefined,
-    status: isCompleted ? 'completed' : isCurrent ? 'current' : 'next',
+    position:
+      isFirst ? 'first'
+      : isLast ? 'last'
+      : undefined,
+    status:
+      isCompleted ? 'completed'
+      : isCurrent ? 'current'
+      : 'next',
   })
 
   const stepAnimationRotation = 45
@@ -397,25 +403,21 @@ function Step(props: StepProps) {
       <div className={styles.titleContainer()}>
         {titleElement != null && (
           <div>
-            {typeof titleElement === 'string' ? (
+            {typeof titleElement === 'string' ?
               <ariaComponents.Text nowrap color="current">
                 {titleElement}
               </ariaComponents.Text>
-            ) : (
-              titleElement
-            )}
+            : titleElement}
           </div>
         )}
 
         {descriptionElement != null && (
           <div>
-            {typeof descriptionElement === 'string' ? (
+            {typeof descriptionElement === 'string' ?
               <ariaComponents.Text variant="body" color="current" truncate="2">
                 {descriptionElement}
               </ariaComponents.Text>
-            ) : (
-              descriptionElement
-            )}
+            : descriptionElement}
           </div>
         )}
       </div>

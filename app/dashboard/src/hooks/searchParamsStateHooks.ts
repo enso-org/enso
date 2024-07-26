@@ -38,7 +38,7 @@ type SearchParamsStateReturnType<T> = Readonly<
 export function useSearchParamsState<T = unknown>(
   key: string,
   defaultValue: T | (() => T),
-  predicate: (unknown: unknown) => unknown is T = (unknown): unknown is T => true
+  predicate: (unknown: unknown) => unknown is T = (unknown): unknown is T => true,
 ): SearchParamsStateReturnType<T> {
   const [searchParams, setSearchParams] = reactRouterDom.useSearchParams()
 
@@ -63,8 +63,8 @@ export function useSearchParamsState<T = unknown>(
     const maybeValue = searchParams.get(prefixedKey)
     const defaultValueFrom = lazyDefaultValueInitializer()
 
-    return maybeValue != null
-      ? safeJsonParse.safeJsonParse(maybeValue, defaultValueFrom, (unknown): unknown is T => true)
+    return maybeValue != null ?
+        safeJsonParse.safeJsonParse(maybeValue, defaultValueFrom, (unknown): unknown is T => true)
       : defaultValueFrom
   }, [prefixedKey, lazyDefaultValueInitializer, searchParams])
 
@@ -107,7 +107,7 @@ export function useSearchParamsState<T = unknown>(
 export function useSearchParamsStateNonReactive<T = unknown>(
   key: string,
   defaultValue: T | (() => T),
-  predicate: (unknown: unknown) => unknown is T = (unknown): unknown is T => true
+  predicate: (unknown: unknown) => unknown is T = (unknown): unknown is T => true,
 ): SearchParamsStateReturnType<T> {
   const [searchParams, setSearchParams] = reactRouterDom.useSearchParams()
 
@@ -132,8 +132,8 @@ export function useSearchParamsStateNonReactive<T = unknown>(
     const maybeValue = searchParams.get(prefixedKey)
     const defaultValueFrom = lazyDefaultValueInitializer()
 
-    return maybeValue != null
-      ? safeJsonParse.safeJsonParse(maybeValue, defaultValueFrom, (unknown): unknown is T => true)
+    return maybeValue != null ?
+        safeJsonParse.safeJsonParse(maybeValue, defaultValueFrom, (unknown): unknown is T => true)
       : defaultValueFrom
   }, [prefixedKey, lazyDefaultValueInitializer, searchParams])
 

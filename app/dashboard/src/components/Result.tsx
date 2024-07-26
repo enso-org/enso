@@ -111,40 +111,32 @@ export function Result(props: ResultProps) {
 
   return (
     <section className={classes.base({ className })} data-testid={testId}>
-      {showIcon ? (
+      {showIcon ?
         <>
-          {statusIcon != null ? (
+          {statusIcon != null ?
             <div className={classes.statusIcon({ className: statusIcon.bgClassName })}>
-              {typeof statusIcon.icon === 'string' ? (
+              {typeof statusIcon.icon === 'string' ?
                 <SvgMask
                   src={icon ?? statusIcon.icon}
                   className={classes.icon({ className: statusIcon.colorClassName })}
                 />
-              ) : (
-                statusIcon.icon
-              )}
+              : statusIcon.icon}
             </div>
-          ) : (
-            status
-          )}
+          : status}
         </>
-      ) : null}
+      : null}
 
-      {typeof title === 'string' ? (
+      {typeof title === 'string' ?
         <ariaComponents.Text.Heading level={2} className={classes.title()} variant="subtitle">
           {title}
         </ariaComponents.Text.Heading>
-      ) : (
-        title
-      )}
+      : title}
 
-      {typeof subtitle === 'string' ? (
+      {typeof subtitle === 'string' ?
         <ariaComponents.Text elementType="p" className={classes.subtitle()} balance variant="body">
           {subtitle}
         </ariaComponents.Text>
-      ) : (
-        subtitle
-      )}
+      : subtitle}
 
       {children != null && <div className={classes.content()}>{children}</div>}
     </section>

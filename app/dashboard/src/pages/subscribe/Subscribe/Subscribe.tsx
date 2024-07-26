@@ -12,8 +12,8 @@ import * as textProvider from '#/providers/TextProvider'
 
 import * as ariaComponents from '#/components/AriaComponents'
 
-import * as backendModule from '#/services/Backend'
 import * as paymentModule from '#/modules/payments'
+import * as backendModule from '#/services/Backend'
 
 /** A page in which the currently active payment plan can be changed.
  *
@@ -66,7 +66,7 @@ export function Subscribe() {
           plan={chosenPlan}
           showFreePlan={false}
           userPlan={user.plan}
-          onSubscribeSuccess={plan => {
+          onSubscribeSuccess={(plan) => {
             navigate({ pathname: appUtils.SUBSCRIBE_SUCCESS_PATH, search: `plan=${plan}` })
           }}
         />

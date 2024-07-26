@@ -76,7 +76,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
   const setAsset = setAssetHooks.useSetAsset(asset, setItem)
   const ownPermission =
     asset.permissions?.find(
-      backendModule.isUserPermissionAnd(permission => permission.user.userId === user.userId)
+      backendModule.isUserPermissionAnd((permission) => permission.user.userId === user.userId),
     ) ?? null
   // This is a workaround for a temporary bad state in the backend causing the `projectState` key
   // to be absent.
@@ -135,7 +135,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
     }
   }
 
-  eventListProvider.useAssetEventListener(async event => {
+  eventListProvider.useAssetEventListener(async (event) => {
     if (isEditable) {
       switch (event.type) {
         case AssetEventType.newFolder:
@@ -173,22 +173,22 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
             rowState.setVisibility(Visibility.faded)
             try {
               const createdProject =
-                event.originalId == null || event.versionId == null
-                  ? await createProjectMutation.mutateAsync([
-                      {
-                        parentDirectoryId: asset.parentId,
-                        projectName: asset.title,
-                        ...(event.templateId == null
-                          ? {}
-                          : { projectTemplateName: event.templateId }),
-                        ...(event.datalinkId == null ? {} : { datalinkId: event.datalinkId }),
-                      },
-                    ])
-                  : await duplicateProjectMutation.mutateAsync([
-                      event.originalId,
-                      event.versionId,
-                      asset.title,
-                    ])
+                event.originalId == null || event.versionId == null ?
+                  await createProjectMutation.mutateAsync([
+                    {
+                      parentDirectoryId: asset.parentId,
+                      projectName: asset.title,
+                      ...(event.templateId == null ?
+                        {}
+                      : { projectTemplateName: event.templateId }),
+                      ...(event.datalinkId == null ? {} : { datalinkId: event.datalinkId }),
+                    },
+                  ])
+                : await duplicateProjectMutation.mutateAsync([
+                    event.originalId,
+                    event.versionId,
+                    asset.title,
+                  ])
               rowState.setVisibility(Visibility.visible)
               setAsset(
                 object.merge(asset, {
@@ -196,7 +196,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                   projectState: object.merge(projectState, {
                     type: backendModule.ProjectState.placeholder,
                   }),
-                })
+                }),
               )
               doOpenProject({
                 id: createdProject.projectId,
@@ -270,7 +270,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                       title,
                       id: project.projectId,
                       projectState: project.state,
-                    })
+                    }),
                   )
                   return
                 }
@@ -305,14 +305,14 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
     <div
       className={tailwindMerge.twMerge(
         'flex h-table-row min-w-max items-center gap-name-column-icon whitespace-nowrap rounded-l-full px-name-column-x py-name-column-y',
-        indent.indentClass(item.depth)
+        indent.indentClass(item.depth),
       )}
-      onKeyDown={event => {
+      onKeyDown={(event) => {
         if (rowState.isEditingName && event.key === 'Enter') {
           event.stopPropagation()
         }
       }}
-      onClick={event => {
+      onClick={(event) => {
         if (rowState.isEditingName || isOtherUserUsingProject) {
           // The project should neither be edited nor opened in these cases.
         } else if (handleClick(event)) {
@@ -334,38 +334,37 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
         }
       }}
     >
-      {!canExecute ? (
+      {!canExecute ?
         <SvgMask src={NetworkIcon} className="m-name-column-icon size-4" />
-      ) : (
-        <ProjectIcon
+      : <ProjectIcon
           isOpened={isOpened}
           backend={backend}
           // This is a workaround for a temporary bad state in the backend causing the
           // `projectState` key to be absent.
           item={object.merge(asset, { projectState })}
         />
-      )}
+      }
       <EditableSpan
         data-testid="asset-row-name"
         editable={rowState.isEditingName}
         className={tailwindMerge.twMerge(
           'text grow bg-transparent font-naming',
           canExecute && !isOtherUserUsingProject && 'cursor-pointer',
-          rowState.isEditingName && 'cursor-text'
+          rowState.isEditingName && 'cursor-text',
         )}
-        checkSubmittable={newTitle =>
+        checkSubmittable={(newTitle) =>
           item.isNewTitleValid(newTitle, nodeMap.current.get(item.directoryKey)?.children)
         }
         onSubmit={doRename}
         onCancel={() => {
           setIsEditing(false)
         }}
-        {...(backend.type === backendModule.BackendType.local
-          ? {
-              inputPattern: validation.LOCAL_PROJECT_NAME_PATTERN,
-              inputTitle: getText('projectNameCannotBeEmpty'),
-            }
-          : {})}
+        {...(backend.type === backendModule.BackendType.local ?
+          {
+            inputPattern: validation.LOCAL_PROJECT_NAME_PATTERN,
+            inputTitle: getText('projectNameCannotBeEmpty'),
+          }
+        : {})}
       >
         {asset.title}
       </EditableSpan>

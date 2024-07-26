@@ -41,14 +41,14 @@ export const latestTermsOfService = reactQuery.queryOptions({
   queryKey: ['termsOfService', 'currentVersion'],
   queryFn: () =>
     fetch(new URL('/eula.json', process.env.ENSO_CLOUD_ENSO_HOST))
-      .then(response => {
+      .then((response) => {
         if (!response.ok) {
           throw new Error('Failed to fetch terms of service')
         } else {
           return response.json()
         }
       })
-      .then(data => {
+      .then((data) => {
         const schema = z.object({ hash: z.string() })
         return schema.parse(data)
       }),
@@ -78,21 +78,21 @@ export function TermsOfServiceModal() {
     ...(localVersionHash != null && {
       initialData: { hash: localVersionHash },
     }),
-    select: data => data.hash,
+    select: (data) => data.hash,
   })
 
   const isLatest = latestVersionHash === localVersionHash
   const isAccepted = localVersionHash != null
   const shouldDisplay = !(isAccepted && isLatest)
 
-  const formSchema = ariaComponents.Form.useFormSchema(schema =>
+  const formSchema = ariaComponents.Form.useFormSchema((schema) =>
     schema.object({
       agree: schema
         .boolean()
         // we accept only true
-        .refine(value => value, getText('licenseAgreementCheckboxError')),
+        .refine((value) => value, getText('licenseAgreementCheckboxError')),
       hash: schema.string(),
-    })
+    }),
   )
 
   if (shouldDisplay) {
@@ -129,7 +129,7 @@ export function TermsOfServiceModal() {
                           type="checkbox"
                           className={tailwindMerge.twMerge(
                             'flex size-4 cursor-pointer overflow-clip rounded-lg border border-primary outline-primary focus-visible:outline focus-visible:outline-2',
-                            isInvalid && 'border-red-700 text-red-500 outline-red-500'
+                            isInvalid && 'border-red-700 text-red-500 outline-red-500',
                           )}
                           id={checkboxId}
                           data-testid="terms-of-service-checkbox"

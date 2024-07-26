@@ -12,7 +12,7 @@ import * as inputBindingsModule from '#/configurations/inputBindings'
 export interface InputBindingsContextType extends inputBindingsModule.DashboardBindingNamespace {}
 
 const InputBindingsContext = React.createContext<InputBindingsContextType>(
-  inputBindingsModule.createBindings()
+  inputBindingsModule.createBindings(),
 )
 
 /** Props for a {@link InputBindingsProvider}. */
@@ -28,7 +28,7 @@ export interface InputBindingsProviderProps extends Readonly<React.PropsWithChil
 export default function InputBindingsProvider(props: InputBindingsProviderProps) {
   const { inputBindings: inputBindingsRaw, children } = props
   const [inputBindings, setInputBindings] = React.useState(
-    () => inputBindingsRaw ?? inputBindingsModule.createBindings()
+    () => inputBindingsRaw ?? inputBindingsModule.createBindings(),
   )
 
   React.useEffect(() => {

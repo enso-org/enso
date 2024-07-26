@@ -34,12 +34,12 @@ export function CloseButton(props: CloseButtonProps) {
   return (
     <button.Button
       variant="icon"
-      className={values =>
+      className={(values) =>
         tailwindMerge.twMerge(
           'bg-primary/30 hover:bg-red-500/80 focus-visible:bg-red-500/80 focus-visible:outline-offset-1',
           // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
           // @ts-expect-error ts fails to infer the type of the className prop
-          typeof className === 'function' ? className(values) : className
+          typeof className === 'function' ? className(values) : className,
         )
       }
       tooltip={tooltip}

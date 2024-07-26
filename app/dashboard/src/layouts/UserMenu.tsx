@@ -66,16 +66,16 @@ export default function UserMenu(props: UserMenuProps) {
         {...(!hidden ? { 'data-testid': 'user-menu' } : {})}
         className={tailwindMerge.twMerge(
           'absolute right-2 top-2 flex flex-col gap-user-menu rounded-default bg-selected-frame backdrop-blur-default transition-all duration-user-menu',
-          initialized ? 'w-user-menu p-user-menu' : 'size-row-h'
+          initialized ? 'w-user-menu p-user-menu' : 'size-row-h',
         )}
-        onClick={event => {
+        onClick={(event) => {
           event.stopPropagation()
         }}
       >
         <div
           className={tailwindMerge.twMerge(
             'flex items-center gap-icons overflow-hidden transition-all duration-user-menu',
-            initialized && 'px-menu-entry'
+            initialized && 'px-menu-entry',
           )}
         >
           <div className="flex size-row-h shrink-0 items-center overflow-clip rounded-full">
@@ -96,11 +96,11 @@ export default function UserMenu(props: UserMenuProps) {
         <div
           className={tailwindMerge.twMerge(
             'grid transition-all duration-user-menu',
-            initialized ? 'grid-rows-1fr' : 'grid-rows-0fr'
+            initialized ? 'grid-rows-1fr' : 'grid-rows-0fr',
           )}
         >
           <FocusArea direction="vertical">
-            {innerProps => (
+            {(innerProps) => (
               <div
                 aria-label={getText('userMenuLabel')}
                 className="flex flex-col overflow-hidden"

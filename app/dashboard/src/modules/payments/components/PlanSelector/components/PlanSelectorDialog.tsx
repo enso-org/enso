@@ -14,8 +14,8 @@ import { Dialog, Form, Input, Separator, Text } from '#/components/AriaComponent
 import { ErrorDisplay } from '#/components/ErrorBoundary'
 import { Suspense } from '#/components/Suspense'
 
-import { Plan } from '#/services/Backend'
 import { createSubscriptionPriceQuery } from '#/modules/payments'
+import { Plan } from '#/services/Backend'
 
 import { twMerge } from '#/utilities/tailwindMerge'
 
@@ -49,16 +49,21 @@ export function PlanSelectorDialog(props: PlanSelectorDialogProps) {
   const { getText, locale } = useText()
 
   const price = PRICE_PER_PLAN[plan]
-  const maxSeats = plan === Plan.enterprise ? Infinity : plan === Plan.team ? 10 : 1
+  const maxSeats =
+    plan === Plan.enterprise ? Infinity
+    : plan === Plan.team ? 10
+    : 1
 
   const form = Form.useForm({
-    schema: z =>
+    schema: (z) =>
       ADD_PAYMENT_METHOD_FORM_SCHEMA.extend({
         seats: z
           .number()
           .min(1)
           .max(maxSeats, { message: getText('wantMoreSeats') })
-          .refine(value => Number.isInteger(value), { message: getText('arbitraryFieldInvalid') }),
+          .refine((value) => Number.isInteger(value), {
+            message: getText('arbitraryFieldInvalid'),
+          }),
       }),
     defaultValues: { seats: 1 },
     mode: 'onChange',
@@ -68,7 +73,7 @@ export function PlanSelectorDialog(props: PlanSelectorDialogProps) {
 
   const formatter = React.useMemo(
     () => new Intl.NumberFormat(locale, { style: 'currency', currency: PRICE_CURRENCY }),
-    [locale]
+    [locale],
   )
 
   return (
@@ -85,10 +90,10 @@ export function PlanSelectorDialog(props: PlanSelectorDialogProps) {
         </Text.Heading>
 
         <Text variant="h1" weight="medium" disableLineHeightCompensation className="mb-2 block">
-          {isTrialing
-            ? getText('tryFree', TRIAL_DURATION_DAYS) +
-              getText('priceTemplate', formatter.format(price), getText('billedAnnually'))
-            : getText('priceTemplate', formatter.format(price), getText('billedAnnually'))}
+          {isTrialing ?
+            getText('tryFree', TRIAL_DURATION_DAYS) +
+            getText('priceTemplate', formatter.format(price), getText('billedAnnually'))
+          : getText('priceTemplate', formatter.format(price), getText('billedAnnually'))}
         </Text>
 
         <div>
@@ -141,7 +146,7 @@ export function PlanSelectorDialog(props: PlanSelectorDialogProps) {
                     elements={elements}
                     stripeInstance={stripe}
                     submitText={isTrialing ? getText('startTrial') : getText('subscribeSubmit')}
-                    onSubmit={paymentMethodId => onSubmit?.(paymentMethodId, seats)}
+                    onSubmit={(paymentMethodId) => onSubmit?.(paymentMethodId, seats)}
                   />
                 )}
               </StripeProvider>
@@ -199,7 +204,7 @@ function Summary(props: SummaryProps) {
         className={twMerge(
           '-ml-4 table table-auto border-spacing-x-4 transition-[filter] duration-200',
           (isLoading || isInvalid) && 'pointer-events-none blur-[4px]',
-          isLoading && 'animate-pulse duration-1000'
+          isLoading && 'animate-pulse duration-1000',
         )}
       >
         <div className="table-row">
