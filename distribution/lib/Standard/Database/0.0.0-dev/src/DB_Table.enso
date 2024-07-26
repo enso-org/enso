@@ -167,7 +167,6 @@ type DB_Table
        - index: The index of the value to get within the column.
        - if_missing: The value to use if the selector isn't present.
     @selector Widget_Helpers.make_column_name_selector
-    @index (t-> Widget.Numeric_Input minimum=0 maximum=t.row_count-1)
     @if_missing (make_any_selector add_text=True add_regex=True add_number=True add_boolean=True add_named_pattern=True add_date=True add_time=True add_date_time=True add_nothing=True)
     get_value : Text | Integer -> Integer -> Any -> Any
     get_value self selector:(Text | Integer)=0 index:Integer=0 ~if_missing=Nothing =
@@ -178,16 +177,17 @@ type DB_Table
        GROUP Standard.Base.Selections
        ICON select_row
        Gets a row from the table.
+       This is a live read from the database, so the results may change on
+       re-evaluation.
 
        Arguments:
        - index: The index of the row to get within the table.
        - if_missing: The value to use if the selector isn't present.
-    @index (t-> Widget.Numeric_Input minimum=0 maximum=t.row_count-1)
     get_row : Integer -> Any -> Any
     get_row self index:Integer=0 ~if_missing=Nothing =
-        if index < -self.row_count || index >= self.row_count then if_missing else
-            if index == -1 then self.last_row else
-                real_row = (if index < 0 then index + self.row_count else index)
+        if index == -1 then self.last_row else
+            real_row = (if index < 0 then index + self.row_count else index)
+            if real_row < 0 then if_missing else
                 self.rows real_row+1 . get real_row if_missing
 
     ## ALIAS first cell
