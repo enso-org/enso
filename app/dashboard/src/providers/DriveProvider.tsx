@@ -4,7 +4,7 @@ import * as React from 'react'
 import invariant from 'tiny-invariant'
 import * as zustand from 'zustand'
 
-import { type DirectoryAsset } from 'enso-common/src/services/Backend'
+import type { DirectoryAsset } from 'enso-common/src/services/Backend'
 
 import type AssetTreeNode from '#/utilities/AssetTreeNode'
 
