@@ -23,13 +23,10 @@ export interface FocusRingProps extends Readonly<Pick<aria.FocusRingProps, 'chil
 export default function FocusRing(props: FocusRingProps) {
   const { within = false, placement, children } = props
   const focusClass =
-    placement === 'outset'
-      ? 'focus-ring-outset'
-      : placement === 'before'
-        ? 'before:focus-ring'
-        : placement === 'after'
-          ? 'after:focus-ring'
-          : 'focus-ring'
+    placement === 'outset' ? 'focus-ring-outset'
+    : placement === 'before' ? 'before:focus-ring'
+    : placement === 'after' ? 'after:focus-ring'
+    : 'focus-ring'
 
   return (
     <aria.FocusRing within={within} focusRingClass={focusClass}>

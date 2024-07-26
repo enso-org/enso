@@ -73,7 +73,7 @@ export default function ResetPassword() {
       supportsOffline={supportsOffline}
       title={getText('resetYourPassword')}
       footer={<Link to={appUtils.LOGIN_PATH} icon={GoBackIcon} text={getText('goBackToLogin')} />}
-      onSubmit={async event => {
+      onSubmit={async (event) => {
         event.preventDefault()
         await doSubmit()
       }}

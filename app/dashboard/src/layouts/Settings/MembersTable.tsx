@@ -14,8 +14,8 @@ import UserRow from '#/layouts/Settings/UserRow'
 
 import * as aria from '#/components/aria'
 
-import * as backendModule from '#/services/Backend'
 import type Backend from '#/services/Backend'
+import * as backendModule from '#/services/Backend'
 
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 
@@ -48,30 +48,30 @@ export default function MembersTable(props: MembersTableProps) {
 
   const users = React.useMemo(
     () => backendListUsers ?? (populateWithSelf ? [userWithPlaceholder] : null),
-    [backendListUsers, populateWithSelf, userWithPlaceholder]
+    [backendListUsers, populateWithSelf, userWithPlaceholder],
   )
   const usersMap = React.useMemo(
-    () => new Map((users ?? []).map(member => [member.userId, member])),
-    [users]
+    () => new Map((users ?? []).map((member) => [member.userId, member])),
+    [users],
   )
 
   const { onScroll, shadowClassName } = scrollHooks.useStickyTableHeaderOnScroll(
     scrollContainerRef,
     bodyRef,
-    { trackShadowClass: true }
+    { trackShadowClass: true },
   )
 
   const { dragAndDropHooks } = aria.useDragAndDrop({
-    getItems: keys =>
-      [...keys].flatMap(key => {
+    getItems: (keys) =>
+      [...keys].flatMap((key) => {
         const userId = backendModule.UserId(String(key))
         const member = usersMap.get(userId)
         return member != null ? [{ [mimeTypes.USER_MIME_TYPE]: JSON.stringify(member) }] : []
       }),
-    renderDragPreview: items => {
+    renderDragPreview: (items) => {
       return (
         <div className="flex flex-col rounded-default bg-white backdrop-blur-default">
-          {items.flatMap(item => {
+          {items.flatMap((item) => {
             const payload = item[mimeTypes.USER_MIME_TYPE]
             if (payload == null) {
               return []
@@ -148,7 +148,7 @@ export default function MembersTable(props: MembersTableProps) {
           dependencies={[users]}
           className="select-text"
         >
-          {member => (
+          {(member) => (
             <UserRow
               id={member.userId}
               draggable={draggable}

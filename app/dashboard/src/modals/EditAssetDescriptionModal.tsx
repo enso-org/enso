@@ -56,15 +56,15 @@ export default function EditAssetDescriptionModal(props: EditAssetDescriptionMod
       <form
         data-testid="edit-description-modal"
         className="pointer-events-auto relative flex w-confirm-delete-modal flex-col gap-modal rounded-default p-modal-wide py-modal before:absolute before:inset before:h-full before:w-full before:rounded-default before:bg-selected-frame before:backdrop-blur-default"
-        onKeyDown={event => {
+        onKeyDown={(event) => {
           if (event.key !== 'Escape') {
             event.stopPropagation()
           }
         }}
-        onClick={event => {
+        onClick={(event) => {
           event.stopPropagation()
         }}
-        onSubmit={event => {
+        onSubmit={(event) => {
           event.preventDefault()
           mutate(description)
         }}
@@ -76,7 +76,7 @@ export default function EditAssetDescriptionModal(props: EditAssetDescriptionMod
           ref={textareaRef}
           className="relative h-16 resize-none rounded-default bg-selected-frame px-4 py-2"
           placeholder={getText('editAssetDescriptionModalPlaceholder')}
-          onChange={event => {
+          onChange={(event) => {
             setDescription(event.target.value)
           }}
           value={description}

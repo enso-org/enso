@@ -8,7 +8,7 @@ import * as actions from './actions'
 test.test('members settings', async ({ page }) => {
   const api = await actions.mockAllAndLoginAndExposeAPI({
     page,
-    setupAPI: theApi => {
+    setupAPI: (theApi) => {
       theApi.setPlan(backend.Plan.enterprise)
       // Setup
       theApi.setCurrentOrganization(theApi.defaultOrganization)

@@ -8,9 +8,9 @@ import type BaseActions from './BaseActions'
 
 /** An action to open the User Menu. */
 export function openUserMenuAction<T extends BaseActions>(
-  step: (name: string, callback: baseActions.PageCallback) => T
+  step: (name: string, callback: baseActions.PageCallback) => T,
 ) {
-  return step('Open user menu', page =>
-    page.getByAltText('User Settings').locator('visible=true').click()
+  return step('Open user menu', (page) =>
+    page.getByAltText('User Settings').locator('visible=true').click(),
   )
 }

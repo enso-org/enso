@@ -51,7 +51,7 @@ export default function ModalProvider(props: ModalProviderProps) {
         {children}
       </ModalStaticProvider>
     ),
-    [children]
+    [children],
   )
   return <ModalContext.Provider value={{ modal }}>{setModalProvider}</ModalContext.Provider>
 }

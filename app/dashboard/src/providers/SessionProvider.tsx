@@ -79,7 +79,7 @@ export default function SessionProvider(props: SessionProviderProps) {
 
   // stabilize the callback so that it doesn't change on every render
   const saveAccessTokenEventCallback = eventCallback.useEventCallback(
-    (accessToken: cognito.UserSession) => saveAccessToken?.(accessToken)
+    (accessToken: cognito.UserSession) => saveAccessToken?.(accessToken),
   )
 
   const httpClient = httpClientProvider.useHttpClient()
@@ -93,8 +93,9 @@ export default function SessionProvider(props: SessionProviderProps) {
     httpClient.setSessionToken(session.data.accessToken)
   }
 
-  const timeUntilRefresh = session.data
-    ? // If the session has not expired, we should refresh it when it is 5 minutes from expiring.
+  const timeUntilRefresh =
+    session.data ?
+      // If the session has not expired, we should refresh it when it is 5 minutes from expiring.
       new Date(session.data.expireAt).getTime() - Date.now() - FIVE_MINUTES_MS
     : Infinity
 
@@ -125,7 +126,7 @@ export default function SessionProvider(props: SessionProviderProps) {
   // means the login screen (which is a child of this provider) should render.
   React.useEffect(
     () =>
-      registerAuthEventListener?.(event => {
+      registerAuthEventListener?.((event) => {
         switch (event) {
           case listen.AuthEvent.signIn:
           case listen.AuthEvent.signOut: {
@@ -148,7 +149,7 @@ export default function SessionProvider(props: SessionProviderProps) {
           }
         }
       }),
-    [registerAuthEventListener, mainPageUrl, queryClient, sessionQuery.queryKey]
+    [registerAuthEventListener, mainPageUrl, queryClient, sessionQuery.queryKey],
   )
 
   React.useEffect(() => {

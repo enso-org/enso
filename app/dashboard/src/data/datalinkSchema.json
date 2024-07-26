@@ -14,10 +14,7 @@
     },
     "SecureValue": {
       "title": "Secure Value",
-      "anyOf": [
-        { "title": "Text", "type": "string" },
-        { "$ref": "#/$defs/EnsoSecret" }
-      ]
+      "anyOf": [{ "title": "Text", "type": "string" }, { "$ref": "#/$defs/EnsoSecret" }]
     },
     "EnsoSecret": {
       "title": "Enso Secret",
@@ -237,13 +234,7 @@
         },
         "table": { "title": "Table to access", "type": "string" }
       },
-      "required": [
-        "type",
-        "libraryName",
-        "account",
-        "database_name",
-        "credentials"
-      ]
+      "required": ["type", "libraryName", "account", "database_name", "credentials"]
     },
 
     "Format": {

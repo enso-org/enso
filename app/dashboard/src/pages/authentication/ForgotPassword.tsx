@@ -37,7 +37,7 @@ export default function ForgotPassword() {
       title={getText('forgotYourPassword')}
       footer={<Link to={appUtils.LOGIN_PATH} icon={GoBackIcon} text={getText('goBackToLogin')} />}
       supportsOffline={supportsOffline}
-      onSubmit={async event => {
+      onSubmit={async (event) => {
         event.preventDefault()
         await forgotPassword(email)
       }}

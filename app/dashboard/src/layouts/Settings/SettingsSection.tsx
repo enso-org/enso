@@ -27,7 +27,7 @@ export default function SettingsSection(props: SettingsSectionProps) {
 
   return (
     <FocusArea active={focusArea} direction="vertical">
-      {innerProps => (
+      {(innerProps) => (
         <div className="flex w-full flex-col gap-settings-section-header" {...innerProps}>
           {!heading ? null : (
             <aria.Heading level={2} className="h-[2.375rem] py-0.5 text-xl font-bold">

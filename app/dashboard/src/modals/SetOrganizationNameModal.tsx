@@ -41,7 +41,7 @@ export function SetOrganizationNameModal() {
     queryKey: ['organization', userId],
     queryFn: () => backend.getOrganization().catch(() => null),
     staleTime: Infinity,
-    select: data => data?.name ?? '',
+    select: (data) => data?.name ?? '',
   })
 
   const submit = reactQuery.useMutation({
@@ -65,14 +65,14 @@ export function SetOrganizationNameModal() {
         <ariaComponents.Form
           gap="medium"
           defaultValues={{ name: '' }}
-          schema={ariaComponents.Form.useFormSchema(z =>
+          schema={ariaComponents.Form.useFormSchema((z) =>
             z.object({
               name: z
                 .string()
                 .min(1, getText('arbitraryFieldRequired'))
                 // eslint-disable-next-line @typescript-eslint/no-magic-numbers
                 .max(255, getText('arbitraryFieldTooLong')),
-            })
+            }),
           )}
           onSubmit={({ name }) => submit.mutateAsync(name)}
         >
@@ -91,12 +91,12 @@ export function SetOrganizationNameModal() {
                   </aria.Label>
 
                   <aria.Input
-                    className={values =>
+                    className={(values) =>
                       tailwindMerge.twMerge(
                         'rounded-md border border-gray-300 p-1.5 text-sm transition-[outline]',
                         (values.isFocused || values.isFocusVisible) &&
                           'outline outline-2 outline-primary',
-                        values.isInvalid && 'border-red-500 outline-red-500'
+                        values.isInvalid && 'border-red-500 outline-red-500',
                       )
                     }
                   />

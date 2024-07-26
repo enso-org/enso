@@ -43,16 +43,14 @@ export default function Label(props: InternalLabelProps) {
   const { children: childrenRaw } = props
   const focusDirection = focusDirectionProvider.useFocusDirection()
   const handleFocusMove = focusHooks.useHandleFocusMove(focusDirection)
-  const textClass = /\btext-/.test(className)
-    ? '' // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-    : color.lightness <= 50
-      ? 'text-tag-text'
-      : 'text-primary'
+  const textClass =
+    /\btext-/.test(className) ?
+      '' // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+    : color.lightness <= 50 ? 'text-tag-text'
+    : 'text-primary'
 
   const children =
-    typeof childrenRaw !== 'string' ? (
-      childrenRaw
-    ) : (
+    typeof childrenRaw !== 'string' ? childrenRaw : (
       <ariaComponents.Text truncate="1" className="max-w-24" color="invert" variant="body">
         {childrenRaw}
       </ariaComponents.Text>
@@ -63,7 +61,7 @@ export default function Label(props: InternalLabelProps) {
       <div
         className={tailwindMerge.twMerge(
           'relative rounded-full after:pointer-events-none after:absolute after:inset after:rounded-inherit',
-          negated && 'after:!outline-offset-0'
+          negated && 'after:!outline-offset-0',
         )}
       >
         {/* An `aria.Button` MUST NOT be used here, as it breaks dragging. */}
@@ -79,14 +77,14 @@ export default function Label(props: InternalLabelProps) {
             active && 'active',
             negated && 'after:border-2 after:border-delete',
             className,
-            textClass
+            textClass,
           )}
           style={{ backgroundColor: backend.lChColorToCssColor(color) }}
-          onClick={event => {
+          onClick={(event) => {
             event.stopPropagation()
             onPress(event)
           }}
-          onDragStart={e => {
+          onDragStart={(e) => {
             onDragStart?.(e)
           }}
           onContextMenu={onContextMenu}

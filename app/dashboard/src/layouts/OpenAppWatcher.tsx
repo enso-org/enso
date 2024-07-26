@@ -39,7 +39,7 @@ export function OpenAppWatcher() {
     () => () => {
       logUserCloseAppMutate()
     },
-    [logUserCloseAppMutate]
+    [logUserCloseAppMutate],
   )
 
   React.useEffect(() => {

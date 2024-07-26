@@ -35,8 +35,8 @@ class DragPayloadManager<Payload> {
 
   /** Tries to get the payload associated with a {@link React.DragEvent}. */
   lookup(event: React.DragEvent) {
-    const item = Array.from(event.dataTransfer.items).find(dataTransferItem =>
-      dataTransferItem.type.startsWith(this.mimetype)
+    const item = Array.from(event.dataTransfer.items).find((dataTransferItem) =>
+      dataTransferItem.type.startsWith(this.mimetype),
     )
     const id = item?.type.match(this.regex)?.[1] ?? null
     return id != null ? this.map.get(id) ?? null : null
@@ -65,7 +65,7 @@ class DragPayloadManager<Payload> {
 // ============================
 
 export const ASSET_ROWS = new DragPayloadManager<AssetRowsDragPayload>(
-  'application/x-enso-asset-list'
+  'application/x-enso-asset-list',
 )
 
 /** Metadata for an asset row. */

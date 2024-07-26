@@ -66,14 +66,13 @@ export default function SettingsTab(props: SettingsTabProps) {
     return <SettingsPaywall feature={paywallFeature} />
   } else {
     const content =
-      columns.length === 1 ? (
+      columns.length === 1 ?
         <div className="flex grow flex-col gap-settings-subsection overflow-auto" {...contentProps}>
-          {sections.map(section => (
+          {sections.map((section) => (
             <SettingsSection key={section.nameId} context={context} data={section} />
           ))}
         </div>
-      ) : (
-        <div
+      : <div
           className="flex min-h-full grow flex-col gap-settings-section overflow-auto lg:h-auto lg:flex-row"
           {...contentProps}
         >
@@ -82,16 +81,15 @@ export default function SettingsTab(props: SettingsTabProps) {
               key={i}
               className={tailwindMerge.twMerge(
                 'flex flex-1 flex-col gap-settings-subsection',
-                classes[i]
+                classes[i],
               )}
             >
-              {sectionsInColumn.map(section => (
+              {sectionsInColumn.map((section) => (
                 <SettingsSection key={section.nameId} context={context} data={section} />
               ))}
             </div>
           ))}
         </div>
-      )
 
     return (
       <errorBoundary.ErrorBoundary>

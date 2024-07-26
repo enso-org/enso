@@ -2,8 +2,8 @@
 import { merge } from 'enso-common/src/utilities/data/object'
 import * as permissions from 'enso-common/src/utilities/permissions'
 
-import * as categoryModule from '#/layouts/CategorySwitcher/Category'
 import type Category from '#/layouts/CategorySwitcher/Category'
+import * as categoryModule from '#/layouts/CategorySwitcher/Category'
 
 import * as backend from '#/services/Backend'
 
@@ -32,7 +32,7 @@ export const EXEC_CLASS_NAME = 'text-tag-text bg-permission-exec'
  * else return an empty array (`[]`). */
 export function tryGetSingletonOwnerPermission(
   owner: backend.User | null,
-  category: Category
+  category: Category,
 ): readonly backend.AssetPermission[] {
   switch (category.type) {
     case categoryModule.CategoryType.team: {
@@ -61,7 +61,7 @@ export function tryGetSingletonOwnerPermission(
 /** Try to find a permission belonging to the user. */
 export function tryFindSelfPermission(
   self: backend.User,
-  otherPermissions: readonly backend.AssetPermission[] | null
+  otherPermissions: readonly backend.AssetPermission[] | null,
 ) {
   let selfPermission: backend.AssetPermission | null = null
   for (const permission of otherPermissions ?? []) {
@@ -74,7 +74,7 @@ export function tryFindSelfPermission(
     }
     if (
       'userGroup' in permission &&
-      (self.userGroups ?? []).every(groupId => groupId !== permission.userGroup.id)
+      (self.userGroups ?? []).every((groupId) => groupId !== permission.userGroup.id)
     ) {
       continue
     }
@@ -103,11 +103,11 @@ export function canPermissionModifyDirectoryContents(permission: permissions.Per
 /** Replace the first owner permission with the permission of a new user or team. */
 export function replaceOwnerPermission(
   asset: backend.AnyAsset,
-  newOwner: backend.User | backend.UserGroupInfo
+  newOwner: backend.User | backend.UserGroupInfo,
 ) {
   let found = false
   const newPermissions =
-    asset.permissions?.map(permission => {
+    asset.permissions?.map((permission) => {
       if (found || permission.permission !== permissions.PermissionAction.own) {
         return permission
       } else {
@@ -147,17 +147,17 @@ export function isTeamPath(path: string) {
 export function newOwnerFromPath(
   path: string,
   users: readonly backend.User[],
-  userGroups: readonly backend.UserGroupInfo[]
+  userGroups: readonly backend.UserGroupInfo[],
 ) {
   const [, userName] = path.match(USER_PATH_REGEX) ?? []
   if (userName != null) {
     const userNameLowercase = userName.toLowerCase()
-    return users.find(user => user.name.toLowerCase() === userNameLowercase)
+    return users.find((user) => user.name.toLowerCase() === userNameLowercase)
   } else {
     const [, teamName] = path.match(TEAM_PATH_REGEX) ?? []
     if (teamName != null) {
       const teamNameLowercase = teamName.toLowerCase()
-      return userGroups.find(userGroup => userGroup.groupName === teamNameLowercase)
+      return userGroups.find((userGroup) => userGroup.groupName === teamNameLowercase)
     } else {
       return
     }

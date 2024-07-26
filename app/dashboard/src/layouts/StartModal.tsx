@@ -24,7 +24,7 @@ export default function StartModal(props: StartModalProps) {
 
   return (
     <ariaComponents.Dialog type="fullscreen" title={getText('selectTemplate')}>
-      {opts => (
+      {(opts) => (
         <div className="mb-4 flex flex-1 flex-col gap-home text-xs text-primary">
           <ariaComponents.Text
             elementType="p"
