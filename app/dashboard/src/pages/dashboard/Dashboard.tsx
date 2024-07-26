@@ -130,54 +130,7 @@ function DashboardInner(props: DashboardProps) {
         shouldDefaultToCloud ? categoryModule.CategoryType.cloud : categoryModule.CategoryType.local
       return { type }
     },
-    (value): value is Category => {
-      if (typeof value !== 'object' || value == null) {
-        return false
-      } else if (!('type' in value) || typeof value.type !== 'string') {
-        return false
-      } else if (array.includes(Object.values(categoryModule.CategoryType), value.type)) {
-        switch (value.type) {
-          case categoryModule.CategoryType.user:
-          case categoryModule.CategoryType.team:
-          case categoryModule.CategoryType.localDirectory: {
-            if (!('homeDirectoryId' in value) || typeof value.homeDirectoryId !== 'string') {
-              return false
-            } else if (!('rootPath' in value) || typeof value.rootPath !== 'string') {
-              return false
-            } else {
-              switch (value.type) {
-                case categoryModule.CategoryType.user:
-                case categoryModule.CategoryType.localDirectory: {
-                  const narrowedValue = {
-                    type: value.type,
-                    rootPath: backendModule.Path(value.rootPath),
-                    homeDirectoryId: backendModule.DirectoryId(value.homeDirectoryId),
-                  } as const
-                  return categoryModule.isLocalCategory(narrowedValue) ? localBackend != null : true
-                }
-                case categoryModule.CategoryType.team: {
-                  const narrowedValue = {
-                    type: value.type,
-                    rootPath: backendModule.Path(value.rootPath),
-                    homeDirectoryId: backendModule.DirectoryId(value.homeDirectoryId),
-                    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any, no-restricted-syntax, @typescript-eslint/no-unsafe-member-access
-                    team: (value as any).team,
-                  } as const
-                  return categoryModule.isLocalCategory(narrowedValue) ? localBackend != null : true
-                }
-              }
-            }
-            break
-          }
-          default: {
-            const narrowedValue = { type: value.type } as const
-            return categoryModule.isLocalCategory(narrowedValue) ? localBackend != null : true
-          }
-        }
-      } else {
-        return false
-      }
-    },
+    (value): value is Category => categoryModule.CATEGORY_SCHEMA.safeParse(value).success,
   )
 
   const projectsStore = useProjectsStore()
