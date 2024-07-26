@@ -5,7 +5,7 @@ import { useMutation } from '@tanstack/react-query'
 
 import type * as text from 'enso-common/src/text'
 
-import { useBackendMutationOptions } from '#/hooks/backendHooks'
+import { backendMutationOptions } from '#/hooks/backendHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as textProvider from '#/providers/TextProvider'
@@ -61,7 +61,7 @@ export default function Permission(props: PermissionProps) {
   const assetTypeName = getText(ASSET_TYPE_TO_TEXT_ID[asset.type])
 
   const createPermission = useMutation(
-    useBackendMutationOptions(backend, 'createPermission'),
+    backendMutationOptions(backend, 'createPermission'),
   ).mutateAsync
 
   React.useEffect(() => {

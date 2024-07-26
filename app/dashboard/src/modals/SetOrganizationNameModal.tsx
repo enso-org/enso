@@ -4,7 +4,7 @@ import * as React from 'react'
 import { useMutation, useSuspenseQuery } from '@tanstack/react-query'
 import * as router from 'react-router'
 
-import { useBackendMutationOptions } from '#/hooks/backendHooks'
+import { backendMutationOptions } from '#/hooks/backendHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
@@ -47,7 +47,7 @@ export function SetOrganizationNameModal() {
   })
 
   const updateOrganization = useMutation(
-    useBackendMutationOptions(backend, 'updateOrganization'),
+    backendMutationOptions(backend, 'updateOrganization'),
   ).mutateAsync
 
   const shouldShowModal =

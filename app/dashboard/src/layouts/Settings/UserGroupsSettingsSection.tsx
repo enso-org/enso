@@ -6,7 +6,7 @@ import { useMutation } from '@tanstack/react-query'
 import * as mimeTypes from '#/data/mimeTypes'
 
 import {
-  useBackendMutationOptions,
+  backendMutationOptions,
   useListUserGroupsWithUsers,
   useListUsers,
 } from '#/hooks/backendHooks'
@@ -54,10 +54,10 @@ export default function UserGroupsSettingsSection(props: UserGroupsSettingsSecti
   const rootRef = React.useRef<HTMLDivElement>(null)
   const bodyRef = React.useRef<HTMLTableSectionElement>(null)
   const changeUserGroup = useMutation(
-    useBackendMutationOptions(backend, 'changeUserGroup'),
+    backendMutationOptions(backend, 'changeUserGroup'),
   ).mutateAsync
   const deleteUserGroup = useMutation(
-    useBackendMutationOptions(backend, 'deleteUserGroup'),
+    backendMutationOptions(backend, 'deleteUserGroup'),
   ).mutateAsync
   const usersMap = React.useMemo(
     () => new Map((users ?? []).map((otherUser) => [otherUser.userId, otherUser])),

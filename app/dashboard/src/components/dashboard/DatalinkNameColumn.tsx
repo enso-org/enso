@@ -5,7 +5,7 @@ import { useMutation } from '@tanstack/react-query'
 
 import DatalinkIcon from '#/assets/datalink.svg'
 
-import { useBackendMutationOptions } from '#/hooks/backendHooks'
+import { backendMutationOptions } from '#/hooks/backendHooks'
 import * as setAssetHooks from '#/hooks/setAssetHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
@@ -50,7 +50,7 @@ export default function DatalinkNameColumn(props: DatalinkNameColumnProps) {
   const asset = item.item
   const setAsset = setAssetHooks.useSetAsset(asset, setItem)
 
-  const createDatalinkMutation = useMutation(useBackendMutationOptions(backend, 'createDatalink'))
+  const createDatalinkMutation = useMutation(backendMutationOptions(backend, 'createDatalink'))
 
   const setIsEditing = (isEditingName: boolean) => {
     if (isEditable) {

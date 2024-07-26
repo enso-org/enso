@@ -4,7 +4,7 @@ import * as React from 'react'
 import { useMutation, useSuspenseQueries } from '@tanstack/react-query'
 import isEmail from 'validator/es/lib/isEmail'
 
-import { useBackendMutationOptions } from '#/hooks/backendHooks'
+import { backendMutationOptions } from '#/hooks/backendHooks'
 import * as billingHooks from '#/hooks/billing'
 import * as eventCallbackHooks from '#/hooks/eventCallbackHooks'
 
@@ -40,7 +40,7 @@ export function InviteUsersForm(props: InviteUsersFormProps) {
   const { isFeatureUnderPaywall, getFeature } = billingHooks.usePaywall({ plan: user.plan })
 
   const inviteUserMutation = useMutation(
-    useBackendMutationOptions(backend, 'inviteUser', {
+    backendMutationOptions(backend, 'inviteUser', {
       meta: { invalidates: [['listInvitations']], awaitInvalidates: true },
     }),
   )

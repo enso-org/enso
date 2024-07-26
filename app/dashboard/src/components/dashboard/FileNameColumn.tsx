@@ -3,7 +3,7 @@ import * as React from 'react'
 
 import { useMutation } from '@tanstack/react-query'
 
-import { useBackendMutationOptions } from '#/hooks/backendHooks'
+import { backendMutationOptions } from '#/hooks/backendHooks'
 import * as setAssetHooks from '#/hooks/setAssetHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
@@ -52,9 +52,9 @@ export default function FileNameColumn(props: FileNameColumnProps) {
   const setAsset = setAssetHooks.useSetAsset(asset, setItem)
   const isCloud = backend.type === backendModule.BackendType.remote
 
-  const updateFileMutation = useMutation(useBackendMutationOptions(backend, 'updateFile'))
+  const updateFileMutation = useMutation(backendMutationOptions(backend, 'updateFile'))
   const uploadFileMutation = useMutation(
-    useBackendMutationOptions(backend, 'uploadFile', {
+    backendMutationOptions(backend, 'uploadFile', {
       meta: {
         invalidates: [['assetVersions', item.item.id, item.item.title]],
         awaitInvalidates: true,

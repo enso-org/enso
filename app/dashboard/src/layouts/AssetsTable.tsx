@@ -10,7 +10,7 @@ import DropFilesImage from '#/assets/drop_files.svg'
 import * as mimeTypes from '#/data/mimeTypes'
 
 import * as autoScrollHooks from '#/hooks/autoScrollHooks'
-import { useBackendMutationOptions, useBackendQuery, useListTags } from '#/hooks/backendHooks'
+import { backendMutationOptions, useBackendQuery, useListTags } from '#/hooks/backendHooks'
 import * as intersectionHooks from '#/hooks/intersectionHooks'
 import * as projectHooks from '#/hooks/projectHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
@@ -629,7 +629,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     true,
   )
 
-  const updateSecret = useMutation(useBackendMutationOptions(backend, 'updateSecret')).mutateAsync
+  const updateSecret = useMutation(backendMutationOptions(backend, 'updateSecret')).mutateAsync
   React.useEffect(() => {
     previousCategoryRef.current = category
   })

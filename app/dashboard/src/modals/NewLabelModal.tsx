@@ -3,7 +3,7 @@ import * as React from 'react'
 
 import { useMutation } from '@tanstack/react-query'
 
-import { useBackendMutationOptions, useListTags } from '#/hooks/backendHooks'
+import { backendMutationOptions, useListTags } from '#/hooks/backendHooks'
 
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
@@ -54,7 +54,7 @@ export default function NewLabelModal(props: NewLabelModalProps) {
   const leastUsedColor = React.useMemo(() => backendModule.leastUsedColor(labels), [labels])
   const canSubmit = Boolean(value && !labelNames.has(value))
 
-  const createTag = useMutation(useBackendMutationOptions(backend, 'createTag')).mutate
+  const createTag = useMutation(backendMutationOptions(backend, 'createTag')).mutate
 
   const doSubmit = () => {
     if (value !== '') {

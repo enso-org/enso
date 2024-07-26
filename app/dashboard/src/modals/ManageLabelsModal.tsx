@@ -3,7 +3,7 @@ import * as React from 'react'
 
 import { useMutation } from '@tanstack/react-query'
 
-import { useBackendMutationOptions, useListTags } from '#/hooks/backendHooks'
+import { backendMutationOptions, useListTags } from '#/hooks/backendHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as modalProvider from '#/providers/ModalProvider'
@@ -75,8 +75,8 @@ export default function ManageLabelsModal<
   )
   const canCreateNewLabel = canSelectColor
 
-  const createTag = useMutation(useBackendMutationOptions(backend, 'createTag')).mutateAsync
-  const associateTag = useMutation(useBackendMutationOptions(backend, 'associateTag')).mutateAsync
+  const createTag = useMutation(backendMutationOptions(backend, 'createTag')).mutateAsync
+  const associateTag = useMutation(backendMutationOptions(backend, 'associateTag')).mutateAsync
 
   const setLabels = React.useCallback(
     (valueOrUpdater: React.SetStateAction<backendModule.LabelName[]>) => {

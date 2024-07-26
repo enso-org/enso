@@ -5,7 +5,7 @@ import { useMutation, useQuery } from '@tanstack/react-query'
 import * as toast from 'react-toastify'
 import isEmail from 'validator/es/lib/isEmail'
 
-import { useBackendMutationOptions } from '#/hooks/backendHooks'
+import { backendMutationOptions } from '#/hooks/backendHooks'
 import * as billingHooks from '#/hooks/billing'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
@@ -122,9 +122,9 @@ export default function ManagePermissionsModal<
     [user.userId, permissions, self.permission],
   )
 
-  const inviteUserMutation = useMutation(useBackendMutationOptions(remoteBackend, 'inviteUser'))
+  const inviteUserMutation = useMutation(backendMutationOptions(remoteBackend, 'inviteUser'))
   const createPermissionMutation = useMutation(
-    useBackendMutationOptions(remoteBackend, 'createPermission'),
+    backendMutationOptions(remoteBackend, 'createPermission'),
   )
 
   React.useEffect(() => {

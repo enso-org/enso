@@ -5,7 +5,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 
 import NetworkIcon from '#/assets/network.svg'
 
-import { useBackendMutationOptions } from '#/hooks/backendHooks'
+import { backendMutationOptions } from '#/hooks/backendHooks'
 import * as projectHooks from '#/hooks/projectHooks'
 import * as setAssetHooks from '#/hooks/setAssetHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
@@ -94,16 +94,14 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
   const isOtherUserUsingProject =
     isCloud && projectState.openedBy != null && projectState.openedBy !== user.email
 
-  const createProjectMutation = useMutation(useBackendMutationOptions(backend, 'createProject'))
-  const updateProjectMutation = useMutation(useBackendMutationOptions(backend, 'updateProject'))
-  const duplicateProjectMutation = useMutation(
-    useBackendMutationOptions(backend, 'duplicateProject'),
-  )
+  const createProjectMutation = useMutation(backendMutationOptions(backend, 'createProject'))
+  const updateProjectMutation = useMutation(backendMutationOptions(backend, 'updateProject'))
+  const duplicateProjectMutation = useMutation(backendMutationOptions(backend, 'duplicateProject'))
   const getProjectDetailsMutation = useMutation(
-    useBackendMutationOptions(backend, 'getProjectDetails'),
+    backendMutationOptions(backend, 'getProjectDetails'),
   )
   const uploadFileMutation = useMutation(
-    useBackendMutationOptions(backend, 'uploadFile', {
+    backendMutationOptions(backend, 'uploadFile', {
       meta: {
         invalidates: [['assetVersions', item.item.id, item.item.title]],
         awaitInvalidates: true,

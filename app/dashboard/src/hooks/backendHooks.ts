@@ -273,7 +273,7 @@ export function useBackendQuery<Method extends backendQuery.BackendMethods>(
 
 /** Wrap a backend method call in a React Query Mutation. */
 // eslint-disable-next-line no-restricted-syntax
-export const useBackendMutationOptions: <Method extends MutationMethod>(
+export const backendMutationOptions: <Method extends MutationMethod>(
   backend: Backend,
   method: Method,
   options?: Omit<
@@ -285,10 +285,9 @@ export const useBackendMutationOptions: <Method extends MutationMethod>(
     >,
     'mutationFn'
   >,
-) => ReturnType<typeof useBackendMutationOptionsInternal<Method>> =
-  useBackendMutationOptionsInternal
+) => ReturnType<typeof backendMutationOptionsInternal<Method>> = backendMutationOptionsInternal
 
-function useBackendMutationOptionsInternal<Method extends MutationMethod>(
+function backendMutationOptionsInternal<Method extends MutationMethod>(
   backend: Backend,
   method: Method,
   options?: Omit<
@@ -304,7 +303,7 @@ function useBackendMutationOptionsInternal<Method extends MutationMethod>(
   Error,
   Parameters<Backend[Method]>
 >
-function useBackendMutationOptionsInternal<Method extends MutationMethod>(
+function backendMutationOptionsInternal<Method extends MutationMethod>(
   backend: Backend | null,
   method: Method,
   options?: Omit<
@@ -325,7 +324,7 @@ function useBackendMutationOptionsInternal<Method extends MutationMethod>(
 // otherwise match all calls, and return a result that is too wide.
 // This signature is required because the last signature is the one that is picked up by generic
 // resolution - specifically the `typeof useBackendMutationInternal` above.
-function useBackendMutationOptionsInternal<Method extends MutationMethod>(
+function backendMutationOptionsInternal<Method extends MutationMethod>(
   backend: Backend,
   method: Method,
   options?: Omit<
@@ -342,7 +341,7 @@ function useBackendMutationOptionsInternal<Method extends MutationMethod>(
   Parameters<Backend[Method]>
 >
 /** Wrap a backend method call in a React Query Mutation. */
-function useBackendMutationOptionsInternal<Method extends MutationMethod>(
+function backendMutationOptionsInternal<Method extends MutationMethod>(
   backend: Backend | null,
   method: Method,
   options?: Omit<

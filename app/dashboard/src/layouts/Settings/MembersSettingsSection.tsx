@@ -3,7 +3,7 @@ import * as React from 'react'
 
 import { useMutation, useSuspenseQueries } from '@tanstack/react-query'
 
-import { useBackendMutationOptions } from '#/hooks/backendHooks'
+import { backendMutationOptions } from '#/hooks/backendHooks'
 import * as billingHooks from '#/hooks/billing'
 
 import * as authProvider from '#/providers/AuthProvider'
@@ -192,7 +192,7 @@ function RemoveMemberButton(props: RemoveMemberButtonProps) {
   const { getText } = textProvider.useText()
 
   const removeMutation = useMutation(
-    useBackendMutationOptions(backend, 'removeUser', {
+    backendMutationOptions(backend, 'removeUser', {
       mutationKey: [userId],
       meta: { invalidates: [['listUsers']], awaitInvalidates: true },
     }),
@@ -226,7 +226,7 @@ function RemoveInvitationButton(props: RemoveInvitationButtonProps) {
   const { getText } = textProvider.useText()
 
   const removeMutation = useMutation(
-    useBackendMutationOptions(backend, 'resendInvitation', {
+    backendMutationOptions(backend, 'resendInvitation', {
       mutationKey: [email],
       meta: { invalidates: [['listInvitations']], awaitInvalidates: true },
     }),
