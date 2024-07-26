@@ -7,9 +7,9 @@ import * as billing from '#/hooks/billing'
 
 import * as authProvider from '#/providers/AuthProvider'
 
-import type * as settingsData from '#/layouts/Settings/settingsData'
-import SettingsPaywall from '#/layouts/Settings/SettingsPaywall'
-import SettingsSection from '#/layouts/Settings/SettingsSection'
+import type * as settingsData from '#/pages/dashboard/Settings/settingsData'
+import SettingsPaywall from '#/pages/dashboard/Settings/SettingsPaywall'
+import SettingsSection from '#/pages/dashboard/Settings/SettingsSection'
 
 import * as errorBoundary from '#/components/ErrorBoundary'
 import * as loader from '#/components/Loader'

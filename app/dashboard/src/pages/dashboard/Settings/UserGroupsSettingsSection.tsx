@@ -12,8 +12,8 @@ import * as authProvider from '#/providers/AuthProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
-import UserGroupRow from '#/layouts/Settings/UserGroupRow'
-import UserGroupUserRow from '#/layouts/Settings/UserGroupUserRow'
+import UserGroupRow from '#/pages/dashboard/Settings/UserGroupRow'
+import UserGroupUserRow from '#/pages/dashboard/Settings/UserGroupUserRow'
 
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'

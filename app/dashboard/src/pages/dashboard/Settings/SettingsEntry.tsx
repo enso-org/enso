@@ -1,9 +1,9 @@
 /** @file Rendering for an arbitrary {@link SettingsEntryData}. */
 import * as React from 'react'
 
-import SettingsCustomEntry from '#/layouts/Settings/SettingsCustomEntry'
-import type { SettingsContext, SettingsEntryData } from '#/layouts/Settings/settingsData'
-import SettingsInputEntry from '#/layouts/Settings/SettingsInputEntry'
+import SettingsCustomEntry from '#/pages/dashboard/Settings/SettingsCustomEntry'
+import type { SettingsContext, SettingsEntryData } from '#/pages/dashboard/Settings/settingsData'
+import SettingsInputEntry from '#/pages/dashboard/Settings/SettingsInputEntry'
 
 // =====================
 // === SettingsEntry ===

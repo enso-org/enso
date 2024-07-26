@@ -24,7 +24,7 @@ import HttpClient from '#/utilities/HttpClient'
 
 export type { AccessToken } from '#/utilities/accessToken'
 
-export type { GraphEditorRunner } from '#/layouts/Editor'
+export type { GraphEditorRunner } from '#/pages/dashboard/Editor'
 
 // =================
 // === Constants ===

@@ -7,7 +7,7 @@ import {
   SETTINGS_DATA,
   type SettingsContext,
   type SettingsTabType,
-} from '#/layouts/Settings/settingsData'
+} from '#/pages/dashboard/Settings/settingsData'
 
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'

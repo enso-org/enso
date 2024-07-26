@@ -1,7 +1,7 @@
 /** @file Rendering for an {@link settingsData.SettingsCustomEntryData}. */
 import * as React from 'react'
 
-import type * as settingsData from '#/layouts/Settings/settingsData'
+import type * as settingsData from '#/pages/dashboard/Settings/settingsData'
 
 // ==========================
 // === SettingsCustomEntry ===

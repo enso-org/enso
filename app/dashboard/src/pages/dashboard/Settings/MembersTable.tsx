@@ -10,7 +10,7 @@ import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 import * as authProvider from '#/providers/AuthProvider'
 import * as textProvider from '#/providers/TextProvider'
 
-import UserRow from '#/layouts/Settings/UserRow'
+import UserRow from '#/pages/dashboard/Settings/UserRow'
 
 import * as aria from '#/components/aria'
 

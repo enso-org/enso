@@ -3,7 +3,7 @@ import * as React from 'react'
 
 import * as textProvider from '#/providers/TextProvider'
 
-import type * as settingsData from '#/layouts/Settings/settingsData'
+import type * as settingsData from '#/pages/dashboard/Settings/settingsData'
 
 import * as aria from '#/components/aria'
 import SettingsInput from '#/components/styled/SettingsInput'

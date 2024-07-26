@@ -1,6 +1,6 @@
 /** @file Constants related to the application root component. */
 import type { DriveCategory } from '#/layouts/CategorySwitcher/Category'
-import type { SettingsTabType } from '#/layouts/Settings/settingsData'
+import type { SettingsTabType } from '#/pages/dashboard/Settings/settingsData'
 
 // =================
 // === Constants ===

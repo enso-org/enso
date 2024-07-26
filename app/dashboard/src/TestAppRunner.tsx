@@ -1,5 +1,5 @@
 /** @file Placeholder component for GUI used during e2e tests. */
-import type * as editor from '#/layouts/Editor'
+import type * as editor from '#/pages/dashboard/Editor'
 
 /** Placeholder component for GUI used during e2e tests. */
 export function TestAppRunner(props: editor.GraphEditorProps) {

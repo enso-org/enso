@@ -71,9 +71,9 @@ import Dashboard from '#/pages/dashboard/Dashboard'
 import * as subscribe from '#/pages/subscribe/Subscribe'
 import * as subscribeSuccess from '#/pages/subscribe/SubscribeSuccess'
 
-import type * as editor from '#/layouts/Editor'
 import * as openAppWatcher from '#/layouts/OpenAppWatcher'
 import VersionChecker from '#/layouts/VersionChecker'
+import type * as editor from '#/pages/dashboard/Editor'
 
 import * as devtools from '#/components/Devtools'
 import * as errorBoundary from '#/components/ErrorBoundary'

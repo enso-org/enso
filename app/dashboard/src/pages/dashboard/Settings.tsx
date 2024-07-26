@@ -15,9 +15,9 @@ import * as backendProvider from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import SearchBar from '#/layouts/SearchBar'
-import * as settingsData from '#/layouts/Settings/settingsData'
-import SettingsTab from '#/layouts/Settings/SettingsTab'
-import SettingsSidebar from '#/layouts/SettingsSidebar'
+import * as settingsData from '#/pages/dashboard/Settings/settingsData'
+import SettingsSidebar from '#/pages/dashboard/Settings/SettingsSidebar'
+import SettingsTab from '#/pages/dashboard/Settings/SettingsTab'
 
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
