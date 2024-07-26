@@ -1979,9 +1979,9 @@ type DB_Table
     @group_by Widget_Helpers.make_column_name_multi_selector
     @columns Widget_Helpers.make_aggregate_column_vector_selector
     aggregate : Vector (Integer | Text | Regex | Aggregate_Column) | Text | Integer | Regex -> Vector Aggregate_Column -> Boolean -> Problem_Behavior -> DB_Table ! No_Output_Columns | Invalid_Aggregate_Column | Invalid_Column_Names | Duplicate_Output_Column_Names | Floating_Point_Equality | Invalid_Aggregation | Unquoted_Delimiter | Additional_Warnings
-    aggregate self group_by=[] columns=[] (error_on_missing_columns:Boolean=False) (on_problems:Problem_Behavior=..Report_Warning) =
+    aggregate self group_by=[] columns=[..Count] (error_on_missing_columns:Boolean=False) (on_problems:Problem_Behavior=..Report_Warning) =
         normalized_group_by = Vector.unify_vector_or_element group_by
-        if normalized_group_by.is_empty && columns.is_empty then Error.throw (No_Output_Columns.Error "At least one column must be specified.") else
+        if normalized_group_by.is_empty && columns.is_empty then Error.throw (Illegal_Argument.Error "No columns specified in aggregate.") else
             ## This is a workaround for #10321 - if the source query contains an ORDER BY,
                we need to push it into a subquery to not interfere with aggregations.
             base_table = if self.context.orders.not_empty then self.as_subquery else self
