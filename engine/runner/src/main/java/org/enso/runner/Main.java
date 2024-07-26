@@ -692,26 +692,29 @@ public final class Main {
       options.put("engine.TraceCompilation", "true");
       options.put("engine.MultiTier", "false");
     }
+
+    var factory =
+        ContextFactory.create()
+            .projectRoot(projectRoot)
+            .logLevel(logLevel)
+            .logMasking(logMasking)
+            .enableIrCaches(enableIrCaches)
+            .disablePrivateCheck(disablePrivateCheck)
+            .strictErrors(true)
+            .enableAutoParallelism(enableAutoParallelism)
+            .enableStaticAnalysis(enableStaticAnalysis)
+            .executionEnvironment(executionEnvironment != null ? executionEnvironment : "live")
+            .warningsLimit(warningsLimit)
+            .options(options);
+
     if (inspect) {
       options.put("inspect", "");
+    } else {
+      // by default running with debug server enabled
+      factory.messageTransport(replTransport());
+      options.put(DebugServerInfo.ENABLE_OPTION, "true");
     }
-    var context =
-        new PolyglotContext(
-            ContextFactory.create()
-                .projectRoot(projectRoot)
-                .in(System.in)
-                .out(System.out)
-                .logLevel(logLevel)
-                .logMasking(logMasking)
-                .enableIrCaches(enableIrCaches)
-                .disablePrivateCheck(disablePrivateCheck)
-                .strictErrors(true)
-                .enableAutoParallelism(enableAutoParallelism)
-                .enableStaticAnalysis(enableStaticAnalysis)
-                .executionEnvironment(executionEnvironment != null ? executionEnvironment : "live")
-                .warningsLimit(warningsLimit)
-                .options(options)
-                .build());
+    var context = new PolyglotContext(factory.build());
 
     if (projectMode) {
       var result = PackageManager$.MODULE$.Default().loadPackage(file);
@@ -912,21 +915,13 @@ public final class Main {
             .replace("$mainMethodName", mainMethodName);
     var replModuleName = "Internal_Repl_Module___";
     var projectRoot = projectPath != null ? projectPath : "";
-    var repl = new Repl(makeTerminalForRepl());
-    MessageTransport transport =
-        (uri, peer) ->
-            DebugServerInfo.URI.equals(uri.toString())
-                ? new DebuggerSessionManagerEndpoint(repl, peer)
-                : null;
     var options = Collections.singletonMap(DebugServerInfo.ENABLE_OPTION, "true");
 
     var context =
         new PolyglotContext(
             ContextFactory.create()
                 .projectRoot(projectRoot)
-                .in(System.in)
-                .out(System.out)
-                .messageTransport(transport)
+                .messageTransport(replTransport())
                 .options(options)
                 .logLevel(logLevel)
                 .logMasking(logMasking)
@@ -936,6 +931,16 @@ public final class Main {
     var mainModule = context.evalModule(dummySourceToTriggerRepl, replModuleName);
     runMain(mainModule, null, Collections.emptyList(), mainMethodName);
     throw exitSuccess();
+  }
+
+  private static MessageTransport replTransport() {
+    var repl = new Repl(makeTerminalForRepl());
+    MessageTransport transport =
+        (uri, peer) ->
+            DebugServerInfo.URI.equals(uri.toString())
+                ? new DebuggerSessionManagerEndpoint(repl, peer)
+                : null;
+    return transport;
   }
 
   /**
@@ -1379,7 +1384,7 @@ public final class Main {
               });
         } catch (IOException ex) {
           System.err.println(ex.getMessage());
-          exitFail();
+          throw exitFail();
         }
       } catch (WrongOption e) {
         System.err.println(e.getMessage());
