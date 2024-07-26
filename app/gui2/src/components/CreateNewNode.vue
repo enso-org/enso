@@ -6,6 +6,11 @@ import { Pattern } from '@/util/ast/match'
 import type { NodeCreationOptions } from './GraphEditor/nodeCreation'
 
 type SortDirection = 'asc' | 'desc'
+export type SortModel = {
+  columnName: string
+  sortDirection: SortDirection
+  sortIndex: number
+}
 
 const props = defineProps<{
   filterModel: {
@@ -14,22 +19,22 @@ const props = defineProps<{
       filterType: string
     }
   }
-  sortModel: Map<string, SortDirection>
+  sortModel: SortModel[]
 }>()
 
 const config = useVisualizationConfig()
 
 const makeSortPattern = () => {
-  console.log(props.sortModel)
   const sortMapping = {
     asc: '..Ascending',
     desc: '..Descending',
   }
-  const sorts = []
-  for (let [key, value] of props.sortModel) {
-    sorts.push(`(..Name '${key}' ${sortMapping[value]})`)
-  }
-  return sorts
+  return props.sortModel
+    .filter((sort) => sort?.columnName)
+    .sort((a, b) => a.sortIndex - b.sortIndex)
+    .map((sort) => {
+      return `(..Name '${sort.columnName}' ${sortMapping[sort.sortDirection]})`
+    })
 }
 
 function getAstPatternSort() {
@@ -72,7 +77,7 @@ const createNewNodes = () => {
       patterns.push(filterPatterns)
     }
   }
-  if (props.sortModel?.size) {
+  if (Object.keys(props.sortModel).length) {
     const patSort = getAstPatternSort()
     patterns.push(patSort)
   }

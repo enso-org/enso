@@ -1,6 +1,6 @@
 <script lang="ts">
 import icons from '@/assets/icons.svg'
-import CreateNewNode from '@/components/CreateNewNode.vue'
+import CreateNewNode, { type SortModel } from '@/components/CreateNewNode.vue'
 import {
   clipboardNodeData,
   tsvTableToEnsoExpression,
@@ -143,7 +143,7 @@ const isTruncated = ref(false)
 const tableNode = ref<HTMLElement>()
 const isCreateNodeVisible = ref(false)
 const filterModel = ref({})
-const sortModel = ref(new Map())
+const sortModel = ref<SortModel[]>([])
 const dataGroupingMap = shallowRef<Map<string, boolean>>()
 useAutoBlur(tableNode)
 const widths = reactive(new Map<string, number>())
@@ -655,19 +655,18 @@ function checkSortAndFilter() {
   const colState =
     agGridOptions.value.columnApi ? agGridOptions.value.columnApi.getColumnState() : []
   const filter = columnApi.getFilterModel()
-  const sort = new Map<string, string>()
-  colState.map((cs) => {
+  const sort = colState.map((cs) => {
     if (cs.sort) {
-      sort.set(cs.colId, cs.sort)
+      return { columnName: cs.colId, sortDirection: cs.sort, sortIndex: cs.sortIndex } as SortModel
     }
   })
-  if (sort.size || Object.keys(filter).length) {
+  if (sort.length || Object.keys(filter).length) {
     isCreateNodeVisible.value = true
-    sortModel.value = sort
+    sortModel.value = sort as SortModel[]
     filterModel.value = filter
   } else {
     isCreateNodeVisible.value = false
-    sortModel.value = new Map()
+    sortModel.value = []
     filterModel.value = {}
   }
 }
