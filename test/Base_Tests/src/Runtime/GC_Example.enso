@@ -15,9 +15,12 @@ type My_Resource
 
 close_resource resource = resource.close
 
-repeat_cleanup_until_done counter println =
+repeat_cleanup_until_done holder counter println =
     go i =
         if counter.get == 0 then Nothing else
+            if i % 100 == 3 then
+                println "Releasing holder with resources: "+holder.get.length.to_text
+                holder.put []
             if i % 100 == 0 then
                 println "Still "+counter.get.to_text+" resources to clean up..."
             Runtime.gc
@@ -25,14 +28,18 @@ repeat_cleanup_until_done counter println =
     go 1
 
 perform_test n:Integer println =
-
+    resource_holder = Ref.new Nothing
     counter = Ref.new 0
-    println "Allocating "+n.to_text+" resources..."
-    0.up_to n . each _->
-        My_Resource.allocate counter
 
-    println "Cleaning up..."
-    repeat_cleanup_until_done counter println
+    println "Allocating "+n.to_text+" resources..."
+    allocate_resources ref =
+        all = 0.up_to n . map _->
+            My_Resource.allocate counter
+        ref.put all
+    allocate_resources resource_holder
+
+    println "Cleaning up... "+resource_holder.get.length.to_text+" resources"
+    repeat_cleanup_until_done resource_holder counter println
     println "All cleaned up! Remaining: "+counter.get.to_text
     counter.get
 
