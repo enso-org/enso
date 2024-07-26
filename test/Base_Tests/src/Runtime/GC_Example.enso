@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Runtime.Managed_Resource.Managed_Resource
 import Standard.Base.Runtime.Ref.Ref
 
@@ -16,8 +17,13 @@ type My_Resource
 close_resource resource = resource.close
 
 repeat_cleanup_until_done counter println =
+    deadline = Date_Time.now + (Duration.new minutes=5)
     go i =
         if counter.get == 0 then Nothing else
+            if Date_Time.now > deadline then
+                message = "Timeout has been reached, but there are "+counter.get.to_text+" resources remaining that were not cleaned up."
+                println message
+                Panic.throw (Illegal_State.Error message)
             if i % 100 == 0 then
                 println "Still "+counter.get.to_text+" resources to clean up..."
             Runtime.gc
@@ -35,7 +41,7 @@ perform_test n:Integer println =
         ref.put all
     allocate_resources resource_holder
 
-    println "Cleaning up... "+resource_holder.get.length.to_text+" resources"
+    println "Cleaning up "+resource_holder.get.length.to_text+" resources"
     # We replace the vector with Nothing to make the resources inaccessible and schedule them for GC
     resource_holder.put Nothing
 
