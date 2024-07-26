@@ -28,7 +28,7 @@ public abstract class ModNode extends IntegerNode {
     try {
       return self % that;
     } catch (ArithmeticException e) {
-      return DataflowError.withoutTrace(
+      return DataflowError.withDefaultTrace(
           EnsoContext.get(this).getBuiltins().error().getDivideByZeroError(), this);
     }
   }
@@ -47,7 +47,7 @@ public abstract class ModNode extends IntegerNode {
     try {
       return toEnsoNumberNode.execute(BigIntegerOps.modulo(selfBigInt, that.getValue()));
     } catch (ArithmeticException e) {
-      return DataflowError.withoutTrace(
+      return DataflowError.withDefaultTrace(
           EnsoContext.get(this).getBuiltins().error().getDivideByZeroError(), this);
     }
   }
@@ -57,7 +57,7 @@ public abstract class ModNode extends IntegerNode {
     try {
       return toEnsoNumberNode.execute(BigIntegerOps.modulo(self.getValue(), that));
     } catch (ArithmeticException e) {
-      return DataflowError.withoutTrace(
+      return DataflowError.withDefaultTrace(
           EnsoContext.get(this).getBuiltins().error().getDivideByZeroError(), this);
     }
   }
@@ -74,7 +74,7 @@ public abstract class ModNode extends IntegerNode {
     try {
       return toEnsoNumberNode.execute(BigIntegerOps.modulo(self.getValue(), that.getValue()));
     } catch (ArithmeticException e) {
-      return DataflowError.withoutTrace(
+      return DataflowError.withDefaultTrace(
           EnsoContext.get(this).getBuiltins().error().getDivideByZeroError(), this);
     }
   }
