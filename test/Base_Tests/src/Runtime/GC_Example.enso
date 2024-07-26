@@ -15,12 +15,9 @@ type My_Resource
 
 close_resource resource = resource.close
 
-repeat_cleanup_until_done holder counter println =
+repeat_cleanup_until_done counter println =
     go i =
         if counter.get == 0 then Nothing else
-            if i % 100 == 3 then
-                println "Releasing holder with resources: "+holder.get.length.to_text
-                holder.put []
             if i % 100 == 0 then
                 println "Still "+counter.get.to_text+" resources to clean up..."
             Runtime.gc
@@ -39,10 +36,12 @@ perform_test n:Integer println =
     allocate_resources resource_holder
 
     println "Cleaning up... "+resource_holder.get.length.to_text+" resources"
-    repeat_cleanup_until_done resource_holder counter println
+    # We replace the vector with Nothing to make the resources inaccessible and schedule them for GC
+    resource_holder.put Nothing
+
+    repeat_cleanup_until_done counter println
     println "All cleaned up! Remaining: "+counter.get.to_text
     counter.get
 
 main n=1000000 =
     perform_test n IO.println
-
