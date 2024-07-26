@@ -15,6 +15,7 @@ import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.profiles.ConditionProfile;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.hash.EnsoHashMap;
+import org.enso.interpreter.runtime.data.hash.HashMapInsertAllNode;
 import org.enso.interpreter.runtime.data.hash.HashMapInsertNode;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeAtNode;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeLengthNode;
@@ -114,31 +115,15 @@ public abstract class AppendWarningNode extends Node {
       VirtualFrame frame,
       WithWarnings withWarnings,
       EnsoHashMap newWarnsMap,
-      @Shared @CachedLibrary(limit = "3") InteropLibrary interop,
-      @Exclusive @Cached ConditionProfile hasCachedVecReprProfile,
-      @Shared @Cached HashMapInsertNode mapInsertNode) {
+      @Cached HashMapInsertAllNode mapInsertAllNode) {
     if (withWarnings.isLimitReached()) {
       return withWarnings;
     }
     var maxWarns = withWarnings.maxWarnings;
-    var newWarnsEntriesVec = newWarnsMap.getCachedVectorRepresentation(hasCachedVecReprProfile);
     var warnsMap = withWarnings.warnings;
     var curWarnsCnt = warnsMap.getHashSize();
-    try {
-      for (long i = 0; i < interop.getArraySize(newWarnsEntriesVec); i++) {
-        if (curWarnsCnt >= maxWarns) {
-          break;
-        }
-        var entry = interop.readArrayElement(newWarnsEntriesVec, i);
-        var key = interop.readArrayElement(entry, 0);
-        var value = interop.readArrayElement(entry, 1);
-        warnsMap = mapInsertNode.execute(frame, warnsMap, key, value);
-        curWarnsCnt++;
-      }
-    } catch (UnsupportedMessageException | InvalidArrayIndexException e) {
-      throw CompilerDirectives.shouldNotReachHere(e);
-    }
-    var isLimitReached = curWarnsCnt >= maxWarns;
+    warnsMap = mapInsertAllNode.executeInsertAll(frame, warnsMap, newWarnsMap, maxWarns - curWarnsCnt);
+    var isLimitReached = withWarnings.warnings.getHashSize() + newWarnsMap.getHashSize() >= maxWarns;
     return new WithWarnings(withWarnings.value, withWarnings.maxWarnings, isLimitReached, warnsMap);
   }
 
@@ -147,7 +132,7 @@ public abstract class AppendWarningNode extends Node {
       VirtualFrame frame,
       Object object,
       Object warnings,
-      @Shared @CachedLibrary(limit = "3") InteropLibrary interop,
+      @CachedLibrary(limit = "3") InteropLibrary interop,
       @Shared @Cached HashMapInsertNode mapInsertNode,
       @Cached ArrayLikeAtNode atNode,
       @Cached ArrayLikeLengthNode lengthNode,
