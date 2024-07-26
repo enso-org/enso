@@ -3,6 +3,7 @@ import SvgButton from '@/components/SvgButton.vue'
 import { useVisualizationConfig } from '@/providers/visualizationConfig'
 import { Ast } from '@/util/ast'
 import { Pattern } from '@/util/ast/match'
+import type { NodeCreationOptions } from './GraphEditor/nodeCreation'
 
 type SortDirection = 'asc' | 'desc'
 
@@ -30,7 +31,7 @@ const makeSortPattern = () => {
 
 const makeFilterPattern = () => {
   const columnName = Object.keys(props.filterModel)[0]
-  const items = props.filterModel[columnName || '']?.values.map((item) => `'${item}'`)
+  const items = props.filterModel[columnName || '']?.values.map((item) => `"${item}"`)
   return `'${columnName}' (..Is_In [${items}] ..Keep)`
 }
 
@@ -52,19 +53,21 @@ function getAstPatternFilter() {
   )
 }
 
-const createNewNode = () => {
-  if (props.sortModel?.size) {
-    config.createNodes({
-      content: getAstPatternSort(),
-      commit: true,
-    })
-  }
+const createNewNodes = () => {
+  let patterns = new Array<any>()
   if (Object.keys(props.filterModel).length) {
-    config.createNodes({
-      content: getAstPatternFilter(),
-      commit: true,
-    })
+    const pat = getAstPatternFilter()
+    patterns.push(pat)
   }
+  if (props.sortModel?.size) {
+    const patSort = getAstPatternSort()
+    patterns.push(patSort)
+  }
+  config.createNodes(
+    ...patterns.map(
+      (pattern) => ({ content: pattern, commit: true }) satisfies NodeCreationOptions,
+    ),
+  )
 }
 </script>
 
@@ -72,7 +75,7 @@ const createNewNode = () => {
   <SvgButton
     name="add"
     :title="`Create new component(s) with the current grid's sort and filters applied to the workflow`"
-    @click="createNewNode()"
+    @click="createNewNodes()"
   />
 </template>
 
