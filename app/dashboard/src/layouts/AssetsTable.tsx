@@ -36,8 +36,7 @@ import type * as assetPanel from '#/layouts/AssetPanel'
 import type * as assetSearchBar from '#/layouts/AssetSearchBar'
 import * as eventListProvider from '#/layouts/AssetsTable/EventListProvider'
 import AssetsTableContextMenu from '#/layouts/AssetsTableContextMenu'
-import type Category from '#/layouts/CategorySwitcher/Category'
-import * as categoryModule from '#/layouts/CategorySwitcher/Category'
+import type { Category } from '#/layouts/CategorySwitcher/Category'
 
 import * as aria from '#/components/aria'
 import type * as assetRow from '#/components/dashboard/AssetRow'
@@ -301,16 +300,15 @@ interface DragSelectionInfo {
 // === Category to filter by ===
 // =============================
 
-const CATEGORY_TO_FILTER_BY: Readonly<
-  Record<categoryModule.CategoryType, backendModule.FilterBy | null>
-> = {
-  [categoryModule.CategoryType.cloud]: backendModule.FilterBy.active,
-  [categoryModule.CategoryType.local]: backendModule.FilterBy.active,
-  [categoryModule.CategoryType.recent]: null,
-  [categoryModule.CategoryType.trash]: backendModule.FilterBy.trashed,
-  [categoryModule.CategoryType.user]: backendModule.FilterBy.active,
-  [categoryModule.CategoryType.team]: backendModule.FilterBy.active,
-  [categoryModule.CategoryType.localDirectory]: backendModule.FilterBy.active,
+const CATEGORY_TO_FILTER_BY: Readonly<Record<Category['type'], backendModule.FilterBy | null>> = {
+  cloud: backendModule.FilterBy.active,
+  local: backendModule.FilterBy.active,
+  recent: null,
+  trash: backendModule.FilterBy.trashed,
+  user: backendModule.FilterBy.active,
+  team: backendModule.FilterBy.active,
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  'local-directory': backendModule.FilterBy.active,
 }
 
 // ===================
@@ -473,7 +471,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     ReadonlyMap<backendModule.AssetId, assetTreeNode.AnyAssetTreeNode>
   >(new Map<backendModule.AssetId, assetTreeNode.AnyAssetTreeNode>())
   const isAssetContextMenuVisible =
-    category.type !== categoryModule.CategoryType.cloud ||
+    category.type !== 'cloud' ||
     selectedKeys.size !== 0 ||
     user.plan == null ||
     user.plan === backendModule.Plan.solo
@@ -1021,7 +1019,7 @@ export default function AssetsTable(props: AssetsTableProps) {
       {
         parentId: rootDirectoryId,
         filterBy: CATEGORY_TO_FILTER_BY[category.type],
-        recentProjects: category.type === categoryModule.CategoryType.recent,
+        recentProjects: category.type === 'recent',
         labels: null,
       },
       // The root directory has no name. This is also SAFE, as there is a different error
@@ -1141,7 +1139,7 @@ export default function AssetsTable(props: AssetsTableProps) {
               {
                 parentId: directoryId,
                 filterBy: CATEGORY_TO_FILTER_BY[category.type],
-                recentProjects: category.type === categoryModule.CategoryType.recent,
+                recentProjects: category.type === 'recent',
                 labels: null,
               },
               displayedTitle,
@@ -1840,7 +1838,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         break
       }
       case AssetListEventType.emptyTrash: {
-        if (category.type !== categoryModule.CategoryType.trash) {
+        if (category.type !== 'trash') {
           toastAndLog('canOnlyEmptyTrashWhenInTrash')
         } else if (assetTree.children != null) {
           const ids = new Set(
@@ -2519,13 +2517,13 @@ export default function AssetsTable(props: AssetsTableProps) {
           {itemRows}
           <tr className="hidden h-row first:table-row">
             <td colSpan={columns.length} className="bg-transparent">
-              {category.type === categoryModule.CategoryType.trash ?
+              {category.type === 'trash' ?
                 <aria.Text className="px-cell-x placeholder">
                   {query.query !== '' ?
                     getText('noFilesMatchTheCurrentFilters')
                   : getText('yourTrashIsEmpty')}
                 </aria.Text>
-              : category.type === categoryModule.CategoryType.recent ?
+              : category.type === 'recent' ?
                 <aria.Text className="px-cell-x placeholder">
                   {query.query !== '' ?
                     getText('noFilesMatchTheCurrentFilters')
@@ -2545,9 +2543,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         data-testid="root-directory-dropzone"
         className={tailwindMerge.twMerge(
           'sticky left-0 grid max-w-container grow place-items-center',
-          (category.type === categoryModule.CategoryType.recent ||
-            category.type === categoryModule.CategoryType.trash) &&
-            'hidden',
+          (category.type === 'recent' || category.type === 'trash') && 'hidden',
         )}
         onDragEnter={onDropzoneDragOver}
         onDragOver={onDropzoneDragOver}

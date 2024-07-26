@@ -37,7 +37,6 @@ import AssetListEventType from '#/events/AssetListEventType'
 
 import type * as assetTable from '#/layouts/AssetsTable'
 import EventListProvider, * as eventListProvider from '#/layouts/AssetsTable/EventListProvider'
-import type Category from '#/layouts/CategorySwitcher/Category'
 import * as categoryModule from '#/layouts/CategorySwitcher/Category'
 import Chat from '#/layouts/Chat'
 import ChatPlaceholder from '#/layouts/ChatPlaceholder'
@@ -121,16 +120,16 @@ function DashboardInner(props: DashboardProps) {
     : null
   const initialProjectName = initialLocalProjectId ?? initialProjectNameRaw
 
-  const [category, setCategory] = searchParamsState.useSearchParamsState<Category>(
+  const [category, setCategory] = searchParamsState.useSearchParamsState<categoryModule.Category>(
     'driveCategory',
     () => {
       const shouldDefaultToCloud =
         initialLocalProjectId == null && (user.isEnabled || localBackend == null)
-      const type =
-        shouldDefaultToCloud ? categoryModule.CategoryType.cloud : categoryModule.CategoryType.local
+      const type = shouldDefaultToCloud ? 'cloud' : 'local'
       return { type }
     },
-    (value): value is Category => categoryModule.CATEGORY_SCHEMA.safeParse(value).success,
+    (value): value is categoryModule.Category =>
+      categoryModule.CATEGORY_SCHEMA.safeParse(value).success,
   )
 
   const projectsStore = useProjectsStore()
@@ -149,7 +148,7 @@ function DashboardInner(props: DashboardProps) {
 
   React.useEffect(() => {
     window.projectManagementApi?.setOpenProjectHandler((project) => {
-      setCategory({ type: categoryModule.CategoryType.local })
+      setCategory({ type: 'local' })
       const projectId = localBackendModule.newProjectId(projectManager.UUID(project.id))
       openProject({
         type: backendModule.BackendType.local,

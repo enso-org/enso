@@ -23,7 +23,6 @@ import type * as assetsTable from '#/layouts/AssetsTable'
 import AssetsTable from '#/layouts/AssetsTable'
 import * as eventListProvider from '#/layouts/AssetsTable/EventListProvider'
 import CategorySwitcher from '#/layouts/CategorySwitcher'
-import type Category from '#/layouts/CategorySwitcher/Category'
 import * as categoryModule from '#/layouts/CategorySwitcher/Category'
 import DriveBar from '#/layouts/DriveBar'
 import Labels from '#/layouts/Labels'
@@ -65,8 +64,8 @@ enum DriveStatus {
 
 /** Props for a {@link Drive}. */
 export interface DriveProps {
-  readonly category: Category
-  readonly setCategory: (category: Category) => void
+  readonly category: categoryModule.Category
+  readonly setCategory: (category: categoryModule.Category) => void
   readonly hidden: boolean
   readonly initialProjectName: string | null
   readonly assetsManagementApiRef: React.Ref<assetsTable.AssetManagementApi>
@@ -104,8 +103,8 @@ export default function Drive(props: DriveProps) {
   const [localRootDirectory] = localStorageProvider.useLocalStorageState('localRootDirectory')
   const rootDirectoryId = React.useMemo(() => {
     switch (category.type) {
-      case categoryModule.CategoryType.user:
-      case categoryModule.CategoryType.team: {
+      case 'user':
+      case 'team': {
         return category.homeDirectoryId
       }
       default: {
@@ -309,7 +308,7 @@ export default function Drive(props: DriveProps) {
                   {isCloud && (
                     <Labels
                       backend={backend}
-                      draggable={category.type !== categoryModule.CategoryType.trash}
+                      draggable={category.type !== 'trash'}
                       query={query}
                       setQuery={setQuery}
                     />
@@ -329,7 +328,7 @@ export default function Drive(props: DriveProps) {
                         size="small"
                         className="mx-auto"
                         onPress={() => {
-                          setCategory({ type: categoryModule.CategoryType.local })
+                          setCategory({ type: 'local' })
                         }}
                       >
                         {getText('switchToLocal')}
@@ -365,7 +364,7 @@ export default function Drive(props: DriveProps) {
                 item={assetPanelProps?.item ?? null}
                 setItem={assetPanelProps?.setItem ?? null}
                 category={category}
-                isReadonly={category.type === categoryModule.CategoryType.trash}
+                isReadonly={category.type === 'trash'}
               />
             </div>
           </div>

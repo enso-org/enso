@@ -29,8 +29,7 @@ import * as textProvider from '#/providers/TextProvider'
 import AssetEventType from '#/events/AssetEventType'
 
 import * as eventListProvider from '#/layouts/AssetsTable/EventListProvider'
-import type Category from '#/layouts/CategorySwitcher/Category'
-import { areCategoriesEqual, CategoryType } from '#/layouts/CategorySwitcher/Category'
+import { type Category, areCategoriesEqual } from '#/layouts/CategorySwitcher/Category'
 
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
@@ -100,19 +99,19 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
   const dispatchAssetEvent = eventListProvider.useDispatchAssetEvent()
   const getCategoryError = (otherCategory: Category) => {
     switch (otherCategory.type) {
-      case CategoryType.local:
-      case CategoryType.localDirectory: {
+      case 'local':
+      case 'local-directory': {
         if (localBackend == null) {
           return getText('localBackendNotDetectedError')
         } else {
           return null
         }
       }
-      case CategoryType.cloud:
-      case CategoryType.recent:
-      case CategoryType.trash:
-      case CategoryType.user:
-      case CategoryType.team: {
+      case 'cloud':
+      case 'recent':
+      case 'trash':
+      case 'user':
+      case 'team': {
         if (isOffline) {
           return getText('unavailableOffline')
         } else if (!user.isEnabled) {
@@ -130,10 +129,10 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
   const isDropTarget = (() => {
     if (areCategoriesEqual(category, currentCategory)) {
       return false
-    } else if (currentCategory.type === CategoryType.trash) {
+    } else if (currentCategory.type === 'trash') {
       switch (category.type) {
-        case CategoryType.trash:
-        case CategoryType.recent: {
+        case 'trash':
+        case 'recent': {
           return false
         }
         default: {
@@ -141,7 +140,7 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
         }
       }
     } else {
-      return category.type !== CategoryType.recent
+      return category.type !== 'recent'
     }
   })()
   const acceptedDragTypes = isDropTarget ? [mimeTypes.ASSETS_MIME_TYPE] : []
@@ -173,10 +172,7 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
       }),
     ).then((keys) => {
       dispatchAssetEvent({
-        type:
-          currentCategory.type === CategoryType.trash ?
-            AssetEventType.restore
-          : AssetEventType.delete,
+        type: currentCategory.type === 'trash' ? AssetEventType.restore : AssetEventType.delete,
         ids: new Set(keys.flat(1)),
       })
     })
@@ -316,7 +312,7 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
           >
             <CategorySwitcherItem
               {...itemProps}
-              category={{ type: CategoryType.cloud }}
+              category={{ type: 'cloud' }}
               icon={CloudIcon}
               label={getText('cloudCategory')}
               buttonLabel={getText('cloudCategoryButtonLabel')}
@@ -327,7 +323,7 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
                 {...itemProps}
                 isNested
                 category={{
-                  type: CategoryType.user,
+                  type: 'user',
                   rootPath: backend.Path(`enso://Users/${user.name}`),
                   homeDirectoryId: selfDirectoryId,
                 }}
@@ -340,7 +336,7 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
             <CategorySwitcherItem
               {...itemProps}
               isNested
-              category={{ type: CategoryType.recent }}
+              category={{ type: 'recent' }}
               icon={RecentIcon}
               label={getText('recentCategory')}
               buttonLabel={getText('recentCategoryButtonLabel')}
@@ -350,7 +346,7 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
             <CategorySwitcherItem
               {...itemProps}
               isNested
-              category={{ type: CategoryType.trash }}
+              category={{ type: 'trash' }}
               icon={Trash2Icon}
               label={getText('trashCategory')}
               buttonLabel={getText('trashCategoryButtonLabel')}
@@ -368,7 +364,7 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
                       {...itemProps}
                       isNested
                       category={{
-                        type: CategoryType.user,
+                        type: 'user',
                         rootPath: backend.Path(`enso://Users/${otherUser.name}`),
                         homeDirectoryId: userDirectory.id,
                       }}
@@ -390,7 +386,7 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
                       {...itemProps}
                       isNested
                       category={{
-                        type: CategoryType.team,
+                        type: 'team',
                         team,
                         rootPath: backend.Path(`enso://Teams/${team.groupName}`),
                         homeDirectoryId: teamDirectory.id,
@@ -407,7 +403,7 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
               <div className="group flex items-center self-stretch">
                 <CategorySwitcherItem
                   {...itemProps}
-                  category={{ type: CategoryType.local }}
+                  category={{ type: 'local' }}
                   icon={ComputerIcon}
                   label={getText('localCategory')}
                   buttonLabel={getText('localCategoryButtonLabel')}
@@ -434,7 +430,7 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
                     {...itemProps}
                     isNested
                     category={{
-                      type: CategoryType.localDirectory,
+                      type: 'local-directory',
                       rootPath: backend.Path(directory),
                       homeDirectoryId: newDirectoryId(backend.Path(directory)),
                     }}

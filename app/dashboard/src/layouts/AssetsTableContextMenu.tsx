@@ -9,7 +9,6 @@ import * as textProvider from '#/providers/TextProvider'
 import AssetEventType from '#/events/AssetEventType'
 
 import * as eventListProvider from '#/layouts/AssetsTable/EventListProvider'
-import type Category from '#/layouts/CategorySwitcher/Category'
 import * as categoryModule from '#/layouts/CategorySwitcher/Category'
 import GlobalContextMenu from '#/layouts/GlobalContextMenu'
 
@@ -35,7 +34,7 @@ import * as uniqueString from '#/utilities/uniqueString'
 export interface AssetsTableContextMenuProps {
   readonly hidden?: boolean
   readonly backend: Backend
-  readonly category: Category
+  readonly category: categoryModule.Category
   readonly rootDirectoryId: backendModule.DirectoryId
   readonly pasteData: pasteDataModule.PasteData<ReadonlySet<backendModule.AssetId>> | null
   readonly selectedKeys: ReadonlySet<backendModule.AssetId>
@@ -102,7 +101,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
     }
   }
 
-  if (category.type === categoryModule.CategoryType.trash) {
+  if (category.type === 'trash') {
     return selectedKeys.size === 0 ?
         null
       : <ContextMenus key={uniqueString.uniqueString()} hidden={hidden} event={event}>
@@ -148,7 +147,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
             )}
           </ContextMenu>
         </ContextMenus>
-  } else if (category.type === categoryModule.CategoryType.recent) {
+  } else if (category.type === 'recent') {
     return null
   } else {
     return (
@@ -200,7 +199,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
             )}
           </ContextMenu>
         )}
-        {(category.type !== categoryModule.CategoryType.cloud ||
+        {(category.type !== 'cloud' ||
           user.plan == null ||
           user.plan === backendModule.Plan.solo) && (
           <GlobalContextMenu

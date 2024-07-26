@@ -2,8 +2,7 @@
 import { merge } from 'enso-common/src/utilities/data/object'
 import * as permissions from 'enso-common/src/utilities/permissions'
 
-import type Category from '#/layouts/CategorySwitcher/Category'
-import * as categoryModule from '#/layouts/CategorySwitcher/Category'
+import type { Category } from '#/layouts/CategorySwitcher/Category'
 
 import * as backend from '#/services/Backend'
 
@@ -35,7 +34,7 @@ export function tryGetSingletonOwnerPermission(
   category: Category,
 ): readonly backend.AssetPermission[] {
   switch (category.type) {
-    case categoryModule.CategoryType.team: {
+    case 'team': {
       return [{ userGroup: category.team, permission: permissions.PermissionAction.own }]
     }
     default: {

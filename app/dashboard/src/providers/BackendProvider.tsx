@@ -6,8 +6,7 @@ import invariant from 'tiny-invariant'
 
 import * as common from 'enso-common'
 
-import type Category from '#/layouts/CategorySwitcher/Category'
-import * as categoryModule from '#/layouts/CategorySwitcher/Category'
+import { type Category, isCloudCategory } from '#/layouts/CategorySwitcher/Category'
 
 import type LocalBackend from '#/services/LocalBackend'
 import type RemoteBackend from '#/services/RemoteBackend'
@@ -97,7 +96,7 @@ export function useBackend(category: Category) {
   const remoteBackend = useRemoteBackendStrict()
   const localBackend = useLocalBackend()
 
-  if (categoryModule.isCloudCategory(category)) {
+  if (isCloudCategory(category)) {
     return remoteBackend
   } else {
     invariant(
