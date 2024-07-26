@@ -47,21 +47,21 @@ export default function ConfirmDeleteModal(props: ConfirmDeleteModalProps) {
       centered={positionEvent == null}
       className={tailwindMerge.twMerge(
         'bg-dim',
-        positionEvent != null && 'absolute size-full overflow-hidden'
+        positionEvent != null && 'absolute size-full overflow-hidden',
       )}
     >
       <form
         data-testid="confirm-delete-modal"
-        ref={element => {
+        ref={(element) => {
           element?.focus()
         }}
         tabIndex={-1}
         className="pointer-events-auto relative flex w-confirm-delete-modal flex-col gap-modal rounded-default p-modal-wide py-modal before:absolute before:inset before:h-full before:w-full before:rounded-default before:bg-selected-frame before:backdrop-blur-default"
         style={positionEvent == null ? {} : { left: positionEvent.pageX, top: positionEvent.pageY }}
-        onClick={event => {
+        onClick={(event) => {
           event.stopPropagation()
         }}
-        onSubmit={event => {
+        onSubmit={(event) => {
           event.preventDefault()
           doSubmit()
         }}

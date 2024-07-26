@@ -1,11 +1,14 @@
 /** @file Switcher to choose the currently visible assets table category. */
 import * as React from 'react'
 
+import { useSearchParams } from 'react-router-dom'
+
 import type * as text from 'enso-common/src/text'
 
 import CloudIcon from '#/assets/cloud.svg'
 import ComputerIcon from '#/assets/computer.svg'
 import RecentIcon from '#/assets/recent.svg'
+import SettingsIcon from '#/assets/settings.svg'
 import Trash2Icon from '#/assets/trash2.svg'
 
 import * as mimeTypes from '#/data/mimeTypes'
@@ -15,6 +18,7 @@ import * as offlineHooks from '#/hooks/offlineHooks'
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
+import { TabType, useSetPage } from '#/providers/ProjectsProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import AssetEventType from '#/events/AssetEventType'
@@ -107,8 +111,8 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
   return (
     <aria.DropZone
       aria-label={getText(dropZoneTextId)}
-      getDropOperation={types =>
-        acceptedDragTypes.some(type => types.has(type)) ? 'move' : 'cancel'
+      getDropOperation={(types) =>
+        acceptedDragTypes.some((type) => types.has(type)) ? 'move' : 'cancel'
       }
       className="group relative flex items-center rounded-full drop-target-after"
       onDrop={onDrop}
@@ -120,7 +124,7 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
         tooltipPlacement="right"
         className={tailwindMerge.twMerge(
           isCurrent && 'focus-default',
-          isDisabled && 'cursor-not-allowed hover:bg-transparent'
+          isDisabled && 'cursor-not-allowed hover:bg-transparent',
         )}
         aria-label={getText(buttonTextId)}
         onPress={onPress}
@@ -129,7 +133,7 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
           className={tailwindMerge.twMerge(
             'group flex h-row items-center gap-icon-with-text rounded-full px-button-x selectable',
             isCurrent && 'disabled active',
-            !isCurrent && !isDisabled && 'hover:bg-selected-frame'
+            !isCurrent && !isDisabled && 'hover:bg-selected-frame',
           )}
         >
           <SvgMask
@@ -168,12 +172,14 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
   const { getText } = textProvider.useText()
   const { isOffline } = offlineHooks.useOffline()
   const dispatchAssetEvent = eventListProvider.useDispatchAssetEvent()
+  const setPage = useSetPage()
+  const [, setSearchParams] = useSearchParams()
 
   const localBackend = backendProvider.useLocalBackend()
   /** The list of *visible* categories. */
   const categoryData = React.useMemo(
     () =>
-      CATEGORY_DATA.filter(data => {
+      CATEGORY_DATA.filter((data) => {
         switch (data.category) {
           case Category.local: {
             return localBackend != null
@@ -183,7 +189,7 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
           }
         }
       }),
-    [localBackend]
+    [localBackend],
   )
   const getCategoryError = (otherCategory: Category) => {
     switch (otherCategory) {
@@ -208,13 +214,13 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
     }
   }
 
-  if (!categoryData.some(data => data.category === category)) {
+  if (!categoryData.some((data) => data.category === category)) {
     setCategory(categoryData[0]?.category ?? Category.cloud)
   }
 
   return (
     <FocusArea direction="vertical">
-      {innerProps => (
+      {(innerProps) => (
         <div className="flex w-full flex-col gap-2 py-1" {...innerProps}>
           <ariaComponents.Text variant="subtitle" className="px-2 font-bold">
             {getText('category')}
@@ -225,7 +231,7 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
             role="grid"
             className="flex flex-col items-start"
           >
-            {categoryData.map(data => {
+            {categoryData.map((data) => {
               const error = getCategoryError(data.category)
 
               const element = (
@@ -242,50 +248,70 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
                     }
                   }}
                   acceptedDragTypes={
-                    (category === Category.trash &&
-                      (data.category === Category.cloud || data.category === Category.local)) ||
-                    (category !== Category.trash && data.category === Category.trash)
-                      ? [mimeTypes.ASSETS_MIME_TYPE]
-                      : []
+                    (
+                      (category === Category.trash &&
+                        (data.category === Category.cloud || data.category === Category.local)) ||
+                      (category !== Category.trash && data.category === Category.trash)
+                    ) ?
+                      [mimeTypes.ASSETS_MIME_TYPE]
+                    : []
                   }
-                  onDrop={event => {
+                  onDrop={(event) => {
                     unsetModal()
                     void Promise.all(
-                      event.items.flatMap(async item => {
+                      event.items.flatMap(async (item) => {
                         if (item.kind === 'text') {
                           const text = await item.getText(mimeTypes.ASSETS_MIME_TYPE)
                           const payload: unknown = JSON.parse(text)
-                          return Array.isArray(payload)
-                            ? payload.flatMap(key =>
+                          return Array.isArray(payload) ?
+                              payload.flatMap((key) =>
                                 // This is SAFE, assuming only this app creates payloads with
                                 // the specific mimetype above.
                                 // eslint-disable-next-line no-restricted-syntax
-                                typeof key === 'string' ? [key as backend.AssetId] : []
+                                typeof key === 'string' ? [key as backend.AssetId] : [],
                               )
                             : []
                         } else {
                           return []
                         }
-                      })
-                    ).then(keys => {
+                      }),
+                    ).then((keys) => {
                       dispatchAssetEvent({
                         type:
-                          category === Category.trash
-                            ? AssetEventType.restore
-                            : AssetEventType.delete,
+                          category === Category.trash ?
+                            AssetEventType.restore
+                          : AssetEventType.delete,
                         ids: new Set(keys.flat(1)),
                       })
                     })
                   }}
                 />
               )
-              return data.nested ? (
-                <div key={data.category} className="flex">
-                  <div className="ml-[15px] mr-1 border-r border-primary/20" />
-                  {element}
-                </div>
-              ) : (
-                element
+              return (
+                data.nested ?
+                  <div key={data.category} className="flex">
+                    <div className="ml-[15px] mr-1 border-r border-primary/20" />
+                    {element}
+                  </div>
+                : data.category !== Category.local ? element
+                : <div
+                    key={data.category}
+                    className="group flex items-center justify-between self-stretch"
+                  >
+                    {element}
+                    <ariaComponents.Button
+                      size="medium"
+                      variant="icon"
+                      icon={SettingsIcon}
+                      aria-label={getText('changeLocalRootDirectoryInSettings')}
+                      className="opacity-0 transition-opacity group-hover:opacity-100"
+                      onPress={() => {
+                        // eslint-disable-next-line @typescript-eslint/naming-convention
+                        setSearchParams({ 'cloud-ide_SettingsTab': '"local"' })
+                        setPage(TabType.settings)
+                      }}
+                    />
+                  </div>
               )
             })}
           </div>

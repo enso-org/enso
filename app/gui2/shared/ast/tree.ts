@@ -670,7 +670,7 @@ export class App extends Ast {
     }
     // Some syntax trees, including many error conditions, involve unspaced applications.
     // If a parsed input lacked a space before the argument, reproduce it as-is.
-    const verbatimArgument = true
+    const verbatimArgument = !nameSpecification
     yield ensureSpacedOnlyIf(argument, !nameSpecification || spacedEquals, verbatimArgument)
     if (useParens) yield preferUnspaced(parens.close)
   }
@@ -2659,7 +2659,7 @@ function makeEquals(): Token {
 function nameSpecification(
   name: StrictIdentLike | undefined,
 ): { name: NodeChild<Token>; equals: NodeChild<Token> } | undefined {
-  return name && { name: autospaced(toIdentStrict(name)), equals: unspaced(makeEquals()) }
+  return name && { name: unspaced(toIdentStrict(name)), equals: unspaced(makeEquals()) }
 }
 
 type KeysOfFieldType<Fields, T> = {

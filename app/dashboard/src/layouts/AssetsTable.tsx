@@ -53,8 +53,8 @@ import DragModal from '#/modals/DragModal'
 import DuplicateAssetsModal from '#/modals/DuplicateAssetsModal'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
 
-import * as backendModule from '#/services/Backend'
 import type Backend from '#/services/Backend'
+import * as backendModule from '#/services/Backend'
 import LocalBackend from '#/services/LocalBackend'
 
 import * as array from '#/utilities/array'
@@ -91,7 +91,7 @@ declare module '#/utilities/LocalStorage' {
 }
 
 LocalStorage.registerKey('enabledColumns', {
-  tryParse: value => {
+  tryParse: (value) => {
     const possibleColumns = Array.isArray(value) ? value : []
     const values = possibleColumns.filter(array.includesPredicate(columnUtils.CLOUD_COLUMNS))
     return values.length === 0 ? null : values
@@ -119,74 +119,74 @@ const COLUMNS_SELECTOR_ICON_WIDTH_PX = 28
 const SUGGESTIONS_FOR_NO: assetSearchBar.Suggestion[] = [
   {
     render: () => 'no:label',
-    addToQuery: query => query.addToLastTerm({ nos: ['label'] }),
-    deleteFromQuery: query => query.deleteFromLastTerm({ nos: ['label'] }),
+    addToQuery: (query) => query.addToLastTerm({ nos: ['label'] }),
+    deleteFromQuery: (query) => query.deleteFromLastTerm({ nos: ['label'] }),
   },
   {
     render: () => 'no:description',
-    addToQuery: query => query.addToLastTerm({ nos: ['description'] }),
-    deleteFromQuery: query => query.deleteFromLastTerm({ nos: ['description'] }),
+    addToQuery: (query) => query.addToLastTerm({ nos: ['description'] }),
+    deleteFromQuery: (query) => query.deleteFromLastTerm({ nos: ['description'] }),
   },
 ]
 const SUGGESTIONS_FOR_HAS: assetSearchBar.Suggestion[] = [
   {
     render: () => 'has:label',
-    addToQuery: query => query.addToLastTerm({ negativeNos: ['label'] }),
-    deleteFromQuery: query => query.deleteFromLastTerm({ negativeNos: ['label'] }),
+    addToQuery: (query) => query.addToLastTerm({ negativeNos: ['label'] }),
+    deleteFromQuery: (query) => query.deleteFromLastTerm({ negativeNos: ['label'] }),
   },
   {
     render: () => 'has:description',
-    addToQuery: query => query.addToLastTerm({ negativeNos: ['description'] }),
-    deleteFromQuery: query => query.deleteFromLastTerm({ negativeNos: ['description'] }),
+    addToQuery: (query) => query.addToLastTerm({ negativeNos: ['description'] }),
+    deleteFromQuery: (query) => query.deleteFromLastTerm({ negativeNos: ['description'] }),
   },
 ]
 const SUGGESTIONS_FOR_TYPE: assetSearchBar.Suggestion[] = [
   {
     render: () => 'type:project',
-    addToQuery: query => query.addToLastTerm({ types: ['project'] }),
-    deleteFromQuery: query => query.deleteFromLastTerm({ types: ['project'] }),
+    addToQuery: (query) => query.addToLastTerm({ types: ['project'] }),
+    deleteFromQuery: (query) => query.deleteFromLastTerm({ types: ['project'] }),
   },
   {
     render: () => 'type:folder',
-    addToQuery: query => query.addToLastTerm({ types: ['folder'] }),
-    deleteFromQuery: query => query.deleteFromLastTerm({ types: ['folder'] }),
+    addToQuery: (query) => query.addToLastTerm({ types: ['folder'] }),
+    deleteFromQuery: (query) => query.deleteFromLastTerm({ types: ['folder'] }),
   },
   {
     render: () => 'type:file',
-    addToQuery: query => query.addToLastTerm({ types: ['file'] }),
-    deleteFromQuery: query => query.deleteFromLastTerm({ types: ['file'] }),
+    addToQuery: (query) => query.addToLastTerm({ types: ['file'] }),
+    deleteFromQuery: (query) => query.deleteFromLastTerm({ types: ['file'] }),
   },
   {
     render: () => 'type:secret',
-    addToQuery: query => query.addToLastTerm({ types: ['secret'] }),
-    deleteFromQuery: query => query.deleteFromLastTerm({ types: ['secret'] }),
+    addToQuery: (query) => query.addToLastTerm({ types: ['secret'] }),
+    deleteFromQuery: (query) => query.deleteFromLastTerm({ types: ['secret'] }),
   },
   {
     render: () => 'type:datalink',
-    addToQuery: query => query.addToLastTerm({ types: ['datalink'] }),
-    deleteFromQuery: query => query.deleteFromLastTerm({ types: ['datalink'] }),
+    addToQuery: (query) => query.addToLastTerm({ types: ['datalink'] }),
+    deleteFromQuery: (query) => query.deleteFromLastTerm({ types: ['datalink'] }),
   },
 ]
 const SUGGESTIONS_FOR_NEGATIVE_TYPE: assetSearchBar.Suggestion[] = [
   {
     render: () => 'type:project',
-    addToQuery: query => query.addToLastTerm({ negativeTypes: ['project'] }),
-    deleteFromQuery: query => query.deleteFromLastTerm({ negativeTypes: ['project'] }),
+    addToQuery: (query) => query.addToLastTerm({ negativeTypes: ['project'] }),
+    deleteFromQuery: (query) => query.deleteFromLastTerm({ negativeTypes: ['project'] }),
   },
   {
     render: () => 'type:folder',
-    addToQuery: query => query.addToLastTerm({ negativeTypes: ['folder'] }),
-    deleteFromQuery: query => query.deleteFromLastTerm({ negativeTypes: ['folder'] }),
+    addToQuery: (query) => query.addToLastTerm({ negativeTypes: ['folder'] }),
+    deleteFromQuery: (query) => query.deleteFromLastTerm({ negativeTypes: ['folder'] }),
   },
   {
     render: () => 'type:file',
-    addToQuery: query => query.addToLastTerm({ negativeTypes: ['file'] }),
-    deleteFromQuery: query => query.deleteFromLastTerm({ negativeTypes: ['file'] }),
+    addToQuery: (query) => query.addToLastTerm({ negativeTypes: ['file'] }),
+    deleteFromQuery: (query) => query.deleteFromLastTerm({ negativeTypes: ['file'] }),
   },
   {
     render: () => 'type:datalink',
-    addToQuery: query => query.addToLastTerm({ negativeTypes: ['datalink'] }),
-    deleteFromQuery: query => query.deleteFromLastTerm({ negativeTypes: ['datalink'] }),
+    addToQuery: (query) => query.addToLastTerm({ negativeTypes: ['datalink'] }),
+    deleteFromQuery: (query) => query.deleteFromLastTerm({ negativeTypes: ['datalink'] }),
   },
 ]
 
@@ -201,27 +201,27 @@ function insertAssetTreeNodeChildren(
   children: readonly backendModule.AnyAsset[],
   directoryKey: backendModule.DirectoryId,
   directoryId: backendModule.DirectoryId,
-  getInitialAssetEvents: (id: backendModule.AssetId) => readonly assetEvent.AssetEvent[] | null
+  getInitialAssetEvents: (id: backendModule.AssetId) => readonly assetEvent.AssetEvent[] | null,
 ): assetTreeNode.AnyAssetTreeNode {
   const depth = item.depth + 1
   const typeOrder = children[0] != null ? backendModule.ASSET_TYPE_ORDER[children[0].type] : 0
   const nodes = (item.children ?? []).filter(
-    node => node.item.type !== backendModule.AssetType.specialEmpty
+    (node) => node.item.type !== backendModule.AssetType.specialEmpty,
   )
-  const nodesToInsert = children.map(asset =>
+  const nodesToInsert = children.map((asset) =>
     AssetTreeNode.fromAsset(
       asset,
       directoryKey,
       directoryId,
       depth,
       `${item.path}/${asset.title}`,
-      getInitialAssetEvents(asset.id)
-    )
+      getInitialAssetEvents(asset.id),
+    ),
   )
   const newNodes = array.splicedBefore(
     nodes,
     nodesToInsert,
-    innerItem => backendModule.ASSET_TYPE_ORDER[innerItem.item.type] >= typeOrder
+    (innerItem) => backendModule.ASSET_TYPE_ORDER[innerItem.item.type] >= typeOrder,
   )
   return item.with({ children: newNodes })
 }
@@ -235,12 +235,12 @@ function insertArbitraryAssetTreeNodeChildren(
   directoryId: backendModule.DirectoryId,
   getKey: ((asset: backendModule.AnyAsset) => backendModule.AssetId) | null = null,
   getInitialAssetEvents: (
-    id: backendModule.AssetId
-  ) => readonly assetEvent.AssetEvent[] | null = () => null
+    id: backendModule.AssetId,
+  ) => readonly assetEvent.AssetEvent[] | null = () => null,
 ): assetTreeNode.AnyAssetTreeNode {
   const depth = item.depth + 1
   const nodes = (item.children ?? []).filter(
-    node => node.item.type !== backendModule.AssetType.specialEmpty
+    (node) => node.item.type !== backendModule.AssetType.specialEmpty,
   )
   const byType: Readonly<Record<backendModule.AssetType, backendModule.AnyAsset[]>> = {
     [backendModule.AssetType.directory]: [],
@@ -259,7 +259,7 @@ function insertArbitraryAssetTreeNodeChildren(
     const firstChild = childrenOfSpecificType[0]
     if (firstChild) {
       const typeOrder = backendModule.ASSET_TYPE_ORDER[firstChild.type]
-      const nodesToInsert = childrenOfSpecificType.map(asset =>
+      const nodesToInsert = childrenOfSpecificType.map((asset) =>
         AssetTreeNode.fromAsset(
           asset,
           directoryKey,
@@ -267,13 +267,13 @@ function insertArbitraryAssetTreeNodeChildren(
           depth,
           `${item.path}/${asset.title}`,
           getInitialAssetEvents(asset.id),
-          getKey?.(asset) ?? asset.id
-        )
+          getKey?.(asset) ?? asset.id,
+        ),
       )
       newNodes = array.splicedBefore(
         newNodes,
         nodesToInsert,
-        innerItem => backendModule.ASSET_TYPE_ORDER[innerItem.item.type] >= typeOrder
+        (innerItem) => backendModule.ASSET_TYPE_ORDER[innerItem.item.type] >= typeOrder,
       )
     }
   }
@@ -330,13 +330,13 @@ export interface AssetsTableState {
     directoryId: backendModule.DirectoryId,
     key: backendModule.DirectoryId,
     title?: string | null,
-    override?: boolean
+    override?: boolean,
   ) => void
   readonly doCopy: () => void
   readonly doCut: () => void
   readonly doPaste: (
     newParentKey: backendModule.DirectoryId,
-    newParentId: backendModule.DirectoryId
+    newParentId: backendModule.DirectoryId,
   ) => void
 }
 
@@ -401,7 +401,7 @@ export default function AssetsTable(props: AssetsTableProps) {
   const [sortInfo, setSortInfo] =
     React.useState<sorting.SortInfo<columnUtils.SortableColumn> | null>(null)
   const [selectedKeys, setSelectedKeysRaw] = React.useState<ReadonlySet<backendModule.AssetId>>(
-    () => new Set()
+    () => new Set(),
   )
   const selectedKeysRef = React.useRef(selectedKeys)
   const updateAssetRef = React.useRef<
@@ -414,7 +414,7 @@ export default function AssetsTable(props: AssetsTableProps) {
   const nameOfProjectToImmediatelyOpenRef = React.useRef(initialProjectName)
   const rootDirectoryId = React.useMemo(
     () => backend.rootDirectoryId(user) ?? backendModule.DirectoryId(''),
-    [backend, user]
+    [backend, user],
   )
   const [assetTree, setAssetTree] = React.useState<assetTreeNode.AnyAssetTreeNode>(() => {
     const rootParentDirectoryId = backendModule.DirectoryId('')
@@ -424,7 +424,7 @@ export default function AssetsTable(props: AssetsTableProps) {
       rootParentDirectoryId,
       -1,
       backend.rootPath,
-      null
+      null,
     )
   })
   const [isDraggingFiles, setIsDraggingFiles] = React.useState(false)
@@ -461,22 +461,20 @@ export default function AssetsTable(props: AssetsTableProps) {
           return false
         }
         const assetType =
-          node.item.type === backendModule.AssetType.directory
-            ? 'folder'
-            : node.item.type === backendModule.AssetType.datalink
-              ? 'datalink'
-              : String(node.item.type)
+          node.item.type === backendModule.AssetType.directory ? 'folder'
+          : node.item.type === backendModule.AssetType.datalink ? 'datalink'
+          : String(node.item.type)
         const assetExtension =
-          node.item.type !== backendModule.AssetType.file
-            ? null
-            : fileInfo.fileExtension(node.item.title).toLowerCase()
+          node.item.type !== backendModule.AssetType.file ?
+            null
+          : fileInfo.fileExtension(node.item.title).toLowerCase()
         const assetModifiedAt = new Date(node.item.modifiedAt)
         const nodeLabels: string[] = node.item.labels ?? []
         const lowercaseName = node.item.title.toLowerCase()
         const lowercaseDescription = node.item.description?.toLowerCase() ?? ''
         const owners =
           node.item.permissions
-            ?.filter(permission => permission.permission === permissions.PermissionAction.own)
+            ?.filter((permission) => permission.permission === permissions.PermissionAction.own)
             .map(backendModule.getAssetPermissionName) ?? []
         const globMatch = (glob: string, match: string) => {
           const regex = (globCache[glob] =
@@ -527,31 +525,31 @@ export default function AssetsTable(props: AssetsTableProps) {
         const filterTag = (
           positive: string[][],
           negative: string[][],
-          predicate: (value: string) => boolean
+          predicate: (value: string) => boolean,
         ) =>
-          positive.every(values => isEmpty(values) || values.some(predicate)) &&
-          negative.every(values => !values.some(predicate))
+          positive.every((values) => isEmpty(values) || values.some(predicate)) &&
+          negative.every((values) => !values.some(predicate))
         return (
-          filterTag(query.nos, query.negativeNos, no => isAbsent(no.toLowerCase())) &&
-          filterTag(query.keywords, query.negativeKeywords, keyword =>
-            lowercaseName.includes(keyword.toLowerCase())
+          filterTag(query.nos, query.negativeNos, (no) => isAbsent(no.toLowerCase())) &&
+          filterTag(query.keywords, query.negativeKeywords, (keyword) =>
+            lowercaseName.includes(keyword.toLowerCase()),
           ) &&
-          filterTag(query.names, query.negativeNames, name => globMatch(name, lowercaseName)) &&
-          filterTag(query.labels, query.negativeLabels, label =>
-            nodeLabels.some(assetLabel => globMatch(label, assetLabel))
+          filterTag(query.names, query.negativeNames, (name) => globMatch(name, lowercaseName)) &&
+          filterTag(query.labels, query.negativeLabels, (label) =>
+            nodeLabels.some((assetLabel) => globMatch(label, assetLabel)),
           ) &&
-          filterTag(query.types, query.negativeTypes, type => type === assetType) &&
+          filterTag(query.types, query.negativeTypes, (type) => type === assetType) &&
           filterTag(
             query.extensions,
             query.negativeExtensions,
-            extension => extension.toLowerCase() === assetExtension
+            (extension) => extension.toLowerCase() === assetExtension,
           ) &&
-          filterTag(query.descriptions, query.negativeDescriptions, description =>
-            lowercaseDescription.includes(description.toLowerCase())
+          filterTag(query.descriptions, query.negativeDescriptions, (description) =>
+            lowercaseDescription.includes(description.toLowerCase()),
           ) &&
           filterTag(query.modifieds, query.negativeModifieds, matchesDate) &&
-          filterTag(query.owners, query.negativeOwners, owner =>
-            owners.some(assetOwner => globMatch(owner, assetOwner))
+          filterTag(query.owners, query.negativeOwners, (owner) =>
+            owners.some((assetOwner) => globMatch(owner, assetOwner)),
           )
         )
       }
@@ -569,10 +567,16 @@ export default function AssetsTable(props: AssetsTableProps) {
             const aTitle = a.item.title.toLowerCase()
             const bTitle = b.item.title.toLowerCase()
             if (aTitle === bTitle) {
-              const delta = a.item.title > b.item.title ? 1 : a.item.title < b.item.title ? -1 : 0
+              const delta =
+                a.item.title > b.item.title ? 1
+                : a.item.title < b.item.title ? -1
+                : 0
               return multiplier * delta
             } else {
-              const delta = aTitle > bTitle ? 1 : aTitle < bTitle ? -1 : 0
+              const delta =
+                aTitle > bTitle ? 1
+                : aTitle < bTitle ? -1
+                : 0
               return multiplier * delta
             }
           }
@@ -587,7 +591,7 @@ export default function AssetsTable(props: AssetsTableProps) {
           break
         }
       }
-      return assetTree.preorderTraversal(tree => [...tree].sort(compare))
+      return assetTree.preorderTraversal((tree) => [...tree].sort(compare))
     }
   }, [assetTree, sortInfo])
   const visibilities = React.useMemo(() => {
@@ -615,16 +619,16 @@ export default function AssetsTable(props: AssetsTableProps) {
     return map
   }, [assetTree, filter])
   const visibleItems = React.useMemo(
-    () => displayItems.filter(item => visibilities.get(item.key) !== Visibility.hidden),
-    [displayItems, visibilities]
+    () => displayItems.filter((item) => visibilities.get(item.key) !== Visibility.hidden),
+    [displayItems, visibilities],
   )
 
   const isMainDropzoneVisible = intersectionHooks.useIntersectionRatio(
     rootRef,
     mainDropzoneRef,
     MINIMUM_DROPZONE_INTERSECTION_RATIO,
-    ratio => ratio >= MINIMUM_DROPZONE_INTERSECTION_RATIO,
-    true
+    (ratio) => ratio >= MINIMUM_DROPZONE_INTERSECTION_RATIO,
+    true,
   )
 
   const updateSecretMutation = backendHooks.useBackendMutation(backend, 'updateSecret')
@@ -677,29 +681,29 @@ export default function AssetsTable(props: AssetsTableProps) {
   React.useEffect(() => {
     const nodeToSuggestion = (
       node: assetTreeNode.AnyAssetTreeNode,
-      key: assetQuery.AssetQueryKey = 'names'
+      key: assetQuery.AssetQueryKey = 'names',
     ): assetSearchBar.Suggestion => ({
       render: () => `${key === 'names' ? '' : '-:'}${node.item.title}`,
-      addToQuery: oldQuery => oldQuery.addToLastTerm({ [key]: [node.item.title] }),
-      deleteFromQuery: oldQuery => oldQuery.deleteFromLastTerm({ [key]: [node.item.title] }),
+      addToQuery: (oldQuery) => oldQuery.addToLastTerm({ [key]: [node.item.title] }),
+      deleteFromQuery: (oldQuery) => oldQuery.deleteFromLastTerm({ [key]: [node.item.title] }),
     })
     const allVisibleNodes = () =>
       assetTree
-        .preorderTraversal(children =>
-          children.filter(child => visibilities.get(child.key) !== Visibility.hidden)
+        .preorderTraversal((children) =>
+          children.filter((child) => visibilities.get(child.key) !== Visibility.hidden),
         )
         .filter(
-          node =>
+          (node) =>
             visibilities.get(node.key) === Visibility.visible &&
             node.item.type !== backendModule.AssetType.specialEmpty &&
-            node.item.type !== backendModule.AssetType.specialLoading
+            node.item.type !== backendModule.AssetType.specialLoading,
         )
     const allVisible = (negative = false) =>
-      allVisibleNodes().map(node => nodeToSuggestion(node, negative ? 'negativeNames' : 'names'))
+      allVisibleNodes().map((node) => nodeToSuggestion(node, negative ? 'negativeNames' : 'names'))
     const terms = AssetQuery.terms(query.query)
-    const term = terms.find(otherTerm => otherTerm.values.length === 0) ?? terms[terms.length - 1]
+    const term = terms.find((otherTerm) => otherTerm.values.length === 0) ?? terms[terms.length - 1]
     const termValues = term?.values ?? []
-    const shouldOmitNames = terms.some(otherTerm => otherTerm.tag === 'name')
+    const shouldOmitNames = terms.some((otherTerm) => otherTerm.tag === 'name')
     if (termValues.length !== 0) {
       setSuggestions(shouldOmitNames ? [] : allVisible())
     } else {
@@ -736,8 +740,8 @@ export default function AssetsTable(props: AssetsTableProps) {
         case 'extension':
         case '-extension': {
           const extensions = allVisibleNodes()
-            .filter(node => node.item.type === backendModule.AssetType.file)
-            .map(node => fileInfo.fileExtension(node.item.title))
+            .filter((node) => node.item.type === backendModule.AssetType.file)
+            .map((node) => fileInfo.fileExtension(node.item.title))
           setSuggestions(
             Array.from(
               new Set(extensions),
@@ -747,22 +751,22 @@ export default function AssetsTable(props: AssetsTableProps) {
                     tag: `${negative ? '-' : ''}extension`,
                     values: [extension],
                   }),
-                addToQuery: oldQuery =>
+                addToQuery: (oldQuery) =>
                   oldQuery.addToLastTerm(
-                    negative ? { negativeExtensions: [extension] } : { extensions: [extension] }
+                    negative ? { negativeExtensions: [extension] } : { extensions: [extension] },
                   ),
-                deleteFromQuery: oldQuery =>
+                deleteFromQuery: (oldQuery) =>
                   oldQuery.deleteFromLastTerm(
-                    negative ? { negativeExtensions: [extension] } : { extensions: [extension] }
+                    negative ? { negativeExtensions: [extension] } : { extensions: [extension] },
                   ),
-              })
-            )
+              }),
+            ),
           )
           break
         }
         case 'modified':
         case '-modified': {
-          const modifieds = assetTree.preorderTraversal().map(node => {
+          const modifieds = assetTree.preorderTraversal().map((node) => {
             const date = new Date(node.item.modifiedAt)
             return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`
           })
@@ -775,16 +779,16 @@ export default function AssetsTable(props: AssetsTableProps) {
                     tag: `${negative ? '-' : ''}modified`,
                     values: [modified],
                   }),
-                addToQuery: oldQuery =>
+                addToQuery: (oldQuery) =>
                   oldQuery.addToLastTerm(
-                    negative ? { negativeModifieds: [modified] } : { modifieds: [modified] }
+                    negative ? { negativeModifieds: [modified] } : { modifieds: [modified] },
                   ),
-                deleteFromQuery: oldQuery =>
+                deleteFromQuery: (oldQuery) =>
                   oldQuery.deleteFromLastTerm(
-                    negative ? { negativeModifieds: [modified] } : { modifieds: [modified] }
+                    negative ? { negativeModifieds: [modified] } : { modifieds: [modified] },
                   ),
-              })
-            )
+              }),
+            ),
           )
           break
         }
@@ -792,10 +796,10 @@ export default function AssetsTable(props: AssetsTableProps) {
         case '-owner': {
           const owners = assetTree
             .preorderTraversal()
-            .flatMap(node =>
+            .flatMap((node) =>
               (node.item.permissions ?? [])
-                .filter(permission => permission.permission === permissions.PermissionAction.own)
-                .map(backendModule.getAssetPermissionName)
+                .filter((permission) => permission.permission === permissions.PermissionAction.own)
+                .map(backendModule.getAssetPermissionName),
             )
           setSuggestions(
             Array.from(
@@ -806,16 +810,16 @@ export default function AssetsTable(props: AssetsTableProps) {
                     tag: `${negative ? '-' : ''}owner`,
                     values: [owner],
                   }),
-                addToQuery: oldQuery =>
+                addToQuery: (oldQuery) =>
                   oldQuery.addToLastTerm(
-                    negative ? { negativeOwners: [owner] } : { owners: [owner] }
+                    negative ? { negativeOwners: [owner] } : { owners: [owner] },
                   ),
-                deleteFromQuery: oldQuery =>
+                deleteFromQuery: (oldQuery) =>
                   oldQuery.deleteFromLastTerm(
-                    negative ? { negativeOwners: [owner] } : { owners: [owner] }
+                    negative ? { negativeOwners: [owner] } : { owners: [owner] },
                   ),
-              })
-            )
+              }),
+            ),
           )
           break
         }
@@ -829,16 +833,16 @@ export default function AssetsTable(props: AssetsTableProps) {
                     {label.value}
                   </Label>
                 ),
-                addToQuery: oldQuery =>
+                addToQuery: (oldQuery) =>
                   oldQuery.addToLastTerm(
-                    negative ? { negativeLabels: [label.value] } : { labels: [label.value] }
+                    negative ? { negativeLabels: [label.value] } : { labels: [label.value] },
                   ),
-                deleteFromQuery: oldQuery =>
+                deleteFromQuery: (oldQuery) =>
                   oldQuery.deleteFromLastTerm(
-                    negative ? { negativeLabels: [label.value] } : { labels: [label.value] }
+                    negative ? { negativeLabels: [label.value] } : { labels: [label.value] },
                   ),
-              })
-            )
+              }),
+            ),
           )
           break
         }
@@ -852,7 +856,7 @@ export default function AssetsTable(props: AssetsTableProps) {
 
   React.useEffect(() => {
     assetTreeRef.current = assetTree
-    const newNodeMap = new Map(assetTree.preorderTraversal().map(asset => [asset.key, asset]))
+    const newNodeMap = new Map(assetTree.preorderTraversal().map((asset) => [asset.key, asset]))
     newNodeMap.set(assetTree.key, assetTree)
     nodeMapRef.current = newNodeMap
   }, [assetTree])
@@ -884,26 +888,26 @@ export default function AssetsTable(props: AssetsTableProps) {
       if (!isCloud) {
         setCanDownload(
           newSelectedKeys.size !== 0 &&
-            Array.from(newSelectedKeys).every(key => {
+            Array.from(newSelectedKeys).every((key) => {
               const node = nodeMapRef.current.get(key)
               return node?.item.type === backendModule.AssetType.project
-            })
+            }),
         )
       } else {
         setCanDownload(
           newSelectedKeys.size !== 0 &&
-            Array.from(newSelectedKeys).every(key => {
+            Array.from(newSelectedKeys).every((key) => {
               const node = nodeMapRef.current.get(key)
               return (
                 node?.item.type === backendModule.AssetType.project ||
                 node?.item.type === backendModule.AssetType.file ||
                 node?.item.type === backendModule.AssetType.datalink
               )
-            })
+            }),
         )
       }
     },
-    [isCloud, setCanDownload]
+    [isCloud, setCanDownload],
   )
 
   const clearSelectedKeys = React.useCallback(() => {
@@ -921,15 +925,15 @@ export default function AssetsTable(props: AssetsTableProps) {
       const rootParentDirectoryId = backendModule.DirectoryId('')
       const rootDirectory = backendModule.createRootDirectoryAsset(rootDirectoryId)
       const rootId = rootDirectory.id
-      const children = newAssets.map(asset =>
+      const children = newAssets.map((asset) =>
         AssetTreeNode.fromAsset(
           asset,
           rootId,
           rootId,
           0,
           `${backend.rootPath}/${asset.title}`,
-          null
-        )
+          null,
+        ),
       )
       const newRootNode = new AssetTreeNode(
         rootDirectory,
@@ -940,7 +944,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         backend.rootPath,
         null,
         rootId,
-        true
+        true,
       )
       setAssetTree(newRootNode)
       // The project name here might also be a string with project id, e.g.
@@ -958,7 +962,7 @@ export default function AssetsTable(props: AssetsTableProps) {
           toastAndLog('findProjectError', null, nameOfProjectToImmediatelyOpen)
         }
       }
-      setQueuedAssetEvents(oldQueuedAssetEvents => {
+      setQueuedAssetEvents((oldQueuedAssetEvents) => {
         if (oldQueuedAssetEvents.length !== 0) {
           queueMicrotask(() => {
             for (const event of oldQueuedAssetEvents) {
@@ -970,7 +974,7 @@ export default function AssetsTable(props: AssetsTableProps) {
       })
       nameOfProjectToImmediatelyOpenRef.current = null
     },
-    [doOpenProject, rootDirectoryId, backend.rootPath, dispatchAssetEvent, toastAndLog]
+    [doOpenProject, rootDirectoryId, backend.rootPath, dispatchAssetEvent, toastAndLog],
   )
   const overwriteNodesRef = React.useRef(overwriteNodes)
   overwriteNodesRef.current = overwriteNodes
@@ -995,10 +999,9 @@ export default function AssetsTable(props: AssetsTableProps) {
       // message when the directory is the root directory (when `parentId == null`).
       '(root)',
     ],
-    { queryKey: [], staleTime: 0, meta: { persist: false } }
+    { queryKey: [], staleTime: 0, meta: { persist: false } },
   )
-  const isLoading =
-    rootDirectoryQuery.isLoading || rootDirectoryQuery.isPending || rootDirectoryQuery.isFetching
+  const isLoading = rootDirectoryQuery.isLoading
 
   React.useEffect(() => {
     if (isLoading) {
@@ -1010,7 +1013,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         asset.title === initialProjectName || asset.id === initialProjectName
       const projectToLoad = assetTree
         .preorderTraversal()
-        .map(node => node.item)
+        .map((node) => node.item)
         .filter(backendModule.assetIsProject)
         .find(isInitialProject)
       if (projectToLoad != null) {
@@ -1055,14 +1058,14 @@ export default function AssetsTable(props: AssetsTableProps) {
   }, [selectedKeysRef.current.size, setAssetPanelProps, setIsAssetPanelTemporarilyVisible])
 
   const directoryListAbortControllersRef = React.useRef(
-    new Map<backendModule.DirectoryId, AbortController>()
+    new Map<backendModule.DirectoryId, AbortController>(),
   )
   const doToggleDirectoryExpansion = React.useCallback(
     (
       directoryId: backendModule.DirectoryId,
       key: backendModule.DirectoryId,
       title?: string | null,
-      override?: boolean
+      override?: boolean,
     ) => {
       const directory = nodeMapRef.current.get(key)
       const isExpanded = directory?.children != null && directory.isExpanded
@@ -1078,30 +1081,28 @@ export default function AssetsTable(props: AssetsTableProps) {
           abortController.abort()
           directoryListAbortControllersRef.current.delete(directoryId)
         }
-        setAssetTree(oldAssetTree =>
-          oldAssetTree.map(item => (item.key !== key ? item : item.with({ isExpanded: false })))
+        setAssetTree((oldAssetTree) =>
+          oldAssetTree.map((item) => (item.key !== key ? item : item.with({ isExpanded: false }))),
         )
       } else {
-        setAssetTree(oldAssetTree =>
-          oldAssetTree.map(item =>
-            item.key !== key
-              ? item
-              : item.children != null
-                ? item.with({ isExpanded: true })
-                : item.with({
-                    isExpanded: true,
-                    children: [
-                      AssetTreeNode.fromAsset(
-                        backendModule.createSpecialLoadingAsset(directoryId),
-                        key,
-                        directoryId,
-                        item.depth + 1,
-                        '',
-                        null
-                      ),
-                    ],
-                  })
-          )
+        setAssetTree((oldAssetTree) =>
+          oldAssetTree.map((item) =>
+            item.key !== key ? item
+            : item.children != null ? item.with({ isExpanded: true })
+            : item.with({
+                isExpanded: true,
+                children: [
+                  AssetTreeNode.fromAsset(
+                    backendModule.createSpecialLoadingAsset(directoryId),
+                    key,
+                    directoryId,
+                    item.depth + 1,
+                    '',
+                    null,
+                  ),
+                ],
+              }),
+          ),
         )
         void (async () => {
           const abortController = new AbortController()
@@ -1115,22 +1116,22 @@ export default function AssetsTable(props: AssetsTableProps) {
                 recentProjects: category === Category.recent,
                 labels: null,
               },
-              displayedTitle
+              displayedTitle,
             )
-            .catch(error => {
+            .catch((error) => {
               toastAndLog('listFolderBackendError', error, displayedTitle)
               throw error
             })
           if (!abortController.signal.aborted) {
-            setAssetTree(oldAssetTree =>
-              oldAssetTree.map(item => {
+            setAssetTree((oldAssetTree) =>
+              oldAssetTree.map((item) => {
                 if (item.key !== key) {
                   return item
                 } else {
                   const initialChildren = item.children?.filter(
-                    child => child.item.type !== backendModule.AssetType.specialLoading
+                    (child) => child.item.type !== backendModule.AssetType.specialLoading,
                   )
-                  const childAssetsMap = new Map(childAssets.map(asset => [asset.id, asset]))
+                  const childAssetsMap = new Map(childAssets.map((asset) => [asset.id, asset]))
                   for (const child of initialChildren ?? []) {
                     const newChild = childAssetsMap.get(child.item.id)
                     if (newChild != null) {
@@ -1138,45 +1139,46 @@ export default function AssetsTable(props: AssetsTableProps) {
                       childAssetsMap.delete(child.item.id)
                     }
                   }
-                  const childAssetNodes = Array.from(childAssetsMap.values(), child =>
+                  const childAssetNodes = Array.from(childAssetsMap.values(), (child) =>
                     AssetTreeNode.fromAsset(
                       child,
                       key,
                       directoryId,
                       item.depth + 1,
                       `${item.path}/${child.title}`,
-                      null
-                    )
+                      null,
+                    ),
                   )
                   const specialEmptyAsset: backendModule.SpecialEmptyAsset | null =
-                    (initialChildren != null && initialChildren.length !== 0) ||
-                    childAssetNodes.length !== 0
-                      ? null
-                      : backendModule.createSpecialEmptyAsset(directoryId)
+                    (
+                      (initialChildren != null && initialChildren.length !== 0) ||
+                      childAssetNodes.length !== 0
+                    ) ?
+                      null
+                    : backendModule.createSpecialEmptyAsset(directoryId)
                   const children =
-                    specialEmptyAsset != null
-                      ? [
-                          AssetTreeNode.fromAsset(
-                            specialEmptyAsset,
-                            key,
-                            directoryId,
-                            item.depth + 1,
-                            '',
-                            null
-                          ),
-                        ]
-                      : initialChildren == null || initialChildren.length === 0
-                        ? childAssetNodes
-                        : [...initialChildren, ...childAssetNodes].sort(AssetTreeNode.compare)
+                    specialEmptyAsset != null ?
+                      [
+                        AssetTreeNode.fromAsset(
+                          specialEmptyAsset,
+                          key,
+                          directoryId,
+                          item.depth + 1,
+                          '',
+                          null,
+                        ),
+                      ]
+                    : initialChildren == null || initialChildren.length === 0 ? childAssetNodes
+                    : [...initialChildren, ...childAssetNodes].sort(AssetTreeNode.compare)
                   return item.with({ children })
                 }
-              })
+              }),
             )
           }
         })()
       }
     },
-    [category, backend, toastAndLog]
+    [category, backend, toastAndLog],
   )
 
   const [spinnerState, setSpinnerState] = React.useState(spinner.SpinnerState.initial)
@@ -1190,7 +1192,7 @@ export default function AssetsTable(props: AssetsTableProps) {
       mostRecentlySelectedIndexRef.current = index
       setKeyboardSelectedIndex(isKeyboard ? index : null)
     },
-    []
+    [],
   )
 
   React.useEffect(() => {
@@ -1258,7 +1260,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                         toastAndLog(null, error)
                       }
                     }}
-                  />
+                  />,
                 )
                 break
               }
@@ -1332,9 +1334,9 @@ export default function AssetsTable(props: AssetsTableProps) {
           do {
             oldIndex = index
             index =
-              event.key === 'ArrowUp'
-                ? Math.max(0, index - 1)
-                : Math.min(visibleItems.length - 1, index + 1)
+              event.key === 'ArrowUp' ?
+                Math.max(0, index - 1)
+              : Math.min(visibleItems.length - 1, index + 1)
             itemType = visibleItems[index]?.item.type
           } while (
             index !== oldIndex &&
@@ -1359,7 +1361,7 @@ export default function AssetsTable(props: AssetsTableProps) {
           const startIndex = Math.min(index, selectionStartIndexRef.current)
           const endIndex = Math.max(index, selectionStartIndexRef.current) + 1
           const selection = visibleItems.slice(startIndex, endIndex)
-          setSelectedKeys(new Set(selection.map(newItem => newItem.key)))
+          setSelectedKeys(new Set(selection.map((newItem) => newItem.key)))
         } else if (event.ctrlKey) {
           event.preventDefault()
           event.stopPropagation()
@@ -1399,21 +1401,21 @@ export default function AssetsTable(props: AssetsTableProps) {
       const prefix = `${templateName ?? 'New Project'} `
       const projectNameTemplate = new RegExp(`^${prefix}(?<projectIndex>\\d+)$`)
       const siblings =
-        parentKey == null
-          ? assetTree.children ?? []
-          : nodeMapRef.current.get(parentKey)?.children ?? []
+        parentKey == null ?
+          assetTree.children ?? []
+        : nodeMapRef.current.get(parentKey)?.children ?? []
       const projectIndices = siblings
-        .map(node => node.item)
+        .map((node) => node.item)
         .filter(backendModule.assetIsProject)
-        .map(item => projectNameTemplate.exec(item.title)?.groups?.projectIndex)
-        .map(maybeIndex => (maybeIndex != null ? parseInt(maybeIndex, 10) : 0))
+        .map((item) => projectNameTemplate.exec(item.title)?.groups?.projectIndex)
+        .map((maybeIndex) => (maybeIndex != null ? parseInt(maybeIndex, 10) : 0))
       return `${prefix}${Math.max(0, ...projectIndices) + 1}`
     },
-    [assetTree, nodeMapRef]
+    [assetTree, nodeMapRef],
   )
 
   const deleteAsset = React.useCallback((key: backendModule.AssetId) => {
-    setAssetTree(oldAssetTree => oldAssetTree.filter(item => item.key !== key))
+    setAssetTree((oldAssetTree) => oldAssetTree.filter((item) => item.key !== key))
   }, [])
 
   /** All items must have the same type. */
@@ -1422,25 +1424,25 @@ export default function AssetsTable(props: AssetsTableProps) {
       assets: readonly backendModule.AnyAsset[],
       parentKey: backendModule.DirectoryId | null,
       parentId: backendModule.DirectoryId | null,
-      getInitialAssetEvents: (id: backendModule.AssetId) => readonly assetEvent.AssetEvent[] | null
+      getInitialAssetEvents: (id: backendModule.AssetId) => readonly assetEvent.AssetEvent[] | null,
     ) => {
       const actualParentKey = parentKey ?? rootDirectoryId
       const actualParentId = parentId ?? rootDirectoryId
-      setAssetTree(oldAssetTree =>
-        oldAssetTree.map(item =>
-          item.key !== actualParentKey
-            ? item
-            : insertAssetTreeNodeChildren(
-                item,
-                assets,
-                actualParentKey,
-                actualParentId,
-                getInitialAssetEvents
-              )
-        )
+      setAssetTree((oldAssetTree) =>
+        oldAssetTree.map((item) =>
+          item.key !== actualParentKey ?
+            item
+          : insertAssetTreeNodeChildren(
+              item,
+              assets,
+              actualParentKey,
+              actualParentId,
+              getInitialAssetEvents,
+            ),
+        ),
       )
     },
-    [rootDirectoryId]
+    [rootDirectoryId],
   )
 
   const insertArbitraryAssets = React.useCallback(
@@ -1450,27 +1452,27 @@ export default function AssetsTable(props: AssetsTableProps) {
       parentId: backendModule.DirectoryId | null,
       getKey: ((asset: backendModule.AnyAsset) => backendModule.AssetId) | null = null,
       getInitialAssetEvents: (
-        id: backendModule.AssetId
-      ) => readonly assetEvent.AssetEvent[] | null = () => null
+        id: backendModule.AssetId,
+      ) => readonly assetEvent.AssetEvent[] | null = () => null,
     ) => {
       const actualParentKey = parentKey ?? rootDirectoryId
       const actualParentId = parentId ?? rootDirectoryId
-      setAssetTree(oldAssetTree => {
-        return oldAssetTree.map(item =>
-          item.key !== actualParentKey
-            ? item
-            : insertArbitraryAssetTreeNodeChildren(
-                item,
-                assets,
-                actualParentKey,
-                actualParentId,
-                getKey,
-                getInitialAssetEvents
-              )
+      setAssetTree((oldAssetTree) => {
+        return oldAssetTree.map((item) =>
+          item.key !== actualParentKey ?
+            item
+          : insertArbitraryAssetTreeNodeChildren(
+              item,
+              assets,
+              actualParentKey,
+              actualParentId,
+              getKey,
+              getInitialAssetEvents,
+            ),
         )
       })
     },
-    [rootDirectoryId]
+    [rootDirectoryId],
   )
 
   // This is not a React component, even though it contains JSX.
@@ -1480,11 +1482,11 @@ export default function AssetsTable(props: AssetsTableProps) {
       case AssetListEventType.newFolder: {
         const siblings = nodeMapRef.current.get(event.parentKey)?.children ?? []
         const directoryIndices = siblings
-          .map(node => node.item)
+          .map((node) => node.item)
           .filter(backendModule.assetIsDirectory)
-          .map(item => /^New Folder (?<directoryIndex>\d+)$/.exec(item.title))
-          .map(match => match?.groups?.directoryIndex)
-          .map(maybeIndex => (maybeIndex != null ? parseInt(maybeIndex, 10) : 0))
+          .map((item) => /^New Folder (?<directoryIndex>\d+)$/.exec(item.title))
+          .map((match) => match?.groups?.directoryIndex)
+          .map((maybeIndex) => (maybeIndex != null ? parseInt(maybeIndex, 10) : 0))
         const title = `New Folder ${Math.max(0, ...directoryIndices) + 1}`
         const placeholderItem: backendModule.DirectoryAsset = {
           type: backendModule.AssetType.directory,
@@ -1543,45 +1545,45 @@ export default function AssetsTable(props: AssetsTableProps) {
         const localBackend = backend instanceof LocalBackend ? backend : null
         const reversedFiles = Array.from(event.files).reverse()
         const siblingNodes = nodeMapRef.current.get(event.parentKey)?.children ?? []
-        const siblings = siblingNodes.map(node => node.item)
+        const siblings = siblingNodes.map((node) => node.item)
         const siblingFiles = siblings.filter(backendModule.assetIsFile)
         const siblingProjects = siblings.filter(backendModule.assetIsProject)
-        const siblingFileTitles = new Set(siblingFiles.map(asset => asset.title))
-        const siblingProjectTitles = new Set(siblingProjects.map(asset => asset.title))
+        const siblingFileTitles = new Set(siblingFiles.map((asset) => asset.title))
+        const siblingProjectTitles = new Set(siblingProjects.map((asset) => asset.title))
         const files = reversedFiles.filter(backendModule.fileIsNotProject)
         const projects = reversedFiles.filter(backendModule.fileIsProject)
-        const duplicateFiles = files.filter(file => siblingFileTitles.has(file.name))
-        const duplicateProjects = projects.filter(project =>
-          siblingProjectTitles.has(backendModule.stripProjectExtension(project.name))
+        const duplicateFiles = files.filter((file) => siblingFileTitles.has(file.name))
+        const duplicateProjects = projects.filter((project) =>
+          siblingProjectTitles.has(backendModule.stripProjectExtension(project.name)),
         )
         const ownerPermission = permissions.tryGetSingletonOwnerPermission(user)
         const fileMap = new Map<backendModule.AssetId, File>()
         const getInitialAssetEvents = (
-          id: backendModule.AssetId
+          id: backendModule.AssetId,
         ): readonly assetEvent.AssetEvent[] | null => {
           const file = fileMap.get(id)
-          return file == null
-            ? null
-            : [{ type: AssetEventType.uploadFiles, files: new Map([[id, file]]) }]
+          return file == null ? null : (
+              [{ type: AssetEventType.uploadFiles, files: new Map([[id, file]]) }]
+            )
         }
         if (duplicateFiles.length === 0 && duplicateProjects.length === 0) {
-          const placeholderFiles = files.map(file => {
+          const placeholderFiles = files.map((file) => {
             const asset = backendModule.createPlaceholderFileAsset(
               file.name,
               event.parentId,
-              ownerPermission
+              ownerPermission,
             )
             fileMap.set(asset.id, file)
             return asset
           })
-          const placeholderProjects = projects.map(project => {
+          const placeholderProjects = projects.map((project) => {
             const basename = backendModule.stripProjectExtension(project.name)
             const asset = backendModule.createPlaceholderProjectAsset(
               basename,
               event.parentId,
               ownerPermission,
               user,
-              localBackend?.joinPath(event.parentId, basename) ?? null
+              localBackend?.joinPath(event.parentId, basename) ?? null,
             )
             fileMap.set(asset.id, project)
             return asset
@@ -1590,11 +1592,11 @@ export default function AssetsTable(props: AssetsTableProps) {
           insertAssets(placeholderFiles, event.parentKey, event.parentId, getInitialAssetEvents)
           insertAssets(placeholderProjects, event.parentKey, event.parentId, getInitialAssetEvents)
         } else {
-          const siblingFilesByName = new Map(siblingFiles.map(file => [file.title, file]))
+          const siblingFilesByName = new Map(siblingFiles.map((file) => [file.title, file]))
           const siblingProjectsByName = new Map(
-            siblingProjects.map(project => [project.title, project])
+            siblingProjects.map((project) => [project.title, project]),
           )
-          const conflictingFiles = duplicateFiles.map(file => ({
+          const conflictingFiles = duplicateFiles.map((file) => ({
             // This is SAFE, as `duplicateFiles` only contains files that have siblings
             // with the same name.
             // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -1602,11 +1604,11 @@ export default function AssetsTable(props: AssetsTableProps) {
             new: backendModule.createPlaceholderFileAsset(
               file.name,
               event.parentId,
-              ownerPermission
+              ownerPermission,
             ),
             file,
           }))
-          const conflictingProjects = duplicateProjects.map(project => {
+          const conflictingProjects = duplicateProjects.map((project) => {
             const basename = backendModule.stripProjectExtension(project.name)
             return {
               // This is SAFE, as `duplicateProjects` only contains projects that have
@@ -1618,7 +1620,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                 event.parentId,
                 ownerPermission,
                 user,
-                localBackend?.joinPath(event.parentId, basename) ?? null
+                localBackend?.joinPath(event.parentId, basename) ?? null,
               ),
               file: project,
             }
@@ -1636,29 +1638,29 @@ export default function AssetsTable(props: AssetsTableProps) {
               doUploadNonConflicting={() => {
                 doToggleDirectoryExpansion(event.parentId, event.parentKey, null, true)
                 const newFiles = files
-                  .filter(file => !siblingFileTitles.has(file.name))
-                  .map(file => {
+                  .filter((file) => !siblingFileTitles.has(file.name))
+                  .map((file) => {
                     const asset = backendModule.createPlaceholderFileAsset(
                       file.name,
                       event.parentId,
-                      ownerPermission
+                      ownerPermission,
                     )
                     fileMap.set(asset.id, file)
                     return asset
                   })
                 const newProjects = projects
                   .filter(
-                    project =>
-                      !siblingProjectTitles.has(backendModule.stripProjectExtension(project.name))
+                    (project) =>
+                      !siblingProjectTitles.has(backendModule.stripProjectExtension(project.name)),
                   )
-                  .map(project => {
+                  .map((project) => {
                     const basename = backendModule.stripProjectExtension(project.name)
                     const asset = backendModule.createPlaceholderProjectAsset(
                       basename,
                       event.parentId,
                       ownerPermission,
                       user,
-                      localBackend?.joinPath(event.parentId, basename) ?? null
+                      localBackend?.joinPath(event.parentId, basename) ?? null,
                     )
                     fileMap.set(asset.id, project)
                     return asset
@@ -1666,7 +1668,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                 insertAssets(newFiles, event.parentKey, event.parentId, getInitialAssetEvents)
                 insertAssets(newProjects, event.parentKey, event.parentId, getInitialAssetEvents)
               }}
-            />
+            />,
           )
         }
         break
@@ -1717,7 +1719,7 @@ export default function AssetsTable(props: AssetsTableProps) {
       }
       case AssetListEventType.duplicateProject: {
         const siblings = nodeMapRef.current.get(event.parentKey)?.children ?? []
-        const siblingTitles = new Set(siblings.map(sibling => sibling.item.title))
+        const siblingTitles = new Set(siblings.map((sibling) => sibling.item.title))
         let index = 1
         let title = `${event.original.title} (${index})`
         while (siblingTitles.has(title)) {
@@ -1779,7 +1781,7 @@ export default function AssetsTable(props: AssetsTableProps) {
           event.newParentKey,
           event.newParentId,
           getKey,
-          () => assetEvents
+          () => assetEvents,
         )
         break
       }
@@ -1796,7 +1798,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         if (category !== Category.trash) {
           toastAndLog('canOnlyEmptyTrashWhenInTrash')
         } else if (assetTree.children != null) {
-          const ids = new Set(assetTree.children.map(child => child.item.id))
+          const ids = new Set(assetTree.children.map((child) => child.item.id))
           // This is required to prevent an infinite loop,
           window.setTimeout(() => {
             dispatchAssetEvent({ type: AssetEventType.deleteForever, ids })
@@ -1816,7 +1818,7 @@ export default function AssetsTable(props: AssetsTableProps) {
   }
   const onAssetListEventRef = React.useRef(onAssetListEvent)
   onAssetListEventRef.current = onAssetListEvent
-  eventListProvider.useAssetListEventListener(event => {
+  eventListProvider.useAssetListEventListener((event) => {
     if (!isLoading) {
       onAssetListEvent(event)
     } else {
@@ -1848,8 +1850,8 @@ export default function AssetsTable(props: AssetsTableProps) {
         } else {
           doToggleDirectoryExpansion(newParentId, newParentKey, null, true)
           if (pasteData.type === PasteType.copy) {
-            const assets = Array.from(pasteData.data, id => nodeMapRef.current.get(id)).flatMap(
-              asset => (asset ? [asset.item] : [])
+            const assets = Array.from(pasteData.data, (id) => nodeMapRef.current.get(id)).flatMap(
+              (asset) => (asset ? [asset.item] : []),
             )
             dispatchAssetListEvent({
               type: AssetListEventType.copy,
@@ -1869,11 +1871,11 @@ export default function AssetsTable(props: AssetsTableProps) {
         }
       }
     },
-    [pasteData, doToggleDirectoryExpansion, unsetModal, dispatchAssetEvent, dispatchAssetListEvent]
+    [pasteData, doToggleDirectoryExpansion, unsetModal, dispatchAssetEvent, dispatchAssetListEvent],
   )
 
   const hideColumn = React.useCallback((column: columnUtils.Column) => {
-    setEnabledColumns(columns => set.withPresence(columns, column, false))
+    setEnabledColumns((columns) => set.withPresence(columns, column, false))
   }, [])
 
   const hiddenContextMenu = React.useMemo(
@@ -1903,12 +1905,12 @@ export default function AssetsTable(props: AssetsTableProps) {
       doCut,
       doPaste,
       clearSelectedKeys,
-    ]
+    ],
   )
 
   const onDropzoneDragOver = (event: React.DragEvent<Element>) => {
     const payload = drag.ASSET_ROWS.lookup(event)
-    const filtered = payload?.filter(item => item.asset.parentId !== rootDirectoryId)
+    const filtered = payload?.filter((item) => item.asset.parentId !== rootDirectoryId)
     if (filtered != null && filtered.length > 0) {
       event.preventDefault()
     } else if (event.dataTransfer.types.includes('Files')) {
@@ -1976,7 +1978,7 @@ export default function AssetsTable(props: AssetsTableProps) {
       setAssetPanelProps,
       setIsAssetPanelTemporarilyVisible,
       setQuery,
-    ]
+    ],
   )
 
   // This is required to prevent the table body from overlapping the table header, because
@@ -2000,7 +2002,7 @@ export default function AssetsTable(props: AssetsTableProps) {
 
   const updateClipPathObserver = React.useMemo(
     () => new ResizeObserver(updateClipPath),
-    [updateClipPath]
+    [updateClipPath],
   )
 
   React.useEffect(
@@ -2018,9 +2020,9 @@ export default function AssetsTable(props: AssetsTableProps) {
             }
           },
         },
-        false
+        false,
       ),
-    [setSelectedKeys, inputBindings, setMostRecentlySelectedIndex]
+    [setSelectedKeys, inputBindings, setMostRecentlySelectedIndex],
   )
 
   React.useEffect(() => {
@@ -2046,7 +2048,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     (
       event: MouseEvent | React.MouseEvent,
       keys: backendModule.AssetId[],
-      getRange: () => backendModule.AssetId[]
+      getRange: () => backendModule.AssetId[],
     ) => {
       event.stopPropagation()
       let result = new Set<backendModule.AssetId>()
@@ -2077,7 +2079,7 @@ export default function AssetsTable(props: AssetsTableProps) {
       })(event, false)
       return result
     },
-    [inputBindings]
+    [inputBindings],
   )
 
   // Only non-`null` when it is different to`selectedKeys`.
@@ -2103,7 +2105,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         const selectionTop = Math.max(0, rectangle.top - rect.top - ROW_HEIGHT_PX)
         const selectionBottom = Math.max(
           0,
-          Math.min(rect.height, rectangle.bottom - rect.top - ROW_HEIGHT_PX)
+          Math.min(rect.height, rectangle.bottom - rect.top - ROW_HEIGHT_PX),
         )
         const range = dragSelectionRangeRef.current
         if (!overlapsHorizontally) {
@@ -2129,12 +2131,12 @@ export default function AssetsTable(props: AssetsTableProps) {
         if (range == null) {
           setVisuallySelectedKeysOverride(null)
         } else {
-          const keys = displayItems.slice(range.start, range.end).map(node => node.key)
+          const keys = displayItems.slice(range.start, range.end).map((node) => node.key)
           setVisuallySelectedKeysOverride(calculateNewKeys(event, keys, () => []))
         }
       }
     },
-    [startAutoScroll, onMouseEvent, displayItems, calculateNewKeys]
+    [startAutoScroll, onMouseEvent, displayItems, calculateNewKeys],
   )
 
   const onSelectionDragEnd = React.useCallback(
@@ -2143,13 +2145,13 @@ export default function AssetsTable(props: AssetsTableProps) {
       onMouseEvent(event)
       const range = dragSelectionRangeRef.current
       if (range != null) {
-        const keys = displayItems.slice(range.start, range.end).map(node => node.key)
+        const keys = displayItems.slice(range.start, range.end).map((node) => node.key)
         setSelectedKeys(calculateNewKeys(event, keys, () => []))
       }
       setVisuallySelectedKeysOverride(null)
       dragSelectionRangeRef.current = null
     },
-    [endAutoScroll, onMouseEvent, displayItems, setSelectedKeys, calculateNewKeys]
+    [endAutoScroll, onMouseEvent, displayItems, setSelectedKeys, calculateNewKeys],
   )
 
   const onSelectionDragCancel = React.useCallback(() => {
@@ -2161,7 +2163,9 @@ export default function AssetsTable(props: AssetsTableProps) {
     (innerRowProps: assetRow.AssetRowInnerProps, event: React.MouseEvent) => {
       const { key } = innerRowProps
       event.stopPropagation()
-      const newIndex = visibleItems.findIndex(innerItem => AssetTreeNode.getKey(innerItem) === key)
+      const newIndex = visibleItems.findIndex(
+        (innerItem) => AssetTreeNode.getKey(innerItem) === key,
+      )
       const getRange = () => {
         if (mostRecentlySelectedIndexRef.current == null) {
           return [key]
@@ -2179,22 +2183,22 @@ export default function AssetsTable(props: AssetsTableProps) {
         selectionStartIndexRef.current = null
       }
     },
-    [visibleItems, calculateNewKeys, setSelectedKeys, setMostRecentlySelectedIndex]
+    [visibleItems, calculateNewKeys, setSelectedKeys, setMostRecentlySelectedIndex],
   )
 
   const getAsset = React.useCallback(
     (key: backendModule.AssetId) => nodeMapRef.current.get(key)?.item ?? null,
-    [nodeMapRef]
+    [nodeMapRef],
   )
 
   const setAsset = React.useCallback(
     (key: backendModule.AssetId, asset: backendModule.AnyAsset) => {
-      setAssetTree(oldAssetTree =>
-        oldAssetTree.map(item => (item.key === key ? item.with({ item: asset }) : item))
+      setAssetTree((oldAssetTree) =>
+        oldAssetTree.map((item) => (item.key === key ? item.with({ item: asset }) : item)),
       )
       updateAssetRef.current[asset.id]?.(asset)
     },
-    []
+    [],
   )
 
   React.useImperativeHandle(assetManagementApiRef, () => ({
@@ -2206,7 +2210,7 @@ export default function AssetsTable(props: AssetsTableProps) {
 
   const headerRow = (
     <tr ref={headerRowRef} className="sticky top-[1px] text-sm font-semibold">
-      {columns.map(column => {
+      {columns.map((column) => {
         // This is a React component, even though it does not contain JSX.
         // eslint-disable-next-line no-restricted-syntax
         const Heading = columnHeading.COLUMN_HEADING[column]
@@ -2219,126 +2223,170 @@ export default function AssetsTable(props: AssetsTableProps) {
     </tr>
   )
 
-  const itemRows = isLoading ? (
-    <tr className="h-row">
-      <td colSpan={columns.length} className="bg-transparent">
-        <div className="grid w-container justify-around">
-          <Spinner size={LOADING_SPINNER_SIZE_PX} state={spinnerState} />
-        </div>
-      </td>
-    </tr>
-  ) : (
-    displayItems.map((item, i) => {
-      const key = AssetTreeNode.getKey(item)
-      const isSelected = (visuallySelectedKeysOverride ?? selectedKeys).has(key)
-      const isSoleSelected = isSelected && selectedKeys.size === 1
+  const itemRows =
+    isLoading ?
+      <tr className="h-row">
+        <td colSpan={columns.length} className="bg-transparent">
+          <div className="grid w-container justify-around">
+            <Spinner size={LOADING_SPINNER_SIZE_PX} state={spinnerState} />
+          </div>
+        </td>
+      </tr>
+    : displayItems.map((item, i) => {
+        const key = AssetTreeNode.getKey(item)
+        const isSelected = (visuallySelectedKeysOverride ?? selectedKeys).has(key)
+        const isSoleSelected = isSelected && selectedKeys.size === 1
 
-      return (
-        <AssetRow
-          key={key}
-          updateAssetRef={instance => {
-            if (instance != null) {
-              updateAssetRef.current[item.item.id] = instance
-            } else {
-              // Hacky way to clear the reference to the asset on unmount.
-              // eventually once we pull the assets up in the tree, we can remove this.
-              // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
-              delete updateAssetRef.current[item.item.id]
+        return (
+          <AssetRow
+            key={key}
+            updateAssetRef={(instance) => {
+              if (instance != null) {
+                updateAssetRef.current[item.item.id] = instance
+              } else {
+                // Hacky way to clear the reference to the asset on unmount.
+                // eventually once we pull the assets up in the tree, we can remove this.
+                // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+                delete updateAssetRef.current[item.item.id]
+              }
+            }}
+            isOpened={openedProjects.some(({ id }) => item.item.id === id)}
+            columns={columns}
+            item={item}
+            state={state}
+            hidden={hidden || visibilities.get(item.key) === Visibility.hidden}
+            selected={isSelected}
+            setSelected={(selected) => {
+              setSelectedKeys(set.withPresence(selectedKeysRef.current, key, selected))
+            }}
+            isSoleSelected={isSoleSelected}
+            isKeyboardSelected={
+              keyboardSelectedIndex != null && item === visibleItems[keyboardSelectedIndex]
             }
-          }}
-          isOpened={openedProjects.some(({ id }) => item.item.id === id)}
-          columns={columns}
-          item={item}
-          state={state}
-          hidden={hidden || visibilities.get(item.key) === Visibility.hidden}
-          selected={isSelected}
-          setSelected={selected => {
-            setSelectedKeys(set.withPresence(selectedKeysRef.current, key, selected))
-          }}
-          isSoleSelected={isSoleSelected}
-          isKeyboardSelected={
-            keyboardSelectedIndex != null && item === visibleItems[keyboardSelectedIndex]
-          }
-          grabKeyboardFocus={() => {
-            setSelectedKeys(new Set([key]))
-            setMostRecentlySelectedIndex(i, true)
-          }}
-          allowContextMenu={selectedKeysRef.current.size === 0 || !isSelected || isSoleSelected}
-          onClick={onRowClick}
-          onContextMenu={(_innerProps, event) => {
-            if (!isSelected) {
-              event.preventDefault()
-              event.stopPropagation()
-              setMostRecentlySelectedIndex(visibleItems.indexOf(item))
-              selectionStartIndexRef.current = null
+            grabKeyboardFocus={() => {
               setSelectedKeys(new Set([key]))
-            }
-          }}
-          onDragStart={event => {
-            startAutoScroll()
-            onMouseEvent(event)
-            let newSelectedKeys = selectedKeysRef.current
-            if (!newSelectedKeys.has(key)) {
-              setMostRecentlySelectedIndex(visibleItems.indexOf(item))
-              selectionStartIndexRef.current = null
-              newSelectedKeys = new Set([key])
-              setSelectedKeys(newSelectedKeys)
-            }
-            const nodes = assetTree
-              .preorderTraversal()
-              .filter(node => newSelectedKeys.has(node.key))
-            const payload: drag.AssetRowsDragPayload = nodes.map(node => ({
-              key: node.key,
-              asset: node.item,
-            }))
-            event.dataTransfer.setData(
-              mimeTypes.ASSETS_MIME_TYPE,
-              JSON.stringify(nodes.map(node => node.key))
-            )
-            drag.setDragImageToBlank(event)
-            drag.ASSET_ROWS.bind(event, payload)
-            setModal(
-              <DragModal
-                event={event}
-                className="flex flex-col rounded-default bg-selected-frame backdrop-blur-default"
-                onDragEnd={() => {
-                  drag.ASSET_ROWS.unbind(payload)
-                }}
-              >
-                {nodes.map(node => (
-                  <NameColumn
-                    key={node.key}
-                    isOpened={false}
-                    keyProp={node.key}
-                    item={node.with({ depth: 0 })}
-                    backendType={backend.type}
-                    state={state}
-                    // Default states.
-                    isSoleSelected={false}
-                    selected={false}
-                    rowState={assetRowUtils.INITIAL_ROW_STATE}
-                    // The drag placeholder cannot be interacted with.
-                    setSelected={() => {}}
-                    setItem={() => {}}
-                    setRowState={() => {}}
-                    isEditable={false}
-                  />
-                ))}
-              </DragModal>
-            )
-          }}
-          onDragOver={event => {
-            onMouseEvent(event)
-            const payload = drag.LABELS.lookup(event)
-            if (payload != null) {
-              event.preventDefault()
-              event.stopPropagation()
-              const idsReference = selectedKeysRef.current.has(key) ? selectedKeysRef.current : key
-              // This optimization is required in order to avoid severe lag on Firefox.
-              if (idsReference !== lastSelectedIdsRef.current) {
-                lastSelectedIdsRef.current = idsReference
-                const ids =
-                  typeof idsReference === 'string' ? new Set([idsReference]) : idsReference
+              setMostRecentlySelectedIndex(i, true)
+            }}
+            allowContextMenu={selectedKeysRef.current.size === 0 || !isSelected || isSoleSelected}
+            onClick={onRowClick}
+            onContextMenu={(_innerProps, event) => {
+              if (!isSelected) {
+                event.preventDefault()
+                event.stopPropagation()
+                setMostRecentlySelectedIndex(visibleItems.indexOf(item))
+                selectionStartIndexRef.current = null
+                setSelectedKeys(new Set([key]))
+              }
+            }}
+            onDragStart={(event) => {
+              startAutoScroll()
+              onMouseEvent(event)
+              let newSelectedKeys = selectedKeysRef.current
+              if (!newSelectedKeys.has(key)) {
+                setMostRecentlySelectedIndex(visibleItems.indexOf(item))
+                selectionStartIndexRef.current = null
+                newSelectedKeys = new Set([key])
+                setSelectedKeys(newSelectedKeys)
+              }
+              const nodes = assetTree
+                .preorderTraversal()
+                .filter((node) => newSelectedKeys.has(node.key))
+              const payload: drag.AssetRowsDragPayload = nodes.map((node) => ({
+                key: node.key,
+                asset: node.item,
+              }))
+              event.dataTransfer.setData(
+                mimeTypes.ASSETS_MIME_TYPE,
+                JSON.stringify(nodes.map((node) => node.key)),
+              )
+              drag.setDragImageToBlank(event)
+              drag.ASSET_ROWS.bind(event, payload)
+              setModal(
+                <DragModal
+                  event={event}
+                  className="flex flex-col rounded-default bg-selected-frame backdrop-blur-default"
+                  onDragEnd={() => {
+                    drag.ASSET_ROWS.unbind(payload)
+                  }}
+                >
+                  {nodes.map((node) => (
+                    <NameColumn
+                      key={node.key}
+                      isOpened={false}
+                      keyProp={node.key}
+                      item={node.with({ depth: 0 })}
+                      backendType={backend.type}
+                      state={state}
+                      // Default states.
+                      isSoleSelected={false}
+                      selected={false}
+                      rowState={assetRowUtils.INITIAL_ROW_STATE}
+                      // The drag placeholder cannot be interacted with.
+                      setSelected={() => {}}
+                      setItem={() => {}}
+                      setRowState={() => {}}
+                      isEditable={false}
+                    />
+                  ))}
+                </DragModal>,
+              )
+            }}
+            onDragOver={(event) => {
+              onMouseEvent(event)
+              const payload = drag.LABELS.lookup(event)
+              if (payload != null) {
+                event.preventDefault()
+                event.stopPropagation()
+                const idsReference =
+                  selectedKeysRef.current.has(key) ? selectedKeysRef.current : key
+                // This optimization is required in order to avoid severe lag on Firefox.
+                if (idsReference !== lastSelectedIdsRef.current) {
+                  lastSelectedIdsRef.current = idsReference
+                  const ids =
+                    typeof idsReference === 'string' ? new Set([idsReference]) : idsReference
+                  let labelsPresent = 0
+                  for (const selectedKey of ids) {
+                    const nodeLabels = nodeMapRef.current.get(selectedKey)?.item.labels
+                    if (nodeLabels != null) {
+                      for (const label of nodeLabels) {
+                        if (payload.has(label)) {
+                          labelsPresent += 1
+                        }
+                      }
+                    }
+                  }
+                  const shouldAdd = labelsPresent * 2 < ids.size * payload.size
+                  window.setTimeout(() => {
+                    dispatchAssetEvent({
+                      type:
+                        shouldAdd ?
+                          AssetEventType.temporarilyAddLabels
+                        : AssetEventType.temporarilyRemoveLabels,
+                      ids,
+                      labelNames: payload,
+                    })
+                  })
+                }
+              }
+            }}
+            onDragEnd={() => {
+              endAutoScroll()
+              lastSelectedIdsRef.current = null
+              dispatchAssetEvent({
+                type: AssetEventType.temporarilyAddLabels,
+                ids: selectedKeysRef.current,
+                labelNames: set.EMPTY,
+              })
+            }}
+            onDrop={(event) => {
+              endAutoScroll()
+              const ids = new Set(
+                selectedKeysRef.current.has(key) ? selectedKeysRef.current : [key],
+              )
+              const payload = drag.LABELS.lookup(event)
+              if (payload != null) {
+                event.preventDefault()
+                event.stopPropagation()
                 let labelsPresent = 0
                 for (const selectedKey of ids) {
                   const nodeLabels = nodeMapRef.current.get(selectedKey)?.item.labels
@@ -2351,74 +2399,34 @@ export default function AssetsTable(props: AssetsTableProps) {
                   }
                 }
                 const shouldAdd = labelsPresent * 2 < ids.size * payload.size
-                window.setTimeout(() => {
-                  dispatchAssetEvent({
-                    type: shouldAdd
-                      ? AssetEventType.temporarilyAddLabels
-                      : AssetEventType.temporarilyRemoveLabels,
-                    ids,
-                    labelNames: payload,
-                  })
+                dispatchAssetEvent({
+                  type: shouldAdd ? AssetEventType.addLabels : AssetEventType.removeLabels,
+                  ids,
+                  labelNames: payload,
+                })
+              } else {
+                dispatchAssetEvent({
+                  type: AssetEventType.temporarilyAddLabels,
+                  ids,
+                  labelNames: set.EMPTY,
                 })
               }
-            }
-          }}
-          onDragEnd={() => {
-            endAutoScroll()
-            lastSelectedIdsRef.current = null
-            dispatchAssetEvent({
-              type: AssetEventType.temporarilyAddLabels,
-              ids: selectedKeysRef.current,
-              labelNames: set.EMPTY,
-            })
-          }}
-          onDrop={event => {
-            endAutoScroll()
-            const ids = new Set(selectedKeysRef.current.has(key) ? selectedKeysRef.current : [key])
-            const payload = drag.LABELS.lookup(event)
-            if (payload != null) {
-              event.preventDefault()
-              event.stopPropagation()
-              let labelsPresent = 0
-              for (const selectedKey of ids) {
-                const nodeLabels = nodeMapRef.current.get(selectedKey)?.item.labels
-                if (nodeLabels != null) {
-                  for (const label of nodeLabels) {
-                    if (payload.has(label)) {
-                      labelsPresent += 1
-                    }
-                  }
-                }
-              }
-              const shouldAdd = labelsPresent * 2 < ids.size * payload.size
-              dispatchAssetEvent({
-                type: shouldAdd ? AssetEventType.addLabels : AssetEventType.removeLabels,
-                ids,
-                labelNames: payload,
-              })
-            } else {
-              dispatchAssetEvent({
-                type: AssetEventType.temporarilyAddLabels,
-                ids,
-                labelNames: set.EMPTY,
-              })
-            }
-          }}
-        />
-      )
-    })
-  )
+            }}
+          />
+        )
+      })
 
-  const dropzoneText = isDraggingFiles
-    ? droppedFilesCount === 1
-      ? getText('assetsDropFileDescription')
+  const dropzoneText =
+    isDraggingFiles ?
+      droppedFilesCount === 1 ?
+        getText('assetsDropFileDescription')
       : getText('assetsDropFilesDescription', droppedFilesCount)
     : getText('assetsDropzoneDescription')
 
   const table = (
     <div
       className="flex grow flex-col"
-      onContextMenu={event => {
+      onContextMenu={(event) => {
         event.preventDefault()
         event.stopPropagation()
         setModal(
@@ -2434,10 +2442,10 @@ export default function AssetsTable(props: AssetsTableProps) {
             doCopy={doCopy}
             doCut={doCut}
             doPaste={doPaste}
-          />
+          />,
         )
       }}
-      onDragLeave={event => {
+      onDragLeave={(event) => {
         const payload = drag.LABELS.lookup(event)
         if (
           payload != null &&
@@ -2459,25 +2467,24 @@ export default function AssetsTable(props: AssetsTableProps) {
           {itemRows}
           <tr className="hidden h-row first:table-row">
             <td colSpan={columns.length} className="bg-transparent">
-              {category === Category.trash ? (
+              {category === Category.trash ?
                 <aria.Text className="px-cell-x placeholder">
-                  {query.query !== ''
-                    ? getText('noFilesMatchTheCurrentFilters')
-                    : getText('yourTrashIsEmpty')}
+                  {query.query !== '' ?
+                    getText('noFilesMatchTheCurrentFilters')
+                  : getText('yourTrashIsEmpty')}
                 </aria.Text>
-              ) : category === Category.recent ? (
+              : category === Category.recent ?
                 <aria.Text className="px-cell-x placeholder">
-                  {query.query !== ''
-                    ? getText('noFilesMatchTheCurrentFilters')
-                    : getText('youHaveNoRecentProjects')}
+                  {query.query !== '' ?
+                    getText('noFilesMatchTheCurrentFilters')
+                  : getText('youHaveNoRecentProjects')}
                 </aria.Text>
-              ) : query.query !== '' ? (
+              : query.query !== '' ?
                 <aria.Text className="px-cell-x placeholder">
                   {getText('noFilesMatchTheCurrentFilters')}
                 </aria.Text>
-              ) : (
-                <aria.Text className="px-cell-x placeholder">{getText('youHaveNoFiles')}</aria.Text>
-              )}
+              : <aria.Text className="px-cell-x placeholder">{getText('youHaveNoFiles')}</aria.Text>
+              }
             </td>
           </tr>
         </tbody>
@@ -2486,19 +2493,19 @@ export default function AssetsTable(props: AssetsTableProps) {
         data-testid="root-directory-dropzone"
         className={tailwindMerge.twMerge(
           'sticky left-0 grid max-w-container grow place-items-center',
-          category !== Category.cloud && category !== Category.local && 'hidden'
+          category !== Category.cloud && category !== Category.local && 'hidden',
         )}
         onDragEnter={onDropzoneDragOver}
         onDragOver={onDropzoneDragOver}
-        onDragLeave={event => {
+        onDragLeave={(event) => {
           lastSelectedIdsRef.current = null
           if (event.currentTarget === event.target) {
             setIsDraggingFiles(false)
           }
         }}
-        onDrop={event => {
+        onDrop={(event) => {
           const payload = drag.ASSET_ROWS.lookup(event)
-          const filtered = payload?.filter(item => item.asset.parentId !== rootDirectoryId)
+          const filtered = payload?.filter((item) => item.asset.parentId !== rootDirectoryId)
           if (filtered != null && filtered.length > 0) {
             event.preventDefault()
             event.stopPropagation()
@@ -2507,7 +2514,7 @@ export default function AssetsTable(props: AssetsTableProps) {
               type: AssetEventType.move,
               newParentKey: rootDirectoryId,
               newParentId: rootDirectoryId,
-              ids: new Set(filtered.map(dragItem => dragItem.asset.id)),
+              ids: new Set(filtered.map((dragItem) => dragItem.asset.id)),
             })
           }
           handleFileDrop(event)
@@ -2517,7 +2524,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         }}
       >
         <aria.FileTrigger
-          onSelect={event => {
+          onSelect={(event) => {
             dispatchAssetListEvent({
               type: AssetListEventType.uploadFiles,
               parentKey: rootDirectoryId,
@@ -2544,10 +2551,10 @@ export default function AssetsTable(props: AssetsTableProps) {
   return (
     <div className="relative grow">
       <FocusArea direction="vertical">
-        {innerProps => (
+        {(innerProps) => (
           <div
             {...aria.mergeProps<JSX.IntrinsicElements['div']>()(innerProps, {
-              ref: value => {
+              ref: (value) => {
                 rootRef.current = value
                 cleanupRootRef.current()
                 if (value) {
@@ -2562,7 +2569,7 @@ export default function AssetsTable(props: AssetsTableProps) {
               className: 'flex-1 overflow-auto container-size w-full h-full',
               onKeyDown,
               onScroll: updateClipPath,
-              onBlur: event => {
+              onBlur: (event) => {
                 if (
                   event.relatedTarget instanceof HTMLElement &&
                   !event.currentTarget.contains(event.relatedTarget)
@@ -2572,7 +2579,7 @@ export default function AssetsTable(props: AssetsTableProps) {
               },
               onDragEnter: updateIsDraggingFiles,
               onDragOver: updateIsDraggingFiles,
-              onDragLeave: event => {
+              onDragLeave: (event) => {
                 if (
                   !(event.relatedTarget instanceof Node) ||
                   !event.currentTarget.contains(event.relatedTarget)
@@ -2601,7 +2608,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                     className="sticky right-0 flex self-end px-2 py-3"
                   >
                     <FocusArea direction="horizontal">
-                      {columnsBarProps => (
+                      {(columnsBarProps) => (
                         <div
                           {...aria.mergeProps<JSX.IntrinsicElements['div']>()(columnsBarProps, {
                             className: 'inline-flex gap-icons',
@@ -2611,8 +2618,8 @@ export default function AssetsTable(props: AssetsTableProps) {
                           })}
                         >
                           {columnUtils.CLOUD_COLUMNS.filter(
-                            column => !enabledColumns.has(column)
-                          ).map(column => (
+                            (column) => !enabledColumns.has(column),
+                          ).map((column) => (
                             <Button
                               key={column}
                               light
@@ -2646,7 +2653,7 @@ export default function AssetsTable(props: AssetsTableProps) {
             className="flex items-center justify-center gap-3 rounded-default bg-selected-frame px-8 py-6 text-primary/50 backdrop-blur-3xl transition-all"
             onDragEnter={onDropzoneDragOver}
             onDragOver={onDropzoneDragOver}
-            onDrop={event => {
+            onDrop={(event) => {
               setIsDraggingFiles(false)
               handleFileDrop(event)
             }}

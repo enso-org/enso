@@ -33,14 +33,14 @@ export function PaywallBulletPoints(props: PaywallBulletPointsProps) {
   const { getText } = textProvider.useText()
   const bulletPoints = getText(bulletPointsTextId)
     .split(';')
-    .map(bulletPoint => bulletPoint.trim())
+    .map((bulletPoint) => bulletPoint.trim())
 
   if (bulletPoints.length === 0) {
     return null
   } else {
     return (
       <ul className={tw.twMerge('m-0 flex w-full list-inside list-none flex-col gap-1', className)}>
-        {bulletPoints.map(bulletPoint => (
+        {bulletPoints.map((bulletPoint) => (
           <li key={bulletPoint} className="flex items-start gap-1.5">
             <div className="m-0 flex">
               <div className="m-0 flex">

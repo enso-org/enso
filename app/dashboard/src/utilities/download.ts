@@ -24,7 +24,7 @@ export function download(url: string, name?: string | null) {
 export async function downloadWithHeaders(
   url: string,
   headers: Record<string, string>,
-  name?: string
+  name?: string,
 ) {
   url = new URL(url, location.toString()).toString()
   if ('systemApi' in window) {

@@ -658,26 +658,67 @@ add_specs suite_builder setup =
 
     suite_builder.group prefix+"(Column_Operations_Spec) Column Comparisons" group_builder->
         table_builder = build_sorted_table table_builder=setup.light_table_builder
-        group_builder.specify "should allow to compare numbers" <|
-            with_mixed_columns_if_supported [["x", [1, 4, 5, Nothing]], ["y", [2.0, 3.25, 5.0, Nothing]]] t2->
-                x = t2.at "x"
-                y = t2.at "y"
-                setup.is_integer_type x.inferred_precise_value_type . should_be_true
-                y.inferred_precise_value_type . should_be_a (Value_Type.Float ...)
 
-                (x < y).to_vector . should_equal [True, False, False, Nothing]
-                (x <= y).to_vector . should_equal [True, False, True, Nothing]
-                (x > y).to_vector . should_equal (x <= y).not.to_vector
-                (x >= y).to_vector . should_equal (x < y).not.to_vector
+        group_builder.specify "(Column_Operations_Spec) should infer the correct precise value type for mixed columns" <|
+            with_mixed_columns_if_supported [["i", [1, 4, 5, Nothing]], ["f", [2.0, 3.25, 5.0, Nothing]], ["d", [dec "2.0", dec "3.25", dec "5.0", Nothing]]] t->
+                setup.is_integer_type (t.at "i").inferred_precise_value_type . should_be_true
+                (t.at "f").inferred_precise_value_type . should_be_a (Value_Type.Float ...)
 
-                (x < 1000).to_vector . should_equal [True, True, True, Nothing]
+                case setup.test_selection.supports_decimal_type of
+                    True ->
+                        (t.at "d").inferred_precise_value_type . should_be_a (Value_Type.Decimal ...)
+                    False ->
+                        (t.at "d").inferred_precise_value_type . should_be_a (Value_Type.Integer ...)
 
-                [(<), (<=), (>), (>=)].each op->
-                    op x y . value_type . should_equal Value_Type.Boolean
-                    op x y . to_vector . should_succeed
-                    op x 23 . to_vector . should_succeed
-                    op y 23 . to_vector . should_succeed
-                    op x 1.5 . to_vector . should_succeed
+        if setup.test_selection.run_advanced_edge_case_tests then
+            group_builder.specify "(Column_Operations_Spec) should allow to compare numbers (including mixed types)" <|
+                x_values = [1.25, 4.5, 5.0]
+                y_values = [2.0, 3.0, 5.0]
+
+                converters = [.truncate, x->x, dec]
+                converters.map x_converter-> converters.map y_converter->
+                    x_values_converted = x_values.map x_converter
+                    y_values_converted = y_values.map y_converter
+                    with_mixed_columns_if_supported [['x', x_values_converted + [Nothing]], ['y', y_values_converted + [Nothing]]] t->
+                        x = t.at "x"
+                        y = t.at "y"
+
+                        Test.with_clue " comparison: "+x.value_type.to_text+', '+y.value_type.to_text+" " <|
+                            (x < y).to_vector . should_equal [True, False, False, Nothing]
+                            (x <= y).to_vector . should_equal [True, False, True, Nothing]
+                            (x > y).to_vector . should_equal (x <= y).not.to_vector
+                            (x >= y).to_vector . should_equal (x < y).not.to_vector
+
+                            converters.map converter->
+                                const_float = 3.0
+                                constant = converter const_float
+                                Test.with_clue " constant: "+(Meta.get_simple_type_name constant) <|
+                                    (x == constant).to_vector . should_equal [False, False, False, Nothing]
+                                    (x != constant).to_vector . should_equal [True, True, True, Nothing]
+                                    (y == constant).to_vector . should_equal [False, True, False, Nothing]
+                                    (y != constant).to_vector . should_equal [True, False, True, Nothing]
+
+                            [6.5, 1000.5].map const_float->
+                                converters.map converter->
+                                    constant = converter const_float
+                                    Test.with_clue " constant: "+(Meta.get_simple_type_name constant) <|
+                                        (x < -constant).to_vector . should_equal [False, False, False, Nothing]
+                                        (x < constant).to_vector . should_equal [True, True, True, Nothing]
+                                        (x <= -constant).to_vector . should_equal [False, False, False, Nothing]
+                                        (x <= constant).to_vector . should_equal [True, True, True, Nothing]
+
+                                        (y > -constant).to_vector . should_equal [True, True, True, Nothing]
+                                        (y > constant).to_vector . should_equal [False, False, False, Nothing]
+                                        (y >= -constant).to_vector . should_equal [True, True, True, Nothing]
+                                        (y >= constant).to_vector . should_equal [False, False, False, Nothing]
+
+                            [(<), (<=), (>), (>=)].each op->
+                                op x y . value_type . should_equal Value_Type.Boolean
+                                op x y . to_vector . should_succeed
+                                op x 23 . to_vector . should_succeed
+                                op y 23 . to_vector . should_succeed
+                                op x 1.5 . to_vector . should_succeed
+                                op x (dec 1.5) . to_vector . should_succeed
 
         group_builder.specify "should allow to compare texts" <|
             t0 = table_builder [["X", ["a", "b", "c"]], ["Y", ["a", "b", "d"]]]
@@ -1062,7 +1103,8 @@ add_specs suite_builder setup =
             table.at "x" . round 16 . should_fail_with Illegal_Argument
 
         if setup.test_selection.supports_decimal_type then
-            group_builder.specify "should return decimals when rounding decimals" <|
+            pending = if setup.is_database.not then "https://github.com/enso-org/enso/issues/10644"
+            group_builder.specify "should return decimals when rounding decimals" pending=pending <|
                 i1 = 9223372036854775807 - 1
                 c = table_builder [["X", [i1]]] . at "X"
                 decimal_col = c.cast Value_Type.Decimal

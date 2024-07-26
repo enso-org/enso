@@ -44,14 +44,14 @@ export default function Modal(props: ModalProps) {
 
   return (
     <FocusRoot active={!hidden}>
-      {innerProps => (
+      {(innerProps) => (
         <div
           {...(!hidden ? { 'data-testid': 'modal-background' } : {})}
           style={style}
           className={MODAL_VARIANTS(variantProps)}
           onClick={
             onClick ??
-            (event => {
+            ((event) => {
               if (event.currentTarget === event.target && getSelection()?.type !== 'Range') {
                 event.stopPropagation()
                 unsetModal()
@@ -60,7 +60,7 @@ export default function Modal(props: ModalProps) {
           }
           onContextMenu={onContextMenu}
           {...innerProps}
-          onKeyDown={event => {
+          onKeyDown={(event) => {
             innerProps.onKeyDown?.(event)
             if (event.key !== 'Escape') {
               event.stopPropagation()

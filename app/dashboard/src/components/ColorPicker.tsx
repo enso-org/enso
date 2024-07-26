@@ -30,7 +30,7 @@ function ColorPickerItem(props: InternalColorPickerItemProps) {
   return (
     <FocusRing within>
       <aria.Radio
-        ref={element => {
+        ref={(element) => {
           element?.querySelector('input')?.classList.add(focusChildClass)
         }}
         value={cssColor}
@@ -63,7 +63,7 @@ function ColorPicker(props: ColorPickerProps, ref: React.ForwardedRef<HTMLDivEle
       ref={ref}
       {...radioGroupProps}
       orientation="horizontal"
-      onChange={value => {
+      onChange={(value) => {
         const color = backend.COLOR_STRING_TO_COLOR.get(value)
         if (color != null) {
           setColor(color)

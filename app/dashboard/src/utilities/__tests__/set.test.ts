@@ -9,7 +9,7 @@ import * as setModule from '#/utilities/set'
 // =============
 
 fc.test.prop({
-  set: fc.fc.array(fc.fc.anything(), { minLength: 1 }).map(array => new Set(array)),
+  set: fc.fc.array(fc.fc.anything(), { minLength: 1 }).map((array) => new Set(array)),
   item: fc.fc.anything(),
 })('Manipulating `Set` presence', ({ set, item }) => {
   v.expect(setModule.withPresence(set, item, true).has(item)).toBe(true)

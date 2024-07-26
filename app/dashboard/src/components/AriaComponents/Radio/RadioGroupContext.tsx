@@ -62,7 +62,7 @@ export function RadioGroupProvider(props: React.PropsWithChildren) {
       setPressedRadio: setRadioPressed,
       clearPressedRadio,
     }),
-    [pressedRadio, setRadioPressed, clearPressedRadio]
+    [pressedRadio, setRadioPressed, clearPressedRadio],
   )
 
   return <RadioGroupContext.Provider value={value}>{children}</RadioGroupContext.Provider>

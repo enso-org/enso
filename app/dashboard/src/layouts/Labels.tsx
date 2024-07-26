@@ -50,7 +50,7 @@ export default function Labels(props: LabelsProps) {
 
   return (
     <FocusArea direction="vertical">
-      {innerProps => (
+      {(innerProps) => (
         <div
           data-testid="labels"
           className="flex w-full flex-col items-start gap-4"
@@ -64,9 +64,9 @@ export default function Labels(props: LabelsProps) {
             aria-label={getText('labelsListLabel')}
             className="flex flex-col items-start gap-labels"
           >
-            {labels.map(label => {
-              const negated = currentNegativeLabels.some(term =>
-                array.shallowEqual(term, [label.value])
+            {labels.map((label) => {
+              const negated = currentNegativeLabels.some((term) =>
+                array.shallowEqual(term, [label.value]),
               )
               return (
                 <div key={label.id} className="group relative flex items-center gap-label-icons">
@@ -74,20 +74,21 @@ export default function Labels(props: LabelsProps) {
                     draggable={draggable}
                     color={label.color}
                     active={
-                      negated || currentLabels.some(term => array.shallowEqual(term, [label.value]))
+                      negated ||
+                      currentLabels.some((term) => array.shallowEqual(term, [label.value]))
                     }
                     negated={negated}
-                    onPress={event => {
-                      setQuery(oldQuery =>
+                    onPress={(event) => {
+                      setQuery((oldQuery) =>
                         oldQuery.withToggled(
                           'labels',
                           'negativeLabels',
                           label.value,
-                          event.shiftKey
-                        )
+                          event.shiftKey,
+                        ),
                       )
                     }}
-                    onDragStart={event => {
+                    onDragStart={(event) => {
                       drag.setDragImageToBlank(event)
                       const payload: drag.LabelsDragPayload = new Set([label.value])
                       drag.LABELS.bind(event, payload)
@@ -101,7 +102,7 @@ export default function Labels(props: LabelsProps) {
                           <Label active color={label.color} onPress={() => {}}>
                             {label.value}
                           </Label>
-                        </DragModal>
+                        </DragModal>,
                       )
                     }}
                   >
@@ -121,7 +122,7 @@ export default function Labels(props: LabelsProps) {
                               doDelete={() => {
                                 deleteTagMutation.mutate([label.id, label.value])
                               }}
-                            />
+                            />,
                           )
                         }}
                       />
@@ -136,7 +137,7 @@ export default function Labels(props: LabelsProps) {
               className="pl-1 pr-2"
               /* eslint-disable-next-line no-restricted-syntax */
               icon={<img src={PlusIcon} alt="" className="ml-auto mt-[1px] size-[8px]" />}
-              onPress={event => {
+              onPress={(event) => {
                 if (event.target instanceof HTMLElement) {
                   setModal(<NewLabelModal backend={backend} eventTarget={event.target} />)
                 }

@@ -7,12 +7,12 @@ interface SanitizedHTMLElementEventTarget
   readonly addEventListener: <K extends keyof HTMLElementEventMap>(
     type: K,
     listener: (this: Document, ev: HTMLElementEventMap[K]) => unknown,
-    options?: AddEventListenerOptions | boolean
+    options?: AddEventListenerOptions | boolean,
   ) => void
   readonly removeEventListener: <K extends keyof HTMLElementEventMap>(
     type: K,
     listener: (this: Document, ev: HTMLElementEventMap[K]) => unknown,
-    options?: EventListenerOptions | boolean
+    options?: EventListenerOptions | boolean,
   ) => void
 }
 
@@ -22,12 +22,12 @@ interface SanitizedDocumentEventTarget
   readonly addEventListener: <K extends keyof DocumentEventMap>(
     type: K,
     listener: (this: Document, ev: DocumentEventMap[K]) => unknown,
-    options?: AddEventListenerOptions | boolean
+    options?: AddEventListenerOptions | boolean,
   ) => void
   readonly removeEventListener: <K extends keyof DocumentEventMap>(
     type: K,
     listener: (this: Document, ev: DocumentEventMap[K]) => unknown,
-    options?: EventListenerOptions | boolean
+    options?: EventListenerOptions | boolean,
   ) => void
   readonly body: SanitizedHTMLElementEventTarget
 }
@@ -42,12 +42,12 @@ interface SanitizedWindowEventTarget
   readonly addEventListener: <K extends keyof WindowEventMap>(
     type: K,
     listener: (this: Document, ev: WindowEventMap[K]) => unknown,
-    options?: AddEventListenerOptions | boolean
+    options?: AddEventListenerOptions | boolean,
   ) => void
   readonly removeEventListener: <K extends keyof WindowEventMap>(
     type: K,
     listener: (this: Document, ev: WindowEventMap[K]) => unknown,
-    options?: EventListenerOptions | boolean
+    options?: EventListenerOptions | boolean,
   ) => void
 }
 
