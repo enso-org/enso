@@ -21,6 +21,7 @@ use crate::prelude::*;
 use std::future::join;
 
 use crate::arg::java_gen;
+use crate::arg::libraries;
 use crate::arg::release::Action;
 use crate::arg::BuildJob;
 use crate::arg::Cli;
@@ -772,6 +773,8 @@ pub async fn main_internal(config: Option<Config>) -> Result {
                 .run_ok()
                 .await?;
 
+            enso_build::rust::enso_linter::lint_all(ctx.repo_root.clone()).await?;
+
             enso_build::web::install(&ctx.repo_root).await?;
             enso_build::web::run_script(&ctx.repo_root, enso_build::web::Script::Typecheck).await?;
             enso_build::web::run_script(&ctx.repo_root, enso_build::web::Script::Lint).await?;
@@ -828,6 +831,11 @@ pub async fn main_internal(config: Option<Config>) -> Result {
             let ci_context = ide_ci::actions::context::Context::from_env()?;
             enso_build::changelog::check::check(ctx.repo_root.clone(), ci_context).await?;
         }
+        Target::Libraries(command) => match command.action {
+            libraries::Command::Lint => {
+                enso_build::rust::enso_linter::lint_all(ctx.repo_root.clone()).await?;
+            }
+        },
     };
     info!("Completed main job.");
     global::complete_tasks().await?;

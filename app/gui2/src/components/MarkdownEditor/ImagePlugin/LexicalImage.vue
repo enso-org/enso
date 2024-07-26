@@ -30,6 +30,8 @@ const title = computed(() =>
   : '',
 )
 
+const alt = props.alt ? props.alt : DEFAULT_ALT_TEXT
+
 onUnmounted(() => {
   if (data.value?.ok) data.value.value.dispose?.()
 })

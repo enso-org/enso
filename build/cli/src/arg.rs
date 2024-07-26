@@ -27,6 +27,7 @@ pub mod git_clean;
 pub mod gui;
 pub mod ide;
 pub mod java_gen;
+pub mod libraries;
 pub mod release;
 pub mod runtime;
 pub mod wasm;
@@ -140,6 +141,8 @@ pub enum Target {
     JavaGen(java_gen::Target),
     /// Check if the changelog has been updated. Requires CI environment.
     ChangelogCheck,
+    /// Enso-libraries related subcommand.
+    Libraries(libraries::Target),
 }
 
 /// Build, test and package Enso Engine.

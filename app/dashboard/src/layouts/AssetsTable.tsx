@@ -1,7 +1,6 @@
 /** @file Table displaying a list of projects. */
 import * as React from 'react'
 
-import * as reactQuery from '@tanstack/react-query'
 import * as toast from 'react-toastify'
 
 import DropFilesImage from '#/assets/drop_files.svg'
@@ -384,7 +383,6 @@ export default function AssetsTable(props: AssetsTableProps) {
   const { setSuggestions, initialProjectName } = props
   const { setAssetPanelProps, targetDirectoryNodeRef, setIsAssetPanelTemporarilyVisible } = props
 
-  const queryClient = reactQuery.useQueryClient()
   const openedProjects = projectsProvider.useLaunchedProjects()
   const doOpenProject = projectHooks.useOpenProject()
   const setCanDownload = useSetCanDownload()
@@ -958,7 +956,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         if (projectToLoad != null) {
           const backendType = backendModule.BackendType.local
           const { id, title, parentId } = projectToLoad
-          doOpenProject({ type: backendType, id, title, parentId }, { openInBackground: false })
+          doOpenProject({ type: backendType, id, title, parentId })
         } else {
           toastAndLog('findProjectError', null, nameOfProjectToImmediatelyOpen)
         }
@@ -1239,14 +1237,12 @@ export default function AssetsTable(props: AssetsTableProps) {
               case backendModule.AssetType.project: {
                 event.preventDefault()
                 event.stopPropagation()
-
                 doOpenProject({
                   type: backend.type,
                   id: item.item.id,
                   title: item.item.title,
                   parentId: item.item.parentId,
                 })
-
                 break
               }
               case backendModule.AssetType.datalink: {
@@ -1545,6 +1541,8 @@ export default function AssetsTable(props: AssetsTableProps) {
             datalinkId: event.datalinkId,
             originalId: null,
             versionId: null,
+            ...(event.onCreated ? { onCreated: event.onCreated } : {}),
+            ...(event.onError ? { onError: event.onError } : {}),
           },
         ])
         break
@@ -1723,22 +1721,6 @@ export default function AssetsTable(props: AssetsTableProps) {
       }
       case AssetListEventType.insertAssets: {
         insertArbitraryAssets(event.assets, event.parentKey, event.parentId)
-        break
-      }
-      case AssetListEventType.openProject: {
-        dispatchAssetEvent({ ...event, type: AssetEventType.openProject, runInBackground: false })
-        void queryClient.invalidateQueries({
-          queryKey: [
-            event.backendType,
-            'listDirectory',
-            {
-              parentId: null,
-              filterBy: backendModule.FilterBy.active,
-              recentProjects: false,
-              labels: null,
-            },
-          ],
-        })
         break
       }
       case AssetListEventType.duplicateProject: {

@@ -1,15 +1,8 @@
+use crate::syntax::operator::apply::*;
+use crate::syntax::operator::types::*;
 use enso_prelude::*;
 
-use crate::syntax::operator::apply_operator;
-use crate::syntax::operator::apply_unary_operator;
 use crate::syntax::operator::operand::Operand;
-use crate::syntax::operator::types::Arity;
-use crate::syntax::operator::types::BinaryOperand;
-use crate::syntax::operator::types::ModifiedPrecedence;
-use crate::syntax::operator::types::Operator;
-use crate::syntax::operator::OperandConsumer;
-use crate::syntax::operator::OperatorConsumer;
-use crate::syntax::operator::OperatorOrOperand;
 use crate::syntax::token;
 use crate::syntax::tree;
 use crate::syntax::treebuilding::Finish;
@@ -123,9 +116,14 @@ impl<'s, Inner: OperandConsumer<'s> + OperatorConsumer<'s>> ClassifyArity<'s, In
                 Some("Space required between term and unary-operator expression.".into()),
             _ => None,
         };
+        let is_value_operation = token.properties.is_value_operation();
         self.emit(Operator {
             left_precedence: None,
-            right_precedence: ModifiedPrecedence { spacing: Spacing::Unspaced, precedence },
+            right_precedence: ModifiedPrecedence {
+                spacing: Spacing::Unspaced,
+                precedence,
+                is_value_operation,
+            },
             associativity,
             arity: Arity::Unary { token, error },
         });
@@ -139,7 +137,7 @@ impl<'s, Inner: OperandConsumer<'s> + OperatorConsumer<'s>> ClassifyArity<'s, In
             })) if !(tokens.first().unwrap().left_offset.visible.width_in_spaces == 0
                 && token.left_offset.visible.width_in_spaces == 0) =>
                 self.multiple_operator_error(token, rhs),
-            _ => self.emit(apply_unary_operator(token, None, None)),
+            _ => self.emit(ApplyUnaryOperator::token(token).finish()),
         }
     }
 
@@ -160,10 +158,9 @@ impl<'s, Inner: OperandConsumer<'s> + OperatorConsumer<'s>> ClassifyArity<'s, In
             self.multiple_operator_error(token, rhs);
             return;
         }
-        let lhs_section_termination = token.properties.lhs_section_termination();
         let missing = match (lhs, rhs) {
             (None, None) => {
-                self.emit(apply_operator(vec![token], lhs_section_termination, false, None, None));
+                self.emit(ApplyOperator::token(token).finish());
                 return;
             }
             (Some(_), None) => Some(BinaryOperand::Right),
@@ -172,23 +169,27 @@ impl<'s, Inner: OperandConsumer<'s> + OperatorConsumer<'s>> ClassifyArity<'s, In
         };
         let reify_rhs_section = token.properties.can_form_section()
             && (lhs == Some(Spacing::Spaced) || rhs == Some(Spacing::Spaced));
+        let is_value_operation = missing.is_none() && token.properties.is_value_operation();
         self.emit(Operator {
-            left_precedence: lhs.map(|spacing| ModifiedPrecedence { spacing, precedence }),
-            right_precedence: ModifiedPrecedence { spacing: rhs.or(lhs).unwrap(), precedence },
-            associativity,
-            arity: Arity::Binary {
-                tokens: vec![token],
-                lhs_section_termination,
-                missing,
-                reify_rhs_section,
+            left_precedence: lhs.map(|spacing| ModifiedPrecedence {
+                spacing,
+                precedence,
+                is_value_operation,
+            }),
+            right_precedence: ModifiedPrecedence {
+                spacing: rhs.or(lhs).unwrap(),
+                precedence,
+                is_value_operation,
             },
+            associativity,
+            arity: Arity::Binary { tokens: vec![token], missing, reify_rhs_section },
         });
     }
 
     fn multiple_operator_error(&mut self, token: token::Operator<'s>, rhs: Option<Spacing>) {
         match &mut self.lhs_item {
             Some(OperatorOrOperand::Operator(Operator {
-                arity: Arity::Binary { tokens, lhs_section_termination, missing, reify_rhs_section },
+                arity: Arity::Binary { tokens, missing, .. },
                 ..
             })) => {
                 tokens.push(token);
@@ -196,13 +197,9 @@ impl<'s, Inner: OperandConsumer<'s> + OperatorConsumer<'s>> ClassifyArity<'s, In
                     match missing {
                         None => *missing = Some(BinaryOperand::Right),
                         Some(BinaryOperand::Left) =>
-                            self.lhs_item = Some(OperatorOrOperand::Operand(apply_operator(
-                                mem::take(tokens),
-                                *lhs_section_termination,
-                                *reify_rhs_section,
-                                None,
-                                None,
-                            ))),
+                            self.lhs_item = Some(OperatorOrOperand::Operand(
+                                ApplyOperator::tokens(mem::take(tokens)).finish(),
+                            )),
                         Some(BinaryOperand::Right) => unreachable!(),
                     }
                 }
