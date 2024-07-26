@@ -413,13 +413,12 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
                   buttonLabel={getText('localCategoryButtonLabel')}
                   dropZoneLabel={getText('localCategoryDropZoneLabel')}
                 />
-                <div className="grow" />
                 <ariaComponents.Button
                   size="medium"
                   variant="icon"
                   icon={SettingsIcon}
                   aria-label={getText('changeLocalRootDirectoryInSettings')}
-                  className="hidden group-hover:block"
+                  className="opacity-0 transition-opacity group-hover:opacity-100"
                   onPress={() => {
                     // eslint-disable-next-line @typescript-eslint/naming-convention
                     setSearchParams({ 'cloud-ide_SettingsTab': '"local"' })

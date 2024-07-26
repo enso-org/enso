@@ -336,6 +336,9 @@ export interface AssetsTableState {
   readonly nodeMap: Readonly<
     React.MutableRefObject<ReadonlyMap<backendModule.AssetId, assetTreeNode.AnyAssetTreeNode>>
   >
+  readonly pasteData: Readonly<
+    React.MutableRefObject<pasteDataModule.PasteData<ReadonlySet<backendModule.AssetId>> | null>
+  >
   readonly hideColumn: (column: columnUtils.Column) => void
   readonly doToggleDirectoryExpansion: (
     directoryId: backendModule.DirectoryId,
@@ -421,6 +424,8 @@ export default function AssetsTable(props: AssetsTableProps) {
   > | null>(null)
   const [, setQueuedAssetEvents] = React.useState<assetEvent.AssetEvent[]>([])
   const nameOfProjectToImmediatelyOpenRef = React.useRef(initialProjectName)
+  const users = backendHooks.useBackendListUsers(backend)
+  const userGroups = backendHooks.useBackendListUserGroups(backend)
   const organizationQuery = useSuspenseQuery({
     queryKey: [backend.type, 'getOrganization'],
     queryFn: () => backend.getOrganization(),
@@ -1799,8 +1804,15 @@ export default function AssetsTable(props: AssetsTableProps) {
             newParentId: event.newParentId,
           },
         ]
+        const newParent = nodeMapRef.current.get(event.newParentKey)
+        const newOwner =
+          !isCloud || !newParent ?
+            null
+          : permissions.newOwnerFromPath(newParent.path, users ?? [], userGroups ?? [])
         insertArbitraryAssets(
-          event.items,
+          newOwner ?
+            event.items.map((item) => permissions.replaceOwnerPermission(item, newOwner))
+          : event.items,
           event.newParentKey,
           event.newParentId,
           getKey,
@@ -1810,7 +1822,17 @@ export default function AssetsTable(props: AssetsTableProps) {
       }
       case AssetListEventType.move: {
         deleteAsset(event.key)
-        insertAssets([event.item], event.newParentKey, event.newParentId, () => null)
+        const newParent = nodeMapRef.current.get(event.newParentKey)
+        const newOwner =
+          !isCloud || !newParent ?
+            null
+          : permissions.newOwnerFromPath(newParent.path, users ?? [], userGroups ?? [])
+        insertAssets(
+          [newOwner ? permissions.replaceOwnerPermission(event.item, newOwner) : event.item],
+          event.newParentKey,
+          event.newParentId,
+          () => null,
+        )
         break
       }
       case AssetListEventType.delete: {
@@ -1983,6 +2005,7 @@ export default function AssetsTable(props: AssetsTableProps) {
       setAssetPanelProps,
       setIsAssetPanelTemporarilyVisible,
       nodeMap: nodeMapRef,
+      pasteData: pasteDataRef,
       hideColumn,
       doToggleDirectoryExpansion,
       doCopy,

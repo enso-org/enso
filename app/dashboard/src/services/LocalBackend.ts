@@ -497,12 +497,12 @@ export default class LocalBackend extends Backend {
     throw new Error('Cannot manage users, folders, files, tags, and secrets on the local backend.')
   }
 
-  /** Do nothing. This function should never need to be called. */
+  /** Invalid operation. */
   override undoDeleteAsset(): Promise<void> {
     return this.invalidOperation()
   }
 
-  /** Return an empty array. This function should never need to be called. */
+  /** Return an empty array. */
   override listUsers() {
     return Promise.resolve([])
   }
@@ -783,9 +783,9 @@ export default class LocalBackend extends Backend {
     return this.invalidOperation()
   }
 
-  /** Invalid operation. */
+  /** Return an empty array. */
   override listUserGroups() {
-    return this.invalidOperation()
+    return Promise.resolve([])
   }
 
   /** Invalid operation. */

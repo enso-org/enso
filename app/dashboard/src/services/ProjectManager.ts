@@ -7,7 +7,7 @@ import * as backend from '#/services/Backend'
 import * as appBaseUrl from '#/utilities/appBaseUrl'
 import * as dateTime from '#/utilities/dateTime'
 import * as newtype from '#/utilities/newtype'
-import * as pathModule from '#/utilities/path'
+import { getDirectoryAndName, normalizeSlashes } from '#/utilities/path'
 
 // =================
 // === Constants ===
@@ -367,9 +367,7 @@ export default class ProjectManager {
   /** Get the directory path of a project. */
   getProjectDirectoryPath(projectId: UUID) {
     const projectPath = this.internalProjectPaths.get(projectId)
-    return projectPath == null ?
-        this.rootDirectory
-      : pathModule.getDirectoryAndName(projectPath).directoryPath
+    return projectPath == null ? this.rootDirectory : getDirectoryAndName(projectPath).directoryPath
   }
 
   /** Open an existing project. */
@@ -421,7 +419,7 @@ export default class ProjectManager {
   async renameProject(params: Omit<RenameProjectParams, 'projectsDirectory'>): Promise<void> {
     const path = this.internalProjectPaths.get(params.projectId)
     const directoryPath =
-      path == null ? this.rootDirectory : pathModule.getDirectoryAndName(path).directoryPath
+      path == null ? this.rootDirectory : getDirectoryAndName(path).directoryPath
     const fullParams: RenameProjectParams = { ...params, projectsDirectory: directoryPath }
     await this.sendRequest('project/rename', fullParams)
     const state = this.internalProjects.get(params.projectId)
@@ -443,7 +441,7 @@ export default class ProjectManager {
   ): Promise<DuplicatedProject> {
     const path = this.internalProjectPaths.get(params.projectId)
     const directoryPath =
-      path == null ? this.rootDirectory : pathModule.getDirectoryAndName(path).directoryPath
+      path == null ? this.rootDirectory : getDirectoryAndName(path).directoryPath
     const fullParams: DuplicateProjectParams = { ...params, projectsDirectory: directoryPath }
     const result = this.sendRequest<DuplicatedProject>('project/duplicate', fullParams)
     // Update `internalDirectories` by listing the project's parent directory, because the
@@ -457,7 +455,7 @@ export default class ProjectManager {
   async deleteProject(params: Omit<DeleteProjectParams, 'projectsDirectory'>): Promise<void> {
     const path = this.internalProjectPaths.get(params.projectId)
     const directoryPath =
-      path == null ? this.rootDirectory : pathModule.getDirectoryAndName(path).directoryPath
+      path == null ? this.rootDirectory : getDirectoryAndName(path).directoryPath
     const fullParams: DeleteProjectParams = { ...params, projectsDirectory: directoryPath }
     await this.sendRequest('project/delete', fullParams)
     this.internalProjectPaths.delete(params.projectId)
@@ -513,7 +511,7 @@ export default class ProjectManager {
     )
     const result = response.entries.map((entry) => ({
       ...entry,
-      path: pathModule.normalizeSlashes(entry.path),
+      path: normalizeSlashes(entry.path),
     }))
     this.internalDirectories.set(parentId, result)
     for (const entry of result) {
@@ -528,7 +526,7 @@ export default class ProjectManager {
   async createDirectory(path: Path) {
     await this.runStandaloneCommand(null, 'filesystem-create-directory', path)
     this.internalDirectories.set(path, [])
-    const directoryPath = pathModule.getDirectoryAndName(path).directoryPath
+    const directoryPath = getDirectoryAndName(path).directoryPath
     const siblings = this.internalDirectories.get(directoryPath)
     if (siblings) {
       const now = dateTime.toRfc3339(new Date())
@@ -552,7 +550,7 @@ export default class ProjectManager {
   /** Create a file. */
   async createFile(path: Path, file: Blob) {
     await this.runStandaloneCommand(file, 'filesystem-write-path', path)
-    const directoryPath = pathModule.getDirectoryAndName(path).directoryPath
+    const directoryPath = getDirectoryAndName(path).directoryPath
     const siblings = this.internalDirectories.get(directoryPath)
     if (siblings) {
       const now = dateTime.toRfc3339(new Date())
@@ -609,7 +607,7 @@ export default class ProjectManager {
       }
       moveChildren(children)
     }
-    const directoryPath = pathModule.getDirectoryAndName(from).directoryPath
+    const directoryPath = getDirectoryAndName(from).directoryPath
     const siblings = this.internalDirectories.get(directoryPath)
     if (siblings) {
       this.internalDirectories.set(
@@ -650,7 +648,7 @@ export default class ProjectManager {
       removeChildren(children)
       this.internalDirectories.delete(path)
     }
-    const directoryPath = pathModule.getDirectoryAndName(path).directoryPath
+    const directoryPath = getDirectoryAndName(path).directoryPath
     const siblings = this.internalDirectories.get(directoryPath)
     if (siblings) {
       this.internalDirectories.set(
