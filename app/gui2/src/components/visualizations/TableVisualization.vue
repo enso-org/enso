@@ -143,7 +143,7 @@ const isTruncated = ref(false)
 const tableNode = ref<HTMLElement>()
 const isCreateNodeVisible = ref(false)
 const filterModel = ref({})
-const sortModel = ref({})
+const sortModel = ref(new Map())
 const dataGroupingMap = shallowRef<Map<string, boolean>>()
 useAutoBlur(tableNode)
 const widths = reactive(new Map<string, number>())
@@ -667,7 +667,7 @@ function checkSortAndFilter() {
     filterModel.value = filter
   } else {
     isCreateNodeVisible.value = false
-    sortModel.value = {}
+    sortModel.value = new Map()
     filterModel.value = {}
   }
 }
