@@ -2869,10 +2869,10 @@ lazy val `desktop-environment` =
     .settings(
       frgaalJavaCompilerSetting,
       libraryDependencies ++= Seq(
-        "org.graalvm.sdk"  % "graal-sdk"       % graalMavenPackagesVersion % "provided",
-        "commons-io"       % "commons-io"      % commonsIoVersion,
-        "junit"            % "junit"           % junitVersion              % Test,
-        "com.github.sbt"   % "junit-interface" % junitIfVersion            % Test
+        "org.graalvm.sdk" % "graal-sdk"       % graalMavenPackagesVersion % "provided",
+        "commons-io"      % "commons-io"      % commonsIoVersion,
+        "junit"           % "junit"           % junitVersion              % Test,
+        "com.github.sbt"  % "junit-interface" % junitIfVersion            % Test
       )
     )
 
