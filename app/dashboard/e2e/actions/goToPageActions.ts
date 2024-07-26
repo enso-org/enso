@@ -22,23 +22,23 @@ export interface GoToPageActions {
 
 /** Generate actions for going to a different page. */
 export function goToPageActions(
-  step: (name: string, callback: baseActions.PageCallback) => BaseActions
+  step: (name: string, callback: baseActions.PageCallback) => BaseActions,
 ): GoToPageActions {
   return {
     drive: () =>
-      step('Go to "Data Catalog" page', page =>
+      step('Go to "Data Catalog" page', (page) =>
         page
           .getByRole('tab')
           .filter({ has: page.getByText('Data Catalog') })
-          .click()
+          .click(),
       ).into(DrivePageActions),
     editor: () =>
-      step('Go to "Spatial Analysis" page', page =>
-        page.getByTestId('editor-tab-button').click()
+      step('Go to "Spatial Analysis" page', (page) =>
+        page.getByTestId('editor-tab-button').click(),
       ).into(EditorPageActions),
     settings: () =>
-      step('Go to "settings" page', page => BaseActions.press(page, 'Mod+,')).into(
-        SettingsPageActions
+      step('Go to "settings" page', (page) => BaseActions.press(page, 'Mod+,')).into(
+        SettingsPageActions,
       ),
   }
 }

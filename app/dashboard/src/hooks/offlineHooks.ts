@@ -16,7 +16,7 @@ export function useOffline() {
   const isOnline = React.useSyncExternalStore(
     reactQuery.onlineManager.subscribe.bind(reactQuery.onlineManager),
     () => reactQuery.onlineManager.isOnline(),
-    () => navigator.onLine
+    () => navigator.onLine,
   )
 
   return { isOffline: !isOnline }
@@ -35,7 +35,7 @@ export interface UseOfflineChangeProps {
  */
 export function useOfflineChange(
   callback: (isOffline: boolean) => void,
-  props: UseOfflineChangeProps = {}
+  props: UseOfflineChangeProps = {},
 ) {
   const { triggerImmediate = 'if-offline', isDisabled = false } = props
 
@@ -73,10 +73,10 @@ export function useOfflineChange(
 
   React.useEffect(
     () =>
-      reactQuery.onlineManager.subscribe(online => {
+      reactQuery.onlineManager.subscribe((online) => {
         callbackEvent(!online)
       }),
-    [callbackEvent]
+    [callbackEvent],
   )
 
   React.useEffect(() => {

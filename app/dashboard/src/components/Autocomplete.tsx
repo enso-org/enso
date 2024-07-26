@@ -85,8 +85,8 @@ export default function Autocomplete<T>(props: AutocompleteProps<T>) {
   const canEditTextRef = React.useRef(canEditText)
   const isMultipleAndCustomValue = multiple === true && text != null
   const matchingItems = React.useMemo(
-    () => (text == null ? items : items.filter(item => matches(item, text))),
-    [items, matches, text]
+    () => (text == null ? items : items.filter((item) => matches(item, text))),
+    [items, matches, text],
   )
 
   React.useEffect(() => {
@@ -124,11 +124,11 @@ export default function Autocomplete<T>(props: AutocompleteProps<T>) {
 
   const toggleValue = (value: T) => {
     overrideValues(
-      multiple === true && !isMultipleAndCustomValue
-        ? valuesSet.has(value)
-          ? values.filter(theItem => theItem !== value)
-          : [...values, value]
-        : [value]
+      multiple === true && !isMultipleAndCustomValue ?
+        valuesSet.has(value) ?
+          values.filter((theItem) => theItem !== value)
+        : [...values, value]
+      : [value],
     )
   }
 
@@ -184,7 +184,7 @@ export default function Autocomplete<T>(props: AutocompleteProps<T>) {
     <div onKeyDown={onKeyDown} className="grow">
       <FocusRing within>
         <div className="flex flex-1 rounded-full">
-          {canEditText ? (
+          {canEditText ?
             <Input
               type={type}
               ref={inputRef}
@@ -202,14 +202,13 @@ export default function Autocomplete<T>(props: AutocompleteProps<T>) {
                   setIsDropdownVisible(false)
                 })
               }}
-              onChange={event => {
+              onChange={(event) => {
                 setIsDropdownVisible(true)
                 setText(event.currentTarget.value === '' ? null : event.currentTarget.value)
               }}
             />
-          ) : (
-            <div
-              ref={element => element?.focus()}
+          : <div
+              ref={(element) => element?.focus()}
               tabIndex={-1}
               className="text grow cursor-pointer whitespace-nowrap bg-transparent px-button-x"
               onClick={() => {
@@ -223,7 +222,7 @@ export default function Autocomplete<T>(props: AutocompleteProps<T>) {
             >
               {itemsToString?.(values) ?? (values[0] != null ? itemToString(values[0]) : ZWSP)}
             </div>
-          )}
+          }
         </div>
       </FocusRing>
       <div className="h">
@@ -232,13 +231,13 @@ export default function Autocomplete<T>(props: AutocompleteProps<T>) {
             'relative top-2 z-1 h-max w-full rounded-default shadow-soft before:absolute before:top before:h-full before:w-full before:rounded-default before:bg-frame before:backdrop-blur-default',
             isDropdownVisible &&
               matchingItems.length !== 0 &&
-              'before:border before:border-primary/10'
+              'before:border before:border-primary/10',
           )}
         >
           <div
             className={tailwindMerge.twMerge(
               'relative max-h-autocomplete-suggestions w-full overflow-y-auto overflow-x-hidden rounded-default',
-              isDropdownVisible && matchingItems.length !== 0 ? '' : 'h-0'
+              isDropdownVisible && matchingItems.length !== 0 ? '' : 'h-0',
             )}
           >
             {/* FIXME: "Invite" modal does not take into account the height of the autocomplete,
@@ -249,12 +248,12 @@ export default function Autocomplete<T>(props: AutocompleteProps<T>) {
                 className={tailwindMerge.twMerge(
                   'text relative cursor-pointer whitespace-nowrap px-input-x first:rounded-t-default last:rounded-b-default hover:bg-hover-bg',
                   valuesSet.has(item) && 'bg-hover-bg',
-                  index === selectedIndex && 'bg-black/5'
+                  index === selectedIndex && 'bg-black/5',
                 )}
-                onMouseDown={event => {
+                onMouseDown={(event) => {
                   event.preventDefault()
                 }}
-                onClick={event => {
+                onClick={(event) => {
                   event.stopPropagation()
                   toggleValue(item)
                 }}

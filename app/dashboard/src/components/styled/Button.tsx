@@ -68,7 +68,7 @@ function Button(props: ButtonProps, ref: React.ForwardedRef<HTMLButtonElement>) 
           ref,
           className: tailwindMerge.twMerge(
             'relative after:pointer-events-none after:absolute after:inset after:rounded-button-focus-ring transition-colors hover:enabled:bg-primary/10 rounded-button-focus-ring -m-1 p-1',
-            buttonClassName
+            buttonClassName,
           ),
         })}
       >
@@ -78,7 +78,7 @@ function Button(props: ButtonProps, ref: React.ForwardedRef<HTMLButtonElement>) 
             light && 'opacity-25',
             isDisabled && 'disabled',
             active &&
-              'opacity-100 hover:opacity-100 disabled:cursor-default disabled:opacity-100 [&.disabled]:cursor-default [&.disabled]:opacity-100'
+              'opacity-100 hover:opacity-100 disabled:cursor-default disabled:opacity-100 [&.disabled]:cursor-default [&.disabled]:opacity-100',
           )}
         >
           <Img
@@ -92,18 +92,16 @@ function Button(props: ButtonProps, ref: React.ForwardedRef<HTMLButtonElement>) 
     </FocusRing>
   )
 
-  return tooltipElement == null ? (
-    button
-  ) : (
-    <ariaComponents.TooltipTrigger delay={0} closeDelay={0}>
-      {button}
-      <ariaComponents.Tooltip
-        {...(tooltipPlacement != null ? { placement: tooltipPlacement } : {})}
-      >
-        {tooltipElement}
-      </ariaComponents.Tooltip>
-    </ariaComponents.TooltipTrigger>
-  )
+  return tooltipElement == null ? button : (
+      <ariaComponents.TooltipTrigger delay={0} closeDelay={0}>
+        {button}
+        <ariaComponents.Tooltip
+          {...(tooltipPlacement != null ? { placement: tooltipPlacement } : {})}
+        >
+          {tooltipElement}
+        </ariaComponents.Tooltip>
+      </ariaComponents.TooltipTrigger>
+    )
 }
 
 export default React.forwardRef(Button)

@@ -8,7 +8,7 @@ import * as React from 'react'
 export function useIntersectionRatio(
   rootRef: Readonly<React.MutableRefObject<HTMLDivElement | null>> | null,
   targetRef: Readonly<React.MutableRefObject<HTMLElement | SVGElement | null>>,
-  threshold: number[] | number
+  threshold: number[] | number,
 ): number
 export function useIntersectionRatio<T>(
   rootRef: Readonly<React.MutableRefObject<HTMLDivElement | null>> | null,
@@ -19,7 +19,7 @@ export function useIntersectionRatio<T>(
   // eslint-disable-next-line no-restricted-syntax
   transform: (ratio: number) => Exclude<T, undefined>,
   // eslint-disable-next-line no-restricted-syntax
-  initialValue: Exclude<T, undefined>
+  initialValue: Exclude<T, undefined>,
 ): T
 /** Track changes in intersection ratio between an element and one of its ancestors.
  *
@@ -30,7 +30,7 @@ export function useIntersectionRatio<T>(
   targetRef: Readonly<React.MutableRefObject<HTMLElement | SVGElement | null>>,
   threshold: number[] | number,
   transform?: (ratio: number) => T,
-  initialValue?: T
+  initialValue?: T,
 ) {
   // `initialValue` is guaranteed to be the right type by the overloads.
   // eslint-disable-next-line no-restricted-syntax
@@ -46,12 +46,12 @@ export function useIntersectionRatio<T>(
     const mainDropzone = targetRef.current
     if (mainDropzone != null) {
       const intersectionObserver = new IntersectionObserver(
-        entries => {
+        (entries) => {
           for (const entry of entries) {
             setValue(transformRef.current(entry.intersectionRatio))
           }
         },
-        { root, threshold }
+        { root, threshold },
       )
       intersectionObserver.observe(mainDropzone)
 
@@ -64,7 +64,7 @@ export function useIntersectionRatio<T>(
           intersectionX,
           intersectionY,
           Math.min(rootRect.right, dropzoneRect.right) - intersectionX,
-          Math.min(rootRect.bottom, dropzoneRect.bottom) - intersectionY
+          Math.min(rootRect.bottom, dropzoneRect.bottom) - intersectionY,
         )
         const dropzoneArea = dropzoneRect.width * dropzoneRect.height
         const intersectionArea = intersectionRect.width * intersectionRect.height

@@ -158,7 +158,7 @@ export function isFeatureName(name: string): name is PaywallFeatureName {
  * Get the configuration for a given feature.
  */
 export function getFeatureConfiguration<Key extends PaywallFeatureName>(
-  feature: Key
+  feature: Key,
 ): FeatureConfiguration<Key> {
   const configuration = PAYWALL_CONFIGURATION[feature]
 
