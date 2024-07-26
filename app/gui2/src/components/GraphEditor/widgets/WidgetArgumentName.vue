@@ -50,16 +50,13 @@ export const widgetDefinition = defineWidget(
   import.meta.hot,
 )
 
-export const ArgumentNameShownKey: unique symbol = Symbol('ArgumentNameShownKey')
+export const ArgumentNameShownKey: unique symbol = Symbol.for('WidgetInput:ArgumentNameShown')
 </script>
 
 <template>
   <div class="WidgetArgumentName" :class="{ placeholder, primary }">
-    <template v-if="showArgumentValue">
-      <span class="name">{{ props.input[ArgumentInfoKey].info.name }}</span
-      ><NodeWidget :input="innerInput" allowEmpty />
-    </template>
-    <template v-else>{{ props.input[ArgumentInfoKey].info.name }}</template>
+    <span class="name widgetApplyPadding">{{ props.input[ArgumentInfoKey].info.name }}</span>
+    <NodeWidget v-if="showArgumentValue" :input="innerInput" allowEmpty />
   </div>
 </template>
 
@@ -68,15 +65,11 @@ export const ArgumentNameShownKey: unique symbol = Symbol('ArgumentNameShownKey'
   display: flex;
   flex-direction: row;
   align-items: center;
+  gap: var(--widget-token-pad-unit);
 }
 
 .placeholder,
 .name {
   color: rgb(255 255 255 / 0.5);
-  margin-right: 8px;
-
-  &:last-child {
-    margin-right: 0px;
-  }
 }
 </style>

@@ -14,6 +14,7 @@ const props = defineProps<{
   isDocsVisible: boolean
   isVisualizationEnabled: boolean
   isFullMenuVisible: boolean
+  isRemovable: boolean
   matchableNodeColors: Set<string>
   documentationUrl: string | undefined
 }>()
@@ -70,6 +71,8 @@ function readableBinding(binding: keyof (typeof graphBindings)['bindings']) {
           name="trash2"
           class="slot4"
           :title="`Delete (${readableBinding('deleteSelected')})`"
+          data-testid="removeNode"
+          :disabled="!isRemovable"
           @click.stop="emit('delete')"
         />
       </template>
@@ -116,6 +119,9 @@ function readableBinding(binding: keyof (typeof graphBindings)['bindings']) {
 <style scoped>
 .CircularMenu {
   position: absolute;
+  bottom: 0;
+  width: 0;
+  height: 0;
   user-select: none;
   pointer-events: none;
   /* This is a variable so that it can be referenced in computations,
@@ -130,7 +136,7 @@ function readableBinding(binding: keyof (typeof graphBindings)['bindings']) {
 .circle {
   position: relative;
   left: -36px;
-  top: -36px;
+  top: -68px;
   width: var(--outer-diameter);
   height: var(--outer-diameter);
 }
@@ -245,7 +251,7 @@ function readableBinding(binding: keyof (typeof graphBindings)['bindings']) {
 
 .below-slot5 {
   position: absolute;
-  top: calc(var(--outer-diameter) - 32px);
+  top: calc(var(--outer-diameter) - 64px);
   pointer-events: all;
 }
 

@@ -21,6 +21,7 @@ use crate::prelude::*;
 use std::future::join;
 
 use crate::arg::java_gen;
+use crate::arg::libraries;
 use crate::arg::release::Action;
 use crate::arg::BuildJob;
 use crate::arg::Cli;
@@ -36,6 +37,7 @@ use enso_build::config::Config;
 use enso_build::context::BuildContext;
 use enso_build::engine::context::EnginePackageProvider;
 use enso_build::engine::Benchmarks;
+use enso_build::engine::StandardLibraryTestsSelection;
 use enso_build::engine::Tests;
 use enso_build::paths::TargetTriple;
 use enso_build::project;
@@ -348,7 +350,7 @@ impl Processor {
                 );
                 let dashboard_tests = run_and_upload_dir(
                     gui::dashboard_tests(&repo_root),
-                    &repo_root.app.ide_desktop.lib.dashboard.playwright_report,
+                    &repo_root.app.dashboard.playwright_report,
                     "dashboard-playwright-report",
                 );
                 try_join(gui_tests, dashboard_tests).void_ok().boxed()
@@ -413,11 +415,21 @@ impl Processor {
                 let mut config = enso_build::engine::BuildConfigurationFlags::default();
                 for arg in which {
                     match arg {
-                        Tests::Jvm => config.test_jvm = true,
-                        Tests::StandardLibrary => config.test_standard_library = true,
+                        Tests::Jvm => {
+                            config.test_jvm = true;
+                            // We also test the Java parser integration when running the JVM tests.
+                            config.test_java_generated_from_rust = true;
+                        }
+                        Tests::StandardLibrary => config.add_standard_library_test_selection(
+                            StandardLibraryTestsSelection::All,
+                        ),
+                        Tests::StdSnowflake => config.add_standard_library_test_selection(
+                            StandardLibraryTestsSelection::Selected(vec![
+                                "Snowflake_Tests".to_string()
+                            ]),
+                        ),
                     }
                 }
-                config.test_java_generated_from_rust = true;
                 let context = self.prepare_backend_context(config);
                 async move { context.await?.build().void_ok().await }.boxed()
             }
@@ -761,6 +773,8 @@ pub async fn main_internal(config: Option<Config>) -> Result {
                 .run_ok()
                 .await?;
 
+            enso_build::rust::enso_linter::lint_all(ctx.repo_root.clone()).await?;
+
             enso_build::web::install(&ctx.repo_root).await?;
             enso_build::web::run_script(&ctx.repo_root, enso_build::web::Script::Typecheck).await?;
             enso_build::web::run_script(&ctx.repo_root, enso_build::web::Script::Lint).await?;
@@ -817,6 +831,11 @@ pub async fn main_internal(config: Option<Config>) -> Result {
             let ci_context = ide_ci::actions::context::Context::from_env()?;
             enso_build::changelog::check::check(ctx.repo_root.clone(), ci_context).await?;
         }
+        Target::Libraries(command) => match command.action {
+            libraries::Command::Lint => {
+                enso_build::rust::enso_linter::lint_all(ctx.repo_root.clone()).await?;
+            }
+        },
     };
     info!("Completed main job.");
     global::complete_tasks().await?;

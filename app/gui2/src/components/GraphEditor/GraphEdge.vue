@@ -43,9 +43,10 @@ const sourceNode = computed(() => {
     return connectedSourceNode.value
   } else if (hoveredNode.value != null && props.edge.target) {
     // When the source is not set (i.e. edge is dragged), use the currently hovered over expression
-    // as the source, as long as it is not from the same node as the target.
+    // as the source, as long as it is an output node or the same node as the target.
+    const nodeType = graph.db.nodeIdToNode.get(hoveredNode.value)?.type
     const rawTargetNode = graph.getPortNodeId(props.edge.target)
-    if (hoveredNode.value != rawTargetNode) return hoveredNode.value
+    if (nodeType !== 'output' && hoveredNode.value != rawTargetNode) return hoveredNode.value
   }
   return undefined
 })
@@ -630,6 +631,7 @@ const sourceHoverAnimationStyle = computed(() => {
   fill: none;
   stroke: var(--edge-color);
   transition: stroke 0.2s ease;
+  contain: strict;
 }
 
 .arrow {

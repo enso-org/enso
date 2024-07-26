@@ -254,6 +254,7 @@ fn if_body<'s>(
                         arguments,
                     }),
                 span,
+                ..
             }) => {
                 let mut block = block::body_from_lines(arguments);
                 block.span.left_offset += span.left_offset;
@@ -347,6 +348,7 @@ fn to_body_statement(mut line_expression: syntax::Tree<'_>) -> syntax::Tree<'_> 
                 ..
             }),
         span,
+        ..
     } = line_expression
     {
         inner.span = span;
@@ -385,6 +387,7 @@ fn to_body_statement(mut line_expression: syntax::Tree<'_>) -> syntax::Tree<'_> 
         Tree {
             variant: box Variant::OprApp(OprApp { lhs: Some(lhs), opr: Ok(opr), rhs: Some(rhs) }),
             span,
+            ..
         } if opr.properties.is_assignment() => {
             left_offset = span.left_offset.clone();
             last_argument_default = Some((opr.clone(), rhs.clone()));
@@ -393,10 +396,11 @@ fn to_body_statement(mut line_expression: syntax::Tree<'_>) -> syntax::Tree<'_> 
         Tree {
             variant:
                 box Variant::ArgumentBlockApplication(ArgumentBlockApplication {
-                    lhs: Some(Tree { variant: box Variant::Ident(ident), span: span_ }),
+                    lhs: Some(Tree { variant: box Variant::Ident(ident), span: span_, .. }),
                     arguments,
                 }),
             span,
+            ..
         } => {
             let mut constructor = ident.token.clone();
             constructor.left_offset += &span.left_offset;
@@ -415,7 +419,7 @@ fn to_body_statement(mut line_expression: syntax::Tree<'_>) -> syntax::Tree<'_> 
         _ => &line_expression,
     };
     let (constructor, mut arguments) = crate::collect_arguments(lhs.clone());
-    if let Tree { variant: box Variant::Ident(Ident { token }), span } = constructor
+    if let Tree { variant: box Variant::Ident(Ident { token }), span, .. } = constructor
         && token.is_type
     {
         let mut constructor = token;
@@ -572,6 +576,7 @@ impl<'s> CaseBuilder<'s> {
                         mut documentation,
                         expression: None,
                     }),
+                ..
             }) if self.documentation.is_none() => {
                 documentation.open.left_offset += span.left_offset;
                 if self.case_lines.is_empty() {
@@ -587,6 +592,7 @@ impl<'s> CaseBuilder<'s> {
                     box syntax::tree::Variant::ArgumentBlockApplication(
                         syntax::tree::ArgumentBlockApplication { lhs: None, arguments },
                     ),
+                ..
             }) => {
                 let mut block = syntax::tree::block::body_from_lines(arguments);
                 block.span.left_offset += span.left_offset;
@@ -726,7 +732,7 @@ fn splice_body<'s>(
     let expression = segment.result.tokens();
     let expression = precedence.resolve(expression);
     let splice = syntax::tree::TextElement::Splice { open, expression, close };
-    syntax::Tree::text_literal(default(), default(), vec![splice], default(), default())
+    syntax::Tree::text_literal(default(), default(), vec![splice], default())
 }
 
 fn foreign<'s>() -> Definition<'s> {

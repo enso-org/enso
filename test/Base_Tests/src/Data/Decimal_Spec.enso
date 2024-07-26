@@ -313,7 +313,7 @@ add_specs suite_builder =
             values.map pr->
                 v = pr.at 0
                 d = Decimal.new v . remove_warnings
-                expected = pr.at 1 . to_float
+                expected = pr.at 1
 
                 d . should_equal expected
                 expected . should_equal d
@@ -384,7 +384,7 @@ add_specs suite_builder =
     suite_builder.group "(Decimal_Spec) edge cases" group_builder->
         group_builder.specify "can support values outside the double range" <|
             d = Decimal.new Float.max_value
-            (d == Float.max_value) . should_be_false
+            (d == Float.max_value) . should_be_true
             ((d * d) == Float.max_value) . should_be_false
             ((-(d * d)) == -Float.max_value) . should_be_false
             Ordering.hash (d * d) . should_equal 2146435072
@@ -622,12 +622,12 @@ add_specs suite_builder =
         group_builder.specify "should attach a Loss_Of_Numeric_Precision warning when converting decimal to float with .from" <|
             Problems.expect_only_warning Loss_Of_Numeric_Precision (Float.from (Decimal.new "56.34"))
 
-        group_builder.specify "Decimal.to_float cannot compare correctly with the original Decimal" <|
+        group_builder.specify "Decimal.to_float should compare correctly with the original Decimal" <|
             huge_a = Decimal.new "3.4E300"
             huge_a_float = Float.from huge_a
 
-            (huge_a_float == huge_a) . should_be_false
-            (huge_a == huge_a_float) . should_be_false
+            (huge_a_float == huge_a) . should_be_true
+            (huge_a == huge_a_float) . should_be_true
 
         group_builder.specify "Decimal.to_integer should compare correctly with the original Decimal" <|
             huge_a = Decimal.new "3.4E320"

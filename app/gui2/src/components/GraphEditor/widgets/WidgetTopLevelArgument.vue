@@ -21,28 +21,26 @@ export const widgetDefinition = defineWidget(
 </script>
 
 <template>
-  <span class="WidgetTopLevelArgument">
+  <div class="WidgetTopLevelArgument widgetResetPadding">
     <NodeWidget :input="props.input" />
-  </span>
+  </div>
 </template>
 
 <style scoped>
 .WidgetTopLevelArgument {
-  display: inline-flex;
+  display: flex;
   flex-direction: row;
   place-items: center;
-  height: var(--node-height);
+  overflow-x: clip;
 
   &:before {
     content: '';
     display: block;
-    margin: 0 8px 0 4px;
-    height: var(--node-height);
-    border-left: 1px solid rgb(0 0 0 / 0.12);
+    align-self: stretch;
+    margin-top: -4px;
+    margin-bottom: -4px;
+    margin-right: var(--widget-token-pad-unit);
+    border-left: 1px solid rgb(0 0 0 / calc(0.12 * var(--size-transition-progress, 1)));
   }
-}
-.value {
-  color: rgb(255 255 255 / 0.5);
-  margin-right: 4px;
 }
 </style>

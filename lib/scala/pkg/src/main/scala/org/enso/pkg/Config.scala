@@ -249,8 +249,7 @@ object Config {
         value.normalizedName.foreach(v =>
           elements.add((JsonFields.NormalizedName, v))
         )
-        if (value.namespace != DefaultNamespace)
-          elements.add((JsonFields.Namespace, value.namespace))
+        elements.add((JsonFields.Namespace, value.namespace))
         if (value.version != DefaultVersion)
           elements.add(
             (JsonFields.Version, value.version)

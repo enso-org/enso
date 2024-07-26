@@ -27,18 +27,19 @@ pub mod block;
 #[allow(missing_docs)]
 pub struct Tree<'s> {
     #[reflect(flatten, hide)]
-    pub span:    Span<'s>,
+    pub span:     Span<'s>,
+    pub warnings: Warnings,
     #[deref]
     #[deref_mut]
     #[reflect(subtype)]
-    pub variant: Box<Variant<'s>>,
+    pub variant:  Box<Variant<'s>>,
 }
 
 /// Constructor.
 #[allow(non_snake_case)]
 pub fn Tree<'s>(span: Span<'s>, variant: impl Into<Variant<'s>>) -> Tree<'s> {
     let variant = Box::new(variant.into());
-    Tree { variant, span }
+    Tree { variant, span, warnings: default() }
 }
 
 impl<'s> AsRef<Span<'s>> for Tree<'s> {
@@ -50,8 +51,9 @@ impl<'s> AsRef<Span<'s>> for Tree<'s> {
 impl<'s> Default for Tree<'s> {
     fn default() -> Self {
         Self {
-            variant: Box::new(Variant::Ident(Ident { token: Default::default() })),
-            span:    Span::empty_without_offset(),
+            variant:  Box::new(Variant::Ident(Ident { token: Default::default() })),
+            span:     Span::empty_without_offset(),
+            warnings: default(),
         }
     }
 }
@@ -131,9 +133,6 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
             pub newline:  Option<token::Newline<'s>>,
             pub elements: Vec<TextElement<'s>>,
             pub close:    Option<token::TextEnd<'s>>,
-            #[serde(skip)]
-            #[reflect(skip)]
-            pub closed:   bool,
         },
         /// A simple application, like `print "hello"`.
         App {
@@ -758,6 +757,50 @@ impl<'s> span::Builder<'s> for OperatorDelimitedTree<'s> {
 
 
 
+// ================
+// === Warnings ===
+// ================
+
+/// Warnings applicable to a [`Tree`].
+pub type Warnings = ColdVec<Warning>;
+
+
+// === Warning ===
+
+/// A warning associated with a [`Tree`].
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Reflect, Deserialize)]
+#[allow(missing_copy_implementations)] // Future warnings may have attached information.
+pub struct Warning {
+    id: u32,
+}
+
+impl Warning {
+    /// Spacing is inconsistent with effective operator precedence.
+    pub fn inconsistent_spacing() -> Self {
+        Self { id: WarningId::InconsistentSpacing as u32 }
+    }
+
+    /// Return a description of the warning.
+    pub fn message(&self) -> Cow<'static, str> {
+        WARNINGS[self.id as usize].into()
+    }
+}
+
+#[repr(u32)]
+#[derive(Debug)]
+enum WarningId {
+    InconsistentSpacing,
+    #[allow(non_camel_case_types)]
+    NUM_WARNINGS,
+}
+
+/// Template strings for printing warnings.
+// These must be defined in the same order as the [`WarningId`] variants.
+pub const WARNINGS: [&str; WarningId::NUM_WARNINGS as usize] =
+    ["Spacing is inconsistent with operator precedence"];
+
+
+
 // ====================================
 // === Tree-construction operations ===
 // ====================================
@@ -839,29 +882,6 @@ fn maybe_apply<'s>(f: Option<Tree<'s>>, x: Tree<'s>) -> Tree<'s> {
         Some(f) => apply(f, x),
         None => x,
     }
-}
-
-/// Join two text literals, merging contents as appropriate to each field.
-pub fn join_text_literals<'s>(
-    lhs: &mut TextLiteral<'s>,
-    rhs: &mut TextLiteral<'s>,
-    lhs_span: &mut Span<'s>,
-    rhs_span: Span<'s>,
-) {
-    lhs_span.code_length += rhs_span.length_including_whitespace();
-    match rhs.elements.first_mut() {
-        Some(TextElement::Section { text }) => text.left_offset += rhs_span.left_offset,
-        Some(TextElement::Escape { token }) => token.left_offset += rhs_span.left_offset,
-        Some(TextElement::Splice { open, .. }) => open.left_offset += rhs_span.left_offset,
-        Some(TextElement::Newline { newline }) => newline.left_offset += rhs_span.left_offset,
-        None => (),
-    }
-    if let Some(newline) = rhs.newline.take() {
-        lhs.newline = newline.into();
-    }
-    lhs.elements.append(&mut rhs.elements);
-    lhs.close = rhs.close.take();
-    lhs.closed = rhs.closed;
 }
 
 /// Join two nodes with an operator, in a way appropriate for their types.
@@ -1006,28 +1026,6 @@ pub fn to_ast(token: Token) -> Tree {
             Tree::number(None, Some(token.with_variant(number)), None),
         token::Variant::NumberBase(base) =>
             Tree::number(Some(token.with_variant(base)), None, None),
-        token::Variant::TextStart(open) =>
-            Tree::text_literal(Some(token.with_variant(open)), default(), default(), default(), default()),
-        token::Variant::TextSection(section) => {
-            let section = TextElement::Section { text: token.with_variant(section) };
-            Tree::text_literal(default(), default(), vec![section], default(), default())
-        }
-        token::Variant::TextEscape(escape) => {
-            let token = token.with_variant(escape);
-            let section = TextElement::Escape { token };
-            Tree::text_literal(default(), default(), vec![section], default(), default())
-        }
-        token::Variant::TextEnd(_) if token.code.is_empty() =>
-            Tree::text_literal(default(), default(), default(), default(), true),
-        token::Variant::TextEnd(close) =>
-            Tree::text_literal(default(), default(), default(), Some(token.with_variant(close)), true),
-        token::Variant::TextInitialNewline(_) =>
-            Tree::text_literal(default(), Some(token::newline(token.left_offset, token.code)), default(), default(), default()),
-        token::Variant::TextNewline(_) => {
-            let newline = token::newline(token.left_offset, token.code);
-            let newline = TextElement::Newline { newline };
-            Tree::text_literal(default(), default(), vec![newline], default(), default())
-        }
         token::Variant::Wildcard(wildcard) => Tree::wildcard(token.with_variant(wildcard), default()),
         token::Variant::SuspendedDefaultArguments(t) => Tree::suspended_default_arguments(token.with_variant(t)),
         token::Variant::OpenSymbol(s) =>
@@ -1042,6 +1040,13 @@ pub fn to_ast(token: Token) -> Tree {
         // This should be unreachable: `Precedence::resolve` doesn't calls `to_ast` for operators.
         | token::Variant::Operator(_)
         | token::Variant::Private(_)
+        // Handled during compound-token assembly.
+        | token::Variant::TextStart(_)
+        | token::Variant::TextSection(_)
+        | token::Variant::TextEscape(_)
+        | token::Variant::TextEnd(_)
+        | token::Variant::TextInitialNewline(_)
+        | token::Variant::TextNewline(_)
         // Map an error case in the lexer to an error in the AST.
         | token::Variant::Invalid(_) => {
             let message = format!("Unexpected token: {token:?}");

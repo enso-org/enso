@@ -10,6 +10,7 @@
       gui-tests.yml:
       gui.yml:
       engine-nightly.yml:
+      extra-nightly-tests.yml:
       nightly.yml:
       promote.yml:
       release.yml:
@@ -17,7 +18,6 @@
       shader-tools.yml:
       std-libs-benchmark.yml:
   app/:
-    gui/:
     gui2/: # The new, Vue-based GUI.
       dist/:
       playwright-report/: # Test results for the new GUI that we want to keep as artifacts.
@@ -30,17 +30,12 @@
           font-enso.css:
           font-mplus1.css:
           font-dejavu.css:
+    dashboard/:
+      playwright-report/: # Test results for the dashboard that we want to keep as artifacts.
     ide-desktop/:
-      lib/:
-        client/:
-        content/:
-        content-config/:
-          src/:
-            config.json:
-        dashboard/:
-          playwright-report/: # Test results for the dashboard that we want to keep as artifacts.
-        icons/:
-        project-manager/:
+      client/:
+      common/:
+      icons/:
   build/:
     prettier/:
   built-distribution/:
@@ -80,6 +75,7 @@
       <edition>.yaml:
     enso.bundle.template:
     launcher-manifest.yaml:
+    lib:
   engine/:
     runner/:
       src/:

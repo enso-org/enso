@@ -12,6 +12,7 @@ import {
 } from '@lexical/markdown'
 import { HeadingNode, QuoteNode, registerRichText } from '@lexical/rich-text'
 import { TableCellNode, TableNode, TableRowNode } from '@lexical/table'
+import { $setSelection } from 'lexical'
 import { watch, type Ref } from 'vue'
 
 export interface LexicalMarkdownPlugin extends LexicalPlugin {
@@ -27,27 +28,29 @@ export function markdownPlugin(
     if (extension?.transformers) transformers.push(...extension.transformers)
   }
   transformers.push(...TRANSFORMERS)
-  return [...extensions, baseMarkdownPlugin, markdownSyncPlugin(model, transformers)]
+  return [...extensions, baseMarkdownPlugin(transformers), markdownSyncPlugin(model, transformers)]
 }
 
-const baseMarkdownPlugin: LexicalPlugin = {
-  nodes: [
-    HeadingNode,
-    QuoteNode,
-    ListItemNode,
-    ListNode,
-    AutoLinkNode,
-    LinkNode,
-    CodeHighlightNode,
-    CodeNode,
-    TableCellNode,
-    TableNode,
-    TableRowNode,
-  ],
-  register: (editor) => {
-    registerRichText(editor)
-    registerMarkdownShortcuts(editor, TRANSFORMERS)
-  },
+function baseMarkdownPlugin(transformers: Transformer[]): LexicalPlugin {
+  return {
+    nodes: [
+      HeadingNode,
+      QuoteNode,
+      ListItemNode,
+      ListNode,
+      AutoLinkNode,
+      LinkNode,
+      CodeHighlightNode,
+      CodeNode,
+      TableCellNode,
+      TableNode,
+      TableRowNode,
+    ],
+    register: (editor) => {
+      registerRichText(editor)
+      registerMarkdownShortcuts(editor, transformers)
+    },
+  }
 }
 
 const markdownSyncPlugin = (model: Ref<string>, transformers: Transformer[]): LexicalPlugin => ({
@@ -55,7 +58,10 @@ const markdownSyncPlugin = (model: Ref<string>, transformers: Transformer[]): Le
     const { content } = useLexicalStringSync(
       editor,
       () => $convertToMarkdownString(transformers),
-      (value) => $convertFromMarkdownString(value, transformers),
+      (value) => {
+        $convertFromMarkdownString(value, transformers)
+        $setSelection(null)
+      },
     )
     watch(model, (newContent) => content.set(newContent), { immediate: true })
     watch(content.state, (newContent) => (model.value = newContent))

@@ -305,6 +305,11 @@ impl Variant {
             | Variant::Invalid(_)
         )
     }
+
+    /// Return a token variant for an identifier composed of operator characters.
+    pub fn operator_ident() -> variant::Ident {
+        variant::Ident(false, 0, false, true, false)
+    }
 }
 
 impl Default for Variant {
@@ -322,6 +327,7 @@ pub struct OperatorProperties {
     // Precedence
     binary_infix_precedence:   Option<Precedence>,
     unary_prefix_precedence:   Option<Precedence>,
+    is_value_operation:        bool,
     // Operator section behavior
     lhs_section_termination:   Option<crate::syntax::operator::SectionTermination>,
     // Special properties
@@ -364,6 +370,21 @@ impl OperatorProperties {
     /// Return a copy of this operator, modified to be flagged as a compile time operation.
     pub fn as_compile_time_operation(self) -> Self {
         Self { is_compile_time_operation: true, ..self }
+    }
+
+    /// Return whether this operator is flagged as a compile time operation.
+    pub fn is_compile_time_operation(&self) -> bool {
+        self.is_compile_time_operation
+    }
+
+    /// Mark the operator as a value-level operation, as opposed to functional.
+    pub fn as_value_operation(self) -> Self {
+        Self { is_value_operation: true, ..self }
+    }
+
+    /// Return whether the operator is a value-level operation, as opposed to functional.
+    pub fn is_value_operation(&self) -> bool {
+        self.is_value_operation
     }
 
     /// Return a copy of this operator, modified to be flagged as right associative.

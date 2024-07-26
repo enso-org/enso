@@ -171,3 +171,11 @@ test-results
 ##################
 
 .direnv
+
+##########################
+## Playwright artifacts ##
+##########################
+
+test-results/
+playwright-report/
+playwright/.cache/

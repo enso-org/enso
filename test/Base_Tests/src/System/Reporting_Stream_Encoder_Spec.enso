@@ -110,7 +110,7 @@ add_specs suite_builder =
                     rse.write "23"
                     result
             result . should_equal 42
-            Problems.get_attached_warnings result . should_contain_the_same_elements_as ["warn:1", "warn:2"]
+            Problems.get_attached_warnings result . should_equal_ignoring_order ["warn:1", "warn:2"]
             f.read_text encoding . should_equal "BAZ23"
             f.delete_if_exists
 
@@ -125,7 +125,7 @@ add_specs suite_builder =
                     rse.write "23"
                     result
             result . should_equal Nothing
-            Problems.get_attached_warnings result . should_contain_the_same_elements_as ["warn:1", "warn:2"]
+            Problems.get_attached_warnings result . should_equal_ignoring_order ["warn:1", "warn:2"]
             f.read_text encoding . should_equal "BAZ23"
             f.delete_if_exists
 

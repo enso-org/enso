@@ -353,7 +353,7 @@ type Decimal
              b = Decimal.new "20.33"
              c = a + b
              # => Decimal.new 30.55
-    + : Decimal -> Decimal
+    + : Decimal -> Decimal ! Arithmetic_Error
     + self (that : Decimal) -> Decimal ! Arithmetic_Error = self.add that
 
     ## ALIAS minus
@@ -412,7 +412,7 @@ type Decimal
              b = Decimal.new "10.22"
              c = a - b
              # => Decimal.new 10.11
-    - : Decimal -> Decimal
+    - : Decimal -> Decimal ! Arithmetic_Error
     - self (that : Decimal) -> Decimal ! Arithmetic_Error = self.subtract that
 
     ## ALIAS times
@@ -470,7 +470,7 @@ type Decimal
              b = Decimal.new "20.33"
              c = a * b
              # => Decimal.new 207.7726
-    * : Decimal -> Decimal
+    * : Decimal -> Decimal ! Arithmetic_Error
     * self (that : Decimal) -> Decimal ! Arithmetic_Error = self.multiply that
 
     ## GROUP Operators
@@ -534,7 +534,7 @@ type Decimal
              b = Decimal.new "23.34"
              c = a / b
              # => Decimal.new 45.67
-    / : Decimal -> Decimal
+    / : Decimal -> Decimal ! Arithmetic_Error
     / self (that : Decimal) -> Decimal ! Arithmetic_Error = self.divide that
 
     ## ALIAS modulo, modulus
@@ -764,8 +764,7 @@ type Decimal
              d = Decimal.new "2345.6"
              d.to_integer
              # => 2345
-    to_integer : Integer
-    to_integer self =
+    to_integer self -> Integer =
         as_biginteger = self.big_decimal.toBigInteger
         back_to_decimal = BigDecimal.new as_biginteger
         are_equal = (self.big_decimal.compareTo back_to_decimal) == 0
@@ -1128,7 +1127,7 @@ Decimal.from (that : Float) =
     is_exceptional = that.is_nan || that.is_infinite
     if is_exceptional then Error.throw (Illegal_Argument.Error "Cannot convert "+that.to_text+" to a Decimal") else
         handle_java_exception <| attach_loss_of_numeric_precision that <|
-            Decimal.Value <| Decimal_Utils.fromFloatExact that
+            Decimal.Value <| Decimal_Utils.fromFloat that
 
 ## PRIVATE
 Float.from (that : Decimal) = that.to_float

@@ -9,31 +9,31 @@ not marked broken. If the release is marked as broken, it also prints the URL to
 download the broken mark file.`
 
 if (process.argv.length != 3) {
-    console.log(usage)
-    process.exit(2)
+  console.log(usage)
+  process.exit(2)
 }
 
 let path = process.argv[2]
 
 function findBrokenMark(release) {
-    let assets = release['assets']
-    return assets.find(asset => asset['name'] == 'broken')
+  let assets = release['assets']
+  return assets.find(asset => asset['name'] == 'broken')
 }
 
 fs.readFile(path, 'utf8', (err, data) => {
-    if (err) {
-        console.error(err)
-        process.exit(2)
-    }
+  if (err) {
+    console.error(err)
+    process.exit(2)
+  }
 
-    let release = JSON.parse(data)
-    let mark = findBrokenMark(release)
-    if (mark) {
-        console.error('Release is marked as broken.')
-        console.log(mark['url'])
-        process.exit(0)
-    } else {
-        console.error('Release is NOT marked as broken.')
-        process.exit(1)
-    }
+  let release = JSON.parse(data)
+  let mark = findBrokenMark(release)
+  if (mark) {
+    console.error('Release is marked as broken.')
+    console.log(mark['url'])
+    process.exit(0)
+  } else {
+    console.error('Release is NOT marked as broken.')
+    process.exit(1)
+  }
 })

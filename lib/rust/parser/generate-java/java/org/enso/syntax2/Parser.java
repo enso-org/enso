@@ -94,6 +94,8 @@ public final class Parser implements AutoCloseable {
 
   private static native long getMetadata(long state);
 
+  private static native String getWarningTemplate(int warningId);
+
   static native long getUuidHigh(long metadata, long codeOffset, long codeLength);
 
   static native long getUuidLow(long metadata, long codeOffset, long codeLength);
@@ -129,6 +131,10 @@ public final class Parser implements AutoCloseable {
     serializedTree.order(ByteOrder.LITTLE_ENDIAN);
     var message = new Message(serializedTree, input, base, metadata);
     return Tree.deserialize(message);
+  }
+
+  public static String getWarningMessage(Warning warning) {
+    return getWarningTemplate(warning.getId());
   }
 
   @Override

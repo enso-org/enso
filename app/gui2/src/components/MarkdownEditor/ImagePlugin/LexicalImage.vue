@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { DEFAULT_ALT_TEXT } from '@/components/MarkdownEditor/ImagePlugin'
 import {
   injectLexicalImageUrlTransformer,
   type TransformUrlResult,
@@ -7,6 +6,8 @@ import {
 import { computedAsync } from '@vueuse/core'
 import { Ok } from 'shared/util/data/result'
 import { computed, onUnmounted, type Ref } from 'vue'
+
+const DEFAULT_ALT_TEXT = 'Image'
 
 const props = defineProps<{
   src: string
@@ -28,6 +29,8 @@ const title = computed(() =>
   : props.alt !== DEFAULT_ALT_TEXT ? props.alt
   : '',
 )
+
+const alt = props.alt ? props.alt : DEFAULT_ALT_TEXT
 
 onUnmounted(() => {
   if (data.value?.ok) data.value.value.dispose?.()

@@ -18,7 +18,7 @@ declare global {
 
 export async function initializeFFI(_path?: string | undefined) {}
 
-/* eslint-disable-next-line camelcase */
+/* eslint-disable camelcase */
 export const {
   is_ident_or_operator,
   is_numeric_literal,
@@ -26,3 +26,4 @@ export const {
   parse_tree,
   xxHash128,
 } = globalThis
+/* eslint-enable camelcase */
