@@ -20,20 +20,23 @@ const props = defineProps<{
 const config = useVisualizationConfig()
 
 const makeSortPattern = () => {
+  console.log(props.sortModel)
   const sortMapping = {
     asc: '..Ascending',
     desc: '..Descending',
   }
-  const columnName = props.sortModel.keys().next().value
-  const direction = props.sortModel.values().next().value as SortDirection
-  return `(..Name '${columnName}' ${sortMapping[direction]})`
+  const sorts = []
+  for (let [key, value] of props.sortModel) {
+    sorts.push(`(..Name '${key}' ${sortMapping[value]})`)
+  }
+  return sorts
 }
 
 function getAstPatternSort() {
   return Pattern.new((ast) =>
     Ast.App.positional(
       Ast.PropertyAccess.new(ast.module, ast, Ast.identifier('sort')!),
-      Ast.parse(makeSortPattern()),
+      Ast.parse(`[${makeSortPattern()}]`),
     ),
   )
 }
