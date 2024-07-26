@@ -50,7 +50,7 @@ final class GetFieldNode extends EnsoRootNode {
 
   @Override
   public String getName() {
-    return type.getName() + "." + name;
+    return name;
   }
 
   @Override
