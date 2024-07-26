@@ -9,7 +9,7 @@ test.test('drag labels onto single row', async ({ page }) => {
   const label = 'aaaa'
   await actions.mockAllAndLogin({
     page,
-    setupAPI: api => {
+    setupAPI: (api) => {
       api.addLabel(label, backend.COLORS[0])
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       api.addLabel('bbbb', backend.COLORS[1]!)
@@ -39,7 +39,7 @@ test.test('drag labels onto multiple rows', async ({ page }) => {
   const label = 'aaaa'
   await actions.mockAllAndLogin({
     page,
-    setupAPI: api => {
+    setupAPI: (api) => {
       api.addLabel(label, backend.COLORS[0])
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       api.addLabel('bbbb', backend.COLORS[1]!)

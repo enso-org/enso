@@ -4,8 +4,8 @@
  */
 import * as reactQuery from '@tanstack/react-query'
 
-import type Backend from '#/services/Backend'
 import type * as backendService from '#/services/Backend'
+import type Backend from '#/services/Backend'
 
 /** Parameters for the {@link useAssetVersions} hook. */
 export interface UseAssetVersionsParams {
@@ -28,8 +28,8 @@ export function useAssetVersions(params: UseAssetVersionsParams) {
     queryFn: () =>
       backend
         .listAssetVersions(assetId, title)
-        .then(assetVersions => assetVersions.versions)
-        .catch(backendError => {
+        .then((assetVersions) => assetVersions.versions)
+        .catch((backendError) => {
           onError?.(backendError)
           throw backendError
         }),

@@ -43,7 +43,7 @@ export default function UserRow(props: UserRowProps) {
   const contextMenuRef = contextMenuHooks.useContextMenuRef(
     user.userId,
     getText('userContextMenuLabel'),
-    position =>
+    (position) =>
       doDeleteUser == null ? null : (
         <ContextMenuEntry
           action="delete"
@@ -55,11 +55,11 @@ export default function UserRow(props: UserRowProps) {
                 doDelete={() => {
                   doDeleteUser(user)
                 }}
-              />
+              />,
             )
           }}
         />
-      )
+      ),
   )
 
   return (
@@ -67,7 +67,7 @@ export default function UserRow(props: UserRowProps) {
       id={user.userId}
       className={tailwindMerge.twMerge(
         'group h-row rounded-rows-child',
-        draggable && 'cursor-grab'
+        draggable && 'cursor-grab',
       )}
       ref={contextMenuRef}
     >
@@ -90,15 +90,16 @@ export default function UserRow(props: UserRowProps) {
       <aria.Cell className="text whitespace-nowrap rounded-r-full border-x-2 border-transparent bg-clip-padding px-cell-x first:rounded-l-full last:border-r-0 group-selected:bg-selected-frame">
         {user.email}
       </aria.Cell>
-      {doDeleteUserRaw == null ? null : doDeleteUser == null ? (
+      {doDeleteUserRaw == null ?
+        null
+      : doDeleteUser == null ?
         <></>
-      ) : (
-        <aria.Cell className="relative bg-transparent p-0 opacity-0 group-hover-2:opacity-100">
+      : <aria.Cell className="relative bg-transparent p-0 opacity-0 group-hover-2:opacity-100">
           <ariaComponents.Button
             size="custom"
             variant="custom"
             className="absolute right-full mr-4 size-4 -translate-y-1/2"
-            onPress={event => {
+            onPress={(event) => {
               const rect = event.target.getBoundingClientRect()
               const position = { pageX: rect.left, pageY: rect.top }
               setModal(
@@ -108,14 +109,14 @@ export default function UserRow(props: UserRowProps) {
                   doDelete={() => {
                     doDeleteUser(user)
                   }}
-                />
+                />,
               )
             }}
           >
             <img src={Cross2} className="size-4" />
           </ariaComponents.Button>
         </aria.Cell>
-      )}
+      }
     </aria.Row>
   )
 }

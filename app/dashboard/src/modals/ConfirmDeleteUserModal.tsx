@@ -39,15 +39,15 @@ export default function ConfirmDeleteUserModal(props: ConfirmDeleteUserModalProp
     <Modal centered className="bg-dim">
       <form
         data-testid="confirm-delete-modal"
-        ref={element => {
+        ref={(element) => {
           element?.focus()
         }}
         tabIndex={-1}
         className="pointer-events-auto relative flex w-confirm-delete-user-modal flex-col items-center gap-modal rounded-default p-modal-wide pt-modal before:absolute before:inset before:h-full before:w-full before:rounded-default before:bg-selected-frame before:backdrop-blur-default"
-        onClick={event => {
+        onClick={(event) => {
           event.stopPropagation()
         }}
-        onSubmit={event => {
+        onSubmit={(event) => {
           event.preventDefault()
           void doSubmit()
         }}

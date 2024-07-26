@@ -24,7 +24,7 @@ export interface OrganizationProfilePictureInputProps {
 
 /** The input for viewing and changing the organization's profile picture. */
 export default function OrganizationProfilePictureInput(
-  props: OrganizationProfilePictureInputProps
+  props: OrganizationProfilePictureInputProps,
 ) {
   const { backend } = props
   const toastAndLog = toastAndLogHooks.useToastAndLog()
@@ -33,7 +33,7 @@ export default function OrganizationProfilePictureInput(
 
   const uploadOrganizationPictureMutation = backendHooks.useBackendMutation(
     backend,
-    'uploadOrganizationPicture'
+    'uploadOrganizationPicture',
   )
 
   const doUploadOrganizationPicture = async (event: React.ChangeEvent<HTMLInputElement>) => {

@@ -62,9 +62,9 @@ export default function Login() {
           <Link
             openInBrowser={detect.isOnElectron()}
             to={
-              detect.isOnElectron()
-                ? 'https://' + common.CLOUD_DASHBOARD_DOMAIN + appUtils.REGISTRATION_PATH
-                : appUtils.REGISTRATION_PATH
+              detect.isOnElectron() ?
+                'https://' + common.CLOUD_DASHBOARD_DOMAIN + appUtils.REGISTRATION_PATH
+              : appUtils.REGISTRATION_PATH
             }
             icon={CreateAccountIcon}
             text={getText('dontHaveAnAccount')}
@@ -106,7 +106,7 @@ export default function Login() {
       <form
         ref={formRef}
         className="flex flex-col gap-auth"
-        onSubmit={async event => {
+        onSubmit={async (event) => {
           event.preventDefault()
           setIsSubmitting(true)
           await signInWithPassword(email, password)

@@ -40,11 +40,10 @@ export default function Debug(props: DebugProps) {
   const typeRaw: unknown = children.type
   const typeName =
     name ??
-    (typeof typeRaw === 'function'
-      ? typeRaw.name
-      : typeof typeRaw === 'object' && typeRaw != null && '$$typeof' in typeRaw
-        ? String(typeRaw.$$typeof)
-        : String(children.type))
+    (typeof typeRaw === 'function' ? typeRaw.name
+    : typeof typeRaw === 'object' && typeRaw != null && '$$typeof' in typeRaw ?
+      String(typeRaw.$$typeof)
+    : String(children.type))
   const typeNameRef = React.useRef(typeName)
   typeNameRef.current = typeName
   const monitorMountUnmountRef = React.useRef(monitorMountUnmount)
@@ -67,29 +66,26 @@ export default function Debug(props: DebugProps) {
     [children.key, ...propsValues],
     typeName,
     ['key', ...Object.keys(childProps)],
-    monitorProps
+    monitorProps,
   )
 
-  const patchedChildProps = !monitorPropCalls
-    ? childProps
-    : Object.fromEntries(
+  const patchedChildProps =
+    !monitorPropCalls ? childProps : (
+      Object.fromEntries(
         Object.entries(childProps).map(([key, value]: [string, unknown]) => [
           key,
-          typeof value !== 'function'
-            ? value
-            : (...args: unknown[]) => {
-                console.group(
-                  `[Debug(${typeName})] Prop '${key}' called with args: [`,
-                  ...args,
-                  ']'
-                )
-                const result: unknown = value(...args)
-                console.log('Returned', result)
-                console.groupEnd()
-                return result
-              },
-        ])
+          typeof value !== 'function' ? value : (
+            (...args: unknown[]) => {
+              console.group(`[Debug(${typeName})] Prop '${key}' called with args: [`, ...args, ']')
+              const result: unknown = value(...args)
+              console.log('Returned', result)
+              console.groupEnd()
+              return result
+            }
+          ),
+        ]),
       )
+    )
 
   // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
   const Component = children.type

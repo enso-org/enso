@@ -9,6 +9,6 @@ let counter = Number(new Date()) >>> 2
 
 /** Returns a new, mostly unique string. */
 export function uniqueString(): string {
-    counter += 1
-    return counter.toString()
+  counter += 1
+  return counter.toString()
 }

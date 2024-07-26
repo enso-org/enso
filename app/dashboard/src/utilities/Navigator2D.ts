@@ -90,7 +90,7 @@ export default class Navigator2D {
   private readonly currentNeighbors = new Set<HTMLOrSVGElement>()
   private readonly focusedElements = new Set<Element>()
   private readonly elements = new Map<Element, ElementData>()
-  private readonly resizeObserver = new ResizeObserver(entries => {
+  private readonly resizeObserver = new ResizeObserver((entries) => {
     for (const entry of entries) {
       const data = this.elements.get(entry.target)
       if (data != null) {
@@ -190,13 +190,13 @@ export default class Navigator2D {
    * Full layout recomputations are expensive, but should amortize the cost of sorting the arrays. */
   recomputeLayout() {
     this.isLayoutDirty = false
-    const datas = Array.from(this.elements.entries(), entry => {
+    const datas = Array.from(this.elements.entries(), (entry) => {
       const [element, data] = entry
       const x = data.boundingBox.left + data.boundingBox.width / 2
       const y = data.boundingBox.top + data.boundingBox.height / 2
       return { element, data, x, y }
       // It is fine to not update neighbors of elements that are not visible.
-    }).filter(data => data.data.boundingBox.width > 0 || data.data.boundingBox.height > 0)
+    }).filter((data) => data.data.boundingBox.width > 0 || data.data.boundingBox.height > 0)
     const byHorizontalCenter = [...datas].sort((a, b) => a.x - b.x)
     for (const data of byHorizontalCenter) {
       const leftNeighbors: ElementAndDistance[] = []
@@ -219,10 +219,10 @@ export default class Navigator2D {
       const neighbors = object.unsafeMutable(data.data.neighbors)
       neighbors[Direction.left] = leftNeighbors
         .sort((a, b) => a.distance - b.distance)
-        .map(metadata => metadata.element)
+        .map((metadata) => metadata.element)
       neighbors[Direction.right] = rightNeighbors
         .sort((a, b) => a.distance - b.distance)
-        .map(metadata => metadata.element)
+        .map((metadata) => metadata.element)
     }
     const byVerticalCenter = [...datas].sort((a, b) => a.y - b.y)
     for (const data of byVerticalCenter) {
@@ -246,10 +246,10 @@ export default class Navigator2D {
       const neighbors = object.unsafeMutable(data.data.neighbors)
       neighbors[Direction.up] = aboveNeighbors
         .sort((a, b) => a.distance - b.distance)
-        .map(metadata => metadata.element)
+        .map((metadata) => metadata.element)
       neighbors[Direction.down] = belowNeighbors
         .sort((a, b) => a.distance - b.distance)
-        .map(metadata => metadata.element)
+        .map((metadata) => metadata.element)
     }
   }
 
@@ -262,15 +262,11 @@ export default class Navigator2D {
     }
     const data = nearestFocusedParent == null ? null : this.elements.get(nearestFocusedParent)
     const direction =
-      event.key === this.directionKeys[Direction.up]
-        ? Direction.up
-        : event.key === this.directionKeys[Direction.down]
-          ? Direction.down
-          : event.key === this.directionKeys[Direction.left]
-            ? Direction.left
-            : event.key === this.directionKeys[Direction.right]
-              ? Direction.right
-              : null
+      event.key === this.directionKeys[Direction.up] ? Direction.up
+      : event.key === this.directionKeys[Direction.down] ? Direction.down
+      : event.key === this.directionKeys[Direction.left] ? Direction.left
+      : event.key === this.directionKeys[Direction.right] ? Direction.right
+      : null
     const shouldHandleEvent =
       data?.allowNavigation() === true && direction != null && event.target instanceof Element
     let shouldHandleKey = true
@@ -278,18 +274,20 @@ export default class Navigator2D {
     if (shouldHandleEvent && isArrowKeyEvent && eventModule.isElementTextInput(event.target)) {
       if (eventModule.isElementSingleLineTextInput(event.target)) {
         const selectionIndex =
-          event.target.selectionStart === event.target.selectionEnd
-            ? event.target.selectionStart
-            : null
+          event.target.selectionStart === event.target.selectionEnd ?
+            event.target.selectionStart
+          : null
         shouldHandleKey =
           (selectionIndex === 0 || event.key !== 'ArrowLeft') &&
           (selectionIndex === event.target.value.length || event.key !== 'ArrowRight')
       } else {
         const selectionIndex =
-          event.target instanceof HTMLTextAreaElement &&
-          event.target.selectionStart === event.target.selectionEnd
-            ? event.target.selectionStart
-            : null
+          (
+            event.target instanceof HTMLTextAreaElement &&
+            event.target.selectionStart === event.target.selectionEnd
+          ) ?
+            event.target.selectionStart
+          : null
         const length =
           event.target instanceof HTMLTextAreaElement ? event.target.value.length : null
         shouldHandleKey =
@@ -303,9 +301,9 @@ export default class Navigator2D {
       const neighbor = this.neighborInDirection(event.target, direction)
       const focusTargetNeighbor = neighbor instanceof HTMLElement ? neighbor.focus.bind(null) : null
       const focus =
-        neighbor == null
-          ? null
-          : this.elements.get(neighbor)?.focusWhenPressed[direction] ?? focusTargetNeighbor
+        neighbor == null ? null : (
+          this.elements.get(neighbor)?.focusWhenPressed[direction] ?? focusTargetNeighbor
+        )
       if (focus != null) {
         event.preventDefault()
         if ('stopImmediatePropagation' in event) {
@@ -334,7 +332,7 @@ export default class Navigator2D {
     }
     element.addEventListener('focusout', onFocusOut, { capture: true })
     this.resizeObserver.observe(element)
-    const mutationObserver = new MutationObserver(entries => {
+    const mutationObserver = new MutationObserver((entries) => {
       for (const entry of entries) {
         if (entry.target instanceof Element) {
           const data = this.elements.get(entry.target)
@@ -368,12 +366,12 @@ export default class Navigator2D {
       boundingBox: element.getBoundingClientRect(),
       allowNavigation: options.allowNavigation ?? returnTrue,
       neighbors: mapDirections(() => []),
-      focusWhenPressed: mapDirections(direction =>
+      focusWhenPressed: mapDirections((direction) =>
         // This line is specialcasing `null` but not `undefined`.
         // eslint-disable-next-line eqeqeq
-        options.focusWhenPressed?.[direction] === null
-          ? null
-          : options.focusWhenPressed?.[direction] ?? options.focusPrimaryChild ?? null
+        options.focusWhenPressed?.[direction] === null ?
+          null
+        : options.focusWhenPressed?.[direction] ?? options.focusPrimaryChild ?? null,
       ),
       dispose,
     })

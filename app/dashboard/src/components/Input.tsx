@@ -1,8 +1,8 @@
 /** @file A styled input that includes an icon. */
 import * as React from 'react'
 
-import EyeCrossedIcon from '#/assets/eye_crossed.svg'
 import EyeIcon from '#/assets/eye.svg'
+import EyeCrossedIcon from '#/assets/eye_crossed.svg'
 
 import type * as controlledInput from '#/components/ControlledInput'
 import ControlledInput from '#/components/ControlledInput'
@@ -32,7 +32,7 @@ export default function Input(props: InputProps) {
           src={isShowingPassword ? EyeIcon : EyeCrossedIcon}
           className="left-[unset] right-0 cursor-pointer rounded-full"
           onClick={() => {
-            setIsShowingPassword(show => !show)
+            setIsShowingPassword((show) => !show)
           }}
         />
       )}

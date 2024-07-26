@@ -1,8 +1,8 @@
 /** @file The icon and name of a {@link backendModule.DirectoryAsset}. */
 import * as React from 'react'
 
-import FolderArrowIcon from '#/assets/folder_arrow.svg'
 import FolderIcon from '#/assets/folder.svg'
+import FolderArrowIcon from '#/assets/folder_arrow.svg'
 
 import * as backendHooks from '#/hooks/backendHooks'
 import * as setAssetHooks from '#/hooks/setAssetHooks'
@@ -89,7 +89,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
     }
   }
 
-  eventListProvider.useAssetEventListener(async event => {
+  eventListProvider.useAssetEventListener(async (event) => {
     if (isEditable) {
       switch (event.type) {
         case AssetEventType.newProject:
@@ -152,14 +152,14 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
     <div
       className={tailwindMerge.twMerge(
         'group flex h-table-row min-w-max items-center gap-name-column-icon whitespace-nowrap rounded-l-full px-name-column-x py-name-column-y',
-        indent.indentClass(item.depth)
+        indent.indentClass(item.depth),
       )}
-      onKeyDown={event => {
+      onKeyDown={(event) => {
         if (rowState.isEditingName && event.key === 'Enter') {
           event.stopPropagation()
         }
       }}
-      onClick={event => {
+      onClick={(event) => {
         if (handleClick(event)) {
           // Already handled.
         } else if (
@@ -180,7 +180,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
         tooltipPlacement="left"
         className={tailwindMerge.twMerge(
           'm-0 hidden cursor-pointer border-0 transition-transform duration-arrow group-hover:m-name-column-icon group-hover:inline-block',
-          isExpanded && 'rotate-90'
+          isExpanded && 'rotate-90',
         )}
         onPress={() => {
           doToggleDirectoryExpansion(asset.id, item.key, asset.title)
@@ -192,9 +192,9 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
         editable={rowState.isEditingName}
         className={tailwindMerge.twMerge(
           'text grow cursor-pointer bg-transparent font-naming',
-          rowState.isEditingName ? 'cursor-text' : 'cursor-pointer'
+          rowState.isEditingName ? 'cursor-text' : 'cursor-pointer',
         )}
-        checkSubmittable={newTitle =>
+        checkSubmittable={(newTitle) =>
           validation.DIRECTORY_NAME_REGEX.test(newTitle) &&
           item.isNewTitleValid(newTitle, nodeMap.current.get(item.directoryKey)?.children)
         }

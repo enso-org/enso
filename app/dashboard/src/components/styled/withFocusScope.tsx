@@ -13,7 +13,7 @@ import * as aria from '#/components/aria'
 // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/no-explicit-any
 export function withFocusScope<ComponentType extends (props: any) => React.ReactNode>(
   // eslint-disable-next-line @typescript-eslint/naming-convention
-  Child: ComponentType
+  Child: ComponentType,
 ) {
   // eslint-disable-next-line no-restricted-syntax
   return function WithFocusScope(props: never) {

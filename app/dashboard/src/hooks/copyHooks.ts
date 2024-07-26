@@ -55,10 +55,10 @@ export function useCopy(props: UseCopyProps) {
       if (successToastMessage !== false) {
         toastify.toast.success(
           successToastMessage === true ? getText('copiedToClipboard') : successToastMessage,
-          { toastId, closeOnClick: true, hideProgressBar: true, position: 'bottom-right' }
+          { toastId, closeOnClick: true, hideProgressBar: true, position: 'bottom-right' },
         )
         // If user closes the toast, reset the button state
-        toastify.toast.onChange(toast => {
+        toastify.toast.onChange((toast) => {
           if (toast.id === toastId && toast.status === 'removed') {
             copyQuery.reset()
           }
@@ -71,7 +71,7 @@ export function useCopy(props: UseCopyProps) {
         copyQuery.reset()
       }, DEFAULT_TIMEOUT)
     },
-    onError: error => {
+    onError: (error) => {
       toastAndLog('arbitraryErrorTitle', error)
     },
   })

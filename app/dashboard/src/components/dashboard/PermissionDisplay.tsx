@@ -24,9 +24,7 @@ export default function PermissionDisplay(props: PermissionDisplayProps) {
   const permission = permissionsModule.FROM_PERMISSION_ACTION[action]
 
   const children =
-    typeof childrenRaw !== 'string' ? (
-      childrenRaw
-    ) : (
+    typeof childrenRaw !== 'string' ? childrenRaw : (
       <ariaComponents.Text truncate="1" className="max-w-24 text-inherit">
         {childrenRaw}
       </ariaComponents.Text>
@@ -44,7 +42,7 @@ export default function PermissionDisplay(props: PermissionDisplayProps) {
           className={tailwindMerge.twMerge(
             'inline-block h-6 whitespace-nowrap rounded-full px-[7px]',
             permissionsModule.PERMISSION_CLASS_NAME[permission.type],
-            className
+            className,
           )}
           onPress={onPress ?? (() => {})}
         >
@@ -60,7 +58,7 @@ export default function PermissionDisplay(props: PermissionDisplayProps) {
           variant="custom"
           className={tailwindMerge.twMerge(
             'relative inline-block whitespace-nowrap rounded-full',
-            className
+            className,
           )}
           onPress={onPress ?? (() => {})}
         >
@@ -74,7 +72,7 @@ export default function PermissionDisplay(props: PermissionDisplayProps) {
             className={tailwindMerge.twMerge(
               'm-1 flex h-6 items-center rounded-full px-[7px]',
               permissionsModule.PERMISSION_CLASS_NAME[permission.type],
-              (permission.docs || permission.execute) && 'm-1'
+              (permission.docs || permission.execute) && 'm-1',
             )}
           >
             {children}

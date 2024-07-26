@@ -30,10 +30,10 @@ const VERSION_INFO_KEY = 'versionInfo'
 
 /** A type-safe wrapper around {@link electron.contextBridge.exposeInMainWorld}. */
 function exposeInMainWorld<Key extends string & keyof typeof window>(
-    key: Key,
-    value: NonNullable<(typeof window)[Key]>
+  key: Key,
+  value: NonNullable<(typeof window)[Key]>,
 ) {
-    electron.contextBridge.exposeInMainWorld(key, value)
+  electron.contextBridge.exposeInMainWorld(key, value)
 }
 
 // =============================
@@ -43,30 +43,30 @@ function exposeInMainWorld<Key extends string & keyof typeof window>(
 const IMPORT_PROJECT_RESOLVE_FUNCTIONS = new Map<string, (projectId: string) => void>()
 
 exposeInMainWorld(BACKEND_API_KEY, {
-    importProjectFromPath: (projectPath: string, directory: string | null = null) => {
-        electron.ipcRenderer.send(ipc.Channel.importProjectFromPath, projectPath, directory)
-        return new Promise<string>(resolve => {
-            IMPORT_PROJECT_RESOLVE_FUNCTIONS.set(projectPath, resolve)
-        })
-    },
+  importProjectFromPath: (projectPath: string, directory: string | null = null) => {
+    electron.ipcRenderer.send(ipc.Channel.importProjectFromPath, projectPath, directory)
+    return new Promise<string>(resolve => {
+      IMPORT_PROJECT_RESOLVE_FUNCTIONS.set(projectPath, resolve)
+    })
+  },
 })
 
 exposeInMainWorld(NAVIGATION_API_KEY, {
-    goBack: () => {
-        electron.ipcRenderer.send(ipc.Channel.goBack)
-    },
-    goForward: () => {
-        electron.ipcRenderer.send(ipc.Channel.goForward)
-    },
+  goBack: () => {
+    electron.ipcRenderer.send(ipc.Channel.goBack)
+  },
+  goForward: () => {
+    electron.ipcRenderer.send(ipc.Channel.goForward)
+  },
 })
 
 electron.ipcRenderer.on(
-    ipc.Channel.importProjectFromPath,
-    (_event, projectPath: string, projectId: string) => {
-        const resolveFunction = IMPORT_PROJECT_RESOLVE_FUNCTIONS.get(projectPath)
-        IMPORT_PROJECT_RESOLVE_FUNCTIONS.delete(projectPath)
-        resolveFunction?.(projectId)
-    }
+  ipc.Channel.importProjectFromPath,
+  (_event, projectPath: string, projectId: string) => {
+    const resolveFunction = IMPORT_PROJECT_RESOLVE_FUNCTIONS.get(projectPath)
+    IMPORT_PROJECT_RESOLVE_FUNCTIONS.delete(projectPath)
+    resolveFunction?.(projectId)
+  },
 )
 
 // ==========================
@@ -79,10 +79,10 @@ type OpenDeepLinkHandler = (url: string) => void
 let deepLinkHandler: OpenDeepLinkHandler | null = null
 
 electron.ipcRenderer.on(
-    ipc.Channel.openDeepLink,
-    (_event: Electron.IpcRendererEvent, ...args: Parameters<OpenDeepLinkHandler>) => {
-        deepLinkHandler?.(...args)
-    }
+  ipc.Channel.openDeepLink,
+  (_event: Electron.IpcRendererEvent, ...args: Parameters<OpenDeepLinkHandler>) => {
+    deepLinkHandler?.(...args)
+  },
 )
 
 /** Object exposed on the Electron main window; provides proxy functions to:
@@ -97,29 +97,29 @@ electron.ipcRenderer.on(
  * For more details, see:
  * https://www.electronjs.org/docs/latest/api/context-bridge#api-functions. */
 exposeInMainWorld(AUTHENTICATION_API_KEY, {
-    /** Open a URL in the system browser (rather than in the app).
-     *
-     * OAuth URLs must be opened this way because the dashboard application is sandboxed and thus
-     * not privileged to do so unless we explicitly expose this functionality. */
-    openUrlInSystemBrowser: (url: string) => {
-        electron.ipcRenderer.send(ipc.Channel.openUrlInSystemBrowser, url)
-    },
-    /** Set the callback that will be called when a deep link to the application is opened.
-     *
-     * The callback is intended to handle links like
-     * `enso://authentication/register?code=...&state=...` from external sources like the user's
-     * system browser or email client. Handling the links involves resuming whatever flow was in
-     * progress when the link was opened (e.g., an OAuth registration flow). */
-    setDeepLinkHandler: (callback: (url: string) => void) => {
-        deepLinkHandler = callback
-    },
-    /** Save the access token to a credentials file.
-     *
-     * The backend doesn't have access to Electron's `localStorage` so we need to save access token
-     * to a file. Then the token will be used to sign cloud API requests. */
-    saveAccessToken: (accessTokenPayload: dashboard.AccessToken | null) => {
-        electron.ipcRenderer.send(ipc.Channel.saveAccessToken, accessTokenPayload)
-    },
+  /** Open a URL in the system browser (rather than in the app).
+   *
+   * OAuth URLs must be opened this way because the dashboard application is sandboxed and thus
+   * not privileged to do so unless we explicitly expose this functionality. */
+  openUrlInSystemBrowser: (url: string) => {
+    electron.ipcRenderer.send(ipc.Channel.openUrlInSystemBrowser, url)
+  },
+  /** Set the callback that will be called when a deep link to the application is opened.
+   *
+   * The callback is intended to handle links like
+   * `enso://authentication/register?code=...&state=...` from external sources like the user's
+   * system browser or email client. Handling the links involves resuming whatever flow was in
+   * progress when the link was opened (e.g., an OAuth registration flow). */
+  setDeepLinkHandler: (callback: (url: string) => void) => {
+    deepLinkHandler = callback
+  },
+  /** Save the access token to a credentials file.
+   *
+   * The backend doesn't have access to Electron's `localStorage` so we need to save access token
+   * to a file. Then the token will be used to sign cloud API requests. */
+  saveAccessToken: (accessTokenPayload: dashboard.AccessToken | null) => {
+    electron.ipcRenderer.send(ipc.Channel.saveAccessToken, accessTokenPayload)
+  },
 })
 
 // ========================
@@ -127,8 +127,8 @@ exposeInMainWorld(AUTHENTICATION_API_KEY, {
 // ========================
 
 exposeInMainWorld(FILE_BROWSER_API_KEY, {
-    openFileBrowser: (kind: 'any' | 'directory' | 'file' | 'filePath', defaultPath?: string) =>
-        electron.ipcRenderer.invoke(ipc.Channel.openFileBrowser, kind, defaultPath),
+  openFileBrowser: (kind: 'any' | 'directory' | 'file' | 'filePath', defaultPath?: string) =>
+    electron.ipcRenderer.invoke(ipc.Channel.openFileBrowser, kind, defaultPath),
 })
 
 // ==============================
@@ -140,16 +140,16 @@ type OpenProjectHandler = (projectInfo: projectManagement.ProjectInfo) => void
 let openProjectHandler: OpenProjectHandler | undefined
 
 electron.ipcRenderer.on(
-    ipc.Channel.openProject,
-    (_event: Electron.IpcRendererEvent, ...args: Parameters<OpenProjectHandler>) => {
-        openProjectHandler?.(...args)
-    }
+  ipc.Channel.openProject,
+  (_event: Electron.IpcRendererEvent, ...args: Parameters<OpenProjectHandler>) => {
+    openProjectHandler?.(...args)
+  },
 )
 
 exposeInMainWorld(PROJECT_MANAGEMENT_API_KEY, {
-    setOpenProjectHandler: (handler: (projectInfo: projectManagement.ProjectInfo) => void) => {
-        openProjectHandler = handler
-    },
+  setOpenProjectHandler: (handler: (projectInfo: projectManagement.ProjectInfo) => void) => {
+    openProjectHandler = handler
+  },
 })
 
 // ================
@@ -159,13 +159,13 @@ exposeInMainWorld(PROJECT_MANAGEMENT_API_KEY, {
 let showAboutModalHandler: (() => void) | null = null
 
 electron.ipcRenderer.on(ipc.Channel.showAboutModal, () => {
-    showAboutModalHandler?.()
+  showAboutModalHandler?.()
 })
 
 exposeInMainWorld(MENU_API_KEY, {
-    setShowAboutModalHandler: (callback: () => void) => {
-        showAboutModalHandler = callback
-    },
+  setShowAboutModalHandler: (callback: () => void) => {
+    showAboutModalHandler = callback
+  },
 })
 
 // ==================
@@ -173,12 +173,12 @@ exposeInMainWorld(MENU_API_KEY, {
 // ==================
 
 exposeInMainWorld(SYSTEM_API_KEY, {
-    downloadURL: (url: string, headers?: Record<string, string>) => {
-        electron.ipcRenderer.send(ipc.Channel.downloadURL, url, headers)
-    },
-    showItemInFolder: (fullPath: string) => {
-        electron.ipcRenderer.send(ipc.Channel.showItemInFolder, fullPath)
-    },
+  downloadURL: (url: string, headers?: Record<string, string>) => {
+    electron.ipcRenderer.send(ipc.Channel.downloadURL, url, headers)
+  },
+  showItemInFolder: (fullPath: string) => {
+    electron.ipcRenderer.send(ipc.Channel.showItemInFolder, fullPath)
+  },
 })
 
 // ====================
