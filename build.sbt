@@ -3196,6 +3196,9 @@ lazy val `runtime-version-manager` = project
   .dependsOn(`edition-updater`)
   .dependsOn(`distribution-manager`)
 
+/** `process-utils` provides utilities for correctly managing process execution such as providing
+  *  handlers for its stdout/stderr.
+  */
 lazy val `process-utils` = project
   .in(file("lib/scala/process-utils"))
   .settings(

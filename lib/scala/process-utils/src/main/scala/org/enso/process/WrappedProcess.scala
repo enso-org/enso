@@ -87,8 +87,10 @@ class WrappedProcess(command: Seq[String], process: Process) {
     }
   }
 
-  /** Appends a message to string builder. */
-  def appendToBuilder(
+  /** Registers a handler for stdout/stderr that appends streams to the provided
+    * string builder.
+    */
+  def registerStringBuilderAppendTarget(
     builder: StringBuilder
   ): Unit = {
     def handler(line: String, streamType: StreamType): Unit = {
