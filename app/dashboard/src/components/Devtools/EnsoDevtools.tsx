@@ -7,6 +7,8 @@ import * as React from 'react'
 
 import * as reactQuery from '@tanstack/react-query'
 
+import { IS_DEV_MODE } from 'enso-common/src/detect'
+
 import DevtoolsLogo from '#/assets/enso_logo.svg'
 
 import { SETUP_PATH } from '#/appUtils'
@@ -14,6 +16,10 @@ import { SETUP_PATH } from '#/appUtils'
 import * as billing from '#/hooks/billing'
 
 import * as authProvider from '#/providers/AuthProvider'
+import {
+  useEnableVersionChecker,
+  useSetEnableVersionChecker,
+} from '#/providers/EnsoDevtoolsProvider'
 import { UserSessionType } from '#/providers/AuthProvider'
 import * as textProvider from '#/providers/TextProvider'
 
@@ -56,6 +62,8 @@ export function EnsoDevtools(props: EnsoDevtoolsProps) {
 
   const { getText } = textProvider.useText()
   const { authQueryKey, session } = authProvider.useAuth()
+  const enableVersionChecker = useEnableVersionChecker()
+  const setEnableVersionChecker = useSetEnableVersionChecker()
 
   const [features, setFeatures] = React.useState<
     Record<billing.PaywallFeatureName, PaywallDevtoolsFeatureConfiguration>
@@ -159,6 +167,31 @@ export function EnsoDevtools(props: EnsoDevtoolsProps) {
                 <ariaComponents.Separator orientation="horizontal" className="my-3" />
               </>
             )}
+
+            <ariaComponents.Text variant="subtitle" className="mb-2">
+              {getText('productionOnlyFeatures')}
+            </ariaComponents.Text>
+            <div className="flex flex-col">
+              <aria.Switch
+                className="group flex items-center gap-1"
+                isSelected={enableVersionChecker ?? !IS_DEV_MODE}
+                onChange={setEnableVersionChecker}
+              >
+                <div className="box-border flex h-4 w-[28px] shrink-0 cursor-default items-center rounded-full bg-primary/30 bg-clip-padding p-0.5 shadow-inner outline-none ring-black transition duration-200 ease-in-out group-focus-visible:ring-2 group-pressed:bg-primary/60 group-selected:bg-primary group-selected:group-pressed:bg-primary/50">
+                  <span className="aspect-square h-full flex-none translate-x-0 transform rounded-full bg-white transition duration-200 ease-in-out group-selected:translate-x-[100%]" />
+                </div>
+
+                <ariaComponents.Text className="flex-1">
+                  {getText('enableVersionChecker')}
+                </ariaComponents.Text>
+              </aria.Switch>
+
+              <ariaComponents.Text variant="body" color="disabled">
+                {getText('enableVersionCheckerDescription')}
+              </ariaComponents.Text>
+            </div>
+
+            <ariaComponents.Separator orientation="horizontal" className="my-3" />
 
             <ariaComponents.Text variant="subtitle" className="mb-2">
               {getText('paywallDevtoolsPaywallFeaturesToggles')}

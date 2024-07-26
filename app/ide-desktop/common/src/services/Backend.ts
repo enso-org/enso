@@ -437,6 +437,7 @@ export interface CheckoutSessionStatus {
   /** Status of the payment for the checkout session. */
   readonly paymentStatus: string
   /** Status of the checkout session. */
+  // eslint-disable-next-line @typescript-eslint/ban-types
   readonly status: 'active' | 'trialing' | (string & {})
 }
 

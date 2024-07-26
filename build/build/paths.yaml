@@ -75,6 +75,7 @@
       <edition>.yaml:
     enso.bundle.template:
     launcher-manifest.yaml:
+    lib:
   engine/:
     runner/:
       src/:

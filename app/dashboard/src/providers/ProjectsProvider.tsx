@@ -6,12 +6,14 @@ import * as z from 'zod'
 import * as zustand from 'zustand'
 
 import * as eventCallbacks from '#/hooks/eventCallbackHooks'
-import type * as projectHooks from '#/hooks/projectHooks'
 import * as searchParamsState from '#/hooks/searchParamsStateHooks'
 
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 
+import * as backendModule from '#/services/Backend'
+
 import * as array from '#/utilities/array'
+import LocalStorage from '#/utilities/LocalStorage'
 
 // ===============
 // === TabType ===
@@ -31,16 +33,50 @@ declare module '#/utilities/LocalStorage' {
   /** */
   interface LocalStorageData {
     readonly isAssetPanelVisible: boolean
+    readonly page: z.infer<typeof PAGES_SCHEMA>
+    readonly launchedProjects: z.infer<typeof LAUNCHED_PROJECT_SCHEMA>
   }
 }
+
+// =================
+// === Constants ===
+// =================
+
+const PROJECT_SCHEMA = z
+  .object({
+    id: z.custom<backendModule.ProjectId>((x) => typeof x === 'string' && x.startsWith('project-')),
+    parentId: z.custom<backendModule.DirectoryId>(
+      (x) => typeof x === 'string' && x.startsWith('directory-'),
+    ),
+    title: z.string(),
+    type: z.nativeEnum(backendModule.BackendType),
+  })
+  .readonly()
+const LAUNCHED_PROJECT_SCHEMA = z.array(PROJECT_SCHEMA).readonly()
+
+/**
+ * Launched project information.
+ */
+export type LaunchedProject = z.infer<typeof PROJECT_SCHEMA>
+/**
+ * Launched project ID.
+ */
+export type LaunchedProjectId = backendModule.ProjectId
+
+LocalStorage.registerKey('launchedProjects', {
+  isUserSpecific: true,
+  schema: LAUNCHED_PROJECT_SCHEMA,
+})
 
 export const PAGES_SCHEMA = z
   .nativeEnum(TabType)
   .or(
-    z.custom<projectHooks.ProjectId>(
+    z.custom<LaunchedProjectId>(
       (value) => typeof value === 'string' && value.startsWith('project-'),
     ),
   )
+
+LocalStorage.registerKey('page', { schema: PAGES_SCHEMA })
 
 // =====================
 // === ProjectsStore ===
@@ -48,14 +84,14 @@ export const PAGES_SCHEMA = z
 
 /** The state of this zustand store. */
 interface ProjectsStore {
-  readonly page: projectHooks.ProjectId | TabType
-  readonly setPage: (page: projectHooks.ProjectId | TabType) => void
-  readonly launchedProjects: readonly projectHooks.Project[]
+  readonly page: LaunchedProjectId | TabType
+  readonly setPage: (page: LaunchedProjectId | TabType) => void
+  readonly launchedProjects: readonly LaunchedProject[]
   readonly updateLaunchedProjects: (
-    update: (projects: readonly projectHooks.Project[]) => readonly projectHooks.Project[],
+    update: (projects: readonly LaunchedProject[]) => readonly LaunchedProject[],
   ) => void
-  readonly addLaunchedProject: (project: projectHooks.Project) => void
-  readonly removeLaunchedProject: (projectId: projectHooks.ProjectId) => void
+  readonly addLaunchedProject: (project: LaunchedProject) => void
+  readonly removeLaunchedProject: (projectId: LaunchedProjectId) => void
   readonly clearLaunchedProjects: () => void
 }
 
@@ -125,7 +161,7 @@ function PageSynchronizer() {
   const [page, privateSetPage] = searchParamsState.useSearchParamsState(
     'page',
     () => store.getState().page,
-    (value: unknown): value is projectHooks.ProjectId | TabType => {
+    (value: unknown): value is LaunchedProjectId | TabType => {
       return (
         array.includes(Object.values(TabType), value) ||
         store.getState().launchedProjects.some((p) => p.id === value)
@@ -182,7 +218,7 @@ export function useUpdateLaunchedProjects() {
   const store = useProjectsStore()
   const updateLaunchedProjects = zustand.useStore(store, (state) => state.updateLaunchedProjects)
   return eventCallbacks.useEventCallback(
-    (update: (projects: readonly projectHooks.Project[]) => readonly projectHooks.Project[]) => {
+    (update: (projects: readonly LaunchedProject[]) => readonly LaunchedProject[]) => {
       React.startTransition(() => {
         updateLaunchedProjects(update)
       })
@@ -198,7 +234,7 @@ export function useUpdateLaunchedProjects() {
 export function useAddLaunchedProject() {
   const store = useProjectsStore()
   const addLaunchedProject = zustand.useStore(store, (state) => state.addLaunchedProject)
-  return eventCallbacks.useEventCallback((project: projectHooks.Project) => {
+  return eventCallbacks.useEventCallback((project: LaunchedProject) => {
     React.startTransition(() => {
       addLaunchedProject(project)
     })
@@ -213,7 +249,7 @@ export function useAddLaunchedProject() {
 export function useRemoveLaunchedProject() {
   const store = useProjectsStore()
   const removeLaunchedProject = zustand.useStore(store, (state) => state.removeLaunchedProject)
-  return eventCallbacks.useEventCallback((projectId: projectHooks.ProjectId) => {
+  return eventCallbacks.useEventCallback((projectId: LaunchedProjectId) => {
     React.startTransition(() => {
       removeLaunchedProject(projectId)
     })
@@ -252,7 +288,7 @@ export function usePage() {
 export function useSetPage() {
   const store = useProjectsStore()
   const setPage = zustand.useStore(store, (state) => state.setPage)
-  return eventCallbacks.useEventCallback((page: projectHooks.ProjectId | TabType) => {
+  return eventCallbacks.useEventCallback((page: LaunchedProjectId | TabType) => {
     React.startTransition(() => {
       setPage(page)
     })

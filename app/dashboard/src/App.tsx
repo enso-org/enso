@@ -48,7 +48,8 @@ import * as inputBindingsModule from '#/configurations/inputBindings'
 import * as backendHooks from '#/hooks/backendHooks'
 
 import AuthProvider, * as authProvider from '#/providers/AuthProvider'
-import BackendProvider from '#/providers/BackendProvider'
+import BackendProvider, { useLocalBackend, useRemoteBackend } from '#/providers/BackendProvider'
+import DevtoolsProvider from '#/providers/EnsoDevtoolsProvider'
 import * as httpClientProvider from '#/providers/HttpClientProvider'
 import InputBindingsProvider from '#/providers/InputBindingsProvider'
 import LocalStorageProvider, * as localStorageProvider from '#/providers/LocalStorageProvider'
@@ -72,6 +73,7 @@ import * as subscribeSuccess from '#/pages/subscribe/SubscribeSuccess'
 
 import type * as editor from '#/layouts/Editor'
 import * as openAppWatcher from '#/layouts/OpenAppWatcher'
+import VersionChecker from '#/layouts/VersionChecker'
 
 import * as devtools from '#/components/Devtools'
 import * as errorBoundary from '#/components/ErrorBoundary'
@@ -280,9 +282,6 @@ function AppRouter(props: AppRouterProps) {
     () => new RemoteBackend(httpClient, logger, getText),
     [httpClient, logger, getText],
   )
-
-  backendHooks.useObserveBackend(remoteBackend)
-  backendHooks.useObserveBackend(localBackend)
 
   if (detect.IS_DEV_MODE) {
     // @ts-expect-error This is used exclusively for debugging.
@@ -494,7 +493,13 @@ function AppRouter(props: AppRouterProps) {
     </router.Routes>
   )
 
-  let result = routes
+  let result = (
+    <>
+      <MutationListener />
+      <VersionChecker />
+      {routes}
+    </>
+  )
 
   result = (
     <>
@@ -552,8 +557,23 @@ function AppRouter(props: AppRouterProps) {
       {result}
     </httpClientProvider.HttpClientProvider>
   )
-
   result = <LoggerProvider logger={logger}>{result}</LoggerProvider>
+  result = <DevtoolsProvider>{result}</DevtoolsProvider>
 
   return result
+}
+
+// ========================
+// === MutationListener ===
+// ========================
+
+/** A component that applies state updates for successful mutations. */
+function MutationListener() {
+  const remoteBackend = useRemoteBackend()
+  const localBackend = useLocalBackend()
+
+  backendHooks.useObserveBackend(remoteBackend)
+  backendHooks.useObserveBackend(localBackend)
+
+  return null
 }
