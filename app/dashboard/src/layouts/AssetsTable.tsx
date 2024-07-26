@@ -296,10 +296,10 @@ interface DragSelectionInfo {
 // =============================
 
 const CATEGORY_TO_FILTER_BY: Readonly<Record<DriveCategory, backendModule.FilterBy | null>> = {
-  ['cloud']: backendModule.FilterBy.active,
-  ['local']: backendModule.FilterBy.active,
-  ['recent']: null,
-  ['trash']: backendModule.FilterBy.trashed,
+  cloud: backendModule.FilterBy.active,
+  local: backendModule.FilterBy.active,
+  recent: null,
+  trash: backendModule.FilterBy.trashed,
 }
 
 // ===================

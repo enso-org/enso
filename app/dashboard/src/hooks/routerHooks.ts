@@ -1,5 +1,5 @@
 /** @file Hooks related to `react-router`. */
-import { useNavigate as useRouterNavigate } from 'react-router'
+import { type NavigateOptions, useNavigate as useRouterNavigate } from 'react-router'
 
 import type { AppFullPath, AppPath } from '#/appUtils'
 
@@ -11,6 +11,6 @@ interface PathObject {
 }
 
 /** A type-safe function to navigate to a specific page. */
-export function useNavigate(): (url: AppFullPath | PathObject) => void {
+export function useNavigate(): (url: AppFullPath | PathObject, options?: NavigateOptions) => void {
   return useRouterNavigate()
 }
