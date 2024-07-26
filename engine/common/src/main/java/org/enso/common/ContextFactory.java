@@ -32,9 +32,9 @@ import org.slf4j.event.Level;
  */
 public final class ContextFactory {
   private String projectRoot;
-  private InputStream in;
-  private OutputStream out;
-  private OutputStream err;
+  private InputStream in = System.in;
+  private OutputStream out = System.out;
+  private OutputStream err = System.err;
   private MessageTransport messageTransport;
   private Level logLevel;
   private boolean logMasking;
@@ -159,7 +159,7 @@ public final class ContextFactory {
             .option(RuntimeOptions.ENABLE_AUTO_PARALLELISM, Boolean.toString(enableAutoParallelism))
             .option(RuntimeOptions.WARNINGS_LIMIT, Integer.toString(warningsLimit))
             .out(out)
-            .err(err == null ? out : err)
+            .err(err)
             .in(in);
     if (messageTransport != null) {
       builder.serverTransport(messageTransport);
