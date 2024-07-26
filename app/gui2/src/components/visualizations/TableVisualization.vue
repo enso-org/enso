@@ -161,7 +161,6 @@ const agGridOptions: Ref<GridOptions & Required<Pick<GridOptions, 'defaultColDef
   onFirstDataRendered: updateColumnWidths,
   onRowDataUpdated: updateColumnWidths,
   onColumnResized: lockColumnSize,
-  copyHeadersToClipboard: true,
   sendToClipboard: ({ data }: { data: string }) => sendToClipboard(data),
   suppressFieldDotNotation: true,
   enableRangeSelection: true,
