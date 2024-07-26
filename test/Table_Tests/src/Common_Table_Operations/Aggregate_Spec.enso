@@ -1296,6 +1296,24 @@ add_specs suite_builder setup =
             materialized.columns.at 0 . name . should_equal "B"
             materialized.columns.at 0 . to_vector . should_equal [2, 3, 2]
 
+        group_builder.specify "should work when stacked one after another" <|
+            t1 = table_builder [["X", [1, 1, 1, 2, 2, 3]], ["Y", [1, 2, 3, 4, 5, 6]]]
+            t2 = t1.aggregate ["X"] [Count, Sum "Y", Minimum "Y"]
+
+            # Just check that first aggregate is correct
+            m2 = materialize t2 |> _.sort "X"
+            m2.at "X" . to_vector . should_equal [1, 2, 3]
+            m2.at "Count" . to_vector . should_equal [3, 2, 1]
+            m2.at "Sum Y" . to_vector . should_equal [6, 9, 6]
+            m2.at "Minimum Y" . to_vector . should_equal [1, 4, 6]
+
+            t3 = t2.aggregate columns=[Count, Sum "Count", Average "Sum Y", Maximum "Minimum Y"]
+            m3 = materialize t3
+            m3.at "Count" . to_vector . should_equal [3]
+            m3.at "Sum Count" . to_vector . should_equal [6]
+            m3.at "Average Sum Y" . to_vector . should_equal [7]
+            m3.at "Maximum Minimum Y" . to_vector . should_equal [6]
+
         if setup.test_selection.supports_unicode_normalization then
             group_builder.specify "should correctly handle Unicode normalization within grouping" <|
                 table = table_builder [["A", ['s', 's\u0301', 'ś', 's\u0301']], ["B", [1, 2, 4, 8]]]

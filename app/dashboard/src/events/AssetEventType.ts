@@ -12,8 +12,6 @@ enum AssetEventType {
   updateFiles = 'update-files',
   newDatalink = 'new-datalink',
   newSecret = 'new-secret',
-  openProject = 'open-project',
-  closeProject = 'close-project',
   copy = 'copy',
   cut = 'cut',
   cancelCut = 'cancel-cut',

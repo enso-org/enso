@@ -6,41 +6,54 @@ import { computed, shallowRef, watch } from 'vue'
 const props = defineProps<{
   position: Vec2
   anchor: Vec2 | undefined
+  transform: string | undefined
 }>()
 
 const hidden = computed(() => props.anchor == null)
 const lastSetAnchor = shallowRef<Vec2>()
+const lastAnchoredPosition = shallowRef<Vec2>(props.position)
 watch(
   () => props.anchor,
   (anchor) => {
-    if (anchor !== null && lastSetAnchor.value !== anchor) {
+    if (anchor != null && lastSetAnchor.value !== anchor) {
       lastSetAnchor.value = anchor
     }
   },
 )
 
-const anchorAnimFactor = useApproach(() => (props.anchor != null ? 1 : 0), 60)
+watch(
+  () => [props.anchor, props.position],
+  ([anchor, position]) => {
+    if (anchor && position) lastAnchoredPosition.value = position
+  },
+)
+
+const anchorAnimFactor = useApproach(() => (props.anchor != null ? 1 : 0), 60, 0.01)
 watch(
   () => props.anchor != null,
   (set) => set && anchorAnimFactor.skip(),
 )
 
 const brushStyle = computed(() => {
-  const a = props.position
+  if (anchorAnimFactor.value == 0) return null
+  const a = lastAnchoredPosition.value
   const anchor = lastSetAnchor.value ?? a
   const b = a.lerp(anchor, anchorAnimFactor.value)
-
+  const dx = Math.abs(a.x - b.x)
+  const dy = Math.abs(a.y - b.y)
+  if (dx == 0 && dy == 0) return null
   return {
+    transform: props.transform,
     left: `${Math.min(a.x, b.x)}px`,
     top: `${Math.min(a.y, b.y)}px`,
-    width: `${Math.abs(a.x - b.x)}px`,
-    height: `${Math.abs(a.y - b.y)}px`,
+    width: `${dx}px`,
+    height: `${dy}px`,
   }
 })
 </script>
 
 <template>
-  <div class="SelectionBrush" :class="{ hidden }" :style="brushStyle"></div>
+  <div v-if="brushStyle" class="SelectionBrush" :class="{ hidden }" :style="brushStyle"></div>
 </template>
 
 <style scoped>

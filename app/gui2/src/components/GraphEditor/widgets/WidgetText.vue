@@ -54,10 +54,6 @@ const inputTextLiteral = computed((): Ast.TextLiteral | undefined => {
   return Ast.TextLiteral.tryParse(valueStr)
 })
 
-function makeNewLiteral(value: string) {
-  return Ast.TextLiteral.new(value, MutableModule.Transient())
-}
-
 function makeLiteralFromUserInput(value: string): Ast.Owned<Ast.MutableTextLiteral> {
   if (props.input.value instanceof Ast.TextLiteral) {
     const literal = MutableModule.Transient().copy(props.input.value)
@@ -68,7 +64,6 @@ function makeLiteralFromUserInput(value: string): Ast.Owned<Ast.MutableTextLiter
   }
 }
 
-const emptyTextLiteral = makeNewLiteral('')
 const shownLiteral = computed(() => inputTextLiteral.value ?? emptyTextLiteral)
 const closeToken = computed(() => shownLiteral.value.close ?? shownLiteral.value.open)
 
@@ -78,6 +73,11 @@ watch(textContents, (value) => (editedContents.value = value))
 </script>
 
 <script lang="ts">
+const emptyTextLiteral = makeNewLiteral('')
+function makeNewLiteral(value: string) {
+  return Ast.TextLiteral.new(value, MutableModule.Transient())
+}
+
 export const widgetDefinition = defineWidget(
   WidgetInput.placeholderOrAstMatcher(Ast.TextLiteral),
   {
@@ -95,7 +95,7 @@ export const widgetDefinition = defineWidget(
 </script>
 
 <template>
-  <label ref="widgetRoot" class="WidgetText r-24">
+  <label ref="widgetRoot" class="WidgetText widgetRounded">
     <NodeWidget v-if="shownLiteral.open" :input="WidgetInput.FromAst(shownLiteral.open)" />
     <AutoSizedInput
       ref="input"
@@ -116,10 +116,9 @@ export const widgetDefinition = defineWidget(
   border-radius: var(--radius-full);
   user-select: none;
   border-radius: var(--radius-full);
-  padding: 0px 4px;
-  min-width: 24px;
   justify-content: center;
   align-items: center;
+  min-width: var(--node-port-height);
 
   &:has(> :focus) {
     outline: none;

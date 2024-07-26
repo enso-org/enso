@@ -1,5 +1,12 @@
 //! This module defines utilities for working with the [`std::vec::Vec`] type.
 
+use enso_reflect::prelude::*;
+
+use serde::Deserialize;
+use serde::Deserializer;
+use serde::Serialize;
+use serde::Serializer;
+
 
 
 // ==============
@@ -13,6 +20,20 @@ pub trait VecOps<T>: AsMut<Vec<T>> + Sized {
     where F: FnOnce(&T) -> bool {
         let vec = self.as_mut();
         if let Some(last) = vec.last() {
+            if f(last) {
+                return vec.pop();
+            }
+        }
+        None
+    }
+
+    /// Pop and return the last element, if the vector is non-empty and the given predicate returns
+    /// true when applied to the last element. The predicate may mutate the element, whether or not
+    /// it is popped.
+    fn pop_if_mut<F>(&mut self, f: F) -> Option<T>
+    where F: FnOnce(&mut T) -> bool {
+        let vec = self.as_mut();
+        if let Some(last) = vec.last_mut() {
             if f(last) {
                 return vec.pop();
             }
@@ -101,5 +122,70 @@ impl<T> VecAllocation<T> {
     /// next `set_from` would return a newly-created `Vec` with no allocated memory.
     pub fn take(&mut self) -> Vec<T> {
         std::mem::take(&mut self.data)
+    }
+}
+
+
+// ================
+// === Cold Vec ===
+// ================
+
+/// A vector optimized to be unused.
+///
+/// If it has never contained any elements, it will be stored more efficiently than a [`Vec`].
+#[derive(Clone, Debug, Eq, Reflect)]
+#[reflect(transparent)]
+pub struct ColdVec<T> {
+    #[allow(clippy::box_collection)]
+    #[reflect(as = "Vec<T>")]
+    elements: Option<Box<Vec<T>>>,
+}
+
+impl<T> ColdVec<T> {
+    pub fn push(&mut self, element: T) {
+        if self.elements.is_none() {
+            self.elements = Some(Default::default());
+        }
+        self.elements.as_mut().unwrap().push(element);
+    }
+
+    pub fn iter(&self) -> std::slice::Iter<T> {
+        match self.elements.as_ref() {
+            Some(elements) => elements.iter(),
+            None => [].iter(),
+        }
+    }
+}
+
+impl<T: PartialEq<T>> PartialEq<ColdVec<T>> for ColdVec<T> {
+    fn eq(&self, other: &ColdVec<T>) -> bool {
+        match (&self.elements, &other.elements) {
+            (Some(a), Some(b)) => a.eq(b),
+            (Some(x), None) | (None, Some(x)) => x.is_empty(),
+            (None, None) => true,
+        }
+    }
+}
+impl<T> Default for ColdVec<T> {
+    fn default() -> Self {
+        Self { elements: None }
+    }
+}
+
+impl<T: Serialize> Serialize for ColdVec<T> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where S: Serializer {
+        match &self.elements {
+            Some(elements) => elements.serialize(serializer),
+            None => Vec::<T>::new().serialize(serializer),
+        }
+    }
+}
+
+impl<'de, T: Deserialize<'de>> Deserialize<'de> for ColdVec<T> {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where D: Deserializer<'de> {
+        let elements = Vec::deserialize(deserializer)?;
+        Ok(Self { elements: (!elements.is_empty()).then(|| Box::new(elements)) })
     }
 }
