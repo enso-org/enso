@@ -22,16 +22,6 @@ import type * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import type * as textProvider from '#/providers/TextProvider'
 
-import ActivityLogSettingsSection from '#/pages/dashboard/Settings/ActivityLogSettingsSection'
-import ChangePasswordForm from '#/pages/dashboard/Settings/ChangePasswordForm'
-import DeleteUserAccountSettingsSection from '#/pages/dashboard/Settings/DeleteUserAccountSettingsSection'
-import KeyboardShortcutsSettingsSection from '#/pages/dashboard/Settings/KeyboardShortcutsSettingsSection'
-import MembersSettingsSection from '#/pages/dashboard/Settings/MembersSettingsSection'
-import MembersTable from '#/pages/dashboard/Settings/MembersTable'
-import OrganizationProfilePictureInput from '#/pages/dashboard/Settings/OrganizationProfilePictureInput'
-import ProfilePictureInput from '#/pages/dashboard/Settings/ProfilePictureInput'
-import UserGroupsSettingsSection from '#/pages/dashboard/Settings/UserGroupsSettingsSection'
-
 import * as menuEntry from '#/components/MenuEntry'
 
 import type Backend from '#/services/Backend'
@@ -40,6 +30,16 @@ import type LocalBackend from '#/services/LocalBackend'
 import type RemoteBackend from '#/services/RemoteBackend'
 
 import * as object from '#/utilities/object'
+
+import ActivityLogSettingsSection from './ActivityLogSettingsSection'
+import ChangePasswordForm from './ChangePasswordForm'
+import DeleteUserAccountSettingsSection from './DeleteUserAccountSettingsSection'
+import KeyboardShortcutsSettingsSection from './KeyboardShortcutsSettingsSection'
+import MembersSettingsSection from './MembersSettingsSection'
+import MembersTable from './MembersTable'
+import OrganizationProfilePictureInput from './OrganizationProfilePictureInput'
+import ProfilePictureInput from './ProfilePictureInput'
+import UserGroupsSettingsSection from './UserGroupsSettingsSection'
 
 // =================
 // === Constants ===

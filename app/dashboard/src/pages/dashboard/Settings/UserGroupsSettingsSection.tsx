@@ -12,9 +12,6 @@ import * as authProvider from '#/providers/AuthProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
-import UserGroupRow from '#/pages/dashboard/Settings/UserGroupRow'
-import UserGroupUserRow from '#/pages/dashboard/Settings/UserGroupUserRow'
-
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 import * as paywallComponents from '#/components/Paywall'
@@ -26,6 +23,9 @@ import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
 
 import * as tailwindMerge from '#/utilities/tailwindMerge'
+
+import UserGroupRow from './UserGroupRow'
+import UserGroupUserRow from './UserGroupUserRow'
 
 // =================================
 // === UserGroupsSettingsSection ===

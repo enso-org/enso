@@ -3,18 +3,14 @@ import * as React from 'react'
 
 import * as textProvider from '#/providers/TextProvider'
 
-import {
-  SETTINGS_DATA,
-  type SettingsContext,
-  type SettingsTabType,
-} from '#/pages/dashboard/Settings/settingsData'
-
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 import FocusArea from '#/components/styled/FocusArea'
 import SidebarTabButton from '#/components/styled/SidebarTabButton'
 
 import * as tailwindMerge from '#/utilities/tailwindMerge'
+
+import { SETTINGS_DATA, type SettingsContext, type SettingsTabType } from './settingsData'
 
 // =======================
 // === SettingsSidebar ===

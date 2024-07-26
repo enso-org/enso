@@ -3,12 +3,12 @@ import * as React from 'react'
 
 import * as textProvider from '#/providers/TextProvider'
 
-import type * as settingsData from '#/pages/dashboard/Settings/settingsData'
-
 import * as aria from '#/components/aria'
 import SettingsInput from '#/components/styled/SettingsInput'
 
 import * as errorModule from '#/utilities/error'
+
+import type * as settingsData from './settingsData'
 
 // =================
 // === Constants ===

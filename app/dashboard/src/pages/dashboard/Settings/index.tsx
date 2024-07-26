@@ -15,9 +15,6 @@ import * as backendProvider from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import SearchBar from '#/layouts/SearchBar'
-import * as settingsData from '#/pages/dashboard/Settings/settingsData'
-import SettingsSidebar from '#/pages/dashboard/Settings/SettingsSidebar'
-import SettingsTab from '#/pages/dashboard/Settings/SettingsTab'
 
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
@@ -28,6 +25,10 @@ import type Backend from '#/services/Backend'
 import * as projectManager from '#/services/ProjectManager'
 
 import * as string from '#/utilities/string'
+
+import * as settingsData from './settingsData'
+import SettingsSidebar from './SettingsSidebar'
+import SettingsTab from './SettingsTab'
 
 // ================
 // === Settings ===

@@ -3,11 +3,11 @@ import * as React from 'react'
 
 import * as textProvider from '#/providers/TextProvider'
 
-import type * as settingsData from '#/pages/dashboard/Settings/settingsData'
-import SettingsEntry from '#/pages/dashboard/Settings/SettingsEntry'
-
 import * as aria from '#/components/aria'
 import FocusArea from '#/components/styled/FocusArea'
+
+import type * as settingsData from './settingsData'
+import SettingsEntry from './SettingsEntry'
 
 // =======================
 // === SettingsSection ===
