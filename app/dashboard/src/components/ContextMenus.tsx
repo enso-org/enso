@@ -32,30 +32,28 @@ export interface ContextMenusProps extends Readonly<React.PropsWithChildren> {
 function ContextMenus(props: ContextMenusProps, ref: React.ForwardedRef<HTMLDivElement>) {
   const { hidden = false, children, event } = props
 
-  return hidden ? (
-    <>{children}</>
-  ) : (
-    <Modal
-      className="absolute size-full overflow-hidden bg-dim"
-      onContextMenu={innerEvent => {
-        innerEvent.preventDefault()
-      }}
-    >
-      <div
-        data-testid="context-menus"
-        ref={ref}
-        style={{ left: event.pageX - HALF_MENU_WIDTH, top: event.pageY }}
-        className={tailwindMerge.twMerge(
-          'pointer-events-none sticky flex w-min items-start gap-context-menus'
-        )}
-        onClick={clickEvent => {
-          clickEvent.stopPropagation()
+  return hidden ?
+      <>{children}</>
+    : <Modal
+        className="absolute size-full overflow-hidden bg-dim"
+        onContextMenu={(innerEvent) => {
+          innerEvent.preventDefault()
         }}
       >
-        {children}
-      </div>
-    </Modal>
-  )
+        <div
+          data-testid="context-menus"
+          ref={ref}
+          style={{ left: event.pageX - HALF_MENU_WIDTH, top: event.pageY }}
+          className={tailwindMerge.twMerge(
+            'pointer-events-none sticky flex w-min items-start gap-context-menus',
+          )}
+          onClick={(clickEvent) => {
+            clickEvent.stopPropagation()
+          }}
+        >
+          {children}
+        </div>
+      </Modal>
 }
 
 export default React.forwardRef(ContextMenus)

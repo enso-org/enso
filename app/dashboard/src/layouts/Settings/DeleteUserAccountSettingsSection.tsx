@@ -23,7 +23,7 @@ export default function DeleteUserAccountSettingsSection() {
 
   return (
     <FocusArea direction="vertical">
-      {innerProps => (
+      {(innerProps) => (
         <div
           className="flex flex-col items-start gap-settings-section-header rounded-2.5xl border-2 border-danger px-[1rem] pb-[0.9375rem] pt-[0.5625rem]"
           {...innerProps}
@@ -42,7 +42,7 @@ export default function DeleteUserAccountSettingsSection() {
                       await deleteUser()
                       await signOut()
                     }}
-                  />
+                  />,
                 )
               }}
             >

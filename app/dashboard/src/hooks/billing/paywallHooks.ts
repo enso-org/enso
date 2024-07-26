@@ -30,7 +30,7 @@ export function usePaywall(props: UsePaywallProps) {
   const { features } = devtools.usePaywallDevtools()
 
   const getPaywallLevel = eventCallbackHooks.useEventCallback(() =>
-    paywallConfiguration.mapPlanOnPaywall(plan)
+    paywallConfiguration.mapPlanOnPaywall(plan),
   )
 
   const isFeatureUnderPaywall = eventCallbackHooks.useEventCallback(
@@ -45,7 +45,7 @@ export function usePaywall(props: UsePaywallProps) {
       } else {
         return !isForceEnabled
       }
-    }
+    },
   )
 
   return { isFeatureUnderPaywall, getPaywallLevel, getFeature } as const

@@ -19,13 +19,13 @@ export const INDENT_SIZE = 4
  * @returns {string} The value of the environment variable.
  * @throws {Error} If the environment variable is not set. */
 export function requireEnv(name) {
-    const value = process.env[name]
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-    if (value == null) {
-        throw new Error(`Could not find the environment variable '${name}'.`)
-    } else {
-        return value
-    }
+  const value = process.env[name]
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  if (value == null) {
+    throw new Error(`Could not find the environment variable '${name}'.`)
+  } else {
+    return value
+  }
 }
 
 /** Read the path from environment variable and resolve it.
@@ -33,7 +33,7 @@ export function requireEnv(name) {
  * @returns {string} The resolved path.
  * @throws {Error} If the environment variable is not set. */
 export function requireEnvResolvedPath(name) {
-    return path.resolve(requireEnv(name))
+  return path.resolve(requireEnv(name))
 }
 
 /** Read the path from environment variable and resolve it. Verify that it exists.
@@ -41,14 +41,14 @@ export function requireEnvResolvedPath(name) {
  * @returns {string} The resolved path.
  * @throws {Error} If the environment variable is not set or path does not exist. */
 export function requireEnvPathExist(name) {
-    const value = requireEnv(name)
-    if (fs.existsSync(value)) {
-        return value
-    } else {
-        throw Error(
-            `Could not find the file at '${value}' defined by the environment variable '${name}'.`
-        )
-    }
+  const value = requireEnv(name)
+  if (fs.existsSync(value)) {
+    return value
+  } else {
+    throw Error(
+      `Could not find the file at '${value}' defined by the environment variable '${name}'.`,
+    )
+  }
 }
 
 // ======================
@@ -60,9 +60,9 @@ export function requireEnvPathExist(name) {
  * @param {string} b - the second string.
  * @returns {string} The common prefix. */
 export function getCommonPrefix(a, b) {
-    let i = 0
-    while (i < a.length && i < b.length && a[i] === b[i]) {
-        i++
-    }
-    return a.slice(0, i)
+  let i = 0
+  while (i < a.length && i < b.length && a[i] === b[i]) {
+    i++
+  }
+  return a.slice(0, i)
 }

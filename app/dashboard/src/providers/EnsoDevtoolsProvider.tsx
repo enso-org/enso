@@ -35,9 +35,9 @@ export interface ProjectsProviderProps extends Readonly<React.PropsWithChildren>
 export default function EnsoDevtoolsProvider(props: ProjectsProviderProps) {
   const { children } = props
   const [store] = React.useState(() => {
-    return zustand.createStore<EnsoDevtoolsStore>(set => ({
+    return zustand.createStore<EnsoDevtoolsStore>((set) => ({
       showVersionChecker: false,
-      setEnableVersionChecker: showVersionChecker => {
+      setEnableVersionChecker: (showVersionChecker) => {
         set({ showVersionChecker })
       },
     }))
@@ -66,7 +66,7 @@ function useEnsoDevtoolsStore() {
 /** A function to set whether the version checker is forcibly shown/hidden. */
 export function useEnableVersionChecker() {
   const store = useEnsoDevtoolsStore()
-  return zustand.useStore(store, state => state.showVersionChecker)
+  return zustand.useStore(store, (state) => state.showVersionChecker)
 }
 
 // ==================================
@@ -76,5 +76,5 @@ export function useEnableVersionChecker() {
 /** A function to set whether the version checker is forcibly shown/hidden. */
 export function useSetEnableVersionChecker() {
   const store = useEnsoDevtoolsStore()
-  return zustand.useStore(store, state => state.setEnableVersionChecker)
+  return zustand.useStore(store, (state) => state.setEnableVersionChecker)
 }

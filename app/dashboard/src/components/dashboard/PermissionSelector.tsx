@@ -89,42 +89,42 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
         `h-${LABEL_STRAIGHT_WIDTH_PX}` +
         // Left semicircle of label
         `a${r} ${r} 0 0 1 0 -${r * 2}Z")`
-      setTheChild(oldTheChild =>
-        oldTheChild != null
-          ? null
-          : function Child() {
-              return (
-                <Modal
-                  className="fixed size-full overflow-auto"
-                  onClick={() => {
+      setTheChild((oldTheChild) =>
+        oldTheChild != null ? null : (
+          function Child() {
+            return (
+              <Modal
+                className="fixed size-full overflow-auto"
+                onClick={() => {
+                  setTheChild(null)
+                }}
+              >
+                <div style={{ clipPath }} className="absolute size-full bg-dim" />
+                <PermissionTypeSelector
+                  showDelete={showDelete}
+                  type={permission.type}
+                  assetType={assetType}
+                  selfPermission={selfPermission}
+                  style={{ left, top }}
+                  onChange={(type) => {
                     setTheChild(null)
-                  }}
-                >
-                  <div style={{ clipPath }} className="absolute size-full bg-dim" />
-                  <PermissionTypeSelector
-                    showDelete={showDelete}
-                    type={permission.type}
-                    assetType={assetType}
-                    selfPermission={selfPermission}
-                    style={{ left, top }}
-                    onChange={type => {
-                      setTheChild(null)
-                      if (type === permissions.Permission.delete) {
-                        doDelete?.()
+                    if (type === permissions.Permission.delete) {
+                      doDelete?.()
+                    } else {
+                      const newAction = permissions.TYPE_TO_PERMISSION_ACTION[type]
+                      const newPermissions = permissions.FROM_PERMISSION_ACTION[newAction]
+                      if ('docs' in permission && 'docs' in newPermissions) {
+                        setAction(permissions.toPermissionAction({ ...permission, type }))
                       } else {
-                        const newAction = permissions.TYPE_TO_PERMISSION_ACTION[type]
-                        const newPermissions = permissions.FROM_PERMISSION_ACTION[newAction]
-                        if ('docs' in permission && 'docs' in newPermissions) {
-                          setAction(permissions.toPermissionAction({ ...permission, type }))
-                        } else {
-                          setAction(permissions.TYPE_TO_PERMISSION_ACTION[type])
-                        }
+                        setAction(permissions.TYPE_TO_PERMISSION_ACTION[type])
                       }
-                    }}
-                  />
-                </Modal>
-              )
-            }
+                    }
+                  }}
+                />
+              </Modal>
+            )
+          }
+        ),
       )
     }
   }
@@ -146,7 +146,7 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
             {...(isDisabled && error != null ? { title: error } : {})}
             className={tailwindMerge.twMerge(
               'flex-1 rounded-l-full border-0 py-0',
-              permissions.PERMISSION_CLASS_NAME[permission.type]
+              permissions.PERMISSION_CLASS_NAME[permission.type],
             )}
             onPress={doShowPermissionTypeSelector}
           >
@@ -166,7 +166,7 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
                   type: permission.type,
                   execute: false,
                   docs: !permission.docs,
-                })
+                }),
               )
             }}
           >
@@ -181,7 +181,7 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
             {...(isDisabled && error != null ? { title: error } : {})}
             className={tailwindMerge.twMerge(
               'flex-1 rounded-r-full border-0 py-0',
-              permissions.EXEC_CLASS_NAME
+              permissions.EXEC_CLASS_NAME,
             )}
             onPress={() => {
               setAction(
@@ -189,7 +189,7 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
                   type: permission.type,
                   execute: !permission.execute,
                   docs: false,
-                })
+                }),
               )
             }}
           >
@@ -210,7 +210,7 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
           {...(isDisabled && error != null ? { title: error } : {})}
           className={tailwindMerge.twMerge(
             'w-[121px] rounded-full border-0 py-0',
-            permissions.PERMISSION_CLASS_NAME[permission.type]
+            permissions.PERMISSION_CLASS_NAME[permission.type],
           )}
           onPress={doShowPermissionTypeSelector}
         >

@@ -14,7 +14,7 @@ export function useDraggable() {
 
   return {
     draggable: isDraggable,
-    onFocus: event => {
+    onFocus: (event) => {
       if (eventModule.isElementTextInput(event.target)) {
         setIsDraggable(false)
       }

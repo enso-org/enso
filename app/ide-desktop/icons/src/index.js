@@ -2,8 +2,8 @@
  * MacOS ICNS, and Windows ICO formats. */
 
 import * as childProcess from 'node:child_process'
-import * as fs from 'node:fs/promises'
 import * as fsSync from 'node:fs'
+import * as fs from 'node:fs/promises'
 import * as os from 'node:os'
 import * as path from 'node:path'
 import * as url from 'node:url'
@@ -31,47 +31,47 @@ const MACOS_DPI = 144
 
 /** A class representing the logo, of the specified size. */
 class Logo {
-    /** Creates a {@link Logo}. */
-    constructor(size = DEFAULT_SIZE, compatibleMode = true) {
-        this.xsize = size
-        this.size = DEFAULT_SIZE
-        this.compatibleMode = compatibleMode
-        this.borderMax = BORDER_MAX
-        this.borderSpread = 2
-        this.borderWidth = BORDER_WIDTH
-        this.topRadius = this.size / 2
-        this.borderOffset = this.borderWidth - this.borderSpread
-        this.innerRadius = this.topRadius - this.borderWidth - this.borderOffset
-        this.atomRadius = this.innerRadius / 2
-        this.atomDiff = 0
-        this.d = LEFT_ATOM_ENLARGEMENT
-        this.scale1 = INNER_SIZE / this.size
-        this.scale = this.xsize / this.size
-        this.tx = (this.size - INNER_SIZE) / 2
-        if (this.compatibleMode) {
-            this.ref = 'xlink:href'
-        } else {
-            this.ref = 'href'
-        }
-        this.defs = ''
+  /** Creates a {@link Logo}. */
+  constructor(size = DEFAULT_SIZE, compatibleMode = true) {
+    this.xsize = size
+    this.size = DEFAULT_SIZE
+    this.compatibleMode = compatibleMode
+    this.borderMax = BORDER_MAX
+    this.borderSpread = 2
+    this.borderWidth = BORDER_WIDTH
+    this.topRadius = this.size / 2
+    this.borderOffset = this.borderWidth - this.borderSpread
+    this.innerRadius = this.topRadius - this.borderWidth - this.borderOffset
+    this.atomRadius = this.innerRadius / 2
+    this.atomDiff = 0
+    this.d = LEFT_ATOM_ENLARGEMENT
+    this.scale1 = INNER_SIZE / this.size
+    this.scale = this.xsize / this.size
+    this.tx = (this.size - INNER_SIZE) / 2
+    if (this.compatibleMode) {
+      this.ref = 'xlink:href'
+    } else {
+      this.ref = 'href'
     }
+    this.defs = ''
+  }
 
-    /** Outputs the logo as an SVG image. */
-    generate() {
-        return `
+  /** Outputs the logo as an SVG image. */
+  generate() {
+    return `
 <svg version="1.1" baseProfile="full" xmlns="http://www.w3.org/2000/svg" \
 xmlns:xlink="http://www.w3.org/1999/xlink" height="${this.xsize}" width="${this.xsize}" \
 viewBox="0 0 ${this.xsize} ${this.xsize}">
     <defs>
         <circle id="innerCircle" cx="32" cy="32" r="${this.innerRadius}"/>
         <circle id="leftAtom"    cx="${
-            this.borderWidth + this.borderOffset + this.atomRadius + this.atomDiff - this.d
+          this.borderWidth + this.borderOffset + this.atomRadius + this.atomDiff - this.d
         }" cy="32" r="${this.atomRadius + this.atomDiff + this.d}"/>
         <circle id="rightAtom"   cx="${
-            this.borderWidth +
-            this.borderOffset +
-            ATOM_SPACING_FACTOR * this.atomRadius +
-            this.atomDiff
+          this.borderWidth +
+          this.borderOffset +
+          ATOM_SPACING_FACTOR * this.atomRadius +
+          this.atomDiff
         }" cy="32" r="${this.atomRadius - this.atomDiff}"/>
         <mask id="innerCircleMask">
             <use ${this.ref}="#innerCircle" fill="white"/>
@@ -124,105 +124,105 @@ viewBox="0 0 ${this.xsize} ${this.xsize}">
     ${this.main()}
 </svg>
 `
-    }
+  }
 
-    /** Return a reference to the element containing the complete logo. */
-    main() {
-        return `<g transform="scale(${this.scale})"> <use ${this.ref}="#final"/> </g>`
-    }
+  /** Return a reference to the element containing the complete logo. */
+  main() {
+    return `<g transform="scale(${this.scale})"> <use ${this.ref}="#final"/> </g>`
+  }
 }
 
 /** Generate icons.
  * @param {string} outputDir - The directory in which the icons will be placed. */
 async function genIcons(outputDir) {
-    // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-    const sizes = [16, 32, 64, 128, 256, 512, 1024]
-    // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-    const winSizes = [16, 32, 64, 128, 256]
+  // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+  const sizes = [16, 32, 64, 128, 256, 512, 1024]
+  // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+  const winSizes = [16, 32, 64, 128, 256]
 
-    const donePath = path.join(outputDir, 'init')
-    if (fsSync.existsSync(donePath)) {
-        console.log(`The ${donePath} file exists. Icons will not be regenerated.`)
-        return
-    } else {
-        console.log(`Generating icons to ${outputDir}`)
-        console.log('Generating SVG icons.')
-        await fs.mkdir(path.resolve(outputDir, 'svg'), { recursive: true })
-        await fs.mkdir(path.resolve(outputDir, 'png'), { recursive: true })
-        for (const size of sizes) {
-            const name = `icon_${size}x${size}.svg`
-            const logo = new Logo(size, true).generate()
-            await fs.writeFile(`${outputDir}/svg/${name}`, logo)
-        }
-
-        /// Please note that this function converts the SVG to PNG
-        /// AND KEEPS THE METADATA INFORMATION ABOUT DPI OF 144.
-        /// It is required to properly display png images on MacOS.
-        /// There is currently no other way in `sharp` to do it.
-        console.log('Generating PNG icons.')
-        for (const size of sizes) {
-            const inName = `icon_${size}x${size}.svg`
-            const outName = `icon_${size}x${size}.png`
-            await sharp(`${outputDir}/svg/${inName}`, { density: MACOS_DPI })
-                .png()
-                .resize({
-                    width: size,
-                    kernel: sharp.kernel.mitchell,
-                })
-                .toFile(`${outputDir}/png/${outName}`)
-        }
-
-        for (const size of sizes.slice(1)) {
-            const size2 = size / 2
-            const inName = `icon_${size}x${size}.svg`
-            const outName = `icon_${size2}x${size2}@2x.png`
-            await sharp(`${outputDir}/svg/${inName}`, { density: MACOS_DPI })
-                .png()
-                .resize({
-                    width: size,
-                    kernel: sharp.kernel.mitchell,
-                })
-                .toFile(`${outputDir}/png/${outName}`)
-        }
-
-        if (os.platform() === 'darwin') {
-            console.log('Generating ICNS.')
-            childProcess.execSync(`cp -R ${outputDir}/png ${outputDir}/png.iconset`)
-            childProcess.execSync(
-                `iconutil --convert icns --output ${outputDir}/icon.icns ${outputDir}/png.iconset`
-            )
-        }
-
-        console.log('Generating ICO.')
-        const files = []
-        for (const size of winSizes) {
-            const inName = `icon_${size}x${size}.png`
-            const data = await fs.readFile(`${outputDir}/png/${inName}`)
-            files.push(data)
-        }
-        const icoBuffer = await toIco(files)
-        fsSync.writeFileSync(`${outputDir}/icon.ico`, icoBuffer)
-
-        const handle = await fs.open(donePath, 'w')
-        await handle.close()
-        return
+  const donePath = path.join(outputDir, 'init')
+  if (fsSync.existsSync(donePath)) {
+    console.log(`The ${donePath} file exists. Icons will not be regenerated.`)
+    return
+  } else {
+    console.log(`Generating icons to ${outputDir}`)
+    console.log('Generating SVG icons.')
+    await fs.mkdir(path.resolve(outputDir, 'svg'), { recursive: true })
+    await fs.mkdir(path.resolve(outputDir, 'png'), { recursive: true })
+    for (const size of sizes) {
+      const name = `icon_${size}x${size}.svg`
+      const logo = new Logo(size, true).generate()
+      await fs.writeFile(`${outputDir}/svg/${name}`, logo)
     }
+
+    /// Please note that this function converts the SVG to PNG
+    /// AND KEEPS THE METADATA INFORMATION ABOUT DPI OF 144.
+    /// It is required to properly display png images on MacOS.
+    /// There is currently no other way in `sharp` to do it.
+    console.log('Generating PNG icons.')
+    for (const size of sizes) {
+      const inName = `icon_${size}x${size}.svg`
+      const outName = `icon_${size}x${size}.png`
+      await sharp(`${outputDir}/svg/${inName}`, { density: MACOS_DPI })
+        .png()
+        .resize({
+          width: size,
+          kernel: sharp.kernel.mitchell,
+        })
+        .toFile(`${outputDir}/png/${outName}`)
+    }
+
+    for (const size of sizes.slice(1)) {
+      const size2 = size / 2
+      const inName = `icon_${size}x${size}.svg`
+      const outName = `icon_${size2}x${size2}@2x.png`
+      await sharp(`${outputDir}/svg/${inName}`, { density: MACOS_DPI })
+        .png()
+        .resize({
+          width: size,
+          kernel: sharp.kernel.mitchell,
+        })
+        .toFile(`${outputDir}/png/${outName}`)
+    }
+
+    if (os.platform() === 'darwin') {
+      console.log('Generating ICNS.')
+      childProcess.execSync(`cp -R ${outputDir}/png ${outputDir}/png.iconset`)
+      childProcess.execSync(
+        `iconutil --convert icns --output ${outputDir}/icon.icns ${outputDir}/png.iconset`,
+      )
+    }
+
+    console.log('Generating ICO.')
+    const files = []
+    for (const size of winSizes) {
+      const inName = `icon_${size}x${size}.png`
+      const data = await fs.readFile(`${outputDir}/png/${inName}`)
+      files.push(data)
+    }
+    const icoBuffer = await toIco(files)
+    fsSync.writeFileSync(`${outputDir}/icon.ico`, icoBuffer)
+
+    const handle = await fs.open(donePath, 'w')
+    await handle.close()
+    return
+  }
 }
 
 /** Main entry function. */
 async function main() {
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-    const outputDir = process.env.ENSO_BUILD_ICONS ?? process.argv[2]
-    if (outputDir == null) {
-        const script = process.env.npm_package_name ?? url.fileURLToPath(import.meta.url)
-        throw Error(
-            `The script '${script}' needs to be given an output path through either a ` +
-                `command line argument or the 'ENSO_BUILD_ICONS' environment variable.`
-        )
-    } else {
-        await genIcons(outputDir)
-        return
-    }
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  const outputDir = process.env.ENSO_BUILD_ICONS ?? process.argv[2]
+  if (outputDir == null) {
+    const script = process.env.npm_package_name ?? url.fileURLToPath(import.meta.url)
+    throw Error(
+      `The script '${script}' needs to be given an output path through either a ` +
+        `command line argument or the 'ENSO_BUILD_ICONS' environment variable.`,
+    )
+  } else {
+    await genIcons(outputDir)
+    return
+  }
 }
 
 await main()

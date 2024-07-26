@@ -42,11 +42,11 @@ export default function KeyboardShortcutsSettingsSection() {
     // This is REQUIRED, in order to avoid disabling the `react-hooks/exhaustive-deps` lint.
     // eslint-disable-next-line @typescript-eslint/no-unused-expressions
     refresh
-    return new Set(Object.values(inputBindings.metadata).flatMap(value => value.bindings))
+    return new Set(Object.values(inputBindings.metadata).flatMap((value) => value.bindings))
   }, [inputBindings.metadata, refresh])
   const visibleBindings = React.useMemo(
-    () => object.unsafeEntries(inputBindings.metadata).filter(kv => kv[1].rebindable !== false),
-    [inputBindings.metadata]
+    () => object.unsafeEntries(inputBindings.metadata).filter((kv) => kv[1].rebindable !== false),
+    [inputBindings.metadata],
   )
 
   const { onScroll } = scrollHooks.useStickyTableHeaderOnScroll(rootRef, bodyRef)
@@ -68,7 +68,7 @@ export default function KeyboardShortcutsSettingsSection() {
                   }
                   doRefresh()
                 }}
-              />
+              />,
             )
           }}
         >
@@ -76,7 +76,7 @@ export default function KeyboardShortcutsSettingsSection() {
         </ariaComponents.Button>
       </ariaComponents.ButtonGroup>
       <FocusArea direction="vertical" focusChildClass="focus-default" focusDefaultClass="">
-        {innerProps => (
+        {(innerProps) => (
           <div
             {...aria.mergeProps<JSX.IntrinsicElements['div']>()(innerProps, {
               ref: rootRef,
@@ -102,7 +102,7 @@ export default function KeyboardShortcutsSettingsSection() {
                 </tr>
               </thead>
               <tbody ref={bodyRef}>
-                {visibleBindings.map(kv => {
+                {visibleBindings.map((kv) => {
                   const [action, info] = kv
                   return (
                     <tr key={action}>
@@ -118,7 +118,7 @@ export default function KeyboardShortcutsSettingsSection() {
                       </td>
                       <td className="group min-w-max border-l-2 border-r-2 border-transparent bg-clip-padding px-cell-x">
                         <FocusArea direction="horizontal">
-                          {bindingsProps => (
+                          {(bindingsProps) => (
                             <div {...bindingsProps}>
                               {/* I don't know why this padding is needed,
                                * given that this is a flex container. */}
@@ -158,11 +158,11 @@ export default function KeyboardShortcutsSettingsSection() {
                                         <CaptureKeyboardShortcutModal
                                           description={`'${info.name}'`}
                                           existingShortcuts={allShortcuts}
-                                          onSubmit={shortcut => {
+                                          onSubmit={(shortcut) => {
                                             inputBindings.add(action, shortcut)
                                             doRefresh()
                                           }}
-                                        />
+                                        />,
                                       )
                                     }}
                                   />

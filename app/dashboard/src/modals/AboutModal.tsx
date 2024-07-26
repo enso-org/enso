@@ -21,27 +21,27 @@ export default function AboutModal() {
   const { getText } = textProvider.useText()
 
   const versionsEntries = [
-    ...(window.versionInfo != null
-      ? ([
-          ['version', window.versionInfo.version],
-          ['build', window.versionInfo.build],
-          ['electronVersion', window.versionInfo.electron],
-          ['chromeVersion', window.versionInfo.chrome],
-        ] as const)
-      : [
-          ...(process.env.ENSO_CLOUD_DASHBOARD_VERSION == null
-            ? []
-            : ([['version', process.env.ENSO_CLOUD_DASHBOARD_VERSION]] as const)),
-          ...(process.env.ENSO_CLOUD_DASHBOARD_COMMIT_HASH == null
-            ? []
-            : ([['build', process.env.ENSO_CLOUD_DASHBOARD_COMMIT_HASH]] as const)),
-        ]),
+    ...(window.versionInfo != null ?
+      ([
+        ['version', window.versionInfo.version],
+        ['build', window.versionInfo.build],
+        ['electronVersion', window.versionInfo.electron],
+        ['chromeVersion', window.versionInfo.chrome],
+      ] as const)
+    : [
+        ...(process.env.ENSO_CLOUD_DASHBOARD_VERSION == null ?
+          []
+        : ([['version', process.env.ENSO_CLOUD_DASHBOARD_VERSION]] as const)),
+        ...(process.env.ENSO_CLOUD_DASHBOARD_COMMIT_HASH == null ?
+          []
+        : ([['build', process.env.ENSO_CLOUD_DASHBOARD_COMMIT_HASH]] as const)),
+      ]),
     ['userAgent', navigator.userAgent],
   ] satisfies readonly (readonly [text.TextId, string])[]
 
   const copyText = React.useMemo(
     () => versionsEntries.map(([textId, version]) => `${getText(textId)} ${version}`).join('\n'),
-    [getText, versionsEntries]
+    [getText, versionsEntries],
   )
 
   return (
@@ -54,14 +54,14 @@ export default function AboutModal() {
 
           <div className="flex flex-col">
             <ariaComponents.Text variant="subtitle">
-              {localBackend != null
-                ? getText('appNameDesktopEdition')
-                : getText('appNameCloudEdition')}
+              {localBackend != null ?
+                getText('appNameDesktopEdition')
+              : getText('appNameCloudEdition')}
             </ariaComponents.Text>
 
             <table>
               <tbody>
-                {versionsEntries.map(entry => {
+                {versionsEntries.map((entry) => {
                   const [textId, version] = entry
 
                   return (

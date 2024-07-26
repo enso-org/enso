@@ -22,7 +22,7 @@ test.test('sign up with organization id', async ({ page }) => {
   await page.goto('/')
   await page.waitForLoadState('domcontentloaded')
   await page.goto(
-    '/registration?' + new URLSearchParams([['organization_id', ORGANIZATION_ID]]).toString()
+    '/registration?' + new URLSearchParams([['organization_id', ORGANIZATION_ID]]).toString(),
   )
   const api = await actions.mockApi({ page })
   api.setCurrentUser(null)
@@ -81,7 +81,7 @@ test.test('sign up flow', ({ page }) => {
   return actions
     .mockAll({
       page,
-      setupAPI: theApi => {
+      setupAPI: (theApi) => {
         api = theApi
         theApi.setCurrentUser(null)
 
@@ -91,11 +91,11 @@ test.test('sign up flow', ({ page }) => {
       },
     })
     .loginAsNewUser(EMAIL, actions.VALID_PASSWORD)
-    .do(async thePage => {
+    .do(async (thePage) => {
       await actions.passTermsAndConditionsDialog({ page: thePage })
     })
     .setUsername(NAME)
-    .do(async thePage => {
+    .do(async (thePage) => {
       await test.expect(actions.locateUpgradeButton(thePage)).toBeVisible()
       await test.expect(actions.locateDriveView(thePage)).not.toBeVisible()
     })

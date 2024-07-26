@@ -18,8 +18,8 @@ import ContextMenus from '#/components/ContextMenus'
 
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 
-import * as backendModule from '#/services/Backend'
 import type Backend from '#/services/Backend'
+import * as backendModule from '#/services/Backend'
 
 import type * as assetTreeNode from '#/utilities/AssetTreeNode'
 import type * as pasteDataModule from '#/utilities/pasteData'
@@ -47,7 +47,7 @@ export interface AssetsTableContextMenuProps {
   readonly doCut: () => void
   readonly doPaste: (
     newParentKey: backendModule.DirectoryId,
-    newParentId: backendModule.DirectoryId
+    newParentId: backendModule.DirectoryId,
   ) => void
 }
 
@@ -67,13 +67,13 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
   // up to date.
   const ownsAllSelectedAssets =
     !isCloud ||
-    Array.from(selectedKeys, key => {
+    Array.from(selectedKeys, (key) => {
       const userPermissions = nodeMapRef.current.get(key)?.item.permissions
       const selfPermission = userPermissions?.find(
-        backendModule.isUserPermissionAnd(permission => permission.user.userId === user.userId)
+        backendModule.isUserPermissionAnd((permission) => permission.user.userId === user.userId),
       )
       return selfPermission?.permission === permissions.PermissionAction.own
-    }).every(isOwner => isOwner)
+    }).every((isOwner) => isOwner)
 
   // This is not a React component even though it contains JSX.
   // eslint-disable-next-line no-restricted-syntax
@@ -88,64 +88,65 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
       setModal(
         <ConfirmDeleteModal
           actionText={
-            selectedKeys.size === 1
-              ? getText('deleteSelectedAssetActionText', soleAssetName)
-              : getText('deleteSelectedAssetsActionText', selectedKeys.size)
+            selectedKeys.size === 1 ?
+              getText('deleteSelectedAssetActionText', soleAssetName)
+            : getText('deleteSelectedAssetsActionText', selectedKeys.size)
           }
           doDelete={() => {
             clearSelectedKeys()
             dispatchAssetEvent({ type: AssetEventType.delete, ids: selectedKeys })
           }}
-        />
+        />,
       )
     }
   }
 
   if (category === Category.trash) {
-    return selectedKeys.size === 0 ? (
-      <></>
-    ) : (
-      <ContextMenus key={uniqueString.uniqueString()} hidden={hidden} event={event}>
-        <ContextMenu aria-label={getText('assetsTableContextMenuLabel')} hidden={hidden}>
-          <ContextMenuEntry
-            hidden={hidden}
-            action="undelete"
-            label={getText('restoreAllFromTrashShortcut')}
-            doAction={() => {
-              unsetModal()
-              dispatchAssetEvent({ type: AssetEventType.restore, ids: selectedKeys })
-            }}
-          />
-          {isCloud && (
+    return selectedKeys.size === 0 ?
+        <></>
+      : <ContextMenus key={uniqueString.uniqueString()} hidden={hidden} event={event}>
+          <ContextMenu aria-label={getText('assetsTableContextMenuLabel')} hidden={hidden}>
             <ContextMenuEntry
               hidden={hidden}
-              action="delete"
-              label={getText('deleteAllForeverShortcut')}
+              action="undelete"
+              label={getText('restoreAllFromTrashShortcut')}
               doAction={() => {
-                const [firstKey] = selectedKeys
-                const soleAssetName =
-                  firstKey != null
-                    ? nodeMapRef.current.get(firstKey)?.item.title ?? '(unknown)'
-                    : '(unknown)'
-                setModal(
-                  <ConfirmDeleteModal
-                    actionText={
-                      selectedKeys.size === 1
-                        ? getText('deleteSelectedAssetForeverActionText', soleAssetName)
-                        : getText('deleteSelectedAssetsForeverActionText', selectedKeys.size)
-                    }
-                    doDelete={() => {
-                      clearSelectedKeys()
-                      dispatchAssetEvent({ type: AssetEventType.deleteForever, ids: selectedKeys })
-                    }}
-                  />
-                )
+                unsetModal()
+                dispatchAssetEvent({ type: AssetEventType.restore, ids: selectedKeys })
               }}
             />
-          )}
-        </ContextMenu>
-      </ContextMenus>
-    )
+            {isCloud && (
+              <ContextMenuEntry
+                hidden={hidden}
+                action="delete"
+                label={getText('deleteAllForeverShortcut')}
+                doAction={() => {
+                  const [firstKey] = selectedKeys
+                  const soleAssetName =
+                    firstKey != null ?
+                      nodeMapRef.current.get(firstKey)?.item.title ?? '(unknown)'
+                    : '(unknown)'
+                  setModal(
+                    <ConfirmDeleteModal
+                      actionText={
+                        selectedKeys.size === 1 ?
+                          getText('deleteSelectedAssetForeverActionText', soleAssetName)
+                        : getText('deleteSelectedAssetsForeverActionText', selectedKeys.size)
+                      }
+                      doDelete={() => {
+                        clearSelectedKeys()
+                        dispatchAssetEvent({
+                          type: AssetEventType.deleteForever,
+                          ids: selectedKeys,
+                        })
+                      }}
+                    />,
+                  )
+                }}
+              />
+            )}
+          </ContextMenu>
+        </ContextMenus>
   } else if (category !== Category.cloud && category !== Category.local) {
     return null
   } else {
@@ -185,9 +186,9 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
                 doAction={() => {
                   const [firstKey] = selectedKeys
                   const selectedNode =
-                    selectedKeys.size === 1 && firstKey != null
-                      ? nodeMapRef.current.get(firstKey)
-                      : null
+                    selectedKeys.size === 1 && firstKey != null ?
+                      nodeMapRef.current.get(firstKey)
+                    : null
                   if (selectedNode?.type === backendModule.AssetType.directory) {
                     doPaste(selectedNode.key, selectedNode.item.id)
                   } else {

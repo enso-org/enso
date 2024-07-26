@@ -38,15 +38,15 @@ export default function NewUserGroupModal(props: NewUserGroupModalProps) {
   const userGroups = listUserGroupsQuery.data ?? null
   const userGroupNames = React.useMemo(
     () =>
-      userGroups == null
-        ? null
-        : new Set(userGroups.map(group => string.normalizeName(group.groupName))),
-    [userGroups]
+      userGroups == null ? null : (
+        new Set(userGroups.map((group) => string.normalizeName(group.groupName)))
+      ),
+    [userGroups],
   )
   const nameError =
-    userGroupNames != null && userGroupNames.has(string.normalizeName(name))
-      ? getText('duplicateUserGroupError')
-      : null
+    userGroupNames != null && userGroupNames.has(string.normalizeName(name)) ?
+      getText('duplicateUserGroupError')
+    : null
   const createUserGroupMutation = backendHooks.useBackendMutation(backend, 'createUserGroup')
   const canSubmit = nameError == null && name !== '' && userGroupNames != null
 
@@ -66,7 +66,7 @@ export default function NewUserGroupModal(props: NewUserGroupModalProps) {
       centered={positionEvent == null}
       className={tailwindMerge.twMerge(
         'bg-dim',
-        positionEvent != null && 'absolute size-full overflow-hidden'
+        positionEvent != null && 'absolute size-full overflow-hidden',
       )}
     >
       <form
@@ -74,15 +74,15 @@ export default function NewUserGroupModal(props: NewUserGroupModalProps) {
         tabIndex={-1}
         className="pointer-events-auto relative flex w-new-label-modal flex-col gap-modal rounded-default p-modal-wide pb-3 pt-modal before:absolute before:inset before:h-full before:w-full before:rounded-default before:bg-selected-frame before:backdrop-blur-default"
         style={positionEvent == null ? {} : { left: positionEvent.pageX, top: positionEvent.pageY }}
-        onKeyDown={event => {
+        onKeyDown={(event) => {
           if (event.key !== 'Escape') {
             event.stopPropagation()
           }
         }}
-        onClick={event => {
+        onClick={(event) => {
           event.stopPropagation()
         }}
-        onSubmit={event => {
+        onSubmit={(event) => {
           event.preventDefault()
           void onSubmit()
         }}

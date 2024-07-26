@@ -11,6 +11,7 @@ import {
   type WidgetUpdate,
 } from '@/providers/widgetRegistry'
 import { useGraphStore } from '@/stores/graph'
+import type { MethodCallInfo } from '@/stores/graph/graphDatabase'
 import { useProjectStore } from '@/stores/project'
 import { assert, assertUnreachable } from '@/util/assert'
 import { Ast } from '@/util/ast'
@@ -24,11 +25,21 @@ import {
 } from '@/util/callTree'
 import { partitionPoint } from '@/util/data/array'
 import { isIdentifier } from '@/util/qualifiedName.ts'
+import { methodPointerEquals, type MethodPointer } from 'shared/languageServerTypes'
 import { computed, proxyRefs } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
 const graph = useGraphStore()
 const project = useProjectStore()
+
+const exprInfo = computed(() => graph.db.getExpressionInfo(props.input.value.externalId))
+const outputType = computed(() => exprInfo.value?.typename)
+
+const { methodCallInfo, application } = useWidgetFunctionCallInfo(
+  () => props.input,
+  graph.db,
+  project,
+)
 
 provideFunctionInfo(
   proxyRefs({
@@ -41,29 +52,25 @@ provideFunctionInfo(
       }
       return ids
     }),
+    callInfo: methodCallInfo,
+    outputType,
   }),
 )
 
-const { methodCallInfo, application } = useWidgetFunctionCallInfo(
-  () => props.input,
-  graph.db,
-  project,
-)
-
 const innerInput = computed(() => {
+  let input: WidgetInput
   if (application.value instanceof ArgumentApplication) {
-    return application.value.toWidgetInput()
-  } else if (methodCallInfo.value) {
-    const definition = graph.getMethodAst(methodCallInfo.value.methodCall.methodPointer)
-    if (definition.ok)
-      return {
-        ...props.input,
-        [FunctionName]: {
-          editableName: definition.value.name.externalId,
-        },
-      }
+    input = application.value.toWidgetInput()
+  } else {
+    input = { ...props.input }
   }
-  return props.input
+  const callInfo = methodCallInfo.value
+  if (callInfo) {
+    input[CallInfo] = callInfo
+    const definition = graph.getMethodAst(callInfo.methodCall.methodPointer)
+    if (definition.ok) input[FunctionName] = { editableName: definition.value.name.externalId }
+  }
+  return input
 })
 
 /**
@@ -205,6 +212,23 @@ function handleArgUpdate(update: WidgetUpdate): boolean {
 }
 </script>
 <script lang="ts">
+export const CallInfo: unique symbol = Symbol.for('WidgetInput:CallInfo')
+declare module '@/providers/widgetRegistry' {
+  export interface WidgetInput {
+    [CallInfo]?: MethodCallInfo
+  }
+}
+
+export const WidgetInputIsSpecificMethodCall =
+  (methodPointer: MethodPointer) =>
+  (
+    input: WidgetInput,
+  ): input is WidgetInput & { value: Ast.App | Ast.Ident | Ast.PropertyAccess | Ast.OprApp } => {
+    const callInfo = input[CallInfo]
+    // No need to check for AST type, since CallInfo depends on WidgetFunction being matched first.
+    return callInfo != null && methodPointerEquals(callInfo.methodCall.methodPointer, methodPointer)
+  }
+
 export const widgetDefinition = defineWidget(
   WidgetInput.isFunctionCall,
   {

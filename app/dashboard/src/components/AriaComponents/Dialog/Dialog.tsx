@@ -138,7 +138,7 @@ export function Dialog(props: DialogProps) {
         const duration = 200 // 200ms
         dialogRef.current?.animate(
           [{ transform: 'scale(1)' }, { transform: 'scale(1.015)' }, { transform: 'scale(1)' }],
-          { duration, iterations: 1, direction: 'alternate' }
+          { duration, iterations: 1, direction: 'alternate' },
         )
       }
     },
@@ -154,7 +154,7 @@ export function Dialog(props: DialogProps) {
       shouldCloseOnInteractOutside={() => false}
       {...modalProps}
     >
-      {values => {
+      {(values) => {
         overlayState.current = values.state
 
         return (
@@ -173,7 +173,7 @@ export function Dialog(props: DialogProps) {
             >
               <aria.Dialog
                 id={dialogId}
-                ref={mergeRefs.mergeRefs(dialogRef, element => {
+                ref={mergeRefs.mergeRefs(dialogRef, (element) => {
                   if (element) {
                     // This is a workaround for the `data-testid` attribute not being
                     // supported by the 'react-aria-components' library.
@@ -189,7 +189,7 @@ export function Dialog(props: DialogProps) {
                 className={dialogSlots.base()}
                 {...ariaDialogProps}
               >
-                {opts => {
+                {(opts) => {
                   return (
                     <dialogProvider.DialogProvider value={{ close: opts.close, dialogId }}>
                       <aria.Header
@@ -213,13 +213,13 @@ export function Dialog(props: DialogProps) {
                       </aria.Header>
 
                       <div
-                        ref={ref => {
+                        ref={(ref) => {
                           if (ref) {
                             handleScroll(ref.scrollTop)
                           }
                         }}
                         className={dialogSlots.content()}
-                        onScroll={event => {
+                        onScroll={(event) => {
                           handleScroll(event.currentTarget.scrollTop)
                         }}
                       >

@@ -62,7 +62,7 @@ export const ResizableContentEditableInput = React.forwardRef(
     TTransformedValues extends ariaComponents.FieldValues<Schema> | undefined = undefined,
   >(
     props: ResizableContentEditableInputProps<Schema, TFieldValues, TFieldName, TTransformedValues>,
-    ref: React.ForwardedRef<HTMLDivElement>
+    ref: React.ForwardedRef<HTMLDivElement>,
   ) {
     const {
       placeholder = '',
@@ -87,7 +87,7 @@ export const ResizableContentEditableInput = React.forwardRef(
           .replace(/</g, '&lt;')
           .replace(/>/g, '&gt;')
         document.execCommand('insertHTML', false, text)
-      }
+      },
     )
 
     const { field, fieldState, formInstance } = ariaComponents.Form.useField({
@@ -126,7 +126,7 @@ export const ResizableContentEditableInput = React.forwardRef(
               aria-autocomplete="none"
               onPaste={onPaste}
               onBlur={field.onBlur}
-              onInput={event => {
+              onInput={(event) => {
                 field.onChange(event.currentTarget.textContent ?? '')
               }}
             />
@@ -146,7 +146,7 @@ export const ResizableContentEditableInput = React.forwardRef(
         </div>
       </ariaComponents.Form.Field>
     )
-  }
+  },
 ) as <
   Schema extends ariaComponents.TSchema,
   TFieldName extends ariaComponents.FieldPath<Schema, TFieldValues>,
@@ -155,5 +155,5 @@ export const ResizableContentEditableInput = React.forwardRef(
   TTransformedValues extends ariaComponents.FieldValues<Schema> | undefined = undefined,
 >(
   props: React.RefAttributes<HTMLDivElement> &
-    ResizableContentEditableInputProps<Schema, TFieldValues, TFieldName, TTransformedValues>
+    ResizableContentEditableInputProps<Schema, TFieldValues, TFieldName, TTransformedValues>,
 ) => React.JSX.Element
