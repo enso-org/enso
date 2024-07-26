@@ -34,7 +34,7 @@
 [10607]: https://github.com/enso-org/enso/pull/10607
 [10563]: https://github.com/enso-org/enso/pull/10563
 
-#### Enso Enso Standard Library
+#### Enso Standard Library
 
 - [Renamed `Data.list_directory` to `Data.list`. Removed list support from read
   methods.][10434]
@@ -48,6 +48,8 @@
 - [Added `dec` construction function for creating `Decimal`s.][10517]
 - [Implemented in-memory and database mixed `Decimal` column
   comparisons.][10614]
+- [Relative paths are now resolved relative to the project location, also in the
+  Cloud.][10660]
 
 [10434]: https://github.com/enso-org/enso/pull/10434
 [10445]: https://github.com/enso-org/enso/pull/10445
@@ -56,6 +58,7 @@
 [10474]: https://github.com/enso-org/enso/pull/10474
 [10517]: https://github.com/enso-org/enso/pull/10517
 [10614]: https://github.com/enso-org/enso/pull/10614
+[10660]: https://github.com/enso-org/enso/pull/10660
 
 # Enso 2024.2
 
