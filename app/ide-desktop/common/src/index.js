@@ -31,6 +31,6 @@ export const CLOUD_DASHBOARD_DOMAIN = 'cloud.enso.org'
  * These are required to increase the resolution of `performance.now()` timers,
  * making profiling a lot more accurate and consistent. */
 export const COOP_COEP_CORP_HEADERS = [
-    ['Cross-Origin-Opener-Policy', 'same-origin'],
-    ['Cross-Origin-Resource-Policy', 'same-origin'],
+  ['Cross-Origin-Opener-Policy', 'same-origin'],
+  ['Cross-Origin-Resource-Policy', 'same-origin'],
 ]

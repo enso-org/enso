@@ -90,7 +90,7 @@ export function Popover(props: PopoverProps) {
 
   return (
     <aria.Popover
-      className={values =>
+      className={(values) =>
         POPOVER_STYLES({
           ...values,
           size,
@@ -104,7 +104,7 @@ export function Popover(props: PopoverProps) {
       shouldCloseOnInteractOutside={() => false}
       {...ariaPopoverProps}
     >
-      {opts => (
+      {(opts) => (
         <dialogStackProvider.DialogStackRegistrar id={dialogId} type="popover">
           <aria.Dialog
             id={dialogId}

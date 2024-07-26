@@ -52,10 +52,10 @@ export default function DatalinkNameColumn(props: DatalinkNameColumnProps) {
   const setAsset = useEventCallback(
     (
       assetId: backendModule.AssetId,
-      valueOrUpdater: React.SetStateAction<backendModule.AnyAsset>
+      valueOrUpdater: React.SetStateAction<backendModule.AnyAsset>,
     ) => {
       setAssetRaw(backend, assetId, valueOrUpdater)
-    }
+    },
   )
 
   const createDatalinkMutation = backendHooks.useBackendMutation(backend, 'createDatalink')
@@ -73,7 +73,7 @@ export default function DatalinkNameColumn(props: DatalinkNameColumnProps) {
     await Promise.resolve(null)
   }
 
-  eventListProvider.useAssetEventListener(async event => {
+  eventListProvider.useAssetEventListener(async (event) => {
     if (isEditable) {
       switch (event.type) {
         case AssetEventType.newProject:
@@ -142,14 +142,14 @@ export default function DatalinkNameColumn(props: DatalinkNameColumnProps) {
     <div
       className={tailwindMerge.twMerge(
         'flex h-table-row min-w-max items-center gap-name-column-icon whitespace-nowrap rounded-l-full px-name-column-x py-name-column-y',
-        indent.indentClass(item.depth)
+        indent.indentClass(item.depth),
       )}
-      onKeyDown={event => {
+      onKeyDown={(event) => {
         if (rowState.isEditingName && event.key === 'Enter') {
           event.stopPropagation()
         }
       }}
-      onClick={event => {
+      onClick={(event) => {
         if (handleClick(event)) {
           // Already handled.
         } else if (eventModule.isSingleClick(event) && selected) {
@@ -163,7 +163,7 @@ export default function DatalinkNameColumn(props: DatalinkNameColumnProps) {
       <img src={DatalinkIcon} className="m-name-column-icon size-4" />
       <EditableSpan
         editable={false}
-        onSubmit={async newTitle => {
+        onSubmit={async (newTitle) => {
           setIsEditing(false)
 
           if (newTitle !== asset.title) {

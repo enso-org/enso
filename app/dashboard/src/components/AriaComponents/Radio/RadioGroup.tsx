@@ -50,7 +50,7 @@ export const RadioGroup = React.forwardRef(function RadioGroup<
   TTransformedValues extends formComponent.FieldValues<Schema> | undefined = undefined,
 >(
   props: RadioGroupProps<Schema, TFieldValues, TFieldName, TTransformedValues>,
-  ref: React.ForwardedRef<HTMLDivElement>
+  ref: React.ForwardedRef<HTMLDivElement>,
 ) {
   const {
     children,
@@ -117,5 +117,5 @@ export const RadioGroup = React.forwardRef(function RadioGroup<
   TTransformedValues extends formComponent.FieldValues<Schema> | undefined = undefined,
 >(
   props: RadioGroupProps<Schema, TFieldValues, TFieldName, TTransformedValues> &
-    React.RefAttributes<HTMLFormElement>
+    React.RefAttributes<HTMLFormElement>,
 ) => React.JSX.Element

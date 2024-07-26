@@ -41,7 +41,7 @@ export default function SettingsInputEntry(props: SettingsInputEntryProps) {
       isDisabled={!isEditable}
       key={value}
       type="text"
-      onSubmit={event => {
+      onSubmit={(event) => {
         event.currentTarget.form?.requestSubmit()
       }}
     />
@@ -50,7 +50,7 @@ export default function SettingsInputEntry(props: SettingsInputEntryProps) {
   return (
     <aria.Form
       validationErrors={{ [FIELD_NAME]: errorMessage }}
-      onSubmit={async event => {
+      onSubmit={async (event) => {
         event.preventDefault()
         const [[, newValue] = []] = new FormData(event.currentTarget)
         if (typeof newValue === 'string') {
@@ -68,19 +68,17 @@ export default function SettingsInputEntry(props: SettingsInputEntryProps) {
         name={FIELD_NAME}
         defaultValue={value}
         className="flex h-row gap-settings-entry"
-        {...(validate ? { validate: newValue => validate(newValue, context) } : {})}
+        {...(validate ? { validate: (newValue) => validate(newValue, context) } : {})}
       >
         <aria.Label className="text my-auto w-organization-settings-label">
           {getText(nameId)}
         </aria.Label>
-        {validate ? (
+        {validate ?
           <div className="flex grow flex-col">
             {input}
             <aria.FieldError className="text-red-700" />
           </div>
-        ) : (
-          input
-        )}
+        : input}
         <aria.Button type="submit" className="sr-only" />
       </aria.TextField>
     </aria.Form>

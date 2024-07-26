@@ -22,26 +22,24 @@ export interface ContextMenuProps extends Readonly<React.PropsWithChildren> {
 export default function ContextMenu(props: ContextMenuProps) {
   const { hidden = false, children } = props
 
-  return hidden ? (
-    children
-  ) : (
-    <FocusArea direction="vertical">
-      {innerProps => (
-        <div
-          className="pointer-events-auto relative rounded-default before:absolute before:h-full before:w-full before:rounded-default before:bg-selected-frame before:backdrop-blur-default"
-          {...innerProps}
-        >
+  return hidden ? children : (
+      <FocusArea direction="vertical">
+        {(innerProps) => (
           <div
-            aria-label={props['aria-label']}
-            className={tailwindMerge.twMerge(
-              'relative flex flex-col rounded-default p-context-menu',
-              detect.isOnMacOS() ? 'w-context-menu-macos' : 'w-context-menu'
-            )}
+            className="pointer-events-auto relative rounded-default before:absolute before:h-full before:w-full before:rounded-default before:bg-selected-frame before:backdrop-blur-default"
+            {...innerProps}
           >
-            {children}
+            <div
+              aria-label={props['aria-label']}
+              className={tailwindMerge.twMerge(
+                'relative flex flex-col rounded-default p-context-menu',
+                detect.isOnMacOS() ? 'w-context-menu-macos' : 'w-context-menu',
+              )}
+            >
+              {children}
+            </div>
           </div>
-        </div>
-      )}
-    </FocusArea>
-  )
+        )}
+      </FocusArea>
+    )
 }

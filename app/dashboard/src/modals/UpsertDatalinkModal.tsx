@@ -53,10 +53,10 @@ export default function UpsertDatalinkModal(props: UpsertDatalinkModalProps) {
     <Modal centered className="bg-dim">
       <form
         className="pointer-events-auto relative flex min-w-upsert-data-link-modal max-w-upsert-data-link-modal-max flex-col gap-modal rounded-default p-modal-wide pt-modal before:absolute before:inset before:h-full before:w-full before:rounded-default before:bg-selected-frame before:backdrop-blur-default"
-        onClick={event => {
+        onClick={(event) => {
           event.stopPropagation()
         }}
-        onSubmit={event => {
+        onSubmit={(event) => {
           event.preventDefault()
           doSubmit()
         }}
@@ -65,7 +65,7 @@ export default function UpsertDatalinkModal(props: UpsertDatalinkModalProps) {
           {getText('createDatalink')}
         </aria.Heading>
         <FocusArea direction="horizontal">
-          {innerProps => (
+          {(innerProps) => (
             <aria.TextField
               aria-errormessage={getText('mustNotBeBlank')}
               className="relative flex items-center"
@@ -78,10 +78,10 @@ export default function UpsertDatalinkModal(props: UpsertDatalinkModalProps) {
                   placeholder={getText('datalinkNamePlaceholder')}
                   className={tailwindMerge.twMerge(
                     'focus-child text grow rounded-full border bg-transparent px-input-x',
-                    name !== '' ? 'border-primary/10' : 'border-red-700/60'
+                    name !== '' ? 'border-primary/10' : 'border-red-700/60',
                   )}
                   value={name}
-                  onInput={event => {
+                  onInput={(event) => {
                     setName(event.currentTarget.value)
                   }}
                 />

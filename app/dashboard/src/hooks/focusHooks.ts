@@ -29,7 +29,7 @@ export function useHandleFocusMove(direction: 'horizontal' | 'vertical') {
       switch (event.key) {
         case keyPrevious: {
           const element = focusManager?.focusPrevious({
-            accept: other => other.classList.contains(focusChildClass),
+            accept: (other) => other.classList.contains(focusChildClass),
           })
           if (element != null) {
             reactEvent?.stopPropagation()
@@ -41,7 +41,7 @@ export function useHandleFocusMove(direction: 'horizontal' | 'vertical') {
         }
         case keyNext: {
           const element = focusManager?.focusNext({
-            accept: other => other.classList.contains(focusChildClass),
+            accept: (other) => other.classList.contains(focusChildClass),
           })
           if (element != null) {
             reactEvent?.stopPropagation()
@@ -57,7 +57,7 @@ export function useHandleFocusMove(direction: 'horizontal' | 'vertical') {
         }
       }
     },
-    [keyPrevious, keyNext, focusManager, focusChildClass]
+    [keyPrevious, keyNext, focusManager, focusChildClass],
   )
 }
 

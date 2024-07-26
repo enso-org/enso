@@ -6,7 +6,7 @@
 
 /** Return the given string, but with the first letter uppercased. */
 export function capitalizeFirst(string: string) {
-  return string.replace(/^./, match => match.toUpperCase())
+  return string.replace(/^./, (match) => match.toUpperCase())
 }
 
 // ===================
@@ -34,7 +34,7 @@ export function isWhitespaceOnly(string: string) {
 /** Inserts spaces between every word, and capitalizes the first word.
  * DOES NOT make particles lowercase. */
 export function camelCaseToTitleCase(string: string) {
-  return string.replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/^./, c => c.toUpperCase())
+  return string.replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/^./, (c) => c.toUpperCase())
 }
 
 // ==============================
@@ -46,7 +46,13 @@ export function camelCaseToTitleCase(string: string) {
 export function compareCaseInsensitive(a: string, b: string) {
   const aLower = a.toLowerCase()
   const bLower = b.toLowerCase()
-  return aLower > bLower ? 1 : aLower < bLower ? -1 : a > b ? 1 : a < b ? -1 : 0
+  return (
+    aLower > bLower ? 1
+    : aLower < bLower ? -1
+    : a > b ? 1
+    : a < b ? -1
+    : 0
+  )
 }
 
 // =====================

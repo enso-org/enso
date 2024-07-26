@@ -87,14 +87,14 @@ export function useObserveBackend(backend: Backend | null) {
         Awaited<ReturnType<Backend[Method]>>,
         Error,
         Parameters<Backend[Method]>
-      >
-    ) => void
+      >,
+    ) => void,
   ) => {
     const states = reactQuery.useMutationState<Parameters<Backend[Method]>>({
       // Errored mutations can be safely ignored as they should not change the state.
       filters: { mutationKey: [backend?.type, method], status: 'success' },
       // eslint-disable-next-line no-restricted-syntax
-      select: mutation => mutation.state as never,
+      select: (mutation) => mutation.state as never,
     })
     for (const state of states) {
       if (!seen.has(state)) {
@@ -108,16 +108,17 @@ export function useObserveBackend(backend: Backend | null) {
   const setQueryData = <Method extends backendQuery.BackendMethods>(
     method: Method,
     updater: (
-      variable: Awaited<ReturnType<Backend[Method]>>
-    ) => Awaited<ReturnType<Backend[Method]>>
+      variable: Awaited<ReturnType<Backend[Method]>>,
+    ) => Awaited<ReturnType<Backend[Method]>>,
   ) => {
-    queryClient.setQueryData<Awaited<ReturnType<Backend[Method]>>>([backend?.type, method], data =>
-      data == null ? data : updater(data)
+    queryClient.setQueryData<Awaited<ReturnType<Backend[Method]>>>(
+      [backend?.type, method],
+      (data) => (data == null ? data : updater(data)),
     )
   }
   React.useEffect(
     () =>
-      queryCache.subscribe(event => {
+      queryCache.subscribe((event) => {
         if (
           event.type === 'updated' &&
           reactQuery.matchQuery({ queryKey: [backend?.type, 'listDirectory'] }, event.query)
@@ -129,50 +130,50 @@ export function useObserveBackend(backend: Backend | null) {
           }
         }
       }),
-    [backend?.type, queryCache, queryClient]
+    [backend?.type, queryCache, queryClient],
   )
-  useObserveMutations('uploadUserPicture', state => {
+  useObserveMutations('uploadUserPicture', (state) => {
     revokeUserPictureUrl(backend)
-    setQueryData('usersMe', user => state.data ?? user)
+    setQueryData('usersMe', (user) => state.data ?? user)
   })
-  useObserveMutations('updateOrganization', state => {
-    setQueryData('getOrganization', organization => state.data ?? organization)
+  useObserveMutations('updateOrganization', (state) => {
+    setQueryData('getOrganization', (organization) => state.data ?? organization)
   })
-  useObserveMutations('uploadOrganizationPicture', state => {
+  useObserveMutations('uploadOrganizationPicture', (state) => {
     revokeOrganizationPictureUrl(backend)
-    setQueryData('getOrganization', organization => state.data ?? organization)
+    setQueryData('getOrganization', (organization) => state.data ?? organization)
   })
-  useObserveMutations('createUserGroup', state => {
+  useObserveMutations('createUserGroup', (state) => {
     if (state.data != null) {
       const data = state.data
-      setQueryData('listUserGroups', userGroups => [data, ...userGroups])
+      setQueryData('listUserGroups', (userGroups) => [data, ...userGroups])
     }
   })
-  useObserveMutations('deleteUserGroup', state => {
-    setQueryData('listUserGroups', userGroups =>
-      userGroups.filter(userGroup => userGroup.id !== state.variables?.[0])
+  useObserveMutations('deleteUserGroup', (state) => {
+    setQueryData('listUserGroups', (userGroups) =>
+      userGroups.filter((userGroup) => userGroup.id !== state.variables?.[0]),
     )
   })
-  useObserveMutations('changeUserGroup', state => {
+  useObserveMutations('changeUserGroup', (state) => {
     if (state.variables != null) {
       const [userId, body] = state.variables
-      setQueryData('listUsers', users =>
-        users.map(user =>
-          user.userId !== userId ? user : { ...user, userGroups: body.userGroups }
-        )
+      setQueryData('listUsers', (users) =>
+        users.map((user) =>
+          user.userId !== userId ? user : { ...user, userGroups: body.userGroups },
+        ),
       )
     }
   })
-  useObserveMutations('createTag', state => {
+  useObserveMutations('createTag', (state) => {
     if (state.data != null) {
       const data = state.data
-      setQueryData('listTags', tags => [...tags, data])
+      setQueryData('listTags', (tags) => [...tags, data])
     }
   })
-  useObserveMutations('deleteTag', state => {
+  useObserveMutations('deleteTag', (state) => {
     if (state.variables != null) {
       const [tagId] = state.variables
-      setQueryData('listTags', tags => tags.filter(tag => tag.id !== tagId))
+      setQueryData('listTags', (tags) => tags.filter((tag) => tag.id !== tagId))
     }
   })
 }
@@ -193,7 +194,7 @@ export function backendQueryOptions<Method extends backendQuery.BackendMethods>(
       readonly unknown[]
     >,
     'queryFn'
-  >
+  >,
 ): reactQuery.UseQueryOptions<
   Awaited<ReturnType<Backend[Method]>>,
   Error,
@@ -204,14 +205,14 @@ export function backendQueryOptions<Method extends backendQuery.BackendMethods>(
   backend: Backend | null,
   method: Method,
   args: Parameters<Backend[Method]>,
-  options?: Omit<reactQuery.UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>, 'queryFn'>
+  options?: Omit<reactQuery.UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>, 'queryFn'>,
 ): reactQuery.UseQueryOptions<Awaited<ReturnType<Backend[Method]>> | undefined>
 /** Wrap a backend method call in a React Query. */
 export function backendQueryOptions<Method extends backendQuery.BackendMethods>(
   backend: Backend | null,
   method: Method,
   args: Parameters<Backend[Method]>,
-  options?: Omit<reactQuery.UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>, 'queryFn'>
+  options?: Omit<reactQuery.UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>, 'queryFn'>,
 ) {
   return reactQuery.queryOptions<
     Awaited<ReturnType<Backend[Method]>>
@@ -232,23 +233,23 @@ export function useBackendQuery<Method extends backendQuery.BackendMethods>(
   backend: Backend,
   method: Method,
   args: Parameters<Backend[Method]>,
-  options?: Omit<reactQuery.UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>, 'queryFn'>
+  options?: Omit<reactQuery.UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>, 'queryFn'>,
 ): reactQuery.UseQueryResult<Awaited<ReturnType<Backend[Method]>>>
 export function useBackendQuery<Method extends backendQuery.BackendMethods>(
   backend: Backend | null,
   method: Method,
   args: Parameters<Backend[Method]>,
-  options?: Omit<reactQuery.UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>, 'queryFn'>
+  options?: Omit<reactQuery.UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>, 'queryFn'>,
 ): reactQuery.UseQueryResult<Awaited<ReturnType<Backend[Method]>> | undefined>
 /** Wrap a backend method call in a React Query. */
 export function useBackendQuery<Method extends backendQuery.BackendMethods>(
   backend: Backend | null,
   method: Method,
   args: Parameters<Backend[Method]>,
-  options?: Omit<reactQuery.UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>, 'queryFn'>
+  options?: Omit<reactQuery.UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>, 'queryFn'>,
 ) {
   return reactQuery.useQuery<Awaited<ReturnType<Backend[Method]>> | undefined>(
-    backendQueryOptions(backend, method, args, options)
+    backendQueryOptions(backend, method, args, options),
   )
 }
 
@@ -258,32 +259,32 @@ export function useBackendQuery<Method extends backendQuery.BackendMethods>(
 
 export function useFetchBackendQuery<Method extends backendQuery.BackendMethods>(
   backend: Backend,
-  method: Method
+  method: Method,
 ): (
   args: Parameters<Backend[Method]>,
-  options?: Omit<reactQuery.UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>, 'queryFn'>
+  options?: Omit<reactQuery.UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>, 'queryFn'>,
 ) => Promise<Awaited<ReturnType<Backend[Method]>>>
 export function useFetchBackendQuery<Method extends backendQuery.BackendMethods>(
   backend: Backend | null,
-  method: Method
+  method: Method,
 ): (
   args: Parameters<Backend[Method]>,
-  options?: Omit<reactQuery.UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>, 'queryFn'>
+  options?: Omit<reactQuery.UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>, 'queryFn'>,
 ) => Promise<Awaited<ReturnType<Backend[Method]>> | undefined>
 /** Wrap a backend method call in a React Query. */
 export function useFetchBackendQuery<Method extends backendQuery.BackendMethods>(
   backend: Backend | null,
-  method: Method
+  method: Method,
 ) {
   const queryClient = reactQuery.useQueryClient()
   return useEventCallback(
     (
       args: Parameters<Backend[Method]>,
-      options?: Omit<reactQuery.UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>, 'queryFn'>
+      options?: Omit<reactQuery.UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>, 'queryFn'>,
     ) =>
       queryClient.fetchQuery<Awaited<ReturnType<Backend[Method]>> | undefined>(
-        backendQueryOptions(backend, method, args, options)
-      )
+        backendQueryOptions(backend, method, args, options),
+      ),
   )
 }
 
@@ -301,7 +302,7 @@ export function useBackendMutation<Method extends backendQuery.BackendMethods>(
       Parameters<Backend[Method]>
     >,
     'mutationFn'
-  >
+  >,
 ): reactQuery.UseMutationResult<
   Awaited<ReturnType<Backend[Method]>>,
   Error,
@@ -317,7 +318,7 @@ export function useBackendMutation<Method extends backendQuery.BackendMethods>(
       Parameters<Backend[Method]>
     >,
     'mutationFn'
-  >
+  >,
 ): reactQuery.UseMutationResult<
   // eslint-disable-next-line no-restricted-syntax
   Awaited<ReturnType<Backend[Method]>> | undefined,
@@ -335,7 +336,7 @@ export function useBackendMutation<Method extends backendQuery.BackendMethods>(
       Parameters<Backend[Method]>
     >,
     'mutationFn'
-  >
+  >,
 ) {
   return reactQuery.useMutation<
     Awaited<ReturnType<Backend[Method]>>,
@@ -345,7 +346,7 @@ export function useBackendMutation<Method extends backendQuery.BackendMethods>(
     ...options,
     mutationKey: [backend?.type, method, ...(options?.mutationKey ?? [])],
     // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-return
-    mutationFn: args => (backend?.[method] as any)?.(...args),
+    mutationFn: (args) => (backend?.[method] as any)?.(...args),
     networkMode: backend?.type === backendModule.BackendType.local ? 'always' : 'online',
   })
 }
@@ -358,7 +359,7 @@ export function useBackendMutation<Method extends backendQuery.BackendMethods>(
 export function useBackendMutationVariables<Method extends backendQuery.BackendMethods>(
   backend: Backend | null,
   method: Method,
-  mutationKey?: readonly unknown[]
+  mutationKey?: readonly unknown[],
 ) {
   return reactQuery.useMutationState<Parameters<Backend[Method]>>({
     filters: {
@@ -366,7 +367,7 @@ export function useBackendMutationVariables<Method extends backendQuery.BackendM
       status: 'pending',
     },
     // eslint-disable-next-line no-restricted-syntax
-    select: mutation => mutation.state.variables as never,
+    select: (mutation) => mutation.state.variables as never,
   })
 }
 
@@ -385,7 +386,7 @@ export function useBackendMutationWithVariables<Method extends backendQuery.Back
       Parameters<Backend[Method]>
     >,
     'mutationFn'
-  >
+  >,
 ) {
   const mutation = useBackendMutation(backend, method, options)
   return {
@@ -427,7 +428,7 @@ function toNonPlaceholder<T extends object>(object: T) {
 
 /** A list of users, taking into account optimistic state. */
 export function useBackendListUsers(
-  backend: Backend
+  backend: Backend,
 ): readonly WithPlaceholder<backendModule.User>[] | null {
   const listUsersQuery = useBackendQuery(backend, 'listUsers', [])
   const changeUserGroupVariables = useBackendMutationVariables(backend, 'changeUserGroup')
@@ -455,7 +456,7 @@ export function useBackendListUsers(
 
 /** A list of user groups, taking into account optimistic state. */
 export function useBackendListUserGroups(
-  backend: Backend
+  backend: Backend,
 ): readonly WithPlaceholder<backendModule.UserGroupInfo>[] | null {
   const { user } = authProvider.useNonPartialUserSession()
   const listUserGroupsQuery = useBackendQuery(backend, 'listUserGroups', [])
@@ -467,7 +468,7 @@ export function useBackendListUserGroups(
     } else {
       const deletedUserGroupIds = new Set(deleteUserGroupVariables.map(([id]) => id))
       const userGroupsBase = listUserGroupsQuery.data
-        .filter(userGroup => !deletedUserGroupIds.has(userGroup.id))
+        .filter((userGroup) => !deletedUserGroupIds.has(userGroup.id))
         .map(toNonPlaceholder)
       return [
         ...createUserGroupVariables.map(([body]) => ({
@@ -498,7 +499,7 @@ export interface UserGroupInfoWithUsers extends backendModule.UserGroupInfo {
 
 /** A list of user groups, taking into account optimistic state. */
 export function useBackendListUserGroupsWithUsers(
-  backend: Backend
+  backend: Backend,
 ): readonly WithPlaceholder<UserGroupInfoWithUsers>[] | null {
   const userGroupsRaw = useBackendListUserGroups(backend)
   // Old user list
@@ -510,12 +511,12 @@ export function useBackendListUserGroupsWithUsers(
       return null
     } else {
       const currentUserGroupsById = new Map(
-        listUsersQuery.data.map(user => [user.userId, new Set(user.userGroups)])
+        listUsersQuery.data.map((user) => [user.userId, new Set(user.userGroups)]),
       )
-      const result = userGroupsRaw.map(userGroup => {
+      const result = userGroupsRaw.map((userGroup) => {
         const usersInGroup: readonly WithPlaceholder<backendModule.User>[] = users
-          .filter(user => user.userGroups?.includes(userGroup.id))
-          .map(user => {
+          .filter((user) => user.userGroups?.includes(userGroup.id))
+          .map((user) => {
             if (currentUserGroupsById.get(user.userId)?.has(userGroup.id) !== true) {
               return { ...user, isPlaceholder: true }
             } else {
@@ -535,7 +536,7 @@ export function useBackendListUserGroupsWithUsers(
 
 /** A list of asset tags, taking into account optimistic state. */
 export function useBackendListTags(
-  backend: Backend | null
+  backend: Backend | null,
 ): readonly WithPlaceholder<backendModule.Label>[] | null {
   const listTagsQuery = useBackendQuery(backend, 'listTags', [])
   const createTagVariables = useBackendMutationVariables(backend, 'createTag')
@@ -544,13 +545,13 @@ export function useBackendListTags(
     if (listTagsQuery.data == null) {
       return null
     } else {
-      const deletedTags = new Set(deleteTagVariables.map(variables => variables[0]))
+      const deletedTags = new Set(deleteTagVariables.map((variables) => variables[0]))
       const result = listTagsQuery.data
-        .filter(tag => !deletedTags.has(tag.id))
+        .filter((tag) => !deletedTags.has(tag.id))
         .map(toNonPlaceholder)
       return [
         ...result,
-        ...createTagVariables.map(variables => ({
+        ...createTagVariables.map((variables) => ({
           id: backendModule.TagId(`tag-${uniqueString.uniqueString()}`),
           value: backendModule.LabelName(variables[0].value),
           color: variables[0].color,
@@ -601,7 +602,7 @@ export function useBackendGetOrganization(backend: Backend | null) {
   const updateOrganizationVariables = useBackendMutationVariables(backend, 'updateOrganization')
   const uploadOrganizationPictureVariables = useBackendMutationVariables(
     backend,
-    'uploadOrganizationPicture'
+    'uploadOrganizationPicture',
   )
   return React.useMemo(() => {
     if (getOrganizationQuery.data == null) {
@@ -652,7 +653,7 @@ export function useGetCachedAsset() {
   // This is a passive query. For now, please refetch the asset's parent directory
   // to update its value.
   return useEventCallback((backend: Backend, assetId: backendModule.AssetId) =>
-    queryClient.getQueryData<backendModule.AnyAsset>([backend.type, 'getAsset', assetId])
+    queryClient.getQueryData<backendModule.AnyAsset>([backend.type, 'getAsset', assetId]),
   )
 }
 
@@ -667,7 +668,7 @@ export function useSetAsset() {
     (
       backend: Backend,
       assetId: backendModule.AssetId,
-      valueOrUpdater: React.SetStateAction<backendModule.AnyAsset>
+      valueOrUpdater: React.SetStateAction<backendModule.AnyAsset>,
     ) => {
       const key = useGetAsset.key(backend, assetId)
       if (typeof valueOrUpdater === 'function') {
@@ -676,6 +677,6 @@ export function useSetAsset() {
       }
       queryClient.setQueryData(key, valueOrUpdater)
       return valueOrUpdater
-    }
+    },
   )
 }

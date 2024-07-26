@@ -53,7 +53,7 @@ function AssetProjectSessionsInternal(props: AssetProjectSessionsInternalProps) 
 
   return (
     <div className="pointer-events-auto flex flex-col items-center overflow-y-auto overflow-x-hidden">
-      {projectSessionsQuery.data.map(session => (
+      {projectSessionsQuery.data.map((session) => (
         <AssetProjectSession
           key={session.projectSessionId}
           backend={backend}

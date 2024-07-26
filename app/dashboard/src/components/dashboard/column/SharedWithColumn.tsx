@@ -56,7 +56,7 @@ export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
 
   const { setModal } = modalProvider.useSetModal()
   const self = asset.permissions?.find(
-    backendModule.isUserPermissionAnd(permission => permission.user.userId === user.userId)
+    backendModule.isUserPermissionAnd((permission) => permission.user.userId === user.userId),
   )
   const plusButtonRef = React.useRef<HTMLButtonElement>(null)
   const managesThisAsset =
@@ -67,23 +67,23 @@ export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
 
   return (
     <div className="group flex items-center gap-column-items">
-      {(asset.permissions ?? []).map(other => (
+      {(asset.permissions ?? []).map((other) => (
         <PermissionDisplay
           key={backendModule.getAssetPermissionId(other)}
           action={other.permission}
           onPress={
-            setQuery == null
-              ? null
-              : event => {
-                  setQuery(oldQuery =>
-                    oldQuery.withToggled(
-                      'owners',
-                      'negativeOwners',
-                      backendModule.getAssetPermissionName(other),
-                      event.shiftKey
-                    )
-                  )
-                }
+            setQuery == null ? null : (
+              (event) => {
+                setQuery((oldQuery) =>
+                  oldQuery.withToggled(
+                    'owners',
+                    'negativeOwners',
+                    backendModule.getAssetPermissionName(other),
+                    event.shiftKey,
+                  ),
+                )
+              }
+            )
           }
         >
           {backendModule.getAssetPermissionName(other)}
@@ -117,7 +117,7 @@ export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
                 doRemoveSelf={() => {
                   dispatchAssetEvent({ type: AssetEventType.removeSelf, id: asset.id })
                 }}
-              />
+              />,
             )
           }}
         />

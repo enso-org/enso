@@ -57,7 +57,7 @@ export default function AssetVersion(props: AssetVersionProps) {
     <div
       className={tailwindMerge.twMerge(
         'flex w-full shrink-0 basis-0 select-none flex-row gap-4 rounded-2xl p-2',
-        placeholder && 'opacity-50'
+        placeholder && 'opacity-50',
       )}
     >
       <div className="flex flex-1 flex-col">
@@ -86,7 +86,7 @@ export default function AssetVersion(props: AssetVersionProps) {
               type="fullscreen"
               title={getText('compareVersionXWithLatest', number)}
             >
-              {opts => (
+              {(opts) => (
                 <div className="flex h-full flex-col gap-3">
                   <ariaComponents.ButtonGroup>
                     <ariaComponents.TooltipTrigger>

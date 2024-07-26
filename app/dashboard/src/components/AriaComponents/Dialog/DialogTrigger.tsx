@@ -32,7 +32,7 @@ export function DialogTrigger(props: DialogTriggerProps) {
 
       onOpenChange?.(isOpened)
     },
-    [setModal, unsetModal, onOpenChange]
+    [setModal, unsetModal, onOpenChange],
   )
 
   return (

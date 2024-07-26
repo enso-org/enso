@@ -1,8 +1,8 @@
 /** @file A styled input specific to settings pages. */
 import * as React from 'react'
 
-import EyeCrossedIcon from '#/assets/eye_crossed.svg'
 import EyeIcon from '#/assets/eye.svg'
+import EyeCrossedIcon from '#/assets/eye_crossed.svg'
 
 import * as focusHooks from '#/hooks/focusHooks'
 
@@ -70,13 +70,13 @@ function SettingsInput(props: SettingsInputProps, ref: React.ForwardedRef<HTMLIn
                 placeholder,
                 onKeyDown,
                 onChange,
-                onBlur: event => {
+                onBlur: (event) => {
                   if (!cancelled.current) {
                     onSubmit?.(event)
                   }
                 },
               },
-              focusChildProps
+              focusChildProps,
             )}
           />
           {type === 'password' && (
@@ -86,7 +86,7 @@ function SettingsInput(props: SettingsInputProps, ref: React.ForwardedRef<HTMLIn
               alt={isShowingPassword ? getText('hidePassword') : getText('showPassword')}
               buttonClassName="absolute right-2 top-1 cursor-pointer rounded-full size-6"
               onPress={() => {
-                setIsShowingPassword(show => !show)
+                setIsShowingPassword((show) => !show)
               }}
             />
           )}

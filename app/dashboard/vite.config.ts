@@ -58,7 +58,7 @@ function serveFavicon(): vite.Plugin {
   ]
   return {
     name: 'serve-favicon',
-    configureServer: server => {
+    configureServer: (server) => {
       server.middlewares.use((req, res, next) => {
         if (req.url === '/favicon.ico') {
           res.writeHead(HTTP_STATUS_OK, headers).end(favicon)

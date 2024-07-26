@@ -81,7 +81,7 @@ export class Cognito {
   constructor(
     private readonly logger: loggerProvider.Logger,
     private readonly supportsDeepLinks: boolean,
-    private readonly amplifyConfig: service.AmplifyConfig
+    private readonly amplifyConfig: service.AmplifyConfig,
   ) {}
 
   /** Save the access token to a file for further reuse. */
@@ -137,7 +137,7 @@ export class Cognito {
                   jti: '5ab178b7-97a6-4956-8913-1cffee4a0da1',
                   username: mockEmail,
                   /* eslint-enable @typescript-eslint/naming-convention */
-                })
+                }),
               )}.`,
           }),
         })
@@ -269,7 +269,7 @@ export class Cognito {
         fetch('https://mock-cognito.com/change-password', {
           method: 'POST',
           body: JSON.stringify({ oldPassword, newPassword }),
-        })
+        }),
       )
       return result.mapErr(original.intoAmplifyErrorOrThrow)
     } else {
@@ -329,7 +329,7 @@ async function signUp(
   _supportsDeepLinks: boolean,
   _username: string,
   _password: string,
-  _organizationId: string | null
+  _organizationId: string | null,
 ) {
   const result = await results.Result.wrapAsync(async () => {
     // Ignored.
@@ -346,8 +346,8 @@ async function signUp(
 async function confirmSignUp(_email: string, _code: string) {
   return results.Result.wrapAsync(async () => {
     // Ignored.
-  }).then(result =>
-    result.mapErr(original.intoAmplifyErrorOrThrow).mapErr(original.intoConfirmSignUpErrorOrThrow)
+  }).then((result) =>
+    result.mapErr(original.intoAmplifyErrorOrThrow).mapErr(original.intoConfirmSignUpErrorOrThrow),
   )
 }
 
@@ -361,7 +361,7 @@ async function currentAuthenticatedUser() {
   const result = await results.Result.wrapAsync(
     // The methods are not needed.
     // eslint-disable-next-line no-restricted-syntax
-    async () => await Promise.resolve<amplify.CognitoUser>({} as unknown as amplify.CognitoUser)
+    async () => await Promise.resolve<amplify.CognitoUser>({} as unknown as amplify.CognitoUser),
   )
   return result.mapErr(original.intoAmplifyErrorOrThrow)
 }
