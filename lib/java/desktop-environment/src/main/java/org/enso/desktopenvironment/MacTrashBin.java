@@ -13,7 +13,7 @@ import org.graalvm.word.WordFactory;
 import org.slf4j.LoggerFactory;
 
 @CContext(MacTrashBin.CoreServices.class)
-final class MacTrashBin implements TrashBin {
+final class MacTrashBin extends TrashBinFallback implements TrashBin {
 
   @CFunction
   static native int FSPathMakeRefWithOptions(
@@ -34,11 +34,10 @@ final class MacTrashBin implements TrashBin {
         return moveToTrashImpl(path);
       } catch (NullPointerException | LinkageError err) {
         if (!Boolean.getBoolean("com.oracle.graalvm.isaot")) {
-          LoggerFactory.getLogger(MacTrashBin.class)
-              .warn(
-                  "Moving to MacOS's Trash Bin is not supported in non-AOT mode. Deleting"
-                      + " permanently");
-          return path.toFile().delete();
+          var logger = LoggerFactory.getLogger(MacTrashBin.class);
+          logger.warn(
+              "Moving to MacOS's Trash Bin is not supported in non-AOT mode. Deleting permanently");
+          return hardDeletePath(path, logger);
         } else throw err;
       }
     else return false;

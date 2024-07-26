@@ -15,7 +15,7 @@ import org.graalvm.word.PointerBase;
 import org.slf4j.LoggerFactory;
 
 @CContext(WindowsTrashBin.ShellApi.class)
-final class WindowsTrashBin implements TrashBin {
+final class WindowsTrashBin extends TrashBinFallback implements TrashBin {
   @CConstant
   public static native int FO_DELETE();
 
@@ -37,11 +37,11 @@ final class WindowsTrashBin implements TrashBin {
         return moveToTrashImpl(path);
       } catch (NullPointerException | LinkageError err) {
         if (!Boolean.getBoolean("com.oracle.graalvm.isaot")) {
-          LoggerFactory.getLogger(MacTrashBin.class)
-              .warn(
-                  "Moving to Windows' Trash Bin is not supported in non-AOT mode. Deleting"
-                      + " permanently");
-          return path.toFile().delete();
+          var logger = LoggerFactory.getLogger(MacTrashBin.class);
+          logger.warn(
+              "Moving to Windows' Trash Bin is not supported in non-AOT mode. Deleting"
+                  + " permanently");
+          return hardDeletePath(path, logger);
         } else throw err;
       }
     else return false;
