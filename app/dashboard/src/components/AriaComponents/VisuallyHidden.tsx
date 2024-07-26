@@ -21,5 +21,5 @@ export const VisuallyHidden = React.forwardRef<HTMLSpanElement, VisuallyHiddenPr
   function VisuallyHidden(props, ref) {
     const { className } = props
     return <span ref={ref} className={VISUALLY_HIDDEN_STYLES({ className })} {...props} />
-  }
+  },
 )

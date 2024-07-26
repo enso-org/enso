@@ -38,7 +38,7 @@ export const stripeQuery = reactQuery.queryOptions({
     if (stripeKey == null) {
       throw new Error('Stripe key not found')
     } else {
-      return stripe.loadStripe(stripeKey).then(maybeStripeInstance => {
+      return stripe.loadStripe(stripeKey).then((maybeStripeInstance) => {
         if (maybeStripeInstance == null) {
           throw new Error('Stripe instance not found')
         } else {
@@ -68,8 +68,8 @@ export function StripeProvider(props: StripeProviderProps) {
             // This is just a safeguard.
             return null
           } else {
-            return typeof children === 'function'
-              ? children({ stripe: stripeInstance.data, elements })
+            return typeof children === 'function' ?
+                children({ stripe: stripeInstance.data, elements })
               : children
           }
         }}
@@ -87,7 +87,7 @@ export function useStripe() {
 
   invariant(
     stripeInstance != null && elements != null,
-    'Stripe instance not found. Make sure you are using the `StripeProvider` component.'
+    'Stripe instance not found. Make sure you are using the `StripeProvider` component.',
   )
 
   return { stripe: stripeInstance, elements }

@@ -46,7 +46,12 @@ export function CopyButton(props: CopyButtonProps) {
   const successfullyCopied = copyQuery.isSuccess
   const isError = copyQuery.isError
   const showIcon = copyIcon !== false
-  const icon = showIcon ? (isError ? errorIcon : successfullyCopied ? successIcon : copyIcon) : null
+  const icon =
+    showIcon ?
+      isError ? errorIcon
+      : successfullyCopied ? successIcon
+      : copyIcon
+    : null
 
   return (
     <button.Button

@@ -17,7 +17,7 @@ test.test('login screen', async ({ page }) => {
   test
     .expect(
       await page.evaluate(() => document.querySelector('form')?.checkValidity()),
-      'form should reject invalid email'
+      'form should reject invalid email',
     )
     .toBe(false)
   await actions.locateLoginButton(page).click()
@@ -28,7 +28,7 @@ test.test('login screen', async ({ page }) => {
   test
     .expect(
       await page.evaluate(() => document.querySelector('form')?.checkValidity()),
-      'form should accept invalid password'
+      'form should accept invalid password',
     )
     .toBe(true)
   await actions.locateLoginButton(page).click()

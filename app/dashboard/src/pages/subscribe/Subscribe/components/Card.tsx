@@ -57,7 +57,9 @@ export function Card(props: CardProps) {
 
       {pricing && <aria.Text className="mt-1 flex text-lg">{getText(pricing)}</aria.Text>}
 
-      {submitButton != null ? <div className="my-4">{submitButton}</div> : null}
+      {submitButton != null ?
+        <div className="my-4">{submitButton}</div>
+      : null}
 
       <div className="-mx-4 w-auto border-[0.5px] border-primary/10" />
 

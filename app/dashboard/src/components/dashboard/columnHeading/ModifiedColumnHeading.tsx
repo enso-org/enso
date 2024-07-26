@@ -17,7 +17,7 @@ import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 /** A heading for the "Modified" column. */
 export default function ModifiedColumnHeading(
-  props: column.AssetColumnHeadingProps
+  props: column.AssetColumnHeadingProps,
 ): React.JSX.Element {
   const { state } = props
   const { sortInfo, setSortInfo, hideColumn } = state
@@ -28,11 +28,10 @@ export default function ModifiedColumnHeading(
   return (
     <div
       aria-label={
-        !isSortActive
-          ? getText('sortByModificationDate')
-          : isDescending
-            ? getText('stopSortingByModificationDate')
-            : getText('sortByModificationDateDescending')
+        !isSortActive ? getText('sortByModificationDate')
+        : isDescending ?
+          getText('stopSortingByModificationDate')
+        : getText('sortByModificationDateDescending')
       }
       className="group flex h-table-row w-full cursor-pointer items-center gap-icon-with-text"
     >
@@ -50,8 +49,9 @@ export default function ModifiedColumnHeading(
         variant="custom"
         className="flex grow justify-start gap-icon-with-text"
         onPress={() => {
-          const nextDirection = isSortActive
-            ? sorting.nextSortDirection(sortInfo.direction)
+          const nextDirection =
+            isSortActive ?
+              sorting.nextSortDirection(sortInfo.direction)
             : sorting.SortDirection.ascending
           if (nextDirection == null) {
             setSortInfo(null)
@@ -67,7 +67,7 @@ export default function ModifiedColumnHeading(
           className={tailwindMerge.twMerge(
             'transition-all duration-arrow',
             isSortActive ? 'selectable active' : 'opacity-0 group-hover:selectable',
-            isDescending && 'rotate-180'
+            isDescending && 'rotate-180',
           )}
         />
       </ariaComponents.Button>

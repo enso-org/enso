@@ -19,16 +19,16 @@ v.test('password validation', () => {
   const passwordMissingLowercase = 'A0!A0!A0!'
   v.expect(
     passwordMissingLowercase,
-    `'${passwordMissingLowercase}' is missing a lowercase letter`
+    `'${passwordMissingLowercase}' is missing a lowercase letter`,
   ).not.toMatch(regex)
   const passwordMissingUppercase = 'a0!a0!a0!'
   v.expect(
     passwordMissingUppercase,
-    `'${passwordMissingUppercase}' is missing an uppercase letter`
+    `'${passwordMissingUppercase}' is missing an uppercase letter`,
   ).not.toMatch(regex)
   const passwordMissingSymbol = 'Aa0Aa0Aa0'
   v.expect(passwordMissingSymbol, `'${passwordMissingSymbol}' is missing a symbol`).not.toMatch(
-    regex
+    regex,
   )
   const validPassword = 'Aa0!Aa0!'
   v.expect(validPassword, `'${validPassword}' passes validation`).toMatch(regex)
@@ -59,7 +59,7 @@ v.test.each([
   { name: '//', valid: false },
   { name: '/\\', valid: false },
   { name: '\\/', valid: false },
-])('directory name validation', args => {
+])('directory name validation', (args) => {
   const { name, valid } = args
   const regex = validation.DIRECTORY_NAME_REGEX
   if (valid) {

@@ -51,7 +51,7 @@ export function AssetDiffView(props: AssetDiffViewProps) {
   } else {
     return (
       <monacoReact.DiffEditor
-        beforeMount={monaco => {
+        beforeMount={(monaco) => {
           monaco.editor.defineTheme('myTheme', {
             base: 'vs',
             inherit: true,

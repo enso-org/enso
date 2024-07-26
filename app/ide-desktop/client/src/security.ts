@@ -9,21 +9,21 @@ import * as electron from 'electron'
 
 /** The list of hosts that the app can access. They are required for user authentication to work. */
 const TRUSTED_HOSTS = [
-    'accounts.google.com',
-    'accounts.youtube.com',
-    'github.com',
-    'production-enso-domain.auth.eu-west-1.amazoncognito.com',
-    'production-enso-organizations-files.s3.amazonaws.com',
-    'pb-enso-domain.auth.eu-west-1.amazoncognito.com',
-    '7aqkn3tnbc.execute-api.eu-west-1.amazonaws.com',
-    'lkxuay3ha1.execute-api.eu-west-1.amazonaws.com',
-    '8rf1a7iy49.execute-api.eu-west-1.amazonaws.com',
-    'opk1cxpwec.execute-api.eu-west-1.amazonaws.com',
-    'xw0g8j3tsb.execute-api.eu-west-1.amazonaws.com',
-    's3.eu-west-1.amazonaws.com',
-    // This (`localhost`) is required to access Project Manager HTTP endpoints.
-    // This should be changed appropriately if the Project Manager's port number becomes dynamic.
-    '127.0.0.1:30535',
+  'accounts.google.com',
+  'accounts.youtube.com',
+  'github.com',
+  'production-enso-domain.auth.eu-west-1.amazoncognito.com',
+  'production-enso-organizations-files.s3.amazonaws.com',
+  'pb-enso-domain.auth.eu-west-1.amazoncognito.com',
+  '7aqkn3tnbc.execute-api.eu-west-1.amazonaws.com',
+  'lkxuay3ha1.execute-api.eu-west-1.amazonaws.com',
+  '8rf1a7iy49.execute-api.eu-west-1.amazonaws.com',
+  'opk1cxpwec.execute-api.eu-west-1.amazonaws.com',
+  'xw0g8j3tsb.execute-api.eu-west-1.amazonaws.com',
+  's3.eu-west-1.amazonaws.com',
+  // This (`localhost`) is required to access Project Manager HTTP endpoints.
+  // This should be changed appropriately if the Project Manager's port number becomes dynamic.
+  '127.0.0.1:30535',
 ]
 
 /** The list of protocols that the app can open external links to. */
@@ -39,15 +39,15 @@ const WEBVIEW_URL_WHITELIST: string[] = []
 /** Secure the web preferences of a new window. It deletes potentially unsecure options, making them
  * revert to secure defaults. */
 export function secureWebPreferences(webPreferences: electron.WebPreferences) {
-    delete webPreferences.preload
-    delete webPreferences.nodeIntegration
-    delete webPreferences.nodeIntegrationInWorker
-    delete webPreferences.webSecurity
-    delete webPreferences.allowRunningInsecureContent
-    delete webPreferences.experimentalFeatures
-    delete webPreferences.enableBlinkFeatures
-    delete webPreferences.contextIsolation
-    return webPreferences
+  delete webPreferences.preload
+  delete webPreferences.nodeIntegration
+  delete webPreferences.nodeIntegrationInWorker
+  delete webPreferences.webSecurity
+  delete webPreferences.allowRunningInsecureContent
+  delete webPreferences.experimentalFeatures
+  delete webPreferences.enableBlinkFeatures
+  delete webPreferences.contextIsolation
+  return webPreferences
 }
 
 // ================
@@ -57,7 +57,7 @@ export function secureWebPreferences(webPreferences: electron.WebPreferences) {
 /** Enabling sandbox globally. Follow the link to learn more:
  * https://www.electronjs.org/docs/latest/tutorial/sandbox. */
 function enableGlobalSandbox() {
-    electron.app.enableSandbox()
+  electron.app.enableSandbox()
 }
 
 /** By default, Electron will automatically approve all permission requests unless the developer has
@@ -65,11 +65,11 @@ function enableGlobalSandbox() {
  * want to assume the very opposite. Follow the link to learn more:
  * https://www.electronjs.org/docs/latest/tutorial/security#5-handle-session-permission-requests-from-remote-content. */
 function rejectPermissionRequests() {
-    void electron.app.whenReady().then(() => {
-        electron.session.defaultSession.setPermissionRequestHandler((_webContents, permission) => {
-            console.error(`Unhandled permission request '${permission}'.`)
-        })
+  void electron.app.whenReady().then(() => {
+    electron.session.defaultSession.setPermissionRequestHandler((_webContents, permission) => {
+      console.error(`Unhandled permission request '${permission}'.`)
     })
+  })
 }
 
 /** This Electron app is configured with extra CORS headers. Those headers are added because they
@@ -91,16 +91,16 @@ function rejectPermissionRequests() {
  * This is because the resources are fingerprinted and the fingerprint changes every time the
  * resources are updated. Additionally, Stripe.js may choose to add more resources in the future. */
 function addMissingCorsHeaders() {
-    void electron.app.whenReady().then(() => {
-        electron.session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
-            details.responseHeaders = details.responseHeaders ?? {}
-            if (details.url.includes('https://js.stripe.com/v3/')) {
-                details.responseHeaders['Cross-Origin-Resource-Policy'] = ['cross-origin']
-                details.responseHeaders['Cross-Origin-Embedder-Policy'] = ['require-corp']
-            }
-            callback({ responseHeaders: details.responseHeaders })
-        })
+  void electron.app.whenReady().then(() => {
+    electron.session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+      details.responseHeaders = details.responseHeaders ?? {}
+      if (details.url.includes('https://js.stripe.com/v3/')) {
+        details.responseHeaders['Cross-Origin-Resource-Policy'] = ['cross-origin']
+        details.responseHeaders['Cross-Origin-Embedder-Policy'] = ['require-corp']
+      }
+      callback({ responseHeaders: details.responseHeaders })
     })
+  })
 }
 
 /** A WebView created in a renderer process that does not have Node.js integration enabled will not
@@ -110,15 +110,15 @@ function addMissingCorsHeaders() {
  * security features. Follow the link to learn more:
  * https://www.electronjs.org/docs/tutorial/security#11-verify-webview-options-before-creation. */
 function limitWebViewCreation() {
-    electron.app.on('web-contents-created', (_event, contents) => {
-        contents.on('will-attach-webview', (event, webPreferences, params) => {
-            secureWebPreferences(webPreferences)
-            if (params.src != null && !WEBVIEW_URL_WHITELIST.includes(params.src)) {
-                console.error(`Blocked the creation of WebView pointing to '${params.src}'`)
-                event.preventDefault()
-            }
-        })
+  electron.app.on('web-contents-created', (_event, contents) => {
+    contents.on('will-attach-webview', (event, webPreferences, params) => {
+      secureWebPreferences(webPreferences)
+      if (params.src != null && !WEBVIEW_URL_WHITELIST.includes(params.src)) {
+        console.error(`Blocked the creation of WebView pointing to '${params.src}'`)
+        event.preventDefault()
+      }
     })
+  })
 }
 
 /** Navigation is a common attack vector. If an attacker can convince your app to navigate away from
@@ -126,25 +126,24 @@ function limitWebViewCreation() {
  * link to learn more:
  * https://www.electronjs.org/docs/tutorial/security#12-disable-or-limit-navigation. */
 function preventNavigation() {
-    let lastFocusedWindow = electron.BrowserWindow.getFocusedWindow()
-    electron.app.on('browser-window-focus', () => {
-        lastFocusedWindow = electron.BrowserWindow.getFocusedWindow()
+  let lastFocusedWindow = electron.BrowserWindow.getFocusedWindow()
+  electron.app.on('browser-window-focus', () => {
+    lastFocusedWindow = electron.BrowserWindow.getFocusedWindow()
+  })
+  electron.app.on('web-contents-created', (_event, contents) => {
+    contents.on('will-navigate', (event, navigationUrl) => {
+      const parsedUrl = new URL(navigationUrl)
+      const currentWindowUrl = lastFocusedWindow?.webContents.getURL()
+      const parsedCurrentWindowUrl = currentWindowUrl != null ? new URL(currentWindowUrl) : null
+      if (
+        parsedUrl.origin !== parsedCurrentWindowUrl?.origin &&
+        !TRUSTED_HOSTS.includes(parsedUrl.host)
+      ) {
+        event.preventDefault()
+        console.error(`Prevented navigation to '${navigationUrl}'.`)
+      }
     })
-    electron.app.on('web-contents-created', (_event, contents) => {
-        contents.on('will-navigate', (event, navigationUrl) => {
-            const parsedUrl = new URL(navigationUrl)
-            const currentWindowUrl = lastFocusedWindow?.webContents.getURL()
-            const parsedCurrentWindowUrl =
-                currentWindowUrl != null ? new URL(currentWindowUrl) : null
-            if (
-                parsedUrl.origin !== parsedCurrentWindowUrl?.origin &&
-                !TRUSTED_HOSTS.includes(parsedUrl.host)
-            ) {
-                event.preventDefault()
-                console.error(`Prevented navigation to '${navigationUrl}'.`)
-            }
-        })
-    })
+  })
 }
 
 /** Much like navigation, the creation of new webContents is a common attack vector. Attackers
@@ -153,27 +152,27 @@ function preventNavigation() {
  * Follow the link to learn more:
  * https://www.electronjs.org/docs/tutorial/security#13-disable-or-limit-creation-of-new-windows. */
 function disableNewWindowsCreation() {
-    electron.app.on('web-contents-created', (_event, contents) => {
-        contents.setWindowOpenHandler(details => {
-            const { url } = details
-            const parsedUrl = new URL(url)
-            if (TRUSTED_EXTERNAL_PROTOCOLS.includes(parsedUrl.protocol)) {
-                void electron.shell.openExternal(url)
-                return { action: 'deny' }
-            } else {
-                console.error(`Blocking new window creation request to '${url}'.`)
-                return { action: 'deny' }
-            }
-        })
+  electron.app.on('web-contents-created', (_event, contents) => {
+    contents.setWindowOpenHandler(details => {
+      const { url } = details
+      const parsedUrl = new URL(url)
+      if (TRUSTED_EXTERNAL_PROTOCOLS.includes(parsedUrl.protocol)) {
+        void electron.shell.openExternal(url)
+        return { action: 'deny' }
+      } else {
+        console.error(`Blocking new window creation request to '${url}'.`)
+        return { action: 'deny' }
+      }
     })
+  })
 }
 
 /** Enable all security settings. */
 export function enableAll() {
-    enableGlobalSandbox()
-    rejectPermissionRequests()
-    addMissingCorsHeaders()
-    limitWebViewCreation()
-    preventNavigation()
-    disableNewWindowsCreation()
+  enableGlobalSandbox()
+  rejectPermissionRequests()
+  addMissingCorsHeaders()
+  limitWebViewCreation()
+  preventNavigation()
+  disableNewWindowsCreation()
 }

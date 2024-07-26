@@ -178,7 +178,7 @@ export class Cognito {
   constructor(
     private readonly logger: loggerProvider.Logger,
     private readonly supportsDeepLinks: boolean,
-    private readonly amplifyConfig: service.AmplifyConfig
+    private readonly amplifyConfig: service.AmplifyConfig,
   ) {
     /** Amplify expects `Auth.configure` to be called before any other `Auth` methods are
      * called. By wrapping all the `Auth` methods we care about and returning an `Cognito` API
@@ -201,7 +201,7 @@ export class Cognito {
     const amplifySession = currentSession.mapErr(intoCurrentSessionErrorType)
 
     return amplifySession
-      .map(session => parseUserSession(session, this.amplifyConfig.userPoolWebClientId))
+      .map((session) => parseUserSession(session, this.amplifyConfig.userPoolWebClientId))
       .unwrapOr(null)
   }
 
@@ -296,7 +296,7 @@ export class Cognito {
     })
 
     return result
-      .map(session => parseUserSession(session, this.amplifyConfig.userPoolWebClientId))
+      .map((session) => parseUserSession(session, this.amplifyConfig.userPoolWebClientId))
       .unwrapOr(null)
   }
 
@@ -476,7 +476,7 @@ function intoSignUpParams(
   supportsDeepLinks: boolean,
   username: string,
   password: string,
-  organizationId: string | null
+  organizationId: string | null,
 ): amplify.SignUpParams {
   return {
     username,
@@ -703,7 +703,7 @@ async function currentAuthenticatedUser() {
      * Therefore, it is necessary to use `as` to narrow down the type to
      * `Promise<CognitoUser>`. */
     // eslint-disable-next-line no-restricted-syntax
-    () => amplify.Auth.currentAuthenticatedUser() as Promise<amplify.CognitoUser>
+    () => amplify.Auth.currentAuthenticatedUser() as Promise<amplify.CognitoUser>,
   )
   return result.mapErr(intoAmplifyErrorOrThrow)
 }

@@ -15,8 +15,8 @@ import ContextMenuEntry from '#/components/ContextMenuEntry'
 import UpsertDatalinkModal from '#/modals/UpsertDatalinkModal'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
 
-import * as backendModule from '#/services/Backend'
 import type Backend from '#/services/Backend'
+import * as backendModule from '#/services/Backend'
 
 /** Props for a {@link GlobalContextMenu}. */
 export interface GlobalContextMenuProps {
@@ -28,7 +28,7 @@ export interface GlobalContextMenuProps {
   readonly directoryId: backendModule.DirectoryId | null
   readonly doPaste: (
     newParentKey: backendModule.DirectoryId,
-    newParentId: backendModule.DirectoryId
+    newParentId: backendModule.DirectoryId,
   ) => void
 }
 
@@ -51,7 +51,7 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
           type="file"
           id="context_menu_file_input"
           className="hidden"
-          onInput={event => {
+          onInput={(event) => {
             if (event.currentTarget.files != null) {
               dispatchAssetListEvent({
                 type: AssetListEventType.uploadFiles,
@@ -136,7 +136,7 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
                     value,
                   })
                 }}
-              />
+              />,
             )
           }}
         />
@@ -157,7 +157,7 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
                     value,
                   })
                 }}
-              />
+              />,
             )
           }}
         />

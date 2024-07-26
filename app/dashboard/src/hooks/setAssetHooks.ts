@@ -18,17 +18,17 @@ import AssetTreeNode from '#/utilities/AssetTreeNode'
  * has been done. */
 export function useSetAsset<T extends backend.AnyAsset>(
   _value: T,
-  setNode: React.Dispatch<React.SetStateAction<assetTreeNode.AnyAssetTreeNode>>
+  setNode: React.Dispatch<React.SetStateAction<assetTreeNode.AnyAssetTreeNode>>,
 ) {
   return React.useCallback(
     (valueOrUpdater: React.SetStateAction<T>) => {
-      setNode(oldNode => {
+      setNode((oldNode) => {
         const item =
-          typeof valueOrUpdater === 'function'
-            ? // This is SAFE, because it is a mistake for an item to change type.
-              // eslint-disable-next-line no-restricted-syntax
-              valueOrUpdater(oldNode.item as T)
-            : valueOrUpdater
+          typeof valueOrUpdater === 'function' ?
+            // This is SAFE, because it is a mistake for an item to change type.
+            // eslint-disable-next-line no-restricted-syntax
+            valueOrUpdater(oldNode.item as T)
+          : valueOrUpdater
         const ret = oldNode.with({ item })
         if (!(ret instanceof AssetTreeNode)) {
           // eslint-disable-next-line no-restricted-properties
@@ -38,6 +38,6 @@ export function useSetAsset<T extends backend.AnyAsset>(
         return ret
       })
     },
-    [setNode]
+    [setNode],
   )
 }

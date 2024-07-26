@@ -23,11 +23,11 @@ fc.test.prop({
     const extractedValue = jsonSchema.constantValue({}, schema)[0]
     v.expect(
       extractedValue,
-      `\`${JSON.stringify(value)}\` should round trip to schema and back`
+      `\`${JSON.stringify(value)}\` should round trip to schema and back`,
     ).toEqual(value)
     v.expect(
       AJV.validate(schema, value),
-      `\`${JSON.stringify(value)}\` should match its converted schema`
+      `\`${JSON.stringify(value)}\` should match its converted schema`,
     ).toBe(true)
   }
 })
@@ -41,14 +41,14 @@ v.test.each([{ value: JSON.parse('{"__proto__":{}}') }])(
       const extractedValue = jsonSchema.constantValue({}, schema)[0]
       v.expect(
         extractedValue,
-        `\`${JSON.stringify(value)}\` should round trip to schema and back`
+        `\`${JSON.stringify(value)}\` should round trip to schema and back`,
       ).toEqual(value)
       v.expect(
         AJV.validate(schema, value),
-        `\`${JSON.stringify(value)}\` should match its converted schema`
+        `\`${JSON.stringify(value)}\` should match its converted schema`,
       ).toBe(true)
     }
-  }
+  },
 )
 
 const STRING_SCHEMA = { type: 'string' } as const
@@ -70,7 +70,7 @@ fc.test.prop({ value: fc.fc.float() })('number schema', ({ value }) => {
 })
 
 fc.test.prop({
-  value: fc.fc.float().filter(n => n > 0),
+  value: fc.fc.float().filter((n) => n > 0),
   // eslint-disable-next-line @typescript-eslint/no-magic-numbers
   multiplier: fc.fc.integer({ min: -1_000_000, max: 1_000_000 }),
 })('number multiples', ({ value, multiplier }) => {
@@ -98,7 +98,7 @@ fc.test.prop({ value: fc.fc.integer() })('integer schema', ({ value }) => {
 })
 
 fc.test.prop({
-  value: fc.fc.integer().filter(n => n > 0),
+  value: fc.fc.integer().filter((n) => n > 0),
   // eslint-disable-next-line @typescript-eslint/no-magic-numbers
   multiplier: fc.fc.integer({ min: -1_000_000, max: 1_000_000 }),
 })('integer multiples', ({ value, multiplier }) => {

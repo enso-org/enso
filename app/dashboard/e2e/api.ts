@@ -129,7 +129,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
 
   const createDirectory = (
     title: string,
-    rest: Partial<backend.DirectoryAsset> = {}
+    rest: Partial<backend.DirectoryAsset> = {},
   ): backend.DirectoryAsset =>
     object.merge(
       {
@@ -143,12 +143,12 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
         parentId: defaultDirectoryId,
         permissions: [],
       },
-      rest
+      rest,
     )
 
   const createProject = (
     title: string,
-    rest: Partial<backend.ProjectAsset> = {}
+    rest: Partial<backend.ProjectAsset> = {},
   ): backend.ProjectAsset =>
     object.merge(
       {
@@ -165,7 +165,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
         parentId: defaultDirectoryId,
         permissions: [],
       },
-      rest
+      rest,
     )
 
   const createFile = (title: string, rest: Partial<backend.FileAsset> = {}): backend.FileAsset =>
@@ -181,12 +181,12 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
         parentId: defaultDirectoryId,
         permissions: [],
       },
-      rest
+      rest,
     )
 
   const createSecret = (
     title: string,
-    rest: Partial<backend.SecretAsset> = {}
+    rest: Partial<backend.SecretAsset> = {},
   ): backend.SecretAsset =>
     object.merge(
       {
@@ -200,7 +200,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
         parentId: defaultDirectoryId,
         permissions: [],
       },
-      rest
+      rest,
     )
 
   const createLabel = (value: string, color: backend.LChColor): backend.Label => ({
@@ -268,7 +268,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
 
   const deleteUser = (userId: backend.UserId) => {
     usersMap.delete(userId)
-    const index = users.findIndex(user => user.userId === userId)
+    const index = users.findIndex((user) => user.userId === userId)
     if (index === -1) {
       return false
     } else {
@@ -289,7 +289,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
   }
 
   const deleteUserGroup = (userGroupId: backend.UserGroupId) => {
-    const index = userGroups.findIndex(userGroup => userGroup.id === userGroupId)
+    const index = userGroups.findIndex((userGroup) => userGroup.id === userGroupId)
     if (index === -1) {
       return false
     } else {
@@ -350,14 +350,14 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
     // eslint-disable-next-line @typescript-eslint/naming-convention
     const delete_ = method('DELETE')
 
-    await page.route('https://cdn.enso.org/**', route => route.fulfill())
-    await page.route('https://www.google-analytics.com/**', route => route.fulfill())
-    await page.route('https://www.googletagmanager.com/gtag/js*', route =>
-      route.fulfill({ contentType: 'text/javascript', body: 'export {};' })
+    await page.route('https://cdn.enso.org/**', (route) => route.fulfill())
+    await page.route('https://www.google-analytics.com/**', (route) => route.fulfill())
+    await page.route('https://www.googletagmanager.com/gtag/js*', (route) =>
+      route.fulfill({ contentType: 'text/javascript', body: 'export {};' }),
     )
     const isActuallyOnline = await page.evaluate(() => navigator.onLine)
     if (!isActuallyOnline) {
-      await page.route('https://fonts.googleapis.com/*', route => route.abort())
+      await page.route('https://fonts.googleapis.com/*', (route) => route.abort())
     }
 
     await page.route(BASE_URL + '**', (_route, request) => {
@@ -402,24 +402,24 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
       // The type of the body sent by this app is statically known.
       // eslint-disable-next-line no-restricted-syntax
       const body = Object.fromEntries(
-        new URL(request.url()).searchParams.entries()
+        new URL(request.url()).searchParams.entries(),
       ) as unknown as Query
       const parentId = body.parent_id ?? defaultDirectoryId
-      let filteredAssets = assets.filter(asset => asset.parentId === parentId)
+      let filteredAssets = assets.filter((asset) => asset.parentId === parentId)
       // This lint rule is broken; there is clearly a case for `undefined` below.
       // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
       switch (body.filter_by) {
         case backend.FilterBy.active: {
-          filteredAssets = filteredAssets.filter(asset => !deletedAssets.has(asset.id))
+          filteredAssets = filteredAssets.filter((asset) => !deletedAssets.has(asset.id))
           break
         }
         case backend.FilterBy.trashed: {
-          filteredAssets = filteredAssets.filter(asset => deletedAssets.has(asset.id))
+          filteredAssets = filteredAssets.filter((asset) => deletedAssets.has(asset.id))
           break
         }
         case backend.FilterBy.recent: {
           filteredAssets = assets
-            .filter(asset => !deletedAssets.has(asset.id))
+            .filter((asset) => !deletedAssets.has(asset.id))
             // eslint-disable-next-line @typescript-eslint/no-magic-numbers
             .slice(0, 10)
           break
@@ -436,28 +436,28 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
         }
       }
       filteredAssets.sort(
-        (a, b) => backend.ASSET_TYPE_ORDER[a.type] - backend.ASSET_TYPE_ORDER[b.type]
+        (a, b) => backend.ASSET_TYPE_ORDER[a.type] - backend.ASSET_TYPE_ORDER[b.type],
       )
       const json: remoteBackend.ListDirectoryResponseBody = { assets: filteredAssets }
       return json
     })
     await get(
       remoteBackendPaths.LIST_FILES_PATH + '*',
-      () => ({ files: [] }) satisfies remoteBackend.ListFilesResponseBody
+      () => ({ files: [] }) satisfies remoteBackend.ListFilesResponseBody,
     )
     await get(
       remoteBackendPaths.LIST_PROJECTS_PATH + '*',
-      () => ({ projects: [] }) satisfies remoteBackend.ListProjectsResponseBody
+      () => ({ projects: [] }) satisfies remoteBackend.ListProjectsResponseBody,
     )
     await get(
       remoteBackendPaths.LIST_SECRETS_PATH + '*',
-      () => ({ secrets: [] }) satisfies remoteBackend.ListSecretsResponseBody
+      () => ({ secrets: [] }) satisfies remoteBackend.ListSecretsResponseBody,
     )
     await get(
       remoteBackendPaths.LIST_TAGS_PATH + '*',
-      () => ({ tags: labels }) satisfies remoteBackend.ListTagsResponseBody
+      () => ({ tags: labels }) satisfies remoteBackend.ListTagsResponseBody,
     )
-    await get(remoteBackendPaths.LIST_USERS_PATH + '*', async route => {
+    await get(remoteBackendPaths.LIST_USERS_PATH + '*', async (route) => {
       if (currentUser != null) {
         return { users } satisfies remoteBackend.ListUsersResponseBody
       } else {
@@ -553,18 +553,18 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
         await route.fulfill({ json })
       }
     })
-    await get(remoteBackendPaths.INVITATION_PATH + '*', async route => {
+    await get(remoteBackendPaths.INVITATION_PATH + '*', async (route) => {
       await route.fulfill({
         json: { invitations: [] } satisfies backend.ListInvitationsResponseBody,
       })
     })
-    await post(remoteBackendPaths.INVITE_USER_PATH + '*', async route => {
+    await post(remoteBackendPaths.INVITE_USER_PATH + '*', async (route) => {
       await route.fulfill()
     })
-    await post(remoteBackendPaths.CREATE_PERMISSION_PATH + '*', async route => {
+    await post(remoteBackendPaths.CREATE_PERMISSION_PATH + '*', async (route) => {
       await route.fulfill()
     })
-    await delete_(remoteBackendPaths.deleteAssetPath(GLOB_ASSET_ID), async route => {
+    await delete_(remoteBackendPaths.deleteAssetPath(GLOB_ASSET_ID), async (route) => {
       await route.fulfill()
     })
     await post(remoteBackendPaths.closeProjectPath(GLOB_PROJECT_ID), async (route, request) => {
@@ -583,10 +583,10 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
       }
       await route.fulfill()
     })
-    await delete_(remoteBackendPaths.deleteTagPath(GLOB_TAG_ID), async route => {
+    await delete_(remoteBackendPaths.deleteTagPath(GLOB_TAG_ID), async (route) => {
       await route.fulfill()
     })
-    await post(remoteBackendPaths.POST_LOG_EVENT_PATH, async route => {
+    await post(remoteBackendPaths.POST_LOG_EVENT_PATH, async (route) => {
       await route.fulfill()
     })
 
@@ -625,7 +625,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
       // The type of the search params sent by this app is statically known.
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, no-restricted-syntax
       const searchParams: SearchParams = Object.fromEntries(
-        new URL(request.url()).searchParams.entries()
+        new URL(request.url()).searchParams.entries(),
       ) as never
       const file = createFile(searchParams.file_name)
       return { path: '', id: file.id, project: null } satisfies backend.FileInfo
@@ -672,7 +672,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
       // `DirectoryId` to make TypeScript happy.
       setLabels(backend.DirectoryId(assetId), body.labels)
       const json: Response = {
-        tags: body.labels.flatMap(value => {
+        tags: body.labels.flatMap((value) => {
           const label = labelsByValue.get(value)
           return label != null ? [label] : []
         }),
@@ -722,7 +722,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
       const body: backend.CreateUserRequestBody = await request.postDataJSON()
       const organizationId = body.organizationId ?? defaultUser.organizationId
       const rootDirectoryId = backend.DirectoryId(
-        organizationId.replace(/^organization-/, 'directory-')
+        organizationId.replace(/^organization-/, 'directory-'),
       )
       currentUser = {
         email: body.userEmail,
@@ -763,14 +763,14 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
         return
       }
     })
-    await get(remoteBackendPaths.GET_ORGANIZATION_PATH + '*', async route => {
+    await get(remoteBackendPaths.GET_ORGANIZATION_PATH + '*', async (route) => {
       await route.fulfill({
         json: currentOrganization,
         // eslint-disable-next-line @typescript-eslint/no-magic-numbers
         status: currentOrganization == null ? 404 : 200,
       })
     })
-    await post(remoteBackendPaths.CREATE_TAG_PATH + '*', route => {
+    await post(remoteBackendPaths.CREATE_TAG_PATH + '*', (route) => {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       const body: backend.CreateTagRequestBody = route.request().postDataJSON()
       const json: backend.Label = {
@@ -845,7 +845,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
       return json
     })
 
-    await page.route('*', async route => {
+    await page.route('*', async (route) => {
       if (!isOnline) {
         await route.abort('connectionfailed')
       }

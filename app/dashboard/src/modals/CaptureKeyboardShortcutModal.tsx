@@ -28,14 +28,14 @@ function eventToPartialShortcut(event: KeyboardEvent | React.KeyboardEvent) {
     .join('+')
   // `Tab` and `Shift+Tab` should be reserved for keyboard navigation
   const key =
-    DISALLOWED_KEYS.has(event.key) ||
-    (!event.ctrlKey && !event.altKey && !event.metaKey && event.key === 'Tab')
-      ? null
-      : event.key === ' '
-        ? 'Space'
-        : event.key === DELETE_KEY
-          ? 'OsDelete'
-          : inputBindings.normalizedKeyboardSegmentLookup[event.key.toLowerCase()] ?? event.key
+    (
+      DISALLOWED_KEYS.has(event.key) ||
+      (!event.ctrlKey && !event.altKey && !event.metaKey && event.key === 'Tab')
+    ) ?
+      null
+    : event.key === ' ' ? 'Space'
+    : event.key === DELETE_KEY ? 'OsDelete'
+    : inputBindings.normalizedKeyboardSegmentLookup[event.key.toLowerCase()] ?? event.key
   return { key, modifiers }
 }
 
@@ -57,7 +57,10 @@ export default function CaptureKeyboardShortcutModal(props: CaptureKeyboardShort
   const { getText } = textProvider.useText()
   const [key, setKey] = React.useState<string | null>(null)
   const [modifiers, setModifiers] = React.useState<string>('')
-  const shortcut = key == null ? modifiers : modifiers === '' ? key : `${modifiers}+${key}`
+  const shortcut =
+    key == null ? modifiers
+    : modifiers === '' ? key
+    : `${modifiers}+${key}`
   const doesAlreadyExist = key != null && existingShortcuts.has(shortcut)
   const canSubmit = key != null && !doesAlreadyExist
 
@@ -65,12 +68,12 @@ export default function CaptureKeyboardShortcutModal(props: CaptureKeyboardShort
     <Modal centered className="bg-dim">
       <form
         data-testid="confirm-delete-modal"
-        ref={element => {
+        ref={(element) => {
           element?.focus()
         }}
         tabIndex={-1}
         className="pointer-events-auto relative flex w-capture-keyboard-shortcut-modal flex-col items-center gap-modal rounded-default p-modal before:absolute before:inset before:h-full before:w-full before:rounded-default before:bg-selected-frame before:backdrop-blur-3xl"
-        onKeyDown={event => {
+        onKeyDown={(event) => {
           if (event.key === 'Escape' && key === 'Escape') {
             // Ignore.
           } else if (event.key === 'Enter' && key != null) {
@@ -87,17 +90,17 @@ export default function CaptureKeyboardShortcutModal(props: CaptureKeyboardShort
             }
           }
         }}
-        onKeyUp={event => {
+        onKeyUp={(event) => {
           if (key == null) {
             // A modifier may have been released.
             const newShortcut = eventToPartialShortcut(event)
             setModifiers(newShortcut.modifiers)
           }
         }}
-        onClick={event => {
+        onClick={(event) => {
           event.stopPropagation()
         }}
-        onSubmit={event => {
+        onSubmit={(event) => {
           event.preventDefault()
           if (canSubmit) {
             unsetModal()
@@ -109,14 +112,12 @@ export default function CaptureKeyboardShortcutModal(props: CaptureKeyboardShort
         <div
           className={tailwindMerge.twMerge(
             'relative flex scale-150 items-center justify-center',
-            doesAlreadyExist && 'text-red-600'
+            doesAlreadyExist && 'text-red-600',
           )}
         >
-          {shortcut === '' ? (
+          {shortcut === '' ?
             <aria.Text className="text text-primary/30">{getText('noShortcutEntered')}</aria.Text>
-          ) : (
-            <KeyboardShortcut shortcut={shortcut} />
-          )}
+          : <KeyboardShortcut shortcut={shortcut} />}
         </div>
         <aria.Text className="relative text-red-600">
           {doesAlreadyExist ? 'This shortcut already exists.' : ''}
