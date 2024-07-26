@@ -423,7 +423,6 @@ function toField(name: string, valueType?: ValueType | null | undefined): ColDef
       setAriaSort: () => {},
     },
     headerTooltip: displayValue ? displayValue : '',
-    cellDataType: !(valType === 'Mixed'),
   }
 }
 
@@ -576,7 +575,7 @@ watchEffect(() => {
       ('header' in data_ ? data_.header : [])?.map((v, i) => {
         const valueType = data_.value_type ? data_.value_type[i] : null
         if (config.nodeType === ROW_NODE_TYPE) {
-          return v === 'column' ? toLinkField(v) : toRowField(v, valueType, data_)
+          return v === 'column' ? toLinkField(v) : toRowField(v, valueType)
         }
         return toField(v, valueType)
       }) ?? []
