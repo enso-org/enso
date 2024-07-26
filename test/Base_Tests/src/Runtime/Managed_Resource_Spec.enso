@@ -59,8 +59,14 @@ add_specs suite_builder = suite_builder.group "Managed_Resource" group_builder->
         r_3.catch . should_equal "action"
 
     group_builder.specify "allocate lots of resources at once" <|
-        remaining = GC_Example.perform_test 100000 IO.println
-        remaining . should_equal 0
+        messages = Vector.build builder->
+            builder.append '\n'
+            remaining = GC_Example.perform_test 100000 builder.append
+            if remaining == 0 then
+                builder.append "OK"
+
+        if messages.last != "OK" then
+            Test.fail (messages.join '\n')
 
 main filter=Nothing =
     suite = Test.build suite_builder->

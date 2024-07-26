@@ -18,17 +18,21 @@ close_resource resource = resource.close
 
 repeat_cleanup_until_done counter println =
     deadline = Date_Time.now + (Duration.new minutes=5)
-    go i =
-        if counter.get == 0 then Nothing else
-            if Date_Time.now > deadline then
-                message = "Timeout has been reached, but there are "+counter.get.to_text+" resources remaining that were not cleaned up."
-                println message
-                Panic.throw (Illegal_State.Error message)
-            if i % 100 == 0 then
-                println "Still "+counter.get.to_text+" resources to clean up..."
-            Runtime.gc
-            @Tail_Call go i+1
-    go 1
+    while_counter_not_zero i = if counter.get != 0 then
+        if i % 10 == 0 then
+            println "Still "+counter.get.to_text+" resources to clean up..."
+
+        Runtime.gc
+
+        deadline_not_reached at = if at < deadline then True else
+            message = "Timeout has been reached, but there are "+counter.get.to_text+" resources remaining that were not cleaned up."
+            println message
+            False
+
+        if deadline_not_reached Date_Time.now then
+            @Tail_Call while_counter_not_zero i+1
+
+    while_counter_not_zero 1
 
 perform_test n:Integer println =
     resource_holder = Ref.new Nothing
@@ -46,7 +50,7 @@ perform_test n:Integer println =
     resource_holder.put Nothing
 
     repeat_cleanup_until_done counter println
-    println "All cleaned up! Remaining: "+counter.get.to_text
+    println "Cleaning finished! Remaining: "+counter.get.to_text
     counter.get
 
 main n=1000000 =
