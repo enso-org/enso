@@ -80,9 +80,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   const closeProject = projectHooks.useCloseProject()
   const openProjectMutation = projectHooks.useOpenProjectMutation()
   const asset = item.item
-  const self = asset.permissions?.find(
-    backendModule.isUserPermissionAnd(permission => permission.user.userId === user.userId)
-  )
+  const self = permissions.tryFindSelfPermission(user, asset.permissions)
   const isCloud = categoryModule.isCloudCategory(category)
   const path =
     category.type === categoryModule.CategoryType.recent ||
