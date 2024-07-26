@@ -120,6 +120,10 @@ export default function AssetRow(props: AssetRowProps) {
   const [rowState, setRowState] = React.useState<assetsTable.AssetRowState>(() =>
     object.merge(assetRowUtils.INITIAL_ROW_STATE, { setVisibility: setInsertionVisibility })
   )
+  const nodeParentKeysRef = React.useRef<{
+    readonly nodeMap: WeakRef<ReadonlyMap<backendModule.AssetId, assetTreeNode.AnyAssetTreeNode>>
+    readonly parentKeys: Map<backendModule.AssetId, backendModule.DirectoryId>
+  } | null>(null)
   const key = AssetTreeNode.getKey(item)
   const isCloud = backend.type === backendModule.BackendType.remote
   const outerVisibility = visibilities.get(key)
@@ -684,10 +688,31 @@ export default function AssetRow(props: AssetRowProps) {
     const directoryKey =
       item.item.type === backendModule.AssetType.directory ? item.key : item.directoryKey
     const payload = drag.ASSET_ROWS.lookup(event)
-    if (
-      (payload != null && payload.every(innerItem => innerItem.key !== directoryKey)) ||
-      event.dataTransfer.types.includes('Files')
-    ) {
+    const isPayloadMatch =
+      payload != null && payload.every(innerItem => innerItem.key !== directoryKey)
+    const canPaste = (() => {
+      if (!isPayloadMatch) {
+        return true
+      } else {
+        if (nodeMap.current !== nodeParentKeysRef.current?.nodeMap.deref()) {
+          const parentKeys = new Map(
+            Array.from(nodeMap.current.entries()).map(([id, otherAsset]) => [
+              id,
+              otherAsset.directoryKey,
+            ])
+          )
+          nodeParentKeysRef.current = { nodeMap: new WeakRef(nodeMap.current), parentKeys }
+        }
+        return !payload.some(payloadItem => {
+          const parentKey = nodeParentKeysRef.current?.parentKeys.get(payloadItem.key)
+          const parent = parentKey == null ? null : nodeMap.current.get(parentKey)
+          return !parent
+            ? true
+            : permissions.isTeamPath(parent.path) && permissions.isUserPath(item.path)
+        })
+      }
+    })()
+    if ((isPayloadMatch && canPaste) || event.dataTransfer.types.includes('Files')) {
       event.preventDefault()
       if (
         item.item.type === backendModule.AssetType.directory &&
