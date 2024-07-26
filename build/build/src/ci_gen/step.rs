@@ -42,3 +42,10 @@ pub fn engine_test_reporter((os, arch): Target, graal_edition: graalvm::Edition)
     let path = format!("{}/*.xml", env_expression(&paths::ENSO_TEST_JUNIT_DIR));
     test_reporter(step_name, report_name, path)
 }
+
+pub fn extra_stdlib_test_reporter((os, arch): Target, graal_edition: graalvm::Edition) -> Step {
+    let step_name = "Extra Library Test Reporter";
+    let report_name = format!("Extra Library Tests Report ({graal_edition}, {os}, {arch})");
+    let path = format!("{}/*/*.xml", env_expression(&paths::ENSO_TEST_JUNIT_DIR));
+    test_reporter(step_name, report_name, path)
+}

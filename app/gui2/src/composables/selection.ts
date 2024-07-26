@@ -227,7 +227,7 @@ function useSelectionImpl<T, PackedT>(
 // === Hover tracking for nodes and ports ===
 
 export function useGraphHover(isPortEnabled: (port: PortId) => boolean) {
-  const hoveredElement = ref<Element>()
+  const hoveredElement = shallowRef<Element>()
 
   useEvent(document, 'pointerover', (event) => {
     hoveredElement.value = event.target instanceof Element ? event.target : undefined

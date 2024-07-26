@@ -106,9 +106,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
         case AssetEventType.uploadFiles:
         case AssetEventType.newDatalink:
         case AssetEventType.newSecret:
-        case AssetEventType.openProject:
         case AssetEventType.updateFiles:
-        case AssetEventType.closeProject:
         case AssetEventType.copy:
         case AssetEventType.cut:
         case AssetEventType.cancelCut:

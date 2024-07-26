@@ -21,7 +21,16 @@ import * as backendProvider from '#/providers/BackendProvider'
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as modalProvider from '#/providers/ModalProvider'
-import ProjectsProvider, * as projectsProvider from '#/providers/ProjectsProvider'
+import ProjectsProvider, {
+  PAGES_SCHEMA,
+  TabType,
+  useClearLaunchedProjects,
+  useLaunchedProjects,
+  usePage,
+  useProjectsStore,
+  useSetPage,
+  type LaunchedProject,
+} from '#/providers/ProjectsProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import AssetEventType from '#/events/AssetEventType'
@@ -127,51 +136,27 @@ function DashboardInner(props: DashboardProps) {
     }
   )
 
-  const projectsStore = projectsProvider.useProjectsStore()
-  const page = projectsProvider.usePage()
-  const launchedProjects = projectsProvider.useLaunchedProjects()
+  const projectsStore = useProjectsStore()
+  const page = usePage()
+  const launchedProjects = useLaunchedProjects()
   const selectedProject = launchedProjects.find(p => p.id === page) ?? null
 
-  const setPage = projectsProvider.useSetPage()
+  const setPage = useSetPage()
   const openEditor = projectHooks.useOpenEditor()
   const openProject = projectHooks.useOpenProject()
   const closeProject = projectHooks.useCloseProject()
   const closeAllProjects = projectHooks.useCloseAllProjects()
-  const clearLaunchedProjects = projectsProvider.useClearLaunchedProjects()
+  const clearLaunchedProjects = useClearLaunchedProjects()
   const openProjectMutation = projectHooks.useOpenProjectMutation()
   const renameProjectMutation = projectHooks.useRenameProjectMutation()
-
-  eventListProvider.useAssetEventListener(event => {
-    switch (event.type) {
-      case AssetEventType.openProject: {
-        const { title, parentId, backendType, id, runInBackground } = event
-        openProject(
-          { title, parentId, type: backendType, id },
-          { openInBackground: runInBackground }
-        )
-        break
-      }
-      case AssetEventType.closeProject: {
-        const { title, parentId, backendType, id } = event
-        closeProject({ title, parentId, type: backendType, id })
-        break
-      }
-      default: {
-        // Ignored. Any missing project-related events should be handled by `ProjectNameColumn`.
-        // `delete`, `deleteForever`, `restore`, `download`, and `downloadSelected`
-        // are handled by`AssetRow`.
-        break
-      }
-    }
-  })
 
   React.useEffect(() => {
     window.projectManagementApi?.setOpenProjectHandler(project => {
       setCategory(Category.local)
-      dispatchAssetListEvent({
-        type: AssetListEventType.openProject,
-        backendType: backendModule.BackendType.local,
-        id: localBackendModule.newProjectId(projectManager.UUID(project.id)),
+      const projectId = localBackendModule.newProjectId(projectManager.UUID(project.id))
+      openProject({
+        type: backendModule.BackendType.local,
+        id: projectId,
         title: project.name,
         parentId: localBackendModule.newDirectoryId(backendModule.Path(project.parentDirectory)),
       })
@@ -179,7 +164,7 @@ function DashboardInner(props: DashboardProps) {
     return () => {
       window.projectManagementApi?.setOpenProjectHandler(() => {})
     }
-  }, [dispatchAssetListEvent, setCategory])
+  }, [dispatchAssetListEvent, openEditor, openProject, setCategory])
 
   React.useEffect(
     () =>
@@ -188,8 +173,8 @@ function DashboardInner(props: DashboardProps) {
           updateModal(oldModal => {
             if (oldModal == null) {
               const currentPage = projectsStore.getState().page
-              if (array.includes(Object.values(projectsProvider.TabType), currentPage)) {
-                setPage(projectsProvider.TabType.drive)
+              if (array.includes(Object.values(TabType), currentPage)) {
+                setPage(TabType.drive)
               }
             }
             return null
@@ -218,13 +203,13 @@ function DashboardInner(props: DashboardProps) {
     }
   }, [inputBindings])
 
-  const doRemoveSelf = eventCallbacks.useEventCallback((project: projectHooks.Project) => {
+  const doRemoveSelf = eventCallbacks.useEventCallback((project: LaunchedProject) => {
     dispatchAssetListEvent({ type: AssetListEventType.removeSelf, id: project.id })
     closeProject(project)
   })
 
   const onSignOut = eventCallbacks.useEventCallback(() => {
-    setPage(projectsProvider.TabType.drive)
+    setPage(TabType.drive)
     closeAllProjects()
     clearLaunchedProjects()
   })
@@ -275,7 +260,7 @@ function DashboardInner(props: DashboardProps) {
           className="relative flex min-h-full grow select-none flex-col container-size"
           selectedKey={page}
           onSelectionChange={newPage => {
-            const validated = projectsProvider.PAGES_SCHEMA.safeParse(newPage)
+            const validated = PAGES_SCHEMA.safeParse(newPage)
             if (validated.success) {
               setPage(validated.data)
             }
@@ -284,8 +269,8 @@ function DashboardInner(props: DashboardProps) {
           <div className="flex">
             <TabBar>
               <tabBar.Tab
-                id={projectsProvider.TabType.drive}
-                isActive={page === projectsProvider.TabType.drive}
+                id={TabType.drive}
+                isActive={page === TabType.drive}
                 icon={DriveIcon}
                 labelId="drivePageName"
               >
@@ -314,12 +299,12 @@ function DashboardInner(props: DashboardProps) {
 
               <tabBar.Tab
                 isActive
-                id={projectsProvider.TabType.settings}
-                isHidden={page !== projectsProvider.TabType.settings}
+                id={TabType.settings}
+                isHidden={page !== TabType.settings}
                 icon={SettingsIcon}
                 labelId="settingsPageName"
                 onClose={() => {
-                  setPage(projectsProvider.TabType.drive)
+                  setPage(TabType.drive)
                 }}
               >
                 {getText('settingsPageName')}
@@ -330,20 +315,20 @@ function DashboardInner(props: DashboardProps) {
               onShareClick={selectedProject ? doOpenShareModal : undefined}
               setIsHelpChatOpen={setIsHelpChatOpen}
               goToSettingsPage={() => {
-                setPage(projectsProvider.TabType.settings)
+                setPage(TabType.settings)
               }}
               onSignOut={onSignOut}
             />
           </div>
           <aria.TabPanel
             shouldForceMount
-            id={projectsProvider.TabType.drive}
+            id={TabType.drive}
             className="flex min-h-0 grow [&[data-inert]]:hidden"
           >
             <Drive
               category={category}
               setCategory={setCategory}
-              hidden={page !== projectsProvider.TabType.drive}
+              hidden={page !== TabType.drive}
               initialProjectName={initialProjectName}
             />
           </aria.TabPanel>
@@ -384,7 +369,7 @@ function DashboardInner(props: DashboardProps) {
                 />
               </aria.TabPanel>
             ))}
-          <aria.TabPanel id={projectsProvider.TabType.settings} className="flex min-h-0 grow">
+          <aria.TabPanel id={TabType.settings} className="flex min-h-0 grow">
             <Settings />
           </aria.TabPanel>
         </aria.Tabs>

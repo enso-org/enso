@@ -76,6 +76,9 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const dispatchAssetEvent = eventListProvider.useDispatchAssetEvent()
   const dispatchAssetListEvent = eventListProvider.useDispatchAssetListEvent()
+  const openProject = projectHooks.useOpenProject()
+  const closeProject = projectHooks.useCloseProject()
+  const openProjectMutation = projectHooks.useOpenProjectMutation()
   const asset = item.item
   const self = asset.permissions?.find(
     backendModule.isUserPermissionAnd(permission => permission.user.userId === user.userId)
@@ -186,13 +189,11 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
               action="open"
               doAction={() => {
                 unsetModal()
-                dispatchAssetEvent({
-                  type: AssetEventType.openProject,
+                openProject({
                   id: asset.id,
                   title: asset.title,
                   parentId: item.directoryId,
-                  backendType: state.backend.type,
-                  runInBackground: false,
+                  type: state.backend.type,
                 })
               }}
             />
@@ -203,13 +204,12 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             action="run"
             doAction={() => {
               unsetModal()
-              dispatchAssetEvent({
-                type: AssetEventType.openProject,
+              openProjectMutation.mutate({
                 id: asset.id,
                 title: asset.title,
                 parentId: item.directoryId,
-                backendType: state.backend.type,
-                runInBackground: true,
+                type: state.backend.type,
+                inBackground: true,
               })
             }}
           />
@@ -233,12 +233,11 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
               action="close"
               doAction={() => {
                 unsetModal()
-                dispatchAssetEvent({
-                  type: AssetEventType.closeProject,
+                closeProject({
                   id: asset.id,
                   title: asset.title,
                   parentId: item.directoryId,
-                  backendType: state.backend.type,
+                  type: state.backend.type,
                 })
               }}
             />

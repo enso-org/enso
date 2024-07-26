@@ -826,6 +826,16 @@ fn operator_sections() {
          (OprApp (OprApp (Number () "1" ()) (Ok "+") ())
                  (Ok "<<")
                  (OprSectionBoundary 1 (OprApp (Number () "2" ()) (Ok "*") ())))));
+    test!("1+1+ << 2*2*",
+        (OprSectionBoundary 1
+         (OprApp (OprApp (OprApp (Number () "1" ())
+                                 (Ok "+")
+                                 (Number () "1" ()))
+                         (Ok "+") ())
+                 (Ok "<<")
+                 (OprSectionBoundary 1
+                  (OprApp (OprApp (Number () "2" ()) (Ok "*") (Number () "2" ()))
+                          (Ok "*") ())))));
     test!("+1 << *2",
         (OprSectionBoundary 1
          (OprApp (OprApp () (Ok "+") (Number () "1" ()))
@@ -841,13 +851,13 @@ fn operator_sections() {
 #[test]
 fn template_functions() {
     #[rustfmt::skip]
-    test("_.map (_+2 * 3) _*7", block![
+    test("_.map (_ + 2*3) _*7", block![
         (TemplateFunction 1
          (App (App (OprApp (Wildcard 0) (Ok ".") (Ident map))
-                   (Group
-                    (TemplateFunction 1
-                     (OprApp (OprApp (Wildcard 0) (Ok "+") (Number () "2" ()))
-                    (Ok "*") (Number () "3" ())))))
+                   (Group (TemplateFunction 1
+                    (OprApp (Wildcard 0)
+                            (Ok "+")
+                            (OprApp (Number () "2" ()) (Ok "*") (Number () "3" ()))))))
               (TemplateFunction 1 (OprApp (Wildcard 0) (Ok "*") (Number () "7" ())))))]);
     #[rustfmt::skip]
     test("_.sum 1", block![

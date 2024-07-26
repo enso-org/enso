@@ -80,9 +80,7 @@ export default function DatalinkNameColumn(props: DatalinkNameColumnProps) {
         case AssetEventType.newFolder:
         case AssetEventType.uploadFiles:
         case AssetEventType.newSecret:
-        case AssetEventType.openProject:
         case AssetEventType.updateFiles:
-        case AssetEventType.closeProject:
         case AssetEventType.copy:
         case AssetEventType.cut:
         case AssetEventType.cancelCut:

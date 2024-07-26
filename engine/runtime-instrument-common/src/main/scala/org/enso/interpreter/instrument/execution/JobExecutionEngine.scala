@@ -152,7 +152,7 @@ final class JobExecutionEngine(
         val remaining = runningJobsRef.updateAndGet(_.filterNot(_.id == jobId))
         logger.log(
           Level.FINEST,
-          "Number of remaining pending jobs: {}",
+          "Number of remaining pending jobs: {0}",
           remaining.size
         )
       }
@@ -160,7 +160,7 @@ final class JobExecutionEngine(
     val runningJob = RunningJob(jobId, job, future)
 
     val queue = runningJobsRef.updateAndGet(_ :+ runningJob)
-    logger.log(Level.FINE, "Number of pending jobs: {}", queue.size)
+    logger.log(Level.FINE, "Number of pending jobs: {0}", queue.size)
 
     promise.future
   }

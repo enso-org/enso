@@ -20,7 +20,6 @@ interface AssetListEvents {
   readonly newSecret: AssetListNewSecretEvent
   readonly newDatalink: AssetListNewDatalinkEvent
   readonly insertAssets: AssetListInsertAssetsEvent
-  readonly openProject: AssetListOpenProjectEvent
   readonly duplicateProject: AssetListDuplicateProjectEvent
   readonly closeFolder: AssetListCloseFolderEvent
   readonly copy: AssetListCopyEvent
@@ -55,6 +54,8 @@ interface AssetListNewProjectEvent extends AssetListBaseEvent<AssetListEventType
   readonly templateId: string | null
   readonly datalinkId: backend.DatalinkId | null
   readonly preferredName: string | null
+  readonly onCreated?: (project: backend.CreatedProject) => void
+  readonly onError?: () => void
 }
 
 /** A signal to upload files. */
@@ -85,15 +86,6 @@ interface AssetListInsertAssetsEvent extends AssetListBaseEvent<AssetListEventTy
   readonly parentKey: backend.DirectoryId
   readonly parentId: backend.DirectoryId
   readonly assets: backend.AnyAsset[]
-}
-
-/** A signal to open the specified project. */
-export interface AssetListOpenProjectEvent
-  extends AssetListBaseEvent<AssetListEventType.openProject> {
-  readonly id: backend.ProjectId
-  readonly backendType: backend.BackendType
-  readonly title: string
-  readonly parentId: backend.DirectoryId
 }
 
 /** A signal to duplicate a project. */
