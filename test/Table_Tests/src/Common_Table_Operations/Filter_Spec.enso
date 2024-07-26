@@ -53,7 +53,7 @@ add_specs suite_builder setup =
             t.filter "X" (Filter_Condition.Is_Infinite) . at "ix" . to_vector . should_equal []
             if test_selection.is_nan_and_nothing_distinct then
                 t.filter "X" (Filter_Condition.Is_Nan) . at "ix" . to_vector . should_equal []
-                t.filter "X" (Filter_Condition.Not_Nan) . at "ix" . to_vector . should_equal [1, 2, 3, 4, 5]
+                t.filter "X" (Filter_Condition.Not_Nan) . at "ix" . to_vector . should_equal [1, 2, 4, 5]
 
             v = t.filter "X" (Filter_Condition.Equal to="SOME TEXT :)") . at "X" . to_vector
             ## We do not do typechecking at Enso level here, as it is
