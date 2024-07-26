@@ -138,7 +138,9 @@ make_filter_condition_selector table display=Display.Always =
         builder.append (Option "Is Empty" "..Is_Empty")
         builder.append (Option "Is Not Empty" "..Not_Empty")
         builder.append (Option "Like" "..Like" [["pattern", with_text]])
-        builder.append (Option "Is In" "..Is_In")
+
+        value_editor = Widget.Vector_Editor item_editor=equatable_types display=Display.Always item_default='""'
+        builder.append (Option "Is In" "..Is_In" [["values", value_editor]])
     Single_Choice options display=display
 
 ## PRIVATE

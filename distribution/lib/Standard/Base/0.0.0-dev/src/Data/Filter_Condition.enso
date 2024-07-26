@@ -275,7 +275,7 @@ type Filter_Condition
                 builder.append (Option "Is Not Empty" "..Not_Empty")
                 builder.append (Option "Like" "..Like" [["pattern", Widget.Text_Input]])
 
-            value_editor = Widget.Vector_Editor item_editor=equatable_types display=Display.Always item_default=''
+            value_editor = Widget.Vector_Editor item_editor=equatable_types display=Display.Always item_default='""'
             builder.append (Option "Is In" "..Is_In" [["values", value_editor]])
 
         make_single_choice options
