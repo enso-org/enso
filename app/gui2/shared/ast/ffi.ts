@@ -11,7 +11,7 @@ import init, {
   is_numeric_literal,
   parse,
   parse_doc_to_json,
-} from '../../rust-ffi/pkg/rust_ffi'
+} from 'rust-ffi/pkg/rust_ffi'
 import { assertDefined } from '../util/assert'
 import { isNode } from '../util/detect'
 
@@ -29,7 +29,7 @@ export async function initializeFFI(path?: string | undefined) {
     const fs = await import('node:fs/promises')
     const { fileURLToPath, URL: nodeURL } = await import('node:url')
     const buffer = fs.readFile(
-      path ?? fileURLToPath(new nodeURL('../../rust-ffi/pkg/rust_ffi_bg.wasm', import.meta.url)),
+      path ?? fileURLToPath(new nodeURL('rust-ffi/pkg/rust_ffi_bg.wasm', import.meta.url)),
     )
     await init(buffer)
   } else {

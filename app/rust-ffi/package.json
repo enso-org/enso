@@ -1,0 +1,15 @@
+{
+    "version": "0.1.0",
+    "name": "rust-ffi",
+    "private": true,
+    "type": "module",
+    "author": {
+      "name": "Enso Team",
+      "email": "contact@enso.org"
+    },
+    "scripts": {
+        "build-web": "wasm-pack build ../rust-ffi --release --target web",
+        "build-nodejs": "wasm-pack build ../rust-ffi --release --target nodejs --out-dir node-pkg",
+        "preinstall": "npm run build-web && npm run build-nodejs"
+    }
+}

@@ -1,5 +1,5 @@
 load("@npm//:defs.bzl", "npm_link_all_packages")
-npm_link_all_packages(name = "node_modules")
+npm_link_all_packages()
 
 # load("@bazel_skylib//rules:build_test.bzl", "build_test")
 load("@npm//app/gui2:vite/package_json.bzl", vite_bin = "bin")
@@ -11,8 +11,7 @@ SRCS = [
     "vite.config.ts",
     "tsconfig.app.json",
     "tsconfig.json",
-    "//app/ide-desktop/lib/project-manager-shim:package"
-] + glob(["src/**", "shared/**", "public/**", "ydoc-server/**", "rust-ffi/pkg/**"])
+] + glob(["src/**", "shared/**", "public/**", "ydoc-server/**"])
 
 # BUILD_DEPS = []
 

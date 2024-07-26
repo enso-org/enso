@@ -23,7 +23,7 @@ target/
 wasm-pack.log
 generated/
 /target
-/build/rust/target/
+/build_tools/rust/target/
 /rust-analyzer-target
 
 ###########
@@ -128,6 +128,7 @@ project/metals.sbt
 #################
 
 bazel-bin
+bazel-bazel
 bazel-enso
 bazel-out
 bazel-testlogs
