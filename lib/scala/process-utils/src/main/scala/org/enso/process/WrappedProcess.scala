@@ -1,4 +1,4 @@
-package org.enso.testkit.process
+package org.enso.process
 
 import java.io._
 import java.util.concurrent.{Semaphore, TimeUnit}
@@ -85,6 +85,31 @@ class WrappedProcess(command: Seq[String], process: Process) {
     if (!acquired) {
       throw new TimeoutException(s"Waiting for `$message` timed out.")
     }
+  }
+
+  /** Registers a handler for stdout/stderr that appends streams to the provided
+    * string builder.
+    */
+  def registerStringBuilderAppendTarget(
+    builder: StringBuilder
+  ): Unit = {
+    def handler(line: String, streamType: StreamType): Unit = {
+      streamType match {
+        case StdErr =>
+          builder.append(
+            s"stderr> $line${System.getProperty("line.separator")}"
+          )
+        case StdOut =>
+          builder.append(
+            s"stdout> $line${System.getProperty("line.separator")}"
+          )
+      }
+    }
+
+    this.synchronized {
+      ioHandlers ++= Seq(handler _)
+    }
+
   }
 
   private lazy val inputWriter = new PrintWriter(process.getOutputStream)

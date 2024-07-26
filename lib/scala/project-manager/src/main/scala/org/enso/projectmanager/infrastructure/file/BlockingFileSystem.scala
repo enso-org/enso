@@ -123,12 +123,12 @@ class BlockingFileSystem[F[+_, +_]: Sync: ErrorChannel](
       .mapError(toFsFailure)
 
   private val toFsFailure: Throwable => FileSystemFailure = {
-    case _: FileNotFoundException => FileNotFound
-    case _: NotDirectoryException => NotDirectory
-    case _: NoSuchFileException   => FileNotFound
-    case _: FileExistsException   => FileExists
-    case _: AccessDeniedException => AccessDenied
-    case ex                       => GenericFileSystemFailure(ex.getMessage)
+    case _: FileNotFoundException  => FileNotFound
+    case _: NotDirectoryException  => NotDirectory
+    case _: NoSuchFileException    => FileNotFound
+    case _: FileExistsException    => FileExists
+    case ex: AccessDeniedException => AccessDenied(ex.getFile)
+    case ex                        => GenericFileSystemFailure(ex.getMessage)
   }
 
 }

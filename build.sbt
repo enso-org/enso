@@ -335,6 +335,7 @@ lazy val enso = (project in file("."))
     `library-manager-test`,
     `connected-lock-manager`,
     `connected-lock-manager-server`,
+    `process-utils`,
     testkit,
     `test-utils`,
     `common-polyglot-core-utils`,
@@ -3137,6 +3138,7 @@ lazy val `library-manager-test` = project
     )
   )
   .dependsOn(`library-manager`)
+  .dependsOn(`process-utils`)
   .dependsOn(`logging-utils` % "test->test")
   .dependsOn(testkit)
   .dependsOn(`logging-service-logback` % "test->test")
@@ -3189,9 +3191,19 @@ lazy val `runtime-version-manager` = project
   .dependsOn(pkg)
   .dependsOn(downloader)
   .dependsOn(cli)
+  .dependsOn(`process-utils`)
   .dependsOn(`version-output`)
   .dependsOn(`edition-updater`)
   .dependsOn(`distribution-manager`)
+
+/** `process-utils` provides utilities for correctly managing process execution such as providing
+  *  handlers for its stdout/stderr.
+  */
+lazy val `process-utils` = project
+  .in(file("lib/scala/process-utils"))
+  .settings(
+    frgaalJavaCompilerSetting
+  )
 
 lazy val `runtime-version-manager-test` = project
   .in(file("lib/scala/runtime-version-manager-test"))
