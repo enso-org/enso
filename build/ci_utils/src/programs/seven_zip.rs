@@ -15,8 +15,8 @@ impl Program for SevenZip {
     }
 
     fn default_locations(&self) -> Vec<PathBuf> {
-        if let Ok(program_files) = std::env::var("ProgramFiles") {
-            let path = PathBuf::from(program_files).join("7-Zip");
+        if let Ok(program_files) = crate::env::known::win::PROGRAMFILES.get() {
+            let path = program_files.join("7-Zip");
             if path.exists() {
                 return vec![path];
             }

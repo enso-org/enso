@@ -90,35 +90,14 @@ public final class ArrayLikeHelpers {
       @CachedLibrary(limit = "3") WarningsLibrary warnings) {
     var len = Math.toIntExact(length);
     var target = ArrayBuilder.newBuilder(len);
-    boolean nonTrivialEnsoValue = false;
     for (int i = 0; i < len; i++) {
       var value = invokeFunctionNode.execute(fun, frame, state, new Long[] {(long) i});
       if (value instanceof DataflowError) {
         return value;
       }
-      if (warnings.hasWarnings(value)) {
-        nonTrivialEnsoValue = true;
-      } else {
-        var isEnsoValue =
-            value instanceof EnsoObject || value instanceof Long || value instanceof Double;
-        if (!isEnsoValue) {
-          nonTrivialEnsoValue = true;
-        }
-      }
-      target.add(value);
+      target.add(value, warnings);
     }
-    var res = target.toArray();
-    if (res instanceof long[] longs) {
-      return Vector.fromLongArray(longs);
-    }
-    if (res instanceof double[] doubles) {
-      return Vector.fromDoubleArray(doubles);
-    }
-    if (nonTrivialEnsoValue) {
-      return Vector.fromInteropArray(Array.wrap((Object[]) res));
-    } else {
-      return Vector.fromEnsoOnlyArray((Object[]) res);
-    }
+    return target.asVector();
   }
 
   @Builtin.Method(
@@ -165,5 +144,13 @@ public final class ArrayLikeHelpers {
 
   public static EnsoObject asVectorFromArray(Object storage) {
     return Vector.fromInteropArray(storage);
+  }
+
+  public static EnsoObject asVectorEnsoObjects(EnsoObject... arr) {
+    return Vector.fromEnsoOnlyArray(arr);
+  }
+
+  public static EnsoObject asVectorEmpty() {
+    return Vector.fromEnsoOnlyArray(null);
   }
 }

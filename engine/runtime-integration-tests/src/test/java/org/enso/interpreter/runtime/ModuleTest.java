@@ -9,11 +9,11 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.logging.Level;
+import org.enso.common.LanguageInfo;
+import org.enso.common.MethodNames;
 import org.enso.compiler.data.BindingsMap;
 import org.enso.compiler.data.BindingsMap$ModuleReference$Concrete;
 import org.enso.pkg.QualifiedName;
-import org.enso.polyglot.LanguageInfo;
-import org.enso.polyglot.MethodNames;
 import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Engine;
@@ -37,6 +37,7 @@ public class ModuleTest {
         Engine.newBuilder()
             .allowExperimentalOptions(true)
             .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())
+            .option(RuntimeOptions.STRICT_ERRORS, "false")
             .logHandler(System.err)
             .option(
                 RuntimeOptions.LANGUAGE_HOME_OVERRIDE,

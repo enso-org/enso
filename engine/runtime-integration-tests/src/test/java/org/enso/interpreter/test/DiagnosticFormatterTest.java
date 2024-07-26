@@ -1,7 +1,8 @@
 package org.enso.interpreter.test;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.is;
 
 import com.oracle.truffle.api.source.Source;
 import java.io.ByteArrayOutputStream;
@@ -11,12 +12,12 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
+import org.enso.common.LanguageInfo;
+import org.enso.common.MethodNames.Module;
+import org.enso.common.MethodNames.TopScope;
 import org.enso.compiler.core.ir.Diagnostic;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.util.DiagnosticFormatter;
-import org.enso.polyglot.LanguageInfo;
-import org.enso.polyglot.MethodNames.Module;
-import org.enso.polyglot.MethodNames.TopScope;
 import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
@@ -67,8 +68,8 @@ public class DiagnosticFormatterTest {
 tmp_test:1:8: error: The name `foo` could not be found.
     1 | main = foo
       |        ^~~""";
-    var module = ctx.eval(polyglotSrc);
     try {
+      var module = ctx.eval(polyglotSrc);
       module.invokeMember(Module.EVAL_EXPRESSION, "main");
     } catch (PolyglotException e) {
       assertThat(output.toString(), containsString(expectedDiagnostics));

@@ -328,7 +328,7 @@ mod tests {
     #[tokio::test]
     #[ignore]
     async fn notify_cloud() -> Result {
-        setup_logging()?;
+        setup_logging().ok();
         let version = Version::from_str("2022.1.1-rc.2")?;
         notify_cloud_about_gui(&version).await?;
         Ok(())
@@ -337,7 +337,7 @@ mod tests {
     #[tokio::test]
     #[ignore]
     async fn release_assets() -> Result {
-        setup_logging()?;
+        setup_logging().ok();
 
         let crate_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         let repo_root = crate_dir.parent().unwrap().parent().unwrap();

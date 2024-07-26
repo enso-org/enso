@@ -1,327 +1,21 @@
 package org.enso.polyglot.runtime
 
-import com.fasterxml.jackson.annotation.{
-  JsonIgnoreProperties,
-  JsonSubTypes,
-  JsonTypeInfo
-}
-import com.fasterxml.jackson.module.scala.deser.ScalaObjectDeserializerModule
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.dataformat.cbor.CBORFactory
-import com.fasterxml.jackson.module.scala.{
-  ClassTagExtensions,
-  DefaultScalaModule
-}
+import com.github.plokhotnyuk.jsoniter_scala.macros.named
 import org.enso.editions.LibraryName
 import org.enso.logger.masking.{MaskedPath, MaskedString, ToLogString}
 import org.enso.pkg.{ComponentGroups, QualifiedName}
 import org.enso.polyglot.{ModuleExports, Suggestion}
 import org.enso.polyglot.data.{Tree, TypeGraph}
 import org.enso.text.editing.model
-import org.enso.text.editing.model.{Range, TextEdit}
+import org.enso.text.editing.model.{IdMap, Range, TextEdit}
 
 import java.io.File
-import java.nio.ByteBuffer
 import java.util.UUID
-import scala.util.Try
 
 object Runtime {
 
   /** A common supertype for all Runtime API methods.
     */
-  @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
-  @JsonSubTypes(
-    Array(
-      new JsonSubTypes.Type(
-        value = classOf[Api.Request],
-        name  = "request"
-      ),
-      new JsonSubTypes.Type(
-        value = classOf[Api.Response],
-        name  = "response"
-      ),
-      new JsonSubTypes.Type(
-        value = classOf[Api.CreateContextRequest],
-        name  = "createContextRequest"
-      ),
-      new JsonSubTypes.Type(
-        value = classOf[Api.CreateContextResponse],
-        name  = "createContextResponse"
-      ),
-      new JsonSubTypes.Type(
-        value = classOf[Api.DestroyContextRequest],
-        name  = "destroyContextRequest"
-      ),
-      new JsonSubTypes.Type(
-        value = classOf[Api.DestroyContextResponse],
-        name  = "destroyContextResponse"
-      ),
-      new JsonSubTypes.Type(
-        value = classOf[Api.PushContextRequest],
-        name  = "pushContextRequest"
-      ),
-      new JsonSubTypes.Type(
-        value = classOf[Api.PushContextResponse],
-        name  = "pushContextResponse"
-      ),
-      new JsonSubTypes.Type(
-        value = classOf[Api.PopContextRequest],
-        name  = "popContextRequest"
-      ),
-      new JsonSubTypes.Type(
-        value = classOf[Api.PopContextResponse],
-        name  = "popContextResponse"
-      ),
-      new JsonSubTypes.Type(
-        value = classOf[Api.RecomputeContextRequest],
-        name  = "recomputeContextRequest"
-      ),
-      new JsonSubTypes.Type(
-        value = classOf[Api.RecomputeContextResponse],
-        name  = "recomputeContextResponse"
-      ),
-      new JsonSubTypes.Type(
-        value = classOf[Api.InterruptContextRequest],
-        name  = "interruptContextRequest"
-      ),
-      new JsonSubTypes.Type(
-        value = classOf[Api.InterruptContextResponse],
-        name  = "interruptContextResponse"
-      ),
-      new JsonSubTypes.Type(
-        value = classOf[Api.GetComponentGroupsRequest],
-        name  = "getComponentGroupsRequest"
-      ),
-      new JsonSubTypes.Type(
-        value = classOf[Api.GetComponentGroupsResponse],
-        name  = "getComponentGroupsResponse"
-      ),
-      new JsonSubTypes.Type(
-        value = classOf[Api.OpenFileRequest],
-        name  = "setModuleSourcesNotification"
-      ),
-      new JsonSubTypes.Type(
-        value = classOf[Api.OpenFileResponse.type],
-        name  = "moduleSourcesSetNotification"
-      ),
-      new JsonSubTypes.Type(
-        value = classOf[Api.EditFileNotification],
-        name  = "editFileNotification"
-      ),
-      new JsonSubTypes.Type(
-        value = classOf[Api.SetExpressionValueNotification],
-        name  = "setExpressionValueNotification"
-      ),
-      new JsonSubTypes.Type(
-        value = classOf[Api.CloseFileNotification],
-        name  = "closeFileNotification"
-      ),
-      new JsonSubTypes.Type(
-        value = classOf[Api.VisualizationUpdate],
-        name  = "visualizationUpdate"
-      ),
-      new JsonSubTypes.Type(
-        value = classOf[Api.FileEdit],
-        name  = "fileEdit"
-      ),
-      new JsonSubTypes.Type(
-        value = classOf[Api.AttachVisualization],
-        name  = "attachVisualization"
-      ),
-      new JsonSubTypes.Type(
-        value = classOf[Api.ExecuteExpression],
-        name  = "executeExpression"
-      ),
-      new JsonSubTypes.Type(
-        value = classOf[Api.VisualizationAttached],
-        name  = "visualizationAttached"
-      ),
-      new JsonSubTypes.Type(
-        value = classOf[Api.DetachVisualization],
-        name  = "detachVisualization"
-      ),
-      new JsonSubTypes.Type(
-        value = classOf[Api.VisualizationDetached],
-        name  = "visualizationDetached"
-      ),
-      new JsonSubTypes.Type(
-        value = classOf[Api.ModifyVisualization],
-        name  = "modifyVisualization"
-      ),
-      new JsonSubTypes.Type(
-        value = classOf[Api.VisualizationModified],
-        name  = "visualizationModified"
-      ),
-      new JsonSubTypes.Type(
-        value = classOf[Api.ExpressionUpdates],
-        name  = "expressionUpdates"
-      ),
-      new JsonSubTypes.Type(
-        value = classOf[Api.RenameProject],
-        name  = "renameProject"
-      ),
-      new JsonSubTypes.Type(
-        value = classOf[Api.ProjectRenamed],
-        name  = "projectRenamed"
-      ),
-      new JsonSubTypes.Type(
-        value = classOf[Api.ProjectRenameFailed],
-        name  = "projectRenameFailed"
-      ),
-      new JsonSubTypes.Type(
-        value = classOf[Api.RenameSymbol],
-        name  = "renameSymbol"
-      ),
-      new JsonSubTypes.Type(
-        value = classOf[Api.SymbolRenamed],
-        name  = "symbolRenamed"
-      ),
-      new JsonSubTypes.Type(
-        value = classOf[Api.SymbolRenameFailed],
-        name  = "symbolRenameFailed"
-      ),
-      new JsonSubTypes.Type(
-        value = classOf[Api.ContextNotExistError],
-        name  = "contextNotExistError"
-      ),
-      new JsonSubTypes.Type(
-        value = classOf[Api.EmptyStackError],
-        name  = "emptyStackError"
-      ),
-      new JsonSubTypes.Type(
-        value = classOf[Api.ModuleNotFound],
-        name  = "moduleNotFound"
-      ),
-      new JsonSubTypes.Type(
-        value = classOf[Api.ExecutionUpdate],
-        name  = "executionUpdate"
-      ),
-      new JsonSubTypes.Type(
-        value = classOf[Api.ExecutionFailed],
-        name  = "executionFailed"
-      ),
-      new JsonSubTypes.Type(
-        value = classOf[Api.ExecutionComplete],
-        name  = "executionSuccessful"
-      ),
-      new JsonSubTypes.Type(
-        value = classOf[Api.VisualizationExpressionFailed],
-        name  = "visualizationExpressionFailed"
-      ),
-      new JsonSubTypes.Type(
-        value = classOf[Api.VisualizationEvaluationFailed],
-        name  = "visualizationEvaluationFailed"
-      ),
-      new JsonSubTypes.Type(
-        value = classOf[Api.VisualizationNotFound],
-        name  = "visualizationNotFound"
-      ),
-      new JsonSubTypes.Type(
-        value = classOf[Api.InvalidStackItemError],
-        name  = "invalidStackItemError"
-      ),
-      new JsonSubTypes.Type(
-        value = classOf[Api.InitializedNotification],
-        name  = "initializedNotification"
-      ),
-      new JsonSubTypes.Type(
-        value = classOf[Api.ShutDownRuntimeServer],
-        name  = "shutDownRuntimeServer"
-      ),
-      new JsonSubTypes.Type(
-        value = classOf[Api.RuntimeServerShutDown],
-        name  = "runtimeServerShutDown"
-      ),
-      new JsonSubTypes.Type(
-        value = classOf[Api.SuggestionsDatabaseModuleUpdateNotification],
-        name  = "suggestionsDatabaseModuleUpdateNotification"
-      ),
-      new JsonSubTypes.Type(
-        value = classOf[Api.SuggestionsDatabaseSuggestionsLoadedNotification],
-        name  = "suggestionsDatabaseSuggestionsLoadedNotification"
-      ),
-      new JsonSubTypes.Type(
-        value = classOf[Api.AnalyzeModuleInScopeJobFinished],
-        name  = "analyzeModuleInScopeJobFinished"
-      ),
-      new JsonSubTypes.Type(
-        value = classOf[Api.InvalidateModulesIndexRequest],
-        name  = "invalidateModulesIndexRequest"
-      ),
-      new JsonSubTypes.Type(
-        value = classOf[Api.InvalidateModulesIndexResponse],
-        name  = "invalidateModulesIndexResponse"
-      ),
-      new JsonSubTypes.Type(
-        value = classOf[Api.GetTypeGraphRequest],
-        name  = "getTypeGraphRequest"
-      ),
-      new JsonSubTypes.Type(
-        value = classOf[Api.GetTypeGraphResponse],
-        name  = "getTypeGraphResponse"
-      ),
-      new JsonSubTypes.Type(
-        value = classOf[Api.LibraryLoaded],
-        name  = "libraryLoaded"
-      ),
-      new JsonSubTypes.Type(
-        value = classOf[Api.ProgressNotification],
-        name  = "progressNotification"
-      ),
-      new JsonSubTypes.Type(
-        value = classOf[Api.AcquireLockRequest],
-        name  = "acquireLockRequest"
-      ),
-      new JsonSubTypes.Type(
-        value = classOf[Api.ReleaseLockRequest],
-        name  = "releaseLockRequest"
-      ),
-      new JsonSubTypes.Type(
-        value = classOf[Api.LockAcquired],
-        name  = "lockAcquired"
-      ),
-      new JsonSubTypes.Type(
-        value = classOf[Api.CannotAcquireImmediately],
-        name  = "cannotAcquireImmediately"
-      ),
-      new JsonSubTypes.Type(
-        value = classOf[Api.LockAcquireFailed],
-        name  = "lockAcquireFailed"
-      ),
-      new JsonSubTypes.Type(
-        value = classOf[Api.LockReleased],
-        name  = "lockReleased"
-      ),
-      new JsonSubTypes.Type(
-        value = classOf[Api.LockReleaseFailed],
-        name  = "lockReleaseFailed"
-      ),
-      new JsonSubTypes.Type(
-        value = classOf[Api.DeserializeLibrarySuggestions],
-        name  = "deserializeLibrarySuggestions"
-      ),
-      new JsonSubTypes.Type(
-        value = classOf[Api.StartBackgroundProcessing],
-        name  = "startBackgroundProcessing"
-      ),
-      new JsonSubTypes.Type(
-        value = classOf[Api.BackgroundJobsStartedNotification],
-        name  = "backgroundJobsStartedNotification"
-      ),
-      new JsonSubTypes.Type(
-        value = classOf[Api.SerializeModule],
-        name  = "serializeModule"
-      ),
-      new JsonSubTypes.Type(
-        value = classOf[Api.SetExecutionEnvironmentRequest],
-        name  = "setExecutionEnvironmentRequest"
-      ),
-      new JsonSubTypes.Type(
-        value = classOf[Api.SetExecutionEnvironmentResponse],
-        name  = "setExecutionEnvironmentResponse"
-      )
-    )
-  )
   sealed trait Api
   sealed trait ApiEnvelope     extends Api
   sealed trait ApiRequest      extends Api
@@ -381,24 +75,12 @@ object Runtime {
 
     /** A representation of an executable position in code.
       */
-    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
-    @JsonSubTypes(
-      Array(
-        new JsonSubTypes.Type(
-          value = classOf[StackItem.ExplicitCall],
-          name  = "explicitCall"
-        ),
-        new JsonSubTypes.Type(
-          value = classOf[StackItem.LocalCall],
-          name  = "localCall"
-        )
-      )
-    )
     sealed trait StackItem
     object StackItem {
 
       /** A call performed at the top of the stack, to initialize the context.
         */
+      @named("explicitCall")
       case class ExplicitCall(
         methodPointer: MethodPointer,
         thisArgumentExpression: Option[String],
@@ -419,6 +101,7 @@ object Runtime {
       }
 
       /** A call corresponding to "entering a function call". */
+      @named("localCall")
       case class LocalCall(expressionId: ExpressionId) extends StackItem
     }
 
@@ -435,6 +118,7 @@ object Runtime {
       * has changed from the one that was cached, if any
       * @param payload an extra information about the computed value
       */
+    @named("expressionUpdate")
     case class ExpressionUpdate(
       expressionId: ExpressionId,
       expressionType: Option[String],
@@ -447,27 +131,6 @@ object Runtime {
     object ExpressionUpdate {
 
       /** Base trait for expression payloads. */
-      @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
-      @JsonSubTypes(
-        Array(
-          new JsonSubTypes.Type(
-            value = classOf[Payload.Value],
-            name  = "expressionUpdatePayloadValue"
-          ),
-          new JsonSubTypes.Type(
-            value = classOf[Payload.DataflowError],
-            name  = "expressionUpdatePayloadDataflowError"
-          ),
-          new JsonSubTypes.Type(
-            value = classOf[Payload.Panic],
-            name  = "expressionUpdatePayloadPanic"
-          ),
-          new JsonSubTypes.Type(
-            value = classOf[Payload.Pending],
-            name  = "expressionUpdatePayloadPending"
-          )
-        )
-      )
       sealed trait Payload
       object Payload {
 
@@ -476,6 +139,7 @@ object Runtime {
           * @param warnings information about attached warnings.
           * @param functionSchema if the value represents a function, the function schema of that function, empty option otherwise
           */
+        @named("expressionUpdatePayloadValue")
         case class Value(
           warnings: Option[Value.Warnings]       = None,
           functionSchema: Option[FunctionSchema] = None
@@ -498,6 +162,7 @@ object Runtime {
 
         /** TBD
           */
+        @named("expressionUpdatePayloadPending")
         case class Pending(message: Option[String], progress: Option[Double])
             extends Payload;
 
@@ -505,6 +170,7 @@ object Runtime {
           *
           * @param trace the list of expressions leading to the root error.
           */
+        @named("expressionUpdatePayloadDataflowError")
         case class DataflowError(trace: Seq[ExpressionId]) extends Payload
 
         /** Indicates that the expression failed with the runtime exception.
@@ -512,6 +178,7 @@ object Runtime {
           * @param message the error message
           * @param trace the stack trace
           */
+        @named("expressionUpdatePayloadPanic")
         case class Panic(
           message: String,
           trace: Seq[ExpressionId]
@@ -529,15 +196,6 @@ object Runtime {
     /** An object representing profiling information about an executed
       * expression.
       */
-    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
-    @JsonSubTypes(
-      Array(
-        new JsonSubTypes.Type(
-          value = classOf[ProfilingInfo.ExecutionTime],
-          name  = "executionTime"
-        )
-      )
-    )
     sealed trait ProfilingInfo
     object ProfilingInfo {
 
@@ -545,35 +203,25 @@ object Runtime {
         *
         * @param nanoTime the time elapsed during execution in nanoseconds
         */
+      @named("executionTime")
       case class ExecutionTime(nanoTime: Long) extends ProfilingInfo
     }
 
     /** An object representing invalidated expressions selector.
       */
-    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
-    @JsonSubTypes(
-      Array(
-        new JsonSubTypes.Type(
-          value = classOf[InvalidatedExpressions.All],
-          name  = "all"
-        ),
-        new JsonSubTypes.Type(
-          value = classOf[InvalidatedExpressions.Expressions],
-          name  = "expressions"
-        )
-      )
-    )
     sealed trait InvalidatedExpressions
     object InvalidatedExpressions {
 
       /** An object representing invalidation of all expressions.
         */
+      @named("all")
       case class All() extends InvalidatedExpressions
 
       /** An object representing invalidation of a list of expressions.
         *
         * @param value a list of expressions to invalidate.
         */
+      @named("expressions")
       case class Expressions(value: Vector[ExpressionId])
           extends InvalidatedExpressions
     }
@@ -583,6 +231,7 @@ object Runtime {
       * @param contextId the context's id.
       * @param updates a list of updates.
       */
+    @named("expressionUpdates")
     final case class ExpressionUpdates(
       contextId: ContextId,
       updates: Set[ExpressionUpdate]
@@ -594,6 +243,7 @@ object Runtime {
       * @param contextId a context identifier
       * @param expressionId an expression identifier
       */
+    @named("visualizationContext")
     case class VisualizationContext(
       visualizationId: VisualizationId,
       contextId: ContextId,
@@ -601,19 +251,6 @@ object Runtime {
     )
 
     /** A visualization expression. */
-    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
-    @JsonSubTypes(
-      Array(
-        new JsonSubTypes.Type(
-          value = classOf[VisualizationExpression.Text],
-          name  = "visualizationExpressionText"
-        ),
-        new JsonSubTypes.Type(
-          value = classOf[VisualizationExpression.ModuleMethod],
-          name  = "visualizationExpressionModuleMethod"
-        )
-      )
-    )
     sealed trait VisualizationExpression extends ToLogString {
       def module:                         String
       def positionalArgumentsExpressions: Vector[String]
@@ -627,6 +264,7 @@ object Runtime {
         * @param positionalArgumentsExpressions the list of arguments that will
         * be passed to the method
         */
+      @named("visualizationExpressionText")
       case class Text(
         module: String,
         expression: String,
@@ -650,6 +288,7 @@ object Runtime {
         * @param positionalArgumentsExpressions the list of arguments that will
         * be passed to the method
         */
+      @named("visualizationExpressionModuleMethod")
       case class ModuleMethod(
         methodPointer: MethodPointer,
         positionalArgumentsExpressions: Vector[String]
@@ -689,23 +328,6 @@ object Runtime {
     }
 
     /** An operation applied to the suggestion argument. */
-    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
-    @JsonSubTypes(
-      Array(
-        new JsonSubTypes.Type(
-          value = classOf[SuggestionArgumentAction.Add],
-          name  = "suggestionArgumentActionAdd"
-        ),
-        new JsonSubTypes.Type(
-          value = classOf[SuggestionArgumentAction.Remove],
-          name  = "suggestionArgumentActionRemove"
-        ),
-        new JsonSubTypes.Type(
-          value = classOf[SuggestionArgumentAction.Modify],
-          name  = "suggestionArgumentActionModify"
-        )
-      )
-    )
     sealed trait SuggestionArgumentAction extends ToLogString
     object SuggestionArgumentAction {
 
@@ -714,6 +336,7 @@ object Runtime {
         * @param index the position of the argument
         * @param argument the argument to add
         */
+      @named("suggestionArgumentActionAdd")
       case class Add(index: Int, argument: Suggestion.Argument)
           extends SuggestionArgumentAction {
 
@@ -729,6 +352,7 @@ object Runtime {
         *
         * @param index the position of the arugment
         */
+      @named("suggestionArgumentActionRemove")
       case class Remove(index: Int) extends SuggestionArgumentAction {
 
         /** @inheritdoc */
@@ -745,6 +369,7 @@ object Runtime {
         * @param hasDefault the default flag to update
         * @param defaultValue the default value to update
         */
+      @named("suggestionArgumentActionModify")
       case class Modify(
         index: Int,
         name: Option[String]                 = None,
@@ -768,27 +393,11 @@ object Runtime {
     }
 
     /** An operation applied to the update */
-    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
-    @JsonSubTypes(
-      Array(
-        new JsonSubTypes.Type(
-          value = classOf[SuggestionAction.Add],
-          name  = "suggestionActionAdd"
-        ),
-        new JsonSubTypes.Type(
-          value = classOf[SuggestionAction.Remove],
-          name  = "suggestionActionRemove"
-        ),
-        new JsonSubTypes.Type(
-          value = classOf[SuggestionAction.Modify],
-          name  = "suggestionActionModify"
-        )
-      )
-    )
     sealed trait SuggestionAction extends ToLogString
     object SuggestionAction {
 
       /** Add the suggestion. */
+      @named("suggestionActionAdd")
       case class Add() extends SuggestionAction {
 
         /** @inheritdoc */
@@ -797,6 +406,7 @@ object Runtime {
       }
 
       /** Remove the suggestion. */
+      @named("suggestionActionRemove")
       case class Remove() extends SuggestionAction {
 
         /** @inheritdoc */
@@ -813,6 +423,7 @@ object Runtime {
         * @param scope the scope to update
         * @param reexport the reexport field to update
         */
+      @named("suggestionActionModify")
       case class Modify(
         externalId: Option[Option[Suggestion.ExternalID]] = None,
         arguments: Option[Seq[SuggestionArgumentAction]]  = None,
@@ -839,15 +450,6 @@ object Runtime {
     }
 
     /** An action to apply to the suggestions database. */
-    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
-    @JsonSubTypes(
-      Array(
-        new JsonSubTypes.Type(
-          value = classOf[SuggestionsDatabaseAction.Clean],
-          name  = "suggestionsDatabaseActionClean"
-        )
-      )
-    )
     sealed trait SuggestionsDatabaseAction
     object SuggestionsDatabaseAction {
 
@@ -855,6 +457,7 @@ object Runtime {
         *
         * @param module the module name
         */
+      @named("suggestionDatabaseActionClean")
       case class Clean(module: String) extends SuggestionsDatabaseAction
     }
 
@@ -863,22 +466,11 @@ object Runtime {
       action: ExportsAction
     )
 
-    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
-    @JsonSubTypes(
-      Array(
-        new JsonSubTypes.Type(
-          value = classOf[ExportsAction.Add],
-          name  = "exportsActionAdd"
-        ),
-        new JsonSubTypes.Type(
-          value = classOf[ExportsAction.Remove],
-          name  = "exportsActionRemove"
-        )
-      )
-    )
     sealed trait ExportsAction
     object ExportsAction {
-      case class Add()    extends ExportsAction
+      @named("exportsActionAdd")
+      case class Add() extends ExportsAction
+      @named("exportsActionRemove")
       case class Remove() extends ExportsAction
     }
 
@@ -899,23 +491,13 @@ object Runtime {
         s",action=${action.toLogString(shouldMask)})"
     }
 
-    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
-    @JsonSubTypes(
-      Array(
-        new JsonSubTypes.Type(
-          value = classOf[DiagnosticType.Error.type],
-          name  = "diagnosticTypeError"
-        ),
-        new JsonSubTypes.Type(
-          value = classOf[DiagnosticType.Warning.type],
-          name  = "diagnosticTypeWarning"
-        )
-      )
-    )
     sealed trait DiagnosticType
 
     object DiagnosticType {
-      case object Error   extends DiagnosticType
+      @named("diagnosticTypeError")
+      case object Error extends DiagnosticType
+
+      @named("diagnosticTypeWarning")
       case object Warning extends DiagnosticType
     }
 
@@ -943,20 +525,6 @@ object Runtime {
         ")"
     }
 
-    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
-    @JsonSubTypes(
-      Array(
-        new JsonSubTypes.Type(
-          value = classOf[ExecutionResult.Diagnostic],
-          name  = "executionOutcomeDiagnostic"
-        ),
-        new JsonSubTypes.Type(
-          value = classOf[ExecutionResult.Failure],
-          name  = "executionOutcomeFailure"
-        )
-      )
-    )
-    @JsonIgnoreProperties(Array("error", "failure"))
     sealed trait ExecutionResult extends ToLogString {
 
       /** Checks if this result represents a critical failure. * */
@@ -977,6 +545,7 @@ object Runtime {
         * @param expressionId the id of related expression
         * @param stack the stack trace
         */
+      @named("executionOutcomeDiagnostic")
       case class Diagnostic(
         kind: DiagnosticType,
         message: Option[String],
@@ -1060,6 +629,7 @@ object Runtime {
         * @param message the error message
         * @param file the location of a file producing the error
         */
+      @named("executionOutcomeFailure")
       case class Failure(message: String, file: Option[File])
           extends ExecutionResult {
 
@@ -1076,19 +646,6 @@ object Runtime {
 
     }
 
-    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
-    @JsonSubTypes(
-      Array(
-        new JsonSubTypes.Type(
-          value = classOf[Export.Qualified],
-          name  = "exportQualified"
-        ),
-        new JsonSubTypes.Type(
-          value = classOf[Export.Unqualified],
-          name  = "exportUnqualified"
-        )
-      )
-    )
     sealed trait Export {
       def module: String
     }
@@ -1100,29 +657,18 @@ object Runtime {
         * @param alias new module name if the module was renamed in the export
         * clause
         */
+      @named("exportQualified")
       case class Qualified(module: String, alias: Option[String]) extends Export
 
       /** Unqualified module export.
         *
         * @param module the module name that exports the given module
         */
+      @named("exportUnqualified")
       case class Unqualified(module: String) extends Export
     }
 
     /** Base trait for runtime execution environment. */
-    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
-    @JsonSubTypes(
-      Array(
-        new JsonSubTypes.Type(
-          value = classOf[ExecutionEnvironment.Live],
-          name  = "executionEnvironmentLive"
-        ),
-        new JsonSubTypes.Type(
-          value = classOf[ExecutionEnvironment.Design],
-          name  = "executionEnvironmentDesign"
-        )
-      )
-    )
     sealed trait ExecutionEnvironment {
 
       /** The environment name. */
@@ -1130,12 +676,14 @@ object Runtime {
     }
     object ExecutionEnvironment {
 
+      @named("executionEnvironmentLive")
       final case class Live() extends ExecutionEnvironment {
 
         /** @inheritdoc */
         override val name: String = "live"
       }
 
+      @named("executionEnvironmentDesign")
       final case class Design() extends ExecutionEnvironment {
 
         /** @inheritdoc */
@@ -1148,6 +696,7 @@ object Runtime {
       * @param contextId the context's id
       * @param diagnostics the list of diagnostic messages
       */
+    @named("executionUpdate")
     final case class ExecutionUpdate(
       contextId: ContextId,
       diagnostics: Seq[ExecutionResult.Diagnostic]
@@ -1167,6 +716,7 @@ object Runtime {
       * @param contextId the context's id
       * @param result the result of the execution
       */
+    @named("executionFailed")
     final case class ExecutionFailed(
       contextId: ContextId,
       result: ExecutionResult
@@ -1186,6 +736,7 @@ object Runtime {
       * @param visualizationContext a visualization context
       * @param data a visualization data
       */
+    @named("visualizationUpdate")
     final case class VisualizationUpdate(
       visualizationContext: VisualizationContext,
       data: Array[Byte]
@@ -1207,6 +758,7 @@ object Runtime {
       * @param oldVersion the current version of a buffer
       * @param newVersion the version of a buffer after applying all edits
       */
+    @named("fileEdit")
     final case class FileEdit(
       path: File,
       edits: Vector[TextEdit],
@@ -1229,6 +781,7 @@ object Runtime {
       * @param requestId the request identifier.
       * @param payload the request payload.
       */
+    @named("request")
     final case class Request(requestId: Option[RequestId], payload: ApiRequest)
         extends ApiEnvelope
 
@@ -1257,6 +810,7 @@ object Runtime {
       * @param correlationId request that initiated the response
       * @param payload response
       */
+    @named("response")
     final case class Response(
       correlationId: Option[RequestId],
       payload: ApiResponse
@@ -1287,6 +841,7 @@ object Runtime {
       *
       * @param contextId the newly created context's id.
       */
+    @named("createContextRequest")
     final case class CreateContextRequest(contextId: ContextId)
         extends ApiRequest
 
@@ -1294,6 +849,7 @@ object Runtime {
       *
       * @param contextId the newly created context's id.
       */
+    @named("createContextResponse")
     final case class CreateContextResponse(contextId: ContextId)
         extends ApiResponse
 
@@ -1302,6 +858,7 @@ object Runtime {
       *
       * @param contextId the destroyed context's id.
       */
+    @named("destroyContextRequest")
     final case class DestroyContextRequest(contextId: ContextId)
         extends ApiRequest
 
@@ -1310,6 +867,7 @@ object Runtime {
       *
       * @param contextId the destroyed context's id
       */
+    @named("destroyContextResponse")
     final case class DestroyContextResponse(contextId: ContextId)
         extends ApiResponse
 
@@ -1319,6 +877,7 @@ object Runtime {
       * @param contextId the context's id.
       * @param stackItem an item that should be pushed on the stack.
       */
+    @named("pushContextRequest")
     final case class PushContextRequest(
       contextId: ContextId,
       stackItem: StackItem
@@ -1328,6 +887,7 @@ object Runtime {
       *
       * @param contextId the context's id.
       */
+    @named("pushContextResponse")
     final case class PushContextResponse(contextId: ContextId)
         extends ApiResponse
 
@@ -1336,12 +896,14 @@ object Runtime {
       *
       * @param contextId the context's id.
       */
+    @named("popContextRequest")
     final case class PopContextRequest(contextId: ContextId) extends ApiRequest
 
     /** A response sent from the server upon handling the [[PopContextRequest]]
       *
       * @param contextId the context's id.
       */
+    @named("popContextResponse")
     final case class PopContextResponse(contextId: ContextId)
         extends ApiResponse
 
@@ -1353,6 +915,7 @@ object Runtime {
       * recomputed.
       * @param executionEnvironment the environment used for execution
       */
+    @named("recomputeContextRequest")
     final case class RecomputeContextRequest(
       contextId: ContextId,
       expressions: Option[InvalidatedExpressions],
@@ -1364,6 +927,7 @@ object Runtime {
       *
       * @param contextId the context's id.
       */
+    @named("recomputeContextResponse")
     final case class RecomputeContextResponse(contextId: ContextId)
         extends ApiResponse
 
@@ -1372,6 +936,7 @@ object Runtime {
       *
       * @param contextId the context's id.
       */
+    @named("interruptContextRequest")
     final case class InterruptContextRequest(contextId: ContextId)
         extends ApiRequest
 
@@ -1380,12 +945,14 @@ object Runtime {
       *
       * @param contextId the context's id.
       */
+    @named("interruptContextResponse")
     final case class InterruptContextResponse(contextId: ContextId)
         extends ApiResponse
 
     /** A request sent from the client to the runtime server to get the
       * component groups loaded in runtime.
       */
+    @named("getComponentGroupsRequest")
     final case class GetComponentGroupsRequest() extends ApiRequest
 
     /** A response sent from the server upon handling the
@@ -1394,6 +961,7 @@ object Runtime {
       * @param componentGroups the mapping containing the loaded component
       * groups
       */
+    @named("getComponentGroupsResponse")
     final case class GetComponentGroupsResponse(
       componentGroups: Vector[(LibraryName, ComponentGroups)]
     ) extends ApiResponse
@@ -1402,18 +970,21 @@ object Runtime {
       *
       * @param contextId the context's id
       */
+    @named("contextNotExistError")
     final case class ContextNotExistError(contextId: ContextId) extends Error
 
     /** Signals that a module cannot be found.
       *
       * @param moduleName the module name
       */
+    @named("moduleNotFound")
     final case class ModuleNotFound(moduleName: String) extends Error
 
     /** Signals that execution of a context completed.
       *
       * @param contextId the context's id
       */
+    @named("executionSuccessful")
     final case class ExecutionComplete(contextId: ContextId)
         extends ApiNotification
 
@@ -1423,6 +994,7 @@ object Runtime {
       * @param message the reason of the failure
       * @param failure the detailed information about the failure
       */
+    @named("visualizationExpressionFailed")
     final case class VisualizationExpressionFailed(
       ctx: VisualizationContext,
       message: String,
@@ -1448,6 +1020,7 @@ object Runtime {
       * @param message the reason of the failure
       * @param diagnostic the detailed information about the failure
       */
+    @named("visualizationEvaluationFailed")
     final case class VisualizationEvaluationFailed(
       ctx: VisualizationContext,
       message: String,
@@ -1465,18 +1038,21 @@ object Runtime {
     }
 
     /** Signals that visualization cannot be found. */
+    @named("visualizationNotFound")
     final case class VisualizationNotFound() extends Error
 
     /** An error response signifying that stack is empty.
       *
       * @param contextId the context's id
       */
+    @named("emptyStackError")
     final case class EmptyStackError(contextId: ContextId) extends Error
 
     /** An error response signifying that stack item is invalid.
       *
       * @param contextId the context's id
       */
+    @named("invalidStackItemError")
     final case class InvalidStackItemError(contextId: ContextId) extends Error
 
     /** A request sent to the server to open a file with a contents.
@@ -1484,6 +1060,7 @@ object Runtime {
       * @param path the file being moved to memory.
       * @param contents the current module's contents.
       */
+    @named("setModuleSourcesNotification")
     final case class OpenFileRequest(
       path: File,
       contents: String
@@ -1500,6 +1077,7 @@ object Runtime {
 
     /** A response from the server confirming opening of a file.
       */
+    @named("moduleSourcesSetNotification")
     final case object OpenFileResponse extends ApiResponse
 
     /** A notification sent to the server about in-memory file contents being
@@ -1509,10 +1087,12 @@ object Runtime {
       * @param edits the diffs to apply to the contents
       * @param execute whether to execute the program after applying the edits
       */
+    @named("editFileNotification")
     final case class EditFileNotification(
       path: File,
       edits: Seq[TextEdit],
-      execute: Boolean
+      execute: Boolean,
+      idMap: Option[IdMap]
     ) extends ApiRequest
         with ToLogString {
 
@@ -1521,7 +1101,9 @@ object Runtime {
         "EditFileNotification(" +
         s"path=${MaskedPath(path.toPath).toLogString(shouldMask)},edits=" +
         (if (shouldMask) edits.map(_ => STUB) else edits) +
-        ",execute=" + execute + ")"
+        ",execute=" + execute +
+        "idMap=" + idMap.map(_ => STUB) +
+        ")"
     }
 
     /** A notification sent to the server about in-memory file contents being
@@ -1532,6 +1114,7 @@ object Runtime {
       * @param expressionId the expression to update
       * @param expressionValue the new value of the expression
       */
+    @named("setExpressionValueNotification")
     final case class SetExpressionValueNotification(
       path: File,
       edits: Seq[TextEdit],
@@ -1555,6 +1138,7 @@ object Runtime {
       *
       * @param path the file being closed.
       */
+    @named("closeFileNotification")
     final case class CloseFileNotification(path: File)
         extends ApiRequest
         with ToLogString {
@@ -1568,8 +1152,10 @@ object Runtime {
       * initialization. Any messages sent to the server before receiving this
       * message will be dropped.
       */
+    @named("setExpressionValueNotification")
     final case class InitializedNotification() extends ApiResponse
 
+    @named("executeExpression")
     final case class ExecuteExpression(
       contextId: ContextId,
       visualizationId: VisualizationId,
@@ -1585,6 +1171,7 @@ object Runtime {
       * @param visualizationConfig a configuration object for properties of the
       *                            visualization
       */
+    @named("attachVisualization")
     final case class AttachVisualization(
       visualizationId: VisualizationId,
       expressionId: ExpressionId,
@@ -1603,6 +1190,7 @@ object Runtime {
 
     /** Signals that attaching a visualization has succeeded.
       */
+    @named("visualizationAttached")
     final case class VisualizationAttached() extends ApiResponse
 
     /** A request sent from the client to the runtime server, to detach a
@@ -1612,6 +1200,7 @@ object Runtime {
       * @param visualizationId an identifier of a visualization
       * @param expressionId an identifier of an expression which is visualised
       */
+    @named("detachVisualization")
     final case class DetachVisualization(
       contextId: ContextId,
       visualizationId: VisualizationId,
@@ -1620,6 +1209,7 @@ object Runtime {
 
     /** Signals that detaching a visualization has succeeded.
       */
+    @named("visualizationDetached")
     final case class VisualizationDetached() extends ApiResponse
 
     /** A request sent from the client to the runtime server, to modify a
@@ -1629,6 +1219,7 @@ object Runtime {
       * @param visualizationConfig a configuration object for properties of the
       *                            visualization
       */
+    @named("modifyVisualization")
     final case class ModifyVisualization(
       visualizationId: VisualizationId,
       visualizationConfig: VisualizationConfiguration
@@ -1645,14 +1236,17 @@ object Runtime {
 
     /** Signals that a visualization modification has succeeded.
       */
+    @named("visualizationModified")
     final case class VisualizationModified() extends ApiResponse
 
     /** A request to shut down the runtime server.
       */
+    @named("shutDownRuntimeServer")
     final case class ShutDownRuntimeServer() extends ApiRequest
 
     /** Signals that the runtime server has been shut down.
       */
+    @named("runtimeServerShutDown")
     final case class RuntimeServerShutDown() extends ApiResponse
 
     /** A request for project renaming.
@@ -1661,6 +1255,7 @@ object Runtime {
       * @param oldName the old project name
       * @param newName the new project name
       */
+    @named("renameProject")
     final case class RenameProject(
       namespace: String,
       oldName: String,
@@ -1673,19 +1268,21 @@ object Runtime {
       * @param newNormalizedName new normalized name of the project
       * @param newName new display name of the project
       */
+    @named("projectRenamed")
     final case class ProjectRenamed(
       oldNormalizedName: String,
       newNormalizedName: String,
       newName: String
     ) extends ApiResponse
 
-    /** Signals that project has been renamed.
+    /** Signals that project has failed to be renamed.
       *
       * @param oldName the old name of the project
       * @param newName the new name of the project
       */
+    @named("projectRenameFailed")
     final case class ProjectRenameFailed(oldName: String, newName: String)
-        extends ApiResponse
+        extends Error
 
     /** A request for symbol renaming.
       *
@@ -1693,6 +1290,7 @@ object Runtime {
       * @param expressionId the symbol to rename
       * @param newName the new name of the symbol
       */
+    @named("renameSymbol")
     final case class RenameSymbol(
       module: String,
       expressionId: ExpressionId,
@@ -1703,39 +1301,27 @@ object Runtime {
       *
       * @param newName the new name of the symbol
       */
+    @named("symbolRenamed")
     final case class SymbolRenamed(newName: String) extends ApiResponse
 
     /** Signals that the symbol rename has failed.
       *
       * @param error the error that happened
       */
+    @named("symbolRenameFailed")
     final case class SymbolRenameFailed(error: SymbolRenameFailed.Error)
-        extends ApiResponse
+        extends Error
 
     object SymbolRenameFailed {
 
-      @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
-      @JsonSubTypes(
-        Array(
-          new JsonSubTypes.Type(
-            value = classOf[SymbolRenameFailed.ExpressionNotFound],
-            name  = "symbolRenameFailedExpressionNotFound"
-          ),
-          new JsonSubTypes.Type(
-            value = classOf[SymbolRenameFailed.FailedToApplyEdits],
-            name  = "symbolRenameFailedFailedToApplyEdits"
-          ),
-          new JsonSubTypes.Type(
-            value = classOf[SymbolRenameFailed.OperationNotSupported],
-            name  = "symbolRenameFailedOperationNotSupported"
-          )
-        )
-      ) sealed trait Error
+      sealed trait Error
 
       /** Signals that an expression cannot be found by provided id.
         *
         * @param expressionId the id of expression
         */
+
+      @named("symbolRenameFailedExpressionNotFound")
       final case class ExpressionNotFound(expressionId: ExpressionId)
           extends SymbolRenameFailed.Error
 
@@ -1743,6 +1329,7 @@ object Runtime {
         *
         * @param module the module name
         */
+      @named("symbolRenameFailedFailedToApplyEdits")
       final case class FailedToApplyEdits(module: String)
           extends SymbolRenameFailed.Error
 
@@ -1751,6 +1338,7 @@ object Runtime {
         *
         * @param expressionId the id of expression
         */
+      @named("symbolRenameFailedOperationNotSupported")
       final case class OperationNotSupported(expressionId: ExpressionId)
           extends SymbolRenameFailed.Error
     }
@@ -1762,6 +1350,7 @@ object Runtime {
       * @param exports the list of re-exported symbols
       * @param updates the list of suggestions extracted from module
       */
+    @named("suggestionsDatabaseModuleUpdateNotification")
     final case class SuggestionsDatabaseModuleUpdateNotification(
       module: String,
       actions: Vector[SuggestionsDatabaseAction],
@@ -1785,6 +1374,7 @@ object Runtime {
       * @param libraryName the name of the loaded library
       * @param suggestions the loaded suggestions
       */
+    @named("suggestionsDatabaseSuggestionsLoadedNotification")
     final case class SuggestionsDatabaseSuggestionsLoadedNotification(
       libraryName: LibraryName,
       suggestions: Vector[Suggestion]
@@ -1800,21 +1390,26 @@ object Runtime {
     }
 
     /** A notification about the finished background analyze job. */
+    @named("analyzeModuleInScopeJobFinished")
     final case class AnalyzeModuleInScopeJobFinished() extends ApiNotification
 
     /** A request to invalidate the indexed flag of the modules. */
+    @named("invalidateModulesIndexRequest")
     final case class InvalidateModulesIndexRequest() extends ApiRequest
 
     /** Signals that the module indexes has been invalidated. */
+    @named("invalidateModulesIndexResponse")
     final case class InvalidateModulesIndexResponse() extends ApiResponse
 
     /** A request for the type hierarchy graph. */
+    @named("getTypeGraphRequest")
     final case class GetTypeGraphRequest() extends ApiRequest
 
     /** The result of the type graph request.
       *
       * @param graph the graph.
       */
+    @named("getTypeGraphResponse")
     final case class GetTypeGraphResponse(graph: TypeGraph) extends ApiResponse
 
     /** Signals that a new library has been imported, which means its content
@@ -1826,6 +1421,7 @@ object Runtime {
       * @param location location on disk of the project root belonging to the
       *                 loaded library
       */
+    @named("libraryLoaded")
     final case class LibraryLoaded(
       namespace: String,
       name: String,
@@ -1837,6 +1433,7 @@ object Runtime {
       *
       * @param payload the actual update contained within this notification
       */
+    @named("progressNotification")
     final case class ProgressNotification(
       payload: ProgressNotification.NotificationType
     ) extends ApiNotification
@@ -1878,6 +1475,7 @@ object Runtime {
       *                          the lock has been successfully acquired (which
       *                          may take an arbitrarily large amount of time)
       */
+    @named("acquireLockRequest")
     final case class AcquireLockRequest(
       resourceName: String,
       exclusive: Boolean,
@@ -1889,12 +1487,14 @@ object Runtime {
       * @param lockId a unique identifier of the lock that can be used to
       *               release it
       */
+    @named("lockAcquired")
     final case class LockAcquired(lockId: UUID) extends ApiResponse
 
     /** A response indicating that the lock could not be acquired immediately.
       *
       * It is only sent if the request had `returnImmediately` set to true.
       */
+    @named("cannotAcquireImmediately")
     final case class CannotAcquireImmediately() extends ApiResponse
 
     /** A response indicating a general failure to acquire the lock.
@@ -1902,6 +1502,7 @@ object Runtime {
       * @param errorMessage message associated with the exception that caused
       *                     this failure
       */
+    @named("lockAcquireFailed")
     final case class LockAcquireFailed(errorMessage: String) extends ApiResponse
 
     /** A request sent from the runtime to release a lock.
@@ -1909,9 +1510,11 @@ object Runtime {
       * @param lockId the identifier of the lock to release, as specified in the
       *               [[LockAcquired]] response
       */
+    @named("releaseLockRequest")
     final case class ReleaseLockRequest(lockId: UUID) extends ApiRequest
 
     /** A response indicating that the lock has been successfully released. */
+    @named("lockReleased")
     final case class LockReleased() extends ApiResponse
 
     /** A response indicating a general failure to release the lock.
@@ -1919,6 +1522,7 @@ object Runtime {
       * @param errorMessage message associated with the exception that caused
       *                     this failure
       */
+    @named("lockReleaseFailed")
     final case class LockReleaseFailed(errorMessage: String) extends ApiResponse
 
     /** A request to deserialize the library suggestions.
@@ -1928,55 +1532,37 @@ object Runtime {
       *
       * @param libraryName the name of the loaded library.
       */
+    @named("deserializeLibrarySuggestions")
     final case class DeserializeLibrarySuggestions(libraryName: LibraryName)
         extends ApiRequest
 
     /** A request to start the background jobs processing. */
+    @named("startBackgroundProcessing")
     final case class StartBackgroundProcessing() extends ApiRequest
 
     /** A notification about started background jobs. */
+    @named("backgroundJobsStartedNotification")
     final case class BackgroundJobsStartedNotification() extends ApiNotification
 
     /** A request to serialize the module.
       *
       * @param module qualified module name
       */
+    @named("serializeModule")
     final case class SerializeModule(module: QualifiedName) extends ApiRequest
 
     /** A request to set the execution environment. */
+    @named("setExecutionEnvironmentRequest")
     final case class SetExecutionEnvironmentRequest(
       contextId: ContextId,
       executionEnvironment: ExecutionEnvironment
     ) extends ApiRequest
 
     /** A response to the set execution environment request. */
+    @named("setExecutionEnvironmentResponse")
     final case class SetExecutionEnvironmentResponse(contextId: ContextId)
         extends ApiResponse
 
-    private lazy val mapper = {
-      val factory = new CBORFactory()
-      val mapper  = new ObjectMapper(factory) with ClassTagExtensions
-      mapper
-        .registerModule(DefaultScalaModule)
-        .registerModule(ScalaObjectDeserializerModule)
-    }
-
-    /** Serializes an ApiEnvelope into a byte buffer.
-      *
-      * @param message the message to serialize.
-      * @return the serialized version of the message.
-      */
-    def serialize(message: ApiEnvelope): ByteBuffer =
-      ByteBuffer.wrap(mapper.writeValueAsBytes(message))
-
-    /** Deserializes a byte buffer into an ApiEnvelope, which can be a Request
-      * or a Response.
-      *
-      * @param bytes the buffer to deserialize
-      * @return the deserialized message, if the byte buffer can be deserialized.
-      */
-    def deserializeApiEnvelope(bytes: ByteBuffer): Option[ApiEnvelope] =
-      Try(mapper.readValue(bytes.array(), classOf[ApiEnvelope])).toOption
   }
 
 }

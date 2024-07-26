@@ -23,12 +23,11 @@ use octocrab::models::RunId;
 // ==============
 
 pub mod backend;
-pub mod engine;
 pub mod git_clean;
 pub mod gui;
 pub mod ide;
 pub mod java_gen;
-pub mod project_manager;
+pub mod libraries;
 pub mod release;
 pub mod runtime;
 pub mod wasm;
@@ -142,6 +141,8 @@ pub enum Target {
     JavaGen(java_gen::Target),
     /// Check if the changelog has been updated. Requires CI environment.
     ChangelogCheck,
+    /// Enso-libraries related subcommand.
+    Libraries(libraries::Target),
 }
 
 /// Build, test and package Enso Engine.

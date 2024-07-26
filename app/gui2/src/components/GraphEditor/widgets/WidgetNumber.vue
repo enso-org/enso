@@ -3,21 +3,30 @@ import NumericInputWidget from '@/components/widgets/NumericInputWidget.vue'
 import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { WidgetEditHandler } from '@/providers/widgetRegistry/editHandler'
 import { Ast } from '@/util/ast'
+import { targetIsOutside } from '@/util/autoBlur'
+import { unrefElement } from '@vueuse/core'
 import { computed, ref, type ComponentInstance } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
 const inputComponent = ref<ComponentInstance<typeof NumericInputWidget>>()
-const value = computed({
-  get() {
-    const valueStr = WidgetInput.valueRepr(props.input)
-    return valueStr ? parseFloat(valueStr) : 0
-  },
-  set(value) {
-    props.onUpdate({
-      portUpdate: { value: value.toString(), origin: props.input.portId },
-    })
-  },
+
+function setValue(value: string | undefined) {
+  props.onUpdate({
+    portUpdate: { value, origin: props.input.portId },
+  })
+}
+
+const value = computed<number | undefined>(() => {
+  const inputValue = WidgetInput.valueRepr(props.input)
+  if (inputValue == null) return undefined
+  const inputNumber = parseFloat(inputValue)
+  if (Number.isNaN(inputNumber)) return undefined
+  return inputNumber
 })
+
+const placeholder = computed<string | undefined>(() =>
+  value.value == null ? WidgetInput.valueRepr(props.input) : undefined,
+)
 
 const limits = computed(() => {
   const config = props.input.dynamicConfig
@@ -31,6 +40,10 @@ const limits = computed(() => {
 const editHandler = WidgetEditHandler.New('WidgetNumber', props.input, {
   cancel: () => inputComponent.value?.cancel(),
   start: () => inputComponent.value?.focus(),
+  pointerdown(event) {
+    if (targetIsOutside(event, unrefElement(inputComponent))) editHandler.end()
+    return false
+  },
   end: () => inputComponent.value?.blur(),
 })
 </script>
@@ -62,14 +75,14 @@ export const widgetDefinition = defineWidget(
 </script>
 
 <template>
-  <!-- See comment in GraphNode next to dragPointer definition about stopping pointerdown and pointerup -->
   <NumericInputWidget
     ref="inputComponent"
-    v-model="value"
-    class="WidgetNumber r-24"
+    class="WidgetNumber"
     :limits="limits"
-    @pointerdown.stop
-    @pointerup.stop
+    :placeholder="placeholder"
+    :modelValue="value"
+    @update:modelValue="setValue"
+    @click.stop
     @focus="editHandler.start()"
     @blur="editHandler.end()"
     @input="editHandler.edit($event)"

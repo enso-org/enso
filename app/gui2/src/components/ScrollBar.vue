@@ -100,32 +100,31 @@ const clickTrack = {
   x: (event: MouseEvent) => handleTrackClick('x', event),
   y: (event: MouseEvent) => handleTrackClick('y', event),
 }
+
+const scrollBarStyles = computed(() => ({
+  '--track-width': `${TRACK_WIDTH}px`,
+  '--bar-end-margin': `${BAR_END_MARGIN}px`,
+  '--x-start': xStart.value,
+  '--x-length': xLength.value,
+  '--y-start': yStart.value,
+  '--y-length': yLength.value,
+}))
 </script>
 <script lang="ts">
 export type ScrollbarEvent =
-  | {
-      type: 'start'
-    }
-  | {
-      type: 'move'
-      startOffset: Vec2
-    }
-  | {
-      type: 'stop'
-    }
-  | {
-      type: 'jump'
-      axis: 'x' | 'y'
-      position: number
-    }
+  | { type: 'start' }
+  | { type: 'move'; startOffset: Vec2 }
+  | { type: 'stop' }
+  | { type: 'jump'; axis: 'x' | 'y'; position: number }
+export default {}
 </script>
 
 <template>
-  <div ref="element" class="ScrollBar" @click.stop @pointerdown.stop @pointerup.stop>
-    <div class="track vertical" @pointerdown="clickTrack.y">
+  <div ref="element" class="ScrollBar" :style="scrollBarStyles">
+    <div class="track vertical" @pointerdown.stop="clickTrack.y">
       <div class="bar vertical" v-on.stop="dragSlider.y" />
     </div>
-    <div class="track horizontal" @pointerdown="clickTrack.x">
+    <div class="track horizontal" @pointerdown.stop="clickTrack.x">
       <div class="bar horizontal" v-on.stop="dragSlider.x" />
     </div>
   </div>
@@ -141,30 +140,30 @@ export type ScrollbarEvent =
 
 .vertical {
   position: absolute;
-  width: v-bind('`${TRACK_WIDTH}px`');
+  width: var(--track-width);
   height: 100%;
   right: 1px;
-  margin-top: v-bind('`${BAR_END_MARGIN}px`');
-  margin-bottom: v-bind('`${TRACK_WIDTH + BAR_END_MARGIN}px`');
+  margin-top: var(--bar-end-margin);
+  margin-bottom: calc(var(--track-width) + var(--bar-end-margin));
 }
 .bar.vertical {
   left: 1px;
-  top: v-bind('yStart');
-  height: v-bind('yLength');
+  top: var(--y-start);
+  height: var(--y-length);
 }
 
 .horizontal {
   position: absolute;
-  height: v-bind('`${TRACK_WIDTH}px`');
+  height: var(--track-width);
   width: 100%;
   bottom: 1px;
-  margin-left: v-bind('`${BAR_END_MARGIN}px`');
-  margin-right: v-bind('`${TRACK_WIDTH + BAR_END_MARGIN}px`');
+  margin-left: var(--bar-end-margin);
+  margin-right: calc(var(--track-width) + var(--bar-end-margin));
 }
 .bar.horizontal {
   top: 1px;
-  left: v-bind('xStart');
-  width: v-bind('xLength');
+  left: var(--x-start);
+  width: var(--x-length);
 }
 
 .bar {

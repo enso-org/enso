@@ -24,7 +24,6 @@ import org.enso.pkg.QualifiedName;
 import org.enso.pkg.SourceFile;
 import org.openide.util.lookup.ServiceProvider;
 
-@Persistable(clazz = QualifiedName.class, id = 30300)
 public final class ImportExportCache
     implements Cache.Spi<ImportExportCache.CachedBindings, ImportExportCache.Metadata> {
 
@@ -72,7 +71,7 @@ public final class ImportExportCache
   @Override
   public CachedBindings deserialize(
       EnsoContext context, ByteBuffer data, Metadata meta, TruffleLogger logger)
-      throws ClassNotFoundException, IOException, ClassNotFoundException {
+      throws IOException {
     var ref = Persistance.read(data, CacheUtils.readResolve(context.getCompiler().context()));
     var bindings = ref.get(MapToBindings.class);
     return new CachedBindings(libraryName, bindings, Optional.empty());
@@ -106,7 +105,8 @@ public final class ImportExportCache
         .getPackageForLibraryJava(libraryName)
         .map(
             pkg -> {
-              var bindingsCacheRoot = pkg.getBindingsCacheRootForPackage(Info.ensoVersion());
+              TruffleFile bindingsCacheRoot =
+                  pkg.getBindingsCacheRootForPackage(Info.ensoVersion());
               var localCacheRoot = bindingsCacheRoot.resolve(libraryName.namespace());
               var distribution = context.getDistributionManager();
               var pathSegments =
@@ -198,30 +198,23 @@ public final class ImportExportCache
   @Persistable(
       clazz = org.enso.compiler.data.BindingsMap$ModuleReference$Abstract.class,
       id = 33007)
-  @Persistable(clazz = BindingsMap.ModuleMethod.class, id = 33008)
   @Persistable(clazz = BindingsMap.Type.class, id = 33009)
   @Persistable(clazz = BindingsMap.ResolvedImport.class, id = 33010)
   @Persistable(clazz = BindingsMap.Cons.class, id = 33011)
   @Persistable(clazz = BindingsMap.ResolvedModule.class, id = 33012)
   @Persistable(clazz = BindingsMap.ResolvedType.class, id = 33013)
-  @Persistable(clazz = BindingsMap.ResolvedMethod.class, id = 33014)
-  @Persistable(clazz = BindingsMap.ExportedModule.class, id = 33015)
-  @Persistable(clazz = org.enso.compiler.data.BindingsMap$SymbolRestriction$Only.class, id = 33016)
-  @Persistable(clazz = org.enso.compiler.data.BindingsMap$SymbolRestriction$Union.class, id = 33017)
-  @Persistable(
-      clazz = org.enso.compiler.data.BindingsMap$SymbolRestriction$Intersect.class,
-      id = 33018)
-  @Persistable(
-      clazz = org.enso.compiler.data.BindingsMap$SymbolRestriction$AllowedResolution.class,
-      id = 33019)
-  @Persistable(clazz = org.enso.compiler.data.BindingsMap$SymbolRestriction$All$.class, id = 33020)
-  @Persistable(
-      clazz = org.enso.compiler.data.BindingsMap$SymbolRestriction$Hiding.class,
-      id = 33021)
-  @Persistable(clazz = BindingsMap.Resolution.class, id = 33029)
-  @Persistable(clazz = BindingsMap.ResolvedConstructor.class, id = 33030)
-  @Persistable(clazz = BindingsMap.ResolvedPolyglotSymbol.class, id = 33031)
-  @Persistable(clazz = BindingsMap.ResolvedPolyglotField.class, id = 33032)
+  @Persistable(clazz = BindingsMap.ResolvedModuleMethod.class, id = 33014)
+  @Persistable(clazz = BindingsMap.ResolvedExtensionMethod.class, id = 33015)
+  @Persistable(clazz = BindingsMap.ResolvedConversionMethod.class, id = 33016)
+  @Persistable(clazz = BindingsMap.ExportedModule.class, id = 33017)
+  @Persistable(clazz = BindingsMap.Resolution.class, id = 33018)
+  @Persistable(clazz = BindingsMap.ResolvedConstructor.class, id = 33019)
+  @Persistable(clazz = BindingsMap.ResolvedPolyglotSymbol.class, id = 33020)
+  @Persistable(clazz = BindingsMap.ResolvedPolyglotField.class, id = 33021)
+  @Persistable(clazz = BindingsMap.ModuleMethod.class, id = 33022)
+  @Persistable(clazz = BindingsMap.ExtensionMethod.class, id = 33023)
+  @Persistable(clazz = BindingsMap.ConversionMethod.class, id = 33024)
+  @Persistable(clazz = BindingsMap.Argument.class, id = 33025)
   @ServiceProvider(service = Persistance.class)
   public static final class PersistBindingsMap extends Persistance<BindingsMap> {
     public PersistBindingsMap() {
@@ -233,7 +226,6 @@ public final class ImportExportCache
       out.writeObject(obj.definedEntities());
       out.writeObject(obj.currentModule());
       out.writeInline(scala.collection.immutable.List.class, obj.resolvedImports());
-      out.writeInline(scala.collection.immutable.List.class, obj.resolvedExports());
       out.writeInline(scala.collection.immutable.Map.class, obj.exportedSymbols());
     }
 
@@ -243,11 +235,9 @@ public final class ImportExportCache
       var de = (scala.collection.immutable.List<DefinedEntity>) in.readObject();
       var cm = (ModuleReference) in.readObject();
       var imp = in.readInline(scala.collection.immutable.List.class);
-      var exp = in.readInline(scala.collection.immutable.List.class);
       var sym = in.readInline(scala.collection.immutable.Map.class);
       var map = new BindingsMap(de, cm);
       map.resolvedImports_$eq(imp);
-      map.resolvedExports_$eq(exp);
       map.exportedSymbols_$eq(sym);
       return map;
     }

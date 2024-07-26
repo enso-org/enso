@@ -358,15 +358,19 @@ public abstract class SortVectorNode extends Node {
   }
 
   private Object attachDifferentComparatorsWarning(Object vector, List<Group> groups) {
-    var diffCompsMsg =
-        groups.stream()
-            .map(Group::comparator)
-            .map(comparator -> comparator.getQualifiedName().toString())
-            .collect(Collectors.joining(", "));
-    var text = Text.create("Different comparators: [" + diffCompsMsg + "]");
-    var ctx = EnsoContext.get(this);
-    var warn = Warning.create(ctx, text, this);
-    return WithWarnings.appendTo(ctx, vector, false, warn);
+    if (groups.size() > 1) {
+      var diffCompsMsg =
+          groups.stream()
+              .map(Group::comparator)
+              .map(comparator -> comparator.getQualifiedName().toString())
+              .collect(Collectors.joining(", "));
+      var text = Text.create("Different comparators: [" + diffCompsMsg + "]");
+      var ctx = EnsoContext.get(this);
+      var warn = Warning.create(ctx, text, this);
+      return WithWarnings.appendTo(ctx, vector, false, warn);
+    } else {
+      return vector;
+    }
   }
 
   private String getDefaultComparatorQualifiedName() {

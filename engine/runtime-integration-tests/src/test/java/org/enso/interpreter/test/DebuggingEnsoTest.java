@@ -31,7 +31,7 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
-import org.enso.polyglot.MethodNames.Module;
+import org.enso.common.MethodNames.Module;
 import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Engine;
@@ -42,6 +42,7 @@ import org.graalvm.polyglot.io.IOAccess;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class DebuggingEnsoTest {
@@ -249,10 +250,19 @@ public class DebuggingEnsoTest {
     Value fooFunc =
         createEnsoMethod(
             """
-        from Standard.Base import Vector
+        import Standard.Base.Internal.Array_Like_Helpers
+        from Standard.Base import Any
+        from Standard.Base import Integer
+
+        new_vector_builder : Integer -> Any
+        new_vector_builder capacity = @Builtin_Method "Array_Like_Helpers.new_vector_builder"
+
+        type Builder
+            Value java_builder
 
         foo x =
-            vec_builder = Vector.new_builder
+            java_builder = new_vector_builder 1
+            builder = Builder.Value java_builder
             end = 42
         """,
             "foo");
@@ -261,7 +271,7 @@ public class DebuggingEnsoTest {
         debugger.startSession(
             (SuspendedEvent event) -> {
               if (event.getSourceSection().getCharacters().toString().strip().equals("end = 42")) {
-                DebugValue vecBuilder = event.getTopStackFrame().eval("vec_builder");
+                DebugValue vecBuilder = event.getTopStackFrame().eval("builder");
                 // `java_builder` is a field of `vec_builder` atom and it is a HostObject.
                 // As such it should be wrapped, and considered only as an interop string.
                 DebugValue javaBuilder = vecBuilder.getProperty("java_builder");
@@ -425,6 +435,95 @@ public class DebuggingEnsoTest {
     }
   }
 
+  @Test
+  public void testAtomFieldsAreReadable() {
+    var fooFunc =
+        createEnsoMethod(
+            """
+        type My_Type
+            Cons field_1 field_2
+
+        foo x =
+            obj = My_Type.Cons 1 2
+            obj
+        """,
+            "foo");
+    try (DebuggerSession session =
+        debugger.startSession(
+            (SuspendedEvent event) -> {
+              switch (event.getSourceSection().getCharacters().toString().strip()) {
+                case "obj" -> {
+                  DebugScope scope = event.getTopStackFrame().getScope();
+                  DebugValue objValue = scope.getDeclaredValue("obj");
+                  assertThat(objValue.isReadable(), is(true));
+                  assertThat(objValue.isInternal(), is(false));
+                  assertThat(objValue.hasReadSideEffects(), is(false));
+
+                  var field1Prop = objValue.getProperty("field_1");
+                  assertThat(field1Prop.isReadable(), is(true));
+                  assertThat(field1Prop.isNumber(), is(true));
+                  assertThat(field1Prop.asInt(), is(1));
+
+                  assertThat(objValue.getProperties().size(), is(2));
+                  for (var prop : objValue.getProperties()) {
+                    assertThat(
+                        "Property '" + prop.getName() + "' should be readable",
+                        prop.isReadable(),
+                        is(true));
+                    assertThat(prop.isNumber(), is(true));
+                  }
+                }
+              }
+              event.getSession().suspendNextExecution();
+            })) {
+      session.suspendNextExecution();
+      fooFunc.execute(0);
+    }
+  }
+
+  @Ignore("https://github.com/enso-org/enso/issues/10675")
+  @Test
+  public void testAtomFieldAreReadable_MultipleConstructors() {
+    var fooFunc =
+        createEnsoMethod(
+            """
+        type My_Type
+            Cons_1 f1 f2
+            Cons_2 g1 g2 g3
+
+        foo x =
+            obj = My_Type.Cons_1 1 2
+            obj
+        """,
+            "foo");
+    try (DebuggerSession session =
+        debugger.startSession(
+            (SuspendedEvent event) -> {
+              switch (event.getSourceSection().getCharacters().toString().strip()) {
+                case "obj" -> {
+                  DebugScope scope = event.getTopStackFrame().getScope();
+                  DebugValue objValue = scope.getDeclaredValue("obj");
+                  assertThat(objValue.isReadable(), is(true));
+                  assertThat(objValue.isInternal(), is(false));
+                  assertThat(objValue.hasReadSideEffects(), is(false));
+
+                  assertThat("Has fields f1 and f2", objValue.getProperties().size(), is(2));
+                  for (var prop : objValue.getProperties()) {
+                    assertThat(
+                        "Property '" + prop.getName() + "' should be readable",
+                        prop.isReadable(),
+                        is(true));
+                    assertThat(prop.isNumber(), is(true));
+                  }
+                }
+              }
+              event.getSession().suspendNextExecution();
+            })) {
+      session.suspendNextExecution();
+      fooFunc.execute(0);
+    }
+  }
+
   /**
    * Tests stepping through the given source.
    *
@@ -517,12 +616,13 @@ public class DebuggingEnsoTest {
         createEnsoSource(
             """
         from Standard.Base import Vector
+        import Standard.Base.Data.Vector.Builder
 
         bar vec num_elems =
             vec.slice 0 num_elems
 
         foo x =
-            vec_builder = Vector.new_builder
+            vec_builder = Builder.new
             vec_builder.append 1
             vec_builder.append 2
             vec = bar (vec_builder.to_vector) (vec_builder.to_vector.length - 1)
@@ -532,7 +632,7 @@ public class DebuggingEnsoTest {
     List<String> expectedLines =
         List.of(
             "foo x =",
-            "vec_builder = Vector.new_builder",
+            "vec_builder = Builder.new",
             "vec_builder.append 1",
             "vec_builder.append 2",
             "vec = bar (vec_builder.to_vector) (vec_builder.to_vector.length - 1)",

@@ -1,3 +1,4 @@
+use crate::engine::StandardLibraryTestsSelection;
 use crate::prelude::*;
 
 use crate::paths::Paths;
@@ -73,11 +74,21 @@ impl BuiltEnso {
     }
 
     pub async fn run_benchmarks(&self, opt: BenchmarkOptions) -> Result {
-        self.cmd()?
-            .with_args(["--run", self.paths.repo_root.test.benchmarks.as_str()])
+        let filename = format!("enso{}", if TARGET_OS == OS::Windows { ".exe" } else { "" });
+        let enso = self
+            .paths
+            .repo_root
+            .built_distribution
+            .enso_engine_triple
+            .engine_package
+            .bin
+            .join(filename);
+        let benchmarks = Command::new(&enso)
+            .args(["--jvm", "--run", self.paths.repo_root.test.benchmarks.as_str()])
             .set_env(ENSO_BENCHMARK_TEST_DRY_RUN, &Boolean::from(opt.dry_run))?
             .run_ok()
-            .await
+            .await;
+        benchmarks
     }
 
     pub fn run_test(&self, test_path: impl AsRef<Path>, ir_caches: IrCaches) -> Result<Command> {
@@ -103,6 +114,7 @@ impl BuiltEnso {
         ir_caches: IrCaches,
         sbt: &crate::engine::sbt::Context,
         async_policy: AsyncPolicy,
+        test_selection: StandardLibraryTestsSelection,
     ) -> Result {
         let paths = &self.paths;
         // Environment for meta-tests. See:
@@ -121,9 +133,22 @@ impl BuiltEnso {
             ide_ci::fs::write(google_api_test_data_dir.join("secret.json"), gdoc_key)?;
         }
 
+        let std_tests = match &test_selection {
+            StandardLibraryTestsSelection::All =>
+                crate::paths::discover_standard_library_tests(&paths.repo_root)?,
+            StandardLibraryTestsSelection::Selected(only) =>
+                only.iter().map(|test| paths.repo_root.test.join(test)).collect(),
+        };
+        let may_need_postgres = match &test_selection {
+            StandardLibraryTestsSelection::All => true,
+            StandardLibraryTestsSelection::Selected(only) =>
+                only.iter().any(|test| test.contains("Postgres_Tests")),
+        };
+
         let _httpbin = crate::httpbin::get_and_spawn_httpbin_on_free_port(sbt).await?;
+
         let _postgres = match TARGET_OS {
-            OS::Linux => {
+            OS::Linux if may_need_postgres => {
                 let runner_context_string = crate::env::ENSO_RUNNER_CONTAINER_NAME
                     .get_raw()
                     .or_else(|_| ide_ci::actions::env::RUNNER_NAME.get())
@@ -146,7 +171,6 @@ impl BuiltEnso {
             _ => None,
         };
 
-        let std_tests = crate::paths::discover_standard_library_tests(&paths.repo_root)?;
         let futures = std_tests.into_iter().map(|test_path| {
             let command = self.run_test(test_path, ir_caches);
             async move { command?.run_ok().await }

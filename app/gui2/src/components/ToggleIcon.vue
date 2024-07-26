@@ -1,27 +1,46 @@
 <script setup lang="ts">
 /**
- * A toggleable `SvgIcon`.
+ * A toggleable `SvgButton`.
  *
- * Clicking the icon will add `toggledOn` css class on its root `svg` element. The component
- * does not have any style by itself, so the `toggledOn` style should be specified in the usage
- * place.
+ * Clicking the icon will switch between `toggledOn` and `toggledOff` css classes on its root `svg`
+ * element.
  */
 
+import MenuButton from '@/components/MenuButton.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import type { Icon } from '@/util/iconName'
 
-const props = withDefaults(defineProps<{ icon: Icon; modelValue?: boolean }>(), {
-  modelValue: false,
-})
-const emit = defineEmits<{
-  'update:modelValue': [toggledOn: boolean]
-}>()
+const toggledOn = defineModel<boolean>({ default: false })
+const props = defineProps<{ icon: Icon; label?: string }>()
 </script>
 
 <template>
-  <SvgIcon
-    :name="props.icon"
-    :class="{ toggledOn: modelValue }"
-    @click.stop="emit('update:modelValue', !modelValue)"
-  />
+  <MenuButton v-model="toggledOn" class="ToggleIcon">
+    <SvgIcon :name="icon" />
+    <div v-if="props.label" v-text="props.label" />
+  </MenuButton>
 </template>
+
+<style scoped>
+.ToggleIcon {
+  margin: -4px;
+  gap: 4px;
+}
+
+.toggledOff svg {
+  opacity: 0.4;
+}
+
+:is(.toggledOff, .toggledOn):active svg {
+  opacity: 0.7;
+}
+
+.record {
+  &.toggledOn {
+    color: red;
+  }
+  &.toggledOff svg {
+    opacity: unset;
+  }
+}
+</style>

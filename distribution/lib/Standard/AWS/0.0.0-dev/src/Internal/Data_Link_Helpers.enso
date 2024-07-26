@@ -2,7 +2,7 @@ private
 
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_State.Illegal_State
-from Standard.Base.Enso_Cloud.Data_Link import parse_secure_value
+from Standard.Base.Enso_Cloud.Data_Link_Helpers import parse_secure_value
 from Standard.Base.Enso_Cloud.Public_Utils import get_required_field
 
 import project.AWS_Credential.AWS_Credential

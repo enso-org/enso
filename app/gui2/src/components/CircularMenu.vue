@@ -1,79 +1,115 @@
 <script setup lang="ts">
+import { graphBindings } from '@/bindings'
+import ColorRing from '@/components/ColorRing.vue'
 import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
 import SmallPlusButton from '@/components/SmallPlusButton.vue'
-import SvgIcon from '@/components/SvgIcon.vue'
+import SvgButton from '@/components/SvgButton.vue'
 import ToggleIcon from '@/components/ToggleIcon.vue'
+import { ref } from 'vue'
 
+const nodeColor = defineModel<string | undefined>('nodeColor')
 const props = defineProps<{
   isRecordingEnabledGlobally: boolean
   isRecordingOverridden: boolean
   isDocsVisible: boolean
-  isVisualizationVisible: boolean
+  isVisualizationEnabled: boolean
   isFullMenuVisible: boolean
+  isRemovable: boolean
+  matchableNodeColors: Set<string>
+  documentationUrl: string | undefined
 }>()
 const emit = defineEmits<{
   'update:isRecordingOverridden': [isRecordingOverridden: boolean]
   'update:isDocsVisible': [isDocsVisible: boolean]
-  'update:isVisualizationVisible': [isVisualizationVisible: boolean]
+  'update:isVisualizationEnabled': [isVisualizationEnabled: boolean]
   startEditing: []
   startEditingComment: []
   openFullMenu: []
   delete: []
   createNodes: [options: NodeCreationOptions[]]
-  toggleColorPicker: []
 }>()
+
+const showColorPicker = ref(false)
+
+function openDocs(url: string) {
+  window.open(url, '_blank')
+}
+
+function readableBinding(binding: keyof (typeof graphBindings)['bindings']) {
+  return graphBindings.bindings[binding].humanReadable
+}
 </script>
 
 <template>
-  <div class="CircularMenu" @pointerdown.stop @pointerup.stop @click.stop>
-    <div class="circle" :class="`${props.isFullMenuVisible ? 'full' : 'partial'}`">
-      <div v-if="!isFullMenuVisible" class="More" @pointerdown.stop="emit('openFullMenu')"></div>
-      <SvgIcon
-        v-if="isFullMenuVisible"
-        name="comment"
-        class="icon-container button slot2"
-        :alt="`Edit comment`"
-        @click.stop="emit('startEditingComment')"
-      />
-      <SvgIcon
-        v-if="isFullMenuVisible"
-        name="paint_palette"
-        class="icon-container button slot3"
-        :alt="`Choose color`"
-        @click.stop="emit('toggleColorPicker')"
-      />
-      <SvgIcon
-        v-if="isFullMenuVisible"
-        name="trash2"
-        class="icon-container button slot4"
-        :alt="`Delete component`"
-        @click.stop="emit('delete')"
-      />
+  <div class="CircularMenu">
+    <div
+      v-if="!showColorPicker"
+      class="circle menu"
+      :class="`${props.isFullMenuVisible ? 'full' : 'partial'}`"
+    >
+      <template v-if="isFullMenuVisible">
+        <SvgButton
+          v-if="documentationUrl"
+          name="help"
+          class="slot1"
+          :title="`Open Documentation (${readableBinding('openDocumentation')})`"
+          @click.stop="openDocs(documentationUrl)"
+        />
+        <SvgButton
+          name="comment"
+          class="slot2"
+          title="Comment"
+          @click.stop="emit('startEditingComment')"
+        />
+        <SvgButton
+          name="paint_palette"
+          class="slot3"
+          title="Color"
+          @click.stop="showColorPicker = true"
+        />
+        <SvgButton
+          name="trash2"
+          class="slot4"
+          :title="`Delete (${readableBinding('deleteSelected')})`"
+          data-testid="removeNode"
+          :disabled="!isRemovable"
+          @click.stop="emit('delete')"
+        />
+      </template>
+      <div v-else class="More" @pointerdown.stop="emit('openFullMenu')"></div>
       <ToggleIcon
         icon="eye"
-        class="icon-container button slot5"
-        :alt="`${props.isVisualizationVisible ? 'Hide' : 'Show'} visualization`"
-        :modelValue="props.isVisualizationVisible"
-        @update:modelValue="emit('update:isVisualizationVisible', $event)"
+        class="slot5"
+        title="Visualization"
+        :modelValue="props.isVisualizationEnabled"
+        @update:modelValue="emit('update:isVisualizationEnabled', $event)"
       />
-      <SvgIcon
+      <SvgButton
         name="edit"
-        class="icon-container button slot6"
+        class="slot6"
+        title="Code Edit"
         data-testid="edit-button"
         @click.stop="emit('startEditing')"
       />
       <ToggleIcon
         icon="record"
-        class="icon-container button slot7"
-        data-testid="overrideRecordingButton"
-        :class="{ 'recording-overridden': props.isRecordingOverridden }"
-        :alt="`${props.isRecordingOverridden ? 'Disable' : 'Enable'} recording`"
+        class="slot7 record"
+        data-testid="toggleRecord"
+        title="Write Always"
         :modelValue="props.isRecordingOverridden"
         @update:modelValue="emit('update:isRecordingOverridden', $event)"
       />
     </div>
+    <div v-if="showColorPicker" class="circle">
+      <ColorRing
+        v-model="nodeColor"
+        :matchableColors="matchableNodeColors"
+        :initialColorAngle="90"
+        @close="showColorPicker = false"
+      />
+    </div>
     <SmallPlusButton
-      v-if="!isVisualizationVisible"
+      v-if="!isVisualizationEnabled"
       class="below-slot5"
       @createNodes="emit('createNodes', $event)"
     />
@@ -83,17 +119,29 @@ const emit = defineEmits<{
 <style scoped>
 .CircularMenu {
   position: absolute;
+  bottom: 0;
+  width: 0;
+  height: 0;
   user-select: none;
   pointer-events: none;
+  /* This is a variable so that it can be referenced in computations,
+     but currently it can't be changed due to many hard-coded values below. */
+  --outer-diameter: 104px;
+  --full-ring-path: path(
+    evenodd,
+    'M0,52 A52,52 0,1,1 104,52 A52,52 0,1,1 0, 52 z m52,20 A20,20 0,1,1 52,32 20,20 0,1,1 52,72 z'
+  );
 }
 
 .circle {
   position: relative;
   left: -36px;
-  top: -36px;
-  width: 114px;
-  height: 114px;
+  top: -68px;
+  width: var(--outer-diameter);
+  height: var(--outer-diameter);
+}
 
+.circle.menu {
   > * {
     pointer-events: all;
   }
@@ -118,10 +166,7 @@ const emit = defineEmits<{
   }
   &.full {
     &:before {
-      clip-path: path(
-        evenodd,
-        'M0,52 A52,52 0,1,1 104,52 A52,52 0,1,1 0, 52 z m52,20 A20,20 0,1,1 52,32 20,20 0,1,1 52,72 z'
-      );
+      clip-path: var(--full-ring-path);
     }
   }
 }
@@ -153,27 +198,13 @@ const emit = defineEmits<{
   }
 }
 
-.icon-container {
-  display: inline-flex;
-  background: none;
-  padding: 0;
-  border: none;
-  opacity: 30%;
-  pointer-events: all;
-}
-
-.toggledOn {
-  opacity: unset;
+:deep(.ColorRing .gradient) {
+  clip-path: var(--full-ring-path);
 }
 
 .inactive {
   pointer-events: none;
   opacity: 10%;
-}
-
-.recording-overridden {
-  opacity: 100%;
-  color: red;
 }
 
 /**
@@ -220,7 +251,7 @@ const emit = defineEmits<{
 
 .below-slot5 {
   position: absolute;
-  top: calc(108px - 36px);
+  top: calc(var(--outer-diameter) - 64px);
   pointer-events: all;
 }
 

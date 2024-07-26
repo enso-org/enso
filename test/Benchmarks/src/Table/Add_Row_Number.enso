@@ -46,7 +46,7 @@ collect_benches = Bench.build builder->
         if extended_tests then
             # Comparing `add_row_number` to similar table ops
             group_builder.specify "Sort_Table" <|
-                data.table.order_by "X"
+                data.table.sort "X"
             group_builder.specify "Group_And_Sort" <|
                 data.table.aggregate ["X"] [Aggregate_Column.Last "Y" order_by="Y"]
 

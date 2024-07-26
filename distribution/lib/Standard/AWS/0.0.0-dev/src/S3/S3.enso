@@ -88,6 +88,7 @@ read_bucket bucket prefix="" credentials:AWS_Credential=AWS_Credential.Default d
     iterator request 0 [] [] True
 
 ## ADVANCED
+   ICON data_input
    Gets the metadata of a bucket or object.
 
    Arguments:
@@ -95,11 +96,11 @@ read_bucket bucket prefix="" credentials:AWS_Credential=AWS_Credential.Default d
    - key: the key of the object.
    - credentials: AWS credentials. If not provided, the default credentials will
      be used.
-head : Text -> Text -> AWS_Credential -> Map Text Any ! S3_Error
+head : Text -> Text -> AWS_Credential -> Dictionary Text Any ! S3_Error
 head bucket key="" credentials:AWS_Credential=AWS_Credential.Default =
     response = raw_head bucket key credentials
     pairs = response.sdkFields.map f-> [f.memberName, f.getValueOrDefault response]
-    Map.from_vector pairs
+    Dictionary.from_vector pairs
 
 ## PRIVATE
    Gets the raw metadata of a bucket or object.
@@ -108,7 +109,7 @@ head bucket key="" credentials:AWS_Credential=AWS_Credential.Default =
    - bucket: the name of the bucket.
    - key: the key of the object.
    - credentials: AWS credentials.
-raw_head : Text -> Text -> AWS_Credential -> Map Text Any ! S3_Error
+raw_head : Text -> Text -> AWS_Credential -> Dictionary Text Any ! S3_Error
 raw_head bucket key credentials =
     client = make_client_for_bucket bucket credentials
     case key == "" of
@@ -120,6 +121,7 @@ raw_head bucket key credentials =
             handle_s3_errors bucket=bucket key=key <| client.headObject request
 
 ## ADVANCED
+   ICON data_input
    Gets an object from an S3 bucket.
    Returns a raw stream which can be read once.
 

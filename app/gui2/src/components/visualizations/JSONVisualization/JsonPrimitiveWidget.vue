@@ -29,6 +29,7 @@ const primitive = computed(() => {
 <style scoped>
 .string {
   color: darkgreen;
+  white-space: pre-wrap;
 }
 .number {
   color: darkgreen;

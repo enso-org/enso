@@ -22,6 +22,8 @@ import java.nio.file.{Path, Paths}
 import scala.sys.process.Process
 import scala.util.Using
 import java.io.FileWriter
+import xsbti.Severity
+import xsbti.Position
 
 object FrgaalJavaCompiler {
   private val ENSO_SOURCES = ".enso-sources"
@@ -254,6 +256,29 @@ object FrgaalJavaCompiler {
         exitCode = Process(exe +: forkArgs, cwd) ! javacLogger
       } finally {
         javacLogger.flush("frgaal", exitCode)
+      }
+      if (exitCode != 0) {
+        class FrgaalPosition extends xsbti.Position {
+          def line(): java.util.Optional[Integer]   = java.util.Optional.empty()
+          def lineContent()                         = "Frgaal errors"
+          def offset(): java.util.Optional[Integer] = java.util.Optional.empty()
+          def pointer(): java.util.Optional[Integer] =
+            java.util.Optional.empty()
+          def pointerSpace(): java.util.Optional[String] =
+            java.util.Optional.empty()
+          def sourceFile(): java.util.Optional[java.io.File] =
+            java.util.Optional.empty()
+          def sourcePath(): java.util.Optional[String] =
+            java.util.Optional.empty()
+        }
+
+        class FrgaalProblem extends xsbti.Problem {
+          def category()           = "Compiler error"
+          def severity(): Severity = Severity.Error
+          def message()            = "Error in frgaal compilation"
+          def position(): Position = new FrgaalPosition()
+        }
+        reporter.log(new FrgaalProblem())
       }
       // We return true or false, depending on success.
       exitCode == 0

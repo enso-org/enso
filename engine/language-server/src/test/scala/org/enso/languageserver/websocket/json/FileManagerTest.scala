@@ -4,7 +4,8 @@ import io.circe.literal._
 import io.circe.parser.parse
 import org.apache.commons.io.FileUtils
 import org.bouncycastle.util.encoders.Hex
-import org.enso.languageserver.boot.{ProfilingConfig, StartupConfig}
+import org.enso.runner.common.ProfilingConfig
+import org.enso.languageserver.boot.StartupConfig
 import org.enso.languageserver.data._
 import org.enso.logger.ReportLogsOnFailure
 import org.enso.polyglot.runtime.Runtime.Api
@@ -897,18 +898,7 @@ class FileManagerTest
                       ]
                     },
                     "name" : ".enso",
-                    "files" : [
-                      {
-                        "type" : "File",
-                        "name" : "suggestions.db",
-                        "path" : {
-                          "rootId" : $testContentRootId,
-                          "segments" : [
-                            ".enso"
-                          ]
-                        }
-                      }
-                    ],
+                    "files" : [],
                     "directories" : [
                     ]
                   },

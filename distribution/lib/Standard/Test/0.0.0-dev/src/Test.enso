@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Data.Vector.Builder
 from Standard.Base.Errors.Common import Uninitialized_State
 from Standard.Base.Runtime import State
 
@@ -19,7 +20,7 @@ type Test
     ## Construct a Test Suite object
     build : (Suite_Builder -> Any) -> Suite
     build fn =
-        b = Vector.new_builder
+        b = Builder.new
         fn (Suite_Builder.Impl b)
         groups_vec = b.to_vector
         Suite.Impl groups_vec
@@ -54,17 +55,17 @@ type Test
             is_panic_matching = payload.is_a matcher
             if is_panic_matching then payload else
                 stack_trace = caught_panic.convert_to_dataflow_error.get_stack_trace_text
-                Test.fail ("Expected a " + matcher.to_text + ", but " + payload.to_text + " was thrown instead (at "+loc+").") details=stack_trace
+                Test.fail ("Expected a " + matcher.to_text + ", but " + payload.to_text + " was thrown instead (at " + loc + ").") details=stack_trace
         Panic.catch Any handler=handle_panic <|
             res = action
 
             # If the action did not panic above, we fail the test.
             case res.is_error of
                 True ->
-                    Test.fail ("Expected a Panic " + matcher.to_text + " to be thrown, but the action returned a Dataflow Error " + res.catch.to_display_text + " instead (at "+loc+").")
+                    Test.fail ("Expected a Panic " + matcher.to_text + " to be thrown, but the action returned a Dataflow Error " + res.catch.to_display_text + " instead (at " + loc + ").")
                 False ->
                     return_suffix = if res.is_nothing then "" else " and returned ["+res.to_text+"]"
-                    Test.fail ("Expected a Panic " + matcher.to_text + " to be thrown, but the action succeeded" + return_suffix + " (at "+loc+").")
+                    Test.fail ("Expected a Panic " + matcher.to_text + " to be thrown, but the action succeeded" + return_suffix + " (at " + loc + ").")
 
 
     ## Expect a function to fail with the provided panic.
@@ -136,7 +137,7 @@ type Test
         payload = error.catch
         loc = Meta.get_source_location 1+frames_to_skip
         msg = "An unexpected dataflow error (" + payload.to_text + ") has been matched (at " + loc + ")."
-        Test.fail msg+'\n'+error.get_stack_trace_text
+        Test.fail msg details=error.get_stack_trace_text
 
     ## Executes the block of code passed as behavior and adds a clue modifier which
        changes how assertion failures are reported.
@@ -204,8 +205,5 @@ type Test
                     if i % 10 == 0 then
                         IO.println 'Still failing after '+i.to_text+' retries ('+loc.to_display_text+'):\n'+caught_panic.payload.to_display_text
                     Thread.sleep milliseconds_between_attempts
-                    ## TODO This used to be
-                            @Tail_Call go (i+1)
-                       We should re-add the tail call once https://github.com/enso-org/enso/issues/9251 is fixed.
-                    go (i+1)
+                    @Tail_Call go (i+1)
         go 1

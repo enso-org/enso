@@ -34,11 +34,11 @@ case class DependencyInformation(
   url: Option[String]
 ) {
 
-  /** Normalized name of the package that uniquely identifies the dependency.
-    */
+  /** Normalized name of the package that uniquely identifies the dependency. */
   def packageName: String =
-    Review.normalizeName(
-      moduleInfo.organization + "." + moduleInfo.name + "-" +
-      moduleInfo.version
-    )
+    packageNameWithoutVersion + "-" + Review.normalizeName(moduleInfo.version)
+
+  /** Normalized package name, ignoring the version suffix. */
+  def packageNameWithoutVersion: String =
+    Review.normalizeName(moduleInfo.organization + "." + moduleInfo.name)
 }

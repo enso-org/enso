@@ -74,7 +74,17 @@ public abstract class TypeOfNode extends Node {
     return execute(value.getValue());
   }
 
-  @Specialization(guards = {"!types.hasType(value)"})
+  static boolean isWithoutType(Object value, TypesLibrary types) {
+    if (value instanceof EnsoObject) {
+      return false;
+    }
+    if (types.hasType(value)) {
+      return false;
+    }
+    return true;
+  }
+
+  @Specialization(guards = {"isWithoutType(value, types)"})
   Object withoutType(
       Object value,
       @Shared("interop") @CachedLibrary(limit = "3") InteropLibrary interop,
@@ -114,7 +124,7 @@ public abstract class TypeOfNode extends Node {
 
     @Specialization(guards = {"type.isMap()"})
     Type doPolygotMap(Interop type, Object value) {
-      return EnsoContext.get(this).getBuiltins().map();
+      return EnsoContext.get(this).getBuiltins().dictionary();
     }
 
     @Specialization(guards = {"type.isString()"})

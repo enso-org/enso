@@ -6,8 +6,7 @@ import { useAppClass } from '@/providers/appClass'
 import { Range } from '@/util/data/range'
 import { Vec2 } from '@/util/data/vec2'
 import { uuidv4 } from 'lib0/random'
-import { nextTick } from 'process'
-import { computed, ref, shallowReactive, watchEffect, watchPostEffect } from 'vue'
+import { computed, nextTick, ref, shallowReactive, watchEffect, watchPostEffect } from 'vue'
 </script>
 
 <script setup lang="ts" generic="T">
@@ -184,11 +183,13 @@ function onDragStart(event: DragEvent, index: number) {
 
     const metaMime = encodeMetadataToMime(meta)
     event.dataTransfer.setData(metaMime, '')
-    nextTick(() => {
+    // The code below will remove the item from list; because doing it in the same frame ends drag
+    // immediately, we need to put it in setTimeout (nextTick is not enough).
+    setTimeout(() => {
       updateItemBounds()
       draggedIndex.value = index
       dropInfo.value = { meta, position: currentMousePos }
-    })
+    }, 0)
   }
 }
 
@@ -371,7 +372,7 @@ function addItem() {
     "
   >
     <div class="vector-literal">
-      <span class="token">[</span>
+      <span class="token widgetApplyPadding">[</span>
       <TransitionGroup
         tag="ul"
         name="list"
@@ -392,7 +393,7 @@ function addItem() {
             <li
               v-show="entry.index != props.modelValue.length - 1"
               :ref="patchBoundingClientRectScaling"
-              class="token"
+              class="token widgetApplyPadding"
             >
               ,&nbsp;
             </li>
@@ -407,10 +408,10 @@ function addItem() {
         </template>
       </TransitionGroup>
       <SvgIcon class="add-item" name="vector_add" @click.stop="addItem" />
-      <span class="token">]</span>
+      <span class="token widgetApplyPadding">]</span>
     </div>
     <div
-      class="drop-area"
+      class="drop-area widgetOutOfLayout"
       @dragleave="areaDragLeave"
       @dragover="areaDragOver"
       @drop="areaOnDrop"
@@ -516,6 +517,7 @@ div {
     -2px 0 0 transparent;
   transition: box-shadow 0.2s ease;
   pointer-events: none;
+  cursor: grab;
 
   &:before {
     content: '';

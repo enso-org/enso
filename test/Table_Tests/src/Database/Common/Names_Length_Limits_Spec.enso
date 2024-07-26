@@ -112,7 +112,7 @@ add_specs suite_builder prefix create_connection_func =
                 src = Table.new [["X", [1, 2, 3]]]
                 t1 = src.select_into_database_table data.connection long_name temporary=True
                 Problems.assume_no_problems t1
-                data.connection.query long_name . at "X" . to_vector . should_equal [1, 2, 3]
+                data.connection.query long_name . at "X" . to_vector . should_equal_ignoring_order [1, 2, 3]
 
                 longer_name_with_same_prefix = long_name + ("z" * 10)
                 data.connection.query longer_name_with_same_prefix . should_fail_with Table_Not_Found
@@ -139,12 +139,12 @@ add_specs suite_builder prefix create_connection_func =
                 t13 = t1.join t3
                 t1213 = t12.join t13
                 t1213.row_count . should_equal 2
-                t1213.at "X" . to_vector . should_contain_the_same_elements_as [1, 2]
+                t1213.at "X" . to_vector . should_equal_ignoring_order [1, 2]
                 Problems.expect_only_warning Duplicate_Output_Column_Names t1213
 
                 t11 = t1.join t1
                 t11.row_count . should_equal 2
-                t11.at "X" . to_vector . should_contain_the_same_elements_as [1, 2]
+                t11.at "X" . to_vector . should_equal_ignoring_order [1, 2]
                 Problems.expect_only_warning Duplicate_Output_Column_Names t1213
 
             Test.with_clue "cross_join: " <|
@@ -152,12 +152,12 @@ add_specs suite_builder prefix create_connection_func =
                 t13 = t1.cross_join t3
                 t1213 = t12.cross_join t13
                 t1213.row_count . should_equal 16
-                t1213.at "X" . to_vector . should_contain_the_same_elements_as [1, 2]
+                t1213.at "X" . to_vector . distinct . should_equal_ignoring_order [1, 2]
                 Problems.expect_only_warning Duplicate_Output_Column_Names t1213
 
                 t11 = t1.cross_join t1
                 t11.row_count . should_equal 4
-                t11.at "X" . to_vector . should_contain_the_same_elements_as [1, 2]
+                t11.at "X" . to_vector . should_equal_ignoring_order [1, 2, 1, 2]
                 Problems.expect_only_warning Duplicate_Output_Column_Names t1213
 
             Test.with_clue "union: " <|
@@ -166,12 +166,12 @@ add_specs suite_builder prefix create_connection_func =
                 tx = t1.union [t12, t13] # 2 + 2*4 = 10 rows
                 ty = tx.union tx # 10 + 10 = 20 rows
                 ty.row_count . should_equal 20
-                ty.at "X" . to_vector . should_contain_the_same_elements_as [1, 2]
+                ty.at "X" . to_vector . distinct . should_equal_ignoring_order [1, 2]
                 Problems.assume_no_problems ty
 
                 t11 = t1.union t1
                 t11.row_count . should_equal 4
-                t11.at "X" . to_vector . should_contain_the_same_elements_as [1, 2]
+                t11.at "X" . to_vector . should_equal_ignoring_order [1, 2, 1, 2]
                 Problems.assume_no_problems t11
 
         group_builder.specify "should be fine operating on columns with long names" <|
@@ -200,7 +200,7 @@ add_specs suite_builder prefix create_connection_func =
 
             t5 = t1.cross_join t4 right_prefix=""
             last_column = t5.at (-1)
-            last_column.to_vector . should_contain_the_same_elements_as [4, 10, 18]
+            last_column.to_vector.distinct.should_equal_ignoring_order [4, 10, 18]
 
         if has_maximum_column_name_length.not then
             group_builder.specify "should allow to create very long column names" <|
@@ -385,7 +385,7 @@ add_specs suite_builder prefix create_connection_func =
                 t2 = db_table.aggregate columns=[Aggregate_Column.Maximum name_a, Aggregate_Column.Maximum name_b]
                 w1 = Problems.expect_warning Truncated_Column_Names t2
 
-                w1.original_names . should_contain_the_same_elements_as ["Maximum "+name_a, "Maximum "+name_b]
+                w1.original_names . should_equal_ignoring_order ["Maximum "+name_a, "Maximum "+name_b]
 
                 t2.at (w1.find_truncated_name ("Maximum "+name_a)) . to_vector . should_equal [3]
                 t2.at (w1.find_truncated_name ("Maximum "+name_b)) . to_vector . should_equal [6]
@@ -399,8 +399,8 @@ add_specs suite_builder prefix create_connection_func =
                 Problems.assume_no_problems db_table2
                 t3 = db_table2.aggregate columns=(names.map name-> Aggregate_Column.Maximum name)
                 w2 = Problems.expect_warning Truncated_Column_Names t3
-                w2.original_names . should_contain_the_same_elements_as (names.map name-> "Maximum " + name)
-                t3.column_names . should_contain_the_same_elements_as w2.truncated_names
+                w2.original_names . should_equal_ignoring_order (names.map name-> "Maximum " + name)
+                t3.column_names . should_equal_ignoring_order w2.truncated_names
                 (0.up_to 15).each i->
                     t3.at (w2.find_truncated_name ("Maximum " + names.at i)) . to_vector . should_equal [200 + i]
 
@@ -416,7 +416,7 @@ add_specs suite_builder prefix create_connection_func =
                     w.original_names . should_equal ["RIGHT_" + name_a, "RIGHT_" + name_b]
                     t2.row_count . should_equal 3
 
-                    m2 = t2.read . order_by name_a
+                    m2 = t2.read . sort name_a
                     m2.column_names . should_equal [name_a, name_b]+w.truncated_names
                     m2.at name_a . to_vector . should_equal [1, 2, 3]
                     m2.at name_b . to_vector . should_equal [4, 5, 6]
@@ -429,12 +429,12 @@ add_specs suite_builder prefix create_connection_func =
                     w.original_names . should_equal ["RIGHT_" + name_a, "RIGHT_" + name_b]
                     t2.row_count . should_equal 9
 
-                    m2 = t2.read . order_by [name_a, name_b]
+                    m2 = t2.read . sort [name_a, name_b]
                     m2.column_names . should_equal [name_a, name_b]+w.truncated_names
-                    m2.at name_a . to_vector . should_contain_the_same_elements_as [1, 2, 3]
-                    m2.at name_b . to_vector . should_contain_the_same_elements_as [4, 5, 6]
-                    m2.at (w.truncated_names.at 0) . to_vector . should_contain_the_same_elements_as [1, 2, 3]
-                    m2.at (w.truncated_names.at 1) . to_vector . should_contain_the_same_elements_as [4, 5, 6]
+                    m2.at name_a . to_vector . distinct . should_equal_ignoring_order [1, 2, 3]
+                    m2.at name_b . to_vector . distinct . should_equal_ignoring_order [4, 5, 6]
+                    m2.at (w.truncated_names.at 0) . to_vector . distinct . should_equal_ignoring_order [1, 2, 3]
+                    m2.at (w.truncated_names.at 1) . to_vector . distinct . should_equal_ignoring_order [4, 5, 6]
 
             group_builder.specify "should truncate new column names in other operations" <|
                 name_a = "x" * (max_column_name_length - 1) + "A"
@@ -478,6 +478,5 @@ add_specs suite_builder prefix create_connection_func =
 
 main filter=Nothing =
     suite = Test.build suite_builder->
-        add_specs suite_builder "[SQLite]" (_-> Database.connect (SQLite In_Memory))
+        add_specs suite_builder "[SQLite]" (_-> Database.connect (SQLite.In_Memory))
     suite.run_with_filter filter
-

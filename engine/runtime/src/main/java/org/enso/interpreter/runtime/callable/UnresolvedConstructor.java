@@ -30,9 +30,11 @@ import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.data.atom.Atom;
 import org.enso.interpreter.runtime.data.atom.AtomConstructor;
+import org.enso.interpreter.runtime.error.DataflowError;
+import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
-import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.state.State;
 
 /**
@@ -171,7 +173,8 @@ public final class UnresolvedConstructor implements EnsoObject {
     static DirectCallNode buildApplication(UnresolvedConstructor prototype) {
       UUID id = null;
       SourceSection section = null;
-      ModuleScope scope = null;
+      var scope =
+          prototype.where.getRootNode() instanceof EnsoRootNode root ? root.getModuleScope() : null;
       for (var where = prototype.where; where != null; where = where.getParent()) {
         if (where instanceof ExpressionNode withId && withId.getId() != null) {
           id = withId.getId();
@@ -217,7 +220,7 @@ public final class UnresolvedConstructor implements EnsoObject {
         @Cached("buildApplication(prototype)") DirectCallNode callNode,
         @Cached("expectedType.getConstructors().get(prototype.getName())") AtomConstructor c) {
       if (c == null) {
-        return null;
+        return checkSingleton(expectedType, unresolved);
       } else {
         return invokeConstructor(c, prototype, unresolved, state, callNode);
       }
@@ -229,25 +232,53 @@ public final class UnresolvedConstructor implements EnsoObject {
         MaterializedFrame frame, State state, Type expectedType, UnresolvedConstructor unresolved) {
       var c = expectedType.getConstructors().get(unresolved.getName());
       if (c == null) {
-        return null;
+        return checkSingleton(expectedType, unresolved);
       }
       var callNode = buildApplication(unresolved);
       return invokeConstructor(c, unresolved.asPrototype(), unresolved, state, callNode);
     }
 
-    private static Object invokeConstructor(
+    private Object invokeConstructor(
         AtomConstructor c,
         UnresolvedConstructor prototype,
         UnresolvedConstructor unresolved,
         State state,
         DirectCallNode callNode) {
+      var builtins = EnsoContext.get(callNode).getBuiltins();
+      if (c == builtins.bool().getTrue()) {
+        return true;
+      }
+      if (c == builtins.bool().getFalse()) {
+        return false;
+      }
       var fn = c.getConstructorFunction();
       var args = new Object[prototype.descs.length + 1];
       System.arraycopy(unresolved.args, 0, args, 1, prototype.descs.length);
       args[0] = fn;
       var helper = Function.ArgumentsHelper.buildArguments(fn, null, state, args);
       var r = callNode.call(helper);
-      return r;
+      if (r instanceof Atom) {
+        return r;
+      } else if (r instanceof DataflowError) {
+        return r;
+      } else {
+        var ctx = EnsoContext.get(this);
+        var err = ctx.getBuiltins().error().makeTypeError(c.getType(), r, prototype.toString());
+        throw new PanicException(err, this);
+      }
+    }
+
+    private static Object checkSingleton(Type c, UnresolvedConstructor unresolved) {
+      if (!c.isEigenType()) {
+        return null;
+      } else {
+        return equalTypeAndConstructorName(c, unresolved) ? c : null;
+      }
+    }
+
+    @CompilerDirectives.TruffleBoundary
+    private static boolean equalTypeAndConstructorName(Type c, UnresolvedConstructor unresolved) {
+      return c.getName().equals(unresolved.getName());
     }
   }
 

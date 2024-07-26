@@ -4,6 +4,7 @@ import com.oracle.truffle.api.TruffleLogger
 
 import java.io.File
 import java.util.UUID
+import java.util.concurrent.Callable
 import java.util.concurrent.locks.{Lock, ReentrantLock, ReentrantReadWriteLock}
 import java.util.logging.Level
 
@@ -22,7 +23,7 @@ class ReentrantLocking(logger: TruffleLogger) extends Locking {
   private val compilationLock = new ReentrantReadWriteLock(true)
 
   /** The highest lock. Always obtain first. Guarded by contextMapLock. */
-  private var contextLocks = Map.empty[UUID, ReentrantLock]
+  private var contextLocks = Map.empty[UUID, ContextLock]
 
   /** Guards contextLocks */
   private val contextMapLock = new ReentrantLock()
@@ -30,26 +31,16 @@ class ReentrantLocking(logger: TruffleLogger) extends Locking {
   /** Guards fileLocks */
   private val fileMapLock = new ReentrantLock()
 
-  private def getContextLock(contextId: UUID): Lock = {
+  private def getContextLock(contextId: UUID): ContextLock = {
     contextMapLock.lock()
     try {
       if (contextLocks.contains(contextId)) {
         contextLocks(contextId)
       } else {
-        val lock = new ReentrantLock(true)
+        val lock = new ContextLockImpl(new ReentrantLock(true), contextId)
         contextLocks += (contextId -> lock)
         lock
       }
-    } finally {
-      contextMapLock.unlock()
-    }
-  }
-
-  /** @inheritdoc */
-  override def removeContextLock(contextId: UUID): Unit = {
-    contextMapLock.lock()
-    try {
-      contextLocks -= contextId
     } finally {
       contextMapLock.unlock()
     }
@@ -70,33 +61,23 @@ class ReentrantLocking(logger: TruffleLogger) extends Locking {
     }
   }
 
-  /** @inheritdoc */
-  override def removeFileLock(file: File): Unit = {
-    fileMapLock.lock()
-    try {
-      fileLocks -= file
-    } finally {
-      fileMapLock.unlock()
-    }
-  }
-
-  /** @inheritdoc */
-  override def acquireWriteCompilationLock(): Long = {
+  private def acquireWriteCompilationLock(where: Class[_]): Long = {
     assertNotLocked(
       compilationLock,
       true,
-      "Cannot upgrade compilation read lock to write lock"
+      s"Cannot upgrade compilation read lock to write lock [${where.getSimpleName}]"
     )
     assertNotLocked(
       pendingEditsLock,
-      s"Cannot acquire compilation write lock when having pending edits lock"
+      s"Cannot acquire compilation write lock when having pending edits lock [${where.getSimpleName}]"
     )
-    assertNoFileLock("Cannot acquire write compilation lock")
-    logLockAcquisition(compilationLock.writeLock(), "write compilation")
+    assertNoFileLock(
+      s"Cannot acquire write compilation lock [${where.getSimpleName}]"
+    )
+    logLockAcquisition(compilationLock.writeLock(), "write compilation", where)
   }
 
-  /** @inheritdoc */
-  override def releaseWriteCompilationLock(): Unit =
+  private def releaseWriteCompilationLock(): Unit =
     compilationLock.writeLock().unlock()
 
   override def assertWriteCompilationLock(): Unit =
@@ -105,77 +86,233 @@ class ReentrantLocking(logger: TruffleLogger) extends Locking {
       "should already held write compilation lock during the operation"
     )
 
-  /** @inheritdoc */
-  override def acquireReadCompilationLock(): Long = {
+  def withWriteCompilationLock[T](where: Class[_], callable: Callable[T]): T = {
+    var lockTimestamp: Long = 0
+    try {
+      lockTimestamp = acquireWriteCompilationLock(where)
+      callable.call()
+    } catch {
+      case ie: InterruptedException =>
+        logger.log(
+          Level.WARNING,
+          "Failed [{0}] to acquire lock: interrupted",
+          Array[Any](where.getSimpleName, ie)
+        )
+        null.asInstanceOf[T]
+    } finally {
+      if (lockTimestamp != 0) {
+        releaseWriteCompilationLock()
+        logger.log(
+          Level.FINEST,
+          s"Kept write compilation lock [{0}] for {1}ms",
+          Array[Any](
+            where.getSimpleName,
+            System.currentTimeMillis - lockTimestamp
+          )
+        )
+      }
+    }
+  }
+
+  private def acquireReadCompilationLock(where: Class[_]): Long = {
     // CloseFileCmd does:
     //   ctx.locking.acquireReadCompilationLock()
     //   ctx.locking.acquireFileLock(request.path)
-    assertNoFileLock("Cannot acquire read compilation lock")
+    assertNoFileLock(
+      s"Cannot acquire read compilation lock [${where.getSimpleName}]"
+    )
     // CloseFileCmd also adds:
     //   ctx.locking.acquirePendingEditsLock()
     assertNotLocked(
       pendingEditsLock,
-      s"Cannot acquire compilation read lock when having pending edits lock"
+      s"Cannot acquire compilation read lock when having pending edits lock [${where.getSimpleName}]"
     )
-    logLockAcquisition(compilationLock.readLock(), "read compilation")
+    logLockAcquisition(compilationLock.readLock(), "read compilation", where)
   }
 
-  /** @inheritdoc */
-  override def releaseReadCompilationLock(): Unit =
+  private def releaseReadCompilationLock(): Unit =
     compilationLock.readLock().unlock()
 
-  /** @inheritdoc */
-  override def acquirePendingEditsLock(): Long = {
-    logLockAcquisition(pendingEditsLock, "pending edit")
+  def withReadCompilationLock[T](where: Class[_], callable: Callable[T]): T = {
+    var lockTimestamp: Long = 0
+    try {
+      lockTimestamp = acquireReadCompilationLock(where)
+      callable.call()
+    } catch {
+      case ie: InterruptedException =>
+        logger.log(
+          Level.WARNING,
+          "Failed [{0}] to acquire lock: interrupted",
+          Array[Any](where.getSimpleName, ie)
+        )
+        null.asInstanceOf[T]
+    } finally {
+      if (lockTimestamp != 0) {
+        releaseReadCompilationLock()
+        logger.log(
+          Level.FINEST,
+          s"Kept read compilation lock [{0}] for {1}ms",
+          Array[Any](
+            where.getSimpleName,
+            System.currentTimeMillis - lockTimestamp
+          )
+        )
+      }
+    }
   }
 
-  /** @inheritdoc */
-  override def releasePendingEditsLock(): Unit =
+  private def acquirePendingEditsLock(where: Class[_]): Long = {
+    logLockAcquisition(pendingEditsLock, "pending edit", where)
+  }
+
+  private def releasePendingEditsLock(): Unit =
     pendingEditsLock.unlock()
 
   /** @inheritdoc */
-  override def acquireContextLock(contextId: UUID): Long = {
-    assertNotLocked(
-      compilationLock,
-      true,
-      s"Cannot acquire context ${contextId} lock when having compilation read lock"
-    )
-    assertNotLocked(
-      compilationLock,
-      false,
-      s"Cannot acquire context ${contextId} lock when having compilation write lock"
-    )
-    assertNoFileLock(s"Cannot acquire context ${contextId}")
-    assertNotLocked(
-      pendingEditsLock,
-      s"Cannot acquire context ${contextId} lock when having pending edits lock"
-    )
-    logLockAcquisition(getContextLock(contextId), s"$contextId context")
+  override def withPendingEditsLock[T](
+    where: Class[_],
+    callable: Callable[T]
+  ): T = {
+    var lockTimestamp: Long = 0
+    try {
+      lockTimestamp = acquirePendingEditsLock(where)
+      callable.call()
+    } catch {
+      case ie: InterruptedException =>
+        logger.log(
+          Level.WARNING,
+          "Failed [{0}] to acquire lock: interrupted",
+          Array[Any](where.getSimpleName, ie)
+        )
+        null.asInstanceOf[T]
+    } finally {
+      if (lockTimestamp != 0) {
+        releasePendingEditsLock()
+        logger.log(
+          Level.FINEST,
+          s"Kept pending edits lock [{0}] for {1}ms",
+          Array[Any](
+            where.getSimpleName,
+            System.currentTimeMillis - lockTimestamp
+          )
+        )
+      }
+    }
   }
 
   /** @inheritdoc */
-  override def releaseContextLock(contextId: UUID): Unit =
-    getContextLock(contextId).unlock()
+  override def withContextLock[T](
+    lock: ContextLock,
+    where: Class[_],
+    callable: Callable[T]
+  ): T = {
+    val contextLock                = lock.asInstanceOf[ContextLockImpl]
+    var contextLockTimestamp: Long = 0
+    try {
+      contextLockTimestamp = logLockAcquisition(
+        contextLock.lock,
+        "context lock",
+        where
+      ) //acquireContextLock(contextId)
+      callable.call()
+    } catch {
+      case ie: InterruptedException =>
+        logger.log(
+          Level.WARNING,
+          "Failed [{0}] to acquire lock: interrupted",
+          Array[Any](where.getSimpleName, ie)
+        )
+        null.asInstanceOf[T]
+    } finally {
+      if (contextLockTimestamp != 0) {
+        contextLock.lock.unlock()
+        logger.log(
+          Level.FINEST,
+          s"Kept context lock [{0}] for {1}ms",
+          Array[Any](
+            where.getSimpleName,
+            System.currentTimeMillis - contextLockTimestamp
+          )
+        )
+      }
+    }
+  }
 
   /** @inheritdoc */
-  override def acquireFileLock(file: File): Long = {
+  override def removeContextLock(lock: ContextLock): Unit = {
+    val contextLock = lock.asInstanceOf[ContextLockImpl]
+    contextMapLock.lock()
+    try {
+      if (contextLocks.contains(contextLock.uuid)) {
+        assertNotLocked(
+          contextLock.lock,
+          s"Cannot remove context ${contextLock.uuid} lock when having a lock on it"
+        )
+        contextLocks -= contextLock.uuid
+      }
+    } finally {
+      contextMapLock.unlock()
+    }
+  }
+
+  private def acquireFileLock(file: File, where: Class[_]): Long = {
     // cannot have pendings lock as of EnsureCompiledJob.applyEdits
     assertNotLocked(
       pendingEditsLock,
-      s"Cannot acquire file ${file} lock when having pending edits lock"
+      s"Cannot acquire [${where.getSimpleName}] file $file lock when having pending edits lock"
     )
-    assertNoContextLock(s"Cannot acquire file ${file}")
-    logLockAcquisition(getFileLock(file), "file")
+    assertNoContextLock(s"Cannot acquire [${where.getSimpleName}] file $file")
+    logLockAcquisition(getFileLock(file), "file", where)
   }
 
-  /** @inheritdoc */
-  override def releaseFileLock(file: File): Unit = getFileLock(file).unlock()
+  private def releaseFileLock(file: File): Unit = getFileLock(file).unlock()
 
-  private def logLockAcquisition(lock: Lock, msg: String): Long = {
+  /** @inheritdoc */
+  override def withFileLock[T](
+    file: File,
+    where: Class[_],
+    callable: Callable[T]
+  ): T = {
+    var lockTimestamp: Long = 0
+    try {
+      lockTimestamp = acquireFileLock(file, where)
+      callable.call()
+    } catch {
+      case ie: InterruptedException =>
+        logger.log(
+          Level.WARNING,
+          "Failed [{0}] to acquire lock: interrupted",
+          Array[Any](where.getSimpleName, ie)
+        )
+        null.asInstanceOf[T]
+    } finally {
+      if (lockTimestamp != 0) {
+        releaseFileLock(file)
+        logger.log(
+          Level.FINEST,
+          s"Kept file lock [{0}] for {1}ms",
+          Array[Any](
+            where.getSimpleName,
+            System.currentTimeMillis - lockTimestamp
+          )
+        )
+      }
+    }
+  }
+
+  private def logLockAcquisition(
+    lock: Lock,
+    msg: String,
+    where: Class[_]
+  ): Long = {
     val now = System.currentTimeMillis()
     lock.lockInterruptibly()
     val now2 = System.currentTimeMillis()
-    logger.log(Level.FINEST, s"Waited ${now2 - now} for the $msg lock")
+    logger.log(
+      Level.FINEST,
+      "Waited [{0}] {1}ms for the {2} lock",
+      Array[Any](where.getSimpleName, now2 - now, msg)
+    )
     now2
   }
 
@@ -212,8 +349,9 @@ class ReentrantLocking(logger: TruffleLogger) extends Locking {
     contextMapLock.lock()
     try {
       for (ctx <- contextLocks) {
+        val contextLock = ctx._2.asInstanceOf[ContextLockImpl]
         assertNotLocked(
-          ctx._2,
+          contextLock.lock,
           msg + s" lock when having context ${ctx._1} lock"
         )
       }
@@ -221,4 +359,26 @@ class ReentrantLocking(logger: TruffleLogger) extends Locking {
       contextMapLock.unlock()
     }
   }
+
+  override def getOrCreateContextLock(contextId: UUID): ContextLock = {
+    assertNotLocked(
+      compilationLock,
+      true,
+      s"Cannot acquire context ${contextId} lock when having compilation read lock"
+    )
+    assertNotLocked(
+      compilationLock,
+      false,
+      s"Cannot acquire context ${contextId} lock when having compilation write lock"
+    )
+    assertNoFileLock(s"Cannot acquire context ${contextId}")
+    assertNotLocked(
+      pendingEditsLock,
+      s"Cannot acquire context ${contextId} lock when having pending edits lock"
+    )
+    getContextLock(contextId)
+  }
+
+  private case class ContextLockImpl(lock: ReentrantLock, uuid: UUID)
+      extends ContextLock
 }

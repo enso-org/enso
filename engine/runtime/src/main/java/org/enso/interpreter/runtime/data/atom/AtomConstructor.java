@@ -24,6 +24,7 @@ import org.enso.interpreter.node.MethodRootNode;
 import org.enso.interpreter.node.callable.argument.ReadArgumentNode;
 import org.enso.interpreter.node.callable.function.BlockNode;
 import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.callable.Annotation;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.function.Function;
@@ -43,7 +44,7 @@ import org.enso.pkg.QualifiedName;
 public final class AtomConstructor implements EnsoObject {
 
   private final String name;
-  private final ModuleScope definitionScope;
+  private final Module definitionModule;
   private final boolean builtin;
   private @CompilerDirectives.CompilationFinal Atom cachedInstance;
   private @CompilerDirectives.CompilationFinal Function constructorFunction;
@@ -60,11 +61,11 @@ public final class AtomConstructor implements EnsoObject {
    * AtomConstructor#initializeFields} is called.
    *
    * @param name the name of the Atom constructor
-   * @param definitionScope the scope in which this constructor was defined
+   * @param definitionModule the module in which this constructor was defined
    * @param type associated type
    */
-  public AtomConstructor(String name, ModuleScope definitionScope, Type type) {
-    this(name, definitionScope, type, false);
+  public AtomConstructor(String name, Module definitionModule, Type type) {
+    this(name, definitionModule, type, false);
   }
 
   /**
@@ -72,13 +73,13 @@ public final class AtomConstructor implements EnsoObject {
    * AtomConstructor#initializeFields} is called.
    *
    * @param name the name of the Atom constructor
-   * @param definitionScope the scope in which this constructor was defined
+   * @param definitionModule the module in which this constructor was defined
    * @param type associated type
    * @param builtin if true, the constructor refers to a builtin type (annotated with @BuiltinType
    */
-  public AtomConstructor(String name, ModuleScope definitionScope, Type type, boolean builtin) {
+  public AtomConstructor(String name, Module definitionModule, Type type, boolean builtin) {
     this.name = name;
-    this.definitionScope = definitionScope;
+    this.definitionModule = definitionModule;
     this.type = type;
     this.builtin = builtin;
   }
@@ -86,7 +87,7 @@ public final class AtomConstructor implements EnsoObject {
   /**
    * Is the constructor initialized or not.
    *
-   * @return {@code true} if {@link initializeFields} method has already been called
+   * @return {@code true} if {@link #initializeFields} method has already been called
    */
   public boolean isInitialized() {
     return constructorFunction != null;
@@ -102,13 +103,21 @@ public final class AtomConstructor implements EnsoObject {
    *
    * @return {@code this}, for convenience
    */
-  public AtomConstructor initializeFields(EnsoLanguage language, ArgumentDefinition... args) {
+  public AtomConstructor initializeFields(
+      EnsoLanguage language, ModuleScope.Builder scopeBuilder, ArgumentDefinition... args) {
     ExpressionNode[] reads = new ExpressionNode[args.length];
     for (int i = 0; i < args.length; i++) {
       reads[i] = ReadArgumentNode.build(i, null, null);
     }
     return initializeFields(
-        language, null, LocalScope.root(), new ExpressionNode[0], reads, new Annotation[0], args);
+        language,
+        null,
+        LocalScope.root(),
+        scopeBuilder,
+        new ExpressionNode[0],
+        reads,
+        new Annotation[0],
+        args);
   }
 
   /**
@@ -116,6 +125,7 @@ public final class AtomConstructor implements EnsoObject {
    *
    * @param localScope a description of the local scope
    * @param assignments the expressions that evaluate and assign constructor arguments to local vars
+   * @param scopeBuilder the module scope's builder where the accessor should be registered at
    * @param varReads the expressions that read field values from local vars
    * @return {@code this}, for convenience
    */
@@ -123,6 +133,7 @@ public final class AtomConstructor implements EnsoObject {
       EnsoLanguage language,
       SourceSection section,
       LocalScope localScope,
+      ModuleScope.Builder scopeBuilder,
       ExpressionNode[] assignments,
       ExpressionNode[] varReads,
       Annotation[] annotations,
@@ -137,8 +148,8 @@ public final class AtomConstructor implements EnsoObject {
     boxedLayout = Layout.createBoxed(args);
     this.constructorFunction =
         buildConstructorFunction(
-            language, section, localScope, assignments, varReads, annotations, args);
-    this.accessor = generateQualifiedAccessor(language);
+            language, section, localScope, scopeBuilder, assignments, varReads, annotations, args);
+    this.accessor = generateQualifiedAccessor(language, scopeBuilder);
     return this;
   }
 
@@ -159,6 +170,7 @@ public final class AtomConstructor implements EnsoObject {
       EnsoLanguage language,
       SourceSection section,
       LocalScope localScope,
+      ModuleScope.Builder scopeBuilder,
       ExpressionNode[] assignments,
       ExpressionNode[] varReads,
       Annotation[] annotations,
@@ -170,22 +182,28 @@ public final class AtomConstructor implements EnsoObject {
     BlockNode instantiateBlock = BlockNode.buildSilent(assignments, instantiateNode);
     RootNode rootNode =
         MethodRootNode.buildConstructor(
-            language, localScope, definitionScope, instantiateBlock, section, this);
+            language, localScope, scopeBuilder.asModuleScope(), instantiateBlock, section, this);
     RootCallTarget callTarget = rootNode.getCallTarget();
-    return new Function(callTarget, null, new FunctionSchema(annotations, args));
+    var schemaBldr = FunctionSchema.newBuilder().annotations(annotations).argumentDefinitions(args);
+    if (type.isProjectPrivate()) {
+      schemaBldr.projectPrivate();
+    }
+    return new Function(callTarget, null, schemaBldr.build());
   }
 
-  private Function generateQualifiedAccessor(EnsoLanguage lang) {
-    var node = new QualifiedAccessorNode(lang, this);
+  private Function generateQualifiedAccessor(EnsoLanguage lang, ModuleScope.Builder scopeBuilder) {
+    var node = new QualifiedAccessorNode(lang, this, getDefinitionScope());
     var callTarget = node.getCallTarget();
-    var function =
-        new Function(
-            callTarget,
-            null,
-            new FunctionSchema(
+    var schemaBldr =
+        FunctionSchema.newBuilder()
+            .argumentDefinitions(
                 new ArgumentDefinition(
-                    0, "self", null, null, ArgumentDefinition.ExecutionMode.EXECUTE)));
-    definitionScope.registerMethod(type.getEigentype(), this.name, function);
+                    0, "self", null, null, ArgumentDefinition.ExecutionMode.EXECUTE));
+    if (type.isProjectPrivate()) {
+      schemaBldr.projectPrivate();
+    }
+    var function = new Function(callTarget, null, schemaBldr.build());
+    scopeBuilder.registerMethod(type.getEigentype(), this.name, function);
     return function;
   }
 
@@ -206,7 +224,9 @@ public final class AtomConstructor implements EnsoObject {
    */
   @TruffleBoundary
   public String getDisplayName() {
-    return name.equals("Value") || name.equals("Error") ? type.getName() + "." + name : name;
+    return name.equals("Value") || name.equals("Error") || name.equals("Warning")
+        ? type.getName() + "." + name
+        : name;
   }
 
   /**
@@ -215,7 +235,7 @@ public final class AtomConstructor implements EnsoObject {
    * @return the scope in which this constructor was defined
    */
   public ModuleScope getDefinitionScope() {
-    return definitionScope;
+    return definitionModule.getScope();
   }
 
   /**
@@ -287,7 +307,7 @@ public final class AtomConstructor implements EnsoObject {
   }
 
   /**
-   * Creates field accessors for all fields in given constructors.
+   * Creates field accessors for all fields in all constructors from the given type.
    *
    * @param language the language instance to create getters for
    * @param type type to create accessors for
@@ -319,7 +339,9 @@ public final class AtomConstructor implements EnsoObject {
     } else {
       var cons = constructors.toArray(AtomConstructor[]::new)[0];
       for (var field : cons.getFields()) {
-        var node = new GetFieldNode(language, field.getPosition(), type, field.getName());
+        var node =
+            new GetFieldNode(
+                language, field.getPosition(), type, field.getName(), cons.getDefinitionScope());
         roots.put(field.getName(), node);
       }
     }

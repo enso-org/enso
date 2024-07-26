@@ -14,7 +14,6 @@ import { Ast } from '@/util/ast'
 import { ArgumentInfoKey } from '@/util/callTree'
 import { Rect } from '@/util/data/rect'
 import { cachedGetter } from '@/util/reactivity'
-import { uuidv4 } from 'lib0/random'
 import { isUuid } from 'shared/yjsModel'
 import {
   computed,
@@ -36,22 +35,19 @@ const navigator = injectGraphNavigator()
 const tree = injectWidgetTree()
 const selection = injectGraphSelection(true)
 
-const isHovered = computed(() => selection?.hoveredPort === props.input.portId)
-
 const hasConnection = computed(() => graph.isConnectedTarget(portId.value))
 const isCurrentEdgeHoverTarget = computed(
-  () => isHovered.value && graph.unconnectedEdge != null && selection?.hoveredPort === portId.value,
-)
-const isCurrentDisconectedEdgeTarget = computed(
   () =>
-    graph.unconnectedEdge?.disconnectedEdgeTarget === portId.value &&
-    graph.unconnectedEdge?.target !== portId.value,
+    graph.mouseEditedEdge?.source != null &&
+    selection?.hoveredPort === portId.value &&
+    graph.db.getPatternExpressionNodeId(graph.mouseEditedEdge.source) !== tree.nodeId,
+)
+const isCurrentDisconnectedEdgeTarget = computed(
+  () =>
+    graph.mouseEditedEdge?.disconnectedEdgeTarget === portId.value &&
+    graph.mouseEditedEdge?.target !== portId.value,
 )
 const isSelfArgument = computed(
-  () =>
-    props.input.value instanceof Ast.Ast && props.input.value.id === tree.connectedSelfArgumentId,
-)
-const isPotentialSelfArgument = computed(
   () =>
     props.input.value instanceof Ast.Ast && props.input.value.id === tree.potentialSelfArgumentId,
 )
@@ -60,7 +56,7 @@ const connected = computed(
 )
 const isTarget = computed(
   () =>
-    (hasConnection.value && !isCurrentDisconectedEdgeTarget.value) ||
+    (hasConnection.value && !isCurrentDisconnectedEdgeTarget.value) ||
     isCurrentEdgeHoverTarget.value,
 )
 
@@ -75,7 +71,6 @@ const nodeSize = useResizeObserver(rootNode)
 // 2. The expression is already used as an existing edge endpoint.
 const portRect = shallowRef<Rect>()
 
-const randomUuid = uuidv4() as PortId
 // Since the port ID computation has many dependencies but rarely changes its final output, store
 // its result in an intermediate ref, and update it only when the value actually changes. That way
 // effects depending on the port ID value will not be re-triggered unnecessarily.
@@ -89,8 +84,6 @@ const innerWidget = computed(() => {
 })
 
 providePortInfo(proxyRefs({ portId, connected: hasConnection }))
-
-const randSlice = randomUuid.slice(0, 4)
 
 watchEffect(
   (onCleanup) => {
@@ -196,23 +189,16 @@ export const widgetDefinition = defineWidget(
       connected,
       isTarget,
       isSelfArgument,
-      isPotentialSelfArgument,
-      'r-24': connected,
+      widgetRounded: connected,
       newToConnect: !hasConnection && isCurrentEdgeHoverTarget,
       primary: props.nesting < 2,
     }"
-    :data-id="portId"
-    :data-h="randSlice"
   >
     <NodeWidget :input="innerWidget" />
   </div>
 </template>
 
 <style scoped>
-:global(:root) {
-  --widget-port-extra-pad: 6px;
-}
-
 .WidgetPort {
   display: flex;
   flex-direction: row;
@@ -220,26 +206,18 @@ export const widgetDefinition = defineWidget(
   justify-content: center;
   position: relative;
   text-align: center;
-  border-radius: 12px;
-  min-height: 24px;
-  min-width: 24px;
+  border-radius: var(--node-port-border-radius);
+  min-height: var(--node-port-height);
+  min-width: var(--node-port-height);
   box-sizing: border-box;
-  padding: 0 var(--widget-port-extra-pad);
-  margin: 0 calc(0px - var(--widget-port-extra-pad));
-}
-
-.WidgetPort:has(> .r-24:only-child) {
-  padding: 0;
-  margin: 0;
-  transition: background-color 0.2s ease;
 }
 
 .WidgetPort.connected {
-  margin: 0;
   background-color: var(--node-color-port);
 }
 
 .GraphEditor.draggingEdge .WidgetPort {
+  --node-port-nonprimary-drag-shrink: 8px;
   pointer-events: none;
   transition:
     margin 0.2s ease,
@@ -251,13 +229,17 @@ export const widgetDefinition = defineWidget(
     content: '';
     position: absolute;
     display: block;
-    inset: 4px var(--widget-port-extra-pad);
+    inset: calc(
+        (var(--node-port-height) - var(--node-base-height)) / 2 +
+          var(--node-port-nonprimary-drag-shrink)
+      )
+      var(--widget-token-pad-unit);
   }
 
   /* Expand hover area for primary ports. */
   &.primary::before {
-    top: -4px;
-    bottom: -4px;
+    inset: calc((var(--node-port-height) - var(--node-base-height)) / 2)
+      var(--widget-token-pad-unit);
   }
 
   &.connected::before {
@@ -266,7 +248,7 @@ export const widgetDefinition = defineWidget(
   }
 }
 
-.WidgetPort.isTarget:not(.isPotentialSelfArgument):after {
+.WidgetPort.isTarget:not(.isSelfArgument):after {
   content: '';
   position: absolute;
   top: -4px;
@@ -276,9 +258,5 @@ export const widgetDefinition = defineWidget(
   transform: translate(-50%, 0);
   background-color: var(--node-color-port);
   z-index: -1;
-}
-
-.isSelfArgument {
-  margin-right: 2px;
 }
 </style>

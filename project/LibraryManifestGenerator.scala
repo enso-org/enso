@@ -63,7 +63,8 @@ object LibraryManifestGenerator {
       projectPath.getCanonicalPath
     )
 
-    log.debug(s"Running [$command].")
+    val commandText = command.mkString(" ")
+    log.debug(s"Running [$commandText].")
     val exitCode = sys.process
       .Process(
         command,
@@ -72,7 +73,7 @@ object LibraryManifestGenerator {
       )
       .!
     if (exitCode != 0) {
-      val message = s"Command [$command] has failed with code $exitCode."
+      val message = s"Command [$commandText] has failed with code $exitCode."
       log.error(message)
       throw new RuntimeException(message)
     }

@@ -18,7 +18,7 @@ async function initGraph(page: Page) {
 const EDGE_PARTS = 2
 
 /**
-  Scenario: We disconnect the `sum` parameter in the `prod` node by clicking on the edge and pressing the delete key.
+  Scenario: We disconnect the `sum` parameter in the `prod` node by clicking on the edge and clicking on the background.
  */
 test('Disconnect an edge from a port', async ({ page }) => {
   await initGraph(page)
@@ -32,14 +32,13 @@ test('Disconnect an edge from a port', async ({ page }) => {
     force: true,
   })
   await page.mouse.click(500, -500)
-  await page.keyboard.press('Delete')
   await expect(await edgesToNodeWithBinding(page, 'sum')).toHaveCount(EDGE_PARTS)
 })
 
 /**
  * Scenario: We replace the `sum` parameter in the `prod` node` with the `ten` node.
  */
-test('Connect an node to a port via dragging the edge', async ({ page }) => {
+test('Connect an node to a port', async ({ page }) => {
   await initGraph(page)
 
   await expect(await edgesToNodeWithBinding(page, 'sum')).toHaveCount(2 * EDGE_PARTS)
@@ -58,13 +57,30 @@ test('Connect an node to a port via dragging the edge', async ({ page }) => {
   await expect(graphNodeByBinding(page, 'prod')).toContainText('ten')
 })
 
+/**
+ * As above, but by dragging edge instead of clicking source and target separately.
+ */
+test('Connect an node to a port via dragging the edge', async ({ page }) => {
+  await initGraph(page)
+
+  await expect(await edgesToNodeWithBinding(page, 'sum')).toHaveCount(2 * EDGE_PARTS)
+  const targetEdge = page.locator('svg.behindNodes g:nth-child(2) path.edge.visible')
+  const targetPort = page.locator('span').filter({ hasText: /^sum$/ })
+  // Hover over edge to the left of node with binding `ten`.
+  await targetEdge.dragTo(targetPort, {
+    sourcePosition: { x: 450, y: 5.0 },
+    force: true,
+  })
+  await expect(graphNodeByBinding(page, 'prod')).toContainText('ten')
+})
+
 test('Conditional ports: Disabled', async ({ page }) => {
   await actions.goToGraph(page)
   const node = graphNodeByBinding(page, 'filtered')
   const conditionalPort = node.locator('.WidgetPort').filter({ hasText: /^filter$/ })
 
   // Check that the `enabled` CSS class is not set on disabled `WidgetPort`s.
-  await expect(node.locator('.WidgetSelfIcon')).toBeVisible()
+  await expect(node.locator('.WidgetIcon')).toBeVisible()
   await expect(conditionalPort).not.toHaveClass(/enabled/)
 
   // When a port is disabled, it doesn't react to hovering with a disconnected edge,

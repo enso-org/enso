@@ -209,7 +209,7 @@ object Redefined {
     ): Conversion =
       this
 
-    /** @inheritdoc */
+    /** String representation. */
     override def toString: String =
       s"""
          |Error.Redefined.Method(
@@ -236,7 +236,7 @@ object Redefined {
   /** An error representing the redefinition of a method in a given module.
     * This is also known as a method overload.
     *
-    * @param atomName    the name of the atom the method was being redefined on
+    * @param typeName    the name of the type the method was being redefined on
     * @param methodName  the method name being redefined on `atomName`
     * @param location    the location in the source to which this error
     *                    corresponds
@@ -244,7 +244,7 @@ object Redefined {
     * @param diagnostics any diagnostics associated with this error.
     */
   sealed case class Method(
-    atomName: Option[Name],
+    typeName: Option[Name],
     methodName: Name,
     override val location: Option[IdentifiedLocation],
     override val passData: MetadataStorage      = new MetadataStorage(),
@@ -267,7 +267,7 @@ object Redefined {
       * @return a copy of `this`, updated with the specified values
       */
     def copy(
-      atomName: Option[Name]               = atomName,
+      atomName: Option[Name]               = typeName,
       methodName: Name                     = methodName,
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
@@ -288,7 +288,7 @@ object Redefined {
       keepIdentifiers: Boolean = false
     ): Method =
       copy(
-        atomName = atomName.map(
+        atomName = typeName.map(
           _.duplicate(
             keepLocations,
             keepMetadata,
@@ -317,11 +317,11 @@ object Redefined {
 
     /** @inheritdoc */
     override def message(source: (IdentifiedLocation => String)): String =
-      s"Method overloads are not supported: ${atomName.map(_.name + ".").getOrElse("")}" +
+      s"Method overloads are not supported: ${typeName.map(_.name + ".").getOrElse("")}" +
       s"${methodName.name} is defined multiple times in this module."
 
     override def diagnosticKeys(): Array[Any] = {
-      atomName
+      typeName
         .map(_.name :: methodName.name :: Nil)
         .getOrElse(methodName.name :: Nil)
         .toArray
@@ -332,11 +332,11 @@ object Redefined {
       fn: java.util.function.Function[Expression, Expression]
     ): Method = this
 
-    /** @inheritdoc */
+    /** String representation. */
     override def toString: String =
       s"""
          |Error.Redefined.Method(
-         |atomName = $atomName,
+         |atomName = $typeName,
          |methodName = $methodName,
          |location = $location,
          |passData = ${this.showPassData},
@@ -347,13 +347,13 @@ object Redefined {
 
     /** @inheritdoc */
     override def children: List[IR] =
-      atomName
+      typeName
         .map(_ :: methodName :: Nil)
         .getOrElse(methodName :: Nil)
 
     /** @inheritdoc */
     override def showCode(indent: Int): String =
-      s"(Redefined (Method ${atomName.map(_.showCode() + ".").getOrElse("")}$methodName))"
+      s"(Redefined (Method ${typeName.map(_.showCode() + ".").getOrElse("")}$methodName))"
   }
 
   /** An error representing the redefinition of a method in a given module,
@@ -458,7 +458,7 @@ object Redefined {
     ): MethodClashWithAtom =
       this
 
-    /** @inheritdoc */
+    /** String representation. */
     override def toString: String =
       s"""
          |Error.Redefined.MethodClashWithAtom(
@@ -560,7 +560,7 @@ object Redefined {
       fn: java.util.function.Function[Expression, Expression]
     ): Type = this
 
-    /** @inheritdoc */
+    /** String representation. */
     override def toString: String =
       s"""
          |Error.Redefined.Atom(
@@ -661,7 +661,7 @@ object Redefined {
       fn: java.util.function.Function[Expression, Expression]
     ): Arg = this
 
-    /** @inheritdoc */
+    /** String representation. */
     override def toString: String =
       s"""
          |Error.Redefined.Arg(
@@ -755,7 +755,7 @@ object Redefined {
     ): Binding =
       this
 
-    /** @inheritdoc */
+    /** String representation. */
     override def toString: String =
       s"""
          |Error.Redefined.Binding(

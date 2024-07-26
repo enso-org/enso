@@ -4,18 +4,29 @@ import com.oracle.truffle.api.CompilerDirectives;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.Stream;
 import org.enso.compiler.phase.ImportResolverAlgorithm;
 import org.enso.editions.LibraryName;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
+import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.data.atom.AtomConstructor;
 import org.enso.interpreter.runtime.scope.TopLevelScope;
 
 final class InvokeMethodImportResolver
-    extends ImportResolverAlgorithm<EnsoObject, Module, UnresolvedSymbol, Object, Type, Module> {
+    extends ImportResolverAlgorithm<
+        EnsoObject,
+        Module,
+        UnresolvedSymbol,
+        Object,
+        Type,
+        Module,
+        AtomConstructor,
+        Function,
+        Function,
+        Function> {
 
   private final Module module;
   private final TopLevelScope topScope;
@@ -54,13 +65,28 @@ final class InvokeMethodImportResolver
   }
 
   @Override
-  protected List<Object> exportsFor(Module module, String impName) {
-    return Collections.emptyList();
+  protected String nameForConstructor(AtomConstructor cons) {
+    return cons.getName();
   }
 
   @Override
-  protected boolean isAll(Object ex) {
-    return false;
+  protected String nameForModuleMethod(Function function) {
+    return function.getName();
+  }
+
+  @Override
+  protected String nameForExtensionMethod(Function function) {
+    return function.getName();
+  }
+
+  @Override
+  protected String nameForConversionMethod(Function function) {
+    return function.getName();
+  }
+
+  @Override
+  protected List<Object> exportsFor(Module module, String impName) {
+    return Collections.emptyList();
   }
 
   @Override
@@ -69,15 +95,28 @@ final class InvokeMethodImportResolver
   }
 
   @Override
-  protected List<String> hiddenNames(Object ex) {
+  protected List<Type> definedEntities(UnresolvedSymbol symbol) {
+    return module.getScope().getAllTypes(symbol.getName());
+  }
+
+  @Override
+  protected List<AtomConstructor> definedConstructors(UnresolvedSymbol symbol) {
+    return Collections.emptyList();
+  }
+
+  @Override
+  protected List<Function> definedModuleMethods(UnresolvedSymbol symbol) {
+    return Collections.emptyList();
+  }
+
+  @Override
+  protected List<Function> definedExtensionMethods(UnresolvedSymbol imp) {
     return null;
   }
 
   @Override
-  protected List<Type> definedEntities(UnresolvedSymbol name) {
-    var associatedType = module.getScope().getType(name.getName());
-    var allRelativeTypes = module.getScope().getTypes().values();
-    return Stream.concat(associatedType.stream(), allRelativeTypes.stream()).toList();
+  protected List<Function> definedConversionMethods(UnresolvedSymbol imp) {
+    return null;
   }
 
   @Override
@@ -95,6 +134,30 @@ final class InvokeMethodImportResolver
   @Override
   protected EnsoObject createResolvedType(UnresolvedSymbol imp, List<Object> exp, Type typ) {
     return typ;
+  }
+
+  @Override
+  protected EnsoObject createResolvedConstructor(
+      UnresolvedSymbol imp, List<Object> exp, AtomConstructor cons) {
+    throw new UnsupportedOperationException("unimplemented");
+  }
+
+  @Override
+  protected EnsoObject createResolvedModuleMethod(
+      UnresolvedSymbol imp, List<Object> exp, Function function) {
+    throw new UnsupportedOperationException("unimplemented");
+  }
+
+  @Override
+  protected EnsoObject createResolvedExtensionMethods(
+      UnresolvedSymbol imp, List<Object> exp, List<Function> functions) {
+    throw new UnsupportedOperationException("unimplemented");
+  }
+
+  @Override
+  protected EnsoObject createResolvedConversionMethods(
+      UnresolvedSymbol imp, List<Object> exp, List<Function> functions) {
+    throw new UnsupportedOperationException("unimplemented");
   }
 
   @Override

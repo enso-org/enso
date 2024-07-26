@@ -145,6 +145,12 @@ pub trait IsCommandWrapper {
         self
     }
 
+    #[cfg(windows)]
+    fn raw_arg<S: AsRef<OsStr>>(&mut self, arg: S) -> &mut Self {
+        self.borrow_mut_command().raw_arg(arg);
+        self
+    }
+
     fn args<I, S>(&mut self, args: I) -> &mut Self
     where
         I: IntoIterator<Item = S>,
@@ -226,23 +232,6 @@ pub trait IsCommandWrapper {
         self
     }
 
-    // fn spawn(&mut self) -> Result<Child> {
-    //     self.borrow_mut_command().spawn().anyhow_err()
-    // }
-    //
-    //
-    // fn status(&mut self) -> BoxFuture<'static, Result<ExitStatus>> {
-    //     let fut = self.borrow_mut_command().status();
-    //     async move { fut.await.anyhow_err() }.boxed()
-    // }
-    //
-    // fn output(&mut self) -> BoxFuture<'static, Result<Output>> {
-    //     let fut = self.borrow_mut_command().output();
-    //     async move { fut.await.anyhow_err() }.boxed()
-    // }
-
-
-
     /// Value-based variant of [`Self::current_dir`], for convenience.
     fn with_current_dir(self, dir: impl AsRef<Path>) -> Self
     where Self: Sized {
@@ -285,6 +274,7 @@ pub trait CommandOption {
 pub struct Command {
     pub inner:          tokio::process::Command,
     pub status_checker: Arc<dyn Fn(ExitStatus) -> Result + Send + Sync>,
+    pub pretty_name:    Option<String>,
 }
 
 impl Borrow<tokio::process::Command> for Command {
@@ -309,26 +299,32 @@ impl Command {
     pub fn new<S: AsRef<OsStr>>(program: S) -> Command {
         let inner = tokio::process::Command::new(program);
         let status_checker = Arc::new(|status: ExitStatus| status.exit_ok().anyhow_err());
-        Self { inner, status_checker }
+        Self { inner, status_checker, pretty_name: None }
     }
 
     pub fn new_over<P: Program + 'static>(inner: tokio::process::Command) -> Self {
-        Command { inner, status_checker: Arc::new(P::handle_exit_status) }
+        Command {
+            inner,
+            status_checker: Arc::new(P::handle_exit_status),
+            pretty_name: P::pretty_name().map(String::from),
+        }
     }
 
     pub fn spawn_intercepting(&mut self) -> Result<Child> {
         self.stdout(Stdio::piped());
         self.stderr(Stdio::piped());
 
-        let program = self.inner.as_std().get_program();
-        let program = Path::new(program).file_stem().unwrap_or_default().to_os_string();
-        let program = program.to_string_lossy();
+        let program = self.pretty_name.clone().unwrap_or_else(|| {
+            let program = self.inner.as_std().get_program();
+            let program = Path::new(program).file_stem().unwrap_or_default().to_os_string();
+            program.to_string_lossy().to_string()
+        });
 
         let mut child = self.spawn()?;
 
         // FIXME unwraps
-        spawn_log_processor(format!("{program}ℹ️"), child.stdout.take().unwrap());
-        spawn_log_processor(format!("{program}⚠️"), child.stderr.take().unwrap());
+        spawn_log_processor(format!("{program} ℹ️"), child.stdout.take().unwrap());
+        spawn_log_processor(format!("{program} ⚠️"), child.stderr.take().unwrap());
         Ok(child)
     }
 
@@ -418,16 +414,6 @@ impl Command {
             }
         })
     }
-
-    // pub fn status(&mut self) -> BoxFuture<'static, Result<ExitStatus>> {
-    //     let fut = self.borrow_mut_command().status();
-    //     async move { fut.await.anyhow_err() }.boxed()
-    // }
-    //
-    // pub fn output(&mut self) -> BoxFuture<'static, Result<Output>> {
-    //     let fut = self.borrow_mut_command().output();
-    //     async move { fut.await.anyhow_err() }.boxed()
-    // }
 }
 
 impl Command {
@@ -526,61 +512,4 @@ impl<T: Manipulator> Manipulator for Option<T> {
 
 pub trait FallibleManipulator {
     fn try_applying<C: IsCommandWrapper + ?Sized>(&self, command: &mut C) -> Result;
-}
-
-
-#[cfg(test)]
-mod tests {
-    // use super::*;
-    // use crate::global::new_spinner;
-    // // use crate::global::println;
-    // use tokio::io::AsyncBufReadExt;
-    // use tokio::io::AsyncRead;
-    // use tokio::io::BufReader;
-    // use tokio::process::ChildStdout;
-    // use tokio::task::JoinHandle;
-
-    // pub fn spawn_log_processor(
-    //     prefix: String,
-    //     out: impl AsyncRead + Send + Unpin + 'static,
-    // ) -> JoinHandle<Result> {
-    //     tokio::task::spawn(async move {
-    //         let bufread = BufReader::new(out);
-    //         let mut lines = bufread.lines();
-    //         while let Some(line) = lines.next_line().await? {
-    //             println(format!("{} {}", prefix, line))
-    //         }
-    //         println(format!("{} {}", prefix, "<ENDUT>"));
-    //         Result::Ok(())
-    //     })
-    // }U
-    //
-    // pub fn spawn_logged(cmd: &mut Command) {
-    //     cmd.stdout(Stdio::piped());
-    //     cmd.stderr(Stdio::piped());
-    // }
-    //
-    // #[tokio::test]
-    // async fn test_cmd_out_interception() -> Result {
-    //     pretty_env_logger::init();
-    //     let mut cmd = Command::new("cargo");
-    //     cmd.arg("update");
-    //     cmd.stdout(Stdio::piped());
-    //     cmd.stderr(Stdio::piped());
-    //
-    //     let mut child = cmd.spawn()?;
-    //     spawn_log_processor("[out]".into(), child.stdout.take().unwrap());
-    //     spawn_log_processor("[err]".into(), child.stderr.take().unwrap());
-    //     let bar = new_spinner(format!("Running {:?}", cmd));
-    //     child.wait().await?;
-    //     Ok(())
-    // }
-    //
-    // #[tokio::test]
-    // async fn spawning() -> Result {
-    //     println!("Start");
-    //     tokio::process::Command::new("python").spawn()?.wait().await?;
-    //     println!("Finish");
-    //     Ok(())
-    // }
 }

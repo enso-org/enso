@@ -9,11 +9,12 @@ import org.enso.languageserver.filemanager.{
 }
 import org.enso.languageserver.protocol.json.ErrorApi._
 import org.enso.languageserver.runtime.ExecutionApi._
+import org.enso.languageserver.util.CollectionConversions._
 import org.enso.polyglot.runtime.Runtime.Api
-import cats.implicits._
 import org.enso.polyglot.runtime.Runtime.Api.{DiagnosticType, ExecutionResult}
 
 import java.io.File
+import java.lang.InternalError
 import scala.concurrent.{ExecutionContext, Future}
 
 final class RuntimeFailureMapper(contentRootManager: ContentRootManager) {
@@ -27,20 +28,19 @@ final class RuntimeFailureMapper(contentRootManager: ContentRootManager) {
   def mapApiError(
     error: Api.Error
   )(implicit ec: ExecutionContext): Future[ContextRegistryProtocol.Failure] = {
-    implicit def liftToFuture(
-      result: ContextRegistryProtocol.Failure
-    ): Future[ContextRegistryProtocol.Failure] = Future.successful(result)
     error match {
       case Api.ContextNotExistError(contextId) =>
-        ContextRegistryProtocol.ContextNotFound(contextId)
+        Future.successful(ContextRegistryProtocol.ContextNotFound(contextId))
       case Api.EmptyStackError(contextId) =>
-        ContextRegistryProtocol.EmptyStackError(contextId)
+        Future.successful(ContextRegistryProtocol.EmptyStackError(contextId))
       case Api.InvalidStackItemError(contextId) =>
-        ContextRegistryProtocol.InvalidStackItemError(contextId)
+        Future.successful(
+          ContextRegistryProtocol.InvalidStackItemError(contextId)
+        )
       case Api.ModuleNotFound(moduleName) =>
-        ContextRegistryProtocol.ModuleNotFound(moduleName)
+        Future.successful(ContextRegistryProtocol.ModuleNotFound(moduleName))
       case Api.VisualizationExpressionFailed(ctx, message, result) =>
-        for (diagnostic <- result.map(toProtocolDiagnostic).sequence)
+        for (diagnostic <- liftOptionOfFuture(result.map(toProtocolDiagnostic)))
           yield ContextRegistryProtocol.VisualizationExpressionFailed(
             ContextRegistryProtocol.VisualizationContext(
               ctx.visualizationId,
@@ -51,7 +51,9 @@ final class RuntimeFailureMapper(contentRootManager: ContentRootManager) {
             diagnostic
           )
       case Api.VisualizationNotFound() =>
-        ContextRegistryProtocol.VisualizationNotFound
+        Future.successful(ContextRegistryProtocol.VisualizationNotFound)
+      case e =>
+        Future.failed(new InternalError(s"unexpected error $e"))
     }
   }
 
@@ -102,7 +104,7 @@ final class RuntimeFailureMapper(contentRootManager: ContentRootManager) {
   ): Future[ContextRegistryProtocol.ExecutionDiagnostic] =
     for {
       path  <- findRelativePath(diagnostic.file)
-      stack <- diagnostic.stack.map(toStackTraceElement).sequence
+      stack <- liftSeqOfFutures(diagnostic.stack.map(toStackTraceElement))
     } yield ContextRegistryProtocol.ExecutionDiagnostic(
       toDiagnosticType(diagnostic.kind),
       diagnostic.message,
@@ -120,12 +122,12 @@ final class RuntimeFailureMapper(contentRootManager: ContentRootManager) {
     */
   private def toDiagnosticType(
     kind: Api.DiagnosticType
-  ): ContextRegistryProtocol.ExecutionDiagnosticKind =
+  ): ContextRegistryProtocol.ExecutionDiagnosticKinds.ExecutionDiagnosticKind =
     kind match {
       case Api.DiagnosticType.Error =>
-        ContextRegistryProtocol.ExecutionDiagnosticKind.Error
+        ContextRegistryProtocol.ExecutionDiagnosticKinds.Error
       case Api.DiagnosticType.Warning =>
-        ContextRegistryProtocol.ExecutionDiagnosticKind.Warning
+        ContextRegistryProtocol.ExecutionDiagnosticKinds.Warning
     }
 
   /** Convert the runtime stack trace element to the context registry protocol

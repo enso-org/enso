@@ -78,7 +78,7 @@ sealed case class ImportExport(
   ): ImportExport =
     this
 
-  /** @inheritdoc */
+  /** String representation. */
   override def toString: String =
     s"""
        |Error.ImportExport(
@@ -162,7 +162,15 @@ object ImportExport {
     moduleOrTypeName: String
   ) extends Reason {
     override def message(source: (IdentifiedLocation => String)): String =
-      s"The symbol $symbolName (module, type, or constructor) does not exist in $moduleOrTypeName."
+      s"The symbol $symbolName (module, type, method, or constructor) does not exist in $moduleOrTypeName."
+  }
+
+  case class IllegalImportFromMethod(
+    moduleName: String,
+    methodName: String
+  ) extends Reason {
+    override def message(source: (IdentifiedLocation => String)): String =
+      s"Cannot import symbols from method '$moduleName.$methodName'"
   }
 
   case class NoSuchConstructor(
@@ -171,6 +179,32 @@ object ImportExport {
   ) extends Reason {
     override def message(source: (IdentifiedLocation => String)): String =
       s"No such constructor ${constructorName} in type $typeName"
+  }
+
+  case class NoSuchModuleMethod(
+    moduleName: String,
+    methodName: String
+  ) extends Reason {
+    override def message(source: (IdentifiedLocation => String)): String =
+      s"No such method ${methodName} on module $moduleName"
+  }
+
+  case class NoSuchStaticMethod(
+    moduleName: String,
+    typeName: String,
+    methodName: String
+  ) extends Reason {
+    override def message(source: (IdentifiedLocation => String)): String =
+      s"No such static method ${methodName} on type $typeName in module $moduleName"
+  }
+
+  case class NoSuchConversionMethod(
+    moduleName: String,
+    targetTypeName: String,
+    sourceTypeName: String
+  ) extends Reason {
+    override def message(source: (IdentifiedLocation => String)): String =
+      s"No such conversion method from $sourceTypeName to $targetTypeName in module $moduleName"
   }
 
   case class ExportSymbolsFromPrivateModule(

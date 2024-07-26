@@ -3,7 +3,8 @@ import project.Data.Pair.Pair
 import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Text
 import project.Data.Vector.Vector
-import project.Enso_Cloud.Data_Link
+import project.Enso_Cloud.Data_Link.Data_Link
+import project.Enso_Cloud.Data_Link_Helpers
 import project.Error.Error
 import project.Errors.File_Error.File_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
@@ -22,8 +23,9 @@ import project.Runtime.Context
 import project.System.File.File
 import project.System.File.Generic.Writable_File.Writable_File
 from project.Data.Boolean import Boolean, False, True
+from project.Meta.Enso_Project import enso_project
 from project.Metadata.Choice import Option
-from project.Metadata.Widget import Text_Input
+from project.Metadata.Widget import Folder_Browse, Text_Input
 from project.System.File_Format import Auto_Detect, File_Format
 
 ## ALIAS load, open
@@ -62,15 +64,18 @@ from project.System.File_Format import Auto_Detect, File_Format
          from Standard.Table import all
          import Standard.Examples
 
-         example_xls_to_table = Data.read Examples.xls (Excel_Format.Sheet 'Dates')
+         example_xls_to_table = Data.read Examples.xls (..Sheet 'Dates')
 @path Text_Input
 @format File_Format.default_widget
-read : Text | File -> File_Format -> Problem_Behavior -> Any ! File_Error
-read path format=Auto_Detect (on_problems=Problem_Behavior.Report_Warning) = case path of
+read : Text | URI | File -> File_Format -> Problem_Behavior -> Any ! File_Error
+read path format=Auto_Detect (on_problems : Problem_Behavior = ..Report_Warning) = case path of
     _ : Text -> if Data_Read_Helpers.looks_like_uri path then Data_Read_Helpers.fetch_following_data_links path format=format else
         read (File.new path) format on_problems
     uri : URI -> Data_Read_Helpers.fetch_following_data_links uri format=format
-    _ -> File.new path . read format on_problems
+    _ ->
+        file_obj = File.new path
+        if file_obj.is_directory then Error.throw (Illegal_Argument.Error "Cannot `read` a directory, use `Data.list`.") else
+            file_obj.read format on_problems
 
 ## ALIAS load text, open text
    GROUP Input
@@ -98,7 +103,7 @@ read path format=Auto_Detect (on_problems=Problem_Behavior.Report_Warning) = cas
 @path Text_Input
 @encoding Encoding.default_widget
 read_text : (Text | File) -> Encoding -> Problem_Behavior -> Text
-read_text path (encoding=Encoding.utf_8) (on_problems=Problem_Behavior.Report_Warning) =
+read_text path (encoding : Encoding = Encoding.default) (on_problems : Problem_Behavior = ..Report_Warning) =
     File.new path . read_text encoding on_problems
 
 ## GROUP Input
@@ -152,11 +157,13 @@ read_text path (encoding=Encoding.utf_8) (on_problems=Problem_Behavior.Report_Wa
          import Standard.Examples
 
          example_list_files =
-             Data.list_directory Examples.data_dir name_filter="**.md" recursive=True
-@directory Text_Input
-list_directory : File -> Text | Nothing -> Boolean -> Vector File
-list_directory directory:File (name_filter:(Text | Nothing)=Nothing) recursive:Boolean=False =
-    directory . list name_filter=name_filter recursive=recursive
+             Data.list Examples.data_dir name_filter="**.md" recursive=True
+@directory Folder_Browse
+list : Text | File -> Text -> Boolean -> Vector File
+list (directory:(Text | File)=enso_project.root) (name_filter:Text="") recursive:Boolean=False =
+    file_obj = File.new directory
+    if file_obj.is_directory.not then Error.throw (Illegal_Argument.Error "Cannot `list` a non-directory.") else
+        file_obj.list name_filter=name_filter recursive=recursive
 
 ## ALIAS download, http get
    GROUP Input
@@ -303,7 +310,7 @@ fetch (uri:(URI | Text)) (method:HTTP_Method=HTTP_Method.Get) (headers:(Vector (
 
          import Standard.Base.Data
          test_file = enso_project.data / "sample.png"
-         form_data = Map.from_vector [["key", "val"], ["a_file", test_file]]
+         form_data = Dictionary.from_vector [["key", "val"], ["a_file", test_file]]
          response = Data.post url_post (Request_Body.Form_Data form_data)
 
    > Example
@@ -311,7 +318,7 @@ fetch (uri:(URI | Text)) (method:HTTP_Method=HTTP_Method.Get) (headers:(Vector (
 
          import Standard.Base.Data
          test_file = enso_project.data / "sample.txt"
-         form_data = Map.from_vector [["key", "val"], ["a_file", test_file]]
+         form_data = Dictionary.from_vector [["key", "val"], ["a_file", test_file]]
          response = Data.post url_post (Request_Body.Form_Data form_data url_encoded=True)
 @uri Text_Input
 @response_format Data_Read_Helpers.format_widget_with_raw_response
@@ -340,8 +347,8 @@ download (uri:(URI | Text)) file:Writable_File (method:HTTP_Method=HTTP_Method.G
         case Data_Link.is_data_link response.body.metadata of
             True ->
                 # If the resource was a data link, we follow it, download the target data and try to write it to a file.
-                data_link = Data_Link.interpret_json_as_data_link response.decode_as_json
-                Data_Link.save_data_link_to_file data_link file
+                data_link = Data_Link_Helpers.interpret_json_as_data_link response.decode_as_json
+                Data_Link_Helpers.save_data_link_to_file data_link file
             False ->
                 response.write file
 

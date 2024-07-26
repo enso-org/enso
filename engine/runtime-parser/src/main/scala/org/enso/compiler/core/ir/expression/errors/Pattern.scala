@@ -113,4 +113,18 @@ object Pattern {
       s"Wrong number of fields when matching on $consName." +
       s" Expected $expected fields, but provided $actual"
   }
+
+  /** An error when a project-private constructor is used in the pattern.
+    * @param consName Name of the constructor. Does not have to be fully qualified.
+    * @param callerProject The project name of the caller.
+    * @param calleeProject The project name of the callee. The constructor is in this project.
+    */
+  case class PrivateConstructor(
+    consName: String,
+    callerProject: String,
+    calleeProject: String
+  ) extends Reason {
+    override def explain: String =
+      s"Project-private constructor '$consName' in project '$calleeProject' cannot be used from project '$callerProject'"
+  }
 }

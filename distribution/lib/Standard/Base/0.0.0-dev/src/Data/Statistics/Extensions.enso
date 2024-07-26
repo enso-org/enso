@@ -1,0 +1,57 @@
+import project.Any.Any
+import project.Data.Statistics.Rank_Method
+import project.Data.Statistics.Statistic
+import project.Data.Vector.Vector
+
+## GROUP Statistics
+   ICON transform4
+   Compute a single statistic on the vector (ignoring Nothing and NaN values).
+
+   Arguments:
+   - statistic: Statistic to calculate.
+Vector.compute : Statistic -> Any
+Vector.compute self statistic:Statistic=..Count =
+    self.compute_bulk [statistic] . first
+
+## ICON column_add
+   Compute statistics on the vector (ignoring Nothing and NaN values).
+
+   Arguments:
+   - statistics: Set of statistics to calculate.
+@statistics Statistic.bulk_widget
+Vector.compute_bulk : Vector Statistic -> Vector Any
+Vector.compute_bulk self statistics:Vector=[..Count, ..Sum] =
+    Statistic.compute_bulk self statistics
+
+## GROUP Statistics
+   ICON math
+   Compute a single running statistic on the vector (ignoring Nothing and NaN
+   values).
+
+   Arguments:
+   - statistic: Statistic to calculate.
+Vector.running : Statistic -> Vector Any
+Vector.running self statistic:Statistic=..Count =
+    Statistic.running self statistic
+
+## ICON math
+   Compute a set running statistics on the vector (ignoring Nothing and NaN
+   values).
+
+   Arguments:
+   - statistics: Set of statistics to calculate.
+@statistics Statistic.bulk_widget
+Vector.running_bulk : Vector Statistic -> Vector Any
+Vector.running_bulk self (statistics:(Vector Statistic)=[..Count, ..Sum]) =
+    Statistic.running_bulk self statistics
+
+## GROUP Statistics
+   ICON column_add
+   Assigns a rank to each value of data, dealing with equal values according to
+   the method.
+
+   Arguments:
+   - method: Method used to deal with equal values.
+Vector.rank_data : Rank_Method -> Vector
+Vector.rank_data self method:Rank_Method=..Average =
+    Statistic.rank_data self method

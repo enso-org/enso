@@ -1,6 +1,6 @@
 import project.Any.Any
+import project.Data.Dictionary.Dictionary
 import project.Data.Json.JS_Object
-import project.Data.Map.Map
 import project.Data.Numbers.Integer
 import project.Data.Range.Range
 import project.Data.Text.Regex.No_Such_Group
@@ -15,6 +15,7 @@ import project.Nothing.Nothing
 import project.Panic.Panic
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Range.Extensions import all
+from project.Metadata import Display, Widget
 
 type Match
     ## PRIVATE
@@ -94,7 +95,9 @@ type Match
         span = self.span group
         if span.is_nothing then Nothing else span.start
 
-    ## Returns the end grapheme index, plus one, of a group.
+    ## GROUP Metadata
+       ICON metadata
+       Returns the end grapheme index, plus one, of a group.
 
        ! What is a Character?
          A character is defined as an Extended Grapheme Cluster, see Unicode
@@ -257,7 +260,7 @@ type Match
 
     ## GROUP Metadata
        ICON metadata
-       Gets a map containing the named capturing groups for the pattern,
+       Gets a Dictionary containing the named capturing groups for the pattern,
        replacing the value for groups that did not participate in the match with
        `default`.
 
@@ -276,32 +279,35 @@ type Match
        a named group that does not participate to the default value.
 
        > Example
-         Get the map of all of the named groups in this match, replacing the
-         value for groups that didn't participate in the match with "UNMATCHED".
+         Get the Dictionary of all of the named groups in this match, replacing
+         the value for groups that didn't participate in the match with
+         "UNMATCHED".
 
             pattern = Regex.compile "(.. .. )(?<letters>.+)()??(?<empty>)??"
             input = "aa ab abc a bc bcd"
             match = pattern.match input
             ## match.named_groups.keys.sort == ["empty", "letters"]
-    named_groups : Any -> Map Text (Text | Any)
+    named_groups : Any -> Dictionary Text (Text | Any)
     named_groups self default=Nothing =
         pattern_named_groups = self.pattern.named_groups
-        Map.from_vector <|
+        Dictionary.from_vector <|
             pattern_named_groups.map name-> [name, self.text name default=default]
 
-    ## Gets the grapheme span matched by the group with the provided index, or
+    ## ICON split
+       Gets the grapheme span matched by the group with the provided index, or
        a default value if the group did not participate in the match.
        If the identifier is invalid then `if_missing` is returned.
 
        Arguments:
        - id: The integer index or name of that group.
        - if_missing: The value to return if the index is out of bounds.
+    @index (t-> Widget.Numeric_Input minimum=0 maximum=t.pattern.group_count display=Display.Always)
     get : Integer -> Any -> Text | Any
-    get self index ~if_missing=Nothing =
+    get self index:Integer=0 ~if_missing=Nothing =
         self.text index . catch No_Such_Group (_-> if_missing)
 
     ## GROUP Selections
-       ICON split_text
+       ICON split
        Gets the grapheme span matched by the group with the provided index, or
        a default value if the group did not participate in the match.
        If the identifier is invalid then Index_Out_Of_Bounds is thrown.
@@ -309,6 +315,7 @@ type Match
        Arguments:
        - id: The integer index or name of that group.
        - if_missing: The value to return if the index is out of bounds.
+    @index (t-> Widget.Numeric_Input minimum=0 maximum=t.pattern.group_count display=Display.Always)
     at : Integer -> Text ! Index_Out_Of_Bounds
-    at self index =
+    at self index:Integer=0 =
         self.get index if_missing=(Error.throw (Index_Out_Of_Bounds.Error index self.pattern.group_count))

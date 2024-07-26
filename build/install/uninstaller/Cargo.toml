@@ -1,0 +1,21 @@
+[package]
+name = "enso-uninstaller"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow = { workspace = true }
+enso-install = { path = ".." }
+enso-install-config = { path = "../config" }
+ide-ci = { path = "../../ci_utils" }
+self-replace = "1.3.7"
+sysinfo = { workspace = true }
+tokio = { workspace = true }
+
+[target.'cfg(windows)'.dependencies]
+native-windows-gui = { workspace = true }
+
+[lints]
+workspace = true

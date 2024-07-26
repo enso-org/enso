@@ -3,10 +3,12 @@ import { WidgetInput } from '@/providers/widgetRegistry'
 import type { WidgetConfiguration } from '@/providers/widgetRegistry/configuration'
 import * as widgetCfg from '@/providers/widgetRegistry/configuration'
 import { DisplayMode } from '@/providers/widgetRegistry/configuration'
-import type { GraphDb, MethodCallInfo } from '@/stores/graph/graphDatabase'
+import type { MethodCallInfo } from '@/stores/graph/graphDatabase'
 import type { SuggestionEntry, SuggestionEntryArgument } from '@/stores/suggestionDatabase/entry'
 import { Ast } from '@/util/ast'
+import type { AstId } from '@/util/ast/abstract'
 import { findLastIndex, tryGetIndex } from '@/util/data/array'
+import type { ExternalId } from 'shared/yjsModel'
 import { assert } from './assert'
 
 export const enum ApplicationKind {
@@ -133,7 +135,7 @@ export class ArgumentAst extends Argument {
   }
 }
 
-type InterpretedCall = InterpretedInfix | InterpretedPrefix
+export type InterpretedCall = InterpretedInfix | InterpretedPrefix
 
 interface InterpretedInfix {
   kind: 'infix'
@@ -155,8 +157,8 @@ interface FoundApplication {
   argName: string | undefined
 }
 
-export function interpretCall(callRoot: Ast.Ast, allowInterpretAsInfix: boolean): InterpretedCall {
-  if (allowInterpretAsInfix && callRoot instanceof Ast.OprApp) {
+export function interpretCall(callRoot: Ast.Ast): InterpretedCall {
+  if (callRoot instanceof Ast.OprApp) {
     // Infix chains are handled one level at a time. Each application may have at most 2 arguments.
     return {
       kind: 'infix',
@@ -201,6 +203,8 @@ export class ArgumentApplication {
     public target: ArgumentApplication | Ast.Ast | ArgumentPlaceholder | ArgumentAst,
     public infixOperator: Ast.Token | undefined,
     public argument: ArgumentAst | ArgumentPlaceholder,
+    public calledFunction: SuggestionEntry | undefined,
+    public isInnermost: boolean,
   ) {}
 
   private static FromInterpretedInfix(interpreted: InterpretedInfix, callInfo: CallInfo) {
@@ -219,6 +223,8 @@ export class ArgumentApplication {
       argFor('lhs', 0),
       interpreted.operator,
       argFor('rhs', 1),
+      suggestion,
+      true,
     )
   }
 
@@ -363,7 +369,14 @@ export class ArgumentApplication {
 
     return resolvedArgs.reduce(
       (target: ArgumentApplication | Ast.Ast, toDisplay) =>
-        new ArgumentApplication(toDisplay.appTree, target, undefined, toDisplay.argument),
+        new ArgumentApplication(
+          toDisplay.appTree,
+          target,
+          undefined,
+          toDisplay.argument,
+          suggestion,
+          target === interpreted.func,
+        ),
       interpreted.func,
     )
   }
@@ -397,6 +410,57 @@ export class ArgumentApplication {
       [ArgumentApplicationKey]: this,
     }
   }
+
+  static collectArgumentNamesAndUuids(
+    value: InterpretedCall,
+    mci: MethodCallInfo | undefined,
+  ): Record<string, ExternalId> {
+    const namesAndExternalIds: Array<{
+      name: string | null
+      uuid: ExternalId | undefined
+    }> = []
+
+    const args = ArgumentApplication.FromInterpretedWithInfo(value)
+    if (args instanceof ArgumentApplication) {
+      for (const n of args.iterApplications()) {
+        const a = n.argument
+        if (a instanceof ArgumentPlaceholder) {
+          // pass thru
+        } else {
+          namesAndExternalIds.push({
+            name: a.argInfo?.name.toString() ?? null,
+            uuid: a.ast.externalId,
+          })
+        }
+      }
+    } else {
+      // don't process
+    }
+    namesAndExternalIds.reverse()
+
+    const argsExternalIds: Record<string, ExternalId> = {}
+    let index = 'self' === mci?.suggestion.arguments[0]?.name ? 1 : 0
+    for (const nameAndExtenalId of namesAndExternalIds) {
+      const notApplied = mci?.methodCall.notAppliedArguments ?? []
+      while (notApplied.indexOf(index) != -1) {
+        index++
+      }
+      if (nameAndExtenalId.uuid) {
+        argsExternalIds['' + index] = nameAndExtenalId.uuid
+      }
+      const suggestedName: string | undefined = mci?.suggestion.arguments[index]?.name
+      if (suggestedName && nameAndExtenalId.uuid) {
+        argsExternalIds[suggestedName] = nameAndExtenalId.uuid
+      }
+      index++
+    }
+    for (const nameAndExternalId of namesAndExternalIds) {
+      if (nameAndExternalId.name && nameAndExternalId.uuid) {
+        argsExternalIds[nameAndExternalId.name] = nameAndExternalId.uuid
+      }
+    }
+    return argsExternalIds
+  }
 }
 
 const unknownArgInfoNamed = (name: string) => ({
@@ -418,12 +482,12 @@ export function getAccessOprSubject(app: Ast.Ast): Ast.Ast | undefined {
  * We also don’t consider infix applications here, as using them inside a prefix chain would require additional syntax (like parenthesis). */
 export function getMethodCallInfoRecursively(
   ast: Ast.Ast,
-  db: GraphDb,
+  graphDb: { getMethodCallInfo(id: AstId): MethodCallInfo | undefined },
 ): MethodCallInfo | undefined {
   let appliedArgs = 0
   const appliedNamedArgs: string[] = []
   for (;;) {
-    const info = db.getMethodCallInfo(ast.id)
+    const info = graphDb.getMethodCallInfo(ast.id)
     if (info) {
       // There is an info available! Stop the recursion and adjust `notAppliedArguments`.
       // Indices of all named arguments applied so far.
@@ -441,6 +505,7 @@ export function getMethodCallInfoRecursively(
           ...info.methodCall,
           notAppliedArguments: withoutNamed.sort().slice(appliedArgs),
         },
+        methodCallSource: ast.id,
         suggestion: info.suggestion,
       }
     }
@@ -458,8 +523,8 @@ export function getMethodCallInfoRecursively(
   }
 }
 
-export const ArgumentApplicationKey: unique symbol = Symbol('ArgumentApplicationKey')
-export const ArgumentInfoKey: unique symbol = Symbol('ArgumentInfoKey')
+export const ArgumentApplicationKey: unique symbol = Symbol.for('WidgetInput:ArgumentApplication')
+export const ArgumentInfoKey: unique symbol = Symbol.for('WidgetInput:ArgumentInfo')
 declare module '@/providers/widgetRegistry' {
   export interface WidgetInput {
     [ArgumentApplicationKey]?: ArgumentApplication

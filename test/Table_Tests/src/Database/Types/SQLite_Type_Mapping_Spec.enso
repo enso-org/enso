@@ -7,7 +7,7 @@ import Standard.Database.Dialect
 import Standard.Database.Extensions.Upload_Database_Table
 import Standard.Database.Extensions.Upload_In_Memory_Table
 import Standard.Database.Internal.SQLite.SQLite_Type_Mapping
-from Standard.Database import Database, SQLite, In_Memory, SQL_Query
+from Standard.Database import Database, SQLite, SQL_Query
 from Standard.Database.Errors import Unsupported_Database_Operation
 
 from Standard.Test import all
@@ -18,7 +18,7 @@ type Data
     Value ~connection
 
     setup =
-        connection = Database.connect (SQLite In_Memory)
+        connection = Database.connect (SQLite.In_Memory)
         Data.Value connection
 
     teardown self = self.connection.close
@@ -123,8 +123,8 @@ add_specs suite_builder =
 
         group_builder.specify "should be able to infer types for all supported operations" <|
             dialect = Dialect.sqlite
-            internal_mapping = dialect.internal_generator_dialect.operation_map
-            operation_type_mapping = SQLite_Type_Mapping.operations_map
+            internal_mapping = dialect.dialect_operations.operations_dict
+            operation_type_mapping = SQLite_Type_Mapping.operations_dict
 
             operation_type_mapping.keys.sort . should_equal internal_mapping.keys.sort
 

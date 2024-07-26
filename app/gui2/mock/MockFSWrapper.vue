@@ -2,9 +2,9 @@
 import { useProjectStore } from '@/stores/project'
 import { mockFsDirectoryHandle } from '@/util/convert/fsAccess'
 import { MockWebSocket, type WebSocketHandler } from '@/util/net'
-import { mockDataWSHandler } from 'shared/dataServer/mock'
 import { type Path as LSPath } from 'shared/languageServerTypes'
 import { watchEffect } from 'vue'
+import { mockDataWSHandler } from './dataServer'
 
 const projectStore = useProjectStore()
 
@@ -42,9 +42,7 @@ watchEffect(async (onCleanup) => {
   const prefixLength = props.prefix?.length ?? 0
   const directory = maybeDirectory
   const ls = await projectStore.lsRpcConnection
-  const maybeProjectRoot = (await projectStore.contentRoots).find(
-    (root) => root.type === 'Project',
-  )?.id
+  const maybeProjectRoot = await projectStore.projectRootId
   if (!maybeProjectRoot) return
   const projectRoot = maybeProjectRoot
   async function walkFiles(

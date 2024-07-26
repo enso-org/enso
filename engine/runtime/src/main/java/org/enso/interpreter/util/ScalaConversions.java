@@ -42,6 +42,10 @@ public class ScalaConversions {
     return scala.collection.immutable.$colon$colon$.MODULE$.apply(head, tail);
   }
 
+  public static <T> scala.collection.immutable.Seq<T> seq(List<T> list) {
+    return CollectionConverters.asScala(list).toSeq();
+  }
+
   /**
    * Create a Scala set from the provided elements.
    *

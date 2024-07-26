@@ -184,15 +184,18 @@ pub trait IsReleaseExt: IsRelease + Sync {
             asset_filename.as_ref().display()
         );
         async move {
-            let path = path.as_ref().to_path_buf();
-            let asset_name = asset_filename.as_ref().to_owned();
-            let content_type = new_mime_guess::from_path(&path).first_or_octet_stream();
-            let metadata = crate::fs::tokio::metadata(&path).await?;
+            let path = path.as_ref();
+            let asset_name = asset_filename.as_ref();
+            let content_type = new_mime_guess::from_path(path).first_or_octet_stream();
+            let metadata = crate::fs::tokio::metadata(path).await?;
             trace!("File metadata: {metadata:#?}.");
             let file_size = metadata.len();
-            let file = crate::fs::tokio::open_stream(&path).await?;
-            let body = Body::wrap_stream(file);
-            self.upload_asset(asset_name.as_str(), content_type, file_size, body).await
+            crate::io::retry(|| async {
+                let file = crate::fs::tokio::open_stream(path).await?;
+                let body = Body::wrap_stream(file);
+                self.upload_asset(asset_name.as_str(), content_type.clone(), file_size, body).await
+            })
+            .await
         }
         .await
         .context(error_msg)

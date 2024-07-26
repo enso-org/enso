@@ -1,0 +1,16 @@
+[package]
+name = "enso-install-config"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+embed-resource = "2.4.0"
+enso-build-base = { path = "../../base" }
+ide-ci = { path = "../../ci_utils" }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tempfile = "3.2.0"
+walkdir = { workspace = true }
+
+[lints]
+workspace = true

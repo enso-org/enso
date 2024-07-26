@@ -6,23 +6,130 @@ on:
   pull_request:
     branches: [develop]
     paths:
+      - ".github/workflows/enso4igv.yml"
       - "tools/enso4igv/**/*"
+      - "engine/**/*"
+      - "lib/java/**/*"
+      - "lib/scala/**/*"
+      - "build.sbt"
 
 jobs:
-  build:
+  build_linux_parser:
     runs-on: ubuntu-20.04
-    strategy:
-      matrix:
-        java: ["11"]
 
     steps:
-      - uses: actions/checkout@v2
-      - name: Set up Java
-        uses: actions/setup-java@v2
+      - uses: actions/checkout@v4
+
+      - name: Install rustup
+        run: |
+          rustup target add x86_64-unknown-linux-musl
+
+      - name: Build Enso Parser
+        working-directory: .
+        env:
+          RUSTFLAGS: "-C target-feature=-crt-static"
+        run: |
+          cargo build --release -p enso-parser-jni -Z unstable-options --target x86_64-unknown-linux-musl --out-dir target/lib/
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
         with:
-          distribution: "zulu"
-          java-version: ${{ matrix.java }}
-          cache: maven
+          name: parser_linux
+          path: |
+            target/lib/**
+
+  build_mac_intel_parser:
+    runs-on: macos-12
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Enso Parser
+        working-directory: .
+        env:
+          RUSTFLAGS: "-C target-feature=-crt-static"
+        run: |
+          cargo build --release -p enso-parser-jni -Z unstable-options --out-dir target/lib/x86_64
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: parser_mac_intel
+          path: |
+            target/lib/**
+
+  build_mac_arm_parser:
+    runs-on: macos-14
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Enso Parser
+        working-directory: .
+        env:
+          RUSTFLAGS: "-C target-feature=-crt-static"
+        run: |
+          cargo build --release -p enso-parser-jni -Z unstable-options --out-dir target/lib/aarch64/
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: parser_mac_arm
+          path: |
+            target/lib/**
+
+  build_windows_parser:
+    runs-on: windows-2019
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Enso Parser
+        working-directory: .
+        env:
+          RUSTFLAGS: "-C target-feature=-crt-static"
+        run: |
+          cargo build --release -p enso-parser-jni -Z unstable-options --out-dir target/lib/
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: parser_windows
+          path: |
+            target/lib/**
+
+  build_java:
+    needs:
+      [
+        build_linux_parser,
+        build_mac_intel_parser,
+        build_mac_arm_parser,
+        build_windows_parser,
+      ]
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download Libraries
+        uses: actions/download-artifact@v4
+        with:
+          path: enso_parser
+          merge-multiple: true
+
+      - name: List Binaries
+        run: |
+          find . | grep -i enso.parser | xargs ls -ld
+
+      - name: Set up Rustup
+        run: rustup show
+
+      - uses: graalvm/setup-graalvm@v1
+        with:
+          java-version: "21"
+          distribution: "graalvm-community"
+
+      - name: Publish Enso Libraries to Local Maven Repository
+        run: sbt publishM2
 
       - name: Find out pom & micro versions
         working-directory: tools/enso4igv
@@ -30,7 +137,7 @@ jobs:
           # Why do we subtract a number? Read versioning policy!
           # https://github.com/enso-org/enso/pull/7861#discussion_r1333133490
           echo "POM_VERSION=`mvn -q -DforceStdout help:evaluate -Dexpression=project.version | cut -f1 -d -`" >> "$GITHUB_ENV"
-          echo "MICRO_VERSION=`expr $GITHUB_RUN_NUMBER - 2250`" >> "$GITHUB_ENV"
+          echo "MICRO_VERSION=`expr $GITHUB_RUN_NUMBER - 2930`" >> "$GITHUB_ENV"
 
       - name: Update project version
         working-directory: tools/enso4igv
@@ -39,9 +146,10 @@ jobs:
           mvn versions:set -DnewVersion="$POM_VERSION.$MICRO_VERSION"
 
       - name: Build with Maven
-        run: mvn -B -Pvsix package --file tools/enso4igv/pom.xml
+        run: mvn -B -Pvsix package --file tools/enso4igv/pom.xml -Denso.parser.lib=`pwd`/enso_parser/
+
       - name: Archive NBM file
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: Enso IGV Plugin
           path: tools/enso4igv/target/*.nbm
@@ -53,10 +161,10 @@ jobs:
         run: mvn -B -Pvsix npm:exec@version --file tools/enso4igv/pom.xml
 
       - name: Build VSCode Extension
-        run: mvn -B -Pvsix npm:run@vsix --file tools/enso4igv/pom.xml
+        run: mvn -B -Pvsix npm:run@vsix --file tools/enso4igv/pom.xml -Denso.parser.lib=`pwd`/enso_parser/
 
       - name: Archive VSCode extension
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: VSCode Extension
           path: tools/enso4igv/*.vsix

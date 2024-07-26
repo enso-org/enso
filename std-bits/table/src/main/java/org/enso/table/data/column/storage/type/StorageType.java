@@ -1,5 +1,6 @@
 package org.enso.table.data.column.storage.type;
 
+import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -13,6 +14,7 @@ import org.enso.base.polyglot.NumericConverter;
  */
 public sealed interface StorageType
     permits AnyObjectType,
+        BigDecimalType,
         BigIntegerType,
         BooleanType,
         DateTimeType,
@@ -41,6 +43,7 @@ public sealed interface StorageType
 
     return switch (item) {
       case String s -> TextType.VARIABLE_LENGTH;
+      case BigDecimal i -> BigDecimalType.INSTANCE;
       case BigInteger i -> BigIntegerType.INSTANCE;
       case Boolean b -> BooleanType.INSTANCE;
       case LocalDate d -> DateType.INSTANCE;

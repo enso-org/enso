@@ -1,5 +1,9 @@
 package org.enso.interpreter.test;
 
+import static org.enso.test.utils.ContextUtils.createDefaultContext;
+import static org.enso.test.utils.ContextUtils.createValue;
+import static org.enso.test.utils.ContextUtils.executeInContext;
+import static org.enso.test.utils.ContextUtils.unwrapValue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
@@ -15,11 +19,12 @@ import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
+import org.enso.common.MethodNames;
 import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEnsoNode;
 import org.enso.interpreter.node.expression.builtin.meta.EqualsNode;
 import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
-import org.enso.polyglot.MethodNames;
+import org.enso.test.utils.TestRootNode;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
@@ -32,7 +37,7 @@ import org.junit.experimental.theories.Theory;
 import org.junit.runner.RunWith;
 
 @RunWith(Theories.class)
-public class EqualsTest extends TestBase {
+public class EqualsTest {
   private static Context context;
   private static EqualsNode equalsNode;
   private static TestRootNode testRootNode;

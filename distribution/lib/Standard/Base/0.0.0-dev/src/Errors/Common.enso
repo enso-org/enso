@@ -197,8 +197,13 @@ type No_Such_Method
        Convert the No_Such_Method error to a human-readable format.
     to_display_text : Text
     to_display_text self =
-        target_type_name = if Meta.is_polyglot self.target then self.target.to_display_text else (Meta.type_of self.target).to_display_text
-        "Method `"+self.method_name+"` of type "+target_type_name+" could not be found."
+        target_name =
+          is_poly = Meta.is_polyglot self.target
+          is_fn = Meta.type_of self.target == Function
+          if is_poly then "type " + self.target.to_display_text else
+             if is_fn then self.target.to_text else
+                "type " + (Meta.type_of self.target).to_display_text
+        "Method `"+self.method_name+"` of "+target_name+" could not be found."
 
 @Builtin_Type
 type No_Such_Field
@@ -306,6 +311,32 @@ type Not_Invokable
        Convert the Not_Invokable error to a human-readable format.
     to_display_text : Text
     to_display_text self = "Type error: expected a function, but got "+self.target.to_display_text+"."
+
+@Builtin_Type
+type Private_Access
+    ## PRIVATE
+       An error that occurs when a private (project-private) method is called from a different
+       project.
+
+       Arguments:
+       - this_project_name: Optional qualified name of the current (caller) project.
+       - target_project_name: Optional qualified name name of the project of callee.
+       - target_method_name: The name of the target method call that is project-private and thus cannot be called.
+    Error (this_project_name : (Text | Nothing)) (target_project_name : (Text | Nothing)) (target_method_name : Text)
+
+    ## PRIVATE
+       Convert the Private_Access error to a human-readable format.
+    to_display_text : Text
+    to_display_text self =
+        this_proj = if self.this_project_name.is_nothing then "unknown project" else "project '"+self.this_project_name+"'"
+        target_proj = if self.target_project_name.is_nothing then "unknown project" else "project '"+self.target_project_name+"'"
+        "Private access error: The project-private method '"
+            + self.target_method_name
+            + "' in "
+            + target_proj
+            + " cannot be accessed from "
+            + this_proj
+            + "."
 
 @Builtin_Type
 type Unsupported_Argument_Types
@@ -434,16 +465,23 @@ type Out_Of_Memory
 
 ## Indicates that an expression cannot be evaluated because somewhere within it,
    a function does not have all required arguments provided.
-type Missing_Required_Argument
+type Missing_Argument
     ## PRIVATE
        Indicates that an expression cannot be evaluated because somewhere within
        it, a function does not have all required arguments provided.
-    Error (argument_name : Text) (function_name : Text) (call_location : Source_Location | Nothing)
+    Error (argument_name : Text) (function_name : Text | Nothing = Nothing) (call_location : Source_Location | Nothing = Nothing)
 
     ## PRIVATE
     to_display_text : Text
-    to_display_text self =
-        "Missing required argument `" + self.argument_name + "` in function `" + self.function_name + "`."
+    to_display_text self = case self.function_name of
+        Nothing -> "Provide a value for the argument `" + self.argument_name + "`."
+        _ -> "Missing required argument `" + self.argument_name + "` in function `" + self.function_name + "`."
+
+    ## PRIVATE
+       Throws an error saying that a required argument has not been provided.
+    throw : Text -> Nothing ! Missing_Argument
+    throw argument_name:Text =
+        Error.throw (Missing_Argument.Error argument_name)
 
     ## PRIVATE
        Throws an error saying that a required argument has not been provided.
@@ -456,16 +494,16 @@ type Missing_Required_Argument
 
        > Example
 
-         my_function (arg1 = Missing_Required_Argument.ensure_present "arg1") (arg2 = 100) = arg1+arg2
-    ensure_present : Text -> Nothing ! Missing_Required_Argument
-    ensure_present (argument_name : Text = Missing_Required_Argument.ensure_present "argument_name") =
+         my_function (arg1 = Missing_Argument.ensure_present "arg1") (arg2 = 100) = arg1+arg2
+    ensure_present : Text -> Nothing ! Missing_Argument
+    ensure_present (argument_name : Text = Missing_Argument.ensure_present "argument_name") =
         stack_trace = Runtime.get_stack_trace
         function_frame = stack_trace . at 1
         caller_frame = stack_trace . at 2
 
         function_name = function_frame.name
         call_location = caller_frame.source_location
-        Error.throw (Missing_Required_Argument.Error argument_name function_name call_location)
+        Error.throw (Missing_Argument.Error argument_name function_name call_location)
 
 ## Warning when additional warnings occurred.
 type Additional_Warnings
@@ -493,7 +531,7 @@ type Loss_Of_Numeric_Precision
     ## PRIVATE
     to_text : Text
     to_text self =
-        "(Loss_Of_Numeric_Precision.Warning (original_value = "+self.original_value.to_text+") (new_value = " + self.new_value.to_text+"))"
+        "(Loss_Of_Numeric_Precision.Warning (original_value = "+self.original_value.to_text+") (new_value = "+self.new_value.to_text+"))"
 
 ## Indicates that a computed or provided value is outside the allowable range.
 type Out_Of_Range

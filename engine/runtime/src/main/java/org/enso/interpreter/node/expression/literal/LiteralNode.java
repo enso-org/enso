@@ -72,10 +72,10 @@ public class LiteralNode extends ExpressionNode implements Patchable {
   }
 
   /**
-   * Returns the constant value of this string literal.
+   * Returns the constant value of this literal.
    *
    * @param frame the stack frame for execution
-   * @return the string value this node was created with
+   * @return the value this node was created with
    */
   @Override
   public Object executeGeneric(VirtualFrame frame) {

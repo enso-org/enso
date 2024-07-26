@@ -4,7 +4,10 @@ import { getTextWidthByFont } from '@/util/measurement'
 import { computed, ref, watch, type StyleValue } from 'vue'
 
 const [model, modifiers] = defineModel<string>()
-const props = defineProps<{ autoSelect?: boolean }>()
+const props = defineProps<{
+  autoSelect?: boolean
+  placeholder?: string | undefined
+}>()
 const emit = defineEmits<{
   input: [value: string | undefined]
   change: [value: string | undefined]
@@ -35,7 +38,9 @@ const cssFont = computed(() => {
 const ADDED_WIDTH_PX = 2
 
 const getTextWidth = (text: string) => getTextWidthByFont(text, cssFont.value)
-const inputWidth = computed(() => getTextWidth(`${innerModel.value}`) + ADDED_WIDTH_PX)
+const inputWidth = computed(
+  () => getTextWidth(innerModel.value || (props.placeholder ?? '')) + ADDED_WIDTH_PX,
+)
 const inputStyle = computed<StyleValue>(() => ({ width: `${inputWidth.value}px` }))
 
 function onEnterDown() {
@@ -59,10 +64,15 @@ defineExpose({
   <input
     ref="inputNode"
     v-model="innerModel"
-    class="AutoSizedInput"
+    class="AutoSizedInput input"
+    :placeholder="placeholder ?? ''"
     :style="inputStyle"
+    @pointerdown.stop
+    @click.stop
     @keydown.backspace.stop
     @keydown.delete.stop
+    @keydown.arrow-left.stop
+    @keydown.arrow-right.stop
     @keydown.enter.stop="onEnterDown"
     @input="emit('input', innerModel)"
     @change="onChange"
@@ -79,10 +89,9 @@ defineExpose({
   text-align: center;
   font-weight: 800;
   line-height: 171.5%;
-  height: 24px;
+  height: var(--node-port-height);
   appearance: textfield;
   -moz-appearance: textfield;
-  cursor: default;
   user-select: all;
   box-sizing: content-box;
   &:focus {
@@ -90,8 +99,8 @@ defineExpose({
   }
 }
 
-input::-webkit-outer-spin-button,
-input::-webkit-inner-spin-button {
+.input::-webkit-outer-spin-button,
+.input::-webkit-inner-spin-button {
   -webkit-appearance: none;
   margin: 0;
 }

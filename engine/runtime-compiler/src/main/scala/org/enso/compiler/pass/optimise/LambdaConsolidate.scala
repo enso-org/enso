@@ -131,7 +131,7 @@ case object LambdaConsolidate extends IRPass {
     * @return the optimised version of `function`, with any directly chained
     *         lambdas collapsed
     */
-  def collapseFunction(
+  private def collapseFunction(
     function: Function,
     inlineContext: InlineContext,
     freshNameSupply: FreshNameSupply
@@ -209,7 +209,7 @@ case object LambdaConsolidate extends IRPass {
     * @return the list of arguments, some with attached warnings, along with
     *         whether or not they are shadowed
     */
-  def attachShadowingWarnings(
+  private def attachShadowingWarnings(
     argsWithShadowed: List[(DefinitionArgument, Boolean)]
   ): List[(DefinitionArgument, Boolean)] = {
     val args = argsWithShadowed.map(_._1)
@@ -418,20 +418,21 @@ case object LambdaConsolidate extends IRPass {
   ): List[DefinitionArgument] = {
     argsWithShadowed.map {
       case (
-            spec @ DefinitionArgument.Specified(name, _, _, _, _, _, _),
+            spec: DefinitionArgument.Specified,
             isShadowed
           ) =>
+        val oldName = spec.name
         val newName =
           if (isShadowed) {
             freshNameSupply
-              .newName(from = Some(name))
+              .newName(from = Some(oldName))
               .copy(
-                location    = name.location,
-                passData    = name.passData,
-                diagnostics = name.diagnostics,
-                id          = name.getId
+                location    = oldName.location,
+                passData    = oldName.passData,
+                diagnostics = oldName.diagnostics,
+                id          = oldName.getId
               )
-          } else name
+          } else oldName
 
         spec.copy(name = newName)
     }

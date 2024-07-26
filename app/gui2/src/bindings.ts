@@ -1,7 +1,17 @@
 import { defineKeybinds } from '@/util/shortcuts'
 
+export const undoBindings = defineKeybinds('undo', {
+  undo: ['Mod+Z'],
+  redo: ['Mod+Y', 'Mod+Shift+Z'],
+})
+
 export const codeEditorBindings = defineKeybinds('code-editor', {
   toggle: ['Mod+`'],
+})
+
+export const documentationEditorBindings = defineKeybinds('documentation-editor', {
+  toggle: ['Mod+D'],
+  openLink: ['Mod+PointerMain'],
 })
 
 export const interactionBindings = defineKeybinds('current-interaction', {
@@ -18,12 +28,9 @@ export const componentBrowserBindings = defineKeybinds('component-browser', {
 })
 
 export const graphBindings = defineKeybinds('graph-editor', {
-  undo: ['Mod+Z'],
-  redo: ['Mod+Y', 'Mod+Shift+Z'],
-  dragScene: ['PointerAux', 'Mod+PointerMain'],
   openComponentBrowser: ['Enter'],
   toggleVisualization: ['Space'],
-  deleteSelected: ['OsDelete'],
+  deleteSelected: ['Delete', 'Backspace'],
   zoomToSelected: ['Mod+Shift+A'],
   selectAll: ['Mod+A'],
   deselectAll: ['Escape'],
@@ -35,6 +42,7 @@ export const graphBindings = defineKeybinds('graph-editor', {
   enterNode: ['Mod+E'],
   exitNode: ['Mod+Shift+E'],
   changeColorSelectedNodes: ['Mod+Shift+C'],
+  openDocumentation: ['F1'],
 })
 
 export const visualizationBindings = defineKeybinds('visualization', {

@@ -119,7 +119,7 @@ object Operator {
       copy(left = left.mapExpressions(fn), right = right.mapExpressions(fn))
     }
 
-    /** @inheritdoc */
+    /** String representation. */
     override def toString: String =
       s"""
          |Operator.Binary(

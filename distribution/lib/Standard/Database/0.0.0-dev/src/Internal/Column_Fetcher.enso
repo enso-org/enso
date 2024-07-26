@@ -88,12 +88,27 @@ long_fetcher bits =
 ## PRIVATE
 big_integer_fetcher : Column_Fetcher
 big_integer_fetcher =
+    make_builder initial_size java_problem_aggregator =
+        java_builder = Java_Exports.make_biginteger_builder initial_size java_problem_aggregator
+        make_builder_from_java_object_builder java_builder
+    Column_Fetcher.Value fetch_big_integer make_builder
+
+## PRIVATE
+fetch_big_integer rs i =
+    big_decimal = rs.getBigDecimal i
+    if rs.wasNull then Nothing else
+        big_decimal.toBigIntegerExact
+
+## PRIVATE
+big_decimal_fetcher : Column_Fetcher
+big_decimal_fetcher =
     fetch_value rs i =
         big_decimal = rs.getBigDecimal i
         if rs.wasNull then Nothing else
-            big_decimal.toBigIntegerExact
+            big_decimal
     make_builder initial_size java_problem_aggregator =
-        java_builder = Java_Exports.make_biginteger_builder initial_size java_problem_aggregator
+        _ = java_problem_aggregator
+        java_builder = Java_Exports.make_bigdecimal_builder initial_size
         make_builder_from_java_object_builder java_builder
     Column_Fetcher.Value fetch_value make_builder
 
@@ -178,14 +193,14 @@ default_fetcher_for_value_type value_type =
         # We currently don't distinguish timestamps without a timezone on the Enso value side.
         Value_Type.Date_Time has_timezone ->
             if has_timezone then date_time_fetcher else local_date_time_fetcher
-        # If we can determine that scale = 0
+        ## If we can determine that scale <= 0, we use BigIntegerBuilder.
+           Otherwise, we use BigDecimalBuilder, since it's possible some values
+           will be BigDecimal.
         Value_Type.Decimal _ scale ->
             is_guaranteed_integer = scale.is_nothing.not && scale <= 0
             case is_guaranteed_integer of
                 True  -> big_integer_fetcher
-                # If we cannot guarantee that the column is integer, we will fall back to Float values, since there is no BigDecimal implementation yet.
-                # In another place this will trigger a Inexact_Type_Coercion warning.
-                False -> double_fetcher
+                False -> big_decimal_fetcher
         _ -> fallback_fetcher
 
 ## PRIVATE

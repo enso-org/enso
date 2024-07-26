@@ -1,0 +1,87 @@
+from Standard.Base import all
+import Standard.Base.Errors.Illegal_State.Illegal_State
+import Standard.Base.Runtime.Managed_Resource.Managed_Resource
+import Standard.Base.System.File.Advanced.Temporary_File.Temporary_File
+import Standard.Base.System.Input_Stream.Input_Stream
+
+from Standard.Test import all
+
+polyglot java import org.enso.base_test_helpers.RangeStream
+
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter filter
+
+add_specs suite_builder = suite_builder.group "Restartable Input Stream" group_builder->
+    group_builder.specify "should allow to restart a generic stream by caching its data" <|
+        error_handler x = x
+        generic_stream = Input_Stream.new (RangeStream.new 100 120) error_handler
+        generic_stream.read_n_bytes 3 . should_equal [100, 101, 102]
+        # A generic stream is frozen in its current state - the first few bytes that were already read will be lost
+        restartable_stream = generic_stream.as_restartable_stream
+        restartable_stream.with_fresh_stream stream->
+            stream.read_n_bytes 4 . should_equal [103, 104, 105, 106]
+        restartable_stream.with_fresh_stream stream->
+            stream.read_n_bytes 4 . should_equal [103, 104, 105, 106]
+
+        # Small stream is backed by memory:
+        restartable_stream.to_text . should_contain "From_Bytes"
+
+    group_builder.specify "will fall back to caching in a temporary file for a very large stream" <|
+        error_handler x = x
+        # 1MB
+        generic_stream = Input_Stream.new (RangeStream.new 1 1000000) error_handler
+        restartable_stream = generic_stream.as_restartable_stream
+        restartable_stream.with_fresh_stream stream->
+            stream.read_n_bytes 4 . should_equal [1, 2, 3, 4]
+        restartable_stream.to_text . should_contain "From_Temporary_File"
+
+    group_builder.specify "will re-use the original byte array if it was known" <|
+        byte_stream = Input_Stream.from_bytes [1, 2, 3, 4, 5]
+        byte_stream.read_n_bytes 3 . should_equal [1, 2, 3]
+        restartable_stream = byte_stream.as_restartable_stream
+        restartable_stream.with_fresh_stream stream->
+            # All bytes are preserved
+            stream.read_n_bytes 4 . should_equal [1, 2, 3, 4]
+
+        restartable_stream.to_text . should_contain "From_Bytes"
+        restartable_stream.with_fresh_stream stream->
+            stream.read_n_bytes 4 . should_equal [1, 2, 3, 4]
+
+    group_builder.specify "will be backed by a file, if a file stream is converted and extend_lifetime=False" <|
+        file = File.create_temporary_file "test" ".bin"
+        [10, 20, 30, 40, 50].write_bytes file . should_succeed
+
+        restartable_stream = file.with_input_stream [File_Access.Read] file_stream->
+            file_stream.as_restartable_stream extend_lifetime=False
+
+        restartable_stream.with_fresh_stream stream->
+            stream.read_n_bytes 3 . should_equal [10, 20, 30]
+
+        restartable_stream.to_text . should_contain "From_Existing_File"
+
+        restartable_stream.with_fresh_stream stream->
+            stream.read_n_bytes 3 . should_equal [10, 20, 30]
+
+        # However, if backed by existing file - the stream is prone to file modifications that happen in the meantime
+        [11, 12, 13, 14].write_bytes file on_existing_file=Existing_File_Behavior.Overwrite . should_succeed
+        restartable_stream.with_fresh_stream stream->
+            stream.read_n_bytes 3 . should_equal [11, 12, 13]
+
+    group_builder.specify "will not be tied to the original backing file if extend_lifetime=True (default)" <|
+        file = File.create_temporary_file "test" ".bin"
+        [10, 20, 30, 40, 50].write_bytes file . should_succeed
+
+        restartable_stream = file.with_input_stream [File_Access.Read] file_stream->
+            file_stream.as_restartable_stream
+
+        restartable_stream.with_fresh_stream stream->
+            stream.read_n_bytes 3 . should_equal [10, 20, 30]
+
+        # Modify backing file
+        [11, 12, 13, 14].write_bytes file on_existing_file=Existing_File_Behavior.Overwrite . should_succeed
+
+        # The stream still yields old values because it was untied:
+        restartable_stream.with_fresh_stream stream->
+            stream.read_n_bytes 3 . should_equal [10, 20, 30]

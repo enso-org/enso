@@ -1,11 +1,10 @@
 import { createContextStore } from '@/providers'
+import { type WidgetEditHandlerRoot } from '@/providers/widgetRegistry/editHandler'
 import { useGraphStore } from '@/stores/graph'
 import { type NodeId } from '@/stores/graph/graphDatabase'
 import { Ast } from '@/util/ast'
 import type { Vec2 } from '@/util/data/vec2'
-import type { Icon } from '@/util/iconName'
-import { computed, proxyRefs, type Ref } from 'vue'
-import type { WidgetEditHandler } from './widgetRegistry/editHandler'
+import { computed, proxyRefs, shallowRef, type Ref, type ShallowUnwrapRef } from 'vue'
 
 export { injectFn as injectWidgetTree, provideFn as provideWidgetTree }
 const { provideFn, injectFn } = createContextStore(
@@ -15,31 +14,39 @@ const { provideFn, injectFn } = createContextStore(
     nodeId: Ref<NodeId>,
     nodeElement: Ref<HTMLElement | undefined>,
     nodeSize: Ref<Vec2>,
-    icon: Ref<Icon>,
-    connectedSelfArgumentId: Ref<Ast.AstId | undefined>,
     potentialSelfArgumentId: Ref<Ast.AstId | undefined>,
     conditionalPorts: Ref<Set<Ast.AstId>>,
     extended: Ref<boolean>,
     hasActiveAnimations: Ref<boolean>,
-    currentEdit: Ref<WidgetEditHandler | undefined>,
     emitOpenFullMenu: () => void,
   ) => {
     const graph = useGraphStore()
     const nodeSpanStart = computed(() => graph.moduleSource.getSpan(astRoot.value.id)![0])
+    const { setCurrentEditRoot, currentEdit } = useCurrentEdit()
     return proxyRefs({
       astRoot,
       nodeId,
       nodeElement,
       nodeSize,
-      icon,
-      connectedSelfArgumentId,
       potentialSelfArgumentId,
       conditionalPorts,
       extended,
       nodeSpanStart,
       hasActiveAnimations,
+      setCurrentEditRoot,
       currentEdit,
       emitOpenFullMenu,
     })
   },
 )
+
+export function useCurrentEdit() {
+  const currentEditRoot = shallowRef<WidgetEditHandlerRoot>()
+  return {
+    currentEdit: computed(() => currentEditRoot.value?.currentEdit()),
+    setCurrentEditRoot: (root: WidgetEditHandlerRoot) => {
+      currentEditRoot.value = root
+    },
+  }
+}
+export type CurrentEdit = ShallowUnwrapRef<ReturnType<typeof useCurrentEdit>>

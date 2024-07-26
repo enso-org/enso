@@ -15,7 +15,9 @@ export default {}
 </script>
 <script setup lang="ts">
 import { hookBeforeFunctionCall } from '@/util/patching'
-import { nextTick } from 'process'
+import { nextTick } from 'vue'
+
+const PROGRESS_VAR = '--size-transition-progress'
 
 const props = withDefaults(
   defineProps<{
@@ -36,7 +38,7 @@ const props = withDefaults(
 )
 
 type Done = (cancelled: boolean) => void
-type StyleSnapshot = { width: string; height: string; marginLeft: string }
+type StyleSnapshot = { width: string; height: string; marginLeft: string; progress: string }
 const styleSnapshots = new WeakMap<HTMLElement, StyleSnapshot>()
 const animationsMap = new WeakMap<HTMLElement, Animation>()
 let leavingElement: HTMLElement | undefined = undefined
@@ -78,8 +80,10 @@ function onAfterLeave(e: Element) {
 }
 
 function snapshotCurrentStyles(e: HTMLElement) {
-  const { width, height, marginLeft } = getComputedStyle(e)
-  styleSnapshots.set(e, { width, height, marginLeft })
+  const computedStyle = getComputedStyle(e)
+  const { width, height, marginLeft } = computedStyle
+  const progress = computedStyle.getPropertyValue(PROGRESS_VAR)
+  styleSnapshots.set(e, { width, height, marginLeft, progress })
 }
 
 function runAnimation(e: HTMLElement, done: Done, isEnter: boolean) {
@@ -93,11 +97,15 @@ function runAnimation(e: HTMLElement, done: Done, isEnter: boolean) {
 
   const start: Keyframe = { composite: 'replace', easing: props.easing }
   const end: Keyframe = { composite: 'replace', easing: props.easing }
+  start[PROGRESS_VAR] = parseFloat(lastSnapshot?.progress || '0')
+  end[PROGRESS_VAR] = isEnter ? 1 : 0
 
   if (props.width) {
     start.width = lastSnapshot?.width || '0px'
     end.width = isEnter ? current.width : '0px'
     start.overflowX = end.overflowX = 'clip'
+    start.minWidth = '0px'
+    end.minWidth = '0px'
   }
   if (props.height) {
     start.height = lastSnapshot?.height || '0px'
@@ -119,7 +127,7 @@ function runAnimation(e: HTMLElement, done: Done, isEnter: boolean) {
     cleanup(e)
     done(true)
   })
-  e.dataset['transitioning'] = ''
+  e.dataset['transitioning'] = isEnter ? 'enter' : 'leave'
   animation.play()
   animationsMap.set(e, animation)
 }
@@ -140,3 +148,10 @@ function cleanup(e: HTMLElement) {
     <slot />
   </Transition>
 </template>
+<style scoped>
+@property --size-transition-progress {
+  syntax: '<number>';
+  initial-value: 1;
+  inherits: true;
+}
+</style>

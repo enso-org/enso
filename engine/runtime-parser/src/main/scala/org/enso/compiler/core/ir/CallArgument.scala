@@ -124,7 +124,7 @@ object CallArgument {
       copy(name = name.map(n => n.mapExpressions(fn)), value = fn(value))
     }
 
-    /** @inheritdoc */
+    /** String representation. */
     override def toString: String =
       s"""
          |CallArgument.Specified(
@@ -138,7 +138,8 @@ object CallArgument {
          |""".toSingleLine
 
     /** @inheritdoc */
-    override def children: List[IR] = name.toList :+ value
+    override def children: List[IR] =
+      name.map(List(_, value)).getOrElse(List(value))
 
     /** @inheritdoc */
     override def showCode(indent: Int): String = {

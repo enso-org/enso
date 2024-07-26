@@ -16,6 +16,23 @@
                 <attr name="originalFile" stringvalue="Actions/Debug/org-netbeans-modules-debugger-ui-actions-ConnectAction.instance"/>
                 <attr name="position" intvalue="9535"/>
             </file>
+            <file name="Favorites.shadow">
+                <attr name="originalFile" stringvalue="Actions/Window/org-netbeans-modules-favorites-View.instance"/>
+                <attr name="position" intvalue="9707"/>
+            </file>
+            <file name="ShowTerminalTCAction.shadow">
+                <attr name="originalFile" stringvalue="Actions/Window/ShowTerminalTCAction.instance"/>
+                <attr name="position" intvalue="9737"/>
+            </file>
+        </folder>
+    </folder>
+    <folder name="Editors">
+        <folder name="application">
+            <folder name="x-enso">
+                <folder name="ToolTips">
+                    <file name="org-netbeans-modules-debugger-jpda-truffle-vars-tooltip-ToolTipAnnotation.instance"/>
+                </folder>
+            </folder>
         </folder>
     </folder>
 </filesystem>

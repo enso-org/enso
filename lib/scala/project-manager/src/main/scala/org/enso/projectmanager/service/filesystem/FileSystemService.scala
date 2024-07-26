@@ -11,6 +11,7 @@ import org.enso.projectmanager.control.core.syntax._
 import org.enso.projectmanager.control.effect.syntax._
 import org.enso.projectmanager.infrastructure.repository.ProjectRepositoryFactory
 import org.enso.projectmanager.service.ProjectService
+import org.slf4j.LoggerFactory
 
 import java.io.{File, InputStream}
 import java.nio.file.Files
@@ -21,15 +22,27 @@ class FileSystemService[F[+_, +_]: Applicative: CovariantFlatMap: ErrorChannel](
   projectRepositoryFactory: ProjectRepositoryFactory[F]
 ) extends FileSystemServiceApi[F] {
 
+  private lazy val logger = LoggerFactory.getLogger(this.getClass)
+
+  /** @inheritdoc */
+  override def exists(path: File): F[FileSystemServiceFailure, Boolean] =
+    fileSystem
+      .exists(path)
+      .mapError { error =>
+        logger.warn("Failed to check if path exists", error)
+        FileSystemServiceFailure.FileSystem("Failed to check if path exists")
+      }
+
   /** @inheritdoc */
   override def list(
     path: File
   ): F[FileSystemServiceFailure, Seq[FileSystemEntry]] =
     fileSystem
       .list(path)
-      .mapError(_ =>
+      .mapError { error =>
+        logger.warn("Failed to list directories", error)
         FileSystemServiceFailure.FileSystem("Failed to list directories")
-      )
+      }
       .flatMap { files =>
         Traverse[List].traverse(files)(toFileSystemEntry).map(_.flatten)
       }
@@ -38,23 +51,37 @@ class FileSystemService[F[+_, +_]: Applicative: CovariantFlatMap: ErrorChannel](
   override def createDirectory(path: File): F[FileSystemServiceFailure, Unit] =
     fileSystem
       .createDir(path)
-      .mapError(_ =>
+      .mapError { error =>
+        logger.warn("Failed to create directory", error)
         FileSystemServiceFailure.FileSystem("Failed to create directory")
-      )
+      }
 
   /** @inheritdoc */
   override def delete(path: File): F[FileSystemServiceFailure, Unit] =
     fileSystem
       .remove(path)
-      .mapError(_ =>
+      .mapError { error =>
+        logger.warn("Failed to delete path", error)
         FileSystemServiceFailure.FileSystem("Failed to delete path")
-      )
+      }
 
   /** @inheritdoc */
   override def move(from: File, to: File): F[FileSystemServiceFailure, Unit] =
     fileSystem
       .move(from, to)
-      .mapError(_ => FileSystemServiceFailure.FileSystem("Failed to move path"))
+      .mapError { error =>
+        logger.warn("Failed to list directories", error)
+        FileSystemServiceFailure.FileSystem("Failed to move path")
+      }
+
+  /** @inheritdoc */
+  override def copy(from: File, to: File): F[FileSystemServiceFailure, Unit] =
+    fileSystem
+      .copy(from, to)
+      .mapError { error =>
+        logger.warn("Failed to copy path", error)
+        FileSystemServiceFailure.FileSystem("Failed to copy path")
+      }
 
   /** @inheritdoc */
   override def write(
@@ -63,9 +90,10 @@ class FileSystemService[F[+_, +_]: Applicative: CovariantFlatMap: ErrorChannel](
   ): F[FileSystemServiceFailure, Unit] =
     fileSystem
       .writeFile(path, contents)
-      .mapError(_ =>
+      .mapError { error =>
+        logger.warn("Failed to write path", error)
         FileSystemServiceFailure.FileSystem("Failed to write path")
-      )
+      }
 
   private def toFileSystemEntry(
     path: File

@@ -7,7 +7,12 @@ import com.typesafe.scalalogging.LazyLogging
 import org.enso.cli.task.ProgressUnit
 import org.enso.cli.task.notifications.TaskNotificationApi
 import org.enso.jsonrpc._
-import org.enso.languageserver.ai.AICompletion
+import org.enso.languageserver.ai.AiApi.{
+  AiCompletion,
+  AiCompletion2,
+  AiCompletionProgress
+}
+import org.enso.languageserver.ai.AiProtocol
 import org.enso.languageserver.boot.resource.{
   InitializationComponent,
   InitializationComponentInitialized
@@ -156,14 +161,14 @@ class JsonConnectionController(
       .subscribe(self, classOf[RefactoringProtocol.ProjectRenamedNotification])
   }
 
-  override def receive: Receive = {
+  override def receive: Receive = LoggingReceive {
     case JsonRpcServer.WebConnect(webActor, _) =>
       unstashAll()
       context.become(connected(webActor))
     case _ => stash()
   }
 
-  private def connected(webActor: ActorRef): Receive = {
+  private def connected(webActor: ActorRef): Receive = LoggingReceive {
     case req @ Request(Ping, _, Unused) =>
       val handler = context.actorOf(
         PingHandler.props(
@@ -189,7 +194,7 @@ class JsonConnectionController(
           _,
           InitProtocolConnection.Params(clientId)
         ) =>
-      logger.info(
+      logger.debug(
         "Initializing resources for [{}] [{}].",
         clientId,
         mainComponent
@@ -212,9 +217,9 @@ class JsonConnectionController(
     clientId: UUID,
     request: Request[_, _],
     receiver: ActorRef
-  ): Receive = {
+  ): Receive = LoggingReceive {
     case _: InitializationComponentInitialized =>
-      logger.info("RPC session initialized for client [{}].", clientId)
+      logger.debug("RPC session initialized for client [{}]", clientId)
       val session = JsonSession(clientId, self)
       context.system.eventStream.publish(JsonSessionInitialized(session))
       context.system.eventStream.publish(
@@ -268,7 +273,7 @@ class JsonConnectionController(
     receiver: ActorRef,
     cancellable: Cancellable,
     rootsSoFar: List[ContentRootWithFile]
-  ): Receive = {
+  ): Receive = LoggingReceive {
     case ContentRootManagerProtocol.ContentRootsAddedNotification(roots) =>
       val allRoots = roots ++ rootsSoFar
       val hasProject = roots.exists {
@@ -279,17 +284,18 @@ class JsonConnectionController(
         cancellable.cancel()
         unstashAll()
 
+        val allContentRoots = allRoots.map(_.toContentRoot).toSet
         receiver ! ResponseResult(
           InitProtocolConnection,
           request.id,
           InitProtocolConnection.Result(
             buildinfo.Info.ensoVersion,
             buildinfo.Info.currentEdition,
-            allRoots.map(_.toContentRoot).toSet
+            allContentRoots
           )
         )
 
-        initialize(webActor, rpcSession)
+        initialize(webActor, rpcSession, allContentRoots)
       } else {
         context.become(
           waitingForContentRoots(
@@ -298,7 +304,7 @@ class JsonConnectionController(
             request     = request,
             receiver    = receiver,
             cancellable = cancellable,
-            rootsSoFar  = roots ++ rootsSoFar
+            rootsSoFar  = allRoots
           )
         )
       }
@@ -314,10 +320,11 @@ class JsonConnectionController(
 
   private def initialize(
     webActor: ActorRef,
-    rpcSession: JsonSession
+    rpcSession: JsonSession,
+    roots: Set[ContentRoot]
   ): Unit = {
     val requestHandlers = createRequestHandlers(rpcSession)
-    context.become(initialised(webActor, rpcSession, requestHandlers))
+    context.become(initialised(webActor, rpcSession, requestHandlers, roots))
 
     context.system.eventStream
       .subscribe(self, classOf[Api.ProgressNotification])
@@ -326,13 +333,30 @@ class JsonConnectionController(
   private def initialised(
     webActor: ActorRef,
     rpcSession: JsonSession,
-    requestHandlers: Map[Method, Props]
+    requestHandlers: Map[Method, Props],
+    roots: Set[ContentRoot]
   ): Receive = LoggingReceive {
-    case Request(InitProtocolConnection, id, _) =>
-      sender() ! ResponseError(Some(id), SessionAlreadyInitialisedError)
+    case Request(
+          InitProtocolConnection,
+          id,
+          InitProtocolConnection.Params(clientId)
+        ) =>
+      if (clientId == rpcSession.clientId) {
+        sender() ! ResponseResult(
+          InitProtocolConnection,
+          id,
+          InitProtocolConnection.Result(
+            buildinfo.Info.ensoVersion,
+            buildinfo.Info.currentEdition,
+            roots
+          )
+        )
+      } else {
+        sender() ! ResponseError(Some(id), SessionAlreadyInitialisedError)
+      }
 
     case MessageHandler.Disconnected(_) =>
-      logger.info("Json session terminated [{}].", rpcSession.clientId)
+      logger.info("Session terminated [{}].", rpcSession.clientId)
       context.system.eventStream.publish(JsonSessionTerminated(rpcSession))
       context.stop(self)
 
@@ -472,6 +496,16 @@ class JsonConnectionController(
         translateProgressNotification(payload)
       webActor ! translated
 
+    case AiProtocol.AiCompletionProgressNotification(
+          code,
+          reason,
+          visualizationId
+        ) =>
+      webActor ! Notification(
+        AiCompletionProgress,
+        AiCompletionProgress.Params(code, reason, visualizationId)
+      )
+
     case req @ Request(method, _, _) if requestHandlers.contains(method) =>
       refreshIdleTime(method)
       val handler = context.actorOf(
@@ -523,7 +557,7 @@ class JsonConnectionController(
       WriteFile -> file.WriteTextualFileHandler
         .props(requestTimeout, fileManager),
       ReadFile -> file.ReadTextualFileHandler
-        .props(requestTimeout, fileManager),
+        .props(requestTimeout, bufferRegistry, fileManager),
       CreateFile -> file.CreateFileHandler.props(requestTimeout, fileManager),
       DeleteFile -> file.DeleteFileHandler.props(requestTimeout, fileManager),
       CopyFile   -> file.CopyFileHandler.props(requestTimeout, fileManager),
@@ -566,11 +600,14 @@ class JsonConnectionController(
         .props(requestTimeout, suggestionsHandler),
       InvalidateSuggestionsDatabase -> search.InvalidateSuggestionsDatabaseHandler
         .props(requestTimeout, suggestionsHandler),
-      AICompletion -> ai.AICompletionHandler.props(
+      AiCompletion -> ai.AICompletionHandler.props(
         languageServerConfig.aiCompletionConfig
       ),
-      Completion -> search.CompletionHandler
-        .props(requestTimeout, suggestionsHandler),
+      AiCompletion2 -> ai.AICompletion2Handler.props(
+        languageServerConfig.aiCompletionConfig,
+        rpcSession,
+        runtimeConnector
+      ),
       ExecuteExpression -> ExecuteExpressionHandler
         .props(rpcSession.clientId, requestTimeout, contextRegistry),
       AttachVisualization -> AttachVisualizationHandler

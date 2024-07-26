@@ -19,7 +19,7 @@ create_dates =
 
 create_holidays =
     dates = create_dates
-    dates.take (Index_Sub_Range.Sample 100 100)
+    dates.take (..Sample 100 100)
 
 
 create_shifted_dates shift =

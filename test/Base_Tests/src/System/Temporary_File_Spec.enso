@@ -26,7 +26,7 @@ add_specs suite_builder =
             tmp.with_file f->
                 "test".write f
             r = tmp.with_file f->
-                f.read Plain_Text
+                f.read ..Plain_Text
             r.should_equal "test"
 
             raw_file = tmp.unsafe_get
@@ -34,7 +34,7 @@ add_specs suite_builder =
 
             tmp.dispose
 
-            Test.expect_panic Illegal_State <| tmp.with_file (f->f.read Plain_Text)
+            Test.expect_panic Illegal_State <| tmp.with_file (f->f.read Plain_Text_Format.Plain_Text)
             raw_file.exists . should_be_false
 
         group_builder.specify "should allow to create a new file and allow to dispose it once the reference is dropped" <|
@@ -48,7 +48,7 @@ add_specs suite_builder =
                 raw_file.exists . should_be_true
 
                 res = tmp.with_file f->
-                    f.read Plain_Text
+                    f.read ..Plain_Text
                 [res, raw_file]
 
             result = f "foobar"
@@ -72,7 +72,7 @@ add_specs suite_builder =
                 stream = make_stream "test payload 1"
                 tmp = Temporary_File.from_stream stream
                 tmp.with_file f->
-                    f.read Plain_Text . should_equal "test payload 1"
+                    f.read ..Plain_Text . should_equal "test payload 1"
 
         group_builder.specify "will fail if materializing an already closed input stream" <|
             stream = Input_Stream.new (InputStream.nullInputStream) (File_Error.handle_java_exceptions Nothing)
@@ -92,36 +92,46 @@ add_specs suite_builder =
             tmp.to_text . should_not_contain "pref"
             tmp.to_text . should_not_contain "suf"
 
-        group_builder.specify "should allow to materialize an input stream that is already associated with a temporary file without copying it" <|
+        group_builder.specify "should allow to materialize an input stream that is already associated with a temporary file without copying it (low-level)" <|
             tmp = Temporary_File.new
             tmp.with_file f->
                 "test payload 3" . write f
 
             java_file = Java_File.new tmp.unsafe_get.absolute.path
-            stream = Input_Stream.new (FileInputStream.new java_file) (File_Error.handle_java_exceptions tmp.unsafe_get) associated_file=tmp
+            stream = Input_Stream.new (FileInputStream.new java_file) (File_Error.handle_java_exceptions tmp.unsafe_get) associated_source=tmp
 
             tmp2 = Temporary_File.from_stream_light stream
             # The returned tmp file should be the same one as original.
             tmp2.should_be_a Temporary_File
-            tmp2.unsafe_get.absolute.path . should_equal tmp.unsafe_get.absolute.path
+            tmp2.should_equal tmp
 
             # If the raw file is associated, the stream will return that File descriptor (not as temporary file, but regular one):
-            stream3 = Input_Stream.new (FileInputStream.new java_file) (File_Error.handle_java_exceptions tmp.unsafe_get) associated_file=tmp.unsafe_get
+            stream3 = Input_Stream.new (FileInputStream.new java_file) (File_Error.handle_java_exceptions tmp.unsafe_get) associated_source=tmp.unsafe_get
             f3 = Temporary_File.from_stream_light stream3
             f3.should_be_a File
             f3.absolute.path . should_equal tmp.unsafe_get.absolute.path
 
             # But if there's no association, a new temporary file gets created:
-            stream4 = Input_Stream.new (FileInputStream.new java_file) (File_Error.handle_java_exceptions tmp.unsafe_get) associated_file=Nothing
+            stream4 = Input_Stream.new (FileInputStream.new java_file) (File_Error.handle_java_exceptions tmp.unsafe_get) associated_source=Nothing
             tmp4 = Temporary_File.from_stream_light stream4
             tmp4.should_be_a Temporary_File
             tmp4.unsafe_get.absolute.path . should_not_equal tmp.unsafe_get.absolute.path
 
             # The base variant of from_stream also always copies:
-            stream5 = Input_Stream.new (FileInputStream.new java_file) (File_Error.handle_java_exceptions tmp.unsafe_get) associated_file=tmp
+            stream5 = Input_Stream.new (FileInputStream.new java_file) (File_Error.handle_java_exceptions tmp.unsafe_get) associated_source=tmp
             tmp5 = Temporary_File.from_stream stream5
             tmp5.should_be_a Temporary_File
             tmp5.unsafe_get.absolute.path . should_not_equal tmp.unsafe_get.absolute.path
+
+        group_builder.specify "should allow to materialize an input stream opened to a temporary file without copying it" pending="Currently the file stream does not know it came from Temporary_File. May be revisited in the future to automatically correlate it." <|
+            tmp = Temporary_File.new
+            tmp.with_file f->
+                "test payload 4" . write f
+
+            tmp2 = tmp.with_file f-> f.with_input_stream [File_Access.Read] input_stream->
+                Temporary_File.from_stream_light input_stream
+            # The returned file should be the same as original
+            tmp2.should_equal tmp
 
 make_stream text =
     raw_stream = ByteArrayInputStream.new text.utf_8

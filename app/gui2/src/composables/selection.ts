@@ -3,77 +3,110 @@ import { selectionMouseBindings } from '@/bindings'
 import { useEvent, usePointer } from '@/composables/events'
 import type { PortId } from '@/providers/portInfo.ts'
 import { type NodeId } from '@/stores/graph'
+import { filter, filterDefined, map } from '@/util/data/iterable'
 import type { Rect } from '@/util/data/rect'
 import { intersectionSize } from '@/util/data/set'
 import type { Vec2 } from '@/util/data/vec2'
-import { computed, proxyRefs, ref, shallowReactive, shallowRef } from 'vue'
+import { dataAttribute, elementHierarchy } from '@/util/dom'
+import * as set from 'lib0/set'
+import { computed, ref, shallowReactive, shallowRef } from 'vue'
 
-export type SelectionComposable<T> = ReturnType<typeof useSelection<T>>
+interface BaseSelectionOptions<T> {
+  margin?: number
+  isValid?: (element: T) => boolean
+  onSelected?: (element: T) => void
+  onDeselected?: (element: T) => void
+}
+interface SelectionPackingOptions<T, PackedT> {
+  /** The `pack` and `unpack` functions are used to maintain state in a transformed form.
+   *
+   * If provided, all operations that modify or query state will transparently operate on packed state. This can be
+   * used to expose a selection interface based on one element type (`T`), while allowing the selection set to be
+   * maintained using a more stable element type (`PackedT`).
+   *
+   * For example, the selection can expose a `NodeId` API, while internally storing `ExternalId`s.
+   */
+  pack: (element: T) => PackedT | undefined
+  unpack: (packed: PackedT) => T | undefined
+}
+export type SelectionOptions<T, PackedT> =
+  | BaseSelectionOptions<T>
+  | (BaseSelectionOptions<T> & SelectionPackingOptions<T, PackedT>)
+
 export function useSelection<T>(
   navigator: { sceneMousePos: Vec2 | null; scale: number },
   elementRects: Map<T, Rect>,
-  isPortEnabled: (port: PortId) => boolean,
-  margin: number,
-  callbacks: {
-    onSelected?: (element: T) => void
-    onDeselected?: (element: T) => void
-  } = {},
+  options?: BaseSelectionOptions<T>,
+): UseSelection<T, T>
+export function useSelection<T, PackedT>(
+  navigator: { sceneMousePos: Vec2 | null; scale: number },
+  elementRects: Map<T, Rect>,
+  options: BaseSelectionOptions<T> & SelectionPackingOptions<T, PackedT>,
+): UseSelection<T, PackedT>
+export function useSelection<T, PackedT>(
+  navigator: { sceneMousePos: Vec2 | null; scale: number },
+  elementRects: Map<T, Rect>,
+  options: SelectionOptions<T, PackedT> = {},
+): UseSelection<T, PackedT> {
+  const BASE_DEFAULTS: Required<BaseSelectionOptions<T>> = {
+    margin: 0,
+    isValid: () => true,
+    onSelected: () => {},
+    onDeselected: () => {},
+  }
+  const PACKING_DEFAULTS: SelectionPackingOptions<T, T> = {
+    pack: (element: T) => element,
+    unpack: (packed: T) => packed,
+  }
+  return useSelectionImpl(
+    navigator,
+    elementRects,
+    { ...BASE_DEFAULTS, ...options },
+    'pack' in options ? options
+      // The function signature ensures that if a `pack` function is not provided, PackedT = T.
+    : (PACKING_DEFAULTS as unknown as SelectionPackingOptions<T, PackedT>),
+  )
+}
+
+type UseSelection<T, PackedT> = ReturnType<typeof useSelectionImpl<T, PackedT>>
+function useSelectionImpl<T, PackedT>(
+  navigator: { sceneMousePos: Vec2 | null; scale: number },
+  elementRects: Map<T, Rect>,
+  { margin, isValid, onSelected, onDeselected }: Required<BaseSelectionOptions<T>>,
+  { pack, unpack }: SelectionPackingOptions<T, PackedT>,
 ) {
   const anchor = shallowRef<Vec2>()
-  const initiallySelected = new Set<T>()
-  const selected = shallowReactive(new Set<T>())
-  const hoveredNode = ref<NodeId>()
-  const hoveredElement = ref<Element>()
+  let initiallySelected = new Set<T>()
+  // Selection, including elements that do not (currently) pass `isValid`.
+  const rawSelected = shallowReactive(new Set<PackedT>())
 
-  useEvent(document, 'pointerover', (event) => {
-    hoveredElement.value = event.target instanceof Element ? event.target : undefined
-  })
-
-  const hoveredPort = computed<PortId | undefined>(() => {
-    if (!hoveredElement.value) return undefined
-    for (const element of elementHierarchy(hoveredElement.value, '.WidgetPort')) {
-      const portId = elementPortId(element)
-      if (portId && isPortEnabled(portId)) return portId
-    }
-    return undefined
-  })
-
-  function* elementHierarchy(element: Element, selectors: string) {
-    for (;;) {
-      const match = element.closest(selectors)
-      if (!match) return
-      yield match
-      if (!match.parentElement) return
-      element = match.parentElement
-    }
-  }
-
-  function elementPortId(element: Element): PortId | undefined {
-    return (
-        element instanceof HTMLElement &&
-          'port' in element.dataset &&
-          typeof element.dataset.port === 'string'
-      ) ?
-        (element.dataset.port as PortId)
-      : undefined
-  }
+  const unpackedRawSelected = computed(() => set.from(filterDefined(map(rawSelected, unpack))))
+  const selected = computed(() => set.from(filter(unpackedRawSelected.value, isValid)))
+  const isChanging = computed(() => anchor.value != null)
+  const committedSelection = computed(() =>
+    isChanging.value ? set.from(filter(initiallySelected, isValid)) : selected.value,
+  )
 
   function readInitiallySelected() {
-    initiallySelected.clear()
-    for (const id of selected) initiallySelected.add(id)
+    initiallySelected = unpackedRawSelected.value
   }
 
   function setSelection(newSelection: Set<T>) {
-    for (const id of newSelection)
-      if (!selected.has(id)) {
-        selected.add(id)
-        callbacks.onSelected?.(id)
+    for (const id of newSelection) {
+      const packed = pack(id)
+      if (packed != null && !rawSelected.has(packed)) {
+        rawSelected.add(packed)
+        onSelected(id)
       }
-    for (const id of selected)
-      if (!newSelection.has(id)) {
-        selected.delete(id)
-        callbacks.onDeselected?.(id)
+    }
+
+    for (const packed of rawSelected) {
+      const id = unpack(packed)
+      if (id == null || !newSelection.has(id)) {
+        rawSelected.delete(packed)
+        if (id != null) onDeselected(id)
       }
+    }
   }
 
   function execAdd() {
@@ -144,39 +177,76 @@ export function useSelection<T>(
     overrideElemsToSelect.value = undefined
   }
 
-  const pointer = usePointer((_pos, event, eventType) => {
-    if (eventType === 'start') {
-      readInitiallySelected()
-    } else if (eventType === 'stop') {
-      if (anchor.value == null) {
-        // If there was no drag, we want to handle "clicking-off" selected nodes.
+  const pointer = usePointer(
+    (_pos, event, eventType) => {
+      if (eventType === 'start') {
+        readInitiallySelected()
+      } else if (eventType === 'stop') {
+        if (anchor.value == null) {
+          // If there was no drag, we want to handle "clicking-off" selected nodes.
+          selectionEventHandler(event)
+        } else {
+          anchor.value = undefined
+        }
+        initiallySelected.clear()
+      } else if (pointer.dragging) {
+        if (anchor.value == null) {
+          anchor.value = navigator.sceneMousePos?.copy()
+        }
         selectionEventHandler(event)
-      } else {
-        anchor.value = undefined
       }
-      initiallySelected.clear()
-    } else if (pointer.dragging) {
-      if (anchor.value == null) {
-        anchor.value = navigator.sceneMousePos?.copy()
+    },
+    { predicate: (e) => e.target === e.currentTarget },
+  )
+
+  return {
+    // === Selected nodes ===
+    selected,
+    selectAll: () => {
+      for (const id of elementRects.keys()) {
+        const packed = pack(id)
+        if (packed) rawSelected.add(packed)
       }
-      selectionEventHandler(event)
-    }
+    },
+    deselectAll: () => rawSelected.clear(),
+    isSelected: (element: T) => {
+      const packed = pack(element)
+      return packed != null && rawSelected.has(packed)
+    },
+    committedSelection,
+    setSelection,
+    // === Selection changes ===
+    anchor,
+    isChanging,
+    // === Mouse events ===
+    handleSelectionOf,
+    events: pointer.events,
+  }
+}
+
+// === Hover tracking for nodes and ports ===
+
+export function useGraphHover(isPortEnabled: (port: PortId) => boolean) {
+  const hoveredElement = shallowRef<Element>()
+
+  useEvent(document, 'pointerover', (event) => {
+    hoveredElement.value = event.target instanceof Element ? event.target : undefined
   })
 
-  return proxyRefs({
-    selected,
-    anchor,
-    selectAll: () => {
-      for (const id of elementRects.keys()) selected.add(id)
-    },
-    deselectAll: () => selected.clear(),
-    isSelected: (element: T) => selected.has(element),
-    isChanging: computed(() => anchor.value != null),
-    setSelection,
-    handleSelectionOf,
-    hoveredNode,
-    hoveredPort,
-    mouseHandler: selectionEventHandler,
-    events: pointer.events,
+  const hoveredPort = computed<PortId | undefined>(() => {
+    if (!hoveredElement.value) return undefined
+    for (const element of elementHierarchy(hoveredElement.value, '.WidgetPort')) {
+      const portId = dataAttribute<PortId>(element, 'port')
+      if (portId && isPortEnabled(portId)) return portId
+    }
+    return undefined
   })
+
+  const hoveredNode = computed<NodeId | undefined>(() => {
+    const element = hoveredElement.value?.closest('.GraphNode')
+    if (!element) return undefined
+    return dataAttribute<NodeId>(element, 'nodeId')
+  })
+
+  return { hoveredNode, hoveredPort }
 }

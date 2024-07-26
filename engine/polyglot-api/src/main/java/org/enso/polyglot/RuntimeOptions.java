@@ -2,7 +2,11 @@ package org.enso.polyglot;
 
 import com.oracle.truffle.api.Option;
 import java.util.Arrays;
-import org.graalvm.options.*;
+import org.enso.common.LanguageInfo;
+import org.graalvm.options.OptionCategory;
+import org.graalvm.options.OptionDescriptor;
+import org.graalvm.options.OptionDescriptors;
+import org.graalvm.options.OptionKey;
 
 /** Class representing runtime options supported by the Enso engine. */
 public class RuntimeOptions {
@@ -12,7 +16,7 @@ public class RuntimeOptions {
       OptionDescriptor.newBuilder(PROJECT_ROOT_KEY, PROJECT_ROOT).build();
 
   public static final String STRICT_ERRORS = optionName("strictErrors");
-  public static final OptionKey<Boolean> STRICT_ERRORS_KEY = new OptionKey<>(false);
+  public static final OptionKey<Boolean> STRICT_ERRORS_KEY = new OptionKey<>(true);
   private static final OptionDescriptor STRICT_ERRORS_DESCRIPTOR =
       OptionDescriptor.newBuilder(STRICT_ERRORS_KEY, STRICT_ERRORS).build();
 
@@ -25,6 +29,11 @@ public class RuntimeOptions {
   public static final OptionKey<Boolean> DISABLE_PRIVATE_CHECK_KEY = new OptionKey<>(false);
   private static final OptionDescriptor DISABLE_PRIVATE_CHECK_DESCRIPTOR =
       OptionDescriptor.newBuilder(DISABLE_PRIVATE_CHECK_KEY, DISABLE_PRIVATE_CHECK).build();
+
+  public static final String ENABLE_STATIC_ANALYSIS = optionName("enableStaticAnalysis");
+  public static final OptionKey<Boolean> ENABLE_STATIC_ANALYSIS_KEY = new OptionKey<>(false);
+  private static final OptionDescriptor ENABLE_STATIC_ANALYSIS_DESCRIPTOR =
+      OptionDescriptor.newBuilder(ENABLE_STATIC_ANALYSIS_KEY, ENABLE_STATIC_ANALYSIS).build();
 
   public static final String ENABLE_AUTO_PARALLELISM = optionName("withAutoParallelism");
   public static final OptionKey<Boolean> ENABLE_AUTO_PARALLELISM_KEY = new OptionKey<>(false);
@@ -141,6 +150,7 @@ public class RuntimeOptions {
               LOG_MASKING_DESCRIPTOR,
               DISABLE_INLINE_CACHES_DESCRIPTOR,
               DISABLE_PRIVATE_CHECK_DESCRIPTOR,
+              ENABLE_STATIC_ANALYSIS_DESCRIPTOR,
               ENABLE_AUTO_PARALLELISM_DESCRIPTOR,
               ENABLE_PROJECT_SUGGESTIONS_DESCRIPTOR,
               ENABLE_GLOBAL_SUGGESTIONS_DESCRIPTOR,

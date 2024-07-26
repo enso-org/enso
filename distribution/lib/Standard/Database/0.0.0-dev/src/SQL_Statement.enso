@@ -41,13 +41,11 @@ type SQL_Statement
     unsafe_to_raw_sql self =
         strings = self.internal_fragments . map <| case _ of
             SQL_Fragment.Code_Part code -> code
-            # TODO at some point we may try more sophisticated serialization based on data type
-            # TODO #183734954: date and time formatting is limited and will lose sub-second precision and timezone offset.
             SQL_Fragment.Interpolation obj -> case obj of
                 Number -> obj.to_text
-                Date_Time -> "'" + (obj.format "yyyy-MM-dd HH:mm:ss") + "'"
+                Date_Time -> "'" + (obj.format "yyyy-MM-dd HH:mm:ss.f") + "'"
                 Date -> "'" + (obj.format "yyyy-MM-dd") + "'"
-                Time_Of_Day -> "'" + (obj.format "HH:mm:ss") + "'"
+                Time_Of_Day -> "'" + (obj.format "HH:mm:ss.f") + "'"
                 _ -> "'" + obj.to_text.replace "'" "''" + "'"
         strings.join ""
 
@@ -77,3 +75,8 @@ type SQL_Statement
                 JS_Object.from_pairs [["sql_interpolation", inner]]
         fragments = self.internal_fragments.map jsonify
         JS_Object.from_pairs [["query", fragments]]
+
+    ## PRIVATE
+    to_text self -> Text =
+        prepared = self.prepare
+        "SQL_Statement " + prepared.first + " with values " + prepared.second.to_text

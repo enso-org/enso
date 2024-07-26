@@ -1,8 +1,6 @@
 package org.enso.interpreter.instrument.job;
 
-import com.oracle.truffle.api.TruffleLogger;
 import java.util.UUID;
-import java.util.logging.Level;
 import org.enso.interpreter.instrument.OneshotExpression;
 import org.enso.interpreter.instrument.execution.Executable;
 import org.enso.interpreter.instrument.execution.RuntimeContext;
@@ -35,25 +33,18 @@ public class ExecuteExpressionJob extends Job<Executable> implements UniqueJob<E
 
   @Override
   public Executable run(RuntimeContext ctx) {
-    TruffleLogger logger = ctx.executionService().getLogger();
-    long lockTimestamp = ctx.locking().acquireContextLock(contextId);
+    return ctx.locking()
+        .withContextLock(
+            ctx.locking().getOrCreateContextLock(contextId),
+            this.getClass(),
+            () -> {
+              OneshotExpression oneshotExpression =
+                  new OneshotExpression(visualizationId, expressionId, contextId, expression);
+              ctx.contextManager().setOneshotExpression(contextId, oneshotExpression);
 
-    try {
-      OneshotExpression oneshotExpression =
-          new OneshotExpression(visualizationId, expressionId, contextId, expression);
-      ctx.contextManager().setOneshotExpression(contextId, oneshotExpression);
-
-      var stack = ctx.contextManager().getStack(contextId);
-      return new Executable(contextId, stack);
-    } finally {
-      ctx.locking().releaseContextLock(contextId);
-      logger.log(
-          Level.FINEST,
-          "Kept context lock [{0}] for {1} milliseconds.",
-          new Object[] {
-            this.getClass().getSimpleName(), System.currentTimeMillis() - lockTimestamp
-          });
-    }
+              var stack = ctx.contextManager().getStack(contextId);
+              return new Executable(contextId, stack);
+            });
   }
 
   @Override

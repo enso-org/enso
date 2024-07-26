@@ -4,7 +4,8 @@ import SizeTransition from '@/components/SizeTransition.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import DropdownWidget, { type DropdownEntry } from '@/components/widgets/DropdownWidget.vue'
 import { unrefElement } from '@/composables/events'
-import { defineWidget, Score, WidgetInput, widgetProps } from '@/providers/widgetRegistry'
+import { injectSelectionArrow, provideSelectionArrow } from '@/providers/selectionArrow.ts'
+import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import {
   multipleChoiceConfiguration,
   singleChoiceConfiguration,
@@ -25,8 +26,9 @@ import { ArgumentInfoKey } from '@/util/callTree'
 import { arrayEquals } from '@/util/data/array'
 import type { Opt } from '@/util/data/opt'
 import { qnLastSegment, tryQualifiedName } from '@/util/qualifiedName'
-import { autoUpdate, offset, size, useFloating } from '@floating-ui/vue'
-import { computed, ref, type ComponentInstance } from 'vue'
+import { autoUpdate, offset, shift, size, useFloating } from '@floating-ui/vue'
+import type { Ref, RendererNode, VNode } from 'vue'
+import { computed, proxyRefs, ref, shallowRef, watch } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
 const suggestions = useSuggestionDbStore()
@@ -35,32 +37,57 @@ const graph = useGraphStore()
 const tree = injectWidgetTree()
 
 const widgetRoot = ref<HTMLElement>()
-const dropdownElement = ref<ComponentInstance<typeof DropdownWidget>>()
+const dropdownElement = ref<HTMLElement>()
+const activityElement = ref<HTMLElement>()
 
 const editedWidget = ref<string>()
 const editedValue = ref<Ast.Owned | string | undefined>()
 const isHovered = ref(false)
+/** See @{link Actions.setActivity} */
+const activity = shallowRef<VNode>()
 
-const { floatingStyles } = useFloating(widgetRoot, dropdownElement, {
-  middleware: computed(() => {
-    return [
-      offset((state) => {
-        const NODE_HEIGHT = 32
-        return {
-          mainAxis: (NODE_HEIGHT - state.rects.reference.height) / 2,
-        }
-      }),
-      size({
-        apply({ elements, rects }) {
-          Object.assign(elements.floating.style, {
-            minWidth: `${rects.reference.width + 16}px`,
-          })
-        },
-      }),
-    ]
-  }),
-  whileElementsMounted: autoUpdate,
-})
+// How much wider a dropdown can be than a port it is attached to, when a long text is present.
+// Any text beyond that limit will receive an ellipsis and sliding animation on hover.
+const MAX_DROPDOWN_OVERSIZE_PX = 150
+
+function dropdownStyles(dropdownElement: Ref<HTMLElement | undefined>, limitWidth: boolean) {
+  return useFloating(widgetRoot, dropdownElement, {
+    middleware: computed(() => {
+      return [
+        offset((state) => {
+          const NODE_HEIGHT = 32
+          return {
+            mainAxis: (NODE_HEIGHT - state.rects.reference.height) / 2,
+          }
+        }),
+        size(() => ({
+          elementContext: 'reference',
+          apply({ elements, rects, availableWidth }) {
+            const PORT_PADDING_X = 8
+            const screenOverflow = Math.max(
+              (rects.floating.width - availableWidth) / 2 + PORT_PADDING_X,
+              0,
+            )
+            const portWidth = rects.reference.width + PORT_PADDING_X * 2
+
+            const minWidth = `${Math.max(portWidth - screenOverflow, 0)}px`
+            const maxWidth = limitWidth ? `${portWidth + MAX_DROPDOWN_OVERSIZE_PX}px` : null
+
+            Object.assign(elements.floating.style, { minWidth, maxWidth })
+            elements.floating.style.setProperty('--dropdown-max-width', maxWidth)
+          },
+        })),
+        // Try to keep the dropdown within node's bounds.
+        shift(() => (tree.nodeElement ? { boundary: tree.nodeElement } : {})),
+        shift(), // Always keep within screen bounds, overriding node bounds.
+      ]
+    }),
+    whileElementsMounted: autoUpdate,
+  })
+}
+
+const { floatingStyles } = dropdownStyles(dropdownElement, true)
+const { floatingStyles: activityStyles } = dropdownStyles(activityElement, false)
 
 class ExpressionTag {
   private cachedExpressionAst: Ast.Ast | undefined
@@ -111,7 +138,7 @@ class ExpressionTag {
 class ActionTag {
   constructor(
     readonly label: string,
-    readonly onClick: () => void,
+    readonly onClick: (dropdownActions: Actions) => void,
   ) {}
 
   static FromItem(item: CustomDropdownItem): ActionTag {
@@ -166,7 +193,7 @@ interface Entry extends DropdownEntry {
   tag: ExpressionTag | ActionTag
 }
 const entries = computed<Entry[]>(() => {
-  return filteredTags.value.map((tag, index) => ({
+  return filteredTags.value.map((tag, _index) => ({
     value: tag.label,
     selected: tag instanceof ExpressionTag && selectedExpressions.value.has(tag.expression),
     tag,
@@ -178,12 +205,13 @@ const removeSurroundingParens = (expr?: string) => expr?.trim().replaceAll(/(^[(
 const selectedExpressions = computed(() => {
   const selected = new Set<string>()
   if (isMulti.value) {
-    for (const element of getValues(props.input.value)) {
+    for (const element of getValues(editedValue.value ?? props.input.value)) {
       const normalized = removeSurroundingParens(element.code())
       if (normalized) selected.add(normalized)
     }
   } else {
     const code = removeSurroundingParens(WidgetInput.valueRepr(props.input))
+    if (code?.includes(' ')) selected.add(code.substring(0, code.indexOf(' ')))
     if (code) selected.add(code)
   }
   return selected
@@ -201,14 +229,70 @@ const innerWidgetInput = computed<WidgetInput>(() => {
     dynamicConfig,
   }
 })
+
+const parentSelectionArrow = injectSelectionArrow(true)
+const arrowSuppressed = ref(false)
+const showArrow = computed(() => isHovered.value && !arrowSuppressed.value)
+provideSelectionArrow(
+  proxyRefs({
+    id: computed(() => {
+      // Find the top-most PropertyAccess, and return its rhs id.
+      // It will be used to place the dropdown arrow under the constructor name.
+      let node = props.input.value
+      while (node instanceof Ast.Ast) {
+        if (node instanceof Ast.AutoscopedIdentifier) return node.identifier.id
+        if (node instanceof Ast.PropertyAccess) return node.rhs.id
+        if (node instanceof Ast.App) node = node.function
+        else {
+          const wrapped = node.wrappedExpression()
+          if (wrapped != null) node = wrapped
+          else break
+        }
+      }
+      return null
+    }),
+    requestArrow: (target: RendererNode) => {
+      arrowLocation.value = target
+    },
+    handled: false,
+    get suppressArrow() {
+      return arrowSuppressed.value
+    },
+    set suppressArrow(value) {
+      arrowSuppressed.value = value
+    },
+  }),
+)
+
+watch(showArrow, (arrowShown) => {
+  if (parentSelectionArrow) {
+    parentSelectionArrow.suppressArrow = arrowShown
+  }
+})
+
+function onClose() {
+  activity.value = undefined
+}
+
 const isMulti = computed(() => props.input.dynamicConfig?.kind === 'Multiple_Choice')
 const dropDownInteraction = WidgetEditHandler.New('WidgetSelection', props.input, {
-  cancel: () => {},
+  cancel: onClose,
+  end: onClose,
   pointerdown: (e, _) => {
-    if (targetIsOutside(e, unrefElement(dropdownElement))) {
+    if (
+      targetIsOutside(e, unrefElement(dropdownElement)) &&
+      targetIsOutside(e, unrefElement(activityElement)) &&
+      targetIsOutside(e, unrefElement(widgetRoot))
+    ) {
       dropDownInteraction.end()
       if (editedWidget.value)
         props.onUpdate({ portUpdate: { origin: props.input.portId, value: editedValue.value } })
+    } else if (isMulti.value) {
+      // In multi-select mode the children contain actual values; when a dropdown click occurs,
+      // we allow the event to propagate so the child widget can commit before the dropdown-toggle occurs.
+      // We don't do this in single-select mode because the value is treated as a filter in that case,
+      // so it shouldn't be committed as a value before the dropdown operation.
+      return false
     }
   },
   start: () => {
@@ -223,17 +307,27 @@ const dropDownInteraction = WidgetEditHandler.New('WidgetSelection', props.input
     dropDownInteraction.start()
     return true
   },
+  childEnded: () => {
+    if (!isMulti.value) dropDownInteraction.end()
+  },
 })
 
 function toggleDropdownWidget() {
-  if (!dropDownInteraction.active.value) dropDownInteraction.start()
+  if (!dropDownInteraction.isActive()) dropDownInteraction.start()
   else dropDownInteraction.cancel()
 }
 
+const dropdownActions: Actions = {
+  setActivity: (newActivity) => {
+    activity.value = newActivity
+  },
+  close: dropDownInteraction.end.bind(dropDownInteraction),
+}
+
 function onClick(clickedEntry: Entry, keepOpen: boolean) {
-  if (clickedEntry.tag instanceof ActionTag) clickedEntry.tag.onClick()
+  if (clickedEntry.tag instanceof ActionTag) clickedEntry.tag.onClick(dropdownActions)
   else expressionTagClicked(clickedEntry.tag, clickedEntry.selected)
-  if (!(keepOpen || isMulti.value)) {
+  if (!(keepOpen || isMulti.value || activity.value)) {
     // We cancel interaction instead of ending it to restore the old value in the inner widget;
     // if we clicked already selected entry, there would be no AST change, thus the inner
     // widget's content would not be updated.
@@ -277,7 +371,7 @@ function expressionTagClicked(tag: ExpressionTag, previousState: boolean) {
   const edit = graph.startEdit()
   const tagValue = resolveTagExpression(edit, tag)
   if (isMulti.value) {
-    const inputValue = props.input.value
+    const inputValue = editedValue.value ?? props.input.value
     if (inputValue instanceof Ast.Vector) {
       toggleVectorValue(edit.getVersion(inputValue), tagValue, previousState)
       props.onUpdate({ edit })
@@ -293,9 +387,13 @@ function expressionTagClicked(tag: ExpressionTag, previousState: boolean) {
     props.onUpdate({ edit, portUpdate: { value: tagValue, origin: props.input.portId } })
   }
 }
+
+const arrowLocation = ref()
 </script>
 
 <script lang="ts">
+const CustomDropdownItemsKey: unique symbol = Symbol.for('WidgetInput:CustomDropdownItems')
+
 function isHandledByCheckboxWidget(parameter: SuggestionEntryArgument | undefined): boolean {
   return (
     parameter?.tagValues != null &&
@@ -315,7 +413,11 @@ export const widgetDefinition = defineWidget(
       : props.input.dynamicConfig?.kind === 'Single_Choice' ? Score.Perfect
       : props.input.dynamicConfig?.kind === 'Multiple_Choice' ? Score.Perfect
       : isHandledByCheckboxWidget(props.input[ArgumentInfoKey]?.info) ? Score.Mismatch
-      : props.input[ArgumentInfoKey]?.info?.tagValues != null ? Score.Perfect
+        // TODO[ao] here, instead of checking for existing dynamic config, we should rather return
+        // Score.Good. But this does not work with WidgetArgument which would then take precedence
+        // over selection (and we want to have name always under it)
+      : props.input[ArgumentInfoKey]?.info?.tagValues != null && props.input.dynamicConfig == null ?
+        Score.Perfect
       : Score.Mismatch,
   },
   import.meta.hot,
@@ -326,10 +428,22 @@ export interface CustomDropdownItem {
   /** Displayed label. */
   label: string
   /** Action to perform when clicked. */
-  onClick: () => void
+  onClick: (dropdownActions: Actions) => void
 }
 
-export const CustomDropdownItemsKey: unique symbol = Symbol('CustomDropdownItems')
+/** Actions a {@link CustomDropdownItem} may perform when clicked. */
+export interface Actions {
+  /**
+   * Provide an alternative dialog to be rendered in place of the dropdown.
+   *
+   * For example, the {@link WidgetCloudBrowser} installs a custom entry that, when clicked,
+   * opens a file browser where the dropdown was.
+   */
+  setActivity: (activity: VNode) => void
+  close: () => void
+}
+
+export { CustomDropdownItemsKey }
 declare module '@/providers/widgetRegistry' {
   export interface WidgetInput {
     [CustomDropdownItemsKey]?: readonly CustomDropdownItem[]
@@ -338,30 +452,43 @@ declare module '@/providers/widgetRegistry' {
 </script>
 
 <template>
-  <!-- See comment in GraphNode next to dragPointer definition about stopping pointerdown and pointerup -->
   <div
     ref="widgetRoot"
-    class="WidgetSelection"
+    class="WidgetSelection clickable"
     :class="{ multiSelect: isMulti }"
-    @pointerdown.stop
-    @pointerup.stop
     @click.stop="toggleDropdownWidget"
     @pointerover="isHovered = true"
     @pointerout="isHovered = false"
   >
     <NodeWidget :input="innerWidgetInput" />
-    <SvgIcon v-if="isHovered" name="arrow_right_head_only" class="arrow" />
+    <template v-if="showArrow">
+      <!-- Arrow icon is duplicated inside Teleport and outside because the teleport `to` target
+      must be already in the DOM when the <Teleport> component is mounted.
+      So the Teleport itself can be instantiated only when `arrowLocation` is already available. -->
+      <Teleport v-if="arrowLocation" :to="arrowLocation">
+        <SvgIcon name="arrow_right_head_only" class="arrow widgetOutOfLayout" />
+      </Teleport>
+      <SvgIcon v-else name="arrow_right_head_only" class="arrow widgetOutOfLayout" />
+    </template>
     <Teleport v-if="tree.nodeElement" :to="tree.nodeElement">
-      <SizeTransition height :duration="100">
-        <DropdownWidget
-          v-if="dropDownInteraction.active.value"
-          ref="dropdownElement"
-          :style="floatingStyles"
-          :color="'var(--node-color-primary)'"
-          :entries="entries"
-          @clickEntry="onClick"
-        />
-      </SizeTransition>
+      <div ref="dropdownElement" :style="floatingStyles" class="widgetOutOfLayout">
+        <SizeTransition height :duration="100">
+          <div v-if="dropDownInteraction.isActive() && activity == null">
+            <DropdownWidget
+              color="var(--node-color-primary)"
+              :entries="entries"
+              @clickEntry="onClick"
+            />
+          </div>
+        </SizeTransition>
+      </div>
+      <div ref="activityElement" class="activityElement" :style="activityStyles">
+        <SizeTransition height :duration="100">
+          <div v-if="dropDownInteraction.isActive() && activity">
+            <component :is="activity" />
+          </div>
+        </SizeTransition>
+      </div>
     </Teleport>
   </div>
 </template>
@@ -370,16 +497,25 @@ declare module '@/providers/widgetRegistry' {
 .WidgetSelection {
   display: flex;
   flex-direction: row;
+  align-items: center;
+  position: relative;
+  min-height: var(--node-port-height);
 }
 
-.arrow {
+svg.arrow {
   position: absolute;
-  pointer-events: none;
-  bottom: -7px;
+  bottom: -8px;
   left: 50%;
   transform: translateX(-50%) rotate(90deg) scale(0.7);
+  transform-origin: center;
   opacity: 0.5;
   /* Prevent the parent from receiving a pointerout event if the mouse is over the arrow, which causes flickering. */
   pointer-events: none;
+}
+
+.activityElement {
+  --background-color: var(--node-color-primary);
+  /* Above the circular menu. */
+  z-index: 26;
 }
 </style>

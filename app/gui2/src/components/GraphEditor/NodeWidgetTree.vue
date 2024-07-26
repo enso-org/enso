@@ -1,24 +1,23 @@
 <script setup lang="ts">
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
-import SvgIcon from '@/components/SvgIcon.vue'
 import { useTransitioning } from '@/composables/animation'
 import { injectGraphSelection } from '@/providers/graphSelection'
 import { WidgetInput, type WidgetUpdate } from '@/providers/widgetRegistry'
-import { WidgetEditHandler } from '@/providers/widgetRegistry/editHandler'
 import { provideWidgetTree } from '@/providers/widgetTree'
 import { useGraphStore, type NodeId } from '@/stores/graph'
+import type { NodeType } from '@/stores/graph/graphDatabase'
 import { Ast } from '@/util/ast'
 import type { Vec2 } from '@/util/data/vec2'
-import type { Icon } from '@/util/iconName'
-import { computed, ref, toRef, watch } from 'vue'
+import { displayedIconOf } from '@/util/getIconName'
+import { computed, toRef, watch } from 'vue'
+import { DisplayIcon } from './widgets/WidgetIcon.vue'
 
 const props = defineProps<{
   ast: Ast.Ast
   nodeId: NodeId
   nodeElement: HTMLElement | undefined
+  nodeType: NodeType
   nodeSize: Vec2
-  icon: Icon
-  connectedSelfArgumentId: Ast.AstId | undefined
   potentialSelfArgumentId: Ast.AstId | undefined
   /** Ports that are not targetable by default; see {@link NodeDataFromAst}. */
   conditionalPorts: Set<Ast.AstId>
@@ -30,8 +29,18 @@ const emit = defineEmits<{
 const graph = useGraphStore()
 const rootPort = computed(() => {
   const input = WidgetInput.FromAst(props.ast)
-  if (props.ast instanceof Ast.Ident && !graph.db.isKnownFunctionCall(props.ast.id)) {
+  if (
+    props.ast instanceof Ast.Ident &&
+    (!graph.db.isKnownFunctionCall(props.ast.id) || graph.db.connections.hasValue(props.ast.id))
+  ) {
     input.forcePort = true
+  }
+
+  if (!props.potentialSelfArgumentId && topLevelIcon.value) {
+    input[DisplayIcon] = {
+      icon: topLevelIcon.value,
+      showContents: props.nodeType != 'output',
+    }
   }
   return input
 })
@@ -65,7 +74,7 @@ function handleWidgetUpdates(update: WidgetUpdate) {
         : value == null ? Ast.Wildcard.new(edit)
         : undefined
       if (ast) {
-        edit.replaceValue(origin as Ast.AstId, ast)
+        edit.replaceValue(origin, ast)
       } else if (typeof value === 'string') {
         edit.tryGet(origin)?.syncToCode(value)
       }
@@ -78,40 +87,45 @@ function handleWidgetUpdates(update: WidgetUpdate) {
   return true
 }
 
-const currentEdit = ref<WidgetEditHandler>()
-watch(currentEdit, (edit) => edit && selectNode())
-
 const layoutTransitions = useTransitioning(observedLayoutTransitions)
-provideWidgetTree(
+const widgetTree = provideWidgetTree(
   toRef(props, 'ast'),
   toRef(props, 'nodeId'),
   toRef(props, 'nodeElement'),
   toRef(props, 'nodeSize'),
-  toRef(props, 'icon'),
-  toRef(props, 'connectedSelfArgumentId'),
   toRef(props, 'potentialSelfArgumentId'),
   toRef(props, 'conditionalPorts'),
   toRef(props, 'extended'),
   layoutTransitions.active,
-  currentEdit,
   () => emit('openFullMenu'),
 )
+
+const expressionInfo = computed(() => graph.db.getExpressionInfo(props.ast.externalId))
+const suggestionEntry = computed(() => graph.db.nodeMainSuggestion.lookup(props.nodeId))
+const topLevelIcon = computed(() => {
+  switch (props.nodeType) {
+    default:
+    case 'component':
+      return displayedIconOf(
+        suggestionEntry.value,
+        expressionInfo.value?.methodCall?.methodPointer,
+        expressionInfo.value?.typename ?? 'Unknown',
+      )
+    case 'output':
+      return 'data_output'
+  }
+})
+
+watch(toRef(widgetTree, 'currentEdit'), (edit) => edit && selectNode())
 </script>
 <script lang="ts">
-export const GRAB_HANDLE_X_MARGIN = 4
-const GRAB_HANDLE_X_MARGIN_PX = `${GRAB_HANDLE_X_MARGIN}px`
+export const GRAB_HANDLE_X_MARGIN_L = 4
+export const GRAB_HANDLE_X_MARGIN_R = 8
 export const ICON_WIDTH = 16
 </script>
 
 <template>
-  <div class="NodeWidgetTree" spellcheck="false" v-on="layoutTransitions.events">
-    <!-- Display an icon for the node if no widget in the tree provides one. -->
-    <SvgIcon
-      v-if="!props.connectedSelfArgumentId"
-      class="icon grab-handle nodeCategoryIcon"
-      :name="props.icon"
-      @click.right.stop.prevent="emit('openFullMenu')"
-    />
+  <div class="NodeWidgetTree widgetRounded" spellcheck="false" v-on="layoutTransitions.events">
     <NodeWidget :input="rootPort" @update="handleWidgetUpdates" />
   </div>
 </template>
@@ -121,29 +135,76 @@ export const ICON_WIDTH = 16
   color: white;
 
   outline: none;
-  height: 24px;
+  min-height: var(--node-port-height);
   display: flex;
   align-items: center;
+}
 
-  &:has(.WidgetPort.newToConnect) {
-    margin-left: calc(4px - var(--widget-port-extra-pad));
+/**
+ * Implementation of token padding and its propagation through the widget tree.
+ *
+ * In widget tree, the margins around widgets require special care due to unusual set of
+ * desing requirements. When a node or a port contains a widget that "fits nicely" with
+ * within rounded corners, there shouldn't be any added margin between them. On the other
+ * hand, when a widget ends with a text node without any rounded container, it needs to
+ * maintain a certain padding from parent's rounding (e.g. rounding of the node shape).
+ *
+ * To implement that, we need to propagate the information of required left/right padding
+ * throughout the tree structure, and allow widgets to either modify their requirements, or
+ * to apply the required padding. We are using a set of special tree-scoped classes for that:
+ *
+ * - `.widgetRounded`: Signals that this widget has rounding, so it expects its content to
+ *                     have added padding when appropriate. All widgets that have 24px rounded
+ *                     corners need to have this class (e.g. ports, value inputs).
+ *
+ * - `.widgetResetRounding`: Resets the "rounding" state, setting padding expectation to 0.
+ *                           This allows the widget to implement its own padding that will be
+ *                           kept constant no matter the situation (e.g. `TopLevelArgument`).
+ *
+ * - `.widgetApplyPadding`: Keep distance from rounded corners, apply padding as required by
+ *                          parent widget structure. This should be applied to *all* text-only
+ *                          elements of a widget, anything that is or looks like a token.
+ *
+ * - `.widgetOutOfLayout`: An element that exists within a widget tree, but isn't taking any
+ *                         visible horizontal space. Those elements are ignored when propagating
+ *                         the padding information. It is important to add this class to any DOM
+ *                         element with absolute positioning when it is placed at the beginning or
+ *                         at the end of the widget template, so it doesn't prevent tokens around
+ *                         them from being properly padded.
+ */
+.NodeWidgetTree {
+  /*
+   * Core of the propagation logic. Prevent left/right margin from propagating to non-first non-last
+   * children of a widget. That way, only the innermost left/right deep child of a rounded widget will
+   * receive the propagated paddings.
+   */
+  *:not(:nth-child(1 of :not(.widgetOutOfLayout, [data-transitioning='leave']))) {
+    --widget-token-pad-left: 0px;
+  }
+  *:not(:nth-last-child(1 of :not(.widgetOutOfLayout, [data-transitioning='leave']))) {
+    --widget-token-pad-right: 0px;
   }
 
-  &:has(.WidgetPort.newToConnect > .r-24:only-child) {
-    margin-left: 0px;
+  /*
+   * Any rounded widget sets expected padding variable, which is automatically inherited
+   * by all its children.
+   * Note that since the node itself is rounded, it behaves as a rounded container.
+   */
+  &,
+  :deep(.widgetRounded.widgetRounded) {
+    --widget-token-pad-left: var(--widget-token-pad-unit);
+    --widget-token-pad-right: var(--widget-token-pad-unit);
   }
-}
 
-.GraphEditor.draggingEdge .NodeWidgetTree {
-  transition: margin 0.2s ease;
-}
+  :deep(.widgetResetRounding.widgetResetPadding) {
+    --widget-token-pad-left: 0px;
+    --widget-token-pad-right: 0px;
+  }
 
-.icon {
-  margin-right: 4px;
-}
-
-.grab-handle {
-  color: white;
-  margin: 0 v-bind('GRAB_HANDLE_X_MARGIN_PX');
+  :deep(.widgetApplyPadding.widgetApplyPadding) {
+    margin-left: var(--widget-token-pad-left, 0);
+    margin-right: var(--widget-token-pad-right, 0);
+    transition: margin 0.2s ease-out;
+  }
 }
 </style>

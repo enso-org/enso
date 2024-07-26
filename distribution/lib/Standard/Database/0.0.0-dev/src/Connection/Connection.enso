@@ -10,6 +10,7 @@ from Standard.Base.Metadata.Choice import Option
 from Standard.Base.Metadata.Widget import Single_Choice, Vector_Editor
 
 import Standard.Table.Internal.Column_Naming_Helper.Column_Naming_Helper
+import Standard.Table.Rows_To_Read.Rows_To_Read
 from Standard.Table import Table, Value_Type
 
 import project.Column_Description.Column_Description
@@ -19,6 +20,7 @@ import project.Dialect.Dialect
 import project.Internal.Connection.Entity_Naming_Properties.Entity_Naming_Properties
 import project.Internal.Hidden_Table_Registry
 import project.Internal.IR.Context.Context
+import project.Internal.IR.From_Spec.From_Spec
 import project.Internal.IR.Query.Query
 import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
@@ -166,11 +168,11 @@ type Connection
             Nothing -> Nothing
             _ : Vector -> types
             _ -> [types]
-        name_map = Map.from_vector [["TABLE_CAT", "Database"], ["TABLE_SCHEM", "Schema"], ["TABLE_NAME", "Name"], ["TABLE_TYPE", "Type"], ["REMARKS", "Description"], ["TYPE_CAT", "Type Database"], ["TYPE_SCHEM", "Type Schema"], ["TYPE_NAME", "Type Name"]]
+        name_dict = Dictionary.from_vector [["TABLE_CAT", "Database"], ["TABLE_SCHEM", "Schema"], ["TABLE_NAME", "Name"], ["TABLE_TYPE", "Type"], ["REMARKS", "Description"], ["TYPE_CAT", "Type Database"], ["TYPE_SCHEM", "Type Schema"], ["TYPE_NAME", "Type Name"]]
         result = self.jdbc_connection.with_metadata metadata->
             table = Managed_Resource.bracket (metadata.getTables database schema name_like types_vector) .close result_set->
                 result_set_to_table result_set self.dialect.get_type_mapping.make_column_fetcher
-            renamed = table.rename_columns name_map
+            renamed = table.rename_columns name_dict
             if all_fields then renamed else
                 renamed.select_columns ["Database", "Schema", "Name", "Type", "Description"]
         case include_hidden of
@@ -251,9 +253,6 @@ type Connection
          If supplied as `Text`, the name is checked against the `tables` list to
          determine if it is a table or a query.
        - limit: the maximum number of rows to read.
-         If set to `Nothing`, all rows will be returned.
-       - warn_if_more_rows: if set to `True`, a warning is attached to the
-         result if the number of rows returned by the query exceeds `limit`.
 
        ? Side Effects
 
@@ -263,9 +262,10 @@ type Connection
          `execute_update` for DML queries, or if they are supposed to return
          results, the `read` should be wrapped in an execution context check.
     @query make_table_name_selector
-    read : Text | SQL_Query -> Integer | Nothing -> Boolean -> Table ! Table_Not_Found
-    read self query (limit : Integer | Nothing = 1000) (warn_if_more_rows : Boolean = True) =
-        self.query query . read max_rows=limit warn_if_more_rows=warn_if_more_rows
+    @limit Rows_To_Read.default_widget
+    read : Text | SQL_Query -> Rows_To_Read -> Table ! Table_Not_Found
+    read self query (limit : Rows_To_Read = ..First_With_Warning 1000) =
+        self.query query . read max_rows=limit
 
     ## PRIVATE
        Creates a new empty table in the database and returns a query referencing
@@ -310,7 +310,7 @@ type Connection
          a `Dry_Run_Operation` warning attached.
     @structure make_structure_creator
     create_table : Text  -> Vector Column_Description | DB_Table | Table -> Vector Text | Nothing -> Boolean -> Boolean -> Problem_Behavior -> DB_Table ! Table_Already_Exists
-    create_table self (table_name : Text) (structure : Vector Column_Description | DB_Table | Table) (primary_key : (Vector Text | Nothing) = [first_column_name_in_structure structure]) (temporary : Boolean = False) (allow_existing : Boolean = False) (on_problems:Problem_Behavior = Problem_Behavior.Report_Warning) =
+    create_table self (table_name : Text) (structure : Vector Column_Description | DB_Table | Table) (primary_key : (Vector Text | Nothing) = [first_column_name_in_structure structure]) (temporary : Boolean = False) (allow_existing : Boolean = False) (on_problems:Problem_Behavior = ..Report_Warning) =
         create_table_implementation self table_name structure primary_key temporary allow_existing on_problems
 
     ## PRIVATE
@@ -318,18 +318,26 @@ type Connection
 
        Arguments:
        - statement: SQL_Statement to execute.
-       - column_type_suggestions: A vector of SQL type references that can act
-         as suggested column types. By default, the overrides are respected and
-         types that should be computed by the database are passed as `Nothing`
-         to ensure that default `ResultSet` metadata is used for these columns.
+       - column_types: A vector of SQL type references that can act as suggested
+         column types. Only `Override` references override the type. Other kinds
+         of references do not influence the result. `Computed_By_Database`
+         references may get updated to cache the types fetched from the Database.
        - last_row_only: If set true, only the last row of the query is fetched.
          Defaults to false.
     read_statement : SQL_Statement -> (Nothing | Vector SQL_Type_Reference) -> Boolean -> Table
-    read_statement self statement column_type_suggestions=Nothing last_row_only=False =
-        type_overrides = self.dialect.get_type_mapping.prepare_type_overrides column_type_suggestions
+    read_statement self statement column_types=Nothing last_row_only=False =
+        type_overrides = self.dialect.get_type_mapping.prepare_type_overrides column_types
         statement_setter = self.dialect.get_statement_setter
         self.jdbc_connection.with_prepared_statement statement statement_setter stmt->
             rs = stmt.executeQuery
+
+            # If column types were provided, we will cache the types that were not yet cached.
+            column_types.if_not_nothing <|
+                metadata = rs.getMetaData
+                column_types.each_with_index ix-> sql_type_reference->
+                    sql_type_reference.cache_computed_type <| SQL_Type.from_metadata metadata ix+1
+
+            # And finally, materialize the results.
             SQL_Warning_Helper.process_warnings stmt <|
                 result_set_to_table rs self.dialect.get_type_mapping.make_column_fetcher type_overrides last_row_only
 
@@ -338,7 +346,7 @@ type Connection
        result set.
     fetch_columns : Text | SQL_Statement -> Statement_Setter -> Any
     fetch_columns self statement statement_setter =
-        needs_execute_query = self.dialect.needs_execute_query_for_type_inference
+        needs_execute_query = self.dialect.needs_execute_query_for_type_inference statement
         self.jdbc_connection.raw_fetch_columns statement needs_execute_query statement_setter
 
     ## PRIVATE
@@ -442,6 +450,22 @@ type Connection
     internal_allocate_dry_run_table self table_name =
         ref = self.hidden_table_registry.make_reference table_name
         make_table_for_name self table_name table_name ref
+
+    ## PRIVATE
+       ADVANCED
+       Creates a `DB_Table` that is not backed by an existing table in the
+       Database, but is created in a query by constructing a `VALUES` expression.
+
+       We limit these tables to at most 256 cells to avoid creating too large
+       queries. If you need a larger table, create a temporary table instead.
+
+       Note that the types of columns in the created table will depend on how
+       the Database interprets the provided values and may not reflect the types
+       of the source table. If you need more sophisticated type mapping
+       mechanism, use `create_table` instead.
+    create_literal_table self (source : Table) (alias : Text) -> DB_Table =
+        DB_Table_Module.make_literal_table self (source.columns.map .to_vector) source.column_names alias
+
 
 ## PRIVATE
 make_table_types_selector : Connection -> Widget

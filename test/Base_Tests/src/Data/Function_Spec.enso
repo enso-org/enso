@@ -1,7 +1,21 @@
 from Standard.Base import all
+import Standard.Base.Errors.Common.No_Such_Method
 
 from Standard.Test import all
 
+type Abeceda
+    private A
+    private B
+    private C
+
+    sample self = case self of
+        Abeceda.A -> 'astronaut'
+        Abeceda.B -> 'bicycle'
+        Abeceda.C -> 'center'
+
+    as x converge:Boolean =
+        t = if converge then (x : Abeceda) else x
+        t.sample
 
 add_specs suite_builder =
     suite_builder.group "identity" group_builder->
@@ -37,6 +51,40 @@ add_specs suite_builder =
         group_builder.specify "uncurry on number list" <|
             times = uncurry (*)
             times [6, 7] . should_equal 42
+
+    suite_builder.group "No_Such_Method" group_builder->
+        group_builder.specify "conversion of ..B" <|
+            Abeceda.as ..B True . should_equal "bicycle"
+
+        group_builder.specify "no conversion of ..B" <|
+            p = Panic.recover No_Such_Method <|
+                Abeceda.as ..B False
+
+            p . should_fail_with No_Such_Method
+            p.to_display_text . should_contain "Method `sample`"
+            p.to_display_text . should_contain "of ..B"
+            p.to_display_text . should_contain "not be found"
+
+        group_builder.specify "no conversion of Integer value" <|
+            p = Panic.recover No_Such_Method <|
+                Abeceda.as 10 False
+
+            p . should_fail_with No_Such_Method
+            p.to_display_text . should_contain "Method `sample`"
+            p.to_display_text . should_contain "of type Integer"
+            p.to_display_text . should_contain "not be found"
+
+        group_builder.specify "no conversion of function value" <|
+            p = Panic.recover No_Such_Method <|
+                Abeceda.as add_specs False
+
+            p . should_fail_with No_Such_Method
+            p.to_display_text . should_contain "Method `sample`"
+            p.to_display_text . should_contain "of Function_Spec.add_specs"
+            p.to_display_text . should_contain "[Function_Spec.enso:"
+            p.to_display_text . should_contain "self=Function_Spec"
+            p.to_display_text . should_contain "suite_builder=_"
+            p.to_display_text . should_contain "not be found"
 
 main filter=Nothing =
     suite = Test.build suite_builder->

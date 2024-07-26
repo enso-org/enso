@@ -30,9 +30,10 @@ class ImportsTest extends PackageTest {
   }
 
   "Import statements" should "report errors when they cannot be resolved" in {
-    the[InterpreterException] thrownBy evalTestProject(
+    val ex = the[InterpreterException] thrownBy evalTestProject(
       "Test_Bad_Imports"
-    ) should have message "Compilation aborted due to errors."
+    )
+    ex.getMessage should include("The package could not be resolved")
     val outLines = consumeOut.filterNot(isDiagnosticLine)
     outLines should have size 2
     outLines(0) should include(
@@ -46,9 +47,10 @@ class ImportsTest extends PackageTest {
   }
 
   "Symbols from imported modules" should "not be visible when imported qualified" in {
-    the[InterpreterException] thrownBy evalTestProject(
+    val ex = the[InterpreterException] thrownBy evalTestProject(
       "Test_Qualified_Error"
-    ) should have message "Compilation aborted due to errors."
+    )
+    ex.getMessage should include("The name `Mk_X` could not be found.")
     val outLines = consumeOut
     outLines
       .filterNot(isDiagnosticLine)
@@ -56,9 +58,10 @@ class ImportsTest extends PackageTest {
   }
 
   "Symbols from imported modules" should "not be visible when hidden" in {
-    the[InterpreterException] thrownBy evalTestProject(
+    val ex = the[InterpreterException] thrownBy evalTestProject(
       "Test_Hiding_Error"
-    ) should have message "Compilation aborted due to errors."
+    )
+    ex.getMessage should include("The name `X` could not be found.")
     consumeOut
       .filterNot(isDiagnosticLine)
       .head should include("The name `X` could not be found.")
@@ -73,9 +76,10 @@ class ImportsTest extends PackageTest {
   }
 
   "Imported modules" should "not be visible under original name when renamed" in {
-    the[InterpreterException] thrownBy evalTestProject(
+    val ex = the[InterpreterException] thrownBy evalTestProject(
       "Test_Rename_Error"
-    ) should have message "Compilation aborted due to errors."
+    )
+    ex.getMessage should include("The name `Atom` could not be found.")
     consumeOut
       .filterNot(isDiagnosticLine)
       .head should include("The name `Atom` could not be found.")
@@ -124,12 +128,13 @@ class ImportsTest extends PackageTest {
   }
 
   "Compiler" should "detect name conflicts preventing users from importing submodules" in {
-    the[InterpreterException] thrownBy evalTestProject(
-      "Test_Submodules_Name_Conflict"
-    ) should have message "Method `c_mod_method` of type C.type could not be found."
-    val outLines = consumeOut
-    outLines(1) should include
-    "Declaration of type C shadows module local.Test_Submodules_Name_Conflict.A.B.C making it inaccessible via a qualified name."
+    try {
+      evalTestProject("Test_Submodules_Name_Conflict")
+      fail("Should throw CompilerError")
+    } catch {
+      case e: InterpreterException =>
+        e.getMessage.contains("Conflicting resolutions") shouldBe true
+    }
   }
 
   "Compiler" should "accept exports of the same module" in {
@@ -139,30 +144,13 @@ class ImportsTest extends PackageTest {
     outLines(1) shouldEqual "42"
   }
 
-  "Compiler" should "reject qualified exports of the same module with conflicting hidden names" in {
-    the[InterpreterException] thrownBy evalTestProject(
-      "Test_Multiple_Conflicting_Exports_1"
-    ) should have message "Compilation aborted due to errors."
-    val outLines = consumeOut
-    outLines(
-      1
-    ) shouldEqual "Hidden 'foo' name of the exported module local.Test_Multiple_Conflicting_Exports_1.F1 conflicts with the qualified export"
-  }
-
-  "Compiler" should "reject unqualified exports of the same module with conflicting hidden names" in {
-    the[InterpreterException] thrownBy evalTestProject(
-      "Test_Multiple_Conflicting_Exports_2"
-    ) should have message "Compilation aborted due to errors."
-    val outLines = consumeOut
-    outLines(
-      1
-    ) shouldEqual "Hidden 'bar' name of the export module local.Test_Multiple_Conflicting_Exports_2.F1 conflicts with the unqualified export"
-  }
-
   "Polyglot symbols" should "not be exported" in {
-    the[InterpreterException] thrownBy evalTestProject(
+    val ex = the[InterpreterException] thrownBy evalTestProject(
       "Test_Polyglot_Exports"
-    ) should have message "Compilation aborted due to errors."
+    )
+    ex.getMessage should include(
+      "Main.enso:5:16: error: The name `Long` could not be found."
+    )
     val outLines = consumeOut.filterNot(isDiagnosticLine)
     outLines should have length 1
     outLines.head should include(
@@ -179,10 +167,12 @@ class ImportsTest extends PackageTest {
   }
 
   "Fully qualified names" should "not be resolved when lacking imports" in {
-    the[InterpreterException] thrownBy evalTestProject(
+    val ex = the[InterpreterException] thrownBy evalTestProject(
       "Test_Fully_Qualified_Name_Failure"
-    ) should have message "Compilation aborted due to errors."
-
+    )
+    ex.getMessage should include(
+      "Main.enso:2:14: error: Fully qualified name references a library Standard.Base but an import statement for it is missing."
+    )
     val outLines = consumeOut.filterNot(isDiagnosticLine)
     outLines should have length 1
     outLines.head should include(
@@ -241,9 +231,10 @@ class ImportsTest extends PackageTest {
   }
 
   "Private modules" should "not be able to import private modules from different project" in {
-    the[InterpreterException] thrownBy evalTestProject(
+    val ex = the[InterpreterException] thrownBy evalTestProject(
       "Test_Private_Modules_3"
-    ) should have message "Compilation aborted due to errors."
+    )
+    ex.getMessage should include("error: Cannot import private module")
     val outLines = consumeOut.filterNot(isDiagnosticLine)
     outLines should have length 1
     outLines.head should include(

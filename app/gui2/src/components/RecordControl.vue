@@ -1,24 +1,29 @@
 <script setup lang="ts">
-import SvgIcon from '@/components/SvgIcon.vue'
-import ToggleIcon from '@/components/ToggleIcon.vue'
+import SvgButton from '@/components/SvgButton.vue'
+import { useProjectStore } from '@/stores/project'
 
-const props = defineProps<{ recordMode: boolean }>()
-const emit = defineEmits<{ recordOnce: []; 'update:recordMode': [enabled: boolean] }>()
+const project = useProjectStore()
 </script>
 
 <template>
-  <div class="RecordControl" @pointerdown.stop @pointerup.stop @click.stop>
-    <div class="control left-end" @click.stop="() => emit('update:recordMode', !props.recordMode)">
-      <ToggleIcon
-        icon="record"
-        class="button"
-        :alt="`${props.recordMode ? 'Enable' : 'Disable'} record mode`"
-        :modelValue="props.recordMode"
-        @update:modelValue="emit('update:recordMode', $event)"
+  <div class="RecordControl">
+    <div class="control left-end">
+      <SvgButton
+        title="Refresh"
+        class="iconButton"
+        name="refresh"
+        draggable="false"
+        @click.stop="project.executionContext.recompute()"
       />
     </div>
-    <div class="control right-end" @click.stop="() => emit('recordOnce')">
-      <SvgIcon alt="Record once" class="button" name="record_once" draggable="false" :scale="1.5" />
+    <div class="control right-end">
+      <SvgButton
+        title="Write All"
+        class="iconButton"
+        name="workflow_play"
+        draggable="false"
+        @click.stop="project.executionContext.recompute('all', 'Live')"
+      />
     </div>
   </div>
 </template>
@@ -34,34 +39,27 @@ const emit = defineEmits<{ recordOnce: []; 'update:recordMode': [enabled: boolea
 .control {
   background: var(--color-frame-bg);
   backdrop-filter: var(--blur-app-bg);
-  padding: 8px 8px;
+  padding: 4px 4px;
   width: 42px;
-  cursor: pointer;
 }
 
 .left-end {
   border-radius: var(--radius-full) 0 0 var(--radius-full);
 
-  .button {
-    margin: 0 4px 0 auto;
+  .iconButton {
+    margin: 0 0 0 auto;
   }
 }
 
 .right-end {
   border-radius: 0 var(--radius-full) var(--radius-full) 0;
 
-  .button {
-    position: relative;
-    top: -4px;
+  .iconButton {
     margin: 0 auto 0 0;
   }
 }
 
-.toggledOn {
-  color: #ba4c40;
-}
-
-.button:active {
+.iconButton:active {
   color: #ba4c40;
 }
 </style>

@@ -2,7 +2,6 @@ package org.enso.launcher
 
 import java.nio.file.Path
 import com.typesafe.scalalogging.Logger
-import io.circe.Json
 import org.enso.semver.SemVer
 import org.enso.distribution.config.DefaultVersion
 import org.enso.editions.updater.EditionManager
@@ -96,7 +95,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
             additionalArguments = additionalArguments
           )
           .get,
-        JVMSettings(useSystemJVM, jvmOpts)
+        JVMSettings(useSystemJVM, jvmOpts, extraOptions = Seq.empty)
       ) { command =>
         command.run().get
       }
@@ -223,7 +222,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
             additionalArguments
           )
           .get,
-        JVMSettings(useSystemJVM, jvmOpts)
+        JVMSettings(useSystemJVM, jvmOpts, extraOptions = Seq())
       ) { command =>
         command.run().get
       }
@@ -267,7 +266,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
             additionalArguments
           )
           .get,
-        JVMSettings(useSystemJVM, jvmOpts)
+        JVMSettings(useSystemJVM, jvmOpts, extraOptions = Seq())
       ) { command =>
         command.run().get
       }
@@ -310,7 +309,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
             additionalArguments
           )
           .get,
-        JVMSettings(useSystemJVM, jvmOpts)
+        JVMSettings(useSystemJVM, jvmOpts, Seq())
       ) { command =>
         command.run().get
       }
@@ -346,7 +345,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
           additionalArguments = additionalArguments
         )
         .get,
-      JVMSettings(useSystemJVM, jvmOpts)
+      JVMSettings(useSystemJVM, jvmOpts, extraOptions = Seq())
     ) { command =>
       command.run().get
     }
@@ -368,7 +367,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
         s"(${configurationManager.configLocation.toAbsolutePath})."
       )
     } else {
-      configurationManager.updateConfigRaw(key, Json.fromString(value))
+      configurationManager.updateConfigRaw(key, value)
       InfoLogger.info(
         s"""Key `$key` set to "$value" in the global configuration file """ +
         s"(${configurationManager.configLocation.toAbsolutePath})."
@@ -413,8 +412,11 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
       )
       .get
 
-    runner.withCommand(settings, JVMSettings(useSystemJVM, jvmOpts)) {
-      command => command.run().get
+    runner.withCommand(
+      settings,
+      JVMSettings(useSystemJVM, jvmOpts, extraOptions = Seq())
+    ) { command =>
+      command.run().get
     }
   }
 
@@ -424,7 +426,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     * warning.
     */
   def printConfig(key: String): Int = {
-    configurationManager.getConfig.original.apply(key) match {
+    configurationManager.getConfig.findByKey(key) match {
       case Some(value) =>
         println(value)
         0
@@ -530,7 +532,11 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     val runtimeVersionString = if (isEngineInstalled) {
       val output = runner.withCommand(
         runtimeVersionRunSettings,
-        JVMSettings(useSystemJVM = false, jvmOptions = Seq.empty)
+        JVMSettings(
+          useSystemJVM = false,
+          jvmOptions   = Seq(),
+          extraOptions = Seq()
+        )
       ) { runtimeVersionCommand =>
         runtimeVersionCommand.captureOutput().get
       }

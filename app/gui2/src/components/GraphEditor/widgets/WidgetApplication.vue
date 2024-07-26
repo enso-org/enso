@@ -1,8 +1,11 @@
 <script setup lang="ts">
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
+import { FunctionName } from '@/components/GraphEditor/widgets/WidgetFunctionName.vue'
 import SizeTransition from '@/components/SizeTransition.vue'
 import { WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { injectWidgetTree } from '@/providers/widgetTree'
+import { useGraphStore } from '@/stores/graph'
+import { entryMethodPointer } from '@/stores/suggestionDatabase/entry'
 import { Ast } from '@/util/ast'
 import { ArgumentApplication, ArgumentApplicationKey } from '@/util/callTree'
 import { computed } from 'vue'
@@ -10,11 +13,25 @@ import { computed } from 'vue'
 const props = defineProps(widgetProps(widgetDefinition))
 const tree = injectWidgetTree()
 const application = computed(() => props.input[ArgumentApplicationKey])
+const graph = useGraphStore()
+
 const targetMaybePort = computed(() => {
   const target = application.value.target
-  const targetInput =
-    target instanceof Ast.Ast ? WidgetInput.FromAst(target) : target.toWidgetInput()
-  return { ...targetInput, forcePort: !(target instanceof ArgumentApplication) }
+  if (target instanceof Ast.Ast) {
+    const input = WidgetInput.FromAst(target)
+    input.forcePort = true
+    if (!application.value.calledFunction) return input
+    const ptr = entryMethodPointer(application.value.calledFunction)
+    if (!ptr) return input
+    const definition = graph.getMethodAst(ptr)
+    if (!definition.ok) return input
+    input[FunctionName] = {
+      editableName: definition.value.name.externalId,
+    }
+    return input
+  } else {
+    return { ...target.toWidgetInput(), forcePort: !(target instanceof ArgumentApplication) }
+  }
 })
 
 const appClass = computed(() => {
@@ -47,17 +64,19 @@ export const widgetDefinition = defineWidget(
 </script>
 
 <template>
-  <span class="WidgetApplication" :class="appClass">
-    <NodeWidget :input="targetMaybePort" />
+  <div class="WidgetApplication" :class="appClass">
+    <NodeWidget :input="targetMaybePort" :nest="application.isInnermost" />
     <div v-if="application.infixOperator" class="infixOp" :style="operatorStyle">
       <NodeWidget :input="WidgetInput.FromAst(application.infixOperator)" />
     </div>
     <SizeTransition width leftGap>
-      <div v-if="tree.extended || !application.argument.hideByDefault" class="argument">
-        <NodeWidget :input="application.argument.toWidgetInput()" nest />
-      </div>
+      <NodeWidget
+        v-if="tree.extended || !application.argument.hideByDefault"
+        :input="application.argument.toWidgetInput()"
+        nest
+      />
     </SizeTransition>
-  </span>
+  </div>
 </template>
 
 <style scoped>
@@ -67,7 +86,7 @@ export const widgetDefinition = defineWidget(
   flex-direction: row;
   justify-content: center;
   &.prefix {
-    gap: 4px;
+    gap: var(--widget-token-pad-unit);
   }
 }
 
@@ -85,11 +104,5 @@ export const widgetDefinition = defineWidget(
     display: inline;
     white-space: pre;
   }
-}
-
-.argument {
-  display: flex;
-  flex-direction: row;
-  place-items: center;
 }
 </style>

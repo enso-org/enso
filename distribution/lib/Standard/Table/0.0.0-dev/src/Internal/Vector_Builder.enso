@@ -55,14 +55,13 @@ type Vector_Builder
        Materializes the actual vector from this builder.
     build : Vector Any
     build self =
-       vec_builder = Vector.new_builder self.length
-       go elem = case elem of
-           Leaf vec -> vec_builder.append_vector_range vec
-           Append l r _ ->
-               go l
-               go r
-       go self
-       vec_builder.to_vector
+        Vector.build initial_capacity=self.length vec_builder->
+            go elem = case elem of
+                Leaf vec -> vec_builder.append_vector_range vec
+                Append l r _ ->
+                    go l
+                    go r
+            go self
 
     ## PRIVATE
 

@@ -1,6 +1,5 @@
 package org.enso.pkg
 
-import cats.Show
 import org.enso.editions.{Editions, LibraryName}
 import org.enso.filesystem.FileSystem
 import org.enso.pkg.validation.NameValidation
@@ -287,15 +286,15 @@ class PackageManager[F](implicit val fileSystem: FileSystem[F]) {
   def create(
     root: F,
     name: String,
-    namespace: String                    = "local",
-    normalizedName: Option[String]       = None,
-    version: String                      = "0.0.1",
-    template: Template                   = Template.Default,
-    edition: Option[Editions.RawEdition] = None,
-    authors: List[Contact]               = List(),
-    maintainers: List[Contact]           = List(),
-    license: String                      = "",
-    componentGroups: ComponentGroups     = ComponentGroups.empty
+    namespace: String                        = "local",
+    normalizedName: Option[String]           = None,
+    version: String                          = "0.0.1",
+    template: Template                       = Template.Default,
+    edition: Option[Editions.RawEdition]     = None,
+    authors: List[Contact]                   = List(),
+    maintainers: List[Contact]               = List(),
+    license: String                          = "",
+    componentGroups: Option[ComponentGroups] = None
   ): Package[F] = {
     val config = Config(
       name                 = name,
@@ -307,7 +306,7 @@ class PackageManager[F](implicit val fileSystem: FileSystem[F]) {
       edition              = edition,
       preferLocalLibraries = true,
       maintainers          = maintainers,
-      componentGroups      = Right(componentGroups)
+      componentGroups      = componentGroups
     )
     create(root, config, template)
   }
@@ -350,15 +349,6 @@ class PackageManager[F](implicit val fileSystem: FileSystem[F]) {
     result.recoverWith {
       case packageLoadingException: PackageManager.PackageLoadingException =>
         Failure(packageLoadingException)
-      case decodingError: io.circe.Error =>
-        val errorMessage =
-          implicitly[Show[io.circe.Error]].show(decodingError)
-        Failure(
-          PackageManager.PackageLoadingFailure(
-            s"Cannot decode the package config: $errorMessage",
-            decodingError
-          )
-        )
       case otherError =>
         Failure(
           PackageManager.PackageLoadingFailure(

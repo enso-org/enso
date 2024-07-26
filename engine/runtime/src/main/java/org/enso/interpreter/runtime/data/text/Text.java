@@ -27,6 +27,7 @@ import org.enso.polyglot.common_utils.Core_Text_Utils;
 @ExportLibrary(TypesLibrary.class)
 public final class Text implements EnsoObject {
   private static final Lock LOCK = new ReentrantLock();
+  private static final Text EMPTY = new Text("");
   private volatile Object contents;
   private volatile int length = -1;
   private volatile FcdNormalized fcdNormalized = FcdNormalized.UNKNOWN;
@@ -96,6 +97,10 @@ public final class Text implements EnsoObject {
       }
     }
     return false;
+  }
+
+  public static Text empty() {
+    return EMPTY;
   }
 
   /**

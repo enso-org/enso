@@ -3,7 +3,13 @@ import {
   defineKeybinds,
   normalizedKeyboardSegmentLookup,
 } from '@/util/shortcuts'
-import { expect, test, vi, type MockInstance } from 'vitest'
+import { beforeAll, expect, test, vi, type MockInstance } from 'vitest'
+
+// See https://github.com/thymikee/jest-preset-angular/issues/245#issuecomment-576296325
+class MockPointerEvent extends MouseEvent {}
+beforeAll(() => {
+  ;(window as any).PointerEvent = MockPointerEvent
+})
 
 test.each([
   { keybind: 'A', expected: { modifiers: [], key: 'A' } },

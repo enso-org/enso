@@ -1,19 +1,29 @@
 import project.Any.Any
+import project.Data.Array.Array
 import project.Data.Numbers.Integer
 import project.Data.Text.Encoding.Encoding
 import project.Data.Vector.Vector
-import project.Errors.Encoding_Error.Encoding_Error
+import project.Error.Error
+import project.Errors.File_Error.File_Error
+import project.Errors.Illegal_State.Illegal_State
 import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Nothing.Nothing
 import project.Runtime.Managed_Resource.Managed_Resource
+import project.System.Advanced.Restartable_Input_Stream.Restartable_Input_Stream
 import project.System.File.Advanced.Temporary_File.Temporary_File
 import project.System.File.File
 import project.System.File.File_Access.File_Access
 import project.System.File.Generic.Writable_File.Writable_File
+import project.System.Internal.Reporting_Stream_Decoder_Helper
+from project.Data.Boolean import Boolean, False, True
 
+polyglot java import java.io.BufferedInputStream
+polyglot java import java.io.ByteArrayInputStream
 polyglot java import java.io.InputStream as Java_Input_Stream
+polyglot java import org.enso.base.encoding.Encoding_Utils
 polyglot java import org.enso.base.encoding.ReportingStreamDecoder
-polyglot java import org.enso.base.Encoding_Utils
+polyglot java import org.enso.base.Stream_Utils
+polyglot java import org.enso.base.Stream_Utils.InputStreamLike
 
 ## PRIVATE
    An input stream, allowing for interactive reading of contents.
@@ -23,10 +33,17 @@ type Input_Stream
 
        Given a Java InputStream, wraps as a Managed_Resource and returns a new
        Input_Stream.
-    new : Java_Input_Stream -> Any -> (Nothing | File | Temporary_File) -> Input_Stream
-    new java_stream error_handler associated_file=Nothing =
+    new : Java_Input_Stream -> Any -> (Nothing | File | Temporary_File | Vector | Array) -> Input_Stream
+    new java_stream error_handler associated_source=Nothing =
         resource = Managed_Resource.register java_stream close_stream
-        Input_Stream.Value resource error_handler associated_file
+        Input_Stream.Value resource error_handler associated_source
+
+    ## PRIVATE
+       ADVANCED
+       Creates a new input stream from a vector of bytes.
+    from_bytes bytes -> Input_Stream =
+        raw_stream = ByteArrayInputStream.new bytes
+        Input_Stream.new raw_stream (File_Error.handle_java_exceptions Nothing) bytes
 
     ## PRIVATE
        An input stream, allowing for interactive reading of contents.
@@ -35,15 +52,16 @@ type Input_Stream
        - stream_resource: The internal resource that represents the underlying
          stream.
        - error_handler: An error handler for IOExceptions thrown when reading.
-       - associated_file: The file associated with this stream, if any.
-    Value stream_resource error_handler (associated_file:Nothing|File|Temporary_File)
+       - associated_source: The source associated with this stream, if any.
+         It can be used to cheaply convert this stream into a `Restartable_Input_Stream`.
+    private Value stream_resource error_handler (associated_source : Nothing | File | Temporary_File | Vector | Array)
 
     ## PRIVATE
        ADVANCED
        Reads all the bytes in this stream into a vector of bytes.
     read_all_bytes : Vector
-    read_all_bytes self = self.stream_resource . with java_stream->
-        self.error_handler <| Vector.from_polyglot_array java_stream.readAllBytes
+    read_all_bytes self = self.with_java_stream java_stream->
+        Vector.from_polyglot_array java_stream.readAllBytes
 
     ## PRIVATE
        ADVANCED
@@ -58,10 +76,14 @@ type Input_Stream
        Arguments:
        - n: The number of bytes to read from the stream.
     read_n_bytes : Integer -> Vector
-    read_n_bytes self n = self.stream_resource . with java_stream->
-        self.error_handler <|
-            bytes = java_stream.readNBytes n
-            Vector.from_polyglot_array bytes
+    read_n_bytes self (n : Integer) = self.with_java_stream java_stream->
+        bytes = java_stream.readNBytes n
+        Vector.from_polyglot_array bytes
+
+    ## PRIVATE
+       It may throw an error if not enough bytes are available.
+    skip_n_bytes self (n : Integer) = self.with_java_stream java_stream->
+        java_stream.skipNBytes n
 
     ## PRIVATE
        ADVANCED
@@ -70,9 +92,8 @@ type Input_Stream
        The returned value is an integer in the range 0-255 representing the
        next byte of input, or -1 if end of stream is reached.
     read_byte : Integer
-    read_byte self = self.stream_resource . with java_stream->
-        self.error_handler <|
-            java_stream.read
+    read_byte self = self.with_java_stream java_stream->
+        java_stream.read
 
     ## PRIVATE
        ADVANCED
@@ -93,24 +114,84 @@ type Input_Stream
        Arguments:
        - f: Applies a function over the internal java stream.
     with_java_stream : (Java_Input_Stream -> Any) -> Any
-    with_java_stream self f = self.stream_resource . with f
+    with_java_stream self f = self.stream_resource . with java_like_stream->
+        java_stream = Stream_Utils.asInputStream java_like_stream
+        self.error_handler <| f java_stream
 
     ## PRIVATE
        Runs an action with a `ReportingStreamDecoder` decoding data from the
        input stream with the specified encoding.
     with_stream_decoder : Encoding -> Problem_Behavior -> (ReportingStreamDecoder -> Any) -> Any
-    with_stream_decoder self encoding on_problems action = self.stream_resource . with java_stream->
-        java_charset = encoding.to_java_charset
-        results = Encoding_Utils.with_stream_decoder java_stream java_charset action
-        problems = Vector.from_polyglot_array results.problems . map Encoding_Error.Error
-        on_problems.attach_problems_after results.result problems
+    with_stream_decoder self (encoding : Encoding) (on_problems : Problem_Behavior) action =
+        Reporting_Stream_Decoder_Helper.run self encoding on_problems allow_usage_in_background_threads=True action
+
+    ## PRIVATE
+       Converts this stream into a restartable stream.
+
+       The conversion tries to be efficient, avoiding reading the stream if it
+       is simply backed by a file or byte array.
+       This stream is invalidated after the conversion.
+
+       Arguments:
+       - extend_lifetime: This option is only applicable if the source stream
+         was backed by a file. If set to `True`, a new temporary file will be
+         created, to untie the lifetime of the returned stream from the backing
+         file. If set to `False`, the returned stream will be valid only as long
+         as the original backing file, but the operation will be more efficient
+         - so it is preferred if the caller can guarantee the lifetime of such
+         backing file.
+    as_restartable_stream self (extend_lifetime : Boolean = True) -> Restartable_Input_Stream =
+        Restartable_Input_Stream.make self extend_lifetime
+
+    ## PRIVATE
+    is_peekable self -> Boolean =
+        self.with_java_stream java_stream->
+            java_stream.markSupported
+
+    ## PRIVATE
+       Converts this stream into a stream that can be peeked.
+       This is useful when some application needs to look ahead in the stream,
+       but then needs to pass it further with the same state.
+
+       The peeked bytes are cached in memory, so this should only be used for
+       small amounts of data. If more data has to be processed more than once,
+       `as_restartable_stream` is preferred.
+
+       The current stream may be invalidated after the conversion, and it should
+       no longer be used - only the returned stream should be used.
+    as_peekable_stream self -> Input_Stream = if self.is_peekable then self else
+        raw_stream = self.stream_resource.take
+        raw_java_stream = Stream_Utils.asInputStream raw_stream
+        buffered_stream = BufferedInputStream.new raw_java_stream
+        Input_Stream.new buffered_stream self.error_handler self.associated_source
+
+    ## PRIVATE
+       Peeks up to the provided number of bytes from the stream.
+
+       Makes a best-effort to read as many bytes as provided, however fewer
+       bytes may be read, if end of stream is encountered.
+
+       The length of the returned vector is the same as the number of bytes
+       read.
+
+       No bytes are consumed from the stream - a next read or peek
+       operation will see the same contents as before this call.
+
+       This operation is only allowed if `is_peekable` returns `True`.
+
+       Arguments:
+       - n: The number of bytes to read from the stream.
+    peek_bytes self (n : Integer) -> Vector Integer =
+        if self.is_peekable.not then Error.throw (Illegal_State.Error "`peek_bytes` called on a stream where `is_peekable=False`. Please convert the stream using `as_peekable_stream`.") else
+            self.with_java_stream java_stream->
+                Vector.from_polyglot_array <| Stream_Utils.peek java_stream n
 
     ## PRIVATE
        Reads the contents of this stream into a given file.
     write_to_file self (file : Writable_File) =
         result = file.with_output_stream [File_Access.Create, File_Access.Truncate_Existing, File_Access.Write] output_stream->
             output_stream.write_stream self
-        result.if_not_error file.file
+        result.if_not_error file.file_for_return
 
 ## PRIVATE
    Utility method for closing primitive Java streams. Provided to avoid

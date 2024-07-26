@@ -43,7 +43,7 @@ mod tests {
     #[tokio::test]
     #[ignore]
     async fn manual_call() -> Result {
-        setup_logging()?;
+        setup_logging().ok();
         let octo = setup_octocrab().await?;
         build_image_workflow_dispatch_input(&octo, &Version::parse("2022.1.1-nightly.2022-10-18")?)
             .await?;

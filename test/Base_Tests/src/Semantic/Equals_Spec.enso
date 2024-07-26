@@ -5,8 +5,8 @@ from Standard.Test import all
 
 
 polyglot java import java.math.BigInteger as Java_Big_Integer
-polyglot java import java.nio.file.Path as Java_Path
 polyglot java import java.util.Random as Java_Random
+polyglot java import org.enso.base.file_system.File_Utils
 polyglot java import org.enso.base_test_helpers.IntHolder
 polyglot java import org.enso.base_test_helpers.IntHolderEquals
 
@@ -24,7 +24,7 @@ type CustomEqType_Comparator
         comp = Comparable.from o.sum
         comp.hash o.sum
 
-Comparable.from (_:CustomEqType) = CustomEqType_Comparator
+Comparable.from (that:CustomEqType) = Comparable.new that CustomEqType_Comparator
 
 type Child
     Value number
@@ -35,7 +35,7 @@ type Child_Comparator
         comp = Comparable.from child.number
         comp.hash (child.number % 100)
 
-Comparable.from (_:Child) = Child_Comparator
+Comparable.from (that:Child) = Comparable.new that Child_Comparator
 
 ## Type that violates reflexivity
 type My_Nan
@@ -45,7 +45,7 @@ type My_Nan_Comparator
     compare _ _ = Nothing
     hash _ = 0
 
-Comparable.from (_:My_Nan) = My_Nan_Comparator
+Comparable.from (that:My_Nan) = Comparable.new that My_Nan_Comparator
 
 type Parent
     Value child
@@ -180,8 +180,8 @@ add_specs suite_builder =
             ((CustomEqType.C1 0) == (CustomEqType.C2 7 3)).should_be_false
 
         group_builder.specify "should dispatch to equals on host values" <|
-            path1 = Java_Path.of "home" "user" . resolve "file.txt"
-            path2 = Java_Path.of "home" "user" "file.txt"
+            path1 = File_Utils.toPath "home" . resolve "user" . resolve "file.txt"
+            path2 = File_Utils.toPath "home" . resolve "user" . resolve "file.txt"
             (path1 == path2).should_be_true
             path3 = path1.resolve "subfile.txt"
             (path3 == path2).should_be_false
