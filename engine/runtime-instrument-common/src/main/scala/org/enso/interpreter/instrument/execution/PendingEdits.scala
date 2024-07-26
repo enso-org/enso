@@ -21,19 +21,19 @@ trait PendingEdits {
     */
   def dequeue(file: File): Seq[PendingEdit]
 
-  /** Put the IdMap of the file.
+  /** Update the IdMap of the file.
     *
     * @param file the edited file
-    * @param idMap the new IdMap
+    * @param idMap the new updated IdMap
     */
-  def putIdMap(file: File, idMap: IdMap): Unit
+  def updateIdMap(file: File, idMap: IdMap): Unit
 
   /** Consume the idMap of the file.
     *
     * @param file the edited file
     * @return the IdMap of the file
     */
-  def takeIdMap(file: File): Option[IdMap]
+  def removeIdMap(file: File): Option[IdMap]
 
   /** List files with pending edits.
     *

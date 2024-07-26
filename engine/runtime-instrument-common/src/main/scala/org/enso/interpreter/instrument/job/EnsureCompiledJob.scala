@@ -338,7 +338,7 @@ final class EnsureCompiledJob(
           this.getClass,
           () => {
             val pendingEdits = ctx.state.pendingEdits.dequeue(file)
-            val idMap        = ctx.state.pendingEdits.takeIdMap(file)
+            val idMap        = ctx.state.pendingEdits.removeIdMap(file)
             ctx.executionService.getLogger
               .log(
                 Level.FINEST,

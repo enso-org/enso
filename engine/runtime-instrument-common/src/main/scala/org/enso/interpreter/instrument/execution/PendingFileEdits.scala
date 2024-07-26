@@ -24,14 +24,14 @@ final class PendingFileEdits(
     pending.remove(file).getOrElse(Seq())
 
   /** @inheritdoc */
-  override def putIdMap(file: File, idMap: IdMap): Unit =
+  override def updateIdMap(file: File, idMap: IdMap): Unit =
     idMaps.updateWith(file) {
       case Some(v) => Some(IdMap(v.values :++ idMap.values))
       case None    => Some(idMap)
     }
 
   /** @inheritdoc */
-  override def takeIdMap(file: File): Option[IdMap] =
+  override def removeIdMap(file: File): Option[IdMap] =
     idMaps.remove(file)
 
   /** @inheritdoc */

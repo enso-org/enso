@@ -48,7 +48,7 @@ class EditFileCmd(request: Api.EditFileNotification)
               )
             ctx.state.pendingEdits.enqueue(request.path, edits)
             request.idMap.foreach { idMap =>
-              ctx.state.pendingEdits.putIdMap(request.path, idMap)
+              ctx.state.pendingEdits.updateIdMap(request.path, idMap)
             }
             if (request.execute) {
               ctx.jobControlPlane.abortAllJobs()
