@@ -248,7 +248,7 @@ type_spec suite_builder name alter = suite_builder.group name group_builder->
     group_builder.specify "should filter text elements by ." <|
         txtvec = alter ["aaa", "bbb", "abab", "cccc", "baaa", "ś"]
         txtvec.filter (..Contains "a") . should_equal ["aaa", "abab", "baaa"]
-        txtvec.filter (..Contains "a" action=Filter_Action.Remove) . should_equal ["bbb", "cccc", "ś"]
+        txtvec.filter (..Contains "a" keep_or_remove=Filter_Action.Remove) . should_equal ["bbb", "cccc", "ś"]
         txtvec.filter (..Contains 'A' Case_Sensitivity.Sensitive) . should_equal []
         txtvec.filter (..Contains 'A' Case_Sensitivity.Insensitive) . should_equal ["aaa", "abab", "baaa"]
         txtvec.filter (..Contains 's\u0301') . should_equal ["ś"]
@@ -256,12 +256,12 @@ type_spec suite_builder name alter = suite_builder.group name group_builder->
         txtvec.filter (..Contains 'S\u0301' Case_Sensitivity.Insensitive) . should_equal ["ś"]
         Test.expect_panic_with (txtvec.filter (..Contains 42)) Unsupported_Argument_Types
         txtvec.filter (..Starts_With "a") . should_equal ["aaa", "abab"]
-        txtvec.filter (..Starts_With "a" action=Filter_Action.Remove) . should_equal ["bbb", "cccc", "baaa", "ś"]
+        txtvec.filter (..Starts_With "a" keep_or_remove=Filter_Action.Remove) . should_equal ["bbb", "cccc", "baaa", "ś"]
         txtvec.filter (..Starts_With "A" Case_Sensitivity.Sensitive) . should_equal []
         txtvec.filter (..Starts_With "A" Case_Sensitivity.Insensitive) . should_equal ["aaa", "abab"]
         Test.expect_panic_with (txtvec.filter (..Starts_With 42)) Unsupported_Argument_Types
         txtvec.filter (..Ends_With "a") . should_equal ["aaa", "baaa"]
-        txtvec.filter (..Ends_With "a" action=Filter_Action.Remove) . should_equal ["bbb", "abab", "cccc", "ś"]
+        txtvec.filter (..Ends_With "a" keep_or_remove=Filter_Action.Remove) . should_equal ["bbb", "abab", "cccc", "ś"]
         txtvec.filter (..Ends_With "A" Case_Sensitivity.Sensitive) . should_equal []
         txtvec.filter (..Ends_With "A" Case_Sensitivity.Insensitive) . should_equal ["aaa", "baaa"]
         Test.expect_panic_with (txtvec.filter (..Ends_With 42)) Unsupported_Argument_Types
