@@ -361,7 +361,7 @@ type Decimal
              c = a + b
              # => Decimal.new 30.55
     + : Decimal -> Decimal ! Arithmetic_Error
-    + self (that : Decimal) -> Decimal ! Arithmetic_Error = self.add that
+    + self (that : Decimal) -> Decimal ! Arithmetic_Error | Illegal_Argument = self.add that
 
     ## ALIAS minus
        GROUP Operators
