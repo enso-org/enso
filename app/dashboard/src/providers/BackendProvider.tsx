@@ -6,8 +6,8 @@ import invariant from 'tiny-invariant'
 
 import * as common from 'enso-common'
 
-import * as categoryModule from '#/layouts/CategorySwitcher/Category'
 import type Category from '#/layouts/CategorySwitcher/Category'
+import * as categoryModule from '#/layouts/CategorySwitcher/Category'
 
 import type LocalBackend from '#/services/LocalBackend'
 import type RemoteBackend from '#/services/RemoteBackend'
@@ -102,7 +102,7 @@ export function useBackend(category: Category) {
   } else {
     invariant(
       localBackend != null,
-      `This distribution of ${common.PRODUCT_NAME} does not support the Local Backend.`
+      `This distribution of ${common.PRODUCT_NAME} does not support the Local Backend.`,
     )
     return localBackend
   }

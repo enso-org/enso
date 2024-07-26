@@ -63,7 +63,7 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
 
   const setAsset = setAssetHooks.useSetAsset(asset, setItem)
 
-  eventListProvider.useAssetEventListener(async event => {
+  eventListProvider.useAssetEventListener(async (event) => {
     if (isEditable) {
       switch (event.type) {
         case AssetEventType.newProject:
@@ -134,14 +134,14 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
     <div
       className={tailwindMerge.twMerge(
         'flex h-table-row min-w-max items-center gap-name-column-icon whitespace-nowrap rounded-l-full px-name-column-x py-name-column-y',
-        indent.indentClass(item.depth)
+        indent.indentClass(item.depth),
       )}
-      onKeyDown={event => {
+      onKeyDown={(event) => {
         if (rowState.isEditingName && event.key === 'Enter') {
           event.stopPropagation()
         }
       }}
-      onClick={event => {
+      onClick={(event) => {
         if (handleClick(event)) {
           // Already handled.
         } else if (eventModule.isSingleClick(event) && selected) {
@@ -159,7 +159,7 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
                   toastAndLog(null, error)
                 }
               }}
-            />
+            />,
           )
         }
       }}

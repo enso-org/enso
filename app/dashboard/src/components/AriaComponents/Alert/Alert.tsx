@@ -58,7 +58,7 @@ export interface AlertProps
 /** Alert component. */
 export const Alert = React.forwardRef(function Alert(
   props: AlertProps,
-  ref: React.ForwardedRef<HTMLDivElement>
+  ref: React.ForwardedRef<HTMLDivElement>,
 ) {
   const { children, className, variant, size, rounded, fullWidth, ...containerProps } = props
 
@@ -70,7 +70,7 @@ export const Alert = React.forwardRef(function Alert(
   return (
     <div
       className={ALERT_STYLES({ variant, size, className, rounded, fullWidth })}
-      ref={mergeRefs.mergeRefs(ref, e => {
+      ref={mergeRefs.mergeRefs(ref, (e) => {
         if (variant === 'error') {
           e?.focus()
         }

@@ -34,7 +34,7 @@ interface BackendApi {
   readonly importProjectFromPath: (
     openedPath: string,
     directory: string | null,
-    name: string
+    name: string,
   ) => Promise<string>
 }
 
@@ -131,7 +131,7 @@ interface FileBrowserApi {
    */
   readonly openFileBrowser: (
     kind: 'default' | 'directory' | 'file' | 'filePath',
-    defaultPath?: string
+    defaultPath?: string,
   ) => Promise<string[] | undefined>
 }
 

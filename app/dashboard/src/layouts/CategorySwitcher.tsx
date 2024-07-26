@@ -29,8 +29,8 @@ import * as textProvider from '#/providers/TextProvider'
 import AssetEventType from '#/events/AssetEventType'
 
 import * as eventListProvider from '#/layouts/AssetsTable/EventListProvider'
-import { areCategoriesEqual, CategoryType } from '#/layouts/CategorySwitcher/Category'
 import type Category from '#/layouts/CategorySwitcher/Category'
+import { areCategoriesEqual, CategoryType } from '#/layouts/CategorySwitcher/Category'
 
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
@@ -155,28 +155,28 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
   const onDrop = (event: aria.DropEvent) => {
     unsetModal()
     void Promise.all(
-      event.items.flatMap(async item => {
+      event.items.flatMap(async (item) => {
         if (item.kind === 'text') {
           const text = await item.getText(mimeTypes.ASSETS_MIME_TYPE)
           const payload: unknown = JSON.parse(text)
-          return Array.isArray(payload)
-            ? payload.flatMap(key =>
+          return Array.isArray(payload) ?
+              payload.flatMap((key) =>
                 // This is SAFE, assuming only this app creates payloads with
                 // the specific mimetype above.
                 // eslint-disable-next-line no-restricted-syntax
-                typeof key === 'string' ? [key as backend.AssetId] : []
+                typeof key === 'string' ? [key as backend.AssetId] : [],
               )
             : []
         } else {
           return []
         }
-      })
-    ).then(keys => {
+      }),
+    ).then((keys) => {
       dispatchAssetEvent({
         type:
-          currentCategory.type === CategoryType.trash
-            ? AssetEventType.restore
-            : AssetEventType.delete,
+          currentCategory.type === CategoryType.trash ?
+            AssetEventType.restore
+          : AssetEventType.delete,
         ids: new Set(keys.flat(1)),
       })
     })
@@ -185,8 +185,8 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
   const element = (
     <aria.DropZone
       aria-label={dropZoneLabel}
-      getDropOperation={types =>
-        acceptedDragTypes.some(type => types.has(type)) ? 'move' : 'cancel'
+      getDropOperation={(types) =>
+        acceptedDragTypes.some((type) => types.has(type)) ? 'move' : 'cancel'
       }
       className="group relative flex items-center rounded-full drop-target-after"
       onDrop={onDrop}
@@ -198,7 +198,7 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
         tooltipPlacement="right"
         className={tailwindMerge.twMerge(
           isCurrent && 'focus-default',
-          isDisabled && 'cursor-not-allowed hover:bg-transparent'
+          isDisabled && 'cursor-not-allowed hover:bg-transparent',
         )}
         aria-label={buttonLabel}
         onPress={onPress}
@@ -207,7 +207,7 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
           className={tailwindMerge.twMerge(
             'group flex h-row items-center gap-icon-with-text rounded-full px-button-x selectable',
             isCurrent && 'disabled active',
-            !isCurrent && !isDisabled && 'hover:bg-selected-frame'
+            !isCurrent && !isDisabled && 'hover:bg-selected-frame',
           )}
         >
           <SvgMask src={icon} className={iconClassName} />
@@ -220,14 +220,12 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
     </aria.DropZone>
   )
 
-  return isNested ? (
-    <div className="flex">
-      <div className="ml-[15px] mr-1 border-r border-primary/20" />
-      {element}
-    </div>
-  ) : (
-    element
-  )
+  return isNested ?
+      <div className="flex">
+        <div className="ml-[15px] mr-1 border-r border-primary/20" />
+        {element}
+      </div>
+    : element
 }
 
 // ========================
@@ -264,24 +262,24 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
   >(
     () =>
       new Map(
-        (users ?? []).map(otherUser => [
+        (users ?? []).map((otherUser) => [
           backend.DirectoryId(`directory-${otherUser.userId.replace(/^user-/, '')}`),
           otherUser,
-        ])
+        ]),
       ),
-    [users]
+    [users],
   )
   const teamsById = React.useMemo<
     ReadonlyMap<backend.DirectoryId, backendHooks.WithPlaceholder<backend.UserGroupInfo>>
   >(
     () =>
       new Map(
-        (teams ?? []).map(team => [
+        (teams ?? []).map((team) => [
           backend.DirectoryId(`directory-${team.id.replace(/^usergroup-/, '')}`),
           team,
-        ])
+        ]),
       ),
-    [teams]
+    [teams],
   )
   const usersDirectoryQuery = backendHooks.useBackendQuery(remoteBackend, 'listDirectory', [
     {
@@ -305,7 +303,7 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
 
   return (
     <FocusArea direction="vertical">
-      {innerProps => (
+      {(innerProps) => (
         <div className="flex w-full flex-col gap-2 py-1" {...innerProps}>
           <ariaComponents.Text variant="subtitle" className="px-2 font-bold">
             {getText('category')}
@@ -358,51 +356,51 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
               buttonLabel={getText('trashCategoryButtonLabel')}
               dropZoneLabel={getText('trashCategoryDropZoneLabel')}
             />
-            {usersDirectoryQuery.data?.map(userDirectory => {
+            {usersDirectoryQuery.data?.map((userDirectory) => {
               if (userDirectory.type !== backend.AssetType.directory) {
                 return null
               } else {
                 const otherUser = usersById.get(userDirectory.id)
-                return !otherUser || otherUser.userId === user.userId ? null : (
-                  <CategorySwitcherItem
-                    key={otherUser.userId}
-                    {...itemProps}
-                    isNested
-                    category={{
-                      type: CategoryType.user,
-                      rootPath: backend.Path(`enso://Users/${otherUser.name}`),
-                      homeDirectoryId: userDirectory.id,
-                    }}
-                    icon={PersonIcon}
-                    label={getText('userCategory', otherUser.name)}
-                    buttonLabel={getText('userCategoryButtonLabel', otherUser.name)}
-                    dropZoneLabel={getText('userCategoryDropZoneLabel', otherUser.name)}
-                  />
-                )
+                return !otherUser || otherUser.userId === user.userId ?
+                    null
+                  : <CategorySwitcherItem
+                      key={otherUser.userId}
+                      {...itemProps}
+                      isNested
+                      category={{
+                        type: CategoryType.user,
+                        rootPath: backend.Path(`enso://Users/${otherUser.name}`),
+                        homeDirectoryId: userDirectory.id,
+                      }}
+                      icon={PersonIcon}
+                      label={getText('userCategory', otherUser.name)}
+                      buttonLabel={getText('userCategoryButtonLabel', otherUser.name)}
+                      dropZoneLabel={getText('userCategoryDropZoneLabel', otherUser.name)}
+                    />
               }
             })}
-            {teamsDirectoryQuery.data?.map(teamDirectory => {
+            {teamsDirectoryQuery.data?.map((teamDirectory) => {
               if (teamDirectory.type !== backend.AssetType.directory) {
                 return null
               } else {
                 const team = teamsById.get(teamDirectory.id)
                 return !team ? null : (
-                  <CategorySwitcherItem
-                    key={team.id}
-                    {...itemProps}
-                    isNested
-                    category={{
-                      type: CategoryType.team,
-                      team,
-                      rootPath: backend.Path(`enso://Teams/${team.groupName}`),
-                      homeDirectoryId: teamDirectory.id,
-                    }}
-                    icon={PeopleIcon}
-                    label={getText('teamCategory', team.groupName)}
-                    buttonLabel={getText('teamCategoryButtonLabel', team.groupName)}
-                    dropZoneLabel={getText('teamCategoryDropZoneLabel', team.groupName)}
-                  />
-                )
+                    <CategorySwitcherItem
+                      key={team.id}
+                      {...itemProps}
+                      isNested
+                      category={{
+                        type: CategoryType.team,
+                        team,
+                        rootPath: backend.Path(`enso://Teams/${team.groupName}`),
+                        homeDirectoryId: teamDirectory.id,
+                      }}
+                      icon={PeopleIcon}
+                      label={getText('teamCategory', team.groupName)}
+                      buttonLabel={getText('teamCategoryButtonLabel', team.groupName)}
+                      dropZoneLabel={getText('teamCategoryDropZoneLabel', team.groupName)}
+                    />
+                  )
               }
             })}
             {localBackend && (
@@ -431,7 +429,7 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
               </div>
             )}
             {localBackend &&
-              localRootDirectories?.map(directory => (
+              localRootDirectories?.map((directory) => (
                 <div key={directory} className="group flex items-center self-stretch">
                   <CategorySwitcherItem
                     {...itemProps}
@@ -459,11 +457,11 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
                           doDelete={() => {
                             setLocalRootDirectories(
                               localRootDirectories.filter(
-                                otherDirectory => otherDirectory !== directory
-                              )
+                                (otherDirectory) => otherDirectory !== directory,
+                              ),
                             )
                           }}
-                        />
+                        />,
                       )
                     }}
                   />

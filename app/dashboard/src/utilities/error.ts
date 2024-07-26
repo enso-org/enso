@@ -12,7 +12,12 @@ type MustBe<T, Expected> =
 
 /** Used to enforce a parameter must be `any`. This is useful to verify that the value comes
  * from an API that returns `any`. */
-type MustBeAny<T> = never extends T ? (0 extends T & 1 ? T : never) : never
+type MustBeAny<T> =
+  never extends T ?
+    0 extends T & 1 ?
+      T
+    : never
+  : never
 
 /** Enforces that a parameter must not have a known type. This means the only types allowed are
  * `{}`, `object`, `unknown` and `any`. */
@@ -25,25 +30,29 @@ export type MustNotBeKnown<T> =
 export function tryGetMessage<T, DefaultMessage extends string | null = null>(
   error: MustNotBeKnown<T>,
   // eslint-disable-next-line no-restricted-syntax
-  defaultMessage: DefaultMessage = null as DefaultMessage
+  defaultMessage: DefaultMessage = null as DefaultMessage,
 ): DefaultMessage | string {
   const unknownError: unknown = error
-  return unknownError != null &&
-    typeof unknownError === 'object' &&
-    'message' in unknownError &&
-    typeof unknownError.message === 'string'
-    ? unknownError.message
+  return (
+      unknownError != null &&
+        typeof unknownError === 'object' &&
+        'message' in unknownError &&
+        typeof unknownError.message === 'string'
+    ) ?
+      unknownError.message
     : defaultMessage
 }
 
 /** Extracts the `error` property of a value if it is a string. */
 export function tryGetError<T>(error: MustNotBeKnown<T>): string | null {
   const unknownError: unknown = error
-  return unknownError != null &&
-    typeof unknownError === 'object' &&
-    'error' in unknownError &&
-    typeof unknownError.error === 'string'
-    ? unknownError.error
+  return (
+      unknownError != null &&
+        typeof unknownError === 'object' &&
+        'error' in unknownError &&
+        typeof unknownError.error === 'string'
+    ) ?
+      unknownError.error
     : null
 }
 
@@ -53,14 +62,16 @@ export function tryGetError<T>(error: MustNotBeKnown<T>): string | null {
 export function tryGetStack<T, DefaultMessage extends string | null = null>(
   error: MustNotBeKnown<T>,
   // eslint-disable-next-line no-restricted-syntax
-  defaultMessage: DefaultMessage = null as DefaultMessage
+  defaultMessage: DefaultMessage = null as DefaultMessage,
 ): DefaultMessage | string {
   const unknownError: unknown = error
-  return unknownError != null &&
-    typeof unknownError === 'object' &&
-    'stack' in unknownError &&
-    typeof unknownError.stack === 'string'
-    ? unknownError.stack
+  return (
+      unknownError != null &&
+        typeof unknownError === 'object' &&
+        'stack' in unknownError &&
+        typeof unknownError.stack === 'string'
+    ) ?
+      unknownError.stack
     : defaultMessage
 }
 
@@ -117,7 +128,7 @@ export function assert<T>(makeValue: () => T | '' | 0 | 0n | false | null | unde
     throw new Error(
       'Assertion failed: `' +
         makeValue.toString().replace(/^\s*[(].*?[)]\s*=>\s*/, '') +
-        '` should not be `null`.'
+        '` should not be `null`.',
     )
   } else {
     return result

@@ -37,7 +37,7 @@ export default function LocalStorageProvider(props: LocalStorageProviderProps) {
       new LocalStorage(() => {
         doRefresh()
       }),
-    [doRefresh]
+    [doRefresh],
   )
 
   return (
@@ -52,15 +52,15 @@ export function useLocalStorage() {
 
 /** Subscribe to Local Storage updates for a specific key. */
 export function useLocalStorageState<K extends LocalStorageKey>(
-  key: K
+  key: K,
 ): [
   value: LocalStorageData[K] | undefined,
   setValue: (newValue: LocalStorageData[K] | undefined) => void,
 ] {
   const { localStorage } = useLocalStorage()
   const value = React.useSyncExternalStore(
-    callback => localStorage.subscribe(key, callback),
-    () => localStorage.get(key)
+    (callback) => localStorage.subscribe(key, callback),
+    () => localStorage.get(key),
   )
   const setValue = useEventCallback((newValue: LocalStorageData[K] | undefined) => {
     if (newValue === undefined) {

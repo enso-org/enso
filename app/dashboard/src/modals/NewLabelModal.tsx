@@ -14,8 +14,8 @@ import Modal from '#/components/Modal'
 import FocusArea from '#/components/styled/FocusArea'
 import FocusRing from '#/components/styled/FocusRing'
 
-import * as backendModule from '#/services/Backend'
 import type Backend from '#/services/Backend'
+import * as backendModule from '#/services/Backend'
 
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 
@@ -48,8 +48,8 @@ export default function NewLabelModal(props: NewLabelModalProps) {
   const labelsRaw = backendHooks.useBackendListTags(backend)
   const labels = React.useMemo(() => labelsRaw ?? [], [labelsRaw])
   const labelNames = React.useMemo(
-    () => new Set<string>(labels.map(label => label.value)),
-    [labels]
+    () => new Set<string>(labels.map((label) => label.value)),
+    [labels],
   )
   const leastUsedColor = React.useMemo(() => backendModule.leastUsedColor(labels), [labels])
   const canSubmit = Boolean(value && !labelNames.has(value))
@@ -77,10 +77,10 @@ export default function NewLabelModal(props: NewLabelModalProps) {
           top: position.top + window.scrollY,
         }}
         className="pointer-events-auto relative flex w-new-label-modal flex-col gap-modal rounded-default p-modal-wide pt-modal before:absolute before:inset before:h-full before:w-full before:rounded-default before:bg-selected-frame before:backdrop-blur-default"
-        onClick={event => {
+        onClick={(event) => {
           event.stopPropagation()
         }}
-        onSubmit={event => {
+        onSubmit={(event) => {
           event.preventDefault()
           // Consider not calling `onSubmit()` here to make it harder to accidentally
           // delete an important asset.
@@ -91,7 +91,7 @@ export default function NewLabelModal(props: NewLabelModalProps) {
           {getText('newLabel')}
         </aria.Heading>
         <FocusArea direction="horizontal">
-          {innerProps => (
+          {(innerProps) => (
             <aria.TextField className="relative flex items-center" {...innerProps}>
               <aria.Label className="text w-modal-label">{getText('name')}</aria.Label>
               <FocusRing>
@@ -101,16 +101,16 @@ export default function NewLabelModal(props: NewLabelModalProps) {
                   placeholder={getText('labelNamePlaceholder')}
                   className={tailwindMerge.twMerge(
                     'focus-child text grow rounded-full border border-primary/10 bg-transparent px-input-x',
-                    color != null && color.lightness <= MAXIMUM_DARK_LIGHTNESS
-                      ? 'text-tag-text placeholder-selected-frame'
-                      : 'text-primary'
+                    color != null && color.lightness <= MAXIMUM_DARK_LIGHTNESS ?
+                      'text-tag-text placeholder-selected-frame'
+                    : 'text-primary',
                   )}
                   style={
-                    color == null
-                      ? {}
-                      : { backgroundColor: backendModule.lChColorToCssColor(color) }
+                    color == null ?
+                      {}
+                    : { backgroundColor: backendModule.lChColorToCssColor(color) }
                   }
-                  onInput={event => {
+                  onInput={(event) => {
                     setValue(event.currentTarget.value)
                   }}
                 />
@@ -119,7 +119,7 @@ export default function NewLabelModal(props: NewLabelModalProps) {
           )}
         </FocusArea>
         <FocusArea direction="horizontal">
-          {innerProps => (
+          {(innerProps) => (
             <ColorPicker
               className="relative flex items-center"
               pickerClassName="grow"

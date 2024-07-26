@@ -26,8 +26,8 @@ import AssetEventType from '#/events/AssetEventType'
 import type * as assetSearchBar from '#/layouts/AssetSearchBar'
 import AssetSearchBar from '#/layouts/AssetSearchBar'
 import * as eventListProvider from '#/layouts/AssetsTable/EventListProvider'
-import * as categoryModule from '#/layouts/CategorySwitcher/Category'
 import type Category from '#/layouts/CategorySwitcher/Category'
+import * as categoryModule from '#/layouts/CategorySwitcher/Category'
 import StartModal from '#/layouts/StartModal'
 
 import * as aria from '#/components/aria'
@@ -72,7 +72,7 @@ export interface DriveBarProps {
     templateId?: string | null,
     templateName?: string | null,
     onCreated?: (project: CreatedProject) => void,
-    onError?: () => void
+    onError?: () => void,
   ) => void
   readonly doCreateDirectory: () => void
   readonly doCreateSecret: (name: string, value: string) => void
@@ -100,18 +100,17 @@ export default function DriveBar(props: DriveBarProps) {
   const targetDirectorySelfPermission =
     targetDirectory == null ? null : tryFindSelfPermission(user, targetDirectory.item.permissions)
   const canCreateAssets =
-    targetDirectory == null
-      ? category.type !== categoryModule.CategoryType.cloud ||
-        user.plan == null ||
-        user.plan === Plan.solo
-      : targetDirectorySelfPermission != null &&
-        canPermissionModifyDirectoryContents(targetDirectorySelfPermission.permission)
+    targetDirectory == null ?
+      category.type !== categoryModule.CategoryType.cloud ||
+      user.plan == null ||
+      user.plan === Plan.solo
+    : targetDirectorySelfPermission != null &&
+      canPermissionModifyDirectoryContents(targetDirectorySelfPermission.permission)
   const shouldBeDisabled = (isCloud && isOffline) || !canCreateAssets
-  const error = !shouldBeDisabled
-    ? null
-    : isCloud && isOffline
-      ? getText('youAreOffline')
-      : getText('cannotCreateAssetsHere')
+  const error =
+    !shouldBeDisabled ? null
+    : isCloud && isOffline ? getText('youAreOffline')
+    : getText('cannotCreateAssetsHere')
   const createAssetsVisualTooltip = ariaComponents.useVisualTooltip({
     isDisabled: error == null,
     children: error,
@@ -124,24 +123,24 @@ export default function DriveBar(props: DriveBarProps) {
 
   React.useEffect(() => {
     return inputBindings.attach(sanitizedEventTargets.document.body, 'keydown', {
-      ...(isCloud
-        ? {
-            newFolder: () => {
-              doCreateDirectory()
-            },
-          }
-        : {}),
+      ...(isCloud ?
+        {
+          newFolder: () => {
+            doCreateDirectory()
+          },
+        }
+      : {}),
       newProject: () => {
         setIsCreatingProject(true)
         doCreateProject(
           null,
           null,
-          project => {
+          (project) => {
             setCreatedProjectId(project.projectId)
           },
           () => {
             setIsCreatingProject(false)
-          }
+          },
         )
       },
       uploadFiles: () => {
@@ -151,9 +150,9 @@ export default function DriveBar(props: DriveBarProps) {
   }, [isCloud, doCreateDirectory, doCreateProject, inputBindings])
 
   const createdProjectQuery = useQuery<Project>(
-    createdProjectId
-      ? createGetProjectDetailsQuery.createPassiveListener(createdProjectId)
-      : { queryKey: ['__IGNORE__'], queryFn: skipToken }
+    createdProjectId ?
+      createGetProjectDetailsQuery.createPassiveListener(createdProjectId)
+    : { queryKey: ['__IGNORE__'], queryFn: skipToken },
   )
 
   const isFetching =
@@ -192,7 +191,7 @@ export default function DriveBar(props: DriveBarProps) {
           icon={RightPanelIcon}
           aria-label={isAssetPanelOpen ? getText('openAssetPanel') : getText('closeAssetPanel')}
           onPress={() => {
-            setIsAssetPanelOpen(isOpen => !isOpen)
+            setIsAssetPanelOpen((isOpen) => !isOpen)
           }}
         />
       </div>
@@ -220,7 +219,7 @@ export default function DriveBar(props: DriveBarProps) {
                 <ConfirmDeleteModal
                   actionText={getText('allTrashedItemsForever')}
                   doDelete={doEmptyTrash}
-                />
+                />,
               )
             }}
           >
@@ -261,12 +260,12 @@ export default function DriveBar(props: DriveBarProps) {
                   doCreateProject(
                     templateId,
                     templateName,
-                    project => {
+                    (project) => {
                       setCreatedProjectId(project.projectId)
                     },
                     () => {
                       setIsCreatingProjectFromTemplate(false)
-                    }
+                    },
                   )
                 }}
               />
@@ -283,12 +282,12 @@ export default function DriveBar(props: DriveBarProps) {
                 doCreateProject(
                   null,
                   null,
-                  project => {
+                  (project) => {
                     setCreatedProjectId(project.projectId)
                   },
                   () => {
                     setIsCreatingProject(false)
-                  }
+                  },
                 )
               }}
             >
@@ -334,7 +333,7 @@ export default function DriveBar(props: DriveBarProps) {
                 type="file"
                 multiple
                 className="hidden"
-                onInput={event => {
+                onInput={(event) => {
                   if (event.currentTarget.files != null) {
                     doUploadFiles(Array.from(event.currentTarget.files))
                   }

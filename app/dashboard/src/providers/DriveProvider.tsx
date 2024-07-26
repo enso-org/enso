@@ -39,9 +39,9 @@ export interface ProjectsProviderProps extends Readonly<React.PropsWithChildren>
 export default function DriveProvider(props: ProjectsProviderProps) {
   const { children } = props
   const [store] = React.useState(() => {
-    return zustand.createStore<DriveStore>(set => ({
+    return zustand.createStore<DriveStore>((set) => ({
       targetDirectory: null,
-      setTargetDirectory: targetDirectory => {
+      setTargetDirectory: (targetDirectory) => {
         set({ targetDirectory })
       },
     }))
@@ -70,7 +70,7 @@ export function useProjectsStore() {
 /** A function to get the target directory of the Asset Table selection. */
 export function useTargetDirectory() {
   const store = useProjectsStore()
-  return zustand.useStore(store, state => state.targetDirectory)
+  return zustand.useStore(store, (state) => state.targetDirectory)
 }
 
 // =============================
@@ -80,5 +80,5 @@ export function useTargetDirectory() {
 /** A function to set the target directory of the Asset Table selection. */
 export function useSetTargetDirectory() {
   const store = useProjectsStore()
-  return zustand.useStore(store, state => state.setTargetDirectory)
+  return zustand.useStore(store, (state) => state.setTargetDirectory)
 }

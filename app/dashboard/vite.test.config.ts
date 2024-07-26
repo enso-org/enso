@@ -36,5 +36,5 @@ export default vite.mergeConfig(
       // eslint-disable-next-line @typescript-eslint/naming-convention
       'process.env.IS_IN_PLAYWRIGHT_TEST': JSON.stringify(`${true}`),
     },
-  })
+  }),
 )

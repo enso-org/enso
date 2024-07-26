@@ -8,9 +8,9 @@ import * as reactQueryDevtools from '@tanstack/react-query-devtools'
 import * as errorBoundary from 'react-error-boundary'
 
 const ReactQueryDevtoolsProduction = React.lazy(() =>
-  import('@tanstack/react-query-devtools/build/modern/production.js').then(d => ({
+  import('@tanstack/react-query-devtools/build/modern/production.js').then((d) => ({
     default: d.ReactQueryDevtools,
-  }))
+  })),
 )
 
 /** Show the React Query Devtools and provide the ability to show them in production. */
@@ -24,7 +24,7 @@ export function ReactQueryDevtools() {
 
   React.useEffect(() => {
     window.toggleDevtools = () => {
-      setShowDevtools(old => !old)
+      setShowDevtools((old) => !old)
     }
   }, [])
 

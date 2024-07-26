@@ -3,8 +3,7 @@
  * @deprecated Needs to be moved into GUI/dashboard once projects are merged.
  */
 
-import * as log from './log'
 import * as config from './config'
+import * as log from './log'
 
-export { log }
-export { config }
+export { config, log }

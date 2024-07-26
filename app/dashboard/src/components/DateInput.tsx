@@ -2,8 +2,8 @@
 import * as React from 'react'
 
 import CrossIcon from '#/assets/cross.svg'
-import FolderArrowDoubleIcon from '#/assets/folder_arrow_double.svg'
 import FolderArrowIcon from '#/assets/folder_arrow.svg'
+import FolderArrowDoubleIcon from '#/assets/folder_arrow_double.svg'
 
 import * as focusHooks from '#/hooks/focusHooks'
 
@@ -97,7 +97,7 @@ export default function DateInput(props: DateInputProps) {
   return (
     <div
       className="relative flex flex-col"
-      onClick={event => {
+      onClick={(event) => {
         event.stopPropagation()
       }}
     >
@@ -108,13 +108,13 @@ export default function DateInput(props: DateInputProps) {
             tabIndex: 0,
             className: tailwindMerge.twMerge(
               'flex h-text w-date-picker items-center rounded-full border border-primary/10 px-date-input transition-colors hover:[&:not(:has(button:hover))]:bg-hover-bg',
-              date == null && 'placeholder'
+              date == null && 'placeholder',
             ),
-            onClick: event => {
+            onClick: (event) => {
               event.stopPropagation()
               setIsPickerVisible(!isPickerVisible)
             },
-            onKeyDown: event => {
+            onKeyDown: (event) => {
               if (event.key === 'Enter' || event.key === 'Space') {
                 event.stopPropagation()
                 setIsPickerVisible(!isPickerVisible)
@@ -223,7 +223,7 @@ export default function DateInput(props: DateInputProps) {
                       const currentDate = new Date(
                         selectedYear,
                         selectedMonthIndex + day.monthOffset,
-                        day.date
+                        day.date,
                       )
                       const isSelectedDate =
                         date != null &&
@@ -238,7 +238,7 @@ export default function DateInput(props: DateInputProps) {
                             isDisabled={isSelectedDate}
                             className={tailwindMerge.twMerge(
                               'w-full rounded-small-rectangle-button text-center hover:bg-primary/10 disabled:bg-frame disabled:font-bold',
-                              day.monthOffset !== 0 && 'opacity-unimportant'
+                              day.monthOffset !== 0 && 'opacity-unimportant',
                             )}
                             onPress={() => {
                               setIsPickerVisible(false)

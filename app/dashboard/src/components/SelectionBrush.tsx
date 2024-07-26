@@ -51,7 +51,7 @@ export default function SelectionBrush(props: SelectionBrushProps) {
   const [lastSetAnchor, setLastSetAnchor] = React.useState<geometry.Coordinate2D | null>(null)
   const anchorAnimFactor = animationHooks.useApproach(
     anchor != null ? 1 : 0,
-    ANIMATION_TIME_HORIZON
+    ANIMATION_TIME_HORIZON,
   )
   const hidden =
     anchor == null ||
@@ -112,19 +112,19 @@ export default function SelectionBrush(props: SelectionBrushProps) {
         didMoveWhileDraggingRef.current = true
         lastMouseEvent.current = event
         const positionLeft =
-          parentBounds.current == null
-            ? event.pageX
-            : Math.max(
-                parentBounds.current.left - margin,
-                Math.min(parentBounds.current.right + margin, event.pageX)
-              )
+          parentBounds.current == null ?
+            event.pageX
+          : Math.max(
+              parentBounds.current.left - margin,
+              Math.min(parentBounds.current.right + margin, event.pageX),
+            )
         const positionTop =
-          parentBounds.current == null
-            ? event.pageY
-            : Math.max(
-                parentBounds.current.top - margin,
-                Math.min(parentBounds.current.bottom + margin, event.pageY)
-              )
+          parentBounds.current == null ?
+            event.pageY
+          : Math.max(
+              parentBounds.current.top - margin,
+              Math.min(parentBounds.current.bottom + margin, event.pageY),
+            )
         setPosition({ left: positionLeft, top: positionTop })
       }
     }
@@ -188,20 +188,20 @@ export default function SelectionBrush(props: SelectionBrushProps) {
   }, [selectionRectangle])
 
   const brushStyle =
-    rectangle == null
-      ? {}
-      : {
-          left: `${rectangle.left}px`,
-          top: `${rectangle.top}px`,
-          width: `${rectangle.width}px`,
-          height: `${rectangle.height}px`,
-        }
+    rectangle == null ?
+      {}
+    : {
+        left: `${rectangle.left}px`,
+        top: `${rectangle.top}px`,
+        width: `${rectangle.width}px`,
+        height: `${rectangle.height}px`,
+      }
   return (
     <Portal>
       <div
         className={tailwindMerge.twMerge(
           'pointer-events-none fixed z-1 box-content rounded-selection-brush border-transparent bg-selection-brush transition-border-margin',
-          hidden ? 'm border-0' : '-m-selection-brush-border border-selection-brush'
+          hidden ? 'm border-0' : '-m-selection-brush-border border-selection-brush',
         )}
         style={brushStyle}
       />

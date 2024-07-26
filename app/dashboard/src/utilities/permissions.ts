@@ -1,8 +1,8 @@
 /** @file Utilities for working with permissions. */
 import * as permissions from 'enso-common/src/utilities/permissions'
 
-import * as categoryModule from '#/layouts/CategorySwitcher/Category'
 import type Category from '#/layouts/CategorySwitcher/Category'
+import * as categoryModule from '#/layouts/CategorySwitcher/Category'
 
 import * as backend from '#/services/Backend'
 
@@ -31,7 +31,7 @@ export const EXEC_CLASS_NAME = 'text-tag-text bg-permission-exec'
  * else return an empty array (`[]`). */
 export function tryGetSingletonOwnerPermission(
   owner: backend.User | null,
-  category: Category
+  category: Category,
 ): readonly backend.AssetPermission[] {
   switch (category.type) {
     case categoryModule.CategoryType.team: {
@@ -60,7 +60,7 @@ export function tryGetSingletonOwnerPermission(
 /** Try to find a permission belonging to the user. */
 export function tryFindSelfPermission(
   self: backend.User,
-  otherPermissions: readonly backend.AssetPermission[] | null
+  otherPermissions: readonly backend.AssetPermission[] | null,
 ) {
   let selfPermission: backend.AssetPermission | null = null
   for (const permission of otherPermissions ?? []) {
@@ -73,7 +73,7 @@ export function tryFindSelfPermission(
     }
     if (
       'userGroup' in permission &&
-      (self.userGroups ?? []).every(groupId => groupId !== permission.userGroup.id)
+      (self.userGroups ?? []).every((groupId) => groupId !== permission.userGroup.id)
     ) {
       continue
     }

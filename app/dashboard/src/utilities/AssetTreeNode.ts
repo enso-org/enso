@@ -53,7 +53,7 @@ export default class AssetTreeNode<Item extends backendModule.AnyAsset = backend
      * from the backend. */
     public readonly key: Item['id'] = item.id,
     public readonly isExpanded = false,
-    public readonly createdAt = new Date()
+    public readonly createdAt = new Date(),
   ) {
     this.type = item.type
   }
@@ -79,7 +79,7 @@ export default class AssetTreeNode<Item extends backendModule.AnyAsset = backend
     depth: number,
     path: string,
     initialAssetEvents: readonly assetEvent.AssetEvent[] | null,
-    key: Asset['id'] = asset.id
+    key: Asset['id'] = asset.id,
   ): AnyAssetTreeNode {
     return new AssetTreeNode(
       asset,
@@ -89,7 +89,7 @@ export default class AssetTreeNode<Item extends backendModule.AnyAsset = backend
       depth,
       path,
       initialAssetEvents,
-      key
+      key,
     ).asUnion()
   }
 
@@ -103,7 +103,7 @@ export default class AssetTreeNode<Item extends backendModule.AnyAsset = backend
 
   /** Whether this node contains a specific type of asset. */
   isType<Type extends backendModule.AssetType>(
-    type: Type
+    type: Type,
   ): this is AssetTreeNode<backendModule.AnyAsset<Type>> {
     return backendModule.assetIsType(type)(this.item)
   }
@@ -122,7 +122,7 @@ export default class AssetTreeNode<Item extends backendModule.AnyAsset = backend
       update.initialAssetEvents ?? this.initialAssetEvents,
       update.key ?? this.key,
       update.isExpanded ?? this.isExpanded,
-      update.createdAt ?? this.createdAt
+      update.createdAt ?? this.createdAt,
     ).asUnion()
   }
 
@@ -181,18 +181,18 @@ export default class AssetTreeNode<Item extends backendModule.AnyAsset = backend
         }
       }
     }
-    return result?.children?.length === 0
-      ? result.with({ children: null })
+    return result?.children?.length === 0 ?
+        result.with({ children: null })
       : result ?? this.asUnion()
   }
 
   /** Returns all items in the tree, flattened into an array using pre-order traversal. */
   preorderTraversal(
-    preprocess: ((tree: AnyAssetTreeNode[]) => AnyAssetTreeNode[]) | null = null
+    preprocess: ((tree: AnyAssetTreeNode[]) => AnyAssetTreeNode[]) | null = null,
   ): AnyAssetTreeNode[] {
     const children = !this.isExpanded ? [] : this.children ?? []
-    return (preprocess?.(children) ?? children).flatMap(node =>
-      node.children == null ? [node] : [node, ...node.preorderTraversal(preprocess)]
+    return (preprocess?.(children) ?? children).flatMap((node) =>
+      node.children == null ? [node] : [node, ...node.preorderTraversal(preprocess)],
     )
   }
 
@@ -202,7 +202,7 @@ export default class AssetTreeNode<Item extends backendModule.AnyAsset = backend
     return (
       newTitle !== '' &&
       newTitle !== this.item.title &&
-      siblings.every(sibling => {
+      siblings.every((sibling) => {
         const isSelf = sibling.key === this.key
         const hasSameType = sibling.item.type === this.item.type
         const hasSameTitle = sibling.item.title === newTitle

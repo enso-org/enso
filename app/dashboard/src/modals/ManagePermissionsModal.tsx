@@ -74,7 +74,7 @@ export default function ManagePermissionsModal<
     queryKey: ['listUsers'],
     queryFn: () => remoteBackend.listUsers(),
     enabled: !isUnderPaywall,
-    select: data => (isUnderPaywall ? [] : data),
+    select: (data) => (isUnderPaywall ? [] : data),
   })
 
   const listedUserGroups = reactQuery.useQuery({
@@ -91,42 +91,42 @@ export default function ManagePermissionsModal<
   const position = React.useMemo(() => eventTarget?.getBoundingClientRect(), [eventTarget])
   const editablePermissions = React.useMemo(
     () =>
-      self.permission === permissionsModule.PermissionAction.own
-        ? permissions
-        : permissions.filter(
-            permission => permission.permission !== permissionsModule.PermissionAction.own
-          ),
-    [permissions, self.permission]
+      self.permission === permissionsModule.PermissionAction.own ?
+        permissions
+      : permissions.filter(
+          (permission) => permission.permission !== permissionsModule.PermissionAction.own,
+        ),
+    [permissions, self.permission],
   )
   const permissionsHoldersNames = React.useMemo(
     () => new Set(item.permissions?.map(backendModule.getAssetPermissionName)),
-    [item.permissions]
+    [item.permissions],
   )
   const emailsOfUsersWithPermission = React.useMemo(
     () =>
       new Set<string>(
-        item.permissions?.flatMap(userPermission =>
-          'user' in userPermission ? [userPermission.user.email] : []
-        )
+        item.permissions?.flatMap((userPermission) =>
+          'user' in userPermission ? [userPermission.user.email] : [],
+        ),
       ),
-    [item.permissions]
+    [item.permissions],
   )
   const isOnlyOwner = React.useMemo(
     () =>
       self.permission === permissionsModule.PermissionAction.own &&
       permissions.every(
-        permission =>
+        (permission) =>
           permission.permission !== permissionsModule.PermissionAction.own ||
-          (backendModule.isUserPermission(permission) && permission.user.userId === user.userId)
+          (backendModule.isUserPermission(permission) && permission.user.userId === user.userId),
       ),
-    [user.userId, permissions, self.permission]
+    [user.userId, permissions, self.permission],
   )
   const selfId = backendModule.getAssetPermissionId(self)
 
   const inviteUserMutation = backendHooks.useBackendMutation(remoteBackend, 'inviteUser')
   const createPermissionMutation = backendHooks.useBackendMutation(
     remoteBackend,
-    'createPermission'
+    'createPermission',
   )
 
   React.useEffect(() => {
@@ -138,15 +138,15 @@ export default function ManagePermissionsModal<
   const canAdd = React.useMemo(
     () => [
       ...(listedUsers.data ?? []).filter(
-        listedUser =>
+        (listedUser) =>
           !permissionsHoldersNames.has(listedUser.name) &&
-          !emailsOfUsersWithPermission.has(listedUser.email)
+          !emailsOfUsersWithPermission.has(listedUser.email),
       ),
       ...(listedUserGroups.data ?? []).filter(
-        userGroup => !permissionsHoldersNames.has(userGroup.groupName)
+        (userGroup) => !permissionsHoldersNames.has(userGroup.groupName),
       ),
     ],
-    [emailsOfUsersWithPermission, permissionsHoldersNames, listedUsers, listedUserGroups]
+    [emailsOfUsersWithPermission, permissionsHoldersNames, listedUsers, listedUserGroups],
   )
   const willInviteNewUser = React.useMemo(() => {
     if (usersAndUserGroups.length !== 0 || email == null || email === '') {
@@ -158,10 +158,10 @@ export default function ManagePermissionsModal<
         !permissionsHoldersNames.has(lowercase) &&
         !emailsOfUsersWithPermission.has(lowercase) &&
         !canAdd.some(
-          userOrGroup =>
+          (userOrGroup) =>
             ('name' in userOrGroup && userOrGroup.name.toLowerCase() === lowercase) ||
             ('email' in userOrGroup && userOrGroup.email.toLowerCase() === lowercase) ||
-            ('groupName' in userOrGroup && userOrGroup.groupName.toLowerCase() === lowercase)
+            ('groupName' in userOrGroup && userOrGroup.groupName.toLowerCase() === lowercase),
         )
       )
     }
@@ -193,48 +193,48 @@ export default function ManagePermissionsModal<
     } else {
       setUserAndUserGroups([])
       const addedPermissions = usersAndUserGroups.map<backendModule.AssetPermission>(
-        newUserOrUserGroup =>
-          'userId' in newUserOrUserGroup
-            ? { user: newUserOrUserGroup, permission: action }
-            : { userGroup: newUserOrUserGroup, permission: action }
+        (newUserOrUserGroup) =>
+          'userId' in newUserOrUserGroup ?
+            { user: newUserOrUserGroup, permission: action }
+          : { userGroup: newUserOrUserGroup, permission: action },
       )
       const addedUsersIds = new Set(
-        addedPermissions.flatMap(permission =>
-          backendModule.isUserPermission(permission) ? [permission.user.userId] : []
-        )
+        addedPermissions.flatMap((permission) =>
+          backendModule.isUserPermission(permission) ? [permission.user.userId] : [],
+        ),
       )
       const addedUserGroupsIds = new Set(
-        addedPermissions.flatMap(permission =>
-          backendModule.isUserGroupPermission(permission) ? [permission.userGroup.id] : []
-        )
+        addedPermissions.flatMap((permission) =>
+          backendModule.isUserGroupPermission(permission) ? [permission.userGroup.id] : [],
+        ),
       )
       const isPermissionNotBeingOverwritten = (permission: backendModule.AssetPermission) =>
-        backendModule.isUserPermission(permission)
-          ? !addedUsersIds.has(permission.user.userId)
-          : !addedUserGroupsIds.has(permission.userGroup.id)
+        backendModule.isUserPermission(permission) ?
+          !addedUsersIds.has(permission.user.userId)
+        : !addedUserGroupsIds.has(permission.userGroup.id)
 
       try {
-        setPermissions(oldPermissions =>
+        setPermissions((oldPermissions) =>
           [...oldPermissions.filter(isPermissionNotBeingOverwritten), ...addedPermissions].sort(
-            backendModule.compareAssetPermissions
-          )
+            backendModule.compareAssetPermissions,
+          ),
         )
         await createPermissionMutation.mutateAsync([
           {
-            actorsIds: addedPermissions.map(permission =>
-              backendModule.isUserPermission(permission)
-                ? permission.user.userId
-                : permission.userGroup.id
+            actorsIds: addedPermissions.map((permission) =>
+              backendModule.isUserPermission(permission) ?
+                permission.user.userId
+              : permission.userGroup.id,
             ),
             resourceId: item.id,
             action: action,
           },
         ])
       } catch (error) {
-        setPermissions(oldPermissions =>
+        setPermissions((oldPermissions) =>
           [...oldPermissions.filter(isPermissionNotBeingOverwritten), ...oldPermissions].sort(
-            backendModule.compareAssetPermissions
-          )
+            backendModule.compareAssetPermissions,
+          ),
         )
         toastAndLog('setPermissionsError', error)
       }
@@ -246,13 +246,13 @@ export default function ManagePermissionsModal<
       doRemoveSelf()
     } else {
       const oldPermission = permissions.find(
-        permission => backendModule.getAssetPermissionId(permission) === permissionId
+        (permission) => backendModule.getAssetPermissionId(permission) === permissionId,
       )
       try {
-        setPermissions(oldPermissions =>
+        setPermissions((oldPermissions) =>
           oldPermissions.filter(
-            permission => backendModule.getAssetPermissionId(permission) !== permissionId
-          )
+            (permission) => backendModule.getAssetPermissionId(permission) !== permissionId,
+          ),
         )
         await createPermissionMutation.mutateAsync([
           {
@@ -263,8 +263,8 @@ export default function ManagePermissionsModal<
         ])
       } catch (error) {
         if (oldPermission != null) {
-          setPermissions(oldPermissions =>
-            [...oldPermissions, oldPermission].sort(backendModule.compareAssetPermissions)
+          setPermissions((oldPermissions) =>
+            [...oldPermissions, oldPermission].sort(backendModule.compareAssetPermissions),
           )
         }
         toastAndLog('setPermissionsError', error)
@@ -280,18 +280,18 @@ export default function ManagePermissionsModal<
       <div
         tabIndex={-1}
         style={
-          position != null
-            ? {
-                left: position.left + window.scrollX,
-                top: position.top + window.scrollY,
-              }
-            : {}
+          position != null ?
+            {
+              left: position.left + window.scrollX,
+              top: position.top + window.scrollY,
+            }
+          : {}
         }
         className="sticky w-manage-permissions-modal rounded-default before:absolute before:h-full before:w-full before:rounded-default before:bg-selected-frame before:backdrop-blur-default"
-        onClick={mouseEvent => {
+        onClick={(mouseEvent) => {
           mouseEvent.stopPropagation()
         }}
-        onContextMenu={mouseEvent => {
+        onContextMenu={(mouseEvent) => {
           mouseEvent.stopPropagation()
           mouseEvent.preventDefault()
         }}
@@ -304,10 +304,10 @@ export default function ManagePermissionsModal<
             {/* Space reserved for other tabs. */}
           </div>
           <FocusArea direction="horizontal">
-            {innerProps => (
+            {(innerProps) => (
               <form
                 className="flex gap-input-with-button"
-                onSubmit={event => {
+                onSubmit={(event) => {
                   event.preventDefault()
                   void doSubmit()
                 }}
@@ -329,28 +329,28 @@ export default function ManagePermissionsModal<
                       autoFocus
                       placeholder={
                         // `listedUsers` will always include the current user.
-                        (listedUsers.data ?? []).length > 1
-                          ? getText('inviteUserPlaceholder')
-                          : getText('inviteFirstUserPlaceholder')
+                        (listedUsers.data ?? []).length > 1 ?
+                          getText('inviteUserPlaceholder')
+                        : getText('inviteFirstUserPlaceholder')
                       }
                       type="text"
-                      itemsToString={items =>
-                        items.length === 1 && items[0] != null
-                          ? 'email' in items[0]
-                            ? items[0].email
-                            : items[0].groupName
-                          : getText('xUsersAndGroupsSelected', items.length)
+                      itemsToString={(items) =>
+                        items.length === 1 && items[0] != null ?
+                          'email' in items[0] ?
+                            items[0].email
+                          : items[0].groupName
+                        : getText('xUsersAndGroupsSelected', items.length)
                       }
                       values={usersAndUserGroups}
                       setValues={setUserAndUserGroups}
                       items={canAdd}
-                      itemToKey={userOrGroup =>
+                      itemToKey={(userOrGroup) =>
                         'userId' in userOrGroup ? userOrGroup.userId : userOrGroup.id
                       }
-                      itemToString={userOrGroup =>
-                        'name' in userOrGroup
-                          ? `${userOrGroup.name} (${userOrGroup.email})`
-                          : userOrGroup.groupName
+                      itemToString={(userOrGroup) =>
+                        'name' in userOrGroup ?
+                          `${userOrGroup.name} (${userOrGroup.email})`
+                        : userOrGroup.groupName
                       }
                       matches={(userOrGroup, text) =>
                         ('email' in userOrGroup &&
@@ -369,10 +369,10 @@ export default function ManagePermissionsModal<
                   size="medium"
                   variant="submit"
                   isDisabled={
-                    willInviteNewUser
-                      ? email == null || !isEmail(email)
-                      : usersAndUserGroups.length === 0 ||
-                        (email != null && emailsOfUsersWithPermission.has(email))
+                    willInviteNewUser ?
+                      email == null || !isEmail(email)
+                    : usersAndUserGroups.length === 0 ||
+                      (email != null && emailsOfUsersWithPermission.has(email))
                   }
                   onPress={doSubmit}
                 >
@@ -382,7 +382,7 @@ export default function ManagePermissionsModal<
             )}
           </FocusArea>
           <div className="max-h-manage-permissions-modal-permissions-list overflow-auto px-manage-permissions-modal-input">
-            {editablePermissions.map(permission => (
+            {editablePermissions.map((permission) => (
               <div
                 key={backendModule.getAssetPermissionName(permission)}
                 className="flex h-row items-center"
@@ -393,14 +393,14 @@ export default function ManagePermissionsModal<
                   self={self}
                   isOnlyOwner={isOnlyOwner}
                   permission={permission}
-                  setPermission={newPermission => {
+                  setPermission={(newPermission) => {
                     const permissionId = backendModule.getAssetPermissionId(newPermission)
-                    setPermissions(oldPermissions =>
-                      oldPermissions.map(oldPermission =>
-                        backendModule.getAssetPermissionId(oldPermission) === permissionId
-                          ? newPermission
-                          : oldPermission
-                      )
+                    setPermissions((oldPermissions) =>
+                      oldPermissions.map((oldPermission) =>
+                        backendModule.getAssetPermissionId(oldPermission) === permissionId ?
+                          newPermission
+                        : oldPermission,
+                      ),
                     )
                     if (selfId === permissionId) {
                       // This must run only after the permissions have
@@ -410,7 +410,7 @@ export default function ManagePermissionsModal<
                       }, 0)
                     }
                   }}
-                  doDelete={id => {
+                  doDelete={(id) => {
                     if (selfId === id) {
                       unsetModal()
                     }

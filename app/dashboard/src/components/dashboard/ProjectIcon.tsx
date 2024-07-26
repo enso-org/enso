@@ -16,8 +16,8 @@ import * as ariaComponents from '#/components/AriaComponents'
 import Spinner from '#/components/Spinner'
 import StatelessSpinner, * as spinner from '#/components/StatelessSpinner'
 
-import * as backendModule from '#/services/Backend'
 import type Backend from '#/services/Backend'
+import * as backendModule from '#/services/Backend'
 
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 
@@ -80,7 +80,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
     isError,
   } = reactQuery.useQuery({
     ...projectHooks.createGetProjectDetailsQuery.createPassiveListener(item.id),
-    select: data => data.state,
+    select: (data) => data.state,
     enabled: isOpened,
   })
   const status = projectState?.type
@@ -120,8 +120,8 @@ export default function ProjectIcon(props: ProjectIconProps) {
     } else if (status == null) {
       return spinner.SpinnerState.loadingSlow
     } else {
-      return backend.type === backendModule.BackendType.remote
-        ? REMOTE_SPINNER_STATE[status]
+      return backend.type === backendModule.BackendType.remote ?
+          REMOTE_SPINNER_STATE[status]
         : LOCAL_SPINNER_STATE[status]
     }
   })()
@@ -176,7 +176,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
             state={spinnerState}
             className={tailwindMerge.twMerge(
               'pointer-events-none absolute inset-0',
-              isRunningInBackground && 'text-green'
+              isRunningInBackground && 'text-green',
             )}
           />
         </div>
@@ -201,7 +201,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
               state={spinner.SpinnerState.done}
               className={tailwindMerge.twMerge(
                 'pointer-events-none absolute inset-0',
-                isRunningInBackground && 'text-green'
+                isRunningInBackground && 'text-green',
               )}
             />
           </div>
