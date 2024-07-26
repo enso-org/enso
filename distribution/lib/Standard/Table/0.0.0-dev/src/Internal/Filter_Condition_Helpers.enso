@@ -64,6 +64,7 @@ make_filter_column source_column filter_condition on_problems:Problem_Behavior =
         Like pattern _ -> source_column.like pattern
         # Numeric
         Is_Nan -> source_column.is_nan
+        Not_Nan -> source_column.is_nan.not
         Is_Infinite -> source_column.is_infinite
         Is_Finite ->
             is_infinite_column = source_column.is_infinite

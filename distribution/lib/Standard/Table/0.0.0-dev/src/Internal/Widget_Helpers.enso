@@ -133,6 +133,7 @@ make_filter_condition_selector table display=Display.Always =
         builder.append (Option "Is Finite" "..Is_Finite")
         builder.append (Option "Is Infinite" "..Is_Infinite")
         builder.append (Option "Is NaN" "..Is_Nan")
+        builder.append (Option "Is Not NaN" "..Not_Nan")
         builder.append (Option "Is True" "..Is_True")
         builder.append (Option "Is False" "..Is_False")
         builder.append (Option "Is Empty" "..Is_Empty")

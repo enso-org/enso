@@ -93,6 +93,9 @@ type Filter_Condition
     ## Is the value a NaN (Number only)?
     Is_Nan
 
+    ## Is the value not a NaN (Number only)?
+    Not_Nan
+
     ## Is the value infinite (Number only)?
     Is_Infinite
 
@@ -202,6 +205,7 @@ type Filter_Condition
                 Nothing -> False
                 _ -> True
             Is_Nan -> handle_nothing x-> (x:Number).is_nan
+            Not_Nan -> handle_nothing x-> (x:Number).is_nan.not
             Is_Infinite -> handle_nothing x-> (x:Number).is_infinite
             Is_Finite -> handle_nothing x-> (x:Number).is_finite
             Is_True -> handle_nothing b-> (b:Boolean)==True
@@ -238,6 +242,7 @@ type Filter_Condition
             Is_Nothing -> "is Nothing"
             Not_Nothing -> "is not Nothing"
             Is_Nan -> "is NaN"
+            Not_Nan -> "is not NaN"
             Is_Infinite -> "is Infinite"
             Is_Finite -> "is Finite"
             Is_True -> "is True"
@@ -269,6 +274,7 @@ type Filter_Condition
                 builder.append (Option "Is Finite" "..Is_Finite")
                 builder.append (Option "Is Infinite" "..Is_Infinite")
                 builder.append (Option "Is NaN" "..Is_Nan")
+                builder.append (Option "Is Not NaN" "..Not_Nan")
 
             if include_boolean then
                 builder.append (Option "Is True" "..Is_True")
