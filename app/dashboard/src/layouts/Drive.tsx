@@ -5,7 +5,6 @@ import invariant from 'tiny-invariant'
 
 import * as appUtils from '#/appUtils'
 
-import * as backendHooks from '#/hooks/backendHooks'
 import * as offlineHooks from '#/hooks/offlineHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
@@ -40,6 +39,7 @@ import type AssetTreeNode from '#/utilities/AssetTreeNode'
 import * as download from '#/utilities/download'
 import * as github from '#/utilities/github'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
+import { useSuspenseQuery } from '@tanstack/react-query'
 
 // ===================
 // === DriveStatus ===
@@ -96,7 +96,10 @@ export default function Drive(props: DriveProps) {
     () => localStorage.get('isAssetPanelVisible') ?? false,
   )
   const [isAssetPanelTemporarilyVisible, setIsAssetPanelTemporarilyVisible] = React.useState(false)
-  const organizationQuery = backendHooks.useBackendQuery(backend, 'getOrganization', [])
+  const organizationQuery = useSuspenseQuery({
+    queryKey: [backend.type, 'getOrganization'],
+    queryFn: () => backend.getOrganization(),
+  })
   const organization = organizationQuery.data ?? null
   const [localRootDirectory] = localStorageProvider.useLocalStorageState('localRootDirectory')
   const rootDirectoryId = React.useMemo(() => {
