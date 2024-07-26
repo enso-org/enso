@@ -305,6 +305,20 @@ type Table
         col = self.get selector if_missing=Nothing
         if Nothing == col then if_missing else col.get index if_missing
 
+    ## ALIAS row
+       GROUP Standard.Base.Selections
+       ICON select_row
+       Gets a row from the table.
+
+       Arguments:
+       - index: The index of the row to get within the table.
+       - if_missing: The value to use if the selector isn't present.
+    @index (t-> Widget.Numeric_Input minimum=0 maximum=t.row_count-1)
+    get_row : Integer -> Any -> Any
+    get_row self index:Integer=0 ~if_missing=Nothing =
+        if index < -self.row_count || index >= self.row_count then if_missing else
+            Row.Value self (if index < 0 then index + self.row_count else index)
+
     ## ALIAS first cell
        GROUP Standard.Base.Selections
        ICON local_scope4
