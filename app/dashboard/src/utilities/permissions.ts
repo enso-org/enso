@@ -1,4 +1,5 @@
 /** @file Utilities for working with permissions. */
+import { merge } from 'enso-common/src/utilities/data/object'
 import * as permissions from 'enso-common/src/utilities/permissions'
 
 import * as categoryModule from '#/layouts/CategorySwitcher/Category'
@@ -93,4 +94,53 @@ export function canPermissionModifyDirectoryContents(permission: permissions.Per
     permission === permissions.PermissionAction.admin ||
     permission === permissions.PermissionAction.edit
   )
+}
+
+// ==============================
+// === replaceOwnerPermission ===
+// ==============================
+
+/** Replace the first owner permission with the permission of a new user or team. */
+export function replaceOwnerPermission(
+  asset: backend.AnyAsset,
+  newOwner: backend.User | backend.UserGroupInfo
+) {
+  let found = false
+  const newPermissions =
+    asset.permissions?.map(permission => {
+      if (found || permission.permission !== permissions.PermissionAction.own) {
+        return permission
+      } else {
+        found = true
+        if ('userId' in newOwner) {
+          const newPermission: backend.UserPermission = {
+            user: newOwner,
+            permission: permissions.PermissionAction.own,
+          }
+          return newPermission
+        } else {
+          const newPermission: backend.UserGroupPermission = {
+            userGroup: newOwner,
+            permission: permissions.PermissionAction.own,
+          }
+          return newPermission
+        }
+      }
+    }) ?? null
+  return merge(asset, { permissions: newPermissions })
+}
+
+/** Find the new owner of an asset based on the path of its new parent directory. */
+export function newOwnerFromPath(
+  path: string,
+  users: readonly backend.User[],
+  userGroups: readonly backend.UserGroupInfo[]
+) {
+  const [, userName] = path.match(/enso:[/][/][/]Users[/]([^/]+)/) ?? []
+  if (userName != null) {
+    return users.find(user => user.name === userName)
+  } else {
+    const [, teamName] = path.match(/enso:[/][/][/]Teams[/]([^/]+)/) ?? []
+    return userGroups.find(userGroup => userGroup.groupName === teamName)
+  }
 }

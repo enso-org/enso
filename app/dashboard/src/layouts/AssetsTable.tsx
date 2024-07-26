@@ -420,6 +420,8 @@ export default function AssetsTable(props: AssetsTableProps) {
   > | null>(null)
   const [, setQueuedAssetEvents] = React.useState<assetEvent.AssetEvent[]>([])
   const nameOfProjectToImmediatelyOpenRef = React.useRef(initialProjectName)
+  const users = backendHooks.useBackendListUsers(backend)
+  const userGroups = backendHooks.useBackendListUserGroups(backend)
   const organizationQuery = useSuspenseQuery({
     queryKey: [backend.type, 'getOrganization'],
     queryFn: () => backend.getOrganization(),
@@ -1804,7 +1806,22 @@ export default function AssetsTable(props: AssetsTableProps) {
       }
       case AssetListEventType.move: {
         deleteAsset(event.key)
-        insertAssets([event.item], event.newParentKey, event.newParentId, () => null)
+        const newParent = nodeMapRef.current.get(event.newParentKey)
+        if (isCloud && newParent) {
+          const newOwner = permissions.newOwnerFromPath(
+            newParent.path,
+            users ?? [],
+            userGroups ?? []
+          )
+          insertAssets(
+            [newOwner ? permissions.replaceOwnerPermission(event.item, newOwner) : event.item],
+            event.newParentKey,
+            event.newParentId,
+            () => null
+          )
+        } else {
+          insertAssets([event.item], event.newParentKey, event.newParentId, () => null)
+        }
         break
       }
       case AssetListEventType.delete: {
