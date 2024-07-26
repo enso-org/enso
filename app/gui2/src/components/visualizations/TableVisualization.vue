@@ -426,6 +426,13 @@ function toField(name: string, valueType?: ValueType | null | undefined): ColDef
   }
 }
 
+function toRowField(name: string, valueType?: ValueType | null | undefined) {
+  return {
+    ...toField(name, valueType),
+    cellDataType: false,
+  }
+}
+
 function getAstPattern(selector: string | number, action: string) {
   return Pattern.new((ast) =>
     Ast.App.positional(
@@ -567,8 +574,8 @@ watchEffect(() => {
     const dataHeader =
       ('header' in data_ ? data_.header : [])?.map((v, i) => {
         const valueType = data_.value_type ? data_.value_type[i] : null
-        if (config.nodeType === ROW_NODE_TYPE && v === 'column') {
-          return toLinkField(v)
+        if (config.nodeType === ROW_NODE_TYPE) {
+          return v === 'column' ? toLinkField(v) : toRowField(v, valueType)
         }
         return toField(v, valueType)
       }) ?? []
