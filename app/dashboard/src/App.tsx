@@ -97,6 +97,7 @@ import LocalStorage from '#/utilities/LocalStorage'
 import * as object from '#/utilities/object'
 
 import * as authServiceModule from '#/authentication/service'
+import { Path } from '#/utilities/path'
 
 // ============================
 // === Global configuration ===
@@ -281,24 +282,6 @@ function AppRouter(props: AppRouterProps) {
     () => (projectManagerInstance != null ? new LocalBackend(projectManagerInstance) : null),
     [projectManagerInstance],
   )
-
-  React.useEffect(() => {
-    const localRootDirectory = localStorage.get('localRootDirectory')
-    if (!localBackend) {
-      return
-    } else {
-      if (localRootDirectory != null) {
-        localBackend.rootPath = projectManager.Path(localRootDirectory)
-      }
-      return localStorage.subscribe('localRootDirectory', (path) => {
-        if (path != null) {
-          localBackend.rootPath = projectManager.Path(path)
-        } else {
-          localBackend.resetRootPath()
-        }
-      })
-    }
-  }, [localBackend, localStorage])
 
   const remoteBackend = React.useMemo(
     () => new RemoteBackend(httpClient, logger, getText),
@@ -531,6 +514,7 @@ function AppRouter(props: AppRouterProps) {
   let result = (
     <>
       <MutationListener />
+      <LocalBackendPathSynchronizer />
       <VersionChecker />
       {routes}
     </>
@@ -599,5 +583,23 @@ function MutationListener() {
   backendHooks.useObserveBackend(remoteBackend)
   backendHooks.useObserveBackend(localBackend)
 
+  return null
+}
+
+// ====================================
+// === LocalBackendPathSynchronizer ===
+// ====================================
+
+/** Keep `localBackend.rootPath` in sync with the saved root path state. */
+function LocalBackendPathSynchronizer() {
+  const [localRootDirectory] = localStorageProvider.useLocalStorageState('localRootDirectory')
+  const localBackend = useLocalBackend()
+  if (localBackend) {
+    if (localRootDirectory != null) {
+      localBackend.rootPath = Path(localRootDirectory)
+    } else {
+      localBackend.resetRootPath()
+    }
+  }
   return null
 }
