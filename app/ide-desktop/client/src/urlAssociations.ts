@@ -21,19 +21,19 @@ const logger = contentConfig.logger
  * It is also no-op on macOS, as the OS handles the URL opening by passing the `open-url` event to
  * the application, thanks to the information baked in our application by `electron-builder`. */
 export function registerAssociations() {
-    if (!electron.app.isDefaultProtocolClient(common.DEEP_LINK_SCHEME)) {
-        if (electronIsDev) {
-            logger.log('Not registering protocol client in dev mode.')
-        } else if (process.platform === 'darwin') {
-            // Registration is handled automatically there thanks to electron-builder.
-            logger.log('Not registering protocol client on macOS.')
-        } else {
-            logger.log('Registering protocol client.')
-            electron.app.setAsDefaultProtocolClient(common.DEEP_LINK_SCHEME)
-        }
+  if (!electron.app.isDefaultProtocolClient(common.DEEP_LINK_SCHEME)) {
+    if (electronIsDev) {
+      logger.log('Not registering protocol client in dev mode.')
+    } else if (process.platform === 'darwin') {
+      // Registration is handled automatically there thanks to electron-builder.
+      logger.log('Not registering protocol client on macOS.')
     } else {
-        logger.log('Protocol client already registered.')
+      logger.log('Registering protocol client.')
+      electron.app.setAsDefaultProtocolClient(common.DEEP_LINK_SCHEME)
     }
+  } else {
+    logger.log('Protocol client already registered.')
+  }
 }
 
 // ====================
@@ -49,22 +49,22 @@ export function registerAssociations() {
  * executable name and any electron dev mode arguments.
  * @returns The URL to open, or `null` if no file was specified. */
 export function argsDenoteUrlOpenAttempt(clientArgs: readonly string[]): URL | null {
-    const arg = clientArgs[0]
-    let result: URL | null = null
-    logger.log(`Checking if '${clientArgs.toString()}' denotes a URL to open.`)
-    // Check if the first argument parses as a URL using our deep link scheme.
-    if (clientArgs.length === 1 && typeof arg !== 'undefined') {
-        try {
-            const url = new URL(arg)
-            logger.log(`Parsed '${arg}' as URL: ${url.toString()}. Protocol: ${url.protocol}.`)
-            if (url.protocol === `${common.DEEP_LINK_SCHEME}:`) {
-                result = url
-            }
-        } catch (e) {
-            logger.log(`The single argument '${arg}' does not denote a valid URL: ${String(e)}`)
-        }
+  const arg = clientArgs[0]
+  let result: URL | null = null
+  logger.log(`Checking if '${clientArgs.toString()}' denotes a URL to open.`)
+  // Check if the first argument parses as a URL using our deep link scheme.
+  if (clientArgs.length === 1 && typeof arg !== 'undefined') {
+    try {
+      const url = new URL(arg)
+      logger.log(`Parsed '${arg}' as URL: ${url.toString()}. Protocol: ${url.protocol}.`)
+      if (url.protocol === `${common.DEEP_LINK_SCHEME}:`) {
+        result = url
+      }
+    } catch (e) {
+      logger.log(`The single argument '${arg}' does not denote a valid URL: ${String(e)}`)
     }
-    return result
+  }
+  return result
 }
 
 let initialUrl: URL | null = null
@@ -74,9 +74,9 @@ let initialUrl: URL | null = null
  * This happens on Windows when the browser redirects user using the deep link scheme.
  * @param openedUrl - The URL to open. */
 export function handleOpenUrl(openedUrl: URL) {
-    logger.log(`Opening URL '${openedUrl.toString()}'.`)
-    // We must wait for the application to be ready and then send the URL to the renderer process.
-    initialUrl = openedUrl
+  logger.log(`Opening URL '${openedUrl.toString()}'.`)
+  // We must wait for the application to be ready and then send the URL to the renderer process.
+  initialUrl = openedUrl
 }
 
 /** Register the callback that will be called when the application is requested to open a URL.
@@ -86,32 +86,34 @@ export function handleOpenUrl(openedUrl: URL) {
  * new instance of the application is started and the URL is passed as a command line argument.
  * @param callback - The callback to call when the application is requested to open a URL. */
 export function registerUrlCallback(callback: (url: URL) => void) {
-    if (initialUrl != null) {
-        logger.log(`Got URL from command line: '${initialUrl.toString()}'.`)
-        callback(initialUrl)
+  if (initialUrl != null) {
+    logger.log(`Got URL from command line: '${initialUrl.toString()}'.`)
+    callback(initialUrl)
+  }
+
+  // First, register the callback for the `open-url` event. This is used on macOS.
+  electron.app.on('open-url', (event, url) => {
+    logger.log(`Got URL from 'open-url' event: '${url}'.`)
+    event.preventDefault()
+    callback(new URL(url))
+  })
+
+  // Second, register the callback for the `second-instance` event. This is used on Windows.
+  electron.app.on('second-instance', (event, _argv, _workingDir, additionalData) => {
+    // Check if additional data is an object that contains the URL.
+    const url =
+      (
+        additionalData != null &&
+        typeof additionalData === 'object' &&
+        'urlToOpen' in additionalData &&
+        additionalData.urlToOpen instanceof URL
+      ) ?
+        additionalData.urlToOpen
+      : null
+    if (url) {
+      logger.log(`Got URL from second instance: '${url.toString()}'.`)
+      event.preventDefault()
+      callback(url)
     }
-
-    // First, register the callback for the `open-url` event. This is used on macOS.
-    electron.app.on('open-url', (event, url) => {
-        logger.log(`Got URL from 'open-url' event: '${url}'.`)
-        event.preventDefault()
-        callback(new URL(url))
-    })
-
-    // Second, register the callback for the `second-instance` event. This is used on Windows.
-    electron.app.on('second-instance', (event, _argv, _workingDir, additionalData) => {
-        // Check if additional data is an object that contains the URL.
-        const url =
-            additionalData != null &&
-            typeof additionalData === 'object' &&
-            'urlToOpen' in additionalData &&
-            additionalData.urlToOpen instanceof URL
-                ? additionalData.urlToOpen
-                : null
-        if (url) {
-            logger.log(`Got URL from second instance: '${url.toString()}'.`)
-            event.preventDefault()
-            callback(url)
-        }
-    })
+  })
 }

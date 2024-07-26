@@ -28,7 +28,7 @@ export default function SearchBar(props: SearchBarProps) {
 
   return (
     <FocusArea direction="horizontal">
-      {innerProps => (
+      {(innerProps) => (
         <aria.Label
           data-testid={props['data-testid']}
           {...aria.mergeProps<aria.LabelProps>()(innerProps, {
@@ -42,7 +42,7 @@ export default function SearchBar(props: SearchBarProps) {
               aria-label={label}
               className="before:inset-x-button-focus-ring-inset relative grow before:text before:absolute before:my-auto before:rounded-full before:transition-all"
               value={query}
-              onKeyDown={event => {
+              onKeyDown={(event) => {
                 event.continuePropagation()
               }}
             >
@@ -51,7 +51,7 @@ export default function SearchBar(props: SearchBarProps) {
                 size={1}
                 placeholder={placeholder}
                 className="focus-child peer text relative z-1 w-full bg-transparent placeholder:text-center"
-                onChange={event => {
+                onChange={(event) => {
                   setQuery(event.target.value)
                 }}
               />

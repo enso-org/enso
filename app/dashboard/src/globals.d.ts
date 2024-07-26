@@ -34,7 +34,7 @@ interface BackendApi {
   readonly importProjectFromPath: (
     openedPath: string,
     directory: string | null,
-    name: string
+    name: string,
   ) => Promise<string>
 }
 

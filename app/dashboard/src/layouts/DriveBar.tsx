@@ -59,7 +59,7 @@ export interface DriveBarProps {
     templateId?: string | null,
     templateName?: string | null,
     onCreated?: (project: CreatedProject) => void,
-    onError?: () => void
+    onError?: () => void,
   ) => void
   readonly doCreateDirectory: () => void
   readonly doCreateSecret: (name: string, value: string) => void
@@ -89,24 +89,24 @@ export default function DriveBar(props: DriveBarProps) {
 
   React.useEffect(() => {
     return inputBindings.attach(sanitizedEventTargets.document.body, 'keydown', {
-      ...(isCloud
-        ? {
-            newFolder: () => {
-              doCreateDirectory()
-            },
-          }
-        : {}),
+      ...(isCloud ?
+        {
+          newFolder: () => {
+            doCreateDirectory()
+          },
+        }
+      : {}),
       newProject: () => {
         setIsCreatingProject(true)
         doCreateProject(
           null,
           null,
-          project => {
+          (project) => {
             setCreatedProjectId(project.projectId)
           },
           () => {
             setIsCreatingProject(false)
-          }
+          },
         )
       },
       uploadFiles: () => {
@@ -116,9 +116,9 @@ export default function DriveBar(props: DriveBarProps) {
   }, [isCloud, doCreateDirectory, doCreateProject, inputBindings])
 
   const createdProjectQuery = useQuery<Project>(
-    createdProjectId
-      ? createGetProjectDetailsQuery.createPassiveListener(createdProjectId)
-      : { queryKey: ['__IGNORE__'], queryFn: skipToken }
+    createdProjectId ?
+      createGetProjectDetailsQuery.createPassiveListener(createdProjectId)
+    : { queryKey: ['__IGNORE__'], queryFn: skipToken },
   )
 
   const isFetching =
@@ -157,7 +157,7 @@ export default function DriveBar(props: DriveBarProps) {
           icon={RightPanelIcon}
           aria-label={isAssetPanelOpen ? getText('openAssetPanel') : getText('closeAssetPanel')}
           onPress={() => {
-            setIsAssetPanelOpen(isOpen => !isOpen)
+            setIsAssetPanelOpen((isOpen) => !isOpen)
           }}
         />
       </div>
@@ -185,7 +185,7 @@ export default function DriveBar(props: DriveBarProps) {
                 <ConfirmDeleteModal
                   actionText={getText('allTrashedItemsForever')}
                   doDelete={doEmptyTrash}
-                />
+                />,
               )
             }}
           >
@@ -218,12 +218,12 @@ export default function DriveBar(props: DriveBarProps) {
                 doCreateProject(
                   templateId,
                   templateName,
-                  project => {
+                  (project) => {
                     setCreatedProjectId(project.projectId)
                   },
                   () => {
                     setIsCreatingProjectFromTemplate(false)
-                  }
+                  },
                 )
               }}
             />
@@ -240,12 +240,12 @@ export default function DriveBar(props: DriveBarProps) {
               doCreateProject(
                 null,
                 null,
-                project => {
+                (project) => {
                   setCreatedProjectId(project.projectId)
                 },
                 () => {
                   setIsCreatingProject(false)
-                }
+                },
               )
             }}
           >
@@ -291,7 +291,7 @@ export default function DriveBar(props: DriveBarProps) {
               type="file"
               multiple
               className="hidden"
-              onInput={event => {
+              onInput={(event) => {
                 if (event.currentTarget.files != null) {
                   doUploadFiles(Array.from(event.currentTarget.files))
                 }

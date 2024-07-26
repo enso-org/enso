@@ -21,5 +21,5 @@ export default vitestConfig.mergeConfig(
       root: url.fileURLToPath(new URL('./', import.meta.url)),
       restoreMocks: true,
     },
-  })
+  }),
 )

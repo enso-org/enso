@@ -49,12 +49,12 @@ export default function ControlledInput(props: ControlledInputProps) {
         {...aria.mergeProps<aria.InputProps>()(inputProps, focusChildProps, {
           className:
             'w-full rounded-full border py-auth-input-y pl-auth-icon-container-w pr-auth-input-r text-sm placeholder-gray-500 transition-all duration-auth hover:bg-gray-100 focus:bg-gray-100',
-          onKeyDown: event => {
+          onKeyDown: (event) => {
             if (!event.isPropagationStopped()) {
               onKeyDown?.(event)
             }
           },
-          onChange: event => {
+          onChange: (event) => {
             onChange?.(event)
             setValue(event.target.value)
             setWasJustBlurred(false)
@@ -66,9 +66,9 @@ export default function ControlledInput(props: ControlledInputProps) {
               if (error != null) {
                 currentTarget.setCustomValidity('')
                 currentTarget.setCustomValidity(
-                  currentTarget.checkValidity() || shouldReportValidityRef?.current === false
-                    ? ''
-                    : error
+                  currentTarget.checkValidity() || shouldReportValidityRef?.current === false ?
+                    ''
+                  : error,
                 )
               }
               if (hasReportedValidity) {
@@ -84,13 +84,14 @@ export default function ControlledInput(props: ControlledInputProps) {
                     ) {
                       setHasReportedValidity(true)
                     }
-                  }, DEBOUNCE_MS)
+                  }, DEBOUNCE_MS),
                 )
               }
             }
           },
-          onBlur: validate
-            ? event => {
+          onBlur:
+            validate ?
+              (event) => {
                 onBlur?.(event)
                 if (wasJustBlurred) {
                   setHasReportedValidity(false)

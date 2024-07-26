@@ -37,7 +37,7 @@ export default function ChangePasswordForm() {
   return (
     <aria.Form
       key={key}
-      onSubmit={event => {
+      onSubmit={(event) => {
         event.preventDefault()
         setKey(uniqueString.uniqueString())
         setCurrentPassword('')
@@ -60,12 +60,10 @@ export default function ChangePasswordForm() {
       <aria.TextField
         className="flex h-row gap-settings-entry"
         onChange={setNewPassword}
-        validate={value =>
-          validation.PASSWORD_REGEX.test(value)
-            ? true
-            : value === ''
-              ? ''
-              : getText('passwordValidationError')
+        validate={(value) =>
+          validation.PASSWORD_REGEX.test(value) ? true
+          : value === '' ? ''
+          : getText('passwordValidationError')
         }
       >
         <aria.Label className="text my-auto w-change-password-settings-label">
@@ -80,8 +78,10 @@ export default function ChangePasswordForm() {
       <aria.TextField
         className="flex h-row gap-settings-entry"
         onChange={setConfirmNewPassword}
-        validate={value =>
-          value === newPassword ? true : value === '' ? '' : getText('passwordMismatchError')
+        validate={(value) =>
+          value === newPassword ? true
+          : value === '' ? ''
+          : getText('passwordMismatchError')
         }
       >
         <aria.Label className="text my-auto w-change-password-settings-label">

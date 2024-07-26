@@ -63,7 +63,7 @@ export function Loader(props: SuspenseProps) {
   const paused = reactQuery.useIsFetching({ fetchStatus: 'paused' })
 
   const fetching = reactQuery.useIsFetching({
-    predicate: query =>
+    predicate: (query) =>
       query.state.fetchStatus === 'fetching' ||
       query.state.status === 'pending' ||
       query.state.status === 'success',
@@ -73,7 +73,7 @@ export function Loader(props: SuspenseProps) {
   // but fallback is still showing
   const shouldDisplayOfflineMessage = debounceValue.useDebounceValue(
     isOffline && paused >= 0 && fetching === 0,
-    OFFLINE_FETCHING_TOGGLE_DELAY_MS
+    OFFLINE_FETCHING_TOGGLE_DELAY_MS,
   )
 
   if (shouldDisplayOfflineMessage) {

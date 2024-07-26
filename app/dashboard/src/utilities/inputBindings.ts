@@ -107,7 +107,7 @@ function modifierFlagsForModifiers(modifiers: Modifier[]): ModifierFlags {
 
 /** The names of all {@link Modifier}s in this {@link ModifierFlags}, in the OS' preferred order. */
 export function modifiersForModifierFlags(modifierFlags: ModifierFlags): Modifier[] {
-  return ALL_MODIFIERS.filter(modifier => (MODIFIER_FLAG[modifier] & modifierFlags) !== 0)
+  return ALL_MODIFIERS.filter((modifier) => (MODIFIER_FLAG[modifier] & modifierFlags) !== 0)
 }
 
 /** Returns the raw modifier key equivalent of a modifier. */
@@ -140,7 +140,7 @@ export function modifierFlagsForEvent(event: EventWithModifiers): ModifierFlags 
     (event.ctrlKey ? RAW_MODIFIER_FLAG.Ctrl : 0) |
       (event.altKey ? RAW_MODIFIER_FLAG.Alt : 0) |
       (event.shiftKey ? RAW_MODIFIER_FLAG.Shift : 0) |
-      (event.metaKey ? RAW_MODIFIER_FLAG.Meta : 0)
+      (event.metaKey ? RAW_MODIFIER_FLAG.Meta : 0),
   )
 }
 
@@ -184,8 +184,9 @@ function buttonToPointerButtonFlags(button: number) {
 // === Autocomplete types ===
 // ==========================
 
-const ALL_MODIFIERS = detect.isOnMacOS()
-  ? (['Ctrl', 'Shift', 'Alt', 'Mod'] as const)
+const ALL_MODIFIERS =
+  detect.isOnMacOS() ?
+    (['Ctrl', 'Shift', 'Alt', 'Mod'] as const)
   : (['Mod', 'Shift', 'Alt', 'Meta'] as const)
 /** All valid keyboard modifier keys. */
 type Modifier = (typeof ALL_MODIFIERS)[number]
@@ -309,7 +310,7 @@ type LowercaseKey = Lowercase<Key>
 /** A segment of a keyboard shortcut. */
 type KeybindSegment = Key | Modifier | Pointer
 export const normalizedKeyboardSegmentLookup = Object.fromEntries<string>(
-  [...ALL_MODIFIERS, ...ALL_POINTERS, ...ALL_KEYS].map(entry => [entry.toLowerCase(), entry])
+  [...ALL_MODIFIERS, ...ALL_POINTERS, ...ALL_KEYS].map((entry) => [entry.toLowerCase(), entry]),
 )
 normalizedKeyboardSegmentLookup[''] = '+'
 normalizedKeyboardSegmentLookup['space'] = ' '
@@ -322,28 +323,22 @@ type NormalizeKeybindSegment = {
 /** A segment suggestible by autocomplete. */
 type SuggestedKeybindSegment = Key | Pointer | `${Modifier}+`
 /** A helper type used to autocomplete and validate a single keyboard shortcut in the editor. */
-export type AutocompleteKeybind<
-  T extends string,
-  FoundKeyName extends string = never,
-> = T extends '+'
-  ? T
-  : T extends `${infer First}+${infer Rest}`
-    ? Lowercase<First> extends LowercaseModifier
-      ? `${NormalizeKeybindSegment[Lowercase<First>] & string}+${AutocompleteKeybind<Rest>}`
-      : Lowercase<First> extends LowercaseKey | LowercasePointer
-        ? AutocompleteKeybind<Rest, NormalizeKeybindSegment[Lowercase<First>] & string>
-        : `${Modifier}+${AutocompleteKeybind<Rest>}`
-    : T extends ''
-      ? SuggestedKeybindSegment
-      : Lowercase<T> extends LowercaseKey | LowercasePointer
-        ? NormalizeKeybindSegment[Lowercase<T>]
-        : Lowercase<T> extends LowercaseModifier
-          ? [FoundKeyName] extends [never]
-            ? `${NormalizeKeybindSegment[Lowercase<T>] & string}+${SuggestedKeybindSegment}`
-            : `${NormalizeKeybindSegment[Lowercase<T>] & string}+${FoundKeyName}`
-          : [FoundKeyName] extends [never]
-            ? SuggestedKeybindSegment
-            : FoundKeyName
+export type AutocompleteKeybind<T extends string, FoundKeyName extends string = never> =
+  T extends '+' ? T
+  : T extends `${infer First}+${infer Rest}` ?
+    Lowercase<First> extends LowercaseModifier ?
+      `${NormalizeKeybindSegment[Lowercase<First>] & string}+${AutocompleteKeybind<Rest>}`
+    : Lowercase<First> extends LowercaseKey | LowercasePointer ?
+      AutocompleteKeybind<Rest, NormalizeKeybindSegment[Lowercase<First>] & string>
+    : `${Modifier}+${AutocompleteKeybind<Rest>}`
+  : T extends '' ? SuggestedKeybindSegment
+  : Lowercase<T> extends LowercaseKey | LowercasePointer ? NormalizeKeybindSegment[Lowercase<T>]
+  : Lowercase<T> extends LowercaseModifier ?
+    [FoundKeyName] extends [never] ?
+      `${NormalizeKeybindSegment[Lowercase<T>] & string}+${SuggestedKeybindSegment}`
+    : `${NormalizeKeybindSegment[Lowercase<T>] & string}+${FoundKeyName}`
+  : [FoundKeyName] extends [never] ? SuggestedKeybindSegment
+  : FoundKeyName
 
 /** A helper type used to autocomplete and validate an array of keyboard shortcuts in the editor.
  */
@@ -384,13 +379,12 @@ type KeybindValue = KeybindsWithMetadata | readonly [] | readonly string[]
  * corresponding keyboard shortcuts. */
 // `never extends T ? Result : InferenceSource` is a trick to unify `T` with the actual type of the
 // argument.
-type Keybinds<T extends Record<keyof T, KeybindValue>> = never extends T
-  ? {
-      [K in keyof T]: T[K] extends readonly string[]
-        ? AutocompleteKeybinds<T[K]>
-        : T[K] extends KeybindsWithMetadata
-          ? AutocompleteKeybindsWithMetadata<T[K]>
-          : ['error...', T]
+type Keybinds<T extends Record<keyof T, KeybindValue>> =
+  never extends T ?
+    {
+      [K in keyof T]: T[K] extends readonly string[] ? AutocompleteKeybinds<T[K]>
+      : T[K] extends KeybindsWithMetadata ? AutocompleteKeybindsWithMetadata<T[K]>
+      : ['error...', T]
     }
   : T
 
@@ -461,7 +455,7 @@ export const DEFAULT_HANDLER = Symbol('default handler')
  */
 export function defineBindingNamespace<T extends Record<keyof T, KeybindValue>>(
   namespace: string,
-  originalBindings: Keybinds<T>
+  originalBindings: Keybinds<T>,
 ) {
   /** The name of a binding in this set of keybinds. */
   type BindingKey = string & keyof T
@@ -484,7 +478,7 @@ export function defineBindingNamespace<T extends Record<keyof T, KeybindValue>>(
     // as its keys.
     // eslint-disable-next-line no-restricted-syntax
     metadata = Object.fromEntries(
-      Object.entries(bindingsAsRecord).map(kv => {
+      Object.entries(bindingsAsRecord).map((kv) => {
         const [name, info] = kv
         if (Array.isArray(info)) {
           return [
@@ -494,7 +488,7 @@ export function defineBindingNamespace<T extends Record<keyof T, KeybindValue>>(
         } else {
           return [name, structuredClone(info)]
         }
-      })
+      }),
     ) as Record<BindingKey, KeybindsWithMetadata>
   }
 
@@ -543,18 +537,18 @@ export function defineBindingNamespace<T extends Record<keyof T, KeybindValue>>(
       // eslint-disable-next-line @typescript-eslint/no-invalid-void-type
       Record<BindingKey | typeof DEFAULT_HANDLER, (event: Event) => boolean | void>
     >,
-    stopAndPrevent = true
+    stopAndPrevent = true,
   ): ((event: Event, stopAndPrevent?: boolean) => boolean) => {
     return (event, innerStopAndPrevent = stopAndPrevent) => {
       const eventModifierFlags = modifierFlagsForEvent(event)
       const matchingBindings =
-        'key' in event
-          ? keyboardShortcuts[KeyName(event.key.toLowerCase())]?.[eventModifierFlags]
-          : mouseShortcuts[
-              event.buttons !== 0
-                ? PointerButtonFlags(event.buttons)
-                : buttonToPointerButtonFlags(event.button)
-            ]?.[eventModifierFlags]
+        'key' in event ?
+          keyboardShortcuts[KeyName(event.key.toLowerCase())]?.[eventModifierFlags]
+        : mouseShortcuts[
+            event.buttons !== 0 ?
+              PointerButtonFlags(event.buttons)
+            : buttonToPointerButtonFlags(event.button)
+          ]?.[eventModifierFlags]
       let handle = handlers[DEFAULT_HANDLER]
       const isTextInputFocused = eventModule.isElementTextInput(document.activeElement)
       const isTextInputEvent = 'key' in event && eventModule.isTextInputEvent(event)
@@ -606,7 +600,7 @@ export function defineBindingNamespace<T extends Record<keyof T, KeybindValue>>(
       // eslint-disable-next-line @typescript-eslint/no-invalid-void-type
       Record<BindingKey | typeof DEFAULT_HANDLER, (event: Event) => boolean | void>
     >,
-    stopAndPrevent = true
+    stopAndPrevent = true,
   ) => {
     const newHandler = handler(handlers, stopAndPrevent)
     target.addEventListener(eventName, newHandler)
@@ -623,9 +617,9 @@ export function defineBindingNamespace<T extends Record<keyof T, KeybindValue>>(
   const deleteFunction = (key: BindingKey, binding: string) => {
     const bindingsOrInfo = bindingsAsRecord[key]
     const bindingsList =
-      bindingsOrInfo != null && 'bindings' in bindingsOrInfo
-        ? bindingsOrInfo.bindings
-        : bindingsOrInfo
+      bindingsOrInfo != null && 'bindings' in bindingsOrInfo ?
+        bindingsOrInfo.bindings
+      : bindingsOrInfo
     if (bindingsList != null) {
       object.unsafeMutable(bindingsList).splice(bindingsList.indexOf(binding), 1)
       rebuildLookups()
@@ -635,9 +629,9 @@ export function defineBindingNamespace<T extends Record<keyof T, KeybindValue>>(
   const add = (key: BindingKey, binding: string) => {
     const bindingsOrInfo = bindingsAsRecord[key]
     const bindingsList =
-      bindingsOrInfo != null && 'bindings' in bindingsOrInfo
-        ? bindingsOrInfo.bindings
-        : bindingsOrInfo
+      bindingsOrInfo != null && 'bindings' in bindingsOrInfo ?
+        bindingsOrInfo.bindings
+      : bindingsOrInfo
     if (bindingsList != null) {
       object.unsafeMutable(bindingsList).push(binding)
       rebuildLookups()
@@ -665,7 +659,7 @@ export function defineBindingNamespace<T extends Record<keyof T, KeybindValue>>(
       if (DEFINED_NAMESPACES.has(namespace)) {
         // eslint-disable-next-line no-restricted-properties
         console.warn(
-          `Overriding the keybind namespace '${namespace}', which has already been defined.`
+          `Overriding the keybind namespace '${namespace}', which has already been defined.`,
         )
         // eslint-disable-next-line no-restricted-properties
         console.trace()
@@ -713,13 +707,13 @@ const isPointer = includesPredicate(ALL_POINTERS)
 export function decomposeKeybindString(keybindString: string): ModifierStringDecomposition {
   const trimmed = keybindString.trim()
   const parts =
-    trimmed === ''
-      ? []
-      : trimmed
-          .split(/[\s+]+/)
-          .map(part => normalizedKeyboardSegmentLookup[part.trim().toLowerCase()] ?? part)
+    trimmed === '' ?
+      []
+    : trimmed
+        .split(/[\s+]+/)
+        .map((part) => normalizedKeyboardSegmentLookup[part.trim().toLowerCase()] ?? part)
   const modifiers = parts.filter(isModifier)
-  const key = parts.find(part => !isModifier(part))
+  const key = parts.find((part) => !isModifier(part))
   return { key: key ?? '', modifiers }
 }
 
