@@ -19,8 +19,8 @@ export interface ParseUserEmailsEntry {
 export function parseUserEmails(emailsString: string): ParseUserEmailsResult {
   const entries = emailsString
     .split(/[,;\s\n]+/)
-    .map(entry => entry.trim())
-    .filter(entry => entry.length > 0)
-    .map(email => ({ email }))
+    .map((entry) => entry.trim())
+    .filter((entry) => entry.length > 0)
+    .map((email) => ({ email }))
   return { entries }
 }

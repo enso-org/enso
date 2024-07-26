@@ -42,7 +42,7 @@ export default function ChatPlaceholder(props: ChatPlaceholderProps) {
       <div
         className={tailwindMerge.twMerge(
           'fixed right top z-1 flex h-screen w-chat flex-col py-chat-y text-xs text-primary shadow-soft backdrop-blur-default transition-transform',
-          !isOpen && 'translate-x-full'
+          !isOpen && 'translate-x-full',
         )}
       >
         <div className="mx-chat-header-x mt-chat-header-t flex text-sm font-semibold">
@@ -88,7 +88,7 @@ export default function ChatPlaceholder(props: ChatPlaceholderProps) {
           </div>
         </div>
       </div>,
-      container
+      container,
     )
   }
 }

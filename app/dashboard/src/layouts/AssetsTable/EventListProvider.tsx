@@ -42,19 +42,19 @@ export default function EventListProvider(props: EventListProviderProps) {
   const [store] = React.useState(() =>
     zustand.createStore<EventListStore>((set, get) => ({
       assetEvents: [],
-      dispatchAssetEvent: event => {
+      dispatchAssetEvent: (event) => {
         set({ assetEvents: [...get().assetEvents, event] })
       },
       assetListEvents: [],
-      dispatchAssetListEvent: event => {
+      dispatchAssetListEvent: (event) => {
         set({ assetListEvents: [...get().assetListEvents, event] })
       },
-    }))
+    })),
   )
 
   React.useEffect(
     () =>
-      store.subscribe(state => {
+      store.subscribe((state) => {
         // Run after the next render.
         setTimeout(() => {
           if (state.assetEvents.length) {
@@ -65,7 +65,7 @@ export default function EventListProvider(props: EventListProviderProps) {
           }
         })
       }),
-    [store]
+    [store],
   )
 
   return <EventListContext.Provider value={store}>{children}</EventListContext.Provider>
@@ -91,7 +91,7 @@ function useEventList() {
 /** A function to add a new reactive event. */
 export function useDispatchAssetEvent() {
   const store = useEventList()
-  return zustand.useStore(store, state => state.dispatchAssetEvent)
+  return zustand.useStore(store, (state) => state.dispatchAssetEvent)
 }
 
 // =================================
@@ -101,7 +101,7 @@ export function useDispatchAssetEvent() {
 /** A function to add a new reactive event. */
 export function useDispatchAssetListEvent() {
   const store = useEventList()
-  return zustand.useStore(store, state => state.dispatchAssetListEvent)
+  return zustand.useStore(store, (state) => state.dispatchAssetListEvent)
 }
 
 // =============================
@@ -111,7 +111,7 @@ export function useDispatchAssetListEvent() {
 /** Execute a callback for every new asset event. */
 export function useAssetEventListener(
   callback: (event: assetEvent.AssetEvent) => Promise<void> | void,
-  initialEvents?: readonly assetEvent.AssetEvent[] | null
+  initialEvents?: readonly assetEvent.AssetEvent[] | null,
 ) {
   const callbackRef = React.useRef(callback)
   callbackRef.current = callback
@@ -144,7 +144,7 @@ export function useAssetEventListener(
           }
         }
       }),
-    [store]
+    [store],
   )
 }
 
@@ -155,7 +155,7 @@ export function useAssetEventListener(
 /** Execute a callback for every new asset list event. */
 export function useAssetListEventListener(
   callback: (event: assetListEvent.AssetListEvent) => Promise<void> | void,
-  initialEvents?: readonly assetListEvent.AssetListEvent[] | null
+  initialEvents?: readonly assetListEvent.AssetListEvent[] | null,
 ) {
   const callbackRef = React.useRef(callback)
   callbackRef.current = callback
@@ -188,6 +188,6 @@ export function useAssetListEventListener(
           }
         }
       }),
-    [store]
+    [store],
   )
 }

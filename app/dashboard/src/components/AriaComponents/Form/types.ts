@@ -50,12 +50,12 @@ interface BaseFormProps<
   readonly defaultValues?: components.UseFormProps<Schema, TFieldValues>['defaultValues']
   readonly onSubmit?: (
     values: TFieldValues,
-    form: components.UseFormReturn<Schema, TFieldValues, TTransformedValues>
+    form: components.UseFormReturn<Schema, TFieldValues, TTransformedValues>,
   ) => unknown
   readonly style?:
     | React.CSSProperties
     | ((
-        props: FormStateRenderProps<Schema, TFieldValues, TTransformedValues>
+        props: FormStateRenderProps<Schema, TFieldValues, TTransformedValues>,
       ) => React.CSSProperties)
   readonly children:
     | React.ReactNode
@@ -123,7 +123,7 @@ export type UseFormRegister<
   >,
 >(
   name: TFieldName,
-  options?: reactHookForm.RegisterOptions<TFieldValues, TFieldName>
+  options?: reactHookForm.RegisterOptions<TFieldValues, TFieldName>,
   // eslint-disable-next-line no-restricted-syntax
 ) => UseFormRegisterReturn<Schema, TFieldValues, TFieldName>
 

@@ -24,40 +24,40 @@ test.test('create folder', ({ page }) =>
   actions
     .mockAllAndLogin({ page })
     .createFolder()
-    .driveTable.withRows(async rows => {
+    .driveTable.withRows(async (rows) => {
       await test.expect(rows).toHaveCount(1)
       await test.expect(rows.nth(0)).toBeVisible()
       await test.expect(rows.nth(0)).toHaveText(/^New Folder 1/)
-    })
+    }),
 )
 
 test.test('create project', ({ page }) =>
   actions
     .mockAllAndLogin({ page })
     .newEmptyProject()
-    .do(thePage => test.expect(actions.locateEditor(thePage)).toBeAttached())
+    .do((thePage) => test.expect(actions.locateEditor(thePage)).toBeAttached())
     .goToPage.drive()
-    .driveTable.withRows(rows => test.expect(rows).toHaveCount(1))
+    .driveTable.withRows((rows) => test.expect(rows).toHaveCount(1)),
 )
 
 test.test('upload file', ({ page }) =>
   actions
     .mockAllAndLogin({ page })
     .uploadFile(FILE_NAME, FILE_CONTENTS)
-    .driveTable.withRows(async rows => {
+    .driveTable.withRows(async (rows) => {
       await test.expect(rows).toHaveCount(1)
       await test.expect(rows.nth(0)).toBeVisible()
       await test.expect(rows.nth(0)).toHaveText(new RegExp('^' + FILE_NAME))
-    })
+    }),
 )
 
 test.test('create secret', ({ page }) =>
   actions
     .mockAllAndLogin({ page })
     .createSecret(SECRET_NAME, SECRET_VALUE)
-    .driveTable.withRows(async rows => {
+    .driveTable.withRows(async (rows) => {
       await test.expect(rows).toHaveCount(1)
       await test.expect(rows.nth(0)).toBeVisible()
       await test.expect(rows.nth(0)).toHaveText(new RegExp('^' + SECRET_NAME))
-    })
+    }),
 )

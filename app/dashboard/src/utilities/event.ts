@@ -38,7 +38,7 @@ export function isPotentiallyShortcut(event: KeyboardEvent | React.KeyboardEvent
 
 /** Return `true` if none of `Ctrl`, `Shift`, `Alt` and `Meta` are pressed.*/
 export function areNoModifiersPressed(
-  event: KeyboardEvent | MouseEvent | React.KeyboardEvent | React.MouseEvent
+  event: KeyboardEvent | MouseEvent | React.KeyboardEvent | React.MouseEvent,
 ) {
   return !event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey
 }
@@ -70,7 +70,7 @@ export function isTextInputEvent(event: KeyboardEvent | React.KeyboardEvent) {
 
 /** Whether the element accepts text input. */
 export function isElementTextInput(
-  element: EventTarget | null
+  element: EventTarget | null,
 ): element is HTMLElement | HTMLInputElement | HTMLTextAreaElement {
   return (
     element != null &&
@@ -95,7 +95,7 @@ const TEXT_INPUT_TYPES = new Set([
 
 /** Whether the element is a single-line text input. */
 export function isElementSingleLineTextInput(
-  element: EventTarget | null
+  element: EventTarget | null,
 ): element is HTMLInputElement {
   return (
     element != null && element instanceof HTMLInputElement && TEXT_INPUT_TYPES.has(element.type)
@@ -131,7 +131,7 @@ export function isElementPartOfMonaco(element: EventTarget | null) {
 export function isElementInBounds(
   event: Pick<MouseEvent, 'clientX' | 'clientY'>,
   bounds: DOMRect,
-  margin = 0
+  margin = 0,
 ) {
   return (
     bounds.left - margin <= event.clientX &&

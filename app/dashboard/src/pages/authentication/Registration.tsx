@@ -37,7 +37,7 @@ declare module '#/utilities/LocalStorage' {
 
 LocalStorage.registerKey('loginRedirect', {
   isUserSpecific: true,
-  tryParse: value => (typeof value === 'string' ? value : null),
+  tryParse: (value) => (typeof value === 'string' ? value : null),
 })
 
 // ====================
@@ -76,7 +76,7 @@ export default function Registration() {
       title={getText('createANewAccount')}
       supportsOffline={supportsOffline}
       footer={<Link to="/login" icon={GoBackIcon} text={getText('alreadyHaveAnAccount')} />}
-      onSubmit={async event => {
+      onSubmit={async (event) => {
         event.preventDefault()
         setIsSubmitting(true)
         await auth.signUp(email, password, organizationId)

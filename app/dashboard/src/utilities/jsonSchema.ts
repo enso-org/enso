@@ -32,7 +32,7 @@ function getSchemaNameHelper(defs: Record<string, object>, schema: object): stri
     return (
       members
         .flatMap(objectModule.singletonObjectOrNull)
-        .map(childSchema => getSchemaName(defs, childSchema))
+        .map((childSchema) => getSchemaName(defs, childSchema))
         .join(' | ') || '(unknown)'
     )
   } else if ('allOf' in schema) {
@@ -40,7 +40,7 @@ function getSchemaNameHelper(defs: Record<string, object>, schema: object): stri
     return (
       members
         .flatMap(objectModule.singletonObjectOrNull)
-        .map(childSchema => getSchemaName(defs, childSchema))
+        .map((childSchema) => getSchemaName(defs, childSchema))
         .join(' & ') || '(unknown)'
     )
   } else {
@@ -149,14 +149,13 @@ const EMPTY_ARRAY = Object.freeze([] as const)
 function constantValueHelper(
   defs: Record<string, object>,
   schema: object,
-  partial = false
+  partial = false,
 ): readonly [] | readonly [NonNullable<unknown> | null] {
   if ('const' in schema) {
     return [schema.const ?? null]
   } else {
-    const invalid: readonly [] | readonly [NonNullable<unknown> | null] = partial
-      ? SINGLETON_NULL
-      : EMPTY_ARRAY
+    const invalid: readonly [] | readonly [NonNullable<unknown> | null] =
+      partial ? SINGLETON_NULL : EMPTY_ARRAY
     const results: (NonNullable<unknown> | null)[] = []
     if ('default' in schema && schema.default != null && partial) {
       return [schema.default]
@@ -170,9 +169,9 @@ function constantValueHelper(
           const propertiesObject =
             'properties' in schema ? objectModule.asObject(schema.properties) ?? {} : {}
           const required = new Set(
-            'required' in schema && Array.isArray(schema.required)
-              ? schema.required.map(String)
-              : []
+            'required' in schema && Array.isArray(schema.required) ?
+              schema.required.map(String)
+            : [],
           )
           const object: Record<string, unknown> = {}
           results.push(object)
@@ -324,8 +323,8 @@ function constantValueHelper(
             return typeof resultArray[0] === schema.type ? resultArray : invalid
           }
           case 'integer': {
-            return typeof resultArray[0] === 'number' && Number.isInteger(resultArray[0])
-              ? resultArray
+            return typeof resultArray[0] === 'number' && Number.isInteger(resultArray[0]) ?
+                resultArray
               : invalid
           }
           default: {

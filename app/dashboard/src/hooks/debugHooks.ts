@@ -13,7 +13,7 @@ import * as React from 'react'
 /** A modified `useState` that logs the old and new values when `setState` is called. */
 export function useDebugState<T>(
   initialState: T | (() => T),
-  name?: string
+  name?: string,
 ): [state: T, setState: (valueOrUpdater: React.SetStateAction<T>, source?: string) => void] {
   const [state, rawSetState] = React.useState(initialState)
 
@@ -22,14 +22,14 @@ export function useDebugState<T>(
   const setState = React.useCallback(
     (valueOrUpdater: React.SetStateAction<T>, source?: string) => {
       const fullDescription = `${description}${source != null ? ` from '${source}'` : ''}`
-      rawSetState(oldState => {
+      rawSetState((oldState) => {
         const newState =
-          typeof valueOrUpdater === 'function'
-            ? // This is UNSAFE when `T` is itself a function type,
-              // however React makes the same assumption.
-              // eslint-disable-next-line no-restricted-syntax
-              (valueOrUpdater as (prevState: T) => T)(oldState)
-            : valueOrUpdater
+          typeof valueOrUpdater === 'function' ?
+            // This is UNSAFE when `T` is itself a function type,
+            // however React makes the same assumption.
+            // eslint-disable-next-line no-restricted-syntax
+            (valueOrUpdater as (prevState: T) => T)(oldState)
+          : valueOrUpdater
         if (!Object.is(oldState, newState)) {
           console.group(description)
           console.trace(description)
@@ -40,7 +40,7 @@ export function useDebugState<T>(
         return newState
       })
     },
-    [description]
+    [description],
   )
 
   return [state, setState]
@@ -53,12 +53,12 @@ export function useMonitorDependencies(
   dependencies: React.DependencyList,
   description?: string,
   dependencyDescriptions?: readonly string[],
-  active = true
+  active = true,
 ) {
   const oldDependenciesRef = React.useRef(dependencies)
   if (active) {
     const indicesOfChangedDependencies = dependencies.flatMap((dep, i) =>
-      Object.is(dep, oldDependenciesRef.current[i]) ? [] : [i]
+      Object.is(dep, oldDependenciesRef.current[i]) ? [] : [i],
     )
     if (indicesOfChangedDependencies.length !== 0) {
       const descriptionText = description == null ? '' : ` for '${description}'`
@@ -84,7 +84,7 @@ export function useDebugEffect(
   effect: React.EffectCallback,
   deps: React.DependencyList,
   description?: string,
-  dependencyDescriptions?: readonly string[]
+  dependencyDescriptions?: readonly string[],
 ) {
   useMonitorDependencies(deps, description, dependencyDescriptions)
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -98,7 +98,7 @@ export function useDebugMemo<T>(
   factory: () => T,
   deps: React.DependencyList,
   description?: string,
-  dependencyDescriptions?: readonly string[]
+  dependencyDescriptions?: readonly string[],
 ) {
   useMonitorDependencies(deps, description, dependencyDescriptions)
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -112,7 +112,7 @@ export function useDebugCallback<T extends (...args: never[]) => unknown>(
   callback: T,
   deps: React.DependencyList,
   description?: string,
-  dependencyDescriptions?: readonly string[]
+  dependencyDescriptions?: readonly string[],
 ) {
   useMonitorDependencies(deps, description, dependencyDescriptions)
   // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -101,7 +101,7 @@ export function useBackend(category: DriveCategory) {
   } else {
     invariant(
       localBackend != null,
-      `This distribution of ${common.PRODUCT_NAME} does not support the Local Backend.`
+      `This distribution of ${common.PRODUCT_NAME} does not support the Local Backend.`,
     )
     return localBackend
   }

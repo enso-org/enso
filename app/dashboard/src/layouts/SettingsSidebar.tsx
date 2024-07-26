@@ -38,55 +38,55 @@ export default function SettingsSidebar(props: SettingsSidebarProps) {
 
   return (
     <FocusArea direction="vertical">
-      {innerProps => (
+      {(innerProps) => (
         <div
           aria-label={getText('settingsSidebarLabel')}
           className={tailwindMerge.twMerge(
             'w-settings-sidebar shrink-0 flex-col gap-settings-sidebar overflow-y-auto',
-            !isMenu
-              ? 'hidden sm:flex'
-              : 'relative rounded-default p-modal text-xs text-primary before:absolute before:inset before:rounded-default before:bg-frame before:backdrop-blur-default sm:hidden'
+            !isMenu ? 'hidden sm:flex' : (
+              'relative rounded-default p-modal text-xs text-primary before:absolute before:inset before:rounded-default before:bg-frame before:backdrop-blur-default sm:hidden'
+            ),
           )}
           onClickCapture={onClickCapture}
           {...innerProps}
         >
-          {SETTINGS_DATA.map(section => {
+          {SETTINGS_DATA.map((section) => {
             const name = getText(section.nameId)
             const visibleTabData = section.tabs.filter(
-              tabData =>
+              (tabData) =>
                 tabsToShow.includes(tabData.settingsTab) &&
-                (!tabData.visible || tabData.visible(context))
+                (!tabData.visible || tabData.visible(context)),
             )
-            return visibleTabData.length === 0 ? null : (
-              <div key={name} className="flex flex-col items-start">
-                <aria.Header
-                  id={`${name}_header`}
-                  className="mb-sidebar-section-heading-b h-text px-sidebar-section-heading-x py-sidebar-section-heading-y text-[13.5px] font-bold leading-cozy"
-                >
-                  {name}
-                </aria.Header>
+            return visibleTabData.length === 0 ?
+                null
+              : <div key={name} className="flex flex-col items-start">
+                  <aria.Header
+                    id={`${name}_header`}
+                    className="mb-sidebar-section-heading-b h-text px-sidebar-section-heading-x py-sidebar-section-heading-y text-[13.5px] font-bold leading-cozy"
+                  >
+                    {name}
+                  </aria.Header>
 
-                <ariaComponents.ButtonGroup gap="xxsmall" direction="column" align="start">
-                  {visibleTabData.map(tabData => (
-                    <SidebarTabButton
-                      key={tabData.settingsTab}
-                      id={tabData.settingsTab}
-                      icon={tabData.icon}
-                      label={getText(tabData.nameId)}
-                      active={tabData.settingsTab === tab}
-                      onPress={() =>
-                        tabData.onPress
-                          ? tabData.onPress(context)
-                          : // even though this function returns void, we don't want to
+                  <ariaComponents.ButtonGroup gap="xxsmall" direction="column" align="start">
+                    {visibleTabData.map((tabData) => (
+                      <SidebarTabButton
+                        key={tabData.settingsTab}
+                        id={tabData.settingsTab}
+                        icon={tabData.icon}
+                        label={getText(tabData.nameId)}
+                        active={tabData.settingsTab === tab}
+                        onPress={() =>
+                          tabData.onPress ?
+                            tabData.onPress(context)
+                            // even though this function returns void, we don't want to
                             // complicate things by returning only in case of custom onPress
                             // eslint-disable-next-line @typescript-eslint/no-confusing-void-expression
-                            setTab(tabData.settingsTab)
-                      }
-                    />
-                  ))}
-                </ariaComponents.ButtonGroup>
-              </div>
-            )
+                          : setTab(tabData.settingsTab)
+                        }
+                      />
+                    ))}
+                  </ariaComponents.ButtonGroup>
+                </div>
           })}
         </div>
       )}

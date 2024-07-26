@@ -534,7 +534,7 @@ inset 0 -36px 51px -51px #00000014`,
         {
           respectPrefix: true,
           respectImportant: true,
-        }
+        },
       )
 
       /** One revolution, in radians. */
@@ -543,8 +543,8 @@ inset 0 -36px 51px -51px #00000014`,
         {
           // Values must be pre-computed, because FF does not support `calc()` in `stroke-dasharray`.
           // calc(12 * 0.05 * 6.2832) calc(12 * 6.2832)
-          dasharray: value => {
-            const [percentage = 0, radius = 0] = value.split('-').map(part => Number(part) || 0)
+          dasharray: (value) => {
+            const [percentage = 0, radius = 0] = value.split('-').map((part) => Number(part) || 0)
             return {
               strokeDasharray: `${radius * (percentage / 100) * revolution} ${
                 percentage === 1 ? 0 : radius * revolution
@@ -556,17 +556,17 @@ inset 0 -36px 51px -51px #00000014`,
           respectPrefix: true,
           respectImportant: true,
           values: theme('dashArray', {}),
-        }
+        },
       )
 
       matchUtilities(
         {
-          'translate-z': value => ({
+          'translate-z': (value) => ({
             '--tw-translate-z': value,
             transform: ` translate3d(var(--tw-translate-x), var(--tw-translate-y), var(--tw-translate-z)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))`,
           }),
         },
-        { values: theme('translate', {}), supportsNegativeValues: true }
+        { values: theme('translate', {}), supportsNegativeValues: true },
       )
 
       addComponents(
@@ -596,7 +596,7 @@ inset 0 -36px 51px -51px #00000014`,
         {
           respectPrefix: true,
           respectImportant: true,
-        }
+        },
       )
     }),
   ],

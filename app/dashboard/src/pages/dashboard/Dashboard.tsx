@@ -43,8 +43,7 @@ import Drive from '#/layouts/Drive'
 import type * as editor from '#/layouts/Editor'
 import Editor from '#/layouts/Editor'
 import Settings from '#/layouts/Settings'
-import * as tabBar from '#/layouts/TabBar'
-import TabBar from '#/layouts/TabBar'
+import TabBar, * as tabBar from '#/layouts/TabBar'
 import UserBar from '#/layouts/UserBar'
 
 import * as aria from '#/components/aria'
@@ -110,11 +109,10 @@ function DashboardInner(props: DashboardProps) {
   const navigate = useNavigate()
   const { pathname } = useLocation()
   const pathnameRef = useSyncRef(pathname)
-  const tab = pathname.startsWith('/settings/')
-    ? '/settings'
-    : pathname.startsWith('/drive/')
-      ? '/drive'
-      : pathname
+  const tab =
+    pathname.startsWith('/settings/') ? '/settings'
+    : pathname.startsWith('/drive/') ? '/drive'
+    : pathname
   const maybeCategory = pathname.startsWith('/drive/') ? pathname.replace(/^[/]drive[/]/, '') : null
   const category = isDriveCategory(maybeCategory) ? maybeCategory : 'cloud'
   const setCategory = useEventCallback((newCategory: DriveCategory) => {
@@ -127,14 +125,14 @@ function DashboardInner(props: DashboardProps) {
   const assetManagementApiRef = React.useRef<assetTable.AssetManagementApi | null>(null)
 
   const initialLocalProjectId =
-    initialProjectNameRaw != null && validator.isUUID(initialProjectNameRaw)
-      ? localBackendModule.newProjectId(projectManager.UUID(initialProjectNameRaw))
-      : null
+    initialProjectNameRaw != null && validator.isUUID(initialProjectNameRaw) ?
+      localBackendModule.newProjectId(projectManager.UUID(initialProjectNameRaw))
+    : null
   const initialProjectName = initialLocalProjectId ?? initialProjectNameRaw
 
   const projectsStore = useProjectsStore()
   const launchedProjects = useLaunchedProjects()
-  const selectedProject = launchedProjects.find(p => `/editor/${p.id}` === tab) ?? null
+  const selectedProject = launchedProjects.find((p) => `/editor/${p.id}` === tab) ?? null
 
   const openEditor = projectHooks.useOpenEditor()
   const openProject = projectHooks.useOpenProject()
@@ -145,7 +143,7 @@ function DashboardInner(props: DashboardProps) {
   const renameProjectMutation = projectHooks.useRenameProjectMutation()
 
   React.useEffect(() => {
-    window.projectManagementApi?.setOpenProjectHandler(project => {
+    window.projectManagementApi?.setOpenProjectHandler((project) => {
       setCategory('local')
       const projectId = localBackendModule.newProjectId(projectManager.UUID(project.id))
       openProject({
@@ -164,7 +162,7 @@ function DashboardInner(props: DashboardProps) {
     () =>
       inputBindings.attach(sanitizedEventTargets.document.body, 'keydown', {
         closeModal: () => {
-          updateModal(oldModal => {
+          updateModal((oldModal) => {
             if (oldModal == null) {
               const currentPathname = pathnameRef.current
               if (!currentPathname.startsWith('/editor')) {
@@ -179,7 +177,7 @@ function DashboardInner(props: DashboardProps) {
           }
         },
       }),
-    [inputBindings, modalRef, localStorage, updateModal, projectsStore, pathnameRef, navigate]
+    [inputBindings, modalRef, localStorage, updateModal, projectsStore, pathnameRef, navigate],
   )
 
   React.useEffect(() => {
@@ -213,14 +211,16 @@ function DashboardInner(props: DashboardProps) {
       const asset = assetManagementApiRef.current.getAsset(selectedProject.id)
       const self =
         asset?.permissions?.find(
-          backendModule.isUserPermissionAnd(permissions => permissions.user.userId === user.userId)
+          backendModule.isUserPermissionAnd(
+            (permissions) => permissions.user.userId === user.userId,
+          ),
         ) ?? null
 
       if (asset != null && self != null) {
         setModal(
           <ManagePermissionsModal
             item={asset}
-            setItem={updater => {
+            setItem={(updater) => {
               const nextAsset = updater instanceof Function ? updater(asset) : updater
               assetManagementApiRef.current?.setAsset(asset.id, nextAsset)
             }}
@@ -229,7 +229,7 @@ function DashboardInner(props: DashboardProps) {
               doRemoveSelf(selectedProject)
             }}
             eventTarget={null}
-          />
+          />,
         )
       }
     }
@@ -239,7 +239,7 @@ function DashboardInner(props: DashboardProps) {
     <Page hideInfoBar hideChat>
       <div
         className="flex min-h-full flex-col text-xs text-primary"
-        onContextMenu={event => {
+        onContextMenu={(event) => {
           event.preventDefault()
           unsetModal()
         }}
@@ -247,7 +247,7 @@ function DashboardInner(props: DashboardProps) {
         <aria.Tabs
           className="relative flex min-h-full grow select-none flex-col container-size"
           selectedKey={tab}
-          onSelectionChange={newPage => {
+          onSelectionChange={(newPage) => {
             if (typeof newPage === 'string' && isAppFullPath(newPage)) {
               navigate(newPage)
             }
@@ -259,7 +259,7 @@ function DashboardInner(props: DashboardProps) {
                 {getText('drivePageName')}
               </tabBar.Tab>
 
-              {launchedProjects.map(project => (
+              {launchedProjects.map((project) => (
                 <tabBar.Tab
                   data-testid="editor-tab-button"
                   path={`/editor/${project.id}`}
@@ -314,7 +314,7 @@ function DashboardInner(props: DashboardProps) {
             />
           </aria.TabPanel>
           {appRunner != null &&
-            launchedProjects.map(project => (
+            launchedProjects.map((project) => (
               <aria.TabPanel
                 shouldForceMount
                 id={`/editor/${project.id}`}
@@ -331,7 +331,7 @@ function DashboardInner(props: DashboardProps) {
                   isOpeningFailed={openProjectMutation.isError}
                   openingError={openProjectMutation.error}
                   startProject={openProjectMutation.mutate}
-                  renameProject={async newName => {
+                  renameProject={async (newName) => {
                     try {
                       await renameProjectMutation.mutateAsync({ newName, project })
                       dispatchAssetEvent({
@@ -354,7 +354,7 @@ function DashboardInner(props: DashboardProps) {
             <Settings />
           </aria.TabPanel>
         </aria.Tabs>
-        {process.env.ENSO_CLOUD_CHAT_URL != null ? (
+        {process.env.ENSO_CLOUD_CHAT_URL != null ?
           <Chat
             isOpen={isHelpChatOpen}
             doClose={() => {
@@ -362,14 +362,13 @@ function DashboardInner(props: DashboardProps) {
             }}
             endpoint={process.env.ENSO_CLOUD_CHAT_URL}
           />
-        ) : (
-          <ChatPlaceholder
+        : <ChatPlaceholder
             isOpen={isHelpChatOpen}
             doClose={() => {
               setIsHelpChatOpen(false)
             }}
           />
-        )}
+        }
       </div>
     </Page>
   )

@@ -26,41 +26,37 @@ await appConfig.readEnvironmentFromFile()
  * @see bundlerOptions
  */
 export function bundlerOptionsFromEnv(devMode = false): esbuild.BuildOptions {
-    return bundlerOptions(
-        path.join(paths.getIdeDirectory(), 'client'),
-        paths.getProjectManagerInBundlePath(),
-        devMode
-    )
+  return bundlerOptions(
+    path.join(paths.getIdeDirectory(), 'client'),
+    paths.getProjectManagerInBundlePath(),
+    devMode,
+  )
 }
 
 /** Get options without relying on the environment. */
 export function bundlerOptions(
-    outdir: string,
-    projectManagerInBundlePath: string,
-    devMode = false
+  outdir: string,
+  projectManagerInBundlePath: string,
+  devMode = false,
 ): esbuild.BuildOptions {
-    return {
-        bundle: true,
-        outdir,
-        entryPoints: ['src/index.ts', 'src/preload.ts'],
-        outbase: 'src',
-        format: 'cjs',
-        platform: 'node',
-        plugins: [esbuildPluginYaml.yamlPlugin({})],
-        // The names come from a third-party API and cannot be changed.
-        /* eslint-disable @typescript-eslint/naming-convention */
-        outExtension: { '.js': '.cjs' },
-        define: {
-            'process.env.PROJECT_MANAGER_IN_BUNDLE_PATH': JSON.stringify(
-                projectManagerInBundlePath
-            ),
-            'process.env.ELECTRON_DEV_MODE': JSON.stringify(String(devMode)),
-            'process.env.GUI_CONFIG_PATH': JSON.stringify(
-                path.resolve('../../gui2/vite.config.ts')
-            ),
-        },
-        /* eslint-enable @typescript-eslint/naming-convention */
-        sourcemap: true,
-        external: ['electron', 'vite', 'lightningcss'],
-    }
+  return {
+    bundle: true,
+    outdir,
+    entryPoints: ['src/index.ts', 'src/preload.ts'],
+    outbase: 'src',
+    format: 'cjs',
+    platform: 'node',
+    plugins: [esbuildPluginYaml.yamlPlugin({})],
+    // The names come from a third-party API and cannot be changed.
+    /* eslint-disable @typescript-eslint/naming-convention */
+    outExtension: { '.js': '.cjs' },
+    define: {
+      'process.env.PROJECT_MANAGER_IN_BUNDLE_PATH': JSON.stringify(projectManagerInBundlePath),
+      'process.env.ELECTRON_DEV_MODE': JSON.stringify(String(devMode)),
+      'process.env.GUI_CONFIG_PATH': JSON.stringify(path.resolve('../../gui2/vite.config.ts')),
+    },
+    /* eslint-enable @typescript-eslint/naming-convention */
+    sourcemap: true,
+    external: ['electron', 'vite', 'lightningcss'],
+  }
 }

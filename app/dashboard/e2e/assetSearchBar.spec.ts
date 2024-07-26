@@ -34,7 +34,7 @@ test.test('tags', async ({ page }) => {
 test.test('labels', async ({ page }) => {
   await actions.mockAllAndLogin({
     page,
-    setupAPI: api => {
+    setupAPI: (api) => {
       api.addLabel('aaaa', backend.COLORS[0])
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       api.addLabel('bbbb', backend.COLORS[1]!)
@@ -63,7 +63,7 @@ test.test('labels', async ({ page }) => {
 test.test('suggestions', async ({ page }) => {
   await actions.mockAllAndLogin({
     page,
-    setupAPI: api => {
+    setupAPI: (api) => {
       api.addDirectory('foo')
       api.addProject('bar')
       api.addSecret('baz')
@@ -89,7 +89,7 @@ test.test('suggestions', async ({ page }) => {
 test.test('suggestions (keyboard)', async ({ page }) => {
   await actions.mockAllAndLogin({
     page,
-    setupAPI: api => {
+    setupAPI: (api) => {
       api.addDirectory('foo')
       api.addProject('bar')
       api.addSecret('baz')
@@ -114,7 +114,7 @@ test.test('complex flows', async ({ page }) => {
 
   await actions.mockAllAndLogin({
     page,
-    setupAPI: api => {
+    setupAPI: (api) => {
       api.addDirectory(firstName)
       api.addProject('bar')
       api.addSecret('baz')

@@ -11,8 +11,8 @@ import ComputerIcon from '#/assets/computer.svg'
 import CreditCardIcon from '#/assets/credit_card.svg'
 import KeyboardShortcutsIcon from '#/assets/keyboard_shortcuts.svg'
 import LogIcon from '#/assets/log.svg'
-import PeopleSettingsIcon from '#/assets/people_settings.svg'
 import PeopleIcon from '#/assets/people.svg'
+import PeopleSettingsIcon from '#/assets/people_settings.svg'
 import SettingsIcon from '#/assets/settings.svg'
 
 import * as inputBindings from '#/configurations/inputBindings'
@@ -34,8 +34,8 @@ import UserGroupsSettingsSection from '#/layouts/Settings/UserGroupsSettingsSect
 
 import * as menuEntry from '#/components/MenuEntry'
 
-import * as backend from '#/services/Backend'
 import type Backend from '#/services/Backend'
+import * as backend from '#/services/Backend'
 import type LocalBackend from '#/services/LocalBackend'
 import type RemoteBackend from '#/services/RemoteBackend'
 
@@ -75,7 +75,7 @@ export const SETTINGS_NO_RESULTS_SECTION_DATA: SettingsSectionData = {
   entries: [
     {
       type: 'custom',
-      render: context => (
+      render: (context) => (
         <div className="grid max-w-[512px] justify-center">{context.getText('noResultsFound')}</div>
       ),
     },
@@ -95,28 +95,26 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
           {
             type: 'input',
             nameId: 'userNameSettingsInput',
-            getValue: context => context.user.name,
+            getValue: (context) => context.user.name,
             setValue: async (context, newName) => {
               const oldName = context.user.name
               if (newName !== oldName) {
                 await context.updateUser([{ username: newName }])
               }
             },
-            validate: name => (/\S/.test(name) ? true : ''),
+            validate: (name) => (/\S/.test(name) ? true : ''),
             getEditable: () => true,
           },
           {
             type: 'input',
             nameId: 'userEmailSettingsInput',
-            getValue: context => context.user.email,
+            getValue: (context) => context.user.email,
             // A user's email currently cannot be changed.
             setValue: async () => {},
             validate: (email, context) =>
-              isEmail(email)
-                ? true
-                : email === ''
-                  ? ''
-                  : context.getText('invalidEmailValidationError'),
+              isEmail(email) ? true
+              : email === '' ? ''
+              : context.getText('invalidEmailValidationError'),
             getEditable: () => false,
           },
         ],
@@ -128,7 +126,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
             type: 'custom',
             aliasesId: 'changePasswordSettingsCustomEntryAliases',
             render: ChangePasswordForm,
-            getVisible: context => {
+            getVisible: (context) => {
               // The shape of the JWT payload is statically known.
               // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
               const username: string | null =
@@ -157,7 +155,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
           {
             type: 'custom',
             aliasesId: 'profilePictureSettingsCustomEntryAliases',
-            render: context => <ProfilePictureInput backend={context.backend} />,
+            render: (context) => <ProfilePictureInput backend={context.backend} />,
           },
         ],
       },
@@ -175,20 +173,20 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
           {
             type: 'input',
             nameId: 'organizationNameSettingsInput',
-            getValue: context => context.organization?.name ?? '',
+            getValue: (context) => context.organization?.name ?? '',
             setValue: async (context, newName) => {
               const oldName = context.organization?.name ?? null
               if (oldName !== newName) {
                 await context.updateOrganization([{ name: newName }])
               }
             },
-            validate: name => (/\S/.test(name) ? true : ''),
+            validate: (name) => (/\S/.test(name) ? true : ''),
             getEditable: () => true,
           },
           {
             type: 'input',
             nameId: 'organizationEmailSettingsInput',
-            getValue: context => context.organization?.email ?? '',
+            getValue: (context) => context.organization?.email ?? '',
             setValue: async (context, newValue) => {
               const newEmail = backend.EmailAddress(newValue)
               const oldEmail = context.organization?.email ?? null
@@ -197,17 +195,15 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
               }
             },
             validate: (email, context) =>
-              isEmail(email)
-                ? true
-                : email === ''
-                  ? ''
-                  : context.getText('invalidEmailValidationError'),
+              isEmail(email) ? true
+              : email === '' ? ''
+              : context.getText('invalidEmailValidationError'),
             getEditable: () => true,
           },
           {
             type: 'input',
             nameId: 'organizationWebsiteSettingsInput',
-            getValue: context => context.organization?.website ?? '',
+            getValue: (context) => context.organization?.website ?? '',
             setValue: async (context, newValue) => {
               const newWebsite = backend.HttpsUrl(newValue)
               const oldWebsite = context.organization?.website ?? null
@@ -220,7 +216,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
           {
             type: 'input',
             nameId: 'organizationLocationSettingsInput',
-            getValue: context => context.organization?.address ?? '',
+            getValue: (context) => context.organization?.address ?? '',
             setValue: async (context, newLocation) => {
               const oldLocation = context.organization?.address ?? null
               if (oldLocation !== newLocation) {
@@ -238,7 +234,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
           {
             type: 'custom',
             aliasesId: 'organizationProfilePictureSettingsCustomEntryAliases',
-            render: context => <OrganizationProfilePictureInput backend={context.backend} />,
+            render: (context) => <OrganizationProfilePictureInput backend={context.backend} />,
           },
         ],
       },
@@ -248,7 +244,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
     nameId: 'localSettingsTab',
     settingsTab: 'local',
     icon: ComputerIcon,
-    visible: context => context.localBackend != null,
+    visible: (context) => context.localBackend != null,
     sections: [
       {
         nameId: 'localSettingsSection',
@@ -256,7 +252,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
           {
             type: 'input',
             nameId: 'localRootPathSettingsInput',
-            getValue: context => context.localBackend?.rootPath ?? '',
+            getValue: (context) => context.localBackend?.rootPath ?? '',
             setValue: (context, value) => context.updateLocalRootPath(value),
             getEditable: () => true,
           },
@@ -269,9 +265,9 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
     settingsTab: 'billing-and-plans',
     icon: CreditCardIcon,
     organizationOnly: true,
-    visible: context => context.organization?.subscription != null,
+    visible: (context) => context.organization?.subscription != null,
     sections: [],
-    onPress: context =>
+    onPress: (context) =>
       context.queryClient
         .getMutationCache()
         .build(context.queryClient, {
@@ -279,12 +275,12 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
           mutationFn: () =>
             context.backend
               .createCustomerPortalSession()
-              .then(url => {
+              .then((url) => {
                 if (url != null) {
                   window.open(url, '_blank')?.focus()
                 }
               })
-              .catch(err => {
+              .catch((err) => {
                 context.toastAndLog('arbitraryErrorTitle', err)
                 throw err
               }),
@@ -317,7 +313,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
         entries: [
           {
             type: 'custom',
-            render: context => <UserGroupsSettingsSection backend={context.backend} />,
+            render: (context) => <UserGroupsSettingsSection backend={context.backend} />,
           },
         ],
       },
@@ -328,7 +324,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
         entries: [
           {
             type: 'custom',
-            render: context => (
+            render: (context) => (
               <MembersTable backend={context.backend} draggable populateWithSelf />
             ),
           },
@@ -347,10 +343,10 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
           {
             type: 'custom',
             aliasesId: 'keyboardShortcutsSettingsCustomEntryAliases',
-            getExtraAliases: context => {
+            getExtraAliases: (context) => {
               const rebindableBindings = object
                 .unsafeEntries(inputBindings.BINDINGS)
-                .flatMap(kv => {
+                .flatMap((kv) => {
                   const [k, v] = kv
                   if (v.rebindable === false) {
                     return []
@@ -358,7 +354,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
                     return menuEntry.ACTION_TO_TEXT_ID[k]
                   }
                 })
-              return rebindableBindings.map(binding => context.getText(binding))
+              return rebindableBindings.map((binding) => context.getText(binding))
             },
             render: KeyboardShortcutsSettingsSection,
           },
@@ -377,7 +373,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
         entries: [
           {
             type: 'custom',
-            render: context => <ActivityLogSettingsSection backend={context.backend} />,
+            render: (context) => <ActivityLogSettingsSection backend={context.backend} />,
           },
         ],
       },
@@ -413,8 +409,8 @@ export const SETTINGS_DATA: SettingsData = [
   },
 ]
 
-export const ALL_SETTINGS_TABS = SETTINGS_DATA.flatMap(section =>
-  section.tabs.map(tab => tab.settingsTab)
+export const ALL_SETTINGS_TABS = SETTINGS_DATA.flatMap((section) =>
+  section.tabs.map((tab) => tab.settingsTab),
 )
 
 // =======================
@@ -430,7 +426,7 @@ export interface SettingsContext {
   readonly organization: backend.OrganizationInfo | null
   readonly updateUser: (variables: Parameters<Backend['updateUser']>) => Promise<void>
   readonly updateOrganization: (
-    variables: Parameters<Backend['updateOrganization']>
+    variables: Parameters<Backend['updateOrganization']>,
   ) => Promise<backend.OrganizationInfo | null | undefined>
   readonly updateLocalRootPath: (rootPath: string) => Promise<void>
   readonly toastAndLog: toastAndLogHooks.ToastAndLogCallback

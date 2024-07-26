@@ -14,39 +14,39 @@ const CHILD_PROCESS_TIMEOUT = 3000
  * Detects path of the user documents directory depending on the operating system.
  */
 function getDocumentsPath(): string | undefined {
-    if (process.platform === 'linux') {
-        return getLinuxDocumentsPath()
-    } else if (process.platform === 'darwin') {
-        return getMacOsDocumentsPath()
-    } else if (process.platform === 'win32') {
-        return getWindowsDocumentsPath()
-    } else {
-        return
-    }
+  if (process.platform === 'linux') {
+    return getLinuxDocumentsPath()
+  } else if (process.platform === 'darwin') {
+    return getMacOsDocumentsPath()
+  } else if (process.platform === 'win32') {
+    return getWindowsDocumentsPath()
+  } else {
+    return
+  }
 }
 
 /**
  * Returns the user documents path on Linux.
  */
 function getLinuxDocumentsPath(): string {
-    const xdgDocumentsPath = getXdgDocumentsPath()
+  const xdgDocumentsPath = getXdgDocumentsPath()
 
-    return xdgDocumentsPath ?? path.join(os.homedir(), 'enso')
+  return xdgDocumentsPath ?? path.join(os.homedir(), 'enso')
 }
 
 /**
  * Gets the documents directory from the XDG directory management system.
  */
 function getXdgDocumentsPath(): string | undefined {
-    const out = childProcess.spawnSync('xdg-user-dir', ['DOCUMENTS'], {
-        timeout: CHILD_PROCESS_TIMEOUT,
-    })
+  const out = childProcess.spawnSync('xdg-user-dir', ['DOCUMENTS'], {
+    timeout: CHILD_PROCESS_TIMEOUT,
+  })
 
-    if (out.error !== undefined) {
-        return
-    } else {
-        return out.stdout.toString().trim()
-    }
+  if (out.error !== undefined) {
+    return
+  } else {
+    return out.stdout.toString().trim()
+  }
 }
 
 /**
@@ -54,28 +54,28 @@ function getXdgDocumentsPath(): string | undefined {
  * real locale-specific user documents directory.
  */
 function getMacOsDocumentsPath(): string {
-    return path.join(os.homedir(), 'Documents')
+  return path.join(os.homedir(), 'Documents')
 }
 
 /**
  * Get the path to the `My Documents` Windows directory.
  */
 function getWindowsDocumentsPath(): string | undefined {
-    const out = childProcess.spawnSync(
-        'reg',
-        [
-            'query',
-            'HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders',
-            '/v',
-            'personal',
-        ],
-        { timeout: CHILD_PROCESS_TIMEOUT }
-    )
+  const out = childProcess.spawnSync(
+    'reg',
+    [
+      'query',
+      'HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders',
+      '/v',
+      'personal',
+    ],
+    { timeout: CHILD_PROCESS_TIMEOUT },
+  )
 
-    if (out.error !== undefined) {
-        return
-    } else {
-        const stdoutString = out.stdout.toString()
-        return stdoutString.split(/\s\s+/)[4]
-    }
+  if (out.error !== undefined) {
+    return
+  } else {
+    const stdoutString = out.stdout.toString()
+    return stdoutString.split(/\s\s+/)[4]
+  }
 }

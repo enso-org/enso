@@ -10,11 +10,10 @@ import * as textProvider from '#/providers/TextProvider'
 import AssetVersion from '#/layouts/AssetVersions/AssetVersion'
 import * as useAssetVersions from '#/layouts/AssetVersions/useAssetVersions'
 
-import Spinner from '#/components/Spinner'
-import * as spinnerModule from '#/components/Spinner'
+import Spinner, * as spinnerModule from '#/components/Spinner'
 
-import * as backendService from '#/services/Backend'
 import type Backend from '#/services/Backend'
+import * as backendService from '#/services/Backend'
 
 import type AssetTreeNode from '#/utilities/AssetTreeNode'
 import * as dateTime from '#/utilities/dateTime'
@@ -55,10 +54,10 @@ export default function AssetVersions(props: AssetVersionsProps) {
     queryKey,
     assetId: item.item.id,
     title: item.item.title,
-    onError: backendError => toastAndLog('listVersionsError', backendError),
+    onError: (backendError) => toastAndLog('listVersionsError', backendError),
     enabled: isCloud,
   })
-  const latestVersion = versionsQuery.data?.find(version => version.isLatest)
+  const latestVersion = versionsQuery.data?.find((version) => version.isLatest)
 
   const restoreMutation = reactQuery.useMutation({
     mutationFn: async (variables: AddNewVersionVariables) => {
@@ -66,8 +65,8 @@ export default function AssetVersions(props: AssetVersionsProps) {
         await backend.restoreProject(item.item.id, variables.versionId, item.item.title)
       }
     },
-    onMutate: variables => {
-      setPlaceholderVersions(oldVersions => [
+    onMutate: (variables) => {
+      setPlaceholderVersions((oldVersions) => [
         {
           isLatest: false,
           key: uniqueString.uniqueString(),
@@ -86,26 +85,25 @@ export default function AssetVersions(props: AssetVersionsProps) {
       toastAndLog('restoreProjectError', error, item.item.title)
     },
     onSettled: (_data, _error, variables) => {
-      setPlaceholderVersions(oldVersions =>
-        oldVersions.filter(version => version.versionId !== variables.placeholderId)
+      setPlaceholderVersions((oldVersions) =>
+        oldVersions.filter((version) => version.versionId !== variables.placeholderId),
       )
     },
   })
 
   return (
     <div className="pointer-events-auto flex flex-1 shrink-0 flex-col items-center overflow-y-auto overflow-x-hidden">
-      {!isCloud ? (
+      {!isCloud ?
         <div>{getText('localAssetsDoNotHaveVersions')}</div>
-      ) : versionsQuery.isPending ? (
+      : versionsQuery.isPending ?
         <Spinner size={32} state={spinnerModule.SpinnerState.loadingMedium} />
-      ) : versionsQuery.isError ? (
+      : versionsQuery.isError ?
         <div>{getText('listVersionsError')}</div>
-      ) : versionsQuery.data.length === 0 ? (
+      : versionsQuery.data.length === 0 ?
         <div>{getText('noVersionsFound')}</div>
-      ) : latestVersion == null ? (
+      : latestVersion == null ?
         <div>{getText('fetchLatestVersionError')}</div>
-      ) : (
-        [
+      : [
           ...placeholderVersions.map((version, i) => (
             <AssetVersion
               key={version.versionId}
@@ -135,7 +133,7 @@ export default function AssetVersions(props: AssetVersionsProps) {
             />
           )),
         ]
-      )}
+      }
     </div>
   )
 }

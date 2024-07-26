@@ -82,8 +82,8 @@ export function useVisualTooltip(props: VisualTooltipProps) {
   const handleHoverChange = eventCallback.useEventCallback((isHovered: boolean) => {
     const shouldDisplay = () => {
       if (isHovered && targetRef.current != null) {
-        return typeof display === 'function'
-          ? display(targetRef.current)
+        return typeof display === 'function' ?
+            display(targetRef.current)
           : DISPLAY_STRATEGIES[display](targetRef.current)
       } else {
         return false
@@ -143,7 +143,7 @@ export function useVisualTooltip(props: VisualTooltipProps) {
             // Remove z-index from the overlay style
             // because it's not needed(we show latest element on top) and can cause issues with stacking context
             style: { zIndex: '' },
-          }
+          },
         )}
       >
         {children}
@@ -159,6 +159,6 @@ export function useVisualTooltip(props: VisualTooltipProps) {
 
 const DISPLAY_STRATEGIES: Record<DisplayStrategy, (target: HTMLElement) => boolean> = {
   always: () => true,
-  whenOverflowing: target =>
+  whenOverflowing: (target) =>
     target.scrollWidth > target.clientWidth || target.scrollHeight > target.clientHeight,
 }

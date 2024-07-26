@@ -41,11 +41,11 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const labels = backendHooks.useBackendListTags(backend)
   const labelsByName = React.useMemo(() => {
-    return new Map(labels?.map(label => [label.value, label]))
+    return new Map(labels?.map((label) => [label.value, label]))
   }, [labels])
   const plusButtonRef = React.useRef<HTMLButtonElement>(null)
   const self = asset.permissions?.find(
-    backendModule.isUserPermissionAnd(permission => permission.user.userId === user.userId)
+    backendModule.isUserPermissionAnd((permission) => permission.user.userId === user.userId),
   )
   const managesThisAsset =
     category !== 'trash' &&
@@ -53,21 +53,21 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
       self?.permission === permissions.PermissionAction.admin)
   const setAsset = React.useCallback(
     (valueOrUpdater: React.SetStateAction<backendModule.AnyAsset>) => {
-      setItem(oldItem =>
+      setItem((oldItem) =>
         oldItem.with({
           item:
             typeof valueOrUpdater !== 'function' ? valueOrUpdater : valueOrUpdater(oldItem.item),
-        })
+        }),
       )
     },
-    [setItem]
+    [setItem],
   )
 
   return (
     <div className="group flex items-center gap-column-items">
       {(asset.labels ?? [])
-        .filter(label => labelsByName.has(label))
-        .map(label => (
+        .filter((label) => labelsByName.has(label))
+        .map((label) => (
           <Label
             key={label}
             data-testid="asset-label"
@@ -77,27 +77,27 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
             isDisabled={temporarilyRemovedLabels.has(label)}
             negated={temporarilyRemovedLabels.has(label)}
             className={
-              temporarilyRemovedLabels.has(label)
-                ? 'relative before:absolute before:inset before:h-full before:w-full before:rounded-full before:border-2 before:border-delete'
-                : ''
+              temporarilyRemovedLabels.has(label) ?
+                'relative before:absolute before:inset before:h-full before:w-full before:rounded-full before:border-2 before:border-delete'
+              : ''
             }
-            onContextMenu={event => {
+            onContextMenu={(event) => {
               event.preventDefault()
               event.stopPropagation()
               const doDelete = () => {
                 unsetModal()
-                setAsset(oldAsset => {
-                  const newLabels = oldAsset.labels?.filter(oldLabel => oldLabel !== label) ?? []
+                setAsset((oldAsset) => {
+                  const newLabels = oldAsset.labels?.filter((oldLabel) => oldLabel !== label) ?? []
                   void backend
                     .associateTag(asset.id, newLabels, asset.title)
                     .catch((error: unknown) => {
                       toastAndLog(null, error)
-                      setAsset(oldAsset2 =>
-                        oldAsset2.labels?.some(oldLabel => oldLabel === label) === true
-                          ? oldAsset2
-                          : object.merge(oldAsset2, {
-                              labels: [...(oldAsset2.labels ?? []), label],
-                            })
+                      setAsset((oldAsset2) =>
+                        oldAsset2.labels?.some((oldLabel) => oldLabel === label) === true ?
+                          oldAsset2
+                        : object.merge(oldAsset2, {
+                            labels: [...(oldAsset2.labels ?? []), label],
+                          }),
                       )
                     })
                   return object.merge(oldAsset, { labels: newLabels })
@@ -112,12 +112,12 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
                       doAction={doDelete}
                     />
                   </ContextMenu>
-                </ContextMenus>
+                </ContextMenus>,
               )
             }}
-            onPress={event => {
-              setQuery(oldQuery =>
-                oldQuery.withToggled('labels', 'negativeLabels', label, event.shiftKey)
+            onPress={(event) => {
+              setQuery((oldQuery) =>
+                oldQuery.withToggled('labels', 'negativeLabels', label, event.shiftKey),
               )
             }}
           >
@@ -125,8 +125,8 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
           </Label>
         ))}
       {...[...temporarilyAddedLabels]
-        .filter(label => asset.labels?.includes(label) !== true)
-        .map(label => (
+        .filter((label) => asset.labels?.includes(label) !== true)
+        .map((label) => (
           <Label
             isDisabled
             key={label}
@@ -152,7 +152,7 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
                 item={asset}
                 setItem={setAsset}
                 eventTarget={plusButtonRef.current}
-              />
+              />,
             )
           }}
         />

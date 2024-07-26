@@ -135,7 +135,7 @@ export function useOpenProjectMutation() {
           },
           parentId,
         },
-        title
+        title,
       )
     },
     onMutate: ({ id }) => {
@@ -208,10 +208,10 @@ export function useRenameProjectMutation() {
       return backend.updateProject(id, { projectName: newName, ami: null, ideVersion: null }, title)
     },
     onSuccess: (_, { newName, project }) => {
-      updateLaunchedProjects(projects =>
-        projects.map(otherProject =>
-          project.id !== otherProject.id ? otherProject : merge(otherProject, { title: newName })
-        )
+      updateLaunchedProjects((projects) =>
+        projects.map((otherProject) =>
+          project.id !== otherProject.id ? otherProject : merge(otherProject, { title: newName }),
+        ),
       )
       return client.invalidateQueries({
         queryKey: createGetProjectDetailsQuery.getQueryKey(project.id),
@@ -238,7 +238,7 @@ export function useOpenProject() {
     }
     const existingMutation = client.getMutationCache().find({
       mutationKey: ['openProject'],
-      predicate: mutation => mutation.options.scope?.id === project.id,
+      predicate: (mutation) => mutation.options.scope?.id === project.id,
     })
     const isOpeningTheSameProject = existingMutation?.state.status === 'pending'
     if (!isOpeningTheSameProject) {
@@ -247,7 +247,7 @@ export function useOpenProject() {
         mutationKey: ['openProject'],
         // this is unsafe, but we can't do anything about it
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        predicate: mutation => mutation.state.variables?.id === project.id,
+        predicate: (mutation) => mutation.state.variables?.id === project.id,
       })
       openingProjectMutation?.setOptions({
         ...openingProjectMutation.options,
@@ -289,9 +289,9 @@ export function useCloseProject() {
       .getMutationCache()
       .findAll({
         mutationKey: ['openProject'],
-        predicate: mutation => mutation.options.scope?.id === project.id,
+        predicate: (mutation) => mutation.options.scope?.id === project.id,
       })
-      .forEach(mutation => {
+      .forEach((mutation) => {
         mutation.setOptions({ ...mutation.options, retry: false })
         mutation.destroy()
       })
@@ -302,9 +302,9 @@ export function useCloseProject() {
         mutationKey: ['closeProject'],
         // this is unsafe, but we can't do anything about it
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        predicate: mutation => mutation.state.variables?.id === project.id,
+        predicate: (mutation) => mutation.state.variables?.id === project.id,
       })
-      .forEach(mutation => {
+      .forEach((mutation) => {
         mutation.setOptions({ ...mutation.options, scope: { id: project.id } })
       })
     removeLaunchedProject(project.id)

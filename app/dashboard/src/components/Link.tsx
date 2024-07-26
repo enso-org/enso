@@ -43,7 +43,7 @@ export default function Link(props: LinkProps) {
 
   return (
     <FocusRing>
-      {openInBrowser ? (
+      {openInBrowser ?
         <aria.Link
           {...aria.mergeProps<aria.LinkProps>()(focusChildProps, {
             href: to,
@@ -56,8 +56,7 @@ export default function Link(props: LinkProps) {
         >
           {contents}
         </aria.Link>
-      ) : (
-        <router.Link
+      : <router.Link
           {...aria.mergeProps<router.LinkProps>()(focusChildProps, {
             to,
             className,
@@ -66,7 +65,7 @@ export default function Link(props: LinkProps) {
         >
           {contents}
         </router.Link>
-      )}
+      }
     </FocusRing>
   )
 }

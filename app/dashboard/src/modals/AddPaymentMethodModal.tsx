@@ -64,7 +64,7 @@ export function AddPaymentMethodForm(props: AddPaymentMethodFormProps) {
   const { getText } = text.useText()
 
   const [cardElement, setCardElement] = React.useState<stripeJs.StripeCardElement | null>(() =>
-    elements.getElement(stripeReact.CardElement)
+    elements.getElement(stripeReact.CardElement),
   )
 
   const dialogContext = ariaComponents.useDialogContext()
@@ -76,7 +76,7 @@ export function AddPaymentMethodForm(props: AddPaymentMethodFormProps) {
       } else {
         return stripeInstance
           .createPaymentMethod({ type: 'card', card: cardElement })
-          .then(result => {
+          .then((result) => {
             if (result.error) {
               throw new Error(result.error.message)
             } else {
@@ -85,7 +85,7 @@ export function AddPaymentMethodForm(props: AddPaymentMethodFormProps) {
           })
       }
     },
-    onSuccess: async paymentMethod => {
+    onSuccess: async (paymentMethod) => {
       await onSubmit?.(paymentMethod.paymentMethod.id)
       cardElement?.clear()
     },
@@ -101,12 +101,12 @@ export function AddPaymentMethodForm(props: AddPaymentMethodFormProps) {
               .object({ message: ariaComponents.Form.schema.string() })
               .nullish(),
           },
-          { message: getText('arbitraryFieldRequired') }
+          { message: getText('arbitraryFieldRequired') },
         )
         .nullable()
         .refine(
-          data => data?.error == null,
-          data => ({ message: data?.error?.message ?? getText('arbitraryFieldRequired') })
+          (data) => data?.error == null,
+          (data) => ({ message: data?.error?.message ?? getText('arbitraryFieldRequired') }),
         ),
     }),
   })
@@ -129,11 +129,11 @@ export function AddPaymentMethodForm(props: AddPaymentMethodFormProps) {
             },
           }}
           onEscape={() => dialogContext?.close()}
-          onReady={element => {
+          onReady={(element) => {
             setCardElement(element)
             element.focus()
           }}
-          onChange={event => {
+          onChange={(event) => {
             if (event.error?.message != null) {
               form.setError('card', { message: event.error.message })
             } else {
