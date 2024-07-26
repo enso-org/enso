@@ -69,7 +69,6 @@ import Dashboard from '#/pages/dashboard/Dashboard'
 import * as subscribe from '#/pages/subscribe/Subscribe'
 import * as subscribeSuccess from '#/pages/subscribe/SubscribeSuccess'
 
-import BackendRequestListener from '#/layouts/BackendRequestListener'
 import type * as editor from '#/layouts/Editor'
 import * as openAppWatcher from '#/layouts/OpenAppWatcher'
 import VersionChecker from '#/layouts/VersionChecker'
@@ -509,7 +508,6 @@ function AppRouter(props: AppRouterProps) {
             >
               <InputBindingsProvider inputBindings={inputBindings}>
                 <errorBoundary.ErrorBoundary>
-                  <BackendRequestListener />
                   <VersionChecker />
                   {routes}
                 </errorBoundary.ErrorBoundary>

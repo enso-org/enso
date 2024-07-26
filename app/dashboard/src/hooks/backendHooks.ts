@@ -4,7 +4,6 @@ import * as React from 'react'
 import * as reactQuery from '@tanstack/react-query'
 
 import * as backendQuery from 'enso-common/src/backendQuery'
-import { merge } from 'enso-common/src/utilities/data/object'
 
 import * as authProvider from '#/providers/AuthProvider'
 
@@ -12,61 +11,6 @@ import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
 
 import * as uniqueString from '#/utilities/uniqueString'
-
-// ==============================
-// === BackendMutationOptions ===
-// ==============================
-
-/** Mutation options for a specific backend method. */
-interface BackendMutationOptions<Method extends MutationMethod>
-  extends Omit<
-    reactQuery.UseMutationOptions<
-      Awaited<ReturnType<Extract<Backend[Method], (...args: never) => unknown>>>,
-      Error,
-      Parameters<Extract<Backend[Method], (...args: never) => unknown>>,
-      unknown
-    >,
-    'mutationFn'
-  > {
-  readonly mutationKey: [backendModule.BackendType, Method]
-}
-
-// =======================
-// === BackendMutation ===
-// =======================
-
-/** A mutation corresponding to a specific backend method. */
-interface BackendMutation<Method extends MutationMethod = MutationMethod>
-  extends reactQuery.Mutation<
-    Awaited<ReturnType<Backend[Method]>>,
-    Error,
-    Parameters<Backend[Method]>
-  > {
-  readonly options: BackendMutationOptions<Method>
-}
-
-// =================================
-// === BackendMutationWithMethod ===
-// =================================
-
-/** A mutation corresponding to a specific backend method. */
-interface BackendMutationWithMethod<Method extends MutationMethod = MutationMethod> {
-  readonly method: Method
-  readonly mutation: BackendMutation<Method> & {
-    readonly state: BackendMutation<Method>['state'] & {
-      readonly data: Exclude<BackendMutation<Method>['state']['data'], undefined>
-      readonly variables: Exclude<BackendMutation<Method>['state']['variables'], undefined>
-    }
-  }
-}
-
-// ==========================
-// === AnyBackendMutation ===
-// ==========================
-
-/** A discriminated union of all backend mutations. */
-type AnyBackendMutationWithMethod<Method extends MutationMethod = MutationMethod> =
-  Method extends Method ? BackendMutationWithMethod<Method> : never
 
 // ============================
 // === revokeUserPictureUrl ===
@@ -188,22 +132,6 @@ export type MutationMethod = DefineBackendMethods<
   | 'uploadUserPicture'
 >
 
-// ===========================
-// === setBackendQueryData ===
-// ===========================
-
-/** A type-safe function to set query data for backend. */
-function setBackendQueryData<Method extends backendQuery.BackendMethods>(
-  queryClient: reactQuery.QueryClient,
-  backendType: backendModule.BackendType | null,
-  method: Method,
-  updater: (variable: Awaited<ReturnType<Backend[Method]>>) => Awaited<ReturnType<Backend[Method]>>,
-) {
-  queryClient.setQueryData<Awaited<ReturnType<Backend[Method]>>>([backendType, method], (data) =>
-    data == null ? data : updater(data),
-  )
-}
-
 // =======================
 // === useBackendQuery ===
 // =======================
@@ -271,23 +199,19 @@ export function useBackendQuery<Method extends backendQuery.BackendMethods>(
 // === useBackendMutation ===
 // ==========================
 
-/** Wrap a backend method call in a React Query Mutation. */
-// eslint-disable-next-line no-restricted-syntax
-export const backendMutationOptions: <Method extends MutationMethod>(
-  backend: Backend,
-  method: Method,
-  options?: Omit<
-    reactQuery.UseMutationOptions<
-      Awaited<ReturnType<Extract<Backend[Method], (...args: never) => unknown>>>,
-      Error,
-      Parameters<Extract<Backend[Method], (...args: never) => unknown>>,
-      unknown
-    >,
-    'mutationFn'
-  >,
-) => ReturnType<typeof backendMutationOptionsInternal<Method>> = backendMutationOptionsInternal
+const INVALIDATION_MAP: Partial<Record<MutationMethod, readonly backendQuery.BackendMethods[]>> = {
+  updateUser: ['usersMe'],
+  uploadUserPicture: ['usersMe'],
+  updateOrganization: ['getOrganization'],
+  uploadOrganizationPicture: ['getOrganization'],
+  createUserGroup: ['listUserGroups'],
+  deleteUserGroup: ['listUserGroups'],
+  changeUserGroup: ['listUsers'],
+  createTag: ['listTags'],
+  deleteTag: ['listTags'],
+}
 
-function backendMutationOptionsInternal<Method extends MutationMethod>(
+export function backendMutationOptions<Method extends MutationMethod>(
   backend: Backend,
   method: Method,
   options?: Omit<
@@ -303,7 +227,7 @@ function backendMutationOptionsInternal<Method extends MutationMethod>(
   Error,
   Parameters<Backend[Method]>
 >
-function backendMutationOptionsInternal<Method extends MutationMethod>(
+export function backendMutationOptions<Method extends MutationMethod>(
   backend: Backend | null,
   method: Method,
   options?: Omit<
@@ -319,29 +243,8 @@ function backendMutationOptionsInternal<Method extends MutationMethod>(
   Error,
   Parameters<Backend[Method]>
 >
-// This duplicate signature is required:
-// The first signature is required, because the second signaure is wider than the first and would
-// otherwise match all calls, and return a result that is too wide.
-// This signature is required because the last signature is the one that is picked up by generic
-// resolution - specifically the `typeof useBackendMutationInternal` above.
-function backendMutationOptionsInternal<Method extends MutationMethod>(
-  backend: Backend,
-  method: Method,
-  options?: Omit<
-    reactQuery.UseMutationOptions<
-      Awaited<ReturnType<Backend[Method]>>,
-      Error,
-      Parameters<Backend[Method]>
-    >,
-    'mutationFn'
-  >,
-): reactQuery.UseMutationOptions<
-  Awaited<ReturnType<Backend[Method]>>,
-  Error,
-  Parameters<Backend[Method]>
->
 /** Wrap a backend method call in a React Query Mutation. */
-function backendMutationOptionsInternal<Method extends MutationMethod>(
+export function backendMutationOptions<Method extends MutationMethod>(
   backend: Backend | null,
   method: Method,
   options?: Omit<
@@ -363,6 +266,13 @@ function backendMutationOptionsInternal<Method extends MutationMethod>(
     // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-return
     mutationFn: (args) => (backend?.[method] as any)?.(...args),
     networkMode: backend?.type === backendModule.BackendType.local ? 'always' : 'online',
+    meta: {
+      invalidates: [
+        ...(options?.meta?.invalidates ?? []),
+        ...(INVALIDATION_MAP[method]?.map((queryMethod) => [backend?.type, queryMethod]) ?? []),
+      ],
+      awaitInvalidates: options?.meta?.awaitInvalidates ?? true,
+    },
   }
 }
 
@@ -615,96 +525,4 @@ export function useGetOrganization(backend: Backend | null) {
     updateOrganizationVariables,
     uploadOrganizationPictureVariables,
   ])
-}
-
-// ==================================
-// === useBackendMutationListener ===
-// ==================================
-
-/** Listen to, and process, all mutation events. */
-export function useBackendMutationListener(backendType: backendModule.BackendType) {
-  const queryClient = reactQuery.useQueryClient()
-  const mutationCache = queryClient.getMutationCache()
-  React.useEffect(() => {
-    const setQueryData = <Method extends backendQuery.BackendMethods>(
-      method: Method,
-      updater: (
-        variable: Awaited<ReturnType<Backend[Method]>>,
-      ) => Awaited<ReturnType<Backend[Method]>>,
-    ) => {
-      setBackendQueryData(queryClient, backendType, method, updater)
-    }
-    return mutationCache.subscribe((event) => {
-      const mutationRaw: reactQuery.Mutation | undefined = event.mutation
-      if (event.type === 'updated' && mutationRaw?.options.mutationKey?.[0] === backendType) {
-        // eslint-disable-next-line no-restricted-syntax
-        const obj = {
-          method: mutationRaw.options.mutationKey[1],
-          mutation: mutationRaw,
-        } as AnyBackendMutationWithMethod
-        if (obj.mutation.state.status === 'success') {
-          switch (obj.method) {
-            case 'updateUser': {
-              const [{ username }] = obj.mutation.state.variables
-              if (username != null) {
-                setQueryData('usersMe', (data) => (!data ? null : merge(data, { name: username })))
-              }
-              break
-            }
-            case 'uploadUserPicture': {
-              const data = obj.mutation.state.data
-              revokeUserPictureUrl(backendType)
-              setQueryData('usersMe', () => data)
-              break
-            }
-            case 'updateOrganization': {
-              const data = obj.mutation.state.data
-              setQueryData('getOrganization', () => data)
-              break
-            }
-            case 'uploadOrganizationPicture': {
-              const data = obj.mutation.state.data
-              revokeOrganizationPictureUrl(backendType)
-              setQueryData('getOrganization', () => data)
-              break
-            }
-            case 'createUserGroup': {
-              const data = obj.mutation.state.data
-              setQueryData('listUserGroups', (userGroups) => [data, ...userGroups])
-              break
-            }
-            case 'deleteUserGroup': {
-              const [userGroupId] = obj.mutation.state.variables
-              setQueryData('listUserGroups', (userGroups) =>
-                userGroups.filter((userGroup) => userGroup.id !== userGroupId),
-              )
-              break
-            }
-            case 'changeUserGroup': {
-              const [userId, body] = obj.mutation.state.variables
-              setQueryData('listUsers', (users) =>
-                users.map((user) =>
-                  user.userId !== userId ? user : { ...user, userGroups: body.userGroups },
-                ),
-              )
-              break
-            }
-            case 'createTag': {
-              const data = obj.mutation.state.data
-              setQueryData('listTags', (tags) => [...tags, data])
-              break
-            }
-            case 'deleteTag': {
-              const [tagId] = obj.mutation.state.variables
-              setQueryData('listTags', (tags) => tags.filter((tag) => tag.id !== tagId))
-              break
-            }
-            default: {
-              break
-            }
-          }
-        }
-      }
-    })
-  }, [backendType, mutationCache, queryClient])
 }
