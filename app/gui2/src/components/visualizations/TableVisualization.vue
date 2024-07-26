@@ -420,7 +420,7 @@ function toField(name: string, valueType?: ValueType | null | undefined): ColDef
     `
   const template =
     icon ?
-      `<span style='display:flex; flex-direction:row; justify-content:space-between; width:inherit;'><span ref="eLabel" class="ag-header-cell-label" role="presentation" style='display:flex; flex-direction:row; justify-content:space-between; width:inherit;'> ${name} ${menu}</span> ${sort} ${svgTemplate}</span>`
+      `<span style='display:flex; flex-direction:row; justify-content:space-between; width:inherit;'><span ref="eLabel" class="ag-header-cell-label" role="presentation" style='display:flex; flex-direction:row; justify-content:space-between; width:inherit;'> ${name} </span>  ${menu} ${sort} ${svgTemplate}</span>`
     : `<span ref="eLabel" style='display:flex; flex-direction:row; justify-content:space-between; width:inherit;'>${name} ${menu} ${sort}</span>`
   return {
     field: name,
@@ -655,11 +655,17 @@ function checkSortAndFilter() {
   const colState =
     agGridOptions.value.columnApi ? agGridOptions.value.columnApi.getColumnState() : []
   const filter = columnApi.getFilterModel()
-  const sort = colState.map((cs) => {
-    if (cs.sort) {
-      return { columnName: cs.colId, sortDirection: cs.sort, sortIndex: cs.sortIndex } as SortModel
-    }
-  })
+  const sort = colState
+    .map((cs) => {
+      if (cs.sort) {
+        return {
+          columnName: cs.colId,
+          sortDirection: cs.sort,
+          sortIndex: cs.sortIndex,
+        } as SortModel
+      }
+    })
+    .filter((sort) => sort)
   if (sort.length || Object.keys(filter).length) {
     isCreateNodeVisible.value = true
     sortModel.value = sort as SortModel[]

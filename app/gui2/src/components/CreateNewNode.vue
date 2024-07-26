@@ -77,7 +77,7 @@ const createNewNodes = () => {
       patterns.push(filterPatterns)
     }
   }
-  if (Object.keys(props.sortModel).length) {
+  if (props.sortModel.length) {
     const patSort = getAstPatternSort()
     patterns.push(patSort)
   }
