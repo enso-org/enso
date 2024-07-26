@@ -41,17 +41,17 @@ export interface ProjectsProviderProps extends Readonly<React.PropsWithChildren>
 export default function DriveProvider(props: ProjectsProviderProps) {
   const { children } = props
   const [store] = React.useState(() => {
-    return zustand.createStore<DriveStore>(set => ({
+    return zustand.createStore<DriveStore>((set) => ({
       canDownload: false,
-      setCanDownload: canDownload => {
+      setCanDownload: (canDownload) => {
         set({ canDownload })
       },
       selectedKeys: new Set(),
-      setSelectedKeys: selectedKeys => {
+      setSelectedKeys: (selectedKeys) => {
         set({ selectedKeys })
       },
       visuallySelectedKeys: null,
-      setVisuallySelectedKeys: visuallySelectedKeys => {
+      setVisuallySelectedKeys: (visuallySelectedKeys) => {
         set({ visuallySelectedKeys })
       },
     }))
@@ -80,7 +80,7 @@ export function useDriveStore() {
 /** Whether the current Asset Table selection is downloadble. */
 export function useCanDownload() {
   const store = useDriveStore()
-  return zustand.useStore(store, state => state.canDownload)
+  return zustand.useStore(store, (state) => state.canDownload)
 }
 
 // =========================
@@ -90,7 +90,7 @@ export function useCanDownload() {
 /** A function to set whether the current Asset Table selection is downloadble. */
 export function useSetCanDownload() {
   const store = useDriveStore()
-  return zustand.useStore(store, state => state.setCanDownload)
+  return zustand.useStore(store, (state) => state.setCanDownload)
 }
 
 // =======================
@@ -100,7 +100,7 @@ export function useSetCanDownload() {
 /** The selected keys in the Asset Table. */
 export function useSelectedKeys() {
   const store = useDriveStore()
-  return zustand.useStore(store, state => state.selectedKeys)
+  return zustand.useStore(store, (state) => state.selectedKeys)
 }
 
 // ==========================
@@ -110,7 +110,7 @@ export function useSelectedKeys() {
 /** A function to set the selected keys of the Asset Table selection. */
 export function useSetSelectedKeys() {
   const store = useDriveStore()
-  return zustand.useStore(store, state => state.setSelectedKeys)
+  return zustand.useStore(store, (state) => state.setSelectedKeys)
 }
 
 // ===============================
@@ -120,7 +120,7 @@ export function useSetSelectedKeys() {
 /** The visually selected keys in the Asset Table. */
 export function useVisuallySelectedKeys() {
   const store = useDriveStore()
-  return zustand.useStore(store, state => state.selectedKeys)
+  return zustand.useStore(store, (state) => state.selectedKeys)
 }
 
 // ==================================
@@ -130,5 +130,5 @@ export function useVisuallySelectedKeys() {
 /** A function to set the visually selected keys in the Asset Table. */
 export function useSetVisuallySelectedKeys() {
   const store = useDriveStore()
-  return zustand.useStore(store, state => state.setVisuallySelectedKeys)
+  return zustand.useStore(store, (state) => state.setVisuallySelectedKeys)
 }

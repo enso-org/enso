@@ -22,7 +22,7 @@ const MIN_MS = 60_000
 test.test('sort', async ({ page }) => {
   await actions.mockAll({
     page,
-    setupAPI: api => {
+    setupAPI: (api) => {
       const date1 = dateTime.toRfc3339(new Date(START_DATE_EPOCH_MS))
       const date2 = dateTime.toRfc3339(new Date(START_DATE_EPOCH_MS + 1 * MIN_MS))
       const date3 = dateTime.toRfc3339(new Date(START_DATE_EPOCH_MS + 2 * MIN_MS))

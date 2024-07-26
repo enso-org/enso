@@ -15,7 +15,7 @@ import ContextMenus from '#/components/ContextMenus'
 export function useContextMenuRef(
   key: string,
   label: string,
-  createEntries: (position: Pick<React.MouseEvent, 'pageX' | 'pageY'>) => React.JSX.Element | null
+  createEntries: (position: Pick<React.MouseEvent, 'pageX' | 'pageY'>) => React.JSX.Element | null,
 ) {
   const { setModal } = modalProvider.useSetModal()
   const createEntriesRef = React.useRef(createEntries)
@@ -34,7 +34,7 @@ export function useContextMenuRef(
           event.stopPropagation()
           setModal(
             <ContextMenus
-              ref={contextMenusElement => {
+              ref={(contextMenusElement) => {
                 if (contextMenusElement != null) {
                   const rect = contextMenusElement.getBoundingClientRect()
                   position.pageX = rect.left
@@ -45,7 +45,7 @@ export function useContextMenuRef(
               event={event}
             >
               <ContextMenu aria-label={label}>{children}</ContextMenu>
-            </ContextMenus>
+            </ContextMenus>,
           )
         }
       }

@@ -62,7 +62,7 @@ export function Subscribe() {
         return
       } else {
         throw new Error(
-          'Session not complete, please contact the support team or try with another payment method.'
+          'Session not complete, please contact the support team or try with another payment method.',
         )
       }
     },
@@ -92,7 +92,7 @@ export function Subscribe() {
 
         <div className="w-full rounded-default bg-selected-frame p-8">
           <div className="flex gap-6 overflow-auto scroll-hidden">
-            {backendModule.PLANS.map(newPlan => {
+            {backendModule.PLANS.map((newPlan) => {
               const planProps = componentForPlan.getComponentPerPlan(newPlan, getText)
 
               return (
@@ -104,7 +104,7 @@ export function Subscribe() {
                   title={planProps.title}
                   submitButton={
                     <planProps.submitButton
-                      onSubmit={async paymentMethodId => {
+                      onSubmit={async (paymentMethodId) => {
                         await onCompleteMutation.mutateAsync({
                           plan: newPlan,
                           paymentMethodId,

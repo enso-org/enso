@@ -47,7 +47,7 @@ function FocusRoot(props: FocusRootProps) {
   const cachedChildren = React.useMemo(
     () =>
       children({
-        ref: element => {
+        ref: (element) => {
           cleanupRef.current()
           if (active && element != null) {
             cleanupRef.current = navigator2D.pushFocusRoot(element)
@@ -64,16 +64,14 @@ function FocusRoot(props: FocusRootProps) {
         },
         ...(active ? { onKeyDown: navigator2D.onKeyDown.bind(navigator2D) } : {}),
       }),
-    [active, children, navigator2D]
+    [active, children, navigator2D],
   )
 
-  return !active ? (
-    cachedChildren
-  ) : (
-    <aria.FocusScope contain restoreFocus autoFocus>
-      {cachedChildren}
-    </aria.FocusScope>
-  )
+  return !active ? cachedChildren : (
+      <aria.FocusScope contain restoreFocus autoFocus>
+        {cachedChildren}
+      </aria.FocusScope>
+    )
 }
 
 /** An area that can be focused within. */

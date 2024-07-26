@@ -16,8 +16,8 @@ import FocusArea from '#/components/styled/FocusArea'
 import FocusRing from '#/components/styled/FocusRing'
 import Input from '#/components/styled/Input'
 
-import * as backendModule from '#/services/Backend'
 import type Backend from '#/services/Backend'
+import * as backendModule from '#/services/Backend'
 
 import * as eventModule from '#/utilities/event'
 import * as object from '#/utilities/object'
@@ -62,14 +62,14 @@ export default function ManageLabelsModal<
   const [color, setColor] = React.useState<backendModule.LChColor | null>(null)
   const leastUsedColor = React.useMemo(
     () => backendModule.leastUsedColor(allLabels ?? []),
-    [allLabels]
+    [allLabels],
   )
   const position = React.useMemo(() => eventTarget?.getBoundingClientRect(), [eventTarget])
   const labelNames = React.useMemo(() => new Set(labels), [labels])
   const regex = React.useMemo(() => new RegExp(string.regexEscape(query), 'i'), [query])
   const canSelectColor = React.useMemo(
-    () => query !== '' && (allLabels ?? []).filter(label => regex.test(label.value)).length === 0,
-    [allLabels, query, regex]
+    () => query !== '' && (allLabels ?? []).filter((label) => regex.test(label.value)).length === 0,
+    [allLabels, query, regex],
   )
   const canCreateNewLabel = canSelectColor
 
@@ -79,24 +79,23 @@ export default function ManageLabelsModal<
   const setLabels = React.useCallback(
     (valueOrUpdater: React.SetStateAction<backendModule.LabelName[]>) => {
       setLabelsRaw(valueOrUpdater)
-      setItem(oldItem =>
+      setItem((oldItem) =>
         // This is SAFE, as the type of asset is not being changed.
         // eslint-disable-next-line no-restricted-syntax
         object.merge(oldItem, {
           labels:
-            typeof valueOrUpdater !== 'function'
-              ? valueOrUpdater
-              : valueOrUpdater(oldItem.labels ?? []),
-        } as Partial<Asset>)
+            typeof valueOrUpdater !== 'function' ? valueOrUpdater : (
+              valueOrUpdater(oldItem.labels ?? [])
+            ),
+        } as Partial<Asset>),
       )
     },
-    [setItem]
+    [setItem],
   )
 
   const doToggleLabel = async (name: backendModule.LabelName) => {
-    const newLabels = labelNames.has(name)
-      ? labels.filter(label => label !== name)
-      : [...labels, name]
+    const newLabels =
+      labelNames.has(name) ? labels.filter((label) => label !== name) : [...labels, name]
     setLabels(newLabels)
     try {
       await associateTagMutation.mutateAsync([item.id, newLabels, item.title])
@@ -109,16 +108,16 @@ export default function ManageLabelsModal<
   const doSubmit = async () => {
     unsetModal()
     const labelName = backendModule.LabelName(query)
-    setLabels(oldLabels => [...oldLabels, labelName])
+    setLabels((oldLabels) => [...oldLabels, labelName])
     try {
       await createTagMutation.mutateAsync([{ value: labelName, color: color ?? leastUsedColor }])
-      setLabels(newLabels => {
+      setLabels((newLabels) => {
         associateTagMutation.mutate([item.id, newLabels, item.title])
         return newLabels
       })
     } catch (error) {
       toastAndLog(null, error)
-      setLabels(oldLabels => oldLabels.filter(oldLabel => oldLabel !== query))
+      setLabels((oldLabels) => oldLabels.filter((oldLabel) => oldLabel !== query))
     }
   }
 
@@ -130,18 +129,18 @@ export default function ManageLabelsModal<
       <div
         tabIndex={-1}
         style={
-          position != null
-            ? {
-                left: position.left + window.scrollX,
-                top: position.top + window.scrollY,
-              }
-            : {}
+          position != null ?
+            {
+              left: position.left + window.scrollX,
+              top: position.top + window.scrollY,
+            }
+          : {}
         }
         className="sticky w-manage-labels-modal"
-        onClick={mouseEvent => {
+        onClick={(mouseEvent) => {
           mouseEvent.stopPropagation()
         }}
-        onContextMenu={mouseEvent => {
+        onContextMenu={(mouseEvent) => {
           mouseEvent.stopPropagation()
           mouseEvent.preventDefault()
         }}
@@ -149,7 +148,7 @@ export default function ManageLabelsModal<
         <div className="absolute h-full w-full rounded-default bg-selected-frame backdrop-blur-default" />
         <form
           className="relative flex flex-col gap-modal rounded-default p-modal"
-          onSubmit={event => {
+          onSubmit={(event) => {
             event.preventDefault()
             void doSubmit()
           }}
@@ -162,22 +161,26 @@ export default function ManageLabelsModal<
           </aria.Heading>
           {
             <FocusArea direction="horizontal">
-              {innerProps => (
+              {(innerProps) => (
                 <ariaComponents.ButtonGroup className="relative" {...innerProps}>
                   <FocusRing within>
                     <div
                       className={tailwindMerge.twMerge(
                         'flex grow items-center rounded-full border border-primary/10 px-input-x',
-                        canSelectColor && color != null && color.lightness <= MAXIMUM_DARK_LIGHTNESS
-                          ? 'text-tag-text placeholder-tag-text'
-                          : 'text-primary'
+                        (
+                          canSelectColor &&
+                            color != null &&
+                            color.lightness <= MAXIMUM_DARK_LIGHTNESS
+                        ) ?
+                          'text-tag-text placeholder-tag-text'
+                        : 'text-primary',
                       )}
                       style={
-                        !canSelectColor || color == null
-                          ? {}
-                          : {
-                              backgroundColor: backendModule.lChColorToCssColor(color),
-                            }
+                        !canSelectColor || color == null ?
+                          {}
+                        : {
+                            backgroundColor: backendModule.lChColorToCssColor(color),
+                          }
                       }
                     >
                       <Input
@@ -186,7 +189,7 @@ export default function ManageLabelsModal<
                         size={1}
                         placeholder={getText('labelSearchPlaceholder')}
                         className="text grow bg-transparent"
-                        onChange={event => {
+                        onChange={(event) => {
                           setQuery(event.currentTarget.value)
                         }}
                       />
@@ -209,11 +212,11 @@ export default function ManageLabelsModal<
             </div>
           )}
           <FocusArea direction="vertical">
-            {innerProps => (
+            {(innerProps) => (
               <div className="max-h-manage-labels-list overflow-auto" {...innerProps}>
                 {(allLabels ?? [])
-                  .filter(label => regex.test(label.value))
-                  .map(label => (
+                  .filter((label) => regex.test(label.value))
+                  .map((label) => (
                     <div key={label.id} className="flex h-row items-center">
                       <Label
                         active={labels.includes(label.value)}

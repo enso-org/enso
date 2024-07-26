@@ -64,7 +64,7 @@ function InviteUsersModalContent(props: InviteUsersModalContentProps) {
       setStep('success')
       setSubmittedEmails(emails)
     },
-    []
+    [],
   )
 
   const invitationLink = `enso://auth/registration?organization_id=${organizationId}`

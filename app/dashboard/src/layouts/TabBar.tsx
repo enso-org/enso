@@ -63,7 +63,7 @@ export default function TabBar(props: TabBarProps) {
     () =>
       new ResizeObserver(() => {
         updateClipPath(selectedTabRef.current)
-      })
+      }),
   )
 
   const [updateClipPath] = React.useState(() => {
@@ -131,7 +131,7 @@ export default function TabBar(props: TabBarProps) {
         return
       }
     },
-    [resizeObserver, updateClipPath]
+    [resizeObserver, updateClipPath],
   )
 
   const updateResizeObserver = (element: HTMLElement | null) => {
@@ -148,7 +148,7 @@ export default function TabBar(props: TabBarProps) {
 
   return (
     <FocusArea direction="horizontal">
-      {innerProps => (
+      {(innerProps) => (
         <div className="relative flex grow" {...innerProps}>
           <TabBarContext.Provider value={{ setSelectedTab }}>
             <aria.TabList className="flex h-12 shrink-0 grow transition-[clip-path] duration-300">
@@ -157,7 +157,7 @@ export default function TabBar(props: TabBarProps) {
                  * are issues with the ref to the background being detached, resulting in the clip
                  * path cutout for the current tab not applying at all. */}
                 <div
-                  ref={element => {
+                  ref={(element) => {
                     backgroundRef.current = element
                     updateResizeObserver(element)
                   }}
@@ -203,7 +203,7 @@ export function Tab(props: InternalTabProps) {
     () =>
       new ResizeObserver(() => {
         updateClipPath()
-      })
+      }),
   )
 
   const [updateClipPath] = React.useState(() => {
@@ -234,9 +234,9 @@ export function Tab(props: InternalTabProps) {
   }, [actuallyActive, id, setSelectedTab])
 
   const { isLoading, data } = reactQuery.useQuery<backend.Project>(
-    project?.id
-      ? projectHooks.createGetProjectDetailsQuery.createPassiveListener(project.id)
-      : { queryKey: ['__IGNORE__'], queryFn: reactQuery.skipToken }
+    project?.id ?
+      projectHooks.createGetProjectDetailsQuery.createPassiveListener(project.id)
+    : { queryKey: ['__IGNORE__'], queryFn: reactQuery.skipToken },
   )
 
   const isFetching =
@@ -252,7 +252,7 @@ export function Tab(props: InternalTabProps) {
   return (
     <aria.Tab
       data-testid={props['data-testid']}
-      ref={element => {
+      ref={(element) => {
         ref.current = element
         if (element) {
           if (actuallyActive) {
@@ -269,21 +269,20 @@ export function Tab(props: InternalTabProps) {
         'relative -mx-6 flex h-full items-center gap-3 rounded-t-3xl px-10',
         !isActive &&
           'cursor-pointer opacity-50 hover:bg-frame hover:opacity-75 disabled:cursor-not-allowed disabled:opacity-30 [&.disabled]:cursor-not-allowed [&.disabled]:opacity-30',
-        isHidden && 'hidden'
+        isHidden && 'hidden',
       )}
     >
-      {isLoading ? (
+      {isLoading ?
         <StatelessSpinner
           state={spinnerModule.SpinnerState.loadingMedium}
           size={16}
           className={tailwindMerge.twMerge(onClose && 'group-hover:hidden focus-visible:hidden')}
         />
-      ) : (
-        <SvgMask
+      : <SvgMask
           src={icon}
           className={tailwindMerge.twMerge(onClose && 'group-hover:hidden focus-visible:hidden')}
         />
-      )}
+      }
       {data?.name ?? children}
       {onClose && (
         <div className="flex">

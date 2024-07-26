@@ -57,7 +57,7 @@ const MODIFIER_JSX: Readonly<
     Meta: () => <SvgMask style={ICON_STYLE} key="Meta" src={WindowsKeyIcon} />,
   },
   [detect.Platform.linux]: {
-    Meta: props => (
+    Meta: (props) => (
       <aria.Text key="Meta" className="text">
         {props.getText('superModifier')}
       </aria.Text>
@@ -66,7 +66,7 @@ const MODIFIER_JSX: Readonly<
   [detect.Platform.unknown]: {
     // Assume the system is Unix-like and calls the key that triggers `event.metaKey`
     // the "Super" key.
-    Meta: props => (
+    Meta: (props) => (
       <aria.Text key="Meta" className="text">
         {props.getText('superModifier')}
       </aria.Text>
@@ -128,16 +128,16 @@ export default function KeyboardShortcut(props: KeyboardShortcutProps) {
       <div
         className={tailwindMerge.twMerge(
           'flex items-center',
-          detect.isOnMacOS() ? 'gap-modifiers-macos' : 'gap-modifiers'
+          detect.isOnMacOS() ? 'gap-modifiers-macos' : 'gap-modifiers',
         )}
       >
         {modifiers.map(
-          modifier =>
+          (modifier) =>
             MODIFIER_JSX[detect.platform()][modifier]?.({ getText }) ?? (
               <ariaComponents.Text key={modifier}>
                 {getText(MODIFIER_TO_TEXT_ID[modifier])}
               </ariaComponents.Text>
-            )
+            ),
         )}
         <ariaComponents.Text>
           {shortcut.key === ' ' ? 'Space' : KEY_CHARACTER[shortcut.key] ?? shortcut.key}

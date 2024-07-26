@@ -15,8 +15,8 @@ import * as textProvider from '#/providers/TextProvider'
 import * as errorBoundary from '#/components/ErrorBoundary'
 import * as suspense from '#/components/Suspense'
 
-import * as backendModule from '#/services/Backend'
 import type Backend from '#/services/Backend'
+import * as backendModule from '#/services/Backend'
 
 import * as twMerge from '#/utilities/tailwindMerge'
 
@@ -179,7 +179,7 @@ function EditorInternal(props: EditorInternalProps) {
         void remoteBackend.logEvent(message, projectId, metadata)
       }
     },
-    [remoteBackend]
+    [remoteBackend],
   )
 
   React.useEffect(() => {

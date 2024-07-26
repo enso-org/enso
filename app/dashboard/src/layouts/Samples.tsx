@@ -102,7 +102,7 @@ function ProjectTile(props: InternalProjectTileProps) {
   return (
     <div className="flex flex-col gap-sample">
       <FocusArea direction="horizontal">
-        {innerProps => (
+        {(innerProps) => (
           <FocusRing placement="after">
             <aria.Button
               key={title}
@@ -116,7 +116,7 @@ function ProjectTile(props: InternalProjectTileProps) {
                 style={{ background }}
                 className={tailwindMerge.twMerge(
                   'h-sample-image w-full rounded-t-default',
-                  background == null && 'bg-frame'
+                  background == null && 'bg-frame',
                 )}
               />
               <div className="w-full grow rounded-b-default bg-frame px-sample-description-x pb-sample-description-b pt-sample-description-t backdrop-blur">
@@ -172,7 +172,7 @@ export default function Samples(props: SamplesProps) {
       </aria.Heading>
 
       <div className="grid grid-cols-fill-samples gap-samples">
-        {SAMPLES.map(sample => (
+        {SAMPLES.map((sample) => (
           <ProjectTile key={sample.id} sample={sample} createProject={createProject} />
         ))}
       </div>

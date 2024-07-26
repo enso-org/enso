@@ -11,7 +11,7 @@ import DrivePageActions from './DrivePageActions'
 export default class SetUsernamePageActions extends BaseActions {
   /** Set the userame for a new user that does not yet have a username. */
   setUsername(username: string) {
-    return this.step(`Set username to '${username}'`, async page => {
+    return this.step(`Set username to '${username}'`, async (page) => {
       await actions.locateUsernameInput(page).fill(username)
       await actions.locateSetUsernameButton(page).click()
     }).into(DrivePageActions)

@@ -80,9 +80,9 @@ export function EnsoDevtools(props: EnsoDevtoolsProps) {
 
   const onConfigurationChange = React.useCallback(
     (feature: billing.PaywallFeatureName, configuration: PaywallDevtoolsFeatureConfiguration) => {
-      setFeatures(prev => ({ ...prev, [feature]: configuration }))
+      setFeatures((prev) => ({ ...prev, [feature]: configuration }))
     },
-    []
+    [],
   )
 
   return (
@@ -114,7 +114,7 @@ export function EnsoDevtools(props: EnsoDevtoolsProps) {
 
             <ariaComponents.Form
               gap="small"
-              schema={schema => schema.object({ plan: schema.string() })}
+              schema={(schema) => schema.object({ plan: schema.string() })}
               defaultValues={{ plan: session.user.plan ?? 'free' }}
             >
               {({ form }) => (
@@ -122,7 +122,7 @@ export function EnsoDevtools(props: EnsoDevtoolsProps) {
                   <ariaComponents.RadioGroup
                     form={form}
                     name="plan"
-                    onChange={value => {
+                    onChange={(value) => {
                       queryClient.setQueryData(authQueryKey, {
                         ...session,
                         user: { ...session.user, plan: value },
@@ -193,7 +193,7 @@ export function EnsoDevtools(props: EnsoDevtoolsProps) {
                     <aria.Switch
                       className="group flex items-center gap-1"
                       isSelected={configuration.isForceEnabled ?? true}
-                      onChange={value => {
+                      onChange={(value) => {
                         onConfigurationChange(featureName, {
                           isForceEnabled: value,
                         })

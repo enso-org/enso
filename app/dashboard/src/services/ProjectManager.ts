@@ -326,7 +326,7 @@ export default class ProjectManager {
   /** Create a {@link ProjectManager} */
   constructor(
     private readonly connectionUrl: string,
-    public rootDirectory: Path
+    public rootDirectory: Path,
   ) {
     const firstConnectionStartMs = Number(new Date())
     let lastConnectionStartMs = 0
@@ -341,7 +341,7 @@ export default class ProjectManager {
       }
       return new Promise<WebSocket>((resolve, reject) => {
         const socket = new WebSocket(this.connectionUrl)
-        socket.onmessage = event => {
+        socket.onmessage = (event) => {
           // There is no way to avoid this as `JSON.parse` returns `any`.
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument
           const message: JSONRPCResponse<never> = JSON.parse(event.data)
@@ -354,7 +354,7 @@ export default class ProjectManager {
         socket.onopen = () => {
           resolve(socket)
         }
-        socket.onerror = event => {
+        socket.onerror = (event) => {
           event.preventDefault()
           justErrored = true
           if (Number(new Date()) - firstConnectionStartMs > MAXIMUM_DELAY_MS) {
@@ -366,7 +366,7 @@ export default class ProjectManager {
               () => {
                 void createSocket().then(resolve)
               },
-              Math.max(0, delay)
+              Math.max(0, delay),
             )
           }
         }
@@ -462,7 +462,7 @@ export default class ProjectManager {
 
   /** Duplicate a project. */
   async duplicateProject(
-    params: Omit<DuplicateProjectParams, 'projectsDirectory'>
+    params: Omit<DuplicateProjectParams, 'projectsDirectory'>,
   ): Promise<DuplicatedProject> {
     const path = this.internalProjectPaths.get(params.projectId)
     const directoryPath =
@@ -490,10 +490,10 @@ export default class ProjectManager {
       this.internalDirectories.set(
         directoryPath,
         siblings.filter(
-          entry =>
+          (entry) =>
             entry.type !== FileSystemEntryType.ProjectEntry ||
-            entry.metadata.id !== params.projectId
-        )
+            entry.metadata.id !== params.projectId,
+        ),
       )
     }
   }
@@ -517,7 +517,7 @@ export default class ProjectManager {
     const response = await this.runStandaloneCommand<ResponseBody>(
       null,
       'filesystem-exists',
-      parentId ?? this.rootDirectory
+      parentId ?? this.rootDirectory,
     )
     return response.exists
   }
@@ -532,9 +532,12 @@ export default class ProjectManager {
     const response = await this.runStandaloneCommand<ResponseBody>(
       null,
       'filesystem-list',
-      parentId
+      parentId,
     )
-    const result = response.entries.map(entry => ({ ...entry, path: normalizeSlashes(entry.path) }))
+    const result = response.entries.map((entry) => ({
+      ...entry,
+      path: normalizeSlashes(entry.path),
+    }))
     this.internalDirectories.set(parentId, result)
     for (const entry of result) {
       if (entry.type === FileSystemEntryType.ProjectEntry) {
@@ -553,7 +556,7 @@ export default class ProjectManager {
     if (siblings) {
       const now = dateTime.toRfc3339(new Date())
       this.internalDirectories.set(directoryPath, [
-        ...siblings.filter(sibling => sibling.type === FileSystemEntryType.DirectoryEntry),
+        ...siblings.filter((sibling) => sibling.type === FileSystemEntryType.DirectoryEntry),
         {
           type: FileSystemEntryType.DirectoryEntry,
           attributes: {
@@ -564,7 +567,7 @@ export default class ProjectManager {
           },
           path,
         },
-        ...siblings.filter(sibling => sibling.type !== FileSystemEntryType.DirectoryEntry),
+        ...siblings.filter((sibling) => sibling.type !== FileSystemEntryType.DirectoryEntry),
       ])
     }
   }
@@ -577,7 +580,7 @@ export default class ProjectManager {
     if (siblings) {
       const now = dateTime.toRfc3339(new Date())
       this.internalDirectories.set(directoryPath, [
-        ...siblings.filter(sibling => sibling.type !== FileSystemEntryType.FileEntry),
+        ...siblings.filter((sibling) => sibling.type !== FileSystemEntryType.FileEntry),
         {
           type: FileSystemEntryType.FileEntry,
           attributes: {
@@ -588,7 +591,7 @@ export default class ProjectManager {
           },
           path,
         },
-        ...siblings.filter(sibling => sibling.type === FileSystemEntryType.FileEntry),
+        ...siblings.filter((sibling) => sibling.type === FileSystemEntryType.FileEntry),
       ])
     }
   }
@@ -624,7 +627,7 @@ export default class ProjectManager {
         }
         this.internalDirectories.set(
           from,
-          children.map(child => ({ ...child, path: Path(child.path.replace(from, to)) }))
+          children.map((child) => ({ ...child, path: Path(child.path.replace(from, to)) })),
         )
       }
       moveChildren(children)
@@ -634,7 +637,7 @@ export default class ProjectManager {
     if (siblings) {
       this.internalDirectories.set(
         directoryPath,
-        siblings.filter(entry => entry.path !== from)
+        siblings.filter((entry) => entry.path !== from),
       )
     }
   }
@@ -675,7 +678,7 @@ export default class ProjectManager {
     if (siblings) {
       this.internalDirectories.set(
         directoryPath,
-        siblings.filter(entry => entry.path !== path)
+        siblings.filter((entry) => entry.path !== path),
       )
     }
   }
@@ -692,11 +695,11 @@ export default class ProjectManager {
     const id = this.id++
     socket.send(JSON.stringify({ jsonrpc: '2.0', id, method, params }))
     return new Promise<T>((resolve, reject) => {
-      this.resolvers.set(id, value => {
+      this.resolvers.set(id, (value) => {
         this.cleanup(id)
         resolve(value)
       })
-      this.rejecters.set(id, value => {
+      this.rejecters.set(id, (value) => {
         this.cleanup(id)
         reject(value)
       })
@@ -719,7 +722,7 @@ export default class ProjectManager {
       {
         method: 'POST',
         body,
-      }
+      },
     )
     // There is no way to avoid this as `JSON.parse` returns `any`.
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument

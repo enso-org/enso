@@ -101,15 +101,15 @@ export default function AssetRow(props: AssetRowProps) {
   const driveStore = useDriveStore()
   const setSelectedKeys = useSetSelectedKeys()
   const selected = useStore(driveStore, ({ visuallySelectedKeys, selectedKeys }) =>
-    (visuallySelectedKeys ?? selectedKeys).has(item.key)
+    (visuallySelectedKeys ?? selectedKeys).has(item.key),
   )
   const isSoleSelected = useStore(
     driveStore,
-    ({ selectedKeys }) => selected && selectedKeys.size === 1
+    ({ selectedKeys }) => selected && selectedKeys.size === 1,
   )
   const allowContextMenu = useStore(
     driveStore,
-    ({ selectedKeys }) => selectedKeys.size === 0 || !selected || isSoleSelected
+    ({ selectedKeys }) => selectedKeys.size === 0 || !selected || isSoleSelected,
   )
   const draggableProps = dragAndDropHooks.useDraggable()
   const { user } = authProvider.useNonPartialUserSession()
@@ -126,14 +126,14 @@ export default function AssetRow(props: AssetRowProps) {
   const asset = item.item
   const [insertionVisibility, setInsertionVisibility] = React.useState(Visibility.visible)
   const [rowState, setRowState] = React.useState<assetsTable.AssetRowState>(() =>
-    object.merge(assetRowUtils.INITIAL_ROW_STATE, { setVisibility: setInsertionVisibility })
+    object.merge(assetRowUtils.INITIAL_ROW_STATE, { setVisibility: setInsertionVisibility }),
   )
   const isCloud = backend.type === backendModule.BackendType.remote
   const outerVisibility = visibilities.get(item.key)
   const visibility =
-    outerVisibility == null || outerVisibility === Visibility.visible
-      ? insertionVisibility
-      : outerVisibility
+    outerVisibility == null || outerVisibility === Visibility.visible ?
+      insertionVisibility
+    : outerVisibility
   const hidden = hiddenRaw || visibility === Visibility.hidden
 
   const copyAssetMutation = backendHooks.useBackendMutation(backend, 'copyAsset')
@@ -188,13 +188,13 @@ export default function AssetRow(props: AssetRowProps) {
   const doCopyOnBackend = React.useCallback(
     async (newParentId: backendModule.DirectoryId | null) => {
       try {
-        setAsset(oldAsset =>
+        setAsset((oldAsset) =>
           object.merge(oldAsset, {
             title: oldAsset.title + ' (copy)',
             labels: [],
             permissions: permissions.tryGetSingletonOwnerPermission(user),
             modifiedAt: dateTime.toRfc3339(new Date()),
-          })
+          }),
         )
         newParentId ??= rootDirectoryId
         const copiedAsset = await copyAssetMutate([
@@ -210,7 +210,7 @@ export default function AssetRow(props: AssetRowProps) {
           object.merger({
             ...copiedAsset.asset,
             state: { type: backendModule.ProjectState.new },
-          } as Partial<backendModule.AnyAsset>)
+          } as Partial<backendModule.AnyAsset>),
         )
       } catch (error) {
         toastAndLog('copyAssetError', error, asset.title)
@@ -228,19 +228,19 @@ export default function AssetRow(props: AssetRowProps) {
       nodeMap,
       setAsset,
       dispatchAssetListEvent,
-    ]
+    ],
   )
 
   const doMove = React.useCallback(
     async (
       newParentKey: backendModule.DirectoryId | null,
-      newParentId: backendModule.DirectoryId | null
+      newParentId: backendModule.DirectoryId | null,
     ) => {
       const nonNullNewParentKey = newParentKey ?? rootDirectoryId
       const nonNullNewParentId = newParentId ?? rootDirectoryId
       try {
-        setItem(oldItem =>
-          oldItem.with({ directoryKey: nonNullNewParentKey, directoryId: nonNullNewParentId })
+        setItem((oldItem) =>
+          oldItem.with({ directoryKey: nonNullNewParentKey, directoryId: nonNullNewParentId }),
         )
         const newParentPath = localBackend.extractTypeAndId(nonNullNewParentId).id
         let newId = asset.id
@@ -294,10 +294,10 @@ export default function AssetRow(props: AssetRowProps) {
             id: asset.id as never,
             parentId: asset.parentId,
             projectState: asset.projectState,
-          })
+          }),
         )
-        setItem(oldItem =>
-          oldItem.with({ directoryKey: item.directoryKey, directoryId: item.directoryId })
+        setItem((oldItem) =>
+          oldItem.with({ directoryKey: item.directoryKey, directoryId: item.directoryId }),
         )
         // Move the asset back to its original position.
         dispatchAssetListEvent({
@@ -320,7 +320,7 @@ export default function AssetRow(props: AssetRowProps) {
       updateAssetMutate,
       setAsset,
       dispatchAssetListEvent,
-    ]
+    ],
   )
 
   React.useEffect(() => {
@@ -376,7 +376,7 @@ export default function AssetRow(props: AssetRowProps) {
       deleteAssetMutate,
       item.key,
       toastAndLog,
-    ]
+    ],
   )
 
   const doRestore = React.useCallback(async () => {
@@ -394,24 +394,24 @@ export default function AssetRow(props: AssetRowProps) {
   const doTriggerDescriptionEdit = React.useCallback(() => {
     setModal(
       <EditAssetDescriptionModal
-        doChangeDescription={async description => {
+        doChangeDescription={async (description) => {
           if (description !== asset.description) {
             setAsset(object.merger({ description }))
 
             await backend
               .updateAsset(item.item.id, { parentDirectoryId: null, description }, item.item.title)
-              .catch(error => {
+              .catch((error) => {
                 setAsset(object.merger({ description: asset.description }))
                 throw error
               })
           }
         }}
         initialDescription={asset.description}
-      />
+      />,
     )
   }, [setModal, asset.description, setAsset, backend, item.item.id, item.item.title])
 
-  eventListProvider.useAssetEventListener(async event => {
+  eventListProvider.useAssetEventListener(async (event) => {
     if (state.category === Category.trash) {
       switch (event.type) {
         case AssetEventType.deleteForever: {
@@ -533,9 +533,9 @@ export default function AssetRow(props: AssetRowProps) {
                       URL.createObjectURL(
                         new File([JSON.stringify(value)], fileName, {
                           type: 'application/json+x-enso-data-link',
-                        })
+                        }),
                       ),
-                      fileName
+                      fileName,
                     )
                   } catch (error) {
                     toastAndLog('downloadDatalinkError', error, asset.title)
@@ -554,7 +554,7 @@ export default function AssetRow(props: AssetRowProps) {
                 const queryString = new URLSearchParams({ projectsDirectory }).toString()
                 await backend.download(
                   `./api/project-manager/projects/${uuid}/enso-project?${queryString}`,
-                  `${asset.title}.enso-project`
+                  `${asset.title}.enso-project`,
                 )
               }
             }
@@ -583,44 +583,48 @@ export default function AssetRow(props: AssetRowProps) {
         }
         case AssetEventType.temporarilyAddLabels: {
           const labels = event.ids.has(item.key) ? event.labelNames : set.EMPTY_SET
-          setRowState(oldRowState =>
-            oldRowState.temporarilyAddedLabels === labels &&
-            oldRowState.temporarilyRemovedLabels === set.EMPTY_SET
-              ? oldRowState
-              : object.merge(oldRowState, {
-                  temporarilyAddedLabels: labels,
-                  temporarilyRemovedLabels: set.EMPTY_SET,
-                })
+          setRowState((oldRowState) =>
+            (
+              oldRowState.temporarilyAddedLabels === labels &&
+              oldRowState.temporarilyRemovedLabels === set.EMPTY_SET
+            ) ?
+              oldRowState
+            : object.merge(oldRowState, {
+                temporarilyAddedLabels: labels,
+                temporarilyRemovedLabels: set.EMPTY_SET,
+              }),
           )
           break
         }
         case AssetEventType.temporarilyRemoveLabels: {
           const labels = event.ids.has(item.key) ? event.labelNames : set.EMPTY_SET
-          setRowState(oldRowState =>
-            oldRowState.temporarilyAddedLabels === set.EMPTY_SET &&
-            oldRowState.temporarilyRemovedLabels === labels
-              ? oldRowState
-              : object.merge(oldRowState, {
-                  temporarilyAddedLabels: set.EMPTY_SET,
-                  temporarilyRemovedLabels: labels,
-                })
+          setRowState((oldRowState) =>
+            (
+              oldRowState.temporarilyAddedLabels === set.EMPTY_SET &&
+              oldRowState.temporarilyRemovedLabels === labels
+            ) ?
+              oldRowState
+            : object.merge(oldRowState, {
+                temporarilyAddedLabels: set.EMPTY_SET,
+                temporarilyRemovedLabels: labels,
+              }),
           )
           break
         }
         case AssetEventType.addLabels: {
-          setRowState(oldRowState =>
-            oldRowState.temporarilyAddedLabels === set.EMPTY_SET
-              ? oldRowState
-              : object.merge(oldRowState, { temporarilyAddedLabels: set.EMPTY_SET })
+          setRowState((oldRowState) =>
+            oldRowState.temporarilyAddedLabels === set.EMPTY_SET ?
+              oldRowState
+            : object.merge(oldRowState, { temporarilyAddedLabels: set.EMPTY_SET }),
           )
           const labels = asset.labels
           if (
             event.ids.has(item.key) &&
-            (labels == null || [...event.labelNames].some(label => !labels.includes(label)))
+            (labels == null || [...event.labelNames].some((label) => !labels.includes(label)))
           ) {
             const newLabels = [
               ...(labels ?? []),
-              ...[...event.labelNames].filter(label => labels?.includes(label) !== true),
+              ...[...event.labelNames].filter((label) => labels?.includes(label) !== true),
             ]
             setAsset(object.merger({ labels: newLabels }))
             try {
@@ -633,18 +637,18 @@ export default function AssetRow(props: AssetRowProps) {
           break
         }
         case AssetEventType.removeLabels: {
-          setRowState(oldRowState =>
-            oldRowState.temporarilyAddedLabels === set.EMPTY_SET
-              ? oldRowState
-              : object.merge(oldRowState, { temporarilyAddedLabels: set.EMPTY_SET })
+          setRowState((oldRowState) =>
+            oldRowState.temporarilyAddedLabels === set.EMPTY_SET ?
+              oldRowState
+            : object.merge(oldRowState, { temporarilyAddedLabels: set.EMPTY_SET }),
           )
           const labels = asset.labels
           if (
             event.ids.has(item.key) &&
             labels != null &&
-            [...event.labelNames].some(label => labels.includes(label))
+            [...event.labelNames].some((label) => labels.includes(label))
           ) {
-            const newLabels = labels.filter(label => !event.labelNames.has(label))
+            const newLabels = labels.filter((label) => !event.labelNames.has(label))
             setAsset(object.merger({ labels: newLabels }))
             try {
               await associateTagMutation.mutateAsync([asset.id, newLabels, asset.title])
@@ -656,11 +660,11 @@ export default function AssetRow(props: AssetRowProps) {
           break
         }
         case AssetEventType.deleteLabel: {
-          setAsset(oldAsset => {
+          setAsset((oldAsset) => {
             // The IIFE is required to prevent TypeScript from narrowing this value.
             let found = (() => false)()
             const labels =
-              oldAsset.labels?.filter(label => {
+              oldAsset.labels?.filter((label) => {
                 if (label === event.labelName) {
                   found = true
                   return false
@@ -684,10 +688,10 @@ export default function AssetRow(props: AssetRowProps) {
 
   const clearDragState = React.useCallback(() => {
     setIsDraggedOver(false)
-    setRowState(oldRowState =>
-      oldRowState.temporarilyAddedLabels === set.EMPTY_SET
-        ? oldRowState
-        : object.merge(oldRowState, { temporarilyAddedLabels: set.EMPTY_SET })
+    setRowState((oldRowState) =>
+      oldRowState.temporarilyAddedLabels === set.EMPTY_SET ?
+        oldRowState
+      : object.merge(oldRowState, { temporarilyAddedLabels: set.EMPTY_SET }),
     )
   }, [])
 
@@ -696,7 +700,7 @@ export default function AssetRow(props: AssetRowProps) {
       item.item.type === backendModule.AssetType.directory ? item.key : item.directoryKey
     const payload = drag.ASSET_ROWS.lookup(event)
     if (
-      (payload != null && payload.every(innerItem => innerItem.key !== directoryKey)) ||
+      (payload != null && payload.every((innerItem) => innerItem.key !== directoryKey)) ||
       event.dataTransfer.types.includes('Files')
     ) {
       event.preventDefault()
@@ -729,7 +733,7 @@ export default function AssetRow(props: AssetRowProps) {
             <FocusRing>
               <tr
                 tabIndex={0}
-                ref={element => {
+                ref={(element) => {
                   rootRef.current = element
                   if (isSoleSelected && element != null && scrollContainerRef.current != null) {
                     const rect = element.getBoundingClientRect()
@@ -750,10 +754,10 @@ export default function AssetRow(props: AssetRowProps) {
                 className={tailwindMerge.twMerge(
                   'h-table-row rounded-full transition-all ease-in-out rounded-rows-child',
                   visibility,
-                  (isDraggedOver || selected) && 'selected'
+                  (isDraggedOver || selected) && 'selected',
                 )}
                 {...draggableProps}
-                onClick={event => {
+                onClick={(event) => {
                   unsetModal()
                   onClick(innerProps, event)
                   if (
@@ -769,7 +773,7 @@ export default function AssetRow(props: AssetRowProps) {
                     doToggleDirectoryExpansion(item.item.id, item.key, asset.title)
                   }
                 }}
-                onContextMenu={event => {
+                onContextMenu={(event) => {
                   if (allowContextMenu) {
                     event.preventDefault()
                     event.stopPropagation()
@@ -789,18 +793,18 @@ export default function AssetRow(props: AssetRowProps) {
                         doPaste={doPaste}
                         doDelete={doDelete}
                         doTriggerDescriptionEdit={doTriggerDescriptionEdit}
-                      />
+                      />,
                     )
                   }
                 }}
-                onDragStart={event => {
+                onDragStart={(event) => {
                   if (rowState.isEditingName) {
                     event.preventDefault()
                   } else {
                     props.onDragStart?.(event)
                   }
                 }}
-                onDragEnter={event => {
+                onDragEnter={(event) => {
                   if (dragOverTimeoutHandle.current != null) {
                     window.clearTimeout(dragOverTimeoutHandle.current)
                   }
@@ -813,18 +817,18 @@ export default function AssetRow(props: AssetRowProps) {
                   props.onDragOver?.(event)
                   onDragOver(event)
                 }}
-                onDragOver={event => {
+                onDragOver={(event) => {
                   if (state.category === Category.trash) {
                     event.dataTransfer.dropEffect = 'none'
                   }
                   props.onDragOver?.(event)
                   onDragOver(event)
                 }}
-                onDragEnd={event => {
+                onDragEnd={(event) => {
                   clearDragState()
                   props.onDragEnd?.(event)
                 }}
-                onDragLeave={event => {
+                onDragLeave={(event) => {
                   if (
                     dragOverTimeoutHandle.current != null &&
                     (!(event.relatedTarget instanceof Node) ||
@@ -840,26 +844,26 @@ export default function AssetRow(props: AssetRowProps) {
                   }
                   props.onDragLeave?.(event)
                 }}
-                onDrop={event => {
+                onDrop={(event) => {
                   if (state.category !== Category.trash) {
                     props.onDrop?.(event)
                     clearDragState()
                     const [directoryKey, directoryId, directoryTitle] =
-                      item.type === backendModule.AssetType.directory
-                        ? [item.key, item.item.id, asset.title]
-                        : [item.directoryKey, item.directoryId, null]
+                      item.type === backendModule.AssetType.directory ?
+                        [item.key, item.item.id, asset.title]
+                      : [item.directoryKey, item.directoryId, null]
                     const payload = drag.ASSET_ROWS.lookup(event)
                     if (
                       payload != null &&
-                      payload.every(innerItem => innerItem.key !== directoryKey)
+                      payload.every((innerItem) => innerItem.key !== directoryKey)
                     ) {
                       event.preventDefault()
                       event.stopPropagation()
                       unsetModal()
                       doToggleDirectoryExpansion(directoryId, directoryKey, directoryTitle, true)
                       const ids = payload
-                        .filter(payloadItem => payloadItem.asset.parentId !== directoryId)
-                        .map(dragItem => dragItem.key)
+                        .filter((payloadItem) => payloadItem.asset.parentId !== directoryId)
+                        .map((dragItem) => dragItem.key)
                       dispatchAssetEvent({
                         type: AssetEventType.move,
                         newParentKey: directoryKey,
@@ -880,7 +884,7 @@ export default function AssetRow(props: AssetRowProps) {
                   }
                 }}
               >
-                {columns.map(column => {
+                {columns.map((column) => {
                   // This is a React component even though it does not contain JSX.
                   // eslint-disable-next-line no-restricted-syntax
                   const Render = columnModule.COLUMN_RENDERER[column]
@@ -935,38 +939,38 @@ export default function AssetRow(props: AssetRowProps) {
     }
     case backendModule.AssetType.specialLoading: {
       return hidden ? null : (
-        <tr>
-          <td colSpan={columns.length} className="border-r p-0 rounded-rows-skip-level">
-            <div
-              className={tailwindMerge.twMerge(
-                'flex h-table-row w-container items-center justify-center rounded-full rounded-rows-child',
-                indent.indentClass(item.depth)
-              )}
-            >
-              <StatelessSpinner size={24} state={statelessSpinner.SpinnerState.loadingMedium} />
-            </div>
-          </td>
-        </tr>
-      )
+          <tr>
+            <td colSpan={columns.length} className="border-r p-0 rounded-rows-skip-level">
+              <div
+                className={tailwindMerge.twMerge(
+                  'flex h-table-row w-container items-center justify-center rounded-full rounded-rows-child',
+                  indent.indentClass(item.depth),
+                )}
+              >
+                <StatelessSpinner size={24} state={statelessSpinner.SpinnerState.loadingMedium} />
+              </div>
+            </td>
+          </tr>
+        )
     }
     case backendModule.AssetType.specialEmpty: {
       return hidden ? null : (
-        <tr>
-          <td colSpan={columns.length} className="border-r p-0 rounded-rows-skip-level">
-            <div
-              className={tailwindMerge.twMerge(
-                'flex h-table-row items-center rounded-full rounded-rows-child',
-                indent.indentClass(item.depth)
-              )}
-            >
-              <img src={BlankIcon} />
-              <aria.Text className="px-name-column-x placeholder">
-                {getText('thisFolderIsEmpty')}
-              </aria.Text>
-            </div>
-          </td>
-        </tr>
-      )
+          <tr>
+            <td colSpan={columns.length} className="border-r p-0 rounded-rows-skip-level">
+              <div
+                className={tailwindMerge.twMerge(
+                  'flex h-table-row items-center rounded-full rounded-rows-child',
+                  indent.indentClass(item.depth),
+                )}
+              >
+                <img src={BlankIcon} />
+                <aria.Text className="px-name-column-x placeholder">
+                  {getText('thisFolderIsEmpty')}
+                </aria.Text>
+              </div>
+            </td>
+          </tr>
+        )
     }
   }
 }

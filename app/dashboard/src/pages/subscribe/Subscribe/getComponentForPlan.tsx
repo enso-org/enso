@@ -81,7 +81,7 @@ const COMPONENT_PER_PLAN: Record<backendModule.Plan, ComponentForPlan> = {
       )
     },
     pricing: 'soloPlanPricing',
-    submitButton: props => {
+    submitButton: (props) => {
       const { onSubmit, defaultOpen = false, plan } = props
       const { getText } = textProvider.useText()
 
@@ -124,7 +124,7 @@ const COMPONENT_PER_PLAN: Record<backendModule.Plan, ComponentForPlan> = {
     features: 'teamPlanFeatures',
     title: constants.PLAN_TO_TEXT_ID['team'],
     subtitle: 'teamPlanSubtitle',
-    submitButton: props => {
+    submitButton: (props) => {
       const { onSubmit, defaultOpen = false, plan } = props
       const { getText } = textProvider.useText()
 

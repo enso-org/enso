@@ -44,8 +44,7 @@ import Drive from '#/layouts/Drive'
 import type * as editor from '#/layouts/Editor'
 import Editor from '#/layouts/Editor'
 import Settings from '#/layouts/Settings'
-import * as tabBar from '#/layouts/TabBar'
-import TabBar from '#/layouts/TabBar'
+import TabBar, * as tabBar from '#/layouts/TabBar'
 import UserBar from '#/layouts/UserBar'
 
 import * as aria from '#/components/aria'
@@ -116,9 +115,9 @@ function DashboardInner(props: DashboardProps) {
   const assetManagementApiRef = React.useRef<assetTable.AssetManagementApi | null>(null)
 
   const initialLocalProjectId =
-    initialProjectNameRaw != null && validator.isUUID(initialProjectNameRaw)
-      ? localBackendModule.newProjectId(projectManager.UUID(initialProjectNameRaw))
-      : null
+    initialProjectNameRaw != null && validator.isUUID(initialProjectNameRaw) ?
+      localBackendModule.newProjectId(projectManager.UUID(initialProjectNameRaw))
+    : null
   const initialProjectName = initialLocalProjectId ?? initialProjectNameRaw
 
   const [category, setCategory] = searchParamsState.useSearchParamsState(
@@ -134,13 +133,13 @@ function DashboardInner(props: DashboardProps) {
       } else {
         return false
       }
-    }
+    },
   )
 
   const projectsStore = useProjectsStore()
   const page = usePage()
   const launchedProjects = useLaunchedProjects()
-  const selectedProject = launchedProjects.find(p => p.id === page) ?? null
+  const selectedProject = launchedProjects.find((p) => p.id === page) ?? null
 
   const setPage = useSetPage()
   const openEditor = projectHooks.useOpenEditor()
@@ -152,7 +151,7 @@ function DashboardInner(props: DashboardProps) {
   const renameProjectMutation = projectHooks.useRenameProjectMutation()
 
   React.useEffect(() => {
-    window.projectManagementApi?.setOpenProjectHandler(project => {
+    window.projectManagementApi?.setOpenProjectHandler((project) => {
       setCategory(Category.local)
       const projectId = localBackendModule.newProjectId(projectManager.UUID(project.id))
       openProject({
@@ -171,7 +170,7 @@ function DashboardInner(props: DashboardProps) {
     () =>
       inputBindings.attach(sanitizedEventTargets.document.body, 'keydown', {
         closeModal: () => {
-          updateModal(oldModal => {
+          updateModal((oldModal) => {
             if (oldModal == null) {
               const currentPage = projectsStore.getState().page
               if (array.includes(Object.values(TabType), currentPage)) {
@@ -186,7 +185,7 @@ function DashboardInner(props: DashboardProps) {
           }
         },
       }),
-    [inputBindings, modalRef, localStorage, updateModal, setPage, projectsStore]
+    [inputBindings, modalRef, localStorage, updateModal, setPage, projectsStore],
   )
 
   React.useEffect(() => {
@@ -220,14 +219,16 @@ function DashboardInner(props: DashboardProps) {
       const asset = assetManagementApiRef.current.getAsset(selectedProject.id)
       const self =
         asset?.permissions?.find(
-          backendModule.isUserPermissionAnd(permissions => permissions.user.userId === user.userId)
+          backendModule.isUserPermissionAnd(
+            (permissions) => permissions.user.userId === user.userId,
+          ),
         ) ?? null
 
       if (asset != null && self != null) {
         setModal(
           <ManagePermissionsModal
             item={asset}
-            setItem={updater => {
+            setItem={(updater) => {
               const nextAsset = updater instanceof Function ? updater(asset) : updater
               assetManagementApiRef.current?.setAsset(asset.id, nextAsset)
             }}
@@ -236,7 +237,7 @@ function DashboardInner(props: DashboardProps) {
               doRemoveSelf(selectedProject)
             }}
             eventTarget={null}
-          />
+          />,
         )
       }
     }
@@ -246,7 +247,7 @@ function DashboardInner(props: DashboardProps) {
     <Page hideInfoBar hideChat>
       <div
         className="flex min-h-full flex-col text-xs text-primary"
-        onContextMenu={event => {
+        onContextMenu={(event) => {
           event.preventDefault()
           unsetModal()
         }}
@@ -254,7 +255,7 @@ function DashboardInner(props: DashboardProps) {
         <aria.Tabs
           className="relative flex min-h-full grow select-none flex-col container-size"
           selectedKey={page}
-          onSelectionChange={newPage => {
+          onSelectionChange={(newPage) => {
             const validated = PAGES_SCHEMA.safeParse(newPage)
             if (validated.success) {
               setPage(validated.data)
@@ -272,7 +273,7 @@ function DashboardInner(props: DashboardProps) {
                 {getText('drivePageName')}
               </tabBar.Tab>
 
-              {launchedProjects.map(project => (
+              {launchedProjects.map((project) => (
                 <tabBar.Tab
                   data-testid="editor-tab-button"
                   id={project.id}
@@ -329,7 +330,7 @@ function DashboardInner(props: DashboardProps) {
             />
           </aria.TabPanel>
           {appRunner != null &&
-            launchedProjects.map(project => (
+            launchedProjects.map((project) => (
               <aria.TabPanel
                 shouldForceMount
                 id={project.id}
@@ -346,7 +347,7 @@ function DashboardInner(props: DashboardProps) {
                   isOpeningFailed={openProjectMutation.isError}
                   openingError={openProjectMutation.error}
                   startProject={openProjectMutation.mutate}
-                  renameProject={async newName => {
+                  renameProject={async (newName) => {
                     try {
                       await renameProjectMutation.mutateAsync({ newName, project })
                       dispatchAssetEvent({
@@ -369,7 +370,7 @@ function DashboardInner(props: DashboardProps) {
             <Settings />
           </aria.TabPanel>
         </aria.Tabs>
-        {process.env.ENSO_CLOUD_CHAT_URL != null ? (
+        {process.env.ENSO_CLOUD_CHAT_URL != null ?
           <Chat
             isOpen={isHelpChatOpen}
             doClose={() => {
@@ -377,14 +378,13 @@ function DashboardInner(props: DashboardProps) {
             }}
             endpoint={process.env.ENSO_CLOUD_CHAT_URL}
           />
-        ) : (
-          <ChatPlaceholder
+        : <ChatPlaceholder
             isOpen={isHelpChatOpen}
             doClose={() => {
               setIsHelpChatOpen(false)
             }}
           />
-        )}
+        }
       </div>
     </Page>
   )

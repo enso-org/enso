@@ -123,7 +123,7 @@ export async function getLatestRelease() {
       JSON.stringify({
         lastFetchEpochMs: Number(new Date()),
         gitHubRelease: data,
-      } satisfies CachedRelease)
+      } satisfies CachedRelease),
     )
     return data
   }
@@ -145,7 +145,7 @@ const appExtension = (() => {
 export async function getDownloadUrl() {
   const assets = (await getLatestRelease()).assets
   return (
-    assets.find(item => item.browser_download_url.endsWith(appExtension))?.browser_download_url ??
+    assets.find((item) => item.browser_download_url.endsWith(appExtension))?.browser_download_url ??
     null
   )
 }
