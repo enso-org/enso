@@ -138,10 +138,12 @@ export class LanguageServer extends ObservableV2<Notifications & TransportEvents
   private initializationScheduled = false
   private shouldReconnect = true
   private retainCount = 1
+  debug: boolean
 
   constructor(
     private clientID: Uuid,
     private transport: ReconnectingTransportWithWebsocketEvents,
+    debug: boolean
   ) {
     super()
     this.initialized = this.scheduleInitializationAfterConnect()
@@ -174,6 +176,7 @@ export class LanguageServer extends ObservableV2<Notifications & TransportEvents
       this.transport.off('close', onTransportClosed)
       this.transport.close()
     })
+    this.debug = debug
   }
 
   private scheduleInitializationAfterConnect() {

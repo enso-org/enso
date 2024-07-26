@@ -14,10 +14,12 @@ declare global {
 
   const YDOC_HOST: string | undefined
   const YDOC_PORT: number | undefined
+  const YDOC_DEBUG: boolean | undefined
 }
 
 const host = YDOC_HOST ?? 'localhost'
 const port = YDOC_PORT ?? 1234
+const debug = YDOC_DEBUG ?? false
 
 const wss = new WebSocketServer({ host, port })
 
@@ -26,7 +28,7 @@ wss.onconnect = (socket, url) => {
   const ls = url.searchParams.get('ls')
   if (doc != null && ls != null) {
     console.log('setupGatewayClient', ls, doc)
-    setupGatewayClient(socket, ls, doc)
+    setupGatewayClient(socket, ls, doc, debug)
   } else {
     console.log('Failed to authenticate user', ls, doc)
   }
