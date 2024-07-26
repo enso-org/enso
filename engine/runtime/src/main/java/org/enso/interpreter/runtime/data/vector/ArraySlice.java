@@ -15,9 +15,9 @@ import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEn
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.data.hash.EnsoHashMap;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.warning.AppendWarningNode;
-import org.enso.interpreter.runtime.warning.Warning;
 import org.enso.interpreter.runtime.warning.WarningsLibrary;
 
 @ExportLibrary(TypesLibrary.class)
@@ -100,7 +100,7 @@ final class ArraySlice implements EnsoObject {
 
     var v = interop.readArrayElement(storage, start + index);
     if (this.hasWarnings(warnings)) {
-      Warning[] extracted = this.getWarnings(false, warnings);
+      var extracted = this.getWarnings(false, warnings);
       if (warnings.hasWarnings(v)) {
         v = warnings.removeWarnings(v);
       }
@@ -156,7 +156,7 @@ final class ArraySlice implements EnsoObject {
   }
 
   @ExportMessage
-  Warning[] getWarnings(
+  EnsoHashMap getWarnings(
       boolean shouldWrap, @Shared("warnsLib") @CachedLibrary(limit = "3") WarningsLibrary warnings)
       throws UnsupportedMessageException {
     return warnings.getWarnings(this.storage, shouldWrap);

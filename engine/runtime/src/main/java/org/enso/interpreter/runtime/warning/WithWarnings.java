@@ -127,7 +127,7 @@ public final class WithWarnings implements EnsoObject {
 
   // Ignore the warnings cache in .value and re-fetch them using the WarningsLibrary.
   // This is only used for shouldWrap=true.
-  private Warning[] getWarningsNoCache(
+  private EnsoHashMap getWarningsNoCache(
       WarningsLibrary warningsLibrary, ArrayLikeLengthNode lengthNode, ArrayLikeAtNode atNode) {
     assert warningsLibrary != null;
     if (warningsLibrary.hasWarnings(value)) {
@@ -137,7 +137,7 @@ public final class WithWarnings implements EnsoObject {
         throw EnsoContext.get(warningsLibrary).raiseAssertionPanic(warningsLibrary, null, e);
       }
     } else {
-      return Warning.fromMapToArray(warnings, lengthNode, atNode);
+      return warnings;
     }
   }
 
@@ -180,12 +180,13 @@ public final class WithWarnings implements EnsoObject {
 
   @CompilerDirectives.TruffleBoundary
   private PanicException asException(Node where) {
-    var rawWarn =
+    var warnsMap =
         this.getWarnings(
             false,
             WarningsLibrary.getUncached(),
             ArrayLikeAtNodeGen.getUncached(),
             ArrayLikeLengthNodeGen.getUncached());
+    var warns = Warning.fromMapToArray(warnsMap);
     var ctx = EnsoContext.get(where);
     var scopeOfAny = ctx.getBuiltins().any().getDefinitionScope();
     var toText = UnresolvedSymbol.build("to_text", scopeOfAny);
@@ -193,7 +194,7 @@ public final class WithWarnings implements EnsoObject {
     var state = State.create(ctx);
 
     var text = Text.empty();
-    for (var w : rawWarn) {
+    for (var w : warns) {
       try {
         var wText = node.execute(toText, state, new Object[] {w});
         if (wText instanceof Text t) {
@@ -218,7 +219,7 @@ public final class WithWarnings implements EnsoObject {
   }
 
   @ExportMessage
-  Warning[] getWarnings(
+  EnsoHashMap getWarnings(
       boolean shouldWrap,
       @Shared("warnsLib") @CachedLibrary(limit = "3") WarningsLibrary warningsLibrary,
       @Cached ArrayLikeAtNode atNode,
@@ -228,7 +229,7 @@ public final class WithWarnings implements EnsoObject {
       // it contains unwrapped warnings. Instead, we fetch them again.
       return getWarningsNoCache(warningsLibrary, lengthNode, atNode);
     } else {
-      return Warning.fromMapToArray(warnings, lengthNode, atNode);
+      return warnings;
     }
   }
 
@@ -275,33 +276,23 @@ public final class WithWarnings implements EnsoObject {
   private EnsoHashMap cloneSetAndAppend(
       int maxWarnings,
       EnsoHashMap initial,
-      Warning[] entries,
+      EnsoHashMap newEntries,
       HashMapInsertNode insertNode,
       InteropLibrary interop) {
     if (initial.getHashSize() == maxWarnings) {
       return initial;
     }
-    var set = EnsoHashMap.empty();
-    var initialVec = initial.getCachedVectorRepresentation();
+    var set = initial;
+    var newEntriesVec = newEntries.getCachedVectorRepresentation();
     try {
-      for (int i = 0; i < interop.getArraySize(initialVec); i++) {
-        if (set.getHashSize() == maxWarnings) {
-          return set;
-        }
-        var entry = interop.readArrayElement(initialVec, i);
-        assert interop.getArraySize(entry) == 2;
+      for (long i = 0; i < interop.getArraySize(newEntriesVec); i++) {
+        var entry = interop.readArrayElement(newEntriesVec, i);
         var key = interop.readArrayElement(entry, 0);
         var value = interop.readArrayElement(entry, 1);
         set = insertNode.execute(null, set, key, value);
       }
     } catch (UnsupportedMessageException | InvalidArrayIndexException e) {
       throw CompilerDirectives.shouldNotReachHere(e);
-    }
-    for (Warning warn : entries) {
-      if (set.getHashSize() == maxWarnings) {
-        return set;
-      }
-      set = insertNode.execute(null, set, warn.getSequenceId(), warn);
     }
     return set;
   }

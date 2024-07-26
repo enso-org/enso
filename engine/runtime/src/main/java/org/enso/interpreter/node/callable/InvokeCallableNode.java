@@ -30,6 +30,7 @@ import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.control.TailCallException;
 import org.enso.interpreter.runtime.data.atom.Atom;
 import org.enso.interpreter.runtime.data.atom.AtomConstructor;
+import org.enso.interpreter.runtime.data.hash.EnsoHashMap;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.error.PanicSentinel;
@@ -289,7 +290,7 @@ public abstract class InvokeCallableNode extends BaseNode {
       @Shared("warnings") @CachedLibrary(limit = "3") WarningsLibrary warnings,
       @Cached AppendWarningNode appendWarningNode) {
 
-    Warning[] extracted;
+    EnsoHashMap extracted;
     Object callable;
     try {
       extracted = warnings.getWarnings(warning, false);
@@ -328,7 +329,7 @@ public abstract class InvokeCallableNode extends BaseNode {
         return appendWarningNode.execute(null, result, extracted);
       }
     } catch (TailCallException e) {
-      throw new TailCallException(e, extracted);
+      throw new TailCallException(e, Warning.fromMapToArray(extracted));
     }
   }
 

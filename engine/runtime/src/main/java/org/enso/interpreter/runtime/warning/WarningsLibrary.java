@@ -4,6 +4,7 @@ import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.GenerateLibrary;
 import com.oracle.truffle.api.library.Library;
 import com.oracle.truffle.api.library.LibraryFactory;
+import org.enso.interpreter.runtime.data.hash.EnsoHashMap;
 
 @GenerateLibrary
 public abstract class WarningsLibrary extends Library {
@@ -46,10 +47,11 @@ public abstract class WarningsLibrary extends Library {
    * @param receiver the receiver to get the warnings from
    * @param shouldWrap if true, warnings attached to elements in array-likes are wrapped in
    *     Map_Error
-   * @return the associated warnings
+   * @return the associated warnings as map - keys are {@code sequenceId} and values are warnings.
+   *     Not null
    */
   @GenerateLibrary.Abstract(ifExported = {"hasWarnings"})
-  public Warning[] getWarnings(Object receiver, boolean shouldWrap)
+  public EnsoHashMap getWarnings(Object receiver, boolean shouldWrap)
       throws UnsupportedMessageException {
     throw UnsupportedMessageException.create();
   }

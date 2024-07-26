@@ -39,8 +39,8 @@ public abstract class GetAllWarningsNode extends Node {
       @Shared @CachedLibrary(limit = "3") WarningsLibrary warningsLib,
       @CachedLibrary(limit = "3") InteropLibrary interop,
       @Cached HashMapInsertNode mapInsertNode,
-      @Cached ArrayLikeLengthNode lengthNode,
-      @Cached ArrayLikeAtNode atNode) {
+      @Shared @Cached ArrayLikeLengthNode lengthNode,
+      @Shared @Cached ArrayLikeAtNode atNode) {
     var warns =
         value.getWarningsArray(shouldWrap, warningsLib, mapInsertNode, interop, lengthNode, atNode);
     sortArray(warns);
@@ -51,11 +51,14 @@ public abstract class GetAllWarningsNode extends Node {
   Object doGeneric(
       Object value,
       boolean shouldWrap,
-      @Shared @CachedLibrary(limit = "3") WarningsLibrary warningsLib) {
+      @Shared @CachedLibrary(limit = "3") WarningsLibrary warningsLib,
+      @Shared @Cached ArrayLikeLengthNode lengthNode,
+      @Shared @Cached ArrayLikeAtNode atNode) {
     assert !(value instanceof WithWarnings);
     if (warningsLib.hasWarnings(value)) {
       try {
-        Warning[] warnings = warningsLib.getWarnings(value, shouldWrap);
+        var warnsMap = warningsLib.getWarnings(value, shouldWrap);
+        var warnings = Warning.fromMapToArray(warnsMap, lengthNode, atNode);
         sortArray(warnings);
         return ArrayLikeHelpers.asVectorEnsoObjects(warnings);
       } catch (UnsupportedMessageException e) {

@@ -51,7 +51,10 @@ import org.enso.interpreter.runtime.data.EnsoMultiValue;
 import org.enso.interpreter.runtime.data.EnsoTimeOfDay;
 import org.enso.interpreter.runtime.data.EnsoTimeZone;
 import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.data.hash.EnsoHashMap;
 import org.enso.interpreter.runtime.data.text.Text;
+import org.enso.interpreter.runtime.data.vector.ArrayLikeAtNode;
+import org.enso.interpreter.runtime.data.vector.ArrayLikeLengthNode;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.error.PanicSentinel;
@@ -439,10 +442,10 @@ public abstract class InvokeMethodNode extends BaseNode {
       @Shared("warnings") @CachedLibrary(limit = "10") WarningsLibrary warnings,
       @Shared @Cached AppendWarningNode appendWarningNode) {
     Object selfWithoutWarnings;
-    Warning[] arrOfWarnings;
+    EnsoHashMap warnsMap;
     try {
       selfWithoutWarnings = warnings.removeWarnings(self);
-      arrOfWarnings = warnings.getWarnings(self, false);
+      warnsMap = warnings.getWarnings(self, false);
     } catch (UnsupportedMessageException e) {
       var ctx = EnsoContext.get(this);
       throw ctx.raiseAssertionPanic(this, null, e);
@@ -476,9 +479,9 @@ public abstract class InvokeMethodNode extends BaseNode {
 
     try {
       Object result = childDispatch.execute(frame, state, symbol, selfWithoutWarnings, arguments);
-      return appendWarningNode.execute(null, result, arrOfWarnings);
+      return appendWarningNode.execute(null, result, warnsMap);
     } catch (TailCallException e) {
-      throw new TailCallException(e, arrOfWarnings);
+      throw new TailCallException(e, Warning.fromMapToArray(warnsMap));
     }
   }
 
@@ -507,7 +510,9 @@ public abstract class InvokeMethodNode extends BaseNode {
       @Cached(value = "buildProfiles()", dimensions = 1) BranchProfile[] warningProfiles,
       @Cached BranchProfile anyWarningsProfile,
       @Cached HostMethodCallNode hostMethodCallNode,
-      @Shared @Cached AppendWarningNode appendWarningNode) {
+      @Shared @Cached AppendWarningNode appendWarningNode,
+      @Cached ArrayLikeLengthNode lengthNode,
+      @Cached ArrayLikeAtNode atNode) {
     Object[] args = new Object[argExecutors.length];
     boolean anyWarnings = false;
     ArrayRope<Warning> accumulatedWarnings = new ArrayRope<>();
@@ -520,7 +525,9 @@ public abstract class InvokeMethodNode extends BaseNode {
         warningProfiles[i].enter();
         anyWarnings = true;
         try {
-          accumulatedWarnings = accumulatedWarnings.append(warnings.getWarnings(r, false));
+          EnsoHashMap rWarnsMap = warnings.getWarnings(r, false);
+          Warning[] rWarnsArray = Warning.fromMapToArray(rWarnsMap, lengthNode, atNode);
+          accumulatedWarnings = accumulatedWarnings.append(rWarnsArray);
           args[i] = warnings.removeWarnings(r);
         } catch (UnsupportedMessageException e) {
           var ctx = EnsoContext.get(this);

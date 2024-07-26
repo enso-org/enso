@@ -15,9 +15,9 @@ import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEn
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.data.hash.EnsoHashMap;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.warning.AppendWarningNode;
-import org.enso.interpreter.runtime.warning.Warning;
 import org.enso.interpreter.runtime.warning.WarningsLibrary;
 
 @ExportLibrary(InteropLibrary.class)
@@ -178,8 +178,8 @@ abstract class Vector implements EnsoObject {
     }
 
     @ExportMessage
-    Warning[] getWarnings(boolean shouldWrap) {
-      return new Warning[0];
+    EnsoHashMap getWarnings(boolean shouldWrap) {
+      return EnsoHashMap.empty();
     }
 
     @ExportMessage
@@ -254,7 +254,7 @@ abstract class Vector implements EnsoObject {
         throws InvalidArrayIndexException, UnsupportedMessageException {
       var v = interop.readArrayElement(this.storage, index);
       if (warnings.hasWarnings(this.storage)) {
-        Warning[] extracted = warnings.getWarnings(this.storage, false);
+        var extracted = warnings.getWarnings(this.storage, false);
         if (warnings.hasWarnings(v)) {
           v = warnings.removeWarnings(v);
         }
@@ -288,7 +288,7 @@ abstract class Vector implements EnsoObject {
     }
 
     @ExportMessage
-    Warning[] getWarnings(
+    EnsoHashMap getWarnings(
         boolean shouldWrap,
         @Cached.Shared(value = "warnsLib") @CachedLibrary(limit = "3") WarningsLibrary warnings)
         throws UnsupportedMessageException {
@@ -357,8 +357,8 @@ abstract class Vector implements EnsoObject {
     }
 
     @ExportMessage
-    Warning[] getWarnings(boolean shouldWrap) {
-      return new Warning[0];
+    EnsoHashMap getWarnings(boolean shouldWrap) {
+      return EnsoHashMap.empty();
     }
 
     @ExportMessage
@@ -407,8 +407,8 @@ abstract class Vector implements EnsoObject {
     }
 
     @ExportMessage
-    Warning[] getWarnings(boolean shouldWrap) {
-      return new Warning[0];
+    EnsoHashMap getWarnings(boolean shouldWrap) {
+      return EnsoHashMap.empty();
     }
 
     @ExportMessage

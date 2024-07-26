@@ -2,12 +2,14 @@ package org.enso.interpreter.runtime.warning;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.Cached.Exclusive;
 import com.oracle.truffle.api.dsl.Cached.Shared;
 import com.oracle.truffle.api.dsl.GenerateUncached;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.InvalidArrayIndexException;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.profiles.ConditionProfile;
@@ -94,12 +96,58 @@ public abstract class AppendWarningNode extends Node {
     return new WithWarnings(value, warnsLimit, isLimitReached, warnsMap);
   }
 
+  /**
+   * This specialization should be the most frequent - just wrapping the given {@code object} with
+   * warnings hash map
+   */
+  @Specialization(guards = {"!isWithWarns(object)"})
+  WithWarnings doObjectMultipleWarningsHashMap(
+      VirtualFrame frame, Object object, EnsoHashMap newWarnsMap) {
+    assert !(object instanceof WithWarnings);
+    int warnsLimit = EnsoContext.get(this).getWarningsLimit();
+    return new WithWarnings(
+        object, warnsLimit, newWarnsMap.getHashSize() >= warnsLimit, newWarnsMap);
+  }
+
+  @Specialization
+  WithWarnings doWithWarnMultipleWarningsHashMap(
+      VirtualFrame frame,
+      WithWarnings withWarnings,
+      EnsoHashMap newWarnsMap,
+      @Shared @CachedLibrary(limit = "3") InteropLibrary interop,
+      @Exclusive @Cached ConditionProfile hasCachedVecReprProfile,
+      @Shared @Cached HashMapInsertNode mapInsertNode) {
+    if (withWarnings.isLimitReached()) {
+      return withWarnings;
+    }
+    var maxWarns = withWarnings.maxWarnings;
+    var newWarnsEntriesVec = newWarnsMap.getCachedVectorRepresentation(hasCachedVecReprProfile);
+    var warnsMap = withWarnings.warnings;
+    var curWarnsCnt = warnsMap.getHashSize();
+    try {
+      for (long i = 0; i < interop.getArraySize(newWarnsEntriesVec); i++) {
+        if (curWarnsCnt >= maxWarns) {
+          break;
+        }
+        var entry = interop.readArrayElement(newWarnsEntriesVec, i);
+        var key = interop.readArrayElement(entry, 0);
+        var value = interop.readArrayElement(entry, 1);
+        warnsMap = mapInsertNode.execute(frame, warnsMap, key, value);
+        curWarnsCnt++;
+      }
+    } catch (UnsupportedMessageException | InvalidArrayIndexException e) {
+      throw CompilerDirectives.shouldNotReachHere(e);
+    }
+    var isLimitReached = curWarnsCnt >= maxWarns;
+    return new WithWarnings(withWarnings.value, withWarnings.maxWarnings, isLimitReached, warnsMap);
+  }
+
   @Specialization(guards = {"interop.hasArrayElements(warnings)", "!isWarnArray(warnings)"})
   WithWarnings doMultipleWarningsInterop(
       VirtualFrame frame,
       Object object,
       Object warnings,
-      @CachedLibrary(limit = "3") InteropLibrary interop,
+      @Shared @CachedLibrary(limit = "3") InteropLibrary interop,
       @Shared @Cached HashMapInsertNode mapInsertNode,
       @Cached ArrayLikeAtNode atNode,
       @Cached ArrayLikeLengthNode lengthNode,
@@ -155,5 +203,9 @@ public abstract class AppendWarningNode extends Node {
 
   protected static boolean isWarnArray(Object obj) {
     return obj instanceof Warning[];
+  }
+
+  protected static boolean isWithWarns(Object obj) {
+    return obj instanceof WithWarnings;
   }
 }

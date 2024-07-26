@@ -12,6 +12,8 @@ import com.oracle.truffle.api.profiles.CountingConditionProfile;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.ArrayRope;
+import org.enso.interpreter.runtime.data.vector.ArrayLikeAtNode;
+import org.enso.interpreter.runtime.data.vector.ArrayLikeLengthNode;
 import org.enso.interpreter.runtime.type.TypesGen;
 import org.enso.interpreter.runtime.warning.AppendWarningNode;
 import org.enso.interpreter.runtime.warning.Warning;
@@ -67,7 +69,9 @@ abstract class InstantiateNode extends ExpressionNode {
   Object doExecute(
       VirtualFrame frame,
       @Cached(parameters = {"constructor"}) AtomConstructorInstanceNode createInstanceNode,
-      @Cached AppendWarningNode appendWarningNode) {
+      @Cached AppendWarningNode appendWarningNode,
+      @Cached ArrayLikeLengthNode lengthNode,
+      @Cached ArrayLikeAtNode atNode) {
     Object[] argumentValues = new Object[arguments.length];
     boolean anyWarnings = false;
     ArrayRope<Warning> accumulatedWarnings = new ArrayRope<>();
@@ -81,7 +85,10 @@ abstract class InstantiateNode extends ExpressionNode {
       } else if (warningProfile.profile(warnings.hasWarnings(argument))) {
         anyWarnings = true;
         try {
-          accumulatedWarnings = accumulatedWarnings.append(warnings.getWarnings(argument, false));
+          var argumentWarnsMap = warnings.getWarnings(argument, false);
+          accumulatedWarnings =
+              accumulatedWarnings.append(
+                  Warning.fromMapToArray(argumentWarnsMap, lengthNode, atNode));
           argumentValues[i] = warnings.removeWarnings(argument);
         } catch (UnsupportedMessageException e) {
           throw EnsoContext.get(this).raiseAssertionPanic(this, null, e);

@@ -6,7 +6,6 @@ import com.oracle.truffle.api.dsl.Cached.Shared;
 import com.oracle.truffle.api.dsl.NodeChild;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
-import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
@@ -15,12 +14,10 @@ import com.oracle.truffle.api.profiles.CountingConditionProfile;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.interpreter.runtime.data.hash.HashMapInsertNode;
 import org.enso.interpreter.runtime.error.*;
 import org.enso.interpreter.runtime.state.State;
 import org.enso.interpreter.runtime.type.TypesGen;
 import org.enso.interpreter.runtime.warning.AppendWarningNode;
-import org.enso.interpreter.runtime.warning.Warning;
 import org.enso.interpreter.runtime.warning.WarningsLibrary;
 
 /**
@@ -89,11 +86,9 @@ public abstract class CaseNode extends ExpressionNode {
       VirtualFrame frame,
       Object object,
       @Shared("warnsLib") @CachedLibrary(limit = "3") WarningsLibrary warnings,
-      @Cached HashMapInsertNode insertNode,
-      @CachedLibrary(limit = "3") InteropLibrary interop,
       @Cached AppendWarningNode appendWarningNode) {
     try {
-      Warning[] ws = warnings.getWarnings(object, false);
+      var ws = warnings.getWarnings(object, false);
       Object result = doMatch(frame, warnings.removeWarnings(object), warnings);
       return appendWarningNode.execute(null, result, ws);
     } catch (UnsupportedMessageException e) {

@@ -36,7 +36,11 @@ import org.enso.interpreter.service.error.{
   VisualizationException
 }
 import org.enso.common.LanguageInfo
-import org.enso.interpreter.runtime.warning.{WarningsLibrary, WithWarnings}
+import org.enso.interpreter.runtime.warning.{
+  Warning,
+  WarningsLibrary,
+  WithWarnings
+}
 import org.enso.polyglot.debugger.ExecutedVisualization
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.Runtime.Api.{ContextId, ExecutionResult}
@@ -415,11 +419,9 @@ object ProgramExecutionSupport {
                 value.getValue
               )
             ) {
-              val warnings =
-                WarningsLibrary.getUncached.getWarnings(
-                  value.getValue,
-                  false
-                )
+              val warnsMap =
+                WarningsLibrary.getUncached.getWarnings(value.getValue, false)
+              val warnings      = Warning.fromMapToArray(warnsMap)
               val warningsCount = warnings.length
               val warning =
                 if (warningsCount > 0) {

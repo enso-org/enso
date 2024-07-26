@@ -66,6 +66,11 @@ public final class Warning implements EnsoObject {
     return appendWarningNode.execute(null, value, warn);
   }
 
+  /** Slow version of {@link #fromMapToArray(EnsoHashMap, ArrayLikeLengthNode, ArrayLikeAtNode)}. */
+  public static Warning[] fromMapToArray(EnsoHashMap map) {
+    return fromMapToArray(map, ArrayLikeLengthNode.getUncached(), ArrayLikeAtNode.getUncached());
+  }
+
   public static Warning[] fromMapToArray(
       EnsoHashMap map, ArrayLikeLengthNode lengthNode, ArrayLikeAtNode atNode) {
     var vec = map.getCachedVectorRepresentation();

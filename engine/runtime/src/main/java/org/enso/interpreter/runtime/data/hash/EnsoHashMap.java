@@ -66,11 +66,12 @@ public final class EnsoHashMap implements EnsoObject {
     }
   }
 
+  /** Slow version of {@link #getCachedVectorRepresentation(ConditionProfile)}. */
   public Object getCachedVectorRepresentation() {
     return getCachedVectorRepresentation(ConditionProfile.getUncached());
   }
 
-  Object getCachedVectorRepresentation(ConditionProfile isNotCachedProfile) {
+  public Object getCachedVectorRepresentation(ConditionProfile isNotCachedProfile) {
     if (isNotCachedProfile.profile(cachedVectorRepresentation == null)) {
       var keys = new Object[size];
       var values = new Object[size];

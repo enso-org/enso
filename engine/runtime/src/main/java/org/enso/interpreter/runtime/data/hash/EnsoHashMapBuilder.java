@@ -225,7 +225,7 @@ final class EnsoHashMapBuilder {
    * are in the storage as of this moment, i.e., all the entries with their indexes lesser than
    * {@code generation}.
    *
-   * <p>Should be called where most once for a particular {@code generation}.
+   * <p>Should be called at most once for a particular {@code generation}.
    *
    * @return A new hash map snapshot.
    */
