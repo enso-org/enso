@@ -999,7 +999,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     ],
     { queryKey: [], staleTime: 0, meta: { persist: false } }
   )
-  const isLoading = rootDirectoryQuery.isLoading || rootDirectoryQuery.isPending
+  const isLoading = rootDirectoryQuery.isLoading
 
   React.useEffect(() => {
     if (isLoading) {
