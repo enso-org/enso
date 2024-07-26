@@ -10,7 +10,7 @@ import org.enso.projectmanager.service.versionmanagement.RuntimeVersionManagerFa
 import org.enso.runtimeversionmanager.config.GlobalRunnerConfigurationManager
 import org.enso.runtimeversionmanager.runner.{LanguageServerOptions, Runner}
 
-import java.io.{File, PrintWriter}
+import java.io.PrintWriter
 import java.lang.ProcessBuilder.Redirect
 import java.util.concurrent.Executors
 import scala.util.Using
@@ -125,9 +125,6 @@ object ExecutorWithUnlimitedPool extends LanguageServerExecutor {
         additionalArguments = additionalArguments
       )
       .get
-    val projectParentDirectory = new File(
-      descriptor.rootPath
-    ).getAbsoluteFile.getParentFile
     runner.withCommand(runSettings, descriptor.jvmSettings) { command =>
       logger.trace(
         "Starting Language Server Process [{}]",
