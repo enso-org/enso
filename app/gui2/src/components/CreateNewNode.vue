@@ -29,12 +29,6 @@ const makeSortPattern = () => {
   return `(..Name '${columnName}' ${sortMapping[direction]})`
 }
 
-const makeFilterPattern = () => {
-  const columnName = Object.keys(props.filterModel)[0]
-  const items = props.filterModel[columnName || '']?.values.map((item) => `"${item}"`)
-  return `'${columnName}' (..Is_In [${items}] ..Keep)`
-}
-
 function getAstPatternSort() {
   return Pattern.new((ast) =>
     Ast.App.positional(
@@ -44,11 +38,11 @@ function getAstPatternSort() {
   )
 }
 
-function getAstPatternFilter() {
+function getAstPatternFilter(columnName?: string, items?: string[]) {
   return Pattern.new((ast) =>
     Ast.App.positional(
       Ast.PropertyAccess.new(ast.module, ast, Ast.identifier('filter')!),
-      Ast.parse(makeFilterPattern()),
+      Ast.parse(`'${columnName}' (..Is_In [${items}] ..Keep)`),
     ),
   )
 }
@@ -56,8 +50,12 @@ function getAstPatternFilter() {
 const createNewNodes = () => {
   let patterns = new Array<any>()
   if (Object.keys(props.filterModel).length) {
-    const pat = getAstPatternFilter()
-    patterns.push(pat)
+    for (const index in Object.keys(props.filterModel)) {
+      const columnName = Object.keys(props.filterModel)[index]
+      const items = props.filterModel[columnName || '']?.values.map((item) => `"${item}"`)
+      const filterPatterns = getAstPatternFilter(columnName, items)
+      patterns.push(filterPatterns)
+    }
   }
   if (props.sortModel?.size) {
     const patSort = getAstPatternSort()
