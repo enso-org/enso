@@ -1,7 +1,7 @@
 /** @file Script that bundles JS client code. */
 import * as esbuild from 'esbuild'
 
-import * as bundler from './esbuild-config'
+import * as bundler from './esbuildConfig'
 
 // ================
 // === Bundling ===
