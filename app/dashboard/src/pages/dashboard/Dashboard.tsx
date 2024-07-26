@@ -33,7 +33,6 @@ import ProjectsProvider, {
 } from '#/providers/ProjectsProvider'
 import * as textProvider from '#/providers/TextProvider'
 
-import AssetEventType from '#/events/AssetEventType'
 import AssetListEventType from '#/events/AssetListEventType'
 
 import EventListProvider, * as eventListProvider from '#/layouts/AssetsTable/EventListProvider'
