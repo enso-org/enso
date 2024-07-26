@@ -130,18 +130,31 @@ export function replaceOwnerPermission(
   return merge(asset, { permissions: newPermissions })
 }
 
+const USER_PATH_REGEX = /^enso:[/][/][/]Users[/]([^/]+)/
+const TEAM_PATH_REGEX = /^enso:[/][/][/]Teams[/]([^/]+)/
+
+/** Whether a path is inside a user's home directory. */
+export function isUserPath(path: string) {
+  return USER_PATH_REGEX.test(path)
+}
+
+/** Whether a path is inside a team's home directory. */
+export function isTeamPath(path: string) {
+  return TEAM_PATH_REGEX.test(path)
+}
+
 /** Find the new owner of an asset based on the path of its new parent directory. */
 export function newOwnerFromPath(
   path: string,
   users: readonly backend.User[],
   userGroups: readonly backend.UserGroupInfo[]
 ) {
-  const [, userName] = path.match(/enso:[/][/][/]Users[/]([^/]+)/) ?? []
+  const [, userName] = path.match(USER_PATH_REGEX) ?? []
   if (userName != null) {
     const userNameLowercase = userName.toLowerCase()
     return users.find(user => user.name.toLowerCase() === userNameLowercase)
   } else {
-    const [, teamName] = path.match(/enso:[/][/][/]Teams[/]([^/]+)/) ?? []
+    const [, teamName] = path.match(TEAM_PATH_REGEX) ?? []
     if (teamName != null) {
       const teamNameLowercase = teamName.toLowerCase()
       return userGroups.find(userGroup => userGroup.groupName === teamNameLowercase)

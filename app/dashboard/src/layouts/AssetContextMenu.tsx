@@ -66,7 +66,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   const { innerProps, rootDirectoryId, event, eventTarget, hidden = false } = props
   const { doTriggerDescriptionEdit, doCopy, doCut, doPaste, doDelete } = props
   const { item, setItem, state, setRowState } = innerProps
-  const { backend, category, hasPasteData } = state
+  const { backend, category, hasPasteData, pasteData, nodeMap } = state
 
   const { user } = authProvider.useFullUserSession()
   const { setModal, unsetModal } = modalProvider.useSetModal()
@@ -107,6 +107,24 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
     category.type !== categoryModule.CategoryType.recent &&
     asset.type === backendModule.AssetType.directory &&
     canEditThisAsset
+  const pasteDataParentKeys = !pasteData.current
+    ? null
+    : new Map(
+        Array.from(nodeMap.current.entries()).map(([id, otherAsset]) => [
+          id,
+          otherAsset.directoryKey,
+        ])
+      )
+  const canPaste =
+    !pasteData.current || !pasteDataParentKeys || !isCloud
+      ? true
+      : !Array.from(pasteData.current.data).some(assetId => {
+          const parentKey = pasteDataParentKeys.get(assetId)
+          const parent = parentKey == null ? null : nodeMap.current.get(parentKey)
+          return !parent
+            ? true
+            : permissions.isTeamPath(parent.path) && permissions.isUserPath(item.path)
+        })
 
   const { data } = reactQuery.useQuery(
     item.item.type === backendModule.AssetType.project
@@ -454,7 +472,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             }}
           />
         )}
-        {hasPasteData && (
+        {hasPasteData && canPaste && (
           <ContextMenuEntry
             hidden={hidden}
             action="paste"
