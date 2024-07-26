@@ -82,7 +82,7 @@ export default function EditableSpan(props: EditableSpanProps) {
     return (
       <form
         className={tailwindMerge.twMerge('flex grow gap-1.5', WIDTH_CLASS_NAME)}
-        onBlur={event => {
+        onBlur={(event) => {
           const currentTarget = event.currentTarget
           if (!currentTarget.contains(event.relatedTarget)) {
             // This must run AFTER the cancel button's event handler runs.
@@ -93,7 +93,7 @@ export default function EditableSpan(props: EditableSpanProps) {
             })
           }
         }}
-        onSubmit={event => {
+        onSubmit={(event) => {
           event.preventDefault()
           if (inputRef.current != null) {
             if (isSubmittable) {
@@ -107,7 +107,7 @@ export default function EditableSpan(props: EditableSpanProps) {
         <aria.Input
           data-testid={props['data-testid']}
           className={tailwindMerge.twMerge('rounded-lg', className)}
-          ref={element => {
+          ref={(element) => {
             inputRef.current = element
             if (element) {
               element.style.width = '0'
@@ -118,10 +118,10 @@ export default function EditableSpan(props: EditableSpanProps) {
           type="text"
           size={1}
           defaultValue={children}
-          onContextMenu={event => {
+          onContextMenu={(event) => {
             event.stopPropagation()
           }}
-          onKeyDown={event => {
+          onKeyDown={(event) => {
             if (event.key !== 'Escape') {
               event.stopPropagation()
             }
@@ -132,13 +132,13 @@ export default function EditableSpan(props: EditableSpanProps) {
           }}
           {...(inputPattern == null ? {} : { pattern: inputPattern })}
           {...(inputTitle == null ? {} : { title: inputTitle })}
-          {...(checkSubmittable == null
-            ? {}
-            : {
-                onInput: event => {
-                  setIsSubmittable(checkSubmittable(event.currentTarget.value))
-                },
-              })}
+          {...(checkSubmittable == null ?
+            {}
+          : {
+              onInput: (event) => {
+                setIsSubmittable(checkSubmittable(event.currentTarget.value))
+              },
+            })}
         />
         <ariaComponents.ButtonGroup gap="xsmall" className="grow-0 items-center">
           {isSubmittable && (

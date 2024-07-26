@@ -123,13 +123,13 @@ export function useInitAuthService(authConfig: AuthConfig): AuthService | null {
   return React.useMemo(() => {
     const amplifyConfig = loadAmplifyConfig(logger, supportsDeepLinks, navigate)
     const cognito =
-      amplifyConfig == null
-        ? null
-        : new cognitoModule.Cognito(logger, supportsDeepLinks, amplifyConfig)
+      amplifyConfig == null ? null : (
+        new cognitoModule.Cognito(logger, supportsDeepLinks, amplifyConfig)
+      )
 
-    return cognito == null
-      ? null
-      : { cognito, registerAuthEventListener: listen.registerAuthEventListener }
+    return cognito == null ? null : (
+        { cognito, registerAuthEventListener: listen.registerAuthEventListener }
+      )
   }, [logger, navigate, supportsDeepLinks])
 }
 
@@ -137,7 +137,7 @@ export function useInitAuthService(authConfig: AuthConfig): AuthService | null {
 function loadAmplifyConfig(
   logger: Logger,
   supportsDeepLinks: boolean,
-  navigate: (url: string) => void
+  navigate: (url: string) => void,
 ): AmplifyConfig | null {
   let urlOpener: ((url: string) => void) | null = null
   let saveAccessToken: ((accessToken: saveAccessTokenModule.AccessToken | null) => void) | null =
@@ -175,11 +175,13 @@ function loadAmplifyConfig(
 
   /** Load the platform-specific Amplify configuration. */
   const signInOutRedirect = supportsDeepLinks ? `${common.DEEP_LINK_SCHEME}://auth` : redirectUrl
-  return process.env.ENSO_CLOUD_COGNITO_USER_POOL_ID == null ||
-    process.env.ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID == null ||
-    process.env.ENSO_CLOUD_COGNITO_DOMAIN == null ||
-    process.env.ENSO_CLOUD_COGNITO_REGION == null
-    ? null
+  return (
+      process.env.ENSO_CLOUD_COGNITO_USER_POOL_ID == null ||
+        process.env.ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID == null ||
+        process.env.ENSO_CLOUD_COGNITO_DOMAIN == null ||
+        process.env.ENSO_CLOUD_COGNITO_REGION == null
+    ) ?
+      null
     : {
         userPoolId: process.env.ENSO_CLOUD_COGNITO_USER_POOL_ID,
         userPoolWebClientId: process.env.ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID,

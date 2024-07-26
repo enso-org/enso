@@ -77,7 +77,7 @@ const USER_PICTURE_URLS = new Map<backendModule.BackendType, string>()
 /** Create the corresponding "user picture" URL for the given backend. */
 function createUserPictureUrl(
   backendType: backendModule.BackendType | null | undefined,
-  picture: Blob
+  picture: Blob,
 ) {
   if (backendType != null) {
     revokeUserPictureUrl(backendType)
@@ -109,7 +109,7 @@ const ORGANIZATION_PICTURE_URLS = new Map<backendModule.BackendType, string>()
 /** Create the corresponding "organization picture" URL for the given backend. */
 function createOrganizationPictureUrl(
   backendType: backendModule.BackendType | null | undefined,
-  picture: Blob
+  picture: Blob,
 ) {
   if (backendType != null) {
     revokeOrganizationPictureUrl(backendType)
@@ -197,10 +197,10 @@ function setBackendQueryData<Method extends backendQuery.BackendMethods>(
   queryClient: reactQuery.QueryClient,
   backendType: backendModule.BackendType | null,
   method: Method,
-  updater: (variable: Awaited<ReturnType<Backend[Method]>>) => Awaited<ReturnType<Backend[Method]>>
+  updater: (variable: Awaited<ReturnType<Backend[Method]>>) => Awaited<ReturnType<Backend[Method]>>,
 ) {
-  queryClient.setQueryData<Awaited<ReturnType<Backend[Method]>>>([backendType, method], data =>
-    data == null ? data : updater(data)
+  queryClient.setQueryData<Awaited<ReturnType<Backend[Method]>>>([backendType, method], (data) =>
+    data == null ? data : updater(data),
   )
 }
 
@@ -220,7 +220,7 @@ export function useBackendQuery<Method extends backendQuery.BackendMethods>(
       readonly unknown[]
     >,
     'queryFn'
-  >
+  >,
 ): reactQuery.UseQueryResult<Awaited<ReturnType<Backend[Method]>>>
 export function useBackendQuery<Method extends backendQuery.BackendMethods>(
   backend: Backend | null,
@@ -234,7 +234,7 @@ export function useBackendQuery<Method extends backendQuery.BackendMethods>(
       readonly unknown[]
     >,
     'queryFn'
-  >
+  >,
 ): reactQuery.UseQueryResult<
   // eslint-disable-next-line no-restricted-syntax
   Awaited<ReturnType<Backend[Method]>> | undefined
@@ -252,7 +252,7 @@ export function useBackendQuery<Method extends backendQuery.BackendMethods>(
       readonly unknown[]
     >,
     'queryFn'
-  >
+  >,
 ) {
   return reactQuery.useQuery<
     Awaited<ReturnType<Backend[Method]>>,
@@ -284,7 +284,7 @@ export const useBackendMutationOptions: <Method extends MutationMethod>(
       unknown
     >,
     'mutationFn'
-  >
+  >,
 ) => ReturnType<typeof useBackendMutationOptionsInternal<Method>> =
   useBackendMutationOptionsInternal
 
@@ -298,7 +298,7 @@ function useBackendMutationOptionsInternal<Method extends MutationMethod>(
       Parameters<Backend[Method]>
     >,
     'mutationFn'
-  >
+  >,
 ): reactQuery.UseMutationOptions<
   Awaited<ReturnType<Backend[Method]>>,
   Error,
@@ -314,7 +314,7 @@ function useBackendMutationOptionsInternal<Method extends MutationMethod>(
       Parameters<Backend[Method]>
     >,
     'mutationFn'
-  >
+  >,
 ): reactQuery.UseMutationOptions<
   Awaited<ReturnType<Backend[Method]>> | undefined,
   Error,
@@ -335,7 +335,7 @@ function useBackendMutationOptionsInternal<Method extends MutationMethod>(
       Parameters<Backend[Method]>
     >,
     'mutationFn'
-  >
+  >,
 ): reactQuery.UseMutationOptions<
   Awaited<ReturnType<Backend[Method]>>,
   Error,
@@ -352,7 +352,7 @@ function useBackendMutationOptionsInternal<Method extends MutationMethod>(
       Parameters<Backend[Method]>
     >,
     'mutationFn'
-  >
+  >,
 ): reactQuery.UseMutationOptions<
   Awaited<ReturnType<Backend[Method]>>,
   Error,
@@ -362,7 +362,7 @@ function useBackendMutationOptionsInternal<Method extends MutationMethod>(
     ...options,
     mutationKey: [backend?.type, method, ...(options?.mutationKey ?? [])],
     // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-return
-    mutationFn: args => (backend?.[method] as any)?.(...args),
+    mutationFn: (args) => (backend?.[method] as any)?.(...args),
     networkMode: backend?.type === backendModule.BackendType.local ? 'always' : 'online',
   }
 }
@@ -375,7 +375,7 @@ function useBackendMutationOptionsInternal<Method extends MutationMethod>(
 export function useBackendMutationVariables<Method extends backendQuery.BackendMethods>(
   backend: Backend | null,
   method: Method,
-  mutationKey?: readonly unknown[]
+  mutationKey?: readonly unknown[],
 ) {
   return reactQuery.useMutationState<Parameters<Backend[Method]>>({
     filters: {
@@ -383,7 +383,7 @@ export function useBackendMutationVariables<Method extends backendQuery.BackendM
       status: 'pending',
     },
     // eslint-disable-next-line no-restricted-syntax
-    select: mutation => mutation.state.variables as never,
+    select: (mutation) => mutation.state.variables as never,
   })
 }
 
@@ -418,7 +418,7 @@ function toNonPlaceholder<T extends object>(object: T) {
 
 /** A list of users, taking into account optimistic state. */
 export function useListUsers(
-  backend: Backend
+  backend: Backend,
 ): readonly WithPlaceholder<backendModule.User>[] | null {
   const listUsersQuery = useBackendQuery(backend, 'listUsers', [])
   const changeUserGroupVariables = useBackendMutationVariables(backend, 'changeUserGroup')
@@ -446,7 +446,7 @@ export function useListUsers(
 
 /** A list of user groups, taking into account optimistic state. */
 export function useListUserGroups(
-  backend: Backend
+  backend: Backend,
 ): readonly WithPlaceholder<backendModule.UserGroupInfo>[] | null {
   const { user } = authProvider.useNonPartialUserSession()
   const listUserGroupsQuery = useBackendQuery(backend, 'listUserGroups', [])
@@ -458,7 +458,7 @@ export function useListUserGroups(
     } else {
       const deletedUserGroupIds = new Set(deleteUserGroupVariables.map(([id]) => id))
       const userGroupsBase = listUserGroupsQuery.data
-        .filter(userGroup => !deletedUserGroupIds.has(userGroup.id))
+        .filter((userGroup) => !deletedUserGroupIds.has(userGroup.id))
         .map(toNonPlaceholder)
       return [
         ...createUserGroupVariables.map(([body]) => ({
@@ -489,7 +489,7 @@ export interface UserGroupInfoWithUsers extends backendModule.UserGroupInfo {
 
 /** A list of user groups, taking into account optimistic state. */
 export function useListUserGroupsWithUsers(
-  backend: Backend
+  backend: Backend,
 ): readonly WithPlaceholder<UserGroupInfoWithUsers>[] | null {
   const userGroupsRaw = useListUserGroups(backend)
   // Old user list
@@ -501,12 +501,12 @@ export function useListUserGroupsWithUsers(
       return null
     } else {
       const currentUserGroupsById = new Map(
-        listUsersQuery.data.map(user => [user.userId, new Set(user.userGroups)])
+        listUsersQuery.data.map((user) => [user.userId, new Set(user.userGroups)]),
       )
-      const result = userGroupsRaw.map(userGroup => {
+      const result = userGroupsRaw.map((userGroup) => {
         const usersInGroup: readonly WithPlaceholder<backendModule.User>[] = users
-          .filter(user => user.userGroups?.includes(userGroup.id))
-          .map(user => {
+          .filter((user) => user.userGroups?.includes(userGroup.id))
+          .map((user) => {
             if (currentUserGroupsById.get(user.userId)?.has(userGroup.id) !== true) {
               return { ...user, isPlaceholder: true }
             } else {
@@ -526,7 +526,7 @@ export function useListUserGroupsWithUsers(
 
 /** A list of asset tags, taking into account optimistic state. */
 export function useListTags(
-  backend: Backend | null
+  backend: Backend | null,
 ): readonly WithPlaceholder<backendModule.Label>[] | null {
   const listTagsQuery = useBackendQuery(backend, 'listTags', [])
   const createTagVariables = useBackendMutationVariables(backend, 'createTag')
@@ -535,13 +535,13 @@ export function useListTags(
     if (listTagsQuery.data == null) {
       return null
     } else {
-      const deletedTags = new Set(deleteTagVariables.map(variables => variables[0]))
+      const deletedTags = new Set(deleteTagVariables.map((variables) => variables[0]))
       const result = listTagsQuery.data
-        .filter(tag => !deletedTags.has(tag.id))
+        .filter((tag) => !deletedTags.has(tag.id))
         .map(toNonPlaceholder)
       return [
         ...result,
-        ...createTagVariables.map(variables => ({
+        ...createTagVariables.map((variables) => ({
           id: backendModule.TagId(`tag-${uniqueString.uniqueString()}`),
           value: backendModule.LabelName(variables[0].value),
           color: variables[0].color,
@@ -592,7 +592,7 @@ export function useGetOrganization(backend: Backend | null) {
   const updateOrganizationVariables = useBackendMutationVariables(backend, 'updateOrganization')
   const uploadOrganizationPictureVariables = useBackendMutationVariables(
     backend,
-    'uploadOrganizationPicture'
+    'uploadOrganizationPicture',
   )
   return React.useMemo(() => {
     if (getOrganizationQuery.data == null) {
@@ -630,12 +630,12 @@ export function useBackendMutationListener(backendType: backendModule.BackendTyp
     const setQueryData = <Method extends backendQuery.BackendMethods>(
       method: Method,
       updater: (
-        variable: Awaited<ReturnType<Backend[Method]>>
-      ) => Awaited<ReturnType<Backend[Method]>>
+        variable: Awaited<ReturnType<Backend[Method]>>,
+      ) => Awaited<ReturnType<Backend[Method]>>,
     ) => {
       setBackendQueryData(queryClient, backendType, method, updater)
     }
-    return mutationCache.subscribe(event => {
+    return mutationCache.subscribe((event) => {
       const mutationRaw: reactQuery.Mutation | undefined = event.mutation
       if (event.type === 'updated' && mutationRaw?.options.mutationKey?.[0] === backendType) {
         // eslint-disable-next-line no-restricted-syntax
@@ -648,7 +648,7 @@ export function useBackendMutationListener(backendType: backendModule.BackendTyp
             case 'updateUser': {
               const [{ username }] = obj.mutation.state.variables
               if (username != null) {
-                setQueryData('usersMe', data => (!data ? null : merge(data, { name: username })))
+                setQueryData('usersMe', (data) => (!data ? null : merge(data, { name: username })))
               }
               break
             }
@@ -671,33 +671,33 @@ export function useBackendMutationListener(backendType: backendModule.BackendTyp
             }
             case 'createUserGroup': {
               const data = obj.mutation.state.data
-              setQueryData('listUserGroups', userGroups => [data, ...userGroups])
+              setQueryData('listUserGroups', (userGroups) => [data, ...userGroups])
               break
             }
             case 'deleteUserGroup': {
               const [userGroupId] = obj.mutation.state.variables
-              setQueryData('listUserGroups', userGroups =>
-                userGroups.filter(userGroup => userGroup.id !== userGroupId)
+              setQueryData('listUserGroups', (userGroups) =>
+                userGroups.filter((userGroup) => userGroup.id !== userGroupId),
               )
               break
             }
             case 'changeUserGroup': {
               const [userId, body] = obj.mutation.state.variables
-              setQueryData('listUsers', users =>
-                users.map(user =>
-                  user.userId !== userId ? user : { ...user, userGroups: body.userGroups }
-                )
+              setQueryData('listUsers', (users) =>
+                users.map((user) =>
+                  user.userId !== userId ? user : { ...user, userGroups: body.userGroups },
+                ),
               )
               break
             }
             case 'createTag': {
               const data = obj.mutation.state.data
-              setQueryData('listTags', tags => [...tags, data])
+              setQueryData('listTags', (tags) => [...tags, data])
               break
             }
             case 'deleteTag': {
               const [tagId] = obj.mutation.state.variables
-              setQueryData('listTags', tags => tags.filter(tag => tag.id !== tagId))
+              setQueryData('listTags', (tags) => tags.filter((tag) => tag.id !== tagId))
               break
             }
             default: {

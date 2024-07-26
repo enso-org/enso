@@ -14,8 +14,8 @@ import * as aria from '#/components/aria'
 import PermissionSelector from '#/components/dashboard/PermissionSelector'
 import FocusArea from '#/components/styled/FocusArea'
 
-import * as backendModule from '#/services/Backend'
 import type Backend from '#/services/Backend'
+import * as backendModule from '#/services/Backend'
 
 import * as object from '#/utilities/object'
 
@@ -61,7 +61,7 @@ export default function Permission(props: PermissionProps) {
   const assetTypeName = getText(ASSET_TYPE_TO_TEXT_ID[asset.type])
 
   const createPermission = useMutation(
-    useBackendMutationOptions(backend, 'createPermission')
+    useBackendMutationOptions(backend, 'createPermission'),
   ).mutateAsync
 
   React.useEffect(() => {
@@ -88,7 +88,7 @@ export default function Permission(props: PermissionProps) {
 
   return (
     <FocusArea active={!isDisabled} direction="horizontal">
-      {innerProps => (
+      {(innerProps) => (
         <div className="flex items-center gap-user-permission" {...innerProps}>
           <PermissionSelector
             showDelete
@@ -97,7 +97,7 @@ export default function Permission(props: PermissionProps) {
             selfPermission={self.permission}
             action={permission.permission}
             assetType={asset.type}
-            onChange={async permissions => {
+            onChange={async (permissions) => {
               await doSetPermission(object.merge(permission, { permission: permissions }))
             }}
             doDelete={() => {

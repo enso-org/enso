@@ -94,7 +94,7 @@ export default class LocalStorage {
   set<K extends LocalStorageKey>(
     key: K,
     value: LocalStorageData[K],
-    options?: LocalStorageMutateOptions
+    options?: LocalStorageMutateOptions,
   ) {
     this.values[key] = value
     this.save(options)

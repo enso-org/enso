@@ -28,8 +28,8 @@ import StatelessSpinner, * as statelessSpinner from '#/components/StatelessSpinn
 
 import NewUserGroupModal from '#/modals/NewUserGroupModal'
 
-import * as backendModule from '#/services/Backend'
 import type Backend from '#/services/Backend'
+import * as backendModule from '#/services/Backend'
 
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 
@@ -54,14 +54,14 @@ export default function UserGroupsSettingsSection(props: UserGroupsSettingsSecti
   const rootRef = React.useRef<HTMLDivElement>(null)
   const bodyRef = React.useRef<HTMLTableSectionElement>(null)
   const changeUserGroup = useMutation(
-    useBackendMutationOptions(backend, 'changeUserGroup')
+    useBackendMutationOptions(backend, 'changeUserGroup'),
   ).mutateAsync
   const deleteUserGroup = useMutation(
-    useBackendMutationOptions(backend, 'deleteUserGroup')
+    useBackendMutationOptions(backend, 'deleteUserGroup'),
   ).mutateAsync
   const usersMap = React.useMemo(
-    () => new Map((users ?? []).map(otherUser => [otherUser.userId, otherUser])),
-    [users]
+    () => new Map((users ?? []).map((otherUser) => [otherUser.userId, otherUser])),
+    [users],
   )
   const isLoading = userGroups == null || users == null
 
@@ -76,20 +76,22 @@ export default function UserGroupsSettingsSection(props: UserGroupsSettingsSecti
 
   const { dragAndDropHooks } = aria.useDragAndDrop({
     getDropOperation: (target, types, allowedOperations) =>
-      allowedOperations.includes('copy') &&
-      types.has(mimeTypes.USER_MIME_TYPE) &&
-      target.type === 'item' &&
-      typeof target.key === 'string' &&
-      backendModule.isUserGroupId(target.key) &&
-      !backendModule.isPlaceholderUserGroupId(target.key)
-        ? 'copy'
-        : 'cancel',
-    onItemDrop: event => {
+      (
+        allowedOperations.includes('copy') &&
+        types.has(mimeTypes.USER_MIME_TYPE) &&
+        target.type === 'item' &&
+        typeof target.key === 'string' &&
+        backendModule.isUserGroupId(target.key) &&
+        !backendModule.isPlaceholderUserGroupId(target.key)
+      ) ?
+        'copy'
+      : 'cancel',
+    onItemDrop: (event) => {
       if (typeof event.target.key === 'string' && backendModule.isUserGroupId(event.target.key)) {
         const userGroupId = event.target.key
         for (const item of event.items) {
           if (item.kind === 'text' && item.types.has(mimeTypes.USER_MIME_TYPE)) {
-            void item.getText(mimeTypes.USER_MIME_TYPE).then(async text => {
+            void item.getText(mimeTypes.USER_MIME_TYPE).then(async (text) => {
               // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
               const newUser: backendModule.User = JSON.parse(text)
               const groups = usersMap.get(newUser.userId)?.userGroups ?? []
@@ -122,11 +124,11 @@ export default function UserGroupsSettingsSection(props: UserGroupsSettingsSecti
 
   const doRemoveUserFromUserGroup = async (
     otherUser: backendModule.User,
-    userGroup: backendModule.UserGroupInfo
+    userGroup: backendModule.UserGroupInfo,
   ) => {
     try {
       const intermediateUserGroups =
-        otherUser.userGroups?.filter(userGroupId => userGroupId !== userGroup.id) ?? null
+        otherUser.userGroups?.filter((userGroupId) => userGroupId !== userGroup.id) ?? null
       const newUserGroups = intermediateUserGroups?.length === 0 ? null : intermediateUserGroups
       await changeUserGroup([otherUser.userId, { userGroups: newUserGroups ?? [] }, otherUser.name])
     } catch (error) {
@@ -153,7 +155,7 @@ export default function UserGroupsSettingsSection(props: UserGroupsSettingsSecti
           <ariaComponents.Button
             size="medium"
             variant="bar"
-            onPress={event => {
+            onPress={(event) => {
               const rect = event.target.getBoundingClientRect()
               const position = { pageX: rect.left, pageY: rect.top }
               setModal(<NewUserGroupModal backend={backend} event={position} />)
@@ -165,9 +167,9 @@ export default function UserGroupsSettingsSection(props: UserGroupsSettingsSecti
 
         {isUnderPaywall && (
           <span className="text-xs">
-            {userGroupsLeft <= 0
-              ? getText('userGroupsPaywallMessage')
-              : getText('userGroupsLimitMessage', userGroupsLeft)}
+            {userGroupsLeft <= 0 ?
+              getText('userGroupsPaywallMessage')
+            : getText('userGroupsLimitMessage', userGroupsLeft)}
           </span>
         )}
       </ariaComponents.ButtonGroup>
@@ -175,7 +177,7 @@ export default function UserGroupsSettingsSection(props: UserGroupsSettingsSecti
         ref={rootRef}
         className={tailwindMerge.twMerge(
           'overflow-auto overflow-x-hidden transition-all lg:mb-2',
-          shadowClassName
+          shadowClassName,
         )}
         onScroll={onUserGroupsTableScroll}
       >
@@ -200,10 +202,10 @@ export default function UserGroupsSettingsSection(props: UserGroupsSettingsSecti
             dependencies={[isLoading, userGroups]}
             className="select-text"
           >
-            {isLoading ? (
+            {isLoading ?
               <aria.Row className="h-row">
                 <aria.Cell
-                  ref={element => {
+                  ref={(element) => {
                     if (element != null) {
                       element.colSpan = 2
                     }
@@ -217,11 +219,10 @@ export default function UserGroupsSettingsSection(props: UserGroupsSettingsSecti
                   </div>
                 </aria.Cell>
               </aria.Row>
-            ) : (
-              userGroup => (
+            : (userGroup) => (
                 <>
                   <UserGroupRow userGroup={userGroup} doDeleteUserGroup={doDeleteUserGroup} />
-                  {userGroup.users.map(otherUser => (
+                  {userGroup.users.map((otherUser) => (
                     <UserGroupUserRow
                       key={otherUser.userId}
                       user={otherUser}
@@ -231,7 +232,7 @@ export default function UserGroupsSettingsSection(props: UserGroupsSettingsSecti
                   ))}
                 </>
               )
-            )}
+            }
           </aria.TableBody>
         </aria.Table>
       </div>

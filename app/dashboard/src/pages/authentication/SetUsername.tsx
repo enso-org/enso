@@ -36,7 +36,7 @@ export default function SetUsername() {
       data-testid="set-username-panel"
       title={getText('setYourUsername')}
       supportsOffline={supportsOffline}
-      onSubmit={async event => {
+      onSubmit={async (event) => {
         event.preventDefault()
         await authSetUsername(backend, username, email)
       }}

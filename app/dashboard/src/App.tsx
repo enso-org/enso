@@ -49,8 +49,8 @@ import * as inputBindingsModule from '#/configurations/inputBindings'
 import AuthProvider, * as authProvider from '#/providers/AuthProvider'
 import BackendProvider, { useLocalBackend, useRemoteBackend } from '#/providers/BackendProvider'
 import DevtoolsProvider from '#/providers/EnsoDevtoolsProvider'
-import { useHttpClient } from '#/providers/HttpClientProvider'
 import * as httpClientProvider from '#/providers/HttpClientProvider'
+import { useHttpClient } from '#/providers/HttpClientProvider'
 import InputBindingsProvider from '#/providers/InputBindingsProvider'
 import LocalStorageProvider, * as localStorageProvider from '#/providers/LocalStorageProvider'
 import { useLogger } from '#/providers/LoggerProvider'
@@ -85,8 +85,7 @@ import * as setOrganizationNameModal from '#/modals/SetOrganizationNameModal'
 import * as termsOfServiceModal from '#/modals/TermsOfServiceModal'
 
 import LocalBackend from '#/services/LocalBackend'
-import * as projectManager from '#/services/ProjectManager'
-import ProjectManager from '#/services/ProjectManager'
+import ProjectManager, * as projectManager from '#/services/ProjectManager'
 import RemoteBackend from '#/services/RemoteBackend'
 
 import * as appBaseUrl from '#/utilities/appBaseUrl'
@@ -108,15 +107,15 @@ declare module '#/utilities/LocalStorage' {
 }
 
 LocalStorage.registerKey('inputBindings', {
-  schema: z.record(z.string().array().readonly()).transform(value =>
+  schema: z.record(z.string().array().readonly()).transform((value) =>
     Object.fromEntries(
-      Object.entries<unknown>({ ...value }).flatMap(kv => {
+      Object.entries<unknown>({ ...value }).flatMap((kv) => {
         const [k, v] = kv
-        return Array.isArray(v) && v.every((item): item is string => typeof item === 'string')
-          ? [[k, v]]
+        return Array.isArray(v) && v.every((item): item is string => typeof item === 'string') ?
+            [[k, v]]
           : []
-      })
-    )
+      }),
+    ),
   ),
 })
 
@@ -268,12 +267,12 @@ function AppRouter(props: AppRouterProps) {
 
   const localBackend = React.useMemo(
     () => (projectManagerInstance != null ? new LocalBackend(projectManagerInstance) : null),
-    [projectManagerInstance]
+    [projectManagerInstance],
   )
 
   const remoteBackend = React.useMemo(
     () => new RemoteBackend(httpClient, logger, getText),
-    [httpClient, logger, getText]
+    [httpClient, logger, getText],
   )
 
   if (detect.IS_DEV_MODE) {
@@ -288,7 +287,7 @@ function AppRouter(props: AppRouterProps) {
     if (savedInputBindings != null) {
       const filteredInputBindings = object.mapEntries(
         inputBindingsRaw.metadata,
-        k => savedInputBindings[k]
+        (k) => savedInputBindings[k],
       )
       for (const [bindingKey, newBindings] of object.unsafeEntries(filteredInputBindings)) {
         for (const oldBinding of inputBindingsRaw.metadata[bindingKey].bindings) {
@@ -306,11 +305,11 @@ function AppRouter(props: AppRouterProps) {
       localStorage.set(
         'inputBindings',
         Object.fromEntries(
-          Object.entries(inputBindingsRaw.metadata).map(kv => {
+          Object.entries(inputBindingsRaw.metadata).map((kv) => {
             const [k, v] = kv
             return [k, v.bindings]
-          })
-        )
+          }),
+        ),
       )
     }
     return {
@@ -424,11 +423,11 @@ function AppRouter(props: AppRouterProps) {
         <router.Route element={<authProvider.ProtectedLayout />}>
           <router.Route
             element={
-              detect.IS_DEV_MODE ? (
+              detect.IS_DEV_MODE ?
                 <devtools.EnsoDevtools>
                   <router.Outlet />
                 </devtools.EnsoDevtools>
-              ) : null
+              : null
             }
           >
             <router.Route element={<termsOfServiceModal.TermsOfServiceModal />}>

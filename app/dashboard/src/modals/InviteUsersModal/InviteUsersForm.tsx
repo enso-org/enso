@@ -42,7 +42,7 @@ export function InviteUsersForm(props: InviteUsersFormProps) {
   const inviteUserMutation = useMutation(
     useBackendMutationOptions(backend, 'inviteUser', {
       meta: { invalidates: [['listInvitations']], awaitInvalidates: true },
-    })
+    }),
   )
 
   const [{ data: usersCount }, { data: invitationsCount }] = useSuspenseQueries({
@@ -63,12 +63,11 @@ export function InviteUsersForm(props: InviteUsersFormProps) {
   const isUnderPaywall = isFeatureUnderPaywall('inviteUserFull')
   const feature = getFeature('inviteUser')
 
-  const seatsLeft = isUnderPaywall
-    ? Math.max(feature.meta.maxSeats - (usersCount + invitationsCount), 0)
-    : Infinity
+  const seatsLeft =
+    isUnderPaywall ? Math.max(feature.meta.maxSeats - (usersCount + invitationsCount), 0) : Infinity
 
   const getEmailsFromInput = eventCallbackHooks.useEventCallback((value: string) =>
-    parserUserEmails.parseUserEmails(value)
+    parserUserEmails.parseUserEmails(value),
   )
 
   const highlightEmails = eventCallbackHooks.useEventCallback((value: string): void => {
@@ -129,7 +128,7 @@ export function InviteUsersForm(props: InviteUsersFormProps) {
           .string()
           .min(1, { message: getText('emailIsRequired') })
           .refine(
-            value => {
+            (value) => {
               const result = validateEmailField(value)
 
               if (result != null) {
@@ -138,7 +137,7 @@ export function InviteUsersForm(props: InviteUsersFormProps) {
 
               return result == null
             },
-            { message: getText('emailIsInvalid') }
+            { message: getText('emailIsInvalid') },
           ),
       })}
       defaultValues={{ emails: '' }}
@@ -149,9 +148,9 @@ export function InviteUsersForm(props: InviteUsersFormProps) {
           .filter((value): value is backendModule.EmailAddress => isEmail(value))
 
         await Promise.all(
-          emailsToSubmit.map(userEmail =>
-            inviteUserMutation.mutateAsync([{ userEmail, organizationId }])
-          )
+          emailsToSubmit.map((userEmail) =>
+            inviteUserMutation.mutateAsync([{ userEmail, organizationId }]),
+          ),
         ).then(() => {
           onSubmitted(emailsToSubmit)
         })

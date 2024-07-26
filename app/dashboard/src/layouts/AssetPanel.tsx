@@ -13,8 +13,8 @@ import type Category from '#/layouts/CategorySwitcher/Category'
 
 import * as ariaComponents from '#/components/AriaComponents'
 
-import * as backendModule from '#/services/Backend'
 import type Backend from '#/services/Backend'
+import * as backendModule from '#/services/Backend'
 
 import type * as assetTreeNode from '#/utilities/AssetTreeNode'
 import LocalStorage from '#/utilities/LocalStorage'
@@ -75,7 +75,7 @@ export default function AssetPanel(props: AssetPanelProps) {
   const initializedRef = React.useRef(initialized)
   initializedRef.current = initialized
   const [tabRaw, setTab] = React.useState(
-    () => localStorage.get('assetPanelTab') ?? AssetPanelTab.properties
+    () => localStorage.get('assetPanelTab') ?? AssetPanelTab.properties,
   )
   const tab = (() => {
     if (!isCloud) {
@@ -113,9 +113,9 @@ export default function AssetPanel(props: AssetPanelProps) {
       data-testid="asset-panel"
       className={tailwindMerge.twMerge(
         'pointer-events-none absolute flex h-full w-asset-panel flex-col gap-asset-panel bg-white p-4 pl-asset-panel-l transition-[box-shadow] clip-path-left-shadow',
-        isVisible ? 'shadow-softer' : ''
+        isVisible ? 'shadow-softer' : '',
       )}
-      onClick={event => {
+      onClick={(event) => {
         event.stopPropagation()
       }}
     >
@@ -129,13 +129,13 @@ export default function AssetPanel(props: AssetPanelProps) {
               variant="bar"
               className={tailwindMerge.twMerge(
                 'pointer-events-auto disabled:opacity-100',
-                tab === AssetPanelTab.versions && 'bg-primary/[8%] opacity-100'
+                tab === AssetPanelTab.versions && 'bg-primary/[8%] opacity-100',
               )}
               onPress={() => {
-                setTab(oldTab =>
-                  oldTab === AssetPanelTab.versions
-                    ? AssetPanelTab.properties
-                    : AssetPanelTab.versions
+                setTab((oldTab) =>
+                  oldTab === AssetPanelTab.versions ?
+                    AssetPanelTab.properties
+                  : AssetPanelTab.versions,
                 )
               }}
             >
@@ -149,13 +149,13 @@ export default function AssetPanel(props: AssetPanelProps) {
             isDisabled={tab === AssetPanelTab.projectSessions}
             className={tailwindMerge.twMerge(
               'pointer-events-auto disabled:opacity-100',
-              tab === AssetPanelTab.projectSessions && 'bg-primary/[8%] opacity-100'
+              tab === AssetPanelTab.projectSessions && 'bg-primary/[8%] opacity-100',
             )}
             onPress={() => {
-              setTab(oldTab =>
-                oldTab === AssetPanelTab.projectSessions
-                  ? AssetPanelTab.properties
-                  : AssetPanelTab.projectSessions
+              setTab((oldTab) =>
+                oldTab === AssetPanelTab.projectSessions ?
+                  AssetPanelTab.properties
+                : AssetPanelTab.projectSessions,
               )
             }}
           >
@@ -165,12 +165,11 @@ export default function AssetPanel(props: AssetPanelProps) {
         {/* Spacing. The top right asset and user bars overlap this area. */}
         <div className="grow" />
       </ariaComponents.ButtonGroup>
-      {item == null || setItem == null || backend == null ? (
+      {item == null || setItem == null || backend == null ?
         <div className="grid grow place-items-center text-lg">
           {getText('selectExactlyOneAssetToViewItsDetails')}
         </div>
-      ) : (
-        <>
+      : <>
           {tab === AssetPanelTab.properties && (
             <AssetProperties
               backend={backend}
@@ -186,7 +185,7 @@ export default function AssetPanel(props: AssetPanelProps) {
               <AssetProjectSessions backend={backend} item={item} />
             )}
         </>
-      )}
+      }
     </div>
   )
 }

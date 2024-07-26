@@ -37,7 +37,7 @@ export default class BaseActions implements Promise<void> {
   /** Create a {@link BaseActions}. */
   constructor(
     protected readonly page: test.Page,
-    private readonly promise = Promise.resolve()
+    private readonly promise = Promise.resolve(),
   ) {}
 
   /** Get the string name of the class of this instance. Required for this class to implement
@@ -71,7 +71,7 @@ export default class BaseActions implements Promise<void> {
     // eslint-disable-next-line no-restricted-syntax
     onfulfilled?: (() => PromiseLike<T> | T) | null | undefined,
     // eslint-disable-next-line no-restricted-syntax
-    onrejected?: ((reason: unknown) => E | PromiseLike<E>) | null | undefined
+    onrejected?: ((reason: unknown) => E | PromiseLike<E>) | null | undefined,
   ) {
     return await this.promise.then(onfulfilled, onrejected)
   }
@@ -109,7 +109,7 @@ export default class BaseActions implements Promise<void> {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return new this.constructor(
       this.page,
-      this.then(() => callback(this.page))
+      this.then(() => callback(this.page)),
     )
   }
 
@@ -121,18 +121,18 @@ export default class BaseActions implements Promise<void> {
   /** Press a key, replacing the text `Mod` with `Meta` (`Cmd`) on macOS, and `Control`
    * on all other platforms. */
   press<Key extends string>(keyOrShortcut: inputBindings.AutocompleteKeybind<Key>) {
-    return this.do(page => BaseActions.press(page, keyOrShortcut))
+    return this.do((page) => BaseActions.press(page, keyOrShortcut))
   }
 
   /** Perform actions until a predicate passes. */
   retry(
     callback: (actions: this) => this,
     predicate: (page: test.Page) => Promise<boolean>,
-    options: { retries?: number; delay?: number } = {}
+    options: { retries?: number; delay?: number } = {},
   ) {
     // eslint-disable-next-line @typescript-eslint/no-magic-numbers
     const { retries = 3, delay = 1_000 } = options
-    return this.step('Perform actions with retries', async thePage => {
+    return this.step('Perform actions with retries', async (thePage) => {
       for (let i = 0; i < retries; i += 1) {
         await callback(this)
         if (await predicate(thePage)) {
@@ -148,10 +148,10 @@ export default class BaseActions implements Promise<void> {
   /** Perform actions with the "Mod" modifier key pressed. */
   withModPressed<R extends BaseActions>(callback: (actions: this) => R) {
     return callback(
-      this.step('Press "Mod"', async page => {
+      this.step('Press "Mod"', async (page) => {
         await page.keyboard.down(await actions.modModifier(page))
-      })
-    ).step('Release "Mod"', async page => {
+      }),
+    ).step('Release "Mod"', async (page) => {
       await page.keyboard.up(await actions.modModifier(page))
     })
   }

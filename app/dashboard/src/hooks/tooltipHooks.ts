@@ -11,13 +11,13 @@ export function useNeedsTooltip() {
   const nameCellCleanupRef = React.useRef(() => {})
   const [resizeObserver] = React.useState(
     () =>
-      new ResizeObserver(changes => {
+      new ResizeObserver((changes) => {
         for (const change of changes.slice(0, 1)) {
           if (change.target instanceof HTMLElement) {
             setNeedsTooltip(change.target.clientWidth < change.target.scrollWidth)
           }
         }
-      })
+      }),
   )
   const tooltipTargetRef = (element: Element | null) => {
     nameCellCleanupRef.current()

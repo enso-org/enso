@@ -81,7 +81,7 @@ export default function Registration() {
       footer={
         <Link to={appUtils.LOGIN_PATH} icon={GoBackIcon} text={getText('alreadyHaveAnAccount')} />
       }
-      onSubmit={async event => {
+      onSubmit={async (event) => {
         event.preventDefault()
         setIsSubmitting(true)
         await auth.signUp(email, password, organizationId)

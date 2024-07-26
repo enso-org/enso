@@ -23,7 +23,7 @@ interface UseStickyTableHeaderOnScrollOptions {
 export function useStickyTableHeaderOnScroll(
   rootRef: React.MutableRefObject<HTMLDivElement | null>,
   bodyRef: React.RefObject<HTMLTableSectionElement>,
-  options: UseStickyTableHeaderOnScrollOptions = {}
+  options: UseStickyTableHeaderOnScrollOptions = {},
 ) {
   const { trackShadowClass = false } = options
   const trackShadowClassRef = React.useRef(trackShadowClass)
@@ -36,13 +36,12 @@ export function useStickyTableHeaderOnScroll(
         const isAtTop = rootRef.current.scrollTop === 0
         const isAtBottom =
           rootRef.current.scrollTop + rootRef.current.clientHeight >= rootRef.current.scrollHeight
-        const newShadowClass = isAtTop
-          ? isAtBottom
-            ? ''
+        const newShadowClass =
+          isAtTop ?
+            isAtBottom ? ''
             : 'shadow-inset-b-lg'
-          : isAtBottom
-            ? 'shadow-inset-t-lg'
-            : 'shadow-inset-v-lg'
+          : isAtBottom ? 'shadow-inset-t-lg'
+          : 'shadow-inset-v-lg'
         setShadowClass(newShadowClass)
       }
     }

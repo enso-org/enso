@@ -15,7 +15,7 @@ import * as eventCallbackHooks from './eventCallbackHooks'
 export function useDebounceState<S>(
   initialState: S | (() => S),
   delay: number,
-  maxWait = 0
+  maxWait = 0,
 ): [S, React.Dispatch<React.SetStateAction<S>>] {
   const [state, setState] = React.useState(initialState)
   const currentValueRef = React.useRef(state)
@@ -24,14 +24,14 @@ export function useDebounceState<S>(
   const debouncedSetState = debouncedCallback.useDebouncedCallback<
     React.Dispatch<React.SetStateAction<S>>
   >(
-    value => {
+    (value) => {
       startTransition(() => {
         setState(value)
       })
     },
     [],
     delay,
-    maxWait
+    maxWait,
   )
   const setValue = eventCallbackHooks.useEventCallback((next: S | ((currentValue: S) => S)) => {
     currentValueRef.current = next instanceof Function ? next(currentValueRef.current) : next

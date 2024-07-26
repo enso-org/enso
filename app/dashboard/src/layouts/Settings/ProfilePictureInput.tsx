@@ -32,7 +32,7 @@ export default function ProfilePictureInput(props: ProfilePictureInputProps) {
   const { getText } = textProvider.useText()
 
   const uploadUserPicture = useMutation(
-    useBackendMutationOptions(backend, 'uploadUserPicture')
+    useBackendMutationOptions(backend, 'uploadUserPicture'),
   ).mutate
 
   const doUploadUserPicture = (event: React.ChangeEvent<HTMLInputElement>) => {

@@ -47,7 +47,7 @@ export default function Settings() {
   const [tab, setTab] = searchParamsState.useSearchParamsState(
     'SettingsTab',
     SettingsTabType.account,
-    array.includesPredicate(Object.values(SettingsTabType))
+    array.includesPredicate(Object.values(SettingsTabType)),
   )
   const { user, accessToken } = authProvider.useNonPartialUserSession()
   const { getText } = textProvider.useText()
@@ -60,7 +60,7 @@ export default function Settings() {
 
   const updateUser = useMutation(useBackendMutationOptions(backend, 'updateUser')).mutateAsync
   const updateOrganization = useMutation(
-    useBackendMutationOptions(backend, 'updateOrganization')
+    useBackendMutationOptions(backend, 'updateOrganization'),
   ).mutateAsync
 
   const updateLocalRootPath = useMutation({
@@ -100,7 +100,7 @@ export default function Settings() {
       updateUser,
       user,
       queryClient,
-    ]
+    ],
   )
 
   const isMatch = React.useMemo(() => {
@@ -120,32 +120,30 @@ export default function Settings() {
           if (doesAliasesIdMatch) {
             return true
           } else {
-            return entry.getExtraAliases == null
-              ? false
+            return entry.getExtraAliases == null ?
+                false
               : entry.getExtraAliases(context).some(isMatch)
           }
         }
       }
     },
-    [context, getText, isMatch]
+    [context, getText, isMatch],
   )
 
   const tabsToShow = React.useMemo<readonly SettingsTabType[]>(() => {
     if (isQueryBlank) {
       return settingsData.ALL_SETTINGS_TABS
     } else {
-      return settingsData.SETTINGS_DATA.flatMap(tabSection =>
+      return settingsData.SETTINGS_DATA.flatMap((tabSection) =>
         tabSection.tabs
-          .filter(tabData =>
-            isMatch(getText(tabData.nameId)) || isMatch(getText(tabSection.nameId))
-              ? true
-              : tabData.sections.some(section =>
-                  isMatch(getText(section.nameId))
-                    ? true
-                    : section.entries.some(doesEntryMatchQuery)
-                )
+          .filter((tabData) =>
+            isMatch(getText(tabData.nameId)) || isMatch(getText(tabSection.nameId)) ?
+              true
+            : tabData.sections.some((section) =>
+                isMatch(getText(section.nameId)) ? true : section.entries.some(doesEntryMatchQuery),
+              ),
           )
-          .map(tabData => tabData.settingsTab)
+          .map((tabData) => tabData.settingsTab),
       )
     }
   }, [isQueryBlank, doesEntryMatchQuery, getText, isMatch])
@@ -159,9 +157,10 @@ export default function Settings() {
       if (isMatch(getText(tabData.nameId))) {
         return tabData
       } else {
-        const sections = tabData.sections.flatMap(section => {
-          const matchingEntries = isMatch(getText(section.nameId))
-            ? section.entries
+        const sections = tabData.sections.flatMap((section) => {
+          const matchingEntries =
+            isMatch(getText(section.nameId)) ?
+              section.entries
             : section.entries.filter(doesEntryMatchQuery)
           if (matchingEntries.length === 0) {
             return []

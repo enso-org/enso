@@ -11,15 +11,15 @@ test.test('login and logout', ({ page }) =>
   actions
     .mockAll({ page })
     .login()
-    .do(async thePage => {
+    .do(async (thePage) => {
       await actions.passTermsAndConditionsDialog({ page: thePage })
       await test.expect(actions.locateDriveView(thePage)).toBeVisible()
       await test.expect(actions.locateLoginButton(thePage)).not.toBeVisible()
     })
     .openUserMenu()
     .userMenu.logout()
-    .do(async thePage => {
+    .do(async (thePage) => {
       await test.expect(actions.locateDriveView(thePage)).not.toBeVisible()
       await test.expect(actions.locateLoginButton(thePage)).toBeVisible()
-    })
+    }),
 )

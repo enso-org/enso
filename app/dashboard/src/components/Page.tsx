@@ -41,17 +41,13 @@ export default function Page(props: PageProps) {
       {!hideChat && (
         <>
           {/* `session.accessToken` MUST be present in order for the `Chat` component to work. */}
-          {!hideInfoBar &&
-          session?.accessToken != null &&
-          process.env.ENSO_CLOUD_CHAT_URL != null ? (
+          {!hideInfoBar && session?.accessToken != null && process.env.ENSO_CLOUD_CHAT_URL != null ?
             <Chat
               isOpen={isHelpChatOpen}
               doClose={doCloseChat}
               endpoint={process.env.ENSO_CLOUD_CHAT_URL}
             />
-          ) : (
-            <ChatPlaceholder hideLoginButtons isOpen={isHelpChatOpen} doClose={doCloseChat} />
-          )}
+          : <ChatPlaceholder hideLoginButtons isOpen={isHelpChatOpen} doClose={doCloseChat} />}
         </>
       )}
       <Portal>

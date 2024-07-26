@@ -99,7 +99,7 @@ export const COLUMN_CSS_CLASS: Readonly<Record<Column, string>> = {
 /** Return the full list of columns given the relevant current state. */
 export function getColumnList(
   backendType: backend.BackendType,
-  enabledColumns: ReadonlySet<Column>
+  enabledColumns: ReadonlySet<Column>,
 ) {
   let columns: readonly Column[]
   switch (backendType) {
@@ -112,5 +112,5 @@ export function getColumnList(
       break
     }
   }
-  return columns.filter(column => enabledColumns.has(column))
+  return columns.filter((column) => enabledColumns.has(column))
 }

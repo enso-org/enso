@@ -54,9 +54,8 @@ export default function MembersSettingsSection() {
   const isUnderPaywall = isFeatureUnderPaywall('inviteUserFull')
   const feature = getFeature('inviteUser')
 
-  const seatsLeft = isUnderPaywall
-    ? feature.meta.maxSeats - (members.length + invitations.length)
-    : null
+  const seatsLeft =
+    isUnderPaywall ? feature.meta.maxSeats - (members.length + invitations.length) : null
   const seatsTotal = feature.meta.maxSeats
 
   return (
@@ -73,9 +72,9 @@ export default function MembersSettingsSection() {
         {seatsLeft != null && (
           <div className="flex items-center gap-1">
             <ariaComponents.Text>
-              {seatsLeft <= 0
-                ? getText('noSeatsLeft')
-                : getText('seatsLeft', seatsLeft, seatsTotal)}
+              {seatsLeft <= 0 ?
+                getText('noSeatsLeft')
+              : getText('seatsLeft', seatsLeft, seatsTotal)}
             </ariaComponents.Text>
 
             <paywall.PaywallDialogButton feature="inviteUserFull" variant="link" showIcon={false} />
@@ -95,7 +94,7 @@ export default function MembersSettingsSection() {
           </tr>
         </thead>
         <tbody className="select-text">
-          {members.map(member => (
+          {members.map((member) => (
             <tr key={member.email} className="group h-row rounded-rows-child">
               <td className="border-x-2 border-transparent bg-clip-padding px-4 py-1 first:rounded-l-full last:rounded-r-full last:border-r-0">
                 <span className="block text-sm">{member.email}</span>
@@ -111,7 +110,7 @@ export default function MembersSettingsSection() {
               </td>
             </tr>
           ))}
-          {invitations.map(invitation => (
+          {invitations.map((invitation) => (
             <tr key={invitation.userEmail} className="group h-row rounded-rows-child">
               <td className="border-x-2 border-transparent bg-clip-padding px-4 py-1 first:rounded-l-full last:rounded-r-full last:border-r-0">
                 <span className="block text-sm">{invitation.userEmail}</span>
@@ -196,7 +195,7 @@ function RemoveMemberButton(props: RemoveMemberButtonProps) {
     useBackendMutationOptions(backend, 'removeUser', {
       mutationKey: [userId],
       meta: { invalidates: [['listUsers']], awaitInvalidates: true },
-    })
+    }),
   )
 
   return (
@@ -230,7 +229,7 @@ function RemoveInvitationButton(props: RemoveInvitationButtonProps) {
     useBackendMutationOptions(backend, 'resendInvitation', {
       mutationKey: [email],
       meta: { invalidates: [['listInvitations']], awaitInvalidates: true },
-    })
+    }),
   )
 
   return (

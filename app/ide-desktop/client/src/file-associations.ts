@@ -48,20 +48,20 @@ export const SOURCE_FILE_SUFFIX = fileAssociations.SOURCE_FILE_SUFFIX
  * executable name and any electron dev mode arguments.
  * @returns The path to the file to open, or `null` if no file was specified. */
 export function argsDenoteFileOpenAttempt(clientArgs: readonly string[]): string | null {
-    const arg = clientArgs[0]
-    let result: string | null = null
-    // If the application is invoked with exactly one argument and this argument is a file, we
-    // assume that we have been launched with a file to open. In this case, we must translate this
-    // path to the actual argument that'd open the project containing this file.
-    if (clientArgs.length === 1 && typeof arg !== 'undefined') {
-        try {
-            fsSync.accessSync(arg, fsSync.constants.R_OK)
-            result = arg
-        } catch (e) {
-            logger.log(`The single argument '${arg}' does not denote a readable file: ${String(e)}`)
-        }
+  const arg = clientArgs[0]
+  let result: string | null = null
+  // If the application is invoked with exactly one argument and this argument is a file, we
+  // assume that we have been launched with a file to open. In this case, we must translate this
+  // path to the actual argument that'd open the project containing this file.
+  if (clientArgs.length === 1 && typeof arg !== 'undefined') {
+    try {
+      fsSync.accessSync(arg, fsSync.constants.R_OK)
+      result = arg
+    } catch (e) {
+      logger.log(`The single argument '${arg}' does not denote a readable file: ${String(e)}`)
     }
-    return result
+  }
+  return result
 }
 
 /** Get the arguments, excluding the initial program name and any electron dev mode arguments. */
@@ -69,21 +69,21 @@ export const CLIENT_ARGUMENTS = getClientArguments()
 
 /** Decide what are client arguments, @see {@link CLIENT_ARGUMENTS}. */
 function getClientArguments(args = process.argv): readonly string[] {
-    if (electronIsDev) {
-        // Client arguments are separated from the electron dev mode arguments by a '--' argument.
-        const separator = '--'
-        const separatorIndex = args.indexOf(separator)
-        if (separatorIndex === NOT_FOUND) {
-            // If there is no separator, client gets no arguments.
-            return []
-        } else {
-            // Drop everything before the separator.
-            return args.slice(separatorIndex + 1)
-        }
+  if (electronIsDev) {
+    // Client arguments are separated from the electron dev mode arguments by a '--' argument.
+    const separator = '--'
+    const separatorIndex = args.indexOf(separator)
+    if (separatorIndex === NOT_FOUND) {
+      // If there is no separator, client gets no arguments.
+      return []
     } else {
-        // Drop the leading executable name.
-        return args.slice(1)
+      // Drop everything before the separator.
+      return args.slice(separatorIndex + 1)
     }
+  } else {
+    // Drop the leading executable name.
+    return args.slice(1)
+  }
 }
 
 // =========================
@@ -92,58 +92,60 @@ function getClientArguments(args = process.argv): readonly string[] {
 
 /** Check if the given path looks like a file that we can open. */
 export function isFileOpenable(path: string): boolean {
-    const extension = pathModule.extname(path).toLowerCase()
-    return (
-        extension === fileAssociations.BUNDLED_PROJECT_SUFFIX ||
-        extension === fileAssociations.SOURCE_FILE_SUFFIX
-    )
+  const extension = pathModule.extname(path).toLowerCase()
+  return (
+    extension === fileAssociations.BUNDLED_PROJECT_SUFFIX ||
+    extension === fileAssociations.SOURCE_FILE_SUFFIX
+  )
 }
 
 /** Callback called when a file is opened via the `open-file` event. */
 export function onFileOpened(event: electron.Event, path: string): project.ProjectInfo | null {
-    logger.log(`Received 'open-file' event for path '${path}'.`)
-    if (isFileOpenable(path)) {
-        logger.log(`The file '${path}' is openable.`)
-        event.preventDefault()
-        logger.log(`Opening file '${path}'.`)
-        return handleOpenFile(path)
-    } else {
-        logger.log(`The file '${path}' is not openable, ignoring the 'open-file' event.`)
-        return null
-    }
+  logger.log(`Received 'open-file' event for path '${path}'.`)
+  if (isFileOpenable(path)) {
+    logger.log(`The file '${path}' is openable.`)
+    event.preventDefault()
+    logger.log(`Opening file '${path}'.`)
+    return handleOpenFile(path)
+  } else {
+    logger.log(`The file '${path}' is not openable, ignoring the 'open-file' event.`)
+    return null
+  }
 }
 
 /** Set up the `open-file` event handler that might import a project and invoke the given callback,
  * if this IDE instance should load the project. See {@link onFileOpened} for more details.
  * @param setProjectToOpen - A function that will be called with the ID of the project to open. */
 export function setOpenFileEventHandler(setProjectToOpen: (info: project.ProjectInfo) => void) {
-    electron.app.on('open-file', (event, path) => {
-        logger.log(`Opening file '${path}'.`)
-        const projectInfo = onFileOpened(event, path)
-        if (projectInfo) {
-            setProjectToOpen(projectInfo)
-        }
-    })
+  electron.app.on('open-file', (event, path) => {
+    logger.log(`Opening file '${path}'.`)
+    const projectInfo = onFileOpened(event, path)
+    if (projectInfo) {
+      setProjectToOpen(projectInfo)
+    }
+  })
 
-    electron.app.on('second-instance', (event, _argv, _workingDir, additionalData) => {
-        // Check if additional data is an object that contains the URL.
-        logger.log(`Checking path`, additionalData)
-        const path =
-            additionalData != null &&
-            typeof additionalData === 'object' &&
-            'fileToOpen' in additionalData &&
-            typeof additionalData.fileToOpen === 'string'
-                ? additionalData.fileToOpen
-                : null
-        if (path != null) {
-            logger.log(`Got path '${path.toString()}' from second instance.`)
-            event.preventDefault()
-            const projectInfo = onFileOpened(event, path)
-            if (projectInfo) {
-                setProjectToOpen(projectInfo)
-            }
-        }
-    })
+  electron.app.on('second-instance', (event, _argv, _workingDir, additionalData) => {
+    // Check if additional data is an object that contains the URL.
+    logger.log(`Checking path`, additionalData)
+    const path =
+      (
+        additionalData != null &&
+        typeof additionalData === 'object' &&
+        'fileToOpen' in additionalData &&
+        typeof additionalData.fileToOpen === 'string'
+      ) ?
+        additionalData.fileToOpen
+      : null
+    if (path != null) {
+      logger.log(`Got path '${path.toString()}' from second instance.`)
+      event.preventDefault()
+      const projectInfo = onFileOpened(event, path)
+      if (projectInfo) {
+        setProjectToOpen(projectInfo)
+      }
+    }
+  })
 }
 
 /** Handle the case where IDE is invoked with a file to open.
@@ -154,20 +156,20 @@ export function setOpenFileEventHandler(setProjectToOpen: (info: project.Project
  * @returns The ID of the project to open.
  * @throws {Error} if the project from the file cannot be opened or imported. */
 export function handleOpenFile(openedFile: string): project.ProjectInfo {
-    try {
-        return project.importProjectFromPath(openedFile)
-    } catch (error) {
-        // Since the user has explicitly asked us to open a file, in case of an error, we should
-        // display a message box with the error details.
-        let message = `Cannot open file '${openedFile}'.`
-        message += `\n\nReason:\n${error?.toString() ?? 'Unknown error'}`
-        if (error instanceof Error && typeof error.stack !== 'undefined') {
-            message += `\n\nDetails:\n${error.stack}`
-        }
-        logger.error(error)
-        electron.dialog.showErrorBox(common.PRODUCT_NAME, message)
-        throw error
+  try {
+    return project.importProjectFromPath(openedFile)
+  } catch (error) {
+    // Since the user has explicitly asked us to open a file, in case of an error, we should
+    // display a message box with the error details.
+    let message = `Cannot open file '${openedFile}'.`
+    message += `\n\nReason:\n${error?.toString() ?? 'Unknown error'}`
+    if (error instanceof Error && typeof error.stack !== 'undefined') {
+      message += `\n\nDetails:\n${error.stack}`
     }
+    logger.error(error)
+    electron.dialog.showErrorBox(common.PRODUCT_NAME, message)
+    throw error
+  }
 }
 
 /** Handle the file to open, if any. See {@link handleOpenFile} for details.
@@ -178,15 +180,15 @@ export function handleOpenFile(openedFile: string): project.ProjectInfo {
  * @param openedFile - The file to open (null if none).
  * @param args - The parsed application arguments. */
 export function handleFileArguments(openedFile: string | null, args: clientConfig.Args): void {
-    if (openedFile != null) {
-        try {
-            // This makes the IDE open the relevant project. Also, this prevents us from using this
-            // method after IDE has been fully set up, as the initializing code would have already
-            // read the value of this argument.
-            args.groups.startup.options.project.value = handleOpenFile(openedFile).id
-        } catch (e) {
-            // If we failed to open the file, we should enter the usual welcome screen.
-            // The `handleOpenFile` function will have already displayed an error message.
-        }
+  if (openedFile != null) {
+    try {
+      // This makes the IDE open the relevant project. Also, this prevents us from using this
+      // method after IDE has been fully set up, as the initializing code would have already
+      // read the value of this argument.
+      args.groups.startup.options.project.value = handleOpenFile(openedFile).id
+    } catch (e) {
+      // If we failed to open the file, we should enter the usual welcome screen.
+      // The `handleOpenFile` function will have already displayed an error message.
     }
+  }
 }

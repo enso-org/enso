@@ -23,7 +23,7 @@ export default function BackendRequestListener() {
   const mutationCache = queryClient.getMutationCache()
   React.useEffect(
     () =>
-      mutationCache.subscribe(event => {
+      mutationCache.subscribe((event) => {
         const mutation: Mutation | undefined = event.mutation
         if (
           (event.type === 'added' || event.type === 'updated') &&
@@ -35,7 +35,7 @@ export default function BackendRequestListener() {
           setUser(mutation.state.data as Partial<User>)
         }
       }),
-    [mutationCache, setUser]
+    [mutationCache, setUser],
   )
 
   return null

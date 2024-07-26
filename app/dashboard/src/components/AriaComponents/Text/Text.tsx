@@ -114,7 +114,7 @@ export const TEXT_STYLE = twv.tv({
 // eslint-disable-next-line no-restricted-syntax
 export const Text = React.forwardRef(function Text(
   props: TextProps,
-  ref: React.Ref<HTMLSpanElement>
+  ref: React.Ref<HTMLSpanElement>,
 ) {
   const {
     className,
@@ -184,10 +184,10 @@ export const Text = React.forwardRef(function Text(
         {...aria.mergeProps<React.HTMLAttributes<HTMLElement>>()(
           ariaProps,
           targetProps,
-          truncate === 'custom'
-            ? // eslint-disable-next-line @typescript-eslint/naming-convention,no-restricted-syntax
-              ({ style: { '--line-clamp': `${lineClamp}` } } as React.HTMLAttributes<HTMLElement>)
-            : {}
+          truncate === 'custom' ?
+            // eslint-disable-next-line @typescript-eslint/naming-convention,no-restricted-syntax
+            ({ style: { '--line-clamp': `${lineClamp}` } } as React.HTMLAttributes<HTMLElement>)
+          : {},
         )}
       >
         {children}
@@ -215,7 +215,7 @@ export interface HeadingProps extends Omit<TextProps, 'elementType'> {
  */
 Text.Heading = React.forwardRef(function Heading(
   props: HeadingProps,
-  ref: React.Ref<HTMLHeadingElement>
+  ref: React.Ref<HTMLHeadingElement>,
 ) {
   const { level = 1, ...textProps } = props
   return <Text ref={ref} elementType={`h${level}`} variant="h1" balance {...textProps} />

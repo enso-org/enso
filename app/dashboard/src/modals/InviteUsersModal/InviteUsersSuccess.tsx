@@ -43,7 +43,7 @@ export function InviteUsersSuccess(props: InviteUsersSuccessProps) {
 
   const emailListFormatter = React.useMemo(
     () => new Intl.ListFormat(locale, { type: 'conjunction', style: 'long' }),
-    [locale]
+    [locale],
   )
 
   const isUserOnMembersPage =
@@ -55,9 +55,9 @@ export function InviteUsersSuccess(props: InviteUsersSuccessProps) {
       status="success"
       subtitle={getText('inviteUserLinkCopyDescription')}
       title={
-        emails.length > MAX_EMAILS_DISPLAYED
-          ? getText('inviteManyUsersSuccess', emails.length)
-          : getText('inviteSuccess', emailListFormatter.format(emails))
+        emails.length > MAX_EMAILS_DISPLAYED ?
+          getText('inviteManyUsersSuccess', emails.length)
+        : getText('inviteSuccess', emailListFormatter.format(emails))
       }
     >
       <ariaComponents.CopyBlock

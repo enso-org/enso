@@ -58,7 +58,7 @@ export interface RadioProps extends aria.RadioProps {
 // eslint-disable-next-line no-restricted-syntax
 export const Radio = React.forwardRef(function Radio(
   props: RadioProps,
-  ref: React.ForwardedRef<HTMLLabelElement>
+  ref: React.ForwardedRef<HTMLLabelElement>,
 ) {
   const { children, label, className, ...ariaProps } = props
 
@@ -77,7 +77,7 @@ export const Radio = React.forwardRef(function Radio(
       children: label ?? (typeof children === 'function' ? true : children),
     }),
     state,
-    inputRef
+    inputRef,
   )
 
   const { isFocused, isFocusVisible, focusProps } = aria.useFocusRing()
@@ -149,7 +149,7 @@ export const Radio = React.forwardRef(function Radio(
     </label>
   )
 }) as unknown as ((
-  props: RadioProps & React.RefAttributes<HTMLLabelElement>
+  props: RadioProps & React.RefAttributes<HTMLLabelElement>,
   // eslint-disable-next-line no-restricted-syntax
 ) => React.JSX.Element) & {
   // eslint-disable-next-line @typescript-eslint/naming-convention
