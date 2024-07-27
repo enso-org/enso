@@ -123,6 +123,7 @@ public final class RuntimeOptions {
 
   public static final String ENABLE_EXECUTION_TIMER = optionName("enableExecutionTimer");
 
+  /* Enables timer that counts down the execution time of expressions. */
   public static final OptionKey<Boolean> ENABLE_EXECUTION_TIMER_KEY = new OptionKey<>(true);
 
   private static final OptionDescriptor ENABLE_EXECUTION_TIMER_DESCRIPTOR =
@@ -130,6 +131,7 @@ public final class RuntimeOptions {
 
   public static final String WARNINGS_LIMIT = optionName("warningsLimit");
 
+  /* Maximal number of warnings that can be attached to a value. */
   public static final OptionKey<Integer> WARNINGS_LIMIT_KEY = new OptionKey<>(100);
 
   private static final OptionDescriptor WARNINGS_LIMIT_DESCRIPTOR =
