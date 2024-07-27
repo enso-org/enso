@@ -1,7 +1,6 @@
 package org.enso.desktopenvironment;
 
 import java.nio.file.Path;
-import java.util.Arrays;
 import java.util.List;
 import org.graalvm.nativeimage.UnmanagedMemory;
 import org.graalvm.nativeimage.c.CContext;
@@ -13,7 +12,7 @@ import org.graalvm.word.WordFactory;
 import org.slf4j.LoggerFactory;
 
 @CContext(MacTrashBin.CoreServices.class)
-final class MacTrashBin extends TrashBinFallback implements TrashBin {
+final class MacTrashBin implements TrashBin {
 
   @CFunction
   static native int FSPathMakeRefWithOptions(
@@ -29,18 +28,21 @@ final class MacTrashBin extends TrashBinFallback implements TrashBin {
 
   @Override
   public boolean moveToTrash(Path path) {
-    if (Platform.getOperatingSystem().isMacOs())
+    if (Platform.getOperatingSystem().isMacOs()) {
       try {
         return moveToTrashImpl(path);
       } catch (NullPointerException | LinkageError err) {
         if (!Boolean.getBoolean("com.oracle.graalvm.isaot")) {
           var logger = LoggerFactory.getLogger(MacTrashBin.class);
-          logger.warn(
-              "Moving to MacOS's Trash Bin is not supported in non-AOT mode. Deleting permanently");
-          return hardDeletePath(path, logger);
-        } else throw err;
+          logger.warn("Moving to MacOS's Trash Bin is not supported in non-AOT mode.");
+          return false;
+        } else {
+          throw err;
+        }
       }
-    else return false;
+    } else {
+      return false;
+    }
   }
 
   private boolean moveToTrashImpl(Path path) {
@@ -49,9 +51,7 @@ final class MacTrashBin extends TrashBinFallback implements TrashBin {
 
     var kFSPathMakeRefDoNotFollowLeafSymlink = 0x01;
     var kFSFileOperationDefaultOptions = 0x00;
-    CTypeConversion.CCharPointerHolder cPath;
-    try {
-      cPath = CTypeConversion.toCString(path.toString());
+    try (var cPath = CTypeConversion.toCString(path.toString())) {
       var r1 =
           FSPathMakeRefWithOptions(
               cPath.get(), kFSPathMakeRefDoNotFollowLeafSymlink, source, WordFactory.nullPointer());
@@ -73,12 +73,12 @@ final class MacTrashBin extends TrashBinFallback implements TrashBin {
 
     @Override
     public List<String> getHeaderFiles() {
-      return Arrays.asList("<CoreServices/CoreServices.h>");
+      return List.of("<CoreServices/CoreServices.h>");
     }
 
     @Override
     public List<String> getLibraries() {
-      return Arrays.asList("-framework CoreServices");
+      return List.of("-framework CoreServices");
     }
   }
 }

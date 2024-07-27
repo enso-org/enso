@@ -1,7 +1,6 @@
 package org.enso.desktopenvironment;
 
 import java.nio.file.Path;
-import java.util.Arrays;
 import java.util.List;
 import org.graalvm.nativeimage.StackValue;
 import org.graalvm.nativeimage.c.CContext;
@@ -15,7 +14,7 @@ import org.graalvm.word.PointerBase;
 import org.slf4j.LoggerFactory;
 
 @CContext(WindowsTrashBin.ShellApi.class)
-final class WindowsTrashBin extends TrashBinFallback implements TrashBin {
+final class WindowsTrashBin implements TrashBin {
   @CConstant
   public static native int FO_DELETE();
 
@@ -32,25 +31,25 @@ final class WindowsTrashBin extends TrashBinFallback implements TrashBin {
 
   @Override
   public boolean moveToTrash(Path path) {
-    if (Platform.getOperatingSystem().isWindows())
+    if (Platform.getOperatingSystem().isWindows()) {
       try {
         return moveToTrashImpl(path);
       } catch (NullPointerException | LinkageError err) {
         if (!Boolean.getBoolean("com.oracle.graalvm.isaot")) {
           var logger = LoggerFactory.getLogger(MacTrashBin.class);
-          logger.warn(
-              "Moving to Windows' Trash Bin is not supported in non-AOT mode. Deleting"
-                  + " permanently");
-          return hardDeletePath(path, logger);
-        } else throw err;
+          logger.warn("Moving to Windows' Trash Bin is not supported in non-AOT mode.");
+          return false;
+        } else {
+          throw err;
+        }
       }
-    else return false;
+    } else {
+      return false;
+    }
   }
 
   private boolean moveToTrashImpl(Path path) {
-    CTypeConversion.CCharPointerHolder cPath;
-    try {
-      cPath = CTypeConversion.toCString(path.toString() + "\0");
+    try (var cPath = CTypeConversion.toCString(path.toString() + "\0")) {
       var fileop = StackValue.get(SHFileOperation.class);
       fileop.wFunc(FO_DELETE());
       fileop.pFrom(cPath.get());
@@ -86,12 +85,12 @@ final class WindowsTrashBin extends TrashBinFallback implements TrashBin {
 
     @Override
     public List<String> getHeaderFiles() {
-      return Arrays.asList("<windows.h>");
+      return List.of("<windows.h>");
     }
 
     @Override
     public List<String> getLibraries() {
-      return Arrays.asList("shell32");
+      return List.of("shell32");
     }
   }
 }

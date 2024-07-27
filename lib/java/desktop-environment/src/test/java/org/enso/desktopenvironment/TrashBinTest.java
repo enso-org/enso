@@ -3,80 +3,85 @@ package org.enso.desktopenvironment;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import org.apache.commons.io.FileUtils;
 import org.junit.Assert;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 public class TrashBinTest {
 
   private static final TrashBin TRASH_BIN = Platform.getOperatingSystem().getTrashBin();
 
+  @Rule public TemporaryFolder temporaryFolder = new TemporaryFolder();
+
   @Test
   public void isSupported() {
-    Assert.assertTrue(TRASH_BIN.isSupported());
+    if (isEnabled()) {
+      Assert.assertTrue(TRASH_BIN.isSupported());
+    }
   }
 
   @Test
   public void moveToTrashFile() throws IOException {
-    var path = writeTempFile("moveToTrashFile");
+    if (isEnabled()) {
+      var path = createTempFile(temporaryFolder);
 
-    try {
       Assert.assertTrue(TRASH_BIN.moveToTrash(path));
       Assert.assertFalse(TRASH_BIN.moveToTrash(path));
-    } finally {
-      FileUtils.deleteQuietly(path.toFile());
     }
   }
 
   @Test
   public void moveToTrashSameFile() throws IOException {
-    var path = writeTempFile("moveToTrashSameFile");
+    if (isEnabled()) {
+      var path = createTempFile(temporaryFolder);
 
-    try {
       Assert.assertTrue(TRASH_BIN.moveToTrash(path));
 
-      Files.writeString(path, "moveToTrashSameFile2");
+      Files.writeString(path, "");
       Assert.assertTrue(TRASH_BIN.moveToTrash(path));
-    } finally {
-      FileUtils.deleteQuietly(path.toFile());
     }
   }
 
   @Test
   public void moveToTrashDirectory() throws IOException {
-    var path = createTempDirectory();
-    Files.writeString(path.resolve("moveToTrashDirectory"), "moveToTrashDirectory");
+    if (isEnabled()) {
+      var path = createTempDirectory(temporaryFolder);
+      Files.writeString(path.resolve("moveToTrashDirectory"), "");
 
-    try {
       Assert.assertTrue(TRASH_BIN.moveToTrash(path));
       Assert.assertFalse(TRASH_BIN.moveToTrash(path));
-    } finally {
-      FileUtils.deleteQuietly(path.toFile());
     }
   }
 
   @Test
   public void moveToTrashSameDirectory() throws IOException {
-    var path = createTempDirectory();
-    Files.writeString(path.resolve("moveToTrashSameDirectory"), "moveToTrashSameDirectory");
+    if (isEnabled()) {
+      var path = createTempDirectory(temporaryFolder);
+      Files.writeString(path.resolve("moveToTrashSameDirectory"), "");
 
-    try {
       Assert.assertTrue(TRASH_BIN.moveToTrash(path));
 
       Files.createDirectory(path);
-      Files.writeString(path.resolve("moveToTrashSameDirectory"), "moveToTrashSameDirectory2");
+      Files.writeString(path.resolve("moveToTrashSameDirectory"), "");
       Assert.assertTrue(TRASH_BIN.moveToTrash(path));
-    } finally {
-      FileUtils.deleteQuietly(path.toFile());
     }
   }
 
-  private static Path writeTempFile(CharSequence contents) throws IOException {
-    var path = Files.createTempFile("TrashTest", ".tmp");
-    return Files.writeString(path, contents);
+  /**
+   * Check if the test is enabled.
+   *
+   * <p>macOS and Windows trash bin implementation only works in Native Image.
+   */
+  private static boolean isEnabled() {
+    return Platform.getOperatingSystem().isLinux();
   }
 
-  private static Path createTempDirectory() throws IOException {
-    return Files.createTempDirectory("TrashTest");
+  private static Path createTempFile(TemporaryFolder temporaryFolder) throws IOException {
+    return temporaryFolder.newFile().toPath();
+  }
+
+  private static Path createTempDirectory(TemporaryFolder temporaryFolder) throws IOException {
+    return temporaryFolder.newFolder("TrashTest").toPath();
   }
 }
