@@ -59,11 +59,10 @@ export function PlanSelectorDialog(props: PlanSelectorDialogProps) {
       ADD_PAYMENT_METHOD_FORM_SCHEMA.extend({
         seats: z
           .number()
+          .int()
+          .positive()
           .min(1)
-          .max(maxSeats, { message: getText('wantMoreSeats') })
-          .refine((value) => Number.isInteger(value), {
-            message: getText('arbitraryFieldInvalid'),
-          }),
+          .max(maxSeats, { message: getText('wantMoreSeats') }),
       }),
     defaultValues: { seats: 1 },
     mode: 'onChange',

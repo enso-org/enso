@@ -70,9 +70,7 @@ export function PlanSelector(props: PlanSelectorProps) {
         if (['trialing', 'active'].includes(data.status)) {
           return data
         } else {
-          throw new Error(
-            'Session not complete, please contact the support team or try with another payment method.',
-          )
+          throw new Error('The payment was not successful. Please try again or contact support.')
         }
       })
     },

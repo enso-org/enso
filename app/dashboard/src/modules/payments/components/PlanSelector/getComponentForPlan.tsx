@@ -40,7 +40,7 @@ export interface ComponentForPlan {
 export function getComponentPerPlan(plan: backendModule.Plan, getText: textProvider.GetText) {
   const result = COMPONENT_PER_PLAN[plan]
 
-  // We double check that th plan exists in the map.
+  // We double-check that the plan exists in the map.
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   invariant(result != null, `Plan ${plan} not found`)
 
