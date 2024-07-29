@@ -189,9 +189,11 @@ make_json_for_other x =
     value = if js_value.is_a JS_Object . not then js_value else
         pairs = [['_display_text_', x.to_display_text]] + js_value.field_names.map f-> [f, make_json_for_value (js_value.get f)]
         JS_Object.from_pairs pairs
-    additional_fields = if js_value.is_a JS_Object . not then [] else
+    link_fields = if js_value.is_a JS_Object . not then [] else
         if js_value.contains_key 'links' then [["links", js_value.get 'links']] else []
-    JS_Object.from_pairs <| [["json", value]] + additional_fields
+    additional_fields = if js_value.is_a JS_Object . not then [] else
+        if js_value.contains_key 'get_child_node' then [["get_child_node", js_value.get 'get_child_node']] else []
+    JS_Object.from_pairs <| [["json", value]] + additional_fields + link_fields
 
 ## PRIVATE
    Create JSON serialization of values for the table.

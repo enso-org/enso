@@ -211,14 +211,12 @@ const newNodeSelectorValues = computed(() => {
       break
     case SQLITE_CONNECTIONS_NODE_TYPE:
     case POSTGRES_CONNECTIONS_NODE_TYPE:
-      identifierAction = 'query'
       tooltipValue = 'table'
       headerName = 'Tables'
       break
     case TABLE_NODE_TYPE:
     case DB_TABLE_NODE_TYPE:
       tooltipValue = 'row'
-      identifierAction = 'get_row'
   }
   return {
     tooltipValue,
@@ -442,7 +440,7 @@ function getAstPattern(selector: string | number, action: string) {
 }
 
 function createNode(params: CellClickedEvent, selector: string, action?: string) {
-  console.log({ params })
+  console.log({ action })
   if (action) {
     config.createNodes({
       content: getAstPattern(params.data[selector], action),
