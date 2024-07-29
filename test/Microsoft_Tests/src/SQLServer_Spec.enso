@@ -136,6 +136,7 @@ add_specs suite_builder =
                     row3 = [Nothing]
                     source_table = Table.from_rows ["dt2"] [row1, row2, row3]
                     t.update_rows source_table update_action=Update_Action.Insert
+                    ## SQLServer only supports precision to 100 nanoseconds
                     expected_row1 = [Date_Time.new 2021 1 1 12 13 14 500 1 0]
                     expected_row2 = [Date_Time.new 2021 1 1 9 12 12 987 654 300]
                     expected_row3 = [Nothing]
