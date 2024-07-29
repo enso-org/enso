@@ -147,6 +147,11 @@ impl BuiltEnso {
             StandardLibraryTestsSelection::Selected(only) =>
                 only.iter().any(|test| test.contains("Postgres_Tests")),
         };
+        let may_need_sqlserver = match &test_selection {
+            StandardLibraryTestsSelection::All => true,
+            StandardLibraryTestsSelection::Selected(only) =>
+                only.iter().any(|test| test.contains("SQLServer_Tests")),
+        };
 
         let _httpbin = crate::httpbin::get_and_spawn_httpbin_on_free_port(sbt).await?;
 
@@ -174,8 +179,8 @@ impl BuiltEnso {
             _ => None,
         };
 
-        let __sqlserver = match TARGET_OS {
-            OS::Linux => {
+        let _sqlserver = match TARGET_OS {
+            OS::Linux if may_need_sqlserver => {
                 let runner_context_string = crate::env::ENSO_RUNNER_CONTAINER_NAME
                     .get_raw()
                     .or_else(|_| ide_ci::actions::env::RUNNER_NAME.get())
@@ -198,7 +203,6 @@ impl BuiltEnso {
             _ => None,
         };
 
-        let std_tests = crate::paths::discover_standard_library_tests(&paths.repo_root)?;
         let futures = std_tests.into_iter().map(|test_path| {
             let command = self.run_test(test_path, ir_caches);
             async move { command?.run_ok().await }
