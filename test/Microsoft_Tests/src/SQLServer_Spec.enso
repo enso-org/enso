@@ -80,8 +80,8 @@ create_connection_builder =
 add_specs suite_builder =
     case create_connection_builder of
         Nothing ->
-            message = "PostgreSQL test database is not configured. See README.md for instructions."
-            suite_builder.group "[PostgreSQL] Database tests" pending=message (_-> Nothing)
+            message = "SQLServer test database is not configured. See README.md for instructions."
+            suite_builder.group "[SQLServer] Database tests" pending=message (_-> Nothing)
         connection_builder ->
             suite_builder.group "[SQLServer] Small" group_builder->
                 group_builder.specify "debugtest" <|

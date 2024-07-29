@@ -22,6 +22,7 @@ import Standard.Database.Internal.Common.Database_Join_Helper
 import Standard.Database.Internal.Error_Mapper.Error_Mapper
 import Standard.Database.Internal.Internals_Access
 import Standard.Database.Internal.IR.Context.Context
+import Standard.Database.Internal.IR.Context.Context_Extension
 import Standard.Database.Internal.IR.From_Spec.From_Spec
 import Standard.Database.Internal.IR.Internal_Column.Internal_Column
 import Standard.Database.Internal.IR.Nulls_Order.Nulls_Order
@@ -124,10 +125,10 @@ type SQLSever_Dialect
        Prepares a distinct operation.
     prepare_distinct : DB_Table -> Vector -> Case_Sensitivity -> Problem_Builder -> DB_Table
     prepare_distinct self table key_columns case_sensitivity problem_builder =
-        table_name_deduplicator = (Internals_Access.get_connection table).base_connection.table_naming_helper.create_unique_name_strategy
+        table_name_deduplicator = table.connection.base_connection.table_naming_helper.create_unique_name_strategy
         table_name_deduplicator.mark_used table.name
         inner_table_alias = table_name_deduplicator.make_unique table.name+"_inner"
-        setup = (Internals_Access.get_context table).as_subquery inner_table_alias [Internals_Access.internal_columns table]
+        setup = table.context.as_subquery inner_table_alias [table.internal_columns]
         new_columns = setup.new_columns.first
         column_mapping = Dictionary.from_vector <| new_columns.map c-> [c.name, c]
         new_key_columns = key_columns.map c-> column_mapping.at c.name
@@ -135,7 +136,7 @@ type SQLSever_Dialect
         distinct_expressions = new_key_columns.map column->
             value_type = type_mapping.sql_type_to_value_type column.sql_type_reference.get
             Database_Distinct_Helper.make_distinct_expression case_sensitivity problem_builder column value_type
-        new_context = Context.for_subquery setup.subquery . set_distinct_on distinct_expressions
+        new_context = Context.for_subquery setup.subquery . add_extension (make_distinct_extension distinct_expressions)
         table.updated_context_and_columns new_context new_columns subquery=True
 
     ## PRIVATE
@@ -708,6 +709,12 @@ make_runtime_error_op arguments =
     variable_to_defer = arguments.at 1
 
     SQL_Builder.code "CAST('[ENSO INVARIANT VIOLATED: '||" ++ error_message ++ "||'] '||COALESCE(" ++ variable_to_defer ++ "::TEXT,'NULL') AS BOOLEAN)"
+
+## PRIVATE
+make_distinct_extension expressions =
+    run_generator sql_expressions =
+        SQL_Builder.code "DISTINCT ON (" ++ (SQL_Builder.join ", " sql_expressions) ++ ") "
+    Context_Extension.Value position=120 expressions=expressions run_generator=run_generator
 
 ## PRIVATE
 sqlserver_dialect_name = "SQL Server"

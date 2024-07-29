@@ -139,6 +139,10 @@ type SQLServer_Type_Mapping
         _ = [source_type, target_type]
         False
 
+    ## PRIVATE
+    should_warn_on_materialize (db_type : Value_Type) (in_memory_type : Value_Type) -> Boolean =
+        SQL_Type_Mapping.default_should_warn_on_materialize db_type in_memory_type
+
 ## PRIVATE
 complex_types_map = Dictionary.from_vector <|
     make_decimal sql_type =
