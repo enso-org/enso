@@ -2402,6 +2402,10 @@ export class Vector extends Ast {
       yield [index, this.module.get(element.value?.node)]
     }
   }
+
+  get length() {
+    return this.fields.get('elements').length
+  }
 }
 export class MutableVector extends Vector implements MutableAst {
   declare readonly module: MutableModule
@@ -2414,6 +2418,22 @@ export class MutableVector extends Vector implements MutableAst {
       ownedToRaw(this.module, this.id),
     )
     this.fields.set('elements', [...elements, element])
+  }
+
+  pop(): Owned | undefined {
+    const elements = this.fields.get('elements')
+    const last = elements[elements.length - 1]?.value?.node
+    this.fields.set('elements', elements.slice(0, -1))
+    return last != null ? this.module.take(last) : undefined
+  }
+
+  set<T extends MutableAst>(index: number, value: Owned<T>) {
+    const elements = [...this.fields.get('elements')]
+    elements[index] = {
+      delimiter: elements[index]!.delimiter,
+      value: autospaced(this.claimChild(value)),
+    }
+    this.fields.set('elements', elements)
   }
 
   keep(predicate: (ast: Ast) => boolean) {

@@ -13,25 +13,15 @@ import '@ag-grid-community/styles/ag-grid.css'
 import '@ag-grid-community/styles/ag-theme-alpine.css'
 import type { GetRowIdParams } from 'ag-grid-community'
 import { AgGridVue } from 'ag-grid-vue3'
-import type { AstId } from 'shared/ast'
 import { computed, ref, watch } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
+const graph = useGraphStore()
 
-const { rowData, columnDefs } = useTableNewArgument(() => props.input, onCellChange)
+const { rowData, columnDefs } = useTableNewArgument(() => props.input, graph, props.onUpdate)
 
 watch(rowData, (rowData) => console.log(rowData), { flush: 'sync' })
 watch(columnDefs, (columnDefs) => console.log(columnDefs), { flush: 'sync' })
-
-function onCellChange(id: AstId, newValue: string) {
-  props.onUpdate({
-    portUpdate: {
-      origin: id,
-      value: newValue,
-    },
-  })
-  return true
-}
 
 // === Resizing ===
 
