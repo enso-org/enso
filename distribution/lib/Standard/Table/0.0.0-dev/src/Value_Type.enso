@@ -305,6 +305,7 @@ type Value_Type
             Value_Type.Decimal _ _ -> True
             _ -> False
         Value_Type.Float _ -> case target_type of
+            ## Consider if we still want this after we have support for 32-bit floats in the in-memory backend. https://github.com/enso-org/enso/issues/6109
             Value_Type.Float _ -> True
             Value_Type.Decimal _ _ -> True
             _ -> False
