@@ -373,6 +373,12 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
     await page.route('https://api.github.com/repos/enso-org/enso/releases/latest', (route) => {
       route.fulfill({ json: LATEST_GITHUB_RELEASES })
     })
+    await page.route('https://github.com/enso-org/enso/releases/download/**', (route) =>
+      route.fulfill({
+        status: 302,
+        headers: { Location: 'https://objects.githubusercontent.com' },
+      }),
+    )
     const isActuallyOnline = await page.evaluate(() => navigator.onLine)
     if (!isActuallyOnline) {
       await page.route('https://fonts.googleapis.com/*', (route) => route.abort())
