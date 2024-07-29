@@ -1,15 +1,14 @@
-package org.enso.polyglot;
+package org.enso.common;
 
-import com.oracle.truffle.api.Option;
 import java.util.Arrays;
-import org.enso.common.LanguageInfo;
-import org.graalvm.options.OptionCategory;
+
 import org.graalvm.options.OptionDescriptor;
 import org.graalvm.options.OptionDescriptors;
 import org.graalvm.options.OptionKey;
 
 /** Class representing runtime options supported by the Enso engine. */
-public class RuntimeOptions {
+public final class RuntimeOptions {
+  private RuntimeOptions() {}
   public static final String PROJECT_ROOT = optionName("projectRoot");
   public static final OptionKey<String> PROJECT_ROOT_KEY = new OptionKey<>("");
   private static final OptionDescriptor PROJECT_ROOT_DESCRIPTOR =
@@ -124,9 +123,7 @@ public class RuntimeOptions {
 
   public static final String ENABLE_EXECUTION_TIMER = optionName("enableExecutionTimer");
 
-  @Option(
-      help = "Enables timer that counts down the execution time of expressions.",
-      category = OptionCategory.INTERNAL)
+  /* Enables timer that counts down the execution time of expressions. */
   public static final OptionKey<Boolean> ENABLE_EXECUTION_TIMER_KEY = new OptionKey<>(true);
 
   private static final OptionDescriptor ENABLE_EXECUTION_TIMER_DESCRIPTOR =
@@ -134,9 +131,7 @@ public class RuntimeOptions {
 
   public static final String WARNINGS_LIMIT = optionName("warningsLimit");
 
-  @Option(
-      help = "Maximal number of warnings that can be attached to a value.",
-      category = OptionCategory.INTERNAL)
+  /* Maximal number of warnings that can be attached to a value. */
   public static final OptionKey<Integer> WARNINGS_LIMIT_KEY = new OptionKey<>(100);
 
   private static final OptionDescriptor WARNINGS_LIMIT_DESCRIPTOR =
