@@ -145,12 +145,12 @@ impl BuiltEnso {
         let may_need_postgres = match &test_selection {
             StandardLibraryTestsSelection::All => true,
             StandardLibraryTestsSelection::Selected(only) =>
-                only.iter().any(|test| test.contains("Postgres_Tests")),
+                only.iter().any(|test| test.contains("Table_Tests")),
         };
         let may_need_sqlserver = match &test_selection {
             StandardLibraryTestsSelection::All => true,
             StandardLibraryTestsSelection::Selected(only) =>
-                only.iter().any(|test| test.contains("SQLServer_Tests")),
+                only.iter().any(|test| test.contains("SQLServer")),
         };
 
         let _httpbin = crate::httpbin::get_and_spawn_httpbin_on_free_port(sbt).await?;
