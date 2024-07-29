@@ -89,8 +89,7 @@ impl Configuration {
         env::tests::ENSO_SQLSERVER_HOST.set("localhost")?;
         env::tests::ENSO_SQLSERVER_PORT.set(&match &self.endpoint {
             EndpointConfiguration::Host { port } => port.to_string(),
-            EndpointConfiguration::Container { .. } =>
-                SQLSERVER_CONTAINER_DEFAULT_PORT.to_string(),
+            EndpointConfiguration::Container { .. } => SQLSERVER_CONTAINER_DEFAULT_PORT.to_string(),
         })?;
         env::tests::ENSO_SQLSERVER_USER.set(&self.user)?;
         env::tests::ENSO_SQLSERVER_PASSWORD.set(&self.password)?;
