@@ -187,31 +187,26 @@ const selectableRowLimits = computed(() => {
 })
 
 const newNodeSelectorValues = computed(() => {
-  let selector
   let identifierAction
   let tooltipValue
   let headerName
   switch (config.nodeType) {
     case COLUMN_NODE_TYPE:
     case VECTOR_NODE_TYPE:
-      selector = INDEX_FIELD_NAME
       identifierAction = 'at'
       tooltipValue = 'value'
       break
     case ROW_NODE_TYPE:
-      selector = 'column'
       identifierAction = 'at'
       tooltipValue = 'value'
       break
     case EXCEL_WORKBOOK_NODE_TYPE:
-      selector = 'Value'
       identifierAction = 'read'
       tooltipValue = 'sheet'
       headerName = 'Sheets'
       break
     case SQLITE_CONNECTIONS_NODE_TYPE:
     case POSTGRES_CONNECTIONS_NODE_TYPE:
-      selector = 'Value'
       identifierAction = 'query'
       tooltipValue = 'table'
       headerName = 'Tables'
@@ -219,9 +214,9 @@ const newNodeSelectorValues = computed(() => {
     case TABLE_NODE_TYPE:
     case DB_TABLE_NODE_TYPE:
       tooltipValue = 'row'
+      identifierAction = 'get_row'
   }
   return {
-    selector,
     identifierAction,
     tooltipValue,
     headerName,
@@ -443,39 +438,10 @@ function getAstPattern(selector: string | number, action: string) {
   )
 }
 
-const getTablePattern = (index: number) =>
-  Pattern.new((ast) =>
-    Ast.OprApp.new(
-      ast.module,
-      Ast.App.positional(
-        Ast.PropertyAccess.new(ast.module, ast, Ast.identifier('rows')!),
-        Ast.parse('(..All_Rows)'),
-      ),
-      '.',
-      Ast.App.positional(
-        Ast.Ident.new(ast.module, Ast.identifier('get')!),
-        Ast.tryNumberToEnso(index, ast.module)!,
-      ),
-    ),
-  )
-
-function createNode(params: CellClickedEvent) {
-  if (config.nodeType === TABLE_NODE_TYPE || config.nodeType === DB_TABLE_NODE_TYPE) {
+function createNode(params: CellClickedEvent, selector: string) {
+  if (newNodeSelectorValues.value.identifierAction) {
     config.createNodes({
-      content: getTablePattern(params.data[INDEX_FIELD_NAME]),
-      commit: true,
-    })
-  }
-  if (
-    newNodeSelectorValues.value.selector !== undefined &&
-    newNodeSelectorValues.value.selector !== null &&
-    newNodeSelectorValues.value.identifierAction
-  ) {
-    config.createNodes({
-      content: getAstPattern(
-        params.data[newNodeSelectorValues.value.selector],
-        newNodeSelectorValues.value.identifierAction,
-      ),
+      content: getAstPattern(params.data[selector], newNodeSelectorValues.value.identifierAction),
       commit: true,
     })
   }
@@ -486,7 +452,7 @@ function toLinkField(fieldName: string): ColDef {
     headerName:
       newNodeSelectorValues.value.headerName ? newNodeSelectorValues.value.headerName : fieldName,
     field: fieldName,
-    onCellDoubleClicked: (params) => createNode(params),
+    onCellDoubleClicked: (params) => createNode(params, fieldName),
     tooltipValueGetter: () => {
       return `Double click to view this ${newNodeSelectorValues.value.tooltipValue} in a separate component`
     },
