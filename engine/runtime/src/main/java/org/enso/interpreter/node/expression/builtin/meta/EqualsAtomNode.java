@@ -25,6 +25,7 @@ import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.atom.Atom;
 import org.enso.interpreter.runtime.data.atom.AtomConstructor;
 import org.enso.interpreter.runtime.data.atom.StructsLibrary;
+import org.enso.interpreter.runtime.error.WithWarnings;
 import org.enso.interpreter.runtime.library.dispatch.TypeOfNode;
 import org.enso.interpreter.runtime.state.State;
 
@@ -100,7 +101,8 @@ public abstract class EqualsAtomNode extends Node {
     var args = new Object[] {cachedComparator, self, other};
     var result = invokeNode.execute(compareFn, null, State.create(ctx), args);
     assert orderingOrNullOrError(this, ctx, result, compareFn);
-    return ctx.getBuiltins().ordering().newEqual() == result;
+    var resultWithWarningRemoved = result instanceof WithWarnings ww ? ww.getValue() : result;
+    return ctx.getBuiltins().ordering().newEqual() == resultWithWarningRemoved;
   }
 
   @TruffleBoundary
