@@ -86,17 +86,10 @@ type Snowflake_Dialect
         Base_Generator.truncate_table_truncate_table_style self table_name
 
     ## PRIVATE
-       Generates SQL for limiting the number of rows using the `LIMIT` clause.
-    get_limit_part_sql : Integer -> SQL_Builder
-    get_limit_part_sql self limit =
-        SQL_Builder.code (" LIMIT " + limit.to_text)
-
-    ## PRIVATE
-       Generates SQL for limiting the number of rows using the `TOP` clause.
-    get_top_part_sql : Integer -> SQL_Builder
-    get_top_part_sql self limit =
-        _ = [limit]
-        SQL_Builder.code ""
+       Generates SQL modifier for limiting the number of rows and its position in the query
+    get_limit_sql_modifier : Integer -> Any
+    get_limit_sql_modifier self limit =
+        [700, SQL_Builder.code (" LIMIT " + limit.to_text)]
 
     ## PRIVATE
        Wraps and possibly escapes the identifier so that it can be used in a
