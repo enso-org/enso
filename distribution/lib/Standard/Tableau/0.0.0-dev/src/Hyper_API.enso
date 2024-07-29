@@ -1,9 +1,22 @@
 from Standard.Base import all
 
+polyglot java import org.enso.tableau.HyperReader
 
-type Hyper_API
-    ## A representation of a Tableau Hyper Extract file.
+type Hyper_File
+    ## Creates a Hyper_File
+    new : File -> Hyper_File
+    new file:File = Hyper_File.Value file
+
+    ## Gets the location for hyperd
+    hyper_path : Text
+    hyper_path  = HyperReader.HYPER_PATH
+
+    ## PRIVATE
+       A representation of a Tableau Hyper Extract file.
     private Value file:File
 
-    say_hello : Text
-    say_hello self = "Hello, World!"
+    ## ICON metadata
+       Returns the list of schemas for the connection within the current database (or catalog).
+    schemas : Vector Text
+    schemas self =
+        HyperReader.readSchemas self.file.path

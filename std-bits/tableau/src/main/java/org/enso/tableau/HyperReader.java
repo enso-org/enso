@@ -1,6 +1,8 @@
 package org.enso.tableau;
 
+import com.tableau.hyperapi.Connection;
 import com.tableau.hyperapi.HyperProcess;
+import com.tableau.hyperapi.SchemaName;
 import com.tableau.hyperapi.Telemetry;
 
 import java.io.FileOutputStream;
@@ -10,10 +12,14 @@ import java.net.URISyntaxException;
 import java.nio.channels.Channels;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class HyperReader {
-  private static final Path HYPER_PATH = Path.of(getHyperPath());
+  public static final Path HYPER_PATH = Path.of(getHyperPath());
   private static HyperProcess process;
+
+  private static final Logger LOGGER = Logger.getLogger("enso-hyper-reader");
 
   private static String getHyperPath() {
     if (System.getenv("HYPER_PATH") != null) {
@@ -29,7 +35,7 @@ public class HyperReader {
     }
   }
 
-  private static HyperProcess getProcess() throws IOException, URISyntaxException {
+  private static HyperProcess getProcess() throws IOException {
     // Check if the hyper directory exists, if not create it.
     if (!Files.exists(HYPER_PATH)) {
       try {
@@ -61,17 +67,39 @@ public class HyperReader {
 
     // Start hyper process.
     if (process == null) {
+      LOGGER.log(Level.INFO, "Starting Hyper process: " + HYPER_PATH.toString() + ".");
       process = new HyperProcess(HYPER_PATH, Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU);
     }
     return process;
   }
 
   private static void downloadHyper(String uri, String fileName) throws IOException, URISyntaxException {
+    LOGGER.log(Level.INFO, "Downloading Hyper from: " + uri);
     var url = new URI(uri);
     var readChannel = Channels.newChannel(url.toURL().openStream());
     try (var fos = new FileOutputStream(HYPER_PATH.resolve(fileName).toString())) {
       var writeChannel = fos.getChannel();
       writeChannel.transferFrom(readChannel, 0, Long.MAX_VALUE);
+    }
+  }
+
+  public static String[] readSchemas(String path) throws IOException {
+    try (var process = getProcess()) {
+      try (var connection = new Connection(process.getEndpoint(), path)) {
+        var catalog = connection.getCatalog();
+        return catalog.getSchemaNames().stream().map(s -> s.getName().getUnescaped()).toArray(String[]::new);
+      }
+    }
+  }
+
+  public static String addSchema(String path, String schema) throws IOException {
+    var schemaName = new SchemaName(schema);
+    try (var process = getProcess()) {
+      try (var connection = new Connection(process.getEndpoint(), path)) {
+        var catalog = connection.getCatalog();
+        catalog.createSchema(schemaName);
+        return schemaName.getName().getUnescaped();
+      }
     }
   }
 }

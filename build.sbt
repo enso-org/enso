@@ -349,6 +349,7 @@ lazy val enso = (project in file("."))
     `std-aws`,
     `std-snowflake`,
     `std-microsoft`,
+    `std-tableau`,
     `http-test-helper`,
     `enso-test-java-helpers`,
     `exploratory-benchmark-java-helpers`,
@@ -1948,6 +1949,7 @@ lazy val runtime = (project in file("engine/runtime"))
       .dependsOn(`std-aws` / Compile / packageBin)
       .dependsOn(`std-snowflake` / Compile / packageBin)
       .dependsOn(`std-microsoft` / Compile / packageBin)
+      .dependsOn(`std-tableau` / Compile / packageBin)
       .value
   )
   .dependsOn(`common-polyglot-core-utils`)
