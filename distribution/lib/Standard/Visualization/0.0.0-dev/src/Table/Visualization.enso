@@ -48,7 +48,7 @@ prepare_visualization y max_rows=1000 =
             JS_Object.from_pairs [["json", make_json_for_value x]]
         _ : Excel_Workbook ->
             js_value = x.to_js_object
-            JS_Object.from_pairs [["json", js_value], ["sheet_names", x . sheet_names], ["type", "Excel_Workbook"]]
+            JS_Object.from_pairs [["json", js_value], ["sheet_names", x . sheet_names], ["get_child_node", "read"], ["type", "Excel_Workbook"]]
         _ : XML_Document -> make_json_for_xml_element x.root_element max_rows "XML_Document"
         _ : XML_Element -> make_json_for_xml_element x max_rows
         _ -> make_json_for_other x

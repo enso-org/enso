@@ -205,7 +205,6 @@ const newNodeSelectorValues = computed(() => {
       tooltipValue = 'value'
       break
     case EXCEL_WORKBOOK_NODE_TYPE:
-      identifierAction = 'read'
       tooltipValue = 'sheet'
       headerName = 'Sheets'
       break
