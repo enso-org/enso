@@ -10,14 +10,16 @@ import scala.jdk.CollectionConverters._
 import scala.util.{Failure, Try, Using}
 
 case class CouldNotCreateDirectory(cause: Throwable) extends RuntimeException {
-  override def getMessage: String = s"Could not create directory: ${cause.getMessage}. Perhaps there is a permission issue."
+  override def getMessage: String =
+    s"Could not create directory: ${cause.getMessage}. Perhaps there is a permission issue."
   override def toString: String = getMessage
 }
 
 object CouldNotCreateDirectory {
-  def wrapFileSystemFailures[U](action: => U): Try[U] = Try(action).recoverWith {
-    case e: Throwable => Failure(CouldNotCreateDirectory(e))
-  }
+  def wrapFileSystemFailures[U](action: => U): Try[U] =
+    Try(action).recoverWith { case e: Throwable =>
+      Failure(CouldNotCreateDirectory(e))
+    }
 }
 
 /** Represents a source file with known qualified name.
