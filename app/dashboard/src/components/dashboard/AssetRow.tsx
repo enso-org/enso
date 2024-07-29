@@ -486,7 +486,7 @@ export default function AssetRow(props: AssetRowProps) {
                       asset.title,
                     ])
                     if (details.url != null) {
-                      await backend.download(details.url, asset.title)
+                      await backend.download(details.url, `${asset.title}.enso-project`)
                     } else {
                       const error: unknown = getText('projectHasNoSourceFilesPhrase')
                       toastAndLog('downloadProjectError', error, asset.title)
