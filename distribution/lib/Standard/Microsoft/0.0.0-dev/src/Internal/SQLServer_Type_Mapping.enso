@@ -25,7 +25,7 @@ type SQLServer_Type_Mapping
     value_type_to_sql value_type on_problems =
         result = case value_type of
             Value_Type.Boolean -> SQL_Type.Value Types.BIT "BIT"
-            ## A SQLServer TinyInt is untyped with a range of 0-255, 
+            ## A SQLServer TinyInt is unsigned with a range of 0-255, 
                so we have to use SmallInt to be able to handle the negative values in our Byte type.
             Value_Type.Byte -> SQL_Type.Value Types.SMALLINT "SMALLINT"
             Value_Type.Integer Bits.Bits_16 -> SQL_Type.Value Types.SMALLINT "SMALLINT"
