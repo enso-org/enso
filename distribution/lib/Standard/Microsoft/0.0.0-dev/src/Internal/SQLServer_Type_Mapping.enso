@@ -73,7 +73,7 @@ type SQLServer_Type_Mapping
     ## PRIVATE
     sql_type_to_value_type : SQL_Type -> Value_Type
     sql_type_to_value_type sql_type =
-        simple_type = case sql_type.typeid of
+        case sql_type.typeid of
             Types.BIT -> Value_Type.Boolean
             Types.TINYINT -> Value_Type.Integer Bits.Bits_16
             Types.SMALLINT -> Value_Type.Integer Bits.Bits_16
@@ -81,6 +81,9 @@ type SQLServer_Type_Mapping
             Types.BIGINT -> Value_Type.Integer Bits.Bits_64
             Types.REAL -> Value_Type.Float Bits.Bits_32
             Types.DOUBLE -> Value_Type.Float Bits.Bits_64
+            Types.VARCHAR -> 
+                effective_size = if sql_type.precision==max_length || (sql_type.precision==9 && sql_type.scale==9) then Nothing else sql_type.precision
+                Value_Type.Char size=effective_size variable_length=True
             Types.DATE -> Value_Type.Date
             Types.TIME -> Value_Type.Time
             Types.TIMESTAMP -> case sql_type.name of
@@ -94,14 +97,7 @@ type SQLServer_Type_Mapping
                 _ -> on_unknown_type sql_type
             _ -> case sql_type.name of
                 "datetimeoffset" -> Value_Type.Date_Time with_timezone=True
-                _ -> Nothing
-        simple_type.if_nothing <|
-            ## If we didn't match any of the types from the simple mapping, we
-               continue with the more complex mappings that take stuff like
-               precision into account.
-            case complex_types_map.get sql_type.typeid Nothing of
-                Nothing -> on_unknown_type sql_type
-                builder -> builder sql_type
+                _ -> on_unknown_type sql_type
 
     ## PRIVATE
     sql_type_to_text : SQL_Type -> Text
@@ -141,27 +137,6 @@ type SQLServer_Type_Mapping
     ## PRIVATE
     should_warn_on_materialize (db_type : Value_Type) (in_memory_type : Value_Type) -> Boolean =
         SQL_Type_Mapping.default_should_warn_on_materialize db_type in_memory_type
-
-## PRIVATE
-complex_types_map = Dictionary.from_vector <|
-    make_decimal sql_type =
-        Value_Type.Decimal sql_type.precision sql_type.scale
-    make_varchar sql_type =
-        effective_size = if sql_type.precision==max_length || (sql_type.precision==9 && sql_type.scale==9) then Nothing else sql_type.precision
-        Value_Type.Char size=effective_size variable_length=True
-    make_char sql_type =
-        Value_Type.Char size=sql_type.precision variable_length=False
-    make_binary variable sql_type =
-        Value_Type.Binary size=sql_type.precision variable_length=variable
-    handle_bit sql_type =
-        if sql_type.name == "BOOLEAN" then Value_Type.Boolean else
-            # We currently do not support bit types.
-            on_unknown_type sql_type
-
-    numerics = [[Types.DECIMAL, make_decimal], [Types.NUMERIC, make_decimal]]
-    strings = [[Types.VARCHAR, make_varchar], [Types.CHAR, make_char], [Types.CLOB, make_varchar]]
-    binaries = [[Types.BINARY, make_binary True], [Types.BIT, handle_bit]]
-    numerics + strings + binaries
 
 ## PRIVATE
 on_unknown_type sql_type =
