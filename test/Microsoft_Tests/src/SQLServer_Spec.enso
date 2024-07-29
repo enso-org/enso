@@ -27,6 +27,7 @@ import enso_dev.Table_Tests.Common_Table_Operations
 from enso_dev.Table_Tests.Common_Table_Operations.Util import all
 from enso_dev.Table_Tests.Database.Types.Postgres_Type_Mapping_Spec import default_text
 from enso_dev.Table_Tests.Database.Postgres_Spec import Basic_Test_Data, Postgres_Tables_Data
+from enso_dev.Table_Tests.Util import all
 
 import enso_dev.Base_Tests.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
 
@@ -112,7 +113,7 @@ add_specs suite_builder =
                 group_builder.specify "should preserve SQLServer types when table is materialized, where possible" pending="TODO" <|
                     name = Name_Generator.random_name "types-test"
                     Problems.assume_no_problems <|
-                        data.connection.execute_update 'CREATE TABLE "'+name+'" ("int4" int4, "int2" int2, "txt-limited" varchar(10), "txt-fixed" char(3))'
+                        data.connection.execute_update 'CREATE TABLE "#'+name+'" ("int4" int4, "int2" int2, "txt-limited" varchar(10), "txt-fixed" char(3))'
                     t1 = data.connection.query (SQL_Query.Table_Name name)
                     t1.at "int4" . value_type . should_equal (Value_Type.Integer Bits.Bits_32)
                     t1.at "int2" . value_type . should_equal (Value_Type.Integer Bits.Bits_16)
@@ -125,12 +126,24 @@ add_specs suite_builder =
                     in_memory.at "txt-limited" . value_type . should_equal (Value_Type.Char size=10 variable_length=True)
                     in_memory.at "txt-fixed" . value_type . should_equal (Value_Type.Char size=3 variable_length=False)
 
+                group_builder.specify "test datetime2 precision round trip" <|
+                    name = Name_Generator.random_name "datetime2-test"
+                    Problems.assume_no_problems <|
+                        data.connection.execute_update 'CREATE TABLE "'+name+'" ("dt2" DATETIME2)'
+                    t = data.connection.query (SQL_Query.Table_Name name)
+                    row1 = [Date_Time.new 2021 1 1 12 13 14 500 1 1]
+                    row2 = [Date_Time.new 2021 1 1 9 12 12 987 654 321]
+                    row3 = [Nothing]
+                    source_table = Table.from_rows ["dt2"] [row1, row2, row3]
+                    t.update_rows source_table update_action=Update_Action.Insert
+                    expected_row1 = [Date_Time.new 2021 1 1 12 13 14 500 1 0]
+                    expected_row2 = [Date_Time.new 2021 1 1 9 12 12 987 654 300]
+                    expected_row3 = [Nothing]
+                    expected_table = Table.from_rows ["dt2"] [expected_row1, expected_row2, expected_row3]
+                    returned_table = t.read
+                    returned_table.should_equal expected_table
 
-                group_builder.specify "basic query" <|
-                    conn = Database.connect get_configured_connection_details
-                    conn.should_succeed
-                    new_database = conn.read (SQL_Query.Raw_SQL "SELECT 'master' as c") . at 0 . to_vector . first
-                    new_database.should_equal "master"
+
 
 main filter=Nothing =
     suite = Test.build suite_builder->
