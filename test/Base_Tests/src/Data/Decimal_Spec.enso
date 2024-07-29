@@ -506,7 +506,7 @@ add_specs suite_builder =
             (Decimal.new 247.75 . divide (Decimal.new -5) (Math_Context.new 3)) . should_equal (Decimal.new -49.6)
             (Decimal.new 247.75 . divide (Decimal.new -5) (Math_Context.new 3 Rounding_Mode.bankers)) . should_equal (Decimal.new -49.6)
 
-        group_builder.specify "should allow mixed arithmetic" <|
+        group_builder.specify "should allow mixed arithmetic (integer)" <|
             (Decimal.new 1 + 2) . should_equal 3
             (Decimal.new 1 - 2) . should_equal -1
             (Decimal.new 3 * 4) . should_equal 12
@@ -517,15 +517,24 @@ add_specs suite_builder =
             (3 * Decimal.new 4) . should_equal 12
             (3 / Decimal.new 4) . should_equal 0.75
 
+        group_builder.specify "should not allow mixed arithmetic (float)" <|
             (Decimal.new 1 + 2.0) . should_fail_with Illegal_Argument
             (Decimal.new 1 - 2.0) . should_fail_with Illegal_Argument
             (Decimal.new 3 * 4.0) . should_fail_with Illegal_Argument
             (Decimal.new 3 / 4.0) . should_fail_with Illegal_Argument
+            (Decimal.new 3 % 4.0) . should_fail_with Illegal_Argument
+            (Decimal.new 3 . div 4.0) . should_fail_with Illegal_Argument
+            (Decimal.new 3 . min 4.0) . should_fail_with Illegal_Argument
+            (Decimal.new 3 . max 4.0) . should_fail_with Illegal_Argument
 
             (1 + Decimal.new 2.0) . should_fail_with Illegal_Argument
             (1 - Decimal.new 2.0) . should_fail_with Illegal_Argument
             (3 * Decimal.new 4.0) . should_fail_with Illegal_Argument
             (3 / Decimal.new 4.0) . should_fail_with Illegal_Argument
+            (3 % Decimal.new 4.0) . should_fail_with Illegal_Argument
+            (3 . div (Decimal.new 4.0)) . should_fail_with Illegal_Argument
+            (3 . min (Decimal.new 4.0)) . should_fail_with Illegal_Argument
+            (3 . max (Decimal.new 4.0)) . should_fail_with Illegal_Argument
 
         group_builder.specify "Decimal mixed arithmetic should result in Decimal" <|
             (Decimal.new 1 + 2) . should_be_a Decimal
