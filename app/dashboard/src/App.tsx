@@ -359,7 +359,6 @@ function AppRouter(props: AppRouterProps) {
   }, [localStorage, inputBindingsRaw])
 
   const mainPageUrl = getRootUrl()
-  mainPageUrl.pathname += '/drive'
 
   const authService = React.useMemo(() => {
     const authConfig = { navigate, ...props }
