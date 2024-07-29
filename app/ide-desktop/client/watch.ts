@@ -13,7 +13,7 @@ import process from 'node:process'
 
 import * as esbuild from 'esbuild'
 
-import * as clientBundler from './esbuild-config'
+import * as clientBundler from './esbuildConfig'
 import * as paths from './paths'
 
 // =============

@@ -12,13 +12,13 @@ import * as mime from 'mime-types'
 import * as portfinder from 'portfinder'
 import type * as vite from 'vite'
 
+import * as projectManagement from '@/projectManagement'
 import * as common from 'enso-common'
 import GLOBAL_CONFIG from 'enso-common/src/config.json' assert { type: 'json' }
 import * as ydocServer from 'enso-gui2/ydoc-server'
-import * as projectManagement from 'project-management'
 
-import * as contentConfig from 'content-config'
-import * as paths from 'paths'
+import * as contentConfig from '@/contentConfig'
+import * as paths from '@/paths'
 
 const logger = contentConfig.logger
 

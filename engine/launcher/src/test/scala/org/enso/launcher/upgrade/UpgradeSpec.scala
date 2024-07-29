@@ -9,7 +9,7 @@ import FileSystem.PathSyntax
 import org.enso.cli.OS
 import org.enso.launcher._
 import org.enso.testkit.{FlakySpec, WithTemporaryDirectory}
-import org.enso.testkit.process.{RunResult, WrappedProcess}
+import org.enso.process.{RunResult, WrappedProcess}
 import org.scalatest.exceptions.TestFailedException
 import org.scalatest.{BeforeAndAfterAll, Ignore, OptionValues}
 

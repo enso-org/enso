@@ -2,7 +2,7 @@
 
 import * as buildUtils from 'enso-common/src/buildUtils'
 
-import BUILD_INFO from '../build-info'
+import BUILD_INFO from '../buildInfo'
 
 // ==================
 // === Debug Info ===

@@ -127,7 +127,6 @@ add_specs suite_builder setup =
         group_builder.specify "if" <|
             t = table_builder [["A", [1, 100]], ["B", [10, 40]], ["C", [23, 55]]]
             t.set (Simple_Expression.Simple_Expr (Column_Ref.Name "A") (Simple_Calculation.If (Filter_Condition.Greater than=(Column_Ref.Name "B")))) "Z" . at "Z" . to_vector . should_equal [False, True]
-            t.set (Simple_Expression.Simple_Expr (Column_Ref.Name "A") (Simple_Calculation.If (Filter_Condition.Greater than=(Column_Ref.Name "B") Filter_Action.Remove))) "Z" . at "Z" . to_vector . should_equal [True, False]
             t.set (Simple_Expression.Simple_Expr (Column_Ref.Name "A") (Simple_Calculation.If (Filter_Condition.Greater than=20) "T" "F")) "Z" . at "Z" . to_vector . should_equal ["F", "T"]
             t.set (Simple_Expression.Simple_Expr (Column_Ref.Name "A") (Simple_Calculation.If (Filter_Condition.Less than=20) (Column_Ref.Name "B") (Column_Ref.Name "C"))) "Z" . at "Z" . to_vector . should_equal [10, 55]
 

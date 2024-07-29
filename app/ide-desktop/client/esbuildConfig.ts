@@ -1,5 +1,6 @@
 /** @file Esbuild config file. */
 import * as path from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 import type * as esbuild from 'esbuild'
 import esbuildPluginYaml from 'esbuild-plugin-yaml'
@@ -50,6 +51,9 @@ export function bundlerOptions(
     // The names come from a third-party API and cannot be changed.
     /* eslint-disable @typescript-eslint/naming-convention */
     outExtension: { '.js': '.cjs' },
+    alias: {
+      '@': fileURLToPath(new URL('./src', import.meta.url)),
+    },
     define: {
       'process.env.PROJECT_MANAGER_IN_BUNDLE_PATH': JSON.stringify(projectManagerInBundlePath),
       'process.env.ELECTRON_DEV_MODE': JSON.stringify(String(devMode)),

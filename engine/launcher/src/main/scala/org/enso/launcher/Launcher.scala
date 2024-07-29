@@ -81,7 +81,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
       versionOverride.getOrElse(configurationManager.defaultVersion)
     val globalConfig = configurationManager.getConfig
 
-    val exitCode = runner
+    val (exitCode, output) = runner
       .withCommand(
         runner
           .newProject(
@@ -97,7 +97,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
           .get,
         JVMSettings(useSystemJVM, jvmOpts, extraOptions = Seq.empty)
       ) { command =>
-        command.run().get
+        command.runAndCaptureOutput().get
       }
 
     if (exitCode == 0) {
@@ -105,7 +105,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
         s"Project created in `$actualPath` using version $version."
       )
     } else {
-      logger.error("Project creation failed.")
+      logger.error(s"Project creation failed: $output")
     }
 
     exitCode
@@ -211,7 +211,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     jvmOpts: Seq[(String, String)],
     additionalArguments: Seq[String]
   ): Int = {
-    val exitCode = runner
+    runner
       .withCommand(
         runner
           .repl(
@@ -226,7 +226,6 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
       ) { command =>
         command.run().get
       }
-    exitCode
   }
 
   /** Runs an Enso script or project.
@@ -412,12 +411,13 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
       )
       .get
 
-    runner.withCommand(
-      settings,
-      JVMSettings(useSystemJVM, jvmOpts, extraOptions = Seq())
-    ) { command =>
-      command.run().get
-    }
+    runner
+      .withCommand(
+        settings,
+        JVMSettings(useSystemJVM, jvmOpts, extraOptions = Seq())
+      ) { command =>
+        command.run().get
+      }
   }
 
   /** Prints the value of `key` from the global configuration.
