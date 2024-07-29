@@ -143,6 +143,7 @@ add_specs suite_builder =
                     expected_table = Table.from_rows ["dt2"] [expected_row1, expected_row2, expected_row3]
                     returned_table = t.read
                     returned_table.should_equal expected_table
+                    data.connection.execute_update 'DROP TABLE "'+name+'"'
 
 
 
