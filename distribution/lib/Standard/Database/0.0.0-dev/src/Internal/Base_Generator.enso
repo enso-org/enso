@@ -426,13 +426,9 @@ generate_order dialect order_descriptor =
     - ctx: A description of the SELECT clause.
 generate_select_query_sql : Dialect -> Vector (Pair Text SQL_Expression) -> Context -> SQL_Builder
 generate_select_query_sql dialect columns ctx =
-    gen_column pair = (generate_expression dialect pair.second) ++ alias dialect pair.first
     top_part = case ctx.limit of
         Nothing -> SQL_Builder.code ""
         _ : Integer -> dialect.get_top_part_sql ctx.limit
-    cols = case columns of
-        Nothing -> SQL_Builder.code "*"
-        _ -> SQL_Builder.join ", " (columns.map gen_column)
     prefix = case ctx.distinct_on of
         Nothing -> SQL_Builder.code ""
         expressions : Vector ->
