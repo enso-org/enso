@@ -1383,7 +1383,7 @@ public final class Main {
                 return BoxedUnit.UNIT;
               });
         } catch (IOException ex) {
-          System.err.println(ex.getMessage());
+          ex.printStackTrace();
           throw exitFail();
         }
       } catch (WrongOption e) {
