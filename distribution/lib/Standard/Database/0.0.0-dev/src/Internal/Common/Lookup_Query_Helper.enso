@@ -14,7 +14,7 @@ import project.Internal.IR.Internal_Column.Internal_Column
 import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.IR.SQL_Join_Kind.SQL_Join_Kind
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
-from project.Internal.Upload_Table import check_for_null_keys
+from project.Internal.Upload.Helpers.Checks import check_for_null_keys
 
 ## PRIVATE
    Implementation of `lookup_and_replace` for Database backend.

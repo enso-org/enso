@@ -33,7 +33,8 @@ import project.SQL_Type.SQL_Type
 from project.Errors import SQL_Error, Table_Already_Exists, Table_Not_Found
 from project.Internal.JDBC_Connection import handle_sql_errors, JDBC_Connection
 from project.Internal.Result_Set import read_column, result_set_to_table
-from project.Internal.Upload_Table import create_table_implementation, first_column_name_in_structure
+from project.Internal.Upload.Helpers.Default_Arguments import first_column_name_in_structure
+from project.Internal.Upload.Operations.Create import create_table_implementation
 
 polyglot java import java.lang.UnsupportedOperationException
 polyglot java import java.util.UUID
