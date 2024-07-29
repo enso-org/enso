@@ -19,12 +19,12 @@ const ORGANIZATION_ID = 'some testing organization id'
 // Note: This does not check that the organization ID is sent in the correct format for the backend.
 // It only checks that the organization ID is sent in certain places.
 test.test('sign up with organization id', async ({ page }) => {
+  const api = await actions.mockApi({ page })
   await page.goto('/')
   await page.waitForLoadState('domcontentloaded')
   await page.goto(
     '/registration?' + new URLSearchParams([['organization_id', ORGANIZATION_ID]]).toString(),
   )
-  const api = await actions.mockApi({ page })
   api.setCurrentUser(null)
 
   // Sign up
@@ -49,10 +49,10 @@ test.test('sign up with organization id', async ({ page }) => {
 })
 
 test.test('sign up without organization id', async ({ page }) => {
+  const api = await actions.mockApi({ page })
   await page.goto('/')
   await page.waitForLoadState('domcontentloaded')
   await page.goto('/registration')
-  const api = await actions.mockApi({ page })
   api.setCurrentUser(null)
 
   // Sign up
