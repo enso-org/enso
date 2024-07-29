@@ -86,7 +86,7 @@ impl Configuration {
 
     pub fn set_enso_test_env(&self) -> Result {
         env::tests::ENSO_SQLSERVER_DATABASE.set(&self.database_name)?;
-        env::tests::ENSO_SQLSERVER_HOST.set("localhost");
+        env::tests::ENSO_SQLSERVER_HOST.set("localhost")?;
         env::tests::ENSO_SQLSERVER_PORT.set(&match &self.endpoint {
             EndpointConfiguration::Host { port } => port.to_string(),
             EndpointConfiguration::Container { .. } =>
@@ -210,7 +210,6 @@ mod tests {
     use super::*;
 
     #[tokio::test]
-    #[ignore]
     async fn start_sqlserver() -> Result {
         let config = Configuration {
             sqlserver_container: ContainerId("something".into()),
