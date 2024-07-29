@@ -158,20 +158,11 @@ complex_types_map = Dictionary.from_vector <|
         if sql_type.name == "BOOLEAN" then Value_Type.Boolean else
             # We currently do not support bit types.
             on_unknown_type sql_type
-    handle_timestamp sql_type = case sql_type.name of
-        "TIMESTAMPTZ" -> Value_Type.Date_Time with_timezone=True
-        "TIMESTAMP_TZ" -> Value_Type.Date_Time with_timezone=True
-        "TIMESTAMPLTZ" -> Value_Type.Date_Time with_timezone=False
-        "TIMESTAMP_LTZ" -> Value_Type.Date_Time with_timezone=False
-        "TIMESTAMPNTZ"   -> Value_Type.Date_Time with_timezone=False
-        "TIMESTAMP_NTZ"   -> Value_Type.Date_Time with_timezone=False
-        _             -> on_unknown_type sql_type
 
     numerics = [[Types.DECIMAL, make_decimal], [Types.NUMERIC, make_decimal]]
     strings = [[Types.VARCHAR, make_varchar], [Types.CHAR, make_char], [Types.CLOB, make_varchar]]
     binaries = [[Types.BINARY, make_binary True], [Types.BIT, handle_bit]]
-    others = [[Types.TIMESTAMP, handle_timestamp]]
-    numerics + strings + binaries + others
+    numerics + strings + binaries
 
 ## PRIVATE
 on_unknown_type sql_type =
