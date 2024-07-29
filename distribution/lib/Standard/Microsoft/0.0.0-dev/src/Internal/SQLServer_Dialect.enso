@@ -1,4 +1,6 @@
-from Standard.Base import all
+private
+
+from Standard.Base import all hiding First, Last
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Errors.Unimplemented.Unimplemented
@@ -10,60 +12,63 @@ from Standard.Table.Aggregate_Column.Aggregate_Column import all
 from Standard.Table.Errors import Inexact_Type_Coercion
 from Standard.Table.Internal.Storage import get_storage_for_column
 
-import project.Connection.Connection.Connection
-import project.DB_Column.DB_Column
-import project.DB_Table.DB_Table
-import project.Dialect
-import project.Internal.Base_Generator
-import project.Internal.Common.Database_Distinct_Helper
-import project.Internal.Common.Database_Join_Helper
-import project.Internal.Error_Mapper.Error_Mapper
-import project.Internal.IR.Context.Context
-import project.Internal.IR.Context.Context_Extension
-import project.Internal.IR.From_Spec.From_Spec
-import project.Internal.IR.Internal_Column.Internal_Column
-import project.Internal.IR.Nulls_Order.Nulls_Order
-import project.Internal.IR.Order_Descriptor.Order_Descriptor
-import project.Internal.IR.Query.Query
-import project.Internal.IR.SQL_Expression.SQL_Expression
-import project.Internal.IR.SQL_Join_Kind.SQL_Join_Kind
-import project.Internal.Postgres.Postgres_Error_Mapper.Postgres_Error_Mapper
-import project.Internal.Postgres.Postgres_Type_Mapping.Postgres_Type_Mapping
-import project.Internal.Replace_Params.Replace_Params
-import project.Internal.SQL_Type_Mapping.SQL_Type_Mapping
-import project.Internal.SQL_Type_Reference.SQL_Type_Reference
-import project.Internal.Statement_Setter.Statement_Setter
-import project.SQL.SQL_Builder
-import project.SQL.SQL_Fragment
-import project.SQL_Statement.SQL_Statement
-import project.SQL_Type.SQL_Type
-from project.Errors import SQL_Error, Unsupported_Database_Operation
-from project.Internal.IR.Operation_Metadata import Date_Period_Metadata
+import Standard.Database.Connection.Connection.Connection
+import Standard.Database.DB_Column.DB_Column
+import Standard.Database.DB_Table.DB_Table
+import Standard.Database.Dialect
+import Standard.Database.Internal.Base_Generator
+import Standard.Database.Internal.Common.Database_Distinct_Helper
+import Standard.Database.Internal.Common.Database_Join_Helper
+import Standard.Database.Internal.Error_Mapper.Error_Mapper
+import Standard.Database.Internal.Internals_Access
+import Standard.Database.Internal.IR.Context.Context
+import Standard.Database.Internal.IR.From_Spec.From_Spec
+import Standard.Database.Internal.IR.Internal_Column.Internal_Column
+import Standard.Database.Internal.IR.Nulls_Order.Nulls_Order
+import Standard.Database.Internal.IR.Order_Descriptor.Order_Descriptor
+import Standard.Database.Internal.IR.Query.Query
+import Standard.Database.Internal.IR.SQL_Expression.SQL_Expression
+import Standard.Database.Internal.IR.SQL_Join_Kind.SQL_Join_Kind
+## TODO replace with custom one
+import Standard.Database.Internal.Postgres.Postgres_Error_Mapper.Postgres_Error_Mapper
+import Standard.Database.Internal.Replace_Params.Replace_Params
+import Standard.Database.Internal.SQL_Type_Mapping.SQL_Type_Mapping
+import Standard.Database.Internal.SQL_Type_Reference.SQL_Type_Reference
+import Standard.Database.Internal.Statement_Setter.Statement_Setter
+import Standard.Database.SQL.SQL_Builder
+import Standard.Database.SQL.SQL_Fragment
+import Standard.Database.SQL_Statement.SQL_Statement
+import Standard.Database.SQL_Type.SQL_Type
+from Standard.Database.Errors import SQL_Error, Unsupported_Database_Operation
+from Standard.Database.Internal.IR.Operation_Metadata import Date_Period_Metadata
+from Standard.Database.Internal.Statement_Setter import fill_hole_default
 
-polyglot java import java.sql.Types
+import project.Internal.SQLServer_Type_Mapping.SQLServer_Type_Mapping
 
-## PRIVATE
-
-   The dialect of PostgreSQL databases.
-postgres : Postgres_Dialect
-postgres =
-    Postgres_Dialect.Value make_dialect_operations
+polyglot java import java.sql.Types as Java_Types
+polyglot java import org.enso.database.JDBCUtils
 
 ## PRIVATE
-   The dialect of PostgreSQL databases.
-type Postgres_Dialect
+   The dialect of SQL Server databases.
+sqlserver : SQLSever_Dialect
+sqlserver =
+    SQLSever_Dialect.Value make_dialect_operations
+
+## PRIVATE
+   The dialect of SQL Server databases.
+type SQLSever_Dialect
     ## PRIVATE
-       The dialect of PostgreSQL databases.
+       The dialect of SQL Server databases.
     Value dialect_operations
 
     ## PRIVATE
        Name of the dialect.
     name : Text
-    name self = postgres_dialect_name
+    name self = sqlserver_dialect_name
 
     ## PRIVATE
     to_text : Text
-    to_text self = "Postgres_Dialect"
+    to_text self = "SQLServer_Dialect"
 
     ## PRIVATE
        A function which generates SQL code from the internal representation
@@ -82,28 +87,22 @@ type Postgres_Dialect
        Generates SQL for limiting the number of rows using the `LIMIT` clause.
     get_limit_part_sql : Integer -> SQL_Builder
     get_limit_part_sql self limit =
-        SQL_Builder.code (" LIMIT " + limit.to_text)
+        _ = [limit]
+        SQL_Builder.code ""
 
     ## PRIVATE
        Generates SQL for limiting the number of rows using the `TOP` clause.
     get_top_part_sql : Integer -> SQL_Builder
     get_top_part_sql self limit =
-        _ = [limit]
-        SQL_Builder.code ""
+        SQL_Builder.code (" TOP " + limit.to_text)
 
     ## PRIVATE
        Wraps and possibly escapes the identifier so that it can be used in a
        generated query regardless of what characters it contains.
        The quotes used will depend on the dialect.
-    wrap_identifier : Text -> SQL_Builder
+    wrap_identifier : Text -> Text
     wrap_identifier self identifier =
         Base_Generator.wrap_in_quotes identifier
-
-    ## PRIVATE
-       Generates a SQL expression for a table literal.
-    make_table_literal : Vector (Vector Text) -> Vector Text -> Text -> SQL_Builder
-    make_table_literal self vecs column_names as_name =
-        Base_Generator.default_make_table_literal self.wrap_identifier vecs column_names as_name
 
     ## PRIVATE
        Prepares an ordering descriptor.
@@ -125,10 +124,10 @@ type Postgres_Dialect
        Prepares a distinct operation.
     prepare_distinct : DB_Table -> Vector -> Case_Sensitivity -> Problem_Builder -> DB_Table
     prepare_distinct self table key_columns case_sensitivity problem_builder =
-        table_name_deduplicator = table.connection.base_connection.table_naming_helper.create_unique_name_strategy
+        table_name_deduplicator = (Internals_Access.get_connection table).base_connection.table_naming_helper.create_unique_name_strategy
         table_name_deduplicator.mark_used table.name
         inner_table_alias = table_name_deduplicator.make_unique table.name+"_inner"
-        setup = table.context.as_subquery inner_table_alias [table.internal_columns]
+        setup = (Internals_Access.get_context table).as_subquery inner_table_alias [Internals_Access.internal_columns table]
         new_columns = setup.new_columns.first
         column_mapping = Dictionary.from_vector <| new_columns.map c-> [c.name, c]
         new_key_columns = key_columns.map c-> column_mapping.at c.name
@@ -136,7 +135,7 @@ type Postgres_Dialect
         distinct_expressions = new_key_columns.map column->
             value_type = type_mapping.sql_type_to_value_type column.sql_type_reference.get
             Database_Distinct_Helper.make_distinct_expression case_sensitivity problem_builder column value_type
-        new_context = Context.for_subquery setup.subquery . add_extension (make_distinct_extension distinct_expressions)
+        new_context = Context.for_subquery setup.subquery . set_distinct_on distinct_expressions
         table.updated_context_and_columns new_context new_columns subquery=True
 
     ## PRIVATE
@@ -149,23 +148,36 @@ type Postgres_Dialect
        Returns the mapping between SQL types of this dialect and Enso
        `Value_Type`.
     get_type_mapping : SQL_Type_Mapping
-    get_type_mapping self = Postgres_Type_Mapping
+    get_type_mapping self = SQLServer_Type_Mapping
 
     ## PRIVATE
     get_statement_setter : Statement_Setter
-    get_statement_setter self = Statement_Setter.default
-
+    get_statement_setter self =
+        custom_fill_hole stmt i type_hint value = case value of
+            Nothing ->
+                java_type = case type_hint of
+                    Nothing -> Java_Types.NULL
+                    _ ->
+                        ## SQLServer needs its NULLS to be typed at least for TIME.
+                        type_mapping = self.get_type_mapping
+                        sql_type = type_mapping.value_type_to_sql type_hint Problem_Behavior.Ignore
+                        sql_type.typeid                            
+                stmt.setNull i java_type
+            _ : Time_Of_Day -> JDBCUtils.setLocalTimeViaTimeStamp stmt i value
+            # Fallback to default logic for everything else
+            _ -> fill_hole_default stmt i type_hint value
+        Statement_Setter.Value custom_fill_hole
     ## PRIVATE
     make_cast : Internal_Column -> SQL_Type -> (SQL_Expression -> SQL_Type_Reference) -> Internal_Column
-    make_cast self (column : Internal_Column) (target_type : SQL_Type) (infer_result_type_from_database_callback : SQL_Expression -> SQL_Type_Reference) =
+    make_cast self column target_type infer_result_type_from_database_callback =
         mapping = self.get_type_mapping
         source_type = mapping.sql_type_to_value_type column.sql_type_reference.get
         target_value_type = mapping.sql_type_to_value_type target_type
         # Boolean to Numeric casts need special handling:
         transformed_expression = case source_type.is_boolean && target_value_type.is_numeric of
             True ->
-                SQL_Expression.Operation "IIF" [column.expression, SQL_Expression.Literal "1", SQL_Expression.Literal "0"]
-            False -> column.expression
+                SQL_Expression.Operation "IIF" [Internals_Access.column_expression column, SQL_Expression.Literal "1", SQL_Expression.Literal "0"]
+            False -> Internals_Access.column_expression column
         target_type_sql_text = mapping.sql_type_to_text target_type
         new_expression = SQL_Expression.Operation "CAST" [transformed_expression, SQL_Expression.Literal target_type_sql_text]
         new_sql_type_reference = infer_result_type_from_database_callback new_expression
@@ -187,45 +199,23 @@ type Postgres_Dialect
 
     ## PRIVATE
     supports_float_round_decimal_places : Boolean
-    supports_float_round_decimal_places self = False
+    supports_float_round_decimal_places self = True
 
     ## PRIVATE
        Specifies whether the Database supports CREATE TEMPORARY TABLE syntax.
     suppports_temporary_table_syntax : Boolean
-    suppports_temporary_table_syntax self = True
+    suppports_temporary_table_syntax self = False
 
     ## PRIVATE
        Specifies whether the Database supports CREATE TABLE #temptablename syntax.
     suppports_temporary_with_hash_syntax : Boolean
-    suppports_temporary_with_hash_syntax self = False
+    suppports_temporary_with_hash_syntax self = True
 
     ## PRIVATE
-       There is a bug in Postgres type inference, where if we unify two
-       fixed-length char columns of length N and M, the result type is said to
-       be a **fixed-length** column of length max_int4. This is wrong, and in
-       practice the column is just a variable-length text. This method detects
-       this situations and overrides the type to make it correct.
     adapt_unified_column : Internal_Column -> Value_Type -> (SQL_Expression -> SQL_Type_Reference) -> Internal_Column
     adapt_unified_column self column approximate_result_type infer_result_type_from_database_callback =
-        needs_char_length_override_check = case approximate_result_type of
-            Value_Type.Char _ _ -> True
-            _ -> False
-        case needs_char_length_override_check of
-            True ->
-                type_mapping = self.get_type_mapping
-                db_type = type_mapping.sql_type_to_value_type column.sql_type_reference.get
-                case db_type of
-                    Value_Type.Char _ _ -> case db_type == approximate_result_type of
-                        True -> column
-                        False ->
-                            type_override = type_mapping.value_type_to_sql approximate_result_type Problem_Behavior.Report_Error
-                            type_override.catch Inexact_Type_Coercion _->
-                                Panic.throw <|
-                                    Illegal_State.Error "The target type ("+db_type.to_display_text+") that we need to cast to seems to not be supported by the Dialect. This is not expected. It is a bug in the Database library."
-                            self.make_cast column type_override infer_result_type_from_database_callback
-                    _ -> Panic.throw <|
-                        Illegal_State.Error "The type computed by our logic is Char, but the Database computed a non-text type ("+db_type.to_display_text+"). This should never happen and should be reported as a bug in the Database library."
-            False -> column
+        _ = [approximate_result_type, infer_result_type_from_database_callback]
+        column
 
     ## PRIVATE
        Add an extra cast to adjust the output type of certain operations with
@@ -238,29 +228,13 @@ type Postgres_Dialect
        is used only to override the type in cases where the default one that the
        database uses is not what we want.
     cast_op_type self (op_kind:Text) (args:(Vector Internal_Column)) (expression:SQL_Expression) =
-        is_int8 ic = ic.sql_type_reference.get.typeid == Types.BIGINT
-        is_int ic =
-            typeid = ic.sql_type_reference.get.typeid
-            typeid == Types.SMALLINT || typeid == Types.INTEGER || typeid == Types.BIGINT
-
-        cast_to = case op_kind of
-            "SUM" ->
-                if is_int8 (args.at 0) then "numeric(1000,0)" else Nothing
-            "AVG" ->
-                if is_int (args.at 0) then "float8" else Nothing
-            "STDDEV_POP" ->
-                if is_int (args.at 0) then "float8" else Nothing
-            "STDDEV_SAMP" ->
-                if is_int (args.at 0) then "float8" else Nothing
-            _ -> Nothing
-
-        if cast_to.is_nothing then expression else
-            SQL_Expression.Operation "CAST" [expression, SQL_Expression.Literal cast_to]
+        _ = [op_kind, args]
+        expression
 
     ## PRIVATE
     prepare_fetch_types_query : SQL_Expression -> Context -> SQL_Statement
     prepare_fetch_types_query self expression context =
-        Base_Generator.default_fetch_types_query self expression context
+        Base_Generator.default_fetch_types_query self expression context where_filter_always_false_literal="1=0"
 
     ## PRIVATE
     check_aggregate_support : Aggregate_Column -> Boolean ! Unsupported_Database_Operation
@@ -278,7 +252,7 @@ type Postgres_Dialect
        The default table types to use when listing tables.
     default_table_types : Vector Text
     default_table_types self =
-        ["TABLE", "VIEW", "TEMPORARY TABLE", "TEMPORARY VIEW", "MATERIALIZED VIEW", "FOREIGN TABLE", "PARTITIONED TABLE"]
+        ["TABLE", "VIEW", "TEMPORARY TABLE", "TEMPORARY VIEW", "MATERIALIZED VIEW"]
 
     ## PRIVATE
     get_error_mapper : Error_Mapper
@@ -297,14 +271,13 @@ type Postgres_Dialect
        if the given period is supported.
     prepare_metadata_for_period : Date_Period | Time_Period -> Value_Type -> Any
     prepare_metadata_for_period self period operation_input_type =
-        if period == Time_Period.Nanosecond then Error.throw (Unsupported_Database_Operation.Error "Postgres does not support nanosecond precision date/times.") else
-            Date_Period_Metadata.Value period operation_input_type
+        Date_Period_Metadata.Value period operation_input_type
 
     ## PRIVATE
        Returns true if the `replace` parameters are supported by this backend.
     if_replace_params_supports : Replace_Params -> Any -> Any
     if_replace_params_supports self replace_params ~action =
-        if supported_replace_params.contains replace_params then action else replace_params.throw_unsupported postgres_dialect_name
+        if supported_replace_params.contains replace_params then action else replace_params.throw_unsupported sqlserver_dialect_name
 
     ## PRIVATE
     value_type_for_upload_of_existing_column : DB_Column -> Value_Type
@@ -315,24 +288,12 @@ type Postgres_Dialect
             base_type = column.value_type
             case base_type of
                 Value_Type.Decimal precision scale ->
-                    # We cannot have a specified scale and no precision, so special handling is needed for this:
-                    case precision.is_nothing && scale.is_nothing.not of
-                        True ->
-                            needed_precision = (get_storage_for_column column).getMaxPrecisionStored
-                            new_type = case needed_precision <= 1000 of
-                                # If the precision is small enough that our number will fit, we create a column with maximum supported precision.
-                                True -> Value_Type.Decimal 1000 scale
-                                # If the needed precision is too big, we cannot set it, so we set the precision to unlimited. This loses scale.
-                                False -> Value_Type.Decimal Nothing Nothing
-                            Warning.attach (Inexact_Type_Coercion.Warning base_type new_type unavailable=False) new_type
-                        False -> base_type
+                    used_scale = scale.if_nothing 12
+                    used_precision = Math.min 38 precision.if_nothing 38
+                    new_type = Value_Type.Decimal used_precision used_scale
+                    if used_scale==scale && used_precision==precision then new_type else
+                        Warning.attach (Inexact_Type_Coercion.Warning base_type new_type unavailable=False) new_type
                 _ -> base_type
-
-    ## PRIVATE
-    needs_literal_table_cast : Value_Type -> Boolean
-    needs_literal_table_cast self value_type =
-        _ = value_type
-        False
 
 ## PRIVATE
 make_dialect_operations =
@@ -345,92 +306,38 @@ make_dialect_operations =
     stddev_pop = ["STDDEV_POP", Base_Generator.make_function "stddev_pop"]
     stddev_samp = ["STDDEV_SAMP", Base_Generator.make_function "stddev_samp"]
     stats = [agg_median, agg_mode, agg_percentile, stddev_pop, stddev_samp]
-    date_ops = [make_extract_as_int "year", make_extract_as_int "quarter", make_extract_as_int "month", make_extract_as_int "week", make_extract_as_int "day", make_extract_as_int "day_of_week" "isodow", make_extract_as_int "day_of_year" "doy", make_extract_as_int "hour", make_extract_as_int "minute", make_extract_fractional_as_int "second", make_extract_fractional_as_int "millisecond" modulus=1000, make_extract_fractional_as_int "microsecond" modulus=1000, ["date_add", make_date_add], ["date_diff", make_date_diff], ["date_trunc_to_day", make_date_trunc_to_day]]
-    special_overrides = [is_null, is_empty]
+    date_ops = [make_extract_as_int "year", make_extract_as_int "quarter", make_extract_as_int "month", make_extract_as_int "week", make_extract_as_int "day", make_extract_as_int "hour", make_extract_as_int "minute", make_extract_fractional_as_int "second", make_extract_fractional_as_int "millisecond" modulus=1000, make_extract_fractional_as_int "microsecond" modulus=1000, ["date_add", make_date_add], ["date_diff", make_date_diff], ["date_trunc_to_day", make_date_trunc_to_day]]
+    special_overrides = []
     other = [["RUNTIME_ERROR", make_runtime_error_op]]
     my_mappings = text + counts + stats + first_last_aggregators + arith_extensions + bool + date_ops + special_overrides + other
     Base_Generator.base_dialect_operations . extend_with my_mappings
 
 ## PRIVATE
-   This overrides the default behaviour, due to a weird behaviour of Postgres -
-   it wants to determine the type for the parameter provided to IS NULL.
-
-   But when the parameter is NULL, the type is unspecified. This only occurs if
-   a constant-NULL column is created in an expression builder `make_constant`
-   when computing an expression. We do not want to give it a default type, as
-   it needs to be flexible - this NULL column may be used in expressions of
-   various types. Only with IS NULL, having no type associated will fail with
-   `ERROR: could not determine data type of parameter`. To circumvent this
-   issue, we simply check if the parameter to be provided there is a `Nothing`
-   interpolation. If it is, we will just rewrite the expression to `TRUE` since
-   that is the expected result of `NULL IS NULL`.
-
-   With the IR refactor, this should be done in some preprocess pass that still
-   works on SQL_Expression and not raw SQL.
-is_null = Base_Generator.lift_unary_op "IS_NULL" arg->
-    if represents_an_untyped_null_expression arg then SQL_Builder.code "TRUE" else
-        SQL_Builder.code "(" ++ arg.paren ++ " IS NULL)"
-
-## PRIVATE
-   See `is_null` above.
-
-   It is a heuristic that will match generated expressions coming from
-   a NULL Literal or a Nothing constant. This should be enough, as any more
-   complex expression should have some type associated with it.
-represents_an_untyped_null_expression arg =
-    vec = arg.fragments.build
-    if vec.length != 1 then False else
-        case vec.first of
-            SQL_Fragment.Code_Part "NULL" -> True
-            SQL_Fragment.Interpolation Nothing -> True
-            _ -> False
-
-## PRIVATE
-   The same issue as with `is_null` above, but here we can assume that `arg`
-   represents some `text` value, so we can just CAST it.
-is_empty = Base_Generator.lift_unary_op "IS_EMPTY" arg->
-    is_null = (arg.paren ++ "::text IS NULL").paren
-    is_empty = (arg ++ " = ''").paren
-    (is_null ++ " OR " ++ is_empty).paren
-
-## PRIVATE
 agg_count_is_null = Base_Generator.lift_unary_op "COUNT_IS_NULL" arg->
-    SQL_Builder.code "COUNT(CASE WHEN " ++ arg.paren ++ " IS NULL THEN 1 END)"
+    SQL_Builder.code "COUNT_IF(" ++ arg.paren ++ " IS NULL)"
 
 ## PRIVATE
 agg_count_empty = Base_Generator.lift_unary_op "COUNT_EMPTY" arg->
-    SQL_Builder.code "COUNT(CASE WHEN (" ++ arg.paren ++ " IS NULL) OR (" ++ arg.paren ++ " = '') THEN 1 END)"
+    SQL_Builder.code "COUNT_IF("++ arg.paren ++ " IS NULL OR " ++ arg.paren ++ " == '')"
 
 ## PRIVATE
 agg_count_not_empty = Base_Generator.lift_unary_op "COUNT_NOT_EMPTY" arg->
-    SQL_Builder.code "COUNT(CASE WHEN (" ++ arg.paren ++ " IS NOT NULL) AND (" ++ arg.paren ++ " != '') THEN 1 END)"
+    SQL_Builder.code "COUNT_IF(" ++ arg.paren ++ " IS NOT NULL AND " ++ arg.paren ++ " != '')"
 
 ## PRIVATE
 agg_median = Base_Generator.lift_unary_op "MEDIAN" arg->
-    median = SQL_Builder.code "percentile_cont(0.5) WITHIN GROUP (ORDER BY " ++ arg ++ ")"
-    ## TODO Technically, this check may not be necessary if the input column has
-       type INTEGER, because it is impossible to represent a NaN in that type.
-       However, currently the column type inference is not tested well-enough to
-       rely on this, so leaving an uniform approach regardless of type. This
-       could be revisited when further work on column types takes place.
-       See issue: https://www.pivotaltracker.com/story/show/180854759
-    has_nan = SQL_Builder.code "bool_or(" ++ arg ++ " = double precision 'NaN')"
-    SQL_Builder.code "CASE WHEN " ++ has_nan ++ " THEN 'NaN' ELSE " ++ median ++ " END"
+    median = SQL_Builder.code "MEDIAN(" ++ arg ++ ")"
+    has_nan = SQL_Builder.code "BOOLOR_AGG(" ++ arg ++ " = 'NaN'::Double)"
+    SQL_Builder.code "CASE WHEN " ++ has_nan ++ " THEN 'NaN'::Double ELSE " ++ median ++ " END"
 
 ## PRIVATE
 agg_mode = Base_Generator.lift_unary_op "MODE" arg->
-    SQL_Builder.code "mode() WITHIN GROUP (ORDER BY " ++ arg ++ ")"
+    SQL_Builder.code "MODE(" ++ arg ++ ")"
 
 ## PRIVATE
 agg_percentile = Base_Generator.lift_binary_op "PERCENTILE" p-> expr->
     percentile = SQL_Builder.code "percentile_cont(" ++ p ++ ") WITHIN GROUP (ORDER BY " ++ expr ++ ")"
-    ## TODO Technically, this check may not be necessary if the input column has
-       type INTEGER, because it is impossible to represent a NaN in that type.
-       However, currently the column type inference is not tested well-enough to
-       rely on this, so leaving an uniform approach regardless of type. This
-       could be revisited when further work on column types takes place.
-       See issue: https://www.pivotaltracker.com/story/show/180854759
-    has_nan = SQL_Builder.code "bool_or(" ++ expr ++ " = double precision 'NaN')"
+    has_nan = SQL_Builder.code "BOOLOR_AGG(" ++ expr ++ " = 'NaN'::Double)"
     SQL_Builder.code "CASE WHEN " ++ has_nan ++ " THEN 'NaN' ELSE " ++ percentile ++ " END"
 
 ## PRIVATE
@@ -450,28 +357,18 @@ make_first_aggregator reverse ignore_null args =
         result_expr = args.first
         order_bys = args.drop 1
 
-        filter_clause = if ignore_null.not then "" else
-            SQL_Builder.code " FILTER (WHERE " ++ result_expr.paren ++ " IS NOT NULL)"
-        order_clause =
-            SQL_Builder.code " ORDER BY " ++ SQL_Builder.join "," order_bys
-        index_expr = case reverse of
-            True -> if ignore_null.not then "COUNT(*)" else
-                SQL_Builder.code "COUNT(" ++ result_expr ++ ")"
-            False -> "1"
-
-        SQL_Builder.code "(array_agg(" ++ result_expr.paren ++ order_clause ++ ")" ++ filter_clause ++ ")[" ++ index_expr ++ "]"
+        method_name = if reverse then "LAST_VALUE" else "FIRST_VALUE"
+        filter_clause = if ignore_null then ") IGNORE NULLS OVER" else ") OVER"
+        order_clause = SQL_Builder.code " ORDER BY " ++ SQL_Builder.join "," order_bys
+        SQL_Builder.code (method_name + "(") ++ result_expr ++ filter_clause ++ order_clause
 
 ## PRIVATE
 agg_shortest = Base_Generator.lift_unary_op "SHORTEST" arg->
-     order_clause =
-         SQL_Builder.code " ORDER BY char_length(" ++ arg ++ ") ASC NULLS LAST"
-     SQL_Builder.code "(array_agg(" ++ arg.paren ++ order_clause ++ "))[1]"
+     SQL_Builder.code "FIRST_VALUE(" ++ arg ++ ") IGNORE NULLS OVER (ORDER BY LENGTH(" ++ arg ++ "))"
 
 ## PRIVATE
 agg_longest = Base_Generator.lift_unary_op "LONGEST" arg->
-     order_clause =
-         SQL_Builder.code " ORDER BY char_length(" ++ arg ++ ") DESC NULLS LAST"
-     SQL_Builder.code "(array_agg(" ++ arg.paren ++ order_clause ++ "))[1]"
+     SQL_Builder.code "FIRST_VALUE(" ++ arg ++ ") IGNORE NULLS OVER (ORDER BY LENGTH(" ++ arg ++ ") DESC)"
 
 ## PRIVATE
 concat_ops =
@@ -511,28 +408,29 @@ agg_count_distinct args = if args.is_empty then (Error.throw (Illegal_Argument.E
             (count ++ all_nulls_filter).paren
 
 ## PRIVATE
-agg_count_distinct_include_null args =
-    ## If we always count as tuples, then even null fields are counted.
-    SQL_Builder.code "COUNT(DISTINCT (" ++ SQL_Builder.join ", " args ++ ", 0))"
+agg_count_distinct_include_null args = case args.length == 1 of
+    True ->
+        arg = args.first
+        count = SQL_Builder.code "COUNT(DISTINCT " ++ arg ++ ")"
+        all_nulls_case = SQL_Builder.code "CASE WHEN COUNT(CASE WHEN " ++ arg ++ "IS NULL THEN 1 END) > 0 THEN 1 ELSE 0 END"
+        count ++ " + " ++ all_nulls_case
+    False -> Error.throw (Illegal_Argument.Error "COUNT_DISTINCT supports only single arguments in SQLServer.")
 
 ## PRIVATE
-starts_with = Base_Generator.lift_binary_sql_function "STARTS_WITH" "starts_with"
+starts_with = Base_Generator.lift_binary_sql_function "STARTS_WITH" "STARTSWITH"
 
 ## PRIVATE
-ends_with = Base_Generator.lift_binary_op "ENDS_WITH" str-> sub->
-    res = str ++ " LIKE CONCAT('%', " ++ sub ++ ")"
-    res.paren
+ends_with = Base_Generator.lift_binary_sql_function "ENDS_WITH" "ENDSWITH"
+
+## PRIVATE
+contains = Base_Generator.lift_binary_sql_function "CONTAINS" "CONTAINS"
+
+## PRIVATE
+make_contains_expr expr substring = contains [expr, substring]
 
 ## PRIVATE
 make_case_sensitive = Base_Generator.lift_unary_op "MAKE_CASE_SENSITIVE" arg->
     SQL_Builder.code "((" ++ arg ++ ') COLLATE "ucs_basic")'
-
-## PRIVATE
-make_contains_expr expr substring =
-    SQL_Builder.code "position(" ++ substring ++ " in " ++ expr ++ ") > 0"
-
-## PRIVATE
-contains = Base_Generator.lift_binary_op "CONTAINS" make_contains_expr
 
 ## PRIVATE
 left = Base_Generator.lift_binary_op "LEFT" str-> n->
@@ -549,20 +447,20 @@ make_order_descriptor internal_column sort_direction text_ordering =
         Sort_Direction.Descending -> Nulls_Order.Last
     case text_ordering of
         Nothing ->
-            Order_Descriptor.Value internal_column.expression sort_direction nulls_order=nulls collation=Nothing
+            Order_Descriptor.Value (Internals_Access.column_expression internal_column) sort_direction nulls_order=nulls collation=Nothing
         _ ->
             ## In the future we can modify this error to suggest using a custom defined collation.
             if text_ordering.sort_digits_as_numbers then Error.throw (Unsupported_Database_Operation.Error "Natural ordering is currently not supported. You may need to materialize the Table to perform this operation.") else
                 case text_ordering.case_sensitivity of
                     Case_Sensitivity.Default ->
-                        Order_Descriptor.Value internal_column.expression sort_direction nulls_order=nulls collation=Nothing
+                        Order_Descriptor.Value (Internals_Access.column_expression internal_column) sort_direction nulls_order=nulls collation=Nothing
                     Case_Sensitivity.Sensitive ->
-                        Order_Descriptor.Value internal_column.expression sort_direction nulls_order=nulls collation="ucs_basic"
+                        Order_Descriptor.Value (Internals_Access.column_expression internal_column) sort_direction nulls_order=nulls collation="ucs_basic"
                     Case_Sensitivity.Insensitive locale -> case locale == Locale.default of
                         False ->
                             Error.throw (Unsupported_Database_Operation.Error "Case insensitive ordering with custom locale is currently not supported. You may need to materialize the Table to perform this operation.")
                         True ->
-                            upper = SQL_Expression.Operation "UPPER" [internal_column.expression]
+                            upper = SQL_Expression.Operation "UPPER" [Internals_Access.column_expression internal_column]
                             folded_expression = SQL_Expression.Operation "LOWER" [upper]
                             Order_Descriptor.Value folded_expression sort_direction nulls_order=nulls collation=Nothing
 
@@ -632,18 +530,18 @@ replace args metadata =
                     _ ->
                         SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ escaped_pattern ++ ", " ++ replacement ++ ")"
         Regex ->
-            pattern_text = SQL_Builder.interpolation raw_pattern.pattern
+            pattern_string = SQL_Builder.interpolation raw_pattern.pattern_string
             case replace_params.only_first of
                 False -> case replace_params.case_sensitivity of
                     Case_Sensitivity.Insensitive _ ->
-                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_text ++ ", " ++ replacement ++ ", 'ig')"
+                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_string ++ ", " ++ replacement ++ ", 'ig')"
                     _ ->
-                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_text ++ ", " ++ replacement ++ ", 'g')"
+                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_string ++ ", " ++ replacement ++ ", 'g')"
                 True -> case replace_params.case_sensitivity of
                     Case_Sensitivity.Insensitive _ ->
-                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_text ++ ", " ++ replacement ++ ", 'i')"
+                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_string ++ ", " ++ replacement ++ ", 'i')"
                     _ ->
-                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_text ++ ", " ++ replacement ++ ")"
+                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_string ++ ", " ++ replacement ++ ")"
         DB_Column ->
             case replace_params.only_first of
                 False -> case replace_params.case_sensitivity of
@@ -652,7 +550,7 @@ replace args metadata =
                     _ ->
                         SQL_Builder.code "REPLACE(" ++ input ++ ", " ++ pattern ++ ", " ++ replacement ++ ")"
                 True -> Nothing
-    expression.if_nothing (replace_params.throw_unsupported postgres_dialect_name)
+    expression.if_nothing (replace_params.throw_unsupported sqlserver_dialect_name)
 
 ## PRIVATE
 make_extract_as_int enso_name sql_name=enso_name =
@@ -696,8 +594,6 @@ make_date_add arguments (metadata : Date_Period_Metadata) =
                 "secs=>0.001"
             Time_Period.Microsecond ->
                 "secs=>0.000001"
-            Time_Period.Nanosecond ->
-                Panic.throw (Illegal_State.Error "Nanosecond precision is not supported by Postgres.")
         interval_expression = SQL_Builder.code "make_interval(" ++ interval_arg ++ ")"
         shifted = SQL_Builder.code "(" ++ expr ++ " + (" ++ amount ++ " * " ++ interval_expression ++ "))"
         case metadata.input_value_type of
@@ -780,19 +676,15 @@ make_date_trunc_to_day arguments =
 
 ## PRIVATE
    Alters the expression casting the value to a 64-bit integer.
+   TODO probably remove
 as_int64 expr =
     SQL_Builder.code "(" ++ expr ++ "::int8)"
 
 ## PRIVATE
-   Alters the expression casting the value to a 32-bit integer (the default choice for integers in Postgres).
+   Alters the expression casting the value to a 32-bit integer.
+   TODO probably remove
 as_int32 expr =
     SQL_Builder.code "(" ++ expr ++ "::int4)"
-
-## PRIVATE
-make_distinct_extension expressions =
-    run_generator sql_expressions =
-        SQL_Builder.code "DISTINCT ON (" ++ (SQL_Builder.join ", " sql_expressions) ++ ") "
-    Context_Extension.Value position=120 expressions=expressions run_generator=run_generator
 
 ## PRIVATE
    The RUNTIME_ERROR operation should allow the query to compile fine and it
@@ -818,4 +710,4 @@ make_runtime_error_op arguments =
     SQL_Builder.code "CAST('[ENSO INVARIANT VIOLATED: '||" ++ error_message ++ "||'] '||COALESCE(" ++ variable_to_defer ++ "::TEXT,'NULL') AS BOOLEAN)"
 
 ## PRIVATE
-postgres_dialect_name = "PostgreSQL"
+sqlserver_dialect_name = "SQL Server"

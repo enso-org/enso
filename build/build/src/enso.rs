@@ -7,8 +7,11 @@ use crate::paths::ENSO_META_TEST_ARGS;
 use crate::paths::ENSO_META_TEST_COMMAND;
 use crate::paths::ENSO_TEST_ANSI_COLORS;
 use crate::postgres;
-use crate::postgres::EndpointConfiguration;
+use crate::postgres::EndpointConfiguration as PostgresEndpointConfiguration;
 use crate::postgres::Postgresql;
+use crate::sqlserver;
+use crate::sqlserver::EndpointConfiguration as SQLServerEndpointConfiguration;
+use crate::sqlserver::SQLServer;
 
 use ide_ci::future::AsyncPolicy;
 use ide_ci::programs::docker::ContainerId;
@@ -162,7 +165,7 @@ impl BuiltEnso {
                     database_name:      "enso_test_db".to_string(),
                     user:               "enso_test_user".to_string(),
                     password:           "enso_test_password".to_string(),
-                    endpoint:           EndpointConfiguration::deduce()?,
+                    endpoint:           PostgresEndpointConfiguration::deduce()?,
                     version:            "latest".to_string(),
                 };
                 let postgres = Postgresql::start(config).await?;
@@ -171,6 +174,31 @@ impl BuiltEnso {
             _ => None,
         };
 
+        let __sqlserver = match TARGET_OS {
+            OS::Linux => {
+                let runner_context_string = crate::env::ENSO_RUNNER_CONTAINER_NAME
+                    .get_raw()
+                    .or_else(|_| ide_ci::actions::env::RUNNER_NAME.get())
+                    .unwrap_or_else(|_| Uuid::new_v4().to_string());
+                // GH-hosted runners are named like "GitHub Actions 10". Spaces are not allowed in
+                // the container name.
+                let container_name =
+                    format!("sqlserver-for-{runner_context_string}").replace(' ', "_");
+                let config = sqlserver::Configuration {
+                    sqlserver_container: ContainerId(container_name),
+                    database_name:       "tempdb".to_string(),
+                    user:                "sa".to_string(),
+                    password:            "enso_test_password_<YourStrong@Passw0rd>".to_string(),
+                    endpoint:            SQLServerEndpointConfiguration::deduce()?,
+                    version:             "latest".to_string(),
+                };
+                let sqlserver = SQLServer::start(config).await?;
+                Some(sqlserver)
+            }
+            _ => None,
+        };
+
+        let std_tests = crate::paths::discover_standard_library_tests(&paths.repo_root)?;
         let futures = std_tests.into_iter().map(|test_path| {
             let command = self.run_test(test_path, ir_caches);
             async move { command?.run_ok().await }

@@ -418,15 +418,28 @@ generate_order dialect order_descriptor =
     base_expression = generate_expression dialect order_descriptor.expression
     base_expression ++ collation ++ order_suffix ++ nulls_suffix
 
-
 ## PRIVATE
-   Generates SQL code corresponding to a SELECT statement.
+    Generates SQL code corresponding to a SELECT statement.
 
-   Arguments:
-   - dialect: The SQL dialect for which the code is being generated.
-   - ctx: A description of the SELECT clause.
-generate_select : Dialect -> Vector | Nothing -> Context -> SQL_Builder
-generate_select dialect columns ctx =
+    Arguments:
+    - dialect: The SQL dialect for which the code is being generated.
+    - ctx: A description of the SELECT clause.
+generate_select_query_sql : Dialect -> Vector (Pair Text SQL_Expression) -> Context -> SQL_Builder
+generate_select_query_sql dialect columns ctx =
+    gen_column pair = (generate_expression dialect pair.second) ++ alias dialect pair.first
+    top_part = case ctx.limit of
+        Nothing -> SQL_Builder.code ""
+        _ : Integer -> dialect.get_top_part_sql ctx.limit
+    cols = case columns of
+        Nothing -> SQL_Builder.code "*"
+        _ -> SQL_Builder.join ", " (columns.map gen_column)
+    prefix = case ctx.distinct_on of
+        Nothing -> SQL_Builder.code ""
+        expressions : Vector ->
+            ## TODO I just realised this does not make sense in other backends than Postgres,
+                so we should probably fail in such cases; probably rewrite into a generic modifier? or a transform?
+            generated = SQL_Builder.join ", " (expressions.map (generate_expression dialect))
+            SQL_Builder.code "DISTINCT ON (" ++ generated ++ ") "
     gen_exprs exprs = exprs.map (generate_expression dialect)
     gen_column pair = (generate_expression dialect pair.second) ++ alias dialect pair.first
 
@@ -443,7 +456,7 @@ generate_select dialect columns ctx =
 
     limit_part = case ctx.limit of
         Nothing -> ""
-        _ : Integer -> " LIMIT " + ctx.limit.to_text
+        _ : Integer -> dialect.get_limit_part_sql ctx.limit
 
     extensions = ctx.extensions.map extension->
         part = extension.run_generator (gen_exprs extension.expressions)
@@ -488,7 +501,7 @@ generate_insert_query dialect table_name pairs =
 generate_query : Dialect -> Query -> SQL_Builder
 generate_query dialect query = case query of
     Query.Select columns ctx ->
-        generate_select dialect columns ctx
+        generate_select_query_sql dialect columns ctx
     Query.Insert table_name pairs ->
         generate_insert_query dialect table_name pairs
     Query.Create_Table name columns primary_key temporary ->
@@ -590,7 +603,7 @@ generate_create_table dialect name columns primary_key temporary =
     column_definitions = columns.map (generate_column_description dialect)
     modifiers = if primary_key.is_nothing then [] else
         [SQL_Builder.code ", PRIMARY KEY (" ++ SQL_Builder.join ", " (primary_key.map dialect.wrap_identifier) ++ ")"]
-    table_type = if temporary then "TEMPORARY TABLE" else "TABLE"
+    table_type = if temporary && dialect.suppports_temporary_table_syntax then "TEMPORARY TABLE" else "TABLE"
     create_prefix = SQL_Builder.code ("CREATE "+table_type+" ") ++ dialect.wrap_identifier name
     create_body = (SQL_Builder.join ", " column_definitions) ++ (SQL_Builder.join "" modifiers)
     create_prefix ++ " (" ++ create_body ++ ")"
@@ -622,3 +635,8 @@ truncate_table_delete_from_style dialect table_name =
 truncate_table_truncate_table_style : Dialect -> Text -> SQL_Builder
 truncate_table_truncate_table_style dialect table_name =
     SQL_Builder.code "TRUNCATE TABLE " ++ dialect.wrap_identifier table_name
+
+## PRIVATE
+default_fetch_types_query dialect expression context where_filter_always_false_literal="FALSE" =
+    empty_context = context.add_where_filters [SQL_Expression.Literal where_filter_always_false_literal]
+    dialect.generate_sql (Query.Select [["typed_column", expression]] empty_context)

@@ -86,6 +86,19 @@ type Snowflake_Dialect
         Base_Generator.truncate_table_truncate_table_style self table_name
 
     ## PRIVATE
+       Generates SQL for limiting the number of rows using the `LIMIT` clause.
+    get_limit_part_sql : Integer -> SQL_Builder
+    get_limit_part_sql self limit =
+        SQL_Builder.code (" LIMIT " + limit.to_text)
+
+    ## PRIVATE
+       Generates SQL for limiting the number of rows using the `TOP` clause.
+    get_top_part_sql : Integer -> SQL_Builder
+    get_top_part_sql self limit =
+        _ = [limit]
+        SQL_Builder.code ""
+
+    ## PRIVATE
        Wraps and possibly escapes the identifier so that it can be used in a
        generated query regardless of what characters it contains.
        The quotes used will depend on the dialect.
@@ -201,6 +214,16 @@ type Snowflake_Dialect
     supports_float_round_decimal_places self = True
 
     ## PRIVATE
+       Specifies whether the Database supports CREATE TEMPORARY TABLE syntax.
+    suppports_temporary_table_syntax : Boolean
+    suppports_temporary_table_syntax self = True
+
+    ## PRIVATE
+       Specifies whether the Database supports CREATE TABLE #temptablename syntax.
+    suppports_temporary_with_hash_syntax : Boolean
+    suppports_temporary_with_hash_syntax self = False
+
+    ## PRIVATE
     adapt_unified_column : Internal_Column -> Value_Type -> (SQL_Expression -> SQL_Type_Reference) -> Internal_Column
     adapt_unified_column self column approximate_result_type infer_result_type_from_database_callback =
         _ = [approximate_result_type, infer_result_type_from_database_callback]
@@ -223,7 +246,7 @@ type Snowflake_Dialect
     ## PRIVATE
     prepare_fetch_types_query : SQL_Expression -> Context -> SQL_Statement
     prepare_fetch_types_query self expression context =
-        Dialect.default_fetch_types_query self expression context
+        Base_Generator.default_fetch_types_query self expression context
 
     ## PRIVATE
     check_aggregate_support : Aggregate_Column -> Boolean ! Unsupported_Database_Operation
