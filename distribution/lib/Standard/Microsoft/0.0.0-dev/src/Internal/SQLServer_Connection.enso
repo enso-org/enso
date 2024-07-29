@@ -54,30 +54,6 @@ type SQLServer_Connection
     close self = self.connection.close
 
     ## ICON metadata
-       Returns the list of warehouses for the connection.
-    warehouses : Vector Text
-    warehouses self =
-        self.connection.read_single_column "show warehouses" "name"
-
-    ## ICON metadata
-       Returns the name of the current warehouse.
-    warehouse : Text
-    warehouse self =
-        vector = self.connection.read_single_column "SELECT current_warehouse() as name" "name"
-        vector.first
-
-    ## ICON data_input
-       Returns a new Connection with the specified database set as default.
-
-       Arguments:
-        - database: The name of the database to connect to.
-    @warehouse (self-> Single_Choice display=Display.Always values=(self.warehouses . map d-> Option d d.pretty))
-    set_warehouse : Text -> Connection ! SQL_Error
-    set_warehouse self warehouse =
-        if warehouse == self.warehouse then self else
-            self.make_new Nothing Nothing warehouse
-
-    ## ICON metadata
        Returns the list of databases (or catalogs) for the connection.
     databases : Vector Text
     databases self = self.connection.databases
