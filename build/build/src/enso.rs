@@ -150,7 +150,7 @@ impl BuiltEnso {
         let may_need_sqlserver = match &test_selection {
             StandardLibraryTestsSelection::All => true,
             StandardLibraryTestsSelection::Selected(only) =>
-                only.iter().any(|test| test.contains("SQLServer")),
+                only.iter().any(|test| test.contains("Microsoft_Tests")),
         };
 
         let _httpbin = crate::httpbin::get_and_spawn_httpbin_on_free_port(sbt).await?;
@@ -203,6 +203,7 @@ impl BuiltEnso {
             _ => None,
         };
 
+        let std_tests = crate::paths::discover_standard_library_tests(&paths.repo_root)?;
         let futures = std_tests.into_iter().map(|test_path| {
             let command = self.run_test(test_path, ir_caches);
             async move { command?.run_ok().await }
