@@ -4,7 +4,6 @@ import com.tableau.hyperapi.Connection;
 import com.tableau.hyperapi.HyperProcess;
 import com.tableau.hyperapi.SchemaName;
 import com.tableau.hyperapi.Telemetry;
-
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URI;
@@ -24,12 +23,14 @@ public class HyperReader {
   private static String getHyperPath() {
     if (System.getenv("HYPER_PATH") != null) {
       return System.getenv("HYPER_PATH");
-    } if (System.getenv("ENSO_DATA_DIRECTORY") != null) {
+    }
+    if (System.getenv("ENSO_DATA_DIRECTORY") != null) {
       return System.getenv("ENSO_DATA_DIRECTORY") + "/hyper";
     } else {
       return switch (OSPlatform.CurrentPlatform) {
         case WINDOWS -> System.getenv("LocalAppData") + "/enso/hyper";
-        case MAC_ARM64, MAX_X64 -> System.getProperty("user.home") + "/Library/Application Support/org.enso/hyper";
+        case MAC_ARM64, MAX_X64 -> System.getProperty("user.home")
+            + "/Library/Application Support/org.enso/hyper";
         case LINUX, OTHER -> System.getProperty("user.home") + "/.local/share/enso/hyper";
       };
     }
@@ -49,17 +50,24 @@ public class HyperReader {
     try (var files = Files.list(HYPER_PATH)) {
       if (files.findAny().isEmpty()) {
         switch (OSPlatform.CurrentPlatform) {
-          case WINDOWS ->
-            downloadHyper("https://enso-data-samples.s3.us-west-1.amazonaws.com/tableau/hyperd.exe", "hyperd.exe");
-          case MAC_ARM64 ->
-            downloadHyper("https://enso-data-samples.s3.us-west-1.amazonaws.com/tableau/macos-arm64/hyperd", "hyperd");
-          case MAX_X64 ->
-            throw new IOException("Unsupported platform: Only ARM64 Mac is supported.");
-          case LINUX ->
-            downloadHyper("https://enso-data-samples.s3.us-west-1.amazonaws.com/tableau/linux/hyperd", "hyperd");
-          case OTHER ->
-            throw new IOException("Unsupported platform: " + OSPlatform.CurrentPlatform);
-        };
+          case WINDOWS -> downloadHyper(
+              "https://enso-data-samples.s3.us-west-1.amazonaws.com/tableau/hyperd.exe",
+              "hyperd.exe",
+              false);
+          case MAC_ARM64 -> downloadHyper(
+              "https://enso-data-samples.s3.us-west-1.amazonaws.com/tableau/macos-arm64/hyperd",
+              "hyperd",
+              true);
+          case MAX_X64 -> throw new IOException(
+              "Unsupported platform: Only ARM64 Mac is supported.");
+          case LINUX -> downloadHyper(
+              "https://enso-data-samples.s3.us-west-1.amazonaws.com/tableau/linux/hyperd",
+              "hyperd",
+              true);
+          case OTHER -> throw new IOException(
+              "Unsupported platform: " + OSPlatform.CurrentPlatform);
+        }
+        ;
       }
     } catch (Exception e) {
       throw new IOException("Failed to download hyperd.", e);
@@ -67,19 +75,35 @@ public class HyperReader {
 
     // Start hyper process.
     if (process == null) {
-      LOGGER.log(Level.INFO, "Starting Hyper process: " + HYPER_PATH.toString() + ".");
-      process = new HyperProcess(HYPER_PATH, Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU);
+      var contextClassLoader = Thread.currentThread().getContextClassLoader();
+      try {
+        Thread.currentThread().setContextClassLoader(HyperReader.class.getClassLoader());
+        LOGGER.log(Level.INFO, "Starting Hyper process: " + HYPER_PATH + ".");
+        try {
+          process = new HyperProcess(HYPER_PATH, Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU);
+        } catch (Throwable ioe) {
+          ioe.printStackTrace();
+          throw ioe;
+        }
+      } finally {
+        Thread.currentThread().setContextClassLoader(contextClassLoader);
+      }
     }
     return process;
   }
 
-  private static void downloadHyper(String uri, String fileName) throws IOException, URISyntaxException {
+  private static void downloadHyper(String uri, String fileName, boolean setExecutable)
+      throws IOException, URISyntaxException {
     LOGGER.log(Level.INFO, "Downloading Hyper from: " + uri);
+    var hyperdFile = HYPER_PATH.resolve(fileName).toFile();
     var url = new URI(uri);
     var readChannel = Channels.newChannel(url.toURL().openStream());
-    try (var fos = new FileOutputStream(HYPER_PATH.resolve(fileName).toString())) {
+    try (var fos = new FileOutputStream(hyperdFile)) {
       var writeChannel = fos.getChannel();
       writeChannel.transferFrom(readChannel, 0, Long.MAX_VALUE);
+    }
+    if (setExecutable) {
+      hyperdFile.setExecutable(true);
     }
   }
 
@@ -87,7 +111,9 @@ public class HyperReader {
     try (var process = getProcess()) {
       try (var connection = new Connection(process.getEndpoint(), path)) {
         var catalog = connection.getCatalog();
-        return catalog.getSchemaNames().stream().map(s -> s.getName().getUnescaped()).toArray(String[]::new);
+        return catalog.getSchemaNames().stream()
+            .map(s -> s.getName().getUnescaped())
+            .toArray(String[]::new);
       }
     }
   }

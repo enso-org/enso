@@ -1,10 +1,10 @@
 import LibraryManifestGenerator.BundledLibrary
-import org.enso.build.BenchTasks._
+import org.enso.build.BenchTasks.*
 import org.enso.build.WithDebugCommand
 import org.apache.commons.io.FileUtils
 import sbt.Keys.{libraryDependencies, scalacOptions}
 import sbt.addCompilerPlugin
-import sbt.complete.DefaultParsers._
+import sbt.complete.DefaultParsers.*
 import sbt.complete.Parser
 import sbt.nio.file.FileTreeView
 import sbt.internal.util.ManagedLogger
@@ -13,11 +13,14 @@ import src.main.scala.licenses.{
   SBTDistributionComponent
 }
 
+import java.nio.file.Files
+
 // This import is unnecessary, but bit adds a proper code completion features
 // to IntelliJ.
 import JPMSPlugin.autoImport._
 
 import java.io.File
+import java.nio.file.Files
 import java.nio.file.Paths
 
 // ============================================================================
@@ -525,6 +528,7 @@ val poiOoxmlVersion         = "5.2.3"
 val redshiftVersion         = "2.1.0.15"
 val univocityParsersVersion = "2.9.1"
 val xmlbeansVersion         = "5.1.1"
+val tableauVersion          = "0.0.19691.r2d7e5bc8"
 
 // === ZIO ====================================================================
 
@@ -3614,14 +3618,55 @@ lazy val `std-tableau` = project
   .settings(
     frgaalJavaCompilerSetting,
     autoScalaLibrary := false,
+    unmanagedExternalZip := {
+      val platform = if (Platform.isWindows) {
+        "windows"
+      } else if (Platform.isMacOS) {
+        "macos"
+      } else if (Platform.isLinux) {
+        "linux"
+      }
+      val arch = if (Platform.isArm64) {
+        "arm64"
+      } else {
+        "x86_64"
+      }
+      new URI(
+        s"https://downloads.tableau.com/tssoftware//tableauhyperapi-java-$platform-$arch-release-main.$tableauVersion.zip"
+      ).toURL()
+    },
+    fetchZipToUnmanaged := {
+      val unmanagedDirectory = (Compile / unmanagedBase).value
+      if (IO.listFiles(unmanagedDirectory).size < 2) { // Heuristic, should have at least hyperapi jar and os-specific one.
+        unmanagedDirectory.mkdirs()
+        val unmanagedPath = unmanagedDirectory.toPath
+        IO.withTemporaryDirectory(
+          tmp => {
+            val files = IO.unzipURL(
+              unmanagedExternalZip.value,
+              tmp,
+              f =>
+                f.endsWith(".jar") && !f.contains("gradle") && !f.contains(
+                  "javadoc"
+                ) && !f.contains("jna")
+            )
+            files.map(f => IO.move(f, unmanagedPath.resolve(f.getName).toFile))
+          },
+          keepDirectory = false
+        )
+      }
+    },
     Compile / compile / compileInputs := (Compile / compile / compileInputs)
       .dependsOn(SPIHelpers.ensureSPIConsistency)
+      .value,
+    Compile / unmanagedClasspath := (Compile / unmanagedClasspath)
+      .dependsOn(fetchZipToUnmanaged)
       .value,
     Compile / packageBin / artifactPath :=
       `std-tableau-polyglot-root` / "std-tableau.jar",
     libraryDependencies ++= Seq(
       "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion % "provided",
-      "net.java.dev.jna" % "jna-platform" % jnaVersion,
+      "net.java.dev.jna" % "jna-platform"            % jnaVersion
     ),
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value
@@ -3637,6 +3682,10 @@ lazy val `std-tableau` = project
   )
   .dependsOn(`std-base` % "provided")
   .dependsOn(`std-table` % "provided")
+
+lazy val fetchZipToUnmanaged =
+  taskKey[Unit]("Download zip file from a given url and unpack jars to ")
+lazy val unmanagedExternalZip = settingKey[URL]("URL to unmanaged file")
 
 /* Note [Native Image Workaround for GraalVM 20.2]
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
