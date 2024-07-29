@@ -145,8 +145,6 @@ add_specs suite_builder =
                     returned_table.should_equal expected_table
                     data.connection.execute_update 'DROP TABLE "'+name+'"'
 
-
-
 main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder

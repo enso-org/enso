@@ -193,12 +193,7 @@ type Postgres_Dialect
        Specifies whether the Database supports CREATE TEMPORARY TABLE syntax.
     suppports_temporary_table_syntax : Boolean
     suppports_temporary_table_syntax self = True
-
-    ## PRIVATE
-       Specifies whether the Database supports CREATE TABLE #temptablename syntax.
-    suppports_temporary_with_hash_syntax : Boolean
-    suppports_temporary_with_hash_syntax self = False
-
+    
     ## PRIVATE
        There is a bug in Postgres type inference, where if we unify two
        fixed-length char columns of length N and M, the result type is said to
