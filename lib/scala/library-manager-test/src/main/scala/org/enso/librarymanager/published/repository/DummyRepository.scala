@@ -7,7 +7,7 @@ import org.enso.downloader.archive.TarGzWriter
 import org.enso.editions.Editions.RawEdition
 import org.enso.editions.{Editions, LibraryName}
 import org.enso.pkg.{Package, PackageManager}
-import org.enso.testkit.process.WrappedProcess
+import org.enso.process.WrappedProcess
 import org.enso.yaml.YamlHelper
 
 import java.io.File

@@ -1,19 +1,16 @@
-package org.enso.runner;
+package org.enso.common;
 
 import java.io.File;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Map;
-import org.enso.common.HostAccessFactory;
-import org.enso.common.LanguageInfo;
+
 import org.enso.logger.Converter;
 import org.enso.logger.JulHandler;
 import org.enso.logger.LoggerSetup;
-import org.enso.polyglot.PolyglotContext;
-import org.enso.polyglot.RuntimeOptions;
-import org.enso.polyglot.debugger.DebugServerInfo;
-import org.enso.polyglot.debugger.DebuggerSessionManagerEndpoint;
 import org.graalvm.polyglot.Context;
+import org.graalvm.polyglot.HostAccess;
+import org.graalvm.polyglot.io.MessageTransport;
 import org.slf4j.event.Level;
 
 /**
@@ -23,7 +20,6 @@ import org.slf4j.event.Level;
  *     of any projects)
  * @param in the input stream for standard in
  * @param out the output stream for standard out
- * @param repl the Repl manager to use for this context
  * @param logLevel the log level for this context
  * @param enableIrCaches whether or not IR caching should be enabled
  * @param disablePrivateCheck If `private` keyword should be disabled.
@@ -34,11 +30,12 @@ import org.slf4j.event.Level;
  * @param executionEnvironment optional name of the execution environment to use during execution
  * @param warningsLimit maximal number of warnings reported to the user
  */
-final class ContextFactory {
+public final class ContextFactory {
   private String projectRoot;
-  private InputStream in;
-  private OutputStream out;
-  private Repl repl;
+  private InputStream in = System.in;
+  private OutputStream out = System.out;
+  private OutputStream err = System.err;
+  private MessageTransport messageTransport;
   private Level logLevel;
   private boolean logMasking;
   private boolean enableIrCaches;
@@ -72,8 +69,13 @@ final class ContextFactory {
     return this;
   }
 
-  public ContextFactory repl(Repl repl) {
-    this.repl = repl;
+  public ContextFactory err(OutputStream err) {
+    this.err = err;
+    return this;
+  }
+
+  public ContextFactory messageTransport(MessageTransport t) {
+    this.messageTransport = t;
     return this;
   }
 
@@ -132,7 +134,7 @@ final class ContextFactory {
     return this;
   }
 
-  PolyglotContext build() {
+  public Context build() {
     if (executionEnvironment != null) {
       options.put("enso.ExecutionEnvironment", executionEnvironment);
     }
@@ -142,7 +144,7 @@ final class ContextFactory {
         Context.newBuilder()
             .allowExperimentalOptions(true)
             .allowAllAccess(true)
-            .allowHostAccess(new HostAccessFactory().allWithTypeMapping())
+            .allowHostAccess(allWithTypeMapping())
             .option(RuntimeOptions.PROJECT_ROOT, projectRoot)
             .option(RuntimeOptions.STRICT_ERRORS, Boolean.toString(strictErrors))
             .option(RuntimeOptions.WAIT_FOR_PENDING_SERIALIZATION_JOBS, "true")
@@ -152,19 +154,16 @@ final class ContextFactory {
             .option(RuntimeOptions.DISABLE_IR_CACHES, Boolean.toString(!enableIrCaches))
             .option(RuntimeOptions.DISABLE_PRIVATE_CHECK, Boolean.toString(disablePrivateCheck))
             .option(RuntimeOptions.ENABLE_STATIC_ANALYSIS, Boolean.toString(enableStaticAnalysis))
-            .option(DebugServerInfo.ENABLE_OPTION, "true")
             .option(RuntimeOptions.LOG_MASKING, Boolean.toString(logMasking))
             .options(options)
             .option(RuntimeOptions.ENABLE_AUTO_PARALLELISM, Boolean.toString(enableAutoParallelism))
             .option(RuntimeOptions.WARNINGS_LIMIT, Integer.toString(warningsLimit))
             .out(out)
-            .in(in)
-            .serverTransport(
-                (uri, peer) ->
-                    DebugServerInfo.URI.equals(uri.toString())
-                        ? new DebuggerSessionManagerEndpoint(repl, peer)
-                        : null);
-
+            .err(err)
+            .in(in);
+    if (messageTransport != null) {
+      builder.serverTransport(messageTransport);
+    }
     builder.option(RuntimeOptions.LOG_LEVEL, logLevelName);
     var logHandler = JulHandler.get();
     var logLevels = LoggerSetup.get().getConfig().getLoggers();
@@ -197,7 +196,7 @@ final class ContextFactory {
           .option("java.UseBindingsLoader", "true")
           .allowCreateThread(true);
     }
-    return new PolyglotContext(builder.build());
+    return builder.build();
   }
 
   /**
@@ -217,4 +216,20 @@ final class ContextFactory {
     }
     ENGINE_HAS_JAVA = found;
   }
+
+  private static HostAccess allWithTypeMapping() {
+    return HostAccess.newBuilder()
+        .allowPublicAccess(true)
+        .allowAllImplementations(true)
+        .allowAllClassImplementations(true)
+        .allowArrayAccess(true)
+        .allowListAccess(true)
+        .allowBufferAccess(true)
+        .allowIterableAccess(true)
+        .allowIteratorAccess(true)
+        .allowMapAccess(true)
+        .allowAccessInheritance(true)
+        .build();
+  }
+
 }

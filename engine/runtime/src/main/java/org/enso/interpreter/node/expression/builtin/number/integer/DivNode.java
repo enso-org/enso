@@ -26,7 +26,7 @@ public abstract class DivNode extends IntegerNode {
     try {
       return self / that;
     } catch (ArithmeticException e) {
-      return DataflowError.withoutTrace(
+      return DataflowError.withDefaultTrace(
           EnsoContext.get(this).getBuiltins().error().getDivideByZeroError(), this);
     }
   }
@@ -42,7 +42,7 @@ public abstract class DivNode extends IntegerNode {
     try {
       return toEnsoNumberNode.execute(BigIntegerOps.divide(self.getValue(), that));
     } catch (ArithmeticException e) {
-      return DataflowError.withoutTrace(
+      return DataflowError.withDefaultTrace(
           EnsoContext.get(this).getBuiltins().error().getDivideByZeroError(), this);
     }
   }

@@ -4,9 +4,9 @@ import * as childProcess from 'node:child_process'
 import * as fsSync from 'node:fs'
 import * as util from 'node:util'
 
-import * as contentConfig from 'content-config'
+import * as contentConfig from '@/contentConfig'
 
-import type * as config from 'config'
+import type * as config from '@/config'
 
 const logger = contentConfig.logger
 // This is a wrapped function, so it should be `camelCase`.

@@ -1,4 +1,4 @@
-package org.enso.testkit.process
+package org.enso.process
 
 /** A result of running a process.
   *
