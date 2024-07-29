@@ -60,6 +60,7 @@ interface Matrix {
   all_rows_count: number
   json: unknown[][]
   value_type: ValueType[]
+  get_child_node: string
 }
 
 interface Excel_Workbook {
@@ -68,6 +69,7 @@ interface Excel_Workbook {
   all_rows_count: number
   sheet_names: string[]
   json: unknown[][]
+  get_child_node: string
 }
 
 interface ObjectMatrix {
@@ -76,6 +78,7 @@ interface ObjectMatrix {
   all_rows_count: number
   json: object[]
   value_type: ValueType[]
+  get_child_node: string
 }
 
 interface UnknownTable {
@@ -90,6 +93,7 @@ interface UnknownTable {
   value_type: ValueType[]
   has_index_col: boolean | undefined
   links: string[] | undefined
+  get_child_node: string
 }
 
 export enum TextFormatOptions {
@@ -217,7 +221,6 @@ const newNodeSelectorValues = computed(() => {
       identifierAction = 'get_row'
   }
   return {
-    identifierAction,
     tooltipValue,
     headerName,
   }
@@ -438,21 +441,22 @@ function getAstPattern(selector: string | number, action: string) {
   )
 }
 
-function createNode(params: CellClickedEvent, selector: string) {
-  if (newNodeSelectorValues.value.identifierAction) {
+function createNode(params: CellClickedEvent, selector: string, action?: string) {
+  console.log({ params })
+  if (action) {
     config.createNodes({
-      content: getAstPattern(params.data[selector], newNodeSelectorValues.value.identifierAction),
+      content: getAstPattern(params.data[selector], action),
       commit: true,
     })
   }
 }
 
-function toLinkField(fieldName: string): ColDef {
+function toLinkField(fieldName: string, getChildAction?: string): ColDef {
   return {
     headerName:
       newNodeSelectorValues.value.headerName ? newNodeSelectorValues.value.headerName : fieldName,
     field: fieldName,
-    onCellDoubleClicked: (params) => createNode(params, fieldName),
+    onCellDoubleClicked: (params) => createNode(params, fieldName, getChildAction),
     tooltipValueGetter: () => {
       return `Double click to view this ${newNodeSelectorValues.value.tooltipValue} in a separate component`
     },
@@ -481,6 +485,8 @@ watchEffect(() => {
         // eslint-disable-next-line camelcase
         has_index_col: false,
         links: undefined,
+        // eslint-disable-next-line camelcase
+        get_child_node: undefined,
       }
   const options = agGridOptions.value
   if (options.api == null) {
@@ -499,14 +505,14 @@ watchEffect(() => {
     ]
     rowData = [{ Error: data_.error }]
   } else if (data_.type === 'Matrix') {
-    columnDefs.push(toLinkField(INDEX_FIELD_NAME))
+    columnDefs.push(toLinkField(INDEX_FIELD_NAME, data_.get_child_node))
     for (let i = 0; i < data_.column_count; i++) {
       columnDefs.push(toField(i.toString()))
     }
     rowData = addRowIndex(data_.json)
     isTruncated.value = data_.all_rows_count !== data_.json.length
   } else if (data_.type === 'Object_Matrix') {
-    columnDefs.push(toLinkField(INDEX_FIELD_NAME))
+    columnDefs.push(toLinkField(INDEX_FIELD_NAME, data_.get_child_node))
     let keys = new Set<string>()
     for (const val of data_.json) {
       if (val != null) {
@@ -521,14 +527,14 @@ watchEffect(() => {
     rowData = addRowIndex(data_.json)
     isTruncated.value = data_.all_rows_count !== data_.json.length
   } else if (data_.type === 'Excel_Workbook') {
-    columnDefs = [toLinkField('Value')]
+    columnDefs = [toLinkField('Value', data_.get_child_node)]
     rowData = data_.sheet_names.map((name) => ({ Value: name }))
   } else if (Array.isArray(data_.json)) {
-    columnDefs = [toLinkField(INDEX_FIELD_NAME), toField('Value')]
+    columnDefs = [toLinkField(INDEX_FIELD_NAME, data_.get_child_node), toField('Value')]
     rowData = data_.json.map((row, i) => ({ [INDEX_FIELD_NAME]: i, Value: toRender(row) }))
     isTruncated.value = data_.all_rows_count ? data_.all_rows_count !== data_.json.length : false
   } else if (data_.json !== undefined) {
-    columnDefs = data_.links ? [toLinkField('Value')] : [toField('Value')]
+    columnDefs = data_.links ? [toLinkField('Value', data_.get_child_node)] : [toField('Value')]
     rowData =
       data_.links ?
         data_.links.map((link) => ({
@@ -540,12 +546,15 @@ watchEffect(() => {
       ('header' in data_ ? data_.header : [])?.map((v, i) => {
         const valueType = data_.value_type ? data_.value_type[i] : null
         if (config.nodeType === ROW_NODE_TYPE) {
-          return v === 'column' ? toLinkField(v) : toRowField(v, valueType)
+          return v === 'column' ? toLinkField(v, data_.get_child_node) : toRowField(v, valueType)
         }
         return toField(v, valueType)
       }) ?? []
 
-    columnDefs = data_.has_index_col ? [toLinkField(INDEX_FIELD_NAME), ...dataHeader] : dataHeader
+    columnDefs =
+      data_.has_index_col ?
+        [toLinkField(INDEX_FIELD_NAME, data_.get_child_node), ...dataHeader]
+      : dataHeader
     const rows = data_.data && data_.data.length > 0 ? data_.data[0]?.length ?? 0 : 0
     rowData = Array.from({ length: rows }, (_, i) => {
       const shift = data_.has_index_col ? 1 : 0
