@@ -429,13 +429,7 @@ generate_select_query_sql dialect columns ctx =
     top_part = case ctx.limit of
         Nothing -> SQL_Builder.code ""
         _ : Integer -> dialect.get_top_part_sql ctx.limit
-    prefix = case ctx.distinct_on of
-        Nothing -> SQL_Builder.code ""
-        expressions : Vector ->
-            ## TODO I just realised this does not make sense in other backends than Postgres,
-                so we should probably fail in such cases; probably rewrite into a generic modifier? or a transform?
-            generated = SQL_Builder.join ", " (expressions.map (generate_expression dialect))
-            SQL_Builder.code "DISTINCT ON (" ++ generated ++ ") "
+
     gen_exprs exprs = exprs.map (generate_expression dialect)
     gen_column pair = (generate_expression dialect pair.second) ++ alias dialect pair.first
 
@@ -459,7 +453,8 @@ generate_select_query_sql dialect columns ctx =
         [extension.position, part]
 
     parts = Vector.build builder->
-        builder.append [100, SQL_Builder.code "SELECT "]
+        builder.append [100, SQL_Builder.code "SELECT "]   
+        builder.append [150, top_part]
         builder.append [200, generated_columns]
         builder.append [300, SQL_Builder.code " FROM " ++ from_part]
         builder.append [400, where_part]
