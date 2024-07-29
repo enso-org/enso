@@ -12,6 +12,8 @@ import * as uniqueString from '#/utilities/uniqueString'
 
 import * as actions from './actions'
 
+import LATEST_GITHUB_RELEASES from './latestGithubReleases.json' with { type: 'json' }
+
 // =================
 // === Constants ===
 // =================
@@ -367,6 +369,9 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
           hash: '1c8a655202e59f0efebf5a83a703662527aa97247052964f959a8488382604b8',
         },
       })
+    })
+    await page.route('https://api.github.com/repos/enso-org/enso/releases/latest', (route) => {
+      route.fulfill({ json: LATEST_GITHUB_RELEASES })
     })
     const isActuallyOnline = await page.evaluate(() => navigator.onLine)
     if (!isActuallyOnline) {
