@@ -69,7 +69,7 @@ type SQLSever_Dialect
 
     ## PRIVATE
     to_text : Text
-    to_text self = "SQLServer_Dialect"
+    to_text self = "SQL_Server_Dialect"
 
     ## PRIVATE
        A function which generates SQL code from the internal representation
