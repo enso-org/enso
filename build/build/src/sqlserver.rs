@@ -32,6 +32,7 @@ pub mod env {
         ide_ci::define_env_var! {
             ENSO_SQLSERVER_DATABASE, String;
             ENSO_SQLSERVER_HOST, String;
+            ENSO_SQLSERVER_PORT, String;
             ENSO_SQLSERVER_USER, String;
             ENSO_SQLSERVER_PASSWORD, String;
         }
@@ -85,10 +86,11 @@ impl Configuration {
 
     pub fn set_enso_test_env(&self) -> Result {
         env::tests::ENSO_SQLSERVER_DATABASE.set(&self.database_name)?;
-        env::tests::ENSO_SQLSERVER_HOST.set(&match &self.endpoint {
-            EndpointConfiguration::Host { port } => format!("localhost:{port}"),
+        env::tests::ENSO_SQLSERVER_HOST.set("localhost");
+        env::tests::ENSO_SQLSERVER_PORT.set(&match &self.endpoint {
+            EndpointConfiguration::Host { port } => port.to_string(),
             EndpointConfiguration::Container { .. } =>
-                format!("localhost:{SQLSERVER_CONTAINER_DEFAULT_PORT}"),
+                SQLSERVER_CONTAINER_DEFAULT_PORT.to_string(),
         })?;
         env::tests::ENSO_SQLSERVER_USER.set(&self.user)?;
         env::tests::ENSO_SQLSERVER_PASSWORD.set(&self.password)?;
@@ -98,6 +100,7 @@ impl Configuration {
     pub fn clear_enso_test_env(&self) {
         env::tests::ENSO_SQLSERVER_DATABASE.remove();
         env::tests::ENSO_SQLSERVER_HOST.remove();
+        env::tests::ENSO_SQLSERVER_PORT.remove();
         env::tests::ENSO_SQLSERVER_USER.remove();
         env::tests::ENSO_SQLSERVER_PASSWORD.remove();
     }
