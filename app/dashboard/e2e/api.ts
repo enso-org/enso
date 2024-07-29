@@ -355,6 +355,9 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
     await page.route('https://www.googletagmanager.com/gtag/js*', (route) =>
       route.fulfill({ contentType: 'text/javascript', body: 'export {};' }),
     )
+    await page.route('https://fonts.googleapis.com/css2*', (route) =>
+      route.fulfill({ contentType: 'text/css', body: '' }),
+    )
     await page.route('https://ensoanalytics.com/eula.json', (route) => {
       route.fulfill({
         json: {
