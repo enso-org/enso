@@ -19,7 +19,7 @@ export type DriveCategory = (typeof DRIVE_CATEGORIES)[number]
 export const isDriveCategory = includesPredicate(DRIVE_CATEGORIES)
 
 // ============================
-// === Globak configuration ===
+// === Global configuration ===
 // ============================
 
 declare module '#/utilities/LocalStorage' {
