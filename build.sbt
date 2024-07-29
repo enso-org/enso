@@ -1,10 +1,10 @@
 import LibraryManifestGenerator.BundledLibrary
-import org.enso.build.BenchTasks.*
+import org.enso.build.BenchTasks._
 import org.enso.build.WithDebugCommand
 import org.apache.commons.io.FileUtils
 import sbt.Keys.{libraryDependencies, scalacOptions}
 import sbt.addCompilerPlugin
-import sbt.complete.DefaultParsers.*
+import sbt.complete.DefaultParsers._
 import sbt.complete.Parser
 import sbt.nio.file.FileTreeView
 import sbt.internal.util.ManagedLogger
@@ -3684,8 +3684,11 @@ lazy val `std-tableau` = project
   .dependsOn(`std-table` % "provided")
 
 lazy val fetchZipToUnmanaged =
-  taskKey[Unit]("Download zip file from a given url and unpack jars to ")
-lazy val unmanagedExternalZip = settingKey[URL]("URL to unmanaged file")
+  taskKey[Unit](
+    "Download zip file from an `unmanagedExternalZip` url and unpack jars to unmanaged libs directory"
+  )
+lazy val unmanagedExternalZip =
+  settingKey[URL]("URL to zip file with dependencies")
 
 /* Note [Native Image Workaround for GraalVM 20.2]
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
