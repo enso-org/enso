@@ -9,7 +9,16 @@ import java.net.URI
 import scala.jdk.CollectionConverters._
 import scala.util.{Failure, Try, Using}
 
-object CouldNotCreateDirectory extends Exception
+case class CouldNotCreateDirectory(cause: Throwable) extends RuntimeException {
+  override def getMessage: String = s"Could not create directory: ${cause.getMessage}. Perhaps there is a permission issue."
+  override def toString: String = getMessage
+}
+
+object CouldNotCreateDirectory {
+  def wrapFileSystemFailures[U](action: => U): Try[U] = Try(action).recoverWith {
+    case e: Throwable => Failure(CouldNotCreateDirectory(e))
+  }
+}
 
 /** Represents a source file with known qualified name.
   *
@@ -71,19 +80,12 @@ class Package[F](
     */
   def save(): Try[Unit] =
     for {
-      _ <- Try {
-        if (!root.exists) createDirectories(root)
-        if (!sourceDir.exists) createSourceDir()
+      _ <- CouldNotCreateDirectory.wrapFileSystemFailures {
+        if (!root.exists) root.createDirectories()
+        if (!sourceDir.exists) sourceDir.createDirectories()
       }
       _ <- saveConfig()
     } yield ()
-
-  /** Creates the package directory structure.
-    */
-  def createDirectories(file: F): Unit = {
-    val created = Try(file.createDirectories()).map(_ => true).getOrElse(false)
-    if (!created) throw CouldNotCreateDirectory
-  }
 
   /** Gets the cache root location within this package for a given Enso version.
     *
@@ -146,12 +148,6 @@ class Package[F](
     val newPkg = new Package(root, update(config), fileSystem)
     newPkg.saveConfig()
     newPkg
-  }
-
-  /** Creates the sources directory.
-    */
-  private def createSourceDir(): Unit = {
-    Try(sourceDir.createDirectories()).getOrElse(throw CouldNotCreateDirectory)
   }
 
   /** Saves the config metadata into the package configuration file.
@@ -265,7 +261,7 @@ class PackageManager[F](implicit val fileSystem: FileSystem[F]) {
     template: Template
   ): Package[F] = {
     val pkg = new Package(root, config, fileSystem)
-    pkg.save()
+    pkg.save().get
     copyResources(pkg, template)
     pkg
   }
