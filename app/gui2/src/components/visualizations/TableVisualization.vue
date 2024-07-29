@@ -646,15 +646,15 @@ watchEffect(() => {
 })
 
 function checkSortAndFilter() {
-  const columnApi = agGridOptions.value.api
-  if (columnApi == null) {
+  const gridApi = agGridOptions.value.api
+  const columnApi = agGridOptions.value.columnApi
+  if (gridApi == null || columnApi == null) {
     console.warn('AG Grid column API does not exist.')
     isCreateNodeVisible.value = false
     return
   }
-  const colState =
-    agGridOptions.value.columnApi ? agGridOptions.value.columnApi.getColumnState() : []
-  const filter = columnApi.getFilterModel()
+  const colState = columnApi.getColumnState()
+  const filter = gridApi.getFilterModel()
   const sort = colState
     .map((cs) => {
       if (cs.sort) {
