@@ -84,18 +84,6 @@ add_specs suite_builder =
             suite_builder.group "[SQLServer] Database tests" pending=message (_-> Nothing)
         connection_builder ->
             _ = connection_builder
-            suite_builder.group "[SQLServer] Small" group_builder->
-                group_builder.specify "debugtest" <|
-                    connection = Database.connect get_configured_connection_details
-                    tinfo = Name_Generator.random_name "Tinfo"
-                    connection.execute_update 'Create Table "'+tinfo+'" ("times" TIME)'
-                    t = connection.query (SQL_Query.Table_Name tinfo)
-                    row1 = [Time_Of_Day.new 12 12 12 1 1 1]
-                    row2 = [Time_Of_Day.new 7 12 12 1 1 1]
-                    row3 = [ Nothing]
-                    table = Table.from_rows ["times"] [row1, row2, row3]
-                    Panic.rethrow <|
-                        t.update_rows table update_action=Update_Action.Insert
             suite_builder.group "[SQLServer] Info" group_builder->
                 default_connection = Database.connect get_configured_connection_details
                 IO.println default_connection
