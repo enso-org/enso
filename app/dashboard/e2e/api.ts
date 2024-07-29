@@ -355,6 +355,16 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
     await page.route('https://www.googletagmanager.com/gtag/js*', (route) =>
       route.fulfill({ contentType: 'text/javascript', body: 'export {};' }),
     )
+    await page.route('https://ensoanalytics.com/eula.json', (route) => {
+      route.fulfill({
+        json: {
+          path: '/eula.md',
+          size: 9472,
+          modified: '2024-06-26T10:44:04.939Z',
+          hash: '1c8a655202e59f0efebf5a83a703662527aa97247052964f959a8488382604b8',
+        },
+      })
+    })
     const isActuallyOnline = await page.evaluate(() => navigator.onLine)
     if (!isActuallyOnline) {
       await page.route('https://fonts.googleapis.com/*', (route) => route.abort())
