@@ -40,6 +40,7 @@ import type LocalBackend from '#/services/LocalBackend'
 import type RemoteBackend from '#/services/RemoteBackend'
 
 import * as object from '#/utilities/object'
+import { PermissionAction } from 'enso-common/src/utilities/permissions'
 
 // =========================
 // === SettingsEntryType ===
@@ -54,6 +55,11 @@ export enum SettingsEntryType {
 // =================
 // === Constants ===
 // =================
+
+/** Whether the current user can edit organization data. */
+function canEditOrganizationData(context: SettingsContext) {
+  return context.organizationPermission?.permission === PermissionAction.own
+}
 
 export const SETTINGS_NO_RESULTS_SECTION_DATA: SettingsSectionData = {
   nameId: 'noResultsSettingsSection',
@@ -166,7 +172,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
               }
             },
             validate: (name) => (/\S/.test(name) ? true : ''),
-            getEditable: () => true,
+            getEditable: canEditOrganizationData,
           },
           {
             type: SettingsEntryType.input,
@@ -183,7 +189,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
               isEmail(email) ? true
               : email === '' ? ''
               : context.getText('invalidEmailValidationError'),
-            getEditable: () => true,
+            getEditable: canEditOrganizationData,
           },
           {
             type: SettingsEntryType.input,
@@ -196,7 +202,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
                 await context.updateOrganization([{ website: newWebsite }])
               }
             },
-            getEditable: () => true,
+            getEditable: canEditOrganizationData,
           },
           {
             type: SettingsEntryType.input,
@@ -208,7 +214,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
                 await context.updateOrganization([{ address: newLocation }])
               }
             },
-            getEditable: () => true,
+            getEditable: canEditOrganizationData,
           },
         ],
       },
@@ -415,6 +421,7 @@ export interface SettingsContext {
   readonly updateLocalRootPath: (rootPath: string) => Promise<void>
   readonly toastAndLog: toastAndLogHooks.ToastAndLogCallback
   readonly getText: textProvider.GetText
+  readonly organizationPermission: backend.AssetPermission | null
   readonly queryClient: reactQuery.QueryClient
 }
 
