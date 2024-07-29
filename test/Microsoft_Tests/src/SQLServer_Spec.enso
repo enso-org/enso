@@ -95,7 +95,7 @@ add_specs suite_builder =
                     i = data.t.column_info
                     i.at "Column" . to_vector . should_equal ["strs", "ints", "bools", "reals", "floats", "tinyints", "smallints", "bigints", "times", "dates", "datetimes", "smalldatetimes", "datetime2s", "datetimeoffsets"]
                     i.at "Items Count" . to_vector . should_equal [3, 1, 2, 3, 3, 2, 2, 2, 2, 2, 2, 2, 2, 2]
-                    i.at "Value Type" . to_vector . should_equal [Value_Type.Char 255, Value_Type.Integer ..Bits_32, Value_Type.Boolean, Value_Type.Float, Value_Type.Float, Value_Type.Integer Bits.Bits_16, Value_Type.Integer Bits.Bits_16, Value_Type.Integer Bits.Bits_64, Value_Type.Time, Value_Type.Date, Value_Type.Date_Time False, Value_Type.Date_Time False, Value_Type.Date_Time False, Value_Type.Date_Time True]
+                    i.at "Value Type" . to_vector . should_equal [Value_Type.Char 255, Value_Type.Integer ..Bits_32, Value_Type.Boolean, Value_Type.Float ..Bits_32, Value_Type.Float, Value_Type.Integer Bits.Bits_16, Value_Type.Integer Bits.Bits_16, Value_Type.Integer Bits.Bits_64, Value_Type.Time, Value_Type.Date, Value_Type.Date_Time False, Value_Type.Date_Time False, Value_Type.Date_Time False, Value_Type.Date_Time True]
 
                 group_builder.specify "should return Table information, also for aggregated results" <|
                     i = data.t.aggregate columns=[Aggregate_Column.Sum "ints", Aggregate_Column.Count_Distinct "bools"] . column_info

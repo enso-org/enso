@@ -304,8 +304,8 @@ type Value_Type
             Value_Type.Float _ -> True
             Value_Type.Decimal _ _ -> True
             _ -> False
-        Value_Type.Float self_bits -> case target_type of
-            Value_Type.Float target_bits -> target_bits >= self_bits
+        Value_Type.Float _ -> case target_type of
+            Value_Type.Float _ -> True
             Value_Type.Decimal _ _ -> True
             _ -> False
         Value_Type.Char self_size self_variable_length -> case target_type of
