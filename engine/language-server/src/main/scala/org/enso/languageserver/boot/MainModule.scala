@@ -308,6 +308,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
   val extraOptions = new java.util.HashMap[String, String]()
   extraOptions.put(RuntimeServerInfo.ENABLE_OPTION, "true")
   extraOptions.put(RuntimeOptions.INTERACTIVE_MODE, "true")
+  extraOptions.put(RuntimeOptions.DISABLE_LINTING, "true")
   extraOptions.put(
     RuntimeOptions.LOG_MASKING,
     Masking.isMaskingEnabled.toString

@@ -23,10 +23,7 @@ import org.enso.compiler.pass.{
   PassManager
 }
 
-class Passes(
-  config: CompilerConfig,
-  passes: Option[List[PassGroup]] = None
-) {
+class Passes(config: CompilerConfig) {
 
   val moduleDiscoveryPasses = new PassGroup(
     List(
@@ -97,15 +94,19 @@ class Passes(
       AliasAnalysis,
       DataflowAnalysis,
       CachePreferenceAnalysis,
-      // TODO passes below this line could be separated into a separate group, but it's more complicated - see usages of `functionBodyPasses`
-      UnusedBindings,
-      NoSelfInStatic,
       GenericAnnotations
+    )
+  )
+
+  val lintingPasses = new PassGroup(
+    List(
+      UnusedBindings,
+      NoSelfInStatic
     ) ++ (if (config.staticTypeInferenceEnabled) {
             List(
               TypeInference.INSTANCE
             )
-          } else List())
+          } else Nil)
   )
 
   /** A list of the compiler phases, in the order they should be run.
@@ -114,13 +115,12 @@ class Passes(
     * dependencies between passes, and so this pass ordering must adhere to
     * these dependencies.
     */
-  val passOrdering: List[PassGroup] = passes.getOrElse(
+  val passOrdering: List[PassGroup] =
     List(
       moduleDiscoveryPasses,
       globalTypingPasses,
       functionBodyPasses
-    )
-  )
+    ) ++ (if (config.isLintingDisabled) Nil else List(lintingPasses))
 
   /** The ordered representation of all passes run by the compiler. */
   val allPassOrdering: List[IRPass] = passOrdering.flatMap(_.passes)
