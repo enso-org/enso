@@ -382,15 +382,11 @@ export class GraphDb {
         const differentOrDirty = (a: Ast.Ast | undefined, b: Ast.Ast | undefined) =>
           a?.id !== b?.id || (a && subtreeDirty(a.id))
         if (node.type != type) node.type = type
-        // All node parts that depend on `outerExpr` must also be updated when `outerExpr` changes.
-        const outerExprDirty = differentOrDirty(node.outerExpr, outerExpr)
-        if (outerExprDirty) node.outerExpr = outerExpr
-        if (differentOrDirty(node.pattern, pattern) || outerExprDirty) node.pattern = pattern
-        if (differentOrDirty(node.rootExpr, rootExpr) || outerExprDirty) node.rootExpr = rootExpr
-        if (differentOrDirty(node.innerExpr, innerExpr) || outerExprDirty)
-          node.innerExpr = innerExpr
-        if (node.primarySubject !== primarySubject || outerExprDirty)
-          node.primarySubject = primarySubject
+        if (differentOrDirty(node.outerExpr, outerExpr)) node.outerExpr = outerExpr
+        if (differentOrDirty(node.pattern, pattern)) node.pattern = pattern
+        if (differentOrDirty(node.rootExpr, rootExpr)) node.rootExpr = rootExpr
+        if (differentOrDirty(node.innerExpr, innerExpr)) node.innerExpr = innerExpr
+        if (node.primarySubject !== primarySubject) node.primarySubject = primarySubject
         if (node.documentation !== documentation) node.documentation = documentation
         if (
           Object.entries(node.prefixes).some(
