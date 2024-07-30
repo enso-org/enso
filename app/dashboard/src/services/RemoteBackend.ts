@@ -270,15 +270,7 @@ export default class RemoteBackend extends Backend {
 
   /** Resend an invitation to a user. */
   override async resendInvitation(userEmail: backend.EmailAddress): Promise<void> {
-    const response = await this.post(remoteBackendPaths.RESEND_INVITATION_PATH, {
-      userEmail,
-      resend: true,
-    })
-    if (!responseIsSuccessful(response)) {
-      return await this.throw(response, 'resendInvitationBackendError')
-    } else {
-      return
-    }
+    await this.inviteUser({ userEmail, resend: true })
   }
 
   /** Upload a new profile picture for the current user. */
