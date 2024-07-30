@@ -68,20 +68,6 @@ class App {
       }
     })
 
-    electron.app.commandLine.appendSwitch('allow-insecure-localhost', 'true')
-    electron.app.commandLine.appendSwitch('ignore-certificate-errors', 'true')
-    electron.app.commandLine.appendSwitch('ignore-ssl-errors', 'true')
-    electron.app.commandLine.appendSwitch('ignore-certificate-errors-spki-list', 'true')
-    electron.app.on(
-      'certificate-error',
-      (event, _webContents, _url, _error, _certificate, callback) => {
-        // Prevent having error
-        event.preventDefault()
-        // and continue
-        callback(true)
-      },
-    )
-
     const { windowSize, chromeOptions, fileToOpen, urlToOpen } = this.processArguments()
     if (this.args.options.version.value) {
       await this.printVersion()
@@ -226,10 +212,8 @@ class App {
     }
     logger.groupMeasured('Setting Chrome options', () => {
       const perfOpts = this.args.groups.performance.options
-      add('ignore-certificate-errors-spki-list')
-      add('allow-insecure-localhost')
+      // Needed to accept localhost self-signed cert
       add('ignore-certificate-errors')
-      add('ignore-ssl-errors')
       addIf(perfOpts.disableGpuSandbox, 'disable-gpu-sandbox')
       addIf(perfOpts.disableGpuVsync, 'disable-gpu-vsync')
       addIf(perfOpts.disableSandbox, 'no-sandbox')

@@ -56,7 +56,7 @@ import scala.concurrent.duration.FiniteDuration;
 import scala.runtime.BoxedUnit;
 
 /** The main CLI entry point class. */
-public final class Main {
+public class Main {
   private static final String JVM_OPTION = "jvm";
   private static final String RUN_OPTION = "run";
   private static final String INSPECT_OPTION = "inspect";
@@ -98,6 +98,8 @@ public final class Main {
 
   private static final org.slf4j.Logger logger = LoggerFactory.getLogger(Main.class);
 
+  Main() {}
+
   private static boolean isDevBuild() {
     return Info.ensoVersion().matches(".+-SNAPSHOT$");
   }
@@ -106,11 +108,8 @@ public final class Main {
     return Option.builder();
   }
 
-  /**
-   * Builds the [[Options]] object representing the CLI syntax.
-   *
-   * @return an [[Options]] object representing the CLI syntax
-   */
+  private static final Options CLI_OPTIONS = buildOptions();
+
   private static Options buildOptions() {
     var help =
         cliOptionBuilder().option("h").longOpt(HELP_OPTION).desc("Displays this message.").build();
@@ -512,22 +511,22 @@ public final class Main {
    *
    * @param options object representing the CLI syntax
    */
-  private static void printHelp(Options options) {
-    new HelpFormatter().printHelp(LanguageInfo.ID, options);
+  private static void printHelp() {
+    new HelpFormatter().printHelp(LanguageInfo.ID, CLI_OPTIONS);
   }
 
   /** Terminates the process with a failure exit code. */
-  private static RuntimeException exitFail() {
+  private RuntimeException exitFail() {
     return doExit(1);
   }
 
   /** Terminates the process with a success exit code. */
-  private static RuntimeException exitSuccess() {
+  private final RuntimeException exitSuccess() {
     return doExit(0);
   }
 
   /** Shuts down the logging service and terminates the process. */
-  private static RuntimeException doExit(int exitCode) {
+  RuntimeException doExit(int exitCode) {
     RunnerLogging.tearDown();
     System.exit(exitCode);
     return null;
@@ -665,7 +664,7 @@ public final class Main {
    * @param executionEnvironment name of the execution environment to use during execution or {@code
    *     null}
    */
-  private void run(
+  private void handleRun(
       String path,
       java.util.List<String> additionalArgs,
       String projectPath,
@@ -675,6 +674,7 @@ public final class Main {
       boolean disablePrivateCheck,
       boolean enableAutoParallelism,
       boolean enableStaticAnalysis,
+      boolean enableDebugServer,
       boolean inspect,
       boolean dump,
       String executionEnvironment,
@@ -708,9 +708,13 @@ public final class Main {
             .options(options);
 
     if (inspect) {
+      if (enableDebugServer) {
+        println("Cannot use --inspect and --repl and --run at once");
+        throw exitFail();
+      }
       options.put("inspect", "");
-    } else {
-      // by default running with debug server enabled
+    }
+    if (enableDebugServer) {
       factory.messageTransport(replTransport());
       options.put(DebugServerInfo.ENABLE_OPTION, "true");
     }
@@ -960,7 +964,7 @@ public final class Main {
   }
 
   /** Parses the log level option. */
-  private static Level parseLogLevel(String levelOption) {
+  private Level parseLogLevel(String levelOption) {
     var name = levelOption.toLowerCase();
     var found =
         Stream.of(Level.values()).filter(x -> name.equals(x.name().toLowerCase())).findFirst();
@@ -977,7 +981,7 @@ public final class Main {
   }
 
   /** Parses an URI that specifies the logging service connection. */
-  private static URI parseUri(String string) {
+  private URI parseUri(String string) {
     try {
       return new URI(string);
     } catch (URISyntaxException ex) {
@@ -1001,15 +1005,13 @@ public final class Main {
   /**
    * Main entry point for the CLI program.
    *
-   * @param options the command line options
    * @param line the provided command line arguments
    * @param logLevel the provided log level
    * @param logMasking the flag indicating if the log masking is enabled
    */
-  private void runMain(Options options, CommandLine line, Level logLevel, boolean logMasking)
-      throws IOException {
+  final void mainEntry(CommandLine line, Level logLevel, boolean logMasking) throws IOException {
     if (line.hasOption(HELP_OPTION)) {
-      printHelp(options);
+      printHelp();
       throw exitSuccess();
     }
     if (line.hasOption(VERSION_OPTION)) {
@@ -1089,7 +1091,7 @@ public final class Main {
     }
 
     if (line.hasOption(RUN_OPTION)) {
-      run(
+      handleRun(
           line.getOptionValue(RUN_OPTION),
           Arrays.asList(line.getArgs()),
           line.getOptionValue(IN_PROJECT_OPTION),
@@ -1099,6 +1101,7 @@ public final class Main {
           line.hasOption(DISABLE_PRIVATE_CHECK_OPTION),
           line.hasOption(AUTO_PARALLELISM_OPTION),
           line.hasOption(ENABLE_STATIC_ANALYSIS_OPTION),
+          line.hasOption(REPL_OPTION),
           line.hasOption(INSPECT_OPTION),
           line.hasOption(DUMP_GRAPHS_OPTION),
           line.getOptionValue(EXECUTION_ENVIRONMENT_OPTION),
@@ -1106,7 +1109,7 @@ public final class Main {
               .map(Integer::parseInt)
               .getOrElse(() -> 100));
     }
-    if (line.hasOption(REPL_OPTION)) {
+    if (line.hasOption(REPL_OPTION) && !line.hasOption(RUN_OPTION)) {
       runRepl(
           line.getOptionValue(IN_PROJECT_OPTION),
           logLevel,
@@ -1122,7 +1125,7 @@ public final class Main {
       preinstallDependencies(line.getOptionValue(IN_PROJECT_OPTION), logLevel);
     }
     if (line.getOptions().length == 0) {
-      printHelp(options);
+      printHelp();
       throw exitFail();
     }
   }
@@ -1240,16 +1243,15 @@ public final class Main {
     return scala.collection.immutable.$colon$colon$.MODULE$.apply(head, tail);
   }
 
-  private void println(String msg) {
+  void println(String msg) {
     System.out.println(msg);
   }
 
   private void launch(String[] args) throws IOException, InterruptedException, URISyntaxException {
-    var options = buildOptions();
-    var line = preprocessArguments(options, args);
+    var line = preprocessArguments(args);
 
     var logMasking = new boolean[1];
-    var logLevel = setupLogging(options, line, logMasking);
+    var logLevel = setupLogging(line, logMasking);
 
     if (line.hasOption(JVM_OPTION)) {
       var jvm = line.getOptionValue(JVM_OPTION);
@@ -1332,36 +1334,36 @@ public final class Main {
       }
     }
 
-    launch(options, line, logLevel, logMasking[0]);
+    launch(line, logLevel, logMasking[0]);
   }
 
-  protected CommandLine preprocessArguments(Options options, String[] args) {
+  final CommandLine preprocessArguments(String... args) {
     var parser = new DefaultParser();
     try {
       var startParsing = System.currentTimeMillis();
-      var line = parser.parse(options, args);
+      var line = parser.parse(CLI_OPTIONS, args);
       logger.trace(
           "Parsing Language Server arguments took {0}ms",
           System.currentTimeMillis() - startParsing);
       return line;
     } catch (Exception e) {
-      printHelp(options);
+      printHelp();
       throw exitFail();
     }
   }
 
-  private static Level setupLogging(Options options, CommandLine line, boolean[] logMasking) {
+  private Level setupLogging(CommandLine line, boolean[] logMasking) {
     var logLevel =
         scala.Option.apply(line.getOptionValue(LOG_LEVEL))
-            .map(Main::parseLogLevel)
+            .map(this::parseLogLevel)
             .getOrElse(() -> defaultLogLevel);
-    var connectionUri = scala.Option.apply(line.getOptionValue(LOGGER_CONNECT)).map(Main::parseUri);
+    var connectionUri = scala.Option.apply(line.getOptionValue(LOGGER_CONNECT)).map(this::parseUri);
     logMasking[0] = !line.hasOption(NO_LOG_MASKING);
     RunnerLogging.setup(connectionUri, logLevel, logMasking[0]);
     return logLevel;
   }
 
-  private void launch(Options options, CommandLine line, Level logLevel, boolean logMasking) {
+  private void launch(CommandLine line, Level logLevel, boolean logMasking) {
     if (line.hasOption(LANGUAGE_SERVER_OPTION)) {
       try {
         var conf = parseProfilingConfig(line);
@@ -1379,7 +1381,7 @@ public final class Main {
               conf,
               ExecutionContext.global(),
               () -> {
-                runMain(options, line, logLevel, logMasking);
+                mainEntry(line, logLevel, logMasking);
                 return BoxedUnit.UNIT;
               });
         } catch (IOException ex) {
