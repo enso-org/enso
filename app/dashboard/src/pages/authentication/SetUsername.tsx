@@ -35,7 +35,6 @@ export default function SetUsername() {
       title={getText('setYourUsername')}
       supportsOffline={supportsOffline}
       onSubmit={async () => {
-        console.log('submit?!')
         await authSetUsername(backend, username, email)
       }}
     >
