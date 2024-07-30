@@ -103,7 +103,8 @@ export default function Dashboard(props: DashboardProps) {
     : pathname.startsWith('/drive/') || pathname === '/' ? '/drive'
     : pathname
   const maybeCategory = pathname.startsWith('/drive/') ? pathname.replace(/^[/]drive[/]/, '') : null
-  const category = isDriveCategory(maybeCategory) ? maybeCategory : 'cloud'
+  const category =
+    isDriveCategory(maybeCategory) ? maybeCategory : localStorage.get('driveCategory') ?? 'cloud'
   const setCategory = useEventCallback((newCategory: DriveCategory) => {
     navigate(`/drive/${newCategory}`, { replace: true })
     localStorage.set('driveCategory', newCategory)
