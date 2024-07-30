@@ -36,8 +36,17 @@ export function useAuthNavigate() {
             return shouldDefaultToCloud ? 'cloud' : 'local'
           })()
         effectiveUrl.pathname = `/drive/${newCategory}` satisfies AppFullPath
+      } else if (effectiveUrl.pathname === '/settings') {
+        effectiveUrl.pathname = '/settings/account'
       }
-      navigate(effectiveUrl, options)
+      navigate(
+        {
+          pathname: effectiveUrl.pathname,
+          hash: effectiveUrl.hash ?? '',
+          search: effectiveUrl.search ?? '',
+        },
+        options,
+      )
     },
   )
 }
