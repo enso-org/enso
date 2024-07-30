@@ -72,10 +72,7 @@ function InviteUsersModalContent(props: InviteUsersModalContentProps) {
   return (
     <>
       {step === 'invite' && (
-        <inviteUsersForm.InviteUsersForm
-          onSubmitted={onInviteUsersFormInviteUsersFormSubmitted}
-          organizationId={organizationId}
-        />
+        <inviteUsersForm.InviteUsersForm onSubmitted={onInviteUsersFormInviteUsersFormSubmitted} />
       )}
 
       {step === 'success' && (

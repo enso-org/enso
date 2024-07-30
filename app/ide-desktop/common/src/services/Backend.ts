@@ -1015,7 +1015,6 @@ export interface UpdateOrganizationRequestBody {
 
 /** HTTP request body for the "invite user" endpoint. */
 export interface InviteUserRequestBody {
-  readonly organizationId: OrganizationId
   readonly userEmail: EmailAddress
 }
 
