@@ -3294,6 +3294,7 @@ lazy val `std-base` = project
 
 lazy val `common-polyglot-core-utils` = project
   .in(file("lib/scala/common-polyglot-core-utils"))
+  .enablePlugins(JPMSPlugin)
   .settings(
     frgaalJavaCompilerSetting,
     autoScalaLibrary := false,
@@ -3302,7 +3303,17 @@ lazy val `common-polyglot-core-utils` = project
     libraryDependencies ++= Seq(
       "com.ibm.icu"          % "icu4j"    % icuVersion,
       "org.graalvm.polyglot" % "polyglot" % graalMavenPackagesVersion % "provided"
-    )
+    ),
+    modulePath := {
+      JPMSUtils.filterModulesFromUpdate(
+        (Compile / update).value,
+        Seq(
+          "com.ibm.icu" % "icu4j" % icuVersion
+        ),
+        streams.value.log,
+        shouldContainAll = true
+      )
+    }
   )
 
 lazy val `enso-test-java-helpers` = project
