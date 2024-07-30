@@ -527,14 +527,13 @@ add_specs suite_builder =
             (Decimal.new 3 . min 4.0) . should_fail_with Illegal_Argument
             (Decimal.new 3 . max 4.0) . should_fail_with Illegal_Argument
 
-            (1 + Decimal.new 2.0) . should_fail_with Illegal_Argument
-            (1 - Decimal.new 2.0) . should_fail_with Illegal_Argument
-            (3 * Decimal.new 4.0) . should_fail_with Illegal_Argument
-            (3 / Decimal.new 4.0) . should_fail_with Illegal_Argument
-            (3 % Decimal.new 4.0) . should_fail_with Illegal_Argument
-            (3 . div (Decimal.new 4.0)) . should_fail_with Illegal_Argument
-            (3 . min (Decimal.new 4.0)) . should_fail_with Illegal_Argument
-            (3 . max (Decimal.new 4.0)) . should_fail_with Illegal_Argument
+            (1.0 + Decimal.new 2.0) . should_fail_with Illegal_Argument
+            (1.0 - Decimal.new 2.0) . should_fail_with Illegal_Argument
+            (3.0 * Decimal.new 4.0) . should_fail_with Illegal_Argument
+            (3.0 / Decimal.new 4.0) . should_fail_with Illegal_Argument
+            (3.0 % Decimal.new 4.0) . should_fail_with Illegal_Argument
+            (3.0 . min (Decimal.new 4.0)) . should_fail_with Illegal_Argument
+            (3.0 . max (Decimal.new 4.0)) . should_fail_with Illegal_Argument
 
         group_builder.specify "Decimal mixed arithmetic should result in Decimal" <|
             (Decimal.new 1 + 2) . should_be_a Decimal
@@ -638,18 +637,18 @@ add_specs suite_builder =
                 Decimal.Value _ -> True
                 Decimal.From_Float _ _ -> False
 
-            0.1 . to Decimal |> is_value_constructor . should_be_true
-            Decimal.from 0.1 |> is_value_constructor . should_be_false
-            Decimal.from 0.1 explicit=False |> is_value_constructor . should_be_true
-            id_decimal 0.1 |> is_value_constructor . should_be_false
+            (is_value_constructor 0.1 . to Decimal) . should_be_true
+            (is_value_constructor Decimal.from 0.1) . should_be_false
+            (is_value_constructor Decimal.from 0.1 explicit=False) . should_be_true
+            (is_value_constructor id_decimal 0.1) . should_be_false
 
         group_builder.specify "Arithmetic with decimal and explicitly converted float should succeed" <|
-            (Decimal.new 1) + (0.1 . to Decimal) . should_equal 1.1
-            (Decimal.new 1) + (Decimal.from 0.1 explicit=False) . should_equal 1.1
+            ((Decimal.new 1) + (0.1 . to Decimal)) . should_equal 2.1
+            ((Decimal.new 1) + (Decimal.from 0.1 explicit=False)) . should_equal 1.1
 
         group_builder.specify "Arithmetic with decimal and implicitly converted float should fail" <|
-            (Decimal.new 1) + (Decimal.from 0.1) . should_fail_with Illegal_Argument
-            (Decimal.new 1) + (id_decimal 0.1) . should_fail_with Illegal_Argument
+            ((Decimal.new 1) + (Decimal.from 0.1)) . should_fail_with Illegal_Argument
+            ((Decimal.new 1) + (id_decimal 0.1)) . should_fail_with Illegal_Argument
 
         group_builder.specify "should attach a Loss_Of_Numeric_Precision warning when converting decimal to float with .from" <|
             Problems.expect_only_warning Loss_Of_Numeric_Precision (Float.from (Decimal.new "56.34"))
