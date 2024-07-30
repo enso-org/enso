@@ -213,7 +213,7 @@ add_specs suite_builder =
 
                 (Ordering.hash x0) . should_equal (Ordering.hash x1)
 
-        group_builder.specify "should compare correctly to Integer and Float" pending="https://github.com/enso-org/enso/issues/10163" <|
+        group_builder.specify "should compare correctly to Integer and Float" <|
             values = []
                 + [[0.1, 0.1]]
                 + [["0.1", 0.1]]
@@ -637,14 +637,14 @@ add_specs suite_builder =
                 Decimal.Value _ -> True
                 Decimal.From_Float _ _ -> False
 
-            (is_value_constructor 0.1 . to Decimal) . should_be_true
-            (is_value_constructor Decimal.from 0.1) . should_be_false
-            (is_value_constructor Decimal.from 0.1 explicit=False) . should_be_true
-            (is_value_constructor id_decimal 0.1) . should_be_false
+            is_value_constructor (0.1 . to Decimal) . should_be_true
+            is_value_constructor (Decimal.from 0.1) . should_be_false
+            is_value_constructor (Decimal.from 0.1 explicit=True) . should_be_true
+            is_value_constructor (id_decimal 0.1) . should_be_false
 
         group_builder.specify "Arithmetic with decimal and explicitly converted float should succeed" <|
-            ((Decimal.new 1) + (0.1 . to Decimal)) . should_equal 2.1
-            ((Decimal.new 1) + (Decimal.from 0.1 explicit=False)) . should_equal 1.1
+            ((Decimal.new 1) + (0.1 . to Decimal)) . should_equal 1.1
+            ((Decimal.new 1) + (Decimal.from 0.1 explicit=True)) . should_equal 1.1
 
         group_builder.specify "Arithmetic with decimal and implicitly converted float should fail" <|
             ((Decimal.new 1) + (Decimal.from 0.1)) . should_fail_with Illegal_Argument
