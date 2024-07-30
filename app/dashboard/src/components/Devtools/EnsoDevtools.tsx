@@ -16,11 +16,11 @@ import { SETUP_PATH } from '#/appUtils'
 import * as billing from '#/hooks/billing'
 
 import * as authProvider from '#/providers/AuthProvider'
+import { UserSessionType } from '#/providers/AuthProvider'
 import {
   useEnableVersionChecker,
   useSetEnableVersionChecker,
 } from '#/providers/EnsoDevtoolsProvider'
-import { UserSessionType } from '#/providers/AuthProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'

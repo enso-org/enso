@@ -191,7 +191,6 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                     title: asset.title,
                     parentId: item.directoryId,
                     type: state.backend.type,
-
                   })
                 }}
               />
