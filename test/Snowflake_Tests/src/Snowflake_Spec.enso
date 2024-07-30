@@ -393,64 +393,65 @@ snowflake_specific_spec suite_builder default_connection db_name setup =
         group_builder.specify "should round-trip timestamptz column, preserving instant but converting to UTC" <|
             table_name = Name_Generator.random_name "TimestampTZ"
             table = default_connection.get.create_table table_name [Column_Description.Value "A" (Value_Type.Date_Time with_timezone=True), Column_Description.Value "rowid" Value_Type.Integer] primary_key=[]
+            table.should_succeed
+            Panic.with_finalizer default_connection.get.drop_table table.name <|
+                dt1 = Date_Time.new 2022 05 04 15 30 zone=(Time_Zone.utc)
+                dt2 = Date_Time.new 2022 05 04 15 30 zone=(Time_Zone.parse "US/Hawaii")
+                dt3 = Date_Time.new 2022 05 04 15 30 zone=(Time_Zone.parse "Europe/Warsaw")
+                v = [dt1, dt2, dt3]
 
-            dt1 = Date_Time.new 2022 05 04 15 30 zone=(Time_Zone.utc)
-            dt2 = Date_Time.new 2022 05 04 15 30 zone=(Time_Zone.parse "US/Hawaii")
-            dt3 = Date_Time.new 2022 05 04 15 30 zone=(Time_Zone.parse "Europe/Warsaw")
-            v = [dt1, dt2, dt3]
+                Problems.assume_no_problems <|
+                    table.update_rows (Table.new [["A", v], ["rowid", (0.up_to v.length).to_vector]]) update_action=Update_Action.Insert
 
-            Problems.assume_no_problems <|
-                table.update_rows (Table.new [["A", v], ["rowid", (0.up_to v.length).to_vector]]) update_action=Update_Action.Insert
+                returned_v =
+                    dt1_offset = Date_Time.new 2022 05 04 15 30 zone=(Time_Zone.new 0)
+                    dt2_offset = Date_Time.new 2022 05 04 15 30 zone=(Time_Zone.new -10)
+                    dt3_offset = Date_Time.new 2022 05 04 15 30 zone=(Time_Zone.new 2)
+                    [dt1_offset, dt2_offset, dt3_offset]
+                table.sort "rowid" . at "A" . to_vector . should_equal returned_v
 
-            returned_v =
-                dt1_offset = Date_Time.new 2022 05 04 15 30 zone=(Time_Zone.new 0)
-                dt2_offset = Date_Time.new 2022 05 04 15 30 zone=(Time_Zone.new -10)
-                dt3_offset = Date_Time.new 2022 05 04 15 30 zone=(Time_Zone.new 2)
-                [dt1_offset, dt2_offset, dt3_offset]
-            table.sort "rowid" . at "A" . to_vector . should_equal returned_v
-
-            ## We also check how the timestamp column behaves with interpolations:
-            v.each my_dt-> Test.with_clue "("+my_dt.to_text+") " <|
-                    t2 = table.filter "A" (Filter_Condition.Equal to=my_dt)
-                    t2.row_count . should_equal 1
+                ## We also check how the timestamp column behaves with interpolations:
+                v.each my_dt-> Test.with_clue "("+my_dt.to_text+") " <|
+                        t2 = table.filter "A" (Filter_Condition.Equal to=my_dt)
+                        t2.row_count . should_equal 1
 
         group_builder.specify "will round-trip timestamp column without timezone by converting it to UTC" <|
             table_name = Name_Generator.random_name "Timestamp"
             table = default_connection.get.create_table table_name [Column_Description.Value "A" (Value_Type.Date_Time with_timezone=False)] primary_key=[]
             Problems.assume_no_problems table
+            Panic.with_finalizer default_connection.get.drop_table table.name <|
+                dt1 = Date_Time.new 2022 05 04 15 30
+                dt2 = Date_Time.new 2022 05 04 15 30 zone=(Time_Zone.utc)
+                dt3 = Date_Time.new 2022 05 04 15 30 zone=(Time_Zone.parse "US/Hawaii")
+                dt4 = Date_Time.new 2022 05 04 15 30 zone=(Time_Zone.parse "Europe/Warsaw")
+                v = [dt1, dt2, dt3, dt4]
 
-            dt1 = Date_Time.new 2022 05 04 15 30
-            dt2 = Date_Time.new 2022 05 04 15 30 zone=(Time_Zone.utc)
-            dt3 = Date_Time.new 2022 05 04 15 30 zone=(Time_Zone.parse "US/Hawaii")
-            dt4 = Date_Time.new 2022 05 04 15 30 zone=(Time_Zone.parse "Europe/Warsaw")
-            v = [dt1, dt2, dt3, dt4]
+                source_table = Table.new [["A", v]]
+                source_table.at "A" . value_type . should_equal (Value_Type.Date_Time with_timezone=True)
+                w = Problems.expect_only_warning Inexact_Type_Coercion <|
+                    table.update_rows source_table update_action=Update_Action.Insert
+                w.requested_type . should_equal (source_table.at "A" . value_type)
+                w.actual_type . should_equal (table.at "A" . value_type)
+                w.to_display_text . should_equal "The type Date_Time (with timezone) has been coerced to Date_Time (without timezone). Some information may be lost."
 
-            source_table = Table.new [["A", v]]
-            source_table.at "A" . value_type . should_equal (Value_Type.Date_Time with_timezone=True)
-            w = Problems.expect_only_warning Inexact_Type_Coercion <|
-                table.update_rows source_table update_action=Update_Action.Insert
-            w.requested_type . should_equal (source_table.at "A" . value_type)
-            w.actual_type . should_equal (table.at "A" . value_type)
-            w.to_display_text . should_equal "The type Date_Time (with timezone) has been coerced to Date_Time (without timezone). Some information may be lost."
+                # When uploading we want to just strip the timezone information and treat every timestamp as LocalDateTime.
+                # This is verified by checking the text representation in the DB: it should show the same local time in all 4 cases, regardless of original timezone.
+                local_dt = "2022-05-04 15:30:00.000000000"
+                table.at "A" . cast Value_Type.Char . to_vector . should_equal [local_dt, local_dt, local_dt, local_dt]
 
-            # When uploading we want to just strip the timezone information and treat every timestamp as LocalDateTime.
-            # This is verified by checking the text representation in the DB: it should show the same local time in all 4 cases, regardless of original timezone.
-            local_dt = "2022-05-04 15:30:00.000000000"
-            table.at "A" . cast Value_Type.Char . to_vector . should_equal [local_dt, local_dt, local_dt, local_dt]
+                # Then when downloaded, it should be interpreted at the 'system default' timezone.
+                materialized_table = table.read
+                materialized_table.at "A" . to_vector . should_equal [dt1, dt1, dt1, dt1]
 
-            # Then when downloaded, it should be interpreted at the 'system default' timezone.
-            materialized_table = table.read
-            materialized_table.at "A" . to_vector . should_equal [dt1, dt1, dt1, dt1]
+                # The Inexact_Type_Coercion warning is silenced for this case:
+                Problems.assume_no_problems materialized_table
 
-            # The Inexact_Type_Coercion warning is silenced for this case:
-            Problems.assume_no_problems materialized_table
-
-            # We also check how the timestamp column behaves with interpolations:
-            # Given that we lost timezone - all entries match.
-            v.each my_dt-> Test.with_clue my_dt.to_text+": " <|
-                t2 = table.filter "A" (Filter_Condition.Equal to=my_dt)
-                t2.row_count . should_equal 4
-                t2.at "A" . to_vector . should_equal [dt1, dt1, dt1, dt1]
+                # We also check how the timestamp column behaves with interpolations:
+                # Given that we lost timezone - all entries match.
+                v.each my_dt-> Test.with_clue my_dt.to_text+": " <|
+                    t2 = table.filter "A" (Filter_Condition.Equal to=my_dt)
+                    t2.row_count . should_equal 4
+                    t2.at "A" . to_vector . should_equal [dt1, dt1, dt1, dt1]
 
     suite_builder.group "[Snowflake] math functions" group_builder->
         group_builder.specify "round, trunc, ceil, floor" <|
