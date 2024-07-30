@@ -361,8 +361,10 @@ export default class LocalBackend extends Backend {
           name: projectManager.ProjectName(body.projectName),
         })
       }
-      const parentId = this.projectManager.getProjectDirectoryPath(id)
-      const result = await this.projectManager.listDirectory(parentId)
+      const parentPath = projectManager.getDirectoryAndName(
+        this.projectManager.getProjectPath(id),
+      ).directoryPath
+      const result = await this.projectManager.listDirectory(parentPath)
       const project = result.flatMap((listedProject) =>
         (
           listedProject.type === projectManager.FileSystemEntryType.ProjectEntry &&
@@ -588,7 +590,7 @@ export default class LocalBackend extends Backend {
       const from =
         typeAndId.type !== backend.AssetType.project ?
           typeAndId.id
-        : this.projectManager.getProjectDirectoryPath(typeAndId.id)
+        : this.projectManager.getProjectPath(typeAndId.id)
       const fileName = fileInfo.fileName(from)
       const to = projectManager.joinPath(extractTypeAndId(body.parentDirectoryId).id, fileName)
       await this.projectManager.moveFile(from, to)
@@ -629,9 +631,9 @@ export default class LocalBackend extends Backend {
     await this.projectManager.moveFile(from, to)
   }
 
-  /** Construct a new path using the given parent directory and a file name. */
-  getProjectDirectoryPath(id: backend.ProjectId) {
-    return this.projectManager.getProjectDirectoryPath(extractTypeAndId(id).id)
+  /** Get the path of a project. */
+  getProjectPath(id: backend.ProjectId) {
+    return this.projectManager.getProjectPath(extractTypeAndId(id).id)
   }
 
   /** Construct a new path using the given parent directory and a file name. */
