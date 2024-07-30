@@ -55,7 +55,6 @@ import * as backendModule from '#/services/Backend'
 import * as localBackendModule from '#/services/LocalBackend'
 import * as projectManager from '#/services/ProjectManager'
 
-import { useLocalBackend } from '#/providers/BackendProvider'
 import LocalStorage from '#/utilities/LocalStorage'
 import * as object from '#/utilities/object'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
@@ -94,7 +93,6 @@ export default function Dashboard(props: DashboardProps) {
   const { modalRef } = modalProvider.useModalRef()
   const { updateModal, unsetModal, setModal } = modalProvider.useSetModal()
   const { localStorage } = localStorageProvider.useLocalStorage()
-  const localBackend = useLocalBackend()
   const inputBindings = inputBindingsProvider.useInputBindings()
   const [isHelpChatOpen, setIsHelpChatOpen] = React.useState(false)
   const navigate = useNavigate()
@@ -132,20 +130,6 @@ export default function Dashboard(props: DashboardProps) {
   const clearLaunchedProjects = useClearLaunchedProjects()
   const openProjectMutation = projectHooks.useOpenProjectMutation()
   const renameProjectMutation = projectHooks.useRenameProjectMutation()
-
-  React.useEffect(() => {
-    // This *may* look cleaner as separate routes in the Router, however it would cause the
-    // Dashboard to be unmounted and then remounted, which is not preferred.
-    if (pathname === '/' || pathname === '/drive') {
-      const newCategory =
-        localStorage.get('driveCategory') ??
-        (() => {
-          const shouldDefaultToCloud = user.isEnabled || localBackend == null
-          return shouldDefaultToCloud ? 'cloud' : 'local'
-        })()
-      navigate(`/drive/${newCategory}`)
-    }
-  }, [localBackend, localStorage, navigate, pathname, user.isEnabled])
 
   React.useEffect(() => {
     window.projectManagementApi?.setOpenProjectHandler((project) => {
