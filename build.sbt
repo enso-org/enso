@@ -3504,6 +3504,7 @@ lazy val `std-google-api` = project
 
 lazy val `std-database` = project
   .in(file("std-bits") / "database")
+  .enablePlugins(JPMSPlugin)
   .settings(
     frgaalJavaCompilerSetting,
     autoScalaLibrary := false,
@@ -3518,6 +3519,25 @@ lazy val `std-database` = project
       "org.xerial"           % "sqlite-jdbc"             % sqliteVersion,
       "org.postgresql"       % "postgresql"              % "42.4.0"
     ),
+    modulePath := {
+      val externalModIds = libraryDependencies.value ++ Seq(
+        "org.graalvm.sdk"            % "collections"         % graalMavenPackagesVersion,
+        "com.fasterxml.jackson.core" % "jackson-databind"    % jacksonVersion,
+        "com.fasterxml.jackson.core" % "jackson-annotations" % jacksonVersion,
+        "com.fasterxml.jackson.core" % "jackson-core"        % jacksonVersion
+      )
+      val externalMods = JPMSUtils.filterModulesFromUpdate(
+        (Compile / update).value,
+        externalModIds,
+        streams.value.log,
+        shouldContainAll = true
+      )
+      val ourMods =
+        (`std-base` / Compile / exportedProducts).value.map(_.data) ++
+        (`common-polyglot-core-utils` / Compile / exportedProducts).value
+          .map(_.data)
+      externalMods ++ ourMods
+    },
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value
       val _ = StdBits
