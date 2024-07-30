@@ -64,7 +64,7 @@ function makeLiteralFromUserInput(value: string): Ast.Owned<Ast.MutableTextLiter
   }
 }
 
-const shownLiteral = computed(() => inputTextLiteral.value ?? emptyTextLiteral)
+const shownLiteral = computed(() => inputTextLiteral.value ?? emptyTextLiteral.value)
 const closeToken = computed(() => shownLiteral.value.close ?? shownLiteral.value.open)
 
 const textContents = computed(() => shownLiteral.value.rawTextContent)
@@ -73,7 +73,8 @@ watch(textContents, (value) => (editedContents.value = value))
 </script>
 
 <script lang="ts">
-const emptyTextLiteral = makeNewLiteral('')
+// Computed used intentionally to delay computation until wasm package is loaded.
+const emptyTextLiteral = computed(() => makeNewLiteral(''))
 function makeNewLiteral(value: string) {
   return Ast.TextLiteral.new(value, MutableModule.Transient())
 }

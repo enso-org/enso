@@ -5,7 +5,7 @@ import static org.junit.Assert.*;
 import java.io.ByteArrayOutputStream;
 import java.net.URI;
 import org.enso.common.MethodNames;
-import org.enso.polyglot.RuntimeOptions;
+import org.enso.common.RuntimeOptions;
 import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;

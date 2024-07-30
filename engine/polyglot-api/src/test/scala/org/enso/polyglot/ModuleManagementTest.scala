@@ -1,5 +1,7 @@
 package org.enso.polyglot
 
+import org.enso.common.RuntimeOptions
+
 import java.io.File
 import java.nio.file.{Files, Paths}
 import org.enso.pkg.{Package, PackageManager}

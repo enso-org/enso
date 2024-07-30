@@ -14,6 +14,8 @@ import type {
   ExpressionId,
   FileEdit,
   FileSystemObject,
+  IdMapTriple,
+  IdMapTuple,
   Notifications,
   Path,
   RegisterOptions,
@@ -291,8 +293,12 @@ export class LanguageServer extends ObservableV2<Notifications & TransportEvents
   }
 
   /** [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#textapplyedit) */
-  applyEdit(edit: FileEdit, execute: boolean): Promise<LsRpcResult<void>> {
-    return this.request('text/applyEdit', { edit, execute })
+  applyEdit(
+    edit: FileEdit,
+    execute: boolean,
+    idMap?: IdMapTriple[] | IdMapTuple[],
+  ): Promise<LsRpcResult<void>> {
+    return this.request('text/applyEdit', { edit, execute, idMap })
   }
 
   /** [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#filewrite) */

@@ -744,7 +744,7 @@ public final class EnsoFile implements EnsoObject {
               .getBuiltins()
               .error()
               .makeUnsupportedArgumentsError(new Object[] {Text.create(path)}, ex.getMessage());
-      return DataflowError.withoutTrace(err, null);
+      return DataflowError.withDefaultTrace(err, null);
     }
   }
 
