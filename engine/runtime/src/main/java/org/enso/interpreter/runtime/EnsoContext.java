@@ -24,13 +24,9 @@ import java.io.File;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
-import java.lang.module.Configuration;
-import java.lang.module.ModuleFinder;
-import java.net.MalformedURLException;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -433,58 +429,17 @@ public final class EnsoContext {
    * Creates a class path. A class path is capable to load Java classes in an isolated manner.
    *
    * @param pkg package to find class path for
+   * @return representation of an Enso library Java class path for given package
    */
   @TruffleBoundary
   public synchronized EnsoClassPath findClassPath(Package<TruffleFile> pkg) {
-    var l = classPaths.get(pkg);
+    org.enso.interpreter.runtime.EnsoClassPath l = classPaths.get(pkg);
     if (l == null) {
       var ch = pkg.polyglotDir().resolve("java");
-      l = new EnsoClassPath(ch);
+      l = EnsoClassPath.create(Paths.get(ch.toUri()));
       classPaths.put(pkg, l);
     }
     return l;
-  }
-
-  public final class EnsoClassPath {
-    private final ModuleLayer.Controller cntrl;
-    private final ModuleLayer layer;
-    private final HostClassLoader hostClassLoader;
-
-    private EnsoClassPath(TruffleFile file) {
-      var parent = ModuleLayer.boot();
-      var parentCfgs = Collections.singletonList(parent.configuration());
-      var parentModules = Collections.singletonList(parent);
-      var parentLoader = parent.findLoader("java.base");
-      var finder = ModuleFinder.of(Paths.get(file.toUri()));
-      var cfg = Configuration.resolve(finder, parentCfgs, finder, Collections.emptyList());
-
-      this.hostClassLoader = new HostClassLoader();
-
-      this.cntrl = ModuleLayer.defineModulesWithOneLoader(cfg, parentModules, parentLoader);
-      this.layer = cntrl.layer();
-      System.out.println("modules: " + layer.modules());
-    }
-
-    public void addToClassPath(TruffleFile file) {
-      if (findGuestJava() == null) {
-        try {
-          var url = file.toUri().toURL();
-          hostClassLoader.add(url);
-        } catch (MalformedURLException ex) {
-          throw new IllegalStateException(ex);
-        }
-      } else {
-        try {
-          var path = new File(file.toUri()).getAbsoluteFile();
-          if (!path.exists()) {
-            throw new IllegalStateException("File not found " + path);
-          }
-          InteropLibrary.getUncached().invokeMember(findGuestJava(), "addPath", path.getPath());
-        } catch (InteropException ex) {
-          throw new IllegalStateException(ex);
-        }
-      }
-    }
   }
 
   /**
@@ -563,11 +518,11 @@ public final class EnsoContext {
   public Object lookupJavaClass(Package<TruffleFile> pkg, String className) {
     var binaryName = new StringBuilder(className);
     var collectedExceptions = new ArrayList<Exception>();
-    var cp = findClassPath(pkg);
+    org.enso.interpreter.runtime.EnsoClassPath cp = findClassPath(pkg);
     for (; ; ) {
       var fqn = binaryName.toString();
       try {
-        var hostSymbol = lookupHostSymbol(cp.hostClassLoader, fqn);
+        var hostSymbol = lookupHostSymbol(cp.loader, fqn);
         if (hostSymbol != null) {
           return hostSymbol;
         }
@@ -593,6 +548,9 @@ public final class EnsoContext {
       throws ClassNotFoundException, UnknownIdentifierException, UnsupportedMessageException {
     try {
       if (findGuestJava() == null) {
+        if (hostClassLoader == null) {
+          throw new ClassNotFoundException(fqn);
+        }
         return environment.asHostSymbol(hostClassLoader.loadClass(fqn));
       } else {
         return InteropLibrary.getUncached().readMember(findGuestJava(), fqn);
