@@ -19,7 +19,9 @@ import SvgMask from '#/components/SvgMask'
 
 import * as backend from '#/services/Backend'
 
+import { useSyncRef } from '#/hooks/syncRefHooks'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
+import { twMerge } from 'tailwind-merge'
 
 // =================
 // === Constants ===
@@ -59,12 +61,42 @@ export default function TabBar(props: TabBarProps) {
   const cleanupResizeObserverRef = React.useRef(() => {})
   const backgroundRef = React.useRef<HTMLDivElement | null>(null)
   const selectedTabRef = React.useRef<HTMLElement | null>(null)
+  const [previousSize, setPreviousSize] = React.useState<ResizeObserverSize>({
+    blockSize: 0,
+    inlineSize: 0,
+  })
+  const previousSizeRef = useSyncRef(previousSize)
+  const [skipTransition, setSkipTransition] = React.useState(false)
   const [resizeObserver] = React.useState(
     () =>
-      new ResizeObserver(() => {
+      new ResizeObserver((entries) => {
         updateClipPath(selectedTabRef.current)
+        const bounds = entries[0]?.borderBoxSize[0]
+        const currentPreviousSize = previousSizeRef.current
+        if (
+          bounds &&
+          (bounds.blockSize !== currentPreviousSize.blockSize ||
+            bounds.inlineSize !== currentPreviousSize.inlineSize)
+        ) {
+          setPreviousSize(bounds)
+          setSkipTransition(true)
+        } else {
+          setSkipTransition(false)
+        }
       }),
   )
+
+  React.useEffect(() => {
+    const backgroundElement = backgroundRef.current
+    const rootElement = backgroundElement?.parentElement?.parentElement
+    if (skipTransition) {
+      rootElement?.classList.remove('duration-300')
+      rootElement?.classList.add('duration-0')
+    } else {
+      rootElement?.classList.add('duration-300')
+      rootElement?.classList.remove('duration-0')
+    }
+  }, [skipTransition])
 
   const [updateClipPath] = React.useState(() => {
     return (element: HTMLElement | null) => {
@@ -84,8 +116,8 @@ export default function TabBar(props: TabBarProps) {
           const tabRight = bounds.right - rootBounds.left - TAB_RADIUS_PX
           const rightSegments = [
             'M 0 0',
-            `L ${rootBounds.width} 0`,
-            `L ${rootBounds.width} ${rootBounds.height}`,
+            `L ${rootBounds.width + window.outerWidth} 0`,
+            `L ${rootBounds.width + window.outerWidth} ${rootBounds.height}`,
             `L ${tabRight + TAB_RADIUS_PX} ${rootBounds.height}`,
             `A ${TAB_RADIUS_PX} ${TAB_RADIUS_PX} 0 0 1 ${tabRight} ${rootBounds.height - TAB_RADIUS_PX}`,
           ]
@@ -151,7 +183,7 @@ export default function TabBar(props: TabBarProps) {
       {(innerProps) => (
         <div className="relative flex grow" {...innerProps}>
           <TabBarContext.Provider value={{ setSelectedTab }}>
-            <aria.TabList className="flex h-12 shrink-0 grow transition-[clip-path] duration-300">
+            <aria.TabList className="flex h-12 shrink-0 grow transition-[clip-path]">
               <aria.Tab isDisabled>
                 {/* Putting the background in a `Tab` is a hack, but it is required otherwise there
                  * are issues with the ref to the background being detached, resulting in the clip
@@ -161,7 +193,10 @@ export default function TabBar(props: TabBarProps) {
                     backgroundRef.current = element
                     updateResizeObserver(element)
                   }}
-                  className="pointer-events-none absolute inset-0 bg-primary/5 transition-[clip-path] duration-300"
+                  className={twMerge(
+                    'pointer-events-none absolute inset-0 bg-primary/5 transition-[clip-path]',
+                    !skipTransition ? 'duration-300' : 'duration-0',
+                  )}
                 />
               </aria.Tab>
               {children}
