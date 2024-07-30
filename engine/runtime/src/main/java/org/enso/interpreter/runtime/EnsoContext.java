@@ -24,9 +24,13 @@ import java.io.File;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
+import java.lang.module.Configuration;
+import java.lang.module.ModuleFinder;
 import java.net.MalformedURLException;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -428,22 +432,38 @@ public final class EnsoContext {
   /**
    * Creates a class path. A class path is capable to load Java classes in an isolated manner.
    *
-   * @param files files to register
+   * @param pkg package to find class path for
    */
   @TruffleBoundary
-  public synchronized EnsoClassPath findClassPath(Package<?> pkg) {
+  public synchronized EnsoClassPath findClassPath(Package<TruffleFile> pkg) {
     var l = classPaths.get(pkg);
     if (l == null) {
-      l = new EnsoClassPath();
+      var ch = pkg.polyglotDir().resolve("java");
+      l = new EnsoClassPath(ch);
       classPaths.put(pkg, l);
     }
     return l;
   }
 
   public final class EnsoClassPath {
-    private final HostClassLoader hostClassLoader = new HostClassLoader();
+    private final ModuleLayer.Controller cntrl;
+    private final ModuleLayer layer;
+    private final HostClassLoader hostClassLoader;
 
-    private EnsoClassPath() {}
+    private EnsoClassPath(TruffleFile file) {
+      var parent = ModuleLayer.boot();
+      var parentCfgs = Collections.singletonList(parent.configuration());
+      var parentModules = Collections.singletonList(parent);
+      var parentLoader = parent.findLoader("java.base");
+      var finder = ModuleFinder.of(Paths.get(file.toUri()));
+      var cfg = Configuration.resolve(finder, parentCfgs, finder, Collections.emptyList());
+
+      this.hostClassLoader = new HostClassLoader();
+
+      this.cntrl = ModuleLayer.defineModulesWithOneLoader(cfg, parentModules, parentLoader);
+      this.layer = cntrl.layer();
+      System.out.println("modules: " + layer.modules());
+    }
 
     public void addToClassPath(TruffleFile file) {
       if (findGuestJava() == null) {
@@ -540,7 +560,7 @@ public final class EnsoContext {
    * @return If the java class is found, return it, otherwise return null.
    */
   @TruffleBoundary
-  public Object lookupJavaClass(Package<?> pkg, String className) {
+  public Object lookupJavaClass(Package<TruffleFile> pkg, String className) {
     var binaryName = new StringBuilder(className);
     var collectedExceptions = new ArrayList<Exception>();
     var cp = findClassPath(pkg);

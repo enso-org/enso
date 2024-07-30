@@ -1,5 +1,6 @@
 package org.enso.interpreter.runtime
 
+import com.oracle.truffle.api.TruffleFile
 import com.oracle.truffle.api.source.{Source, SourceSection}
 import com.oracle.truffle.api.interop.InteropLibrary
 import org.enso.compiler.context.{
@@ -153,7 +154,8 @@ class IrToTruffle(
     *
     * @param ir the IR to generate code for
     */
-  def run(p: org.enso.pkg.Package[_], ir: Module): Unit = processModule(p, ir)
+  def run(p: org.enso.pkg.Package[TruffleFile], ir: Module): Unit =
+    processModule(p, ir)
 
   /** Executes the codegen pass on an inline input.
     *
@@ -187,7 +189,7 @@ class IrToTruffle(
     * @param module the module for which code should be generated
     */
   private def processModule(
-    p: org.enso.pkg.Package[_],
+    p: org.enso.pkg.Package[TruffleFile],
     module: Module
   ): Unit = {
     generateReExportBindings(module)
@@ -236,7 +238,7 @@ class IrToTruffle(
     }
 
   private def registerPolyglotImports(
-    p: org.enso.pkg.Package[_],
+    p: org.enso.pkg.Package[TruffleFile],
     module: Module
   ): Unit =
     module.imports.foreach {
