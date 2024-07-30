@@ -40,8 +40,6 @@ import { WSSharedDoc } from './ydoc'
 const SOURCE_DIR = 'src'
 const EXTENSION = '.enso'
 
-const DEBUG_LOG_SYNC = false
-
 export class LanguageServerSession {
   clientId: Uuid
   indexDoc: WSSharedDoc
@@ -54,6 +52,7 @@ export class LanguageServerSession {
   projectRootId: Uuid | null
   authoritativeModules: Map<string, ModulePersistence>
   clientScope: AbortScope
+  debug: boolean
 
   constructor(url: string, debug: boolean) {
     this.clientScope = new AbortScope()
@@ -61,7 +60,7 @@ export class LanguageServerSession {
     this.docs = new Map()
     this.retainCount = 0
     this.url = url
-    console.log('new session with', url, debug)
+    console.log('new session with', url)
     this.indexDoc = new WSSharedDoc()
     this.docs.set('index', this.indexDoc)
     this.model = new DistributedProject(this.indexDoc.doc)
@@ -79,6 +78,7 @@ export class LanguageServerSession {
     this.ls = new LanguageServer(this.clientId, new ReconnectingWebSocketTransport(this.url), debug)
     this.clientScope.onAbort(() => this.ls.release())
     this.setupClient()
+    this.debug = debug
   }
 
   static sessions = new Map<string, LanguageServerSession>()
@@ -99,7 +99,7 @@ export class LanguageServerSession {
 
   private setupClient() {
     this.ls.on('file/event', async (event) => {
-      if (this.ls.debug) {
+      if (this.debug) {
         console.log('file/event', event)
       }
       const result = await this.handleFileEvent(event)
@@ -328,7 +328,7 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
 
   private setState(state: LsSyncState) {
     if (this.state !== LsSyncState.Disposed) {
-      if (this.ls.debug) {
+      if (this.debug) {
         console.debug('State change:', LsSyncState[this.state], '->', LsSyncState[state])
       }
       // This is SAFE. `this.state` is only `readonly` to ensure that this is the only place
@@ -505,7 +505,7 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
 
     const newVersion = computeTextChecksum(newContent)
 
-    if (this.ls.debug) {
+    if (this.debug) {
       console.debug(' === changes === ')
       console.debug('number of edits:', edits.length)
       if (edits.length > 0) {
