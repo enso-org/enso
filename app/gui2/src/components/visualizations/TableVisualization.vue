@@ -141,7 +141,7 @@ const rowCount = ref(0)
 const showRowCount = ref(true)
 const isTruncated = ref(false)
 const tableNode = ref<HTMLElement>()
-const isCreateNodeVisible = ref(false)
+const isCreateNodeEnabled = ref(false)
 const filterModel = ref({})
 const sortModel = ref<SortModel[]>([])
 const dataGroupingMap = shallowRef<Map<string, boolean>>()
@@ -650,7 +650,7 @@ function checkSortAndFilter() {
   const columnApi = agGridOptions.value.columnApi
   if (gridApi == null || columnApi == null) {
     console.warn('AG Grid column API does not exist.')
-    isCreateNodeVisible.value = false
+    isCreateNodeEnabled.value = false
     return
   }
   const colState = columnApi.getColumnState()
@@ -667,11 +667,11 @@ function checkSortAndFilter() {
     })
     .filter((sort) => sort)
   if (sort.length || Object.keys(filter).length) {
-    isCreateNodeVisible.value = true
+    isCreateNodeEnabled.value = true
     sortModel.value = sort as SortModel[]
     filterModel.value = filter
   } else {
-    isCreateNodeVisible.value = false
+    isCreateNodeEnabled.value = false
     sortModel.value = []
     filterModel.value = {}
   }
@@ -767,9 +767,7 @@ onUnmounted(() => {
   <VisualizationContainer :belowToolbar="true" :overflow="true" :toolbarOverflow="true">
     <template #toolbar>
       <TextFormattingSelector @changeFormat="(i) => updateTextFormat(i)" />
-      <div v-if="isCreateNodeVisible">
-        <CreateNewNode :filterModel="filterModel" :sortModel="sortModel" />
-      </div>
+      <CreateNewNode :filterModel="filterModel" :sortModel="sortModel" />
     </template>
     <div ref="rootNode" class="TableVisualization" @wheel.stop @pointerdown.stop>
       <div class="table-visualization-status-bar">
