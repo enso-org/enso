@@ -3263,6 +3263,7 @@ val `std-snowflake-polyglot-root` =
 
 lazy val `std-base` = project
   .in(file("std-bits") / "base")
+  .enablePlugins(JPMSPlugin)
   .settings(
     frgaalJavaCompilerSetting,
     autoScalaLibrary := false,
@@ -3276,6 +3277,28 @@ lazy val `std-base` = project
       "org.netbeans.api"           % "org-openide-util-lookup" % netbeansApiVersion % "provided",
       "com.fasterxml.jackson.core" % "jackson-databind"        % jacksonVersion
     ),
+    modulePath := {
+      val updateReport = (Compile / update).value
+      val requiredModIds = Seq(
+        "org.graalvm.polyglot"       % "polyglot"                % graalMavenPackagesVersion,
+        "org.graalvm.sdk"            % "collections"             % graalMavenPackagesVersion,
+        "org.netbeans.api"           % "org-openide-util-lookup" % netbeansApiVersion,
+        "com.ibm.icu"                % "icu4j"                   % icuVersion,
+        "com.fasterxml.jackson.core" % "jackson-databind"        % jacksonVersion,
+        "com.fasterxml.jackson.core" % "jackson-annotations"     % jacksonVersion,
+        "com.fasterxml.jackson.core" % "jackson-core"            % jacksonVersion
+      )
+      val externalRequiredMods = JPMSUtils.filterModulesFromUpdate(
+        updateReport,
+        requiredModIds,
+        streams.value.log,
+        shouldContainAll = true
+      )
+      val ourRequiredMods =
+        (`common-polyglot-core-utils` / Compile / exportedProducts).value
+          .map(_.data)
+      externalRequiredMods ++ ourRequiredMods
+    },
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value
       val _ensureCoreIsCompiled =
