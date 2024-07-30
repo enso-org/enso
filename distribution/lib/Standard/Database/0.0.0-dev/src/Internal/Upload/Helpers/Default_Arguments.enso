@@ -4,7 +4,7 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 from Standard.Table import Table
 
 import project.DB_Table.DB_Table
-from project.Internal.Upload.Helpers.Checks import check_target_table_for_update
+from project.Internal.Upload.Helpers.Argument_Checks import check_target_table_for_update
 from project.Internal.Upload.Helpers.Prepare_Structure import align_vector_structure
 
 ## PRIVATE

@@ -12,7 +12,7 @@ import project.Internal.In_Transaction.In_Transaction
 import project.Internal.IR.Query.Query
 import project.SQL_Query.SQL_Query
 from project.Errors import SQL_Error, Unsupported_Database_Operation
-from project.Internal.Upload.Helpers.Checks import check_transaction_ddl_support, resolve_primary_key
+from project.Internal.Upload.Helpers.Argument_Checks import check_transaction_ddl_support, resolve_primary_key
 from project.Internal.Upload.Helpers.Constants import default_batch_size
 from project.Internal.Upload.Helpers.Error_Helpers import handle_upload_errors, internal_translate_known_upload_errors
 from project.Internal.Upload.Helpers.Prepare_Structure import align_structure, validate_structure, verify_structure_hint
