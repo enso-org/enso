@@ -121,7 +121,11 @@ object CallArgument {
     override def mapExpressions(
       fn: java.util.function.Function[Expression, Expression]
     ): Specified = {
-      copy(name = name.map(n => n.mapExpressions(fn)), value = fn(value))
+      val name1  = name.map(n => n.mapExpressions(fn))
+      val value1 = fn(value)
+      if (name1 != name || value1 != value)
+        copy(name = name1, value = value1)
+      else this
     }
 
     /** String representation. */

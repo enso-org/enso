@@ -118,11 +118,16 @@ object Name {
     /** @inheritdoc */
     override def mapExpressions(
       fn: java.util.function.Function[Expression, Expression]
-    ): MethodReference =
-      copy(
-        typePointer = typePointer.map(_.mapExpressions(fn)),
-        methodName  = methodName.mapExpressions(fn)
-      )
+    ): MethodReference = {
+      val typePointer1 = typePointer.map(_.mapExpressions(fn))
+      val methodName1  = methodName.mapExpressions(fn)
+      if (typePointer1 != typePointer || methodName1 != methodName)
+        copy(
+          typePointer = typePointer1,
+          methodName  = methodName1
+        )
+      else this
+    }
 
     /** @inheritdoc */
     override def setLocation(
@@ -702,8 +707,12 @@ object Name {
     /** @inheritdoc */
     override def mapExpressions(
       fn: java.util.function.Function[Expression, Expression]
-    ): GenericAnnotation =
-      copy(expression = fn(expression))
+    ): GenericAnnotation = {
+      val expression1 = fn(expression)
+      if (expression1 != expression)
+        copy(expression = expression1)
+      else this
+    }
 
     /** String representation. */
     override def toString: String =

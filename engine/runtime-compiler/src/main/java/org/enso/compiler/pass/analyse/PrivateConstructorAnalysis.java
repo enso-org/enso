@@ -70,14 +70,16 @@ public final class PrivateConstructorAnalysis implements IRPass {
                   }
                   return binding;
                 });
-    return ir.copy(
-        ir.imports(),
-        ir.exports(),
-        newBindings,
-        ir.location(),
-        ir.passData(),
-        ir.diagnostics(),
-        ir.id());
+    if (newBindings != ir.bindings())
+      return ir.copy(
+          ir.imports(),
+          ir.exports(),
+          newBindings,
+          ir.location(),
+          ir.passData(),
+          ir.diagnostics(),
+          ir.id());
+    else return ir;
   }
 
   /** Not supported on a single expression. */

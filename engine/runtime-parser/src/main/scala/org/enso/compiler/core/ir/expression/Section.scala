@@ -105,11 +105,17 @@ object Section {
     /** @inheritdoc */
     override def mapExpressions(
       fn: java.util.function.Function[Expression, Expression]
-    ): Section =
-      copy(
-        arg      = arg.mapExpressions(fn),
-        operator = operator.mapExpressions(fn)
-      )
+    ): Section = {
+      val arg1      = arg.mapExpressions(fn)
+      val operator1 = operator.mapExpressions(fn)
+
+      if (arg1 != arg || operator1 != operator)
+        copy(
+          arg      = arg1,
+          operator = operator1
+        )
+      else this
+    }
 
     /** String representation. */
     override def toString: String =
@@ -200,8 +206,10 @@ object Section {
     /** @inheritdoc */
     override def mapExpressions(
       fn: java.util.function.Function[Expression, Expression]
-    ): Section =
-      copy(operator = operator.mapExpressions(fn))
+    ): Section = {
+      val operator1 = operator.mapExpressions(fn)
+      if (operator1 != operator) copy(operator = operator1) else this
+    }
 
     /** String representation. */
     override def toString: String =
@@ -302,10 +310,15 @@ object Section {
     override def mapExpressions(
       fn: java.util.function.Function[Expression, Expression]
     ): Section = {
-      copy(
-        operator = operator.mapExpressions(fn),
-        arg      = arg.mapExpressions(fn)
-      )
+      val operator1 = operator.mapExpressions(fn)
+      val arg1      = arg.mapExpressions(fn)
+
+      if (operator1 != operator || arg1 != arg)
+        copy(
+          operator = operator1,
+          arg      = arg1
+        )
+      else this
     }
 
     /** String representation. */

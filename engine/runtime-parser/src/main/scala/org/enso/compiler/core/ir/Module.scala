@@ -105,11 +105,16 @@ final case class Module(
   override def mapExpressions(
     fn: java.util.function.Function[Expression, Expression]
   ): Module = {
-    copy(
-      imports  = imports.map(_.mapExpressions(fn)),
-      exports  = exports.map(_.mapExpressions(fn)),
-      bindings = bindings.map(_.mapExpressions(fn))
-    )
+    val imports1  = imports.map(_.mapExpressions(fn))
+    val exports1  = exports.map(_.mapExpressions(fn))
+    val bindings1 = bindings.map(_.mapExpressions(fn))
+    if (imports1 != imports || exports1 != exports || bindings1 != bindings)
+      copy(
+        imports  = imports1,
+        exports  = exports1,
+        bindings = bindings1
+      )
+    else this
   }
 
   /** @inheritdoc */

@@ -118,11 +118,17 @@ object Definition {
     /** @inheritdoc */
     override def mapExpressions(
       fn: java.util.function.Function[Expression, Expression]
-    ): Type =
-      copy(
-        params  = params.map(_.mapExpressions(fn)),
-        members = members.map(_.mapExpressions(fn))
-      )
+    ): Type = {
+      val params1  = params.map(_.mapExpressions(fn))
+      val members1 = members.map(_.mapExpressions(fn))
+
+      if (params1 != params || members1 != members)
+        copy(
+          params  = params1,
+          members = members1
+        )
+      else this
+    }
 
     /** String representation. */
     override def toString: String =
@@ -242,11 +248,19 @@ object Definition {
     override def mapExpressions(
       fn: java.util.function.Function[Expression, Expression]
     ): Data = {
-      copy(
-        name        = name.mapExpressions(fn),
-        arguments   = arguments.map(_.mapExpressions(fn)),
-        annotations = annotations.map(_.mapExpressions(fn))
+      val name1        = name.mapExpressions(fn)
+      val arguments1   = arguments.map(_.mapExpressions(fn))
+      val annotations1 = annotations.map(_.mapExpressions(fn))
+
+      if (
+        name1 != name || arguments1 != arguments || annotations1 != annotations
       )
+        copy(
+          name        = name1,
+          arguments   = arguments1,
+          annotations = annotations1
+        )
+      else this
     }
 
     /** String representation. */
@@ -368,8 +382,10 @@ object Definition {
     /** @inheritdoc */
     override def mapExpressions(
       fn: java.util.function.Function[Expression, Expression]
-    ): SugaredType =
-      copy(body = body.map(_.mapExpressions(fn)))
+    ): SugaredType = {
+      val body1 = body.map(_.mapExpressions(fn))
+      if (body1 != body) copy(body = body1) else this
+    }
 
     /** @inheritdoc */
     override def setLocation(

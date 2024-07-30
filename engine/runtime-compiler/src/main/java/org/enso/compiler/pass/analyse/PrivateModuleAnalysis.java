@@ -131,14 +131,16 @@ public final class PrivateModuleAnalysis implements IRPass {
             ? moduleIr.exports()
             : CollectionConverters.asScala(exportErrors).toList();
 
-    return moduleIr.copy(
-        convertedImports,
-        convertedExports,
-        moduleIr.bindings(),
-        moduleIr.location(),
-        moduleIr.passData(),
-        moduleIr.diagnostics(),
-        moduleIr.id());
+    if (convertedImports != moduleIr.imports() || convertedExports != moduleIr.exports())
+      return moduleIr.copy(
+          convertedImports,
+          convertedExports,
+          moduleIr.bindings(),
+          moduleIr.location(),
+          moduleIr.passData(),
+          moduleIr.diagnostics(),
+          moduleIr.id());
+    else return moduleIr;
   }
 
   @Override

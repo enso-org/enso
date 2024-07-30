@@ -157,10 +157,15 @@ object Method {
     override def mapExpressions(
       fn: java.util.function.Function[Expression, Expression]
     ): Explicit = {
-      copy(
-        methodReference = methodReference.mapExpressions(fn),
-        body            = fn(body)
-      )
+      val methodReference1 = methodReference.mapExpressions(fn)
+      val body1            = fn(body)
+
+      if (methodReference1 != methodReference || body1 != body)
+        copy(
+          methodReference = methodReference1,
+          body            = body1
+        )
+      else this
     }
 
     /** String representation. */
@@ -335,11 +340,19 @@ object Method {
     override def mapExpressions(
       fn: java.util.function.Function[Expression, Expression]
     ): Binding = {
-      copy(
-        methodReference = methodReference.mapExpressions(fn),
-        arguments       = arguments.map(_.mapExpressions(fn)),
-        body            = fn(body)
+      val methodReference1 = methodReference.mapExpressions(fn)
+      val arguments1       = arguments.map(_.mapExpressions(fn))
+      val body1            = fn(body)
+
+      if (
+        methodReference1 != methodReference || arguments1 != arguments || body1 != body
       )
+        copy(
+          methodReference = methodReference1,
+          arguments       = arguments1,
+          body            = body1
+        )
+      else this
     }
 
     /** String representation. */
@@ -478,11 +491,20 @@ object Method {
     override def mapExpressions(
       fn: java.util.function.Function[Expression, Expression]
     ): Conversion = {
-      copy(
-        methodReference = methodReference.mapExpressions(fn),
-        sourceTypeName  = sourceTypeName.mapExpressions(fn),
-        body            = fn(body)
+      val methodReference1 = methodReference.mapExpressions(fn)
+      val sourceTypeName1  = sourceTypeName.mapExpressions(fn)
+      val body1            = fn(body)
+
+      if (
+        methodReference1 != methodReference || sourceTypeName1 != sourceTypeName || body1 != body
       )
+        copy(
+          methodReference = methodReference1,
+          sourceTypeName  = sourceTypeName1,
+          body            = body1
+        )
+      else
+        this
     }
 
     /** String representation. */

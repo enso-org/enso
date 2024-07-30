@@ -94,7 +94,11 @@ object Type {
     override def mapExpressions(
       fn: java.util.function.Function[Expression, Expression]
     ): Function = {
-      copy(args = args.map(fn.asScala), result = fn(result))
+      val args1   = args.map(fn.asScala)
+      val result1 = fn(result)
+      if (args1 != args || result1 != result)
+        copy(args = args1, result = result1)
+      else this
     }
 
     /** String representation. */
@@ -201,7 +205,11 @@ object Type {
     override def mapExpressions(
       fn: java.util.function.Function[Expression, Expression]
     ): Ascription = {
-      copy(typed = fn(typed), signature = fn(signature))
+      val typed1     = fn(typed)
+      val signature1 = fn(signature)
+      if (typed1 != typed || signature1 != signature)
+        copy(typed = typed1, signature = signature1)
+      else this
     }
 
     /** String representation. */
@@ -307,7 +315,11 @@ object Type {
     override def mapExpressions(
       fn: java.util.function.Function[Expression, Expression]
     ): Context = {
-      copy(typed = fn(typed), context = fn(context))
+      val typed1   = fn(typed)
+      val context1 = fn(context)
+      if (typed1 != typed || context1 != context)
+        copy(typed = typed1, context = context1)
+      else this
     }
 
     /** String representation. */
@@ -410,8 +422,14 @@ object Type {
     /** @inheritdoc */
     override def mapExpressions(
       fn: java.util.function.Function[Expression, Expression]
-    ): Error =
-      copy(typed = fn(typed), error = fn(error))
+    ): Error = {
+      val typed1 = fn(typed)
+      val error1 = fn(error)
+      if (typed1 != typed || error1 != error)
+        copy(typed = typed1, error = error1)
+      else
+        this
+    }
 
     /** String representation. */
     override def toString: String =

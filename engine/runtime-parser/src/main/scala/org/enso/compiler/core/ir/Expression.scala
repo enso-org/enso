@@ -136,10 +136,14 @@ object Expression {
     override def mapExpressions(
       fn: java.util.function.Function[Expression, Expression]
     ): Block = {
-      copy(
-        expressions = expressions.map(fn.asScala),
-        returnValue = fn(returnValue)
-      )
+      val expressions1 = expressions.map(fn.asScala)
+      val returnValue1 = fn(returnValue)
+      if (expressions1 != expressions || returnValue1 != returnValue) {
+        copy(
+          expressions = expressions1,
+          returnValue = returnValue1
+        )
+      } else this
     }
 
     /** String representation. */
@@ -251,7 +255,13 @@ object Expression {
     override def mapExpressions(
       fn: java.util.function.Function[Expression, Expression]
     ): Binding = {
-      copy(name = name.mapExpressions(fn), expression = fn(expression))
+      val name1       = name.mapExpressions(fn)
+      val expression1 = fn(expression)
+      if (name1 != name || expression1 != expression) {
+        copy(name = name1, expression = expression1)
+      } else {
+        this
+      }
     }
 
     /** String representation. */

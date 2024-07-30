@@ -151,7 +151,13 @@ object Function {
     override def mapExpressions(
       fn: java.util.function.Function[Expression, Expression]
     ): Lambda = {
-      copy(arguments = arguments.map(_.mapExpressions(fn)), body = fn(body))
+      val arguments1 = arguments.map(_.mapExpressions(fn))
+      val body1      = fn(body)
+      if (arguments1 != arguments || body1 != body) {
+        copy(arguments = arguments1, body = body1)
+      } else {
+        this
+      }
     }
 
     /** String representation. */
@@ -313,12 +319,18 @@ object Function {
     /** @inheritdoc */
     override def mapExpressions(
       fn: java.util.function.Function[Expression, Expression]
-    ): Binding =
-      copy(
-        name      = name.mapExpressions(fn),
-        arguments = arguments.map(_.mapExpressions(fn)),
-        body      = fn(body)
-      )
+    ): Binding = {
+      val name1      = name.mapExpressions(fn)
+      val arguments1 = arguments.map(_.mapExpressions(fn))
+      val body1      = fn(body)
+      if (name1 != name || arguments1 != arguments || body1 != body) {
+        copy(
+          name      = name1,
+          arguments = arguments1,
+          body      = body1
+        )
+      } else this
+    }
 
     /** String representation. */
     override def toString: String =

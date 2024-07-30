@@ -124,10 +124,17 @@ object Case {
     override def mapExpressions(
       fn: java.util.function.Function[Expression, Expression]
     ): Expr = {
-      copy(
-        scrutinee = fn(scrutinee),
-        branches.map(_.mapExpressions(fn))
-      )
+      val scrutinee1 = fn(scrutinee)
+      val branches1  = branches.map(_.mapExpressions(fn))
+
+      if (scrutinee1 != scrutinee || branches1 != branches) {
+        copy(
+          scrutinee = scrutinee1,
+          branches  = branches1
+        )
+      } else {
+        this
+      }
     }
 
     /** String representation. */
@@ -280,7 +287,13 @@ object Case {
     override def mapExpressions(
       fn: java.util.function.Function[Expression, Expression]
     ): Branch = {
-      copy(pattern = pattern.mapExpressions(fn), expression = fn(expression))
+      val pattern1    = pattern.mapExpressions(fn)
+      val expression1 = fn(expression)
+      if (pattern1 != pattern || expression1 != expression) {
+        copy(pattern = pattern1, expression = expression1)
+      } else {
+        this
+      }
     }
 
     /** String representation. */

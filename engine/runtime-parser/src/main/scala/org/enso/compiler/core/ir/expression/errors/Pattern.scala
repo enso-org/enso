@@ -25,8 +25,13 @@ sealed case class Pattern(
     with LazyId {
   override def mapExpressions(
     fn: java.util.function.Function[Expression, Expression]
-  ): Pattern =
-    copy(originalPattern = originalPattern.mapExpressions(fn))
+  ): Pattern = {
+    val originalPattern1 = originalPattern.mapExpressions(fn)
+    if (originalPattern1 != originalPattern)
+      copy(originalPattern = originalPattern1)
+    else
+      this
+  }
 
   override def setLocation(location: Option[IdentifiedLocation]): Pattern =
     copy(originalPattern = originalPattern.setLocation(location))

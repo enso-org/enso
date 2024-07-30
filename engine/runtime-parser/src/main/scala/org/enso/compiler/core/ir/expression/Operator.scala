@@ -116,7 +116,10 @@ object Operator {
     override def mapExpressions(
       fn: java.util.function.Function[Expression, Expression]
     ): Binary = {
-      copy(left = left.mapExpressions(fn), right = right.mapExpressions(fn))
+      val left1  = left.mapExpressions(fn)
+      val right1 = right.mapExpressions(fn)
+      if (left1 != left || right1 != right) copy(left = left1, right = right1)
+      else this
     }
 
     /** String representation. */

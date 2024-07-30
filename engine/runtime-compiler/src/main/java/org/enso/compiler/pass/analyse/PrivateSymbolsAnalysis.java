@@ -71,14 +71,16 @@ public class PrivateSymbolsAnalysis implements IRPass {
     var newBindings =
         ir.bindings()
             .map(binding -> binding.mapExpressions(expr -> processExpression(expr, bindingsMap)));
-    return ir.copy(
-        ir.imports(),
-        ir.exports(),
-        newBindings,
-        ir.location(),
-        ir.passData(),
-        ir.diagnostics(),
-        ir.id());
+    if (newBindings != ir.bindings())
+      return ir.copy(
+          ir.imports(),
+          ir.exports(),
+          newBindings,
+          ir.location(),
+          ir.passData(),
+          ir.diagnostics(),
+          ir.id());
+    else return ir;
   }
 
   /** Not supported for expressions. */
@@ -94,14 +96,16 @@ public class PrivateSymbolsAnalysis implements IRPass {
         var newBranches =
             caseExpr.branches().map(branch -> processCaseBranch(branch, bindingsMap)).toSeq();
         var newScrutinee = processExpression(caseExpr.scrutinee(), bindingsMap);
-        yield caseExpr.copy(
-            newScrutinee,
-            newBranches,
-            caseExpr.isNested(),
-            caseExpr.location(),
-            caseExpr.passData(),
-            caseExpr.diagnostics(),
-            caseExpr.id());
+        if (newBranches != caseExpr.branches() || newScrutinee != caseExpr.scrutinee())
+          yield caseExpr.copy(
+              newScrutinee,
+              newBranches,
+              caseExpr.isNested(),
+              caseExpr.location(),
+              caseExpr.passData(),
+              caseExpr.diagnostics(),
+              caseExpr.id());
+        else yield expr;
       }
       case Name name -> processName(name, bindingsMap);
       default -> expr.mapExpressions(e -> processExpression(e, bindingsMap));
@@ -109,17 +113,18 @@ public class PrivateSymbolsAnalysis implements IRPass {
   }
 
   private Branch processCaseBranch(Branch branch, BindingsMap bindingsMap) {
-    var pat = branch.pattern();
-    var newPat = processCasePattern(pat, bindingsMap);
+    var newPat = processCasePattern(branch.pattern(), bindingsMap);
     var newExpr = processExpression(branch.expression(), bindingsMap);
-    return branch.copy(
-        newPat,
-        newExpr,
-        branch.terminalBranch(),
-        branch.location(),
-        branch.passData(),
-        branch.diagnostics(),
-        branch.id());
+    if (newPat != branch.pattern() || newExpr != branch.expression())
+      return branch.copy(
+          newPat,
+          newExpr,
+          branch.terminalBranch(),
+          branch.location(),
+          branch.passData(),
+          branch.diagnostics(),
+          branch.id());
+    else return branch;
   }
 
   private Pattern processCasePattern(Pattern pattern, BindingsMap bindingsMap) {

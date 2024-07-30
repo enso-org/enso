@@ -151,11 +151,18 @@ object DefinitionArgument {
     def mapExpressions(
       fn: java.util.function.Function[Expression, Expression]
     ): Specified = {
-      copy(
-        name         = name.mapExpressions(fn),
-        ascribedType = ascribedType.map(fn.asScala),
-        defaultValue = defaultValue.map(fn.asScala)
+      val name1         = name.mapExpressions(fn)
+      val ascribedType1 = ascribedType.map(fn.asScala)
+      val defaultValue1 = defaultValue.map(fn.asScala)
+      if (
+        name1 != name || ascribedType1 != ascribedType || defaultValue1 != defaultValue
       )
+        copy(
+          name         = name1,
+          ascribedType = ascribedType1,
+          defaultValue = defaultValue1
+        )
+      else this
     }
 
     /** String representation. */

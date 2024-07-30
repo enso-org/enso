@@ -95,7 +95,8 @@ object Pattern {
     override def mapExpressions(
       fn: java.util.function.Function[Expression, Expression]
     ): Name = {
-      copy(name = name.mapExpressions(fn))
+      val name1 = name.mapExpressions(fn)
+      if (name1 != name) copy(name = name1) else this
     }
 
     /** String representation. */
@@ -239,11 +240,17 @@ object Pattern {
     /** @inheritdoc */
     override def mapExpressions(
       fn: java.util.function.Function[Expression, Expression]
-    ): Constructor =
-      copy(
-        constructor = constructor.mapExpressions(fn),
-        fields      = fields.map(_.mapExpressions(fn))
-      )
+    ): Constructor = {
+      val constructor1 = constructor.mapExpressions(fn)
+      val fields1      = fields.map(_.mapExpressions(fn))
+
+      if (constructor1 != constructor || fields1 != fields)
+        copy(
+          constructor = constructor1,
+          fields      = fields1
+        )
+      else this
+    }
 
     /** String representation. */
     override def toString: String =
@@ -339,7 +346,8 @@ object Pattern {
     override def mapExpressions(
       fn: java.util.function.Function[Expression, Expression]
     ): Literal = {
-      copy(literal = literal.mapExpressions(fn))
+      val literal1 = literal.mapExpressions(fn)
+      if (literal1 != literal) copy(literal = literal1) else this
     }
 
     /** String representation. */
@@ -442,7 +450,11 @@ object Pattern {
     override def mapExpressions(
       fn: java.util.function.Function[Expression, Expression]
     ): Type = {
-      copy(name = name.mapExpressions(fn), tpe = tpe.mapExpressions(fn))
+      val name1 = name.mapExpressions(fn)
+      val tpe1  = tpe.mapExpressions(fn)
+      if (name1 != name || tpe1 != tpe)
+        copy(name = name1, tpe = tpe1)
+      else this
     }
 
     /** String representation. */

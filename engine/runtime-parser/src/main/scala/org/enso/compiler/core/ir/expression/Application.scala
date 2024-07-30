@@ -105,7 +105,13 @@ object Application {
     override def mapExpressions(
       fn: java.util.function.Function[Expression, Expression]
     ): Prefix = {
-      copy(function = fn(function), arguments.map(_.mapExpressions(fn)))
+      val function1  = fn(function)
+      val arguments1 = arguments.map(_.mapExpressions(fn))
+      if (function1 != function || arguments1 != arguments) {
+        copy(function = function1, arguments = arguments1)
+      } else {
+        this
+      }
     }
 
     /** String representation. */
@@ -200,7 +206,11 @@ object Application {
     override def mapExpressions(
       fn: java.util.function.Function[Expression, Expression]
     ): Force = {
-      copy(target = fn(target))
+      val target1 = fn(target)
+      if (target1 != target)
+        copy(target = target1)
+      else
+        this
     }
 
     /** String representation. */
@@ -263,8 +273,13 @@ object Application {
 
     override def mapExpressions(
       fn: java.util.function.Function[Expression, Expression]
-    ): Typeset =
-      copy(expression = expression.map(fn.asScala))
+    ): Typeset = {
+      val expression1 = expression.map(fn.asScala)
+      if (expression1 != expression)
+        copy(expression = expression1)
+      else
+        this
+    }
 
     /** Creates a copy of `this`.
       *
@@ -359,8 +374,13 @@ object Application {
 
     override def mapExpressions(
       fn: java.util.function.Function[Expression, Expression]
-    ): Sequence =
-      copy(items = items.map(fn.asScala))
+    ): Sequence = {
+      val items1 = items.map(fn.asScala)
+      if (items1 != items)
+        copy(items = items1)
+      else
+        this
+    }
 
     /** Creates a copy of `this`.
       *
