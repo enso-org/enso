@@ -446,7 +446,6 @@ test('Subtrees', () => {
   const module = root.module
   const subtree = subtrees(module, [assignment.id])
   expect([...subtree]).toEqual([assignment.id, mainBlock.id, main.id, root.id])
-  expect([...subtree].length).toEqual(4)
 })
 
 test('Modify subexpression', () => {
