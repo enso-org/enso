@@ -7,7 +7,7 @@ import { queryOptions, useQuery } from '@tanstack/react-query'
 
 import type { Plan } from '#/services/Backend'
 
-import { PRICE_PER_PLAN } from '../constants'
+import { PRICE_BY_PLAN } from '../constants'
 
 /**
  *
@@ -27,7 +27,7 @@ export function createSubscriptionPriceQuery(params: SubscriptionPriceQueryParam
     queryFn: ({ queryKey }) => {
       const [, { seats, period, plan }] = queryKey
 
-      const price = PRICE_PER_PLAN[plan]
+      const price = PRICE_BY_PLAN[plan]
 
       return Promise.resolve({
         monthly: price * seats,

@@ -15,11 +15,17 @@ import { ErrorDisplay } from '#/components/ErrorBoundary'
 import { Suspense } from '#/components/Suspense'
 
 import { createSubscriptionPriceQuery } from '#/modules/payments'
-import { Plan } from '#/services/Backend'
+import type { Plan } from '#/services/Backend'
 
 import { twMerge } from '#/utilities/tailwindMerge'
 
-import { PRICE_CURRENCY, PRICE_PER_PLAN, TRIAL_DURATION_DAYS } from '../../../constants'
+import {
+  MAX_SEATS_BY_PLAN,
+  PRICE_BY_PLAN,
+  PRICE_CURRENCY,
+  SUBSCRIPTION_PERIOD_MONTHS,
+  TRIAL_DURATION_DAYS,
+} from '../../../constants'
 import { ADD_PAYMENT_METHOD_FORM_SCHEMA, AddPaymentMethodForm } from '../../AddPaymentMethodForm'
 import { StripeProvider } from '../../StripeProvider'
 import { PlanFeatures } from './PlanFeatures'
@@ -48,11 +54,8 @@ export function PlanSelectorDialog(props: PlanSelectorDialogProps) {
   const { title, planName, features, plan, isTrialing = false, onSubmit } = props
   const { getText, locale } = useText()
 
-  const price = PRICE_PER_PLAN[plan]
-  const maxSeats =
-    plan === Plan.enterprise ? Infinity
-    : plan === Plan.team ? 10
-    : 1
+  const price = PRICE_BY_PLAN[plan]
+  const maxSeats = MAX_SEATS_BY_PLAN[plan]
 
   const form = Form.useForm({
     schema: (z) =>
@@ -179,7 +182,7 @@ function Summary(props: SummaryProps) {
     ...createSubscriptionPriceQuery({
       plan,
       seats,
-      period: 12,
+      period: SUBSCRIPTION_PERIOD_MONTHS,
     }),
     enabled: !isInvalid,
   })
