@@ -36,10 +36,19 @@ public abstract class HashMapInsertAllNode extends Node {
       @Cached HashCodeNode hashCodeNode,
       @Cached EqualsNode equalsNode) {
     assert maxItems > 0;
-    if (other.getHashSize() == 0) {
+    var selfSize = self.getHashSize();
+    var otherSize = other.getHashSize();
+    if (otherSize == 0) {
       return self;
     }
-    var mapBuilder = self.getMapBuilder(frame, false, hashCodeNode, equalsNode);
+    var mapBuilder = EnsoHashMapBuilder.createWithCapacity(selfSize + otherSize);
+
+    var selfMapBuilder = self.getMapBuilder(frame, true, hashCodeNode, equalsNode);
+    var selfEntries = selfMapBuilder.getEntries(selfMapBuilder.generation(), selfMapBuilder.size());
+    assert selfEntries.length == self.getHashSize();
+    for (var selfEntry : selfEntries) {
+      mapBuilder.put(frame, selfEntry.key(), selfEntry.value(), hashCodeNode, equalsNode);
+    }
     var otherMapBuilder = other.getMapBuilder(frame, true, hashCodeNode, equalsNode);
     var otherEntries =
         otherMapBuilder.getEntries(otherMapBuilder.generation(), otherMapBuilder.size());
@@ -51,8 +60,6 @@ public abstract class HashMapInsertAllNode extends Node {
       if (itemsInserted >= maxItems) {
         break;
       }
-      mapBuilder =
-          mapBuilder.asModifiable(frame, mapBuilder.generation(), hashCodeNode, equalsNode);
       mapBuilder.put(frame, entry.key(), entry.value(), hashCodeNode, equalsNode);
       itemsInserted++;
     }

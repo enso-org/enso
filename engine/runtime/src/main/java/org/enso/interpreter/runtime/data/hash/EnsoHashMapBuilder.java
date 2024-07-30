@@ -52,6 +52,11 @@ final class EnsoHashMapBuilder {
     return new EnsoHashMapBuilder(11);
   }
 
+  public static EnsoHashMapBuilder createWithCapacity(int capacity) {
+    assert capacity > 0;
+    return new EnsoHashMapBuilder(capacity);
+  }
+
   /** Returns count of elements in the storage. */
   public int generation() {
     return generation;
