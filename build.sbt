@@ -3555,6 +3555,7 @@ lazy val `std-database` = project
 
 lazy val `std-aws` = project
   .in(file("std-bits") / "aws")
+  .enablePlugins(JPMSPlugin)
   .settings(
     frgaalJavaCompilerSetting,
     autoScalaLibrary := false,
@@ -3575,6 +3576,31 @@ lazy val `std-aws` = project
       "software.amazon.awssdk" % "sso"                     % awsJavaSdkV2Version,
       "software.amazon.awssdk" % "ssooidc"                 % awsJavaSdkV2Version
     ),
+    modulePath := {
+      val externalModIds = Seq(
+        "org.netbeans.api"       % "org-openide-util-lookup" % netbeansApiVersion,
+        "com.amazon.redshift"    % "redshift-jdbc42"         % redshiftVersion,
+        "software.amazon.awssdk" % "auth"                    % awsJavaSdkV2Version,
+        "software.amazon.awssdk" % "s3"                      % awsJavaSdkV2Version,
+        "software.amazon.awssdk" % "sso"                     % awsJavaSdkV2Version,
+        "software.amazon.awssdk" % "ssooidc"                 % awsJavaSdkV2Version,
+        "software.amazon.awssdk" % "http-client-spi"         % awsJavaSdkV2Version,
+        "software.amazon.awssdk" % "regions"                 % awsJavaSdkV2Version,
+        "software.amazon.awssdk" % "sdk-core"                % awsJavaSdkV2Version,
+        "software.amazon.awssdk" % "profiles"                % awsJavaSdkV2Version,
+        "software.amazon.awssdk" % "aws-core"                % awsJavaSdkV2Version
+      )
+      val externalMods = JPMSUtils.filterModulesFromUpdate(
+        (Compile / update).value,
+        externalModIds,
+        streams.value.log,
+        shouldContainAll = true
+      )
+      val ourMods =
+        (`std-base` / Compile / exportedProducts).value.map(_.data) ++
+        (`std-database` / Compile / exportedProducts).value.map(_.data)
+      externalMods ++ ourMods
+    },
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value
       val _ = StdBits
