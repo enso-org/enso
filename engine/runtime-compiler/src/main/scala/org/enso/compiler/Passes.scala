@@ -33,9 +33,8 @@ class Passes(config: CompilerConfig) {
       ComplexType,
       FunctionBinding,
       GenerateMethodBodies,
-      BindingAnalysis,
-      ModuleNameConflicts
-    )
+      BindingAnalysis
+    ) ++ (if (config.isLintingDisabled) Nil else List(ModuleNameConflicts))
   )
 
   val globalTypingPasses = new PassGroup(
@@ -95,18 +94,15 @@ class Passes(config: CompilerConfig) {
       DataflowAnalysis,
       CachePreferenceAnalysis,
       GenericAnnotations
-    )
-  )
-
-  val lintingPasses = new PassGroup(
-    List(
-      UnusedBindings,
-      NoSelfInStatic
-    ) ++ (if (config.staticTypeInferenceEnabled) {
-            List(
-              TypeInference.INSTANCE
-            )
-          } else Nil)
+    ) ++ (if (config.isLintingDisabled) {
+            Nil
+          } else {
+            List(UnusedBindings, NoSelfInStatic)
+          }) ++ (if (config.staticTypeInferenceEnabled) {
+                   List(
+                     TypeInference.INSTANCE
+                   )
+                 } else Nil)
   )
 
   /** A list of the compiler phases, in the order they should be run.
@@ -120,7 +116,7 @@ class Passes(config: CompilerConfig) {
       moduleDiscoveryPasses,
       globalTypingPasses,
       functionBodyPasses
-    ) ++ (if (config.isLintingDisabled) Nil else List(lintingPasses))
+    )
 
   /** The ordered representation of all passes run by the compiler. */
   val allPassOrdering: List[IRPass] = passOrdering.flatMap(_.passes)
