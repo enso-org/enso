@@ -19,6 +19,8 @@ import SvgMask from '#/components/SvgMask'
 
 import * as backend from '#/services/Backend'
 
+import { useInputBindings } from '#/providers/InputBindingsProvider'
+import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 // =================
@@ -194,10 +196,11 @@ interface InternalTabProps extends Readonly<React.PropsWithChildren> {
 export function Tab(props: InternalTabProps) {
   const { id, project, isActive, isHidden = false, icon, labelId, children, onClose } = props
   const { onLoadEnd } = props
+  const { getText } = textProvider.useText()
+  const inputBindings = useInputBindings()
   const { setSelectedTab } = useTabBarContext()
   const ref = React.useRef<HTMLDivElement | null>(null)
   const isLoadingRef = React.useRef(true)
-  const { getText } = textProvider.useText()
   const actuallyActive = isActive && !isHidden
   const [resizeObserver] = React.useState(
     () =>
@@ -226,6 +229,16 @@ export function Tab(props: InternalTabProps) {
       }
     }
   })
+
+  React.useEffect(() => {
+    if (actuallyActive && onClose) {
+      return inputBindings.attach(sanitizedEventTargets.document.body, 'keydown', {
+        closeTab: onClose,
+      })
+    } else {
+      return
+    }
+  }, [inputBindings, actuallyActive, onClose])
 
   React.useLayoutEffect(() => {
     if (actuallyActive && ref.current) {
