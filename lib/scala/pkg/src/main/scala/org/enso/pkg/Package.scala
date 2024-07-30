@@ -7,19 +7,13 @@ import org.enso.pkg.validation.NameValidation
 import java.io.{File, InputStream, OutputStream}
 import java.net.URI
 import scala.jdk.CollectionConverters._
+import scala.util.control.NonFatal
 import scala.util.{Failure, Try, Using}
 
 case class CouldNotCreateDirectory(cause: Throwable) extends RuntimeException {
   override def getMessage: String =
     s"Could not create directory: ${cause.getMessage}. Perhaps there is a permission issue."
   override def toString: String = getMessage
-}
-
-object CouldNotCreateDirectory {
-  def wrapFileSystemFailures[U](action: => U): Try[U] =
-    Try(action).recoverWith { case e: Throwable =>
-      Failure(CouldNotCreateDirectory(e))
-    }
 }
 
 /** Represents a source file with known qualified name.
@@ -80,14 +74,16 @@ class Package[F](
   /** Stores the package metadata on the hard drive. If the package does not exist,
     * creates the required directory structure.
     */
-  def save(): Try[Unit] =
-    for {
-      _ <- CouldNotCreateDirectory.wrapFileSystemFailures {
-        if (!root.exists) root.createDirectories()
-        if (!sourceDir.exists) sourceDir.createDirectories()
-      }
-      _ <- saveConfig()
-    } yield ()
+  def save(): Unit = {
+    try {
+      if (!root.exists) root.createDirectories()
+      if (!sourceDir.exists) sourceDir.createDirectories()
+    } catch {
+      case NonFatal(e) => throw CouldNotCreateDirectory(e)
+    }
+
+    saveConfig()
+  }
 
   /** Gets the cache root location within this package for a given Enso version.
     *
@@ -154,7 +150,7 @@ class Package[F](
 
   /** Saves the config metadata into the package configuration file.
     */
-  private def saveConfig(): Try[Unit] =
+  private def saveConfig(): Unit =
     Using(configFile.newBufferedWriter) { writer =>
       writer.write(config.toYaml)
     }
@@ -263,7 +259,7 @@ class PackageManager[F](implicit val fileSystem: FileSystem[F]) {
     template: Template
   ): Package[F] = {
     val pkg = new Package(root, config, fileSystem)
-    pkg.save().get
+    pkg.save()
     copyResources(pkg, template)
     pkg
   }
