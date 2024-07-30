@@ -55,14 +55,6 @@ export enum SettingsEntryType {
 // === Constants ===
 // =================
 
-/** Whether the current user can edit organization data. */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function canEditOrganizationData(_context: SettingsContext) {
-  // FIXME: Restore correct behavior once there is an endpoint to get organization permissions.
-  return true
-  // return context.organizationPermission?.permission === PermissionAction.own
-}
-
 export const SETTINGS_NO_RESULTS_SECTION_DATA: SettingsSectionData = {
   nameId: 'noResultsSettingsSection',
   heading: false,
@@ -174,7 +166,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
               }
             },
             validate: (name) => (/\S/.test(name) ? true : ''),
-            getEditable: canEditOrganizationData,
+            getEditable: (context) => context.user.isOrganizationAdmin,
           },
           {
             type: SettingsEntryType.input,
@@ -191,7 +183,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
               isEmail(email) ? true
               : email === '' ? ''
               : context.getText('invalidEmailValidationError'),
-            getEditable: canEditOrganizationData,
+            getEditable: (context) => context.user.isOrganizationAdmin,
           },
           {
             type: SettingsEntryType.input,
@@ -204,7 +196,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
                 await context.updateOrganization([{ website: newWebsite }])
               }
             },
-            getEditable: canEditOrganizationData,
+            getEditable: (context) => context.user.isOrganizationAdmin,
           },
           {
             type: SettingsEntryType.input,
@@ -216,7 +208,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
                 await context.updateOrganization([{ address: newLocation }])
               }
             },
-            getEditable: canEditOrganizationData,
+            getEditable: (context) => context.user.isOrganizationAdmin,
           },
         ],
       },
@@ -318,7 +310,11 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
           {
             type: SettingsEntryType.custom,
             render: (context) => (
-              <MembersTable backend={context.backend} draggable populateWithSelf />
+              <MembersTable
+                backend={context.backend}
+                draggable={context.user.isOrganizationAdmin}
+                populateWithSelf
+              />
             ),
           },
         ],
@@ -423,7 +419,6 @@ export interface SettingsContext {
   readonly updateLocalRootPath: (rootPath: string) => Promise<void>
   readonly toastAndLog: toastAndLogHooks.ToastAndLogCallback
   readonly getText: textProvider.GetText
-  readonly organizationPermission: backend.AssetPermission | null
   readonly queryClient: reactQuery.QueryClient
 }
 

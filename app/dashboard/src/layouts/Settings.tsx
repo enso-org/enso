@@ -27,9 +27,7 @@ import Button from '#/components/styled/Button'
 import type Backend from '#/services/Backend'
 import * as projectManager from '#/services/ProjectManager'
 
-import { FilterBy } from '#/services/Backend'
 import * as array from '#/utilities/array'
-import { tryFindSelfPermission } from '#/utilities/permissions'
 import * as string from '#/utilities/string'
 
 // ================
@@ -61,21 +59,6 @@ export default function Settings() {
   const isQueryBlank = !/\S/.test(query)
 
   const client = reactQuery.useQueryClient()
-  const cloudRootDirectory = backendHooks.useBackendQuery(backend, 'listDirectory', [
-    {
-      parentId: backend.rootDirectoryId(user),
-      filterBy: FilterBy.active,
-      labels: null,
-      recentProjects: false,
-    },
-    '(root)',
-  ])
-  const organizationPermission =
-    !cloudRootDirectory.data?.[0] ?
-      null
-      // FIXME: This is incorrect, but we currently do not have a way to get the permissions
-      // of the actual root directory.
-    : tryFindSelfPermission(user, cloudRootDirectory.data[0].permissions)
   const updateUserMutation = backendHooks.useBackendMutation(backend, 'updateUser', {
     meta: { invalidates: [authQueryKey], awaitInvalidates: true },
   })
@@ -108,7 +91,6 @@ export default function Settings() {
       updateLocalRootPath,
       toastAndLog,
       getText,
-      organizationPermission,
       queryClient: client,
     }),
     [
@@ -122,7 +104,6 @@ export default function Settings() {
       updateOrganization,
       updateUser,
       user,
-      organizationPermission,
       client,
     ],
   )
