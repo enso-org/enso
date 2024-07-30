@@ -28,6 +28,7 @@ import java.net.MalformedURLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -424,28 +425,42 @@ public final class EnsoContext {
   }
 
   /**
-   * Modifies the classpath to use to lookup {@code polyglot java} imports.
+   * Creates a class path. A class path is capable to load Java classes in an isolated manner.
    *
-   * @param file the file to register
+   * @param files files to register
    */
   @TruffleBoundary
-  public void addToClassPath(TruffleFile file) {
-    if (findGuestJava() == null) {
-      try {
-        var url = file.toUri().toURL();
-        hostClassLoader.add(url);
-      } catch (MalformedURLException ex) {
-        throw new IllegalStateException(ex);
+  public EnsoClassPath createClassPath(List<TruffleFile> files) {
+    return new EnsoClassPath(files);
+  }
+
+  public final class EnsoClassPath {
+    //    private final TruffleFile[] files;
+
+    private EnsoClassPath(List<TruffleFile> files) {
+      for (var f : files) {
+        add(f);
       }
-    } else {
-      try {
-        var path = new File(file.toUri()).getAbsoluteFile();
-        if (!path.exists()) {
-          throw new IllegalStateException("File not found " + path);
+    }
+
+    private void add(TruffleFile file) {
+      if (findGuestJava() == null) {
+        try {
+          var url = file.toUri().toURL();
+          hostClassLoader.add(url);
+        } catch (MalformedURLException ex) {
+          throw new IllegalStateException(ex);
         }
-        InteropLibrary.getUncached().invokeMember(findGuestJava(), "addPath", path.getPath());
-      } catch (InteropException ex) {
-        throw new IllegalStateException(ex);
+      } else {
+        try {
+          var path = new File(file.toUri()).getAbsoluteFile();
+          if (!path.exists()) {
+            throw new IllegalStateException("File not found " + path);
+          }
+          InteropLibrary.getUncached().invokeMember(findGuestJava(), "addPath", path.getPath());
+        } catch (InteropException ex) {
+          throw new IllegalStateException(ex);
+        }
       }
     }
   }
@@ -518,11 +533,12 @@ public final class EnsoContext {
    * resolves to an inner class, then the import of the outer class is resolved, and the inner class
    * is looked up by iterating the members of the outer class via Truffle's interop protocol.
    *
+   * @param pkg Enso package to load the class for
    * @param className Fully qualified class name, can also be nested static inner class.
    * @return If the java class is found, return it, otherwise return null.
    */
   @TruffleBoundary
-  public Object lookupJavaClass(String className) {
+  public Object lookupJavaClass(Package<?> pkg, String className) {
     var binaryName = new StringBuilder(className);
     var collectedExceptions = new ArrayList<Exception>();
     for (; ; ) {

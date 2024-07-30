@@ -153,7 +153,7 @@ class IrToTruffle(
     *
     * @param ir the IR to generate code for
     */
-  def run(ir: Module): Unit = processModule(ir)
+  def run(p: org.enso.pkg.Package[_], ir: Module): Unit = processModule(p, ir)
 
   /** Executes the codegen pass on an inline input.
     *
@@ -186,7 +186,10 @@ class IrToTruffle(
     *
     * @param module the module for which code should be generated
     */
-  private def processModule(module: Module): Unit = {
+  private def processModule(
+    p: org.enso.pkg.Package[_],
+    module: Module
+  ): Unit = {
     generateReExportBindings(module)
     val bindingsMap =
       module
@@ -197,7 +200,7 @@ class IrToTruffle(
 
     registerModuleExports(bindingsMap)
     registerModuleImports(bindingsMap)
-    registerPolyglotImports(module)
+    registerPolyglotImports(p, module)
 
     registerTypeDefinitions(module)
     registerMethodDefinitions(module)
@@ -232,10 +235,13 @@ class IrToTruffle(
       }
     }
 
-  private def registerPolyglotImports(module: Module): Unit =
+  private def registerPolyglotImports(
+    p: org.enso.pkg.Package[_],
+    module: Module
+  ): Unit =
     module.imports.foreach {
       case poly @ imports.Polyglot(i: imports.Polyglot.Java, _, _, _, _) =>
-        var hostSymbol = context.lookupJavaClass(i.getJavaName)
+        var hostSymbol = context.lookupJavaClass(p, i.getJavaName)
         if (hostSymbol == null) {
           val err = Text.create(
             s"Incorrect polyglot java import: ${i.getJavaName}"

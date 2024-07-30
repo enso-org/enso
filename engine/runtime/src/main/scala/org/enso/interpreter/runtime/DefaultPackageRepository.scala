@@ -197,7 +197,7 @@ private class DefaultPackageRepository(
     isLibrary: Boolean
   ): Unit = {
     val extensions = pkg.listPolyglotExtensions("java")
-    extensions.foreach(context.addToClassPath)
+    context.createClassPath(extensions.asJava)
 
     val (regularModules, syntheticModulesMetadata) = pkg
       .listSources()
