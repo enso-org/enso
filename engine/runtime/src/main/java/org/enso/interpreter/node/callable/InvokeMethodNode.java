@@ -481,6 +481,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       Object result = childDispatch.execute(frame, state, symbol, selfWithoutWarnings, arguments);
       return appendWarningNode.execute(null, result, warnsMap);
     } catch (TailCallException e) {
+      CompilerDirectives.transferToInterpreter();
       throw new TailCallException(e, Warning.fromMapToArray(warnsMap));
     }
   }
