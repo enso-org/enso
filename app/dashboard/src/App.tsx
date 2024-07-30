@@ -285,11 +285,6 @@ function AppRouter(props: AppRouterProps) {
     [httpClient, logger, getText],
   )
 
-  if (detect.IS_DEV_MODE) {
-    // @ts-expect-error This is used exclusively for debugging.
-    window.navigate = navigate
-  }
-
   const [inputBindingsRaw] = React.useState(() => inputBindingsModule.createBindings())
 
   React.useEffect(() => {

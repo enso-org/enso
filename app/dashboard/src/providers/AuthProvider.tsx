@@ -15,7 +15,7 @@ import * as detect from 'enso-common/src/detect'
 import * as gtag from 'enso-common/src/gtag'
 
 import * as gtagHooks from '#/hooks/gtagHooks'
-import { useNavigate } from '#/hooks/routerHooks'
+import { type PathObject, useAuthNavigate } from '#/hooks/routerHooks'
 
 import * as backendProvider from '#/providers/BackendProvider'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
@@ -33,8 +33,10 @@ import type RemoteBackend from '#/services/RemoteBackend'
 
 import * as errorModule from '#/utilities/error'
 
+import type { AppFullPath } from '#/appUtils'
 import * as cognitoModule from '#/authentication/cognito'
 import type * as authServiceModule from '#/authentication/service'
+import { useEventCallback } from '#/hooks/eventCallbackHooks'
 
 // ===================
 // === UserSession ===
@@ -180,7 +182,7 @@ export default function AuthProvider(props: AuthProviderProps) {
   const { localStorage } = localStorageProvider.useLocalStorage()
   const { getText } = textProvider.useText()
   const { unsetModal } = modalProvider.useSetModal()
-  const navigate = useNavigate()
+  const authNavigate = useAuthNavigate()
   const toastId = React.useId()
 
   const queryClient = reactQuery.useQueryClient()
@@ -230,6 +232,13 @@ export default function AuthProvider(props: AuthProviderProps) {
   )
 
   const { data: userData } = reactQuery.useSuspenseQuery(usersMeQuery)
+
+  const navigate = useEventCallback(
+    (url: AppFullPath | PathObject, options?: router.NavigateOptions) => {
+      const user = userData && 'user' in userData ? userData.user : null
+      authNavigate(user, url, options)
+    },
+  )
 
   const createUserMutation = reactQuery.useMutation({
     mutationFn: (user: backendModule.CreateUserRequestBody) => remoteBackend.createUser(user),
