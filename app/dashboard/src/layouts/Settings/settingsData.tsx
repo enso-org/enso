@@ -40,7 +40,6 @@ import type LocalBackend from '#/services/LocalBackend'
 import type RemoteBackend from '#/services/RemoteBackend'
 
 import * as object from '#/utilities/object'
-import { PermissionAction } from 'enso-common/src/utilities/permissions'
 
 // =========================
 // === SettingsEntryType ===
@@ -57,8 +56,11 @@ export enum SettingsEntryType {
 // =================
 
 /** Whether the current user can edit organization data. */
-function canEditOrganizationData(context: SettingsContext) {
-  return context.organizationPermission?.permission === PermissionAction.own
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function canEditOrganizationData(_context: SettingsContext) {
+  // FIXME: Restore correct behavior once there is an endpoint to get organization permissions.
+  return true
+  // return context.organizationPermission?.permission === PermissionAction.own
 }
 
 export const SETTINGS_NO_RESULTS_SECTION_DATA: SettingsSectionData = {
