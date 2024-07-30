@@ -150,7 +150,7 @@ export class Server {
               : rustFFIWasmName == null ? null
               : path.join(assets, rustFFIWasmName)
             if (server && rustFFIWasmPath != null) {
-              await ydocServer.createGatewayServer(server, rustFFIWasmPath, process.env.YDOC_DEBUG === 'true')
+              await ydocServer.createGatewayServer(server, rustFFIWasmPath, process.env.ENSO_YDOC_LS_DEBUG === 'true')
             } else {
               logger.warn('YDocs server is not run, new GUI may not work properly!')
             }

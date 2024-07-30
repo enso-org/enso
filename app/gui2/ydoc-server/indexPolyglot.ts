@@ -14,12 +14,12 @@ declare global {
 
   const YDOC_HOST: string | undefined
   const YDOC_PORT: number | undefined
-  const YDOC_DEBUG: boolean | undefined
+  const YDOC_LS_DEBUG: boolean | undefined
 }
 
 const host = YDOC_HOST ?? 'localhost'
 const port = YDOC_PORT ?? 1234
-const debug = YDOC_DEBUG ?? false
+const debug = YDOC_LS_DEBUG ?? false
 
 const wss = new WebSocketServer({ host, port })
 

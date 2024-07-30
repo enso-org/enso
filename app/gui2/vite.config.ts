@@ -15,8 +15,8 @@ import { createGatewayServer } from './ydoc-server'
 const projectManagerUrl = 'ws://127.0.0.1:30535'
 
 const IS_CLOUD_BUILD = process.env.CLOUD_BUILD === 'true'
-const POLYGLOT_YDOC_SERVER = process.env.POLYGLOT_YDOC_SERVER
-const YDOC_DEBUG = process.env.YDOC_DEBUG
+const POLYGLOT_YDOC_SERVER = process.env.ENSO_POLYGLOT_YDOC_SERVER
+const YDOC_LS_DEBUG = process.env.ENSO_YDOC_LS_DEBUG
 
 await readEnvironmentFromFile()
 
@@ -92,7 +92,7 @@ function gatewayServer(): Plugin {
     name: 'gateway-server',
     configureServer({ httpServer }) {
       if (httpServer == null || POLYGLOT_YDOC_SERVER != undefined) return
-      createGatewayServer(httpServer, undefined, YDOC_DEBUG === 'true')
+      createGatewayServer(httpServer, undefined, YDOC_LS_DEBUG === 'true')
     },
   }
 }
