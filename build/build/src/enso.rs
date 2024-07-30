@@ -7,8 +7,11 @@ use crate::paths::ENSO_META_TEST_ARGS;
 use crate::paths::ENSO_META_TEST_COMMAND;
 use crate::paths::ENSO_TEST_ANSI_COLORS;
 use crate::postgres;
-use crate::postgres::EndpointConfiguration;
+use crate::postgres::EndpointConfiguration as PostgresEndpointConfiguration;
 use crate::postgres::Postgresql;
+use crate::sqlserver;
+use crate::sqlserver::EndpointConfiguration as SQLServerEndpointConfiguration;
+use crate::sqlserver::SQLServer;
 
 use ide_ci::future::AsyncPolicy;
 use ide_ci::programs::docker::ContainerId;
@@ -142,7 +145,12 @@ impl BuiltEnso {
         let may_need_postgres = match &test_selection {
             StandardLibraryTestsSelection::All => true,
             StandardLibraryTestsSelection::Selected(only) =>
-                only.iter().any(|test| test.contains("Postgres_Tests")),
+                only.iter().any(|test| test.contains("Table_Tests")),
+        };
+        let may_need_sqlserver = match &test_selection {
+            StandardLibraryTestsSelection::All => true,
+            StandardLibraryTestsSelection::Selected(only) =>
+                only.iter().any(|test| test.contains("Microsoft_Tests")),
         };
 
         let _httpbin = crate::httpbin::get_and_spawn_httpbin_on_free_port(sbt).await?;
@@ -162,11 +170,35 @@ impl BuiltEnso {
                     database_name:      "enso_test_db".to_string(),
                     user:               "enso_test_user".to_string(),
                     password:           "enso_test_password".to_string(),
-                    endpoint:           EndpointConfiguration::deduce()?,
+                    endpoint:           PostgresEndpointConfiguration::deduce()?,
                     version:            "latest".to_string(),
                 };
                 let postgres = Postgresql::start(config).await?;
                 Some(postgres)
+            }
+            _ => None,
+        };
+
+        let _sqlserver = match TARGET_OS {
+            OS::Linux if may_need_sqlserver => {
+                let runner_context_string = crate::env::ENSO_RUNNER_CONTAINER_NAME
+                    .get_raw()
+                    .or_else(|_| ide_ci::actions::env::RUNNER_NAME.get())
+                    .unwrap_or_else(|_| Uuid::new_v4().to_string());
+                // GH-hosted runners are named like "GitHub Actions 10". Spaces are not allowed in
+                // the container name.
+                let container_name =
+                    format!("sqlserver-for-{runner_context_string}").replace(' ', "_");
+                let config = sqlserver::Configuration {
+                    sqlserver_container: ContainerId(container_name),
+                    database_name:       "tempdb".to_string(),
+                    user:                "sa".to_string(),
+                    password:            "enso_test_password_<YourStrong@Passw0rd>".to_string(),
+                    endpoint:            SQLServerEndpointConfiguration::deduce()?,
+                    version:             "latest".to_string(),
+                };
+                let sqlserver = SQLServer::start(config).await?;
+                Some(sqlserver)
             }
             _ => None,
         };
