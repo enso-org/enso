@@ -103,9 +103,11 @@ export default function MembersSettingsSection() {
               <td className="border-x-2 border-transparent bg-clip-padding px-cell-x first:rounded-l-full last:rounded-r-full last:border-r-0">
                 <div className="flex flex-col">
                   {getText('active')}
-                  <ariaComponents.ButtonGroup gap="small" className="mt-0.5">
-                    <RemoveMemberButton backend={backend} userId={member.userId} />
-                  </ariaComponents.ButtonGroup>
+                  {member.email !== user.email && (
+                    <ariaComponents.ButtonGroup gap="small" className="mt-0.5">
+                      <RemoveMemberButton backend={backend} userId={member.userId} />
+                    </ariaComponents.ButtonGroup>
+                  )}
                 </div>
               </td>
             </tr>
