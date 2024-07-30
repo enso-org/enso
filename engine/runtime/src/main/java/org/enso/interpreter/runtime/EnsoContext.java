@@ -27,8 +27,9 @@ import java.io.PrintStream;
 import java.net.MalformedURLException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -75,7 +76,7 @@ public final class EnsoContext {
 
   private final EnsoLanguage language;
   private final Env environment;
-  private final HostClassLoader hostClassLoader = new HostClassLoader();
+  private final Map<Package<?>, EnsoClassPath> classPaths = new HashMap<>();
   private final boolean assertionsEnabled;
   private final boolean isPrivateCheckDisabled;
   private final boolean isStaticTypeAnalysisEnabled;
@@ -430,20 +431,21 @@ public final class EnsoContext {
    * @param files files to register
    */
   @TruffleBoundary
-  public EnsoClassPath createClassPath(List<TruffleFile> files) {
-    return new EnsoClassPath(files);
+  public synchronized EnsoClassPath findClassPath(Package<?> pkg) {
+    var l = classPaths.get(pkg);
+    if (l == null) {
+      l = new EnsoClassPath();
+      classPaths.put(pkg, l);
+    }
+    return l;
   }
 
   public final class EnsoClassPath {
-    //    private final TruffleFile[] files;
+    private final HostClassLoader hostClassLoader = new HostClassLoader();
 
-    private EnsoClassPath(List<TruffleFile> files) {
-      for (var f : files) {
-        add(f);
-      }
-    }
+    private EnsoClassPath() {}
 
-    private void add(TruffleFile file) {
+    public void addToClassPath(TruffleFile file) {
       if (findGuestJava() == null) {
         try {
           var url = file.toUri().toURL();
@@ -541,10 +543,11 @@ public final class EnsoContext {
   public Object lookupJavaClass(Package<?> pkg, String className) {
     var binaryName = new StringBuilder(className);
     var collectedExceptions = new ArrayList<Exception>();
+    var cp = findClassPath(pkg);
     for (; ; ) {
       var fqn = binaryName.toString();
       try {
-        var hostSymbol = lookupHostSymbol(fqn);
+        var hostSymbol = lookupHostSymbol(cp.hostClassLoader, fqn);
         if (hostSymbol != null) {
           return hostSymbol;
         }
@@ -566,7 +569,7 @@ public final class EnsoContext {
     return null;
   }
 
-  private Object lookupHostSymbol(String fqn)
+  private Object lookupHostSymbol(ClassLoader hostClassLoader, String fqn)
       throws ClassNotFoundException, UnknownIdentifierException, UnsupportedMessageException {
     try {
       if (findGuestJava() == null) {
