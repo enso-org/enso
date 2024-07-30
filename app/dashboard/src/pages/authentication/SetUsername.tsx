@@ -14,8 +14,6 @@ import AuthenticationPage from '#/pages/authentication/AuthenticationPage'
 import Input from '#/components/Input'
 import SubmitButton from '#/components/SubmitButton'
 
-import * as eventModule from '#/utilities/event'
-
 // ===================
 // === SetUsername ===
 // ===================
@@ -36,8 +34,8 @@ export default function SetUsername() {
       data-testid="set-username-panel"
       title={getText('setYourUsername')}
       supportsOffline={supportsOffline}
-      onSubmit={async (event) => {
-        event.preventDefault()
+      onSubmit={async () => {
+        console.log('submit?!')
         await authSetUsername(backend, username, email)
       }}
     >
@@ -53,11 +51,7 @@ export default function SetUsername() {
         setValue={setUsername}
       />
 
-      <SubmitButton
-        text={getText('setUsername')}
-        icon={ArrowRightIcon}
-        onPress={eventModule.submitForm}
-      />
+      <SubmitButton text={getText('setUsername')} icon={ArrowRightIcon} />
     </AuthenticationPage>
   )
 }
