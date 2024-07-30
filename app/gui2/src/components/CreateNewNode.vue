@@ -52,7 +52,7 @@ const makeFilterPattern = (ast: Ast.Owned<Ast.MutableAst>, columnName: string, i
     (items?.length === 1 && items.indexOf('true') != -1) ||
     (items?.length === 1 && items.indexOf('false') != -1)
   ) {
-    const boolToInclude = items.indexOf('"false"') != -1 ? Ast.parse('False') : Ast.parse('True')
+    const boolToInclude = items.indexOf('false') != -1 ? Ast.parse('False') : Ast.parse('True')
     return filterPattern.value.instantiateCopied([
       Ast.TextLiteral.new(columnName),
       Ast.parse('..Equal'),
