@@ -4,8 +4,10 @@ import {
   MutableModule,
   TextLiteral,
   escapeTextLiteral,
+  findModuleMethod,
   substituteIdentifier,
   substituteQualifiedName,
+  subtrees,
   unescapeTextLiteral,
   type Identifier,
 } from '@/util/ast/abstract'
@@ -423,17 +425,29 @@ test('Insert new expression', () => {
 
 type SimpleModule = {
   root: Ast.BodyBlock
+  main: Ast.Function
+  mainBlock: Ast.BodyBlock
   assignment: Ast.Assignment
 }
 function simpleModule(): SimpleModule {
   const code = 'main =\n    text1 = "foo"\n'
   const root = Ast.parseBlock(code)
-  const main = Ast.functionBlock(root, 'main')!
-  expect(main).not.toBeNull()
-  const assignment: Ast.Assignment = main.statements().next().value
+  const main = findModuleMethod(root, 'main')!
+  const mainBlock = main.body instanceof Ast.BodyBlock ? main.body : null
+  assert(mainBlock != null)
+  expect(mainBlock).toBeInstanceOf(Ast.BodyBlock)
+  const assignment: Ast.Assignment = mainBlock.statements().next().value
   expect(assignment).toBeInstanceOf(Ast.Assignment)
-  return { root, assignment }
+  return { root, main, mainBlock, assignment }
 }
+
+test('Subtrees', () => {
+  const { root, main, mainBlock, assignment } = simpleModule()
+  const module = root.module
+  const subtree = subtrees(module, [assignment.id])
+  expect([...subtree]).toEqual([assignment.id, mainBlock.id, main.id, root.id])
+  expect([...subtree].length).toEqual(4)
+})
 
 test('Modify subexpression', () => {
   const { root, assignment } = simpleModule()
