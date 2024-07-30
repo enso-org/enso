@@ -172,14 +172,14 @@ type Connection
         result = self.jdbc_connection.with_metadata metadata->
             table = Managed_Resource.bracket (metadata.getTables database schema name_like types_vector) .close result_set->
                 result_set_to_table result_set self.dialect.get_type_mapping.make_column_fetcher
-            renamed = table.rename_columns name_dict
+            renamed = table.rename_columns name_dict error_on_missing_columns=False on_problems=..Ignore
             if all_fields then renamed else
                 renamed.select_columns ["Database", "Schema", "Name", "Type", "Description"]
         case include_hidden of
             True -> result
             False ->
                 hidden_tables = self.hidden_table_registry.list_hidden_tables
-                result.filter "Name" (Filter_Condition.Is_In hidden_tables Filter_Action.Remove)
+                result.filter "Name" (Filter_Condition.Is_In hidden_tables ..Remove)
 
     ## PRIVATE
        Checks if the table with the given name exists in the database.

@@ -1,6 +1,7 @@
 package org.enso.runtimeversionmanager.runner
 
 import com.typesafe.scalalogging.Logger
+import org.enso.process.WrappedProcess
 
 import java.nio.file.Path
 import scala.sys.process.Process
@@ -31,6 +32,31 @@ case class Command(
       processBuilder.inheritIO()
       val process = processBuilder.start()
       process.waitFor()
+    }
+
+  /** Runs the command and returns its exit code along with any output produced..
+    *
+    * May return an exception if it is impossible to run the command (for
+    * example due to insufficient permissions or nonexistent executable).
+    *
+    * @param timeoutInSeconds timeout specifying how long this thread will wait
+    *                         for the process to finish until it attempts to kill it
+    */
+  def runAndCaptureOutput(
+    timeoutInSeconds: Option[Long] = Some(300)
+  ): Try[(Int, String)] =
+    wrapError {
+      logger.debug("Executing {}", this)
+      val processBuilder = builder()
+      val process        = processBuilder.start()
+      val wrappedProcess = new WrappedProcess(command, process)
+      val stringBuilder  = new StringBuilder()
+      wrappedProcess.registerStringBuilderAppendTarget(stringBuilder)
+      val result = wrappedProcess.join(
+        waitForDescendants = true,
+        timeoutInSeconds.getOrElse(Long.MaxValue)
+      )
+      (result.exitCode, stringBuilder.toString())
     }
 
   /** Runs the command and returns its standard output as [[String]].

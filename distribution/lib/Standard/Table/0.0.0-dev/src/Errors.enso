@@ -105,9 +105,10 @@ type No_Output_Columns
 
        Pretty prints the no output columns error.
     to_display_text : Text
-    to_display_text self =
-        if self.cause.is_nothing then "The result would contain no columns." else
-            "No columns in the result, because of another problem: "+self.cause.to_display_text
+    to_display_text self = case self.cause of
+        Nothing -> "The result would contain no columns."
+        _ : Text -> self.cause
+        _ -> "No columns in the result, because of another problem: "+self.cause.to_display_text
 
 ## Indicates that one column has been matched by multiple selectors, resulting
    in ambiguous new names.

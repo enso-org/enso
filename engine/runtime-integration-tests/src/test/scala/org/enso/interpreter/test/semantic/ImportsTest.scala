@@ -1,7 +1,7 @@
 package org.enso.interpreter.test.semantic
 
 import org.enso.interpreter.test.{InterpreterException, PackageTest}
-import org.enso.polyglot.RuntimeOptions
+import org.enso.common.RuntimeOptions
 
 class ImportsTest extends PackageTest {
   implicit def messagingNatureOInterpreterException

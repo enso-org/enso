@@ -25,7 +25,11 @@ import org.enso.compiler.core.EnsoParser
 import org.enso.compiler.data.CompilerConfig
 import org.enso.compiler.pass.PassManager
 import org.enso.compiler.pass.analyse._
-import org.enso.compiler.phase.{ImportResolver, ImportResolverAlgorithm}
+import org.enso.compiler.phase.{
+  IdMapProcessor,
+  ImportResolver,
+  ImportResolverAlgorithm
+}
 import org.enso.editions.LibraryName
 import org.enso.pkg.QualifiedName
 import org.enso.common.CompilationStage
@@ -560,6 +564,21 @@ class Compiler(
 
     if (useCaches) {
       if (context.deserializeModule(this, module)) {
+        val updatedIr =
+          IdMapProcessor.updateIr(
+            context.getIr(module),
+            context.getIdMap(module)
+          )
+        if (updatedIr != null) {
+          context.updateModule(
+            module,
+            u => {
+              u.resetScope()
+              u.ir(updatedIr)
+              u.compilationStage(CompilationStage.AFTER_PARSING)
+            }
+          )
+        }
         return
       }
     }
@@ -599,7 +618,9 @@ class Compiler(
     val src   = context.getCharacters(module)
     val idMap = context.getIdMap(module)
     val tree  = ensoCompiler.parse(src)
-    val expr  = ensoCompiler.generateModuleIr(tree, idMap.values)
+    val expr =
+      if (idMap == null) ensoCompiler.generateIR(tree)
+      else ensoCompiler.generateModuleIr(tree, idMap.values)
 
     val exprWithModuleExports =
       if (context.isSynthetic(module))
