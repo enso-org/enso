@@ -157,9 +157,8 @@ function ResendInvitationButton(props: ResendInvitationButtonProps) {
   const { invitation, backend } = props
 
   const { getText } = textProvider.useText()
-  const resendMutation = reactQuery.useMutation({
-    mutationKey: ['resendInvitation', invitation.userEmail],
-    mutationFn: (email: backendModule.EmailAddress) => backend.resendInvitation(email),
+  const resendMutation = backendHooks.useBackendMutation(backend, 'resendInvitation', {
+    mutationKey: [invitation.userEmail],
   })
 
   return (
@@ -168,7 +167,7 @@ function ResendInvitationButton(props: ResendInvitationButtonProps) {
       size="custom"
       loading={resendMutation.isPending}
       onPress={() => {
-        resendMutation.mutate(invitation.userEmail)
+        resendMutation.mutate([invitation.userEmail])
       }}
     >
       {getText('resend')}
@@ -223,7 +222,7 @@ function RemoveInvitationButton(props: RemoveInvitationButtonProps) {
 
   const { getText } = textProvider.useText()
 
-  const removeMutation = backendHooks.useBackendMutation(backend, 'resendInvitation', {
+  const removeMutation = backendHooks.useBackendMutation(backend, 'deleteInvitation', {
     mutationKey: [email],
     meta: { invalidates: [['listInvitations']], awaitInvalidates: true },
   })
