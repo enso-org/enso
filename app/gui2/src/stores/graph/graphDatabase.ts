@@ -14,11 +14,15 @@ import { Vec2 } from '@/util/data/vec2'
 import { ReactiveDb, ReactiveIndex, ReactiveMapping } from '@/util/database/reactiveDb'
 import { syncSet } from '@/util/reactivity'
 import * as set from 'lib0/set'
-import { methodPointerEquals, type MethodCall, type StackItem } from 'shared/languageServerTypes'
-import type { Opt } from 'shared/util/data/opt'
-import type { ExternalId, SourceRange, VisualizationMetadata } from 'shared/yjsModel'
-import { isUuid, sourceRangeKey, visMetadataEquals } from 'shared/yjsModel'
 import { reactive, ref, type Ref } from 'vue'
+import {
+  methodPointerEquals,
+  type MethodCall,
+  type StackItem,
+} from 'ydoc-shared/languageServerTypes'
+import type { Opt } from 'ydoc-shared/util/data/opt'
+import type { ExternalId, SourceRange, VisualizationMetadata } from 'ydoc-shared/yjsModel'
+import { isUuid, sourceRangeKey, visMetadataEquals } from 'ydoc-shared/yjsModel'
 
 export interface MethodCallInfo {
   methodCall: MethodCall

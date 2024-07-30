@@ -20,17 +20,12 @@
     "typecheck": "npm --workspaces --if-present run typecheck",
     "ci-check": "run-p test prettier lint typecheck"
   },
-  "workspaces": [
-    "app/dashboard",
-    "app/ide-desktop/*",
-    "app/gui2",
-    "lib/js/runner"
-  ],
   "pnpm": {
     "overrides": {
       "tslib": "$tslib",
       "jsdom": "^24.1.0",
       "@types/react": "^18.0.27",
+      "ws": "^8.18.0",
       "react-native": "./_IGNORED_",
       "react-native-url-polyfill": "./_IGNORED_",
       "react-native-get-random-values": "./_IGNORED_"

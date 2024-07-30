@@ -6,8 +6,8 @@ import type { WidgetInput } from '@/providers/widgetRegistry'
 import { injectWidgetTree, type CurrentEdit } from '@/providers/widgetTree'
 import type { Ast } from '@/util/ast'
 import { ArgumentInfoKey } from '@/util/callTree'
-import { assertDefined } from 'shared/util/assert'
 import { computed, markRaw, onBeforeUnmount, shallowRef, type ShallowRef } from 'vue'
+import { assertDefined } from 'ydoc-shared/util/assert'
 
 declare const brandWidgetId: unique symbol
 /** Uniquely identifies a widget type. */

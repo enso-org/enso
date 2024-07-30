@@ -12,7 +12,7 @@
     "src/config.json"
   ],
   "references": [
-    { "path": "../../gui2/tsconfig.server.json" },
+    { "path": "../../gui2/tsconfig.app.json" },
     { "path": "../../dashboard" }
   ]
 }

@@ -55,9 +55,6 @@ import { Vec2 } from '@/util/data/vec2'
 import { computedFallback } from '@/util/reactivity'
 import { until } from '@vueuse/core'
 import { encoding, set } from 'lib0'
-import { encodeMethodPointer } from 'shared/languageServerTypes'
-import * as iterable from 'shared/util/data/iterable'
-import { isDevMode } from 'shared/util/detect'
 import {
   computed,
   onMounted,
@@ -69,6 +66,9 @@ import {
   watch,
   type ComponentInstance,
 } from 'vue'
+import { encodeMethodPointer } from 'ydoc-shared/languageServerTypes'
+import * as iterable from 'ydoc-shared/util/data/iterable'
+import { isDevMode } from 'ydoc-shared/util/detect'
 
 import { builtinWidgets } from '@/components/widgets'
 import { injectVisibility } from '@/providers/visibility'

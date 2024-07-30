@@ -3,15 +3,14 @@
 import react from '@vitejs/plugin-react'
 import vue from '@vitejs/plugin-vue'
 import { getDefines, readEnvironmentFromFile } from 'enso-common/src/appConfig'
+import * as tailwindConfig from 'enso-dashboard/tailwind.config'
 import { fileURLToPath } from 'node:url'
 import postcssNesting from 'postcss-nesting'
 import tailwindcss from 'tailwindcss'
 import tailwindcssNesting from 'tailwindcss/nesting'
 import { defineConfig, type Plugin } from 'vite'
 import VueDevTools from 'vite-plugin-vue-devtools'
-// @ts-expect-error
-import * as tailwindConfig from 'enso-dashboard/tailwind.config'
-import { createGatewayServer } from './ydoc-server'
+import { createGatewayServer } from 'ydoc-server'
 const projectManagerUrl = 'ws://127.0.0.1:30535'
 
 const IS_CLOUD_BUILD = process.env.CLOUD_BUILD === 'true'
@@ -47,6 +46,7 @@ export default defineConfig({
     },
   },
   resolve: {
+    conditions: ['source'],
     alias: {
       '/src/entrypoint.ts': fileURLToPath(new URL(entrypoint, import.meta.url)),
       shared: fileURLToPath(new URL('./shared', import.meta.url)),
@@ -91,7 +91,7 @@ function gatewayServer(): Plugin {
     name: 'gateway-server',
     configureServer({ httpServer }) {
       if (httpServer == null || POLYGLOT_YDOC_SERVER != undefined) return
-      createGatewayServer(httpServer, undefined)
+      createGatewayServer(httpServer)
     },
   }
 }

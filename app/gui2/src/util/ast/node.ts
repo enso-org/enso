@@ -2,19 +2,10 @@ import type { NodeDataFromAst } from '@/stores/graph'
 import { Ast } from '@/util/ast'
 import { Prefixes } from '@/util/ast/prefixes'
 
-export let prefixes!: ReturnType<typeof makePrefixes>
-
-function makePrefixes() {
-  return Prefixes.FromLines({
-    enableRecording:
-      'Standard.Base.Runtime.with_enabled_context Standard.Base.Runtime.Context.Output __ <| __',
-  })
-}
-
-/** MUST be called after `initializeFFI`. */
-export function initializePrefixes() {
-  prefixes = prefixes ?? makePrefixes()
-}
+export const prefixes = Prefixes.FromLines({
+  enableRecording:
+    'Standard.Base.Runtime.with_enabled_context Standard.Base.Runtime.Context.Output __ <| __',
+})
 
 export function nodeFromAst(ast: Ast.Ast, isLastLine: boolean): NodeDataFromAst | undefined {
   const { nodeCode, documentation } =

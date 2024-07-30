@@ -6,12 +6,12 @@ import { Transport } from '@open-rpc/client-js/build/transports/Transport'
 import { type ArgumentsType } from '@vueuse/core'
 import { WebSocket as ReconnectingWebSocket } from 'partysocket'
 import { type WebSocketEventMap } from 'partysocket/ws'
-import type { Notifications } from 'shared/languageServerTypes'
-import { AbortScope, type ReconnectingTransportWithWebsocketEvents } from 'shared/util/net'
-import ReconnectingWebSocketTransport from 'shared/util/net/ReconnectingWSTransport'
 import { onScopeDispose } from 'vue'
+import type { Notifications } from 'ydoc-shared/languageServerTypes'
+import { AbortScope, type ReconnectingTransportWithWebsocketEvents } from 'ydoc-shared/util/net'
+import ReconnectingWebSocketTransport from 'ydoc-shared/util/net/ReconnectingWSTransport'
 
-export { AbortScope } from 'shared/util/net'
+export { AbortScope } from 'ydoc-shared/util/net'
 
 export function createRpcTransport(url: string): ReconnectingTransportWithWebsocketEvents {
   if (url.startsWith('mock://')) {

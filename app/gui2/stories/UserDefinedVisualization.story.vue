@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import GraphVisualization from '@/components/GraphEditor/GraphVisualization.vue'
 import { Vec2 } from '@/util/data/vec2'
-import type { VisualizationIdentifier } from 'shared/yjsModel'
 import { computed, ref } from 'vue'
+import type { VisualizationIdentifier } from 'ydoc-shared/yjsModel'
 import MockFSWrapper from '../mock/MockFSWrapper.vue'
 import HstCode from './histoire/HstCode.vue'
 import HstDirectory from './histoire/HstDirectory.vue'

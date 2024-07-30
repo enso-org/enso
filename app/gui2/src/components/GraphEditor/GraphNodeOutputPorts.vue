@@ -4,7 +4,6 @@ import { useDoubleClick } from '@/composables/doubleClick'
 import { useGraphStore, type NodeId } from '@/stores/graph'
 import { isDef } from '@vueuse/core'
 import { setIfUndefined } from 'lib0/map'
-import type { AstId } from 'shared/ast'
 import {
   computed,
   effectScope,
@@ -14,6 +13,7 @@ import {
   watchEffect,
   type EffectScope,
 } from 'vue'
+import type { AstId } from 'ydoc-shared/ast'
 
 const props = defineProps<{ nodeId: NodeId; forceVisible: boolean }>()
 

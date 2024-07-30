@@ -29,10 +29,10 @@ import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import { DEFAULT_ICON, suggestionEntryToIcon } from '@/util/getIconName'
 import { debouncedGetter } from '@/util/reactivity'
-import type { SuggestionId } from 'shared/languageServerTypes/suggestions'
-import type { VisualizationIdentifier } from 'shared/yjsModel'
 import type { ComponentInstance, Ref } from 'vue'
 import { computed, onMounted, onUnmounted, reactive, ref, watch, watchEffect } from 'vue'
+import type { SuggestionId } from 'ydoc-shared/languageServerTypes/suggestions'
+import type { VisualizationIdentifier } from 'ydoc-shared/yjsModel'
 import LoadingSpinner from './LoadingSpinner.vue'
 
 const ITEM_SIZE = 32

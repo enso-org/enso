@@ -8,7 +8,7 @@ import type { SuggestionEntry, SuggestionEntryArgument } from '@/stores/suggesti
 import { Ast } from '@/util/ast'
 import type { AstId } from '@/util/ast/abstract'
 import { findLastIndex, tryGetIndex } from '@/util/data/array'
-import type { ExternalId } from 'shared/yjsModel'
+import type { ExternalId } from 'ydoc-shared/yjsModel'
 import { assert } from './assert'
 
 export const enum ApplicationKind {

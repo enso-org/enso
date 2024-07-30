@@ -4,11 +4,8 @@ import { applyUpdates } from '@/stores/suggestionDatabase/lsUpdate'
 import { unwrap } from '@/util/data/result'
 import { parseDocs } from '@/util/docParser'
 import { tryIdentifier, tryQualifiedName, type QualifiedName } from '@/util/qualifiedName'
-import { initializeFFI } from 'shared/ast/ffi'
-import * as lsTypes from 'shared/languageServerTypes/suggestions'
 import { expect, test } from 'vitest'
-
-await initializeFFI()
+import * as lsTypes from 'ydoc-shared/languageServerTypes/suggestions'
 
 test('Adding suggestion database entries', () => {
   const test = new Fixture()

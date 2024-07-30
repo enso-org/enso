@@ -8,8 +8,8 @@ import { Ast } from '@/util/ast'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import { logEvent } from 'histoire/client'
-import { type SourceRange } from 'shared/yjsModel'
 import { computed, reactive, ref, watchEffect } from 'vue'
+import { type SourceRange } from 'ydoc-shared/yjsModel'
 import { createSetupComponent } from './histoire/utils'
 
 const nodeBinding = ref('binding')

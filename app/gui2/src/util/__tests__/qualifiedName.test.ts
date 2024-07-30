@@ -13,10 +13,7 @@ import {
   type IdentifierOrOperatorIdentifier,
   type QualifiedName,
 } from '@/util/qualifiedName'
-import { initializeFFI } from 'shared/ast/ffi'
 import { expect, test } from 'vitest'
-
-await initializeFFI()
 
 const validIdentifiers = [
   'A',

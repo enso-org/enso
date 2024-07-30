@@ -10,8 +10,6 @@ const DIR_NAME = path.dirname(url.fileURLToPath(import.meta.url))
 const conf = [
   {
     ignores: [
-      'rust-ffi/pkg',
-      'rust-ffi/node-pkg',
       'dist',
       'shared/ast/generated',
       'templates',
@@ -33,9 +31,7 @@ const conf = [
         project: [
           './tsconfig.app.json',
           './tsconfig.node.json',
-          './tsconfig.server.json',
           './tsconfig.app.vitest.json',
-          './tsconfig.server.vitest.json',
           './tsconfig.story.json',
         ],
       },

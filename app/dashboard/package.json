@@ -14,13 +14,12 @@
     "./src/tailwind.css": "./src/tailwind.css"
   },
   "scripts": {
-    "compile": "tsc",
     "typecheck": "tsc --noEmit",
     "build": "vite build",
     "dev": "vite",
     "dev:e2e": "vite -c vite.test.config.ts",
     "dev:e2e:ci": "vite -c vite.test.config.ts build && vite preview --port 8080 --strictPort",
-    "test": "npm run test:unit && npm run test:e2e",
+    "test": "pnpm run test:unit && pnpm run test:e2e",
     "test:unit": "vitest run",
     "test:unit:debug": "vitest",
     "test:e2e": "cross-env NODE_ENV=production playwright test",
@@ -89,7 +88,7 @@
     "tailwindcss-animate": "1.0.7",
     "tailwindcss-react-aria-components": "^1.1.1",
     "typescript": "^5.5.3",
-    "vite": "^5.3.3",
+    "vite": "^5.3.5",
     "vitest": "^1.3.1"
   },
   "overrides": {

@@ -16,11 +16,8 @@ import {
 } from '@/stores/suggestionDatabase/entry'
 import { unwrap } from '@/util/data/result'
 import { tryIdentifier, tryQualifiedName } from '@/util/qualifiedName'
-import { initializeFFI } from 'shared/ast/ffi'
-import { assertUnreachable } from 'shared/util/assert'
 import { expect, test } from 'vitest'
-
-await initializeFFI()
+import { assertUnreachable } from 'ydoc-shared/util/assert'
 
 const aiMock = { query: assertUnreachable }
 const operator1Id = '3d0e9b96-3ca0-4c35-a820-7d3a1649de55' as NodeId
