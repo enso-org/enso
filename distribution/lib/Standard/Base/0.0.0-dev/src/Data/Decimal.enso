@@ -92,10 +92,6 @@ type Decimal
     ## PRIVATE
     From_Float (big_decimal : BigDecimal) (original_value : Float)
 
-    trep self = case self of
-        Decimal.Value bd -> ['value', bd]
-        Decimal.From_Float bd f -> ['from_float', bd, f]
-
     ## ICON input_number
        Construct a `Decimal` from a `Text`, `Integer` or `Float`.
 
