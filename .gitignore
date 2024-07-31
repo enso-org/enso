@@ -73,6 +73,7 @@ node_modules/
 .metals
 tools/performance/engine-benchmarks/generated_site
 *.tsbuildinfo
+vite.config.ts.timestamp-*.mjs
 
 ############################
 ## Rendered Documentation ##

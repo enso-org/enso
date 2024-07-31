@@ -1,5 +1,5 @@
-import { rangeEncloses, rangeIntersects, type SourceRange } from '#/yjsModel'
 import { expect, test } from 'vitest'
+import { rangeEncloses, rangeIntersects, type SourceRange } from '../yjsModel'
 
 type RangeTest = { a: SourceRange; b: SourceRange }
 

@@ -1,7 +1,6 @@
 /** @file A simple HTTP server which serves application data to the Electron web-view. */
 
 import * as mkcert from 'mkcert'
-import * as fsSync from 'node:fs'
 import * as fs from 'node:fs/promises'
 import * as http from 'node:http'
 import * as path from 'node:path'
@@ -15,7 +14,7 @@ import type * as vite from 'vite'
 import * as projectManagement from '@/projectManagement'
 import * as common from 'enso-common'
 import GLOBAL_CONFIG from 'enso-common/src/config.json' assert { type: 'json' }
-import * as ydocServer from 'enso-gui2/ydoc-server'
+import * as ydocServer from 'ydoc-server'
 
 import * as contentConfig from '@/contentConfig'
 import * as paths from '@/paths'
@@ -137,20 +136,8 @@ export class Server {
               reject(err)
             }
             const server = httpsServer ?? httpServer
-            // Prepare the YDoc server access point for the new Vue-based GUI.
-            // TODO[ao]: This is very ugly quickfix to make our rust-ffi WASM
-            // working both in browser and in ydocs server. Doing it properly
-            // is tracked in https://github.com/enso-org/enso/issues/8931
-            const assets = path.join(paths.ASSETS_PATH, 'assets')
-            const bundledFiles = fsSync.existsSync(assets) ? await fs.readdir(assets) : []
-            const rustFFIWasmName = bundledFiles.find(name => /rust_ffi_bg-.*\.wasm/.test(name))
-            const rustFFIWasmPath =
-              process.env.ELECTRON_DEV_MODE === 'true' ?
-                path.resolve('../../rust-ffi/web-pkg/rust_ffi_bg.wasm')
-              : rustFFIWasmName == null ? null
-              : path.join(assets, rustFFIWasmName)
-            if (server && rustFFIWasmPath != null) {
-              await ydocServer.createGatewayServer(server, rustFFIWasmPath)
+            if (server) {
+              await ydocServer.createGatewayServer(server)
             } else {
               logger.warn('YDocs server is not run, new GUI may not work properly!')
             }

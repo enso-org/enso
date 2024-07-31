@@ -1,9 +1,9 @@
+import * as encoding from 'lib0/encoding'
 import type {
   SuggestionsDatabaseEntry,
   SuggestionsDatabaseUpdate,
-} from '#/languageServerTypes/suggestions'
-import type { ExternalId, Uuid } from '#/yjsModel'
-import * as encoding from 'lib0/encoding'
+} from './languageServerTypes/suggestions'
+import type { ExternalId, Uuid } from './yjsModel'
 
 export type { Uuid }
 

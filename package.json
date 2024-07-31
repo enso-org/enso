@@ -13,6 +13,7 @@
   },
   "name": "root",
   "scripts": {
+    "dev:gui2": "pnpm run --parallel -r --filter enso-gui2 --filter ydoc-server-nodejs /^dev:/",
     "format": "prettier --write .",
     "prettier": "prettier --check .",
     "lint": "npm --workspaces --if-present run lint",
@@ -21,14 +22,12 @@
     "ci-check": "run-p test prettier lint typecheck"
   },
   "pnpm": {
+    "//": "To completely ignore deep dependencies, see .pnpmfile.cjs",
     "overrides": {
       "tslib": "$tslib",
       "jsdom": "^24.1.0",
       "@types/react": "^18.0.27",
-      "ws": "^8.18.0",
-      "react-native": "./_IGNORED_",
-      "react-native-url-polyfill": "./_IGNORED_",
-      "react-native-get-random-values": "./_IGNORED_"
+      "ws": "^8.18.0"
     },
     "packageExtensions": {
       "@aws-amplify/auth": {

@@ -1,5 +1,5 @@
-import { combineFileParts, splitFileContents } from '#/ensoFile'
 import { expect, test } from 'vitest'
+import { combineFileParts, splitFileContents } from '../ensoFile'
 
 const cases = [
   `foo`,

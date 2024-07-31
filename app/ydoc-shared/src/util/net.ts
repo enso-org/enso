@@ -1,14 +1,18 @@
-import { type Result, type ResultError } from '#/util/data/result'
-import {
-  type AddEventListenerOptions,
-  default as ReconnectingWebSocketTransport,
-} from '#/util/net/ReconnectingWSTransport'
-import { Transport } from '@open-rpc/client-js/build/transports/Transport'
-import { type ObservableV2 } from 'lib0/observable'
+import type { ObservableV2 } from 'lib0/observable'
 import { wait } from 'lib0/promise'
-import { type WebSocketEventMap } from 'partysocket/ws'
+import type { Result, ResultError } from './data/result'
+import { type MockTransportData, MockWebSocketTransport } from './net/MockWSTransport'
+import {
+  ReconnectingWebSocket,
+  ReconnectingWebSocketTransport,
+} from './net/ReconnectingWSTransport'
 
-export { ReconnectingWebSocketTransport }
+export {
+  MockWebSocketTransport,
+  ReconnectingWebSocket,
+  ReconnectingWebSocketTransport,
+  type MockTransportData,
+}
 interface Disposable {
   dispose(): void
 }
@@ -173,18 +177,4 @@ export function printingCallbacks(successDescription: string, errorDescription: 
     onSuccess: defaultOnSuccess(successDescription),
     onFailure: defaultOnFailure(errorDescription),
   } satisfies BackoffOptions<unknown>
-}
-
-export type ReconnectingTransportWithWebsocketEvents = Transport & {
-  on<K extends keyof WebSocketEventMap>(
-    type: K,
-    cb: (event: WebSocketEventMap[K]) => void,
-    options?: AddEventListenerOptions,
-  ): void
-  off<K extends keyof WebSocketEventMap>(
-    type: K,
-    cb: (event: WebSocketEventMap[K]) => void,
-    options?: AddEventListenerOptions,
-  ): void
-  reconnect(): void
 }

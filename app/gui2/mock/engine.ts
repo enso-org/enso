@@ -1,8 +1,8 @@
 import { Pattern } from '@/util/ast/match'
 import type { MockYdocProviderImpl } from '@/util/crdt'
+import type { WebSocketHandler } from '@/util/net'
+import type { QualifiedName } from '@/util/qualifiedName'
 import * as random from 'lib0/random'
-import type { MockTransportData, WebSocketHandler } from 'src/util/net'
-import type { QualifiedName } from 'src/util/qualifiedName'
 import * as Ast from 'ydoc-shared/ast'
 import {
   Builder,
@@ -23,6 +23,7 @@ import type {
   response,
 } from 'ydoc-shared/languageServerTypes'
 import type { SuggestionEntry } from 'ydoc-shared/languageServerTypes/suggestions'
+import type { MockTransportData } from 'ydoc-shared/util/net'
 import { uuidToBits } from 'ydoc-shared/uuid'
 import * as Y from 'yjs'
 import { mockFsDirectoryHandle, type FileTree } from '../src/util/convert/fsAccess'

@@ -1,6 +1,6 @@
-import { Err, Ok, ResultError } from '#/util/data/result'
-import { exponentialBackoff } from '#/util/net'
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
+import { Err, Ok, ResultError } from '../data/result'
+import { exponentialBackoff } from '../net'
 
 beforeEach(() => {
   vi.useFakeTimers()

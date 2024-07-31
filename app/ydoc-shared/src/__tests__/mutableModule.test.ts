@@ -1,6 +1,6 @@
-import { __TEST, isAstId } from '#/ast/mutableModule'
 import { fc, test } from '@fast-check/vitest'
 import { expect } from 'vitest'
+import { __TEST, isAstId } from '../ast/mutableModule'
 
 const { newAstId } = __TEST
 

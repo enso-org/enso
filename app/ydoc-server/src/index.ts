@@ -18,13 +18,16 @@ import { setupGatewayClient } from './ydoc.js'
 
 export { docName, setupGatewayClient }
 
-export async function createGatewayServer(httpServer: Server | Http2SecureServer) {
+export async function createGatewayServer(
+  httpServer: Server | Http2SecureServer,
+  overrideLanguageServerUrl?: string,
+) {
   const { WebSocketServer } = await import('isomorphic-ws')
 
   const wss = new WebSocketServer({ noServer: true })
   wss.on('connection', (ws: WebSocket, _request: IncomingMessage, data: ConnectionData) => {
     ws.on('error', onWebSocketError)
-    setupGatewayClient(ws, data.lsUrl, data.doc)
+    setupGatewayClient(ws, overrideLanguageServerUrl ?? data.lsUrl, data.doc)
   })
 
   httpServer.on('upgrade', (request, socket, head) => {

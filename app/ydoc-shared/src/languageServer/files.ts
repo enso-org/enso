@@ -1,6 +1,6 @@
-import { type LanguageServer } from '#/languageServer'
-import type { FileSystemObject, Path } from '#/languageServerTypes'
-import { Err, Ok, type Result } from '#/util/data/result'
+import type { FileSystemObject, Path } from '../languageServerTypes'
+import { Err, Ok, type Result } from '../util/data/result'
+import { type LanguageServer } from './index'
 
 export async function walkFs(
   ls: LanguageServer,

@@ -12,7 +12,6 @@
     "src/config.json"
   ],
   "references": [
-    { "path": "../../gui2/tsconfig.app.json" },
     { "path": "../../dashboard" }
   ]
 }

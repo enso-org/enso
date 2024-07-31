@@ -10,11 +10,11 @@ import tailwindcss from 'tailwindcss'
 import tailwindcssNesting from 'tailwindcss/nesting'
 import { defineConfig, type Plugin } from 'vite'
 import VueDevTools from 'vite-plugin-vue-devtools'
-import { createGatewayServer } from 'ydoc-server'
+import wasm from 'vite-plugin-wasm'
 const projectManagerUrl = 'ws://127.0.0.1:30535'
 
 const IS_CLOUD_BUILD = process.env.CLOUD_BUILD === 'true'
-const POLYGLOT_YDOC_SERVER = process.env.POLYGLOT_YDOC_SERVER
+const YDOC_SERVER = process.env.POLYGLOT_YDOC_SERVER ?? 'ws://localhost:5976'
 
 await readEnvironmentFromFile()
 
@@ -27,13 +27,13 @@ export default defineConfig({
   publicDir: fileURLToPath(new URL('./public', import.meta.url)),
   envDir: fileURLToPath(new URL('.', import.meta.url)),
   plugins: [
+    wasm(),
     VueDevTools(),
     vue(),
     react({
       include: fileURLToPath(new URL('../dashboard/**/*.tsx', import.meta.url)),
       babel: { plugins: ['@babel/plugin-syntax-import-attributes'] },
     }),
-    gatewayServer(),
     ...(process.env.NODE_ENV === 'development' ? [await projectManagerShim()] : []),
   ],
   optimizeDeps: {
@@ -57,8 +57,7 @@ export default defineConfig({
     ...getDefines(),
     IS_CLOUD_BUILD: JSON.stringify(IS_CLOUD_BUILD),
     PROJECT_MANAGER_URL: JSON.stringify(projectManagerUrl),
-    YDOC_SERVER_URL: JSON.stringify(POLYGLOT_YDOC_SERVER),
-    RUNNING_VITEST: false,
+    YDOC_SERVER_URL: JSON.stringify(YDOC_SERVER),
     'import.meta.vitest': false,
     // Single hardcoded usage of `global` in aws-amplify.
     'global.TYPED_ARRAY_SUPPORT': true,
@@ -85,17 +84,6 @@ export default defineConfig({
     chunkSizeWarningLimit: 700,
   },
 })
-
-function gatewayServer(): Plugin {
-  return {
-    name: 'gateway-server',
-    configureServer({ httpServer }) {
-      if (httpServer == null || POLYGLOT_YDOC_SERVER != undefined) return
-      createGatewayServer(httpServer)
-    },
-  }
-}
-
 async function projectManagerShim(): Promise<Plugin> {
   const module = await import('./project-manager-shim-middleware')
   return {

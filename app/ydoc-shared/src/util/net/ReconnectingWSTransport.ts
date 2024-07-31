@@ -4,16 +4,12 @@
  * which uses the automatically reconnecting websocket.
  */
 
-import { ERR_UNKNOWN, JSONRPCError } from '@open-rpc/client-js/build/Error'
-import {
-  getBatchRequests,
-  getNotifications,
-  type JSONRPCRequestData,
-} from '@open-rpc/client-js/build/Request'
-import { Transport } from '@open-rpc/client-js/build/transports/Transport'
+import { WebSocketTransport } from '@open-rpc/client-js'
 import WS from 'isomorphic-ws'
 import { WebSocket } from 'partysocket'
-import { type WebSocketEventMap } from 'partysocket/ws'
+import ReconnectingWebSocket, { type WebSocketEventMap } from 'partysocket/ws'
+
+export { ReconnectingWebSocket }
 
 export interface AddEventListenerOptions {
   capture?: boolean
@@ -22,49 +18,18 @@ export interface AddEventListenerOptions {
   signal?: AbortSignal
 }
 
-class ReconnectingWebSocketTransport extends Transport {
-  public connection: WebSocket
-  public uri: string
-
+export class ReconnectingWebSocketTransport extends WebSocketTransport {
+  private _reconnectingConnection: ReconnectingWebSocket
   constructor(uri: string) {
-    super()
+    super(uri)
     this.uri = uri
-    this.connection = new WebSocket(uri, undefined, { WebSocket: WS })
-  }
-
-  public connect(): Promise<any> {
-    return new Promise<void>((resolve) => {
-      this.connection.addEventListener('open', () => resolve(), { once: true })
-      this.connection.addEventListener('message', ({ data }: { data: string }) => {
-        this.transportRequestManager.resolveResponse(data)
-      })
-    })
+    this._reconnectingConnection = new WebSocket(uri, undefined, { WebSocket: WS })
+    // Make sure that the WebSocketTransport implementation uses this version of socket.
+    this.connection = this._reconnectingConnection as any
   }
 
   public reconnect() {
-    this.connection.reconnect()
-  }
-
-  public async sendData(data: JSONRPCRequestData, timeout: number | null = 5000): Promise<any> {
-    let promise = this.transportRequestManager.addRequest(data, timeout)
-    const notifications = getNotifications(data)
-    try {
-      this.connection.send(JSON.stringify(this.parseData(data)))
-      this.transportRequestManager.settlePendingRequest(notifications)
-    } catch (err) {
-      const jsonError = new JSONRPCError((err as any).message, ERR_UNKNOWN, err)
-
-      this.transportRequestManager.settlePendingRequest(notifications, jsonError)
-      this.transportRequestManager.settlePendingRequest(getBatchRequests(data), jsonError)
-
-      promise = Promise.reject(jsonError)
-    }
-
-    return promise
-  }
-
-  public close(): void {
-    this.connection.close()
+    this._reconnectingConnection.reconnect()
   }
 
   on<K extends keyof WebSocketEventMap>(
@@ -74,7 +39,7 @@ class ReconnectingWebSocketTransport extends Transport {
     ) => WebSocketEventMap[K] extends Event ? void : never,
     options?: AddEventListenerOptions,
   ): void {
-    this.connection.addEventListener(type, cb, options)
+    this._reconnectingConnection.addEventListener(type, cb, options)
   }
 
   off<K extends keyof WebSocketEventMap>(
@@ -84,8 +49,6 @@ class ReconnectingWebSocketTransport extends Transport {
     ) => WebSocketEventMap[K] extends Event ? void : never,
     options?: AddEventListenerOptions,
   ): void {
-    this.connection.removeEventListener(type, cb, options)
+    this._reconnectingConnection.removeEventListener(type, cb, options)
   }
 }
-
-export default ReconnectingWebSocketTransport

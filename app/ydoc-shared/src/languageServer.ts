@@ -1,4 +1,10 @@
-import { walkFs } from '#/languageServer/files'
+import { sha3_224 as SHA3 } from '@noble/hashes/sha3'
+import { bytesToHex } from '@noble/hashes/utils'
+import { Client, RequestManager } from '@open-rpc/client-js'
+import { ObservableV2 } from 'lib0/observable'
+import { uuidv4 } from 'lib0/random'
+import { z } from 'zod'
+import { walkFs } from './languageServer/files'
 import type {
   Checksum,
   ContentRoot,
@@ -13,24 +19,14 @@ import type {
   Notifications,
   Path,
   RegisterOptions,
+  response,
   StackItem,
   TextFileContents,
   VisualizationConfiguration,
-  response,
-} from '#/languageServerTypes'
-import { Err, Ok, type Result } from '#/util/data/result'
-import {
-  AbortScope,
-  exponentialBackoff,
-  type ReconnectingTransportWithWebsocketEvents,
-} from '#/util/net'
-import type { Uuid } from '#/yjsModel'
-import { sha3_224 as SHA3 } from '@noble/hashes/sha3'
-import { bytesToHex } from '@noble/hashes/utils'
-import { Client, RequestManager } from '@open-rpc/client-js'
-import { ObservableV2 } from 'lib0/observable'
-import { uuidv4 } from 'lib0/random'
-import { z } from 'zod'
+} from './languageServerTypes'
+import { Err, Ok, type Result } from './util/data/result'
+import { AbortScope, exponentialBackoff, ReconnectingWebSocketTransport } from './util/net'
+import type { Uuid } from './yjsModel'
 
 const DEBUG_LOG_RPC = false
 const RPC_TIMEOUT_MS = 15000
@@ -143,7 +139,7 @@ export class LanguageServer extends ObservableV2<Notifications & TransportEvents
 
   constructor(
     private clientID: Uuid,
-    private transport: ReconnectingTransportWithWebsocketEvents,
+    private transport: ReconnectingWebSocketTransport,
   ) {
     super()
     this.initialized = this.scheduleInitializationAfterConnect()

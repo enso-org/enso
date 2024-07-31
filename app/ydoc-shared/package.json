@@ -9,10 +9,11 @@
   },
   "scripts": {
     "test": "vitest",
-    "compile": "pnpm run generate-ast-schema && pnpm run generate-ast-types && tsc",
+    "compile": "tsc",
     "clean": "rimraf --glob src/ast/generated/*.{json,ts}",
-    "generate-ast-schema": "cargo run -p enso-parser-schema > src/ast/generated/ast-schema.json",
-    "generate-ast-types": "vite-node ./parser-codegen/index.ts src/ast/generated/ast-schema.json src/ast/generated/ast.ts",
+    "generate": "pnpm run generate:ast-schema && pnpm run generate:ast-types",
+    "generate:ast-schema": "cargo run -p enso-parser-schema > src/ast/generated/ast-schema.json",
+    "generate:ast-types": "vite-node ./parser-codegen/index.ts src/ast/generated/ast-schema.json src/ast/generated/ast.ts",
     "lint": "eslint .",
     "format": "prettier --version && prettier --write src/ && eslint . --fix"
   },
@@ -39,7 +40,6 @@
     "partysocket": "^1.0.1",
     "rimraf": "^6.0.1",
     "rust-ffi": "workspace:*",
-    "vite-node": "^2.0.4",
     "yjs": "^13.6.7",
     "zod": "^3.23.8"
   },
@@ -48,7 +48,9 @@
     "@tsconfig/node20": "^20.1.4",
     "@types/node": "^20.11.21",
     "typescript": "^5.5.3",
-    "vite": "^5.3.5",
-    "vitest": "^1.3.1"
+    "vitest": "^1.3.1",
+    "vite-node": "^2.0.4",
+    "vite-plugin-wasm": "^3.3.0"
+
   }
 }

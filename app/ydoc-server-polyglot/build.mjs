@@ -3,6 +3,8 @@ import fs from 'fs/promises'
 import path from 'path'
 import url from 'url'
 
+const watchMode = process.argv[2] === 'watch'
+
 const ctx = await esbuild.context({
   outfile: 'dist/main.cjs',
   sourcemap: 'linked',
@@ -10,11 +12,11 @@ const ctx = await esbuild.context({
   bundle: true,
   platform: 'browser',
   plugins: [usePolyglotFfi()],
-  // conditions: ['source'],
+  conditions: watchMode ? ['source'] : [],
   format: 'cjs',
   metafile: true,
 })
-if (process.argv[2] === 'watch') await ctx.watch()
+if (watchMode) await ctx.watch()
 else {
   const result = await ctx.rebuild()
   await fs.writeFile('meta.json', JSON.stringify(result.metafile))
