@@ -201,7 +201,6 @@ const newNodeSelectorValues = computed(() => {
       tooltipValue = 'value'
       break
     case ROW_NODE_TYPE:
-      identifierAction = 'at'
       tooltipValue = 'value'
       break
     case EXCEL_WORKBOOK_NODE_TYPE:
@@ -428,9 +427,11 @@ function toRowField(name: string, valueType?: ValueType | null | undefined) {
 }
 
 function getAstPattern(selector: string | number, action: string) {
+  const identifierAction =
+    config.nodeType === (COLUMN_NODE_TYPE || VECTOR_NODE_TYPE) ? 'at' : action
   return Pattern.new((ast) =>
     Ast.App.positional(
-      Ast.PropertyAccess.new(ast.module, ast, Ast.identifier(action)!),
+      Ast.PropertyAccess.new(ast.module, ast, Ast.identifier(identifierAction)!),
       typeof selector === 'number' ?
         Ast.tryNumberToEnso(selector, ast.module)!
       : Ast.TextLiteral.new(selector, ast.module),
@@ -439,7 +440,6 @@ function getAstPattern(selector: string | number, action: string) {
 }
 
 function createNode(params: CellClickedEvent, selector: string, action?: string) {
-  console.log({ action })
   if (action) {
     config.createNodes({
       content: getAstPattern(params.data[selector], action),
