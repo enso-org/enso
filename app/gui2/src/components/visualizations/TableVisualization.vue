@@ -422,23 +422,26 @@ function toRowField(name: string, valueType?: ValueType | null | undefined) {
   }
 }
 
-function getAstPattern(selector: string | number, action: string) {
+function getAstPattern(selector: string | number, action?: string) {
   const identifierAction =
     config.nodeType === (COLUMN_NODE_TYPE || VECTOR_NODE_TYPE) ? 'at' : action
-  return Pattern.new((ast) =>
-    Ast.App.positional(
-      Ast.PropertyAccess.new(ast.module, ast, Ast.identifier(identifierAction)!),
-      typeof selector === 'number' ?
-        Ast.tryNumberToEnso(selector, ast.module)!
-      : Ast.TextLiteral.new(selector, ast.module),
-    ),
-  )
+  if (identifierAction) {
+    return Pattern.new((ast) =>
+      Ast.App.positional(
+        Ast.PropertyAccess.new(ast.module, ast, Ast.identifier(identifierAction)!),
+        typeof selector === 'number' ?
+          Ast.tryNumberToEnso(selector, ast.module)!
+        : Ast.TextLiteral.new(selector, ast.module),
+      ),
+    )
+  }
 }
 
 function createNode(params: CellClickedEvent, selector: string, action?: string) {
-  if (action) {
+  const pattern = getAstPattern(params.data[selector], action)
+  if (pattern) {
     config.createNodes({
-      content: getAstPattern(params.data[selector], action),
+      content: pattern,
       commit: true,
     })
   }

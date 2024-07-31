@@ -64,14 +64,15 @@ max_columns = 250
 make_json_for_vector : Vector -> Integer -> JS_Object
 make_json_for_vector vector max_rows =
     all_rows = ["all_rows_count", vector.length]
+    get_child_node = ["get_child_node", "at"]
     truncated = vector.take max_rows
     some_values = truncated.any (v->v.is_nothing.not)
-    if some_values.not then JS_Object.from_pairs [["type", "Vector"], all_rows, ["json", truncated.map make_json_for_value]] else
+    if some_values.not then JS_Object.from_pairs [["type", "Vector"], all_rows, ["json", truncated.map make_json_for_value], get_child_node] else
         matrix = make_json_for_matrix (Builder.new truncated.length) truncated
-        if matrix.is_nothing.not then JS_Object.from_pairs [["type", "Matrix"], all_rows, ["json", matrix], ["column_count", matrix.fold 0 c->v-> if v.is_nothing then c else c.max v.length]] else
+        if matrix.is_nothing.not then JS_Object.from_pairs [["type", "Matrix"], all_rows, ["json", matrix], ["column_count", matrix.fold 0 c->v-> if v.is_nothing then c else c.max v.length], get_child_node] else
             object_matrix = make_json_for_object_matrix (Builder.new truncated.length) truncated
-            if object_matrix.is_nothing.not then JS_Object.from_pairs [["type", "Object_Matrix"], all_rows, ["json", object_matrix]] else
-                JS_Object.from_pairs [["type", "Vector"], all_rows, ["json", truncated.map make_json_for_value]]
+            if object_matrix.is_nothing.not then JS_Object.from_pairs [["type", "Object_Matrix"], all_rows, ["json", object_matrix], get_child_node] else
+                JS_Object.from_pairs [["type", "Vector"], all_rows, ["json", truncated.map make_json_for_value], get_child_node]
 
 ## PRIVATE
    Render Vector of Vector / Array to JSON
@@ -124,7 +125,8 @@ make_json_for_dictionary dict max_items key_name="key" =
     as_vector = Warning.clear (dict.to_vector.take max_items)
     mapped = as_vector . map p-> [p.first.to_text, make_json_for_value p.second]
     data = ["data", [mapped.map .first, mapped.map .second]]
-    JS_Object.from_pairs [header, data, all_rows, ["type", "Map"]]
+    links = ["get_child_node", "at"]
+    JS_Object.from_pairs [header, data, all_rows, links, ["type", "Map"]]
 
 ## PRIVATE
    Render JS_Object to JSON
