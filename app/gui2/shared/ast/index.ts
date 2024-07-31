@@ -43,7 +43,7 @@ export function parentId(ast: Ast): AstId | undefined {
 export function subtrees(module: Module, ids: Iterable<AstId>) {
   return reachable(ids, (id) => {
     const parent = module.tryGet(id)?.parent()
-    return parent ? [id, parent.id] : []
+    return parent ? [id, parent.id] : [id]
   })
 }
 

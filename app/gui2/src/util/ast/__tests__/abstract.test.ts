@@ -444,8 +444,12 @@ function simpleModule(): SimpleModule {
 test('Subtrees', () => {
   const { root, main, mainBlock, assignment } = simpleModule()
   const module = root.module
-  const subtree = subtrees(module, [assignment.id])
-  expect([...subtree]).toEqual([assignment.id, mainBlock.id, main.id, root.id])
+  expect(subtrees(module, [assignment.id])).toEqual(
+    new Set([assignment.id, mainBlock.id, main.id, root.id]),
+  )
+  expect(subtrees(module, [mainBlock.id])).toEqual(new Set([mainBlock.id, main.id, root.id]))
+  expect(subtrees(module, [main.id])).toEqual(new Set([main.id, root.id]))
+  expect(subtrees(module, [root.id])).toEqual(new Set([root.id]))
 })
 
 test('Modify subexpression', () => {
