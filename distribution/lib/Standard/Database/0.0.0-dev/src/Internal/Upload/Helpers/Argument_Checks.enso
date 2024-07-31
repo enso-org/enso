@@ -89,12 +89,3 @@ check_update_arguments_structure_match source_table target_table key_columns upd
    It is a panic, because it is never expected to happen in user code - if it
    happens, it is a bug in our code.
 check_transaction_ddl_support connection =
-    connection.jdbc_connection.with_metadata metadata->
-        supports_ddl = metadata.supportsDataDefinitionAndDataManipulationTransactions && metadata.dataDefinitionIgnoredInTransactions.not
-        if supports_ddl.not then
-            Panic.throw (Illegal_State.Error "The connection "+connection.to_text+" does not support transactional DDL statements. Our current implementation of table updates relies on transactional DDL. To support this driver, the logic needs to be amended.")
-        ddl_causes_commit = metadata.dataDefinitionCausesTransactionCommit
-        if ddl_causes_commit then
-            # TODO fix for Snowflake support
-            #Panic.throw (Illegal_State.Error "The connection "+connection.to_text+" does not fully support DDL statements as part of complex transactions - DDL causes a commit, so we cannot compose it. To support this driver, the logic needs to be amended.")
-            Nothing
