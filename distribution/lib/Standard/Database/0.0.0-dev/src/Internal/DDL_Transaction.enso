@@ -1,7 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Data.Vector.Builder as Vector_Builder
-import Standard.Base.Errors.Illegal_State.Illegal_State
 
+import project.Column_Description.Column_Description
 import project.DB_Table.DB_Table
 import project.Internal.In_Transaction.In_Transaction
 
@@ -34,12 +34,11 @@ type Support_Level
                         Support_Level.Allowed
 
 type Transactional_Table_Description
-    Value
+    Value name:Text temporary:Boolean (structure : Vector Column_Description) (primary_key : Vector Text | Nothing)
 
     ## PRIVATE
     private create self connection -> DB_Table =
-        "TODO"
-
+        connection.create_table self.name self.structure primary_key=self.primary_key temporary=self.temporary
 
 ## PRIVATE
    A helper that runs the provided code in a transaction, having first created the specified tables.
@@ -86,9 +85,10 @@ private create_tables_outside_transaction connection (tables : Vector Transactio
                 already_created_tables.append table.name
                 table
 
-        # If there were no errors, we now
+        # If there were no errors, we now run the callback inside of a proper transaction.
         result = created.if_not_error <|
-            callback created
+            connection.jdbc_connection.run_within_transaction <|
+                callback created
 
         ## If the operation failed, we clean up all the tables we created.
            Otherwise, we only clean up the temporary tables at the end.
