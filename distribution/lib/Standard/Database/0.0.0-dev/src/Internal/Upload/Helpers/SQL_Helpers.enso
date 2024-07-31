@@ -1,0 +1,38 @@
+private
+
+from Standard.Base import all
+import Standard.Base.Data.Vector.No_Wrap
+
+import project.Column_Description.Column_Description
+import project.Connection.Connection.Connection
+import project.Internal.IR.Create_Column_Descriptor.Create_Column_Descriptor
+import project.Internal.IR.Query.Query
+import project.Internal.IR.SQL_Expression.SQL_Expression
+import project.SQL_Query.SQL_Query
+import project.SQL_Statement.SQL_Statement
+
+## PRIVATE
+make_batched_insert_template : Connection -> Text -> Vector (Vector Text) -> SQL_Query
+make_batched_insert_template connection table_name column_names =
+    # We add Nothing as placeholders, they will be replaced with the actual values later.
+    pairs = column_names.map name->[name, SQL_Expression.Constant Nothing]
+    query = connection.dialect.generate_sql <| Query.Insert table_name pairs
+    template = query.prepare.first
+    template
+
+## PRIVATE
+   Creates a statement that will create a table with structure determined by the
+   provided columns.
+
+   The `primary_key` columns must be present in `columns`, but it is the
+   responsibility of the caller to ensure that, otherwise the generated
+   statement will be invalid.
+prepare_create_table_statement : Connection -> Text -> Vector Column_Description -> Vector Text -> Boolean -> Problem_Behavior -> SQL_Statement
+prepare_create_table_statement connection table_name columns primary_key temporary on_problems:Problem_Behavior =
+    type_mapping = connection.dialect.get_type_mapping
+    column_descriptors = columns.map on_problems=No_Wrap def->
+        sql_type = type_mapping.value_type_to_sql def.value_type on_problems
+        sql_type_text = type_mapping.sql_type_to_text sql_type
+        Create_Column_Descriptor.Value def.name sql_type_text def.constraints
+    connection.dialect.generate_sql <|
+        Query.Create_Table table_name column_descriptors primary_key temporary
