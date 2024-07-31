@@ -1,4 +1,7 @@
+import org.enso.aws.database.RedshiftConnectionDetailsSPI;
+import org.enso.aws.file_system.S3FileSystemSPI;
 import org.enso.base.file_system.FileSystemSPI;
+import org.enso.database.DatabaseConnectionDetailsSPI;
 
 module org.enso.std.aws {
   requires java.base;
@@ -12,8 +15,9 @@ module org.enso.std.aws {
   requires software.amazon.awssdk.core;
   requires software.amazon.awssdk.profiles;
   requires software.amazon.awssdk.awscore;
-  requires org.openide.util.lookup.RELEASE180;
 
   provides FileSystemSPI with
-      org.enso.aws.file_system.S3FileSystemSPI;
+      S3FileSystemSPI;
+  provides DatabaseConnectionDetailsSPI with
+      RedshiftConnectionDetailsSPI;
 }

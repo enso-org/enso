@@ -1,3 +1,12 @@
+import org.enso.base.enso_cloud.DataLinkSPI;
+import org.enso.base.file_format.FileFormatSPI;
+import org.enso.database.DatabaseConnectionDetailsSPI;
+import org.enso.database.postgres.PostgresConnectionDetailsSPI;
+import org.enso.database.postgres.PostgresDataLinkSPI;
+import org.enso.database.sqlite.SQLiteConnectionDetailsSPI;
+import org.enso.database.sqlite.SQLiteFormatSPI;
+import org.enso.database.sqlite.SQLiteInMemoryDetailsSPI;
+
 module org.enso.std.database {
   requires java.logging;
   requires java.sql;
@@ -6,7 +15,17 @@ module org.enso.std.database {
   requires org.graalvm.collections;
   requires org.graalvm.polyglot;
   requires com.fasterxml.jackson.databind;
-  requires org.openide.util.lookup.RELEASE180;
+
+  uses DatabaseConnectionDetailsSPI;
 
   exports org.enso.database;
+
+  provides DatabaseConnectionDetailsSPI with
+      PostgresConnectionDetailsSPI,
+      SQLiteConnectionDetailsSPI,
+      SQLiteInMemoryDetailsSPI;
+  provides DataLinkSPI with
+      PostgresDataLinkSPI;
+  provides FileFormatSPI with
+      SQLiteFormatSPI;
 }

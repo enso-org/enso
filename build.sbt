@@ -3280,13 +3280,12 @@ lazy val `std-base` = project
     modulePath := {
       val updateReport = (Compile / update).value
       val requiredModIds = Seq(
-        "org.graalvm.polyglot"       % "polyglot"                % graalMavenPackagesVersion,
-        "org.graalvm.sdk"            % "collections"             % graalMavenPackagesVersion,
-        "org.netbeans.api"           % "org-openide-util-lookup" % netbeansApiVersion,
-        "com.ibm.icu"                % "icu4j"                   % icuVersion,
-        "com.fasterxml.jackson.core" % "jackson-databind"        % jacksonVersion,
-        "com.fasterxml.jackson.core" % "jackson-annotations"     % jacksonVersion,
-        "com.fasterxml.jackson.core" % "jackson-core"            % jacksonVersion
+        "org.graalvm.polyglot"       % "polyglot"            % graalMavenPackagesVersion,
+        "org.graalvm.sdk"            % "collections"         % graalMavenPackagesVersion,
+        "com.ibm.icu"                % "icu4j"               % icuVersion,
+        "com.fasterxml.jackson.core" % "jackson-databind"    % jacksonVersion,
+        "com.fasterxml.jackson.core" % "jackson-annotations" % jacksonVersion,
+        "com.fasterxml.jackson.core" % "jackson-core"        % jacksonVersion
       )
       val externalRequiredMods = JPMSUtils.filterModulesFromUpdate(
         updateReport,
@@ -3514,10 +3513,9 @@ lazy val `std-database` = project
     Compile / packageBin / artifactPath :=
       `database-polyglot-root` / "std-database.jar",
     libraryDependencies ++= Seq(
-      "org.graalvm.polyglot" % "polyglot"                % graalMavenPackagesVersion % "provided",
-      "org.netbeans.api"     % "org-openide-util-lookup" % netbeansApiVersion        % "provided",
-      "org.xerial"           % "sqlite-jdbc"             % sqliteVersion,
-      "org.postgresql"       % "postgresql"              % "42.4.0"
+      "org.graalvm.polyglot" % "polyglot"    % graalMavenPackagesVersion % "provided",
+      "org.xerial"           % "sqlite-jdbc" % sqliteVersion,
+      "org.postgresql"       % "postgresql"  % "42.4.0"
     ),
     modulePath := {
       val externalModIds = libraryDependencies.value ++ Seq(
@@ -3565,30 +3563,28 @@ lazy val `std-aws` = project
     Compile / packageBin / artifactPath :=
       `std-aws-polyglot-root` / "std-aws.jar",
     libraryDependencies ++= Seq(
-      "org.netbeans.api"       % "org-openide-util-lookup" % netbeansApiVersion % "provided",
-      "com.amazon.redshift"    % "redshift-jdbc42"         % redshiftVersion,
-      "com.amazonaws"          % "aws-java-sdk-core"       % awsJavaSdkV1Version,
-      "com.amazonaws"          % "aws-java-sdk-redshift"   % awsJavaSdkV1Version,
-      "com.amazonaws"          % "aws-java-sdk-sts"        % awsJavaSdkV1Version,
-      "software.amazon.awssdk" % "auth"                    % awsJavaSdkV2Version,
-      "software.amazon.awssdk" % "bom"                     % awsJavaSdkV2Version,
-      "software.amazon.awssdk" % "s3"                      % awsJavaSdkV2Version,
-      "software.amazon.awssdk" % "sso"                     % awsJavaSdkV2Version,
-      "software.amazon.awssdk" % "ssooidc"                 % awsJavaSdkV2Version
+      "com.amazon.redshift"    % "redshift-jdbc42"       % redshiftVersion,
+      "com.amazonaws"          % "aws-java-sdk-core"     % awsJavaSdkV1Version,
+      "com.amazonaws"          % "aws-java-sdk-redshift" % awsJavaSdkV1Version,
+      "com.amazonaws"          % "aws-java-sdk-sts"      % awsJavaSdkV1Version,
+      "software.amazon.awssdk" % "auth"                  % awsJavaSdkV2Version,
+      "software.amazon.awssdk" % "bom"                   % awsJavaSdkV2Version,
+      "software.amazon.awssdk" % "s3"                    % awsJavaSdkV2Version,
+      "software.amazon.awssdk" % "sso"                   % awsJavaSdkV2Version,
+      "software.amazon.awssdk" % "ssooidc"               % awsJavaSdkV2Version
     ),
     modulePath := {
       val externalModIds = Seq(
-        "org.netbeans.api"       % "org-openide-util-lookup" % netbeansApiVersion,
-        "com.amazon.redshift"    % "redshift-jdbc42"         % redshiftVersion,
-        "software.amazon.awssdk" % "auth"                    % awsJavaSdkV2Version,
-        "software.amazon.awssdk" % "s3"                      % awsJavaSdkV2Version,
-        "software.amazon.awssdk" % "sso"                     % awsJavaSdkV2Version,
-        "software.amazon.awssdk" % "ssooidc"                 % awsJavaSdkV2Version,
-        "software.amazon.awssdk" % "http-client-spi"         % awsJavaSdkV2Version,
-        "software.amazon.awssdk" % "regions"                 % awsJavaSdkV2Version,
-        "software.amazon.awssdk" % "sdk-core"                % awsJavaSdkV2Version,
-        "software.amazon.awssdk" % "profiles"                % awsJavaSdkV2Version,
-        "software.amazon.awssdk" % "aws-core"                % awsJavaSdkV2Version
+        "com.amazon.redshift"    % "redshift-jdbc42" % redshiftVersion,
+        "software.amazon.awssdk" % "auth"            % awsJavaSdkV2Version,
+        "software.amazon.awssdk" % "s3"              % awsJavaSdkV2Version,
+        "software.amazon.awssdk" % "sso"             % awsJavaSdkV2Version,
+        "software.amazon.awssdk" % "ssooidc"         % awsJavaSdkV2Version,
+        "software.amazon.awssdk" % "http-client-spi" % awsJavaSdkV2Version,
+        "software.amazon.awssdk" % "regions"         % awsJavaSdkV2Version,
+        "software.amazon.awssdk" % "sdk-core"        % awsJavaSdkV2Version,
+        "software.amazon.awssdk" % "profiles"        % awsJavaSdkV2Version,
+        "software.amazon.awssdk" % "aws-core"        % awsJavaSdkV2Version
       )
       val externalMods = JPMSUtils.filterModulesFromUpdate(
         (Compile / update).value,
