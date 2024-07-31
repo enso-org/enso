@@ -12,6 +12,7 @@ import * as ariaComponents from '#/components/AriaComponents'
 
 import * as mergeRefs from '#/utilities/mergeRefs'
 
+import { omit } from 'enso-common/src/utilities/data/object'
 import * as variants from '../variants'
 
 /**
@@ -141,7 +142,7 @@ export const Input = React.forwardRef(function Input<
             {...aria.mergeProps<aria.InputProps>()(
               { className: classes.textArea(), type, name, min, max, isRequired, isDisabled },
               inputProps,
-              field,
+              omit(field, 'required', 'disabled'),
             )}
           />
 

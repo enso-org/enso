@@ -7,7 +7,7 @@ import { queryOptions, useQuery } from '@tanstack/react-query'
 
 import type { Plan } from '#/services/Backend'
 
-import { PRICE_BY_PLAN } from '../constants'
+import { DISCOUNT_MULTIPLIER_BY_DURATION, PRICE_BY_PLAN } from '../constants'
 
 /**
  *
@@ -27,12 +27,17 @@ export function createSubscriptionPriceQuery(params: SubscriptionPriceQueryParam
     queryFn: ({ queryKey }) => {
       const [, { seats, period, plan }] = queryKey
 
-      const price = PRICE_BY_PLAN[plan]
+      const discountMultiplier = DISCOUNT_MULTIPLIER_BY_DURATION[params.period] ?? 1
+      const fullPrice = PRICE_BY_PLAN[plan]
+      const price = fullPrice * discountMultiplier
+      const discount = fullPrice - price
 
       return Promise.resolve({
-        monthly: price * seats,
+        monthlyPrice: price * seats,
         billingPeriod: period,
-        total: price * seats * period,
+        fullPrice: fullPrice * seats * period,
+        discount: discount * seats * period,
+        totalPrice: price * seats * period,
       })
     },
   })

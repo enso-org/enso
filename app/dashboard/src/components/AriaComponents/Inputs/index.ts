@@ -6,4 +6,5 @@
 
 export * from './Input'
 export * from './ResizableInput'
+export * from './Selector'
 export * from './variants'

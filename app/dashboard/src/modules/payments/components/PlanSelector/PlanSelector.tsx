@@ -26,6 +26,7 @@ interface CreateCheckoutSessionMutation {
   readonly plan: backendModule.Plan
   readonly paymentMethodId: string
   readonly seats: number
+  readonly period: number
 }
 
 /**
@@ -64,6 +65,7 @@ export function PlanSelector(props: PlanSelectorProps) {
         plan: mutationData.plan,
         paymentMethodId: mutationData.paymentMethodId,
         quantity: mutationData.seats,
+        interval: mutationData.period,
       })
 
       return backend.getCheckoutSession(id).then((data) => {
@@ -107,11 +109,12 @@ export function PlanSelector(props: PlanSelectorProps) {
                 elevated={planProps.elevated === true ? 'xxlarge' : 'none'}
                 submitButton={
                   <planProps.submitButton
-                    onSubmit={async (paymentMethodId, seats) => {
+                    onSubmit={async (paymentMethodId, seats, period) => {
                       await onCompleteMutation.mutateAsync({
                         plan: newPlan,
                         paymentMethodId,
                         seats,
+                        period,
                       })
                     }}
                     plan={newPlan}

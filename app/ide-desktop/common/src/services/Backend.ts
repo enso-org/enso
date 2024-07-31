@@ -1163,6 +1163,7 @@ export interface CreateCheckoutSessionRequestParams {
   readonly plan: Plan
   readonly paymentMethodId: string
   readonly quantity: number
+  readonly interval: number
 }
 
 // ==============================

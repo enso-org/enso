@@ -40,7 +40,8 @@ export const SEPARATOR_STYLES = twv.tv({
     },
   },
   defaultVariants: {
-    size: 'thin',
+    // `size: 'thin'` causes the separator to disappear on Firefox.
+    size: 'medium',
     orientation: 'horizontal',
     variant: 'primary',
   },

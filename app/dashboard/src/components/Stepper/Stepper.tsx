@@ -225,40 +225,19 @@ export function Stepper(props: StepperProps) {
   )
 }
 
+/** A prop with the given type, or a function to produce a value of the given type. */
+type StepProp<T> = T | ((props: RenderStepProps) => T)
+
 /**
  * Props for {@link Step} component.
  */
 export interface StepProps extends RenderStepProps {
-  readonly className?:
-    | string
-    | ((props: RenderStepProps) => string | null | undefined)
-    | null
-    | undefined
-  readonly icon?:
-    | React.ReactElement
-    | string
-    | ((props: RenderStepProps) => React.ReactElement | string | null | undefined)
-    | null
-    | undefined
-  readonly completeIcon?:
-    | React.ReactElement
-    | string
-    | ((props: RenderStepProps) => React.ReactElement | string | null | undefined)
-    | null
-    | undefined
-  readonly title?:
-    | React.ReactElement
-    | string
-    | ((props: RenderStepProps) => React.ReactElement | string | null | undefined)
-    | null
-    | undefined
-  readonly description?:
-    | React.ReactElement
-    | string
-    | ((props: RenderStepProps) => React.ReactElement | string | null | undefined)
-    | null
-    | undefined
-  readonly children?: React.ReactNode | ((props: RenderStepProps) => React.ReactNode)
+  readonly className?: StepProp<string | null | undefined>
+  readonly icon?: StepProp<React.ReactElement | string | null | undefined>
+  readonly completeIcon?: StepProp<React.ReactElement | string | null | undefined>
+  readonly title?: StepProp<React.ReactElement | string | null | undefined>
+  readonly description?: StepProp<React.ReactElement | string | null | undefined>
+  readonly children?: StepProp<React.ReactNode>
 }
 
 const STEP_STYLES = tvw.tv({

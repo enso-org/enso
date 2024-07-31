@@ -623,7 +623,7 @@ export function SemiProtectedLayout() {
   const { session } = useAuth()
   const { localStorage } = localStorageProvider.useLocalStorage()
 
-  // user is not logged in, redirect to the login page.
+  // The user is not logged in - redirect to the login page.
   if (session == null) {
     return <router.Navigate to={appUtils.LOGIN_PATH} replace />
     // User is registered, redirect to dashboard or to the redirect path specified during the registration / login.

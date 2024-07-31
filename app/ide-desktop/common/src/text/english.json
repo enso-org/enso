@@ -531,7 +531,8 @@
   "summary": "Summary",
   "priceMonthly": "Price Monthly",
   "billingPeriod": "Billing Period",
-  "months": "$0 months",
+  "originalPrice": "Original Price",
+  "youSave": "You Save",
   "totalPrice": "Total Price",
   "returnToDashboard": "Return to Dashboard",
   "subscribeTitle": "Enso Pricing",
@@ -542,6 +543,9 @@
   "seats": "Seats",
   "wantMoreSeats": "Looking for more seats? Consider upgrading to a higher plan.",
   "adjustSeats": "Adjust seats",
+  "billingPeriodOneMonth": "1 month",
+  "billingPeriodOneYear": "1 year",
+  "billingPeriodThreeYears": "3 years",
 
   "downgradeInfo": "Looking for downgrade options?",
 

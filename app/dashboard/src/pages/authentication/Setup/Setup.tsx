@@ -5,7 +5,6 @@
 import * as React from 'react'
 
 import { useSuspenseQuery } from '@tanstack/react-query'
-import { Navigate } from 'react-router'
 import { useSearchParams } from 'react-router-dom'
 import invariant from 'tiny-invariant'
 
@@ -62,7 +61,7 @@ const BASE_STEPS: Step[] = [
     /**
      * Step component
      */
-    component: function Step({ goToNextStep, session }) {
+    component: function SetUsernameStep({ goToNextStep, session }) {
       const { setUsername } = useAuth()
       const { getText } = textProvider.useText()
 
@@ -108,7 +107,7 @@ const BASE_STEPS: Step[] = [
     /**
      * Step component
      */
-    component: function Step({ goToNextStep, plan }) {
+    component: function ChoosePlanStep({ goToNextStep, plan }) {
       return (
         <PlanSelector
           userPlan={plan}
@@ -127,7 +126,7 @@ const BASE_STEPS: Step[] = [
     /**
      * Step component
      */
-    component: function Step({ goToNextStep, goToPreviousStep }) {
+    component: function SetOrganizatioNameStep({ goToNextStep, goToPreviousStep }) {
       const { getText } = textProvider.useText()
       const remoteBackend = useRemoteBackendStrict()
 
@@ -226,9 +225,9 @@ export function Setup() {
   invariant(currentScreen != null, 'Current screen not found')
 
   if (isFirstRender() && !isDebug) {
-    if (session?.type === UserSessionType.full) {
+    if (session?.type === UserSessionType.full && currentStep === 0) {
       // eslint-disable-next-line no-restricted-syntax
-      return <Navigate to={DASHBOARD_PATH} replace />
+      nextStep()
     }
   }
 
@@ -267,7 +266,7 @@ export function Setup() {
                   description={step.description && getText(step.description)}
                   isDisabled={step.ignore?.(context) ?? false}
                 >
-                  {stepProps.isLast ? null : <ariaComponents.Separator variant="current" />}
+                  {!stepProps.isLast && <ariaComponents.Separator variant="current" />}
                 </stepper.Stepper.Step>
               )
             }}
@@ -293,7 +292,7 @@ export function Setup() {
                     </ariaComponents.Button>
                   )}
 
-                  {hideNext || isLast ? null : (
+                  {!hideNext && !isLast && (
                     <ariaComponents.Button variant="primary" onPress={nextStep}>
                       {getText('next')}
                     </ariaComponents.Button>

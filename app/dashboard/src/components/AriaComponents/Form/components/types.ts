@@ -79,11 +79,18 @@ export interface FormWithValueValidation<
   TFieldValues extends FieldValues<Schema>,
   TFieldName extends FieldPath<Schema, TFieldValues>,
   TTransformedValues extends FieldValues<Schema> | undefined = undefined,
+  ErrorType = [
+    'Type mismatch: Expected',
+    TFieldValues[TFieldName],
+    'got',
+    BaseValueType,
+    'instead.',
+  ],
 > {
   readonly form?:
     | (BaseValueType extends TFieldValues[TFieldName] ?
         FormInstance<Schema, TFieldValues, TTransformedValues>
-      : 'Type mismatch: Field with this name has a different type than the value of the component.')
+      : ErrorType)
     | undefined
 }
 
