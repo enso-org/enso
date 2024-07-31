@@ -148,6 +148,7 @@ public final class EnsoContext {
             !isPrivateCheckDisabled,
             isStaticTypeAnalysisEnabled,
             getOption(RuntimeOptions.STRICT_ERRORS_KEY),
+            getOption(RuntimeOptions.DISABLE_LINTING_KEY),
             scala.Option.empty());
     this.home = home;
     this.builtins = new Builtins(this);
