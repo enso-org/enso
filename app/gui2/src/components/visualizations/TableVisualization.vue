@@ -191,15 +191,11 @@ const selectableRowLimits = computed(() => {
 })
 
 const newNodeSelectorValues = computed(() => {
-  let identifierAction
   let tooltipValue
   let headerName
   switch (config.nodeType) {
     case COLUMN_NODE_TYPE:
     case VECTOR_NODE_TYPE:
-      identifierAction = 'at'
-      tooltipValue = 'value'
-      break
     case ROW_NODE_TYPE:
       tooltipValue = 'value'
       break
