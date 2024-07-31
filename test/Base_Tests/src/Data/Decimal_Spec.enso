@@ -376,7 +376,7 @@ add_specs suite_builder =
                         (lesser >= d) . should_be_false
 
         group_builder.specify "mixed float/decimal comparisons should attach a warning" pending="https://github.com/enso-org/enso/issues/10679" <|
-            [(_ == _), (_ != _), (_ <= _), (_ >= _), (_ < _), (_ > _)].map c->
+            [(_ == _), (_ != _), (_ <= _), (_ >= _), (_ < _), (_ > _), .min, .max].map c->
                 a = c (Decimal.new "0.1") 0.1
                 b = c 0.1 (Decimal.new "0.1")
                 Problems.expect_only_warning (Loss_Of_Numeric_Precision.Warning 0.1 (Decimal.new "0.1")) a
@@ -524,16 +524,12 @@ add_specs suite_builder =
             (Decimal.new 3 / 4.0) . should_fail_with Illegal_Argument
             (Decimal.new 3 % 4.0) . should_fail_with Illegal_Argument
             (Decimal.new 3 . div 4.0) . should_fail_with Illegal_Argument
-            (Decimal.new 3 . min 4.0) . should_fail_with Illegal_Argument
-            (Decimal.new 3 . max 4.0) . should_fail_with Illegal_Argument
 
             (1.0 + Decimal.new 2.0) . should_fail_with Illegal_Argument
             (1.0 - Decimal.new 2.0) . should_fail_with Illegal_Argument
             (3.0 * Decimal.new 4.0) . should_fail_with Illegal_Argument
             (3.0 / Decimal.new 4.0) . should_fail_with Illegal_Argument
             (3.0 % Decimal.new 4.0) . should_fail_with Illegal_Argument
-            (3.0 . min (Decimal.new 4.0)) . should_fail_with Illegal_Argument
-            (3.0 . max (Decimal.new 4.0)) . should_fail_with Illegal_Argument
 
         group_builder.specify "Decimal mixed arithmetic should result in Decimal" <|
             (Decimal.new 1 + 2) . should_be_a Decimal
@@ -687,8 +683,6 @@ add_specs suite_builder =
                 base = c.at 0
                 modulus = c.at 1
                 residue = c.at 2
-                epsilon = if c.length > 3 then c.at 3 else 0.0
-                (Decimal.new base % modulus) . should_equal epsilon=epsilon residue
                 (Decimal.new base % Decimal.new modulus) . should_equal residue
 
         group_builder.specify "should define remainder (example)" <|

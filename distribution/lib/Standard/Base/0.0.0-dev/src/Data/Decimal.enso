@@ -736,7 +736,7 @@ type Decimal
              # => Decimal.new "12"
     min : Decimal -> Decimal
     min self (that : Decimal) =
-        error_if_from_float self that <| handle_java_exception <|
+        handle_java_exception <|
             if self < that then self else that
 
     ## GROUP Math
@@ -753,7 +753,7 @@ type Decimal
              # => Decimal.new "13"
     max : Decimal -> Decimal
     max self (that : Decimal) =
-        error_if_from_float self that <| handle_java_exception <|
+        handle_java_exception <|
             if self > that then self else that
 
     ## GROUP Conversions
