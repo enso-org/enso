@@ -92,7 +92,7 @@ export type Category = z.infer<typeof CATEGORY_SCHEMA>
 
 /** Whether the category is only accessible from the cloud. */
 export function isCloudCategory(category: Category): category is AnyCloudCategory {
-  return CLOUD_CATEGORY_SCHEMA.safeParse(category).success
+  return ANY_CLOUD_CATEGORY_SCHEMA.safeParse(category).success
 }
 
 // =======================
@@ -101,7 +101,7 @@ export function isCloudCategory(category: Category): category is AnyCloudCategor
 
 /** Whether the category is only accessible locally. */
 export function isLocalCategory(category: Category): category is AnyLocalCategory {
-  return LOCAL_CATEGORY_SCHEMA.safeParse(category).success
+  return ANY_LOCAL_CATEGORY_SCHEMA.safeParse(category).success
 }
 
 // ==========================
