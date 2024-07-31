@@ -351,7 +351,7 @@ case object LambdaConsolidate extends IRPass {
     args: List[DefinitionArgument]
   ): Set[AliasGraph.Id] = {
     args
-      .map { case spec: DefinitionArgument.Specified =>
+      .flatMap { case spec: DefinitionArgument.Specified =>
         val aliasInfo =
           spec
             .unsafeGetMetadata(
@@ -364,8 +364,8 @@ case object LambdaConsolidate extends IRPass {
           .flatMap(occ => Some(aliasInfo.graph.knownShadowedDefinitions(occ)))
           .getOrElse(Set())
       }
-      .foldLeft(Set[AliasGraph.Occurrence]())(_ ++ _)
       .map(_.id)
+      .toSet
   }
 
   /** Computes the identifiers of expression that use a shadowed argument.

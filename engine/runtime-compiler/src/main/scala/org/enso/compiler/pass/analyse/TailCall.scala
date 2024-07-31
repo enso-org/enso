@@ -73,7 +73,10 @@ case object TailCall extends IRPass {
     ir: Module,
     moduleContext: ModuleContext
   ): Module = {
-    ir.copy(bindings = ir.bindings.map(analyseModuleBinding))
+    val bindings1 = ir.bindings.map(analyseModuleBinding)
+    if (bindings1 != ir.bindings)
+      ir.copy(bindings = bindings1)
+    else ir
   }
 
   /** Analyses tail call state for an arbitrary expression.
@@ -108,17 +111,13 @@ case object TailCall extends IRPass {
   ): Definition = {
     moduleDefinition match {
       case method: definition.Method.Conversion =>
-        method
-          .copy(
-            body = analyseExpression(method.body, isInTailPosition = true)
-          )
+        val body1 = analyseExpression(method.body, isInTailPosition = true)
+        (if (body1 != method.body) method.copy(body = body1) else method)
           .updateMetadata(new MetadataPair(this, TailPosition.Tail))
       case method @ definition.Method
             .Explicit(_, body, _, _, _) =>
-        method
-          .copy(
-            body = analyseExpression(body, isInTailPosition = true)
-          )
+        val body1 = analyseExpression(body, isInTailPosition = true)
+        (if (body1 != body) method.copy(body = body1) else method)
           .updateMetadata(new MetadataPair(this, TailPosition.Tail))
       case _: definition.Method.Binding =>
         throw new CompilerError(
@@ -149,10 +148,10 @@ case object TailCall extends IRPass {
           "tail call analysis."
         )
       case ann: Name.GenericAnnotation =>
+        val expression1 =
+          analyseExpression(ann.expression, isInTailPosition = true)
         ann
-          .copy(expression =
-            analyseExpression(ann.expression, isInTailPosition = true)
-          )
+          .copy(expression = expression1)
           .updateMetadata(new MetadataPair(this, TailPosition.Tail))
       case err: Error => err
     }
@@ -197,21 +196,28 @@ case object TailCall extends IRPass {
             _,
             _
           ) =>
-        block
-          .copy(
-            expressions = expressions.map(
-              analyseExpression(_, isInTailPosition = false)
-            ),
-            returnValue = analyseExpression(returnValue, isInTailPosition)
-          )
+        val expression1 =
+          expressions.map(analyseExpression(_, isInTailPosition = false))
+        val returnValue1 = analyseExpression(returnValue, isInTailPosition)
+        (if (expression1 != expression || returnValue1 != returnValue)
+           block
+             .copy(
+               expressions = expression1,
+               returnValue = returnValue1
+             )
+         else block)
           .updateMetadata(
             new MetadataPair(this, TailPosition.fromBool(isInTailPosition))
           )
       case binding @ Expression.Binding(_, expression, _, _, _) =>
-        binding
-          .copy(
-            expression = analyseExpression(expression, isInTailPosition = false)
-          )
+        val expression1 =
+          analyseExpression(expression, isInTailPosition = false)
+        (if (expression1 != expression)
+           binding
+             .copy(
+               expression = expression1
+             )
+         else binding)
           .updateMetadata(
             new MetadataPair(this, TailPosition.fromBool(isInTailPosition))
           )
@@ -261,43 +267,40 @@ case object TailCall extends IRPass {
     application: Application,
     isInTailPosition: Boolean
   ): Application = {
-    application match {
+    val application1 = application match {
       case app @ Application.Prefix(fn, args, _, _, _, _) =>
-        app
-          .copy(
-            function  = analyseExpression(fn, isInTailPosition = false),
-            arguments = args.map(analyseCallArg)
-          )
-          .updateMetadata(
-            new MetadataPair(this, TailPosition.fromBool(isInTailPosition))
-          )
+        val function1  = analyseExpression(fn, isInTailPosition = false)
+        val arguments1 = args.map(analyseCallArg)
+        if (function1 != fn || arguments1 != args)
+          app
+            .copy(
+              function  = function1,
+              arguments = arguments1
+            )
+        else app
       case force @ Application.Force(target, _, _, _) =>
-        force
-          .copy(
-            target = analyseExpression(target, isInTailPosition)
-          )
-          .updateMetadata(
-            new MetadataPair(this, TailPosition.fromBool(isInTailPosition))
-          )
+        val target1 = analyseExpression(target, isInTailPosition)
+        if (target1 != target)
+          force
+            .copy(
+              target = target1
+            )
+        else force
       case vector @ Application.Sequence(items, _, _, _) =>
-        vector
-          .copy(items =
-            items.map(analyseExpression(_, isInTailPosition = false))
-          )
-          .updateMetadata(
-            new MetadataPair(this, TailPosition.fromBool(isInTailPosition))
-          )
+        val items1 = items.map(analyseExpression(_, isInTailPosition = false))
+        if (items1 != items) vector.copy(items = items1) else vector
       case tSet @ Application.Typeset(expr, _, _, _) =>
-        tSet
-          .copy(expression =
-            expr.map(analyseExpression(_, isInTailPosition = false))
-          )
-          .updateMetadata(
-            new MetadataPair(this, TailPosition.fromBool(isInTailPosition))
-          )
+        val expression1 =
+          expr.map(analyseExpression(_, isInTailPosition = false))
+        if (expression1 != expr)
+          tSet.copy(expression = expression1)
+        else tSet
       case _: Operator =>
         throw new CompilerError("Unexpected binary operator.")
     }
+    application1.updateMetadata(
+      new MetadataPair(this, TailPosition.fromBool(isInTailPosition))
+    )
   }
 
   /** Performs tail call analysis on a call site argument.
@@ -307,12 +310,10 @@ case object TailCall extends IRPass {
     */
   def analyseCallArg(argument: CallArgument): CallArgument = {
     argument match {
-      case arg @ CallArgument.Specified(_, expr, _, _, _) =>
-        arg
-          .copy(
-            // Note [Call Argument Tail Position]
-            value = analyseExpression(expr, isInTailPosition = true)
-          )
+      case arg @ CallArgument.Specified(_, value, _, _, _) =>
+        // Note [Call Argument Tail Position]
+        val value1 = analyseExpression(value, isInTailPosition = true)
+        (if (value1 != value) arg.copy(value = value1) else arg)
           .updateMetadata(new MetadataPair(this, TailPosition.Tail))
     }
   }
@@ -365,12 +366,18 @@ case object TailCall extends IRPass {
   def analyseCase(caseExpr: Case, isInTailPosition: Boolean): Case = {
     caseExpr match {
       case caseExpr @ Case.Expr(scrutinee, branches, _, _, _, _) =>
-        caseExpr
-          .copy(
-            scrutinee = analyseExpression(scrutinee, isInTailPosition = false),
-            // Note [Analysing Branches in Case Expressions]
-            branches = branches.map(analyseCaseBranch(_, isInTailPosition))
-          )
+        val scrutinee1 = analyseExpression(scrutinee, isInTailPosition = false)
+        // Note [Analysing Branches in Case Expressions]
+        val branches1 = branches.map(analyseCaseBranch(_, isInTailPosition))
+
+        (if (scrutinee1 != scrutinee || branches1 != branches)
+           caseExpr
+             .copy(
+               scrutinee = scrutinee1,
+               // Note [Analysing Branches in Case Expressions]
+               branches = branches1
+             )
+         else caseExpr)
           .updateMetadata(
             new MetadataPair(this, TailPosition.fromBool(isInTailPosition))
           )
@@ -401,14 +408,19 @@ case object TailCall extends IRPass {
     branch: Case.Branch,
     isInTailPosition: Boolean
   ): Case.Branch = {
-    branch
-      .copy(
-        pattern = analysePattern(branch.pattern),
-        expression = analyseExpression(
-          branch.expression,
-          isInTailPosition
-        )
-      )
+    val pattern1 = analysePattern(branch.pattern)
+    val expression1 = analyseExpression(
+      branch.expression,
+      isInTailPosition
+    )
+
+    (if (pattern1 != branch.pattern || expression1 != branch.expression)
+       branch
+         .copy(
+           pattern    = pattern1,
+           expression = expression1
+         )
+     else branch)
       .updateMetadata(
         new MetadataPair(this, TailPosition.fromBool(isInTailPosition))
       )
@@ -424,27 +436,38 @@ case object TailCall extends IRPass {
   ): Pattern = {
     pattern match {
       case namePat @ Pattern.Name(name, _, _, _) =>
-        namePat
-          .copy(
-            name = analyseName(name, isInTailPosition = false)
-          )
+        val name1 = analyseName(name, isInTailPosition = false)
+        (if (name1 != name)
+           namePat
+             .copy(
+               name = name1
+             )
+         else namePat)
           .updateMetadata(new MetadataPair(this, TailPosition.NotTail))
       case cons @ Pattern.Constructor(constructor, fields, _, _, _) =>
-        cons
-          .copy(
-            constructor = analyseName(constructor, isInTailPosition = false),
-            fields      = fields.map(analysePattern)
-          )
+        val constructor1 = analyseName(constructor, isInTailPosition = false)
+        val fields1      = fields.map(analysePattern)
+        (if (constructor1 != constructor || fields1 != fields)
+           cons
+             .copy(
+               constructor = constructor1,
+               fields      = fields1
+             )
+         else cons)
           .updateMetadata(new MetadataPair(this, TailPosition.NotTail))
       case literal: Pattern.Literal =>
         literal
           .updateMetadata(new MetadataPair(this, TailPosition.NotTail))
       case tpePattern @ Pattern.Type(name, tpe, _, _, _) =>
-        tpePattern
-          .copy(
-            name = analyseName(name, isInTailPosition = false),
-            tpe  = analyseName(tpe, isInTailPosition = false)
-          )
+        val name1 = analyseName(name, isInTailPosition = false)
+        val tpe1  = analyseName(tpe, isInTailPosition = false)
+        if (name1 != name || tpe1 != tpe)
+          tpePattern
+            .copy(
+              name = name1,
+              tpe  = tpe1
+            )
+        else tpePattern
       case err: errors.Pattern =>
         err.updateMetadata(new MetadataPair(this, TailPosition.NotTail))
       case _: Pattern.Documentation =>
@@ -470,10 +493,14 @@ case object TailCall extends IRPass {
 
     val resultFunction = function match {
       case lambda @ Function.Lambda(args, body, _, _, _, _) =>
-        lambda.copy(
-          arguments = args.map(analyseDefArgument),
-          body      = analyseExpression(body, isInTailPosition = markAsTail)
-        )
+        val arguments1 = args.map(analyseDefArgument)
+        val body1      = analyseExpression(body, isInTailPosition = markAsTail)
+        if (arguments1 != args || body1 != body)
+          lambda.copy(
+            arguments = arguments1,
+            body      = body1
+          )
+        else lambda
       case _: Function.Binding =>
         throw new CompilerError(
           "Function sugar should not be present during tail call analysis."
@@ -493,13 +520,13 @@ case object TailCall extends IRPass {
   def analyseDefArgument(arg: DefinitionArgument): DefinitionArgument = {
     arg match {
       case arg @ DefinitionArgument.Specified(_, _, default, _, _, _, _) =>
-        arg
-          .copy(
-            defaultValue = default.map(x =>
-              analyseExpression(x, isInTailPosition = false)
-                .updateMetadata(new MetadataPair(this, TailPosition.NotTail))
-            )
-          )
+        val defaultValue1 = default.map(x =>
+          analyseExpression(x, isInTailPosition = false)
+            .updateMetadata(new MetadataPair(this, TailPosition.NotTail))
+        )
+        (if (defaultValue1 != default)
+           arg.copy(defaultValue = defaultValue1)
+         else arg)
           .updateMetadata(new MetadataPair(this, TailPosition.NotTail))
     }
   }

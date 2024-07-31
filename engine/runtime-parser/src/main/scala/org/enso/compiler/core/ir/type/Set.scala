@@ -119,11 +119,17 @@ object Set {
     override def mapExpressions(
       fn: java.util.function.Function[Expression, Expression]
     ): Member = {
-      copy(
-        label      = label.mapExpressions(fn),
-        memberType = fn(memberType),
-        value      = fn(value)
-      )
+      val label1      = label.mapExpressions(fn)
+      val memberType1 = fn(memberType)
+      val value1      = fn(value)
+
+      if (label1 != label || memberType1 != memberType || value1 != value)
+        copy(
+          label      = label1,
+          memberType = memberType1,
+          value      = value1
+        )
+      else this
     }
 
     /** String representation. */
@@ -233,7 +239,11 @@ object Set {
     override def mapExpressions(
       fn: java.util.function.Function[Expression, Expression]
     ): Subsumption = {
-      copy(left = fn(left), right = fn(right))
+      val left1  = fn(left)
+      val right1 = fn(right)
+      if (left1 != left || right1 != right)
+        copy(left = left1, right = right1)
+      else this
     }
 
     /** String representation. */
@@ -338,7 +348,11 @@ object Set {
     override def mapExpressions(
       fn: java.util.function.Function[Expression, Expression]
     ): Equality = {
-      copy(left = fn(left), right = fn(right))
+      val left1  = fn(left)
+      val right1 = fn(right)
+      if (left1 != left || right1 != right)
+        copy(left = left1, right = right1)
+      else this
     }
 
     /** String representation. */
@@ -442,7 +456,11 @@ object Set {
     override def mapExpressions(
       fn: java.util.function.Function[Expression, Expression]
     ): Concat = {
-      copy(left = fn(left), right = fn(right))
+      val left1  = fn(left)
+      val right1 = fn(right)
+      if (left1 != left || right1 != right)
+        copy(left = left1, right = right1)
+      else this
     }
 
     /** String representation. */
@@ -539,7 +557,11 @@ object Set {
     override def mapExpressions(
       fn: java.util.function.Function[Expression, Expression]
     ): Union = {
-      copy(operands = operands.map(fn.asScala))
+      val operands1 = operands.map(fn.asScala)
+      if (operands1 != operands)
+        copy(operands = operands1)
+      else
+        this
     }
 
     /** String representation. */
@@ -643,7 +665,11 @@ object Set {
     override def mapExpressions(
       fn: java.util.function.Function[Expression, Expression]
     ): Intersection = {
-      copy(left = fn(left), right = fn(right))
+      val left1  = fn(left)
+      val right1 = fn(right)
+      if (left1 != left || right1 != right)
+        copy(left = left1, right = right1)
+      else this
     }
 
     /** String representation. */

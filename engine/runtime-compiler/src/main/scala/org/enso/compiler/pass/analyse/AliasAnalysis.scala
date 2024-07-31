@@ -95,7 +95,11 @@ case object AliasAnalysis extends IRPass {
     ir: Module,
     moduleContext: ModuleContext
   ): Module = {
-    ir.copy(bindings = ir.bindings.map(analyseModuleDefinition))
+    val bindings1 = ir.bindings.map(analyseModuleDefinition)
+    if (bindings1 != ir.bindings)
+      ir.copy(bindings = bindings1)
+    else
+      ir
   }
 
   /** Performs alias analysis on an inline expression, starting from the
@@ -234,14 +238,13 @@ case object AliasAnalysis extends IRPass {
       case m: definition.Method.Conversion =>
         m.body match {
           case _: Function =>
-            m.copy(
-              body = analyseExpression(
-                m.body,
-                topLevelGraph,
-                topLevelGraph.rootScope,
-                lambdaReuseScope = true
-              )
-            ).updateMetadata(
+            val body1 = analyseExpression(
+              m.body,
+              topLevelGraph,
+              topLevelGraph.rootScope,
+              lambdaReuseScope = true
+            )
+            (if (body1 != m.body) m.copy(body = body1) else m).updateMetadata(
               new MetadataPair(
                 this,
                 alias.Info.Scope.Root(topLevelGraph)
@@ -255,14 +258,13 @@ case object AliasAnalysis extends IRPass {
       case m @ definition.Method.Explicit(_, body, _, _, _) =>
         body match {
           case _: Function =>
-            m.copy(
-              body = analyseExpression(
-                body,
-                topLevelGraph,
-                topLevelGraph.rootScope,
-                lambdaReuseScope = true
-              )
-            ).updateMetadata(
+            val body1 = analyseExpression(
+              body,
+              topLevelGraph,
+              topLevelGraph.rootScope,
+              lambdaReuseScope = true
+            )
+            (if (body1 != m.body) m.copy(body = body1) else m).updateMetadata(
               new MetadataPair(
                 this,
                 alias.Info.Scope.Root(topLevelGraph)
@@ -278,41 +280,46 @@ case object AliasAnalysis extends IRPass {
           "Method definition sugar should not occur during alias analysis."
         )
       case t: Definition.Type =>
-        t.copy(
-          params = analyseArgumentDefs(
-            t.params,
-            topLevelGraph,
-            topLevelGraph.rootScope
-          ),
-          members = t.members.map(d => {
-            val graph = new alias.Graph
-            d.copy(
-              arguments = analyseArgumentDefs(
-                d.arguments,
-                graph,
-                graph.rootScope
-              ),
-              annotations = d.annotations.map { ann =>
-                ann
-                  .copy(
-                    expression = analyseExpression(
-                      ann.expression,
-                      topLevelGraph,
-                      topLevelGraph.rootScope
-                    )
-                  )
-                  .updateMetadata(
-                    new MetadataPair(
-                      this,
-                      alias.Info.Scope.Root(topLevelGraph)
-                    )
-                  )
-              }
-            ).updateMetadata(
-              new MetadataPair(this, alias.Info.Scope.Root(graph))
+        val params1 = analyseArgumentDefs(
+          t.params,
+          topLevelGraph,
+          topLevelGraph.rootScope
+        )
+        val members1 = t.members.map(d => {
+          val graph = new alias.Graph
+          val arguments1 = analyseArgumentDefs(
+            d.arguments,
+            graph,
+            graph.rootScope
+          )
+          val annotations1 = d.annotations.map { ann =>
+            val expression1 = analyseExpression(
+              ann.expression,
+              topLevelGraph,
+              topLevelGraph.rootScope
             )
-          })
-        ).updateMetadata(
+            (if (expression1 != ann.expression)
+               ann.copy(expression = expression1)
+             else ann)
+              .updateMetadata(
+                new MetadataPair(
+                  this,
+                  alias.Info.Scope.Root(topLevelGraph)
+                )
+              )
+          }
+          (if (arguments1 != d.arguments || annotations1 != d.annotations)
+             d.copy(arguments = arguments1, annotations = annotations1)
+           else d).updateMetadata(
+            new MetadataPair(this, alias.Info.Scope.Root(graph))
+          )
+        })
+        (if (params1 != t.params || members1 != t.members)
+           t.copy(
+             params  = params1,
+             members = members1
+           )
+         else t).updateMetadata(
           new MetadataPair(this, alias.Info.Scope.Root(topLevelGraph))
         )
       case _: Definition.SugaredType =>
@@ -335,17 +342,15 @@ case object AliasAnalysis extends IRPass {
           "analysis."
         )
       case ann: Name.GenericAnnotation =>
-        ann
-          .copy(expression =
-            analyseExpression(
-              ann.expression,
-              topLevelGraph,
-              topLevelGraph.rootScope
-            )
-          )
-          .updateMetadata(
-            new MetadataPair(this, alias.Info.Scope.Root(topLevelGraph))
-          )
+        val expression1 = analyseExpression(
+          ann.expression,
+          topLevelGraph,
+          topLevelGraph.rootScope
+        )
+        (if (expression1 != ann.expression) ann.copy(expression = expression1)
+         else ann).updateMetadata(
+          new MetadataPair(this, alias.Info.Scope.Root(topLevelGraph))
+        )
       case err: Error => err
     }
   }
@@ -394,21 +399,26 @@ case object AliasAnalysis extends IRPass {
         val currentScope =
           if (!isSuspended) parentScope else parentScope.addChild()
 
-        block
-          .copy(
-            expressions = expressions.map((expression: Expression) =>
-              analyseExpression(
-                expression,
-                graph,
-                currentScope
-              )
-            ),
-            returnValue = analyseExpression(
-              retVal,
-              graph,
-              currentScope
-            )
+        val expressions1 = expressions.map((expression: Expression) =>
+          analyseExpression(
+            expression,
+            graph,
+            currentScope
           )
+        )
+        val returnValue1 = analyseExpression(
+          retVal,
+          graph,
+          currentScope
+        )
+
+        (if (expressions1 != expression || returnValue1 != retVal)
+           block
+             .copy(
+               expressions = expressions1,
+               returnValue = returnValue1
+             )
+         else block)
           .updateMetadata(
             new MetadataPair(
               this,
@@ -434,14 +444,13 @@ case object AliasAnalysis extends IRPass {
           parentScope.add(occurrence)
           parentScope.addDefinition(occurrence)
 
-          binding
-            .copy(
-              expression = analyseExpression(
-                expression,
-                graph,
-                parentScope
-              )
-            )
+          val expression1 = analyseExpression(
+            expression,
+            graph,
+            parentScope
+          )
+          (if (expression1 != expression) binding.copy(expression = expression1)
+           else binding)
             .updateMetadata(
               new MetadataPair(
                 this,
@@ -495,11 +504,16 @@ case object AliasAnalysis extends IRPass {
         parentScope.add(definition)
         parentScope.addDefinition(definition)
 
-        member
-          .copy(
-            memberType = analyseExpression(memberType, graph, memberTypeScope),
-            value      = analyseExpression(value, graph, valueScope)
-          )
+        val memberType1 = analyseExpression(memberType, graph, memberTypeScope)
+        val value1      = analyseExpression(value, graph, valueScope)
+
+        (if (memberType1 != memberType || value1 != value)
+           member
+             .copy(
+               memberType = memberType1,
+               value      = value1
+             )
+         else member)
           .updateMetadata(
             new MetadataPair(this, alias.Info.Occurrence(graph, labelId))
           )
@@ -549,16 +563,16 @@ case object AliasAnalysis extends IRPass {
           arg.getExternalId
         )
         scope.addDefinition(definition)
-        arg
+        val ascribedType1 =
+          arg.ascribedType.map(analyseExpression(_, graph, scope))
+        (if (ascribedType1 != arg.ascribedType)
+           arg.copy(ascribedType = ascribedType1)
+         else arg)
           .updateMetadata(
             new MetadataPair(
               this,
               alias.Info.Occurrence(graph, occurrenceId)
             )
-          )
-          .copy(
-            ascribedType =
-              arg.ascribedType.map(analyseExpression(_, graph, scope))
           )
 
       case arg @ DefinitionArgument.Specified(
@@ -592,12 +606,15 @@ case object AliasAnalysis extends IRPass {
           scope.add(definition)
           scope.addDefinition(definition)
 
-          arg
-            .copy(
-              defaultValue = newDefault,
-              ascribedType =
-                arg.ascribedType.map(analyseExpression(_, graph, scope))
-            )
+          val ascribedType1 =
+            arg.ascribedType.map(analyseExpression(_, graph, scope))
+          (if (newDefault != value || ascribedType1 != arg.ascribedType)
+             arg
+               .copy(
+                 defaultValue = newDefault,
+                 ascribedType = ascribedType1
+               )
+           else arg)
             .updateMetadata(
               new MetadataPair(
                 this,
@@ -609,9 +626,7 @@ case object AliasAnalysis extends IRPass {
             case x if x.symbol == name.name => x
           }
           arg
-            .copy(
-              ascribedType = Some(Redefined.Arg(name, arg.location))
-            )
+            .copy(ascribedType = Some(Redefined.Arg(name, arg.location)))
             .updateMetadata(
               new MetadataPair(
                 this,
@@ -636,18 +651,24 @@ case object AliasAnalysis extends IRPass {
   ): Application = {
     application match {
       case app @ Application.Prefix(fun, arguments, _, _, _, _) =>
-        app.copy(
-          function  = analyseExpression(fun, graph, scope),
-          arguments = analyseCallArguments(arguments, graph, scope)
-        )
+        val function1  = analyseExpression(fun, graph, scope)
+        val arguments1 = analyseCallArguments(arguments, graph, scope)
+        if (function1 != fun || arguments1 != arguments)
+          app.copy(
+            function  = function1,
+            arguments = arguments1
+          )
+        else app
       case app @ Application.Force(expr, _, _, _) =>
-        app.copy(target = analyseExpression(expr, graph, scope))
+        val target1 = analyseExpression(expr, graph, scope)
+        if (target1 != expr) app.copy(target = target1) else app
       case app @ Application.Sequence(items, _, _, _) =>
-        app.copy(items = items.map(analyseExpression(_, graph, scope)))
+        val items1 = items.map(analyseExpression(_, graph, scope))
+        if (items1 != items) app.copy(items = items1) else app
       case tSet @ Application.Typeset(expr, _, _, _) =>
-        val newScope = scope.addChild()
-        tSet
-          .copy(expression = expr.map(analyseExpression(_, graph, newScope)))
+        val newScope    = scope.addChild()
+        val expression1 = expr.map(analyseExpression(_, graph, newScope))
+        (if (expression1 != expr) tSet.copy(expression = expression1) else tSet)
           .updateMetadata(
             new MetadataPair(
               this,
@@ -682,8 +703,8 @@ case object AliasAnalysis extends IRPass {
         case _: Literal => parentScope
         case _          => parentScope.addChild()
       }
-      arg
-        .copy(value = analyseExpression(expr, graph, currentScope))
+      val value1 = analyseExpression(expr, graph, currentScope)
+      (if (value1 != expr) arg.copy(value = value1) else arg)
         .updateMetadata(
           new MetadataPair(
             this,
@@ -713,15 +734,16 @@ case object AliasAnalysis extends IRPass {
 
     function match {
       case lambda @ Function.Lambda(arguments, body, _, _, _, _) =>
-        lambda
-          .copy(
-            arguments = analyseArgumentDefs(arguments, graph, currentScope),
-            body = analyseExpression(
-              body,
-              graph,
-              currentScope
-            )
-          )
+        val arguments1 = analyseArgumentDefs(arguments, graph, currentScope)
+        val body1 = analyseExpression(
+          body,
+          graph,
+          currentScope
+        )
+
+        (if (arguments1 != arguments || body1 != body)
+           lambda.copy(arguments = arguments1, body = body1)
+         else lambda)
           .updateMetadata(
             new MetadataPair(
               this,
@@ -789,11 +811,15 @@ case object AliasAnalysis extends IRPass {
   ): Case = {
     ir match {
       case caseExpr @ Case.Expr(scrutinee, branches, _, _, _, _) =>
-        caseExpr
-          .copy(
-            scrutinee = analyseExpression(scrutinee, graph, parentScope),
-            branches  = branches.map(analyseCaseBranch(_, graph, parentScope))
-          )
+        val scrutinee1 = analyseExpression(scrutinee, graph, parentScope)
+        val branches1  = branches.map(analyseCaseBranch(_, graph, parentScope))
+        if (scrutinee1 != scrutinee || branches1 != branches)
+          caseExpr
+            .copy(
+              scrutinee = scrutinee1,
+              branches  = branches1
+            )
+        else caseExpr
       case _: Case.Branch =>
         throw new CompilerError("Case branch in `analyseCase`.")
     }
@@ -812,16 +838,19 @@ case object AliasAnalysis extends IRPass {
     parentScope: Scope
   ): Case.Branch = {
     val currentScope = parentScope.addChild()
-
-    branch
-      .copy(
-        pattern = analysePattern(branch.pattern, graph, currentScope),
-        expression = analyseExpression(
-          branch.expression,
-          graph,
-          currentScope
-        )
-      )
+    val pattern1     = analysePattern(branch.pattern, graph, currentScope)
+    val expression1 = analyseExpression(
+      branch.expression,
+      graph,
+      currentScope
+    )
+    (if (pattern1 != branch.pattern || expression1 != branch.expression)
+       branch
+         .copy(
+           pattern    = pattern1,
+           expression = expression1
+         )
+     else branch)
       .updateMetadata(
         new MetadataPair(
           this,
@@ -844,15 +873,14 @@ case object AliasAnalysis extends IRPass {
   ): Pattern = {
     pattern match {
       case named @ Pattern.Name(name, _, _, _) =>
-        named.copy(
-          name = analyseName(
-            name,
-            isInPatternContext                = true,
-            isConstructorNameInPatternContext = false,
-            graph,
-            parentScope
-          )
+        val name1 = analyseName(
+          name,
+          isInPatternContext                = true,
+          isConstructorNameInPatternContext = false,
+          graph,
+          parentScope
         )
+        if (name1 != name) named.copy(name = name1) else named
       case cons @ Pattern.Constructor(constructor, fields, _, _, _) =>
         if (!cons.isDesugared) {
           throw new CompilerError(
@@ -860,36 +888,44 @@ case object AliasAnalysis extends IRPass {
             "analysis."
           )
         }
-
-        cons.copy(
-          constructor = analyseName(
-            constructor,
-            isInPatternContext                = true,
-            isConstructorNameInPatternContext = true,
-            graph,
-            parentScope
-          ),
-          fields = fields.map(analysePattern(_, graph, parentScope))
+        val constructor1 = analyseName(
+          constructor,
+          isInPatternContext                = true,
+          isConstructorNameInPatternContext = true,
+          graph,
+          parentScope
         )
+        val fields1 = fields.map(analysePattern(_, graph, parentScope))
+
+        if (constructor1 != constructor || fields1 != fields)
+          cons.copy(
+            constructor = constructor1,
+            fields      = fields1
+          )
+        else cons
       case literalPattern: Pattern.Literal =>
         literalPattern
       case typePattern @ Pattern.Type(name, tpe, _, _, _) =>
-        typePattern.copy(
-          name = analyseName(
-            name,
-            isInPatternContext                = true,
-            isConstructorNameInPatternContext = false,
-            graph,
-            parentScope
-          ),
-          tpe = analyseName(
-            tpe,
-            isInPatternContext                = false,
-            isConstructorNameInPatternContext = false,
-            graph,
-            parentScope
-          )
+        val name1 = analyseName(
+          name,
+          isInPatternContext                = true,
+          isConstructorNameInPatternContext = false,
+          graph,
+          parentScope
         )
+        val tpe1 = analyseName(
+          tpe,
+          isInPatternContext                = false,
+          isConstructorNameInPatternContext = false,
+          graph,
+          parentScope
+        )
+        if (name1 != name || tpe1 != tpe)
+          typePattern.copy(
+            name = name1,
+            tpe  = tpe1
+          )
+        else typePattern
       case _: Pattern.Documentation =>
         throw new CompilerError(
           "Branch documentation should be desugared at an earlier stage."
