@@ -544,14 +544,14 @@ public final class EnsoContext {
     return null;
   }
 
-  private Object lookupHostSymbol(ClassLoader hostClassLoader, String fqn)
+  private Object lookupHostSymbol(ClassLoader loader, String fqn)
       throws ClassNotFoundException, UnknownIdentifierException, UnsupportedMessageException {
     try {
       if (findGuestJava() == null) {
-        if (hostClassLoader == null) {
+        if (loader == null) {
           throw new ClassNotFoundException(fqn);
         }
-        return environment.asHostSymbol(hostClassLoader.loadClass(fqn));
+        return environment.asHostSymbol(loader.loadClass(fqn));
       } else {
         return InteropLibrary.getUncached().readMember(findGuestJava(), fqn);
       }

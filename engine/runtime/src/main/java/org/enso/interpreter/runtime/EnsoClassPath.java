@@ -39,27 +39,4 @@ public final class EnsoClassPath {
       return new EnsoClassPath(cntrl, layer, loader);
     }
   }
-  /*
-  public void addToClassPath(TruffleFile file) {
-  if (findGuestJava() == null) {
-  try {
-  var url = file.toUri().toURL();
-  loader.add(url);
-  } catch (MalformedURLException ex) {
-  throw new IllegalStateException(ex);
-  }
-  } else {
-  try {
-  var path = new File(file.toUri()).getAbsoluteFile();
-  if (!path.exists()) {
-  throw new IllegalStateException("File not found " + path);
-  }
-  InteropLibrary.getUncached().invokeMember(findGuestJava(), "addPath", path.getPath());
-  } catch (InteropException ex) {
-  throw new IllegalStateException(ex);
-  }
-  }
-  }
-   */
-
 }
