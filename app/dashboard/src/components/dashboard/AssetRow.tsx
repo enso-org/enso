@@ -154,7 +154,7 @@ export default function AssetRow(props: AssetRowProps) {
     // eslint-disable-next-line no-restricted-syntax
     ...createGetProjectDetailsQuery.createPassiveListener(item.item.id as backendModule.ProjectId),
     select: (data) => data.state.type,
-    enabled: isOpened,
+    enabled: item.type === backendModule.AssetType.project,
   })
 
   React.useEffect(() => {
@@ -791,7 +791,7 @@ export default function AssetRow(props: AssetRowProps) {
                 onDragStart={(event) => {
                   if (
                     rowState.isEditingName ||
-                    (!isCloud && projectState !== backendModule.ProjectState.closed)
+                    (projectState !== backendModule.ProjectState.closed && projectState != null)
                   ) {
                     event.preventDefault()
                   } else {
