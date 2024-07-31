@@ -791,7 +791,9 @@ export default function AssetRow(props: AssetRowProps) {
                 onDragStart={(event) => {
                   if (
                     rowState.isEditingName ||
-                    (projectState !== backendModule.ProjectState.closed && projectState != null)
+                    (projectState !== backendModule.ProjectState.closed &&
+                      projectState !== backendModule.ProjectState.created &&
+                      projectState != null)
                   ) {
                     event.preventDefault()
                   } else {
