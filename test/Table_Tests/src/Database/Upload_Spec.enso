@@ -1041,6 +1041,10 @@ test_table_append group_builder (data : Data) source_table_builder target_table_
         r1 = dest.update_rows src key_columns=[] update_action=Update_Action.Insert
         # We may want a more specific error for missing columns without defaults, but for now it's just a SQL error.
         r1.should_fail_with SQL_Error
+
+        # No rows should have been inserted:
+        dest.row_count . should_equal 0
+
         data.connection.drop_table dest_name
 
     group_builder.specify "should fail if the source table is missing some columns, if asked to" <|
