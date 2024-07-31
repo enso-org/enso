@@ -10,6 +10,7 @@ import project.Data.Time.Date_Time.Date_Time
 import project.Data.Vector.Vector
 import project.Enso_Cloud.Data_Link.Data_Link
 import project.Enso_Cloud.Data_Link_Helpers
+import project.Enso_Cloud.Enso_File.Enso_File
 import project.Error.Error
 import project.Errors.Common.Dry_Run_Operation
 import project.Errors.Common.Type_Error
@@ -61,6 +62,10 @@ type File
 
        Creates a new file object, pointing to the given path.
 
+       Relative paths are resolved relative to the directory containing the
+       currently running workflow. Thus, if the workflow is running in the Cloud,
+       the relative paths will be resolved to Cloud files.
+
        Arguments:
        - path: The path to the file that you want to create, or a file itself. The
          latter is a no-op.
@@ -74,7 +79,7 @@ type File
              example_new = File.new Examples.csv_path
     new : (Text | File) -> Any ! Illegal_Argument
     new path = case path of
-        _ : Text -> if path.contains "://" . not then get_file path else
+        _ : Text -> if path.contains "://" . not then resolve_path path else
             protocol = path.split "://" . first
             file_system = FileSystemSPI.get_type protocol False
             if file_system.is_nothing then Error.throw (Illegal_Argument.Error "Unsupported protocol "+protocol) else
@@ -859,6 +864,22 @@ get_cwd = @Builtin_Method "File.get_cwd"
    - path: The path to obtain a file at.
 get_file : Text -> File
 get_file path = @Builtin_Method "File.get_file"
+
+## PRIVATE
+   Resolves the given path to a corresponding file location.
+
+   If the provided path is relative, the behaviour depends on the context:
+   - if the project is running in the Cloud, the path is resolved to a Cloud file,
+     relative to the project's location.
+   - if running locally, the path is resolved to a local file, relative to the
+     current working directory.
+resolve_path (path : Text) -> File | Enso_File =
+    local_file = get_file path
+    # Absolute files always resolve to themselves.
+    if local_file.is_absolute then local_file else
+        case Enso_File.cloud_project_parent_directory of
+            Nothing -> local_file
+            base_cloud_directory -> base_cloud_directory / path
 
 ## PRIVATE
 get_child_widget : File -> Widget
