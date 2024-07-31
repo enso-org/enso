@@ -37,9 +37,11 @@ const style = computed(() => ({
   />
   <SizeTransition width :duration="100">
     <div v-if="show" ref="slideInPanel" :style="style" class="DockPanel" data-testid="rightDock">
-      <div ref="toolbarElement" class="toolbar"></div>
-      <div class="scrollArea">
-        <slot :toolbar="toolbarElement" />
+      <div class="content">
+        <div ref="toolbarElement" class="toolbar"></div>
+        <div class="scrollArea">
+          <slot :toolbar="toolbarElement" />
+        </div>
       </div>
       <ResizeHandles left :modelValue="computedBounds" @update:modelValue="size = $event.width" />
     </div>
@@ -52,18 +54,26 @@ const style = computed(() => ({
   position: relative;
 }
 
-.scrollArea {
+.content {
   width: 100%;
   height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.scrollArea {
+  width: 100%;
   overflow-y: auto;
   padding-left: 10px;
   /* Prevent touchpad back gesture, which can be triggered while panning. */
   overscroll-behavior-x: none;
+  flex-grow: 1;
 }
 
 .toolbar {
   height: 48px;
   padding-left: 4px;
+  flex-shrink: 0;
 }
 
 .toggleDock {

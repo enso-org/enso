@@ -4,8 +4,11 @@
 
 - [Implemented in-memory and database mixed `Decimal` column
   comparisons.][10614]
+- [Relative paths are now resolved relative to the project location, also in the
+  Cloud.][10660]
 
 [10614]: https://github.com/enso-org/enso/pull/10614
+[10660]: https://github.com/enso-org/enso/pull/10660
 
 # Enso 2023.3
 
