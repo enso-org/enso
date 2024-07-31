@@ -13,8 +13,6 @@ import src.main.scala.licenses.{
   SBTDistributionComponent
 }
 
-import java.nio.file.Files
-
 // This import is unnecessary, but bit adds a proper code completion features
 // to IntelliJ.
 import JPMSPlugin.autoImport._

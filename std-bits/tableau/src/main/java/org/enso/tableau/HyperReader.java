@@ -1,9 +1,7 @@
 package org.enso.tableau;
 
-import com.tableau.hyperapi.Connection;
-import com.tableau.hyperapi.HyperProcess;
-import com.tableau.hyperapi.SchemaName;
-import com.tableau.hyperapi.Telemetry;
+import com.tableau.hyperapi.*;
+
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URI;
@@ -11,6 +9,8 @@ import java.net.URISyntaxException;
 import java.nio.channels.Channels;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -74,7 +74,7 @@ public class HyperReader {
     }
 
     // Start hyper process.
-    if (process == null) {
+    if (process == null || !process.isOpen()) {
       var contextClassLoader = Thread.currentThread().getContextClassLoader();
       try {
         Thread.currentThread().setContextClassLoader(HyperReader.class.getClassLoader());
@@ -89,6 +89,7 @@ public class HyperReader {
         Thread.currentThread().setContextClassLoader(contextClassLoader);
       }
     }
+
     return process;
   }
 
@@ -108,24 +109,51 @@ public class HyperReader {
   }
 
   public static String[] readSchemas(String path) throws IOException {
-    try (var process = getProcess()) {
-      try (var connection = new Connection(process.getEndpoint(), path)) {
-        var catalog = connection.getCatalog();
-        return catalog.getSchemaNames().stream()
-            .map(s -> s.getName().getUnescaped())
-            .toArray(String[]::new);
-      }
+    var process = getProcess();
+    try (var connection = new Connection(process.getEndpoint(), path)) {
+      var catalog = connection.getCatalog();
+      return catalog.getSchemaNames().stream()
+          .map(s -> s.getName().getUnescaped())
+          .toArray(String[]::new);
     }
   }
 
   public static String addSchema(String path, String schema) throws IOException {
     var schemaName = new SchemaName(schema);
-    try (var process = getProcess()) {
-      try (var connection = new Connection(process.getEndpoint(), path)) {
-        var catalog = connection.getCatalog();
-        catalog.createSchema(schemaName);
-        return schemaName.getName().getUnescaped();
+    var process = getProcess();
+
+    try (var connection = new Connection(process.getEndpoint(), path)) {
+      var catalog = connection.getCatalog();
+      catalog.createSchema(schemaName);
+      return schemaName.getName().getUnescaped();
+    }
+  }
+
+  public static String[] listTablesAllSchemas(String path) throws IOException {
+    var process = getProcess();
+    try (var connection = new Connection(process.getEndpoint(), path)) {
+      var catalog = connection.getCatalog();
+      return listTablesImpl(catalog, catalog.getSchemaNames());
+    }
+  }
+
+  public static String[] listTables(String path, String schemaName) throws IOException{
+    var schemaNames = List.of(new SchemaName(schemaName));
+    var process = getProcess();
+    try (var connection = new Connection(process.getEndpoint(), path)) {
+      var catalog = connection.getCatalog();
+      return listTablesImpl(catalog, schemaNames);
+    }
+  }
+
+  private static String[] listTablesImpl(Catalog catalog, List<SchemaName> schemaNames) {
+    var output = new ArrayList<String>();
+    for (var schemaName : schemaNames) {
+      var tables = catalog.getTableNames(schemaName);
+      for (var table : tables) {
+        output.add(table.getName().getUnescaped());
       }
     }
+    return output.toArray(String[]::new);
   }
 }

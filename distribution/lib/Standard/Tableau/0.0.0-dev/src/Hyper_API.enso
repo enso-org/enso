@@ -1,4 +1,7 @@
 from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+from Standard.Base.Metadata.Choice import Option
+from Standard.Base.Metadata.Widget import Single_Choice
 
 polyglot java import org.enso.tableau.HyperReader
 
@@ -9,7 +12,7 @@ type Hyper_File
 
     ## Gets the location for hyperd
     hyper_path : Text
-    hyper_path  = HyperReader.HYPER_PATH
+    hyper_path  = HyperReader.HYPER_PATH.toString
 
     ## PRIVATE
        A representation of a Tableau Hyper Extract file.
@@ -19,4 +22,22 @@ type Hyper_File
        Returns the list of schemas for the connection within the current database (or catalog).
     schemas : Vector Text
     schemas self =
-        HyperReader.readSchemas self.file.path
+        array = HyperReader.readSchemas self.file.path
+        Vector.from_polyglot_array array
+
+    ## ICON metadata
+       Returns the list of tables for the connection within the current database (or catalog).
+    @schema (hyper -> make_schema_selector hyper True)
+    tables : Text -> Vector Text
+    tables self schema:Text='*' =
+        array = case schema of
+            "" -> Error.throw (Illegal_Argument.Error "Schema name cannot be empty.")
+            "*" -> HyperReader.listTablesAllSchema self.file.path
+            _ -> HyperReader.listTables self.file.path schema
+        Vector.from_polyglot_array array
+
+## PRIVATE
+private make_schema_selector hyper_file:Hyper_File include_any:Boolean=False =
+    schemas = hyper_file.schemas.map t-> Option t t.pretty
+    any_entry = if include_any then [Option "<Any Schema>" "'*'"] else []
+    Single_Choice values=schemas+any_entry
