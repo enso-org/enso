@@ -3,6 +3,7 @@ package org.enso.interpreter.runtime.data.hash;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import java.util.Arrays;
+import java.util.Iterator;
 import org.enso.interpreter.node.expression.builtin.meta.EqualsNode;
 import org.enso.interpreter.node.expression.builtin.meta.HashCodeNode;
 
@@ -84,6 +85,54 @@ final class EnsoHashMapBuilder {
       return Arrays.copyOf(arr, at);
     } else {
       return arr;
+    }
+  }
+
+  public record Entry(Object key, Object value) {}
+
+  public Iterator<Entry> getEntriesIterator(int atGeneration) {
+    return new EntriesIterator(atGeneration);
+  }
+
+  class EntriesIterator implements Iterator<Entry> {
+    private final int atGeneration;
+    private int nextVisibleEntryIdx = -1;
+
+    EntriesIterator(int atGeneration) {
+      this.atGeneration = atGeneration;
+      skipToNextVisibleEntry();
+    }
+
+    @Override
+    public boolean hasNext() {
+      if (nextVisibleEntryIdx >= byHash.length) {
+        return false;
+      }
+      var entry = byHash[nextVisibleEntryIdx];
+      return entry != null && entry.isVisible(atGeneration);
+    }
+
+    @Override
+    public Entry next() {
+      var entry = byHash[nextVisibleEntryIdx];
+      skipToNextVisibleEntry();
+      return new Entry(
+          entry.key(),
+          entry.value()
+      );
+    }
+
+    private void skipToNextVisibleEntry() {
+      while (true) {
+        nextVisibleEntryIdx++;
+        if (nextVisibleEntryIdx == byHash.length) {
+          break;
+        }
+        var entry = byHash[nextVisibleEntryIdx];
+        if (entry != null && entry.isVisible(atGeneration)) {
+          break;
+        }
+      }
     }
   }
 

@@ -44,26 +44,23 @@ public abstract class HashMapInsertAllNode extends Node {
     var mapBuilder = EnsoHashMapBuilder.createWithCapacity(selfSize + otherSize);
 
     var selfMapBuilder = self.getMapBuilder(frame, true, hashCodeNode, equalsNode);
-    var selfEntries = selfMapBuilder.getEntries(selfMapBuilder.generation(), selfMapBuilder.size());
-    assert selfEntries.length == self.getHashSize();
-    for (var selfEntry : selfEntries) {
+    var selfEntriesIt = selfMapBuilder.getEntriesIterator(selfMapBuilder.generation());
+    while (selfEntriesIt.hasNext()) {
+      var selfEntry = selfEntriesIt.next();
       mapBuilder.put(frame, selfEntry.key(), selfEntry.value(), hashCodeNode, equalsNode);
     }
     var otherMapBuilder = other.getMapBuilder(frame, true, hashCodeNode, equalsNode);
-    var otherEntries =
-        otherMapBuilder.getEntries(otherMapBuilder.generation(), otherMapBuilder.size());
-    assert otherEntries.length == other.getHashSize();
+    var otherEntriesIt =
+        otherMapBuilder.getEntriesIterator(otherMapBuilder.generation());
     var itemsInserted = 0;
-    for (var entry : otherEntries) {
-      assert entry.key() != null;
-      assert entry.value() != null;
+    while (otherEntriesIt.hasNext()) {
       if (itemsInserted >= maxItems) {
         break;
       }
+      var entry = otherEntriesIt.next();
       mapBuilder.put(frame, entry.key(), entry.value(), hashCodeNode, equalsNode);
       itemsInserted++;
     }
-    assert mapBuilder.size() <= self.getHashSize() + otherEntries.length;
     return mapBuilder.build();
   }
 }
