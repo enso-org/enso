@@ -1,8 +1,9 @@
 from Standard.Base import Text
+import Standard.Base.Errors.Common.Missing_Argument
 
 type SQL_Query
     ## Query a whole table or view.
-    Table_Name name:Text
+    Table_Name (name : Text = Missing_Argument.throw "name")
 
     ## Raw SQL query statement.
-    Raw_SQL sql:Text
+    Raw_SQL (sql : Text = Missing_Argument.throw "sql")

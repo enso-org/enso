@@ -210,7 +210,6 @@ object DistributionPackage {
       libName  <- (stdLibRoot / libMajor.getName).listFiles()
     } yield {
       indexStdLib(
-        libMajor,
         libName,
         stdLibVersion,
         ensoVersion,
@@ -222,7 +221,6 @@ object DistributionPackage {
   }
 
   def indexStdLib(
-    libMajor: File,
     libName: File,
     stdLibVersion: String,
     ensoVersion: String,
@@ -239,25 +237,25 @@ object DistributionPackage {
       path.globRecursive("*.enso" && FileOnlyFilter).get().toSet
     ) { diff =>
       if (diff.modified.nonEmpty) {
-        log.info(s"Generating index for ${libName} ")
+        log.info(s"Generating index for $libName ")
         val command = Seq(
-          Platform.executableFileName(ensoExecutable.toString),
+          Platform.executableFile(ensoExecutable.getAbsoluteFile),
           "--no-compile-dependencies",
           "--no-global-cache",
           "--compile",
-          path.toString
+          path.getAbsolutePath
         )
         log.debug(command.mkString(" "))
         val exitCode = Process(
           command,
-          None,
+          Some(path.getAbsoluteFile.getParentFile),
           "JAVA_OPTS" -> "-Dorg.jline.terminal.dumb=true"
         ).!
         if (exitCode != 0) {
-          throw new RuntimeException(s"Cannot compile $libMajor.$libName.")
+          throw new RuntimeException(s"Cannot compile $libName.")
         }
       } else {
-        log.debug(s"No modified files. Not generating index for ${libName}.")
+        log.debug(s"No modified files. Not generating index for $libName.")
       }
     }
   }

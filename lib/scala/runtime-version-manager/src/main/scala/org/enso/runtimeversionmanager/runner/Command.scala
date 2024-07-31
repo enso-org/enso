@@ -3,6 +3,7 @@ package org.enso.runtimeversionmanager.runner
 import com.typesafe.scalalogging.Logger
 import org.enso.process.WrappedProcess
 
+import java.nio.file.Path
 import scala.sys.process.Process
 import scala.util.{Failure, Try}
 
@@ -10,8 +11,13 @@ import scala.util.{Failure, Try}
   *
   * @param command the command and its arguments that should be executed
   * @param extraEnv environment variables that should be overridden
+  * @param workingDirectory the working directory in which the command should be executed (if None, the working directory is not overridden and is inherited instead)
   */
-case class Command(command: Seq[String], extraEnv: Seq[(String, String)]) {
+case class Command(
+  command: Seq[String],
+  extraEnv: Seq[(String, String)],
+  workingDirectory: Option[Path]
+) {
   private val logger = Logger[Command]
 
   /** Runs the command and returns its exit code.
@@ -79,6 +85,7 @@ case class Command(command: Seq[String], extraEnv: Seq[(String, String)]) {
     for ((key, value) <- extraEnv) {
       processBuilder.environment().put(key, value)
     }
+    workingDirectory.foreach(path => processBuilder.directory(path.toFile))
     processBuilder
   }
 
