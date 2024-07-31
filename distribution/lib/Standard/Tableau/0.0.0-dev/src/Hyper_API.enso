@@ -32,7 +32,7 @@ type Hyper_File
     tables self schema:Text='*' =
         array = case schema of
             "" -> Error.throw (Illegal_Argument.Error "Schema name cannot be empty.")
-            "*" -> HyperReader.listTablesAllSchema self.file.path
+            "*" -> HyperReader.listTablesAllSchemas self.file.path
             _ -> HyperReader.listTables self.file.path schema
         Vector.from_polyglot_array array
 
