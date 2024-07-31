@@ -525,7 +525,6 @@ private check_statement_is_allowed connection stmt =
     trimmed = stmt.to_text.trim.to_case ..Lower
     is_ddl_regex = "\s*(?:create|alter|drop).*".to_regex case_insensitive=True
     is_ddl = is_ddl_regex.matches trimmed
-    IO.println "query="+trimmed+", is_ddl="+is_ddl.to_text+", in_transaction="+In_Transaction.is_in_transaction.to_text
     if is_ddl && In_Transaction.is_in_transaction then
         support_level = DDL_Transaction.Support_Level.get_from connection
         if support_level != DDL_Transaction.Support_Level.Allowed then
