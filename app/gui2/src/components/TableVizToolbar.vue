@@ -44,7 +44,7 @@ const sortDirection = computed(() => ({
   desc: '..Descending',
 }))
 
-const makeSortPattern = (ast: Ast.Owned<Ast.MutableAst>) => {
+const makeSortPattern = (module: Ast.MutableModule) => {
   const columnSortExpressions = props.sortModel
     .filter((sort) => sort?.columnName)
     .sort((a, b) => a.sortIndex - b.sortIndex)
@@ -54,12 +54,12 @@ const makeSortPattern = (ast: Ast.Owned<Ast.MutableAst>) => {
         Ast.parse(sortDirection.value[sort.sortDirection as SortDirection]),
       ]),
     )
-  return Ast.Vector.new(ast.module, columnSortExpressions)
+  return Ast.Vector.new(module, columnSortExpressions)
 }
 
 const filterPattern = computed(() => Pattern.parse('__ (__ __)'))
 
-const makeFilterPattern = (ast: Ast.Owned<Ast.MutableAst>, columnName: string, items: string[]) => {
+const makeFilterPattern = (module: Ast.MutableModule, columnName: string, items: string[]) => {
   if (
     (items?.length === 1 && items.indexOf('true') != -1) ||
     (items?.length === 1 && items.indexOf('false') != -1)
@@ -75,7 +75,7 @@ const makeFilterPattern = (ast: Ast.Owned<Ast.MutableAst>, columnName: string, i
   return filterPattern.value.instantiateCopied([
     Ast.TextLiteral.new(columnName),
     Ast.parse('..Is_In'),
-    Ast.Vector.new(ast.module, itemList),
+    Ast.Vector.new(module, itemList),
   ])
 }
 
@@ -83,7 +83,7 @@ function getAstPatternSort() {
   return Pattern.new((ast) =>
     Ast.App.positional(
       Ast.PropertyAccess.new(ast.module, ast, Ast.identifier('sort')!),
-      makeSortPattern(ast),
+      makeSortPattern(ast.module),
     ),
   )
 }
@@ -92,13 +92,39 @@ function getAstPatternFilter(columnName: string, items: string[]) {
   return Pattern.new((ast) =>
     Ast.App.positional(
       Ast.PropertyAccess.new(ast.module, ast, Ast.identifier('filter')!),
-      makeFilterPattern(ast, columnName, items),
+      makeFilterPattern(ast.module, columnName, items),
+    ),
+  )
+}
+
+function getAstPatternFilterAndSort(columnName: string, items: string[]) {
+  return Pattern.new((ast) =>
+    Ast.OprApp.new(
+      ast.module,
+      Ast.App.positional(
+        Ast.PropertyAccess.new(ast.module, ast, Ast.identifier('filter')!),
+        makeFilterPattern(ast.module, columnName, items),
+      ),
+      '.',
+      Ast.App.positional(
+        Ast.PropertyAccess.new(ast.module, ast, Ast.identifier('sort')!),
+        makeSortPattern(ast.module),
+      ),
     ),
   )
 }
 
 const createNewNodes = () => {
+  let filterAndSortPatterns = new Array<any>()
   let patterns = new Array<any>()
+  if (Object.keys(props.filterModel).length && props.sortModel.length) {
+    for (const index in Object.keys(props.filterModel)) {
+      const columnName = Object.keys(props.filterModel)[index]!
+      const items = props.filterModel[columnName || '']?.values.map((item) => `${item}`)!
+      const filterPatterns = getAstPatternFilterAndSort(columnName, items)
+      filterAndSortPatterns.push(filterPatterns)
+    }
+  }
   if (Object.keys(props.filterModel).length) {
     for (const index in Object.keys(props.filterModel)) {
       const columnName = Object.keys(props.filterModel)[index]!
