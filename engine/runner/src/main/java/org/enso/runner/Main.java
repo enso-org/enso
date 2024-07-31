@@ -930,6 +930,7 @@ public class Main {
                 .logLevel(logLevel)
                 .logMasking(logMasking)
                 .enableIrCaches(enableIrCaches)
+                .disableLinting(true)
                 .enableStaticAnalysis(enableStaticAnalysis)
                 .build());
     var mainModule = context.evalModule(dummySourceToTriggerRepl, replModuleName);

@@ -1,0 +1,33 @@
+from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+
+from Standard.Table import Table
+
+import project.DB_Table.DB_Table
+from project.Internal.Upload.Helpers.Argument_Checks import check_target_table_for_update
+from project.Internal.Upload.Helpers.Prepare_Structure import align_vector_structure
+
+## PRIVATE
+   Returns the name of the first column in the provided table structure.
+   It also verifies that the structure is correct.
+   Used to provide the default value for `primary_key` in `create_table`.
+first_column_name_in_structure structure = case structure of
+    vector : Vector -> align_vector_structure vector . first . name
+    table : DB_Table  -> table.column_names.first
+    table : Table -> table.column_names.first
+
+## PRIVATE
+   Extracts the default argument for `key_columns` parameter of the
+   `update_rows` operation.
+default_key_columns (table : DB_Table | Table) =
+    check_target_table_for_update table <|
+        table.get_primary_key
+
+## PRIVATE
+   A variant of `default_key_columns` that will raise an error if no key columns
+   were found.
+default_key_columns_required table =
+    key_columns = default_key_columns table
+    ok = key_columns.is_nothing.not && key_columns.not_empty
+    if ok then key_columns else
+        Error.throw (Illegal_Argument.Error "No primary key found to serve as a default value for `key_columns`. Please set the argument explicitly.")
