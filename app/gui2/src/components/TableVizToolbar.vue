@@ -25,6 +25,7 @@ const props = defineProps<{
     }
   }
   sortModel: SortModel[]
+  isDisabled: boolean
 }>()
 
 const emit = defineEmits<{
@@ -183,6 +184,7 @@ const changeFormat = (option: TextFormatOptions) => {
   <SvgButton
     name="add"
     :title="`Create new component(s) with the current grid's sort and filters applied to the workflow`"
+    :disabled="props.isDisabled"
     @click="createNewNodes()"
   />
 </template>

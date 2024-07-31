@@ -772,6 +772,7 @@ onUnmounted(() => {
       <TableVizToolbar
         :filterModel="filterModel"
         :sortModel="sortModel"
+        :isDisabled="!isCreateNodeEnabled"
         @changeFormat="(i) => updateTextFormat(i)"
       />
     </template>
