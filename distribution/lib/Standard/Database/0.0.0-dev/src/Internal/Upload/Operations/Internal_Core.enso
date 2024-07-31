@@ -12,7 +12,7 @@ import project.Internal.In_Transaction.In_Transaction
 import project.Internal.IR.Query.Query
 import project.SQL_Query.SQL_Query
 from project.Errors import SQL_Error, Unsupported_Database_Operation
-from project.Internal.Upload.Helpers.Argument_Checks import check_transaction_ddl_support, resolve_primary_key
+from project.Internal.Upload.Helpers.Argument_Checks import resolve_primary_key
 from project.Internal.Upload.Helpers.Constants import default_batch_size
 from project.Internal.Upload.Helpers.Error_Helpers import handle_upload_errors, internal_translate_known_upload_errors
 from project.Internal.Upload.Helpers.Prepare_Structure import align_structure, validate_structure, verify_structure_hint
@@ -27,7 +27,6 @@ internal_create_table_structure connection table_name structure primary_key temp
     resolved_primary_key = resolve_primary_key aligned_structure primary_key
     validate_structure connection.base_connection.column_naming_helper aligned_structure <|
         create_table_statement = prepare_create_table_statement connection table_name aligned_structure resolved_primary_key temporary on_problems
-        check_transaction_ddl_support connection
         update_result = create_table_statement.if_not_error <|
             connection.execute_update create_table_statement
         update_result.if_not_error <|
