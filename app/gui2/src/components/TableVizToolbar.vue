@@ -1,10 +1,14 @@
 <script setup lang="ts">
+import DropdownMenu from '@/components/DropdownMenu.vue'
+import MenuButton from '@/components/MenuButton.vue'
 import SvgButton from '@/components/SvgButton.vue'
+import SvgIcon from '@/components/SvgIcon.vue'
 import { useVisualizationConfig } from '@/providers/visualizationConfig'
 import { Ast } from '@/util/ast'
 import { Pattern } from '@/util/ast/match'
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import type { NodeCreationOptions } from './GraphEditor/nodeCreation'
+import { TextFormatOptions } from './visualizations/TableVisualization.vue'
 
 type SortDirection = 'asc' | 'desc'
 export type SortModel = {
@@ -22,6 +26,13 @@ const props = defineProps<{
   }
   sortModel: SortModel[]
 }>()
+
+const emit = defineEmits<{
+  changeFormat: [formatValue: TextFormatOptions]
+}>()
+
+const textFormatterSelected = ref(TextFormatOptions.Partial)
+watch(textFormatterSelected, (selected) => emit('changeFormat', selected))
 
 const config = useVisualizationConfig()
 
@@ -105,9 +116,70 @@ const createNewNodes = () => {
     ),
   )
 }
+
+const buttonClass = computed(() => {
+  return {
+    full: isFormatOptionSelected(TextFormatOptions.On),
+    partial: isFormatOptionSelected(TextFormatOptions.Partial),
+    strikethrough: isFormatOptionSelected(TextFormatOptions.Off),
+  }
+})
+
+const isFormatOptionSelected = (option: TextFormatOptions): boolean =>
+  option === textFormatterSelected.value
+
+const open = ref(false)
+const toggleOpen = () => {
+  open.value = !open.value
+}
+
+const changeFormat = (option: TextFormatOptions) => {
+  textFormatterSelected.value = option
+  toggleOpen()
+}
 </script>
 
 <template>
+  <div>
+    <DropdownMenu v-model:open="open" class="TextFormattingSelector" title="Text Display Options">
+      <template #button
+        ><div :class="buttonClass">
+          <SvgIcon name="paragraph" /></div
+      ></template>
+
+      <template #entries>
+        <MenuButton
+          class="full"
+          :title="`Text displayed in monospace font and all whitespace characters displayed as symbols`"
+          @click="() => changeFormat(TextFormatOptions.On)"
+        >
+          <SvgIcon name="paragraph" />
+          <div class="title">Full whitespace rendering</div>
+        </MenuButton>
+
+        <MenuButton
+          class="partial"
+          :title="`Text displayed in monospace font, only multiple spaces displayed with &#183;`"
+          @click="() => changeFormat(TextFormatOptions.Partial)"
+        >
+          <SvgIcon name="paragraph" />
+          <div class="title">Partial whitespace rendering</div>
+        </MenuButton>
+
+        <MenuButton
+          class="off"
+          title="`No formatting applied to text`"
+          @click="() => changeFormat(TextFormatOptions.Off)"
+        >
+          <div class="strikethrough">
+            <SvgIcon name="paragraph" />
+          </div>
+          <div class="title">No whitespace rendering</div>
+        </MenuButton>
+      </template>
+    </DropdownMenu>
+  </div>
+
   <SvgButton
     name="add"
     :title="`Create new component(s) with the current grid's sort and filters applied to the workflow`"
@@ -116,7 +188,58 @@ const createNewNodes = () => {
 </template>
 
 <style scoped>
-.CreateNewNode {
-  display: flex;
+.TextFormattingSelector {
+  background: var(--color-frame-bg);
+  border-radius: 16px;
+}
+
+:deep(.DropdownMenuContent) {
+  margin-top: 10px;
+  padding: 4px;
+
+  > * {
+    display: flex;
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+}
+
+.strikethrough {
+  position: relative;
+  margin-right: 4px;
+}
+.strikethrough:before {
+  position: absolute;
+  content: '';
+  left: 0;
+  top: 50%;
+  right: 0;
+  border-top: 1px solid;
+  border-color: black;
+
+  -webkit-transform: rotate(-20deg);
+  -moz-transform: rotate(-20deg);
+  -ms-transform: rotate(-20deg);
+  -o-transform: rotate(-20deg);
+  transform: rotate(-20deg);
+}
+
+.partial {
+  stroke: grey;
+  fill: #808080;
+}
+
+.off {
+  justify-content: flex-start;
+}
+
+.full {
+  stroke: black;
+  fill: #000000;
+  justify-content: flex-start;
+}
+
+.title {
+  padding-left: 2px;
 }
 </style>

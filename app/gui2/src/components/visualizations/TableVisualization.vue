@@ -6,7 +6,10 @@ import {
   tsvTableToEnsoExpression,
   writeClipboard,
 } from '@/components/GraphEditor/clipboard'
-import TextFormattingSelector from '@/components/TextFormattingSelector.vue'
+import {
+  default as TableVizToolbar,
+  default as TextFormattingSelector,
+} from '@/components/TableVizToolbar.vue'
 import { Ast } from '@/util/ast'
 import { Pattern } from '@/util/ast/match'
 import { useAutoBlur } from '@/util/autoBlur'
@@ -766,8 +769,11 @@ onUnmounted(() => {
 <template>
   <VisualizationContainer :belowToolbar="true" :overflow="true" :toolbarOverflow="true">
     <template #toolbar>
-      <TextFormattingSelector @changeFormat="(i) => updateTextFormat(i)" />
-      <CreateNewNode :filterModel="filterModel" :sortModel="sortModel" />
+      <TableVizToolbar
+        :filterModel="filterModel"
+        :sortModel="sortModel"
+        @changeFormat="(i) => updateTextFormat(i)"
+      />
     </template>
     <div ref="rootNode" class="TableVisualization" @wheel.stop @pointerdown.stop>
       <div class="table-visualization-status-bar">
