@@ -3,7 +3,12 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 from Standard.Base.Metadata.Choice import Option
 from Standard.Base.Metadata.Widget import Single_Choice
 
+from Standard.Table import Value_Type
+import Standard.Database.Column_Constraint.Column_Constraint
+import Standard.Database.Column_Description.Column_Description
+
 polyglot java import org.enso.tableau.HyperReader
+polyglot java import java.sql.Types
 
 type Hyper_File
     ## Creates a Hyper_File
@@ -28,13 +33,59 @@ type Hyper_File
     ## ICON metadata
        Returns the list of tables for the connection within the current database (or catalog).
     @schema (hyper -> make_schema_selector hyper True)
-    tables : Text -> Vector Text
+    tables : Text -> Vector Hyper_Table
     tables self schema:Text='*' =
         array = case schema of
             "" -> Error.throw (Illegal_Argument.Error "Schema name cannot be empty.")
             "*" -> HyperReader.listTablesAllSchemas self.file.path
             _ -> HyperReader.listTables self.file.path schema
-        Vector.from_polyglot_array array
+        array.map t-> Hyper_Table.Value self t.schema t.name
+
+## An Enso representation of a Tableau Hyper Table.
+type Hyper_Table
+    ## Represents a Tableau Hyper Table.
+    Value file:Hyper_File schema:Text table:Text
+
+    ## PRIVATE
+    to_display_text : Text
+    to_display_text self = self.table + " (" + self.schema + ")"
+
+    ## PRIVATE
+    to_js_object : JS_Object
+    to_js_object self =
+        JS_Object.from_pairs [["type", "Hyper_Table"], ["schema", self.schema], ["table", self.table], ["file", self.file.file.path]]
+
+    ## Reads The Columns for the Table
+    columns : Vector Column_Description
+    columns self =
+        array = HyperReader.readColumns self.file.file.path self.schema self.table
+        array.map column->
+            value_type = case column.typeID of
+                Types.BOOLEAN -> Value_Type.Boolean
+                Types.BIGINT -> Value_Type.Integer ..Bits_64
+                Types.SMALLINT -> Value_Type.Integer ..Bits_16
+                Types.INTEGER -> Value_Type.Integer ..Bits_32
+                Types.NUMERIC ->
+                    precision = if column.precision.isEmpty then Nothing else column.precision.getAsInt
+                    scale = if column.scale.isEmpty then Nothing else column.scale.getAsInt
+                    Value_Type.Decimal precision scale
+                Types.FLOAT -> Value_Type.Float ..Bits_32
+                Types.DOUBLE -> Value_Type.Float ..Bits_64
+                Types.VARCHAR ->
+                    length = if column.length.isEmpty then Nothing else column.length.getAsInt
+                    Value_Type.Char length variable_length=True
+                Types.CHAR ->
+                    length = if column.length.isEmpty then Nothing else column.length.getAsInt
+                    Value_Type.Char length variable_length=False
+                Types.DATE -> Value_Type.Date
+                Types.TIME -> Value_Type.Time
+                Types.TIMESTAMP -> Value_Type.Date_Time with_timezone=False
+                Types.TIMESTAMP_WITH_TIMEZONE -> Value_Type.Date_Time with_timezone=True
+                HyperReader.JSON -> Value_Type.Unsupported_Data_Type "JSON" JS_Object
+                HyperReader.INTERVAL -> Value_Type.Unsupported_Data_Type "INTERVAL" Duration
+                _ -> Value_Type.Unsupported_Data_Type "Unknown" Any
+            constraints = if column.nullable then [] else [Column_Constraint.Not_Null]
+            Column_Description.Value column.name value_type constraints
 
 ## PRIVATE
 private make_schema_selector hyper_file:Hyper_File include_any:Boolean=False =
