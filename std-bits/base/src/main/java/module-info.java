@@ -25,10 +25,16 @@ module org.enso.std.base {
   uses DataLinkSPI;
 
   // following packages are accessed by Java code in other Enso modules
+  exports org.enso.base;
   exports org.enso.base.file_system;
   exports org.enso.base.file_format;
   exports org.enso.base.enso_cloud;
   exports org.enso.base.enso_cloud.audit;
+  exports org.enso.base.polyglot;
+  exports org.enso.base.time;
+  exports org.enso.base.text;
+  exports org.enso.base.arrays;
+  exports org.enso.base.statistics;
 
   // following packages are accessed by Enso via polyglot java import
   opens org.enso.base;
@@ -40,7 +46,6 @@ module org.enso.std.base {
   opens org.enso.base.random;
   opens org.enso.base.statistics;
   opens org.enso.base.text;
-  opens org.enso.base.time;
 
   provides FileSystemSPI with
       EnsoPathFileSystemSPI;

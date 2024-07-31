@@ -3405,6 +3405,7 @@ lazy val `benchmark-java-helpers` = project
 lazy val `std-table` = project
   .in(file("std-bits") / "table")
   .enablePlugins(Antlr4Plugin)
+  .enablePlugins(JPMSPlugin)
   .settings(
     frgaalJavaCompilerSetting,
     autoScalaLibrary := false,
@@ -3429,6 +3430,33 @@ lazy val `std-table` = project
       "org.antlr"                % "antlr4-runtime"          % antlrVersion,
       "org.apache.logging.log4j" % "log4j-to-slf4j"          % "2.18.0" // org.apache.poi uses log4j
     ),
+    modulePath := {
+      val updateReport = (Compile / update).value
+      val requiredModIds = Seq(
+        "org.graalvm.polyglot" % "polyglot"                % graalMavenPackagesVersion,
+        "org.antlr"            % "antlr4-runtime"          % antlrVersion,
+        "com.univocity"        % "univocity-parsers"       % univocityParsersVersion,
+        "org.apache.poi"       % "poi"                     % poiOoxmlVersion,
+        "org.apache.poi"       % "poi-ooxml"               % poiOoxmlVersion,
+        "org.apache.poi"       % "poi-ooxml-lite"          % poiOoxmlVersion,
+        "org.apache.xmlbeans"  % "xmlbeans"                % xmlbeansVersion,
+        "org.graalvm.sdk"      % "collections"             % graalMavenPackagesVersion,
+        "com.ibm.icu"          % "icu4j"                   % icuVersion,
+        "org.netbeans.api"     % "org-openide-util-lookup" % netbeansApiVersion
+      )
+      val externalRequiredMods = JPMSUtils.filterModulesFromUpdate(
+        updateReport,
+        requiredModIds,
+        streams.value.log,
+        shouldContainAll = true
+      )
+      val ourRequiredMods =
+        (`common-polyglot-core-utils` / Compile / exportedProducts).value
+          .map(_.data) ++
+        (`std-base` / Compile / exportedProducts).value
+          .map(_.data)
+      externalRequiredMods ++ ourRequiredMods
+    },
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value
       val _ = StdBits
