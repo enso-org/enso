@@ -5,14 +5,14 @@
 import * as React from 'react'
 
 import { useSuspenseQuery } from '@tanstack/react-query'
-import { useSearchParams } from 'react-router-dom'
+import { Navigate, useSearchParams } from 'react-router-dom'
 import invariant from 'tiny-invariant'
 
 import type * as text from 'enso-common/src/text'
 
 import ArrowRight from '#/assets/arrow_right.svg'
 
-import { DASHBOARD_PATH } from '#/appUtils'
+import { DASHBOARD_PATH, LOGIN_PATH } from '#/appUtils'
 
 import { useIsFirstRender } from '#/hooks/mountHooks'
 
@@ -226,9 +226,13 @@ export function Setup() {
 
   if (isFirstRender() && !isDebug) {
     if (session?.type === UserSessionType.full && currentStep === 0) {
-      // eslint-disable-next-line no-restricted-syntax
       nextStep()
     }
+  }
+
+  if (session?.type !== UserSessionType.full && session?.type !== UserSessionType.partial) {
+    // eslint-disable-next-line no-restricted-syntax
+    return <Navigate to={LOGIN_PATH} />
   }
 
   const hideNext =
