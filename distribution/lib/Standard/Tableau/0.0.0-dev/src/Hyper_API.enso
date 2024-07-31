@@ -4,8 +4,6 @@ from Standard.Base.Metadata.Choice import Option
 from Standard.Base.Metadata.Widget import Single_Choice
 
 from Standard.Table import Value_Type
-import Standard.Database.Column_Constraint.Column_Constraint
-import Standard.Database.Column_Description.Column_Description
 
 polyglot java import org.enso.tableau.HyperReader
 polyglot java import java.sql.Types
@@ -56,9 +54,9 @@ type Hyper_Table
         JS_Object.from_pairs [["type", "Hyper_Table"], ["schema", self.schema], ["table", self.table], ["file", self.file.file.path]]
 
     ## Reads The Columns for the Table
-    columns : Vector Column_Description
+    columns : Vector Hyper_Column
     columns self =
-        array = HyperReader.readColumns self.file.file.path self.schema self.table
+        array = HyperReader.readStructure self.file.file.path self.schema self.table
         array.map column->
             value_type = case column.typeID of
                 Types.BOOLEAN -> Value_Type.Boolean
@@ -84,11 +82,24 @@ type Hyper_Table
                 HyperReader.JSON -> Value_Type.Unsupported_Data_Type "JSON" JS_Object
                 HyperReader.INTERVAL -> Value_Type.Unsupported_Data_Type "INTERVAL" Duration
                 _ -> Value_Type.Unsupported_Data_Type "Unknown" Any
-            constraints = if column.nullable then [] else [Column_Constraint.Not_Null]
-            Column_Description.Value column.name value_type constraints
+            Hyper_Column.Value column.name value_type column.nullable
+
+## An Enso representation of a Column in a Tableau Hyper Table.
+type Hyper_Column
+    Value name:Text value_type:Value_Type nullable:Boolean
+
+    ## PRIVATE
+    to_display_text : Text
+    to_display_text self = self.name + " (" + self.value_type.to_display_text + ")"
+
+    ## PRIVATE
+    to_js_object : JS_Object
+    to_js_object self =
+        JS_Object.from_pairs [["type", "Hyper_Column"], ["name", self.name], ["value_type", self.value_type], ["nullable", self.nullable]]
+
 
 ## PRIVATE
-private make_schema_selector hyper_file:Hyper_File include_any:Boolean=False =
+make_schema_selector hyper_file:Hyper_File include_any:Boolean=False =
     schemas = hyper_file.schemas.map t-> Option t t.pretty
     any_entry = if include_any then [Option "<Any Schema>" "'*'"] else []
     Single_Choice values=schemas+any_entry

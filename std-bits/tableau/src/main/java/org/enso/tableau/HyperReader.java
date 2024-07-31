@@ -159,6 +159,9 @@ public class HyperReader {
     return output.toArray(Table[]::new);
   }
 
+  public final static int JSON = 10001;
+  public final static int INTERVAL = 10002;
+
   public record TableColumn(String name, int typeID, boolean nullable, OptionalInt length, OptionalInt precision, OptionalInt scale) {
     public static TableColumn FromHyperColumn(Column hyperColumn) {
       return new TableColumn(
@@ -169,9 +172,6 @@ public class HyperReader {
           hyperColumn.getType().getPrecision(),
           hyperColumn.getType().getScale());
     }
-
-    public final static int JSON = 10001;
-    public final static int INTERVAL = 10002;
 
     private static int mapTypeTag(TypeTag tag) {
       return switch (tag) {
