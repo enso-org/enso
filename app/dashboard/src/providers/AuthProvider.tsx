@@ -341,6 +341,7 @@ export default function AuthProvider(props: AuthProviderProps) {
       if (result.ok) {
         toastSuccess(getText('signInWithPasswordSuccess'))
         void queryClient.invalidateQueries({ queryKey: sessionQueryKey })
+        navigate(appUtils.DASHBOARD_PATH)
       } else {
         if (result.val.type === cognitoModule.CognitoErrorType.userNotFound) {
           // It may not be safe to pass the user's password in the URL.
