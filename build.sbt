@@ -3273,9 +3273,8 @@ lazy val `std-base` = project
     Compile / packageBin / artifactPath :=
       `base-polyglot-root` / "std-base.jar",
     libraryDependencies ++= Seq(
-      "org.graalvm.polyglot"       % "polyglot"                % graalMavenPackagesVersion,
-      "org.netbeans.api"           % "org-openide-util-lookup" % netbeansApiVersion % "provided",
-      "com.fasterxml.jackson.core" % "jackson-databind"        % jacksonVersion
+      "org.graalvm.polyglot"       % "polyglot"         % graalMavenPackagesVersion,
+      "com.fasterxml.jackson.core" % "jackson-databind" % jacksonVersion
     ),
     modulePath := {
       val updateReport = (Compile / update).value
