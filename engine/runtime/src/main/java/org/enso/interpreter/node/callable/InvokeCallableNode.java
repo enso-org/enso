@@ -289,7 +289,6 @@ public abstract class InvokeCallableNode extends BaseNode {
       Object[] arguments,
       @Shared("warnings") @CachedLibrary(limit = "3") WarningsLibrary warnings,
       @Cached AppendWarningNode appendWarningNode) {
-
     EnsoHashMap extracted;
     Object callable;
     try {
