@@ -42,7 +42,11 @@ import org.enso.projectmanager.service.versionmanagement.{
   RuntimeVersionManagerFactory
 }
 import org.enso.projectmanager.service.{ProjectCreationService, ProjectService}
-import org.enso.projectmanager.test.{ObservableGenerator, ProgrammableClock}
+import org.enso.projectmanager.test.{
+  ObservableGenerator,
+  ProgrammableClock,
+  Shredder
+}
 import org.enso.runtimeversionmanager.CurrentVersion
 import org.enso.runtimeversionmanager.components.GraalVMVersion
 import org.enso.runtimeversionmanager.test.FakeReleases
@@ -102,6 +106,8 @@ class BaseServerSpec extends JsonRpcServerTestKit with BeforeAndAfterAll {
 
   lazy val gen = new ObservableGenerator[ZAny]()
 
+  lazy val trash = new Shredder[ZAny]
+
   val testProjectsRoot = Files.createTempDirectory(null).toFile
   sys.addShutdownHook(FileUtils.deleteQuietly(testProjectsRoot))
 
@@ -141,7 +147,8 @@ class BaseServerSpec extends JsonRpcServerTestKit with BeforeAndAfterAll {
       testStorageConfig,
       testClock,
       fileSystem,
-      gen
+      gen,
+      trash
     )
 
   lazy val projectNameValidator = new ProjectNameValidator[ZIO[ZAny, *, *]]()

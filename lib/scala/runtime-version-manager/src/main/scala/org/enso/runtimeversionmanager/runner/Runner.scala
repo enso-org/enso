@@ -79,7 +79,12 @@ class Runner(
           engineVersion
         )
       }
-      RunSettings(engineVersion, arguments, connectLoggerIfAvailable = false)
+      RunSettings(
+        engineVersion,
+        arguments,
+        workingDirectory         = None,
+        connectLoggerIfAvailable = false
+      )
     }
 
   /** Creates [[RunSettings]] for launching the Language Server. */
@@ -113,6 +118,8 @@ class Runner(
     additionalArguments: Seq[String]
   ): Try[RunSettings] =
     Try {
+      val workingDirectory =
+        Path.of(projectPath).toAbsolutePath.normalize.getParent
       val arguments = Seq(
         "--server",
         "--root-id",
@@ -137,6 +144,7 @@ class Runner(
       RunSettings(
         version,
         arguments ++ additionalArguments,
+        workingDirectory         = Some(workingDirectory),
         connectLoggerIfAvailable = true
       )
     }
@@ -238,7 +246,13 @@ class Runner(
       val extraEnvironmentOverrides =
         javaHome.map("JAVA_HOME" -> _).toSeq ++ distributionSettings.toSeq
 
-      action(Command(command, extraEnvironmentOverrides))
+      action(
+        Command(
+          command,
+          extraEnvironmentOverrides,
+          runSettings.workingDirectory
+        )
+      )
     }
 
     val engineVersion = runSettings.engineVersion

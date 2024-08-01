@@ -16,7 +16,7 @@ import * as offlineHooks from '#/hooks/offlineHooks'
 import { createGetProjectDetailsQuery } from '#/hooks/projectHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
-import { useTargetDirectory } from '#/providers/DriveProvider'
+import { useCanDownload, useTargetDirectory } from '#/providers/DriveProvider'
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
@@ -26,7 +26,7 @@ import AssetEventType from '#/events/AssetEventType'
 import type * as assetSearchBar from '#/layouts/AssetSearchBar'
 import AssetSearchBar from '#/layouts/AssetSearchBar'
 import * as eventListProvider from '#/layouts/AssetsTable/EventListProvider'
-import * as categoryModule from '#/layouts/CategorySwitcher/Category'
+import { isCloudCategory, type Category } from '#/layouts/CategorySwitcher/Category'
 import StartModal from '#/layouts/StartModal'
 
 import * as aria from '#/components/aria'
@@ -62,8 +62,7 @@ export interface DriveBarProps {
   readonly query: AssetQuery
   readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
   readonly suggestions: readonly assetSearchBar.Suggestion[]
-  readonly category: categoryModule.Category
-  readonly canDownload: boolean
+  readonly category: Category
   readonly isAssetPanelOpen: boolean
   readonly setIsAssetPanelOpen: React.Dispatch<React.SetStateAction<boolean>>
   readonly doEmptyTrash: () => void
@@ -82,7 +81,7 @@ export interface DriveBarProps {
 /** Displays the current directory path and permissions, upload and download buttons,
  * and a column display mode switcher. */
 export default function DriveBar(props: DriveBarProps) {
-  const { backend, query, setQuery, suggestions, category, canDownload } = props
+  const { backend, query, setQuery, suggestions, category } = props
   const { doEmptyTrash, doCreateProject, doCreateDirectory } = props
   const { doCreateSecret, doCreateDatalink, doUploadFiles } = props
   const { isAssetPanelOpen, setIsAssetPanelOpen } = props
@@ -94,8 +93,9 @@ export default function DriveBar(props: DriveBarProps) {
   const targetDirectory = useTargetDirectory()
   const createAssetButtonsRef = React.useRef<HTMLDivElement>(null)
   const uploadFilesRef = React.useRef<HTMLInputElement>(null)
-  const isCloud = categoryModule.isCloudCategory(category)
+  const isCloud = isCloudCategory(category)
   const { isOffline } = offlineHooks.useOffline()
+  const canDownload = useCanDownload()
   const targetDirectorySelfPermission =
     targetDirectory == null ? null : tryFindSelfPermission(user, targetDirectory.item.permissions)
   const canCreateAssets =

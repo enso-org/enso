@@ -53,6 +53,7 @@ pub mod release;
 pub mod repo;
 pub mod rust;
 pub mod source;
+pub mod sqlserver;
 pub mod version;
 pub mod web;
 

@@ -15,12 +15,12 @@ import yargs from 'yargs'
 
 import * as common from 'enso-common'
 
-import * as fileAssociations from './file-associations'
+import * as fileAssociations from './fileAssociations'
 import * as paths from './paths'
 import computeHashes from './tasks/computeHashes.mjs'
 import signArchivesMacOs from './tasks/signArchivesMacOs'
 
-import BUILD_INFO from './build-info'
+import BUILD_INFO from './buildInfo'
 
 // =============
 // === Types ===
