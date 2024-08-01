@@ -328,7 +328,7 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
 
   private setState(state: LsSyncState) {
     if (this.state !== LsSyncState.Disposed) {
-      if (this.debug) {
+      if (this.ls.debug) {
         console.debug('State change:', LsSyncState[this.state], '->', LsSyncState[state])
       }
       // This is SAFE. `this.state` is only `readonly` to ensure that this is the only place
@@ -505,7 +505,7 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
 
     const newVersion = computeTextChecksum(newContent)
 
-    if (this.debug) {
+    if (this.ls.debug) {
       console.debug(' === changes === ')
       console.debug('number of edits:', edits.length)
       if (edits.length > 0) {
