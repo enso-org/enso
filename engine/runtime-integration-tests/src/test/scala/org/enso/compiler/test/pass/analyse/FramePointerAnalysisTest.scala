@@ -71,14 +71,14 @@ class FramePointerAnalysisTest extends CompilerTest {
           .name
           .name shouldEqual "b"
       }
-      val framePointers = collectAllFramePointers(ir)
-      withClue(
-        "There should be the exact same amount of AliasAnalysis Uses and FramePointers metadata"
-      ) {
-        allOcc.size shouldEqual framePointers.size
+      withClue("Expression.Binding must have FramePointer associated") {
+        allOcc.head._1.passData().get(FramePointerAnalysis) shouldBe Some(
+          new FramePointer(0, 1)
+        )
+        allOcc.last._1.passData().get(FramePointerAnalysis) shouldBe Some(
+          new FramePointer(0, 2)
+        )
       }
-      framePointers.head._2.framePointer shouldEqual new FramePointer(0, 1)
-      framePointers.last._2.framePointer shouldEqual new FramePointer(0, 2)
     }
 
     "attach frame pointers to parameters" in {
@@ -88,8 +88,9 @@ class FramePointerAnalysisTest extends CompilerTest {
           |main x y = x + y
           |""".stripMargin.preprocessModule.analyse
       val framePointers = collectAllFramePointers(ir)
-      framePointers.head._2.framePointer shouldEqual new FramePointer(0, 1)
-      framePointers.last._2.framePointer shouldEqual new FramePointer(0, 2)
+      framePointers.size shouldBe 4
+      framePointers(0)._2.framePointer shouldEqual new FramePointer(0, 1)
+      framePointers(1)._2.framePointer shouldEqual new FramePointer(0, 2)
     }
 
     "attach frame pointers inside nested scope" in {
@@ -103,37 +104,29 @@ class FramePointerAnalysisTest extends CompilerTest {
       val mainScope = ir.bindings.head
         .unsafeGetMetadata(AliasAnalysis, "should exist")
         .asInstanceOf[Info.Scope.Root]
-      val xUseId = mainScope.graph.symbolToIds[Graph.Occurrence.Use]("x").head
-      val yUseId = mainScope.graph.symbolToIds[Graph.Occurrence.Use]("y").head
-      val nestedUseId =
-        mainScope.graph.symbolToIds[Graph.Occurrence.Use]("nested").head
-      val allOccurences = collectAllOccurences(ir)
-      val xIr = allOccurences
-        .find { case (_, occ) => occ.id == xUseId }
-        .map(_._1)
-        .get
-      val yIr = allOccurences
-        .find { case (_, occ) => occ.id == yUseId }
-        .map(_._1)
-        .get
-      val nestedIr = allOccurences
-        .find { case (_, occ) => occ.id == nestedUseId }
-        .map(_._1)
-        .get
-      withClue("All Uses must have FramePointerMeta associated") {
-        xIr.passData().get(FramePointerAnalysis) shouldBe defined
-        yIr.passData().get(FramePointerAnalysis) shouldBe defined
-        nestedIr.passData().get(FramePointerAnalysis) shouldBe defined
+
+      withClue(
+        "Both definition and usage of `x` should be associated with the same frame pointer"
+      ) {
+        mainScope.graph.symbolToIds[Graph.Occurrence]("x").foreach { xId =>
+          val xIr = findAssociatedIr(xId, ir)
+          expectFramePointer(xIr, new FramePointer(0, 1))
+        }
       }
-      xIr
-        .unsafeGetMetadata(FramePointerAnalysis, "should exist")
-        .framePointer shouldEqual new FramePointer(0, 1)
-      yIr
-        .unsafeGetMetadata(FramePointerAnalysis, "should exist")
-        .framePointer shouldEqual new FramePointer(0, 2)
-      nestedIr
-        .unsafeGetMetadata(FramePointerAnalysis, "should exist")
-        .framePointer shouldEqual new FramePointer(0, 1)
+      withClue(
+        "Both definition and usage of `y` should be associated with the same frame pointer"
+      ) {
+        mainScope.graph.symbolToIds[Graph.Occurrence]("y").foreach { yId =>
+          val yIr = findAssociatedIr(yId, ir)
+          expectFramePointer(yIr, new FramePointer(0, 2))
+        }
+      }
+
+      mainScope.graph.symbolToIds[Graph.Occurrence]("nested").foreach {
+        nestedId =>
+          val nestedIr = findAssociatedIr(nestedId, ir)
+          expectFramePointer(nestedIr, new FramePointer(0, 1))
+      }
     }
 
     "attach frame pointer in nested scope that uses parent scope" in {
@@ -149,25 +142,62 @@ class FramePointerAnalysisTest extends CompilerTest {
       val mainScope = ir.bindings.head
         .unsafeGetMetadata(AliasAnalysis, "should exist")
         .asInstanceOf[Info.Scope.Root]
-      val xUseId        = mainScope.graph.symbolToIds[Graph.Occurrence.Use]("x").head
-      val allOccurences = collectAllOccurences(ir)
-      val xIr = allOccurences
-        .find { case (_, occ) => occ.id == xUseId }
-        .map(_._1)
-        .get
-      xIr
-        .unsafeGetMetadata(FramePointerAnalysis, "should exist")
-        .framePointer shouldEqual new FramePointer(1, 1)
-      val nestedUseId =
-        mainScope.graph.symbolToIds[Graph.Occurrence.Use]("nested").head
-      val nestedIr = allOccurences
-        .find { case (_, occ) => occ.id == nestedUseId }
-        .map(_._1)
-        .get
-      nestedIr
-        .unsafeGetMetadata(FramePointerAnalysis, "should exist")
-        .framePointer shouldEqual new FramePointer(0, 2)
+      val xDefIr = findAssociatedIr(
+        mainScope.graph.symbolToIds[Graph.Occurrence.Def]("x").head,
+        ir
+      )
+      expectFramePointer(xDefIr, new FramePointer(0, 1))
+
+      val nestedDefIr = findAssociatedIr(
+        mainScope.graph.symbolToIds[Graph.Occurrence.Def]("nested").head,
+        ir
+      )
+      expectFramePointer(nestedDefIr, new FramePointer(0, 2))
+
+      val xUseIr = findAssociatedIr(
+        mainScope.graph.symbolToIds[Graph.Occurrence.Use]("x").head,
+        ir
+      )
+      expectFramePointer(xUseIr, new FramePointer(1, 1))
+
+      val nestedUseIr = findAssociatedIr(
+        mainScope.graph.symbolToIds[Graph.Occurrence.Use]("nested").head,
+        ir
+      )
+      expectFramePointer(nestedUseIr, new FramePointer(0, 2))
     }
+  }
+
+  /** Asserts that the given `ir` has the given `framePointer` attached as metadata.
+    */
+  private def expectFramePointer(
+    ir: IR,
+    framePointer: FramePointer
+  ): Unit = {
+    withClue("FramePointerAnalysis metadata should be attached to the IR") {
+      ir.passData().get(FramePointerAnalysis) shouldBe defined
+    }
+    ir
+      .unsafeGetMetadata(FramePointerAnalysis, "should exist")
+      .framePointer shouldEqual framePointer
+  }
+
+  private def findAssociatedIr(
+    id: Graph.Id,
+    moduleIr: IR
+  ): IR = {
+    val irs = moduleIr.preorder().collect { childIr =>
+      childIr.getMetadata(AliasAnalysis) match {
+        case Some(Info.Occurrence(_, occId)) if occId == id =>
+          childIr
+      }
+    }
+    withClue(
+      "There should be just one IR element that has a particular Graph.ID"
+    ) {
+      irs.size shouldBe 1
+    }
+    irs.head
   }
 
   private def collectAllOccurences(
