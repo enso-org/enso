@@ -261,7 +261,7 @@ export default function AssetRow(props: AssetRowProps) {
         let newId = asset.id
         if (!isCloud) {
           const oldPath = localBackend.extractTypeAndId(asset.id).id
-          const newPath = path.joinPath(newParentPath, fileInfo.fileName(oldPath))
+          const newPath = path.joinPath(newParentPath, fileInfo.getFileName(oldPath))
           switch (asset.type) {
             case backendModule.AssetType.file: {
               newId = localBackend.newFileId(newPath)

@@ -181,6 +181,7 @@ export default class RemoteBackend extends Backend {
   ): backend.DirectoryId | null {
     switch (user?.plan ?? null) {
       case null:
+      case backend.Plan.free:
       case backend.Plan.solo: {
         return user?.rootDirectoryId ?? null
       }
