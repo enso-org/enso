@@ -25,6 +25,7 @@ import org.slf4j.event.Level;
  * @param disablePrivateCheck If `private` keyword should be disabled.
  * @param enableStaticAnalysis whether or not to enable static type checking
  * @param strictErrors whether or not to use strict errors
+ * @param disableLinting whether or not linting passes should run during compilation
  * @param useGlobalIrCacheLocation whether or not to use the global IR cache location
  * @param options additional options for the Context
  * @param executionEnvironment optional name of the execution environment to use during execution
@@ -42,6 +43,7 @@ public final class ContextFactory {
   private boolean disablePrivateCheck;
   private boolean enableStaticAnalysis;
   private boolean strictErrors;
+  private boolean disableLinting;
   private boolean useGlobalIrCacheLocation = true;
   private boolean enableAutoParallelism;
   private String executionEnvironment;
@@ -109,6 +111,11 @@ public final class ContextFactory {
     return this;
   }
 
+  public ContextFactory disableLinting(boolean disableLinting) {
+    this.disableLinting = disableLinting;
+    return this;
+  }
+
   public ContextFactory useGlobalIrCacheLocation(boolean useGlobalIrCacheLocation) {
     this.useGlobalIrCacheLocation = useGlobalIrCacheLocation;
     return this;
@@ -147,6 +154,7 @@ public final class ContextFactory {
             .allowHostAccess(allWithTypeMapping())
             .option(RuntimeOptions.PROJECT_ROOT, projectRoot)
             .option(RuntimeOptions.STRICT_ERRORS, Boolean.toString(strictErrors))
+            .option(RuntimeOptions.DISABLE_LINTING, Boolean.toString(disableLinting))
             .option(RuntimeOptions.WAIT_FOR_PENDING_SERIALIZATION_JOBS, "true")
             .option(
                 RuntimeOptions.USE_GLOBAL_IR_CACHE_LOCATION,

@@ -49,6 +49,7 @@ import * as backendHooks from '#/hooks/backendHooks'
 
 import AuthProvider, * as authProvider from '#/providers/AuthProvider'
 import BackendProvider, { useLocalBackend, useRemoteBackend } from '#/providers/BackendProvider'
+import DriveProvider from '#/providers/DriveProvider'
 import DevtoolsProvider from '#/providers/EnsoDevtoolsProvider'
 import * as httpClientProvider from '#/providers/HttpClientProvider'
 import InputBindingsProvider from '#/providers/InputBindingsProvider'
@@ -549,6 +550,9 @@ function AppRouter(props: AppRouterProps) {
       {result}
     </rootComponent.Root>
   )
+  // Ideally this would be in `Drive.tsx`, but it currently must be all the way out here
+  // due to modals being in `TheModal`.
+  result = <DriveProvider>{result}</DriveProvider>
   result = (
     <offlineNotificationManager.OfflineNotificationManager>
       {result}

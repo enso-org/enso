@@ -55,6 +55,13 @@ type Dialect
          Unimplemented.throw "This is an interface only."
 
     ## PRIVATE
+       Generates SQL modifier for limiting the number of rows and its position in the query
+    get_limit_sql_modifier : Integer -> Any
+    get_limit_sql_modifier self limit =
+         _ = [limit]
+         Unimplemented.throw "This is an interface only."
+
+    ## PRIVATE
        Prepares an ordering descriptor.
 
        One of the purposes of this method is to verify if the expected ordering
@@ -157,6 +164,12 @@ type Dialect
         Unimplemented.throw "This is an interface only."
 
     ## PRIVATE
+       Specifies whether the Database supports CREATE TEMPORARY TABLE syntax.
+    suppports_temporary_table_syntax : Boolean
+    suppports_temporary_table_syntax self =
+         Unimplemented.throw "This is an interface only."
+
+    ## PRIVATE
        Performs any transformations on a column resulting from unifying other
        columns.
 
@@ -257,11 +270,6 @@ sqlite = SQLite_Dialect.sqlite
    The dialect of PostgreSQL databases.
 postgres : Dialect
 postgres = Postgres_Dialect.postgres
-
-## PRIVATE
-default_fetch_types_query dialect expression context =
-    empty_context = context.add_where_filters [SQL_Expression.Literal "FALSE"]
-    dialect.generate_sql (Query.Select [["typed_column", expression]] empty_context)
 
 ## PRIVATE
    Default implementation relying on DatabaseMetaData.

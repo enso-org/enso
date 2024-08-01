@@ -10,6 +10,7 @@ import java.io.PrintStream
   * @param privateCheckEnabled whether or not private keyword is enabled
   * @param staticTypeInferenceEnabled whether or not type inference is enabled
   * @param isStrictErrors if true, presence of any Error in IR will result in an exception
+  * @oaram isLintingDisabled if true, compilation should not run any linting passes
   * @param outputRedirect redirection of the output of warnings and errors of compiler
   */
 case class CompilerConfig(
@@ -18,6 +19,7 @@ case class CompilerConfig(
   privateCheckEnabled: Boolean        = true,
   staticTypeInferenceEnabled: Boolean = false,
   isStrictErrors: Boolean             = false,
+  isLintingDisabled: Boolean          = false,
   outputRedirect: Option[PrintStream] = None
 ) {
   def parallelParsing: Boolean = false
