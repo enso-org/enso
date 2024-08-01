@@ -25,17 +25,14 @@ public final class EnsoClassPath {
     if (moduleNames.isEmpty()) {
       return EMPTY;
     } else {
-      java.lang.ModuleLayer parent = ModuleLayer.boot();
-      java.util.List<java.lang.module.Configuration> parentCfgs =
-          Collections.singletonList(parent.configuration());
-      java.util.List<java.lang.ModuleLayer> parentModules = Collections.singletonList(parent);
-      java.lang.ClassLoader parentLoader = parent.findLoader("java.base");
-      java.lang.module.Configuration cfg =
-          Configuration.resolve(finder, parentCfgs, finder, moduleNames);
-      java.lang.ModuleLayer.Controller cntrl =
-          ModuleLayer.defineModulesWithOneLoader(cfg, parentModules, parentLoader);
-      java.lang.ModuleLayer layer = cntrl.layer();
-      java.lang.ClassLoader loader = layer.findLoader(moduleNames.get(0));
+      var parent = ModuleLayer.boot();
+      var parentCfgs = Collections.singletonList(parent.configuration());
+      var parentModules = Collections.singletonList(parent);
+      var parentLoader = parent.findLoader("java.base");
+      var cfg = Configuration.resolve(finder, parentCfgs, finder, moduleNames);
+      var cntrl = ModuleLayer.defineModulesWithOneLoader(cfg, parentModules, parentLoader);
+      var layer = cntrl.layer();
+      var loader = layer.findLoader(moduleNames.get(0));
       return new EnsoClassPath(cntrl, layer, loader);
     }
   }
