@@ -3642,6 +3642,9 @@ lazy val `std-tableau` = project
     fetchZipToUnmanaged := {
       val unmanagedDirectory = (Compile / unmanagedBase).value
       if (IO.listFiles(unmanagedDirectory).size < 2) { // Heuristic, should have at least hyperapi jar and os-specific one.
+        System.out.println(
+          "std-tableau's unmanaged dependencies are not up-to-date. fetching..."
+        )
         unmanagedDirectory.mkdirs()
         val unmanagedPath = unmanagedDirectory.toPath
         IO.withTemporaryDirectory(
@@ -3662,6 +3665,9 @@ lazy val `std-tableau` = project
     },
     Compile / compile / compileInputs := (Compile / compile / compileInputs)
       .dependsOn(SPIHelpers.ensureSPIConsistency)
+      .value,
+    Compile / compile := (Compile / compile)
+      .dependsOn(fetchZipToUnmanaged)
       .value,
     Compile / unmanagedClasspath := (Compile / unmanagedClasspath)
       .dependsOn(fetchZipToUnmanaged)
