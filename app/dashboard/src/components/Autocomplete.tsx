@@ -80,7 +80,8 @@ export type AutocompleteProps<T> = (
 /** A select menu with a dropdown. */
 export default function Autocomplete<T>(props: AutocompleteProps<T>) {
   const { multiple, type = 'text', inputRef: rawInputRef, placeholder, values, setValues } = props
-  const { text, setText, autoFocus, items, itemToKey, itemToString, itemsToString, matches } = props
+  const { text, setText, autoFocus = false, items, itemToKey, itemToString, itemsToString } = props
+  const { matches } = props
   const [isDropdownVisible, setIsDropdownVisible] = React.useState(false)
   const [selectedIndex, setSelectedIndex] = React.useState<number | null>(null)
   const valuesSet = React.useMemo(() => new Set(values), [values])
@@ -221,7 +222,6 @@ export default function Autocomplete<T>(props: AutocompleteProps<T>) {
                 }}
               />
             : <div
-                ref={(element) => element?.focus()}
                 tabIndex={-1}
                 className="text grow cursor-pointer whitespace-nowrap bg-transparent px-button-x"
                 onClick={() => {
