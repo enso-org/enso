@@ -4,6 +4,7 @@ import Standard.Base.Data.Vector.Builder as Vector_Builder
 import project.Column_Description.Column_Description
 import project.DB_Table.DB_Table
 import project.Internal.In_Transaction.In_Transaction
+import project.SQL_Query.SQL_Query
 from project.Internal.Upload.Operations.Internal_Core import internal_create_table_structure
 
 ## PRIVATE
@@ -35,11 +36,12 @@ type Support_Level
                         Support_Level.Allowed
 
 type Transactional_Table_Description
-    Value name:Text temporary:Boolean (structure : Vector Column_Description) (primary_key : Vector Text | Nothing)
+    Value name:Text temporary:Boolean (structure : Vector Column_Description) (primary_key : Vector Text | Nothing) (on_problems:Problem_Behavior)
 
     ## PRIVATE
     private create self connection -> DB_Table =
-        internal_create_table_structure connection self.name self.structure primary_key=self.primary_key temporary=self.temporary on_problems=..Report_Error
+        created_name = internal_create_table_structure connection self.name self.structure primary_key=self.primary_key temporary=self.temporary on_problems=self.on_problems
+        connection.query (SQL_Query.Table_Name created_name)
 
 ## PRIVATE
    A helper that runs the provided code in a transaction, having first created the specified tables.
