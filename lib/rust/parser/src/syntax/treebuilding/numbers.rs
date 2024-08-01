@@ -138,7 +138,7 @@ fn flush<'s, Inner: TokenConsumer<'s> + TreeConsumer<'s>>(
         };
         inner.push_tree(maybe_negated(negation.take(), number));
         if let Some(trailing_token) = trailing_token {
-            inner.push_token(trailing_token.with_variant(token::Variant::operator()));
+            inner.push_token(trailing_token.into());
         }
     } else if let Some(minus) = negation.take() {
         inner.push_token(minus);

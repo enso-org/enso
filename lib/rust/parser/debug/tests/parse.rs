@@ -1470,16 +1470,33 @@ mod numbers {
 
     #[test]
     fn with_decimal() {
+        test!("pi = 3.14", (Assignment (Ident pi) (Number () "3" ("." "14"))));
+    }
+
+    #[test]
+    fn digits_spaced_dot() {
         test!("1 . 0", (OprApp (Number () "1" ()) (Ok ".") (Number () "0" ())));
         test!("1 .0",
             (App (Number () "1" ()) (OprSectionBoundary 1 (OprApp () (Ok ".") (Number () "0" ())))));
         test!("1. 0",
             (OprSectionBoundary 1 (App (OprApp (Number () "1" ()) (Ok ".") ()) (Number () "0" ()))));
-        test!("pi = 3.14", (Assignment (Ident pi) (Number () "3" ("." "14"))));
-        test!("0.0.x", (OprApp (Number () "0" ("." "0")) (Ok ".") (Ident x)));
+    }
+
+    #[test]
+    fn non_digits_dot_digits() {
         test!("x.0", (OprApp (Ident x) (Ok ".") (Number () "0" ())));
-        test!("1.0x", (OprApp (Number () "1" ()) (Ok ".") (Number "0x" () ())));
+    }
+
+    #[test]
+    fn digits_dot_non_digits() {
+        test!("0.0.x", (OprApp (Number () "0" ("." "0")) (Ok ".") (Ident x)));
         test!("1.0.0", (OprApp (Number () "1" ("." "0")) (Ok ".") (Number () "0" ())));
+        test!("1.0x", (OprApp (Number () "1" ()) (Ok ".") (Number "0x" () ())));
+        test!("876543.is_even.should_be_false",
+            (OprApp
+             (OprApp (Number () "876543" ()) (Ok ".") (Ident is_even))
+             (Ok ".")
+             (Ident should_be_false)));
     }
 
     #[test]
