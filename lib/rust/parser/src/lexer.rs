@@ -1503,6 +1503,13 @@ pub mod debug {
         }
         let mut locations = code::debug::LocationCheck::new();
         for token in &tokens {
+            if matches!(
+                token.variant,
+                // Not a token; only constructed as a debug representation.
+                token::Variant::BlockStart(_) | token::Variant::BlockEnd(_)
+            ) {
+                continue;
+            }
             let left_offset = token.left_offset.code.range();
             let code = token.code.range();
             sum_span = Some(concat(&sum_span, &left_offset));
