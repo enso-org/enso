@@ -13,7 +13,7 @@ from Standard.Table.Errors import all
 
 from Standard.Database import all
 from Standard.Database.Errors import all
-from Standard.Database.Internal.Upload_Table import default_key_columns
+from Standard.Database.Internal.Upload.Helpers.Default_Arguments import default_key_columns
 import Standard.Database.Column_Constraint.Column_Constraint
 
 from Standard.Test import all

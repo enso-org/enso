@@ -1,0 +1,60 @@
+private
+
+from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.Errors.Illegal_State.Illegal_State
+
+import Standard.Table.Internal.Problem_Builder.Problem_Builder
+from Standard.Table import Table
+
+import project.Connection.Connection.Connection
+import project.Column_Description.Column_Description
+import project.DB_Table.DB_Table
+
+## PRIVATE
+align_structure : Connection | Any -> DB_Table | Table | Vector Column_Description -> Vector Column_Description
+align_structure connection table_or_columns = case table_or_columns of
+    vector : Vector   -> align_vector_structure vector
+    table : DB_Table  -> structure_from_existing_table connection table
+    table : Table     -> structure_from_existing_table connection table
+
+## PRIVATE
+align_vector_structure vector =
+    if vector.is_empty then Error.throw (Illegal_Argument.Error "A table with no columns cannot be created. The `structure` must consist of at list one column description.") else
+        vector.map def-> case def of
+            _ : Column_Description -> def
+            _ : Function ->
+                Error.throw (Illegal_Argument.Error "The structure should be a vector of Column_Description. Maybe some arguments of Column_Description are missing?")
+            _ ->
+                Error.throw (Illegal_Argument.Error "The structure must be an existing Table or vector of Column_Description.")
+
+## PRIVATE
+structure_from_existing_table connection table =
+    table.columns.map column->
+        value_type = connection.dialect.value_type_for_upload_of_existing_column column
+        Column_Description.Value column.name value_type
+
+## PRIVATE
+   Verifies that the provided structure is valid, and runs the provided action
+   or raises an error.
+
+   In particular it checks if there are no clashing column names.
+validate_structure column_naming_helper structure ~action =
+    column_names = structure.map .name
+    # We first check if the names are valid, to throw a more specific error.
+    column_naming_helper.validate_many_column_names column_names <|
+        problem_builder = Problem_Builder.new
+        ## Then we run the deduplication logic. We discard the results, because
+           if anything is wrong we will fail anyway.
+        unique = column_naming_helper.create_unique_name_strategy
+        column_names.each unique.make_unique
+        problem_builder.report_unique_name_strategy unique
+        problem_builder.attach_problems_before Problem_Behavior.Report_Error <|
+            action
+
+## PRIVATE
+verify_structure_hint structure_hint column_names =
+    if structure_hint.is_nothing.not then
+        column_names.zip structure_hint expected_name-> column_description->
+            if column_description.name != expected_name then
+                Panic.throw (Illegal_State.Error ("The provided structure hint does not match the column names of the source table. Expected: "+column_names.to_display_text+", got: "+(structure_hint.map .name . to_display_text)+". This is a bug in the Database library."))

@@ -15,6 +15,7 @@ import RightPanelIcon from '#/assets/right_panel.svg'
 import * as offlineHooks from '#/hooks/offlineHooks'
 import { createGetProjectDetailsQuery } from '#/hooks/projectHooks'
 
+import { useCanDownload } from '#/providers/DriveProvider'
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
@@ -51,7 +52,6 @@ export interface DriveBarProps {
   readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
   readonly suggestions: readonly assetSearchBar.Suggestion[]
   readonly category: DriveCategory
-  readonly canDownload: boolean
   readonly isAssetPanelOpen: boolean
   readonly setIsAssetPanelOpen: React.Dispatch<React.SetStateAction<boolean>>
   readonly doEmptyTrash: () => void
@@ -70,7 +70,7 @@ export interface DriveBarProps {
 /** Displays the current directory path and permissions, upload and download buttons,
  * and a column display mode switcher. */
 export default function DriveBar(props: DriveBarProps) {
-  const { backend, query, setQuery, suggestions, category, canDownload } = props
+  const { backend, query, setQuery, suggestions, category } = props
   const { doEmptyTrash, doCreateProject, doCreateDirectory } = props
   const { doCreateSecret, doCreateDatalink, doUploadFiles } = props
   const { isAssetPanelOpen, setIsAssetPanelOpen } = props
@@ -81,6 +81,7 @@ export default function DriveBar(props: DriveBarProps) {
   const uploadFilesRef = React.useRef<HTMLInputElement>(null)
   const isCloud = isCloudCategory(category)
   const { isOffline } = offlineHooks.useOffline()
+  const canDownload = useCanDownload()
   const [isCreatingProjectFromTemplate, setIsCreatingProjectFromTemplate] = React.useState(false)
   const [isCreatingProject, setIsCreatingProject] = React.useState(false)
   const [createdProjectId, setCreatedProjectId] = React.useState<ProjectId | null>(null)

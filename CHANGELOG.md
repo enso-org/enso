@@ -4,8 +4,11 @@
 
 - [Implemented in-memory and database mixed `Decimal` column
   comparisons.][10614]
+- [Relative paths are now resolved relative to the project location, also in the
+  Cloud.][10660]
 
 [10614]: https://github.com/enso-org/enso/pull/10614
+[10660]: https://github.com/enso-org/enso/pull/10660
 
 # Enso 2023.3
 
@@ -14,10 +17,12 @@
 - [Enforce conversion method return type][10468]
 - [Renaming launcher executable to ensoup][10535]
 - [Space-precedence does not apply to value-level operators][10597]
+- [Must specify `--repl` to enable debug server][10709]
 
 [10468]: https://github.com/enso-org/enso/pull/10468
 [10535]: https://github.com/enso-org/enso/pull/10535
 [10597]: https://github.com/enso-org/enso/pull/10597
+[10709]: https://github.com/enso-org/enso/pull/10709
 
 #### Enso IDE
 
@@ -55,6 +60,7 @@
 - [Compare two objects with `Ordering.compare` and define comparator with
   `Comparable.new`][10468]
 - [Added `dec` construction function for creating `Decimal`s.][10517]
+- [Added initial read support for SQLServer][10324]
 
 [10434]: https://github.com/enso-org/enso/pull/10434
 [10445]: https://github.com/enso-org/enso/pull/10445
@@ -62,6 +68,7 @@
 [10467]: https://github.com/enso-org/enso/pull/10467
 [10474]: https://github.com/enso-org/enso/pull/10474
 [10517]: https://github.com/enso-org/enso/pull/10517
+[10324]: https://github.com/enso-org/enso/pull/10324
 
 # Enso 2024.2
 
