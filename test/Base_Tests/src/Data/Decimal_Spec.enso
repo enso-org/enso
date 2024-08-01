@@ -630,6 +630,7 @@ add_specs suite_builder =
             f.should_equal 56.34
 
         group_builder.specify "Conversion from float to decimal should use the correct constructor" <|
+            is_value_constructor (dec 0.1) . should_be_true
             is_value_constructor (0.1 . to Decimal) . should_be_true
             is_value_constructor (0.1 . to_decimal) . should_be_true
             is_value_constructor (Decimal.from_float 0.1) . should_be_true
@@ -640,20 +641,27 @@ add_specs suite_builder =
             is_value_constructor (id_decimal 0.1) . should_be_false
 
         group_builder.specify "Explicit conversions to Decimal do not attach a warning" <|
-            Problems.assume_no_problems (is_value_constructor (0.1 . to Decimal))
-            Problems.assume_no_problems (is_value_constructor (0.1 . to_decimal))
-            Problems.assume_no_problems (is_value_constructor (Decimal.from_float 0.1))
+            Problems.assume_no_problems (dec 0.1)
+            Problems.assume_no_problems (0.1 . to Decimal)
+            Problems.assume_no_problems (0.1 . to_decimal)
+            Problems.assume_no_problems (Decimal.from_float 0.1)
 
         group_builder.specify "Implicit conversions to Decimal attach a warning" <|
-            Problems.expect_only_warning Loss_Of_Numeric_Precision (is_value_constructor (Decimal.new 0.1))
-            Problems.expect_only_warning Loss_Of_Numeric_Precision (is_value_constructor (Decimal.from 0.1))
-            Problems.expect_only_warning Loss_Of_Numeric_Precision (is_value_constructor (Decimal.from_float 0.1 explicit=False))
-            Problems.expect_only_warning Loss_Of_Numeric_Precision (is_value_constructor (id_decimal 0.1))
+            Problems.expect_only_warning Loss_Of_Numeric_Precision (Decimal.new 0.1)
+            Problems.expect_only_warning Loss_Of_Numeric_Precision (Decimal.from 0.1)
+            Problems.expect_only_warning Loss_Of_Numeric_Precision (Decimal.from_float 0.1 explicit=False)
+            Problems.expect_only_warning Loss_Of_Numeric_Precision (id_decimal 0.1)
+
+        group_builder.specify "`dec` never attaches a warning" <|
+            Problems.assume_no_problems (dec "0.1")
+            Problems.assume_no_problems (dec 10)
+            Problems.assume_no_problems (dec 0.1)
 
         group_builder.specify "Explicit conversions to Float do not attach a warning" <|
             Problems.assume_no_problems (Decimal.new "0.1" . to_float)
 
         group_builder.specify "Arithmetic with decimal and explicitly converted float should succeed" <|
+            ((Decimal.new 1) + (dec 0.1)) . should_equal 1.1
             ((Decimal.new 1) + (0.1 . to Decimal)) . should_equal 1.1
             ((Decimal.new 1) + (0.1 . to_decimal)) . should_equal 1.1
             ((Decimal.new 1) + (Decimal.from_float 0.1)) . should_equal 1.1
@@ -690,10 +698,6 @@ add_specs suite_builder =
 
     suite_builder.group "(Decimal_Spec) remainder" group_builder->
         group_builder.specify "should define remainder" <|
-            convert x = case x of
-                _ : Integer -> Decimal.from_integer x
-                _ : Float -> Decimal.from_float x
-                _ : Text -> Decimal.from_text x
             cases = []
                 + [[5, 3, 2], [5.0, 3.0, 2.0], [3.5, 2, 1.5], [10.5, 1.0, 0.5], [3, 1, 0], [3.0, 1.0, 0]]
                 + [[-5, 3, -2], [-5.0, 3.0, -2.0], [-3.5, 2, -1.5], [-10.5, 1.0, -0.5], [-3, 1, 0], [-3.0, 1.0, 0]]
@@ -701,9 +705,9 @@ add_specs suite_builder =
                 + [["9223372036854775807", 10, 7], ["9223372036854775808", 10, 8], ["922337203685477580000000000008", 10, 8]]
                 + [["-9223372036854775808", 10, -8], ["-9223372036854775809", 10, -9], ["-922337203685477580000000000008", 10, -8]]
             cases.map c-> Test.with_clue ("["+c.to_text+"] ") <|
-                base = convert (c.at 0)
-                modulus = convert (c.at 1)
-                residue = convert (c.at 2)
+                base = dec (c.at 0)
+                modulus = dec (c.at 1)
+                residue = dec (c.at 2)
                 (base % modulus) . should_equal residue
 
         group_builder.specify "should define remainder (example)" <|

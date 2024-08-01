@@ -113,9 +113,13 @@ type Decimal
          `Decimal.from_text`, since this will give a `Decimal` that matches the
          value precisely.
 
-         to convert a `float` or `integer` to a `decimal`, use its `.to_decimal`
+         To convert a `Float` or `Integer` to a `Decimal`, use its `.to_decimal`
          method. You can also use `Float.to Decimal` to convert a `Float` to a
          `Decimal`.
+
+         You can also use the convenience method `dec` to convert any `Integer`,
+         `Float`, or `Text` value to a `Decimal`. `dec` does not attach a
+         warning.
 
        ! Error and Warning Conditions in creating and using `Decimal`s
 
@@ -153,6 +157,11 @@ type Decimal
           Create a `Decimal` from a `Float`.
 
               c = 12.345.to_decimal
+
+        ^ Example
+          Create a `Decimal` from a value.
+
+              c = dec 12.345
     new : Text | Integer | Float -> Math_Context | Nothing -> Decimal ! Arithmetic_Error | Number_Parse_Error
     new (x : Text | Integer | Float) (mc : Math_Context | Nothing = Nothing) -> Decimal ! Arithmetic_Error | Number_Parse_Error =
         handle_java_exception <|
@@ -183,9 +192,13 @@ type Decimal
          `Decimal.from_text`, since this will give a `Decimal` that matches the
          value precisely.
 
-         to convert a `float` or `integer` to a `decimal`, use its `.to_decimal`
+         To convert a `Float` or `Integer` to a `Decimal`, use its `.to_decimal`
          method. You can also use `Float.to Decimal` to convert a `Float` to a
-         `Decimal`.
+         `Decimal`.A
+
+         You can also use the convenience method `dec` to convert any `Integer`,
+         `Float`, or `Text` value to a `Decimal`. `dec` does not attach a
+         warning.
 
        ! Error and Warning Conditions in creating and using `Decimal`s
 
@@ -213,6 +226,11 @@ type Decimal
           Create a `Decimal` from a `Text`.
 
               d = Decimal.from_text "12.345"
+
+        ^ Example
+          Create a `Decimal` from a `Text`.
+
+              d = dec "12.345"
     from_text : Text -> Math_Context | Nothing -> Decimal ! Number_Parse_Error
     from_text (s : Text) (mc : Math_Context | Nothing = Nothing) -> Decimal ! Number_Parse_Error =
         handle_java_exception <| handle_number_format_exception <|
@@ -237,9 +255,13 @@ type Decimal
          `Decimal.from_text`, since this will give a `Decimal` that matches the
          value precisely.
 
-         to convert a `float` or `integer` to a `decimal`, use its `.to_decimal`
+         To convert a `Float` or `Integer` to a `Decimal`, use its `.to_decimal`
          method. You can also use `Float.to Decimal` to convert a `Float` to a
          `Decimal`.
+
+         You can also use the convenience method `dec` to convert any `Integer`,
+         `Float`, or `Text` value to a `Decimal`. `dec` does not attach a
+         warning.
 
        ! Error and Warning Conditions in creating and using `Decimal`s
 
@@ -267,6 +289,11 @@ type Decimal
           Create a `Decimal` from an `Integer`.
 
               c = 12345.to_decimal
+
+        ^ Example
+          Create a `Decimal` from an `Integer`.
+
+              c = dec 12345
     from_integer : Integer -> Math_Context | Nothing -> Decimal
     from_integer (i : Integer) (mc : Math_Context | Nothing = Nothing) -> Decimal =
         handle_java_exception <|
@@ -299,9 +326,13 @@ type Decimal
          `Decimal.from_text`, since this will give a `Decimal` that matches the
          value precisely.
 
-         to convert a `float` or `integer` to a `decimal`, use its `.to_decimal`
+         To convert a `Float` or `Integer` to a `Decimal`, use its `.to_decimal`
          method. You can also use `Float.to Decimal` to convert a `Float` to a
          `Decimal`.
+
+         You can also use the convenience method `dec` to convert any `Integer`,
+         `Float`, or `Text` value to a `Decimal`. `dec` does not attach a
+         warning.
 
        ! Error and Warning Conditions in creating and using `Decimal`s
 
@@ -329,6 +360,11 @@ type Decimal
           Create a `Decimal` from a `Float`.
 
               c = 12.345.to_decimal
+
+        ^ Example
+          Create a `Decimal` from a `Float`.
+
+              c = dec 12.345
     from_float : Float -> Math_Context | Nothing -> Boolean -> Decimal ! Arithmetic_Error | Illegal_Argument
     from_float (f : Float) (mc : Math_Context | Nothing = Nothing) (explicit : Boolean = True) -> Decimal ! Arithmetic_Error | Illegal_Argument =
         is_exceptional = f.is_nan || f.is_infinite
@@ -1199,7 +1235,11 @@ type Decimal
             c = dec 12.345
 dec : Text | Integer | Float -> Math_Context | Nothing -> Decimal ! Arithmetic_Error | Number_Parse_Error
 dec (x : Text | Integer | Float) (mc : Math_Context | Nothing = Nothing) -> Decimal ! Arithmetic_Error | Number_Parse_Error =
-    Decimal.new x mc
+    handle_java_exception <|
+        case x of
+            _ : Text -> Decimal.from_text x mc
+            _ : Integer -> Decimal.from_integer x mc
+            _ : Float -> Decimal.from_float x mc explicit=True
 
 ## PRIVATE
 handle_number_format_exception ~action =
