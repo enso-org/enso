@@ -116,10 +116,7 @@ final class EnsoHashMapBuilder {
     public Entry next() {
       var entry = byHash[nextVisibleEntryIdx];
       skipToNextVisibleEntry();
-      return new Entry(
-          entry.key(),
-          entry.value()
-      );
+      return new Entry(entry.key(), entry.value());
     }
 
     private void skipToNextVisibleEntry() {

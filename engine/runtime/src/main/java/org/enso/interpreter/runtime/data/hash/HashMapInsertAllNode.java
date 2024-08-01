@@ -50,8 +50,7 @@ public abstract class HashMapInsertAllNode extends Node {
       mapBuilder.put(frame, selfEntry.key(), selfEntry.value(), hashCodeNode, equalsNode);
     }
     var otherMapBuilder = other.getMapBuilder(frame, true, hashCodeNode, equalsNode);
-    var otherEntriesIt =
-        otherMapBuilder.getEntriesIterator(otherMapBuilder.generation());
+    var otherEntriesIt = otherMapBuilder.getEntriesIterator(otherMapBuilder.generation());
     var itemsInserted = 0;
     while (otherEntriesIt.hasNext()) {
       if (itemsInserted >= maxItems) {
