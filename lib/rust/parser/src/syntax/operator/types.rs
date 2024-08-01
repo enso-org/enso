@@ -11,11 +11,11 @@ use crate::syntax::ItemConsumer;
 use crate::syntax::ScopeHierarchyConsumer;
 use crate::syntax::Token;
 use crate::syntax::Tree;
+use crate::syntax::TreeConsumer;
 
+use crate::syntax::operator::annotations::Annotation;
+use crate::syntax::operator::named_app::NamedApp;
 use std::fmt::Debug;
-
-
-
 // ================
 // === Operator ===
 // ================
@@ -29,6 +29,17 @@ pub struct Operator<'s> {
     pub arity:            Arity<'s>,
 }
 
+impl<'s> Operator<'s> {
+    pub(crate) fn spacing(&self) -> Spacing {
+        match &self.arity {
+            Arity::Unary(token) => Spacing::of_token(token),
+            Arity::Binary { tokens, .. } => Spacing::of_token(tokens.first().unwrap()),
+            Arity::App => Spacing::Spaced,
+            Arity::NamedApp(_) => Spacing::Spaced,
+            Arity::Annotation(annotation) => annotation.spacing(),
+        }
+    }
+}
 
 // === Arity ===
 
@@ -43,14 +54,7 @@ pub enum Arity<'s> {
     },
     App,
     NamedApp(Box<NamedApp<'s>>),
-}
-
-#[derive(Debug)]
-pub struct NamedApp<'s> {
-    pub parens:     Option<(token::OpenSymbol<'s>, Option<token::CloseSymbol<'s>>)>,
-    pub name:       token::Ident<'s>,
-    pub equals:     token::AssignmentOperator<'s>,
-    pub expression: Tree<'s>,
+    Annotation(Annotation<'s>),
 }
 
 impl<'s> Arity<'s> {
@@ -151,7 +155,7 @@ pub trait OperatorConsumer<'s> {
 }
 
 pub trait NamedOperandConsumer<'s> {
-    fn push_operand(&mut self, operand: OperandMaybeNamed<'s>);
+    fn push_maybe_named_operand(&mut self, operand: OperandMaybeNamed<'s>);
 }
 
 
@@ -175,16 +179,9 @@ impl<Inner> Inspect<Inner> {
 }
 
 impl<'s, Inner: NamedOperandConsumer<'s>> NamedOperandConsumer<'s> for Inspect<Inner> {
-    fn push_operand(&mut self, operand: OperandMaybeNamed<'s>) {
+    fn push_maybe_named_operand(&mut self, operand: OperandMaybeNamed<'s>) {
         self.observe(&operand);
-        self.0.push_operand(operand);
-    }
-}
-
-impl<'s, Inner: OperandConsumer<'s>> OperandConsumer<'s> for Inspect<Inner> {
-    fn push_operand(&mut self, operand: MaybeSection<Tree<'s>>) {
-        self.observe(&operand);
-        self.0.push_operand(operand);
+        self.0.push_maybe_named_operand(operand);
     }
 }
 
@@ -264,29 +261,21 @@ impl<T: Debug, Inner: Finish<Result = T>> Finish for Inspect<Inner> {
     }
 }
 
+// === Conversions ===
 
-// ===========================
-// === Operator or Operand ===
-// ===========================
-
-#[derive(Debug)]
-pub enum MaybeOperator<'s> {
-    Operand,
-    Operator(Operator<'s>),
-}
-
-impl<'s> From<Operator<'s>> for MaybeOperator<'s> {
-    fn from(operator: Operator<'s>) -> Self {
-        MaybeOperator::Operator(operator)
+impl<'s, T> OperandConsumer<'s> for T
+where T: NamedOperandConsumer<'s>
+{
+    fn push_operand(&mut self, operand: MaybeSection<Tree<'s>>) {
+        self.push_maybe_named_operand(OperandMaybeNamed::Unnamed(operand));
     }
 }
 
-impl<'s> MaybeOperator<'s> {
-    pub fn expects_rhs(&self) -> bool {
-        match self {
-            MaybeOperator::Operand => false,
-            MaybeOperator::Operator(op) => op.arity.expects_rhs(),
-        }
+impl<'s, T> TreeConsumer<'s> for T
+where T: OperandConsumer<'s>
+{
+    fn push_tree(&mut self, tree: Tree<'s>) {
+        self.push_operand(tree.into());
     }
 }
 

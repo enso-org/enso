@@ -1,6 +1,7 @@
 use crate::prelude::*;
 
 use crate::syntax;
+use crate::syntax::operator::annotations::ParseAnnotations;
 use crate::syntax::operator::application::InsertApps;
 use crate::syntax::operator::arity::ClassifyArity;
 use crate::syntax::operator::group::BuildGroups;
@@ -40,6 +41,7 @@ pub struct Precedence<'s> {
         CompoundTokens<'s, _>,
         ParseNumbers<'s, _>,
         PeekSpacing<'s, _>, // Tokens/Trees/Groups -> Tokens/Trees/Groups + Spacing-lookahead
+        ParseAnnotations<'s, _>, // Tokens/Trees/Groups + S -> T/T/Operators/Groups + S
         ParseAppNames<'s, _>,
         ClassifyArity<'s, _>, // Tokens/Trees/Groups + Spacing-lookahead -> Oper*s/Groups
         InsertApps<_>,        // Operators/Operands/Groups -> Oper*s/Groups/Applications

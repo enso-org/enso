@@ -2,11 +2,12 @@ use crate::prelude::*;
 
 use crate::source;
 use crate::syntax::token;
+use crate::syntax::treebuilding::Spacing;
+use crate::syntax::treebuilding::SpacingLookaheadTokenConsumer;
+use crate::syntax::treebuilding::SpacingLookaheadTreeConsumer;
 use crate::syntax::Item;
 use crate::syntax::Token;
 use crate::syntax::Tree;
-
-
 
 /// Item consumer.
 pub trait ItemConsumer<'s> {
@@ -105,5 +106,72 @@ impl<'s> Finish for Vec<Token<'s>> {
 
     fn finish(&mut self) -> Self::Result {
         mem::take(self)
+    }
+}
+
+pub trait HasInner {
+    type Inner;
+
+    fn inner_mut(&mut self) -> &mut Self::Inner;
+}
+
+pub trait Flush {
+    fn flush(&mut self);
+}
+
+
+// ================
+// === Adapters ===
+// ================
+
+#[derive(Debug, Default)]
+pub struct TokenOnlyParser<Parser> {
+    parser: Parser,
+}
+
+impl<'s, Inner, Parser> SpacingLookaheadTokenConsumer<'s> for TokenOnlyParser<Parser>
+where
+    Parser: HasInner<Inner = Inner> + SpacingLookaheadTokenConsumer<'s>,
+    Inner: SpacingLookaheadTokenConsumer<'s>,
+{
+    fn push_token(&mut self, token: Token<'s>, following_spacing: Option<Spacing>) {
+        self.parser.push_token(token, following_spacing);
+    }
+}
+
+impl<'s, Parser, Inner> SpacingLookaheadTreeConsumer<'s> for TokenOnlyParser<Parser>
+where
+    Parser: HasInner<Inner = Inner> + Flush,
+    Inner: SpacingLookaheadTreeConsumer<'s>,
+{
+    fn push_tree(&mut self, tree: Tree<'s>, following_spacing: Option<Spacing>) {
+        self.parser.flush();
+        self.parser.inner_mut().push_tree(tree, following_spacing)
+    }
+}
+
+impl<'s, Parser, Inner> GroupHierarchyConsumer<'s> for TokenOnlyParser<Parser>
+where
+    Parser: HasInner<Inner = Inner> + Flush,
+    Inner: GroupHierarchyConsumer<'s>,
+{
+    fn start_group(&mut self, open: token::OpenSymbol<'s>) {
+        self.parser.flush();
+        self.parser.inner_mut().start_group(open)
+    }
+
+    fn end_group(&mut self, close: token::CloseSymbol<'s>) {
+        self.parser.flush();
+        self.parser.inner_mut().end_group(close)
+    }
+}
+
+impl<Inner: Finish> Finish for TokenOnlyParser<Inner>
+where Inner: Finish
+{
+    type Result = Inner::Result;
+
+    fn finish(&mut self) -> Self::Result {
+        self.parser.finish()
     }
 }

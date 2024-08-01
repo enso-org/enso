@@ -35,7 +35,7 @@ where Inner: NamedOperandConsumer<'s> + OperatorConsumer<'s>
         let properties = token.operator_properties();
         match properties {
             Some(properties) => self.operator(token, properties, rhs),
-            None => self.push_operand(OperandMaybeNamed::Unnamed(tree::to_ast(token).into())),
+            None => self.push_operand(tree::to_ast(token).into()),
         }
     }
 }
@@ -43,9 +43,9 @@ where Inner: NamedOperandConsumer<'s> + OperatorConsumer<'s>
 impl<'s, Inner> NamedOperandConsumer<'s> for ClassifyArity<'s, Inner>
 where Inner: NamedOperandConsumer<'s> + OperatorConsumer<'s>
 {
-    fn push_operand(&mut self, operand: OperandMaybeNamed<'s>) {
+    fn push_maybe_named_operand(&mut self, operand: OperandMaybeNamed<'s>) {
         self.emit(MaybeOperator::Operand);
-        self.inner.push_operand(operand);
+        self.inner.push_maybe_named_operand(operand);
     }
 }
 
@@ -125,7 +125,7 @@ where Inner: NamedOperandConsumer<'s> + OperatorConsumer<'s>
 
     fn unary_operator_section(&mut self, token: Token<'s>) {
         self.emit(MaybeOperator::Operand);
-        self.inner.push_operand(OperandMaybeNamed::Unnamed(
+        self.inner.push_maybe_named_operand(OperandMaybeNamed::Unnamed(
             ApplyUnaryOperator::token(token.with_variant(token::variant::UnaryOperator())).finish(),
         ));
     }
@@ -146,8 +146,9 @@ where Inner: NamedOperandConsumer<'s> + OperatorConsumer<'s>
         }
         let missing = match (lhs, rhs) {
             (None, None) => {
-                self.inner
-                    .push_operand(OperandMaybeNamed::Unnamed(ApplyOperator::token(token).finish()));
+                self.inner.push_maybe_named_operand(OperandMaybeNamed::Unnamed(
+                    ApplyOperator::token(token).finish(),
+                ));
                 self.emit(MaybeOperator::Operand);
                 return;
             }
@@ -186,7 +187,7 @@ where Inner: NamedOperandConsumer<'s> + OperatorConsumer<'s>
                             let operand = OperandMaybeNamed::Unnamed(
                                 ApplyOperator::tokens(mem::take(tokens)).finish(),
                             );
-                            self.inner.push_operand(operand);
+                            self.inner.push_maybe_named_operand(operand);
                             self.lhs_item = Some(MaybeOperator::Operand);
                         }
                         Some(BinaryOperand::Right) => unreachable!(),
@@ -225,5 +226,35 @@ where Inner: NamedOperandConsumer<'s> + OperatorConsumer<'s> + GroupHierarchyCon
     fn end_group(&mut self, close: token::CloseSymbol<'s>) {
         self.emit(MaybeOperator::Operand);
         self.inner.end_group(close);
+    }
+}
+
+impl<'s, Inner: OperatorConsumer<'s>> OperatorConsumer<'s> for ClassifyArity<'s, Inner> {
+    fn push_operator(&mut self, operator: Operator<'s>) {
+        self.inner.push_operator(operator);
+    }
+}
+
+
+// === Operator or Operand
+
+#[derive(Debug)]
+enum MaybeOperator<'s> {
+    Operand,
+    Operator(Operator<'s>),
+}
+
+impl<'s> From<Operator<'s>> for MaybeOperator<'s> {
+    fn from(operator: Operator<'s>) -> Self {
+        MaybeOperator::Operator(operator)
+    }
+}
+
+impl<'s> MaybeOperator<'s> {
+    fn expects_rhs(&self) -> bool {
+        match self {
+            MaybeOperator::Operand => false,
+            MaybeOperator::Operator(op) => op.arity.expects_rhs(),
+        }
     }
 }

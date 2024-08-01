@@ -1569,6 +1569,8 @@ fn attributes_in_types() {
 #[test]
 fn inline_builtin_annotations() {
     test!("@Tail_Call go t", (AnnotatedBuiltin Tail_Call #() (App (Ident go) (Ident t))));
+    test!("@Tail_Call go (x = y)",
+        (AnnotatedBuiltin Tail_Call #() (NamedApp (Ident go) x (Ident y))));
     test!("@Tail_Call go\n a\n b",
         (AnnotatedBuiltin Tail_Call #()
          (ArgumentBlockApplication (Ident go) #((Ident a) (Ident b)))));

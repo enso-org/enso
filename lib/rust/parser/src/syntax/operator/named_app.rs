@@ -1,8 +1,11 @@
 use crate::prelude::*;
 
+use crate::syntax::operator::reducer::ApplyToOperand;
 use crate::syntax::operator::section::MaybeSection;
 use crate::syntax::operator::types::NamedOperandConsumer;
 use crate::syntax::operator::types::OperandMaybeNamed;
+use crate::syntax::operator::types::Operator;
+use crate::syntax::operator::types::OperatorConsumer;
 use crate::syntax::token;
 use crate::syntax::treebuilding::Spacing;
 use crate::syntax::treebuilding::SpacingLookaheadTokenConsumer;
@@ -25,6 +28,26 @@ pub struct ParseAppNames<'s, Inner> {
     inner:   Inner,
     partial: Option<Partial<'s>>,
     stack:   Vec<AppName<'s>>,
+}
+
+#[derive(Debug)]
+pub struct NamedApp<'s> {
+    pub parens:     Option<(token::OpenSymbol<'s>, Option<token::CloseSymbol<'s>>)>,
+    pub name:       token::Ident<'s>,
+    pub equals:     token::AssignmentOperator<'s>,
+    pub expression: Tree<'s>,
+}
+
+impl<'s> ApplyToOperand<'s> for NamedApp<'s> {
+    fn apply_to_operand(self, operand: Option<MaybeSection<Tree<'s>>>) -> MaybeSection<Tree<'s>> {
+        let NamedApp { parens, name, equals, expression } = self;
+        let func = operand.unwrap();
+        let (open, close) = match parens {
+            None => (None, None),
+            Some((open, close)) => (Some(open), close),
+        };
+        func.map(|func| Tree::named_app(func, open, name, equals, expression, close))
+    }
 }
 
 #[derive(Debug)]
@@ -118,7 +141,7 @@ where Inner: NamedOperandConsumer<'s>
     fn flush_complete(&mut self, mut close: Option<token::CloseSymbol<'s>>) {
         let expression = self.inner.end_scope();
         let operand = self.stack.pop().unwrap().finish(expression, &mut close);
-        self.inner.push_operand(operand);
+        self.inner.push_maybe_named_operand(operand);
         if let Some(close) = close {
             self.inner.end_group(close);
         }
@@ -195,7 +218,7 @@ where Inner: SpacingLookaheadTokenConsumer<'s>
     fn push_tree(&mut self, tree: Tree<'s>, following_spacing: Option<Spacing>) {
         self.flush_partial(|| Spacing::of_tree(&tree).into());
         self.maybe_end_unspaced_expression(Some(Spacing::of_tree(&tree)), false);
-        self.inner.push_operand(OperandMaybeNamed::Unnamed(MaybeSection::from(tree)));
+        self.inner.push_maybe_named_operand(OperandMaybeNamed::Unnamed(MaybeSection::from(tree)));
         self.maybe_end_unspaced_expression(following_spacing, false);
     }
 }
@@ -246,5 +269,19 @@ where Inner: Finish
             self.flush_complete(None);
         }
         self.inner.finish()
+    }
+}
+
+impl<'s, Inner> OperatorConsumer<'s> for ParseAppNames<'s, Inner>
+where Inner: OperatorConsumer<'s>
+        + NamedOperandConsumer<'s>
+        + ScopeHierarchyConsumer<Result = Option<Tree<'s>>>
+        + GroupHierarchyConsumer<'s>
+        + SpacingLookaheadTokenConsumer<'s>
+{
+    fn push_operator(&mut self, operator: Operator<'s>) {
+        self.flush_partial(|| None);
+        self.maybe_end_unspaced_expression(Some(operator.spacing()), false);
+        self.inner.push_operator(operator);
     }
 }

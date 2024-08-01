@@ -134,12 +134,6 @@ impl<'s, Inner: SpacingLookaheadTreeConsumer<'s> + SpacingLookaheadTokenConsumer
     }
 }
 
-impl<'s, Inner: TreeConsumer<'s>> SpacingLookaheadTreeConsumer<'s> for Inner {
-    fn push_tree(&mut self, tree: Tree<'s>, _: Option<Spacing>) {
-        self.push_tree(tree);
-    }
-}
-
 impl<'s, Inner> GroupHierarchyConsumer<'s> for PeekSpacing<'s, Inner>
 where Inner: GroupHierarchyConsumer<'s>
         + SpacingLookaheadTreeConsumer<'s>

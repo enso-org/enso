@@ -823,12 +823,14 @@ pub enum SyntaxError {
     ImportsNoAllInExport,
     ImportsNoHidingInExport,
     ImportsExpectedNameInExport,
+    AnnotationOpMustBeAppliedToIdent,
 }
 
 impl From<SyntaxError> for Cow<'static, str> {
     fn from(error: SyntaxError) -> Self {
         use SyntaxError::*;
         (match error {
+            AnnotationOpMustBeAppliedToIdent => "The annotation operator must be applied to an identifier",
             ArgDefUnexpectedOpInParenClause => "Unexpected operator in parenthesized argument definition clause",
             ArgDefSpuriousParens => "Invalid parentheses in argument definition",
             ArgDefExpectedPattern => "Expected identifier or wildcard in argument binding",
@@ -870,16 +872,6 @@ impl From<SyntaxError> for Cow<'static, str> {
 /// application has special semantics.
 pub fn apply<'s>(mut func: Tree<'s>, mut arg: Tree<'s>) -> Tree<'s> {
     match (&mut func.variant, &mut arg.variant) {
-        (Variant::Annotated(func_ @ box Annotated { argument: None, .. }), _) => {
-            func.span.code_length += arg.span.length_including_whitespace();
-            func_.argument = arg.into();
-            return func;
-        }
-        (Variant::AnnotatedBuiltin(func_), _) => {
-            func.span.code_length += arg.span.length_including_whitespace();
-            func_.expression = maybe_apply(mem::take(&mut func_.expression), arg).into();
-            return func;
-        }
         (_, Variant::ArgumentBlockApplication(block)) if block.lhs.is_none() => {
             let code =
                 func.span.code_length + arg.span.left_offset.code.length() + arg.span.code_length;

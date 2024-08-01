@@ -1,6 +1,7 @@
 use crate::syntax::operator::types::*;
 use enso_prelude::*;
 
+use crate::syntax::operator::named_app::NamedApp;
 use crate::syntax::token;
 use crate::syntax::treebuilding::Spacing;
 use crate::syntax::Finish;
@@ -25,7 +26,7 @@ pub struct InsertApps<Inner> {
 impl<'s, Inner> NamedOperandConsumer<'s> for InsertApps<Inner>
 where Inner: OperatorConsumer<'s> + OperandConsumer<'s>
 {
-    fn push_operand(&mut self, operand: OperandMaybeNamed<'s>) {
+    fn push_maybe_named_operand(&mut self, operand: OperandMaybeNamed<'s>) {
         match operand {
             OperandMaybeNamed::Unnamed(operand) => {
                 if mem::replace(&mut self.prev_applicable, true) {

@@ -153,7 +153,6 @@ impl<State, Input, Output> Step<State, Input, Output> {
 enum CompoundToken<'s> {
     TextLiteral(TextLiteralBuilder<'s>),
     OperatorIdentifier(OperatorIdentifierBuilder),
-    Annotation(AnnotationBuilder<'s>),
     Autoscope(AutoscopeBuilder<'s>),
 }
 
@@ -181,7 +180,6 @@ impl<'s> CompoundTokenBuilder<'s> for CompoundToken<'s> {
         StartStep::Reject(token)
             .or_else(|token| TextLiteralBuilder::start(token).map_state(TextLiteral))
             .or_else(|token| OperatorIdentifierBuilder::start(token).map_state(OperatorIdentifier))
-            .or_else(|token| AnnotationBuilder::start(token).map_state(Annotation))
             .or_else(|token| AutoscopeBuilder::start(token).map_state(Autoscope))
     }
 
@@ -190,7 +188,6 @@ impl<'s> CompoundTokenBuilder<'s> for CompoundToken<'s> {
         match self {
             TextLiteral(builder) => builder.step(token).map_state(TextLiteral),
             OperatorIdentifier(builder) => builder.step(token).map_state(OperatorIdentifier),
-            Annotation(builder) => builder.step(token).map_state(Annotation),
             Autoscope(builder) => builder.step(token).map_state(Autoscope),
         }
     }
@@ -200,7 +197,6 @@ impl<'s> CompoundTokenBuilder<'s> for CompoundToken<'s> {
         match self {
             TextLiteral(builder) => builder.flush(),
             OperatorIdentifier(builder) => builder.flush(),
-            Annotation(builder) => builder.flush(),
             Autoscope(builder) => builder.flush(),
         }
     }
@@ -315,56 +311,9 @@ impl<'s> CompoundTokenBuilder<'s> for OperatorIdentifierBuilder {
 }
 
 
-// ===================
-// === Annotations ===
-// ===================
-
-#[derive(Debug)]
-struct AnnotationBuilder<'s> {
-    operator: token::AnnotationOperator<'s>,
-}
-
-impl<'s> CompoundTokenBuilder<'s> for AnnotationBuilder<'s> {
-    fn start(token: Token<'s>) -> StartStep<Self, Token<'s>> {
-        match token.variant {
-            token::Variant::AnnotationOperator(variant) => {
-                let operator = token.with_variant(variant);
-                StartStep::Start(Self { operator })
-            }
-            _ => StartStep::Reject(token),
-        }
-    }
-
-    fn step(self, token: Token<'s>) -> Step<Self, Token<'s>, Tree<'s>> {
-        match token.variant {
-            token::Variant::Ident(ident) if !token.is_spaced() => {
-                let Self { operator } = self;
-                let token = token.with_variant(ident);
-                Step::Complete(match token.is_type {
-                    true => Tree::annotated_builtin(operator, token, vec![], None),
-                    false => Tree::annotated(operator, token, None, vec![], None),
-                })
-            }
-            _ => Step::Reject(self.into_error(), token),
-        }
-    }
-
-    fn flush(self) -> Option<Tree<'s>> {
-        Some(self.into_error())
-    }
-}
-
-impl<'s> AnnotationBuilder<'s> {
-    fn into_error(self) -> Tree<'s> {
-        let Self { operator } = self;
-        token_to_error(operator, "The annotation operator must be applied to an identifier.")
-    }
-}
-
-
-// ===================
-// === Annotations ===
-// ===================
+// =================
+// === Autoscope ===
+// =================
 
 #[derive(Debug)]
 struct AutoscopeBuilder<'s> {

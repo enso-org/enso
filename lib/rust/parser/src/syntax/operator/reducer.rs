@@ -112,53 +112,10 @@ impl<'s> Reduce<'s> {
             }
             let opr = self.operator_stack.pop().unwrap();
             let StackOperator { right_precedence: _, associativity: _, arity, warnings } = opr;
-            match arity {
-                Arity::Unary(token) => {
-                    let rhs = operand.take();
-                    debug_assert_ne!(rhs, None);
-                    operand = ApplyUnaryOperator::token(token)
-                        .with_rhs(rhs)
-                        .with_warnings(warnings)
-                        .finish()
-                        .into();
-                }
-                Arity::Binary { tokens, missing, reify_rhs_section } => {
-                    let op1 = operand.take();
-                    debug_assert_ne!(op1, None);
-                    let (lhs, rhs) = match missing {
-                        Some(BinaryOperand::Left) => (None, op1),
-                        Some(BinaryOperand::Right) => (op1, None),
-                        None => {
-                            let lhs = self.output.pop();
-                            debug_assert_ne!(lhs, None);
-                            (lhs, op1)
-                        }
-                    };
-                    operand = ApplyOperator::tokens(tokens)
-                        .with_lhs(lhs)
-                        .with_rhs(rhs, reify_rhs_section)
-                        .with_warnings(warnings)
-                        .finish()
-                        .into();
-                }
-                Arity::App => {
-                    let (lhs, rhs) = (self.output.pop().unwrap(), operand.take());
-                    let mut tree = lhs.map(|lhs| apply(lhs, rhs.unwrap().into()));
-                    warnings.apply(&mut tree.value);
-                    operand = tree.into();
-                }
-                Arity::NamedApp(box NamedApp { parens, name, equals, expression }) => {
-                    let func = operand.take().unwrap();
-                    let (open, close) = match parens {
-                        None => (None, None),
-                        Some((open, close)) => (Some(open), close),
-                    };
-                    let mut tree = func
-                        .map(|func| Tree::named_app(func, open, name, equals, expression, close));
-                    warnings.apply(&mut tree.value);
-                    operand = tree.into();
-                }
-            };
+            operand = reduce_step(arity, operand.take(), &mut self.output).into();
+            if let Some(operand) = operand.as_mut() {
+                warnings.apply(&mut operand.value);
+            }
         }
         if let Some(rhs) = operand {
             self.output.push(rhs);
@@ -169,6 +126,62 @@ impl<'s> Reduce<'s> {
     fn scope_start(&self) -> (usize, usize) {
         let (operators, operands) = self.scope_stack.last().copied().unwrap_or_default();
         (operators as usize, operands as usize)
+    }
+}
+
+pub trait ApplyToOperands<'s> {
+    fn apply_to_operands(
+        self,
+        operand: Option<MaybeSection<Tree<'s>>>,
+        additional_operands: &mut Vec<MaybeSection<Tree<'s>>>,
+    ) -> MaybeSection<Tree<'s>>;
+}
+
+pub trait ApplyToOperand<'s> {
+    fn apply_to_operand(self, operand: Option<MaybeSection<Tree<'s>>>) -> MaybeSection<Tree<'s>>;
+}
+
+impl<'s, T: ApplyToOperand<'s>> ApplyToOperands<'s> for T {
+    fn apply_to_operands(
+        self,
+        operand: Option<MaybeSection<Tree<'s>>>,
+        _: &mut Vec<MaybeSection<Tree<'s>>>,
+    ) -> MaybeSection<Tree<'s>> {
+        self.apply_to_operand(operand)
+    }
+}
+
+fn reduce_step<'s>(
+    arity: Arity<'s>,
+    operand: Option<MaybeSection<Tree<'s>>>,
+    additional_operands: &mut Vec<MaybeSection<Tree<'s>>>,
+) -> MaybeSection<Tree<'s>> {
+    match arity {
+        Arity::Unary(token) => {
+            let rhs = operand;
+            debug_assert_ne!(rhs, None);
+            ApplyUnaryOperator::token(token).with_rhs(rhs).finish()
+        }
+        Arity::Binary { tokens, missing, reify_rhs_section } => {
+            let op1 = operand;
+            debug_assert_ne!(op1, None);
+            let (lhs, rhs) = match missing {
+                Some(BinaryOperand::Left) => (None, op1),
+                Some(BinaryOperand::Right) => (op1, None),
+                None => {
+                    let lhs = additional_operands.pop();
+                    debug_assert_ne!(lhs, None);
+                    (lhs, op1)
+                }
+            };
+            ApplyOperator::tokens(tokens).with_lhs(lhs).with_rhs(rhs, reify_rhs_section).finish()
+        }
+        Arity::App => {
+            let (lhs, rhs) = (additional_operands.pop().unwrap(), operand);
+            lhs.map(|lhs| apply(lhs, rhs.unwrap().into()))
+        }
+        Arity::NamedApp(app) => app.apply_to_operand(operand),
+        Arity::Annotation(annotation) => annotation.apply_to_operand(operand),
     }
 }
 

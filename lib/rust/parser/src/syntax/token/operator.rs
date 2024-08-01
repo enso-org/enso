@@ -300,6 +300,11 @@ impl Precedence {
         Precedence { value: 80 }
     }
 
+    /// Return the precedence of @annotations.
+    pub fn annotation() -> Self {
+        Precedence { value: 79 }
+    }
+
     /// Return the precedence of unary minus.
     pub fn unary_minus() -> Self {
         Precedence { value: 79 }
