@@ -86,7 +86,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
   const path =
     isCloud ? null
     : item.item.type === backendModule.AssetType.project ?
-      localBackend?.getProjectDirectoryPath(item.item.id) ?? null
+      localBackend?.getProjectPath(item.item.id) ?? null
     : localBackendModule.extractTypeAndId(item.item.id).id
 
   const createDatalinkMutation = backendHooks.useBackendMutation(backend, 'createDatalink')

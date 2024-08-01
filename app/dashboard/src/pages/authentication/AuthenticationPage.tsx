@@ -67,7 +67,13 @@ export default function AuthenticationPage(props: AuthenticationPageProps) {
                 {heading}
                 {children}
               </div>
-            : <form className={containerClasses} onSubmit={onSubmit}>
+            : <form
+                className={containerClasses}
+                onSubmit={(event) => {
+                  event.preventDefault()
+                  onSubmit?.(event)
+                }}
+              >
                 {heading}
                 {children}
               </form>
