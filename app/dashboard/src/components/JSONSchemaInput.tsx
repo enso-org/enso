@@ -12,6 +12,7 @@ import Checkbox from '#/components/styled/Checkbox'
 import FocusArea from '#/components/styled/FocusArea'
 import FocusRing from '#/components/styled/FocusRing'
 
+import { useBackendQuery } from '#/hooks/backendHooks'
 import * as jsonSchema from '#/utilities/jsonSchema'
 import * as object from '#/utilities/object'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
@@ -38,13 +39,20 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
   const { value, setValue } = props
   // The functionality for inputting `enso-secret`s SHOULD be injected using a plugin,
   // but it is more convenient to avoid having plugin infrastructure.
-  const remoteBackend = backendProvider.useRemoteBackend()
+  const remoteBackend = backendProvider.useRemoteBackendStrict()
   const { getText } = textProvider.useText()
   const [autocompleteText, setAutocompleteText] = React.useState(() =>
     typeof value === 'string' ? value : null,
   )
   const [selectedChildIndex, setSelectedChildIndex] = React.useState<number | null>(null)
   const [autocompleteItems, setAutocompleteItems] = React.useState<string[] | null>(null)
+  const { data: secrets } = useBackendQuery(remoteBackend, 'listSecrets', [], {
+    enabled:
+      'type' in schema &&
+      schema.type === 'string' &&
+      'format' in schema &&
+      schema.format === 'enso-secret',
+  })
 
   // NOTE: `enum` schemas omitted for now as they are not yet used.
   if ('const' in schema) {
@@ -58,11 +66,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
           if ('format' in schema && schema.format === 'enso-secret') {
             const isValid = typeof value === 'string' && value !== ''
             if (autocompleteItems == null) {
-              setAutocompleteItems([])
-              void (async () => {
-                const secrets = (await remoteBackend?.listSecrets()) ?? []
-                setAutocompleteItems(secrets.map((secret) => secret.path))
-              })()
+              setAutocompleteItems((secrets ?? []).map((secret) => secret.path))
             }
             children.push(
               <div
