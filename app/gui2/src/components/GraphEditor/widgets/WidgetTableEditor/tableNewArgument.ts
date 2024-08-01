@@ -2,7 +2,7 @@ import type { WidgetInput, WidgetUpdate } from '@/providers/widgetRegistry'
 import { Ast } from '@/util/ast'
 import { filterDefined } from '@/util/data/iterable'
 import type { ToValue } from '@/util/reactivity'
-import type { ValueGetterParams, ValueSetterParams } from 'ag-grid-community'
+import { type ColDef } from 'ag-grid-community'
 import { mapIterator } from 'lib0/iterator'
 import type { AstId, MutableModule } from 'shared/ast'
 import { initializeFFI } from 'shared/ast/ffi'
@@ -27,13 +27,9 @@ namespace cellValueConversion {
     if (value == null) {
       return Ast.TextLiteral.new('', module)
     }
-    if (typeof value === 'number') {
-      return (
-        Ast.NumericLiteral.tryParse(`${value}`, module) ?? Ast.TextLiteral.new(`${value}`, module)
-      )
-    } else {
-      return Ast.TextLiteral.new(`${value}`, module)
-    }
+    return (
+      Ast.NumericLiteral.tryParse(`${value}`, module) ?? Ast.TextLiteral.new(`${value}`, module)
+    )
   }
 }
 
@@ -117,9 +113,8 @@ export function useTableNewArgument(
     return true
   }
 
-  const newColumnDef = computed(() => ({
+  const newColumnDef = computed<ColDef<RowData>>(() => ({
     headerName: 'New Column',
-    editable: true,
     valueGetter: () => undefined,
     valueSetter: ({ data, newValue }: { data: RowData; newValue: any }) => {
       if (columnsAst.value == null) return false
@@ -134,12 +129,12 @@ export function useTableNewArgument(
   }))
 
   const columnDefs = computed(() => {
-    const cols = Array.from(columns.value, (col) => ({
+    const cols: ColDef<RowData>[] = Array.from(columns.value, (col) => ({
+      colId: col.data.id,
       headerName: col.name,
-      editable: true,
-      valueGetter: ({ data }: { data: RowData }) => {
+      valueGetter: ({ data }: { data: RowData | undefined }) => {
         if (data == null) return undefined
-        const ast = toValue(input).value.module.get(data.cells[col.name])
+        const ast = toValue(input).value.module.tryGet(data.cells[col.name])
         if (ast == null) return undefined
         return cellValueConversion.astToAgGrid(ast)
       },

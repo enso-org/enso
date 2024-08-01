@@ -1,18 +1,15 @@
 <script setup lang="ts">
 import { WidgetInputIsSpecificMethodCall } from '@/components/GraphEditor/widgets/WidgetFunction.vue'
-import {
-  type RowData,
-  useTableNewArgument,
-} from '@/components/GraphEditor/widgets/WidgetTableEditor/tableNewArgument'
+import { useTableNewArgument } from '@/components/GraphEditor/widgets/WidgetTableEditor/tableNewArgument'
 import ResizeHandles from '@/components/ResizeHandles.vue'
+import AgGridTableView from '@/components/widgets/AgGridTableView.vue'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
 import { Score, defineWidget, widgetProps } from '@/providers/widgetRegistry'
+import { useGraphStore } from '@/stores/graph'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import '@ag-grid-community/styles/ag-grid.css'
 import '@ag-grid-community/styles/ag-theme-alpine.css'
-import type { GetRowIdParams } from 'ag-grid-community'
-import { AgGridVue } from 'ag-grid-vue3'
 import { computed, ref, watch } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
@@ -62,11 +59,12 @@ export const widgetDefinition = defineWidget(
 
 <template>
   <div class="WidgetTableEditor" :style="widgetStyle">
-    <AgGridVue
+    <AgGridTableView
       class="grid"
+      :defaultColDef="{ editable: true, resizable: true }"
       :columnDefs="columnDefs"
       :rowData="rowData"
-      :getRowId="(row: GetRowIdParams<RowData>) => row.data.index"
+      :getRowId="(row) => `${row.data.index}`"
     />
     <ResizeHandles v-model="clientBounds" bottom right />
   </div>
