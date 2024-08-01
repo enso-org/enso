@@ -181,10 +181,13 @@ case object IgnoredBindings extends IRPass {
           genNewArg(arg, isIgnore, supply)
         }
 
-        lam.copy(
-          arguments = newArgs,
-          body      = resolveExpression(body, supply)
-        )
+        val newBody = resolveExpression(body, supply)
+        if (newArgs != args || newBody != body)
+          lam.copy(
+            arguments = newArgs,
+            body      = newBody
+          )
+        else lam
       case _: Function.Binding =>
         throw new CompilerError(
           "Function sugar should not be present during ignored " +
@@ -219,10 +222,12 @@ case object IgnoredBindings extends IRPass {
             _
           ) =>
         // Note [Ignored `this` Argument]
-        spec
-          .copy(defaultValue =
-            spec.defaultValue.map(resolveExpression(_, freshNameSupply))
-          )
+        val defaultValue1 =
+          spec.defaultValue.map(resolveExpression(_, freshNameSupply))
+        (if (defaultValue1 != spec.defaultValue)
+           spec
+             .copy(defaultValue = defaultValue1)
+         else spec)
           .updateMetadata(new MetadataPair(this, State.Ignored))
       case spec: DefinitionArgument.Specified =>
         if (isIgnored) {
@@ -242,12 +247,15 @@ case object IgnoredBindings extends IRPass {
             )
             .updateMetadata(new MetadataPair(this, State.Ignored))
         } else {
+          val defaultValue1 =
+            spec.defaultValue.map(resolveExpression(_, freshNameSupply))
           setNotIgnored(
-            spec
-              .copy(
-                defaultValue =
-                  spec.defaultValue.map(resolveExpression(_, freshNameSupply))
-              )
+            if (defaultValue1 != spec.defaultValue)
+              spec
+                .copy(
+                  defaultValue = defaultValue1
+                )
+            else spec
           )
         }
     }
@@ -287,10 +295,15 @@ case object IgnoredBindings extends IRPass {
   def resolveCase(cse: Case, supply: FreshNameSupply): Case = {
     cse match {
       case expr @ Case.Expr(scrutinee, branches, _, _, _, _) =>
-        expr.copy(
-          scrutinee = resolveExpression(scrutinee, supply),
-          branches  = branches.map(resolveCaseBranch(_, supply))
-        )
+        val scrutinee1 = resolveExpression(scrutinee, supply)
+        val branches1  = branches.map(resolveCaseBranch(_, supply))
+
+        if (scrutinee1 != scrutinee || branches1 != branches)
+          expr.copy(
+            scrutinee = scrutinee1,
+            branches  = branches1
+          )
+        else expr
       case _: Case.Branch =>
         throw new CompilerError(
           "Unexpected case branch while desugaring ignores for case."
@@ -308,10 +321,14 @@ case object IgnoredBindings extends IRPass {
     branch: Case.Branch,
     supply: FreshNameSupply
   ): Case.Branch = {
-    branch.copy(
-      pattern    = resolvePattern(branch.pattern, supply),
-      expression = resolveExpression(branch.expression, supply)
-    )
+    val pattern1    = resolvePattern(branch.pattern, supply)
+    val expression1 = resolveExpression(branch.expression, supply)
+    if (pattern1 != branch.pattern || expression1 != branch.expression)
+      branch.copy(
+        pattern    = resolvePattern(branch.pattern, supply),
+        expression = resolveExpression(branch.expression, supply)
+      )
+    else branch
   }
 
   /** Resolves ignored bindings in a pattern.
@@ -340,14 +357,16 @@ case object IgnoredBindings extends IRPass {
             name = newName
           )
         } else {
-          named.copy(
-            name = setNotIgnored(name)
-          )
+          setNotIgnored(named.name)
+          named
         }
       case cons @ Pattern.Constructor(_, fields, _, _, _) =>
-        cons.copy(
-          fields = fields.map(resolvePattern(_, supply))
-        )
+        val fields1 = fields.map(resolvePattern(_, supply))
+        if (fields1 != fields)
+          cons.copy(
+            fields = fields.map(resolvePattern(_, supply))
+          )
+        else cons
       case literal: Pattern.Literal => literal
       case typed @ Pattern.Type(name, _, _, _, _) =>
         if (isIgnore(name)) {
@@ -364,9 +383,8 @@ case object IgnoredBindings extends IRPass {
             name = newName
           )
         } else {
-          typed.copy(
-            name = setNotIgnored(name)
-          )
+          setNotIgnored(typed.name)
+          typed
         }
       case err: errors.Pattern => err
       case _: Pattern.Documentation =>
