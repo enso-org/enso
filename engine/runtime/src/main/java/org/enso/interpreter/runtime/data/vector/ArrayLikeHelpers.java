@@ -97,7 +97,7 @@ public final class ArrayLikeHelpers {
       }
       target.add(value, warnings);
     }
-    return target.asVector();
+    return target.asVector(true);
   }
 
   @Builtin.Method(
