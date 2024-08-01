@@ -36,7 +36,7 @@ type Support_Level
                         Support_Level.Allowed
 
 type Transactional_Table_Description
-    Value name:Text temporary:Boolean (structure : Vector Column_Description) (primary_key : Vector Text | Nothing) (on_problems:Problem_Behavior)
+    Value name:Text temporary:Boolean (structure : Vector Column_Description) (primary_key : Vector Text | Nothing) (remove_after_transaction:Boolean) (on_problems:Problem_Behavior)
 
     ## PRIVATE
     private create self connection -> DB_Table =
@@ -70,7 +70,7 @@ private create_tables_inside_transaction connection (tables : Vector Transaction
         ## We drop the temporary tables after the main transaction is finished.
            We don't have to worry about error handling - if the `callback` throws,
            the transaction will be rolled back and tables will be destroyed automatically.
-        cleanup_temporary_tables connection tables . if_not_error result
+        cleanup_transaction_scoped_tables connection tables . if_not_error result
 
 ## PRIVATE
 private create_tables_outside_transaction connection (tables : Vector Transactional_Table_Description) (callback : Vector DB_Table -> Any) -> Any =
@@ -96,11 +96,11 @@ private create_tables_outside_transaction connection (tables : Vector Transactio
         ## If the operation failed, we clean up all the tables we created.
            Otherwise, we only clean up the temporary tables at the end.
         cleanup_errors = if result.is_error then cleanup_tables_silently connection already_created_tables.to_vector else
-            cleanup_temporary_tables connection tables
+            cleanup_transaction_scoped_tables connection tables
         cleanup_errors.if_not_error result
 
 private cleanup_tables_silently connection table_names =
     table_names.each (name-> connection.drop_table name if_exists=True . catch)
 
-private cleanup_temporary_tables connection tables =
-    tables.each (t-> if t.temporary then connection.drop_table t.name if_exists=True)
+private cleanup_transaction_scoped_tables connection tables =
+    tables.each (t-> if t.remove_after_transaction then connection.drop_table t.name if_exists=True)

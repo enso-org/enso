@@ -82,7 +82,7 @@ internal_upload_in_memory_table source_table connection table_name primary_key t
     structure = structure_hint.if_nothing source_table
     aligned_structure = align_structure connection structure
     expected_type_hints = aligned_structure.map .value_type
-    table_description = Transactional_Table_Description.Value table_name temporary=temporary structure=aligned_structure primary_key=primary_key on_problems=on_problems
+    table_description = Transactional_Table_Description.Value table_name temporary=temporary structure=aligned_structure primary_key=primary_key remove_after_transaction=False on_problems=on_problems
 
     callback _ = In_Transaction.ensure_in_transaction <|
         upload_status = internal_translate_known_upload_errors source_table connection primary_key <|
@@ -103,7 +103,7 @@ internal_upload_database_table source_table connection table_name primary_key te
     connection_check.if_not_error <| table_name.if_not_error <|
         structure = structure_hint.if_nothing source_table
         aligned_structure = align_structure connection structure
-        table_description = Transactional_Table_Description.Value table_name temporary=temporary structure=aligned_structure primary_key=primary_key on_problems=on_problems
+        table_description = Transactional_Table_Description.Value table_name temporary=temporary structure=aligned_structure primary_key=primary_key remove_after_transaction=False on_problems=on_problems
 
         effective_source_table = case row_limit of
             Nothing -> source_table
