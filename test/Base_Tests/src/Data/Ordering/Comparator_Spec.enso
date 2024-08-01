@@ -95,7 +95,7 @@ add_specs suite_builder = suite_builder.group "Object Comparator" group_builder-
         (default_comparator 1 True) . should_fail_with Incomparable_Values
         (default_comparator (No_Ord.Value 1) (No_Ord.Value 2)).should_fail_with Incomparable_Values
 
-    group_builder.specify "warnings attached to the return value of .copmare should not affect the boolean value of the comparison operator" <|
+    group_builder.specify "warnings attached to the return value of .compare should not affect the boolean value of the comparison operator" <|
         ((Attach_Warning.Value 1) < (Attach_Warning.Value 2)) . should_be_true
         ((Attach_Warning.Value 1) == (Attach_Warning.Value 1)) . should_be_true
         ((Attach_Warning.Value 1) == (Attach_Warning.Value2 1)) . should_be_true
