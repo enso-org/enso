@@ -524,6 +524,7 @@ add_specs suite_builder setup make_new_connection persistent_connector=True =
                 r1 = db_table.select_into_database_table data.connection (Name_Generator.random_name "copied-table") temporary=True primary_key=["nonexistent"]
                 r1.should_fail_with Missing_Input_Columns
 
+        snowflake_constraints_pending = if prefix.contains "Snowflake" then "Not tested on Snowflake as it does not enforce constraints (https://docs.snowflake.com/en/sql-reference/constraints-overview), unless we start using Hybrid tables."
         group_builder.specify "should fail when the primary key is not unique" <|
             t = Table.new [["X", [1, 2, 1]], ["Y", ['b', 'b', 'a']]]
             db_table = t.select_into_database_table data.connection (Name_Generator.random_name "source-table") temporary=True primary_key=Nothing
