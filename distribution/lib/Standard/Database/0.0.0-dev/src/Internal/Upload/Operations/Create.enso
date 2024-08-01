@@ -21,7 +21,7 @@ from project.Internal.Upload.Operations.Internal_Core import internal_create_tab
      The only edge case to handle is - if the table already exists, we want to
      customize the behaviour based on `allow_existing`. This is achieved by
      intercepting the 'already exists' error.
-create_table_implementation connection table_name structure primary_key temporary allow_existing on_problems:Problem_Behavior = Panic.recover SQL_Error <|
+create_table_implementation connection table_name structure primary_key temporary allow_existing on_problems:Problem_Behavior =
     connection.base_connection.maybe_run_maintenance
     table_naming_helper = connection.base_connection.table_naming_helper
     on_exists =
@@ -49,8 +49,9 @@ create_table_implementation connection table_name structure primary_key temporar
                             warning = Dry_Run_Operation.Warning "Only a dry run of `create_table` has occurred, creating a temporary table ("+created_table_name.pretty+").  Press the Write button ▶ to create the actual one."
                             Warning.attach warning created_table
                     True ->
-                        created_table_name.catch SQL_Error sql_error->
-                            was_the_table_just_created_by_someone = connection.dialect.get_error_mapper.is_table_already_exists_error sql_error
-                            if was_the_table_just_created_by_someone then on_exists else
-                                # Propagate the error unchanged
-                                created_table_name
+                        created_table_name.catch Table_Already_Exists _->
+                            # If the table was just created by someone else
+                            case dry_run of
+                                # If this was a dry-run, we had a race condition - to ensure correct structure, we re-try the whole operation
+                                True -> create_table_implementation connection table_name structure primary_key temporary allow_existing on_problems
+                                False -> on_exists
