@@ -4,7 +4,6 @@ import * as React from 'react'
 import * as router from 'react-router-dom'
 
 import * as common from 'enso-common'
-import * as detect from 'enso-common/src/detect'
 
 import ArrowRightIcon from '#/assets/arrow_right.svg'
 import AtIcon from '#/assets/at.svg'
@@ -27,8 +26,6 @@ import Link from '#/components/Link'
 import SubmitButton from '#/components/SubmitButton'
 import TextLink from '#/components/TextLink'
 
-import * as eventModule from '#/utilities/event'
-
 // =============
 // === Login ===
 // =============
@@ -36,7 +33,6 @@ import * as eventModule from '#/utilities/event'
 /** A form for users to log in. */
 export default function Login() {
   const location = router.useLocation()
-  const navigate = router.useNavigate()
   const { signInWithGoogle, signInWithGitHub, signInWithPassword } = authProvider.useAuth()
   const { getText } = textProvider.useText()
 
@@ -60,9 +56,9 @@ export default function Login() {
       footer={
         <>
           <Link
-            openInBrowser={detect.isOnElectron()}
+            openInBrowser={localBackend != null}
             to={
-              detect.isOnElectron() ?
+              localBackend != null ?
                 'https://' + common.CLOUD_DASHBOARD_DOMAIN + appUtils.REGISTRATION_PATH
               : appUtils.REGISTRATION_PATH
             }
@@ -112,7 +108,6 @@ export default function Login() {
           await signInWithPassword(email, password)
           shouldReportValidityRef.current = true
           setIsSubmitting(false)
-          navigate(appUtils.DASHBOARD_PATH)
         }}
       >
         <Input
@@ -149,7 +144,6 @@ export default function Login() {
           isLoading={isSubmitting}
           text={getText('login')}
           icon={ArrowRightIcon}
-          onPress={eventModule.submitForm}
         />
       </form>
     </AuthenticationPage>

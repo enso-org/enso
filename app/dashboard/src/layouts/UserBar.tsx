@@ -51,6 +51,7 @@ export default function UserBar(props: UserBarProps) {
   const { setModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
   const { isFeatureUnderPaywall } = billing.usePaywall({ plan: user.plan })
+
   const shouldShowUpgradeButton = isFeatureUnderPaywall('inviteUser')
   const shouldShowShareButton = onShareClick != null
   const shouldShowInviteButton = !shouldShowShareButton && !shouldShowUpgradeButton
@@ -77,7 +78,7 @@ export default function UserBar(props: UserBarProps) {
             )}
 
             {shouldShowUpgradeButton && (
-              <paywall.PaywallDialogButton feature={'inviteUser'} size="medium" variant="tertiary">
+              <paywall.PaywallDialogButton feature="inviteUser" size="medium" variant="tertiary">
                 {getText('invite')}
               </paywall.PaywallDialogButton>
             )}

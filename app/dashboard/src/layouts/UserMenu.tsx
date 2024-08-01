@@ -10,12 +10,14 @@ import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
-import * as aria from '#/components/aria'
+import { Text } from '#/components/AriaComponents'
 import MenuEntry from '#/components/MenuEntry'
 import Modal from '#/components/Modal'
 import FocusArea from '#/components/styled/FocusArea'
 
 import AboutModal from '#/modals/AboutModal'
+
+import { Plan } from '#/services/Backend'
 
 import * as download from '#/utilities/download'
 import * as github from '#/utilities/github'
@@ -36,6 +38,7 @@ export interface UserMenuProps {
 /** Handling the UserMenuItem click event logic and displaying its content. */
 export default function UserMenu(props: UserMenuProps) {
   const { hidden = false, goToSettingsPage, onSignOut } = props
+
   const [initialized, setInitialized] = React.useState(false)
   const localBackend = backendProvider.useLocalBackend()
   const { signOut } = authProvider.useAuth()
@@ -81,7 +84,14 @@ export default function UserMenu(props: UserMenuProps) {
               className="pointer-events-none size-row-h"
             />
           </div>
-          <aria.Text className="text">{user.name}</aria.Text>
+
+          <div className="flex flex-col">
+            <Text disableLineHeightCompensation variant="body" truncate="1" weight="semibold">
+              {user.name}
+            </Text>
+
+            <Text disableLineHeightCompensation>{getText(`${user.plan ?? Plan.free}`)}</Text>
+          </div>
         </div>
         <div
           className={tailwindMerge.twMerge(

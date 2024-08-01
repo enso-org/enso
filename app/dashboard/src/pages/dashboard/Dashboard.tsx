@@ -211,7 +211,7 @@ function DashboardInner(props: DashboardProps) {
           updateModal((oldModal) => {
             if (oldModal == null) {
               const currentPage = projectsStore.getState().page
-              if (array.includes(Object.values(TabType), currentPage)) {
+              if (currentPage === TabType.settings) {
                 setPage(TabType.drive)
               }
             }

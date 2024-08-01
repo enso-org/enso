@@ -1,22 +1,24 @@
 /** @file Utilities for working with permissions. */
-import { merge } from 'enso-common/src/utilities/data/object'
-import * as permissions from 'enso-common/src/utilities/permissions'
-
 import type Category from '#/layouts/CategorySwitcher/Category'
-import * as categoryModule from '#/layouts/CategorySwitcher/Category'
-
-import * as backend from '#/services/Backend'
-
+import { CategoryType } from '#/layouts/CategorySwitcher/Category'
+import type * as backend from '#/services/Backend'
+import {
+  type AssetPermission,
+  compareAssetPermissions,
+  type User,
+} from 'enso-common/src/services/Backend'
+import { merge } from 'enso-common/src/utilities/data/object'
+import { Permission, PermissionAction } from 'enso-common/src/utilities/permissions'
 export * from 'enso-common/src/utilities/permissions'
 
 /** CSS classes for each permission. */
-export const PERMISSION_CLASS_NAME: Readonly<Record<permissions.Permission, string>> = {
-  [permissions.Permission.owner]: 'text-tag-text bg-permission-owner',
-  [permissions.Permission.admin]: 'text-tag-text bg-permission-admin',
-  [permissions.Permission.edit]: 'text-tag-text bg-permission-edit',
-  [permissions.Permission.read]: 'text-tag-text bg-permission-read',
-  [permissions.Permission.view]: 'text-tag-text-2 bg-permission-view',
-  [permissions.Permission.delete]: 'text-tag-text bg-delete',
+export const PERMISSION_CLASS_NAME: Readonly<Record<Permission, string>> = {
+  [Permission.owner]: 'text-tag-text bg-permission-owner',
+  [Permission.admin]: 'text-tag-text bg-permission-admin',
+  [Permission.edit]: 'text-tag-text bg-permission-edit',
+  [Permission.read]: 'text-tag-text bg-permission-read',
+  [Permission.view]: 'text-tag-text-2 bg-permission-view',
+  [Permission.delete]: 'text-tag-text bg-delete',
 }
 
 /** CSS classes for the docs permission. */
@@ -35,8 +37,8 @@ export function tryGetSingletonOwnerPermission(
   category: Category,
 ): readonly backend.AssetPermission[] {
   switch (category.type) {
-    case categoryModule.CategoryType.team: {
-      return [{ userGroup: category.team, permission: permissions.PermissionAction.own }]
+    case CategoryType.team: {
+      return [{ userGroup: category.team, permission: PermissionAction.own }]
     }
     default: {
       if (owner != null) {
@@ -44,7 +46,7 @@ export function tryGetSingletonOwnerPermission(
         return [
           {
             user: { organizationId, userId, name, email },
-            permission: permissions.PermissionAction.own,
+            permission: PermissionAction.own,
           },
         ]
       } else {
@@ -59,14 +61,15 @@ export function tryGetSingletonOwnerPermission(
 // ==========================
 
 /** Try to find a permission belonging to the user. */
+/** Try to find a permission belonging to the user. */
 export function tryFindSelfPermission(
-  self: backend.User,
-  otherPermissions: readonly backend.AssetPermission[] | null,
+  self: User,
+  otherPermissions: readonly AssetPermission[] | null,
 ) {
-  let selfPermission: backend.AssetPermission | null = null
+  let selfPermission: AssetPermission | null = null
   for (const permission of otherPermissions ?? []) {
     // `a >= b` means that `a` does not have more permissions than `b`.
-    if (selfPermission && backend.compareAssetPermissions(selfPermission, permission) >= 0) {
+    if (selfPermission && compareAssetPermissions(selfPermission, permission) >= 0) {
       continue
     }
     if ('user' in permission && permission.user.userId !== self.userId) {
@@ -88,11 +91,11 @@ export function tryFindSelfPermission(
 // ============================================
 
 /** Whether the given permission means the user can edit the list of assets of the directory. */
-export function canPermissionModifyDirectoryContents(permission: permissions.PermissionAction) {
+export function canPermissionModifyDirectoryContents(permission: PermissionAction) {
   return (
-    permission === permissions.PermissionAction.own ||
-    permission === permissions.PermissionAction.admin ||
-    permission === permissions.PermissionAction.edit
+    permission === PermissionAction.own ||
+    permission === PermissionAction.admin ||
+    permission === PermissionAction.edit
   )
 }
 
@@ -108,20 +111,20 @@ export function replaceOwnerPermission(
   let found = false
   const newPermissions =
     asset.permissions?.map((permission) => {
-      if (found || permission.permission !== permissions.PermissionAction.own) {
+      if (found || permission.permission !== PermissionAction.own) {
         return permission
       } else {
         found = true
         if ('userId' in newOwner) {
           const newPermission: backend.UserPermission = {
             user: newOwner,
-            permission: permissions.PermissionAction.own,
+            permission: PermissionAction.own,
           }
           return newPermission
         } else {
           const newPermission: backend.UserGroupPermission = {
             userGroup: newOwner,
-            permission: permissions.PermissionAction.own,
+            permission: PermissionAction.own,
           }
           return newPermission
         }

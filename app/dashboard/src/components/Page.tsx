@@ -43,8 +43,7 @@ export default function Page(props: PageProps) {
           {/* `session.accessToken` MUST be present in order for the `Chat` component to work. */}
           {(
             !hideInfoBar &&
-            session?.accessToken != null &&
-            session.type === authProvider.UserSessionType.full &&
+            session?.type === authProvider.UserSessionType.full &&
             process.env.ENSO_CLOUD_CHAT_URL != null
           ) ?
             <Chat
