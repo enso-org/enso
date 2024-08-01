@@ -1175,10 +1175,6 @@ type Decimal
     internal_representation : Vector Integer
     internal_representation self -> Vector Integer = [self.unscaled_value, self.precision, self.scale]
 
-    trep self = case self of
-        Decimal.Value bd -> ['value', bd]
-        Decimal.From_Float bd f -> ['from_float', bd, f]
-
     ## PRIVATE
        Note: the underlying Java `BigDecimal` implementation is not affected by
        locale.
