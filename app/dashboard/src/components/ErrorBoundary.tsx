@@ -77,10 +77,15 @@ export function ErrorDisplay(props: ErrorDisplayProps): React.JSX.Element {
     status = isOffline ? 'info' : 'error',
   } = props
 
+  const message = errorUtils.getMessageOrToString(error)
   const stack = errorUtils.tryGetStack(error)
 
   return (
     <result.Result className="h-full" status={status} title={title} subtitle={subtitle}>
+      <ariaComponents.Text color="danger" variant="body">
+        {getText('errorColon')}
+        {message}
+      </ariaComponents.Text>
       <ariaComponents.ButtonGroup align="center">
         <ariaComponents.Button
           variant="submit"

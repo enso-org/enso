@@ -10,7 +10,7 @@ import * as ariaComponents from '#/components/AriaComponents'
 import * as result from '#/components/Result'
 
 import { PLAN_TO_TEXT_ID } from '#/modules/payments'
-import * as backend from '#/services/Backend'
+import { Plan, isPlan } from '#/services/Backend'
 
 // ========================
 // === SubscribeSuccess ===
@@ -21,9 +21,9 @@ export function SubscribeSuccess() {
   const { getText } = textProvider.useText()
   const [searchParams] = routerDom.useSearchParams()
   const navigate = routerDom.useNavigate()
-  const plan = searchParams.get('plan') ?? backend.Plan.solo
+  const plan = searchParams.get('plan') ?? Plan.solo
 
-  if (!backend.isPlan(plan)) {
+  if (!isPlan(plan)) {
     return <router.Navigate to={appUtils.DASHBOARD_PATH} replace />
   } else {
     return (
