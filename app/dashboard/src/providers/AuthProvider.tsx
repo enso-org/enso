@@ -107,6 +107,9 @@ interface AuthContextType {
   readonly setUser: (user: Partial<backendModule.User>) => void
   readonly deleteUser: () => Promise<boolean>
   readonly restoreUser: () => Promise<boolean>
+  readonly refetchSession: (
+    options?: reactQuery.RefetchOptions,
+  ) => Promise<reactQuery.QueryObserverResult<UserSession | null>>
   /** Session containing the currently authenticated user's authentication information.
    *
    * If the user has not signed in, the session will be `null`. */
@@ -226,32 +229,33 @@ export default function AuthProvider(props: AuthProviderProps) {
     meta: { invalidates: [sessionQueryKey], awaitInvalidates: true },
   })
 
-  const usersMeQuery = createUsersMeQuery(session, remoteBackend, () =>
+  const usersMeQueryOptions = createUsersMeQuery(session, remoteBackend, () =>
     performLogout().then(() => {
       toast.toast.info(getText('userNotAuthorizedError'))
     }),
   )
 
-  const { data: userData } = reactQuery.useSuspenseQuery(usersMeQuery)
+  const usersMeQuery = reactQuery.useSuspenseQuery(usersMeQueryOptions)
+  const userData = usersMeQuery.data
 
   const createUserMutation = reactQuery.useMutation({
     mutationFn: (user: backendModule.CreateUserRequestBody) => remoteBackend.createUser(user),
-    meta: { invalidates: [usersMeQuery.queryKey], awaitInvalidates: true },
+    meta: { invalidates: [usersMeQueryOptions.queryKey], awaitInvalidates: true },
   })
 
   const deleteUserMutation = reactQuery.useMutation({
     mutationFn: () => remoteBackend.deleteUser(),
-    meta: { invalidates: [usersMeQuery.queryKey], awaitInvalidates: true },
+    meta: { invalidates: [usersMeQueryOptions.queryKey], awaitInvalidates: true },
   })
 
   const restoreUserMutation = reactQuery.useMutation({
     mutationFn: () => remoteBackend.restoreUser(),
-    meta: { invalidates: [usersMeQuery.queryKey], awaitInvalidates: true },
+    meta: { invalidates: [usersMeQueryOptions.queryKey], awaitInvalidates: true },
   })
 
   const updateUserMutation = reactQuery.useMutation({
     mutationFn: (user: backendModule.UpdateUserRequestBody) => remoteBackend.updateUser(user),
-    meta: { invalidates: [usersMeQuery.queryKey], awaitInvalidates: true },
+    meta: { invalidates: [usersMeQueryOptions.queryKey], awaitInvalidates: true },
   })
 
   /** Wrap a function returning a {@link Promise} to display a loading toast notification
@@ -407,13 +411,13 @@ export default function AuthProvider(props: AuthProviderProps) {
    * @deprecated Never use this function. Prefer particular functions like `setUsername` or `deleteUser`.
    */
   const setUser = useEventCallback((user: Partial<backendModule.User>) => {
-    const currentUser = queryClient.getQueryData(usersMeQuery.queryKey)
+    const currentUser = queryClient.getQueryData(usersMeQueryOptions.queryKey)
 
     if (currentUser != null && currentUser.type === UserSessionType.full) {
       const currentUserData = currentUser.user
       const nextUserData: backendModule.User = Object.assign(currentUserData, user)
 
-      queryClient.setQueryData(usersMeQuery.queryKey, { ...currentUser, user: nextUserData })
+      queryClient.setQueryData(usersMeQueryOptions.queryKey, { ...currentUser, user: nextUserData })
     }
   })
 
@@ -516,7 +520,7 @@ export default function AuthProvider(props: AuthProviderProps) {
     }
   }, [userData, onAuthenticated])
 
-  const value = {
+  const value: AuthContextType = {
     signUp: withLoadingToast(signUp),
     confirmSignUp: withLoadingToast(confirmSignUp),
     setUsername,
@@ -557,11 +561,12 @@ export default function AuthProvider(props: AuthProviderProps) {
     forgotPassword: withLoadingToast(forgotPassword),
     resetPassword: withLoadingToast(resetPassword),
     changePassword: withLoadingToast(changePassword),
+    refetchSession: usersMeQuery.refetch,
     session: userData,
     signOut: logoutMutation.mutateAsync,
     setUser,
-    authQueryKey: usersMeQuery.queryKey,
-  } satisfies AuthContextType
+    authQueryKey: usersMeQueryOptions.queryKey,
+  }
 
   return (
     <AuthContext.Provider value={value}>

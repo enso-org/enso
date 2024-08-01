@@ -78,10 +78,6 @@ export function AddPaymentMethodForm<
           })
       }
     },
-    onSuccess: async (paymentMethod) => {
-      await onSubmit?.(paymentMethod.paymentMethod.id)
-      cardElement?.clear()
-    },
   })
 
   // No idea if it's safe or not, but outside of the function everything is fine
@@ -95,7 +91,12 @@ export function AddPaymentMethodForm<
     <ariaComponents.Form
       method="dialog"
       form={formInstance}
-      onSubmit={() => createPaymentMethodMutation.mutateAsync()}
+      onSubmit={() =>
+        createPaymentMethodMutation.mutateAsync().then(async ({ paymentMethod }) => {
+          await onSubmit?.(paymentMethod.id)
+          cardElement?.clear()
+        })
+      }
     >
       <ariaComponents.Form.Field name="card" fullWidth label={getText('bankCardLabel')}>
         <stripeReact.CardElement

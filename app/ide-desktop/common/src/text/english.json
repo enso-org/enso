@@ -355,6 +355,7 @@
   "versionX": "Version $0",
   "version": "Version",
   "build": "Build",
+  "errorColon": "Error: ",
   "electronVersion": "Electron",
   "chromeVersion": "Chrome",
   "userAgent": "User Agent",
