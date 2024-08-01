@@ -78,7 +78,7 @@ export default function UserBar(props: UserBarProps) {
             )}
 
             {shouldShowUpgradeButton && (
-              <paywall.PaywallDialogButton feature={'inviteUser'} size="medium" variant="tertiary">
+              <paywall.PaywallDialogButton feature="inviteUser" size="medium" variant="tertiary">
                 {getText('invite')}
               </paywall.PaywallDialogButton>
             )}

@@ -20,6 +20,7 @@ export interface TextProps
   readonly lineClamp?: number
   readonly tooltip?: React.ReactElement | string | false | null
   readonly tooltipDisplay?: visualTooltip.VisualTooltipProps['display']
+  readonly tooltipPlacement?: aria.Placement
 }
 
 export const TEXT_STYLE = twv.tv({
@@ -136,6 +137,7 @@ export const Text = React.forwardRef(function Text(
     elementType: ElementType = 'span',
     tooltip: tooltipElement = children,
     tooltipDisplay = 'whenOverflowing',
+    tooltipPlacement,
     textSelection,
     disableLineHeightCompensation = false,
     ...ariaProps
@@ -178,6 +180,7 @@ export const Text = React.forwardRef(function Text(
     targetRef: textElementRef,
     display: tooltipDisplay,
     children: tooltipElement,
+    ...(tooltipPlacement ? { overlayPositionProps: { placement: tooltipPlacement } } : {}),
   })
 
   return (

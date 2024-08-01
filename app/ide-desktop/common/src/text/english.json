@@ -578,6 +578,7 @@
   "docsColumnName": "Docs",
 
   "settingsShortcut": "Settings",
+  "closeTabShortcut": "Close Tab",
   "openShortcut": "Open",
   "runShortcut": "Execute as Task",
   "closeShortcut": "Close",

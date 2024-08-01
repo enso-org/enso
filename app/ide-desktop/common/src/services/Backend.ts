@@ -169,6 +169,7 @@ export interface User extends UserInfo {
   /** If `false`, this account is awaiting acceptance from an administrator, and endpoints other than
    * `usersMe` will not work. */
   readonly isEnabled: boolean
+  readonly isOrganizationAdmin: boolean
   readonly rootDirectoryId: DirectoryId
   readonly profilePicture?: HttpsUrl
   readonly userGroups: readonly UserGroupId[] | null
@@ -1017,8 +1018,8 @@ export interface UpdateOrganizationRequestBody {
 
 /** HTTP request body for the "invite user" endpoint. */
 export interface InviteUserRequestBody {
-  readonly organizationId: OrganizationId
   readonly userEmail: EmailAddress
+  readonly resend?: boolean
 }
 
 /** HTTP response body for the "list invitations" endpoint. */

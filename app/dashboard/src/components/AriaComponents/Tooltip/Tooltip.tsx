@@ -12,7 +12,7 @@ import * as text from '../Text'
 // =================
 
 export const TOOLTIP_STYLES = twv.tv({
-  base: 'group flex justify-center items-center text-center text-balance break-words',
+  base: 'group flex justify-center items-center text-center text-balance break-words z-50',
   variants: {
     variant: {
       custom: '',

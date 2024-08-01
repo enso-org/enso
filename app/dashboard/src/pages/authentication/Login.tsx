@@ -26,8 +26,6 @@ import Link from '#/components/Link'
 import SubmitButton from '#/components/SubmitButton'
 import TextLink from '#/components/TextLink'
 
-import * as eventModule from '#/utilities/event'
-
 // =============
 // === Login ===
 // =============
@@ -146,7 +144,6 @@ export default function Login() {
           isLoading={isSubmitting}
           text={getText('login')}
           icon={ArrowRightIcon}
-          onPress={eventModule.submitForm}
         />
       </form>
     </AuthenticationPage>

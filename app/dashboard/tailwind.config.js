@@ -181,7 +181,6 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         'chat-thread-list': 'var(--chat-thread-list-height)',
         'payment-form': 'var(--payment-form-height)',
         'paragraph-input': 'var(--paragraph-input-height)',
-        'autocomplete-suggestions': 'var(--autocomplete-suggestions-height)',
         'dropdown-items': 'var(--dropdown-items-height)',
         'manage-permissions-modal-permissions-list':
           'var(--manage-permissions-modal-permissions-list-height)',
