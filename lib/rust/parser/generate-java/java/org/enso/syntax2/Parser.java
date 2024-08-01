@@ -47,7 +47,8 @@ public final class Parser implements AutoCloseable {
       if (searchFromDirToTop(e, root, "target", "rust", "parser-jni", name)) {
         return;
       }
-      if (searchFromDirToTop(e, new File(".").getAbsoluteFile(), "target", "rust", "parser-jni", name)) {
+      if (searchFromDirToTop(
+          e, new File(".").getAbsoluteFile(), "target", "rust", "parser-jni", name)) {
         return;
       }
       throw new IllegalStateException("Cannot load parser from " + root, e);
