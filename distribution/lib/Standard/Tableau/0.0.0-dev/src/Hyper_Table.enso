@@ -13,8 +13,9 @@ polyglot java import org.enso.tableau.HyperTableColumn
 
 ## An Enso representation of a Tableau Hyper Table.
 type Hyper_Table
-    ## Represents a Tableau Hyper Table.
-    Value file:Hyper_File schema:Text table:Text
+    ## PRIVATE
+       Represents a Tableau Hyper Table.
+    private Value file:Hyper_File schema:Text table:Text
 
     ## PRIVATE
     to_display_text : Text
@@ -25,7 +26,9 @@ type Hyper_Table
     to_js_object self =
         JS_Object.from_pairs [["type", "Hyper_Table"], ["schema", self.schema], ["table", self.table], ["file", self.file.file.path]]
 
-    ## Reads The Columns for the Table
+    ## GROUP Standard.Base.Metadata
+       ICON metadata
+       Reads The Columns for the Table
     columns : Vector Hyper_Column
     columns self =
         array = HyperReader.readStructure self.file.file.path self.schema self.table
@@ -56,7 +59,13 @@ type Hyper_Table
                 _ -> Value_Type.Unsupported_Data_Type "Unknown" Any
             Hyper_Column.Value column.name value_type column.nullable
 
-    ## Reads the Table into Enso Table
+    ## GROUP Standard.Base.Input
+       ICON data_input
+       Reads the Table into Enso Table
+
+       Arguments:
+       - max_rows: specifies the maximum number of rows to read.
+    @max_rows Rows_To_Read.default_widget
     read : Rows_To_Read -> Table
     read self (max_rows : Rows_To_Read = ..All_Rows) =
         Java_Problems.with_problem_aggregator Problem_Behavior.Report_Warning java_problem_aggregator->
