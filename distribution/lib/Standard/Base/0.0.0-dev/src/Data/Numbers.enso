@@ -487,7 +487,7 @@ type Float
              default5 = Complex.Value 3 4 . to Number
     to : Any -> Any ! No_Such_Conversion
     to self target_type = case target_type of
-        Decimal -> Decimal.from self explicit=True
+        Decimal -> Decimal.from_float self
         _ -> Any.to self target_type ...
 
     ## ALIAS add, plus

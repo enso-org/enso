@@ -134,7 +134,7 @@ type Decimal
             case x of
                 _ : Text -> Decimal.from_text x mc
                 _ : Integer -> Decimal.from_integer x mc
-                _ : Float -> Decimal.from_float x mc
+                _ : Float -> Decimal.from_float x mc explicit=False
 
     ## GROUP Conversions
        ICON convert
@@ -224,14 +224,16 @@ type Decimal
           Create a `Decimal` from a `Float`.
 
               d = Decimal.from_integer 12.345
-    from_float : Float -> Math_Context | Nothing -> Decimal ! Arithmetic_Error | Illegal_Argument
-    from_float (f : Float) (mc : Math_Context | Nothing = Nothing) -> Decimal ! Arithmetic_Error | Illegal_Argument =
+    from_float : Float -> Math_Context | Nothing -> Boolean -> Decimal ! Arithmetic_Error | Illegal_Argument
+    from_float (f : Float) (mc : Math_Context | Nothing = Nothing) (explicit : Boolean = True) -> Decimal ! Arithmetic_Error | Illegal_Argument =
         is_exceptional = f.is_nan || f.is_infinite
         if is_exceptional then Error.throw (Illegal_Argument.Error "Cannot convert "+f.to_text+" to a Decimal") else
-            handle_java_exception <| attach_loss_of_numeric_precision f <|
-                case mc of
-                    _ : Math_Context -> Decimal.Value <| handle_precision_loss f <| Decimal_Utils.fromFloat f mc.math_context
-                    _ : Nothing -> Decimal.Value (Decimal_Utils.fromFloat f)
+            handle_java_exception <|
+                big_decimal = case mc of
+                    _ : Math_Context -> handle_precision_loss f <| Decimal_Utils.fromFloat f mc.math_context
+                    _ : Nothing -> Decimal_Utils.fromFloat f
+                if explicit then Decimal.Value big_decimal else
+                    attach_loss_of_numeric_precision f (Decimal.From_Float big_decimal f)
 
     ## ALIAS greater than
        GROUP Operators
@@ -813,7 +815,7 @@ type Decimal
     to_float : Float
     to_float self -> Float =
         f = self.big_decimal.doubleValue
-        if f.is_finite then attach_loss_of_numeric_precision self f else
+        if f.is_finite then f else
             message = "Outside representable Float range (approximately (-1.8E308, 1.8E308))"
             Warning.attach (Out_Of_Range.Error self message) f
 
@@ -1032,6 +1034,10 @@ type Decimal
     internal_representation : Vector Integer
     internal_representation self -> Vector Integer = [self.unscaled_value, self.precision, self.scale]
 
+    trep self = case self of
+        Decimal.Value bd -> ['value', bd]
+        Decimal.From_Float bd f -> ['from_float', bd, f]
+
     ## PRIVATE
        Note: the underlying Java `BigDecimal` implementation is not affected by
        locale.
@@ -1104,8 +1110,8 @@ handle_precision_loss original_value conversion_result:ConversionResult -> Any =
 
 ## PRIVATE
 attach_loss_of_numeric_precision : Float -> Any -> Any
-attach_loss_of_numeric_precision x value =
-    Warning.attach (Loss_Of_Numeric_Precision.Warning x value) value
+attach_loss_of_numeric_precision orig value =
+    Warning.attach (Loss_Of_Numeric_Precision.Warning orig value) value
 
 ## PRIVATE
 handle_java_exception ~action (extra_message : Text = "") =
@@ -1130,15 +1136,11 @@ Decimal.from (that : Text) = Decimal.from_text that
 Decimal.from (that : Integer) = Decimal.new that
 
 ## PRIVATE
-Decimal.from (that : Float) (explicit:Boolean=False) =
-    is_exceptional = that.is_nan || that.is_infinite
-    if is_exceptional then Error.throw (Illegal_Argument.Error "Cannot convert "+that.to_text+" to a Decimal") else
-        handle_java_exception <| attach_loss_of_numeric_precision that <|
-            big_decimal = Decimal_Utils.fromFloat that
-            if explicit then Decimal.Value big_decimal else Decimal.From_Float big_decimal that
+Decimal.from (that : Float) = Decimal.from_float that explicit=False
 
 ## PRIVATE
-Float.from (that : Decimal) = that.to_float
+Float.from (that : Decimal) =
+    attach_loss_of_numeric_precision that that.to_float
 
 ## PRIVATE
    Helper method allowing access to the backing field.
@@ -1149,8 +1151,9 @@ get_big_decimal (that : Decimal) = that.big_decimal
 from_big_decimal that = Decimal.Value that
 
 ## PRIVATE
-error_if_from_float left right ~action = case left of
-    Decimal.From_Float _ _ -> Error.throw (Illegal_Argument.Error "Cannot perform operation on Float and Decimal.")
-    _ -> case right of
-        Decimal.From_Float _ _ -> Error.throw (Illegal_Argument.Error "Cannot perform operation on Decimal and Float.")
-        _ -> action
+error_if_from_float left right ~action =
+    case left of
+        Decimal.From_Float _ _ -> Error.throw (Illegal_Argument.Error "Cannot perform operation on Float and Decimal.")
+        _ -> case right of
+            Decimal.From_Float _ _ -> Error.throw (Illegal_Argument.Error "Cannot perform operation on Decimal and Float.")
+            _ -> action
