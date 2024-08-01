@@ -11,7 +11,7 @@ import WebSocket from 'isomorphic-ws'
 import * as decoding from 'lib0/decoding'
 import * as encoding from 'lib0/encoding'
 import { ObservableV2 } from 'lib0/observable'
-import { LanguageServerSession } from './languageServerSession.js'
+import { LanguageServerSession } from './languageServerSession'
 
 const pingTimeout = 30000
 

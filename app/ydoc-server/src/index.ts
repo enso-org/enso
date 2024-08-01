@@ -12,10 +12,11 @@ import type { Server } from 'http'
 import type { Http2SecureServer } from 'http2'
 import type { WebSocket } from 'isomorphic-ws'
 import type { IncomingMessage } from 'node:http'
-import { ConnectionData, docName } from './auth.js'
-import { setupGatewayClient } from './ydoc.js'
+import { ConnectionData, docName } from './auth'
+import { deserializeIdMap } from './serialization'
+import { setupGatewayClient } from './ydoc'
 
-export { docName, setupGatewayClient }
+export { deserializeIdMap, docName, setupGatewayClient }
 
 export async function createGatewayServer(
   httpServer: Server | Http2SecureServer,

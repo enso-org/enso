@@ -8,7 +8,8 @@
     "email": "contact@enso.org"
   },
   "scripts": {
-    "test": "vitest",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "compile": "tsc",
     "typecheck": "tsc --noEmit",
     "clean": "rimraf --glob src/ast/generated/*.{json,ts}",

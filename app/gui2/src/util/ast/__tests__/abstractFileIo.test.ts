@@ -5,7 +5,7 @@ import { splitFileContents } from 'ydoc-shared/ensoFile'
 
 // FIXME: This test pulls parts of the server code to read a fixture file. Move necessary parts of
 // file format handling to shared and create a test utility for easy *.enso file fixture loading.
-import { deserializeIdMap } from '../../../../ydoc-server/serialization'
+import { deserializeIdMap } from 'ydoc-server'
 
 test('full file IdMap round trip', () => {
   const content = fs.readFileSync(__dirname + '/fixtures/stargazers.enso').toString()

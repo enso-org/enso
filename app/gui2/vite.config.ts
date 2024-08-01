@@ -9,9 +9,11 @@ import postcssNesting from 'postcss-nesting'
 import tailwindcss from 'tailwindcss'
 import tailwindcssNesting from 'tailwindcss/nesting'
 import { defineConfig, type Plugin } from 'vite'
+import topLevelAwait from 'vite-plugin-top-level-await'
 import VueDevTools from 'vite-plugin-vue-devtools'
 import wasm from 'vite-plugin-wasm'
-const projectManagerUrl = 'ws://127.0.0.1:30535'
+const projectManagerUrl =
+  process.env.E2E === 'true' ? 'ws://127.0.0.1:30536' : 'ws://127.0.0.1:30535'
 
 const IS_CLOUD_BUILD = process.env.CLOUD_BUILD === 'true'
 const YDOC_SERVER = process.env.POLYGLOT_YDOC_SERVER ?? 'ws://localhost:5976'
@@ -27,6 +29,7 @@ export default defineConfig({
   publicDir: fileURLToPath(new URL('./public', import.meta.url)),
   envDir: fileURLToPath(new URL('.', import.meta.url)),
   plugins: [
+    topLevelAwait(),
     wasm(),
     VueDevTools(),
     vue(),

@@ -8,7 +8,8 @@
     "email": "contact@enso.org"
   },
   "scripts": {
-    "test": "vitest",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
     "compile": "tsc"
   },
