@@ -21,6 +21,10 @@
     "ci:test": "pnpm run -r test",
     "ci:typecheck": "pnpm run -r typecheck"
   },
+  "//": "Workspaces kept only to show deprecated message when running a script. Remove once everyone is familiar with pnpm.",
+  "workspaces": [
+    "app/gui2"
+  ],
   "pnpm": {
     "//": "To completely ignore deep dependencies, see .pnpmfile.cjs",
     "overrides": {

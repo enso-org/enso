@@ -9,7 +9,6 @@
   },
   "module": "./dist/main.mjs",
   "scripts": {
-    "test": "vitest",
     "compile": "node ./build.mjs build",
     "start": "node ./dist/main.mjs",
     "dev": "pnpm run /^dev:/",

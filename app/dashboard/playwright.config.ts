@@ -57,7 +57,7 @@ export default test.defineConfig({
     },
   },
   webServer: {
-    command: process.env.CI || process.env.PROD ? 'npm run dev:e2e:ci' : 'npm run dev:e2e',
+    command: process.env.CI || process.env.PROD ? 'pnpm run dev:e2e:ci' : 'pnpm run dev:e2e',
     port: 8080,
     reuseExistingServer: false,
   },

@@ -8,10 +8,10 @@
     "email": "contact@enso.org"
   },
   "scripts": {
-    "dev": "vite",
+    "dev": "echo DEPRECATED! Use `pnpm dev:gui2` in workspace root directory.",
     "dev:vite": "vite",
-    "build": "pnpm --workspace enso-dashboard run compile && run-p typecheck build-only",
-    "build:cloud": "cross-env CLOUD_BUILD=true pnpm run build",
+    "build": "pnpm -r --filter enso-dashboard run compile && pnpm run build:vite",
+    "build-cloud": "cross-env CLOUD_BUILD=true pnpm run build",
     "preview": "vite preview",
     "test": "vitest run && playwright test",
     "test:unit": "vitest",
@@ -19,8 +19,7 @@
     "story:dev": "histoire dev",
     "story:build": "histoire build",
     "story:preview": "histoire preview",
-    "build-only": "vite build",
-    "build-ydoc-server-polyglot": "vite build --config vite.ydoc-server-polyglot.config.ts",
+    "build:vite": "vite build",
     "typecheck": "vue-tsc --noEmit -p tsconfig.app.json",
     "lint": "eslint .",
     "format": "prettier --version && prettier --write src/ && eslint . --fix",
