@@ -6,7 +6,7 @@ import CloseIcon from '#/assets/cross.svg'
 import FocusRing from '#/components/styled/FocusRing'
 import Input from '#/components/styled/Input'
 
-import { Button } from '#/components/AriaComponents'
+import { Button, Text } from '#/components/AriaComponents'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 import { twMerge } from 'tailwind-merge'
 
@@ -274,7 +274,9 @@ export default function Autocomplete<T>(props: AutocompleteProps<T>) {
                   toggleValue(item)
                 }}
               >
-                {itemToString(item)}
+                <Text truncate="1" className="w-full" tooltipPlacement="left">
+                  {itemToString(item)}
+                </Text>
               </div>
             ))}
           </div>
