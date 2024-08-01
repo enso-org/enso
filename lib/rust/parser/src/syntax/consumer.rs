@@ -109,13 +109,18 @@ impl<'s> Finish for Vec<Token<'s>> {
     }
 }
 
+/// Trait for a type that wraps another type, and exposes it.
 pub trait HasInner {
+    /// The inner type.
     type Inner;
 
+    /// Access the inner type.
     fn inner_mut(&mut self) -> &mut Self::Inner;
 }
 
+/// Process all retained state.
 pub trait Flush {
+    /// Process all retained state.
     fn flush(&mut self);
 }
 
@@ -124,6 +129,7 @@ pub trait Flush {
 // === Adapters ===
 // ================
 
+/// Adapts a parser that consumes only tokens to fit into a more complex pipeline stages.
 #[derive(Debug, Default)]
 pub struct TokenOnlyParser<Parser> {
     parser: Parser,
