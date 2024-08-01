@@ -83,7 +83,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
                   matches={(item, text) => item.toLowerCase().includes(text.toLowerCase())}
                   values={isValid ? [value] : []}
                   setValues={(values) => {
-                    setValue(values[0])
+                    setValue(values[0] ?? '')
                   }}
                   text={autocompleteText}
                   setText={setAutocompleteText}

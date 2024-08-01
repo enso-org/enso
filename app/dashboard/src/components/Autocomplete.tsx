@@ -1,9 +1,12 @@
 /** @file A select menu with a dropdown. */
 import * as React from 'react'
 
+import CloseIcon from '#/assets/cross.svg'
+
 import FocusRing from '#/components/styled/FocusRing'
 import Input from '#/components/styled/Input'
 
+import { Button } from '#/components/AriaComponents'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 import { twMerge } from 'tailwind-merge'
 
@@ -40,7 +43,7 @@ interface InternalBaseAutocompleteProps<T> {
 interface InternalSingleAutocompleteProps<T> extends InternalBaseAutocompleteProps<T> {
   /** Whether selecting multiple values is allowed. */
   readonly multiple?: false
-  readonly setValues: (value: [T]) => void
+  readonly setValues: (value: readonly [] | readonly [T]) => void
   readonly itemsToString?: never
 }
 
@@ -182,18 +185,18 @@ export default function Autocomplete<T>(props: AutocompleteProps<T>) {
   }
 
   return (
-    <div className="relative h-6">
+    <div className="relative h-6 w-full">
       <div
         onKeyDown={onKeyDown}
         className={twMerge(
-          'absolute grow transition-colors',
+          'absolute w-full grow transition-colors',
           isDropdownVisible && matchingItems.length !== 0 ?
             'before:absolute before:inset-0 before:z-1 before:rounded-xl before:border before:border-primary/10 before:bg-frame before:shadow-soft before:backdrop-blur-default'
           : '',
         )}
       >
         <FocusRing within>
-          <div className="flex flex-1 rounded-full">
+          <div className="relative z-1 flex flex-1 rounded-full">
             {canEditText ?
               <Input
                 type={type}
@@ -233,6 +236,17 @@ export default function Autocomplete<T>(props: AutocompleteProps<T>) {
                 {itemsToString?.(values) ?? (values[0] != null ? itemToString(values[0]) : ZWSP)}
               </div>
             }
+            <Button
+              size="medium"
+              variant="icon"
+              icon={CloseIcon}
+              className="absolute right-1 top-1/2 -translate-y-1/2"
+              onPress={() => {
+                setValues([])
+                // setIsDropdownVisible(true)
+                setText?.('')
+              }}
+            />
           </div>
         </FocusRing>
         <div

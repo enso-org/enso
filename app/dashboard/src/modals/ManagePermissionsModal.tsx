@@ -317,7 +317,7 @@ export default function ManagePermissionsModal<
                     assetType={item.type}
                     onChange={setAction}
                   />
-                  <div className="-mx-button-px grow">
+                  <div className="grow">
                     <Autocomplete
                       multiple
                       autoFocus
