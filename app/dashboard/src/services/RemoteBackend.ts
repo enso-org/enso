@@ -1032,14 +1032,12 @@ export default class RemoteBackend extends Backend {
   override async createCheckoutSession(
     params: backend.CreateCheckoutSessionRequestParams,
   ): Promise<backend.CheckoutSession> {
-    const { plan, paymentMethodId } = params
-
     const response = await this.post<backend.CheckoutSession>(
       remoteBackendPaths.CREATE_CHECKOUT_SESSION_PATH,
-      { plan, paymentMethodId } satisfies backend.CreateCheckoutSessionRequestBody,
+      params satisfies backend.CreateCheckoutSessionRequestBody,
     )
     if (!responseIsSuccessful(response)) {
-      return await this.throw(response, 'createCheckoutSessionBackendError', plan)
+      return await this.throw(response, 'createCheckoutSessionBackendError', params.plan)
     } else {
       return await response.json()
     }
