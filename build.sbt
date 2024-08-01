@@ -164,8 +164,14 @@ GatherLicenses.distributions := Seq(
   makeStdLibDistribution("Database", Distribution.sbtProjects(`std-database`)),
   makeStdLibDistribution("Image", Distribution.sbtProjects(`std-image`)),
   makeStdLibDistribution("AWS", Distribution.sbtProjects(`std-aws`)),
-  makeStdLibDistribution("Snowflake", Distribution.sbtProjects(`std-snowflake`)),
-  makeStdLibDistribution("Microsoft", Distribution.sbtProjects(`std-microsoft`)),
+  makeStdLibDistribution(
+    "Snowflake",
+    Distribution.sbtProjects(`std-snowflake`)
+  ),
+  makeStdLibDistribution(
+    "Microsoft",
+    Distribution.sbtProjects(`std-microsoft`)
+  ),
   makeStdLibDistribution("Tableau", Distribution.sbtProjects(`std-tableau`))
 )
 
