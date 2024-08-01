@@ -56,7 +56,6 @@ import * as backendModule from '#/services/Backend'
 import * as localBackendModule from '#/services/LocalBackend'
 import * as projectManager from '#/services/ProjectManager'
 
-import * as array from '#/utilities/array'
 import LocalStorage from '#/utilities/LocalStorage'
 import * as object from '#/utilities/object'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
@@ -169,7 +168,7 @@ function DashboardInner(props: DashboardProps) {
           updateModal((oldModal) => {
             if (oldModal == null) {
               const currentPage = projectsStore.getState().page
-              if (array.includes(Object.values(TabType), currentPage)) {
+              if (currentPage === TabType.settings) {
                 setPage(TabType.drive)
               }
             }

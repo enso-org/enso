@@ -18,8 +18,6 @@ import Input from '#/components/Input'
 import Link from '#/components/Link'
 import SubmitButton from '#/components/SubmitButton'
 
-import * as eventModule from '#/utilities/event'
-
 // ======================
 // === ForgotPassword ===
 // ======================
@@ -53,11 +51,7 @@ export default function ForgotPassword() {
         value={email}
         setValue={setEmail}
       />
-      <SubmitButton
-        text={getText('sendLink')}
-        icon={ArrowRightIcon}
-        onPress={eventModule.submitForm}
-      />
+      <SubmitButton text={getText('sendLink')} icon={ArrowRightIcon} />
     </AuthenticationPage>
   )
 }

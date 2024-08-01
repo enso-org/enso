@@ -42,7 +42,7 @@ import * as backend from '#/services/Backend'
 import { newDirectoryId } from '#/services/LocalBackend'
 import { TEAMS_DIRECTORY_ID, USERS_DIRECTORY_ID } from '#/services/remoteBackendPaths'
 
-import { fileName } from '#/utilities/fileInfo'
+import { getFileName } from '#/utilities/fileInfo'
 import LocalStorage from '#/utilities/LocalStorage'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 
@@ -435,7 +435,7 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
                       homeDirectoryId: newDirectoryId(backend.Path(directory)),
                     }}
                     icon={FolderIcon}
-                    label={fileName(directory)}
+                    label={getFileName(directory)}
                     buttonLabel={getText('localCategoryButtonLabel')}
                     dropZoneLabel={getText('localCategoryDropZoneLabel')}
                   />
@@ -448,7 +448,7 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
                     onPress={() => {
                       setModal(
                         <ConfirmDeleteModal
-                          actionText={getText('removeTheLocalDirectoryX', fileName(directory))}
+                          actionText={getText('removeTheLocalDirectoryX', getFileName(directory))}
                           doDelete={() => {
                             setLocalRootDirectories(
                               localRootDirectories.filter(

@@ -35,6 +35,7 @@ import EditAssetDescriptionModal from '#/modals/EditAssetDescriptionModal'
 import * as backendModule from '#/services/Backend'
 import * as localBackend from '#/services/LocalBackend'
 
+import { createGetProjectDetailsQuery } from '#/hooks/projectHooks'
 import { isCloudCategory } from '#/layouts/CategorySwitcher/Category'
 import type * as assetTreeNode from '#/utilities/AssetTreeNode'
 import * as dateTime from '#/utilities/dateTime'
@@ -49,6 +50,7 @@ import * as permissions from '#/utilities/permissions'
 import * as set from '#/utilities/set'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 import Visibility from '#/utilities/Visibility'
+import { useQuery } from '@tanstack/react-query'
 
 // =================
 // === Constants ===
@@ -158,6 +160,14 @@ export default function AssetRow(props: AssetRowProps) {
   const openProjectMutate = openProjectMutation.mutateAsync
   const closeProjectMutate = closeProjectMutation.mutateAsync
 
+  const { data: projectState } = useQuery({
+    // This is SAFE, as `isOpened` is only true for projects.
+    // eslint-disable-next-line no-restricted-syntax
+    ...createGetProjectDetailsQuery.createPassiveListener(item.item.id as backendModule.ProjectId),
+    select: (data) => data.state.type,
+    enabled: item.type === backendModule.AssetType.project,
+  })
+
   const setSelected = useEventCallback((newSelected: boolean) => {
     const { selectedKeys } = driveStore.getState()
     setSelectedKeys(set.withPresence(selectedKeys, item.key, newSelected))
@@ -251,7 +261,7 @@ export default function AssetRow(props: AssetRowProps) {
         let newId = asset.id
         if (!isCloud) {
           const oldPath = localBackend.extractTypeAndId(asset.id).id
-          const newPath = path.joinPath(newParentPath, fileInfo.fileName(oldPath))
+          const newPath = path.joinPath(newParentPath, fileInfo.getFileName(oldPath))
           switch (asset.type) {
             case backendModule.AssetType.file: {
               newId = localBackend.newFileId(newPath)
@@ -821,7 +831,12 @@ export default function AssetRow(props: AssetRowProps) {
                   }
                 }}
                 onDragStart={(event) => {
-                  if (rowState.isEditingName) {
+                  if (
+                    rowState.isEditingName ||
+                    (projectState !== backendModule.ProjectState.closed &&
+                      projectState !== backendModule.ProjectState.created &&
+                      projectState != null)
+                  ) {
                     event.preventDefault()
                   } else {
                     props.onDragStart?.(event)

@@ -37,6 +37,7 @@ export default function UserRow(props: UserRowProps) {
   const { user: self } = authProvider.useFullUserSession()
   const { setModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
+  const isAdmin = self.isOrganizationAdmin
   const isSelf = user.userId === self.userId
   const doDeleteUser = isSelf ? null : doDeleteUserRaw
 
@@ -60,6 +61,7 @@ export default function UserRow(props: UserRowProps) {
           }}
         />
       ),
+    { enabled: isAdmin },
   )
 
   return (

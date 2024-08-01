@@ -128,6 +128,14 @@ interface PlaceholderOverrides {
   readonly teamCategoryButtonLabel: [teamName: string]
   readonly userCategoryDropZoneLabel: [userName: string]
   readonly teamCategoryDropZoneLabel: [teamName: string]
+
+  readonly upgradeCTA: [plan: string]
+  readonly priceTemplate: [price: string, interval: string]
+  readonly months: [months: number]
+  readonly teamPlanSeatsDescription: [seats: number]
+  readonly tryFree: [days: number]
+  readonly organizationNameSettingsInputDescription: [howLong: number]
+  readonly trialDescription: [days: number]
 }
 
 /** An tuple of `string` for placeholders for each {@link TextId}. */

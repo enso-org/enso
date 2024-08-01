@@ -181,6 +181,7 @@ export default class RemoteBackend extends Backend {
   ): backend.DirectoryId | null {
     switch (user?.plan ?? null) {
       case null:
+      case backend.Plan.free:
       case backend.Plan.solo: {
         return user?.rootDirectoryId ?? null
       }
@@ -295,15 +296,7 @@ export default class RemoteBackend extends Backend {
 
   /** Resend an invitation to a user. */
   override async resendInvitation(userEmail: backend.EmailAddress): Promise<void> {
-    const response = await this.post(remoteBackendPaths.INVITATION_PATH, {
-      userEmail,
-      resend: true,
-    })
-    if (!responseIsSuccessful(response)) {
-      return await this.throw(response, 'resendInvitationBackendError')
-    } else {
-      return
-    }
+    await this.inviteUser({ userEmail, resend: true })
   }
 
   /** Upload a new profile picture for the current user. */
@@ -1057,14 +1050,12 @@ export default class RemoteBackend extends Backend {
   override async createCheckoutSession(
     params: backend.CreateCheckoutSessionRequestParams,
   ): Promise<backend.CheckoutSession> {
-    const { plan, paymentMethodId } = params
-
     const response = await this.post<backend.CheckoutSession>(
       remoteBackendPaths.CREATE_CHECKOUT_SESSION_PATH,
-      { plan, paymentMethodId } satisfies backend.CreateCheckoutSessionRequestBody,
+      params satisfies backend.CreateCheckoutSessionRequestBody,
     )
     if (!responseIsSuccessful(response)) {
-      return await this.throw(response, 'createCheckoutSessionBackendError', plan)
+      return await this.throw(response, 'createCheckoutSessionBackendError', params.plan)
     } else {
       return await response.json()
     }
