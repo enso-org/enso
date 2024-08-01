@@ -45,14 +45,13 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
     typeof value === 'string' ? value : null,
   )
   const [selectedChildIndex, setSelectedChildIndex] = React.useState<number | null>(null)
-  const [autocompleteItems, setAutocompleteItems] = React.useState<string[] | null>(null)
-  const { data: secrets } = useBackendQuery(remoteBackend, 'listSecrets', [], {
-    enabled:
-      'type' in schema &&
-      schema.type === 'string' &&
-      'format' in schema &&
-      schema.format === 'enso-secret',
-  })
+  const isSecret =
+    'type' in schema &&
+    schema.type === 'string' &&
+    'format' in schema &&
+    schema.format === 'enso-secret'
+  const { data: secrets } = useBackendQuery(remoteBackend, 'listSecrets', [], { enabled: isSecret })
+  const autocompleteItems = isSecret ? secrets?.map((secret) => secret.path) ?? null : null
 
   // NOTE: `enum` schemas omitted for now as they are not yet used.
   if ('const' in schema) {
@@ -65,9 +64,6 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
         case 'string': {
           if ('format' in schema && schema.format === 'enso-secret') {
             const isValid = typeof value === 'string' && value !== ''
-            if (autocompleteItems == null) {
-              setAutocompleteItems((secrets ?? []).map((secret) => secret.path))
-            }
             children.push(
               <div
                 className={tailwindMerge.twMerge(
