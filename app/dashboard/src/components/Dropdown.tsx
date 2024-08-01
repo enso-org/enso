@@ -204,7 +204,7 @@ function Dropdown<T>(props: DropdownProps<T>, ref: React.ForwardedRef<HTMLDivEle
         >
           <div
             className={tailwindMerge.twMerge(
-              'relative before:absolute before:top before:w-full before:rounded-input before:border before:border-primary/10 before:backdrop-blur-default before:transition-colors',
+              'relative before:absolute before:top before:w-full before:rounded-input before:border-0.5 before:border-primary/20 before:backdrop-blur-default before:transition-colors',
               isDropdownVisible ?
                 'before:h-full before:shadow-soft'
               : 'before:h-text group-hover:before:bg-hover-bg',
