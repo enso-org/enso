@@ -3,10 +3,12 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 from Standard.Base.Metadata.Choice import Option
 from Standard.Base.Metadata.Widget import Single_Choice
 
-from Standard.Table import Value_Type
+from Standard.Table import Column, Table, Value_Type
+import Standard.Table.Rows_To_Read.Rows_To_Read
+import Standard.Table.Internal.Java_Problems
 
-polyglot java import org.enso.tableau.HyperReader
 polyglot java import java.sql.Types
+polyglot java import org.enso.tableau.HyperReader
 
 type Hyper_File
     ## Creates a Hyper_File
@@ -84,6 +86,15 @@ type Hyper_Table
                 _ -> Value_Type.Unsupported_Data_Type "Unknown" Any
             Hyper_Column.Value column.name value_type column.nullable
 
+    ## Reads the Table into Enso Table
+    read : Rows_To_Read -> Table
+    read self (max_rows : Rows_To_Read = ..All_Rows) =
+        Java_Problems.with_problem_aggregator Problem_Behavior.Report_Warning java_problem_aggregator->
+            row_count = if max_rows == Rows_To_Read.All_Rows then Nothing else max_rows.rows
+            java_columns = HyperReader.readTable self.file.file.path self.schema self.table row_count java_problem_aggregator
+            enso_columns = java_columns.map c-> Column.from_storage c.getName c.getStorage
+            Table.new enso_columns
+
 ## An Enso representation of a Column in a Tableau Hyper Table.
 type Hyper_Column
     Value name:Text value_type:Value_Type nullable:Boolean
@@ -96,7 +107,6 @@ type Hyper_Column
     to_js_object : JS_Object
     to_js_object self =
         JS_Object.from_pairs [["type", "Hyper_Column"], ["name", self.name], ["value_type", self.value_type], ["nullable", self.nullable]]
-
 
 ## PRIVATE
 make_schema_selector hyper_file:Hyper_File include_any:Boolean=False =

@@ -5,11 +5,10 @@ import com.tableau.hyperapi.Connection;
 import com.tableau.hyperapi.HyperProcess;
 import com.tableau.hyperapi.Nullability;
 import com.tableau.hyperapi.SchemaName;
+import com.tableau.hyperapi.TableDefinition;
 import com.tableau.hyperapi.TableName;
-import com.tableau.hyperapi.TableDefinition.Column;
 import com.tableau.hyperapi.Telemetry;
 import com.tableau.hyperapi.TypeTag;
-
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URI;
@@ -19,10 +18,14 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.Types;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.OptionalInt;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.IntStream;
+import org.enso.table.data.table.Column;
+import org.enso.table.problems.ProblemAggregator;
 
 public class HyperReader {
   public static final Path HYPER_PATH = Path.of(getHyperPath());
@@ -128,10 +131,10 @@ public class HyperReader {
     }
   }
 
-  //** Record type for representing a Hyper table. */
-  public record Table(String schema, String name) {}
+  // ** Record type for representing a Hyper table. */
+  public record HyperTable(String schema, String name) {}
 
-  public static Table[] listTablesAllSchemas(String path) throws IOException {
+  public static HyperTable[] listTablesAllSchemas(String path) throws IOException {
     var process = getProcess();
     try (var connection = new Connection(process.getEndpoint(), path)) {
       var catalog = connection.getCatalog();
@@ -139,7 +142,7 @@ public class HyperReader {
     }
   }
 
-  public static Table[] listTables(String path, String schemaName) throws IOException{
+  public static HyperTable[] listTables(String path, String schemaName) throws IOException {
     var schemaNames = List.of(new SchemaName(schemaName));
     var process = getProcess();
     try (var connection = new Connection(process.getEndpoint(), path)) {
@@ -148,23 +151,32 @@ public class HyperReader {
     }
   }
 
-  private static Table[] listTablesImpl(Catalog catalog, List<SchemaName> schemaNames) {
-    var output = new ArrayList<Table>();
+  private static HyperTable[] listTablesImpl(Catalog catalog, List<SchemaName> schemaNames) {
+    var output = new ArrayList<HyperTable>();
     for (var schemaName : schemaNames) {
       var tables = catalog.getTableNames(schemaName);
       for (var table : tables) {
-        output.add(new Table(schemaName.getName().getUnescaped(), table.getName().getUnescaped()));
+        output.add(
+            new HyperTable(schemaName.getName().getUnescaped(), table.getName().getUnescaped()));
       }
     }
-    return output.toArray(Table[]::new);
+    return output.toArray(HyperTable[]::new);
   }
 
-  public final static int JSON = 10001;
-  public final static int INTERVAL = 10002;
+  public static final int JSON = 10001;
+  public static final int INTERVAL = 10002;
 
-  public record TableColumn(String name, int typeID, boolean nullable, OptionalInt length, OptionalInt precision, OptionalInt scale) {
-    public static TableColumn FromHyperColumn(Column hyperColumn) {
+  public record TableColumn(
+      int index,
+      String name,
+      int typeID,
+      boolean nullable,
+      OptionalInt length,
+      OptionalInt precision,
+      OptionalInt scale) {
+    public static TableColumn FromHyperColumn(int index, TableDefinition.Column hyperColumn) {
       return new TableColumn(
+          index,
           hyperColumn.getName().getUnescaped(),
           mapTypeTag(hyperColumn.getType().getTag()),
           hyperColumn.getNullability().equals(Nullability.NULLABLE),
@@ -195,15 +207,55 @@ public class HyperReader {
     }
   }
 
-  public static TableColumn[] readStructure(String path, String schemaName, String tableName) throws IOException {
+  public static TableColumn[] readStructure(String path, String schemaName, String tableName)
+      throws IOException {
     var tableNameObject = new TableName(new SchemaName(schemaName), tableName);
     var process = getProcess();
     try (var connection = new Connection(process.getEndpoint(), path)) {
-      var catalog = connection.getCatalog();
-      var definition = catalog.getTableDefinition(tableNameObject);
-      return definition.getColumns().stream()
-          .map(TableColumn::FromHyperColumn)
-          .toArray(TableColumn[]::new);
+      return readStructureInternal(connection, tableNameObject);
+    }
+  }
+
+  private static TableColumn[] readStructureInternal(
+      Connection connection, TableName tableNameObject) {
+    var catalog = connection.getCatalog();
+    var definition = catalog.getTableDefinition(tableNameObject);
+    var columns = definition.getColumns();
+    return IntStream.range(0, columns.size())
+        .mapToObj(i -> TableColumn.FromHyperColumn(i, columns.get(i)))
+        .toArray(TableColumn[]::new);
+  }
+
+  public static Column[] readTable(
+      String path,
+      String schemaName,
+      String tableName,
+      Integer rowLimit,
+      ProblemAggregator problemAggregator)
+      throws IOException {
+    var tableNameObject = new TableName(new SchemaName(schemaName), tableName);
+    var query = "SELECT * FROM " + tableNameObject + (rowLimit == null ? "" : " LIMIT " + rowLimit);
+    var process = getProcess();
+    try (var connection = new Connection(process.getEndpoint(), path)) {
+      var columns = readStructureInternal(connection, tableNameObject);
+
+      var builders =
+          Arrays.stream(columns)
+              .map(
+                  c ->
+                      TableColumnBuilder.create(
+                          c, rowLimit == null ? 1000 : rowLimit, problemAggregator))
+              .toList();
+
+      var result = connection.executeQuery(query);
+      while (result.nextRow()) {
+        builders.forEach(b -> b.append(result));
+      }
+
+      var storages = builders.stream().map(TableColumnBuilder::seal).toList();
+      return IntStream.range(0, columns.length)
+          .mapToObj(i -> new Column(columns[i].name(), storages.get(i)))
+          .toArray(Column[]::new);
     }
   }
 }
