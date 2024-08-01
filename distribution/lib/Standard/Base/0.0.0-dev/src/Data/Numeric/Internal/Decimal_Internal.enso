@@ -12,16 +12,6 @@ polyglot java import org.enso.base.numeric.Decimal_Utils
 ## PRIVATE
 type Decimal_Comparator
     compare (x : Decimal) (y : Decimal) =
-        warning_if_from_float x y <|
-            Ordering.from_sign (x.big_decimal.compareTo y.big_decimal)
+        Ordering.from_sign (x.big_decimal.compareTo y.big_decimal)
 
     hash x:Decimal = Decimal_Utils.hashCodeOf x.big_decimal
-
-## PRIVATE
-warning_if_from_float left right ~action =
-    result = action
-    case left of
-        Decimal.From_Float d f -> Warning.attach (Loss_Of_Numeric_Precision.Warning f d) result
-        _ -> case right of
-            Decimal.From_Float d f -> Warning.attach (Loss_Of_Numeric_Precision.Warning f d) result
-            _ -> result

@@ -1152,8 +1152,9 @@ from_big_decimal that = Decimal.Value that
 
 ## PRIVATE
 error_if_from_float left right ~action =
+    msg = "Cannot perform operation on Float and Decimal; please convert the Float to Decimal using .to_decimal."
     case left of
-        Decimal.From_Float _ _ -> Error.throw (Illegal_Argument.Error "Cannot perform operation on Float and Decimal.")
+        Decimal.From_Float _ _ -> Error.throw (Illegal_Argument.Error msg)
         _ -> case right of
-            Decimal.From_Float _ _ -> Error.throw (Illegal_Argument.Error "Cannot perform operation on Decimal and Float.")
+            Decimal.From_Float _ _ -> Error.throw (Illegal_Argument.Error msg)
             _ -> action
