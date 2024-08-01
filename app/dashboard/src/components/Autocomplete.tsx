@@ -188,7 +188,7 @@ export default function Autocomplete<T>(props: AutocompleteProps<T>) {
         className={twMerge(
           'absolute grow transition-colors',
           isDropdownVisible && matchingItems.length !== 0 ?
-            'before:absolute before:inset-0 before:rounded-xl before:border before:border-primary/10 before:bg-frame before:shadow-soft before:backdrop-blur-default'
+            'before:absolute before:inset-0 before:z-1 before:rounded-xl before:border before:border-primary/10 before:bg-frame before:shadow-soft before:backdrop-blur-default'
           : '',
         )}
       >
