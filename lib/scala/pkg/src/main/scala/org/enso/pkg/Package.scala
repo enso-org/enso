@@ -306,7 +306,8 @@ class PackageManager[F](implicit val fileSystem: FileSystem[F]) {
       edition              = edition,
       preferLocalLibraries = true,
       maintainers          = maintainers,
-      componentGroups      = componentGroups
+      componentGroups      = componentGroups,
+      requires             = Array()
     )
     create(root, config, template)
   }

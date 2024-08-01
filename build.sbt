@@ -3442,16 +3442,15 @@ lazy val `std-table` = project
     modulePath := {
       val updateReport = (Compile / update).value
       val requiredModIds = Seq(
-        "org.graalvm.polyglot" % "polyglot"                % graalMavenPackagesVersion,
-        "org.antlr"            % "antlr4-runtime"          % antlrVersion,
-        "com.univocity"        % "univocity-parsers"       % univocityParsersVersion,
-        "org.apache.poi"       % "poi"                     % poiOoxmlVersion,
-        "org.apache.poi"       % "poi-ooxml"               % poiOoxmlVersion,
-        "org.apache.poi"       % "poi-ooxml-lite"          % poiOoxmlVersion,
-        "org.apache.xmlbeans"  % "xmlbeans"                % xmlbeansVersion,
-        "org.graalvm.sdk"      % "collections"             % graalMavenPackagesVersion,
-        "com.ibm.icu"          % "icu4j"                   % icuVersion,
-        "org.netbeans.api"     % "org-openide-util-lookup" % netbeansApiVersion
+        "org.graalvm.polyglot" % "polyglot"          % graalMavenPackagesVersion,
+        "org.antlr"            % "antlr4-runtime"    % antlrVersion,
+        "com.univocity"        % "univocity-parsers" % univocityParsersVersion,
+        "org.apache.poi"       % "poi"               % poiOoxmlVersion,
+        "org.apache.poi"       % "poi-ooxml"         % poiOoxmlVersion,
+        "org.apache.poi"       % "poi-ooxml-lite"    % poiOoxmlVersion,
+        "org.apache.xmlbeans"  % "xmlbeans"          % xmlbeansVersion,
+        "org.graalvm.sdk"      % "collections"       % graalMavenPackagesVersion,
+        "com.ibm.icu"          % "icu4j"             % icuVersion
       )
       val externalRequiredMods = JPMSUtils.filterModulesFromUpdate(
         updateReport,

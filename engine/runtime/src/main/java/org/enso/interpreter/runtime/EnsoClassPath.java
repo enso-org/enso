@@ -4,6 +4,7 @@ import java.lang.module.Configuration;
 import java.lang.module.ModuleFinder;
 import java.nio.file.Path;
 import java.util.Collections;
+import java.util.List;
 
 /** Representation of an Enso library class path. */
 public final class EnsoClassPath {
@@ -18,19 +19,30 @@ public final class EnsoClassPath {
     this.loader = loader;
   }
 
-  static EnsoClassPath create(Path file) {
+  static EnsoClassPath create(Path file, List<EnsoClassPath> parents) {
     java.lang.module.ModuleFinder finder = ModuleFinder.of(file);
     java.util.List<java.lang.String> moduleNames =
         finder.findAll().stream().map(mod -> mod.descriptor().name()).toList();
     if (moduleNames.isEmpty()) {
       return EMPTY;
     } else {
-      var parent = ModuleLayer.boot();
-      var parentCfgs = Collections.singletonList(parent.configuration());
-      var parentModules = Collections.singletonList(parent);
-      var parentLoader = parent.findLoader("java.base");
-      var cfg = Configuration.resolve(finder, parentCfgs, finder, moduleNames);
-      var cntrl = ModuleLayer.defineModulesWithOneLoader(cfg, parentModules, parentLoader);
+      ModuleLayer.Controller cntrl;
+      if (parents.isEmpty()) {
+        var parent = ModuleLayer.boot();
+        var parentLoader = parent.findLoader("java.base");
+        var parentCfgs = Collections.singletonList(parent.configuration());
+        var parentModules = Collections.singletonList(parent);
+        var cfg =
+            Configuration.resolveAndBind(finder, parentCfgs, ModuleFinder.ofSystem(), moduleNames);
+        cntrl = ModuleLayer.defineModulesWithOneLoader(cfg, parentModules, parentLoader);
+      } else {
+        var parentCfgs = parents.stream().map(cp -> cp.layer.configuration()).toList();
+        var parentLayers = parents.stream().map(cp -> cp.layer).toList();
+        var parentLoader = ModuleLayer.boot().findLoader("java.base");
+        var cfg =
+            Configuration.resolveAndBind(finder, parentCfgs, ModuleFinder.ofSystem(), moduleNames);
+        cntrl = ModuleLayer.defineModulesWithManyLoaders(cfg, parentLayers, parentLoader);
+      }
       var layer = cntrl.layer();
       var loader = layer.findLoader(moduleNames.get(0));
       return new EnsoClassPath(cntrl, layer, loader);

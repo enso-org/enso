@@ -463,7 +463,23 @@ public final class EnsoContext {
     org.enso.interpreter.runtime.EnsoClassPath l = classPaths.get(pkg);
     if (l == null) {
       var ch = pkg.polyglotDir().resolve("java");
-      l = EnsoClassPath.create(Paths.get(ch.toUri()));
+      var requires = Arrays.asList(pkg.getConfig().requires());
+      var parents =
+          requires.stream()
+              .map(
+                  n -> {
+                    var name = LibraryName.fromModuleName(n);
+                    if (name.isDefined()) {
+                      var ln = name.get();
+                      var lib = this.packageRepository.getPackageForLibrary(ln);
+                      if (lib.isDefined()) {
+                        return findClassPath(lib.get());
+                      }
+                    }
+                    return findClassPath(null);
+                  })
+              .toList();
+      l = EnsoClassPath.create(Paths.get(ch.toUri()), parents);
       classPaths.put(pkg, l);
     }
     return l;

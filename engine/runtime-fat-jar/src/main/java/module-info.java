@@ -38,4 +38,6 @@ open module org.enso.runtime {
   //   Could not resolve type id 'org.enso.polyglot.data.Tree$Node' as a subtype of
   //   `org.enso.polyglot.data.Tree$Node<org.enso.polyglot.runtime.Runtime$Api$SuggestionUpdate>`: Not a subtype
   requires java.se;
+  // needed by org.apache.xmlbeans
+  requires jdk.xml.dom;
 }
