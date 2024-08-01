@@ -5,6 +5,7 @@ import FocusRing from '#/components/styled/FocusRing'
 import Input from '#/components/styled/Input'
 
 import * as tailwindMerge from '#/utilities/tailwindMerge'
+import { twMerge } from 'tailwind-merge'
 
 // =================
 // === Constants ===
@@ -181,72 +182,73 @@ export default function Autocomplete<T>(props: AutocompleteProps<T>) {
   }
 
   return (
-    <div onKeyDown={onKeyDown} className="grow">
-      <FocusRing within>
-        <div className="flex flex-1 rounded-full">
-          {canEditText ?
-            <Input
-              type={type}
-              ref={inputRef}
-              autoFocus={autoFocus}
-              size={1}
-              value={text ?? ''}
-              autoComplete="off"
-              placeholder={placeholder == null ? placeholder : placeholder}
-              className="text grow rounded-full bg-transparent px-button-x"
-              onFocus={() => {
-                setIsDropdownVisible(true)
-              }}
-              onBlur={() => {
-                window.setTimeout(() => {
-                  setIsDropdownVisible(false)
-                })
-              }}
-              onChange={(event) => {
-                setIsDropdownVisible(true)
-                setText(event.currentTarget.value === '' ? null : event.currentTarget.value)
-              }}
-            />
-          : <div
-              ref={(element) => element?.focus()}
-              tabIndex={-1}
-              className="text grow cursor-pointer whitespace-nowrap bg-transparent px-button-x"
-              onClick={() => {
-                setIsDropdownVisible(true)
-              }}
-              onBlur={() => {
-                requestAnimationFrame(() => {
-                  setIsDropdownVisible(false)
-                })
-              }}
-            >
-              {itemsToString?.(values) ?? (values[0] != null ? itemToString(values[0]) : ZWSP)}
-            </div>
-          }
-        </div>
-      </FocusRing>
-      <div className="h">
+    <div className="relative h-6">
+      <div
+        onKeyDown={onKeyDown}
+        className={twMerge(
+          'absolute grow transition-colors',
+          isDropdownVisible && matchingItems.length !== 0 ?
+            'before:absolute before:inset-0 before:rounded-xl before:border before:border-primary/10 before:bg-frame before:shadow-soft before:backdrop-blur-default'
+          : '',
+        )}
+      >
+        <FocusRing within>
+          <div className="flex flex-1 rounded-full">
+            {canEditText ?
+              <Input
+                type={type}
+                ref={inputRef}
+                autoFocus={autoFocus}
+                size={1}
+                value={text ?? ''}
+                autoComplete="off"
+                placeholder={placeholder == null ? placeholder : placeholder}
+                className="text grow rounded-full bg-transparent px-button-x"
+                onFocus={() => {
+                  setIsDropdownVisible(true)
+                }}
+                onBlur={() => {
+                  window.setTimeout(() => {
+                    setIsDropdownVisible(false)
+                  })
+                }}
+                onChange={(event) => {
+                  setIsDropdownVisible(true)
+                  setText(event.currentTarget.value === '' ? null : event.currentTarget.value)
+                }}
+              />
+            : <div
+                ref={(element) => element?.focus()}
+                tabIndex={-1}
+                className="text grow cursor-pointer whitespace-nowrap bg-transparent px-button-x"
+                onClick={() => {
+                  setIsDropdownVisible(true)
+                }}
+                onBlur={() => {
+                  window.setTimeout(() => {
+                    setIsDropdownVisible(false)
+                  })
+                }}
+              >
+                {itemsToString?.(values) ?? (values[0] != null ? itemToString(values[0]) : ZWSP)}
+              </div>
+            }
+          </div>
+        </FocusRing>
         <div
           className={tailwindMerge.twMerge(
-            'relative top-2 z-1 h-max w-full rounded-default shadow-soft before:absolute before:top before:h-full before:w-full before:rounded-default before:bg-frame before:backdrop-blur-default',
-            isDropdownVisible &&
-              matchingItems.length !== 0 &&
-              'before:border before:border-primary/10',
+            'relative z-1 grid h-max w-full rounded-b-xl transition-grid-template-rows duration-200',
+            isDropdownVisible && matchingItems.length !== 0 ? 'grid-rows-1fr' : 'grid-rows-0fr',
           )}
         >
-          <div
-            className={tailwindMerge.twMerge(
-              'relative max-h-autocomplete-suggestions w-full overflow-y-auto overflow-x-hidden rounded-default',
-              isDropdownVisible && matchingItems.length !== 0 ? '' : 'h-0',
-            )}
-          >
+          <div className="relative max-h-60 w-full overflow-y-auto overflow-x-hidden rounded-b-xl">
             {/* FIXME: "Invite" modal does not take into account the height of the autocomplete,
              * so the suggestions may go offscreen. */}
             {matchingItems.map((item, index) => (
               <div
                 key={itemToKey(item)}
                 className={tailwindMerge.twMerge(
-                  'text relative cursor-pointer whitespace-nowrap px-input-x first:rounded-t-default last:rounded-b-default hover:bg-hover-bg',
+                  'text relative cursor-pointer whitespace-nowrap px-input-x last:rounded-b-xl hover:bg-hover-bg',
                   valuesSet.has(item) && 'bg-hover-bg',
                   index === selectedIndex && 'bg-black/5',
                 )}

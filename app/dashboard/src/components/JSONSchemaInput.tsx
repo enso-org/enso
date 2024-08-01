@@ -71,7 +71,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
             children.push(
               <div
                 className={tailwindMerge.twMerge(
-                  'grow rounded-default border',
+                  'w-60 rounded-default border',
                   isValid ? 'border-primary/10' : 'border-red-700/60',
                 )}
               >
@@ -101,7 +101,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
                       value={typeof value === 'string' ? value : ''}
                       size={1}
                       className={tailwindMerge.twMerge(
-                        'focus-child w-data-link-text-input text grow rounded-input border bg-transparent px-input-x read-only:read-only',
+                        'focus-child text w-60 grow rounded-input border bg-transparent px-input-x read-only:read-only',
                         getValidator(path)(value) ? 'border-primary/10' : 'border-red-700/60',
                       )}
                       placeholder={getText('enterText')}
@@ -129,7 +129,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
                     value={typeof value === 'number' ? value : ''}
                     size={1}
                     className={tailwindMerge.twMerge(
-                      'focus-child w-data-link-text-input text grow rounded-input border bg-transparent px-input-x read-only:read-only',
+                      'focus-child text w-60 grow rounded-input border bg-transparent px-input-x read-only:read-only',
                       getValidator(path)(value) ? 'border-primary/10' : 'border-red-700/60',
                     )}
                     placeholder={getText('enterNumber')}
@@ -158,7 +158,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
                     value={typeof value === 'number' ? value : ''}
                     size={1}
                     className={tailwindMerge.twMerge(
-                      'focus-child w-data-link-text-input text grow rounded-input border bg-transparent px-input-x read-only:read-only',
+                      'focus-child min-6- text40 w-80 grow rounded-input border bg-transparent px-input-x read-only:read-only',
                       getValidator(path)(value) ? 'border-primary/10' : 'border-red-700/60',
                     )}
                     placeholder={getText('enterInteger')}
@@ -199,19 +199,13 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
           )
           if (jsonSchema.constantValue(defs, schema).length !== 1) {
             children.push(
-              <div className="flex flex-col gap-json-schema rounded-default border border-primary/10 p-json-schema-object-input">
+              <div className="grid items-center gap-json-schema rounded-default border border-primary/10 p-json-schema-object-input">
                 {propertyDefinitions.map((definition) => {
                   const { key, schema: childSchema } = definition
                   const isOptional = !requiredProperties.includes(key)
                   return jsonSchema.constantValue(defs, childSchema).length === 1 ?
                       null
-                    : <div
-                        key={key}
-                        className="flex flex-wrap items-center gap-2"
-                        {...('description' in childSchema ?
-                          { title: String(childSchema.description) }
-                        : {})}
-                      >
+                    : <>
                         <FocusArea active={isOptional} direction="horizontal">
                           {(innerProps) => {
                             const isPresent = value != null && key in value
@@ -222,7 +216,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
                                 isDisabled={!isOptional}
                                 isActive={!isOptional || isPresent}
                                 className={tailwindMerge.twMerge(
-                                  'text inline-block w-json-schema-object-key whitespace-nowrap rounded-full px-button-x text-left',
+                                  'text col-start-1 inline-block whitespace-nowrap rounded-full px-button-x text-left',
                                   isOptional && 'hover:bg-hover-bg',
                                 )}
                                 onPress={() => {
@@ -258,45 +252,47 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
                           }}
                         </FocusArea>
                         {value != null && key in value && (
-                          <JSONSchemaInput
-                            readOnly={readOnly}
-                            defs={defs}
-                            schema={childSchema}
-                            path={`${path}/properties/${key}`}
-                            getValidator={getValidator}
-                            // This is SAFE, as `value` is an untyped object.
-                            // eslint-disable-next-line no-restricted-syntax
-                            value={(value as Record<string, unknown>)[key] ?? null}
-                            setValue={(newValue) => {
-                              setValue((oldValue) => {
-                                if (typeof newValue === 'function') {
-                                  const unsafeValue: unknown = newValue(
-                                    // This is SAFE; but there is no way to tell TypeScript that an object
-                                    // has an index signature.
-                                    // eslint-disable-next-line no-restricted-syntax
-                                    (oldValue as Readonly<Record<string, unknown>>)[key] ?? null,
-                                  )
-                                  // The value MAY be `null`, but it is better than the value being a
-                                  // function (which is *never* the intended result).
-                                  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                                  newValue = unsafeValue!
-                                }
-                                return (
-                                    typeof oldValue === 'object' &&
-                                      oldValue != null &&
+                          <div className="col-start-2">
+                            <JSONSchemaInput
+                              readOnly={readOnly}
+                              defs={defs}
+                              schema={childSchema}
+                              path={`${path}/properties/${key}`}
+                              getValidator={getValidator}
+                              // This is SAFE, as `value` is an untyped object.
+                              // eslint-disable-next-line no-restricted-syntax
+                              value={(value as Record<string, unknown>)[key] ?? null}
+                              setValue={(newValue) => {
+                                setValue((oldValue) => {
+                                  if (typeof newValue === 'function') {
+                                    const unsafeValue: unknown = newValue(
                                       // This is SAFE; but there is no way to tell TypeScript that an object
                                       // has an index signature.
                                       // eslint-disable-next-line no-restricted-syntax
-                                      (oldValue as Readonly<Record<string, unknown>>)[key] ===
-                                        newValue
-                                  ) ?
-                                    oldValue
-                                  : { ...oldValue, [key]: newValue }
-                              })
-                            }}
-                          />
+                                      (oldValue as Readonly<Record<string, unknown>>)[key] ?? null,
+                                    )
+                                    // The value MAY be `null`, but it is better than the value being a
+                                    // function (which is *never* the intended result).
+                                    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                                    newValue = unsafeValue!
+                                  }
+                                  return (
+                                      typeof oldValue === 'object' &&
+                                        oldValue != null &&
+                                        // This is SAFE; but there is no way to tell TypeScript that an object
+                                        // has an index signature.
+                                        // eslint-disable-next-line no-restricted-syntax
+                                        (oldValue as Readonly<Record<string, unknown>>)[key] ===
+                                          newValue
+                                    ) ?
+                                      oldValue
+                                    : { ...oldValue, [key]: newValue }
+                                })
+                              }}
+                            />
+                          </div>
                         )}
-                      </div>
+                      </>
                 })}
               </div>,
             )
