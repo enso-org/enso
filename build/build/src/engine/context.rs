@@ -661,12 +661,10 @@ pub async fn runner_sanity_test(
             .args(["--run", repo_root.test.join("Base_Tests").as_str()])
             .set_env_opt(ENSO_JAVA, enso_java)?
             .set_env(ENSO_DATA_DIRECTORY, engine_package)?
-            .run_stdout()
-            .await?;
-        ensure!(
-            test_base.contains("0 tests failed."),
-            "All tests shall succeed. Output:\n{test_base}",
-        );
+            .run_ok()
+            .await;
+        test_base
+    } else {
+        Ok(())
     }
-    Ok(())
 }

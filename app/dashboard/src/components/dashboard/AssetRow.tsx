@@ -2,15 +2,18 @@
 import * as React from 'react'
 
 import { useMutation } from '@tanstack/react-query'
+import { useStore } from 'zustand'
 
 import BlankIcon from '#/assets/blank.svg'
 
 import { backendMutationOptions } from '#/hooks/backendHooks'
 import * as dragAndDropHooks from '#/hooks/dragAndDropHooks'
+import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import * as setAssetHooks from '#/hooks/setAssetHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
+import { useDriveStore, useSetSelectedKeys } from '#/providers/DriveProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
@@ -36,7 +39,6 @@ import * as localBackend from '#/services/LocalBackend'
 import * as projectManager from '#/services/ProjectManager'
 
 import type * as assetTreeNode from '#/utilities/AssetTreeNode'
-import AssetTreeNode from '#/utilities/AssetTreeNode'
 import * as dateTime from '#/utilities/dateTime'
 import * as download from '#/utilities/download'
 import * as drag from '#/utilities/drag'
@@ -81,29 +83,35 @@ export interface AssetRowProps
   readonly state: assetsTable.AssetsTableState
   readonly hidden: boolean
   readonly columns: columnUtils.Column[]
-  readonly selected: boolean
-  readonly setSelected: (selected: boolean) => void
-  readonly isSoleSelected: boolean
   readonly isKeyboardSelected: boolean
   readonly grabKeyboardFocus: () => void
-  readonly allowContextMenu: boolean
   readonly onClick: (props: AssetRowInnerProps, event: React.MouseEvent) => void
-  readonly onContextMenu?: (
-    props: AssetRowInnerProps,
-    event: React.MouseEvent<HTMLTableRowElement>,
-  ) => void
+  readonly select: () => void
   readonly updateAssetRef: React.Ref<(asset: backendModule.AnyAsset) => void>
 }
 
 /** A row containing an {@link backendModule.AnyAsset}. */
 export default function AssetRow(props: AssetRowProps) {
-  const { selected, isSoleSelected, isKeyboardSelected, isOpened } = props
-  const { setSelected, allowContextMenu, onContextMenu, state, columns, onClick } = props
+  const { isKeyboardSelected, isOpened, select, state, columns, onClick } = props
   const { item: rawItem, hidden: hiddenRaw, updateAssetRef, grabKeyboardFocus } = props
   const { nodeMap, setAssetPanelProps, doToggleDirectoryExpansion, doCopy, doCut, doPaste } = state
   const { setIsAssetPanelTemporarilyVisible, scrollContainerRef, rootDirectoryId, backend } = state
   const { visibilities } = state
 
+  const [item, setItem] = React.useState(rawItem)
+  const driveStore = useDriveStore()
+  const setSelectedKeys = useSetSelectedKeys()
+  const selected = useStore(driveStore, ({ visuallySelectedKeys, selectedKeys }) =>
+    (visuallySelectedKeys ?? selectedKeys).has(item.key),
+  )
+  const isSoleSelected = useStore(
+    driveStore,
+    ({ selectedKeys }) => selected && selectedKeys.size === 1,
+  )
+  const allowContextMenu = useStore(
+    driveStore,
+    ({ selectedKeys }) => selectedKeys.size === 0 || !selected || isSoleSelected,
+  )
   const draggableProps = dragAndDropHooks.useDraggable()
   const { user } = authProvider.useNonPartialUserSession()
   const { setModal, unsetModal } = modalProvider.useSetModal()
@@ -112,7 +120,6 @@ export default function AssetRow(props: AssetRowProps) {
   const dispatchAssetEvent = eventListProvider.useDispatchAssetEvent()
   const dispatchAssetListEvent = eventListProvider.useDispatchAssetListEvent()
   const [isDraggedOver, setIsDraggedOver] = React.useState(false)
-  const [item, setItem] = React.useState(rawItem)
   const rootRef = React.useRef<HTMLElement | null>(null)
   const dragOverTimeoutHandle = React.useRef<number | null>(null)
   const grabKeyboardFocusRef = React.useRef(grabKeyboardFocus)
@@ -122,9 +129,8 @@ export default function AssetRow(props: AssetRowProps) {
   const [rowState, setRowState] = React.useState<assetsTable.AssetRowState>(() =>
     object.merge(assetRowUtils.INITIAL_ROW_STATE, { setVisibility: setInsertionVisibility }),
   )
-  const key = AssetTreeNode.getKey(item)
   const isCloud = backend.type === backendModule.BackendType.remote
-  const outerVisibility = visibilities.get(key)
+  const outerVisibility = visibilities.get(item.key)
   const visibility =
     outerVisibility == null || outerVisibility === Visibility.visible ?
       insertionVisibility
@@ -150,6 +156,11 @@ export default function AssetRow(props: AssetRowProps) {
   const undoDeleteAsset = undoDeleteAssetMutation.mutateAsync
   const openProject = openProjectMutation.mutateAsync
   const closeProject = closeProjectMutation.mutateAsync
+
+  const setSelected = useEventCallback((newSelected: boolean) => {
+    const { selectedKeys } = driveStore.getState()
+    setSelectedKeys(set.withPresence(selectedKeys, item.key, newSelected))
+  })
 
   React.useEffect(() => {
     setItem(rawItem)
@@ -490,7 +501,7 @@ export default function AssetRow(props: AssetRowProps) {
                       asset.title,
                     ])
                     if (details.url != null) {
-                      await backend.download(details.url, asset.title)
+                      await backend.download(details.url, `${asset.title}.enso-project`)
                     } else {
                       const error: unknown = getText('projectHasNoSourceFilesPhrase')
                       toastAndLog('downloadProjectError', error, asset.title)
@@ -574,30 +585,30 @@ export default function AssetRow(props: AssetRowProps) {
           break
         }
         case AssetEventType.temporarilyAddLabels: {
-          const labels = event.ids.has(item.key) ? event.labelNames : set.EMPTY
+          const labels = event.ids.has(item.key) ? event.labelNames : set.EMPTY_SET
           setRowState((oldRowState) =>
             (
               oldRowState.temporarilyAddedLabels === labels &&
-              oldRowState.temporarilyRemovedLabels === set.EMPTY
+              oldRowState.temporarilyRemovedLabels === set.EMPTY_SET
             ) ?
               oldRowState
             : object.merge(oldRowState, {
                 temporarilyAddedLabels: labels,
-                temporarilyRemovedLabels: set.EMPTY,
+                temporarilyRemovedLabels: set.EMPTY_SET,
               }),
           )
           break
         }
         case AssetEventType.temporarilyRemoveLabels: {
-          const labels = event.ids.has(item.key) ? event.labelNames : set.EMPTY
+          const labels = event.ids.has(item.key) ? event.labelNames : set.EMPTY_SET
           setRowState((oldRowState) =>
             (
-              oldRowState.temporarilyAddedLabels === set.EMPTY &&
+              oldRowState.temporarilyAddedLabels === set.EMPTY_SET &&
               oldRowState.temporarilyRemovedLabels === labels
             ) ?
               oldRowState
             : object.merge(oldRowState, {
-                temporarilyAddedLabels: set.EMPTY,
+                temporarilyAddedLabels: set.EMPTY_SET,
                 temporarilyRemovedLabels: labels,
               }),
           )
@@ -605,9 +616,9 @@ export default function AssetRow(props: AssetRowProps) {
         }
         case AssetEventType.addLabels: {
           setRowState((oldRowState) =>
-            oldRowState.temporarilyAddedLabels === set.EMPTY ?
+            oldRowState.temporarilyAddedLabels === set.EMPTY_SET ?
               oldRowState
-            : object.merge(oldRowState, { temporarilyAddedLabels: set.EMPTY }),
+            : object.merge(oldRowState, { temporarilyAddedLabels: set.EMPTY_SET }),
           )
           const labels = asset.labels
           if (
@@ -630,9 +641,9 @@ export default function AssetRow(props: AssetRowProps) {
         }
         case AssetEventType.removeLabels: {
           setRowState((oldRowState) =>
-            oldRowState.temporarilyAddedLabels === set.EMPTY ?
+            oldRowState.temporarilyAddedLabels === set.EMPTY_SET ?
               oldRowState
-            : object.merge(oldRowState, { temporarilyAddedLabels: set.EMPTY }),
+            : object.merge(oldRowState, { temporarilyAddedLabels: set.EMPTY_SET }),
           )
           const labels = asset.labels
           if (
@@ -681,9 +692,9 @@ export default function AssetRow(props: AssetRowProps) {
   const clearDragState = React.useCallback(() => {
     setIsDraggedOver(false)
     setRowState((oldRowState) =>
-      oldRowState.temporarilyAddedLabels === set.EMPTY ?
+      oldRowState.temporarilyAddedLabels === set.EMPTY_SET ?
         oldRowState
-      : object.merge(oldRowState, { temporarilyAddedLabels: set.EMPTY }),
+      : object.merge(oldRowState, { temporarilyAddedLabels: set.EMPTY_SET }),
     )
   }, [])
 
@@ -711,7 +722,14 @@ export default function AssetRow(props: AssetRowProps) {
     case backendModule.AssetType.file:
     case backendModule.AssetType.datalink:
     case backendModule.AssetType.secret: {
-      const innerProps: AssetRowInnerProps = { key, item, setItem, state, rowState, setRowState }
+      const innerProps: AssetRowInnerProps = {
+        key: item.key,
+        item,
+        setItem,
+        state,
+        rowState,
+        setRowState,
+      }
       return (
         <>
           {!hidden && (
@@ -762,7 +780,9 @@ export default function AssetRow(props: AssetRowProps) {
                   if (allowContextMenu) {
                     event.preventDefault()
                     event.stopPropagation()
-                    onContextMenu?.(innerProps, event)
+                    if (!selected) {
+                      select()
+                    }
                     setModal(
                       <AssetContextMenu
                         innerProps={innerProps}
@@ -778,8 +798,6 @@ export default function AssetRow(props: AssetRowProps) {
                         doTriggerDescriptionEdit={doTriggerDescriptionEdit}
                       />,
                     )
-                  } else {
-                    onContextMenu?.(innerProps, event)
                   }
                 }}
                 onDragStart={(event) => {
@@ -876,7 +894,7 @@ export default function AssetRow(props: AssetRowProps) {
                   return (
                     <td key={column} className={columnUtils.COLUMN_CSS_CLASS[column]}>
                       <Render
-                        keyProp={key}
+                        keyProp={item.key}
                         isOpened={isOpened}
                         backendType={backend.type}
                         item={item}
@@ -902,7 +920,7 @@ export default function AssetRow(props: AssetRowProps) {
             <AssetContextMenu
               hidden
               innerProps={{
-                key,
+                key: item.key,
                 item,
                 setItem,
                 state,

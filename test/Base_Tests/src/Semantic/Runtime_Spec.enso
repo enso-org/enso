@@ -1,4 +1,5 @@
 import Standard.Base.Runtime
+import Standard.Base.Runtime.Debug
 import Standard.Base.Data.Numbers.Integer
 import Standard.Base.Any.Any
 import Standard.Base.Nothing.Nothing
@@ -38,6 +39,9 @@ add_specs suite_builder =
 
             r2 = Panic.catch Any (Runtime.with_disabled_context Input environment=Runtime.current_execution_environment  <| in_fn (out_fn 10)) p-> p.payload.to_text
             r2 . should_equal "(Forbidden_Operation.Error 'The Input context is disabled.')"
+    suite_builder.group "Debug" group_builder->
+        group_builder.specify "Debug.breakpoint doesn't stop indefinitly" <|
+            Debug.breakpoint
 
 main filter=Nothing =
     suite = Test.build suite_builder->

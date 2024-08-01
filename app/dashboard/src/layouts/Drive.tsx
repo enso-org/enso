@@ -81,7 +81,6 @@ export default function Drive(props: DriveProps) {
   const dispatchAssetListEvent = eventListProvider.useDispatchAssetListEvent()
   const [query, setQuery] = React.useState(() => AssetQuery.fromString(''))
   const [suggestions, setSuggestions] = React.useState<readonly assetSearchBar.Suggestion[]>([])
-  const [canDownload, setCanDownload] = React.useState(false)
   const [didLoadingProjectManagerFail, setDidLoadingProjectManagerFail] = React.useState(false)
   const [assetPanelPropsRaw, setAssetPanelProps] =
     React.useState<assetPanel.AssetPanelRequiredProps | null>(null)
@@ -262,7 +261,6 @@ export default function Drive(props: DriveProps) {
               setQuery={setQuery}
               suggestions={suggestions}
               category={category}
-              canDownload={canDownload}
               isAssetPanelOpen={isAssetPanelVisible}
               setIsAssetPanelOpen={(valueOrUpdater) => {
                 const newValue =
@@ -318,7 +316,6 @@ export default function Drive(props: DriveProps) {
                   hidden={hidden}
                   query={query}
                   setQuery={setQuery}
-                  setCanDownload={setCanDownload}
                   category={category}
                   setSuggestions={setSuggestions}
                   initialProjectName={initialProjectName}

@@ -106,7 +106,7 @@ public abstract class EnsoProjectNode extends Node {
   }
 
   private DataflowError unsupportedArgsError(Object moduleActual) {
-    return DataflowError.withoutTrace(
+    return DataflowError.withDefaultTrace(
         EnsoContext.get(this)
             .getBuiltins()
             .error()
@@ -116,7 +116,7 @@ public abstract class EnsoProjectNode extends Node {
   }
 
   private DataflowError notInModuleError(EnsoContext ctx) {
-    return DataflowError.withoutTrace(
+    return DataflowError.withDefaultTrace(
         ctx.getBuiltins().error().makeModuleNotInPackageError(), this);
   }
 

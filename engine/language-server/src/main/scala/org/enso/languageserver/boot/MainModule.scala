@@ -46,16 +46,14 @@ import org.enso.librarymanager.LibraryLocations
 import org.enso.librarymanager.local.DefaultLocalLibraryProvider
 import org.enso.librarymanager.published.PublishedLibraryCache
 import org.enso.lockmanager.server.LockManagerService
-import org.enso.logger.Converter
 import org.enso.logger.masking.Masking
-import org.enso.logger.JulHandler
 import org.enso.logger.akka.AkkaConverter
-import org.enso.common.HostAccessFactory
-import org.enso.polyglot.{RuntimeOptions, RuntimeServerInfo}
+import org.enso.common.RuntimeOptions
+import org.enso.common.ContextFactory
+import org.enso.polyglot.RuntimeServerInfo
 import org.enso.profiling.events.NoopEventsMonitor
 import org.enso.searcher.memory.InMemorySuggestionsRepo
 import org.enso.text.{ContentBasedVersioning, Sha3_224VersionCalculator}
-import org.graalvm.polyglot.Context
 import org.graalvm.polyglot.io.MessageEndpoint
 import org.slf4j.event.Level
 import org.slf4j.LoggerFactory
@@ -307,31 +305,30 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
   val stdInSink = new ObservableOutputStream
   val stdIn     = new ObservablePipedInputStream(stdInSink)
 
-  val builder = Context
-    .newBuilder()
-    .allowAllAccess(true)
-    .allowHostAccess(new HostAccessFactory().allWithTypeMapping())
-    .allowExperimentalOptions(true)
-    .option(RuntimeServerInfo.ENABLE_OPTION, "true")
-    .option(RuntimeOptions.INTERACTIVE_MODE, "true")
-    .option(RuntimeOptions.PROJECT_ROOT, serverConfig.contentRootPath)
-    .option(
-      RuntimeOptions.LOG_LEVEL,
-      Converter.toJavaLevel(logLevel).getName
-    )
-    .option(RuntimeOptions.STRICT_ERRORS, "false")
-    .option(RuntimeOptions.LOG_MASKING, Masking.isMaskingEnabled.toString)
-    .option(RuntimeOptions.EDITION_OVERRIDE, Info.currentEdition)
-    .option(
-      RuntimeOptions.JOB_PARALLELISM,
-      Runtime.getRuntime.availableProcessors().toString
-    )
-    .option(RuntimeOptions.PREINITIALIZE, "js")
+  val extraOptions = new java.util.HashMap[String, String]()
+  extraOptions.put(RuntimeServerInfo.ENABLE_OPTION, "true")
+  extraOptions.put(RuntimeOptions.INTERACTIVE_MODE, "true")
+  extraOptions.put(
+    RuntimeOptions.LOG_MASKING,
+    Masking.isMaskingEnabled.toString
+  )
+  extraOptions.put(RuntimeOptions.EDITION_OVERRIDE, Info.currentEdition)
+  extraOptions.put(
+    RuntimeOptions.JOB_PARALLELISM,
+    Runtime.getRuntime.availableProcessors().toString
+  )
+
+  val builder = ContextFactory
+    .create()
+    .projectRoot(serverConfig.contentRootPath)
+    .logLevel(logLevel)
+    .strictErrors(false)
+    .disableLinting(false)
     .out(stdOut)
     .err(stdErr)
     .in(stdIn)
-    .logHandler(JulHandler.get())
-    .serverTransport((uri: URI, peerEndpoint: MessageEndpoint) => {
+    .options(extraOptions)
+    .messageTransport((uri: URI, peerEndpoint: MessageEndpoint) => {
       if (uri.toString == RuntimeServerInfo.URI) {
         val connection = new RuntimeConnector.Endpoint(
           runtimeConnector,

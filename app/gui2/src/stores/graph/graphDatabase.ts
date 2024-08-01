@@ -341,8 +341,6 @@ export class GraphDb {
     dirtyNodes: Set<AstId>,
   ) {
     const functionChanged = functionAst_.id !== this.currentFunction
-    // Note: `subtrees` returns a set that has the iteration order of all `Ast.ID`s in the order they appear in the
-    // module AST. This is important to ensure that nodes are updated in the correct order.
     const knownDirtySubtrees = functionChanged ? null : subtrees(functionAst_.module, dirtyNodes)
     const subtreeDirty = (id: AstId) => !knownDirtySubtrees || knownDirtySubtrees.has(id)
     this.currentFunction = functionAst_.id

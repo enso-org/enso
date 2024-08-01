@@ -21,10 +21,12 @@ import com.oracle.truffle.api.object.Shape;
 import com.oracle.truffle.api.source.Source;
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.net.MalformedURLException;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -37,6 +39,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import java.util.logging.Level;
 import org.enso.common.LanguageInfo;
+import org.enso.common.RuntimeOptions;
 import org.enso.compiler.Compiler;
 import org.enso.compiler.data.CompilerConfig;
 import org.enso.distribution.DistributionManager;
@@ -55,10 +58,10 @@ import org.enso.interpreter.runtime.state.State;
 import org.enso.interpreter.runtime.util.TruffleFileSystem;
 import org.enso.librarymanager.ProjectLoadingFailure;
 import org.enso.librarymanager.resolved.LibraryRoot;
+import org.enso.logger.masking.MaskedPath$;
 import org.enso.pkg.Package;
 import org.enso.pkg.PackageManager;
 import org.enso.pkg.QualifiedName;
-import org.enso.polyglot.RuntimeOptions;
 import org.enso.polyglot.debugger.IdExecutionService;
 import org.graalvm.options.OptionKey;
 import scala.jdk.javaapi.OptionConverters;
@@ -148,6 +151,7 @@ public final class EnsoContext {
             !isPrivateCheckDisabled,
             isStaticTypeAnalysisEnabled,
             getOption(RuntimeOptions.STRICT_ERRORS_KEY),
+            getOption(RuntimeOptions.DISABLE_LINTING_KEY),
             scala.Option.empty());
     this.home = home;
     this.builtins = new Builtins(this);
@@ -163,6 +167,7 @@ public final class EnsoContext {
     PackageManager<TruffleFile> packageManager = new PackageManager<>(fs);
 
     Optional<TruffleFile> projectRoot = OptionsHelper.getProjectRoot(environment);
+    checkWorkingDirectory(projectRoot);
     Optional<Package<TruffleFile>> projectPackage =
         projectRoot.map(
             file ->
@@ -202,6 +207,28 @@ public final class EnsoContext {
       var run = (Consumer<String>) environment.lookup(epb, Consumer.class);
       if (run != null) {
         run.accept(preinit);
+      }
+    }
+  }
+
+  /** Checks if the working directory is as expected and reports a warning if not. */
+  private void checkWorkingDirectory(Optional<TruffleFile> maybeProjectRoot) {
+    if (maybeProjectRoot.isPresent()) {
+      var root = maybeProjectRoot.get();
+      var parent = root.getAbsoluteFile().normalize().getParent();
+      var cwd = environment.getCurrentWorkingDirectory().getAbsoluteFile().normalize();
+      try {
+        if (!cwd.isSameFile(parent)) {
+          var maskedPath = MaskedPath$.MODULE$.apply(Path.of(parent.toString()));
+          logger.log(
+              Level.WARNING,
+              "Initializing the context in a different working directory than the one containing"
+                  + " the project root. This may lead to relative paths not behaving as advertised"
+                  + " by `File.new`. Please run the engine inside of `{}` directory.",
+              maskedPath);
+        }
+      } catch (IOException e) {
+        logger.severe("Error checking working directory: " + e.getMessage());
       }
     }
   }

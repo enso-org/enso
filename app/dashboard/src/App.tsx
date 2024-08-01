@@ -48,6 +48,7 @@ import * as inputBindingsModule from '#/configurations/inputBindings'
 
 import AuthProvider, * as authProvider from '#/providers/AuthProvider'
 import BackendProvider from '#/providers/BackendProvider'
+import DriveProvider from '#/providers/DriveProvider'
 import DevtoolsProvider from '#/providers/EnsoDevtoolsProvider'
 import { useHttpClient } from '#/providers/HttpClientProvider'
 import InputBindingsProvider from '#/providers/InputBindingsProvider'
@@ -507,10 +508,12 @@ function AppRouter(props: AppRouterProps) {
               onAuthenticated={onAuthenticated}
             >
               <InputBindingsProvider inputBindings={inputBindings}>
-                <errorBoundary.ErrorBoundary>
-                  <VersionChecker />
-                  {routes}
-                </errorBoundary.ErrorBoundary>
+                <DriveProvider>
+                  <errorBoundary.ErrorBoundary>
+                    <VersionChecker />
+                    {routes}
+                  </errorBoundary.ErrorBoundary>
+                </DriveProvider>
               </InputBindingsProvider>
             </AuthProvider>
           </BackendProvider>
